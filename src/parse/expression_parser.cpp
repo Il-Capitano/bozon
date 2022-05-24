@@ -240,9 +240,9 @@ ast::expression parse_compound_expression(
 	{
 		auto expr = std::move(statements.back().get<ast::stmt_expression>().expr);
 		statements.pop_back();
-		if (expr.is<ast::constant_expression>() && statements.size() == 0)
+		if (expr.is_constant() && statements.size() == 0)
 		{
-			auto &const_expr = expr.get<ast::constant_expression>();
+			auto &const_expr = expr.get_constant();
 			auto result_type = const_expr.type;
 			auto result_kind = const_expr.kind;
 			auto result_value = const_expr.value;

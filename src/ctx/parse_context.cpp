@@ -1496,16 +1496,16 @@ static ast::expression make_variable_expression(
 		bz_assert(context.has_errors());
 		return ast::make_error_expression(src_tokens, std::move(result_expr));
 	}
-	else if (id_type.is<ast::ts_consteval>() && var_decl->init_expr.is<ast::constant_expression>())
+	else if (id_type.is<ast::ts_consteval>() && var_decl->init_expr.is_constant())
 	{
 		auto &init_expr = var_decl->init_expr;
-		bz_assert(init_expr.is<ast::constant_expression>());
+		bz_assert(init_expr.is_constant());
 		ast::typespec result_type = id_type.get<ast::ts_consteval>();
 		result_type.add_layer<ast::ts_const>();
 		return ast::make_constant_expression(
 			src_tokens,
 			id_type_kind, std::move(result_type),
-			init_expr.get<ast::constant_expression>().value,
+			init_expr.get_constant_value(),
 			std::move(result_expr)
 		);
 	}
@@ -3622,7 +3622,7 @@ ast::expression parse_context::make_unary_operator_expression(
 		}
 		else
 		{
-			if (best_body->is_builtin_operator() && expr.is<ast::constant_expression>() && expr.is_integer_literal())
+			if (best_body->is_builtin_operator() && expr.is_constant() && expr.is_integer_literal())
 			{
 				auto result = make_unary_literal_operation(
 					src_tokens,
@@ -3828,7 +3828,7 @@ ast::expression parse_context::make_binary_operator_expression(
 		{
 			if (
 				best_body->is_builtin_operator()
-				&& args[0].is<ast::constant_expression>() && args[1].is<ast::constant_expression>()
+				&& args[0].is_constant() && args[1].is_constant()
 				&& args[0].is_integer_literal() && args[1].is_integer_literal()
 			)
 			{
@@ -3970,8 +3970,8 @@ ast::expression parse_context::make_function_call_expression(
 
 	if (called_type_kind == ast::expression_type_kind::function_name)
 	{
-		bz_assert(called.is<ast::constant_expression>());
-		auto &const_called = called.get<ast::constant_expression>();
+		bz_assert(called.is_constant());
+		auto &const_called = called.get_constant();
 		if (const_called.value.kind() == ast::constant_value::function)
 		{
 			auto const func_decl = const_called.value.get<ast::constant_value::function>();

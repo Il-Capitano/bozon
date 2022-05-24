@@ -276,27 +276,27 @@ type_info *expression::get_generic_type(void) const noexcept
 	return this->get_typename().get<ts_base_type>().info;
 }
 
-void expression::set_type(ast::typespec new_type)
+void expression::set_type(typespec new_type)
 {
-	if (this->is<ast::constant_expression>())
+	if (this->is<constant_expression>())
 	{
-		this->get<ast::constant_expression>().type = std::move(new_type);
+		this->get<constant_expression>().type = std::move(new_type);
 	}
-	else if (this->is<ast::dynamic_expression>())
+	else if (this->is<dynamic_expression>())
 	{
-		this->get<ast::dynamic_expression>().type = std::move(new_type);
+		this->get<dynamic_expression>().type = std::move(new_type);
 	}
 }
 
 void expression::set_type_kind(expression_type_kind new_kind)
 {
-	if (this->is<ast::constant_expression>())
+	if (this->is<constant_expression>())
 	{
-		this->get<ast::constant_expression>().kind = new_kind;
+		this->get<constant_expression>().kind = new_kind;
 	}
-	else if (this->is<ast::dynamic_expression>())
+	else if (this->is<dynamic_expression>())
 	{
-		this->get<ast::dynamic_expression>().kind = new_kind;
+		this->get<dynamic_expression>().kind = new_kind;
 	}
 }
 
@@ -304,18 +304,18 @@ std::pair<typespec_view, expression_type_kind> expression::get_expr_type_and_kin
 {
 	switch (this->kind())
 	{
-	case ast::expression::index_of<ast::constant_expression>:
+	case expression::index_of<constant_expression>:
 	{
-		auto &const_expr = this->get<ast::constant_expression>();
+		auto &const_expr = this->get<constant_expression>();
 		return { const_expr.type, const_expr.kind };
 	}
-	case ast::expression::index_of<ast::dynamic_expression>:
+	case expression::index_of<dynamic_expression>:
 	{
-		auto &dyn_expr = this->get<ast::dynamic_expression>();
+		auto &dyn_expr = this->get<dynamic_expression>();
 		return { dyn_expr.type, dyn_expr.kind };
 	}
 	default:
-		return { ast::typespec_view(), static_cast<ast::expression_type_kind>(0) };
+		return { typespec_view(), static_cast<expression_type_kind>(0) };
 	}
 }
 
@@ -323,19 +323,65 @@ typespec_view expression::get_expr_type(void) const noexcept
 {
 	switch (this->kind())
 	{
-	case ast::expression::index_of<ast::constant_expression>:
+	case expression::index_of<constant_expression>:
 	{
-		auto &const_expr = this->get<ast::constant_expression>();
+		auto &const_expr = this->get<constant_expression>();
 		return const_expr.type;
 	}
-	case ast::expression::index_of<ast::dynamic_expression>:
+	case expression::index_of<dynamic_expression>:
 	{
-		auto &dyn_expr = this->get<ast::dynamic_expression>();
+		auto &dyn_expr = this->get<dynamic_expression>();
 		return dyn_expr.type;
 	}
 	default:
-		return ast::typespec_view();
+		return typespec_view();
 	}
+}
+
+bool expression::is_constant(void) const noexcept
+{
+	return this->is<constant_expression>();
+}
+
+constant_expression &expression::get_constant(void) noexcept
+{
+	bz_assert(this->is_constant());
+	return this->get<constant_expression>();
+}
+
+constant_expression const &expression::get_constant(void) const noexcept
+{
+	bz_assert(this->is_constant());
+	return this->get<constant_expression>();
+}
+
+constant_value &expression::get_constant_value(void) noexcept
+{
+	bz_assert(this->is_constant());
+	return this->get<constant_expression>().value;
+}
+
+constant_value const &expression::get_constant_value(void) const noexcept
+{
+	bz_assert(this->is_constant());
+	return this->get<constant_expression>().value;
+}
+
+bool expression::is_dynamic(void) const noexcept
+{
+	return this->is<dynamic_expression>();
+}
+
+dynamic_expression &expression::get_dynamic(void) noexcept
+{
+	bz_assert(this->is_dynamic());
+	return this->get<dynamic_expression>();
+}
+
+dynamic_expression const &expression::get_dynamic(void) const noexcept
+{
+	bz_assert(this->is_dynamic());
+	return this->get<dynamic_expression>();
 }
 
 bool expression::is_constant_or_dynamic(void) const noexcept

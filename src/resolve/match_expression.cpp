@@ -916,9 +916,9 @@ static void match_expression_to_type_impl(
 	}
 	else if (expr.is_tuple())
 	{
-		if (expr.is<ast::constant_expression>())
+		if (expr.is_constant())
 		{
-			auto &const_expr = expr.get<ast::constant_expression>();
+			auto &const_expr = expr.get_constant();
 			auto kind = const_expr.kind;
 			auto type = std::move(const_expr.type);
 			auto inner_expr = std::move(const_expr.expr);
@@ -1081,7 +1081,7 @@ static void match_expression_to_type_impl(
 	if (!dest_container.is_typename() && dest_container.is<ast::ts_consteval>())
 	{
 		parse::consteval_try(expr, context);
-		if (!expr.is<ast::constant_expression>())
+		if (!expr.is_constant())
 		{
 			context.report_error(expr, "expression must be a constant expression", parse::get_consteval_fail_notes(expr));
 			if (!ast::is_complete(dest_container))

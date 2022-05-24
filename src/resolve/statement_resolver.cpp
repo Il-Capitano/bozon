@@ -242,15 +242,15 @@ static bz::u8string get_static_assert_expression(ast::constant_expression const 
 		{
 			auto const op_str = token_info[binary_op.op].token_value;
 			auto const &lhs = binary_op.lhs;
-			bz_assert(lhs.is<ast::constant_expression>());
-			auto const lhs_str = ast::get_value_string(lhs.get<ast::constant_expression>().value);
+			bz_assert(lhs.is_constant());
+			auto const lhs_str = ast::get_value_string(lhs.get_constant_value());
 			if (lhs_str == "")
 			{
 				return "";
 			}
 			auto const &rhs = binary_op.rhs;
-			bz_assert(rhs.is<ast::constant_expression>());
-			auto const rhs_str = ast::get_value_string(rhs.get<ast::constant_expression>().value);
+			bz_assert(rhs.is_constant());
+			auto const rhs_str = ast::get_value_string(rhs.get_constant_value());
 			if (rhs_str == "")
 			{
 				return "";
@@ -367,7 +367,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 		}
 	}
 
-	auto &cond_const_expr = static_assert_stmt.condition.get<ast::constant_expression>();
+	auto &cond_const_expr = static_assert_stmt.condition.get_constant();
 	bz_assert(cond_const_expr.value.kind() == ast::constant_value::boolean);
 	auto const cond = cond_const_expr.value.get<ast::constant_value::boolean>();
 
@@ -381,7 +381,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 		}
 		if (static_assert_stmt.message.not_null() && static_assert_stmt.message.not_error())
 		{
-			auto &message_const_expr = static_assert_stmt.message.get<ast::constant_expression>();
+			auto &message_const_expr = static_assert_stmt.message.get_constant();
 			bz_assert(message_const_expr.value.kind() == ast::constant_value::string);
 			auto const message = message_const_expr.value.get<ast::constant_value::string>().as_string_view();
 			error_message += bz::format(", message: '{}'", message);
@@ -900,7 +900,7 @@ static void resolve_type_alias_impl(ast::decl_type_alias &alias_decl, ctx::parse
 		return;
 	}
 
-	auto const &value = alias_decl.alias_expr.get<ast::constant_expression>().value;
+	auto const &value = alias_decl.alias_expr.get_constant_value();
 	if (value.is<ast::constant_value::type>())
 	{
 		auto const &type = value.get<ast::constant_value::type>();
@@ -1020,7 +1020,7 @@ static void resolve_function_alias_impl(ast::decl_function_alias &alias_decl, ct
 		return;
 	}
 
-	auto const &value = alias_decl.alias_expr.get<ast::constant_expression>().value;
+	auto const &value = alias_decl.alias_expr.get_constant_value();
 	if (value.is<ast::constant_value::function>())
 	{
 		auto const func_decl = value.get<ast::constant_value::function>();

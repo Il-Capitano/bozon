@@ -1132,8 +1132,8 @@ static val_ptr emit_bitcode(
 	}
 	else if (ptr == nullptr /* && consteval */)
 	{
-		bz_assert(id.decl->init_expr.not_error() && id.decl->init_expr.is<ast::constant_expression>());
-		auto &const_expr = id.decl->init_expr.get<ast::constant_expression>();
+		bz_assert(id.decl->init_expr.not_error() && id.decl->init_expr.is_constant());
+		auto &const_expr = id.decl->init_expr.get_constant();
 		auto const value = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
 		if (result_address == nullptr)
 		{
@@ -4234,8 +4234,8 @@ static val_ptr emit_bitcode(
 	{
 		bz_assert(base_type.is<ast::ts_tuple>() || subscript.base.is_tuple());
 		auto const tuple = emit_bitcode<abi>(subscript.base, context, nullptr);
-		bz_assert(subscript.index.is<ast::constant_expression>());
-		auto const &index_value = subscript.index.get<ast::constant_expression>().value;
+		bz_assert(subscript.index.is_constant());
+		auto const &index_value = subscript.index.get_constant_value();
 		bz_assert(index_value.is<ast::constant_value::uint>() || index_value.is<ast::constant_value::sint>());
 		auto const index_int_value = index_value.is<ast::constant_value::uint>()
 			? index_value.get<ast::constant_value::uint>()
@@ -4933,8 +4933,8 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	bz_assert(if_expr.condition.is<ast::constant_expression>());
-	auto const &condition_value = if_expr.condition.get<ast::constant_expression>().value;
+	bz_assert(if_expr.condition.is_constant());
+	auto const &condition_value = if_expr.condition.get_constant_value();
 	bz_assert(condition_value.is<ast::constant_value::boolean>());
 	if (condition_value.get<ast::constant_value::boolean>())
 	{
@@ -4981,8 +4981,8 @@ static val_ptr emit_bitcode(
 		auto const bb = context.add_basic_block("case");
 		for (auto const &expr : case_vals)
 		{
-			bz_assert(expr.template is<ast::constant_expression>());
-			auto const &const_expr = expr.template get<ast::constant_expression>();
+			bz_assert(expr.is_constant());
+			auto const &const_expr = expr.get_constant();
 			auto const val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
 			bz_assert(val != nullptr && llvm::dyn_cast<llvm::ConstantInt>(val) != nullptr);
 			auto const const_int_val = static_cast<llvm::ConstantInt *>(val);
@@ -5287,8 +5287,8 @@ static llvm::Constant *get_value(
 			auto &tuple = const_expr->expr.get<ast::expr_tuple>();
 			for (auto const &elem : tuple.elems)
 			{
-				bz_assert(elem.is<ast::constant_expression>());
-				auto const &const_elem = elem.get<ast::constant_expression>();
+				bz_assert(elem.is_constant());
+				auto const &const_elem = elem.get_constant();
 				elems.push_back(get_value<abi>(const_elem.value, const_elem.type, &const_elem, context));
 				types.push_back(elems.back()->getType());
 			}
@@ -5436,9 +5436,9 @@ static val_ptr emit_bitcode(
 	switch (expr.kind())
 	{
 	case ast::expression::index_of<ast::constant_expression>:
-		return emit_bitcode<abi>(expr.src_tokens, expr.get<ast::constant_expression>(), context, result_address);
+		return emit_bitcode<abi>(expr.src_tokens, expr.get_constant(), context, result_address);
 	case ast::expression::index_of<ast::dynamic_expression>:
-		return emit_bitcode<abi>(expr.src_tokens, expr.get<ast::dynamic_expression>(), context, result_address);
+		return emit_bitcode<abi>(expr.src_tokens, expr.get_dynamic(), context, result_address);
 	case ast::expression::index_of<ast::error_expression>:
 		if constexpr (is_comptime<decltype(context)>)
 		{
@@ -6190,8 +6190,8 @@ static void emit_function_bitcode_impl(
 			else if (ast::is_generic_parameter(p))
 			{
 				bz_assert(p.get_type().is<ast::ts_consteval>());
-				bz_assert(p.init_expr.is<ast::constant_expression>());
-				auto const &const_expr = p.init_expr.get<ast::constant_expression>();
+				bz_assert(p.init_expr.is_constant());
+				auto const &const_expr = p.init_expr.get_constant();
 				auto const val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
 				auto const alloca = context.create_alloca_without_lifetime_start(val->getType());
 				auto const size = context.get_size(val->getType());
@@ -6392,8 +6392,8 @@ static void emit_function_bitcode_impl(
 			else if (ast::is_generic_parameter(p))
 			{
 				bz_assert(p.get_type().is<ast::ts_consteval>());
-				bz_assert(p.init_expr.is<ast::constant_expression>());
-				auto const &const_expr = p.init_expr.get<ast::constant_expression>();
+				bz_assert(p.init_expr.is_constant());
+				auto const &const_expr = p.init_expr.get_constant();
 				auto const val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
 				auto const alloca = context.create_alloca_without_lifetime_start(val->getType());
 				auto const size = context.get_size(val->getType());
@@ -6602,8 +6602,8 @@ static void emit_global_variable_impl(ast::decl_variable const &var_decl, auto &
 	{
 		global_var->setLinkage(llvm::GlobalValue::InternalLinkage);
 	}
-	bz_assert(var_decl.init_expr.is<ast::constant_expression>());
-	auto const &const_expr = var_decl.init_expr.get<ast::constant_expression>();
+	bz_assert(var_decl.init_expr.is_constant());
+	auto const &const_expr = var_decl.init_expr.get_constant();
 	auto const init_val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
 	global_var->setInitializer(init_val);
 	context.add_variable(&var_decl, global_var, type);
