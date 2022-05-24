@@ -4,8 +4,8 @@
 #include "ctx/parse_context.h"
 #include "ctx/bitcode_context.h"
 #include "lex/lexer.h"
-#include "parse/consteval.h"
 #include "parse/statement_parser.h"
+#include "resolve/consteval.h"
 #include "resolve/statement_resolver.h"
 
 static bz::u8string read_text_from_file(std::istream &file)
@@ -312,6 +312,6 @@ void src_file::aggressive_consteval(ctx::global_context &global_ctx)
 
 	for (auto &decl : this->_declarations)
 	{
-		parse::consteval_try_without_error_decl(decl, context);
+		resolve::consteval_try_without_error_decl(decl, context);
 	}
 }

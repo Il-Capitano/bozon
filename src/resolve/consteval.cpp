@@ -2,7 +2,7 @@
 #include "safe_operations.h"
 #include "global_data.h"
 
-namespace parse
+namespace resolve
 {
 
 static ast::constant_value evaluate_binary_plus(
@@ -4417,4 +4417,4 @@ bz::vector<ctx::source_highlight> get_consteval_fail_notes(ast::expression const
 	}
 }
 
-} // namespace parse
+} // namespace resolve

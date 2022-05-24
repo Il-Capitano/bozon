@@ -2,7 +2,6 @@
 #include "ast/expression.h"
 #include "ast/typespec.h"
 #include "expression_parser.h"
-#include "consteval.h"
 #include "parse_common.h"
 #include "token_info.h"
 #include "ctx/global_context.h"

@@ -1,9 +1,9 @@
-#ifndef PARSE_SAFE_OPERATIONS_H
-#define PARSE_SAFE_OPERATIONS_H
+#ifndef RESOLVE_SAFE_OPERATIONS_H
+#define RESOLVE_SAFE_OPERATIONS_H
 
 #include "ctx/parse_context.h"
 
-namespace parse
+namespace resolve
 {
 
 int64_t safe_unary_minus(
@@ -200,6 +200,6 @@ bz::optional<uint64_t> safe_binary_bit_right_shift(
 	ctx::parse_context &context
 );
 
-} // namespace parse
+} // namespace resolve
 
-#endif //PARSE_SAFE_OPERATIONS_H
+#endif // RESOLVE_SAFE_OPERATIONS_H

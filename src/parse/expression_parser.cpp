@@ -1,6 +1,5 @@
 #include "expression_parser.h"
 #include "statement_parser.h"
-#include "consteval.h"
 #include "parse_common.h"
 #include "global_data.h"
 #include "ctx/builtin_operators.h"
@@ -26,7 +25,6 @@ ast::expression parse_expression_without_semi_colon(
 	case lex::token::kw_switch:
 		return parse_switch_expression(stream, end, context);
 	default:
-		// parse_expression already calls consteval_guaranteed
 		return parse_expression(stream, end, context, prec);
 	}
 }

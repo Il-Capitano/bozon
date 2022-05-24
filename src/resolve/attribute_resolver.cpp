@@ -2,8 +2,8 @@
 #include "ctx/global_context.h"
 #include "expression_resolver.h"
 #include "match_expression.h"
+#include "consteval.h"
 #include "parse/expression_parser.h"
-#include "parse/consteval.h"
 
 namespace resolve
 {
@@ -286,14 +286,14 @@ static bool resolve_attribute(
 			{
 				resolve_expression(arg, context);
 				match_expression_to_type(arg, arg_type, context);
-				parse::consteval_try(arg, context);
+				resolve::consteval_try(arg, context);
 				if (arg.not_error() && !arg.is_constant())
 				{
 					good = false;
 					context.report_error(
 						arg,
 						"attribute argument must be a constant expression",
-						parse::get_consteval_fail_notes(arg)
+						resolve::get_consteval_fail_notes(arg)
 					);
 				}
 			}

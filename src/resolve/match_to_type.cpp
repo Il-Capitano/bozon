@@ -2,7 +2,6 @@
 #include "match_common.h"
 #include "match_expression.h"
 #include "statement_resolver.h"
-#include "parse/consteval.h"
 
 namespace resolve
 {

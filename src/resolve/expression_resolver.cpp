@@ -1,8 +1,8 @@
 #include "expression_resolver.h"
 #include "statement_resolver.h"
 #include "match_expression.h"
+#include "consteval.h"
 #include "global_data.h"
-#include "parse/consteval.h"
 #include "parse/expression_parser.h"
 #include "escape_sequences.h"
 #include "colors.h"
@@ -374,7 +374,7 @@ static ast::expression resolve_expr(
 		return ast::make_error_expression(src_tokens, std::move(result_node));
 	}
 
-	parse::consteval_try(if_expr.condition, context);
+	resolve::consteval_try(if_expr.condition, context);
 	if (if_expr.condition.has_consteval_failed())
 	{
 		context.report_error(if_expr.condition.src_tokens, "condition for an if consteval expression must be a constant expression");
@@ -486,7 +486,7 @@ static ast::expression resolve_expr(
 		for (auto &case_value : case_values)
 		{
 			match_expression_to_type(case_value, match_type, context);
-			parse::consteval_try(case_value, context);
+			resolve::consteval_try(case_value, context);
 		}
 	}
 
@@ -695,7 +695,7 @@ static ast::expression resolve_expr(
 	bool good = true;
 	auto const sizes = array_type.sizes
 		.transform([&good, &context](auto &size) -> uint64_t {
-			parse::consteval_try(size, context);
+			resolve::consteval_try(size, context);
 			if (size.is_error())
 			{
 				good = false;
@@ -900,7 +900,7 @@ void resolve_expression(ast::expression &expr, ctx::parse_context &context)
 		expr.consteval_state = expr_consteval_state;
 		expr.paren_level = expr_paren_level;
 	}
-	parse::consteval_guaranteed(expr, context);
+	resolve::consteval_guaranteed(expr, context);
 }
 
 } // namespace resolve

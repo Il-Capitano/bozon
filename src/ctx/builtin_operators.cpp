@@ -2,7 +2,7 @@
 #include "global_context.h"
 #include "parse_context.h"
 #include "token_info.h"
-#include "parse/consteval.h"
+#include "resolve/consteval.h"
 #include "resolve/expression_resolver.h"
 #include "overflow_operations.h"
 
@@ -707,14 +707,14 @@ static ast::expression get_builtin_unary_consteval(
 {
 	bz_assert(op_kind == lex::token::kw_consteval);
 	bz_assert(expr.not_error());
-	parse::consteval_try(expr, context);
+	resolve::consteval_try(expr, context);
 	if (expr.has_consteval_succeeded())
 	{
 		return expr;
 	}
 	else
 	{
-		context.report_error(expr.src_tokens, "failed to evaluate expression at compile time", parse::get_consteval_fail_notes(expr));
+		context.report_error(expr.src_tokens, "failed to evaluate expression at compile time", resolve::get_consteval_fail_notes(expr));
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 }

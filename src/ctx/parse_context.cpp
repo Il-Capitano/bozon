@@ -5,7 +5,7 @@
 #include "builtin_operators.h"
 #include "lex/lexer.h"
 #include "escape_sequences.h"
-#include "parse/consteval.h"
+#include "resolve/consteval.h"
 #include "resolve/statement_resolver.h"
 #include "resolve/match_to_type.h"
 #include "resolve/match_expression.h"
@@ -3397,7 +3397,7 @@ static ast::expression make_expr_function_call_from_body(
 			ast::expression_type_kind::type_name, ast::make_typename_typespec(nullptr),
 			ast::make_expr_function_call(src_tokens, std::move(args), body, resolve_order)
 		);
-		parse::consteval_try(result, context);
+		resolve::consteval_try(result, context);
 		return result;
 	}
 
@@ -4863,7 +4863,7 @@ ast::expression parse_context::make_generic_type_instantiation_expression(
 	for (auto const [arg, generic_param] : bz::zip(args, generic_params))
 	{
 		resolve::match_expression_to_variable(arg, generic_param, *this);
-		parse::consteval_try(arg, *this);
+		resolve::consteval_try(arg, *this);
 		bz_assert(!generic_param.get_type().is<ast::ts_variadic>());
 		good &= arg.not_error();
 		if (arg.not_error())
