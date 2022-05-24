@@ -4606,7 +4606,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 				constless_type.is<ast::ts_array>()
 				|| constless_type.is<ast::ts_array_slice>()
 				|| constless_type.is<ast::ts_tuple>()
-				|| kind == ast::expression_type_kind::tuple
+				|| called.is_tuple()
 			)
 			{
 				called = make_builtin_subscript_operator(src_tokens, std::move(called), std::move(arg), *this);
@@ -5257,6 +5257,12 @@ ast::constant_value parse_context::execute_compound_expression(
 	ast::expr_compound &expr
 )
 {
+	if (expr.final_expr.not_null())
+	{
+		auto auto_type = ast::make_auto_typespec(nullptr);
+		resolve::match_expression_to_type(expr.final_expr, auto_type, *this);
+	}
+
 	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
 	this->global_ctx._comptime_executor.current_parse_ctx = this;
 	// bz::log("line {}\n", src_tokens.pivot->src_pos.line);

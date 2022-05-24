@@ -21,6 +21,7 @@ struct expr_typed_literal;
 struct expr_tuple;
 struct expr_unary_op;
 struct expr_binary_op;
+struct expr_tuple_subscript;
 struct expr_subscript;
 struct expr_function_call;
 struct expr_cast;
@@ -64,6 +65,7 @@ using expr_t = node<
 	expr_tuple,
 	expr_unary_op,
 	expr_binary_op,
+	expr_tuple_subscript,
 	expr_subscript,
 	expr_function_call,
 	expr_cast,
@@ -383,6 +385,20 @@ struct expr_binary_op
 		: op (_op),
 		  lhs(std::move(_lhs)),
 		  rhs(std::move(_rhs))
+	{}
+};
+
+struct expr_tuple_subscript
+{
+	expr_tuple base;
+	expression index;
+
+	expr_tuple_subscript(
+		expr_tuple _base,
+		expression _index
+	)
+		: base (std::move(_base)),
+		  index(std::move(_index))
 	{}
 };
 
@@ -849,6 +865,7 @@ def_make_fn(expr_t, expr_typed_literal)
 def_make_fn(expr_t, expr_tuple)
 def_make_fn(expr_t, expr_unary_op)
 def_make_fn(expr_t, expr_binary_op)
+def_make_fn(expr_t, expr_tuple_subscript)
 def_make_fn(expr_t, expr_subscript)
 def_make_fn(expr_t, expr_function_call)
 def_make_fn(expr_t, expr_cast)

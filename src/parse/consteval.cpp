@@ -1,6 +1,7 @@
 #include "consteval.h"
 #include "safe_operations.h"
 #include "global_data.h"
+#include "resolve/match_expression.h"
 
 namespace parse
 {
@@ -1115,6 +1116,29 @@ static ast::constant_value evaluate_binary_op(
 	}
 }
 
+static ast::constant_value evaluate_tuple_subscript(ast::expr_tuple_subscript const &tuple_subscript_expr)
+{
+	bz_assert(tuple_subscript_expr.index.is<ast::constant_expression>());
+	auto const is_consteval = tuple_subscript_expr.base.elems
+		.is_all([](auto const &elem) {
+			return elem.template is<ast::constant_expression>();
+		});
+	if (!is_consteval)
+	{
+		return {};
+	}
+
+	auto const &index_value = tuple_subscript_expr.index.get<ast::constant_expression>().value;
+	bz_assert(
+		index_value.is<ast::constant_value::uint>()
+		|| (index_value.is<ast::constant_value::sint>() && index_value.get<ast::constant_value::sint>() >= 0)
+	);
+	auto const index_int_value = index_value.is<ast::constant_value::uint>()
+		? index_value.get<ast::constant_value::uint>()
+		: static_cast<uint64_t>(index_value.get<ast::constant_value::sint>());
+	return tuple_subscript_expr.base.elems[index_int_value].get<ast::constant_expression>().value;
+}
+
 static ast::constant_value evaluate_subscript(
 	ast::expr_subscript const &subscript_expr,
 	ctx::parse_context &context
@@ -1208,9 +1232,7 @@ static ast::constant_value evaluate_subscript(
 	}
 	else
 	{
-		// bz_assert(base_type.is<ast::ts_tuple>());
-		// ^^^  this is not valid because base_type could also be empty if it's a tuple expression
-		// e.g. [1, 2, 3][0]
+		bz_assert(base_type.is<ast::ts_tuple>());
 		bz_assert(value.is<ast::constant_value::tuple>());
 		auto const &tuple_value = value.get<ast::constant_value::tuple>();
 		bz_assert(index_value < tuple_value.size());
@@ -2938,9 +2960,17 @@ static ast::constant_value guaranteed_evaluate_expr(
 				return {};
 			}
 		},
+		[&context](ast::expr_tuple_subscript &tuple_subscript_expr) -> ast::constant_value {
+			for (auto &elem : tuple_subscript_expr.base.elems)
+			{
+				consteval_guaranteed(elem, context);
+			}
+			consteval_guaranteed(tuple_subscript_expr.index, context);
+
+			return evaluate_tuple_subscript(tuple_subscript_expr);
+		},
 		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value {
 			consteval_guaranteed(subscript_expr.base, context);
-			consteval_guaranteed(subscript_expr.index, context);
 
 			return evaluate_subscript(subscript_expr, context);
 		},
@@ -3321,9 +3351,17 @@ static ast::constant_value try_evaluate_expr(
 				return {};
 			}
 		},
+		[&context](ast::expr_tuple_subscript &tuple_subscript_expr) -> ast::constant_value {
+			for (auto &elem : tuple_subscript_expr.base.elems)
+			{
+				consteval_try(elem, context);
+			}
+			consteval_try(tuple_subscript_expr.index, context);
+
+			return evaluate_tuple_subscript(tuple_subscript_expr);
+		},
 		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value {
 			consteval_try(subscript_expr.base, context);
-			consteval_try(subscript_expr.index, context);
 
 			return evaluate_subscript(subscript_expr, context);
 		},
@@ -3474,6 +3512,15 @@ static ast::constant_value try_evaluate_expr(
 			}
 			else
 			{
+				if (compound_expr.final_expr.not_null())
+				{
+					auto auto_type = ast::make_auto_typespec(nullptr);
+					resolve::match_expression_to_type(compound_expr.final_expr, auto_type, context);
+					auto const [type, kind] = compound_expr.final_expr.get_expr_type_and_kind();
+					expr.set_type(type);
+					expr.set_type_kind(kind);
+				}
+
 				return context.execute_compound_expression(expr.src_tokens, compound_expr);
 			}
 		},
@@ -3706,6 +3753,14 @@ static ast::constant_value try_evaluate_expr_without_error(
 			{
 				return {};
 			}
+		},
+		[&context](ast::expr_tuple_subscript &tuple_subscript_expr) -> ast::constant_value {
+			for (auto &elem : tuple_subscript_expr.base.elems)
+			{
+				consteval_try_without_error(elem, context);
+			}
+
+			return evaluate_tuple_subscript(tuple_subscript_expr);
 		},
 		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value {
 			consteval_try_without_error(subscript_expr.base, context);
@@ -4317,6 +4372,15 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 				if (binary_op.rhs.has_consteval_failed())
 				{
 					get_consteval_fail_notes_helper(binary_op.rhs, notes);
+				}
+			}
+		},
+		[&notes](ast::expr_tuple_subscript const &tuple_subscript_expr) {
+			for (auto const &elem : tuple_subscript_expr.base.elems)
+			{
+				if (elem.has_consteval_failed())
+				{
+					get_consteval_fail_notes_helper(elem, notes);
 				}
 			}
 		},

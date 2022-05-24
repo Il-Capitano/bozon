@@ -4,6 +4,7 @@
 #include "token_info.h"
 #include "parse/consteval.h"
 #include "resolve/expression_resolver.h"
+#include "resolve/match_expression.h"
 #include "overflow_operations.h"
 
 namespace ctx
@@ -979,7 +980,7 @@ ast::expression make_builtin_subscript_operator(
 	auto const [called_type, called_kind] = called.get_expr_type_and_kind();
 	auto const called_t = ast::remove_const_or_consteval(called_type);
 
-	if (called_t.is<ast::ts_tuple>() || called_kind == ast::expression_type_kind::tuple)
+	if (called_t.is<ast::ts_tuple>() || called.is_tuple())
 	{
 		if (!arg.is<ast::constant_expression>())
 		{
@@ -1022,16 +1023,16 @@ ast::expression make_builtin_subscript_operator(
 			index = static_cast<size_t>(value);
 		}
 
-		if (called.get_expr().is<ast::expr_tuple>())
+		if (called.is_tuple())
 		{
-			auto &tuple = called.get_expr().get<ast::expr_tuple>();
+			auto &tuple = called.get_tuple();
 			auto &result_elem = tuple.elems[index];
 			auto [result_type, result_kind] = result_elem.get_expr_type_and_kind();
 
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_kind, std::move(result_type),
-				ast::make_expr_subscript(std::move(called), std::move(arg))
+				ast::make_expr_tuple_subscript(std::move(tuple), std::move(arg))
 			);
 		}
 		else
