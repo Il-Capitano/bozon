@@ -22,6 +22,9 @@ struct decl_type_alias;
 struct decl_struct;
 struct decl_import;
 
+struct function_body;
+struct type_info;
+
 
 using statement_types = bz::meta::type_pack<
 	stmt_while,
