@@ -929,7 +929,7 @@ static llvm::Constant *get_value(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
-	lex::src_tokens const &src_tokens,
+	lex::src_tokens const &,
 	ast::expr_identifier const &id,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -943,7 +943,7 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
-	lex::src_tokens const &src_tokens,
+	lex::src_tokens const &,
 	ast::expr_identifier const &id,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
@@ -1167,7 +1167,7 @@ static val_ptr emit_builtin_unary_minus(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_unary_dereference(
-	lex::src_tokens const &src_tokens,
+	lex::src_tokens const &,
 	ast::expression const &expr,
 	auto &context,
 	llvm::Value *result_address
@@ -3913,7 +3913,7 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
-	lex::src_tokens const &src_tokens,
+	lex::src_tokens const &,
 	ast::expr_tuple_subscript const &tuple_subscript,
 	auto &context,
 	llvm::Value *result_address
@@ -4267,7 +4267,7 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
-	lex::src_tokens const &src_tokens,
+	lex::src_tokens const &,
 	ast::expr_take_reference const &take_ref,
 	auto &context,
 	llvm::Value *result_address
@@ -4411,6 +4411,51 @@ static void create_loop_end(array_init_loop_info_t loop_info, auto &context)
 	context.builder.SetInsertPoint(loop_info.end_bb);
 }
 
+struct array_destruct_loop_info_t
+{
+	llvm::BasicBlock *condition_check_bb;
+	llvm::BasicBlock *end_bb;
+	llvm::PHINode *condition_check_iter_val;
+	llvm::Value *iter_val;
+};
+
+static array_destruct_loop_info_t create_reversed_loop_start(size_t size, auto &context)
+{
+	// create a loop
+	auto const start_bb = context.builder.GetInsertBlock();
+	auto const condition_check_bb = context.add_basic_block("array_init_condition_check");
+	auto const loop_bb = context.add_basic_block("array_init_loop");
+	auto const end_bb = context.add_basic_block("array_init_end");
+
+	context.builder.CreateBr(condition_check_bb);
+	context.builder.SetInsertPoint(condition_check_bb);
+	auto const iter_val = context.builder.CreatePHI(context.get_usize_t(), 2);
+	auto const zero_value = llvm::ConstantInt::get(iter_val->getType(), 0);
+	auto const size_value = llvm::ConstantInt::get(iter_val->getType(), size);
+	iter_val->addIncoming(size_value, start_bb);
+	auto const is_at_end = context.builder.CreateICmpEQ(iter_val, zero_value);
+	context.builder.CreateCondBr(is_at_end, end_bb, loop_bb);
+	context.builder.SetInsertPoint(loop_bb);
+	auto const one_value = llvm::ConstantInt::get(iter_val->getType(), 1);
+	auto const next_iter_val = context.builder.CreateSub(iter_val, one_value);
+
+	return {
+		.condition_check_bb = condition_check_bb,
+		.end_bb = end_bb,
+		.condition_check_iter_val = iter_val,
+		.iter_val = next_iter_val
+	};
+}
+
+static void create_reversed_loop_end(array_destruct_loop_info_t loop_info, auto &context)
+{
+	context.builder.CreateBr(loop_info.condition_check_bb);
+	auto const loop_end_bb = context.builder.GetInsertBlock();
+
+	loop_info.condition_check_iter_val->addIncoming(loop_info.iter_val, loop_end_bb);
+	context.builder.SetInsertPoint(loop_info.end_bb);
+}
+
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
@@ -4460,8 +4505,8 @@ static val_ptr emit_bitcode(
 	auto const copied_val = emit_bitcode<abi>(array_copy_construct.copied_value, context, nullptr);
 
 	auto const type = copied_val.get_type();
-	auto const elem_type = type->getArrayElementType();
 	bz_assert(type->isArrayTy());
+	auto const elem_type = type->getArrayElementType();
 	auto const result_ptr = result_address != nullptr ? result_address : context.create_alloca(type);
 
 	if (copied_val.kind == val_ptr::value)
@@ -4504,12 +4549,53 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
-	ast::expr_array_move_construct const &,
+	ast::expr_array_move_construct const &array_move_construct,
 	auto &context,
 	llvm::Value *result_address
 )
 {
-	bz_unreachable;
+	auto const moved_val = emit_bitcode<abi>(array_move_construct.moved_value, context, nullptr);
+
+	auto const type = moved_val.get_type();
+	bz_assert(type->isArrayTy());
+	auto const elem_type = type->getArrayElementType();
+	auto const result_ptr = result_address != nullptr ? result_address : context.create_alloca(type);
+
+	if (moved_val.kind == val_ptr::value)
+	{
+		context.builder.CreateStore(moved_val.get_value(context.builder), result_ptr);
+		return val_ptr::get_reference(result_ptr, type);
+	}
+
+	bz_assert(ast::remove_const_or_consteval(array_move_construct.moved_value.get_expr_type()).is<ast::ts_array>());
+	auto const size = ast::remove_const_or_consteval(array_move_construct.moved_value.get_expr_type()).get<ast::ts_array>().size;
+
+	if (size <= array_loop_threshold)
+	{
+		for (auto const i : bz::iota(0, size))
+		{
+			auto const result_elem_ptr = context.create_struct_gep(type, result_ptr, i);
+			auto const elem_val = val_ptr::get_reference(context.create_struct_gep(type, moved_val.val, i), elem_type);
+			auto const prev_value = context.push_value_reference(elem_val);
+			emit_bitcode<abi>(array_move_construct.move_expr, context, result_elem_ptr);
+			context.pop_value_reference(prev_value);
+		}
+		return val_ptr::get_reference(result_ptr, type);
+	}
+	else
+	{
+		auto const loop_info = create_loop_start(size, context);
+
+		auto const result_elem_ptr = context.create_array_gep(type, result_ptr, loop_info.iter_val);
+		auto const elem_val = val_ptr::get_reference(context.create_array_gep(type, moved_val.val, loop_info.iter_val), elem_type);
+		auto const prev_value = context.push_value_reference(elem_val);
+		emit_bitcode<abi>(array_move_construct.move_expr, context, result_elem_ptr);
+		context.pop_value_reference(prev_value);
+
+		create_loop_end(loop_info, context);
+
+		return val_ptr::get_reference(result_ptr, type);
+	}
 }
 
 template<abi::platform_abi abi>
@@ -4549,7 +4635,7 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
-	lex::src_tokens const &src_tokens,
+	lex::src_tokens const &,
 	ast::expr_builtin_copy_construct const &builtin_copy_construct,
 	auto &context,
 	llvm::Value *result_address
@@ -4570,12 +4656,21 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
-	ast::expr_builtin_move_construct const &,
+	ast::expr_builtin_move_construct const &builtin_move_construct,
 	auto &context,
 	llvm::Value *result_address
 )
 {
-	bz_unreachable;
+	auto const result_val = emit_bitcode<abi>(builtin_move_construct.moved_value, context, nullptr);
+	if (result_address != nullptr)
+	{
+		context.builder.CreateStore(result_val.get_value(context.builder), result_address);
+		return val_ptr::get_reference(result_address, result_val.get_type());
+	}
+	else
+	{
+		return val_ptr::get_value(result_val.get_value(context.builder));
+	}
 }
 
 template<abi::platform_abi abi>
@@ -4594,7 +4689,7 @@ static val_ptr emit_bitcode(
 	bz_assert(type->isStructTy());
 	bz_assert(type->getStructNumElements() == aggregate_destruct.elem_destruct_calls.size());
 
-	for (auto const i : bz::iota(0, aggregate_destruct.elem_destruct_calls.size()))
+	for (auto const i : bz::iota(0, aggregate_destruct.elem_destruct_calls.size()).reversed())
 	{
 		if (aggregate_destruct.elem_destruct_calls[i].not_null())
 		{
@@ -4629,7 +4724,7 @@ static val_ptr emit_bitcode(
 
 	if (size <= array_loop_threshold)
 	{
-		for (auto const i : bz::iota(0, size))
+		for (auto const i : bz::iota(0, size).reversed())
 		{
 			auto const elem_ptr = context.create_struct_gep(type, val.val, i);
 			auto const prev_value = context.push_value_reference(val_ptr::get_reference(elem_ptr, elem_type));
@@ -4639,14 +4734,14 @@ static val_ptr emit_bitcode(
 	}
 	else
 	{
-		auto const loop_info = create_loop_start(size, context);
+		auto const loop_info = create_reversed_loop_start(size, context);
 
 		auto const elem_ptr = context.create_array_gep(type, val.val, loop_info.iter_val);
 		auto const prev_value = context.push_value_reference(val_ptr::get_reference(elem_ptr, elem_type));
 		emit_bitcode<abi>(array_destruct.elem_destruct_call, context, nullptr);
 		context.pop_value_reference(prev_value);
 
-		create_loop_end(loop_info, context);
+		create_reversed_loop_end(loop_info, context);
 	}
 
 	return val_ptr::get_none();
@@ -4675,7 +4770,7 @@ static val_ptr emit_bitcode(
 		context.pop_value_reference(prev_value);
 	}
 
-	for (auto const i : bz::iota(0, base_type_destruct.member_destruct_calls.size()))
+	for (auto const i : bz::iota(0, base_type_destruct.member_destruct_calls.size()).reversed())
 	{
 		if (base_type_destruct.member_destruct_calls[i].not_null())
 		{
@@ -4692,7 +4787,7 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
-	lex::src_tokens const &src_tokens,
+	lex::src_tokens const &,
 	ast::expr_member_access const &member_access,
 	auto &context,
 	llvm::Value *result_address
@@ -4743,7 +4838,7 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
-	lex::src_tokens const &src_tokens,
+	lex::src_tokens const &,
 	ast::expr_type_member_access const &member_access,
 	auto &context,
 	llvm::Value *result_address

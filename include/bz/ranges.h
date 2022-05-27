@@ -402,6 +402,67 @@ public:
 };
 
 template<typename T>
+struct reverse_iota_range : range_base<reverse_iota_range<T>>
+{
+private:
+	using self_t = reverse_iota_range<T>;
+private:
+	T _it;
+	T _end;
+
+public:
+	constexpr reverse_iota_range(T it, T end)
+		: _it(std::move(it)), _end(std::move(end))
+	{}
+
+	template<typename T1, typename T2>
+	constexpr reverse_iota_range(T1 it, T2 end)
+		: _it(std::move(it)), _end(std::move(end))
+	{}
+
+	constexpr bool at_end(void) const noexcept
+	{ return this->_it == this->_end; }
+
+	constexpr self_t &operator ++ (void) noexcept
+	{
+		--this->_it;
+		return *this;
+	}
+
+	template<typename U = T, meta::enable_if<internal::has_difference<U, U>, int> = 0>
+	constexpr std::size_t size(void) const noexcept
+	{
+		static_assert(meta::is_same<U, T>);
+		return static_cast<std::size_t>(this->_it - this->_end);
+	}
+
+	constexpr decltype(auto) operator * (void) const noexcept
+	{ return this->_it - 1; }
+
+	constexpr friend bool operator == (self_t const &lhs, [[maybe_unused]] universal_end_sentinel<self_t> rhs) noexcept
+	{ return lhs.at_end(); }
+
+	constexpr friend bool operator == ([[maybe_unused]] universal_end_sentinel<self_t> lhs, self_t const &rhs) noexcept
+	{ return rhs.at_end(); }
+
+	constexpr friend bool operator != (self_t const &lhs, [[maybe_unused]] universal_end_sentinel<self_t> rhs) noexcept
+	{ return !lhs.at_end(); }
+
+	constexpr friend bool operator != ([[maybe_unused]] universal_end_sentinel<self_t> lhs, self_t const &rhs) noexcept
+	{ return !rhs.at_end(); }
+
+	constexpr decltype(auto) front(void) const noexcept
+	{ return this->operator*(); }
+
+
+	constexpr self_t begin(void) const noexcept
+	{ return *this; }
+
+	constexpr universal_end_sentinel<self_t> end(void) const noexcept
+	{ return universal_end_sentinel<self_t>{}; }
+};
+
+template<typename T>
 struct iota_range : range_base<iota_range<T>>
 {
 private:
@@ -436,10 +497,10 @@ public:
 		return static_cast<std::size_t>(this->_end - this->_it);
 	}
 
-	constexpr decltype(auto) operator * (void) const noexcept
+	constexpr auto const &operator * (void) const noexcept
 	{ return this->_it; }
 
-	constexpr auto const &operator -> (void) const noexcept
+	constexpr decltype(auto) operator -> (void) const noexcept
 	{ return &this->_it; }
 
 	constexpr friend bool operator == (self_t const &lhs, [[maybe_unused]] universal_end_sentinel<self_t> rhs) noexcept
@@ -463,6 +524,9 @@ public:
 
 	constexpr universal_end_sentinel<self_t> end(void) const noexcept
 	{ return universal_end_sentinel<self_t>{}; }
+
+	constexpr reverse_iota_range<T> reversed(void) const noexcept
+	{ return reverse_iota_range<T>(this->_end, this->_it); }
 };
 
 template<typename ItType, typename EndType, typename FilterFuncType>
