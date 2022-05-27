@@ -2,8 +2,8 @@
 #include "ctx/global_context.h"
 #include "expression_resolver.h"
 #include "match_expression.h"
+#include "consteval.h"
 #include "parse/expression_parser.h"
-#include "parse/consteval.h"
 
 namespace resolve
 {
@@ -108,7 +108,7 @@ static bool apply_comptime_error_checking(
 )
 {
 	auto const kind = attribute.args[0]
-		.get<ast::constant_expression>().value
+		.get_constant_value()
 		.get<ast::constant_value::string>().as_string_view();
 
 	if (!context.global_ctx.add_comptime_checking_function(kind, &func_body))
@@ -130,7 +130,7 @@ static bool apply_comptime_error_checking(
 )
 {
 	auto const kind = attribute.args[0]
-		.get<ast::constant_expression>().value
+		.get_constant_value()
 		.get<ast::constant_value::string>().as_string_view();
 
 	if (!context.global_ctx.add_comptime_checking_variable(kind, &var_decl))
@@ -182,7 +182,7 @@ static bool apply_symbol_name(
 	else
 	{
 		auto const symbol_name = attribute.args[0]
-			.get<ast::constant_expression>().value
+			.get_constant_value()
 			.get<ast::constant_value::string>().as_string_view();
 
 		func_body.symbol_name = symbol_name;
@@ -286,14 +286,14 @@ static bool resolve_attribute(
 			{
 				resolve_expression(arg, context);
 				match_expression_to_type(arg, arg_type, context);
-				parse::consteval_try(arg, context);
-				if (arg.not_error() && !arg.is<ast::constant_expression>())
+				resolve::consteval_try(arg, context);
+				if (arg.not_error() && !arg.is_constant())
 				{
 					good = false;
 					context.report_error(
 						arg,
 						"attribute argument must be a constant expression",
-						parse::get_consteval_fail_notes(arg)
+						resolve::get_consteval_fail_notes(arg)
 					);
 				}
 			}

@@ -1,7 +1,7 @@
 #include "match_expression.h"
 #include "match_common.h"
 #include "match_to_type.h"
-#include "parse/consteval.h"
+#include "consteval.h"
 
 namespace resolve
 {
@@ -965,9 +965,9 @@ static void match_expression_to_type_impl(
 	}
 	else if (expr.is_tuple())
 	{
-		if (expr.is<ast::constant_expression>())
+		if (expr.is_constant())
 		{
-			auto &const_expr = expr.get<ast::constant_expression>();
+			auto &const_expr = expr.get_constant();
 			auto kind = const_expr.kind;
 			auto type = std::move(const_expr.type);
 			auto inner_expr = std::move(const_expr.expr);
@@ -1140,10 +1140,10 @@ static void match_expression_to_type_impl(
 
 	if (!dest_container.is_typename() && dest_container.is<ast::ts_consteval>())
 	{
-		parse::consteval_try(expr, context);
-		if (!expr.is<ast::constant_expression>())
+		resolve::consteval_try(expr, context);
+		if (!expr.is_constant())
 		{
-			context.report_error(expr, "expression must be a constant expression", parse::get_consteval_fail_notes(expr));
+			context.report_error(expr, "expression must be a constant expression", resolve::get_consteval_fail_notes(expr));
 			if (!ast::is_complete(dest_container))
 			{
 				dest_container.clear();
@@ -1169,7 +1169,7 @@ void match_expression_to_type(ast::expression &expr, ast::typespec &dest_type, c
 	else
 	{
 		match_expression_to_type_impl(expr, dest_type, dest_type, context);
-		parse::consteval_guaranteed(expr, context);
+		resolve::consteval_guaranteed(expr, context);
 	}
 }
 

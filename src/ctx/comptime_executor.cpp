@@ -1097,7 +1097,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 			{
 				// nothing, compound expressions can have type results as long as the expression itself can
 				// be evaluated at compile time
-				bz_assert(expr.final_expr.is<ast::constant_expression>());
+				bz_assert(expr.final_expr.is_constant());
 				result.first = ast::constant_value(expr.final_expr.get_typename());
 			}
 			else

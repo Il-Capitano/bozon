@@ -1,8 +1,8 @@
 #include "expression_resolver.h"
 #include "statement_resolver.h"
 #include "match_expression.h"
+#include "consteval.h"
 #include "global_data.h"
-#include "parse/consteval.h"
 #include "parse/expression_parser.h"
 #include "escape_sequences.h"
 #include "colors.h"
@@ -389,14 +389,14 @@ static ast::expression resolve_expr(
 		return ast::make_error_expression(src_tokens, std::move(result_node));
 	}
 
-	parse::consteval_try(if_expr.condition, context);
+	resolve::consteval_try(if_expr.condition, context);
 	if (if_expr.condition.has_consteval_failed())
 	{
 		context.report_error(if_expr.condition.src_tokens, "condition for an if consteval expression must be a constant expression");
 		return ast::make_error_expression(src_tokens, std::move(result_node));
 	}
 
-	auto const &condition_value = if_expr.condition.get<ast::constant_expression>().value;
+	auto const &condition_value = if_expr.condition.get_constant_value();
 	bz_assert(condition_value.is<ast::constant_value::boolean>());
 	if (condition_value.get<ast::constant_value::boolean>())
 	{
@@ -501,7 +501,7 @@ static ast::expression resolve_expr(
 		for (auto &case_value : case_values)
 		{
 			match_expression_to_type(case_value, match_type, context);
-			parse::consteval_try(case_value, context);
+			resolve::consteval_try(case_value, context);
 		}
 	}
 
@@ -522,7 +522,7 @@ static ast::expression resolve_expr(
 				{
 					return true;
 				}
-				bz_assert(value.is<ast::constant_expression>());
+				bz_assert(value.is_constant());
 				case_values.push_back(&value);
 			}
 		}
@@ -533,11 +533,11 @@ static ast::expression resolve_expr(
 		for (size_t i = 0; i < case_values.size() - 1; ++i)
 		{
 			auto const &lhs = *case_values[i];
-			auto const &lhs_value = lhs.get<ast::constant_expression>().value;
+			auto const &lhs_value = lhs.get_constant_value();
 			for (size_t j = i + 1; j < case_values.size(); ++j)
 			{
 				auto const &rhs = *case_values[j];
-				auto const &rhs_value = rhs.get<ast::constant_expression>().value;
+				auto const &rhs_value = rhs.get_constant_value();
 				if (lhs_value == rhs_value)
 				{
 					switch (rhs_value.kind())
@@ -643,9 +643,9 @@ static ast::expression resolve_expr(
 	auto const expr_kind = switch_expr.cases
 		.transform([](auto const &case_) {
 			bz_assert(case_.expr.is_constant_or_dynamic());
-			auto const kind = case_.expr.template is<ast::constant_expression>()
-				? case_.expr.template get<ast::constant_expression>().kind
-				: case_.expr.template get<ast::dynamic_expression>().kind;
+			auto const kind = case_.expr.is_constant()
+				? case_.expr.get_constant().kind
+				: case_.expr.get_dynamic().kind;
 			switch (kind)
 			{
 			case ast::expression_type_kind::none:
@@ -713,13 +713,13 @@ static ast::expression resolve_expr(
 	bool good = true;
 	auto const sizes = array_type.sizes
 		.transform([&good, &context](auto &size) -> uint64_t {
-			parse::consteval_try(size, context);
+			resolve::consteval_try(size, context);
 			if (size.is_error())
 			{
 				good = false;
 				return 0;
 			}
-			else if (!size.template is<ast::constant_expression>())
+			else if (!size.is_constant())
 			{
 				good = false;
 				context.report_error(size.src_tokens, "array size must be a constant expression");
@@ -727,7 +727,7 @@ static ast::expression resolve_expr(
 			}
 			else
 			{
-				ast::constant_value const &size_value = size.template get<ast::constant_expression>().value;
+				ast::constant_value const &size_value = size.get_constant_value();
 				switch (size_value.kind())
 				{
 				case ast::constant_value::sint:
@@ -918,7 +918,7 @@ void resolve_expression(ast::expression &expr, ctx::parse_context &context)
 		expr.consteval_state = expr_consteval_state;
 		expr.paren_level = expr_paren_level;
 	}
-	parse::consteval_guaranteed(expr, context);
+	resolve::consteval_guaranteed(expr, context);
 }
 
 } // namespace resolve
