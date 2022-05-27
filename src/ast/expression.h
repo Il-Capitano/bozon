@@ -130,6 +130,8 @@ struct destruct_self
 {
 	ast_unique_ptr<expression> destruct_call;
 
+	destruct_self(expression _destruct_call);
+
 	destruct_self(destruct_self const &other);
 	destruct_self(destruct_self &&other) = default;
 

@@ -5189,7 +5189,21 @@ void parse_context::add_self_destruction(ast::expression &expr)
 		return;
 	}
 
-	bz_unreachable;
+	if (
+		expr.is_dynamic()
+		&& expr.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue
+		&& !ast::is_trivially_destructible(expr.get_expr_type())
+	)
+	{
+		auto const type = ast::remove_const_or_consteval(expr.get_expr_type());
+		auto value_ref = ast::make_dynamic_expression(
+			expr.src_tokens,
+			ast::expression_type_kind::lvalue_reference, type,
+			ast::make_expr_bitcode_value_reference(),
+			ast::destruct_operation()
+		);
+		expr.get_dynamic().destruct_op = ast::destruct_self(make_destruct_expression(type, std::move(value_ref), *this));
+	}
 }
 
 ast::expression make_variable_destruction_expression(ast::decl_variable *var_decl, parse_context &context)

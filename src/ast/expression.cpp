@@ -4,6 +4,10 @@
 namespace ast
 {
 
+destruct_self::destruct_self(expression _destruct_call)
+	: destruct_call(make_ast_unique<expression>(std::move(_destruct_call)))
+{}
+
 destruct_self::destruct_self(destruct_self const &other)
 	: destruct_call(make_ast_unique<expression>(*other.destruct_call))
 {}
