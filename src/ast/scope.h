@@ -126,7 +126,6 @@ struct local_symbol_t : bz::variant<
 struct local_scope_t
 {
 	arena_vector<local_symbol_t> symbols{};
-	std::list<scope_t, vector_arena_allocator<scope_t>> inner_scopes{};
 	enclosing_scope_t parent = {};
 
 	local_symbol_t *find_by_id(identifier const &id, size_t bound) noexcept;
