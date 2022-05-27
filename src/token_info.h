@@ -83,6 +83,7 @@ enum : uint64_t
 	unary_type_op                    = bit_at<11>,
 	binary_type_op                   = bit_at<12>,
 	type_op                          = bit_at<13>,
+	unary_has_unevaluated_context    = bit_at<14>,
 };
 
 } // namespace token_info_flags
@@ -299,8 +300,8 @@ constexpr auto token_info = []() {
 	result[lex::token::kw_import]        = { lex::token::kw_import,        "import",        "", keyword_flags                   };
 	result[lex::token::kw_in]            = { lex::token::kw_in,            "in",            "", keyword_flags                   };
 
-	result[lex::token::kw_sizeof] = { lex::token::kw_sizeof, "sizeof", "", keyword_flags | unary_builtin_flags };
-	result[lex::token::kw_typeof] = { lex::token::kw_typeof, "typeof", "", keyword_flags | unary_builtin_flags };
+	result[lex::token::kw_sizeof] = { lex::token::kw_sizeof, "sizeof", "", keyword_flags | unary_builtin_flags | unary_has_unevaluated_context };
+	result[lex::token::kw_typeof] = { lex::token::kw_typeof, "typeof", "", keyword_flags | unary_builtin_flags | unary_has_unevaluated_context };
 
 	result[lex::token::kw_move]    = { lex::token::kw_move,    "move",      "", keyword_flags | unary_type_op_flags | unary_builtin_flags };
 	result[lex::token::kw_forward] = { lex::token::kw_forward, "__forward", "", keyword_flags | unary_builtin_flags };
@@ -470,6 +471,7 @@ def_token_flag_query(is_builtin_operator,        builtin)
 def_token_flag_query(is_unary_type_op,  unary_type_op)
 def_token_flag_query(is_binary_type_op, binary_type_op)
 def_token_flag_query(is_type_op,        type_op)
+def_token_flag_query(is_unary_has_unevaluated_context,  unary_has_unevaluated_context)
 
 #undef def_token_flag_query
 

@@ -75,7 +75,8 @@ static ast::expression get_builtin_unary_address_of(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 			std::move(result_type),
-			ast::make_expr_unary_op(op_kind, std::move(expr))
+			ast::make_expr_unary_op(op_kind, std::move(expr)),
+			ast::destruct_operation()
 		);
 	}
 
@@ -656,7 +657,8 @@ static ast::expression get_builtin_unary_move(
 			src_tokens,
 			ast::expression_type_kind::moved_lvalue,
 			type,
-			ast::make_expr_unary_op(op_kind, std::move(expr))
+			ast::make_expr_unary_op(op_kind, std::move(expr)),
+			ast::destruct_operation()
 		);
 	}
 	else if (kind == ast::expression_type_kind::lvalue_reference)
@@ -689,7 +691,8 @@ static ast::expression get_builtin_unary_forward(
 			src_tokens,
 			ast::expression_type_kind::moved_lvalue,
 			type,
-			ast::make_expr_unary_op(lex::token::kw_move, std::move(expr))
+			ast::make_expr_unary_op(lex::token::kw_move, std::move(expr)),
+			ast::destruct_operation()
 		);
 	}
 	else
@@ -774,7 +777,8 @@ static ast::expression get_builtin_binary_bool_and_xor_or(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue, std::move(result_type),
-				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs)),
+				ast::destruct_operation()
 			);
 		}
 	}
@@ -799,11 +803,14 @@ static ast::expression get_builtin_binary_comma(
 	auto const [type, type_kind] = rhs.get_expr_type_and_kind();
 	auto result_type = type;
 
+	context.add_self_destruction(lhs);
+
 	return ast::make_dynamic_expression(
 		src_tokens,
 		type_kind,
 		std::move(result_type),
-		ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
+		ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs)),
+		ast::destruct_operation()
 	);
 }
 
@@ -880,7 +887,8 @@ ast::expression make_builtin_cast(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				std::move(dest_t_copy),
-				ast::make_expr_cast(std::move(expr), std::move(dest_type))
+				ast::make_expr_cast(std::move(expr), std::move(dest_type)),
+				ast::destruct_operation()
 			);
 		}
 		else
@@ -899,7 +907,8 @@ ast::expression make_builtin_cast(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 			std::move(dest_t_copy),
-			ast::make_expr_cast(std::move(expr), std::move(dest_type))
+			ast::make_expr_cast(std::move(expr), std::move(dest_type)),
+			ast::destruct_operation()
 		);
 	}
 	else if (!dest_t.is<ast::ts_base_type>())
@@ -920,7 +929,8 @@ ast::expression make_builtin_cast(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				std::move(dest_t_copy),
-				ast::make_expr_cast(std::move(expr), std::move(dest_type))
+				ast::make_expr_cast(std::move(expr), std::move(dest_type)),
+				ast::destruct_operation()
 			);
 		}
 		else if (expr_kind == ast::type_info::char_ && ast::is_integer_kind(dest_kind))
@@ -930,7 +940,8 @@ ast::expression make_builtin_cast(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				std::move(dest_t_copy),
-				ast::make_expr_cast(std::move(expr), std::move(dest_type))
+				ast::make_expr_cast(std::move(expr), std::move(dest_type)),
+				ast::destruct_operation()
 			);
 		}
 		else if (ast::is_integer_kind(expr_kind) && dest_kind == ast::type_info::char_)
@@ -940,7 +951,8 @@ ast::expression make_builtin_cast(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				std::move(dest_t_copy),
-				ast::make_expr_cast(std::move(expr), std::move(dest_type))
+				ast::make_expr_cast(std::move(expr), std::move(dest_type)),
+				ast::destruct_operation()
 			);
 		}
 		else if (expr_kind == ast::type_info::bool_ && ast::is_integer_kind(dest_kind))
@@ -950,7 +962,8 @@ ast::expression make_builtin_cast(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				std::move(dest_t_copy),
-				ast::make_expr_cast(std::move(expr), std::move(dest_type))
+				ast::make_expr_cast(std::move(expr), std::move(dest_type)),
+				ast::destruct_operation()
 			);
 		}
 
@@ -1029,10 +1042,19 @@ ast::expression make_builtin_subscript_operator(
 			auto &result_elem = tuple.elems[index];
 			auto [result_type, result_kind] = result_elem.get_expr_type_and_kind();
 
+			for (auto const i : bz::iota(0, tuple.elems.size()))
+			{
+				if (i != index)
+				{
+					context.add_self_destruction(tuple.elems[i]);
+				}
+			}
+
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_kind, std::move(result_type),
-				ast::make_expr_tuple_subscript(std::move(tuple), std::move(arg))
+				ast::make_expr_tuple_subscript(std::move(tuple), std::move(arg)),
+				ast::destruct_operation()
 			);
 		}
 		else
@@ -1060,7 +1082,8 @@ ast::expression make_builtin_subscript_operator(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_kind, std::move(result_type),
-				ast::make_expr_subscript(std::move(called), std::move(arg))
+				ast::make_expr_subscript(std::move(called), std::move(arg)),
+				ast::destruct_operation()
 			);
 		}
 	}
@@ -1082,7 +1105,8 @@ ast::expression make_builtin_subscript_operator(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::lvalue, std::move(result_type),
-			ast::make_expr_subscript(std::move(called), std::move(arg))
+			ast::make_expr_subscript(std::move(called), std::move(arg)),
+			ast::destruct_operation()
 		);
 	}
 	else // if (called_t.is<ast::ts_array>())
@@ -1109,7 +1133,8 @@ ast::expression make_builtin_subscript_operator(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			result_kind, std::move(result_type),
-			ast::make_expr_subscript(std::move(called), std::move(arg))
+			ast::make_expr_subscript(std::move(called), std::move(arg)),
+			ast::destruct_operation()
 		);
 	}
 }
@@ -1184,7 +1209,7 @@ constexpr auto builtin_unary_operators = []() {
 		T{ lex::token::kw_sizeof,    &get_builtin_unary_sizeof                }, // sizeof
 		T{ lex::token::kw_typeof,    &get_builtin_unary_typeof                }, // typeof
 		T{ lex::token::kw_move,      &get_builtin_unary_move                  }, // move
-		T{ lex::token::kw_forward,   &get_builtin_unary_forward               }, // move
+		T{ lex::token::kw_forward,   &get_builtin_unary_forward               }, // __forward
 		T{ lex::token::kw_consteval, &get_builtin_unary_consteval             }, // consteval
 	};
 

@@ -4,6 +4,28 @@
 namespace ast
 {
 
+destruct_self::destruct_self(destruct_self const &other)
+	: destruct_call(make_ast_unique<expression>(*other.destruct_call))
+{}
+
+destruct_self &destruct_self::operator = (destruct_self const &other)
+{
+	if (this == &other)
+	{
+		return *this;
+	}
+
+	if (this->destruct_call == nullptr)
+	{
+		this->destruct_call = make_ast_unique<expression>(*other.destruct_call);
+	}
+	else
+	{
+		*this->destruct_call = *other.destruct_call;
+	}
+	return *this;
+}
+
 void expression::to_error(void)
 {
 	if (this->is<constant_expression>())

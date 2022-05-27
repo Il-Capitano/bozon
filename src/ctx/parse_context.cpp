@@ -64,8 +64,10 @@ parse_context::parse_context(parse_context const &other, local_copy_t)
 	  current_local_scope(other.current_local_scope),
 	  current_function(nullptr),
 	  is_aggressive_consteval_enabled(other.is_aggressive_consteval_enabled),
-	  variadic_info(other.variadic_info),
+	  in_loop(other.in_loop),
 	  parsing_variadic_expansion(other.parsing_variadic_expansion),
+	  in_unevaluated_context(other.in_unevaluated_context),
+	  variadic_info(other.variadic_info),
 	  resolve_queue(other.resolve_queue)
 {}
 
@@ -140,6 +142,18 @@ void parse_context::pop_variadic_resolver(variadic_resolve_info_t const &prev_in
 void parse_context::pop_parsing_variadic_expansion(bool prev_value) noexcept
 {
 	this->parsing_variadic_expansion = prev_value;
+}
+
+[[nodiscard]] bool parse_context::push_unevaluated_context(void) noexcept
+{
+	auto const result = this->in_unevaluated_context;
+	this->in_unevaluated_context = true;
+	return result;
+}
+
+void parse_context::pop_unevaluated_context(bool prev_value) noexcept
+{
+	this->in_unevaluated_context = prev_value;
 }
 
 void parse_context::push_parsing_template_argument(void) noexcept
@@ -1125,56 +1139,6 @@ void parse_context::report_ambiguous_id_error(lex::token_pos id) const
 }
 
 /*
-
-void parse_context::add_scope(void)
-{
-	bz_assert(this->current_local_scope.scope != nullptr);
-	bz_assert(this->current_local_scope.scope->is_local());
-	auto &inner_scope = this->current_local_scope.scope->get_local().inner_scopes.emplace_back(ast::local_scope_t{});
-	inner_scope.get_local().parent = this->current_local_scope;
-	this->current_local_scope = { &inner_scope, 0 };
-	this->generic_function_scope_start.push_back(this->generic_functions.size());
-}
-
-void parse_context::remove_scope(void)
-{
-	bz_assert(this->current_local_scope.scope != nullptr);
-	bz_assert(this->current_local_scope.scope->is_local());
-	auto &current_scope = this->current_local_scope.scope->get_local();
-	if (is_warning_enabled(warning_kind::unused_variable))
-	{
-		for (auto const var_decl : current_scope.var_decl_range())
-		{
-			if (!var_decl->is_used() && !var_decl->is_maybe_unused() && !var_decl->get_id().values.empty())
-			{
-				this->report_warning(
-					warning_kind::unused_variable,
-					*var_decl,
-					bz::format("unused variable '{}'", var_decl->get_id().format_as_unqualified()),
-					{ this->make_note_with_suggestion_before(
-						{}, var_decl->get_id().tokens.end - 1, "_",
-						"prefix variable name with an underscore to suppress this warning"
-					) }
-				);
-			}
-		}
-	}
-	auto const generic_functions_start_index = this->generic_function_scope_start.back();
-	for (std::size_t i = generic_functions_start_index ; i < this->generic_functions.size(); ++i)
-	{
-		bz_assert(!this->generic_functions[i]->is_generic());
-		this->add_to_resolve_queue({}, *this->generic_functions[i]);
-		resolve::resolve_function({}, *this->generic_functions[i], *this);
-		this->pop_resolve_queue();
-	}
-	this->generic_functions.resize(generic_functions_start_index);
-	this->generic_function_scope_start.pop_back();
-	bz_assert(current_scope.parent.scope->is_local());
-	this->current_local_scope = current_scope.parent;
-}
-
-*/
-
 static bz::u8string format_array(bz::array_view<bz::u8string_view const> ids)
 {
 	if (ids.empty())
@@ -1189,6 +1153,7 @@ static bz::u8string format_array(bz::array_view<bz::u8string_view const> ids)
 	result += " ]";
 	return result;
 }
+*/
 
 [[nodiscard]] size_t parse_context::add_unresolved_scope(void)
 {
@@ -1516,7 +1481,8 @@ static ast::expression make_variable_expression(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			id_type_kind, std::move(result_type),
-			std::move(result_expr)
+			std::move(result_expr),
+			ast::destruct_operation()
 		);
 	}
 	else if (id_type.is_typename())
@@ -1535,7 +1501,8 @@ static ast::expression make_variable_expression(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			id_type_kind, id_type,
-			std::move(result_expr)
+			std::move(result_expr),
+			ast::destruct_operation()
 		);
 	}
 }
@@ -3161,7 +3128,8 @@ ast::expression parse_context::make_tuple(lex::src_tokens const &src_tokens, ast
 			src_tokens,
 			ast::expression_type_kind::tuple,
 			ast::typespec(),
-			ast::make_expr_tuple(std::move(elems))
+			ast::make_expr_tuple(std::move(elems)),
+			ast::destruct_operation()
 		);
 	}
 }
@@ -3395,7 +3363,8 @@ static ast::expression make_expr_function_call_from_body(
 		auto result = ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name, ast::make_typename_typespec(nullptr),
-			ast::make_expr_function_call(src_tokens, std::move(args), body, resolve_order)
+			ast::make_expr_function_call(src_tokens, std::move(args), body, resolve_order),
+			ast::destruct_operation()
 		);
 		parse::consteval_try(result, context);
 		return result;
@@ -3411,7 +3380,8 @@ static ast::expression make_expr_function_call_from_body(
 	return ast::make_dynamic_expression(
 		src_tokens,
 		return_type_kind, return_type,
-		ast::make_expr_function_call(src_tokens, std::move(args), body, resolve_order)
+		ast::make_expr_function_call(src_tokens, std::move(args), body, resolve_order),
+		ast::destruct_operation()
 	);
 }
 
@@ -4138,7 +4108,8 @@ ast::expression parse_context::make_function_call_expression(
 				return ast::make_dynamic_expression(
 					src_tokens,
 					ast::expression_type_kind::rvalue, called_type,
-					ast::make_expr_builtin_default_construct(called_type)
+					ast::make_expr_builtin_default_construct(called_type),
+					ast::destruct_operation()
 				);
 			}
 			else if (called_type.is<ast::ts_tuple>())
@@ -4176,7 +4147,8 @@ ast::expression parse_context::make_function_call_expression(
 					return ast::make_dynamic_expression(
 						src_tokens,
 						ast::expression_type_kind::tuple, called_type,
-						ast::make_expr_tuple(std::move(values))
+						ast::make_expr_tuple(std::move(values)),
+						ast::destruct_operation()
 					);
 				}
 			}
@@ -4204,7 +4176,8 @@ ast::expression parse_context::make_function_call_expression(
 					return ast::make_dynamic_expression(
 						src_tokens,
 						ast::expression_type_kind::rvalue, called_type,
-						ast::make_expr_array_default_construct(called_type, std::move(ctor_call))
+						ast::make_expr_array_default_construct(called_type, std::move(ctor_call)),
+						ast::destruct_operation()
 					);
 				}
 			}
@@ -4582,7 +4555,8 @@ ast::expression parse_context::make_subscript_operator_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 			type_without_const,
-			ast::make_expr_aggregate_init(type_without_const, std::move(args))
+			ast::make_expr_aggregate_init(type_without_const, std::move(args)),
+			ast::destruct_operation()
 		);
 	}
 	else
@@ -4818,7 +4792,8 @@ ast::expression parse_context::make_member_access_expression(
 	return ast::make_dynamic_expression(
 		src_tokens,
 		result_kind, std::move(result_type),
-		ast::make_expr_member_access(std::move(base), index)
+		ast::make_expr_member_access(std::move(base), index),
+		ast::destruct_operation()
 	);
 }
 
@@ -4933,14 +4908,16 @@ static ast::expression make_tuple_copy_construction(
 				src_tokens,
 				ast::expression_type_kind::lvalue_reference,
 				elem_type,
-				ast::make_expr_bitcode_value_reference()
+				ast::make_expr_bitcode_value_reference(),
+				ast::destruct_operation()
 			));
 		})
 		.collect<ast::arena_vector>();
 	return ast::make_dynamic_expression(
 		src_tokens,
 		ast::expression_type_kind::rvalue, std::move(type),
-		ast::make_expr_aggregate_copy_construct(std::move(expr), std::move(elem_copy_exprs))
+		ast::make_expr_aggregate_copy_construct(std::move(expr), std::move(elem_copy_exprs)),
+		ast::destruct_operation()
 	);
 }
 
@@ -4974,12 +4951,14 @@ static ast::expression make_array_copy_construction(
 		expr.src_tokens,
 		ast::expression_type_kind::lvalue_reference,
 		array_type.get<ast::ts_array>().elem_type,
-		ast::make_expr_bitcode_value_reference()
+		ast::make_expr_bitcode_value_reference(),
+		ast::destruct_operation()
 	));
 	return ast::make_dynamic_expression(
 		expr.src_tokens,
 		ast::expression_type_kind::rvalue, std::move(type),
-		ast::make_expr_array_copy_construct(std::move(expr), std::move(elem_copy_expr))
+		ast::make_expr_array_copy_construct(std::move(expr), std::move(elem_copy_expr)),
+		ast::destruct_operation()
 	);
 }
 
@@ -4993,7 +4972,8 @@ static ast::expression make_builtin_copy_construction(
 	return ast::make_dynamic_expression(
 		expr.src_tokens,
 		ast::expression_type_kind::rvalue, std::move(type),
-		ast::make_expr_builtin_copy_construct(std::move(expr))
+		ast::make_expr_builtin_copy_construct(std::move(expr)),
+		ast::destruct_operation()
 	);
 }
 
@@ -5057,14 +5037,16 @@ static ast::expression make_struct_copy_construction(
 					src_tokens,
 					ast::expression_type_kind::lvalue_reference,
 					member_type,
-					ast::make_expr_bitcode_value_reference()
+					ast::make_expr_bitcode_value_reference(),
+					ast::destruct_operation()
 				));
 			})
 			.collect<ast::arena_vector>();
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue, std::move(type),
-			ast::make_expr_aggregate_copy_construct(std::move(expr), std::move(elem_copy_exprs))
+			ast::make_expr_aggregate_copy_construct(std::move(expr), std::move(elem_copy_exprs)),
+			ast::destruct_operation()
 		);
 	}
 }
@@ -5112,6 +5094,142 @@ ast::expression parse_context::make_copy_construction(ast::expression expr)
 ast::expression parse_context::make_move_construction(ast::expression expr)
 {
 	bz_unreachable;
+}
+
+ast::expression make_destruct_expression(ast::typespec_view type, ast::expression value, parse_context &context)
+{
+	auto const src_tokens = value.src_tokens;
+	if (type.is<ast::ts_base_type>())
+	{
+		auto const info = type.get<ast::ts_base_type>().info;
+		auto destruct_call = [&]() {
+			if (info->destructor == nullptr)
+			{
+				return ast::expression();
+			}
+
+			auto const body = &info->destructor->body;
+			auto args = ast::arena_vector<ast::expression>();
+			args.push_back(ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::lvalue_reference, type,
+				ast::make_expr_bitcode_value_reference(),
+				ast::destruct_operation()
+			));
+			return make_expr_function_call_from_body(src_tokens, body, std::move(args), context);
+		}();
+
+		auto member_destruct_calls = info->member_variables
+			.transform([&](auto const member) {
+				auto const member_type = ast::remove_const_or_consteval(ast::remove_lvalue_reference(member->get_type()));
+				auto value_ref = ast::make_dynamic_expression(
+					src_tokens,
+					ast::expression_type_kind::lvalue_reference, member_type,
+					ast::make_expr_bitcode_value_reference(),
+					ast::destruct_operation()
+				);
+				return make_destruct_expression(ast::remove_const_or_consteval(member->get_type()), std::move(value_ref), context);
+			})
+			.collect<ast::arena_vector>();
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+			ast::make_expr_base_type_destruct(std::move(value), std::move(destruct_call), std::move(member_destruct_calls)),
+			ast::destruct_operation()
+		);
+	}
+	else if (type.is<ast::ts_tuple>())
+	{
+		auto elem_destruct_calls = type.get<ast::ts_tuple>().types
+			.transform([&](auto const &elem_type) {
+				auto const decayed_elem_type = ast::remove_const_or_consteval(ast::remove_lvalue_reference(elem_type));
+				auto value_ref = ast::make_dynamic_expression(
+					src_tokens,
+					ast::expression_type_kind::lvalue_reference, decayed_elem_type,
+					ast::make_expr_bitcode_value_reference(),
+					ast::destruct_operation()
+				);
+				return make_destruct_expression(ast::remove_const_or_consteval(elem_type), std::move(value_ref), context);
+			})
+			.collect<ast::arena_vector>();
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+			ast::make_expr_aggregate_destruct(std::move(value), std::move(elem_destruct_calls)),
+			ast::destruct_operation()
+		);
+	}
+	else if (type.is<ast::ts_array>())
+	{
+		auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
+		auto value_ref = ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::lvalue_reference, elem_type,
+			ast::make_expr_bitcode_value_reference(),
+			ast::destruct_operation()
+		);
+		auto elem_destruct_call = make_destruct_expression(elem_type, std::move(value_ref), context);
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+			ast::make_expr_array_destruct(std::move(value), std::move(elem_destruct_call)),
+			ast::destruct_operation()
+		);
+	}
+	else
+	{
+		return ast::expression();
+	}
+}
+
+void parse_context::add_self_destruction(ast::expression &expr)
+{
+	if (this->in_unevaluated_context)
+	{
+		return;
+	}
+
+	bz_unreachable;
+}
+
+ast::expression make_variable_destruction_expression(ast::decl_variable *var_decl, parse_context &context)
+{
+	auto const type = ast::remove_const_or_consteval(var_decl->get_type());
+	return make_destruct_expression(
+		type,
+		ast::make_dynamic_expression(
+			var_decl->src_tokens,
+			ast::expression_type_kind::lvalue_reference, ast::remove_lvalue_reference(type),
+			ast::make_expr_identifier(ast::identifier(), var_decl),
+			ast::destruct_operation()
+		),
+		context
+	);
+}
+
+ast::destruct_operation parse_context::make_variable_destructions(bz::array_view<ast::decl_variable * const> vars)
+{
+	if (this->in_unevaluated_context)
+	{
+		return ast::destruct_operation();
+	}
+
+	auto const filtered_vars = vars.filter([](auto const var) { return !ast::is_trivially_destructible(var->get_type()); });
+
+	ast::destruct_operation result;
+	auto &var_destructions = result.emplace<ast::destruct_variables>().destruct_calls;
+
+	for (auto const var_decl : filtered_vars)
+	{
+		var_destructions.push_back(make_variable_destruction_expression(var_decl, *this));
+	}
+
+	if (var_destructions.empty())
+	{
+		result.clear();
+	}
+
+	return result;
 }
 
 bool parse_context::is_instantiable(ast::typespec_view ts)

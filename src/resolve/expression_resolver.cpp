@@ -114,6 +114,12 @@ static ast::expression resolve_expr(
 	{
 		return resolve_variadic_expr(src_tokens, unary_op, context);
 	}
+	else if (is_unary_has_unevaluated_context(unary_op.op))
+	{
+		auto const prev_value = context.push_unevaluated_context();
+		resolve_expression(unary_op.expr, context);
+		context.pop_unevaluated_context(prev_value);
+	}
 	else
 	{
 		resolve_expression(unary_op.expr, context);
@@ -282,27 +288,33 @@ static ast::expression resolve_expr(
 	}
 	else if (is_noreturn && (compound_expr.final_expr.is_null() || compound_expr.final_expr.is_noreturn()))
 	{
+		auto const inner_variables = compound_expr.scope.get_local().var_decl_range().collect<ast::arena_vector>();
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::noreturn, ast::make_void_typespec(nullptr),
-			std::move(result_node)
+			std::move(result_node),
+			context.make_variable_destructions(inner_variables)
 		);
 	}
 	else if (compound_expr.final_expr.is_null())
 	{
+		auto const inner_variables = compound_expr.scope.get_local().var_decl_range().collect<ast::arena_vector>();
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
-			std::move(result_node)
+			std::move(result_node),
+			context.make_variable_destructions(inner_variables)
 		);
 	}
 	else
 	{
 		auto const [result_type, result_kind] = compound_expr.final_expr.get_expr_type_and_kind();
+		auto const inner_variables = compound_expr.scope.get_local().var_decl_range().collect<ast::arena_vector>();
 		return ast::make_dynamic_expression(
 			src_tokens,
 			result_kind, result_type,
-			std::move(result_node)
+			std::move(result_node),
+			context.make_variable_destructions(inner_variables)
 		);
 	}
 }
@@ -333,7 +345,8 @@ static ast::expression resolve_expr(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::noreturn, ast::make_void_typespec(nullptr),
-			std::move(result_node)
+			std::move(result_node),
+			ast::destruct_operation()
 		);
 	}
 	else if (if_expr.then_block.is_none() || if_expr.else_block.is_none())
@@ -341,7 +354,8 @@ static ast::expression resolve_expr(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
-			std::move(result_node)
+			std::move(result_node),
+			ast::destruct_operation()
 		);
 	}
 	else
@@ -349,7 +363,8 @@ static ast::expression resolve_expr(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::if_expr, ast::typespec(),
-			std::move(result_node)
+			std::move(result_node),
+			ast::destruct_operation()
 		);
 	}
 }
@@ -387,13 +402,13 @@ static ast::expression resolve_expr(
 	{
 		resolve_expression(if_expr.then_block, context);
 		auto const [type, kind] = if_expr.then_block.get_expr_type_and_kind();
-		return ast::make_dynamic_expression(src_tokens, kind, type, std::move(result_node));
+		return ast::make_dynamic_expression(src_tokens, kind, type, std::move(result_node), ast::destruct_operation());
 	}
 	else if (if_expr.else_block.not_null())
 	{
 		resolve_expression(if_expr.else_block, context);
 		auto const [type, kind] = if_expr.else_block.get_expr_type_and_kind();
-		return ast::make_dynamic_expression(src_tokens, kind, type, std::move(result_node));
+		return ast::make_dynamic_expression(src_tokens, kind, type, std::move(result_node), ast::destruct_operation());
 	}
 	else
 	{
@@ -612,7 +627,8 @@ static ast::expression resolve_expr(
 			src_tokens,
 			ast::expression_type_kind::none,
 			ast::make_void_typespec(nullptr),
-			std::move(result_node)
+			std::move(result_node),
+			ast::destruct_operation()
 		);
 	}
 	else if (case_count == max_case_count && switch_expr.default_case.not_null())
@@ -666,7 +682,8 @@ static ast::expression resolve_expr(
 			src_tokens,
 			expr_kind,
 			ast::typespec(),
-			std::move(result_node)
+			std::move(result_node),
+			ast::destruct_operation()
 		);
 	}
 	else
@@ -675,7 +692,8 @@ static ast::expression resolve_expr(
 			src_tokens,
 			expr_kind,
 			ast::make_void_typespec(nullptr),
-			std::move(result_node)
+			std::move(result_node),
+			ast::destruct_operation()
 		);
 	}
 }

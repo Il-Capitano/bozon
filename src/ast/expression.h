@@ -8,6 +8,7 @@
 #include "constant_value.h"
 #include "identifier.h"
 #include "scope.h"
+#include "statement_forward.h"
 
 namespace ast
 {
@@ -27,6 +28,7 @@ struct expr_function_call;
 struct expr_cast;
 struct expr_take_reference;
 struct expr_aggregate_init;
+
 struct expr_aggregate_copy_construct;
 struct expr_aggregate_move_construct;
 struct expr_array_default_construct;
@@ -35,6 +37,11 @@ struct expr_array_move_construct;
 struct expr_builtin_default_construct;
 struct expr_builtin_copy_construct;
 struct expr_builtin_move_construct;
+
+struct expr_aggregate_destruct;
+struct expr_array_destruct;
+struct expr_base_type_destruct;
+
 struct expr_member_access;
 struct expr_type_member_access;
 struct expr_compound;
@@ -79,6 +86,9 @@ using expr_t = node<
 	expr_builtin_default_construct,
 	expr_builtin_copy_construct,
 	expr_builtin_move_construct,
+	expr_aggregate_destruct,
+	expr_array_destruct,
+	expr_base_type_destruct,
 	expr_member_access,
 	expr_type_member_access,
 	expr_compound,
@@ -109,6 +119,26 @@ using unresolved_expr_t = node<
 	expr_unresolved_array_type,
 	expr_unresolved_generic_type_instantiation
 >;
+
+
+struct destruct_variables
+{
+	arena_vector<expression> destruct_calls;
+};
+
+struct destruct_self
+{
+	ast_unique_ptr<expression> destruct_call;
+
+	destruct_self(destruct_self const &other);
+	destruct_self(destruct_self &&other) = default;
+
+	destruct_self &operator = (destruct_self const &other);
+	destruct_self &operator = (destruct_self &&other) = default;
+};
+
+using destruct_operation = bz::variant<destruct_variables, destruct_self>;
+
 
 enum class expression_type_kind
 {
@@ -174,6 +204,7 @@ struct dynamic_expression
 	expression_type_kind kind;
 	typespec             type;
 	expr_t               expr;
+	destruct_operation   destruct_op;
 };
 
 struct expanded_variadic_expression
@@ -185,6 +216,7 @@ struct error_expression
 {
 	expr_t expr;
 };
+
 
 struct expression : bz::variant<
 	unresolved_expression,
@@ -301,11 +333,6 @@ struct expression : bz::variant<
 
 	bool is_special_top_level(void) const noexcept;
 };
-
-
-struct decl_variable;
-struct decl_function;
-struct function_body;
 
 
 struct expr_identifier
@@ -574,6 +601,51 @@ struct expr_builtin_move_construct
 
 	expr_builtin_move_construct(ast::expression _moved_value)
 		: moved_value(std::move(_moved_value))
+	{}
+};
+
+struct expr_aggregate_destruct
+{
+	expression               value;
+	arena_vector<expression> elem_destruct_calls;
+
+	expr_aggregate_destruct(
+		expression               _value,
+		arena_vector<expression> _elem_destruct_calls
+	)
+		: value(std::move(_value)),
+		  elem_destruct_calls(std::move(_elem_destruct_calls))
+	{}
+};
+
+struct expr_array_destruct
+{
+	expression value;
+	expression elem_destruct_call;
+
+	expr_array_destruct(
+		expression _value,
+		expression _elem_destruct_call
+	)
+		: value(std::move(_value)),
+		  elem_destruct_call(std::move(_elem_destruct_call))
+	{}
+};
+
+struct expr_base_type_destruct
+{
+	expression               value;
+	expression               destruct_call;
+	arena_vector<expression> member_destruct_calls;
+
+	expr_base_type_destruct(
+		expression               _value,
+		expression               _destruct_call,
+		arena_vector<expression> _member_destruct_calls
+	)
+		: value(std::move(_value)),
+		  destruct_call(std::move(_destruct_call)),
+		  member_destruct_calls(std::move(_member_destruct_calls))
 	{}
 };
 
@@ -879,6 +951,9 @@ def_make_fn(expr_t, expr_array_move_construct)
 def_make_fn(expr_t, expr_builtin_default_construct)
 def_make_fn(expr_t, expr_builtin_copy_construct)
 def_make_fn(expr_t, expr_builtin_move_construct)
+def_make_fn(expr_t, expr_aggregate_destruct)
+def_make_fn(expr_t, expr_array_destruct)
+def_make_fn(expr_t, expr_base_type_destruct)
 def_make_fn(expr_t, expr_member_access)
 def_make_fn(expr_t, expr_type_member_access)
 def_make_fn(expr_t, expr_compound)

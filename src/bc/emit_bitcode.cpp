@@ -8,6 +8,8 @@
 namespace bc
 {
 
+constexpr size_t array_loop_threshold = 16;
+
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	ast::expression const &expr,
@@ -4425,7 +4427,7 @@ static val_ptr emit_bitcode(
 
 	bz_assert(array_default_construct.type.is<ast::ts_array>());
 	auto const size = array_default_construct.type.get<ast::ts_array>().size;
-	if (size <= 16)
+	if (size <= array_loop_threshold)
 	{
 		for (auto const i : bz::iota(0, size))
 		{
@@ -4471,7 +4473,7 @@ static val_ptr emit_bitcode(
 	bz_assert(ast::remove_const_or_consteval(array_copy_construct.copied_value.get_expr_type()).is<ast::ts_array>());
 	auto const size = ast::remove_const_or_consteval(array_copy_construct.copied_value.get_expr_type()).get<ast::ts_array>().size;
 
-	if (size <= 16)
+	if (size <= array_loop_threshold)
 	{
 		for (auto const i : bz::iota(0, size))
 		{
@@ -4574,6 +4576,118 @@ static val_ptr emit_bitcode(
 )
 {
 	bz_unreachable;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_aggregate_destruct const &aggregate_destruct,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	bz_assert(result_address == nullptr);
+
+	auto const val = emit_bitcode<abi>(aggregate_destruct.value, context, nullptr);
+	bz_assert(val.kind == val_ptr::reference);
+	auto const type = val.get_type();
+	bz_assert(type->isStructTy());
+	bz_assert(type->getStructNumElements() == aggregate_destruct.elem_destruct_calls.size());
+
+	for (auto const i : bz::iota(0, aggregate_destruct.elem_destruct_calls.size()))
+	{
+		if (aggregate_destruct.elem_destruct_calls[i].not_null())
+		{
+			auto const elem_ptr = context.create_struct_gep(type, val.val, i);
+			auto const elem_type = type->getStructElementType(i);
+			auto const prev_value = context.push_value_reference(val_ptr::get_reference(elem_ptr, elem_type));
+			emit_bitcode<abi>(aggregate_destruct.elem_destruct_calls[i], context, nullptr);
+			context.pop_value_reference(prev_value);
+		}
+	}
+
+	return val_ptr::get_none();
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_array_destruct const &array_destruct,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	bz_assert(result_address == nullptr);
+
+	auto const val = emit_bitcode<abi>(array_destruct.value, context, nullptr);
+	bz_assert(val.kind == val_ptr::reference);
+	auto const type = val.get_type();
+	bz_assert(type->isArrayTy());
+	auto const elem_type = type->getArrayElementType();
+	bz_assert(ast::remove_const_or_consteval(array_destruct.value.get_expr_type()).is<ast::ts_array>());
+	auto const size = ast::remove_const_or_consteval(array_destruct.value.get_expr_type()).get<ast::ts_array>().size;
+
+	if (size <= array_loop_threshold)
+	{
+		for (auto const i : bz::iota(0, size))
+		{
+			auto const elem_ptr = context.create_struct_gep(type, val.val, i);
+			auto const prev_value = context.push_value_reference(val_ptr::get_reference(elem_ptr, elem_type));
+			emit_bitcode<abi>(array_destruct.elem_destruct_call, context, nullptr);
+			context.pop_value_reference(prev_value);
+		}
+	}
+	else
+	{
+		auto const loop_info = create_loop_start(size, context);
+
+		auto const elem_ptr = context.create_array_gep(type, val.val, loop_info.iter_val);
+		auto const prev_value = context.push_value_reference(val_ptr::get_reference(elem_ptr, elem_type));
+		emit_bitcode<abi>(array_destruct.elem_destruct_call, context, nullptr);
+		context.pop_value_reference(prev_value);
+
+		create_loop_end(loop_info, context);
+	}
+
+	return val_ptr::get_none();
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_base_type_destruct const &base_type_destruct,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	bz_assert(result_address == nullptr);
+
+	auto const val = emit_bitcode<abi>(base_type_destruct.value, context, nullptr);
+	bz_assert(val.kind == val_ptr::reference);
+	auto const type = val.get_type();
+	bz_assert(type->isStructTy());
+	bz_assert(type->getStructNumElements() == base_type_destruct.member_destruct_calls.size());
+
+	if (base_type_destruct.destruct_call.not_null())
+	{
+		auto const prev_value = context.push_value_reference(val);
+		emit_bitcode<abi>(base_type_destruct.destruct_call, context, nullptr);
+		context.pop_value_reference(prev_value);
+	}
+
+	for (auto const i : bz::iota(0, base_type_destruct.member_destruct_calls.size()))
+	{
+		if (base_type_destruct.member_destruct_calls[i].not_null())
+		{
+			auto const elem_ptr = context.create_struct_gep(type, val.val, i);
+			auto const elem_type = type->getStructElementType(i);
+			auto const prev_value = context.push_value_reference(val_ptr::get_reference(elem_ptr, elem_type));
+			emit_bitcode<abi>(base_type_destruct.member_destruct_calls[i], context, nullptr);
+			context.pop_value_reference(prev_value);
+		}
+	}
+
+	return val_ptr::get_none();
 }
 
 template<abi::platform_abi abi>

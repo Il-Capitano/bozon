@@ -971,7 +971,7 @@ static void match_expression_to_type_impl(
 			auto kind = const_expr.kind;
 			auto type = std::move(const_expr.type);
 			auto inner_expr = std::move(const_expr.expr);
-			expr.emplace<ast::dynamic_expression>(kind, std::move(type), std::move(inner_expr));
+			expr.emplace<ast::dynamic_expression>(kind, std::move(type), std::move(inner_expr), ast::destruct_operation());
 			expr.consteval_state = ast::expression::consteval_never_tried;
 		}
 
@@ -1058,7 +1058,8 @@ static void match_expression_to_type_impl(
 				expr = ast::make_dynamic_expression(
 					expr.src_tokens,
 					ast::expression_type_kind::rvalue, dest_without_const,
-					ast::make_expr_aggregate_init(dest_without_const, std::move(expr.get_tuple().elems))
+					ast::make_expr_aggregate_init(dest_without_const, std::move(expr.get_tuple().elems)),
+					ast::destruct_operation()
 				);
 			}
 		}
@@ -1132,7 +1133,8 @@ static void match_expression_to_type_impl(
 			expr.src_tokens,
 			ast::expression_type_kind::lvalue_reference,
 			ast::remove_lvalue_reference(dest_container),
-			ast::make_expr_take_reference(std::move(expr))
+			ast::make_expr_take_reference(std::move(expr)),
+			ast::destruct_operation()
 		);
 	}
 

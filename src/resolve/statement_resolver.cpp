@@ -64,7 +64,8 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto range_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			type_kind, type,
-			ast::make_expr_identifier(ast::identifier{}, &range_var_decl)
+			ast::make_expr_identifier(ast::identifier{}, &range_var_decl),
+			ast::destruct_operation()
 		);
 		return context.make_universal_function_call_expression(
 			range_expr_src_tokens,
@@ -101,7 +102,8 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto range_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			type_kind, type,
-			ast::make_expr_identifier(ast::identifier{}, &range_var_decl)
+			ast::make_expr_identifier(ast::identifier{}, &range_var_decl),
+			ast::destruct_operation()
 		);
 		return context.make_universal_function_call_expression(
 			range_expr_src_tokens,
@@ -134,12 +136,14 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			ast::expression_type_kind::lvalue, iter_var_decl.get_type(),
-			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
+			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl),
+			ast::destruct_operation()
 		);
 		auto end_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			ast::expression_type_kind::lvalue, end_var_decl.get_type(),
-			ast::make_expr_identifier(ast::identifier{}, &end_var_decl)
+			ast::make_expr_identifier(ast::identifier{}, &end_var_decl),
+			ast::destruct_operation()
 		);
 		return context.make_binary_operator_expression(
 			range_expr_src_tokens,
@@ -162,7 +166,8 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			ast::expression_type_kind::lvalue, iter_var_decl.get_type(),
-			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
+			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl),
+			ast::destruct_operation()
 		);
 		return context.make_unary_operator_expression(
 			range_expr_src_tokens,
@@ -182,7 +187,8 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			ast::expression_type_kind::lvalue, iter_var_decl.get_type(),
-			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
+			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl),
+			ast::destruct_operation()
 		);
 		return context.make_unary_operator_expression(
 			range_expr_src_tokens,
@@ -393,6 +399,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 static void resolve_stmt(ast::stmt_expression &expr_stmt, ctx::parse_context &context)
 {
 	resolve_expression(expr_stmt.expr, context);
+	context.add_self_destruction(expr_stmt.expr);
 }
 
 static void resolve_stmt(ast::decl_variable &var_decl, ctx::parse_context &context)
@@ -709,7 +716,8 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 						ast::arena_vector<ast::expression>{},
 						&def_ctor->body,
 						ast::resolve_order::regular
-					)
+					),
+					ast::destruct_operation()
 				);
 				parse::consteval_guaranteed(var_decl.init_expr, context);
 			}

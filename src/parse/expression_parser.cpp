@@ -580,7 +580,8 @@ static ast::expression parse_primary_expression(
 			lex::src_tokens::from_single_token(t),
 			ast::expression_type_kind::noreturn,
 			ast::make_void_typespec(t),
-			ast::make_expr_unreachable()
+			ast::make_expr_unreachable(),
+			ast::destruct_operation()
 		);
 	}
 	case lex::token::kw_break:
@@ -598,7 +599,8 @@ static ast::expression parse_primary_expression(
 				{ t, t, t + 1 },
 				ast::expression_type_kind::noreturn,
 				ast::make_void_typespec(nullptr),
-				ast::make_expr_break()
+				ast::make_expr_break(),
+				ast::destruct_operation()
 			);
 		}
 	}
@@ -617,7 +619,8 @@ static ast::expression parse_primary_expression(
 				{ t, t, t + 1 },
 				ast::expression_type_kind::noreturn,
 				ast::make_void_typespec(nullptr),
-				ast::make_expr_continue()
+				ast::make_expr_continue(),
+				ast::destruct_operation()
 			);
 		}
 	}
@@ -749,6 +752,15 @@ static ast::expression parse_primary_expression(
 				lex::src_tokens{ op, op, stream },
 				ast::make_unresolved_expr_unary_op(op->kind, std::move(expr))
 			);
+		}
+		else if (is_unary_has_unevaluated_context(op->kind))
+		{
+			auto const prec = get_unary_precedence(op->kind);
+			++stream;
+			auto const prev_value = context.push_unevaluated_context();
+			auto expr = parse_expression(stream, end, context, prec);
+			context.pop_unevaluated_context(prev_value);
+			return context.make_unary_operator_expression({ op, op, stream }, op->kind, std::move(expr));
 		}
 		else
 		{

@@ -57,9 +57,10 @@ struct parse_context
 	bool is_aggressive_consteval_enabled = false;
 
 	bool in_loop = false;
-	variadic_resolve_info_t variadic_info = { false, false, 0, 0, {} };
 	bool parsing_variadic_expansion = false;
+	bool in_unevaluated_context = false;
 	int parsing_template_argument = 0;
+	variadic_resolve_info_t variadic_info = { false, false, 0, 0, {} };
 
 	bz::vector<resolve_queue_t> resolve_queue{};
 
@@ -90,6 +91,9 @@ struct parse_context
 
 	[[nodiscard]] bool push_parsing_variadic_expansion(void) noexcept;
 	void pop_parsing_variadic_expansion(bool prev_value) noexcept;
+
+	[[nodiscard]] bool push_unevaluated_context(void) noexcept;
+	void pop_unevaluated_context(bool prev_value) noexcept;
 
 	void push_parsing_template_argument(void) noexcept;
 	void pop_parsing_template_argument(void) noexcept;
@@ -417,6 +421,9 @@ struct parse_context
 
 	ast::expression make_copy_construction(ast::expression expr);
 	ast::expression make_move_construction(ast::expression expr);
+
+	void add_self_destruction(ast::expression &expr);
+	ast::destruct_operation make_variable_destructions(bz::array_view<ast::decl_variable * const> vars);
 
 	bool is_instantiable(ast::typespec_view ts);
 	size_t get_sizeof(ast::typespec_view ts);
