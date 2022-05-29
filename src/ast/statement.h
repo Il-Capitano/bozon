@@ -84,6 +84,7 @@ struct stmt_for
 	expression condition;
 	expression iteration;
 	expression for_block;
+	scope_t    scope;
 
 	stmt_for(
 		statement  _init,
@@ -107,6 +108,7 @@ struct stmt_foreach
 	expression condition;
 	expression iteration;
 	expression for_block;
+	scope_t    scope;
 
 	stmt_foreach(
 		statement  _range_var_decl,
