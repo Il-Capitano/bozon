@@ -1,0 +1,9 @@
+function main()
+{
+	let i = 0i32;
+	for (let i = 0u32; false;)
+	{
+		static_assert(typeof i == uint32);
+	}
+	static_assert(typeof i == int32);
+}

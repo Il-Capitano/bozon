@@ -21,6 +21,9 @@ static void resolve_stmt(ast::stmt_while &while_stmt, ctx::parse_context &contex
 
 static void resolve_stmt(ast::stmt_for &for_stmt, ctx::parse_context &context)
 {
+	bz_assert(for_stmt.scope.is_null());
+	for_stmt.scope = ast::make_local_scope(context.get_current_enclosing_scope());
+	context.push_local_scope(&for_stmt.scope);
 	resolve_statement(for_stmt.init, context);
 	resolve_expression(for_stmt.condition, context);
 	resolve_expression(for_stmt.iteration, context);
@@ -31,21 +34,22 @@ static void resolve_stmt(ast::stmt_for &for_stmt, ctx::parse_context &context)
 	{
 		match_expression_to_type(for_stmt.condition, bool_type, context);
 	}
+	context.pop_local_scope(true);
 }
 
 static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &context)
 {
-	if (foreach_stmt.iter_var_decl.not_null())
-	{
-		// already resolved
-		return;
-	}
+	bz_assert(foreach_stmt.iter_var_decl.is_null());
+	bz_assert(foreach_stmt.scope.is_null());
+	foreach_stmt.scope = ast::make_local_scope(context.get_current_enclosing_scope());
+	context.push_local_scope(&foreach_stmt.scope);
 	resolve_statement(foreach_stmt.range_var_decl, context);
 	bz_assert(foreach_stmt.range_var_decl.is<ast::decl_variable>());
 	auto &range_var_decl = foreach_stmt.range_var_decl.get<ast::decl_variable>();
 	range_var_decl.flags |= ast::decl_variable::used;
 	if (range_var_decl.get_type().is_empty())
 	{
+		context.pop_local_scope(true);
 		return;
 	}
 
@@ -200,6 +204,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	context.add_local_variable(iter_deref_var_decl);
 
 	resolve_expression(foreach_stmt.for_block, context);
+	context.pop_local_scope(true);
 }
 
 static void resolve_stmt(ast::stmt_return &return_stmt, ctx::parse_context &context)
