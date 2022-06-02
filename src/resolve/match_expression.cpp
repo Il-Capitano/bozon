@@ -41,7 +41,7 @@ enum class type_match_result
 			{
 				top_level = false;
 			}
-			else if (!dest_is_const && !source_is_const)
+			else if (!dest_is_const)
 			{
 				propagate_const = false;
 			}

@@ -237,15 +237,12 @@ static match_level_t get_strict_type_match_level(
 			{
 				top_level = false;
 			}
-			else if (dest_is_const == source_is_const)
-			{
-				modifier_match_level += 1;
-			}
-			else
+			else if (!dest_is_const)
 			{
 				propagate_const = false;
 			}
 
+			modifier_match_level += static_cast<uint16_t>(dest_is_const == source_is_const);
 			if (dest_is_const)
 			{
 				dest = dest.blind_get();
@@ -396,11 +393,11 @@ static match_level_t get_type_match_level(
 			: reference_match_kind::reference_add_const;
 
 		return get_strict_type_match_level(
-			inner_dest,
-			expr_type,
+			ast::remove_const_or_consteval(inner_dest),
+			expr_type_without_const,
 			reference_kind,
 			type_match_kind::exact_match,
-			false, true, false
+			false, inner_dest.is<ast::ts_const>(), false
 		);
 	}
 	else if (dest.is<ast::ts_move_reference>())
@@ -430,11 +427,11 @@ static match_level_t get_type_match_level(
 			: reference_match_kind::auto_reference_add_const;
 
 		return get_strict_type_match_level(
-			dest.get<ast::ts_auto_reference>(),
-			expr_type,
+			ast::remove_const_or_consteval(inner_dest),
+			expr_type_without_const,
 			reference_kind,
 			type_match_kind::exact_match,
-			false, true, false
+			false, inner_dest.is<ast::ts_const>(), false
 		);
 	}
 	else if (dest.is<ast::ts_auto_reference_const>())
