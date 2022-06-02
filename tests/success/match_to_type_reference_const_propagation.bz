@@ -1,0 +1,10 @@
+function foo(: &const *const int32);
+
+function main()
+{
+	let i = 0;
+
+	let p: *int32 = &i;
+
+	foo(p);
+}

@@ -11,10 +11,12 @@ namespace resolve
 
 enum class reference_match_kind : uint8_t
 {
-	exact_match = 0,
+	reference_exact = 0,
+	reference_add_const,
 	rvalue_copy,
-	auto_reference,
-	auto_reference_const = auto_reference,
+	auto_reference_exact,
+	auto_reference_add_const,
+	auto_reference_const,
 	lvalue_copy,
 };
 
