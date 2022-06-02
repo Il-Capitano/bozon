@@ -132,8 +132,7 @@ static llvm::Value *get_constant_zero(
 	}
 }
 
-template<typename Context>
-static val_ptr get_optional_has_value(val_ptr opt_value, Context &context)
+static val_ptr get_optional_has_value(val_ptr opt_value, auto &context)
 {
 	if (opt_value.get_type()->isPointerTy())
 	{
@@ -156,8 +155,7 @@ static val_ptr get_optional_has_value(val_ptr opt_value, Context &context)
 	}
 }
 
-template<typename Context>
-static val_ptr get_optional_value(val_ptr opt_value, Context &context)
+static val_ptr get_optional_value(val_ptr opt_value, auto &context)
 {
 	if (opt_value.get_type()->isPointerTy())
 	{
@@ -1546,7 +1544,7 @@ static val_ptr emit_builtin_unary_dereference(
 	auto const type = ast::remove_const_or_consteval(expr.get_expr_type_and_kind().first);
 	bz_assert(type.template is<ast::ts_pointer>() || type.template is<ast::ts_optional_pointer>());
 
-	if (type.template is<ast::ts_optional_pointer>() && (is_comptime<Context> || !no_check_null_pointer))
+	if (type.template is<ast::ts_optional_pointer>() && (is_comptime<decltype(context)> || !no_check_null_pointer))
 	{
 		emit_null_pointer_check(expr.src_tokens, val, lex::token::dereference, context);
 	}
@@ -1624,7 +1622,7 @@ static val_ptr emit_builtin_unary_plus_plus(
 		auto const expr_type = expr.get_expr_type_and_kind().first;
 		bz_assert(expr_type.is<ast::ts_pointer>() || expr_type.is<ast::ts_optional_pointer>());
 
-		if (expr_type.is<ast::ts_optional_pointer>() && (is_comptime<Context> || !no_check_null_pointer))
+		if (expr_type.is<ast::ts_optional_pointer>() && (is_comptime<decltype(context)> || !no_check_null_pointer))
 		{
 			emit_null_pointer_check(expr.src_tokens, original_value, lex::token::plus_plus, context);
 		}
@@ -1677,7 +1675,7 @@ static val_ptr emit_builtin_unary_minus_minus(
 		auto const expr_type = expr.get_expr_type_and_kind().first;
 		bz_assert(expr_type.is<ast::ts_pointer>() || expr_type.is<ast::ts_optional_pointer>());
 
-		if (expr_type.is<ast::ts_optional_pointer>() && (is_comptime<Context> || !no_check_null_pointer))
+		if (expr_type.is<ast::ts_optional_pointer>() && (is_comptime<decltype(context)> || !no_check_null_pointer))
 		{
 			emit_null_pointer_check(expr.src_tokens, original_value, lex::token::minus_minus, context);
 		}
@@ -1889,7 +1887,7 @@ static val_ptr emit_builtin_binary_plus(
 			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_usize_t(), false);
 		}
 
-		if (lhs_t.is<ast::ts_optional_pointer>() && (is_comptime<Context> || !no_check_null_pointer))
+		if (lhs_t.is<ast::ts_optional_pointer>() && (is_comptime<decltype(context)> || !no_check_null_pointer))
 		{
 			emit_null_pointer_check(lhs.src_tokens, lhs_val, lex::token::plus, context);
 		}
@@ -1919,7 +1917,7 @@ static val_ptr emit_builtin_binary_plus(
 			lhs_val = context.builder.CreateIntCast(lhs_val, context.get_usize_t(), false);
 		}
 
-		if (rhs_t.is<ast::ts_optional_pointer>() && (is_comptime<Context> || !no_check_null_pointer))
+		if (rhs_t.is<ast::ts_optional_pointer>() && (is_comptime<decltype(context)> || !no_check_null_pointer))
 		{
 			emit_null_pointer_check(rhs.src_tokens, rhs_val, lex::token::plus, context);
 		}
@@ -2024,7 +2022,7 @@ static val_ptr emit_builtin_binary_plus_eq(
 		bz_assert(lhs_val_ref.kind == val_ptr::reference);
 		auto const lhs_val = lhs_val_ref.get_value(context.builder);
 
-		if (lhs_t.is<ast::ts_optional_pointer>() && (is_comptime<Context> || !no_check_null_pointer))
+		if (lhs_t.is<ast::ts_optional_pointer>() && (is_comptime<decltype(context)> || !no_check_null_pointer))
 		{
 			emit_null_pointer_check(lhs.src_tokens, lhs_val, lex::token::plus_eq, context);
 		}
@@ -2136,7 +2134,7 @@ static val_ptr emit_builtin_binary_minus(
 		// negate rhs_val
 		rhs_val = context.builder.CreateNeg(rhs_val);
 
-		if (lhs_t.is<ast::ts_optional_pointer>() && (is_comptime<Context> || !no_check_null_pointer))
+		if (lhs_t.is<ast::ts_optional_pointer>() && (is_comptime<decltype(context)> || !no_check_null_pointer))
 		{
 			emit_null_pointer_check(lhs.src_tokens, lhs_val, lex::token::minus, context);
 		}
@@ -2163,7 +2161,7 @@ static val_ptr emit_builtin_binary_minus(
 		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 
-		if (lhs_t.is<ast::ts_optional_pointer>() && rhs_t.is<ast::ts_optional_pointer>() && (is_comptime<Context> || !no_check_null_pointer))
+		if (lhs_t.is<ast::ts_optional_pointer>() && rhs_t.is<ast::ts_optional_pointer>() && (is_comptime<decltype(context)> || !no_check_null_pointer))
 		{
 			emit_null_pointer_check(lhs.src_tokens, rhs.src_tokens, lhs_val, rhs_val, lex::token::minus, context);
 		}
@@ -2275,7 +2273,7 @@ static val_ptr emit_builtin_binary_minus_eq(
 		bz_assert(lhs_val_ref.kind == val_ptr::reference);
 		auto const lhs_val = lhs_val_ref.get_value(context.builder);
 
-		if (lhs_t.is<ast::ts_optional_pointer>() && (is_comptime<Context> || !no_check_null_pointer))
+		if (lhs_t.is<ast::ts_optional_pointer>() && (is_comptime<decltype(context)> || !no_check_null_pointer))
 		{
 			emit_null_pointer_check(lhs.src_tokens, lhs_val, lex::token::minus_eq, context);
 		}
@@ -2702,7 +2700,7 @@ static val_ptr emit_builtin_binary_cmp(
 		auto const lhs_val = context.builder.CreatePtrToInt(lhs_ptr_val, context.get_usize_t());
 		auto const rhs_val = context.builder.CreatePtrToInt(rhs_ptr_val, context.get_usize_t());
 
-		if (lhs_t.is<ast::ts_optional_pointer>() && rhs_t.is<ast::ts_optional_pointer>() && (is_comptime<Context> || !no_check_null_pointer))
+		if (lhs_t.is<ast::ts_optional_pointer>() && rhs_t.is<ast::ts_optional_pointer>() && (is_comptime<decltype(context)> || !no_check_null_pointer))
 		{
 			emit_null_pointer_check(lhs.src_tokens, rhs.src_tokens, lhs_ptr_val, rhs_ptr_val, op, context);
 		}
@@ -3571,7 +3569,7 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 1);
 			auto const opt_value = emit_bitcode<abi>(func_call.params[0], context, nullptr);
 
-			if constexpr (is_comptime<Context>)
+			if constexpr (is_comptime<decltype(context)>)
 			{
 				auto const has_value = get_optional_has_value(opt_value, context).get_value(context.builder);
 				emit_error_assert(src_tokens, has_value, "'__builtin_optional_get_value' called on null value", context);
