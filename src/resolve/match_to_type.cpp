@@ -396,11 +396,11 @@ static match_level_t get_type_match_level(
 			: reference_match_kind::reference_add_const;
 
 		return get_strict_type_match_level(
-			dest.get<ast::ts_lvalue_reference>(),
+			inner_dest,
 			expr_type,
 			reference_kind,
 			type_match_kind::exact_match,
-			false, true
+			false, true, false
 		);
 	}
 	else if (dest.is<ast::ts_move_reference>())
@@ -415,7 +415,7 @@ static match_level_t get_type_match_level(
 			expr_type,
 			reference_match_kind::reference_exact,
 			type_match_kind::exact_match,
-			false, true
+			false, true, false
 		);
 	}
 	else if (dest.is<ast::ts_auto_reference>())
@@ -434,7 +434,7 @@ static match_level_t get_type_match_level(
 			expr_type,
 			reference_kind,
 			type_match_kind::exact_match,
-			false, true
+			false, true, false
 		);
 	}
 	else if (dest.is<ast::ts_auto_reference_const>())
@@ -444,7 +444,7 @@ static match_level_t get_type_match_level(
 			expr_type_without_const,
 			reference_match_kind::auto_reference_const,
 			type_match_kind::exact_match,
-			false, expr_type.is<ast::ts_const>()
+			false, expr_type.is<ast::ts_const>(), false
 		);
 		if (expr_type.is<ast::ts_const>())
 		{

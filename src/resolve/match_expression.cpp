@@ -41,7 +41,7 @@ enum class type_match_result
 			{
 				top_level = false;
 			}
-			else if (dest_is_const != source_is_const)
+			else if (!dest_is_const && !source_is_const)
 			{
 				propagate_const = false;
 			}
@@ -309,8 +309,7 @@ static bool match_typename_to_type_impl(
 			dest_container,
 			expr_type,
 			inner_dest,
-			false,
-			true
+			false, true, false
 		);
 	}
 	else if (dest.is<ast::ts_move_reference>())
@@ -321,7 +320,7 @@ static bool match_typename_to_type_impl(
 		}
 
 		auto const inner_dest = dest.get<ast::ts_move_reference>();
-		return strict_match_types(dest_container, expr_type_without_const, inner_dest, false, true);
+		return strict_match_types(dest_container, expr_type_without_const, inner_dest, false, true, false);
 	}
 	else if (dest.is<ast::ts_auto_reference>())
 	{
@@ -341,7 +340,7 @@ static bool match_typename_to_type_impl(
 			dest_container.remove_layer();
 			dest = dest_container;
 		}
-		return strict_match_types(dest_container, expr_type, ast::remove_lvalue_reference(dest), false, true);
+		return strict_match_types(dest_container, expr_type, ast::remove_lvalue_reference(dest), false, true, false);
 	}
 	else if (dest.is<ast::ts_auto_reference_const>())
 	{
@@ -364,7 +363,7 @@ static bool match_typename_to_type_impl(
 			dest_container.remove_layer();
 			dest = dest_container;
 		}
-		return strict_match_types(dest_container, expr_type, ast::remove_lvalue_reference(dest), false, true);
+		return strict_match_types(dest_container, expr_type, ast::remove_lvalue_reference(dest), false, true, false);
 	}
 
 	if (dest.is<ast::ts_auto>())
