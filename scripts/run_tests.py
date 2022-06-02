@@ -32,6 +32,13 @@ bright_magenta = "\033[95m"
 bright_cyan    = "\033[96m"
 bright_white   = "\033[97m"
 
+file_name_print_length = 3 + max((
+    57,
+    max((len(test_file) for test_file in success_test_files)),
+    max((len(test_file) for test_file in warning_test_files)),
+    max((len(test_file) for test_file in error_test_files)),
+))
+
 error = False
 
 for test_file in success_test_files:
@@ -42,10 +49,10 @@ for test_file in success_test_files:
     stdout = process.stdout.decode('utf-8')
     stderr = process.stderr.decode('utf-8')
     if process.returncode == 0 and stdout == '' and stderr == '':
-        print(f'    {test_file:.<60}{bright_green}OK{clear}')
+        print(f'    {test_file:.<{file_name_print_length}}{bright_green}OK{clear}')
     else:
         error = True
-        print(f'    {test_file:.<60}{bright_red}FAIL{clear}')
+        print(f'    {test_file:.<{file_name_print_length}}{bright_red}FAIL{clear}')
         if stdout != '':
             print('stdout:')
             print(stdout)
@@ -62,10 +69,10 @@ for test_file in warning_test_files:
     stdout = process.stdout.decode('utf-8')
     stderr = process.stderr.decode('utf-8')
     if process.returncode == 0 and (stdout != '' or stderr != ''):
-        print(f'    {test_file:.<60}{bright_green}OK{clear}')
+        print(f'    {test_file:.<{file_name_print_length}}{bright_green}OK{clear}')
     else:
         error = True
-        print(f'    {test_file:.<60}{bright_red}FAIL{clear}')
+        print(f'    {test_file:.<{file_name_print_length}}{bright_red}FAIL{clear}')
         if stdout != '':
             print('stdout:')
             print(stdout)
@@ -86,10 +93,10 @@ for test_file in error_test_files:
         capture_output=True
     )
     if process.returncode != 0 and process_rerun.returncode == 0:
-        print(f'    {test_file:.<60}{bright_green}OK{clear}')
+        print(f'    {test_file:.<{file_name_print_length}}{bright_green}OK{clear}')
     else:
         error = True
-        print(f'    {test_file:.<60}{bright_red}FAIL{clear}')
+        print(f'    {test_file:.<{file_name_print_length}}{bright_red}FAIL{clear}')
         if stdout != '':
             print('stdout:')
             print(stdout)
