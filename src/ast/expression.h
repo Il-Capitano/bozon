@@ -267,6 +267,17 @@ struct expression : bz::variant<
 	void set_type_kind(expression_type_kind new_kind);
 
 	std::pair<typespec_view, expression_type_kind> get_expr_type_and_kind(void) const noexcept;
+	typespec_view get_expr_type(void) const noexcept;
+
+	bool is_constant(void) const noexcept;
+	constant_expression &get_constant(void) noexcept;
+	constant_expression const &get_constant(void) const noexcept;
+	constant_value &get_constant_value(void) noexcept;
+	constant_value const &get_constant_value(void) const noexcept;
+
+	bool is_dynamic(void) const noexcept;
+	dynamic_expression &get_dynamic(void) noexcept;
+	dynamic_expression const &get_dynamic(void) const noexcept;
 
 	bool is_constant_or_dynamic(void) const noexcept;
 	bool is_unresolved(void) const noexcept;

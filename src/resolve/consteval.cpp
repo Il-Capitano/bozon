@@ -2,7 +2,7 @@
 #include "safe_operations.h"
 #include "global_data.h"
 
-namespace parse
+namespace resolve
 {
 
 static ast::constant_value evaluate_binary_plus(
@@ -11,11 +11,11 @@ static ast::constant_value evaluate_binary_plus(
 	ctx::parse_context &context
 )
 {
-	bz_assert(lhs.is<ast::constant_expression>());
-	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	bz_assert(lhs.is_constant());
+	auto const &lhs_const_expr = lhs.get_constant();
 	auto const &lhs_value = lhs_const_expr.value;
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
 	if (lhs_value.kind() == rhs_value.kind())
@@ -121,11 +121,11 @@ static ast::constant_value evaluate_binary_minus(
 	ctx::parse_context &context
 )
 {
-	bz_assert(lhs.is<ast::constant_expression>());
-	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	bz_assert(lhs.is_constant());
+	auto const &lhs_const_expr = lhs.get_constant();
 	auto const &lhs_value = lhs_const_expr.value;
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
 	if (lhs_value.kind() == rhs_value.kind())
@@ -212,11 +212,11 @@ static ast::constant_value evaluate_binary_multiply(
 	ctx::parse_context &context
 )
 {
-	bz_assert(lhs.is<ast::constant_expression>());
-	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	bz_assert(lhs.is_constant());
+	auto const &lhs_const_expr = lhs.get_constant();
 	auto const &lhs_value = lhs_const_expr.value;
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 	bz_assert(lhs_value.kind() == rhs_value.kind());
 
@@ -271,11 +271,11 @@ static ast::constant_value evaluate_binary_divide(
 	ctx::parse_context &context
 )
 {
-	bz_assert(lhs.is<ast::constant_expression>());
-	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	bz_assert(lhs.is_constant());
+	auto const &lhs_const_expr = lhs.get_constant();
 	auto const &lhs_value = lhs_const_expr.value;
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 	bz_assert(lhs_value.kind() == rhs_value.kind());
 
@@ -346,11 +346,11 @@ static ast::constant_value evaluate_binary_modulo(
 	ctx::parse_context &context
 )
 {
-	bz_assert(lhs.is<ast::constant_expression>());
-	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	bz_assert(lhs.is_constant());
+	auto const &lhs_const_expr = lhs.get_constant();
 	auto const &lhs_value = lhs_const_expr.value;
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 	bz_assert(lhs_value.kind() == rhs_value.kind());
 
@@ -403,11 +403,11 @@ static ast::constant_value evaluate_binary_equals(
 	[[maybe_unused]] ctx::parse_context &context
 )
 {
-	bz_assert(lhs.is<ast::constant_expression>());
-	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	bz_assert(lhs.is_constant());
+	auto const &lhs_const_expr = lhs.get_constant();
 	auto const &lhs_value = lhs_const_expr.value;
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
 	bz_assert(lhs_value.kind() == rhs_value.kind());
@@ -477,11 +477,11 @@ static ast::constant_value evaluate_binary_not_equals(
 	[[maybe_unused]] ctx::parse_context &context
 )
 {
-	bz_assert(lhs.is<ast::constant_expression>());
-	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	bz_assert(lhs.is_constant());
+	auto const &lhs_const_expr = lhs.get_constant();
 	auto const &lhs_value = lhs_const_expr.value;
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
 	bz_assert(lhs_value.kind() == rhs_value.kind());
@@ -545,11 +545,11 @@ static ast::constant_value evaluate_binary_less_than(
 	[[maybe_unused]] ctx::parse_context &context
 )
 {
-	bz_assert(lhs.is<ast::constant_expression>());
-	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	bz_assert(lhs.is_constant());
+	auto const &lhs_const_expr = lhs.get_constant();
 	auto const &lhs_value = lhs_const_expr.value;
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
 	bz_assert(lhs_value.kind() == rhs_value.kind());
@@ -601,11 +601,11 @@ static ast::constant_value evaluate_binary_less_than_eq(
 	[[maybe_unused]] ctx::parse_context &context
 )
 {
-	bz_assert(lhs.is<ast::constant_expression>());
-	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	bz_assert(lhs.is_constant());
+	auto const &lhs_const_expr = lhs.get_constant();
 	auto const &lhs_value = lhs_const_expr.value;
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
 	bz_assert(lhs_value.kind() == rhs_value.kind());
@@ -657,11 +657,11 @@ static ast::constant_value evaluate_binary_greater_than(
 	[[maybe_unused]] ctx::parse_context &context
 )
 {
-	bz_assert(lhs.is<ast::constant_expression>());
-	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	bz_assert(lhs.is_constant());
+	auto const &lhs_const_expr = lhs.get_constant();
 	auto const &lhs_value = lhs_const_expr.value;
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
 	bz_assert(lhs_value.kind() == rhs_value.kind());
@@ -713,11 +713,11 @@ static ast::constant_value evaluate_binary_greater_than_eq(
 	[[maybe_unused]] ctx::parse_context &context
 )
 {
-	bz_assert(lhs.is<ast::constant_expression>());
-	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	bz_assert(lhs.is_constant());
+	auto const &lhs_const_expr = lhs.get_constant();
 	auto const &lhs_value = lhs_const_expr.value;
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
 	bz_assert(lhs_value.kind() == rhs_value.kind());
@@ -769,11 +769,11 @@ static ast::constant_value evaluate_binary_bit_and(
 	[[maybe_unused]] ctx::parse_context &context
 )
 {
-	bz_assert(lhs.is<ast::constant_expression>());
-	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	bz_assert(lhs.is_constant());
+	auto const &lhs_const_expr = lhs.get_constant();
 	auto const &lhs_value = lhs_const_expr.value;
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
 	bz_assert(lhs_value.kind() == rhs_value.kind());
@@ -803,11 +803,11 @@ static ast::constant_value evaluate_binary_bit_xor(
 	[[maybe_unused]] ctx::parse_context &context
 )
 {
-	bz_assert(lhs.is<ast::constant_expression>());
-	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	bz_assert(lhs.is_constant());
+	auto const &lhs_const_expr = lhs.get_constant();
 	auto const &lhs_value = lhs_const_expr.value;
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
 	bz_assert(lhs_value.kind() == rhs_value.kind());
@@ -837,11 +837,11 @@ static ast::constant_value evaluate_binary_bit_or(
 	[[maybe_unused]] ctx::parse_context &context
 )
 {
-	bz_assert(lhs.is<ast::constant_expression>());
-	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	bz_assert(lhs.is_constant());
+	auto const &lhs_const_expr = lhs.get_constant();
 	auto const &lhs_value = lhs_const_expr.value;
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
 	bz_assert(lhs_value.kind() == rhs_value.kind());
@@ -871,11 +871,11 @@ static ast::constant_value evaluate_binary_bit_left_shift(
 	ctx::parse_context &context
 )
 {
-	bz_assert(lhs.is<ast::constant_expression>());
-	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	bz_assert(lhs.is_constant());
+	auto const &lhs_const_expr = lhs.get_constant();
 	auto const &lhs_value = lhs_const_expr.value;
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
 	bz_assert(lhs_value.is<ast::constant_value::uint>());
@@ -929,11 +929,11 @@ static ast::constant_value evaluate_binary_bit_right_shift(
 	ctx::parse_context &context
 )
 {
-	bz_assert(lhs.is<ast::constant_expression>());
-	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	bz_assert(lhs.is_constant());
+	auto const &lhs_const_expr = lhs.get_constant();
 	auto const &lhs_value = lhs_const_expr.value;
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
 	bz_assert(lhs_value.is<ast::constant_value::uint>());
@@ -987,11 +987,11 @@ static ast::constant_value evaluate_binary_bool_and(
 	[[maybe_unused]] ctx::parse_context &context
 )
 {
-	bz_assert(lhs.is<ast::constant_expression>());
-	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	bz_assert(lhs.is_constant());
+	auto const &lhs_const_expr = lhs.get_constant();
 	auto const &lhs_value = lhs_const_expr.value;
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
 	bz_assert(lhs_value.is<ast::constant_value::boolean>());
@@ -1010,11 +1010,11 @@ static ast::constant_value evaluate_binary_bool_xor(
 	[[maybe_unused]] ctx::parse_context &context
 )
 {
-	bz_assert(lhs.is<ast::constant_expression>());
-	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	bz_assert(lhs.is_constant());
+	auto const &lhs_const_expr = lhs.get_constant();
 	auto const &lhs_value = lhs_const_expr.value;
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
 	bz_assert(lhs_value.is<ast::constant_value::boolean>());
@@ -1031,11 +1031,11 @@ static ast::constant_value evaluate_binary_bool_or(
 	[[maybe_unused]] ctx::parse_context &context
 )
 {
-	bz_assert(lhs.is<ast::constant_expression>());
-	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	bz_assert(lhs.is_constant());
+	auto const &lhs_const_expr = lhs.get_constant();
 	auto const &lhs_value = lhs_const_expr.value;
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
 	bz_assert(lhs_value.is<ast::constant_value::boolean>());
@@ -1054,8 +1054,8 @@ static ast::constant_value evaluate_binary_comma(
 	[[maybe_unused]] ctx::parse_context &context
 )
 {
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	bz_assert(rhs.is_constant());
+	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
 	return rhs_value;
@@ -1121,15 +1121,15 @@ static ast::constant_value evaluate_subscript(
 )
 {
 	bool is_consteval = true;
-	auto const &base_type = ast::remove_const_or_consteval(subscript_expr.base.get_expr_type_and_kind().first);
+	auto const &base_type = ast::remove_const_or_consteval(subscript_expr.base.get_expr_type());
 
 	auto const &index = subscript_expr.index;
 	uint64_t index_value = 0;
 
-	if (index.is<ast::constant_expression>())
+	if (index.is_constant())
 	{
-		bz_assert(index.is<ast::constant_expression>());
-		auto const &index_const_value = index.get<ast::constant_expression>().value;
+		bz_assert(index.is_constant());
+		auto const &index_const_value = index.get_constant_value();
 		if (index_const_value.is<ast::constant_value::uint>())
 		{
 			index_value = index_const_value.get<ast::constant_value::uint>();
@@ -1197,8 +1197,8 @@ static ast::constant_value evaluate_subscript(
 		return {};
 	}
 
-	bz_assert(subscript_expr.base.is<ast::constant_expression>());
-	auto const &value = subscript_expr.base.get<ast::constant_expression>().value;
+	bz_assert(subscript_expr.base.is_constant());
+	auto const &value = subscript_expr.base.get_constant_value();
 	if (base_type.is<ast::ts_array>())
 	{
 		bz_assert(value.is<ast::constant_value::array>());
@@ -1234,16 +1234,16 @@ static ast::constant_value evaluate_math_functions(
 
 	auto const get_float32 = [&func_call](size_t i = 0) {
 		bz_assert(i < func_call.params.size());
-		bz_assert(func_call.params[i].is<ast::constant_expression>());
-		auto const &value = func_call.params[i].get<ast::constant_expression>().value;
+		bz_assert(func_call.params[i].is_constant());
+		auto const &value = func_call.params[i].get_constant_value();
 		bz_assert(value.is<ast::constant_value::float32>());
 		return value.get<ast::constant_value::float32>();
 	};
 
 	auto const get_float64 = [&func_call](size_t i = 0) {
 		bz_assert(i < func_call.params.size());
-		bz_assert(func_call.params[i].is<ast::constant_expression>());
-		auto const &value = func_call.params[i].get<ast::constant_expression>().value;
+		bz_assert(func_call.params[i].is_constant());
+		auto const &value = func_call.params[i].get_constant_value();
 		bz_assert(value.is<ast::constant_value::float64>());
 		return value.get<ast::constant_value::float64>();
 	};
@@ -1561,32 +1561,32 @@ static ast::constant_value evaluate_bit_manipulation(
 
 	auto const get_u8 = [&func_call](size_t i = 0) -> uint8_t {
 		bz_assert(i < func_call.params.size());
-		bz_assert(func_call.params[i].is<ast::constant_expression>());
-		auto const &value = func_call.params[i].get<ast::constant_expression>().value;
+		bz_assert(func_call.params[i].is_constant());
+		auto const &value = func_call.params[i].get_constant_value();
 		bz_assert(value.is<ast::constant_value::uint>());
 		return static_cast<uint8_t>(value.get<ast::constant_value::uint>());
 	};
 
 	auto const get_u16 = [&func_call](size_t i = 0) -> uint16_t {
 		bz_assert(i < func_call.params.size());
-		bz_assert(func_call.params[i].is<ast::constant_expression>());
-		auto const &value = func_call.params[i].get<ast::constant_expression>().value;
+		bz_assert(func_call.params[i].is_constant());
+		auto const &value = func_call.params[i].get_constant_value();
 		bz_assert(value.is<ast::constant_value::uint>());
 		return static_cast<uint16_t>(value.get<ast::constant_value::uint>());
 	};
 
 	auto const get_u32 = [&func_call](size_t i = 0) -> uint32_t {
 		bz_assert(i < func_call.params.size());
-		bz_assert(func_call.params[i].is<ast::constant_expression>());
-		auto const &value = func_call.params[i].get<ast::constant_expression>().value;
+		bz_assert(func_call.params[i].is_constant());
+		auto const &value = func_call.params[i].get_constant_value();
 		bz_assert(value.is<ast::constant_value::uint>());
 		return static_cast<uint32_t>(value.get<ast::constant_value::uint>());
 	};
 
 	auto const get_u64 = [&func_call](size_t i = 0) -> uint64_t {
 		bz_assert(i < func_call.params.size());
-		bz_assert(func_call.params[i].is<ast::constant_expression>());
-		auto const &value = func_call.params[i].get<ast::constant_expression>().value;
+		bz_assert(func_call.params[i].is_constant());
+		auto const &value = func_call.params[i].get_constant_value();
 		bz_assert(value.is<ast::constant_value::uint>());
 		return static_cast<uint64_t>(value.get<ast::constant_value::uint>());
 	};
@@ -1802,10 +1802,10 @@ template<typename ...Kinds>
 static ast::constant_value is_typespec_kind_helper(ast::expr_function_call &func_call)
 {
 	bz_assert(func_call.params.size() == 1);
-	bz_assert(func_call.params[0].is<ast::constant_expression>());
-	bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
+	bz_assert(func_call.params[0].is_constant());
+	bz_assert(func_call.params[0].get_constant_value().is<ast::constant_value::type>());
 	auto const type = func_call.params[0]
-		.get<ast::constant_expression>().value
+		.get_constant_value()
 		.get<ast::constant_value::type>().as_typespec_view();
 	return ast::constant_value((type.is<Kinds>() || ...));
 }
@@ -1814,10 +1814,10 @@ template<typename Kind>
 static ast::constant_value remove_typespec_kind_helper(ast::expr_function_call &func_call)
 {
 	bz_assert(func_call.params.size() == 1);
-	bz_assert(func_call.params[0].is<ast::constant_expression>());
-	bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
+	bz_assert(func_call.params[0].is_constant());
+	bz_assert(func_call.params[0].get_constant_value().is<ast::constant_value::type>());
 	auto const type = func_call.params[0]
-		.get<ast::constant_expression>().value
+		.get_constant_value()
 		.get<ast::constant_value::type>().as_typespec_view();
 	if (type.is<Kind>())
 	{
@@ -1867,8 +1867,8 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		{
 			return {};
 		}
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		auto const &str_value = func_call.params[0].get<ast::constant_expression>().value;
+		bz_assert(func_call.params[0].is_constant());
+		auto const &str_value = func_call.params[0].get_constant_value();
 		bz_assert(str_value.is<ast::constant_value::string>());
 		return ast::constant_value(str_value.get<ast::constant_value::string>().size());
 	}
@@ -1902,9 +1902,9 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		{
 			return {};
 		}
-		bz_assert(func_call.params[1].is<ast::constant_expression>());
-		bz_assert(func_call.params[1].get<ast::constant_expression>().value.is<ast::constant_value::null>());
-		return func_call.params[1].get<ast::constant_expression>().value;
+		bz_assert(func_call.params[1].is_constant());
+		bz_assert(func_call.params[1].get_constant_value().is<ast::constant_value::null>());
+		return func_call.params[1].get_constant_value();
 	}
 	case ast::function_body::builtin_pointer_to_int:
 	case ast::function_body::builtin_int_to_pointer:
@@ -1951,9 +1951,9 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		{
 			return {};
 		}
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::string>());
-		auto const &option = func_call.params[0].get<ast::constant_expression>().value.get<ast::constant_value::string>();
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is<ast::constant_value::string>());
+		auto const &option = func_call.params[0].get_constant_value().get<ast::constant_value::string>();
 		return ast::constant_value(defines.contains(option));
 	}
 
@@ -1978,7 +1978,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 			consteval_try(func_call.params[0], context);
 			if (func_call.params[0].has_consteval_succeeded())
 			{
-				auto const &message_value = func_call.params[0].get<ast::constant_expression>().value;
+				auto const &message_value = func_call.params[0].get_constant_value();
 				bz_assert(message_value.is<ast::constant_value::string>());
 				auto const message = message_value.get<ast::constant_value::string>().as_string_view();
 				context.report_error(func_call.src_tokens, message);
@@ -1993,7 +1993,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 			consteval_try(func_call.params[0], context);
 			if (func_call.params[0].has_consteval_succeeded())
 			{
-				auto const &message_value = func_call.params[0].get<ast::constant_expression>().value;
+				auto const &message_value = func_call.params[0].get_constant_value();
 				bz_assert(message_value.is<ast::constant_value::string>());
 				auto const message = message_value.get<ast::constant_value::string>().as_string_view();
 				context.report_warning(ctx::warning_kind::comptime_warning, func_call.src_tokens, message);
@@ -2011,7 +2011,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 			consteval_try(func_call.params[0], context);
 			if (func_call.params[0].has_consteval_succeeded())
 			{
-				auto const &str_value = func_call.params[0].get<ast::constant_expression>().value;
+				auto const &str_value = func_call.params[0].get_constant_value();
 				bz_assert(str_value.is<ast::constant_value::string>());
 				return str_value;
 			}
@@ -2021,18 +2021,18 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	case ast::function_body::comptime_concatenate_strs:
 	{
 		bz_assert(func_call.params.is_all([](auto const &param) {
-			return param.template is<ast::constant_expression>();
+			return param.is_constant();
 		}));
 		bz_assert(func_call.params.is_all([](auto const &param) {
 			return param
-				.template get<ast::constant_expression>().value
+				.get_constant_value()
 				.template is<ast::constant_value::string>();
 		}));
 
 		auto result = func_call.params
 			.transform([](auto const &param) -> auto const & {
 				return param
-					.template get<ast::constant_expression>().value
+					.get_constant_value()
 					.template get<ast::constant_value::string>();
 			})
 			.reduce(bz::u8string(), [](auto lhs, auto const &rhs) {
@@ -2049,10 +2049,10 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	case ast::function_body::typename_as_str:
 	{
 		bz_assert(func_call.params.size() == 1);
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is<ast::constant_value::type>());
 		auto const type = func_call.params[0]
-			.get<ast::constant_expression>().value
+			.get_constant_value()
 			.get<ast::constant_value::type>().as_typespec_view();
 		return ast::constant_value(bz::format("{}", type));
 	}
@@ -2108,40 +2108,40 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	case ast::function_body::is_default_constructible:
 	{
 		bz_assert(func_call.params.size() == 1);
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is<ast::constant_value::type>());
 		auto const type = func_call.params[0]
-			.get<ast::constant_expression>().value
+			.get_constant_value()
 			.get<ast::constant_value::type>().as_typespec_view();
 		return ast::constant_value(ast::is_default_constructible(type));
 	}
 	case ast::function_body::is_copy_constructible:
 	{
 		bz_assert(func_call.params.size() == 1);
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is<ast::constant_value::type>());
 		auto const type = func_call.params[0]
-			.get<ast::constant_expression>().value
+			.get_constant_value()
 			.get<ast::constant_value::type>().as_typespec_view();
 		return ast::constant_value(ast::is_copy_constructible(type));
 	}
 	case ast::function_body::is_trivially_copy_constructible:
 	{
 		bz_assert(func_call.params.size() == 1);
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is<ast::constant_value::type>());
 		auto const type = func_call.params[0]
-			.get<ast::constant_expression>().value
+			.get_constant_value()
 			.get<ast::constant_value::type>().as_typespec_view();
 		return ast::constant_value(ast::is_trivially_copy_constructible(type));
 	}
 	case ast::function_body::is_trivially_destructible:
 	{
 		bz_assert(func_call.params.size() == 1);
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is<ast::constant_value::type>());
 		auto const type = func_call.params[0]
-			.get<ast::constant_expression>().value
+			.get_constant_value()
 			.get<ast::constant_value::type>().as_typespec_view();
 		return ast::constant_value(ast::is_trivially_destructible(type));
 	}
@@ -2284,8 +2284,8 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		{
 			return {};
 		}
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		auto const &const_expr = func_call.params[0].get<ast::constant_expression>();
+		bz_assert(func_call.params[0].is_constant());
+		auto const &const_expr = func_call.params[0].get_constant();
 		auto const &value = const_expr.value;
 		return value;
 	}
@@ -2304,8 +2304,8 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		{
 			return {};
 		}
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		auto const &const_expr = func_call.params[0].get<ast::constant_expression>();
+		bz_assert(func_call.params[0].is_constant());
+		auto const &const_expr = func_call.params[0].get_constant();
 		auto const &value = const_expr.value;
 		if (value.is<ast::constant_value::sint>())
 		{
@@ -2346,8 +2346,8 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		{
 			return {};
 		}
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		auto const &value = func_call.params[0].get<ast::constant_expression>().value;
+		bz_assert(func_call.params[0].is_constant());
+		auto const &value = func_call.params[0].get_constant_value();
 		if (value.is<ast::constant_value::boolean>())
 		{
 			auto const bool_val = value.get<ast::constant_value::boolean>();
@@ -2355,7 +2355,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		}
 		else
 		{
-			auto const param_type = ast::remove_const_or_consteval(func_call.params[0].get<ast::constant_expression>().type);
+			auto const param_type = ast::remove_const_or_consteval(func_call.params[0].get_constant().type);
 			bz_assert(param_type.is<ast::ts_base_type>());
 			auto const param_kind = param_type.get<ast::ts_base_type>().info->kind;
 			bz_assert(value.is<ast::constant_value::uint>());
@@ -2390,9 +2390,9 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		{
 			return {};
 		}
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::boolean>());
-		auto const bool_val = func_call.params[0].get<ast::constant_expression>().value.get<ast::constant_value::boolean>();
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is<ast::constant_value::boolean>());
+		auto const bool_val = func_call.params[0].get_constant_value().get<ast::constant_value::boolean>();
 		return ast::constant_value(!bool_val);
 	}
 	case ast::function_body::builtin_unary_plus_plus:
@@ -2604,8 +2604,8 @@ static ast::constant_value evaluate_function_call(
 		{
 			return {};
 		}
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		return func_call.params[0].get<ast::constant_expression>().value;
+		bz_assert(func_call.params[0].is_constant());
+		return func_call.params[0].get_constant_value();
 	}
 	else if (func_call.func_body->has_builtin_implementation())
 	{
@@ -2633,7 +2633,7 @@ static ast::constant_value evaluate_cast(
 	ctx::parse_context &context
 )
 {
-	bz_assert(subscript_expr.expr.is<ast::constant_expression>());
+	bz_assert(subscript_expr.expr.is_constant());
 	auto const dest_type = ast::remove_const_or_consteval(subscript_expr.type);
 	if (!dest_type.is<ast::ts_base_type>())
 	{
@@ -2642,7 +2642,7 @@ static ast::constant_value evaluate_cast(
 
 	auto const dest_kind = dest_type.get<ast::ts_base_type>().info->kind;
 	auto const paren_level = original_expr.paren_level;
-	auto const &value = subscript_expr.expr.get<ast::constant_expression>().value;
+	auto const &value = subscript_expr.expr.get_constant_value();
 	auto const &src_tokens = original_expr.src_tokens;
 
 	switch (dest_kind)
@@ -2910,15 +2910,15 @@ static ast::constant_value guaranteed_evaluate_expr(
 			}
 
 			ast::constant_value result;
-			auto const expr_type = ast::remove_const_or_consteval(expr.get_expr_type_and_kind().first);
+			auto const expr_type = ast::remove_const_or_consteval(expr.get_expr_type());
 			auto &elem_values = expr_type.is<ast::ts_array>()
 				? (result.emplace<ast::constant_value::array>(), result.get<ast::constant_value::array>())
 				: (result.emplace<ast::constant_value::tuple>(), result.get<ast::constant_value::tuple>());
 			elem_values.reserve(tuple.elems.size());
 			for (auto &elem : tuple.elems)
 			{
-				bz_assert(elem.is<ast::constant_expression>());
-				elem_values.emplace_back(elem.get<ast::constant_expression>().value);
+				bz_assert(elem.is_constant());
+				elem_values.emplace_back(elem.get_constant_value());
 			}
 			return result;
 		},
@@ -2937,8 +2937,8 @@ static ast::constant_value guaranteed_evaluate_expr(
 				auto const op = binary_op.op;
 				if (op == lex::token::bool_and)
 				{
-					bz_assert(binary_op.lhs.is<ast::constant_expression>());
-					auto const &lhs_value = binary_op.lhs.get<ast::constant_expression>().value;
+					bz_assert(binary_op.lhs.is_constant());
+					auto const &lhs_value = binary_op.lhs.get_constant_value();
 					bz_assert(lhs_value.is<ast::constant_value::boolean>());
 					auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
 					if (!lhs_bool_val)
@@ -2948,8 +2948,8 @@ static ast::constant_value guaranteed_evaluate_expr(
 				}
 				else if (op == lex::token::bool_or)
 				{
-					bz_assert(binary_op.lhs.is<ast::constant_expression>());
-					auto const &lhs_value = binary_op.lhs.get<ast::constant_expression>().value;
+					bz_assert(binary_op.lhs.is_constant());
+					auto const &lhs_value = binary_op.lhs.get_constant_value();
 					bz_assert(lhs_value.is<ast::constant_value::boolean>());
 					auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
 					if (lhs_bool_val)
@@ -3011,7 +3011,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			auto &aggregate = result.emplace<ast::constant_value::aggregate>();
 			for (auto const &expr : struct_init_expr.exprs)
 			{
-				aggregate.emplace_back(expr.get<ast::constant_expression>().value);
+				aggregate.emplace_back(expr.get_constant_value());
 			}
 			return result;
 		},
@@ -3031,7 +3031,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			auto &aggregate = result.emplace<ast::constant_value::array>();
 			for (auto const &expr : array_init_expr.exprs)
 			{
-				aggregate.emplace_back(expr.get<ast::constant_expression>().value);
+				aggregate.emplace_back(expr.get_constant_value());
 			}
 			return result;
 		},
@@ -3039,12 +3039,12 @@ static ast::constant_value guaranteed_evaluate_expr(
 			auto const type = array_default_construct_expr.type.as_typespec_view();
 			bz_assert(type.is<ast::ts_array>());
 			consteval_guaranteed(array_default_construct_expr.elem_ctor_call, context);
-			if (!array_default_construct_expr.elem_ctor_call.is<ast::constant_expression>())
+			if (!array_default_construct_expr.elem_ctor_call.is_constant())
 			{
 				return {};
 			}
 
-			auto const &value = array_default_construct_expr.elem_ctor_call.get<ast::constant_expression>().value;
+			auto const &value = array_default_construct_expr.elem_ctor_call.get_constant_value();
 			ast::constant_value result;
 			result.emplace<ast::constant_value::array>(type.get<ast::ts_array>().size, value);
 			return result;
@@ -3064,9 +3064,9 @@ static ast::constant_value guaranteed_evaluate_expr(
 			consteval_guaranteed(member_access_expr.base, context);
 			if (member_access_expr.base.has_consteval_succeeded())
 			{
-				bz_assert(member_access_expr.base.get<ast::constant_expression>().value.is<ast::constant_value::aggregate>());
+				bz_assert(member_access_expr.base.get_constant_value().is<ast::constant_value::aggregate>());
 				return member_access_expr.base
-					.get<ast::constant_expression>().value
+					.get_constant_value()
 					.get<ast::constant_value::aggregate>()[member_access_expr.index];
 			}
 			else
@@ -3084,7 +3084,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 				consteval_guaranteed(compound_expr.final_expr, context);
 				if (compound_expr.final_expr.has_consteval_succeeded())
 				{
-					return compound_expr.final_expr.get<ast::constant_expression>().value;
+					return compound_expr.final_expr.get_constant_value();
 				}
 			}
 			return {};
@@ -3095,16 +3095,16 @@ static ast::constant_value guaranteed_evaluate_expr(
 			consteval_guaranteed(if_expr.else_block, context);
 			if (if_expr.condition.has_consteval_succeeded())
 			{
-				bz_assert(if_expr.condition.is<ast::constant_expression>());
-				bz_assert(if_expr.condition.get<ast::constant_expression>().value.is<ast::constant_value::boolean>());
+				bz_assert(if_expr.condition.is_constant());
+				bz_assert(if_expr.condition.get_constant_value().is<ast::constant_value::boolean>());
 				auto const condition_value = if_expr.condition
-					.get<ast::constant_expression>().value
+					.get_constant_value()
 					.get<ast::constant_value::boolean>();
 				if (condition_value)
 				{
 					if (if_expr.then_block.has_consteval_succeeded())
 					{
-						return if_expr.then_block.get<ast::constant_expression>().value;
+						return if_expr.then_block.get_constant_value();
 					}
 					else
 					{
@@ -3115,7 +3115,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 				{
 					if (if_expr.else_block.has_consteval_succeeded())
 					{
-						return if_expr.else_block.get<ast::constant_expression>().value;
+						return if_expr.else_block.get_constant_value();
 					}
 					else
 					{
@@ -3129,16 +3129,16 @@ static ast::constant_value guaranteed_evaluate_expr(
 			}
 		},
 		[&context](ast::expr_if_consteval &if_expr) -> ast::constant_value {
-			bz_assert(if_expr.condition.is<ast::constant_expression>());
-			auto const &condition_value = if_expr.condition.get<ast::constant_expression>().value;
+			bz_assert(if_expr.condition.is_constant());
+			auto const &condition_value = if_expr.condition.get_constant_value();
 			bz_assert(condition_value.is<ast::constant_value::boolean>());
 			if (condition_value.get<ast::constant_value::boolean>())
 			{
 				consteval_guaranteed(if_expr.then_block, context);
 				if (if_expr.then_block.has_consteval_succeeded())
 				{
-					bz_assert(if_expr.then_block.is<ast::constant_expression>());
-					return if_expr.then_block.get<ast::constant_expression>().value;
+					bz_assert(if_expr.then_block.is_constant());
+					return if_expr.then_block.get_constant_value();
 				}
 				else
 				{
@@ -3150,8 +3150,8 @@ static ast::constant_value guaranteed_evaluate_expr(
 				consteval_guaranteed(if_expr.else_block, context);
 				if (if_expr.else_block.has_consteval_succeeded())
 				{
-					bz_assert(if_expr.else_block.is<ast::constant_expression>());
-					return if_expr.else_block.get<ast::constant_expression>().value;
+					bz_assert(if_expr.else_block.is_constant());
+					return if_expr.else_block.get_constant_value();
 				}
 				else
 				{
@@ -3176,12 +3176,12 @@ static ast::constant_value guaranteed_evaluate_expr(
 				return {};
 			}
 
-			auto const &matched_value = switch_expr.matched_expr.get<ast::constant_expression>().value;
+			auto const &matched_value = switch_expr.matched_expr.get_constant_value();
 			auto const case_it = std::find_if(
 				switch_expr.cases.begin(), switch_expr.cases.end(),
 				[&](auto const &switch_case) {
 					return switch_case.values
-						.transform([](auto const &expr) -> auto const &{ return expr.template get<ast::constant_expression>().value; })
+						.transform([](auto const &expr) -> auto const &{ return expr.get_constant_value(); })
 						.is_any(matched_value);
 				}
 			);
@@ -3189,7 +3189,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			{
 				if (switch_expr.default_case.has_consteval_succeeded())
 				{
-					return switch_expr.default_case.get<ast::constant_expression>().value;
+					return switch_expr.default_case.get_constant_value();
 				}
 				else
 				{
@@ -3200,7 +3200,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			{
 				if (case_it->expr.has_consteval_succeeded())
 				{
-					return case_it->expr.get<ast::constant_expression>().value;
+					return case_it->expr.get_constant_value();
 				}
 				else
 				{
@@ -3261,14 +3261,14 @@ static ast::constant_value try_evaluate_expr(
 			}
 
 			ast::constant_value result;
-			auto &elem_values = expr.get_expr_type_and_kind().first.is<ast::ts_array>()
+			auto &elem_values = expr.get_expr_type().is<ast::ts_array>()
 				? (result.emplace<ast::constant_value::array>(), result.get<ast::constant_value::array>())
 				: (result.emplace<ast::constant_value::tuple>(), result.get<ast::constant_value::tuple>());
 			elem_values.reserve(tuple.elems.size());
 			for (auto &elem : tuple.elems)
 			{
-				bz_assert(elem.is<ast::constant_expression>());
-				elem_values.emplace_back(elem.get<ast::constant_expression>().value);
+				bz_assert(elem.is_constant());
+				elem_values.emplace_back(elem.get_constant_value());
 			}
 			return result;
 		},
@@ -3286,8 +3286,8 @@ static ast::constant_value try_evaluate_expr(
 				auto const op = binary_op.op;
 				if (op == lex::token::bool_and)
 				{
-					bz_assert(binary_op.lhs.is<ast::constant_expression>());
-					auto const &lhs_value = binary_op.lhs.get<ast::constant_expression>().value;
+					bz_assert(binary_op.lhs.is_constant());
+					auto const &lhs_value = binary_op.lhs.get_constant_value();
 					bz_assert(lhs_value.is<ast::constant_value::boolean>());
 					auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
 					if (!lhs_bool_val)
@@ -3297,8 +3297,8 @@ static ast::constant_value try_evaluate_expr(
 				}
 				else if (op == lex::token::bool_or)
 				{
-					bz_assert(binary_op.lhs.is<ast::constant_expression>());
-					auto const &lhs_value = binary_op.lhs.get<ast::constant_expression>().value;
+					bz_assert(binary_op.lhs.is_constant());
+					auto const &lhs_value = binary_op.lhs.get_constant_value();
 					bz_assert(lhs_value.is<ast::constant_value::boolean>());
 					auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
 					if (lhs_bool_val)
@@ -3362,7 +3362,7 @@ static ast::constant_value try_evaluate_expr(
 			auto &aggregate = result.emplace<ast::constant_value::aggregate>();
 			for (auto const &expr : struct_init_expr.exprs)
 			{
-				aggregate.emplace_back(expr.get<ast::constant_expression>().value);
+				aggregate.emplace_back(expr.get_constant_value());
 			}
 			return result;
 		},
@@ -3382,7 +3382,7 @@ static ast::constant_value try_evaluate_expr(
 			auto &aggregate = result.emplace<ast::constant_value::array>();
 			for (auto const &expr : array_init_expr.exprs)
 			{
-				aggregate.emplace_back(expr.get<ast::constant_expression>().value);
+				aggregate.emplace_back(expr.get_constant_value());
 			}
 			return result;
 		},
@@ -3390,12 +3390,12 @@ static ast::constant_value try_evaluate_expr(
 			auto const type = array_default_construct_expr.type.as_typespec_view();
 			bz_assert(type.is<ast::ts_array>());
 			consteval_try(array_default_construct_expr.elem_ctor_call, context);
-			if (!array_default_construct_expr.elem_ctor_call.is<ast::constant_expression>())
+			if (!array_default_construct_expr.elem_ctor_call.is_constant())
 			{
 				return {};
 			}
 
-			auto const &value = array_default_construct_expr.elem_ctor_call.get<ast::constant_expression>().value;
+			auto const &value = array_default_construct_expr.elem_ctor_call.get_constant_value();
 			ast::constant_value result;
 			result.emplace<ast::constant_value::array>(type.get<ast::ts_array>().size, value);
 			return result;
@@ -3416,7 +3416,7 @@ static ast::constant_value try_evaluate_expr(
 			if (member_access_expr.base.has_consteval_succeeded())
 			{
 				return member_access_expr.base
-					.get<ast::constant_expression>().value
+					.get_constant_value()
 					.get<ast::constant_value::aggregate>()[member_access_expr.index];
 			}
 			else
@@ -3434,7 +3434,7 @@ static ast::constant_value try_evaluate_expr(
 				consteval_try(compound_expr.final_expr, context);
 				if (compound_expr.final_expr.has_consteval_succeeded())
 				{
-					return compound_expr.final_expr.get<ast::constant_expression>().value;
+					return compound_expr.final_expr.get_constant_value();
 				}
 				else
 				{
@@ -3452,16 +3452,16 @@ static ast::constant_value try_evaluate_expr(
 			consteval_try(if_expr.else_block, context);
 			if (if_expr.condition.has_consteval_succeeded())
 			{
-				bz_assert(if_expr.condition.is<ast::constant_expression>());
-				bz_assert(if_expr.condition.get<ast::constant_expression>().value.is<ast::constant_value::boolean>());
+				bz_assert(if_expr.condition.is_constant());
+				bz_assert(if_expr.condition.get_constant_value().is<ast::constant_value::boolean>());
 				auto const condition_value = if_expr.condition
-					.get<ast::constant_expression>().value
+					.get_constant_value()
 					.get<ast::constant_value::boolean>();
 				if (condition_value)
 				{
 					if (if_expr.then_block.has_consteval_succeeded())
 					{
-						return if_expr.then_block.get<ast::constant_expression>().value;
+						return if_expr.then_block.get_constant_value();
 					}
 					else
 					{
@@ -3472,7 +3472,7 @@ static ast::constant_value try_evaluate_expr(
 				{
 					if (if_expr.else_block.has_consteval_succeeded())
 					{
-						return if_expr.else_block.get<ast::constant_expression>().value;
+						return if_expr.else_block.get_constant_value();
 					}
 					else
 					{
@@ -3486,16 +3486,16 @@ static ast::constant_value try_evaluate_expr(
 			}
 		},
 		[&context](ast::expr_if_consteval &if_expr) -> ast::constant_value {
-			bz_assert(if_expr.condition.is<ast::constant_expression>());
-			auto const &condition_value = if_expr.condition.get<ast::constant_expression>().value;
+			bz_assert(if_expr.condition.is_constant());
+			auto const &condition_value = if_expr.condition.get_constant_value();
 			bz_assert(condition_value.is<ast::constant_value::boolean>());
 			if (condition_value.get<ast::constant_value::boolean>())
 			{
 				consteval_try(if_expr.then_block, context);
 				if (if_expr.then_block.has_consteval_succeeded())
 				{
-					bz_assert(if_expr.then_block.is<ast::constant_expression>());
-					return if_expr.then_block.get<ast::constant_expression>().value;
+					bz_assert(if_expr.then_block.is_constant());
+					return if_expr.then_block.get_constant_value();
 				}
 				else
 				{
@@ -3507,8 +3507,8 @@ static ast::constant_value try_evaluate_expr(
 				consteval_try(if_expr.else_block, context);
 				if (if_expr.else_block.has_consteval_succeeded())
 				{
-					bz_assert(if_expr.else_block.is<ast::constant_expression>());
-					return if_expr.else_block.get<ast::constant_expression>().value;
+					bz_assert(if_expr.else_block.is_constant());
+					return if_expr.else_block.get_constant_value();
 				}
 				else
 				{
@@ -3533,12 +3533,12 @@ static ast::constant_value try_evaluate_expr(
 				return {};
 			}
 
-			auto const &matched_value = switch_expr.matched_expr.get<ast::constant_expression>().value;
+			auto const &matched_value = switch_expr.matched_expr.get_constant_value();
 			auto const case_it = std::find_if(
 				switch_expr.cases.begin(), switch_expr.cases.end(),
 				[&](auto const &switch_case) {
 					return switch_case.values
-						.transform([](auto const &expr) -> auto const &{ return expr.template get<ast::constant_expression>().value; })
+						.transform([](auto const &expr) -> auto const &{ return expr.get_constant_value(); })
 						.is_any(matched_value);
 				}
 			);
@@ -3546,7 +3546,7 @@ static ast::constant_value try_evaluate_expr(
 			{
 				if (switch_expr.default_case.has_consteval_succeeded())
 				{
-					return switch_expr.default_case.get<ast::constant_expression>().value;
+					return switch_expr.default_case.get_constant_value();
 				}
 				else
 				{
@@ -3557,7 +3557,7 @@ static ast::constant_value try_evaluate_expr(
 			{
 				if (case_it->expr.has_consteval_succeeded())
 				{
-					return case_it->expr.get<ast::constant_expression>().value;
+					return case_it->expr.get_constant_value();
 				}
 				else
 				{
@@ -3616,14 +3616,14 @@ static ast::constant_value try_evaluate_expr_without_error(
 			}
 
 			ast::constant_value result;
-			auto &elem_values = expr.get_expr_type_and_kind().first.is<ast::ts_array>()
+			auto &elem_values = expr.get_expr_type().is<ast::ts_array>()
 				? (result.emplace<ast::constant_value::array>(), result.get<ast::constant_value::array>())
 				: (result.emplace<ast::constant_value::tuple>(), result.get<ast::constant_value::tuple>());
 			elem_values.reserve(tuple.elems.size());
 			for (auto &elem : tuple.elems)
 			{
-				bz_assert(elem.is<ast::constant_expression>());
-				elem_values.emplace_back(elem.get<ast::constant_expression>().value);
+				bz_assert(elem.is_constant());
+				elem_values.emplace_back(elem.get_constant_value());
 			}
 			return result;
 		},
@@ -3642,8 +3642,8 @@ static ast::constant_value try_evaluate_expr_without_error(
 				auto const op = binary_op.op;
 				if (op == lex::token::bool_and)
 				{
-					bz_assert(binary_op.lhs.is<ast::constant_expression>());
-					auto const &lhs_value = binary_op.lhs.get<ast::constant_expression>().value;
+					bz_assert(binary_op.lhs.is_constant());
+					auto const &lhs_value = binary_op.lhs.get_constant_value();
 					bz_assert(lhs_value.is<ast::constant_value::boolean>());
 					auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
 					if (!lhs_bool_val)
@@ -3653,8 +3653,8 @@ static ast::constant_value try_evaluate_expr_without_error(
 				}
 				else if (op == lex::token::bool_or)
 				{
-					bz_assert(binary_op.lhs.is<ast::constant_expression>());
-					auto const &lhs_value = binary_op.lhs.get<ast::constant_expression>().value;
+					bz_assert(binary_op.lhs.is_constant());
+					auto const &lhs_value = binary_op.lhs.get_constant_value();
 					bz_assert(lhs_value.is<ast::constant_value::boolean>());
 					auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
 					if (lhs_bool_val)
@@ -3716,7 +3716,7 @@ static ast::constant_value try_evaluate_expr_without_error(
 			auto &aggregate = result.emplace<ast::constant_value::aggregate>();
 			for (auto const &expr : struct_init_expr.exprs)
 			{
-				aggregate.emplace_back(expr.get<ast::constant_expression>().value);
+				aggregate.emplace_back(expr.get_constant_value());
 			}
 			return result;
 		},
@@ -3736,7 +3736,7 @@ static ast::constant_value try_evaluate_expr_without_error(
 			auto &array = result.emplace<ast::constant_value::array>();
 			for (auto const &expr : array_init_expr.exprs)
 			{
-				array.emplace_back(expr.get<ast::constant_expression>().value);
+				array.emplace_back(expr.get_constant_value());
 			}
 			return result;
 		},
@@ -3744,12 +3744,12 @@ static ast::constant_value try_evaluate_expr_without_error(
 			auto const type = array_default_construct_expr.type.as_typespec_view();
 			bz_assert(type.is<ast::ts_array>());
 			consteval_try_without_error(array_default_construct_expr.elem_ctor_call, context);
-			if (!array_default_construct_expr.elem_ctor_call.is<ast::constant_expression>())
+			if (!array_default_construct_expr.elem_ctor_call.is_constant())
 			{
 				return {};
 			}
 
-			auto const &value = array_default_construct_expr.elem_ctor_call.get<ast::constant_expression>().value;
+			auto const &value = array_default_construct_expr.elem_ctor_call.get_constant_value();
 			ast::constant_value result;
 			result.emplace<ast::constant_value::array>(type.get<ast::ts_array>().size, value);
 			return result;
@@ -3770,7 +3770,7 @@ static ast::constant_value try_evaluate_expr_without_error(
 			if (member_access_expr.base.has_consteval_succeeded())
 			{
 				return member_access_expr.base
-					.get<ast::constant_expression>().value
+					.get_constant_value()
 					.get<ast::constant_value::aggregate>()[member_access_expr.index];
 			}
 			else
@@ -3788,7 +3788,7 @@ static ast::constant_value try_evaluate_expr_without_error(
 				consteval_try_without_error(compound_expr.final_expr, context);
 				if (compound_expr.final_expr.has_consteval_succeeded())
 				{
-					return compound_expr.final_expr.get<ast::constant_expression>().value;
+					return compound_expr.final_expr.get_constant_value();
 				}
 				else
 				{
@@ -3806,16 +3806,16 @@ static ast::constant_value try_evaluate_expr_without_error(
 			consteval_try_without_error(if_expr.else_block, context);
 			if (if_expr.condition.has_consteval_succeeded())
 			{
-				bz_assert(if_expr.condition.is<ast::constant_expression>());
-				bz_assert(if_expr.condition.get<ast::constant_expression>().value.is<ast::constant_value::boolean>());
+				bz_assert(if_expr.condition.is_constant());
+				bz_assert(if_expr.condition.get_constant_value().is<ast::constant_value::boolean>());
 				auto const condition_value = if_expr.condition
-					.get<ast::constant_expression>().value
+					.get_constant_value()
 					.get<ast::constant_value::boolean>();
 				if (condition_value)
 				{
 					if (if_expr.then_block.has_consteval_succeeded())
 					{
-						return if_expr.then_block.get<ast::constant_expression>().value;
+						return if_expr.then_block.get_constant_value();
 					}
 					else
 					{
@@ -3826,7 +3826,7 @@ static ast::constant_value try_evaluate_expr_without_error(
 				{
 					if (if_expr.else_block.has_consteval_succeeded())
 					{
-						return if_expr.else_block.get<ast::constant_expression>().value;
+						return if_expr.else_block.get_constant_value();
 					}
 					else
 					{
@@ -3840,16 +3840,16 @@ static ast::constant_value try_evaluate_expr_without_error(
 			}
 		},
 		[&context](ast::expr_if_consteval &if_expr) -> ast::constant_value {
-			bz_assert(if_expr.condition.is<ast::constant_expression>());
-			auto const &condition_value = if_expr.condition.get<ast::constant_expression>().value;
+			bz_assert(if_expr.condition.is_constant());
+			auto const &condition_value = if_expr.condition.get_constant_value();
 			bz_assert(condition_value.is<ast::constant_value::boolean>());
 			if (condition_value.get<ast::constant_value::boolean>())
 			{
 				consteval_try_without_error(if_expr.then_block, context);
 				if (if_expr.then_block.has_consteval_succeeded())
 				{
-					bz_assert(if_expr.then_block.is<ast::constant_expression>());
-					return if_expr.then_block.get<ast::constant_expression>().value;
+					bz_assert(if_expr.then_block.is_constant());
+					return if_expr.then_block.get_constant_value();
 				}
 				else
 				{
@@ -3861,8 +3861,8 @@ static ast::constant_value try_evaluate_expr_without_error(
 				consteval_try_without_error(if_expr.else_block, context);
 				if (if_expr.else_block.has_consteval_succeeded())
 				{
-					bz_assert(if_expr.else_block.is<ast::constant_expression>());
-					return if_expr.else_block.get<ast::constant_expression>().value;
+					bz_assert(if_expr.else_block.is_constant());
+					return if_expr.else_block.get_constant_value();
 				}
 				else
 				{
@@ -3887,12 +3887,12 @@ static ast::constant_value try_evaluate_expr_without_error(
 				return {};
 			}
 
-			auto const &matched_value = switch_expr.matched_expr.get<ast::constant_expression>().value;
+			auto const &matched_value = switch_expr.matched_expr.get_constant_value();
 			auto const case_it = std::find_if(
 				switch_expr.cases.begin(), switch_expr.cases.end(),
 				[&](auto const &switch_case) {
 					return switch_case.values
-						.transform([](auto const &expr) -> auto const &{ return expr.template get<ast::constant_expression>().value; })
+						.transform([](auto const &expr) -> auto const &{ return expr.get_constant_value(); })
 						.is_any(matched_value);
 				}
 			);
@@ -3900,7 +3900,7 @@ static ast::constant_value try_evaluate_expr_without_error(
 			{
 				if (switch_expr.default_case.has_consteval_succeeded())
 				{
-					return switch_expr.default_case.get<ast::constant_expression>().value;
+					return switch_expr.default_case.get_constant_value();
 				}
 				else
 				{
@@ -3911,7 +3911,7 @@ static ast::constant_value try_evaluate_expr_without_error(
 			{
 				if (case_it->expr.has_consteval_succeeded())
 				{
-					return case_it->expr.get<ast::constant_expression>().value;
+					return case_it->expr.get_constant_value();
 				}
 				else
 				{
@@ -3936,13 +3936,13 @@ static ast::constant_value try_evaluate_expr_without_error(
 
 void consteval_guaranteed(ast::expression &expr, ctx::parse_context &context)
 {
-	if (expr.is<ast::constant_expression>())
+	if (expr.is_constant())
 	{
 		expr.consteval_state = ast::expression::consteval_succeeded;
 		return;
 	}
 	else if (
-		!expr.is<ast::dynamic_expression>()
+		!expr.is_dynamic()
 		|| (
 			expr.consteval_state != ast::expression::consteval_never_tried
 			&& expr.consteval_state != ast::expression::consteval_guaranteed_failed
@@ -3971,7 +3971,7 @@ void consteval_guaranteed(ast::expression &expr, ctx::parse_context &context)
 	}
 	else
 	{
-		auto &dyn_expr  = expr.get<ast::dynamic_expression>();
+		auto &dyn_expr  = expr.get_dynamic();
 		auto type       = std::move(dyn_expr.type);
 		auto inner_expr = std::move(dyn_expr.expr);
 		expr.emplace<ast::constant_expression>(
@@ -3985,13 +3985,13 @@ void consteval_guaranteed(ast::expression &expr, ctx::parse_context &context)
 
 void consteval_try(ast::expression &expr, ctx::parse_context &context)
 {
-	if (expr.is<ast::constant_expression>())
+	if (expr.is_constant())
 	{
 		expr.consteval_state = ast::expression::consteval_succeeded;
 		return;
 	}
 	else if (
-		!expr.is<ast::dynamic_expression>()
+		!expr.is_dynamic()
 		|| (
 			expr.consteval_state != ast::expression::consteval_never_tried
 			&& expr.consteval_state != ast::expression::consteval_guaranteed_failed
@@ -4010,7 +4010,7 @@ void consteval_try(ast::expression &expr, ctx::parse_context &context)
 	}
 	else
 	{
-		auto &dyn_expr  = expr.get<ast::dynamic_expression>();
+		auto &dyn_expr  = expr.get_dynamic();
 		auto type       = std::move(dyn_expr.type);
 		auto inner_expr = std::move(dyn_expr.expr);
 		expr.emplace<ast::constant_expression>(
@@ -4024,13 +4024,13 @@ void consteval_try(ast::expression &expr, ctx::parse_context &context)
 
 void consteval_try_without_error(ast::expression &expr, ctx::parse_context &context)
 {
-	if (expr.is<ast::constant_expression>())
+	if (expr.is_constant())
 	{
 		expr.consteval_state = ast::expression::consteval_succeeded;
 		return;
 	}
 	else if (
-		!expr.is<ast::dynamic_expression>()
+		!expr.is_dynamic()
 		|| (
 			expr.consteval_state != ast::expression::consteval_never_tried
 			&& expr.consteval_state != ast::expression::consteval_guaranteed_failed
@@ -4049,7 +4049,7 @@ void consteval_try_without_error(ast::expression &expr, ctx::parse_context &cont
 	}
 	else
 	{
-		auto &dyn_expr  = expr.get<ast::dynamic_expression>();
+		auto &dyn_expr  = expr.get_dynamic();
 		auto type       = std::move(dyn_expr.type);
 		auto inner_expr = std::move(dyn_expr.expr);
 		expr.emplace<ast::constant_expression>(
@@ -4171,7 +4171,7 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 		return;
 	}
 	bz_assert(expr.has_consteval_failed());
-	bz_assert(expr.is<ast::dynamic_expression>());
+	bz_assert(expr.is_dynamic());
 	expr.get_expr().visit(bz::overload{
 		[&expr, &notes](ast::expr_identifier const &id_expr) {
 			notes.emplace_back(ctx::parse_context::make_note(
@@ -4217,7 +4217,7 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 					bz::format(
 						"subexpression '{}{}' is not a constant expression",
 						token_info[unary_op.op].token_value,
-						ast::get_value_string(unary_op.expr.get<ast::constant_expression>().value)
+						ast::get_value_string(unary_op.expr.get_constant_value())
 					)
 				));
 			}
@@ -4236,9 +4236,9 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 					expr.src_tokens,
 					bz::format(
 						"subexpression '{} {} {}' is not a constant expression",
-						ast::get_value_string(binary_op.lhs.get<ast::constant_expression>().value),
+						ast::get_value_string(binary_op.lhs.get_constant_value()),
 						token_info[binary_op.op].token_value,
-						ast::get_value_string(binary_op.rhs.get<ast::constant_expression>().value)
+						ast::get_value_string(binary_op.rhs.get_constant_value())
 					)
 				));
 			}
@@ -4297,7 +4297,7 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 					expr.src_tokens,
 					bz::format(
 						"subexpression '{} as {}' is not a constant expression",
-						ast::get_value_string(cast_expr.expr.get<ast::constant_expression>().value),
+						ast::get_value_string(cast_expr.expr.get_constant_value()),
 						cast_expr.type
 					)
 				));
@@ -4308,7 +4308,7 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			}
 		},
 		[&expr, &notes](ast::expr_take_reference const &take_ref_expr) {
-			if (take_ref_expr.expr.is<ast::constant_expression>())
+			if (take_ref_expr.expr.is_constant())
 			{
 				notes.emplace_back(ctx::parse_context::make_note(
 					expr.src_tokens, "unable to take reference in a constant expression"
@@ -4376,10 +4376,10 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			}
 			else
 			{
-				bz_assert(if_expr.condition.is<ast::constant_expression>());
-				bz_assert(if_expr.condition.get<ast::constant_expression>().value.is<ast::constant_value::boolean>());
+				bz_assert(if_expr.condition.is_constant());
+				bz_assert(if_expr.condition.get_constant_value().is<ast::constant_value::boolean>());
 				auto const condition_value = if_expr.condition
-					.get<ast::constant_expression>().value
+					.get_constant_value()
 					.get<ast::constant_value::boolean>();
 				if (condition_value)
 				{
@@ -4394,8 +4394,8 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			}
 		},
 		[&notes](ast::expr_if_consteval const &if_expr) {
-			bz_assert(if_expr.condition.is<ast::constant_expression>());
-			auto const &condition_value = if_expr.condition.get<ast::constant_expression>().value;
+			bz_assert(if_expr.condition.is_constant());
+			auto const &condition_value = if_expr.condition.get_constant_value();
 			bz_assert(condition_value.is<ast::constant_value::boolean>());
 			if (condition_value.get<ast::constant_value::boolean>())
 			{
@@ -4447,4 +4447,4 @@ bz::vector<ctx::source_highlight> get_consteval_fail_notes(ast::expression const
 	}
 }
 
-} // namespace parse
+} // namespace resolve

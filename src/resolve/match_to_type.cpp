@@ -2,7 +2,6 @@
 #include "match_common.h"
 #include "match_expression.h"
 #include "statement_resolver.h"
-#include "parse/consteval.h"
 
 namespace resolve
 {
@@ -238,15 +237,12 @@ static match_level_t get_strict_type_match_level(
 			{
 				top_level = false;
 			}
-			else if (dest_is_const == source_is_const)
-			{
-				modifier_match_level += 1;
-			}
-			else
+			else if (!dest_is_const)
 			{
 				propagate_const = false;
 			}
 
+			modifier_match_level += static_cast<uint16_t>(dest_is_const == source_is_const);
 			if (dest_is_const)
 			{
 				dest = dest.blind_get();
@@ -390,18 +386,9 @@ static match_level_t get_type_match_level(
 {
 	auto const expr_type_without_const = ast::remove_const_or_consteval(expr_type);
 
-	if (dest.is<ast::ts_optional_pointer>() && expr_type_without_const.is<ast::ts_pointer>())
-	{
-		return get_strict_type_match_level(
-			dest,
-			expr_type_without_const,
-			ast::is_rvalue(expr_type_kind) ? reference_match_kind::rvalue_copy : reference_match_kind::lvalue_copy,
-			type_match_kind::implicit_conversion,
-			true, true
-		);
-	}
-	else if (
-		(dest.is<ast::ts_pointer>() && expr_type_without_const.is<ast::ts_pointer>())
+	if (
+		(dest.is<ast::ts_optional_pointer>() && expr_type_without_const.is<ast::ts_pointer>())
+		|| (dest.is<ast::ts_pointer>() && expr_type_without_const.is<ast::ts_pointer>())
 		|| (dest.is<ast::ts_optional_pointer>() && expr_type_without_const.is<ast::ts_optional_pointer>())
 	)
 	{
@@ -434,7 +421,7 @@ static match_level_t get_type_match_level(
 			expr_type_without_const,
 			reference_kind,
 			type_match_kind::exact_match,
-			false, inner_dest.is<ast::ts_const>()
+			false, inner_dest.is<ast::ts_const>(), false
 		);
 	}
 	else if (dest.is<ast::ts_move_reference>())
@@ -446,10 +433,10 @@ static match_level_t get_type_match_level(
 
 		return get_strict_type_match_level(
 			dest.get<ast::ts_move_reference>(),
-			expr_type_without_const,
+			expr_type,
 			reference_match_kind::reference_exact,
 			type_match_kind::exact_match,
-			false, false
+			false, true, false
 		);
 	}
 	else if (dest.is<ast::ts_auto_reference>())
@@ -468,7 +455,7 @@ static match_level_t get_type_match_level(
 			expr_type_without_const,
 			reference_kind,
 			type_match_kind::exact_match,
-			false, true
+			false, inner_dest.is<ast::ts_const>(), false
 		);
 	}
 	else if (dest.is<ast::ts_auto_reference_const>())
@@ -478,7 +465,7 @@ static match_level_t get_type_match_level(
 			expr_type_without_const,
 			reference_match_kind::auto_reference_const,
 			type_match_kind::exact_match,
-			false, expr_type.is<ast::ts_const>()
+			false, expr_type.is<ast::ts_const>(), false
 		);
 		return result;
 	}

@@ -1,7 +1,7 @@
 #include "match_expression.h"
 #include "match_common.h"
 #include "match_to_type.h"
-#include "parse/consteval.h"
+#include "consteval.h"
 
 namespace resolve
 {
@@ -16,7 +16,8 @@ enum class type_match_result
 	ast::typespec_view source,
 	ast::typespec_view dest,
 	bool accept_void,
-	bool propagate_const
+	bool propagate_const,
+	bool top_level = true
 )
 {
 	bz_assert(ast::is_complete(source));
@@ -26,22 +27,32 @@ enum class type_match_result
 		{
 			auto const dest_is_const = dest.is<ast::ts_const>();
 			auto const source_is_const = source.is<ast::ts_const>();
-			if (dest_is_const && source_is_const)
+
+			if (
+				(!dest_is_const && source_is_const)
+				|| (!propagate_const && dest_is_const && !source_is_const)
+			)
 			{
-				dest = dest.blind_get();
-				source = source.blind_get();
+				return type_match_result::error;
 			}
-			else if (!dest_is_const && !source_is_const)
+
+
+			if (top_level)
+			{
+				top_level = false;
+			}
+			else if (!dest_is_const)
 			{
 				propagate_const = false;
 			}
-			else if (dest_is_const && !source_is_const && propagate_const)
+
+			if (dest_is_const)
 			{
 				dest = dest.blind_get();
 			}
-			else
+			if (source_is_const)
 			{
-				return type_match_result::error;
+				source = source.blind_get();
 			}
 		}
 
@@ -104,7 +115,7 @@ enum class type_match_result
 		type_match_result result = type_match_result::good;
 		for (auto const [dest_elem, source_elem] : bz::zip(dest_types, source_types))
 		{
-			result = std::max(result, strict_match_types(dest_elem, source_elem, dest_elem, false, propagate_const));
+			result = std::max(result, strict_match_types(dest_elem, source_elem, dest_elem, false, propagate_const, false));
 		}
 		return result;
 	}
@@ -115,8 +126,7 @@ enum class type_match_result
 			dest_container.nodes.back().get<ast::ts_array_slice>().elem_type,
 			source.get<ast::ts_array_slice>().elem_type,
 			dest.get<ast::ts_array_slice>().elem_type,
-			false,
-			propagate_const
+			false, propagate_const, false
 		);
 	}
 	else if (dest.is<ast::ts_array>() && source.is<ast::ts_array>())
@@ -131,8 +141,7 @@ enum class type_match_result
 			dest_container.nodes.back().get<ast::ts_array>().elem_type,
 			source.get<ast::ts_array>().elem_type,
 			dest.get<ast::ts_array>().elem_type,
-			false,
-			propagate_const
+			false, propagate_const, false
 		);
 	}
 	else
@@ -283,8 +292,8 @@ static bool match_typename_to_type_impl(
 	{
 		auto const match_result = strict_match_types(
 			dest_container,
-			expr_type_without_const.blind_get(),
-			dest.blind_get(),
+			expr_type_without_const,
+			dest,
 			true, true
 		);
 		return std::max(match_result, type_match_result::needs_cast);
@@ -296,8 +305,8 @@ static bool match_typename_to_type_impl(
 	{
 		return strict_match_types(
 			dest_container,
-			expr_type_without_const.blind_get(),
-			dest.blind_get(),
+			expr_type_without_const,
+			dest,
 			true, true
 		);
 	}
@@ -309,12 +318,16 @@ static bool match_typename_to_type_impl(
 		}
 
 		auto const inner_dest = dest.get<ast::ts_lvalue_reference>();
+		if (!inner_dest.is<ast::ts_const>() && expr_type.is<ast::ts_const>())
+		{
+			return type_match_result::error;
+		}
+
 		return strict_match_types(
 			dest_container,
 			expr_type,
 			inner_dest,
-			false,
-			true
+			false, true, false
 		);
 	}
 	else if (dest.is<ast::ts_move_reference>())
@@ -325,7 +338,7 @@ static bool match_typename_to_type_impl(
 		}
 
 		auto const inner_dest = dest.get<ast::ts_move_reference>();
-		return strict_match_types(dest_container, expr_type_without_const, inner_dest, false, false);
+		return strict_match_types(dest_container, expr_type_without_const, inner_dest, false, true, false);
 	}
 	else if (dest.is<ast::ts_auto_reference>())
 	{
@@ -334,13 +347,18 @@ static bool match_typename_to_type_impl(
 		{
 			dest_container.nodes.front().emplace<ast::ts_lvalue_reference>();
 			dest = dest_container;
+
+			if (!dest.get<ast::ts_lvalue_reference>().is<ast::ts_const>() && expr_type.is<ast::ts_const>())
+			{
+				return type_match_result::error;
+			}
 		}
 		else
 		{
 			dest_container.remove_layer();
 			dest = dest_container;
 		}
-		return strict_match_types(dest_container, expr_type, ast::remove_lvalue_reference(dest), false, true);
+		return strict_match_types(dest_container, expr_type, ast::remove_lvalue_reference(dest), false, true, false);
 	}
 	else if (dest.is<ast::ts_auto_reference_const>())
 	{
@@ -363,7 +381,7 @@ static bool match_typename_to_type_impl(
 			dest_container.remove_layer();
 			dest = dest_container;
 		}
-		return strict_match_types(dest_container, expr_type, ast::remove_lvalue_reference(dest), false, true);
+		return strict_match_types(dest_container, expr_type, ast::remove_lvalue_reference(dest), false, true, false);
 	}
 
 	if (dest.is<ast::ts_auto>())
@@ -628,7 +646,7 @@ static void match_integer_literal_to_type(
 			expr,
 			bz::format(
 				"cannot implicitly convert expression from type '{}' to '{}'",
-				expr.get_expr_type_and_kind().first, dest_container
+				expr.get_expr_type(), dest_container
 			),
 			std::move(notes)
 		);
@@ -642,7 +660,7 @@ static void match_integer_literal_to_type(
 	)
 	{
 		// default literal type doesn't need cast
-		bz_assert(dest == expr.get_expr_type_and_kind().first);
+		bz_assert(dest == expr.get_expr_type());
 	}
 	else
 	{
@@ -937,9 +955,9 @@ static void match_expression_to_type_impl(
 	}
 	else if (expr.is_tuple())
 	{
-		if (expr.is<ast::constant_expression>())
+		if (expr.is_constant())
 		{
-			auto &const_expr = expr.get<ast::constant_expression>();
+			auto &const_expr = expr.get_constant();
 			auto kind = const_expr.kind;
 			auto type = std::move(const_expr.type);
 			auto inner_expr = std::move(const_expr.expr);
@@ -1122,10 +1140,10 @@ static void match_expression_to_type_impl(
 
 	if (!dest_container.is_typename() && dest_container.is<ast::ts_consteval>())
 	{
-		parse::consteval_try(expr, context);
-		if (!expr.is<ast::constant_expression>())
+		resolve::consteval_try(expr, context);
+		if (!expr.is_constant())
 		{
-			context.report_error(expr, "expression must be a constant expression", parse::get_consteval_fail_notes(expr));
+			context.report_error(expr, "expression must be a constant expression", resolve::get_consteval_fail_notes(expr));
 			if (!ast::is_complete(dest_container))
 			{
 				dest_container.clear();
@@ -1151,7 +1169,7 @@ void match_expression_to_type(ast::expression &expr, ast::typespec &dest_type, c
 	else
 	{
 		match_expression_to_type_impl(expr, dest_type, dest_type, context);
-		parse::consteval_guaranteed(expr, context);
+		resolve::consteval_guaranteed(expr, context);
 	}
 }
 

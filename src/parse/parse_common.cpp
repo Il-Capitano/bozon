@@ -30,7 +30,8 @@ ast::expression parse_parenthesized_condition(
 	}
 
 	if (
-		condition.paren_level < 2
+		condition.not_error()
+		&& condition.paren_level < 2
 		&& condition.src_tokens.pivot->kind == lex::token::assign
 	)
 	{

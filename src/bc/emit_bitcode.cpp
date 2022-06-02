@@ -8,30 +8,30 @@
 namespace bc
 {
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	ast::expression const &expr,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 );
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static void emit_bitcode(
 	ast::statement const &stmt,
-	Context &context
+	auto &context
 );
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_copy_constructor(
 	lex::src_tokens const &src_tokens,
 	val_ptr expr_val,
 	ast::typespec_view expr_type,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 );
 
 template<typename Context>
-static constexpr bool is_comptime = bz::meta::is_same<Context, ctx::comptime_executor_context>;
+static constexpr bool is_comptime = bz::meta::is_same<ctx::comptime_executor_context, std::decay_t<Context>>;
 
 static int get_unique_id(void)
 {
@@ -60,11 +60,10 @@ static src_tokens_llvm_value_t get_src_tokens_llvm_value(lex::src_tokens const &
 	return { begin, pivot, end };
 }
 
-template<typename Context>
 static llvm::Value *get_constant_zero(
 	ast::typespec_view type,
 	llvm::Type *llvm_type,
-	Context &context
+	auto &context
 )
 {
 	switch (type.kind())
@@ -474,14 +473,14 @@ static void emit_null_pointer_check(
 	emit_error_assert(is_good, context);
 }
 
-template<abi::platform_abi abi, bool push_to_front = false, typename Context>
+template<abi::platform_abi abi, bool push_to_front = false>
 static void add_call_parameter(
 	ast::typespec_view param_type,
 	llvm::Type *param_llvm_type,
 	val_ptr param,
 	ast::arena_vector<llvm::Value *> &params,
 	ast::arena_vector<is_byval_and_type_pair> &params_is_byval,
-	Context &context
+	auto &context
 )
 {
 	using params_push_type = llvm::Value *&(ast::arena_vector<llvm::Value *>::*)(llvm::Value * const &);
@@ -579,8 +578,8 @@ static void add_call_parameter(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
-static void add_byval_attributes(llvm::CallInst *call, llvm::Type *byval_type, unsigned index, Context &context)
+template<abi::platform_abi abi>
+static void add_byval_attributes(llvm::CallInst *call, llvm::Type *byval_type, unsigned index, auto &context)
 {
 	auto const attributes = abi::get_pass_by_reference_attributes<abi>();
 	for (auto const attribute : attributes)
@@ -599,8 +598,8 @@ static void add_byval_attributes(llvm::CallInst *call, llvm::Type *byval_type, u
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
-static void add_byval_attributes(llvm::Argument &arg, llvm::Type *byval_type, Context &context)
+template<abi::platform_abi abi>
+static void add_byval_attributes(llvm::Argument &arg, llvm::Type *byval_type, auto &context)
 {
 	auto const attributes = abi::get_pass_by_reference_attributes<abi>();
 	for (auto const attribute : attributes)
@@ -619,13 +618,13 @@ static void add_byval_attributes(llvm::Argument &arg, llvm::Type *byval_type, Co
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static void create_function_call(
 	lex::src_tokens const &src_tokens,
 	ast::function_body *body,
 	val_ptr lhs,
 	val_ptr rhs,
-	Context &context
+	auto &context
 )
 {
 	bz_assert(lhs.kind == val_ptr::reference);
@@ -657,12 +656,11 @@ static void create_function_call(
 	}
 }
 
-template<typename Context>
 static void push_destructor_call(
 	lex::src_tokens const &src_tokens,
 	llvm::Value *ptr,
 	ast::typespec_view type,
-	Context &context
+	auto &context
 )
 {
 	type = ast::remove_const_or_consteval(type);
@@ -681,7 +679,7 @@ static void push_destructor_call(
 		}
 		if (info.destructor != nullptr)
 		{
-			if constexpr (is_comptime<Context>)
+			if constexpr (is_comptime<decltype(context)>)
 			{
 				context.push_destructor_call(src_tokens, &info.destructor->body, ptr);
 			}
@@ -718,12 +716,11 @@ static void push_destructor_call(
 	}
 }
 
-template<typename Context>
 static void emit_destructor_call(
 	lex::src_tokens const &src_tokens,
 	llvm::Value *ptr,
 	ast::typespec_view type,
-	Context &context
+	auto &context
 )
 {
 	type = ast::remove_const_or_consteval(type);
@@ -775,12 +772,12 @@ static void emit_destructor_call(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_copy_constructor(
 	lex::src_tokens const &src_tokens,
 	val_ptr expr_val,
 	ast::typespec_view expr_type,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -914,11 +911,11 @@ static val_ptr emit_copy_constructor(
 	return val_ptr::get_reference(result_address, expr_val.get_type());
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_default_constructor(
 	lex::src_tokens const &src_tokens,
 	ast::typespec_view type,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -1033,13 +1030,13 @@ static val_ptr emit_default_constructor(
 	return val_ptr::get_reference(result_address, llvm_type);
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static void emit_copy_assign(
 	lex::src_tokens const &src_tokens,
 	ast::typespec_view type,
 	val_ptr lhs,
 	val_ptr rhs,
-	Context &context
+	auto &context
 )
 {
 	bz_assert(lhs.kind == val_ptr::reference);
@@ -1119,13 +1116,13 @@ static void emit_copy_assign(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static void emit_move_assign(
 	lex::src_tokens const &src_tokens,
 	ast::typespec_view type,
 	val_ptr lhs,
 	val_ptr rhs,
-	Context &context
+	auto &context
 )
 {
 	bz_assert(lhs.kind == val_ptr::reference);
@@ -1209,12 +1206,12 @@ static void emit_move_assign(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_default_copy_assign(
 	lex::src_tokens const &src_tokens,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -1235,12 +1232,12 @@ static val_ptr emit_default_copy_assign(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_default_move_assign(
 	lex::src_tokens const &src_tokens,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -1265,12 +1262,12 @@ static val_ptr emit_default_move_assign(
 // -------------------------- expression --------------------------
 // ================================================================
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static llvm::Constant *get_value(
 	ast::constant_value const &value,
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
-	Context &context
+	auto &context
 );
 
 template<abi::platform_abi abi>
@@ -1338,8 +1335,8 @@ static val_ptr emit_bitcode(
 	}
 	else if (ptr == nullptr /* && consteval */)
 	{
-		bz_assert(id.decl->init_expr.not_error() && id.decl->init_expr.is<ast::constant_expression>());
-		auto &const_expr = id.decl->init_expr.get<ast::constant_expression>();
+		bz_assert(id.decl->init_expr.not_error() && id.decl->init_expr.is_constant());
+		auto &const_expr = id.decl->init_expr.get_constant();
 		auto const value = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
 		if (result_address == nullptr)
 		{
@@ -1371,11 +1368,11 @@ static val_ptr emit_bitcode(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_integer_literal const &,
-	Context &,
+	auto &,
 	llvm::Value *
 )
 {
@@ -1383,11 +1380,11 @@ static val_ptr emit_bitcode(
 	bz_unreachable;
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_null_literal const &,
-	Context &,
+	auto &,
 	llvm::Value *
 )
 {
@@ -1395,11 +1392,11 @@ static val_ptr emit_bitcode(
 	bz_unreachable;
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_typed_literal const &,
-	Context &,
+	auto &,
 	llvm::Value *
 )
 {
@@ -1407,16 +1404,16 @@ static val_ptr emit_bitcode(
 	bz_unreachable;
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_tuple const &tuple_expr,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
 	auto const types = tuple_expr.elems
-		.transform([](auto const &expr) { return expr.get_expr_type_and_kind().first; })
+		.transform([](auto const &expr) { return expr.get_expr_type(); })
 		.transform([&context](auto const ts) { return get_llvm_type(ts, context); })
 		.template collect<ast::arena_vector>();
 	auto const result_type = context.get_tuple_t(types);
@@ -1502,24 +1499,24 @@ static val_ptr emit_builtin_unary_address_of(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_unary_plus(
 	ast::expression const &expr,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
 	return emit_bitcode<abi>(expr, context, result_address);
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_unary_minus(
 	ast::expression const &expr,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const expr_t = ast::remove_const_or_consteval(expr.get_expr_type_and_kind().first);
+	auto const expr_t = ast::remove_const_or_consteval(expr.get_expr_type());
 	bz_assert(expr_t.is<ast::ts_base_type>());
 	auto const expr_kind = expr_t.get<ast::ts_base_type>().info->kind;
 	auto const [val, type] = emit_bitcode<abi>(expr, context, nullptr).get_value_and_type(context.builder);
@@ -1537,11 +1534,11 @@ static val_ptr emit_builtin_unary_minus(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_unary_dereference(
 	lex::src_tokens const &src_tokens,
 	ast::expression const &expr,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -1564,7 +1561,7 @@ static val_ptr emit_builtin_unary_dereference(
 		emit_copy_constructor<abi>(
 			src_tokens,
 			val_ptr::get_reference(val, result_type),
-			ast::remove_const_or_consteval(expr.get_expr_type_and_kind().first),
+			ast::remove_const_or_consteval(expr.get_expr_type()),
 			context,
 			result_address
 		);
@@ -1572,10 +1569,10 @@ static val_ptr emit_builtin_unary_dereference(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_unary_bit_not(
 	ast::expression const &expr,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -1592,10 +1589,10 @@ static val_ptr emit_builtin_unary_bit_not(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_unary_bool_not(
 	ast::expression const &expr,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -1612,10 +1609,10 @@ static val_ptr emit_builtin_unary_bool_not(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_unary_plus_plus(
 	ast::expression const &expr,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -1665,10 +1662,10 @@ static val_ptr emit_builtin_unary_plus_plus(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_unary_minus_minus(
 	ast::expression const &expr,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -1718,11 +1715,11 @@ static val_ptr emit_builtin_unary_minus_minus(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_unary_op const &unary_op,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -1746,12 +1743,12 @@ static val_ptr emit_bitcode(
 }
 
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_assign(
 	lex::src_tokens const &src_tokens,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -1803,16 +1800,16 @@ static val_ptr emit_builtin_binary_assign(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_plus(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -1942,16 +1939,16 @@ static val_ptr emit_builtin_binary_plus(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_plus_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -2047,16 +2044,16 @@ static val_ptr emit_builtin_binary_plus_eq(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_minus(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -2186,16 +2183,16 @@ static val_ptr emit_builtin_binary_minus(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_minus_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -2298,16 +2295,16 @@ static val_ptr emit_builtin_binary_minus_eq(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_multiply(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2330,16 +2327,16 @@ static val_ptr emit_builtin_binary_multiply(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_multiply_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2365,17 +2362,17 @@ static val_ptr emit_builtin_binary_multiply_eq(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_divide(
 	lex::src_tokens const &src_tokens,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2384,7 +2381,7 @@ static val_ptr emit_builtin_binary_divide(
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 
-	if constexpr (is_comptime<Context>)
+	if constexpr (is_comptime<decltype(context)>)
 	{
 		if (context.do_error_checking() && ast::is_integer_kind(lhs_kind))
 		{
@@ -2422,17 +2419,17 @@ static val_ptr emit_builtin_binary_divide(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_divide_eq(
 	lex::src_tokens const &src_tokens,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2444,7 +2441,7 @@ static val_ptr emit_builtin_binary_divide_eq(
 	bz_assert(lhs_val_ref.kind == val_ptr::reference);
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
 
-	if constexpr (is_comptime<Context>)
+	if constexpr (is_comptime<decltype(context)>)
 	{
 		if (context.do_error_checking() && ast::is_integer_kind(lhs_kind))
 		{
@@ -2482,17 +2479,17 @@ static val_ptr emit_builtin_binary_divide_eq(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_modulo(
 	lex::src_tokens const &src_tokens,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2501,7 +2498,7 @@ static val_ptr emit_builtin_binary_modulo(
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 
-	if constexpr (is_comptime<Context>)
+	if constexpr (is_comptime<decltype(context)>)
 	{
 		if (context.do_error_checking() && ast::is_integer_kind(lhs_kind))
 		{
@@ -2539,17 +2536,17 @@ static val_ptr emit_builtin_binary_modulo(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_modulo_eq(
 	lex::src_tokens const &src_tokens,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2561,7 +2558,7 @@ static val_ptr emit_builtin_binary_modulo_eq(
 	bz_assert(lhs_val_ref.kind == val_ptr::reference);
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
 
-	if constexpr (is_comptime<Context>)
+	if constexpr (is_comptime<decltype(context)>)
 	{
 		if (context.do_error_checking() && ast::is_integer_kind(lhs_kind))
 		{
@@ -2599,12 +2596,12 @@ static val_ptr emit_builtin_binary_modulo_eq(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_cmp(
 	uint32_t op,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -2616,8 +2613,8 @@ static val_ptr emit_builtin_binary_cmp(
 		|| op == lex::token::greater_than
 		|| op == lex::token::greater_than_eq
 	);
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 	// 0: signed int
 	// 1: unsigned int
 	// 2: float
@@ -2751,16 +2748,16 @@ static val_ptr emit_builtin_binary_cmp(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_bit_and(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2785,16 +2782,16 @@ static val_ptr emit_builtin_binary_bit_and(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_bit_and_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2822,16 +2819,16 @@ static val_ptr emit_builtin_binary_bit_and_eq(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_bit_xor(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2856,16 +2853,16 @@ static val_ptr emit_builtin_binary_bit_xor(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_bit_xor_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2893,16 +2890,16 @@ static val_ptr emit_builtin_binary_bit_xor_eq(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_bit_or(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2927,16 +2924,16 @@ static val_ptr emit_builtin_binary_bit_or(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_bit_or_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2964,16 +2961,16 @@ static val_ptr emit_builtin_binary_bit_or_eq(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_left_shift(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2995,16 +2992,16 @@ static val_ptr emit_builtin_binary_left_shift(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_left_shift_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -3029,16 +3026,16 @@ static val_ptr emit_builtin_binary_left_shift_eq(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_right_shift(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -3060,16 +3057,16 @@ static val_ptr emit_builtin_binary_right_shift(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_right_shift_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -3094,17 +3091,17 @@ static val_ptr emit_builtin_binary_right_shift_eq(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_bool_and(
 	ast::expr_binary_op const &binary_op,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
 	auto &lhs = binary_op.lhs;
 	auto &rhs = binary_op.rhs;
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -3149,17 +3146,17 @@ static val_ptr emit_builtin_binary_bool_and(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_bool_xor(
 	ast::expr_binary_op const &binary_op,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
 	auto &lhs = binary_op.lhs;
 	auto &rhs = binary_op.rhs;
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -3180,17 +3177,17 @@ static val_ptr emit_builtin_binary_bool_xor(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_bool_or(
 	ast::expr_binary_op const &binary_op,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
 	auto &lhs = binary_op.lhs;
 	auto &rhs = binary_op.rhs;
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -3236,11 +3233,11 @@ static val_ptr emit_builtin_binary_bool_or(
 }
 
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_binary_op const &binary_op,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -3390,15 +3387,15 @@ static ctx::comptime_function_kind get_math_check_function_kind(uint32_t intrins
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
 	ast::expr_function_call const &func_call,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	if constexpr (!is_comptime<Context>)
+	if constexpr (!is_comptime<decltype(context)>)
 	{
 		if (func_call.func_body->is_only_consteval())
 		{
@@ -3604,7 +3601,7 @@ static val_ptr emit_bitcode(
 			}
 		}
 		case ast::function_body::builtin_pointer_cast:
-			if constexpr (is_comptime<Context>)
+			if constexpr (is_comptime<decltype(context)>)
 			{
 				emit_error(
 					func_call.src_tokens,
@@ -3658,7 +3655,7 @@ static val_ptr emit_bitcode(
 			}
 		}
 		case ast::function_body::builtin_int_to_pointer:
-			if constexpr (is_comptime<Context>)
+			if constexpr (is_comptime<decltype(context)>)
 			{
 				emit_error(
 					func_call.src_tokens,
@@ -3696,7 +3693,7 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_call_destructor:
 		{
 			bz_assert(func_call.params.size() == 1);
-			auto const type = func_call.params[0].get_expr_type_and_kind().first;
+			auto const type = func_call.params[0].get_expr_type();
 			auto const arg = emit_bitcode<abi>(func_call.params[0], context, nullptr);
 			bz_assert(arg.kind == val_ptr::reference);
 			emit_destructor_call(func_call.src_tokens, arg.val, type, context);
@@ -3731,7 +3728,7 @@ static val_ptr emit_bitcode(
 		}
 		case ast::function_body::builtin_is_comptime:
 		{
-			auto const result_val = is_comptime<Context>
+			auto const result_val = is_comptime<decltype(context)>
 				? llvm::ConstantInt::getTrue(context.get_llvm_context())
 				: llvm::ConstantInt::getFalse(context.get_llvm_context());
 			if (result_address != nullptr)
@@ -3746,7 +3743,7 @@ static val_ptr emit_bitcode(
 			}
 		}
 		case ast::function_body::builtin_panic:
-			if constexpr (is_comptime<Context>)
+			if constexpr (is_comptime<decltype(context)>)
 			{
 				emit_error(
 					func_call.src_tokens,
@@ -3763,7 +3760,7 @@ static val_ptr emit_bitcode(
 			}
 		case ast::function_body::print_stdout:
 		case ast::function_body::print_stderr:
-			if constexpr (is_comptime<Context>)
+			if constexpr (is_comptime<decltype(context)>)
 			{
 				emit_error(
 					func_call.src_tokens,
@@ -3778,7 +3775,7 @@ static val_ptr emit_bitcode(
 				break;
 			}
 		case ast::function_body::comptime_malloc_type:
-			if constexpr (is_comptime<Context>)
+			if constexpr (is_comptime<decltype(context)>)
 			{
 				bz_assert(func_call.params.size() == 2);
 				auto const alloc_type = get_llvm_type(func_call.func_body->return_type.get<ast::ts_pointer>(), context);
@@ -3820,7 +3817,7 @@ static val_ptr emit_bitcode(
 				bz_unreachable;
 			}
 		case ast::function_body::comptime_free:
-			if constexpr (is_comptime<Context>)
+			if constexpr (is_comptime<decltype(context)>)
 			{
 				bz_assert(func_call.params.size() == 1);
 				auto const ptr = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
@@ -3845,7 +3842,7 @@ static val_ptr emit_bitcode(
 
 		case ast::function_body::comptime_compile_error:
 		case ast::function_body::comptime_compile_warning:
-			if constexpr (is_comptime<Context>)
+			if constexpr (is_comptime<decltype(context)>)
 			{
 				auto const fn = func_call.func_body->intrinsic_kind == ast::function_body::comptime_compile_error
 					? context.get_function(context.get_builtin_function(ast::function_body::comptime_compile_error_src_tokens))
@@ -3857,7 +3854,7 @@ static val_ptr emit_bitcode(
 				ast::arena_vector<is_byval_and_type_pair> params_is_byval;
 				params_is_byval.reserve(2);
 				add_call_parameter<abi>(
-					func_call.params[0].get_expr_type_and_kind().first, context.get_str_t(),
+					func_call.params[0].get_expr_type(), context.get_str_t(),
 					message_val, params, params_is_byval, context
 				);
 
@@ -3880,7 +3877,7 @@ static val_ptr emit_bitcode(
 			}
 
 		case ast::function_body::memcpy:
-			if constexpr (is_comptime<Context>)
+			if constexpr (is_comptime<decltype(context)>)
 			{
 				bz_assert(func_call.params.size() == 3);
 				auto const dest = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
@@ -3905,7 +3902,7 @@ static val_ptr emit_bitcode(
 			}
 
 		case ast::function_body::memmove:
-			if constexpr (is_comptime<Context>)
+			if constexpr (is_comptime<decltype(context)>)
 			{
 				bz_assert(func_call.params.size() == 3);
 				auto const dest = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
@@ -3930,7 +3927,7 @@ static val_ptr emit_bitcode(
 			}
 
 		case ast::function_body::memset:
-			if constexpr (is_comptime<Context>)
+			if constexpr (is_comptime<decltype(context)>)
 			{
 				bz_assert(func_call.params.size() == 3);
 				auto const dest = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
@@ -3983,7 +3980,7 @@ static val_ptr emit_bitcode(
 		case ast::function_body::erfc_f32:   case ast::function_body::erfc_f64:
 		case ast::function_body::tgamma_f32: case ast::function_body::tgamma_f64:
 		case ast::function_body::lgamma_f32: case ast::function_body::lgamma_f64:
-			if constexpr (is_comptime<Context>)
+			if constexpr (is_comptime<decltype(context)>)
 			{
 				bz_assert(func_call.params.size() == 1);
 				auto const val = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
@@ -4017,7 +4014,7 @@ static val_ptr emit_bitcode(
 		case ast::function_body::pow_f32:   case ast::function_body::pow_f64:
 		case ast::function_body::hypot_f32: case ast::function_body::hypot_f64:
 		case ast::function_body::atan2_f32: case ast::function_body::atan2_f64:
-			if constexpr (is_comptime<Context>)
+			if constexpr (is_comptime<decltype(context)>)
 			{
 				bz_assert(func_call.params.size() == 2);
 				auto const val1 = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
@@ -4178,7 +4175,7 @@ static val_ptr emit_bitcode(
 	}
 
 	bz_assert(func_call.func_body != nullptr);
-	if constexpr (is_comptime<Context>)
+	if constexpr (is_comptime<decltype(context)>)
 	{
 		if (!func_call.func_body->is_intrinsic() && func_call.func_body->body.is_null())
 		{
@@ -4302,7 +4299,7 @@ static val_ptr emit_bitcode(
 	}
 
 	auto const call = [&]() {
-		if constexpr (is_comptime<Context>)
+		if constexpr (is_comptime<decltype(context)>)
 		{
 			llvm::Value *pre_call_error_count = nullptr;
 			if (!func_call.func_body->is_no_comptime_checking())
@@ -4479,28 +4476,28 @@ static val_ptr emit_bitcode(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
 	ast::expr_subscript const &subscript,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const base_type = ast::remove_const_or_consteval(subscript.base.get_expr_type_and_kind().first);
+	auto const base_type = ast::remove_const_or_consteval(subscript.base.get_expr_type());
 	if (base_type.is<ast::ts_array>())
 	{
 		auto const array = emit_bitcode<abi>(subscript.base, context, nullptr);
 		auto index_val = emit_bitcode<abi>(subscript.index, context, nullptr).get_value(context.builder);
-		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).is<ast::ts_base_type>());
-		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).get<ast::ts_base_type>().info->kind;
+		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type()).is<ast::ts_base_type>());
+		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
 		if (ast::is_unsigned_integer_kind(kind))
 		{
 			index_val = context.builder.CreateIntCast(index_val, context.get_usize_t(), false);
 		}
 
 		// array bounds check
-		if constexpr (is_comptime<Context>)
+		if constexpr (is_comptime<decltype(context)>)
 		{
 			if (context.do_error_checking())
 			{
@@ -4554,8 +4551,8 @@ static val_ptr emit_bitcode(
 		auto const array = emit_bitcode<abi>(subscript.base, context, nullptr);
 		auto const array_val = array.get_value(context.builder);
 		auto const begin_ptr = context.builder.CreateExtractValue(array_val, 0);
-		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).is<ast::ts_base_type>());
-		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).get<ast::ts_base_type>().info->kind;
+		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type()).is<ast::ts_base_type>());
+		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
 		auto index_val = emit_bitcode<abi>(subscript.index, context, nullptr).get_value(context.builder);
 		if (ast::is_unsigned_integer_kind(kind))
 		{
@@ -4563,7 +4560,7 @@ static val_ptr emit_bitcode(
 		}
 
 		// array bounds check
-		if constexpr (is_comptime<Context>)
+		if constexpr (is_comptime<decltype(context)>)
 		{
 			if (context.do_error_checking())
 			{
@@ -4605,8 +4602,8 @@ static val_ptr emit_bitcode(
 	{
 		bz_assert(base_type.is<ast::ts_tuple>() || subscript.base.is_tuple());
 		auto const tuple = emit_bitcode<abi>(subscript.base, context, nullptr);
-		bz_assert(subscript.index.is<ast::constant_expression>());
-		auto const &index_value = subscript.index.get<ast::constant_expression>().value;
+		bz_assert(subscript.index.is_constant());
+		auto const &index_value = subscript.index.get_constant_value();
 		bz_assert(index_value.is<ast::constant_value::uint>() || index_value.is<ast::constant_value::sint>());
 		auto const index_int_value = index_value.is<ast::constant_value::uint>()
 			? index_value.get<ast::constant_value::uint>()
@@ -4614,7 +4611,7 @@ static val_ptr emit_bitcode(
 
 		auto const accessed_type = base_type.is<ast::ts_tuple>()
 			? base_type.get<ast::ts_tuple>().types[index_int_value].as_typespec_view()
-			: subscript.base.get_tuple().elems[index_int_value].get_expr_type_and_kind().first;
+			: subscript.base.get_tuple().elems[index_int_value].get_expr_type();
 
 		if (tuple.kind == val_ptr::reference || (tuple.kind == val_ptr::value && accessed_type.is<ast::ts_lvalue_reference>()))
 		{
@@ -4667,15 +4664,15 @@ static val_ptr emit_bitcode(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_cast const &cast,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const expr_t = ast::remove_const_or_consteval(cast.expr.get_expr_type_and_kind().first);
+	auto const expr_t = ast::remove_const_or_consteval(cast.expr.get_expr_type());
 	auto const dest_t = ast::remove_const_or_consteval(cast.type);
 
 	if (expr_t.is<ast::ts_base_type>() && dest_t.is<ast::ts_base_type>())
@@ -4848,16 +4845,16 @@ static val_ptr emit_bitcode(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
 	ast::expr_take_reference const &take_ref,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
 	auto const result = emit_bitcode<abi>(take_ref.expr, context, nullptr);
-	if constexpr (is_comptime<Context>)
+	if constexpr (is_comptime<decltype(context)>)
 	{
 		if (result.kind != val_ptr::reference)
 		{
@@ -4881,7 +4878,7 @@ static val_ptr emit_bitcode(
 	}
 	if (result_address != nullptr)
 	{
-		auto const result_type = ast::remove_const_or_consteval(take_ref.expr.get_expr_type_and_kind().first);
+		auto const result_type = ast::remove_const_or_consteval(take_ref.expr.get_expr_type());
 		bz_assert(result.kind == val_ptr::reference);
 		emit_copy_constructor<abi>(src_tokens, result, result_type, context, result_address);
 		return val_ptr::get_reference(result_address, result.get_type());
@@ -4892,11 +4889,11 @@ static val_ptr emit_bitcode(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_struct_init const &struct_init,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -4910,11 +4907,11 @@ static val_ptr emit_bitcode(
 	return val_ptr::get_reference(result_ptr, type);
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_array_init const &array_init,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -4928,11 +4925,11 @@ static val_ptr emit_bitcode(
 	return val_ptr::get_reference(result_ptr, type);
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
 	ast::expr_array_default_construct const &array_default_construct,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -4985,11 +4982,11 @@ static val_ptr emit_bitcode(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_builtin_default_construct const &builtin_default_construct,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -5035,16 +5032,16 @@ static val_ptr emit_bitcode(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
 	ast::expr_member_access const &member_access,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
 	auto const base = emit_bitcode<abi>(member_access.base, context, nullptr);
-	auto const base_type = ast::remove_const_or_consteval(member_access.base.get_expr_type_and_kind().first);
+	auto const base_type = ast::remove_const_or_consteval(member_access.base.get_expr_type());
 	bz_assert(base_type.is<ast::ts_base_type>());
 	auto const accessed_type = base_type.get<ast::ts_base_type>()
 		.info->member_variables[member_access.index]->get_type().as_typespec_view();
@@ -5099,17 +5096,17 @@ static val_ptr emit_bitcode(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
 	ast::expr_type_member_access const &member_access,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
 	bz_assert(member_access.var_decl != nullptr);
 	auto const decl = member_access.var_decl;
-	if constexpr (is_comptime<Context>)
+	if constexpr (is_comptime<decltype(context)>)
 	{
 		if (decl->get_type().is<ast::ts_consteval>() && decl->init_expr.not_error())
 		{
@@ -5117,7 +5114,7 @@ static val_ptr emit_bitcode(
 		}
 	}
 	auto const [ptr, type] = context.get_variable(decl);
-	if constexpr (is_comptime<Context>)
+	if constexpr (is_comptime<decltype(context)>)
 	{
 		if (ptr == nullptr)
 		{
@@ -5156,11 +5153,11 @@ static val_ptr emit_bitcode(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_compound const &compound_expr,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -5182,11 +5179,11 @@ static val_ptr emit_bitcode(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_if const &if_expr,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -5300,16 +5297,16 @@ static val_ptr emit_bitcode(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_if_consteval const &if_expr,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
-	bz_assert(if_expr.condition.is<ast::constant_expression>());
-	auto const &condition_value = if_expr.condition.get<ast::constant_expression>().value;
+	bz_assert(if_expr.condition.is_constant());
+	auto const &condition_value = if_expr.condition.get_constant_value();
 	bz_assert(condition_value.is<ast::constant_value::boolean>());
 	if (condition_value.get<ast::constant_value::boolean>())
 	{
@@ -5326,11 +5323,11 @@ static val_ptr emit_bitcode(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_switch const &switch_expr,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -5356,8 +5353,8 @@ static val_ptr emit_bitcode(
 		auto const bb = context.add_basic_block("case");
 		for (auto const &expr : case_vals)
 		{
-			bz_assert(expr.template is<ast::constant_expression>());
-			auto const &const_expr = expr.template get<ast::constant_expression>();
+			bz_assert(expr.is_constant());
+			auto const &const_expr = expr.get_constant();
 			auto const val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
 			bz_assert(val != nullptr && llvm::dyn_cast<llvm::ConstantInt>(val) != nullptr);
 			auto const const_int_val = static_cast<llvm::ConstantInt *>(val);
@@ -5450,15 +5447,15 @@ static val_ptr emit_bitcode(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
 	ast::expr_break const &,
-	Context &context,
+	auto &context,
 	llvm::Value *
 )
 {
-	if constexpr (is_comptime<Context>)
+	if constexpr (is_comptime<decltype(context)>)
 	{
 		if (context.loop_info.break_bb == nullptr)
 		{
@@ -5475,15 +5472,15 @@ static val_ptr emit_bitcode(
 	return val_ptr::get_none();
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
 	ast::expr_continue const &,
-	Context &context,
+	auto &context,
 	llvm::Value *
 )
 {
-	if constexpr (is_comptime<Context>)
+	if constexpr (is_comptime<decltype(context)>)
 	{
 		if (context.loop_info.continue_bb == nullptr)
 		{
@@ -5500,15 +5497,15 @@ static val_ptr emit_bitcode(
 	return val_ptr::get_none();
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
 	ast::expr_unreachable const &,
-	Context &context,
+	auto &context,
 	llvm::Value *
 )
 {
-	if constexpr (is_comptime<Context>)
+	if constexpr (is_comptime<decltype(context)>)
 	{
 		emit_error(src_tokens, "'unreachable' hit in compile time execution", context);
 		return val_ptr::get_none();
@@ -5537,23 +5534,23 @@ static val_ptr emit_bitcode(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_generic_type_instantiation const &,
-	Context &,
+	auto &,
 	llvm::Value *
 )
 {
 	bz_unreachable;
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static llvm::Constant *get_value(
 	ast::constant_value const &value,
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
-	Context &context
+	auto &context
 )
 {
 	switch (value.kind())
@@ -5666,8 +5663,8 @@ static llvm::Constant *get_value(
 			auto &tuple = const_expr->expr.get<ast::expr_tuple>();
 			for (auto const &elem : tuple.elems)
 			{
-				bz_assert(elem.is<ast::constant_expression>());
-				auto const &const_elem = elem.get<ast::constant_expression>();
+				bz_assert(elem.is_constant());
+				auto const &const_elem = elem.get_constant();
 				elems.push_back(get_value<abi>(const_elem.value, const_elem.type, &const_elem, context));
 				types.push_back(elems.back()->getType());
 			}
@@ -5715,11 +5712,11 @@ static llvm::Constant *get_value(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
 	ast::constant_expression const &const_expr,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -5779,11 +5776,11 @@ static val_ptr emit_bitcode(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
 	ast::dynamic_expression const &dyn_expr,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -5801,10 +5798,10 @@ static val_ptr emit_bitcode(
 	});
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	ast::expression const &expr,
-	Context &context,
+	auto &context,
 	llvm::Value *result_address
 )
 {
@@ -5815,11 +5812,11 @@ static val_ptr emit_bitcode(
 	switch (expr.kind())
 	{
 	case ast::expression::index_of<ast::constant_expression>:
-		return emit_bitcode<abi>(expr.src_tokens, expr.get<ast::constant_expression>(), context, result_address);
+		return emit_bitcode<abi>(expr.src_tokens, expr.get_constant(), context, result_address);
 	case ast::expression::index_of<ast::dynamic_expression>:
-		return emit_bitcode<abi>(expr.src_tokens, expr.get<ast::dynamic_expression>(), context, result_address);
+		return emit_bitcode<abi>(expr.src_tokens, expr.get_dynamic(), context, result_address);
 	case ast::expression::index_of<ast::error_expression>:
-		if constexpr (is_comptime<Context>)
+		if constexpr (is_comptime<decltype(context)>)
 		{
 			emit_error(expr.src_tokens, "failed to resolve expression", context);
 		}
@@ -5830,7 +5827,7 @@ static val_ptr emit_bitcode(
 		return val_ptr::get_none();
 
 	default:
-		if constexpr (is_comptime<Context>)
+		if constexpr (is_comptime<decltype(context)>)
 		{
 			emit_error(expr.src_tokens, "failed to resolve expression", context);
 		}
@@ -5848,10 +5845,10 @@ static val_ptr emit_bitcode(
 // -------------------------- statement ---------------------------
 // ================================================================
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static void emit_bitcode(
 	ast::stmt_while const &while_stmt,
-	Context &context
+	auto &context
 )
 {
 	auto const condition_check_bb = context.add_basic_block("while_condition_check");
@@ -5880,10 +5877,10 @@ static void emit_bitcode(
 	context.pop_loop(prev_loop_info);
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static void emit_bitcode(
 	ast::stmt_for const &for_stmt,
-	Context &context
+	auto &context
 )
 {
 	context.push_expression_scope();
@@ -5934,10 +5931,10 @@ static void emit_bitcode(
 	context.pop_expression_scope();
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static void emit_bitcode(
 	ast::stmt_foreach const &foreach_stmt,
-	Context &context
+	auto &context
 )
 {
 	context.push_expression_scope();
@@ -5980,13 +5977,13 @@ static void emit_bitcode(
 	context.pop_expression_scope();
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static void emit_bitcode(
 	ast::stmt_return const &ret_stmt,
-	Context &context
+	auto &context
 )
 {
-	if constexpr (is_comptime<Context>)
+	if constexpr (is_comptime<decltype(context)>)
 	{
 		if (context.current_function.first == nullptr)
 		{
@@ -6028,7 +6025,7 @@ static void emit_bitcode(
 	}
 	else if (ret_stmt.expr.is_error())
 	{
-		if constexpr (is_comptime<Context>)
+		if constexpr (is_comptime<decltype(context)>)
 		{
 			emit_error(ret_stmt.expr.src_tokens, "failed to evaluate expression", context);
 		}
@@ -6089,20 +6086,20 @@ static void emit_bitcode(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static void emit_bitcode(
 	ast::stmt_no_op const &,
-	Context &
+	auto &
 )
 {
 	// we do nothing
 	return;
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static void emit_bitcode(
 	ast::stmt_expression const &expr_stmt,
-	Context &context
+	auto &context
 )
 {
 	context.push_expression_scope();
@@ -6110,12 +6107,11 @@ static void emit_bitcode(
 	context.pop_expression_scope();
 }
 
-template<typename Context>
 static void add_variable_helper(
 	ast::decl_variable const &var_decl,
 	llvm::Value *ptr,
 	llvm::Type *type,
-	Context &context
+	auto &context
 )
 {
 	if (var_decl.tuple_decls.empty())
@@ -6141,13 +6137,13 @@ static void add_variable_helper(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static void emit_bitcode(
 	ast::decl_variable const &var_decl,
-	Context &context
+	auto &context
 )
 {
-	if constexpr (is_comptime<Context>)
+	if constexpr (is_comptime<decltype(context)>)
 	{
 		if (var_decl.get_type().is_empty())
 		{
@@ -6158,7 +6154,20 @@ static void emit_bitcode(
 	if (var_decl.get_type().is<ast::ts_lvalue_reference>())
 	{
 		bz_assert(var_decl.init_expr.not_null());
-		auto const init_val = emit_bitcode<abi>(var_decl.init_expr, context, nullptr);
+		auto const init_val = [&]() {
+			if (var_decl.init_expr.is_error())
+			{
+				auto const type = get_llvm_type(var_decl.get_type().get<ast::ts_lvalue_reference>(), context);
+				return val_ptr::get_reference(context.create_alloca_without_lifetime_start(type), type);
+			}
+			else
+			{
+				context.push_expression_scope();
+				auto const result = emit_bitcode<abi>(var_decl.init_expr, context, nullptr);
+				context.pop_expression_scope();
+				return result;
+			}
+		}();
 		bz_assert(init_val.kind == val_ptr::reference);
 		if (var_decl.tuple_decls.empty())
 		{
@@ -6192,10 +6201,10 @@ static void emit_bitcode(
 }
 
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static void emit_bitcode(
 	ast::statement const &stmt,
-	Context &context
+	auto &context
 )
 {
 	if (context.has_terminator())
@@ -6243,10 +6252,10 @@ static void emit_bitcode(
 	}
 }
 
-template<abi::platform_abi abi, typename Context>
+template<abi::platform_abi abi>
 static llvm::Function *create_function_from_symbol_impl(
 	ast::function_body &func_body,
-	Context &context
+	auto &context
 )
 {
 	if (func_body.is_bitcode_emitted())
@@ -6409,11 +6418,11 @@ static llvm::Function *create_function_from_symbol_impl(
 	}();
 
 	bz_assert(func_body.symbol_name != "");
-	auto const name = !is_comptime<Context> && func_body.is_main()
+	auto const name = !is_comptime<decltype(context)> && func_body.is_main()
 		? llvm::StringRef("__bozon_main")
 		: llvm::StringRef(func_body.symbol_name.data_as_char_ptr(), func_body.symbol_name.size());
 
-	auto const linkage = is_comptime<Context> || func_body.is_external_linkage()
+	auto const linkage = is_comptime<decltype(context)> || func_body.is_external_linkage()
 		? llvm::Function::ExternalLinkage
 		: llvm::Function::InternalLinkage;
 
@@ -6466,10 +6475,9 @@ static llvm::Function *create_function_from_symbol_impl(
 	return fn;
 }
 
-template<typename Context>
 static llvm::Function *create_function_from_symbol(
 	ast::function_body &func_body,
-	Context &context
+	auto &context
 )
 {
 	auto const abi = context.get_platform_abi();
@@ -6558,8 +6566,8 @@ static void emit_function_bitcode_impl(
 			else if (ast::is_generic_parameter(p))
 			{
 				bz_assert(p.get_type().is<ast::ts_consteval>());
-				bz_assert(p.init_expr.is<ast::constant_expression>());
-				auto const &const_expr = p.init_expr.get<ast::constant_expression>();
+				bz_assert(p.init_expr.is_constant());
+				auto const &const_expr = p.init_expr.get_constant();
 				auto const val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
 				auto const alloca = context.create_alloca_without_lifetime_start(val->getType());
 				auto const size = context.get_size(val->getType());
@@ -6760,8 +6768,8 @@ static void emit_function_bitcode_impl(
 			else if (ast::is_generic_parameter(p))
 			{
 				bz_assert(p.get_type().is<ast::ts_consteval>());
-				bz_assert(p.init_expr.is<ast::constant_expression>());
-				auto const &const_expr = p.init_expr.get<ast::constant_expression>();
+				bz_assert(p.init_expr.is_constant());
+				auto const &const_expr = p.init_expr.get_constant();
 				auto const val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
 				auto const alloca = context.create_alloca_without_lifetime_start(val->getType());
 				auto const size = context.get_size(val->getType());
@@ -6953,8 +6961,8 @@ void emit_function_bitcode(
 	bz_unreachable;
 }
 
-template<abi::platform_abi abi, typename Context>
-static void emit_global_variable_impl(ast::decl_variable const &var_decl, Context &context)
+template<abi::platform_abi abi>
+static void emit_global_variable_impl(ast::decl_variable const &var_decl, auto &context)
 {
 	auto const name = var_decl.get_id().format_for_symbol();
 	auto const name_ref = llvm::StringRef(name.data_as_char_ptr(), name.size());
@@ -6962,7 +6970,7 @@ static void emit_global_variable_impl(ast::decl_variable const &var_decl, Contex
 	auto const val = context.get_module().getOrInsertGlobal(name_ref, type);
 	bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(val) != nullptr);
 	auto const global_var = static_cast<llvm::GlobalVariable *>(val);
-	if (is_comptime<Context> || var_decl.is_external_linkage())
+	if (is_comptime<decltype(context)> || var_decl.is_external_linkage())
 	{
 		global_var->setLinkage(llvm::GlobalValue::ExternalLinkage);
 	}
@@ -6970,8 +6978,8 @@ static void emit_global_variable_impl(ast::decl_variable const &var_decl, Contex
 	{
 		global_var->setLinkage(llvm::GlobalValue::InternalLinkage);
 	}
-	bz_assert(var_decl.init_expr.is<ast::constant_expression>());
-	auto const &const_expr = var_decl.init_expr.get<ast::constant_expression>();
+	bz_assert(var_decl.init_expr.is_constant());
+	auto const &const_expr = var_decl.init_expr.get_constant();
 	auto const init_val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
 	global_var->setInitializer(init_val);
 	context.add_variable(&var_decl, global_var, type);
@@ -7583,7 +7591,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 {
 	auto const result_type = expr.final_expr.is_null() || expr.final_expr.is_typename()
 		? llvm::Type::getVoidTy(context.get_llvm_context())
-		: get_llvm_type(expr.final_expr.get_expr_type_and_kind().first, context);
+		: get_llvm_type(expr.final_expr.get_expr_type(), context);
 	auto const void_type = llvm::Type::getVoidTy(context.get_llvm_context());
 	auto const return_result_as_global = result_type->isAggregateType();
 

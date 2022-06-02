@@ -1,7 +1,7 @@
 #include "safe_operations.h"
 #include "overflow_operations.h"
 
-namespace parse
+namespace resolve
 {
 
 enum class op
@@ -985,4 +985,4 @@ bz::optional<uint64_t> safe_binary_bit_right_shift(
 	}
 }
 
-} // namespace parse
+} // namespace resolve

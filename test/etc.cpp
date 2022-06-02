@@ -21,7 +21,7 @@
 #include "ast/typespec.cpp"
 #include "ast/scope.cpp"
 
-#include "parse/safe_operations.cpp"
+#include "resolve/safe_operations.cpp"
 
 #include "abi/generic.cpp"
 #include "abi/microsoft_x64.cpp"

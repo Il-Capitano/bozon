@@ -87,6 +87,9 @@ function main(args: [: const str]) -> int32
 	consteval val = (foo_t.inner_t<foo_t.inner_t<int32> >)();
 	static_assert(val.inner_n == 0 && val.inner_s == "");
 
+	const slice = [: int32]();
+	const _ = slice.size();
+
 	(consteval {
 		let res = (foo_t.inner_t<foo_t>)();
 		res

@@ -1,4 +1,4 @@
-#include "parse/consteval.cpp"
+#include "resolve/consteval.cpp"
 
 #include "test.h"
 #include "ctx/global_context.h"

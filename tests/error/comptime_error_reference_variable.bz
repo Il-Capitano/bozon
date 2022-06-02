@@ -1,0 +1,8 @@
+function main()
+{
+	(consteval {
+		const i = 0;
+		let &r = i;
+		r = 3;
+	});
+}

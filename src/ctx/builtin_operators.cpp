@@ -2,7 +2,7 @@
 #include "global_context.h"
 #include "parse_context.h"
 #include "token_info.h"
-#include "parse/consteval.h"
+#include "resolve/consteval.h"
 #include "resolve/expression_resolver.h"
 #include "overflow_operations.h"
 
@@ -29,23 +29,23 @@ static auto get_constant_expression_values(
 )
 {
 	static_assert(kind != ast::constant_value::aggregate);
-	bz_assert(lhs.is<ast::constant_expression>());
-	bz_assert(rhs.is<ast::constant_expression>());
-	auto &const_lhs = lhs.get<ast::constant_expression>();
-	auto &const_rhs = rhs.get<ast::constant_expression>();
-	bz_assert(const_lhs.value.kind() == kind);
-	bz_assert(const_rhs.value.kind() == kind);
+	bz_assert(lhs.is_constant());
+	bz_assert(rhs.is_constant());
+	auto const &lhs_value = lhs.get_constant_value();
+	auto const &rhs_value = rhs.get_constant_value();
+	bz_assert(lhs_value.kind() == kind);
+	bz_assert(rhs_value.kind() == kind);
 
 	if constexpr (kind == ast::constant_value::string)
 	{
 		return std::make_pair(
-			const_lhs.value.get<ast::constant_value::string>().as_string_view(),
-			const_rhs.value.get<ast::constant_value::string>().as_string_view()
+			lhs_value.get<ast::constant_value::string>().as_string_view(),
+			rhs_value.get<ast::constant_value::string>().as_string_view()
 		);
 	}
 	else
 	{
-		return std::make_pair(const_lhs.value.get<kind>(), const_rhs.value.get<kind>());
+		return std::make_pair(lhs_value.get<kind>(), rhs_value.get<kind>());
 	}
 }
 
@@ -651,7 +651,7 @@ static ast::expression get_builtin_unary_sizeof(
 	}
 	else
 	{
-		auto const type = expr.get_expr_type_and_kind().first;
+		auto const type = expr.get_expr_type();
 		if (!ast::is_complete(type))
 		{
 			// this is in case type is empty; I don't see how we could get here otherwise
@@ -782,14 +782,14 @@ static ast::expression get_builtin_unary_consteval(
 {
 	bz_assert(op_kind == lex::token::kw_consteval);
 	bz_assert(expr.not_error());
-	parse::consteval_try(expr, context);
+	resolve::consteval_try(expr, context);
 	if (expr.has_consteval_succeeded())
 	{
 		return expr;
 	}
 	else
 	{
-		context.report_error(expr.src_tokens, "failed to evaluate expression at compile time", parse::get_consteval_fail_notes(expr));
+		context.report_error(expr.src_tokens, "failed to evaluate expression at compile time", resolve::get_consteval_fail_notes(expr));
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 }
@@ -899,13 +899,13 @@ ast::expression make_builtin_cast(
 	if (
 		dest_t.is<ast::ts_optional_pointer>()
 		&& ((
-			expr.is<ast::constant_expression>()
-			&& expr.get<ast::constant_expression>().value.kind() == ast::constant_value::null
+			expr.is_constant()
+			&& expr.get_constant_value().kind() == ast::constant_value::null
 		)
 		|| (
-			expr.is<ast::dynamic_expression>()
+			expr.is_dynamic()
 			&& [&]() {
-				auto const type = ast::remove_const_or_consteval(expr.get<ast::dynamic_expression>().type);
+				auto const type = ast::remove_const_or_consteval(expr.get_dynamic().type);
 				return type.is<ast::ts_base_type>()
 					&& type.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_;
 			}()
@@ -1060,7 +1060,7 @@ ast::expression make_builtin_subscript_operator(
 
 	if (called_t.is<ast::ts_tuple>() || called_kind == ast::expression_type_kind::tuple)
 	{
-		if (!arg.is<ast::constant_expression>())
+		if (!arg.is_constant())
 		{
 			context.report_error(arg, "tuple subscript must be a constant expression");
 			return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), std::move(arg)));
@@ -1077,7 +1077,7 @@ ast::expression make_builtin_subscript_operator(
 		auto const tuple_elem_count = called_t.is<ast::ts_tuple>()
 			? called_t.get<ast::ts_tuple>().types.size()
 			: called.get_expr().get<ast::expr_tuple>().elems.size();
-		auto &const_arg = arg.get<ast::constant_expression>();
+		auto &const_arg = arg.get_constant();
 		size_t index = 0;
 		if (const_arg.value.kind() == ast::constant_value::uint)
 		{

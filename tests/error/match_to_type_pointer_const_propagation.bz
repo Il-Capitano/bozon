@@ -1,0 +1,11 @@
+function func_pcp(: **const int32);
+
+function main()
+{
+	let i = 0;
+
+	let p: *int32 = &i;
+	let pp: **int32 = &p;
+
+	func_pcp(pp);
+}

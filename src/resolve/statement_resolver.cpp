@@ -2,9 +2,9 @@
 #include "expression_resolver.h"
 #include "attribute_resolver.h"
 #include "match_expression.h"
+#include "consteval.h"
 #include "parse/statement_parser.h"
 #include "parse/expression_parser.h"
-#include "parse/consteval.h"
 #include "ctx/global_context.h"
 
 namespace resolve
@@ -21,6 +21,9 @@ static void resolve_stmt(ast::stmt_while &while_stmt, ctx::parse_context &contex
 
 static void resolve_stmt(ast::stmt_for &for_stmt, ctx::parse_context &context)
 {
+	bz_assert(for_stmt.scope.is_null());
+	for_stmt.scope = ast::make_local_scope(context.get_current_enclosing_scope());
+	context.push_local_scope(&for_stmt.scope);
 	resolve_statement(for_stmt.init, context);
 	resolve_expression(for_stmt.condition, context);
 	resolve_expression(for_stmt.iteration, context);
@@ -31,21 +34,22 @@ static void resolve_stmt(ast::stmt_for &for_stmt, ctx::parse_context &context)
 	{
 		match_expression_to_type(for_stmt.condition, bool_type, context);
 	}
+	context.pop_local_scope(true);
 }
 
 static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &context)
 {
-	if (foreach_stmt.iter_var_decl.not_null())
-	{
-		// already resolved
-		return;
-	}
+	bz_assert(foreach_stmt.iter_var_decl.is_null());
+	bz_assert(foreach_stmt.scope.is_null());
+	foreach_stmt.scope = ast::make_local_scope(context.get_current_enclosing_scope());
+	context.push_local_scope(&foreach_stmt.scope);
 	resolve_statement(foreach_stmt.range_var_decl, context);
 	bz_assert(foreach_stmt.range_var_decl.is<ast::decl_variable>());
 	auto &range_var_decl = foreach_stmt.range_var_decl.get<ast::decl_variable>();
 	range_var_decl.flags |= ast::decl_variable::used;
 	if (range_var_decl.get_type().is_empty())
 	{
+		context.pop_local_scope(true);
 		return;
 	}
 
@@ -194,6 +198,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	context.add_local_variable(iter_deref_var_decl);
 
 	resolve_expression(foreach_stmt.for_block, context);
+	context.pop_local_scope(true);
 }
 
 static void resolve_stmt(ast::stmt_return &return_stmt, ctx::parse_context &context)
@@ -242,15 +247,15 @@ static bz::u8string get_static_assert_expression(ast::constant_expression const 
 		{
 			auto const op_str = token_info[binary_op.op].token_value;
 			auto const &lhs = binary_op.lhs;
-			bz_assert(lhs.is<ast::constant_expression>());
-			auto const lhs_str = ast::get_value_string(lhs.get<ast::constant_expression>().value);
+			bz_assert(lhs.is_constant());
+			auto const lhs_str = ast::get_value_string(lhs.get_constant_value());
 			if (lhs_str == "")
 			{
 				return "";
 			}
 			auto const &rhs = binary_op.rhs;
-			bz_assert(rhs.is<ast::constant_expression>());
-			auto const rhs_str = ast::get_value_string(rhs.get<ast::constant_expression>().value);
+			bz_assert(rhs.is_constant());
+			auto const rhs_str = ast::get_value_string(rhs.get_constant_value());
 			if (rhs_str == "")
 			{
 				return "";
@@ -328,7 +333,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 			match_expression_to_type(expr, base_type, context);
 			if (!expr.is_error())
 			{
-				parse::consteval_try(expr, context);
+				resolve::consteval_try(expr, context);
 			}
 			good &= expr.not_error();
 		};
@@ -341,7 +346,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 			context.report_error(
 				static_assert_stmt.condition,
 				"condition for static_assert must be a constant expression",
-				parse::get_consteval_fail_notes(static_assert_stmt.condition)
+				resolve::get_consteval_fail_notes(static_assert_stmt.condition)
 			);
 		}
 
@@ -355,7 +360,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 				context.report_error(
 					static_assert_stmt.message,
 					"message in static_assert must be a constant expression",
-					parse::get_consteval_fail_notes(static_assert_stmt.message)
+					resolve::get_consteval_fail_notes(static_assert_stmt.message)
 				);
 			}
 		}
@@ -367,7 +372,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 		}
 	}
 
-	auto &cond_const_expr = static_assert_stmt.condition.get<ast::constant_expression>();
+	auto &cond_const_expr = static_assert_stmt.condition.get_constant();
 	bz_assert(cond_const_expr.value.kind() == ast::constant_value::boolean);
 	auto const cond = cond_const_expr.value.get<ast::constant_value::boolean>();
 
@@ -381,7 +386,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 		}
 		if (static_assert_stmt.message.not_null() && static_assert_stmt.message.not_error())
 		{
-			auto &message_const_expr = static_assert_stmt.message.get<ast::constant_expression>();
+			auto &message_const_expr = static_assert_stmt.message.get_constant();
 			bz_assert(message_const_expr.value.kind() == ast::constant_value::string);
 			auto const message = message_const_expr.value.get<ast::constant_value::string>().as_string_view();
 			error_message += bz::format(", message: '{}'", message);
@@ -457,10 +462,10 @@ void resolve_typespec(ast::typespec &ts, ctx::parse_context &context, precedence
 	}
 	resolve_expression(type, context);
 
-	parse::consteval_try(type, context);
+	resolve::consteval_try(type, context);
 	if (type.not_error() && !type.has_consteval_succeeded())
 	{
-		auto notes = parse::get_consteval_fail_notes(type);
+		auto notes = resolve::get_consteval_fail_notes(type);
 		notes.push_front(context.make_note(type.src_tokens, "type must be a constant expression"));
 		context.report_error(
 			type.src_tokens,
@@ -557,13 +562,13 @@ static void resolve_variable_type(ast::decl_variable &var_decl, ctx::parse_conte
 			resolve_expression(var_decl.id_and_type.var_type, context);
 		}
 		auto &type = var_decl.id_and_type.var_type;
-		parse::consteval_try(type, context);
+		resolve::consteval_try(type, context);
 		if (type.not_error() && !type.has_consteval_succeeded())
 		{
 			context.report_error(
 				type.src_tokens,
 				"variable type must be a constant expression",
-				parse::get_consteval_fail_notes(type)
+				resolve::get_consteval_fail_notes(type)
 			);
 			var_decl.clear_type();
 			var_decl.state = ast::resolve_state::error;
@@ -711,7 +716,7 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 						ast::resolve_order::regular
 					)
 				);
-				parse::consteval_guaranteed(var_decl.init_expr, context);
+				resolve::consteval_guaranteed(var_decl.init_expr, context);
 			}
 			else
 			{
@@ -896,20 +901,20 @@ static void resolve_type_alias_impl(ast::decl_type_alias &alias_decl, ctx::parse
 		return;
 	}
 	resolve_expression(alias_decl.alias_expr, context);
-	parse::consteval_try(alias_decl.alias_expr, context);
+	resolve::consteval_try(alias_decl.alias_expr, context);
 
 	if (!alias_decl.alias_expr.has_consteval_succeeded())
 	{
 		context.report_error(
 			alias_decl.alias_expr,
 			"type alias expression must be a constant expression",
-			parse::get_consteval_fail_notes(alias_decl.alias_expr)
+			resolve::get_consteval_fail_notes(alias_decl.alias_expr)
 		);
 		alias_decl.state = ast::resolve_state::error;
 		return;
 	}
 
-	auto const &value = alias_decl.alias_expr.get<ast::constant_expression>().value;
+	auto const &value = alias_decl.alias_expr.get_constant_value();
 	if (value.is<ast::constant_value::type>())
 	{
 		auto const &type = value.get<ast::constant_value::type>();
@@ -1016,20 +1021,20 @@ static void resolve_function_alias_impl(ast::decl_function_alias &alias_decl, ct
 		}
 	}
 	resolve_expression(alias_decl.alias_expr, context);
-	parse::consteval_try(alias_decl.alias_expr, context);
+	resolve::consteval_try(alias_decl.alias_expr, context);
 
 	if (!alias_decl.alias_expr.has_consteval_succeeded())
 	{
 		context.report_error(
 			alias_decl.alias_expr,
 			"function alias expression must be a constant expression",
-			parse::get_consteval_fail_notes(alias_decl.alias_expr)
+			resolve::get_consteval_fail_notes(alias_decl.alias_expr)
 		);
 		alias_decl.state = ast::resolve_state::error;
 		return;
 	}
 
-	auto const &value = alias_decl.alias_expr.get<ast::constant_expression>().value;
+	auto const &value = alias_decl.alias_expr.get_constant_value();
 	if (value.is<ast::constant_value::function>())
 	{
 		auto const func_decl = value.get<ast::constant_value::function>();
@@ -2203,13 +2208,13 @@ void resolve_global_statement(ast::statement &stmt, ctx::parse_context &context)
 			context.pop_resolve_queue();
 			if (!var_decl.is_member() && var_decl.state != ast::resolve_state::error && var_decl.init_expr.not_null())
 			{
-				parse::consteval_try(var_decl.init_expr, context);
+				resolve::consteval_try(var_decl.init_expr, context);
 				if (var_decl.init_expr.not_error() && !var_decl.init_expr.has_consteval_succeeded())
 				{
 					context.report_error(
 						var_decl.src_tokens,
 						"a global variable must be initialized by a constant expression",
-						parse::get_consteval_fail_notes(var_decl.init_expr)
+						resolve::get_consteval_fail_notes(var_decl.init_expr)
 					);
 				}
 			}
