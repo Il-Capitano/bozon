@@ -1192,11 +1192,11 @@ static bool resolve_function_parameters_helper(
 			func_body.flags &= ~ast::function_body::generic;
 
 			auto const param_type = func_body.params[0].get_type().as_typespec_view();
-			// if the parameter is generic, then it must be &auto
-			// either as `destructor(&self)` or `destructor(self: &auto)`
+			// if the parameter is generic, then it must be &auto or move auto
+			// either as `destructor(&self)`, `destructor(move self)`, `destructor(self: &auto)` or `destructor(self: move auto)`
 			if (
 				param_type.nodes.size() != 2
-				|| !param_type.nodes[0].is<ast::ts_lvalue_reference>()
+				|| (!param_type.nodes[0].is<ast::ts_lvalue_reference>() && !param_type.nodes[0].is<ast::ts_move_reference>())
 				|| !param_type.nodes[1].is<ast::ts_auto>()
 			)
 			{
@@ -1208,7 +1208,7 @@ static bool resolve_function_parameters_helper(
 						"invalid parameter type '{}' in destructor of type '{}'",
 						param_type, destructor_of_type
 					),
-					{ context.make_note(bz::format("it must be either '&auto' or '&{}'", destructor_of_type)) }
+					{ context.make_note(bz::format("it must be either '&auto', 'move auto', '&{0}' or 'move {0}'", destructor_of_type)) }
 				);
 				return false;
 			}
@@ -1221,7 +1221,7 @@ static bool resolve_function_parameters_helper(
 			// if the parameter is non-generic, then it must be &<type>
 			if (
 				param_type.nodes.size() != 2
-				|| !param_type.nodes[0].is<ast::ts_lvalue_reference>()
+				|| (!param_type.nodes[0].is<ast::ts_lvalue_reference>() && !param_type.nodes[0].is<ast::ts_move_reference>())
 				|| !param_type.nodes[1].is<ast::ts_base_type>()
 				|| param_type.nodes[1].get<ast::ts_base_type>().info != func_body.get_destructor_of()
 			)
@@ -1233,7 +1233,7 @@ static bool resolve_function_parameters_helper(
 						"invalid parameter type '{}' in destructor of type '{}'",
 						param_type, destructor_of_type
 					),
-					{ context.make_note(bz::format("it must be either '&auto' or '&{}'", destructor_of_type)) }
+					{ context.make_note(bz::format("it must be either '&auto', 'move auto', '&{0}' or 'move {0}'", destructor_of_type)) }
 				);
 				return false;
 			}
@@ -1898,7 +1898,7 @@ static void add_type_info_members(
 		if (stmt.is<ast::decl_function>())
 		{
 			auto &decl = stmt.get<ast::decl_function>();
-			if (decl.body.is_destructor())
+			if (decl.body.is_destructor() && decl.body.params[0].get_type().is<ast::ts_lvalue_reference>())
 			{
 				if (info.destructor != nullptr)
 				{
@@ -1911,6 +1911,20 @@ static void add_type_info_members(
 
 				decl.body.constructor_or_destructor_of = &info;
 				info.destructor = &decl;
+			}
+			else if (decl.body.is_destructor() && decl.body.params[0].get_type().is<ast::ts_move_reference>())
+			{
+				if (info.move_destructor != nullptr)
+				{
+					auto const type_name = ast::type_info::decode_symbol_name(info.symbol_name);
+					context.report_error(
+						decl.body.src_tokens, bz::format("redefinition of move destructor for type '{}'", type_name),
+						{ context.make_note(info.destructor->body.src_tokens, "previously defined here") }
+					);
+				}
+
+				decl.body.constructor_or_destructor_of = &info;
+				info.move_destructor = &decl;
 			}
 			else if (decl.body.is_constructor())
 			{
