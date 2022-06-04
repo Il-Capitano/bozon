@@ -1290,6 +1290,33 @@ static bool resolve_function_parameters_helper(
 				info->copy_constructor = &func_stmt.get<ast::decl_function>();
 			}
 		}
+		else if (
+			func_body.params.size() == 1
+			&& func_body.params[0].get_type().nodes.size() == 2
+			&& func_body.params[0].get_type().nodes[0].is<ast::ts_move_reference>()
+			&& func_body.params[0].get_type().nodes[2].is<ast::ts_base_type>()
+			&& func_body.params[0].get_type().nodes[2].get<ast::ts_base_type>().info == func_body.get_constructor_of()
+		)
+		{
+			auto const info = func_body.get_constructor_of();
+			if (info->move_constructor != nullptr)
+			{
+				context.report_error(
+					func_body.src_tokens,
+					bz::format("redefinition of move constructor for type '{}'", ast::make_base_type_typespec({}, info)),
+					{ context.make_note(
+						info->move_constructor->body.src_tokens,
+						"move constructor previously defined here"
+					) }
+				);
+				return false;
+			}
+			else
+			{
+				bz_assert(func_stmt.is<ast::decl_function>());
+				info->move_constructor = &func_stmt.get<ast::decl_function>();
+			}
+		}
 	}
 
 	if (func_stmt.is<ast::decl_function>())
@@ -1948,7 +1975,11 @@ static void add_type_info_members(
 static void add_default_constructors(ast::type_info &info)
 {
 	// only add default constructor if there are no other non-copy constructors
-	if (info.default_constructor == nullptr && info.constructors.size() - static_cast<size_t>(info.copy_constructor != nullptr) == 0)
+	if (
+		info.default_constructor == nullptr
+		&& info.constructors.size() - static_cast<size_t>(info.copy_constructor != nullptr) == 0
+		&& info.member_variables.is_all([](auto const member) { return ast::is_default_constructible(member->get_type()); })
+	)
 	{
 		bz_assert(info.default_default_constructor == nullptr);
 		info.default_default_constructor = ast::type_info::make_default_default_constructor(info.src_tokens, info);
@@ -1963,6 +1994,16 @@ static void add_default_constructors(ast::type_info &info)
 		bz_assert(info.default_copy_constructor == nullptr);
 		info.default_copy_constructor = ast::type_info::make_default_copy_constructor(info.src_tokens, info);
 		info.constructors.push_back(info.default_copy_constructor.get());
+	}
+
+	if (
+		info.move_constructor == nullptr
+		&& info.member_variables.is_all([](auto const member) { return ast::is_move_constructible(member->get_type()); })
+	)
+	{
+		bz_assert(info.default_move_constructor == nullptr);
+		info.default_move_constructor = ast::type_info::make_default_move_constructor(info.src_tokens, info);
+		info.constructors.push_back(info.default_move_constructor.get());
 	}
 
 	bz_assert(info.default_op_assign == nullptr);
@@ -2016,6 +2057,20 @@ static void add_flags(ast::type_info &info)
 	}
 
 	if (
+		info.default_move_constructor != nullptr
+		&& info.member_variables.is_all([](auto const member) { return ast::is_trivially_move_constructible(member->get_type()); })
+	)
+	{
+		bz_assert(info.move_constructor == nullptr);
+		info.flags |= ast::type_info::move_constructible;
+		info.flags |= ast::type_info::trivially_move_constructible;
+	}
+	else if (info.move_constructor != nullptr || info.default_move_constructor != nullptr)
+	{
+		info.flags |= ast::type_info::move_constructible;
+	}
+
+	if (
 		info.destructor == nullptr
 		&& info.member_variables.is_all([](auto const member) { return ast::is_trivially_destructible(member->get_type()); })
 	)
@@ -2023,9 +2078,22 @@ static void add_flags(ast::type_info &info)
 		info.flags |= ast::type_info::trivially_destructible;
 	}
 
-	if (info.is_trivially_copy_constructible() && info.is_trivially_destructible())
+	if (
+		info.move_destructor == nullptr
+		&& info.member_variables.is_all([](auto const member) { return ast::is_trivially_move_destructible(member->get_type()); })
+	)
 	{
-		info.flags |= ast::type_info::trivial;
+		info.flags |= ast::type_info::trivially_move_destructible;
+	}
+
+	if (info.is_trivially_move_constructible() && info.is_trivially_move_destructible())
+	{
+		info.flags |= ast::type_info::trivially_relocatable;
+
+		if (info.is_trivially_copy_constructible() && info.is_trivially_destructible())
+		{
+			info.flags |= ast::type_info::trivial;
+		}
 	}
 }
 

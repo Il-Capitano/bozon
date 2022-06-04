@@ -4656,20 +4656,43 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
-	ast::expr_builtin_move_construct const &builtin_move_construct,
+	ast::expr_trivial_relocate const &trivial_relocate,
 	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const result_val = emit_bitcode<abi>(builtin_move_construct.moved_value, context, nullptr);
-	if (result_address != nullptr)
+	auto const val = emit_bitcode<abi>(trivial_relocate.value, context, nullptr);
+	auto const type = val.get_type();
+
+	if (val.kind == val_ptr::value)
 	{
-		context.builder.CreateStore(result_val.get_value(context.builder), result_address);
-		return val_ptr::get_reference(result_address, result_val.get_type());
+		if (result_address != nullptr)
+		{
+			context.builder.CreateStore(val.get_value(context.builder), result_address);
+			return val_ptr::get_reference(result_address, type);
+		}
+		else
+		{
+			return val_ptr::get_value(val.get_value(context.builder));
+		}
+	}
+	else if (auto const type_size = context.get_size(type); type_size <= 8)
+	{
+		if (result_address != nullptr)
+		{
+			context.builder.CreateStore(val.get_value(context.builder), result_address);
+			return val_ptr::get_reference(result_address, type);
+		}
+		else
+		{
+			return val_ptr::get_value(val.get_value(context.builder));
+		}
 	}
 	else
 	{
-		return val_ptr::get_value(result_val.get_value(context.builder));
+		auto const result_ptr = result_address != nullptr ? result_address : context.create_alloca(type);
+		emit_memcpy(result_ptr, val.val, type_size, context);
+		return val_ptr::get_reference(result_ptr, type);
 	}
 }
 

@@ -4881,7 +4881,7 @@ static ast::expression make_tuple_copy_construction(
 	{
 		context.report_error(
 			expr.src_tokens,
-			bz::format("value of type '{}' is not copyable", tuple_type),
+			bz::format("value of type '{}' is not copy-constructible", tuple_type),
 			tuple_type.get<ast::ts_tuple>().types
 				.filter([](auto const &elem_type) {
 					return !ast::is_copy_constructible(elem_type);
@@ -4932,7 +4932,7 @@ static ast::expression make_array_copy_construction(
 	{
 		context.report_error(
 			expr.src_tokens,
-			bz::format("value of type '{}' is not copyable", array_type),
+			bz::format("value of type '{}' is not copy-constructible", array_type),
 			{
 				context.make_note(
 					expr.src_tokens,
@@ -4986,11 +4986,23 @@ static ast::expression make_struct_copy_construction(
 	bz_assert(struct_type.is<ast::ts_base_type>());
 	auto const info = struct_type.get<ast::ts_base_type>().info;
 
-	if (!info->is_copy_constructible())
+	if (info->kind == ast::type_info::forward_declaration)
 	{
 		context.report_error(
 			expr.src_tokens,
-			bz::format("value of type '{}' is not copyable", struct_type),
+			bz::format("cannot copy value of incomplete type '{}'", struct_type)
+		);
+		auto const src_tokens = expr.src_tokens;
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_aggregate_copy_construct(std::move(expr), ast::arena_vector<ast::expression>())
+		);
+	}
+	else if (!info->is_copy_constructible())
+	{
+		context.report_error(
+			expr.src_tokens,
+			bz::format("value of type '{}' is not copy-constructible", struct_type),
 			info->member_variables
 				.filter([](auto const &member) {
 					return !ast::is_copy_constructible(member->get_type());
@@ -5005,8 +5017,9 @@ static ast::expression make_struct_copy_construction(
 				})
 				.collect()
 		);
+		auto const src_tokens = expr.src_tokens;
 		return ast::make_error_expression(
-			expr.src_tokens,
+			src_tokens,
 			ast::make_expr_aggregate_copy_construct(std::move(expr), ast::arena_vector<ast::expression>())
 		);
 	}
@@ -5091,9 +5104,224 @@ ast::expression parse_context::make_copy_construction(ast::expression expr)
 	}
 }
 
+static ast::expression make_tuple_move_construction(
+	ast::typespec_view tuple_type,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	bz_assert(tuple_type.is<ast::ts_tuple>());
+	if (!ast::is_move_constructible(tuple_type))
+	{
+		context.report_error(
+			expr.src_tokens,
+			bz::format("value of type '{}' is not move-constructible", tuple_type),
+			tuple_type.get<ast::ts_tuple>().types
+				.filter([](auto const &elem_type) {
+					return !ast::is_move_constructible(elem_type);
+				})
+				.transform([&expr](auto const &elem_type) {
+					return parse_context::make_note(
+						expr.src_tokens,
+						bz::format("element type '{}' is not move-constructible", elem_type)
+					);
+				})
+				.collect()
+		);
+		return ast::make_error_expression(
+			expr.src_tokens,
+			ast::make_expr_aggregate_move_construct(std::move(expr), ast::arena_vector<ast::expression>())
+		);
+	}
+
+	auto const src_tokens = expr.src_tokens;
+	ast::typespec type = tuple_type;
+	auto elem_move_exprs = tuple_type.get<ast::ts_tuple>().types
+		.transform([&](auto const &elem_type) {
+			return context.make_move_construction(ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::moved_lvalue,
+				elem_type,
+				ast::make_expr_bitcode_value_reference(),
+				ast::destruct_operation()
+			));
+		})
+		.collect<ast::arena_vector>();
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::rvalue, std::move(type),
+		ast::make_expr_aggregate_move_construct(std::move(expr), std::move(elem_move_exprs)),
+		ast::destruct_operation()
+	);
+}
+
+static ast::expression make_array_move_construction(
+	ast::typespec_view array_type,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	bz_assert(array_type.is<ast::ts_array>());
+	if (!ast::is_move_constructible(array_type))
+	{
+		context.report_error(
+			expr.src_tokens,
+			bz::format("value of type '{}' is not move-constructible", array_type),
+			{
+				context.make_note(
+					expr.src_tokens,
+					bz::format("array element type '{}' is not move-constructible", array_type.get<ast::ts_array>().elem_type)
+				)
+			}
+		);
+		return ast::make_error_expression(
+			expr.src_tokens,
+			ast::make_expr_array_move_construct(std::move(expr), ast::expression())
+		);
+	}
+
+	ast::typespec type = array_type;
+	auto elem_move_expr = context.make_move_construction(ast::make_dynamic_expression(
+		expr.src_tokens,
+		ast::expression_type_kind::moved_lvalue,
+		array_type.get<ast::ts_array>().elem_type,
+		ast::make_expr_bitcode_value_reference(),
+		ast::destruct_operation()
+	));
+	return ast::make_dynamic_expression(
+		expr.src_tokens,
+		ast::expression_type_kind::rvalue, std::move(type),
+		ast::make_expr_array_move_construct(std::move(expr), std::move(elem_move_expr)),
+		ast::destruct_operation()
+	);
+}
+
+static ast::expression make_struct_move_construction(
+	ast::typespec_view struct_type,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	bz_assert(struct_type.is<ast::ts_base_type>());
+	auto const info = struct_type.get<ast::ts_base_type>().info;
+
+	if (info->kind == ast::type_info::forward_declaration)
+	{
+		context.report_error(
+			expr.src_tokens,
+			bz::format("cannot move value of incomplete type '{}'", struct_type)
+		);
+		auto const src_tokens = expr.src_tokens;
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_aggregate_move_construct(std::move(expr), ast::arena_vector<ast::expression>())
+		);
+	}
+	else if (!info->is_move_constructible())
+	{
+		context.report_error(
+			expr.src_tokens,
+			bz::format("value of type '{}' is not move-constructible", struct_type),
+			info->member_variables
+				.filter([](auto const &member) {
+					return !ast::is_move_constructible(member->get_type());
+				})
+				.transform([](auto const &member) {
+					return parse_context::make_note(
+						member->src_tokens,
+						bz::format(
+							"member '{}' of type '{}' is not move-constructible",
+							member->get_id().format_as_unqualified(), member->get_type())
+					);
+				})
+				.collect()
+		);
+		auto const src_tokens = expr.src_tokens;
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_aggregate_move_construct(std::move(expr), ast::arena_vector<ast::expression>())
+		);
+	}
+
+	if (info->move_constructor != nullptr)
+	{
+		auto const src_tokens = expr.src_tokens;
+		ast::arena_vector<ast::expression> args;
+		args.push_back(std::move(expr));
+		return make_expr_function_call_from_body(
+			src_tokens,
+			&info->move_constructor->body,
+			std::move(args),
+			context
+		);
+	}
+	else
+	{
+		bz_assert(info->default_move_constructor != nullptr);
+		auto const src_tokens = expr.src_tokens;
+		ast::typespec type = struct_type;
+		auto elem_move_exprs = info->member_variables
+			.transform([](auto const member_ptr) -> auto const & {
+				return member_ptr->get_type();
+			})
+			.transform([&](auto const &member_type) {
+				return context.make_move_construction(ast::make_dynamic_expression(
+					src_tokens,
+					ast::expression_type_kind::moved_lvalue,
+					member_type,
+					ast::make_expr_bitcode_value_reference(),
+					ast::destruct_operation()
+				));
+			})
+			.collect<ast::arena_vector>();
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue, std::move(type),
+			ast::make_expr_aggregate_move_construct(std::move(expr), std::move(elem_move_exprs)),
+			ast::destruct_operation()
+		);
+	}
+}
+
 ast::expression parse_context::make_move_construction(ast::expression expr)
 {
-	bz_unreachable;
+	auto const type = ast::remove_const_or_consteval(expr.get_expr_type());
+
+	if (ast::is_trivially_relocatable(type))
+	{
+		auto const src_tokens = expr.src_tokens;
+		ast::typespec result_type = type;
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue, std::move(result_type),
+			ast::make_expr_trivial_relocate(std::move(expr))
+		);
+	}
+	else if (type.is<ast::ts_tuple>())
+	{
+		return make_tuple_move_construction(type, std::move(expr), *this);
+	}
+	else if (type.is<ast::ts_array>())
+	{
+		return make_array_move_construction(type, std::move(expr), *this);
+	}
+	else if (type.is<ast::ts_base_type>())
+	{
+		auto const info = type.get<ast::ts_base_type>().info;
+		bz_assert(!info->is_trivially_relocatable());
+		if (info->state < ast::resolve_state::all)
+		{
+			this->add_to_resolve_queue(expr.src_tokens, *info);
+			resolve::resolve_type_info(*info, *this);
+			this->pop_resolve_queue();
+		}
+		bz_assert(info->kind == ast::type_info::aggregate || info->kind == ast::type_info::forward_declaration);
+		return make_struct_move_construction(type, std::move(expr), *this);
+	}
+	else
+	{
+		bz_unreachable;
+	}
 }
 
 ast::expression make_destruct_expression(ast::typespec_view type, ast::expression value, parse_context &context)

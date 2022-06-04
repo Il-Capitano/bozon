@@ -36,7 +36,7 @@ struct expr_array_copy_construct;
 struct expr_array_move_construct;
 struct expr_builtin_default_construct;
 struct expr_builtin_copy_construct;
-struct expr_builtin_move_construct;
+struct expr_trivial_relocate;
 
 struct expr_aggregate_destruct;
 struct expr_array_destruct;
@@ -85,7 +85,7 @@ using expr_t = node<
 	expr_array_move_construct,
 	expr_builtin_default_construct,
 	expr_builtin_copy_construct,
-	expr_builtin_move_construct,
+	expr_trivial_relocate,
 	expr_aggregate_destruct,
 	expr_array_destruct,
 	expr_base_type_destruct,
@@ -593,7 +593,7 @@ struct expr_builtin_default_construct
 {
 	typespec type;
 
-	expr_builtin_default_construct(ast::typespec _type)
+	expr_builtin_default_construct(typespec _type)
 		: type(std::move(_type))
 	{}
 };
@@ -602,17 +602,17 @@ struct expr_builtin_copy_construct
 {
 	expression copied_value;
 
-	expr_builtin_copy_construct(ast::expression _copied_value)
+	expr_builtin_copy_construct(expression _copied_value)
 		: copied_value(std::move(_copied_value))
 	{}
 };
 
-struct expr_builtin_move_construct
+struct expr_trivial_relocate
 {
-	expression moved_value;
+	expression value;
 
-	expr_builtin_move_construct(ast::expression _moved_value)
-		: moved_value(std::move(_moved_value))
+	expr_trivial_relocate(expression _value)
+		: value(std::move(_value))
 	{}
 };
 
@@ -962,7 +962,7 @@ def_make_fn(expr_t, expr_array_copy_construct)
 def_make_fn(expr_t, expr_array_move_construct)
 def_make_fn(expr_t, expr_builtin_default_construct)
 def_make_fn(expr_t, expr_builtin_copy_construct)
-def_make_fn(expr_t, expr_builtin_move_construct)
+def_make_fn(expr_t, expr_trivial_relocate)
 def_make_fn(expr_t, expr_aggregate_destruct)
 def_make_fn(expr_t, expr_array_destruct)
 def_make_fn(expr_t, expr_base_type_destruct)

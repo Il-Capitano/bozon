@@ -435,6 +435,29 @@ type_info::decl_function_ptr type_info::make_default_copy_constructor(lex::src_t
 	return result;
 }
 
+type_info::decl_function_ptr type_info::make_default_move_constructor(lex::src_tokens const &src_tokens, type_info &info)
+{
+	auto param_t = make_base_type_typespec({}, &info);
+	param_t.add_layer<ts_move_reference>();
+
+	auto ret_t = make_base_type_typespec({}, &info);
+
+	auto result = make_ast_unique<decl_function>();
+	result->body.params.emplace_back(
+		lex::src_tokens{},
+		lex::token_range{},
+		var_id_and_type(identifier{}, type_as_expression(std::move(param_t))),
+		enclosing_scope_t{}
+	);
+	result->body.return_type = std::move(ret_t);
+	result->body.src_tokens = src_tokens;
+	result->body.state = resolve_state::symbol;
+	result->body.flags |= function_body::default_move_constructor;
+	result->body.flags |= function_body::constructor;
+	result->body.constructor_or_destructor_of = &info;
+	return result;
+}
+
 type_info::decl_function_ptr type_info::make_default_default_constructor(lex::src_tokens const &src_tokens, type_info &info)
 {
 	auto param_t = make_base_type_typespec({}, &info);

@@ -1,5 +1,13 @@
 /*
 
+
+- rvalue function parameters that are passed as move references
+- constant expressions?
+- dynamic expression results (if result_address == nullptr)
+- variables
+- function parameters
+
+
 TODO:
 	- user-defined type implementation
 

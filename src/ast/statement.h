@@ -415,10 +415,11 @@ struct function_body
 		constructor                 = bit_at<11>,
 		default_default_constructor = bit_at<12>,
 		default_copy_constructor    = bit_at<13>,
-		bitcode_emitted             = bit_at<14>,
-		comptime_bitcode_emitted    = bit_at<15>,
-		only_consteval              = bit_at<16>,
-		builtin_operator            = bit_at<17>,
+		default_move_constructor    = bit_at<14>,
+		bitcode_emitted             = bit_at<15>,
+		comptime_bitcode_emitted    = bit_at<16>,
+		only_consteval              = bit_at<17>,
+		builtin_operator            = bit_at<18>,
 	};
 
 	enum : uint8_t
@@ -726,6 +727,9 @@ struct function_body
 	bool is_default_copy_constructor(void) const noexcept
 	{ return (this->flags & default_copy_constructor) != 0; }
 
+	bool is_default_move_constructor(void) const noexcept
+	{ return (this->flags & default_move_constructor) != 0; }
+
 	bool is_bitcode_emitted(void) const noexcept
 	{ return (this->flags & bitcode_emitted) != 0; }
 
@@ -743,6 +747,7 @@ struct function_body
 		return (this->is_intrinsic() && this->body.is_null())
 			|| this->is_default_default_constructor()
 			|| this->is_default_copy_constructor()
+			|| this->is_default_move_constructor()
 			|| this->is_default_op_assign()
 			|| this->is_default_op_move_assign();
 	}
@@ -888,16 +893,20 @@ struct type_info
 
 	enum : uint32_t
 	{
-		generic                         = bit_at<0>,
-		generic_instantiation           = bit_at<1>,
+		generic                         = bit_at< 0>,
+		generic_instantiation           = bit_at< 1>,
 
-		default_constructible           = bit_at<2>,
-		default_zero_initialized        = bit_at<3>,
-		copy_constructible              = bit_at<4>,
-		trivially_copy_constructible    = bit_at<5>,
-		trivially_destructible          = bit_at<6>,
-		trivial                         = bit_at<7>,
-		module_export                   = bit_at<8>,
+		default_constructible           = bit_at< 2>,
+		default_zero_initialized        = bit_at< 3>,
+		copy_constructible              = bit_at< 4>,
+		trivially_copy_constructible    = bit_at< 5>,
+		move_constructible              = bit_at< 6>,
+		trivially_move_constructible    = bit_at< 7>,
+		trivially_destructible          = bit_at< 8>,
+		trivially_move_destructible     = bit_at< 9>,
+		trivially_relocatable           = bit_at<10>,
+		trivial                         = bit_at<11>,
+		module_export                   = bit_at<12>,
 	};
 
 	enum : uint8_t
@@ -931,14 +940,17 @@ struct type_info
 
 	decl_function_ptr default_default_constructor;
 	decl_function_ptr default_copy_constructor;
+	decl_function_ptr default_move_constructor;
 
 	decl_operator *op_assign = nullptr;
 	decl_operator *op_move_assign = nullptr;
 
 	decl_function *default_constructor = nullptr;
 	decl_function *copy_constructor = nullptr;
+	decl_function *move_constructor = nullptr;
 
 	decl_function *destructor = nullptr;
+	decl_function *move_destructor = nullptr;
 	arena_vector<decl_function *> constructors{};
 
 	arena_vector<decl_variable>             generic_parameters{};
@@ -958,8 +970,6 @@ struct type_info
 		  symbol_name(),
 		  body(range),
 		  scope(make_global_scope(_enclosing_scope, {}))
-//		  move_constructor(nullptr),
-//		  move_destuctor(nullptr)
 	{}
 
 	type_info(
@@ -1003,8 +1013,12 @@ private:
 			  default_constructible
 			  | copy_constructible
 			  | trivially_copy_constructible
+			  | move_constructible
+			  | trivially_move_constructible
 			  | trivially_destructible
+			  | trivially_move_destructible
 			  | trivial
+			  | trivially_relocatable
 			  | default_zero_initialized
 		  ),
 		  type_name(),
@@ -1015,9 +1029,8 @@ private:
 		  default_op_assign(nullptr),
 		  default_op_move_assign(nullptr),
 		  default_default_constructor(nullptr),
-		  default_copy_constructor(nullptr)
-//		  move_constructor(nullptr),
-//		  move_destuctor(nullptr)
+		  default_copy_constructor(nullptr),
+		  default_move_constructor(nullptr)
 	{}
 public:
 
@@ -1036,8 +1049,20 @@ public:
 	bool is_trivially_copy_constructible(void) const noexcept
 	{ return (this->flags & trivially_copy_constructible) != 0; }
 
+	bool is_move_constructible(void) const noexcept
+	{ return (this->flags & move_constructible) != 0; }
+
+	bool is_trivially_move_constructible(void) const noexcept
+	{ return (this->flags & trivially_move_constructible) != 0; }
+
 	bool is_trivially_destructible(void) const noexcept
 	{ return (this->flags & trivially_destructible) != 0; }
+
+	bool is_trivially_move_destructible(void) const noexcept
+	{ return (this->flags & trivially_move_destructible) != 0; }
+
+	bool is_trivially_relocatable(void) const noexcept
+	{ return (this->flags & trivially_relocatable) != 0; }
 
 	bool is_trivial(void) const noexcept
 	{ return (this->flags & trivial) != 0; }
@@ -1052,6 +1077,7 @@ public:
 	static decl_operator_ptr make_default_op_move_assign(lex::src_tokens const &src_tokens, type_info &info);
 	static decl_function_ptr make_default_default_constructor(lex::src_tokens const &src_tokens, type_info &info);
 	static decl_function_ptr make_default_copy_constructor(lex::src_tokens const &src_tokens, type_info &info);
+	static decl_function_ptr make_default_move_constructor(lex::src_tokens const &src_tokens, type_info &info);
 
 	arena_vector<decl_variable> get_params_copy_for_generic_instantiation(void);
 	type_info *add_generic_instantiation(
