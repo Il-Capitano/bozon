@@ -165,6 +165,12 @@ std::pair<function_body *, bz::u8string> function_body::add_specialized_body(
 )
 {
 	bz_assert(params.size() == this->params.size() || (!this->params.empty() && this->params.back().get_type().is<ast::ts_variadic>()));
+
+	if (params.is_any([](auto const &param) { return is_generic_parameter(param) && param.init_expr.is_error(); }))
+	{
+		return { nullptr, bz::u8string() };
+	}
+
 	auto const is_equal_params = [](auto const &lhs, auto const &rhs) {
 		if (lhs.size() != rhs.size())
 		{

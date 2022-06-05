@@ -951,7 +951,9 @@ struct type_info
 
 	decl_function *destructor = nullptr;
 	decl_function *move_destructor = nullptr;
+
 	arena_vector<decl_function *> constructors{};
+	arena_vector<decl_function *> destructors{};
 
 	arena_vector<decl_variable>             generic_parameters{};
 	arena_vector<ast_unique_ptr<type_info>> generic_instantiations{};

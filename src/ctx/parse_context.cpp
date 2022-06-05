@@ -3330,7 +3330,10 @@ static ast::expression make_expr_function_call_from_body(
 		auto [result_body, message] = body->add_specialized_body(std::move(generic_params), std::move(required_from));
 		if (result_body == nullptr)
 		{
-			context.report_error(src_tokens, std::move(message));
+			if (message != "")
+			{
+				context.report_error(src_tokens, std::move(message));
+			}
 			return ast::make_error_expression(src_tokens, ast::make_expr_function_call(src_tokens, std::move(args), body, resolve_order));
 		}
 		body = result_body;
@@ -5294,7 +5297,8 @@ ast::expression parse_context::make_move_construction(ast::expression expr)
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue, std::move(result_type),
-			ast::make_expr_trivial_relocate(std::move(expr))
+			ast::make_expr_trivial_relocate(std::move(expr)),
+			ast::destruct_operation()
 		);
 	}
 	else if (type.is<ast::ts_tuple>())

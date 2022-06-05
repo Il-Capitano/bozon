@@ -1187,11 +1187,11 @@ static bool resolve_function_parameters_helper(
 			return false;
 		}
 
+		auto const param_type = func_body.params[0].get_type().as_typespec_view();
 		if (func_body.is_generic())
 		{
 			func_body.flags &= ~ast::function_body::generic;
 
-			auto const param_type = func_body.params[0].get_type().as_typespec_view();
 			// if the parameter is generic, then it must be &auto or move auto
 			// either as `destructor(&self)`, `destructor(move self)`, `destructor(self: &auto)` or `destructor(self: move auto)`
 			if (
@@ -1217,7 +1217,6 @@ static bool resolve_function_parameters_helper(
 		}
 		else
 		{
-			auto const param_type = func_body.params[0].get_type().as_typespec_view();
 			// if the parameter is non-generic, then it must be &<type>
 			if (
 				param_type.nodes.size() != 2
@@ -1236,6 +1235,47 @@ static bool resolve_function_parameters_helper(
 					{ context.make_note(bz::format("it must be either '&auto', 'move auto', '&{0}' or 'move {0}'", destructor_of_type)) }
 				);
 				return false;
+			}
+		}
+
+		bz_assert(func_stmt.is<ast::decl_function>());
+		auto const info = func_body.get_destructor_of();
+		if (param_type.is<ast::ts_lvalue_reference>())
+		{
+			if (info->destructor != nullptr)
+			{
+				context.report_error(
+					func_body.src_tokens,
+					bz::format("redefinition of destructor for type '{}'", ast::make_base_type_typespec({}, info)),
+					{ context.make_note(
+						info->destructor->body.src_tokens,
+						"destructor previously defined here"
+					) }
+				);
+				return false;
+			}
+			else
+			{
+				info->destructor = &func_stmt.get<ast::decl_function>();
+			}
+		}
+		else
+		{
+			if (info->move_destructor != nullptr)
+			{
+				context.report_error(
+					func_body.src_tokens,
+					bz::format("redefinition of move destructor for type '{}'", ast::make_base_type_typespec({}, info)),
+					{ context.make_note(
+						info->move_destructor->body.src_tokens,
+						"move destructor previously defined here"
+					) }
+				);
+				return false;
+			}
+			else
+			{
+				info->move_destructor = &func_stmt.get<ast::decl_function>();
 			}
 		}
 	}
@@ -1898,33 +1938,10 @@ static void add_type_info_members(
 		if (stmt.is<ast::decl_function>())
 		{
 			auto &decl = stmt.get<ast::decl_function>();
-			if (decl.body.is_destructor() && decl.body.params[0].get_type().is<ast::ts_lvalue_reference>())
+			if (decl.body.is_destructor())
 			{
-				if (info.destructor != nullptr)
-				{
-					auto const type_name = ast::type_info::decode_symbol_name(info.symbol_name);
-					context.report_error(
-						decl.body.src_tokens, bz::format("redefinition of destructor for type '{}'", type_name),
-						{ context.make_note(info.destructor->body.src_tokens, "previously defined here") }
-					);
-				}
-
 				decl.body.constructor_or_destructor_of = &info;
-				info.destructor = &decl;
-			}
-			else if (decl.body.is_destructor() && decl.body.params[0].get_type().is<ast::ts_move_reference>())
-			{
-				if (info.move_destructor != nullptr)
-				{
-					auto const type_name = ast::type_info::decode_symbol_name(info.symbol_name);
-					context.report_error(
-						decl.body.src_tokens, bz::format("redefinition of move destructor for type '{}'", type_name),
-						{ context.make_note(info.destructor->body.src_tokens, "previously defined here") }
-					);
-				}
-
-				decl.body.constructor_or_destructor_of = &info;
-				info.move_destructor = &decl;
+				info.destructors.push_back(&decl);
 			}
 			else if (decl.body.is_constructor())
 			{
@@ -2176,6 +2193,11 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 		resolve_function_parameters(ctor_decl, ctor_decl->body, context);
 	}
 
+	for (auto const dtor_decl : info.destructors)
+	{
+		resolve_function_parameters(dtor_decl, dtor_decl->body, context);
+	}
+
 	for (auto const member : info.member_variables)
 	{
 		if (member->state == ast::resolve_state::none)
@@ -2216,12 +2238,10 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 		context.pop_global_scope(std::move(prev_scope_info));
 		return;
 	}
-	else
-	{
-		add_default_constructors(info);
-		add_flags(info);
-		info.state = ast::resolve_state::all;
-	}
+
+	add_default_constructors(info);
+	add_flags(info);
+	info.state = ast::resolve_state::all;
 
 	for (auto &stmt : info_body)
 	{
