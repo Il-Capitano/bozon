@@ -274,47 +274,44 @@ static ast::expression resolve_expr(
 	{
 		compound_expr.scope = ast::make_local_scope(context.get_current_enclosing_scope());
 	}
-	context.push_local_scope(&compound_expr.scope);
+	auto const prev_scope_start = context.push_local_scope(&compound_expr.scope);
 	for (auto &stmt : compound_expr.statements)
 	{
 		resolve_statement(stmt, context);
 		is_noreturn |= is_statement_noreturn(stmt);
 	}
 	resolve_expression(compound_expr.final_expr, context);
-	context.pop_local_scope(true);
+	auto variable_destructions = context.pop_local_scope(prev_scope_start, true);
 	if (compound_expr.final_expr.is_error())
 	{
 		return ast::make_error_expression(src_tokens, std::move(result_node));
 	}
 	else if (is_noreturn && (compound_expr.final_expr.is_null() || compound_expr.final_expr.is_noreturn()))
 	{
-		auto const inner_variables = compound_expr.scope.get_local().var_decl_range().collect<ast::arena_vector>();
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::noreturn, ast::make_void_typespec(nullptr),
 			std::move(result_node),
-			context.make_variable_destructions(inner_variables)
+			std::move(variable_destructions)
 		);
 	}
 	else if (compound_expr.final_expr.is_null())
 	{
-		auto const inner_variables = compound_expr.scope.get_local().var_decl_range().collect<ast::arena_vector>();
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
 			std::move(result_node),
-			context.make_variable_destructions(inner_variables)
+			std::move(variable_destructions)
 		);
 	}
 	else
 	{
 		auto const [result_type, result_kind] = compound_expr.final_expr.get_expr_type_and_kind();
-		auto const inner_variables = compound_expr.scope.get_local().var_decl_range().collect<ast::arena_vector>();
 		return ast::make_dynamic_expression(
 			src_tokens,
 			result_kind, result_type,
 			std::move(result_node),
-			context.make_variable_destructions(inner_variables)
+			std::move(variable_destructions)
 		);
 	}
 }
@@ -696,6 +693,34 @@ static ast::expression resolve_expr(
 			ast::destruct_operation()
 		);
 	}
+}
+
+static ast::expression resolve_expr(
+	lex::src_tokens const &src_tokens,
+	ast::expr_break,
+	ctx::parse_context &context
+)
+{
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::noreturn, ast::make_void_typespec(nullptr),
+		ast::make_expr_break(),
+		context.get_loop_variable_destructions()
+	);
+}
+
+static ast::expression resolve_expr(
+	lex::src_tokens const &src_tokens,
+	ast::expr_continue,
+	ctx::parse_context &context
+)
+{
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::noreturn, ast::make_void_typespec(nullptr),
+		ast::make_expr_break(),
+		context.get_loop_variable_destructions()
+	);
 }
 
 static ast::expression resolve_expr(

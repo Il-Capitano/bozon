@@ -13,7 +13,10 @@ namespace resolve
 static void resolve_stmt(ast::stmt_while &while_stmt, ctx::parse_context &context)
 {
 	resolve_expression(while_stmt.condition, context);
+
+	auto const prev_info = context.push_loop();
 	resolve_expression(while_stmt.while_block, context);
+	context.pop_loop(prev_info);
 
 	auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
 	match_expression_to_type(while_stmt.condition, bool_type, context);
@@ -23,18 +26,21 @@ static void resolve_stmt(ast::stmt_for &for_stmt, ctx::parse_context &context)
 {
 	bz_assert(for_stmt.scope.is_null());
 	for_stmt.scope = ast::make_local_scope(context.get_current_enclosing_scope());
-	context.push_local_scope(&for_stmt.scope);
+	auto const outer_scope_prev_size = context.push_local_scope(&for_stmt.scope);
 	resolve_statement(for_stmt.init, context);
 	resolve_expression(for_stmt.condition, context);
+
+	auto const prev_info = context.push_loop();
 	resolve_expression(for_stmt.iteration, context);
 	resolve_expression(for_stmt.for_block, context);
+	context.pop_loop(prev_info);
 
 	auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
 	if (for_stmt.condition.not_null())
 	{
 		match_expression_to_type(for_stmt.condition, bool_type, context);
 	}
-	context.pop_local_scope(true);
+	for_stmt.variable_destructions = context.pop_local_scope(outer_scope_prev_size, true);
 }
 
 static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &context)
@@ -42,14 +48,14 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	bz_assert(foreach_stmt.iter_var_decl.is_null());
 	bz_assert(foreach_stmt.scope.is_null());
 	foreach_stmt.scope = ast::make_local_scope(context.get_current_enclosing_scope());
-	context.push_local_scope(&foreach_stmt.scope);
+	auto const outer_scope_prev_size = context.push_local_scope(&foreach_stmt.scope);
 	resolve_statement(foreach_stmt.range_var_decl, context);
 	bz_assert(foreach_stmt.range_var_decl.is<ast::decl_variable>());
 	auto &range_var_decl = foreach_stmt.range_var_decl.get<ast::decl_variable>();
 	range_var_decl.flags |= ast::decl_variable::used;
 	if (range_var_decl.get_type().is_empty())
 	{
-		context.pop_local_scope(true);
+		foreach_stmt.variable_destructions = context.pop_local_scope(outer_scope_prev_size, true);
 		return;
 	}
 
@@ -162,6 +168,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		match_expression_to_type(foreach_stmt.condition, bool_type, context);
 	}
 
+	auto const prev_info = context.push_loop();
 	foreach_stmt.iteration = [&]() {
 		if (iter_var_decl.get_type().is_empty())
 		{
@@ -204,7 +211,8 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	context.add_local_variable(iter_deref_var_decl);
 
 	resolve_expression(foreach_stmt.for_block, context);
-	context.pop_local_scope(true);
+	context.pop_loop(prev_info);
+	foreach_stmt.variable_destructions = context.pop_local_scope(outer_scope_prev_size, true);
 }
 
 static void resolve_stmt(ast::stmt_return &return_stmt, ctx::parse_context &context)
@@ -227,6 +235,7 @@ static void resolve_stmt(ast::stmt_return &return_stmt, ctx::parse_context &cont
 		bz_assert(ast::is_complete(context.current_function->return_type));
 		match_expression_to_type(return_stmt.expr, context.current_function->return_type, context);
 	}
+	return_stmt.variable_destructions = context.get_all_variable_destructions();
 }
 
 static void resolve_stmt(ast::stmt_no_op &, ctx::parse_context &)
@@ -1666,42 +1675,38 @@ static void resolve_function_symbol_impl(
 	ctx::parse_context &context
 )
 {
+	auto const prev_scope_start = context.push_local_scope(&func_body.scope);
 	if (func_body.state == ast::resolve_state::none)
 	{
-		context.push_local_scope(&func_body.scope);
 		func_body.state = ast::resolve_state::resolving_parameters;
 		if (!resolve_function_parameters_helper(func_stmt, func_body, context))
 		{
 			func_body.state = ast::resolve_state::error;
-			context.pop_local_scope(false);
+			auto const _ = context.pop_local_scope(prev_scope_start, false);
 			return;
 		}
 	}
 	if (func_body.state <= ast::resolve_state::parameters)
 	{
-		if (func_body.state == ast::resolve_state::parameters)
-		{
-			context.push_local_scope(&func_body.scope);
-		}
 		func_body.state = ast::resolve_state::resolving_symbol;
 		if (!resolve_function_symbol_helper(func_stmt, func_body, context))
 		{
 			func_body.state = ast::resolve_state::error;
-			context.pop_local_scope(false);
+			auto const _ = context.pop_local_scope(prev_scope_start, false);
 			return;
 		}
 		else if (func_body.is_generic())
 		{
 			func_body.state = ast::resolve_state::parameters;
-			context.pop_local_scope(false);
+			auto const _ = context.pop_local_scope(prev_scope_start, false);
 			return;
 		}
 		else
 		{
 			func_body.state = ast::resolve_state::symbol;
-			context.pop_local_scope(false);
 		}
 	}
+	auto const _ = context.pop_local_scope(prev_scope_start, false);
 }
 
 void resolve_function_symbol(
@@ -1743,41 +1748,40 @@ static void resolve_function_impl(
 	ctx::parse_context &context
 )
 {
+	auto const params_resolve_prev_scope_start = context.push_local_scope(&func_body.scope);
 	if (func_body.state == ast::resolve_state::none)
 	{
-		context.push_local_scope(&func_body.scope);
 		func_body.state = ast::resolve_state::resolving_parameters;
 		if (!resolve_function_parameters_helper(func_stmt, func_body, context))
 		{
 			func_body.state = ast::resolve_state::error;
-			context.pop_local_scope(false);
+			auto const _ = context.pop_local_scope(params_resolve_prev_scope_start, false);
 			return;
 		}
 	}
 	if (func_body.state <= ast::resolve_state::parameters)
 	{
-		if (func_body.state == ast::resolve_state::parameters)
-		{
-			context.push_local_scope(&func_body.scope);
-		}
 		func_body.state = ast::resolve_state::resolving_symbol;
 		if (!resolve_function_symbol_helper(func_stmt, func_body, context))
 		{
 			func_body.state = ast::resolve_state::error;
-			context.pop_local_scope(false);
+			auto const _ = context.pop_local_scope(params_resolve_prev_scope_start, false);
 			return;
 		}
 		else if (func_body.is_generic())
 		{
 			func_body.state = ast::resolve_state::parameters;
-			context.pop_local_scope(false);
+			auto const _ = context.pop_local_scope(params_resolve_prev_scope_start, false);
 			return;
 		}
 		else
 		{
 			func_body.state = ast::resolve_state::symbol;
-			context.pop_local_scope(false);
 		}
+	}
+
+	{
+		auto const _ = context.pop_local_scope(params_resolve_prev_scope_start, false);
 	}
 
 	if (func_body.body.is_null())
@@ -1798,9 +1802,9 @@ static void resolve_function_impl(
 		context.remove_unresolved_scope(prev_size);
 	}
 
-	context.push_local_scope(&func_body.scope);
+	auto const prev_scope_start = context.push_local_scope(&func_body.scope);
 	resolve_local_statements(func_body.get_statements(), context);
-	context.pop_local_scope(true);
+	func_body.variable_destructions = context.pop_local_scope(prev_scope_start, true);
 
 	func_body.state = ast::resolve_state::all;
 	context.pop_current_function(prev_function);

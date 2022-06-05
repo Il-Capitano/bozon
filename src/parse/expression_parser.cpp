@@ -586,19 +586,16 @@ static ast::expression parse_primary_expression(
 	{
 		auto const t = stream;
 		++stream;
-		if (!context.in_loop)
+		if (!context.is_in_loop())
 		{
 			context.report_error(t, "'break' is only allowed inside loops");
 			return ast::make_error_expression({ t, t, t + 1 }, ast::make_expr_break());
 		}
 		else
 		{
-			return ast::make_dynamic_expression(
+			return ast::make_unresolved_expression(
 				{ t, t, t + 1 },
-				ast::expression_type_kind::noreturn,
-				ast::make_void_typespec(nullptr),
-				ast::make_expr_break(),
-				ast::destruct_operation()
+				ast::make_unresolved_expr_break()
 			);
 		}
 	}
@@ -606,19 +603,16 @@ static ast::expression parse_primary_expression(
 	{
 		auto const t = stream;
 		++stream;
-		if (!context.in_loop)
+		if (!context.is_in_loop())
 		{
 			context.report_error(t, "'continue' is only allowed inside loops");
 			return ast::make_error_expression({ t, t, t + 1 }, ast::make_expr_continue());
 		}
 		else
 		{
-			return ast::make_dynamic_expression(
+			return ast::make_unresolved_expression(
 				{ t, t, t + 1 },
-				ast::expression_type_kind::noreturn,
-				ast::make_void_typespec(nullptr),
-				ast::make_expr_continue(),
-				ast::destruct_operation()
+				ast::make_unresolved_expr_continue()
 			);
 		}
 	}

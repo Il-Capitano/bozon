@@ -63,19 +63,23 @@ parse_context::parse_context(parse_context const &other, local_copy_t)
 	  current_global_scope(other.current_global_scope),
 	  current_local_scope(other.current_local_scope),
 	  current_function(nullptr),
+	  resolve_queue(other.resolve_queue),
 	  is_aggressive_consteval_enabled(other.is_aggressive_consteval_enabled),
+	  variadic_info(other.variadic_info),
+	  variables_to_destruct(other.variables_to_destruct),
+	  scope_variable_destruct_start(other.scope_variable_destruct_start),
+	  loop_variable_destruct_start(other.loop_variable_destruct_start),
 	  in_loop(other.in_loop),
 	  parsing_variadic_expansion(other.parsing_variadic_expansion),
 	  in_unevaluated_context(other.in_unevaluated_context),
-	  variadic_info(other.variadic_info),
-	  resolve_queue(other.resolve_queue)
+	  parsing_template_argument(other.parsing_template_argument)
 {}
 
 parse_context::parse_context(parse_context const &other, global_copy_t)
 	: global_ctx(other.global_ctx),
 	  current_global_scope(other.current_global_scope),
-	  is_aggressive_consteval_enabled(other.is_aggressive_consteval_enabled),
-	  resolve_queue(other.resolve_queue)
+	  resolve_queue(other.resolve_queue),
+	  is_aggressive_consteval_enabled(other.is_aggressive_consteval_enabled)
 {}
 
 ast::type_info *parse_context::get_builtin_type_info(uint32_t kind) const
@@ -108,16 +112,36 @@ bz::array_view<uint32_t const> parse_context::get_builtin_universal_functions(bz
 	return this->global_ctx.get_builtin_universal_functions(id);
 }
 
-[[nodiscard]] bool parse_context::push_loop(void) noexcept
+ast::destruct_operation parse_context::get_all_variable_destructions(void) noexcept
 {
-	auto const prev = this->in_loop;
-	this->in_loop = true;
-	return prev;
+	return this->make_variable_destructions(this->variables_to_destruct);
 }
 
-void parse_context::pop_loop(bool prev_in_loop) noexcept
+[[nodiscard]] parse_context::loop_info_t parse_context::push_loop(void) noexcept
 {
-	this->in_loop = prev_in_loop;
+	auto const prev_in_loop = this->in_loop;
+	auto const prev_destruct_start = this->loop_variable_destruct_start;
+	this->in_loop = true;
+	this->loop_variable_destruct_start = this->variables_to_destruct.size();
+	return { prev_destruct_start, prev_in_loop };
+}
+
+void parse_context::pop_loop(loop_info_t prev_info) noexcept
+{
+	this->loop_variable_destruct_start = prev_info.loop_variable_destruct_start;
+	this->in_loop = prev_info.in_loop;
+}
+
+bool parse_context::is_in_loop(void) const noexcept
+{
+	return this->in_loop;
+}
+
+ast::destruct_operation parse_context::get_loop_variable_destructions(void) noexcept
+{
+	bz_assert(this->is_in_loop());
+	auto const vars = this->variables_to_destruct.slice(this->loop_variable_destruct_start);
+	return this->make_variable_destructions(vars);
 }
 
 [[nodiscard]] parse_context::variadic_resolve_info_t parse_context::push_variadic_resolver(void) noexcept
@@ -257,12 +281,15 @@ void parse_context::pop_global_scope(global_local_scope_pair_t prev_scopes) noex
 	this->current_unresolved_locals = std::move(prev_scopes.unresolved_locals);
 }
 
-void parse_context::push_local_scope(ast::scope_t *new_scope) noexcept
+[[nodiscard]] size_t parse_context::push_local_scope(ast::scope_t *new_scope) noexcept
 {
 	// bz::log("pushing local scope ({}, ...) from ({}, {})\n", new_scope, this->get_current_enclosing_scope().scope, this->get_current_enclosing_scope().symbol_count);
 	bz_assert(new_scope->is_local());
 	bz_assert(new_scope->get_local().parent == this->get_current_enclosing_scope());
 	this->current_local_scope = { new_scope, new_scope->get_local().symbols.size() };
+	auto const prev_scope_start = this->scope_variable_destruct_start;
+	this->scope_variable_destruct_start = this->variables_to_destruct.size();
+	return prev_scope_start;
 }
 
 static auto var_decl_range(bz::array_view<ast::local_symbol_t const> symbols)
@@ -282,7 +309,7 @@ static auto var_decl_range(bz::array_view<ast::local_symbol_t const> symbols)
 		});
 }
 
-void parse_context::pop_local_scope(bool report_unused) noexcept
+[[nodiscard]] ast::destruct_operation parse_context::pop_local_scope(size_t prev_scope_start, bool report_unused) noexcept
 {
 	bz_assert(this->current_local_scope.scope != nullptr);
 	bz_assert(this->current_local_scope.scope->is_local());
@@ -320,6 +347,11 @@ void parse_context::pop_local_scope(bool report_unused) noexcept
 		this->current_local_scope = parent;
 		// bz::log("sanity check: ({}, {})\n", this->current_local_scope.scope, this->current_local_scope.symbol_count);
 	}
+
+	auto result = this->make_variable_destructions(this->variables_to_destruct.slice(this->scope_variable_destruct_start));
+	this->variables_to_destruct.resize(prev_scope_start);
+	this->scope_variable_destruct_start = prev_scope_start;
+	return result;
 }
 
 static ast::scope_t *get_global_scope(ast::enclosing_scope_t scope, ast::scope_t *builtin_global_scope) noexcept
@@ -1218,6 +1250,10 @@ void parse_context::add_local_variable(ast::decl_variable &var_decl)
 		current_scope.add_variable(var_decl);
 		this->current_local_scope.symbol_count += 1;
 		bz_assert(current_scope.symbols.size() == this->current_local_scope.symbol_count);
+		if (!ast::is_trivially_destructible(var_decl.get_type()))
+		{
+			this->variables_to_destruct.push_back(&var_decl);
+		}
 	}
 	else
 	{
@@ -5455,7 +5491,7 @@ ast::expression make_variable_destruction_expression(ast::decl_variable *var_dec
 
 ast::destruct_operation parse_context::make_variable_destructions(bz::array_view<ast::decl_variable * const> vars)
 {
-	if (this->in_unevaluated_context)
+	if (this->in_unevaluated_context || vars.empty())
 	{
 		return ast::destruct_operation();
 	}

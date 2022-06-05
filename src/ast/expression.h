@@ -116,6 +116,8 @@ using unresolved_expr_t = node<
 	expr_if,
 	expr_if_consteval,
 	expr_switch,
+	expr_break,
+	expr_continue,
 	expr_unresolved_array_type,
 	expr_unresolved_generic_type_instantiation
 >;
@@ -998,6 +1000,8 @@ def_make_unresolved_fn(unresolved_expr_t, expr_compound)
 def_make_unresolved_fn(unresolved_expr_t, expr_if)
 def_make_unresolved_fn(unresolved_expr_t, expr_if_consteval)
 def_make_unresolved_fn(unresolved_expr_t, expr_switch)
+def_make_unresolved_fn(unresolved_expr_t, expr_break)
+def_make_unresolved_fn(unresolved_expr_t, expr_continue)
 def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_array_type)
 def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_generic_type_instantiation)
 
