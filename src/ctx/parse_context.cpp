@@ -5621,12 +5621,6 @@ ast::constant_value parse_context::execute_compound_expression(
 	ast::expr_compound &expr
 )
 {
-	if (expr.final_expr.not_null())
-	{
-		auto auto_type = ast::make_auto_typespec(nullptr);
-		resolve::match_expression_to_type(expr.final_expr, auto_type, *this);
-	}
-
 	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
 	this->global_ctx._comptime_executor.current_parse_ctx = this;
 	// bz::log("line {}\n", src_tokens.pivot->src_pos.line);

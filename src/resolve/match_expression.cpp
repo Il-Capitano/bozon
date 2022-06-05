@@ -1106,6 +1106,22 @@ static void match_expression_to_type_impl(
 			return;
 		}
 	}
+	else if (
+		auto const compound_expr = expr.get_expr().get_if<ast::expr_compound>();
+		compound_expr != nullptr && compound_expr->final_expr.not_null()
+	)
+	{
+		match_expression_to_type_impl(compound_expr->final_expr, dest_container, dest, context);
+		if (compound_expr->final_expr.is_error())
+		{
+			expr.to_error();
+			return;
+		}
+
+		auto const [expr_type, expr_type_kind] = compound_expr->final_expr.get_expr_type_and_kind();
+		expr.set_type(expr_type);
+		expr.set_type_kind(expr_type_kind);
+	}
 	else
 	{
 		auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
@@ -1153,20 +1169,6 @@ static void match_expression_to_type_impl(
 			ast::destruct_operation()
 		);
 	}
-
-	if (!dest_container.is_typename() && dest_container.is<ast::ts_consteval>())
-	{
-		resolve::consteval_try(expr, context);
-		if (!expr.is_constant())
-		{
-			context.report_error(expr, "expression must be a constant expression", resolve::get_consteval_fail_notes(expr));
-			if (!ast::is_complete(dest_container))
-			{
-				dest_container.clear();
-			}
-			expr.to_error();
-		}
-	}
 }
 
 void match_expression_to_type(ast::expression &expr, ast::typespec &dest_type, ctx::parse_context &context)
@@ -1185,7 +1187,23 @@ void match_expression_to_type(ast::expression &expr, ast::typespec &dest_type, c
 	else
 	{
 		match_expression_to_type_impl(expr, dest_type, dest_type, context);
-		resolve::consteval_guaranteed(expr, context);
+		if (!dest_type.is_typename() && dest_type.is<ast::ts_consteval>())
+		{
+			resolve::consteval_try(expr, context);
+			if (!expr.is_constant())
+			{
+				context.report_error(expr, "expression must be a constant expression", resolve::get_consteval_fail_notes(expr));
+				if (!ast::is_complete(dest_type))
+				{
+					dest_type.clear();
+				}
+				expr.to_error();
+			}
+		}
+		else
+		{
+			resolve::consteval_guaranteed(expr, context);
+		}
 	}
 }
 

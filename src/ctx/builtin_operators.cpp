@@ -711,10 +711,21 @@ static ast::expression get_builtin_unary_consteval(
 {
 	bz_assert(op_kind == lex::token::kw_consteval);
 	bz_assert(expr.not_error());
+
+	auto auto_type = ast::make_auto_typespec(nullptr);
+	resolve::match_expression_to_type(expr, auto_type, context);
 	resolve::consteval_try(expr, context);
 	if (expr.has_consteval_succeeded())
 	{
-		return expr;
+		ast::typespec type = expr.get_expr_type();
+		auto const type_kind = expr.get_expr_type_and_kind().second;
+		auto value = expr.get_constant_value();
+		return ast::make_constant_expression(
+			src_tokens,
+			type_kind, std::move(type),
+			std::move(value),
+			ast::make_expr_unary_op(op_kind, std::move(expr))
+		);
 	}
 	else
 	{

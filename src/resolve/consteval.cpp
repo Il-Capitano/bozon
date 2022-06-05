@@ -3530,15 +3530,6 @@ static ast::constant_value try_evaluate_expr(
 			}
 			else
 			{
-				if (compound_expr.final_expr.not_null())
-				{
-					auto auto_type = ast::make_auto_typespec(nullptr);
-					resolve::match_expression_to_type(compound_expr.final_expr, auto_type, context);
-					auto const [type, kind] = compound_expr.final_expr.get_expr_type_and_kind();
-					expr.set_type(type);
-					expr.set_type_kind(kind);
-				}
-
 				return context.execute_compound_expression(expr.src_tokens, compound_expr);
 			}
 		},
