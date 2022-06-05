@@ -623,31 +623,25 @@ static void match_integer_literal_to_type(
 		? is_integer_implicitly_convertible(dest_kind, kind, value.get<ast::constant_value::sint>())
 		: is_integer_implicitly_convertible(dest_kind, kind, value.get<ast::constant_value::uint>());
 
-	if (kind == ast::literal_kind::signed_integer)
+	if (kind == ast::literal_kind::signed_integer && !ast::is_signed_integer_kind(dest_kind))
 	{
-		if (!ast::is_signed_integer_kind(dest_kind))
-		{
-			context.report_error(
-				expr,
-				bz::format("cannot implicitly convert signed integer literal to unsigned integer type '{}'", dest_container)
-			);
-			bz_assert(ast::is_complete(dest_container));
-			expr.to_error();
-			return;
-		}
+		context.report_error(
+			expr,
+			bz::format("cannot implicitly convert signed integer literal to unsigned integer type '{}'", dest_container)
+		);
+		bz_assert(ast::is_complete(dest_container));
+		expr.to_error();
+		return;
 	}
-	else if (kind == ast::literal_kind::unsigned_integer)
+	else if (kind == ast::literal_kind::unsigned_integer && !ast::is_unsigned_integer_kind(dest_kind))
 	{
-		if (!ast::is_unsigned_integer_kind(dest_kind))
-		{
-			context.report_error(
-				expr,
-				bz::format("cannot implicitly convert unsigned integer literal to signed integer type '{}'", dest_container)
-			);
-			bz_assert(ast::is_complete(dest_container));
-			expr.to_error();
-			return;
-		}
+		context.report_error(
+			expr,
+			bz::format("cannot implicitly convert unsigned integer literal to signed integer type '{}'", dest_container)
+		);
+		bz_assert(ast::is_complete(dest_container));
+		expr.to_error();
+		return;
 	}
 
 	if (!is_convertible)
@@ -692,6 +686,7 @@ static void match_integer_literal_to_type(
 	{
 		// default literal type doesn't need cast
 		bz_assert(dest == expr.get_expr_type());
+		expr.set_type_kind(ast::expression_type_kind::rvalue);
 	}
 	else
 	{
