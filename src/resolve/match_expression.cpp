@@ -568,7 +568,10 @@ static void match_type_base_case(
 	switch (match_result)
 	{
 	case type_match_result::good:
-		// nothing
+		if (dest.is<ast::ts_move_reference>() && expr_type_kind != ast::expression_type_kind::moved_lvalue)
+		{
+			context.add_self_destruction(expr);
+		}
 		break;
 	case type_match_result::needs_move:
 		expr = context.make_move_construction(std::move(expr));
