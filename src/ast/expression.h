@@ -27,6 +27,7 @@ struct expr_subscript;
 struct expr_function_call;
 struct expr_cast;
 struct expr_take_reference;
+struct expr_take_move_reference;
 struct expr_aggregate_init;
 
 struct expr_aggregate_copy_construct;
@@ -41,6 +42,7 @@ struct expr_trivial_relocate;
 struct expr_aggregate_destruct;
 struct expr_array_destruct;
 struct expr_base_type_destruct;
+struct expr_destruct_value;
 
 struct expr_member_access;
 struct expr_type_member_access;
@@ -77,6 +79,7 @@ using expr_t = node<
 	expr_function_call,
 	expr_cast,
 	expr_take_reference,
+	expr_take_move_reference,
 	expr_aggregate_init,
 	expr_aggregate_copy_construct,
 	expr_aggregate_move_construct,
@@ -89,6 +92,7 @@ using expr_t = node<
 	expr_aggregate_destruct,
 	expr_array_destruct,
 	expr_base_type_destruct,
+	expr_destruct_value,
 	expr_member_access,
 	expr_type_member_access,
 	expr_compound,
@@ -116,8 +120,6 @@ using unresolved_expr_t = node<
 	expr_if,
 	expr_if_consteval,
 	expr_switch,
-	expr_break,
-	expr_continue,
 	expr_unresolved_array_type,
 	expr_unresolved_generic_type_instantiation
 >;
@@ -126,6 +128,19 @@ using unresolved_expr_t = node<
 struct destruct_variables
 {
 	arena_vector<expression> destruct_calls;
+};
+
+struct destruct_variable
+{
+	ast_unique_ptr<expression> destruct_call;
+
+	destruct_variable(expression _destruct_call);
+
+	destruct_variable(destruct_variable const &other);
+	destruct_variable(destruct_variable &&other) = default;
+
+	destruct_variable &operator = (destruct_variable const &other);
+	destruct_variable &operator = (destruct_variable &&other) = default;
 };
 
 struct destruct_self
@@ -141,7 +156,7 @@ struct destruct_self
 	destruct_self &operator = (destruct_self &&other) = default;
 };
 
-using destruct_operation = bz::variant<destruct_variables, destruct_self>;
+using destruct_operation = bz::variant<destruct_variables, destruct_variable, destruct_self>;
 
 
 enum class expression_type_kind
@@ -500,9 +515,16 @@ struct expr_take_reference
 {
 	expression expr;
 
-	expr_take_reference(
-		expression _expr
-	)
+	expr_take_reference(expression _expr)
+		: expr(std::move(_expr))
+	{}
+};
+
+struct expr_take_move_reference
+{
+	expression expr;
+
+	expr_take_move_reference(expression _expr)
 		: expr(std::move(_expr))
 	{}
 };
@@ -660,6 +682,20 @@ struct expr_base_type_destruct
 		: value(std::move(_value)),
 		  destruct_call(std::move(_destruct_call)),
 		  member_destruct_calls(std::move(_member_destruct_calls))
+	{}
+};
+
+struct expr_destruct_value
+{
+	expression value;
+	expression destruct_call;
+
+	expr_destruct_value(
+		expression _value,
+		expression _destruct_call
+	)
+		: value(std::move(_value)),
+		  destruct_call(std::move(_destruct_call))
 	{}
 };
 
@@ -956,6 +992,7 @@ def_make_fn(expr_t, expr_subscript)
 def_make_fn(expr_t, expr_function_call)
 def_make_fn(expr_t, expr_cast)
 def_make_fn(expr_t, expr_take_reference)
+def_make_fn(expr_t, expr_take_move_reference)
 def_make_fn(expr_t, expr_aggregate_init)
 def_make_fn(expr_t, expr_aggregate_copy_construct)
 def_make_fn(expr_t, expr_aggregate_move_construct)
@@ -968,6 +1005,7 @@ def_make_fn(expr_t, expr_trivial_relocate)
 def_make_fn(expr_t, expr_aggregate_destruct)
 def_make_fn(expr_t, expr_array_destruct)
 def_make_fn(expr_t, expr_base_type_destruct)
+def_make_fn(expr_t, expr_destruct_value)
 def_make_fn(expr_t, expr_member_access)
 def_make_fn(expr_t, expr_type_member_access)
 def_make_fn(expr_t, expr_compound)
@@ -1000,8 +1038,6 @@ def_make_unresolved_fn(unresolved_expr_t, expr_compound)
 def_make_unresolved_fn(unresolved_expr_t, expr_if)
 def_make_unresolved_fn(unresolved_expr_t, expr_if_consteval)
 def_make_unresolved_fn(unresolved_expr_t, expr_switch)
-def_make_unresolved_fn(unresolved_expr_t, expr_break)
-def_make_unresolved_fn(unresolved_expr_t, expr_continue)
 def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_array_type)
 def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_generic_type_instantiation)
 

@@ -2995,6 +2995,9 @@ static ast::constant_value guaranteed_evaluate_expr(
 		[](ast::expr_take_reference const &) -> ast::constant_value {
 			return {};
 		},
+		[](ast::expr_take_move_reference const &) -> ast::constant_value {
+			return {};
+		},
 		[&context](ast::expr_aggregate_init &aggregate_init_expr) -> ast::constant_value {
 			bool is_consteval = true;
 			for (auto &expr : aggregate_init_expr.exprs)
@@ -3096,6 +3099,9 @@ static ast::constant_value guaranteed_evaluate_expr(
 			return {};
 		},
 		[](ast::expr_base_type_destruct &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_destruct_value &) -> ast::constant_value {
 			return {};
 		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
@@ -3395,6 +3401,9 @@ static ast::constant_value try_evaluate_expr(
 		[](ast::expr_take_reference const &) -> ast::constant_value {
 			return {};
 		},
+		[](ast::expr_take_move_reference const &) -> ast::constant_value {
+			return {};
+		},
 		[&context](ast::expr_aggregate_init &aggregate_init_expr) -> ast::constant_value {
 			bool is_consteval = true;
 			for (auto &expr : aggregate_init_expr.exprs)
@@ -3496,6 +3505,9 @@ static ast::constant_value try_evaluate_expr(
 			return {};
 		},
 		[](ast::expr_base_type_destruct &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_destruct_value &) -> ast::constant_value {
 			return {};
 		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
@@ -3798,6 +3810,9 @@ static ast::constant_value try_evaluate_expr_without_error(
 		[](ast::expr_take_reference const &) -> ast::constant_value {
 			return {};
 		},
+		[](ast::expr_take_move_reference const &) -> ast::constant_value {
+			return {};
+		},
 		[&context](ast::expr_aggregate_init &aggregate_init_expr) -> ast::constant_value {
 			bool is_consteval = true;
 			for (auto &expr : aggregate_init_expr.exprs)
@@ -3899,6 +3914,9 @@ static ast::constant_value try_evaluate_expr_without_error(
 			return {};
 		},
 		[](ast::expr_base_type_destruct &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_destruct_value &) -> ast::constant_value {
 			return {};
 		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
@@ -4467,6 +4485,11 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 				get_consteval_fail_notes_helper(take_ref_expr.expr, notes);
 			}
 		},
+		[&expr, &notes](ast::expr_take_move_reference const &) {
+			notes.emplace_back(ctx::parse_context::make_note(
+				expr.src_tokens, "subexpression is not a constant expression"
+			));
+		},
 		[&notes](ast::expr_aggregate_init const &aggregate_init_expr) {
 			bool any_failed = false;
 			for (auto const &expr : aggregate_init_expr.exprs)
@@ -4580,6 +4603,11 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			));
 		},
 		[&expr, &notes](ast::expr_base_type_destruct const &) {
+			notes.push_back(ctx::parse_context::make_note(
+				expr.src_tokens, "value destruction is not a constant expression"
+			));
+		},
+		[&expr, &notes](ast::expr_destruct_value const &) {
 			notes.push_back(ctx::parse_context::make_note(
 				expr.src_tokens, "value destruction is not a constant expression"
 			));

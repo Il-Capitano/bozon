@@ -274,14 +274,14 @@ static ast::expression resolve_expr(
 	{
 		compound_expr.scope = ast::make_local_scope(context.get_current_enclosing_scope());
 	}
-	auto const prev_scope_start = context.push_local_scope(&compound_expr.scope);
+	context.push_local_scope(&compound_expr.scope);
 	for (auto &stmt : compound_expr.statements)
 	{
 		resolve_statement(stmt, context);
 		is_noreturn |= is_statement_noreturn(stmt);
 	}
 	resolve_expression(compound_expr.final_expr, context);
-	auto variable_destructions = context.pop_local_scope(prev_scope_start, true);
+	context.pop_local_scope(true);
 	if (compound_expr.final_expr.is_error())
 	{
 		return ast::make_error_expression(src_tokens, std::move(result_node));
@@ -292,7 +292,7 @@ static ast::expression resolve_expr(
 			src_tokens,
 			ast::expression_type_kind::noreturn, ast::make_void_typespec(nullptr),
 			std::move(result_node),
-			std::move(variable_destructions)
+			ast::destruct_operation()
 		);
 	}
 	else if (compound_expr.final_expr.is_null())
@@ -301,7 +301,7 @@ static ast::expression resolve_expr(
 			src_tokens,
 			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
 			std::move(result_node),
-			std::move(variable_destructions)
+			ast::destruct_operation()
 		);
 	}
 	else
@@ -311,7 +311,7 @@ static ast::expression resolve_expr(
 			src_tokens,
 			result_kind, result_type,
 			std::move(result_node),
-			std::move(variable_destructions)
+			ast::destruct_operation()
 		);
 	}
 }
@@ -693,34 +693,6 @@ static ast::expression resolve_expr(
 			ast::destruct_operation()
 		);
 	}
-}
-
-static ast::expression resolve_expr(
-	lex::src_tokens const &src_tokens,
-	ast::expr_break,
-	ctx::parse_context &context
-)
-{
-	return ast::make_dynamic_expression(
-		src_tokens,
-		ast::expression_type_kind::noreturn, ast::make_void_typespec(nullptr),
-		ast::make_expr_break(),
-		context.get_loop_variable_destructions()
-	);
-}
-
-static ast::expression resolve_expr(
-	lex::src_tokens const &src_tokens,
-	ast::expr_continue,
-	ctx::parse_context &context
-)
-{
-	return ast::make_dynamic_expression(
-		src_tokens,
-		ast::expression_type_kind::noreturn, ast::make_void_typespec(nullptr),
-		ast::make_expr_break(),
-		context.get_loop_variable_destructions()
-	);
 }
 
 static ast::expression resolve_expr(

@@ -260,10 +260,11 @@ struct comptime_executor_context
 	void push_expression_scope(void);
 	void pop_expression_scope(void);
 
-	void push_destructor_call(lex::src_tokens const &src_tokens, ast::function_body *dtor_func, llvm::Value *ptr);
-	void emit_destructor_calls(void);
-	void emit_loop_destructor_calls(void);
-	void emit_all_destructor_calls(void);
+	void push_destruct_operation(ast::destruct_operation const &destruct_op);
+	void push_self_destruct_operation(ast::destruct_operation const &destruct_op, llvm::Value *ptr, llvm::Type *type);
+	void emit_destruct_operations(void);
+	void emit_loop_destruct_operations(void);
+	void emit_all_destruct_operations(void);
 
 	void push_end_lifetime_call(llvm::Value *ptr, size_t size);
 	void emit_end_lifetime_calls(void);
@@ -334,15 +335,21 @@ struct comptime_executor_context
 
 	bz::vector<ast::function_body *> functions_to_compile{};
 
-	struct destructor_call_t
+	struct destruct_operation_info_t
 	{
-		lex::src_tokens src_tokens;
-		ast::function_body *dtor_func;
+		ast::destruct_operation const *destruct_op;
 		llvm::Value *ptr;
+		llvm::Type *type;
 	};
 
-	bz::vector<bz::vector<destructor_call_t>> destructor_calls{};
-	bz::vector<bz::vector<std::pair<llvm::Value *, size_t>>> end_lifetime_calls{};
+	struct end_lifetime_info_t
+	{
+		llvm::Value *ptr;
+		size_t size;
+	};
+
+	bz::vector<bz::vector<destruct_operation_info_t>> destructor_calls{};
+	bz::vector<bz::vector<end_lifetime_info_t>> end_lifetime_calls{};
 
 
 	std::pair<ast::function_body const *, llvm::Function *> current_function = { nullptr, nullptr };

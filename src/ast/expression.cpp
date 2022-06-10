@@ -4,6 +4,32 @@
 namespace ast
 {
 
+destruct_variable::destruct_variable(expression _destruct_call)
+	: destruct_call(make_ast_unique<expression>(std::move(_destruct_call)))
+{}
+
+destruct_variable::destruct_variable(destruct_variable const &other)
+	: destruct_call(make_ast_unique<expression>(*other.destruct_call))
+{}
+
+destruct_variable &destruct_variable::operator = (destruct_variable const &other)
+{
+	if (this == &other)
+	{
+		return *this;
+	}
+
+	if (this->destruct_call == nullptr)
+	{
+		this->destruct_call = make_ast_unique<expression>(*other.destruct_call);
+	}
+	else
+	{
+		*this->destruct_call = *other.destruct_call;
+	}
+	return *this;
+}
+
 destruct_self::destruct_self(expression _destruct_call)
 	: destruct_call(make_ast_unique<expression>(std::move(_destruct_call)))
 {}

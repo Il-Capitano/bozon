@@ -593,9 +593,11 @@ static ast::expression parse_primary_expression(
 		}
 		else
 		{
-			return ast::make_unresolved_expression(
-				{ t, t, t + 1 },
-				ast::make_unresolved_expr_break()
+			return ast::make_dynamic_expression(
+				lex::src_tokens::from_single_token(t),
+				ast::expression_type_kind::noreturn, ast::make_void_typespec(nullptr),
+				ast::make_expr_break(),
+				ast::destruct_operation()
 			);
 		}
 	}
@@ -610,9 +612,11 @@ static ast::expression parse_primary_expression(
 		}
 		else
 		{
-			return ast::make_unresolved_expression(
-				{ t, t, t + 1 },
-				ast::make_unresolved_expr_continue()
+			return ast::make_dynamic_expression(
+				lex::src_tokens::from_single_token(t),
+				ast::expression_type_kind::noreturn, ast::make_void_typespec(nullptr),
+				ast::make_expr_continue(),
+				ast::destruct_operation()
 			);
 		}
 	}

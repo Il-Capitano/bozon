@@ -26,7 +26,7 @@ static void resolve_stmt(ast::stmt_for &for_stmt, ctx::parse_context &context)
 {
 	bz_assert(for_stmt.scope.is_null());
 	for_stmt.scope = ast::make_local_scope(context.get_current_enclosing_scope());
-	auto const outer_scope_prev_size = context.push_local_scope(&for_stmt.scope);
+	context.push_local_scope(&for_stmt.scope);
 	resolve_statement(for_stmt.init, context);
 	resolve_expression(for_stmt.condition, context);
 
@@ -40,7 +40,7 @@ static void resolve_stmt(ast::stmt_for &for_stmt, ctx::parse_context &context)
 	{
 		match_expression_to_type(for_stmt.condition, bool_type, context);
 	}
-	for_stmt.variable_destructions = context.pop_local_scope(outer_scope_prev_size, true);
+	context.pop_local_scope(true);
 }
 
 static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &context)
@@ -48,14 +48,14 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	bz_assert(foreach_stmt.iter_var_decl.is_null());
 	bz_assert(foreach_stmt.scope.is_null());
 	foreach_stmt.scope = ast::make_local_scope(context.get_current_enclosing_scope());
-	auto const outer_scope_prev_size = context.push_local_scope(&foreach_stmt.scope);
+	context.push_local_scope(&foreach_stmt.scope);
 	resolve_statement(foreach_stmt.range_var_decl, context);
 	bz_assert(foreach_stmt.range_var_decl.is<ast::decl_variable>());
 	auto &range_var_decl = foreach_stmt.range_var_decl.get<ast::decl_variable>();
 	range_var_decl.flags |= ast::decl_variable::used;
 	if (range_var_decl.get_type().is_empty())
 	{
-		foreach_stmt.variable_destructions = context.pop_local_scope(outer_scope_prev_size, true);
+		context.pop_local_scope(true);
 		return;
 	}
 
@@ -212,7 +212,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 
 	resolve_expression(foreach_stmt.for_block, context);
 	context.pop_loop(prev_info);
-	foreach_stmt.variable_destructions = context.pop_local_scope(outer_scope_prev_size, true);
+	context.pop_local_scope(true);
 }
 
 static void resolve_stmt(ast::stmt_return &return_stmt, ctx::parse_context &context)
@@ -235,7 +235,6 @@ static void resolve_stmt(ast::stmt_return &return_stmt, ctx::parse_context &cont
 		bz_assert(ast::is_complete(context.current_function->return_type));
 		match_expression_to_type(return_stmt.expr, context.current_function->return_type, context);
 	}
-	return_stmt.variable_destructions = context.get_all_variable_destructions();
 }
 
 static void resolve_stmt(ast::stmt_no_op &, ctx::parse_context &)
@@ -828,6 +827,36 @@ void resolve_variable_symbol(ast::decl_variable &var_decl, ctx::parse_context &c
 	}
 }
 
+static void resolve_variable_destruction(ast::decl_variable &var_decl, ctx::parse_context &context)
+{
+	auto const type = ast::remove_const_or_consteval(var_decl.get_type());
+	if (type.is<ast::ts_base_type>())
+	{
+		auto const info = type.get<ast::ts_base_type>().info;
+		if (info->state < ast::resolve_state::all)
+		{
+			context.add_to_resolve_queue(var_decl.src_tokens, *info);
+			resolve_type_info(*info, context);
+			context.pop_resolve_queue();
+		}
+	}
+
+	if (!var_decl.is_member() && !ast::is_trivially_destructible(type))
+	{
+		if (var_decl.tuple_decls.not_empty())
+		{
+			for (auto &decl : var_decl.tuple_decls)
+			{
+				resolve_variable_destruction(decl, context);
+			}
+		}
+		else
+		{
+			var_decl.destruction = context.make_variable_destruction(&var_decl);
+		}
+	}
+}
+
 static void resolve_variable_impl(ast::decl_variable &var_decl, ctx::parse_context &context)
 {
 	if (var_decl.state < ast::resolve_state::symbol)
@@ -845,6 +874,7 @@ static void resolve_variable_impl(ast::decl_variable &var_decl, ctx::parse_conte
 	{
 		return;
 	}
+	resolve_variable_destruction(var_decl, context);
 	var_decl.state = ast::resolve_state::all;
 }
 
@@ -1675,14 +1705,14 @@ static void resolve_function_symbol_impl(
 	ctx::parse_context &context
 )
 {
-	auto const prev_scope_start = context.push_local_scope(&func_body.scope);
+	context.push_local_scope(&func_body.scope);
 	if (func_body.state == ast::resolve_state::none)
 	{
 		func_body.state = ast::resolve_state::resolving_parameters;
 		if (!resolve_function_parameters_helper(func_stmt, func_body, context))
 		{
 			func_body.state = ast::resolve_state::error;
-			auto const _ = context.pop_local_scope(prev_scope_start, false);
+			context.pop_local_scope(false);
 			return;
 		}
 	}
@@ -1692,13 +1722,13 @@ static void resolve_function_symbol_impl(
 		if (!resolve_function_symbol_helper(func_stmt, func_body, context))
 		{
 			func_body.state = ast::resolve_state::error;
-			auto const _ = context.pop_local_scope(prev_scope_start, false);
+			context.pop_local_scope(false);
 			return;
 		}
 		else if (func_body.is_generic())
 		{
 			func_body.state = ast::resolve_state::parameters;
-			auto const _ = context.pop_local_scope(prev_scope_start, false);
+			context.pop_local_scope(false);
 			return;
 		}
 		else
@@ -1706,7 +1736,7 @@ static void resolve_function_symbol_impl(
 			func_body.state = ast::resolve_state::symbol;
 		}
 	}
-	auto const _ = context.pop_local_scope(prev_scope_start, false);
+	context.pop_local_scope(false);
 }
 
 void resolve_function_symbol(
@@ -1742,20 +1772,28 @@ static void resolve_local_statements(
 	}
 }
 
+static void resolve_function_parameter_destructions(ast::function_body &func_body, ctx::parse_context &context)
+{
+	for (auto &param : func_body.params)
+	{
+		resolve_variable_destruction(param, context);
+	}
+}
+
 static void resolve_function_impl(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
 	ctx::parse_context &context
 )
 {
-	auto const params_resolve_prev_scope_start = context.push_local_scope(&func_body.scope);
+	context.push_local_scope(&func_body.scope);
 	if (func_body.state == ast::resolve_state::none)
 	{
 		func_body.state = ast::resolve_state::resolving_parameters;
 		if (!resolve_function_parameters_helper(func_stmt, func_body, context))
 		{
 			func_body.state = ast::resolve_state::error;
-			auto const _ = context.pop_local_scope(params_resolve_prev_scope_start, false);
+			context.pop_local_scope(false);
 			return;
 		}
 	}
@@ -1765,13 +1803,13 @@ static void resolve_function_impl(
 		if (!resolve_function_symbol_helper(func_stmt, func_body, context))
 		{
 			func_body.state = ast::resolve_state::error;
-			auto const _ = context.pop_local_scope(params_resolve_prev_scope_start, false);
+			context.pop_local_scope(false);
 			return;
 		}
 		else if (func_body.is_generic())
 		{
 			func_body.state = ast::resolve_state::parameters;
-			auto const _ = context.pop_local_scope(params_resolve_prev_scope_start, false);
+			context.pop_local_scope(false);
 			return;
 		}
 		else
@@ -1780,9 +1818,7 @@ static void resolve_function_impl(
 		}
 	}
 
-	{
-		auto const _ = context.pop_local_scope(params_resolve_prev_scope_start, false);
-	}
+	context.pop_local_scope(false);
 
 	if (func_body.body.is_null())
 	{
@@ -1802,9 +1838,10 @@ static void resolve_function_impl(
 		context.remove_unresolved_scope(prev_size);
 	}
 
-	auto const prev_scope_start = context.push_local_scope(&func_body.scope);
+	context.push_local_scope(&func_body.scope);
+	resolve_function_parameter_destructions(func_body, context);
 	resolve_local_statements(func_body.get_statements(), context);
-	func_body.variable_destructions = context.pop_local_scope(prev_scope_start, true);
+	context.pop_local_scope(true);
 
 	func_body.state = ast::resolve_state::all;
 	context.pop_current_function(prev_function);

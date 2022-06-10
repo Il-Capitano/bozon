@@ -17,6 +17,11 @@ void emit_global_type_symbol(ast::type_info const &info, ctx::bitcode_context &c
 void emit_global_type(ast::type_info const &info, ctx::bitcode_context &context);
 void emit_necessary_functions(ctx::bitcode_context &context);
 
+void emit_destruct_operation(ast::destruct_operation const &destruct_op, ctx::bitcode_context &context);
+void emit_destruct_operation(ast::destruct_operation const &destruct_op, ctx::comptime_executor_context &context);
+void emit_destruct_operation(ast::destruct_operation const &destruct_op, val_ptr value, ctx::bitcode_context &context);
+void emit_destruct_operation(ast::destruct_operation const &destruct_op, val_ptr value, ctx::comptime_executor_context &context);
+
 
 llvm::Function *add_function_to_module(ast::function_body *func_body, ctx::comptime_executor_context &context);
 void emit_function_bitcode(ast::function_body &func_body, ctx::comptime_executor_context &context);

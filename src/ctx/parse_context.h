@@ -56,14 +56,10 @@ struct parse_context
 
 	bz::vector<resolve_queue_t> resolve_queue{};
 
-	bool is_aggressive_consteval_enabled = false;
 	variadic_resolve_info_t variadic_info = { false, false, 0, 0, {} };
 
-	bz::vector<ast::decl_variable *> variables_to_destruct{};
-	size_t scope_variable_destruct_start = 0;
-	size_t loop_variable_destruct_start = 0;
+	bool is_aggressive_consteval_enabled = false;
 	bool in_loop = false;
-
 	bool parsing_variadic_expansion = false;
 	bool in_unevaluated_context = false;
 	int parsing_template_argument = 0;
@@ -87,18 +83,14 @@ struct parse_context
 	ast::decl_function *get_builtin_function(uint32_t kind) const;
 	bz::array_view<uint32_t const> get_builtin_universal_functions(bz::u8string_view id);
 
-	ast::destruct_operation get_all_variable_destructions(void) noexcept;
-
 	struct loop_info_t
 	{
-		size_t loop_variable_destruct_start;
 		bool in_loop;
 	};
 
 	[[nodiscard]] loop_info_t push_loop(void) noexcept;
 	void pop_loop(loop_info_t prev_info) noexcept;
 	bool is_in_loop(void) const noexcept;
-	ast::destruct_operation get_loop_variable_destructions(void) noexcept;
 
 	[[nodiscard]] variadic_resolve_info_t push_variadic_resolver(void) noexcept;
 	void pop_variadic_resolver(variadic_resolve_info_t const &prev_info) noexcept;
@@ -130,8 +122,8 @@ struct parse_context
 	[[nodiscard]] global_local_scope_pair_t push_global_scope(ast::scope_t *new_scope) noexcept;
 	void pop_global_scope(global_local_scope_pair_t prev_scopes) noexcept;
 
-	[[nodiscard]] size_t push_local_scope(ast::scope_t *new_scope) noexcept;
-	[[nodiscard]] ast::destruct_operation pop_local_scope(size_t prev_scope_start, bool report_unused) noexcept;
+	void push_local_scope(ast::scope_t *new_scope) noexcept;
+	void pop_local_scope(bool report_unused) noexcept;
 
 	[[nodiscard]] global_local_scope_pair_t push_enclosing_scope(ast::enclosing_scope_t new_scope) noexcept;
 	void pop_enclosing_scope(global_local_scope_pair_t prev_scopes) noexcept;
@@ -437,6 +429,7 @@ struct parse_context
 	ast::expression make_move_construction(ast::expression expr);
 
 	void add_self_destruction(ast::expression &expr);
+	ast::destruct_operation make_variable_destruction(ast::decl_variable *var_decl);
 	ast::destruct_operation make_variable_destructions(bz::array_view<ast::decl_variable * const> vars);
 
 	bool is_instantiable(ast::typespec_view ts);

@@ -438,122 +438,6 @@ static void create_function_call(
 	}
 }
 
-static void push_destructor_call(
-	lex::src_tokens const &src_tokens,
-	llvm::Value *ptr,
-	ast::typespec_view type,
-	auto &context
-)
-{
-	type = ast::remove_const_or_consteval(type);
-	if (ast::is_trivially_destructible(type))
-	{
-		return;
-	}
-	if (type.is<ast::ts_base_type>())
-	{
-		auto const &info = *type.get<ast::ts_base_type>().info;
-		auto const llvm_type = get_llvm_type(type, context);
-		for (auto const &[member, i] : info.member_variables.enumerate())
-		{
-			auto const member_ptr = context.create_struct_gep(llvm_type, ptr, i);
-			push_destructor_call(src_tokens, member_ptr, member->get_type(), context);
-		}
-		if (info.destructor != nullptr)
-		{
-			if constexpr (is_comptime<decltype(context)>)
-			{
-				context.push_destructor_call(src_tokens, &info.destructor->body, ptr);
-			}
-			else
-			{
-				auto const dtor_func = context.get_function(&info.destructor->body);
-				context.push_destructor_call(dtor_func, ptr);
-			}
-		}
-	}
-	else if (type.is<ast::ts_tuple>())
-	{
-		auto const llvm_type = get_llvm_type(type, context);
-		for (auto const &[member_type, i] : type.get<ast::ts_tuple>().types.enumerate())
-		{
-			auto const member_ptr = context.create_struct_gep(llvm_type, ptr, i);
-			push_destructor_call(src_tokens, member_ptr, member_type, context);
-		}
-	}
-	else if (type.is<ast::ts_array>())
-	{
-		auto const array_size = type.get<ast::ts_array>().size;
-		auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
-		auto const llvm_type = get_llvm_type(type, context);
-		for (auto const i : bz::iota(0, array_size))
-		{
-			auto const elem_ptr = context.create_struct_gep(llvm_type, ptr, i);
-			push_destructor_call(src_tokens, elem_ptr, elem_type, context);
-		}
-	}
-	else
-	{
-		// nothing
-	}
-}
-
-static void emit_destructor_call(
-	lex::src_tokens const &src_tokens,
-	llvm::Value *ptr,
-	ast::typespec_view type,
-	auto &context
-)
-{
-	type = ast::remove_const_or_consteval(type);
-	if (ast::is_trivially_destructible(type))
-	{
-		return;
-	}
-	if (type.is<ast::ts_base_type>())
-	{
-		auto const &info = *type.get<ast::ts_base_type>().info;
-		if (info.destructor != nullptr)
-		{
-			auto const dtor_func_body = &info.destructor->body;
-			auto const dtor_func = context.get_function(dtor_func_body);
-			context.create_call(src_tokens, dtor_func_body, dtor_func, ptr);
-		}
-		auto const members_count = info.member_variables.size();
-		auto const llvm_type = get_llvm_type(type, context);
-		for (auto const &[member, i] : info.member_variables.reversed().enumerate())
-		{
-			auto const member_ptr = context.create_struct_gep(llvm_type, ptr, members_count - i - 1);
-			emit_destructor_call(src_tokens, member_ptr, member->get_type(), context);
-		}
-	}
-	else if (type.is<ast::ts_tuple>())
-	{
-		auto const members_count = type.get<ast::ts_tuple>().types.size();
-		auto const llvm_type = get_llvm_type(type, context);
-		for (auto const &[member_type, i] : type.get<ast::ts_tuple>().types.reversed().enumerate())
-		{
-			auto const member_ptr = context.create_struct_gep(llvm_type, ptr, members_count - i - 1);
-			emit_destructor_call(src_tokens, member_ptr, member_type, context);
-		}
-	}
-	else if (type.is<ast::ts_array>())
-	{
-		auto const array_size = type.get<ast::ts_array>().size;
-		auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
-		auto const llvm_type = get_llvm_type(type, context);
-		for (auto const i : bz::iota(0, array_size))
-		{
-			auto const elem_ptr = context.create_struct_gep(llvm_type, ptr, array_size - i - 1);
-			emit_destructor_call(src_tokens, elem_ptr, elem_type, context);
-		}
-	}
-	else
-	{
-		// nothing
-	}
-}
-
 template<abi::platform_abi abi>
 static val_ptr emit_default_constructor(
 	lex::src_tokens const &src_tokens,
@@ -3166,14 +3050,8 @@ static val_ptr emit_bitcode(
 				}
 			}
 		case ast::function_body::builtin_call_destructor:
-		{
-			bz_assert(func_call.params.size() == 1);
-			auto const type = func_call.params[0].get_expr_type();
-			auto const arg = emit_bitcode<abi>(func_call.params[0], context, nullptr);
-			bz_assert(arg.kind == val_ptr::reference);
-			emit_destructor_call(func_call.src_tokens, arg.val, type, context);
-			return val_ptr::get_none();
-		}
+			// this is already handled in src/ctx/parse_context.cpp, in the function make_expr_function_call_from_body
+			bz_unreachable;
 		case ast::function_body::builtin_inplace_construct:
 		{
 			bz_assert(func_call.params.size() == 2);
@@ -3679,14 +3557,7 @@ static val_ptr emit_bitcode(
 			auto const param_llvm_type = get_llvm_type(param_type, context);
 			if (param_type.is<ast::ts_move_reference>())
 			{
-				auto const result_address = ast::is_rvalue_or_literal(p.get_expr_type_and_kind().second)
-					? context.create_alloca(get_llvm_type(param_type.get<ast::ts_move_reference>(), context))
-					: nullptr;
-				auto const param_val = emit_bitcode<abi>(p, context, result_address);
-				if (result_address != nullptr)
-				{
-					push_destructor_call(p.src_tokens, result_address, param_type.get<ast::ts_move_reference>(), context);
-				}
+				auto const param_val = emit_bitcode<abi>(p, context, nullptr);
 				add_call_parameter<abi, push_to_front>(param_type, param_llvm_type, param_val, params, params_is_byval, context);
 			}
 			else
@@ -4303,6 +4174,25 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
+	ast::expr_take_move_reference const &take_move_ref,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const type = get_llvm_type(take_move_ref.expr.get_expr_type(), context);
+	auto const alloca = context.create_alloca(type);
+	auto const result = emit_bitcode<abi>(take_move_ref.expr, context, alloca);
+	if (take_move_ref.expr.is_dynamic())
+	{
+		context.push_self_destruct_operation(take_move_ref.expr.get_dynamic().destruct_op, alloca, type);
+	}
+	bz_assert(result_address == nullptr);
+	return result;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
 	ast::expr_aggregate_init const &aggregate_init,
 	auto &context,
 	llvm::Value *result_address
@@ -4811,6 +4701,26 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
+	ast::expr_destruct_value const &destruct_value,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const value = emit_bitcode<abi>(destruct_value.value, context, nullptr);
+	if (destruct_value.destruct_call.not_null())
+	{
+		auto const prev_value = context.push_value_reference(value);
+		emit_bitcode<abi>(destruct_value.destruct_call, context, nullptr);
+		context.pop_value_reference(prev_value);
+	}
+
+	bz_assert(result_address == nullptr);
+	return val_ptr::get_none();
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
 	ast::expr_member_access const &member_access,
 	auto &context,
 	llvm::Value *result_address
@@ -5215,7 +5125,7 @@ static val_ptr emit_bitcode(
 	}
 
 	bz_assert(context.loop_info.break_bb != nullptr);
-	context.emit_loop_destructor_calls();
+	context.emit_loop_destruct_operations();
 	context.emit_loop_end_lifetime_calls();
 	bz_assert(!context.has_terminator());
 	context.builder.CreateBr(context.loop_info.break_bb);
@@ -5240,7 +5150,7 @@ static val_ptr emit_bitcode(
 	}
 
 	bz_assert(context.loop_info.continue_bb != nullptr);
-	context.emit_loop_destructor_calls();
+	context.emit_loop_destruct_operations();
 	context.emit_loop_end_lifetime_calls();
 	bz_assert(!context.has_terminator());
 	context.builder.CreateBr(context.loop_info.continue_bb);
@@ -5494,15 +5404,6 @@ static val_ptr emit_bitcode(
 		return val_ptr::get_none();
 	}
 
-	auto const needs_destructor = result_address == nullptr
-		&& const_expr.kind == ast::expression_type_kind::rvalue
-		&& ast::needs_destructor(const_expr.type);
-	if (needs_destructor)
-	{
-		auto const result_type = get_llvm_type(const_expr.type, context);
-		result_address = context.create_alloca(result_type);
-		push_destructor_call(src_tokens, result_address, const_expr.type, context);
-	}
 	val_ptr result = val_ptr::get_none();
 
 	// consteval variable
@@ -5550,18 +5451,20 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	auto const needs_destructor = result_address == nullptr
-		&& dyn_expr.kind == ast::expression_type_kind::rvalue
-		&& ast::needs_destructor(dyn_expr.type);
-	if (needs_destructor)
+	if (result_address == nullptr && dyn_expr.destruct_op.not_null())
 	{
 		auto const result_type = get_llvm_type(dyn_expr.type, context);
 		result_address = context.create_alloca(result_type);
-		push_destructor_call(src_tokens, result_address, dyn_expr.type, context);
 	}
-	return dyn_expr.expr.visit([&](auto const &expr) {
+	auto const result = dyn_expr.expr.visit([&](auto const &expr) {
 		return emit_bitcode<abi>(src_tokens, expr, context, result_address);
 	});
+	if (dyn_expr.destruct_op.not_null())
+	{
+		bz_assert(result.kind == val_ptr::reference);
+		context.push_self_destruct_operation(dyn_expr.destruct_op, result.val, result.get_type());
+	}
+	return result;
 }
 
 template<abi::platform_abi abi>
@@ -5778,7 +5681,7 @@ static void emit_bitcode(
 
 	if (ret_stmt.expr.is_null())
 	{
-		context.emit_all_destructor_calls();
+		context.emit_all_destruct_operations();
 		context.emit_all_end_lifetime_calls();
 		if (context.current_function.first->is_main())
 		{
@@ -5805,7 +5708,7 @@ static void emit_bitcode(
 		if (context.current_function.first->return_type.template is<ast::ts_lvalue_reference>())
 		{
 			auto const ret_val = emit_bitcode<abi>(ret_stmt.expr, context, context.output_pointer);
-			context.emit_all_destructor_calls();
+			context.emit_all_destruct_operations();
 			context.emit_all_end_lifetime_calls();
 			bz_assert(ret_val.kind == val_ptr::reference);
 			context.builder.CreateRet(ret_val.val);
@@ -5813,7 +5716,7 @@ static void emit_bitcode(
 		else if (context.output_pointer != nullptr)
 		{
 			emit_bitcode<abi>(ret_stmt.expr, context, context.output_pointer);
-			context.emit_all_destructor_calls();
+			context.emit_all_destruct_operations();
 			context.emit_all_end_lifetime_calls();
 			context.builder.CreateRetVoid();
 		}
@@ -5829,7 +5732,7 @@ static void emit_bitcode(
 			case abi::pass_kind::value:
 			{
 				auto const ret_val = emit_bitcode<abi>(ret_stmt.expr, context, context.output_pointer).get_value(context.builder);
-				context.emit_all_destructor_calls();
+				context.emit_all_destruct_operations();
 				context.emit_all_end_lifetime_calls();
 				context.builder.CreateRet(ret_val);
 				break;
@@ -5842,7 +5745,7 @@ static void emit_bitcode(
 				auto const result_ptr = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(ret_type, 0));
 				emit_bitcode<abi>(ret_stmt.expr, context, alloca);
 				auto const result = context.create_load(ret_type, result_ptr);
-				context.emit_all_destructor_calls();
+				context.emit_all_destruct_operations();
 				context.emit_all_end_lifetime_calls();
 				context.builder.CreateRet(result);
 				break;
@@ -5885,10 +5788,12 @@ static void add_variable_helper(
 		if (var_decl.get_type().is<ast::ts_lvalue_reference>())
 		{
 			context.add_variable(&var_decl, context.create_load(context.get_opaque_pointer_t(), ptr), type);
+			bz_assert(var_decl.destruction.is_null());
 		}
 		else
 		{
 			context.add_variable(&var_decl, ptr, type);
+			context.push_destruct_operation(var_decl.destruction);
 		}
 	}
 	else
@@ -5938,6 +5843,7 @@ static void emit_bitcode(
 		if (var_decl.tuple_decls.empty())
 		{
 			context.add_variable(&var_decl, init_val.val, init_val.get_type());
+			context.push_destruct_operation(var_decl.destruction);
 		}
 		else
 		{
@@ -5951,7 +5857,6 @@ static void emit_bitcode(
 		auto const size = context.get_size(type);
 		context.start_lifetime(alloca, size);
 		context.push_end_lifetime_call(alloca, size);
-		push_destructor_call(var_decl.src_tokens, alloca, var_decl.get_type(), context);
 		if (var_decl.init_expr.not_null())
 		{
 			context.push_expression_scope();
@@ -6351,6 +6256,7 @@ static void emit_function_bitcode_impl(
 				{
 					auto const type = ast::remove_lvalue_or_move_reference(p.get_type());
 					context.add_variable(&p, fn_it, get_llvm_type(type, context));
+					context.push_destruct_operation(p.destruction);
 				}
 				else
 				{
@@ -6366,7 +6272,6 @@ static void emit_function_bitcode_impl(
 				{
 				case abi::pass_kind::reference:
 				case abi::pass_kind::non_trivial:
-					push_destructor_call(p.src_tokens, fn_it, p.get_type(), context);
 					add_variable_helper(p, fn_it, t, context);
 					break;
 				case abi::pass_kind::value:
@@ -6376,7 +6281,6 @@ static void emit_function_bitcode_impl(
 					context.start_lifetime(alloca, size);
 					context.builder.CreateStore(fn_it, alloca);
 					context.push_end_lifetime_call(alloca, size);
-					push_destructor_call(p.src_tokens, alloca, p.get_type(), context);
 					add_variable_helper(p, alloca, t, context);
 					break;
 				}
@@ -6388,7 +6292,6 @@ static void emit_function_bitcode_impl(
 					auto const alloca_cast = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(fn_it->getType(), 0));
 					context.builder.CreateStore(fn_it, alloca_cast);
 					context.push_end_lifetime_call(alloca, size);
-					push_destructor_call(p.src_tokens, alloca, p.get_type(), context);
 					add_variable_helper(p, alloca, t, context);
 					break;
 				}
@@ -6411,7 +6314,6 @@ static void emit_function_bitcode_impl(
 					context.builder.CreateStore(first_val, first_address);
 					context.builder.CreateStore(second_val, second_address);
 					context.push_end_lifetime_call(alloca, size);
-					push_destructor_call(p.src_tokens, alloca, p.get_type(), context);
 					add_variable_helper(p, alloca, t, context);
 					break;
 				}
@@ -6553,6 +6455,7 @@ static void emit_function_bitcode_impl(
 				{
 					auto const type = ast::remove_lvalue_or_move_reference(p.get_type());
 					context.add_variable(&p, fn_it, get_llvm_type(type, context));
+					context.push_destruct_operation(p.destruction);
 				}
 				else
 				{
@@ -6568,7 +6471,6 @@ static void emit_function_bitcode_impl(
 				{
 				case abi::pass_kind::reference:
 				case abi::pass_kind::non_trivial:
-					push_destructor_call(p.src_tokens, fn_it, p.get_type(), context);
 					add_variable_helper(p, fn_it, t, context);
 					break;
 				case abi::pass_kind::value:
@@ -6578,7 +6480,6 @@ static void emit_function_bitcode_impl(
 					context.start_lifetime(alloca, size);
 					context.builder.CreateStore(fn_it, alloca);
 					context.push_end_lifetime_call(alloca, size);
-					push_destructor_call(p.src_tokens, alloca, p.get_type(), context);
 					add_variable_helper(p, alloca, t, context);
 					break;
 				}
@@ -6590,7 +6491,6 @@ static void emit_function_bitcode_impl(
 					auto const alloca_cast = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(fn_it->getType(), 0));
 					context.builder.CreateStore(fn_it, alloca_cast);
 					context.push_end_lifetime_call(alloca, size);
-					push_destructor_call(p.src_tokens, alloca, p.get_type(), context);
 					add_variable_helper(p, alloca, t, context);
 					break;
 				}
@@ -6614,7 +6514,6 @@ static void emit_function_bitcode_impl(
 					context.builder.CreateStore(first_val, first_address);
 					context.builder.CreateStore(second_val, second_address);
 					context.push_end_lifetime_call(alloca, size);
-					push_destructor_call(p.src_tokens, alloca, p.get_type(), context);
 					add_variable_helper(p, alloca, t, context);
 					break;
 				}
@@ -7017,6 +6916,110 @@ bool emit_necessary_functions(size_t start_index, ctx::comptime_executor_context
 }
 
 template<abi::platform_abi abi>
+static void emit_destruct_operation_impl(ast::destruct_operation const &destruct_op, val_ptr value, auto &context)
+{
+	if (destruct_op.is<ast::destruct_variables>())
+	{
+		for (auto const &destruct_call : destruct_op.get<ast::destruct_variables>().destruct_calls.reversed())
+		{
+			if (destruct_call.not_null())
+			{
+				emit_bitcode<abi>(destruct_call, context, nullptr);
+			}
+		}
+	}
+	else if (destruct_op.is<ast::destruct_variable>())
+	{
+		emit_bitcode<abi>(*destruct_op.get<ast::destruct_variable>().destruct_call, context, nullptr);
+	}
+	else if (destruct_op.is<ast::destruct_self>())
+	{
+		bz_assert(destruct_op.get<ast::destruct_self>().destruct_call->not_null());
+		bz_assert(value.val != nullptr);
+		auto const prev_value = context.push_value_reference(value);
+		emit_bitcode<abi>(*destruct_op.get<ast::destruct_self>().destruct_call, context, nullptr);
+		context.pop_value_reference(prev_value);
+	}
+	else
+	{
+		bz_assert(destruct_op.is_null());
+		// nothing
+	}
+}
+
+void emit_destruct_operation(ast::destruct_operation const &destruct_op, ctx::bitcode_context &context)
+{
+	auto const abi = context.get_platform_abi();
+	switch (abi)
+	{
+	case abi::platform_abi::generic:
+		emit_destruct_operation_impl<abi::platform_abi::generic>(destruct_op, val_ptr::get_none(), context);
+		return;
+	case abi::platform_abi::microsoft_x64:
+		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(destruct_op, val_ptr::get_none(), context);
+		return;
+	case abi::platform_abi::systemv_amd64:
+		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(destruct_op, val_ptr::get_none(), context);
+		return;
+	}
+	bz_unreachable;
+}
+
+void emit_destruct_operation(ast::destruct_operation const &destruct_op, ctx::comptime_executor_context &context)
+{
+	auto const abi = context.get_platform_abi();
+	switch (abi)
+	{
+	case abi::platform_abi::generic:
+		emit_destruct_operation_impl<abi::platform_abi::generic>(destruct_op, val_ptr::get_none(), context);
+		return;
+	case abi::platform_abi::microsoft_x64:
+		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(destruct_op, val_ptr::get_none(), context);
+		return;
+	case abi::platform_abi::systemv_amd64:
+		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(destruct_op, val_ptr::get_none(), context);
+		return;
+	}
+	bz_unreachable;
+}
+
+void emit_destruct_operation(ast::destruct_operation const &destruct_op, val_ptr value, ctx::bitcode_context &context)
+{
+	auto const abi = context.get_platform_abi();
+	switch (abi)
+	{
+	case abi::platform_abi::generic:
+		emit_destruct_operation_impl<abi::platform_abi::generic>(destruct_op, value, context);
+		return;
+	case abi::platform_abi::microsoft_x64:
+		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(destruct_op, value, context);
+		return;
+	case abi::platform_abi::systemv_amd64:
+		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(destruct_op, value, context);
+		return;
+	}
+	bz_unreachable;
+}
+
+void emit_destruct_operation(ast::destruct_operation const &destruct_op, val_ptr value, ctx::comptime_executor_context &context)
+{
+	auto const abi = context.get_platform_abi();
+	switch (abi)
+	{
+	case abi::platform_abi::generic:
+		emit_destruct_operation_impl<abi::platform_abi::generic>(destruct_op, value, context);
+		return;
+	case abi::platform_abi::microsoft_x64:
+		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(destruct_op, value, context);
+		return;
+	case abi::platform_abi::systemv_amd64:
+		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(destruct_op, value, context);
+		return;
+	}
+	bz_unreachable;
+}
+
+template<abi::platform_abi abi>
 static void add_global_result_getters(
 	bz::vector<llvm::Function *> &getters,
 	llvm::Constant *global_value_ptr,
@@ -7163,14 +7166,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		auto const param_llvm_type = get_llvm_type(param_t, context);
 		if (param_t.template is<ast::ts_move_reference>())
 		{
-			auto const result_address = ast::is_rvalue_or_literal(value.get_expr_type_and_kind().second)
-				? context.create_alloca(get_llvm_type(param_t.template get<ast::ts_move_reference>(), context))
-				: nullptr;
-			auto const param_val = emit_bitcode<abi>(value, context, result_address);
-			if (result_address != nullptr)
-			{
-				push_destructor_call(value.src_tokens, result_address, param_t.template get<ast::ts_move_reference>(), context);
-			}
+			auto const param_val = emit_bitcode<abi>(value, context, nullptr);
 			add_call_parameter<abi>(param_t, param_llvm_type, param_val, args, args_is_byval, context);
 		}
 		else

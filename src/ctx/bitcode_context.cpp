@@ -97,11 +97,13 @@ abi::platform_abi bitcode_context::get_platform_abi(void) const noexcept
 
 size_t bitcode_context::get_size(llvm::Type *t) const
 {
+	bz_assert(t->isSized());
 	return this->global_ctx._data_layout->getTypeAllocSize(t);
 }
 
 size_t bitcode_context::get_align(llvm::Type *t) const
 {
+	bz_assert(t->isSized());
 	return this->global_ctx._data_layout->getPrefTypeAlign(t).value();
 }
 
@@ -142,6 +144,7 @@ llvm::BasicBlock *bitcode_context::add_basic_block(bz::u8string_view name)
 
 llvm::Value *bitcode_context::create_alloca(llvm::Type *t)
 {
+	bz_assert(t->isSized());
 	auto const bb = this->builder.GetInsertBlock();
 	this->builder.SetInsertPoint(this->alloca_bb);
 	auto const result = this->builder.CreateAlloca(t);
@@ -154,6 +157,7 @@ llvm::Value *bitcode_context::create_alloca(llvm::Type *t)
 
 llvm::Value *bitcode_context::create_alloca(llvm::Type *t, size_t align)
 {
+	bz_assert(t->isSized());
 	auto const bb = this->builder.GetInsertBlock();
 	this->builder.SetInsertPoint(this->alloca_bb);
 	auto const result = this->builder.CreateAlloca(t);
@@ -167,6 +171,7 @@ llvm::Value *bitcode_context::create_alloca(llvm::Type *t, size_t align)
 
 llvm::Value *bitcode_context::create_alloca_without_lifetime_start(llvm::Type *t)
 {
+	bz_assert(t->isSized());
 	auto const bb = this->builder.GetInsertBlock();
 	this->builder.SetInsertPoint(this->alloca_bb);
 	auto const result = this->builder.CreateAlloca(t);
@@ -176,6 +181,7 @@ llvm::Value *bitcode_context::create_alloca_without_lifetime_start(llvm::Type *t
 
 llvm::Value *bitcode_context::create_alloca_without_lifetime_start(llvm::Type *t, size_t align)
 {
+	bz_assert(t->isSized());
 	auto const bb = this->builder.GetInsertBlock();
 	this->builder.SetInsertPoint(this->alloca_bb);
 	auto const result = this->builder.CreateAlloca(t);
@@ -448,51 +454,63 @@ void bitcode_context::pop_expression_scope(void)
 {
 	if (!this->has_terminator())
 	{
-		this->emit_destructor_calls();
+		this->emit_destruct_operations();
 		this->emit_end_lifetime_calls();
 	}
 	this->destructor_calls.pop_back();
 	this->end_lifetime_calls.pop_back();
 }
 
-void bitcode_context::push_destructor_call(llvm::Function *dtor_func, llvm::Value *ptr)
+void bitcode_context::push_destruct_operation(ast::destruct_operation const &destruct_op)
 {
-	bz_assert(!this->destructor_calls.empty());
-	this->destructor_calls.back().push_back({ dtor_func, ptr });
-}
-
-void bitcode_context::emit_destructor_calls(void)
-{
-	bz_assert(!this->has_terminator());
-	bz_assert(!this->destructor_calls.empty());
-	for (auto const &[func, val] : this->destructor_calls.back().reversed())
+	bz_assert(this->destructor_calls.not_empty());
+	if (destruct_op.not_null())
 	{
-		this->builder.CreateCall(func, val);
+		this->destructor_calls.back().push_back({ &destruct_op, nullptr, nullptr });
 	}
 }
 
-void bitcode_context::emit_loop_destructor_calls(void)
+void bitcode_context::push_self_destruct_operation(ast::destruct_operation const &destruct_op, llvm::Value *ptr, llvm::Type *type)
+{
+	bz_assert(this->destructor_calls.not_empty());
+	if (destruct_op.not_null())
+	{
+		this->destructor_calls.back().push_back({ &destruct_op, ptr, type });
+	}
+}
+
+void bitcode_context::emit_destruct_operations(void)
 {
 	bz_assert(!this->has_terminator());
-	bz_assert(!this->destructor_calls.empty());
-	for (auto const &scope_calls : this->destructor_calls.slice(this->loop_info.destructor_stack_begin).reversed())
+	bz_assert(this->destructor_calls.not_empty());
+	for (auto const &[destruct_op, ptr, type] : this->destructor_calls.back().reversed())
 	{
-		for (auto const &[func, val] : scope_calls.reversed())
+		bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), *this);
+	}
+}
+
+void bitcode_context::emit_loop_destruct_operations(void)
+{
+	bz_assert(!this->has_terminator());
+	bz_assert(this->destructor_calls.not_empty());
+	for (auto const &calls : this->destructor_calls.slice(this->loop_info.destructor_stack_begin).reversed())
+	{
+		for (auto const &[destruct_op, ptr, type] : calls.reversed())
 		{
-			this->builder.CreateCall(func, val);
+			bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), *this);
 		}
 	}
 }
 
-void bitcode_context::emit_all_destructor_calls(void)
+void bitcode_context::emit_all_destruct_operations(void)
 {
 	bz_assert(!this->has_terminator());
-	bz_assert(!this->destructor_calls.empty());
-	for (auto const &scope_calls : this->destructor_calls.reversed())
+	bz_assert(this->destructor_calls.not_empty());
+	for (auto const &calls : this->destructor_calls.reversed())
 	{
-		for (auto const &[func, val] : scope_calls.reversed())
+		for (auto const &[destruct_op, ptr, type] : calls.reversed())
 		{
-			this->builder.CreateCall(func, val);
+			bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), *this);
 		}
 	}
 }

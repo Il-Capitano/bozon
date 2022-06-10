@@ -21,6 +21,8 @@ static ast::expression make_expr_function_call_from_body(
 	ast::resolve_order resolve_order = ast::resolve_order::regular
 );
 
+static ast::expression make_destruct_expression(ast::typespec_view type, ast::expression value, parse_context &context);
+
 static ast::arena_vector<ast::expression> expand_params(ast::arena_vector<ast::expression> params)
 {
 	ast::arena_vector<ast::expression> result;
@@ -64,11 +66,8 @@ parse_context::parse_context(parse_context const &other, local_copy_t)
 	  current_local_scope(other.current_local_scope),
 	  current_function(nullptr),
 	  resolve_queue(other.resolve_queue),
-	  is_aggressive_consteval_enabled(other.is_aggressive_consteval_enabled),
 	  variadic_info(other.variadic_info),
-	  variables_to_destruct(other.variables_to_destruct),
-	  scope_variable_destruct_start(other.scope_variable_destruct_start),
-	  loop_variable_destruct_start(other.loop_variable_destruct_start),
+	  is_aggressive_consteval_enabled(other.is_aggressive_consteval_enabled),
 	  in_loop(other.in_loop),
 	  parsing_variadic_expansion(other.parsing_variadic_expansion),
 	  in_unevaluated_context(other.in_unevaluated_context),
@@ -112,36 +111,21 @@ bz::array_view<uint32_t const> parse_context::get_builtin_universal_functions(bz
 	return this->global_ctx.get_builtin_universal_functions(id);
 }
 
-ast::destruct_operation parse_context::get_all_variable_destructions(void) noexcept
-{
-	return this->make_variable_destructions(this->variables_to_destruct);
-}
-
 [[nodiscard]] parse_context::loop_info_t parse_context::push_loop(void) noexcept
 {
 	auto const prev_in_loop = this->in_loop;
-	auto const prev_destruct_start = this->loop_variable_destruct_start;
 	this->in_loop = true;
-	this->loop_variable_destruct_start = this->variables_to_destruct.size();
-	return { prev_destruct_start, prev_in_loop };
+	return { prev_in_loop };
 }
 
 void parse_context::pop_loop(loop_info_t prev_info) noexcept
 {
-	this->loop_variable_destruct_start = prev_info.loop_variable_destruct_start;
 	this->in_loop = prev_info.in_loop;
 }
 
 bool parse_context::is_in_loop(void) const noexcept
 {
 	return this->in_loop;
-}
-
-ast::destruct_operation parse_context::get_loop_variable_destructions(void) noexcept
-{
-	bz_assert(this->is_in_loop());
-	auto const vars = this->variables_to_destruct.slice(this->loop_variable_destruct_start);
-	return this->make_variable_destructions(vars);
 }
 
 [[nodiscard]] parse_context::variadic_resolve_info_t parse_context::push_variadic_resolver(void) noexcept
@@ -281,15 +265,12 @@ void parse_context::pop_global_scope(global_local_scope_pair_t prev_scopes) noex
 	this->current_unresolved_locals = std::move(prev_scopes.unresolved_locals);
 }
 
-[[nodiscard]] size_t parse_context::push_local_scope(ast::scope_t *new_scope) noexcept
+void parse_context::push_local_scope(ast::scope_t *new_scope) noexcept
 {
 	// bz::log("pushing local scope ({}, ...) from ({}, {})\n", new_scope, this->get_current_enclosing_scope().scope, this->get_current_enclosing_scope().symbol_count);
 	bz_assert(new_scope->is_local());
 	bz_assert(new_scope->get_local().parent == this->get_current_enclosing_scope());
 	this->current_local_scope = { new_scope, new_scope->get_local().symbols.size() };
-	auto const prev_scope_start = this->scope_variable_destruct_start;
-	this->scope_variable_destruct_start = this->variables_to_destruct.size();
-	return prev_scope_start;
 }
 
 static auto var_decl_range(bz::array_view<ast::local_symbol_t const> symbols)
@@ -309,7 +290,7 @@ static auto var_decl_range(bz::array_view<ast::local_symbol_t const> symbols)
 		});
 }
 
-[[nodiscard]] ast::destruct_operation parse_context::pop_local_scope(size_t prev_scope_start, bool report_unused) noexcept
+void parse_context::pop_local_scope(bool report_unused) noexcept
 {
 	bz_assert(this->current_local_scope.scope != nullptr);
 	bz_assert(this->current_local_scope.scope->is_local());
@@ -347,11 +328,6 @@ static auto var_decl_range(bz::array_view<ast::local_symbol_t const> symbols)
 		this->current_local_scope = parent;
 		// bz::log("sanity check: ({}, {})\n", this->current_local_scope.scope, this->current_local_scope.symbol_count);
 	}
-
-	auto result = this->make_variable_destructions(this->variables_to_destruct.slice(this->scope_variable_destruct_start));
-	this->variables_to_destruct.resize(prev_scope_start);
-	this->scope_variable_destruct_start = prev_scope_start;
-	return result;
 }
 
 static ast::scope_t *get_global_scope(ast::enclosing_scope_t scope, ast::scope_t *builtin_global_scope) noexcept
@@ -1250,10 +1226,6 @@ void parse_context::add_local_variable(ast::decl_variable &var_decl)
 		current_scope.add_variable(var_decl);
 		this->current_local_scope.symbol_count += 1;
 		bz_assert(current_scope.symbols.size() == this->current_local_scope.symbol_count);
-		if (!ast::is_trivially_destructible(var_decl.get_type()))
-		{
-			this->variables_to_destruct.push_back(&var_decl);
-		}
 	}
 	else
 	{
@@ -3396,6 +3368,28 @@ static ast::expression make_expr_function_call_from_body(
 		return ast::make_error_expression(src_tokens, ast::make_expr_function_call(src_tokens, std::move(args), body, resolve_order));
 	}
 
+	if (body->is_intrinsic() && body->intrinsic_kind == ast::function_body::builtin_call_destructor)
+	{
+		bz_assert(args.size() == 1);
+		auto const [expr_type, expr_type_kind] = args[0].get_expr_type_and_kind();
+		auto destruct_call = make_destruct_expression(
+			expr_type,
+			ast::make_dynamic_expression(
+				src_tokens,
+				expr_type_kind, expr_type,
+				ast::make_expr_bitcode_value_reference(),
+				ast::destruct_operation()
+			),
+			context
+		);
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+			ast::make_expr_destruct_value(std::move(args[0]), std::move(destruct_call)),
+			ast::destruct_operation()
+		);
+	}
+
 	auto &ret_t = body->return_type;
 	if (ret_t.is_typename())
 	{
@@ -3415,6 +3409,10 @@ static ast::expression make_expr_function_call_from_body(
 	{
 		return_type_kind = ast::expression_type_kind::lvalue_reference;
 		return_type = ret_t.get<ast::ts_lvalue_reference>();
+	}
+	else if (ret_t.is<ast::ts_void>())
+	{
+		return_type_kind = ast::expression_type_kind::none;
 	}
 	return ast::make_dynamic_expression(
 		src_tokens,
@@ -3486,6 +3484,10 @@ static ast::expression make_expr_function_call_from_body(
 	{
 		return_type_kind = ast::expression_type_kind::lvalue_reference;
 		return_type = ret_t.get<ast::ts_lvalue_reference>();
+	}
+	else if (ret_t.is<ast::ts_void>())
+	{
+		return_type_kind = ast::expression_type_kind::none;
 	}
 	return ast::make_constant_expression(
 		src_tokens,
@@ -5364,12 +5366,30 @@ ast::expression parse_context::make_move_construction(ast::expression expr)
 	}
 }
 
-ast::expression make_destruct_expression(ast::typespec_view type, ast::expression value, parse_context &context)
+static ast::expression make_destruct_expression(ast::typespec_view type, ast::expression value, parse_context &context)
 {
+	if (type.is<ast::ts_base_type>())
+	{
+		auto const info = type.get<ast::ts_base_type>().info;
+		if (info->state < ast::resolve_state::all)
+		{
+			context.add_to_resolve_queue(value.src_tokens, *info);
+			resolve::resolve_type_info(*info, context);
+			context.pop_resolve_queue();
+		}
+	}
+
+	if (ast::is_trivially_destructible(type))
+	{
+		return ast::expression();
+	}
+
 	auto const src_tokens = value.src_tokens;
 	if (type.is<ast::ts_base_type>())
 	{
 		auto const info = type.get<ast::ts_base_type>().info;
+		bz_assert(info->state == ast::resolve_state::all);
+
 		auto destruct_call = [&]() {
 			if (info->destructor == nullptr)
 			{
@@ -5399,6 +5419,7 @@ ast::expression make_destruct_expression(ast::typespec_view type, ast::expressio
 				return make_destruct_expression(ast::remove_const_or_consteval(member->get_type()), std::move(value_ref), context);
 			})
 			.collect<ast::arena_vector>();
+		bz_assert(member_destruct_calls.size() != 0);
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
@@ -5474,9 +5495,10 @@ void parse_context::add_self_destruction(ast::expression &expr)
 	}
 }
 
-ast::expression make_variable_destruction_expression(ast::decl_variable *var_decl, parse_context &context)
+static ast::expression make_variable_destruction_expression(ast::decl_variable *var_decl, parse_context &context)
 {
 	auto const type = ast::remove_const_or_consteval(var_decl->get_type());
+	bz_assert(!ast::is_trivially_destructible(type));
 	return make_destruct_expression(
 		type,
 		ast::make_dynamic_expression(
@@ -5487,6 +5509,13 @@ ast::expression make_variable_destruction_expression(ast::decl_variable *var_dec
 		),
 		context
 	);
+}
+
+ast::destruct_operation parse_context::make_variable_destruction(ast::decl_variable *var_decl)
+{
+	auto result = ast::destruct_operation();
+	result.emplace<ast::destruct_variable>(make_variable_destruction_expression(var_decl, *this));
+	return result;
 }
 
 ast::destruct_operation parse_context::make_variable_destructions(bz::array_view<ast::decl_variable * const> vars)

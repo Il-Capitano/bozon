@@ -85,7 +85,6 @@ struct stmt_for
 	expression iteration;
 	expression for_block;
 	scope_t    scope;
-	destruct_operation variable_destructions;
 
 	stmt_for(
 		statement  _init,
@@ -110,7 +109,6 @@ struct stmt_foreach
 	expression iteration;
 	expression for_block;
 	scope_t    scope;
-	destruct_operation variable_destructions;
 
 	stmt_foreach(
 		statement  _range_var_decl,
@@ -127,7 +125,6 @@ struct stmt_return
 {
 	lex::token_pos return_pos;
 	expression expr;
-	destruct_operation variable_destructions;
 
 	stmt_return(lex::token_pos _return_pos)
 		: return_pos(_return_pos), expr()
@@ -208,6 +205,7 @@ struct decl_variable
 	arena_vector<decl_variable> tuple_decls;
 
 	expression init_expr; // is null if there's no initializer
+	destruct_operation destruction;
 	ast_unique_ptr<decl_variable> original_tuple_variadic_decl; // non-null only if tuple_decls has an empty variadic declaration at the end
 
 	arena_vector<attribute> attributes;
@@ -225,6 +223,7 @@ struct decl_variable
 		  enclosing_scope(other.enclosing_scope),
 		  flags(other.flags), state(other.state)
 	{
+		bz_assert(other.destruction.is_null());
 		if (other.original_tuple_variadic_decl != nullptr)
 		{
 			this->original_tuple_variadic_decl = make_ast_unique<decl_variable>(*other.original_tuple_variadic_decl);
@@ -237,6 +236,7 @@ struct decl_variable
 		{
 			return *this;
 		}
+		bz_assert(other.destruction.is_null());
 		this->src_tokens = other.src_tokens;
 		this->prototype_range = other.prototype_range;
 		this->id_and_type = other.id_and_type;
@@ -628,7 +628,6 @@ struct function_body
 	resolve_state               state = resolve_state::none;
 	abi::calling_convention     cc = abi::calling_convention::c;
 	uint8_t                     intrinsic_kind = 0;
-	ast::destruct_operation     variable_destructions;
 
 	type_info *constructor_or_destructor_of;
 

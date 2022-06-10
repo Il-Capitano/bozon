@@ -277,6 +277,7 @@ size_t comptime_executor_context::get_align(ast::typespec_view ts)
 
 size_t comptime_executor_context::get_size(llvm::Type *t) const
 {
+	bz_assert(t->isSized());
 	return this->global_ctx._data_layout->getTypeAllocSize(t);
 }
 
@@ -322,6 +323,7 @@ llvm::BasicBlock *comptime_executor_context::add_basic_block(bz::u8string_view n
 
 llvm::Value *comptime_executor_context::create_alloca(llvm::Type *t)
 {
+	bz_assert(t->isSized());
 	auto const bb = this->builder.GetInsertBlock();
 	this->builder.SetInsertPoint(this->alloca_bb);
 	auto const result = this->builder.CreateAlloca(t);
@@ -334,6 +336,7 @@ llvm::Value *comptime_executor_context::create_alloca(llvm::Type *t)
 
 llvm::Value *comptime_executor_context::create_alloca(llvm::Type *t, size_t align)
 {
+	bz_assert(t->isSized());
 	auto const bb = this->builder.GetInsertBlock();
 	this->builder.SetInsertPoint(this->alloca_bb);
 	auto const result = this->builder.CreateAlloca(t);
@@ -347,6 +350,7 @@ llvm::Value *comptime_executor_context::create_alloca(llvm::Type *t, size_t alig
 
 llvm::Value *comptime_executor_context::create_alloca_without_lifetime_start(llvm::Type *t)
 {
+	bz_assert(t->isSized());
 	auto const bb = this->builder.GetInsertBlock();
 	this->builder.SetInsertPoint(this->alloca_bb);
 	auto const result = this->builder.CreateAlloca(t);
@@ -356,6 +360,7 @@ llvm::Value *comptime_executor_context::create_alloca_without_lifetime_start(llv
 
 llvm::Value *comptime_executor_context::create_alloca_without_lifetime_start(llvm::Type *t, size_t align)
 {
+	bz_assert(t->isSized());
 	auto const bb = this->builder.GetInsertBlock();
 	this->builder.SetInsertPoint(this->alloca_bb);
 	auto const result = this->builder.CreateAlloca(t);
@@ -643,57 +648,84 @@ void comptime_executor_context::pop_expression_scope(void)
 {
 	if (!this->has_terminator())
 	{
-		this->emit_destructor_calls();
+		this->emit_destruct_operations();
 		this->emit_end_lifetime_calls();
 	}
 	this->destructor_calls.pop_back();
 	this->end_lifetime_calls.pop_back();
 }
 
-void comptime_executor_context::push_destructor_call(lex::src_tokens const &src_tokens, ast::function_body *dtor_func, llvm::Value *ptr)
+void comptime_executor_context::push_destruct_operation(ast::destruct_operation const &destruct_op)
 {
-	bz_assert(!this->destructor_calls.empty());
-	this->destructor_calls.back().push_back({ src_tokens, dtor_func, ptr });
-}
-
-void comptime_executor_context::emit_destructor_calls(void)
-{
-	bz_assert(!this->has_terminator());
-	bz_assert(!this->destructor_calls.empty());
-	for (auto const &[src_tokens, func, val] : this->destructor_calls.back().reversed())
+	bz_assert(this->destructor_calls.not_empty());
+	if (destruct_op.not_null())
 	{
-		auto const error_count = bc::emit_push_call(src_tokens, func, *this);
-		this->create_call(this->get_function(func), val);
-		bc::emit_pop_call(error_count, *this);
+		this->destructor_calls.back().push_back({ &destruct_op, nullptr, nullptr });
 	}
 }
 
-void comptime_executor_context::emit_loop_destructor_calls(void)
+void comptime_executor_context::push_self_destruct_operation(ast::destruct_operation const &destruct_op, llvm::Value *ptr, llvm::Type *type)
+{
+	bz_assert(this->destructor_calls.not_empty());
+	if (destruct_op.not_null())
+	{
+		this->destructor_calls.back().push_back({ &destruct_op, ptr, type });
+	}
+}
+
+void comptime_executor_context::emit_destruct_operations(void)
 {
 	bz_assert(!this->has_terminator());
-	bz_assert(!this->destructor_calls.empty());
-	for (auto const &scope_calls : this->destructor_calls.slice(this->loop_info.destructor_stack_begin).reversed())
+	bz_assert(this->destructor_calls.not_empty());
+	for (auto const &[destruct_op, ptr, type] : this->destructor_calls.back().reversed())
 	{
-		for (auto const &[src_tokens, func, val] : scope_calls.reversed())
+		if (ptr == nullptr)
 		{
-			auto const error_count = bc::emit_push_call(src_tokens, func, *this);
-			this->create_call(this->get_function(func), val);
-			bc::emit_pop_call(error_count, *this);
+			bc::emit_destruct_operation(*destruct_op, *this);
+		}
+		else
+		{
+			bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), *this);
 		}
 	}
 }
 
-void comptime_executor_context::emit_all_destructor_calls(void)
+void comptime_executor_context::emit_loop_destruct_operations(void)
 {
 	bz_assert(!this->has_terminator());
-	bz_assert(!this->destructor_calls.empty());
-	for (auto const &scope_calls : this->destructor_calls.reversed())
+	bz_assert(this->destructor_calls.not_empty());
+	for (auto const &calls : this->destructor_calls.slice(this->loop_info.destructor_stack_begin).reversed())
 	{
-		for (auto const &[src_tokens, func, val] : scope_calls.reversed())
+		for (auto const &[destruct_op, ptr, type] : calls.reversed())
 		{
-			auto const error_count = bc::emit_push_call(src_tokens, func, *this);
-			this->create_call(this->get_function(func), val);
-			bc::emit_pop_call(error_count, *this);
+			if (ptr == nullptr)
+			{
+				bc::emit_destruct_operation(*destruct_op, *this);
+			}
+			else
+			{
+				bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), *this);
+			}
+		}
+	}
+}
+
+void comptime_executor_context::emit_all_destruct_operations(void)
+{
+	bz_assert(!this->has_terminator());
+	bz_assert(this->destructor_calls.not_empty());
+	for (auto const &calls : this->destructor_calls.reversed())
+	{
+		for (auto const &[destruct_op, ptr, type] : calls.reversed())
+		{
+			if (ptr == nullptr)
+			{
+				bc::emit_destruct_operation(*destruct_op, *this);
+			}
+			else
+			{
+				bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), *this);
+			}
 		}
 	}
 }
