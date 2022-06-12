@@ -4182,10 +4182,6 @@ static val_ptr emit_bitcode(
 	auto const type = get_llvm_type(take_move_ref.expr.get_expr_type(), context);
 	auto const alloca = context.create_alloca(type);
 	auto const result = emit_bitcode<abi>(take_move_ref.expr, context, alloca);
-	if (take_move_ref.expr.is_dynamic())
-	{
-		context.push_self_destruct_operation(take_move_ref.expr.get_dynamic().destruct_op, alloca, type);
-	}
 	bz_assert(result_address == nullptr);
 	return result;
 }

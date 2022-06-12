@@ -1173,7 +1173,7 @@ static void match_expression_to_type_impl(
 		context.add_self_destruction(expr);
 		expr = ast::make_dynamic_expression(
 			expr.src_tokens,
-			ast::expression_type_kind::rvalue,
+			ast::expression_type_kind::rvalue_reference,
 			dest_container.get<ast::ts_move_reference>(),
 			ast::make_expr_take_move_reference(std::move(expr)),
 			ast::destruct_operation()

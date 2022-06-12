@@ -485,7 +485,14 @@ void bitcode_context::emit_destruct_operations(void)
 	bz_assert(this->destructor_calls.not_empty());
 	for (auto const &[destruct_op, ptr, type] : this->destructor_calls.back().reversed())
 	{
-		bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), *this);
+		if (ptr == nullptr)
+		{
+			bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_none(), *this);
+		}
+		else
+		{
+			bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), *this);
+		}
 	}
 }
 
@@ -497,7 +504,14 @@ void bitcode_context::emit_loop_destruct_operations(void)
 	{
 		for (auto const &[destruct_op, ptr, type] : calls.reversed())
 		{
-			bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), *this);
+			if (ptr == nullptr)
+			{
+				bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_none(), *this);
+			}
+			else
+			{
+				bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), *this);
+			}
 		}
 	}
 }
@@ -510,7 +524,14 @@ void bitcode_context::emit_all_destruct_operations(void)
 	{
 		for (auto const &[destruct_op, ptr, type] : calls.reversed())
 		{
-			bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), *this);
+			if (ptr == nullptr)
+			{
+				bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_none(), *this);
+			}
+			else
+			{
+				bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), *this);
+			}
 		}
 	}
 }

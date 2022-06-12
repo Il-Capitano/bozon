@@ -165,6 +165,7 @@ enum class expression_type_kind
 	lvalue_reference,
 	rvalue,
 	moved_lvalue,
+	rvalue_reference,
 	integer_literal,
 	null_literal,
 	function_name,
@@ -193,6 +194,7 @@ constexpr bool is_lvalue(expression_type_kind kind)
 constexpr bool is_rvalue(expression_type_kind kind)
 {
 	return kind == expression_type_kind::rvalue
+		|| kind == expression_type_kind::rvalue_reference
 		|| kind == expression_type_kind::moved_lvalue
 		|| kind == expression_type_kind::integer_literal
 		|| kind == expression_type_kind::null_literal;
