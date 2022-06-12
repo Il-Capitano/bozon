@@ -1031,19 +1031,18 @@ static ast::constant_value constant_value_from_global_getters(
 
 std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::execute_function(
 	lex::src_tokens const &src_tokens,
-	ast::function_body *body,
-	bz::array_view<ast::expression const> params
+	ast::expr_function_call &func_call
 )
 {
 	bz_assert(this->destructor_calls.empty());
 
-	(void)this->resolve_function(body);
+	(void)this->resolve_function(func_call.func_body);
 	std::pair<ast::constant_value, bz::vector<error>> result;
-	if (body->state == ast::resolve_state::error)
+	if (func_call.func_body->state == ast::resolve_state::error)
 	{
 		return result;
 	}
-	else if (body->state != ast::resolve_state::all && !body->has_builtin_implementation())
+	else if (func_call.func_body->state != ast::resolve_state::all && !func_call.func_body->has_builtin_implementation())
 	{
 		result.second.push_back(error{
 			warning_kind::_last,
@@ -1051,7 +1050,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
 				src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
 				suggestion_range{}, suggestion_range{},
-				bz::format("unable to call external function '{}' in a constant expression", body->get_signature())
+				bz::format("unable to call external function '{}' in a constant expression", func_call.func_body->get_signature())
 			},
 			{}, {}
 		});
@@ -1064,7 +1063,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 		auto const prev_module = this->push_module(module.get());
 
 		auto const start_index = this->functions_to_compile.size();
-		auto const [fn, global_result_getters] = bc::create_function_for_comptime_execution(body, params, *this);
+		auto const [fn, global_result_getters] = bc::create_function_for_comptime_execution(func_call, *this);
 		if (!bc::emit_necessary_functions(start_index, *this))
 		{
 			this->functions_to_compile.resize(start_index);
@@ -1080,12 +1079,12 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 		{
 			if (global_result_getters.empty())
 			{
-				result.first = constant_value_from_generic_value(call_result, body->return_type);
+				result.first = constant_value_from_generic_value(call_result, func_call.func_body->return_type);
 			}
 			else
 			{
 				auto getter_it = global_result_getters.cbegin();
-				result.first = constant_value_from_global_getters(body->return_type, getter_it, *this);
+				result.first = constant_value_from_global_getters(func_call.func_body->return_type, getter_it, *this);
 			}
 		}
 		result.second.append_move(this->consume_errors());

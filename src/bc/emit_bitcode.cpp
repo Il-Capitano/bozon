@@ -5737,9 +5737,9 @@ static void emit_bitcode(
 			case abi::pass_kind::two_registers:
 			{
 				auto const ret_type = context.current_function.second->getReturnType();
-				auto const alloca = context.create_alloca(result_type);
-				auto const result_ptr = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(ret_type, 0));
+				auto const alloca = context.create_alloca_without_lifetime_start(result_type);
 				emit_bitcode<abi>(ret_stmt.expr, context, alloca);
+				auto const result_ptr = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(ret_type, 0));
 				auto const result = context.create_load(ret_type, result_ptr);
 				context.emit_all_destruct_operations();
 				context.emit_all_end_lifetime_calls();
@@ -7090,20 +7090,43 @@ static void add_global_result_getters(
 
 template<abi::platform_abi abi>
 static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function_for_comptime_execution_impl(
-	ast::function_body *body,
-	bz::array_view<ast::expression const> params,
+	ast::expr_function_call &func_call,
 	ctx::comptime_executor_context &context
 )
 {
-	bz_assert(!body->has_builtin_implementation());
-	auto const called_fn = context.get_function(body);
-	bz_assert(called_fn != nullptr);
-
-	auto const result_type = get_llvm_type(body->return_type, context);
-	auto const void_type = llvm::Type::getVoidTy(context.get_llvm_context());
+	auto const result_type = get_llvm_type(func_call.func_body->return_type, context);
 	auto const return_result_as_global = result_type->isAggregateType();
+	auto const result_pass_type = [&]() -> llvm::Type * {
+		if (return_result_as_global)
+		{
+			return llvm::Type::getVoidTy(context.get_llvm_context());
+		}
+		else
+		{
+			auto const return_kind = context.get_pass_kind<abi>(func_call.func_body->return_type, result_type);
+			switch (return_kind)
+			{
+			case abi::pass_kind::reference:
+			case abi::pass_kind::non_trivial:
+				bz_unreachable;
+			case abi::pass_kind::value:
+				return result_type;
+			case abi::pass_kind::one_register:
+				return abi::get_one_register_type<abi>(result_type, context.get_data_layout(), context.get_llvm_context());
+			case abi::pass_kind::two_registers:
+			{
+				auto const [first_type, second_type] = abi::get_two_register_types<abi>(
+					result_type,
+					context.get_data_layout(),
+					context.get_llvm_context()
+				);
+				return llvm::StructType::get(first_type, second_type);
+			}
+			}
+		}
+	}();
 
-	auto const result_func_type = llvm::FunctionType::get(return_result_as_global ? void_type : result_type, false);
+	auto const result_func_type = llvm::FunctionType::get(result_pass_type, false);
 	std::pair<llvm::Function *, bz::vector<llvm::Function *>> result;
 	auto const symbol_name = bz::format("__anon_comptime_func_call.{}", get_unique_id());
 	auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
@@ -7113,7 +7136,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		symbol_name_ref,
 		&context.get_module()
 	);
-	if (result_type == context.get_bool_t())
+	if (result_pass_type == context.get_bool_t())
 	{
 		result.first->addRetAttr(llvm::Attribute::ZExt);
 	}
@@ -7136,64 +7159,9 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	auto const entry_bb = context.add_basic_block("entry");
 	context.builder.SetInsertPoint(entry_bb);
 
-	auto const result_kind = abi::get_pass_kind<abi>(result_type, context.get_data_layout(), context.get_llvm_context());
-
-	ast::arena_vector<llvm::Value *> args;
-	ast::arena_vector<is_byval_and_type_pair> args_is_byval;
-	args.reserve(params.size() + (result_kind == abi::pass_kind::reference ? 1 : 0));
-	args_is_byval.reserve(params.size() + (result_kind == abi::pass_kind::reference ? 1 : 0));
-
-	if (result_kind == abi::pass_kind::reference)
-	{
-		auto const output_ptr = context.create_alloca_without_lifetime_start(result_type);
-		args.push_back(output_ptr);
-		args_is_byval.push_back({ false, nullptr });
-	}
-
 	context.push_expression_scope();
-
-	for (auto const &[value, i] : params.enumerate())
-	{
-		if (ast::is_generic_parameter(body->params[i]))
-		{
-			continue;
-		}
-		auto const param_t = body->params[i].get_type().as_typespec_view();
-		auto const param_llvm_type = get_llvm_type(param_t, context);
-		if (param_t.template is<ast::ts_move_reference>())
-		{
-			auto const param_val = emit_bitcode<abi>(value, context, nullptr);
-			add_call_parameter<abi>(param_t, param_llvm_type, param_val, args, args_is_byval, context);
-		}
-		else
-		{
-			auto const param_val = ast::is_non_trivial(param_t)
-				? emit_bitcode<abi>(value, context, context.create_alloca(param_llvm_type))
-				: emit_bitcode<abi>(value, context, nullptr);
-			add_call_parameter<abi>(param_t, param_llvm_type, param_val, args, args_is_byval, context);
-		}
-	}
-
-	auto const call = context.create_call(called_fn, llvm::ArrayRef(args.data(), args.size()));
-
-	auto is_byval_it = args_is_byval.begin();
-	auto const is_byval_end = args_is_byval.end();
-	unsigned i = 0;
-
-	bz_assert(called_fn->arg_size() == call->arg_size());
-	if (result_kind == abi::pass_kind::reference)
-	{
-		call->addParamAttr(0, llvm::Attribute::getWithStructRetType(context.get_llvm_context(), result_type));
-		bz_assert(is_byval_it != is_byval_end);
-		++is_byval_it, ++i;
-	}
-	for (; is_byval_it != is_byval_end; ++is_byval_it, ++i)
-	{
-		if (is_byval_it->is_byval)
-		{
-			add_byval_attributes<abi>(call, is_byval_it->type, i, context);
-		}
-	}
+	auto const result_val = emit_bitcode<abi>(func_call.src_tokens, func_call, context, nullptr);
+	context.pop_expression_scope();
 
 	auto const no_leaks = context.builder.CreateCall(
 		context.get_comptime_function(ctx::comptime_function_kind::check_leaks),
@@ -7201,11 +7169,9 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	);
 	emit_error_assert(no_leaks, context);
 
-	context.pop_expression_scope();
-
-	if (body->return_type.is<ast::ts_array_slice>())
+	if (func_call.func_body->return_type.is<ast::ts_array_slice>())
 	{
-		emit_error(body->src_tokens, "an array slice cannot be returned from compile time execution", context);
+		emit_error(func_call.func_body->src_tokens, "an array slice cannot be returned from compile time execution", context);
 		bz_assert(!context.has_terminator());
 		context.builder.CreateRet(llvm::UndefValue::get(result.first->getReturnType()));
 	}
@@ -7219,41 +7185,14 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 			static_cast<llvm::GlobalVariable *>(global_result)->setInitializer(llvm::UndefValue::get(result_type));
 		}
 
-		switch (result_kind)
+		if (result_val.kind == val_ptr::value)
 		{
-		case abi::pass_kind::reference:
-			context.builder.CreateStore(context.create_load(result_type, args.front()), global_result);
-			break;
-		case abi::pass_kind::value:
-			if (body->return_type.is<ast::ts_lvalue_reference>())
-			{
-				bz_unreachable;
-			}
-			else
-			{
-				context.builder.CreateStore(call, global_result);
-			}
-			break;
-		case abi::pass_kind::one_register:
-		case abi::pass_kind::two_registers:
-		{
-			auto const call_result_type = call->getType();
-			if (result_type == call_result_type)
-			{
-				context.builder.CreateStore(call, global_result);
-			}
-			else
-			{
-				auto const result_ptr_cast = context.builder.CreatePointerCast(
-					global_result,
-					llvm::PointerType::get(call_result_type, 0)
-				);
-				context.builder.CreateStore(call, result_ptr_cast);
-			}
-			break;
+			context.builder.CreateStore(result_val.get_value(context.builder), global_result);
 		}
-		case abi::pass_kind::non_trivial:
-			bz_unreachable;
+		else
+		{
+			auto const size = context.get_size(result_type);
+			emit_memcpy(global_result, result_val.val, size, context);
 		}
 		context.builder.CreateRetVoid();
 		bz::vector<uint32_t> gep_indices = { 0 };
@@ -7261,51 +7200,34 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	}
 	else
 	{
-		switch (result_kind)
+		auto const ret_kind = context.template get_pass_kind<abi>(func_call.func_body->return_type, result_type);
+		switch (ret_kind)
 		{
 		case abi::pass_kind::reference:
+		case abi::pass_kind::non_trivial:
 			bz_unreachable;
 		case abi::pass_kind::value:
-			if (call->getType()->isVoidTy())
+			if (func_call.func_body->return_type.is<ast::ts_lvalue_reference>())
 			{
-				context.builder.CreateRetVoid();
-			}
-			else if (body->return_type.is<ast::ts_lvalue_reference>())
-			{
-				emit_error(body->src_tokens, "a reference cannot be returned from compile time execution", context);
+				emit_error(func_call.func_body->src_tokens, "a reference cannot be returned from compile time execution", context);
 				bz_assert(!context.has_terminator());
 				context.builder.CreateRet(llvm::UndefValue::get(result.first->getReturnType()));
 			}
 			else
 			{
-				context.builder.CreateRet(call);
+				context.builder.CreateRet(result_val.get_value(context.builder));
 			}
 			break;
 		case abi::pass_kind::one_register:
 		case abi::pass_kind::two_registers:
 		{
-			auto const call_result_type = call->getType();
-			if (result_type == call_result_type)
-			{
-				context.builder.CreateRet(call);
-			}
-			else
-			{
-				auto const result_ptr = context.create_alloca_without_lifetime_start(result_type);
-				auto const result_ptr_cast = context.builder.CreatePointerCast(
-					result_ptr,
-					llvm::PointerType::get(call_result_type, 0)
-				);
-				context.builder.CreateStore(call, result_ptr_cast);
-				context.builder.CreateRet(context.create_load(call_result_type, result_ptr));
-			}
-			break;
-		}
-		case abi::pass_kind::non_trivial:
-		{
-			emit_error(body->src_tokens, "a non-trivial type cannot be returned from compile time execution", context);
-			bz_assert(!context.has_terminator());
-			context.builder.CreateRet(llvm::UndefValue::get(result.first->getReturnType()));
+			auto const alloca = context.create_alloca_without_lifetime_start(result_type);
+			context.builder.CreateStore(result_val.get_value(context.builder), alloca);
+			auto const result_ptr = context.builder.CreatePointerCast(
+				alloca,
+				llvm::PointerType::get(result.first->getReturnType(), 0)
+			);
+			context.builder.CreateRet(context.create_load(result_pass_type, result_ptr));
 			break;
 		}
 		}
@@ -7323,8 +7245,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 }
 
 std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function_for_comptime_execution(
-	ast::function_body *body,
-	bz::array_view<ast::expression const> params,
+	ast::expr_function_call &func_call,
 	ctx::comptime_executor_context &context
 )
 {
@@ -7332,11 +7253,11 @@ std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function_for_co
 	switch (abi)
 	{
 	case abi::platform_abi::generic:
-		return create_function_for_comptime_execution_impl<abi::platform_abi::generic>(body, params, context);
+		return create_function_for_comptime_execution_impl<abi::platform_abi::generic>(func_call, context);
 	case abi::platform_abi::microsoft_x64:
-		return create_function_for_comptime_execution_impl<abi::platform_abi::microsoft_x64>(body, params, context);
+		return create_function_for_comptime_execution_impl<abi::platform_abi::microsoft_x64>(func_call, context);
 	case abi::platform_abi::systemv_amd64:
-		return create_function_for_comptime_execution_impl<abi::platform_abi::systemv_amd64>(body, params, context);
+		return create_function_for_comptime_execution_impl<abi::platform_abi::systemv_amd64>(func_call, context);
 	}
 	bz_unreachable;
 }

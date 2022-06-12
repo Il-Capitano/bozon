@@ -5653,17 +5653,12 @@ ast::identifier parse_context::make_qualified_identifier(lex::token_pos id)
 
 ast::constant_value parse_context::execute_function(
 	lex::src_tokens const &src_tokens,
-	ast::function_body *body,
-	bz::array_view<ast::expression const> params
+	ast::expr_function_call &func_call
 )
 {
 	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
 	this->global_ctx._comptime_executor.current_parse_ctx = this;
-	auto [result, errors] = this->global_ctx._comptime_executor.execute_function(
-		src_tokens,
-		body,
-		params
-	);
+	auto [result, errors] = this->global_ctx._comptime_executor.execute_function(src_tokens, func_call);
 	// bz_assert(errors.not_empty() || result.not_null() || this->has_errors());
 	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
 	if (!errors.empty())
@@ -5672,7 +5667,7 @@ ast::constant_value parse_context::execute_function(
 		{
 			error.notes.push_back(this->make_note(
 				src_tokens,
-				bz::format("while evaluating call to '{}' in a constant expression", body->get_signature())
+				bz::format("while evaluating call to '{}' in a constant expression", func_call.func_body->get_signature())
 			));
 			add_generic_requirement_notes(error.notes, *this);
 			this->global_ctx.report_error_or_warning(std::move(error));
@@ -5705,17 +5700,12 @@ ast::constant_value parse_context::execute_compound_expression(
 
 ast::constant_value parse_context::execute_function_without_error(
 	lex::src_tokens const &src_tokens,
-	ast::function_body *body,
-	bz::array_view<ast::expression const> params
+	ast::expr_function_call &func_call
 )
 {
 	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
 	this->global_ctx._comptime_executor.current_parse_ctx = this;
-	auto [result, errors] = this->global_ctx._comptime_executor.execute_function(
-		src_tokens,
-		body,
-		params
-	);
+	auto [result, errors] = this->global_ctx._comptime_executor.execute_function(src_tokens, func_call);
 	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
 	return result;
 }

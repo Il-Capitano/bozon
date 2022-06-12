@@ -2514,11 +2514,11 @@ static ast::constant_value get_default_constructed_value(
 				bz_assert(decl != nullptr);
 				if (exec_kind == function_execution_kind::force_evaluate)
 				{
-					return context.execute_function(src_tokens, &decl->body, {});
+					bz_unreachable;
 				}
 				else if (exec_kind == function_execution_kind::force_evaluate_without_error)
 				{
-					return context.execute_function_without_error(src_tokens, &decl->body, {});
+					bz_unreachable;
 				}
 				else
 				{
@@ -2581,37 +2581,17 @@ static ast::constant_value evaluate_function_call(
 	{
 		return get_default_constructed_value(original_expr.src_tokens, func_call.func_body->return_type, exec_kind, context);
 	}
-	else if (func_call.func_body->is_default_copy_constructor())
-	{
-		bz_assert(func_call.params.size() == 1);
-		if (exec_kind == function_execution_kind::force_evaluate)
-		{
-			consteval_try(func_call.params[0], context);
-		}
-		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
-		{
-			consteval_try_without_error(func_call.params[0], context);
-		}
-		if (!func_call.params[0].has_consteval_succeeded())
-		{
-			return {};
-		}
-		bz_assert(func_call.params[0].is_constant());
-		return func_call.params[0].get_constant_value();
-	}
 	else if (func_call.func_body->has_builtin_implementation())
 	{
 		return {};
 	}
 	else if (exec_kind == function_execution_kind::force_evaluate)
 	{
-		auto const body = func_call.func_body;
-		return context.execute_function(original_expr.src_tokens, body, func_call.params);
+		return context.execute_function(original_expr.src_tokens, func_call);
 	}
 	else if (exec_kind == function_execution_kind::force_evaluate_without_error)
 	{
-		auto const body = func_call.func_body;
-		return context.execute_function_without_error(original_expr.src_tokens, body, func_call.params);
+		return context.execute_function_without_error(original_expr.src_tokens, func_call);
 	}
 	else
 	{

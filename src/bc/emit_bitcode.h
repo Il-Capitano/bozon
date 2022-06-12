@@ -31,8 +31,7 @@ void resolve_global_type(ast::type_info *info, llvm::Type *type, ctx::comptime_e
 [[nodiscard]] bool emit_necessary_functions(size_t start_index, ctx::comptime_executor_context &context);
 
 std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function_for_comptime_execution(
-	ast::function_body *body,
-	bz::array_view<ast::expression const> params,
+	ast::expr_function_call &func_call,
 	ctx::comptime_executor_context &context
 );
 

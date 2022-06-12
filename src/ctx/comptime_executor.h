@@ -295,8 +295,7 @@ struct comptime_executor_context
 
 	std::pair<ast::constant_value, bz::vector<error>> execute_function(
 		lex::src_tokens const &src_tokens,
-		ast::function_body *body,
-		bz::array_view<ast::expression const> params
+		ast::expr_function_call &func_call
 	);
 	std::pair<ast::constant_value, bz::vector<error>> execute_compound_expression(ast::expr_compound &expr);
 	void initialize_optimizer(void);

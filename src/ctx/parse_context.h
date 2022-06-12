@@ -439,8 +439,7 @@ struct parse_context
 
 	ast::constant_value execute_function(
 		lex::src_tokens const &src_tokens,
-		ast::function_body *body,
-		bz::array_view<ast::expression const> params
+		ast::expr_function_call &func_call
 	);
 
 	ast::constant_value execute_compound_expression(
@@ -450,8 +449,7 @@ struct parse_context
 
 	ast::constant_value execute_function_without_error(
 		lex::src_tokens const &src_tokens,
-		ast::function_body *body,
-		bz::array_view<ast::expression const> params
+		ast::expr_function_call &func_call
 	);
 
 	ast::constant_value execute_compound_expression_without_error(
