@@ -5473,14 +5473,35 @@ static ast::expression make_destruct_expression(ast::typespec_view type, ast::ex
 
 void parse_context::add_self_destruction(ast::expression &expr)
 {
-	if (this->in_unevaluated_context)
+	if (this->in_unevaluated_context || !expr.is_dynamic())
 	{
 		return;
 	}
-
-	if (
-		expr.is_dynamic()
-		&& expr.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue
+	else if (expr.is_tuple())
+	{
+		auto &tuple = expr.get_tuple();
+		for (auto &elem : tuple.elems)
+		{
+			this->add_self_destruction(elem);
+		}
+	}
+	else if (expr.is_if_expr())
+	{
+		auto &if_expr = expr.get_if_expr();
+		this->add_self_destruction(if_expr.then_block);
+		this->add_self_destruction(if_expr.else_block);
+	}
+	else if (expr.is_switch_expr())
+	{
+		auto &switch_expr = expr.get_switch_expr();
+		for (auto &[_, case_expr] : switch_expr.cases)
+		{
+			this->add_self_destruction(case_expr);
+		}
+		this->add_self_destruction(switch_expr.default_case);
+	}
+	else if (
+		expr.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue
 		&& !ast::is_trivially_destructible(expr.get_expr_type())
 	)
 	{
@@ -5515,31 +5536,6 @@ ast::destruct_operation parse_context::make_variable_destruction(ast::decl_varia
 {
 	auto result = ast::destruct_operation();
 	result.emplace<ast::destruct_variable>(make_variable_destruction_expression(var_decl, *this));
-	return result;
-}
-
-ast::destruct_operation parse_context::make_variable_destructions(bz::array_view<ast::decl_variable * const> vars)
-{
-	if (this->in_unevaluated_context || vars.empty())
-	{
-		return ast::destruct_operation();
-	}
-
-	auto const filtered_vars = vars.filter([](auto const var) { return !ast::is_trivially_destructible(var->get_type()); });
-
-	ast::destruct_operation result;
-	auto &var_destructions = result.emplace<ast::destruct_variables>().destruct_calls;
-
-	for (auto const var_decl : filtered_vars)
-	{
-		var_destructions.push_back(make_variable_destruction_expression(var_decl, *this));
-	}
-
-	if (var_destructions.empty())
-	{
-		result.clear();
-	}
-
 	return result;
 }
 

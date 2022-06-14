@@ -430,7 +430,6 @@ struct parse_context
 
 	void add_self_destruction(ast::expression &expr);
 	ast::destruct_operation make_variable_destruction(ast::decl_variable *var_decl);
-	ast::destruct_operation make_variable_destructions(bz::array_view<ast::decl_variable * const> vars);
 
 	bool is_instantiable(ast::typespec_view ts);
 	size_t get_sizeof(ast::typespec_view ts);
