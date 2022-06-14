@@ -5849,10 +5849,7 @@ static void emit_bitcode(
 	else
 	{
 		auto const type = get_llvm_type(var_decl.get_type(), context);
-		auto const alloca = context.create_alloca_without_lifetime_start(type);
-		auto const size = context.get_size(type);
-		context.start_lifetime(alloca, size);
-		context.push_end_lifetime_call(alloca, size);
+		auto const alloca = context.create_alloca(type);
 		if (var_decl.init_expr.not_null())
 		{
 			context.push_expression_scope();
@@ -6236,10 +6233,7 @@ static void emit_function_bitcode_impl(
 				bz_assert(p.init_expr.is_constant());
 				auto const &const_expr = p.init_expr.get_constant();
 				auto const val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
-				auto const alloca = context.create_alloca_without_lifetime_start(val->getType());
-				auto const size = context.get_size(val->getType());
-				context.start_lifetime(alloca, size);
-				context.push_end_lifetime_call(alloca, size);
+				auto const alloca = context.create_alloca(val->getType());
 				context.builder.CreateStore(val, alloca);
 				add_variable_helper(p, alloca, val->getType(), context);
 				++p_it;
@@ -6272,30 +6266,22 @@ static void emit_function_bitcode_impl(
 					break;
 				case abi::pass_kind::value:
 				{
-					auto const alloca = context.create_alloca_without_lifetime_start(t);
-					auto const size = context.get_size(t);
-					context.start_lifetime(alloca, size);
+					auto const alloca = context.create_alloca(t);
 					context.builder.CreateStore(fn_it, alloca);
-					context.push_end_lifetime_call(alloca, size);
 					add_variable_helper(p, alloca, t, context);
 					break;
 				}
 				case abi::pass_kind::one_register:
 				{
-					auto const alloca = context.create_alloca_without_lifetime_start(t);
-					auto const size = context.get_size(t);
-					context.start_lifetime(alloca, size);
+					auto const alloca = context.create_alloca(t);
 					auto const alloca_cast = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(fn_it->getType(), 0));
 					context.builder.CreateStore(fn_it, alloca_cast);
-					context.push_end_lifetime_call(alloca, size);
 					add_variable_helper(p, alloca, t, context);
 					break;
 				}
 				case abi::pass_kind::two_registers:
 				{
-					auto const alloca = context.create_alloca_without_lifetime_start(t);
-					auto const size = context.get_size(t);
-					context.start_lifetime(alloca, size);
+					auto const alloca = context.create_alloca(t);
 					auto const first_val = fn_it;
 					auto const first_type = fn_it->getType();
 					++fn_it;
@@ -6309,7 +6295,6 @@ static void emit_function_bitcode_impl(
 					auto const second_address = context.create_struct_gep(struct_type, alloca_cast, 1);
 					context.builder.CreateStore(first_val, first_address);
 					context.builder.CreateStore(second_val, second_address);
-					context.push_end_lifetime_call(alloca, size);
 					add_variable_helper(p, alloca, t, context);
 					break;
 				}
@@ -6435,10 +6420,7 @@ static void emit_function_bitcode_impl(
 				bz_assert(p.init_expr.is_constant());
 				auto const &const_expr = p.init_expr.get_constant();
 				auto const val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
-				auto const alloca = context.create_alloca_without_lifetime_start(val->getType());
-				auto const size = context.get_size(val->getType());
-				context.start_lifetime(alloca, size);
-				context.push_end_lifetime_call(alloca, size);
+				auto const alloca = context.create_alloca(val->getType());
 				context.builder.CreateStore(val, alloca);
 				add_variable_helper(p, alloca, val->getType(), context);
 				++p_it;
@@ -6471,30 +6453,22 @@ static void emit_function_bitcode_impl(
 					break;
 				case abi::pass_kind::value:
 				{
-					auto const alloca = context.create_alloca_without_lifetime_start(t);
-					auto const size = context.get_size(t);
-					context.start_lifetime(alloca, size);
+					auto const alloca = context.create_alloca(t);
 					context.builder.CreateStore(fn_it, alloca);
-					context.push_end_lifetime_call(alloca, size);
 					add_variable_helper(p, alloca, t, context);
 					break;
 				}
 				case abi::pass_kind::one_register:
 				{
-					auto const alloca = context.create_alloca_without_lifetime_start(t);
-					auto const size = context.get_size(t);
-					context.start_lifetime(alloca, size);
+					auto const alloca = context.create_alloca(t);
 					auto const alloca_cast = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(fn_it->getType(), 0));
 					context.builder.CreateStore(fn_it, alloca_cast);
-					context.push_end_lifetime_call(alloca, size);
 					add_variable_helper(p, alloca, t, context);
 					break;
 				}
 				case abi::pass_kind::two_registers:
 				{
-					auto const alloca = context.create_alloca_without_lifetime_start(t);
-					auto const size = context.get_size(t);
-					context.start_lifetime(alloca, size);
+					auto const alloca = context.create_alloca(t);
 					auto const first_val = fn_it;
 					auto const first_type = fn_it->getType();
 					++fn_it;
@@ -6509,7 +6483,6 @@ static void emit_function_bitcode_impl(
 					auto const second_address = context.create_struct_gep(struct_type, alloca_cast, 1);
 					context.builder.CreateStore(first_val, first_address);
 					context.builder.CreateStore(second_val, second_address);
-					context.push_end_lifetime_call(alloca, size);
 					add_variable_helper(p, alloca, t, context);
 					break;
 				}
