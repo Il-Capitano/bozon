@@ -638,13 +638,16 @@ bool comptime_executor_context::do_error_checking(void) const
 		);
 }
 
-void comptime_executor_context::push_expression_scope(void)
+[[nodiscard]] comptime_executor_context::expression_scope_info_t comptime_executor_context::push_expression_scope(void)
 {
 	this->destructor_calls.emplace_back();
 	this->end_lifetime_calls.emplace_back();
+	auto const result = expression_scope_info_t{ this->destruct_condition };
+	this->destruct_condition = nullptr;
+	return result;
 }
 
-void comptime_executor_context::pop_expression_scope(void)
+void comptime_executor_context::pop_expression_scope(expression_scope_info_t prev_info)
 {
 	if (!this->has_terminator())
 	{
@@ -653,6 +656,20 @@ void comptime_executor_context::pop_expression_scope(void)
 	}
 	this->destructor_calls.pop_back();
 	this->end_lifetime_calls.pop_back();
+
+	this->destruct_condition = prev_info.destruct_condition;
+}
+
+[[nodiscard]] llvm::Value *comptime_executor_context::push_destruct_condition(llvm::Value *condition)
+{
+	auto const result = this->destruct_condition;
+	this->destruct_condition = condition;
+	return result;
+}
+
+void comptime_executor_context::pop_destruct_condition(llvm::Value *prev_condition)
+{
+	this->destruct_condition = prev_condition;
 }
 
 void comptime_executor_context::push_destruct_operation(ast::destruct_operation const &destruct_op)
@@ -660,7 +677,12 @@ void comptime_executor_context::push_destruct_operation(ast::destruct_operation 
 	bz_assert(this->destructor_calls.not_empty());
 	if (destruct_op.not_null())
 	{
-		this->destructor_calls.back().push_back({ &destruct_op, nullptr, nullptr });
+		this->destructor_calls.back().push_back({
+			.destruct_op = &destruct_op,
+			.ptr         = nullptr,
+			.type        = nullptr,
+			.condition   = this->destruct_condition
+		});
 	}
 }
 
@@ -669,7 +691,12 @@ void comptime_executor_context::push_self_destruct_operation(ast::destruct_opera
 	bz_assert(this->destructor_calls.not_empty());
 	if (destruct_op.not_null())
 	{
-		this->destructor_calls.back().push_back({ &destruct_op, ptr, type });
+		this->destructor_calls.back().push_back({
+			.destruct_op = &destruct_op,
+			.ptr         = ptr,
+			.type        = type,
+			.condition   = this->destruct_condition
+		});
 	}
 }
 
@@ -677,15 +704,15 @@ void comptime_executor_context::emit_destruct_operations(void)
 {
 	bz_assert(!this->has_terminator());
 	bz_assert(this->destructor_calls.not_empty());
-	for (auto const &[destruct_op, ptr, type] : this->destructor_calls.back().reversed())
+	for (auto const &[destruct_op, ptr, type, condition] : this->destructor_calls.back().reversed())
 	{
 		if (ptr == nullptr)
 		{
-			bc::emit_destruct_operation(*destruct_op, *this);
+			bc::emit_destruct_operation(*destruct_op, condition, *this);
 		}
 		else
 		{
-			bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), *this);
+			bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), condition, *this);
 		}
 	}
 }
@@ -696,15 +723,15 @@ void comptime_executor_context::emit_loop_destruct_operations(void)
 	bz_assert(this->destructor_calls.not_empty());
 	for (auto const &calls : this->destructor_calls.slice(this->loop_info.destructor_stack_begin).reversed())
 	{
-		for (auto const &[destruct_op, ptr, type] : calls.reversed())
+		for (auto const &[destruct_op, ptr, type, condition] : calls.reversed())
 		{
 			if (ptr == nullptr)
 			{
-				bc::emit_destruct_operation(*destruct_op, *this);
+				bc::emit_destruct_operation(*destruct_op, condition, *this);
 			}
 			else
 			{
-				bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), *this);
+				bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), condition, *this);
 			}
 		}
 	}
@@ -716,15 +743,15 @@ void comptime_executor_context::emit_all_destruct_operations(void)
 	bz_assert(this->destructor_calls.not_empty());
 	for (auto const &calls : this->destructor_calls.reversed())
 	{
-		for (auto const &[destruct_op, ptr, type] : calls.reversed())
+		for (auto const &[destruct_op, ptr, type, condition] : calls.reversed())
 		{
 			if (ptr == nullptr)
 			{
-				bc::emit_destruct_operation(*destruct_op, *this);
+				bc::emit_destruct_operation(*destruct_op, condition, *this);
 			}
 			else
 			{
-				bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), *this);
+				bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), condition, *this);
 			}
 		}
 	}

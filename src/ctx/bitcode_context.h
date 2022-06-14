@@ -130,8 +130,16 @@ struct bitcode_context
 	void start_lifetime(llvm::Value *ptr, size_t size);
 	void end_lifetime(llvm::Value *ptr, size_t size);
 
-	void push_expression_scope(void);
-	void pop_expression_scope(void);
+	struct expression_scope_info_t
+	{
+		llvm::Value *destruct_condition;
+	};
+
+	[[nodiscard]] expression_scope_info_t push_expression_scope(void);
+	void pop_expression_scope(expression_scope_info_t prev_info);
+
+	[[nodiscard]] llvm::Value *push_destruct_condition(llvm::Value *condition);
+	void pop_destruct_condition(llvm::Value *prev_condition);
 
 	void push_destruct_operation(ast::destruct_operation const &destruct_op);
 	void push_self_destruct_operation(ast::destruct_operation const &destruct_op, llvm::Value *ptr, llvm::Type *type);
@@ -184,6 +192,7 @@ struct bitcode_context
 		ast::destruct_operation const *destruct_op;
 		llvm::Value *ptr;
 		llvm::Type *type;
+		llvm::Value *condition;
 	};
 
 	struct end_lifetime_info_t
@@ -194,6 +203,7 @@ struct bitcode_context
 
 	bz::vector<bz::vector<destruct_operation_info_t>> destructor_calls{};
 	bz::vector<bz::vector<end_lifetime_info_t>> end_lifetime_calls{};
+	llvm::Value *destruct_condition = nullptr;
 
 	std::pair<ast::function_body const *, llvm::Function *> current_function = { nullptr, nullptr };
 	llvm::BasicBlock *alloca_bb = nullptr;
