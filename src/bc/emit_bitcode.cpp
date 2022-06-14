@@ -2497,9 +2497,11 @@ static val_ptr emit_builtin_binary_bool_and(
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
-	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(lhs_kind == ast::type_info::bool_ && rhs_kind == ast::type_info::bool_);
+	bz_assert(lhs_t.get<ast::ts_base_type>().info->kind == ast::type_info::bool_);
+	bz_assert(rhs_t.get<ast::ts_base_type>().info->kind == ast::type_info::bool_);
+
+	auto const rhs_destruct_condition = context.create_alloca_without_lifetime_start(context.get_bool_t());
+	context.builder.CreateStore(llvm::ConstantInt::getFalse(context.get_llvm_context()), rhs_destruct_condition);
 
 	// generate computation of lhs
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
@@ -2508,7 +2510,10 @@ static val_ptr emit_builtin_binary_bool_and(
 	// generate computation of rhs
 	auto const rhs_bb = context.add_basic_block("bool_and_rhs");
 	context.builder.SetInsertPoint(rhs_bb);
+	auto const prev_condition = context.push_destruct_condition(rhs_destruct_condition);
+	context.builder.CreateStore(llvm::ConstantInt::getTrue(context.get_llvm_context()), rhs_destruct_condition);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
+	context.pop_destruct_condition(prev_condition);
 	auto const rhs_bb_end = context.builder.GetInsertBlock();
 
 	auto const end_bb = context.add_basic_block("bool_and_end");
@@ -2583,9 +2588,11 @@ static val_ptr emit_builtin_binary_bool_or(
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
-	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(lhs_kind == ast::type_info::bool_ && rhs_kind == ast::type_info::bool_);
+	bz_assert(lhs_t.get<ast::ts_base_type>().info->kind == ast::type_info::bool_);
+	bz_assert(rhs_t.get<ast::ts_base_type>().info->kind == ast::type_info::bool_);
+
+	auto const rhs_destruct_condition = context.create_alloca_without_lifetime_start(context.get_bool_t());
+	context.builder.CreateStore(llvm::ConstantInt::getFalse(context.get_llvm_context()), rhs_destruct_condition);
 
 	// generate computation of lhs
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
@@ -2594,7 +2601,10 @@ static val_ptr emit_builtin_binary_bool_or(
 	// generate computation of rhs
 	auto const rhs_bb = context.add_basic_block("bool_or_rhs");
 	context.builder.SetInsertPoint(rhs_bb);
+	auto const prev_condition = context.push_destruct_condition(rhs_destruct_condition);
+	context.builder.CreateStore(llvm::ConstantInt::getTrue(context.get_llvm_context()), rhs_destruct_condition);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
+	context.pop_destruct_condition(prev_condition);
 	auto const rhs_bb_end = context.builder.GetInsertBlock();
 
 	auto const end_bb = context.add_basic_block("bool_or_end");
@@ -4817,20 +4827,20 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	context.push_expression_scope();
+	auto const prev_info = context.push_expression_scope();
 	for (auto &stmt : compound_expr.statements)
 	{
 		emit_bitcode<abi>(stmt, context);
 	}
 	if (compound_expr.final_expr.is_null())
 	{
-		context.pop_expression_scope();
+		context.pop_expression_scope(prev_info);
 		return val_ptr::get_none();
 	}
 	else
 	{
 		auto const result = emit_bitcode<abi>(compound_expr.final_expr, context, result_address);
-		context.pop_expression_scope();
+		context.pop_expression_scope(prev_info);
 		return result;
 	}
 }
@@ -4843,13 +4853,13 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	context.push_expression_scope();
+	auto const prev_info = context.push_expression_scope();
 	auto condition = emit_bitcode<abi>(if_expr.condition, context, nullptr).get_value(context.builder);
 	if (condition == nullptr)
 	{
 		condition = llvm::UndefValue::get(context.get_bool_t());
 	}
-	context.pop_expression_scope();
+	context.pop_expression_scope(prev_info);
 	// assert that the condition is an i1 (bool)
 	bz_assert(condition->getType()->isIntegerTy() && condition->getType()->getIntegerBitWidth() == 1);
 	// the original block
@@ -4870,7 +4880,9 @@ static val_ptr emit_bitcode(
 	// emit code for the then block
 	auto const then_bb = context.add_basic_block("then");
 	context.builder.SetInsertPoint(then_bb);
+	auto const then_prev_info = context.push_expression_scope();
 	auto const then_val = emit_bitcode<abi>(if_expr.then_block, context, result_address);
+	context.pop_expression_scope(then_prev_info);
 	auto const then_bb_end = context.builder.GetInsertBlock();
 
 	// emit code for the else block if there's any
@@ -4879,7 +4891,9 @@ static val_ptr emit_bitcode(
 	if (else_bb != nullptr)
 	{
 		context.builder.SetInsertPoint(else_bb);
+		auto const else_prev_info = context.push_expression_scope();
 		else_val = emit_bitcode<abi>(if_expr.else_block, context, result_address);
+		context.pop_expression_scope(else_prev_info);
 	}
 	auto const else_bb_end = else_bb ? context.builder.GetInsertBlock() : nullptr;
 
@@ -5001,7 +5015,9 @@ static val_ptr emit_bitcode(
 	if (has_default)
 	{
 		context.builder.SetInsertPoint(default_bb);
+		auto const prev_info = context.push_expression_scope();
 		auto const default_val = emit_bitcode<abi>(switch_expr.default_case, context, result_address);
+		context.pop_expression_scope(prev_info);
 		case_result_vals.push_back({ context.builder.GetInsertBlock(), default_val });
 	}
 	for (auto const &[case_vals, case_expr] : switch_expr.cases)
@@ -5017,7 +5033,9 @@ static val_ptr emit_bitcode(
 			switch_inst->addCase(const_int_val, bb);
 		}
 		context.builder.SetInsertPoint(bb);
+		auto const prev_info = context.push_expression_scope();
 		auto const case_val = emit_bitcode<abi>(case_expr, context, result_address);
+		context.pop_expression_scope(prev_info);
 		case_result_vals.push_back({ context.builder.GetInsertBlock(), case_val });
 	}
 	auto const end_bb = has_default ? context.add_basic_block("switch_end") : default_bb;
@@ -5521,16 +5539,16 @@ static void emit_bitcode(
 	auto const prev_loop_info = context.push_loop(end_bb, condition_check_bb);
 	context.builder.CreateBr(condition_check_bb);
 	context.builder.SetInsertPoint(condition_check_bb);
-	context.push_expression_scope();
+	auto const condition_prev_info = context.push_expression_scope();
 	auto const condition = emit_bitcode<abi>(while_stmt.condition, context, nullptr).get_value(context.builder);
-	context.pop_expression_scope();
+	context.pop_expression_scope(condition_prev_info);
 	auto const condition_check_end = context.builder.GetInsertBlock();
 
 	auto const while_bb = context.add_basic_block("while");
 	context.builder.SetInsertPoint(while_bb);
-	context.push_expression_scope();
+	auto const while_block_prev_info = context.push_expression_scope();
 	emit_bitcode<abi>(while_stmt.while_block, context, nullptr);
-	context.pop_expression_scope();
+	context.pop_expression_scope(while_block_prev_info);
 	if (!context.has_terminator())
 	{
 		context.builder.CreateBr(condition_check_bb);
@@ -5548,7 +5566,7 @@ static void emit_bitcode(
 	auto &context
 )
 {
-	context.push_expression_scope();
+	auto const outer_prev_info = context.push_expression_scope();
 	if (for_stmt.init.not_null())
 	{
 		emit_bitcode<abi>(for_stmt.init, context);
@@ -5560,19 +5578,19 @@ static void emit_bitcode(
 
 	context.builder.CreateBr(condition_check_bb);
 	context.builder.SetInsertPoint(condition_check_bb);
-	context.push_expression_scope();
+	auto const condition_prev_info = context.push_expression_scope();
 	auto const condition = for_stmt.condition.not_null()
 		? emit_bitcode<abi>(for_stmt.condition, context, nullptr).get_value(context.builder)
 		: llvm::ConstantInt::getTrue(context.get_llvm_context());
-	context.pop_expression_scope();
+	context.pop_expression_scope(condition_prev_info);
 	auto const condition_check_end = context.builder.GetInsertBlock();
 
 	context.builder.SetInsertPoint(iteration_bb);
 	if (for_stmt.iteration.not_null())
 	{
-		context.push_expression_scope();
+		auto const iteration_prev_info = context.push_expression_scope();
 		emit_bitcode<abi>(for_stmt.iteration, context, nullptr);
-		context.pop_expression_scope();
+		context.pop_expression_scope(iteration_prev_info);
 	}
 	if (!context.has_terminator())
 	{
@@ -5581,9 +5599,9 @@ static void emit_bitcode(
 
 	auto const for_bb = context.add_basic_block("for");
 	context.builder.SetInsertPoint(for_bb);
-	context.push_expression_scope();
+	auto const for_block_prev_info = context.push_expression_scope();
 	emit_bitcode<abi>(for_stmt.for_block, context, nullptr);
-	context.pop_expression_scope();
+	context.pop_expression_scope(for_block_prev_info);
 	if (!context.has_terminator())
 	{
 		context.builder.CreateBr(iteration_bb);
@@ -5593,7 +5611,7 @@ static void emit_bitcode(
 	context.builder.CreateCondBr(condition == nullptr ? llvm::ConstantInt::getFalse(context.get_llvm_context()) : condition, for_bb, end_bb);
 	context.builder.SetInsertPoint(end_bb);
 	context.pop_loop(prev_loop_info);
-	context.pop_expression_scope();
+	context.pop_expression_scope(outer_prev_info);
 }
 
 template<abi::platform_abi abi>
@@ -5602,7 +5620,7 @@ static void emit_bitcode(
 	auto &context
 )
 {
-	context.push_expression_scope();
+	auto const outer_prev_info = context.push_expression_scope();
 	emit_bitcode<abi>(foreach_stmt.range_var_decl, context);
 	emit_bitcode<abi>(foreach_stmt.iter_var_decl, context);
 	emit_bitcode<abi>(foreach_stmt.end_var_decl, context);
@@ -5624,22 +5642,22 @@ static void emit_bitcode(
 
 	auto const foreach_bb = context.add_basic_block("foreach");
 	context.builder.SetInsertPoint(foreach_bb);
-	context.push_expression_scope();
+	auto const iter_var_prev_info = context.push_expression_scope();
 	emit_bitcode<abi>(foreach_stmt.iter_deref_var_decl, context);
-	context.push_expression_scope();
+	auto const for_block_prev_info = context.push_expression_scope();
 	emit_bitcode<abi>(foreach_stmt.for_block, context, nullptr);
-	context.pop_expression_scope();
+	context.pop_expression_scope(for_block_prev_info);
 	if (!context.has_terminator())
 	{
 		context.builder.CreateBr(iteration_bb);
 	}
-	context.pop_expression_scope();
+	context.pop_expression_scope(iter_var_prev_info);
 
 	context.builder.SetInsertPoint(condition_check_end);
 	context.builder.CreateCondBr(condition, foreach_bb, end_bb);
 	context.builder.SetInsertPoint(end_bb);
 	context.pop_loop(prev_loop_info);
-	context.pop_expression_scope();
+	context.pop_expression_scope(outer_prev_info);
 }
 
 template<abi::platform_abi abi>
@@ -5767,9 +5785,9 @@ static void emit_bitcode(
 	auto &context
 )
 {
-	context.push_expression_scope();
+	auto const prev_info = context.push_expression_scope();
 	emit_bitcode<abi>(expr_stmt.expr, context, nullptr);
-	context.pop_expression_scope();
+	context.pop_expression_scope(prev_info);
 }
 
 static void add_variable_helper(
@@ -5829,9 +5847,9 @@ static void emit_bitcode(
 			}
 			else
 			{
-				context.push_expression_scope();
+				auto const prev_info = context.push_expression_scope();
 				auto const result = emit_bitcode<abi>(var_decl.init_expr, context, nullptr);
-				context.pop_expression_scope();
+				context.pop_expression_scope(prev_info);
 				return result;
 			}
 		}();
@@ -5852,9 +5870,9 @@ static void emit_bitcode(
 		auto const alloca = context.create_alloca(type);
 		if (var_decl.init_expr.not_null())
 		{
-			context.push_expression_scope();
+			auto const prev_info = context.push_expression_scope();
 			emit_bitcode<abi>(var_decl.init_expr, context, alloca);
-			context.pop_expression_scope();
+			context.pop_expression_scope(prev_info);
 		}
 		else
 		{
@@ -6205,7 +6223,7 @@ static void emit_function_bitcode_impl(
 	ast::arena_vector<llvm::Value *> params = {};
 	params.reserve(func_body.params.size());
 
-	context.push_expression_scope();
+	auto const outer_prev_info = context.push_expression_scope();
 	// initialization of function parameters
 	{
 		auto p_it = func_body.params.begin();
@@ -6310,7 +6328,7 @@ static void emit_function_bitcode_impl(
 	{
 		emit_bitcode<abi>(stmt, context);
 	}
-	context.pop_expression_scope();
+	context.pop_expression_scope(outer_prev_info);
 
 	if (!context.has_terminator())
 	{
@@ -6392,7 +6410,7 @@ static void emit_function_bitcode_impl(
 	bz::vector<llvm::Value *> params = {};
 	params.reserve(func_body.params.size());
 
-	context.push_expression_scope();
+	auto const outer_prev_info = context.push_expression_scope();
 	// initialization of function parameters
 	{
 		auto p_it = func_body.params.begin();
@@ -6498,7 +6516,7 @@ static void emit_function_bitcode_impl(
 	{
 		emit_bitcode<abi>(stmt, context);
 	}
-	context.pop_expression_scope();
+	context.pop_expression_scope(outer_prev_info);
 
 	if (!context.has_terminator())
 	{
@@ -6885,10 +6903,16 @@ bool emit_necessary_functions(size_t start_index, ctx::comptime_executor_context
 }
 
 template<abi::platform_abi abi>
-static void emit_destruct_operation_impl(ast::destruct_operation const &destruct_op, val_ptr value, auto &context)
+static void emit_destruct_operation_impl(
+	ast::destruct_operation const &destruct_op,
+	val_ptr value,
+	llvm::Value *condition,
+	auto &context
+)
 {
 	if (destruct_op.is<ast::destruct_variables>())
 	{
+		bz_assert(condition == nullptr);
 		for (auto const &destruct_call : destruct_op.get<ast::destruct_variables>().destruct_calls.reversed())
 		{
 			if (destruct_call.not_null())
@@ -6899,15 +6923,35 @@ static void emit_destruct_operation_impl(ast::destruct_operation const &destruct
 	}
 	else if (destruct_op.is<ast::destruct_variable>())
 	{
+		bz_assert(condition == nullptr);
 		emit_bitcode<abi>(*destruct_op.get<ast::destruct_variable>().destruct_call, context, nullptr);
 	}
 	else if (destruct_op.is<ast::destruct_self>())
 	{
 		bz_assert(destruct_op.get<ast::destruct_self>().destruct_call->not_null());
 		bz_assert(value.val != nullptr);
-		auto const prev_value = context.push_value_reference(value);
-		emit_bitcode<abi>(*destruct_op.get<ast::destruct_self>().destruct_call, context, nullptr);
-		context.pop_value_reference(prev_value);
+		if (condition != nullptr)
+		{
+			bz_assert(condition->getType()->isPointerTy());
+			auto const destruct_bb = context.add_basic_block("conditional_destruct");
+			auto const end_bb = context.add_basic_block("conditional_destruct_end");
+			auto const condition_val = context.create_load(context.get_bool_t(), condition);
+			context.builder.CreateCondBr(condition_val, destruct_bb, end_bb);
+
+			context.builder.SetInsertPoint(destruct_bb);
+			auto const prev_value = context.push_value_reference(value);
+			emit_bitcode<abi>(*destruct_op.get<ast::destruct_self>().destruct_call, context, nullptr);
+			context.pop_value_reference(prev_value);
+			context.builder.CreateBr(end_bb);
+
+			context.builder.SetInsertPoint(end_bb);
+		}
+		else
+		{
+			auto const prev_value = context.push_value_reference(value);
+			emit_bitcode<abi>(*destruct_op.get<ast::destruct_self>().destruct_call, context, nullptr);
+			context.pop_value_reference(prev_value);
+		}
 	}
 	else
 	{
@@ -6916,73 +6960,91 @@ static void emit_destruct_operation_impl(ast::destruct_operation const &destruct
 	}
 }
 
-void emit_destruct_operation(ast::destruct_operation const &destruct_op, ctx::bitcode_context &context)
+void emit_destruct_operation(
+	ast::destruct_operation const &destruct_op,
+	llvm::Value *condition,
+	ctx::bitcode_context &context
+)
 {
 	auto const abi = context.get_platform_abi();
 	switch (abi)
 	{
 	case abi::platform_abi::generic:
-		emit_destruct_operation_impl<abi::platform_abi::generic>(destruct_op, val_ptr::get_none(), context);
+		emit_destruct_operation_impl<abi::platform_abi::generic>(destruct_op, val_ptr::get_none(), condition, context);
 		return;
 	case abi::platform_abi::microsoft_x64:
-		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(destruct_op, val_ptr::get_none(), context);
+		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(destruct_op, val_ptr::get_none(), condition, context);
 		return;
 	case abi::platform_abi::systemv_amd64:
-		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(destruct_op, val_ptr::get_none(), context);
+		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(destruct_op, val_ptr::get_none(), condition, context);
 		return;
 	}
 	bz_unreachable;
 }
 
-void emit_destruct_operation(ast::destruct_operation const &destruct_op, ctx::comptime_executor_context &context)
+void emit_destruct_operation(
+	ast::destruct_operation const &destruct_op,
+	llvm::Value *condition,
+	ctx::comptime_executor_context &context
+)
 {
 	auto const abi = context.get_platform_abi();
 	switch (abi)
 	{
 	case abi::platform_abi::generic:
-		emit_destruct_operation_impl<abi::platform_abi::generic>(destruct_op, val_ptr::get_none(), context);
+		emit_destruct_operation_impl<abi::platform_abi::generic>(destruct_op, val_ptr::get_none(), condition, context);
 		return;
 	case abi::platform_abi::microsoft_x64:
-		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(destruct_op, val_ptr::get_none(), context);
+		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(destruct_op, val_ptr::get_none(), condition, context);
 		return;
 	case abi::platform_abi::systemv_amd64:
-		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(destruct_op, val_ptr::get_none(), context);
+		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(destruct_op, val_ptr::get_none(), condition, context);
 		return;
 	}
 	bz_unreachable;
 }
 
-void emit_destruct_operation(ast::destruct_operation const &destruct_op, val_ptr value, ctx::bitcode_context &context)
+void emit_destruct_operation(
+	ast::destruct_operation const &destruct_op,
+	val_ptr value,
+	llvm::Value *condition,
+	ctx::bitcode_context &context
+)
 {
 	auto const abi = context.get_platform_abi();
 	switch (abi)
 	{
 	case abi::platform_abi::generic:
-		emit_destruct_operation_impl<abi::platform_abi::generic>(destruct_op, value, context);
+		emit_destruct_operation_impl<abi::platform_abi::generic>(destruct_op, value, condition, context);
 		return;
 	case abi::platform_abi::microsoft_x64:
-		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(destruct_op, value, context);
+		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(destruct_op, value, condition, context);
 		return;
 	case abi::platform_abi::systemv_amd64:
-		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(destruct_op, value, context);
+		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(destruct_op, value, condition, context);
 		return;
 	}
 	bz_unreachable;
 }
 
-void emit_destruct_operation(ast::destruct_operation const &destruct_op, val_ptr value, ctx::comptime_executor_context &context)
+void emit_destruct_operation(
+	ast::destruct_operation const &destruct_op,
+	val_ptr value,
+	llvm::Value *condition,
+	ctx::comptime_executor_context &context
+)
 {
 	auto const abi = context.get_platform_abi();
 	switch (abi)
 	{
 	case abi::platform_abi::generic:
-		emit_destruct_operation_impl<abi::platform_abi::generic>(destruct_op, value, context);
+		emit_destruct_operation_impl<abi::platform_abi::generic>(destruct_op, value, condition, context);
 		return;
 	case abi::platform_abi::microsoft_x64:
-		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(destruct_op, value, context);
+		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(destruct_op, value, condition, context);
 		return;
 	case abi::platform_abi::systemv_amd64:
-		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(destruct_op, value, context);
+		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(destruct_op, value, condition, context);
 		return;
 	}
 	bz_unreachable;
@@ -7132,9 +7194,9 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	auto const entry_bb = context.add_basic_block("entry");
 	context.builder.SetInsertPoint(entry_bb);
 
-	context.push_expression_scope();
+	auto const prev_info = context.push_expression_scope();
 	auto const result_val = emit_bitcode<abi>(func_call.src_tokens, func_call, context, nullptr);
-	context.pop_expression_scope();
+	context.pop_expression_scope(prev_info);
 
 	auto const no_leaks = context.builder.CreateCall(
 		context.get_comptime_function(ctx::comptime_function_kind::check_leaks),
@@ -7285,8 +7347,8 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	context.builder.SetInsertPoint(entry_bb);
 
 	// we push two scopes here, one for the compound expression, and one for the enclosing function
-	context.push_expression_scope();
-	context.push_expression_scope();
+	auto const outer_prev_info = context.push_expression_scope();
+	auto const inner_prev_info = context.push_expression_scope();
 	for (auto &stmt : expr.statements)
 	{
 		emit_bitcode<abi>(stmt, context);
@@ -7321,7 +7383,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 			ret_val = result_val;
 		}
 	}
-	context.pop_expression_scope();
+	context.pop_expression_scope(inner_prev_info);
 
 	auto const no_leaks = context.builder.CreateCall(
 		context.get_comptime_function(ctx::comptime_function_kind::check_leaks),
@@ -7337,7 +7399,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	{
 		context.builder.CreateRet(ret_val);
 	}
-	context.pop_expression_scope();
+	context.pop_expression_scope(outer_prev_info);
 
 	context.builder.SetInsertPoint(alloca_bb);
 	context.builder.CreateBr(entry_bb);
