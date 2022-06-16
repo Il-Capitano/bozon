@@ -125,11 +125,6 @@ using unresolved_expr_t = node<
 >;
 
 
-struct destruct_variables
-{
-	arena_vector<expression> destruct_calls;
-};
-
 struct destruct_variable
 {
 	ast_unique_ptr<expression> destruct_call;
@@ -156,7 +151,7 @@ struct destruct_self
 	destruct_self &operator = (destruct_self &&other) = default;
 };
 
-using destruct_operation = bz::variant<destruct_variables, destruct_variable, destruct_self>;
+using destruct_operation = bz::variant<destruct_variable, destruct_self>;
 
 
 enum class expression_type_kind

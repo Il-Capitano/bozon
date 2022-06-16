@@ -6918,18 +6918,7 @@ static void emit_destruct_operation_impl(
 	auto &context
 )
 {
-	if (destruct_op.is<ast::destruct_variables>())
-	{
-		bz_assert(condition == nullptr);
-		for (auto const &destruct_call : destruct_op.get<ast::destruct_variables>().destruct_calls.reversed())
-		{
-			if (destruct_call.not_null())
-			{
-				emit_bitcode<abi>(destruct_call, context, nullptr);
-			}
-		}
-	}
-	else if (destruct_op.is<ast::destruct_variable>())
+	if (destruct_op.is<ast::destruct_variable>())
 	{
 		bz_assert(condition == nullptr);
 		emit_bitcode<abi>(*destruct_op.get<ast::destruct_variable>().destruct_call, context, nullptr);
