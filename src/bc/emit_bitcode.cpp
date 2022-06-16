@@ -4855,7 +4855,7 @@ static val_ptr emit_bitcode(
 {
 	auto const prev_info = context.push_expression_scope();
 	auto condition = emit_bitcode<abi>(if_expr.condition, context, nullptr).get_value(context.builder);
-	if (condition == nullptr)
+	if (is_comptime<decltype(context)> && condition == nullptr)
 	{
 		condition = llvm::UndefValue::get(context.get_bool_t());
 	}
@@ -4874,6 +4874,10 @@ static val_ptr emit_bitcode(
 		else if (if_expr.else_block.not_null())
 		{
 			return emit_bitcode<abi>(if_expr.else_block, context, result_address);
+		}
+		else
+		{
+			return val_ptr::get_none();
 		}
 	}
 
@@ -5001,7 +5005,9 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
+	auto const matched_value_prev_info = context.push_expression_scope();
 	auto const matched_value = emit_bitcode<abi>(switch_expr.matched_expr, context, nullptr).get_value(context.builder);
+	context.pop_expression_scope(matched_value_prev_info);
 	bz_assert(matched_value->getType()->isIntegerTy());
 	auto const default_bb = context.add_basic_block("switch_else");
 	auto const has_default = switch_expr.default_case.not_null();
@@ -5410,6 +5416,7 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
+	bz_assert(const_expr.kind != ast::expression_type_kind::noreturn);
 	if (
 		const_expr.kind == ast::expression_type_kind::type_name
 		|| const_expr.kind == ast::expression_type_kind::none
@@ -5441,6 +5448,7 @@ static val_ptr emit_bitcode(
 	else
 	{
 		auto const const_val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
+		bz_assert(const_val != nullptr);
 		result.consteval_val = const_val;
 		result.type = const_val->getType();
 	}
@@ -7210,15 +7218,13 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		bz_assert(!context.has_terminator());
 		context.builder.CreateRet(llvm::UndefValue::get(result.first->getReturnType()));
 	}
-	else if (return_result_as_global && !result_type->isVoidTy())
+	else if (return_result_as_global)
 	{
 		auto const symbol_name = bz::format("__anon_func_call_result.{}", get_unique_id());
 		auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
 		auto const global_result = context.current_module->getOrInsertGlobal(symbol_name_ref, result_type);
-		{
-			bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(global_result) != nullptr);
-			static_cast<llvm::GlobalVariable *>(global_result)->setInitializer(llvm::UndefValue::get(result_type));
-		}
+		bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(global_result) != nullptr);
+		static_cast<llvm::GlobalVariable *>(global_result)->setInitializer(llvm::UndefValue::get(result_type));
 
 		if (result_val.kind == val_ptr::value)
 		{
@@ -7229,6 +7235,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 			auto const size = context.get_size(result_type);
 			emit_memcpy(global_result, result_val.val, size, context);
 		}
+
 		context.builder.CreateRetVoid();
 		bz::vector<uint32_t> gep_indices = { 0 };
 		add_global_result_getters<abi>(result.second, global_result, result_type, result_type, gep_indices, context);
@@ -7306,18 +7313,53 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	auto const result_type = expr.final_expr.is_null() || expr.final_expr.is_typename()
 		? llvm::Type::getVoidTy(context.get_llvm_context())
 		: get_llvm_type(expr.final_expr.get_expr_type(), context);
-	auto const void_type = llvm::Type::getVoidTy(context.get_llvm_context());
 	auto const return_result_as_global = result_type->isAggregateType();
+	auto const result_pass_type = [&]() -> llvm::Type * {
+		if (result_type->isVoidTy())
+		{
+			return result_type;
+		}
+		else if (return_result_as_global)
+		{
+			return llvm::Type::getVoidTy(context.get_llvm_context());
+		}
+		else
+		{
+			bz_assert(expr.final_expr.not_null());
+			auto const return_kind = context.get_pass_kind<abi>(expr.final_expr.get_expr_type(), result_type);
+			switch (return_kind)
+			{
+			case abi::pass_kind::reference:
+			case abi::pass_kind::non_trivial:
+				bz_unreachable;
+			case abi::pass_kind::value:
+				return result_type;
+			case abi::pass_kind::one_register:
+				return abi::get_one_register_type<abi>(result_type, context.get_data_layout(), context.get_llvm_context());
+			case abi::pass_kind::two_registers:
+			{
+				auto const [first_type, second_type] = abi::get_two_register_types<abi>(
+					result_type,
+					context.get_data_layout(),
+					context.get_llvm_context()
+				);
+				return llvm::StructType::get(first_type, second_type);
+			}
+			}
+		}
+	}();
 
-	auto const func_t = llvm::FunctionType::get(return_result_as_global ? void_type : result_type, false);
+	auto const result_func_type = llvm::FunctionType::get(result_pass_type, false);
 	std::pair<llvm::Function *, bz::vector<llvm::Function *>> result;
 	auto const symbol_name = expr.final_expr.src_tokens.pivot == nullptr
 		? bz::format("__anon_comptime_compound_expr.null.{}", get_unique_id())
 		: bz::format("__anon_comptime_compound_expr.{}.{}", expr.final_expr.src_tokens.pivot->src_pos.line, get_unique_id());
 	auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
 	result.first = llvm::Function::Create(
-		func_t, llvm::Function::ExternalLinkage,
-		symbol_name_ref, &context.get_module()
+		result_func_type,
+		llvm::Function::ExternalLinkage,
+		symbol_name_ref,
+		&context.get_module()
 	);
 	if (result_type == context.get_bool_t())
 	{
@@ -7330,10 +7372,6 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	auto const error_bb = context.add_basic_block("error");
 	context.error_bb = error_bb;
 	context.builder.SetInsertPoint(error_bb);
-	context.builder.CreateCall(
-		context.get_comptime_function(ctx::comptime_function_kind::check_leaks),
-		{}
-	);
 	if (result.first->getReturnType()->isVoidTy())
 	{
 		context.builder.CreateRetVoid();
@@ -7346,44 +7384,9 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	auto const entry_bb = context.add_basic_block("entry");
 	context.builder.SetInsertPoint(entry_bb);
 
-	// we push two scopes here, one for the compound expression, and one for the enclosing function
-	auto const outer_prev_info = context.push_expression_scope();
-	auto const inner_prev_info = context.push_expression_scope();
-	for (auto &stmt : expr.statements)
-	{
-		emit_bitcode<abi>(stmt, context);
-	}
-
-	llvm::Value *ret_val = nullptr;
-	if (expr.final_expr.is_null())
-	{
-		// nothing, return void
-	}
-	else if (!context.has_terminator())
-	{
-		if (return_result_as_global && !result_type->isVoidTy())
-		{
-			auto const symbol_name = bz::format("__anon_compound_expr_result.{}", get_unique_id());
-			auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
-			auto const global_result = context.current_module->getOrInsertGlobal(symbol_name_ref, result_type);
-			{
-				bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(global_result) != nullptr);
-				static_cast<llvm::GlobalVariable *>(global_result)->setInitializer(llvm::UndefValue::get(result_type));
-			}
-
-			emit_bitcode<abi>(expr.final_expr, context, global_result);
-			// context.builder.CreateRetVoid();
-			bz::vector<uint32_t> gep_indices = { 0 };
-			add_global_result_getters<abi>(result.second, global_result, result_type, result_type, gep_indices, context);
-		}
-		else
-		{
-			auto const result_val = emit_bitcode<abi>(expr.final_expr, context, nullptr).get_value(context.builder);
-			// context.builder.CreateRet(result_val);
-			ret_val = result_val;
-		}
-	}
-	context.pop_expression_scope(inner_prev_info);
+	auto const prev_info = context.push_expression_scope();
+	auto const result_val = emit_bitcode<abi>(expr.final_expr.src_tokens, expr, context, nullptr);
+	context.pop_expression_scope(prev_info);
 
 	auto const no_leaks = context.builder.CreateCall(
 		context.get_comptime_function(ctx::comptime_function_kind::check_leaks),
@@ -7391,15 +7394,59 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	);
 	emit_error_assert(no_leaks, context);
 
-	if (ret_val == nullptr)
+	if (expr.final_expr.is_null())
 	{
 		context.builder.CreateRetVoid();
 	}
+	else if (return_result_as_global)
+	{
+		auto const symbol_name = bz::format("__anon_compound_expr_result.{}", get_unique_id());
+		auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
+		auto const global_result = context.current_module->getOrInsertGlobal(symbol_name_ref, result_type);
+		bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(global_result) != nullptr);
+		static_cast<llvm::GlobalVariable *>(global_result)->setInitializer(llvm::UndefValue::get(result_type));
+
+		if (result_val.kind == val_ptr::value)
+		{
+			context.builder.CreateStore(result_val.get_value(context.builder), global_result);
+		}
+		else
+		{
+			auto const size = context.get_size(result_type);
+			emit_memcpy(global_result, result_val.val, size, context);
+		}
+
+		context.builder.CreateRetVoid();
+		bz::vector<uint32_t> gep_indices = { 0 };
+		add_global_result_getters<abi>(result.second, global_result, result_type, result_type, gep_indices, context);
+	}
 	else
 	{
-		context.builder.CreateRet(ret_val);
+		auto const result_expr_type = expr.final_expr.get_expr_type();
+		auto const ret_kind = context.template get_pass_kind<abi>(result_expr_type, result_type);
+		switch (ret_kind)
+		{
+		case abi::pass_kind::reference:
+		case abi::pass_kind::non_trivial:
+			bz_unreachable;
+		case abi::pass_kind::value:
+			bz_assert(!result_expr_type.is<ast::ts_lvalue_reference>());
+			context.builder.CreateRet(result_val.get_value(context.builder));
+			break;
+		case abi::pass_kind::one_register:
+		case abi::pass_kind::two_registers:
+		{
+			auto const alloca = context.create_alloca_without_lifetime_start(result_type);
+			context.builder.CreateStore(result_val.get_value(context.builder), alloca);
+			auto const result_ptr = context.builder.CreatePointerCast(
+				alloca,
+				llvm::PointerType::get(result.first->getReturnType(), 0)
+			);
+			context.builder.CreateRet(context.create_load(result_pass_type, result_ptr));
+			break;
+		}
+		}
 	}
-	context.pop_expression_scope(outer_prev_info);
 
 	context.builder.SetInsertPoint(alloca_bb);
 	context.builder.CreateBr(entry_bb);
