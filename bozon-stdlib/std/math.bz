@@ -59,6 +59,18 @@ export function tgamma = __builtin_tgamma_f64;
 export function lgamma = __builtin_lgamma_f32;
 export function lgamma = __builtin_lgamma_f64;
 
+export function min(a, b) -> typeof a
+{
+	static_assert(typeof a == typeof b, "mismatched types in std::min");
+	return if (a < b) { a } else { b };
+}
+
+export function max(a, b) -> typeof a
+{
+	static_assert(typeof a == typeof b, "mismatched types in std::min");
+	return if (a > b) { a } else { b };
+}
+
 // math constants
 
 export consteval pi_f64 : float64 = 3.1415926535897932;
