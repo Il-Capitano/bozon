@@ -637,41 +637,48 @@ static ast::expression resolve_expr(
 		);
 	}
 
-	auto const expr_kind = switch_expr.cases
-		.transform([](auto const &case_) {
-			bz_assert(case_.expr.is_constant_or_dynamic());
-			auto const kind = case_.expr.is_constant()
-				? case_.expr.get_constant().kind
-				: case_.expr.get_dynamic().kind;
-			switch (kind)
-			{
-			case ast::expression_type_kind::none:
-			case ast::expression_type_kind::noreturn:
-				return kind;
-			default:
-				return ast::expression_type_kind::switch_expr;
-			}
-		})
-		.reduce(ast::expression_type_kind::noreturn, [](auto const lhs, auto const rhs) {
-			switch (lhs)
+	auto const get_expr_kind = [](auto const &expr) {
+		bz_assert(expr.is_constant_or_dynamic());
+		auto const kind = expr.get_expr_type_and_kind().second;
+		switch (kind)
+		{
+		case ast::expression_type_kind::none:
+		case ast::expression_type_kind::noreturn:
+			return kind;
+		default:
+			return ast::expression_type_kind::switch_expr;
+		}
+	};
+
+	auto const expr_kind_reduce = [](auto const lhs, auto const rhs) {
+		switch (lhs)
+		{
+		case ast::expression_type_kind::switch_expr:
+			return lhs;
+		case ast::expression_type_kind::none:
+			switch (rhs)
 			{
 			case ast::expression_type_kind::switch_expr:
-				return lhs;
 			case ast::expression_type_kind::none:
-				switch (rhs)
-				{
-				case ast::expression_type_kind::switch_expr:
-				case ast::expression_type_kind::none:
-					return rhs;
-				default:
-					return lhs;
-				}
-			case ast::expression_type_kind::noreturn:
 				return rhs;
 			default:
-				bz_unreachable;
+				return lhs;
 			}
-		});
+		case ast::expression_type_kind::noreturn:
+			return rhs;
+		default:
+			bz_unreachable;
+		}
+	};
+
+	auto const start_kind = switch_expr.default_case.not_null()
+		? expr_kind_reduce(ast::expression_type_kind::noreturn, get_expr_kind(switch_expr.default_case))
+		: ast::expression_type_kind::noreturn;
+
+	auto const expr_kind = switch_expr.cases
+		.member<&ast::switch_case::expr>()
+		.transform(get_expr_kind)
+		.reduce(start_kind, expr_kind_reduce);
 
 	if (expr_kind == ast::expression_type_kind::switch_expr)
 	{
