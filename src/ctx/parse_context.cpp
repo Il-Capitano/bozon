@@ -3389,6 +3389,18 @@ static ast::expression make_expr_function_call_from_body(
 			ast::destruct_operation()
 		);
 	}
+	else if (body->is_default_copy_constructor())
+	{
+		bz_assert(args.size() == 1);
+		args[0].src_tokens = src_tokens;
+		return context.make_copy_construction(std::move(args[0]));
+	}
+	else if (body->is_default_move_constructor())
+	{
+		bz_assert(args.size() == 1);
+		args[0].src_tokens = src_tokens;
+		return context.make_move_construction(std::move(args[0]));
+	}
 
 	auto &ret_t = body->return_type;
 	if (ret_t.is_typename())
@@ -4003,14 +4015,6 @@ static ast::expression make_base_type_constructor_call_expression(
 				src_tokens,
 				ast::make_expr_function_call(src_tokens, std::move(args), nullptr, ast::resolve_order::regular)
 			);
-		}
-		else if (best_body->is_default_copy_constructor())
-		{
-			bz_assert(
-				args.size() == 1
-				&& ast::remove_const_or_consteval(args[0].get_expr_type()) == ast::make_base_type_typespec({}, best_body->constructor_or_destructor_of)
-			);
-			return context.make_copy_construction(std::move(args[0]));
 		}
 		else
 		{
@@ -4755,23 +4759,60 @@ ast::expression parse_context::make_cast_expression(
 	if (expr.is_if_expr())
 	{
 		auto &if_expr = expr.get_if_expr();
-		if_expr.then_block = this->make_cast_expression(src_tokens, std::move(if_expr.then_block), type);
-		if_expr.else_block = this->make_cast_expression(src_tokens, std::move(if_expr.else_block), std::move(type));
+		auto const then_block_src_tokens = if_expr.then_block.src_tokens;
+		if_expr.then_block = this->make_cast_expression(then_block_src_tokens, std::move(if_expr.then_block), type);
+		auto const else_block_src_tokens = if_expr.else_block.src_tokens;
+		if_expr.else_block = this->make_cast_expression(else_block_src_tokens, std::move(if_expr.else_block), std::move(type));
+
+		expr.src_tokens = src_tokens;
 		return expr;
 	}
-
-	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
-
-	if (is_builtin_type(expr_type))
+	else if (expr.is_switch_expr())
 	{
-		auto result = make_builtin_cast(src_tokens, std::move(expr), std::move(type), *this);
-		result.src_tokens = src_tokens;
-		return result;
+		auto &switch_expr = expr.get_switch_expr();
+		if (switch_expr.default_case.not_null())
+		{
+			auto const default_case_src_tokens = switch_expr.default_case.src_tokens;
+			switch_expr.default_case = this->make_cast_expression(default_case_src_tokens, std::move(switch_expr.default_case), type);
+		}
+
+		for (auto &[_, case_expr] : switch_expr.cases)
+		{
+			auto const case_src_tokens = case_expr.src_tokens;
+			case_expr = this->make_cast_expression(case_src_tokens, std::move(case_expr), type);
+		}
+
+		expr.src_tokens = src_tokens;
+		return expr;
 	}
 	else
 	{
-		this->report_error(src_tokens, bz::format("invalid cast to type '{}'", type));
-		return ast::make_error_expression(src_tokens, ast::make_expr_cast(std::move(expr), std::move(type)));
+		auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
+
+		if (ast::remove_const_or_consteval(expr_type) == type)
+		{
+			if (ast::is_lvalue(expr_type_kind))
+			{
+				expr.src_tokens = src_tokens;
+				return this->make_copy_construction(std::move(expr));
+			}
+			else
+			{
+				expr.src_tokens = src_tokens;
+				return expr;
+			}
+		}
+		else if (is_builtin_type(expr_type))
+		{
+			auto result = make_builtin_cast(src_tokens, std::move(expr), std::move(type), *this);
+			result.src_tokens = src_tokens;
+			return result;
+		}
+		else
+		{
+			this->report_error(src_tokens, bz::format("invalid cast to type '{}'", type));
+			return ast::make_error_expression(src_tokens, ast::make_expr_cast(std::move(expr), std::move(type)));
+		}
 	}
 }
 
