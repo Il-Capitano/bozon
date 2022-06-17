@@ -2994,7 +2994,31 @@ static ast::constant_value guaranteed_evaluate_expr(
 			auto &aggregate = aggregate_init_expr.type.is<ast::ts_array>()
 				? result.emplace<ast::constant_value::array>()
 				: result.emplace<ast::constant_value::aggregate>();
+			aggregate.reserve(aggregate_init_expr.exprs.size());
 			for (auto const &expr : aggregate_init_expr.exprs)
+			{
+				aggregate.emplace_back(expr.get_constant_value());
+			}
+			return result;
+		},
+		[&context](ast::expr_aggregate_default_construct &aggregate_default_construct_expr) -> ast::constant_value {
+			bool is_consteval = true;
+			for (auto &expr : aggregate_default_construct_expr.default_construct_exprs)
+			{
+				consteval_guaranteed(expr, context);
+				is_consteval = is_consteval && expr.has_consteval_succeeded();
+			}
+			if (!is_consteval)
+			{
+				return {};
+			}
+
+			ast::constant_value result{};
+			auto &aggregate = aggregate_default_construct_expr.type.is<ast::ts_tuple>()
+				? result.emplace<ast::constant_value::tuple>()
+				: result.emplace<ast::constant_value::aggregate>();
+			aggregate.reserve(aggregate_default_construct_expr.default_construct_exprs.size());
+			for (auto const &expr : aggregate_default_construct_expr.default_construct_exprs)
 			{
 				aggregate.emplace_back(expr.get_constant_value());
 			}
@@ -3400,7 +3424,31 @@ static ast::constant_value try_evaluate_expr(
 			auto &aggregate = aggregate_init_expr.type.is<ast::ts_array>()
 				? result.emplace<ast::constant_value::array>()
 				: result.emplace<ast::constant_value::aggregate>();
+			aggregate.reserve(aggregate_init_expr.exprs.size());
 			for (auto const &expr : aggregate_init_expr.exprs)
+			{
+				aggregate.emplace_back(expr.get_constant_value());
+			}
+			return result;
+		},
+		[&context](ast::expr_aggregate_default_construct &aggregate_default_construct_expr) -> ast::constant_value {
+			bool is_consteval = true;
+			for (auto &expr : aggregate_default_construct_expr.default_construct_exprs)
+			{
+				consteval_try(expr, context);
+				is_consteval = is_consteval && expr.has_consteval_succeeded();
+			}
+			if (!is_consteval)
+			{
+				return {};
+			}
+
+			ast::constant_value result{};
+			auto &aggregate = aggregate_default_construct_expr.type.is<ast::ts_tuple>()
+				? result.emplace<ast::constant_value::tuple>()
+				: result.emplace<ast::constant_value::aggregate>();
+			aggregate.reserve(aggregate_default_construct_expr.default_construct_exprs.size());
+			for (auto const &expr : aggregate_default_construct_expr.default_construct_exprs)
 			{
 				aggregate.emplace_back(expr.get_constant_value());
 			}
@@ -3809,7 +3857,31 @@ static ast::constant_value try_evaluate_expr_without_error(
 			auto &aggregate = aggregate_init_expr.type.is<ast::ts_array>()
 				? result.emplace<ast::constant_value::array>()
 				: result.emplace<ast::constant_value::aggregate>();
+			aggregate.reserve(aggregate_init_expr.exprs.size());
 			for (auto const &expr : aggregate_init_expr.exprs)
+			{
+				aggregate.emplace_back(expr.get_constant_value());
+			}
+			return result;
+		},
+		[&context](ast::expr_aggregate_default_construct &aggregate_default_construct_expr) -> ast::constant_value {
+			bool is_consteval = true;
+			for (auto &expr : aggregate_default_construct_expr.default_construct_exprs)
+			{
+				consteval_try_without_error(expr, context);
+				is_consteval = is_consteval && expr.has_consteval_succeeded();
+			}
+			if (!is_consteval)
+			{
+				return {};
+			}
+
+			ast::constant_value result{};
+			auto &aggregate = aggregate_default_construct_expr.type.is<ast::ts_tuple>()
+				? result.emplace<ast::constant_value::tuple>()
+				: result.emplace<ast::constant_value::aggregate>();
+			aggregate.reserve(aggregate_default_construct_expr.default_construct_exprs.size());
+			for (auto const &expr : aggregate_default_construct_expr.default_construct_exprs)
 			{
 				aggregate.emplace_back(expr.get_constant_value());
 			}
@@ -4471,16 +4543,25 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			));
 		},
 		[&notes](ast::expr_aggregate_init const &aggregate_init_expr) {
-			bool any_failed = false;
 			for (auto const &expr : aggregate_init_expr.exprs)
 			{
 				if (expr.has_consteval_failed())
 				{
-					any_failed = true;
 					get_consteval_fail_notes_helper(expr, notes);
 				}
 			}
-			bz_assert(any_failed);
+		},
+		[&notes](ast::expr_aggregate_default_construct const &aggregate_default_construct_expr) {
+			for (auto const &expr : aggregate_default_construct_expr.default_construct_exprs)
+			{
+				if (expr.has_consteval_failed())
+				{
+					auto const type = expr.get_expr_type();
+					notes.emplace_back(ctx::parse_context::make_note(
+						expr.src_tokens, bz::format("default construction of a value of type '{}' is not a constant expression", type)
+					));
+				}
+			}
 		},
 		[&expr, &notes](ast::expr_aggregate_copy_construct const &aggregate_copy_construct_expr) {
 			if (aggregate_copy_construct_expr.copied_value.has_consteval_failed())

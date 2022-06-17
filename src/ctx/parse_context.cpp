@@ -4034,114 +4034,6 @@ static ast::expression make_base_type_constructor_call_expression(
 	}
 }
 
-static ast::expression make_default_constructor_call_expression(
-	lex::src_tokens const &src_tokens,
-	ast::typespec_view called_type,
-	ast::arena_vector<ast::expression> args,
-	parse_context &context
-)
-{
-	if (called_type.is<ast::ts_pointer>())
-	{
-		return ast::make_constant_expression(
-			src_tokens,
-			ast::expression_type_kind::rvalue, called_type,
-			ast::constant_value(ast::internal::null_t{}),
-			ast::make_expr_builtin_default_construct(called_type)
-		);
-	}
-	else if (called_type.is<ast::ts_array_slice>())
-	{
-		return ast::make_dynamic_expression(
-			src_tokens,
-			ast::expression_type_kind::rvalue, called_type,
-			ast::make_expr_builtin_default_construct(called_type),
-			ast::destruct_operation()
-		);
-	}
-	else if (called_type.is<ast::ts_tuple>())
-	{
-		auto const types = called_type.get<ast::ts_tuple>().types.as_array_view();
-		if (types.is_any([](auto const &type) { return !ast::is_default_constructible(type); }))
-		{
-			context.report_error(
-				src_tokens,
-				bz::format("tuple type '{}' is not default constructible", called_type),
-				types
-					.filter([](auto const &type) { return !ast::is_default_constructible(type); })
-					.transform([&](auto const &type) {
-						return parse_context::make_note(
-							src_tokens,
-							bz::format("tuple element type '{}' is not default constructible", type)
-						);
-					})
-					.collect(types.size())
-			);
-			return ast::make_error_expression(
-				src_tokens,
-				ast::make_expr_function_call(src_tokens, std::move(args), nullptr, ast::resolve_order::regular)
-			);
-		}
-		else
-		{
-			auto values = types.transform([&](auto const &type) {
-				return context.make_function_call_expression(
-					src_tokens,
-					ast::type_as_expression(type),
-					{}
-				);
-			}).collect<ast::arena_vector>();
-			return ast::make_dynamic_expression(
-				src_tokens,
-				ast::expression_type_kind::tuple, called_type,
-				ast::make_expr_tuple(std::move(values)),
-				ast::destruct_operation()
-			);
-		}
-	}
-	else if (called_type.is<ast::ts_array>())
-	{
-		auto const elem_type = called_type.get<ast::ts_array>().elem_type.as_typespec_view();
-		if (!ast::is_default_constructible(elem_type))
-		{
-			context.report_error(
-				src_tokens,
-				bz::format("array type '{}' is not default constructible", called_type),
-				{ context.make_note(
-					src_tokens,
-					bz::format("array element type '{}' is not default constructible", elem_type)
-				) }
-			);
-			return ast::make_error_expression(
-				src_tokens,
-				ast::make_expr_function_call(src_tokens, std::move(args), nullptr, ast::resolve_order::regular)
-			);
-		}
-		else
-		{
-			auto ctor_call = context.make_function_call_expression(src_tokens, ast::type_as_expression(elem_type), {});
-			return ast::make_dynamic_expression(
-				src_tokens,
-				ast::expression_type_kind::rvalue, called_type,
-				ast::make_expr_array_default_construct(called_type, std::move(ctor_call)),
-				ast::destruct_operation()
-			);
-		}
-	}
-	else
-	{
-		bz_assert(!ast::is_default_constructible(called_type));
-		context.report_error(
-			src_tokens,
-			bz::format("value of type '{}' is not default constructible", called_type)
-		);
-		return ast::make_error_expression(
-			src_tokens,
-			ast::make_expr_function_call(src_tokens, std::move(args), nullptr, ast::resolve_order::regular)
-		);
-	}
-}
-
 static ast::expression make_constructor_call_expression(
 	lex::src_tokens const &src_tokens,
 	ast::expression called,
@@ -4156,7 +4048,7 @@ static ast::expression make_constructor_call_expression(
 	}
 	else if (args.empty())
 	{
-		return make_default_constructor_call_expression(src_tokens, called_type, std::move(args), context);
+		return context.make_default_construction(src_tokens, called_type);
 	}
 	else if (args.size() == 1)
 	{
@@ -5025,6 +4917,241 @@ ast::expression parse_context::make_generic_type_instantiation_expression(
 		ast::constant_value(ast::make_base_type_typespec(src_tokens, info)),
 		ast::make_expr_generic_type_instantiation(info)
 	);
+}
+
+static ast::expression make_tuple_default_construction(
+	lex::src_tokens const &src_tokens,
+	ast::typespec_view type,
+	parse_context &context
+)
+{
+	bz_assert(type.is<ast::ts_tuple>());
+	auto const types = type.get<ast::ts_tuple>().types.as_array_view();
+	if (!ast::is_default_constructible(type))
+	{
+		context.report_error(
+			src_tokens,
+			bz::format("tuple type '{}' is not default constructible", type),
+			types
+				.filter([](auto const &type) { return !ast::is_default_constructible(type); })
+				.transform([&](auto const &elem_type) {
+					return parse_context::make_note(
+						src_tokens,
+						bz::format("tuple element type '{}' is not default constructible", elem_type)
+					);
+				})
+				.collect()
+		);
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_aggregate_default_construct(type, ast::arena_vector<ast::expression>())
+		);
+	}
+
+	auto const default_construct_exprs = types
+		.transform([&](auto const &elem_type) { return context.make_default_construction(src_tokens, elem_type); })
+		.collect<ast::arena_vector>();
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::rvalue, type,
+		ast::make_expr_aggregate_default_construct(type, std::move(default_construct_exprs)),
+		ast::destruct_operation()
+	);
+}
+
+static ast::expression make_array_default_construction(
+	lex::src_tokens const &src_tokens,
+	ast::typespec_view type,
+	parse_context &context
+)
+{
+	bz_assert(type.is<ast::ts_array>());
+	auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
+	if (!ast::is_default_constructible(type))
+	{
+		bz_assert(!ast::is_default_constructible(elem_type));
+		context.report_error(
+			src_tokens,
+			bz::format("array type '{}' is not default constructible", type),
+			{ context.make_note(
+				src_tokens,
+				bz::format("array element type '{}' is not default constructible", elem_type)
+			) }
+		);
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_array_default_construct(type, ast::expression())
+		);
+	}
+
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::rvalue, type,
+		ast::make_expr_array_default_construct(type, context.make_default_construction(src_tokens, elem_type)),
+		ast::destruct_operation()
+	);
+}
+
+static ast::expression make_builtin_default_construction(
+	lex::src_tokens const &src_tokens,
+	ast::typespec_view type,
+	parse_context &context
+)
+{
+	if (!ast::is_default_constructible(type))
+	{
+		context.report_error(
+			src_tokens,
+			bz::format("type '{}' is not default constructible", type)
+		);
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_builtin_default_construct(type)
+		);
+	}
+
+	if (type.is<ast::ts_pointer>())
+	{
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue, type,
+			ast::constant_value(ast::internal::null_t{}),
+			ast::make_expr_builtin_default_construct(type)
+		);
+	}
+	else if (type.is<ast::ts_array_slice>())
+	{
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue, type,
+			ast::make_expr_builtin_default_construct(type),
+			ast::destruct_operation()
+		);
+	}
+	else
+	{
+		bz_assert(type.is<ast::ts_base_type>());
+		auto const info = type.get<ast::ts_base_type>().info;
+		auto value = [&]() {
+			switch (info->kind)
+			{
+			case ast::type_info::int8_:
+			case ast::type_info::int16_:
+			case ast::type_info::int32_:
+			case ast::type_info::int64_:
+				return ast::constant_value(int64_t());
+			case ast::type_info::uint8_:
+			case ast::type_info::uint16_:
+			case ast::type_info::uint32_:
+			case ast::type_info::uint64_:
+				return ast::constant_value(uint64_t());
+			case ast::type_info::float32_:
+				return ast::constant_value(float32_t());
+			case ast::type_info::float64_:
+				return ast::constant_value(float64_t());
+			case ast::type_info::char_:
+				return ast::constant_value(bz::u8char());
+			case ast::type_info::str_:
+				return ast::constant_value(bz::u8string());
+			case ast::type_info::bool_:
+				return ast::constant_value(bool());
+			case ast::type_info::null_t_:
+				return ast::constant_value(ast::internal::null_t());
+			default:
+				bz_unreachable;
+			}
+		}();
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue, type,
+			std::move(value),
+			ast::make_expr_builtin_default_construct(type)
+		);
+	}
+}
+
+static ast::expression make_struct_default_construction(
+	lex::src_tokens const &src_tokens,
+	ast::typespec_view type,
+	parse_context &context
+)
+{
+	bz_assert(type.is<ast::ts_base_type>());
+	auto const info = type.get<ast::ts_base_type>().info;
+
+	if (!info->is_default_constructible())
+	{
+		context.report_error(
+			src_tokens,
+			bz::format("type '{}' is not default constructible", type)
+		);
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_aggregate_default_construct(type, ast::arena_vector<ast::expression>())
+		);
+	}
+
+	if (info->default_constructor != nullptr)
+	{
+		return make_expr_function_call_from_body(
+			src_tokens,
+			&info->default_constructor->body,
+			{},
+			context,
+			ast::resolve_order::regular
+		);
+	}
+	else
+	{
+		auto const member_default_construction_exprs = info->member_variables
+			.transform([&](auto const member) { return context.make_default_construction(src_tokens, member->get_type()); })
+			.collect<ast::arena_vector>();
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue, type,
+			ast::make_expr_aggregate_default_construct(type, std::move(member_default_construction_exprs)),
+			ast::destruct_operation()
+		);
+	}
+}
+
+ast::expression parse_context::make_default_construction(lex::src_tokens const &src_tokens, ast::typespec_view type)
+{
+	type = ast::remove_const_or_consteval(type);
+	if (type.is<ast::ts_tuple>())
+	{
+		return make_tuple_default_construction(src_tokens, type, *this);
+	}
+	else if (type.is<ast::ts_array>())
+	{
+		return make_array_default_construction(src_tokens, type, *this);
+	}
+	else if (type.is<ast::ts_pointer>() || type.is<ast::ts_array_slice>())
+	{
+		return make_builtin_default_construction(src_tokens, type, *this);
+	}
+	else if (type.is<ast::ts_base_type>())
+	{
+		auto const info = type.get<ast::ts_base_type>().info;
+		if (info->state < ast::resolve_state::all)
+		{
+			this->add_to_resolve_queue(src_tokens, *info);
+			resolve::resolve_type_info(*info, *this);
+			this->pop_resolve_queue();
+		}
+		if (info->kind == ast::type_info::aggregate || info->kind == ast::type_info::forward_declaration)
+		{
+			return make_struct_default_construction(src_tokens, type, *this);
+		}
+		else
+		{
+			return make_builtin_default_construction(src_tokens, type, *this);
+		}
+	}
+	else
+	{
+		bz_unreachable;
+	}
 }
 
 static ast::expression make_tuple_copy_construction(

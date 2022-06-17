@@ -712,35 +712,10 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 			);
 			var_decl.state = ast::resolve_state::error;
 		}
-		else if (var_decl.get_type().is<ast::ts_base_type>())
+		else
 		{
-			auto const info = var_decl.get_type().get<ast::ts_base_type>().info;
-			auto const def_ctor = info->default_constructor != nullptr
-				? info->default_constructor
-				: info->default_default_constructor.get();
-			if (def_ctor != nullptr)
-			{
-				var_decl.init_expr = ast::make_dynamic_expression(
-					var_decl.src_tokens,
-					ast::expression_type_kind::rvalue,
-					var_decl.get_type(),
-					ast::make_expr_function_call(
-						var_decl.src_tokens,
-						ast::arena_vector<ast::expression>{},
-						&def_ctor->body,
-						ast::resolve_order::regular
-					),
-					ast::destruct_operation()
-				);
-				resolve::consteval_guaranteed(var_decl.init_expr, context);
-			}
-			else
-			{
-				context.report_error(
-					var_decl.src_tokens,
-					bz::format("variable type '{}' does not have a default constructor", var_decl.get_type())
-				);
-			}
+			var_decl.init_expr = context.make_default_construction(var_decl.src_tokens, var_decl.get_type());
+			resolve::consteval_guaranteed(var_decl.init_expr, context);
 		}
 	}
 	if (

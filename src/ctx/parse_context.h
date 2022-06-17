@@ -425,6 +425,7 @@ struct parse_context
 		ast::arena_vector<ast::expression> args
 	);
 
+	ast::expression make_default_construction(lex::src_tokens const &src_tokens, ast::typespec_view type);
 	ast::expression make_copy_construction(ast::expression expr);
 	ast::expression make_move_construction(ast::expression expr);
 

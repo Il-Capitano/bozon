@@ -30,13 +30,16 @@ struct expr_take_reference;
 struct expr_take_move_reference;
 struct expr_aggregate_init;
 
-struct expr_aggregate_copy_construct;
-struct expr_aggregate_move_construct;
+struct expr_aggregate_default_construct;
 struct expr_array_default_construct;
-struct expr_array_copy_construct;
-struct expr_array_move_construct;
 struct expr_builtin_default_construct;
+
+struct expr_aggregate_copy_construct;
+struct expr_array_copy_construct;
 struct expr_builtin_copy_construct;
+
+struct expr_aggregate_move_construct;
+struct expr_array_move_construct;
 struct expr_trivial_relocate;
 
 struct expr_aggregate_destruct;
@@ -81,13 +84,14 @@ using expr_t = node<
 	expr_take_reference,
 	expr_take_move_reference,
 	expr_aggregate_init,
-	expr_aggregate_copy_construct,
-	expr_aggregate_move_construct,
+	expr_aggregate_default_construct,
 	expr_array_default_construct,
-	expr_array_copy_construct,
-	expr_array_move_construct,
 	expr_builtin_default_construct,
+	expr_aggregate_copy_construct,
+	expr_array_copy_construct,
 	expr_builtin_copy_construct,
+	expr_aggregate_move_construct,
+	expr_array_move_construct,
 	expr_trivial_relocate,
 	expr_aggregate_destruct,
 	expr_array_destruct,
@@ -540,31 +544,17 @@ struct expr_aggregate_init
 	{}
 };
 
-struct expr_aggregate_copy_construct
+struct expr_aggregate_default_construct
 {
-	expression               copied_value;
-	arena_vector<expression> copy_exprs;
+	typespec                 type;
+	arena_vector<expression> default_construct_exprs;
 
-	expr_aggregate_copy_construct(
-		expression               _copied_value,
-		arena_vector<expression> _copy_exprs
+	expr_aggregate_default_construct(
+		typespec                 _type,
+		arena_vector<expression> _default_construct_exprs
 	)
-		: copied_value(std::move(_copied_value)),
-		  copy_exprs  (std::move(_copy_exprs))
-	{}
-};
-
-struct expr_aggregate_move_construct
-{
-	expression               moved_value;
-	arena_vector<expression> move_exprs;
-
-	expr_aggregate_move_construct(
-		expression               _moved_value,
-		arena_vector<expression> _move_exprs
-	)
-		: moved_value(std::move(_moved_value)),
-		  move_exprs (std::move(_move_exprs))
+		: type(std::move(_type)),
+		  default_construct_exprs(std::move(_default_construct_exprs))
 	{}
 };
 
@@ -582,6 +572,29 @@ struct expr_array_default_construct
 	{}
 };
 
+struct expr_builtin_default_construct
+{
+	typespec type;
+
+	expr_builtin_default_construct(typespec _type)
+		: type(std::move(_type))
+	{}
+};
+
+struct expr_aggregate_copy_construct
+{
+	expression               copied_value;
+	arena_vector<expression> copy_exprs;
+
+	expr_aggregate_copy_construct(
+		expression               _copied_value,
+		arena_vector<expression> _copy_exprs
+	)
+		: copied_value(std::move(_copied_value)),
+		  copy_exprs  (std::move(_copy_exprs))
+	{}
+};
+
 struct expr_array_copy_construct
 {
 	expression copied_value;
@@ -596,6 +609,29 @@ struct expr_array_copy_construct
 	{}
 };
 
+struct expr_builtin_copy_construct
+{
+	expression copied_value;
+
+	expr_builtin_copy_construct(expression _copied_value)
+		: copied_value(std::move(_copied_value))
+	{}
+};
+
+struct expr_aggregate_move_construct
+{
+	expression               moved_value;
+	arena_vector<expression> move_exprs;
+
+	expr_aggregate_move_construct(
+		expression               _moved_value,
+		arena_vector<expression> _move_exprs
+	)
+		: moved_value(std::move(_moved_value)),
+		  move_exprs (std::move(_move_exprs))
+	{}
+};
+
 struct expr_array_move_construct
 {
 	expression moved_value;
@@ -607,24 +643,6 @@ struct expr_array_move_construct
 	)
 		: moved_value(std::move(_moved_value)),
 		  move_expr  (std::move(_move_expr))
-	{}
-};
-
-struct expr_builtin_default_construct
-{
-	typespec type;
-
-	expr_builtin_default_construct(typespec _type)
-		: type(std::move(_type))
-	{}
-};
-
-struct expr_builtin_copy_construct
-{
-	expression copied_value;
-
-	expr_builtin_copy_construct(expression _copied_value)
-		: copied_value(std::move(_copied_value))
 	{}
 };
 
@@ -991,13 +1009,14 @@ def_make_fn(expr_t, expr_cast)
 def_make_fn(expr_t, expr_take_reference)
 def_make_fn(expr_t, expr_take_move_reference)
 def_make_fn(expr_t, expr_aggregate_init)
-def_make_fn(expr_t, expr_aggregate_copy_construct)
-def_make_fn(expr_t, expr_aggregate_move_construct)
+def_make_fn(expr_t, expr_aggregate_default_construct)
 def_make_fn(expr_t, expr_array_default_construct)
-def_make_fn(expr_t, expr_array_copy_construct)
-def_make_fn(expr_t, expr_array_move_construct)
 def_make_fn(expr_t, expr_builtin_default_construct)
+def_make_fn(expr_t, expr_aggregate_copy_construct)
+def_make_fn(expr_t, expr_array_copy_construct)
 def_make_fn(expr_t, expr_builtin_copy_construct)
+def_make_fn(expr_t, expr_aggregate_move_construct)
+def_make_fn(expr_t, expr_array_move_construct)
 def_make_fn(expr_t, expr_trivial_relocate)
 def_make_fn(expr_t, expr_aggregate_destruct)
 def_make_fn(expr_t, expr_array_destruct)
