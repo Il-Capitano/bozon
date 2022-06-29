@@ -1194,6 +1194,16 @@ void match_expression_to_variable(
 	else
 	{
 		match_expression_to_type(expr, var_decl.get_type(), context);
+		if (!ast::remove_const_or_consteval(ast::remove_lvalue_reference(var_decl.get_type())).is<ast::ts_tuple>())
+		{
+			context.report_error(
+				var_decl.src_tokens,
+				bz::format("invalid type '{}' for tuple decomposition", var_decl.get_type())
+			);
+			var_decl.get_type().clear();
+			return;
+		}
+
 		auto const var_type_without_lvalue_ref = ast::remove_lvalue_reference(var_decl.get_type());
 		set_type(
 			var_decl, ast::remove_const_or_consteval(var_type_without_lvalue_ref),
