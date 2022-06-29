@@ -20,8 +20,9 @@ constexpr auto Wall_indicies = []() {
 	return result;
 }();
 
-static constexpr auto warning_group_id = ctcli::group_id_t::_0;
-static constexpr auto opt_group_id     = ctcli::group_id_t::_1;
+static constexpr auto warning_group_id  = ctcli::group_id_t::_0;
+static constexpr auto opt_group_id      = ctcli::group_id_t::_1;
+static constexpr auto code_gen_group_id = ctcli::group_id_t::_2;
 
 template<>
 inline constexpr bz::array ctcli::option_group<warning_group_id> = []() {
@@ -61,9 +62,9 @@ inline constexpr bz::array ctcli::option_group<opt_group_id> = []() {
 	}
 
 	static_assert(bz::meta::is_same<size_t, uint64_t>);
-	result[i++] = ctcli::create_group_element("max-iter-count=<count>", "Control the maximum number of pass iterations (default=1)", ctcli::arg_type::uint64);
-	result[i++] = ctcli::create_group_element("opt-level=<level>", "Set optimization level (0-3) (default=0)", ctcli::arg_type::uint32);
-	result[i++] = ctcli::create_group_element("size-opt-level=<level>", "Set size optimization level (0-2) (default=0)", ctcli::arg_type::uint32);
+	result[i++] = ctcli::create_group_element("max-iter-count=<count>",     "Control the maximum number of pass iterations (default=1)",     ctcli::arg_type::uint64);
+	result[i++] = ctcli::create_group_element("opt-level=<level>",          "Set optimization level (0-3) (default=0)",                      ctcli::arg_type::uint32);
+	result[i++] = ctcli::create_group_element("size-opt-level=<level>",     "Set size optimization level (0-2) (default=0)",                 ctcli::arg_type::uint32);
 	result[i++] = ctcli::create_group_element("comptime-opt-level=<level>", "Set optimization level for compile time execution (default=0)", ctcli::arg_type::uint32);
 
 	bz_assert(i == result.size());
@@ -79,6 +80,11 @@ inline constexpr bz::array ctcli::option_group_alias<opt_group_id> = {
 };
 
 template<>
+inline constexpr bz::array ctcli::option_group<code_gen_group_id> = {
+	ctcli::create_group_element("panic-on-unreachable", "Call '__builtin_panic' if unreachable is hit (default=true)"),
+};
+
+template<>
 inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def> = {
 	ctcli::create_option("-V, --version",                         "Print compiler version"),
 	ctcli::create_option("-I, --import-dir <dir>",                "Add <dir> as an import directory", ctcli::arg_type::string),
@@ -86,28 +92,29 @@ inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def>
 	ctcli::create_option("-D, --define <option>",                 "Set <option> for compilation", ctcli::arg_type::string),
 	ctcli::create_option("--emit={obj|asm|llvm-bc|llvm-ir|null}", "Emit the specified code type or nothing (default=obj)"),
 	ctcli::create_option("--target=<target-triple>",              "Set compilation target to <target-triple>", ctcli::arg_type::string),
-	ctcli::create_option("--no-panic-on-unreachable",             "Don't call '__builtin_panic()' if unreachable is hit"),
 
 	ctcli::create_hidden_option("--stdlib-dir <dir>",             "Specify the standard library directory", ctcli::arg_type::string),
 	ctcli::create_hidden_option("--x86-asm-syntax={att|intel}",   "Assembly syntax used for x86 (default=att)"),
 	ctcli::create_hidden_option("--profile",                      "Measure time for compilation steps"),
-	ctcli::create_hidden_option("--debug-ir-output",              "Emit an LLVM IR file alongside the regular output"),
-	ctcli::create_hidden_option("--debug-comptime-ir-output",     "Emit an LLVM IR file used in compile time code execution"),
 	ctcli::create_hidden_option("--no-error-highlight",           "Disable printing of highlighted source in error messages"),
 	ctcli::create_hidden_option("--error-report-tab-size=<size>", "Set tab size in error reporting (default=4)", ctcli::arg_type::uint64),
 	ctcli::create_hidden_option("--use-interpreter",              "Use the LLVM Interpreter for compile time code execution even when JIT is available"),
 
+	ctcli::create_undocumented_option("--debug-ir-output",              "Emit an LLVM IR file alongside the regular output"),
+	ctcli::create_undocumented_option("--debug-comptime-ir-output",     "Emit an LLVM IR file used in compile time code execution"),
 	ctcli::create_undocumented_option("--force-use-jit",        "Use the LLVM JIT for compile time code execution even if the target may not support it"),
 	ctcli::create_undocumented_option("--return-zero-on-error", "Return 0 exit code even if there were build errors"),
 
-	ctcli::create_group_option("-W, --warn <warning>",     "Enable the specified <warning>",      warning_group_id, "warnings"),
-	ctcli::create_group_option("-O, --opt <optimization>", "Enable the specified <optimization>", opt_group_id,     "optimizations"),
+	ctcli::create_group_option("-W, --warn <warning>",     "Enable the specified <warning>",      warning_group_id,  "warnings"),
+	ctcli::create_group_option("-O, --opt <optimization>", "Enable the specified <optimization>", opt_group_id,      "optimizations"),
+	ctcli::create_group_option("-C, --code-gen <option>",  "Set code generation option",          code_gen_group_id, "code generation options"),
 };
 
 template<> inline constexpr bool ctcli::add_verbose_option<ctcli::options_id_t::def> = true;
 
 template<> inline constexpr bool ctcli::is_array_like<ctcli::option("--import-dir")> = true;
 template<> inline constexpr bool ctcli::is_array_like<ctcli::option("--define")>     = true;
+template<> inline constexpr bool ctcli::is_array_like<ctcli::option("--opt")>        = true;
 template<> inline constexpr bool ctcli::is_array_like<ctcli::group_element("--warn error")> = true;
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--version")>                  = &display_version;
@@ -116,7 +123,6 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--outp
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--define")>                   = &defines;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--emit")>                     = &emit_file_type;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--target")>                   = &target;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-panic-on-unreachable")>  = &no_panic_on_unreachable;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--stdlib-dir")>               = &stdlib_dir;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--x86-asm-syntax")>           = &x86_asm_syntax;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--profile")>                  = &do_profile;
@@ -155,12 +161,12 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element(
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn comptime-warning")>         = &warnings[static_cast<size_t>(ctx::warning_kind::comptime_warning)];
 static_assert(static_cast<size_t>(ctx::warning_kind::_last) == 24);
 
-template<> inline constexpr bool ctcli::is_array_like<ctcli::option("--opt")> = true;
-
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt max-iter-count")>     = &max_opt_iter_count;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt opt-level")>          = &opt_level;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt size-opt-level")>     = &size_opt_level;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt comptime-opt-level")> = &comptime_opt_level;
+
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-unreachable")> = &panic_on_unreachable;
 
 template<>
 inline constexpr auto ctcli::argument_parse_function<ctcli::option("--emit")> = [](bz::u8string_view arg) -> std::optional<emit_type> {

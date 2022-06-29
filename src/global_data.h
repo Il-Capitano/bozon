@@ -90,7 +90,7 @@ inline bool debug_comptime_ir_output = false;
 inline bool use_interpreter = false;
 inline bool force_use_jit = false;
 inline bool do_verbose = false;
-inline bool no_panic_on_unreachable = false;
+inline bool panic_on_unreachable = true;
 inline bool return_zero_on_error = false;
 
 inline bz::u8string target;
