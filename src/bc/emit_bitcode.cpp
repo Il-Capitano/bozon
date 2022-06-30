@@ -289,27 +289,20 @@ static void add_call_parameter(
 		switch (pass_kind)
 		{
 		case abi::pass_kind::reference:
-			if (
-				param.kind == val_ptr::reference
-				&& abi::get_pass_by_reference_attributes<abi>().contains(llvm::Attribute::ByVal)
-			)
+			if (param.kind == val_ptr::reference)
 			{
-				// there's no need to provide a seperate copy for a byval argument,
-				// as a copy is made at the call site automatically
-				// see: https://reviews.llvm.org/D79636
+				// the argument expression must be an rvalue here, meaning that the reference
+				// is unique, so we can pass it safely along
+				//
+				// on SystemV these parameters have an extra byval attribute, which doesn't need a copy
+				// in the first place.   see: https://reviews.llvm.org/D79636
 				(params.*params_push)(param.val);
 			}
 			else
 			{
 				auto const alloca = context.create_alloca(param_llvm_type);
-				if (param.kind == val_ptr::reference)
-				{
-					emit_memcpy(alloca, param.val, context.get_size(param_llvm_type), context);
-				}
-				else
-				{
-					context.builder.CreateStore(param.get_value(context.builder), alloca);
-				}
+				bz_assert(param.kind == val_ptr::value);
+				context.builder.CreateStore(param.get_value(context.builder), alloca);
 				(params.*params_push)(alloca);
 			}
 			(params_is_byval.*byval_push)({ true, param_llvm_type });
