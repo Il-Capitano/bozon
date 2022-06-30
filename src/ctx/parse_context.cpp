@@ -4714,6 +4714,12 @@ ast::expression parse_context::make_member_access_expression(
 		}
 
 		auto const info = type.get<ast::ts_base_type>().info;
+		if (info->state < ast::resolve_state::all)
+		{
+			this->add_to_resolve_queue(src_tokens, *info);
+			resolve::resolve_type_info(*info, *this);
+			this->pop_resolve_queue();
+		}
 		bz_assert(info->scope.is_global());
 		auto id = ast::make_identifier(member);
 		auto const symbol = find_id_in_global_scope(info->scope.get_global(), id, *this);
