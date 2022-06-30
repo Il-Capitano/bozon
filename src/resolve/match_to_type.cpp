@@ -340,14 +340,20 @@ static match_level_t get_strict_type_match_level(
 	}
 	else if (dest.is<ast::ts_array>() && source.is<ast::ts_array>())
 	{
-		if (dest.get<ast::ts_array>().size != source.get<ast::ts_array>().size)
+		auto const &dest_array_type = dest.get<ast::ts_array>();
+		auto const &source_array_type = source.get<ast::ts_array>();
+		if (dest_array_type.size == 0)
+		{
+			modifier_match_level += 1;
+		}
+		else if (dest_array_type.size != source_array_type.size)
 		{
 			return match_level_t{};
 		}
 
 		return get_strict_type_match_level(
-			dest.get<ast::ts_array>().elem_type,
-			source.get<ast::ts_array>().elem_type,
+			dest_array_type.elem_type,
+			source_array_type.elem_type,
 			reference_match, base_type_match,
 			false, propagate_const, false
 		) + (modifier_match_level + 1);
@@ -653,7 +659,11 @@ match_level_t get_type_match_level(
 	// const T -> match to T (no need to worry about const)
 	dest = ast::remove_const_or_consteval(dest);
 
-	if (expr.is_if_expr())
+	if (expr.is<ast::expanded_variadic_expression>() || expr.is_placeholder_literal())
+	{
+		return match_level_t{};
+	}
+	else if (expr.is_if_expr())
 	{
 		return get_if_expr_type_match_level(dest, expr.get_if_expr(), context);
 	}

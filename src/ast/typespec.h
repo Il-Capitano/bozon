@@ -188,7 +188,7 @@ struct ts_function
 
 struct ts_array
 {
-	uint64_t size;
+	uint64_t size; // 0 if it's a placeholder
 	typespec elem_type;
 };
 

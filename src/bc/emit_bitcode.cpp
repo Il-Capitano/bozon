@@ -1204,6 +1204,18 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
+	ast::expr_placeholder_literal const &,
+	auto &,
+	llvm::Value *
+)
+{
+	// this is not a valid expression at this point
+	bz_unreachable;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
 	ast::expr_tuple const &tuple_expr,
 	auto &context,
 	llvm::Value *result_address

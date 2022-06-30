@@ -142,10 +142,15 @@ static bz::meta::conditional<get_inner, expr_t, expression> const &get_expr_kind
 	}
 }
 
+static bool is_expr_kind_helper(expression const &expr, expression_type_kind kind)
+{
+	return (expr.is<constant_expression>() && expr.get<constant_expression>().kind == kind)
+		|| (expr.is<dynamic_expression>() && expr.get<dynamic_expression>().kind == kind);
+}
+
 bool expression::is_tuple(void) const noexcept
 {
-	return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::tuple)
-		|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::tuple);
+	return is_expr_kind_helper(*this, expression_type_kind::tuple);
 }
 
 expr_tuple &expression::get_tuple(void) noexcept
@@ -162,8 +167,7 @@ expr_tuple const &expression::get_tuple(void) const noexcept
 
 bool expression::is_if_expr(void) const noexcept
 {
-	return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::if_expr)
-		|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::if_expr);
+	return is_expr_kind_helper(*this, expression_type_kind::if_expr);
 }
 
 expr_if &expression::get_if_expr(void) noexcept
@@ -180,8 +184,7 @@ expr_if const &expression::get_if_expr(void) const noexcept
 
 bool expression::is_switch_expr(void) const noexcept
 {
-	return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::switch_expr)
-		|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::switch_expr);
+	return is_expr_kind_helper(*this, expression_type_kind::switch_expr);
 }
 
 expr_switch &expression::get_switch_expr(void) noexcept
@@ -198,38 +201,7 @@ expr_switch const &expression::get_switch_expr(void) const noexcept
 
 bool expression::is_integer_literal(void) const noexcept
 {
-	return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::integer_literal)
-		|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::integer_literal);
-}
-
-expr_integer_literal &expression::get_integer_literal(void) noexcept
-{
-	bz_assert(this->is_integer_literal());
-	return get_expr_kind<expr_integer_literal>(*this);
-}
-
-expr_integer_literal const &expression::get_integer_literal(void) const noexcept
-{
-	bz_assert(this->is_integer_literal());
-	return get_expr_kind<expr_integer_literal>(*this);
-}
-
-bool expression::is_null_literal(void) const noexcept
-{
-	return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::null_literal)
-		|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::null_literal);
-}
-
-expr_null_literal &expression::get_null_literal(void) noexcept
-{
-	bz_assert(this->is_null_literal());
-	return get_expr_kind<expr_null_literal>(*this);
-}
-
-expr_null_literal const &expression::get_null_literal(void) const noexcept
-{
-	bz_assert(this->is_null_literal());
-	return get_expr_kind<expr_null_literal>(*this);
+	return is_expr_kind_helper(*this, expression_type_kind::integer_literal);
 }
 
 constant_value &expression::get_integer_literal_value(void) noexcept
@@ -257,6 +229,16 @@ std::pair<literal_kind, constant_value const &> expression::get_integer_literal_
 		literal_expr.get<constant_expression>().expr.get<expr_integer_literal>().kind,
 		literal_expr.get<constant_expression>().value
 	};
+}
+
+bool expression::is_null_literal(void) const noexcept
+{
+	return is_expr_kind_helper(*this, expression_type_kind::null_literal);
+}
+
+bool expression::is_placeholder_literal(void) const noexcept
+{
+	return is_expr_kind_helper(*this, expression_type_kind::placeholder_literal);
 }
 
 bool expression::is_generic_type(void) const noexcept

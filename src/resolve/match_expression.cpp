@@ -126,7 +126,12 @@ enum class type_match_result
 	}
 	else if (dest.is<ast::ts_array>() && source.is<ast::ts_array>())
 	{
-		if (dest.get<ast::ts_array>().size != source.get<ast::ts_array>().size)
+		if (dest.get<ast::ts_array>().size == 0)
+		{
+			bz_assert(dest_container.nodes.back().is<ast::ts_array>());
+			dest_container.nodes.back().get<ast::ts_array>().size = source.get<ast::ts_array>().size;
+		}
+		else if (dest.get<ast::ts_array>().size != source.get<ast::ts_array>().size)
 		{
 			return type_match_result::error;
 		}
@@ -494,7 +499,11 @@ static bool match_typename_to_type_impl(
 		auto &inner_container = dest_container.nodes.back().get<ast::ts_array>().elem_type;
 		auto const &dest_array_type = dest.get<ast::ts_array>();
 		auto const &expr_array_type = expr_type_without_const.get<ast::ts_array>();
-		if (dest_array_type.size != expr_array_type.size)
+		if (dest_array_type.size == 0)
+		{
+			dest_container.nodes.back().get<ast::ts_array>().size = expr_array_type.size;
+		}
+		else if (dest_array_type.size != expr_array_type.size)
 		{
 			return type_match_result::error;
 		}
@@ -991,8 +1000,23 @@ static void match_expression_to_type_impl(
 			auto &dest_array_type = dest_container.nodes.back().get<ast::ts_array>().elem_type;
 			auto const array_size = dest_container.nodes.back().get<ast::ts_array>().size;
 			auto &expr_tuple_elems = expr.get_tuple().elems;
-			if (array_size != expr_tuple_elems.size())
+
+			bool error = false;
+			if (expr_tuple_elems.empty())
 			{
+				error = true;
+				context.report_error(
+					expr.src_tokens,
+					bz::format("empty tuple expression cannot be matched to type '{}'", dest_container)
+				);
+			}
+			else if (array_size == 0)
+			{
+				dest_container.nodes.back().get<ast::ts_array>().size = expr_tuple_elems.size();
+			}
+			else if (array_size != expr_tuple_elems.size())
+			{
+				error = true;
 				context.report_error(
 					expr.src_tokens,
 					bz::format(
@@ -1002,7 +1026,6 @@ static void match_expression_to_type_impl(
 				);
 			}
 
-			bool error = array_size != expr_tuple_elems.size();
 			for (auto &expr : expr_tuple_elems)
 			{
 				match_expression_to_type_impl(expr, dest_array_type, dest_array_type, context);
@@ -1117,6 +1140,24 @@ void match_expression_to_type(ast::expression &expr, ast::typespec &dest_type, c
 	}
 	else if (expr.is_error())
 	{
+		if (!ast::is_complete(dest_type))
+		{
+			dest_type.clear();
+		}
+	}
+	else if (expr.is<ast::expanded_variadic_expression>())
+	{
+		context.report_error(expr.src_tokens, "expanded variadic expression is not allowed here");
+		expr.to_error();
+		if (!ast::is_complete(dest_type))
+		{
+			dest_type.clear();
+		}
+	}
+	else if (expr.is_placeholder_literal())
+	{
+		context.report_error(expr.src_tokens, "placeholder literal is not allowed here");
+		expr.to_error();
 		if (!ast::is_complete(dest_type))
 		{
 			dest_type.clear();

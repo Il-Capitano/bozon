@@ -18,6 +18,7 @@ struct expr_identifier;
 struct expr_integer_literal;
 struct expr_null_literal;
 struct expr_typed_literal;
+struct expr_placeholder_literal;
 struct expr_tuple;
 struct expr_unary_op;
 struct expr_binary_op;
@@ -54,6 +55,7 @@ using expr_t = node<
 	expr_integer_literal,
 	expr_null_literal,
 	expr_typed_literal,
+	expr_placeholder_literal,
 	expr_tuple,
 	expr_unary_op,
 	expr_binary_op,
@@ -103,6 +105,7 @@ enum class expression_type_kind
 	moved_lvalue,
 	integer_literal,
 	null_literal,
+	placeholder_literal,
 	function_name,
 	type_name,
 	tuple,
@@ -248,17 +251,12 @@ struct expression : bz::variant<
 	expr_switch const &get_switch_expr(void) const noexcept;
 
 	bool is_integer_literal(void) const noexcept;
-	expr_integer_literal &get_integer_literal(void) noexcept;
-	expr_integer_literal const &get_integer_literal(void) const noexcept;
-
-	bool is_null_literal(void) const noexcept;
-	expr_null_literal &get_null_literal(void) noexcept;
-	expr_null_literal const &get_null_literal(void) const noexcept;
-
 	constant_value &get_integer_literal_value(void) noexcept;
 	constant_value const &get_integer_literal_value(void) const noexcept;
-
 	std::pair<literal_kind, constant_value const &> get_integer_literal_kind_and_value(void) const noexcept;
+
+	bool is_null_literal(void) const noexcept;
+	bool is_placeholder_literal(void) const noexcept;
 
 	bool is_generic_type(void) const noexcept;
 	type_info *get_generic_type(void) const noexcept;
@@ -342,6 +340,9 @@ struct expr_typed_literal
 		: tokens{ it, it + 1 }
 	{}
 };
+
+struct expr_placeholder_literal
+{};
 
 struct expr_tuple
 {
@@ -776,6 +777,7 @@ def_make_fn(expr_t, expr_identifier)
 def_make_fn(expr_t, expr_integer_literal)
 def_make_fn(expr_t, expr_null_literal)
 def_make_fn(expr_t, expr_typed_literal)
+def_make_fn(expr_t, expr_placeholder_literal)
 def_make_fn(expr_t, expr_tuple)
 def_make_fn(expr_t, expr_unary_op)
 def_make_fn(expr_t, expr_binary_op)
