@@ -1,0 +1,17 @@
+function foo(: foo_t.inner_t)
+{}
+
+struct foo_t
+{
+	struct inner_t
+	{}
+}
+
+struct bar_t
+{
+	struct inner_t
+	{}
+}
+
+function bar(: bar_t.inner_t)
+{}

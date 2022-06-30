@@ -729,6 +729,10 @@ static ast::expression resolve_expr(
 				context.report_error(size.src_tokens, "array size must be a constant expression");
 				return 0;
 			}
+			else if (size.is_placeholder_literal())
+			{
+				return 0;
+			}
 			else
 			{
 				ast::constant_value const &size_value = size.get_constant_value();
@@ -785,7 +789,12 @@ static ast::expression resolve_expr(
 	else if (array_type.sizes.empty())
 	{
 		auto &elem_type = array_type.type.get_typename();
-		if (elem_type.is<ast::ts_consteval>())
+		if (elem_type.is<ast::ts_void>())
+		{
+			context.report_error(array_type.type.src_tokens, "array element type cannot be 'void'");
+			return ast::make_error_expression(src_tokens);
+		}
+		else if (elem_type.is<ast::ts_consteval>())
 		{
 			auto const consteval_pos = array_type.type.src_tokens.pivot != nullptr
 				&& array_type.type.src_tokens.pivot->kind == lex::token::kw_consteval
@@ -809,6 +818,11 @@ static ast::expression resolve_expr(
 			context.report_error(array_type.type.src_tokens, "array element type cannot be a reference type");
 			return ast::make_error_expression(src_tokens);
 		}
+		else if (elem_type.is<ast::ts_move_reference>())
+		{
+			context.report_error(array_type.type.src_tokens, "array element type cannot be a move reference type");
+			return ast::make_error_expression(src_tokens);
+		}
 		else if (elem_type.is<ast::ts_auto_reference>())
 		{
 			context.report_error(array_type.type.src_tokens, "array element type cannot be an auto reference type");
@@ -819,6 +833,11 @@ static ast::expression resolve_expr(
 			context.report_error(array_type.type.src_tokens, "array element type cannot be an auto reference-const type");
 			return ast::make_error_expression(src_tokens);
 		}
+		else if (elem_type.is<ast::ts_variadic>())
+		{
+			context.report_error(array_type.type.src_tokens, "array element type cannot be a variadic type");
+			return ast::make_error_expression(src_tokens);
+		}
 		else
 		{
 			return ast::type_as_expression(ast::make_array_slice_typespec(src_tokens, std::move(elem_type)));
@@ -827,7 +846,12 @@ static ast::expression resolve_expr(
 	else
 	{
 		auto &elem_type = array_type.type.get_typename();
-		if (elem_type.is<ast::ts_const>())
+		if (elem_type.is<ast::ts_void>())
+		{
+			context.report_error(array_type.type.src_tokens, "array element type cannot be 'void'");
+			return ast::make_error_expression(src_tokens);
+		}
+		else if (elem_type.is<ast::ts_const>())
 		{
 			good = false;
 			auto const const_pos = array_type.type.src_tokens.pivot != nullptr
@@ -870,6 +894,11 @@ static ast::expression resolve_expr(
 			context.report_error(array_type.type.src_tokens, "array element type cannot be a reference type");
 			return ast::make_error_expression(src_tokens);
 		}
+		else if (elem_type.is<ast::ts_move_reference>())
+		{
+			context.report_error(array_type.type.src_tokens, "array element type cannot be a move reference type");
+			return ast::make_error_expression(src_tokens);
+		}
 		else if (elem_type.is<ast::ts_auto_reference>())
 		{
 			context.report_error(array_type.type.src_tokens, "array element type cannot be an auto reference type");
@@ -878,6 +907,11 @@ static ast::expression resolve_expr(
 		else if (elem_type.is<ast::ts_auto_reference_const>())
 		{
 			context.report_error(array_type.type.src_tokens, "array element type cannot be an auto reference-const type");
+			return ast::make_error_expression(src_tokens);
+		}
+		else if (elem_type.is<ast::ts_variadic>())
+		{
+			context.report_error(array_type.type.src_tokens, "array element type cannot be a variadic type");
 			return ast::make_error_expression(src_tokens);
 		}
 		else

@@ -3043,6 +3043,14 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 			ast::constant_value(ast::internal::null_t{}),
 			ast::make_expr_null_literal()
 		);
+	case lex::token::question_mark:
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::placeholder_literal,
+			ast::make_void_typespec(src_tokens.pivot),
+			ast::constant_value(),
+			ast::make_expr_placeholder_literal()
+		);
 	default:
 		bz_unreachable;
 	}
@@ -4737,6 +4745,12 @@ ast::expression parse_context::make_member_access_expression(
 		}
 
 		auto const info = type.get<ast::ts_base_type>().info;
+		if (info->state < ast::resolve_state::all)
+		{
+			this->add_to_resolve_queue(src_tokens, *info);
+			resolve::resolve_type_info(*info, *this);
+			this->pop_resolve_queue();
+		}
 		bz_assert(info->scope.is_global());
 		auto id = ast::make_identifier(member);
 		auto const symbol = find_id_in_global_scope(info->scope.get_global(), id, *this);

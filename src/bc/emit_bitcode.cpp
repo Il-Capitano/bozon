@@ -796,6 +796,18 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
+	ast::expr_placeholder_literal const &,
+	auto &,
+	llvm::Value *
+)
+{
+	// this is not a valid expression at this point
+	bz_unreachable;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
 	ast::expr_tuple const &tuple_expr,
 	auto &context,
 	llvm::Value *result_address
@@ -5084,11 +5096,7 @@ static val_ptr emit_bitcode(
 	}
 	else
 	{
-		if (no_panic_on_unreachable)
-		{
-			context.builder.CreateUnreachable();
-		}
-		else
+		if (panic_on_unreachable)
 		{
 			auto const panic_fn = context.get_function(context.get_builtin_function(ast::function_body::builtin_panic));
 			context.create_call(panic_fn);
@@ -5101,6 +5109,10 @@ static val_ptr emit_bitcode(
 			{
 				context.builder.CreateRet(llvm::UndefValue::get(return_type));
 			}
+		}
+		else
+		{
+			context.builder.CreateUnreachable();
 		}
 		return val_ptr::get_none();
 	}

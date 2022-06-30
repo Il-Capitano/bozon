@@ -160,19 +160,19 @@
 		},
 		"ryu_format.ll": {
 			"dependencies": [ "ryu_format.bz" ],
-			"command": "bin/windows-debug/bozon.exe --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.ll --emit=llvm-ir --no-panic-on-unreachable"
+			"command": "bin/windows-debug/bozon.exe --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.ll --emit=llvm-ir -Cno-panic-on-unreachable"
 		},
 		"ryu_format.linux.ll": {
 			"dependencies": [ "ryu_format.bz" ],
-			"command": "bin/linux-debug/bozon --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.linux.ll --emit=llvm-ir --no-panic-on-unreachable"
+			"command": "bin/linux-debug/bozon --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.linux.ll --emit=llvm-ir -Cno-panic-on-unreachable"
 		},
 		"ryu_format.gcc.ll": {
 			"dependencies": [ "ryu_format.bz" ],
-			"command": "bin/windows-debug/gcc-bozon.exe --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.gcc.ll --emit=llvm-ir --no-panic-on-unreachable"
+			"command": "bin/windows-debug/gcc-bozon.exe --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.gcc.ll --emit=llvm-ir -Cno-panic-on-unreachable"
 		},
 		"ryu_format.linux.gcc.ll": {
 			"dependencies": [ "ryu_format.bz" ],
-			"command": "bin/linux-debug/gcc-bozon --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.linux.gcc.ll --emit=llvm-ir --no-panic-on-unreachable"
+			"command": "bin/linux-debug/gcc-bozon --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.linux.gcc.ll --emit=llvm-ir -Cno-panic-on-unreachable"
 		},
 		"a.exe": {
 			"dependencies": [ "bitcode_test.o", "builtins.o" ],

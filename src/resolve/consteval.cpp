@@ -2869,6 +2869,9 @@ static ast::constant_value guaranteed_evaluate_expr(
 			// these are always constant expressions
 			bz_unreachable;
 		},
+		[](ast::expr_placeholder_literal &) -> ast::constant_value {
+			return {};
+		},
 		[&expr, &context](ast::expr_tuple &tuple) -> ast::constant_value {
 			bool is_consteval = true;
 			for (auto &elem : tuple.elems)
@@ -3298,6 +3301,9 @@ static ast::constant_value try_evaluate_expr(
 		[](ast::expr_typed_literal &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
+		},
+		[](ast::expr_placeholder_literal &) -> ast::constant_value {
+			return {};
 		},
 		[&expr, &context](ast::expr_tuple &tuple) -> ast::constant_value {
 			bool is_consteval = true;
@@ -3732,6 +3738,9 @@ static ast::constant_value try_evaluate_expr_without_error(
 		[](ast::expr_typed_literal &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
+		},
+		[](ast::expr_placeholder_literal &) -> ast::constant_value {
+			return {};
 		},
 		[&expr, &context](ast::expr_tuple &tuple) -> ast::constant_value {
 			bool is_consteval = true;
@@ -4405,6 +4414,9 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 		[](ast::expr_typed_literal const &) {
 			// these are always constant expressions
 			bz_unreachable;
+		},
+		[](ast::expr_placeholder_literal const &) {
+			// nothing
 		},
 		[&notes](ast::expr_tuple const &tuple) {
 			bool any_failed = false;

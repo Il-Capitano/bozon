@@ -209,7 +209,7 @@ bool is_complete(typespec_view ts) noexcept
 			return is_complete(fn_t.return_type);
 		},
 		[](ts_array const &array_t) {
-			return is_complete(array_t.elem_type);
+			return array_t.size != 0 && is_complete(array_t.elem_type);
 		},
 		[](ts_array_slice const &array_slice_t) {
 			return is_complete(array_slice_t.elem_type);
@@ -704,7 +704,14 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 			[&](ast::ts_array const &array_t) {
 				result += "[";
 				ast::ts_array const *current_array_t = &array_t;
-				result += bz::format("{}", current_array_t->size);
+				if (current_array_t->size != 0)
+				{
+					result += bz::format("{}", current_array_t->size);
+				}
+				else
+				{
+					result += '?';
+				}
 				while (current_array_t->elem_type.is<ast::ts_array>())
 				{
 					current_array_t = &current_array_t->elem_type.get<ast::ts_array>();

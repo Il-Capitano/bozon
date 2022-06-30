@@ -1,6 +1,5 @@
 #include "match_to_type.h"
 #include "match_common.h"
-#include "match_expression.h"
 #include "statement_resolver.h"
 
 namespace resolve
@@ -340,14 +339,20 @@ static match_level_t get_strict_type_match_level(
 	}
 	else if (dest.is<ast::ts_array>() && source.is<ast::ts_array>())
 	{
-		if (dest.get<ast::ts_array>().size != source.get<ast::ts_array>().size)
+		auto const &dest_array_type = dest.get<ast::ts_array>();
+		auto const &source_array_type = source.get<ast::ts_array>();
+		if (dest_array_type.size == 0)
+		{
+			modifier_match_level += 1;
+		}
+		else if (dest_array_type.size != source_array_type.size)
 		{
 			return match_level_t{};
 		}
 
 		return get_strict_type_match_level(
-			dest.get<ast::ts_array>().elem_type,
-			source.get<ast::ts_array>().elem_type,
+			dest_array_type.elem_type,
+			source_array_type.elem_type,
 			reference_match, base_type_match,
 			false, propagate_const, false
 		) + (modifier_match_level + 1);
@@ -539,34 +544,13 @@ static match_level_t get_if_expr_type_match_level(
 		{
 			return match_level_t{};
 		}
-		else if (ast::is_complete(dest))
-		{
-			match_level_t result;
-			auto &vec = result.emplace_multi();
-			vec.reserve(2);
-			vec.push_back(std::move(then_result));
-			vec.push_back(std::move(else_result));
-			return result;
-		}
 
-		ast::typespec then_matched_type = dest;
-		ast::typespec else_matched_type = dest;
-		match_expression_to_type(if_expr.then_block, then_matched_type, context);
-		match_expression_to_type(if_expr.else_block, else_matched_type, context);
-
-		if (then_matched_type == else_matched_type)
-		{
-			match_level_t result;
-			auto &vec = result.emplace_multi();
-			vec.reserve(2);
-			vec.push_back(std::move(then_result));
-			vec.push_back(std::move(else_result));
-			return result;
-		}
-		else
-		{
-			return match_level_t{};
-		}
+		match_level_t result;
+		auto &vec = result.emplace_multi();
+		vec.reserve(2);
+		vec.push_back(std::move(then_result));
+		vec.push_back(std::move(else_result));
+		return result;
 	}
 }
 
@@ -592,36 +576,8 @@ static match_level_t get_switch_expr_type_match_level(
 	{
 		return match_level_t{};
 	}
-	else if (ast::is_complete(dest) || case_match_levels.size() == 1)
-	{
-		return match_level_t(std::move(case_match_levels));
-	}
 	else
 	{
-		ast::typespec dest_copy = dest;
-		auto valild_case_expr_range = switch_expr.cases
-			.filter([](auto const &case_expr) { return !case_expr.expr.is_noreturn(); });
-		bz_assert(!valild_case_expr_range.at_end());
-		match_expression_to_type(valild_case_expr_range.front().expr, dest_copy, context);
-		++valild_case_expr_range;
-		for (auto &[_, case_expr] : valild_case_expr_range)
-		{
-			ast::typespec dest_copy_copy = dest;
-			match_expression_to_type(case_expr, dest_copy_copy, context);
-			if (dest_copy_copy != dest_copy)
-			{
-				return match_level_t{};
-			}
-		}
-		if (switch_expr.default_case.not_null() && !switch_expr.default_case.is_noreturn())
-		{
-			ast::typespec dest_copy_copy = dest;
-			match_expression_to_type(switch_expr.default_case, dest_copy_copy, context);
-			if (dest_copy_copy != dest_copy)
-			{
-				return match_level_t{};
-			}
-		}
 		return match_level_t(std::move(case_match_levels));
 	}
 }
@@ -653,7 +609,11 @@ match_level_t get_type_match_level(
 	// const T -> match to T (no need to worry about const)
 	dest = ast::remove_const_or_consteval(dest);
 
-	if (expr.is_if_expr())
+	if (expr.is<ast::expanded_variadic_expression>() || expr.is_placeholder_literal())
+	{
+		return match_level_t{};
+	}
+	else if (expr.is_if_expr())
 	{
 		return get_if_expr_type_match_level(dest, expr.get_if_expr(), context);
 	}
@@ -681,11 +641,18 @@ match_level_t get_type_match_level(
 		if (dest.is<ast::ts_auto>())
 		{
 			auto &tuple_expr = expr.get_tuple();
-			match_level_t result = bz::vector<match_level_t>{};
-			auto &result_vec = result.get_multi();
-			for (auto &elem : tuple_expr.elems)
+			auto result = match_level_t();
+			bool good = true;
+			result.emplace_multi() = tuple_expr.elems
+				.transform([&](auto &elem) {
+					auto elem_result = get_type_match_level(dest, elem, context);
+					good &= elem_result.not_null();
+					return elem_result;
+				})
+				.collect();
+			if (!good)
 			{
-				result_vec.push_back(get_type_match_level(dest, elem, context));
+				result.clear();
 			}
 			return result;
 		}
@@ -721,6 +688,32 @@ match_level_t get_type_match_level(
 			else
 			{
 				return {};
+			}
+		}
+		else if (dest.is<ast::ts_array>())
+		{
+			auto &tuple_expr = expr.get_tuple();
+			auto const &[size, elem_type] = dest.get<ast::ts_array>();
+			if (tuple_expr.elems.empty() || (size != 0 && size != tuple_expr.elems.size()))
+			{
+				return {};
+			}
+			else if (ast::is_complete(dest.get<ast::ts_array>().elem_type))
+			{
+				auto result = match_level_t();
+				bool good = true;
+				result.emplace_multi() = tuple_expr.elems
+					.transform([&, &elem_type = elem_type](auto &elem) {
+						auto elem_result = get_type_match_level(elem_type, elem, context);
+						good &= elem_result.not_null();
+						return elem_result;
+					})
+					.collect();
+				if (!good)
+				{
+					result.clear();
+				}
+				return result;
 			}
 		}
 		else
