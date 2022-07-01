@@ -281,7 +281,7 @@ struct comptime_executor_context
 
 	[[nodiscard]] bc::val_ptr push_value_reference(bc::val_ptr new_value);
 	void pop_value_reference(bc::val_ptr prev_value);
-	bc::val_ptr get_value_reference(void);
+	bc::val_ptr get_value_reference(size_t index);
 
 	struct loop_info_t
 	{
@@ -362,11 +362,12 @@ struct comptime_executor_context
 
 
 	std::pair<ast::function_body const *, llvm::Function *> current_function = { nullptr, nullptr };
-	llvm::BasicBlock *error_bb    = nullptr;
-	llvm::BasicBlock *alloca_bb   = nullptr;
-	llvm::Value *output_pointer   = nullptr;
+	llvm::BasicBlock *error_bb  = nullptr;
+	llvm::BasicBlock *alloca_bb = nullptr;
+	llvm::Value *output_pointer = nullptr;
 	loop_info_t loop_info = {};
-	bc::val_ptr current_value_reference;
+	bz::array<bc::val_ptr, 4> current_value_references;
+	size_t current_value_reference_stack_size = 0;
 
 	llvm::IRBuilder<> builder;
 
