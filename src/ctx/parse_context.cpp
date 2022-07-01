@@ -5632,11 +5632,11 @@ static ast::expression make_tuple_assignment(
 	lex::src_tokens const &src_tokens,
 	ast::expression lhs,
 	ast::expression rhs,
-	ast::typespec_view lhs_type,
-	ast::typespec_view rhs_type,
 	parse_context &context
 )
 {
+	auto const lhs_type = lhs.get_expr_type();
+	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
 	bz_assert(lhs_type.is<ast::ts_tuple>());
 	bz_assert(rhs_type.is<ast::ts_tuple>());
 
@@ -5705,11 +5705,11 @@ static ast::expression make_array_assignment(
 	lex::src_tokens const &src_tokens,
 	ast::expression lhs,
 	ast::expression rhs,
-	ast::typespec_view lhs_type,
-	ast::typespec_view rhs_type,
 	parse_context &context
 )
 {
+	auto const lhs_type = lhs.get_expr_type();
+	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
 	bz_assert(lhs_type.is<ast::ts_array>());
 	bz_assert(rhs_type.is<ast::ts_array>());
 
@@ -5770,6 +5770,61 @@ static ast::expression make_array_assignment(
 	);
 }
 
+static ast::expression make_struct_assignment(
+	lex::src_tokens const &src_tokens,
+	ast::expression lhs,
+	ast::expression rhs,
+	parse_context &context
+)
+{
+	auto const type = lhs.get_expr_type();
+	bz_assert(type.is<ast::ts_base_type>());
+
+	auto const info = type.get<ast::ts_base_type>().info;
+
+	bz_assert(lhs.get_expr_type_and_kind().second == ast::expression_type_kind::lvalue_reference);
+	auto const [rhs_type_with_const, rhs_expr_type_kind] = rhs.get_expr_type_and_kind();
+	auto const rhs_elem_expr_type_kind = rhs_expr_type_kind == ast::expression_type_kind::lvalue_reference
+		? ast::expression_type_kind::lvalue_reference
+		: ast::expression_type_kind::rvalue;
+	auto assign_exprs = bz::iota(0, info->member_variables.size())
+		.transform([&, &rhs_type_with_const = rhs_type_with_const](auto const i) {
+			ast::typespec lhs_elem_type = info->member_variables[i]->get_type();
+			ast::typespec rhs_elem_type = info->member_variables[i]->get_type();
+
+			if (rhs_type_with_const.is<ast::ts_const>())
+			{
+				rhs_elem_type.add_layer<ast::ts_const>();
+			}
+
+			return context.make_binary_operator_expression(
+				src_tokens,
+				lex::token::assign,
+				ast::make_dynamic_expression(
+					lhs.src_tokens,
+					ast::expression_type_kind::lvalue_reference, std::move(lhs_elem_type),
+					ast::make_expr_bitcode_value_reference(1),
+					ast::destruct_operation()
+				),
+				ast::make_dynamic_expression(
+					rhs.src_tokens,
+					rhs_elem_expr_type_kind, std::move(rhs_elem_type),
+					ast::make_expr_bitcode_value_reference(0),
+					ast::destruct_operation()
+				)
+			);
+		})
+		.collect<ast::arena_vector>();
+
+	ast::typespec result_type = type;
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::lvalue_reference, std::move(result_type),
+		ast::make_expr_aggregate_assign(std::move(lhs), std::move(rhs), std::move(assign_exprs)),
+		ast::destruct_operation()
+	);
+}
+
 ast::expression parse_context::make_assignment(lex::src_tokens const &src_tokens, ast::expression lhs, ast::expression rhs)
 {
 	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type());
@@ -5788,11 +5843,11 @@ ast::expression parse_context::make_assignment(lex::src_tokens const &src_tokens
 	}
 	else if (lhs_type.is<ast::ts_tuple>() && rhs_type.is<ast::ts_tuple>())
 	{
-		return make_tuple_assignment(src_tokens, std::move(lhs), std::move(rhs), lhs_type, rhs_type, *this);
+		return make_tuple_assignment(src_tokens, std::move(lhs), std::move(rhs), *this);
 	}
 	else if (lhs_type.is<ast::ts_array>() && rhs_type.is<ast::ts_array>())
 	{
-		return make_array_assignment(src_tokens, std::move(lhs), std::move(rhs), lhs_type, rhs_type, *this);
+		return make_array_assignment(src_tokens, std::move(lhs), std::move(rhs), *this);
 	}
 	else if (!are_types_equal)
 	{
@@ -5823,8 +5878,8 @@ ast::expression parse_context::make_assignment(lex::src_tokens const &src_tokens
 		else
 		{
 			bz_assert(info->kind == ast::type_info::aggregate);
+			return make_struct_assignment(src_tokens, std::move(lhs), std::move(rhs), *this);
 		}
-		bz_unreachable;
 	}
 	else
 	{
