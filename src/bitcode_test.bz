@@ -402,6 +402,20 @@ function main(args: [: const str]) -> int32
 	static_assert(std::format("{}", [ 3, 3.234, "hello" ]) == "[ 3, 3.234, hello ]");
 	static_assert(std::format("{}", {[ 3, 3.234, "hello" ]}) == "[ 3, 3.234, hello ]");
 
+	t = [ 4i8, 2.334, "hi" ];
+	std::printf("{}\n", t);
+
+	let arr: [?: str] = [ "hello", "there", "hi", "this" ];
+	std::printf("{}\n", arr);
+	arr = [ "hmm", "this", "is", "different" ];
+	std::printf("{}\n", arr);
+
+	let t1 = [ std::string ]();
+	std::printf("{}\n", t1);
+	const t2 = [ "hi" ];
+	t1 = t2;
+	std::printf("{}\n", t1);
+
 	const s = std::string("Hello");
 	const *const p = &s;
 	std::assert(p->size() == 5u);
