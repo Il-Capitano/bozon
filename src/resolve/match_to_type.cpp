@@ -698,7 +698,7 @@ match_level_t get_type_match_level(
 			{
 				return {};
 			}
-			else if (ast::is_complete(dest.get<ast::ts_array>().elem_type))
+			else
 			{
 				auto result = match_level_t();
 				bool good = true;
