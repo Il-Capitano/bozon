@@ -4631,6 +4631,114 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
+	ast::expr_aggregate_assign const &aggregate_assign,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const rhs = emit_bitcode<abi>(aggregate_assign.rhs, context, nullptr);
+	auto const lhs = emit_bitcode<abi>(aggregate_assign.lhs, context, nullptr);
+	bz_assert(lhs.kind == val_ptr::reference);
+	auto const lhs_type = lhs.get_type();
+	auto const rhs_type = lhs.get_type();
+	bz_assert(lhs_type->isStructTy());
+	bz_assert(rhs_type->isStructTy());
+
+	for (auto const i : bz::iota(0, aggregate_assign.assign_exprs.size()))
+	{
+		auto const lhs_member_ptr = context.create_struct_gep(lhs_type, lhs.val, i);
+		auto const rhs_member_val = rhs.kind == val_ptr::reference
+			? val_ptr::get_reference(context.create_struct_gep(rhs_type, rhs.val, i), rhs_type->getStructElementType(i))
+			: val_ptr::get_value(context.builder.CreateExtractValue(rhs.val, i));
+		auto const lhs_prev_value = context.push_value_reference(val_ptr::get_reference(lhs_member_ptr, lhs_type->getStructElementType(i)));
+		auto const rhs_prev_value = context.push_value_reference(rhs_member_val);
+		emit_bitcode<abi>(aggregate_assign.assign_exprs[i], context, nullptr);
+		context.pop_value_reference(rhs_prev_value);
+		context.pop_value_reference(lhs_prev_value);
+	}
+
+	bz_assert(result_address == nullptr);
+	return lhs;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_array_assign const &array_assign,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const rhs = emit_bitcode<abi>(array_assign.rhs, context, nullptr);
+	auto const lhs = emit_bitcode<abi>(array_assign.lhs, context, nullptr);
+	bz_assert(rhs.kind == val_ptr::reference);
+	bz_assert(lhs.kind == val_ptr::reference);
+	auto const lhs_type = lhs.get_type();
+	auto const rhs_type = lhs.get_type();
+	bz_assert(lhs_type->isArrayTy());
+	bz_assert(rhs_type->isArrayTy());
+	auto const lhs_elem_type = lhs_type->getArrayElementType();
+	auto const rhs_elem_type = rhs_type->getArrayElementType();
+
+	bz_assert(array_assign.lhs.get_expr_type().is<ast::ts_array>());
+	auto const size = array_assign.lhs.get_expr_type().get<ast::ts_array>().size;
+
+	if (size <= array_loop_threshold)
+	{
+		for (auto const i : bz::iota(0, size))
+		{
+			auto const lhs_elem_ptr = context.create_struct_gep(lhs_type, lhs.val, i);
+			auto const rhs_elem_ptr = context.create_struct_gep(rhs_type, rhs.val, i);
+			auto const lhs_prev_value = context.push_value_reference(val_ptr::get_reference(lhs_elem_ptr, lhs_elem_type));
+			auto const rhs_prev_value = context.push_value_reference(val_ptr::get_reference(rhs_elem_ptr, rhs_elem_type));
+			emit_bitcode<abi>(array_assign.assign_expr, context, nullptr);
+			context.pop_value_reference(rhs_prev_value);
+			context.pop_value_reference(lhs_prev_value);
+		}
+
+		bz_assert(result_address == nullptr);
+		return lhs;
+	}
+	else
+	{
+		auto const loop_info = create_loop_start(size, context);
+
+		auto const lhs_elem_ptr = context.create_array_gep(lhs_type, lhs.val, loop_info.iter_val);
+		auto const rhs_elem_ptr = context.create_array_gep(rhs_type, rhs.val, loop_info.iter_val);
+		auto const lhs_prev_value = context.push_value_reference(val_ptr::get_reference(lhs_elem_ptr, lhs_elem_type));
+		auto const rhs_prev_value = context.push_value_reference(val_ptr::get_reference(rhs_elem_ptr, rhs_elem_type));
+		emit_bitcode<abi>(array_assign.assign_expr, context, nullptr);
+		context.pop_value_reference(rhs_prev_value);
+		context.pop_value_reference(lhs_prev_value);
+
+		create_loop_end(loop_info, context);
+
+		bz_assert(result_address == nullptr);
+		return lhs;
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_builtin_assign const &builtin_assign,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const rhs = emit_bitcode<abi>(builtin_assign.rhs, context, nullptr);
+	auto const lhs = emit_bitcode<abi>(builtin_assign.lhs, context, nullptr);
+	bz_assert(lhs.kind == val_ptr::reference);
+
+	context.builder.CreateStore(rhs.get_value(context.builder), lhs.val);
+
+	bz_assert(result_address == nullptr);
+	return lhs;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
 	ast::expr_member_access const &member_access,
 	auto &context,
 	llvm::Value *result_address
@@ -5132,21 +5240,13 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
-	ast::expr_bitcode_value_reference const &,
+	ast::expr_bitcode_value_reference const &bitcode_value_reference,
 	auto &context,
 	llvm::Value *result_address
 )
 {
-	if (result_address == nullptr)
-	{
-		return context.get_value_reference();
-	}
-	else
-	{
-		auto const val = context.get_value_reference();
-		context.builder.CreateStore(val.get_value(context.builder), result_address);
-		return val_ptr::get_reference(result_address, val.get_type());
-	}
+	bz_assert(result_address == nullptr);
+	return context.get_value_reference(bitcode_value_reference.index);
 }
 
 template<abi::platform_abi abi>

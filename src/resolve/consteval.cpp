@@ -3111,6 +3111,15 @@ static ast::constant_value guaranteed_evaluate_expr(
 		[](ast::expr_destruct_value &) -> ast::constant_value {
 			return {};
 		},
+		[](ast::expr_aggregate_assign &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_array_assign &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_builtin_assign &) -> ast::constant_value {
+			return {};
+		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
 			consteval_guaranteed(member_access_expr.base, context);
 			if (member_access_expr.base.has_consteval_succeeded())
@@ -3542,6 +3551,15 @@ static ast::constant_value try_evaluate_expr(
 			return {};
 		},
 		[](ast::expr_destruct_value &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_aggregate_assign &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_array_assign &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_builtin_assign &) -> ast::constant_value {
 			return {};
 		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
@@ -3978,6 +3996,15 @@ static ast::constant_value try_evaluate_expr_without_error(
 			return {};
 		},
 		[](ast::expr_destruct_value &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_aggregate_assign &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_array_assign &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_builtin_assign &) -> ast::constant_value {
 			return {};
 		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
@@ -4683,6 +4710,21 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 		[&expr, &notes](ast::expr_destruct_value const &) {
 			notes.push_back(ctx::parse_context::make_note(
 				expr.src_tokens, "value destruction is not a constant expression"
+			));
+		},
+		[&expr, &notes](ast::expr_aggregate_assign const &) {
+			notes.push_back(ctx::parse_context::make_note(
+				expr.src_tokens, "assignment is not a constant expression"
+			));
+		},
+		[&expr, &notes](ast::expr_array_assign const &) {
+			notes.push_back(ctx::parse_context::make_note(
+				expr.src_tokens, "assignment is not a constant expression"
+			));
+		},
+		[&expr, &notes](ast::expr_builtin_assign const &) {
+			notes.push_back(ctx::parse_context::make_note(
+				expr.src_tokens, "assignment is not a constant expression"
 			));
 		},
 		[&notes](ast::expr_member_access const &member_access_expr) {

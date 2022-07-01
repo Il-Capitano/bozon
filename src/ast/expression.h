@@ -48,6 +48,10 @@ struct expr_array_destruct;
 struct expr_base_type_destruct;
 struct expr_destruct_value;
 
+struct expr_aggregate_assign;
+struct expr_array_assign;
+struct expr_builtin_assign;
+
 struct expr_member_access;
 struct expr_type_member_access;
 struct expr_compound;
@@ -99,6 +103,9 @@ using expr_t = node<
 	expr_array_destruct,
 	expr_base_type_destruct,
 	expr_destruct_value,
+	expr_aggregate_assign,
+	expr_array_assign,
+	expr_builtin_assign,
 	expr_member_access,
 	expr_type_member_access,
 	expr_compound,
@@ -715,6 +722,54 @@ struct expr_destruct_value
 	{}
 };
 
+struct expr_aggregate_assign
+{
+	expression lhs;
+	expression rhs;
+	arena_vector<expression> assign_exprs;
+
+	expr_aggregate_assign(
+		expression _lhs,
+		expression _rhs,
+		arena_vector<expression> _assign_exprs
+	)
+		: lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs)),
+		  assign_exprs(std::move(_assign_exprs))
+	{}
+};
+
+struct expr_array_assign
+{
+	expression lhs;
+	expression rhs;
+	expression assign_expr;
+
+	expr_array_assign(
+		expression _lhs,
+		expression _rhs,
+		expression _assign_expr
+	)
+		: lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs)),
+		  assign_expr(std::move(_assign_expr))
+	{}
+};
+
+struct expr_builtin_assign
+{
+	expression lhs;
+	expression rhs;
+
+	expr_builtin_assign(
+		expression _lhs,
+		expression _rhs
+	)
+		: lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs))
+	{}
+};
+
 struct expr_member_access
 {
 	expression base;
@@ -865,6 +920,11 @@ struct expr_generic_type_instantiation
 
 struct expr_bitcode_value_reference
 {
+	size_t index;
+
+	expr_bitcode_value_reference(size_t _index = 0)
+		: index(_index)
+	{}
 };
 
 
@@ -1024,6 +1084,9 @@ def_make_fn(expr_t, expr_aggregate_destruct)
 def_make_fn(expr_t, expr_array_destruct)
 def_make_fn(expr_t, expr_base_type_destruct)
 def_make_fn(expr_t, expr_destruct_value)
+def_make_fn(expr_t, expr_aggregate_assign)
+def_make_fn(expr_t, expr_array_assign)
+def_make_fn(expr_t, expr_builtin_assign)
 def_make_fn(expr_t, expr_member_access)
 def_make_fn(expr_t, expr_type_member_access)
 def_make_fn(expr_t, expr_compound)
