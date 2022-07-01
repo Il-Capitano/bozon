@@ -4640,7 +4640,7 @@ static val_ptr emit_bitcode(
 	auto const lhs = emit_bitcode<abi>(aggregate_assign.lhs, context, nullptr);
 	bz_assert(lhs.kind == val_ptr::reference);
 	auto const lhs_type = lhs.get_type();
-	auto const rhs_type = lhs.get_type();
+	auto const rhs_type = rhs.get_type();
 	bz_assert(lhs_type->isStructTy());
 	bz_assert(rhs_type->isStructTy());
 
@@ -4674,7 +4674,7 @@ static val_ptr emit_bitcode(
 	bz_assert(rhs.kind == val_ptr::reference);
 	bz_assert(lhs.kind == val_ptr::reference);
 	auto const lhs_type = lhs.get_type();
-	auto const rhs_type = lhs.get_type();
+	auto const rhs_type = rhs.get_type();
 	bz_assert(lhs_type->isArrayTy());
 	bz_assert(rhs_type->isArrayTy());
 	auto const lhs_elem_type = lhs_type->getArrayElementType();
