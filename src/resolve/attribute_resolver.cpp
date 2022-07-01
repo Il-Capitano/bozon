@@ -101,6 +101,28 @@ static bool apply_builtin(
 	}
 }
 
+static bool apply_builtin_assign(
+	ast::decl_operator &op_decl,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	if (op_decl.op->kind != lex::token::assign)
+	{
+		context.report_error(op_decl.body.src_tokens, bz::format("invalid operator for '@{}'", attribute.name->value));
+		return false;
+	}
+	else if (apply_builtin(op_decl, attribute, context))
+	{
+		op_decl.body.flags |= ast::function_body::builtin_assign;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 static bool apply_comptime_error_checking(
 	ast::function_body &func_body,
 	ast::attribute &attribute,
@@ -206,7 +228,7 @@ static bool apply_maybe_unused(
 }
 
 bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info> builtin_type_infos){
-	constexpr size_t N = 6;
+	constexpr size_t N = 7;
 	bz::vector<attribute_info_t> result;
 	result.reserve(N);
 
@@ -216,6 +238,11 @@ bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info>
 		"__builtin",
 		{},
 		{ &apply_builtin, &apply_builtin, nullptr, nullptr }
+	});
+	result.push_back({
+		"__builtin_assign",
+		{},
+		{ nullptr, &apply_builtin_assign, nullptr, nullptr }
 	});
 	result.push_back({
 		"__comptime_error_checking",

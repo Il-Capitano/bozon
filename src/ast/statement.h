@@ -423,6 +423,7 @@ struct function_body
 		comptime_bitcode_emitted    = bit_at<16>,
 		only_consteval              = bit_at<17>,
 		builtin_operator            = bit_at<18>,
+		builtin_assign              = bit_at<19>,
 	};
 
 	enum : uint8_t
@@ -744,6 +745,9 @@ struct function_body
 
 	bool is_builtin_operator(void) const noexcept
 	{ return (this->flags & builtin_operator) != 0; }
+
+	bool is_builtin_assign(void) const noexcept
+	{ return (this->flags & builtin_assign) != 0; }
 
 	bool has_builtin_implementation(void) const noexcept
 	{
