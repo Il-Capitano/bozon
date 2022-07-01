@@ -1202,6 +1202,21 @@ static void match_expression_to_type_impl(
 			ast::destruct_operation()
 		);
 	}
+	else if (
+		ast::remove_const_or_consteval(dest_container).is<ast::ts_pointer>()
+		&& ast::is_complete(dest_container)
+		&& ast::remove_const_or_consteval(dest_container) != expr.get_expr_type())
+	{
+		bz_assert(expr.is_constant_or_dynamic());
+		if (expr.is_dynamic())
+		{
+			expr.get_dynamic().type = dest;
+		}
+		else
+		{
+			expr.get_constant().type = dest;
+		}
+	}
 }
 
 void match_expression_to_type(ast::expression &expr, ast::typespec &dest_type, ctx::parse_context &context)
