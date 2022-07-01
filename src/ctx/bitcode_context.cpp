@@ -625,6 +625,7 @@ void bitcode_context::pop_value_reference(bc::val_ptr prev_value)
 bc::val_ptr bitcode_context::get_value_reference(size_t index)
 {
 	bz_assert(index < this->current_value_reference_stack_size);
+	bz_assert(index < this->current_value_references.size());
 	auto const stack_index = (this->current_value_reference_stack_size - index - 1) % this->current_value_references.size();
 	return this->current_value_references[stack_index];
 }

@@ -3409,6 +3409,11 @@ static ast::expression make_expr_function_call_from_body(
 		args[0].src_tokens = src_tokens;
 		return context.make_move_construction(std::move(args[0]));
 	}
+	else if (body->is_builtin_assign())
+	{
+		bz_assert(args.size() == 2);
+		return context.make_assignment(src_tokens, std::move(args[0]), std::move(args[1]));
+	}
 
 	auto &ret_t = body->return_type;
 	if (ret_t.is_typename())
@@ -5616,6 +5621,210 @@ ast::expression parse_context::make_move_construction(ast::expression expr)
 		}
 		bz_assert(info->kind == ast::type_info::aggregate || info->kind == ast::type_info::forward_declaration);
 		return make_struct_move_construction(type, std::move(expr), *this);
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
+static ast::expression make_tuple_assignment(
+	lex::src_tokens const &src_tokens,
+	ast::expression lhs,
+	ast::expression rhs,
+	ast::typespec_view lhs_type,
+	ast::typespec_view rhs_type,
+	parse_context &context
+)
+{
+	bz_assert(lhs_type.is<ast::ts_tuple>());
+	bz_assert(rhs_type.is<ast::ts_tuple>());
+
+	auto const &lhs_tuple_type = lhs_type.get<ast::ts_tuple>();
+	auto const &rhs_tuple_type = rhs_type.get<ast::ts_tuple>();
+
+	if (lhs_tuple_type.types.size() != rhs_tuple_type.types.size())
+	{
+		context.report_error(
+			src_tokens,
+			bz::format(
+				"tuple types '{}' and '{}' have a different number of elements ({} and {}) in assignment",
+				lhs_type, rhs_type, lhs_tuple_type.types.size(), rhs_tuple_type.types.size()
+			)
+		);
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_binary_op(lex::token::assign, std::move(lhs), std::move(rhs))
+		);
+	}
+
+	bz_assert(lhs.get_expr_type_and_kind().second == ast::expression_type_kind::lvalue_reference);
+	auto const [rhs_type_with_const, rhs_expr_type_kind] = rhs.get_expr_type_and_kind();
+	auto const rhs_elem_expr_type_kind = rhs_expr_type_kind == ast::expression_type_kind::lvalue_reference
+		? ast::expression_type_kind::lvalue_reference
+		: ast::expression_type_kind::rvalue;
+	auto assign_exprs = bz::iota(0, lhs_tuple_type.types.size())
+		.transform([&, &rhs_type_with_const = rhs_type_with_const](auto const i) {
+			ast::typespec lhs_elem_type = lhs_tuple_type.types[i];
+			ast::typespec rhs_elem_type = rhs_tuple_type.types[i];
+
+			if (rhs_type_with_const.is<ast::ts_const>())
+			{
+				rhs_elem_type.add_layer<ast::ts_const>();
+			}
+
+			return context.make_binary_operator_expression(
+				src_tokens,
+				lex::token::assign,
+				ast::make_dynamic_expression(
+					lhs.src_tokens,
+					ast::expression_type_kind::lvalue_reference, std::move(lhs_elem_type),
+					ast::make_expr_bitcode_value_reference(1),
+					ast::destruct_operation()
+				),
+				ast::make_dynamic_expression(
+					rhs.src_tokens,
+					rhs_elem_expr_type_kind, std::move(rhs_elem_type),
+					ast::make_expr_bitcode_value_reference(0),
+					ast::destruct_operation()
+				)
+			);
+		})
+		.collect<ast::arena_vector>();
+
+	ast::typespec result_type = lhs_type;
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::lvalue_reference, std::move(result_type),
+		ast::make_expr_aggregate_assign(std::move(lhs), std::move(rhs), std::move(assign_exprs)),
+		ast::destruct_operation()
+	);
+}
+
+static ast::expression make_array_assignment(
+	lex::src_tokens const &src_tokens,
+	ast::expression lhs,
+	ast::expression rhs,
+	ast::typespec_view lhs_type,
+	ast::typespec_view rhs_type,
+	parse_context &context
+)
+{
+	bz_assert(lhs_type.is<ast::ts_array>());
+	bz_assert(rhs_type.is<ast::ts_array>());
+
+	auto const &lhs_array_type = lhs_type.get<ast::ts_array>();
+	auto const &rhs_array_type = rhs_type.get<ast::ts_array>();
+
+	if (lhs_array_type.size != rhs_array_type.size)
+	{
+		context.report_error(
+			src_tokens,
+			bz::format(
+				"array types '{}' and '{}' have different sizes ({} and {}) in assignment",
+				lhs_type, rhs_type, lhs_array_type.size, rhs_array_type.size
+			)
+		);
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_binary_op(lex::token::assign, std::move(lhs), std::move(rhs))
+		);
+	}
+
+	bz_assert(lhs.get_expr_type_and_kind().second == ast::expression_type_kind::lvalue_reference);
+	auto const [rhs_type_with_const, rhs_expr_type_kind] = rhs.get_expr_type_and_kind();
+	auto const rhs_elem_expr_type_kind = rhs_expr_type_kind == ast::expression_type_kind::lvalue_reference
+		? ast::expression_type_kind::lvalue_reference
+		: ast::expression_type_kind::rvalue;
+	ast::typespec lhs_elem_type = lhs_array_type.elem_type;
+	ast::typespec rhs_elem_type = rhs_array_type.elem_type;
+
+	if (rhs_type_with_const.is<ast::ts_const>())
+	{
+		rhs_elem_type.add_layer<ast::ts_const>();
+	}
+
+	auto assign_expr = context.make_binary_operator_expression(
+		src_tokens,
+		lex::token::assign,
+		ast::make_dynamic_expression(
+			lhs.src_tokens,
+			ast::expression_type_kind::lvalue_reference, std::move(lhs_elem_type),
+			ast::make_expr_bitcode_value_reference(1),
+			ast::destruct_operation()
+		),
+		ast::make_dynamic_expression(
+			rhs.src_tokens,
+			rhs_elem_expr_type_kind, std::move(rhs_elem_type),
+			ast::make_expr_bitcode_value_reference(0),
+			ast::destruct_operation()
+		)
+	);
+
+	ast::typespec result_type = lhs_type;
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::lvalue_reference, std::move(result_type),
+		ast::make_expr_array_assign(std::move(lhs), std::move(rhs), std::move(assign_expr)),
+		ast::destruct_operation()
+	);
+}
+
+ast::expression parse_context::make_assignment(lex::src_tokens const &src_tokens, ast::expression lhs, ast::expression rhs)
+{
+	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
+	auto const are_types_equal = lhs_type == rhs_type;
+
+	if (are_types_equal && ast::is_trivial(lhs_type))
+	{
+		ast::typespec result_type = lhs_type;
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::lvalue_reference, std::move(result_type),
+			ast::make_expr_trivial_assign(std::move(lhs), std::move(rhs)),
+			ast::destruct_operation()
+		);
+	}
+	else if (lhs_type.is<ast::ts_tuple>() && rhs_type.is<ast::ts_tuple>())
+	{
+		return make_tuple_assignment(src_tokens, std::move(lhs), std::move(rhs), lhs_type, rhs_type, *this);
+	}
+	else if (lhs_type.is<ast::ts_array>() && rhs_type.is<ast::ts_array>())
+	{
+		return make_array_assignment(src_tokens, std::move(lhs), std::move(rhs), lhs_type, rhs_type, *this);
+	}
+	else if (!are_types_equal)
+	{
+		this->report_error(src_tokens, bz::format("invalid assignment with types '{}' and '{}'", lhs_type, rhs_type));
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_binary_op(lex::token::assign, std::move(lhs), std::move(rhs))
+		);
+	}
+	else if (lhs_type.is<ast::ts_base_type>())
+	{
+		auto const info = lhs_type.get<ast::ts_base_type>().info;
+		if (info->state < ast::resolve_state::all)
+		{
+			this->add_to_resolve_queue(src_tokens, *info);
+			resolve::resolve_type_info(*info, *this);
+			this->pop_resolve_queue();
+		}
+
+		if (info->kind == ast::type_info::forward_declaration)
+		{
+			this->report_error(src_tokens, bz::format("invalid assignment of incomplete type '{}'", lhs_type));
+			return ast::make_error_expression(
+				src_tokens,
+				ast::make_expr_binary_op(lex::token::assign, std::move(lhs), std::move(rhs))
+			);
+		}
+		else
+		{
+			bz_assert(info->kind == ast::type_info::aggregate);
+		}
+		bz_unreachable;
 	}
 	else
 	{

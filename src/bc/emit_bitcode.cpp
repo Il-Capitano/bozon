@@ -4649,7 +4649,7 @@ static val_ptr emit_bitcode(
 		auto const lhs_member_ptr = context.create_struct_gep(lhs_type, lhs.val, i);
 		auto const rhs_member_val = rhs.kind == val_ptr::reference
 			? val_ptr::get_reference(context.create_struct_gep(rhs_type, rhs.val, i), rhs_type->getStructElementType(i))
-			: val_ptr::get_value(context.builder.CreateExtractValue(rhs.val, i));
+			: val_ptr::get_value(context.builder.CreateExtractValue(rhs.get_value(context.builder), i));
 		auto const lhs_prev_value = context.push_value_reference(val_ptr::get_reference(lhs_member_ptr, lhs_type->getStructElementType(i)));
 		auto const rhs_prev_value = context.push_value_reference(rhs_member_val);
 		emit_bitcode<abi>(aggregate_assign.assign_exprs[i], context, nullptr);
@@ -4721,16 +4721,29 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
-	ast::expr_builtin_assign const &builtin_assign,
+	ast::expr_trivial_assign const &trivial_assign,
 	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const rhs = emit_bitcode<abi>(builtin_assign.rhs, context, nullptr);
-	auto const lhs = emit_bitcode<abi>(builtin_assign.lhs, context, nullptr);
+	auto const rhs = emit_bitcode<abi>(trivial_assign.rhs, context, nullptr);
+	auto const lhs = emit_bitcode<abi>(trivial_assign.lhs, context, nullptr);
 	bz_assert(lhs.kind == val_ptr::reference);
+	bz_assert(lhs.get_type() == rhs.get_type());
 
-	context.builder.CreateStore(rhs.get_value(context.builder), lhs.val);
+
+	if (rhs.kind == val_ptr::value)
+	{
+		context.builder.CreateStore(rhs.get_value(context.builder), lhs.val);
+	}
+	else if (auto const size = context.get_size(lhs.get_type()); size <= 16)
+	{
+		context.builder.CreateStore(rhs.get_value(context.builder), lhs.val);
+	}
+	else
+	{
+		emit_memcpy(lhs.val, rhs.val, size, context);
+	}
 
 	bz_assert(result_address == nullptr);
 	return lhs;

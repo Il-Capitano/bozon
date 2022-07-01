@@ -428,6 +428,7 @@ struct parse_context
 	ast::expression make_default_construction(lex::src_tokens const &src_tokens, ast::typespec_view type);
 	ast::expression make_copy_construction(ast::expression expr);
 	ast::expression make_move_construction(ast::expression expr);
+	ast::expression make_assignment(lex::src_tokens const &src_tokens, ast::expression lhs, ast::expression rhs);
 
 	void add_self_destruction(ast::expression &expr);
 	ast::destruct_operation make_variable_destruction(ast::decl_variable *var_decl);

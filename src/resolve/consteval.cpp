@@ -3117,7 +3117,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 		[](ast::expr_array_assign &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_builtin_assign &) -> ast::constant_value {
+		[](ast::expr_trivial_assign &) -> ast::constant_value {
 			return {};
 		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
@@ -3559,7 +3559,7 @@ static ast::constant_value try_evaluate_expr(
 		[](ast::expr_array_assign &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_builtin_assign &) -> ast::constant_value {
+		[](ast::expr_trivial_assign &) -> ast::constant_value {
 			return {};
 		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
@@ -4004,7 +4004,7 @@ static ast::constant_value try_evaluate_expr_without_error(
 		[](ast::expr_array_assign &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_builtin_assign &) -> ast::constant_value {
+		[](ast::expr_trivial_assign &) -> ast::constant_value {
 			return {};
 		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
@@ -4722,7 +4722,7 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 				expr.src_tokens, "assignment is not a constant expression"
 			));
 		},
-		[&expr, &notes](ast::expr_builtin_assign const &) {
+		[&expr, &notes](ast::expr_trivial_assign const &) {
 			notes.push_back(ctx::parse_context::make_note(
 				expr.src_tokens, "assignment is not a constant expression"
 			));
