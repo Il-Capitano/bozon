@@ -41,6 +41,16 @@ function factorial_recursive(n: auto) -> typeof n
 	}
 }
 
+function sum_array(arr: #const [?: auto]) -> int32
+{
+	let result = 0;
+	for (const val in arr)
+	{
+		result += val;
+	}
+	return result;
+}
+
 let global = [3, "hello"];
 // let global = [3i64, 23.234];
 consteval c = 5;
@@ -81,6 +91,11 @@ struct foo_t
 
 function main(args: [: const str]) -> int32
 {
+	let arr: [?: int32] = [ 0, 1 ];
+	sum_array(arr);
+
+	sum_array([ 0, 1, 2, 3, 4 ]);
+
 	static_assert(typeof foo_t.inner_var == const int32);
 	static_assert(foo_t.inner_var == 0);
 	static_assert(foo_t.asdf == int32);
