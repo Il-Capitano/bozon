@@ -3456,9 +3456,7 @@ static val_ptr emit_bitcode(
 			}
 			else
 			{
-				auto const param_val = ast::is_non_trivial(param_type)
-					? emit_bitcode<abi>(p, context, context.create_alloca(param_llvm_type))
-					: emit_bitcode<abi>(p, context, nullptr);
+				auto const param_val = emit_bitcode<abi>(p, context, nullptr);
 				add_call_parameter<abi, push_to_front>(param_type, param_llvm_type, param_val, params, params_is_byval, context);
 			}
 		}
