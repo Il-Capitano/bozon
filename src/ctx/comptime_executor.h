@@ -178,7 +178,7 @@ struct comptime_executor_context
 	template<abi::platform_abi abi>
 	abi::pass_kind get_pass_kind(ast::typespec_view ts)
 	{
-		if (ast::is_non_trivial(ts))
+		if (bc::is_non_trivial_pass_kind(ts))
 		{
 			return abi::pass_kind::non_trivial;
 		}
@@ -192,7 +192,7 @@ struct comptime_executor_context
 	template<abi::platform_abi abi>
 	abi::pass_kind get_pass_kind(ast::typespec_view ts, llvm::Type *llvm_type)
 	{
-		if (ast::is_non_trivial(ts))
+		if (bc::is_non_trivial_pass_kind(ts))
 		{
 			return abi::pass_kind::non_trivial;
 		}

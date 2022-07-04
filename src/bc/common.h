@@ -124,6 +124,14 @@ llvm::Type *get_llvm_type(ast::typespec_view ts, Context &context, bool is_top_l
 	}
 }
 
+inline bool is_non_trivial_pass_kind(ast::typespec_view ts)
+{
+	return !ts.is<ast::ts_void>()
+		&& !ts.is<ast::ts_lvalue_reference>()
+		&& !ts.is<ast::ts_move_reference>()
+		&& !ast::is_trivially_relocatable(ts);
+}
+
 } // namespace bc
 
 #endif // BC_COMMON_H

@@ -52,7 +52,7 @@ struct bitcode_context
 	template<abi::platform_abi abi>
 	abi::pass_kind get_pass_kind(ast::typespec_view ts) const
 	{
-		if (ast::is_non_trivial(ts))
+		if (bc::is_non_trivial_pass_kind(ts))
 		{
 			return abi::pass_kind::non_trivial;
 		}
@@ -66,7 +66,7 @@ struct bitcode_context
 	template<abi::platform_abi abi>
 	abi::pass_kind get_pass_kind(ast::typespec_view ts, llvm::Type *llvm_type) const
 	{
-		if (ast::is_non_trivial(ts))
+		if (bc::is_non_trivial_pass_kind(ts))
 		{
 			return abi::pass_kind::non_trivial;
 		}
