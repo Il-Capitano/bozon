@@ -1348,8 +1348,8 @@ static bool resolve_function_parameters_helper(
 			func_body.params.size() == 1
 			&& func_body.params[0].get_type().nodes.size() == 2
 			&& func_body.params[0].get_type().nodes[0].is<ast::ts_move_reference>()
-			&& func_body.params[0].get_type().nodes[2].is<ast::ts_base_type>()
-			&& func_body.params[0].get_type().nodes[2].get<ast::ts_base_type>().info == func_body.get_constructor_of()
+			&& func_body.params[0].get_type().nodes[1].is<ast::ts_base_type>()
+			&& func_body.params[0].get_type().nodes[1].get<ast::ts_base_type>().info == func_body.get_constructor_of()
 		)
 		{
 			auto const info = func_body.get_constructor_of();
@@ -2053,10 +2053,6 @@ static void add_default_constructors(ast::type_info &info)
 		info.constructors.push_back(info.default_move_constructor.get());
 	}
 
-	bz_assert(info.default_op_assign == nullptr);
-	info.default_op_assign = ast::type_info::make_default_op_assign(info.src_tokens, info);
-	bz_assert(info.default_op_move_assign == nullptr);
-	info.default_op_move_assign = ast::type_info::make_default_op_move_assign(info.src_tokens, info);
 	if (
 		!info.body.get<bz::vector<ast::statement>>()
 			.filter([](auto const &stmt) {
@@ -2068,8 +2064,18 @@ static void add_default_constructors(ast::type_info &info)
 			.contains(lex::token::assign)
 	)
 	{
-		info.scope.get_global().add_operator(*info.default_op_assign);
-		info.scope.get_global().add_operator(*info.default_op_move_assign);
+		if (info.copy_constructor != nullptr || info.default_copy_constructor != nullptr)
+		{
+			bz_assert(info.default_op_assign == nullptr);
+			info.default_op_assign = ast::type_info::make_default_op_assign(info.src_tokens, info);
+			info.scope.get_global().add_operator(*info.default_op_assign);
+		}
+		if (info.move_constructor != nullptr || info.default_move_constructor != nullptr)
+		{
+			bz_assert(info.default_op_move_assign == nullptr);
+			info.default_op_move_assign = ast::type_info::make_default_op_move_assign(info.src_tokens, info);
+			info.scope.get_global().add_operator(*info.default_op_move_assign);
+		}
 	}
 }
 
@@ -2191,11 +2197,9 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 	bz_assert(info.body.is<lex::token_range>());
 	auto [stream, end] = info.body.get<lex::token_range>();
 
-	info.body.emplace<bz::vector<ast::statement>>();
-	auto &info_body = info.body.get<bz::vector<ast::statement>>();
+	auto &info_body = info.body.emplace<bz::vector<ast::statement>>();
 
 	auto prev_scope_info = context.push_global_scope(&info.scope);
-	// bz::log(">>> pushing struct scope: {} ({})\n", &info.scope, info.get_typename_as_string());
 	info_body = parse::parse_struct_body_statements(stream, end, context);
 
 	add_type_info_members(info, context);

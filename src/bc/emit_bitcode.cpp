@@ -4073,11 +4073,19 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	auto const type = get_llvm_type(take_move_ref.expr.get_expr_type(), context);
-	auto const alloca = context.create_alloca(type);
-	auto const result = emit_bitcode<abi>(take_move_ref.expr, context, alloca);
+	auto const result = emit_bitcode<abi>(take_move_ref.expr, context, nullptr);
 	bz_assert(result_address == nullptr);
-	return result;
+	if (result.kind == val_ptr::reference)
+	{
+		return result;
+	}
+	else
+	{
+		auto const type = result.get_type();
+		auto const alloca = context.create_alloca(type);
+		context.builder.CreateStore(result.get_value(context.builder), alloca);
+		return val_ptr::get_reference(alloca, type);
+	}
 }
 
 template<abi::platform_abi abi>
@@ -4716,6 +4724,34 @@ static val_ptr emit_bitcode(
 		bz_assert(result_address == nullptr);
 		return lhs;
 	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_base_type_assign const &base_type_assign,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const rhs = emit_bitcode<abi>(base_type_assign.rhs, context, nullptr);
+	auto const lhs = emit_bitcode<abi>(base_type_assign.lhs, context, nullptr);
+	bz_assert(lhs.kind == val_ptr::reference);
+
+	{
+		auto const prev_value = context.push_value_reference(lhs);
+		emit_bitcode<abi>(base_type_assign.lhs_destruct_expr, context, nullptr);
+		context.pop_value_reference(prev_value);
+	}
+
+	{
+		auto const prev_value = context.push_value_reference(rhs);
+		emit_bitcode<abi>(base_type_assign.rhs_copy_expr, context, lhs.val);
+		context.pop_value_reference(prev_value);
+	}
+
+	bz_assert(result_address == nullptr);
+	return lhs;
 }
 
 template<abi::platform_abi abi>
@@ -5490,7 +5526,7 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	if (result_address == nullptr && dyn_expr.destruct_op.not_null())
+	if (result_address == nullptr && dyn_expr.destruct_op.not_null() && dyn_expr.kind == ast::expression_type_kind::rvalue)
 	{
 		auto const result_type = get_llvm_type(dyn_expr.type, context);
 		result_address = context.create_alloca(result_type);

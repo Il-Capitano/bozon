@@ -3409,10 +3409,10 @@ static ast::expression make_expr_function_call_from_body(
 		args[0].src_tokens = src_tokens;
 		return context.make_move_construction(std::move(args[0]));
 	}
-	else if (body->is_builtin_assign())
+	else if (body->is_builtin_assign() || body->is_default_op_assign() || body->is_default_op_move_assign())
 	{
 		bz_assert(args.size() == 2);
-		return context.make_assignment(src_tokens, std::move(args[0]), std::move(args[1]));
+		return context.make_default_assignment(src_tokens, std::move(args[0]), std::move(args[1]));
 	}
 
 	auto &ret_t = body->return_type;
@@ -5780,52 +5780,49 @@ static ast::expression make_struct_assignment(
 	auto const type = lhs.get_expr_type();
 	bz_assert(type.is<ast::ts_base_type>());
 
-	auto const info = type.get<ast::ts_base_type>().info;
-
 	bz_assert(lhs.get_expr_type_and_kind().second == ast::expression_type_kind::lvalue_reference);
 	auto const [rhs_type_with_const, rhs_expr_type_kind] = rhs.get_expr_type_and_kind();
-	auto const rhs_elem_expr_type_kind = rhs_expr_type_kind == ast::expression_type_kind::lvalue_reference
-		? ast::expression_type_kind::lvalue_reference
-		: ast::expression_type_kind::rvalue;
-	auto assign_exprs = bz::iota(0, info->member_variables.size())
-		.transform([&, &rhs_type_with_const = rhs_type_with_const](auto const i) {
-			ast::typespec lhs_elem_type = info->member_variables[i]->get_type();
-			ast::typespec rhs_elem_type = info->member_variables[i]->get_type();
+	bz_assert(
+		rhs_expr_type_kind == ast::expression_type_kind::lvalue_reference
+		|| rhs_expr_type_kind == ast::expression_type_kind::rvalue
+	);
 
-			if (rhs_type_with_const.is<ast::ts_const>())
-			{
-				rhs_elem_type.add_layer<ast::ts_const>();
-			}
+	auto lhs_destruct_expr = make_destruct_expression(
+		type,
+		ast::make_dynamic_expression(
+			lhs.src_tokens,
+			ast::expression_type_kind::lvalue_reference, type,
+			ast::make_expr_bitcode_value_reference(),
+			ast::destruct_operation()
+		),
+		context
+	);
 
-			return context.make_binary_operator_expression(
-				src_tokens,
-				lex::token::assign,
-				ast::make_dynamic_expression(
-					lhs.src_tokens,
-					ast::expression_type_kind::lvalue_reference, std::move(lhs_elem_type),
-					ast::make_expr_bitcode_value_reference(1),
-					ast::destruct_operation()
-				),
-				ast::make_dynamic_expression(
-					rhs.src_tokens,
-					rhs_elem_expr_type_kind, std::move(rhs_elem_type),
-					ast::make_expr_bitcode_value_reference(0),
-					ast::destruct_operation()
-				)
-			);
-		})
-		.collect<ast::arena_vector>();
+	if (rhs_expr_type_kind == ast::expression_type_kind::rvalue)
+	{
+		context.add_self_move_destruction(rhs);
+	}
+
+	auto rhs_value_ref = ast::make_dynamic_expression(
+		rhs.src_tokens,
+		ast::expression_type_kind::moved_lvalue, rhs_type_with_const,
+		ast::make_expr_bitcode_value_reference(),
+		ast::destruct_operation()
+	);
+	auto rhs_copy_expr = rhs_expr_type_kind == ast::expression_type_kind::lvalue_reference
+		? context.make_copy_construction(std::move(rhs_value_ref))
+		: context.make_move_construction(std::move(rhs_value_ref));
 
 	ast::typespec result_type = type;
 	return ast::make_dynamic_expression(
 		src_tokens,
 		ast::expression_type_kind::lvalue_reference, std::move(result_type),
-		ast::make_expr_aggregate_assign(std::move(lhs), std::move(rhs), std::move(assign_exprs)),
+		ast::make_expr_base_type_assign(std::move(lhs), std::move(rhs), std::move(lhs_destruct_expr), std::move(rhs_copy_expr)),
 		ast::destruct_operation()
 	);
 }
 
-ast::expression parse_context::make_assignment(lex::src_tokens const &src_tokens, ast::expression lhs, ast::expression rhs)
+ast::expression parse_context::make_default_assignment(lex::src_tokens const &src_tokens, ast::expression lhs, ast::expression rhs)
 {
 	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type());
 	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
@@ -5992,6 +5989,111 @@ static ast::expression make_destruct_expression(ast::typespec_view type, ast::ex
 	}
 }
 
+static ast::expression make_move_destruct_expression(ast::typespec_view type, ast::expression value, parse_context &context)
+{
+	if (type.is<ast::ts_base_type>())
+	{
+		auto const info = type.get<ast::ts_base_type>().info;
+		if (info->state < ast::resolve_state::all)
+		{
+			context.add_to_resolve_queue(value.src_tokens, *info);
+			resolve::resolve_type_info(*info, context);
+			context.pop_resolve_queue();
+		}
+	}
+
+	if (ast::is_trivially_move_destructible(type))
+	{
+		return ast::expression();
+	}
+
+	auto const src_tokens = value.src_tokens;
+	if (type.is<ast::ts_base_type>())
+	{
+		auto const info = type.get<ast::ts_base_type>().info;
+		bz_assert(info->state == ast::resolve_state::all);
+
+		auto destruct_call = [&]() {
+			if (info->move_destructor == nullptr)
+			{
+				return ast::expression();
+			}
+
+			auto const body = &info->move_destructor->body;
+			auto args = ast::arena_vector<ast::expression>();
+			args.push_back(ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::moved_lvalue, type,
+				ast::make_expr_bitcode_value_reference(),
+				ast::destruct_operation()
+			));
+			return make_expr_function_call_from_body(src_tokens, body, std::move(args), context);
+		}();
+
+		auto member_destruct_calls = info->member_variables
+			.transform([&](auto const member) {
+				auto const member_type = ast::remove_const_or_consteval(ast::remove_lvalue_reference(member->get_type()));
+				auto value_ref = ast::make_dynamic_expression(
+					src_tokens,
+					ast::expression_type_kind::moved_lvalue, member_type,
+					ast::make_expr_bitcode_value_reference(),
+					ast::destruct_operation()
+				);
+				return make_move_destruct_expression(ast::remove_const_or_consteval(member->get_type()), std::move(value_ref), context);
+			})
+			.collect<ast::arena_vector>();
+		bz_assert(member_destruct_calls.size() != 0);
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+			ast::make_expr_base_type_destruct(std::move(value), std::move(destruct_call), std::move(member_destruct_calls)),
+			ast::destruct_operation()
+		);
+	}
+	else if (type.is<ast::ts_tuple>())
+	{
+		auto elem_destruct_calls = type.get<ast::ts_tuple>().types
+			.transform([&](auto const &elem_type) {
+				auto const decayed_elem_type = ast::remove_const_or_consteval(ast::remove_lvalue_reference(elem_type));
+				auto value_ref = ast::make_dynamic_expression(
+					src_tokens,
+					ast::expression_type_kind::moved_lvalue, decayed_elem_type,
+					ast::make_expr_bitcode_value_reference(),
+					ast::destruct_operation()
+				);
+				return make_move_destruct_expression(ast::remove_const_or_consteval(elem_type), std::move(value_ref), context);
+			})
+			.collect<ast::arena_vector>();
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+			ast::make_expr_aggregate_destruct(std::move(value), std::move(elem_destruct_calls)),
+			ast::destruct_operation()
+		);
+	}
+	else if (type.is<ast::ts_array>())
+	{
+		auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
+		auto value_ref = ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::moved_lvalue, elem_type,
+			ast::make_expr_bitcode_value_reference(),
+			ast::destruct_operation()
+		);
+		auto elem_destruct_call = make_move_destruct_expression(elem_type, std::move(value_ref), context);
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+			ast::make_expr_array_destruct(std::move(value), std::move(elem_destruct_call)),
+			ast::destruct_operation()
+		);
+	}
+	else
+	{
+		return ast::expression();
+	}
+}
+
 void parse_context::add_self_destruction(ast::expression &expr)
 {
 	if (this->in_unevaluated_context || !expr.is_dynamic())
@@ -6034,6 +6136,48 @@ void parse_context::add_self_destruction(ast::expression &expr)
 			ast::destruct_operation()
 		);
 		expr.get_dynamic().destruct_op = ast::destruct_self(make_destruct_expression(type, std::move(value_ref), *this));
+	}
+}
+
+void parse_context::add_self_move_destruction(ast::expression &expr)
+{
+	if (this->in_unevaluated_context || !expr.is_dynamic())
+	{
+		return;
+	}
+	else if (expr.is_tuple())
+	{
+		auto &tuple = expr.get_tuple();
+		for (auto &elem : tuple.elems)
+		{
+			this->add_self_move_destruction(elem);
+		}
+	}
+	else if (expr.is_if_expr())
+	{
+		auto &if_expr = expr.get_if_expr();
+		this->add_self_move_destruction(if_expr.then_block);
+		this->add_self_move_destruction(if_expr.else_block);
+	}
+	else if (expr.is_switch_expr())
+	{
+		auto &switch_expr = expr.get_switch_expr();
+		for (auto &[_, case_expr] : switch_expr.cases)
+		{
+			this->add_self_move_destruction(case_expr);
+		}
+		this->add_self_move_destruction(switch_expr.default_case);
+	}
+	else if (!ast::is_trivially_move_destructible(expr.get_expr_type()))
+	{
+		auto const type = ast::remove_const_or_consteval(expr.get_expr_type());
+		auto value_ref = ast::make_dynamic_expression(
+			expr.src_tokens,
+			ast::expression_type_kind::lvalue_reference, type,
+			ast::make_expr_bitcode_value_reference(),
+			ast::destruct_operation()
+		);
+		expr.get_dynamic().destruct_op = ast::destruct_self(make_move_destruct_expression(type, std::move(value_ref), *this));
 	}
 }
 
