@@ -3043,7 +3043,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 			ast::constant_value(ast::internal::null_t{}),
 			ast::make_expr_null_literal()
 		);
-	case lex::token::question_mark:
+	case lex::token::placeholder_literal:
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::placeholder_literal,

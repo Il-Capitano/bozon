@@ -41,7 +41,7 @@ function factorial_recursive(n: auto) -> typeof n
 	}
 }
 
-function sum_array(arr: #const [?: auto]) -> int32
+function sum_array(arr: #const [??: auto]) -> int32
 {
 	let result = 0;
 	for (const val in arr)
@@ -91,7 +91,7 @@ struct foo_t
 
 function main(args: [: const str]) -> int32
 {
-	let arr: [?: int32] = [ 0, 1 ];
+	let arr: [??: int32] = [ 0, 1 ];
 	sum_array(arr);
 
 	sum_array([ 0, 1, 2, 3, 4 ]);
@@ -405,7 +405,7 @@ function main(args: [: const str]) -> int32
 	t = [ 4i8, 2.334, "hi" ];
 	std::printf("{}\n", t);
 
-	let arr: [?: str] = [ "hello", "there", "hi", "this" ];
+	let arr: [??: str] = [ "hello", "there", "hi", "this" ];
 	std::printf("{}\n", arr);
 	arr = [ "hmm", "this", "is", "different" ];
 	std::printf("{}\n", arr);
@@ -415,6 +415,9 @@ function main(args: [: const str]) -> int32
 	const t2 = [ "hi" ];
 	t1 = t2;
 	std::printf("{}\n", t1);
+
+	let r = make_resource();
+	r = make_resource();
 
 	const s = std::string("Hello");
 	const *const p = &s;
@@ -1820,4 +1823,37 @@ function generic_type_test()
 		std::printf("{}, ", i);
 	}
 	std::printf("\n");
+}
+
+struct unique_ptr<T: typename>
+{
+	type _self_t = unique_ptr<T>;
+
+	._ptr: *T;
+
+	constructor(ptr: *T)
+	{
+		return _self_t[ ptr ];
+	}
+
+	destructor(&self)
+	{
+		__builtin_call_destructor(*self._ptr);
+		std::free(self._ptr);
+	}
+
+	operator * (self: &_self_t) -> &T
+	{
+		return *self._ptr;
+	}
+
+	operator * (self: &const _self_t) -> &const T
+	{
+		return *self._ptr;
+	}
+}
+
+function unique_ptr_test()
+{
+	let ptr = unique_ptr<int32>(std::malloc(int32, 1));
 }

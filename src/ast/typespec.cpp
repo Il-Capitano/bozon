@@ -656,7 +656,7 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 				}
 				else
 				{
-					result += '?';
+					result += "??";
 				}
 				while (current_array_t->elem_type.is<ast::ts_array>())
 				{

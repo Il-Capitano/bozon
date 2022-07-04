@@ -405,7 +405,7 @@ export function __builtin_print_stderr(s: str)
 		)));
 	} else {}, typeof lhs);
 @__builtin_assign export operator = (lhs: &[...auto], rhs: ##[...auto]) -> typeof lhs;
-@__builtin_assign export operator = (lhs: &[?: auto], rhs: ##[?: auto]) -> typeof lhs;
+@__builtin_assign export operator = (lhs: &[??: auto], rhs: ##[??: auto]) -> typeof lhs;
 
 @__builtin export operator + (lhs: int8,  rhs: int8)  -> int8;
 @__builtin export operator + (lhs: int16, rhs: int16) -> int16;

@@ -226,6 +226,8 @@ constexpr auto token_info = []() {
 	result[lex::token::auto_ref]       = { lex::token::auto_ref,       "#",  "", unary_type_op_flags };
 	result[lex::token::auto_ref_const] = { lex::token::auto_ref_const, "##", "", unary_type_op_flags };
 
+	result[lex::token::placeholder_literal] = { lex::token::placeholder_literal, "??", "", expr_type_flags };
+
 	// bit_and, address_of
 	result[lex::token::ampersand]          = { lex::token::ampersand,          "&",   "", both_builtin_flags   | binary_overloadable_flags | unary_type_op_flags };
 	result[lex::token::bit_and_eq]         = { lex::token::bit_and_eq,         "&=",  "", binary_builtin_flags | binary_overloadable_flags };
