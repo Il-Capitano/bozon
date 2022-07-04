@@ -1855,5 +1855,5 @@ struct unique_ptr<T: typename>
 
 function unique_ptr_test()
 {
-	let ptr = unique_ptr<int32>(std::malloc(int32, 1));
+	let _ptr = unique_ptr<int32>(std::malloc(int32, 1));
 }
