@@ -248,6 +248,18 @@ static void emit_memcpy(llvm::Value *dest, llvm::Value *source, size_t size, aut
 	context.create_call(memcpy_fn, { dest_void_ptr, src_void_ptr, size_val, false_val });
 }
 
+static void emit_value_copy(val_ptr value, llvm::Value *dest_ptr, auto &context)
+{
+	if (value.kind == val_ptr::value || !value.get_type()->isAggregateType())
+	{
+		context.builder.CreateStore(value.get_value(context.builder), dest_ptr);
+	}
+	else
+	{
+		emit_memcpy(dest_ptr, value.val, context.get_size(value.get_type()), context);
+	}
+}
+
 template<abi::platform_abi abi, bool push_to_front = false>
 static void add_call_parameter(
 	ast::typespec_view param_type,
@@ -391,286 +403,6 @@ static void add_byval_attributes(llvm::Argument &arg, llvm::Type *byval_type, au
 			break;
 		}
 	}
-}
-
-template<abi::platform_abi abi>
-static void create_function_call(
-	lex::src_tokens const &src_tokens,
-	ast::function_body *body,
-	val_ptr lhs,
-	val_ptr rhs,
-	auto &context
-)
-{
-	bz_assert(lhs.kind == val_ptr::reference);
-	bz_assert(rhs.kind == val_ptr::reference);
-	auto const fn = context.get_function(body);
-	bz_assert(fn != nullptr);
-	auto const result_pass_kind = context.template get_pass_kind<abi>(body->return_type);
-
-	bz_assert(result_pass_kind != abi::pass_kind::reference);
-	bz_assert(body->params[0].get_type().is<ast::ts_lvalue_reference>());
-
-	ast::arena_vector<llvm::Value *> params;
-	ast::arena_vector<is_byval_and_type_pair> params_is_byval;
-	params.reserve(3);
-	params.push_back(lhs.val);
-
-	params_is_byval.reserve(2);
-
-	{
-		auto const &rhs_p_t = body->params[1].get_type();
-		auto const rhs_llvm_type = get_llvm_type(rhs_p_t, context);
-		add_call_parameter<abi>(rhs_p_t, rhs_llvm_type, rhs, params, params_is_byval, context);
-	}
-
-	auto const call = context.create_call(src_tokens, body, fn, llvm::ArrayRef(params.data(), params.size()));
-	if (params_is_byval[0].is_byval)
-	{
-		add_byval_attributes<abi>(call, params_is_byval[0].type, 1, context);
-	}
-}
-
-template<abi::platform_abi abi>
-static void emit_copy_assign(
-	lex::src_tokens const &src_tokens,
-	ast::typespec_view type,
-	val_ptr lhs,
-	val_ptr rhs,
-	auto &context
-)
-{
-	bz_assert(lhs.kind == val_ptr::reference);
-	if (rhs.kind == val_ptr::value)
-	{
-		context.builder.CreateStore(rhs.get_value(context.builder), lhs.val);
-		return;
-	}
-
-	if (type.is<ast::ts_base_type>())
-	{
-		auto const info = type.get<ast::ts_base_type>().info;
-		if (info->op_assign != nullptr && !info->op_assign->body.is_intrinsic())
-		{
-			create_function_call<abi>(src_tokens, &info->op_assign->body, lhs, rhs, context);
-		}
-		else if (info->default_op_assign != nullptr)
-		{
-			for (auto const &[member, i] : info->member_variables.enumerate())
-			{
-				bz_assert(!member->get_type().template is<ast::ts_lvalue_reference>());
-				bz_assert(lhs.get_type() == rhs.get_type());
-				bz_assert(lhs.get_type()->isStructTy());
-				auto const element_type = lhs.get_type()->getStructElementType(i);
-				emit_copy_assign<abi>(
-					src_tokens,
-					member->get_type(),
-					val_ptr::get_reference(context.create_struct_gep(lhs.get_type(), lhs.val, i), element_type),
-					val_ptr::get_reference(context.create_struct_gep(rhs.get_type(), rhs.val, i), element_type),
-					context
-				);
-			}
-		}
-		else
-		{
-			bz_assert(info->kind != ast::type_info::aggregate);
-			context.builder.CreateStore(rhs.get_value(context.builder), lhs.val);
-		}
-	}
-	else if (type.is<ast::ts_array>())
-	{
-		auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
-		bz_assert(lhs.get_type() == rhs.get_type());
-		bz_assert(lhs.get_type()->isArrayTy());
-		auto const element_type = lhs.get_type()->getArrayElementType();
-		for (auto const i : bz::iota(0, type.get<ast::ts_array>().size))
-		{
-			emit_copy_assign<abi>(
-				src_tokens,
-				elem_type,
-				val_ptr::get_reference(context.create_struct_gep(lhs.get_type(), lhs.val, i), element_type),
-				val_ptr::get_reference(context.create_struct_gep(rhs.get_type(), rhs.val, i), element_type),
-				context
-			);
-		}
-	}
-	else if (type.is<ast::ts_tuple>())
-	{
-		for (auto const &[member_type, i] : type.get<ast::ts_tuple>().types.enumerate())
-		{
-			bz_assert(!member_type.template is<ast::ts_lvalue_reference>());
-			bz_assert(lhs.get_type() == rhs.get_type());
-			bz_assert(lhs.get_type()->isStructTy());
-			auto const element_type = lhs.get_type()->getStructElementType(i);
-			emit_copy_assign<abi>(
-				src_tokens,
-				member_type,
-				val_ptr::get_reference(context.create_struct_gep(lhs.get_type(), lhs.val, i), element_type),
-				val_ptr::get_reference(context.create_struct_gep(rhs.get_type(), rhs.val, i), element_type),
-				context
-			);
-		}
-	}
-	else
-	{
-		context.builder.CreateStore(rhs.get_value(context.builder), lhs.val);
-	}
-}
-
-template<abi::platform_abi abi>
-static void emit_move_assign(
-	lex::src_tokens const &src_tokens,
-	ast::typespec_view type,
-	val_ptr lhs,
-	val_ptr rhs,
-	auto &context
-)
-{
-	bz_assert(lhs.kind == val_ptr::reference);
-	if (rhs.kind == val_ptr::value)
-	{
-		context.builder.CreateStore(rhs.get_value(context.builder), lhs.val);
-		return;
-	}
-
-	if (type.is<ast::ts_base_type>())
-	{
-		auto const info = type.get<ast::ts_base_type>().info;
-		if (info->op_assign != nullptr && info->op_move_assign == nullptr)
-		{
-			emit_copy_assign<abi>(src_tokens, type, lhs, rhs, context);
-		}
-		else if (info->op_move_assign != nullptr && !info->op_move_assign->body.is_intrinsic())
-		{
-			create_function_call<abi>(src_tokens, &info->op_move_assign->body, lhs, rhs, context);
-		}
-		else if (info->default_op_move_assign != nullptr)
-		{
-			for (auto const &[member, i] : info->member_variables.enumerate())
-			{
-				bz_assert(!member->get_type().template is<ast::ts_lvalue_reference>());
-				bz_assert(lhs.get_type() == rhs.get_type());
-				bz_assert(lhs.get_type()->isStructTy());
-				auto const element_type = lhs.get_type()->getStructElementType(i);
-				emit_move_assign<abi>(
-					src_tokens,
-					member->get_type(),
-					val_ptr::get_reference(context.create_struct_gep(lhs.get_type(), lhs.val, i), element_type),
-					val_ptr::get_reference(context.create_struct_gep(rhs.get_type(), rhs.val, i), element_type),
-					context
-				);
-			}
-		}
-		else
-		{
-			bz_assert(info->kind != ast::type_info::aggregate);
-			context.builder.CreateStore(rhs.get_value(context.builder), lhs.val);
-		}
-	}
-	else if (type.is<ast::ts_array>())
-	{
-		auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
-		bz_assert(lhs.get_type() == rhs.get_type());
-		bz_assert(lhs.get_type()->isArrayTy());
-		auto const element_type = lhs.get_type()->getArrayElementType();
-		for (auto const i : bz::iota(0, type.get<ast::ts_array>().size))
-		{
-			emit_move_assign<abi>(
-				src_tokens,
-				elem_type,
-				val_ptr::get_reference(context.create_struct_gep(lhs.get_type(), lhs.val, i), element_type),
-				val_ptr::get_reference(context.create_struct_gep(rhs.get_type(), rhs.val, i), element_type),
-				context
-			);
-		}
-	}
-	else if (type.is<ast::ts_tuple>())
-	{
-		for (auto const &[member_type, i] : type.get<ast::ts_tuple>().types.enumerate())
-		{
-			bz_assert(!member_type.template is<ast::ts_lvalue_reference>());
-			bz_assert(lhs.get_type() == rhs.get_type());
-			bz_assert(lhs.get_type()->isStructTy());
-			auto const element_type = lhs.get_type()->getStructElementType(i);
-			emit_move_assign<abi>(
-				src_tokens,
-				member_type,
-				val_ptr::get_reference(context.create_struct_gep(lhs.get_type(), lhs.val, i), element_type),
-				val_ptr::get_reference(context.create_struct_gep(rhs.get_type(), rhs.val, i), element_type),
-				context
-			);
-		}
-	}
-	else
-	{
-		context.builder.CreateStore(rhs.get_value(context.builder), lhs.val);
-	}
-}
-
-template<abi::platform_abi abi>
-static val_ptr emit_default_copy_assign(
-	lex::src_tokens const &src_tokens,
-	ast::expression const &lhs,
-	ast::expression const &rhs,
-	auto &context,
-	llvm::Value *result_address
-)
-{
-	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type());
-	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
-	auto const is_rhs_null_pointer = lhs_type.is<ast::ts_pointer>() && rhs_type.is<ast::ts_base_type>();
-	bz_assert(!is_rhs_null_pointer || rhs_type.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_);
-	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr);
-	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr);
-	bz_assert(lhs_val.kind == val_ptr::reference);
-
-	if (is_rhs_null_pointer)
-	{
-		auto const lhs_llvm_type = lhs_val.get_type();
-		bz_assert(lhs_llvm_type->isPointerTy());
-		auto const rhs_null_val = val_ptr::get_value(llvm::ConstantPointerNull::get(static_cast<llvm::PointerType *>(lhs_llvm_type)));
-		emit_copy_assign<abi>(src_tokens, lhs_type, lhs_val, rhs_null_val, context);
-	}
-	else
-	{
-		emit_copy_assign<abi>(src_tokens, lhs_type, lhs_val, rhs_val, context);
-	}
-
-	bz_assert(result_address == nullptr);
-	return lhs_val;
-}
-
-template<abi::platform_abi abi>
-static val_ptr emit_default_move_assign(
-	lex::src_tokens const &src_tokens,
-	ast::expression const &lhs,
-	ast::expression const &rhs,
-	auto &context,
-	llvm::Value *result_address
-)
-{
-	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type());
-	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
-	auto const is_rhs_null_pointer = lhs_type.is<ast::ts_pointer>() && rhs_type.is<ast::ts_base_type>();
-	bz_assert(!is_rhs_null_pointer || rhs_type.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_);
-	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr);
-	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr);
-	bz_assert(lhs_val.kind == val_ptr::reference);
-
-	if (is_rhs_null_pointer)
-	{
-		auto const lhs_llvm_type = lhs_val.get_type();
-		bz_assert(lhs_llvm_type->isPointerTy());
-		auto const rhs_null_val = val_ptr::get_value(llvm::ConstantPointerNull::get(static_cast<llvm::PointerType *>(lhs_llvm_type)));
-		emit_move_assign<abi>(src_tokens, lhs_type, lhs_val, rhs_null_val, context);
-	}
-	else
-	{
-		emit_move_assign<abi>(src_tokens, lhs_type, lhs_val, rhs_val, context);
-	}
-
-	bz_assert(result_address == nullptr);
-	return lhs_val;
 }
 
 // ================================================================
@@ -1115,21 +847,25 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_assign(
-	lex::src_tokens const &src_tokens,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	auto &context,
 	llvm::Value *result_address
 )
 {
-	if (ast::is_lvalue(rhs.get_expr_type_and_kind().second))
-	{
-		return emit_default_copy_assign<abi>(src_tokens, lhs, rhs, context, result_address);
-	}
-	else
-	{
-		return emit_default_move_assign<abi>(src_tokens, lhs, rhs, context, result_address);
-	}
+	bz_assert(
+		rhs.get_expr_type().is<ast::ts_base_type>()
+		&& rhs.get_expr_type().get<ast::ts_base_type>().info->kind == ast::type_info::null_t_
+	);
+
+	emit_bitcode<abi>(rhs, context, nullptr);
+	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr);
+	bz_assert(lhs_val.kind == val_ptr::reference);
+	bz_assert(lhs_val.get_type()->isPointerTy());
+
+	context.builder.CreateStore(llvm::ConstantPointerNull::get(static_cast<llvm::PointerType *>(lhs_val.get_type())), lhs_val.val);
+	bz_assert(result_address == nullptr);
+	return lhs_val;
 }
 
 template<abi::platform_abi abi>
@@ -3324,7 +3060,7 @@ static val_ptr emit_bitcode(
 			return emit_builtin_unary_minus_minus<abi>(func_call.params[0], context, result_address);
 
 		case ast::function_body::builtin_binary_assign:
-			return emit_builtin_binary_assign<abi>(src_tokens, func_call.params[0], func_call.params[1], context, result_address);
+			return emit_builtin_binary_assign<abi>(func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_plus:
 			return emit_builtin_binary_plus<abi>(func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_plus_eq:
@@ -3382,17 +3118,11 @@ static val_ptr emit_bitcode(
 			break;
 		}
 	}
-	else if (func_call.func_body->is_default_op_assign())
-	{
-		return emit_default_copy_assign<abi>(func_call.src_tokens, func_call.params[0], func_call.params[1], context, result_address);
-	}
-	else if (func_call.func_body->is_default_op_move_assign())
-	{
-		return emit_default_move_assign<abi>(func_call.src_tokens, func_call.params[0], func_call.params[1], context, result_address);
-	}
 	bz_assert(!func_call.func_body->is_default_copy_constructor());
 	bz_assert(!func_call.func_body->is_default_move_constructor());
 	bz_assert(!func_call.func_body->is_default_default_constructor());
+	bz_assert(!func_call.func_body->is_default_op_assign());
+	bz_assert(!func_call.func_body->is_default_op_move_assign());
 
 	bz_assert(func_call.func_body != nullptr);
 	if constexpr (is_comptime<decltype(context)>)
@@ -4479,25 +4209,13 @@ static val_ptr emit_bitcode(
 		}
 		else
 		{
-			return val_ptr::get_value(val.get_value(context.builder));
-		}
-	}
-	else if (auto const type_size = context.get_size(type); type_size <= 8)
-	{
-		if (result_address != nullptr)
-		{
-			context.builder.CreateStore(val.get_value(context.builder), result_address);
-			return val_ptr::get_reference(result_address, type);
-		}
-		else
-		{
-			return val_ptr::get_value(val.get_value(context.builder));
+			return val;
 		}
 	}
 	else
 	{
 		auto const result_ptr = result_address != nullptr ? result_address : context.create_alloca(type);
-		emit_memcpy(result_ptr, val.val, type_size, context);
+		emit_value_copy(val, result_ptr, context);
 		return val_ptr::get_reference(result_ptr, type);
 	}
 }
@@ -4766,18 +4484,7 @@ static val_ptr emit_bitcode(
 	bz_assert(lhs.get_type() == rhs.get_type());
 
 
-	if (rhs.kind == val_ptr::value)
-	{
-		context.builder.CreateStore(rhs.get_value(context.builder), lhs.val);
-	}
-	else if (auto const size = context.get_size(lhs.get_type()); size <= 16)
-	{
-		context.builder.CreateStore(rhs.get_value(context.builder), lhs.val);
-	}
-	else
-	{
-		emit_memcpy(lhs.val, rhs.val, size, context);
-	}
+	emit_value_copy(rhs, lhs.val, context);
 
 	bz_assert(result_address == nullptr);
 	return lhs;
@@ -7262,15 +6969,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(global_result) != nullptr);
 		static_cast<llvm::GlobalVariable *>(global_result)->setInitializer(llvm::UndefValue::get(result_type));
 
-		if (result_val.kind == val_ptr::value)
-		{
-			context.builder.CreateStore(result_val.get_value(context.builder), global_result);
-		}
-		else
-		{
-			auto const size = context.get_size(result_type);
-			emit_memcpy(global_result, result_val.val, size, context);
-		}
+		emit_value_copy(result_val, global_result, context);
 
 		context.builder.CreateRetVoid();
 		bz::vector<uint32_t> gep_indices = { 0 };
@@ -7442,15 +7141,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(global_result) != nullptr);
 		static_cast<llvm::GlobalVariable *>(global_result)->setInitializer(llvm::UndefValue::get(result_type));
 
-		if (result_val.kind == val_ptr::value)
-		{
-			context.builder.CreateStore(result_val.get_value(context.builder), global_result);
-		}
-		else
-		{
-			auto const size = context.get_size(result_type);
-			emit_memcpy(global_result, result_val.val, size, context);
-		}
+		emit_value_copy(result_val, global_result, context);
 
 		context.builder.CreateRetVoid();
 		bz::vector<uint32_t> gep_indices = { 0 };
