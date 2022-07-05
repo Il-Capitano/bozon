@@ -1313,6 +1313,7 @@ static bool resolve_function_parameters_helper(
 			else
 			{
 				bz_assert(func_stmt.is<ast::decl_function>());
+				func_body.flags |= ast::function_body::default_constructor;
 				info->default_constructor = &func_stmt.get<ast::decl_function>();
 			}
 		}
@@ -1341,6 +1342,7 @@ static bool resolve_function_parameters_helper(
 			else
 			{
 				bz_assert(func_stmt.is<ast::decl_function>());
+				func_body.flags |= ast::function_body::copy_constructor;
 				info->copy_constructor = &func_stmt.get<ast::decl_function>();
 			}
 		}
@@ -1368,6 +1370,7 @@ static bool resolve_function_parameters_helper(
 			else
 			{
 				bz_assert(func_stmt.is<ast::decl_function>());
+				func_body.flags |= ast::function_body::move_constructor;
 				info->move_constructor = &func_stmt.get<ast::decl_function>();
 			}
 		}
@@ -1795,7 +1798,21 @@ static void resolve_function_impl(
 
 	context.pop_local_scope(false);
 
-	if (func_body.body.is_null())
+	if (
+		func_body.is_defaulted()
+		&& !func_body.is_destructor()
+		&& !func_body.is_default_constructor()
+		&& !func_body.is_copy_constructor()
+		&& !func_body.is_move_constructor()
+	)
+	{
+		context.report_error(
+			func_body.src_tokens,
+			bz::format("'{}' cannot be defaulted", func_body.get_signature())
+		);
+		return;
+	}
+	else if (func_body.body.is_null())
 	{
 		return;
 	}
@@ -2144,6 +2161,11 @@ static void add_default_constructors(ast::type_info &info, ctx::parse_context &c
 			info.default_op_move_assign = ast::type_info::make_default_op_move_assign(info.src_tokens, info);
 			info.scope.get_global().add_operator(*info.default_op_move_assign);
 		}
+	}
+
+	if (info.destructor != nullptr && info.destructor->body.is_defaulted())
+	{
+		info.destructor = nullptr;
 	}
 }
 

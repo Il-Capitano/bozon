@@ -435,8 +435,9 @@ type_info::decl_function_ptr type_info::make_default_copy_constructor(lex::src_t
 	result->body.return_type = std::move(ret_t);
 	result->body.src_tokens = src_tokens;
 	result->body.state = resolve_state::symbol;
-	result->body.flags |= function_body::default_copy_constructor;
 	result->body.flags |= function_body::constructor;
+	result->body.flags |= function_body::copy_constructor;
+	result->body.flags |= function_body::default_copy_constructor;
 	result->body.constructor_or_destructor_of = &info;
 	return result;
 }
@@ -458,8 +459,9 @@ type_info::decl_function_ptr type_info::make_default_move_constructor(lex::src_t
 	result->body.return_type = std::move(ret_t);
 	result->body.src_tokens = src_tokens;
 	result->body.state = resolve_state::symbol;
-	result->body.flags |= function_body::default_move_constructor;
 	result->body.flags |= function_body::constructor;
+	result->body.flags |= function_body::move_constructor;
+	result->body.flags |= function_body::default_move_constructor;
 	result->body.constructor_or_destructor_of = &info;
 	return result;
 }
@@ -476,8 +478,9 @@ type_info::decl_function_ptr type_info::make_default_default_constructor(lex::sr
 	result->body.return_type = std::move(ret_t);
 	result->body.src_tokens = src_tokens;
 	result->body.state = resolve_state::symbol;
-	result->body.flags |= function_body::default_default_constructor;
 	result->body.flags |= function_body::constructor;
+	result->body.flags |= function_body::default_constructor;
+	result->body.flags |= function_body::default_default_constructor;
 	result->body.constructor_or_destructor_of = &info;
 	return result;
 }
@@ -603,7 +606,7 @@ static_assert(type_info::str_     == 11);
 static_assert(type_info::bool_    == 12);
 static_assert(type_info::null_t_  == 13);
 
-static type_info::decl_function_ptr make_default_constructor(type_info *info)
+static type_info::decl_function_ptr make_builtin_default_constructor(type_info *info)
 {
 	auto result = make_ast_unique<decl_function>();
 	result->body.return_type = make_base_type_typespec({}, info);
@@ -656,6 +659,7 @@ static type_info::decl_function_ptr make_default_constructor(type_info *info)
 	}
 	result->body.flags = function_body::intrinsic
 		| function_body::constructor
+		| function_body::default_constructor
 		| function_body::default_default_constructor;
 	result->body.constructor_or_destructor_of = info;
 	result->body.state = resolve_state::symbol;
@@ -683,7 +687,7 @@ bz::vector<type_info> make_builtin_type_infos(void)
 	result.push_back(type_info::make_builtin("__null_t", type_info::null_t_));
 	for (auto &info : result)
 	{
-		info.default_default_constructor = make_default_constructor(&info);
+		info.default_default_constructor = make_builtin_default_constructor(&info);
 		info.constructors.push_back(info.default_default_constructor.get());
 	}
 	return result;

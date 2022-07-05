@@ -416,16 +416,19 @@ struct function_body
 		local                       = bit_at< 9>,
 		destructor                  = bit_at<10>,
 		constructor                 = bit_at<11>,
-		default_default_constructor = bit_at<12>,
-		default_copy_constructor    = bit_at<13>,
-		default_move_constructor    = bit_at<14>,
-		bitcode_emitted             = bit_at<15>,
-		comptime_bitcode_emitted    = bit_at<16>,
-		only_consteval              = bit_at<17>,
-		builtin_operator            = bit_at<18>,
-		builtin_assign              = bit_at<19>,
-		defaulted                   = bit_at<20>,
-		deleted                     = bit_at<21>,
+		default_constructor         = bit_at<12>,
+		copy_constructor            = bit_at<13>,
+		move_constructor            = bit_at<14>,
+		default_default_constructor = bit_at<15>,
+		default_copy_constructor    = bit_at<16>,
+		default_move_constructor    = bit_at<17>,
+		bitcode_emitted             = bit_at<18>,
+		comptime_bitcode_emitted    = bit_at<19>,
+		only_consteval              = bit_at<20>,
+		builtin_operator            = bit_at<21>,
+		builtin_assign              = bit_at<22>,
+		defaulted                   = bit_at<23>,
+		deleted                     = bit_at<24>,
 	};
 
 	enum : uint8_t
@@ -726,6 +729,15 @@ struct function_body
 
 	bool is_constructor(void) const noexcept
 	{ return (this->flags & constructor) != 0; }
+
+	bool is_default_constructor(void) const noexcept
+	{ return (this->flags & default_constructor) != 0; }
+
+	bool is_copy_constructor(void) const noexcept
+	{ return (this->flags & copy_constructor) != 0; }
+
+	bool is_move_constructor(void) const noexcept
+	{ return (this->flags & move_constructor) != 0; }
 
 	bool is_default_default_constructor(void) const noexcept
 	{ return (this->flags & default_default_constructor) != 0; }
