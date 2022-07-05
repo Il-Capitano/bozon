@@ -287,6 +287,20 @@ struct collection_base_reversed
 	auto reversed(void) const noexcept;
 };
 
+template<typename Collection>
+struct collection_base_erase_value
+{
+	template<typename Val>
+	void erase_value(Val &&val);
+};
+
+template<typename Collection>
+struct collection_base_erase_if
+{
+	template<typename Func>
+	void erase_if(Func &&func);
+};
+
 } // namespace internal
 
 
@@ -310,21 +324,23 @@ struct range_base :
 
 template<typename Collection>
 struct collection_base :
-	internal::collection_base_filter   <Collection>,
-	internal::collection_base_transform<Collection>,
-	internal::collection_base_enumerate<Collection>,
-	internal::collection_base_member   <Collection>,
-	internal::collection_base_is_any   <Collection>,
-	internal::collection_base_is_all   <Collection>,
-	internal::collection_base_contains <Collection>,
-	internal::collection_base_for_each <Collection>,
-	internal::collection_base_sum      <Collection>,
-	internal::collection_base_max      <Collection>,
-	internal::collection_base_min      <Collection>,
-	internal::collection_base_reduce   <Collection>,
-	internal::collection_base_sort     <Collection>,
-	internal::collection_base_append   <Collection>,
-	internal::collection_base_reversed <Collection>
+	internal::collection_base_filter     <Collection>,
+	internal::collection_base_transform  <Collection>,
+	internal::collection_base_enumerate  <Collection>,
+	internal::collection_base_member     <Collection>,
+	internal::collection_base_is_any     <Collection>,
+	internal::collection_base_is_all     <Collection>,
+	internal::collection_base_contains   <Collection>,
+	internal::collection_base_for_each   <Collection>,
+	internal::collection_base_sum        <Collection>,
+	internal::collection_base_max        <Collection>,
+	internal::collection_base_min        <Collection>,
+	internal::collection_base_reduce     <Collection>,
+	internal::collection_base_sort       <Collection>,
+	internal::collection_base_append     <Collection>,
+	internal::collection_base_reversed   <Collection>,
+	internal::collection_base_erase_value<Collection>,
+	internal::collection_base_erase_if   <Collection>
 {
 	constexpr auto as_range(void) const noexcept;
 	constexpr auto as_range(void) noexcept;
@@ -1301,6 +1317,36 @@ auto collection_base_reversed<Collection>::reversed(void) const noexcept
 {
 	auto const self = static_cast<Collection const *>(this);
 	return basic_range{ self->rbegin(), self->rend() };
+}
+
+template<typename Collection>
+template<typename Val>
+void collection_base_erase_value<Collection>::erase_value(Val &&val)
+{
+	auto const self = static_cast<Collection *>(this);
+	auto it = self->begin();
+	while (it != self->end())
+	{
+		if (*it == val)
+		{
+			it = self->erase(it);
+		}
+	}
+}
+
+template<typename Collection>
+template<typename Func>
+void collection_base_erase_if<Collection>::erase_if(Func &&func)
+{
+	auto const self = static_cast<Collection *>(this);
+	auto it = self->begin();
+	while (it != self->end())
+	{
+		if (func(*it))
+		{
+			it = self->erase(it);
+		}
+	}
 }
 
 } // namespace internal
