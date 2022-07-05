@@ -308,6 +308,9 @@ constexpr auto token_info = []() {
 	result[lex::token::kw_move]    = { lex::token::kw_move,    "move",      "", keyword_flags | unary_type_op_flags | unary_builtin_flags };
 	result[lex::token::kw_forward] = { lex::token::kw_forward, "__forward", "", keyword_flags | unary_builtin_flags };
 
+	result[lex::token::kw_default] = { lex::token::kw_default, "__default__", "", keyword_flags };
+	result[lex::token::kw_delete]  = { lex::token::kw_delete,  "__delete__",  "", keyword_flags };
+
 	result[lex::token::kw_auto]     = { lex::token::kw_auto,     "auto",     "", keyword_flags | expr_type_flags };
 	result[lex::token::kw_typename] = { lex::token::kw_typename, "typename", "", keyword_flags | expr_type_flags };
 	result[lex::token::kw_let]      = { lex::token::kw_let,      "let",      "", keyword_flags                   };

@@ -3375,6 +3375,15 @@ static ast::expression make_expr_function_call_from_body(
 	{
 		return ast::make_error_expression(src_tokens, ast::make_expr_function_call(src_tokens, std::move(args), body, resolve_order));
 	}
+	else if (body->is_deleted())
+	{
+		context.report_error(
+			src_tokens,
+			bz::format("calling explicitly deleted function '{}'", body->get_signature()),
+			{ context.make_note(body->src_tokens, "function was explicitly deleted here") }
+		);
+		return ast::make_error_expression(src_tokens, ast::make_expr_function_call(src_tokens, std::move(args), body, resolve_order));
+	}
 
 	if (body->is_intrinsic() && body->intrinsic_kind == ast::function_body::builtin_call_destructor)
 	{

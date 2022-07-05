@@ -425,6 +425,21 @@ static ast::function_body parse_function_body(
 		>(stream, end, context);
 		result.return_type = ast::make_unresolved_typespec(ret_type);
 	}
+	else if (stream != end && stream->kind == lex::token::assign)
+	{
+		++stream; // '='
+		auto const delete_or_default = context.assert_token(stream, lex::token::kw_default, lex::token::kw_delete);
+		if (delete_or_default->kind == lex::token::kw_default)
+		{
+			result.flags |= ast::function_body::defaulted;
+		}
+		else if (delete_or_default->kind == lex::token::kw_delete)
+		{
+			result.flags |= ast::function_body::deleted;
+		}
+		context.assert_token(stream, lex::token::semi_colon);
+		return result;
+	}
 	else if (stream != end)
 	{
 		result.return_type = ast::make_void_typespec(stream);
@@ -806,6 +821,8 @@ static ast::statement parse_type_info_member_variable(
 		else
 		{
 			context.assert_token(stream, lex::token::dot);
+			++stream;
+			return ast::statement();
 		}
 	}
 	else

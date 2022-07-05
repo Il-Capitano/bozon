@@ -424,6 +424,8 @@ struct function_body
 		only_consteval              = bit_at<17>,
 		builtin_operator            = bit_at<18>,
 		builtin_assign              = bit_at<19>,
+		defaulted                   = bit_at<20>,
+		deleted                     = bit_at<21>,
 	};
 
 	enum : uint8_t
@@ -748,6 +750,12 @@ struct function_body
 
 	bool is_builtin_assign(void) const noexcept
 	{ return (this->flags & builtin_assign) != 0; }
+
+	bool is_defaulted(void) const noexcept
+	{ return (this->flags & defaulted) != 0; }
+
+	bool is_deleted(void) const noexcept
+	{ return (this->flags & deleted) != 0; }
 
 	bool has_builtin_implementation(void) const noexcept
 	{

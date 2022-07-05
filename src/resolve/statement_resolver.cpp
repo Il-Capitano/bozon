@@ -2019,38 +2019,106 @@ static void add_type_info_members(
 	}
 }
 
-static void add_default_constructors(ast::type_info &info)
+static void add_default_constructors(ast::type_info &info, ctx::parse_context &context)
 {
 	// only add default constructor if there are no other non-copy constructors
 	if (
-		info.default_constructor == nullptr
-		&& info.constructors.size() - static_cast<size_t>(info.copy_constructor != nullptr) == 0
+		(
+			(info.default_constructor == nullptr && info.constructors.size() - static_cast<size_t>(info.copy_constructor != nullptr) == 0)
+			|| (info.default_constructor != nullptr && info.default_constructor->body.is_defaulted())
+		)
 		&& info.member_variables.is_all([](auto const member) { return ast::is_default_constructible(member->get_type()); })
 	)
 	{
+		if (info.default_constructor != nullptr)
+		{
+			info.constructors.erase_value(info.default_constructor);
+			info.default_constructor = nullptr;
+		}
 		bz_assert(info.default_default_constructor == nullptr);
 		info.default_default_constructor = ast::type_info::make_default_default_constructor(info.src_tokens, info);
 		info.constructors.push_back(info.default_default_constructor.get());
 	}
+	else if (info.default_constructor != nullptr && info.default_constructor->body.is_defaulted())
+	{
+		auto notes = info.member_variables
+			.filter([](auto const member) { return !ast::is_default_constructible(member->get_type()); })
+			.transform([](auto const member) {
+				return ctx::parse_context::make_note(
+					member->src_tokens,
+					bz::format("member '{}' with type '{}' is not default constructible", member->get_id().format_as_unqualified(), member->get_type())
+				);
+			})
+			.collect();
+		context.report_error(
+			info.default_constructor->body.src_tokens,
+			"default constructor cannot be defaulted",
+			std::move(notes)
+		);
+	}
 
 	if (
-		info.copy_constructor == nullptr
+		(info.copy_constructor == nullptr || info.copy_constructor->body.is_defaulted())
 		&& info.member_variables.is_all([](auto const member) { return ast::is_copy_constructible(member->get_type()); })
 	)
 	{
+		if (info.copy_constructor != nullptr)
+		{
+			info.constructors.erase_value(info.copy_constructor);
+			info.copy_constructor = nullptr;
+		}
 		bz_assert(info.default_copy_constructor == nullptr);
 		info.default_copy_constructor = ast::type_info::make_default_copy_constructor(info.src_tokens, info);
 		info.constructors.push_back(info.default_copy_constructor.get());
 	}
+	else if (info.copy_constructor != nullptr && info.copy_constructor->body.is_defaulted())
+	{
+		auto notes = info.member_variables
+			.filter([](auto const member) { return !ast::is_copy_constructible(member->get_type()); })
+			.transform([](auto const member) {
+				return ctx::parse_context::make_note(
+					member->src_tokens,
+					bz::format("member '{}' with type '{}' is not copy constructible", member->get_id().format_as_unqualified(), member->get_type())
+				);
+			})
+			.collect();
+		context.report_error(
+			info.copy_constructor->body.src_tokens,
+			"copy constructor cannot be defaulted",
+			std::move(notes)
+		);
+	}
 
 	if (
-		info.move_constructor == nullptr
+		(info.move_constructor == nullptr || info.move_constructor->body.is_defaulted())
 		&& info.member_variables.is_all([](auto const member) { return ast::is_move_constructible(member->get_type()); })
 	)
 	{
+		if (info.move_constructor != nullptr)
+		{
+			info.constructors.erase_value(info.move_constructor);
+			info.move_constructor = nullptr;
+		}
 		bz_assert(info.default_move_constructor == nullptr);
 		info.default_move_constructor = ast::type_info::make_default_move_constructor(info.src_tokens, info);
 		info.constructors.push_back(info.default_move_constructor.get());
+	}
+	else if (info.move_constructor != nullptr && info.move_constructor->body.is_defaulted())
+	{
+		auto notes = info.member_variables
+			.filter([](auto const member) { return !ast::is_move_constructible(member->get_type()); })
+			.transform([](auto const member) {
+				return ctx::parse_context::make_note(
+					member->src_tokens,
+					bz::format("member '{}' with type '{}' is not move constructible", member->get_id().format_as_unqualified(), member->get_type())
+				);
+			})
+			.collect();
+		context.report_error(
+			info.move_constructor->body.src_tokens,
+			"move constructor cannot be defaulted",
+			std::move(notes)
+		);
 	}
 
 	if (
@@ -2259,7 +2327,7 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 		return;
 	}
 
-	add_default_constructors(info);
+	add_default_constructors(info, context);
 	add_flags(info);
 	info.state = ast::resolve_state::all;
 
