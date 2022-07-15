@@ -4453,6 +4453,19 @@ static val_ptr emit_bitcode(
 	auto const rhs = emit_bitcode<abi>(base_type_assign.rhs, context, nullptr);
 	auto const lhs = emit_bitcode<abi>(base_type_assign.lhs, context, nullptr);
 	bz_assert(lhs.kind == val_ptr::reference);
+	bz_assert(lhs.get_type() == rhs.get_type());
+
+	llvm::BasicBlock *ptr_eq_bb = nullptr;
+	if (lhs.kind == val_ptr::reference && rhs.kind == val_ptr::reference)
+	{
+		auto const lhs_ptr_int_val = context.builder.CreatePtrToInt(lhs.val, context.get_usize_t());
+		auto const rhs_ptr_int_val = context.builder.CreatePtrToInt(rhs.val, context.get_usize_t());
+		auto const are_equal = context.builder.CreateICmpEQ(lhs_ptr_int_val, rhs_ptr_int_val);
+		ptr_eq_bb = context.add_basic_block("assign_ptr_eq");
+		auto const neq_bb = context.add_basic_block("assign_ptr_neq");
+		context.builder.CreateCondBr(are_equal, ptr_eq_bb, neq_bb);
+		context.builder.SetInsertPoint(neq_bb);
+	}
 
 	{
 		auto const prev_value = context.push_value_reference(lhs);
@@ -4464,6 +4477,12 @@ static val_ptr emit_bitcode(
 		auto const prev_value = context.push_value_reference(rhs);
 		emit_bitcode<abi>(base_type_assign.rhs_copy_expr, context, lhs.val);
 		context.pop_value_reference(prev_value);
+	}
+
+	if (ptr_eq_bb != nullptr)
+	{
+		context.builder.CreateBr(ptr_eq_bb);
+		context.builder.SetInsertPoint(ptr_eq_bb);
 	}
 
 	bz_assert(result_address == nullptr);
@@ -4483,8 +4502,25 @@ static val_ptr emit_bitcode(
 	bz_assert(lhs.kind == val_ptr::reference);
 	bz_assert(lhs.get_type() == rhs.get_type());
 
+	llvm::BasicBlock *ptr_eq_bb = nullptr;
+	if (lhs.kind == val_ptr::reference && rhs.kind == val_ptr::reference)
+	{
+		auto const lhs_ptr_int_val = context.builder.CreatePtrToInt(lhs.val, context.get_usize_t());
+		auto const rhs_ptr_int_val = context.builder.CreatePtrToInt(rhs.val, context.get_usize_t());
+		auto const are_equal = context.builder.CreateICmpEQ(lhs_ptr_int_val, rhs_ptr_int_val);
+		ptr_eq_bb = context.add_basic_block("assign_ptr_eq");
+		auto const neq_bb = context.add_basic_block("assign_ptr_neq");
+		context.builder.CreateCondBr(are_equal, ptr_eq_bb, neq_bb);
+		context.builder.SetInsertPoint(neq_bb);
+	}
 
 	emit_value_copy(rhs, lhs.val, context);
+
+	if (ptr_eq_bb != nullptr)
+	{
+		context.builder.CreateBr(ptr_eq_bb);
+		context.builder.SetInsertPoint(ptr_eq_bb);
+	}
 
 	bz_assert(result_address == nullptr);
 	return lhs;

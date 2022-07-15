@@ -5812,9 +5812,12 @@ static ast::expression make_struct_assignment(
 		context.add_self_move_destruction(rhs);
 	}
 
+	auto const rhs_value_ref_type_kind = rhs_expr_type_kind == ast::expression_type_kind::lvalue_reference
+		? ast::expression_type_kind::lvalue_reference
+		: ast::expression_type_kind::moved_lvalue;
 	auto rhs_value_ref = ast::make_dynamic_expression(
 		rhs.src_tokens,
-		ast::expression_type_kind::moved_lvalue, rhs_type_with_const,
+		rhs_value_ref_type_kind, rhs_type_with_const,
 		ast::make_expr_bitcode_value_reference(),
 		ast::destruct_operation()
 	);

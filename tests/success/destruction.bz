@@ -1,19 +1,4 @@
-import std::utils;
-
-struct resource_t
-{
-	.p: *int32;
-
-	constructor()
-	{
-		return resource_t[ std::malloc(int32, 1) ];
-	}
-
-	destructor(&self)
-	{
-		std::free(self.p);
-	}
-}
+import resource;
 
 function f()
 {
