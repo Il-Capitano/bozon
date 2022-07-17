@@ -5452,7 +5452,7 @@ static ast::expression make_tuple_move_construction(
 		.transform([&](auto const &elem_type) {
 			return context.make_move_construction(ast::make_dynamic_expression(
 				src_tokens,
-				ast::expression_type_kind::moved_lvalue,
+				ast::expression_type_kind::rvalue_reference,
 				elem_type,
 				ast::make_expr_bitcode_value_reference(),
 				ast::destruct_operation()
@@ -5495,7 +5495,7 @@ static ast::expression make_array_move_construction(
 	ast::typespec type = array_type;
 	auto elem_move_expr = context.make_move_construction(ast::make_dynamic_expression(
 		expr.src_tokens,
-		ast::expression_type_kind::moved_lvalue,
+		ast::expression_type_kind::rvalue_reference,
 		array_type.get<ast::ts_array>().elem_type,
 		ast::make_expr_bitcode_value_reference(),
 		ast::destruct_operation()
@@ -5579,7 +5579,7 @@ static ast::expression make_struct_move_construction(
 			.transform([&](auto const &member_type) {
 				return context.make_move_construction(ast::make_dynamic_expression(
 					src_tokens,
-					ast::expression_type_kind::moved_lvalue,
+					ast::expression_type_kind::rvalue_reference,
 					member_type,
 					ast::make_expr_bitcode_value_reference(),
 					ast::destruct_operation()
@@ -5814,7 +5814,7 @@ static ast::expression make_struct_assignment(
 
 	auto const rhs_value_ref_type_kind = rhs_expr_type_kind == ast::expression_type_kind::lvalue_reference
 		? ast::expression_type_kind::lvalue_reference
-		: ast::expression_type_kind::moved_lvalue;
+		: ast::expression_type_kind::rvalue_reference;
 	auto rhs_value_ref = ast::make_dynamic_expression(
 		rhs.src_tokens,
 		rhs_value_ref_type_kind, rhs_type_with_const,
@@ -6035,7 +6035,7 @@ static ast::expression make_move_destruct_expression(ast::typespec_view type, as
 			auto args = ast::arena_vector<ast::expression>();
 			args.push_back(ast::make_dynamic_expression(
 				src_tokens,
-				ast::expression_type_kind::moved_lvalue, type,
+				ast::expression_type_kind::rvalue_reference, type,
 				ast::make_expr_bitcode_value_reference(),
 				ast::destruct_operation()
 			));
@@ -6047,7 +6047,7 @@ static ast::expression make_move_destruct_expression(ast::typespec_view type, as
 				auto const member_type = ast::remove_const_or_consteval(ast::remove_lvalue_reference(member->get_type()));
 				auto value_ref = ast::make_dynamic_expression(
 					src_tokens,
-					ast::expression_type_kind::moved_lvalue, member_type,
+					ast::expression_type_kind::rvalue_reference, member_type,
 					ast::make_expr_bitcode_value_reference(),
 					ast::destruct_operation()
 				);
@@ -6069,7 +6069,7 @@ static ast::expression make_move_destruct_expression(ast::typespec_view type, as
 				auto const decayed_elem_type = ast::remove_const_or_consteval(ast::remove_lvalue_reference(elem_type));
 				auto value_ref = ast::make_dynamic_expression(
 					src_tokens,
-					ast::expression_type_kind::moved_lvalue, decayed_elem_type,
+					ast::expression_type_kind::rvalue_reference, decayed_elem_type,
 					ast::make_expr_bitcode_value_reference(),
 					ast::destruct_operation()
 				);
@@ -6088,7 +6088,7 @@ static ast::expression make_move_destruct_expression(ast::typespec_view type, as
 		auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
 		auto value_ref = ast::make_dynamic_expression(
 			src_tokens,
-			ast::expression_type_kind::moved_lvalue, elem_type,
+			ast::expression_type_kind::rvalue_reference, elem_type,
 			ast::make_expr_bitcode_value_reference(),
 			ast::destruct_operation()
 		);
