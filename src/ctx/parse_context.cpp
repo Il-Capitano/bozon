@@ -21,7 +21,16 @@ static ast::expression make_expr_function_call_from_body(
 	ast::resolve_order resolve_order = ast::resolve_order::regular
 );
 
-static ast::expression make_destruct_expression(ast::typespec_view type, ast::expression value, parse_context &context);
+static ast::expression make_destruct_expression(
+	ast::typespec_view type,
+	ast::expression value,
+	parse_context &context
+);
+static ast::expression make_move_destruct_expression(
+	ast::typespec_view type,
+	ast::expression value,
+	parse_context &context
+);
 
 static ast::arena_vector<ast::expression> expand_params(ast::arena_vector<ast::expression> params)
 {
@@ -5896,7 +5905,112 @@ ast::expression parse_context::make_default_assignment(lex::src_tokens const &sr
 	}
 }
 
-static ast::expression make_destruct_expression(ast::typespec_view type, ast::expression value, parse_context &context)
+static ast::expression make_base_type_destruct_expression(
+	ast::typespec_view type,
+	ast::expression value,
+	parse_context &context
+)
+{
+	bz_assert(type.is<ast::ts_base_type>());
+	auto const info = type.get<ast::ts_base_type>().info;
+	bz_assert(info->state == ast::resolve_state::all);
+
+	auto const src_tokens = value.src_tokens;
+	auto destruct_call = [&]() {
+		if (info->destructor == nullptr)
+		{
+			return ast::expression();
+		}
+
+		auto const body = &info->destructor->body;
+		auto args = ast::arena_vector<ast::expression>();
+		args.push_back(ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::lvalue_reference, type,
+			ast::make_expr_bitcode_value_reference(),
+			ast::destruct_operation()
+		));
+		return make_expr_function_call_from_body(src_tokens, body, std::move(args), context);
+	}();
+
+	auto member_destruct_calls = info->member_variables
+		.transform([&](auto const member) {
+			auto const member_type = ast::remove_const_or_consteval(ast::remove_lvalue_reference(member->get_type()));
+			auto value_ref = ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::lvalue_reference, member_type,
+				ast::make_expr_bitcode_value_reference(),
+				ast::destruct_operation()
+			);
+			return make_destruct_expression(ast::remove_const_or_consteval(member->get_type()), std::move(value_ref), context);
+		})
+		.collect<ast::arena_vector>();
+	bz_assert(member_destruct_calls.size() != 0);
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+		ast::make_expr_base_type_destruct(std::move(value), std::move(destruct_call), std::move(member_destruct_calls)),
+		ast::destruct_operation()
+	);
+}
+
+static ast::expression make_tuple_destruct_expression(
+	ast::typespec_view type,
+	ast::expression value,
+	parse_context &context
+)
+{
+	bz_assert(type.is<ast::ts_tuple>());
+	auto const src_tokens = value.src_tokens;
+	auto elem_destruct_calls = type.get<ast::ts_tuple>().types
+		.transform([&](auto const &elem_type) {
+			auto const decayed_elem_type = ast::remove_const_or_consteval(ast::remove_lvalue_reference(elem_type));
+			auto value_ref = ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::lvalue_reference, decayed_elem_type,
+				ast::make_expr_bitcode_value_reference(),
+				ast::destruct_operation()
+			);
+			return make_destruct_expression(ast::remove_const_or_consteval(elem_type), std::move(value_ref), context);
+		})
+		.collect<ast::arena_vector>();
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+		ast::make_expr_aggregate_destruct(std::move(value), std::move(elem_destruct_calls)),
+		ast::destruct_operation()
+	);
+}
+
+static ast::expression make_array_destruct_expression(
+	ast::typespec_view type,
+	ast::expression value,
+	parse_context &context
+)
+{
+	bz_assert(type.is<ast::ts_array>());
+	auto const src_tokens = value.src_tokens;
+	auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
+	auto value_ref = ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::lvalue_reference, elem_type,
+		ast::make_expr_bitcode_value_reference(),
+		ast::destruct_operation()
+	);
+	auto elem_destruct_call = make_destruct_expression(elem_type, std::move(value_ref), context);
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+		ast::make_expr_array_destruct(std::move(value), std::move(elem_destruct_call)),
+		ast::destruct_operation()
+	);
+}
+
+static ast::expression make_destruct_expression(
+	ast::typespec_view type,
+	ast::expression value,
+	parse_context &context
+)
 {
 	if (type.is<ast::ts_base_type>())
 	{
@@ -5914,86 +6028,17 @@ static ast::expression make_destruct_expression(ast::typespec_view type, ast::ex
 		return ast::expression();
 	}
 
-	auto const src_tokens = value.src_tokens;
 	if (type.is<ast::ts_base_type>())
 	{
-		auto const info = type.get<ast::ts_base_type>().info;
-		bz_assert(info->state == ast::resolve_state::all);
-
-		auto destruct_call = [&]() {
-			if (info->destructor == nullptr)
-			{
-				return ast::expression();
-			}
-
-			auto const body = &info->destructor->body;
-			auto args = ast::arena_vector<ast::expression>();
-			args.push_back(ast::make_dynamic_expression(
-				src_tokens,
-				ast::expression_type_kind::lvalue_reference, type,
-				ast::make_expr_bitcode_value_reference(),
-				ast::destruct_operation()
-			));
-			return make_expr_function_call_from_body(src_tokens, body, std::move(args), context);
-		}();
-
-		auto member_destruct_calls = info->member_variables
-			.transform([&](auto const member) {
-				auto const member_type = ast::remove_const_or_consteval(ast::remove_lvalue_reference(member->get_type()));
-				auto value_ref = ast::make_dynamic_expression(
-					src_tokens,
-					ast::expression_type_kind::lvalue_reference, member_type,
-					ast::make_expr_bitcode_value_reference(),
-					ast::destruct_operation()
-				);
-				return make_destruct_expression(ast::remove_const_or_consteval(member->get_type()), std::move(value_ref), context);
-			})
-			.collect<ast::arena_vector>();
-		bz_assert(member_destruct_calls.size() != 0);
-		return ast::make_dynamic_expression(
-			src_tokens,
-			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
-			ast::make_expr_base_type_destruct(std::move(value), std::move(destruct_call), std::move(member_destruct_calls)),
-			ast::destruct_operation()
-		);
+		return make_base_type_destruct_expression(type, std::move(value), context);
 	}
 	else if (type.is<ast::ts_tuple>())
 	{
-		auto elem_destruct_calls = type.get<ast::ts_tuple>().types
-			.transform([&](auto const &elem_type) {
-				auto const decayed_elem_type = ast::remove_const_or_consteval(ast::remove_lvalue_reference(elem_type));
-				auto value_ref = ast::make_dynamic_expression(
-					src_tokens,
-					ast::expression_type_kind::lvalue_reference, decayed_elem_type,
-					ast::make_expr_bitcode_value_reference(),
-					ast::destruct_operation()
-				);
-				return make_destruct_expression(ast::remove_const_or_consteval(elem_type), std::move(value_ref), context);
-			})
-			.collect<ast::arena_vector>();
-		return ast::make_dynamic_expression(
-			src_tokens,
-			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
-			ast::make_expr_aggregate_destruct(std::move(value), std::move(elem_destruct_calls)),
-			ast::destruct_operation()
-		);
+		return make_tuple_destruct_expression(type, std::move(value), context);
 	}
 	else if (type.is<ast::ts_array>())
 	{
-		auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
-		auto value_ref = ast::make_dynamic_expression(
-			src_tokens,
-			ast::expression_type_kind::lvalue_reference, elem_type,
-			ast::make_expr_bitcode_value_reference(),
-			ast::destruct_operation()
-		);
-		auto elem_destruct_call = make_destruct_expression(elem_type, std::move(value_ref), context);
-		return ast::make_dynamic_expression(
-			src_tokens,
-			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
-			ast::make_expr_array_destruct(std::move(value), std::move(elem_destruct_call)),
-			ast::destruct_operation()
-		);
+		return make_array_destruct_expression(type, std::move(value), context);
 	}
 	else
 	{
@@ -6001,7 +6046,112 @@ static ast::expression make_destruct_expression(ast::typespec_view type, ast::ex
 	}
 }
 
-static ast::expression make_move_destruct_expression(ast::typespec_view type, ast::expression value, parse_context &context)
+static ast::expression make_base_type_move_destruct_expression(
+	ast::typespec_view type,
+	ast::expression value,
+	parse_context &context
+)
+{
+	bz_assert(type.is<ast::ts_base_type>());
+	auto const info = type.get<ast::ts_base_type>().info;
+	bz_assert(info->state == ast::resolve_state::all);
+
+	auto const src_tokens = value.src_tokens;
+	auto destruct_call = [&]() {
+		if (info->move_destructor == nullptr)
+		{
+			return ast::expression();
+		}
+
+		auto const body = &info->move_destructor->body;
+		auto args = ast::arena_vector<ast::expression>();
+		args.push_back(ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue_reference, type,
+			ast::make_expr_bitcode_value_reference(),
+			ast::destruct_operation()
+		));
+		return make_expr_function_call_from_body(src_tokens, body, std::move(args), context);
+	}();
+
+	auto member_destruct_calls = info->member_variables
+		.transform([&](auto const member) {
+			auto const member_type = ast::remove_const_or_consteval(ast::remove_lvalue_reference(member->get_type()));
+			auto value_ref = ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::rvalue_reference, member_type,
+				ast::make_expr_bitcode_value_reference(),
+				ast::destruct_operation()
+			);
+			return make_move_destruct_expression(ast::remove_const_or_consteval(member->get_type()), std::move(value_ref), context);
+		})
+		.collect<ast::arena_vector>();
+	bz_assert(member_destruct_calls.size() != 0);
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+		ast::make_expr_base_type_destruct(std::move(value), std::move(destruct_call), std::move(member_destruct_calls)),
+		ast::destruct_operation()
+	);
+}
+
+static ast::expression make_tuple_move_destruct_expression(
+	ast::typespec_view type,
+	ast::expression value,
+	parse_context &context
+)
+{
+	bz_assert(type.is<ast::ts_tuple>());
+	auto const src_tokens = value.src_tokens;
+	auto elem_destruct_calls = type.get<ast::ts_tuple>().types
+		.transform([&](auto const &elem_type) {
+			auto const decayed_elem_type = ast::remove_const_or_consteval(ast::remove_lvalue_reference(elem_type));
+			auto value_ref = ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::rvalue_reference, decayed_elem_type,
+				ast::make_expr_bitcode_value_reference(),
+				ast::destruct_operation()
+			);
+			return make_move_destruct_expression(ast::remove_const_or_consteval(elem_type), std::move(value_ref), context);
+		})
+		.collect<ast::arena_vector>();
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+		ast::make_expr_aggregate_destruct(std::move(value), std::move(elem_destruct_calls)),
+		ast::destruct_operation()
+	);
+}
+
+static ast::expression make_array_move_destruct_expression(
+	ast::typespec_view type,
+	ast::expression value,
+	parse_context &context
+)
+{
+	bz_assert(type.is<ast::ts_array>());
+	auto const src_tokens = value.src_tokens;
+	auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
+	auto value_ref = ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::rvalue_reference, elem_type,
+		ast::make_expr_bitcode_value_reference(),
+		ast::destruct_operation()
+	);
+	auto elem_destruct_call = make_move_destruct_expression(elem_type, std::move(value_ref), context);
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+		ast::make_expr_array_destruct(std::move(value), std::move(elem_destruct_call)),
+		ast::destruct_operation()
+	);
+}
+
+static ast::expression make_move_destruct_expression(
+	ast::typespec_view type,
+	ast::expression value,
+	parse_context &context
+)
 {
 	if (type.is<ast::ts_base_type>())
 	{
@@ -6019,86 +6169,17 @@ static ast::expression make_move_destruct_expression(ast::typespec_view type, as
 		return ast::expression();
 	}
 
-	auto const src_tokens = value.src_tokens;
 	if (type.is<ast::ts_base_type>())
 	{
-		auto const info = type.get<ast::ts_base_type>().info;
-		bz_assert(info->state == ast::resolve_state::all);
-
-		auto destruct_call = [&]() {
-			if (info->move_destructor == nullptr)
-			{
-				return ast::expression();
-			}
-
-			auto const body = &info->move_destructor->body;
-			auto args = ast::arena_vector<ast::expression>();
-			args.push_back(ast::make_dynamic_expression(
-				src_tokens,
-				ast::expression_type_kind::rvalue_reference, type,
-				ast::make_expr_bitcode_value_reference(),
-				ast::destruct_operation()
-			));
-			return make_expr_function_call_from_body(src_tokens, body, std::move(args), context);
-		}();
-
-		auto member_destruct_calls = info->member_variables
-			.transform([&](auto const member) {
-				auto const member_type = ast::remove_const_or_consteval(ast::remove_lvalue_reference(member->get_type()));
-				auto value_ref = ast::make_dynamic_expression(
-					src_tokens,
-					ast::expression_type_kind::rvalue_reference, member_type,
-					ast::make_expr_bitcode_value_reference(),
-					ast::destruct_operation()
-				);
-				return make_move_destruct_expression(ast::remove_const_or_consteval(member->get_type()), std::move(value_ref), context);
-			})
-			.collect<ast::arena_vector>();
-		bz_assert(member_destruct_calls.size() != 0);
-		return ast::make_dynamic_expression(
-			src_tokens,
-			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
-			ast::make_expr_base_type_destruct(std::move(value), std::move(destruct_call), std::move(member_destruct_calls)),
-			ast::destruct_operation()
-		);
+		return make_base_type_move_destruct_expression(type, std::move(value), context);
 	}
 	else if (type.is<ast::ts_tuple>())
 	{
-		auto elem_destruct_calls = type.get<ast::ts_tuple>().types
-			.transform([&](auto const &elem_type) {
-				auto const decayed_elem_type = ast::remove_const_or_consteval(ast::remove_lvalue_reference(elem_type));
-				auto value_ref = ast::make_dynamic_expression(
-					src_tokens,
-					ast::expression_type_kind::rvalue_reference, decayed_elem_type,
-					ast::make_expr_bitcode_value_reference(),
-					ast::destruct_operation()
-				);
-				return make_move_destruct_expression(ast::remove_const_or_consteval(elem_type), std::move(value_ref), context);
-			})
-			.collect<ast::arena_vector>();
-		return ast::make_dynamic_expression(
-			src_tokens,
-			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
-			ast::make_expr_aggregate_destruct(std::move(value), std::move(elem_destruct_calls)),
-			ast::destruct_operation()
-		);
+		return make_tuple_move_destruct_expression(type, std::move(value), context);
 	}
 	else if (type.is<ast::ts_array>())
 	{
-		auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
-		auto value_ref = ast::make_dynamic_expression(
-			src_tokens,
-			ast::expression_type_kind::rvalue_reference, elem_type,
-			ast::make_expr_bitcode_value_reference(),
-			ast::destruct_operation()
-		);
-		auto elem_destruct_call = make_move_destruct_expression(elem_type, std::move(value_ref), context);
-		return ast::make_dynamic_expression(
-			src_tokens,
-			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
-			ast::make_expr_array_destruct(std::move(value), std::move(elem_destruct_call)),
-			ast::destruct_operation()
-		);
+		return make_array_move_destruct_expression(type, std::move(value), context);
 	}
 	else
 	{
