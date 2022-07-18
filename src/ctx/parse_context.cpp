@@ -3415,19 +3415,25 @@ static ast::expression make_expr_function_call_from_body(
 			ast::destruct_operation()
 		);
 	}
-	else if (body->is_default_copy_constructor())
+	else if (body->is_default_copy_constructor() || (body->is_copy_constructor() && body->is_defaulted()))
 	{
 		bz_assert(args.size() == 1);
 		args[0].src_tokens = src_tokens;
 		return context.make_copy_construction(std::move(args[0]));
 	}
-	else if (body->is_default_move_constructor())
+	else if (body->is_default_move_constructor() || (body->is_move_constructor() && body->is_defaulted()))
 	{
 		bz_assert(args.size() == 1);
 		args[0].src_tokens = src_tokens;
 		return context.make_move_construction(std::move(args[0]));
 	}
-	else if (body->is_builtin_assign() || body->is_default_op_assign() || body->is_default_op_move_assign())
+	else if (
+		body->is_builtin_assign()
+		|| body->is_default_op_assign()
+		|| body->is_default_op_move_assign()
+		|| (body->is_copy_assign_op() && body->is_defaulted())
+		|| (body->is_move_assign_op() && body->is_defaulted())
+	)
 	{
 		bz_assert(args.size() == 2);
 		return context.make_default_assignment(src_tokens, std::move(args[0]), std::move(args[1]));

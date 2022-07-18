@@ -1098,6 +1098,64 @@ void resolve_function_alias(ast::decl_function_alias &alias_decl, ctx::parse_con
 	context.pop_enclosing_scope(std::move(prev_scopes));
 }
 
+static bool is_valid_copy_assign_op(ast::function_body &func_body)
+{
+	if (
+		!func_body.function_name_or_operator_kind.is<uint32_t>()
+		|| func_body.function_name_or_operator_kind.get<uint32_t>() != lex::token::assign
+	)
+	{
+		return false;
+	}
+
+	bz_assert(func_body.params.size() == 2);
+	auto const lhs_type = func_body.params[0].get_type().as_typespec_view();
+	if (
+		lhs_type.nodes.size() != 2
+		|| !lhs_type.nodes[0].is<ast::ts_lvalue_reference>()
+		|| !lhs_type.nodes[1].is<ast::ts_base_type>()
+	)
+	{
+		return false;
+	}
+
+	auto const info = lhs_type.nodes[1].get<ast::ts_base_type>().info;
+	auto const rhs_type = func_body.params[1].get_type().as_typespec_view();
+	return rhs_type.nodes.size() == 3
+		&& rhs_type.nodes[0].is<ast::ts_lvalue_reference>()
+		&& rhs_type.nodes[1].is<ast::ts_const>()
+		&& rhs_type.nodes[2].is<ast::ts_base_type>()
+		&& rhs_type.nodes[2].get<ast::ts_base_type>().info == info;
+}
+
+static bool is_valid_move_assign_op(ast::function_body &func_body)
+{
+	if (
+		!func_body.function_name_or_operator_kind.is<uint32_t>()
+		|| func_body.function_name_or_operator_kind.get<uint32_t>() != lex::token::assign
+	)
+	{
+		return false;
+	}
+
+	bz_assert(func_body.params.size() == 2);
+	auto const lhs_type = func_body.params[0].get_type().as_typespec_view();
+	if (
+		lhs_type.nodes.size() != 2
+		|| !lhs_type.nodes[0].is<ast::ts_lvalue_reference>()
+		|| !lhs_type.nodes[1].is<ast::ts_base_type>()
+	)
+	{
+		return false;
+	}
+
+	auto const info = lhs_type.nodes[1].get<ast::ts_base_type>().info;
+	auto const rhs_type = func_body.params[1].get_type().as_typespec_view();
+	return rhs_type.nodes.size() == 1
+		&& rhs_type.nodes[0].is<ast::ts_base_type>()
+		&& rhs_type.nodes[0].get<ast::ts_base_type>().info == info;
+}
+
 static bool resolve_function_parameters_helper(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
@@ -1152,42 +1210,7 @@ static bool resolve_function_parameters_helper(
 		}
 	}
 
-	if (
-		good
-		&& !func_body.is_generic()
-		&& func_stmt.is<ast::decl_operator>()
-		&& func_stmt.get<ast::decl_operator>().op->kind == lex::token::assign
-	)
-	{
-		bz_assert(func_body.params.size() == 2);
-		auto const lhs_t = func_body.params[0].get_type().as_typespec_view();
-		auto const rhs_t = func_body.params[1].get_type().as_typespec_view();
-		if (
-			lhs_t.is<ast::ts_lvalue_reference>()
-			&& lhs_t.get<ast::ts_lvalue_reference>().is<ast::ts_base_type>()
-			&& ((
-				rhs_t.is<ast::ts_lvalue_reference>()
-				&& rhs_t.get<ast::ts_lvalue_reference>().is<ast::ts_const>()
-				&& rhs_t.get<ast::ts_lvalue_reference>().get<ast::ts_const>() == lhs_t.get<ast::ts_lvalue_reference>()
-			) || (
-				ast::remove_const_or_consteval(rhs_t) == lhs_t.get<ast::ts_lvalue_reference>()
-			))
-		)
-		{
-			auto const info = lhs_t.get<ast::ts_lvalue_reference>().get<ast::ts_base_type>().info;
-			bz_assert(func_stmt.is<ast::decl_operator>());
-			auto const op_decl = &func_stmt.get<ast::decl_operator>();
-			if (rhs_t.is<ast::ts_lvalue_reference>())
-			{
-				info->op_assign = op_decl;
-			}
-			else
-			{
-				info->op_move_assign = op_decl;
-			}
-		}
-	}
-	else if (good && func_body.is_destructor())
+	if (good && func_body.is_destructor())
 	{
 		if (func_body.params.size() != 1)
 		{
@@ -1375,6 +1398,14 @@ static bool resolve_function_parameters_helper(
 			}
 		}
 	}
+	else if (good && is_valid_copy_assign_op(func_body))
+	{
+		func_body.flags |= ast::function_body::copy_assign_op;
+	}
+	else if (good && is_valid_move_assign_op(func_body))
+	{
+		func_body.flags |= ast::function_body::move_assign_op;
+	}
 
 	if (func_stmt.is<ast::decl_function>())
 	{
@@ -1502,6 +1533,14 @@ static bool resolve_function_return_type_helper(ast::function_body &func_body, c
 	{
 		// constructors can't have their return type specified, so we have to always set it here
 		func_body.return_type = ast::make_base_type_typespec({}, func_body.get_constructor_of());
+		return true;
+	}
+	else if (
+		(func_body.is_copy_assign_op() || func_body.is_move_assign_op())
+		&& (func_body.is_defaulted() || func_body.is_deleted())
+	)
+	{
+		func_body.return_type = func_body.params[0].get_type();
 		return true;
 	}
 	else
@@ -1804,6 +1843,8 @@ static void resolve_function_impl(
 		&& !func_body.is_default_constructor()
 		&& !func_body.is_copy_constructor()
 		&& !func_body.is_move_constructor()
+		&& !func_body.is_copy_assign_op()
+		&& !func_body.is_move_assign_op()
 	)
 	{
 		context.report_error(
@@ -2036,16 +2077,41 @@ static void add_type_info_members(
 	}
 }
 
+static bool add_default_default_constructor(ast::type_info &info)
+{
+	if (info.default_constructor != nullptr && !info.default_constructor->body.is_defaulted())
+	{
+		return false;
+	}
+	else if (info.default_constructor == nullptr)
+	{
+		auto const has_copy = static_cast<size_t>(info.copy_constructor != nullptr);
+		auto const has_move = static_cast<size_t>(info.move_constructor != nullptr);
+		if (info.constructors.size() - (has_copy + has_move) != 0)
+		{
+			return false;
+		}
+	}
+
+	return info.member_variables.is_all([](auto const member) { return ast::is_default_constructible(member->get_type()); });
+}
+
+static bool add_default_copy_constructor(ast::type_info &info)
+{
+	return (info.copy_constructor == nullptr || info.copy_constructor->body.is_defaulted())
+		&& info.member_variables.is_all([](auto const member) { return ast::is_copy_constructible(member->get_type()); });
+}
+
+static bool add_default_move_constructor(ast::type_info &info)
+{
+	return (info.move_constructor == nullptr || info.move_constructor->body.is_defaulted())
+		&& info.member_variables.is_all([](auto const member) { return ast::is_move_constructible(member->get_type()); });
+}
+
 static void add_default_constructors(ast::type_info &info, ctx::parse_context &context)
 {
 	// only add default constructor if there are no other non-copy constructors
-	if (
-		(
-			(info.default_constructor == nullptr && info.constructors.size() - static_cast<size_t>(info.copy_constructor != nullptr) == 0)
-			|| (info.default_constructor != nullptr && info.default_constructor->body.is_defaulted())
-		)
-		&& info.member_variables.is_all([](auto const member) { return ast::is_default_constructible(member->get_type()); })
-	)
+	if (add_default_default_constructor(info))
 	{
 		if (info.default_constructor != nullptr)
 		{
@@ -2074,10 +2140,7 @@ static void add_default_constructors(ast::type_info &info, ctx::parse_context &c
 		);
 	}
 
-	if (
-		(info.copy_constructor == nullptr || info.copy_constructor->body.is_defaulted())
-		&& info.member_variables.is_all([](auto const member) { return ast::is_copy_constructible(member->get_type()); })
-	)
+	if (add_default_copy_constructor(info))
 	{
 		if (info.copy_constructor != nullptr)
 		{
@@ -2106,10 +2169,7 @@ static void add_default_constructors(ast::type_info &info, ctx::parse_context &c
 		);
 	}
 
-	if (
-		(info.move_constructor == nullptr || info.move_constructor->body.is_defaulted())
-		&& info.member_variables.is_all([](auto const member) { return ast::is_move_constructible(member->get_type()); })
-	)
+	if (add_default_move_constructor(info))
 	{
 		if (info.move_constructor != nullptr)
 		{

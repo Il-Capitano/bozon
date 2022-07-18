@@ -429,6 +429,8 @@ struct function_body
 		builtin_assign              = bit_at<22>,
 		defaulted                   = bit_at<23>,
 		deleted                     = bit_at<24>,
+		copy_assign_op              = bit_at<25>,
+		move_assign_op              = bit_at<26>,
 	};
 
 	enum : uint8_t
@@ -769,6 +771,12 @@ struct function_body
 	bool is_deleted(void) const noexcept
 	{ return (this->flags & deleted) != 0; }
 
+	bool is_copy_assign_op(void) const noexcept
+	{ return (this->flags & copy_assign_op) != 0; }
+
+	bool is_move_assign_op(void) const noexcept
+	{ return (this->flags & move_assign_op) != 0; }
+
 	bool has_builtin_implementation(void) const noexcept
 	{
 		return (this->is_intrinsic() && this->body.is_null())
@@ -968,9 +976,6 @@ struct type_info
 	decl_function_ptr default_default_constructor;
 	decl_function_ptr default_copy_constructor;
 	decl_function_ptr default_move_constructor;
-
-	decl_operator *op_assign = nullptr;
-	decl_operator *op_move_assign = nullptr;
 
 	decl_function *default_constructor = nullptr;
 	decl_function *copy_constructor = nullptr;

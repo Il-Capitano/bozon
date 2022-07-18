@@ -148,6 +148,10 @@ bz::u8string function_body::get_candidate_message(void) const
 	{
 		return bz::format("candidate (the default copy constructor) '{}'", this->get_signature());
 	}
+	else if (this->is_default_move_constructor())
+	{
+		return bz::format("candidate (the default move constructor) '{}'", this->get_signature());
+	}
 	else
 	{
 		return bz::format("candidate '{}'", this->get_signature());
