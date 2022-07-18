@@ -1331,6 +1331,10 @@ void collection_base_erase_value<Collection>::erase_value(Val &&val)
 		{
 			it = self->erase(it);
 		}
+		else
+		{
+			++it;
+		}
 	}
 }
 
@@ -1345,6 +1349,10 @@ void collection_base_erase_if<Collection>::erase_if(Func &&func)
 		if (func(*it))
 		{
 			it = self->erase(it);
+		}
+		else
+		{
+			++it;
 		}
 	}
 }
