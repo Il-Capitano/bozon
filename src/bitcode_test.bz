@@ -1683,6 +1683,10 @@ function destructor_test()
 
 	const res1 = make_resource();
 	@maybe_unused const res2 = res1;
+
+	let r = make_resource();
+	static_assert(typeof r == resource_t);
+	r = r;
 }
 
 export function string_test()
@@ -1846,6 +1850,9 @@ struct unique_ptr<T: typename>
 	}
 
 	constructor(other: &const _self_t) = __delete__;
+	constructor(other: move _self_t) = __default__;
+	operator = (lhs: &_self_t, rhs: &const _self_t) = __delete__;
+	operator = (lhs: &_self_t, rhs: _self_t) = __default__;
 
 	operator * (self: &_self_t) -> &T
 	{
@@ -1867,6 +1874,8 @@ function add_two(n: int32) -> int32
 {
 	let ptr = unique_ptr<int32>(std::malloc(int32, 1));
 	ptr = unique_ptr<int32>(std::malloc(int32, 1));
+
+	// ptr = ptr;
 
 	*ptr = 3;
 	std::printf("{}\n", ptr->add_two());
