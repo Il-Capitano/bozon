@@ -1441,7 +1441,7 @@ function generic_test()
 
 	@maybe_unused const s1 = "string 1";
 	@maybe_unused const s2 = "string 2";
-	add_wrapper(s1, s2);
+//	add_wrapper(s1, s2);
 
 	function circular1(n) -> typeof circular2(n) {}
 	function circular2(n) -> typeof circular3(n) {}
