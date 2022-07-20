@@ -3303,11 +3303,29 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 	bz::vector<source_highlight> notes;
 	notes.reserve(possible_funcs.size() + 1);
 	notes.emplace_back(get_function_parameter_types_note(src_tokens, args));
+	bool builtin_operator_found = false;
 	for (auto &func : possible_funcs)
 	{
-		notes.emplace_back(context.make_note(
-			func.func_body->src_tokens, func.func_body->get_candidate_message()
-		));
+		if (!do_verbose && func.func_body->is_builtin_operator())
+		{
+			if (builtin_operator_found)
+			{
+				continue;
+			}
+			builtin_operator_found = true;
+			notes.emplace_back(context.make_note(
+				bz::format(
+					"candidate: the builtin 'operator {}'",
+					token_info[func.func_body->function_name_or_operator_kind.get<uint32_t>()].token_value
+				)
+			));
+		}
+		else
+		{
+			notes.emplace_back(context.make_note(
+				func.func_body->src_tokens, func.func_body->get_candidate_message()
+			));
+		}
 		if (func.stmt.is<ast::decl_function_alias>())
 		{
 			auto &alias = func.stmt.get<ast::decl_function_alias>();
