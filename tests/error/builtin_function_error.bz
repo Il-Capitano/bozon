@@ -1,0 +1,6 @@
+function main()
+{
+	let i = 0;
+	let u = 0u;
+	__builtin_slice_from_ptrs(&i, &u);
+}

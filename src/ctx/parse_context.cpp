@@ -3438,6 +3438,10 @@ static ast::expression make_expr_function_call_from_body(
 		return_type_kind = ast::expression_type_kind::lvalue_reference;
 		return_type = ret_t.get<ast::ts_lvalue_reference>();
 	}
+	else if (ret_t.is<ast::ts_void>())
+	{
+		return_type_kind = ast::expression_type_kind::none;
+	}
 	return ast::make_dynamic_expression(
 		src_tokens,
 		return_type_kind, return_type,
