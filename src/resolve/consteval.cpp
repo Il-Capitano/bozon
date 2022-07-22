@@ -1055,10 +1055,7 @@ static ast::constant_value evaluate_binary_comma(
 )
 {
 	bz_assert(rhs.is_constant());
-	auto const &rhs_const_expr = rhs.get_constant();
-	auto const &rhs_value = rhs_const_expr.value;
-
-	return rhs_value;
+	return rhs.get_constant_value();
 }
 
 
