@@ -220,7 +220,13 @@ struct expression : bz::variant<
 		  src_tokens(_src_tokens),
 		  consteval_state(this->is<constant_expression>() ? consteval_succeeded : consteval_never_tried),
 		  paren_level(0)
-	{}
+	{
+		bz_assert(
+			!this->is_constant_or_dynamic()
+			|| !this->get_expr_type().is<ast::ts_void>()
+			|| this->get_expr_type_and_kind().second != ast::expression_type_kind::rvalue
+		);
+	}
 
 	lex::token_pos get_tokens_begin(void) const { return this->src_tokens.begin; }
 	lex::token_pos get_tokens_pivot(void) const { return this->src_tokens.pivot; }
