@@ -1621,8 +1621,12 @@ static ast::expression make_function_name_expression(
 			src_tokens,
 			ast::expression_type_kind::function_name, ast::typespec(),
 			ast::constant_value(std::move(id_value)),
-			ast::make_expr_identifier(id)
+			ast::make_expr_identifier(std::move(id))
 		);
+	}
+	else if (set_size == 0)
+	{
+		return ast::make_error_expression(src_tokens, ast::make_expr_identifier(std::move(id)));
 	}
 	else
 	{
