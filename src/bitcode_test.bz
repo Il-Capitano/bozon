@@ -125,7 +125,7 @@ function main(args: [: const str]) -> int32
 	}
 	// foo_t();
 	(consteval {
-		const p = std::meta::malloc(int32, 1u);
+		const p = std::meta::malloc(int32, 1);
 		std::meta::free(p);
 		// std::meta::free(p);
 	});
@@ -214,7 +214,7 @@ function main(args: [: const str]) -> int32
 
 	let arr: [12: int32];
 	@maybe_unused consteval n = arr.size();
-	// static_assert((std::assert(true), true));
+	static_assert((std::assert(true), true));
 
 	std::print("\n");
 	std::print("hello\n");
@@ -325,10 +325,10 @@ function main(args: [: const str]) -> int32
 	static_assert('\U00000470' == 'Ѱ');
 	static_assert('ѱ' - 1 == 'Ѱ');
 	static_assert('Ѱ' as uint32 == 0x470);
-//	"a" "b";
+	"a" "b";
 
 	std::print("\n=== \x41 ===\n");
-//	+'b';
+	// +'b';
 
 	std::print("\n==== const_expr_test ====\n");
 	const_expr_test();
@@ -607,7 +607,7 @@ function foo() -> void
 	let u64 = 0u64;
 
 	i8 == i8;
-//	i8 == u8;
+	// i8 == u8;
 	i8 == i16;
 	i16 == i8;
 	i64 == i8;
@@ -724,7 +724,6 @@ function ref_test() -> void
 function cast_test() -> void
 {
 	const f32 = 1.5f32;
-//	std::println(f32);
 	std::printf("{}\n", f32 as float64);
 	std::printf("{}\n", f32 as int32);
 	std::printf("{}\n", 'A' as uint32);
@@ -1441,14 +1440,14 @@ function generic_test()
 
 	@maybe_unused const s1 = "string 1";
 	@maybe_unused const s2 = "string 2";
-//	add_wrapper(s1, s2);
+	// add_wrapper(s1, s2);
 
-	function circular1(n) -> typeof circular2(n) {}
-	function circular2(n) -> typeof circular3(n) {}
-	function circular3(n) -> typeof circular1(n as int32) {}
-
-//	circular1(0i64);
+	// circular1(0i64);
 }
+
+function circular1(n) -> typeof circular2(n) {}
+function circular2(n) -> typeof circular3(n) {}
+function circular3(n) -> typeof circular1(n as int32) {}
 
 function ambiguous_function_test()
 {
@@ -1470,7 +1469,7 @@ function ambiguous_function_test()
 function add_tester()
 {
 	std::add(3, 4);
-	// std::add(std::complex[ 0.0, 1.0 ], std::complex[ 1.0, -2.0 ]);
+	std::add(std::complex[ 0.0, 1.0 ], std::complex[ 1.0, -2.0 ]);
 }
 
 
@@ -1522,7 +1521,7 @@ function struct_test()
 	static_assert(v.x == 1.2);
 
 	let sum = v + v;
-	// static_assert(v + v - v == v);
+	static_assert(v + v - v == v);
 	std::printf("{}, {}\n", sum.x, sum.y);
 }
 
@@ -1540,8 +1539,8 @@ function complex_test()
 		}
 	}
 
-	// consteval z = std::complex[ 0.0, 1.0 ] * std::complex[ 0.0, 1.0 ];
-	// static_assert(z == std::complex[ -1.0, 0.0 ]);
+	consteval z = std::complex[ 0.0, 1.0 ] * std::complex[ 0.0, 1.0 ];
+	static_assert(z == std::complex[ -1.0, 0.0 ]);
 
 	const z1 = std::complex[1.0, -12.35];
 	const double_z = z1 + z1;
@@ -1757,7 +1756,6 @@ export function string_test()
 	static_assert(i == 1u);
 
 	let arr: [5: int32];
-	// std::printf("{}\n", arr[2]);
 	std::printf("{}\n", arr[2]);
 
 	static_assert(std::format("{}", 1.23456) == "1.23456");
