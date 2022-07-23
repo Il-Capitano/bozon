@@ -133,8 +133,16 @@ static ast::expression resolve_expr(
 	ctx::parse_context &context
 )
 {
-	resolve_expression(binary_op.lhs, context);
-	resolve_expression(binary_op.rhs, context);
+	if (token_info[binary_op.op].binary_prec.is_left_associative)
+	{
+		resolve_expression(binary_op.lhs, context);
+		resolve_expression(binary_op.rhs, context);
+	}
+	else
+	{
+		resolve_expression(binary_op.rhs, context);
+		resolve_expression(binary_op.lhs, context);
+	}
 	return context.make_binary_operator_expression(src_tokens, binary_op.op, std::move(binary_op.lhs), std::move(binary_op.rhs));
 }
 
