@@ -4456,7 +4456,11 @@ static val_ptr emit_bitcode(
 	bz_assert(lhs.get_type() == rhs.get_type());
 
 	llvm::BasicBlock *ptr_eq_bb = nullptr;
-	if (lhs.kind == val_ptr::reference && rhs.kind == val_ptr::reference)
+	if (
+		base_type_assign.rhs.get_expr_type_and_kind().second == ast::expression_type_kind::lvalue_reference
+		&& lhs.kind == val_ptr::reference
+		&& rhs.kind == val_ptr::reference
+	)
 	{
 		auto const lhs_ptr_int_val = context.builder.CreatePtrToInt(lhs.val, context.get_usize_t());
 		auto const rhs_ptr_int_val = context.builder.CreatePtrToInt(rhs.val, context.get_usize_t());
