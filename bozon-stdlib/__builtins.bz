@@ -11,7 +11,7 @@ export function __builtin_str_length(s: str) -> usize
 		const c = *it;
 		if ((c & 0b1100'0000u8) == 0b1000'0000u8)
 		{
-			continuation_byte_count += 1uz;
+			continuation_byte_count += 1;
 		}
 	}
 	const size = __builtin_str_size(s);
@@ -129,12 +129,12 @@ export consteval function __builtin_is_option_set(option: str) -> bool
 @__builtin
 export function __builtin_print_stdout(s: str)
 {
-	std::libc::fwrite(__builtin_str_begin_ptr(s), 1u, __builtin_str_size(s), std::libc::stdout());
+	std::libc::fwrite(__builtin_str_begin_ptr(s), 1, __builtin_str_size(s), std::libc::stdout());
 }
 @__builtin
 export function __builtin_print_stderr(s: str)
 {
-	std::libc::fwrite(__builtin_str_begin_ptr(s), 1u, __builtin_str_size(s), std::libc::stderr());
+	std::libc::fwrite(__builtin_str_begin_ptr(s), 1, __builtin_str_size(s), std::libc::stderr());
 }
 
 @__builtin @symbol_name("__bozon_builtin_comptime_malloc") consteval function __builtin_comptime_malloc(size: usize) -> *void;
@@ -170,27 +170,27 @@ export function __builtin_print_stderr(s: str)
 @__builtin @symbol_name("llvm.lifetime.end.p0i8") function __builtin_lifetime_end(size: uint64, ptr: *void);
 
 @__builtin @symbol_name(
-	if (sizeof usize == 8u) {
+	if (sizeof usize == 8) {
 		"llvm.memcpy.p0i8.p0i8.i64"
-	} else if (sizeof usize == 4u) {
+	} else if (sizeof usize == 4) {
 		"llvm.memcpy.p0i8.p0i8.i32"
 	} else {
 		unreachable
 	}
 ) export function __builtin_memcpy(dest: *void, src: *const void, n: usize);
 @__builtin @symbol_name(
-	if (sizeof usize == 8u) {
+	if (sizeof usize == 8) {
 		"llvm.memmove.p0i8.p0i8.i64"
-	} else if (sizeof usize == 4u) {
+	} else if (sizeof usize == 4) {
 		"llvm.memmove.p0i8.p0i8.i32"
 	} else {
 		unreachable
 	}
 ) export function __builtin_memmove(dest: *void, src: *const void, n: usize);
 @__builtin @symbol_name(
-	if (sizeof usize == 8u) {
+	if (sizeof usize == 8) {
 		"llvm.memset.p0i8.i64"
-	} else if (sizeof usize == 4u) {
+	} else if (sizeof usize == 4) {
 		"llvm.memset.p0i8.i32"
 	} else {
 		unreachable
