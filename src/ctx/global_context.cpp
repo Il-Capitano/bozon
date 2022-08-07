@@ -364,16 +364,12 @@ uint32_t global_context::add_module(uint32_t current_file_id, ast::identifier co
 		}
 	}();
 
-	if (file._stage == src_file::constructed)
+	if (file._stage < src_file::parsed_global_symbols)
 	{
 		if (!file.parse_global_symbols(*this))
 		{
 			return std::numeric_limits<uint32_t>::max();
 		}
-	}
-	else
-	{
-		// bz_assert(file._stage >= src_file::parsed_global_symbols);
 	}
 	return file._file_id;
 }
