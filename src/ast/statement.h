@@ -192,11 +192,12 @@ struct decl_variable
 		used             = bit_at<1>,
 		module_export    = bit_at<2>,
 		external_linkage = bit_at<3>,
-		no_runtime_emit  = bit_at<4>,
-		member           = bit_at<5>,
-		global           = bit_at<6>,
-		variadic         = bit_at<7>,
-		tuple_outer_ref  = bit_at<8>,
+		extern_          = bit_at<4>,
+		no_runtime_emit  = bit_at<5>,
+		member           = bit_at<6>,
+		global           = bit_at<7>,
+		variadic         = bit_at<8>,
+		tuple_outer_ref  = bit_at<9>,
 	};
 
 	lex::src_tokens src_tokens;
@@ -326,6 +327,9 @@ struct decl_variable
 
 	bool is_external_linkage(void) const noexcept
 	{ return (this->flags & external_linkage) != 0; }
+
+	bool is_extern(void) const noexcept
+	{ return (this->flags & extern_) != 0; }
 
 	bool is_no_runtime_emit(void) const noexcept
 	{ return (this->flags & no_runtime_emit) != 0; }

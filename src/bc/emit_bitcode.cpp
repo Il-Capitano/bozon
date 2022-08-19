@@ -6614,10 +6614,13 @@ static void emit_global_variable_impl(ast::decl_variable const &var_decl, auto &
 	{
 		global_var->setLinkage(llvm::GlobalValue::InternalLinkage);
 	}
-	bz_assert(var_decl.init_expr.is_constant());
-	auto const &const_expr = var_decl.init_expr.get_constant();
-	auto const init_val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
-	global_var->setInitializer(init_val);
+	if (!var_decl.is_extern())
+	{
+		bz_assert(var_decl.init_expr.is_constant());
+		auto const &const_expr = var_decl.init_expr.get_constant();
+		auto const init_val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
+		global_var->setInitializer(init_val);
+	}
 	context.add_variable(&var_decl, global_var, type);
 }
 
