@@ -202,6 +202,7 @@ struct decl_variable
 	lex::src_tokens src_tokens;
 	lex::token_range prototype_range;
 	var_id_and_type id_and_type;
+	bz::u8string symbol_name;
 	arena_vector<decl_variable> tuple_decls;
 
 	expression init_expr; // is null if there's no initializer
@@ -214,8 +215,11 @@ struct decl_variable
 
 	decl_variable(void) = default;
 	decl_variable(decl_variable const &other)
-		: src_tokens(other.src_tokens), prototype_range(other.prototype_range),
-		  id_and_type(other.id_and_type), tuple_decls(other.tuple_decls),
+		: src_tokens(other.src_tokens),
+		  prototype_range(other.prototype_range),
+		  id_and_type(other.id_and_type),
+		  symbol_name(other.symbol_name),
+		  tuple_decls(other.tuple_decls),
 		  init_expr(other.init_expr),
 		  original_tuple_variadic_decl(nullptr),
 		  attributes(other.attributes),
@@ -237,6 +241,7 @@ struct decl_variable
 		this->src_tokens = other.src_tokens;
 		this->prototype_range = other.prototype_range;
 		this->id_and_type = other.id_and_type;
+		this->symbol_name = other.symbol_name;
 		this->tuple_decls = other.tuple_decls;
 		this->init_expr = other.init_expr;
 		if (other.original_tuple_variadic_decl != nullptr)
