@@ -23,16 +23,6 @@ void __bozon_builtin_panic(void)
 	_Exit(1);
 }
 
-FILE *__bozon_get_stdout(void)
-{
-	return stdout;
-}
-
-FILE *__bozon_get_stderr(void)
-{
-	return stderr;
-}
-
 
 int32_t __bozon_main(str_slice args);
 

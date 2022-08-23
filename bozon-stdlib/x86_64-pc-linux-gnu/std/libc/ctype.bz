@@ -1,0 +1,15 @@
+import types;
+@symbol_name("isalnum") export function "c" isalnum(: int) -> int;
+@symbol_name("isalpha") export function "c" isalpha(: int) -> int;
+@symbol_name("isblank") export function "c" isblank(: int) -> int;
+@symbol_name("iscntrl") export function "c" iscntrl(: int) -> int;
+@symbol_name("isdigit") export function "c" isdigit(: int) -> int;
+@symbol_name("isgraph") export function "c" isgraph(: int) -> int;
+@symbol_name("islower") export function "c" islower(: int) -> int;
+@symbol_name("isprint") export function "c" isprint(: int) -> int;
+@symbol_name("ispunct") export function "c" ispunct(: int) -> int;
+@symbol_name("isspace") export function "c" isspace(: int) -> int;
+@symbol_name("isupper") export function "c" isupper(: int) -> int;
+@symbol_name("isxdigit") export function "c" isxdigit(: int) -> int;
+@symbol_name("tolower") export function "c" tolower(c: int) -> int;
+@symbol_name("toupper") export function "c" toupper(c: int) -> int;

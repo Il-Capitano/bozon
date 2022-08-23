@@ -1,0 +1,15 @@
+export type _Bool = ::bool;
+export type bool = ::bool;
+export type char = uint8;
+export type double = float64;
+export type float = float32;
+export type int = int32;
+export type long = int64;
+export type long_long = int64;
+export type short = int16;
+export type signed_char = int8;
+export type unsigned_char = uint8;
+export type unsigned_int = uint32;
+export type unsigned_long = uint64;
+export type unsigned_long_long = uint64;
+export type unsigned_short = uint16;

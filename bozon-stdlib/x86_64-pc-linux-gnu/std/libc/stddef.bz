@@ -1,0 +1,4 @@
+import types;
+export type ptrdiff_t = long;
+export type size_t = unsigned_long;
+export type wchar_t = int;
