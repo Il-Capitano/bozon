@@ -385,6 +385,7 @@ constexpr bz::array statement_parsers = {
 	statement_parser{ lex::token::kw_static_assert, statement_parser::local | statement_parser::global | statement_parser::struct_body, &parse_stmt_static_assert },
 
 	statement_parser{ lex::token::kw_let,           statement_parser::global, &parse_decl_variable<parse_scope::global>,          },
+	statement_parser{ lex::token::kw_extern,        statement_parser::global, &parse_decl_variable<parse_scope::global>,          },
 	statement_parser{ lex::token::kw_const,         statement_parser::global, &parse_decl_variable<parse_scope::global>,          },
 	statement_parser{ lex::token::kw_consteval,     statement_parser::global, &parse_consteval_decl<parse_scope::global>,         },
 	statement_parser{ lex::token::kw_type,          statement_parser::global, &parse_decl_type_alias<parse_scope::global>,        },
@@ -397,6 +398,7 @@ constexpr bz::array statement_parsers = {
 	statement_parser{ lex::token::kw_import,        statement_parser::global, &parse_decl_import,                                 },
 
 	statement_parser{ lex::token::kw_let,           statement_parser::struct_body, &parse_decl_variable<parse_scope::struct_body>,          },
+	statement_parser{ lex::token::kw_extern,        statement_parser::struct_body, &parse_decl_variable<parse_scope::struct_body>,          },
 	statement_parser{ lex::token::kw_const,         statement_parser::struct_body, &parse_decl_variable<parse_scope::struct_body>,          },
 	statement_parser{ lex::token::kw_consteval,     statement_parser::struct_body, &parse_consteval_decl<parse_scope::struct_body>,         },
 	statement_parser{ lex::token::kw_type,          statement_parser::struct_body, &parse_decl_type_alias<parse_scope::struct_body>,        },

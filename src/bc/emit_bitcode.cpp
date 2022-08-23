@@ -6600,7 +6600,7 @@ void emit_function_bitcode(
 template<abi::platform_abi abi>
 static void emit_global_variable_impl(ast::decl_variable const &var_decl, auto &context)
 {
-	auto const name = var_decl.get_id().format_for_symbol();
+	auto const name = var_decl.symbol_name != "" ? var_decl.symbol_name : var_decl.get_id().format_for_symbol();
 	auto const name_ref = llvm::StringRef(name.data_as_char_ptr(), name.size());
 	auto const type = get_llvm_type(var_decl.get_type(), context);
 	auto const val = context.get_module().getOrInsertGlobal(name_ref, type);
@@ -6614,10 +6614,13 @@ static void emit_global_variable_impl(ast::decl_variable const &var_decl, auto &
 	{
 		global_var->setLinkage(llvm::GlobalValue::InternalLinkage);
 	}
-	bz_assert(var_decl.init_expr.is_constant());
-	auto const &const_expr = var_decl.init_expr.get_constant();
-	auto const init_val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
-	global_var->setInitializer(init_val);
+	if (!var_decl.is_extern())
+	{
+		bz_assert(var_decl.init_expr.is_constant());
+		auto const &const_expr = var_decl.init_expr.get_constant();
+		auto const init_val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
+		global_var->setInitializer(init_val);
+	}
 	context.add_variable(&var_decl, global_var, type);
 }
 

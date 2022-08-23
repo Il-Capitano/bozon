@@ -191,6 +191,29 @@ static bool apply_symbol_name(
 	}
 }
 
+static bool apply_symbol_name(
+	ast::decl_variable &var_decl,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	if (!var_decl.is_global())
+	{
+		context.report_error(attribute.name, bz::format("'@{}' cannot be applied to local variables", attribute.name->value));
+		return false;
+	}
+	else
+	{
+		auto const symbol_name = attribute.args[0]
+			.get_constant_value()
+			.get<ast::constant_value::string>().as_string_view();
+
+		var_decl.symbol_name = symbol_name;
+		var_decl.flags |= ast::decl_variable::external_linkage;
+		return true;
+	}
+}
+
 static bool apply_maybe_unused(
 	ast::decl_variable &var_decl,
 	ast::attribute &attribute,
@@ -236,7 +259,7 @@ bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info>
 	result.push_back({
 		"symbol_name",
 		{ str_type },
-		{ nullptr, nullptr, &apply_symbol_name, nullptr }
+		{ nullptr, nullptr, &apply_symbol_name, &apply_symbol_name }
 	});
 	result.push_back({
 		"maybe_unused",
