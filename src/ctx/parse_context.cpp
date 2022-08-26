@@ -16,7 +16,7 @@ namespace ctx
 static ast::expression make_expr_function_call_from_body(
 	lex::src_tokens const &src_tokens,
 	ast::function_body *body,
-	ast::arena_vector<ast::expression> params,
+	ast::arena_vector<ast::expression> args,
 	parse_context &context,
 	ast::resolve_order resolve_order = ast::resolve_order::regular
 );
@@ -3176,6 +3176,34 @@ ast::expression parse_context::make_tuple(lex::src_tokens const &src_tokens, ast
 			ast::make_expr_tuple(std::move(elems))
 		);
 	}
+}
+
+ast::expression parse_context::make_unreachable(lex::token_pos t)
+{
+	auto const panic_fn_body = &this->get_builtin_function(ast::function_body::builtin_panic)->body;
+	auto message = bz::format("unreachable hit at {}:{}", this->global_ctx.get_file_name(t->src_pos.file_id), t->src_pos.line);
+	auto const src_tokens = lex::src_tokens::from_single_token(t);
+
+	ast::arena_vector<ast::expression> args = {};
+	args.push_back(ast::make_constant_expression(
+		src_tokens,
+		ast::expression_type_kind::rvalue,
+		ast::make_base_type_typespec(src_tokens, this->get_builtin_type_info(ast::type_info::str_)),
+		ast::constant_value(std::move(message)),
+		ast::make_expr_typed_literal(lex::token_range{ t, t + 1 })
+	));
+	auto panic_fn_call_expr = ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::none,
+		ast::make_void_typespec(nullptr),
+		ast::make_expr_function_call(src_tokens, std::move(args), panic_fn_body, ast::resolve_order::regular)
+	);
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::noreturn,
+		ast::make_void_typespec(nullptr),
+		ast::make_expr_unreachable(std::move(panic_fn_call_expr))
+	);
 }
 
 static bool is_builtin_type(ast::typespec_view ts)

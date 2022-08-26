@@ -371,6 +371,7 @@ struct parse_context
 	ast::expression make_literal(lex::token_pos literal) const;
 	ast::expression make_string_literal(lex::token_pos begin, lex::token_pos end) const;
 	ast::expression make_tuple(lex::src_tokens const &src_tokens, ast::arena_vector<ast::expression> elems) const;
+	ast::expression make_unreachable(lex::token_pos t);
 
 	ast::expression make_unary_operator_expression(
 		lex::src_tokens const &src_tokens,

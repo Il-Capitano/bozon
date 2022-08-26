@@ -639,6 +639,11 @@ struct expr_continue
 
 struct expr_unreachable
 {
+	ast::expression panic_fn_call;
+
+	expr_unreachable(ast::expression _panic_fn_call)
+		: panic_fn_call(std::move(_panic_fn_call))
+	{}
 };
 
 struct expr_generic_type_instantiation

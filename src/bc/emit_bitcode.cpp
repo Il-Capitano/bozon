@@ -5140,7 +5140,7 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
-	ast::expr_unreachable const &,
+	ast::expr_unreachable const &unreachable_expr,
 	auto &context,
 	llvm::Value *
 )
@@ -5154,8 +5154,7 @@ static val_ptr emit_bitcode(
 	{
 		if (panic_on_unreachable)
 		{
-			auto const panic_fn = context.get_function(context.get_builtin_function(ast::function_body::builtin_panic));
-			context.create_call(panic_fn);
+			emit_bitcode<abi>(unreachable_expr.panic_fn_call, context, nullptr);
 			auto const return_type = context.current_function.second->getReturnType();
 			if (return_type->isVoidTy())
 			{
