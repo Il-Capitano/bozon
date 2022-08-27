@@ -271,10 +271,8 @@ static void add_call_parameter(
 	// special case for *void and *const void
 	else if (ast::remove_const_or_consteval(ast::remove_pointer(param_type)).is<ast::ts_void>())
 	{
-		auto const void_ptr_val = context.builder.CreatePointerCast(
-			param.get_value(context.builder),
-			llvm::PointerType::getInt8PtrTy(context.get_llvm_context())
-		);
+		auto const void_ptr_val = param.get_value(context.builder);
+		bz_assert(void_ptr_val->getType()->isPointerTy());
 		(params.*params_push)(void_ptr_val);
 		(params_is_byval.*byval_push)({ false, nullptr });
 	}
@@ -574,8 +572,8 @@ static val_ptr emit_copy_constructor(
 		{
 			auto const memcpy_fn = context.get_function(context.get_builtin_function(ast::function_body::memcpy));
 			bz_assert(expr_val.kind == val_ptr::reference);
-			auto const dest_ptr = context.builder.CreatePointerCast(result_address, llvm::PointerType::get(context.get_uint8_t(), 0));
-			auto const src_ptr = context.builder.CreatePointerCast(expr_val.val, llvm::PointerType::get(context.get_uint8_t(), 0));
+			auto const dest_ptr = result_address;
+			auto const src_ptr = expr_val.val;
 			auto const size_val = llvm::ConstantInt::get(context.get_uint64_t(), size);
 			auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
 			context.create_call(memcpy_fn, { dest_ptr, src_ptr, size_val, false_val });
@@ -615,10 +613,7 @@ static val_ptr emit_copy_constructor(
 			case abi::pass_kind::two_registers:
 			{
 				auto const call = context.create_call(src_tokens, func_body, fn, expr_val.val);
-				auto const cast_result_address = context.builder.CreatePointerCast(
-					result_address, llvm::PointerType::get(call->getType(), 0)
-				);
-				context.builder.CreateStore(call, cast_result_address);
+				context.builder.CreateStore(call, result_address);
 				break;
 			}
 			}
@@ -703,7 +698,7 @@ static val_ptr emit_default_constructor(
 		if (auto const size = context.get_size(llvm_type); size > 16)
 		{
 			auto const memset_fn = context.get_function(context.get_builtin_function(ast::function_body::memset));
-			auto const dest_ptr = context.builder.CreatePointerCast(result_address, llvm::PointerType::get(context.get_uint8_t(), 0));
+			auto const dest_ptr = result_address;
 			auto const zero_val = llvm::ConstantInt::get(context.get_uint8_t(), 0);
 			auto const size_val = llvm::ConstantInt::get(context.get_uint64_t(), size);
 			auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
@@ -744,10 +739,7 @@ static val_ptr emit_default_constructor(
 			case abi::pass_kind::two_registers:
 			{
 				auto const call = context.create_call(src_tokens, func_body, fn);
-				auto const cast_result_address = context.builder.CreatePointerCast(
-					result_address, llvm::PointerType::get(call->getType(), 0)
-				);
-				context.builder.CreateStore(call, cast_result_address);
+				context.builder.CreateStore(call, result_address);
 				break;
 			}
 			}
@@ -1254,9 +1246,8 @@ static val_ptr emit_builtin_unary_address_of(
 	}
 	else
 	{
-		auto const ptr_type = llvm::PointerType::get(val.get_type(), 0);
 		context.builder.CreateStore(val.val, result_address);
-		return val_ptr::get_reference(result_address, ptr_type);
+		return val_ptr::get_reference(result_address, context.get_opaque_pointer_t());
 	}
 }
 
@@ -1283,7 +1274,7 @@ static val_ptr emit_builtin_unary_address_of(
 			emit_error(expr.src_tokens, "unable to take address of value", context);
 		}
 		// just make sure the returned value is valid
-		auto const ptr_type = llvm::PointerType::get(val.get_type(), 0);
+		auto const ptr_type = context.get_opaque_pointer_t();
 		if (result_address == nullptr)
 		{
 			return val_ptr::get_value(llvm::Constant::getNullValue(ptr_type));
@@ -1301,9 +1292,8 @@ static val_ptr emit_builtin_unary_address_of(
 		}
 		else
 		{
-			auto const ptr_type = llvm::PointerType::get(val.get_type(), 0);
 			context.builder.CreateStore(val.val, result_address);
-			return val_ptr::get_reference(result_address, ptr_type);
+			return val_ptr::get_reference(result_address, context.get_opaque_pointer_t());
 		}
 	}
 }
@@ -3425,7 +3415,7 @@ static val_ptr emit_bitcode(
 			{
 				bz_assert(func_call.params.size() == 2);
 				auto const alloc_type = get_llvm_type(func_call.func_body->return_type.get<ast::ts_pointer>(), context);
-				auto const result_type = llvm::PointerType::get(alloc_type, 0);
+				auto const result_type = context.get_opaque_pointer_t();
 				auto const alloc_type_size = context.get_size(alloc_type);
 				auto const type_size_val = llvm::ConstantInt::get(context.get_usize_t(), alloc_type_size);
 				auto const count = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
@@ -3991,9 +3981,7 @@ static val_ptr emit_bitcode(
 					auto const line = src_tokens.pivot->src_pos.line;
 					auto const message = bz::format("{}:{}: {}", file, line, func_call.func_body->get_signature());
 					auto const string_constant = context.create_string(message);
-					auto const c_str = context.builder.CreatePointerCast(
-						string_constant, llvm::PointerType::getInt8PtrTy(context.get_llvm_context())
-					);
+					auto const c_str = string_constant;
 					context.create_call(debug_print_func, { c_str });
 				}
 			}
@@ -4093,11 +4081,7 @@ static val_ptr emit_bitcode(
 		auto const call_result_type = call->getType();
 		if (result_address != nullptr)
 		{
-			auto const result_ptr = context.builder.CreateBitCast(
-				result_address,
-				llvm::PointerType::get(call_result_type, 0)
-			);
-			context.builder.CreateStore(call, result_ptr);
+			context.builder.CreateStore(call, result_address);
 			return val_ptr::get_reference(result_address, result_type);
 		}
 		else if (result_type == call_result_type)
@@ -4107,11 +4091,7 @@ static val_ptr emit_bitcode(
 		else
 		{
 			auto const result_ptr = context.create_alloca(result_type);
-			auto const result_ptr_cast = context.builder.CreateBitCast(
-				result_ptr,
-				llvm::PointerType::get(call_result_type, 0)
-			);
-			context.builder.CreateStore(call, result_ptr_cast);
+			context.builder.CreateStore(call, result_ptr);
 			return val_ptr::get_reference(result_ptr, result_type);
 		}
 	}
@@ -4648,7 +4628,7 @@ static val_ptr emit_bitcode(
 	}
 	else if (type.is<ast::ts_array_slice>())
 	{
-		auto const ptr_type = llvm::PointerType::get(get_llvm_type(type.get<ast::ts_array_slice>().elem_type, context), 0);
+		auto const ptr_type = context.get_opaque_pointer_t();
 		auto const result_type = llvm::StructType::get(ptr_type, ptr_type);
 		auto const null_value = llvm::ConstantPointerNull::get(ptr_type);
 		if (result_address != nullptr)
@@ -5708,9 +5688,8 @@ static void emit_bitcode(
 			{
 				auto const ret_type = context.current_function.second->getReturnType();
 				auto const alloca = context.create_alloca(result_type);
-				auto const result_ptr = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(ret_type, 0));
 				emit_bitcode<abi>(ret_stmt.expr, context, alloca);
-				auto const result = context.create_load(ret_type, result_ptr);
+				auto const result = context.create_load(ret_type, alloca);
 				context.emit_all_destructor_calls();
 				context.emit_all_end_lifetime_calls();
 				context.builder.CreateRet(result);
@@ -5911,11 +5890,11 @@ static llvm::Function *create_function_from_symbol_impl(
 
 	if (return_kind == abi::pass_kind::reference || return_kind == abi::pass_kind::non_trivial)
 	{
-		args.push_back(llvm::PointerType::get(result_t, 0));
+		args.push_back(context.get_opaque_pointer_t());
 	}
 	if (func_body.is_main())
 	{
-		auto const str_slice = context.get_slice_t(context.get_str_t());
+		auto const str_slice = context.get_slice_t();
 		// str_slice is known to be not non_trivial
 		auto const pass_kind = abi::get_pass_kind<abi>(str_slice, context.get_data_layout(), context.get_llvm_context());
 
@@ -5923,7 +5902,7 @@ static llvm::Function *create_function_from_symbol_impl(
 		{
 		case abi::pass_kind::reference:
 			is_arg_byval.push_back({ true, str_slice });
-			args.push_back(llvm::PointerType::get(str_slice, 0));
+			args.push_back(context.get_opaque_pointer_t());
 			break;
 		case abi::pass_kind::value:
 			is_arg_byval.push_back({ false, nullptr });
@@ -5966,7 +5945,7 @@ static llvm::Function *create_function_from_symbol_impl(
 			{
 			case abi::pass_kind::reference:
 				is_arg_byval.push_back({ true, t });
-				args.push_back(llvm::PointerType::get(t, 0));
+				args.push_back(context.get_opaque_pointer_t());
 				break;
 			case abi::pass_kind::value:
 				is_arg_byval.push_back({ false, nullptr });
@@ -5991,7 +5970,7 @@ static llvm::Function *create_function_from_symbol_impl(
 			}
 			case abi::pass_kind::non_trivial:
 				is_arg_byval.push_back({ false, nullptr });
-				args.push_back(llvm::PointerType::get(t, 0));
+				args.push_back(context.get_opaque_pointer_t());
 				break;
 			}
 		}
@@ -6254,8 +6233,7 @@ static void emit_function_bitcode_impl(
 					auto const alloca = context.create_alloca_without_lifetime_start(t);
 					auto const size = context.get_size(t);
 					context.start_lifetime(alloca, size);
-					auto const alloca_cast = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(fn_it->getType(), 0));
-					context.builder.CreateStore(fn_it, alloca_cast);
+					context.builder.CreateStore(fn_it, alloca);
 					context.push_end_lifetime_call(alloca, size);
 					push_destructor_call(p.src_tokens, alloca, p.get_type(), context);
 					add_variable_helper(p, alloca, t, context);
@@ -6272,11 +6250,8 @@ static void emit_function_bitcode_impl(
 					auto const second_val = fn_it;
 					auto const second_type = fn_it->getType();
 					auto const struct_type = llvm::StructType::get(first_type, second_type);
-					auto const alloca_cast = context.builder.CreatePointerCast(
-						alloca, llvm::PointerType::get(struct_type, 0)
-					);
-					auto const first_address  = context.create_struct_gep(struct_type, alloca_cast, 0);
-					auto const second_address = context.create_struct_gep(struct_type, alloca_cast, 1);
+					auto const first_address  = context.create_struct_gep(struct_type, alloca, 0);
+					auto const second_address = context.create_struct_gep(struct_type, alloca, 1);
 					context.builder.CreateStore(first_val, first_address);
 					context.builder.CreateStore(second_val, second_address);
 					context.push_end_lifetime_call(alloca, size);
@@ -6456,8 +6431,7 @@ static void emit_function_bitcode_impl(
 					auto const alloca = context.create_alloca_without_lifetime_start(t);
 					auto const size = context.get_size(t);
 					context.start_lifetime(alloca, size);
-					auto const alloca_cast = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(fn_it->getType(), 0));
-					context.builder.CreateStore(fn_it, alloca_cast);
+					context.builder.CreateStore(fn_it, alloca);
 					context.push_end_lifetime_call(alloca, size);
 					push_destructor_call(p.src_tokens, alloca, p.get_type(), context);
 					add_variable_helper(p, alloca, t, context);
@@ -6474,12 +6448,8 @@ static void emit_function_bitcode_impl(
 					auto const second_val = fn_it;
 					auto const second_type = fn_it->getType();
 					auto const struct_type = llvm::StructType::get(first_type, second_type);
-					auto const alloca_cast = context.builder.CreatePointerCast(
-						alloca,
-						llvm::PointerType::get(struct_type, 0)
-					);
-					auto const first_address  = context.create_struct_gep(struct_type, alloca_cast, 0);
-					auto const second_address = context.create_struct_gep(struct_type, alloca_cast, 1);
+					auto const first_address  = context.create_struct_gep(struct_type, alloca, 0);
+					auto const second_address = context.create_struct_gep(struct_type, alloca, 1);
 					context.builder.CreateStore(first_val, first_address);
 					context.builder.CreateStore(second_val, second_address);
 					context.push_end_lifetime_call(alloca, size);
@@ -7117,19 +7087,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		case abi::pass_kind::one_register:
 		case abi::pass_kind::two_registers:
 		{
-			auto const call_result_type = call->getType();
-			if (result_type == call_result_type)
-			{
-				context.builder.CreateStore(call, global_result);
-			}
-			else
-			{
-				auto const result_ptr_cast = context.builder.CreatePointerCast(
-					global_result,
-					llvm::PointerType::get(call_result_type, 0)
-				);
-				context.builder.CreateStore(call, result_ptr_cast);
-			}
+			context.builder.CreateStore(call, global_result);
 			break;
 		}
 		case abi::pass_kind::non_trivial:
@@ -7172,11 +7130,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 			else
 			{
 				auto const result_ptr = context.create_alloca_without_lifetime_start(result_type);
-				auto const result_ptr_cast = context.builder.CreatePointerCast(
-					result_ptr,
-					llvm::PointerType::get(call_result_type, 0)
-				);
-				context.builder.CreateStore(call, result_ptr_cast);
+				context.builder.CreateStore(call, result_ptr);
 				context.builder.CreateRet(context.create_load(call_result_type, result_ptr));
 			}
 			break;
