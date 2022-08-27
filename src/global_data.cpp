@@ -2,6 +2,7 @@
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Config/llvm-config.h>
 #include <llvm/Support/Host.h>
+#include <llvm/ADT/Triple.h>
 
 bool is_warning_enabled(ctx::warning_kind kind) noexcept
 {
