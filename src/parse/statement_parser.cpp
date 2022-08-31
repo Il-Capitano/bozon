@@ -4,7 +4,6 @@
 #include "expression_parser.h"
 #include "parse_common.h"
 #include "token_info.h"
-#include "ctx/global_context.h"
 #include "escape_sequences.h"
 #include "resolve/statement_resolver.h"
 

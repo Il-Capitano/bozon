@@ -5,7 +5,6 @@
 #include "consteval.h"
 #include "parse/statement_parser.h"
 #include "parse/expression_parser.h"
-#include "ctx/global_context.h"
 
 namespace resolve
 {
