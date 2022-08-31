@@ -3274,13 +3274,15 @@ ast::expression parse_context::make_unreachable(lex::token_pos t)
 		src_tokens,
 		ast::expression_type_kind::none,
 		ast::make_void_typespec(nullptr),
-		ast::make_expr_function_call(src_tokens, std::move(args), panic_fn_body, ast::resolve_order::regular)
+		ast::make_expr_function_call(src_tokens, std::move(args), panic_fn_body, ast::resolve_order::regular),
+		ast::destruct_operation()
 	);
 	return ast::make_dynamic_expression(
 		src_tokens,
 		ast::expression_type_kind::noreturn,
 		ast::make_void_typespec(nullptr),
-		ast::make_expr_unreachable(std::move(panic_fn_call_expr))
+		ast::make_expr_unreachable(std::move(panic_fn_call_expr)),
+		ast::destruct_operation()
 	);
 }
 
