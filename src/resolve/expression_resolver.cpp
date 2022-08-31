@@ -332,14 +332,19 @@ static ast::expression resolve_expr(
 {
 	auto result_node = ast::make_ast_unique<ast::expr_if>(std::move(if_expr_));
 	auto &if_expr = *result_node;
-	resolve_expression(if_expr.condition, context);
-	resolve_expression(if_expr.then_block, context);
-	resolve_expression(if_expr.else_block, context);
 
+	resolve_expression(if_expr.condition, context);
 	{
 		auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
 		match_expression_to_type(if_expr.condition, bool_type, context);
 	}
+
+	context.push_move_scope(src_tokens);
+	context.push_new_move_branch();
+	resolve_expression(if_expr.then_block, context);
+	context.push_new_move_branch();
+	resolve_expression(if_expr.else_block, context);
+	context.pop_move_scope();
 
 	if (if_expr.condition.is_error() || if_expr.then_block.is_error() || if_expr.else_block.is_error())
 	{
@@ -482,20 +487,26 @@ static ast::expression resolve_expr(
 {
 	auto result_node = ast::make_ast_unique<ast::expr_switch>(std::move(switch_expr_));
 	auto &switch_expr = *result_node;
+
 	resolve_expression(switch_expr.matched_expr, context);
+	ast::typespec match_type = ast::make_auto_typespec(nullptr);
+	match_expression_to_type(switch_expr.matched_expr, match_type, context);
+	check_switch_type(switch_expr.matched_expr, match_type, context);
+
+	context.push_move_scope(src_tokens);
 	for (auto &[case_values, case_expr] : switch_expr.cases)
 	{
 		for (auto &case_value : case_values)
 		{
 			resolve_expression(case_value, context);
 		}
+		context.push_new_move_branch();
 		resolve_expression(case_expr, context);
 	}
+	context.push_new_move_branch();
 	resolve_expression(switch_expr.default_case, context);
+	context.pop_move_scope();
 
-	ast::typespec match_type = ast::make_auto_typespec(nullptr);
-	match_expression_to_type(switch_expr.matched_expr, match_type, context);
-	check_switch_type(switch_expr.matched_expr, match_type, context);
 	if (switch_expr.matched_expr.is_error())
 	{
 		return ast::make_error_expression(src_tokens, std::move(result_node));

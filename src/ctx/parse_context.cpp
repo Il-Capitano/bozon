@@ -324,6 +324,16 @@ void parse_context::pop_local_scope(bool report_unused) noexcept
 		}
 	}
 
+	if (this->move_scopes.not_empty() && this->move_scopes.back().move_branches.not_empty())
+	{
+		auto &current_move_scope = this->move_scopes.back().move_branches.back();
+		auto const &symbols = this->current_local_scope.scope->get_local().symbols.slice(0, this->current_local_scope.symbol_count);
+		for (auto const var_decl : var_decl_range(symbols))
+		{
+			current_move_scope.erase_value(var_decl);
+		}
+	}
+
 	auto const parent = this->current_local_scope.scope->get_local().parent;
 	bz_assert(parent.scope != nullptr);
 	if (parent.scope == this->current_global_scope)
@@ -437,6 +447,79 @@ bool parse_context::has_common_global_scope(ast::enclosing_scope_t scope) const 
 	}
 
 	return false;
+}
+
+void parse_context::push_move_scope(lex::src_tokens const &src_tokens) noexcept
+{
+	this->move_scopes.push_back({ src_tokens, {} });
+}
+
+void parse_context::pop_move_scope(void) noexcept
+{
+	bz_assert(this->move_scopes.not_empty());
+
+	auto const &src_tokens = this->move_scopes.back().src_tokens;
+	auto const has_multiple_scopes = this->move_scopes.size() > 1;
+	bz_assert(!has_multiple_scopes || this->move_scopes[this->move_scopes.size() - 2].move_branches.not_empty());
+	auto &result_set = has_multiple_scopes
+		? this->move_scopes[this->move_scopes.size() - 2].move_branches.back()
+		: this->move_scopes.back().move_branches[0];
+	auto const original_size = has_multiple_scopes ? result_set.size() : 0;
+	bz_assert(this->move_scopes.back().move_branches.not_empty());
+	// append the first branch as-is
+	if (has_multiple_scopes)
+	{
+		result_set.append(this->move_scopes.back().move_branches[0]);
+	}
+	// the rest of the variable decls should only be added if it's not already in result_set
+	for (auto const &branch : this->move_scopes.back().move_branches.slice(1))
+	{
+		for (auto const var_decl : branch)
+		{
+			if (!result_set.slice(original_size).contains(var_decl))
+			{
+				result_set.push_back(var_decl);
+			}
+			else
+			{
+				// if multiple branches contain the same decl, update the move_position to the outer expression
+				var_decl->move_position = src_tokens;
+			}
+		}
+	}
+
+	for (auto const decl : result_set.slice(original_size))
+	{
+		decl->flags |= ast::decl_variable::moved;
+	}
+
+	this->move_scopes.pop_back();
+}
+
+void parse_context::push_new_move_branch(void) noexcept
+{
+	bz_assert(this->move_scopes.not_empty());
+	if (this->move_scopes.back().move_branches.not_empty())
+	{
+		for (auto const decl : this->move_scopes.back().move_branches.back())
+		{
+			// remove moved flag
+			decl->flags &= ~ast::decl_variable::moved;
+		}
+	}
+	this->move_scopes.back().move_branches.emplace_back();
+}
+
+void parse_context::register_move(lex::src_tokens const &src_tokens, ast::decl_variable *decl) noexcept
+{
+	decl->flags |= ast::decl_variable::moved;
+	decl->flags |= ast::decl_variable::ever_moved;
+	decl->move_position = src_tokens;
+	if (this->move_scopes.not_empty())
+	{
+		bz_assert(this->move_scopes.back().move_branches.not_empty());
+		this->move_scopes.back().move_branches.back().push_back(decl);
+	}
 }
 
 static source_highlight get_function_parameter_types_note(lex::src_tokens const &src_tokens, bz::array_view<ast::expression const> args)
@@ -1457,6 +1540,16 @@ static ast::expression make_variable_expression(
 	parse_context &context
 )
 {
+	if (var_decl->is_moved() && !context.in_unevaluated_context)
+	{
+		context.report_error(
+			src_tokens,
+			bz::format("variable '{}' has been moved, and is no longer usable", var_decl->get_id().format_as_unqualified()),
+			{ context.make_note(var_decl->move_position, "variable was moved here") }
+		);
+		return ast::make_error_expression(src_tokens, std::move(result_expr));
+	}
+
 	auto id_type_kind = ast::expression_type_kind::lvalue;
 	ast::typespec_view id_type = var_decl->get_type();
 	if (id_type.is<ast::ts_lvalue_reference>())
@@ -5634,7 +5727,17 @@ static ast::expression make_struct_move_construction(
 
 ast::expression parse_context::make_move_construction(ast::expression expr)
 {
-	auto const type = ast::remove_const_or_consteval(expr.get_expr_type());
+	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
+	auto const type = ast::remove_const_or_consteval(expr_type);
+
+	if (expr_type_kind == ast::expression_type_kind::moved_lvalue && !this->in_unevaluated_context)
+	{
+		bz_assert(expr.get_expr().is<ast::expr_unary_op>() && expr.get_expr().get<ast::expr_unary_op>().op == lex::token::kw_move);
+		bz_assert(expr.get_expr().get<ast::expr_unary_op>().expr.get_expr().is<ast::expr_identifier>());
+		auto const decl = expr.get_expr().get<ast::expr_unary_op>().expr.get_expr().get<ast::expr_identifier>().decl;
+		this->register_move(expr.src_tokens, decl);
+		this->add_self_move_destruction(expr);
+	}
 
 	if (ast::is_trivially_relocatable(type))
 	{

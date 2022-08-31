@@ -244,18 +244,8 @@ struct global_context
 	uint32_t add_module(uint32_t current_file_id, ast::identifier const &id);
 	ast::scope_t *get_file_export_decls(uint32_t file_id);
 
-	bz::u8string get_file_name(uint32_t file_id)
-	{
-		if (file_id == command_line_file_id)
-		{
-			return "<command-line>";
-		}
-		else
-		{
-			bz_assert(file_id != compiler_file_id);
-			return this->get_src_file(file_id).get_file_path().generic_string().c_str();
-		}
-	}
+	bz::u8string get_file_name(uint32_t file_id);
+	bz::u8string get_location_string(lex::token_pos t);
 
 	bool add_comptime_checking_function(bz::u8string_view kind, ast::function_body *func_body);
 	bool add_comptime_checking_variable(bz::u8string_view kind, ast::decl_variable *var_decl);

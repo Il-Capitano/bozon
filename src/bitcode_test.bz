@@ -1878,3 +1878,10 @@ function unique_ptr_test()
 	*ptr = 3;
 	std::printf("{}\n", ptr->add_two());
 }
+
+@symbol_name("move_test") export function move_test()
+{
+	// let i = 0;
+	// let _j = if (i == 3) { 0 } else { move i };
+	// i;
+}

@@ -3,6 +3,8 @@
 #include "global_data.h"
 #include "resolve/match_expression.h"
 
+#include "ctx/global_context.h"
+
 namespace resolve
 {
 
@@ -2869,30 +2871,12 @@ static ast::constant_value guaranteed_evaluate_expr(
 		[](ast::expr_placeholder_literal &) -> ast::constant_value {
 			return {};
 		},
-		[&expr, &context](ast::expr_tuple &tuple) -> ast::constant_value {
-			bool is_consteval = true;
+		[&context](ast::expr_tuple &tuple) -> ast::constant_value {
 			for (auto &elem : tuple.elems)
 			{
 				consteval_guaranteed(elem, context);
-				is_consteval = is_consteval && elem.has_consteval_succeeded();
 			}
-			if (!is_consteval)
-			{
-				return {};
-			}
-
-			ast::constant_value result;
-			auto const expr_type = ast::remove_const_or_consteval(expr.get_expr_type());
-			auto &elem_values = expr_type.is<ast::ts_array>()
-				? (result.emplace<ast::constant_value::array>(), result.get<ast::constant_value::array>())
-				: (result.emplace<ast::constant_value::tuple>(), result.get<ast::constant_value::tuple>());
-			elem_values.reserve(tuple.elems.size());
-			for (auto &elem : tuple.elems)
-			{
-				bz_assert(elem.is_constant());
-				elem_values.emplace_back(elem.get_constant_value());
-			}
-			return result;
+			return {};
 		},
 		[&context](ast::expr_unary_op &unary_op) -> ast::constant_value {
 			// builtin operators are handled as intrinsic functions

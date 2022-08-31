@@ -381,9 +381,9 @@ struct expression : bz::variant<
 struct expr_identifier
 {
 	identifier id;
-	decl_variable const *decl;
+	decl_variable *decl;
 
-	expr_identifier(identifier _id, decl_variable const *var_decl)
+	expr_identifier(identifier _id, decl_variable *var_decl)
 		: id(std::move(_id)), decl(var_decl)
 	{}
 

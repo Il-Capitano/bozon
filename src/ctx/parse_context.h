@@ -54,6 +54,14 @@ struct parse_context
 	bz::vector<bz::u8string_view> current_unresolved_locals = {};
 	ast::function_body           *current_function = nullptr;
 
+	struct move_scope_t
+	{
+		lex::src_tokens src_tokens;
+		bz::vector<bz::vector<ast::decl_variable *>> move_branches;
+	};
+
+	bz::vector<move_scope_t> move_scopes = {};
+
 	bz::vector<resolve_queue_t> resolve_queue{};
 
 	variadic_resolve_info_t variadic_info = { false, false, 0, 0, {} };
@@ -132,6 +140,11 @@ struct parse_context
 	ast::enclosing_scope_t get_current_enclosing_scope(void) const noexcept;
 
 	bool has_common_global_scope(ast::enclosing_scope_t scope) const noexcept;
+
+	void push_move_scope(lex::src_tokens const &src_tokens) noexcept;
+	void pop_move_scope(void) noexcept;
+	void push_new_move_branch(void) noexcept;
+	void register_move(lex::src_tokens const &src_tokens, ast::decl_variable *decl) noexcept;
 
 	void report_error(lex::token_pos it) const;
 	void report_error(

@@ -653,10 +653,11 @@ static ast::expression get_builtin_unary_move(
 
 	if (kind == ast::expression_type_kind::lvalue)
 	{
+		ast::typespec result_type = ast::remove_const_or_consteval(type);
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::moved_lvalue,
-			type,
+			result_type,
 			ast::make_expr_unary_op(op_kind, std::move(expr)),
 			ast::destruct_operation()
 		);

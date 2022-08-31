@@ -383,6 +383,24 @@ ast::scope_t *global_context::get_file_export_decls(uint32_t file_id)
 	return &this->get_src_file(file_id)._export_decls;
 }
 
+bz::u8string global_context::get_file_name(uint32_t file_id)
+{
+	if (file_id == command_line_file_id)
+	{
+		return "<command-line>";
+	}
+	else
+	{
+		bz_assert(file_id != compiler_file_id);
+		return this->get_src_file(file_id).get_file_path().generic_string().c_str();
+	}
+}
+
+bz::u8string global_context::get_location_string(lex::token_pos t)
+{
+	return bz::format("{}:{}", this->get_file_name(t->src_pos.file_id), t->src_pos.line);
+}
+
 bool global_context::add_comptime_checking_function(bz::u8string_view kind, ast::function_body *func_body)
 {
 	auto const it = std::find_if(

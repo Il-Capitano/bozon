@@ -188,15 +188,17 @@ struct decl_variable
 {
 	enum : uint16_t
 	{
-		maybe_unused     = bit_at<0>,
-		used             = bit_at<1>,
-		module_export    = bit_at<2>,
-		external_linkage = bit_at<3>,
-		no_runtime_emit  = bit_at<4>,
-		member           = bit_at<5>,
-		global           = bit_at<6>,
-		variadic         = bit_at<7>,
-		tuple_outer_ref  = bit_at<8>,
+		maybe_unused     = bit_at< 0>,
+		used             = bit_at< 1>,
+		module_export    = bit_at< 2>,
+		external_linkage = bit_at< 3>,
+		no_runtime_emit  = bit_at< 4>,
+		member           = bit_at< 5>,
+		global           = bit_at< 6>,
+		variadic         = bit_at< 7>,
+		tuple_outer_ref  = bit_at< 8>,
+		moved            = bit_at< 9>,
+		ever_moved       = bit_at<10>,
 	};
 
 	lex::src_tokens src_tokens;
@@ -207,6 +209,7 @@ struct decl_variable
 	expression init_expr; // is null if there's no initializer
 	destruct_operation destruction;
 	ast_unique_ptr<decl_variable> original_tuple_variadic_decl; // non-null only if tuple_decls has an empty variadic declaration at the end
+	lex::src_tokens move_position = {};
 
 	arena_vector<attribute> attributes;
 	enclosing_scope_t enclosing_scope;
@@ -218,7 +221,9 @@ struct decl_variable
 		: src_tokens(other.src_tokens), prototype_range(other.prototype_range),
 		  id_and_type(other.id_and_type), tuple_decls(other.tuple_decls),
 		  init_expr(other.init_expr),
+		  destruction(other.destruction),
 		  original_tuple_variadic_decl(nullptr),
+		  move_position(other.move_position),
 		  attributes(other.attributes),
 		  enclosing_scope(other.enclosing_scope),
 		  flags(other.flags), state(other.state)
@@ -242,10 +247,12 @@ struct decl_variable
 		this->id_and_type = other.id_and_type;
 		this->tuple_decls = other.tuple_decls;
 		this->init_expr = other.init_expr;
+		this->destruction = other.destruction;
 		if (other.original_tuple_variadic_decl != nullptr)
 		{
 			this->original_tuple_variadic_decl = make_ast_unique<decl_variable>(*other.original_tuple_variadic_decl);
 		}
+		this->move_position = other.move_position;
 		this->attributes = other.attributes;
 		this->enclosing_scope = other.enclosing_scope;
 		this->flags = other.flags;
@@ -339,6 +346,12 @@ struct decl_variable
 
 	bool is_tuple_outer_ref(void) const noexcept
 	{ return (this->flags & tuple_outer_ref) != 0; }
+
+	bool is_moved(void) const noexcept
+	{ return (this->flags & moved) != 0; }
+
+	bool is_ever_moved(void) const noexcept
+	{ return (this->flags & moved) != 0; }
 
 	typespec &get_type(void)
 	{
