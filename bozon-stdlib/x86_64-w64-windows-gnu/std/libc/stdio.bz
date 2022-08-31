@@ -1,0 +1,107 @@
+import types;
+import stddef;
+struct _iobuf
+{
+	._ptr: *char;
+	._cnt: int;
+	._base: *char;
+	._flag: int;
+	._file: int;
+	._charbuf: int;
+	._bufsiz: int;
+	._tmpfname: *char;
+}
+export type FILE = _iobuf;
+export type fpos_t = long_long;
+@symbol_name("__acrt_iob_func") function "c" __acrt_iob_func(index: unsigned_int) -> *FILE;
+@symbol_name("clearerr") export function "c" clearerr(file: *FILE) -> void;
+@symbol_name("fclose") export function "c" fclose(file: *FILE) -> int;
+@symbol_name("feof") export function "c" feof(file: *FILE) -> int;
+@symbol_name("ferror") export function "c" ferror(file: *FILE) -> int;
+@symbol_name("fflush") export function "c" fflush(file: *FILE) -> int;
+@symbol_name("fgetc") export function "c" fgetc(file: *FILE) -> int;
+@symbol_name("fgetpos") export function "c" fgetpos(file: *FILE, pos: *fpos_t) -> int;
+@symbol_name("fgets") export function "c" fgets(buf: *char, max_count: int, file: *FILE) -> *char;
+@symbol_name("fopen") export function "c" fopen(filename: *const char, mode: *const char) -> *FILE;
+@symbol_name("fputc") export function "c" fputc(ch: int, file: *FILE) -> int;
+@symbol_name("fputs") export function "c" fputs(str: *const char, file: *FILE) -> int;
+@symbol_name("fread") export function "c" fread(dst_buf: *void, element_size: size_t, count: size_t, file: *FILE) -> unsigned_long_long;
+@symbol_name("freopen") export function "c" freopen(filename: *const char, mode: *const char, file: *FILE) -> *FILE;
+@symbol_name("fseek") export function "c" fseek(file: *FILE, offset: long, origin: int) -> int;
+@symbol_name("fsetpos") export function "c" fsetpos(file: *FILE, pos: *const fpos_t) -> int;
+@symbol_name("ftell") export function "c" ftell(file: *FILE) -> long;
+@symbol_name("fwrite") export function "c" fwrite(str: *const void, size: size_t, count: size_t, file: *FILE) -> unsigned_long_long;
+@symbol_name("getc") export function "c" getc(file: *FILE) -> int;
+@symbol_name("getchar") export function "c" getchar() -> int;
+@symbol_name("perror") export function "c" perror(err_msg: *const char) -> void;
+@symbol_name("putc") export function "c" putc(ch: int, file: *FILE) -> int;
+@symbol_name("putchar") export function "c" putchar(ch: int) -> int;
+@symbol_name("puts") export function "c" puts(str: *const char) -> int;
+@symbol_name("remove") export function "c" remove(filename: *const char) -> int;
+@symbol_name("rename") export function "c" rename(old_filename: *const char, new_filename: *const char) -> int;
+@symbol_name("rewind") export function "c" rewind(file: *FILE) -> void;
+@symbol_name("setbuf") export function "c" setbuf(file: *FILE, buffer: *char) -> void;
+@symbol_name("setvbuf") export function "c" setvbuf(file: *FILE, buf: *char, mode: int, size: size_t) -> int;
+@symbol_name("tmpfile") export function "c" tmpfile() -> *FILE;
+@symbol_name("tmpnam") export function "c" tmpnam(buffer: *char) -> *char;
+@symbol_name("ungetc") export function "c" ungetc(ch: int, file: *FILE) -> int;
+export function BUFSIZ() -> int
+{
+	return 512;
+}
+export function EOF() -> int
+{
+	return -1;
+}
+export function FILENAME_MAX() -> int
+{
+	return 260;
+}
+export function FOPEN_MAX() -> int
+{
+	return 20;
+}
+export function L_tmpnam() -> unsigned_long_long
+{
+	return 14;
+}
+export function SEEK_CUR() -> int
+{
+	return 1;
+}
+export function SEEK_END() -> int
+{
+	return 2;
+}
+export function SEEK_SET() -> int
+{
+	return 0;
+}
+export function TMP_MAX() -> int
+{
+	return 32767;
+}
+export function _IOFBF() -> int
+{
+	return 0;
+}
+export function _IOLBF() -> int
+{
+	return 64;
+}
+export function _IONBF() -> int
+{
+	return 4;
+}
+export function stderr() -> *FILE
+{
+	return (__acrt_iob_func(2));
+}
+export function stdin() -> *FILE
+{
+	return (__acrt_iob_func(0));
+}
+export function stdout() -> *FILE
+{
+	return (__acrt_iob_func(1));
+}

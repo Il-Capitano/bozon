@@ -192,18 +192,20 @@ struct decl_variable
 		used             = bit_at< 1>,
 		module_export    = bit_at< 2>,
 		external_linkage = bit_at< 3>,
-		no_runtime_emit  = bit_at< 4>,
-		member           = bit_at< 5>,
-		global           = bit_at< 6>,
-		variadic         = bit_at< 7>,
-		tuple_outer_ref  = bit_at< 8>,
-		moved            = bit_at< 9>,
-		ever_moved       = bit_at<10>,
+		extern_          = bit_at< 4>,
+		no_runtime_emit  = bit_at< 5>,
+		member           = bit_at< 6>,
+		global           = bit_at< 7>,
+		variadic         = bit_at< 8>,
+		tuple_outer_ref  = bit_at< 9>,
+		moved            = bit_at<10>,
+		ever_moved       = bit_at<11>,
 	};
 
 	lex::src_tokens src_tokens;
 	lex::token_range prototype_range;
 	var_id_and_type id_and_type;
+	bz::u8string symbol_name;
 	arena_vector<decl_variable> tuple_decls;
 
 	expression init_expr; // is null if there's no initializer
@@ -218,8 +220,11 @@ struct decl_variable
 
 	decl_variable(void) = default;
 	decl_variable(decl_variable const &other)
-		: src_tokens(other.src_tokens), prototype_range(other.prototype_range),
-		  id_and_type(other.id_and_type), tuple_decls(other.tuple_decls),
+		: src_tokens(other.src_tokens),
+		  prototype_range(other.prototype_range),
+		  id_and_type(other.id_and_type),
+		  symbol_name(other.symbol_name),
+		  tuple_decls(other.tuple_decls),
 		  init_expr(other.init_expr),
 		  destruction(other.destruction),
 		  original_tuple_variadic_decl(nullptr),
@@ -245,6 +250,7 @@ struct decl_variable
 		this->src_tokens = other.src_tokens;
 		this->prototype_range = other.prototype_range;
 		this->id_and_type = other.id_and_type;
+		this->symbol_name = other.symbol_name;
 		this->tuple_decls = other.tuple_decls;
 		this->init_expr = other.init_expr;
 		this->destruction = other.destruction;
@@ -331,6 +337,9 @@ struct decl_variable
 
 	bool is_external_linkage(void) const noexcept
 	{ return (this->flags & external_linkage) != 0; }
+
+	bool is_extern(void) const noexcept
+	{ return (this->flags & extern_) != 0; }
 
 	bool is_no_runtime_emit(void) const noexcept
 	{ return (this->flags & no_runtime_emit) != 0; }

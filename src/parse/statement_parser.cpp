@@ -161,12 +161,22 @@ ast::statement parse_decl_variable(
 	bz_assert(stream != end);
 	bz_assert(
 		stream->kind == lex::token::kw_let
+		|| stream->kind == lex::token::kw_extern
 		|| stream->kind == lex::token::kw_const
 		|| stream->kind == lex::token::kw_consteval
 	);
 	auto const begin_token = stream;
 	if (stream->kind == lex::token::kw_let)
 	{
+		++stream;
+	}
+	bool const is_extern = (scope == parse_scope::global || scope == parse_scope::struct_body) && stream->kind == lex::token::kw_extern;
+	if (stream->kind == lex::token::kw_extern)
+	{
+		if (scope != parse_scope::global && scope != parse_scope::struct_body)
+		{
+			context.report_error(stream, "'extern' is not allowed for local variables");
+		}
 		++stream;
 	}
 
@@ -177,14 +187,24 @@ ast::statement parse_decl_variable(
 		auto const init_expr = get_expression_tokens<>(stream, end, context);
 		auto const end_token = stream;
 		context.assert_token(stream, lex::token::semi_colon);
+		if (is_extern)
+		{
+			context.report_error(lex::src_tokens::from_range(init_expr), "a variable declared 'extern' cannot have an initializer");
+		}
 		if constexpr (scope == parse_scope::global || scope == parse_scope::struct_body)
 		{
 			auto result = ast::statement(ast::make_ast_unique<ast::decl_variable>(std::move(result_decl)));
 			bz_assert(result.is<ast::decl_variable>());
 			auto &var_decl = result.get<ast::decl_variable>();
 			var_decl.flags |= ast::decl_variable::global;
+			if (is_extern)
+			{
+				var_decl.flags |= ast::decl_variable::external_linkage;
+				var_decl.flags |= ast::decl_variable::extern_;
+			}
 			var_decl.init_expr = ast::make_unresolved_expression({ init_expr.begin, init_expr.begin, init_expr.end });
-			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
+			auto const pivot = var_decl.src_tokens.pivot >= end_token ? begin_token : var_decl.src_tokens.pivot;
+			var_decl.src_tokens = { begin_token, pivot, end_token };
 			auto const id_tokens = var_decl.id_and_type.id.tokens;
 			bz_assert(id_tokens.end - id_tokens.begin <= 1);
 			if constexpr (scope == parse_scope::global)
@@ -225,7 +245,8 @@ ast::statement parse_decl_variable(
 			{
 				context.report_error(lex::src_tokens::from_range({ stream, end }));
 			}
-			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
+			auto const pivot = var_decl.src_tokens.pivot >= end_token ? begin_token : var_decl.src_tokens.pivot;
+			var_decl.src_tokens = { begin_token, pivot, end_token };
 			context.add_unresolved_var_decl(var_decl);
 			return result;
 		}
@@ -240,7 +261,13 @@ ast::statement parse_decl_variable(
 			bz_assert(result.is<ast::decl_variable>());
 			auto &var_decl = result.get<ast::decl_variable>();
 			var_decl.flags |= ast::decl_variable::global;
-			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
+			if (is_extern)
+			{
+				var_decl.flags |= ast::decl_variable::external_linkage;
+				var_decl.flags |= ast::decl_variable::extern_;
+			}
+			auto const pivot = var_decl.src_tokens.pivot >= end_token ? begin_token : var_decl.src_tokens.pivot;
+			var_decl.src_tokens = { begin_token, pivot, end_token };
 			auto const id_tokens = var_decl.id_and_type.id.tokens;
 			bz_assert(id_tokens.end - id_tokens.begin <= 1);
 			if constexpr (scope == parse_scope::global)
@@ -261,7 +288,8 @@ ast::statement parse_decl_variable(
 			auto result = ast::statement(ast::make_ast_unique<ast::decl_variable>(std::move(result_decl)));
 			bz_assert(result.is<ast::decl_variable>());
 			auto &var_decl = result.get<ast::decl_variable>();
-			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
+			auto const pivot = var_decl.src_tokens.pivot >= end_token ? begin_token : var_decl.src_tokens.pivot;
+			var_decl.src_tokens = { begin_token, pivot, end_token };
 			context.add_unresolved_var_decl(var_decl);
 			return result;
 		}

@@ -1,4 +1,5 @@
 import std::libc::stdio;
+import std::libc::stdlib;
 
 @__builtin
 export function __builtin_str_length(s: str) -> usize
@@ -124,7 +125,19 @@ export consteval function __builtin_is_option_set(option: str) -> bool
 	return __builtin_is_option_set_impl(__builtin_str_begin_ptr(option), __builtin_str_end_ptr(option));
 }
 
-@__builtin @symbol_name("__bozon_builtin_panic") export function __builtin_panic();
+@__builtin
+export function __builtin_panic(message: str)
+{
+	if (__builtin_is_comptime())
+	{
+		__builtin_comptime_compile_error(message);
+	}
+	else
+	{
+		std::libc::fwrite(__builtin_str_begin_ptr(message), 1, __builtin_str_size(message), std::libc::stderr());
+		std::libc::abort();
+	}
+}
 
 @__builtin
 export function __builtin_print_stdout(s: str)

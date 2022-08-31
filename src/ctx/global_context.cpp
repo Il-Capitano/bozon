@@ -364,16 +364,12 @@ uint32_t global_context::add_module(uint32_t current_file_id, ast::identifier co
 		}
 	}();
 
-	if (file._stage == src_file::constructed)
+	if (file._stage < src_file::parsed_global_symbols)
 	{
 		if (!file.parse_global_symbols(*this))
 		{
 			return std::numeric_limits<uint32_t>::max();
 		}
-	}
-	else
-	{
-		// bz_assert(file._stage >= src_file::parsed_global_symbols);
 	}
 	return file._file_id;
 }
@@ -576,15 +572,6 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		return true;
 	}
 
-	if (!ctcli::is_option_set<ctcli::option("--stdlib-dir")>())
-	{
-		this->report_error("option '--stdlib-dir' is required");
-	}
-	else
-	{
-		import_dirs.push_front(stdlib_dir);
-	}
-
 	auto &positional_args = ctcli::positional_arguments<ctcli::options_id_t::def>;
 	if (positional_args.size() >= 2)
 	{
@@ -717,9 +704,20 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	this->_builtin_attributes = resolve::make_attribute_infos(this->_builtin_type_infos);
 	this->_builtin_functions.resize(ast::function_body::_builtin_last - ast::function_body::_builtin_first, nullptr);
 
-	auto const stdlib_dir_sv = std::string_view(stdlib_dir.data_as_char_ptr(), stdlib_dir.size());
+	if (!ctcli::is_option_set<ctcli::option("--stdlib-dir")>())
+	{
+		this->report_error("option '--stdlib-dir' is required");
+		return false;
+	}
 
-	auto const builtins_file_path = fs::path(stdlib_dir_sv) / "__builtins.bz";
+	auto const &target_triple = this->_target_machine->getTargetTriple().str();
+	auto const stdlib_dir_path = fs::path(std::string_view(stdlib_dir.data_as_char_ptr(), stdlib_dir.size()));
+	auto const common_str = bz::u8string((stdlib_dir_path / "common").generic_string().c_str());
+	auto const target_str = bz::u8string((stdlib_dir_path / target_triple).generic_string().c_str());
+	import_dirs.push_front(target_str);
+	import_dirs.push_front(common_str);
+
+	auto const builtins_file_path = stdlib_dir_path / "compiler/__builtins.bz";
 	auto &builtins_file = this->_src_files.emplace_back(
 		builtins_file_path, this->_src_files.size(), bz::vector<bz::u8string_view>{}, true
 	);
@@ -729,7 +727,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		return false;
 	}
 
-	auto const comptime_checking_file_path = fs::path(stdlib_dir_sv) / "__comptime_checking.bz";
+	auto const comptime_checking_file_path = stdlib_dir_path / "compiler/__comptime_checking.bz";
 	auto &comptime_checking_file = this->_src_files.emplace_back(
 		comptime_checking_file_path, this->_src_files.size(), bz::vector<bz::u8string_view>{}, true
 	);

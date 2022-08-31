@@ -17,23 +17,6 @@ typedef struct
 } str_slice;
 
 
-void __bozon_builtin_panic(void)
-{
-	fprintf(stderr, "panic called!\n");
-	_Exit(1);
-}
-
-FILE *__bozon_get_stdout(void)
-{
-	return stdout;
-}
-
-FILE *__bozon_get_stderr(void)
-{
-	return stderr;
-}
-
-
 int32_t __bozon_main(str_slice args);
 
 int main(int argc, char const **argv)
