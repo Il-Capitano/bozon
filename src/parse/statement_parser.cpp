@@ -1389,6 +1389,21 @@ ast::statement parse_stmt_return(
 	return ast::make_stmt_return(return_pos, std::move(expr));
 }
 
+ast::statement parse_stmt_defer(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream != end);
+	bz_assert(stream->kind == lex::token::kw_defer);
+	auto const defer_pos = stream;
+	++stream; // 'defer'
+
+	auto const deferred_expr = parse_expression(stream, end, context, precedence{});
+	context.assert_token(stream, lex::token::semi_colon);
+	return ast::make_stmt_defer(defer_pos, std::move(deferred_expr));
+}
+
 ast::statement parse_stmt_no_op(
 	lex::token_pos &stream, lex::token_pos end,
 	[[maybe_unused]] ctx::parse_context &context

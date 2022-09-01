@@ -5576,6 +5576,15 @@ static void emit_bitcode(
 
 template<abi::platform_abi abi>
 static void emit_bitcode(
+	ast::stmt_defer const &defer_stmt,
+	auto &context
+)
+{
+	context.push_destruct_operation(defer_stmt.deferred_expr);
+}
+
+template<abi::platform_abi abi>
+static void emit_bitcode(
 	ast::stmt_no_op const &,
 	auto &
 )
@@ -5695,6 +5704,7 @@ static void emit_bitcode(
 		return;
 	}
 
+	static_assert(ast::statement::variant_count == 15);
 	switch (stmt.kind())
 	{
 	case ast::statement::index<ast::stmt_while>:
@@ -5708,6 +5718,9 @@ static void emit_bitcode(
 		break;
 	case ast::statement::index<ast::stmt_return>:
 		emit_bitcode<abi>(stmt.get<ast::stmt_return>(), context);
+		break;
+	case ast::statement::index<ast::stmt_defer>:
+		emit_bitcode<abi>(stmt.get<ast::stmt_defer>(), context);
 		break;
 	case ast::statement::index<ast::stmt_no_op>:
 		emit_bitcode<abi>(stmt.get<ast::stmt_no_op>(), context);
@@ -6746,8 +6759,14 @@ static void emit_destruct_operation_impl(
 			context.pop_value_reference(prev_value);
 		}
 	}
+	else if (destruct_op.is<ast::defer_expression>())
+	{
+		bz_assert(condition == nullptr);
+		emit_bitcode<abi>(*destruct_op.get<ast::defer_expression>().expr, context, nullptr);
+	}
 	else
 	{
+		static_assert(ast::destruct_operation::variant_count == 3);
 		bz_assert(destruct_op.is_null());
 		// nothing
 	}

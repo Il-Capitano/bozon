@@ -4326,6 +4326,10 @@ void consteval_try_without_error_decl(ast::statement &stmt, ctx::parse_context &
 		[&context](ast::stmt_return &return_stmt) {
 			consteval_try_without_error(return_stmt.expr, context);
 		},
+		[&context](ast::stmt_defer &defer_stmt) {
+			bz_assert(defer_stmt.deferred_expr.is<ast::defer_expression>());
+			consteval_try_without_error(*defer_stmt.deferred_expr.get<ast::defer_expression>().expr, context);
+		},
 		[](ast::stmt_no_op &) {},
 		[](ast::stmt_static_assert &) {},
 		[&context](ast::stmt_expression &expr_stmt) {

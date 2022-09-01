@@ -237,6 +237,12 @@ static void resolve_stmt(ast::stmt_return &return_stmt, ctx::parse_context &cont
 	}
 }
 
+static void resolve_stmt(ast::stmt_defer &defer_stmt, ctx::parse_context &context)
+{
+	bz_assert(defer_stmt.deferred_expr.is<ast::defer_expression>());
+	resolve_expression(*defer_stmt.deferred_expr.get<ast::defer_expression>().expr, context);
+}
+
 static void resolve_stmt(ast::stmt_no_op &, ctx::parse_context &)
 {
 	// nothing

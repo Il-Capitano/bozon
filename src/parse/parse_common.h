@@ -351,6 +351,11 @@ ast::statement parse_stmt_return(
 	ctx::parse_context &context
 );
 
+ast::statement parse_stmt_defer(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
 ast::statement parse_stmt_no_op(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -416,6 +421,7 @@ constexpr bz::array statement_parsers = {
 	statement_parser{ lex::token::kw_while,         statement_parser::local, &parse_stmt_while,                                 },
 	statement_parser{ lex::token::kw_for,           statement_parser::local, &parse_stmt_for_or_foreach,                        },
 	statement_parser{ lex::token::kw_return,        statement_parser::local, &parse_stmt_return,                                },
+	statement_parser{ lex::token::kw_defer,         statement_parser::local, &parse_stmt_defer,                                 },
 	statement_parser{ lex::token::semi_colon,       statement_parser::local, &parse_stmt_no_op,                                 },
 	statement_parser{ lex::token::kw_export,        statement_parser::local, &parse_local_export_statement,                     },
 };

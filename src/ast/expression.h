@@ -166,7 +166,20 @@ struct destruct_self
 	destruct_self &operator = (destruct_self &&other) = default;
 };
 
-using destruct_operation = bz::variant<destruct_variable, destruct_self>;
+struct defer_expression
+{
+	ast_unique_ptr<expression> expr;
+
+	defer_expression(expression _expr);
+
+	defer_expression(defer_expression const &other);
+	defer_expression(defer_expression &&other) = default;
+
+	defer_expression &operator = (defer_expression const &other);
+	defer_expression &operator = (defer_expression &&other) = default;
+};
+
+using destruct_operation = bz::variant<destruct_variable, destruct_self, defer_expression>;
 
 
 enum class expression_type_kind

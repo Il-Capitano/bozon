@@ -290,6 +290,7 @@ constexpr auto token_info = []() {
 	result[lex::token::kw_while]         = { lex::token::kw_while,         "while",         "", keyword_flags                   };
 	result[lex::token::kw_for]           = { lex::token::kw_for,           "for",           "", keyword_flags                   };
 	result[lex::token::kw_return]        = { lex::token::kw_return,        "return",        "", keyword_flags                   };
+	result[lex::token::kw_defer]         = { lex::token::kw_defer,         "defer",         "", keyword_flags                   };
 	result[lex::token::kw_function]      = { lex::token::kw_function,      "function",      "", keyword_flags                   };
 	result[lex::token::kw_operator]      = { lex::token::kw_operator,      "operator",      "", keyword_flags                   };
 	result[lex::token::kw_class]         = { lex::token::kw_class,         "class",         "", keyword_flags                   };

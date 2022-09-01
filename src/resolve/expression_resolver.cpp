@@ -236,6 +236,9 @@ static bool is_statement_noreturn(ast::statement const &stmt)
 		[](ast::stmt_return const &) {
 			return true;
 		},
+		[](ast::stmt_defer const &) {
+			return false;
+		},
 		[](ast::stmt_no_op const &) {
 			return false;
 		},

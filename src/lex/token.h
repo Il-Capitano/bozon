@@ -102,6 +102,7 @@ struct token
 		kw_while,            // while
 		kw_for,              // for
 		kw_return,           // return
+		kw_defer,            // defer
 		kw_function,         // function
 		kw_operator,         // operator
 		kw_class,            // class

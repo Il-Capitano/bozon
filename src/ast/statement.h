@@ -135,6 +135,16 @@ struct stmt_return
 	{}
 };
 
+struct stmt_defer
+{
+	lex::token_pos defer_pos;
+	destruct_operation deferred_expr;
+
+	stmt_defer(lex::token_pos _defer_pos, expression _expr)
+		: defer_pos(_defer_pos), deferred_expr(defer_expression(std::move(_expr)))
+	{}
+};
+
 struct stmt_no_op
 {
 };
@@ -1419,6 +1429,7 @@ def_make_fn(statement, stmt_while)
 def_make_fn(statement, stmt_for)
 def_make_fn(statement, stmt_foreach)
 def_make_fn(statement, stmt_return)
+def_make_fn(statement, stmt_defer)
 def_make_fn(statement, stmt_no_op)
 def_make_fn(statement, stmt_expression)
 def_make_fn(statement, stmt_static_assert)

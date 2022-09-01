@@ -56,6 +56,32 @@ destruct_self &destruct_self::operator = (destruct_self const &other)
 	return *this;
 }
 
+defer_expression::defer_expression(expression _expr)
+	: expr(make_ast_unique<expression>(std::move(_expr)))
+{}
+
+defer_expression::defer_expression(defer_expression const &other)
+	: expr(make_ast_unique<expression>(*other.expr))
+{}
+
+defer_expression &defer_expression::operator = (defer_expression const &other)
+{
+	if (this == &other)
+	{
+		return *this;
+	}
+
+	if (this->expr == nullptr)
+	{
+		this->expr = make_ast_unique<expression>(*other.expr);
+	}
+	else
+	{
+		*this->expr = *other.expr;
+	}
+	return *this;
+}
+
 void expression::to_error(void)
 {
 	if (this->is<constant_expression>())
