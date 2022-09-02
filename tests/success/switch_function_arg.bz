@@ -1,0 +1,17 @@
+function foo(#const val)
+{
+}
+
+function bar(i: int32)
+{
+	foo(switch (i) {
+		0 => [ 0, 0.0, "zero" ],
+		1 => [ 1, 1.0, "one" ],
+		else => unreachable,
+	});
+}
+
+function baz()
+{
+	(consteval bar(0));
+}

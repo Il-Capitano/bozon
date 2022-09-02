@@ -4830,7 +4830,10 @@ static val_ptr emit_bitcode(
 		auto const prev_info = context.push_expression_scope();
 		auto const default_val = emit_bitcode<abi>(switch_expr.default_case, context, result_address);
 		context.pop_expression_scope(prev_info);
-		case_result_vals.push_back({ context.builder.GetInsertBlock(), default_val });
+		if (!context.has_terminator())
+		{
+			case_result_vals.push_back({ context.builder.GetInsertBlock(), default_val });
+		}
 	}
 	for (auto const &[case_vals, case_expr] : switch_expr.cases)
 	{
@@ -4848,16 +4851,19 @@ static val_ptr emit_bitcode(
 		auto const prev_info = context.push_expression_scope();
 		auto const case_val = emit_bitcode<abi>(case_expr, context, result_address);
 		context.pop_expression_scope(prev_info);
-		case_result_vals.push_back({ context.builder.GetInsertBlock(), case_val });
+		if (!context.has_terminator())
+		{
+			case_result_vals.push_back({ context.builder.GetInsertBlock(), case_val });
+		}
 	}
 	auto const end_bb = has_default ? context.add_basic_block("switch_end") : default_bb;
 	auto const has_value = case_result_vals.is_all([&](auto const &pair) {
-		return context.has_terminator(pair.first) || pair.second.val != nullptr || pair.second.consteval_val != nullptr;
+		return pair.second.val != nullptr || pair.second.consteval_val != nullptr;
 	});
 	if (result_address == nullptr && has_default && has_value)
 	{
 		auto const is_all_ref = case_result_vals.is_all([&](auto const &pair) {
-			return context.has_terminator(pair.first) || (pair.second.val != nullptr && pair.second.kind == val_ptr::reference);
+			return pair.second.val != nullptr && pair.second.kind == val_ptr::reference;
 		});
 		context.builder.SetInsertPoint(end_bb);
 		bz_assert(case_result_vals.not_empty());
@@ -4994,6 +5000,15 @@ static val_ptr emit_bitcode(
 	if constexpr (is_comptime<decltype(context)>)
 	{
 		emit_error(src_tokens, "'unreachable' hit in compile time execution", context);
+		auto const return_type = context.current_function.second->getReturnType();
+		if (return_type->isVoidTy())
+		{
+			context.builder.CreateRetVoid();
+		}
+		else
+		{
+			context.builder.CreateRet(llvm::UndefValue::get(return_type));
+		}
 		return val_ptr::get_none();
 	}
 	else
