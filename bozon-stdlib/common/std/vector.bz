@@ -1,4 +1,5 @@
 import utils;
+import bit;
 import meta::comptime;
 import format;
 
@@ -71,11 +72,7 @@ export struct vector<T: typename>
 		return self;
 	}
 
-	operator = (self: &_self_t, other: _self_t) -> &_self_t
-	{
-		self.swap(other);
-		return self;
-	}
+	operator = (self: &_self_t, other: _self_t) = __default__;
 
 	function size(self: #const _self_t) -> usize
 	{
@@ -237,24 +234,18 @@ function copy_range(begin: *auto, end: *auto, other_begin: *const auto)
 
 function round_to_next_power_of_two(n: usize) -> usize
 {
-	// https://stackoverflow.com/a/466242/11488457
-	static_assert(sizeof usize == 8u);
-	n -= 1u;
-	n |= n >>  1;
-	n |= n >>  2;
-	n |= n >>  4;
-	n |= n >>  8;
-	n |= n >> 16;
-	n |= n >> 32;
-	n += 1u;
-	return n;
+	return if (n <= 1) {
+		1
+	} else {
+		1uz << (sizeof usize * 8 - clz(n - 1))
+	};
 }
 
 function rounded_alloc(T: typename, n: usize) -> [*T, usize]
 {
-	if (n == 0u)
+	if (n == 0)
 	{
-		return [ null, 0u ];
+		return [ null, 0 ];
 	}
 	else
 	{
