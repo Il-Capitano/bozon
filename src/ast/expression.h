@@ -323,6 +323,12 @@ struct expression : bz::variant<
 		);
 	}
 
+	expression(expression const &other) = default;
+	expression(expression &&other) = default;
+
+	expression &operator = (expression const &other) = default;
+	expression &operator = (expression &&other) = default;
+
 	lex::token_pos get_tokens_begin(void) const { return this->src_tokens.begin; }
 	lex::token_pos get_tokens_pivot(void) const { return this->src_tokens.pivot; }
 	lex::token_pos get_tokens_end(void) const   { return this->src_tokens.end; }
