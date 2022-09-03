@@ -1533,7 +1533,11 @@ static bool resolve_function_return_type_helper(ast::function_body &func_body, c
 			);
 			return false;
 		}
-		return !func_body.return_type.is_empty();
+		if (func_body.return_type.is_empty())
+		{
+			func_body.return_type = ast::make_void_typespec(nullptr);
+		}
+		return true;
 	}
 	else if (func_body.is_constructor())
 	{
@@ -2232,6 +2236,11 @@ static void add_default_constructors(ast::type_info &info, ctx::parse_context &c
 	if (info.destructor != nullptr && info.destructor->body.is_defaulted())
 	{
 		info.destructor = nullptr;
+	}
+
+	if (info.move_destructor != nullptr && info.move_destructor->body.is_defaulted())
+	{
+		info.move_destructor = nullptr;
 	}
 }
 
