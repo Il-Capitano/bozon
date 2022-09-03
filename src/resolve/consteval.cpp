@@ -3,8 +3,6 @@
 #include "global_data.h"
 #include "resolve/match_expression.h"
 
-#include "ctx/global_context.h"
-
 namespace resolve
 {
 

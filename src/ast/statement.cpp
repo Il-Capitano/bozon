@@ -1,6 +1,5 @@
 #include "statement.h"
 #include "token_info.h"
-#include "ctx/global_context.h"
 
 namespace ast
 {

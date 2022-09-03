@@ -4,8 +4,6 @@
 #include "consteval.h"
 #include "type_match_generic.h"
 
-#include "ctx/global_context.h"
-
 namespace resolve
 {
 

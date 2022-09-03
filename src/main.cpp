@@ -1,42 +1,6 @@
 /*
 
 
-- rvalue function parameters that are passed as move references
-- constant expressions?
-- dynamic expression results (if result_address == nullptr)
-- variables
-- function parameters
-
-
-TODO:
-	- user-defined type implementation
-
-match_expression_to_type:
-()(if) -> match_if
-()(switch) -> match_switch
-(typename)(typename) -> strict_type_match
-(&mut)(&mut) -> strict
-(&const)(&const) -> strict_prop_const
-(&const)(&mut) -> strict_prop_const
-(#const)()
-(#const)(&mut)
-(#const)(&const)
-(#mut)()
-(#mut)(&mut)
-(##)()
-(##)(&mut)
-(##)(&const)
-(*mut)(*mut) -> strict
-(*const)(*const) -> strict_prop_const
-(*const)(*mut) -> strict_prop_const
-()() -> non-strict
-
-strict:
-(T)(T)
-(auto)(T)
-
-
-
 {
 	let v: vector = { 1.0, 2.5, -0.9 };
 	let w = std::move(v);
@@ -50,21 +14,9 @@ strict:
 	}
 } // move d-tor or regular d-tor ??
 
-set a flag in a register?
+set a flag in a register?   <--- (this is what I went with)
 have different stack unwind labels?
 maybe it could only be used when the compiler decides to?
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
