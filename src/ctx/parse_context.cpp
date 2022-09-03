@@ -5767,6 +5767,8 @@ ast::expression parse_context::make_move_construction(ast::expression expr)
 		auto const decl = expr.get_expr().get<ast::expr_unary_op>().expr.get_expr().get<ast::expr_identifier>().decl;
 		this->register_move(expr.src_tokens, decl);
 		this->add_self_move_destruction(expr);
+		bz_assert(expr.is_dynamic());
+		expr.get_dynamic().destruct_op.move_destructed_decl = decl;
 	}
 
 	if (ast::is_trivially_relocatable(type))

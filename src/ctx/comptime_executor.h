@@ -268,7 +268,11 @@ struct comptime_executor_context
 	[[nodiscard]] llvm::Value *push_destruct_condition(llvm::Value *condition);
 	void pop_destruct_condition(llvm::Value *prev_condition);
 
+	llvm::Value *add_move_destruct_indicator(ast::decl_variable const *decl);
+	llvm::Value *get_move_destruct_indicator(ast::decl_variable const *decl) const;
+
 	void push_destruct_operation(ast::destruct_operation const &destruct_op);
+	void push_variable_destruct_operation(ast::destruct_operation const &destruct_op, llvm::Value *move_destruct_indicator = nullptr);
 	void push_self_destruct_operation(ast::destruct_operation const &destruct_op, llvm::Value *ptr, llvm::Type *type);
 	void emit_destruct_operations(void);
 	void emit_loop_destruct_operations(void);
@@ -333,6 +337,7 @@ struct comptime_executor_context
 	parse_context *current_parse_ctx = nullptr;
 	llvm::Module *current_module = nullptr;
 
+	std::unordered_map<ast::decl_variable const *, llvm::Value *> move_destruct_indicators{};
 	std::unordered_map<ast::decl_variable const *, bc::value_and_type_pair> vars_{};
 	std::unordered_map<ast::decl_variable const *, variable_definition_and_declaration_pair> global_vars_{};
 	std::unordered_map<ast::type_info     const *, llvm::Type *> types_{};
@@ -348,6 +353,7 @@ struct comptime_executor_context
 		llvm::Value *ptr;
 		llvm::Type *type;
 		llvm::Value *condition;
+		llvm::Value *move_destruct_indicator;
 	};
 
 	struct end_lifetime_info_t

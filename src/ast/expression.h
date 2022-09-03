@@ -179,7 +179,13 @@ struct defer_expression
 	defer_expression &operator = (defer_expression &&other) = default;
 };
 
-using destruct_operation = bz::variant<destruct_variable, destruct_self, defer_expression>;
+struct destruct_operation : bz::variant<destruct_variable, destruct_self, defer_expression>
+{
+	using base_t = bz::variant<destruct_variable, destruct_self, defer_expression>;
+	using base_t::variant;
+
+	ast::decl_variable const *move_destructed_decl = nullptr;
+};
 
 
 enum class expression_type_kind

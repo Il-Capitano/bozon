@@ -5293,7 +5293,7 @@ static val_ptr emit_bitcode(
 	auto const result = dyn_expr.expr.visit([&](auto const &expr) {
 		return emit_bitcode<abi>(src_tokens, expr, context, result_address);
 	});
-	if (dyn_expr.destruct_op.not_null())
+	if (dyn_expr.destruct_op.not_null() || dyn_expr.destruct_op.move_destructed_decl != nullptr)
 	{
 		bz_assert(result.kind == val_ptr::reference);
 		context.push_self_destruct_operation(dyn_expr.destruct_op, result.val, result.get_type());
@@ -5636,7 +5636,15 @@ static void add_variable_helper(
 		else
 		{
 			context.add_variable(&var_decl, ptr, type);
-			context.push_destruct_operation(var_decl.destruction);
+			if (var_decl.is_ever_moved() && var_decl.destruction.not_null())
+			{
+				auto const indicator = context.add_move_destruct_indicator(&var_decl);
+				context.push_variable_destruct_operation(var_decl.destruction, indicator);
+			}
+			else
+			{
+				context.push_variable_destruct_operation(var_decl.destruction);
+			}
 		}
 	}
 	else
@@ -5686,7 +5694,7 @@ static void emit_bitcode(
 		if (var_decl.tuple_decls.empty())
 		{
 			context.add_variable(&var_decl, init_val.val, init_val.get_type());
-			context.push_destruct_operation(var_decl.destruction);
+			bz_assert(var_decl.destruction.is_null());
 		}
 		else
 		{
@@ -6093,7 +6101,7 @@ static void emit_function_bitcode_impl(
 				{
 					auto const type = ast::remove_lvalue_or_move_reference(p.get_type());
 					context.add_variable(&p, fn_it, get_llvm_type(type, context));
-					context.push_destruct_operation(p.destruction);
+					bz_assert(p.destruction.is_null());
 				}
 				else
 				{
@@ -6280,7 +6288,7 @@ static void emit_function_bitcode_impl(
 				{
 					auto const type = ast::remove_lvalue_or_move_reference(p.get_type());
 					context.add_variable(&p, fn_it, get_llvm_type(type, context));
-					context.push_destruct_operation(p.destruction);
+					bz_assert(p.destruction.is_null());
 				}
 				else
 				{
@@ -6739,13 +6747,31 @@ static void emit_destruct_operation_impl(
 	ast::destruct_operation const &destruct_op,
 	val_ptr value,
 	llvm::Value *condition,
+	llvm::Value *move_destruct_indicator,
 	auto &context
 )
 {
 	if (destruct_op.is<ast::destruct_variable>())
 	{
-		bz_assert(condition == nullptr);
-		emit_bitcode<abi>(*destruct_op.get<ast::destruct_variable>().destruct_call, context, nullptr);
+		bz_assert(destruct_op.get<ast::destruct_variable>().destruct_call->not_null());
+		if (condition != nullptr)
+		{
+			bz_assert(condition->getType()->isPointerTy());
+			auto const destruct_bb = context.add_basic_block("conditional_destruct");
+			auto const end_bb = context.add_basic_block("conditional_destruct_end");
+			auto const condition_val = context.create_load(context.get_bool_t(), condition);
+			context.builder.CreateCondBr(condition_val, destruct_bb, end_bb);
+
+			context.builder.SetInsertPoint(destruct_bb);
+			emit_bitcode<abi>(*destruct_op.get<ast::destruct_variable>().destruct_call, context, nullptr);
+			context.builder.CreateBr(end_bb);
+
+			context.builder.SetInsertPoint(end_bb);
+		}
+		else
+		{
+			emit_bitcode<abi>(*destruct_op.get<ast::destruct_variable>().destruct_call, context, nullptr);
+		}
 	}
 	else if (destruct_op.is<ast::destruct_self>())
 	{
@@ -6785,11 +6811,17 @@ static void emit_destruct_operation_impl(
 		bz_assert(destruct_op.is_null());
 		// nothing
 	}
+
+	if (move_destruct_indicator != nullptr)
+	{
+		context.builder.CreateStore(llvm::ConstantInt::getFalse(context.get_llvm_context()), move_destruct_indicator);
+	}
 }
 
 void emit_destruct_operation(
 	ast::destruct_operation const &destruct_op,
 	llvm::Value *condition,
+	llvm::Value *move_destruct_indicator,
 	ctx::bitcode_context &context
 )
 {
@@ -6797,13 +6829,31 @@ void emit_destruct_operation(
 	switch (abi)
 	{
 	case abi::platform_abi::generic:
-		emit_destruct_operation_impl<abi::platform_abi::generic>(destruct_op, val_ptr::get_none(), condition, context);
+		emit_destruct_operation_impl<abi::platform_abi::generic>(
+			destruct_op,
+			val_ptr::get_none(),
+			condition,
+			move_destruct_indicator,
+			context
+		);
 		return;
 	case abi::platform_abi::microsoft_x64:
-		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(destruct_op, val_ptr::get_none(), condition, context);
+		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(
+			destruct_op,
+			val_ptr::get_none(),
+			condition,
+			move_destruct_indicator,
+			context
+		);
 		return;
 	case abi::platform_abi::systemv_amd64:
-		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(destruct_op, val_ptr::get_none(), condition, context);
+		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(
+			destruct_op,
+			val_ptr::get_none(),
+			condition,
+			move_destruct_indicator,
+			context
+		);
 		return;
 	}
 	bz_unreachable;
@@ -6812,6 +6862,7 @@ void emit_destruct_operation(
 void emit_destruct_operation(
 	ast::destruct_operation const &destruct_op,
 	llvm::Value *condition,
+	llvm::Value *move_destruct_indicator,
 	ctx::comptime_executor_context &context
 )
 {
@@ -6819,13 +6870,31 @@ void emit_destruct_operation(
 	switch (abi)
 	{
 	case abi::platform_abi::generic:
-		emit_destruct_operation_impl<abi::platform_abi::generic>(destruct_op, val_ptr::get_none(), condition, context);
+		emit_destruct_operation_impl<abi::platform_abi::generic>(
+			destruct_op,
+			val_ptr::get_none(),
+			condition,
+			move_destruct_indicator,
+			context
+		);
 		return;
 	case abi::platform_abi::microsoft_x64:
-		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(destruct_op, val_ptr::get_none(), condition, context);
+		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(
+			destruct_op,
+			val_ptr::get_none(),
+			condition,
+			move_destruct_indicator,
+			context
+		);
 		return;
 	case abi::platform_abi::systemv_amd64:
-		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(destruct_op, val_ptr::get_none(), condition, context);
+		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(
+			destruct_op,
+			val_ptr::get_none(),
+			condition,
+			move_destruct_indicator,
+			context
+		);
 		return;
 	}
 	bz_unreachable;
@@ -6835,6 +6904,7 @@ void emit_destruct_operation(
 	ast::destruct_operation const &destruct_op,
 	val_ptr value,
 	llvm::Value *condition,
+	llvm::Value *move_destruct_indicator,
 	ctx::bitcode_context &context
 )
 {
@@ -6842,13 +6912,31 @@ void emit_destruct_operation(
 	switch (abi)
 	{
 	case abi::platform_abi::generic:
-		emit_destruct_operation_impl<abi::platform_abi::generic>(destruct_op, value, condition, context);
+		emit_destruct_operation_impl<abi::platform_abi::generic>(
+			destruct_op,
+			value,
+			condition,
+			move_destruct_indicator,
+			context
+		);
 		return;
 	case abi::platform_abi::microsoft_x64:
-		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(destruct_op, value, condition, context);
+		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(
+			destruct_op,
+			value,
+			condition,
+			move_destruct_indicator,
+			context
+		);
 		return;
 	case abi::platform_abi::systemv_amd64:
-		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(destruct_op, value, condition, context);
+		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(
+			destruct_op,
+			value,
+			condition,
+			move_destruct_indicator,
+			context
+		);
 		return;
 	}
 	bz_unreachable;
@@ -6858,6 +6946,7 @@ void emit_destruct_operation(
 	ast::destruct_operation const &destruct_op,
 	val_ptr value,
 	llvm::Value *condition,
+	llvm::Value *move_destruct_indicator,
 	ctx::comptime_executor_context &context
 )
 {
@@ -6865,13 +6954,31 @@ void emit_destruct_operation(
 	switch (abi)
 	{
 	case abi::platform_abi::generic:
-		emit_destruct_operation_impl<abi::platform_abi::generic>(destruct_op, value, condition, context);
+		emit_destruct_operation_impl<abi::platform_abi::generic>(
+			destruct_op,
+			value,
+			condition,
+			move_destruct_indicator,
+			context
+		);
 		return;
 	case abi::platform_abi::microsoft_x64:
-		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(destruct_op, value, condition, context);
+		emit_destruct_operation_impl<abi::platform_abi::microsoft_x64>(
+			destruct_op,
+			value,
+			condition,
+			move_destruct_indicator,
+			context
+		);
 		return;
 	case abi::platform_abi::systemv_amd64:
-		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(destruct_op, value, condition, context);
+		emit_destruct_operation_impl<abi::platform_abi::systemv_amd64>(
+			destruct_op,
+			value,
+			condition,
+			move_destruct_indicator,
+			context
+		);
 		return;
 	}
 	bz_unreachable;

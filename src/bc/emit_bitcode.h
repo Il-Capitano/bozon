@@ -20,23 +20,27 @@ void emit_necessary_functions(ctx::bitcode_context &context);
 void emit_destruct_operation(
 	ast::destruct_operation const &destruct_op,
 	llvm::Value *condition,
+	llvm::Value *move_destruct_indicator,
 	ctx::bitcode_context &context
 );
 void emit_destruct_operation(
 	ast::destruct_operation const &destruct_op,
 	llvm::Value *condition,
+	llvm::Value *move_destruct_indicator,
 	ctx::comptime_executor_context &context
 );
 void emit_destruct_operation(
 	ast::destruct_operation const &destruct_op,
 	val_ptr value,
 	llvm::Value *condition,
+	llvm::Value *move_destruct_indicator,
 	ctx::bitcode_context &context
 );
 void emit_destruct_operation(
 	ast::destruct_operation const &destruct_op,
 	val_ptr value,
 	llvm::Value *condition,
+	llvm::Value *move_destruct_indicator,
 	ctx::comptime_executor_context &context
 );
 

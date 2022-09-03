@@ -672,16 +672,59 @@ void comptime_executor_context::pop_destruct_condition(llvm::Value *prev_conditi
 	this->destruct_condition = prev_condition;
 }
 
+llvm::Value *comptime_executor_context::add_move_destruct_indicator(ast::decl_variable const *decl)
+{
+	auto const indicator = this->create_alloca_without_lifetime_start(this->get_bool_t());
+	[[maybe_unused]] auto const [it, inserted] = this->move_destruct_indicators.insert({ decl, indicator });
+	bz_assert(inserted);
+	this->builder.CreateStore(llvm::ConstantInt::getTrue(this->get_llvm_context()), indicator);
+	return indicator;
+}
+
+llvm::Value *comptime_executor_context::get_move_destruct_indicator(ast::decl_variable const *decl) const
+{
+	if (decl == nullptr)
+	{
+		return nullptr;
+	}
+
+	auto const it = this->move_destruct_indicators.find(decl);
+	if (it == this->move_destruct_indicators.end())
+	{
+		return nullptr;
+	}
+
+	return it->second;
+}
+
 void comptime_executor_context::push_destruct_operation(ast::destruct_operation const &destruct_op)
 {
 	bz_assert(this->destructor_calls.not_empty());
+	auto const move_destruct_indicator = this->get_move_destruct_indicator(destruct_op.move_destructed_decl);
+	if (move_destruct_indicator != nullptr || destruct_op.not_null())
+	{
+		this->destructor_calls.back().push_back({
+			.destruct_op = &destruct_op,
+			.ptr         = nullptr,
+			.type        = nullptr,
+			.condition   = this->destruct_condition,
+			.move_destruct_indicator = move_destruct_indicator,
+		});
+	}
+}
+
+void comptime_executor_context::push_variable_destruct_operation(ast::destruct_operation const &destruct_op, llvm::Value *move_destruct_indicator)
+{
+	bz_assert(this->destructor_calls.not_empty());
+	bz_assert(this->destruct_condition == nullptr);
 	if (destruct_op.not_null())
 	{
 		this->destructor_calls.back().push_back({
 			.destruct_op = &destruct_op,
 			.ptr         = nullptr,
 			.type        = nullptr,
-			.condition   = this->destruct_condition
+			.condition   = move_destruct_indicator,
+			.move_destruct_indicator = nullptr,
 		});
 	}
 }
@@ -689,13 +732,15 @@ void comptime_executor_context::push_destruct_operation(ast::destruct_operation 
 void comptime_executor_context::push_self_destruct_operation(ast::destruct_operation const &destruct_op, llvm::Value *ptr, llvm::Type *type)
 {
 	bz_assert(this->destructor_calls.not_empty());
-	if (destruct_op.not_null())
+	auto const move_destruct_indicator = this->get_move_destruct_indicator(destruct_op.move_destructed_decl);
+	if (move_destruct_indicator != nullptr || destruct_op.not_null())
 	{
 		this->destructor_calls.back().push_back({
 			.destruct_op = &destruct_op,
 			.ptr         = ptr,
 			.type        = type,
-			.condition   = this->destruct_condition
+			.condition   = this->destruct_condition,
+			.move_destruct_indicator = move_destruct_indicator,
 		});
 	}
 }
@@ -704,15 +749,15 @@ void comptime_executor_context::emit_destruct_operations(void)
 {
 	bz_assert(!this->has_terminator());
 	bz_assert(this->destructor_calls.not_empty());
-	for (auto const &[destruct_op, ptr, type, condition] : this->destructor_calls.back().reversed())
+	for (auto const &[destruct_op, ptr, type, condition, move_destruct_indicator] : this->destructor_calls.back().reversed())
 	{
 		if (ptr == nullptr)
 		{
-			bc::emit_destruct_operation(*destruct_op, condition, *this);
+			bc::emit_destruct_operation(*destruct_op, condition, move_destruct_indicator, *this);
 		}
 		else
 		{
-			bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), condition, *this);
+			bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), condition, move_destruct_indicator, *this);
 		}
 	}
 }
@@ -723,15 +768,15 @@ void comptime_executor_context::emit_loop_destruct_operations(void)
 	bz_assert(this->destructor_calls.not_empty());
 	for (auto const &calls : this->destructor_calls.slice(this->loop_info.destructor_stack_begin).reversed())
 	{
-		for (auto const &[destruct_op, ptr, type, condition] : calls.reversed())
+		for (auto const &[destruct_op, ptr, type, condition, move_destruct_indicator] : calls.reversed())
 		{
 			if (ptr == nullptr)
 			{
-				bc::emit_destruct_operation(*destruct_op, condition, *this);
+				bc::emit_destruct_operation(*destruct_op, condition, move_destruct_indicator, *this);
 			}
 			else
 			{
-				bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), condition, *this);
+				bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), condition, move_destruct_indicator, *this);
 			}
 		}
 	}
@@ -743,15 +788,15 @@ void comptime_executor_context::emit_all_destruct_operations(void)
 	bz_assert(this->destructor_calls.not_empty());
 	for (auto const &calls : this->destructor_calls.reversed())
 	{
-		for (auto const &[destruct_op, ptr, type, condition] : calls.reversed())
+		for (auto const &[destruct_op, ptr, type, condition, move_destruct_indicator] : calls.reversed())
 		{
 			if (ptr == nullptr)
 			{
-				bc::emit_destruct_operation(*destruct_op, condition, *this);
+				bc::emit_destruct_operation(*destruct_op, condition, move_destruct_indicator, *this);
 			}
 			else
 			{
-				bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), condition, *this);
+				bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), condition, move_destruct_indicator, *this);
 			}
 		}
 	}

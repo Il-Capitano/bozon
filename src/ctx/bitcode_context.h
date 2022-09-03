@@ -141,7 +141,11 @@ struct bitcode_context
 	[[nodiscard]] llvm::Value *push_destruct_condition(llvm::Value *condition);
 	void pop_destruct_condition(llvm::Value *prev_condition);
 
+	llvm::Value *add_move_destruct_indicator(ast::decl_variable const *decl);
+	llvm::Value *get_move_destruct_indicator(ast::decl_variable const *decl) const;
+
 	void push_destruct_operation(ast::destruct_operation const &destruct_op);
+	void push_variable_destruct_operation(ast::destruct_operation const &destruct_op, llvm::Value *move_destruct_indicator = nullptr);
 	void push_self_destruct_operation(ast::destruct_operation const &destruct_op, llvm::Value *ptr, llvm::Type *type);
 	void emit_destruct_operations(void);
 	void emit_loop_destruct_operations(void);
@@ -181,6 +185,7 @@ struct bitcode_context
 	global_context &global_ctx;
 	llvm::Module *module;
 
+	std::unordered_map<ast::decl_variable const *, llvm::Value *> move_destruct_indicators{};
 	std::unordered_map<ast::decl_variable const *, bc::value_and_type_pair> vars_{};
 	std::unordered_map<ast::type_info     const *, llvm::Type     *> types_{};
 	std::unordered_map<ast::function_body const *, llvm::Function *> funcs_{};
@@ -193,6 +198,7 @@ struct bitcode_context
 		llvm::Value *ptr;
 		llvm::Type *type;
 		llvm::Value *condition;
+		llvm::Value *move_destruct_indicator;
 	};
 
 	struct end_lifetime_info_t
