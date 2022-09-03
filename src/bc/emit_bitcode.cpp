@@ -5517,7 +5517,7 @@ static void emit_bitcode(
 	{
 		context.emit_all_destruct_operations();
 		context.emit_all_end_lifetime_calls();
-		if (context.current_function.first->is_main())
+		if (!is_comptime<decltype(context)> && context.current_function.first->is_main())
 		{
 			context.builder.CreateRet(llvm::ConstantInt::get(context.get_int32_t(), 0));
 		}
@@ -5797,7 +5797,7 @@ static llvm::Function *create_function_from_symbol_impl(
 	{
 		args.push_back(llvm::PointerType::get(result_t, 0));
 	}
-	if (func_body.is_main())
+	if (!is_comptime<decltype(context)> && func_body.is_main())
 	{
 		auto const str_slice = context.get_slice_t(context.get_str_t());
 		// str_slice is known to be not non_trivial
@@ -5903,7 +5903,7 @@ static llvm::Function *create_function_from_symbol_impl(
 
 	auto const func_t = [&]() {
 		llvm::Type *real_result_t;
-		if (func_body.is_main())
+		if (!is_comptime<decltype(context)> && func_body.is_main())
 		{
 			real_result_t = context.get_int32_t();
 		}
@@ -6169,7 +6169,7 @@ static void emit_function_bitcode_impl(
 
 	if (!context.has_terminator())
 	{
-		if (context.current_function.first->is_main())
+		if (!is_comptime<decltype(context)> && context.current_function.first->is_main())
 		{
 			context.builder.CreateRet(llvm::ConstantInt::get(context.get_int32_t(), 0));
 		}
@@ -6357,7 +6357,7 @@ static void emit_function_bitcode_impl(
 
 	if (!context.has_terminator())
 	{
-		if (context.current_function.first->is_main())
+		if (!is_comptime<decltype(context)> && context.current_function.first->is_main())
 		{
 			context.builder.CreateRet(llvm::ConstantInt::get(context.get_int32_t(), 0));
 		}
