@@ -86,7 +86,14 @@ bz::u8string function_body::get_symbol_name(void) const
 {
 	if (this->is_destructor())
 	{
-		return bz::format("dtor.{}", ast::type_info::decode_symbol_name(this->get_destructor_of()->symbol_name));
+		if (this->params[0].get_type().is<ast::ts_move_reference>())
+		{
+			return bz::format("move_dtor.{}", ast::type_info::decode_symbol_name(this->get_destructor_of()->symbol_name));
+		}
+		else
+		{
+			return bz::format("dtor.{}", ast::type_info::decode_symbol_name(this->get_destructor_of()->symbol_name));
+		}
 	}
 	else if (this->is_constructor())
 	{
