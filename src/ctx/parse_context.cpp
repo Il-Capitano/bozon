@@ -3543,11 +3543,13 @@ static ast::expression make_expr_function_call_from_body(
 	{
 		bz_assert(args.size() == 1);
 		auto const [expr_type, expr_type_kind] = args[0].get_expr_type_and_kind();
+		bz_assert(expr_type_kind == ast::expression_type_kind::lvalue_reference);
 		auto destruct_call = make_destruct_expression(
 			expr_type,
 			ast::make_dynamic_expression(
 				src_tokens,
-				expr_type_kind, expr_type,
+				ast::expression_type_kind::lvalue_reference,
+				expr_type,
 				ast::make_expr_bitcode_value_reference(),
 				ast::destruct_operation()
 			),
@@ -5843,7 +5845,7 @@ static ast::expression make_tuple_assignment(
 	auto const [rhs_type_with_const, rhs_expr_type_kind] = rhs.get_expr_type_and_kind();
 	auto const rhs_elem_expr_type_kind = rhs_expr_type_kind == ast::expression_type_kind::lvalue_reference
 		? ast::expression_type_kind::lvalue_reference
-		: ast::expression_type_kind::rvalue;
+		: ast::expression_type_kind::rvalue_reference;
 	auto assign_exprs = bz::iota(0, lhs_tuple_type.types.size())
 		.transform([&, &rhs_type_with_const = rhs_type_with_const](auto const i) {
 			ast::typespec lhs_elem_type = lhs_tuple_type.types[i];
@@ -5916,7 +5918,7 @@ static ast::expression make_array_assignment(
 	auto const [rhs_type_with_const, rhs_expr_type_kind] = rhs.get_expr_type_and_kind();
 	auto const rhs_elem_expr_type_kind = rhs_expr_type_kind == ast::expression_type_kind::lvalue_reference
 		? ast::expression_type_kind::lvalue_reference
-		: ast::expression_type_kind::rvalue;
+		: ast::expression_type_kind::rvalue_reference;
 	ast::typespec lhs_elem_type = lhs_array_type.elem_type;
 	ast::typespec rhs_elem_type = rhs_array_type.elem_type;
 
