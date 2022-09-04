@@ -2644,6 +2644,22 @@ inline match_function_result_t<kind> generic_type_match_base_case(match_context_
 	}
 }
 
+inline ast::expression_type_kind type_kind_from_type(ast::typespec_view type)
+{
+	if (type.is<ast::ts_lvalue_reference>())
+	{
+		return ast::expression_type_kind::lvalue_reference;
+	}
+	else if (type.is<ast::ts_move_reference>())
+	{
+		return ast::expression_type_kind::rvalue_reference;
+	}
+	else
+	{
+		return ast::expression_type_kind::rvalue;
+	}
+}
+
 template<type_match_function_kind kind>
 inline match_function_result_t<kind> generic_type_match(match_context_t<kind> const &match_context)
 {
@@ -2655,7 +2671,9 @@ inline match_function_result_t<kind> generic_type_match(match_context_t<kind> co
 			auto good = generic_type_match_if_expr(match_context);
 			if (good)
 			{
+				auto const type_kind = type_kind_from_type(match_context.dest_container);
 				expr.set_type(ast::remove_lvalue_or_move_reference(ast::remove_const_or_consteval(match_context.dest_container)));
+				expr.set_type_kind(type_kind);
 			}
 			return good;
 		}
@@ -2671,7 +2689,9 @@ inline match_function_result_t<kind> generic_type_match(match_context_t<kind> co
 			auto const good = generic_type_match_switch_expr(match_context);
 			if (good)
 			{
+				auto const type_kind = type_kind_from_type(match_context.dest_container);
 				expr.set_type(ast::remove_lvalue_or_move_reference(ast::remove_const_or_consteval(match_context.dest_container)));
+				expr.set_type_kind(type_kind);
 			}
 			return good;
 		}
@@ -2714,7 +2734,7 @@ inline match_function_result_t<kind> generic_type_match(match_context_t<kind> co
 				auto const src_tokens = expr.src_tokens;
 				expr = ast::make_dynamic_expression(
 					src_tokens,
-					ast::expression_type_kind::lvalue_reference,
+					ast::expression_type_kind::rvalue_reference,
 					dest.get<ast::ts_move_reference>(),
 					ast::make_expr_take_move_reference(std::move(expr)),
 					ast::destruct_operation()
@@ -2801,7 +2821,7 @@ inline match_function_result_t<kind> generic_type_match(match_context_t<kind> co
 				auto const src_tokens = expr.src_tokens;
 				expr = ast::make_dynamic_expression(
 					src_tokens,
-					ast::expression_type_kind::lvalue_reference,
+					ast::expression_type_kind::rvalue_reference,
 					dest.get<ast::ts_move_reference>(),
 					ast::make_expr_take_move_reference(std::move(expr)),
 					ast::destruct_operation()
@@ -2826,15 +2846,6 @@ inline match_function_result_t<kind> generic_type_match(match_context_t<kind> co
 
 			return true;
 		}
-		/*
-		else if constexpr (kind == type_match_function_kind::matched_type)
-		{
-			auto result = generic_type_match_base_case(match_context);
-			bz::log("{}\n", result);
-			bz_assert(ast::is_complete(result));
-			return result;
-		}
-		*/
 		else
 		{
 			return generic_type_match_base_case(match_context);
