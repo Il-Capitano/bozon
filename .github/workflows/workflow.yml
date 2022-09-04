@@ -36,6 +36,8 @@ jobs:
       run: cppb/bin/cppb build -v
     - name: Compile bitcode_test.bz
       run: cppb/bin/cppb run -v
+      run: cppb/bin/cppb run-rule a.exe
+      run: ./a.exe
     - name: Build tests
       run: cppb/bin/cppb build -v --build-config test
     - name: Run tests
@@ -78,6 +80,8 @@ jobs:
       run: cppb/bin/cppb build -v --build-config gcc
     - name: Compile bitcode_test.bz
       run: cppb/bin/cppb run -v --build-config gcc
+      run: cppb/bin/cppb run-rule a.exe
+      run: ./a.exe
     - name: Build tests
       run: cppb/bin/cppb build -v --build-config test-gcc
     - name: Run tests
@@ -113,6 +117,8 @@ jobs:
       run: cppb/bin/cppb build -v
     - name: Compile bitcode_test.bz
       run: cppb/bin/cppb run -v
+      run: cppb/bin/cppb run-rule a.out
+      run: ./a.out
     - name: Build tests
       run: cppb/bin/cppb build -v --build-config test
     - name: Run tests
@@ -150,6 +156,8 @@ jobs:
       run: cppb/bin/cppb build -v --build-config gcc
     - name: Compile bitcode_test.bz
       run: cppb/bin/cppb run -v --build-config gcc
+      run: cppb/bin/cppb run-rule a.out
+      run: ./a.out
     - name: Build tests
       run: cppb/bin/cppb build -v --build-config test-gcc
     - name: Run tests
