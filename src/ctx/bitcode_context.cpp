@@ -155,6 +155,20 @@ llvm::Value *bitcode_context::create_alloca(llvm::Type *t)
 	return result;
 }
 
+llvm::Value *bitcode_context::create_alloca(llvm::Type *t, llvm::Value *init_val)
+{
+	bz_assert(t->isSized());
+	auto const bb = this->builder.GetInsertBlock();
+	this->builder.SetInsertPoint(this->alloca_bb);
+	auto const result = this->builder.CreateAlloca(t);
+	this->builder.CreateStore(init_val, result);
+	this->builder.SetInsertPoint(bb);
+	auto const size = this->get_size(t);
+	this->start_lifetime(result, size);
+	this->push_end_lifetime_call(result, size);
+	return result;
+}
+
 llvm::Value *bitcode_context::create_alloca(llvm::Type *t, size_t align)
 {
 	bz_assert(t->isSized());
@@ -175,6 +189,17 @@ llvm::Value *bitcode_context::create_alloca_without_lifetime_start(llvm::Type *t
 	auto const bb = this->builder.GetInsertBlock();
 	this->builder.SetInsertPoint(this->alloca_bb);
 	auto const result = this->builder.CreateAlloca(t);
+	this->builder.SetInsertPoint(bb);
+	return result;
+}
+
+llvm::Value *bitcode_context::create_alloca_without_lifetime_start(llvm::Type *t, llvm::Value *init_val)
+{
+	bz_assert(t->isSized());
+	auto const bb = this->builder.GetInsertBlock();
+	this->builder.SetInsertPoint(this->alloca_bb);
+	auto const result = this->builder.CreateAlloca(t);
+	this->builder.CreateStore(init_val, result);
 	this->builder.SetInsertPoint(bb);
 	return result;
 }
@@ -466,10 +491,12 @@ void bitcode_context::pop_expression_scope(expression_scope_info_t prev_info)
 	this->destruct_condition = prev_info.destruct_condition;
 }
 
-[[nodiscard]] llvm::Value *bitcode_context::push_destruct_condition(llvm::Value *condition)
+[[nodiscard]] llvm::Value *bitcode_context::push_destruct_condition(void)
 {
 	auto const result = this->destruct_condition;
-	this->destruct_condition = condition;
+	auto const bool_t = this->get_bool_t();
+	this->destruct_condition = this->create_alloca_without_lifetime_start(bool_t, llvm::ConstantInt::getFalse(bool_t));
+	this->builder.CreateStore(llvm::ConstantInt::getTrue(bool_t), this->destruct_condition);
 	return result;
 }
 

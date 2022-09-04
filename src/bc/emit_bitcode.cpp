@@ -2114,9 +2114,6 @@ static val_ptr emit_builtin_binary_bool_and(
 	bz_assert(lhs_t.get<ast::ts_base_type>().info->kind == ast::type_info::bool_);
 	bz_assert(rhs_t.get<ast::ts_base_type>().info->kind == ast::type_info::bool_);
 
-	auto const rhs_destruct_condition = context.create_alloca_without_lifetime_start(context.get_bool_t());
-	context.builder.CreateStore(llvm::ConstantInt::getFalse(context.get_llvm_context()), rhs_destruct_condition);
-
 	// generate computation of lhs
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 	auto const lhs_bb_end = context.builder.GetInsertBlock();
@@ -2124,8 +2121,7 @@ static val_ptr emit_builtin_binary_bool_and(
 	// generate computation of rhs
 	auto const rhs_bb = context.add_basic_block("bool_and_rhs");
 	context.builder.SetInsertPoint(rhs_bb);
-	auto const prev_condition = context.push_destruct_condition(rhs_destruct_condition);
-	context.builder.CreateStore(llvm::ConstantInt::getTrue(context.get_llvm_context()), rhs_destruct_condition);
+	auto const prev_condition = context.push_destruct_condition();
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 	context.pop_destruct_condition(prev_condition);
 	auto const rhs_bb_end = context.builder.GetInsertBlock();
@@ -2205,9 +2201,6 @@ static val_ptr emit_builtin_binary_bool_or(
 	bz_assert(lhs_t.get<ast::ts_base_type>().info->kind == ast::type_info::bool_);
 	bz_assert(rhs_t.get<ast::ts_base_type>().info->kind == ast::type_info::bool_);
 
-	auto const rhs_destruct_condition = context.create_alloca_without_lifetime_start(context.get_bool_t());
-	context.builder.CreateStore(llvm::ConstantInt::getFalse(context.get_llvm_context()), rhs_destruct_condition);
-
 	// generate computation of lhs
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 	auto const lhs_bb_end = context.builder.GetInsertBlock();
@@ -2215,8 +2208,7 @@ static val_ptr emit_builtin_binary_bool_or(
 	// generate computation of rhs
 	auto const rhs_bb = context.add_basic_block("bool_or_rhs");
 	context.builder.SetInsertPoint(rhs_bb);
-	auto const prev_condition = context.push_destruct_condition(rhs_destruct_condition);
-	context.builder.CreateStore(llvm::ConstantInt::getTrue(context.get_llvm_context()), rhs_destruct_condition);
+	auto const prev_condition = context.push_destruct_condition();
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 	context.pop_destruct_condition(prev_condition);
 	auto const rhs_bb_end = context.builder.GetInsertBlock();

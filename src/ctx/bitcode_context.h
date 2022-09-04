@@ -78,8 +78,10 @@ struct bitcode_context
 
 	llvm::BasicBlock *add_basic_block(bz::u8string_view name);
 	llvm::Value *create_alloca(llvm::Type *t);
+	llvm::Value *create_alloca(llvm::Type *t, llvm::Value *init_val);
 	llvm::Value *create_alloca(llvm::Type *t, size_t align);
 	llvm::Value *create_alloca_without_lifetime_start(llvm::Type *t);
+	llvm::Value *create_alloca_without_lifetime_start(llvm::Type *t, llvm::Value *init_val);
 	llvm::Value *create_alloca_without_lifetime_start(llvm::Type *t, size_t align);
 	llvm::Value *create_string(bz::u8string_view str);
 
@@ -138,7 +140,7 @@ struct bitcode_context
 	[[nodiscard]] expression_scope_info_t push_expression_scope(void);
 	void pop_expression_scope(expression_scope_info_t prev_info);
 
-	[[nodiscard]] llvm::Value *push_destruct_condition(llvm::Value *condition);
+	[[nodiscard]] llvm::Value *push_destruct_condition(void);
 	void pop_destruct_condition(llvm::Value *prev_condition);
 
 	llvm::Value *add_move_destruct_indicator(ast::decl_variable const *decl);
