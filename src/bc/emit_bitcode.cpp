@@ -32,6 +32,66 @@ static int get_unique_id(void)
 	return i++;
 }
 
+static bool needs_result_address(ast::typespec_view type)
+{
+	type = ast::remove_const_or_consteval(type);
+	static_assert(ast::typespec_types::size() == 17);
+	switch (type.kind())
+	{
+	case ast::typespec_node_t::index_of<ast::ts_base_type>:
+	{
+		auto const type_kind = type.get<ast::ts_base_type>().info->kind;
+		switch (type_kind)
+		{
+		case ast::type_info::int8_:
+		case ast::type_info::int16_:
+		case ast::type_info::int32_:
+		case ast::type_info::int64_:
+		case ast::type_info::uint8_:
+		case ast::type_info::uint16_:
+		case ast::type_info::uint32_:
+		case ast::type_info::uint64_:
+		case ast::type_info::char_:
+		case ast::type_info::bool_:
+		case ast::type_info::float32_:
+		case ast::type_info::float64_:
+			return false;
+		case ast::type_info::str_:
+		case ast::type_info::null_t_:
+		case ast::type_info::aggregate:
+			return true;
+		default:
+			bz_unreachable;
+		}
+	}
+	case ast::typespec_node_t::index_of<ast::ts_const>:
+	case ast::typespec_node_t::index_of<ast::ts_consteval>:
+		return false;
+	case ast::typespec_node_t::index_of<ast::ts_pointer>:
+	case ast::typespec_node_t::index_of<ast::ts_function>:
+		return false;
+	case ast::typespec_node_t::index_of<ast::ts_array>:
+		return true;
+	case ast::typespec_node_t::index_of<ast::ts_array_slice>:
+		return true;
+	case ast::typespec_node_t::index_of<ast::ts_tuple>:
+		return true;
+
+	case ast::typespec_node_t::index_of<ast::ts_unresolved>:
+	case ast::typespec_node_t::index_of<ast::ts_void>:
+	case ast::typespec_node_t::index_of<ast::ts_lvalue_reference>:
+	case ast::typespec_node_t::index_of<ast::ts_move_reference>:
+	case ast::typespec_node_t::index_of<ast::ts_auto_reference>:
+	case ast::typespec_node_t::index_of<ast::ts_auto_reference_const>:
+	case ast::typespec_node_t::index_of<ast::ts_variadic>:
+	case ast::typespec_node_t::index_of<ast::ts_auto>:
+	case ast::typespec_node_t::index_of<ast::ts_typename>:
+		return false;
+	default:
+		bz_unreachable;
+	}
+}
+
 struct src_tokens_llvm_value_t
 {
 	llvm::Constant *begin;
@@ -51,74 +111,6 @@ static src_tokens_llvm_value_t get_src_tokens_llvm_value(lex::src_tokens const &
 	auto const pivot = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(&*src_tokens.pivot));
 	auto const end   = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(&*src_tokens.end));
 	return { begin, pivot, end };
-}
-
-static llvm::Value *get_constant_zero(
-	ast::typespec_view type,
-	llvm::Type *llvm_type,
-	auto &context
-)
-{
-	switch (type.kind())
-	{
-	case ast::typespec_node_t::index_of<ast::ts_base_type>:
-	{
-		auto const type_kind = type.get<ast::ts_base_type>().info->kind;
-		switch (type_kind)
-		{
-		case ast::type_info::int8_:
-		case ast::type_info::int16_:
-		case ast::type_info::int32_:
-		case ast::type_info::int64_:
-		case ast::type_info::uint8_:
-		case ast::type_info::uint16_:
-		case ast::type_info::uint32_:
-		case ast::type_info::uint64_:
-		case ast::type_info::char_:
-		case ast::type_info::bool_:
-			return llvm::ConstantInt::get(llvm_type, 0);
-		case ast::type_info::float32_:
-		case ast::type_info::float64_:
-			return llvm::ConstantFP::get(llvm_type, 0.0);
-		case ast::type_info::str_:
-		case ast::type_info::null_t_:
-		case ast::type_info::aggregate:
-			return llvm::ConstantStruct::getNullValue(llvm_type);
-		default:
-			bz_unreachable;
-		}
-	}
-	case ast::typespec_node_t::index_of<ast::ts_const>:
-		return get_constant_zero(type.get<ast::ts_const>(), llvm_type, context);
-	case ast::typespec_node_t::index_of<ast::ts_consteval>:
-		return get_constant_zero(type.get<ast::ts_consteval>(), llvm_type, context);
-	case ast::typespec_node_t::index_of<ast::ts_pointer>:
-	{
-		auto const ptr_type = llvm::dyn_cast<llvm::PointerType>(llvm_type);
-		bz_assert(ptr_type != nullptr);
-		return llvm::ConstantPointerNull::get(ptr_type);
-	}
-	case ast::typespec_node_t::index_of<ast::ts_function>:
-	{
-		auto const ptr_type = llvm::dyn_cast<llvm::PointerType>(llvm_type);
-		bz_assert(ptr_type != nullptr);
-		return llvm::ConstantPointerNull::get(ptr_type);
-	}
-	case ast::typespec_node_t::index_of<ast::ts_array>:
-		return llvm::ConstantArray::getNullValue(llvm_type);
-	case ast::typespec_node_t::index_of<ast::ts_array_slice>:
-		return llvm::ConstantStruct::getNullValue(llvm_type);
-	case ast::typespec_node_t::index_of<ast::ts_tuple>:
-		return llvm::ConstantAggregate::getNullValue(llvm_type);
-
-	case ast::typespec_node_t::index_of<ast::ts_unresolved>:
-	case ast::typespec_node_t::index_of<ast::ts_void>:
-	case ast::typespec_node_t::index_of<ast::ts_lvalue_reference>:
-	case ast::typespec_node_t::index_of<ast::ts_move_reference>:
-	case ast::typespec_node_t::index_of<ast::ts_auto>:
-	default:
-		bz_unreachable;
-	}
 }
 
 static llvm::Value *emit_get_error_count(ctx::comptime_executor_context &context)
@@ -4868,18 +4860,17 @@ static val_ptr emit_bitcode(
 		context.builder.SetInsertPoint(end_bb);
 		bz_assert(case_result_vals.not_empty());
 		auto const result_type = case_result_vals.front().second.get_type();
+		bz_assert(case_result_vals.not_empty());
+		bz_assert(!is_all_ref || case_result_vals.front().second.val != nullptr);
 		auto const phi_type = is_all_ref
-			? case_result_vals.filter([](auto const &pair) { return pair.second.val != nullptr; }).front().second.val->getType()
-			: case_result_vals.filter([](auto const &pair) { return pair.second.val != nullptr; }).front().second.get_type();
+			? case_result_vals.front().second.val->getType()
+			: case_result_vals.front().second.get_type();
 		auto const phi = context.builder.CreatePHI(phi_type, case_result_vals.size());
 		if (is_all_ref)
 		{
 			for (auto const &[bb, val] : case_result_vals)
 			{
-				if (context.has_terminator(bb))
-				{
-					continue;
-				}
+				bz_assert(!context.has_terminator(bb));
 				context.builder.SetInsertPoint(bb);
 				context.builder.CreateBr(end_bb);
 				phi->addIncoming(val.val, bb);
@@ -4889,10 +4880,7 @@ static val_ptr emit_bitcode(
 		{
 			for (auto const &[bb, val] : case_result_vals)
 			{
-				if (context.has_terminator(bb))
-				{
-					continue;
-				}
+				bz_assert(!context.has_terminator(bb));
 				context.builder.SetInsertPoint(bb);
 				phi->addIncoming(val.get_value(context.builder), bb);
 				context.builder.CreateBr(end_bb);
@@ -4908,10 +4896,7 @@ static val_ptr emit_bitcode(
 	{
 		for (auto const &[bb, _] : case_result_vals)
 		{
-			if (context.has_terminator(bb))
-			{
-				continue;
-			}
+			bz_assert(!context.has_terminator(bb));
 			context.builder.SetInsertPoint(bb);
 			context.builder.CreateBr(end_bb);
 		}
@@ -4926,10 +4911,7 @@ static val_ptr emit_bitcode(
 	{
 		for (auto const &[bb, _] : case_result_vals)
 		{
-			if (context.has_terminator(bb))
-			{
-				continue;
-			}
+			bz_assert(!context.has_terminator(bb));
 			context.builder.SetInsertPoint(bb);
 			context.builder.CreateBr(end_bb);
 		}
@@ -5251,19 +5233,10 @@ static val_ptr emit_bitcode(
 		result.kind = val_ptr::value;
 	}
 
-	if (result.val != nullptr && llvm::dyn_cast<llvm::GlobalVariable>(result.val) != nullptr)
-	{
-		// auto const const_val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
-		// result.consteval_val = const_val;
-		// bz_assert(result.type == const_val->getType());
-	}
-	else
-	{
-		auto const const_val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
-		bz_assert(const_val != nullptr);
-		result.consteval_val = const_val;
-		result.type = const_val->getType();
-	}
+	auto const const_val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
+	bz_assert(const_val != nullptr);
+	result.consteval_val = const_val;
+	result.type = const_val->getType();
 
 	if (result_address == nullptr)
 	{
@@ -5285,7 +5258,11 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	if (result_address == nullptr && dyn_expr.destruct_op.not_null() && dyn_expr.kind == ast::expression_type_kind::rvalue)
+	if (
+		result_address == nullptr
+		&& dyn_expr.kind == ast::expression_type_kind::rvalue
+		&& (dyn_expr.destruct_op.not_null() || needs_result_address(dyn_expr.type))
+	)
 	{
 		auto const result_type = get_llvm_type(dyn_expr.type, context);
 		result_address = context.create_alloca(result_type);
@@ -6244,7 +6221,7 @@ static void emit_function_bitcode_impl(
 	context.builder.SetInsertPoint(entry_bb);
 
 	bz_assert(func_body.body.is<bz::vector<ast::statement>>());
-	bz::vector<llvm::Value *> params = {};
+	ast::arena_vector<llvm::Value *> params = {};
 	params.reserve(func_body.params.size());
 
 	auto const outer_prev_info = context.push_expression_scope();
