@@ -1275,8 +1275,6 @@ inline match_function_result_t<kind> generic_type_match_tuple(match_context_t<ki
 				});
 			}
 
-			bz_assert(ast::remove_const_or_consteval(ast::remove_lvalue_or_move_reference(match_context.dest_container)).template is<ast::ts_tuple>());
-			expr.set_type(ast::remove_const_or_consteval(ast::remove_lvalue_or_move_reference(match_context.dest_container)));
 			return good;
 		}
 		else
@@ -1505,8 +1503,6 @@ inline match_function_result_t<kind> generic_type_match_tuple(match_context_t<ki
 				});
 			}
 
-			bz_assert(ast::remove_const_or_consteval(ast::remove_lvalue_or_move_reference(match_context.dest_container)).template is<ast::ts_tuple>());
-			expr.set_type(ast::remove_const_or_consteval(ast::remove_lvalue_or_move_reference(match_context.dest_container)));
 			return good;
 		}
 		else
@@ -2714,21 +2710,12 @@ inline match_function_result_t<kind> generic_type_match(match_context_t<kind> co
 				return false;
 			}
 
-			auto const expr_type_kind = expr.get_expr_type_and_kind().second;
 			ast::typespec_view const dest = match_context.dest_container;
+			expr.set_type(ast::remove_const_or_consteval(ast::remove_lvalue_or_move_reference(dest)));
+			expr.set_type_kind(ast::expression_type_kind::rvalue);
 
-			if (dest.is<ast::ts_lvalue_reference>() && expr_type_kind != ast::expression_type_kind::lvalue_reference)
-			{
-				auto const src_tokens = expr.src_tokens;
-				expr = ast::make_dynamic_expression(
-					src_tokens,
-					ast::expression_type_kind::lvalue_reference,
-					dest.get<ast::ts_lvalue_reference>(),
-					ast::make_expr_take_reference(std::move(expr)),
-					ast::destruct_operation()
-				);
-			}
-			else if (dest.is<ast::ts_move_reference>() && expr_type_kind == ast::expression_type_kind::rvalue)
+			bz_assert(!dest.is<ast::ts_lvalue_reference>());
+			if (dest.is<ast::ts_move_reference>())
 			{
 				match_context.context.add_self_destruction(expr);
 				auto const src_tokens = expr.src_tokens;
@@ -2739,22 +2726,6 @@ inline match_function_result_t<kind> generic_type_match(match_context_t<kind> co
 					ast::make_expr_take_move_reference(std::move(expr)),
 					ast::destruct_operation()
 				);
-			}
-			else if (!dest.is<ast::ts_lvalue_reference>() && !dest.is<ast::ts_move_reference>())
-			{
-				switch (expr_type_kind)
-				{
-				case ast::expression_type_kind::lvalue:
-				case ast::expression_type_kind::lvalue_reference:
-					expr = match_context.context.make_copy_construction(std::move(expr));
-					break;
-				case ast::expression_type_kind::moved_lvalue:
-					expr = match_context.context.make_move_construction(std::move(expr));
-					break;
-				default:
-					// nothing
-					break;
-				}
 			}
 
 			return true;
