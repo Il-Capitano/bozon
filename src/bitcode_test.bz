@@ -378,6 +378,9 @@ function main(args: [: const str]) -> int32
 	std::print("\n==== unique_ptr_test ====\n");
 	unique_ptr_test();
 
+	std::print("\n==== defer_test ====\n");
+	defer_test();
+
 	std::print("\n==== end main ====\n");
 	std::printf("e  = {}\n", std::e);
 	std::printf("pi = {}\n", std::pi);
@@ -481,6 +484,13 @@ function main(args: [: const str]) -> int32
 	static_assert(size == 3u);
 
 	static_assert(if (size == 3u) true else false, "hello");
+
+	consteval s = std::comptime_format("{}", switch (size) {
+		0, 1, 2 => [ 0, 0.0, "zero" ],
+		3, 4, 5 => [ 1, 1.0, "one" ],
+		else => unreachable,
+	});
+	static_assert(s == "[ 1, 1.0, one ]");
 
 	std::printf("{}\n", switch (size) {
 		0, 1, 2 => [ 0, 0.0, "zero" ],
@@ -1884,4 +1894,16 @@ function unique_ptr_test()
 	// let i = 0;
 	// let _j = if (i == 3) { 0 } else { move i };
 	// i;
+}
+
+function defer_test()
+{
+	(consteval {
+		const p = std::malloc(int32, 1);
+		defer std::free(p);
+	});
+
+	defer std::printf("defer 1\n");
+	defer std::printf("defer 2\n");
+	defer std::printf("defer 3\n");
 }
