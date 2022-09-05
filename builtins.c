@@ -19,10 +19,10 @@ typedef struct
 
 int32_t __bozon_main(str_slice args);
 
-int main(int argc, char const **argv)
+int main(int argc, char const *const *argv)
 {
 	str buffer[8] = {};
-	str *args = argc <= 8 ? buffer : malloc(argc * sizeof (str));
+	str *args = argc <= 8 ? buffer : malloc(argc * sizeof *args);
 	if (args == NULL)
 	{
 		return -1;

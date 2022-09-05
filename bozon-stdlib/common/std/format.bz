@@ -97,7 +97,7 @@ function get_number(it: &*const uint8, end: *const uint8) -> usize
 		c >= '0' && c <= '9'
 	})
 	{
-		result *= 10u;
+		result *= 10;
 		result += (*it as char - '0') as uint32;
 		++it;
 	}
@@ -252,12 +252,12 @@ consteval function check_format_spec_str(
 			)
 		};
 		meta::compile_error(message.as_str());
-		return current_index + 1u;
+		return current_index + 1;
 	}
 
 	if (it == end)
 	{
-		return current_index + 1u;
+		return current_index + 1;
 	}
 
 	if (*it != ':' as uint32)
@@ -268,12 +268,12 @@ consteval function check_format_spec_str(
 			fmt_str, position, __builtin_str_from_ptrs(open_bracket_it, fmt_str.end_ptr())
 		);
 		meta::compile_error(message.as_str());
-		return current_index + 1u;
+		return current_index + 1;
 	}
 	++it; // ':'
 	if (it == end)
 	{
-		return current_index + 1u;
+		return current_index + 1;
 	}
 	// syntax: [[fill]align][sign][0][width][.precision][kind]
 
@@ -305,7 +305,7 @@ consteval function check_format_spec_str(
 				fmt_str, position, fmt_str_end
 			);
 			meta::compile_error(message.as_str());
-			return current_index + 1u;
+			return current_index + 1;
 		}
 		advance_number(it, end); // precision
 	}
@@ -327,10 +327,10 @@ consteval function check_format_spec_str(
 			fmt_str, unexpected_chars, position, fmt_str_end
 		);
 		meta::compile_error(message.as_str());
-		return current_index + 1u;
+		return current_index + 1;
 	}
 
-	return current_index + 1u;
+	return current_index + 1;
 }
 
 consteval function check_fmt_str(fmt_str: str, passed_args_count: usize) -> bool
@@ -489,7 +489,7 @@ consteval function get_fmt_info(fmt_str: str, slices: [: str], fmt_specs: [: str
 			++arg_index;
 
 			contains_escaped_bracket = false; // reset value
-			index += 1u;
+			index += 1;
 			prev_begin = closing_bracket_it + 1;
 			// other increment will happen at the next start of the loop
 			it = closing_bracket_it;
@@ -500,18 +500,18 @@ consteval function get_fmt_info(fmt_str: str, slices: [: str], fmt_specs: [: str
 
 consteval function get_fmt_info(fmt_str: str, args_count: consteval usize)
 	-> [
-		[args_count + 1u: str],
-		[if (args_count == 0u) { 1u } else { args_count }: str],
-		[if (args_count == 0u) { 1u } else { args_count }: usize],
+		[args_count + 1: str],
+		[if (args_count == 0) { 1 } else { args_count }: str],
+		[if (args_count == 0) { 1 } else { args_count }: usize],
 	]
 {
 	let result: [
-		[args_count + 1u: str],
-		[if (args_count == 0u) { 1u } else { args_count }: str],
-		[if (args_count == 0u) { 1u } else { args_count }: usize],
+		[args_count + 1: str],
+		[if (args_count == 0) { 1 } else { args_count }: str],
+		[if (args_count == 0) { 1 } else { args_count }: usize],
 	];
 	get_fmt_info(fmt_str, result[0], result[1], result[2]);
-	if (args_count == 0u)
+	if (args_count == 0)
 	{
 		result[2, 0] = ((-1 as usize));
 	}
@@ -519,9 +519,9 @@ consteval function get_fmt_info(fmt_str: str, args_count: consteval usize)
 }
 
 consteval function get_global_indices(start: consteval usize, stop: consteval usize)
-	-> [(assert(start <= stop), if (start == stop) { 1u } else { stop - start }): usize]
+	-> [(assert(start <= stop), if (start == stop) { 1 } else { stop - start }): usize]
 {
-	let result: [(assert(start <= stop), if (start == stop) { 1u } else { stop - start }): usize];
+	let result: [(assert(start <= stop), if (start == stop) { 1 } else { stop - start }): usize];
 	for (let i = start; i < stop; ++i)
 	{
 		result[i - start] = i;
@@ -541,7 +541,7 @@ function format_into_impl(
 	consteval global_index = global_index[0];
 	consteval index = indices[global_index];
 	buffer.write_into(slices[global_index]);
-	arg_ptrs[((index + 1u))]->format_to(buffer, fmt_specs[index]);
+	arg_ptrs[((index + 1))]->format_to(buffer, fmt_specs[index]);
 }
 
 function format_into_impl(
@@ -556,8 +556,8 @@ function format_into_impl(
 	consteval global_index = global_indices[0];
 	consteval index = indices[global_index];
 	buffer.write_into(slices[global_index]);
-	arg_ptrs[index + 1u]->format_to(buffer, fmt_specs[index]);
-	consteval rest_global_indices = get_global_indices(global_indices[1], global_indices[global_indices.size() - 1u] + 1u);
+	arg_ptrs[index + 1]->format_to(buffer, fmt_specs[index]);
+	consteval rest_global_indices = get_global_indices(global_indices[1], global_indices[global_indices.size() - 1] + 1);
 	buffer.format_into_impl(rest_global_indices, indices, slices, fmt_specs, arg_ptrs);
 }
 
@@ -570,7 +570,7 @@ export function format_into(buffer: &format_buffer, fmt_str: consteval str, args
 	consteval slices = fmt_info[0];
 	consteval fmt_specs = fmt_info[1];
 	consteval indices = fmt_info[2];
-	if (slices.size() > 1u)
+	if (slices.size() > 1)
 	{
 		buffer.format_into_impl(global_indices, indices, slices, fmt_specs, arg_ptrs);
 	}
@@ -637,17 +637,17 @@ export function printf(fmt_str: consteval str, args: ...#const auto)
 
 function print_uint_to_reverse_buffer(it: *uint8, val: uint64, base: consteval uint64) -> *uint8
 {
-	if (val == 0u)
+	if (val == 0)
 	{
 		--it;
 		*it = '0' as uint8;
 		return it;
 	}
-	while (val != 0u)
+	while (val != 0)
 	{
 		const digit_val = val % base;
 		val /= base;
-		if (digit_val < 10u)
+		if (digit_val < 10)
 		{
 			--it;
 			*it = ('0' + digit_val) as uint8;
@@ -655,7 +655,7 @@ function print_uint_to_reverse_buffer(it: *uint8, val: uint64, base: consteval u
 		else
 		{
 			--it;
-			*it = ('a' + digit_val - 10u) as uint8;
+			*it = ('a' + digit_val - 10) as uint8;
 		}
 	}
 	return it;
@@ -663,26 +663,26 @@ function print_uint_to_reverse_buffer(it: *uint8, val: uint64, base: consteval u
 
 function decimal_length_u64(n: uint64) -> uint32
 {
-	return if (n < 10u64) { 1u }
-		else if (n < 100u64) { 2u }
-		else if (n < 1000u64) { 3u }
-		else if (n < 10000u64) { 4u }
-		else if (n < 100000u64) { 5u }
-		else if (n < 1000000u64) { 6u }
-		else if (n < 10000000u64) { 7u }
-		else if (n < 100000000u64) { 8u }
-		else if (n < 1000000000u64) { 9u }
-		else if (n < 10000000000u64) { 10u }
-		else if (n < 100000000000u64) { 11u }
-		else if (n < 1000000000000u64) { 12u }
-		else if (n < 10000000000000u64) { 13u }
-		else if (n < 100000000000000u64) { 14u }
-		else if (n < 1000000000000000u64) { 15u }
-		else if (n < 10000000000000000u64) { 16u }
-		else if (n < 100000000000000000u64) { 17u }
-		else if (n < 1000000000000000000u64) { 18u }
-		else if (n < 10000000000000000000u64) { 19u }
-		else { 20u };
+	return if (n < 10u64) { 1 }
+		else if (n < 100u64) { 2 }
+		else if (n < 1000u64) { 3 }
+		else if (n < 10000u64) { 4 }
+		else if (n < 100000u64) { 5 }
+		else if (n < 1000000u64) { 6 }
+		else if (n < 10000000u64) { 7 }
+		else if (n < 100000000u64) { 8 }
+		else if (n < 1000000000u64) { 9 }
+		else if (n < 10000000000u64) { 10 }
+		else if (n < 100000000000u64) { 11 }
+		else if (n < 1000000000000u64) { 12 }
+		else if (n < 10000000000000u64) { 13 }
+		else if (n < 100000000000000u64) { 14 }
+		else if (n < 1000000000000000u64) { 15 }
+		else if (n < 10000000000000000u64) { 16 }
+		else if (n < 100000000000000000u64) { 17 }
+		else if (n < 1000000000000000000u64) { 18 }
+		else if (n < 10000000000000000000u64) { 19 }
+		else { 20 };
 }
 
 function print_uint_decimal_to_buffer(n: uint64, out: *uint8) -> *uint8
@@ -690,29 +690,29 @@ function print_uint_decimal_to_buffer(n: uint64, out: *uint8) -> *uint8
 	const output_len = decimal_length_u64(n);
 	let rev_out = out + output_len;
 	// basically a copy of number printing in ryu::d2s
-	while (n >= 10000u)
+	while (n >= 10000)
 	{
-		const c = n - 10000u * (n / 10000u);
-		n /= 10000u;
-		const c0 = (c % 100u) * 2u;
-		const c1 = (c / 100u) * 2u;
+		const c = n - 10000 * (n / 10000);
+		n /= 10000;
+		const c0 = (c % 100) * 2;
+		const c1 = (c / 100) * 2;
 		rev_out -= 4;
-		memcpy(rev_out + 2, ryu::DIGIT_TABLE.begin() + c0, 2u);
-		memcpy(rev_out,     ryu::DIGIT_TABLE.begin() + c1, 2u);
+		memcpy(rev_out + 2, ryu::DIGIT_TABLE.begin() + c0, 2);
+		memcpy(rev_out,     ryu::DIGIT_TABLE.begin() + c1, 2);
 	}
-	if (n >= 100u)
+	if (n >= 100)
 	{
-		const c = (n % 100u) * 2u;
-		n /= 100u;
+		const c = (n % 100) * 2;
+		n /= 100;
 		rev_out -= 2;
-		memcpy(rev_out, ryu::DIGIT_TABLE.begin() + c, 2u);
+		memcpy(rev_out, ryu::DIGIT_TABLE.begin() + c, 2);
 	}
-	if (n >= 10u)
+	if (n >= 10)
 	{
-		const c = (n % 100u) * 2u;
-		n /= 100u;
+		const c = (n % 100) * 2;
+		n /= 100;
 		rev_out -= 2;
-		memcpy(rev_out, ryu::DIGIT_TABLE.begin() + c, 2u);
+		memcpy(rev_out, ryu::DIGIT_TABLE.begin() + c, 2);
 	}
 	else
 	{
@@ -724,20 +724,20 @@ function print_uint_decimal_to_buffer(n: uint64, out: *uint8) -> *uint8
 
 function print_uint_base_to_buffer(n: uint64, out: *uint8, base: consteval uint64) -> *uint8
 {
-	if (n == 0u)
+	if (n == 0)
 	{
 		*out = '0' as uint8;
 		return out + 1;
 	}
-	static_assert(base == 2u || base == 8u);
-	consteval bit_width = if (base == 2u) { 1u64 } else { 3u64 };
-	consteval max_output_len = if (base == 2u) { 64u64 } else { 22u64 };
+	static_assert(base == 2 || base == 8);
+	consteval bit_width = if (base == 2) { 1u64 } else { 3u64 };
+	consteval max_output_len = if (base == 2) { 64u64 } else { 22u64 };
 	const output_len = (max_output_len - clz(n) / bit_width) as int32;
 	let i = output_len;
 	while (i > 0)
 	{
 		--i;
-		consteval mask = base - 1u;
+		consteval mask = base - 1;
 		const c = '0' + ((n >> (i * bit_width as int32)) & mask);
 		*out = c as uint8;
 		++out;
@@ -747,12 +747,12 @@ function print_uint_base_to_buffer(n: uint64, out: *uint8, base: consteval uint6
 
 function print_uint_hex_to_buffer(n: uint64, out: *uint8) -> *uint8
 {
-	if (n == 0u)
+	if (n == 0)
 	{
 		*out = '0' as uint8;
 		return out + 1;
 	}
-	const output_len = (16u - clz(n) / 4u) as int32;
+	const output_len = (16 - clz(n) / 4) as int32;
 	consteval table: [16: uint8] = [
 		'0' as uint8, '1' as uint8,
 		'2' as uint8, '3' as uint8,
@@ -776,12 +776,12 @@ function print_uint_hex_to_buffer(n: uint64, out: *uint8) -> *uint8
 
 function print_uint_HEX_to_buffer(n: uint64, out: *uint8) -> *uint8
 {
-	if (n == 0u)
+	if (n == 0)
 	{
 		*out = '0' as uint8;
 		return out + 1;
 	}
-	const output_len = (16u - clz(n) / 4u) as int32;
+	const output_len = (16 - clz(n) / 4) as int32;
 	consteval table: [16: uint8] = [
 		'0' as uint8, '1' as uint8,
 		'2' as uint8, '3' as uint8,
@@ -816,7 +816,7 @@ function get_uint_decimal_as_string(n: uint64) -> [[max_uint_string_length: uint
 
 function get_uint_base_as_string(n: uint64, base: consteval uint64) -> [[max_uint_string_length: uint8], uint32]
 {
-	static_assert(base == 2u || base == 8u);
+	static_assert(base == 2 || base == 8);
 	let result: [[max_uint_string_length: uint8], uint32];
 	const end = print_uint_base_to_buffer(n, result[0].begin(), base);
 	result[1] = (end - result[0].begin()) as uint32;
@@ -866,9 +866,9 @@ export function format_to(s: str, buffer: &format_buffer, fmt_spec: format_spec)
 			{
 				const diff = fmt_spec.width - len;
 				// if the spacing is uneven, prefer left alignment
-				buffer.write_into(fmt_spec.fill, diff / 2u);
+				buffer.write_into(fmt_spec.fill, diff / 2);
 				buffer.write_into(s);
-				buffer.write_into(fmt_spec.fill, (diff + 1u) / 2u);
+				buffer.write_into(fmt_spec.fill, (diff + 1) / 2);
 			}
 			else
 			{
@@ -935,19 +935,19 @@ function format_number(number_str: str, buffer: &format_buffer, fmt_spec: format
 					{
 						buffer.write_into(fmt_spec.sign);
 					}
-					buffer.write_into('0', (diff + 1u) / 2u);
+					buffer.write_into('0', (diff + 1) / 2);
 					buffer.write_into(number_str);
 				}
 				else
 				{
-					buffer.write_into(fmt_spec.fill, (diff + 1u) / 2u);
+					buffer.write_into(fmt_spec.fill, (diff + 1) / 2);
 					if (put_sign)
 					{
 						buffer.write_into(fmt_spec.sign);
 					}
 					buffer.write_into(number_str);
 				}
-				buffer.write_into(fmt_spec.fill, diff / 2u);
+				buffer.write_into(fmt_spec.fill, diff / 2);
 			}
 			else
 			{
@@ -1003,10 +1003,10 @@ export function format_to(n: uint64, buffer: &format_buffer, fmt_spec: format_sp
 {
 	const [result_buffer, size] = switch (fmt_spec.fmt_kind) {
 		'b', 'B' => {
-			get_uint_base_as_string(n, 2u)
+			get_uint_base_as_string(n, 2)
 		},
 		'o', 'O' => {
-			get_uint_base_as_string(n, 8u)
+			get_uint_base_as_string(n, 8)
 		},
 		'x', 'X' => {
 			get_uint_hex_as_string(n, fmt_spec.fmt_kind == 'X')
@@ -1053,7 +1053,7 @@ function format_pointer(number_str: str, buffer: &format_buffer, fmt_spec: forma
 	switch (fmt_spec.align)
 	{
 		'<' => {
-			const len = number_str.length() + 2u;
+			const len = number_str.length() + 2;
 			buffer.write_into(prefix);
 			buffer.write_into(number_str);
 			if (len < fmt_spec.width)
@@ -1062,7 +1062,7 @@ function format_pointer(number_str: str, buffer: &format_buffer, fmt_spec: forma
 			}
 		},
 		'^' => {
-			const len = number_str.length() + 2u;
+			const len = number_str.length() + 2;
 			if (len < fmt_spec.width)
 			{
 				const diff = fmt_spec.width - len;
@@ -1070,16 +1070,16 @@ function format_pointer(number_str: str, buffer: &format_buffer, fmt_spec: forma
 				if (fmt_spec.zero_pad)
 				{
 					buffer.write_into(prefix);
-					buffer.write_into('0', (diff + 1u) / 2u);
+					buffer.write_into('0', (diff + 1) / 2);
 					buffer.write_into(number_str);
 				}
 				else
 				{
-					buffer.write_into(fmt_spec.fill, (diff + 1u) / 2u);
+					buffer.write_into(fmt_spec.fill, (diff + 1) / 2);
 					buffer.write_into(prefix);
 					buffer.write_into(number_str);
 				}
-				buffer.write_into(fmt_spec.fill, diff / 2u);
+				buffer.write_into(fmt_spec.fill, diff / 2);
 			}
 			else
 			{
@@ -1088,7 +1088,7 @@ function format_pointer(number_str: str, buffer: &format_buffer, fmt_spec: forma
 			}
 		},
 		'>' => {
-			const len = number_str.length() + 2u;
+			const len = number_str.length() + 2;
 			if (len < fmt_spec.width)
 			{
 				if (fmt_spec.zero_pad)
@@ -1149,7 +1149,7 @@ function isfinite(x: float32) -> bool
 {
 	const bits = ryu::float_to_bits(x);
 	consteval exponent_mask = 0x7f80'0000u32;
-	static_assert(popcount(exponent_mask) == 8u);
+	static_assert(popcount(exponent_mask) == 8);
 	return (bits & exponent_mask) != exponent_mask;
 }
 
@@ -1157,7 +1157,7 @@ function isfinite(x: float64) -> bool
 {
 	const bits = ryu::double_to_bits(x);
 	consteval exponent_mask = 0x7ff0'0000'0000'0000u64;
-	static_assert(popcount(exponent_mask) == 11u);
+	static_assert(popcount(exponent_mask) == 11);
 	return (bits & exponent_mask) != exponent_mask;
 }
 
@@ -1166,9 +1166,9 @@ function isnan(x: float32) -> bool
 	const bits = ryu::float_to_bits(x);
 	consteval exponent_mask = 0x7f80'0000u32;
 	consteval mantissa_mask = 0x007f'ffffu32;
-	static_assert(popcount(exponent_mask) == 8u);
-	static_assert(popcount(mantissa_mask) == 23u);
-	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) != 0u;
+	static_assert(popcount(exponent_mask) == 8);
+	static_assert(popcount(mantissa_mask) == 23);
+	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) != 0;
 }
 
 function isnan(x: float64) -> bool
@@ -1176,9 +1176,9 @@ function isnan(x: float64) -> bool
 	const bits = ryu::double_to_bits(x);
 	consteval exponent_mask = 0x7ff0'0000'0000'0000u64;
 	consteval mantissa_mask = 0x000f'ffff'ffff'ffffu64;
-	static_assert(popcount(exponent_mask) == 11u);
-	static_assert(popcount(mantissa_mask) == 52u);
-	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) != 0u;
+	static_assert(popcount(exponent_mask) == 11);
+	static_assert(popcount(mantissa_mask) == 52);
+	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) != 0;
 }
 
 static_assert(isfinite(1.0));
@@ -1326,7 +1326,7 @@ function abs_f64(x: float64) -> float64
 {
 	const bits = ryu::double_to_bits(x);
 	consteval sign_mask = 0x8000'0000'0000'0000u64;
-	static_assert(popcount(sign_mask) == 1u);
+	static_assert(popcount(sign_mask) == 1);
 	return ryu::bits_to_double(bits & ~sign_mask);
 }
 
@@ -1346,12 +1346,12 @@ function format_float64_fixed(x: float64, buffer: &format_buffer, fmt_spec: form
 		}
 		i
 	};
-	const result_len = if (fmt_spec.precision == 0u) {
+	const result_len = if (fmt_spec.precision == 0) {
 		// sign + leading digits
-		1u + leading_digit_count
+		1 + leading_digit_count
 	} else {
 		// sign + leading digits + dot + precision
-		1u + leading_digit_count + 1u + fmt_spec.precision
+		1 + leading_digit_count + 1 + fmt_spec.precision
 	};
 	const result_buffer = if (result_len <= static_buffer.size()) {
 		static_buffer.begin()
@@ -1393,10 +1393,10 @@ function format_float64_exponential(x: float64, buffer: &format_buffer, fmt_spec
 	// sign + "X." + precision + e+XXX
 	const result_len = if (!finite) {
 		// sign + "inf" or "nan"
-		4u
+		4
 	} else {
 		// sign + leading digit + dot + precision + "e+000"
-		1u + 1u + 1u + fmt_spec.precision + 5u
+		1 + 1 + 1 + fmt_spec.precision + 5
 	};
 	const result_buffer = if (result_len <= static_buffer.size()) {
 		static_buffer.begin()
@@ -1432,28 +1432,28 @@ function format_float64_exponential(x: float64, buffer: &format_buffer, fmt_spec
 function format_float64_generic(x: float64, buffer: &format_buffer, fmt_spec: format_spec)
 {
 	assert(fmt_spec.precision != precision_none);
-	if (fmt_spec.precision == 0u)
+	if (fmt_spec.precision == 0)
 	{
-		fmt_spec.precision = 1u;
+		fmt_spec.precision = 1;
 	}
 
 	const abs_x = abs_f64(x);
 	const upper_bound = upper_bounds[fmt_spec.precision];
 	const lower_bound = if (fmt_spec.precision >= lower_bounds.size()) {
-		lower_bounds[lower_bounds.size() - 1u]
+		lower_bounds[lower_bounds.size() - 1]
 	} else {
 		lower_bounds[fmt_spec.precision]
 	};
 	if (abs_x == 0.0)
 	{
 		// special case for 0.0
-		fmt_spec.precision = 0u;
+		fmt_spec.precision = 0;
 		format_float64_fixed(x, buffer, fmt_spec);
 	}
 	else if (abs_x <= lower_bound || abs_x >= upper_bound || !isfinite(x))
 	{
 		// the leading digit isn't counted in format_float64_exponential
-		fmt_spec.precision -= 1u;
+		fmt_spec.precision -= 1;
 		format_float64_exponential(x, buffer, fmt_spec);
 	}
 	else if (abs_x >= 1.0)
@@ -1474,7 +1474,7 @@ function format_float64_generic(x: float64, buffer: &format_buffer, fmt_spec: fo
 	{
 		const trailing_zeros_count = {
 			const bounds: [: const auto] = if (fmt_spec.precision >= trailing_zeros_upper_bounds.size()) {
-				trailing_zeros_upper_bounds[trailing_zeros_upper_bounds.size() - 1u]
+				trailing_zeros_upper_bounds[trailing_zeros_upper_bounds.size() - 1]
 			} else {
 				trailing_zeros_upper_bounds[fmt_spec.precision]
 			};
@@ -1495,7 +1495,7 @@ function format_float64_percentage(x: float64, buffer: &format_buffer, fmt_spec:
 	// most results should fit in this buffer
 	let static_buffer: [32: uint8];
 	// we need 2 more digits to get the specified precision in percentage form
-	fmt_spec.precision += 2u;
+	fmt_spec.precision += 2;
 
 	const abs_x = abs_f64(x);
 	const leading_digit_count = {
@@ -1507,7 +1507,7 @@ function format_float64_percentage(x: float64, buffer: &format_buffer, fmt_spec:
 		i
 	};
 	// sign + leading digits + dot + precision + '%'
-	const result_len = 1u + leading_digit_count + 1u + fmt_spec.precision + 1u;
+	const result_len = 1 + leading_digit_count + 1 + fmt_spec.precision + 1;
 	const result_buffer = if (result_len <= static_buffer.size()) {
 		static_buffer.begin()
 	} else {
@@ -1533,12 +1533,12 @@ function format_float64_percentage(x: float64, buffer: &format_buffer, fmt_spec:
 		*tenth_it = *hundredth_it;
 		*hundredth_it = '.' as uint8;
 
-		if (fmt_spec.precision == 2u)
+		if (fmt_spec.precision == 2)
 		{
 			// remove trailing dot
 			--end;
 		}
-		if (leading_digit_count == 1u && *(dot_it - 1) == '0' as uint32) {
+		if (leading_digit_count == 1 && *(dot_it - 1) == '0' as uint32) {
 			if (*dot_it == '0' as uint32) {
 				dot_it + 1
 			} else {
@@ -1600,28 +1600,28 @@ export function format_to(x: float64, buffer: &format_buffer, fmt_spec: format_s
 		'f', 'F' => {
 			if (fmt_spec.precision == precision_none)
 			{
-				fmt_spec.precision = 6u;
+				fmt_spec.precision = 6;
 			}
 			format_float64_fixed(x, buffer, fmt_spec);
 		},
 		'e', 'E' => {
 			if (fmt_spec.precision == precision_none)
 			{
-				fmt_spec.precision = 6u;
+				fmt_spec.precision = 6;
 			}
 			format_float64_exponential(x, buffer, fmt_spec);
 		},
 		'g', 'G' => {
 			if (fmt_spec.precision == precision_none)
 			{
-				fmt_spec.precision = 6u;
+				fmt_spec.precision = 6;
 			}
 			format_float64_generic(x, buffer, fmt_spec);
 		},
 		'%' => {
 			if (fmt_spec.precision == precision_none)
 			{
-				fmt_spec.precision = 2u;
+				fmt_spec.precision = 2;
 			}
 			format_float64_percentage(x, buffer, fmt_spec);
 		},

@@ -47,7 +47,7 @@ export struct vector<T: typename>
 	constructor(other: &const _self_t)
 	{
 		const size = other.size();
-		if (size == 0u)
+		if (size == 0)
 		{
 			return _self_t();
 		}
@@ -114,8 +114,7 @@ export struct vector<T: typename>
 			const [new_data_begin, new_alloc_size] = rounded_alloc(value_type, new_capacity);
 			const new_data_end = new_data_begin + self.size();
 			const new_alloc_end = new_data_begin + new_alloc_size;
-			copy_range(new_data_begin, new_data_end, self._data_begin);
-			self.clear();
+			move_range(new_data_begin, new_data_end, self._data_begin);
 			free(self._data_begin);
 			self._data_begin = new_data_begin;
 			self._data_end   = new_data_end;
@@ -171,7 +170,7 @@ export struct vector<T: typename>
 	{
 		if (self._data_end == self._alloc_end)
 		{
-			self.reserve(self.size() + 1u);
+			self.reserve(self.size() + 1);
 		}
 		__builtin_inplace_construct(self._data_end, value_type(__forward value));
 		self._data_end += 1;
@@ -181,7 +180,7 @@ export struct vector<T: typename>
 	{
 		if (self._data_end == self._alloc_end)
 		{
-			self.reserve(self.size() + 1u);
+			self.reserve(self.size() + 1);
 		}
 		__builtin_inplace_construct(self._data_end, value_type(...__forward args));
 		self._data_end += 1;
@@ -223,6 +222,14 @@ export function end(vec: &const vector) -> *const (typeof vec).value_type
 	return vec._data_end;
 }
 
+
+function move_range(begin: *auto, end: *auto, other_begin: *auto)
+{
+	for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
+	{
+		__builtin_inplace_construct(it, __move__ *other_it);
+	}
+}
 
 function copy_range(begin: *auto, end: *auto, other_begin: *const auto)
 {

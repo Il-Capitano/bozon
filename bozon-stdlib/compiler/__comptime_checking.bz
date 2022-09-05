@@ -9,9 +9,10 @@ import ::std::unicode;
 @__no_runtime_emit consteval inf_f32: float32 = ((1.0f32 / 0.0f32));
 @__no_runtime_emit consteval inf_f64: float64 = ((1.0 / 0.0));
 
-function alloc = __builtin_comptime_malloc_type;
-function free  = __builtin_comptime_free;
+function alloc  = __builtin_comptime_malloc_type;
+function free   = __builtin_comptime_free;
 function memcpy = __builtin_memcpy;
+function swap   = __builtin_swap;
 
 /*
 function alloc(T: typename, count: usize) -> *T
@@ -29,18 +30,6 @@ function memcpy(dest: *void, src: *const void, n: usize)
 	__builtin_memcpy(dest, src, n);
 }
 */
-
-function swap(a: &auto, b: &auto)
-{
-	const temp = a;
-	a = b;
-	b = temp;
-}
-
-function release(value: &auto) -> __builtin_remove_reference(typeof value)
-{
-	return value;
-}
 
 function round_to_next_power_of_two(n: usize) -> usize
 {
@@ -73,7 +62,7 @@ function move_range(begin: *auto, end: *auto, other_begin: *auto)
 {
 	for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
 	{
-		__builtin_inplace_construct(it, other_it->release());
+		__builtin_inplace_construct(it, __move__ *other_it);
 	}
 }
 
@@ -135,14 +124,15 @@ struct vector<T: typename>
 		return self;
 	}
 
-	operator = (self: &_self_t, other: _self_t) -> &_self_t
-	{
-		self.swap(other);
-		return self;
-	}
+	operator = (self: &_self_t, other: _self_t) = __default__;
 
 	operator = (self: &_self_t, other: [: const value_type]) -> &_self_t
 	{
+		if (other.begin() == self._data_begin)
+		{
+			return self;
+		}
+
 		const size = other.size();
 		self.clear();
 		self.reserve(size);
@@ -210,7 +200,6 @@ struct vector<T: typename>
 			const new_data_end = new_data_begin + self.size();
 			const new_alloc_end = new_data_begin + new_alloc_size;
 			move_range(new_data_begin, new_data_end, self._data_begin);
-			self.clear();
 			free(self._data_begin);
 			self._data_begin = new_data_begin;
 			self._data_end   = new_data_end;
@@ -289,13 +278,6 @@ struct vector<T: typename>
 	{
 		return vec._data_end;
 	}
-}
-
-function swap(a: &vector, b: &vector)
-{
-	swap(a._data_begin, b._data_begin);
-	swap(a._data_end,   b._data_end);
-	swap(a._alloc_end,  b._alloc_end);
 }
 
 struct string
@@ -386,11 +368,6 @@ struct string
 		}
 		return lhs;
 	}
-}
-
-function swap(a: &string, b: &string)
-{
-	a._buffer.swap(b._buffer);
 }
 
 // copied from std::format
@@ -496,7 +473,7 @@ function concat(...##args) -> string
 {
 	let buffer = string();
 	[ ...(concat_helper(buffer, args), 0) ];
-	return buffer.release();
+	return move buffer;
 }
 
 /*
@@ -576,14 +553,6 @@ struct error_t
 	.src_tokens: src_tokens_t;
 	.message: string;
 	.call_stack: vector<uint64>;
-}
-
-function swap(a: &error_t, b: &error_t)
-{
-	a.kind.swap(b.kind);
-	a.src_tokens.swap(b.src_tokens);
-	a.message.swap(b.message);
-	a.call_stack.swap(b.call_stack);
 }
 
 @__no_runtime_emit
@@ -734,17 +703,6 @@ struct malloc_info_t
 			false, src_tokens_t[ 0, 0, 0 ], vector<uint64>(),
 		];
 	}
-}
-
-function swap(a: &malloc_info_t, b: &malloc_info_t)
-{
-	a.ptr.swap(b.ptr);
-	a.size.swap(b.size);
-	a.malloc_src_tokens.swap(b.malloc_src_tokens);
-	a.malloc_call_stack.swap(b.malloc_call_stack);
-	a.is_freed.swap(b.is_freed);
-	a.free_src_tokens.swap(b.free_src_tokens);
-	a.free_call_stack.swap(b.free_call_stack);
 }
 
 @__no_runtime_emit
@@ -2358,7 +2316,7 @@ function lgamma_f64_check(x: float64, result: float64, begin: uint64, pivot: uin
 
 function emit_diagnostic(kind: uint32, message: str, error_call_stack: vector<uint64>, begin: uint64, pivot: uint64, end: uint64)
 {
-	errors.push_back(error_t[ kind, src_tokens_t[ begin, pivot, end ], string(message), error_call_stack.release() ]);
+	errors.push_back(error_t[ kind, src_tokens_t[ begin, pivot, end ], string(message), move error_call_stack ]);
 }
 
 function emit_diagnostic(kind: uint32, message: str, begin: uint64, pivot: uint64, end: uint64)

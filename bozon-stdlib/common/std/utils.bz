@@ -6,6 +6,7 @@ import format;
 export function memcpy  = __builtin_memcpy;
 export function memmove = __builtin_memmove;
 export function memset  = __builtin_memset;
+export function swap = __builtin_swap;
 
 export function assert(b: bool)
 {
@@ -33,6 +34,7 @@ export function malloc_raw(T: typename, n: usize) -> *T
 export function malloc(T: typename, n: usize) -> *T
 {
 	static_assert(!meta::is_reference(T), "type in 'malloc' can't be a reference type");
+	static_assert(!meta::is_move_reference(T), "type in 'malloc' can't be a move reference type");
 	static_assert(!meta::is_const(T), "type in 'malloc' can't be 'const'");
 	static_assert(!meta::is_consteval(T), "type in 'malloc' can't be 'consteval'");
 
@@ -60,14 +62,6 @@ export function free(p: *void)
 	{
 		libc::free(p);
 	}
-}
-
-export function swap(a: &auto, b: &auto)
-{
-	static_assert(typeof a == typeof b, "different types in swap");
-	const tmp = a;
-	a = b;
-	b = tmp;
 }
 
 consteval function is_integer_type(T: typename) -> bool
