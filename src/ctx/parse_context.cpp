@@ -22,6 +22,7 @@ static ast::expression make_expr_function_call_from_body(
 );
 
 static ast::expression make_swap_expression(
+	lex::src_tokens const &src_tokens,
 	ast::typespec_view type,
 	ast::expression lhs,
 	ast::expression rhs,
@@ -3570,10 +3571,9 @@ static ast::expression make_expr_function_call_from_body(
 	}
 	else if (body->is_intrinsic() && body->intrinsic_kind == ast::function_body::builtin_swap)
 	{
-		bz_unreachable;
 		bz_assert(args.size() == 2);
 		ast::typespec const expr_type = args[0].get_expr_type();
-		return make_swap_expression(expr_type, std::move(args[0]), std::move(args[1]), context);
+		return make_swap_expression(src_tokens, expr_type, std::move(args[0]), std::move(args[1]), context);
 	}
 	else if (body->is_default_copy_constructor() || (body->is_copy_constructor() && body->is_defaulted()))
 	{
@@ -6092,14 +6092,169 @@ ast::expression parse_context::make_default_assignment(lex::src_tokens const &sr
 	}
 }
 
-static ast::expression make_swap_expression(
+static ast::expression make_tuple_swap(
+	lex::src_tokens const &src_tokens,
 	ast::typespec_view type,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 )
 {
-	bz_unreachable;
+	bz_assert(type.is<ast::ts_tuple>());
+	auto const types = type.get<ast::ts_tuple>().types.as_array_view();
+
+	auto swap_exprs = types
+		.transform([&](auto const &elem_type) {
+			return make_swap_expression(
+				src_tokens,
+				elem_type,
+				ast::make_dynamic_expression(
+					lhs.src_tokens,
+					ast::expression_type_kind::lvalue_reference, elem_type,
+					ast::make_expr_bitcode_value_reference(1),
+					ast::destruct_operation()
+				),
+				ast::make_dynamic_expression(
+					lhs.src_tokens,
+					ast::expression_type_kind::lvalue_reference, elem_type,
+					ast::make_expr_bitcode_value_reference(0),
+					ast::destruct_operation()
+				),
+				context
+			);
+		})
+		.collect<ast::arena_vector>();
+
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+		ast::make_expr_aggregate_swap(std::move(lhs), std::move(rhs), std::move(swap_exprs)),
+		ast::destruct_operation()
+	);
+}
+
+static ast::expression make_array_swap(
+	lex::src_tokens const &src_tokens,
+	ast::typespec_view type,
+	ast::expression lhs,
+	ast::expression rhs,
+	parse_context &context
+)
+{
+	bz_assert(type.is<ast::ts_array>());
+	auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
+
+	auto swap_expr = make_swap_expression(
+		src_tokens,
+		elem_type,
+		ast::make_dynamic_expression(
+			lhs.src_tokens,
+			ast::expression_type_kind::lvalue_reference, elem_type,
+			ast::make_expr_bitcode_value_reference(1),
+			ast::destruct_operation()
+		),
+		ast::make_dynamic_expression(
+			lhs.src_tokens,
+			ast::expression_type_kind::lvalue_reference, elem_type,
+			ast::make_expr_bitcode_value_reference(0),
+			ast::destruct_operation()
+		),
+		context
+	);
+
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+		ast::make_expr_array_swap(std::move(lhs), std::move(rhs), std::move(swap_expr)),
+		ast::destruct_operation()
+	);
+}
+
+static ast::expression make_base_type_swap(
+	lex::src_tokens const &src_tokens,
+	ast::typespec_view type,
+	ast::expression lhs,
+	ast::expression rhs,
+	parse_context &context
+)
+{
+	bz_assert(type.is<ast::ts_base_type>());
+
+	auto lhs_move_expr = context.make_move_construction(
+		ast::make_dynamic_expression(
+			lhs.src_tokens,
+			ast::expression_type_kind::rvalue_reference, type,
+			ast::make_expr_bitcode_value_reference(),
+			ast::destruct_operation()
+		)
+	);
+	context.add_self_move_destruction(lhs_move_expr);
+	auto rhs_move_expr = context.make_move_construction(
+		ast::make_dynamic_expression(
+			rhs.src_tokens,
+			ast::expression_type_kind::rvalue_reference, type,
+			ast::make_expr_bitcode_value_reference(),
+			ast::destruct_operation()
+		)
+	);
+	context.add_self_move_destruction(rhs_move_expr);
+	auto temp_move_expr = context.make_move_construction(
+		ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue_reference, type,
+			ast::make_expr_bitcode_value_reference(),
+			ast::destruct_operation()
+		)
+	);
+	context.add_self_move_destruction(temp_move_expr);
+
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+		ast::make_expr_base_type_swap(
+			std::move(lhs),
+			std::move(rhs),
+			std::move(lhs_move_expr),
+			std::move(rhs_move_expr),
+			std::move(temp_move_expr)
+		),
+		ast::destruct_operation()
+	);
+}
+
+static ast::expression make_swap_expression(
+	lex::src_tokens const &src_tokens,
+	ast::typespec_view type,
+	ast::expression lhs,
+	ast::expression rhs,
+	parse_context &context
+)
+{
+	if (!type.is<ast::ts_array>() && ast::is_trivially_relocatable(type))
+	{
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+			ast::make_expr_trivial_swap(std::move(lhs), std::move(rhs)),
+			ast::destruct_operation()
+		);
+	}
+	else if (type.is<ast::ts_tuple>())
+	{
+		return make_tuple_swap(src_tokens, type, std::move(lhs), std::move(rhs), context);
+	}
+	else if (type.is<ast::ts_array>())
+	{
+		return make_array_swap(src_tokens, type, std::move(lhs), std::move(rhs), context);
+	}
+	else if (type.is<ast::ts_base_type>())
+	{
+		return make_base_type_swap(src_tokens, type, std::move(lhs), std::move(rhs), context);
+	}
+	else
+	{
+		bz_unreachable;
+	}
 }
 
 static ast::expression make_base_type_destruct_expression(

@@ -115,7 +115,16 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 			"' in 'function __builtin_inplace_construct'"
 		)));
 	} else {}, void);
-@__builtin export function __builtin_swap(lhs: &auto, rhs: &auto);
+@__builtin export function __builtin_swap(lhs: &auto, rhs: &auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"different types '",
+			__builtin_typename_as_str(typeof lhs),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in 'function __builtin_swap'"
+		)));
+	} else {}, void);
 
 @__builtin export function __builtin_is_comptime() -> bool;
 

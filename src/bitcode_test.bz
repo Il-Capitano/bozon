@@ -1891,8 +1891,14 @@ function unique_ptr_test()
 
 @symbol_name("move_test") export function move_test()
 {
-	// let i = 0;
-	// let _j = if (i == 3) { 0 } else { move i };
+	let i = 0;
+	let _ = if (i == 3) {
+		let j = move i;
+		j
+	} else {
+		let j = move i;
+		j
+	};
 	// i;
 }
 
