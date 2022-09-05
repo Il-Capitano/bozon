@@ -664,12 +664,50 @@ static ast::expression get_builtin_unary_move(
 	}
 	else if (kind == ast::expression_type_kind::lvalue_reference)
 	{
-		context.report_error(src_tokens, "operator move cannot be applied to references");
+		context.report_error(src_tokens, "operator move cannot be applied to an lvalue reference");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else
 	{
 		context.report_error(src_tokens, "invalid use of operator move");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+}
+
+// __move__ (val) -> (typeof val without lvalue ref)
+static ast::expression get_builtin_unary_unsafe_move(
+	lex::src_tokens const &src_tokens,
+	uint32_t op_kind,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	bz_assert(op_kind == lex::token::kw_unsafe_move);
+	bz_assert(expr.not_error());
+	auto const [type, kind] = expr.get_expr_type_and_kind();
+
+	if (
+		kind == ast::expression_type_kind::lvalue
+		|| (kind == ast::expression_type_kind::lvalue_reference && !type.is<ast::ts_const>())
+	)
+	{
+		ast::typespec result_type = type;
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::moved_lvalue,
+			result_type,
+			ast::make_expr_unary_op(op_kind, std::move(expr)),
+			ast::destruct_operation()
+		);
+	}
+	else if (kind == ast::expression_type_kind::lvalue_reference)
+	{
+		context.report_error(src_tokens, "operator __move__ cannot be applied to a const lvalue reference");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+	else
+	{
+		context.report_error(src_tokens, "invalid use of operator __move__");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 }
@@ -1215,14 +1253,15 @@ struct unary_operator_parse_function_t
 constexpr auto builtin_unary_operators = []() {
 	using T = unary_operator_parse_function_t;
 	auto result = bz::array{
-		T{ lex::token::address_of,  &get_builtin_unary_address_of            }, // &
-		T{ lex::token::dot_dot_dot, &get_builtin_unary_dot_dot_dot           }, // ...
+		T{ lex::token::address_of,     &get_builtin_unary_address_of            }, // &
+		T{ lex::token::dot_dot_dot,    &get_builtin_unary_dot_dot_dot           }, // ...
 
-		T{ lex::token::kw_sizeof,    &get_builtin_unary_sizeof                }, // sizeof
-		T{ lex::token::kw_typeof,    &get_builtin_unary_typeof                }, // typeof
-		T{ lex::token::kw_move,      &get_builtin_unary_move                  }, // move
-		T{ lex::token::kw_forward,   &get_builtin_unary_forward               }, // __forward
-		T{ lex::token::kw_consteval, &get_builtin_unary_consteval             }, // consteval
+		T{ lex::token::kw_sizeof,      &get_builtin_unary_sizeof                }, // sizeof
+		T{ lex::token::kw_typeof,      &get_builtin_unary_typeof                }, // typeof
+		T{ lex::token::kw_move,        &get_builtin_unary_move                  }, // move
+		T{ lex::token::kw_unsafe_move, &get_builtin_unary_unsafe_move           }, // __move__
+		T{ lex::token::kw_forward,     &get_builtin_unary_forward               }, // __forward
+		T{ lex::token::kw_consteval,   &get_builtin_unary_consteval             }, // consteval
 	};
 
 	auto const builtin_unary_count = []() {

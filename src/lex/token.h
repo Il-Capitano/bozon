@@ -125,6 +125,7 @@ struct token
 		kw_const,            // const
 		kw_consteval,        // consteval
 		kw_move,             // move
+		kw_unsafe_move,      // __move__
 		kw_forward,          // __forward
 		kw_default,          // __default__
 		kw_delete,           // __delete__

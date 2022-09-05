@@ -112,6 +112,7 @@ constexpr bz::array operator_precedences = {
 	prec_t{ prec_t::unary,  lex::token::kw_sizeof,          {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::kw_typeof,          {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::kw_move,            {  3, false } },
+	prec_t{ prec_t::unary,  lex::token::kw_unsafe_move,     {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::kw_forward,         {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::dot_dot_dot,        {  3, false } },
 
@@ -306,8 +307,9 @@ constexpr auto token_info = []() {
 	result[lex::token::kw_sizeof] = { lex::token::kw_sizeof, "sizeof", "", keyword_flags | unary_builtin_flags | unary_has_unevaluated_context };
 	result[lex::token::kw_typeof] = { lex::token::kw_typeof, "typeof", "", keyword_flags | unary_builtin_flags | unary_has_unevaluated_context };
 
-	result[lex::token::kw_move]    = { lex::token::kw_move,    "move",      "", keyword_flags | unary_type_op_flags | unary_builtin_flags };
-	result[lex::token::kw_forward] = { lex::token::kw_forward, "__forward", "", keyword_flags | unary_builtin_flags };
+	result[lex::token::kw_move]        = { lex::token::kw_move,        "move",      "", keyword_flags | unary_type_op_flags | unary_builtin_flags };
+	result[lex::token::kw_unsafe_move] = { lex::token::kw_unsafe_move, "__move__",  "", keyword_flags | unary_builtin_flags                       };
+	result[lex::token::kw_forward]     = { lex::token::kw_forward,     "__forward", "", keyword_flags | unary_builtin_flags                       };
 
 	result[lex::token::kw_default] = { lex::token::kw_default, "__default__", "", keyword_flags };
 	result[lex::token::kw_delete]  = { lex::token::kw_delete,  "__delete__",  "", keyword_flags };
