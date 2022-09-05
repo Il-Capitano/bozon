@@ -21,6 +21,12 @@ static ast::expression make_expr_function_call_from_body(
 	ast::resolve_order resolve_order = ast::resolve_order::regular
 );
 
+static ast::expression make_swap_expression(
+	ast::typespec_view type,
+	ast::expression lhs,
+	ast::expression rhs,
+	parse_context &context
+);
 static ast::expression make_destruct_expression(
 	ast::typespec_view type,
 	ast::expression value,
@@ -3562,6 +3568,13 @@ static ast::expression make_expr_function_call_from_body(
 			ast::destruct_operation()
 		);
 	}
+	else if (body->is_intrinsic() && body->intrinsic_kind == ast::function_body::builtin_swap)
+	{
+		bz_unreachable;
+		bz_assert(args.size() == 2);
+		ast::typespec const expr_type = args[0].get_expr_type();
+		return make_swap_expression(expr_type, std::move(args[0]), std::move(args[1]), context);
+	}
 	else if (body->is_default_copy_constructor() || (body->is_copy_constructor() && body->is_defaulted()))
 	{
 		bz_assert(args.size() == 1);
@@ -5764,13 +5777,22 @@ ast::expression parse_context::make_move_construction(ast::expression expr)
 
 	if (expr_type_kind == ast::expression_type_kind::moved_lvalue && !this->in_unevaluated_context)
 	{
-		bz_assert(expr.get_expr().is<ast::expr_unary_op>() && expr.get_expr().get<ast::expr_unary_op>().op == lex::token::kw_move);
-		bz_assert(expr.get_expr().get<ast::expr_unary_op>().expr.get_expr().is<ast::expr_identifier>());
-		auto const decl = expr.get_expr().get<ast::expr_unary_op>().expr.get_expr().get<ast::expr_identifier>().decl;
-		this->register_move(expr.src_tokens, decl);
-		this->add_self_move_destruction(expr);
-		bz_assert(expr.is_dynamic());
-		expr.get_dynamic().destruct_op.move_destructed_decl = decl;
+		bz_assert(expr.get_expr().is<ast::expr_unary_op>());
+		auto const op = expr.get_expr().get<ast::expr_unary_op>().op;
+		bz_assert(op == lex::token::kw_move || op == lex::token::kw_unsafe_move);
+		if (op == lex::token::kw_move)
+		{
+			bz_assert(expr.get_expr().get<ast::expr_unary_op>().expr.get_expr().is<ast::expr_identifier>());
+			auto const decl = expr.get_expr().get<ast::expr_unary_op>().expr.get_expr().get<ast::expr_identifier>().decl;
+			this->register_move(expr.src_tokens, decl);
+			this->add_self_move_destruction(expr);
+			bz_assert(expr.is_dynamic());
+			expr.get_dynamic().destruct_op.move_destructed_decl = decl;
+		}
+		else
+		{
+			this->add_self_move_destruction(expr);
+		}
 	}
 
 	if (ast::is_trivially_relocatable(type))
@@ -6068,6 +6090,16 @@ ast::expression parse_context::make_default_assignment(lex::src_tokens const &sr
 	{
 		bz_unreachable;
 	}
+}
+
+static ast::expression make_swap_expression(
+	ast::typespec_view type,
+	ast::expression lhs,
+	ast::expression rhs,
+	parse_context &context
+)
+{
+	bz_unreachable;
 }
 
 static ast::expression make_base_type_destruct_expression(

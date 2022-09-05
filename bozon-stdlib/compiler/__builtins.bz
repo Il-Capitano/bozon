@@ -115,6 +115,7 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 			"' in 'function __builtin_inplace_construct'"
 		)));
 	} else {}, void);
+@__builtin export function __builtin_swap(lhs: &auto, rhs: &auto);
 
 @__builtin export function __builtin_is_comptime() -> bool;
 

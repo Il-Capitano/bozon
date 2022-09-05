@@ -53,6 +53,11 @@ struct expr_array_assign;
 struct expr_base_type_assign;
 struct expr_trivial_assign;
 
+struct expr_aggregate_swap;
+struct expr_array_swap;
+struct expr_base_type_swap;
+struct expr_trivial_swap;
+
 struct expr_member_access;
 struct expr_type_member_access;
 struct expr_compound;
@@ -105,6 +110,10 @@ using expr_t = node<
 	expr_base_type_destruct,
 	expr_destruct_value,
 	expr_aggregate_assign,
+	expr_aggregate_swap,
+	expr_array_swap,
+	expr_base_type_swap,
+	expr_trivial_swap,
 	expr_array_assign,
 	expr_base_type_assign,
 	expr_trivial_assign,
@@ -823,6 +832,77 @@ struct expr_trivial_assign
 	{}
 };
 
+struct expr_aggregate_swap
+{
+	expression lhs;
+	expression rhs;
+	arena_vector<expression> swap_exprs;
+
+	expr_aggregate_swap(
+		expression _lhs,
+		expression _rhs,
+		arena_vector<expression> _swap_exprs
+	)
+		: lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs)),
+		  swap_exprs(std::move(_swap_exprs))
+	{}
+};
+
+struct expr_array_swap
+{
+	expression lhs;
+	expression rhs;
+	expression swap_expr;
+
+	expr_array_swap(
+		expression _lhs,
+		expression _rhs,
+		expression _swap_expr
+	)
+		: lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs)),
+		  swap_expr(std::move(_swap_expr))
+	{}
+};
+
+struct expr_base_type_swap
+{
+	expression lhs;
+	expression rhs;
+	expression lhs_move_expr;
+	expression rhs_move_expr;
+	expression temp_move_expr;
+
+	expr_base_type_swap(
+		expression _lhs,
+		expression _rhs,
+		expression _lhs_move_expr,
+		expression _rhs_move_expr,
+		expression _temp_move_expr
+	)
+		: lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs)),
+		  lhs_move_expr(std::move(_lhs_move_expr)),
+		  rhs_move_expr(std::move(_rhs_move_expr)),
+		  temp_move_expr(std::move(_temp_move_expr))
+	{}
+};
+
+struct expr_trivial_swap
+{
+	expression lhs;
+	expression rhs;
+
+	expr_trivial_swap(
+		expression _lhs,
+		expression _rhs
+	)
+		: lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs))
+	{}
+};
+
 struct expr_member_access
 {
 	expression base;
@@ -1143,6 +1223,10 @@ def_make_fn(expr_t, expr_array_destruct)
 def_make_fn(expr_t, expr_base_type_destruct)
 def_make_fn(expr_t, expr_destruct_value)
 def_make_fn(expr_t, expr_aggregate_assign)
+def_make_fn(expr_t, expr_aggregate_swap)
+def_make_fn(expr_t, expr_array_swap)
+def_make_fn(expr_t, expr_base_type_swap)
+def_make_fn(expr_t, expr_trivial_swap)
 def_make_fn(expr_t, expr_array_assign)
 def_make_fn(expr_t, expr_base_type_assign)
 def_make_fn(expr_t, expr_trivial_assign)

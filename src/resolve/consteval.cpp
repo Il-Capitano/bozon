@@ -1859,7 +1859,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->body.is_null());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 139);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 140);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -1928,6 +1928,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 
 	case ast::function_body::builtin_call_destructor:
 	case ast::function_body::builtin_inplace_construct:
+	case ast::function_body::builtin_swap:
 		return {};
 
 	case ast::function_body::builtin_is_comptime:
@@ -3102,6 +3103,18 @@ static ast::constant_value guaranteed_evaluate_expr(
 		[](ast::expr_trivial_assign &) -> ast::constant_value {
 			return {};
 		},
+		[](ast::expr_aggregate_swap &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_array_swap &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_base_type_swap &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_trivial_swap &) -> ast::constant_value {
+			return {};
+		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
 			consteval_guaranteed(member_access_expr.base, context);
 			if (member_access_expr.base.has_consteval_succeeded())
@@ -3545,6 +3558,18 @@ static ast::constant_value try_evaluate_expr(
 			return {};
 		},
 		[](ast::expr_trivial_assign &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_aggregate_swap &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_array_swap &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_base_type_swap &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_trivial_swap &) -> ast::constant_value {
 			return {};
 		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
@@ -3993,6 +4018,18 @@ static ast::constant_value try_evaluate_expr_without_error(
 			return {};
 		},
 		[](ast::expr_trivial_assign &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_aggregate_swap &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_array_swap &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_base_type_swap &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_trivial_swap &) -> ast::constant_value {
 			return {};
 		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
@@ -4722,6 +4759,26 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 		[&expr, &notes](ast::expr_trivial_assign const &) {
 			notes.push_back(ctx::parse_context::make_note(
 				expr.src_tokens, "assignment is not a constant expression"
+			));
+		},
+		[&expr, &notes](ast::expr_aggregate_swap const &) {
+			notes.push_back(ctx::parse_context::make_note(
+				expr.src_tokens, "swapping is not a constant expression"
+			));
+		},
+		[&expr, &notes](ast::expr_array_swap const &) {
+			notes.push_back(ctx::parse_context::make_note(
+				expr.src_tokens, "swapping is not a constant expression"
+			));
+		},
+		[&expr, &notes](ast::expr_base_type_swap const &) {
+			notes.push_back(ctx::parse_context::make_note(
+				expr.src_tokens, "swapping is not a constant expression"
+			));
+		},
+		[&expr, &notes](ast::expr_trivial_swap const &) {
+			notes.push_back(ctx::parse_context::make_note(
+				expr.src_tokens, "swapping is not a constant expression"
 			));
 		},
 		[&notes](ast::expr_member_access const &member_access_expr) {

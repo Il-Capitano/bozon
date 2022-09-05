@@ -2660,7 +2660,11 @@ template<type_match_function_kind kind>
 inline match_function_result_t<kind> generic_type_match(match_context_t<kind> const &match_context)
 {
 	auto &&expr = match_context.expr;
-	if (expr.is_if_expr())
+	if (!expr.is_constant_or_dynamic())
+	{
+		return match_function_result_t<kind>();
+	}
+	else if (expr.is_if_expr())
 	{
 		if constexpr (kind == type_match_function_kind::match_expression)
 		{

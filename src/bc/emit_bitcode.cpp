@@ -826,6 +826,7 @@ static val_ptr emit_bitcode(
 		// this is always a constant expression
 		bz_unreachable;
 	case lex::token::kw_move:
+	case lex::token::kw_unsafe_move:
 		bz_assert(result_address == nullptr);
 		return emit_bitcode<abi>(unary_op.expr, context, result_address);
 
@@ -2448,7 +2449,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 139);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 140);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2675,6 +2676,9 @@ static val_ptr emit_bitcode(
 			emit_bitcode<abi>(func_call.params[1], context, dest_ptr);
 			return val_ptr::get_none();
 		}
+		case ast::function_body::builtin_swap:
+			// this is already handled in src/ctx/parse_context.cpp, in the function make_expr_function_call_from_body
+			bz_unreachable;
 		case ast::function_body::builtin_is_comptime:
 		{
 			auto const result_val = is_comptime<decltype(context)>
@@ -4512,6 +4516,202 @@ static val_ptr emit_bitcode(
 
 	bz_assert(result_address == nullptr);
 	return lhs;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_aggregate_swap const &aggregate_swap,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const lhs = emit_bitcode<abi>(aggregate_swap.lhs, context, nullptr);
+	auto const rhs = emit_bitcode<abi>(aggregate_swap.rhs, context, nullptr);
+	bz_assert(lhs.kind == val_ptr::reference);
+	bz_assert(rhs.kind == val_ptr::reference);
+	auto const lhs_type = lhs.get_type();
+	auto const rhs_type = rhs.get_type();
+	bz_assert(lhs_type->isStructTy());
+	bz_assert(rhs_type->isStructTy());
+
+	for (auto const i : bz::iota(0, aggregate_swap.swap_exprs.size()))
+	{
+		auto const lhs_member_ptr = context.create_struct_gep(lhs_type, lhs.val, i);
+		auto const rhs_member_ptr = context.create_struct_gep(rhs_type, rhs.val, i);
+		auto const lhs_prev_value = context.push_value_reference(val_ptr::get_reference(lhs_member_ptr, lhs_type->getStructElementType(i)));
+		auto const rhs_prev_value = context.push_value_reference(val_ptr::get_reference(rhs_member_ptr, rhs_type->getStructElementType(i)));
+		emit_bitcode<abi>(aggregate_swap.swap_exprs[i], context, nullptr);
+		context.pop_value_reference(rhs_prev_value);
+		context.pop_value_reference(lhs_prev_value);
+	}
+
+	bz_assert(result_address == nullptr);
+	return val_ptr::get_none();
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_array_swap const &array_swap,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const lhs = emit_bitcode<abi>(array_swap.lhs, context, nullptr);
+	auto const rhs = emit_bitcode<abi>(array_swap.rhs, context, nullptr);
+	bz_assert(rhs.kind == val_ptr::reference);
+	bz_assert(lhs.kind == val_ptr::reference);
+	auto const lhs_type = lhs.get_type();
+	auto const rhs_type = rhs.get_type();
+	bz_assert(lhs_type->isArrayTy());
+	bz_assert(rhs_type->isArrayTy());
+	auto const lhs_elem_type = lhs_type->getArrayElementType();
+	auto const rhs_elem_type = rhs_type->getArrayElementType();
+
+	bz_assert(lhs_type->getArrayNumElements() == rhs_type->getArrayNumElements());
+	auto const size = lhs_type->getArrayNumElements();
+
+	if (size <= array_loop_threshold)
+	{
+		for (auto const i : bz::iota(0, size))
+		{
+			auto const lhs_elem_ptr = context.create_struct_gep(lhs_type, lhs.val, i);
+			auto const rhs_elem_ptr = context.create_struct_gep(rhs_type, rhs.val, i);
+			auto const lhs_prev_value = context.push_value_reference(val_ptr::get_reference(lhs_elem_ptr, lhs_elem_type));
+			auto const rhs_prev_value = context.push_value_reference(val_ptr::get_reference(rhs_elem_ptr, rhs_elem_type));
+			emit_bitcode<abi>(array_swap.swap_expr, context, nullptr);
+			context.pop_value_reference(rhs_prev_value);
+			context.pop_value_reference(lhs_prev_value);
+		}
+	}
+	else
+	{
+		auto const loop_info = create_loop_start(size, context);
+
+		auto const lhs_elem_ptr = context.create_array_gep(lhs_type, lhs.val, loop_info.iter_val);
+		auto const rhs_elem_ptr = context.create_array_gep(rhs_type, rhs.val, loop_info.iter_val);
+		auto const lhs_prev_value = context.push_value_reference(val_ptr::get_reference(lhs_elem_ptr, lhs_elem_type));
+		auto const rhs_prev_value = context.push_value_reference(val_ptr::get_reference(rhs_elem_ptr, rhs_elem_type));
+		emit_bitcode<abi>(array_swap.swap_expr, context, nullptr);
+		context.pop_value_reference(rhs_prev_value);
+		context.pop_value_reference(lhs_prev_value);
+
+		create_loop_end(loop_info, context);
+	}
+	bz_assert(result_address == nullptr);
+	return val_ptr::get_none();
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_base_type_swap const &base_type_swap,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const lhs = emit_bitcode<abi>(base_type_swap.lhs, context, nullptr);
+	auto const rhs = emit_bitcode<abi>(base_type_swap.rhs, context, nullptr);
+	bz_assert(lhs.kind == val_ptr::reference);
+	bz_assert(rhs.kind == val_ptr::reference);
+	bz_assert(lhs.get_type() == rhs.get_type());
+	auto const type = lhs.get_type();
+
+	auto const lhs_ptr_int_val = context.builder.CreatePtrToInt(lhs.val, context.get_usize_t());
+	auto const rhs_ptr_int_val = context.builder.CreatePtrToInt(rhs.val, context.get_usize_t());
+	auto const are_equal = context.builder.CreateICmpEQ(lhs_ptr_int_val, rhs_ptr_int_val);
+	auto const ptr_eq_bb = context.add_basic_block("assign_ptr_eq");
+	auto const neq_bb = context.add_basic_block("assign_ptr_neq");
+	context.builder.CreateCondBr(are_equal, ptr_eq_bb, neq_bb);
+	context.builder.SetInsertPoint(neq_bb);
+
+	auto const size = context.get_size(type);
+	auto const temp = val_ptr::get_reference(context.create_alloca_without_lifetime_start(type), type);
+
+	context.start_lifetime(temp.val, size);
+
+	// temp = move lhs
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const prev_value = context.push_value_reference(lhs);
+		emit_bitcode<abi>(base_type_swap.lhs_move_expr, context, temp.val);
+		context.pop_value_reference(prev_value);
+		context.pop_expression_scope(prev_info);
+	}
+	// lhs = move rhs
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const prev_value = context.push_value_reference(rhs);
+		emit_bitcode<abi>(base_type_swap.rhs_move_expr, context, lhs.val);
+		context.pop_value_reference(prev_value);
+		context.pop_expression_scope(prev_info);
+	}
+	// rhs = move temp
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const prev_value = context.push_value_reference(temp);
+		emit_bitcode<abi>(base_type_swap.temp_move_expr, context, rhs.val);
+		context.pop_value_reference(prev_value);
+		context.pop_expression_scope(prev_info);
+	}
+
+	context.end_lifetime(temp.val, size);
+
+	context.builder.CreateBr(ptr_eq_bb);
+	context.builder.SetInsertPoint(ptr_eq_bb);
+
+	bz_assert(result_address == nullptr);
+	return val_ptr::get_none();
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_trivial_swap const &trivial_swap,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const lhs = emit_bitcode<abi>(trivial_swap.lhs, context, nullptr);
+	auto const rhs = emit_bitcode<abi>(trivial_swap.rhs, context, nullptr);
+	bz_assert(lhs.kind == val_ptr::reference);
+	bz_assert(rhs.kind == val_ptr::reference);
+	bz_assert(lhs.get_type() == rhs.get_type());
+	auto const type = lhs.get_type();
+
+	auto const lhs_ptr_int_val = context.builder.CreatePtrToInt(lhs.val, context.get_usize_t());
+	auto const rhs_ptr_int_val = context.builder.CreatePtrToInt(rhs.val, context.get_usize_t());
+	auto const are_equal = context.builder.CreateICmpEQ(lhs_ptr_int_val, rhs_ptr_int_val);
+	auto const ptr_eq_bb = context.add_basic_block("assign_ptr_eq");
+	auto const neq_bb = context.add_basic_block("assign_ptr_neq");
+	context.builder.CreateCondBr(are_equal, ptr_eq_bb, neq_bb);
+	context.builder.SetInsertPoint(neq_bb);
+
+	if (!type->isAggregateType())
+	{
+		auto const lhs_val = lhs.get_value(context.builder);
+		auto const rhs_val = rhs.get_value(context.builder);
+		context.builder.CreateStore(rhs_val, lhs.val);
+		context.builder.CreateStore(lhs_val, rhs.val);
+	}
+	else
+	{
+		auto const size = context.get_size(type);
+		auto const temp = context.create_alloca_without_lifetime_start(type);
+
+		context.start_lifetime(temp, size);
+		emit_memcpy(temp, lhs.val, size, context);
+		emit_memcpy(lhs.val, rhs.val, size, context);
+		emit_memcpy(rhs.val, temp, size, context);
+		context.end_lifetime(temp, size);
+	}
+
+	context.builder.CreateBr(ptr_eq_bb);
+	context.builder.SetInsertPoint(ptr_eq_bb);
+
+	bz_assert(result_address == nullptr);
+	return val_ptr::get_none();
 }
 
 template<abi::platform_abi abi>
