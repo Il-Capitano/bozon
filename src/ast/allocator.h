@@ -34,6 +34,14 @@ struct arena_allocator
 	};
 
 	static constexpr size_t min_alignment = __STDCPP_DEFAULT_NEW_ALIGNMENT__;
+
+#ifdef BOZON_PROFILE_ALLOCATIONS
+
+	static std::size_t get_allocation_count(void);
+	static std::size_t get_deallocation_count(void);
+	static std::size_t get_total_allocation_size(void);
+
+#endif // BOZON_PROFILE_ALLOCATIONS
 };
 
 template<typename T>
