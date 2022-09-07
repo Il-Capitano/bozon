@@ -117,11 +117,11 @@ else.i:                                           ; preds = %bool_and_rhs.else_c
   %bit_or_tmp.i.pre-phi.i = phi i64 [ %.pre.i, %bool_and_rhs.else_crit_edge.i ], [ %bit_or_tmp.i87.i, %bool_or_rhs.split.i ], [ %bit_or_tmp.i87.i, %endif6.i.i ]
   %16 = icmp eq i32 %cast_tmp.i, 0
   %sub_tmp4.i.i = add nsw i32 %cast_tmp.i, -1077
-  %.0451.i.i = select i1 %16, i64 %bit_and_tmp3.i, i64 %bit_or_tmp.i.pre-phi.i
+  %.0460.i.i = select i1 %16, i64 %bit_and_tmp3.i, i64 %bit_or_tmp.i.pre-phi.i
   %.0.i84.i = select i1 %16, i32 -1076, i32 %sub_tmp4.i.i
-  %bit_and_tmp.i.i = and i64 %.0451.i.i, 1
+  %bit_and_tmp.i.i = and i64 %.0460.i.i, 1
   %17 = icmp eq i64 %bit_and_tmp.i.i, 0
-  %mul_tmp.i.i = shl nuw nsw i64 %.0451.i.i, 2
+  %mul_tmp.i.i = shl nuw nsw i64 %.0460.i.i, 2
   %.not.i.i = icmp ne i64 %bit_and_tmp3.i, 0
   %18 = icmp ult i32 %cast_tmp.i, 2
   %bool_or_tmp.i.i = select i1 %.not.i.i, i1 true, i1 %18
@@ -133,7 +133,7 @@ else.i:                                           ; preds = %bool_and_rhs.else_c
   call void @llvm.lifetime.start.p0i8(i64 8, i8* nonnull %20) #7, !noalias !0
   store i64 0, i64* %3, align 8, !noalias !0
   %21 = icmp sgt i32 %.0.i84.i, -1
-  br i1 %21, label %then12.i.i, label %else60.i.i
+  br i1 %21, label %then12.i.i, label %else61.i.i
 
 then12.i.i:                                       ; preds = %else.i
   %mul_tmp.i.i.i = mul nuw nsw i32 %.0.i84.i, 78913
@@ -143,69 +143,69 @@ then12.i.i:                                       ; preds = %else.i
   %sub_tmp16.i.i = add nsw i32 %rshift_tmp.i.i.i, %cast_tmp15.neg.i.i
   %23 = icmp ult i32 %sub_tmp16.i.i, 3529
   tail call void @llvm.assume(i1 %23) #7
-  %mul_tmp.i502.i.i = mul nuw nsw i32 %sub_tmp16.i.i, 1217359
-  %rshift_tmp.i503.i.i = lshr i32 %mul_tmp.i502.i.i, 19
+  %mul_tmp.i511.i.i = mul nuw nsw i32 %sub_tmp16.i.i, 1217359
+  %rshift_tmp.i512.i.i = lshr i32 %mul_tmp.i511.i.i, 19
   %sub_tmp19.i.i = sub nsw i32 125, %.0.i84.i
   %add_tmp22.i.i = add nsw i32 %sub_tmp19.i.i, %sub_tmp16.i.i
-  %add_tmp24.i.i = add nsw i32 %add_tmp22.i.i, %rshift_tmp.i503.i.i
+  %add_tmp24.i.i = add nsw i32 %add_tmp22.i.i, %rshift_tmp.i512.i.i
   %24 = zext i32 %sub_tmp16.i.i to i64
   %25 = getelementptr [342 x [2 x i64]], [342 x [2 x i64]]* @std.ryu.DOUBLE_POW5_INV_SPLIT, i64 0, i64 %24, i64 0
-  %26 = call fastcc i64 @func.std.ryu.mulShiftAll64..6.builtin.uint64.0P.const.builtin.uint64.builtin.uint32.0P.builtin.uint64.0P.builtin.uint64.builtin.uint32.builtin.uint64(i64 %.0451.i.i, i64* %25, i32 %add_tmp24.i.i, i64* nonnull %2, i64* nonnull %3, i32 %cast_tmp.i.i) #7, !noalias !0
+  %26 = call fastcc i64 @func.std.ryu.mulShiftAll64..6.builtin.uint64.0P.const.builtin.uint64.builtin.uint32.0P.builtin.uint64.0P.builtin.uint64.builtin.uint32.builtin.uint64(i64 %.0460.i.i, i64* %25, i32 %add_tmp24.i.i, i64* nonnull %2, i64* nonnull %3, i32 %cast_tmp.i.i) #7, !noalias !0
   %27 = icmp ult i32 %sub_tmp16.i.i, 22
-  br i1 %27, label %then30.i.i, label %endif98.i.i
+  br i1 %27, label %then31.i.i, label %endif100.i.i
 
-then30.i.i:                                       ; preds = %then12.i.i
-  %cast_tmp32.i.i = trunc i64 %mul_tmp.i.i to i32
-  %div_tmp.i519.i.i = udiv i64 %mul_tmp.i.i, 5
-  %cast_tmp34.i.i = trunc i64 %div_tmp.i519.i.i to i32
-  %mul_tmp35.neg.i.i = mul i32 %cast_tmp34.i.i, -5
-  %sub_tmp36.i.i = sub i32 0, %cast_tmp32.i.i
-  %28 = icmp eq i32 %mul_tmp35.neg.i.i, %sub_tmp36.i.i
-  br i1 %28, label %for_condition_check.i.i517.i.i, label %else41.i.i
+then31.i.i:                                       ; preds = %then12.i.i
+  %cast_tmp33.i.i = trunc i64 %mul_tmp.i.i to i32
+  %div_tmp.i528.i.i = udiv i64 %mul_tmp.i.i, 5
+  %cast_tmp35.i.i = trunc i64 %div_tmp.i528.i.i to i32
+  %mul_tmp36.neg.i.i = mul i32 %cast_tmp35.i.i, -5
+  %sub_tmp37.i.i = sub i32 0, %cast_tmp33.i.i
+  %28 = icmp eq i32 %mul_tmp36.neg.i.i, %sub_tmp37.i.i
+  br i1 %28, label %for_condition_check.i.i526.i.i, label %else42.i.i
 
-for_condition_check.i.i517.i.i:                   ; preds = %then30.i.i, %for_condition_check.i.i517.i.i
-  %.020.i.i514.i.i = phi i64 [ %mul_tmp.i.i516.i.i, %for_condition_check.i.i517.i.i ], [ %mul_tmp.i.i, %then30.i.i ]
-  %.0.i.i515.i.i = phi i32 [ %31, %for_condition_check.i.i517.i.i ], [ 0, %then30.i.i ]
-  %29 = icmp ne i64 %.020.i.i514.i.i, 0
+for_condition_check.i.i526.i.i:                   ; preds = %then31.i.i, %for_condition_check.i.i526.i.i
+  %.020.i.i523.i.i = phi i64 [ %mul_tmp.i.i525.i.i, %for_condition_check.i.i526.i.i ], [ %mul_tmp.i.i, %then31.i.i ]
+  %.0.i.i524.i.i = phi i32 [ %31, %for_condition_check.i.i526.i.i ], [ 0, %then31.i.i ]
+  %29 = icmp ne i64 %.020.i.i523.i.i, 0
   tail call void @llvm.assume(i1 %29) #7
-  %mul_tmp.i.i516.i.i = mul i64 %.020.i.i514.i.i, -3689348814741910323
-  %30 = icmp ugt i64 %mul_tmp.i.i516.i.i, 3689348814741910323
-  %31 = add i32 %.0.i.i515.i.i, 1
-  br i1 %30, label %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit518.i.i, label %for_condition_check.i.i517.i.i
+  %mul_tmp.i.i525.i.i = mul i64 %.020.i.i523.i.i, -3689348814741910323
+  %30 = icmp ugt i64 %mul_tmp.i.i525.i.i, 3689348814741910323
+  %31 = add i32 %.0.i.i524.i.i, 1
+  br i1 %30, label %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit527.i.i, label %for_condition_check.i.i526.i.i
 
-func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit518.i.i: ; preds = %for_condition_check.i.i517.i.i
-  %32 = icmp uge i32 %.0.i.i515.i.i, %sub_tmp16.i.i
-  br label %endif98.i.i
+func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit527.i.i: ; preds = %for_condition_check.i.i526.i.i
+  %32 = icmp uge i32 %.0.i.i524.i.i, %sub_tmp16.i.i
+  br label %endif100.i.i
 
-else41.i.i:                                       ; preds = %then30.i.i
-  br i1 %17, label %then43.i.i, label %else50.i.i
+else42.i.i:                                       ; preds = %then31.i.i
+  br i1 %17, label %then44.i.i, label %else51.i.i
 
-then43.i.i:                                       ; preds = %else41.i.i
-  %sub_tmp45.i.i = select i1 %bool_or_tmp.i.i, i64 -2, i64 -1
-  %sub_tmp48.i.i = add nsw i64 %mul_tmp.i.i, %sub_tmp45.i.i
-  br label %for_condition_check.i.i512.i.i
+then44.i.i:                                       ; preds = %else42.i.i
+  %sub_tmp46.i.i = select i1 %bool_or_tmp.i.i, i64 -2, i64 -1
+  %sub_tmp49.i.i = add nsw i64 %mul_tmp.i.i, %sub_tmp46.i.i
+  br label %for_condition_check.i.i521.i.i
 
-for_condition_check.i.i512.i.i:                   ; preds = %for_condition_check.i.i512.i.i, %then43.i.i
-  %.020.i.i509.i.i = phi i64 [ %sub_tmp48.i.i, %then43.i.i ], [ %mul_tmp.i.i511.i.i, %for_condition_check.i.i512.i.i ]
-  %.0.i.i510.i.i = phi i32 [ 0, %then43.i.i ], [ %35, %for_condition_check.i.i512.i.i ]
-  %33 = icmp ne i64 %.020.i.i509.i.i, 0
+for_condition_check.i.i521.i.i:                   ; preds = %for_condition_check.i.i521.i.i, %then44.i.i
+  %.020.i.i518.i.i = phi i64 [ %sub_tmp49.i.i, %then44.i.i ], [ %mul_tmp.i.i520.i.i, %for_condition_check.i.i521.i.i ]
+  %.0.i.i519.i.i = phi i32 [ 0, %then44.i.i ], [ %35, %for_condition_check.i.i521.i.i ]
+  %33 = icmp ne i64 %.020.i.i518.i.i, 0
   tail call void @llvm.assume(i1 %33) #7
-  %mul_tmp.i.i511.i.i = mul i64 %.020.i.i509.i.i, -3689348814741910323
-  %34 = icmp ugt i64 %mul_tmp.i.i511.i.i, 3689348814741910323
-  %35 = add i32 %.0.i.i510.i.i, 1
-  br i1 %34, label %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit513.i.i, label %for_condition_check.i.i512.i.i
+  %mul_tmp.i.i520.i.i = mul i64 %.020.i.i518.i.i, -3689348814741910323
+  %34 = icmp ugt i64 %mul_tmp.i.i520.i.i, 3689348814741910323
+  %35 = add i32 %.0.i.i519.i.i, 1
+  br i1 %34, label %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit522.i.i, label %for_condition_check.i.i521.i.i
 
-func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit513.i.i: ; preds = %for_condition_check.i.i512.i.i
-  %36 = icmp uge i32 %.0.i.i510.i.i, %sub_tmp16.i.i
-  br label %endif98.i.i
+func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit522.i.i: ; preds = %for_condition_check.i.i521.i.i
+  %36 = icmp uge i32 %.0.i.i519.i.i, %sub_tmp16.i.i
+  br label %endif100.i.i
 
-else50.i.i:                                       ; preds = %else41.i.i
-  %add_tmp52.i.i = or i64 %mul_tmp.i.i, 2
+else51.i.i:                                       ; preds = %else42.i.i
+  %add_tmp53.i.i = or i64 %mul_tmp.i.i, 2
   br label %for_condition_check.i.i.i.i
 
-for_condition_check.i.i.i.i:                      ; preds = %for_condition_check.i.i.i.i, %else50.i.i
-  %.020.i.i.i.i = phi i64 [ %add_tmp52.i.i, %else50.i.i ], [ %mul_tmp.i.i.i.i, %for_condition_check.i.i.i.i ]
-  %.0.i.i.i.i = phi i32 [ 0, %else50.i.i ], [ %39, %for_condition_check.i.i.i.i ]
+for_condition_check.i.i.i.i:                      ; preds = %for_condition_check.i.i.i.i, %else51.i.i
+  %.020.i.i.i.i = phi i64 [ %add_tmp53.i.i, %else51.i.i ], [ %mul_tmp.i.i.i.i, %for_condition_check.i.i.i.i ]
+  %.0.i.i.i.i = phi i32 [ 0, %else51.i.i ], [ %39, %for_condition_check.i.i.i.i ]
   %37 = icmp ne i64 %.020.i.i.i.i, 0
   tail call void @llvm.assume(i1 %37) #7
   %mul_tmp.i.i.i.i = mul i64 %.020.i.i.i.i, -3689348814741910323
@@ -215,243 +215,243 @@ for_condition_check.i.i.i.i:                      ; preds = %for_condition_check
 
 func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i: ; preds = %for_condition_check.i.i.i.i
   %40 = icmp uge i32 %.0.i.i.i.i, %sub_tmp16.i.i
-  %cast_tmp54.neg.i.i = sext i1 %40 to i64
-  %load_tmp55.i.i = load i64, i64* %2, align 8, !noalias !0
-  %sub_tmp56.i.i = add i64 %load_tmp55.i.i, %cast_tmp54.neg.i.i
-  store i64 %sub_tmp56.i.i, i64* %2, align 8, !noalias !0
-  br label %endif98.i.i
+  %cast_tmp55.neg.i.i = sext i1 %40 to i64
+  %load_tmp56.i.i = load i64, i64* %2, align 8, !noalias !0
+  %sub_tmp57.i.i = add i64 %load_tmp56.i.i, %cast_tmp55.neg.i.i
+  store i64 %sub_tmp57.i.i, i64* %2, align 8, !noalias !0
+  br label %endif100.i.i
 
-else60.i.i:                                       ; preds = %else.i
-  %mul_tmp.i507.i.i = mul nsw i32 %.0.i84.i, -732923
-  %rshift_tmp.i508.i.i = lshr i32 %mul_tmp.i507.i.i, 20
+else61.i.i:                                       ; preds = %else.i
+  %mul_tmp.i516.i.i = mul nsw i32 %.0.i84.i, -732923
+  %rshift_tmp.i517.i.i = lshr i32 %mul_tmp.i516.i.i, 20
   %41 = icmp ne i32 %.0.i84.i, -1
-  %cast_tmp65.neg.i.i = sext i1 %41 to i32
-  %sub_tmp66.i.i = add nsw i32 %rshift_tmp.i508.i.i, %cast_tmp65.neg.i.i
-  %add_tmp69.i.i = add nsw i32 %sub_tmp66.i.i, %.0.i84.i
-  %sub_tmp73.i.i = sub nsw i32 0, %add_tmp69.i.i
-  %42 = icmp ult i32 %sub_tmp73.i.i, 3529
+  %cast_tmp66.neg.i.i = sext i1 %41 to i32
+  %sub_tmp67.i.i = add nsw i32 %rshift_tmp.i517.i.i, %cast_tmp66.neg.i.i
+  %add_tmp70.i.i = add nsw i32 %sub_tmp67.i.i, %.0.i84.i
+  %sub_tmp74.i.i = sub nsw i32 0, %add_tmp70.i.i
+  %42 = icmp ult i32 %sub_tmp74.i.i, 3529
   tail call void @llvm.assume(i1 %42) #7
-  %mul_tmp.i504.i.i = mul nsw i32 %add_tmp69.i.i, -1217359
-  %rshift_tmp.i505.i.i = lshr i32 %mul_tmp.i504.i.i, 19
-  %sub_tmp75.neg.i.i = add nsw i32 %sub_tmp66.i.i, 124
-  %sub_tmp78.i.i = sub nsw i32 %sub_tmp75.neg.i.i, %rshift_tmp.i505.i.i
-  %43 = zext i32 %sub_tmp73.i.i to i64
+  %mul_tmp.i513.i.i = mul nsw i32 %add_tmp70.i.i, -1217359
+  %rshift_tmp.i514.i.i = lshr i32 %mul_tmp.i513.i.i, 19
+  %sub_tmp76.neg.i.i = add nsw i32 %sub_tmp67.i.i, 124
+  %sub_tmp79.i.i = sub nsw i32 %sub_tmp76.neg.i.i, %rshift_tmp.i514.i.i
+  %43 = zext i32 %sub_tmp74.i.i to i64
   %44 = getelementptr [326 x [2 x i64]], [326 x [2 x i64]]* @std.ryu.DOUBLE_POW5_SPLIT, i64 0, i64 %43, i64 0
-  %45 = call fastcc i64 @func.std.ryu.mulShiftAll64..6.builtin.uint64.0P.const.builtin.uint64.builtin.uint32.0P.builtin.uint64.0P.builtin.uint64.builtin.uint32.builtin.uint64(i64 %.0451.i.i, i64* %44, i32 %sub_tmp78.i.i, i64* nonnull %2, i64* nonnull %3, i32 %cast_tmp.i.i) #7, !noalias !0
-  %46 = icmp ult i32 %sub_tmp66.i.i, 2
-  br i1 %46, label %then84.i.i, label %else91.i.i
+  %45 = call fastcc i64 @func.std.ryu.mulShiftAll64..6.builtin.uint64.0P.const.builtin.uint64.builtin.uint32.0P.builtin.uint64.0P.builtin.uint64.builtin.uint32.builtin.uint64(i64 %.0460.i.i, i64* %44, i32 %sub_tmp79.i.i, i64* nonnull %2, i64* nonnull %3, i32 %cast_tmp.i.i) #7, !noalias !0
+  %46 = icmp ult i32 %sub_tmp67.i.i, 2
+  br i1 %46, label %then86.i.i, label %else93.i.i
 
-then84.i.i:                                       ; preds = %else60.i.i
-  br i1 %17, label %for_condition_check.preheader.i.i, label %else88.i.i
+then86.i.i:                                       ; preds = %else61.i.i
+  br i1 %17, label %for_condition_check.preheader.i.i, label %else90.i.i
 
-else88.i.i:                                       ; preds = %then84.i.i
-  %load_tmp89.i.i = load i64, i64* %2, align 8, !noalias !0
-  %47 = add i64 %load_tmp89.i.i, -1
+else90.i.i:                                       ; preds = %then86.i.i
+  %load_tmp91.i.i = load i64, i64* %2, align 8, !noalias !0
+  %47 = add i64 %load_tmp91.i.i, -1
   store i64 %47, i64* %2, align 8, !noalias !0
   br label %for_condition_check.preheader.i.i
 
-else91.i.i:                                       ; preds = %else60.i.i
-  %48 = icmp ult i32 %sub_tmp66.i.i, 63
-  br i1 %48, label %then93.i.i, label %endif98.i.i
+else93.i.i:                                       ; preds = %else61.i.i
+  %48 = icmp ult i32 %sub_tmp67.i.i, 63
+  br i1 %48, label %then95.i.i, label %endif100.i.i
 
-then93.i.i:                                       ; preds = %else91.i.i
-  %49 = icmp ne i64 %.0451.i.i, 0
+then95.i.i:                                       ; preds = %else93.i.i
+  %49 = icmp ne i64 %.0460.i.i, 0
   tail call void @llvm.assume(i1 %49) #7
-  %50 = zext i32 %sub_tmp66.i.i to i64
+  %50 = zext i32 %sub_tmp67.i.i to i64
   %notmask.i.i.i = shl nsw i64 -1, %50
   %sub_tmp.i.i85.i = xor i64 %notmask.i.i.i, -1
   %bit_and_tmp.i.i.i = and i64 %mul_tmp.i.i, %sub_tmp.i.i85.i
   %51 = icmp eq i64 %bit_and_tmp.i.i.i, 0
-  br label %endif98.i.i
+  br label %endif100.i.i
 
-endif98.i.i:                                      ; preds = %then93.i.i, %else91.i.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit513.i.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit518.i.i, %then12.i.i
-  %.3462.i.i = phi i1 [ false, %then12.i.i ], [ %32, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit518.i.i ], [ false, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit513.i.i ], [ false, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i ], [ %51, %then93.i.i ], [ false, %else91.i.i ]
-  %.3457.i.i = phi i1 [ false, %then12.i.i ], [ false, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit518.i.i ], [ %36, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit513.i.i ], [ false, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i ], [ false, %then93.i.i ], [ false, %else91.i.i ]
-  %.0453.i.i = phi i32 [ %sub_tmp16.i.i, %then12.i.i ], [ %sub_tmp16.i.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit518.i.i ], [ %sub_tmp16.i.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit513.i.i ], [ %sub_tmp16.i.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i ], [ %add_tmp69.i.i, %then93.i.i ], [ %add_tmp69.i.i, %else91.i.i ]
-  %.0452.i.i = phi i64 [ %26, %then12.i.i ], [ %26, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit518.i.i ], [ %26, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit513.i.i ], [ %26, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i ], [ %45, %then93.i.i ], [ %45, %else91.i.i ]
-  %brmerge.i.i = select i1 %.3457.i.i, i1 true, i1 %.3462.i.i
-  br i1 %brmerge.i.i, label %for_condition_check.preheader.i.i, label %else196.i.i
+endif100.i.i:                                     ; preds = %then95.i.i, %else93.i.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit522.i.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit527.i.i, %then12.i.i
+  %.3471.i.i = phi i1 [ false, %then12.i.i ], [ %32, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit527.i.i ], [ false, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit522.i.i ], [ false, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i ], [ %51, %then95.i.i ], [ false, %else93.i.i ]
+  %.3466.i.i = phi i1 [ false, %then12.i.i ], [ false, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit527.i.i ], [ %36, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit522.i.i ], [ false, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i ], [ false, %then95.i.i ], [ false, %else93.i.i ]
+  %.0462.i.i = phi i32 [ %sub_tmp16.i.i, %then12.i.i ], [ %sub_tmp16.i.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit527.i.i ], [ %sub_tmp16.i.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit522.i.i ], [ %sub_tmp16.i.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i ], [ %add_tmp70.i.i, %then95.i.i ], [ %add_tmp70.i.i, %else93.i.i ]
+  %.0461.i.i = phi i64 [ %26, %then12.i.i ], [ %26, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit527.i.i ], [ %26, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit522.i.i ], [ %26, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i ], [ %45, %then95.i.i ], [ %45, %else93.i.i ]
+  %brmerge.i.i = select i1 %.3466.i.i, i1 true, i1 %.3471.i.i
+  br i1 %brmerge.i.i, label %for_condition_check.preheader.i.i, label %else198.i.i
 
-for_condition_check.preheader.i.i:                ; preds = %endif98.i.i, %else88.i.i, %then84.i.i
-  %.0452593.i.i = phi i64 [ %.0452.i.i, %endif98.i.i ], [ %45, %else88.i.i ], [ %45, %then84.i.i ]
-  %.0453592.i.i = phi i32 [ %.0453.i.i, %endif98.i.i ], [ %add_tmp69.i.i, %else88.i.i ], [ %add_tmp69.i.i, %then84.i.i ]
-  %.3457590.i.i = phi i1 [ %.3457.i.i, %endif98.i.i ], [ false, %else88.i.i ], [ %bool_or_tmp.i.i, %then84.i.i ]
-  %.3462589.i.i = phi i1 [ %.3462.i.i, %endif98.i.i ], [ true, %else88.i.i ], [ true, %then84.i.i ]
-  %.promoted540.i.i = load i64, i64* %2, align 8, !noalias !0
-  %.promoted542.i.i = load i64, i64* %3, align 8, !noalias !0
-  %div_tmp.i501544.i.i = udiv i64 %.promoted540.i.i, 10
-  %div_tmp.i500545.i.i = udiv i64 %.promoted542.i.i, 10
-  %.not486546.i.i = icmp ugt i64 %div_tmp.i501544.i.i, %div_tmp.i500545.i.i
-  br i1 %.not486546.i.i, label %endif110.i.i, label %then109.i.i
+for_condition_check.preheader.i.i:                ; preds = %endif100.i.i, %else90.i.i, %then86.i.i
+  %.0461602.i.i = phi i64 [ %.0461.i.i, %endif100.i.i ], [ %45, %else90.i.i ], [ %45, %then86.i.i ]
+  %.0462601.i.i = phi i32 [ %.0462.i.i, %endif100.i.i ], [ %add_tmp70.i.i, %else90.i.i ], [ %add_tmp70.i.i, %then86.i.i ]
+  %.3466599.i.i = phi i1 [ %.3466.i.i, %endif100.i.i ], [ false, %else90.i.i ], [ %bool_or_tmp.i.i, %then86.i.i ]
+  %.3471598.i.i = phi i1 [ %.3471.i.i, %endif100.i.i ], [ true, %else90.i.i ], [ true, %then86.i.i ]
+  %.promoted549.i.i = load i64, i64* %2, align 8, !noalias !0
+  %.promoted551.i.i = load i64, i64* %3, align 8, !noalias !0
+  %div_tmp.i510553.i.i = udiv i64 %.promoted549.i.i, 10
+  %div_tmp.i509554.i.i = udiv i64 %.promoted551.i.i, 10
+  %.not495555.i.i = icmp ugt i64 %div_tmp.i510553.i.i, %div_tmp.i509554.i.i
+  br i1 %.not495555.i.i, label %endif112.i.i, label %then111.i.i
 
-then109.i.i:                                      ; preds = %endif110.i.i, %for_condition_check.preheader.i.i
-  %.promoted.i.i = phi i64 [ %.promoted542.i.i, %for_condition_check.preheader.i.i ], [ %div_tmp.i500554.i.i, %endif110.i.i ]
-  %.0471.lcssa.i.i = phi i8 [ 0, %for_condition_check.preheader.i.i ], [ %sub_tmp123.i.i, %endif110.i.i ]
-  %.0465.lcssa.i.i = phi i32 [ 0, %for_condition_check.preheader.i.i ], [ %54, %endif110.i.i ]
-  %.4463.lcssa.i.i = phi i1 [ %.3462589.i.i, %for_condition_check.preheader.i.i ], [ %bit_and_tmp129.i.i, %endif110.i.i ]
-  %.4458.lcssa.i.i = phi i1 [ %.3457590.i.i, %for_condition_check.preheader.i.i ], [ %bit_and_tmp126.i.i, %endif110.i.i ]
-  %.1.lcssa.i.i = phi i64 [ %.0452593.i.i, %for_condition_check.preheader.i.i ], [ %div_tmp.i499.i.i, %endif110.i.i ]
-  br i1 %.4458.lcssa.i.i, label %for_condition_check138.preheader.i.i, label %endif169.i.i
+then111.i.i:                                      ; preds = %endif112.i.i, %for_condition_check.preheader.i.i
+  %.promoted.i.i = phi i64 [ %.promoted551.i.i, %for_condition_check.preheader.i.i ], [ %div_tmp.i509563.i.i, %endif112.i.i ]
+  %.0480.lcssa.i.i = phi i8 [ 0, %for_condition_check.preheader.i.i ], [ %sub_tmp125.i.i, %endif112.i.i ]
+  %.0474.lcssa.i.i = phi i32 [ 0, %for_condition_check.preheader.i.i ], [ %54, %endif112.i.i ]
+  %.4472.lcssa.i.i = phi i1 [ %.3471598.i.i, %for_condition_check.preheader.i.i ], [ %bit_and_tmp131.i.i, %endif112.i.i ]
+  %.4467.lcssa.i.i = phi i1 [ %.3466599.i.i, %for_condition_check.preheader.i.i ], [ %bit_and_tmp128.i.i, %endif112.i.i ]
+  %.1.lcssa.i.i = phi i64 [ %.0461602.i.i, %for_condition_check.preheader.i.i ], [ %div_tmp.i508.i.i, %endif112.i.i ]
+  br i1 %.4467.lcssa.i.i, label %for_condition_check140.preheader.i.i, label %endif171.i.i
 
-for_condition_check138.preheader.i.i:             ; preds = %then109.i.i
-  %div_tmp.i498523.i.i = udiv i64 %.promoted.i.i, 10
-  %cast_tmp144524.i.i = trunc i64 %.promoted.i.i to i32
-  %cast_tmp146525.i.i = trunc i64 %div_tmp.i498523.i.i to i32
-  %mul_tmp147.neg526.i.i = mul i32 %cast_tmp146525.i.i, -10
-  %sub_tmp148527.i.i = sub i32 0, %cast_tmp144524.i.i
-  %.not487528.i.i = icmp eq i32 %mul_tmp147.neg526.i.i, %sub_tmp148527.i.i
-  br i1 %.not487528.i.i, label %endif151.i.i, label %endif169.i.i
+for_condition_check140.preheader.i.i:             ; preds = %then111.i.i
+  %div_tmp.i507532.i.i = udiv i64 %.promoted.i.i, 10
+  %cast_tmp146533.i.i = trunc i64 %.promoted.i.i to i32
+  %cast_tmp148534.i.i = trunc i64 %div_tmp.i507532.i.i to i32
+  %mul_tmp149.neg535.i.i = mul i32 %cast_tmp148534.i.i, -10
+  %sub_tmp150536.i.i = sub i32 0, %cast_tmp146533.i.i
+  %.not496537.i.i = icmp eq i32 %mul_tmp149.neg535.i.i, %sub_tmp150536.i.i
+  br i1 %.not496537.i.i, label %endif153.i.i, label %endif171.i.i
 
-endif110.i.i:                                     ; preds = %for_condition_check.preheader.i.i, %endif110.i.i
-  %div_tmp.i500554.i.i = phi i64 [ %div_tmp.i500.i.i, %endif110.i.i ], [ %div_tmp.i500545.i.i, %for_condition_check.preheader.i.i ]
-  %div_tmp.i501553.i.i = phi i64 [ %div_tmp.i501.i.i, %endif110.i.i ], [ %div_tmp.i501544.i.i, %for_condition_check.preheader.i.i ]
-  %.1552.i.i = phi i64 [ %div_tmp.i499.i.i, %endif110.i.i ], [ %.0452593.i.i, %for_condition_check.preheader.i.i ]
-  %.4458551.i.i = phi i1 [ %bit_and_tmp126.i.i, %endif110.i.i ], [ %.3457590.i.i, %for_condition_check.preheader.i.i ]
-  %.4463550.i.i = phi i1 [ %bit_and_tmp129.i.i, %endif110.i.i ], [ %.3462589.i.i, %for_condition_check.preheader.i.i ]
-  %.0465549.i.i = phi i32 [ %54, %endif110.i.i ], [ 0, %for_condition_check.preheader.i.i ]
-  %.0471548.i.i = phi i8 [ %sub_tmp123.i.i, %endif110.i.i ], [ 0, %for_condition_check.preheader.i.i ]
-  %div_tmp.i500543547.i.i = phi i64 [ %div_tmp.i500554.i.i, %endif110.i.i ], [ %.promoted542.i.i, %for_condition_check.preheader.i.i ]
-  %cast_tmp112.i.i = trunc i64 %div_tmp.i500543547.i.i to i32
-  %cast_tmp114.i.i = trunc i64 %div_tmp.i500554.i.i to i32
-  %mul_tmp115.neg.i.i = mul i32 %cast_tmp114.i.i, -10
-  %div_tmp.i499.i.i = udiv i64 %.1552.i.i, 10
-  %cast_tmp119.i.i = trunc i64 %.1552.i.i to i8
-  %cast_tmp121.i.i = trunc i64 %div_tmp.i499.i.i to i8
-  %mul_tmp122.neg.i.i = mul i8 %cast_tmp121.i.i, -10
-  %sub_tmp123.i.i = add i8 %mul_tmp122.neg.i.i, %cast_tmp119.i.i
-  %sub_tmp116.i.i = sub i32 0, %cast_tmp112.i.i
-  %52 = icmp eq i32 %mul_tmp115.neg.i.i, %sub_tmp116.i.i
-  %bit_and_tmp126.i.i = and i1 %.4458551.i.i, %52
-  %53 = icmp eq i8 %.0471548.i.i, 0
-  %bit_and_tmp129.i.i = and i1 %.4463550.i.i, %53
-  %54 = add i32 %.0465549.i.i, 1
-  %div_tmp.i501.i.i = udiv i64 %div_tmp.i501553.i.i, 10
-  %div_tmp.i500.i.i = udiv i64 %div_tmp.i500554.i.i, 10
-  %.not486.i.i = icmp ugt i64 %div_tmp.i501.i.i, %div_tmp.i500.i.i
-  br i1 %.not486.i.i, label %endif110.i.i, label %then109.i.i
+endif112.i.i:                                     ; preds = %for_condition_check.preheader.i.i, %endif112.i.i
+  %div_tmp.i509563.i.i = phi i64 [ %div_tmp.i509.i.i, %endif112.i.i ], [ %div_tmp.i509554.i.i, %for_condition_check.preheader.i.i ]
+  %div_tmp.i510562.i.i = phi i64 [ %div_tmp.i510.i.i, %endif112.i.i ], [ %div_tmp.i510553.i.i, %for_condition_check.preheader.i.i ]
+  %.1561.i.i = phi i64 [ %div_tmp.i508.i.i, %endif112.i.i ], [ %.0461602.i.i, %for_condition_check.preheader.i.i ]
+  %.4467560.i.i = phi i1 [ %bit_and_tmp128.i.i, %endif112.i.i ], [ %.3466599.i.i, %for_condition_check.preheader.i.i ]
+  %.4472559.i.i = phi i1 [ %bit_and_tmp131.i.i, %endif112.i.i ], [ %.3471598.i.i, %for_condition_check.preheader.i.i ]
+  %.0474558.i.i = phi i32 [ %54, %endif112.i.i ], [ 0, %for_condition_check.preheader.i.i ]
+  %.0480557.i.i = phi i8 [ %sub_tmp125.i.i, %endif112.i.i ], [ 0, %for_condition_check.preheader.i.i ]
+  %div_tmp.i509552556.i.i = phi i64 [ %div_tmp.i509563.i.i, %endif112.i.i ], [ %.promoted551.i.i, %for_condition_check.preheader.i.i ]
+  %cast_tmp114.i.i = trunc i64 %div_tmp.i509552556.i.i to i32
+  %cast_tmp116.i.i = trunc i64 %div_tmp.i509563.i.i to i32
+  %mul_tmp117.neg.i.i = mul i32 %cast_tmp116.i.i, -10
+  %div_tmp.i508.i.i = udiv i64 %.1561.i.i, 10
+  %cast_tmp121.i.i = trunc i64 %.1561.i.i to i8
+  %cast_tmp123.i.i = trunc i64 %div_tmp.i508.i.i to i8
+  %mul_tmp124.neg.i.i = mul i8 %cast_tmp123.i.i, -10
+  %sub_tmp125.i.i = add i8 %mul_tmp124.neg.i.i, %cast_tmp121.i.i
+  %sub_tmp118.i.i = sub i32 0, %cast_tmp114.i.i
+  %52 = icmp eq i32 %mul_tmp117.neg.i.i, %sub_tmp118.i.i
+  %bit_and_tmp128.i.i = and i1 %.4467560.i.i, %52
+  %53 = icmp eq i8 %.0480557.i.i, 0
+  %bit_and_tmp131.i.i = and i1 %.4472559.i.i, %53
+  %54 = add i32 %.0474558.i.i, 1
+  %div_tmp.i510.i.i = udiv i64 %div_tmp.i510562.i.i, 10
+  %div_tmp.i509.i.i = udiv i64 %div_tmp.i509563.i.i, 10
+  %.not495.i.i = icmp ugt i64 %div_tmp.i510.i.i, %div_tmp.i509.i.i
+  br i1 %.not495.i.i, label %endif112.i.i, label %then111.i.i
 
-endif151.i.i:                                     ; preds = %for_condition_check138.preheader.i.i, %endif151.i.i
-  %div_tmp.i498534.i.i = phi i64 [ %div_tmp.i498.i.i, %endif151.i.i ], [ %div_tmp.i498523.i.i, %for_condition_check138.preheader.i.i ]
-  %.2533.i.i = phi i64 [ %div_tmp.i496.i.i, %endif151.i.i ], [ %.1.lcssa.i.i, %for_condition_check138.preheader.i.i ]
-  %.5464532.i.i = phi i1 [ %bit_and_tmp162.i.i, %endif151.i.i ], [ %.4463.lcssa.i.i, %for_condition_check138.preheader.i.i ]
-  %.1466531.i.i = phi i32 [ %56, %endif151.i.i ], [ %.0465.lcssa.i.i, %for_condition_check138.preheader.i.i ]
-  %.1472530.i.i = phi i8 [ %sub_tmp159.i.i, %endif151.i.i ], [ %.0471.lcssa.i.i, %for_condition_check138.preheader.i.i ]
-  %div_tmp.i496.i.i = udiv i64 %.2533.i.i, 10
-  %cast_tmp155.i.i = trunc i64 %.2533.i.i to i8
-  %cast_tmp157.i.i = trunc i64 %div_tmp.i496.i.i to i8
-  %mul_tmp158.neg.i.i = mul i8 %cast_tmp157.i.i, -10
-  %sub_tmp159.i.i = add i8 %mul_tmp158.neg.i.i, %cast_tmp155.i.i
-  %55 = icmp eq i8 %.1472530.i.i, 0
-  %bit_and_tmp162.i.i = and i1 %.5464532.i.i, %55
-  %56 = add i32 %.1466531.i.i, 1
-  %div_tmp.i498.i.i = udiv i64 %div_tmp.i498534.i.i, 10
-  %cast_tmp144.i.i = trunc i64 %div_tmp.i498534.i.i to i32
-  %cast_tmp146.i.i = trunc i64 %div_tmp.i498.i.i to i32
-  %mul_tmp147.neg.i.i = mul i32 %cast_tmp146.i.i, -10
-  %sub_tmp148.i.i = sub i32 0, %cast_tmp144.i.i
-  %.not487.i.i = icmp eq i32 %mul_tmp147.neg.i.i, %sub_tmp148.i.i
-  br i1 %.not487.i.i, label %endif151.i.i, label %endif169.i.i
+endif153.i.i:                                     ; preds = %for_condition_check140.preheader.i.i, %endif153.i.i
+  %div_tmp.i507543.i.i = phi i64 [ %div_tmp.i507.i.i, %endif153.i.i ], [ %div_tmp.i507532.i.i, %for_condition_check140.preheader.i.i ]
+  %.2542.i.i = phi i64 [ %div_tmp.i505.i.i, %endif153.i.i ], [ %.1.lcssa.i.i, %for_condition_check140.preheader.i.i ]
+  %.5473541.i.i = phi i1 [ %bit_and_tmp164.i.i, %endif153.i.i ], [ %.4472.lcssa.i.i, %for_condition_check140.preheader.i.i ]
+  %.1475540.i.i = phi i32 [ %56, %endif153.i.i ], [ %.0474.lcssa.i.i, %for_condition_check140.preheader.i.i ]
+  %.1481539.i.i = phi i8 [ %sub_tmp161.i.i, %endif153.i.i ], [ %.0480.lcssa.i.i, %for_condition_check140.preheader.i.i ]
+  %div_tmp.i505.i.i = udiv i64 %.2542.i.i, 10
+  %cast_tmp157.i.i = trunc i64 %.2542.i.i to i8
+  %cast_tmp159.i.i = trunc i64 %div_tmp.i505.i.i to i8
+  %mul_tmp160.neg.i.i = mul i8 %cast_tmp159.i.i, -10
+  %sub_tmp161.i.i = add i8 %mul_tmp160.neg.i.i, %cast_tmp157.i.i
+  %55 = icmp eq i8 %.1481539.i.i, 0
+  %bit_and_tmp164.i.i = and i1 %.5473541.i.i, %55
+  %56 = add i32 %.1475540.i.i, 1
+  %div_tmp.i507.i.i = udiv i64 %div_tmp.i507543.i.i, 10
+  %cast_tmp146.i.i = trunc i64 %div_tmp.i507543.i.i to i32
+  %cast_tmp148.i.i = trunc i64 %div_tmp.i507.i.i to i32
+  %mul_tmp149.neg.i.i = mul i32 %cast_tmp148.i.i, -10
+  %sub_tmp150.i.i = sub i32 0, %cast_tmp146.i.i
+  %.not496.i.i = icmp eq i32 %mul_tmp149.neg.i.i, %sub_tmp150.i.i
+  br i1 %.not496.i.i, label %endif153.i.i, label %endif171.i.i
 
-endif169.i.i:                                     ; preds = %endif151.i.i, %for_condition_check138.preheader.i.i, %then109.i.i
-  %load_tmp180.i.i = phi i64 [ %.promoted.i.i, %then109.i.i ], [ %.promoted.i.i, %for_condition_check138.preheader.i.i ], [ %div_tmp.i498534.i.i, %endif151.i.i ]
-  %.2473.i.i = phi i8 [ %.0471.lcssa.i.i, %then109.i.i ], [ %.0471.lcssa.i.i, %for_condition_check138.preheader.i.i ], [ %sub_tmp159.i.i, %endif151.i.i ]
-  %.2467.i.i = phi i32 [ %.0465.lcssa.i.i, %then109.i.i ], [ %.0465.lcssa.i.i, %for_condition_check138.preheader.i.i ], [ %56, %endif151.i.i ]
-  %.6.i.i = phi i1 [ %.4463.lcssa.i.i, %then109.i.i ], [ %.4463.lcssa.i.i, %for_condition_check138.preheader.i.i ], [ %bit_and_tmp162.i.i, %endif151.i.i ]
-  %.3.i.i = phi i64 [ %.1.lcssa.i.i, %then109.i.i ], [ %.1.lcssa.i.i, %for_condition_check138.preheader.i.i ], [ %div_tmp.i496.i.i, %endif151.i.i ]
-  %57 = icmp eq i8 %.2473.i.i, 5
+endif171.i.i:                                     ; preds = %endif153.i.i, %for_condition_check140.preheader.i.i, %then111.i.i
+  %load_tmp182.i.i = phi i64 [ %.promoted.i.i, %then111.i.i ], [ %.promoted.i.i, %for_condition_check140.preheader.i.i ], [ %div_tmp.i507543.i.i, %endif153.i.i ]
+  %.2482.i.i = phi i8 [ %.0480.lcssa.i.i, %then111.i.i ], [ %.0480.lcssa.i.i, %for_condition_check140.preheader.i.i ], [ %sub_tmp161.i.i, %endif153.i.i ]
+  %.2476.i.i = phi i32 [ %.0474.lcssa.i.i, %then111.i.i ], [ %.0474.lcssa.i.i, %for_condition_check140.preheader.i.i ], [ %56, %endif153.i.i ]
+  %.6.i.i = phi i1 [ %.4472.lcssa.i.i, %then111.i.i ], [ %.4472.lcssa.i.i, %for_condition_check140.preheader.i.i ], [ %bit_and_tmp164.i.i, %endif153.i.i ]
+  %.3.i.i = phi i64 [ %.1.lcssa.i.i, %then111.i.i ], [ %.1.lcssa.i.i, %for_condition_check140.preheader.i.i ], [ %div_tmp.i505.i.i, %endif153.i.i ]
+  %57 = icmp eq i8 %.2482.i.i, 5
   %or.cond.i.i = select i1 %.6.i.i, i1 %57, i1 false
   %mod_tmp.i.i = and i64 %.3.i.i, 1
   %58 = icmp eq i64 %mod_tmp.i.i, 0
   %spec.select.i.i = select i1 %58, i8 4, i8 5
-  %.3474.i.i = select i1 %or.cond.i.i, i8 %spec.select.i.i, i8 %.2473.i.i
-  %59 = icmp eq i64 %.3.i.i, %load_tmp180.i.i
-  br i1 %59, label %bool_and_rhs181.i.i, label %bool_or_rhs190.i.i
+  %.3483.i.i = select i1 %or.cond.i.i, i8 %spec.select.i.i, i8 %.2482.i.i
+  %59 = icmp eq i64 %.3.i.i, %load_tmp182.i.i
+  br i1 %59, label %bool_and_rhs183.i.i, label %bool_or_rhs192.i.i
 
-bool_and_rhs181.i.i:                              ; preds = %endif169.i.i
-  %60 = select i1 %17, i1 %.4458.lcssa.i.i, i1 false
-  br i1 %60, label %bool_or_rhs190.i.i, label %bool_or_end192.i.i
+bool_and_rhs183.i.i:                              ; preds = %endif171.i.i
+  %60 = select i1 %17, i1 %.4467.lcssa.i.i, i1 false
+  br i1 %60, label %bool_or_rhs192.i.i, label %bool_or_end194.i.i
 
-bool_or_rhs190.i.i:                               ; preds = %bool_and_rhs181.i.i, %endif169.i.i
-  %61 = icmp ugt i8 %.3474.i.i, 4
+bool_or_rhs192.i.i:                               ; preds = %bool_and_rhs183.i.i, %endif171.i.i
+  %61 = icmp ugt i8 %.3483.i.i, 4
   %phi.cast.i.i = zext i1 %61 to i64
-  br label %bool_or_end192.i.i
+  br label %bool_or_end194.i.i
 
-bool_or_end192.i.i:                               ; preds = %bool_or_rhs190.i.i, %bool_and_rhs181.i.i
-  %bool_or_tmp193.i.i = phi i64 [ %phi.cast.i.i, %bool_or_rhs190.i.i ], [ 1, %bool_and_rhs181.i.i ]
-  %add_tmp195.i.i = add i64 %bool_or_tmp193.i.i, %.3.i.i
+bool_or_end194.i.i:                               ; preds = %bool_or_rhs192.i.i, %bool_and_rhs183.i.i
+  %bool_or_tmp195.i.i = phi i64 [ %phi.cast.i.i, %bool_or_rhs192.i.i ], [ 1, %bool_and_rhs183.i.i ]
+  %add_tmp197.i.i = add i64 %bool_or_tmp195.i.i, %.3.i.i
   br label %"func.std.ryu.d2d..2.builtin.uint64.builtin.uint32.struct.std::ryu::floating_decimal_64.exit.i"
 
-else196.i.i:                                      ; preds = %endif98.i.i
-  %load_tmp197.i.i = load i64, i64* %2, align 8, !noalias !0
-  %div_tmp.i495.i.i = udiv i64 %load_tmp197.i.i, 100
-  %load_tmp198.i.i = load i64, i64* %3, align 8, !noalias !0
-  %div_tmp.i494.i.i = udiv i64 %load_tmp198.i.i, 100
-  %62 = icmp ugt i64 %div_tmp.i495.i.i, %div_tmp.i494.i.i
-  br i1 %62, label %then201.i.i, label %endif215.i.i
+else198.i.i:                                      ; preds = %endif100.i.i
+  %load_tmp199.i.i = load i64, i64* %2, align 8, !noalias !0
+  %div_tmp.i504.i.i = udiv i64 %load_tmp199.i.i, 100
+  %load_tmp200.i.i = load i64, i64* %3, align 8, !noalias !0
+  %div_tmp.i503.i.i = udiv i64 %load_tmp200.i.i, 100
+  %62 = icmp ugt i64 %div_tmp.i504.i.i, %div_tmp.i503.i.i
+  br i1 %62, label %then203.i.i, label %endif217.i.i
 
-then201.i.i:                                      ; preds = %else196.i.i
-  %div_tmp.i493.i.i = udiv i64 %.0452.i.i, 100
-  %cast_tmp204.i.i = trunc i64 %.0452.i.i to i32
-  %cast_tmp206.i.i = trunc i64 %div_tmp.i493.i.i to i32
-  %mul_tmp207.neg.i.i = mul i32 %cast_tmp206.i.i, -100
-  %sub_tmp208.i.i = add i32 %mul_tmp207.neg.i.i, %cast_tmp204.i.i
-  %63 = icmp ugt i32 %sub_tmp208.i.i, 49
-  br label %endif215.i.i
+then203.i.i:                                      ; preds = %else198.i.i
+  %div_tmp.i502.i.i = udiv i64 %.0461.i.i, 100
+  %cast_tmp206.i.i = trunc i64 %.0461.i.i to i32
+  %cast_tmp208.i.i = trunc i64 %div_tmp.i502.i.i to i32
+  %mul_tmp209.neg.i.i = mul i32 %cast_tmp208.i.i, -100
+  %sub_tmp210.i.i = add i32 %mul_tmp209.neg.i.i, %cast_tmp206.i.i
+  %63 = icmp ugt i32 %sub_tmp210.i.i, 49
+  br label %endif217.i.i
 
-endif215.i.i:                                     ; preds = %then201.i.i, %else196.i.i
-  %.promoted564.i.i = phi i64 [ %div_tmp.i494.i.i, %then201.i.i ], [ %load_tmp198.i.i, %else196.i.i ]
-  %.promoted562.i.i = phi i64 [ %div_tmp.i495.i.i, %then201.i.i ], [ %load_tmp197.i.i, %else196.i.i ]
-  %.0476.i.i = phi i1 [ %63, %then201.i.i ], [ false, %else196.i.i ]
-  %.3468.i.i = phi i32 [ 2, %then201.i.i ], [ 0, %else196.i.i ]
-  %.4.i.i = phi i64 [ %div_tmp.i493.i.i, %then201.i.i ], [ %.0452.i.i, %else196.i.i ]
-  %div_tmp.i492566.i.i = udiv i64 %.promoted562.i.i, 10
-  %div_tmp.i491567.i.i = udiv i64 %.promoted564.i.i, 10
-  %.not485568.i.i = icmp ugt i64 %div_tmp.i492566.i.i, %div_tmp.i491567.i.i
-  br i1 %.not485568.i.i, label %endif225.i.i, label %then224.i.i
+endif217.i.i:                                     ; preds = %then203.i.i, %else198.i.i
+  %.promoted573.i.i = phi i64 [ %div_tmp.i503.i.i, %then203.i.i ], [ %load_tmp200.i.i, %else198.i.i ]
+  %.promoted571.i.i = phi i64 [ %div_tmp.i504.i.i, %then203.i.i ], [ %load_tmp199.i.i, %else198.i.i ]
+  %.0485.i.i = phi i1 [ %63, %then203.i.i ], [ false, %else198.i.i ]
+  %.3477.i.i = phi i32 [ 2, %then203.i.i ], [ 0, %else198.i.i ]
+  %.4.i.i = phi i64 [ %div_tmp.i502.i.i, %then203.i.i ], [ %.0461.i.i, %else198.i.i ]
+  %div_tmp.i501575.i.i = udiv i64 %.promoted571.i.i, 10
+  %div_tmp.i500576.i.i = udiv i64 %.promoted573.i.i, 10
+  %.not494577.i.i = icmp ugt i64 %div_tmp.i501575.i.i, %div_tmp.i500576.i.i
+  br i1 %.not494577.i.i, label %endif227.i.i, label %then226.i.i
 
-for_condition_check216.then224_crit_edge.i.i:     ; preds = %endif225.i.i
-  %cast_tmp228.le.i.i = trunc i64 %.5570.i.i to i32
-  %cast_tmp230.le.i.i = trunc i64 %div_tmp.i.i86.i to i32
-  %mul_tmp231.neg.le.i.i = mul i32 %cast_tmp230.le.i.i, -10
-  %sub_tmp232.le.i.i = add i32 %mul_tmp231.neg.le.i.i, %cast_tmp228.le.i.i
-  %64 = icmp ugt i32 %sub_tmp232.le.i.i, 4
-  br label %then224.i.i
+for_condition_check218.then226_crit_edge.i.i:     ; preds = %endif227.i.i
+  %cast_tmp230.le.i.i = trunc i64 %.5579.i.i to i32
+  %cast_tmp232.le.i.i = trunc i64 %div_tmp.i.i86.i to i32
+  %mul_tmp233.neg.le.i.i = mul i32 %cast_tmp232.le.i.i, -10
+  %sub_tmp234.le.i.i = add i32 %mul_tmp233.neg.le.i.i, %cast_tmp230.le.i.i
+  %64 = icmp ugt i32 %sub_tmp234.le.i.i, 4
+  br label %then226.i.i
 
-then224.i.i:                                      ; preds = %for_condition_check216.then224_crit_edge.i.i, %endif215.i.i
-  %div_tmp.i491565.lcssa.i.i = phi i64 [ %div_tmp.i491572.i.i, %for_condition_check216.then224_crit_edge.i.i ], [ %.promoted564.i.i, %endif215.i.i ]
-  %.1477.lcssa.i.i = phi i1 [ %64, %for_condition_check216.then224_crit_edge.i.i ], [ %.0476.i.i, %endif215.i.i ]
-  %.4469.lcssa.i.i = phi i32 [ %66, %for_condition_check216.then224_crit_edge.i.i ], [ %.3468.i.i, %endif215.i.i ]
-  %.5.lcssa.i.i = phi i64 [ %div_tmp.i.i86.i, %for_condition_check216.then224_crit_edge.i.i ], [ %.4.i.i, %endif215.i.i ]
-  %65 = icmp eq i64 %.5.lcssa.i.i, %div_tmp.i491565.lcssa.i.i
-  %spec.select490.i.i = select i1 %65, i1 true, i1 %.1477.lcssa.i.i
-  %cast_tmp245.i.i = zext i1 %spec.select490.i.i to i64
-  %add_tmp246.i.i = add i64 %.5.lcssa.i.i, %cast_tmp245.i.i
+then226.i.i:                                      ; preds = %for_condition_check218.then226_crit_edge.i.i, %endif217.i.i
+  %div_tmp.i500574.lcssa.i.i = phi i64 [ %div_tmp.i500581.i.i, %for_condition_check218.then226_crit_edge.i.i ], [ %.promoted573.i.i, %endif217.i.i ]
+  %.1486.lcssa.i.i = phi i1 [ %64, %for_condition_check218.then226_crit_edge.i.i ], [ %.0485.i.i, %endif217.i.i ]
+  %.4478.lcssa.i.i = phi i32 [ %66, %for_condition_check218.then226_crit_edge.i.i ], [ %.3477.i.i, %endif217.i.i ]
+  %.5.lcssa.i.i = phi i64 [ %div_tmp.i.i86.i, %for_condition_check218.then226_crit_edge.i.i ], [ %.4.i.i, %endif217.i.i ]
+  %65 = icmp eq i64 %.5.lcssa.i.i, %div_tmp.i500574.lcssa.i.i
+  %spec.select499.i.i = select i1 %65, i1 true, i1 %.1486.lcssa.i.i
+  %cast_tmp247.i.i = zext i1 %spec.select499.i.i to i64
+  %add_tmp248.i.i = add i64 %.5.lcssa.i.i, %cast_tmp247.i.i
   br label %"func.std.ryu.d2d..2.builtin.uint64.builtin.uint32.struct.std::ryu::floating_decimal_64.exit.i"
 
-endif225.i.i:                                     ; preds = %endif215.i.i, %endif225.i.i
-  %div_tmp.i491572.i.i = phi i64 [ %div_tmp.i491.i.i, %endif225.i.i ], [ %div_tmp.i491567.i.i, %endif215.i.i ]
-  %div_tmp.i492571.i.i = phi i64 [ %div_tmp.i492.i.i, %endif225.i.i ], [ %div_tmp.i492566.i.i, %endif215.i.i ]
-  %.5570.i.i = phi i64 [ %div_tmp.i.i86.i, %endif225.i.i ], [ %.4.i.i, %endif215.i.i ]
-  %.4469569.i.i = phi i32 [ %66, %endif225.i.i ], [ %.3468.i.i, %endif215.i.i ]
-  %div_tmp.i.i86.i = udiv i64 %.5570.i.i, 10
-  %66 = add i32 %.4469569.i.i, 1
-  %div_tmp.i492.i.i = udiv i64 %div_tmp.i492571.i.i, 10
-  %div_tmp.i491.i.i = udiv i64 %div_tmp.i491572.i.i, 10
-  %.not485.i.i = icmp ugt i64 %div_tmp.i492.i.i, %div_tmp.i491.i.i
-  br i1 %.not485.i.i, label %endif225.i.i, label %for_condition_check216.then224_crit_edge.i.i
+endif227.i.i:                                     ; preds = %endif217.i.i, %endif227.i.i
+  %div_tmp.i500581.i.i = phi i64 [ %div_tmp.i500.i.i, %endif227.i.i ], [ %div_tmp.i500576.i.i, %endif217.i.i ]
+  %div_tmp.i501580.i.i = phi i64 [ %div_tmp.i501.i.i, %endif227.i.i ], [ %div_tmp.i501575.i.i, %endif217.i.i ]
+  %.5579.i.i = phi i64 [ %div_tmp.i.i86.i, %endif227.i.i ], [ %.4.i.i, %endif217.i.i ]
+  %.4478578.i.i = phi i32 [ %66, %endif227.i.i ], [ %.3477.i.i, %endif217.i.i ]
+  %div_tmp.i.i86.i = udiv i64 %.5579.i.i, 10
+  %66 = add i32 %.4478578.i.i, 1
+  %div_tmp.i501.i.i = udiv i64 %div_tmp.i501580.i.i, 10
+  %div_tmp.i500.i.i = udiv i64 %div_tmp.i500581.i.i, 10
+  %.not494.i.i = icmp ugt i64 %div_tmp.i501.i.i, %div_tmp.i500.i.i
+  br i1 %.not494.i.i, label %endif227.i.i, label %for_condition_check218.then226_crit_edge.i.i
 
-"func.std.ryu.d2d..2.builtin.uint64.builtin.uint32.struct.std::ryu::floating_decimal_64.exit.i": ; preds = %then224.i.i, %bool_or_end192.i.i
-  %.0453591.i.i = phi i32 [ %.0453592.i.i, %bool_or_end192.i.i ], [ %.0453.i.i, %then224.i.i ]
-  %.0475.i.i = phi i64 [ %add_tmp195.i.i, %bool_or_end192.i.i ], [ %add_tmp246.i.i, %then224.i.i ]
-  %.5470.i.i = phi i32 [ %.2467.i.i, %bool_or_end192.i.i ], [ %.4469.lcssa.i.i, %then224.i.i ]
-  %add_tmp250.i.i = add i32 %.5470.i.i, %.0453591.i.i
+"func.std.ryu.d2d..2.builtin.uint64.builtin.uint32.struct.std::ryu::floating_decimal_64.exit.i": ; preds = %then226.i.i, %bool_or_end194.i.i
+  %.0462600.i.i = phi i32 [ %.0462601.i.i, %bool_or_end194.i.i ], [ %.0462.i.i, %then226.i.i ]
+  %.0484.i.i = phi i64 [ %add_tmp197.i.i, %bool_or_end194.i.i ], [ %add_tmp248.i.i, %then226.i.i ]
+  %.5479.i.i = phi i32 [ %.2476.i.i, %bool_or_end194.i.i ], [ %.4478.lcssa.i.i, %then226.i.i ]
+  %add_tmp252.i.i = add i32 %.5479.i.i, %.0462600.i.i
   call void @llvm.lifetime.end.p0i8(i64 8, i8* nonnull %20) #7, !noalias !0
   call void @llvm.lifetime.end.p0i8(i64 8, i8* nonnull %19) #7, !noalias !0
   br label %endif35.i
 
 endif35.i:                                        ; preds = %for.i, %"func.std.ryu.d2d..2.builtin.uint64.builtin.uint32.struct.std::ryu::floating_decimal_64.exit.i", %then17.i
-  %.sroa.0106.3.i = phi i64 [ %.0475.i.i, %"func.std.ryu.d2d..2.builtin.uint64.builtin.uint32.struct.std::ryu::floating_decimal_64.exit.i" ], [ %rshift_tmp.i.i, %then17.i ], [ %.078123.i, %for.i ]
-  %.sroa.12.3.i = phi i32 [ %add_tmp250.i.i, %"func.std.ryu.d2d..2.builtin.uint64.builtin.uint32.struct.std::ryu::floating_decimal_64.exit.i" ], [ 0, %then17.i ], [ %14, %for.i ]
+  %.sroa.0106.3.i = phi i64 [ %.0484.i.i, %"func.std.ryu.d2d..2.builtin.uint64.builtin.uint32.struct.std::ryu::floating_decimal_64.exit.i" ], [ %rshift_tmp.i.i, %then17.i ], [ %.078123.i, %for.i ]
+  %.sroa.12.3.i = phi i32 [ %add_tmp252.i.i, %"func.std.ryu.d2d..2.builtin.uint64.builtin.uint32.struct.std::ryu::floating_decimal_64.exit.i" ], [ 0, %then17.i ], [ %14, %for.i ]
   br i1 %5, label %then.i.i, label %endif.i.i
 
 then.i.i:                                         ; preds = %endif35.i
@@ -609,11 +609,11 @@ then.i52.i.i:                                     ; preds = %func.std.ryu.decima
 endif.i55.i.i:                                    ; preds = %then.i52.i.i, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i48.i.i
   %.0.i53.i.i = phi i8* [ %ptr_add_tmp.i51.i.i, %then.i52.i.i ], [ %.0.i.i, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i48.i.i ]
   %.not.i54.i.i = icmp ult i64 %.sroa.0106.3.i, 4294967296
-  br i1 %.not.i54.i.i, label %endif.i55.i.endif68.i.i_crit_edge.i, label %then12.i.i.i
+  br i1 %.not.i54.i.i, label %endif.i55.i.endif72.i.i_crit_edge.i, label %then12.i.i.i
 
-endif.i55.i.endif68.i.i_crit_edge.i:              ; preds = %endif.i55.i.i
+endif.i55.i.endif72.i.i_crit_edge.i:              ; preds = %endif.i55.i.i
   %.pre128.i = trunc i64 %.sroa.0106.3.i to i32
-  br label %endif68.i.i.i
+  br label %endif72.i.i.i
 
 then12.i.i.i:                                     ; preds = %endif.i55.i.i
   %div_tmp.i.i56.i.i = udiv i64 %.sroa.0106.3.i, 100000000
@@ -642,166 +642,166 @@ then12.i.i.i:                                     ; preds = %endif.i55.i.i
   %ptr_add_tmp37.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 %121
   %ptr_sub_tmp39.i.i.i = getelementptr i8, i8* %ptr_add_tmp37.i.i.i, i64 -1
   %122 = zext i16 %117 to i64
-  %ptr_add_tmp41.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %122
-  %123 = bitcast i8* %ptr_add_tmp41.i.i.i to i16*
+  %ptr_add_tmp42.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %122
+  %123 = bitcast i8* %ptr_add_tmp42.i.i.i to i16*
   %124 = bitcast i8* %ptr_sub_tmp39.i.i.i to i16*
   %125 = load i16, i16* %123, align 2
   store i16 %125, i16* %124, align 1
-  %ptr_sub_tmp47.i.i.i = getelementptr i8, i8* %ptr_add_tmp37.i.i.i, i64 -3
+  %ptr_sub_tmp48.i.i.i = getelementptr i8, i8* %ptr_add_tmp37.i.i.i, i64 -3
   %126 = zext i16 %118 to i64
-  %ptr_add_tmp49.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %126
-  %127 = bitcast i8* %ptr_add_tmp49.i.i.i to i16*
-  %128 = bitcast i8* %ptr_sub_tmp47.i.i.i to i16*
+  %ptr_add_tmp51.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %126
+  %127 = bitcast i8* %ptr_add_tmp51.i.i.i to i16*
+  %128 = bitcast i8* %ptr_sub_tmp48.i.i.i to i16*
   %129 = load i16, i16* %127, align 2
   store i16 %129, i16* %128, align 1
-  %ptr_sub_tmp55.i.i.i = getelementptr i8, i8* %ptr_add_tmp37.i.i.i, i64 -5
+  %ptr_sub_tmp57.i.i.i = getelementptr i8, i8* %ptr_add_tmp37.i.i.i, i64 -5
   %130 = zext i16 %119 to i64
-  %ptr_add_tmp57.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %130
-  %131 = bitcast i8* %ptr_add_tmp57.i.i.i to i16*
-  %132 = bitcast i8* %ptr_sub_tmp55.i.i.i to i16*
+  %ptr_add_tmp60.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %130
+  %131 = bitcast i8* %ptr_add_tmp60.i.i.i to i16*
+  %132 = bitcast i8* %ptr_sub_tmp57.i.i.i to i16*
   %133 = load i16, i16* %131, align 2
   store i16 %133, i16* %132, align 1
-  %ptr_sub_tmp63.i.i.i = getelementptr i8, i8* %ptr_add_tmp37.i.i.i, i64 -7
+  %ptr_sub_tmp66.i.i.i = getelementptr i8, i8* %ptr_add_tmp37.i.i.i, i64 -7
   %134 = zext i16 %120 to i64
-  %ptr_add_tmp65.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %134
-  %135 = bitcast i8* %ptr_add_tmp65.i.i.i to i16*
-  %136 = bitcast i8* %ptr_sub_tmp63.i.i.i to i16*
+  %ptr_add_tmp69.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %134
+  %135 = bitcast i8* %ptr_add_tmp69.i.i.i to i16*
+  %136 = bitcast i8* %ptr_sub_tmp66.i.i.i to i16*
   %137 = load i16, i16* %135, align 2
   store i16 %137, i16* %136, align 1
-  br label %endif68.i.i.i
+  br label %endif72.i.i.i
 
-endif68.i.i.i:                                    ; preds = %then12.i.i.i, %endif.i55.i.endif68.i.i_crit_edge.i
-  %cast_tmp70.i.i.pre-phi.i = phi i32 [ %.pre128.i, %endif.i55.i.endif68.i.i_crit_edge.i ], [ %cast_tmp17.i.i.i, %then12.i.i.i ]
-  %.0269.i.i.i = phi i32 [ 0, %endif.i55.i.endif68.i.i_crit_edge.i ], [ 8, %then12.i.i.i ]
-  %138 = icmp ugt i32 %cast_tmp70.i.i.pre-phi.i, 9999
-  br i1 %138, label %while.lr.ph.i60.i.i, label %endwhile.i61.i.i
+endif72.i.i.i:                                    ; preds = %then12.i.i.i, %endif.i55.i.endif72.i.i_crit_edge.i
+  %cast_tmp74.i.i.pre-phi.i = phi i32 [ %.pre128.i, %endif.i55.i.endif72.i.i_crit_edge.i ], [ %cast_tmp17.i.i.i, %then12.i.i.i ]
+  %.0308.i.i.i = phi i32 [ 0, %endif.i55.i.endif72.i.i_crit_edge.i ], [ 8, %then12.i.i.i ]
+  %138 = icmp ugt i32 %cast_tmp74.i.i.pre-phi.i, 9999
+  br i1 %138, label %while.lr.ph.i61.i.i, label %endwhile.i62.i.i
 
-while.lr.ph.i60.i.i:                              ; preds = %endif68.i.i.i
+while.lr.ph.i61.i.i:                              ; preds = %endif72.i.i.i
   %139 = zext i32 %114 to i64
-  %ptr_add_tmp87.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 %139
-  br label %while.i62.i.i
+  %ptr_add_tmp91.i60.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 %139
+  br label %while.i63.i.i
 
-endwhile.i61.i.i:                                 ; preds = %while.i62.i.i, %endif68.i.i.i
-  %.0271.lcssa.i.i.i = phi i32 [ %cast_tmp70.i.i.pre-phi.i, %endif68.i.i.i ], [ %div_tmp74.i.i.i, %while.i62.i.i ]
-  %.1270.lcssa.i.i.i = phi i32 [ %.0269.i.i.i, %endif68.i.i.i ], [ %add_tmp102.i.i.i, %while.i62.i.i ]
-  %140 = icmp ugt i32 %.0271.lcssa.i.i.i, 99
-  br i1 %140, label %then104.i.i.i, label %endif120.i.i.i
+endwhile.i62.i.i:                                 ; preds = %while.i63.i.i, %endif72.i.i.i
+  %.0310.lcssa.i.i.i = phi i32 [ %cast_tmp74.i.i.pre-phi.i, %endif72.i.i.i ], [ %div_tmp78.i.i.i, %while.i63.i.i ]
+  %.1309.lcssa.i.i.i = phi i32 [ %.0308.i.i.i, %endif72.i.i.i ], [ %add_tmp108.i.i.i, %while.i63.i.i ]
+  %140 = icmp ugt i32 %.0310.lcssa.i.i.i, 99
+  br i1 %140, label %then110.i.i.i, label %endif127.i.i.i
 
-while.i62.i.i:                                    ; preds = %while.i62.i.i, %while.lr.ph.i60.i.i
-  %.12709.i.i.i = phi i32 [ %.0269.i.i.i, %while.lr.ph.i60.i.i ], [ %add_tmp102.i.i.i, %while.i62.i.i ]
-  %.02718.i.i.i = phi i32 [ %cast_tmp70.i.i.pre-phi.i, %while.lr.ph.i60.i.i ], [ %div_tmp74.i.i.i, %while.i62.i.i ]
-  %div_tmp74.i.i.i = udiv i32 %.02718.i.i.i, 10000
-  %mul_tmp75.neg.i.i.i = mul i32 %div_tmp74.i.i.i, -10000
-  %sub_tmp76.i.i.i = add i32 %mul_tmp75.neg.i.i.i, %.02718.i.i.i
-  %sub_tmp76.i.i.i.frozen = freeze i32 %sub_tmp76.i.i.i
-  %div_tmp83.i.i.i = udiv i32 %sub_tmp76.i.i.i.frozen, 100
-  %.neg39 = mul i32 %div_tmp83.i.i.i, -100
-  %mod_tmp80.i.i.i.decomposed = add i32 %.neg39, %sub_tmp76.i.i.i.frozen
-  %lshift_tmp81.i.i.i = shl nuw nsw i32 %mod_tmp80.i.i.i.decomposed, 1
-  %lshift_tmp84.i.i.i = shl nuw nsw i32 %div_tmp83.i.i.i, 1
-  %141 = zext i32 %.12709.i.i.i to i64
+while.i63.i.i:                                    ; preds = %while.i63.i.i, %while.lr.ph.i61.i.i
+  %.13099.i.i.i = phi i32 [ %.0308.i.i.i, %while.lr.ph.i61.i.i ], [ %add_tmp108.i.i.i, %while.i63.i.i ]
+  %.03108.i.i.i = phi i32 [ %cast_tmp74.i.i.pre-phi.i, %while.lr.ph.i61.i.i ], [ %div_tmp78.i.i.i, %while.i63.i.i ]
+  %div_tmp78.i.i.i = udiv i32 %.03108.i.i.i, 10000
+  %mul_tmp79.neg.i.i.i = mul i32 %div_tmp78.i.i.i, -10000
+  %sub_tmp80.i.i.i = add i32 %mul_tmp79.neg.i.i.i, %.03108.i.i.i
+  %sub_tmp80.i.i.i.frozen = freeze i32 %sub_tmp80.i.i.i
+  %div_tmp87.i.i.i = udiv i32 %sub_tmp80.i.i.i.frozen, 100
+  %.neg39 = mul i32 %div_tmp87.i.i.i, -100
+  %mod_tmp84.i.i.i.decomposed = add i32 %.neg39, %sub_tmp80.i.i.i.frozen
+  %lshift_tmp85.i.i.i = shl nuw nsw i32 %mod_tmp84.i.i.i.decomposed, 1
+  %lshift_tmp88.i.i.i = shl nuw nsw i32 %div_tmp87.i.i.i, 1
+  %141 = zext i32 %.13099.i.i.i to i64
   %142 = sub nsw i64 0, %141
-  %ptr_sub_tmp89.i.i.i = getelementptr i8, i8* %ptr_add_tmp87.i.i.i, i64 %142
-  %ptr_sub_tmp90.i.i.i = getelementptr i8, i8* %ptr_sub_tmp89.i.i.i, i64 -1
-  %143 = zext i32 %lshift_tmp81.i.i.i to i64
-  %ptr_add_tmp92.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %143
-  %144 = bitcast i8* %ptr_add_tmp92.i.i.i to i16*
-  %145 = bitcast i8* %ptr_sub_tmp90.i.i.i to i16*
+  %ptr_sub_tmp93.i.i.i = getelementptr i8, i8* %ptr_add_tmp91.i60.i.i, i64 %142
+  %ptr_sub_tmp94.i.i.i = getelementptr i8, i8* %ptr_sub_tmp93.i.i.i, i64 -1
+  %143 = zext i32 %lshift_tmp85.i.i.i to i64
+  %ptr_add_tmp97.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %143
+  %144 = bitcast i8* %ptr_add_tmp97.i.i.i to i16*
+  %145 = bitcast i8* %ptr_sub_tmp94.i.i.i to i16*
   %146 = load i16, i16* %144, align 2
   store i16 %146, i16* %145, align 1
-  %ptr_sub_tmp98.i.i.i = getelementptr i8, i8* %ptr_sub_tmp89.i.i.i, i64 -3
-  %147 = zext i32 %lshift_tmp84.i.i.i to i64
-  %ptr_add_tmp100.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %147
-  %148 = bitcast i8* %ptr_add_tmp100.i.i.i to i16*
-  %149 = bitcast i8* %ptr_sub_tmp98.i.i.i to i16*
+  %ptr_sub_tmp103.i.i.i = getelementptr i8, i8* %ptr_sub_tmp93.i.i.i, i64 -3
+  %147 = zext i32 %lshift_tmp88.i.i.i to i64
+  %ptr_add_tmp106.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %147
+  %148 = bitcast i8* %ptr_add_tmp106.i.i.i to i16*
+  %149 = bitcast i8* %ptr_sub_tmp103.i.i.i to i16*
   %150 = load i16, i16* %148, align 2
   store i16 %150, i16* %149, align 1
-  %add_tmp102.i.i.i = add i32 %.12709.i.i.i, 4
-  %151 = icmp ugt i32 %.02718.i.i.i, 99999999
-  br i1 %151, label %while.i62.i.i, label %endwhile.i61.i.i
+  %add_tmp108.i.i.i = add i32 %.13099.i.i.i, 4
+  %151 = icmp ugt i32 %.03108.i.i.i, 99999999
+  br i1 %151, label %while.i63.i.i, label %endwhile.i62.i.i
 
-then104.i.i.i:                                    ; preds = %endwhile.i61.i.i
-  %.0271.lcssa.i.i.i.fr = freeze i32 %.0271.lcssa.i.i.i
-  %mod_tmp106.lhs.trunc.i.i.i = trunc i32 %.0271.lcssa.i.i.i.fr to i16
-  %div_tmp1092.i.i.i = udiv i16 %mod_tmp106.lhs.trunc.i.i.i, 100
-  %.neg38 = mul i16 %div_tmp1092.i.i.i, -100
-  %mod_tmp1061.i.i.i.decomposed = add i16 %.neg38, %mod_tmp106.lhs.trunc.i.i.i
-  %152 = shl nuw nsw i16 %mod_tmp1061.i.i.i.decomposed, 1
-  %div_tmp109.zext.i.i.i = zext i16 %div_tmp1092.i.i.i to i32
+then110.i.i.i:                                    ; preds = %endwhile.i62.i.i
+  %.0310.lcssa.i.i.i.fr = freeze i32 %.0310.lcssa.i.i.i
+  %mod_tmp112.lhs.trunc.i.i.i = trunc i32 %.0310.lcssa.i.i.i.fr to i16
+  %div_tmp1152.i.i.i = udiv i16 %mod_tmp112.lhs.trunc.i.i.i, 100
+  %.neg38 = mul i16 %div_tmp1152.i.i.i, -100
+  %mod_tmp1121.i.i.i.decomposed = add i16 %.neg38, %mod_tmp112.lhs.trunc.i.i.i
+  %152 = shl nuw nsw i16 %mod_tmp1121.i.i.i.decomposed, 1
+  %div_tmp115.zext.i.i.i = zext i16 %div_tmp1152.i.i.i to i32
   %153 = zext i32 %114 to i64
-  %ptr_add_tmp112.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 %153
-  %154 = zext i32 %.1270.lcssa.i.i.i to i64
+  %ptr_add_tmp118.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 %153
+  %154 = zext i32 %.1309.lcssa.i.i.i to i64
   %155 = sub nsw i64 0, %154
-  %ptr_sub_tmp114.i.i.i = getelementptr i8, i8* %ptr_add_tmp112.i.i.i, i64 %155
-  %ptr_sub_tmp115.i.i.i = getelementptr i8, i8* %ptr_sub_tmp114.i.i.i, i64 -1
+  %ptr_sub_tmp120.i.i.i = getelementptr i8, i8* %ptr_add_tmp118.i.i.i, i64 %155
+  %ptr_sub_tmp121.i.i.i = getelementptr i8, i8* %ptr_sub_tmp120.i.i.i, i64 -1
   %156 = zext i16 %152 to i64
-  %ptr_add_tmp117.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %156
-  %157 = bitcast i8* %ptr_add_tmp117.i.i.i to i16*
-  %158 = bitcast i8* %ptr_sub_tmp115.i.i.i to i16*
+  %ptr_add_tmp124.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %156
+  %157 = bitcast i8* %ptr_add_tmp124.i.i.i to i16*
+  %158 = bitcast i8* %ptr_sub_tmp121.i.i.i to i16*
   %159 = load i16, i16* %157, align 2
   store i16 %159, i16* %158, align 1
-  br label %endif120.i.i.i
+  br label %endif127.i.i.i
 
-endif120.i.i.i:                                   ; preds = %then104.i.i.i, %endwhile.i61.i.i
-  %.1272.i.i.i = phi i32 [ %div_tmp109.zext.i.i.i, %then104.i.i.i ], [ %.0271.lcssa.i.i.i, %endwhile.i61.i.i ]
-  %160 = icmp ugt i32 %.1272.i.i.i, 9
-  br i1 %160, label %then122.i.i.i, label %else.i64.i.i
+endif127.i.i.i:                                   ; preds = %then110.i.i.i, %endwhile.i62.i.i
+  %.1311.i.i.i = phi i32 [ %div_tmp115.zext.i.i.i, %then110.i.i.i ], [ %.0310.lcssa.i.i.i, %endwhile.i62.i.i ]
+  %160 = icmp ugt i32 %.1311.i.i.i, 9
+  br i1 %160, label %then129.i.i.i, label %else.i65.i.i
 
-then122.i.i.i:                                    ; preds = %endif120.i.i.i
-  %lshift_tmp124.i.i.i = shl nuw nsw i32 %.1272.i.i.i, 1
-  %ptr_add_tmp126.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 1
-  %161 = zext i32 %lshift_tmp124.i.i.i to i64
-  %ptr_add_tmp128.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %161
-  %162 = bitcast i8* %ptr_add_tmp128.i.i.i to i16*
-  %163 = bitcast i8* %ptr_add_tmp126.i.i.i to i16*
+then129.i.i.i:                                    ; preds = %endif127.i.i.i
+  %lshift_tmp131.i.i.i = shl nuw nsw i32 %.1311.i.i.i, 1
+  %ptr_add_tmp133.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 1
+  %161 = zext i32 %lshift_tmp131.i.i.i to i64
+  %ptr_add_tmp136.i64.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %161
+  %162 = bitcast i8* %ptr_add_tmp136.i64.i.i to i16*
+  %163 = bitcast i8* %ptr_add_tmp133.i.i.i to i16*
   %164 = load i16, i16* %162, align 2
   store i16 %164, i16* %163, align 1
-  br label %endif134.i.i.i
+  br label %endif142.i.i.i
 
-else.i64.i.i:                                     ; preds = %endif120.i.i.i
-  %165 = trunc i32 %.1272.i.i.i to i8
-  %cast_tmp131.i.i.i = add nuw nsw i8 %165, 48
-  %ptr_add_tmp133.i63.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 1
-  store i8 %cast_tmp131.i.i.i, i8* %ptr_add_tmp133.i63.i.i, align 1
-  br label %endif134.i.i.i
+else.i65.i.i:                                     ; preds = %endif127.i.i.i
+  %165 = trunc i32 %.1311.i.i.i to i8
+  %cast_tmp139.i.i.i = add nuw nsw i8 %165, 48
+  %ptr_add_tmp141.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 1
+  store i8 %cast_tmp139.i.i.i, i8* %ptr_add_tmp141.i.i.i, align 1
+  br label %endif142.i.i.i
 
-endif134.i.i.i:                                   ; preds = %else.i64.i.i, %then122.i.i.i
+endif142.i.i.i:                                   ; preds = %else.i65.i.i, %then129.i.i.i
   %166 = icmp sgt i32 %.sroa.12.3.i, -1
-  br i1 %166, label %then136.i.i.i, label %endif143.i.i.i
+  br i1 %166, label %then144.i.i.i, label %endif151.i.i.i
 
-then136.i.i.i:                                    ; preds = %endif134.i.i.i
+then144.i.i.i:                                    ; preds = %endif142.i.i.i
   %167 = zext i32 %114 to i64
-  %ptr_add_tmp139.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 %167
-  %ptr_add_tmp140.i.i.i = getelementptr i8, i8* %ptr_add_tmp139.i.i.i, i64 1
-  %cast_tmp1423.i.i.i = zext i32 %.sroa.12.3.i to i64
-  tail call void @llvm.memset.p0i8.i64(i8* align 1 %ptr_add_tmp140.i.i.i, i8 48, i64 %cast_tmp1423.i.i.i, i1 false) #7
-  br label %endif143.i.i.i
+  %ptr_add_tmp147.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 %167
+  %ptr_add_tmp148.i.i.i = getelementptr i8, i8* %ptr_add_tmp147.i.i.i, i64 1
+  %cast_tmp1503.i.i.i = zext i32 %.sroa.12.3.i to i64
+  tail call void @llvm.memset.p0i8.i64(i8* align 1 %ptr_add_tmp148.i.i.i, i8 48, i64 %cast_tmp1503.i.i.i, i1 false) #7
+  br label %endif151.i.i.i
 
-endif143.i.i.i:                                   ; preds = %then136.i.i.i, %endif134.i.i.i
+endif151.i.i.i:                                   ; preds = %then144.i.i.i, %endif142.i.i.i
   %168 = icmp sgt i32 %add_tmp.i.i.i, -1
-  br i1 %168, label %then145.i.i.i, label %endif156.i.i.i
+  br i1 %168, label %then153.i.i.i, label %endif164.i.i.i
 
-then145.i.i.i:                                    ; preds = %endif143.i.i.i
-  %ptr_add_tmp148.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 1
-  %cast_tmp151.i.i.i = sext i32 %sub_tmp.i47.i.i to i64
-  tail call void @llvm.memmove.p0i8.p0i8.i64(i8* nonnull align 1 %.0.i53.i.i, i8* align 1 %ptr_add_tmp148.i.i.i, i64 %cast_tmp151.i.i.i, i1 false) #7
+then153.i.i.i:                                    ; preds = %endif151.i.i.i
+  %ptr_add_tmp156.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 1
+  %cast_tmp159.i.i.i = sext i32 %sub_tmp.i47.i.i to i64
+  tail call void @llvm.memmove.p0i8.p0i8.i64(i8* nonnull align 1 %.0.i53.i.i, i8* align 1 %ptr_add_tmp156.i.i.i, i64 %cast_tmp159.i.i.i, i1 false) #7
   %169 = zext i32 %add_tmp.i.i.i to i64
-  %ptr_add_tmp154.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 %169
-  %ptr_add_tmp155.i.i.i = getelementptr i8, i8* %ptr_add_tmp154.i.i.i, i64 1
-  store i8 46, i8* %ptr_add_tmp155.i.i.i, align 1
-  br label %endif156.i.i.i
+  %ptr_add_tmp162.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 %169
+  %ptr_add_tmp163.i.i.i = getelementptr i8, i8* %ptr_add_tmp162.i.i.i, i64 1
+  store i8 46, i8* %ptr_add_tmp163.i.i.i, align 1
+  br label %endif164.i.i.i
 
-endif156.i.i.i:                                   ; preds = %then145.i.i.i, %endif143.i.i.i
-  %add_tmp158.i.i.i = add i32 %114, 1
-  %170 = zext i32 %add_tmp158.i.i.i to i64
-  %ptr_add_tmp160.i65.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 %170
-  br i1 %166, label %then162.i.i.i, label %func.std.ryu.d2s_shortest..2.builtin.float64.0P.builtin.uint8.0P.builtin.uint8.exit
+endif164.i.i.i:                                   ; preds = %then153.i.i.i, %endif151.i.i.i
+  %add_tmp166.i.i.i = add i32 %114, 1
+  %170 = zext i32 %add_tmp166.i.i.i to i64
+  %ptr_add_tmp168.i66.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 %170
+  br i1 %166, label %then170.i.i.i, label %func.std.ryu.d2s_shortest..2.builtin.float64.0P.builtin.uint8.0P.builtin.uint8.exit
 
-then162.i.i.i:                                    ; preds = %endif156.i.i.i
+then170.i.i.i:                                    ; preds = %endif164.i.i.i
   %171 = zext i32 %.sroa.12.3.i to i64
-  %ptr_add_tmp165.i66.i.i = getelementptr i8, i8* %ptr_add_tmp160.i65.i.i, i64 %171
-  store i8 48, i8* %ptr_add_tmp165.i66.i.i, align 1
-  %172 = getelementptr i8, i8* %ptr_add_tmp165.i66.i.i, i64 1
+  %ptr_add_tmp173.i67.i.i = getelementptr i8, i8* %ptr_add_tmp168.i66.i.i, i64 %171
+  store i8 48, i8* %ptr_add_tmp173.i67.i.i, align 1
+  %172 = getelementptr i8, i8* %ptr_add_tmp173.i67.i.i, i64 1
   br label %func.std.ryu.d2s_shortest..2.builtin.float64.0P.builtin.uint8.0P.builtin.uint8.exit
 
 func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.i: ; preds = %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread48
@@ -836,210 +836,210 @@ then.i.i.i:                                       ; preds = %func.std.ryu.decima
   %ptr_add_tmp.i.i.i = getelementptr i8, i8* %.0.i.i, i64 %178
   %ptr_sub_tmp26.i.i.i = getelementptr i8, i8* %ptr_add_tmp.i.i.i, i64 -1
   %179 = zext i16 %174 to i64
-  %ptr_add_tmp28.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %179
-  %180 = bitcast i8* %ptr_add_tmp28.i.i.i to i16*
+  %ptr_add_tmp29.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %179
+  %180 = bitcast i8* %ptr_add_tmp29.i.i.i to i16*
   %181 = bitcast i8* %ptr_sub_tmp26.i.i.i to i16*
   %182 = load i16, i16* %180, align 2
   store i16 %182, i16* %181, align 1
-  %ptr_sub_tmp34.i.i.i = getelementptr i8, i8* %ptr_add_tmp.i.i.i, i64 -3
+  %ptr_sub_tmp35.i.i.i = getelementptr i8, i8* %ptr_add_tmp.i.i.i, i64 -3
   %183 = zext i16 %175 to i64
-  %ptr_add_tmp36.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %183
-  %184 = bitcast i8* %ptr_add_tmp36.i.i.i to i16*
-  %185 = bitcast i8* %ptr_sub_tmp34.i.i.i to i16*
+  %ptr_add_tmp38.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %183
+  %184 = bitcast i8* %ptr_add_tmp38.i.i.i to i16*
+  %185 = bitcast i8* %ptr_sub_tmp35.i.i.i to i16*
   %186 = load i16, i16* %184, align 2
   store i16 %186, i16* %185, align 1
-  %ptr_sub_tmp42.i.i.i = getelementptr i8, i8* %ptr_add_tmp.i.i.i, i64 -5
+  %ptr_sub_tmp44.i.i.i = getelementptr i8, i8* %ptr_add_tmp.i.i.i, i64 -5
   %187 = zext i16 %176 to i64
-  %ptr_add_tmp44.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %187
-  %188 = bitcast i8* %ptr_add_tmp44.i.i.i to i16*
-  %189 = bitcast i8* %ptr_sub_tmp42.i.i.i to i16*
+  %ptr_add_tmp47.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %187
+  %188 = bitcast i8* %ptr_add_tmp47.i.i.i to i16*
+  %189 = bitcast i8* %ptr_sub_tmp44.i.i.i to i16*
   %190 = load i16, i16* %188, align 2
   store i16 %190, i16* %189, align 1
-  %ptr_sub_tmp50.i.i.i = getelementptr i8, i8* %ptr_add_tmp.i.i.i, i64 -7
+  %ptr_sub_tmp53.i.i.i = getelementptr i8, i8* %ptr_add_tmp.i.i.i, i64 -7
   %191 = zext i16 %177 to i64
-  %ptr_add_tmp52.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %191
-  %192 = bitcast i8* %ptr_add_tmp52.i.i.i to i16*
-  %193 = bitcast i8* %ptr_sub_tmp50.i.i.i to i16*
+  %ptr_add_tmp56.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %191
+  %192 = bitcast i8* %ptr_add_tmp56.i.i.i to i16*
+  %193 = bitcast i8* %ptr_sub_tmp53.i.i.i to i16*
   %194 = load i16, i16* %192, align 2
   store i16 %194, i16* %193, align 1
   br label %endif.i.i.i
 
 endif.i.i.i:                                      ; preds = %else37.i.i.i, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread118, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread100, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread92, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread74, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread66, %then.i.i.i, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.i
   %195 = phi i32 [ %173, %then.i.i.i ], [ 10, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.i ], [ 9, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread66 ], [ 8, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread74 ], [ 7, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread92 ], [ 6, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread100 ], [ 5, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread118 ], [ %86, %else37.i.i.i ]
-  %.0281.i.i.i = phi i32 [ 8, %then.i.i.i ], [ 0, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.i ], [ 0, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread66 ], [ 0, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread74 ], [ 0, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread92 ], [ 0, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread100 ], [ 0, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread118 ], [ 0, %else37.i.i.i ]
-  %.0280.i.i.i = phi i64 [ %div_tmp.i.i.i.i, %then.i.i.i ], [ %.sroa.0106.3.i, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.i ], [ %.sroa.0106.3.i, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread66 ], [ %.sroa.0106.3.i, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread74 ], [ %.sroa.0106.3.i, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread92 ], [ %.sroa.0106.3.i, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread100 ], [ %.sroa.0106.3.i, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread118 ], [ %.sroa.0106.3.i, %else37.i.i.i ]
-  %cast_tmp55.i.i.i = trunc i64 %.0280.i.i.i to i32
-  %196 = icmp ugt i32 %cast_tmp55.i.i.i, 9999
+  %.0323.i.i.i = phi i32 [ 8, %then.i.i.i ], [ 0, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.i ], [ 0, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread66 ], [ 0, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread74 ], [ 0, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread92 ], [ 0, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread100 ], [ 0, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread118 ], [ 0, %else37.i.i.i ]
+  %.0322.i.i.i = phi i64 [ %div_tmp.i.i.i.i, %then.i.i.i ], [ %.sroa.0106.3.i, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.i ], [ %.sroa.0106.3.i, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread66 ], [ %.sroa.0106.3.i, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread74 ], [ %.sroa.0106.3.i, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread92 ], [ %.sroa.0106.3.i, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread100 ], [ %.sroa.0106.3.i, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i.thread118 ], [ %.sroa.0106.3.i, %else37.i.i.i ]
+  %cast_tmp59.i.i.i = trunc i64 %.0322.i.i.i to i32
+  %196 = icmp ugt i32 %cast_tmp59.i.i.i, 9999
   br i1 %196, label %while.lr.ph.i.i.i, label %endwhile.i.i.i
 
 while.lr.ph.i.i.i:                                ; preds = %endif.i.i.i
   %197 = zext i32 %195 to i64
-  %ptr_add_tmp72.i.i.i = getelementptr i8, i8* %.0.i.i, i64 %197
+  %ptr_add_tmp76.i.i.i = getelementptr i8, i8* %.0.i.i, i64 %197
   br label %while.i.i.i
 
 endwhile.i.i.i:                                   ; preds = %while.i.i.i, %endif.i.i.i
-  %.0284.lcssa.i.i.i = phi i32 [ %cast_tmp55.i.i.i, %endif.i.i.i ], [ %div_tmp59.i.i.i, %while.i.i.i ]
-  %.1282.lcssa.i.i.i = phi i32 [ %.0281.i.i.i, %endif.i.i.i ], [ %add_tmp87.i.i.i, %while.i.i.i ]
-  %198 = icmp ugt i32 %.0284.lcssa.i.i.i, 99
-  br i1 %198, label %then89.i.i.i, label %endif105.i.i.i
+  %.0326.lcssa.i.i.i = phi i32 [ %cast_tmp59.i.i.i, %endif.i.i.i ], [ %div_tmp63.i.i.i, %while.i.i.i ]
+  %.1324.lcssa.i.i.i = phi i32 [ %.0323.i.i.i, %endif.i.i.i ], [ %add_tmp93.i.i.i, %while.i.i.i ]
+  %198 = icmp ugt i32 %.0326.lcssa.i.i.i, 99
+  br i1 %198, label %then95.i.i.i, label %endif112.i.i.i
 
 while.i.i.i:                                      ; preds = %while.i.i.i, %while.lr.ph.i.i.i
-  %.128215.i.i.i = phi i32 [ %.0281.i.i.i, %while.lr.ph.i.i.i ], [ %add_tmp87.i.i.i, %while.i.i.i ]
-  %.028414.i.i.i = phi i32 [ %cast_tmp55.i.i.i, %while.lr.ph.i.i.i ], [ %div_tmp59.i.i.i, %while.i.i.i ]
-  %div_tmp59.i.i.i = udiv i32 %.028414.i.i.i, 10000
-  %mul_tmp60.neg.i.i.i = mul i32 %div_tmp59.i.i.i, -10000
-  %sub_tmp61.i.i.i = add i32 %mul_tmp60.neg.i.i.i, %.028414.i.i.i
-  %sub_tmp61.i.i.i.frozen = freeze i32 %sub_tmp61.i.i.i
-  %div_tmp68.i.i.i = udiv i32 %sub_tmp61.i.i.i.frozen, 100
-  %.neg31 = mul i32 %div_tmp68.i.i.i, -100
-  %mod_tmp65.i.i.i.decomposed = add i32 %.neg31, %sub_tmp61.i.i.i.frozen
-  %lshift_tmp66.i.i.i = shl nuw nsw i32 %mod_tmp65.i.i.i.decomposed, 1
-  %lshift_tmp69.i.i.i = shl nuw nsw i32 %div_tmp68.i.i.i, 1
-  %199 = zext i32 %.128215.i.i.i to i64
+  %.132415.i.i.i = phi i32 [ %.0323.i.i.i, %while.lr.ph.i.i.i ], [ %add_tmp93.i.i.i, %while.i.i.i ]
+  %.032614.i.i.i = phi i32 [ %cast_tmp59.i.i.i, %while.lr.ph.i.i.i ], [ %div_tmp63.i.i.i, %while.i.i.i ]
+  %div_tmp63.i.i.i = udiv i32 %.032614.i.i.i, 10000
+  %mul_tmp64.neg.i.i.i = mul i32 %div_tmp63.i.i.i, -10000
+  %sub_tmp65.i.i.i = add i32 %mul_tmp64.neg.i.i.i, %.032614.i.i.i
+  %sub_tmp65.i.i.i.frozen = freeze i32 %sub_tmp65.i.i.i
+  %div_tmp72.i.i.i = udiv i32 %sub_tmp65.i.i.i.frozen, 100
+  %.neg31 = mul i32 %div_tmp72.i.i.i, -100
+  %mod_tmp69.i.i.i.decomposed = add i32 %.neg31, %sub_tmp65.i.i.i.frozen
+  %lshift_tmp70.i.i.i = shl nuw nsw i32 %mod_tmp69.i.i.i.decomposed, 1
+  %lshift_tmp73.i.i.i = shl nuw nsw i32 %div_tmp72.i.i.i, 1
+  %199 = zext i32 %.132415.i.i.i to i64
   %200 = sub nsw i64 0, %199
-  %ptr_sub_tmp74.i.i.i = getelementptr i8, i8* %ptr_add_tmp72.i.i.i, i64 %200
-  %ptr_sub_tmp75.i.i.i = getelementptr i8, i8* %ptr_sub_tmp74.i.i.i, i64 -1
-  %201 = zext i32 %lshift_tmp66.i.i.i to i64
-  %ptr_add_tmp77.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %201
-  %202 = bitcast i8* %ptr_add_tmp77.i.i.i to i16*
-  %203 = bitcast i8* %ptr_sub_tmp75.i.i.i to i16*
+  %ptr_sub_tmp78.i.i.i = getelementptr i8, i8* %ptr_add_tmp76.i.i.i, i64 %200
+  %ptr_sub_tmp79.i.i.i = getelementptr i8, i8* %ptr_sub_tmp78.i.i.i, i64 -1
+  %201 = zext i32 %lshift_tmp70.i.i.i to i64
+  %ptr_add_tmp82.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %201
+  %202 = bitcast i8* %ptr_add_tmp82.i.i.i to i16*
+  %203 = bitcast i8* %ptr_sub_tmp79.i.i.i to i16*
   %204 = load i16, i16* %202, align 2
   store i16 %204, i16* %203, align 1
-  %ptr_sub_tmp83.i.i.i = getelementptr i8, i8* %ptr_sub_tmp74.i.i.i, i64 -3
-  %205 = zext i32 %lshift_tmp69.i.i.i to i64
-  %ptr_add_tmp85.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %205
-  %206 = bitcast i8* %ptr_add_tmp85.i.i.i to i16*
-  %207 = bitcast i8* %ptr_sub_tmp83.i.i.i to i16*
+  %ptr_sub_tmp88.i.i.i = getelementptr i8, i8* %ptr_sub_tmp78.i.i.i, i64 -3
+  %205 = zext i32 %lshift_tmp73.i.i.i to i64
+  %ptr_add_tmp91.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %205
+  %206 = bitcast i8* %ptr_add_tmp91.i.i.i to i16*
+  %207 = bitcast i8* %ptr_sub_tmp88.i.i.i to i16*
   %208 = load i16, i16* %206, align 2
   store i16 %208, i16* %207, align 1
-  %add_tmp87.i.i.i = add i32 %.128215.i.i.i, 4
-  %209 = icmp ugt i32 %.028414.i.i.i, 99999999
+  %add_tmp93.i.i.i = add i32 %.132415.i.i.i, 4
+  %209 = icmp ugt i32 %.032614.i.i.i, 99999999
   br i1 %209, label %while.i.i.i, label %endwhile.i.i.i
 
-then89.i.i.i:                                     ; preds = %endwhile.i.i.i
-  %.0284.lcssa.i.i.i.fr = freeze i32 %.0284.lcssa.i.i.i
-  %mod_tmp91.lhs.trunc.i.i.i = trunc i32 %.0284.lcssa.i.i.i.fr to i16
-  %div_tmp9411.i.i.i = udiv i16 %mod_tmp91.lhs.trunc.i.i.i, 100
-  %.neg30 = mul i16 %div_tmp9411.i.i.i, -100
-  %mod_tmp9110.i.i.i.decomposed = add i16 %.neg30, %mod_tmp91.lhs.trunc.i.i.i
-  %210 = shl nuw nsw i16 %mod_tmp9110.i.i.i.decomposed, 1
-  %div_tmp94.zext.i.i.i = zext i16 %div_tmp9411.i.i.i to i32
+then95.i.i.i:                                     ; preds = %endwhile.i.i.i
+  %.0326.lcssa.i.i.i.fr = freeze i32 %.0326.lcssa.i.i.i
+  %mod_tmp97.lhs.trunc.i.i.i = trunc i32 %.0326.lcssa.i.i.i.fr to i16
+  %div_tmp10011.i.i.i = udiv i16 %mod_tmp97.lhs.trunc.i.i.i, 100
+  %.neg30 = mul i16 %div_tmp10011.i.i.i, -100
+  %mod_tmp9710.i.i.i.decomposed = add i16 %.neg30, %mod_tmp97.lhs.trunc.i.i.i
+  %210 = shl nuw nsw i16 %mod_tmp9710.i.i.i.decomposed, 1
+  %div_tmp100.zext.i.i.i = zext i16 %div_tmp10011.i.i.i to i32
   %211 = zext i32 %195 to i64
-  %ptr_add_tmp97.i.i.i = getelementptr i8, i8* %.0.i.i, i64 %211
-  %212 = zext i32 %.1282.lcssa.i.i.i to i64
+  %ptr_add_tmp103.i.i.i = getelementptr i8, i8* %.0.i.i, i64 %211
+  %212 = zext i32 %.1324.lcssa.i.i.i to i64
   %213 = sub nsw i64 0, %212
-  %ptr_sub_tmp99.i.i.i = getelementptr i8, i8* %ptr_add_tmp97.i.i.i, i64 %213
-  %ptr_sub_tmp100.i.i.i = getelementptr i8, i8* %ptr_sub_tmp99.i.i.i, i64 -1
+  %ptr_sub_tmp105.i.i.i = getelementptr i8, i8* %ptr_add_tmp103.i.i.i, i64 %213
+  %ptr_sub_tmp106.i.i.i = getelementptr i8, i8* %ptr_sub_tmp105.i.i.i, i64 -1
   %214 = zext i16 %210 to i64
-  %ptr_add_tmp102.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %214
-  %215 = bitcast i8* %ptr_add_tmp102.i.i.i to i16*
-  %216 = bitcast i8* %ptr_sub_tmp100.i.i.i to i16*
+  %ptr_add_tmp109.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %214
+  %215 = bitcast i8* %ptr_add_tmp109.i.i.i to i16*
+  %216 = bitcast i8* %ptr_sub_tmp106.i.i.i to i16*
   %217 = load i16, i16* %215, align 2
   store i16 %217, i16* %216, align 1
-  %add_tmp104.i.i.i = or i32 %.1282.lcssa.i.i.i, 2
-  br label %endif105.i.i.i
+  %add_tmp111.i.i.i = or i32 %.1324.lcssa.i.i.i, 2
+  br label %endif112.i.i.i
 
-endif105.i.i.i:                                   ; preds = %then89.i.i.i, %endwhile.i.i.i
-  %.1285.i.i.i = phi i32 [ %div_tmp94.zext.i.i.i, %then89.i.i.i ], [ %.0284.lcssa.i.i.i, %endwhile.i.i.i ]
-  %.2283.i.i.i = phi i32 [ %add_tmp104.i.i.i, %then89.i.i.i ], [ %.1282.lcssa.i.i.i, %endwhile.i.i.i ]
-  %218 = icmp ugt i32 %.1285.i.i.i, 9
-  br i1 %218, label %then107.i.i.i, label %else.i31.i.i
+endif112.i.i.i:                                   ; preds = %then95.i.i.i, %endwhile.i.i.i
+  %.1327.i.i.i = phi i32 [ %div_tmp100.zext.i.i.i, %then95.i.i.i ], [ %.0326.lcssa.i.i.i, %endwhile.i.i.i ]
+  %.2325.i.i.i = phi i32 [ %add_tmp111.i.i.i, %then95.i.i.i ], [ %.1324.lcssa.i.i.i, %endwhile.i.i.i ]
+  %218 = icmp ugt i32 %.1327.i.i.i, 9
+  br i1 %218, label %then114.i.i.i, label %else.i31.i.i
 
-then107.i.i.i:                                    ; preds = %endif105.i.i.i
-  %lshift_tmp109.i.i.i = shl nuw nsw i32 %.1285.i.i.i, 1
-  %add_tmp111.i.i.i = or i32 %lshift_tmp109.i.i.i, 1
-  %219 = zext i32 %add_tmp111.i.i.i to i64
+then114.i.i.i:                                    ; preds = %endif112.i.i.i
+  %lshift_tmp116.i.i.i = shl nuw nsw i32 %.1327.i.i.i, 1
+  %add_tmp118.i.i.i = or i32 %lshift_tmp116.i.i.i, 1
+  %219 = zext i32 %add_tmp118.i.i.i to i64
   %220 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %219
-  %load_tmp112.i.i.i = load i8, i8* %220, align 1
+  %load_tmp119.i.i.i = load i8, i8* %220, align 1
   %221 = zext i32 %195 to i64
-  %ptr_add_tmp115.i.i.i = getelementptr i8, i8* %.0.i.i, i64 %221
-  %222 = zext i32 %.2283.i.i.i to i64
+  %ptr_add_tmp122.i.i.i = getelementptr i8, i8* %.0.i.i, i64 %221
+  %222 = zext i32 %.2325.i.i.i to i64
   %223 = sub nsw i64 0, %222
-  %ptr_sub_tmp117.i.i.i = getelementptr i8, i8* %ptr_add_tmp115.i.i.i, i64 %223
-  store i8 %load_tmp112.i.i.i, i8* %ptr_sub_tmp117.i.i.i, align 1
-  %224 = zext i32 %lshift_tmp109.i.i.i to i64
+  %ptr_sub_tmp124.i.i.i = getelementptr i8, i8* %ptr_add_tmp122.i.i.i, i64 %223
+  store i8 %load_tmp119.i.i.i, i8* %ptr_sub_tmp124.i.i.i, align 1
+  %224 = zext i32 %lshift_tmp116.i.i.i to i64
   %225 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %224
-  %load_tmp119.i.i.i = load i8, i8* %225, align 2
-  br label %endif125.i.i.i
+  %load_tmp126.i.i.i = load i8, i8* %225, align 2
+  br label %endif132.i.i.i
 
-else.i31.i.i:                                     ; preds = %endif105.i.i.i
-  %226 = trunc i32 %.1285.i.i.i to i8
-  %cast_tmp123.i.i.i = add nuw nsw i8 %226, 48
-  br label %endif125.i.i.i
+else.i31.i.i:                                     ; preds = %endif112.i.i.i
+  %226 = trunc i32 %.1327.i.i.i to i8
+  %cast_tmp130.i.i.i = add nuw nsw i8 %226, 48
+  br label %endif132.i.i.i
 
-endif125.i.i.i:                                   ; preds = %else.i31.i.i, %then107.i.i.i
-  %storemerge.i.i.i = phi i8 [ %cast_tmp123.i.i.i, %else.i31.i.i ], [ %load_tmp119.i.i.i, %then107.i.i.i ]
+endif132.i.i.i:                                   ; preds = %else.i31.i.i, %then114.i.i.i
+  %storemerge.i.i.i = phi i8 [ %cast_tmp130.i.i.i, %else.i31.i.i ], [ %load_tmp126.i.i.i, %then114.i.i.i ]
   store i8 %storemerge.i.i.i, i8* %.0.i.i, align 1
   %227 = icmp ugt i32 %195, 1
-  %ptr_add_tmp129.i.i.i = getelementptr i8, i8* %.0.i.i, i64 1
-  br i1 %227, label %then127.i.i.i, label %endif136.i.i.i
+  %ptr_add_tmp136.i.i.i = getelementptr i8, i8* %.0.i.i, i64 1
+  br i1 %227, label %then134.i.i.i, label %endif143.i.i.i
 
-then127.i.i.i:                                    ; preds = %endif125.i.i.i
-  store i8 46, i8* %ptr_add_tmp129.i.i.i, align 1
-  %add_tmp131.i.i.i = add i32 %195, 1
-  %228 = zext i32 %add_tmp131.i.i.i to i64
-  %ptr_add_tmp133.i.i.i = getelementptr i8, i8* %.0.i.i, i64 %228
-  br label %endif136.i.i.i
+then134.i.i.i:                                    ; preds = %endif132.i.i.i
+  store i8 46, i8* %ptr_add_tmp136.i.i.i, align 1
+  %add_tmp138.i.i.i = add i32 %195, 1
+  %228 = zext i32 %add_tmp138.i.i.i to i64
+  %ptr_add_tmp140.i.i.i = getelementptr i8, i8* %.0.i.i, i64 %228
+  br label %endif143.i.i.i
 
-endif136.i.i.i:                                   ; preds = %then127.i.i.i, %endif125.i.i.i
-  %.0.i.i.i = phi i8* [ %ptr_add_tmp133.i.i.i, %then127.i.i.i ], [ %ptr_add_tmp129.i.i.i, %endif125.i.i.i ]
+endif143.i.i.i:                                   ; preds = %then134.i.i.i, %endif132.i.i.i
+  %.0.i.i.i = phi i8* [ %ptr_add_tmp140.i.i.i, %then134.i.i.i ], [ %ptr_add_tmp136.i.i.i, %endif132.i.i.i ]
   store i8 101, i8* %.0.i.i.i, align 1
   %229 = getelementptr i8, i8* %.0.i.i.i, i64 1
-  %add_tmp141.i.i.i = add i32 %195, %.sroa.12.3.i
-  %sub_tmp142.i.i.i = add i32 %add_tmp141.i.i.i, -1
-  %230 = icmp slt i32 %sub_tmp142.i.i.i, 0
-  br i1 %230, label %then144.i.i.i, label %else148.i.i.i
+  %add_tmp148.i.i.i = add i32 %195, %.sroa.12.3.i
+  %sub_tmp149.i.i.i = add i32 %add_tmp148.i.i.i, -1
+  %230 = icmp slt i32 %sub_tmp149.i.i.i, 0
+  br i1 %230, label %then151.i.i.i, label %else155.i.i.i
 
-then144.i.i.i:                                    ; preds = %endif136.i.i.i
+then151.i.i.i:                                    ; preds = %endif143.i.i.i
   store i8 45, i8* %229, align 1
-  %unary_minus_tmp.i.i.i = sub i32 1, %add_tmp141.i.i.i
-  br label %endif151.i.i.i
+  %unary_minus_tmp.i.i.i = sub i32 1, %add_tmp148.i.i.i
+  br label %endif158.i.i.i
 
-else148.i.i.i:                                    ; preds = %endif136.i.i.i
+else155.i.i.i:                                    ; preds = %endif143.i.i.i
   store i8 43, i8* %229, align 1
-  br label %endif151.i.i.i
+  br label %endif158.i.i.i
 
-endif151.i.i.i:                                   ; preds = %else148.i.i.i, %then144.i.i.i
-  %.0279.i.i.i = phi i32 [ %unary_minus_tmp.i.i.i, %then144.i.i.i ], [ %sub_tmp142.i.i.i, %else148.i.i.i ]
+endif158.i.i.i:                                   ; preds = %else155.i.i.i, %then151.i.i.i
+  %.0328.i.i.i = phi i32 [ %unary_minus_tmp.i.i.i, %then151.i.i.i ], [ %sub_tmp149.i.i.i, %else155.i.i.i ]
   %.1.i.i.i = getelementptr i8, i8* %.0.i.i.i, i64 2
-  %231 = icmp sgt i32 %.0279.i.i.i, 99
-  br i1 %231, label %then153.i.i.i, label %else168.i.i.i
+  %231 = icmp sgt i32 %.0328.i.i.i, 99
+  br i1 %231, label %then160.i.i.i, label %else176.i.i.i
 
-then153.i.i.i:                                    ; preds = %endif151.i.i.i
-  %.0279.i.i.i.frozen = freeze i32 %.0279.i.i.i
-  %div_tmp15813.i.i.i = udiv i32 %.0279.i.i.i.frozen, 10
-  %.neg = mul i32 %div_tmp15813.i.i.i, -10
-  %mod_tmp15512.i.i.i.decomposed = add i32 %.neg, %.0279.i.i.i.frozen
-  %mul_tmp159.i.i.i = shl nuw nsw i32 %div_tmp15813.i.i.i, 1
-  %232 = zext i32 %mul_tmp159.i.i.i to i64
-  %ptr_add_tmp160.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %232
-  %233 = bitcast i8* %ptr_add_tmp160.i.i.i to i16*
+then160.i.i.i:                                    ; preds = %endif158.i.i.i
+  %.0328.i.i.i.frozen = freeze i32 %.0328.i.i.i
+  %div_tmp16613.i.i.i = udiv i32 %.0328.i.i.i.frozen, 10
+  %.neg = mul i32 %div_tmp16613.i.i.i, -10
+  %mod_tmp16212.i.i.i.decomposed = add i32 %.neg, %.0328.i.i.i.frozen
+  %mul_tmp167.i.i.i = shl nuw nsw i32 %div_tmp16613.i.i.i, 1
+  %232 = zext i32 %mul_tmp167.i.i.i to i64
+  %ptr_add_tmp168.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %232
+  %233 = bitcast i8* %ptr_add_tmp168.i.i.i to i16*
   %234 = bitcast i8* %.1.i.i.i to i16*
   %235 = load i16, i16* %233, align 2
   store i16 %235, i16* %234, align 1
-  %236 = trunc i32 %mod_tmp15512.i.i.i.decomposed to i8
-  %cast_tmp163.i.i.i = or i8 %236, 48
-  %ptr_add_tmp165.i.i.i = getelementptr i8, i8* %.0.i.i.i, i64 4
-  store i8 %cast_tmp163.i.i.i, i8* %ptr_add_tmp165.i.i.i, align 1
+  %236 = trunc i32 %mod_tmp16212.i.i.i.decomposed to i8
+  %cast_tmp171.i.i.i = or i8 %236, 48
+  %ptr_add_tmp173.i.i.i = getelementptr i8, i8* %.0.i.i.i, i64 4
+  store i8 %cast_tmp171.i.i.i, i8* %ptr_add_tmp173.i.i.i, align 1
   br label %"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_64.0P.builtin.uint8.0P.builtin.uint8.exit.i.i"
 
-else168.i.i.i:                                    ; preds = %endif151.i.i.i
-  %mul_tmp171.i.i.i = shl i32 %.0279.i.i.i, 1
-  %237 = sext i32 %mul_tmp171.i.i.i to i64
-  %ptr_add_tmp172.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %237
-  %238 = bitcast i8* %ptr_add_tmp172.i.i.i to i16*
+else176.i.i.i:                                    ; preds = %endif158.i.i.i
+  %mul_tmp180.i.i.i = shl i32 %.0328.i.i.i, 1
+  %237 = sext i32 %mul_tmp180.i.i.i to i64
+  %ptr_add_tmp181.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %237
+  %238 = bitcast i8* %ptr_add_tmp181.i.i.i to i16*
   %239 = bitcast i8* %.1.i.i.i to i16*
   %240 = load i16, i16* %238, align 2
   store i16 %240, i16* %239, align 1
   br label %"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_64.0P.builtin.uint8.0P.builtin.uint8.exit.i.i"
 
-"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_64.0P.builtin.uint8.0P.builtin.uint8.exit.i.i": ; preds = %else168.i.i.i, %then153.i.i.i
-  %.sink.i.i.i = phi i64 [ 4, %else168.i.i.i ], [ 5, %then153.i.i.i ]
-  %ptr_add_tmp174.i.i.i = getelementptr i8, i8* %.0.i.i.i, i64 %.sink.i.i.i
+"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_64.0P.builtin.uint8.0P.builtin.uint8.exit.i.i": ; preds = %else176.i.i.i, %then160.i.i.i
+  %.sink.i.i.i = phi i64 [ 4, %else176.i.i.i ], [ 5, %then160.i.i.i ]
+  %ptr_add_tmp183.i.i.i = getelementptr i8, i8* %.0.i.i.i, i64 %.sink.i.i.i
   br label %func.std.ryu.d2s_shortest..2.builtin.float64.0P.builtin.uint8.0P.builtin.uint8.exit
 
-func.std.ryu.d2s_shortest..2.builtin.float64.0P.builtin.uint8.0P.builtin.uint8.exit: ; preds = %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i, %endif156.i.i.i, %then162.i.i.i, %"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_64.0P.builtin.uint8.0P.builtin.uint8.exit.i.i"
-  %common.ret.op.i = phi i8* [ %ptr_add_tmp15.i.i, %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i ], [ %ptr_add_tmp174.i.i.i, %"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_64.0P.builtin.uint8.0P.builtin.uint8.exit.i.i" ], [ %172, %then162.i.i.i ], [ %ptr_add_tmp160.i65.i.i, %endif156.i.i.i ]
+func.std.ryu.d2s_shortest..2.builtin.float64.0P.builtin.uint8.0P.builtin.uint8.exit: ; preds = %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i, %endif164.i.i.i, %then170.i.i.i, %"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_64.0P.builtin.uint8.0P.builtin.uint8.exit.i.i"
+  %common.ret.op.i = phi i8* [ %ptr_add_tmp15.i.i, %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i ], [ %ptr_add_tmp183.i.i.i, %"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_64.0P.builtin.uint8.0P.builtin.uint8.exit.i.i" ], [ %172, %then170.i.i.i ], [ %ptr_add_tmp168.i66.i.i, %endif164.i.i.i ]
   ret i8* %common.ret.op.i
 }
 
@@ -1062,29 +1062,29 @@ alloca:
   br i1 %7, label %then.i, label %endif.i
 
 then.i:                                           ; preds = %alloca
-  %.not1042.i = icmp eq i64 %bit_and_tmp3.i, 0
-  br i1 %.not1042.i, label %endif.i902.i, label %then.i901.i
+  %.not1060.i = icmp eq i64 %bit_and_tmp3.i, 0
+  br i1 %.not1060.i, label %endif.i920.i, label %then.i919.i
 
-then.i901.i:                                      ; preds = %then.i
+then.i919.i:                                      ; preds = %then.i
   tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* noundef nonnull align 1 dereferenceable(3) %2, i8* noundef nonnull align 1 dereferenceable(3) getelementptr inbounds ([4 x i8], [4 x i8]* @.str.2, i64 0, i64 0), i64 3, i1 false) #7
   br label %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i
 
-endif.i902.i:                                     ; preds = %then.i
+endif.i920.i:                                     ; preds = %then.i
   br i1 %6, label %then4.i.i, label %endif7.i.i
 
-then4.i.i:                                        ; preds = %endif.i902.i
+then4.i.i:                                        ; preds = %endif.i920.i
   store i8 45, i8* %2, align 1
   %8 = getelementptr i8, i8* %2, i64 1
   br label %endif7.i.i
 
-endif7.i.i:                                       ; preds = %then4.i.i, %endif.i902.i
-  %.0.i.i = phi i8* [ %8, %then4.i.i ], [ %2, %endif.i902.i ]
+endif7.i.i:                                       ; preds = %then4.i.i, %endif.i920.i
+  %.0.i.i = phi i8* [ %8, %then4.i.i ], [ %2, %endif.i920.i ]
   tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* noundef nonnull align 1 dereferenceable(3) %.0.i.i, i8* noundef nonnull align 1 dereferenceable(3) getelementptr inbounds ([4 x i8], [4 x i8]* @.str.3, i64 0, i64 0), i64 3, i1 false) #7
   br label %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i
 
-func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i: ; preds = %endif7.i.i, %then.i901.i
-  %.0.sink.i.i = phi i8* [ %.0.i.i, %endif7.i.i ], [ %2, %then.i901.i ]
-  %ptr_add_tmp15.i900.i = getelementptr i8, i8* %.0.sink.i.i, i64 3
+func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i: ; preds = %endif7.i.i, %then.i919.i
+  %.0.sink.i.i = phi i8* [ %.0.i.i, %endif7.i.i ], [ %2, %then.i919.i ]
+  %ptr_add_tmp15.i.i = getelementptr i8, i8* %.0.sink.i.i, i64 3
   br label %func.std.ryu.d2exp_short..5.builtin.float64.builtin.uint32.0P.builtin.uint8.builtin.bool.builtin.bool.0P.builtin.uint8.exit
 
 endif.i:                                          ; preds = %alloca
@@ -1101,19 +1101,19 @@ then16.i:                                         ; preds = %then14.i
   br label %endif20.i
 
 endif20.i:                                        ; preds = %then16.i, %then14.i
-  %.0757.i = phi i32 [ 1, %then16.i ], [ 0, %then14.i ]
-  %11 = zext i32 %.0757.i to i64
+  %.0.i = phi i32 [ 1, %then16.i ], [ 0, %then14.i ]
+  %11 = zext i32 %.0.i to i64
   %ptr_add_tmp23.i = getelementptr i8, i8* %2, i64 %11
   store i8 48, i8* %ptr_add_tmp23.i, align 1
-  %12 = add nuw nsw i32 %.0757.i, 1
-  %.not821.i = icmp eq i32 %1, 0
-  br i1 %.not821.i, label %endif38.i, label %then26.i
+  %12 = add nuw nsw i32 %.0.i, 1
+  %.not839.i = icmp eq i32 %1, 0
+  br i1 %.not839.i, label %endif38.i, label %then26.i
 
 then26.i:                                         ; preds = %endif20.i
   %13 = zext i32 %12 to i64
   %ptr_add_tmp29.i = getelementptr i8, i8* %2, i64 %13
   store i8 46, i8* %ptr_add_tmp29.i, align 1
-  %14 = or i32 %.0757.i, 2
+  %14 = or i32 %.0.i, 2
   %15 = zext i32 %14 to i64
   %ptr_add_tmp33.i = getelementptr i8, i8* %2, i64 %15
   %cast_tmp35.i = zext i32 %1 to i64
@@ -1136,9 +1136,9 @@ endif38.i:                                        ; preds = %then26.i, %endif20.
 endif53.i:                                        ; preds = %endif.i
   %sub_tmp59.i = add nsw i32 %bit_and_tmp6.i, -1075
   %bit_or_tmp.i = or i64 %bit_and_tmp3.i, 4503599627370496
-  %.0764.i = select i1 %9, i64 %bit_and_tmp3.i, i64 %bit_or_tmp.i
-  %.0758.i = select i1 %9, i32 -1074, i32 %sub_tmp59.i
-  %.0758.nonneg.i = sub nsw i32 0, %.0758.i
+  %.0775.i = select i1 %9, i64 %bit_and_tmp3.i, i64 %bit_or_tmp.i
+  %.0774.i = select i1 %9, i32 -1074, i32 %sub_tmp59.i
+  %.0774.nonneg.i = sub nsw i32 0, %.0774.i
   %.not.i = icmp eq i32 %1, 0
   %19 = add i32 %1, 1
   br i1 %6, label %then65.i, label %endif70.i
@@ -1148,452 +1148,452 @@ then65.i:                                         ; preds = %endif53.i
   br label %endif70.i
 
 endif70.i:                                        ; preds = %then65.i, %endif53.i
-  %.0765.i = phi i32 [ 1, %then65.i ], [ 0, %endif53.i ]
-  %20 = icmp sgt i32 %.0758.i, -53
-  br i1 %20, label %for.lr.ph.i, label %endif70.i.for161.lr.ph.i_crit_edge
+  %.0777.i = phi i32 [ 1, %then65.i ], [ 0, %endif53.i ]
+  %20 = icmp sgt i32 %.0774.i, -53
+  br i1 %20, label %for.lr.ph.i, label %endif70.i.for162.lr.ph.i_crit_edge
 
-endif70.i.for161.lr.ph.i_crit_edge:               ; preds = %endif70.i
-  %.pre = shl nuw nsw i64 %.0764.i, 8
-  %.pre42 = sub nsw i32 128, %.0758.i
-  br label %for161.lr.ph.i
+endif70.i.for162.lr.ph.i_crit_edge:               ; preds = %endif70.i
+  %.pre = shl nuw nsw i64 %.0775.i, 8
+  %.pre42 = sub nsw i32 128, %.0774.i
+  br label %for162.lr.ph.i
 
 for.lr.ph.i:                                      ; preds = %endif70.i
-  %21 = icmp slt i32 %.0758.i, 0
-  %add_tmp.i983.i = add nuw nsw i32 %.0758.i, 15
-  %div_tmp.i984.i = lshr i32 %add_tmp.i983.i, 4
-  %.0805.i = select i1 %21, i32 0, i32 %div_tmp.i984.i
-  %mul_tmp.i.i985.i = mul i32 %.0805.i, 1262608
-  %rshift_tmp.i.i.i = lshr i32 %mul_tmp.i.i985.i, 18
+  %21 = icmp slt i32 %.0774.i, 0
+  %add_tmp.i1001.i = add nuw nsw i32 %.0774.i, 15
+  %div_tmp.i1002.i = lshr i32 %add_tmp.i1001.i, 4
+  %.0821.i = select i1 %21, i32 0, i32 %div_tmp.i1002.i
+  %mul_tmp.i.i1003.i = mul i32 %.0821.i, 1262608
+  %rshift_tmp.i.i.i = lshr i32 %mul_tmp.i.i1003.i, 18
   %22 = trunc i32 %rshift_tmp.i.i.i to i16
   %div_tmp.lhs.trunc.i.i = add nuw nsw i16 %22, 25
   %div_tmp4.i.i = udiv i16 %div_tmp.lhs.trunc.i.i, 9
-  %mul_tmp.i.i = shl nuw nsw i32 %.0805.i, 4
-  %lshift_tmp.i = shl nuw nsw i64 %.0764.i, 8
-  %23 = zext i32 %.0805.i to i64
+  %mul_tmp.i.i = shl nuw nsw i32 %.0821.i, 4
+  %lshift_tmp.i = shl nuw nsw i64 %.0775.i, 8
+  %23 = zext i32 %.0821.i to i64
   %24 = getelementptr [64 x i16], [64 x i16]* @std.ryu.POW10_OFFSET, i64 0, i64 %23
   %load_tmp89.i = load i16, i16* %24, align 2
   %cast_tmp90.i = zext i16 %load_tmp89.i to i64
-  %sub_tmp86.i = sub nsw i32 128, %.0758.i
-  %add_tmp94.i = add i32 %mul_tmp.i.i, %sub_tmp86.i
+  %sub_tmp86.i = sub nsw i32 128, %.0774.i
+  %add_tmp95.i = add i32 %mul_tmp.i.i, %sub_tmp86.i
   %25 = zext i16 %div_tmp4.i.i to i64
   br label %for.i
 
-for.i:                                            ; preds = %endif144.i, %for.lr.ph.i
-  %indvars.iv1121.in.i = phi i64 [ %25, %for.lr.ph.i ], [ %indvars.iv1121.i, %endif144.i ]
-  %.17661097.i = phi i32 [ %.0765.i, %for.lr.ph.i ], [ %.3.i, %endif144.i ]
-  %.07791096.i = phi i32 [ 0, %for.lr.ph.i ], [ %.1780.i, %endif144.i ]
-  %.07941095.i = phi i32 [ 0, %for.lr.ph.i ], [ %.2796.i, %endif144.i ]
-  %indvars.iv1121.i = add nsw i64 %indvars.iv1121.in.i, -1
-  %26 = trunc i64 %indvars.iv1121.i to i32
-  %add_tmp92.i = add i64 %indvars.iv1121.i, %cast_tmp90.i
+for.i:                                            ; preds = %endif145.i, %for.lr.ph.i
+  %indvars.iv1138.in.i = phi i64 [ %25, %for.lr.ph.i ], [ %indvars.iv1138.i, %endif145.i ]
+  %.17781114.i = phi i32 [ %.0777.i, %for.lr.ph.i ], [ %.3.i, %endif145.i ]
+  %.07901113.i = phi i32 [ 0, %for.lr.ph.i ], [ %.1791.i, %endif145.i ]
+  %.08101112.i = phi i32 [ 0, %for.lr.ph.i ], [ %.2812.i, %endif145.i ]
+  %indvars.iv1138.i = add nsw i64 %indvars.iv1138.in.i, -1
+  %26 = trunc i64 %indvars.iv1138.i to i32
+  %add_tmp92.i = add i64 %indvars.iv1138.i, %cast_tmp90.i
   %sext = shl i64 %add_tmp92.i, 32
   %27 = ashr exact i64 %sext, 32
   %28 = getelementptr [1224 x [3 x i64]], [1224 x [3 x i64]]* @std.ryu.POW10_SPLIT, i64 0, i64 %27, i64 0
-  %.val828.i = load i64, i64* %28, align 8
-  %.idx829.i = getelementptr [1224 x [3 x i64]], [1224 x [3 x i64]]* @std.ryu.POW10_SPLIT, i64 0, i64 %27, i64 1
-  %.idx829.val.i = load i64, i64* %.idx829.i, align 8
-  %.idx830.i = getelementptr [1224 x [3 x i64]], [1224 x [3 x i64]]* @std.ryu.POW10_SPLIT, i64 0, i64 %27, i64 2
-  %.idx830.val.i = load i64, i64* %.idx830.i, align 8
-  %29 = tail call fastcc i32 @func.std.ryu.mulShift_mod1e9..3.builtin.uint64.0P.const.builtin.uint64.builtin.int32.builtin.uint32(i64 %lshift_tmp.i, i64 %.val828.i, i64 %.idx829.val.i, i64 %.idx830.val.i, i32 %add_tmp94.i) #7
-  %.not819.i = icmp eq i32 %.07791096.i, 0
-  br i1 %.not819.i, label %else110.i, label %then96.i
+  %.val846.i = load i64, i64* %28, align 8
+  %.idx847.i = getelementptr [1224 x [3 x i64]], [1224 x [3 x i64]]* @std.ryu.POW10_SPLIT, i64 0, i64 %27, i64 1
+  %.idx847.val.i = load i64, i64* %.idx847.i, align 8
+  %.idx848.i = getelementptr [1224 x [3 x i64]], [1224 x [3 x i64]]* @std.ryu.POW10_SPLIT, i64 0, i64 %27, i64 2
+  %.idx848.val.i = load i64, i64* %.idx848.i, align 8
+  %29 = tail call fastcc i32 @func.std.ryu.mulShift_mod1e9..3.builtin.uint64.0P.const.builtin.uint64.builtin.int32.builtin.uint32(i64 %lshift_tmp.i, i64 %.val846.i, i64 %.idx847.val.i, i64 %.idx848.val.i, i32 %add_tmp95.i) #7
+  %.not837.i = icmp eq i32 %.07901113.i, 0
+  br i1 %.not837.i, label %else111.i, label %then97.i
 
-then96.i:                                         ; preds = %for.i
-  %add_tmp98.i = add i32 %.07791096.i, 9
-  %30 = icmp ugt i32 %add_tmp98.i, %19
-  br i1 %30, label %endif243.thread.i, label %endif101.i
+then97.i:                                         ; preds = %for.i
+  %add_tmp99.i = add i32 %.07901113.i, 9
+  %30 = icmp ugt i32 %add_tmp99.i, %19
+  br i1 %30, label %endif245.thread.i, label %endif102.i
 
-endif101.i:                                       ; preds = %then96.i
-  %31 = sext i32 %.17661097.i to i64
-  %ptr_add_tmp105.i = getelementptr i8, i8* %2, i64 %31
+endif102.i:                                       ; preds = %then97.i
+  %31 = sext i32 %.17781114.i to i64
+  %ptr_add_tmp106.i = getelementptr i8, i8* %2, i64 %31
   %32 = icmp eq i32 %29, 0
-  br i1 %32, label %then.i981.i, label %for_condition_check.preheader.i980.i
+  br i1 %32, label %then.i999.i, label %for_condition_check.preheader.i998.i
 
-for_condition_check.preheader.i980.i:             ; preds = %endif101.i
-  %ptr_add_tmp.i957.i = getelementptr i8, i8* %ptr_add_tmp105.i, i64 7
-  %ptr_add_tmp17.i958.i = getelementptr i8, i8* %ptr_add_tmp105.i, i64 5
-  %div_tmp.i959.i = udiv i32 %29, 10000
-  %mul_tmp.neg.i960.i = mul i32 %div_tmp.i959.i, -10000
-  %sub_tmp.i961.i = add i32 %mul_tmp.neg.i960.i, %29
-  %sub_tmp.i961.i.frozen = freeze i32 %sub_tmp.i961.i
-  %div_tmp10.i964.i = udiv i32 %sub_tmp.i961.i.frozen, 100
-  %.neg112 = mul i32 %div_tmp10.i964.i, -100
-  %mod_tmp.i962.i.decomposed = add i32 %.neg112, %sub_tmp.i961.i.frozen
-  %lshift_tmp.i963.i = shl nuw nsw i32 %mod_tmp.i962.i.decomposed, 1
-  %lshift_tmp11.i965.i = shl nuw nsw i32 %div_tmp10.i964.i, 1
-  %33 = zext i32 %lshift_tmp.i963.i to i64
-  %ptr_add_tmp15.i966.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %33
-  %34 = bitcast i8* %ptr_add_tmp15.i966.i to i16*
-  %35 = bitcast i8* %ptr_add_tmp.i957.i to i16*
+for_condition_check.preheader.i998.i:             ; preds = %endif102.i
+  %ptr_add_tmp.i975.i = getelementptr i8, i8* %ptr_add_tmp106.i, i64 7
+  %ptr_add_tmp18.i976.i = getelementptr i8, i8* %ptr_add_tmp106.i, i64 5
+  %div_tmp.i977.i = udiv i32 %29, 10000
+  %mul_tmp.neg.i978.i = mul i32 %div_tmp.i977.i, -10000
+  %sub_tmp.i979.i = add i32 %mul_tmp.neg.i978.i, %29
+  %sub_tmp.i979.i.frozen = freeze i32 %sub_tmp.i979.i
+  %div_tmp10.i982.i = udiv i32 %sub_tmp.i979.i.frozen, 100
+  %.neg112 = mul i32 %div_tmp10.i982.i, -100
+  %mod_tmp.i980.i.decomposed = add i32 %.neg112, %sub_tmp.i979.i.frozen
+  %lshift_tmp.i981.i = shl nuw nsw i32 %mod_tmp.i980.i.decomposed, 1
+  %lshift_tmp11.i983.i = shl nuw nsw i32 %div_tmp10.i982.i, 1
+  %33 = zext i32 %lshift_tmp.i981.i to i64
+  %ptr_add_tmp16.i984.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %33
+  %34 = bitcast i8* %ptr_add_tmp16.i984.i to i16*
+  %35 = bitcast i8* %ptr_add_tmp.i975.i to i16*
   %36 = load i16, i16* %34, align 2
   store i16 %36, i16* %35, align 1
-  %37 = zext i32 %lshift_tmp11.i965.i to i64
-  %ptr_add_tmp21.i967.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %37
-  %38 = bitcast i8* %ptr_add_tmp21.i967.i to i16*
-  %39 = bitcast i8* %ptr_add_tmp17.i958.i to i16*
+  %37 = zext i32 %lshift_tmp11.i983.i to i64
+  %ptr_add_tmp23.i985.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %37
+  %38 = bitcast i8* %ptr_add_tmp23.i985.i to i16*
+  %39 = bitcast i8* %ptr_add_tmp18.i976.i to i16*
   %40 = load i16, i16* %38, align 2
   store i16 %40, i16* %39, align 1
-  %div_tmp.1.i968.i = udiv i32 %29, 100000000
-  %mul_tmp.neg.1.i969.i = mul nsw i32 %div_tmp.1.i968.i, -10000
-  %sub_tmp.1.i970.i = add nsw i32 %mul_tmp.neg.1.i969.i, %div_tmp.i959.i
-  %sub_tmp.1.i970.i.frozen = freeze i32 %sub_tmp.1.i970.i
-  %div_tmp10.1.i973.i = udiv i32 %sub_tmp.1.i970.i.frozen, 100
-  %.neg113 = mul i32 %div_tmp10.1.i973.i, -100
-  %mod_tmp.1.i971.i.decomposed = add i32 %.neg113, %sub_tmp.1.i970.i.frozen
-  %lshift_tmp.1.i972.i = shl nuw nsw i32 %mod_tmp.1.i971.i.decomposed, 1
-  %lshift_tmp11.1.i974.i = shl nuw nsw i32 %div_tmp10.1.i973.i, 1
-  %ptr_sub_tmp.1.i975.i = getelementptr i8, i8* %ptr_add_tmp105.i, i64 3
-  %41 = zext i32 %lshift_tmp.1.i972.i to i64
-  %ptr_add_tmp15.1.i976.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %41
-  %42 = bitcast i8* %ptr_add_tmp15.1.i976.i to i16*
-  %43 = bitcast i8* %ptr_sub_tmp.1.i975.i to i16*
+  %div_tmp.1.i986.i = udiv i32 %29, 100000000
+  %mul_tmp.neg.1.i987.i = mul nsw i32 %div_tmp.1.i986.i, -10000
+  %sub_tmp.1.i988.i = add nsw i32 %mul_tmp.neg.1.i987.i, %div_tmp.i977.i
+  %sub_tmp.1.i988.i.frozen = freeze i32 %sub_tmp.1.i988.i
+  %div_tmp10.1.i991.i = udiv i32 %sub_tmp.1.i988.i.frozen, 100
+  %.neg113 = mul i32 %div_tmp10.1.i991.i, -100
+  %mod_tmp.1.i989.i.decomposed = add i32 %.neg113, %sub_tmp.1.i988.i.frozen
+  %lshift_tmp.1.i990.i = shl nuw nsw i32 %mod_tmp.1.i989.i.decomposed, 1
+  %lshift_tmp11.1.i992.i = shl nuw nsw i32 %div_tmp10.1.i991.i, 1
+  %ptr_sub_tmp.1.i993.i = getelementptr i8, i8* %ptr_add_tmp106.i, i64 3
+  %41 = zext i32 %lshift_tmp.1.i990.i to i64
+  %ptr_add_tmp16.1.i994.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %41
+  %42 = bitcast i8* %ptr_add_tmp16.1.i994.i to i16*
+  %43 = bitcast i8* %ptr_sub_tmp.1.i993.i to i16*
   %44 = load i16, i16* %42, align 2
   store i16 %44, i16* %43, align 1
-  %ptr_sub_tmp19.1.i977.i = getelementptr i8, i8* %ptr_add_tmp105.i, i64 1
-  %45 = zext i32 %lshift_tmp11.1.i974.i to i64
-  %ptr_add_tmp21.1.i978.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %45
-  %46 = bitcast i8* %ptr_add_tmp21.1.i978.i to i16*
-  %47 = bitcast i8* %ptr_sub_tmp19.1.i977.i to i16*
+  %ptr_sub_tmp20.1.i995.i = getelementptr i8, i8* %ptr_add_tmp106.i, i64 1
+  %45 = zext i32 %lshift_tmp11.1.i992.i to i64
+  %ptr_add_tmp23.1.i996.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %45
+  %46 = bitcast i8* %ptr_add_tmp23.1.i996.i to i16*
+  %47 = bitcast i8* %ptr_sub_tmp20.1.i995.i to i16*
   %48 = load i16, i16* %46, align 2
   store i16 %48, i16* %47, align 1
-  %49 = trunc i32 %div_tmp.1.i968.i to i8
-  %cast_tmp.i979.i = add nuw nsw i8 %49, 48
-  store i8 %cast_tmp.i979.i, i8* %ptr_add_tmp105.i, align 1
-  br label %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit982.i
+  %49 = trunc i32 %div_tmp.1.i986.i to i8
+  %cast_tmp.i997.i = add nuw nsw i8 %49, 48
+  store i8 %cast_tmp.i997.i, i8* %ptr_add_tmp106.i, align 1
+  br label %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit1000.i
 
-then.i981.i:                                      ; preds = %endif101.i
-  tail call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 1 dereferenceable(9) %ptr_add_tmp105.i, i8 48, i64 9, i1 false) #7
-  br label %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit982.i
+then.i999.i:                                      ; preds = %endif102.i
+  tail call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 1 dereferenceable(9) %ptr_add_tmp106.i, i8 48, i64 9, i1 false) #7
+  br label %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit1000.i
 
-func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit982.i: ; preds = %then.i981.i, %for_condition_check.preheader.i980.i
-  %add_tmp107.i = add i32 %.17661097.i, 9
-  br label %endif144.i
+func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit1000.i: ; preds = %then.i999.i, %for_condition_check.preheader.i998.i
+  %add_tmp108.i = add i32 %.17781114.i, 9
+  br label %endif145.i
 
-else110.i:                                        ; preds = %for.i
-  %.not820.i = icmp eq i32 %29, 0
-  br i1 %.not820.i, label %endif144.i, label %then112.i
+else111.i:                                        ; preds = %for.i
+  %.not838.i = icmp eq i32 %29, 0
+  br i1 %.not838.i, label %endif145.i, label %then113.i
 
-then112.i:                                        ; preds = %else110.i
+then113.i:                                        ; preds = %else111.i
   %50 = icmp ugt i32 %29, 99999999
-  br i1 %50, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit956.i, label %else.i949.i
+  br i1 %50, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit974.i, label %else.i967.i
 
-else.i949.i:                                      ; preds = %then112.i
+else.i967.i:                                      ; preds = %then113.i
   %51 = icmp ugt i32 %29, 9999999
-  br i1 %51, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit956.i, label %else4.i950.i
+  br i1 %51, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit974.i, label %else4.i968.i
 
-else4.i950.i:                                     ; preds = %else.i949.i
+else4.i968.i:                                     ; preds = %else.i967.i
   %52 = icmp ugt i32 %29, 999999
-  br i1 %52, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit956.i, label %else7.i951.i
+  br i1 %52, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit974.i, label %else7.i969.i
 
-else7.i951.i:                                     ; preds = %else4.i950.i
+else7.i969.i:                                     ; preds = %else4.i968.i
   %53 = icmp ugt i32 %29, 99999
-  br i1 %53, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit956.i, label %else10.i952.i
+  br i1 %53, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit974.i, label %else10.i970.i
 
-else10.i952.i:                                    ; preds = %else7.i951.i
+else10.i970.i:                                    ; preds = %else7.i969.i
   %54 = icmp ugt i32 %29, 9999
-  br i1 %54, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit956.i, label %else13.i953.i
+  br i1 %54, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit974.i, label %else13.i971.i
 
-else13.i953.i:                                    ; preds = %else10.i952.i
+else13.i971.i:                                    ; preds = %else10.i970.i
   %55 = icmp ugt i32 %29, 999
-  br i1 %55, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit956.i, label %else16.i955.i
+  br i1 %55, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit974.i, label %else16.i973.i
 
-else16.i955.i:                                    ; preds = %else13.i953.i
+else16.i973.i:                                    ; preds = %else13.i971.i
   %56 = icmp ugt i32 %29, 99
   %57 = icmp ugt i32 %29, 9
-  %..i954.i = select i1 %57, i32 2, i32 1
-  %58 = select i1 %56, i32 3, i32 %..i954.i
-  br label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit956.i
+  %..i972.i = select i1 %57, i32 2, i32 1
+  %58 = select i1 %56, i32 3, i32 %..i972.i
+  br label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit974.i
 
-func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit956.i: ; preds = %else16.i955.i, %else13.i953.i, %else10.i952.i, %else7.i951.i, %else4.i950.i, %else.i949.i, %then112.i
-  %59 = phi i32 [ 9, %then112.i ], [ 8, %else.i949.i ], [ 7, %else4.i950.i ], [ 6, %else7.i951.i ], [ 5, %else10.i952.i ], [ %58, %else16.i955.i ], [ 4, %else13.i953.i ]
+func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit974.i: ; preds = %else16.i973.i, %else13.i971.i, %else10.i970.i, %else7.i969.i, %else4.i968.i, %else.i967.i, %then113.i
+  %59 = phi i32 [ 9, %then113.i ], [ 8, %else.i967.i ], [ 7, %else4.i968.i ], [ 6, %else7.i969.i ], [ 5, %else10.i970.i ], [ %58, %else16.i973.i ], [ 4, %else13.i971.i ]
   %60 = mul i32 %26, 9
   %61 = add i32 %60, -1
-  %sub_tmp117.i = add i32 %61, %59
+  %sub_tmp118.i = add i32 %61, %59
   %62 = icmp ugt i32 %59, %19
-  br i1 %62, label %endif243.thread.i, label %endif121.i
+  br i1 %62, label %endif245.thread.i, label %endif122.i
 
-endif121.i:                                       ; preds = %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit956.i
-  br i1 %.not.i, label %else133.i, label %then123.i
+endif122.i:                                       ; preds = %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit974.i
+  br i1 %.not.i, label %else134.i, label %then124.i
 
-then123.i:                                        ; preds = %endif121.i
-  %63 = sext i32 %.17661097.i to i64
-  %ptr_add_tmp128.i = getelementptr i8, i8* %2, i64 %63
+then124.i:                                        ; preds = %endif122.i
+  %63 = sext i32 %.17781114.i to i64
+  %ptr_add_tmp129.i = getelementptr i8, i8* %2, i64 %63
   %64 = icmp ugt i32 %29, 9999
-  br i1 %64, label %while.lr.ph.i905.i, label %endwhile.i910.i
+  br i1 %64, label %while.lr.ph.i923.i, label %endwhile.i928.i
 
-while.lr.ph.i905.i:                               ; preds = %then123.i
+while.lr.ph.i923.i:                               ; preds = %then124.i
   %65 = zext i32 %59 to i64
-  %ptr_add_tmp.i903.i = getelementptr i8, i8* %ptr_add_tmp128.i, i64 1
-  %ptr_add_tmp11.i904.i = getelementptr i8, i8* %ptr_add_tmp.i903.i, i64 %65
-  br label %while.i926.i
+  %ptr_add_tmp.i921.i = getelementptr i8, i8* %ptr_add_tmp129.i, i64 1
+  %ptr_add_tmp11.i922.i = getelementptr i8, i8* %ptr_add_tmp.i921.i, i64 %65
+  br label %while.i944.i
 
-endwhile.loopexit.i907.i:                         ; preds = %while.i926.i
-  %phi.cast.i906.i = zext i32 %add_tmp.i925.i to i64
-  br label %endwhile.i910.i
+endwhile.loopexit.i925.i:                         ; preds = %while.i944.i
+  %phi.cast.i924.i = zext i32 %add_tmp.i943.i to i64
+  br label %endwhile.i928.i
 
-endwhile.i910.i:                                  ; preds = %endwhile.loopexit.i907.i, %then123.i
-  %.0106.lcssa.i908.i = phi i64 [ 0, %then123.i ], [ %phi.cast.i906.i, %endwhile.loopexit.i907.i ]
-  %.0.lcssa.i909.i = phi i32 [ %29, %then123.i ], [ %div_tmp.i913.i, %endwhile.loopexit.i907.i ]
-  %66 = icmp ugt i32 %.0.lcssa.i909.i, 99
-  br i1 %66, label %then.i936.i, label %endif.i938.i
+endwhile.i928.i:                                  ; preds = %endwhile.loopexit.i925.i, %then124.i
+  %.0119.lcssa.i926.i = phi i64 [ 0, %then124.i ], [ %phi.cast.i924.i, %endwhile.loopexit.i925.i ]
+  %.0.lcssa.i927.i = phi i32 [ %29, %then124.i ], [ %div_tmp.i931.i, %endwhile.loopexit.i925.i ]
+  %66 = icmp ugt i32 %.0.lcssa.i927.i, 99
+  br i1 %66, label %then.i954.i, label %endif.i956.i
 
-while.i926.i:                                     ; preds = %while.i926.i, %while.lr.ph.i905.i
-  %.0110.i911.i = phi i32 [ %29, %while.lr.ph.i905.i ], [ %div_tmp.i913.i, %while.i926.i ]
-  %.0106109.i912.i = phi i32 [ 0, %while.lr.ph.i905.i ], [ %add_tmp.i925.i, %while.i926.i ]
-  %div_tmp.i913.i = udiv i32 %.0110.i911.i, 10000
-  %mul_tmp.neg.i914.i = mul nsw i32 %div_tmp.i913.i, -10000
-  %sub_tmp.i915.i = add i32 %mul_tmp.neg.i914.i, %.0110.i911.i
-  %sub_tmp.i915.i.frozen = freeze i32 %sub_tmp.i915.i
-  %div_tmp7.i918.i = udiv i32 %sub_tmp.i915.i.frozen, 100
-  %.neg115 = mul i32 %div_tmp7.i918.i, -100
-  %mod_tmp.i916.i.decomposed = add i32 %.neg115, %sub_tmp.i915.i.frozen
-  %lshift_tmp.i917.i = shl nuw nsw i32 %mod_tmp.i916.i.decomposed, 1
-  %lshift_tmp8.i919.i = shl nuw nsw i32 %div_tmp7.i918.i, 1
-  %67 = zext i32 %.0106109.i912.i to i64
+while.i944.i:                                     ; preds = %while.i944.i, %while.lr.ph.i923.i
+  %.0123.i929.i = phi i32 [ %29, %while.lr.ph.i923.i ], [ %div_tmp.i931.i, %while.i944.i ]
+  %.0119122.i930.i = phi i32 [ 0, %while.lr.ph.i923.i ], [ %add_tmp.i943.i, %while.i944.i ]
+  %div_tmp.i931.i = udiv i32 %.0123.i929.i, 10000
+  %mul_tmp.neg.i932.i = mul nsw i32 %div_tmp.i931.i, -10000
+  %sub_tmp.i933.i = add i32 %mul_tmp.neg.i932.i, %.0123.i929.i
+  %sub_tmp.i933.i.frozen = freeze i32 %sub_tmp.i933.i
+  %div_tmp7.i936.i = udiv i32 %sub_tmp.i933.i.frozen, 100
+  %.neg115 = mul i32 %div_tmp7.i936.i, -100
+  %mod_tmp.i934.i.decomposed = add i32 %.neg115, %sub_tmp.i933.i.frozen
+  %lshift_tmp.i935.i = shl nuw nsw i32 %mod_tmp.i934.i.decomposed, 1
+  %lshift_tmp8.i937.i = shl nuw nsw i32 %div_tmp7.i936.i, 1
+  %67 = zext i32 %.0119122.i930.i to i64
   %68 = sub nsw i64 0, %67
-  %ptr_sub_tmp.i920.i = getelementptr i8, i8* %ptr_add_tmp11.i904.i, i64 %68
-  %ptr_sub_tmp13.i921.i = getelementptr i8, i8* %ptr_sub_tmp.i920.i, i64 -2
-  %69 = zext i32 %lshift_tmp.i917.i to i64
-  %ptr_add_tmp15.i922.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %69
-  %70 = bitcast i8* %ptr_add_tmp15.i922.i to i16*
-  %71 = bitcast i8* %ptr_sub_tmp13.i921.i to i16*
+  %ptr_sub_tmp.i938.i = getelementptr i8, i8* %ptr_add_tmp11.i922.i, i64 %68
+  %ptr_sub_tmp13.i939.i = getelementptr i8, i8* %ptr_sub_tmp.i938.i, i64 -2
+  %69 = zext i32 %lshift_tmp.i935.i to i64
+  %ptr_add_tmp16.i940.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %69
+  %70 = bitcast i8* %ptr_add_tmp16.i940.i to i16*
+  %71 = bitcast i8* %ptr_sub_tmp13.i939.i to i16*
   %72 = load i16, i16* %70, align 2
   store i16 %72, i16* %71, align 1
-  %ptr_sub_tmp22.i923.i = getelementptr i8, i8* %ptr_sub_tmp.i920.i, i64 -4
-  %73 = zext i32 %lshift_tmp8.i919.i to i64
-  %ptr_add_tmp24.i924.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %73
-  %74 = bitcast i8* %ptr_add_tmp24.i924.i to i16*
-  %75 = bitcast i8* %ptr_sub_tmp22.i923.i to i16*
+  %ptr_sub_tmp23.i941.i = getelementptr i8, i8* %ptr_sub_tmp.i938.i, i64 -4
+  %73 = zext i32 %lshift_tmp8.i937.i to i64
+  %ptr_add_tmp26.i942.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %73
+  %74 = bitcast i8* %ptr_add_tmp26.i942.i to i16*
+  %75 = bitcast i8* %ptr_sub_tmp23.i941.i to i16*
   %76 = load i16, i16* %74, align 2
   store i16 %76, i16* %75, align 1
-  %add_tmp.i925.i = add i32 %.0106109.i912.i, 4
-  %77 = icmp ugt i32 %.0110.i911.i, 99999999
-  br i1 %77, label %while.i926.i, label %endwhile.loopexit.i907.i
+  %add_tmp.i943.i = add i32 %.0119122.i930.i, 4
+  %77 = icmp ugt i32 %.0123.i929.i, 99999999
+  br i1 %77, label %while.i944.i, label %endwhile.loopexit.i925.i
 
-then.i936.i:                                      ; preds = %endwhile.i910.i
-  %.0.lcssa.i909.i.fr = freeze i32 %.0.lcssa.i909.i
-  %mod_tmp28.lhs.trunc.i927.i = trunc i32 %.0.lcssa.i909.i.fr to i16
-  %div_tmp31108.i929.i = udiv i16 %mod_tmp28.lhs.trunc.i927.i, 100
-  %.neg114 = mul i16 %div_tmp31108.i929.i, -100
-  %mod_tmp28107.i928.i.decomposed = add i16 %.neg114, %mod_tmp28.lhs.trunc.i927.i
-  %78 = shl nuw nsw i16 %mod_tmp28107.i928.i.decomposed, 1
-  %div_tmp31.zext.i930.i = zext i16 %div_tmp31108.i929.i to i32
+then.i954.i:                                      ; preds = %endwhile.i928.i
+  %.0.lcssa.i927.i.fr = freeze i32 %.0.lcssa.i927.i
+  %mod_tmp30.lhs.trunc.i945.i = trunc i32 %.0.lcssa.i927.i.fr to i16
+  %div_tmp33121.i947.i = udiv i16 %mod_tmp30.lhs.trunc.i945.i, 100
+  %.neg114 = mul i16 %div_tmp33121.i947.i, -100
+  %mod_tmp30120.i946.i.decomposed = add i16 %.neg114, %mod_tmp30.lhs.trunc.i945.i
+  %78 = shl nuw nsw i16 %mod_tmp30120.i946.i.decomposed, 1
+  %div_tmp33.zext.i948.i = zext i16 %div_tmp33121.i947.i to i32
   %79 = zext i32 %59 to i64
-  %ptr_add_tmp34.i931.i = getelementptr i8, i8* %ptr_add_tmp128.i, i64 1
-  %ptr_add_tmp35.i932.i = getelementptr i8, i8* %ptr_add_tmp34.i931.i, i64 -2
-  %80 = sub nsw i64 0, %.0106.lcssa.i908.i
-  %ptr_sub_tmp37.i933.i = getelementptr i8, i8* %ptr_add_tmp35.i932.i, i64 %79
-  %ptr_sub_tmp38.i934.i = getelementptr i8, i8* %ptr_sub_tmp37.i933.i, i64 %80
+  %ptr_add_tmp36.i949.i = getelementptr i8, i8* %ptr_add_tmp129.i, i64 1
+  %ptr_add_tmp37.i950.i = getelementptr i8, i8* %ptr_add_tmp36.i949.i, i64 -2
+  %80 = sub nsw i64 0, %.0119.lcssa.i926.i
+  %ptr_sub_tmp39.i951.i = getelementptr i8, i8* %ptr_add_tmp37.i950.i, i64 %79
+  %ptr_sub_tmp40.i952.i = getelementptr i8, i8* %ptr_sub_tmp39.i951.i, i64 %80
   %81 = zext i16 %78 to i64
-  %ptr_add_tmp40.i935.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %81
-  %82 = bitcast i8* %ptr_add_tmp40.i935.i to i16*
-  %83 = bitcast i8* %ptr_sub_tmp38.i934.i to i16*
+  %ptr_add_tmp43.i953.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %81
+  %82 = bitcast i8* %ptr_add_tmp43.i953.i to i16*
+  %83 = bitcast i8* %ptr_sub_tmp40.i952.i to i16*
   %84 = load i16, i16* %82, align 2
   store i16 %84, i16* %83, align 1
-  br label %endif.i938.i
+  br label %endif.i956.i
 
-endif.i938.i:                                     ; preds = %then.i936.i, %endwhile.i910.i
-  %.1.i937.i = phi i32 [ %div_tmp31.zext.i930.i, %then.i936.i ], [ %.0.lcssa.i909.i, %endwhile.i910.i ]
-  %85 = icmp ugt i32 %.1.i937.i, 9
-  br i1 %85, label %then44.i944.i, label %else.i946.i
+endif.i956.i:                                     ; preds = %then.i954.i, %endwhile.i928.i
+  %.1.i955.i = phi i32 [ %div_tmp33.zext.i948.i, %then.i954.i ], [ %.0.lcssa.i927.i, %endwhile.i928.i ]
+  %85 = icmp ugt i32 %.1.i955.i, 9
+  br i1 %85, label %then47.i962.i, label %else.i964.i
 
-then44.i944.i:                                    ; preds = %endif.i938.i
-  %lshift_tmp46.i939.i = shl nuw nsw i32 %.1.i937.i, 1
-  %add_tmp48.i940.i = or i32 %lshift_tmp46.i939.i, 1
-  %86 = zext i32 %add_tmp48.i940.i to i64
+then47.i962.i:                                    ; preds = %endif.i956.i
+  %lshift_tmp49.i957.i = shl nuw nsw i32 %.1.i955.i, 1
+  %add_tmp51.i958.i = or i32 %lshift_tmp49.i957.i, 1
+  %86 = zext i32 %add_tmp51.i958.i to i64
   %87 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %86
-  %load_tmp49.i941.i = load i8, i8* %87, align 1
-  %ptr_add_tmp51.i942.i = getelementptr i8, i8* %ptr_add_tmp128.i, i64 2
-  store i8 %load_tmp49.i941.i, i8* %ptr_add_tmp51.i942.i, align 1
-  %88 = zext i32 %lshift_tmp46.i939.i to i64
+  %load_tmp52.i959.i = load i8, i8* %87, align 1
+  %ptr_add_tmp54.i960.i = getelementptr i8, i8* %ptr_add_tmp129.i, i64 2
+  store i8 %load_tmp52.i959.i, i8* %ptr_add_tmp54.i960.i, align 1
+  %88 = zext i32 %lshift_tmp49.i957.i to i64
   %89 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %88
-  %load_tmp55.i943.i = load i8, i8* %89, align 2
-  br label %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit948.i
+  %load_tmp58.i961.i = load i8, i8* %89, align 2
+  br label %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit966.i
 
-else.i946.i:                                      ; preds = %endif.i938.i
-  %90 = trunc i32 %.1.i937.i to i8
-  %cast_tmp.i945.i = add nuw nsw i8 %90, 48
-  br label %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit948.i
+else.i964.i:                                      ; preds = %endif.i956.i
+  %90 = trunc i32 %.1.i955.i to i8
+  %cast_tmp.i963.i = add nuw nsw i8 %90, 48
+  br label %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit966.i
 
-func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit948.i: ; preds = %else.i946.i, %then44.i944.i
-  %storemerge.i947.i = phi i8 [ %cast_tmp.i945.i, %else.i946.i ], [ %load_tmp55.i943.i, %then44.i944.i ]
-  %91 = getelementptr i8, i8* %ptr_add_tmp128.i, i64 1
+func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit966.i: ; preds = %else.i964.i, %then47.i962.i
+  %storemerge.i965.i = phi i8 [ %cast_tmp.i963.i, %else.i964.i ], [ %load_tmp58.i961.i, %then47.i962.i ]
+  %91 = getelementptr i8, i8* %ptr_add_tmp129.i, i64 1
   store i8 46, i8* %91, align 1
-  store i8 %storemerge.i947.i, i8* %ptr_add_tmp128.i, align 1
-  %add_tmp130.i = add i32 %59, 1
-  br label %endif141.i
+  store i8 %storemerge.i965.i, i8* %ptr_add_tmp129.i, align 1
+  %add_tmp131.i = add i32 %59, 1
+  br label %endif142.i
 
-else133.i:                                        ; preds = %endif121.i
+else134.i:                                        ; preds = %endif122.i
   %92 = trunc i32 %29 to i8
-  %cast_tmp136.i = add i8 %92, 48
-  %93 = sext i32 %.17661097.i to i64
-  %ptr_add_tmp139.i = getelementptr i8, i8* %2, i64 %93
-  store i8 %cast_tmp136.i, i8* %ptr_add_tmp139.i, align 1
-  br label %endif141.i
+  %cast_tmp137.i = add i8 %92, 48
+  %93 = sext i32 %.17781114.i to i64
+  %ptr_add_tmp140.i = getelementptr i8, i8* %2, i64 %93
+  store i8 %cast_tmp137.i, i8* %ptr_add_tmp140.i, align 1
+  br label %endif142.i
 
-endif141.i:                                       ; preds = %else133.i, %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit948.i
-  %add_tmp130.pn.i = phi i32 [ %add_tmp130.i, %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit948.i ], [ 1, %else133.i ]
-  %.2767.i = add i32 %add_tmp130.pn.i, %.17661097.i
-  br label %endif144.i
+endif142.i:                                       ; preds = %else134.i, %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit966.i
+  %add_tmp131.pn.i = phi i32 [ %add_tmp131.i, %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit966.i ], [ 1, %else134.i ]
+  %.2.i = add i32 %add_tmp131.pn.i, %.17781114.i
+  br label %endif145.i
 
-endif144.i:                                       ; preds = %endif141.i, %else110.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit982.i
-  %.2796.i = phi i32 [ %.07941095.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit982.i ], [ %sub_tmp117.i, %endif141.i ], [ %.07941095.i, %else110.i ]
-  %.1780.i = phi i32 [ %add_tmp98.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit982.i ], [ %59, %endif141.i ], [ 0, %else110.i ]
-  %.3.i = phi i32 [ %add_tmp107.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit982.i ], [ %.2767.i, %endif141.i ], [ %.17661097.i, %else110.i ]
-  %94 = icmp sgt i64 %indvars.iv1121.in.i, 1
-  br i1 %94, label %for.i, label %endif145.i
+endif145.i:                                       ; preds = %endif142.i, %else111.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit1000.i
+  %.2812.i = phi i32 [ %.08101112.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit1000.i ], [ %sub_tmp118.i, %endif142.i ], [ %.08101112.i, %else111.i ]
+  %.1791.i = phi i32 [ %add_tmp99.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit1000.i ], [ %59, %endif142.i ], [ 0, %else111.i ]
+  %.3.i = phi i32 [ %add_tmp108.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit1000.i ], [ %.2.i, %endif142.i ], [ %.17781114.i, %else111.i ]
+  %94 = icmp sgt i64 %indvars.iv1138.in.i, 1
+  br i1 %94, label %for.i, label %endif146.i
 
-endif145.i:                                       ; preds = %endif144.i
-  br i1 %21, label %for161.lr.ph.i, label %endif243.thread.thread.i
+endif146.i:                                       ; preds = %endif145.i
+  br i1 %21, label %for162.lr.ph.i, label %endif245.thread.thread.i
 
-for161.lr.ph.i:                                   ; preds = %endif70.i.for161.lr.ph.i_crit_edge, %endif145.i
-  %sub_tmp166.i.pre-phi = phi i32 [ %.pre42, %endif70.i.for161.lr.ph.i_crit_edge ], [ %sub_tmp86.i, %endif145.i ]
-  %lshift_tmp185.i.pre-phi = phi i64 [ %.pre, %endif70.i.for161.lr.ph.i_crit_edge ], [ %lshift_tmp.i, %endif145.i ]
-  %.41130.i = phi i32 [ %.0765.i, %endif70.i.for161.lr.ph.i_crit_edge ], [ %.3.i, %endif145.i ]
-  %.27811129.i = phi i32 [ 0, %endif70.i.for161.lr.ph.i_crit_edge ], [ %.1780.i, %endif145.i ]
-  %.37971128.i = phi i32 [ 0, %endif70.i.for161.lr.ph.i_crit_edge ], [ %.2796.i, %endif145.i ]
-  %div_tmp1040.i = lshr i32 %.0758.nonneg.i, 4
-  %95 = zext i32 %div_tmp1040.i to i64
+for162.lr.ph.i:                                   ; preds = %endif70.i.for162.lr.ph.i_crit_edge, %endif146.i
+  %sub_tmp167.i.pre-phi = phi i32 [ %.pre42, %endif70.i.for162.lr.ph.i_crit_edge ], [ %sub_tmp86.i, %endif146.i ]
+  %lshift_tmp186.i.pre-phi = phi i64 [ %.pre, %endif70.i.for162.lr.ph.i_crit_edge ], [ %lshift_tmp.i, %endif146.i ]
+  %.41147.i = phi i32 [ %.0777.i, %endif70.i.for162.lr.ph.i_crit_edge ], [ %.3.i, %endif146.i ]
+  %.27921146.i = phi i32 [ 0, %endif70.i.for162.lr.ph.i_crit_edge ], [ %.1791.i, %endif146.i ]
+  %.38131145.i = phi i32 [ 0, %endif70.i.for162.lr.ph.i_crit_edge ], [ %.2812.i, %endif146.i ]
+  %div_tmp1058.i = lshr i32 %.0774.nonneg.i, 4
+  %95 = zext i32 %div_tmp1058.i to i64
   %96 = getelementptr [69 x i8], [69 x i8]* @std.ryu.MIN_BLOCK_2, i64 0, i64 %95
-  %load_tmp154.i = load i8, i8* %96, align 1
-  %cast_tmp155.i = zext i8 %load_tmp154.i to i32
+  %load_tmp155.i = load i8, i8* %96, align 1
+  %cast_tmp156.i = zext i8 %load_tmp155.i to i32
   %97 = getelementptr [69 x i16], [69 x i16]* @std.ryu.POW10_OFFSET_2, i64 0, i64 %95
-  %load_tmp169.i = load i16, i16* %97, align 2
-  %add_tmp179.i = add nuw nsw i32 %div_tmp1040.i, 1
-  %98 = zext i32 %add_tmp179.i to i64
+  %load_tmp170.i = load i16, i16* %97, align 2
+  %add_tmp180.i = add nuw nsw i32 %div_tmp1058.i, 1
+  %98 = zext i32 %add_tmp180.i to i64
   %99 = getelementptr [69 x i16], [69 x i16]* @std.ryu.POW10_OFFSET_2, i64 0, i64 %98
-  %load_tmp180.i = load i16, i16* %99, align 2
-  %mul_tmp165.neg.i = mul i32 %div_tmp1040.i, -16
-  %add_tmp188.i = add i32 %sub_tmp166.i.pre-phi, %mul_tmp165.neg.i
-  %100 = zext i8 %load_tmp154.i to i64
-  %101 = zext i16 %load_tmp169.i to i64
-  %102 = zext i16 %load_tmp180.i to i64
+  %load_tmp181.i = load i16, i16* %99, align 2
+  %mul_tmp166.neg.i = mul i32 %div_tmp1058.i, -16
+  %add_tmp190.i = add i32 %sub_tmp167.i.pre-phi, %mul_tmp166.neg.i
+  %100 = zext i8 %load_tmp155.i to i64
+  %101 = zext i16 %load_tmp170.i to i64
+  %102 = zext i16 %load_tmp181.i to i64
   %umax = tail call i64 @llvm.umax.i64(i64 %100, i64 199)
-  br label %for161.i
+  br label %for162.i
 
-for161.i:                                         ; preds = %endif242.i, %for161.lr.ph.i
-  %indvars.iv.i = phi i64 [ %100, %for161.lr.ph.i ], [ %indvars.iv.next.i, %endif242.i ]
-  %.51070.i = phi i32 [ %.41130.i, %for161.lr.ph.i ], [ %.7.i, %endif242.i ]
-  %.07781066.i = phi i32 [ %cast_tmp155.i, %for161.lr.ph.i ], [ %171, %endif242.i ]
-  %.37821065.i = phi i32 [ %.27811129.i, %for161.lr.ph.i ], [ %.4783.i, %endif242.i ]
-  %.47981062.i = phi i32 [ %.37971128.i, %for161.lr.ph.i ], [ %.6800.i, %endif242.i ]
+for162.i:                                         ; preds = %endif244.i, %for162.lr.ph.i
+  %indvars.iv.i = phi i64 [ %100, %for162.lr.ph.i ], [ %indvars.iv.next.i, %endif244.i ]
+  %.51088.i = phi i32 [ %.41147.i, %for162.lr.ph.i ], [ %.7.i, %endif244.i ]
+  %.37931087.i = phi i32 [ %.27921146.i, %for162.lr.ph.i ], [ %.4794.i, %endif244.i ]
+  %.48141084.i = phi i32 [ %.38131145.i, %for162.lr.ph.i ], [ %.6816.i, %endif244.i ]
+  %.08231080.i = phi i32 [ %cast_tmp156.i, %for162.lr.ph.i ], [ %171, %endif244.i ]
   %103 = sub nuw nsw i64 %indvars.iv.i, %100
   %104 = add nuw nsw i64 %103, %101
-  %.not816.i = icmp ult i64 %104, %102
-  br i1 %.not816.i, label %endif189.i, label %endif189.thread.i
+  %.not834.i = icmp ult i64 %104, %102
+  br i1 %.not834.i, label %endif191.i, label %endif191.thread.i
 
-endif189.i:                                       ; preds = %for161.i
+endif191.i:                                       ; preds = %for162.i
   %105 = getelementptr [3133 x [3 x i64]], [3133 x [3 x i64]]* @std.ryu.POW10_SPLIT_2, i64 0, i64 %104, i64 0
   %.val.i = load i64, i64* %105, align 8
   %.idx.i = getelementptr [3133 x [3 x i64]], [3133 x [3 x i64]]* @std.ryu.POW10_SPLIT_2, i64 0, i64 %104, i64 1
   %.idx.val.i = load i64, i64* %.idx.i, align 8
-  %.idx827.i = getelementptr [3133 x [3 x i64]], [3133 x [3 x i64]]* @std.ryu.POW10_SPLIT_2, i64 0, i64 %104, i64 2
-  %.idx827.val.i = load i64, i64* %.idx827.i, align 8
-  %106 = tail call fastcc i32 @func.std.ryu.mulShift_mod1e9..3.builtin.uint64.0P.const.builtin.uint64.builtin.int32.builtin.uint32(i64 %lshift_tmp185.i.pre-phi, i64 %.val.i, i64 %.idx.val.i, i64 %.idx827.val.i, i32 %add_tmp188.i) #7
-  %.not817.i = icmp eq i32 %.37821065.i, 0
-  br i1 %.not817.i, label %else205.i, label %then191.i
+  %.idx845.i = getelementptr [3133 x [3 x i64]], [3133 x [3 x i64]]* @std.ryu.POW10_SPLIT_2, i64 0, i64 %104, i64 2
+  %.idx845.val.i = load i64, i64* %.idx845.i, align 8
+  %106 = tail call fastcc i32 @func.std.ryu.mulShift_mod1e9..3.builtin.uint64.0P.const.builtin.uint64.builtin.int32.builtin.uint32(i64 %lshift_tmp186.i.pre-phi, i64 %.val.i, i64 %.idx.val.i, i64 %.idx845.val.i, i32 %add_tmp190.i) #7
+  %.not835.i = icmp eq i32 %.37931087.i, 0
+  br i1 %.not835.i, label %else207.i, label %then193.i
 
-endif189.thread.i:                                ; preds = %for161.i
-  %.not817994.i = icmp eq i32 %.37821065.i, 0
-  br i1 %.not817994.i, label %endif242.i, label %then191.thread.i
+endif191.thread.i:                                ; preds = %for162.i
+  %.not8351012.i = icmp eq i32 %.37931087.i, 0
+  br i1 %.not8351012.i, label %endif244.i, label %then193.thread.i
 
-then191.i:                                        ; preds = %endif189.i
-  %add_tmp193.i = add i32 %.37821065.i, 9
-  %107 = icmp ugt i32 %add_tmp193.i, %19
-  br i1 %107, label %endif243.thread.i, label %endif196.i
+then193.i:                                        ; preds = %endif191.i
+  %add_tmp195.i = add i32 %.37931087.i, 9
+  %107 = icmp ugt i32 %add_tmp195.i, %19
+  br i1 %107, label %endif245.thread.i, label %endif198.i
 
-then191.thread.i:                                 ; preds = %endif189.thread.i
-  %add_tmp1931027.i = add i32 %.37821065.i, 9
-  %108 = icmp ugt i32 %add_tmp1931027.i, %19
-  br i1 %108, label %endif243.thread.i, label %endif196.thread.i
+then193.thread.i:                                 ; preds = %endif191.thread.i
+  %add_tmp1951045.i = add i32 %.37931087.i, 9
+  %108 = icmp ugt i32 %add_tmp1951045.i, %19
+  br i1 %108, label %endif245.thread.i, label %endif198.thread.i
 
-endif196.thread.i:                                ; preds = %then191.thread.i
-  %109 = sext i32 %.51070.i to i64
-  %ptr_add_tmp2001033.i = getelementptr i8, i8* %2, i64 %109
-  br label %then.i899.i
+endif198.thread.i:                                ; preds = %then193.thread.i
+  %109 = sext i32 %.51088.i to i64
+  %ptr_add_tmp2021051.i = getelementptr i8, i8* %2, i64 %109
+  br label %then.i918.i
 
-endif196.i:                                       ; preds = %then191.i
-  %110 = sext i32 %.51070.i to i64
-  %ptr_add_tmp200.i = getelementptr i8, i8* %2, i64 %110
+endif198.i:                                       ; preds = %then193.i
+  %110 = sext i32 %.51088.i to i64
+  %ptr_add_tmp202.i = getelementptr i8, i8* %2, i64 %110
   %111 = icmp eq i32 %106, 0
-  br i1 %111, label %then.i899.i, label %for_condition_check.preheader.i.i
+  br i1 %111, label %then.i918.i, label %for_condition_check.preheader.i.i
 
-for_condition_check.preheader.i.i:                ; preds = %endif196.i
-  %ptr_add_tmp.i891.i = getelementptr i8, i8* %ptr_add_tmp200.i, i64 7
-  %ptr_add_tmp17.i.i = getelementptr i8, i8* %ptr_add_tmp200.i, i64 5
-  %div_tmp.i892.i = udiv i32 %106, 10000
-  %mul_tmp.neg.i893.i = mul i32 %div_tmp.i892.i, -10000
-  %sub_tmp.i894.i = add i32 %mul_tmp.neg.i893.i, %106
-  %sub_tmp.i894.i.frozen = freeze i32 %sub_tmp.i894.i
-  %div_tmp10.i.i = udiv i32 %sub_tmp.i894.i.frozen, 100
+for_condition_check.preheader.i.i:                ; preds = %endif198.i
+  %ptr_add_tmp.i910.i = getelementptr i8, i8* %ptr_add_tmp202.i, i64 7
+  %ptr_add_tmp18.i.i = getelementptr i8, i8* %ptr_add_tmp202.i, i64 5
+  %div_tmp.i911.i = udiv i32 %106, 10000
+  %mul_tmp.neg.i912.i = mul i32 %div_tmp.i911.i, -10000
+  %sub_tmp.i913.i = add i32 %mul_tmp.neg.i912.i, %106
+  %sub_tmp.i913.i.frozen = freeze i32 %sub_tmp.i913.i
+  %div_tmp10.i.i = udiv i32 %sub_tmp.i913.i.frozen, 100
   %.neg108 = mul i32 %div_tmp10.i.i, -100
-  %mod_tmp.i895.i.decomposed = add i32 %.neg108, %sub_tmp.i894.i.frozen
-  %lshift_tmp.i896.i = shl nuw nsw i32 %mod_tmp.i895.i.decomposed, 1
+  %mod_tmp.i914.i.decomposed = add i32 %.neg108, %sub_tmp.i913.i.frozen
+  %lshift_tmp.i915.i = shl nuw nsw i32 %mod_tmp.i914.i.decomposed, 1
   %lshift_tmp11.i.i = shl nuw nsw i32 %div_tmp10.i.i, 1
-  %112 = zext i32 %lshift_tmp.i896.i to i64
-  %ptr_add_tmp15.i897.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %112
-  %113 = bitcast i8* %ptr_add_tmp15.i897.i to i16*
-  %114 = bitcast i8* %ptr_add_tmp.i891.i to i16*
+  %112 = zext i32 %lshift_tmp.i915.i to i64
+  %ptr_add_tmp16.i916.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %112
+  %113 = bitcast i8* %ptr_add_tmp16.i916.i to i16*
+  %114 = bitcast i8* %ptr_add_tmp.i910.i to i16*
   %115 = load i16, i16* %113, align 2
   store i16 %115, i16* %114, align 1
   %116 = zext i32 %lshift_tmp11.i.i to i64
-  %ptr_add_tmp21.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %116
-  %117 = bitcast i8* %ptr_add_tmp21.i.i to i16*
-  %118 = bitcast i8* %ptr_add_tmp17.i.i to i16*
+  %ptr_add_tmp23.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %116
+  %117 = bitcast i8* %ptr_add_tmp23.i.i to i16*
+  %118 = bitcast i8* %ptr_add_tmp18.i.i to i16*
   %119 = load i16, i16* %117, align 2
   store i16 %119, i16* %118, align 1
   %div_tmp.1.i.i = udiv i32 %106, 100000000
   %mul_tmp.neg.1.i.i = mul nsw i32 %div_tmp.1.i.i, -10000
-  %sub_tmp.1.i.i = add nsw i32 %mul_tmp.neg.1.i.i, %div_tmp.i892.i
+  %sub_tmp.1.i.i = add nsw i32 %mul_tmp.neg.1.i.i, %div_tmp.i911.i
   %sub_tmp.1.i.i.frozen = freeze i32 %sub_tmp.1.i.i
   %div_tmp10.1.i.i = udiv i32 %sub_tmp.1.i.i.frozen, 100
   %.neg109 = mul i32 %div_tmp10.1.i.i, -100
   %mod_tmp.1.i.i.decomposed = add i32 %.neg109, %sub_tmp.1.i.i.frozen
   %lshift_tmp.1.i.i = shl nuw nsw i32 %mod_tmp.1.i.i.decomposed, 1
   %lshift_tmp11.1.i.i = shl nuw nsw i32 %div_tmp10.1.i.i, 1
-  %ptr_sub_tmp.1.i.i = getelementptr i8, i8* %ptr_add_tmp200.i, i64 3
+  %ptr_sub_tmp.1.i.i = getelementptr i8, i8* %ptr_add_tmp202.i, i64 3
   %120 = zext i32 %lshift_tmp.1.i.i to i64
-  %ptr_add_tmp15.1.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %120
-  %121 = bitcast i8* %ptr_add_tmp15.1.i.i to i16*
+  %ptr_add_tmp16.1.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %120
+  %121 = bitcast i8* %ptr_add_tmp16.1.i.i to i16*
   %122 = bitcast i8* %ptr_sub_tmp.1.i.i to i16*
   %123 = load i16, i16* %121, align 2
   store i16 %123, i16* %122, align 1
-  %ptr_sub_tmp19.1.i.i = getelementptr i8, i8* %ptr_add_tmp200.i, i64 1
+  %ptr_sub_tmp20.1.i.i = getelementptr i8, i8* %ptr_add_tmp202.i, i64 1
   %124 = zext i32 %lshift_tmp11.1.i.i to i64
-  %ptr_add_tmp21.1.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %124
-  %125 = bitcast i8* %ptr_add_tmp21.1.i.i to i16*
-  %126 = bitcast i8* %ptr_sub_tmp19.1.i.i to i16*
+  %ptr_add_tmp23.1.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %124
+  %125 = bitcast i8* %ptr_add_tmp23.1.i.i to i16*
+  %126 = bitcast i8* %ptr_sub_tmp20.1.i.i to i16*
   %127 = load i16, i16* %125, align 2
   store i16 %127, i16* %126, align 1
   %128 = trunc i32 %div_tmp.1.i.i to i8
-  %cast_tmp.i898.i = add nuw nsw i8 %128, 48
-  store i8 %cast_tmp.i898.i, i8* %ptr_add_tmp200.i, align 1
+  %cast_tmp.i917.i = add nuw nsw i8 %128, 48
+  store i8 %cast_tmp.i917.i, i8* %ptr_add_tmp202.i, align 1
   br label %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i
 
-then.i899.i:                                      ; preds = %endif196.i, %endif196.thread.i
-  %ptr_add_tmp2001037.i = phi i8* [ %ptr_add_tmp2001033.i, %endif196.thread.i ], [ %ptr_add_tmp200.i, %endif196.i ]
-  %add_tmp19310301035.i = phi i32 [ %add_tmp1931027.i, %endif196.thread.i ], [ %add_tmp193.i, %endif196.i ]
-  tail call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 1 dereferenceable(9) %ptr_add_tmp2001037.i, i8 48, i64 9, i1 false) #7
+then.i918.i:                                      ; preds = %endif198.i, %endif198.thread.i
+  %ptr_add_tmp2021055.i = phi i8* [ %ptr_add_tmp2021051.i, %endif198.thread.i ], [ %ptr_add_tmp202.i, %endif198.i ]
+  %add_tmp19510481053.i = phi i32 [ %add_tmp1951045.i, %endif198.thread.i ], [ %add_tmp195.i, %endif198.i ]
+  tail call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 1 dereferenceable(9) %ptr_add_tmp2021055.i, i8 48, i64 9, i1 false) #7
   br label %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i
 
-func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i: ; preds = %then.i899.i, %for_condition_check.preheader.i.i
-  %add_tmp19310301034.i = phi i32 [ %add_tmp193.i, %for_condition_check.preheader.i.i ], [ %add_tmp19310301035.i, %then.i899.i ]
-  %add_tmp202.i = add i32 %.51070.i, 9
-  br label %endif242.i
+func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i: ; preds = %then.i918.i, %for_condition_check.preheader.i.i
+  %add_tmp19510481052.i = phi i32 [ %add_tmp195.i, %for_condition_check.preheader.i.i ], [ %add_tmp19510481053.i, %then.i918.i ]
+  %add_tmp204.i = add i32 %.51088.i, 9
+  br label %endif244.i
 
-else205.i:                                        ; preds = %endif189.i
-  %.not818.i = icmp eq i32 %106, 0
-  br i1 %.not818.i, label %endif242.i, label %then207.i
+else207.i:                                        ; preds = %endif191.i
+  %.not836.i = icmp eq i32 %106, 0
+  br i1 %.not836.i, label %endif244.i, label %then209.i
 
-then207.i:                                        ; preds = %else205.i
+then209.i:                                        ; preds = %else207.i
   %129 = icmp ugt i32 %106, 99999999
-  br i1 %129, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, label %else.i890.i
+  br i1 %129, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, label %else.i909.i
 
-else.i890.i:                                      ; preds = %then207.i
+else.i909.i:                                      ; preds = %then209.i
   %130 = icmp ugt i32 %106, 9999999
   br i1 %130, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, label %else4.i.i
 
-else4.i.i:                                        ; preds = %else.i890.i
+else4.i.i:                                        ; preds = %else.i909.i
   %131 = icmp ugt i32 %106, 999999
   br i1 %131, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, label %else7.i.i
 
@@ -1616,227 +1616,227 @@ else16.i.i:                                       ; preds = %else13.i.i
   %137 = select i1 %135, i32 3, i32 %..i.i
   br label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i
 
-func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i: ; preds = %else16.i.i, %else13.i.i, %else10.i.i, %else7.i.i, %else4.i.i, %else.i890.i, %then207.i
-  %138 = phi i32 [ 9, %then207.i ], [ 8, %else.i890.i ], [ 7, %else4.i.i ], [ 6, %else7.i.i ], [ 5, %else10.i.i ], [ %137, %else16.i.i ], [ 4, %else13.i.i ]
-  %unary_minus_tmp211.i = xor i32 %.07781066.i, -1
-  %mul_tmp212.i = mul i32 %unary_minus_tmp211.i, 9
-  %add_tmp214.i = add nsw i32 %mul_tmp212.i, -1
-  %sub_tmp215.i = add i32 %add_tmp214.i, %138
+func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i: ; preds = %else16.i.i, %else13.i.i, %else10.i.i, %else7.i.i, %else4.i.i, %else.i909.i, %then209.i
+  %138 = phi i32 [ 9, %then209.i ], [ 8, %else.i909.i ], [ 7, %else4.i.i ], [ 6, %else7.i.i ], [ 5, %else10.i.i ], [ %137, %else16.i.i ], [ 4, %else13.i.i ]
+  %unary_minus_tmp213.i = xor i32 %.08231080.i, -1
+  %mul_tmp214.i = mul i32 %unary_minus_tmp213.i, 9
+  %add_tmp216.i = add nsw i32 %mul_tmp214.i, -1
+  %sub_tmp217.i = add i32 %add_tmp216.i, %138
   %139 = icmp ugt i32 %138, %19
-  br i1 %139, label %endif243.thread.i, label %endif219.i
+  br i1 %139, label %endif245.thread.i, label %endif221.i
 
-endif219.i:                                       ; preds = %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i
-  br i1 %.not.i, label %else231.i, label %then221.i
+endif221.i:                                       ; preds = %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i
+  br i1 %.not.i, label %else233.i, label %then223.i
 
-then221.i:                                        ; preds = %endif219.i
-  %140 = sext i32 %.51070.i to i64
-  %ptr_add_tmp226.i = getelementptr i8, i8* %2, i64 %140
+then223.i:                                        ; preds = %endif221.i
+  %140 = sext i32 %.51088.i to i64
+  %ptr_add_tmp228.i = getelementptr i8, i8* %2, i64 %140
   %141 = icmp ugt i32 %106, 9999
-  br i1 %141, label %while.lr.ph.i846.i, label %endwhile.i851.i
+  br i1 %141, label %while.lr.ph.i865.i, label %endwhile.i870.i
 
-while.lr.ph.i846.i:                               ; preds = %then221.i
+while.lr.ph.i865.i:                               ; preds = %then223.i
   %142 = zext i32 %138 to i64
-  %ptr_add_tmp.i844.i = getelementptr i8, i8* %ptr_add_tmp226.i, i64 1
-  %ptr_add_tmp11.i845.i = getelementptr i8, i8* %ptr_add_tmp.i844.i, i64 %142
-  br label %while.i867.i
+  %ptr_add_tmp.i863.i = getelementptr i8, i8* %ptr_add_tmp228.i, i64 1
+  %ptr_add_tmp11.i864.i = getelementptr i8, i8* %ptr_add_tmp.i863.i, i64 %142
+  br label %while.i886.i
 
-endwhile.loopexit.i848.i:                         ; preds = %while.i867.i
-  %phi.cast.i847.i = zext i32 %add_tmp.i866.i to i64
-  br label %endwhile.i851.i
+endwhile.loopexit.i867.i:                         ; preds = %while.i886.i
+  %phi.cast.i866.i = zext i32 %add_tmp.i885.i to i64
+  br label %endwhile.i870.i
 
-endwhile.i851.i:                                  ; preds = %endwhile.loopexit.i848.i, %then221.i
-  %.0106.lcssa.i849.i = phi i64 [ 0, %then221.i ], [ %phi.cast.i847.i, %endwhile.loopexit.i848.i ]
-  %.0.lcssa.i850.i = phi i32 [ %106, %then221.i ], [ %div_tmp.i854.i, %endwhile.loopexit.i848.i ]
-  %143 = icmp ugt i32 %.0.lcssa.i850.i, 99
-  br i1 %143, label %then.i877.i, label %endif.i879.i
+endwhile.i870.i:                                  ; preds = %endwhile.loopexit.i867.i, %then223.i
+  %.0119.lcssa.i868.i = phi i64 [ 0, %then223.i ], [ %phi.cast.i866.i, %endwhile.loopexit.i867.i ]
+  %.0.lcssa.i869.i = phi i32 [ %106, %then223.i ], [ %div_tmp.i873.i, %endwhile.loopexit.i867.i ]
+  %143 = icmp ugt i32 %.0.lcssa.i869.i, 99
+  br i1 %143, label %then.i896.i, label %endif.i898.i
 
-while.i867.i:                                     ; preds = %while.i867.i, %while.lr.ph.i846.i
-  %.0110.i852.i = phi i32 [ %106, %while.lr.ph.i846.i ], [ %div_tmp.i854.i, %while.i867.i ]
-  %.0106109.i853.i = phi i32 [ 0, %while.lr.ph.i846.i ], [ %add_tmp.i866.i, %while.i867.i ]
-  %div_tmp.i854.i = udiv i32 %.0110.i852.i, 10000
-  %mul_tmp.neg.i855.i = mul nsw i32 %div_tmp.i854.i, -10000
-  %sub_tmp.i856.i = add i32 %mul_tmp.neg.i855.i, %.0110.i852.i
-  %sub_tmp.i856.i.frozen = freeze i32 %sub_tmp.i856.i
-  %div_tmp7.i859.i = udiv i32 %sub_tmp.i856.i.frozen, 100
-  %.neg111 = mul i32 %div_tmp7.i859.i, -100
-  %mod_tmp.i857.i.decomposed = add i32 %.neg111, %sub_tmp.i856.i.frozen
-  %lshift_tmp.i858.i = shl nuw nsw i32 %mod_tmp.i857.i.decomposed, 1
-  %lshift_tmp8.i860.i = shl nuw nsw i32 %div_tmp7.i859.i, 1
-  %144 = zext i32 %.0106109.i853.i to i64
+while.i886.i:                                     ; preds = %while.i886.i, %while.lr.ph.i865.i
+  %.0123.i871.i = phi i32 [ %106, %while.lr.ph.i865.i ], [ %div_tmp.i873.i, %while.i886.i ]
+  %.0119122.i872.i = phi i32 [ 0, %while.lr.ph.i865.i ], [ %add_tmp.i885.i, %while.i886.i ]
+  %div_tmp.i873.i = udiv i32 %.0123.i871.i, 10000
+  %mul_tmp.neg.i874.i = mul nsw i32 %div_tmp.i873.i, -10000
+  %sub_tmp.i875.i = add i32 %mul_tmp.neg.i874.i, %.0123.i871.i
+  %sub_tmp.i875.i.frozen = freeze i32 %sub_tmp.i875.i
+  %div_tmp7.i878.i = udiv i32 %sub_tmp.i875.i.frozen, 100
+  %.neg111 = mul i32 %div_tmp7.i878.i, -100
+  %mod_tmp.i876.i.decomposed = add i32 %.neg111, %sub_tmp.i875.i.frozen
+  %lshift_tmp.i877.i = shl nuw nsw i32 %mod_tmp.i876.i.decomposed, 1
+  %lshift_tmp8.i879.i = shl nuw nsw i32 %div_tmp7.i878.i, 1
+  %144 = zext i32 %.0119122.i872.i to i64
   %145 = sub nsw i64 0, %144
-  %ptr_sub_tmp.i861.i = getelementptr i8, i8* %ptr_add_tmp11.i845.i, i64 %145
-  %ptr_sub_tmp13.i862.i = getelementptr i8, i8* %ptr_sub_tmp.i861.i, i64 -2
-  %146 = zext i32 %lshift_tmp.i858.i to i64
-  %ptr_add_tmp15.i863.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %146
-  %147 = bitcast i8* %ptr_add_tmp15.i863.i to i16*
-  %148 = bitcast i8* %ptr_sub_tmp13.i862.i to i16*
+  %ptr_sub_tmp.i880.i = getelementptr i8, i8* %ptr_add_tmp11.i864.i, i64 %145
+  %ptr_sub_tmp13.i881.i = getelementptr i8, i8* %ptr_sub_tmp.i880.i, i64 -2
+  %146 = zext i32 %lshift_tmp.i877.i to i64
+  %ptr_add_tmp16.i882.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %146
+  %147 = bitcast i8* %ptr_add_tmp16.i882.i to i16*
+  %148 = bitcast i8* %ptr_sub_tmp13.i881.i to i16*
   %149 = load i16, i16* %147, align 2
   store i16 %149, i16* %148, align 1
-  %ptr_sub_tmp22.i864.i = getelementptr i8, i8* %ptr_sub_tmp.i861.i, i64 -4
-  %150 = zext i32 %lshift_tmp8.i860.i to i64
-  %ptr_add_tmp24.i865.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %150
-  %151 = bitcast i8* %ptr_add_tmp24.i865.i to i16*
-  %152 = bitcast i8* %ptr_sub_tmp22.i864.i to i16*
+  %ptr_sub_tmp23.i883.i = getelementptr i8, i8* %ptr_sub_tmp.i880.i, i64 -4
+  %150 = zext i32 %lshift_tmp8.i879.i to i64
+  %ptr_add_tmp26.i884.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %150
+  %151 = bitcast i8* %ptr_add_tmp26.i884.i to i16*
+  %152 = bitcast i8* %ptr_sub_tmp23.i883.i to i16*
   %153 = load i16, i16* %151, align 2
   store i16 %153, i16* %152, align 1
-  %add_tmp.i866.i = add i32 %.0106109.i853.i, 4
-  %154 = icmp ugt i32 %.0110.i852.i, 99999999
-  br i1 %154, label %while.i867.i, label %endwhile.loopexit.i848.i
+  %add_tmp.i885.i = add i32 %.0119122.i872.i, 4
+  %154 = icmp ugt i32 %.0123.i871.i, 99999999
+  br i1 %154, label %while.i886.i, label %endwhile.loopexit.i867.i
 
-then.i877.i:                                      ; preds = %endwhile.i851.i
-  %.0.lcssa.i850.i.fr = freeze i32 %.0.lcssa.i850.i
-  %mod_tmp28.lhs.trunc.i868.i = trunc i32 %.0.lcssa.i850.i.fr to i16
-  %div_tmp31108.i870.i = udiv i16 %mod_tmp28.lhs.trunc.i868.i, 100
-  %.neg110 = mul i16 %div_tmp31108.i870.i, -100
-  %mod_tmp28107.i869.i.decomposed = add i16 %.neg110, %mod_tmp28.lhs.trunc.i868.i
-  %155 = shl nuw nsw i16 %mod_tmp28107.i869.i.decomposed, 1
-  %div_tmp31.zext.i871.i = zext i16 %div_tmp31108.i870.i to i32
+then.i896.i:                                      ; preds = %endwhile.i870.i
+  %.0.lcssa.i869.i.fr = freeze i32 %.0.lcssa.i869.i
+  %mod_tmp30.lhs.trunc.i887.i = trunc i32 %.0.lcssa.i869.i.fr to i16
+  %div_tmp33121.i889.i = udiv i16 %mod_tmp30.lhs.trunc.i887.i, 100
+  %.neg110 = mul i16 %div_tmp33121.i889.i, -100
+  %mod_tmp30120.i888.i.decomposed = add i16 %.neg110, %mod_tmp30.lhs.trunc.i887.i
+  %155 = shl nuw nsw i16 %mod_tmp30120.i888.i.decomposed, 1
+  %div_tmp33.zext.i890.i = zext i16 %div_tmp33121.i889.i to i32
   %156 = zext i32 %138 to i64
-  %ptr_add_tmp34.i872.i = getelementptr i8, i8* %ptr_add_tmp226.i, i64 1
-  %ptr_add_tmp35.i873.i = getelementptr i8, i8* %ptr_add_tmp34.i872.i, i64 -2
-  %157 = sub nsw i64 0, %.0106.lcssa.i849.i
-  %ptr_sub_tmp37.i874.i = getelementptr i8, i8* %ptr_add_tmp35.i873.i, i64 %156
-  %ptr_sub_tmp38.i875.i = getelementptr i8, i8* %ptr_sub_tmp37.i874.i, i64 %157
+  %ptr_add_tmp36.i891.i = getelementptr i8, i8* %ptr_add_tmp228.i, i64 1
+  %ptr_add_tmp37.i892.i = getelementptr i8, i8* %ptr_add_tmp36.i891.i, i64 -2
+  %157 = sub nsw i64 0, %.0119.lcssa.i868.i
+  %ptr_sub_tmp39.i893.i = getelementptr i8, i8* %ptr_add_tmp37.i892.i, i64 %156
+  %ptr_sub_tmp40.i894.i = getelementptr i8, i8* %ptr_sub_tmp39.i893.i, i64 %157
   %158 = zext i16 %155 to i64
-  %ptr_add_tmp40.i876.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %158
-  %159 = bitcast i8* %ptr_add_tmp40.i876.i to i16*
-  %160 = bitcast i8* %ptr_sub_tmp38.i875.i to i16*
+  %ptr_add_tmp43.i895.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %158
+  %159 = bitcast i8* %ptr_add_tmp43.i895.i to i16*
+  %160 = bitcast i8* %ptr_sub_tmp40.i894.i to i16*
   %161 = load i16, i16* %159, align 2
   store i16 %161, i16* %160, align 1
-  br label %endif.i879.i
+  br label %endif.i898.i
 
-endif.i879.i:                                     ; preds = %then.i877.i, %endwhile.i851.i
-  %.1.i878.i = phi i32 [ %div_tmp31.zext.i871.i, %then.i877.i ], [ %.0.lcssa.i850.i, %endwhile.i851.i ]
-  %162 = icmp ugt i32 %.1.i878.i, 9
-  br i1 %162, label %then44.i885.i, label %else.i887.i
+endif.i898.i:                                     ; preds = %then.i896.i, %endwhile.i870.i
+  %.1.i897.i = phi i32 [ %div_tmp33.zext.i890.i, %then.i896.i ], [ %.0.lcssa.i869.i, %endwhile.i870.i ]
+  %162 = icmp ugt i32 %.1.i897.i, 9
+  br i1 %162, label %then47.i904.i, label %else.i906.i
 
-then44.i885.i:                                    ; preds = %endif.i879.i
-  %lshift_tmp46.i880.i = shl nuw nsw i32 %.1.i878.i, 1
-  %add_tmp48.i881.i = or i32 %lshift_tmp46.i880.i, 1
-  %163 = zext i32 %add_tmp48.i881.i to i64
+then47.i904.i:                                    ; preds = %endif.i898.i
+  %lshift_tmp49.i899.i = shl nuw nsw i32 %.1.i897.i, 1
+  %add_tmp51.i900.i = or i32 %lshift_tmp49.i899.i, 1
+  %163 = zext i32 %add_tmp51.i900.i to i64
   %164 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %163
-  %load_tmp49.i882.i = load i8, i8* %164, align 1
-  %ptr_add_tmp51.i883.i = getelementptr i8, i8* %ptr_add_tmp226.i, i64 2
-  store i8 %load_tmp49.i882.i, i8* %ptr_add_tmp51.i883.i, align 1
-  %165 = zext i32 %lshift_tmp46.i880.i to i64
+  %load_tmp52.i901.i = load i8, i8* %164, align 1
+  %ptr_add_tmp54.i902.i = getelementptr i8, i8* %ptr_add_tmp228.i, i64 2
+  store i8 %load_tmp52.i901.i, i8* %ptr_add_tmp54.i902.i, align 1
+  %165 = zext i32 %lshift_tmp49.i899.i to i64
   %166 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %165
-  %load_tmp55.i884.i = load i8, i8* %166, align 2
-  br label %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit889.i
+  %load_tmp58.i903.i = load i8, i8* %166, align 2
+  br label %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit908.i
 
-else.i887.i:                                      ; preds = %endif.i879.i
-  %167 = trunc i32 %.1.i878.i to i8
-  %cast_tmp.i886.i = add nuw nsw i8 %167, 48
-  br label %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit889.i
+else.i906.i:                                      ; preds = %endif.i898.i
+  %167 = trunc i32 %.1.i897.i to i8
+  %cast_tmp.i905.i = add nuw nsw i8 %167, 48
+  br label %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit908.i
 
-func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit889.i: ; preds = %else.i887.i, %then44.i885.i
-  %storemerge.i888.i = phi i8 [ %cast_tmp.i886.i, %else.i887.i ], [ %load_tmp55.i884.i, %then44.i885.i ]
-  %168 = getelementptr i8, i8* %ptr_add_tmp226.i, i64 1
+func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit908.i: ; preds = %else.i906.i, %then47.i904.i
+  %storemerge.i907.i = phi i8 [ %cast_tmp.i905.i, %else.i906.i ], [ %load_tmp58.i903.i, %then47.i904.i ]
+  %168 = getelementptr i8, i8* %ptr_add_tmp228.i, i64 1
   store i8 46, i8* %168, align 1
-  store i8 %storemerge.i888.i, i8* %ptr_add_tmp226.i, align 1
-  %add_tmp228.i = add i32 %138, 1
-  br label %endif239.i
+  store i8 %storemerge.i907.i, i8* %ptr_add_tmp228.i, align 1
+  %add_tmp230.i = add i32 %138, 1
+  br label %endif241.i
 
-else231.i:                                        ; preds = %endif219.i
+else233.i:                                        ; preds = %endif221.i
   %169 = trunc i32 %106 to i8
-  %cast_tmp234.i = add i8 %169, 48
-  %170 = sext i32 %.51070.i to i64
-  %ptr_add_tmp237.i = getelementptr i8, i8* %2, i64 %170
-  store i8 %cast_tmp234.i, i8* %ptr_add_tmp237.i, align 1
-  br label %endif239.i
+  %cast_tmp236.i = add i8 %169, 48
+  %170 = sext i32 %.51088.i to i64
+  %ptr_add_tmp239.i = getelementptr i8, i8* %2, i64 %170
+  store i8 %cast_tmp236.i, i8* %ptr_add_tmp239.i, align 1
+  br label %endif241.i
 
-endif239.i:                                       ; preds = %else231.i, %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit889.i
-  %add_tmp228.pn.i = phi i32 [ %add_tmp228.i, %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit889.i ], [ 1, %else231.i ]
-  %.6.i = add i32 %add_tmp228.pn.i, %.51070.i
-  br label %endif242.i
+endif241.i:                                       ; preds = %else233.i, %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit908.i
+  %add_tmp230.pn.i = phi i32 [ %add_tmp230.i, %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit908.i ], [ 1, %else233.i ]
+  %.6.i = add i32 %add_tmp230.pn.i, %.51088.i
+  br label %endif244.i
 
-endif242.i:                                       ; preds = %endif239.i, %else205.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i, %endif189.thread.i
-  %.6800.i = phi i32 [ %.47981062.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i ], [ %sub_tmp215.i, %endif239.i ], [ %.47981062.i, %else205.i ], [ %.47981062.i, %endif189.thread.i ]
-  %.4783.i = phi i32 [ %add_tmp19310301034.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i ], [ %138, %endif239.i ], [ 0, %else205.i ], [ 0, %endif189.thread.i ]
-  %.7.i = phi i32 [ %add_tmp202.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i ], [ %.6.i, %endif239.i ], [ %.51070.i, %else205.i ], [ %.51070.i, %endif189.thread.i ]
+endif244.i:                                       ; preds = %endif241.i, %else207.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i, %endif191.thread.i
+  %.6816.i = phi i32 [ %.48141084.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i ], [ %sub_tmp217.i, %endif241.i ], [ %.48141084.i, %else207.i ], [ %.48141084.i, %endif191.thread.i ]
+  %.4794.i = phi i32 [ %add_tmp19510481052.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i ], [ %138, %endif241.i ], [ 0, %else207.i ], [ 0, %endif191.thread.i ]
+  %.7.i = phi i32 [ %add_tmp204.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i ], [ %.6.i, %endif241.i ], [ %.51088.i, %else207.i ], [ %.51088.i, %endif191.thread.i ]
   %indvars.iv.next.i = add nuw nsw i64 %indvars.iv.i, 1
-  %171 = add nuw nsw i32 %.07781066.i, 1
+  %171 = add nuw nsw i32 %.08231080.i, 1
   %exitcond.not = icmp eq i64 %indvars.iv.i, %umax
-  br i1 %exitcond.not, label %endif243.thread.thread.i, label %for161.i
+  br i1 %exitcond.not, label %endif245.thread.thread.i, label %for162.i
 
-endif243.thread.thread.i:                         ; preds = %endif242.i, %endif145.i
-  %.81011.ph.i = phi i32 [ %.3.i, %endif145.i ], [ %.7.i, %endif242.i ]
-  %.57841010.ph.i = phi i32 [ %.1780.i, %endif145.i ], [ %.4783.i, %endif242.i ]
-  %.78011008.ph.i = phi i32 [ %.2796.i, %endif145.i ], [ %.6800.i, %endif242.i ]
-  %sub_tmp24610131135.i = sub i32 %19, %.57841010.ph.i
-  br label %then267.i
+endif245.thread.thread.i:                         ; preds = %endif244.i, %endif146.i
+  %.81029.ph.i = phi i32 [ %.3.i, %endif146.i ], [ %.7.i, %endif244.i ]
+  %.57951028.ph.i = phi i32 [ %.1791.i, %endif146.i ], [ %.4794.i, %endif244.i ]
+  %.78171026.ph.i = phi i32 [ %.2812.i, %endif146.i ], [ %.6816.i, %endif244.i ]
+  %sub_tmp24810311152.i = sub i32 %19, %.57951028.ph.i
+  br label %then269.i
 
-endif243.thread.i:                                ; preds = %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit956.i, %then96.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, %then191.thread.i, %then191.i
-  %.81011.i = phi i32 [ %.51070.i, %then191.i ], [ %.51070.i, %then191.thread.i ], [ %.51070.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i ], [ %.17661097.i, %then96.i ], [ %.17661097.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit956.i ]
-  %.57841010.i = phi i32 [ 0, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i ], [ %.37821065.i, %then191.thread.i ], [ %.37821065.i, %then191.i ], [ 0, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit956.i ], [ %.07791096.i, %then96.i ]
-  %.77921009.i = phi i32 [ %138, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i ], [ 9, %then191.thread.i ], [ 9, %then191.i ], [ %59, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit956.i ], [ 9, %then96.i ]
-  %.78011008.i = phi i32 [ %sub_tmp215.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i ], [ %.47981062.i, %then191.thread.i ], [ %.47981062.i, %then191.i ], [ %sub_tmp117.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit956.i ], [ %.07941095.i, %then96.i ]
-  %172 = phi i32 [ %106, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i ], [ 0, %then191.thread.i ], [ %106, %then191.i ], [ %29, %then96.i ], [ %29, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit956.i ]
-  %sub_tmp2461013.i = sub i32 %19, %.57841010.i
-  %173 = icmp ugt i32 %.77921009.i, %sub_tmp2461013.i
-  br i1 %173, label %for_condition_check253.preheader.i, label %then267.i
+endif245.thread.i:                                ; preds = %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit974.i, %then97.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, %then193.thread.i, %then193.i
+  %.81029.i = phi i32 [ %.51088.i, %then193.i ], [ %.51088.i, %then193.thread.i ], [ %.51088.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i ], [ %.17781114.i, %then97.i ], [ %.17781114.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit974.i ]
+  %.57951028.i = phi i32 [ 0, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i ], [ %.37931087.i, %then193.thread.i ], [ %.37931087.i, %then193.i ], [ 0, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit974.i ], [ %.07901113.i, %then97.i ]
+  %.78091027.i = phi i32 [ %138, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i ], [ 9, %then193.thread.i ], [ 9, %then193.i ], [ %59, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit974.i ], [ 9, %then97.i ]
+  %.78171026.i = phi i32 [ %sub_tmp217.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i ], [ %.48141084.i, %then193.thread.i ], [ %.48141084.i, %then193.i ], [ %sub_tmp118.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit974.i ], [ %.08101112.i, %then97.i ]
+  %172 = phi i32 [ %106, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i ], [ 0, %then193.thread.i ], [ %106, %then193.i ], [ %29, %then97.i ], [ %29, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit974.i ]
+  %sub_tmp2481031.i = sub i32 %19, %.57951028.i
+  %173 = icmp ugt i32 %.78091027.i, %sub_tmp2481031.i
+  br i1 %173, label %for_condition_check255.preheader.i, label %then269.i
 
-for_condition_check253.preheader.i:               ; preds = %endif243.thread.i
-  %sub_tmp259.i = sub i32 %.77921009.i, %sub_tmp2461013.i
-  %.not1103.i = icmp eq i32 %sub_tmp259.i, 0
-  br i1 %.not1103.i, label %then267.i, label %for261.i
+for_condition_check255.preheader.i:               ; preds = %endif245.thread.i
+  %sub_tmp261.i = sub i32 %.78091027.i, %sub_tmp2481031.i
+  %.not1120.i = icmp eq i32 %sub_tmp261.i, 0
+  br i1 %.not1120.i, label %then269.i, label %for263.i
 
-for261.i:                                         ; preds = %for_condition_check253.preheader.i, %for261.i
-  %.07611060.i = phi i32 [ %174, %for261.i ], [ 0, %for_condition_check253.preheader.i ]
-  %.87761059.i = phi i32 [ %div_tmp264.i, %for261.i ], [ %172, %for_condition_check253.preheader.i ]
-  %.87761059.i.frozen = freeze i32 %.87761059.i
-  %div_tmp264.i = udiv i32 %.87761059.i.frozen, 10
-  %174 = add nuw i32 %.07611060.i, 1
-  %exitcond.not.i = icmp eq i32 %174, %sub_tmp259.i
-  br i1 %exitcond.not.i, label %endif265.i, label %for261.i
+for263.i:                                         ; preds = %for_condition_check255.preheader.i, %for263.i
+  %.87881078.i = phi i32 [ %div_tmp266.i, %for263.i ], [ %172, %for_condition_check255.preheader.i ]
+  %.07991077.i = phi i32 [ %174, %for263.i ], [ 0, %for_condition_check255.preheader.i ]
+  %.87881078.i.frozen = freeze i32 %.87881078.i
+  %div_tmp266.i = udiv i32 %.87881078.i.frozen, 10
+  %174 = add nuw i32 %.07991077.i, 1
+  %exitcond.not.i = icmp eq i32 %174, %sub_tmp261.i
+  br i1 %exitcond.not.i, label %endif267.i, label %for263.i
 
-endif265.i:                                       ; preds = %for261.i
-  %.87761059.i.frozen.le = freeze i32 %.87761059.i
-  %.neg107 = mul i32 %div_tmp264.i, -10
-  %mod_tmp.le.i.decomposed = add i32 %.neg107, %.87761059.i.frozen.le
-  %.not813.i = icmp eq i32 %mod_tmp.le.i.decomposed, 5
-  br i1 %.not813.i, label %else270.i, label %then267.i
+endif267.i:                                       ; preds = %for263.i
+  %.87881078.i.frozen.le = freeze i32 %.87881078.i
+  %.neg107 = mul i32 %div_tmp266.i, -10
+  %mod_tmp.le.i.decomposed = add i32 %.neg107, %.87881078.i.frozen.le
+  %.not831.i = icmp eq i32 %mod_tmp.le.i.decomposed, 5
+  br i1 %.not831.i, label %else272.i, label %then269.i
 
-then267.i:                                        ; preds = %endif265.i, %for_condition_check253.preheader.i, %endif243.thread.i, %endif243.thread.thread.i
-  %sub_tmp24610131144.i = phi i32 [ %sub_tmp2461013.i, %endif265.i ], [ %sub_tmp2461013.i, %endif243.thread.i ], [ %sub_tmp24610131135.i, %endif243.thread.thread.i ], [ %sub_tmp2461013.i, %for_condition_check253.preheader.i ]
-  %.780110081142.i = phi i32 [ %.78011008.i, %endif265.i ], [ %.78011008.i, %endif243.thread.i ], [ %.78011008.ph.i, %endif243.thread.thread.i ], [ %.78011008.i, %for_condition_check253.preheader.i ]
-  %.578410101140.i = phi i32 [ %.57841010.i, %endif265.i ], [ %.57841010.i, %endif243.thread.i ], [ %.57841010.ph.i, %endif243.thread.thread.i ], [ %.57841010.i, %for_condition_check253.preheader.i ]
-  %.810111137.i = phi i32 [ %.81011.i, %endif265.i ], [ %.81011.i, %endif243.thread.i ], [ %.81011.ph.i, %endif243.thread.thread.i ], [ %.81011.i, %for_condition_check253.preheader.i ]
-  %.17631019.i = phi i32 [ %mod_tmp.le.i.decomposed, %endif265.i ], [ 0, %endif243.thread.i ], [ 0, %endif243.thread.thread.i ], [ 0, %for_condition_check253.preheader.i ]
-  %.97771018.i = phi i32 [ %div_tmp264.i, %endif265.i ], [ %172, %endif243.thread.i ], [ 0, %endif243.thread.thread.i ], [ %172, %for_condition_check253.preheader.i ]
-  %175 = icmp ugt i32 %.17631019.i, 5
-  %cast_tmp269.i = zext i1 %175 to i32
-  br label %endif300.i
+then269.i:                                        ; preds = %endif267.i, %for_condition_check255.preheader.i, %endif245.thread.i, %endif245.thread.thread.i
+  %sub_tmp24810311161.i = phi i32 [ %sub_tmp2481031.i, %endif267.i ], [ %sub_tmp2481031.i, %endif245.thread.i ], [ %sub_tmp24810311152.i, %endif245.thread.thread.i ], [ %sub_tmp2481031.i, %for_condition_check255.preheader.i ]
+  %.781710261159.i = phi i32 [ %.78171026.i, %endif267.i ], [ %.78171026.i, %endif245.thread.i ], [ %.78171026.ph.i, %endif245.thread.thread.i ], [ %.78171026.i, %for_condition_check255.preheader.i ]
+  %.579510281157.i = phi i32 [ %.57951028.i, %endif267.i ], [ %.57951028.i, %endif245.thread.i ], [ %.57951028.ph.i, %endif245.thread.thread.i ], [ %.57951028.i, %for_condition_check255.preheader.i ]
+  %.810291154.i = phi i32 [ %.81029.i, %endif267.i ], [ %.81029.i, %endif245.thread.i ], [ %.81029.ph.i, %endif245.thread.thread.i ], [ %.81029.i, %for_condition_check255.preheader.i ]
+  %.97891037.i = phi i32 [ %div_tmp266.i, %endif267.i ], [ %172, %endif245.thread.i ], [ 0, %endif245.thread.thread.i ], [ %172, %for_condition_check255.preheader.i ]
+  %.18011035.i = phi i32 [ %mod_tmp.le.i.decomposed, %endif267.i ], [ 0, %endif245.thread.i ], [ 0, %endif245.thread.thread.i ], [ 0, %for_condition_check255.preheader.i ]
+  %175 = icmp ugt i32 %.18011035.i, 5
+  %cast_tmp271.i = zext i1 %175 to i32
+  br label %endif302.i
 
-else270.i:                                        ; preds = %endif265.i
-  %sub_tmp273.i = sub i32 %19, %.78011008.i
-  %176 = add i32 %.0758.i, %sub_tmp273.i
-  %sub_tmp277.i = sub i32 0, %176
-  %177 = icmp slt i32 %sub_tmp277.i, 1
+else272.i:                                        ; preds = %endif267.i
+  %sub_tmp275.i = sub i32 %19, %.78171026.i
+  %176 = add i32 %.0774.i, %sub_tmp275.i
+  %sub_tmp279.i = sub i32 0, %176
+  %177 = icmp slt i32 %sub_tmp279.i, 1
   br i1 %177, label %bool_or_end.i, label %bool_or_rhs.i
 
-bool_or_rhs.i:                                    ; preds = %else270.i
-  %178 = icmp ult i32 %sub_tmp277.i, 60
-  br i1 %178, label %bool_and_rhs280.i, label %endif300.i
+bool_or_rhs.i:                                    ; preds = %else272.i
+  %178 = icmp ult i32 %sub_tmp279.i, 60
+  br i1 %178, label %bool_and_rhs282.i, label %endif302.i
 
-bool_and_rhs280.i:                                ; preds = %bool_or_rhs.i
-  %179 = icmp ne i64 %.0764.i, 0
+bool_and_rhs282.i:                                ; preds = %bool_or_rhs.i
+  %179 = icmp ne i64 %.0775.i, 0
   tail call void @llvm.assume(i1 %179) #7
-  %180 = zext i32 %sub_tmp277.i to i64
+  %180 = zext i32 %sub_tmp279.i to i64
   %notmask.i.i = shl nsw i64 -1, %180
-  %sub_tmp.i843.i = xor i64 %notmask.i.i, -1
-  %bit_and_tmp.i.i = and i64 %.0764.i, %sub_tmp.i843.i
+  %sub_tmp.i862.i = xor i64 %notmask.i.i, -1
+  %bit_and_tmp.i.i = and i64 %.0775.i, %sub_tmp.i862.i
   %181 = icmp eq i64 %bit_and_tmp.i.i, 0
   br label %bool_or_end.i
 
-bool_or_end.i:                                    ; preds = %bool_and_rhs280.i, %else270.i
-  %bool_or_tmp.i = phi i1 [ true, %else270.i ], [ %181, %bool_and_rhs280.i ]
-  %182 = icmp sgt i32 %sub_tmp273.i, -1
+bool_or_end.i:                                    ; preds = %bool_and_rhs282.i, %else272.i
+  %bool_or_tmp.i = phi i1 [ true, %else272.i ], [ %181, %bool_and_rhs282.i ]
+  %182 = icmp sgt i32 %sub_tmp275.i, -1
   %bool_or_tmp.not.i = xor i1 %bool_or_tmp.i, true
   %brmerge.i = select i1 %182, i1 true, i1 %bool_or_tmp.not.i
-  br i1 %brmerge.i, label %endif295.i, label %for_condition_check.i.i.i
+  br i1 %brmerge.i, label %endif297.i, label %for_condition_check.i.i.i
 
 for_condition_check.i.i.i:                        ; preds = %bool_or_end.i, %for_condition_check.i.i.i
-  %.020.i.i.i = phi i64 [ %mul_tmp.i.i.i, %for_condition_check.i.i.i ], [ %.0764.i, %bool_or_end.i ]
+  %.020.i.i.i = phi i64 [ %mul_tmp.i.i.i, %for_condition_check.i.i.i ], [ %.0775.i, %bool_or_end.i ]
   %.0.i.i.i = phi i32 [ %185, %for_condition_check.i.i.i ], [ 0, %bool_or_end.i ]
   %183 = icmp ne i64 %.020.i.i.i, 0
   tail call void @llvm.assume(i1 %183) #7
@@ -1846,101 +1846,101 @@ for_condition_check.i.i.i:                        ; preds = %bool_or_end.i, %for
   br i1 %184, label %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i, label %for_condition_check.i.i.i
 
 func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i: ; preds = %for_condition_check.i.i.i
-  %unary_minus_tmp288.i = sub i32 0, %sub_tmp273.i
-  %.not1041.i = icmp ult i32 %.0.i.i.i, %unary_minus_tmp288.i
-  br i1 %.not1041.i, label %endif300.i, label %186
+  %unary_minus_tmp290.i = sub i32 0, %sub_tmp275.i
+  %.not1059.i = icmp ult i32 %.0.i.i.i, %unary_minus_tmp290.i
+  br i1 %.not1059.i, label %endif302.i, label %186
 
-endif295.i:                                       ; preds = %bool_or_end.i
+endif297.i:                                       ; preds = %bool_or_end.i
   %bool_or_tmp.mux.i = select i1 %182, i1 %bool_or_tmp.i, i1 false
-  br i1 %bool_or_tmp.mux.i, label %186, label %endif300.i
+  br i1 %bool_or_tmp.mux.i, label %186, label %endif302.i
 
-186:                                              ; preds = %endif295.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i
-  br label %endif300.i
+186:                                              ; preds = %endif297.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i
+  br label %endif302.i
 
-endif300.i:                                       ; preds = %186, %endif295.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i, %bool_or_rhs.i, %then267.i
-  %sub_tmp24610131143.i = phi i32 [ %sub_tmp24610131144.i, %then267.i ], [ %sub_tmp2461013.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i ], [ %sub_tmp2461013.i, %endif295.i ], [ %sub_tmp2461013.i, %186 ], [ %sub_tmp2461013.i, %bool_or_rhs.i ]
-  %.780110081141.i = phi i32 [ %.780110081142.i, %then267.i ], [ %.78011008.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i ], [ %.78011008.i, %endif295.i ], [ %.78011008.i, %186 ], [ %.78011008.i, %bool_or_rhs.i ]
-  %.578410101139.i = phi i32 [ %.578410101140.i, %then267.i ], [ %.57841010.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i ], [ %.57841010.i, %endif295.i ], [ %.57841010.i, %186 ], [ %.57841010.i, %bool_or_rhs.i ]
-  %.810111136.i = phi i32 [ %.810111137.i, %then267.i ], [ %.81011.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i ], [ %.81011.i, %endif295.i ], [ %.81011.i, %186 ], [ %.81011.i, %bool_or_rhs.i ]
-  %.97771017.i = phi i32 [ %.97771018.i, %then267.i ], [ %div_tmp264.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i ], [ %div_tmp264.i, %endif295.i ], [ %div_tmp264.i, %186 ], [ %div_tmp264.i, %bool_or_rhs.i ]
-  %.1760.i = phi i32 [ %cast_tmp269.i, %then267.i ], [ 1, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i ], [ 1, %endif295.i ], [ 2, %186 ], [ 1, %bool_or_rhs.i ]
-  %.not814.i = icmp eq i32 %.578410101139.i, 0
-  br i1 %.not814.i, label %else320.i, label %then302.i
+endif302.i:                                       ; preds = %186, %endif297.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i, %bool_or_rhs.i, %then269.i
+  %sub_tmp24810311160.i = phi i32 [ %sub_tmp24810311161.i, %then269.i ], [ %sub_tmp2481031.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i ], [ %sub_tmp2481031.i, %endif297.i ], [ %sub_tmp2481031.i, %186 ], [ %sub_tmp2481031.i, %bool_or_rhs.i ]
+  %.781710261158.i = phi i32 [ %.781710261159.i, %then269.i ], [ %.78171026.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i ], [ %.78171026.i, %endif297.i ], [ %.78171026.i, %186 ], [ %.78171026.i, %bool_or_rhs.i ]
+  %.579510281156.i = phi i32 [ %.579510281157.i, %then269.i ], [ %.57951028.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i ], [ %.57951028.i, %endif297.i ], [ %.57951028.i, %186 ], [ %.57951028.i, %bool_or_rhs.i ]
+  %.810291153.i = phi i32 [ %.810291154.i, %then269.i ], [ %.81029.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i ], [ %.81029.i, %endif297.i ], [ %.81029.i, %186 ], [ %.81029.i, %bool_or_rhs.i ]
+  %.97891036.i = phi i32 [ %.97891037.i, %then269.i ], [ %div_tmp266.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i ], [ %div_tmp266.i, %endif297.i ], [ %div_tmp266.i, %186 ], [ %div_tmp266.i, %bool_or_rhs.i ]
+  %.1797.i = phi i32 [ %cast_tmp271.i, %then269.i ], [ 1, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i ], [ 1, %endif297.i ], [ 2, %186 ], [ 1, %bool_or_rhs.i ]
+  %.not832.i = icmp eq i32 %.579510281156.i, 0
+  br i1 %.not832.i, label %else322.i, label %then304.i
 
-then302.i:                                        ; preds = %endif300.i
-  %187 = icmp eq i32 %.97771017.i, 0
-  %188 = sext i32 %.810111136.i to i64
-  %ptr_add_tmp307.i = getelementptr i8, i8* %2, i64 %188
-  br i1 %187, label %then304.i, label %else310.i
+then304.i:                                        ; preds = %endif302.i
+  %187 = icmp eq i32 %.97891036.i, 0
+  %188 = sext i32 %.810291153.i to i64
+  %ptr_add_tmp309.i = getelementptr i8, i8* %2, i64 %188
+  br i1 %187, label %then306.i, label %else312.i
 
-then304.i:                                        ; preds = %then302.i
-  %cast_tmp309.i = zext i32 %sub_tmp24610131143.i to i64
-  tail call void @llvm.memset.p0i8.i64(i8* align 1 %ptr_add_tmp307.i, i8 48, i64 %cast_tmp309.i, i1 false) #7
-  br label %endif341.i
+then306.i:                                        ; preds = %then304.i
+  %cast_tmp311.i = zext i32 %sub_tmp24810311160.i to i64
+  tail call void @llvm.memset.p0i8.i64(i8* align 1 %ptr_add_tmp309.i, i8 48, i64 %cast_tmp311.i, i1 false) #7
+  br label %endif343.i
 
-else310.i:                                        ; preds = %then302.i
-  %sub_tmp.i831.i = add i32 %sub_tmp24610131143.i, -1
-  %.not.i.i = icmp eq i32 %sub_tmp.i831.i, 0
+else312.i:                                        ; preds = %then304.i
+  %sub_tmp.i849.i = add i32 %sub_tmp24810311160.i, -1
+  %.not.i.i = icmp eq i32 %sub_tmp.i849.i, 0
   br i1 %.not.i.i, label %endfor.i.i, label %for.lr.ph.i.i
 
-for.lr.ph.i.i:                                    ; preds = %else310.i
-  %189 = zext i32 %sub_tmp24610131143.i to i64
-  %ptr_add_tmp.i832.i = getelementptr i8, i8* %ptr_add_tmp307.i, i64 -2
-  %ptr_sub_tmp.i833.i = getelementptr i8, i8* %ptr_add_tmp.i832.i, i64 %189
+for.lr.ph.i.i:                                    ; preds = %else312.i
+  %189 = zext i32 %sub_tmp24810311160.i to i64
+  %ptr_add_tmp.i850.i = getelementptr i8, i8* %ptr_add_tmp309.i, i64 -2
+  %ptr_sub_tmp.i851.i = getelementptr i8, i8* %ptr_add_tmp.i850.i, i64 %189
   br label %for.i.i
 
-endfor.i.i:                                       ; preds = %for.i.i, %else310.i
-  %.047.lcssa.i.i = phi i32 [ 0, %else310.i ], [ %add_tmp.i838.i, %for.i.i ]
-  %.0.lcssa.i834.i = phi i32 [ %.97771017.i, %else310.i ], [ %div_tmp.i837.i, %for.i.i ]
-  %190 = icmp ult i32 %.047.lcssa.i.i, %sub_tmp24610131143.i
-  br i1 %190, label %then.i841.i, label %endif341.i
+endfor.i.i:                                       ; preds = %for.i.i, %else312.i
+  %.050.lcssa.i.i = phi i32 [ 0, %else312.i ], [ %add_tmp.i857.i, %for.i.i ]
+  %.0.lcssa.i852.i = phi i32 [ %.97891036.i, %else312.i ], [ %div_tmp.i855.i, %for.i.i ]
+  %190 = icmp ult i32 %.050.lcssa.i.i, %sub_tmp24810311160.i
+  br i1 %190, label %then.i860.i, label %endif343.i
 
 for.i.i:                                          ; preds = %for.i.i, %for.lr.ph.i.i
-  %.050.i.i = phi i32 [ %.97771017.i, %for.lr.ph.i.i ], [ %div_tmp.i837.i, %for.i.i ]
-  %.04749.i.i = phi i32 [ 0, %for.lr.ph.i.i ], [ %add_tmp.i838.i, %for.i.i ]
-  %.050.i.i.frozen = freeze i32 %.050.i.i
-  %div_tmp.i837.i = udiv i32 %.050.i.i.frozen, 100
-  %.neg = mul i32 %div_tmp.i837.i, -100
-  %mod_tmp.i835.i.decomposed = add i32 %.neg, %.050.i.i.frozen
-  %lshift_tmp.i836.i = shl nuw nsw i32 %mod_tmp.i835.i.decomposed, 1
-  %191 = zext i32 %.04749.i.i to i64
+  %.053.i.i = phi i32 [ %.97891036.i, %for.lr.ph.i.i ], [ %div_tmp.i855.i, %for.i.i ]
+  %.05052.i.i = phi i32 [ 0, %for.lr.ph.i.i ], [ %add_tmp.i857.i, %for.i.i ]
+  %.053.i.i.frozen = freeze i32 %.053.i.i
+  %div_tmp.i855.i = udiv i32 %.053.i.i.frozen, 100
+  %.neg = mul i32 %div_tmp.i855.i, -100
+  %mod_tmp.i853.i.decomposed = add i32 %.neg, %.053.i.i.frozen
+  %lshift_tmp.i854.i = shl nuw nsw i32 %mod_tmp.i853.i.decomposed, 1
+  %191 = zext i32 %.05052.i.i to i64
   %192 = sub nsw i64 0, %191
-  %ptr_sub_tmp8.i.i = getelementptr i8, i8* %ptr_sub_tmp.i833.i, i64 %192
-  %193 = zext i32 %lshift_tmp.i836.i to i64
-  %ptr_add_tmp10.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %193
-  %194 = bitcast i8* %ptr_add_tmp10.i.i to i16*
+  %ptr_sub_tmp8.i.i = getelementptr i8, i8* %ptr_sub_tmp.i851.i, i64 %192
+  %193 = zext i32 %lshift_tmp.i854.i to i64
+  %ptr_add_tmp11.i856.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %193
+  %194 = bitcast i8* %ptr_add_tmp11.i856.i to i16*
   %195 = bitcast i8* %ptr_sub_tmp8.i.i to i16*
   %196 = load i16, i16* %194, align 2
   store i16 %196, i16* %195, align 1
-  %add_tmp.i838.i = add i32 %.04749.i.i, 2
-  %197 = icmp ult i32 %add_tmp.i838.i, %sub_tmp.i831.i
+  %add_tmp.i857.i = add i32 %.05052.i.i, 2
+  %197 = icmp ult i32 %add_tmp.i857.i, %sub_tmp.i849.i
   br i1 %197, label %for.i.i, label %endfor.i.i
 
-then.i841.i:                                      ; preds = %endfor.i.i
-  %mod_tmp14.i.i = urem i32 %.0.lcssa.i834.i, 10
-  %198 = trunc i32 %mod_tmp14.i.i to i8
-  %cast_tmp.i839.i = or i8 %198, 48
-  %199 = zext i32 %sub_tmp24610131143.i to i64
-  %ptr_add_tmp19.i.i = getelementptr i8, i8* %ptr_add_tmp307.i, i64 %199
-  %200 = zext i32 %.047.lcssa.i.i to i64
+then.i860.i:                                      ; preds = %endfor.i.i
+  %mod_tmp15.i.i = urem i32 %.0.lcssa.i852.i, 10
+  %198 = trunc i32 %mod_tmp15.i.i to i8
+  %cast_tmp.i858.i = or i8 %198, 48
+  %199 = zext i32 %sub_tmp24810311160.i to i64
+  %ptr_add_tmp20.i.i = getelementptr i8, i8* %ptr_add_tmp309.i, i64 %199
+  %200 = zext i32 %.050.lcssa.i.i to i64
   %201 = sub nsw i64 0, %200
-  %ptr_sub_tmp21.i.i = getelementptr i8, i8* %ptr_add_tmp19.i.i, i64 %201
-  %ptr_sub_tmp22.i840.i = getelementptr i8, i8* %ptr_sub_tmp21.i.i, i64 -1
-  store i8 %cast_tmp.i839.i, i8* %ptr_sub_tmp22.i840.i, align 1
-  br label %endif341.i
+  %ptr_sub_tmp22.i.i = getelementptr i8, i8* %ptr_add_tmp20.i.i, i64 %201
+  %ptr_sub_tmp23.i859.i = getelementptr i8, i8* %ptr_sub_tmp22.i.i, i64 -1
+  store i8 %cast_tmp.i858.i, i8* %ptr_sub_tmp23.i859.i, align 1
+  br label %endif343.i
 
-else320.i:                                        ; preds = %endif300.i
-  br i1 %.not.i, label %else332.i, label %then322.i
+else322.i:                                        ; preds = %endif302.i
+  br i1 %.not.i, label %else334.i, label %then324.i
 
-then322.i:                                        ; preds = %else320.i
-  %202 = sext i32 %.810111136.i to i64
-  %ptr_add_tmp327.i = getelementptr i8, i8* %2, i64 %202
-  %203 = icmp ugt i32 %.97771017.i, 9999
+then324.i:                                        ; preds = %else322.i
+  %202 = sext i32 %.810291153.i to i64
+  %ptr_add_tmp329.i = getelementptr i8, i8* %2, i64 %202
+  %203 = icmp ugt i32 %.97891036.i, 9999
   br i1 %203, label %while.lr.ph.i.i, label %endwhile.i.i
 
-while.lr.ph.i.i:                                  ; preds = %then322.i
-  %204 = zext i32 %sub_tmp24610131143.i to i64
-  %ptr_add_tmp.i.i = getelementptr i8, i8* %ptr_add_tmp327.i, i64 1
+while.lr.ph.i.i:                                  ; preds = %then324.i
+  %204 = zext i32 %sub_tmp24810311160.i to i64
+  %ptr_add_tmp.i.i = getelementptr i8, i8* %ptr_add_tmp329.i, i64 1
   %ptr_add_tmp11.i.i = getelementptr i8, i8* %ptr_add_tmp.i.i, i64 %204
   br label %while.i.i
 
@@ -1948,83 +1948,83 @@ endwhile.loopexit.i.i:                            ; preds = %while.i.i
   %phi.cast.i.i = zext i32 %add_tmp.i.i to i64
   br label %endwhile.i.i
 
-endwhile.i.i:                                     ; preds = %endwhile.loopexit.i.i, %then322.i
-  %.0106.lcssa.i.i = phi i64 [ 0, %then322.i ], [ %phi.cast.i.i, %endwhile.loopexit.i.i ]
-  %.0.lcssa.i.i = phi i32 [ %.97771017.i, %then322.i ], [ %div_tmp.i.i, %endwhile.loopexit.i.i ]
+endwhile.i.i:                                     ; preds = %endwhile.loopexit.i.i, %then324.i
+  %.0119.lcssa.i.i = phi i64 [ 0, %then324.i ], [ %phi.cast.i.i, %endwhile.loopexit.i.i ]
+  %.0.lcssa.i.i = phi i32 [ %.97891036.i, %then324.i ], [ %div_tmp.i.i, %endwhile.loopexit.i.i ]
   %205 = icmp ugt i32 %.0.lcssa.i.i, 99
   br i1 %205, label %then.i.i, label %endif.i.i
 
 while.i.i:                                        ; preds = %while.i.i, %while.lr.ph.i.i
-  %.0110.i.i = phi i32 [ %.97771017.i, %while.lr.ph.i.i ], [ %div_tmp.i.i, %while.i.i ]
-  %.0106109.i.i = phi i32 [ 0, %while.lr.ph.i.i ], [ %add_tmp.i.i, %while.i.i ]
-  %div_tmp.i.i = udiv i32 %.0110.i.i, 10000
+  %.0123.i.i = phi i32 [ %.97891036.i, %while.lr.ph.i.i ], [ %div_tmp.i.i, %while.i.i ]
+  %.0119122.i.i = phi i32 [ 0, %while.lr.ph.i.i ], [ %add_tmp.i.i, %while.i.i ]
+  %div_tmp.i.i = udiv i32 %.0123.i.i, 10000
   %mul_tmp.neg.i.i = mul i32 %div_tmp.i.i, -10000
-  %sub_tmp.i.i = add i32 %mul_tmp.neg.i.i, %.0110.i.i
+  %sub_tmp.i.i = add i32 %mul_tmp.neg.i.i, %.0123.i.i
   %sub_tmp.i.i.frozen = freeze i32 %sub_tmp.i.i
   %div_tmp7.i.i = udiv i32 %sub_tmp.i.i.frozen, 100
   %.neg106 = mul i32 %div_tmp7.i.i, -100
   %mod_tmp.i.i.decomposed = add i32 %.neg106, %sub_tmp.i.i.frozen
   %lshift_tmp.i.i = shl nuw nsw i32 %mod_tmp.i.i.decomposed, 1
   %lshift_tmp8.i.i = shl nuw nsw i32 %div_tmp7.i.i, 1
-  %206 = zext i32 %.0106109.i.i to i64
+  %206 = zext i32 %.0119122.i.i to i64
   %207 = sub nsw i64 0, %206
   %ptr_sub_tmp.i.i = getelementptr i8, i8* %ptr_add_tmp11.i.i, i64 %207
   %ptr_sub_tmp13.i.i = getelementptr i8, i8* %ptr_sub_tmp.i.i, i64 -2
   %208 = zext i32 %lshift_tmp.i.i to i64
-  %ptr_add_tmp15.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %208
-  %209 = bitcast i8* %ptr_add_tmp15.i.i to i16*
+  %ptr_add_tmp16.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %208
+  %209 = bitcast i8* %ptr_add_tmp16.i.i to i16*
   %210 = bitcast i8* %ptr_sub_tmp13.i.i to i16*
   %211 = load i16, i16* %209, align 2
   store i16 %211, i16* %210, align 1
-  %ptr_sub_tmp22.i.i = getelementptr i8, i8* %ptr_sub_tmp.i.i, i64 -4
+  %ptr_sub_tmp23.i.i = getelementptr i8, i8* %ptr_sub_tmp.i.i, i64 -4
   %212 = zext i32 %lshift_tmp8.i.i to i64
-  %ptr_add_tmp24.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %212
-  %213 = bitcast i8* %ptr_add_tmp24.i.i to i16*
-  %214 = bitcast i8* %ptr_sub_tmp22.i.i to i16*
+  %ptr_add_tmp26.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %212
+  %213 = bitcast i8* %ptr_add_tmp26.i.i to i16*
+  %214 = bitcast i8* %ptr_sub_tmp23.i.i to i16*
   %215 = load i16, i16* %213, align 2
   store i16 %215, i16* %214, align 1
-  %add_tmp.i.i = add i32 %.0106109.i.i, 4
-  %216 = icmp ugt i32 %.0110.i.i, 99999999
+  %add_tmp.i.i = add i32 %.0119122.i.i, 4
+  %216 = icmp ugt i32 %.0123.i.i, 99999999
   br i1 %216, label %while.i.i, label %endwhile.loopexit.i.i
 
 then.i.i:                                         ; preds = %endwhile.i.i
   %.0.lcssa.i.i.fr = freeze i32 %.0.lcssa.i.i
-  %mod_tmp28.lhs.trunc.i.i = trunc i32 %.0.lcssa.i.i.fr to i16
-  %div_tmp31108.i.i = udiv i16 %mod_tmp28.lhs.trunc.i.i, 100
-  %.neg105 = mul i16 %div_tmp31108.i.i, -100
-  %mod_tmp28107.i.i.decomposed = add i16 %.neg105, %mod_tmp28.lhs.trunc.i.i
-  %217 = shl nuw nsw i16 %mod_tmp28107.i.i.decomposed, 1
-  %div_tmp31.zext.i.i = zext i16 %div_tmp31108.i.i to i32
-  %218 = zext i32 %sub_tmp24610131143.i to i64
-  %ptr_add_tmp34.i.i = getelementptr i8, i8* %ptr_add_tmp327.i, i64 %218
-  %ptr_add_tmp35.i.i = getelementptr i8, i8* %ptr_add_tmp34.i.i, i64 1
-  %219 = sub nsw i64 0, %.0106.lcssa.i.i
-  %ptr_sub_tmp37.i.i = getelementptr i8, i8* %ptr_add_tmp35.i.i, i64 %219
-  %ptr_sub_tmp38.i.i = getelementptr i8, i8* %ptr_sub_tmp37.i.i, i64 -2
+  %mod_tmp30.lhs.trunc.i.i = trunc i32 %.0.lcssa.i.i.fr to i16
+  %div_tmp33121.i.i = udiv i16 %mod_tmp30.lhs.trunc.i.i, 100
+  %.neg105 = mul i16 %div_tmp33121.i.i, -100
+  %mod_tmp30120.i.i.decomposed = add i16 %.neg105, %mod_tmp30.lhs.trunc.i.i
+  %217 = shl nuw nsw i16 %mod_tmp30120.i.i.decomposed, 1
+  %div_tmp33.zext.i.i = zext i16 %div_tmp33121.i.i to i32
+  %218 = zext i32 %sub_tmp24810311160.i to i64
+  %ptr_add_tmp36.i.i = getelementptr i8, i8* %ptr_add_tmp329.i, i64 %218
+  %ptr_add_tmp37.i.i = getelementptr i8, i8* %ptr_add_tmp36.i.i, i64 1
+  %219 = sub nsw i64 0, %.0119.lcssa.i.i
+  %ptr_sub_tmp39.i.i = getelementptr i8, i8* %ptr_add_tmp37.i.i, i64 %219
+  %ptr_sub_tmp40.i.i = getelementptr i8, i8* %ptr_sub_tmp39.i.i, i64 -2
   %220 = zext i16 %217 to i64
-  %ptr_add_tmp40.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %220
-  %221 = bitcast i8* %ptr_add_tmp40.i.i to i16*
-  %222 = bitcast i8* %ptr_sub_tmp38.i.i to i16*
+  %ptr_add_tmp43.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %220
+  %221 = bitcast i8* %ptr_add_tmp43.i.i to i16*
+  %222 = bitcast i8* %ptr_sub_tmp40.i.i to i16*
   %223 = load i16, i16* %221, align 2
   store i16 %223, i16* %222, align 1
   br label %endif.i.i
 
 endif.i.i:                                        ; preds = %then.i.i, %endwhile.i.i
-  %.1.i.i = phi i32 [ %div_tmp31.zext.i.i, %then.i.i ], [ %.0.lcssa.i.i, %endwhile.i.i ]
+  %.1.i.i = phi i32 [ %div_tmp33.zext.i.i, %then.i.i ], [ %.0.lcssa.i.i, %endwhile.i.i ]
   %224 = icmp ugt i32 %.1.i.i, 9
-  br i1 %224, label %then44.i.i, label %else.i.i
+  br i1 %224, label %then47.i.i, label %else.i.i
 
-then44.i.i:                                       ; preds = %endif.i.i
-  %lshift_tmp46.i.i = shl nuw nsw i32 %.1.i.i, 1
-  %add_tmp48.i.i = or i32 %lshift_tmp46.i.i, 1
-  %225 = zext i32 %add_tmp48.i.i to i64
+then47.i.i:                                       ; preds = %endif.i.i
+  %lshift_tmp49.i.i = shl nuw nsw i32 %.1.i.i, 1
+  %add_tmp51.i.i = or i32 %lshift_tmp49.i.i, 1
+  %225 = zext i32 %add_tmp51.i.i to i64
   %226 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %225
-  %load_tmp49.i.i = load i8, i8* %226, align 1
-  %ptr_add_tmp51.i.i = getelementptr i8, i8* %ptr_add_tmp327.i, i64 2
-  store i8 %load_tmp49.i.i, i8* %ptr_add_tmp51.i.i, align 1
-  %227 = zext i32 %lshift_tmp46.i.i to i64
+  %load_tmp52.i.i = load i8, i8* %226, align 1
+  %ptr_add_tmp54.i.i = getelementptr i8, i8* %ptr_add_tmp329.i, i64 2
+  store i8 %load_tmp52.i.i, i8* %ptr_add_tmp54.i.i, align 1
+  %227 = zext i32 %lshift_tmp49.i.i to i64
   %228 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %227
-  %load_tmp55.i.i = load i8, i8* %228, align 2
+  %load_tmp58.i.i = load i8, i8* %228, align 2
   br label %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i
 
 else.i.i:                                         ; preds = %endif.i.i
@@ -2032,168 +2032,168 @@ else.i.i:                                         ; preds = %endif.i.i
   %cast_tmp.i.i = add nuw nsw i8 %229, 48
   br label %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i
 
-func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i: ; preds = %else.i.i, %then44.i.i
-  %storemerge.i.i = phi i8 [ %cast_tmp.i.i, %else.i.i ], [ %load_tmp55.i.i, %then44.i.i ]
-  %230 = getelementptr i8, i8* %ptr_add_tmp327.i, i64 1
+func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i: ; preds = %else.i.i, %then47.i.i
+  %storemerge.i.i = phi i8 [ %cast_tmp.i.i, %else.i.i ], [ %load_tmp58.i.i, %then47.i.i ]
+  %230 = getelementptr i8, i8* %ptr_add_tmp329.i, i64 1
   store i8 46, i8* %230, align 1
-  store i8 %storemerge.i.i, i8* %ptr_add_tmp327.i, align 1
-  %add_tmp329.i = add i32 %sub_tmp24610131143.i, 1
-  br label %endif341.i
+  store i8 %storemerge.i.i, i8* %ptr_add_tmp329.i, align 1
+  %add_tmp331.i = add i32 %sub_tmp24810311160.i, 1
+  br label %endif343.i
 
-else332.i:                                        ; preds = %else320.i
-  %231 = trunc i32 %.97771017.i to i8
-  %cast_tmp335.i = add i8 %231, 48
-  %232 = sext i32 %.810111136.i to i64
-  %ptr_add_tmp338.i = getelementptr i8, i8* %2, i64 %232
-  store i8 %cast_tmp335.i, i8* %ptr_add_tmp338.i, align 1
-  br label %endif341.i
+else334.i:                                        ; preds = %else322.i
+  %231 = trunc i32 %.97891036.i to i8
+  %cast_tmp337.i = add i8 %231, 48
+  %232 = sext i32 %.810291153.i to i64
+  %ptr_add_tmp340.i = getelementptr i8, i8* %2, i64 %232
+  store i8 %cast_tmp337.i, i8* %ptr_add_tmp340.i, align 1
+  br label %endif343.i
 
-endif341.i:                                       ; preds = %else332.i, %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i, %then.i841.i, %endfor.i.i, %then304.i
-  %sub_tmp246.pn.i = phi i32 [ %add_tmp329.i, %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i ], [ 1, %else332.i ], [ %sub_tmp24610131143.i, %then304.i ], [ %sub_tmp24610131143.i, %endfor.i.i ], [ %sub_tmp24610131143.i, %then.i841.i ]
-  %.9.i = add i32 %sub_tmp246.pn.i, %.810111136.i
-  %.not815.i = icmp eq i32 %.1760.i, 0
-  br i1 %.not815.i, label %endif386.i, label %while_condition_check.outer.i
+endif343.i:                                       ; preds = %else334.i, %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i, %then.i860.i, %endfor.i.i, %then306.i
+  %sub_tmp248.pn.i = phi i32 [ %add_tmp331.i, %func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i ], [ 1, %else334.i ], [ %sub_tmp24810311160.i, %then306.i ], [ %sub_tmp24810311160.i, %endfor.i.i ], [ %sub_tmp24810311160.i, %then.i860.i ]
+  %.9.i = add i32 %sub_tmp248.pn.i, %.810291153.i
+  %.not833.i = icmp eq i32 %.1797.i, 0
+  br i1 %.not833.i, label %endif388.i, label %while_condition_check.outer.i
 
-while_condition_check.outer.i:                    ; preds = %endif341.i, %then367.i
-  %.2.ph.i = phi i32 [ 1, %then367.i ], [ %.1760.i, %endif341.i ]
-  %.0.ph.i = phi i32 [ %233, %then367.i ], [ %.9.i, %endif341.i ]
+while_condition_check.outer.i:                    ; preds = %endif343.i, %then369.i
+  %.2798.ph.i = phi i32 [ 1, %then369.i ], [ %.1797.i, %endif343.i ]
+  %.0776.ph.i = phi i32 [ %233, %then369.i ], [ %.9.i, %endif343.i ]
   br label %while_condition_check.i
 
-while_condition_check.i:                          ; preds = %bool_or_rhs347.i, %while_condition_check.outer.i
-  %.0.i = phi i32 [ %233, %bool_or_rhs347.i ], [ %.0.ph.i, %while_condition_check.outer.i ]
-  %233 = add i32 %.0.i, -1
-  %234 = icmp eq i32 %.0.i, 0
-  br i1 %234, label %then356.i, label %bool_or_rhs347.i
+while_condition_check.i:                          ; preds = %bool_or_rhs349.i, %while_condition_check.outer.i
+  %.0776.i = phi i32 [ %233, %bool_or_rhs349.i ], [ %.0776.ph.i, %while_condition_check.outer.i ]
+  %233 = add i32 %.0776.i, -1
+  %234 = icmp eq i32 %.0776.i, 0
+  br i1 %234, label %then358.i, label %bool_or_rhs349.i
 
-bool_or_rhs347.i:                                 ; preds = %while_condition_check.i
+bool_or_rhs349.i:                                 ; preds = %while_condition_check.i
   %235 = sext i32 %233 to i64
-  %ptr_add_tmp350.i = getelementptr i8, i8* %2, i64 %235
-  %load_tmp351.i = load i8, i8* %ptr_add_tmp350.i, align 1
-  switch i8 %load_tmp351.i, label %else371.i [
-    i8 45, label %then356.i
+  %ptr_add_tmp352.i = getelementptr i8, i8* %2, i64 %235
+  %load_tmp353.i = load i8, i8* %ptr_add_tmp352.i, align 1
+  switch i8 %load_tmp353.i, label %else373.i [
+    i8 45, label %then358.i
     i8 46, label %while_condition_check.i
-    i8 57, label %then367.i
+    i8 57, label %then369.i
   ]
 
-then356.i:                                        ; preds = %bool_or_rhs347.i, %while_condition_check.i
-  %.lcssa.i = phi i64 [ -1, %while_condition_check.i ], [ %235, %bool_or_rhs347.i ]
-  %ptr_add_tmp359.i = getelementptr i8, i8* %2, i64 %.lcssa.i
-  %ptr_add_tmp360.i = getelementptr i8, i8* %ptr_add_tmp359.i, i64 1
-  store i8 49, i8* %ptr_add_tmp360.i, align 1
-  %236 = add i32 %.780110081141.i, 1
-  br label %endif386.i
+then358.i:                                        ; preds = %bool_or_rhs349.i, %while_condition_check.i
+  %.lcssa.i = phi i64 [ -1, %while_condition_check.i ], [ %235, %bool_or_rhs349.i ]
+  %ptr_add_tmp361.i = getelementptr i8, i8* %2, i64 %.lcssa.i
+  %ptr_add_tmp362.i = getelementptr i8, i8* %ptr_add_tmp361.i, i64 1
+  store i8 49, i8* %ptr_add_tmp362.i, align 1
+  %236 = add i32 %.781710261158.i, 1
+  br label %endif388.i
 
-then367.i:                                        ; preds = %bool_or_rhs347.i
-  %ptr_add_tmp350.i.le = getelementptr i8, i8* %2, i64 %235
-  store i8 48, i8* %ptr_add_tmp350.i.le, align 1
+then369.i:                                        ; preds = %bool_or_rhs349.i
+  %ptr_add_tmp352.i.le = getelementptr i8, i8* %2, i64 %235
+  store i8 48, i8* %ptr_add_tmp352.i.le, align 1
   br label %while_condition_check.outer.i
 
-else371.i:                                        ; preds = %bool_or_rhs347.i
-  %237 = icmp eq i32 %.2.ph.i, 2
-  %238 = and i8 %load_tmp351.i, 1
+else373.i:                                        ; preds = %bool_or_rhs349.i
+  %237 = icmp eq i32 %.2798.ph.i, 2
+  %238 = and i8 %load_tmp353.i, 1
   %239 = icmp eq i8 %238, 0
-  %or.cond824.i = select i1 %237, i1 %239, i1 false
-  br i1 %or.cond824.i, label %endif386.i, label %endif379.i
+  %or.cond842.i = select i1 %237, i1 %239, i1 false
+  br i1 %or.cond842.i, label %endif388.i, label %endif381.i
 
-endif379.i:                                       ; preds = %else371.i
-  %ptr_add_tmp350.i.le667 = getelementptr i8, i8* %2, i64 %235
-  %add_tmp381.i = add i8 %load_tmp351.i, 1
-  store i8 %add_tmp381.i, i8* %ptr_add_tmp350.i.le667, align 1
-  br label %endif386.i
+endif381.i:                                       ; preds = %else373.i
+  %ptr_add_tmp352.i.le667 = getelementptr i8, i8* %2, i64 %235
+  %add_tmp383.i = add i8 %load_tmp353.i, 1
+  store i8 %add_tmp383.i, i8* %ptr_add_tmp352.i.le667, align 1
+  br label %endif388.i
 
-endif386.i:                                       ; preds = %endif379.i, %else371.i, %then356.i, %endif341.i
-  %.9803.i = phi i32 [ %.780110081141.i, %endif341.i ], [ %236, %then356.i ], [ %.780110081141.i, %endif379.i ], [ %.780110081141.i, %else371.i ]
-  br i1 %4, label %while_condition_check389.preheader.i, label %endif408.i
+endif388.i:                                       ; preds = %endif381.i, %else373.i, %then358.i, %endif343.i
+  %.9819.i = phi i32 [ %.781710261158.i, %endif343.i ], [ %236, %then358.i ], [ %.781710261158.i, %endif381.i ], [ %.781710261158.i, %else373.i ]
+  br i1 %4, label %while_condition_check391.preheader.i, label %endif410.i
 
-while_condition_check389.preheader.i:             ; preds = %endif386.i
-  %ptr_add_tmp393.i = getelementptr i8, i8* %2, i64 -1
-  br label %while_condition_check389.i
+while_condition_check391.preheader.i:             ; preds = %endif388.i
+  %ptr_add_tmp395.i = getelementptr i8, i8* %2, i64 -1
+  br label %while_condition_check391.i
 
-while_condition_check389.i:                       ; preds = %while_condition_check389.i, %while_condition_check389.preheader.i
-  %.10.i = phi i32 [ %242, %while_condition_check389.i ], [ %.9.i, %while_condition_check389.preheader.i ]
+while_condition_check391.i:                       ; preds = %while_condition_check391.i, %while_condition_check391.preheader.i
+  %.10.i = phi i32 [ %242, %while_condition_check391.i ], [ %.9.i, %while_condition_check391.preheader.i ]
   %240 = sext i32 %.10.i to i64
-  %ptr_sub_tmp.i = getelementptr i8, i8* %ptr_add_tmp393.i, i64 %240
-  %load_tmp394.i = load i8, i8* %ptr_sub_tmp.i, align 1
-  %241 = icmp eq i8 %load_tmp394.i, 48
+  %ptr_sub_tmp.i = getelementptr i8, i8* %ptr_add_tmp395.i, i64 %240
+  %load_tmp396.i = load i8, i8* %ptr_sub_tmp.i, align 1
+  %241 = icmp eq i8 %load_tmp396.i, 48
   %242 = add i32 %.10.i, -1
-  br i1 %241, label %while_condition_check389.i, label %endwhile390.i
+  br i1 %241, label %while_condition_check391.i, label %endwhile392.i
 
-endwhile390.i:                                    ; preds = %while_condition_check389.i
+endwhile392.i:                                    ; preds = %while_condition_check391.i
   %243 = icmp sgt i32 %.10.i, 0
   tail call void @llvm.assume(i1 %243) #7
-  %244 = icmp eq i8 %load_tmp394.i, 46
+  %244 = icmp eq i8 %load_tmp396.i, 46
   %245 = sext i1 %244 to i32
-  %spec.select825.i = add nsw i32 %.10.i, %245
-  br label %endif408.i
+  %spec.select843.i = add nsw i32 %.10.i, %245
+  br label %endif410.i
 
-endif408.i:                                       ; preds = %endwhile390.i, %endif386.i
-  %.11.i = phi i32 [ %.9.i, %endif386.i ], [ %spec.select825.i, %endwhile390.i ]
+endif410.i:                                       ; preds = %endwhile392.i, %endif388.i
+  %.11.i = phi i32 [ %.9.i, %endif388.i ], [ %spec.select843.i, %endwhile392.i ]
   %246 = sext i32 %.11.i to i64
-  %ptr_add_tmp413.i = getelementptr i8, i8* %2, i64 %246
-  %.1176.i = select i1 %3, i8 69, i8 101
-  store i8 %.1176.i, i8* %ptr_add_tmp413.i, align 1
+  %ptr_add_tmp415.i = getelementptr i8, i8* %2, i64 %246
+  %.1193.i = select i1 %3, i8 69, i8 101
+  store i8 %.1193.i, i8* %ptr_add_tmp415.i, align 1
   %247 = add i32 %.11.i, 1
-  %248 = icmp slt i32 %.9803.i, 0
+  %248 = icmp slt i32 %.9819.i, 0
   %249 = sext i32 %247 to i64
-  %ptr_add_tmp424.i = getelementptr i8, i8* %2, i64 %249
-  br i1 %248, label %then421.i, label %else428.i
+  %ptr_add_tmp426.i = getelementptr i8, i8* %2, i64 %249
+  br i1 %248, label %then423.i, label %else430.i
 
-then421.i:                                        ; preds = %endif408.i
-  store i8 45, i8* %ptr_add_tmp424.i, align 1
-  %unary_minus_tmp427.i = sub i32 0, %.9803.i
-  br label %endif433.i
+then423.i:                                        ; preds = %endif410.i
+  store i8 45, i8* %ptr_add_tmp426.i, align 1
+  %unary_minus_tmp429.i = sub i32 0, %.9819.i
+  br label %endif435.i
 
-else428.i:                                        ; preds = %endif408.i
-  store i8 43, i8* %ptr_add_tmp424.i, align 1
-  br label %endif433.i
+else430.i:                                        ; preds = %endif410.i
+  store i8 43, i8* %ptr_add_tmp426.i, align 1
+  br label %endif435.i
 
-endif433.i:                                       ; preds = %else428.i, %then421.i
-  %.10804.i = phi i32 [ %unary_minus_tmp427.i, %then421.i ], [ %.9803.i, %else428.i ]
+endif435.i:                                       ; preds = %else430.i, %then423.i
+  %.10820.i = phi i32 [ %unary_minus_tmp429.i, %then423.i ], [ %.9819.i, %else430.i ]
   %.12.i = add i32 %.11.i, 2
-  %250 = icmp sgt i32 %.10804.i, 99
-  br i1 %250, label %then435.i, label %else454.i
+  %250 = icmp sgt i32 %.10820.i, 99
+  br i1 %250, label %then437.i, label %else457.i
 
-then435.i:                                        ; preds = %endif433.i
-  %.10804.i.frozen = freeze i32 %.10804.i
-  %div_tmp4421039.i = udiv i32 %.10804.i.frozen, 10
-  %.neg104 = mul i32 %div_tmp4421039.i, -10
-  %mod_tmp4371038.i.decomposed = add i32 %.neg104, %.10804.i.frozen
+then437.i:                                        ; preds = %endif435.i
+  %.10820.i.frozen = freeze i32 %.10820.i
+  %div_tmp4451057.i = udiv i32 %.10820.i.frozen, 10
+  %.neg104 = mul i32 %div_tmp4451057.i, -10
+  %mod_tmp4391056.i.decomposed = add i32 %.neg104, %.10820.i.frozen
   %251 = sext i32 %.12.i to i64
-  %ptr_add_tmp440.i = getelementptr i8, i8* %2, i64 %251
-  %mul_tmp443.i = shl nuw nsw i32 %div_tmp4421039.i, 1
-  %252 = zext i32 %mul_tmp443.i to i64
-  %ptr_add_tmp444.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %252
-  %253 = bitcast i8* %ptr_add_tmp444.i to i16*
-  %254 = bitcast i8* %ptr_add_tmp440.i to i16*
+  %ptr_add_tmp442.i = getelementptr i8, i8* %2, i64 %251
+  %mul_tmp446.i = shl nuw nsw i32 %div_tmp4451057.i, 1
+  %252 = zext i32 %mul_tmp446.i to i64
+  %ptr_add_tmp447.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %252
+  %253 = bitcast i8* %ptr_add_tmp447.i to i16*
+  %254 = bitcast i8* %ptr_add_tmp442.i to i16*
   %255 = load i16, i16* %253, align 2
   store i16 %255, i16* %254, align 1
-  %256 = trunc i32 %mod_tmp4371038.i.decomposed to i8
-  %cast_tmp447.i = or i8 %256, 48
-  %ptr_add_tmp451.i = getelementptr i8, i8* %ptr_add_tmp440.i, i64 2
-  store i8 %cast_tmp447.i, i8* %ptr_add_tmp451.i, align 1
-  br label %endif463.i
+  %256 = trunc i32 %mod_tmp4391056.i.decomposed to i8
+  %cast_tmp450.i = or i8 %256, 48
+  %ptr_add_tmp454.i = getelementptr i8, i8* %ptr_add_tmp442.i, i64 2
+  store i8 %cast_tmp450.i, i8* %ptr_add_tmp454.i, align 1
+  br label %endif467.i
 
-else454.i:                                        ; preds = %endif433.i
+else457.i:                                        ; preds = %endif435.i
   %257 = sext i32 %.12.i to i64
-  %ptr_add_tmp457.i = getelementptr i8, i8* %2, i64 %257
-  %mul_tmp459.i = shl i32 %.10804.i, 1
-  %258 = sext i32 %mul_tmp459.i to i64
-  %ptr_add_tmp460.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %258
-  %259 = bitcast i8* %ptr_add_tmp460.i to i16*
-  %260 = bitcast i8* %ptr_add_tmp457.i to i16*
+  %ptr_add_tmp460.i = getelementptr i8, i8* %2, i64 %257
+  %mul_tmp463.i = shl i32 %.10820.i, 1
+  %258 = sext i32 %mul_tmp463.i to i64
+  %ptr_add_tmp464.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %258
+  %259 = bitcast i8* %ptr_add_tmp464.i to i16*
+  %260 = bitcast i8* %ptr_add_tmp460.i to i16*
   %261 = load i16, i16* %259, align 2
   store i16 %261, i16* %260, align 1
-  br label %endif463.i
+  br label %endif467.i
 
-endif463.i:                                       ; preds = %else454.i, %then435.i
-  %.sink1175.i = phi i32 [ 4, %else454.i ], [ 5, %then435.i ]
-  %add_tmp462.i = add i32 %.sink1175.i, %.11.i
-  %262 = sext i32 %add_tmp462.i to i64
-  %ptr_add_tmp466.i = getelementptr i8, i8* %2, i64 %262
+endif467.i:                                       ; preds = %else457.i, %then437.i
+  %.sink1192.i = phi i32 [ 4, %else457.i ], [ 5, %then437.i ]
+  %add_tmp466.i = add i32 %.sink1192.i, %.11.i
+  %262 = sext i32 %add_tmp466.i to i64
+  %ptr_add_tmp470.i = getelementptr i8, i8* %2, i64 %262
   br label %func.std.ryu.d2exp_short..5.builtin.float64.builtin.uint32.0P.builtin.uint8.builtin.bool.builtin.bool.0P.builtin.uint8.exit
 
-func.std.ryu.d2exp_short..5.builtin.float64.builtin.uint32.0P.builtin.uint8.builtin.bool.builtin.bool.0P.builtin.uint8.exit: ; preds = %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i, %endif38.i, %endif463.i
-  %common.ret.op.i = phi i8* [ %ptr_add_tmp15.i900.i, %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i ], [ %ptr_add_tmp52.i, %endif38.i ], [ %ptr_add_tmp466.i, %endif463.i ]
+func.std.ryu.d2exp_short..5.builtin.float64.builtin.uint32.0P.builtin.uint8.builtin.bool.builtin.bool.0P.builtin.uint8.exit: ; preds = %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i, %endif38.i, %endif467.i
+  %common.ret.op.i = phi i8* [ %ptr_add_tmp15.i.i, %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i ], [ %ptr_add_tmp52.i, %endif38.i ], [ %ptr_add_tmp470.i, %endif467.i ]
   ret i8* %common.ret.op.i
 }
 
@@ -2210,10 +2210,10 @@ alloca:
   br i1 %6, label %then.i, label %endif.i
 
 then.i:                                           ; preds = %alloca
-  %.not713.i = icmp eq i64 %bit_and_tmp3.i, 0
-  br i1 %.not713.i, label %endif.i.i, label %then.i656.i
+  %.not721.i = icmp eq i64 %bit_and_tmp3.i, 0
+  br i1 %.not721.i, label %endif.i.i, label %then.i663.i
 
-then.i656.i:                                      ; preds = %then.i
+then.i663.i:                                      ; preds = %then.i
   tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* noundef nonnull align 1 dereferenceable(3) %2, i8* noundef nonnull align 1 dereferenceable(3) getelementptr inbounds ([4 x i8], [4 x i8]* @.str.2, i64 0, i64 0), i64 3, i1 false) #7
   br label %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i
 
@@ -2230,9 +2230,9 @@ endif7.i.i:                                       ; preds = %then4.i.i, %endif.i
   tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* noundef nonnull align 1 dereferenceable(3) %.0.i.i, i8* noundef nonnull align 1 dereferenceable(3) getelementptr inbounds ([4 x i8], [4 x i8]* @.str.3, i64 0, i64 0), i64 3, i1 false) #7
   br label %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i
 
-func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i: ; preds = %endif7.i.i, %then.i656.i
-  %.0.sink.i.i = phi i8* [ %.0.i.i, %endif7.i.i ], [ %2, %then.i656.i ]
-  %ptr_add_tmp15.i655.i = getelementptr i8, i8* %.0.sink.i.i, i64 3
+func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i: ; preds = %endif7.i.i, %then.i663.i
+  %.0.sink.i.i = phi i8* [ %.0.i.i, %endif7.i.i ], [ %2, %then.i663.i ]
+  %ptr_add_tmp15.i.i = getelementptr i8, i8* %.0.sink.i.i, i64 3
   br label %func.std.ryu.d2fixed_short..4.builtin.float64.builtin.uint32.0P.builtin.uint8.builtin.bool.0P.builtin.uint8.exit
 
 endif.i:                                          ; preds = %alloca
@@ -2249,20 +2249,20 @@ then16.i:                                         ; preds = %then14.i
   br label %endif20.i
 
 endif20.i:                                        ; preds = %then16.i, %then14.i
-  %.0610.i = phi i32 [ 1, %then16.i ], [ 0, %then14.i ]
-  %10 = zext i32 %.0610.i to i64
+  %.0618.i = phi i32 [ 1, %then16.i ], [ 0, %then14.i ]
+  %10 = zext i32 %.0618.i to i64
   %ptr_add_tmp23.i = getelementptr i8, i8* %2, i64 %10
   store i8 48, i8* %ptr_add_tmp23.i, align 1
-  %11 = add nuw nsw i32 %.0610.i, 1
-  %.not640.i = icmp eq i32 %1, 0
-  %brmerge.i = select i1 %.not640.i, i1 true, i1 %3
+  %11 = add nuw nsw i32 %.0618.i, 1
+  %.not648.i = icmp eq i32 %1, 0
+  %brmerge.i = select i1 %.not648.i, i1 true, i1 %3
   br i1 %brmerge.i, label %endif42.i, label %then30.i
 
 then30.i:                                         ; preds = %endif20.i
   %12 = zext i32 %11 to i64
   %ptr_add_tmp33.i = getelementptr i8, i8* %2, i64 %12
   store i8 46, i8* %ptr_add_tmp33.i, align 1
-  %13 = or i32 %.0610.i, 2
+  %13 = or i32 %.0618.i, 2
   %14 = zext i32 %13 to i64
   %ptr_add_tmp37.i = getelementptr i8, i8* %2, i64 %14
   %cast_tmp39.i = zext i32 %1 to i64
@@ -2279,9 +2279,9 @@ endif42.i:                                        ; preds = %then30.i, %endif20.
 endif46.i:                                        ; preds = %endif.i
   %sub_tmp51.i = add nsw i32 %bit_and_tmp6.i, -1075
   %bit_or_tmp.i = or i64 %bit_and_tmp3.i, 4503599627370496
-  %.0615.i = select i1 %8, i64 %bit_and_tmp3.i, i64 %bit_or_tmp.i
-  %.0614.i = select i1 %8, i32 -1074, i32 %sub_tmp51.i
-  %.0614.nonneg.i = sub nsw i32 0, %.0614.i
+  %.0622.i = select i1 %8, i64 %bit_and_tmp3.i, i64 %bit_or_tmp.i
+  %.0621.i = select i1 %8, i32 -1074, i32 %sub_tmp51.i
+  %.0621.nonneg.i = sub nsw i32 0, %.0621.i
   br i1 %5, label %then55.i, label %endif60.i
 
 then55.i:                                         ; preds = %endif46.i
@@ -2289,136 +2289,136 @@ then55.i:                                         ; preds = %endif46.i
   br label %endif60.i
 
 endif60.i:                                        ; preds = %then55.i, %endif46.i
-  %.0616.i = phi i32 [ 1, %then55.i ], [ 0, %endif46.i ]
-  %16 = icmp sgt i32 %.0614.i, -53
-  br i1 %16, label %for.lr.ph.i, label %then110.i
+  %.0624.i = phi i32 [ 1, %then55.i ], [ 0, %endif46.i ]
+  %16 = icmp sgt i32 %.0621.i, -53
+  br i1 %16, label %for.lr.ph.i, label %then111.i
 
 for.lr.ph.i:                                      ; preds = %endif60.i
-  %17 = icmp slt i32 %.0614.i, 0
-  %add_tmp.i696.i = add nuw nsw i32 %.0614.i, 15
-  %div_tmp.i697.i = lshr i32 %add_tmp.i696.i, 4
-  %.0627.i = select i1 %17, i32 0, i32 %div_tmp.i697.i
-  %mul_tmp.i.i.i = mul i32 %.0627.i, 1262608
+  %17 = icmp slt i32 %.0621.i, 0
+  %add_tmp.i704.i = add nuw nsw i32 %.0621.i, 15
+  %div_tmp.i705.i = lshr i32 %add_tmp.i704.i, 4
+  %.0629.i = select i1 %17, i32 0, i32 %div_tmp.i705.i
+  %mul_tmp.i.i.i = mul i32 %.0629.i, 1262608
   %rshift_tmp.i.i.i = lshr i32 %mul_tmp.i.i.i, 18
   %18 = trunc i32 %rshift_tmp.i.i.i to i16
   %div_tmp.lhs.trunc.i.i = add nuw nsw i16 %18, 25
   %div_tmp4.i.i = udiv i16 %div_tmp.lhs.trunc.i.i, 9
   %div_tmp.zext.i.i = zext i16 %div_tmp4.i.i to i64
-  %mul_tmp.i.i = shl nuw nsw i32 %.0627.i, 4
-  %lshift_tmp.i = shl nuw nsw i64 %.0615.i, 8
-  %19 = zext i32 %.0627.i to i64
+  %mul_tmp.i.i = shl nuw nsw i32 %.0629.i, 4
+  %lshift_tmp.i = shl nuw nsw i64 %.0622.i, 8
+  %19 = zext i32 %.0629.i to i64
   %20 = getelementptr [64 x i16], [64 x i16]* @std.ryu.POW10_OFFSET, i64 0, i64 %19
   %load_tmp79.i = load i16, i16* %20, align 2
   %cast_tmp80.i = zext i16 %load_tmp79.i to i64
-  %sub_tmp76.i = sub nsw i32 128, %.0614.i
-  %add_tmp84.i = add i32 %sub_tmp76.i, %mul_tmp.i.i
+  %sub_tmp76.i = sub nsw i32 128, %.0621.i
+  %add_tmp85.i = add i32 %sub_tmp76.i, %mul_tmp.i.i
   br label %for.outer.i
 
-for.outer.i:                                      ; preds = %endif106.i, %for.lr.ph.i
-  %indvars.iv760.in.ph.i = phi i64 [ %indvars.iv760.i, %endif106.i ], [ %div_tmp.zext.i.i, %for.lr.ph.i ]
-  %.0628740.in.ph.i = phi i64 [ %indvars.iv.next68, %endif106.i ], [ %div_tmp.zext.i.i, %for.lr.ph.i ]
-  %.1617738.ph.i = phi i32 [ %.2.i, %endif106.i ], [ %.0616.i, %for.lr.ph.i ]
-  %.0624737.ph.i = phi i1 [ true, %endif106.i ], [ false, %for.lr.ph.i ]
-  %21 = and i64 %.0628740.in.ph.i, 4294967295
+for.outer.i:                                      ; preds = %endif107.i, %for.lr.ph.i
+  %indvars.iv768.in.ph.i = phi i64 [ %indvars.iv768.i, %endif107.i ], [ %div_tmp.zext.i.i, %for.lr.ph.i ]
+  %.0636748.in.ph.i = phi i64 [ %indvars.iv.next68, %endif107.i ], [ %div_tmp.zext.i.i, %for.lr.ph.i ]
+  %.1625746.ph.i = phi i32 [ %.2.i, %endif107.i ], [ %.0624.i, %for.lr.ph.i ]
+  %.0626745.ph.i = phi i1 [ true, %endif107.i ], [ false, %for.lr.ph.i ]
+  %21 = and i64 %.0636748.in.ph.i, 4294967295
   br label %for.i
 
-for.i:                                            ; preds = %endif106.thread.i, %for.outer.i
-  %indvars.iv67 = phi i64 [ %indvars.iv.next68, %endif106.thread.i ], [ %21, %for.outer.i ]
-  %indvars.iv760.in.i = phi i64 [ %indvars.iv760.i, %endif106.thread.i ], [ %indvars.iv760.in.ph.i, %for.outer.i ]
-  %.0624737.i = phi i1 [ false, %endif106.thread.i ], [ %.0624737.ph.i, %for.outer.i ]
-  %indvars.iv760.i = add nsw i64 %indvars.iv760.in.i, -1
+for.i:                                            ; preds = %endif107.thread.i, %for.outer.i
+  %indvars.iv67 = phi i64 [ %indvars.iv.next68, %endif107.thread.i ], [ %21, %for.outer.i ]
+  %indvars.iv768.in.i = phi i64 [ %indvars.iv768.i, %endif107.thread.i ], [ %indvars.iv768.in.ph.i, %for.outer.i ]
+  %.0626745.i = phi i1 [ false, %endif107.thread.i ], [ %.0626745.ph.i, %for.outer.i ]
+  %indvars.iv768.i = add nsw i64 %indvars.iv768.in.i, -1
   %indvars.iv.next68 = add i64 %indvars.iv67, -1
   %add_tmp82.i = add i64 %indvars.iv.next68, %cast_tmp80.i
   %sext = shl i64 %add_tmp82.i, 32
   %22 = ashr exact i64 %sext, 32
   %23 = getelementptr [1224 x [3 x i64]], [1224 x [3 x i64]]* @std.ryu.POW10_SPLIT, i64 0, i64 %22, i64 0
-  %.val644.i = load i64, i64* %23, align 8
-  %.idx645.i = getelementptr [1224 x [3 x i64]], [1224 x [3 x i64]]* @std.ryu.POW10_SPLIT, i64 0, i64 %22, i64 1
-  %.idx645.val.i = load i64, i64* %.idx645.i, align 8
-  %.idx646.i = getelementptr [1224 x [3 x i64]], [1224 x [3 x i64]]* @std.ryu.POW10_SPLIT, i64 0, i64 %22, i64 2
-  %.idx646.val.i = load i64, i64* %.idx646.i, align 8
-  %24 = tail call fastcc i32 @func.std.ryu.mulShift_mod1e9..3.builtin.uint64.0P.const.builtin.uint64.builtin.int32.builtin.uint32(i64 %lshift_tmp.i, i64 %.val644.i, i64 %.idx645.val.i, i64 %.idx646.val.i, i32 %add_tmp84.i) #7
-  br i1 %.0624737.i, label %then86.i, label %else93.i
+  %.val652.i = load i64, i64* %23, align 8
+  %.idx653.i = getelementptr [1224 x [3 x i64]], [1224 x [3 x i64]]* @std.ryu.POW10_SPLIT, i64 0, i64 %22, i64 1
+  %.idx653.val.i = load i64, i64* %.idx653.i, align 8
+  %.idx654.i = getelementptr [1224 x [3 x i64]], [1224 x [3 x i64]]* @std.ryu.POW10_SPLIT, i64 0, i64 %22, i64 2
+  %.idx654.val.i = load i64, i64* %.idx654.i, align 8
+  %24 = tail call fastcc i32 @func.std.ryu.mulShift_mod1e9..3.builtin.uint64.0P.const.builtin.uint64.builtin.int32.builtin.uint32(i64 %lshift_tmp.i, i64 %.val652.i, i64 %.idx653.val.i, i64 %.idx654.val.i, i32 %add_tmp85.i) #7
+  br i1 %.0626745.i, label %then87.i, label %else94.i
 
-then86.i:                                         ; preds = %for.i
-  %25 = sext i32 %.1617738.ph.i to i64
-  %ptr_add_tmp90.i = getelementptr i8, i8* %2, i64 %25
+then87.i:                                         ; preds = %for.i
+  %25 = sext i32 %.1625746.ph.i to i64
+  %ptr_add_tmp91.i = getelementptr i8, i8* %2, i64 %25
   %26 = icmp eq i32 %24, 0
-  br i1 %26, label %then.i694.i, label %for_condition_check.preheader.i693.i
+  br i1 %26, label %then.i702.i, label %for_condition_check.preheader.i701.i
 
-for_condition_check.preheader.i693.i:             ; preds = %then86.i
-  %ptr_add_tmp.i670.i = getelementptr i8, i8* %ptr_add_tmp90.i, i64 7
-  %ptr_add_tmp17.i671.i = getelementptr i8, i8* %ptr_add_tmp90.i, i64 5
-  %div_tmp.i672.i = udiv i32 %24, 10000
-  %mul_tmp.neg.i673.i = mul i32 %div_tmp.i672.i, -10000
-  %sub_tmp.i674.i = add i32 %mul_tmp.neg.i673.i, %24
-  %sub_tmp.i674.i.frozen = freeze i32 %sub_tmp.i674.i
-  %div_tmp10.i677.i = udiv i32 %sub_tmp.i674.i.frozen, 100
-  %.neg172 = mul i32 %div_tmp10.i677.i, -100
-  %mod_tmp.i675.i.decomposed = add i32 %.neg172, %sub_tmp.i674.i.frozen
-  %lshift_tmp.i676.i = shl nuw nsw i32 %mod_tmp.i675.i.decomposed, 1
-  %lshift_tmp11.i678.i = shl nuw nsw i32 %div_tmp10.i677.i, 1
-  %27 = zext i32 %lshift_tmp.i676.i to i64
-  %ptr_add_tmp15.i679.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %27
-  %28 = bitcast i8* %ptr_add_tmp15.i679.i to i16*
-  %29 = bitcast i8* %ptr_add_tmp.i670.i to i16*
+for_condition_check.preheader.i701.i:             ; preds = %then87.i
+  %ptr_add_tmp.i678.i = getelementptr i8, i8* %ptr_add_tmp91.i, i64 7
+  %ptr_add_tmp18.i679.i = getelementptr i8, i8* %ptr_add_tmp91.i, i64 5
+  %div_tmp.i680.i = udiv i32 %24, 10000
+  %mul_tmp.neg.i681.i = mul i32 %div_tmp.i680.i, -10000
+  %sub_tmp.i682.i = add i32 %mul_tmp.neg.i681.i, %24
+  %sub_tmp.i682.i.frozen = freeze i32 %sub_tmp.i682.i
+  %div_tmp10.i685.i = udiv i32 %sub_tmp.i682.i.frozen, 100
+  %.neg172 = mul i32 %div_tmp10.i685.i, -100
+  %mod_tmp.i683.i.decomposed = add i32 %.neg172, %sub_tmp.i682.i.frozen
+  %lshift_tmp.i684.i = shl nuw nsw i32 %mod_tmp.i683.i.decomposed, 1
+  %lshift_tmp11.i686.i = shl nuw nsw i32 %div_tmp10.i685.i, 1
+  %27 = zext i32 %lshift_tmp.i684.i to i64
+  %ptr_add_tmp16.i687.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %27
+  %28 = bitcast i8* %ptr_add_tmp16.i687.i to i16*
+  %29 = bitcast i8* %ptr_add_tmp.i678.i to i16*
   %30 = load i16, i16* %28, align 2
   store i16 %30, i16* %29, align 1
-  %31 = zext i32 %lshift_tmp11.i678.i to i64
-  %ptr_add_tmp21.i680.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %31
-  %32 = bitcast i8* %ptr_add_tmp21.i680.i to i16*
-  %33 = bitcast i8* %ptr_add_tmp17.i671.i to i16*
+  %31 = zext i32 %lshift_tmp11.i686.i to i64
+  %ptr_add_tmp23.i688.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %31
+  %32 = bitcast i8* %ptr_add_tmp23.i688.i to i16*
+  %33 = bitcast i8* %ptr_add_tmp18.i679.i to i16*
   %34 = load i16, i16* %32, align 2
   store i16 %34, i16* %33, align 1
-  %div_tmp.1.i681.i = udiv i32 %24, 100000000
-  %mul_tmp.neg.1.i682.i = mul nsw i32 %div_tmp.1.i681.i, -10000
-  %sub_tmp.1.i683.i = add nsw i32 %mul_tmp.neg.1.i682.i, %div_tmp.i672.i
-  %sub_tmp.1.i683.i.frozen = freeze i32 %sub_tmp.1.i683.i
-  %div_tmp10.1.i686.i = udiv i32 %sub_tmp.1.i683.i.frozen, 100
-  %.neg173 = mul i32 %div_tmp10.1.i686.i, -100
-  %mod_tmp.1.i684.i.decomposed = add i32 %.neg173, %sub_tmp.1.i683.i.frozen
-  %lshift_tmp.1.i685.i = shl nuw nsw i32 %mod_tmp.1.i684.i.decomposed, 1
-  %lshift_tmp11.1.i687.i = shl nuw nsw i32 %div_tmp10.1.i686.i, 1
-  %ptr_sub_tmp.1.i688.i = getelementptr i8, i8* %ptr_add_tmp90.i, i64 3
-  %35 = zext i32 %lshift_tmp.1.i685.i to i64
-  %ptr_add_tmp15.1.i689.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %35
-  %36 = bitcast i8* %ptr_add_tmp15.1.i689.i to i16*
-  %37 = bitcast i8* %ptr_sub_tmp.1.i688.i to i16*
+  %div_tmp.1.i689.i = udiv i32 %24, 100000000
+  %mul_tmp.neg.1.i690.i = mul nsw i32 %div_tmp.1.i689.i, -10000
+  %sub_tmp.1.i691.i = add nsw i32 %mul_tmp.neg.1.i690.i, %div_tmp.i680.i
+  %sub_tmp.1.i691.i.frozen = freeze i32 %sub_tmp.1.i691.i
+  %div_tmp10.1.i694.i = udiv i32 %sub_tmp.1.i691.i.frozen, 100
+  %.neg173 = mul i32 %div_tmp10.1.i694.i, -100
+  %mod_tmp.1.i692.i.decomposed = add i32 %.neg173, %sub_tmp.1.i691.i.frozen
+  %lshift_tmp.1.i693.i = shl nuw nsw i32 %mod_tmp.1.i692.i.decomposed, 1
+  %lshift_tmp11.1.i695.i = shl nuw nsw i32 %div_tmp10.1.i694.i, 1
+  %ptr_sub_tmp.1.i696.i = getelementptr i8, i8* %ptr_add_tmp91.i, i64 3
+  %35 = zext i32 %lshift_tmp.1.i693.i to i64
+  %ptr_add_tmp16.1.i697.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %35
+  %36 = bitcast i8* %ptr_add_tmp16.1.i697.i to i16*
+  %37 = bitcast i8* %ptr_sub_tmp.1.i696.i to i16*
   %38 = load i16, i16* %36, align 2
   store i16 %38, i16* %37, align 1
-  %ptr_sub_tmp19.1.i690.i = getelementptr i8, i8* %ptr_add_tmp90.i, i64 1
-  %39 = zext i32 %lshift_tmp11.1.i687.i to i64
-  %ptr_add_tmp21.1.i691.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %39
-  %40 = bitcast i8* %ptr_add_tmp21.1.i691.i to i16*
-  %41 = bitcast i8* %ptr_sub_tmp19.1.i690.i to i16*
+  %ptr_sub_tmp20.1.i698.i = getelementptr i8, i8* %ptr_add_tmp91.i, i64 1
+  %39 = zext i32 %lshift_tmp11.1.i695.i to i64
+  %ptr_add_tmp23.1.i699.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %39
+  %40 = bitcast i8* %ptr_add_tmp23.1.i699.i to i16*
+  %41 = bitcast i8* %ptr_sub_tmp20.1.i698.i to i16*
   %42 = load i16, i16* %40, align 2
   store i16 %42, i16* %41, align 1
-  %43 = trunc i32 %div_tmp.1.i681.i to i8
-  %cast_tmp.i692.i = add nuw nsw i8 %43, 48
-  store i8 %cast_tmp.i692.i, i8* %ptr_add_tmp90.i, align 1
-  br label %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit695.i
+  %43 = trunc i32 %div_tmp.1.i689.i to i8
+  %cast_tmp.i700.i = add nuw nsw i8 %43, 48
+  store i8 %cast_tmp.i700.i, i8* %ptr_add_tmp91.i, align 1
+  br label %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit703.i
 
-then.i694.i:                                      ; preds = %then86.i
-  tail call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 1 dereferenceable(9) %ptr_add_tmp90.i, i8 48, i64 9, i1 false) #7
-  br label %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit695.i
+then.i702.i:                                      ; preds = %then87.i
+  tail call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 1 dereferenceable(9) %ptr_add_tmp91.i, i8 48, i64 9, i1 false) #7
+  br label %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit703.i
 
-func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit695.i: ; preds = %then.i694.i, %for_condition_check.preheader.i693.i
-  %add_tmp92.i = add i32 %.1617738.ph.i, 9
-  br label %endif106.i
+func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit703.i: ; preds = %then.i702.i, %for_condition_check.preheader.i701.i
+  %add_tmp93.i = add i32 %.1625746.ph.i, 9
+  br label %endif107.i
 
-else93.i:                                         ; preds = %for.i
-  %.not639.i = icmp eq i32 %24, 0
-  br i1 %.not639.i, label %endif106.thread.i, label %then95.i
+else94.i:                                         ; preds = %for.i
+  %.not647.i = icmp eq i32 %24, 0
+  br i1 %.not647.i, label %endif107.thread.i, label %then96.i
 
-then95.i:                                         ; preds = %else93.i
+then96.i:                                         ; preds = %else94.i
   %44 = icmp ugt i32 %24, 99999999
-  br i1 %44, label %while.lr.ph.i.i, label %else.i669.i
+  br i1 %44, label %while.lr.ph.i.i, label %else.i677.i
 
-else.i669.i:                                      ; preds = %then95.i
+else.i677.i:                                      ; preds = %then96.i
   %45 = icmp ugt i32 %24, 9999999
   br i1 %45, label %while.lr.ph.i.i, label %else4.i.i
 
-else4.i.i:                                        ; preds = %else.i669.i
+else4.i.i:                                        ; preds = %else.i677.i
   %46 = icmp ugt i32 %24, 999999
   br i1 %46, label %while.lr.ph.i.i, label %else7.i.i
 
@@ -2437,540 +2437,540 @@ else13.i.i:                                       ; preds = %else10.i.i
   %..i.i = select i1 %51, i32 2, i32 1
   %52 = select i1 %50, i32 3, i32 %..i.i
   %53 = select i1 %49, i32 4, i32 %52
-  %54 = sext i32 %.1617738.ph.i to i64
-  %ptr_add_tmp101.i = getelementptr i8, i8* %2, i64 %54
+  %54 = sext i32 %.1625746.ph.i to i64
+  %ptr_add_tmp102.i = getelementptr i8, i8* %2, i64 %54
   br label %endwhile.i.i
 
-while.lr.ph.i.i:                                  ; preds = %else10.i.i, %else7.i.i, %else4.i.i, %else.i669.i, %then95.i
-  %.ph.i = phi i32 [ 5, %else10.i.i ], [ 6, %else7.i.i ], [ 7, %else4.i.i ], [ 8, %else.i669.i ], [ 9, %then95.i ]
-  %55 = sext i32 %.1617738.ph.i to i64
-  %ptr_add_tmp101699.i = getelementptr i8, i8* %2, i64 %55
+while.lr.ph.i.i:                                  ; preds = %else10.i.i, %else7.i.i, %else4.i.i, %else.i677.i, %then96.i
+  %.ph.i = phi i32 [ 5, %else10.i.i ], [ 6, %else7.i.i ], [ 7, %else4.i.i ], [ 8, %else.i677.i ], [ 9, %then96.i ]
+  %55 = sext i32 %.1625746.ph.i to i64
+  %ptr_add_tmp102707.i = getelementptr i8, i8* %2, i64 %55
   %56 = zext i32 %.ph.i to i64
-  %ptr_add_tmp.i657.i = getelementptr i8, i8* %ptr_add_tmp101699.i, i64 %56
+  %ptr_add_tmp.i664.i = getelementptr i8, i8* %ptr_add_tmp102707.i, i64 %56
   br label %while.i.i
 
 endwhile.i.i:                                     ; preds = %while.i.i, %else13.i.i
-  %ptr_add_tmp101700.i = phi i8* [ %ptr_add_tmp101.i, %else13.i.i ], [ %ptr_add_tmp101699.i, %while.i.i ]
+  %ptr_add_tmp102708.i = phi i8* [ %ptr_add_tmp102.i, %else13.i.i ], [ %ptr_add_tmp102707.i, %while.i.i ]
   %57 = phi i32 [ %53, %else13.i.i ], [ %.ph.i, %while.i.i ]
-  %.098.lcssa.i.i = phi i32 [ 0, %else13.i.i ], [ %add_tmp.i665.i, %while.i.i ]
-  %.0.lcssa.i658.i = phi i32 [ %24, %else13.i.i ], [ %div_tmp.i659.i, %while.i.i ]
-  %58 = icmp ugt i32 %.0.lcssa.i658.i, 99
-  br i1 %58, label %then.i666.i, label %endif.i667.i
+  %.0116.lcssa.i.i = phi i32 [ 0, %else13.i.i ], [ %add_tmp.i673.i, %while.i.i ]
+  %.0.lcssa.i665.i = phi i32 [ %24, %else13.i.i ], [ %div_tmp.i666.i, %while.i.i ]
+  %58 = icmp ugt i32 %.0.lcssa.i665.i, 99
+  br i1 %58, label %then.i674.i, label %endif.i675.i
 
 while.i.i:                                        ; preds = %while.i.i, %while.lr.ph.i.i
-  %.0103.i.i = phi i32 [ %24, %while.lr.ph.i.i ], [ %div_tmp.i659.i, %while.i.i ]
-  %.098102.i.i = phi i32 [ 0, %while.lr.ph.i.i ], [ %add_tmp.i665.i, %while.i.i ]
-  %div_tmp.i659.i = udiv i32 %.0103.i.i, 10000
-  %mul_tmp.neg.i660.i = mul nsw i32 %div_tmp.i659.i, -10000
-  %sub_tmp.i661.i = add i32 %mul_tmp.neg.i660.i, %.0103.i.i
-  %sub_tmp.i661.i.frozen = freeze i32 %sub_tmp.i661.i
-  %div_tmp7.i.i = udiv i32 %sub_tmp.i661.i.frozen, 100
+  %.0121.i.i = phi i32 [ %24, %while.lr.ph.i.i ], [ %div_tmp.i666.i, %while.i.i ]
+  %.0116120.i.i = phi i32 [ 0, %while.lr.ph.i.i ], [ %add_tmp.i673.i, %while.i.i ]
+  %div_tmp.i666.i = udiv i32 %.0121.i.i, 10000
+  %mul_tmp.neg.i667.i = mul nsw i32 %div_tmp.i666.i, -10000
+  %sub_tmp.i668.i = add i32 %mul_tmp.neg.i667.i, %.0121.i.i
+  %sub_tmp.i668.i.frozen = freeze i32 %sub_tmp.i668.i
+  %div_tmp7.i.i = udiv i32 %sub_tmp.i668.i.frozen, 100
   %.neg171 = mul i32 %div_tmp7.i.i, -100
-  %mod_tmp.i662.i.decomposed = add i32 %.neg171, %sub_tmp.i661.i.frozen
-  %lshift_tmp.i663.i = shl nuw nsw i32 %mod_tmp.i662.i.decomposed, 1
+  %mod_tmp.i669.i.decomposed = add i32 %.neg171, %sub_tmp.i668.i.frozen
+  %lshift_tmp.i670.i = shl nuw nsw i32 %mod_tmp.i669.i.decomposed, 1
   %lshift_tmp8.i.i = shl nuw nsw i32 %div_tmp7.i.i, 1
-  %59 = zext i32 %.098102.i.i to i64
+  %59 = zext i32 %.0116120.i.i to i64
   %60 = sub nsw i64 0, %59
-  %ptr_sub_tmp.i664.i = getelementptr i8, i8* %ptr_add_tmp.i657.i, i64 %60
-  %ptr_sub_tmp12.i.i = getelementptr i8, i8* %ptr_sub_tmp.i664.i, i64 -2
-  %61 = zext i32 %lshift_tmp.i663.i to i64
-  %ptr_add_tmp14.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %61
-  %62 = bitcast i8* %ptr_add_tmp14.i.i to i16*
+  %ptr_sub_tmp.i671.i = getelementptr i8, i8* %ptr_add_tmp.i664.i, i64 %60
+  %ptr_sub_tmp12.i.i = getelementptr i8, i8* %ptr_sub_tmp.i671.i, i64 -2
+  %61 = zext i32 %lshift_tmp.i670.i to i64
+  %ptr_add_tmp15.i672.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %61
+  %62 = bitcast i8* %ptr_add_tmp15.i672.i to i16*
   %63 = bitcast i8* %ptr_sub_tmp12.i.i to i16*
   %64 = load i16, i16* %62, align 2
   store i16 %64, i16* %63, align 1
-  %ptr_sub_tmp20.i.i = getelementptr i8, i8* %ptr_sub_tmp.i664.i, i64 -4
+  %ptr_sub_tmp21.i.i = getelementptr i8, i8* %ptr_sub_tmp.i671.i, i64 -4
   %65 = zext i32 %lshift_tmp8.i.i to i64
-  %ptr_add_tmp22.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %65
-  %66 = bitcast i8* %ptr_add_tmp22.i.i to i16*
-  %67 = bitcast i8* %ptr_sub_tmp20.i.i to i16*
+  %ptr_add_tmp24.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %65
+  %66 = bitcast i8* %ptr_add_tmp24.i.i to i16*
+  %67 = bitcast i8* %ptr_sub_tmp21.i.i to i16*
   %68 = load i16, i16* %66, align 2
   store i16 %68, i16* %67, align 1
-  %add_tmp.i665.i = add i32 %.098102.i.i, 4
-  %69 = icmp ugt i32 %.0103.i.i, 99999999
+  %add_tmp.i673.i = add i32 %.0116120.i.i, 4
+  %69 = icmp ugt i32 %.0121.i.i, 99999999
   br i1 %69, label %while.i.i, label %endwhile.i.i
 
-then.i666.i:                                      ; preds = %endwhile.i.i
-  %.0.lcssa.i658.i.fr = freeze i32 %.0.lcssa.i658.i
-  %mod_tmp26.lhs.trunc.i.i = trunc i32 %.0.lcssa.i658.i.fr to i16
-  %div_tmp29101.i.i = udiv i16 %mod_tmp26.lhs.trunc.i.i, 100
-  %.neg170 = mul i16 %div_tmp29101.i.i, -100
-  %mod_tmp26100.i.i.decomposed = add i16 %.neg170, %mod_tmp26.lhs.trunc.i.i
-  %70 = shl nuw nsw i16 %mod_tmp26100.i.i.decomposed, 1
-  %div_tmp29.zext.i.i = zext i16 %div_tmp29101.i.i to i32
+then.i674.i:                                      ; preds = %endwhile.i.i
+  %.0.lcssa.i665.i.fr = freeze i32 %.0.lcssa.i665.i
+  %mod_tmp28.lhs.trunc.i.i = trunc i32 %.0.lcssa.i665.i.fr to i16
+  %div_tmp31119.i.i = udiv i16 %mod_tmp28.lhs.trunc.i.i, 100
+  %.neg170 = mul i16 %div_tmp31119.i.i, -100
+  %mod_tmp28118.i.i.decomposed = add i16 %.neg170, %mod_tmp28.lhs.trunc.i.i
+  %70 = shl nuw nsw i16 %mod_tmp28118.i.i.decomposed, 1
+  %div_tmp31.zext.i.i = zext i16 %div_tmp31119.i.i to i32
   %71 = zext i32 %57 to i64
-  %ptr_add_tmp32.i.i = getelementptr i8, i8* %ptr_add_tmp101700.i, i64 -2
-  %72 = zext i32 %.098.lcssa.i.i to i64
+  %ptr_add_tmp34.i.i = getelementptr i8, i8* %ptr_add_tmp102708.i, i64 -2
+  %72 = zext i32 %.0116.lcssa.i.i to i64
   %73 = sub nsw i64 0, %72
-  %ptr_sub_tmp34.i.i = getelementptr i8, i8* %ptr_add_tmp32.i.i, i64 %71
-  %ptr_sub_tmp35.i.i = getelementptr i8, i8* %ptr_sub_tmp34.i.i, i64 %73
+  %ptr_sub_tmp36.i.i = getelementptr i8, i8* %ptr_add_tmp34.i.i, i64 %71
+  %ptr_sub_tmp37.i.i = getelementptr i8, i8* %ptr_sub_tmp36.i.i, i64 %73
   %74 = zext i16 %70 to i64
-  %ptr_add_tmp37.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %74
-  %75 = bitcast i8* %ptr_add_tmp37.i.i to i16*
-  %76 = bitcast i8* %ptr_sub_tmp35.i.i to i16*
+  %ptr_add_tmp40.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %74
+  %75 = bitcast i8* %ptr_add_tmp40.i.i to i16*
+  %76 = bitcast i8* %ptr_sub_tmp37.i.i to i16*
   %77 = load i16, i16* %75, align 2
   store i16 %77, i16* %76, align 1
-  %add_tmp39.i.i = or i32 %.098.lcssa.i.i, 2
-  br label %endif.i667.i
+  %add_tmp42.i.i = or i32 %.0116.lcssa.i.i, 2
+  br label %endif.i675.i
 
-endif.i667.i:                                     ; preds = %then.i666.i, %endwhile.i.i
-  %.199.i.i = phi i32 [ %add_tmp39.i.i, %then.i666.i ], [ %.098.lcssa.i.i, %endwhile.i.i ]
-  %.1.i.i = phi i32 [ %div_tmp29.zext.i.i, %then.i666.i ], [ %.0.lcssa.i658.i, %endwhile.i.i ]
+endif.i675.i:                                     ; preds = %then.i674.i, %endwhile.i.i
+  %.1117.i.i = phi i32 [ %add_tmp42.i.i, %then.i674.i ], [ %.0116.lcssa.i.i, %endwhile.i.i ]
+  %.1.i.i = phi i32 [ %div_tmp31.zext.i.i, %then.i674.i ], [ %.0.lcssa.i665.i, %endwhile.i.i ]
   %78 = icmp ugt i32 %.1.i.i, 9
-  br i1 %78, label %then41.i.i, label %else.i.i
+  br i1 %78, label %then44.i.i, label %else.i.i
 
-then41.i.i:                                       ; preds = %endif.i667.i
-  %lshift_tmp43.i.i = shl nuw nsw i32 %.1.i.i, 1
+then44.i.i:                                       ; preds = %endif.i675.i
+  %lshift_tmp46.i.i = shl nuw nsw i32 %.1.i.i, 1
   %79 = zext i32 %57 to i64
-  %ptr_add_tmp46.i.i = getelementptr i8, i8* %ptr_add_tmp101700.i, i64 -2
-  %80 = zext i32 %.199.i.i to i64
+  %ptr_add_tmp49.i.i = getelementptr i8, i8* %ptr_add_tmp102708.i, i64 -2
+  %80 = zext i32 %.1117.i.i to i64
   %81 = sub nsw i64 0, %80
-  %ptr_sub_tmp48.i.i = getelementptr i8, i8* %ptr_add_tmp46.i.i, i64 %79
-  %ptr_sub_tmp49.i.i = getelementptr i8, i8* %ptr_sub_tmp48.i.i, i64 %81
-  %82 = zext i32 %lshift_tmp43.i.i to i64
-  %ptr_add_tmp51.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %82
-  %83 = bitcast i8* %ptr_add_tmp51.i.i to i16*
-  %84 = bitcast i8* %ptr_sub_tmp49.i.i to i16*
+  %ptr_sub_tmp51.i.i = getelementptr i8, i8* %ptr_add_tmp49.i.i, i64 %79
+  %ptr_sub_tmp52.i.i = getelementptr i8, i8* %ptr_sub_tmp51.i.i, i64 %81
+  %82 = zext i32 %lshift_tmp46.i.i to i64
+  %ptr_add_tmp55.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %82
+  %83 = bitcast i8* %ptr_add_tmp55.i.i to i16*
+  %84 = bitcast i8* %ptr_sub_tmp52.i.i to i16*
   %85 = load i16, i16* %83, align 2
   store i16 %85, i16* %84, align 1
   br label %func.std.ryu.append_n_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i
 
-else.i.i:                                         ; preds = %endif.i667.i
+else.i.i:                                         ; preds = %endif.i675.i
   %86 = trunc i32 %.1.i.i to i8
-  %cast_tmp.i668.i = add nuw nsw i8 %86, 48
-  store i8 %cast_tmp.i668.i, i8* %ptr_add_tmp101700.i, align 1
+  %cast_tmp.i676.i = add nuw nsw i8 %86, 48
+  store i8 %cast_tmp.i676.i, i8* %ptr_add_tmp102708.i, align 1
   br label %func.std.ryu.append_n_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i
 
-func.std.ryu.append_n_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i: ; preds = %else.i.i, %then41.i.i
-  %add_tmp104.i = add i32 %57, %.1617738.ph.i
-  br label %endif106.i
+func.std.ryu.append_n_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i: ; preds = %else.i.i, %then44.i.i
+  %add_tmp105.i = add i32 %57, %.1625746.ph.i
+  br label %endif107.i
 
-endif106.i:                                       ; preds = %func.std.ryu.append_n_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit695.i
-  %.2.i = phi i32 [ %add_tmp92.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit695.i ], [ %add_tmp104.i, %func.std.ryu.append_n_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i ]
-  %87 = icmp sgt i64 %indvars.iv760.in.i, 1
-  br i1 %87, label %for.outer.i, label %endif115.i
+endif107.i:                                       ; preds = %func.std.ryu.append_n_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit703.i
+  %.2.i = phi i32 [ %add_tmp93.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit703.i ], [ %add_tmp105.i, %func.std.ryu.append_n_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i ]
+  %87 = icmp sgt i64 %indvars.iv768.in.i, 1
+  br i1 %87, label %for.outer.i, label %endif116.i
 
-endif106.thread.i:                                ; preds = %else93.i
-  %88 = icmp ugt i64 %indvars.iv760.in.i, 1
-  br i1 %88, label %for.i, label %then110.i
+endif107.thread.i:                                ; preds = %else94.i
+  %88 = icmp ugt i64 %indvars.iv768.in.i, 1
+  br i1 %88, label %for.i, label %then111.i
 
-then110.i:                                        ; preds = %endif106.thread.i, %endif60.i
-  %.3704.i = phi i32 [ %.0616.i, %endif60.i ], [ %.1617738.ph.i, %endif106.thread.i ]
-  %89 = sext i32 %.3704.i to i64
-  %ptr_add_tmp113.i = getelementptr i8, i8* %2, i64 %89
-  store i8 48, i8* %ptr_add_tmp113.i, align 1
-  %90 = add i32 %.3704.i, 1
-  br label %endif115.i
+then111.i:                                        ; preds = %endif107.thread.i, %endif60.i
+  %.3712.i = phi i32 [ %.0624.i, %endif60.i ], [ %.1625746.ph.i, %endif107.thread.i ]
+  %89 = sext i32 %.3712.i to i64
+  %ptr_add_tmp114.i = getelementptr i8, i8* %2, i64 %89
+  store i8 48, i8* %ptr_add_tmp114.i, align 1
+  %90 = add i32 %.3712.i, 1
+  br label %endif116.i
 
-endif115.i:                                       ; preds = %endif106.i, %then110.i
-  %.4.i = phi i32 [ %90, %then110.i ], [ %.2.i, %endif106.i ]
+endif116.i:                                       ; preds = %endif107.i, %then111.i
+  %.4.i = phi i32 [ %90, %then111.i ], [ %.2.i, %endif107.i ]
   %.not.i = icmp eq i32 %1, 0
-  br i1 %.not.i, label %endif122.i, label %then117.i
+  br i1 %.not.i, label %endif123.i, label %then118.i
 
-then117.i:                                        ; preds = %endif115.i
+then118.i:                                        ; preds = %endif116.i
   %91 = sext i32 %.4.i to i64
-  %ptr_add_tmp120.i = getelementptr i8, i8* %2, i64 %91
-  store i8 46, i8* %ptr_add_tmp120.i, align 1
+  %ptr_add_tmp121.i = getelementptr i8, i8* %2, i64 %91
+  store i8 46, i8* %ptr_add_tmp121.i, align 1
   %92 = add i32 %.4.i, 1
-  br label %endif122.i
+  br label %endif123.i
 
-endif122.i:                                       ; preds = %then117.i, %endif115.i
-  %.5.i = phi i32 [ %92, %then117.i ], [ %.4.i, %endif115.i ]
-  %93 = icmp slt i32 %.0614.i, 0
-  br i1 %93, label %then124.i, label %else328.i
+endif123.i:                                       ; preds = %then118.i, %endif116.i
+  %.5.i = phi i32 [ %92, %then118.i ], [ %.4.i, %endif116.i ]
+  %93 = icmp slt i32 %.0621.i, 0
+  br i1 %93, label %then125.i, label %else330.i
 
-then124.i:                                        ; preds = %endif122.i
-  %div_tmp712.i = lshr i32 %.0614.nonneg.i, 4
-  %div_tmp127.i = udiv i32 %1, 9
-  %94 = zext i32 %div_tmp712.i to i64
+then125.i:                                        ; preds = %endif123.i
+  %div_tmp720.i = lshr i32 %.0621.nonneg.i, 4
+  %div_tmp128.i = udiv i32 %1, 9
+  %94 = zext i32 %div_tmp720.i to i64
   %95 = getelementptr [69 x i8], [69 x i8]* @std.ryu.MIN_BLOCK_2, i64 0, i64 %94
-  %load_tmp131.i = load i8, i8* %95, align 1
-  %cast_tmp132.i = zext i8 %load_tmp131.i to i32
-  %.not632.not.i = icmp ult i32 %div_tmp127.i, %cast_tmp132.i
-  br i1 %.not632.not.i, label %endif162.thread.i, label %else143.i
+  %load_tmp132.i = load i8, i8* %95, align 1
+  %cast_tmp133.i = zext i8 %load_tmp132.i to i32
+  %.not640.not.i = icmp ult i32 %div_tmp128.i, %cast_tmp133.i
+  br i1 %.not640.not.i, label %endif163.thread.i, label %else144.i
 
-endif162.thread.i:                                ; preds = %then124.i
+endif163.thread.i:                                ; preds = %then125.i
   %96 = sext i32 %.5.i to i64
-  %ptr_add_tmp137.i = getelementptr i8, i8* %2, i64 %96
-  %cast_tmp139.i = zext i32 %1 to i64
-  tail call void @llvm.memset.p0i8.i64(i8* align 1 %ptr_add_tmp137.i, i8 48, i64 %cast_tmp139.i, i1 false) #7
-  %add_tmp142.i = add i32 %.5.i, %1
-  br label %endif341.i
+  %ptr_add_tmp138.i = getelementptr i8, i8* %2, i64 %96
+  %cast_tmp140.i = zext i32 %1 to i64
+  tail call void @llvm.memset.p0i8.i64(i8* align 1 %ptr_add_tmp138.i, i8 48, i64 %cast_tmp140.i, i1 false) #7
+  %add_tmp143.i = add i32 %.5.i, %1
+  br label %endif343.i
 
-else143.i:                                        ; preds = %then124.i
+else144.i:                                        ; preds = %then125.i
   %97 = add nsw i64 %94, -68
-  %.not633.i = icmp ult i64 %97, -62
-  br i1 %.not633.i, label %for169.lr.ph.i, label %endif162.i
+  %.not641.i = icmp ult i64 %97, -62
+  br i1 %.not641.i, label %for170.lr.ph.i, label %endif163.i
 
-endif162.i:                                       ; preds = %else143.i
+endif163.i:                                       ; preds = %else144.i
   %98 = sext i32 %.5.i to i64
-  %ptr_add_tmp154.i = getelementptr i8, i8* %2, i64 %98
-  %mul_tmp.i = mul nuw nsw i32 %cast_tmp132.i, 9
-  %cast_tmp156.i = zext i32 %mul_tmp.i to i64
-  tail call void @llvm.memset.p0i8.i64(i8* align 1 %ptr_add_tmp154.i, i8 48, i64 %cast_tmp156.i, i1 false) #7
-  %add_tmp160.i = add i32 %mul_tmp.i, %.5.i
-  br label %for169.lr.ph.i
+  %ptr_add_tmp155.i = getelementptr i8, i8* %2, i64 %98
+  %mul_tmp.i = mul nuw nsw i32 %cast_tmp133.i, 9
+  %cast_tmp157.i = zext i32 %mul_tmp.i to i64
+  tail call void @llvm.memset.p0i8.i64(i8* align 1 %ptr_add_tmp155.i, i8 48, i64 %cast_tmp157.i, i1 false) #7
+  %add_tmp161.i = add i32 %mul_tmp.i, %.5.i
+  br label %for170.lr.ph.i
 
-for169.lr.ph.i:                                   ; preds = %endif162.i, %else143.i
-  %.6776.i = phi i32 [ %add_tmp160.i, %endif162.i ], [ %.5.i, %else143.i ]
-  %.0618775.i = phi i32 [ %cast_tmp132.i, %endif162.i ], [ 0, %else143.i ]
+for170.lr.ph.i:                                   ; preds = %endif163.i, %else144.i
+  %.6784.i = phi i32 [ %add_tmp161.i, %endif163.i ], [ %.5.i, %else144.i ]
+  %.0630783.i = phi i32 [ %cast_tmp133.i, %endif163.i ], [ 0, %else144.i ]
   %99 = getelementptr [69 x i16], [69 x i16]* @std.ryu.POW10_OFFSET_2, i64 0, i64 %94
-  %load_tmp177.i = load i16, i16* %99, align 2
-  %cast_tmp178.i = zext i16 %load_tmp177.i to i32
-  %add_tmp187.i = add nuw nsw i32 %div_tmp712.i, 1
-  %100 = zext i32 %add_tmp187.i to i64
+  %load_tmp178.i = load i16, i16* %99, align 2
+  %cast_tmp179.i = zext i16 %load_tmp178.i to i32
+  %add_tmp188.i = add nuw nsw i32 %div_tmp720.i, 1
+  %100 = zext i32 %add_tmp188.i to i64
   %101 = getelementptr [69 x i16], [69 x i16]* @std.ryu.POW10_OFFSET_2, i64 0, i64 %100
-  %load_tmp188.i = load i16, i16* %101, align 2
-  %cast_tmp189.i = zext i16 %load_tmp188.i to i32
-  %mul_tmp173.neg.i = mul i32 %div_tmp712.i, -16
-  %lshift_tmp205.i = shl nuw nsw i64 %.0615.i, 8
-  %sub_tmp174.i = sub nsw i32 128, %.0614.i
-  %add_tmp208.i = add i32 %sub_tmp174.i, %mul_tmp173.neg.i
-  %102 = zext i32 %div_tmp127.i to i64
-  %add_tmp180.i36 = sub nsw i32 %.0618775.i, %cast_tmp132.i
-  %sub_tmp184.i37 = add nsw i32 %add_tmp180.i36, %cast_tmp178.i
-  %.not636.i38 = icmp ult i32 %sub_tmp184.i37, %cast_tmp189.i
-  br i1 %.not636.i38, label %endif203.i.preheader, label %then190.i
+  %load_tmp189.i = load i16, i16* %101, align 2
+  %cast_tmp190.i = zext i16 %load_tmp189.i to i32
+  %mul_tmp174.neg.i = mul i32 %div_tmp720.i, -16
+  %lshift_tmp206.i = shl nuw nsw i64 %.0622.i, 8
+  %sub_tmp175.i = sub nsw i32 128, %.0621.i
+  %add_tmp210.i = add i32 %sub_tmp175.i, %mul_tmp174.neg.i
+  %102 = zext i32 %div_tmp128.i to i64
+  %add_tmp181.i36 = sub nsw i32 %.0630783.i, %cast_tmp133.i
+  %sub_tmp185.i37 = add nsw i32 %add_tmp181.i36, %cast_tmp179.i
+  %.not644.i38 = icmp ult i32 %sub_tmp185.i37, %cast_tmp190.i
+  br i1 %.not644.i38, label %endif204.i.preheader, label %then191.i
 
-endif203.i.preheader:                             ; preds = %for169.lr.ph.i
-  %103 = zext i32 %.0618775.i to i64
-  %104 = zext i32 %sub_tmp184.i37 to i64
-  %add_tmp180.i = sub nsw i32 %cast_tmp178.i, %cast_tmp132.i
-  br label %endif203.i
+endif204.i.preheader:                             ; preds = %for170.lr.ph.i
+  %103 = zext i32 %.0630783.i to i64
+  %104 = zext i32 %sub_tmp185.i37 to i64
+  %add_tmp181.i = sub nsw i32 %cast_tmp179.i, %cast_tmp133.i
+  br label %endif204.i
 
-endfor165.i:                                      ; preds = %func.std.ryu.append_c_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i, %endif256.i
-  %.8.i = phi i32 [ %add_tmp266.i, %func.std.ryu.append_c_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i ], [ %.7734.i40, %endif256.i ]
-  %.not635.i = icmp eq i32 %.2622.i, 0
-  br i1 %.not635.i, label %endif341.i, label %while_condition_check.outer.i
+endfor166.i:                                      ; preds = %func.std.ryu.append_c_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i, %endif258.i
+  %.8.i = phi i32 [ %add_tmp268.i, %func.std.ryu.append_c_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i ], [ %.7742.i40, %endif258.i ]
+  %.not643.i = icmp eq i32 %.2634.i, 0
+  br i1 %.not643.i, label %endif343.i, label %while_condition_check.outer.i
 
-then190.i.loopexit:                               ; preds = %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i
+then191.i.loopexit:                               ; preds = %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i
   %105 = trunc i64 %indvars.iv.next.i to i32
-  br label %then190.i
+  br label %then191.i
 
-then190.i:                                        ; preds = %then190.i.loopexit, %for169.lr.ph.i
-  %.pre-phi = phi i32 [ %.0618775.i, %for169.lr.ph.i ], [ %105, %then190.i.loopexit ]
-  %.7734.i.lcssa = phi i32 [ %.6776.i, %for169.lr.ph.i ], [ %add_tmp218.i, %then190.i.loopexit ]
-  %mul_tmp193.neg.i = mul i32 %.pre-phi, -9
-  %sub_tmp194.i = add i32 %mul_tmp193.neg.i, %1
-  %106 = sext i32 %.7734.i.lcssa to i64
-  %ptr_add_tmp197.i = getelementptr i8, i8* %2, i64 %106
-  %cast_tmp199.i = zext i32 %sub_tmp194.i to i64
-  tail call void @llvm.memset.p0i8.i64(i8* align 1 %ptr_add_tmp197.i, i8 48, i64 %cast_tmp199.i, i1 false) #7
-  %add_tmp202.i = add i32 %sub_tmp194.i, %.7734.i.lcssa
-  br label %endif341.i
+then191.i:                                        ; preds = %then191.i.loopexit, %for170.lr.ph.i
+  %.pre-phi = phi i32 [ %.0630783.i, %for170.lr.ph.i ], [ %105, %then191.i.loopexit ]
+  %.7742.i.lcssa = phi i32 [ %.6784.i, %for170.lr.ph.i ], [ %add_tmp220.i, %then191.i.loopexit ]
+  %mul_tmp194.neg.i = mul i32 %.pre-phi, -9
+  %sub_tmp195.i = add i32 %mul_tmp194.neg.i, %1
+  %106 = sext i32 %.7742.i.lcssa to i64
+  %ptr_add_tmp198.i = getelementptr i8, i8* %2, i64 %106
+  %cast_tmp200.i = zext i32 %sub_tmp195.i to i64
+  tail call void @llvm.memset.p0i8.i64(i8* align 1 %ptr_add_tmp198.i, i8 48, i64 %cast_tmp200.i, i1 false) #7
+  %add_tmp203.i = add i32 %sub_tmp195.i, %.7742.i.lcssa
+  br label %endif343.i
 
-endif203.i:                                       ; preds = %endif203.i.preheader, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i
-  %indvars.iv = phi i64 [ %104, %endif203.i.preheader ], [ %indvars.iv.next, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i ]
-  %.7734.i40 = phi i32 [ %.6776.i, %endif203.i.preheader ], [ %add_tmp218.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i ]
-  %indvars.iv.i39 = phi i64 [ %103, %endif203.i.preheader ], [ %indvars.iv.next.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i ]
+endif204.i:                                       ; preds = %endif204.i.preheader, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i
+  %indvars.iv = phi i64 [ %104, %endif204.i.preheader ], [ %indvars.iv.next, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i ]
+  %.7742.i40 = phi i32 [ %.6784.i, %endif204.i.preheader ], [ %add_tmp220.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i ]
+  %indvars.iv.i39 = phi i64 [ %103, %endif204.i.preheader ], [ %indvars.iv.next.i, %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i ]
   %107 = getelementptr [3133 x [3 x i64]], [3133 x [3 x i64]]* @std.ryu.POW10_SPLIT_2, i64 0, i64 %indvars.iv, i64 0
   %.val.i = load i64, i64* %107, align 8
   %.idx.i = getelementptr [3133 x [3 x i64]], [3133 x [3 x i64]]* @std.ryu.POW10_SPLIT_2, i64 0, i64 %indvars.iv, i64 1
   %.idx.val.i = load i64, i64* %.idx.i, align 8
-  %.idx643.i = getelementptr [3133 x [3 x i64]], [3133 x [3 x i64]]* @std.ryu.POW10_SPLIT_2, i64 0, i64 %indvars.iv, i64 2
-  %.idx643.val.i = load i64, i64* %.idx643.i, align 8
-  %108 = tail call fastcc i32 @func.std.ryu.mulShift_mod1e9..3.builtin.uint64.0P.const.builtin.uint64.builtin.int32.builtin.uint32(i64 %lshift_tmp205.i, i64 %.val.i, i64 %.idx.val.i, i64 %.idx643.val.i, i32 %add_tmp208.i) #7
-  %exitcond759.not.i = icmp eq i64 %indvars.iv.i39, %102
-  br i1 %exitcond759.not.i, label %else219.i, label %then212.i
+  %.idx651.i = getelementptr [3133 x [3 x i64]], [3133 x [3 x i64]]* @std.ryu.POW10_SPLIT_2, i64 0, i64 %indvars.iv, i64 2
+  %.idx651.val.i = load i64, i64* %.idx651.i, align 8
+  %108 = tail call fastcc i32 @func.std.ryu.mulShift_mod1e9..3.builtin.uint64.0P.const.builtin.uint64.builtin.int32.builtin.uint32(i64 %lshift_tmp206.i, i64 %.val.i, i64 %.idx.val.i, i64 %.idx651.val.i, i32 %add_tmp210.i) #7
+  %exitcond767.not.i = icmp eq i64 %indvars.iv.i39, %102
+  br i1 %exitcond767.not.i, label %else221.i, label %then214.i
 
-then212.i:                                        ; preds = %endif203.i
-  %109 = sext i32 %.7734.i40 to i64
-  %ptr_add_tmp216.i = getelementptr i8, i8* %2, i64 %109
+then214.i:                                        ; preds = %endif204.i
+  %109 = sext i32 %.7742.i40 to i64
+  %ptr_add_tmp218.i = getelementptr i8, i8* %2, i64 %109
   %110 = icmp eq i32 %108, 0
-  br i1 %110, label %then.i654.i, label %for_condition_check.preheader.i.i
+  br i1 %110, label %then.i662.i, label %for_condition_check.preheader.i.i
 
-for_condition_check.preheader.i.i:                ; preds = %then212.i
-  %ptr_add_tmp.i648.i = getelementptr i8, i8* %ptr_add_tmp216.i, i64 7
-  %ptr_add_tmp17.i.i = getelementptr i8, i8* %ptr_add_tmp216.i, i64 5
-  %div_tmp.i649.i = udiv i32 %108, 10000
-  %mul_tmp.neg.i.i = mul i32 %div_tmp.i649.i, -10000
-  %sub_tmp.i650.i = add i32 %mul_tmp.neg.i.i, %108
-  %sub_tmp.i650.i.frozen = freeze i32 %sub_tmp.i650.i
-  %div_tmp10.i.i = udiv i32 %sub_tmp.i650.i.frozen, 100
+for_condition_check.preheader.i.i:                ; preds = %then214.i
+  %ptr_add_tmp.i656.i = getelementptr i8, i8* %ptr_add_tmp218.i, i64 7
+  %ptr_add_tmp18.i.i = getelementptr i8, i8* %ptr_add_tmp218.i, i64 5
+  %div_tmp.i657.i = udiv i32 %108, 10000
+  %mul_tmp.neg.i.i = mul i32 %div_tmp.i657.i, -10000
+  %sub_tmp.i658.i = add i32 %mul_tmp.neg.i.i, %108
+  %sub_tmp.i658.i.frozen = freeze i32 %sub_tmp.i658.i
+  %div_tmp10.i.i = udiv i32 %sub_tmp.i658.i.frozen, 100
   %.neg = mul i32 %div_tmp10.i.i, -100
-  %mod_tmp.i651.i.decomposed = add i32 %.neg, %sub_tmp.i650.i.frozen
-  %lshift_tmp.i652.i = shl nuw nsw i32 %mod_tmp.i651.i.decomposed, 1
+  %mod_tmp.i659.i.decomposed = add i32 %.neg, %sub_tmp.i658.i.frozen
+  %lshift_tmp.i660.i = shl nuw nsw i32 %mod_tmp.i659.i.decomposed, 1
   %lshift_tmp11.i.i = shl nuw nsw i32 %div_tmp10.i.i, 1
-  %111 = zext i32 %lshift_tmp.i652.i to i64
-  %ptr_add_tmp15.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %111
-  %112 = bitcast i8* %ptr_add_tmp15.i.i to i16*
-  %113 = bitcast i8* %ptr_add_tmp.i648.i to i16*
+  %111 = zext i32 %lshift_tmp.i660.i to i64
+  %ptr_add_tmp16.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %111
+  %112 = bitcast i8* %ptr_add_tmp16.i.i to i16*
+  %113 = bitcast i8* %ptr_add_tmp.i656.i to i16*
   %114 = load i16, i16* %112, align 2
   store i16 %114, i16* %113, align 1
   %115 = zext i32 %lshift_tmp11.i.i to i64
-  %ptr_add_tmp21.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %115
-  %116 = bitcast i8* %ptr_add_tmp21.i.i to i16*
-  %117 = bitcast i8* %ptr_add_tmp17.i.i to i16*
+  %ptr_add_tmp23.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %115
+  %116 = bitcast i8* %ptr_add_tmp23.i.i to i16*
+  %117 = bitcast i8* %ptr_add_tmp18.i.i to i16*
   %118 = load i16, i16* %116, align 2
   store i16 %118, i16* %117, align 1
   %div_tmp.1.i.i = udiv i32 %108, 100000000
   %mul_tmp.neg.1.i.i = mul nsw i32 %div_tmp.1.i.i, -10000
-  %sub_tmp.1.i.i = add nsw i32 %mul_tmp.neg.1.i.i, %div_tmp.i649.i
+  %sub_tmp.1.i.i = add nsw i32 %mul_tmp.neg.1.i.i, %div_tmp.i657.i
   %sub_tmp.1.i.i.frozen = freeze i32 %sub_tmp.1.i.i
   %div_tmp10.1.i.i = udiv i32 %sub_tmp.1.i.i.frozen, 100
   %.neg167 = mul i32 %div_tmp10.1.i.i, -100
   %mod_tmp.1.i.i.decomposed = add i32 %.neg167, %sub_tmp.1.i.i.frozen
   %lshift_tmp.1.i.i = shl nuw nsw i32 %mod_tmp.1.i.i.decomposed, 1
   %lshift_tmp11.1.i.i = shl nuw nsw i32 %div_tmp10.1.i.i, 1
-  %ptr_sub_tmp.1.i.i = getelementptr i8, i8* %ptr_add_tmp216.i, i64 3
+  %ptr_sub_tmp.1.i.i = getelementptr i8, i8* %ptr_add_tmp218.i, i64 3
   %119 = zext i32 %lshift_tmp.1.i.i to i64
-  %ptr_add_tmp15.1.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %119
-  %120 = bitcast i8* %ptr_add_tmp15.1.i.i to i16*
+  %ptr_add_tmp16.1.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %119
+  %120 = bitcast i8* %ptr_add_tmp16.1.i.i to i16*
   %121 = bitcast i8* %ptr_sub_tmp.1.i.i to i16*
   %122 = load i16, i16* %120, align 2
   store i16 %122, i16* %121, align 1
-  %ptr_sub_tmp19.1.i.i = getelementptr i8, i8* %ptr_add_tmp216.i, i64 1
+  %ptr_sub_tmp20.1.i.i = getelementptr i8, i8* %ptr_add_tmp218.i, i64 1
   %123 = zext i32 %lshift_tmp11.1.i.i to i64
-  %ptr_add_tmp21.1.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %123
-  %124 = bitcast i8* %ptr_add_tmp21.1.i.i to i16*
-  %125 = bitcast i8* %ptr_sub_tmp19.1.i.i to i16*
+  %ptr_add_tmp23.1.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %123
+  %124 = bitcast i8* %ptr_add_tmp23.1.i.i to i16*
+  %125 = bitcast i8* %ptr_sub_tmp20.1.i.i to i16*
   %126 = load i16, i16* %124, align 2
   store i16 %126, i16* %125, align 1
   %127 = trunc i32 %div_tmp.1.i.i to i8
-  %cast_tmp.i653.i = add nuw nsw i8 %127, 48
-  store i8 %cast_tmp.i653.i, i8* %ptr_add_tmp216.i, align 1
+  %cast_tmp.i661.i = add nuw nsw i8 %127, 48
+  store i8 %cast_tmp.i661.i, i8* %ptr_add_tmp218.i, align 1
   br label %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i
 
-then.i654.i:                                      ; preds = %then212.i
-  tail call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 1 dereferenceable(9) %ptr_add_tmp216.i, i8 48, i64 9, i1 false) #7
+then.i662.i:                                      ; preds = %then214.i
+  tail call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 1 dereferenceable(9) %ptr_add_tmp218.i, i8 48, i64 9, i1 false) #7
   br label %func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i
 
-func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i: ; preds = %then.i654.i, %for_condition_check.preheader.i.i
-  %add_tmp218.i = add i32 %.7734.i40, 9
+func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void.exit.i: ; preds = %then.i662.i, %for_condition_check.preheader.i.i
+  %add_tmp220.i = add i32 %.7742.i40, 9
   %indvars.iv.next.i = add nuw nsw i64 %indvars.iv.i39, 1
   %128 = trunc i64 %indvars.iv.next.i to i32
-  %sub_tmp184.i = add i32 %add_tmp180.i, %128
-  %.not636.i = icmp ult i32 %sub_tmp184.i, %cast_tmp189.i
+  %sub_tmp185.i = add i32 %add_tmp181.i, %128
+  %.not644.i = icmp ult i32 %sub_tmp185.i, %cast_tmp190.i
   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1
-  br i1 %.not636.i, label %endif203.i, label %then190.i.loopexit
+  br i1 %.not644.i, label %endif204.i, label %then191.i.loopexit
 
-else219.i:                                        ; preds = %endif203.i
-  %mul_tmp222.neg.i = mul i32 %div_tmp127.i, -9
-  %sub_tmp223.i = add i32 %mul_tmp222.neg.i, %1
-  %.not743.i = icmp eq i32 %sub_tmp223.i, 9
-  br i1 %.not743.i, label %then236.i, label %for231.preheader.i
+else221.i:                                        ; preds = %endif204.i
+  %mul_tmp224.neg.i = mul i32 %div_tmp128.i, -9
+  %sub_tmp225.i = add i32 %mul_tmp224.neg.i, %1
+  %.not751.i = icmp eq i32 %sub_tmp225.i, 9
+  br i1 %.not751.i, label %then238.i, label %for233.preheader.i
 
-for231.preheader.i:                               ; preds = %else219.i
-  %sub_tmp229.i = sub i32 9, %sub_tmp223.i
+for233.preheader.i:                               ; preds = %else221.i
+  %sub_tmp231.i = sub i32 9, %sub_tmp225.i
   %phi.fr = freeze i32 %108
-  br label %for231.i
+  br label %for233.i
 
-endfor226.i:                                      ; preds = %for231.i
-  %.neg168 = mul i32 %div_tmp234.i, -10
-  %mod_tmp.le.i.decomposed = add i32 %.neg168, %.0613729.i
-  %.not637.i = icmp eq i32 %mod_tmp.le.i.decomposed, 5
-  br i1 %.not637.i, label %else239.i, label %then236.i
+endfor228.i:                                      ; preds = %for233.i
+  %.neg168 = mul i32 %div_tmp236.i, -10
+  %mod_tmp.le.i.decomposed = add i32 %.neg168, %.0623737.i
+  %.not645.i = icmp eq i32 %mod_tmp.le.i.decomposed, 5
+  br i1 %.not645.i, label %else241.i, label %then238.i
 
-for231.i:                                         ; preds = %for231.i, %for231.preheader.i
-  %.0611730.i = phi i32 [ %129, %for231.i ], [ 0, %for231.preheader.i ]
-  %.0613729.i = phi i32 [ %div_tmp234.i, %for231.i ], [ %phi.fr, %for231.preheader.i ]
-  %div_tmp234.i = udiv i32 %.0613729.i, 10
-  %129 = add nuw i32 %.0611730.i, 1
-  %exitcond.not.i = icmp eq i32 %129, %sub_tmp229.i
-  br i1 %exitcond.not.i, label %endfor226.i, label %for231.i
+for233.i:                                         ; preds = %for233.i, %for233.preheader.i
+  %.0619738.i = phi i32 [ %129, %for233.i ], [ 0, %for233.preheader.i ]
+  %.0623737.i = phi i32 [ %div_tmp236.i, %for233.i ], [ %phi.fr, %for233.preheader.i ]
+  %div_tmp236.i = udiv i32 %.0623737.i, 10
+  %129 = add nuw i32 %.0619738.i, 1
+  %exitcond.not.i = icmp eq i32 %129, %sub_tmp231.i
+  br i1 %exitcond.not.i, label %endfor228.i, label %for233.i
 
-then236.i:                                        ; preds = %endfor226.i, %else219.i
-  %.0612.lcssa782.i = phi i32 [ %mod_tmp.le.i.decomposed, %endfor226.i ], [ 0, %else219.i ]
-  %.0613.lcssa781.i = phi i32 [ %div_tmp234.i, %endfor226.i ], [ %108, %else219.i ]
-  %130 = icmp ugt i32 %.0612.lcssa782.i, 5
-  %cast_tmp238.i = zext i1 %130 to i32
-  br label %endif256.i
+then238.i:                                        ; preds = %endfor228.i, %else221.i
+  %.0620.lcssa790.i = phi i32 [ %mod_tmp.le.i.decomposed, %endfor228.i ], [ 0, %else221.i ]
+  %.0623.lcssa789.i = phi i32 [ %div_tmp236.i, %endfor228.i ], [ %108, %else221.i ]
+  %130 = icmp ugt i32 %.0620.lcssa790.i, 5
+  %cast_tmp240.i = zext i1 %130 to i32
+  br label %endif258.i
 
-else239.i:                                        ; preds = %endfor226.i
-  %131 = add i32 %.0614.i, %1
-  %sub_tmp244.i = xor i32 %131, -1
+else241.i:                                        ; preds = %endfor228.i
+  %131 = add i32 %.0621.i, %1
+  %sub_tmp246.i = xor i32 %131, -1
   %132 = icmp sgt i32 %131, -2
   br i1 %132, label %bool_or_end.thread.i, label %bool_or_rhs.i
 
-bool_or_rhs.i:                                    ; preds = %else239.i
+bool_or_rhs.i:                                    ; preds = %else241.i
   %133 = icmp ugt i32 %131, -61
-  br i1 %133, label %bool_or_end.i, label %endif256.i
+  br i1 %133, label %bool_or_end.i, label %endif258.i
 
 bool_or_end.i:                                    ; preds = %bool_or_rhs.i
-  %134 = icmp ne i64 %.0615.i, 0
+  %134 = icmp ne i64 %.0622.i, 0
   tail call void @llvm.assume(i1 %134) #7
-  %135 = zext i32 %sub_tmp244.i to i64
+  %135 = zext i32 %sub_tmp246.i to i64
   %notmask.i.i = shl nsw i64 -1, %135
-  %sub_tmp.i647.i = xor i64 %notmask.i.i, -1
-  %bit_and_tmp.i.i = and i64 %.0615.i, %sub_tmp.i647.i
+  %sub_tmp.i655.i = xor i64 %notmask.i.i, -1
+  %bit_and_tmp.i.i = and i64 %.0622.i, %sub_tmp.i655.i
   %136 = icmp eq i64 %bit_and_tmp.i.i, 0
-  br i1 %136, label %bool_or_end.thread.i, label %endif256.i
+  br i1 %136, label %bool_or_end.thread.i, label %endif258.i
 
-bool_or_end.thread.i:                             ; preds = %bool_or_end.i, %else239.i
-  br label %endif256.i
+bool_or_end.thread.i:                             ; preds = %bool_or_end.i, %else241.i
+  br label %endif258.i
 
-endif256.i:                                       ; preds = %bool_or_end.thread.i, %bool_or_end.i, %bool_or_rhs.i, %then236.i
-  %.0613.lcssa780.i = phi i32 [ %.0613.lcssa781.i, %then236.i ], [ %div_tmp234.i, %bool_or_end.thread.i ], [ %div_tmp234.i, %bool_or_end.i ], [ %div_tmp234.i, %bool_or_rhs.i ]
-  %.2622.i = phi i32 [ %cast_tmp238.i, %then236.i ], [ 2, %bool_or_end.thread.i ], [ 1, %bool_or_end.i ], [ 1, %bool_or_rhs.i ]
-  %.not638.i = icmp eq i32 %sub_tmp223.i, 0
-  br i1 %.not638.i, label %endfor165.i, label %then258.i
+endif258.i:                                       ; preds = %bool_or_end.thread.i, %bool_or_end.i, %bool_or_rhs.i, %then238.i
+  %.0623.lcssa788.i = phi i32 [ %.0623.lcssa789.i, %then238.i ], [ %div_tmp236.i, %bool_or_end.thread.i ], [ %div_tmp236.i, %bool_or_end.i ], [ %div_tmp236.i, %bool_or_rhs.i ]
+  %.2634.i = phi i32 [ %cast_tmp240.i, %then238.i ], [ 2, %bool_or_end.thread.i ], [ 1, %bool_or_end.i ], [ 1, %bool_or_rhs.i ]
+  %.not646.i = icmp eq i32 %sub_tmp225.i, 0
+  br i1 %.not646.i, label %endfor166.i, label %then260.i
 
-then258.i:                                        ; preds = %endif256.i
-  %137 = sext i32 %.7734.i40 to i64
-  %ptr_add_tmp263.i = getelementptr i8, i8* %2, i64 %137
-  %sub_tmp.i.i = add i32 %sub_tmp223.i, -1
+then260.i:                                        ; preds = %endif258.i
+  %137 = sext i32 %.7742.i40 to i64
+  %ptr_add_tmp265.i = getelementptr i8, i8* %2, i64 %137
+  %sub_tmp.i.i = add i32 %sub_tmp225.i, -1
   %.not.i.i = icmp eq i32 %sub_tmp.i.i, 0
   br i1 %.not.i.i, label %endfor.i.i, label %for.lr.ph.i.i
 
-for.lr.ph.i.i:                                    ; preds = %then258.i
-  %138 = zext i32 %sub_tmp223.i to i64
-  %ptr_add_tmp.i.i = getelementptr i8, i8* %ptr_add_tmp263.i, i64 -2
+for.lr.ph.i.i:                                    ; preds = %then260.i
+  %138 = zext i32 %sub_tmp225.i to i64
+  %ptr_add_tmp.i.i = getelementptr i8, i8* %ptr_add_tmp265.i, i64 -2
   %ptr_sub_tmp.i.i = getelementptr i8, i8* %ptr_add_tmp.i.i, i64 %138
   br label %for.i.i
 
-endfor.i.i:                                       ; preds = %for.i.i, %then258.i
-  %.047.lcssa.i.i = phi i32 [ 0, %then258.i ], [ %add_tmp.i.i, %for.i.i ]
-  %.0.lcssa.i.i = phi i32 [ %.0613.lcssa780.i, %then258.i ], [ %div_tmp.i.i, %for.i.i ]
-  %139 = icmp ult i32 %.047.lcssa.i.i, %sub_tmp223.i
+endfor.i.i:                                       ; preds = %for.i.i, %then260.i
+  %.050.lcssa.i.i = phi i32 [ 0, %then260.i ], [ %add_tmp.i.i, %for.i.i ]
+  %.0.lcssa.i.i = phi i32 [ %.0623.lcssa788.i, %then260.i ], [ %div_tmp.i.i, %for.i.i ]
+  %139 = icmp ult i32 %.050.lcssa.i.i, %sub_tmp225.i
   br i1 %139, label %then.i.i, label %func.std.ryu.append_c_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i
 
 for.i.i:                                          ; preds = %for.i.i, %for.lr.ph.i.i
-  %.050.i.i = phi i32 [ %.0613.lcssa780.i, %for.lr.ph.i.i ], [ %div_tmp.i.i, %for.i.i ]
-  %.04749.i.i = phi i32 [ 0, %for.lr.ph.i.i ], [ %add_tmp.i.i, %for.i.i ]
-  %.050.i.i.frozen = freeze i32 %.050.i.i
-  %div_tmp.i.i = udiv i32 %.050.i.i.frozen, 100
+  %.053.i.i = phi i32 [ %.0623.lcssa788.i, %for.lr.ph.i.i ], [ %div_tmp.i.i, %for.i.i ]
+  %.05052.i.i = phi i32 [ 0, %for.lr.ph.i.i ], [ %add_tmp.i.i, %for.i.i ]
+  %.053.i.i.frozen = freeze i32 %.053.i.i
+  %div_tmp.i.i = udiv i32 %.053.i.i.frozen, 100
   %.neg169 = mul i32 %div_tmp.i.i, -100
-  %mod_tmp.i.i.decomposed = add i32 %.neg169, %.050.i.i.frozen
+  %mod_tmp.i.i.decomposed = add i32 %.neg169, %.053.i.i.frozen
   %lshift_tmp.i.i = shl nuw nsw i32 %mod_tmp.i.i.decomposed, 1
-  %140 = zext i32 %.04749.i.i to i64
+  %140 = zext i32 %.05052.i.i to i64
   %141 = sub nsw i64 0, %140
   %ptr_sub_tmp8.i.i = getelementptr i8, i8* %ptr_sub_tmp.i.i, i64 %141
   %142 = zext i32 %lshift_tmp.i.i to i64
-  %ptr_add_tmp10.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %142
-  %143 = bitcast i8* %ptr_add_tmp10.i.i to i16*
+  %ptr_add_tmp11.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %142
+  %143 = bitcast i8* %ptr_add_tmp11.i.i to i16*
   %144 = bitcast i8* %ptr_sub_tmp8.i.i to i16*
   %145 = load i16, i16* %143, align 2
   store i16 %145, i16* %144, align 1
-  %add_tmp.i.i = add i32 %.04749.i.i, 2
+  %add_tmp.i.i = add i32 %.05052.i.i, 2
   %146 = icmp ult i32 %add_tmp.i.i, %sub_tmp.i.i
   br i1 %146, label %for.i.i, label %endfor.i.i
 
 then.i.i:                                         ; preds = %endfor.i.i
-  %mod_tmp14.i.i = urem i32 %.0.lcssa.i.i, 10
-  %147 = trunc i32 %mod_tmp14.i.i to i8
+  %mod_tmp15.i.i = urem i32 %.0.lcssa.i.i, 10
+  %147 = trunc i32 %mod_tmp15.i.i to i8
   %cast_tmp.i.i = or i8 %147, 48
-  %148 = zext i32 %sub_tmp223.i to i64
-  %ptr_add_tmp19.i.i = getelementptr i8, i8* %ptr_add_tmp263.i, i64 %148
-  %149 = zext i32 %.047.lcssa.i.i to i64
+  %148 = zext i32 %sub_tmp225.i to i64
+  %ptr_add_tmp20.i.i = getelementptr i8, i8* %ptr_add_tmp265.i, i64 %148
+  %149 = zext i32 %.050.lcssa.i.i to i64
   %150 = sub nsw i64 0, %149
-  %ptr_sub_tmp21.i.i = getelementptr i8, i8* %ptr_add_tmp19.i.i, i64 %150
-  %ptr_sub_tmp22.i.i = getelementptr i8, i8* %ptr_sub_tmp21.i.i, i64 -1
-  store i8 %cast_tmp.i.i, i8* %ptr_sub_tmp22.i.i, align 1
+  %ptr_sub_tmp22.i.i = getelementptr i8, i8* %ptr_add_tmp20.i.i, i64 %150
+  %ptr_sub_tmp23.i.i = getelementptr i8, i8* %ptr_sub_tmp22.i.i, i64 -1
+  store i8 %cast_tmp.i.i, i8* %ptr_sub_tmp23.i.i, align 1
   br label %func.std.ryu.append_c_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i
 
 func.std.ryu.append_c_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void.exit.i: ; preds = %then.i.i, %endfor.i.i
-  %add_tmp266.i = add i32 %.7734.i40, %sub_tmp223.i
-  br label %endfor165.i
+  %add_tmp268.i = add i32 %.7742.i40, %sub_tmp225.i
+  br label %endfor166.i
 
-while_condition_check.i:                          ; preds = %while_condition_check.outer.i, %bool_or_rhs274.i
-  %.0609.i = phi i32 [ %151, %bool_or_rhs274.i ], [ %.0609.ph.i, %while_condition_check.outer.i ]
-  %.0.i = phi i32 [ %151, %bool_or_rhs274.i ], [ %.0.ph.i, %while_condition_check.outer.i ]
-  %151 = add i32 %.0609.i, -1
-  %152 = icmp eq i32 %.0609.i, 0
-  br i1 %152, label %then283.i, label %bool_or_rhs274.i
+while_condition_check.i:                          ; preds = %while_condition_check.outer.i, %bool_or_rhs276.i
+  %.0617.i = phi i32 [ %151, %bool_or_rhs276.i ], [ %.0617.ph.i, %while_condition_check.outer.i ]
+  %.0.i = phi i32 [ %151, %bool_or_rhs276.i ], [ %.0.ph.i, %while_condition_check.outer.i ]
+  %151 = add i32 %.0617.i, -1
+  %152 = icmp eq i32 %.0617.i, 0
+  br i1 %152, label %then285.i, label %bool_or_rhs276.i
 
-bool_or_rhs274.i:                                 ; preds = %while_condition_check.i
+bool_or_rhs276.i:                                 ; preds = %while_condition_check.i
   %153 = sext i32 %151 to i64
-  %ptr_add_tmp277.i = getelementptr i8, i8* %2, i64 %153
-  %load_tmp278.i = load i8, i8* %ptr_add_tmp277.i, align 1
-  switch i8 %load_tmp278.i, label %else312.i [
-    i8 45, label %then283.i
+  %ptr_add_tmp279.i = getelementptr i8, i8* %2, i64 %153
+  %load_tmp280.i = load i8, i8* %ptr_add_tmp279.i, align 1
+  switch i8 %load_tmp280.i, label %else314.i [
+    i8 45, label %then285.i
     i8 46, label %while_condition_check.i
-    i8 57, label %then308.i
+    i8 57, label %then310.i
   ]
 
-then283.i:                                        ; preds = %bool_or_rhs274.i, %while_condition_check.i
-  %.lcssa.i = phi i64 [ -1, %while_condition_check.i ], [ %153, %bool_or_rhs274.i ]
-  %ptr_add_tmp286.i = getelementptr i8, i8* %2, i64 %.lcssa.i
-  %ptr_add_tmp287.i = getelementptr i8, i8* %ptr_add_tmp286.i, i64 1
-  store i8 49, i8* %ptr_add_tmp287.i, align 1
+then285.i:                                        ; preds = %bool_or_rhs276.i, %while_condition_check.i
+  %.lcssa.i = phi i64 [ -1, %while_condition_check.i ], [ %153, %bool_or_rhs276.i ]
+  %ptr_add_tmp288.i = getelementptr i8, i8* %2, i64 %.lcssa.i
+  %ptr_add_tmp289.i = getelementptr i8, i8* %ptr_add_tmp288.i, i64 1
+  store i8 49, i8* %ptr_add_tmp289.i, align 1
   %154 = icmp sgt i32 %.0.i, 0
-  br i1 %154, label %then289.i, label %endif297.i
+  br i1 %154, label %then291.i, label %endif299.i
 
-then289.i:                                        ; preds = %then283.i
+then291.i:                                        ; preds = %then285.i
   %155 = zext i32 %.0.i to i64
-  %ptr_add_tmp292.i = getelementptr i8, i8* %2, i64 %155
-  store i8 48, i8* %ptr_add_tmp292.i, align 1
-  %ptr_add_tmp296.i = getelementptr i8, i8* %ptr_add_tmp292.i, i64 1
-  store i8 46, i8* %ptr_add_tmp296.i, align 1
-  br label %endif297.i
+  %ptr_add_tmp294.i = getelementptr i8, i8* %2, i64 %155
+  store i8 48, i8* %ptr_add_tmp294.i, align 1
+  %ptr_add_tmp298.i = getelementptr i8, i8* %ptr_add_tmp294.i, i64 1
+  store i8 46, i8* %ptr_add_tmp298.i, align 1
+  br label %endif299.i
 
-endif297.i:                                       ; preds = %then289.i, %then283.i
+endif299.i:                                       ; preds = %then291.i, %then285.i
   %156 = sext i32 %.8.i to i64
-  %ptr_add_tmp300.i = getelementptr i8, i8* %2, i64 %156
-  store i8 48, i8* %ptr_add_tmp300.i, align 1
+  %ptr_add_tmp302.i = getelementptr i8, i8* %2, i64 %156
+  store i8 48, i8* %ptr_add_tmp302.i, align 1
   %157 = add i32 %.8.i, 1
-  br label %endif341.i
+  br label %endif343.i
 
-then308.i:                                        ; preds = %bool_or_rhs274.i
-  %ptr_add_tmp277.i.le = getelementptr i8, i8* %2, i64 %153
-  store i8 48, i8* %ptr_add_tmp277.i.le, align 1
+then310.i:                                        ; preds = %bool_or_rhs276.i
+  %ptr_add_tmp279.i.le = getelementptr i8, i8* %2, i64 %153
+  store i8 48, i8* %ptr_add_tmp279.i.le, align 1
   br label %while_condition_check.outer.i
 
-while_condition_check.outer.i:                    ; preds = %endfor165.i, %then308.i
-  %.3623.ph.i = phi i32 [ 1, %then308.i ], [ %.2622.i, %endfor165.i ]
-  %.0609.ph.i = phi i32 [ %151, %then308.i ], [ %.8.i, %endfor165.i ]
-  %.0.ph.i = phi i32 [ %.0.i, %then308.i ], [ 0, %endfor165.i ]
+while_condition_check.outer.i:                    ; preds = %endfor166.i, %then310.i
+  %.3635.ph.i = phi i32 [ 1, %then310.i ], [ %.2634.i, %endfor166.i ]
+  %.0617.ph.i = phi i32 [ %151, %then310.i ], [ %.8.i, %endfor166.i ]
+  %.0.ph.i = phi i32 [ %.0.i, %then310.i ], [ 0, %endfor166.i ]
   br label %while_condition_check.i
 
-else312.i:                                        ; preds = %bool_or_rhs274.i
-  %158 = icmp eq i32 %.3623.ph.i, 2
-  %159 = and i8 %load_tmp278.i, 1
+else314.i:                                        ; preds = %bool_or_rhs276.i
+  %158 = icmp eq i32 %.3635.ph.i, 2
+  %159 = and i8 %load_tmp280.i, 1
   %160 = icmp eq i8 %159, 0
-  %or.cond642.i = select i1 %158, i1 %160, i1 false
-  br i1 %or.cond642.i, label %endif341.i, label %endif320.i
+  %or.cond650.i = select i1 %158, i1 %160, i1 false
+  br i1 %or.cond650.i, label %endif343.i, label %endif322.i
 
-endif320.i:                                       ; preds = %else312.i
-  %ptr_add_tmp277.i.le1129 = getelementptr i8, i8* %2, i64 %153
-  %add_tmp322.i = add i8 %load_tmp278.i, 1
-  store i8 %add_tmp322.i, i8* %ptr_add_tmp277.i.le1129, align 1
-  br label %endif341.i
+endif322.i:                                       ; preds = %else314.i
+  %ptr_add_tmp279.i.le1129 = getelementptr i8, i8* %2, i64 %153
+  %add_tmp324.i = add i8 %load_tmp280.i, 1
+  store i8 %add_tmp324.i, i8* %ptr_add_tmp279.i.le1129, align 1
+  br label %endif343.i
 
-else328.i:                                        ; preds = %endif122.i
-  br i1 %3, label %while_condition_check344.preheader.i, label %endif341.thread.i
+else330.i:                                        ; preds = %endif123.i
+  br i1 %3, label %while_condition_check346.preheader.i, label %endif343.thread.i
 
-endif341.thread.i:                                ; preds = %else328.i
+endif343.thread.i:                                ; preds = %else330.i
   %161 = sext i32 %.5.i to i64
-  %ptr_add_tmp334.i = getelementptr i8, i8* %2, i64 %161
-  %cast_tmp336.i = zext i32 %1 to i64
-  tail call void @llvm.memset.p0i8.i64(i8* align 1 %ptr_add_tmp334.i, i8 48, i64 %cast_tmp336.i, i1 false) #7
-  %add_tmp339.i = add i32 %.5.i, %1
-  br label %endif363.i
+  %ptr_add_tmp336.i = getelementptr i8, i8* %2, i64 %161
+  %cast_tmp338.i = zext i32 %1 to i64
+  tail call void @llvm.memset.p0i8.i64(i8* align 1 %ptr_add_tmp336.i, i8 48, i64 %cast_tmp338.i, i1 false) #7
+  %add_tmp341.i = add i32 %.5.i, %1
+  br label %endif365.i
 
-endif341.i:                                       ; preds = %endif320.i, %else312.i, %endif297.i, %then190.i, %endfor165.i, %endif162.thread.i
-  %.12.i = phi i32 [ %.8.i, %endfor165.i ], [ %157, %endif297.i ], [ %.8.i, %endif320.i ], [ %.8.i, %else312.i ], [ %add_tmp202.i, %then190.i ], [ %add_tmp142.i, %endif162.thread.i ]
-  br i1 %3, label %while_condition_check344.preheader.i, label %endif363.i
+endif343.i:                                       ; preds = %endif322.i, %else314.i, %endif299.i, %then191.i, %endfor166.i, %endif163.thread.i
+  %.12.i = phi i32 [ %.8.i, %endfor166.i ], [ %157, %endif299.i ], [ %.8.i, %endif322.i ], [ %.8.i, %else314.i ], [ %add_tmp203.i, %then191.i ], [ %add_tmp143.i, %endif163.thread.i ]
+  br i1 %3, label %while_condition_check346.preheader.i, label %endif365.i
 
-while_condition_check344.preheader.i:             ; preds = %endif341.i, %else328.i
-  %.12785.i = phi i32 [ %.12.i, %endif341.i ], [ %.5.i, %else328.i ]
-  %ptr_add_tmp348.i = getelementptr i8, i8* %2, i64 -1
-  br label %while_condition_check344.i
+while_condition_check346.preheader.i:             ; preds = %endif343.i, %else330.i
+  %.12793.i = phi i32 [ %.12.i, %endif343.i ], [ %.5.i, %else330.i ]
+  %ptr_add_tmp350.i = getelementptr i8, i8* %2, i64 -1
+  br label %while_condition_check346.i
 
-while_condition_check344.i:                       ; preds = %while_condition_check344.i, %while_condition_check344.preheader.i
-  %.13.i = phi i32 [ %164, %while_condition_check344.i ], [ %.12785.i, %while_condition_check344.preheader.i ]
+while_condition_check346.i:                       ; preds = %while_condition_check346.i, %while_condition_check346.preheader.i
+  %.13.i = phi i32 [ %164, %while_condition_check346.i ], [ %.12793.i, %while_condition_check346.preheader.i ]
   %162 = sext i32 %.13.i to i64
-  %ptr_sub_tmp.i = getelementptr i8, i8* %ptr_add_tmp348.i, i64 %162
-  %load_tmp349.i = load i8, i8* %ptr_sub_tmp.i, align 1
-  %163 = icmp eq i8 %load_tmp349.i, 48
+  %ptr_sub_tmp.i = getelementptr i8, i8* %ptr_add_tmp350.i, i64 %162
+  %load_tmp351.i = load i8, i8* %ptr_sub_tmp.i, align 1
+  %163 = icmp eq i8 %load_tmp351.i, 48
   %164 = add i32 %.13.i, -1
-  br i1 %163, label %while_condition_check344.i, label %endwhile345.i
+  br i1 %163, label %while_condition_check346.i, label %endwhile347.i
 
-endwhile345.i:                                    ; preds = %while_condition_check344.i
+endwhile347.i:                                    ; preds = %while_condition_check346.i
   %165 = icmp sgt i32 %.13.i, 0
   tail call void @llvm.assume(i1 %165) #7
-  %166 = icmp eq i8 %load_tmp349.i, 46
+  %166 = icmp eq i8 %load_tmp351.i, 46
   %167 = sext i1 %166 to i32
   %spec.select.i = add nsw i32 %.13.i, %167
-  br label %endif363.i
+  br label %endif365.i
 
-endif363.i:                                       ; preds = %endwhile345.i, %endif341.i, %endif341.thread.i
-  %.14.i = phi i32 [ %.12.i, %endif341.i ], [ %spec.select.i, %endwhile345.i ], [ %add_tmp339.i, %endif341.thread.i ]
+endif365.i:                                       ; preds = %endwhile347.i, %endif343.i, %endif343.thread.i
+  %.14.i = phi i32 [ %.12.i, %endif343.i ], [ %spec.select.i, %endwhile347.i ], [ %add_tmp341.i, %endif343.thread.i ]
   %168 = sext i32 %.14.i to i64
-  %ptr_add_tmp366.i = getelementptr i8, i8* %2, i64 %168
+  %ptr_add_tmp368.i = getelementptr i8, i8* %2, i64 %168
   br label %func.std.ryu.d2fixed_short..4.builtin.float64.builtin.uint32.0P.builtin.uint8.builtin.bool.0P.builtin.uint8.exit
 
-func.std.ryu.d2fixed_short..4.builtin.float64.builtin.uint32.0P.builtin.uint8.builtin.bool.0P.builtin.uint8.exit: ; preds = %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i, %endif42.i, %endif363.i
-  %common.ret.op.i = phi i8* [ %ptr_add_tmp15.i655.i, %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i ], [ %ptr_add_tmp45.i, %endif42.i ], [ %ptr_add_tmp366.i, %endif363.i ]
+func.std.ryu.d2fixed_short..4.builtin.float64.builtin.uint32.0P.builtin.uint8.builtin.bool.0P.builtin.uint8.exit: ; preds = %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i, %endif42.i, %endif365.i
+  %common.ret.op.i = phi i8* [ %ptr_add_tmp15.i.i, %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i ], [ %ptr_add_tmp45.i, %endif42.i ], [ %ptr_add_tmp368.i, %endif365.i ]
   ret i8* %common.ret.op.i
 }
 
@@ -3498,7 +3498,7 @@ endif.i.i:                                        ; preds = %then.i.i, %"func.st
 
 else.i.i.i:                                       ; preds = %endif.i.i
   %77 = icmp ugt i32 %.0439.i, 9999999
-  br i1 %77, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread72.i.i, label %else4.i.i.i
+  br i1 %77, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread70.i.i, label %else4.i.i.i
 
 else4.i.i.i:                                      ; preds = %else.i.i.i
   %78 = icmp ugt i32 %.0439.i, 999999
@@ -3539,7 +3539,7 @@ func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.thread.i: ; 
   %93 = icmp ult i32 %92, 11
   br i1 %93, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i.i, label %while.lr.ph.i.i.i
 
-func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread72.i.i: ; preds = %else.i.i.i
+func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread70.i.i: ; preds = %else.i.i.i
   %94 = icmp ugt i32 %add_tmp257.i, -12
   br i1 %94, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i.i, label %while.lr.ph.i.i.i
 
@@ -3548,308 +3548,308 @@ func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread.i.i: ; 
   %96 = icmp ult i32 %95, 11
   br i1 %96, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i.i, label %while.lr.ph.i.i.i
 
-func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i.i: ; preds = %else13.i.i.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i.thread, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread.i.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread72.i.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.thread.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.thread56.i
-  %97 = phi i32 [ 9, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread.i.i ], [ 8, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread72.i.i ], [ 7, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.thread.i ], [ 6, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.thread56.i ], [ 5, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i.thread ], [ %85, %else13.i.i.i ]
-  %sub_tmp.i49.i.i = add i32 %97, %add_tmp257.i
-  %add_tmp.i50.i.i = add i32 %sub_tmp.i49.i.i, -1
-  %98 = icmp slt i32 %add_tmp.i50.i.i, 0
-  br i1 %98, label %then.i54.i.i, label %endif.i56.i.i
+func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i.i: ; preds = %else13.i.i.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i.thread, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread.i.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread70.i.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.thread.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.thread56.i
+  %97 = phi i32 [ 9, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread.i.i ], [ 8, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread70.i.i ], [ 7, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.thread.i ], [ 6, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.thread56.i ], [ 5, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i.thread ], [ %85, %else13.i.i.i ]
+  %sub_tmp.i47.i.i = add i32 %97, %add_tmp257.i
+  %add_tmp.i48.i.i = add i32 %sub_tmp.i47.i.i, -1
+  %98 = icmp slt i32 %add_tmp.i48.i.i, 0
+  br i1 %98, label %then.i52.i.i, label %endif.i54.i.i
 
-then.i54.i.i:                                     ; preds = %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i.i
-  %unary_minus_tmp.i51.i.i = sub i32 1, %sub_tmp.i49.i.i
-  %add_tmp7.i.i.i = sub i32 2, %sub_tmp.i49.i.i
-  %cast_tmp.i52.i.i = sext i32 %add_tmp7.i.i.i to i64
-  tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %.0.i.i, i8* align 1 getelementptr inbounds ([6 x i8], [6 x i8]* @.str.9, i64 0, i64 0), i64 %cast_tmp.i52.i.i, i1 false) #7
-  %99 = sext i32 %unary_minus_tmp.i51.i.i to i64
-  %ptr_add_tmp.i53.i.i = getelementptr i8, i8* %.0.i.i, i64 %99
-  br label %endif.i56.i.i
+then.i52.i.i:                                     ; preds = %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i.i
+  %unary_minus_tmp.i49.i.i = sub i32 1, %sub_tmp.i47.i.i
+  %add_tmp7.i.i.i = sub i32 2, %sub_tmp.i47.i.i
+  %cast_tmp.i50.i.i = sext i32 %add_tmp7.i.i.i to i64
+  tail call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %.0.i.i, i8* align 1 getelementptr inbounds ([6 x i8], [6 x i8]* @.str.9, i64 0, i64 0), i64 %cast_tmp.i50.i.i, i1 false) #7
+  %99 = sext i32 %unary_minus_tmp.i49.i.i to i64
+  %ptr_add_tmp.i51.i.i = getelementptr i8, i8* %.0.i.i, i64 %99
+  br label %endif.i54.i.i
 
-endif.i56.i.i:                                    ; preds = %then.i54.i.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i.i
-  %.0.i55.i.i = phi i8* [ %ptr_add_tmp.i53.i.i, %then.i54.i.i ], [ %.0.i.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i.i ]
+endif.i54.i.i:                                    ; preds = %then.i52.i.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i.i
+  %.0.i53.i.i = phi i8* [ %ptr_add_tmp.i51.i.i, %then.i52.i.i ], [ %.0.i.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i.i ]
   %100 = icmp ugt i32 %.0439.i, 9999
-  br i1 %100, label %while.lr.ph.i57.i.i, label %endwhile.i58.i.i
+  br i1 %100, label %while.lr.ph.i55.i.i, label %endwhile.i56.i.i
 
-while.lr.ph.i57.i.i:                              ; preds = %endif.i56.i.i
+while.lr.ph.i55.i.i:                              ; preds = %endif.i54.i.i
   %101 = zext i32 %97 to i64
-  %ptr_add_tmp23.i.i.i = getelementptr i8, i8* %.0.i55.i.i, i64 %101
-  br label %while.i64.i.i
+  %ptr_add_tmp23.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 %101
+  br label %while.i62.i.i
 
-endwhile.loopexit.i.i.i:                          ; preds = %while.i64.i.i
-  %phi.cast.i.i.i = zext i32 %add_tmp37.i.i.i to i64
-  br label %endwhile.i58.i.i
+endwhile.loopexit.i.i.i:                          ; preds = %while.i62.i.i
+  %phi.cast.i.i.i = zext i32 %add_tmp39.i.i.i to i64
+  br label %endwhile.i56.i.i
 
-endwhile.i58.i.i:                                 ; preds = %endwhile.loopexit.i.i.i, %endif.i56.i.i
-  %.0164.lcssa.i.i.i = phi i64 [ 0, %endif.i56.i.i ], [ %phi.cast.i.i.i, %endwhile.loopexit.i.i.i ]
-  %.0162.lcssa.i.i.i = phi i32 [ %.0439.i, %endif.i56.i.i ], [ %div_tmp.i59.i.i, %endwhile.loopexit.i.i.i ]
-  %102 = icmp ugt i32 %.0162.lcssa.i.i.i, 99
-  br i1 %102, label %then39.i.i.i, label %endif55.i.i.i
+endwhile.i56.i.i:                                 ; preds = %endwhile.loopexit.i.i.i, %endif.i54.i.i
+  %.0184.lcssa.i.i.i = phi i64 [ 0, %endif.i54.i.i ], [ %phi.cast.i.i.i, %endwhile.loopexit.i.i.i ]
+  %.0182.lcssa.i.i.i = phi i32 [ %.0439.i, %endif.i54.i.i ], [ %div_tmp.i57.i.i, %endwhile.loopexit.i.i.i ]
+  %102 = icmp ugt i32 %.0182.lcssa.i.i.i, 99
+  br i1 %102, label %then41.i.i.i, label %endif58.i.i.i
 
-while.i64.i.i:                                    ; preds = %while.i64.i.i, %while.lr.ph.i57.i.i
-  %.0162169.i.i.i = phi i32 [ %.0439.i, %while.lr.ph.i57.i.i ], [ %div_tmp.i59.i.i, %while.i64.i.i ]
-  %.0164168.i.i.i = phi i32 [ 0, %while.lr.ph.i57.i.i ], [ %add_tmp37.i.i.i, %while.i64.i.i ]
-  %div_tmp.i59.i.i = udiv i32 %.0162169.i.i.i, 10000
-  %mul_tmp.neg.i60.i.i = mul nsw i32 %div_tmp.i59.i.i, -10000
-  %sub_tmp14.i.i.i = add i32 %mul_tmp.neg.i60.i.i, %.0162169.i.i.i
+while.i62.i.i:                                    ; preds = %while.i62.i.i, %while.lr.ph.i55.i.i
+  %.0182189.i.i.i = phi i32 [ %.0439.i, %while.lr.ph.i55.i.i ], [ %div_tmp.i57.i.i, %while.i62.i.i ]
+  %.0184188.i.i.i = phi i32 [ 0, %while.lr.ph.i55.i.i ], [ %add_tmp39.i.i.i, %while.i62.i.i ]
+  %div_tmp.i57.i.i = udiv i32 %.0182189.i.i.i, 10000
+  %mul_tmp.neg.i58.i.i = mul nsw i32 %div_tmp.i57.i.i, -10000
+  %sub_tmp14.i.i.i = add i32 %mul_tmp.neg.i58.i.i, %.0182189.i.i.i
   %sub_tmp14.i.i.i.frozen = freeze i32 %sub_tmp14.i.i.i
   %div_tmp19.i.i.i = udiv i32 %sub_tmp14.i.i.i.frozen, 100
   %.neg45 = mul i32 %div_tmp19.i.i.i, -100
-  %mod_tmp.i61.i.i.decomposed = add i32 %.neg45, %sub_tmp14.i.i.i.frozen
-  %lshift_tmp.i62.i.i = shl nuw nsw i32 %mod_tmp.i61.i.i.decomposed, 1
+  %mod_tmp.i59.i.i.decomposed = add i32 %.neg45, %sub_tmp14.i.i.i.frozen
+  %lshift_tmp.i60.i.i = shl nuw nsw i32 %mod_tmp.i59.i.i.decomposed, 1
   %lshift_tmp20.i.i.i = shl nuw nsw i32 %div_tmp19.i.i.i, 1
-  %103 = zext i32 %.0164168.i.i.i to i64
+  %103 = zext i32 %.0184188.i.i.i to i64
   %104 = sub nsw i64 0, %103
-  %ptr_sub_tmp.i63.i.i = getelementptr i8, i8* %ptr_add_tmp23.i.i.i, i64 %104
-  %ptr_sub_tmp25.i.i.i = getelementptr i8, i8* %ptr_sub_tmp.i63.i.i, i64 -1
-  %105 = zext i32 %lshift_tmp.i62.i.i to i64
-  %ptr_add_tmp27.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %105
-  %106 = bitcast i8* %ptr_add_tmp27.i.i.i to i16*
+  %ptr_sub_tmp.i61.i.i = getelementptr i8, i8* %ptr_add_tmp23.i.i.i, i64 %104
+  %ptr_sub_tmp25.i.i.i = getelementptr i8, i8* %ptr_sub_tmp.i61.i.i, i64 -1
+  %105 = zext i32 %lshift_tmp.i60.i.i to i64
+  %ptr_add_tmp28.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %105
+  %106 = bitcast i8* %ptr_add_tmp28.i.i.i to i16*
   %107 = bitcast i8* %ptr_sub_tmp25.i.i.i to i16*
   %108 = load i16, i16* %106, align 2
   store i16 %108, i16* %107, align 1
-  %ptr_sub_tmp33.i.i.i = getelementptr i8, i8* %ptr_sub_tmp.i63.i.i, i64 -3
+  %ptr_sub_tmp34.i.i.i = getelementptr i8, i8* %ptr_sub_tmp.i61.i.i, i64 -3
   %109 = zext i32 %lshift_tmp20.i.i.i to i64
-  %ptr_add_tmp35.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %109
-  %110 = bitcast i8* %ptr_add_tmp35.i.i.i to i16*
-  %111 = bitcast i8* %ptr_sub_tmp33.i.i.i to i16*
+  %ptr_add_tmp37.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %109
+  %110 = bitcast i8* %ptr_add_tmp37.i.i.i to i16*
+  %111 = bitcast i8* %ptr_sub_tmp34.i.i.i to i16*
   %112 = load i16, i16* %110, align 2
   store i16 %112, i16* %111, align 1
-  %add_tmp37.i.i.i = add i32 %.0164168.i.i.i, 4
-  %113 = icmp ugt i32 %.0162169.i.i.i, 99999999
-  br i1 %113, label %while.i64.i.i, label %endwhile.loopexit.i.i.i
+  %add_tmp39.i.i.i = add i32 %.0184188.i.i.i, 4
+  %113 = icmp ugt i32 %.0182189.i.i.i, 99999999
+  br i1 %113, label %while.i62.i.i, label %endwhile.loopexit.i.i.i
 
-then39.i.i.i:                                     ; preds = %endwhile.i58.i.i
-  %.0162.lcssa.i.i.i.fr = freeze i32 %.0162.lcssa.i.i.i
-  %mod_tmp41.lhs.trunc.i.i.i = trunc i32 %.0162.lcssa.i.i.i.fr to i16
-  %div_tmp44166.i.i.i = udiv i16 %mod_tmp41.lhs.trunc.i.i.i, 100
-  %.neg44 = mul i16 %div_tmp44166.i.i.i, -100
-  %mod_tmp41165.i.i.i.decomposed = add i16 %.neg44, %mod_tmp41.lhs.trunc.i.i.i
-  %114 = shl nuw nsw i16 %mod_tmp41165.i.i.i.decomposed, 1
-  %div_tmp44.zext.i.i.i = zext i16 %div_tmp44166.i.i.i to i32
+then41.i.i.i:                                     ; preds = %endwhile.i56.i.i
+  %.0182.lcssa.i.i.i.fr = freeze i32 %.0182.lcssa.i.i.i
+  %mod_tmp43.lhs.trunc.i.i.i = trunc i32 %.0182.lcssa.i.i.i.fr to i16
+  %div_tmp46186.i.i.i = udiv i16 %mod_tmp43.lhs.trunc.i.i.i, 100
+  %.neg44 = mul i16 %div_tmp46186.i.i.i, -100
+  %mod_tmp43185.i.i.i.decomposed = add i16 %.neg44, %mod_tmp43.lhs.trunc.i.i.i
+  %114 = shl nuw nsw i16 %mod_tmp43185.i.i.i.decomposed, 1
+  %div_tmp46.zext.i.i.i = zext i16 %div_tmp46186.i.i.i to i32
   %115 = zext i32 %97 to i64
-  %ptr_add_tmp47.i.i.i = getelementptr i8, i8* %.0.i55.i.i, i64 %115
-  %116 = sub nsw i64 0, %.0164.lcssa.i.i.i
-  %ptr_sub_tmp49.i.i.i = getelementptr i8, i8* %ptr_add_tmp47.i.i.i, i64 %116
-  %ptr_sub_tmp50.i.i.i = getelementptr i8, i8* %ptr_sub_tmp49.i.i.i, i64 -1
+  %ptr_add_tmp49.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 %115
+  %116 = sub nsw i64 0, %.0184.lcssa.i.i.i
+  %ptr_sub_tmp51.i.i.i = getelementptr i8, i8* %ptr_add_tmp49.i.i.i, i64 %116
+  %ptr_sub_tmp52.i.i.i = getelementptr i8, i8* %ptr_sub_tmp51.i.i.i, i64 -1
   %117 = zext i16 %114 to i64
-  %ptr_add_tmp52.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %117
-  %118 = bitcast i8* %ptr_add_tmp52.i.i.i to i16*
-  %119 = bitcast i8* %ptr_sub_tmp50.i.i.i to i16*
+  %ptr_add_tmp55.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %117
+  %118 = bitcast i8* %ptr_add_tmp55.i.i.i to i16*
+  %119 = bitcast i8* %ptr_sub_tmp52.i.i.i to i16*
   %120 = load i16, i16* %118, align 2
   store i16 %120, i16* %119, align 1
-  br label %endif55.i.i.i
+  br label %endif58.i.i.i
 
-endif55.i.i.i:                                    ; preds = %then39.i.i.i, %endwhile.i58.i.i
-  %.1163.i.i.i = phi i32 [ %div_tmp44.zext.i.i.i, %then39.i.i.i ], [ %.0162.lcssa.i.i.i, %endwhile.i58.i.i ]
-  %121 = icmp ugt i32 %.1163.i.i.i, 9
-  br i1 %121, label %then57.i.i.i, label %else.i66.i.i
+endif58.i.i.i:                                    ; preds = %then41.i.i.i, %endwhile.i56.i.i
+  %.1183.i.i.i = phi i32 [ %div_tmp46.zext.i.i.i, %then41.i.i.i ], [ %.0182.lcssa.i.i.i, %endwhile.i56.i.i ]
+  %121 = icmp ugt i32 %.1183.i.i.i, 9
+  br i1 %121, label %then60.i.i.i, label %else.i64.i.i
 
-then57.i.i.i:                                     ; preds = %endif55.i.i.i
-  %lshift_tmp59.i.i.i = shl nuw nsw i32 %.1163.i.i.i, 1
-  %ptr_add_tmp61.i.i.i = getelementptr i8, i8* %.0.i55.i.i, i64 1
-  %122 = zext i32 %lshift_tmp59.i.i.i to i64
-  %ptr_add_tmp63.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %122
-  %123 = bitcast i8* %ptr_add_tmp63.i.i.i to i16*
-  %124 = bitcast i8* %ptr_add_tmp61.i.i.i to i16*
+then60.i.i.i:                                     ; preds = %endif58.i.i.i
+  %lshift_tmp62.i.i.i = shl nuw nsw i32 %.1183.i.i.i, 1
+  %ptr_add_tmp64.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 1
+  %122 = zext i32 %lshift_tmp62.i.i.i to i64
+  %ptr_add_tmp67.i63.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %122
+  %123 = bitcast i8* %ptr_add_tmp67.i63.i.i to i16*
+  %124 = bitcast i8* %ptr_add_tmp64.i.i.i to i16*
   %125 = load i16, i16* %123, align 2
   store i16 %125, i16* %124, align 1
-  br label %endif69.i.i.i
+  br label %endif73.i.i.i
 
-else.i66.i.i:                                     ; preds = %endif55.i.i.i
-  %126 = trunc i32 %.1163.i.i.i to i8
-  %cast_tmp66.i.i.i = add nuw nsw i8 %126, 48
-  %ptr_add_tmp68.i65.i.i = getelementptr i8, i8* %.0.i55.i.i, i64 1
-  store i8 %cast_tmp66.i.i.i, i8* %ptr_add_tmp68.i65.i.i, align 1
-  br label %endif69.i.i.i
+else.i64.i.i:                                     ; preds = %endif58.i.i.i
+  %126 = trunc i32 %.1183.i.i.i to i8
+  %cast_tmp70.i.i.i = add nuw nsw i8 %126, 48
+  %ptr_add_tmp72.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 1
+  store i8 %cast_tmp70.i.i.i, i8* %ptr_add_tmp72.i.i.i, align 1
+  br label %endif73.i.i.i
 
-endif69.i.i.i:                                    ; preds = %else.i66.i.i, %then57.i.i.i
+endif73.i.i.i:                                    ; preds = %else.i64.i.i, %then60.i.i.i
   %.sroa.2.0.insert.shift.i.mask = and i64 %.sroa.2.0.insert.ext.i, 2147483648
   %127 = icmp eq i64 %.sroa.2.0.insert.shift.i.mask, 0
-  br i1 %127, label %then71.i.i.i, label %endif78.i.i.i
+  br i1 %127, label %then75.i.i.i, label %endif82.i.i.i
 
-then71.i.i.i:                                     ; preds = %endif69.i.i.i
+then75.i.i.i:                                     ; preds = %endif73.i.i.i
   %128 = zext i32 %97 to i64
-  %ptr_add_tmp74.i.i.i = getelementptr i8, i8* %.0.i55.i.i, i64 %128
-  %ptr_add_tmp75.i.i.i = getelementptr i8, i8* %ptr_add_tmp74.i.i.i, i64 1
-  tail call void @llvm.memset.p0i8.i64(i8* align 1 %ptr_add_tmp75.i.i.i, i8 48, i64 %.sroa.2.0.insert.ext.i, i1 false) #7
-  br label %endif78.i.i.i
+  %ptr_add_tmp78.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 %128
+  %ptr_add_tmp79.i.i.i = getelementptr i8, i8* %ptr_add_tmp78.i.i.i, i64 1
+  tail call void @llvm.memset.p0i8.i64(i8* align 1 %ptr_add_tmp79.i.i.i, i8 48, i64 %.sroa.2.0.insert.ext.i, i1 false) #7
+  br label %endif82.i.i.i
 
-endif78.i.i.i:                                    ; preds = %then71.i.i.i, %endif69.i.i.i
-  %129 = icmp sgt i32 %add_tmp.i50.i.i, -1
-  br i1 %129, label %then80.i.i.i, label %endif91.i.i.i
+endif82.i.i.i:                                    ; preds = %then75.i.i.i, %endif73.i.i.i
+  %129 = icmp sgt i32 %add_tmp.i48.i.i, -1
+  br i1 %129, label %then84.i.i.i, label %endif95.i.i.i
 
-then80.i.i.i:                                     ; preds = %endif78.i.i.i
-  %ptr_add_tmp83.i.i.i = getelementptr i8, i8* %.0.i55.i.i, i64 1
-  %cast_tmp86.i.i.i = sext i32 %sub_tmp.i49.i.i to i64
-  tail call void @llvm.memmove.p0i8.p0i8.i64(i8* nonnull align 1 %.0.i55.i.i, i8* align 1 %ptr_add_tmp83.i.i.i, i64 %cast_tmp86.i.i.i, i1 false) #7
-  %130 = zext i32 %add_tmp.i50.i.i to i64
-  %ptr_add_tmp89.i.i.i = getelementptr i8, i8* %.0.i55.i.i, i64 %130
-  %ptr_add_tmp90.i67.i.i = getelementptr i8, i8* %ptr_add_tmp89.i.i.i, i64 1
-  store i8 46, i8* %ptr_add_tmp90.i67.i.i, align 1
-  br label %endif91.i.i.i
+then84.i.i.i:                                     ; preds = %endif82.i.i.i
+  %ptr_add_tmp87.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 1
+  %cast_tmp90.i.i.i = sext i32 %sub_tmp.i47.i.i to i64
+  tail call void @llvm.memmove.p0i8.p0i8.i64(i8* nonnull align 1 %.0.i53.i.i, i8* align 1 %ptr_add_tmp87.i.i.i, i64 %cast_tmp90.i.i.i, i1 false) #7
+  %130 = zext i32 %add_tmp.i48.i.i to i64
+  %ptr_add_tmp93.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 %130
+  %ptr_add_tmp94.i65.i.i = getelementptr i8, i8* %ptr_add_tmp93.i.i.i, i64 1
+  store i8 46, i8* %ptr_add_tmp94.i65.i.i, align 1
+  br label %endif95.i.i.i
 
-endif91.i.i.i:                                    ; preds = %then80.i.i.i, %endif78.i.i.i
-  %add_tmp93.i.i.i = add i32 %97, 1
-  %131 = zext i32 %add_tmp93.i.i.i to i64
-  %ptr_add_tmp95.i.i.i = getelementptr i8, i8* %.0.i55.i.i, i64 %131
-  br i1 %127, label %then97.i.i.i, label %func.std.ryu.f2s_shortest..2.builtin.float32.0P.builtin.uint8.0P.builtin.uint8.exit
+endif95.i.i.i:                                    ; preds = %then84.i.i.i, %endif82.i.i.i
+  %add_tmp97.i.i.i = add i32 %97, 1
+  %131 = zext i32 %add_tmp97.i.i.i to i64
+  %ptr_add_tmp99.i.i.i = getelementptr i8, i8* %.0.i53.i.i, i64 %131
+  br i1 %127, label %then101.i.i.i, label %func.std.ryu.f2s_shortest..2.builtin.float32.0P.builtin.uint8.0P.builtin.uint8.exit
 
-then97.i.i.i:                                     ; preds = %endif91.i.i.i
-  %ptr_add_tmp100.i.i.i = getelementptr i8, i8* %ptr_add_tmp95.i.i.i, i64 %.sroa.2.0.insert.ext.i
-  store i8 48, i8* %ptr_add_tmp100.i.i.i, align 1
-  %132 = getelementptr i8, i8* %ptr_add_tmp100.i.i.i, i64 1
+then101.i.i.i:                                    ; preds = %endif95.i.i.i
+  %ptr_add_tmp104.i.i.i = getelementptr i8, i8* %ptr_add_tmp99.i.i.i, i64 %.sroa.2.0.insert.ext.i
+  store i8 48, i8* %ptr_add_tmp104.i.i.i, align 1
+  %132 = getelementptr i8, i8* %ptr_add_tmp104.i.i.i, i64 1
   br label %func.std.ryu.f2s_shortest..2.builtin.float32.0P.builtin.uint8.0P.builtin.uint8.exit
 
 else13.i.i.i.i:                                   ; preds = %else13.i.i.i
   br i1 %81, label %then.i.i.i, label %endwhile.i.i.i
 
-while.lr.ph.i.i.i:                                ; preds = %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i.thread, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread.i.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread72.i.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.thread.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.thread56.i
-  %.ph.i.i.i = phi i32 [ 9, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread.i.i ], [ 8, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread72.i.i ], [ 7, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.thread.i ], [ 6, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.thread56.i ], [ 5, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i.thread ]
+while.lr.ph.i.i.i:                                ; preds = %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i.thread, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread.i.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread70.i.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.thread.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.thread56.i
+  %.ph.i.i.i = phi i32 [ 9, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread.i.i ], [ 8, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.thread70.i.i ], [ 7, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.thread.i ], [ 6, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.thread56.i ], [ 5, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i.thread ]
   %133 = zext i32 %.ph.i.i.i to i64
   %ptr_add_tmp.i.i.i = getelementptr i8, i8* %.0.i.i, i64 %133
   br label %while.i.i.i
 
 endwhile.i.i.i:                                   ; preds = %while.i.i.i, %else13.i.i.i.i
   %134 = phi i32 [ %84, %else13.i.i.i.i ], [ %.ph.i.i.i, %while.i.i.i ]
-  %.0151.lcssa.i.i.i = phi i32 [ 0, %else13.i.i.i.i ], [ %add_tmp.i.i.i, %while.i.i.i ]
-  %.0149.lcssa.i.i.i = phi i32 [ %.0439.i, %else13.i.i.i.i ], [ %div_tmp.i.i.i, %while.i.i.i ]
-  %135 = icmp ugt i32 %.0149.lcssa.i.i.i, 99
+  %.0171.lcssa.i.i.i = phi i32 [ 0, %else13.i.i.i.i ], [ %add_tmp.i.i.i, %while.i.i.i ]
+  %.0168.lcssa.i.i.i = phi i32 [ %.0439.i, %else13.i.i.i.i ], [ %div_tmp.i.i.i, %while.i.i.i ]
+  %135 = icmp ugt i32 %.0168.lcssa.i.i.i, 99
   br i1 %135, label %then.i.i.i, label %endif.i.i.i
 
 while.i.i.i:                                      ; preds = %while.i.i.i, %while.lr.ph.i.i.i
-  %.0149157.i.i.i = phi i32 [ %.0439.i, %while.lr.ph.i.i.i ], [ %div_tmp.i.i.i, %while.i.i.i ]
-  %.0151156.i.i.i = phi i32 [ 0, %while.lr.ph.i.i.i ], [ %add_tmp.i.i.i, %while.i.i.i ]
-  %div_tmp.i.i.i = udiv i32 %.0149157.i.i.i, 10000
+  %.0168177.i.i.i = phi i32 [ %.0439.i, %while.lr.ph.i.i.i ], [ %div_tmp.i.i.i, %while.i.i.i ]
+  %.0171176.i.i.i = phi i32 [ 0, %while.lr.ph.i.i.i ], [ %add_tmp.i.i.i, %while.i.i.i ]
+  %div_tmp.i.i.i = udiv i32 %.0168177.i.i.i, 10000
   %mul_tmp.neg.i.i.i = mul nsw i32 %div_tmp.i.i.i, -10000
-  %sub_tmp.i.i.i = add i32 %mul_tmp.neg.i.i.i, %.0149157.i.i.i
+  %sub_tmp.i.i.i = add i32 %mul_tmp.neg.i.i.i, %.0168177.i.i.i
   %sub_tmp.i.i.i.frozen = freeze i32 %sub_tmp.i.i.i
   %div_tmp9.i.i.i = udiv i32 %sub_tmp.i.i.i.frozen, 100
   %.neg46 = mul i32 %div_tmp9.i.i.i, -100
   %mod_tmp.i.i.i.decomposed = add i32 %.neg46, %sub_tmp.i.i.i.frozen
   %lshift_tmp.i.i.i = shl nuw nsw i32 %mod_tmp.i.i.i.decomposed, 1
   %lshift_tmp10.i.i.i = shl nuw nsw i32 %div_tmp9.i.i.i, 1
-  %136 = zext i32 %.0151156.i.i.i to i64
+  %136 = zext i32 %.0171176.i.i.i to i64
   %137 = sub nsw i64 0, %136
   %ptr_sub_tmp.i.i.i = getelementptr i8, i8* %ptr_add_tmp.i.i.i, i64 %137
   %ptr_sub_tmp14.i.i.i = getelementptr i8, i8* %ptr_sub_tmp.i.i.i, i64 -1
   %138 = zext i32 %lshift_tmp.i.i.i to i64
-  %ptr_add_tmp16.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %138
-  %139 = bitcast i8* %ptr_add_tmp16.i.i.i to i16*
+  %ptr_add_tmp17.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %138
+  %139 = bitcast i8* %ptr_add_tmp17.i.i.i to i16*
   %140 = bitcast i8* %ptr_sub_tmp14.i.i.i to i16*
   %141 = load i16, i16* %139, align 2
   store i16 %141, i16* %140, align 1
-  %ptr_sub_tmp22.i.i.i = getelementptr i8, i8* %ptr_sub_tmp.i.i.i, i64 -3
+  %ptr_sub_tmp23.i.i.i = getelementptr i8, i8* %ptr_sub_tmp.i.i.i, i64 -3
   %142 = zext i32 %lshift_tmp10.i.i.i to i64
-  %ptr_add_tmp24.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %142
-  %143 = bitcast i8* %ptr_add_tmp24.i.i.i to i16*
-  %144 = bitcast i8* %ptr_sub_tmp22.i.i.i to i16*
+  %ptr_add_tmp26.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %142
+  %143 = bitcast i8* %ptr_add_tmp26.i.i.i to i16*
+  %144 = bitcast i8* %ptr_sub_tmp23.i.i.i to i16*
   %145 = load i16, i16* %143, align 2
   store i16 %145, i16* %144, align 1
-  %add_tmp.i.i.i = add i32 %.0151156.i.i.i, 4
-  %146 = icmp ugt i32 %.0149157.i.i.i, 99999999
+  %add_tmp.i.i.i = add i32 %.0171176.i.i.i, 4
+  %146 = icmp ugt i32 %.0168177.i.i.i, 99999999
   br i1 %146, label %while.i.i.i, label %endwhile.i.i.i
 
 then.i.i.i:                                       ; preds = %endwhile.i.i.i, %else13.i.i.i.i
-  %.0149.lcssa162.i.i.i = phi i32 [ %.0149.lcssa.i.i.i, %endwhile.i.i.i ], [ %.0439.i, %else13.i.i.i.i ]
-  %.0151.lcssa161.i.i.i = phi i32 [ %.0151.lcssa.i.i.i, %endwhile.i.i.i ], [ 0, %else13.i.i.i.i ]
+  %.0168.lcssa182.i.i.i = phi i32 [ %.0168.lcssa.i.i.i, %endwhile.i.i.i ], [ %.0439.i, %else13.i.i.i.i ]
+  %.0171.lcssa181.i.i.i = phi i32 [ %.0171.lcssa.i.i.i, %endwhile.i.i.i ], [ 0, %else13.i.i.i.i ]
   %147 = phi i32 [ %134, %endwhile.i.i.i ], [ 4, %else13.i.i.i.i ]
-  %.0149.lcssa162.i.i.i.fr = freeze i32 %.0149.lcssa162.i.i.i
-  %mod_tmp28.lhs.trunc.i.i.i = trunc i32 %.0149.lcssa162.i.i.i.fr to i16
-  %div_tmp31155.i.i.i = udiv i16 %mod_tmp28.lhs.trunc.i.i.i, 100
-  %.neg = mul i16 %div_tmp31155.i.i.i, -100
-  %mod_tmp28154.i.i.i.decomposed = add i16 %.neg, %mod_tmp28.lhs.trunc.i.i.i
-  %148 = shl nuw nsw i16 %mod_tmp28154.i.i.i.decomposed, 1
-  %div_tmp31.zext.i.i.i = zext i16 %div_tmp31155.i.i.i to i32
+  %.0168.lcssa182.i.i.i.fr = freeze i32 %.0168.lcssa182.i.i.i
+  %mod_tmp30.lhs.trunc.i.i.i = trunc i32 %.0168.lcssa182.i.i.i.fr to i16
+  %div_tmp33175.i.i.i = udiv i16 %mod_tmp30.lhs.trunc.i.i.i, 100
+  %.neg = mul i16 %div_tmp33175.i.i.i, -100
+  %mod_tmp30174.i.i.i.decomposed = add i16 %.neg, %mod_tmp30.lhs.trunc.i.i.i
+  %148 = shl nuw nsw i16 %mod_tmp30174.i.i.i.decomposed, 1
+  %div_tmp33.zext.i.i.i = zext i16 %div_tmp33175.i.i.i to i32
   %149 = zext i32 %147 to i64
-  %ptr_add_tmp34.i.i.i = getelementptr i8, i8* %.0.i.i, i64 %149
-  %150 = zext i32 %.0151.lcssa161.i.i.i to i64
+  %ptr_add_tmp36.i.i.i = getelementptr i8, i8* %.0.i.i, i64 %149
+  %150 = zext i32 %.0171.lcssa181.i.i.i to i64
   %151 = sub nsw i64 0, %150
-  %ptr_sub_tmp36.i.i.i = getelementptr i8, i8* %ptr_add_tmp34.i.i.i, i64 %151
-  %ptr_sub_tmp37.i.i.i = getelementptr i8, i8* %ptr_sub_tmp36.i.i.i, i64 -1
+  %ptr_sub_tmp38.i.i.i = getelementptr i8, i8* %ptr_add_tmp36.i.i.i, i64 %151
+  %ptr_sub_tmp39.i.i.i = getelementptr i8, i8* %ptr_sub_tmp38.i.i.i, i64 -1
   %152 = zext i16 %148 to i64
-  %ptr_add_tmp39.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %152
-  %153 = bitcast i8* %ptr_add_tmp39.i.i.i to i16*
-  %154 = bitcast i8* %ptr_sub_tmp37.i.i.i to i16*
+  %ptr_add_tmp42.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %152
+  %153 = bitcast i8* %ptr_add_tmp42.i.i.i to i16*
+  %154 = bitcast i8* %ptr_sub_tmp39.i.i.i to i16*
   %155 = load i16, i16* %153, align 2
   store i16 %155, i16* %154, align 1
-  %add_tmp41.i.i.i = or i32 %.0151.lcssa161.i.i.i, 2
+  %add_tmp44.i.i.i = or i32 %.0171.lcssa181.i.i.i, 2
   br label %endif.i.i.i
 
 endif.i.i.i:                                      ; preds = %then.i.i.i, %endwhile.i.i.i
   %156 = phi i32 [ %147, %then.i.i.i ], [ %134, %endwhile.i.i.i ]
-  %.1152.i.i.i = phi i32 [ %add_tmp41.i.i.i, %then.i.i.i ], [ %.0151.lcssa.i.i.i, %endwhile.i.i.i ]
-  %.1150.i.i.i = phi i32 [ %div_tmp31.zext.i.i.i, %then.i.i.i ], [ %.0149.lcssa.i.i.i, %endwhile.i.i.i ]
-  %157 = icmp ugt i32 %.1150.i.i.i, 9
-  br i1 %157, label %then43.i.i.i, label %else.i39.i.i
+  %.1172.i.i.i = phi i32 [ %add_tmp44.i.i.i, %then.i.i.i ], [ %.0171.lcssa.i.i.i, %endwhile.i.i.i ]
+  %.1169.i.i.i = phi i32 [ %div_tmp33.zext.i.i.i, %then.i.i.i ], [ %.0168.lcssa.i.i.i, %endwhile.i.i.i ]
+  %157 = icmp ugt i32 %.1169.i.i.i, 9
+  br i1 %157, label %then46.i.i.i, label %else.i39.i.i
 
-then43.i.i.i:                                     ; preds = %endif.i.i.i
-  %lshift_tmp45.i.i.i = shl nuw nsw i32 %.1150.i.i.i, 1
-  %add_tmp47.i.i.i = or i32 %lshift_tmp45.i.i.i, 1
-  %158 = zext i32 %add_tmp47.i.i.i to i64
+then46.i.i.i:                                     ; preds = %endif.i.i.i
+  %lshift_tmp48.i.i.i = shl nuw nsw i32 %.1169.i.i.i, 1
+  %add_tmp50.i.i.i = or i32 %lshift_tmp48.i.i.i, 1
+  %158 = zext i32 %add_tmp50.i.i.i to i64
   %159 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %158
-  %load_tmp48.i.i.i = load i8, i8* %159, align 1
+  %load_tmp51.i.i.i = load i8, i8* %159, align 1
   %160 = zext i32 %156 to i64
-  %ptr_add_tmp51.i.i.i = getelementptr i8, i8* %.0.i.i, i64 %160
-  %161 = zext i32 %.1152.i.i.i to i64
+  %ptr_add_tmp54.i.i.i = getelementptr i8, i8* %.0.i.i, i64 %160
+  %161 = zext i32 %.1172.i.i.i to i64
   %162 = sub nsw i64 0, %161
-  %ptr_sub_tmp53.i.i.i = getelementptr i8, i8* %ptr_add_tmp51.i.i.i, i64 %162
-  store i8 %load_tmp48.i.i.i, i8* %ptr_sub_tmp53.i.i.i, align 1
-  %163 = zext i32 %lshift_tmp45.i.i.i to i64
+  %ptr_sub_tmp56.i.i.i = getelementptr i8, i8* %ptr_add_tmp54.i.i.i, i64 %162
+  store i8 %load_tmp51.i.i.i, i8* %ptr_sub_tmp56.i.i.i, align 1
+  %163 = zext i32 %lshift_tmp48.i.i.i to i64
   %164 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %163
-  %load_tmp55.i.i.i = load i8, i8* %164, align 2
-  br label %endif60.i.i.i
+  %load_tmp58.i.i.i = load i8, i8* %164, align 2
+  br label %endif63.i.i.i
 
 else.i39.i.i:                                     ; preds = %endif.i.i.i
-  %165 = trunc i32 %.1150.i.i.i to i8
+  %165 = trunc i32 %.1169.i.i.i to i8
   %cast_tmp.i.i.i = add nuw nsw i8 %165, 48
-  br label %endif60.i.i.i
+  br label %endif63.i.i.i
 
-endif60.i.i.i:                                    ; preds = %else.i39.i.i, %then43.i.i.i
-  %storemerge.i.i.i = phi i8 [ %cast_tmp.i.i.i, %else.i39.i.i ], [ %load_tmp55.i.i.i, %then43.i.i.i ]
+endif63.i.i.i:                                    ; preds = %else.i39.i.i, %then46.i.i.i
+  %storemerge.i.i.i = phi i8 [ %cast_tmp.i.i.i, %else.i39.i.i ], [ %load_tmp58.i.i.i, %then46.i.i.i ]
   store i8 %storemerge.i.i.i, i8* %.0.i.i, align 1
   %166 = icmp ugt i32 %156, 1
-  %ptr_add_tmp64.i.i.i = getelementptr i8, i8* %.0.i.i, i64 1
-  br i1 %166, label %then62.i.i.i, label %endif71.i.i.i
+  %ptr_add_tmp67.i.i.i = getelementptr i8, i8* %.0.i.i, i64 1
+  br i1 %166, label %then65.i.i.i, label %endif74.i.i.i
 
-then62.i.i.i:                                     ; preds = %endif60.i.i.i
-  store i8 46, i8* %ptr_add_tmp64.i.i.i, align 1
-  %add_tmp66.i.i.i = add nsw i32 %156, 1
-  %167 = zext i32 %add_tmp66.i.i.i to i64
-  %ptr_add_tmp68.i.i.i = getelementptr i8, i8* %.0.i.i, i64 %167
-  br label %endif71.i.i.i
+then65.i.i.i:                                     ; preds = %endif63.i.i.i
+  store i8 46, i8* %ptr_add_tmp67.i.i.i, align 1
+  %add_tmp69.i.i.i = add nsw i32 %156, 1
+  %167 = zext i32 %add_tmp69.i.i.i to i64
+  %ptr_add_tmp71.i.i.i = getelementptr i8, i8* %.0.i.i, i64 %167
+  br label %endif74.i.i.i
 
-endif71.i.i.i:                                    ; preds = %then62.i.i.i, %endif60.i.i.i
-  %.0148.i.i.i = phi i8* [ %ptr_add_tmp68.i.i.i, %then62.i.i.i ], [ %ptr_add_tmp64.i.i.i, %endif60.i.i.i ]
-  store i8 101, i8* %.0148.i.i.i, align 1
-  %168 = getelementptr i8, i8* %.0148.i.i.i, i64 1
-  %add_tmp76.i.i.i = add i32 %156, %add_tmp257.i
-  %sub_tmp77.i.i.i = add i32 %add_tmp76.i.i.i, -1
-  %169 = icmp slt i32 %sub_tmp77.i.i.i, 0
-  br i1 %169, label %then79.i.i.i, label %else83.i.i.i
+endif74.i.i.i:                                    ; preds = %then65.i.i.i, %endif63.i.i.i
+  %.0.i.i.i = phi i8* [ %ptr_add_tmp71.i.i.i, %then65.i.i.i ], [ %ptr_add_tmp67.i.i.i, %endif63.i.i.i ]
+  store i8 101, i8* %.0.i.i.i, align 1
+  %168 = getelementptr i8, i8* %.0.i.i.i, i64 1
+  %add_tmp79.i.i.i = add i32 %156, %add_tmp257.i
+  %sub_tmp80.i.i.i = add i32 %add_tmp79.i.i.i, -1
+  %169 = icmp slt i32 %sub_tmp80.i.i.i, 0
+  br i1 %169, label %then82.i.i.i, label %else86.i.i.i
 
-then79.i.i.i:                                     ; preds = %endif71.i.i.i
+then82.i.i.i:                                     ; preds = %endif74.i.i.i
   store i8 45, i8* %168, align 1
-  %unary_minus_tmp.i.i.i = sub i32 1, %add_tmp76.i.i.i
+  %unary_minus_tmp.i.i.i = sub i32 1, %add_tmp79.i.i.i
   br label %"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_32.0P.builtin.uint8.0P.builtin.uint8.exit.i.i"
 
-else83.i.i.i:                                     ; preds = %endif71.i.i.i
+else86.i.i.i:                                     ; preds = %endif74.i.i.i
   store i8 43, i8* %168, align 1
   br label %"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_32.0P.builtin.uint8.0P.builtin.uint8.exit.i.i"
 
-"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_32.0P.builtin.uint8.0P.builtin.uint8.exit.i.i": ; preds = %else83.i.i.i, %then79.i.i.i
-  %.0.i.i.i = phi i32 [ %unary_minus_tmp.i.i.i, %then79.i.i.i ], [ %sub_tmp77.i.i.i, %else83.i.i.i ]
-  %.1.i.i.i = getelementptr i8, i8* %.0148.i.i.i, i64 2
-  %mul_tmp89.i.i.i = shl i32 %.0.i.i.i, 1
-  %170 = sext i32 %mul_tmp89.i.i.i to i64
-  %ptr_add_tmp90.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %170
-  %171 = bitcast i8* %ptr_add_tmp90.i.i.i to i16*
+"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_32.0P.builtin.uint8.0P.builtin.uint8.exit.i.i": ; preds = %else86.i.i.i, %then82.i.i.i
+  %.0170.i.i.i = phi i32 [ %unary_minus_tmp.i.i.i, %then82.i.i.i ], [ %sub_tmp80.i.i.i, %else86.i.i.i ]
+  %.1.i.i.i = getelementptr i8, i8* %.0.i.i.i, i64 2
+  %mul_tmp93.i.i.i = shl i32 %.0170.i.i.i, 1
+  %170 = sext i32 %mul_tmp93.i.i.i to i64
+  %ptr_add_tmp94.i.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %170
+  %171 = bitcast i8* %ptr_add_tmp94.i.i.i to i16*
   %172 = bitcast i8* %.1.i.i.i to i16*
   %173 = load i16, i16* %171, align 2
   store i16 %173, i16* %172, align 1
-  %ptr_add_tmp92.i.i.i = getelementptr i8, i8* %.0148.i.i.i, i64 4
+  %ptr_add_tmp96.i.i.i = getelementptr i8, i8* %.0.i.i.i, i64 4
   br label %func.std.ryu.f2s_shortest..2.builtin.float32.0P.builtin.uint8.0P.builtin.uint8.exit
 
-func.std.ryu.f2s_shortest..2.builtin.float32.0P.builtin.uint8.0P.builtin.uint8.exit: ; preds = %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i, %endif91.i.i.i, %then97.i.i.i, %"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_32.0P.builtin.uint8.0P.builtin.uint8.exit.i.i"
-  %common.ret.op.i = phi i8* [ %ptr_add_tmp15.i.i, %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i ], [ %ptr_add_tmp92.i.i.i, %"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_32.0P.builtin.uint8.0P.builtin.uint8.exit.i.i" ], [ %132, %then97.i.i.i ], [ %ptr_add_tmp95.i.i.i, %endif91.i.i.i ]
+func.std.ryu.f2s_shortest..2.builtin.float32.0P.builtin.uint8.0P.builtin.uint8.exit: ; preds = %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i, %endif95.i.i.i, %then101.i.i.i, %"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_32.0P.builtin.uint8.0P.builtin.uint8.exit.i.i"
+  %common.ret.op.i = phi i8* [ %ptr_add_tmp15.i.i, %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit.i ], [ %ptr_add_tmp96.i.i.i, %"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_32.0P.builtin.uint8.0P.builtin.uint8.exit.i.i" ], [ %132, %then101.i.i.i ], [ %ptr_add_tmp99.i.i.i, %endif95.i.i.i ]
   ret i8* %common.ret.op.i
 }
 
@@ -3876,28 +3876,28 @@ for.preheader.i.i:                                ; preds = %endif.i.i
   br label %for.i.i
 
 for_iteration.i.i:                                ; preds = %endif30.i.i, %then17.i.i
-  %.1582.i.i = phi i64 [ %add_tmp.i.i, %endif30.i.i ], [ %.0581696.i.i, %then17.i.i ]
-  %.1577.i.i = phi i32 [ %.0576697.i.i, %endif30.i.i ], [ %11, %then17.i.i ]
-  %.1.i.i = phi i32 [ %spec.select604.i.i, %endif30.i.i ], [ %.0698.i.i, %then17.i.i ]
-  %indvars.iv.next717.i.i = add nuw nsw i64 %indvars.iv716.i.i, 1
-  %exitcond718.not.i.i = icmp eq i64 %indvars.iv.next717.i.i, %wide.trip.count.i.i
-  br i1 %exitcond718.not.i.i, label %endif117.thread.i.i, label %for.i.i
+  %.1590.i.i = phi i64 [ %add_tmp.i.i, %endif30.i.i ], [ %.0589704.i.i, %then17.i.i ]
+  %.1585.i.i = phi i32 [ %.0584705.i.i, %endif30.i.i ], [ %11, %then17.i.i ]
+  %.1.i.i = phi i32 [ %spec.select612.i.i, %endif30.i.i ], [ %.0706.i.i, %then17.i.i ]
+  %indvars.iv.next725.i.i = add nuw nsw i64 %indvars.iv724.i.i, 1
+  %exitcond726.not.i.i = icmp eq i64 %indvars.iv.next725.i.i, %wide.trip.count.i.i
+  br i1 %exitcond726.not.i.i, label %endif117.thread.i.i, label %for.i.i
 
 for.i.i:                                          ; preds = %for_iteration.i.i, %for.preheader.i.i
-  %indvars.iv716.i.i = phi i64 [ %9, %for.preheader.i.i ], [ %indvars.iv.next717.i.i, %for_iteration.i.i ]
-  %.0698.i.i = phi i32 [ 0, %for.preheader.i.i ], [ %.1.i.i, %for_iteration.i.i ]
-  %.0576697.i.i = phi i32 [ %cast_tmp.i, %for.preheader.i.i ], [ %.1577.i.i, %for_iteration.i.i ]
-  %.0581696.i.i = phi i64 [ 0, %for.preheader.i.i ], [ %.1582.i.i, %for_iteration.i.i ]
-  %ptr_add_tmp14.i.i = getelementptr i8, i8* %0, i64 %indvars.iv716.i.i
+  %indvars.iv724.i.i = phi i64 [ %9, %for.preheader.i.i ], [ %indvars.iv.next725.i.i, %for_iteration.i.i ]
+  %.0706.i.i = phi i32 [ 0, %for.preheader.i.i ], [ %.1.i.i, %for_iteration.i.i ]
+  %.0584705.i.i = phi i32 [ %cast_tmp.i, %for.preheader.i.i ], [ %.1585.i.i, %for_iteration.i.i ]
+  %.0589704.i.i = phi i64 [ 0, %for.preheader.i.i ], [ %.1590.i.i, %for_iteration.i.i ]
+  %ptr_add_tmp14.i.i = getelementptr i8, i8* %0, i64 %indvars.iv724.i.i
   %load_tmp15.i.i = load i8, i8* %ptr_add_tmp14.i.i, align 1
   %cast_tmp.i.i = zext i8 %load_tmp15.i.i to i64
   %10 = icmp eq i8 %load_tmp15.i.i, 46
   br i1 %10, label %then17.i.i, label %endif23.i.i
 
 then17.i.i:                                       ; preds = %for.i.i
-  %.not603.i.i = icmp eq i32 %.0576697.i.i, %cast_tmp.i
-  %11 = trunc i64 %indvars.iv716.i.i to i32
-  br i1 %.not603.i.i, label %for_iteration.i.i, label %func.std.ryu.s2d_str..2.builtin.str.0P.builtin.float64.builtin.uint32.exit
+  %.not611.i.i = icmp eq i32 %.0584705.i.i, %cast_tmp.i
+  %11 = trunc i64 %indvars.iv724.i.i to i32
+  br i1 %.not611.i.i, label %for_iteration.i.i, label %func.std.ryu.s2d_str..2.builtin.str.0P.builtin.float64.builtin.uint32.exit
 
 endif23.i.i:                                      ; preds = %for.i.i
   %12 = add i8 %load_tmp15.i.i, -58
@@ -3905,21 +3905,21 @@ endif23.i.i:                                      ; preds = %for.i.i
   br i1 %13, label %bool_and_rhs.i.i, label %endif27.i.i
 
 endif27.i.i:                                      ; preds = %endif23.i.i
-  %14 = icmp sgt i32 %.0698.i.i, 16
+  %14 = icmp sgt i32 %.0706.i.i, 16
   br i1 %14, label %func.std.ryu.s2d_str..2.builtin.str.0P.builtin.float64.builtin.uint32.exit, label %endif30.i.i
 
 endif30.i.i:                                      ; preds = %endif27.i.i
-  %mul_tmp.i.i = mul i64 %.0581696.i.i, 10
+  %mul_tmp.i.i = mul i64 %.0589704.i.i, 10
   %sub_tmp.i.i = add nuw nsw i64 %cast_tmp.i.i, 4294967248
   %cast_tmp33.i.i = and i64 %sub_tmp.i.i, 4294967295
   %add_tmp.i.i = add i64 %cast_tmp33.i.i, %mul_tmp.i.i
-  %.not602.i.i = icmp ne i64 %add_tmp.i.i, 0
-  %15 = zext i1 %.not602.i.i to i32
-  %spec.select604.i.i = add nsw i32 %.0698.i.i, %15
+  %.not610.i.i = icmp ne i64 %add_tmp.i.i, 0
+  %15 = zext i1 %.not610.i.i to i32
+  %spec.select612.i.i = add nsw i32 %.0706.i.i, %15
   br label %for_iteration.i.i
 
 bool_and_rhs.i.i:                                 ; preds = %endif23.i.i
-  %16 = trunc i64 %indvars.iv716.i.i to i32
+  %16 = trunc i64 %indvars.iv724.i.i to i32
   switch i8 %load_tmp15.i.i, label %endif113.i.i [
     i8 101, label %then53.i.i
     i8 69, label %then53.i.i
@@ -3945,19 +3945,19 @@ then74.i.i:                                       ; preds = %bool_and_rhs58.i.i,
   br label %endif81.i.i
 
 endif81.i.i:                                      ; preds = %then74.i.i, %bool_and_rhs58.i.i, %then53.i.i
-  %.2594.i.i = phi i32 [ %21, %then74.i.i ], [ %17, %then53.i.i ], [ %17, %bool_and_rhs58.i.i ]
-  %.0590.i.i = phi i1 [ %20, %then74.i.i ], [ false, %then53.i.i ], [ false, %bool_and_rhs58.i.i ]
-  %22 = icmp slt i32 %.2594.i.i, %cast_tmp.i
+  %.2599.i.i = phi i32 [ %21, %then74.i.i ], [ %17, %then53.i.i ], [ %17, %bool_and_rhs58.i.i ]
+  %.0595.i.i = phi i1 [ %20, %then74.i.i ], [ false, %then53.i.i ], [ false, %bool_and_rhs58.i.i ]
+  %22 = icmp slt i32 %.2599.i.i, %cast_tmp.i
   br i1 %22, label %for88.preheader.i.i, label %endif113.i.i
 
 for88.preheader.i.i:                              ; preds = %endif81.i.i
-  %23 = sext i32 %.2594.i.i to i64
+  %23 = sext i32 %.2599.i.i to i64
   br label %for88.i.i
 
 for88.i.i:                                        ; preds = %endif112.i.i, %for88.preheader.i.i
   %indvars.iv.i.i = phi i64 [ %23, %for88.preheader.i.i ], [ %indvars.iv.next.i.i, %endif112.i.i ]
-  %.0573691.i.i = phi i32 [ 0, %for88.preheader.i.i ], [ %.1574.i.i, %endif112.i.i ]
-  %.0583690.i.i = phi i32 [ 0, %for88.preheader.i.i ], [ %.1584.i.i, %endif112.i.i ]
+  %.0581699.i.i = phi i32 [ 0, %for88.preheader.i.i ], [ %.1582.i.i, %endif112.i.i ]
+  %.0591698.i.i = phi i32 [ 0, %for88.preheader.i.i ], [ %.1592.i.i, %endif112.i.i ]
   %ptr_add_tmp91.i.i = getelementptr i8, i8* %0, i64 %indvars.iv.i.i
   %load_tmp92.i.i = load i8, i8* %ptr_add_tmp91.i.i, align 1
   %cast_tmp93.i.i = zext i8 %load_tmp92.i.i to i32
@@ -3966,71 +3966,71 @@ for88.i.i:                                        ; preds = %endif112.i.i, %for8
   br i1 %25, label %func.std.ryu.s2d_str..2.builtin.str.0P.builtin.float64.builtin.uint32.exit, label %endif100.i.i
 
 endif100.i.i:                                     ; preds = %for88.i.i
-  %26 = icmp sgt i32 %.0573691.i.i, 3
+  %26 = icmp sgt i32 %.0581699.i.i, 3
   br i1 %26, label %endif112.i.i, label %else.i.i
 
 else.i.i:                                         ; preds = %endif100.i.i
-  %mul_tmp104.i.i = mul i32 %.0583690.i.i, 10
+  %mul_tmp104.i.i = mul i32 %.0591698.i.i, 10
   %sub_tmp106.i.i = add i32 %mul_tmp104.i.i, -48
   %add_tmp107.i.i = add i32 %sub_tmp106.i.i, %cast_tmp93.i.i
-  %.not601.i.i = icmp ne i32 %add_tmp107.i.i, 0
-  %27 = zext i1 %.not601.i.i to i32
-  %spec.select607.i.i = add nsw i32 %.0573691.i.i, %27
+  %.not609.i.i = icmp ne i32 %add_tmp107.i.i, 0
+  %27 = zext i1 %.not609.i.i to i32
+  %spec.select615.i.i = add nsw i32 %.0581699.i.i, %27
   br label %endif112.i.i
 
 endif112.i.i:                                     ; preds = %else.i.i, %endif100.i.i
-  %.1584.i.i = phi i32 [ %.0583690.i.i, %endif100.i.i ], [ %add_tmp107.i.i, %else.i.i ]
-  %.1574.i.i = phi i32 [ %.0573691.i.i, %endif100.i.i ], [ %spec.select607.i.i, %else.i.i ]
+  %.1592.i.i = phi i32 [ %.0591698.i.i, %endif100.i.i ], [ %add_tmp107.i.i, %else.i.i ]
+  %.1582.i.i = phi i32 [ %.0581699.i.i, %endif100.i.i ], [ %spec.select615.i.i, %else.i.i ]
   %indvars.iv.next.i.i = add nsw i64 %indvars.iv.i.i, 1
   %lftr.wideiv.i.i = trunc i64 %indvars.iv.next.i.i to i32
   %exitcond.not.i.i = icmp eq i32 %lftr.wideiv.i.i, %cast_tmp.i
   br i1 %exitcond.not.i.i, label %endif117.i.i, label %for88.i.i
 
 endif113.i.i:                                     ; preds = %endif81.i.i, %bool_and_rhs.i.i, %endif.i.i
-  %.0581685.i.i = phi i64 [ %.0581696.i.i, %bool_and_rhs.i.i ], [ %.0581696.i.i, %endif81.i.i ], [ 0, %endif.i.i ]
-  %.0576682.i.i = phi i32 [ %.0576697.i.i, %bool_and_rhs.i.i ], [ %.0576697.i.i, %endif81.i.i ], [ %cast_tmp.i, %endif.i.i ]
-  %.0679.i.i = phi i32 [ %.0698.i.i, %bool_and_rhs.i.i ], [ %.0698.i.i, %endif81.i.i ], [ 0, %endif.i.i ]
-  %.4596.i.i = phi i32 [ %16, %bool_and_rhs.i.i ], [ %.2594.i.i, %endif81.i.i ], [ %spec.select.i.i, %endif.i.i ]
-  %.1591.i.i = phi i1 [ false, %bool_and_rhs.i.i ], [ %.0590.i.i, %endif81.i.i ], [ false, %endif.i.i ]
-  %.0579.i.i = phi i32 [ %cast_tmp.i, %bool_and_rhs.i.i ], [ %16, %endif81.i.i ], [ %cast_tmp.i, %endif.i.i ]
-  %28 = icmp slt i32 %.4596.i.i, %cast_tmp.i
+  %.0589693.i.i = phi i64 [ %.0589704.i.i, %bool_and_rhs.i.i ], [ %.0589704.i.i, %endif81.i.i ], [ 0, %endif.i.i ]
+  %.0584690.i.i = phi i32 [ %.0584705.i.i, %bool_and_rhs.i.i ], [ %.0584705.i.i, %endif81.i.i ], [ %cast_tmp.i, %endif.i.i ]
+  %.0687.i.i = phi i32 [ %.0706.i.i, %bool_and_rhs.i.i ], [ %.0706.i.i, %endif81.i.i ], [ 0, %endif.i.i ]
+  %.4601.i.i = phi i32 [ %16, %bool_and_rhs.i.i ], [ %.2599.i.i, %endif81.i.i ], [ %spec.select.i.i, %endif.i.i ]
+  %.1596.i.i = phi i1 [ false, %bool_and_rhs.i.i ], [ %.0595.i.i, %endif81.i.i ], [ false, %endif.i.i ]
+  %.0587.i.i = phi i32 [ %cast_tmp.i, %bool_and_rhs.i.i ], [ %16, %endif81.i.i ], [ %cast_tmp.i, %endif.i.i ]
+  %28 = icmp slt i32 %.4601.i.i, %cast_tmp.i
   br i1 %28, label %func.std.ryu.s2d_str..2.builtin.str.0P.builtin.float64.builtin.uint32.exit, label %endif117.i.i
 
 endif117.i.i:                                     ; preds = %endif112.i.i, %endif113.i.i
-  %.2575733.i.i = phi i32 [ 0, %endif113.i.i ], [ %.1574.i.i, %endif112.i.i ]
-  %.0579732.i.i = phi i32 [ %.0579.i.i, %endif113.i.i ], [ %16, %endif112.i.i ]
-  %.2585731.i.i = phi i32 [ 0, %endif113.i.i ], [ %.1584.i.i, %endif112.i.i ]
-  %.1591730.i.i = phi i1 [ %.1591.i.i, %endif113.i.i ], [ %.0590.i.i, %endif112.i.i ]
-  %.0679729.i.i = phi i32 [ %.0679.i.i, %endif113.i.i ], [ %.0698.i.i, %endif112.i.i ]
-  %.0576682728.i.i = phi i32 [ %.0576682.i.i, %endif113.i.i ], [ %.0576697.i.i, %endif112.i.i ]
-  %.0581685727.i.i = phi i64 [ %.0581685.i.i, %endif113.i.i ], [ %.0581696.i.i, %endif112.i.i ]
-  %unary_minus_tmp.i.i = sub i32 0, %.2585731.i.i
-  %spec.select760.i.i = select i1 %.1591730.i.i, i32 %unary_minus_tmp.i.i, i32 %.2585731.i.i
+  %.2583741.i.i = phi i32 [ 0, %endif113.i.i ], [ %.1582.i.i, %endif112.i.i ]
+  %.0587740.i.i = phi i32 [ %.0587.i.i, %endif113.i.i ], [ %16, %endif112.i.i ]
+  %.2593739.i.i = phi i32 [ 0, %endif113.i.i ], [ %.1592.i.i, %endif112.i.i ]
+  %.1596738.i.i = phi i1 [ %.1596.i.i, %endif113.i.i ], [ %.0595.i.i, %endif112.i.i ]
+  %.0687737.i.i = phi i32 [ %.0687.i.i, %endif113.i.i ], [ %.0706.i.i, %endif112.i.i ]
+  %.0584690736.i.i = phi i32 [ %.0584690.i.i, %endif113.i.i ], [ %.0584705.i.i, %endif112.i.i ]
+  %.0589693735.i.i = phi i64 [ %.0589693.i.i, %endif113.i.i ], [ %.0589704.i.i, %endif112.i.i ]
+  %unary_minus_tmp.i.i = sub i32 0, %.2593739.i.i
+  %spec.select768.i.i = select i1 %.1596738.i.i, i32 %unary_minus_tmp.i.i, i32 %.2593739.i.i
   br label %endif117.thread.i.i
 
 endif117.thread.i.i:                              ; preds = %for_iteration.i.i, %endif117.i.i
-  %.0581685727747.i.i = phi i64 [ %.0581685727.i.i, %endif117.i.i ], [ %.1582.i.i, %for_iteration.i.i ]
-  %.0576682728746.i.i = phi i32 [ %.0576682728.i.i, %endif117.i.i ], [ %.1577.i.i, %for_iteration.i.i ]
-  %.0679729745.i.i = phi i32 [ %.0679729.i.i, %endif117.i.i ], [ %.1.i.i, %for_iteration.i.i ]
-  %.1591730744.i.i = phi i1 [ %.1591730.i.i, %endif117.i.i ], [ false, %for_iteration.i.i ]
-  %.0579732743.i.i = phi i32 [ %.0579732.i.i, %endif117.i.i ], [ %cast_tmp.i, %for_iteration.i.i ]
-  %.2575733742.i.i = phi i32 [ %.2575733.i.i, %endif117.i.i ], [ 0, %for_iteration.i.i ]
-  %29 = phi i32 [ %spec.select760.i.i, %endif117.i.i ], [ 0, %for_iteration.i.i ]
-  %30 = icmp sgt i32 %.0579732743.i.i, %.0576682728746.i.i
-  %31 = xor i32 %.0576682728746.i.i, -1
-  %sub_tmp128.i.i = add i32 %.0579732743.i.i, %31
+  %.0589693735755.i.i = phi i64 [ %.0589693735.i.i, %endif117.i.i ], [ %.1590.i.i, %for_iteration.i.i ]
+  %.0584690736754.i.i = phi i32 [ %.0584690736.i.i, %endif117.i.i ], [ %.1585.i.i, %for_iteration.i.i ]
+  %.0687737753.i.i = phi i32 [ %.0687737.i.i, %endif117.i.i ], [ %.1.i.i, %for_iteration.i.i ]
+  %.1596738752.i.i = phi i1 [ %.1596738.i.i, %endif117.i.i ], [ false, %for_iteration.i.i ]
+  %.0587740751.i.i = phi i32 [ %.0587740.i.i, %endif117.i.i ], [ %cast_tmp.i, %for_iteration.i.i ]
+  %.2583741750.i.i = phi i32 [ %.2583741.i.i, %endif117.i.i ], [ 0, %for_iteration.i.i ]
+  %29 = phi i32 [ %spec.select768.i.i, %endif117.i.i ], [ 0, %for_iteration.i.i ]
+  %30 = icmp sgt i32 %.0587740751.i.i, %.0584690736754.i.i
+  %31 = xor i32 %.0584690736754.i.i, -1
+  %sub_tmp128.i.i = add i32 %.0587740751.i.i, %31
   %sub_tmp130.i.i = select i1 %30, i32 %sub_tmp128.i.i, i32 0
   %.4.i.i = sub i32 %29, %sub_tmp130.i.i
-  %32 = icmp sgt i32 %.2575733742.i.i, 3
-  %33 = select i1 %32, i1 %.1591730744.i.i, i1 false
+  %32 = icmp sgt i32 %.2583741750.i.i, 3
+  %33 = select i1 %32, i1 %.1596738752.i.i, i1 false
   br i1 %33, label %then147.i.i, label %bool_or_rhs137.i.i
 
 bool_or_rhs137.i.i:                               ; preds = %endif117.thread.i.i
-  %add_tmp140.i.i = add i32 %.4.i.i, %.0679729745.i.i
+  %add_tmp140.i.i = add i32 %.4.i.i, %.0687737753.i.i
   %34 = icmp slt i32 %add_tmp140.i.i, -323
-  %35 = icmp eq i64 %.0581685727747.i.i, 0
-  %or.cond610.i.i = select i1 %34, i1 true, i1 %35
-  br i1 %or.cond610.i.i, label %then147.i.i, label %else152.i.i
+  %35 = icmp eq i64 %.0589693735755.i.i, 0
+  %or.cond618.i.i = select i1 %34, i1 true, i1 %35
+  br i1 %or.cond618.i.i, label %then147.i.i, label %else152.i.i
 
 then147.i.i:                                      ; preds = %bool_or_rhs137.i.i, %endif117.thread.i.i
   %36 = select i1 %7, double -0.000000e+00, double 0.000000e+00
@@ -4039,8 +4039,8 @@ then147.i.i:                                      ; preds = %bool_or_rhs137.i.i,
 
 else152.i.i:                                      ; preds = %bool_or_rhs137.i.i
   %37 = icmp sgt i32 %add_tmp140.i.i, 309
-  %or.cond611.i.i = select i1 %32, i1 true, i1 %37
-  br i1 %or.cond611.i.i, label %then160.i.i, label %endif167.i.i
+  %or.cond619.i.i = select i1 %32, i1 true, i1 %37
+  br i1 %or.cond619.i.i, label %then160.i.i, label %endif167.i.i
 
 then160.i.i:                                      ; preds = %else152.i.i
   %38 = select i1 %7, double 0xFFF0000000000000, double 0x7FF0000000000000
@@ -4049,122 +4049,122 @@ then160.i.i:                                      ; preds = %else152.i.i
 
 endif167.i.i:                                     ; preds = %else152.i.i
   %39 = icmp sgt i32 %.4.i.i, -1
-  %40 = tail call i64 @llvm.ctlz.i64(i64 %.0581685727747.i.i, i1 false) #7, !range !3
-  %cast_tmp.i669.i.i = trunc i64 %40 to i32
-  br i1 %39, label %then169.i.i, label %else202.i.i
+  %40 = tail call i64 @llvm.ctlz.i64(i64 %.0589693735755.i.i, i1 false) #7, !range !3
+  %cast_tmp.i677.i.i = trunc i64 %40 to i32
+  br i1 %39, label %then169.i.i, label %else203.i.i
 
 then169.i.i:                                      ; preds = %endif167.i.i
   %mul_tmp.i.i.i = mul nuw nsw i32 %.4.i.i, 1217359
   %rshift_tmp.i.i.i = lshr i32 %mul_tmp.i.i.i, 19
-  %add_tmp172.i.i = sub nsw i32 10, %cast_tmp.i669.i.i
+  %add_tmp172.i.i = sub nsw i32 10, %cast_tmp.i677.i.i
   %add_tmp174.i.i = add nsw i32 %add_tmp172.i.i, %.4.i.i
   %sub_tmp175.i.i = add nsw i32 %add_tmp174.i.i, %rshift_tmp.i.i.i
   %sub_tmp178.i.i = sub nsw i32 %sub_tmp175.i.i, %.4.i.i
-  %add_tmp.i668.neg.i.i = xor i32 %rshift_tmp.i.i.i, -1
-  %sub_tmp180.i.i = add nsw i32 %sub_tmp178.i.i, %add_tmp.i668.neg.i.i
+  %add_tmp.i676.neg.i.i = xor i32 %rshift_tmp.i.i.i, -1
+  %sub_tmp180.i.i = add nsw i32 %sub_tmp178.i.i, %add_tmp.i676.neg.i.i
   %41 = icmp sgt i32 %sub_tmp180.i.i, -126
   tail call void @llvm.assume(i1 %41) #7
   %42 = icmp ult i32 %.4.i.i, 326
   tail call void @llvm.assume(i1 %42) #7
   %43 = zext i32 %.4.i.i to i64
   %44 = getelementptr [326 x [2 x i64]], [326 x [2 x i64]]* @std.ryu.DOUBLE_POW5_SPLIT, i64 0, i64 %43, i64 0
-  %.val613.i.i = load i64, i64* %44, align 16
-  %.idx614.i.i = getelementptr [326 x [2 x i64]], [326 x [2 x i64]]* @std.ryu.DOUBLE_POW5_SPLIT, i64 0, i64 %43, i64 1
-  %.idx614.val.i.i = load i64, i64* %.idx614.i.i, align 8
-  %rshift_tmp.i.i626.i.i = lshr i64 %.0581685727747.i.i, 32
-  %rshift_tmp6.i.i627.i.i = lshr i64 %.idx614.val.i.i, 32
-  %cast_tmp9.i.i628.i.i = and i64 %.0581685727747.i.i, 4294967295
-  %cast_tmp11.i.i629.i.i = and i64 %.idx614.val.i.i, 4294967295
-  %mul_tmp.i.i630.i.i = mul nuw i64 %cast_tmp11.i.i629.i.i, %cast_tmp9.i.i628.i.i
-  %mul_tmp16.i.i631.i.i = mul nuw i64 %rshift_tmp6.i.i627.i.i, %cast_tmp9.i.i628.i.i
-  %mul_tmp21.i.i632.i.i = mul nuw i64 %cast_tmp11.i.i629.i.i, %rshift_tmp.i.i626.i.i
-  %mul_tmp26.i.i633.i.i = mul nuw i64 %rshift_tmp6.i.i627.i.i, %rshift_tmp.i.i626.i.i
-  %rshift_tmp30.i.i634.i.i = lshr i64 %mul_tmp.i.i630.i.i, 32
-  %add_tmp.i.i635.i.i = add nuw i64 %rshift_tmp30.i.i634.i.i, %mul_tmp21.i.i632.i.i
-  %rshift_tmp38.i.i636.i.i = lshr i64 %add_tmp.i.i635.i.i, 32
-  %cast_tmp42.i.i637.i.i = and i64 %add_tmp.i.i635.i.i, 4294967295
-  %add_tmp43.i.i638.i.i = add nuw i64 %cast_tmp42.i.i637.i.i, %mul_tmp16.i.i631.i.i
-  %rshift_tmp47.i.i639.i.i = lshr i64 %add_tmp43.i.i638.i.i, 32
-  %add_tmp52.i.i640.i.i = add nuw i64 %rshift_tmp38.i.i636.i.i, %mul_tmp26.i.i633.i.i
-  %add_tmp55.i.i641.i.i = add nuw i64 %add_tmp52.i.i640.i.i, %rshift_tmp47.i.i639.i.i
-  %lshift_tmp.i.i642.i.i = shl i64 %add_tmp43.i.i638.i.i, 32
-  %cast_tmp59.i.i643.i.i = and i64 %mul_tmp.i.i630.i.i, 4294967295
-  %bit_or_tmp.i.i644.i.i = or i64 %lshift_tmp.i.i642.i.i, %cast_tmp59.i.i643.i.i
-  %rshift_tmp6.i32.i645.i.i = lshr i64 %.val613.i.i, 32
-  %cast_tmp11.i34.i646.i.i = and i64 %.val613.i.i, 4294967295
-  %mul_tmp.i35.i647.i.i = mul nuw i64 %cast_tmp11.i34.i646.i.i, %cast_tmp9.i.i628.i.i
-  %mul_tmp16.i36.i648.i.i = mul nuw i64 %rshift_tmp6.i32.i645.i.i, %cast_tmp9.i.i628.i.i
-  %mul_tmp21.i37.i649.i.i = mul nuw i64 %cast_tmp11.i34.i646.i.i, %rshift_tmp.i.i626.i.i
-  %mul_tmp26.i38.i650.i.i = mul nuw i64 %rshift_tmp6.i32.i645.i.i, %rshift_tmp.i.i626.i.i
-  %rshift_tmp30.i39.i651.i.i = lshr i64 %mul_tmp.i35.i647.i.i, 32
-  %add_tmp.i40.i652.i.i = add nuw i64 %rshift_tmp30.i39.i651.i.i, %mul_tmp21.i37.i649.i.i
-  %rshift_tmp38.i41.i653.i.i = lshr i64 %add_tmp.i40.i652.i.i, 32
-  %cast_tmp42.i42.i654.i.i = and i64 %add_tmp.i40.i652.i.i, 4294967295
-  %add_tmp43.i43.i655.i.i = add nuw i64 %cast_tmp42.i42.i654.i.i, %mul_tmp16.i36.i648.i.i
-  %rshift_tmp47.i44.i656.i.i = lshr i64 %add_tmp43.i43.i655.i.i, 32
-  %add_tmp52.i45.i657.i.i = add nuw i64 %rshift_tmp38.i41.i653.i.i, %mul_tmp26.i38.i650.i.i
-  %add_tmp55.i46.i658.i.i = add nuw i64 %add_tmp52.i45.i657.i.i, %rshift_tmp47.i44.i656.i.i
-  %add_tmp.i659.i.i = add i64 %bit_or_tmp.i.i644.i.i, %add_tmp55.i46.i658.i.i
-  %45 = icmp ult i64 %add_tmp.i659.i.i, %add_tmp55.i46.i658.i.i
+  %.val621.i.i = load i64, i64* %44, align 16
+  %.idx622.i.i = getelementptr [326 x [2 x i64]], [326 x [2 x i64]]* @std.ryu.DOUBLE_POW5_SPLIT, i64 0, i64 %43, i64 1
+  %.idx622.val.i.i = load i64, i64* %.idx622.i.i, align 8
+  %rshift_tmp.i.i634.i.i = lshr i64 %.0589693735755.i.i, 32
+  %rshift_tmp6.i.i635.i.i = lshr i64 %.idx622.val.i.i, 32
+  %cast_tmp9.i.i636.i.i = and i64 %.0589693735755.i.i, 4294967295
+  %cast_tmp11.i.i637.i.i = and i64 %.idx622.val.i.i, 4294967295
+  %mul_tmp.i.i638.i.i = mul nuw i64 %cast_tmp11.i.i637.i.i, %cast_tmp9.i.i636.i.i
+  %mul_tmp16.i.i639.i.i = mul nuw i64 %rshift_tmp6.i.i635.i.i, %cast_tmp9.i.i636.i.i
+  %mul_tmp21.i.i640.i.i = mul nuw i64 %cast_tmp11.i.i637.i.i, %rshift_tmp.i.i634.i.i
+  %mul_tmp26.i.i641.i.i = mul nuw i64 %rshift_tmp6.i.i635.i.i, %rshift_tmp.i.i634.i.i
+  %rshift_tmp30.i.i642.i.i = lshr i64 %mul_tmp.i.i638.i.i, 32
+  %add_tmp.i.i643.i.i = add nuw i64 %rshift_tmp30.i.i642.i.i, %mul_tmp21.i.i640.i.i
+  %rshift_tmp38.i.i644.i.i = lshr i64 %add_tmp.i.i643.i.i, 32
+  %cast_tmp42.i.i645.i.i = and i64 %add_tmp.i.i643.i.i, 4294967295
+  %add_tmp43.i.i646.i.i = add nuw i64 %cast_tmp42.i.i645.i.i, %mul_tmp16.i.i639.i.i
+  %rshift_tmp47.i.i647.i.i = lshr i64 %add_tmp43.i.i646.i.i, 32
+  %add_tmp52.i.i648.i.i = add nuw i64 %rshift_tmp38.i.i644.i.i, %mul_tmp26.i.i641.i.i
+  %add_tmp55.i.i649.i.i = add nuw i64 %add_tmp52.i.i648.i.i, %rshift_tmp47.i.i647.i.i
+  %lshift_tmp.i.i650.i.i = shl i64 %add_tmp43.i.i646.i.i, 32
+  %cast_tmp59.i.i651.i.i = and i64 %mul_tmp.i.i638.i.i, 4294967295
+  %bit_or_tmp.i.i652.i.i = or i64 %lshift_tmp.i.i650.i.i, %cast_tmp59.i.i651.i.i
+  %rshift_tmp6.i32.i653.i.i = lshr i64 %.val621.i.i, 32
+  %cast_tmp11.i34.i654.i.i = and i64 %.val621.i.i, 4294967295
+  %mul_tmp.i35.i655.i.i = mul nuw i64 %cast_tmp11.i34.i654.i.i, %cast_tmp9.i.i636.i.i
+  %mul_tmp16.i36.i656.i.i = mul nuw i64 %rshift_tmp6.i32.i653.i.i, %cast_tmp9.i.i636.i.i
+  %mul_tmp21.i37.i657.i.i = mul nuw i64 %cast_tmp11.i34.i654.i.i, %rshift_tmp.i.i634.i.i
+  %mul_tmp26.i38.i658.i.i = mul nuw i64 %rshift_tmp6.i32.i653.i.i, %rshift_tmp.i.i634.i.i
+  %rshift_tmp30.i39.i659.i.i = lshr i64 %mul_tmp.i35.i655.i.i, 32
+  %add_tmp.i40.i660.i.i = add nuw i64 %rshift_tmp30.i39.i659.i.i, %mul_tmp21.i37.i657.i.i
+  %rshift_tmp38.i41.i661.i.i = lshr i64 %add_tmp.i40.i660.i.i, 32
+  %cast_tmp42.i42.i662.i.i = and i64 %add_tmp.i40.i660.i.i, 4294967295
+  %add_tmp43.i43.i663.i.i = add nuw i64 %cast_tmp42.i42.i662.i.i, %mul_tmp16.i36.i656.i.i
+  %rshift_tmp47.i44.i664.i.i = lshr i64 %add_tmp43.i43.i663.i.i, 32
+  %add_tmp52.i45.i665.i.i = add nuw i64 %rshift_tmp38.i41.i661.i.i, %mul_tmp26.i38.i658.i.i
+  %add_tmp55.i46.i666.i.i = add nuw i64 %add_tmp52.i45.i665.i.i, %rshift_tmp47.i44.i664.i.i
+  %add_tmp.i667.i.i = add i64 %bit_or_tmp.i.i652.i.i, %add_tmp55.i46.i666.i.i
+  %45 = icmp ult i64 %add_tmp.i667.i.i, %add_tmp55.i46.i666.i.i
   %46 = zext i1 %45 to i64
-  %spec.select.i660.i.i = add nuw i64 %add_tmp55.i.i641.i.i, %46
-  %sub_tmp.i661.i.i = add nsw i32 %sub_tmp180.i.i, 61
-  %47 = icmp ne i32 %sub_tmp.i661.i.i, 0
+  %spec.select.i668.i.i = add nuw i64 %add_tmp55.i.i649.i.i, %46
+  %sub_tmp.i669.i.i = add nsw i32 %sub_tmp180.i.i, 61
+  %47 = icmp ne i32 %sub_tmp.i669.i.i, 0
   tail call void @llvm.assume(i1 %47) #7
-  %sub_tmp.i.i662.i.i = sub nsw i32 3, %sub_tmp180.i.i
-  %48 = zext i32 %sub_tmp.i.i662.i.i to i64
-  %lshift_tmp.i28.i663.i.i = shl i64 %spec.select.i660.i.i, %48
-  %49 = zext i32 %sub_tmp.i661.i.i to i64
-  %rshift_tmp.i29.i664.i.i = lshr i64 %add_tmp.i659.i.i, %49
-  %bit_or_tmp.i30.i665.i.i = or i64 %lshift_tmp.i28.i663.i.i, %rshift_tmp.i29.i664.i.i
+  %sub_tmp.i.i670.i.i = sub nsw i32 3, %sub_tmp180.i.i
+  %48 = zext i32 %sub_tmp.i.i670.i.i to i64
+  %lshift_tmp.i28.i671.i.i = shl i64 %spec.select.i668.i.i, %48
+  %49 = zext i32 %sub_tmp.i669.i.i to i64
+  %rshift_tmp.i29.i672.i.i = lshr i64 %add_tmp.i667.i.i, %49
+  %bit_or_tmp.i30.i673.i.i = or i64 %lshift_tmp.i28.i671.i.i, %rshift_tmp.i29.i672.i.i
   %50 = icmp slt i32 %sub_tmp175.i.i, %.4.i.i
-  br i1 %50, label %endif227.i.i, label %bool_or_rhs189.i.i
+  br i1 %50, label %endif229.i.i, label %bool_or_rhs190.i.i
 
-bool_or_rhs189.i.i:                               ; preds = %then169.i.i
+bool_or_rhs190.i.i:                               ; preds = %then169.i.i
   %51 = icmp slt i32 %sub_tmp178.i.i, 64
-  br i1 %51, label %bool_and_rhs193.i.i, label %endif227.i.i
+  br i1 %51, label %bool_and_rhs194.i.i, label %endif229.i.i
 
-bool_and_rhs193.i.i:                              ; preds = %bool_or_rhs189.i.i
+bool_and_rhs194.i.i:                              ; preds = %bool_or_rhs190.i.i
   %52 = icmp ult i32 %sub_tmp178.i.i, 64
   tail call void @llvm.assume(i1 %52) #7
   %53 = zext i32 %sub_tmp178.i.i to i64
   %notmask.i.i.i = shl nsw i64 -1, %53
-  %sub_tmp.i625.i.i = xor i64 %notmask.i.i.i, -1
-  %bit_and_tmp.i.i.i = and i64 %.0581685727747.i.i, %sub_tmp.i625.i.i
+  %sub_tmp.i633.i.i = xor i64 %notmask.i.i.i, -1
+  %bit_and_tmp.i.i.i = and i64 %.0589693735755.i.i, %sub_tmp.i633.i.i
   %54 = icmp eq i64 %bit_and_tmp.i.i.i, 0
-  br label %endif227.i.i
+  br label %endif229.i.i
 
-else202.i.i:                                      ; preds = %endif167.i.i
-  %unary_minus_tmp207.i.i = sub i32 0, %.4.i.i
-  %mul_tmp.i.i620.i.i = mul i32 %.4.i.i, -1217359
-  %rshift_tmp.i.i621.i.i = lshr i32 %mul_tmp.i.i620.i.i, 19
-  %add_tmp.i622.i.i = add nuw nsw i32 %rshift_tmp.i.i621.i.i, 1
-  %add_tmp.i622.neg.i.i = xor i32 %rshift_tmp.i.i621.i.i, -1
-  %55 = sub nsw i32 10, %cast_tmp.i669.i.i
-  %sub_tmp208.i.i = add i32 %55, %.4.i.i
-  %sub_tmp209.i.i = add i32 %sub_tmp208.i.i, %add_tmp.i622.neg.i.i
-  %sub_tmp212.i.i = sub i32 %sub_tmp209.i.i, %.4.i.i
-  %add_tmp215.i.i = add i32 %add_tmp.i622.i.i, %sub_tmp212.i.i
-  %56 = icmp ult i32 %unary_minus_tmp207.i.i, 342
+else203.i.i:                                      ; preds = %endif167.i.i
+  %unary_minus_tmp208.i.i = sub i32 0, %.4.i.i
+  %mul_tmp.i.i628.i.i = mul i32 %.4.i.i, -1217359
+  %rshift_tmp.i.i629.i.i = lshr i32 %mul_tmp.i.i628.i.i, 19
+  %add_tmp.i630.i.i = add nuw nsw i32 %rshift_tmp.i.i629.i.i, 1
+  %add_tmp.i630.neg.i.i = xor i32 %rshift_tmp.i.i629.i.i, -1
+  %55 = sub nsw i32 10, %cast_tmp.i677.i.i
+  %sub_tmp209.i.i = add i32 %55, %.4.i.i
+  %sub_tmp210.i.i = add i32 %sub_tmp209.i.i, %add_tmp.i630.neg.i.i
+  %sub_tmp213.i.i = sub i32 %sub_tmp210.i.i, %.4.i.i
+  %add_tmp216.i.i = add i32 %add_tmp.i630.i.i, %sub_tmp213.i.i
+  %56 = icmp ult i32 %unary_minus_tmp208.i.i, 342
   tail call void @llvm.assume(i1 %56) #7
-  %57 = zext i32 %unary_minus_tmp207.i.i to i64
+  %57 = zext i32 %unary_minus_tmp208.i.i to i64
   %58 = getelementptr [342 x [2 x i64]], [342 x [2 x i64]]* @std.ryu.DOUBLE_POW5_INV_SPLIT, i64 0, i64 %57, i64 0
   %.val.i.i = load i64, i64* %58, align 16
   %.idx.i.i = getelementptr [342 x [2 x i64]], [342 x [2 x i64]]* @std.ryu.DOUBLE_POW5_INV_SPLIT, i64 0, i64 %57, i64 1
   %.idx.val.i.i = load i64, i64* %.idx.i.i, align 8
-  %cast_tmp9.i.i.i.i = and i64 %.0581685727747.i.i, 4294967295
+  %cast_tmp9.i.i.i.i = and i64 %.0589693735755.i.i, 4294967295
   %cast_tmp11.i.i.i.i = and i64 %.idx.val.i.i, 4294967295
-  %mul_tmp.i.i615.i.i = mul nuw i64 %cast_tmp11.i.i.i.i, %cast_tmp9.i.i.i.i
+  %mul_tmp.i.i623.i.i = mul nuw i64 %cast_tmp11.i.i.i.i, %cast_tmp9.i.i.i.i
   %cast_tmp11.i34.i.i.i = and i64 %.val.i.i, 4294967295
   %mul_tmp.i35.i.i.i = mul nuw i64 %cast_tmp11.i34.i.i.i, %cast_tmp9.i.i.i.i
-  %sub_tmp.i616.i.i = add i32 %add_tmp215.i.i, 60
-  %59 = icmp ne i32 %sub_tmp.i616.i.i, 0
+  %sub_tmp.i624.i.i = add i32 %add_tmp216.i.i, 60
+  %59 = icmp ne i32 %sub_tmp.i624.i.i, 0
   tail call void @llvm.assume(i1 %59) #7
   br label %for_condition_check.i.i.i.i
 
-for_condition_check.i.i.i.i:                      ; preds = %for_condition_check.i.i.i.i, %else202.i.i
-  %.020.i.i.i.i = phi i64 [ %.0581685727747.i.i, %else202.i.i ], [ %mul_tmp.i.i.i.i, %for_condition_check.i.i.i.i ]
-  %.0.i.i.i.i = phi i32 [ 0, %else202.i.i ], [ %62, %for_condition_check.i.i.i.i ]
+for_condition_check.i.i.i.i:                      ; preds = %for_condition_check.i.i.i.i, %else203.i.i
+  %.020.i.i.i.i = phi i64 [ %.0589693735755.i.i, %else203.i.i ], [ %mul_tmp.i.i.i.i, %for_condition_check.i.i.i.i ]
+  %.0.i.i.i.i = phi i32 [ 0, %else203.i.i ], [ %62, %for_condition_check.i.i.i.i ]
   %60 = icmp ne i64 %.020.i.i.i.i, 0
   tail call void @llvm.assume(i1 %60) #7
   %mul_tmp.i.i.i.i = mul i64 %.020.i.i.i.i, -3689348814741910323
@@ -4173,9 +4173,9 @@ for_condition_check.i.i.i.i:                      ; preds = %for_condition_check
   br i1 %61, label %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i, label %for_condition_check.i.i.i.i
 
 func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i: ; preds = %for_condition_check.i.i.i.i
-  %rshift_tmp30.i.i.i.i = lshr i64 %mul_tmp.i.i615.i.i, 32
+  %rshift_tmp30.i.i.i.i = lshr i64 %mul_tmp.i.i623.i.i, 32
   %rshift_tmp30.i39.i.i.i = lshr i64 %mul_tmp.i35.i.i.i, 32
-  %rshift_tmp.i.i.i.i = lshr i64 %.0581685727747.i.i, 32
+  %rshift_tmp.i.i.i.i = lshr i64 %.0589693735755.i.i, 32
   %mul_tmp21.i.i.i.i = mul nuw i64 %cast_tmp11.i.i.i.i, %rshift_tmp.i.i.i.i
   %add_tmp.i.i.i.i = add nuw i64 %rshift_tmp30.i.i.i.i, %mul_tmp21.i.i.i.i
   %mul_tmp21.i37.i.i.i = mul nuw i64 %cast_tmp11.i34.i.i.i, %rshift_tmp.i.i.i.i
@@ -4191,15 +4191,15 @@ func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.ex
   %mul_tmp26.i38.i.i.i = mul nuw i64 %rshift_tmp6.i32.i.i.i, %rshift_tmp.i.i.i.i
   %rshift_tmp38.i41.i.i.i = lshr i64 %add_tmp.i40.i.i.i, 32
   %add_tmp52.i45.i.i.i = add nuw i64 %rshift_tmp38.i41.i.i.i, %mul_tmp26.i38.i.i.i
-  %cast_tmp59.i.i.i.i = and i64 %mul_tmp.i.i615.i.i, 4294967295
+  %cast_tmp59.i.i.i.i = and i64 %mul_tmp.i.i623.i.i, 4294967295
   %rshift_tmp47.i44.i.i.i = lshr i64 %add_tmp43.i43.i.i.i, 32
   %add_tmp55.i46.i.i.i = add nuw i64 %add_tmp52.i45.i.i.i, %rshift_tmp47.i44.i.i.i
   %lshift_tmp.i.i.i.i = shl i64 %add_tmp43.i.i.i.i, 32
   %bit_or_tmp.i.i.i.i = or i64 %lshift_tmp.i.i.i.i, %cast_tmp59.i.i.i.i
   %add_tmp.i.i.i = add i64 %bit_or_tmp.i.i.i.i, %add_tmp55.i46.i.i.i
-  %sub_tmp.i.i.i.i = sub i32 4, %add_tmp215.i.i
+  %sub_tmp.i.i.i.i = sub i32 4, %add_tmp216.i.i
   %63 = icmp ult i64 %add_tmp.i.i.i, %add_tmp55.i46.i.i.i
-  %64 = zext i32 %sub_tmp.i616.i.i to i64
+  %64 = zext i32 %sub_tmp.i624.i.i to i64
   %mul_tmp26.i.i.i.i = mul nuw i64 %rshift_tmp6.i.i.i.i, %rshift_tmp.i.i.i.i
   %rshift_tmp38.i.i.i.i = lshr i64 %add_tmp.i.i.i.i, 32
   %add_tmp52.i.i.i.i = add nuw i64 %rshift_tmp38.i.i.i.i, %mul_tmp26.i.i.i.i
@@ -4211,81 +4211,81 @@ func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.ex
   %spec.select.i.i.i = add nuw i64 %add_tmp55.i.i.i.i, %65
   %lshift_tmp.i28.i.i.i = shl i64 %spec.select.i.i.i, %66
   %bit_or_tmp.i30.i.i.i = or i64 %lshift_tmp.i28.i.i.i, %rshift_tmp.i29.i.i.i
-  %67 = icmp uge i32 %.0.i.i.i.i, %unary_minus_tmp207.i.i
-  br label %endif227.i.i
+  %67 = icmp uge i32 %.0.i.i.i.i, %unary_minus_tmp208.i.i
+  br label %endif229.i.i
 
-endif227.i.i:                                     ; preds = %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i, %bool_and_rhs193.i.i, %bool_or_rhs189.i.i, %then169.i.i
-  %.0588.i.i = phi i32 [ %sub_tmp209.i.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i ], [ %sub_tmp175.i.i, %bool_or_rhs189.i.i ], [ %sub_tmp175.i.i, %bool_and_rhs193.i.i ], [ %sub_tmp175.i.i, %then169.i.i ]
-  %.0587.i.i = phi i64 [ %bit_or_tmp.i30.i.i.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i ], [ %bit_or_tmp.i30.i665.i.i, %bool_or_rhs189.i.i ], [ %bit_or_tmp.i30.i665.i.i, %bool_and_rhs193.i.i ], [ %bit_or_tmp.i30.i665.i.i, %then169.i.i ]
-  %.0586.i.i = phi i1 [ %67, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i ], [ false, %bool_or_rhs189.i.i ], [ %54, %bool_and_rhs193.i.i ], [ true, %then169.i.i ]
-  %68 = tail call i64 @llvm.ctlz.i64(i64 %.0587.i.i, i1 false) #7, !range !3
+endif229.i.i:                                     ; preds = %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i, %bool_and_rhs194.i.i, %bool_or_rhs190.i.i, %then169.i.i
+  %.0604.i.i = phi i32 [ %sub_tmp210.i.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i ], [ %sub_tmp175.i.i, %bool_or_rhs190.i.i ], [ %sub_tmp175.i.i, %bool_and_rhs194.i.i ], [ %sub_tmp175.i.i, %then169.i.i ]
+  %.0603.i.i = phi i64 [ %bit_or_tmp.i30.i.i.i, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i ], [ %bit_or_tmp.i30.i673.i.i, %bool_or_rhs190.i.i ], [ %bit_or_tmp.i30.i673.i.i, %bool_and_rhs194.i.i ], [ %bit_or_tmp.i30.i673.i.i, %then169.i.i ]
+  %.0602.i.i = phi i1 [ %67, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit.i.i ], [ false, %bool_or_rhs190.i.i ], [ %54, %bool_and_rhs194.i.i ], [ true, %then169.i.i ]
+  %68 = tail call i64 @llvm.ctlz.i64(i64 %.0603.i.i, i1 false) #7, !range !3
   %cast_tmp.i.i.i = trunc i64 %68 to i32
-  %69 = sub i32 %.0588.i.i, %cast_tmp.i.i.i
-  %add_tmp231.i.i = add i32 %69, 1086
-  %70 = icmp sgt i32 %add_tmp231.i.i, 0
-  %71 = select i1 %70, i32 %add_tmp231.i.i, i32 0
+  %69 = sub i32 %.0604.i.i, %cast_tmp.i.i.i
+  %add_tmp233.i.i = add i32 %69, 1086
+  %70 = icmp sgt i32 %add_tmp233.i.i, 0
+  %71 = select i1 %70, i32 %add_tmp233.i.i, i32 0
   %72 = icmp ugt i32 %71, 2046
-  br i1 %72, label %then233.i.i, label %endif240.i.i
+  br i1 %72, label %then235.i.i, label %endif242.i.i
 
-then233.i.i:                                      ; preds = %endif227.i.i
+then235.i.i:                                      ; preds = %endif229.i.i
   %73 = select i1 %7, double 0xFFF0000000000000, double 0x7FF0000000000000
   store double %73, double* %2, align 8
   br label %func.std.ryu.s2d_str..2.builtin.str.0P.builtin.float64.builtin.uint32.exit
 
-endif240.i.i:                                     ; preds = %endif227.i.i
-  %74 = icmp slt i32 %add_tmp231.i.i, 1
-  %sub_tmp246.i.i = sub i32 -1074, %.0588.i.i
-  %sub_tmp250.i.i = sub i32 -1075, %.0588.i.i
-  %sub_tmp252.i.i = add i32 %sub_tmp250.i.i, %71
-  %.0578.i.i = select i1 %74, i32 %sub_tmp246.i.i, i32 %sub_tmp252.i.i
-  %75 = icmp sgt i32 %.0578.i.i, -1
+endif242.i.i:                                     ; preds = %endif229.i.i
+  %74 = icmp slt i32 %add_tmp233.i.i, 1
+  %sub_tmp248.i.i = sub i32 -1074, %.0604.i.i
+  %sub_tmp252.i.i = sub i32 -1075, %.0604.i.i
+  %sub_tmp254.i.i = add i32 %sub_tmp252.i.i, %71
+  %.0586.i.i = select i1 %74, i32 %sub_tmp248.i.i, i32 %sub_tmp254.i.i
+  %75 = icmp sgt i32 %.0586.i.i, -1
   tail call void @llvm.assume(i1 %75) #7
-  %sub_tmp257.i.i = add nsw i32 %.0578.i.i, -1
-  %76 = zext i32 %sub_tmp257.i.i to i64
+  %sub_tmp259.i.i = add nsw i32 %.0586.i.i, -1
+  %76 = zext i32 %sub_tmp259.i.i to i64
   %77 = shl nuw i64 1, %76
-  %78 = and i64 %77, %.0587.i.i
+  %78 = and i64 %77, %.0603.i.i
   %.not.i.i = icmp eq i64 %78, 0
-  br i1 %.not.i.i, label %bool_and_end276.i.i, label %bool_and_rhs267.i.i
+  br i1 %.not.i.i, label %bool_and_end278.i.i, label %bool_and_rhs269.i.i
 
-bool_and_rhs267.i.i:                              ; preds = %endif240.i.i
+bool_and_rhs269.i.i:                              ; preds = %endif242.i.i
   %notmask.i.i = shl nsw i64 -1, %76
-  %sub_tmp259.i.i = xor i64 %notmask.i.i, -1
-  %bit_and_tmp.i.i = and i64 %.0587.i.i, %sub_tmp259.i.i
+  %sub_tmp261.i.i = xor i64 %notmask.i.i, -1
+  %bit_and_tmp.i.i = and i64 %.0603.i.i, %sub_tmp261.i.i
   %79 = icmp eq i64 %bit_and_tmp.i.i, 0
-  %bit_and_tmp261.i.i = and i1 %.0586.i.i, %79
-  br i1 %bit_and_tmp261.i.i, label %bool_or_rhs269.i.i, label %bool_and_end276.i.i
+  %bit_and_tmp263.i.i = and i1 %.0602.i.i, %79
+  br i1 %bit_and_tmp263.i.i, label %bool_or_rhs271.i.i, label %bool_and_end278.i.i
 
-bool_or_rhs269.i.i:                               ; preds = %bool_and_rhs267.i.i
-  %80 = zext i32 %.0578.i.i to i64
+bool_or_rhs271.i.i:                               ; preds = %bool_and_rhs269.i.i
+  %80 = zext i32 %.0586.i.i to i64
   %81 = shl nuw i64 1, %80
-  %82 = and i64 %81, %.0587.i.i
+  %82 = and i64 %81, %.0603.i.i
   %83 = icmp ne i64 %82, 0
-  br label %bool_and_end276.i.i
+  br label %bool_and_end278.i.i
 
-bool_and_end276.i.i:                              ; preds = %bool_or_rhs269.i.i, %bool_and_rhs267.i.i, %endif240.i.i
-  %bool_and_tmp277.i.i = phi i1 [ false, %endif240.i.i ], [ true, %bool_and_rhs267.i.i ], [ %83, %bool_or_rhs269.i.i ]
-  %84 = zext i32 %.0578.i.i to i64
-  %rshift_tmp280.i.i = lshr i64 %.0587.i.i, %84
-  %cast_tmp282.i.i = zext i1 %bool_and_tmp277.i.i to i64
-  %add_tmp283.i.i = add i64 %rshift_tmp280.i.i, %cast_tmp282.i.i
-  %85 = icmp ult i64 %add_tmp283.i.i, 9007199254740993
+bool_and_end278.i.i:                              ; preds = %bool_or_rhs271.i.i, %bool_and_rhs269.i.i, %endif242.i.i
+  %bool_and_tmp279.i.i = phi i1 [ false, %endif242.i.i ], [ true, %bool_and_rhs269.i.i ], [ %83, %bool_or_rhs271.i.i ]
+  %84 = zext i32 %.0586.i.i to i64
+  %rshift_tmp282.i.i = lshr i64 %.0603.i.i, %84
+  %cast_tmp284.i.i = zext i1 %bool_and_tmp279.i.i to i64
+  %add_tmp285.i.i = add i64 %rshift_tmp282.i.i, %cast_tmp284.i.i
+  %85 = icmp ult i64 %add_tmp285.i.i, 9007199254740993
   tail call void @llvm.assume(i1 %85) #7
-  %bit_and_tmp286.i.i = and i64 %add_tmp283.i.i, 4503599627370495
-  %86 = icmp eq i64 %bit_and_tmp286.i.i, 0
-  %narrow.i.i = select i1 %86, i1 %bool_and_tmp277.i.i, i1 false
-  %spec.select671.i.i = zext i1 %narrow.i.i to i32
-  %.0580.i.i = add nuw nsw i32 %71, %spec.select671.i.i
-  %lshift_tmp297.i.i = select i1 %7, i64 2048, i64 0
-  %cast_tmp299.i.i = zext i32 %.0580.i.i to i64
-  %bit_or_tmp300.i.i = or i64 %lshift_tmp297.i.i, %cast_tmp299.i.i
-  %lshift_tmp301.i.i = shl i64 %bit_or_tmp300.i.i, 52
-  %bit_or_tmp303.i.i = or i64 %lshift_tmp301.i.i, %bit_and_tmp286.i.i
+  %bit_and_tmp288.i.i = and i64 %add_tmp285.i.i, 4503599627370495
+  %86 = icmp eq i64 %bit_and_tmp288.i.i, 0
+  %narrow.i.i = select i1 %86, i1 %bool_and_tmp279.i.i, i1 false
+  %spec.select679.i.i = zext i1 %narrow.i.i to i32
+  %.0588.i.i = add nuw nsw i32 %71, %spec.select679.i.i
+  %lshift_tmp299.i.i = select i1 %7, i64 2048, i64 0
+  %cast_tmp301.i.i = zext i32 %.0588.i.i to i64
+  %bit_or_tmp302.i.i = or i64 %lshift_tmp299.i.i, %cast_tmp301.i.i
+  %lshift_tmp303.i.i = shl i64 %bit_or_tmp302.i.i, 52
+  %bit_or_tmp305.i.i = or i64 %lshift_tmp303.i.i, %bit_and_tmp288.i.i
   %87 = bitcast double* %2 to i64*
-  store i64 %bit_or_tmp303.i.i, i64* %87, align 8
+  store i64 %bit_or_tmp305.i.i, i64* %87, align 8
   br label %func.std.ryu.s2d_str..2.builtin.str.0P.builtin.float64.builtin.uint32.exit
 
-func.std.ryu.s2d_str..2.builtin.str.0P.builtin.float64.builtin.uint32.exit: ; preds = %then17.i.i, %endif27.i.i, %for88.i.i, %alloca, %endif113.i.i, %then147.i.i, %then160.i.i, %then233.i.i, %bool_and_end276.i.i
-  %common.ret.op.i.i = phi i32 [ 0, %then147.i.i ], [ 0, %then160.i.i ], [ 0, %then233.i.i ], [ 0, %bool_and_end276.i.i ], [ 1, %alloca ], [ 3, %endif113.i.i ], [ 3, %for88.i.i ], [ 3, %then17.i.i ], [ 2, %endif27.i.i ]
+func.std.ryu.s2d_str..2.builtin.str.0P.builtin.float64.builtin.uint32.exit: ; preds = %then17.i.i, %endif27.i.i, %for88.i.i, %alloca, %endif113.i.i, %then147.i.i, %then160.i.i, %then235.i.i, %bool_and_end278.i.i
+  %common.ret.op.i.i = phi i32 [ 0, %then147.i.i ], [ 0, %then160.i.i ], [ 0, %then235.i.i ], [ 0, %bool_and_end278.i.i ], [ 1, %alloca ], [ 3, %endif113.i.i ], [ 3, %for88.i.i ], [ 3, %then17.i.i ], [ 2, %endif27.i.i ]
   ret i32 %common.ret.op.i.i
 }
 
