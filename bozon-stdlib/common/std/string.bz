@@ -1,76 +1,10 @@
-import print;
 import unicode;
 import utils;
+import bit;
 import meta::comptime;
 
-/*
-@no_comptime_checking
-function print_ascii_char(c: char)
-{
-	const c_int_val = c as uint8;
-	std::print(__builtin_str_from_ptrs(&c_int_val, &c_int_val + 1));
-}
-
-@no_comptime_checking
-function print_uint_impl(n: uint64, base: consteval uint64)
-{
-	if (n < 10u)
-	{
-		print_ascii_char('0' + n);
-	}
-	else if (n < base)
-	{
-		print_ascii_char('a' + n - 10);
-	}
-	else
-	{
-		print_uint_impl(n / base, base);
-		const mod = n % base;
-		const c = if (mod < 10u) { '0' + mod } else { 'a' + mod - 10 };
-		print_ascii_char(c);
-	}
-}
-
-@no_comptime_checking
-function print_uint(n: uint64, base: consteval uint64)
-{
-	if (n == 0u)
-	{
-		std::print("0");
-	}
-	else
-	{
-		print_uint_impl(n, base);
-	}
-}
-
-@no_comptime_checking
-export function comptime_print(n: uint64)
-{
-	print_uint(n, 10u);
-}
-
-@no_comptime_checking
-export function comptime_print(p: *const void)
-{
-	std::print("0x"), print_uint(__builtin_pointer_to_int(p), 16u);
-}
-
-@no_comptime_checking
-export function comptime_println(n: uint64)
-{
-	print_uint(n, 10u), std::println("");
-}
-
-@no_comptime_checking
-export function comptime_println(p: *const void)
-{
-	std::print("0x"), print_uint(__builtin_pointer_to_int(p), 16u), std::println("");
-}
-*/
-
-static_assert(sizeof string == 3u * sizeof *uint8);
-consteval short_string_max_size = 2u * sizeof *uint8;
+static_assert(sizeof string == 3 * sizeof *uint8);
+consteval short_string_max_size = 2 * sizeof *uint8;
 
 export struct string
 {
@@ -94,13 +28,13 @@ export struct string
 	constructor(s: str)
 	{
 		const size = s.size();
-		if (size == 0u)
+		if (size == 0)
 		{
 			return string[ null, null, null ];
 		}
 		else if (!meta::is_comptime() && size <= short_string_max_size)
 		{
-			const data_begin = __builtin_int_to_pointer(*uint8, 1uz | (size << 1u));
+			const data_begin = __builtin_int_to_pointer(*uint8, 1uz | (size << 1));
 			let data_and_alloc_end: [2: *uint8];
 			memcpy(data_and_alloc_end.begin(), s.begin_ptr(), size);
 			return string[ data_begin, data_and_alloc_end[0], data_and_alloc_end[1] ];
@@ -131,11 +65,7 @@ export struct string
 		return self;
 	}
 
-	operator = (self: &string, other: string) -> &string
-	{
-		self.swap(other);
-		return self;
-	}
+	operator = (self: &string, other: string) = __default__;
 
 	operator = (self: &string, rhs: str) -> &string
 	{
@@ -155,24 +85,18 @@ export struct string
 
 function round_to_next_power_of_two(n: usize) -> usize
 {
-	// https://stackoverflow.com/a/466242/11488457
-	static_assert(sizeof usize == 8u);
-	n -= 1u;
-	n |= n >>  1;
-	n |= n >>  2;
-	n |= n >>  4;
-	n |= n >>  8;
-	n |= n >> 16;
-	n |= n >> 32;
-	n += 1u;
-	return n;
+	return if (n <= 1) {
+		1
+	} else {
+		1uz << (sizeof usize * 8 - clz(n - 1))
+	};
 }
 
 function rounded_alloc(n: usize) -> [*uint8, usize]
 {
-	if (n == 0u)
+	if (n == 0)
 	{
-		return [ null, 0u ];
+		return [ null, 0 ];
 	}
 	else
 	{
@@ -190,14 +114,14 @@ function is_short_string(s: &const string) -> bool
 	else
 	{
 		const data_begin_int = __builtin_pointer_to_int(s._data_begin);
-		return s._data_begin == null || (data_begin_int & 1uz) != 0u;
+		return s._data_begin == null || (data_begin_int & 1uz) != 0;
 	}
 }
 
 function short_string_size(s: &const string) -> usize
 {
 	const data_begin_int = __builtin_pointer_to_int(s._data_begin);
-	return data_begin_int >> 1u;
+	return data_begin_int >> 1;
 }
 
 function begin_ptr(s: &const string) -> *uint8
@@ -227,13 +151,13 @@ function end_ptr(s: &const string) -> *uint8
 
 function set_short_string_size(s: &string, size: usize)
 {
-	if (size == 0u)
+	if (size == 0)
 	{
 		s._data_begin = null;
 	}
 	else
 	{
-		s._data_begin = __builtin_int_to_pointer(*uint8, (size << 1u) | 1uz);
+		s._data_begin = __builtin_int_to_pointer(*uint8, (size << 1) | 1uz);
 	}
 }
 
@@ -294,7 +218,7 @@ export function is_ascii(self: #const string) -> bool
 {
 	for (const c in self.as_slice())
 	{
-		if ((c & 0b1000'0000u8) != 0u)
+		if ((c & 0b1000'0000u8) != 0)
 		{
 			return false;
 		}
@@ -342,7 +266,7 @@ export function reserve(self: &string, new_capacity: usize)
 
 export function clear(self: &string)
 {
-	self.set_size_unsafe(0u);
+	self.set_size_unsafe(0);
 }
 
 export function push_back(self: &string, c: char)
@@ -405,17 +329,6 @@ export function release(s: &string) -> string
 	s._data_end   = null;
 	s._alloc_end  = null;
 	return string[ data_begin, data_end, alloc_end ];
-}
-
-
-export function print(s: #const string)
-{
-	print(s.as_str());
-}
-
-export function println(s: #const string)
-{
-	println(s.as_str());
 }
 
 
