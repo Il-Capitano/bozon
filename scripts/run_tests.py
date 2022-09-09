@@ -2,9 +2,9 @@ import subprocess
 import os
 import glob
 
-success_test_files = glob.glob("tests/success/*.bz")
-warning_test_files = glob.glob("tests/warning/*.bz")
-error_test_files = glob.glob("tests/error/*.bz")
+success_test_files = glob.glob("tests/success/**/*.bz", recursive=True)
+warning_test_files = glob.glob("tests/warning/**/*.bz", recursive=True)
+error_test_files = glob.glob("tests/error/**/*.bz", recursive=True)
 bozon = 'bin\\windows-debug\\bozon.exe' if os.name == 'nt' else './bin/linux-debug/bozon'
 flags = [ '--stdlib-dir', 'bozon-stdlib', '-Wall', '--emit=null', '-Itests/import', '-Ocomptime-opt-level=3' ]
 
@@ -34,9 +34,9 @@ bright_white   = "\033[97m"
 
 file_name_print_length = 3 + max((
     57,
-    max((len(test_file) for test_file in success_test_files)),
-    max((len(test_file) for test_file in warning_test_files)),
-    max((len(test_file) for test_file in error_test_files)),
+    max((len(test_file) for test_file in success_test_files)) if len(success_test_files) != 0 else 0,
+    max((len(test_file) for test_file in warning_test_files)) if len(warning_test_files) != 0 else 0,
+    max((len(test_file) for test_file in error_test_files)) if len(error_test_files) != 0 else 0,
 ))
 
 error = False
