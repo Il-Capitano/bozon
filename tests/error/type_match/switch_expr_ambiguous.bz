@@ -1,0 +1,8 @@
+function test(val: int32)
+{
+	let _ = switch (val) {
+		0 => 0,
+		1 => 1i64,
+		else => 2i16,
+	};
+}

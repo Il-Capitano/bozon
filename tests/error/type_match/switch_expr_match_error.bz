@@ -1,0 +1,9 @@
+function test(val: int32)
+{
+	let i = 0;
+	let _: &auto = switch (val) {
+		0, 1, 2 => i,
+		3, 4, 5 => 1,
+		else => 2,
+	};
+}
