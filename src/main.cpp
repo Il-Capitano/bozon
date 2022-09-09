@@ -1679,6 +1679,7 @@ int main(int argc, char const **argv)
 		bz::print("allocations:              {:8}\n", ast::arena_allocator::get_allocation_count());
 		bz::print("deallocations:            {:8}\n", ast::arena_allocator::get_deallocation_count());
 		bz::print("total allocation size:    {:8}\n", ast::arena_allocator::get_total_allocation_size());
+		bz_assert(ast::arena_allocator::get_allocation_count() == ast::arena_allocator::get_deallocation_count());
 #endif // BOZON_PROFILE_ALLOCATIONS
 	}
 
