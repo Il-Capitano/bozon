@@ -512,11 +512,7 @@ inline match_function_result_t<kind> generic_type_match_if_expr(match_context_t<
 			.dest = then_matched_type,
 			.context = match_context.context,
 		});
-		if (!can_then_match && !can_else_match)
-		{
-			return match_function_result_t<kind>();
-		}
-		else if (!can_then_match && can_else_match)
+		if (!can_then_match && can_else_match)
 		{
 			return generic_type_match_if_expr_complete_type(change_dest_and_dest_container(match_context, std::move(then_matched_type)));
 		}
@@ -658,10 +654,11 @@ inline match_function_result_t<kind> generic_type_match_switch_expr(match_contex
 		return generic_type_match_switch_expr_complete_type(match_context);
 	}
 
+	bool any_failed_matches = false;
 	lex::src_tokens first_match_src_tokens = {};
 	ast::typespec matched_type;
 
-	auto const check_expr_matched_type = [&](ast::expression const &expr) -> bool {
+	auto const check_expr_matched_type = [&](typename match_context_t<kind>::expr_ref_type expr) -> bool {
 		if (matched_type.is_empty())
 		{
 			matched_type = generic_type_match(match_context_t<type_match_function_kind::matched_type>{
@@ -669,7 +666,8 @@ inline match_function_result_t<kind> generic_type_match_switch_expr(match_contex
 				.dest = match_context.dest,
 				.context = match_context.context,
 			});
-			return !matched_type.is_empty();
+			first_match_src_tokens = expr.src_tokens;
+			return kind == type_match_function_kind::match_expression || !matched_type.is_empty();
 		}
 		else
 		{
@@ -685,7 +683,7 @@ inline match_function_result_t<kind> generic_type_match_switch_expr(match_contex
 				{
 					match_context.context.report_error(
 						match_context.expr.src_tokens,
-						"different types deduced for different cases in switch expression",
+						bz::format("different types deduced for different cases in switch expression while matching to type '{}'", match_context.dest_container),
 						{
 							match_context.context.make_note(first_match_src_tokens, bz::format("type was first deduced as '{}'", matched_type)),
 							match_context.context.make_note(expr.src_tokens, bz::format("type was later deduced as '{}'", case_matched_type)),
@@ -694,41 +692,40 @@ inline match_function_result_t<kind> generic_type_match_switch_expr(match_contex
 					return false;
 				}
 			}
-			else if (kind == type_match_function_kind::match_expression && case_matched_type.is_empty())
+			else if constexpr (kind == type_match_function_kind::match_expression)
 			{
-				return true;
+				if (case_matched_type.is_empty())
+				{
+					// this reports the match errors
+					[[maybe_unused]] auto const good = generic_type_match(change_expr(match_context, expr));
+					bz_assert(!good);
+					any_failed_matches = true;
+					return true;
+				}
 			}
 			return is_equal;
 		}
 	};
 
-	bool all_good = true;
-	for (auto const &[_, expr] : switch_expr.cases)
+	for (auto &[_, expr] : switch_expr.cases)
 	{
 		if (expr.is_noreturn())
 		{
 			continue;
 		}
 		auto const good = check_expr_matched_type(expr);
-		if (kind != type_match_function_kind::match_expression && !good)
+		if (!good)
 		{
 			return match_function_result_t<kind>();
 		}
-		all_good &= good;
 	}
 	if (is_default_valid)
 	{
 		auto const good = check_expr_matched_type(switch_expr.default_case);
-		if (kind != type_match_function_kind::match_expression && !good)
+		if (!good)
 		{
 			return match_function_result_t<kind>();
 		}
-		all_good &= good;
-	}
-
-	if (!all_good)
-	{
-		return match_function_result_t<kind>();
 	}
 
 	if constexpr (kind == type_match_function_kind::can_match)
@@ -764,9 +761,13 @@ inline match_function_result_t<kind> generic_type_match_switch_expr(match_contex
 	}
 	else if constexpr (kind == type_match_function_kind::match_expression)
 	{
-		auto const new_context = matched_type.is_empty()
-			? match_context
-			: change_dest_and_dest_container(match_context, std::move(matched_type));
+		if (any_failed_matches)
+		{
+			return false;
+		}
+
+		bz_assert(!matched_type.is_empty());
+		auto const new_context = change_dest_and_dest_container(match_context, std::move(matched_type));
 		bool all_good = true;
 		for (auto &[_, expr] : switch_expr.cases)
 		{
