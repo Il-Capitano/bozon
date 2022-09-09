@@ -1,0 +1,8 @@
+function test(b: bool)
+{
+	let _ = if (b) {
+		0i32
+	} else {
+		1u32
+	};
+}

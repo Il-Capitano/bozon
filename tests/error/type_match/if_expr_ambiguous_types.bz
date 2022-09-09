@@ -1,0 +1,8 @@
+function test(b: bool)
+{
+	let _ = if (b) {
+		0
+	} else {
+		1i16
+	};
+}
