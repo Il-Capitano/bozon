@@ -22,6 +22,7 @@
 #include "ast/scope.cpp"
 
 #include "resolve/safe_operations.cpp"
+#include "resolve/type_match_generic.cpp"
 
 #include "abi/generic.cpp"
 #include "abi/microsoft_x64.cpp"
