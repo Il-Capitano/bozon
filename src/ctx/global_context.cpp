@@ -219,6 +219,144 @@ resolve::attribute_info_t *global_context::get_builtin_attribute(bz::u8string_vi
 	}
 }
 
+void global_context::report_error_or_warning(error &&err)
+{
+	this->_errors.emplace_back(std::move(err));
+}
+
+void global_context::report_error(error &&err)
+{
+	bz_assert(err.is_error());
+	this->_errors.emplace_back(std::move(err));
+}
+
+void global_context::report_error(bz::u8string message, bz::vector<source_highlight> notes, bz::vector<source_highlight> suggestions)
+{
+	this->_errors.emplace_back(error{
+		warning_kind::_last,
+		{
+			global_context::compiler_file_id, 0,
+			char_pos(), char_pos(), char_pos(),
+			suggestion_range{}, suggestion_range{},
+			std::move(message),
+		},
+		std::move(notes), std::move(suggestions)
+	});
+}
+
+void global_context::report_error(
+	lex::src_tokens const &src_tokens, bz::u8string message,
+	bz::vector<source_highlight> notes,
+	bz::vector<source_highlight> suggestions
+)
+{
+	this->_errors.push_back(error{
+		warning_kind::_last,
+		{
+			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+			src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
+			suggestion_range{}, suggestion_range{},
+			std::move(message),
+		},
+		std::move(notes), std::move(suggestions)
+	});
+}
+
+void global_context::report_warning(error &&err)
+{
+	bz_assert(err.is_warning());
+	if (is_warning_enabled(err.kind))
+	{
+		this->_errors.emplace_back(std::move(err));
+	}
+}
+
+void global_context::report_warning(warning_kind kind, bz::u8string message)
+{
+	if (is_warning_enabled(kind))
+	{
+		this->_errors.emplace_back(error{
+			kind,
+			{
+				global_context::compiler_file_id, 0,
+				char_pos(), char_pos(), char_pos(),
+				suggestion_range{}, suggestion_range{},
+				std::move(message),
+			},
+			{}, {}
+		});
+	}
+}
+
+[[nodiscard]] source_highlight global_context::make_note(bz::u8string message)
+{
+	return source_highlight{
+		global_context::compiler_file_id, 0,
+		char_pos(), char_pos(), char_pos(),
+		{}, {}, std::move(message)
+	};
+}
+
+[[nodiscard]] source_highlight global_context::make_note(lex::src_tokens const &src_tokens, bz::u8string message)
+{
+	return source_highlight{
+		src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+		src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
+		{}, {},
+		std::move(message)
+	};
+}
+
+src_file &global_context::get_src_file(uint32_t file_id) noexcept
+{
+	auto const it = std::find_if(
+		this->_src_files.begin(), this->_src_files.end(),
+		[&](auto const &src_file) {
+			return file_id == src_file._file_id;
+		}
+	);
+	bz_assert(it != this->_src_files.end());
+	return *it;
+}
+
+src_file const &global_context::get_src_file(uint32_t file_id) const noexcept
+{
+	auto const it = std::find_if(
+		this->_src_files.begin(), this->_src_files.end(),
+		[&](auto const &src_file) {
+			return file_id == src_file._file_id;
+		}
+	);
+	bz_assert(it != this->_src_files.end());
+	return *it;
+}
+
+char_pos global_context::get_file_begin(uint32_t file_id) const noexcept
+{
+	if (file_id == compiler_file_id || file_id == command_line_file_id)
+	{
+		return char_pos();
+	}
+	bz_assert(file_id < this->_src_files.size());
+	return this->get_src_file(file_id)._file.begin();
+}
+
+std::pair<char_pos, char_pos> global_context::get_file_begin_and_end(uint32_t file_id) const noexcept
+{
+	if (file_id == compiler_file_id || file_id == command_line_file_id)
+	{
+		return { char_pos(), char_pos() };
+	}
+	bz_assert(file_id < this->_src_files.size());
+	auto const &src_file = this->get_src_file(file_id);
+	return { src_file._file.begin(), src_file._file.end() };
+}
+
+bool global_context::is_library_file(uint32_t file_id) const noexcept
+{
+	return file_id == compiler_file_id || file_id == command_line_file_id || this->get_src_file(file_id)._is_library_file;
+}
+
 
 bool global_context::has_errors(void) const
 {
