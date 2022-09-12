@@ -9,3 +9,5 @@ export function remove_consteval = __builtin_remove_consteval;
 export function remove_pointer = __builtin_remove_pointer;
 export function remove_reference = __builtin_remove_reference;
 export function remove_move_reference = __builtin_remove_move_reference;
+
+export function typename_as_str = __builtin_typename_as_str;

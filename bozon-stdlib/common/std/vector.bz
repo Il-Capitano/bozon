@@ -1,32 +1,33 @@
 import utils;
 import bit;
 import meta::comptime;
+import meta::types;
 import format;
 
 export struct vector<T: typename>
 {
 	static_assert(
-		!__builtin_is_const(T),
-		comptime_format("vector value_type can't be a const type '{}'", __builtin_typename_as_str(T))
+		!meta::is_const(T),
+		comptime_format("vector value_type can't be a const type '{}'", meta::typename_as_str(T))
 	);
 	static_assert(
-		!__builtin_is_consteval(T),
-		comptime_format("vector value_type can't be a consteval type '{}'", __builtin_typename_as_str(T))
+		!meta::is_consteval(T),
+		comptime_format("vector value_type can't be a consteval type '{}'", meta::typename_as_str(T))
 	);
 	static_assert(
-		!__builtin_is_reference(T),
-		comptime_format("vector value_type can't be a reference type '{}'", __builtin_typename_as_str(T))
+		!meta::is_reference(T),
+		comptime_format("vector value_type can't be a reference type '{}'", meta::typename_as_str(T))
 	);
 	static_assert(
-		!__builtin_is_move_reference(T),
-		comptime_format("vector value_type can't be a move reference type '{}'", __builtin_typename_as_str(T))
+		!meta::is_move_reference(T),
+		comptime_format("vector value_type can't be a move reference type '{}'", meta::typename_as_str(T))
 	);
 
 	type value_type = T
-		.__builtin_remove_reference()
-		.__builtin_remove_move_reference()
-		.__builtin_remove_const()
-		.__builtin_remove_consteval();
+		.meta::remove_reference()
+		.meta::remove_move_reference()
+		.meta::remove_const()
+		.meta::remove_consteval();
 	type _self_t = vector<T>;
 
 	._data_begin: *value_type;
@@ -186,20 +187,6 @@ export struct vector<T: typename>
 		self._data_end += 1;
 		return *(self._data_end - 1);
 	}
-}
-
-export function swap(a: &vector, b: &vector)
-	-> (if consteval (typeof a != typeof b) {
-		(consteval meta::compile_error(comptime_format(
-			"different 'std::vector' types in swap: '{}' and '{}'",
-			__builtin_typename_as_str(__builtin_remove_reference(typeof a)),
-			__builtin_typename_as_str(__builtin_remove_reference(typeof b)),
-		)))
-	} else {}, void)
-{
-	swap(a._data_begin, b._data_begin);
-	swap(a._data_end,   b._data_end);
-	swap(a._alloc_end,  b._alloc_end);
 }
 
 export function begin(vec: &vector) -> *(typeof vec).value_type

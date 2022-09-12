@@ -124,7 +124,7 @@ function short_string_size(s: &const string) -> usize
 	return data_begin_int >> 1;
 }
 
-function begin_ptr(s: &const string) -> *uint8
+function begin_ptr(s: &string) -> *uint8
 {
 	if (s.is_short_string())
 	{
@@ -136,12 +136,37 @@ function begin_ptr(s: &const string) -> *uint8
 	}
 }
 
-function end_ptr(s: &const string) -> *uint8
+function begin_ptr(s: &const string) -> *const uint8
+{
+	if (s.is_short_string())
+	{
+		return __builtin_pointer_cast(*const uint8, &s._data_end);
+	}
+	else
+	{
+		return s._data_begin;
+	}
+}
+
+function end_ptr(s: &string) -> *uint8
 {
 	if (s.is_short_string())
 	{
 		const size = s.short_string_size();
 		return __builtin_pointer_cast(*uint8, &s._data_end) + size;
+	}
+	else
+	{
+		return s._data_end;
+	}
+}
+
+function end_ptr(s: &const string) -> *const uint8
+{
+	if (s.is_short_string())
+	{
+		const size = s.short_string_size();
+		return __builtin_pointer_cast(*const uint8, &s._data_end) + size;
 	}
 	else
 	{
@@ -304,20 +329,6 @@ export function resize(self: &string, new_size: usize, c: char)
 export function resize(self: &string, new_size: usize)
 {
 	self.resize(new_size, '\x00');
-}
-
-function swap(a: &*uint8, b: &*uint8)
-{
-	const temp = a;
-	a = b;
-	b = temp;
-}
-
-export function swap(a: &string, b: &string)
-{
-	swap(a._data_begin, b._data_begin);
-	swap(a._data_end,   b._data_end);
-	swap(a._alloc_end,  b._alloc_end);
 }
 
 export function release(s: &string) -> string
