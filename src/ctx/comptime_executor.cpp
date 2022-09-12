@@ -1192,6 +1192,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 			{
 				auto getter_it = global_result_getters.cbegin();
 				result.first = constant_value_from_global_getters(func_call.func_body->return_type, getter_it, *this);
+				bz_assert(getter_it == global_result_getters.end());
 			}
 		}
 		result.second.append_move(this->consume_errors());
@@ -1248,6 +1249,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 			auto const result_type = expr.final_expr.get_expr_type();
 			auto getter_it = global_result_getters.cbegin();
 			result.first = constant_value_from_global_getters(result_type, getter_it, *this);
+			bz_assert(getter_it == global_result_getters.end());
 		}
 	}
 	result.second.append_move(this->consume_errors());
@@ -1425,7 +1427,8 @@ void comptime_executor_context::add_module(std::unique_ptr<llvm::Module> module)
 		output_file.flush();
 	}
 	// bz::log("{}>>>>>>>> verifying module <<<<<<<<{}\n", colors::bright_red, colors::clear);
-	llvm::verifyModule(*module, &llvm::dbgs());
+	auto const verify_result = llvm::verifyModule(*module, &llvm::dbgs());
+	bz_assert(verify_result == false);
 	this->engine->addModule(std::move(module));
 }
 

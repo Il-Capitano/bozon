@@ -7301,64 +7301,67 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	auto const result_val = emit_bitcode<abi>(func_call.src_tokens, func_call, context, nullptr);
 	context.pop_expression_scope(prev_info);
 
-	auto const no_leaks = context.builder.CreateCall(
-		context.get_comptime_function(ctx::comptime_function_kind::check_leaks),
-		{}
-	);
-	emit_error_assert(no_leaks, context);
-
-	if (func_call.func_body->return_type.is<ast::ts_array_slice>())
+	if (!context.has_terminator())
 	{
-		emit_error(func_call.func_body->src_tokens, "an array slice cannot be returned from compile time execution", context);
-		bz_assert(!context.has_terminator());
-		context.builder.CreateRet(llvm::UndefValue::get(result.first->getReturnType()));
-	}
-	else if (return_result_as_global)
-	{
-		auto const symbol_name = bz::format("__anon_func_call_result.{}", get_unique_id());
-		auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
-		auto const global_result = context.current_module->getOrInsertGlobal(symbol_name_ref, result_type);
-		bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(global_result) != nullptr);
-		static_cast<llvm::GlobalVariable *>(global_result)->setInitializer(llvm::UndefValue::get(result_type));
+		auto const no_leaks = context.builder.CreateCall(
+			context.get_comptime_function(ctx::comptime_function_kind::check_leaks),
+			{}
+		);
+		emit_error_assert(no_leaks, context);
 
-		emit_value_copy(result_val, global_result, context);
-
-		context.builder.CreateRetVoid();
-		bz::vector<uint32_t> gep_indices = { 0 };
-		add_global_result_getters<abi>(result.second, global_result, result_type, result_type, gep_indices, context);
-	}
-	else
-	{
-		auto const ret_kind = context.template get_pass_kind<abi>(func_call.func_body->return_type, result_type);
-		switch (ret_kind)
+		if (func_call.func_body->return_type.is<ast::ts_array_slice>())
 		{
-		case abi::pass_kind::reference:
-		case abi::pass_kind::non_trivial:
-			bz_unreachable;
-		case abi::pass_kind::value:
-			if (func_call.func_body->return_type.is<ast::ts_lvalue_reference>())
-			{
-				emit_error(func_call.func_body->src_tokens, "a reference cannot be returned from compile time execution", context);
-				bz_assert(!context.has_terminator());
-				context.builder.CreateRet(llvm::UndefValue::get(result.first->getReturnType()));
-			}
-			else
-			{
-				context.builder.CreateRet(result_val.get_value(context.builder));
-			}
-			break;
-		case abi::pass_kind::one_register:
-		case abi::pass_kind::two_registers:
-		{
-			auto const alloca = context.create_alloca_without_lifetime_start(result_type);
-			context.builder.CreateStore(result_val.get_value(context.builder), alloca);
-			auto const result_ptr = context.builder.CreatePointerCast(
-				alloca,
-				llvm::PointerType::get(result.first->getReturnType(), 0)
-			);
-			context.builder.CreateRet(context.create_load(result_pass_type, result_ptr));
-			break;
+			emit_error(func_call.func_body->src_tokens, "an array slice cannot be returned from compile time execution", context);
+			bz_assert(!context.has_terminator());
+			context.builder.CreateRet(llvm::UndefValue::get(result.first->getReturnType()));
 		}
+		else if (return_result_as_global)
+		{
+			auto const symbol_name = bz::format("__anon_func_call_result.{}", get_unique_id());
+			auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
+			auto const global_result = context.current_module->getOrInsertGlobal(symbol_name_ref, result_type);
+			bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(global_result) != nullptr);
+			static_cast<llvm::GlobalVariable *>(global_result)->setInitializer(llvm::UndefValue::get(result_type));
+
+			emit_value_copy(result_val, global_result, context);
+
+			context.builder.CreateRetVoid();
+			bz::vector<uint32_t> gep_indices = { 0 };
+			add_global_result_getters<abi>(result.second, global_result, result_type, result_type, gep_indices, context);
+		}
+		else
+		{
+			auto const ret_kind = context.template get_pass_kind<abi>(func_call.func_body->return_type, result_type);
+			switch (ret_kind)
+			{
+			case abi::pass_kind::reference:
+			case abi::pass_kind::non_trivial:
+				bz_unreachable;
+			case abi::pass_kind::value:
+				if (func_call.func_body->return_type.is<ast::ts_lvalue_reference>())
+				{
+					emit_error(func_call.func_body->src_tokens, "a reference cannot be returned from compile time execution", context);
+					bz_assert(!context.has_terminator());
+					context.builder.CreateRet(llvm::UndefValue::get(result.first->getReturnType()));
+				}
+				else
+				{
+					context.builder.CreateRet(result_val.get_value(context.builder));
+				}
+				break;
+			case abi::pass_kind::one_register:
+			case abi::pass_kind::two_registers:
+			{
+				auto const alloca = context.create_alloca_without_lifetime_start(result_type);
+				context.builder.CreateStore(result_val.get_value(context.builder), alloca);
+				auto const result_ptr = context.builder.CreatePointerCast(
+					alloca,
+					llvm::PointerType::get(result.first->getReturnType(), 0)
+				);
+				context.builder.CreateRet(context.create_load(result_pass_type, result_ptr));
+				break;
+			}
+			}
 		}
 	}
 
@@ -7475,55 +7478,58 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	auto const result_val = emit_bitcode<abi>(expr.final_expr.src_tokens, expr, context, nullptr);
 	context.pop_expression_scope(prev_info);
 
-	auto const no_leaks = context.builder.CreateCall(
-		context.get_comptime_function(ctx::comptime_function_kind::check_leaks),
-		{}
-	);
-	emit_error_assert(no_leaks, context);
-
-	if (expr.final_expr.is_null())
+	if (!context.has_terminator())
 	{
-		context.builder.CreateRetVoid();
-	}
-	else if (return_result_as_global)
-	{
-		auto const symbol_name = bz::format("__anon_compound_expr_result.{}", get_unique_id());
-		auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
-		auto const global_result = context.current_module->getOrInsertGlobal(symbol_name_ref, result_type);
-		bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(global_result) != nullptr);
-		static_cast<llvm::GlobalVariable *>(global_result)->setInitializer(llvm::UndefValue::get(result_type));
+		auto const no_leaks = context.builder.CreateCall(
+			context.get_comptime_function(ctx::comptime_function_kind::check_leaks),
+			{}
+		);
+		emit_error_assert(no_leaks, context);
 
-		emit_value_copy(result_val, global_result, context);
-
-		context.builder.CreateRetVoid();
-		bz::vector<uint32_t> gep_indices = { 0 };
-		add_global_result_getters<abi>(result.second, global_result, result_type, result_type, gep_indices, context);
-	}
-	else
-	{
-		auto const result_expr_type = expr.final_expr.get_expr_type();
-		auto const ret_kind = context.template get_pass_kind<abi>(result_expr_type, result_type);
-		switch (ret_kind)
+		if (expr.final_expr.is_null())
 		{
-		case abi::pass_kind::reference:
-		case abi::pass_kind::non_trivial:
-			bz_unreachable;
-		case abi::pass_kind::value:
-			bz_assert(!result_expr_type.is<ast::ts_lvalue_reference>());
-			context.builder.CreateRet(result_val.get_value(context.builder));
-			break;
-		case abi::pass_kind::one_register:
-		case abi::pass_kind::two_registers:
-		{
-			auto const alloca = context.create_alloca_without_lifetime_start(result_type);
-			context.builder.CreateStore(result_val.get_value(context.builder), alloca);
-			auto const result_ptr = context.builder.CreatePointerCast(
-				alloca,
-				llvm::PointerType::get(result.first->getReturnType(), 0)
-			);
-			context.builder.CreateRet(context.create_load(result_pass_type, result_ptr));
-			break;
+			context.builder.CreateRetVoid();
 		}
+		else if (return_result_as_global)
+		{
+			auto const symbol_name = bz::format("__anon_compound_expr_result.{}", get_unique_id());
+			auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
+			auto const global_result = context.current_module->getOrInsertGlobal(symbol_name_ref, result_type);
+			bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(global_result) != nullptr);
+			static_cast<llvm::GlobalVariable *>(global_result)->setInitializer(llvm::UndefValue::get(result_type));
+
+			emit_value_copy(result_val, global_result, context);
+
+			context.builder.CreateRetVoid();
+			bz::vector<uint32_t> gep_indices = { 0 };
+			add_global_result_getters<abi>(result.second, global_result, result_type, result_type, gep_indices, context);
+		}
+		else
+		{
+			auto const result_expr_type = expr.final_expr.get_expr_type();
+			auto const ret_kind = context.template get_pass_kind<abi>(result_expr_type, result_type);
+			switch (ret_kind)
+			{
+			case abi::pass_kind::reference:
+			case abi::pass_kind::non_trivial:
+				bz_unreachable;
+			case abi::pass_kind::value:
+				bz_assert(!result_expr_type.is<ast::ts_lvalue_reference>());
+				context.builder.CreateRet(result_val.get_value(context.builder));
+				break;
+			case abi::pass_kind::one_register:
+			case abi::pass_kind::two_registers:
+			{
+				auto const alloca = context.create_alloca_without_lifetime_start(result_type);
+				context.builder.CreateStore(result_val.get_value(context.builder), alloca);
+				auto const result_ptr = context.builder.CreatePointerCast(
+					alloca,
+					llvm::PointerType::get(result.first->getReturnType(), 0)
+				);
+				context.builder.CreateRet(context.create_load(result_pass_type, result_ptr));
+				break;
+			}
+			}
 		}
 	}
 
