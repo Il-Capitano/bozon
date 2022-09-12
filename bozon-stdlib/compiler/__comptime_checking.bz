@@ -128,17 +128,45 @@ struct vector<T: typename>
 
 	operator = (self: &_self_t, other: [: const value_type]) -> &_self_t
 	{
-		if (other.begin() == self._data_begin)
+		if (other.size() == 0)
 		{
+			self.clear();
 			return self;
 		}
-
-		const size = other.size();
-		self.clear();
-		self.reserve(size);
-		self._data_end = self._data_begin + size;
-		copy_range(self._data_begin, self._data_end, other.begin());
-		return self;
+		else if (other.begin() == self._data_begin)
+		{
+			if (other.size() != self.size())
+			{
+				self.resize(other.size());
+			}
+			return self;
+		}
+		else if (other.begin() >= self._data_begin && other.begin() < self._data_end)
+		{
+			let self_it = self._data_begin;
+			let other_it = other.begin();
+			const other_end = other.end();
+			for (; other_it != other_end; ++self_it, ++other_it)
+			{
+				__builtin_call_destructor(*self_it);
+				__builtin_inplace_construct(self_it, *other_it);
+			}
+			const new_end = self_it;
+			for (; self_it != self._data_end; ++self_it)
+			{
+				__builtin_call_destructor(*self_it);
+			}
+			self._data_end = new_end;
+		}
+		else
+		{
+			const size = other.size();
+			self.clear();
+			self.reserve(size);
+			self._data_end = self._data_begin + size;
+			copy_range(self._data_begin, self._data_end, other.begin());
+			return self;
+		}
 	}
 
 	function size(self: #const _self_t) -> usize
@@ -204,6 +232,31 @@ struct vector<T: typename>
 			self._data_begin = new_data_begin;
 			self._data_end   = new_data_end;
 			self._alloc_end  = new_alloc_end;
+		}
+	}
+
+	function resize(self: &_self_t, new_size: usize)
+	{
+		const current_size = self.size();
+		if (new_size <= current_size)
+		{
+			const new_end = self._data_begin + new_size;
+			for (let it = self._data_end; it != new_end;)
+			{
+				--it;
+				__builtin_call_destructor(*it);
+			}
+			self._data_end = new_end;
+		}
+		else
+		{
+			self.reserve(new_size);
+			const new_end = self._data_begin + new_size;
+			for (let it = self._data_end; it != new_end; ++it)
+			{
+				__builtin_inplace_construct(it, value_type());
+			}
+			self._data_end = new_end;
 		}
 	}
 
@@ -1329,7 +1382,7 @@ function isint(x: float32) -> bool
 	consteval exponent_inf = exponent_mask >> __builtin_ctz_u32(exponent_mask);
 	consteval mantissa_size = __builtin_popcount_u32(mantissa_mask);
 
-	// special case for 0.0
+	// special case for +-0.0
 	if ((bits & (mantissa_mask | exponent_mask)) == 0)
 	{
 		return true;
@@ -1352,7 +1405,7 @@ function isint(x: float64) -> bool
 	consteval exponent_inf = exponent_mask >> __builtin_ctz_u64(exponent_mask);
 	consteval mantissa_size = __builtin_popcount_u64(mantissa_mask);
 
-	// special case for 0.0
+	// special case for +-0.0
 	if ((bits & (mantissa_mask | exponent_mask)) == 0)
 	{
 		return true;
