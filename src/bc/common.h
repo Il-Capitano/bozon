@@ -65,34 +65,10 @@ llvm::Type *get_llvm_type(ast::typespec_view ts, Context &context, bool is_top_l
 	case ast::typespec_node_t::index_of<ast::ts_consteval>:
 		return get_llvm_type(ts.get<ast::ts_consteval>(), context, is_top_level);
 	case ast::typespec_node_t::index_of<ast::ts_pointer>:
-	{
-		auto const base = get_llvm_type(ts.get<ast::ts_pointer>(), context, false);
-		return llvm::PointerType::get(base, 0);
-	}
 	case ast::typespec_node_t::index_of<ast::ts_lvalue_reference>:
-	{
-		auto const base = get_llvm_type(ts.get<ast::ts_lvalue_reference>(), context, false);
-		return llvm::PointerType::get(base, 0);
-	}
 	case ast::typespec_node_t::index_of<ast::ts_move_reference>:
-	{
-		auto const base = get_llvm_type(ts.get<ast::ts_move_reference>(), context, false);
-		return llvm::PointerType::get(base, 0);
-	}
 	case ast::typespec_node_t::index_of<ast::ts_function>:
-	{
-		auto &fn_t = ts.get<ast::ts_function>();
-		auto const result_t = get_llvm_type(fn_t.return_type, context);
-		ast::arena_vector<llvm::Type *> args = {};
-		for (auto &p : fn_t.param_types)
-		{
-			args.push_back(get_llvm_type(p, context));
-		}
-		return llvm::PointerType::get(
-			llvm::FunctionType::get(result_t, llvm::ArrayRef(args.data(), args.size()), false),
-			0
-		);
-	}
+		return context.get_opaque_pointer_t();
 	case ast::typespec_node_t::index_of<ast::ts_array>:
 	{
 		auto &arr_t = ts.get<ast::ts_array>();
@@ -100,11 +76,7 @@ llvm::Type *get_llvm_type(ast::typespec_view ts, Context &context, bool is_top_l
 		return llvm::ArrayType::get(elem_t, arr_t.size);
 	}
 	case ast::typespec_node_t::index_of<ast::ts_array_slice>:
-	{
-		auto &arr_slice_t = ts.get<ast::ts_array_slice>();
-		auto const elem_t = get_llvm_type(arr_slice_t.elem_type, context);
-		return context.get_slice_t(elem_t);
-	}
+		return context.get_slice_t();
 	case ast::typespec_node_t::index_of<ast::ts_tuple>:
 	{
 		auto &tuple_t = ts.get<ast::ts_tuple>();

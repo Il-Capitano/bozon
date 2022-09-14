@@ -225,19 +225,13 @@ llvm::Value *bitcode_context::create_bitcast(bc::val_ptr val, llvm::Type *dest_t
 {
 	if (val.kind == bc::val_ptr::reference)
 	{
-		auto const dest_ptr = this->builder.CreateBitCast(
-			val.val, llvm::PointerType::get(dest_type, 0)
-		);
-		return this->create_load(dest_type, dest_ptr);
+		return this->create_load(dest_type, val.val);
 	}
 	else
 	{
 		auto const src_value = val.get_value(this->builder);
 		auto const dest_ptr = this->create_alloca(dest_type);
-		auto const cast_ptr = this->builder.CreateBitCast(
-			dest_ptr, llvm::PointerType::get(val.get_type(), 0)
-		);
-		this->builder.CreateStore(src_value, cast_ptr);
+		this->builder.CreateStore(src_value, dest_ptr);
 		return this->create_load(dest_type, dest_ptr);
 	}
 }
@@ -425,10 +419,10 @@ llvm::Type *bitcode_context::get_isize_t(void) const
 	}
 }
 
-llvm::StructType *bitcode_context::get_slice_t(llvm::Type *elem_type) const
+llvm::StructType *bitcode_context::get_slice_t(void) const
 {
-	auto const elem_ptr_type = llvm::PointerType::get(elem_type, 0);
-	return llvm::StructType::get(elem_ptr_type, elem_ptr_type);
+	auto const ptr_type = this->get_opaque_pointer_t();
+	return llvm::StructType::get(ptr_type, ptr_type);
 }
 
 llvm::StructType *bitcode_context::get_tuple_t(bz::array_view<llvm::Type * const> types) const
@@ -457,16 +451,14 @@ void bitcode_context::start_lifetime(llvm::Value *ptr, size_t size)
 {
 	auto const func = this->get_function(this->get_builtin_function(ast::function_body::lifetime_start));
 	auto const size_val = llvm::ConstantInt::get(this->get_uint64_t(), size);
-	auto const void_ptr = this->builder.CreatePointerCast(ptr, llvm::PointerType::getInt8PtrTy(this->get_llvm_context()));
-	this->builder.CreateCall(func, { size_val, void_ptr });
+	this->builder.CreateCall(func, { size_val, ptr });
 }
 
 void bitcode_context::end_lifetime(llvm::Value *ptr, size_t size)
 {
 	auto const func = this->get_function(this->get_builtin_function(ast::function_body::lifetime_end));
 	auto const size_val = llvm::ConstantInt::get(this->get_uint64_t(), size);
-	auto const void_ptr = this->builder.CreatePointerCast(ptr, llvm::PointerType::getInt8PtrTy(this->get_llvm_context()));
-	this->builder.CreateCall(func, { size_val, void_ptr });
+	this->builder.CreateCall(func, { size_val, ptr });
 }
 
 [[nodiscard]] bitcode_context::expression_scope_info_t bitcode_context::push_expression_scope(void)

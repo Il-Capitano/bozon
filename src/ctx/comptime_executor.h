@@ -248,7 +248,7 @@ struct comptime_executor_context
 	llvm::Type *get_null_t(void) const;
 	llvm::Type *get_usize_t(void) const;
 	llvm::Type *get_isize_t(void) const;
-	llvm::StructType *get_slice_t(llvm::Type *elem_type) const;
+	llvm::StructType *get_slice_t(void) const;
 	llvm::StructType *get_tuple_t(bz::array_view<llvm::Type * const> types) const;
 	llvm::PointerType *get_opaque_pointer_t(void) const;
 

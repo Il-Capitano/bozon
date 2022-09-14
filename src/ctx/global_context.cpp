@@ -1254,9 +1254,6 @@ bool global_context::emit_llvm_ir(void)
 		case ctcli::group_element("--opt annotation-remarks"):
 			opt_pass_manager.add(llvm::createAnnotationRemarksLegacyPass());
 			break;
-		case ctcli::group_element("--opt argpromotion"):
-			opt_pass_manager.add(llvm::createArgumentPromotionPass());
-			break;
 		case ctcli::group_element("--opt assumption-cache-tracker"):
 			opt_pass_manager.add(new llvm::AssumptionCacheTracker());
 			break;
@@ -1283,9 +1280,6 @@ bool global_context::emit_llvm_ir(void)
 			break;
 		case ctcli::group_element("--opt callsite-splitting"):
 			opt_pass_manager.add(llvm::createCallSiteSplittingPass());
-			break;
-		case ctcli::group_element("--opt cg-profile"):
-			opt_pass_manager.add(llvm::createCGProfileLegacyPass());
 			break;
 		case ctcli::group_element("--opt constmerge"):
 			opt_pass_manager.add(llvm::createConstantMergePass());
@@ -1316,9 +1310,6 @@ bool global_context::emit_llvm_ir(void)
 			break;
 		case ctcli::group_element("--opt early-cse-memssa"):
 			opt_pass_manager.add(llvm::createEarlyCSEPass(true));
-			break;
-		case ctcli::group_element("--opt ee-instrument"):
-			opt_pass_manager.add(llvm::createEntryExitInstrumenterPass());
 			break;
 		case ctcli::group_element("--opt elim-avail-extern"):
 			opt_pass_manager.add(llvm::createEliminateAvailableExternallyPass());
@@ -1417,9 +1408,6 @@ bool global_context::emit_llvm_ir(void)
 		case ctcli::group_element("--opt loop-unroll"):
 			opt_pass_manager.add(llvm::createLoopUnrollPass());
 			break;
-		case ctcli::group_element("--opt loop-unswitch"):
-			opt_pass_manager.add(llvm::createLoopUnswitchPass());
-			break;
 		case ctcli::group_element("--opt loop-vectorize"):
 			opt_pass_manager.add(llvm::createLoopVectorizePass());
 			break;
@@ -1453,9 +1441,6 @@ bool global_context::emit_llvm_ir(void)
 			break;
 		case ctcli::group_element("--opt opt-remark-emitter"):
 			opt_pass_manager.add(new llvm::OptimizationRemarkEmitterWrapperPass());
-			break;
-		case ctcli::group_element("--opt pgo-memop-opt"):
-			opt_pass_manager.add(llvm::createPGOMemOPSizeOptLegacyPass());
 			break;
 		case ctcli::group_element("--opt phi-values"):
 			opt_pass_manager.add(new llvm::PhiValuesWrapperPass());

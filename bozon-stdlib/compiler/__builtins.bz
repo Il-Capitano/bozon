@@ -189,32 +189,32 @@ export function __builtin_print_stderr(s: str)
 @__builtin export consteval function __builtin_is_trivially_copy_constructible(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_trivially_destructible(T: typename) -> bool;
 
-@__builtin @symbol_name("llvm.lifetime.start.p0i8") function __builtin_lifetime_start(size: uint64, ptr: *void);
-@__builtin @symbol_name("llvm.lifetime.end.p0i8") function __builtin_lifetime_end(size: uint64, ptr: *void);
+@__builtin @symbol_name("llvm.lifetime.start.p0") function __builtin_lifetime_start(size: uint64, ptr: *void);
+@__builtin @symbol_name("llvm.lifetime.end.p0") function __builtin_lifetime_end(size: uint64, ptr: *void);
 
 @__builtin @symbol_name(
-	if (sizeof usize == 8) {
-		"llvm.memcpy.p0i8.p0i8.i64"
-	} else if (sizeof usize == 4) {
-		"llvm.memcpy.p0i8.p0i8.i32"
+	if (sizeof usize == 8u) {
+		"llvm.memcpy.p0.p0.i64"
+	} else if (sizeof usize == 4u) {
+		"llvm.memcpy.p0.p0.i32"
 	} else {
 		unreachable
 	}
 ) export function __builtin_memcpy(dest: *void, src: *const void, n: usize);
 @__builtin @symbol_name(
-	if (sizeof usize == 8) {
-		"llvm.memmove.p0i8.p0i8.i64"
-	} else if (sizeof usize == 4) {
-		"llvm.memmove.p0i8.p0i8.i32"
+	if (sizeof usize == 8u) {
+		"llvm.memmove.p0.p0.i64"
+	} else if (sizeof usize == 4u) {
+		"llvm.memmove.p0.p0.i32"
 	} else {
 		unreachable
 	}
 ) export function __builtin_memmove(dest: *void, src: *const void, n: usize);
 @__builtin @symbol_name(
-	if (sizeof usize == 8) {
-		"llvm.memset.p0i8.i64"
-	} else if (sizeof usize == 4) {
-		"llvm.memset.p0i8.i32"
+	if (sizeof usize == 8u) {
+		"llvm.memset.p0.i64"
+	} else if (sizeof usize == 4u) {
+		"llvm.memset.p0.i32"
 	} else {
 		unreachable
 	}
