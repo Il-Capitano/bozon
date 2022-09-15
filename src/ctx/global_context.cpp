@@ -227,12 +227,12 @@ void global_context::report_error_or_warning(error &&err)
 void global_context::report_error(error &&err)
 {
 	bz_assert(err.is_error());
-	this->_errors.emplace_back(std::move(err));
+	this->report_error_or_warning(std::move(err));
 }
 
 void global_context::report_error(bz::u8string message, bz::vector<source_highlight> notes, bz::vector<source_highlight> suggestions)
 {
-	this->_errors.emplace_back(error{
+	this->report_error_or_warning(error{
 		warning_kind::_last,
 		{
 			global_context::compiler_file_id, 0,
@@ -267,7 +267,7 @@ void global_context::report_warning(error &&err)
 	bz_assert(err.is_warning());
 	if (is_warning_enabled(err.kind))
 	{
-		this->_errors.emplace_back(std::move(err));
+		this->report_error_or_warning(std::move(err));
 	}
 }
 
@@ -275,7 +275,7 @@ void global_context::report_warning(warning_kind kind, bz::u8string message)
 {
 	if (is_warning_enabled(kind))
 	{
-		this->_errors.emplace_back(error{
+		this->report_error_or_warning(error{
 			kind,
 			{
 				global_context::compiler_file_id, 0,
