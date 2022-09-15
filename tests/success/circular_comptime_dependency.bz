@@ -1,0 +1,21 @@
+function test()
+{
+	(consteval {
+		test1();
+		test3();
+	});
+}
+
+function test1()
+{
+	test2();
+}
+
+function test2()
+{
+}
+
+function test3()
+{
+	(consteval test1());
+}
