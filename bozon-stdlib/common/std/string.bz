@@ -54,7 +54,7 @@ export struct string
 
 	operator = (self: &string, other: &const string) -> &string
 	{
-		if (&self as *const string == &other)
+		if (&self == &other)
 		{
 			return self;
 		}
