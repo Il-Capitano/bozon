@@ -383,6 +383,9 @@ bz::u8string typespec_view::get_symbol_name(void) const
 			[&](ts_typename const &) {
 				result += "0N";
 			},
+			[&](ts_variadic const &) {
+				result += "0V";
+			},
 			[](auto const &) {
 				bz_unreachable;
 			}
@@ -402,11 +405,13 @@ bz::u8string typespec::decode_symbol_name(
 	constexpr bz::u8string_view move_reference = "0M.";
 	constexpr bz::u8string_view const_         = "const.";
 	constexpr bz::u8string_view consteval_     = "consteval.";
+	constexpr bz::u8string_view variadic       = "0V.";
 
 	constexpr bz::u8string_view void_       = "void";
 	constexpr bz::u8string_view array       = "0A.";
 	constexpr bz::u8string_view array_slice = "0S.";
 	constexpr bz::u8string_view tuple       = "0T.";
+	constexpr bz::u8string_view typename_   = "0N.";
 
 	auto const parse_int = [](bz::u8string_view str) {
 		uint64_t result = 0;
@@ -448,6 +453,11 @@ bz::u8string typespec::decode_symbol_name(
 		{
 			result += "consteval ";
 			it = bz::u8string_view::const_iterator(it.data() + consteval_.size());
+		}
+		else if (symbol_name.starts_with(variadic))
+		{
+			result += "...";
+			it = bz::u8string_view::const_iterator(it.data() + variadic.size());
 		}
 		else if (symbol_name.starts_with(array))
 		{
@@ -508,6 +518,11 @@ bz::u8string typespec::decode_symbol_name(
 		else if (symbol_name.starts_with(void_))
 		{
 			result += "void";
+			break;
+		}
+		else if (symbol_name.starts_with(typename_))
+		{
+			result += "typename";
 			break;
 		}
 		else

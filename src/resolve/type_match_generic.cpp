@@ -767,7 +767,12 @@ static match_function_result_t<kind> generic_type_match_typename_strict_match(
 	{
 		auto const &dest_types = dest.get<ast::ts_tuple>().types;
 		auto const &source_types = source.get<ast::ts_tuple>().types;
-		if (dest_types.size() != source_types.size())
+
+		auto const is_variadic = dest_types.not_empty() && dest_types.back().is<ast::ts_variadic>();
+		if (
+			(is_variadic && source_types.size() < dest_types.size() - 1)
+			|| (!is_variadic && dest_types.size() != source_types.size())
+		)
 		{
 			if constexpr (match_context_t<kind>::report_errors)
 			{
@@ -785,12 +790,15 @@ static match_function_result_t<kind> generic_type_match_typename_strict_match(
 			return match_function_result_t<kind>();
 		}
 
+		auto const non_variadic_count = dest_types.size() - static_cast<size_t>(is_variadic);
+
 		if constexpr (kind == type_match_function_kind::match_level)
 		{
 			auto result = match_level_t();
 			auto &result_vec = result.emplace_multi();
+			result_vec.reserve(source_types.size());
 
-			for (auto const i : bz::iota(0, dest_types.size()))
+			for (auto const i : bz::iota(0, non_variadic_count))
 			{
 				result_vec.push_back(generic_type_match_typename_strict_match<kind>(
 					src_tokens,
@@ -807,17 +815,50 @@ static match_function_result_t<kind> generic_type_match_typename_strict_match(
 				}
 			}
 
+			for (auto const i : bz::iota(non_variadic_count, source_types.size()))
+			{
+				result_vec.push_back(generic_type_match_typename_strict_match<kind>(
+					src_tokens,
+					source_types[i],
+					dest_types.back().get<ast::ts_variadic>(),
+					original_source,
+					original_dest,
+					context
+				));
+				if (result_vec.back().is_null())
+				{
+					result.clear();
+					return result;
+				}
+			}
+
 			result += modifier_match_level;
 			return result;
 		}
 		else
 		{
-			for (auto const i : bz::iota(0, dest_types.size()))
+			for (auto const i : bz::iota(0, non_variadic_count))
 			{
 				auto const good = generic_type_match_typename_strict_match<kind>(
 					src_tokens,
 					source_types[i],
 					dest_types[i],
+					original_source,
+					original_dest,
+					context
+				);
+				if (!good)
+				{
+					return false;
+				}
+			}
+
+			for (auto const i : bz::iota(non_variadic_count, source_types.size()))
+			{
+				auto const good = generic_type_match_typename_strict_match<kind>(
+					src_tokens,
+					source_types[i],
+					dest_types.back().get<ast::ts_variadic>(),
 					original_source,
 					original_dest,
 					context
