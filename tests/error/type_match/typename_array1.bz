@@ -1,0 +1,6 @@
+function test1(T: [4: typename]);
+
+function test()
+{
+	test1([3: int32]);
+}
