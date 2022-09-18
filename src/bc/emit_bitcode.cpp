@@ -6802,58 +6802,36 @@ void emit_necessary_functions(ctx::bitcode_context &context)
 	bz_unreachable;
 }
 
+template<abi::platform_abi abi>
+static bool emit_necessary_functions_impl(size_t start_index, ctx::comptime_executor_context &context)
+{
+	for (size_t i = start_index; i < context.functions_to_compile.size(); ++i)
+	{
+		auto const body = context.functions_to_compile[i];
+		if (body->is_comptime_bitcode_emitted())
+		{
+			continue;
+		}
+		if (!context.resolve_function(body))
+		{
+			return false;
+		}
+		emit_function_bitcode_impl<abi>(*body, context);
+	}
+	return true;
+}
+
 bool emit_necessary_functions(size_t start_index, ctx::comptime_executor_context &context)
 {
 	auto const abi = context.get_platform_abi();
 	switch (abi)
 	{
 	case abi::platform_abi::generic:
-		for (size_t i = start_index; i < context.functions_to_compile.size(); ++i)
-		{
-			auto const body = context.functions_to_compile[i];
-			if (body->is_comptime_bitcode_emitted())
-			{
-				continue;
-			}
-			if (!context.resolve_function(body))
-			{
-				return false;
-			}
-			emit_function_bitcode_impl<abi::platform_abi::generic>(*body, context);
-		}
-		return true;
+		return emit_necessary_functions_impl<abi::platform_abi::generic>(start_index, context);
 	case abi::platform_abi::microsoft_x64:
-	{
-		for (size_t i = start_index; i < context.functions_to_compile.size(); ++i)
-		{
-			auto const body = context.functions_to_compile[i];
-			if (body->is_comptime_bitcode_emitted())
-			{
-				continue;
-			}
-			if (!context.resolve_function(body))
-			{
-				return false;
-			}
-			emit_function_bitcode_impl<abi::platform_abi::microsoft_x64>(*body, context);
-		}
-		return true;
-	}
+		return emit_necessary_functions_impl<abi::platform_abi::microsoft_x64>(start_index, context);
 	case abi::platform_abi::systemv_amd64:
-		for (size_t i = start_index; i < context.functions_to_compile.size(); ++i)
-		{
-			auto const body = context.functions_to_compile[i];
-			if (body->is_comptime_bitcode_emitted())
-			{
-				continue;
-			}
-			if (!context.resolve_function(body))
-			{
-				return false;
-			}
-			emit_function_bitcode_impl<abi::platform_abi::systemv_amd64>(*body, context);
-		}
-		return true;
+		return emit_necessary_functions_impl<abi::platform_abi::systemv_amd64>(start_index, context);
 	}
 	bz_unreachable;
 }
