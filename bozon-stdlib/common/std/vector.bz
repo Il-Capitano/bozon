@@ -47,7 +47,12 @@ export struct vector<T: typename>
 
 	constructor(other: &const _self_t)
 	{
-		const size = other.size();
+		return _self_t(other.as_slice());
+	}
+
+	constructor(slice: [: const value_type])
+	{
+		const size = slice.size();
 		if (size == 0)
 		{
 			return _self_t();
@@ -55,7 +60,7 @@ export struct vector<T: typename>
 		const [data_begin, alloc_size] = rounded_alloc(value_type, size);
 		const data_end = data_begin + size;
 		const alloc_end = data_begin + alloc_size;
-		copy_range(data_begin, data_end, other._data_begin);
+		copy_range(data_begin, data_end, slice.begin());
 		return _self_t[ data_begin, data_end, alloc_end ];
 	}
 
@@ -74,6 +79,37 @@ export struct vector<T: typename>
 	}
 
 	operator = (self: &_self_t, other: _self_t) = __default__;
+
+	operator = (self: &_self_t, rhs: [: const value_type]) -> &_self_t
+	{
+		const is_in_self_range = rhs.begin() >= self._data_begin && rhs.end() <= self._data_end;
+		if (is_in_self_range)
+		{
+			const self_begin = self._data_begin;
+			const self_end = self._data_end;
+
+			const rhs_begin_offset = rhs.begin() - self_begin;
+			const rhs_end_offset = rhs.end() - self_begin;
+			const rhs_size = rhs.size();
+
+			const rhs_begin = self_begin + rhs_begin_offset;
+			const rhs_end = self_begin + rhs_end_offset;
+
+			destruct_range(self_begin, rhs_begin);
+			move_range(self_begin, self_begin + rhs_size, rhs_begin);
+			destruct_range(rhs_end, self_end);
+			self._data_end = self._data_begin + rhs_size;
+		}
+		else
+		{
+			const size = rhs.size();
+			self.clear();
+			self.reserve(size);
+			self._data_end = self._data_begin + size;
+			copy_range(self._data_begin, self._data_end, rhs.begin());
+		}
+		return self;
+	}
 
 	function size(self: #const _self_t) -> usize
 	{
@@ -223,6 +259,14 @@ function copy_range(begin: *auto, end: *auto, other_begin: *const auto)
 	for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
 	{
 		__builtin_inplace_construct(it, *other_it);
+	}
+}
+
+function destruct_range(begin: *auto, end: *auto)
+{
+	for (let it = begin; it < end; ++it)
+	{
+		__builtin_call_destructor(*it);
 	}
 }
 
