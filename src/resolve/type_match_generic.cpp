@@ -2034,7 +2034,10 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 }
 
 template<type_match_function_kind kind>
-static match_function_result_t<kind> generic_type_match_base_case(match_context_t<kind> const &match_context)
+static match_function_result_t<kind> generic_type_match_base_case(
+	match_context_t<kind> const &match_context,
+	bz::optional<reference_match_kind> parent_reference_kind = {}
+)
 {
 	auto &&expr = match_context.expr;
 	bz_assert(!expr.is_tuple() || !expr.is_constant());
@@ -2048,6 +2051,7 @@ static match_function_result_t<kind> generic_type_match_base_case(match_context_
 
 	if (dest.is<ast::ts_lvalue_reference>())
 	{
+		bz_assert(!parent_reference_kind.has_value());
 		if (!ast::is_lvalue(expr_type_kind))
 		{
 			if constexpr (match_context_t<kind>::report_errors)
@@ -2096,6 +2100,7 @@ static match_function_result_t<kind> generic_type_match_base_case(match_context_
 	}
 	else if (dest.is<ast::ts_move_reference>())
 	{
+		bz_assert(!parent_reference_kind.has_value());
 		if (!ast::is_rvalue(expr_type_kind))
 		{
 			if constexpr (match_context_t<kind>::report_errors)
@@ -2145,6 +2150,7 @@ static match_function_result_t<kind> generic_type_match_base_case(match_context_
 	}
 	else if (dest.is<ast::ts_auto_reference>())
 	{
+		bz_assert(!parent_reference_kind.has_value());
 		auto const is_lvalue = ast::is_lvalue(expr_type_kind);
 		if (is_lvalue && !dest.get<ast::ts_auto_reference>().is<ast::ts_const>() && expr_is_const)
 		{
@@ -2168,22 +2174,26 @@ static match_function_result_t<kind> generic_type_match_base_case(match_context_
 
 		if constexpr (kind == type_match_function_kind::matched_type)
 		{
-			ast::typespec result = generic_type_match_strict_match(
-				make_strict_match_context(
-					match_context,
-					expr_type,
-					inner_dest,
-					inner_dest,
-					reference_kind,
-					type_match_kind::exact_match
-				),
-				false, true, !is_lvalue
-			);
 			if (is_lvalue)
 			{
+				ast::typespec result = generic_type_match_strict_match(
+					make_strict_match_context(
+						match_context,
+						expr_type,
+						inner_dest,
+						inner_dest,
+						reference_kind,
+						type_match_kind::exact_match
+					),
+					false, true, false
+				);
 				result.add_layer<ast::ts_lvalue_reference>();
+				return result;
 			}
-			return result;
+			else
+			{
+				return generic_type_match_base_case(change_dest(match_context, inner_dest));
+			}
 		}
 		else if constexpr (kind == type_match_function_kind::match_expression)
 		{
@@ -2192,66 +2202,82 @@ static match_function_result_t<kind> generic_type_match_base_case(match_context_
 			{
 				match_context.dest_container.nodes.front().template emplace<ast::ts_lvalue_reference>();
 				inner_dest = match_context.dest_container.template get<ast::ts_lvalue_reference>();
+				return generic_type_match_strict_match(
+					make_strict_match_context(
+						match_context,
+						expr_type,
+						inner_dest,
+						original_dest,
+						reference_kind,
+						type_match_kind::exact_match
+					),
+					false, true, false
+				);
 			}
 			else
 			{
 				match_context.dest_container.remove_layer();
 				inner_dest = match_context.dest_container;
+				return generic_type_match_base_case(change_dest(match_context, inner_dest));
 			}
-			return generic_type_match_strict_match(
-				make_strict_match_context(
-					match_context,
-					expr_type,
-					inner_dest,
-					original_dest,
-					reference_kind,
-					type_match_kind::exact_match
-				),
-				false, true, !is_lvalue
-			);
 		}
 		else
 		{
-			return generic_type_match_strict_match(
-				make_strict_match_context(
-					match_context,
-					expr_type,
-					inner_dest,
-					original_dest,
-					reference_kind,
-					type_match_kind::exact_match
-				),
-				false, true, !is_lvalue
-			);
+			if (is_lvalue)
+			{
+				return generic_type_match_strict_match(
+					make_strict_match_context(
+						match_context,
+						expr_type,
+						inner_dest,
+						original_dest,
+						reference_kind,
+						type_match_kind::exact_match
+					),
+					false, true, false
+				);
+			}
+			else
+			{
+				return generic_type_match_base_case(
+					change_dest(match_context, inner_dest),
+					reference_kind
+				);
+			}
 		}
 	}
 	else if (dest.is<ast::ts_auto_reference_const>())
 	{
+		bz_assert(!parent_reference_kind.has_value());
 		auto const is_lvalue = ast::is_lvalue(expr_type_kind);
 		auto inner_dest = dest.get<ast::ts_auto_reference_const>();
 
 		if constexpr (kind == type_match_function_kind::matched_type)
 		{
-			ast::typespec result = generic_type_match_strict_match(
-				make_strict_match_context(
-					match_context,
-					expr_type_without_const,
-					inner_dest,
-					inner_dest,
-					reference_match_kind::auto_reference_const,
-					type_match_kind::exact_match
-				),
-				false, !is_lvalue || expr_is_const, true
-			);
 			if (is_lvalue)
 			{
+				ast::typespec result = generic_type_match_strict_match(
+					make_strict_match_context(
+						match_context,
+						expr_type_without_const,
+						inner_dest,
+						inner_dest,
+						reference_match_kind::auto_reference_const,
+						type_match_kind::exact_match
+					),
+					false, expr_is_const, true
+				);
 				if (expr_is_const)
 				{
 					result.add_layer<ast::ts_const>();
 				}
 				result.add_layer<ast::ts_lvalue_reference>();
+				return result;
 			}
-			return result;
+			else
+			{
+				return generic_type_match_base_case(change_dest(match_context, inner_dest));
+			}
 		}
 		else if constexpr (kind == type_match_function_kind::match_expression)
 		{
@@ -2271,48 +2297,62 @@ static match_function_result_t<kind> generic_type_match_base_case(match_context_
 					match_context.dest_container.nodes.front().template emplace<ast::ts_lvalue_reference>();
 					inner_dest = match_context.dest_container.template get<ast::ts_lvalue_reference>();
 				}
+				return generic_type_match_strict_match(
+					make_strict_match_context(
+						match_context,
+						expr_type_without_const,
+						inner_dest,
+						original_dest,
+						reference_match_kind::auto_reference_const,
+						type_match_kind::exact_match
+					),
+					false, expr_is_const, true
+				);
 			}
 			else
 			{
 				match_context.dest_container.remove_layer();
 				inner_dest = match_context.dest_container;
+				return generic_type_match_base_case(change_dest(match_context, inner_dest));
 			}
-			return generic_type_match_strict_match(
-				make_strict_match_context(
-					match_context,
-					expr_type_without_const,
-					inner_dest,
-					original_dest,
-					reference_match_kind::auto_reference_const,
-					type_match_kind::exact_match
-				),
-				false, !is_lvalue || expr_is_const, true
-			);
 		}
 		else
 		{
-			return generic_type_match_strict_match(
-				make_strict_match_context(
-					match_context,
-					expr_type_without_const,
-					inner_dest,
-					original_dest,
-					reference_match_kind::auto_reference_const,
-					type_match_kind::exact_match
-				),
-				false, !is_lvalue || expr_is_const, true
-			);
+			if (is_lvalue)
+			{
+				return generic_type_match_strict_match(
+					make_strict_match_context(
+						match_context,
+						expr_type_without_const,
+						inner_dest,
+						original_dest,
+						reference_match_kind::auto_reference_const,
+						type_match_kind::exact_match
+					),
+					false, expr_is_const, true
+				);
+			}
+			else
+			{
+				return generic_type_match_base_case(
+					change_dest(match_context, inner_dest),
+					reference_match_kind::auto_reference_const
+				);
+			}
 		}
 	}
 	else if (dest.is<ast::ts_pointer>() && expr_type_without_const.is<ast::ts_pointer>())
 	{
+		auto const reference_kind = parent_reference_kind.has_value()
+			? parent_reference_kind.get()
+			: get_reference_match_kind_from_expr_kind(expr_type_kind);
 		return generic_type_match_strict_match(
 			make_strict_match_context(
 				match_context,
 				expr_type_without_const,
 				dest,
 				original_dest,
-				get_reference_match_kind_from_expr_kind(expr_type_kind),
+				reference_kind,
 				type_match_kind::exact_match
 			),
 			true, true, true
@@ -2323,13 +2363,16 @@ static match_function_result_t<kind> generic_type_match_base_case(match_context_
 		&& (dest.is<ast::ts_array_slice>() || dest.is<ast::ts_array>() || dest.is<ast::ts_tuple>())
 	)
 	{
+		auto const reference_kind = parent_reference_kind.has_value()
+			? parent_reference_kind.get()
+			: get_reference_match_kind_from_expr_kind(expr_type_kind);
 		return generic_type_match_strict_match(
 			make_strict_match_context(
 				match_context,
 				expr_type_without_const,
 				dest,
 				original_dest,
-				get_reference_match_kind_from_expr_kind(expr_type_kind),
+				reference_kind,
 				type_match_kind::exact_match
 			),
 			false, true, true
@@ -2337,13 +2380,16 @@ static match_function_result_t<kind> generic_type_match_base_case(match_context_
 	}
 	else if (dest.is<ast::ts_auto>() || (dest.is<ast::ts_base_type>() && dest.get<ast::ts_base_type>().info->is_generic()))
 	{
+		auto const reference_kind = parent_reference_kind.has_value()
+			? parent_reference_kind.get()
+			: get_reference_match_kind_from_expr_kind(expr_type_kind);
 		return generic_type_match_strict_match(
 			make_strict_match_context(
 				match_context,
 				expr_type_without_const,
 				dest,
 				original_dest,
-				get_reference_match_kind_from_expr_kind(expr_type_kind),
+				reference_kind,
 				type_match_kind::exact_match
 			),
 			false, true, true
@@ -2351,6 +2397,9 @@ static match_function_result_t<kind> generic_type_match_base_case(match_context_
 	}
 	else if (dest.is<ast::ts_array_slice>() && expr_type_without_const.is<ast::ts_array>())
 	{
+		auto const reference_kind = parent_reference_kind.has_value()
+			? parent_reference_kind.get()
+			: get_reference_match_kind_from_expr_kind(expr_type_kind);
 		auto const dest_elem_t = dest.get<ast::ts_array_slice>().elem_type.as_typespec_view();
 		auto const expr_elem_t = expr_type_without_const.get<ast::ts_array>().elem_type.as_typespec_view();
 		auto const is_const_dest_elem_t = dest_elem_t.is<ast::ts_const>();
@@ -2376,7 +2425,7 @@ static match_function_result_t<kind> generic_type_match_base_case(match_context_
 					expr_elem_t,
 					ast::remove_const_or_consteval(dest_elem_t),
 					ast::remove_const_or_consteval(dest_elem_t),
-					get_reference_match_kind_from_expr_kind(expr_type_kind),
+					reference_kind,
 					type_match_kind::implicit_conversion
 				),
 				false, is_const_dest_elem_t, true
@@ -2390,7 +2439,7 @@ static match_function_result_t<kind> generic_type_match_base_case(match_context_
 					expr_elem_t,
 					ast::remove_const_or_consteval(dest_elem_t),
 					ast::remove_const_or_consteval(dest_elem_t),
-					get_reference_match_kind_from_expr_kind(expr_type_kind),
+					reference_kind,
 					type_match_kind::implicit_conversion
 				),
 				false, is_const_dest_elem_t, true
@@ -2414,7 +2463,7 @@ static match_function_result_t<kind> generic_type_match_base_case(match_context_
 					expr_elem_t,
 					ast::remove_const_or_consteval(dest_elem_t),
 					ast::remove_const_or_consteval(dest_elem_t),
-					get_reference_match_kind_from_expr_kind(expr_type_kind),
+					reference_kind,
 					type_match_kind::implicit_conversion
 				),
 				false, is_const_dest_elem_t, true
@@ -2468,9 +2517,12 @@ static match_function_result_t<kind> generic_type_match_base_case(match_context_
 		}
 		else if constexpr (kind == type_match_function_kind::match_level)
 		{
+			auto const reference_kind = parent_reference_kind.has_value()
+				? parent_reference_kind.get()
+				: get_reference_match_kind_from_expr_kind(expr_type_kind);
 			return single_match_t{
 				.modifier_match_level = 0,
-				.reference_match = get_reference_match_kind_from_expr_kind(expr_type_kind),
+				.reference_match = reference_kind,
 				.type_match = type_match_kind::exact_match
 			};
 		}
@@ -2495,9 +2547,12 @@ static match_function_result_t<kind> generic_type_match_base_case(match_context_
 		}
 		else if constexpr (kind == type_match_function_kind::match_level)
 		{
+			auto const reference_kind = parent_reference_kind.has_value()
+				? parent_reference_kind.get()
+				: get_reference_match_kind_from_expr_kind(expr_type_kind);
 			return single_match_t{
 				.modifier_match_level = 0,
-				.reference_match = get_reference_match_kind_from_expr_kind(expr_type_kind),
+				.reference_match = reference_kind,
 				.type_match = expr.is_integer_literal() ? type_match_kind::implicit_literal_conversion : type_match_kind::implicit_conversion
 			};
 		}
