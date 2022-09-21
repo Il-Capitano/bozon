@@ -6760,43 +6760,33 @@ void resolve_global_type(ast::type_info *info, llvm::Type *type, ctx::comptime_e
 	}
 }
 
+template<abi::platform_abi abi>
+static void emit_necessary_functions_impl(ctx::bitcode_context &context)
+{
+	for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
+	{
+		auto const func_body = context.functions_to_compile[i];
+		if (func_body->is_bitcode_emitted())
+		{
+			continue;
+		}
+		emit_function_bitcode_impl<abi>(*func_body, context);
+	}
+}
+
 void emit_necessary_functions(ctx::bitcode_context &context)
 {
 	auto const abi = context.get_platform_abi();
 	switch (abi)
 	{
 	case abi::platform_abi::generic:
-		for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
-		{
-			auto const func_body = context.functions_to_compile[i];
-			if (func_body->is_bitcode_emitted())
-			{
-				continue;
-			}
-			emit_function_bitcode_impl<abi::platform_abi::generic>(*func_body, context);
-		}
+		emit_necessary_functions_impl<abi::platform_abi::generic>(context);
 		return;
 	case abi::platform_abi::microsoft_x64:
-		for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
-		{
-			auto const func_body = context.functions_to_compile[i];
-			if (func_body->is_bitcode_emitted())
-			{
-				continue;
-			}
-			emit_function_bitcode_impl<abi::platform_abi::microsoft_x64>(*func_body, context);
-		}
+		emit_necessary_functions_impl<abi::platform_abi::microsoft_x64>(context);
 		return;
 	case abi::platform_abi::systemv_amd64:
-		for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
-		{
-			auto const func_body = context.functions_to_compile[i];
-			if (func_body->is_bitcode_emitted())
-			{
-				continue;
-			}
-			emit_function_bitcode_impl<abi::platform_abi::systemv_amd64>(*func_body, context);
-		}
+		emit_necessary_functions_impl<abi::platform_abi::systemv_amd64>(context);
 		return;
 	}
 	bz_unreachable;
@@ -6805,6 +6795,17 @@ void emit_necessary_functions(ctx::bitcode_context &context)
 template<abi::platform_abi abi>
 static bool emit_necessary_functions_impl(size_t start_index, ctx::comptime_executor_context &context)
 {
+	// resolve all added functions
+	for (auto const resolve_index : bz::iota(start_index, context.functions_to_compile.size()))
+	{
+		if (!context.resolve_function(context.functions_to_compile[resolve_index]))
+		{
+			return false;
+		}
+	}
+
+	// this can't be an iota loop, because functions are continuously added to context.functions_to_compile
+	// on each iteration
 	for (size_t i = start_index; i < context.functions_to_compile.size(); ++i)
 	{
 		auto const body = context.functions_to_compile[i];
@@ -6812,11 +6813,17 @@ static bool emit_necessary_functions_impl(size_t start_index, ctx::comptime_exec
 		{
 			continue;
 		}
-		if (!context.resolve_function(body))
-		{
-			return false;
-		}
+		auto const prev_size = context.functions_to_compile.size();
 		emit_function_bitcode_impl<abi>(*body, context);
+
+		// resolve all newly added functions
+		for (auto const resolve_index : bz::iota(prev_size, context.functions_to_compile.size()))
+		{
+			if (!context.resolve_function(context.functions_to_compile[resolve_index]))
+			{
+				return false;
+			}
+		}
 	}
 	return true;
 }
