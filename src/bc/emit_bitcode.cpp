@@ -2276,6 +2276,18 @@ static ctx::comptime_function_kind get_math_check_function_kind(uint32_t intrins
 {
 	switch (intrinsic_kind)
 	{
+	case ast::function_body::abs_i8:
+		return ctx::comptime_function_kind::abs_i8_check;
+	case ast::function_body::abs_i16:
+		return ctx::comptime_function_kind::abs_i16_check;
+	case ast::function_body::abs_i32:
+		return ctx::comptime_function_kind::abs_i32_check;
+	case ast::function_body::abs_i64:
+		return ctx::comptime_function_kind::abs_i64_check;
+	case ast::function_body::fabs_f32:
+		return ctx::comptime_function_kind::fabs_f32_check;
+	case ast::function_body::fabs_f64:
+		return ctx::comptime_function_kind::fabs_f64_check;
 	case ast::function_body::exp_f32:
 		return ctx::comptime_function_kind::exp_f32_check;
 	case ast::function_body::exp_f64:
@@ -2445,7 +2457,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 140);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 146);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2900,6 +2912,42 @@ static val_ptr emit_bitcode(
 				break;
 			}
 
+		case ast::function_body::abs_i8:    case ast::function_body::abs_i16:
+		case ast::function_body::abs_i32:   case ast::function_body::abs_i64:
+			if constexpr (is_comptime<decltype(context)>)
+			{
+				bz_assert(func_call.params.size() == 1);
+				auto const val = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+				auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+				auto const fn = context.get_function(func_call.func_body);
+				auto const result_val = context.create_call(fn, { val, false_val });
+				if (context.do_error_checking())
+				{
+					auto const [src_begin, src_pivot, src_end] = get_src_tokens_llvm_value(src_tokens, context);
+					auto const check_fn_kind = get_math_check_function_kind(func_call.func_body->intrinsic_kind);
+					auto const check_fn = context.get_comptime_function(check_fn_kind);
+					auto const is_valid = context.create_call(check_fn, { val, result_val, src_begin, src_pivot, src_end });
+					emit_error_assert(is_valid, context);
+				}
+
+				if (result_address == nullptr)
+				{
+					return val_ptr::get_value(result_val);
+				}
+				else
+				{
+					auto const result_type = result_val->getType();
+					context.builder.CreateStore(result_val, result_address);
+					return val_ptr::get_reference(result_address, result_type);
+				}
+			}
+			else
+			{
+				break;
+			}
+
+		case ast::function_body::fabs_f32:  case ast::function_body::fabs_f64:
+			[[fallthrough]];
 		case ast::function_body::exp_f32:   case ast::function_body::exp_f64:
 		case ast::function_body::exp2_f32:  case ast::function_body::exp2_f64:
 		case ast::function_body::expm1_f32: case ast::function_body::expm1_f64:
@@ -3216,6 +3264,10 @@ static val_ptr emit_bitcode(
 			|| func_call.func_body->intrinsic_kind == ast::function_body::ctz_u16
 			|| func_call.func_body->intrinsic_kind == ast::function_body::ctz_u32
 			|| func_call.func_body->intrinsic_kind == ast::function_body::ctz_u64
+			|| func_call.func_body->intrinsic_kind == ast::function_body::abs_i8
+			|| func_call.func_body->intrinsic_kind == ast::function_body::abs_i16
+			|| func_call.func_body->intrinsic_kind == ast::function_body::abs_i32
+			|| func_call.func_body->intrinsic_kind == ast::function_body::abs_i64
 		)
 	)
 	{
@@ -6048,6 +6100,10 @@ static llvm::Function *create_function_from_symbol_impl(
 			|| func_body.intrinsic_kind == ast::function_body::ctz_u16
 			|| func_body.intrinsic_kind == ast::function_body::ctz_u32
 			|| func_body.intrinsic_kind == ast::function_body::ctz_u64
+			|| func_body.intrinsic_kind == ast::function_body::abs_i8
+			|| func_body.intrinsic_kind == ast::function_body::abs_i16
+			|| func_body.intrinsic_kind == ast::function_body::abs_i32
+			|| func_body.intrinsic_kind == ast::function_body::abs_i64
 		)
 	)
 	{

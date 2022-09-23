@@ -6,8 +6,17 @@ import ::std::unicode;
 @__no_runtime_emit consteval warning_kind_comptime_warning  = 23u32;
 @__no_runtime_emit consteval warning_kind_error             = 24u32;
 
-@__no_runtime_emit consteval inf_f32: float32 = ((1.0f32 / 0.0f32));
-@__no_runtime_emit consteval inf_f64: float64 = ((1.0 / 0.0));
+@__no_runtime_emit consteval inf_f32 = ((1.0f32 / 0.0f32));
+@__no_runtime_emit consteval inf_f64 = ((1.0 / 0.0));
+@__no_runtime_emit consteval i8_min  = (((1u8  <<  7) as int8));
+@__no_runtime_emit consteval i16_min = (((1u16 << 15) as int16));
+@__no_runtime_emit consteval i32_min = (((1u32 << 31) as int32));
+@__no_runtime_emit consteval i64_min = (((1u64 << 63) as int64));
+
+static_assert(((i8_min - 1)) > 0);
+static_assert(((i16_min - 1)) > 0);
+static_assert(((i32_min - 1)) > 0);
+static_assert(((i64_min - 1)) > 0);
 
 function alloc  = __builtin_comptime_malloc_type;
 function free   = __builtin_comptime_free;
@@ -1020,8 +1029,6 @@ function get_divide_by_zero_error_message(type_name: str, lhs: uint64, rhs: uint
 @__comptime_error_checking("i8_divide_check")
 function i8_divide_check(lhs: int8, rhs: int8, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
-	consteval i8_min = (((1u8 << 7) as int8));
-	static_assert(((i8_min - 1)) > 0);
 	if (rhs == 0)
 	{
 		const message = get_divide_by_zero_error_message("int8", lhs, rhs);
@@ -1043,8 +1050,6 @@ function i8_divide_check(lhs: int8, rhs: int8, begin: uint64, pivot: uint64, end
 @__comptime_error_checking("i16_divide_check")
 function i16_divide_check(lhs: int16, rhs: int16, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
-	consteval i16_min = (((1u16 << 15) as int16));
-	static_assert(((i16_min - 1)) > 0);
 	if (rhs == 0)
 	{
 		const message = get_divide_by_zero_error_message("int16", lhs, rhs);
@@ -1066,8 +1071,6 @@ function i16_divide_check(lhs: int16, rhs: int16, begin: uint64, pivot: uint64, 
 @__comptime_error_checking("i32_divide_check")
 function i32_divide_check(lhs: int32, rhs: int32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
-	consteval i32_min = (((1u32 << 31) as int32));
-	static_assert(((i32_min - 1)) > 0);
 	if (rhs == 0)
 	{
 		const message = get_divide_by_zero_error_message("int32", lhs, rhs);
@@ -1089,8 +1092,6 @@ function i32_divide_check(lhs: int32, rhs: int32, begin: uint64, pivot: uint64, 
 @__comptime_error_checking("i64_divide_check")
 function i64_divide_check(lhs: int64, rhs: int64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
-	consteval i64_min = (((1u64 << 63) as int64));
-	static_assert(((i64_min - 1)) > 0);
 	if (rhs == 0)
 	{
 		const message = get_divide_by_zero_error_message("int64", lhs, rhs);
@@ -1379,8 +1380,8 @@ function isint(x: float32) -> bool
 	consteval exponent_mask = 0x7f80'0000u32;
 	consteval mantissa_mask = 0x007f'ffffu32;
 	consteval exponent_bias = 127u32;
-	consteval exponent_inf = exponent_mask >> __builtin_ctz_u32(exponent_mask);
-	consteval mantissa_size = __builtin_popcount_u32(mantissa_mask);
+	const exponent_inf = exponent_mask >> __builtin_ctz_u32(exponent_mask);
+	const mantissa_size = __builtin_popcount_u32(mantissa_mask);
 
 	// special case for +-0.0
 	if ((bits & (mantissa_mask | exponent_mask)) == 0)
@@ -1402,8 +1403,8 @@ function isint(x: float64) -> bool
 	consteval exponent_mask = 0x7ff0'0000'0000'0000u64;
 	consteval mantissa_mask = 0x000f'ffff'ffff'ffffu64;
 	consteval exponent_bias = 1023u64;
-	consteval exponent_inf = exponent_mask >> __builtin_ctz_u64(exponent_mask);
-	consteval mantissa_size = __builtin_popcount_u64(mantissa_mask);
+	const exponent_inf = exponent_mask >> __builtin_ctz_u64(exponent_mask);
+	const mantissa_size = __builtin_popcount_u64(mantissa_mask);
 
 	// special case for +-0.0
 	if ((bits & (mantissa_mask | exponent_mask)) == 0)
@@ -1460,6 +1461,90 @@ function get_negative_integer_math_error_message(func_name: str, x: float32, res
 function get_negative_integer_math_error_message(func_name: str, x: float64, result: float64) -> string
 {
 	return concat("calling '", func_name, "' with a negative integer ", x, " results in ", result);
+}
+
+@__comptime_error_checking("abs_i8_check")
+function abs_i8_check(n: int8, result: int8, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (n == i8_min)
+	{
+		emit_diagnostic(
+			warning_kind_math_domain_error,
+			concat("calling 'abs' with ", n, "i8 results in ", result).as_str(),
+			begin, pivot, end
+		);
+	}
+	return true;
+}
+
+@__comptime_error_checking("abs_i16_check")
+function abs_i16_check(n: int16, result: int16, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (n == i16_min)
+	{
+		emit_diagnostic(
+			warning_kind_math_domain_error,
+			concat("calling 'abs' with ", n, "i16 results in ", result).as_str(),
+			begin, pivot, end
+		);
+	}
+	return true;
+}
+
+@__comptime_error_checking("abs_i32_check")
+function abs_i32_check(n: int32, result: int32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (n == i32_min)
+	{
+		emit_diagnostic(
+			warning_kind_math_domain_error,
+			concat("calling 'abs' with ", n, "i32 results in ", result).as_str(),
+			begin, pivot, end
+		);
+	}
+	return true;
+}
+
+@__comptime_error_checking("abs_i64_check")
+function abs_i64_check(n: int64, result: int64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (n == i64_min)
+	{
+		emit_diagnostic(
+			warning_kind_math_domain_error,
+			concat("calling 'abs' with ", n, "i64 results in ", result).as_str(),
+			begin, pivot, end
+		);
+	}
+	return true;
+}
+
+@__comptime_error_checking("fabs_f32_check")
+function fabs_f32_check(x: float32, result: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(
+			warning_kind_math_domain_error,
+			get_regular_math_error_message("fabs", x, result).as_str(),
+			begin, pivot, end
+		);
+	}
+	return true;
+}
+
+@__comptime_error_checking("fabs_f64_check")
+function fabs_f64_check(x: float64, result: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(
+			warning_kind_math_domain_error,
+			get_regular_math_error_message("fabs", x, result).as_str(),
+			begin, pivot, end
+		);
+	}
+	return true;
 }
 
 @__comptime_error_checking("exp_f32_check")

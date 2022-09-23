@@ -61,15 +61,22 @@ export function lgamma = __builtin_lgamma_f64;
 
 export function min(a, b) -> typeof a
 {
-	static_assert(typeof a == typeof b, "mismatched types in std::min");
+	static_assert(typeof a == typeof b, "mismatched types in 'std::min'");
 	return if (a < b) { a } else { b };
 }
 
 export function max(a, b) -> typeof a
 {
-	static_assert(typeof a == typeof b, "mismatched types in std::min");
+	static_assert(typeof a == typeof b, "mismatched types in 'std::max'");
 	return if (a > b) { a } else { b };
 }
+
+export function abs = __builtin_abs_i8;
+export function abs = __builtin_abs_i16;
+export function abs = __builtin_abs_i32;
+export function abs = __builtin_abs_i64;
+export function abs = __builtin_fabs_f32;
+export function abs = __builtin_fabs_f64;
 
 // math constants
 

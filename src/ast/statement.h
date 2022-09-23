@@ -550,6 +550,9 @@ struct function_body
 
 		// C standard library math functions
 
+		abs_i8, abs_i16, abs_i32, abs_i64,
+		fabs_f32, fabs_f64,
+
 		exp_f32,   exp_f64,
 		exp2_f32,  exp2_f64,
 		expm1_f32, expm1_f64,
@@ -1470,7 +1473,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 140);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 146);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1551,6 +1554,13 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::memset,  "__builtin_memset"  },
 
 		// C standard library math functions
+
+		{ function_body::abs_i8,   "__builtin_abs_i8"   },
+		{ function_body::abs_i16,  "__builtin_abs_i16"  },
+		{ function_body::abs_i32,  "__builtin_abs_i32"  },
+		{ function_body::abs_i64,  "__builtin_abs_i64"  },
+		{ function_body::fabs_f32, "__builtin_fabs_f32" },
+		{ function_body::fabs_f64, "__builtin_fabs_f64" },
 
 		{ function_body::exp_f32,   "__builtin_exp_f32"   },
 		{ function_body::exp_f64,   "__builtin_exp_f64"   },
