@@ -653,6 +653,9 @@ static ast::expression get_builtin_unary_move(
 
 	if (kind == ast::expression_type_kind::lvalue)
 	{
+		bz_assert(expr.get_expr().is<ast::expr_identifier>());
+		auto const decl = expr.get_expr().get<ast::expr_identifier>().decl;
+		context.register_move(src_tokens, decl);
 		ast::typespec result_type = ast::remove_const_or_consteval(type);
 		return ast::make_dynamic_expression(
 			src_tokens,

@@ -145,6 +145,7 @@ struct parse_context
 	void pop_move_scope(void) noexcept;
 	void push_new_move_branch(void) noexcept;
 	void register_move(lex::src_tokens const &src_tokens, ast::decl_variable *decl) noexcept;
+	void register_move_construction(ast::decl_variable *decl) noexcept;
 
 	void report_error(lex::token_pos it) const;
 	void report_error(

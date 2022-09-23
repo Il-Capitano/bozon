@@ -519,14 +519,18 @@ void parse_context::push_new_move_branch(void) noexcept
 
 void parse_context::register_move(lex::src_tokens const &src_tokens, ast::decl_variable *decl) noexcept
 {
-	decl->flags |= ast::decl_variable::moved;
-	decl->flags |= ast::decl_variable::ever_moved;
 	decl->move_position = src_tokens;
 	if (this->move_scopes.not_empty())
 	{
 		bz_assert(this->move_scopes.back().move_branches.not_empty());
 		this->move_scopes.back().move_branches.back().push_back(decl);
 	}
+}
+
+void parse_context::register_move_construction(ast::decl_variable *decl) noexcept
+{
+	decl->flags |= ast::decl_variable::moved;
+	decl->flags |= ast::decl_variable::ever_moved;
 }
 
 static source_highlight get_function_parameter_types_note(lex::src_tokens const &src_tokens, bz::array_view<ast::expression const> args)
@@ -5784,7 +5788,7 @@ ast::expression parse_context::make_move_construction(ast::expression expr)
 		{
 			bz_assert(expr.get_expr().get<ast::expr_unary_op>().expr.get_expr().is<ast::expr_identifier>());
 			auto const decl = expr.get_expr().get<ast::expr_unary_op>().expr.get_expr().get<ast::expr_identifier>().decl;
-			this->register_move(expr.src_tokens, decl);
+			this->register_move_construction(decl);
 			this->add_self_move_destruction(expr);
 			bz_assert(expr.is_dynamic());
 			expr.get_dynamic().destruct_op.move_destructed_decl = decl;
