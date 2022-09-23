@@ -56,9 +56,9 @@ do {                                                                            
 	x("123u8", ast::constant_value::uint, 123);
 	x("\"hello\"", ast::constant_value::string, "hello");
 
-	x("__builtin_exp_f64(1.5)", ast::constant_value::float64, std::exp(1.5));
-	x("__builtin_exp_f32(1.5f32)", ast::constant_value::float32, std::exp(1.5f));
-	x("__builtin_sinh_f32(1.6f32)", ast::constant_value::float32, std::sinh(1.6f));
+	// x("__builtin_exp_f64(1.5)", ast::constant_value::float64, std::exp(1.5));
+	// x("__builtin_exp_f32(1.5f32)", ast::constant_value::float32, std::exp(1.5f));
+	// x("__builtin_sinh_f32(1.6f32)", ast::constant_value::float32, std::sinh(1.6f));
 
 	x_fail("{ 0; __builtin_exp_f64(1.5) }");
 	x_fail("{ 0; __builtin_exp_f32(1.5f32) }");
