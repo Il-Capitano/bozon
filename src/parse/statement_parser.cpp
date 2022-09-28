@@ -425,7 +425,7 @@ static ast::function_body parse_function_body(
 )
 {
 	ast::function_body result = {};
-	result.scope = ast::make_local_scope(context.get_current_enclosing_scope());
+	result.scope = ast::make_local_scope(context.get_current_enclosing_scope(), false);
 	auto const open_paren = context.assert_token(stream, lex::token::paren_open);
 	auto const param_range = get_expression_tokens<
 		lex::token::paren_close

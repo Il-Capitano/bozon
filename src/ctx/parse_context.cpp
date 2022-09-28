@@ -1574,6 +1574,7 @@ static ast::expression make_variable_expression(
 	}
 	else if (id_type.is<ast::ts_move_reference>())
 	{
+		id_type_kind = ast::expression_type_kind::lvalue_reference;
 		id_type = id_type.get<ast::ts_move_reference>();
 	}
 
@@ -1632,10 +1633,17 @@ static ast::expression make_variable_expression(
 	lex::src_tokens const &src_tokens,
 	ast::identifier id,
 	ast::decl_variable *var_decl,
+	int loop_boundary_count,
+	bool is_local,
 	parse_context &context
 )
 {
-	return make_variable_expression(src_tokens, var_decl, ast::make_expr_identifier(std::move(id), var_decl), context);
+	return make_variable_expression(
+		src_tokens,
+		var_decl,
+		ast::make_expr_identifier(std::move(id), var_decl, loop_boundary_count, is_local),
+		context
+	);
 }
 
 struct function_overload_set_decls
@@ -1767,7 +1775,7 @@ static ast::expression make_type_expression(
 	}
 	else
 	{
-		return ast::make_error_expression(src_tokens, ast::make_expr_identifier(ast::expr_identifier(std::move(id))));
+		return ast::make_error_expression(src_tokens, ast::make_expr_identifier(std::move(id)));
 	}
 }
 
@@ -1790,7 +1798,7 @@ static ast::expression make_type_alias_expression(
 	}
 	else
 	{
-		return ast::make_error_expression(src_tokens, ast::make_expr_identifier(ast::expr_identifier(std::move(id))));
+		return ast::make_error_expression(src_tokens, ast::make_expr_identifier(std::move(id)));
 	}
 }
 
@@ -1833,6 +1841,8 @@ static ast::expression expression_from_symbol(
 	lex::src_tokens const &src_tokens,
 	ast::identifier id,
 	symbol_t const &symbol,
+	int loop_boundary_count,
+	bool is_local,
 	parse_context &context
 )
 {
@@ -1850,7 +1860,14 @@ static ast::expression expression_from_symbol(
 			context.pop_resolve_queue();
 		}
 		var_decl->flags |= ast::decl_variable::used;
-		return make_variable_expression(src_tokens, std::move(id), symbol.get<ast::decl_variable *>(), context);
+		return make_variable_expression(
+			src_tokens,
+			std::move(id),
+			symbol.get<ast::decl_variable *>(),
+			loop_boundary_count,
+			is_local,
+			context
+		);
 	}
 	case symbol_t::index_of<ast::variadic_var_decl_ref>:
 	{
@@ -1879,6 +1896,8 @@ static ast::expression expression_from_symbol(
 				src_tokens,
 				std::move(id),
 				variadic_decl.variadic_decls[context.get_variadic_index()],
+				loop_boundary_count,
+				is_local,
 				context
 			);
 		}
@@ -2547,9 +2566,18 @@ static symbol_t find_id_in_global_scope(ast::global_scope_t &scope, ast::identif
 	}
 }
 
-static symbol_t find_id_in_scope(ast::enclosing_scope_t scope, ast::identifier const &id, parse_context &context)
+struct id_search_result_t
+{
+	symbol_t symbol;
+	int loop_boundary_count;
+	bool is_local;
+};
+
+static id_search_result_t find_id_in_scope(ast::enclosing_scope_t scope, ast::identifier const &id, parse_context &context)
 {
 	// bz::log("find_id_in_scope: ({}, {})\n", scope.scope, scope.symbol_count);
+	int loop_boundary_count = 0;
+	bool is_local = true;
 	while (scope.scope != nullptr)
 	{
 		if (scope.scope->is_local())
@@ -2557,17 +2585,22 @@ static symbol_t find_id_in_scope(ast::enclosing_scope_t scope, ast::identifier c
 			auto const res = scope.scope->get_local().find_by_id(id, scope.symbol_count);
 			if (res != nullptr)
 			{
-				return symbol_ref_from_local_symbol(*res);
+				return { symbol_ref_from_local_symbol(*res), loop_boundary_count, is_local };
 			}
 
+			if (scope.scope->get_local().is_loop_scope)
+			{
+				loop_boundary_count += 1;
+			}
 			scope = scope.scope->get_local().parent;
 		}
 		else if (scope.scope->is_global())
 		{
+			is_local = false;
 			auto result = find_id_in_global_scope(scope.scope->get_global(), id, context);
 			if (result.not_null())
 			{
-				return result;
+				return { result, loop_boundary_count, is_local };
 			}
 
 			scope = scope.scope->get_global().parent;
@@ -2595,11 +2628,11 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 		);
 	}
 
-	auto const symbol = find_id_in_scope(this->get_current_enclosing_scope(), id, *this);
+	auto const [symbol, loop_boundary_count, is_local] = find_id_in_scope(this->get_current_enclosing_scope(), id, *this);
 
 	if (symbol.not_null())
 	{
-		return expression_from_symbol(src_tokens, std::move(id), symbol, *this);
+		return expression_from_symbol(src_tokens, std::move(id), symbol, loop_boundary_count, is_local, *this);
 	}
 
 	// builtin types
@@ -2614,7 +2647,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 				ast::expression_type_kind::type_name,
 				ast::make_typename_typespec(nullptr),
 				ast::constant_value(builtin_type),
-				ast::make_expr_identifier(id)
+				ast::make_expr_identifier(std::move(id))
 			);
 		}
 		else if (id_value.starts_with("__builtin"))
@@ -2633,7 +2666,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 						ast::expression_type_kind::function_name,
 						get_function_type(func_decl->body),
 						ast::constant_value(func_decl),
-						ast::make_expr_identifier(id)
+						ast::make_expr_identifier(std::move(id))
 					);
 				}
 			}
@@ -2642,7 +2675,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 
 	// bz::log("failed to find '{}'\n", id.as_string());
 	this->report_error(src_tokens, bz::format("undeclared identifier '{}'", id.as_string()));
-	return ast::make_error_expression(src_tokens, ast::make_expr_identifier(ast::expr_identifier(std::move(id))));
+	return ast::make_error_expression(src_tokens, ast::make_expr_identifier(std::move(id)));
 }
 
 static bz::u8char get_character(bz::u8string_view::const_iterator &it)
@@ -4955,7 +4988,7 @@ ast::expression parse_context::make_member_access_expression(
 		}
 		else
 		{
-			return expression_from_symbol(src_tokens, std::move(id), symbol, *this);
+			return expression_from_symbol(src_tokens, std::move(id), symbol, 0, false, *this);
 		}
 	}
 
@@ -6639,7 +6672,7 @@ static ast::expression make_variable_destruction_expression(ast::decl_variable *
 		ast::make_dynamic_expression(
 			var_decl->src_tokens,
 			ast::expression_type_kind::lvalue_reference, ast::remove_lvalue_reference(type),
-			ast::make_expr_identifier(ast::identifier(), var_decl),
+			ast::make_expr_identifier(ast::identifier(), var_decl, 0, false),
 			ast::destruct_operation()
 		),
 		context

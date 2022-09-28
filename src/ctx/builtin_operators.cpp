@@ -654,16 +654,41 @@ static ast::expression get_builtin_unary_move(
 	if (kind == ast::expression_type_kind::lvalue)
 	{
 		bz_assert(expr.get_expr().is<ast::expr_identifier>());
-		auto const decl = expr.get_expr().get<ast::expr_identifier>().decl;
-		context.register_move(src_tokens, decl);
-		ast::typespec result_type = ast::remove_const_or_consteval(type);
-		return ast::make_dynamic_expression(
-			src_tokens,
-			ast::expression_type_kind::moved_lvalue,
-			result_type,
-			ast::make_expr_unary_op(op_kind, std::move(expr)),
-			ast::destruct_operation()
-		);
+		auto const &id_expr = expr.get_expr().get<ast::expr_identifier>();
+		bz_assert(id_expr.decl != nullptr);
+		if (!id_expr.is_local)
+		{
+			context.report_error(
+				src_tokens,
+				bz::format("unable to move non-local variable '{}'", id_expr.decl->get_id().format_as_unqualified()),
+				{ context.make_note(id_expr.decl->src_tokens, "variable was declared here") }
+			);
+			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+		}
+		else if (id_expr.loop_boundary_count != 0)
+		{
+			context.report_error(
+				src_tokens,
+				bz::format(
+					"unable to move variable '{}', because it is outside a loop boundary",
+					id_expr.decl->get_id().format_as_unqualified()
+				),
+				{ context.make_note(id_expr.decl->src_tokens, "variable was declared here") }
+			);
+			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+		}
+		else
+		{
+			context.register_move(src_tokens, id_expr.decl);
+			ast::typespec result_type = ast::remove_const_or_consteval(type);
+			return ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::moved_lvalue,
+				result_type,
+				ast::make_expr_unary_op(op_kind, std::move(expr)),
+				ast::destruct_operation()
+			);
+		}
 	}
 	else if (kind == ast::expression_type_kind::lvalue_reference)
 	{

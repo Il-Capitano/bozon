@@ -552,7 +552,7 @@ expr_compound::expr_compound(
 )
 	: statements(std::move(_statements)),
 	  final_expr(std::move(_final_expr)),
-	  scope     (make_local_scope(_enclosing_scope))
+	  scope     (make_local_scope(_enclosing_scope, false))
 {}
 
 } // namespace ast

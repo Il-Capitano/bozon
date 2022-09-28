@@ -416,13 +416,15 @@ struct expr_identifier
 {
 	identifier id;
 	decl_variable *decl;
+	int loop_boundary_count;
+	bool is_local;
 
-	expr_identifier(identifier _id, decl_variable *var_decl)
-		: id(std::move(_id)), decl(var_decl)
+	expr_identifier(identifier _id, decl_variable *var_decl, int _loop_boundary_count, bool _is_local)
+		: id(std::move(_id)), decl(var_decl), loop_boundary_count(_loop_boundary_count), is_local(_is_local)
 	{}
 
 	expr_identifier(identifier _id)
-		: id(std::move(_id)), decl(nullptr)
+		: id(std::move(_id)), decl(nullptr), loop_boundary_count(0), is_local(false)
 	{}
 };
 

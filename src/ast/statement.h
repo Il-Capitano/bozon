@@ -68,6 +68,7 @@ struct stmt_while
 {
 	expression condition;
 	expression while_block;
+	scope_t    loop_scope;
 
 	stmt_while(
 		expression _condition,
@@ -84,7 +85,8 @@ struct stmt_for
 	expression condition;
 	expression iteration;
 	expression for_block;
-	scope_t    scope;
+	scope_t    init_scope;
+	scope_t    loop_scope;
 
 	stmt_for(
 		statement  _init,
@@ -108,7 +110,8 @@ struct stmt_foreach
 	expression condition;
 	expression iteration;
 	expression for_block;
-	scope_t    scope;
+	scope_t    init_scope;
+	scope_t    loop_scope;
 
 	stmt_foreach(
 		statement  _range_var_decl,

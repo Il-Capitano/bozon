@@ -14,7 +14,11 @@ static void resolve_stmt(ast::stmt_while &while_stmt, ctx::parse_context &contex
 	resolve_expression(while_stmt.condition, context);
 
 	auto const prev_info = context.push_loop();
+	bz_assert(while_stmt.loop_scope.is_null());
+	while_stmt.loop_scope = ast::make_local_scope(context.get_current_enclosing_scope(), true);
+	context.push_local_scope(&while_stmt.loop_scope);
 	resolve_expression(while_stmt.while_block, context);
+	context.pop_local_scope(true);
 	context.pop_loop(prev_info);
 
 	auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
@@ -23,15 +27,19 @@ static void resolve_stmt(ast::stmt_while &while_stmt, ctx::parse_context &contex
 
 static void resolve_stmt(ast::stmt_for &for_stmt, ctx::parse_context &context)
 {
-	bz_assert(for_stmt.scope.is_null());
-	for_stmt.scope = ast::make_local_scope(context.get_current_enclosing_scope());
-	context.push_local_scope(&for_stmt.scope);
+	bz_assert(for_stmt.init_scope.is_null());
+	for_stmt.init_scope = ast::make_local_scope(context.get_current_enclosing_scope(), false);
+	context.push_local_scope(&for_stmt.init_scope);
 	resolve_statement(for_stmt.init, context);
 	resolve_expression(for_stmt.condition, context);
 
 	auto const prev_info = context.push_loop();
+	bz_assert(for_stmt.loop_scope.is_null());
+	for_stmt.loop_scope = ast::make_local_scope(context.get_current_enclosing_scope(), true);
+	context.push_local_scope(&for_stmt.loop_scope);
 	resolve_expression(for_stmt.iteration, context);
 	resolve_expression(for_stmt.for_block, context);
+	context.pop_local_scope(true);
 	context.pop_loop(prev_info);
 
 	auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
@@ -45,9 +53,9 @@ static void resolve_stmt(ast::stmt_for &for_stmt, ctx::parse_context &context)
 static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &context)
 {
 	bz_assert(foreach_stmt.iter_var_decl.is_null());
-	bz_assert(foreach_stmt.scope.is_null());
-	foreach_stmt.scope = ast::make_local_scope(context.get_current_enclosing_scope());
-	context.push_local_scope(&foreach_stmt.scope);
+	bz_assert(foreach_stmt.init_scope.is_null());
+	foreach_stmt.init_scope = ast::make_local_scope(context.get_current_enclosing_scope(), false);
+	context.push_local_scope(&foreach_stmt.init_scope);
 	resolve_statement(foreach_stmt.range_var_decl, context);
 	bz_assert(foreach_stmt.range_var_decl.is<ast::decl_variable>());
 	auto &range_var_decl = foreach_stmt.range_var_decl.get<ast::decl_variable>();
@@ -73,7 +81,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto range_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			type_kind, type,
-			ast::make_expr_identifier(ast::identifier{}, &range_var_decl),
+			ast::make_expr_identifier(ast::identifier{}, &range_var_decl, 0, true),
 			ast::destruct_operation()
 		);
 		return context.make_universal_function_call_expression(
@@ -111,7 +119,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto range_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			type_kind, type,
-			ast::make_expr_identifier(ast::identifier{}, &range_var_decl),
+			ast::make_expr_identifier(ast::identifier{}, &range_var_decl, 0, true),
 			ast::destruct_operation()
 		);
 		return context.make_universal_function_call_expression(
@@ -145,13 +153,13 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			ast::expression_type_kind::lvalue, iter_var_decl.get_type(),
-			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl),
+			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl, 0, true),
 			ast::destruct_operation()
 		);
 		auto end_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			ast::expression_type_kind::lvalue, end_var_decl.get_type(),
-			ast::make_expr_identifier(ast::identifier{}, &end_var_decl),
+			ast::make_expr_identifier(ast::identifier{}, &end_var_decl, 0, true),
 			ast::destruct_operation()
 		);
 		return context.make_binary_operator_expression(
@@ -168,6 +176,9 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	}
 
 	auto const prev_info = context.push_loop();
+	bz_assert(foreach_stmt.loop_scope.is_null());
+	foreach_stmt.loop_scope = ast::make_local_scope(context.get_current_enclosing_scope(), true);
+	context.push_local_scope(&foreach_stmt.loop_scope);
 	foreach_stmt.iteration = [&]() {
 		if (iter_var_decl.get_type().is_empty())
 		{
@@ -176,7 +187,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			ast::expression_type_kind::lvalue, iter_var_decl.get_type(),
-			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl),
+			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl, 1, true),
 			ast::destruct_operation()
 		);
 		return context.make_unary_operator_expression(
@@ -197,7 +208,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			ast::expression_type_kind::lvalue, iter_var_decl.get_type(),
-			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl),
+			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl, 1, true),
 			ast::destruct_operation()
 		);
 		return context.make_unary_operator_expression(
@@ -210,6 +221,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	context.add_local_variable(iter_deref_var_decl);
 
 	resolve_expression(foreach_stmt.for_block, context);
+	context.pop_local_scope(true);
 	context.pop_loop(prev_info);
 	context.pop_local_scope(true);
 }

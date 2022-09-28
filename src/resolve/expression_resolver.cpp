@@ -283,7 +283,7 @@ static ast::expression resolve_expr(
 	bool is_noreturn = false;
 	if (compound_expr.scope.is_null())
 	{
-		compound_expr.scope = ast::make_local_scope(context.get_current_enclosing_scope());
+		compound_expr.scope = ast::make_local_scope(context.get_current_enclosing_scope(), false);
 	}
 	context.push_local_scope(&compound_expr.scope);
 	for (auto &stmt : compound_expr.statements)
