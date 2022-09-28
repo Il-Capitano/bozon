@@ -1,0 +1,4 @@
+function test(i: move int32)
+{
+	move i;
+}
