@@ -166,7 +166,12 @@ function __libc_main(argc_int: std::libc::int, argv: *const *const std::libc::ch
 		const args_ptr = if (argc <= 8) {
 			args_buffer.begin()
 		} else {
-			__builtin_pointer_cast(*str, std::libc::malloc(argc * sizeof str))
+			const malloc_result = __builtin_pointer_cast(*str, std::libc::malloc(argc * sizeof str));
+			if (malloc_result == null)
+			{
+				return 1;
+			}
+			malloc_result
 		};
 
 		const args = __builtin_slice_from_ptrs(args_ptr, args_ptr + argc);
