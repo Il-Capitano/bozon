@@ -175,20 +175,12 @@
 			"command": "bin/linux-debug/gcc-bozon --stdlib-dir bozon-stdlib -Wall -O3 -Omax-iter-count=8 ryu_format.bz -o ryu_format.linux.gcc.ll --emit=llvm-ir -Cno-panic-on-unreachable"
 		},
 		"a.exe": {
-			"dependencies": [ "bitcode_test.o", "builtins.o" ],
-			"command": "clang bitcode_test.o builtins.o -o a.exe -fuse-ld=lld"
+			"dependencies": [ "bitcode_test.o" ],
+			"command": "clang bitcode_test.o -o a.exe -fuse-ld=lld"
 		},
 		"a.out": {
-			"dependencies": [ "bitcode_test.o", "builtins.linux.o" ],
-			"command": "clang-15 bitcode_test.o builtins.linux.o -lm -o a.out -fuse-ld=lld-15"
-		},
-		"builtins.o": {
-			"dependencies": [ "builtins.c" ],
-			"command": "clang -c builtins.c -O3 -o builtins.o"
-		},
-		"builtins.linux.o": {
-			"dependencies": [ "builtins.c" ],
-			"command": "clang-15 -c builtins.c -O3 -o builtins.linux.o"
+			"dependencies": [ "bitcode_test.o" ],
+			"command": "clang-15 bitcode_test.o -lm -o a.out -fuse-ld=lld-15"
 		},
 		"run-tests": {
 			"command": "python3 scripts/run_tests.py",
