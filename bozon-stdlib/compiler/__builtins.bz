@@ -1,3 +1,4 @@
+import std::libc::types;
 import std::libc::stdio;
 import std::libc::stdlib;
 
@@ -146,6 +147,67 @@ export function __builtin_panic(message: str)
 	{
 		std::libc::fwrite(__builtin_str_begin_ptr(message), 1, __builtin_str_size(message), std::libc::stderr());
 		std::libc::abort();
+	}
+}
+
+@__builtin
+function __builtin_call_main(args: [: const str]) -> int32;
+
+@symbol_name("main")
+function __libc_main(argc_int: std::libc::int, argv: *const *const std::libc::char) -> std::libc::int
+{
+	let args_buffer = [8: str]();
+
+	const args = if (argc_int <= 0) {
+		__builtin_slice_from_ptrs(args_buffer.begin(), args_buffer.begin() + 1)
+	} else {
+		const argc = argc_int as usize;
+
+		const args_ptr = if (argc <= 8) {
+			args_buffer.begin()
+		} else {
+			__builtin_pointer_cast(*str, std::libc::malloc(argc * sizeof str))
+		};
+
+		const args = __builtin_slice_from_ptrs(args_ptr, args_ptr + argc);
+
+		for (let i = 0uz; i < argc; ++i)
+		{
+			const begin_ptr = *(argv + i);
+			const end_ptr = {
+				let it = begin_ptr;
+				while (*it != 0)
+				{
+					++it;
+				}
+				it
+			};
+			args[i] = __builtin_str_from_ptrs(begin_ptr, end_ptr);
+		}
+		args
+	};
+
+	const result = __builtin_call_main(args);
+	if (args.begin() != args_buffer.begin())
+	{
+		std::libc::free(args.begin());
+	}
+
+	if consteval (std::libc::int == int32)
+	{
+		return result;
+	}
+	else
+	{
+		const result_c_int = result as std::libc::int;
+		if (result != 0 && result_c_int == 0)
+		{
+			return 1;
+		}
+		else
+		{
+			return result_c_int;
+		}
 	}
 }
 

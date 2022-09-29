@@ -2457,7 +2457,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 146);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 147);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2714,6 +2714,22 @@ static val_ptr emit_bitcode(
 				bz_assert(func_call.func_body->return_type.is<ast::ts_void>());
 				bz_assert(result_address == nullptr);
 				return val_ptr::get_none();
+			}
+			else
+			{
+				break;
+			}
+		case ast::function_body::builtin_call_main:
+			if constexpr (is_comptime<decltype(context)>)
+			{
+				emit_error(
+					func_call.src_tokens,
+					bz::format("'{}' cannot be used in a constant expression", func_call.func_body->get_signature()),
+					context
+				);
+				bz_assert(func_call.func_body->return_type.is<ast::ts_base_type>());
+				bz_assert(func_call.func_body->return_type.get<ast::ts_base_type>().info->kind == ast::type_info::int32_);
+				return val_ptr::get_value(llvm::UndefValue::get(context.get_int32_t()));
 			}
 			else
 			{

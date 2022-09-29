@@ -59,6 +59,11 @@ void bitcode_context::add_base_type(ast::type_info const *info, llvm::Type *type
 
 llvm::Function *bitcode_context::get_function(ast::function_body *func_body)
 {
+	if (func_body->is_intrinsic() && func_body->intrinsic_kind == ast::function_body::builtin_call_main)
+	{
+		func_body = this->global_ctx._main;
+		bz_assert(func_body != nullptr);
+	}
 	auto it = this->funcs_.find(func_body);
 	if (it == this->funcs_.end())
 	{

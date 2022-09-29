@@ -1249,6 +1249,22 @@ void parse_context::report_ambiguous_id_error(lex::token_pos id) const
 	this->report_error(id, bz::format("identifier '{}' is ambiguous", id->value));
 }
 
+bool parse_context::has_main(void) const
+{
+	return this->global_ctx._main != nullptr;
+}
+
+ast::function_body *parse_context::get_main(void) const
+{
+	return this->global_ctx._main;
+}
+
+void parse_context::set_main(ast::function_body *body)
+{
+	bz_assert(!this->has_main());
+	this->global_ctx._main = body;
+}
+
 /*
 static bz::u8string format_array(bz::array_view<bz::u8string_view const> ids)
 {

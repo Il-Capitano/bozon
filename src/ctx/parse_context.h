@@ -376,6 +376,10 @@ struct parse_context
 
 	void report_ambiguous_id_error(lex::token_pos id) const;
 
+	bool has_main(void) const;
+	ast::function_body *get_main(void) const;
+	void set_main(ast::function_body *body);
+
 	[[nodiscard]] size_t add_unresolved_scope(void);
 	void remove_unresolved_scope(size_t prev_size);
 

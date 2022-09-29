@@ -638,7 +638,7 @@ ast::statement parse_decl_function_or_alias(
 			: ast::make_identifier(id);
 		auto body = parse_function_body(src_tokens, std::move(func_name), stream, end, context);
 		body.cc = cc;
-		if (id->value == "main")
+		if (scope == parse_scope::global && id->value == "main")
 		{
 			body.flags |= ast::function_body::main;
 			body.flags |= ast::function_body::external_linkage;
@@ -650,7 +650,8 @@ ast::statement parse_decl_function_or_alias(
 
 		if constexpr (scope == parse_scope::global || scope == parse_scope::struct_body)
 		{
-			return ast::make_decl_function(context.make_qualified_identifier(id), std::move(body));
+			auto result = ast::make_decl_function(context.make_qualified_identifier(id), std::move(body));
+			return result;
 		}
 		else
 		{

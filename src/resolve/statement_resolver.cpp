@@ -1728,9 +1728,24 @@ static bool resolve_function_symbol_helper(
 		return false;
 	}
 
-	if (func_body.is_main() && !is_valid_main(func_body))
+	if (func_body.is_main())
 	{
-		report_invalid_main_error(func_body, context);
+		if (!is_valid_main(func_body))
+		{
+			report_invalid_main_error(func_body, context);
+		}
+		else if (context.has_main())
+		{
+			context.report_error(
+				func_body.src_tokens,
+				"redefinition of program entry point",
+				{ context.make_note(context.get_main()->src_tokens, "previous definition was here") }
+			);
+		}
+		else
+		{
+			context.set_main(&func_body);
+		}
 	}
 	func_body.resolve_symbol_name();
 	context.add_function_for_compilation(func_body);

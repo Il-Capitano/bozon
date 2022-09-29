@@ -948,7 +948,13 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	}
 	for (auto const func : this->_compile_decls.funcs)
 	{
-		if (func->is_external_linkage())
+		if (
+			func->is_external_linkage()
+			&& !(
+				this->_main == nullptr
+				&& func->symbol_name == "main"
+			)
+		)
 		{
 			context.ensure_function_emission(func);
 		}

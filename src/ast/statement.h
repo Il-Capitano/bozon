@@ -502,6 +502,8 @@ struct function_body
 		builtin_is_option_set,
 		builtin_panic,
 
+		builtin_call_main,
+
 		print_stdout,
 		print_stderr,
 
@@ -1476,7 +1478,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 146);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 147);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1508,6 +1510,8 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_is_option_set_impl, "__builtin_is_option_set_impl" },
 		{ function_body::builtin_is_option_set,      "__builtin_is_option_set"      },
 		{ function_body::builtin_panic,              "__builtin_panic"              },
+
+		{ function_body::builtin_call_main, "__builtin_call_main" },
 
 		{ function_body::print_stdout,   "__builtin_print_stdout"   },
 		{ function_body::print_stderr,   "__builtin_print_stderr"   },
