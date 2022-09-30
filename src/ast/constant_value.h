@@ -103,6 +103,99 @@ struct constant_value : bz::variant<
 	size_t kind(void) const noexcept
 	{ return this->base_t::index(); }
 
+
+	bool is_sint(void) const noexcept
+	{ return this->is<sint>(); }
+
+	bool is_uint(void) const noexcept
+	{ return this->is<uint>(); }
+
+	bool is_float32(void) const noexcept
+	{ return this->is<float32>(); }
+
+	bool is_float64(void) const noexcept
+	{ return this->is<float64>(); }
+
+	bool is_u8char(void) const noexcept
+	{ return this->is<u8char>(); }
+
+	bool is_string(void) const noexcept
+	{ return this->is<string>(); }
+
+	bool is_boolean(void) const noexcept
+	{ return this->is<boolean>(); }
+
+	bool is_null_constant(void) const noexcept
+	{ return this->is<null>(); }
+
+	bool is_void(void) const noexcept
+	{ return this->is<void_>(); }
+
+	bool is_array(void) const noexcept
+	{ return this->is<array>(); }
+
+	bool is_tuple(void) const noexcept
+	{ return this->is<tuple>(); }
+
+	bool is_function(void) const noexcept
+	{ return this->is<function>(); }
+
+	bool is_unqualified_function_set_id(void) const noexcept
+	{ return this->is<unqualified_function_set_id>(); }
+
+	bool is_qualified_function_set_id(void) const noexcept
+	{ return this->is<qualified_function_set_id>(); }
+
+	bool is_type(void) const noexcept
+	{ return this->is<type>(); }
+
+	bool is_aggregate(void) const noexcept
+	{ return this->is<aggregate>(); }
+
+
+	int64_t get_sint(void) const noexcept
+	{ return this->get<sint>(); }
+
+	uint64_t get_uint(void) const noexcept
+	{ return this->get<uint>(); }
+
+	float32_t get_float32(void) const noexcept
+	{ return this->get<float32>(); }
+
+	float64_t get_float64(void) const noexcept
+	{ return this->get<float64>(); }
+
+	bz::u8char get_u8char(void) const noexcept
+	{ return this->get<u8char>(); }
+
+	bz::u8string_view get_string(void) const noexcept
+	{ return this->get<string>(); }
+
+	bool get_boolean(void) const noexcept
+	{ return this->get<boolean>(); }
+
+	bz::array_view<constant_value const> get_array(void) const noexcept
+	{ return this->get<array>(); }
+
+	bz::array_view<constant_value const> get_tuple(void) const noexcept
+	{ return this->get<tuple>(); }
+
+	decl_function *get_function(void) const noexcept
+	{ return this->get<function>(); }
+
+	function_set_t const &get_unqualified_function_set_id(void) const noexcept
+	{ return this->get<unqualified_function_set_id>(); }
+
+	function_set_t const &get_qualified_function_set_id(void) const noexcept
+	{ return this->get<qualified_function_set_id>(); }
+
+	typespec_view get_type(void) const noexcept
+	{ return this->get<type>(); }
+
+	bz::array_view<constant_value const> get_aggregate(void) const noexcept
+	{ return this->get<aggregate>(); }
+
+
 	constant_value(void) = default;
 
 	template<typename T, bz::meta::enable_if<!bz::meta::is_same<bz::meta::remove_cv_reference<T>, constant_value>, int> = 0>

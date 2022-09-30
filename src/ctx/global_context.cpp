@@ -733,6 +733,8 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 [[nodiscard]] bool global_context::initialize_llvm(void)
 {
+	this->_llvm_context.setDiscardValueNames(discard_llvm_value_names);
+
 	auto const is_native_target = target == "" || target == "native";
 	auto const target_triple = is_native_target
 		? llvm::Triple::normalize(llvm::sys::getDefaultTargetTriple())

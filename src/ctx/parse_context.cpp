@@ -4367,7 +4367,7 @@ ast::expression parse_context::make_function_call_expression(
 		auto &const_called = called.get_constant();
 		if (const_called.value.kind() == ast::constant_value::function)
 		{
-			auto const func_decl = const_called.value.get<ast::constant_value::function>();
+			auto const func_decl = const_called.value.get_function();
 			if (resolve::get_function_call_match_level(func_decl, func_decl->body, args, *this, src_tokens).is_null())
 			{
 				if (func_decl->body.state != ast::resolve_state::error)
@@ -4392,27 +4392,27 @@ ast::expression parse_context::make_function_call_expression(
 		else
 		{
 			bz_assert(
-				const_called.value.is<ast::constant_value::unqualified_function_set_id>()
-				|| const_called.value.is<ast::constant_value::qualified_function_set_id>()
+				const_called.value.is_unqualified_function_set_id()
+				|| const_called.value.is_qualified_function_set_id()
 			);
-			auto const possible_funcs = const_called.value.is<ast::constant_value::unqualified_function_set_id>()
+			auto const possible_funcs = const_called.value.is_unqualified_function_set_id()
 				? get_possible_funcs_for_unqualified_id(
-					const_called.value.get<ast::constant_value::unqualified_function_set_id>(),
+					const_called.value.get_unqualified_function_set_id(),
 					src_tokens, args, *this
 				)
 				: get_possible_funcs_for_qualified_id(
-					const_called.value.get<ast::constant_value::qualified_function_set_id>(),
+					const_called.value.get_qualified_function_set_id(),
 					src_tokens, args, *this
 				);
 
 			if (possible_funcs.empty())
 			{
 				auto const func_id_value = [&]() {
-					auto const id_values = const_called.value.is<ast::constant_value::unqualified_function_set_id>()
-						? const_called.value.get<ast::constant_value::unqualified_function_set_id>().id.as_array_view()
-						: const_called.value.get<ast::constant_value::qualified_function_set_id>().id.as_array_view();
+					auto const id_values = const_called.value.is_unqualified_function_set_id()
+						? const_called.value.get_unqualified_function_set_id().id.as_array_view()
+						: const_called.value.get_qualified_function_set_id().id.as_array_view();
 					bz::u8string result;
-					bool skip_scope = const_called.value.is<ast::constant_value::unqualified_function_set_id>();
+					bool skip_scope = const_called.value.is_unqualified_function_set_id();
 					for (auto const id : id_values)
 					{
 						if (skip_scope)

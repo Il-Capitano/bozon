@@ -410,8 +410,8 @@ static ast::expression resolve_expr(
 	}
 
 	auto const &condition_value = if_expr.condition.get_constant_value();
-	bz_assert(condition_value.is<ast::constant_value::boolean>());
-	if (condition_value.get<ast::constant_value::boolean>())
+	bz_assert(condition_value.is_boolean());
+	if (condition_value.get_boolean())
 	{
 		resolve_expression(if_expr.then_block, context);
 		auto const [type, kind] = if_expr.then_block.get_expr_type_and_kind();
@@ -561,17 +561,18 @@ static ast::expression resolve_expr(
 				{
 					switch (rhs_value.kind())
 					{
+					static_assert(ast::constant_value::variant_count == 16);
 					case ast::constant_value::sint:
 						context.report_error(
 							rhs.src_tokens,
-							bz::format("duplicate value {} in switch expression", lhs_value.get<ast::constant_value::sint>()),
+							bz::format("duplicate value {} in switch expression", lhs_value.get_sint()),
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
 						break;
 					case ast::constant_value::uint:
 						context.report_error(
 							rhs.src_tokens,
-							bz::format("duplicate value {} in switch expression", lhs_value.get<ast::constant_value::uint>()),
+							bz::format("duplicate value {} in switch expression", lhs_value.get_uint()),
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
 						break;
@@ -580,7 +581,7 @@ static ast::expression resolve_expr(
 							rhs.src_tokens,
 							bz::format(
 								"duplicate value '{}' in switch expression",
-								add_escape_sequences(lhs_value.get<ast::constant_value::u8char>())
+								add_escape_sequences(lhs_value.get_u8char())
 							),
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
@@ -588,7 +589,7 @@ static ast::expression resolve_expr(
 					case ast::constant_value::boolean:
 						context.report_error(
 							rhs.src_tokens,
-							bz::format("duplicate value '{}' in switch expression", lhs_value.get<ast::constant_value::boolean>()),
+							bz::format("duplicate value '{}' in switch expression", lhs_value.get_boolean()),
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
 						break;
@@ -760,9 +761,10 @@ static ast::expression resolve_expr(
 				ast::constant_value const &size_value = size.get_constant_value();
 				switch (size_value.kind())
 				{
+				static_assert(ast::constant_value::variant_count == 16);
 				case ast::constant_value::sint:
 				{
-					auto const value = size_value.get<ast::constant_value::sint>();
+					auto const value = size_value.get_sint();
 					if (value <= 0)
 					{
 						good = false;
@@ -775,7 +777,7 @@ static ast::expression resolve_expr(
 				}
 				case ast::constant_value::uint:
 				{
-					auto const value = size_value.get<ast::constant_value::uint>();
+					auto const value = size_value.get_uint();
 					if (value == 0)
 					{
 						good = false;

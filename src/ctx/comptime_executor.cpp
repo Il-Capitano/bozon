@@ -1100,8 +1100,7 @@ static ast::constant_value constant_value_from_global_getters(
 		},
 		[&](ast::ts_array const &array_t) -> ast::constant_value {
 			ast::constant_value result;
-			result.emplace<ast::constant_value::array>();
-			auto &arr = result.get<ast::constant_value::array>();
+			auto &arr = result.emplace<ast::constant_value::array>();
 			arr.reserve(array_t.size);
 			for ([[maybe_unused]] auto const _ : bz::iota(0, array_t.size))
 			{
@@ -1111,8 +1110,7 @@ static ast::constant_value constant_value_from_global_getters(
 		},
 		[&](ast::ts_tuple const &tuple_t) -> ast::constant_value {
 			ast::constant_value result;
-			result.emplace<ast::constant_value::tuple>();
-			auto &tuple = result.get<ast::constant_value::tuple>();
+			auto &tuple = result.emplace<ast::constant_value::tuple>();
 			tuple.reserve(tuple_t.types.size());
 			for (auto const &type : tuple_t.types)
 			{

@@ -405,7 +405,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 
 	auto &cond_const_expr = static_assert_stmt.condition.get_constant();
 	bz_assert(cond_const_expr.value.kind() == ast::constant_value::boolean);
-	auto const cond = cond_const_expr.value.get<ast::constant_value::boolean>();
+	auto const cond = cond_const_expr.value.get_boolean();
 
 	if (!cond)
 	{
@@ -419,7 +419,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 		{
 			auto &message_const_expr = static_assert_stmt.message.get_constant();
 			bz_assert(message_const_expr.value.kind() == ast::constant_value::string);
-			auto const message = message_const_expr.value.get<ast::constant_value::string>().as_string_view();
+			auto const message = message_const_expr.value.get_string();
 			error_message += bz::format(", message: '{}'", message);
 		}
 		context.report_error(static_assert_stmt.condition, std::move(error_message));
@@ -945,9 +945,9 @@ static void resolve_type_alias_impl(ast::decl_type_alias &alias_decl, ctx::parse
 	}
 
 	auto const &value = alias_decl.alias_expr.get_constant_value();
-	if (value.is<ast::constant_value::type>())
+	if (value.is_type())
 	{
-		auto const &type = value.get<ast::constant_value::type>();
+		auto const type = value.get_type();
 		if (ast::is_complete(type))
 		{
 			alias_decl.state = ast::resolve_state::all;
@@ -1065,18 +1065,18 @@ static void resolve_function_alias_impl(ast::decl_function_alias &alias_decl, ct
 	}
 
 	auto const &value = alias_decl.alias_expr.get_constant_value();
-	if (value.is<ast::constant_value::function>())
+	if (value.is_function())
 	{
-		auto const func_decl = value.get<ast::constant_value::function>();
+		auto const func_decl = value.get_function();
 		bz_assert(alias_decl.aliased_decls.empty());
 		alias_decl.aliased_decls = { func_decl };
 		alias_decl.state = ast::resolve_state::all;
 	}
-	else if (value.is<ast::constant_value::unqualified_function_set_id>() || value.is<ast::constant_value::qualified_function_set_id>())
+	else if (value.is_unqualified_function_set_id() || value.is_qualified_function_set_id())
 	{
-		auto const &func_set = value.is<ast::constant_value::unqualified_function_set_id>()
-			? value.get<ast::constant_value::unqualified_function_set_id>()
-			: value.get<ast::constant_value::qualified_function_set_id>();
+		auto const &func_set = value.is_unqualified_function_set_id()
+			? value.get_unqualified_function_set_id()
+			: value.get_qualified_function_set_id();
 		bz_assert(alias_decl.aliased_decls.empty());
 		alias_decl.aliased_decls = get_function_decls_from_set(func_set);
 		if (alias_decl.state != ast::resolve_state::error && !alias_decl.aliased_decls.empty())

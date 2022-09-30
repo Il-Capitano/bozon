@@ -131,7 +131,7 @@ static bool apply_comptime_error_checking(
 {
 	auto const kind = attribute.args[0]
 		.get_constant_value()
-		.get<ast::constant_value::string>().as_string_view();
+		.get_string();
 
 	if (!context.global_ctx.add_comptime_checking_function(kind, &func_body))
 	{
@@ -153,7 +153,7 @@ static bool apply_comptime_error_checking(
 {
 	auto const kind = attribute.args[0]
 		.get_constant_value()
-		.get<ast::constant_value::string>().as_string_view();
+		.get_string();
 
 	if (!context.global_ctx.add_comptime_checking_variable(kind, &var_decl))
 	{
@@ -205,7 +205,7 @@ static bool apply_symbol_name(
 	{
 		auto const symbol_name = attribute.args[0]
 			.get_constant_value()
-			.get<ast::constant_value::string>().as_string_view();
+			.get_string();
 
 		func_body.symbol_name = symbol_name;
 		func_body.flags |= ast::function_body::external_linkage;
@@ -228,7 +228,7 @@ static bool apply_symbol_name(
 	{
 		auto const symbol_name = attribute.args[0]
 			.get_constant_value()
-			.get<ast::constant_value::string>().as_string_view();
+			.get_string();
 
 		var_decl.symbol_name = symbol_name;
 		var_decl.flags |= ast::decl_variable::external_linkage;

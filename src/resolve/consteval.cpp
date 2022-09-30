@@ -25,10 +25,11 @@ static ast::constant_value evaluate_binary_plus(
 		auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 		switch (lhs_value.kind())
 		{
+		static_assert(ast::constant_value::variant_count == 16);
 		case ast::constant_value::sint:
 		{
-			auto const lhs_int_val = lhs_value.get<ast::constant_value::sint>();
-			auto const rhs_int_val = rhs_value.get<ast::constant_value::sint>();
+			auto const lhs_int_val = lhs_value.get_sint();
+			auto const rhs_int_val = rhs_value.get_sint();
 			return ast::constant_value(safe_binary_plus(
 				original_expr.src_tokens, original_expr.paren_level,
 				lhs_int_val, rhs_int_val, type, context
@@ -36,8 +37,8 @@ static ast::constant_value evaluate_binary_plus(
 		}
 		case ast::constant_value::uint:
 		{
-			auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
-			auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+			auto const lhs_int_val = lhs_value.get_uint();
+			auto const rhs_int_val = rhs_value.get_uint();
 			return ast::constant_value(safe_binary_plus(
 				original_expr.src_tokens, original_expr.paren_level,
 				lhs_int_val, rhs_int_val, type, context
@@ -45,8 +46,8 @@ static ast::constant_value evaluate_binary_plus(
 		}
 		case ast::constant_value::float32:
 		{
-			auto const lhs_float_val = lhs_value.get<ast::constant_value::float32>();
-			auto const rhs_float_val = rhs_value.get<ast::constant_value::float32>();
+			auto const lhs_float_val = lhs_value.get_float32();
+			auto const rhs_float_val = rhs_value.get_float32();
 			return ast::constant_value(safe_binary_plus(
 				original_expr.src_tokens, original_expr.paren_level,
 				lhs_float_val, rhs_float_val, context
@@ -54,8 +55,8 @@ static ast::constant_value evaluate_binary_plus(
 		}
 		case ast::constant_value::float64:
 		{
-			auto const lhs_float_val = lhs_value.get<ast::constant_value::float64>();
-			auto const rhs_float_val = rhs_value.get<ast::constant_value::float64>();
+			auto const lhs_float_val = lhs_value.get_float64();
+			auto const rhs_float_val = rhs_value.get_float64();
 			return ast::constant_value(safe_binary_plus(
 				original_expr.src_tokens, original_expr.paren_level,
 				lhs_float_val, rhs_float_val, context
@@ -65,19 +66,19 @@ static ast::constant_value evaluate_binary_plus(
 			bz_unreachable;
 		}
 	}
-	else if (lhs_value.is<ast::constant_value::u8char>())
+	else if (lhs_value.is_u8char())
 	{
-		bz_assert(rhs_value.is<ast::constant_value::sint>() || rhs_value.is<ast::constant_value::uint>());
+		bz_assert(rhs_value.is_sint() || rhs_value.is_uint());
 
-		auto const result = rhs_value.is<ast::constant_value::sint>()
+		auto const result = rhs_value.is_sint()
 			? safe_binary_plus(
 				original_expr.src_tokens, original_expr.paren_level,
-				lhs_value.get<ast::constant_value::u8char>(), rhs_value.get<ast::constant_value::sint>(),
+				lhs_value.get_u8char(), rhs_value.get_sint(),
 				context
 			)
 			: safe_binary_plus(
 				original_expr.src_tokens, original_expr.paren_level,
-				lhs_value.get<ast::constant_value::u8char>(), rhs_value.get<ast::constant_value::uint>(),
+				lhs_value.get_u8char(), rhs_value.get_uint(),
 				context
 			);
 		if (result.has_value())
@@ -91,18 +92,18 @@ static ast::constant_value evaluate_binary_plus(
 	}
 	else
 	{
-		bz_assert(rhs_value.is<ast::constant_value::u8char>());
-		bz_assert(lhs_value.is<ast::constant_value::sint>() || lhs_value.is<ast::constant_value::uint>());
+		bz_assert(rhs_value.is_u8char());
+		bz_assert(lhs_value.is_sint() || lhs_value.is_uint());
 
-		auto const result = lhs_value.is<ast::constant_value::sint>()
+		auto const result = lhs_value.is_sint()
 			? safe_binary_plus(
 				original_expr.src_tokens, original_expr.paren_level,
-				lhs_value.get<ast::constant_value::sint>(), rhs_value.get<ast::constant_value::u8char>(),
+				lhs_value.get_sint(), rhs_value.get_u8char(),
 				context
 			)
 			: safe_binary_plus(
 				original_expr.src_tokens, original_expr.paren_level,
-				lhs_value.get<ast::constant_value::uint>(), rhs_value.get<ast::constant_value::u8char>(),
+				lhs_value.get_uint(), rhs_value.get_u8char(),
 				context
 			);
 		if (result.has_value())
@@ -135,10 +136,11 @@ static ast::constant_value evaluate_binary_minus(
 		auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 		switch (lhs_value.kind())
 		{
+		static_assert(ast::constant_value::variant_count == 16);
 		case ast::constant_value::sint:
 		{
-			auto const lhs_int_val = lhs_value.get<ast::constant_value::sint>();
-			auto const rhs_int_val = rhs_value.get<ast::constant_value::sint>();
+			auto const lhs_int_val = lhs_value.get_sint();
+			auto const rhs_int_val = rhs_value.get_sint();
 			return ast::constant_value(safe_binary_minus(
 				original_expr.src_tokens, original_expr.paren_level,
 				lhs_int_val, rhs_int_val, type, context
@@ -146,8 +148,8 @@ static ast::constant_value evaluate_binary_minus(
 		}
 		case ast::constant_value::uint:
 		{
-			auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
-			auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+			auto const lhs_int_val = lhs_value.get_uint();
+			auto const rhs_int_val = rhs_value.get_uint();
 			return ast::constant_value(safe_binary_minus(
 				original_expr.src_tokens, original_expr.paren_level,
 				lhs_int_val, rhs_int_val, type, context
@@ -155,8 +157,8 @@ static ast::constant_value evaluate_binary_minus(
 		}
 		case ast::constant_value::float32:
 		{
-			auto const lhs_float_val = lhs_value.get<ast::constant_value::float32>();
-			auto const rhs_float_val = rhs_value.get<ast::constant_value::float32>();
+			auto const lhs_float_val = lhs_value.get_float32();
+			auto const rhs_float_val = rhs_value.get_float32();
 			return ast::constant_value(safe_binary_minus(
 				original_expr.src_tokens, original_expr.paren_level,
 				lhs_float_val, rhs_float_val, context
@@ -164,8 +166,8 @@ static ast::constant_value evaluate_binary_minus(
 		}
 		case ast::constant_value::float64:
 		{
-			auto const lhs_float_val = lhs_value.get<ast::constant_value::float64>();
-			auto const rhs_float_val = rhs_value.get<ast::constant_value::float64>();
+			auto const lhs_float_val = lhs_value.get_float64();
+			auto const rhs_float_val = rhs_value.get_float64();
 			return ast::constant_value(safe_binary_minus(
 				original_expr.src_tokens, original_expr.paren_level,
 				lhs_float_val, rhs_float_val, context
@@ -173,8 +175,8 @@ static ast::constant_value evaluate_binary_minus(
 		}
 		case ast::constant_value::u8char:
 			return ast::constant_value(
-				static_cast<int64_t>(lhs_value.get<ast::constant_value::u8char>())
-				- static_cast<int64_t>(rhs_value.get<ast::constant_value::u8char>())
+				static_cast<int64_t>(lhs_value.get_u8char())
+				- static_cast<int64_t>(rhs_value.get_u8char())
 			);
 		default:
 			bz_unreachable;
@@ -182,18 +184,18 @@ static ast::constant_value evaluate_binary_minus(
 	}
 	else
 	{
-		bz_assert(lhs_value.is<ast::constant_value::u8char>());
-		bz_assert(rhs_value.is<ast::constant_value::sint>() || rhs_value.is<ast::constant_value::uint>());
+		bz_assert(lhs_value.is_u8char());
+		bz_assert(rhs_value.is_sint() || rhs_value.is_uint());
 
-		auto const result = rhs_value.is<ast::constant_value::sint>()
+		auto const result = rhs_value.is_sint()
 			? safe_binary_minus(
 				original_expr.src_tokens, original_expr.paren_level,
-				lhs_value.get<ast::constant_value::u8char>(), rhs_value.get<ast::constant_value::sint>(),
+				lhs_value.get_u8char(), rhs_value.get_sint(),
 				context
 			)
 			: safe_binary_minus(
 				original_expr.src_tokens, original_expr.paren_level,
-				lhs_value.get<ast::constant_value::u8char>(), rhs_value.get<ast::constant_value::uint>(),
+				lhs_value.get_u8char(), rhs_value.get_uint(),
 				context
 			);
 		if (result.has_value())
@@ -225,10 +227,11 @@ static ast::constant_value evaluate_binary_multiply(
 	auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
+	static_assert(ast::constant_value::variant_count == 16);
 	case ast::constant_value::sint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::sint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::sint>();
+		auto const lhs_int_val = lhs_value.get_sint();
+		auto const rhs_int_val = rhs_value.get_sint();
 		return ast::constant_value(safe_binary_multiply(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_int_val, rhs_int_val, type, context
@@ -236,8 +239,8 @@ static ast::constant_value evaluate_binary_multiply(
 	}
 	case ast::constant_value::uint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+		auto const lhs_int_val = lhs_value.get_uint();
+		auto const rhs_int_val = rhs_value.get_uint();
 		return ast::constant_value(safe_binary_multiply(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_int_val, rhs_int_val, type, context
@@ -245,8 +248,8 @@ static ast::constant_value evaluate_binary_multiply(
 	}
 	case ast::constant_value::float32:
 	{
-		auto const lhs_float_val = lhs_value.get<ast::constant_value::float32>();
-		auto const rhs_float_val = rhs_value.get<ast::constant_value::float32>();
+		auto const lhs_float_val = lhs_value.get_float32();
+		auto const rhs_float_val = rhs_value.get_float32();
 		return ast::constant_value(safe_binary_multiply(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_float_val, rhs_float_val, context
@@ -254,8 +257,8 @@ static ast::constant_value evaluate_binary_multiply(
 	}
 	case ast::constant_value::float64:
 	{
-		auto const lhs_float_val = lhs_value.get<ast::constant_value::float64>();
-		auto const rhs_float_val = rhs_value.get<ast::constant_value::float64>();
+		auto const lhs_float_val = lhs_value.get_float64();
+		auto const rhs_float_val = rhs_value.get_float64();
 		return ast::constant_value(safe_binary_multiply(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_float_val, rhs_float_val, context
@@ -284,10 +287,11 @@ static ast::constant_value evaluate_binary_divide(
 	auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
+	static_assert(ast::constant_value::variant_count == 16);
 	case ast::constant_value::sint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::sint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::sint>();
+		auto const lhs_int_val = lhs_value.get_sint();
+		auto const rhs_int_val = rhs_value.get_sint();
 		auto const result = safe_binary_divide(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_int_val, rhs_int_val, type, context
@@ -303,8 +307,8 @@ static ast::constant_value evaluate_binary_divide(
 	}
 	case ast::constant_value::uint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+		auto const lhs_int_val = lhs_value.get_uint();
+		auto const rhs_int_val = rhs_value.get_uint();
 		auto const result = safe_binary_divide(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_int_val, rhs_int_val, type, context
@@ -320,8 +324,8 @@ static ast::constant_value evaluate_binary_divide(
 	}
 	case ast::constant_value::float32:
 	{
-		auto const lhs_float_val = lhs_value.get<ast::constant_value::float32>();
-		auto const rhs_float_val = rhs_value.get<ast::constant_value::float32>();
+		auto const lhs_float_val = lhs_value.get_float32();
+		auto const rhs_float_val = rhs_value.get_float32();
 		return ast::constant_value(safe_binary_divide(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_float_val, rhs_float_val, context
@@ -329,8 +333,8 @@ static ast::constant_value evaluate_binary_divide(
 	}
 	case ast::constant_value::float64:
 	{
-		auto const lhs_float_val = lhs_value.get<ast::constant_value::float64>();
-		auto const rhs_float_val = rhs_value.get<ast::constant_value::float64>();
+		auto const lhs_float_val = lhs_value.get_float64();
+		auto const rhs_float_val = rhs_value.get_float64();
 		return ast::constant_value(safe_binary_divide(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_float_val, rhs_float_val, context
@@ -359,10 +363,11 @@ static ast::constant_value evaluate_binary_modulo(
 	auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
+	static_assert(ast::constant_value::variant_count == 16);
 	case ast::constant_value::sint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::sint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::sint>();
+		auto const lhs_int_val = lhs_value.get_sint();
+		auto const rhs_int_val = rhs_value.get_sint();
 		auto const result = safe_binary_modulo(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_int_val, rhs_int_val, type, context
@@ -378,8 +383,8 @@ static ast::constant_value evaluate_binary_modulo(
 	}
 	case ast::constant_value::uint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+		auto const lhs_int_val = lhs_value.get_uint();
+		auto const rhs_int_val = rhs_value.get_uint();
 		auto const result = safe_binary_modulo(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_int_val, rhs_int_val, type, context
@@ -415,22 +420,23 @@ static ast::constant_value evaluate_binary_equals(
 
 	switch (lhs_value.kind())
 	{
+	static_assert(ast::constant_value::variant_count == 16);
 	case ast::constant_value::sint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::sint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::sint>();
+		auto const lhs_int_val = lhs_value.get_sint();
+		auto const rhs_int_val = rhs_value.get_sint();
 		return ast::constant_value(lhs_int_val == rhs_int_val);
 	}
 	case ast::constant_value::uint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+		auto const lhs_int_val = lhs_value.get_uint();
+		auto const rhs_int_val = rhs_value.get_uint();
 		return ast::constant_value(lhs_int_val == rhs_int_val);
 	}
 	case ast::constant_value::float32:
 	{
-		auto const lhs_float_val = lhs_value.get<ast::constant_value::float32>();
-		auto const rhs_float_val = rhs_value.get<ast::constant_value::float32>();
+		auto const lhs_float_val = lhs_value.get_float32();
+		auto const rhs_float_val = rhs_value.get_float32();
 		return ast::constant_value(safe_binary_equals(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_float_val, rhs_float_val, context
@@ -438,8 +444,8 @@ static ast::constant_value evaluate_binary_equals(
 	}
 	case ast::constant_value::float64:
 	{
-		auto const lhs_float_val = lhs_value.get<ast::constant_value::float64>();
-		auto const rhs_float_val = rhs_value.get<ast::constant_value::float64>();
+		auto const lhs_float_val = lhs_value.get_float64();
+		auto const rhs_float_val = rhs_value.get_float64();
 		return ast::constant_value(safe_binary_equals(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_float_val, rhs_float_val, context
@@ -447,20 +453,20 @@ static ast::constant_value evaluate_binary_equals(
 	}
 	case ast::constant_value::u8char:
 	{
-		auto const lhs_char_val = lhs_value.get<ast::constant_value::u8char>();
-		auto const rhs_char_val = rhs_value.get<ast::constant_value::u8char>();
+		auto const lhs_char_val = lhs_value.get_u8char();
+		auto const rhs_char_val = rhs_value.get_u8char();
 		return ast::constant_value(lhs_char_val == rhs_char_val);
 	}
 	case ast::constant_value::boolean:
 	{
-		auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
-		auto const rhs_bool_val = rhs_value.get<ast::constant_value::boolean>();
+		auto const lhs_bool_val = lhs_value.get_boolean();
+		auto const rhs_bool_val = rhs_value.get_boolean();
 		return ast::constant_value(lhs_bool_val == rhs_bool_val);
 	}
 	case ast::constant_value::string:
 	{
-		auto const lhs_str_val = lhs_value.get<ast::constant_value::string>().as_string_view();
-		auto const rhs_str_val = rhs_value.get<ast::constant_value::string>().as_string_view();
+		auto const lhs_str_val = lhs_value.get_string();
+		auto const rhs_str_val = rhs_value.get_string();
 		return ast::constant_value(lhs_str_val == rhs_str_val);
 	}
 	case ast::constant_value::null:
@@ -489,46 +495,47 @@ static ast::constant_value evaluate_binary_not_equals(
 
 	switch (lhs_value.kind())
 	{
+	static_assert(ast::constant_value::variant_count == 16);
 	case ast::constant_value::sint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::sint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::sint>();
+		auto const lhs_int_val = lhs_value.get_sint();
+		auto const rhs_int_val = rhs_value.get_sint();
 		return ast::constant_value(lhs_int_val != rhs_int_val);
 	}
 	case ast::constant_value::uint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+		auto const lhs_int_val = lhs_value.get_uint();
+		auto const rhs_int_val = rhs_value.get_uint();
 		return ast::constant_value(lhs_int_val != rhs_int_val);
 	}
 	case ast::constant_value::float32:
 	{
-		auto const lhs_float_val = lhs_value.get<ast::constant_value::float32>();
-		auto const rhs_float_val = rhs_value.get<ast::constant_value::float32>();
+		auto const lhs_float_val = lhs_value.get_float32();
+		auto const rhs_float_val = rhs_value.get_float32();
 		return ast::constant_value(lhs_float_val != rhs_float_val);
 	}
 	case ast::constant_value::float64:
 	{
-		auto const lhs_float_val = lhs_value.get<ast::constant_value::float64>();
-		auto const rhs_float_val = rhs_value.get<ast::constant_value::float64>();
+		auto const lhs_float_val = lhs_value.get_float64();
+		auto const rhs_float_val = rhs_value.get_float64();
 		return ast::constant_value(lhs_float_val != rhs_float_val);
 	}
 	case ast::constant_value::u8char:
 	{
-		auto const lhs_char_val = lhs_value.get<ast::constant_value::u8char>();
-		auto const rhs_char_val = rhs_value.get<ast::constant_value::u8char>();
+		auto const lhs_char_val = lhs_value.get_u8char();
+		auto const rhs_char_val = rhs_value.get_u8char();
 		return ast::constant_value(lhs_char_val != rhs_char_val);
 	}
 	case ast::constant_value::boolean:
 	{
-		auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
-		auto const rhs_bool_val = rhs_value.get<ast::constant_value::boolean>();
+		auto const lhs_bool_val = lhs_value.get_boolean();
+		auto const rhs_bool_val = rhs_value.get_boolean();
 		return ast::constant_value(lhs_bool_val != rhs_bool_val);
 	}
 	case ast::constant_value::string:
 	{
-		auto const lhs_str_val = lhs_value.get<ast::constant_value::string>().as_string_view();
-		auto const rhs_str_val = rhs_value.get<ast::constant_value::string>().as_string_view();
+		auto const lhs_str_val = lhs_value.get_string();
+		auto const rhs_str_val = rhs_value.get_string();
 		return ast::constant_value(lhs_str_val != rhs_str_val);
 	}
 	case ast::constant_value::null:
@@ -557,34 +564,35 @@ static ast::constant_value evaluate_binary_less_than(
 
 	switch (lhs_value.kind())
 	{
+	static_assert(ast::constant_value::variant_count == 16);
 	case ast::constant_value::sint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::sint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::sint>();
+		auto const lhs_int_val = lhs_value.get_sint();
+		auto const rhs_int_val = rhs_value.get_sint();
 		return ast::constant_value(lhs_int_val < rhs_int_val);
 	}
 	case ast::constant_value::uint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+		auto const lhs_int_val = lhs_value.get_uint();
+		auto const rhs_int_val = rhs_value.get_uint();
 		return ast::constant_value(lhs_int_val < rhs_int_val);
 	}
 	case ast::constant_value::float32:
 	{
-		auto const lhs_float_val = lhs_value.get<ast::constant_value::float32>();
-		auto const rhs_float_val = rhs_value.get<ast::constant_value::float32>();
+		auto const lhs_float_val = lhs_value.get_float32();
+		auto const rhs_float_val = rhs_value.get_float32();
 		return ast::constant_value(lhs_float_val < rhs_float_val);
 	}
 	case ast::constant_value::float64:
 	{
-		auto const lhs_float_val = lhs_value.get<ast::constant_value::float64>();
-		auto const rhs_float_val = rhs_value.get<ast::constant_value::float64>();
+		auto const lhs_float_val = lhs_value.get_float64();
+		auto const rhs_float_val = rhs_value.get_float64();
 		return ast::constant_value(lhs_float_val < rhs_float_val);
 	}
 	case ast::constant_value::u8char:
 	{
-		auto const lhs_char_val = lhs_value.get<ast::constant_value::u8char>();
-		auto const rhs_char_val = rhs_value.get<ast::constant_value::u8char>();
+		auto const lhs_char_val = lhs_value.get_u8char();
+		auto const rhs_char_val = rhs_value.get_u8char();
 		return ast::constant_value(lhs_char_val < rhs_char_val);
 	}
 	case ast::constant_value::null:
@@ -613,34 +621,35 @@ static ast::constant_value evaluate_binary_less_than_eq(
 
 	switch (lhs_value.kind())
 	{
+	static_assert(ast::constant_value::variant_count == 16);
 	case ast::constant_value::sint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::sint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::sint>();
+		auto const lhs_int_val = lhs_value.get_sint();
+		auto const rhs_int_val = rhs_value.get_sint();
 		return ast::constant_value(lhs_int_val <= rhs_int_val);
 	}
 	case ast::constant_value::uint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+		auto const lhs_int_val = lhs_value.get_uint();
+		auto const rhs_int_val = rhs_value.get_uint();
 		return ast::constant_value(lhs_int_val <= rhs_int_val);
 	}
 	case ast::constant_value::float32:
 	{
-		auto const lhs_float_val = lhs_value.get<ast::constant_value::float32>();
-		auto const rhs_float_val = rhs_value.get<ast::constant_value::float32>();
+		auto const lhs_float_val = lhs_value.get_float32();
+		auto const rhs_float_val = rhs_value.get_float32();
 		return ast::constant_value(lhs_float_val <= rhs_float_val);
 	}
 	case ast::constant_value::float64:
 	{
-		auto const lhs_float_val = lhs_value.get<ast::constant_value::float64>();
-		auto const rhs_float_val = rhs_value.get<ast::constant_value::float64>();
+		auto const lhs_float_val = lhs_value.get_float64();
+		auto const rhs_float_val = rhs_value.get_float64();
 		return ast::constant_value(lhs_float_val <= rhs_float_val);
 	}
 	case ast::constant_value::u8char:
 	{
-		auto const lhs_char_val = lhs_value.get<ast::constant_value::u8char>();
-		auto const rhs_char_val = rhs_value.get<ast::constant_value::u8char>();
+		auto const lhs_char_val = lhs_value.get_u8char();
+		auto const rhs_char_val = rhs_value.get_u8char();
 		return ast::constant_value(lhs_char_val <= rhs_char_val);
 	}
 	case ast::constant_value::null:
@@ -669,34 +678,35 @@ static ast::constant_value evaluate_binary_greater_than(
 
 	switch (lhs_value.kind())
 	{
+	static_assert(ast::constant_value::variant_count == 16);
 	case ast::constant_value::sint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::sint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::sint>();
+		auto const lhs_int_val = lhs_value.get_sint();
+		auto const rhs_int_val = rhs_value.get_sint();
 		return ast::constant_value(lhs_int_val > rhs_int_val);
 	}
 	case ast::constant_value::uint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+		auto const lhs_int_val = lhs_value.get_uint();
+		auto const rhs_int_val = rhs_value.get_uint();
 		return ast::constant_value(lhs_int_val > rhs_int_val);
 	}
 	case ast::constant_value::float32:
 	{
-		auto const lhs_float_val = lhs_value.get<ast::constant_value::float32>();
-		auto const rhs_float_val = rhs_value.get<ast::constant_value::float32>();
+		auto const lhs_float_val = lhs_value.get_float32();
+		auto const rhs_float_val = rhs_value.get_float32();
 		return ast::constant_value(lhs_float_val > rhs_float_val);
 	}
 	case ast::constant_value::float64:
 	{
-		auto const lhs_float_val = lhs_value.get<ast::constant_value::float64>();
-		auto const rhs_float_val = rhs_value.get<ast::constant_value::float64>();
+		auto const lhs_float_val = lhs_value.get_float64();
+		auto const rhs_float_val = rhs_value.get_float64();
 		return ast::constant_value(lhs_float_val > rhs_float_val);
 	}
 	case ast::constant_value::u8char:
 	{
-		auto const lhs_char_val = lhs_value.get<ast::constant_value::u8char>();
-		auto const rhs_char_val = rhs_value.get<ast::constant_value::u8char>();
+		auto const lhs_char_val = lhs_value.get_u8char();
+		auto const rhs_char_val = rhs_value.get_u8char();
 		return ast::constant_value(lhs_char_val > rhs_char_val);
 	}
 	case ast::constant_value::null:
@@ -725,34 +735,35 @@ static ast::constant_value evaluate_binary_greater_than_eq(
 
 	switch (lhs_value.kind())
 	{
+	static_assert(ast::constant_value::variant_count == 16);
 	case ast::constant_value::sint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::sint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::sint>();
+		auto const lhs_int_val = lhs_value.get_sint();
+		auto const rhs_int_val = rhs_value.get_sint();
 		return ast::constant_value(lhs_int_val >= rhs_int_val);
 	}
 	case ast::constant_value::uint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+		auto const lhs_int_val = lhs_value.get_uint();
+		auto const rhs_int_val = rhs_value.get_uint();
 		return ast::constant_value(lhs_int_val >= rhs_int_val);
 	}
 	case ast::constant_value::float32:
 	{
-		auto const lhs_float_val = lhs_value.get<ast::constant_value::float32>();
-		auto const rhs_float_val = rhs_value.get<ast::constant_value::float32>();
+		auto const lhs_float_val = lhs_value.get_float32();
+		auto const rhs_float_val = rhs_value.get_float32();
 		return ast::constant_value(lhs_float_val >= rhs_float_val);
 	}
 	case ast::constant_value::float64:
 	{
-		auto const lhs_float_val = lhs_value.get<ast::constant_value::float64>();
-		auto const rhs_float_val = rhs_value.get<ast::constant_value::float64>();
+		auto const lhs_float_val = lhs_value.get_float64();
+		auto const rhs_float_val = rhs_value.get_float64();
 		return ast::constant_value(lhs_float_val >= rhs_float_val);
 	}
 	case ast::constant_value::u8char:
 	{
-		auto const lhs_char_val = lhs_value.get<ast::constant_value::u8char>();
-		auto const rhs_char_val = rhs_value.get<ast::constant_value::u8char>();
+		auto const lhs_char_val = lhs_value.get_u8char();
+		auto const rhs_char_val = rhs_value.get_u8char();
 		return ast::constant_value(lhs_char_val >= rhs_char_val);
 	}
 	case ast::constant_value::null:
@@ -781,16 +792,17 @@ static ast::constant_value evaluate_binary_bit_and(
 
 	switch (lhs_value.kind())
 	{
+	static_assert(ast::constant_value::variant_count == 16);
 	case ast::constant_value::uint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+		auto const lhs_int_val = lhs_value.get_uint();
+		auto const rhs_int_val = rhs_value.get_uint();
 		return ast::constant_value(lhs_int_val & rhs_int_val);
 	}
 	case ast::constant_value::boolean:
 	{
-		auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
-		auto const rhs_bool_val = rhs_value.get<ast::constant_value::boolean>();
+		auto const lhs_bool_val = lhs_value.get_boolean();
+		auto const rhs_bool_val = rhs_value.get_boolean();
 		return ast::constant_value(lhs_bool_val && rhs_bool_val);
 	}
 	default:
@@ -815,16 +827,17 @@ static ast::constant_value evaluate_binary_bit_xor(
 
 	switch (lhs_value.kind())
 	{
+	static_assert(ast::constant_value::variant_count == 16);
 	case ast::constant_value::uint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+		auto const lhs_int_val = lhs_value.get_uint();
+		auto const rhs_int_val = rhs_value.get_uint();
 		return ast::constant_value(lhs_int_val ^ rhs_int_val);
 	}
 	case ast::constant_value::boolean:
 	{
-		auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
-		auto const rhs_bool_val = rhs_value.get<ast::constant_value::boolean>();
+		auto const lhs_bool_val = lhs_value.get_boolean();
+		auto const rhs_bool_val = rhs_value.get_boolean();
 		return ast::constant_value(lhs_bool_val != rhs_bool_val);
 	}
 	default:
@@ -849,16 +862,17 @@ static ast::constant_value evaluate_binary_bit_or(
 
 	switch (lhs_value.kind())
 	{
+	static_assert(ast::constant_value::variant_count == 16);
 	case ast::constant_value::uint:
 	{
-		auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+		auto const lhs_int_val = lhs_value.get_uint();
+		auto const rhs_int_val = rhs_value.get_uint();
 		return ast::constant_value(lhs_int_val | rhs_int_val);
 	}
 	case ast::constant_value::boolean:
 	{
-		auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
-		auto const rhs_bool_val = rhs_value.get<ast::constant_value::boolean>();
+		auto const lhs_bool_val = lhs_value.get_boolean();
+		auto const rhs_bool_val = rhs_value.get_boolean();
 		return ast::constant_value(lhs_bool_val || rhs_bool_val);
 	}
 	default:
@@ -879,16 +893,16 @@ static ast::constant_value evaluate_binary_bit_left_shift(
 	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
-	bz_assert(lhs_value.is<ast::constant_value::uint>());
-	auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
+	bz_assert(lhs_value.is_uint());
+	auto const lhs_int_val = lhs_value.get_uint();
 
 	bz_assert(lhs_const_expr.type.is<ast::ts_base_type>());
 	auto const lhs_type_kind = lhs_const_expr.type.get<ast::ts_base_type>().info->kind;
 
-	bz_assert(rhs_value.is<ast::constant_value::uint>() || rhs_value.is<ast::constant_value::sint>());
-	if (rhs_value.is<ast::constant_value::uint>())
+	bz_assert(rhs_value.is_uint() || rhs_value.is_sint());
+	if (rhs_value.is_uint())
 	{
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+		auto const rhs_int_val = rhs_value.get_uint();
 
 		auto const result = safe_binary_bit_left_shift(
 			original_expr.src_tokens, original_expr.paren_level,
@@ -906,7 +920,7 @@ static ast::constant_value evaluate_binary_bit_left_shift(
 	}
 	else
 	{
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::sint>();
+		auto const rhs_int_val = rhs_value.get_sint();
 
 		auto const result = safe_binary_bit_left_shift(
 			original_expr.src_tokens, original_expr.paren_level,
@@ -937,16 +951,16 @@ static ast::constant_value evaluate_binary_bit_right_shift(
 	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
-	bz_assert(lhs_value.is<ast::constant_value::uint>());
-	auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
+	bz_assert(lhs_value.is_uint());
+	auto const lhs_int_val = lhs_value.get_uint();
 
 	bz_assert(ast::remove_const_or_consteval(lhs_const_expr.type).is<ast::ts_base_type>());
 	auto const lhs_type_kind = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 
-	bz_assert(rhs_value.is<ast::constant_value::uint>() || rhs_value.is<ast::constant_value::sint>());
-	if (rhs_value.is<ast::constant_value::uint>())
+	bz_assert(rhs_value.is_uint() || rhs_value.is_sint());
+	if (rhs_value.is_uint())
 	{
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+		auto const rhs_int_val = rhs_value.get_uint();
 
 		auto const result = safe_binary_bit_right_shift(
 			original_expr.src_tokens, original_expr.paren_level,
@@ -964,7 +978,7 @@ static ast::constant_value evaluate_binary_bit_right_shift(
 	}
 	else
 	{
-		auto const rhs_int_val = rhs_value.get<ast::constant_value::sint>();
+		auto const rhs_int_val = rhs_value.get_sint();
 
 		auto const result = safe_binary_bit_right_shift(
 			original_expr.src_tokens, original_expr.paren_level,
@@ -995,10 +1009,10 @@ static ast::constant_value evaluate_binary_bool_and(
 	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
-	bz_assert(lhs_value.is<ast::constant_value::boolean>());
-	auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
-	bz_assert(rhs_value.is<ast::constant_value::boolean>());
-	auto const rhs_bool_val = rhs_value.get<ast::constant_value::boolean>();
+	bz_assert(lhs_value.is_boolean());
+	auto const lhs_bool_val = lhs_value.get_boolean();
+	bz_assert(rhs_value.is_boolean());
+	auto const rhs_bool_val = rhs_value.get_boolean();
 
 	// short-circuiting is handled elsewhere
 	bz_assert(lhs_bool_val);
@@ -1018,10 +1032,10 @@ static ast::constant_value evaluate_binary_bool_xor(
 	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
-	bz_assert(lhs_value.is<ast::constant_value::boolean>());
-	auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
-	bz_assert(rhs_value.is<ast::constant_value::boolean>());
-	auto const rhs_bool_val = rhs_value.get<ast::constant_value::boolean>();
+	bz_assert(lhs_value.is_boolean());
+	auto const lhs_bool_val = lhs_value.get_boolean();
+	bz_assert(rhs_value.is_boolean());
+	auto const rhs_bool_val = rhs_value.get_boolean();
 
 	return ast::constant_value(lhs_bool_val != rhs_bool_val);
 }
@@ -1039,10 +1053,10 @@ static ast::constant_value evaluate_binary_bool_or(
 	auto const &rhs_const_expr = rhs.get_constant();
 	auto const &rhs_value = rhs_const_expr.value;
 
-	bz_assert(lhs_value.is<ast::constant_value::boolean>());
-	auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
-	bz_assert(rhs_value.is<ast::constant_value::boolean>());
-	auto const rhs_bool_val = rhs_value.get<ast::constant_value::boolean>();
+	bz_assert(lhs_value.is_boolean());
+	auto const lhs_bool_val = lhs_value.get_boolean();
+	bz_assert(rhs_value.is_boolean());
+	auto const rhs_bool_val = rhs_value.get_boolean();
 
 	// short-circuiting is handled elsewhere
 	bz_assert(!lhs_bool_val);
@@ -1127,12 +1141,12 @@ static ast::constant_value evaluate_tuple_subscript(ast::expr_tuple_subscript co
 
 	auto const &index_value = tuple_subscript_expr.index.get<ast::constant_expression>().value;
 	bz_assert(
-		index_value.is<ast::constant_value::uint>()
-		|| (index_value.is<ast::constant_value::sint>() && index_value.get<ast::constant_value::sint>() >= 0)
+		index_value.is_uint()
+		|| (index_value.is_sint() && index_value.get_sint() >= 0)
 	);
-	auto const index_int_value = index_value.is<ast::constant_value::uint>()
-		? index_value.get<ast::constant_value::uint>()
-		: static_cast<uint64_t>(index_value.get<ast::constant_value::sint>());
+	auto const index_int_value = index_value.is_uint()
+		? index_value.get_uint()
+		: static_cast<uint64_t>(index_value.get_sint());
 	return tuple_subscript_expr.base.elems[index_int_value].get<ast::constant_expression>().value;
 }
 
@@ -1151,14 +1165,14 @@ static ast::constant_value evaluate_subscript(
 	{
 		bz_assert(index.is_constant());
 		auto const &index_const_value = index.get_constant_value();
-		if (index_const_value.is<ast::constant_value::uint>())
+		if (index_const_value.is_uint())
 		{
-			index_value = index_const_value.get<ast::constant_value::uint>();
+			index_value = index_const_value.get_uint();
 		}
 		else
 		{
-			bz_assert(index_const_value.is<ast::constant_value::sint>());
-			auto const signed_index_value = index_const_value.get<ast::constant_value::sint>();
+			bz_assert(index_const_value.is_sint());
+			auto const signed_index_value = index_const_value.get_sint();
 			if (signed_index_value < 0)
 			{
 				is_consteval = false;
@@ -1222,16 +1236,16 @@ static ast::constant_value evaluate_subscript(
 	auto const &value = subscript_expr.base.get_constant_value();
 	if (base_type.is<ast::ts_array>())
 	{
-		bz_assert(value.is<ast::constant_value::array>());
-		auto const &array_value = value.get<ast::constant_value::array>();
+		bz_assert(value.is_array());
+		auto const &array_value = value.get_array();
 		bz_assert(index_value < array_value.size());
 		return array_value[index_value];
 	}
 	else
 	{
 		bz_assert(base_type.is<ast::ts_tuple>());
-		bz_assert(value.is<ast::constant_value::tuple>());
-		auto const &tuple_value = value.get<ast::constant_value::tuple>();
+		bz_assert(value.is_tuple());
+		auto const &tuple_value = value.get_tuple();
 		bz_assert(index_value < tuple_value.size());
 		return tuple_value[index_value];
 	}
@@ -1249,10 +1263,10 @@ static ast::constant_value is_typespec_kind_helper(ast::expr_function_call &func
 {
 	bz_assert(func_call.params.size() == 1);
 	bz_assert(func_call.params[0].is_constant());
-	bz_assert(func_call.params[0].get_constant_value().is<ast::constant_value::type>());
+	bz_assert(func_call.params[0].get_constant_value().is_type());
 	auto const type = func_call.params[0]
 		.get_constant_value()
-		.get<ast::constant_value::type>().as_typespec_view();
+		.get_type();
 	return ast::constant_value(type.is<Kind>());
 }
 
@@ -1261,10 +1275,10 @@ static ast::constant_value remove_typespec_kind_helper(ast::expr_function_call &
 {
 	bz_assert(func_call.params.size() == 1);
 	bz_assert(func_call.params[0].is_constant());
-	bz_assert(func_call.params[0].get_constant_value().is<ast::constant_value::type>());
+	bz_assert(func_call.params[0].get_constant_value().is_type());
 	auto const type = func_call.params[0]
 		.get_constant_value()
-		.get<ast::constant_value::type>().as_typespec_view();
+		.get_type();
 	if (type.is<Kind>())
 	{
 		return ast::constant_value(type.get<Kind>());
@@ -1317,14 +1331,14 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		bz_assert(func_call.params.is_all([](auto const &param) {
 			return param
 				.get_constant_value()
-				.template is<ast::constant_value::string>();
+				.is_string();
 		}));
 
 		auto result = func_call.params
-			.transform([](auto const &param) -> auto const & {
+			.transform([](auto const &param) {
 				return param
 					.get_constant_value()
-					.template get<ast::constant_value::string>();
+					.get_string();
 			})
 			.reduce(bz::u8string(), [](auto lhs, auto const &rhs) {
 				lhs += rhs;
@@ -1337,10 +1351,10 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	{
 		bz_assert(func_call.params.size() == 1);
 		bz_assert(func_call.params[0].is_constant());
-		bz_assert(func_call.params[0].get_constant_value().is<ast::constant_value::type>());
+		bz_assert(func_call.params[0].get_constant_value().is_type());
 		auto const type = func_call.params[0]
 			.get_constant_value()
-			.get<ast::constant_value::type>().as_typespec_view();
+			.get_type();
 		return ast::constant_value(bz::format("{}", type));
 	}
 
@@ -1370,40 +1384,40 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	{
 		bz_assert(func_call.params.size() == 1);
 		bz_assert(func_call.params[0].is_constant());
-		bz_assert(func_call.params[0].get_constant_value().is<ast::constant_value::type>());
+		bz_assert(func_call.params[0].get_constant_value().is_type());
 		auto const type = func_call.params[0]
 			.get_constant_value()
-			.get<ast::constant_value::type>().as_typespec_view();
+			.get_type();
 		return ast::constant_value(ast::is_default_constructible(type));
 	}
 	case ast::function_body::is_copy_constructible:
 	{
 		bz_assert(func_call.params.size() == 1);
 		bz_assert(func_call.params[0].is_constant());
-		bz_assert(func_call.params[0].get_constant_value().is<ast::constant_value::type>());
+		bz_assert(func_call.params[0].get_constant_value().is_type());
 		auto const type = func_call.params[0]
 			.get_constant_value()
-			.get<ast::constant_value::type>().as_typespec_view();
+			.get_type();
 		return ast::constant_value(ast::is_copy_constructible(type));
 	}
 	case ast::function_body::is_trivially_copy_constructible:
 	{
 		bz_assert(func_call.params.size() == 1);
 		bz_assert(func_call.params[0].is_constant());
-		bz_assert(func_call.params[0].get_constant_value().is<ast::constant_value::type>());
+		bz_assert(func_call.params[0].get_constant_value().is_type());
 		auto const type = func_call.params[0]
 			.get_constant_value()
-			.get<ast::constant_value::type>().as_typespec_view();
+			.get_type();
 		return ast::constant_value(ast::is_trivially_copy_constructible(type));
 	}
 	case ast::function_body::is_trivially_destructible:
 	{
 		bz_assert(func_call.params.size() == 1);
 		bz_assert(func_call.params[0].is_constant());
-		bz_assert(func_call.params[0].get_constant_value().is<ast::constant_value::type>());
+		bz_assert(func_call.params[0].get_constant_value().is_type());
 		auto const type = func_call.params[0]
 			.get_constant_value()
-			.get<ast::constant_value::type>().as_typespec_view();
+			.get_type();
 		return ast::constant_value(ast::is_trivially_destructible(type));
 	}
 
@@ -1468,25 +1482,25 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		bz_assert(func_call.params[0].is_constant());
 		auto const &const_expr = func_call.params[0].get_constant();
 		auto const &value = const_expr.value;
-		if (value.is<ast::constant_value::sint>())
+		if (value.is_sint())
 		{
 			bz_assert(ast::remove_const_or_consteval(const_expr.type).is<ast::ts_base_type>());
 			auto const type = ast::remove_const_or_consteval(const_expr.type).get<ast::ts_base_type>().info->kind;
-			auto const int_val = value.get<ast::constant_value::sint>();
+			auto const int_val = value.get_sint();
 			return ast::constant_value(safe_unary_minus(
 				original_expr.src_tokens, original_expr.paren_level,
 				int_val, type, context
 			));
 		}
-		else if (value.is<ast::constant_value::float32>())
+		else if (value.is_float32())
 		{
-			auto const float_val = value.get<ast::constant_value::float32>();
+			auto const float_val = value.get_float32();
 			return ast::constant_value(-float_val);
 		}
 		else
 		{
-			bz_assert(value.is<ast::constant_value::float64>());
-			auto const float_val = value.get<ast::constant_value::float64>();
+			bz_assert(value.is_float64());
+			auto const float_val = value.get_float64();
 			return ast::constant_value(-float_val);
 		}
 	}
@@ -1509,9 +1523,9 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		}
 		bz_assert(func_call.params[0].is_constant());
 		auto const &value = func_call.params[0].get_constant_value();
-		if (value.is<ast::constant_value::boolean>())
+		if (value.is_boolean())
 		{
-			auto const bool_val = value.get<ast::constant_value::boolean>();
+			auto const bool_val = value.get_boolean();
 			return ast::constant_value(!bool_val);
 		}
 		else
@@ -1519,8 +1533,8 @@ static ast::constant_value evaluate_intrinsic_function_call(
 			auto const param_type = ast::remove_const_or_consteval(func_call.params[0].get_constant().type);
 			bz_assert(param_type.is<ast::ts_base_type>());
 			auto const param_kind = param_type.get<ast::ts_base_type>().info->kind;
-			bz_assert(value.is<ast::constant_value::uint>());
-			auto const uint_val = value.get<ast::constant_value::uint>();
+			bz_assert(value.is_uint());
+			auto const uint_val = value.get_uint();
 			switch (param_kind)
 			{
 			case ast::type_info::uint8_:
@@ -1552,8 +1566,8 @@ static ast::constant_value evaluate_intrinsic_function_call(
 			return {};
 		}
 		bz_assert(func_call.params[0].is_constant());
-		bz_assert(func_call.params[0].get_constant_value().is<ast::constant_value::boolean>());
-		auto const bool_val = func_call.params[0].get_constant_value().get<ast::constant_value::boolean>();
+		bz_assert(func_call.params[0].get_constant_value().is_boolean());
+		auto const bool_val = func_call.params[0].get_constant_value().get_boolean();
 		return ast::constant_value(!bool_val);
 	}
 	case ast::function_body::builtin_unary_plus_plus:
@@ -1796,10 +1810,11 @@ static ast::constant_value evaluate_cast(
 	{
 		switch (value.kind())
 		{
+		static_assert(ast::constant_value::variant_count == 16);
 		case ast::constant_value::sint:
 		{
 			using T = std::tuple<bz::u8string_view, int64_t, int64_t, int64_t>;
-			auto const int_val = value.get<ast::constant_value::sint>();
+			auto const int_val = value.get_sint();
 			auto const [type_name, min_val, max_val, result] =
 				dest_kind == ast::type_info::int8_  ? T{ "int8",  std::numeric_limits<int8_t> ::min(), std::numeric_limits<int8_t> ::max(), static_cast<int8_t> (int_val) } :
 				dest_kind == ast::type_info::int16_ ? T{ "int16", std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max(), static_cast<int16_t>(int_val) } :
@@ -1818,7 +1833,7 @@ static ast::constant_value evaluate_cast(
 		case ast::constant_value::uint:
 		{
 			using T = std::tuple<bz::u8string_view, int64_t, int64_t>;
-			auto const int_val = value.get<ast::constant_value::uint>();
+			auto const int_val = value.get_uint();
 			auto const [type_name, max_val, result] =
 				dest_kind == ast::type_info::int8_  ? T{ "int8",  std::numeric_limits<int8_t> ::max(), static_cast<int8_t> (int_val) } :
 				dest_kind == ast::type_info::int16_ ? T{ "int16", std::numeric_limits<int16_t>::max(), static_cast<int16_t>(int_val) } :
@@ -1836,7 +1851,7 @@ static ast::constant_value evaluate_cast(
 		}
 		case ast::constant_value::float32:
 		{
-			auto const float_val = value.get<ast::constant_value::float32>();
+			auto const float_val = value.get_float32();
 			auto const result =
 				dest_kind == ast::type_info::int8_  ? static_cast<int8_t> (float_val) :
 				dest_kind == ast::type_info::int16_ ? static_cast<int16_t>(float_val) :
@@ -1846,7 +1861,7 @@ static ast::constant_value evaluate_cast(
 		}
 		case ast::constant_value::float64:
 		{
-			auto const float_val = value.get<ast::constant_value::float64>();
+			auto const float_val = value.get_float64();
 			auto const result =
 				dest_kind == ast::type_info::int8_  ? static_cast<int8_t> (float_val) :
 				dest_kind == ast::type_info::int16_ ? static_cast<int16_t>(float_val) :
@@ -1856,9 +1871,9 @@ static ast::constant_value evaluate_cast(
 		}
 		case ast::constant_value::u8char:
 			// no overflow possible in constant expressions
-			return ast::constant_value(static_cast<int64_t>(value.get<ast::constant_value::u8char>()));
+			return ast::constant_value(static_cast<int64_t>(value.get_u8char()));
 		case ast::constant_value::boolean:
-			return ast::constant_value(static_cast<int64_t>(value.get<ast::constant_value::boolean>()));
+			return ast::constant_value(static_cast<int64_t>(value.get_boolean()));
 		default:
 			bz_unreachable;
 		}
@@ -1871,10 +1886,11 @@ static ast::constant_value evaluate_cast(
 	{
 		switch (value.kind())
 		{
+		static_assert(ast::constant_value::variant_count == 16);
 		case ast::constant_value::sint:
 		{
 			using T = std::tuple<bz::u8string_view, uint64_t, uint64_t>;
-			auto const int_val = value.get<ast::constant_value::sint>();
+			auto const int_val = value.get_sint();
 			auto const [type_name, max_val, result] =
 				dest_kind == ast::type_info::uint8_  ? T{ "uint8",  std::numeric_limits<uint8_t> ::max(), static_cast<uint8_t> (int_val) } :
 				dest_kind == ast::type_info::uint16_ ? T{ "uint16", std::numeric_limits<uint16_t>::max(), static_cast<uint16_t>(int_val) } :
@@ -1893,7 +1909,7 @@ static ast::constant_value evaluate_cast(
 		case ast::constant_value::uint:
 		{
 			using T = std::tuple<bz::u8string_view, uint64_t, uint64_t>;
-			auto const int_val = value.get<ast::constant_value::uint>();
+			auto const int_val = value.get_uint();
 			auto const [type_name, max_val, result] =
 				dest_kind == ast::type_info::uint8_  ? T{ "uint8",  std::numeric_limits<uint8_t> ::max(), static_cast<uint8_t> (int_val) } :
 				dest_kind == ast::type_info::uint16_ ? T{ "uint16", std::numeric_limits<uint16_t>::max(), static_cast<uint16_t>(int_val) } :
@@ -1911,7 +1927,7 @@ static ast::constant_value evaluate_cast(
 		}
 		case ast::constant_value::float32:
 		{
-			auto const float_val = value.get<ast::constant_value::float32>();
+			auto const float_val = value.get_float32();
 			auto const result =
 				dest_kind == ast::type_info::uint8_  ? static_cast<uint8_t> (float_val) :
 				dest_kind == ast::type_info::uint16_ ? static_cast<uint16_t>(float_val) :
@@ -1921,7 +1937,7 @@ static ast::constant_value evaluate_cast(
 		}
 		case ast::constant_value::float64:
 		{
-			auto const float_val = value.get<ast::constant_value::float64>();
+			auto const float_val = value.get_float64();
 			auto const result =
 				dest_kind == ast::type_info::uint8_  ? static_cast<uint8_t> (float_val) :
 				dest_kind == ast::type_info::uint16_ ? static_cast<uint16_t>(float_val) :
@@ -1931,9 +1947,9 @@ static ast::constant_value evaluate_cast(
 		}
 		case ast::constant_value::u8char:
 			// no overflow possible in constant expressions
-			return ast::constant_value(static_cast<uint64_t>(value.get<ast::constant_value::u8char>()));
+			return ast::constant_value(static_cast<uint64_t>(value.get_u8char()));
 		case ast::constant_value::boolean:
-			return ast::constant_value(static_cast<uint64_t>(value.get<ast::constant_value::boolean>()));
+			return ast::constant_value(static_cast<uint64_t>(value.get_boolean()));
 		default:
 			bz_unreachable;
 		}
@@ -1942,37 +1958,40 @@ static ast::constant_value evaluate_cast(
 	case ast::type_info::float32_:
 		switch (value.kind())
 		{
+		static_assert(ast::constant_value::variant_count == 16);
 		case ast::constant_value::sint:
-			return ast::constant_value(static_cast<float32_t>(value.get<ast::constant_value::sint>()));
+			return ast::constant_value(static_cast<float32_t>(value.get_sint()));
 		case ast::constant_value::uint:
-			return ast::constant_value(static_cast<float32_t>(value.get<ast::constant_value::uint>()));
+			return ast::constant_value(static_cast<float32_t>(value.get_uint()));
 		case ast::constant_value::float32:
-			return ast::constant_value(static_cast<float32_t>(value.get<ast::constant_value::float32>()));
+			return ast::constant_value(static_cast<float32_t>(value.get_float32()));
 		case ast::constant_value::float64:
-			return ast::constant_value(static_cast<float32_t>(value.get<ast::constant_value::float64>()));
+			return ast::constant_value(static_cast<float32_t>(value.get_float64()));
 		default:
 			bz_unreachable;
 		}
 	case ast::type_info::float64_:
 		switch (value.kind())
 		{
+		static_assert(ast::constant_value::variant_count == 16);
 		case ast::constant_value::sint:
-			return ast::constant_value(static_cast<float64_t>(value.get<ast::constant_value::sint>()));
+			return ast::constant_value(static_cast<float64_t>(value.get_sint()));
 		case ast::constant_value::uint:
-			return ast::constant_value(static_cast<float64_t>(value.get<ast::constant_value::uint>()));
+			return ast::constant_value(static_cast<float64_t>(value.get_uint()));
 		case ast::constant_value::float32:
-			return ast::constant_value(static_cast<float64_t>(value.get<ast::constant_value::float32>()));
+			return ast::constant_value(static_cast<float64_t>(value.get_float32()));
 		case ast::constant_value::float64:
-			return ast::constant_value(static_cast<float64_t>(value.get<ast::constant_value::float64>()));
+			return ast::constant_value(static_cast<float64_t>(value.get_float64()));
 		default:
 			bz_unreachable;
 		}
 	case ast::type_info::char_:
 		switch (value.kind())
 		{
+		static_assert(ast::constant_value::variant_count == 16);
 		case ast::constant_value::sint:
 		{
-			auto const result = static_cast<bz::u8char>(value.get<ast::constant_value::sint>());
+			auto const result = static_cast<bz::u8char>(value.get_sint());
 			if (!bz::is_valid_unicode_value(result))
 			{
 				if (paren_level < 2)
@@ -1989,7 +2008,7 @@ static ast::constant_value evaluate_cast(
 		}
 		case ast::constant_value::uint:
 		{
-			auto const result = static_cast<bz::u8char>(value.get<ast::constant_value::uint>());
+			auto const result = static_cast<bz::u8char>(value.get_uint());
 			if (!bz::is_valid_unicode_value(result))
 			{
 				if (paren_level < 2)
@@ -2066,8 +2085,8 @@ static ast::constant_value guaranteed_evaluate_expr(
 				{
 					bz_assert(binary_op.lhs.is_constant());
 					auto const &lhs_value = binary_op.lhs.get_constant_value();
-					bz_assert(lhs_value.is<ast::constant_value::boolean>());
-					auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
+					bz_assert(lhs_value.is_boolean());
+					auto const lhs_bool_val = lhs_value.get_boolean();
 					if (!lhs_bool_val)
 					{
 						return ast::constant_value(false);
@@ -2077,8 +2096,8 @@ static ast::constant_value guaranteed_evaluate_expr(
 				{
 					bz_assert(binary_op.lhs.is_constant());
 					auto const &lhs_value = binary_op.lhs.get_constant_value();
-					bz_assert(lhs_value.is<ast::constant_value::boolean>());
-					auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
+					bz_assert(lhs_value.is_boolean());
+					auto const lhs_bool_val = lhs_value.get_boolean();
 					if (lhs_bool_val)
 					{
 						return ast::constant_value(true);
@@ -2291,10 +2310,10 @@ static ast::constant_value guaranteed_evaluate_expr(
 			consteval_guaranteed(member_access_expr.base, context);
 			if (member_access_expr.base.has_consteval_succeeded())
 			{
-				bz_assert(member_access_expr.base.get_constant_value().is<ast::constant_value::aggregate>());
+				bz_assert(member_access_expr.base.get_constant_value().is_aggregate());
 				return member_access_expr.base
 					.get_constant_value()
-					.get<ast::constant_value::aggregate>()[member_access_expr.index];
+					.get_aggregate()[member_access_expr.index];
 			}
 			else
 			{
@@ -2323,10 +2342,10 @@ static ast::constant_value guaranteed_evaluate_expr(
 			if (if_expr.condition.has_consteval_succeeded())
 			{
 				bz_assert(if_expr.condition.is_constant());
-				bz_assert(if_expr.condition.get_constant_value().is<ast::constant_value::boolean>());
+				bz_assert(if_expr.condition.get_constant_value().is_boolean());
 				auto const condition_value = if_expr.condition
 					.get_constant_value()
-					.get<ast::constant_value::boolean>();
+					.get_boolean();
 				if (condition_value)
 				{
 					if (if_expr.then_block.has_consteval_succeeded())
@@ -2358,8 +2377,8 @@ static ast::constant_value guaranteed_evaluate_expr(
 		[&context](ast::expr_if_consteval &if_expr) -> ast::constant_value {
 			bz_assert(if_expr.condition.is_constant());
 			auto const &condition_value = if_expr.condition.get_constant_value();
-			bz_assert(condition_value.is<ast::constant_value::boolean>());
-			if (condition_value.get<ast::constant_value::boolean>())
+			bz_assert(condition_value.is_boolean());
+			if (condition_value.get_boolean())
 			{
 				consteval_guaranteed(if_expr.then_block, context);
 				if (if_expr.then_block.has_consteval_succeeded())
@@ -2521,8 +2540,8 @@ static ast::constant_value try_evaluate_expr(
 				{
 					bz_assert(binary_op.lhs.is_constant());
 					auto const &lhs_value = binary_op.lhs.get_constant_value();
-					bz_assert(lhs_value.is<ast::constant_value::boolean>());
-					auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
+					bz_assert(lhs_value.is_boolean());
+					auto const lhs_bool_val = lhs_value.get_boolean();
 					if (!lhs_bool_val)
 					{
 						return ast::constant_value(false);
@@ -2532,8 +2551,8 @@ static ast::constant_value try_evaluate_expr(
 				{
 					bz_assert(binary_op.lhs.is_constant());
 					auto const &lhs_value = binary_op.lhs.get_constant_value();
-					bz_assert(lhs_value.is<ast::constant_value::boolean>());
-					auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
+					bz_assert(lhs_value.is_boolean());
+					auto const lhs_bool_val = lhs_value.get_boolean();
 					if (lhs_bool_val)
 					{
 						return ast::constant_value(true);
@@ -2750,7 +2769,7 @@ static ast::constant_value try_evaluate_expr(
 			{
 				return member_access_expr.base
 					.get_constant_value()
-					.get<ast::constant_value::aggregate>()[member_access_expr.index];
+					.get_aggregate()[member_access_expr.index];
 			}
 			else
 			{
@@ -2786,10 +2805,10 @@ static ast::constant_value try_evaluate_expr(
 			if (if_expr.condition.has_consteval_succeeded())
 			{
 				bz_assert(if_expr.condition.is_constant());
-				bz_assert(if_expr.condition.get_constant_value().is<ast::constant_value::boolean>());
+				bz_assert(if_expr.condition.get_constant_value().is_boolean());
 				auto const condition_value = if_expr.condition
 					.get_constant_value()
-					.get<ast::constant_value::boolean>();
+					.get_boolean();
 				if (condition_value)
 				{
 					if (if_expr.then_block.has_consteval_succeeded())
@@ -2821,8 +2840,8 @@ static ast::constant_value try_evaluate_expr(
 		[&context](ast::expr_if_consteval &if_expr) -> ast::constant_value {
 			bz_assert(if_expr.condition.is_constant());
 			auto const &condition_value = if_expr.condition.get_constant_value();
-			bz_assert(condition_value.is<ast::constant_value::boolean>());
-			if (condition_value.get<ast::constant_value::boolean>())
+			bz_assert(condition_value.is_boolean());
+			if (condition_value.get_boolean())
 			{
 				consteval_try(if_expr.then_block, context);
 				if (if_expr.then_block.has_consteval_succeeded())
@@ -2983,8 +3002,8 @@ static ast::constant_value try_evaluate_expr_without_error(
 				{
 					bz_assert(binary_op.lhs.is_constant());
 					auto const &lhs_value = binary_op.lhs.get_constant_value();
-					bz_assert(lhs_value.is<ast::constant_value::boolean>());
-					auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
+					bz_assert(lhs_value.is_boolean());
+					auto const lhs_bool_val = lhs_value.get_boolean();
 					if (!lhs_bool_val)
 					{
 						return ast::constant_value(false);
@@ -2994,8 +3013,8 @@ static ast::constant_value try_evaluate_expr_without_error(
 				{
 					bz_assert(binary_op.lhs.is_constant());
 					auto const &lhs_value = binary_op.lhs.get_constant_value();
-					bz_assert(lhs_value.is<ast::constant_value::boolean>());
-					auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
+					bz_assert(lhs_value.is_boolean());
+					auto const lhs_bool_val = lhs_value.get_boolean();
 					if (lhs_bool_val)
 					{
 						return ast::constant_value(true);
@@ -3210,7 +3229,7 @@ static ast::constant_value try_evaluate_expr_without_error(
 			{
 				return member_access_expr.base
 					.get_constant_value()
-					.get<ast::constant_value::aggregate>()[member_access_expr.index];
+					.get_aggregate()[member_access_expr.index];
 			}
 			else
 			{
@@ -3246,10 +3265,10 @@ static ast::constant_value try_evaluate_expr_without_error(
 			if (if_expr.condition.has_consteval_succeeded())
 			{
 				bz_assert(if_expr.condition.is_constant());
-				bz_assert(if_expr.condition.get_constant_value().is<ast::constant_value::boolean>());
+				bz_assert(if_expr.condition.get_constant_value().is_boolean());
 				auto const condition_value = if_expr.condition
 					.get_constant_value()
-					.get<ast::constant_value::boolean>();
+					.get_boolean();
 				if (condition_value)
 				{
 					if (if_expr.then_block.has_consteval_succeeded())
@@ -3281,8 +3300,8 @@ static ast::constant_value try_evaluate_expr_without_error(
 		[&context](ast::expr_if_consteval &if_expr) -> ast::constant_value {
 			bz_assert(if_expr.condition.is_constant());
 			auto const &condition_value = if_expr.condition.get_constant_value();
-			bz_assert(condition_value.is<ast::constant_value::boolean>());
-			if (condition_value.get<ast::constant_value::boolean>())
+			bz_assert(condition_value.is_boolean());
+			if (condition_value.get_boolean())
 			{
 				consteval_try_without_error(if_expr.then_block, context);
 				if (if_expr.then_block.has_consteval_succeeded())
@@ -3975,10 +3994,10 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			else
 			{
 				bz_assert(if_expr.condition.is_constant());
-				bz_assert(if_expr.condition.get_constant_value().is<ast::constant_value::boolean>());
+				bz_assert(if_expr.condition.get_constant_value().is_boolean());
 				auto const condition_value = if_expr.condition
 					.get_constant_value()
-					.get<ast::constant_value::boolean>();
+					.get_boolean();
 				if (condition_value)
 				{
 					bz_assert(!if_expr.then_block.has_consteval_succeeded());
@@ -3994,8 +4013,8 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 		[&notes](ast::expr_if_consteval const &if_expr) {
 			bz_assert(if_expr.condition.is_constant());
 			auto const &condition_value = if_expr.condition.get_constant_value();
-			bz_assert(condition_value.is<ast::constant_value::boolean>());
-			if (condition_value.get<ast::constant_value::boolean>())
+			bz_assert(condition_value.is_boolean());
+			if (condition_value.get_boolean())
 			{
 				get_consteval_fail_notes_helper(if_expr.then_block, notes);
 			}

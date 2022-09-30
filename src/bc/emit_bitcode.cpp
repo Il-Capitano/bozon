@@ -3456,10 +3456,10 @@ static val_ptr emit_bitcode(
 {
 	bz_assert(tuple_subscript.index.is<ast::constant_expression>());
 	auto const &index_value = tuple_subscript.index.get<ast::constant_expression>().value;
-	bz_assert(index_value.is<ast::constant_value::uint>() || index_value.is<ast::constant_value::sint>());
-	auto const index_int_value = index_value.is<ast::constant_value::uint>()
-		? index_value.get<ast::constant_value::uint>()
-		: static_cast<uint64_t>(index_value.get<ast::constant_value::sint>());
+	bz_assert(index_value.is_uint() || index_value.is_sint());
+	auto const index_int_value = index_value.is_uint()
+		? index_value.get_uint()
+		: static_cast<uint64_t>(index_value.get_sint());
 
 	bz_assert(result_address == nullptr);
 	val_ptr result = val_ptr::get_none();
@@ -3576,10 +3576,10 @@ static val_ptr emit_bitcode(
 		auto const tuple = emit_bitcode<abi>(subscript.base, context, nullptr);
 		bz_assert(subscript.index.is_constant());
 		auto const &index_value = subscript.index.get_constant_value();
-		bz_assert(index_value.is<ast::constant_value::uint>() || index_value.is<ast::constant_value::sint>());
-		auto const index_int_value = index_value.is<ast::constant_value::uint>()
-			? index_value.get<ast::constant_value::uint>()
-			: static_cast<uint64_t>(index_value.get<ast::constant_value::sint>());
+		bz_assert(index_value.is_uint() || index_value.is_sint());
+		auto const index_int_value = index_value.is_uint()
+			? index_value.get_uint()
+			: static_cast<uint64_t>(index_value.get_sint());
 
 		auto const accessed_type = base_type.is<ast::ts_tuple>()
 			? base_type.get<ast::ts_tuple>().types[index_int_value].as_typespec_view()
@@ -5025,8 +5025,8 @@ static val_ptr emit_bitcode(
 {
 	bz_assert(if_expr.condition.is_constant());
 	auto const &condition_value = if_expr.condition.get_constant_value();
-	bz_assert(condition_value.is<ast::constant_value::boolean>());
-	if (condition_value.get<ast::constant_value::boolean>())
+	bz_assert(condition_value.is_boolean());
+	if (condition_value.get_boolean())
 	{
 		return emit_bitcode<abi>(if_expr.then_block, context, result_address);
 	}
@@ -5295,38 +5295,39 @@ static llvm::Constant *get_value(
 {
 	switch (value.kind())
 	{
+	static_assert(ast::constant_value::variant_count == 16);
 	case ast::constant_value::sint:
 		bz_assert(!type.is_empty());
 		return llvm::ConstantInt::get(
 			get_llvm_type(type, context),
-			bit_cast<uint64_t>(value.get<ast::constant_value::sint>()),
+			bit_cast<uint64_t>(value.get_sint()),
 			true
 		);
 	case ast::constant_value::uint:
 		bz_assert(!type.is_empty());
 		return llvm::ConstantInt::get(
 			get_llvm_type(type, context),
-			value.get<ast::constant_value::uint>(),
+			value.get_uint(),
 			false
 		);
 	case ast::constant_value::float32:
 		return llvm::ConstantFP::get(
 			context.get_float32_t(),
-			static_cast<double>(value.get<ast::constant_value::float32>())
+			static_cast<double>(value.get_float32())
 		);
 	case ast::constant_value::float64:
 		return llvm::ConstantFP::get(
 			context.get_float64_t(),
-			value.get<ast::constant_value::float64>()
+			value.get_float64()
 		);
 	case ast::constant_value::u8char:
 		return llvm::ConstantInt::get(
 			context.get_char_t(),
-			value.get<ast::constant_value::u8char>()
+			value.get_u8char()
 		);
 	case ast::constant_value::string:
 	{
-		auto const str = value.get<ast::constant_value::string>().as_string_view();
+		auto const str = value.get_string();
 		auto const str_t = llvm::dyn_cast<llvm::StructType>(context.get_str_t());
 		bz_assert(str_t != nullptr);
 
@@ -5354,7 +5355,7 @@ static llvm::Constant *get_value(
 	case ast::constant_value::boolean:
 		return llvm::ConstantInt::get(
 			context.get_bool_t(),
-			static_cast<uint64_t>(value.get<ast::constant_value::boolean>())
+			static_cast<uint64_t>(value.get_boolean())
 		);
 	case ast::constant_value::null:
 		if (ast::remove_const_or_consteval(type).is<ast::ts_pointer>())
@@ -5378,7 +5379,7 @@ static llvm::Constant *get_value(
 			.get<ast::ts_array>().elem_type.as_typespec_view();
 		auto const array_type = llvm::dyn_cast<llvm::ArrayType>(get_llvm_type(type, context));
 		bz_assert(array_type != nullptr);
-		auto const &array_values = value.get<ast::constant_value::array>();
+		auto const array_values = value.get_array();
 		ast::arena_vector<llvm::Constant *> elems = {};
 		elems.reserve(array_values.size());
 		for (auto const &val : array_values)
@@ -5389,7 +5390,7 @@ static llvm::Constant *get_value(
 	}
 	case ast::constant_value::tuple:
 	{
-		auto const &tuple_values = value.get<ast::constant_value::tuple>();
+		auto const tuple_values = value.get_tuple();
 		ast::arena_vector<llvm::Type     *> types = {};
 		ast::arena_vector<llvm::Constant *> elems = {};
 		types.reserve(tuple_values.size());
@@ -5420,12 +5421,12 @@ static llvm::Constant *get_value(
 	}
 	case ast::constant_value::function:
 	{
-		auto const decl = value.get<ast::constant_value::function>();
+		auto const decl = value.get_function();
 		return context.get_function(&decl->body);
 	}
 	case ast::constant_value::aggregate:
 	{
-		auto const &aggregate = value.get<ast::constant_value::aggregate>();
+		auto const aggregate = value.get_aggregate();
 		bz_assert(ast::remove_const_or_consteval(type).is<ast::ts_base_type>());
 		auto const info = ast::remove_const_or_consteval(type).get<ast::ts_base_type>().info;
 		auto const val_type = get_llvm_type(type, context);
