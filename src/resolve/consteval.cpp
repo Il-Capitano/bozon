@@ -1711,12 +1711,39 @@ static ast::constant_value get_default_constructed_value(
 		},
 		[exec_kind, &src_tokens, &context](ast::ts_array const &array_t) -> ast::constant_value {
 			ast::constant_value result;
-			auto const elem_value = get_default_constructed_value(src_tokens, array_t.elem_type, exec_kind, context);
-			if (elem_value.is_null())
+			auto const elem_builtin_kind = array_t.elem_type.is<ast::ts_base_type>()
+				? array_t.elem_type.get<ast::ts_base_type>().info->kind
+				: ast::type_info::aggregate;
+			switch (elem_builtin_kind)
 			{
-				return result;
+			case ast::type_info::int8_:
+			case ast::type_info::int16_:
+			case ast::type_info::int32_:
+			case ast::type_info::int64_:
+				result.emplace<ast::constant_value::sint_array>(array_t.size, 0);
+				break;
+			case ast::type_info::uint8_:
+			case ast::type_info::uint16_:
+			case ast::type_info::uint32_:
+			case ast::type_info::uint64_:
+				result.emplace<ast::constant_value::uint_array>(array_t.size, 0);
+				break;
+			case ast::type_info::float32_:
+				result.emplace<ast::constant_value::float32_array>(array_t.size, 0.0f);
+				break;
+			case ast::type_info::float64_:
+				result.emplace<ast::constant_value::float64_array>(array_t.size, 0.0);
+				break;
+			default:
+			{
+				auto const elem_value = get_default_constructed_value(src_tokens, array_t.elem_type, exec_kind, context);
+				if (elem_value.not_null())
+				{
+					result.emplace<ast::constant_value::array>(array_t.size, elem_value);
+				}
+				break;
 			}
-			result.emplace<ast::constant_value::array>(array_t.size, elem_value);
+			}
 			return result;
 		},
 		[](ast::ts_array_slice const &) -> ast::constant_value {
@@ -1739,9 +1766,6 @@ static ast::constant_value get_default_constructed_value(
 		},
 		[](ast::ts_pointer const &) -> ast::constant_value {
 			return ast::constant_value(ast::internal::null_t{});
-		},
-		[](ast::ts_lvalue_reference const &) -> ast::constant_value {
-			return {};
 		},
 		[](auto const &) -> ast::constant_value {
 			bz_unreachable;
@@ -2035,6 +2059,94 @@ static ast::constant_value evaluate_cast(
 	return {};
 }
 
+static bool is_special_array_type(ast::typespec_view type)
+{
+	if (!type.is<ast::ts_array>())
+	{
+		return false;
+	}
+
+	auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
+
+	if (!elem_type.is<ast::ts_base_type>())
+	{
+		return false;
+	}
+
+	auto const type_kind = elem_type.get<ast::ts_base_type>().info->kind;
+
+	switch (type_kind)
+	{
+	case ast::type_info::int8_:
+	case ast::type_info::int16_:
+	case ast::type_info::int32_:
+	case ast::type_info::int64_:
+	case ast::type_info::uint8_:
+	case ast::type_info::uint16_:
+	case ast::type_info::uint32_:
+	case ast::type_info::uint64_:
+	case ast::type_info::float32_:
+	case ast::type_info::float64_:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static ast::constant_value get_special_array_value(ast::typespec_view elem_type, bz::array_view<ast::expression const> exprs)
+{
+	bz_assert(elem_type.is<ast::ts_base_type>());
+	auto const type_kind = elem_type.get<ast::ts_base_type>().info->kind;
+
+	switch (type_kind)
+	{
+	case ast::type_info::int8_:
+	case ast::type_info::int16_:
+	case ast::type_info::int32_:
+	case ast::type_info::int64_:
+	{
+		auto sint_array = exprs
+			.transform([](auto const &expr) {
+				return expr.get_constant_value().get_sint();
+			})
+			.collect();
+		return ast::constant_value(std::move(sint_array));
+	}
+	case ast::type_info::uint8_:
+	case ast::type_info::uint16_:
+	case ast::type_info::uint32_:
+	case ast::type_info::uint64_:
+	{
+		auto uint_array = exprs
+			.transform([](auto const &expr) {
+				return expr.get_constant_value().get_uint();
+			})
+			.collect();
+		return ast::constant_value(std::move(uint_array));
+	}
+	case ast::type_info::float32_:
+	{
+		auto float32_array = exprs
+			.transform([](auto const &expr) {
+				return expr.get_constant_value().get_float32();
+			})
+			.collect();
+		return ast::constant_value(std::move(float32_array));
+	}
+	case ast::type_info::float64_:
+	{
+		auto float64_array = exprs
+			.transform([](auto const &expr) {
+				return expr.get_constant_value().get_float64();
+			})
+			.collect();
+		return ast::constant_value(std::move(float64_array));
+	}
+	default:
+		bz_unreachable;
+	}
+}
+
 static ast::constant_value guaranteed_evaluate_expr(
 	ast::expression &expr,
 	ctx::parse_context &context
@@ -2164,16 +2276,23 @@ static ast::constant_value guaranteed_evaluate_expr(
 				return {};
 			}
 
-			ast::constant_value result{};
-			auto &aggregate = aggregate_init_expr.type.is<ast::ts_array>()
-				? result.emplace<ast::constant_value::array>()
-				: result.emplace<ast::constant_value::aggregate>();
-			aggregate.reserve(aggregate_init_expr.exprs.size());
-			for (auto const &expr : aggregate_init_expr.exprs)
+			if (is_special_array_type(aggregate_init_expr.type))
 			{
-				aggregate.emplace_back(expr.get_constant_value());
+				return get_special_array_value(aggregate_init_expr.type.get<ast::ts_array>().elem_type, aggregate_init_expr.exprs);
 			}
-			return result;
+			else
+			{
+				ast::constant_value result{};
+				auto &aggregate = aggregate_init_expr.type.is<ast::ts_array>()
+					? result.emplace<ast::constant_value::array>()
+					: result.emplace<ast::constant_value::aggregate>();
+				aggregate.reserve(aggregate_init_expr.exprs.size());
+				for (auto const &expr : aggregate_init_expr.exprs)
+				{
+					aggregate.emplace_back(expr.get_constant_value());
+				}
+				return result;
+			}
 		},
 		[&context](ast::expr_aggregate_default_construct &aggregate_default_construct_expr) -> ast::constant_value {
 			bool is_consteval = true;
@@ -2218,7 +2337,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			consteval_guaranteed(aggregate_move_construct_expr.moved_value, context);
 			return {};
 		},
-		[&context](ast::expr_array_default_construct &array_default_construct_expr) -> ast::constant_value {
+		[&expr, &context](ast::expr_array_default_construct &array_default_construct_expr) -> ast::constant_value {
 			auto const type = array_default_construct_expr.type.as_typespec_view();
 			bz_assert(type.is<ast::ts_array>());
 			consteval_guaranteed(array_default_construct_expr.default_construct_expr, context);
@@ -2227,10 +2346,17 @@ static ast::constant_value guaranteed_evaluate_expr(
 				return {};
 			}
 
-			auto const &value = array_default_construct_expr.default_construct_expr.get<ast::constant_expression>().value;
-			ast::constant_value result;
-			result.emplace<ast::constant_value::array>(type.get<ast::ts_array>().size, value);
-			return result;
+			if (is_special_array_type(type))
+			{
+				return get_default_constructed_value(expr.src_tokens, type, function_execution_kind::force_evaluate, context);
+			}
+			else
+			{
+				auto const &value = array_default_construct_expr.default_construct_expr.get<ast::constant_expression>().value;
+				ast::constant_value result;
+				result.emplace<ast::constant_value::array>(type.get<ast::ts_array>().size, value);
+				return result;
+			}
 		},
 		[&context](ast::expr_array_copy_construct &array_copy_construct_expr) -> ast::constant_value {
 			consteval_guaranteed(array_copy_construct_expr.copied_value, context);
@@ -2512,17 +2638,25 @@ static ast::constant_value try_evaluate_expr(
 				return {};
 			}
 
-			ast::constant_value result;
-			auto &elem_values = expr.get_expr_type().is<ast::ts_array>()
-				? (result.emplace<ast::constant_value::array>(), result.get<ast::constant_value::array>())
-				: (result.emplace<ast::constant_value::tuple>(), result.get<ast::constant_value::tuple>());
-			elem_values.reserve(tuple.elems.size());
-			for (auto &elem : tuple.elems)
+			auto const expr_type = expr.get_expr_type();
+			if (is_special_array_type(expr_type))
 			{
-				bz_assert(elem.is_constant());
-				elem_values.emplace_back(elem.get_constant_value());
+				return get_special_array_value(expr_type.get<ast::ts_array>().elem_type, tuple.elems);
 			}
-			return result;
+			else
+			{
+				ast::constant_value result;
+				auto &elem_values = expr_type.is<ast::ts_array>()
+					? (result.emplace<ast::constant_value::array>(), result.get<ast::constant_value::array>())
+					: (result.emplace<ast::constant_value::tuple>(), result.get<ast::constant_value::tuple>());
+				elem_values.reserve(tuple.elems.size());
+				for (auto &elem : tuple.elems)
+				{
+					bz_assert(elem.is_constant());
+					elem_values.emplace_back(elem.get_constant_value());
+				}
+				return result;
+			}
 		},
 		[&context](ast::expr_unary_op &unary_op) -> ast::constant_value {
 			// builtin operators are handled as intrinsic functions
@@ -2621,16 +2755,23 @@ static ast::constant_value try_evaluate_expr(
 				return {};
 			}
 
-			ast::constant_value result{};
-			auto &aggregate = aggregate_init_expr.type.is<ast::ts_array>()
-				? result.emplace<ast::constant_value::array>()
-				: result.emplace<ast::constant_value::aggregate>();
-			aggregate.reserve(aggregate_init_expr.exprs.size());
-			for (auto const &expr : aggregate_init_expr.exprs)
+			if (is_special_array_type(aggregate_init_expr.type))
 			{
-				aggregate.emplace_back(expr.get_constant_value());
+				return get_special_array_value(aggregate_init_expr.type.get<ast::ts_array>().elem_type, aggregate_init_expr.exprs);
 			}
-			return result;
+			else
+			{
+				ast::constant_value result{};
+				auto &aggregate = aggregate_init_expr.type.is<ast::ts_array>()
+					? result.emplace<ast::constant_value::array>()
+					: result.emplace<ast::constant_value::aggregate>();
+				aggregate.reserve(aggregate_init_expr.exprs.size());
+				for (auto const &expr : aggregate_init_expr.exprs)
+				{
+					aggregate.emplace_back(expr.get_constant_value());
+				}
+				return result;
+			}
 		},
 		[&context](ast::expr_aggregate_default_construct &aggregate_default_construct_expr) -> ast::constant_value {
 			bool is_consteval = true;
@@ -2675,7 +2816,7 @@ static ast::constant_value try_evaluate_expr(
 			consteval_try(aggregate_move_construct_expr.moved_value, context);
 			return {};
 		},
-		[&context](ast::expr_array_default_construct &array_default_construct_expr) -> ast::constant_value {
+		[&expr, &context](ast::expr_array_default_construct &array_default_construct_expr) -> ast::constant_value {
 			auto const type = array_default_construct_expr.type.as_typespec_view();
 			bz_assert(type.is<ast::ts_array>());
 			consteval_try(array_default_construct_expr.default_construct_expr, context);
@@ -2684,10 +2825,17 @@ static ast::constant_value try_evaluate_expr(
 				return {};
 			}
 
-			auto const &value = array_default_construct_expr.default_construct_expr.get<ast::constant_expression>().value;
-			ast::constant_value result;
-			result.emplace<ast::constant_value::array>(type.get<ast::ts_array>().size, value);
-			return result;
+			if (is_special_array_type(type))
+			{
+				return get_default_constructed_value(expr.src_tokens, type, function_execution_kind::force_evaluate, context);
+			}
+			else
+			{
+				auto const &value = array_default_construct_expr.default_construct_expr.get<ast::constant_expression>().value;
+				ast::constant_value result;
+				result.emplace<ast::constant_value::array>(type.get<ast::ts_array>().size, value);
+				return result;
+			}
 		},
 		[&context](ast::expr_array_copy_construct &array_copy_construct_expr) -> ast::constant_value {
 			consteval_try(array_copy_construct_expr.copied_value, context);
@@ -2973,17 +3121,25 @@ static ast::constant_value try_evaluate_expr_without_error(
 				return {};
 			}
 
-			ast::constant_value result;
-			auto &elem_values = expr.get_expr_type().is<ast::ts_array>()
-				? (result.emplace<ast::constant_value::array>(), result.get<ast::constant_value::array>())
-				: (result.emplace<ast::constant_value::tuple>(), result.get<ast::constant_value::tuple>());
-			elem_values.reserve(tuple.elems.size());
-			for (auto &elem : tuple.elems)
+			auto const expr_type = expr.get_expr_type();
+			if (is_special_array_type(expr_type))
 			{
-				bz_assert(elem.is_constant());
-				elem_values.emplace_back(elem.get_constant_value());
+				return get_special_array_value(expr_type.get<ast::ts_array>().elem_type, tuple.elems);
 			}
-			return result;
+			else
+			{
+				ast::constant_value result;
+				auto &elem_values = expr_type.is<ast::ts_array>()
+					? (result.emplace<ast::constant_value::array>(), result.get<ast::constant_value::array>())
+					: (result.emplace<ast::constant_value::tuple>(), result.get<ast::constant_value::tuple>());
+				elem_values.reserve(tuple.elems.size());
+				for (auto &elem : tuple.elems)
+				{
+					bz_assert(elem.is_constant());
+					elem_values.emplace_back(elem.get_constant_value());
+				}
+				return result;
+			}
 		},
 		[&context](ast::expr_unary_op &unary_op) -> ast::constant_value {
 			// builtin operators are handled as intrinsic functions
@@ -3081,16 +3237,23 @@ static ast::constant_value try_evaluate_expr_without_error(
 				return {};
 			}
 
-			ast::constant_value result{};
-			auto &aggregate = aggregate_init_expr.type.is<ast::ts_array>()
-				? result.emplace<ast::constant_value::array>()
-				: result.emplace<ast::constant_value::aggregate>();
-			aggregate.reserve(aggregate_init_expr.exprs.size());
-			for (auto const &expr : aggregate_init_expr.exprs)
+			if (is_special_array_type(aggregate_init_expr.type))
 			{
-				aggregate.emplace_back(expr.get_constant_value());
+				return get_special_array_value(aggregate_init_expr.type.get<ast::ts_array>().elem_type, aggregate_init_expr.exprs);
 			}
-			return result;
+			else
+			{
+				ast::constant_value result{};
+				auto &aggregate = aggregate_init_expr.type.is<ast::ts_array>()
+					? result.emplace<ast::constant_value::array>()
+					: result.emplace<ast::constant_value::aggregate>();
+				aggregate.reserve(aggregate_init_expr.exprs.size());
+				for (auto const &expr : aggregate_init_expr.exprs)
+				{
+					aggregate.emplace_back(expr.get_constant_value());
+				}
+				return result;
+			}
 		},
 		[&context](ast::expr_aggregate_default_construct &aggregate_default_construct_expr) -> ast::constant_value {
 			bool is_consteval = true;
@@ -3135,7 +3298,7 @@ static ast::constant_value try_evaluate_expr_without_error(
 			consteval_try_without_error(aggregate_move_construct_expr.moved_value, context);
 			return {};
 		},
-		[&context](ast::expr_array_default_construct &array_default_construct_expr) -> ast::constant_value {
+		[&expr, &context](ast::expr_array_default_construct &array_default_construct_expr) -> ast::constant_value {
 			auto const type = array_default_construct_expr.type.as_typespec_view();
 			bz_assert(type.is<ast::ts_array>());
 			consteval_try_without_error(array_default_construct_expr.default_construct_expr, context);
@@ -3144,10 +3307,17 @@ static ast::constant_value try_evaluate_expr_without_error(
 				return {};
 			}
 
-			auto const &value = array_default_construct_expr.default_construct_expr.get<ast::constant_expression>().value;
-			ast::constant_value result;
-			result.emplace<ast::constant_value::array>(type.get<ast::ts_array>().size, value);
-			return result;
+			if (is_special_array_type(type))
+			{
+				return get_default_constructed_value(expr.src_tokens, type, function_execution_kind::force_evaluate, context);
+			}
+			else
+			{
+				auto const &value = array_default_construct_expr.default_construct_expr.get<ast::constant_expression>().value;
+				ast::constant_value result;
+				result.emplace<ast::constant_value::array>(type.get<ast::ts_array>().size, value);
+				return result;
+			}
 		},
 		[&context](ast::expr_array_copy_construct &array_copy_construct_expr) -> ast::constant_value {
 			consteval_try_without_error(array_copy_construct_expr.copied_value, context);

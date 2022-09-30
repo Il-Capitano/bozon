@@ -5423,7 +5423,7 @@ static llvm::Constant *get_value(
 	{
 		auto const array_type = llvm::dyn_cast<llvm::ArrayType>(get_llvm_type(type, context));
 		bz_assert(array_type != nullptr);
-		auto const elems = value.get_float32_array()
+		auto const elems = value.get_float64_array()
 			.transform([&](auto const val) -> llvm::Constant * {
 				return llvm::ConstantFP::get(context.get_float64_t(), val);
 			})
