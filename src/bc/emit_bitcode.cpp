@@ -5295,7 +5295,7 @@ static llvm::Constant *get_value(
 {
 	switch (value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 16);
+	static_assert(ast::constant_value::variant_count == 20);
 	case ast::constant_value::sint:
 		bz_assert(!type.is_empty());
 		return llvm::ConstantInt::get(
@@ -5379,13 +5379,55 @@ static llvm::Constant *get_value(
 			.get<ast::ts_array>().elem_type.as_typespec_view();
 		auto const array_type = llvm::dyn_cast<llvm::ArrayType>(get_llvm_type(type, context));
 		bz_assert(array_type != nullptr);
-		auto const array_values = value.get_array();
-		ast::arena_vector<llvm::Constant *> elems = {};
-		elems.reserve(array_values.size());
-		for (auto const &val : array_values)
-		{
-			elems.push_back(get_value<abi>(val, elem_type, nullptr, context));
-		}
+		auto const elems = value.get_array()
+			.transform([&](auto const &val) {
+				return get_value<abi>(val, elem_type, nullptr, context);
+			})
+			.template collect<ast::arena_vector>();
+		return llvm::ConstantArray::get(array_type, llvm::ArrayRef(elems.data(), elems.size()));
+	}
+	case ast::constant_value::sint_array:
+	{
+		auto const array_type = llvm::dyn_cast<llvm::ArrayType>(get_llvm_type(type, context));
+		bz_assert(array_type != nullptr);
+		auto const elems = value.get_sint_array()
+			.transform([&](auto const val) -> llvm::Constant * {
+				return llvm::ConstantInt::get(array_type->getElementType(), val);
+			})
+			.template collect<ast::arena_vector>();
+		return llvm::ConstantArray::get(array_type, llvm::ArrayRef(elems.data(), elems.size()));
+	}
+	case ast::constant_value::uint_array:
+	{
+		auto const array_type = llvm::dyn_cast<llvm::ArrayType>(get_llvm_type(type, context));
+		bz_assert(array_type != nullptr);
+		auto const elems = value.get_uint_array()
+			.transform([&](auto const val) -> llvm::Constant * {
+				return llvm::ConstantInt::get(array_type->getElementType(), val);
+			})
+			.template collect<ast::arena_vector>();
+		return llvm::ConstantArray::get(array_type, llvm::ArrayRef(elems.data(), elems.size()));
+	}
+	case ast::constant_value::float32_array:
+	{
+		auto const array_type = llvm::dyn_cast<llvm::ArrayType>(get_llvm_type(type, context));
+		bz_assert(array_type != nullptr);
+		auto const elems = value.get_float32_array()
+			.transform([&](auto const val) -> llvm::Constant * {
+				return llvm::ConstantFP::get(context.get_float32_t(), static_cast<double>(val));
+			})
+			.template collect<ast::arena_vector>();
+		return llvm::ConstantArray::get(array_type, llvm::ArrayRef(elems.data(), elems.size()));
+	}
+	case ast::constant_value::float64_array:
+	{
+		auto const array_type = llvm::dyn_cast<llvm::ArrayType>(get_llvm_type(type, context));
+		bz_assert(array_type != nullptr);
+		auto const elems = value.get_float32_array()
+			.transform([&](auto const val) -> llvm::Constant * {
+				return llvm::ConstantFP::get(context.get_float64_t(), val);
+			})
+			.template collect<ast::arena_vector>();
 		return llvm::ConstantArray::get(array_type, llvm::ArrayRef(elems.data(), elems.size()));
 	}
 	case ast::constant_value::tuple:

@@ -26,7 +26,7 @@ struct function_set_t
 	arena_vector<statement_view> stmts;
 };
 
-struct constant_value : bz::variant<
+using constant_value_base_t = bz::variant<
 	int64_t, uint64_t,
 	float32_t, float64_t,
 	bz::u8char, bz::u8string,
@@ -35,6 +35,10 @@ struct constant_value : bz::variant<
 
 	// arrays
 	bz::vector<constant_value>,
+	bz::vector<int64_t>,
+	bz::vector<uint64_t>,
+	bz::vector<float32_t>,
+	bz::vector<float64_t>,
 	// tuples
 	bz::vector<constant_value>,
 
@@ -46,29 +50,11 @@ struct constant_value : bz::variant<
 
 	// structs
 	bz::vector<constant_value>
->
+>;
+
+struct constant_value : constant_value_base_t
 {
-	using base_t = bz::variant<
-		int64_t, uint64_t,
-		float32_t, float64_t,
-		bz::u8char, bz::u8string,
-		bool, internal::null_t,
-		internal::void_t,
-
-		// arrays
-		bz::vector<constant_value>,
-		// tuples
-		bz::vector<constant_value>,
-
-		decl_function *,
-		function_set_t,
-		function_set_t,
-
-		typespec,
-
-		// structs
-		bz::vector<constant_value>
-	>;
+	using base_t = constant_value_base_t;
 
 	enum : size_t
 	{
@@ -82,6 +68,10 @@ struct constant_value : bz::variant<
 		null            = base_t::index_of<internal::null_t>,
 		void_           = base_t::index_of<internal::void_t>,
 		array,
+		sint_array      = base_t::index_of<bz::vector<int64_t>>,
+		uint_array      = base_t::index_of<bz::vector<uint64_t>>,
+		float32_array   = base_t::index_of<bz::vector<float32_t>>,
+		float64_array   = base_t::index_of<bz::vector<float64_t>>,
 		tuple,
 		function        = base_t::index_of<decl_function *>,
 		unqualified_function_set_id,
@@ -134,6 +124,18 @@ struct constant_value : bz::variant<
 	bool is_array(void) const noexcept
 	{ return this->is<array>(); }
 
+	bool is_sint_array(void) const noexcept
+	{ return this->is<sint_array>(); }
+
+	bool is_uint_array(void) const noexcept
+	{ return this->is<uint_array>(); }
+
+	bool is_float32_array(void) const noexcept
+	{ return this->is<float32_array>(); }
+
+	bool is_float64_array(void) const noexcept
+	{ return this->is<float64_array>(); }
+
 	bool is_tuple(void) const noexcept
 	{ return this->is<tuple>(); }
 
@@ -176,6 +178,18 @@ struct constant_value : bz::variant<
 
 	bz::array_view<constant_value const> get_array(void) const noexcept
 	{ return this->get<array>(); }
+
+	bz::array_view<int64_t const> get_sint_array(void) const noexcept
+	{ return this->get<sint_array>(); }
+
+	bz::array_view<uint64_t const> get_uint_array(void) const noexcept
+	{ return this->get<uint_array>(); }
+
+	bz::array_view<float32_t const> get_float32_array(void) const noexcept
+	{ return this->get<float32_array>(); }
+
+	bz::array_view<float64_t const> get_float64_array(void) const noexcept
+	{ return this->get<float64_array>(); }
 
 	bz::array_view<constant_value const> get_tuple(void) const noexcept
 	{ return this->get<tuple>(); }

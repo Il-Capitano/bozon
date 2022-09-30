@@ -31,11 +31,38 @@ static bz::u8string get_aggregate_like_value_string(bz::array_view<constant_valu
 	return result;
 }
 
+template<typename T>
+static bz::u8string get_aggregate_like_value_string(bz::array_view<T const> values)
+{
+	if (values.empty())
+	{
+		return "[]";
+	}
+	bz::u8string result = "[";
+	bool first = true;
+	for (auto const &value : values)
+	{
+		if (first)
+		{
+			first = false;
+			result += ' ';
+			result += bz::format("{}", value);
+		}
+		else
+		{
+			result += ", ";
+			result += bz::format("{}", value);
+		}
+	}
+	result += " ]";
+	return result;
+}
+
 bz::u8string get_value_string(constant_value const &value)
 {
 	switch (value.kind())
 	{
-	static_assert(constant_value::variant_count == 16);
+	static_assert(constant_value::variant_count == 20);
 	case constant_value::sint:
 		return bz::format("{}", value.get_sint());
 	case constant_value::uint:
@@ -56,6 +83,14 @@ bz::u8string get_value_string(constant_value const &value)
 		return "void()";
 	case constant_value::array:
 		return get_aggregate_like_value_string(value.get_array());
+	case constant_value::sint_array:
+		return get_aggregate_like_value_string(value.get_sint_array());
+	case constant_value::uint_array:
+		return get_aggregate_like_value_string(value.get_uint_array());
+	case constant_value::float32_array:
+		return get_aggregate_like_value_string(value.get_float32_array());
+	case constant_value::float64_array:
+		return get_aggregate_like_value_string(value.get_float64_array());
 	case constant_value::tuple:
 		return get_aggregate_like_value_string(value.get_tuple());
 	case constant_value::function:
@@ -107,10 +142,51 @@ static void encode_array_like(bz::u8string &out, bz::array_view<constant_value c
 	}
 }
 
+static void encode_array_like(bz::u8string &out, bz::array_view<int64_t const> values)
+{
+	out += bz::format("{}", values.size());
+	for (auto const &value : values)
+	{
+		out += '.';
+		out += bz::format("{}", bit_cast<uint64_t>(value));
+	}
+}
+
+static void encode_array_like(bz::u8string &out, bz::array_view<uint64_t const> values)
+{
+	out += bz::format("{}", values.size());
+	for (auto const &value : values)
+	{
+		out += '.';
+		out += bz::format("{}", value);
+	}
+}
+
+static void encode_array_like(bz::u8string &out, bz::array_view<float32_t const> values)
+{
+	out += bz::format("{}", values.size());
+	for (auto const &value : values)
+	{
+		out += '.';
+		out += bz::format("{:08x}", bit_cast<uint32_t>(value));
+	}
+}
+
+static void encode_array_like(bz::u8string &out, bz::array_view<float64_t const> values)
+{
+	out += bz::format("{}", values.size());
+	for (auto const &value : values)
+	{
+		out += '.';
+		out += bz::format("{:016x}", bit_cast<uint64_t>(value));
+	}
+}
+
 void constant_value::encode_for_symbol_name(bz::u8string &out, constant_value const &value)
 {
 	switch (value.kind())
 	{
+	static_assert(constant_value::variant_count == 20);
 	case sint:
 		out += 'i';
 		out += bz::format("{}", bit_cast<uint64_t>(value.get_sint()));
@@ -121,11 +197,11 @@ void constant_value::encode_for_symbol_name(bz::u8string &out, constant_value co
 		break;
 	case float32:
 		out += 'f';
-		out += bz::format("{:8x}", bit_cast<uint32_t>(value.get_float32()));
+		out += bz::format("{:08x}", bit_cast<uint32_t>(value.get_float32()));
 		break;
 	case float64:
 		out += 'd';
-		out += bz::format("{:16x}", bit_cast<uint64_t>(value.get_float64()));
+		out += bz::format("{:016x}", bit_cast<uint64_t>(value.get_float64()));
 		break;
 	case u8char:
 		out += 'c';
@@ -153,6 +229,22 @@ void constant_value::encode_for_symbol_name(bz::u8string &out, constant_value co
 	case array:
 		out += 'A';
 		encode_array_like(out, value.get_array());
+		break;
+	case sint_array:
+		out += 'I';
+		encode_array_like(out, value.get_sint_array());
+		break;
+	case uint_array:
+		out += 'U';
+		encode_array_like(out, value.get_uint_array());
+		break;
+	case float32_array:
+		out += 'G';
+		encode_array_like(out, value.get_float32_array());
+		break;
+	case float64_array:
+		out += 'D';
+		encode_array_like(out, value.get_float64_array());
 		break;
 	case tuple:
 		out += 'T';
@@ -251,6 +343,90 @@ static void decode_array_like(
 	out += " ]";
 }
 
+static void decode_sint_array(
+	bz::u8string_view::const_iterator &it,
+	bz::u8string_view::const_iterator end,
+	bz::u8string &out
+)
+{
+	auto const size = parse_int<size_t>(it, end);
+	out += "[ ";
+	for (auto const i : bz::iota(0, size))
+	{
+		if (i != 0)
+		{
+			out += ", ";
+		}
+		bz_assert(*it == '.');
+		++it;
+		out += bz::format("{}", bit_cast<int64_t>(parse_int<uint64_t>(it, end)));
+	}
+	out += " ]";
+}
+
+static void decode_uint_array(
+	bz::u8string_view::const_iterator &it,
+	bz::u8string_view::const_iterator end,
+	bz::u8string &out
+)
+{
+	auto const size = parse_int<size_t>(it, end);
+	out += "[ ";
+	for (auto const i : bz::iota(0, size))
+	{
+		if (i != 0)
+		{
+			out += ", ";
+		}
+		bz_assert(*it == '.');
+		++it;
+		out += bz::format("{}", parse_int<uint64_t>(it, end));
+	}
+	out += " ]";
+}
+
+static void decode_float32_array(
+	bz::u8string_view::const_iterator &it,
+	bz::u8string_view::const_iterator end,
+	bz::u8string &out
+)
+{
+	auto const size = parse_int<size_t>(it, end);
+	out += "[ ";
+	for (auto const i : bz::iota(0, size))
+	{
+		if (i != 0)
+		{
+			out += ", ";
+		}
+		bz_assert(*it == '.');
+		++it;
+		out += bz::format("{}", bit_cast<float32_t>(parse_hex<uint32_t>(it, end)));
+	}
+	out += " ]";
+}
+
+static void decode_float64_array(
+	bz::u8string_view::const_iterator &it,
+	bz::u8string_view::const_iterator end,
+	bz::u8string &out
+)
+{
+	auto const size = parse_int<size_t>(it, end);
+	out += "[ ";
+	for (auto const i : bz::iota(0, size))
+	{
+		if (i != 0)
+		{
+			out += ", ";
+		}
+		bz_assert(*it == '.');
+		++it;
+		out += bz::format("{}", bit_cast<float64_t>(parse_hex<uint64_t>(it, end)));
+	}
+	out += " ]";
+}
+
 bz::u8string constant_value::decode_from_symbol_name(bz::u8string_view::const_iterator &it, bz::u8string_view::const_iterator end)
 {
 	switch (*it)
@@ -300,6 +476,34 @@ bz::u8string constant_value::decode_from_symbol_name(bz::u8string_view::const_it
 		decode_array_like(it, end, result);
 		return result;
 	}
+	case 'I':
+	{
+		++it;
+		bz::u8string result;
+		decode_sint_array(it, end, result);
+		return result;
+	}
+	case 'U':
+	{
+		++it;
+		bz::u8string result;
+		decode_uint_array(it, end, result);
+		return result;
+	}
+	case 'G':
+	{
+		++it;
+		bz::u8string result;
+		decode_float32_array(it, end, result);
+		return result;
+	}
+	case 'D':
+	{
+		++it;
+		bz::u8string result;
+		decode_float64_array(it, end, result);
+		return result;
+	}
 	case 'T':
 	{
 		++it;
@@ -318,9 +522,6 @@ bz::u8string constant_value::decode_from_symbol_name(bz::u8string_view::const_it
 		it = str_end;
 		return ast::function_body::decode_symbol_name(result_symbol);
 	}
-	case 'U':
-	case 'Q':
-		bz_unreachable;
 	case 't':
 	{
 		++it;
@@ -352,7 +553,7 @@ bool operator == (constant_value const &lhs, constant_value const &rhs) noexcept
 	}
 	switch (lhs.kind())
 	{
-	static_assert(constant_value::variant_count == 16);
+	static_assert(constant_value::variant_count == 20);
 	case constant_value::sint:
 		return lhs.get_sint() == rhs.get_sint();
 	case constant_value::uint:
@@ -373,6 +574,14 @@ bool operator == (constant_value const &lhs, constant_value const &rhs) noexcept
 		return true;
 	case constant_value::array:
 		return lhs.get_array() == rhs.get_array();
+	case constant_value::sint_array:
+		return lhs.get_sint_array() == rhs.get_sint_array();
+	case constant_value::uint_array:
+		return lhs.get_uint_array() == rhs.get_uint_array();
+	case constant_value::float32_array:
+		return lhs.get_float32_array() == rhs.get_float32_array();
+	case constant_value::float64_array:
+		return lhs.get_float64_array() == rhs.get_float64_array();
 	case constant_value::tuple:
 		return lhs.get_tuple() == rhs.get_tuple();
 	case constant_value::function:

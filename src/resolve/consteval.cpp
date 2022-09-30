@@ -25,7 +25,7 @@ static ast::constant_value evaluate_binary_plus(
 		auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 		switch (lhs_value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 16);
+		static_assert(ast::constant_value::variant_count == 20);
 		case ast::constant_value::sint:
 		{
 			auto const lhs_int_val = lhs_value.get_sint();
@@ -136,7 +136,7 @@ static ast::constant_value evaluate_binary_minus(
 		auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 		switch (lhs_value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 16);
+		static_assert(ast::constant_value::variant_count == 20);
 		case ast::constant_value::sint:
 		{
 			auto const lhs_int_val = lhs_value.get_sint();
@@ -227,7 +227,7 @@ static ast::constant_value evaluate_binary_multiply(
 	auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 16);
+	static_assert(ast::constant_value::variant_count == 20);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -287,7 +287,7 @@ static ast::constant_value evaluate_binary_divide(
 	auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 16);
+	static_assert(ast::constant_value::variant_count == 20);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -363,7 +363,7 @@ static ast::constant_value evaluate_binary_modulo(
 	auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 16);
+	static_assert(ast::constant_value::variant_count == 20);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -420,7 +420,7 @@ static ast::constant_value evaluate_binary_equals(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 16);
+	static_assert(ast::constant_value::variant_count == 20);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -495,7 +495,7 @@ static ast::constant_value evaluate_binary_not_equals(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 16);
+	static_assert(ast::constant_value::variant_count == 20);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -564,7 +564,7 @@ static ast::constant_value evaluate_binary_less_than(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 16);
+	static_assert(ast::constant_value::variant_count == 20);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -621,7 +621,7 @@ static ast::constant_value evaluate_binary_less_than_eq(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 16);
+	static_assert(ast::constant_value::variant_count == 20);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -678,7 +678,7 @@ static ast::constant_value evaluate_binary_greater_than(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 16);
+	static_assert(ast::constant_value::variant_count == 20);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -735,7 +735,7 @@ static ast::constant_value evaluate_binary_greater_than_eq(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 16);
+	static_assert(ast::constant_value::variant_count == 20);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -792,7 +792,7 @@ static ast::constant_value evaluate_binary_bit_and(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 16);
+	static_assert(ast::constant_value::variant_count == 20);
 	case ast::constant_value::uint:
 	{
 		auto const lhs_int_val = lhs_value.get_uint();
@@ -827,7 +827,7 @@ static ast::constant_value evaluate_binary_bit_xor(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 16);
+	static_assert(ast::constant_value::variant_count == 20);
 	case ast::constant_value::uint:
 	{
 		auto const lhs_int_val = lhs_value.get_uint();
@@ -862,7 +862,7 @@ static ast::constant_value evaluate_binary_bit_or(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 16);
+	static_assert(ast::constant_value::variant_count == 20);
 	case ast::constant_value::uint:
 	{
 		auto const lhs_int_val = lhs_value.get_uint();
@@ -1810,7 +1810,7 @@ static ast::constant_value evaluate_cast(
 	{
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 16);
+		static_assert(ast::constant_value::variant_count == 20);
 		case ast::constant_value::sint:
 		{
 			using T = std::tuple<bz::u8string_view, int64_t, int64_t, int64_t>;
@@ -1886,7 +1886,7 @@ static ast::constant_value evaluate_cast(
 	{
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 16);
+		static_assert(ast::constant_value::variant_count == 20);
 		case ast::constant_value::sint:
 		{
 			using T = std::tuple<bz::u8string_view, uint64_t, uint64_t>;
@@ -1958,7 +1958,7 @@ static ast::constant_value evaluate_cast(
 	case ast::type_info::float32_:
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 16);
+		static_assert(ast::constant_value::variant_count == 20);
 		case ast::constant_value::sint:
 			return ast::constant_value(static_cast<float32_t>(value.get_sint()));
 		case ast::constant_value::uint:
@@ -1973,7 +1973,7 @@ static ast::constant_value evaluate_cast(
 	case ast::type_info::float64_:
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 16);
+		static_assert(ast::constant_value::variant_count == 20);
 		case ast::constant_value::sint:
 			return ast::constant_value(static_cast<float64_t>(value.get_sint()));
 		case ast::constant_value::uint:
@@ -1988,7 +1988,7 @@ static ast::constant_value evaluate_cast(
 	case ast::type_info::char_:
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 16);
+		static_assert(ast::constant_value::variant_count == 20);
 		case ast::constant_value::sint:
 		{
 			auto const result = static_cast<bz::u8char>(value.get_sint());
