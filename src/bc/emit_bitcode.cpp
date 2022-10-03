@@ -32,66 +32,6 @@ static int get_unique_id(void)
 	return i++;
 }
 
-static bool needs_result_address(ast::typespec_view type)
-{
-	type = ast::remove_const_or_consteval(type);
-	static_assert(ast::typespec_types::size() == 17);
-	switch (type.kind())
-	{
-	case ast::typespec_node_t::index_of<ast::ts_base_type>:
-	{
-		auto const type_kind = type.get<ast::ts_base_type>().info->kind;
-		switch (type_kind)
-		{
-		case ast::type_info::int8_:
-		case ast::type_info::int16_:
-		case ast::type_info::int32_:
-		case ast::type_info::int64_:
-		case ast::type_info::uint8_:
-		case ast::type_info::uint16_:
-		case ast::type_info::uint32_:
-		case ast::type_info::uint64_:
-		case ast::type_info::char_:
-		case ast::type_info::bool_:
-		case ast::type_info::float32_:
-		case ast::type_info::float64_:
-			return false;
-		case ast::type_info::str_:
-		case ast::type_info::null_t_:
-		case ast::type_info::aggregate:
-			return true;
-		default:
-			bz_unreachable;
-		}
-	}
-	case ast::typespec_node_t::index_of<ast::ts_const>:
-	case ast::typespec_node_t::index_of<ast::ts_consteval>:
-		return false;
-	case ast::typespec_node_t::index_of<ast::ts_pointer>:
-	case ast::typespec_node_t::index_of<ast::ts_function>:
-		return false;
-	case ast::typespec_node_t::index_of<ast::ts_array>:
-		return true;
-	case ast::typespec_node_t::index_of<ast::ts_array_slice>:
-		return true;
-	case ast::typespec_node_t::index_of<ast::ts_tuple>:
-		return true;
-
-	case ast::typespec_node_t::index_of<ast::ts_unresolved>:
-	case ast::typespec_node_t::index_of<ast::ts_void>:
-	case ast::typespec_node_t::index_of<ast::ts_lvalue_reference>:
-	case ast::typespec_node_t::index_of<ast::ts_move_reference>:
-	case ast::typespec_node_t::index_of<ast::ts_auto_reference>:
-	case ast::typespec_node_t::index_of<ast::ts_auto_reference_const>:
-	case ast::typespec_node_t::index_of<ast::ts_variadic>:
-	case ast::typespec_node_t::index_of<ast::ts_auto>:
-	case ast::typespec_node_t::index_of<ast::ts_typename>:
-		return false;
-	default:
-		bz_unreachable;
-	}
-}
-
 struct src_tokens_llvm_value_t
 {
 	llvm::Constant *begin;
@@ -5541,7 +5481,12 @@ static val_ptr emit_bitcode(
 	if (
 		result_address == nullptr
 		&& dyn_expr.kind == ast::expression_type_kind::rvalue
-		&& (dyn_expr.destruct_op.not_null() || needs_result_address(dyn_expr.type))
+		&& (
+			dyn_expr.destruct_op.not_null()
+			|| dyn_expr.expr.is<ast::expr_compound>()
+			|| dyn_expr.expr.is<ast::expr_if>()
+			|| dyn_expr.expr.is<ast::expr_switch>()
+		)
 	)
 	{
 		auto const result_type = get_llvm_type(dyn_expr.type, context);

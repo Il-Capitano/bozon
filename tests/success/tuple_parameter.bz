@@ -1,0 +1,9 @@
+function test1(t: #const auto) -> usize
+{
+	return t[2].length();
+}
+
+function test()
+{
+	(consteval test1({[ 3, 3.234, "hello" ]}));
+}

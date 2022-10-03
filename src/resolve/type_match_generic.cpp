@@ -2711,6 +2711,14 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 				return false;
 			}
 
+			if (
+				match_context.dest_container.template is<ast::ts_auto_reference>()
+				|| match_context.dest_container.template is<ast::ts_auto_reference_const>()
+			)
+			{
+				match_context.dest_container.remove_layer();
+			}
+
 			ast::typespec_view const dest = match_context.dest_container;
 			expr.set_type(ast::remove_const_or_consteval(ast::remove_lvalue_or_move_reference(dest)));
 			expr.set_type_kind(ast::expression_type_kind::rvalue);
@@ -2727,10 +2735,6 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 					ast::make_expr_take_move_reference(std::move(expr)),
 					ast::destruct_operation()
 				);
-			}
-			else if (dest.is<ast::ts_auto_reference>() || dest.is<ast::ts_auto_reference_const>())
-			{
-				match_context.dest_container.remove_layer();
 			}
 
 			return true;
