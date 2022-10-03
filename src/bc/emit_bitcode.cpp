@@ -3227,31 +3227,22 @@ static val_ptr emit_bitcode(
 		else
 		{
 			auto const param_llvm_type = get_llvm_type(param_type, context);
-			if (param_type.is<ast::ts_move_reference>())
-			{
-				auto const param_val = emit_bitcode<abi>(p, context, nullptr);
-				add_call_parameter<abi, push_to_front>(param_type, param_llvm_type, param_val, params, params_is_byval, context);
-			}
-			else
-			{
-				auto const param_val = emit_bitcode<abi>(p, context, nullptr);
-				add_call_parameter<abi, push_to_front>(param_type, param_llvm_type, param_val, params, params_is_byval, context);
-			}
+			auto const param_val = emit_bitcode<abi>(p, context, nullptr);
+			bz_assert(param_val.val != nullptr || param_val.consteval_val != nullptr);
+			add_call_parameter<abi, push_to_front>(param_type, param_llvm_type, param_val, params, params_is_byval, context);
 		}
 	};
 
 	if (func_call.param_resolve_order == ast::resolve_order::reversed)
 	{
-		auto const size = func_call.params.size();
-		for (size_t i = size; i != 0; --i)
+		for (auto const i : bz::iota(0, func_call.params.size()).reversed())
 		{
-			emit_arg(i - 1, bz::meta::integral_constant<bool, true>{});
+			emit_arg(i, bz::meta::integral_constant<bool, true>{});
 		}
 	}
 	else
 	{
-		auto const size = func_call.params.size();
-		for (size_t i = 0; i < size; ++i)
+		for (auto const i : bz::iota(0, func_call.params.size()))
 		{
 			emit_arg(i, bz::meta::integral_constant<bool, false>{});
 		}
