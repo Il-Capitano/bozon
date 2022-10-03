@@ -990,8 +990,7 @@ static match_function_result_t<kind> generic_type_match_tuple(match_context_t<ki
 
 
 	auto const original_dest = dest;
-	auto const is_auto_ref = dest.is<ast::ts_auto_reference>() || dest.is<ast::ts_auto_reference_const>();
-	if (is_auto_ref)
+	if (dest.is<ast::ts_auto_reference>() || dest.is<ast::ts_auto_reference_const>())
 	{
 		dest = ast::remove_const_or_consteval(dest.blind_get());
 	}
@@ -1149,10 +1148,6 @@ static match_function_result_t<kind> generic_type_match_tuple(match_context_t<ki
 			{
 				// restore original dest
 				dest_types_container = std::move(dest_types_copy);
-			}
-			else if (is_auto_ref)
-			{
-				match_context.dest_container.remove_layer();
 			}
 			return good;
 		}
@@ -1372,11 +1367,7 @@ static match_function_result_t<kind> generic_type_match_tuple(match_context_t<ki
 			dest_array_t.elem_type = std::move(matched_elem_type);
 			dest_array_t.size = tuple_expr.elems.size();
 
-			if (is_auto_ref)
-			{
-				match_context.dest_container.remove_layer();
-			}
-			ast::typespec_view array_dest = ast::remove_const_or_consteval(ast::remove_lvalue_or_move_reference(match_context.dest_container));
+			ast::typespec_view array_dest = ast::remove_const_or_consteval(ast::remove_any_reference(match_context.dest_container));
 			bz_assert(array_dest.is<ast::ts_array>());
 			expr = ast::make_dynamic_expression(
 				expr.src_tokens,
@@ -1454,10 +1445,6 @@ static match_function_result_t<kind> generic_type_match_tuple(match_context_t<ki
 				});
 			}
 
-			if (good && is_auto_ref)
-			{
-				match_context.dest_container.remove_layer();
-			}
 			return good;
 		}
 		else
@@ -2740,6 +2727,10 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 					ast::make_expr_take_move_reference(std::move(expr)),
 					ast::destruct_operation()
 				);
+			}
+			else if (dest.is<ast::ts_auto_reference>() || dest.is<ast::ts_auto_reference_const>())
+			{
+				match_context.dest_container.remove_layer();
 			}
 
 			return true;

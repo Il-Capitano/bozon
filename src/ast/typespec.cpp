@@ -182,6 +182,11 @@ typespec_view remove_lvalue_or_move_reference(typespec_view ts) noexcept
 	return remove_kind_helper<ts_lvalue_reference, ts_move_reference>(ts);
 }
 
+typespec_view remove_any_reference(typespec_view ts) noexcept
+{
+	return remove_kind_helper<ts_lvalue_reference, ts_move_reference, ts_auto_reference, ts_auto_reference_const>(ts);
+}
+
 bool is_complete(typespec_view ts) noexcept
 {
 	if (ts.nodes.size() == 0)
