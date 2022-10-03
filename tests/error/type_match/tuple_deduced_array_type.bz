@@ -1,0 +1,4 @@
+function test()
+{
+	let _: [3: auto] = [ 1, 2i8, 3i64 ];
+}
