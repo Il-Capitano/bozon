@@ -6,6 +6,7 @@ function test5(T: [: typename]);
 function test6(T: [typename, typename]);
 function test7(T: [...typename]);
 function test8(T: [typename, ...typename]);
+function test9(T: [typename, int32]);
 
 function test()
 {
@@ -44,4 +45,7 @@ function test()
 	test8([int32, float32]);
 	test8([int32, float32, str]);
 	test8([int32, float32, str, char]);
+
+	test9([int32, int32]);
+	test9([str, int32]);
 }
