@@ -31,7 +31,7 @@ jobs:
         mkdir bin
         make
         cd ..
-    - run: touch ryu_format.bc
+    - run: touch ryu_format.windows.bc
     - name: Build bozon
       run: cppb/bin/cppb build -v
     - name: Compile bitcode_test.bz
@@ -46,7 +46,7 @@ jobs:
         cppb/bin/cppb run -v --build-config test
         cppb/bin/cppb run-rule run-tests
     - name: Compile ryu_format.bz
-      run: cppb/bin/cppb run-rule ryu_format.bc -f
+      run: cppb/bin/cppb run-rule ryu_format.windows.bc -f
   windows-gcc:
     runs-on: windows-latest
     defaults:
@@ -76,7 +76,7 @@ jobs:
         mkdir bin
         make
         cd ..
-    - run: touch ryu_format.bc
+    - run: touch ryu_format.windows.bc
     - name: Build bozon
       run: cppb/bin/cppb build -v --build-config gcc
     - name: Compile bitcode_test.bz
@@ -89,7 +89,7 @@ jobs:
     - name: Run tests
       run: cppb/bin/cppb run -v --build-config test-gcc
     - name: Compile ryu_format.bz
-      run: cppb/bin/cppb run-rule ryu_format.gcc.bc -f
+      run: cppb/bin/cppb run-rule ryu_format.windows.gcc.bc -f
   linux-clang:
     runs-on: ubuntu-latest
     steps:
