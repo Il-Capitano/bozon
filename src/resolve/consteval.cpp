@@ -1236,10 +1236,41 @@ static ast::constant_value evaluate_subscript(
 	auto const &value = subscript_expr.base.get_constant_value();
 	if (base_type.is<ast::ts_array>())
 	{
-		bz_assert(value.is_array());
-		auto const &array_value = value.get_array();
-		bz_assert(index_value < array_value.size());
-		return array_value[index_value];
+		switch (value.index())
+		{
+		case ast::constant_value::array:
+		{
+			auto const &array_value = value.get_array();
+			bz_assert(index_value < array_value.size());
+			return array_value[index_value];
+		}
+		case ast::constant_value::sint_array:
+		{
+			auto const &array_value = value.get_sint_array();
+			bz_assert(index_value < array_value.size());
+			return ast::constant_value(array_value[index_value]);
+		}
+		case ast::constant_value::uint_array:
+		{
+			auto const &array_value = value.get_uint_array();
+			bz_assert(index_value < array_value.size());
+			return ast::constant_value(array_value[index_value]);
+		}
+		case ast::constant_value::float32_array:
+		{
+			auto const &array_value = value.get_float32_array();
+			bz_assert(index_value < array_value.size());
+			return ast::constant_value(array_value[index_value]);
+		}
+		case ast::constant_value::float64_array:
+		{
+			auto const &array_value = value.get_float64_array();
+			bz_assert(index_value < array_value.size());
+			return ast::constant_value(array_value[index_value]);
+		}
+		default:
+			bz_unreachable;
+		}
 	}
 	else
 	{
