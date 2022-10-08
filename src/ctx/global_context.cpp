@@ -921,6 +921,22 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	return true;
 }
 
+static void emit_variables_in_global_scope(ast::global_scope_t const &scope, bitcode_context &context)
+{
+	for (auto const var_decl : scope.variables)
+	{
+		bc::emit_global_variable(*var_decl, context);
+	}
+
+	for (auto const struct_decl : scope.structs)
+	{
+		if (struct_decl->info.kind == ast::type_info::aggregate)
+		{
+			emit_variables_in_global_scope(struct_decl->info.scope.get_global(), context);
+		}
+	}
+}
+
 [[nodiscard]] bool global_context::emit_bitcode(void)
 {
 	bitcode_context context(*this, &this->_module);
@@ -943,10 +959,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	}
 	for (auto const &file : this->_src_files)
 	{
-		for (auto const var_decl : file._global_decls.get_global().variables)
-		{
-			bc::emit_global_variable(*var_decl, context);
-		}
+		emit_variables_in_global_scope(file._global_decls.get_global(), context);
 	}
 	for (auto const func : this->_compile_decls.funcs)
 	{
