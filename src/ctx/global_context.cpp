@@ -921,18 +921,109 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	return true;
 }
 
-static void emit_variables_in_global_scope(ast::global_scope_t const &scope, bitcode_context &context)
+static auto filter_struct_decls(bz::array_view<ast::statement const> decls)
 {
-	for (auto const var_decl : scope.variables)
+	return decls
+		.filter([](auto const &stmt) { return stmt.template is<ast::decl_struct>(); })
+		.transform([](auto const &stmt) -> ast::decl_struct const & { return stmt.template get<ast::decl_struct>(); });
+}
+
+static auto filter_var_decls(bz::array_view<ast::statement const> decls)
+{
+	return decls
+		.filter([](auto const &stmt) { return stmt.template is<ast::decl_variable>(); })
+		.transform([](auto const &stmt) -> ast::decl_variable const & { return stmt.template get<ast::decl_variable>(); });
+}
+
+static void emit_struct_symbols_helper(bz::array_view<ast::statement const> decls, bitcode_context &context)
+{
+	for (auto const &struct_decl : filter_struct_decls(decls))
 	{
-		bc::emit_global_variable(*var_decl, context);
+		bc::emit_global_type_symbol(struct_decl.info, context);
+
+		if (struct_decl.info.kind == ast::type_info::aggregate)
+		{
+			if (struct_decl.info.is_generic())
+			{
+				for (auto const &instantiation_decl : struct_decl.info.generic_instantiations)
+				{
+					if (instantiation_decl->state == ast::resolve_state::all)
+					{
+						emit_struct_symbols_helper(instantiation_decl->body.get<bz::vector<ast::statement>>(), context);
+					}
+				}
+			}
+			else
+			{
+				if (struct_decl.info.state == ast::resolve_state::all)
+				{
+					emit_struct_symbols_helper(struct_decl.info.body.get<bz::vector<ast::statement>>(), context);
+				}
+			}
+		}
+	}
+}
+
+static void emit_structs_helper(bz::array_view<ast::statement const> decls, bitcode_context &context)
+{
+	for (auto const &struct_decl : filter_struct_decls(decls))
+	{
+		bc::emit_global_type(struct_decl.info, context);
+
+		if (struct_decl.info.kind == ast::type_info::aggregate)
+		{
+			if (struct_decl.info.is_generic())
+			{
+				for (auto const &instantiation_decl : struct_decl.info.generic_instantiations)
+				{
+					if (instantiation_decl->state == ast::resolve_state::all)
+					{
+						emit_structs_helper(instantiation_decl->body.get<bz::vector<ast::statement>>(), context);
+					}
+				}
+			}
+			else
+			{
+				if (struct_decl.info.state == ast::resolve_state::all)
+				{
+					emit_structs_helper(struct_decl.info.body.get<bz::vector<ast::statement>>(), context);
+				}
+			}
+		}
+	}
+}
+
+static void emit_variables_helper(bz::array_view<ast::statement const> decls, bitcode_context &context)
+{
+	for (auto const &var_decl : filter_var_decls(decls))
+	{
+		if (var_decl.is_global())
+		{
+			bc::emit_global_variable(var_decl, context);
+		}
 	}
 
-	for (auto const struct_decl : scope.structs)
+	for (auto const &struct_decl : filter_struct_decls(decls))
 	{
-		if (struct_decl->info.kind == ast::type_info::aggregate)
+		if (struct_decl.info.kind == ast::type_info::aggregate)
 		{
-			emit_variables_in_global_scope(struct_decl->info.scope.get_global(), context);
+			if (struct_decl.info.is_generic())
+			{
+				for (auto const &instantiation_decl : struct_decl.info.generic_instantiations)
+				{
+					if (instantiation_decl->state == ast::resolve_state::all)
+					{
+						emit_variables_helper(instantiation_decl->body.get<bz::vector<ast::statement>>(), context);
+					}
+				}
+			}
+			else
+			{
+				if (struct_decl.info.state == ast::resolve_state::all)
+				{
+					emit_variables_helper(struct_decl.info.body.get<bz::vector<ast::statement>>(), context);
+				}
+			}
 		}
 	}
 }
@@ -945,21 +1036,15 @@ static void emit_variables_in_global_scope(ast::global_scope_t const &scope, bit
 	bz_assert(this->_compile_decls.var_decls.size() == 0);
 	for (auto const &file : this->_src_files)
 	{
-		for (auto const struct_decl : file._global_decls.get_global().structs)
-		{
-			bc::emit_global_type_symbol(struct_decl->info, context);
-		}
+		emit_struct_symbols_helper(file._declarations, context);
 	}
 	for (auto const &file : this->_src_files)
 	{
-		for (auto const struct_decl : file._global_decls.get_global().structs)
-		{
-			bc::emit_global_type(struct_decl->info, context);
-		}
+		emit_structs_helper(file._declarations, context);
 	}
 	for (auto const &file : this->_src_files)
 	{
-		emit_variables_in_global_scope(file._global_decls.get_global(), context);
+		emit_variables_helper(file._declarations, context);
 	}
 	for (auto const func : this->_compile_decls.funcs)
 	{

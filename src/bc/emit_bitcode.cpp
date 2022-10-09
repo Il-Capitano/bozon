@@ -5422,6 +5422,35 @@ static llvm::Constant *get_value(
 	}
 }
 
+static void store_constant_at_address(llvm::Constant *const_val, llvm::Value *dest, auto &context)
+{
+	auto const type = const_val->getType();
+	if (type->isArrayTy())
+	{
+		auto const size = type->getArrayNumElements();
+		for (auto const i : bz::iota(0, size))
+		{
+			auto const elem_val = const_val->getAggregateElement(i);
+			auto const elem_dest = context.create_struct_gep(type, dest, i);
+			store_constant_at_address(elem_val, elem_dest, context);
+		}
+	}
+	else if (type->isStructTy())
+	{
+		auto const elem_count = type->getStructNumElements();
+		for (auto const i : bz::iota(0, elem_count))
+		{
+			auto const elem_val = const_val->getAggregateElement(i);
+			auto const elem_dest = context.create_struct_gep(type, dest, i);
+			store_constant_at_address(elem_val, elem_dest, context);
+		}
+	}
+	else
+	{
+		context.builder.CreateStore(const_val, dest);
+	}
+}
+
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
@@ -5464,9 +5493,8 @@ static val_ptr emit_bitcode(
 	}
 	else
 	{
-		auto const result_val = result.get_value(context.builder);
-		context.builder.CreateStore(result_val, result_address);
-		return val_ptr::get_reference(result_address, result_val->getType());
+		store_constant_at_address(const_val, result_address, context);
+		return val_ptr::get_reference(result_address, const_val->getType());
 	}
 }
 
@@ -6649,7 +6677,7 @@ void emit_function_bitcode(
 template<abi::platform_abi abi>
 static void emit_global_variable_impl(ast::decl_variable const &var_decl, auto &context)
 {
-	auto const name = var_decl.symbol_name != "" ? var_decl.symbol_name : var_decl.get_id().format_for_symbol();
+	auto const name = var_decl.symbol_name != "" ? var_decl.symbol_name : var_decl.get_id().format_for_symbol(get_unique_id());
 	auto const name_ref = llvm::StringRef(name.data_as_char_ptr(), name.size());
 	auto const type = get_llvm_type(var_decl.get_type(), context);
 	auto const val = context.get_module().getOrInsertGlobal(name_ref, type);
@@ -6668,6 +6696,7 @@ static void emit_global_variable_impl(ast::decl_variable const &var_decl, auto &
 		bz_assert(var_decl.init_expr.is_constant());
 		auto const &const_expr = var_decl.init_expr.get_constant();
 		auto const init_val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
+		bz_assert(!global_var->hasInitializer());
 		global_var->setInitializer(init_val);
 	}
 	context.add_variable(&var_decl, global_var, type);
@@ -6757,19 +6786,6 @@ void emit_global_type_symbol(ast::type_info const &info, ctx::bitcode_context &c
 	default:
 		bz_unreachable;
 	}
-
-	if (info.body.is<bz::vector<ast::statement>>())
-	{
-		for (
-			auto const &inner_struct_decl :
-			info.body.get<bz::vector<ast::statement>>()
-				.filter([](auto const &stmt) { return stmt.template is<ast::decl_struct>(); })
-				.transform([](auto const &stmt) -> auto const & { return stmt.template get<ast::decl_struct>(); })
-		)
-		{
-			emit_global_type_symbol(inner_struct_decl.info, context);
-		}
-	}
 }
 
 void emit_global_type(ast::type_info const &info, ctx::bitcode_context &context)
@@ -6797,24 +6813,12 @@ void emit_global_type(ast::type_info const &info, ctx::bitcode_context &context)
 		auto const types = info.member_variables
 			.transform([&](auto const &member) { return get_llvm_type(member->get_type(), context); })
 			.collect<ast::arena_vector>();
+		bz_assert(struct_type->isOpaque());
 		struct_type->setBody(llvm::ArrayRef<llvm::Type *>(types.data(), types.size()));
 		break;
 	}
 	default:
 		bz_unreachable;
-	}
-
-	if (info.body.is<bz::vector<ast::statement>>())
-	{
-		for (
-			auto const &inner_struct_decl :
-			info.body.get<bz::vector<ast::statement>>()
-				.filter([](auto const &stmt) { return stmt.template is<ast::decl_struct>(); })
-				.transform([](auto const &stmt) -> auto const & { return stmt.template get<ast::decl_struct>(); })
-		)
-		{
-			emit_global_type(inner_struct_decl.info, context);
-		}
 	}
 }
 
@@ -6832,6 +6836,7 @@ void resolve_global_type(ast::type_info *info, llvm::Type *type, ctx::comptime_e
 		auto const types = info->member_variables
 			.transform([&](auto const &member) { return get_llvm_type(member->get_type(), context); })
 			.collect();
+		bz_assert(struct_type->isOpaque());
 		struct_type->setBody(llvm::ArrayRef<llvm::Type *>(types.data(), types.size()));
 		break;
 	}
