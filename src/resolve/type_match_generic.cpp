@@ -2239,7 +2239,10 @@ static match_function_result_t<kind> generic_type_match_base_case(
 					),
 					false, true, false
 				);
-				result.add_layer<ast::ts_lvalue_reference>();
+				if (!result.is_empty())
+				{
+					result.add_layer<ast::ts_lvalue_reference>();
+				}
 				return result;
 			}
 			else
@@ -2252,9 +2255,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 			bz_assert(match_context.dest_container.nodes.front().template is<ast::ts_auto_reference>());
 			if (is_lvalue)
 			{
-				match_context.dest_container.nodes.front().template emplace<ast::ts_lvalue_reference>();
-				inner_dest = match_context.dest_container.template get<ast::ts_lvalue_reference>();
-				return generic_type_match_strict_match(
+				auto const good = generic_type_match_strict_match(
 					make_strict_match_context(
 						match_context,
 						expr_type,
@@ -2265,12 +2266,20 @@ static match_function_result_t<kind> generic_type_match_base_case(
 					),
 					false, true, false
 				);
+				if (good)
+				{
+					match_context.dest_container.nodes.front().template emplace<ast::ts_lvalue_reference>();
+				}
+				return good;
 			}
 			else
 			{
-				match_context.dest_container.remove_layer();
-				inner_dest = match_context.dest_container;
-				return generic_type_match_base_case(change_dest(match_context, inner_dest));
+				auto const good = generic_type_match_base_case(change_dest(match_context, inner_dest));
+				if (good)
+				{
+					match_context.dest_container.remove_layer();
+				}
+				return good;
 			}
 		}
 		else
@@ -2319,11 +2328,14 @@ static match_function_result_t<kind> generic_type_match_base_case(
 					),
 					false, expr_is_const, true
 				);
-				if (expr_is_const)
+				if (!result.is_empty())
 				{
-					result.add_layer<ast::ts_const>();
+					if (expr_is_const)
+					{
+						result.add_layer<ast::ts_const>();
+					}
+					result.add_layer<ast::ts_lvalue_reference>();
 				}
-				result.add_layer<ast::ts_lvalue_reference>();
 				return result;
 			}
 			else
@@ -2336,20 +2348,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 			bz_assert(match_context.dest_container.nodes.front().template is<ast::ts_auto_reference_const>());
 			if (is_lvalue)
 			{
-				if (expr_is_const)
-				{
-					match_context.dest_container.nodes.front().template emplace<ast::ts_const>();
-					match_context.dest_container.template add_layer<ast::ts_lvalue_reference>();
-					inner_dest = match_context.dest_container
-						.template get<ast::ts_lvalue_reference>()
-						.template get<ast::ts_const>();
-				}
-				else
-				{
-					match_context.dest_container.nodes.front().template emplace<ast::ts_lvalue_reference>();
-					inner_dest = match_context.dest_container.template get<ast::ts_lvalue_reference>();
-				}
-				return generic_type_match_strict_match(
+				auto const good = generic_type_match_strict_match(
 					make_strict_match_context(
 						match_context,
 						expr_type_without_const,
@@ -2360,12 +2359,28 @@ static match_function_result_t<kind> generic_type_match_base_case(
 					),
 					false, expr_is_const, true
 				);
+				if (good)
+				{
+					if (expr_is_const)
+					{
+						match_context.dest_container.nodes.front().template emplace<ast::ts_const>();
+						match_context.dest_container.template add_layer<ast::ts_lvalue_reference>();
+					}
+					else
+					{
+						match_context.dest_container.nodes.front().template emplace<ast::ts_lvalue_reference>();
+					}
+				}
+				return good;
 			}
 			else
 			{
-				match_context.dest_container.remove_layer();
-				inner_dest = match_context.dest_container;
-				return generic_type_match_base_case(change_dest(match_context, inner_dest));
+				auto const good = generic_type_match_base_case(change_dest(match_context, inner_dest));
+				if (good)
+				{
+					match_context.dest_container.remove_layer();
+				}
+				return good;
 			}
 		}
 		else
