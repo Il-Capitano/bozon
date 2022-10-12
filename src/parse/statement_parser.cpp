@@ -398,6 +398,7 @@ static ast::arena_vector<ast::decl_variable> parse_parameter_list(
 			context, false
 		));
 		auto &param_decl = result.back();
+		param_decl.flags |= ast::decl_variable::parameter;
 		if (param_decl.get_id().values.empty())
 		{
 			param_decl.flags |= ast::decl_variable::maybe_unused;

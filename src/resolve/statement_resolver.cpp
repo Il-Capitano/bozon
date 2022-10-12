@@ -638,6 +638,15 @@ static void resolve_variable_type(ast::decl_variable &var_decl, ctx::parse_conte
 		}
 	}
 	apply_prototype(var_decl.get_prototype_range(), var_decl, context);
+
+	if (!var_decl.is_parameter() && var_decl.get_type().is<ast::ts_move_reference>())
+	{
+		context.report_error(
+			var_decl.src_tokens,
+			bz::format("non-parameter variable cannot have a move reference type '{}'", var_decl.get_type())
+		);
+	}
+
 }
 
 static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_decl, ctx::parse_context &context)

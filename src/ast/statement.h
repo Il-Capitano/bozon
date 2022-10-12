@@ -209,10 +209,11 @@ struct decl_variable
 		no_runtime_emit  = bit_at< 5>,
 		member           = bit_at< 6>,
 		global           = bit_at< 7>,
-		variadic         = bit_at< 8>,
-		tuple_outer_ref  = bit_at< 9>,
-		moved            = bit_at<10>,
-		ever_moved       = bit_at<11>,
+		parameter        = bit_at< 8>,
+		variadic         = bit_at< 9>,
+		tuple_outer_ref  = bit_at<10>,
+		moved            = bit_at<11>,
+		ever_moved_from  = bit_at<12>,
 	};
 
 	lex::src_tokens src_tokens;
@@ -362,6 +363,9 @@ struct decl_variable
 
 	bool is_global(void) const noexcept
 	{ return (this->flags & global) != 0; }
+
+	bool is_parameter(void) const noexcept
+	{ return (this->flags & parameter) != 0; }
 
 	bool is_variadic(void) const noexcept
 	{ return (this->flags & variadic) != 0; }
