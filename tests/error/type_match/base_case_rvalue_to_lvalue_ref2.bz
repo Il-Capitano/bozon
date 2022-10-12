@@ -1,0 +1,4 @@
+function test()
+{
+	let _: &const auto = 0i32;
+}

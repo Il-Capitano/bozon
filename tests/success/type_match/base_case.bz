@@ -1,0 +1,66 @@
+function move_func(: move int32);
+
+function test()
+{
+	let i: int32 = 0;
+	let ci: const int32 = 0;
+
+	let ri: &int32 = i;
+	let rci: &const int32 = ci;
+
+
+	let _: &int32 = i;
+	let _: &const int32 = i;
+	let _: &const int32 = ci;
+	let _: &int32 = ri;
+	let _: &const int32 = ri;
+	let _: &const int32 = rci;
+
+	move_func(0i32);
+	let j = 0i32;
+	move_func(move j);
+	const j = 0i32;
+	move_func(move j);
+
+	let _: #int32 = i;
+	static_assert(typeof _ == &int32);
+	let _: #const int32 = i;
+	static_assert(typeof _ == &const int32);
+	let _: #const int32 = ci;
+	static_assert(typeof _ == &const int32);
+
+	let _: #int32 = 0;
+	static_assert(typeof _ == int32);
+	let _: #const int32 = 0;
+	static_assert(typeof _ == const int32);
+
+	let _: #int32 = 0i8;
+	static_assert(typeof _ == int32);
+	let _: #const int32 = 0i8;
+	static_assert(typeof _ == const int32);
+
+	let j = 0;
+	let _: #int32 = move j;
+	static_assert(typeof _ == int32);
+	let j = 0;
+	let _: #const int32 = move j;
+	static_assert(typeof _ == const int32);
+
+	let _: ##int32 = i;
+	static_assert(typeof _ == &int32);
+	let _: ##int32 = ci;
+	static_assert(typeof _ == &const int32);
+
+	let _: ##int32 = 0;
+	static_assert(typeof _ == int32);
+
+	let _: ##int32 = 0i8;
+	static_assert(typeof _ == int32);
+
+	let j = 0;
+	let _: ##int32 = move j;
+	static_assert(typeof _ == int32);
+	const j = 0;
+	let _: ##int32 = move j;
+	static_assert(typeof _ == int32);
+}
