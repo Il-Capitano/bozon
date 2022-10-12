@@ -520,6 +520,8 @@ void parse_context::push_new_move_branch(void) noexcept
 void parse_context::register_move(lex::src_tokens const &src_tokens, ast::decl_variable *decl) noexcept
 {
 	decl->move_position = src_tokens;
+	bz_assert(!decl->is_moved());
+	decl->flags |= ast::decl_variable::moved;
 	if (this->move_scopes.not_empty())
 	{
 		bz_assert(this->move_scopes.back().move_branches.not_empty());
@@ -529,8 +531,7 @@ void parse_context::register_move(lex::src_tokens const &src_tokens, ast::decl_v
 
 void parse_context::register_move_construction(ast::decl_variable *decl) noexcept
 {
-	decl->flags |= ast::decl_variable::moved;
-	decl->flags |= ast::decl_variable::ever_moved;
+	decl->flags |= ast::decl_variable::ever_moved_from;
 }
 
 static source_highlight get_function_parameter_types_note(lex::src_tokens const &src_tokens, bz::array_view<ast::expression const> args)

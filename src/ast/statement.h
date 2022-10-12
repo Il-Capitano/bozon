@@ -372,8 +372,8 @@ struct decl_variable
 	bool is_moved(void) const noexcept
 	{ return (this->flags & moved) != 0; }
 
-	bool is_ever_moved(void) const noexcept
-	{ return (this->flags & moved) != 0; }
+	bool is_ever_moved_from(void) const noexcept
+	{ return (this->flags & ever_moved_from) != 0; }
 
 	typespec &get_type(void)
 	{

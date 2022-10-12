@@ -5865,7 +5865,7 @@ static void add_variable_helper(
 		else
 		{
 			context.add_variable(&var_decl, ptr, type);
-			if (var_decl.is_ever_moved() && var_decl.destruction.not_null())
+			if (var_decl.is_ever_moved_from() && var_decl.destruction.not_null())
 			{
 				auto const indicator = context.add_move_destruct_indicator(&var_decl);
 				context.push_variable_destruct_operation(var_decl.destruction, indicator);
