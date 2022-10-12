@@ -2795,7 +2795,7 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 					ast::destruct_operation()
 				);
 			}
-			else if (dest.is<ast::ts_move_reference>() && expr_type_kind == ast::expression_type_kind::rvalue)
+			else if (dest.is<ast::ts_move_reference>() && ast::is_rvalue_or_literal(expr_type_kind))
 			{
 				match_context.context.add_self_destruction(expr);
 				auto const src_tokens = expr.src_tokens;

@@ -1,0 +1,6 @@
+function test1(: move int32);
+
+function main()
+{
+	test1(0);
+}
