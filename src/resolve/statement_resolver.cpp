@@ -1962,6 +1962,22 @@ static void resolve_type_info_parameters_impl(ast::type_info &info, ctx::parse_c
 		{
 			p.state = ast::resolve_state::resolving_symbol;
 			resolve_variable_type(p, context);
+			if (!p.get_type().is_typename())
+			{
+				auto &type = p.get_type();
+				if (type.is<ast::ts_consteval>())
+				{
+					// nothing
+				}
+				else if (type.is<ast::ts_const>())
+				{
+					type.nodes.front().emplace<ast::ts_consteval>();
+				}
+				else
+				{
+					type.add_layer<ast::ts_consteval>();
+				}
+			}
 			if (p.state != ast::resolve_state::error)
 			{
 				p.state = ast::resolve_state::symbol;
