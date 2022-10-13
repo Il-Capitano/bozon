@@ -1507,7 +1507,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 					}
 					match_context.context.report_error(
 						match_context.expr.src_tokens,
-						bz::format("unable to match type '{}' to '{}'", source, dest),
+						bz::format("unable to match type '{}' to '{}'", match_context.source, match_context.dest),
 						std::move(notes)
 					);
 				}
@@ -1686,10 +1686,23 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			if constexpr (match_context_t<kind>::report_errors)
 			{
 				bz::vector<ctx::source_highlight> notes;
-				notes.push_back(match_context.context.make_note(
-					match_context.expr.src_tokens,
-					bz::format("mismatched tuple element counts: {} and {}", source_types.size(), dest_types.size())
-				));
+				if (dest.nodes.size() != match_context.dest.nodes.size())
+				{
+					notes.push_back(match_context.context.make_note(
+						match_context.expr.src_tokens,
+						bz::format(
+							"mismatched tuple element counts {} and {} with types '{}' and '{}'",
+							source_types.size(), dest_types.size(), source, dest
+						)
+					));
+				}
+				else
+				{
+					notes.push_back(match_context.context.make_note(
+						match_context.expr.src_tokens,
+						bz::format("mismatched tuple element counts: {} and {}", source_types.size(), dest_types.size())
+					));
+				}
 				if (&match_context.original_dest_container != &match_context.dest_container)
 				{
 					notes.push_back(match_context.context.make_note(
@@ -1702,7 +1715,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 				}
 				match_context.context.report_error(
 					match_context.expr.src_tokens,
-					bz::format("unable to match type '{}' to '{}'", source, dest),
+					bz::format("unable to match type '{}' to '{}'", match_context.source, match_context.dest),
 					std::move(notes)
 				);
 			}
@@ -1955,10 +1968,23 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			if constexpr (match_context_t<kind>::report_errors)
 			{
 				bz::vector<ctx::source_highlight> notes;
-				notes.push_back(match_context.context.make_note(
-					match_context.expr.src_tokens,
-					bz::format("mismatched array sizes: {} and {}", source_array_type.size, dest_array_type.size)
-				));
+				if (source.nodes.size() != match_context.source.nodes.size())
+				{
+					notes.push_back(match_context.context.make_note(
+						match_context.expr.src_tokens,
+						bz::format(
+							"mismatched array sizes {} and {} with types '{}' and '{}'",
+							source_array_type.size, dest_array_type.size, source, dest
+						)
+					));
+				}
+				else
+				{
+					notes.push_back(match_context.context.make_note(
+						match_context.expr.src_tokens,
+						bz::format("mismatched array sizes: {} and {}", source_array_type.size, dest_array_type.size)
+					));
+				}
 				if (&match_context.original_dest_container != &match_context.dest_container)
 				{
 					notes.push_back(match_context.context.make_note(
@@ -1973,7 +1999,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 					match_context.expr.src_tokens,
 					bz::format(
 						"unable to match type '{}' to '{}'",
-						source, dest
+						match_context.source, match_context.dest
 					),
 					std::move(notes)
 				);
@@ -2062,6 +2088,13 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 		if constexpr (match_context_t<kind>::report_errors)
 		{
 			bz::vector<ctx::source_highlight> notes;
+			if (source.nodes.size() != match_context.source.nodes.size())
+			{
+				notes.push_back(match_context.context.make_note(
+					match_context.expr.src_tokens,
+					bz::format("mismatched types '{}' and '{}'", source, dest)
+				));
+			}
 			if (&match_context.original_dest_container != &match_context.dest_container)
 			{
 				notes.push_back(match_context.context.make_note(
@@ -2074,10 +2107,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			}
 			match_context.context.report_error(
 				match_context.expr.src_tokens,
-				bz::format(
-					"unable to match type '{}' to '{}'",
-					source, dest
-				),
+				bz::format("unable to match type '{}' to '{}'", match_context.source, match_context.dest),
 				std::move(notes)
 			);
 		}
@@ -2408,26 +2438,13 @@ static match_function_result_t<kind> generic_type_match_base_case(
 			}
 		}
 	}
-	else if (dest.is<ast::ts_pointer>() && expr_type_without_const.is<ast::ts_pointer>())
-	{
-		auto const reference_kind = parent_reference_kind.has_value()
-			? parent_reference_kind.get()
-			: get_reference_match_kind_from_expr_kind(expr_type_kind);
-		return generic_type_match_strict_match(
-			make_strict_match_context(
-				match_context,
-				expr_type_without_const,
-				dest,
-				original_dest,
-				reference_kind,
-				type_match_kind::exact_match
-			),
-			true, true, true
-		);
-	}
 	else if (
-		dest.kind() == expr_type_without_const.kind()
-		&& (dest.is<ast::ts_array_slice>() || dest.is<ast::ts_array>() || dest.is<ast::ts_tuple>())
+		dest.is<ast::ts_auto>()
+		|| (dest.is<ast::ts_base_type>() && dest.get<ast::ts_base_type>().info->is_generic())
+		|| (
+			dest.kind() == expr_type_without_const.kind()
+			&& (dest.is<ast::ts_pointer>() || dest.is<ast::ts_array_slice>() || dest.is<ast::ts_array>() || dest.is<ast::ts_tuple>())
+		)
 	)
 	{
 		auto const reference_kind = parent_reference_kind.has_value()
@@ -2442,24 +2459,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 				reference_kind,
 				type_match_kind::exact_match
 			),
-			false, true, true
-		);
-	}
-	else if (dest.is<ast::ts_auto>() || (dest.is<ast::ts_base_type>() && dest.get<ast::ts_base_type>().info->is_generic()))
-	{
-		auto const reference_kind = parent_reference_kind.has_value()
-			? parent_reference_kind.get()
-			: get_reference_match_kind_from_expr_kind(expr_type_kind);
-		return generic_type_match_strict_match(
-			make_strict_match_context(
-				match_context,
-				expr_type_without_const,
-				dest,
-				original_dest,
-				reference_kind,
-				type_match_kind::exact_match
-			),
-			false, true, true
+			dest.is<ast::ts_pointer>(), true, true
 		);
 	}
 	else if (dest.is<ast::ts_array_slice>() && expr_type_without_const.is<ast::ts_array>())
