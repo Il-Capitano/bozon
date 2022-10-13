@@ -2567,7 +2567,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 			else
 			{
 				auto const src_tokens = expr.src_tokens;
-				expr = match_context.context.make_cast_expression(src_tokens, std::move(expr), original_dest);
+				expr = match_context.context.make_cast_expression(src_tokens, std::move(expr), dest);
 				return true;
 			}
 		}

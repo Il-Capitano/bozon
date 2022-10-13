@@ -155,8 +155,26 @@ function test()
 	let _: [: const *const int32] = [: *int32]();
 
 	// array
+	let _: [4: int32] = [4: int32]();
+	let _: [??: int32] = [3: int32]();
+	static_assert(typeof _ == [3: int32]);
+
 	// tuple
+	let _: [int32, float64, str] = [int32, float64, str]();
+	let _: [int32, float64, ...str] = [int32, float64, str]();
+	let _: [int32, float64, ...str] = [int32, float64]();
+	let _: [int32, float64, ...str] = [int32, float64, str, str]();
+
 	// array to slice
+	let arr = [4: int32]();
+	const carr = [4: int32]();
+	let parr: [4: *int32] = [ &arr[0], &arr[1], &arr[2], &arr[3] ];
+	let _: [: int32] = arr;
+	let _: [: const int32] = arr;
+	let _: [: const int32] = carr;
+	let _: [: const *int32] = parr;
+	let _: [: const *const int32] = parr;
+
 	// equal types
 	// implicit conversions
 }

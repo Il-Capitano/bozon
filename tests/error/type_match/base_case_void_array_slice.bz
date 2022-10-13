@@ -1,0 +1,5 @@
+function test()
+{
+	let arr = [4: int32]();
+	let _: [: void] = arr;
+}
