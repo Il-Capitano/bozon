@@ -3292,10 +3292,19 @@ ast::expression parse_context::make_tuple(lex::src_tokens const &src_tokens, ast
 	else if (elems.is_all([](auto &expr) { return expr.is_typename(); }))
 	{
 		bz::vector<ast::typespec> types = {};
-		types.reserve(elems.size());
-		for (auto const &e : elems)
+		auto const size = elems.size();
+		types.reserve(size);
+		for (auto const i : bz::iota(0, size))
 		{
-			types.emplace_back(e.get_typename());
+			types.emplace_back(elems[i].get_typename());
+			if (types.back().is<ast::ts_variadic>() && i != size - 1)
+			{
+				this->report_error(
+					elems[i].src_tokens,
+					bz::format("variadic type '{}' in tuple must be the last element", types.back())
+				);
+				types.back().remove_layer();
+			}
 		}
 		return ast::make_constant_expression(
 			src_tokens,

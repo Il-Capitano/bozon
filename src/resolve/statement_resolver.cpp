@@ -553,11 +553,21 @@ static void resolve_variable_type(ast::decl_variable &var_decl, ctx::parse_conte
 	bz_assert(var_decl.state == ast::resolve_state::resolving_symbol);
 	if (var_decl.tuple_decls.not_empty())
 	{
-		for (auto &decl : var_decl.tuple_decls)
+		auto const decls_size = var_decl.tuple_decls.size();
+		for (auto const i : bz::iota(0, decls_size))
 		{
+			auto &decl = var_decl.tuple_decls[i];
 			bz_assert(decl.state < ast::resolve_state::symbol);
 			decl.state = ast::resolve_state::resolving_symbol;
 			resolve_variable_type(decl, context);
+			if (decl.get_type().is<ast::ts_variadic>() && i != decls_size - 1)
+			{
+				context.report_error(
+					decl.src_tokens,
+					bz::format("variable with variadic type '{}' must be the last element in tuple decomposition", decl.get_type())
+				);
+				decl.get_type().remove_layer();
+			}
 			if (decl.state != ast::resolve_state::error)
 			{
 				decl.state = ast::resolve_state::symbol;
