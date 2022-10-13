@@ -1,5 +1,15 @@
 function move_func(: move int32);
 
+struct generic_type_t<T: typename>
+{
+	.value: T;
+}
+
+struct generic_value_t<N: usize>
+{
+	.value: [N: int32];
+}
+
 function test()
 {
 	let i: int32 = 0;
@@ -8,20 +18,33 @@ function test()
 	let ri: &int32 = i;
 	let rci: &const int32 = ci;
 
+	let pi: *int32 = &i;
+	let pci: *const int32 = &ci;
+	let ppi: **int32 = &pi;
+	let ppci: **const int32 = &pci;
+	let pcpi: *const *int32 = &pi;
+	let pcpci: *const *const int32 = &pci;
 
+
+	// lvalue reference
 	let _: &int32 = i;
 	let _: &const int32 = i;
 	let _: &const int32 = ci;
 	let _: &int32 = ri;
 	let _: &const int32 = ri;
 	let _: &const int32 = rci;
+	let _: &*int32 = pi;
+	let _: &const *int32 = pi;
+	let _: &const *const int32 = pi;
 
+	// move reference
 	move_func(0i32);
 	let j = 0i32;
 	move_func(move j);
 	const j = 0i32;
 	move_func(move j);
 
+	// auto reference
 	let _: #int32 = i;
 	static_assert(typeof _ == &int32);
 	let _: #const int32 = i;
@@ -46,6 +69,7 @@ function test()
 	let _: #const int32 = move j;
 	static_assert(typeof _ == const int32);
 
+	// auto reference-const
 	let _: ##int32 = i;
 	static_assert(typeof _ == &int32);
 	let _: ##int32 = ci;
@@ -63,4 +87,76 @@ function test()
 	const j = 0;
 	let _: ##int32 = move j;
 	static_assert(typeof _ == int32);
+
+	// auto
+	let _: auto = 0i32;
+	static_assert(typeof _ == int32);
+	let _: auto = 'a';
+	static_assert(typeof _ == char);
+	let _: auto = [int32, float64, str, char]();
+	static_assert(typeof _ == [int32, float64, str, char]);
+	let _: auto = [5: char]();
+	static_assert(typeof _ == [5: char]);
+
+	// generic base type deduction
+	let _: generic_type_t = generic_type_t<int32>();
+	static_assert(typeof _ == generic_type_t<int32>);
+	let _: generic_type_t = generic_type_t<float64>();
+	static_assert(typeof _ == generic_type_t<float64>);
+	let _: generic_type_t = generic_type_t<str>();
+	static_assert(typeof _ == generic_type_t<str>);
+	let _: generic_type_t = generic_type_t<[int32, char]>();
+	static_assert(typeof _ == generic_type_t<[int32, char]>);
+
+	let _: generic_value_t = generic_value_t<10>();
+	static_assert(typeof _ == generic_value_t<10>);
+	let _: generic_value_t = generic_value_t<1000>();
+	static_assert(typeof _ == generic_value_t<1000>);
+
+	// pointer
+	let _: *void = pi;
+	let _: *void = ppi;
+	let _: *void = ppci;
+	let _: *void = *ppi;
+	let _: *void = *pcpi;
+	let _: *const void = pi;
+	let _: *const void = pci;
+	let _: *const void = ppi;
+	let _: *const void = ppci;
+	let _: *const void = pcpi;
+	let _: *const void = pcpci;
+	let _: *const void = *ppi;
+	let _: *const void = *ppci;
+	let _: *const void = *pcpi;
+	let _: *const void = *pcpci;
+	let _: *int32 = pi;
+	let _: *int32 = *ppi;
+	let _: *int32 = *pcpi;
+	let _: *const int32 = pi;
+	let _: *const int32 = pci;
+	let _: *const int32 = *pcpi;
+	let _: *const int32 = *ppi;
+	let _: *const int32 = *pcpci;
+	let _: **const int32 = ppci;
+	let _: *const *int32 = ppi;
+	let _: *const *int32 = pcpi;
+	let _: *const *const int32 = ppi;
+	let _: *const *const int32 = ppci;
+	let _: *const *const int32 = pcpi;
+	let _: *const *const int32 = pcpci;
+
+	// slice
+	let _: [: int32] = [: int32]();
+	let _: [: const int32] = [: const int32]();
+	let _: [: const int32] = [: int32]();
+	let _: [: *int32] = [: *int32]();
+	let _: [: *const int32] = [: *const int32]();
+	let _: [: const *const int32] = [: *const int32]();
+	let _: [: const *const int32] = [: *int32]();
+
+	// array
+	// tuple
+	// array to slice
+	// equal types
+	// implicit conversions
 }

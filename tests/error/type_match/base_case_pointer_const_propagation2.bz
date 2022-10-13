@@ -1,0 +1,7 @@
+function test()
+{
+	let i = 0;
+	let pi: *int32 = &i;
+	let ppi: **int32 = &pi;
+	let _: **const int32 = ppi;
+}

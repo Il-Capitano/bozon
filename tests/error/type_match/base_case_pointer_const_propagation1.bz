@@ -1,0 +1,6 @@
+function test()
+{
+	let i = 0;
+	let cpi: *const int32 = &i;
+	let _: *int32 = cpi;
+}
