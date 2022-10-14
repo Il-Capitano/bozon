@@ -1419,6 +1419,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
+		context.resolve_type(original_expr.src_tokens, type);
 		return ast::constant_value(ast::is_default_constructible(type));
 	}
 	case ast::function_body::is_copy_constructible:
@@ -1429,6 +1430,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
+		context.resolve_type(original_expr.src_tokens, type);
 		return ast::constant_value(ast::is_copy_constructible(type));
 	}
 	case ast::function_body::is_trivially_copy_constructible:
@@ -1439,6 +1441,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
+		context.resolve_type(original_expr.src_tokens, type);
 		return ast::constant_value(ast::is_trivially_copy_constructible(type));
 	}
 	case ast::function_body::is_trivially_destructible:
@@ -1449,6 +1452,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
+		context.resolve_type(original_expr.src_tokens, type);
 		return ast::constant_value(ast::is_trivially_destructible(type));
 	}
 

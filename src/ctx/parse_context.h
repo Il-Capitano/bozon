@@ -453,6 +453,7 @@ struct parse_context
 	void add_self_move_destruction(ast::expression &expr);
 	ast::destruct_operation make_variable_destruction(ast::decl_variable *var_decl);
 
+	void resolve_type(lex::src_tokens const &src_tokens, ast::typespec_view type);
 	bool is_instantiable(ast::typespec_view ts);
 	size_t get_sizeof(ast::typespec_view ts);
 

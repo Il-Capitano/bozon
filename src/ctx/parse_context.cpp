@@ -3838,13 +3838,8 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 	auto const expr_type = ast::remove_const_or_consteval(expr.get_expr_type());
 	if (expr_type.is<ast::ts_base_type>())
 	{
+		context.resolve_type(src_tokens, expr_type);
 		auto const info = expr_type.get<ast::ts_base_type>().info;
-		if (info->state != ast::resolve_state::all)
-		{
-			context.add_to_resolve_queue(src_tokens, *info);
-			resolve::resolve_type_info(*info, context);
-			context.pop_resolve_queue();
-		}
 		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, expr, info->get_scope(), context);
 	}
 
@@ -3999,25 +3994,15 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type());
 	if (lhs_type.is<ast::ts_base_type>())
 	{
+		context.resolve_type(src_tokens, lhs_type);
 		auto const info = lhs_type.get<ast::ts_base_type>().info;
-		if (info->state != ast::resolve_state::all)
-		{
-			context.add_to_resolve_queue(src_tokens, *info);
-			resolve::resolve_type_info(*info, context);
-			context.pop_resolve_queue();
-		}
 		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
 	}
 	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
 	if (rhs_type.is<ast::ts_base_type>())
 	{
+		context.resolve_type(src_tokens, rhs_type);
 		auto const info = rhs_type.get<ast::ts_base_type>().info;
-		if (info->state != ast::resolve_state::all)
-		{
-			context.add_to_resolve_queue(src_tokens, *info);
-			resolve::resolve_type_info(*info, context);
-			context.pop_resolve_queue();
-		}
 		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
 	}
 
@@ -4224,16 +4209,12 @@ static bz::vector<possible_func_t> get_possible_funcs_for_qualified_id(
 
 static ast::expression make_base_type_constructor_call_expression(
 	lex::src_tokens const &src_tokens,
-	ast::expression called,
 	ast::typespec_view called_type,
 	ast::arena_vector<ast::expression> args,
 	parse_context &context
 )
 {
 	auto const info = called_type.get<ast::ts_base_type>().info;
-	context.add_to_resolve_queue(called.src_tokens, *info);
-	resolve::resolve_type_info(*info, context);
-	context.pop_resolve_queue();
 
 	if (info->is_generic())
 	{
@@ -4302,9 +4283,10 @@ static ast::expression make_constructor_call_expression(
 )
 {
 	auto const called_type = called.get_typename().as_typespec_view();
+	context.resolve_type(src_tokens, called_type);
 	if (called_type.is<ast::ts_base_type>())
 	{
-		return make_base_type_constructor_call_expression(src_tokens, std::move(called), called_type, std::move(args), context);
+		return make_base_type_constructor_call_expression(src_tokens, called_type, std::move(args), context);
 	}
 	else if (args.empty())
 	{
@@ -4594,13 +4576,8 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 		auto const type = ast::remove_const_or_consteval(params.front().get_expr_type());
 		if (type.is<ast::ts_base_type>())
 		{
+			context.resolve_type(src_tokens, type);
 			auto const info = type.get<ast::ts_base_type>().info;
-			if (info->state != ast::resolve_state::all)
-			{
-				context.add_to_resolve_queue(src_tokens, *info);
-				resolve::resolve_type_info(*info, context);
-				context.pop_resolve_queue();
-			}
 			// TODO: don't use info->enclosing_scope here, because that includes non-exported symbols too
 			get_possible_funcs_for_universal_function_call_helper(
 				possible_funcs, src_tokens, id, params, info->get_scope(), context
@@ -4728,12 +4705,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 		}
 
 		auto const info = type_without_const.get<ast::ts_base_type>().info;
-		if (info->state != ast::resolve_state::all)
-		{
-			this->add_to_resolve_queue(called.src_tokens, *info);
-			resolve::resolve_type_info(*info, *this);
-			this->pop_resolve_queue();
-		}
+		this->resolve_type(src_tokens, type_without_const);
 		if (info->kind != ast::type_info::aggregate)
 		{
 			this->report_error(src_tokens, bz::format("invalid type '{}' for struct initializer", type));
@@ -4997,12 +4969,7 @@ ast::expression parse_context::make_member_access_expression(
 		}
 
 		auto const info = type.get<ast::ts_base_type>().info;
-		if (info->state < ast::resolve_state::all)
-		{
-			this->add_to_resolve_queue(src_tokens, *info);
-			resolve::resolve_type_info(*info, *this);
-			this->pop_resolve_queue();
-		}
+		this->resolve_type(src_tokens, type);
 		bz_assert(info->scope.is_global());
 		auto id = ast::make_identifier(member);
 		auto const symbol = find_id_in_global_scope(info->scope.get_global(), id, *this);
@@ -5020,15 +4987,7 @@ ast::expression parse_context::make_member_access_expression(
 
 	auto const [base_type, base_type_kind] = base.get_expr_type_and_kind();
 	auto const base_t = ast::remove_const_or_consteval(base_type);
-	if (
-		auto const info = base_t.is<ast::ts_base_type>() ? base_t.get<ast::ts_base_type>().info : nullptr;
-		info != nullptr && info->state != ast::resolve_state::all
-	)
-	{
-		this->add_to_resolve_queue(src_tokens, *info);
-		resolve::resolve_type_info(*info, *this);
-		this->pop_resolve_queue();
-	}
+	this->resolve_type(src_tokens, base_t);
 	auto const members = [&]() -> bz::array_view<ast::decl_variable *> {
 		if (base_t.is<ast::ts_base_type>())
 		{
@@ -5384,6 +5343,9 @@ static ast::expression make_struct_default_construction(
 ast::expression parse_context::make_default_construction(lex::src_tokens const &src_tokens, ast::typespec_view type)
 {
 	type = ast::remove_const_or_consteval(type);
+
+	this->resolve_type(src_tokens, type);
+
 	if (type.is<ast::ts_tuple>())
 	{
 		return make_tuple_default_construction(src_tokens, type, *this);
@@ -5399,12 +5361,6 @@ ast::expression parse_context::make_default_construction(lex::src_tokens const &
 	else if (type.is<ast::ts_base_type>())
 	{
 		auto const info = type.get<ast::ts_base_type>().info;
-		if (info->state < ast::resolve_state::all)
-		{
-			this->add_to_resolve_queue(src_tokens, *info);
-			resolve::resolve_type_info(*info, *this);
-			this->pop_resolve_queue();
-		}
 		if (info->kind == ast::type_info::aggregate || info->kind == ast::type_info::forward_declaration)
 		{
 			return make_struct_default_construction(src_tokens, type, *this);
@@ -5618,6 +5574,8 @@ ast::expression parse_context::make_copy_construction(ast::expression expr)
 {
 	auto const type = ast::remove_const_or_consteval(expr.get_expr_type());
 
+	this->resolve_type(expr.src_tokens, type);
+
 	if (type.is<ast::ts_tuple>())
 	{
 		return make_tuple_copy_construction(type, std::move(expr), *this);
@@ -5633,12 +5591,6 @@ ast::expression parse_context::make_copy_construction(ast::expression expr)
 	else if (type.is<ast::ts_base_type>())
 	{
 		auto const info = type.get<ast::ts_base_type>().info;
-		if (info->state < ast::resolve_state::all)
-		{
-			this->add_to_resolve_queue(expr.src_tokens, *info);
-			resolve::resolve_type_info(*info, *this);
-			this->pop_resolve_queue();
-		}
 		if (info->kind == ast::type_info::aggregate || info->kind == ast::type_info::forward_declaration)
 		{
 			return make_struct_copy_construction(type, std::move(expr), *this);
@@ -5838,6 +5790,8 @@ ast::expression parse_context::make_move_construction(ast::expression expr)
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
 	auto const type = ast::remove_const_or_consteval(expr_type);
 
+	this->resolve_type(expr.src_tokens, type);
+
 	if (expr_type_kind == ast::expression_type_kind::moved_lvalue && !this->in_unevaluated_context)
 	{
 		bz_assert(expr.get_expr().is<ast::expr_unary_op>());
@@ -5881,12 +5835,6 @@ ast::expression parse_context::make_move_construction(ast::expression expr)
 	{
 		auto const info = type.get<ast::ts_base_type>().info;
 		bz_assert(!info->is_trivially_relocatable());
-		if (info->state < ast::resolve_state::all)
-		{
-			this->add_to_resolve_queue(expr.src_tokens, *info);
-			resolve::resolve_type_info(*info, *this);
-			this->pop_resolve_queue();
-		}
 		bz_assert(info->kind == ast::type_info::aggregate || info->kind == ast::type_info::forward_declaration);
 		return make_struct_move_construction(type, std::move(expr), *this);
 	}
@@ -6099,6 +6047,8 @@ ast::expression parse_context::make_default_assignment(lex::src_tokens const &sr
 	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
 	auto const are_types_equal = lhs_type == rhs_type;
 
+	this->resolve_type(src_tokens, lhs_type);
+
 	if (are_types_equal && ast::is_trivial(lhs_type))
 	{
 		ast::typespec result_type = lhs_type;
@@ -6128,13 +6078,6 @@ ast::expression parse_context::make_default_assignment(lex::src_tokens const &sr
 	else if (lhs_type.is<ast::ts_base_type>())
 	{
 		auto const info = lhs_type.get<ast::ts_base_type>().info;
-		if (info->state < ast::resolve_state::all)
-		{
-			this->add_to_resolve_queue(src_tokens, *info);
-			resolve::resolve_type_info(*info, *this);
-			this->pop_resolve_queue();
-		}
-
 		if (info->kind == ast::type_info::forward_declaration)
 		{
 			this->report_error(src_tokens, bz::format("invalid assignment of incomplete type '{}'", lhs_type));
@@ -6427,16 +6370,7 @@ static ast::expression make_destruct_expression(
 	parse_context &context
 )
 {
-	if (type.is<ast::ts_base_type>())
-	{
-		auto const info = type.get<ast::ts_base_type>().info;
-		if (info->state < ast::resolve_state::all)
-		{
-			context.add_to_resolve_queue(value.src_tokens, *info);
-			resolve::resolve_type_info(*info, context);
-			context.pop_resolve_queue();
-		}
-	}
+	context.resolve_type(value.src_tokens, type);
 
 	if (ast::is_trivially_destructible(type))
 	{
@@ -6568,16 +6502,7 @@ static ast::expression make_move_destruct_expression(
 	parse_context &context
 )
 {
-	if (type.is<ast::ts_base_type>())
-	{
-		auto const info = type.get<ast::ts_base_type>().info;
-		if (info->state < ast::resolve_state::all)
-		{
-			context.add_to_resolve_queue(value.src_tokens, *info);
-			resolve::resolve_type_info(*info, context);
-			context.pop_resolve_queue();
-		}
-	}
+	context.resolve_type(value.src_tokens, type);
 
 	if (ast::is_trivially_move_destructible(type))
 	{
@@ -6710,6 +6635,33 @@ ast::destruct_operation parse_context::make_variable_destruction(ast::decl_varia
 	auto result = ast::destruct_operation();
 	result.emplace<ast::destruct_variable>(make_variable_destruction_expression(var_decl, *this));
 	return result;
+}
+
+void parse_context::resolve_type(lex::src_tokens const &src_tokens, ast::typespec_view type)
+{
+	type = ast::remove_const_or_consteval(type);
+
+	if (type.is<ast::ts_tuple>())
+	{
+		for (auto const &elem : type.get<ast::ts_tuple>().types)
+		{
+			this->resolve_type(src_tokens, elem);
+		}
+	}
+	else if (type.is<ast::ts_array>())
+	{
+		this->resolve_type(src_tokens, type.get<ast::ts_array>().elem_type);
+	}
+	else if (type.is<ast::ts_base_type>())
+	{
+		auto const info = type.get<ast::ts_base_type>().info;
+		if (info->state < ast::resolve_state::all)
+		{
+			this->add_to_resolve_queue(src_tokens, *info);
+			resolve::resolve_type_info(*info, *this);
+			this->pop_resolve_queue();
+		}
+	}
 }
 
 bool parse_context::is_instantiable(ast::typespec_view ts)
