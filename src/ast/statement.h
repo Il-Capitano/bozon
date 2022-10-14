@@ -545,7 +545,12 @@ struct function_body
 		is_default_constructible,
 		is_copy_constructible,
 		is_trivially_copy_constructible,
+		is_move_constructible,
+		is_trivially_move_constructible,
 		is_trivially_destructible,
+		is_trivially_move_destructible,
+		is_trivially_relocatable,
+		is_trivial,
 
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions
@@ -1482,7 +1487,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 147);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 152);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1552,7 +1557,12 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::is_default_constructible,        "__builtin_is_default_constructible"        },
 		{ function_body::is_copy_constructible,           "__builtin_is_copy_constructible"           },
 		{ function_body::is_trivially_copy_constructible, "__builtin_is_trivially_copy_constructible" },
+		{ function_body::is_move_constructible,           "__builtin_is_move_constructible"           },
+		{ function_body::is_trivially_move_constructible, "__builtin_is_trivially_move_constructible" },
 		{ function_body::is_trivially_destructible,       "__builtin_is_trivially_destructible"       },
+		{ function_body::is_trivially_move_destructible,  "__builtin_is_trivially_move_destructible"  },
+		{ function_body::is_trivially_relocatable,        "__builtin_is_trivially_relocatable"        },
+		{ function_body::is_trivial,                      "__builtin_is_trivial"                      },
 
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions

@@ -1331,7 +1331,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->body.is_null());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 147);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 152);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -1444,6 +1444,28 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		context.resolve_type(original_expr.src_tokens, type);
 		return ast::constant_value(ast::is_trivially_copy_constructible(type));
 	}
+	case ast::function_body::is_move_constructible:
+	{
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is_type());
+		auto const type = func_call.params[0]
+			.get_constant_value()
+			.get_type();
+		context.resolve_type(original_expr.src_tokens, type);
+		return ast::constant_value(ast::is_move_constructible(type));
+	}
+	case ast::function_body::is_trivially_move_constructible:
+	{
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is_type());
+		auto const type = func_call.params[0]
+			.get_constant_value()
+			.get_type();
+		context.resolve_type(original_expr.src_tokens, type);
+		return ast::constant_value(ast::is_trivially_move_constructible(type));
+	}
 	case ast::function_body::is_trivially_destructible:
 	{
 		bz_assert(func_call.params.size() == 1);
@@ -1454,6 +1476,39 @@ static ast::constant_value evaluate_intrinsic_function_call(
 			.get_type();
 		context.resolve_type(original_expr.src_tokens, type);
 		return ast::constant_value(ast::is_trivially_destructible(type));
+	}
+	case ast::function_body::is_trivially_move_destructible:
+	{
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is_type());
+		auto const type = func_call.params[0]
+			.get_constant_value()
+			.get_type();
+		context.resolve_type(original_expr.src_tokens, type);
+		return ast::constant_value(ast::is_trivially_move_destructible(type));
+	}
+	case ast::function_body::is_trivially_relocatable:
+	{
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is_type());
+		auto const type = func_call.params[0]
+			.get_constant_value()
+			.get_type();
+		context.resolve_type(original_expr.src_tokens, type);
+		return ast::constant_value(ast::is_trivially_relocatable(type));
+	}
+	case ast::function_body::is_trivial:
+	{
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is_type());
+		auto const type = func_call.params[0]
+			.get_constant_value()
+			.get_type();
+		context.resolve_type(original_expr.src_tokens, type);
+		return ast::constant_value(ast::is_trivial(type));
 	}
 
 	case ast::function_body::i8_default_constructor:

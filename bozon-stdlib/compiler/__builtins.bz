@@ -254,7 +254,12 @@ export function __builtin_print_stderr(s: str)
 @__builtin export consteval function __builtin_is_default_constructible(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_copy_constructible(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_trivially_copy_constructible(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_move_constructible(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_trivially_move_constructible(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_trivially_destructible(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_trivially_move_destructible(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_trivially_relocatable(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_trivial(T: typename) -> bool;
 
 @__builtin @symbol_name("llvm.lifetime.start.p0") function __builtin_lifetime_start(size: uint64, ptr: *void);
 @__builtin @symbol_name("llvm.lifetime.end.p0") function __builtin_lifetime_end(size: uint64, ptr: *void);
