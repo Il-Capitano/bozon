@@ -176,5 +176,15 @@ function test()
 	let _: [: const *const int32] = parr;
 
 	// equal types
+	let _: int32 = 0i32;
+	let _: int64 = 0i64;
+	let _: uint16 = 0u16;
+	let _: generic_value_t<3> = generic_value_t<3>();
+
 	// implicit conversions
+	let _: int8 = 0;
+	let _: uint8 = 0;
+	let _: int64 = 0i16;
+	let _: uint64 = 0u32;
+	let _: *int32 = null;
 }

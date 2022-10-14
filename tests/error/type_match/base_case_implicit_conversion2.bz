@@ -1,0 +1,4 @@
+function test()
+{
+	let _: float64 = 0.0f32;
+}
