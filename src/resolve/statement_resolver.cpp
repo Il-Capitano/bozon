@@ -756,7 +756,7 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 	}
 	if (
 		!var_decl.get_type().is_empty()
-		&& !context.is_instantiable(var_decl.get_type())
+		&& !context.is_instantiable(var_decl.src_tokens, var_decl.get_type())
 		&& var_decl.state != ast::resolve_state::error
 	)
 	{
@@ -852,7 +852,7 @@ static void resolve_variable_destruction(ast::decl_variable &var_decl, ctx::pars
 		}
 	}
 
-	if (!var_decl.is_member() && !ast::is_trivially_destructible(type))
+	if (!var_decl.is_member() && !context.is_trivially_destructible(var_decl.src_tokens, type))
 	{
 		if (var_decl.tuple_decls.not_empty())
 		{
@@ -2148,7 +2148,7 @@ static void add_type_info_members(
 	}
 }
 
-static bool add_default_default_constructor(ast::type_info &info)
+static bool add_default_default_constructor(ast::type_info &info, ctx::parse_context &context)
 {
 	if (info.default_constructor != nullptr && !info.default_constructor->body.is_defaulted())
 	{
@@ -2164,25 +2164,31 @@ static bool add_default_default_constructor(ast::type_info &info)
 		}
 	}
 
-	return info.member_variables.is_all([](auto const member) { return ast::is_default_constructible(member->get_type()); });
+	return info.member_variables.is_all([&](auto const member) {
+		return context.is_default_constructible(member->src_tokens, member->get_type());
+	});
 }
 
-static bool add_default_copy_constructor(ast::type_info &info)
+static bool add_default_copy_constructor(ast::type_info &info, ctx::parse_context &context)
 {
 	return (info.copy_constructor == nullptr || info.copy_constructor->body.is_defaulted())
-		&& info.member_variables.is_all([](auto const member) { return ast::is_copy_constructible(member->get_type()); });
+		&& info.member_variables.is_all([&](auto const member) {
+			return context.is_copy_constructible(member->src_tokens, member->get_type());
+		});
 }
 
-static bool add_default_move_constructor(ast::type_info &info)
+static bool add_default_move_constructor(ast::type_info &info, ctx::parse_context &context)
 {
 	return (info.move_constructor == nullptr || info.move_constructor->body.is_defaulted())
-		&& info.member_variables.is_all([](auto const member) { return ast::is_move_constructible(member->get_type()); });
+		&& info.member_variables.is_all([&](auto const member) {
+			return context.is_move_constructible(member->src_tokens, member->get_type());
+		});
 }
 
 static void add_default_constructors(ast::type_info &info, ctx::parse_context &context)
 {
 	// only add default constructor if there are no other non-copy constructors
-	if (add_default_default_constructor(info))
+	if (add_default_default_constructor(info, context))
 	{
 		if (info.default_constructor != nullptr)
 		{
@@ -2196,11 +2202,14 @@ static void add_default_constructors(ast::type_info &info, ctx::parse_context &c
 	else if (info.default_constructor != nullptr && info.default_constructor->body.is_defaulted())
 	{
 		auto notes = info.member_variables
-			.filter([](auto const member) { return !ast::is_default_constructible(member->get_type()); })
+			.filter([&](auto const member) { return !context.is_default_constructible(member->src_tokens, member->get_type()); })
 			.transform([](auto const member) {
 				return ctx::parse_context::make_note(
 					member->src_tokens,
-					bz::format("member '{}' with type '{}' is not default constructible", member->get_id().format_as_unqualified(), member->get_type())
+					bz::format(
+						"member '{}' with type '{}' is not default constructible",
+						member->get_id().format_as_unqualified(), member->get_type()
+					)
 				);
 			})
 			.collect();
@@ -2211,7 +2220,7 @@ static void add_default_constructors(ast::type_info &info, ctx::parse_context &c
 		);
 	}
 
-	if (add_default_copy_constructor(info))
+	if (add_default_copy_constructor(info, context))
 	{
 		if (info.copy_constructor != nullptr)
 		{
@@ -2225,11 +2234,14 @@ static void add_default_constructors(ast::type_info &info, ctx::parse_context &c
 	else if (info.copy_constructor != nullptr && info.copy_constructor->body.is_defaulted())
 	{
 		auto notes = info.member_variables
-			.filter([](auto const member) { return !ast::is_copy_constructible(member->get_type()); })
+			.filter([&](auto const member) { return !context.is_copy_constructible(member->src_tokens, member->get_type()); })
 			.transform([](auto const member) {
 				return ctx::parse_context::make_note(
 					member->src_tokens,
-					bz::format("member '{}' with type '{}' is not copy constructible", member->get_id().format_as_unqualified(), member->get_type())
+					bz::format(
+						"member '{}' with type '{}' is not copy constructible",
+						member->get_id().format_as_unqualified(), member->get_type()
+					)
 				);
 			})
 			.collect();
@@ -2240,7 +2252,7 @@ static void add_default_constructors(ast::type_info &info, ctx::parse_context &c
 		);
 	}
 
-	if (add_default_move_constructor(info))
+	if (add_default_move_constructor(info, context))
 	{
 		if (info.move_constructor != nullptr)
 		{
@@ -2254,11 +2266,14 @@ static void add_default_constructors(ast::type_info &info, ctx::parse_context &c
 	else if (info.move_constructor != nullptr && info.move_constructor->body.is_defaulted())
 	{
 		auto notes = info.member_variables
-			.filter([](auto const member) { return !ast::is_move_constructible(member->get_type()); })
+			.filter([&](auto const member) { return !context.is_move_constructible(member->src_tokens, member->get_type()); })
 			.transform([](auto const member) {
 				return ctx::parse_context::make_note(
 					member->src_tokens,
-					bz::format("member '{}' with type '{}' is not move constructible", member->get_id().format_as_unqualified(), member->get_type())
+					bz::format(
+						"member '{}' with type '{}' is not move constructible",
+						member->get_id().format_as_unqualified(), member->get_type()
+					)
 				);
 			})
 			.collect();
@@ -2305,25 +2320,18 @@ static void add_default_constructors(ast::type_info &info, ctx::parse_context &c
 	}
 }
 
-static void add_flags(ast::type_info &info)
+static void add_flags(ast::type_info &info, ctx::parse_context &context)
 {
-	if (
-		info.default_default_constructor != nullptr
-		&& info.member_variables.is_all([](auto const member) { return ast::is_default_zero_initialized(member->get_type()); })
-	)
-	{
-		bz_assert(info.default_constructor == nullptr);
-		info.flags |= ast::type_info::default_constructible;
-		info.flags |= ast::type_info::default_zero_initialized;
-	}
-	else if (info.default_constructor != nullptr || info.default_default_constructor != nullptr)
+	if (info.default_constructor != nullptr || info.default_default_constructor != nullptr)
 	{
 		info.flags |= ast::type_info::default_constructible;
 	}
 
 	if (
 		info.default_copy_constructor != nullptr
-		&& info.member_variables.is_all([](auto const member) { return ast::is_trivially_copy_constructible(member->get_type()); })
+		&& info.member_variables.is_all([&](auto const member) {
+			return context.is_trivially_copy_constructible(member->src_tokens, member->get_type());
+		})
 	)
 	{
 		bz_assert(info.copy_constructor == nullptr);
@@ -2337,7 +2345,9 @@ static void add_flags(ast::type_info &info)
 
 	if (
 		info.default_move_constructor != nullptr
-		&& info.member_variables.is_all([](auto const member) { return ast::is_trivially_move_constructible(member->get_type()); })
+		&& info.member_variables.is_all([&](auto const member) {
+			return context.is_trivially_move_constructible(member->src_tokens, member->get_type());
+		})
 	)
 	{
 		bz_assert(info.move_constructor == nullptr);
@@ -2351,7 +2361,9 @@ static void add_flags(ast::type_info &info)
 
 	if (
 		info.destructor == nullptr
-		&& info.member_variables.is_all([](auto const member) { return ast::is_trivially_destructible(member->get_type()); })
+		&& info.member_variables.is_all([&](auto const member) {
+			return context.is_trivially_destructible(member->src_tokens, member->get_type());
+		})
 	)
 	{
 		info.flags |= ast::type_info::trivially_destructible;
@@ -2359,7 +2371,9 @@ static void add_flags(ast::type_info &info)
 
 	if (
 		info.move_destructor == nullptr
-		&& info.member_variables.is_all([](auto const member) { return ast::is_trivially_move_destructible(member->get_type()); })
+		&& info.member_variables.is_all([&](auto const member) {
+			return context.is_trivially_move_destructible(member->src_tokens, member->get_type());
+		})
 	)
 	{
 		info.flags |= ast::type_info::trivially_move_destructible;
@@ -2459,7 +2473,7 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 				);
 				member->state = ast::resolve_state::error;
 			}
-			else if (!context.is_instantiable(member->get_type()))
+			else if (!context.is_instantiable(member->src_tokens, member->get_type()))
 			{
 				context.report_error(
 					member->src_tokens,
@@ -2486,7 +2500,7 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 	}
 
 	add_default_constructors(info, context);
-	add_flags(info);
+	add_flags(info, context);
 	info.state = ast::resolve_state::all;
 
 	for (auto &stmt : info_body)

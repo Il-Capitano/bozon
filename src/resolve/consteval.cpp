@@ -1419,8 +1419,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
-		context.resolve_type(original_expr.src_tokens, type);
-		return ast::constant_value(ast::is_default_constructible(type));
+		return ast::constant_value(context.is_default_constructible(original_expr.src_tokens, type));
 	}
 	case ast::function_body::is_copy_constructible:
 	{
@@ -1430,8 +1429,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
-		context.resolve_type(original_expr.src_tokens, type);
-		return ast::constant_value(ast::is_copy_constructible(type));
+		return ast::constant_value(context.is_copy_constructible(original_expr.src_tokens, type));
 	}
 	case ast::function_body::is_trivially_copy_constructible:
 	{
@@ -1441,8 +1439,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
-		context.resolve_type(original_expr.src_tokens, type);
-		return ast::constant_value(ast::is_trivially_copy_constructible(type));
+		return ast::constant_value(context.is_trivially_copy_constructible(original_expr.src_tokens, type));
 	}
 	case ast::function_body::is_move_constructible:
 	{
@@ -1452,8 +1449,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
-		context.resolve_type(original_expr.src_tokens, type);
-		return ast::constant_value(ast::is_move_constructible(type));
+		return ast::constant_value(context.is_move_constructible(original_expr.src_tokens, type));
 	}
 	case ast::function_body::is_trivially_move_constructible:
 	{
@@ -1463,8 +1459,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
-		context.resolve_type(original_expr.src_tokens, type);
-		return ast::constant_value(ast::is_trivially_move_constructible(type));
+		return ast::constant_value(context.is_trivially_move_constructible(original_expr.src_tokens, type));
 	}
 	case ast::function_body::is_trivially_destructible:
 	{
@@ -1474,8 +1469,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
-		context.resolve_type(original_expr.src_tokens, type);
-		return ast::constant_value(ast::is_trivially_destructible(type));
+		return ast::constant_value(context.is_trivially_destructible(original_expr.src_tokens, type));
 	}
 	case ast::function_body::is_trivially_move_destructible:
 	{
@@ -1485,8 +1479,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
-		context.resolve_type(original_expr.src_tokens, type);
-		return ast::constant_value(ast::is_trivially_move_destructible(type));
+		return ast::constant_value(context.is_trivially_move_destructible(original_expr.src_tokens, type));
 	}
 	case ast::function_body::is_trivially_relocatable:
 	{
@@ -1496,8 +1489,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
-		context.resolve_type(original_expr.src_tokens, type);
-		return ast::constant_value(ast::is_trivially_relocatable(type));
+		return ast::constant_value(context.is_trivially_relocatable(original_expr.src_tokens, type));
 	}
 	case ast::function_body::is_trivial:
 	{
@@ -1507,8 +1499,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
-		context.resolve_type(original_expr.src_tokens, type);
-		return ast::constant_value(ast::is_trivial(type));
+		return ast::constant_value(context.is_trivial(original_expr.src_tokens, type));
 	}
 
 	case ast::function_body::i8_default_constructor:
@@ -2407,14 +2398,14 @@ static ast::constant_value guaranteed_evaluate_expr(
 			}
 			return result;
 		},
-		[&context](ast::expr_aggregate_copy_construct &aggregate_copy_construct_expr) -> ast::constant_value {
+		[&expr, &context](ast::expr_aggregate_copy_construct &aggregate_copy_construct_expr) -> ast::constant_value {
 			consteval_guaranteed(aggregate_copy_construct_expr.copied_value, context);
 			if (!aggregate_copy_construct_expr.copied_value.has_consteval_succeeded())
 			{
 				return {};
 			}
 
-			if (ast::is_trivially_copy_constructible(aggregate_copy_construct_expr.copied_value.get_expr_type()))
+			if (context.is_trivially_copy_constructible(expr.src_tokens, aggregate_copy_construct_expr.copied_value.get_expr_type()))
 			{
 				return aggregate_copy_construct_expr.copied_value.get<ast::constant_expression>().value;
 			}
@@ -2448,14 +2439,14 @@ static ast::constant_value guaranteed_evaluate_expr(
 				return result;
 			}
 		},
-		[&context](ast::expr_array_copy_construct &array_copy_construct_expr) -> ast::constant_value {
+		[&expr, &context](ast::expr_array_copy_construct &array_copy_construct_expr) -> ast::constant_value {
 			consteval_guaranteed(array_copy_construct_expr.copied_value, context);
 			if (!array_copy_construct_expr.copied_value.has_consteval_succeeded())
 			{
 				return {};
 			}
 
-			if (ast::is_trivially_copy_constructible(array_copy_construct_expr.copied_value.get_expr_type()))
+			if (context.is_trivially_copy_constructible(expr.src_tokens, array_copy_construct_expr.copied_value.get_expr_type()))
 			{
 				return array_copy_construct_expr.copied_value.get<ast::constant_expression>().value;
 			}
@@ -2472,14 +2463,14 @@ static ast::constant_value guaranteed_evaluate_expr(
 			bz_assert(builtin_default_construct_expr.type.is<ast::ts_array_slice>());
 			return {};
 		},
-		[&context](ast::expr_builtin_copy_construct &builtin_copy_construct_expr) -> ast::constant_value {
+		[&expr, &context](ast::expr_builtin_copy_construct &builtin_copy_construct_expr) -> ast::constant_value {
 			consteval_guaranteed(builtin_copy_construct_expr.copied_value, context);
 			if (!builtin_copy_construct_expr.copied_value.has_consteval_succeeded())
 			{
 				return {};
 			}
 
-			bz_assert(ast::is_trivially_copy_constructible(builtin_copy_construct_expr.copied_value.get_expr_type()));
+			bz_assert(context.is_trivially_copy_constructible(expr.src_tokens, builtin_copy_construct_expr.copied_value.get_expr_type()));
 			return builtin_copy_construct_expr.copied_value.get<ast::constant_expression>().value;
 		},
 		[&context](ast::expr_trivial_relocate &trivial_relocate_expr) -> ast::constant_value {
@@ -2886,14 +2877,14 @@ static ast::constant_value try_evaluate_expr(
 			}
 			return result;
 		},
-		[&context](ast::expr_aggregate_copy_construct &aggregate_copy_construct_expr) -> ast::constant_value {
+		[&expr, &context](ast::expr_aggregate_copy_construct &aggregate_copy_construct_expr) -> ast::constant_value {
 			consteval_try(aggregate_copy_construct_expr.copied_value, context);
 			if (!aggregate_copy_construct_expr.copied_value.has_consteval_succeeded())
 			{
 				return {};
 			}
 
-			if (ast::is_trivially_copy_constructible(aggregate_copy_construct_expr.copied_value.get_expr_type()))
+			if (context.is_trivially_copy_constructible(expr.src_tokens, aggregate_copy_construct_expr.copied_value.get_expr_type()))
 			{
 				return aggregate_copy_construct_expr.copied_value.get_constant_value();
 			}
@@ -2927,14 +2918,14 @@ static ast::constant_value try_evaluate_expr(
 				return result;
 			}
 		},
-		[&context](ast::expr_array_copy_construct &array_copy_construct_expr) -> ast::constant_value {
+		[&expr, &context](ast::expr_array_copy_construct &array_copy_construct_expr) -> ast::constant_value {
 			consteval_try(array_copy_construct_expr.copied_value, context);
 			if (!array_copy_construct_expr.copied_value.has_consteval_succeeded())
 			{
 				return {};
 			}
 
-			if (ast::is_trivially_copy_constructible(array_copy_construct_expr.copied_value.get_expr_type()))
+			if (context.is_trivially_copy_constructible(expr.src_tokens, array_copy_construct_expr.copied_value.get_expr_type()))
 			{
 				return array_copy_construct_expr.copied_value.get<ast::constant_expression>().value;
 			}
@@ -2951,14 +2942,14 @@ static ast::constant_value try_evaluate_expr(
 			bz_assert(builtin_default_construct_expr.type.is<ast::ts_array_slice>());
 			return {};
 		},
-		[&context](ast::expr_builtin_copy_construct &builtin_copy_construct_expr) -> ast::constant_value {
+		[&expr, &context](ast::expr_builtin_copy_construct &builtin_copy_construct_expr) -> ast::constant_value {
 			consteval_try(builtin_copy_construct_expr.copied_value, context);
 			if (!builtin_copy_construct_expr.copied_value.has_consteval_succeeded())
 			{
 				return {};
 			}
 
-			bz_assert(ast::is_trivially_copy_constructible(builtin_copy_construct_expr.copied_value.get_expr_type()));
+			bz_assert(context.is_trivially_copy_constructible(expr.src_tokens, builtin_copy_construct_expr.copied_value.get_expr_type()));
 			return builtin_copy_construct_expr.copied_value.get<ast::constant_expression>().value;
 		},
 		[&context](ast::expr_trivial_relocate &trivial_relocate_expr) -> ast::constant_value {
@@ -3368,14 +3359,14 @@ static ast::constant_value try_evaluate_expr_without_error(
 			}
 			return result;
 		},
-		[&context](ast::expr_aggregate_copy_construct &aggregate_copy_construct_expr) -> ast::constant_value {
+		[&expr, &context](ast::expr_aggregate_copy_construct &aggregate_copy_construct_expr) -> ast::constant_value {
 			consteval_try_without_error(aggregate_copy_construct_expr.copied_value, context);
 			if (!aggregate_copy_construct_expr.copied_value.has_consteval_succeeded())
 			{
 				return {};
 			}
 
-			if (ast::is_trivially_copy_constructible(aggregate_copy_construct_expr.copied_value.get_expr_type()))
+			if (context.is_trivially_copy_constructible(expr.src_tokens, aggregate_copy_construct_expr.copied_value.get_expr_type()))
 			{
 				return aggregate_copy_construct_expr.copied_value.get_constant_value();
 			}
@@ -3409,14 +3400,14 @@ static ast::constant_value try_evaluate_expr_without_error(
 				return result;
 			}
 		},
-		[&context](ast::expr_array_copy_construct &array_copy_construct_expr) -> ast::constant_value {
+		[&expr, &context](ast::expr_array_copy_construct &array_copy_construct_expr) -> ast::constant_value {
 			consteval_try_without_error(array_copy_construct_expr.copied_value, context);
 			if (!array_copy_construct_expr.copied_value.has_consteval_succeeded())
 			{
 				return {};
 			}
 
-			if (ast::is_trivially_copy_constructible(array_copy_construct_expr.copied_value.get_expr_type()))
+			if (context.is_trivially_copy_constructible(expr.src_tokens, array_copy_construct_expr.copied_value.get_expr_type()))
 			{
 				return array_copy_construct_expr.copied_value.get<ast::constant_expression>().value;
 			}
@@ -3433,14 +3424,14 @@ static ast::constant_value try_evaluate_expr_without_error(
 			bz_assert(builtin_default_construct_expr.type.is<ast::ts_array_slice>());
 			return {};
 		},
-		[&context](ast::expr_builtin_copy_construct &builtin_copy_construct_expr) -> ast::constant_value {
+		[&expr, &context](ast::expr_builtin_copy_construct &builtin_copy_construct_expr) -> ast::constant_value {
 			consteval_try_without_error(builtin_copy_construct_expr.copied_value, context);
 			if (!builtin_copy_construct_expr.copied_value.has_consteval_succeeded())
 			{
 				return {};
 			}
 
-			bz_assert(ast::is_trivially_copy_constructible(builtin_copy_construct_expr.copied_value.get_expr_type()));
+			bz_assert(context.is_trivially_copy_constructible(expr.src_tokens, builtin_copy_construct_expr.copied_value.get_expr_type()));
 			return builtin_copy_construct_expr.copied_value.get<ast::constant_expression>().value;
 		},
 		[&context](ast::expr_trivial_relocate &trivial_relocate_expr) -> ast::constant_value {

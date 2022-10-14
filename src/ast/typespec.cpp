@@ -244,6 +244,7 @@ static bool type_property_helper(typespec_view ts) noexcept
 	ts = remove_const_or_consteval(ts);
 	if (ts.is<ts_base_type>())
 	{
+		bz_assert(ts.get<ts_base_type>().info->state == ast::resolve_state::all);
 		return (ts.get<ts_base_type>().info->*base_type_property_func)();
 	}
 	else if (ts.is<ts_tuple>())
@@ -262,82 +263,10 @@ static bool type_property_helper(typespec_view ts) noexcept
 	}
 }
 
-bool is_default_constructible(typespec_view ts) noexcept
-{
-	return type_property_helper<
-		&type_info::is_default_constructible,
-		false, ts_pointer, ts_array_slice
-	>(ts);
-}
-
-bool is_copy_constructible(typespec_view ts) noexcept
-{
-	return type_property_helper<
-		&type_info::is_copy_constructible,
-		false, ts_pointer, ts_array_slice
-	>(ts);
-}
-
-bool is_trivially_copy_constructible(typespec_view ts) noexcept
-{
-	return type_property_helper<
-		&type_info::is_trivially_copy_constructible,
-		false, ts_pointer, ts_array_slice
-	>(ts);
-}
-
-bool is_move_constructible(typespec_view ts) noexcept
-{
-	return type_property_helper<
-		&type_info::is_move_constructible,
-		false, ts_pointer, ts_array_slice
-	>(ts);
-}
-
-bool is_trivially_move_constructible(typespec_view ts) noexcept
-{
-	return type_property_helper<
-		&type_info::is_trivially_move_constructible,
-		false, ts_pointer, ts_array_slice
-	>(ts);
-}
-
-bool is_trivially_destructible(typespec_view ts) noexcept
-{
-	return type_property_helper<
-		&type_info::is_trivially_destructible,
-		true
-	>(ts);
-}
-
-bool is_trivially_move_destructible(typespec_view ts) noexcept
-{
-	return type_property_helper<
-		&type_info::is_trivially_move_destructible,
-		true
-	>(ts);
-}
-
 bool is_trivially_relocatable(typespec_view ts) noexcept
 {
 	return type_property_helper<
 		&type_info::is_trivially_relocatable,
-		false, ts_pointer, ts_array_slice
-	>(ts);
-}
-
-bool is_trivial(typespec_view ts) noexcept
-{
-	return type_property_helper<
-		&type_info::is_trivial,
-		false, ts_pointer, ts_array_slice
-	>(ts);
-}
-
-bool is_default_zero_initialized(typespec_view ts) noexcept
-{
-	return type_property_helper<
-		&type_info::is_default_zero_initialized,
 		false, ts_pointer, ts_array_slice
 	>(ts);
 }

@@ -562,7 +562,7 @@ static ast::expression get_builtin_unary_sizeof(
 			context.report_error(src_tokens, bz::format("cannot take 'sizeof' of an incomplete type '{}'", type));
 			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 		}
-		else if (!context.is_instantiable(type))
+		else if (!context.is_instantiable(src_tokens, type))
 		{
 			context.report_error(src_tokens, bz::format("cannot take 'sizeof' of a non-instantiable type '{}'", type));
 			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
@@ -585,7 +585,7 @@ static ast::expression get_builtin_unary_sizeof(
 			context.report_error(src_tokens, bz::format("cannot take 'sizeof' of an exprssion with incomplete type '{}'", type));
 			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 		}
-		else if (!context.is_instantiable(type))
+		else if (!context.is_instantiable(src_tokens, type))
 		{
 			context.report_error(src_tokens, bz::format("cannot take 'sizeof' of an expression with non-instantiable type '{}'", type));
 			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));

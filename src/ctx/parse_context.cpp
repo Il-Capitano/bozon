@@ -3838,7 +3838,6 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 	auto const expr_type = ast::remove_const_or_consteval(expr.get_expr_type());
 	if (expr_type.is<ast::ts_base_type>())
 	{
-		context.resolve_type(src_tokens, expr_type);
 		auto const info = expr_type.get<ast::ts_base_type>().info;
 		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, expr, info->get_scope(), context);
 	}
@@ -3994,14 +3993,12 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type());
 	if (lhs_type.is<ast::ts_base_type>())
 	{
-		context.resolve_type(src_tokens, lhs_type);
 		auto const info = lhs_type.get<ast::ts_base_type>().info;
 		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
 	}
 	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
 	if (rhs_type.is<ast::ts_base_type>())
 	{
-		context.resolve_type(src_tokens, rhs_type);
 		auto const info = rhs_type.get<ast::ts_base_type>().info;
 		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
 	}
@@ -4215,6 +4212,7 @@ static ast::expression make_base_type_constructor_call_expression(
 )
 {
 	auto const info = called_type.get<ast::ts_base_type>().info;
+	context.resolve_type(src_tokens, info);
 
 	if (info->is_generic())
 	{
@@ -4283,7 +4281,6 @@ static ast::expression make_constructor_call_expression(
 )
 {
 	auto const called_type = called.get_typename().as_typespec_view();
-	context.resolve_type(src_tokens, called_type);
 	if (called_type.is<ast::ts_base_type>())
 	{
 		return make_base_type_constructor_call_expression(src_tokens, called_type, std::move(args), context);
@@ -4576,8 +4573,8 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 		auto const type = ast::remove_const_or_consteval(params.front().get_expr_type());
 		if (type.is<ast::ts_base_type>())
 		{
-			context.resolve_type(src_tokens, type);
 			auto const info = type.get<ast::ts_base_type>().info;
+			context.resolve_type(src_tokens, info);
 			// TODO: don't use info->enclosing_scope here, because that includes non-exported symbols too
 			get_possible_funcs_for_universal_function_call_helper(
 				possible_funcs, src_tokens, id, params, info->get_scope(), context
@@ -4705,7 +4702,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 		}
 
 		auto const info = type_without_const.get<ast::ts_base_type>().info;
-		this->resolve_type(src_tokens, type_without_const);
+		this->resolve_type(src_tokens, info);
 		if (info->kind != ast::type_info::aggregate)
 		{
 			this->report_error(src_tokens, bz::format("invalid type '{}' for struct initializer", type));
@@ -4969,7 +4966,7 @@ ast::expression parse_context::make_member_access_expression(
 		}
 
 		auto const info = type.get<ast::ts_base_type>().info;
-		this->resolve_type(src_tokens, type);
+		this->resolve_type(src_tokens, info);
 		bz_assert(info->scope.is_global());
 		auto id = ast::make_identifier(member);
 		auto const symbol = find_id_in_global_scope(info->scope.get_global(), id, *this);
@@ -4987,7 +4984,10 @@ ast::expression parse_context::make_member_access_expression(
 
 	auto const [base_type, base_type_kind] = base.get_expr_type_and_kind();
 	auto const base_t = ast::remove_const_or_consteval(base_type);
-	this->resolve_type(src_tokens, base_t);
+	if (base_t.is<ast::ts_base_type>())
+	{
+		this->resolve_type(src_tokens, base_t.get<ast::ts_base_type>().info);
+	}
 	auto const members = [&]() -> bz::array_view<ast::decl_variable *> {
 		if (base_t.is<ast::ts_base_type>())
 		{
@@ -5152,13 +5152,13 @@ static ast::expression make_tuple_default_construction(
 {
 	bz_assert(type.is<ast::ts_tuple>());
 	auto const types = type.get<ast::ts_tuple>().types.as_array_view();
-	if (!ast::is_default_constructible(type))
+	if (!context.is_default_constructible(src_tokens, type))
 	{
 		context.report_error(
 			src_tokens,
 			bz::format("tuple type '{}' is not default constructible", type),
 			types
-				.filter([](auto const &type) { return !ast::is_default_constructible(type); })
+				.filter([&](auto const &type) { return !context.is_default_constructible(src_tokens, type); })
 				.transform([&](auto const &elem_type) {
 					return parse_context::make_note(
 						src_tokens,
@@ -5192,9 +5192,9 @@ static ast::expression make_array_default_construction(
 {
 	bz_assert(type.is<ast::ts_array>());
 	auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
-	if (!ast::is_default_constructible(type))
+	if (!context.is_default_constructible(src_tokens, type))
 	{
-		bz_assert(!ast::is_default_constructible(elem_type));
+		bz_assert(!context.is_default_constructible(src_tokens, elem_type));
 		context.report_error(
 			src_tokens,
 			bz::format("array type '{}' is not default constructible", type),
@@ -5223,7 +5223,7 @@ static ast::expression make_builtin_default_construction(
 	parse_context &context
 )
 {
-	if (!ast::is_default_constructible(type))
+	if (!context.is_default_constructible(src_tokens, type))
 	{
 		context.report_error(
 			src_tokens,
@@ -5344,8 +5344,6 @@ ast::expression parse_context::make_default_construction(lex::src_tokens const &
 {
 	type = ast::remove_const_or_consteval(type);
 
-	this->resolve_type(src_tokens, type);
-
 	if (type.is<ast::ts_tuple>())
 	{
 		return make_tuple_default_construction(src_tokens, type, *this);
@@ -5383,14 +5381,14 @@ static ast::expression make_tuple_copy_construction(
 )
 {
 	bz_assert(tuple_type.is<ast::ts_tuple>());
-	if (!ast::is_copy_constructible(tuple_type))
+	if (!context.is_copy_constructible(expr.src_tokens, tuple_type))
 	{
 		context.report_error(
 			expr.src_tokens,
 			bz::format("value of type '{}' is not copy constructible", tuple_type),
 			tuple_type.get<ast::ts_tuple>().types
-				.filter([](auto const &elem_type) {
-					return !ast::is_copy_constructible(elem_type);
+				.filter([&](auto const &elem_type) {
+					return !context.is_copy_constructible(expr.src_tokens, elem_type);
 				})
 				.transform([&expr](auto const &elem_type) {
 					return parse_context::make_note(
@@ -5434,7 +5432,7 @@ static ast::expression make_array_copy_construction(
 )
 {
 	bz_assert(array_type.is<ast::ts_array>());
-	if (!ast::is_copy_constructible(array_type))
+	if (!context.is_copy_constructible(expr.src_tokens, array_type))
 	{
 		context.report_error(
 			expr.src_tokens,
@@ -5510,8 +5508,8 @@ static ast::expression make_struct_copy_construction(
 			expr.src_tokens,
 			bz::format("value of type '{}' is not copy constructible", struct_type),
 			info->member_variables
-				.filter([](auto const &member) {
-					return !ast::is_copy_constructible(member->get_type());
+				.filter([&](auto const &member) {
+					return !context.is_copy_constructible(expr.src_tokens, member->get_type());
 				})
 				.transform([](auto const &member) {
 					return parse_context::make_note(
@@ -5574,8 +5572,6 @@ ast::expression parse_context::make_copy_construction(ast::expression expr)
 {
 	auto const type = ast::remove_const_or_consteval(expr.get_expr_type());
 
-	this->resolve_type(expr.src_tokens, type);
-
 	if (type.is<ast::ts_tuple>())
 	{
 		return make_tuple_copy_construction(type, std::move(expr), *this);
@@ -5613,14 +5609,14 @@ static ast::expression make_tuple_move_construction(
 )
 {
 	bz_assert(tuple_type.is<ast::ts_tuple>());
-	if (!ast::is_move_constructible(tuple_type))
+	if (!context.is_move_constructible(expr.src_tokens, tuple_type))
 	{
 		context.report_error(
 			expr.src_tokens,
 			bz::format("value of type '{}' is not move constructible", tuple_type),
 			tuple_type.get<ast::ts_tuple>().types
-				.filter([](auto const &elem_type) {
-					return !ast::is_move_constructible(elem_type);
+				.filter([&](auto const &elem_type) {
+					return !context.is_move_constructible(expr.src_tokens, elem_type);
 				})
 				.transform([&expr](auto const &elem_type) {
 					return parse_context::make_note(
@@ -5664,7 +5660,7 @@ static ast::expression make_array_move_construction(
 )
 {
 	bz_assert(array_type.is<ast::ts_array>());
-	if (!ast::is_move_constructible(array_type))
+	if (!context.is_move_constructible(expr.src_tokens, array_type))
 	{
 		context.report_error(
 			expr.src_tokens,
@@ -5725,8 +5721,8 @@ static ast::expression make_struct_move_construction(
 			expr.src_tokens,
 			bz::format("value of type '{}' is not move constructible", struct_type),
 			info->member_variables
-				.filter([](auto const &member) {
-					return !ast::is_move_constructible(member->get_type());
+				.filter([&](auto const &member) {
+					return !context.is_move_constructible(expr.src_tokens, member->get_type());
 				})
 				.transform([](auto const &member) {
 					return parse_context::make_note(
@@ -5790,8 +5786,6 @@ ast::expression parse_context::make_move_construction(ast::expression expr)
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
 	auto const type = ast::remove_const_or_consteval(expr_type);
 
-	this->resolve_type(expr.src_tokens, type);
-
 	if (expr_type_kind == ast::expression_type_kind::moved_lvalue && !this->in_unevaluated_context)
 	{
 		bz_assert(expr.get_expr().is<ast::expr_unary_op>());
@@ -5812,7 +5806,7 @@ ast::expression parse_context::make_move_construction(ast::expression expr)
 		}
 	}
 
-	if (ast::is_trivially_relocatable(type))
+	if (this->is_trivially_relocatable(expr.src_tokens, type))
 	{
 		auto const src_tokens = expr.src_tokens;
 		ast::typespec result_type = type;
@@ -6047,9 +6041,7 @@ ast::expression parse_context::make_default_assignment(lex::src_tokens const &sr
 	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
 	auto const are_types_equal = lhs_type == rhs_type;
 
-	this->resolve_type(src_tokens, lhs_type);
-
-	if (are_types_equal && ast::is_trivial(lhs_type))
+	if (are_types_equal && this->is_trivial(src_tokens, lhs_type))
 	{
 		ast::typespec result_type = lhs_type;
 		return ast::make_dynamic_expression(
@@ -6236,7 +6228,7 @@ static ast::expression make_swap_expression(
 	parse_context &context
 )
 {
-	if (!type.is<ast::ts_array>() && ast::is_trivially_relocatable(type))
+	if (!type.is<ast::ts_array>() && context.is_trivially_relocatable(src_tokens, type))
 	{
 		return ast::make_dynamic_expression(
 			src_tokens,
@@ -6370,9 +6362,7 @@ static ast::expression make_destruct_expression(
 	parse_context &context
 )
 {
-	context.resolve_type(value.src_tokens, type);
-
-	if (ast::is_trivially_destructible(type))
+	if (context.is_trivially_destructible(value.src_tokens, type))
 	{
 		return ast::expression();
 	}
@@ -6502,9 +6492,7 @@ static ast::expression make_move_destruct_expression(
 	parse_context &context
 )
 {
-	context.resolve_type(value.src_tokens, type);
-
-	if (ast::is_trivially_move_destructible(type))
+	if (context.is_trivially_move_destructible(value.src_tokens, type))
 	{
 		return ast::expression();
 	}
@@ -6558,7 +6546,7 @@ void parse_context::add_self_destruction(ast::expression &expr)
 	}
 	else if (
 		expr.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue
-		&& !ast::is_trivially_destructible(expr.get_expr_type())
+		&& !this->is_trivially_destructible(expr.src_tokens, expr.get_expr_type())
 	)
 	{
 		auto const type = ast::remove_const_or_consteval(expr.get_expr_type());
@@ -6601,7 +6589,7 @@ void parse_context::add_self_move_destruction(ast::expression &expr)
 		}
 		this->add_self_move_destruction(switch_expr.default_case);
 	}
-	else if (!ast::is_trivially_move_destructible(expr.get_expr_type()))
+	else if (!this->is_trivially_move_destructible(expr.src_tokens, expr.get_expr_type()))
 	{
 		auto const type = ast::remove_const_or_consteval(expr.get_expr_type());
 		auto value_ref = ast::make_dynamic_expression(
@@ -6617,7 +6605,7 @@ void parse_context::add_self_move_destruction(ast::expression &expr)
 static ast::expression make_variable_destruction_expression(ast::decl_variable *var_decl, parse_context &context)
 {
 	auto const type = ast::remove_const_or_consteval(var_decl->get_type());
-	bz_assert(!ast::is_trivially_destructible(type));
+	bz_assert(!context.is_trivially_destructible(var_decl->src_tokens, type));
 	return make_destruct_expression(
 		type,
 		ast::make_dynamic_expression(
@@ -6637,123 +6625,168 @@ ast::destruct_operation parse_context::make_variable_destruction(ast::decl_varia
 	return result;
 }
 
-void parse_context::resolve_type(lex::src_tokens const &src_tokens, ast::typespec_view type)
+void parse_context::resolve_type(lex::src_tokens const &src_tokens, ast::type_info *info)
 {
-	type = ast::remove_const_or_consteval(type);
-
-	if (type.is<ast::ts_tuple>())
+	if (info->state != ast::resolve_state::error && info->state < ast::resolve_state::all)
 	{
-		for (auto const &elem : type.get<ast::ts_tuple>().types)
-		{
-			this->resolve_type(src_tokens, elem);
-		}
-	}
-	else if (type.is<ast::ts_array>())
-	{
-		this->resolve_type(src_tokens, type.get<ast::ts_array>().elem_type);
-	}
-	else if (type.is<ast::ts_base_type>())
-	{
-		auto const info = type.get<ast::ts_base_type>().info;
-		if (info->state < ast::resolve_state::all)
-		{
-			this->add_to_resolve_queue(src_tokens, *info);
-			resolve::resolve_type_info(*info, *this);
-			this->pop_resolve_queue();
-		}
+		this->add_to_resolve_queue(src_tokens, *info);
+		resolve::resolve_type_info(*info, *this);
+		this->pop_resolve_queue();
 	}
 }
 
-bool parse_context::is_instantiable(ast::typespec_view ts)
+template<
+	bool (ast::type_info::*base_type_property_func)(void) const,
+	bool default_value, typename ...exception_types
+>
+static bool type_property_helper(lex::src_tokens const &src_tokens, ast::typespec_view ts, parse_context &context)
+{
+	ts = remove_const_or_consteval(ts);
+	if (ts.is<ast::ts_base_type>())
+	{
+		auto const info = ts.get<ast::ts_base_type>().info;
+		context.resolve_type(src_tokens, info);
+		return (ts.get<ast::ts_base_type>().info->*base_type_property_func)();
+	}
+	else if (ts.is<ast::ts_tuple>())
+	{
+		return ts.get<ast::ts_tuple>().types.is_all([&](auto const &type) {
+			return type_property_helper<
+				base_type_property_func,
+				default_value,
+				exception_types...
+			>(src_tokens, type, context);
+		});
+	}
+	else if (ts.is<ast::ts_array>())
+	{
+		return type_property_helper<
+			base_type_property_func,
+			default_value,
+			exception_types...
+		>(src_tokens, ts.get<ast::ts_array>().elem_type, context);
+	}
+	else
+	{
+		return (ts.is<exception_types>() || ...) ? !default_value : default_value;
+	}
+}
+
+bool parse_context::is_default_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts)
+{
+	return type_property_helper<
+		&ast::type_info::is_default_constructible,
+		false, ast::ts_pointer, ast::ts_array_slice
+	>(src_tokens, ts, *this);
+}
+
+bool parse_context::is_copy_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts)
+{
+	return type_property_helper<
+		&ast::type_info::is_copy_constructible,
+		false, ast::ts_pointer, ast::ts_array_slice
+	>(src_tokens, ts, *this);
+}
+
+bool parse_context::is_trivially_copy_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts)
+{
+	return type_property_helper<
+		&ast::type_info::is_trivially_copy_constructible,
+		false, ast::ts_pointer, ast::ts_array_slice
+	>(src_tokens, ts, *this);
+}
+
+bool parse_context::is_move_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts)
+{
+	return type_property_helper<
+		&ast::type_info::is_move_constructible,
+		false, ast::ts_pointer, ast::ts_array_slice
+	>(src_tokens, ts, *this);
+}
+
+bool parse_context::is_trivially_move_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts)
+{
+	return type_property_helper<
+		&ast::type_info::is_trivially_move_constructible,
+		false, ast::ts_pointer, ast::ts_array_slice
+	>(src_tokens, ts, *this);
+}
+
+bool parse_context::is_trivially_destructible(lex::src_tokens const &src_tokens, ast::typespec_view ts)
+{
+	return type_property_helper<
+		&ast::type_info::is_trivially_destructible,
+		true
+	>(src_tokens, ts, *this);
+}
+
+bool parse_context::is_trivially_move_destructible(lex::src_tokens const &src_tokens, ast::typespec_view ts)
+{
+	return type_property_helper<
+		&ast::type_info::is_trivially_move_destructible,
+		true
+	>(src_tokens, ts, *this);
+}
+
+bool parse_context::is_trivially_relocatable(lex::src_tokens const &src_tokens, ast::typespec_view ts)
+{
+	return type_property_helper<
+		&ast::type_info::is_trivially_relocatable,
+		false, ast::ts_pointer, ast::ts_array_slice
+	>(src_tokens, ts, *this);
+}
+
+bool parse_context::is_trivial(lex::src_tokens const &src_tokens, ast::typespec_view ts)
+{
+	return type_property_helper<
+		&ast::type_info::is_trivial,
+		false, ast::ts_pointer, ast::ts_array_slice
+	>(src_tokens, ts, *this);
+}
+
+bool parse_context::is_instantiable(lex::src_tokens const &src_tokens, ast::typespec_view ts)
 {
 	if (ts.nodes.size() == 0)
 	{
 		return false;
 	}
 
-	for (auto const &node : ts.nodes)
+	ts = ast::remove_const_or_consteval(ts);
+	if (ts.is<ast::ts_base_type>())
 	{
-		// 1 means it's instantiable
-		// 0 means it's not yet decidable
-		// -1 means it's not instantiable
-		auto const result = node.visit(bz::overload{
-			[this, &ts](ast::ts_base_type const &base_type) {
-				if (base_type.info->state != ast::resolve_state::all && base_type.info->state != ast::resolve_state::error)
-				{
-					this->add_to_resolve_queue(ts.src_tokens, *base_type.info);
-					resolve::resolve_type_info(*base_type.info, *this);
-					this->pop_resolve_queue();
-				}
-				return base_type.info->state == ast::resolve_state::all ? 1 : -1;
-			},
-			[](ast::ts_void const &) {
-				return -1;
-			},
-			[](ast::ts_function const &) {
-				// functions are pointers under the hood, so we don't really care about
-				// parameters or return types being instantiable here;  return types are checked
-				// when the function is called
-				return 1;
-			},
-			[this](ast::ts_array const &array_t) {
-				return this->is_instantiable(array_t.elem_type) ? 1 : -1;
-			},
-			[this](ast::ts_array_slice const &array_slice_t) {
-				// array slice type needs to be sized, because pointer arithmetic is required
-				// when accessing elements
-				return this->is_instantiable(array_slice_t.elem_type) ? 1 : -1;
-			},
-			[this](ast::ts_tuple const &tuple_t) {
-				for (auto &t : tuple_t.types)
-				{
-					if (!this->is_instantiable(t))
-					{
-						return -1;
-					}
-				}
-				return 1;
-			},
-			[](ast::ts_auto const &) {
-				return -1;
-			},
-			[](ast::ts_typename const &) {
-				return -1;
-			},
-			[](ast::ts_const const &) {
-				return 0;
-			},
-			[](ast::ts_consteval const &) {
-				return 0;
-			},
-			[](ast::ts_pointer const &) {
-				return 1;
-			},
-			[](ast::ts_lvalue_reference const &) {
-				return 1;
-			},
-			[](ast::ts_move_reference const &) {
-				return 1;
-			},
-			[](ast::ts_auto_reference const &) {
-				return -1;
-			},
-			[](ast::ts_auto_reference_const const &) {
-				return -1;
-			},
-			[](ast::ts_variadic const &) {
-				return -1;
-			},
-			[](ast::ts_unresolved const &) {
-				bz_unreachable;
-				return -1;
-			}
-		});
-		if (result != 0)
-		{
-			return result == 1;
-		}
+		auto const info = ts.get<ast::ts_base_type>().info;
+		this->resolve_type(src_tokens, info);
+		return info->state == ast::resolve_state::all;
 	}
-	return false;
+	else if (ts.is<ast::ts_array>())
+	{
+		return this->is_instantiable(src_tokens, ts.get<ast::ts_array>().elem_type);
+	}
+	else if (ts.is<ast::ts_array_slice>())
+	{
+		// array slice type needs to be sized, because pointer arithmetic is required
+		// when accessing elements
+		return this->is_instantiable(src_tokens, ts.get<ast::ts_array_slice>().elem_type);
+	}
+	else if (ts.is<ast::ts_tuple>())
+	{
+		return ts.get<ast::ts_tuple>().types.is_all([&](auto const &type) {
+			return this->is_instantiable(src_tokens, type);
+		});
+	}
+	else if (
+		ts.is<ast::ts_pointer>()
+		|| ts.is<ast::ts_lvalue_reference>()
+		|| ts.is<ast::ts_move_reference>()
+		|| ts.is<ast::ts_function>()
+	)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 size_t parse_context::get_sizeof(ast::typespec_view ts)

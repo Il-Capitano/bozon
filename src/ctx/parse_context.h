@@ -453,8 +453,17 @@ struct parse_context
 	void add_self_move_destruction(ast::expression &expr);
 	ast::destruct_operation make_variable_destruction(ast::decl_variable *var_decl);
 
-	void resolve_type(lex::src_tokens const &src_tokens, ast::typespec_view type);
-	bool is_instantiable(ast::typespec_view ts);
+	void resolve_type(lex::src_tokens const &src_tokens, ast::type_info *info);
+	bool is_default_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
+	bool is_copy_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
+	bool is_trivially_copy_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
+	bool is_move_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
+	bool is_trivially_move_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
+	bool is_trivially_destructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
+	bool is_trivially_move_destructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
+	bool is_trivially_relocatable(lex::src_tokens const &src_tokens, ast::typespec_view ts);
+	bool is_trivial(lex::src_tokens const &src_tokens, ast::typespec_view ts);
+	bool is_instantiable(lex::src_tokens const &src_tokens, ast::typespec_view ts);
 	size_t get_sizeof(ast::typespec_view ts);
 
 	ast::identifier make_qualified_identifier(lex::token_pos id);

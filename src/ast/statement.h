@@ -981,16 +981,15 @@ struct type_info
 		generic_instantiation           = bit_at< 1>,
 
 		default_constructible           = bit_at< 2>,
-		default_zero_initialized        = bit_at< 3>,
-		copy_constructible              = bit_at< 4>,
-		trivially_copy_constructible    = bit_at< 5>,
-		move_constructible              = bit_at< 6>,
-		trivially_move_constructible    = bit_at< 7>,
-		trivially_destructible          = bit_at< 8>,
-		trivially_move_destructible     = bit_at< 9>,
-		trivially_relocatable           = bit_at<10>,
-		trivial                         = bit_at<11>,
-		module_export                   = bit_at<12>,
+		copy_constructible              = bit_at< 3>,
+		trivially_copy_constructible    = bit_at< 4>,
+		move_constructible              = bit_at< 5>,
+		trivially_move_constructible    = bit_at< 6>,
+		trivially_destructible          = bit_at< 7>,
+		trivially_move_destructible     = bit_at< 8>,
+		trivially_relocatable           = bit_at< 9>,
+		trivial                         = bit_at<10>,
+		module_export                   = bit_at<11>,
 	};
 
 	enum : uint8_t
@@ -1102,7 +1101,6 @@ private:
 			  | trivially_move_destructible
 			  | trivial
 			  | trivially_relocatable
-			  | default_zero_initialized
 		  ),
 		  type_name(),
 		  symbol_name(bz::format("builtin.{}", name)),
@@ -1149,9 +1147,6 @@ public:
 
 	bool is_trivial(void) const noexcept
 	{ return (this->flags & trivial) != 0; }
-
-	bool is_default_zero_initialized(void) const noexcept
-	{ return (this->flags & default_zero_initialized) != 0; }
 
 	bool is_module_export(void) const noexcept
 	{ return (this->flags & module_export) != 0; }
