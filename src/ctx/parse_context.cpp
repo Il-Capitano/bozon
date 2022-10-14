@@ -3839,6 +3839,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 	if (expr_type.is<ast::ts_base_type>())
 	{
 		auto const info = expr_type.get<ast::ts_base_type>().info;
+		context.resolve_type(src_tokens, info);
 		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, expr, info->get_scope(), context);
 	}
 
@@ -3994,12 +3995,14 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 	if (lhs_type.is<ast::ts_base_type>())
 	{
 		auto const info = lhs_type.get<ast::ts_base_type>().info;
+		context.resolve_type(src_tokens, info);
 		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
 	}
 	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
 	if (rhs_type.is<ast::ts_base_type>())
 	{
 		auto const info = rhs_type.get<ast::ts_base_type>().info;
+		context.resolve_type(src_tokens, info);
 		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
 	}
 
