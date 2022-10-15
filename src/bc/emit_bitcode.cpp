@@ -3404,15 +3404,59 @@ static val_ptr emit_bitcode(
 		? index_value.get_uint()
 		: static_cast<uint64_t>(index_value.get_sint());
 
-	bz_assert(result_address == nullptr);
 	val_ptr result = val_ptr::get_none();
 	for (auto const i : bz::iota(0, tuple_subscript.base.elems.size()))
 	{
-		auto const val = emit_bitcode<abi>(tuple_subscript.base.elems[i], context, nullptr);
 		if (i == index_int_value)
 		{
-			result = val;
+			result = emit_bitcode<abi>(tuple_subscript.base.elems[i], context, result_address);
 		}
+		else
+		{
+			emit_bitcode<abi>(tuple_subscript.base.elems[i], context, nullptr);
+		}
+	}
+	return result;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_rvalue_tuple_subscript const &rvalue_tuple_subscript,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	bz_assert(rvalue_tuple_subscript.index.is<ast::constant_expression>());
+	auto const &index_value = rvalue_tuple_subscript.index.get<ast::constant_expression>().value;
+	bz_assert(index_value.is_uint() || index_value.is_sint());
+	auto const index_int_value = index_value.is_uint()
+		? index_value.get_uint()
+		: static_cast<uint64_t>(index_value.get_sint());
+
+	auto const base_val = emit_bitcode<abi>(rvalue_tuple_subscript.base, context, nullptr);
+	bz_assert(base_val.kind == val_ptr::reference);
+
+	val_ptr result = val_ptr::get_none();
+	for (auto const i : bz::iota(0, rvalue_tuple_subscript.elem_refs.size()))
+	{
+		if (rvalue_tuple_subscript.elem_refs[i].is_null())
+		{
+			continue;
+		}
+
+		auto const elem_ptr = context.create_struct_gep(base_val.get_type(), base_val.val, i);
+		auto const elem_type = base_val.get_type()->getStructElementType(i);
+		auto const prev_value = context.push_value_reference(val_ptr::get_reference(elem_ptr, elem_type));
+		if (i == index_int_value)
+		{
+			result = emit_bitcode<abi>(rvalue_tuple_subscript.elem_refs[i], context, result_address);
+		}
+		else
+		{
+			emit_bitcode<abi>(rvalue_tuple_subscript.elem_refs[i], context, nullptr);
+		}
+		context.pop_value_reference(prev_value);
 	}
 	return result;
 }

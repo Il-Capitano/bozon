@@ -6536,8 +6536,11 @@ void parse_context::add_self_destruction(ast::expression &expr)
 		this->add_self_destruction(switch_expr.default_case);
 	}
 	else if (
-		expr.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue
-		&& !this->is_trivially_destructible(expr.src_tokens, expr.get_expr_type())
+		auto const expr_kind = expr.get_expr_type_and_kind().second;
+		(
+			expr_kind == ast::expression_type_kind::rvalue
+			|| expr_kind == ast::expression_type_kind::rvalue_reference
+		) && !this->is_trivially_destructible(expr.src_tokens, expr.get_expr_type())
 	)
 	{
 		auto const type = ast::remove_const_or_consteval(expr.get_expr_type());

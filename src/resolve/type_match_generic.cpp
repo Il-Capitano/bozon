@@ -2831,6 +2831,7 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 				case ast::expression_type_kind::lvalue_reference:
 					expr = match_context.context.make_copy_construction(std::move(expr));
 					break;
+				case ast::expression_type_kind::rvalue_reference:
 				case ast::expression_type_kind::moved_lvalue:
 					expr = match_context.context.make_move_construction(std::move(expr));
 					break;

@@ -1161,12 +1161,56 @@ ast::expression make_builtin_subscript_operator(
 				result_type.remove_layer();
 			}
 
-			return ast::make_dynamic_expression(
-				src_tokens,
-				result_kind, std::move(result_type),
-				ast::make_expr_subscript(std::move(called), std::move(arg)),
-				ast::destruct_operation()
-			);
+			if (result_kind == ast::expression_type_kind::rvalue)
+			{
+				auto const elem_refs = bz::iota(0, tuple_t.types.size())
+					.transform([&](auto const i) {
+						if (i == index)
+						{
+							return ast::make_dynamic_expression(
+								src_tokens,
+								ast::expression_type_kind::rvalue_reference, result_type,
+								ast::make_expr_bitcode_value_reference(),
+								ast::destruct_operation()
+							);
+						}
+
+						auto const elem_t = tuple_t.types[i].as_typespec_view();
+						if (
+							elem_t.template is<ast::ts_lvalue_reference>()
+							|| context.is_trivially_destructible(called.src_tokens, elem_t)
+						)
+						{
+							return ast::expression();
+						}
+
+						auto result = ast::make_dynamic_expression(
+							src_tokens,
+							ast::expression_type_kind::rvalue_reference, elem_t,
+							ast::make_expr_bitcode_value_reference(),
+							ast::destruct_operation()
+						);
+						context.add_self_destruction(result);
+						return result;
+					})
+					.collect<ast::arena_vector>();
+
+				return ast::make_dynamic_expression(
+					src_tokens,
+					ast::expression_type_kind::rvalue_reference, std::move(result_type),
+					ast::make_expr_rvalue_tuple_subscript(std::move(called), std::move(elem_refs), std::move(arg)),
+					ast::destruct_operation()
+				);
+			}
+			else
+			{
+				return ast::make_dynamic_expression(
+					src_tokens,
+					result_kind, std::move(result_type),
+					ast::make_expr_subscript(std::move(called), std::move(arg)),
+					ast::destruct_operation()
+				);
+			}
 		}
 	}
 	else if (called_t.is<ast::ts_array_slice>())

@@ -2323,9 +2323,26 @@ static ast::constant_value guaranteed_evaluate_expr(
 			{
 				consteval_guaranteed(elem, context);
 			}
-			consteval_guaranteed(tuple_subscript_expr.index, context);
 
 			return evaluate_tuple_subscript(tuple_subscript_expr);
+		},
+		[&context](ast::expr_rvalue_tuple_subscript &rvalue_tuple_subscript_expr) -> ast::constant_value {
+			consteval_guaranteed(rvalue_tuple_subscript_expr.base, context);
+
+			if (rvalue_tuple_subscript_expr.base.is_constant())
+			{
+				bz_assert(rvalue_tuple_subscript_expr.index.is_constant());
+				auto const &index_value = rvalue_tuple_subscript_expr.index.get_constant_value();
+				bz_assert(index_value.is_uint() || index_value.is_sint());
+				auto const index = index_value.is_uint()
+					? index_value.get_uint()
+					: static_cast<uint64_t>(index_value.get_sint());
+				return rvalue_tuple_subscript_expr.base.get_constant_value().get_aggregate()[index];
+			}
+			else
+			{
+				return {};
+			}
 		},
 		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value {
 			consteval_guaranteed(subscript_expr.base, context);
@@ -2802,9 +2819,26 @@ static ast::constant_value try_evaluate_expr(
 			{
 				consteval_try(elem, context);
 			}
-			consteval_try(tuple_subscript_expr.index, context);
 
 			return evaluate_tuple_subscript(tuple_subscript_expr);
+		},
+		[&context](ast::expr_rvalue_tuple_subscript &rvalue_tuple_subscript_expr) -> ast::constant_value {
+			consteval_try(rvalue_tuple_subscript_expr.base, context);
+
+			if (rvalue_tuple_subscript_expr.base.is_constant())
+			{
+				bz_assert(rvalue_tuple_subscript_expr.index.is_constant());
+				auto const &index_value = rvalue_tuple_subscript_expr.index.get_constant_value();
+				bz_assert(index_value.is_uint() || index_value.is_sint());
+				auto const index = index_value.is_uint()
+					? index_value.get_uint()
+					: static_cast<uint64_t>(index_value.get_sint());
+				return rvalue_tuple_subscript_expr.base.get_constant_value().get_aggregate()[index];
+			}
+			else
+			{
+				return {};
+			}
 		},
 		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value {
 			consteval_try(subscript_expr.base, context);
@@ -3286,6 +3320,24 @@ static ast::constant_value try_evaluate_expr_without_error(
 			}
 
 			return evaluate_tuple_subscript(tuple_subscript_expr);
+		},
+		[&context](ast::expr_rvalue_tuple_subscript &rvalue_tuple_subscript_expr) -> ast::constant_value {
+			consteval_try_without_error(rvalue_tuple_subscript_expr.base, context);
+
+			if (rvalue_tuple_subscript_expr.base.is_constant())
+			{
+				bz_assert(rvalue_tuple_subscript_expr.index.is_constant());
+				auto const &index_value = rvalue_tuple_subscript_expr.index.get_constant_value();
+				bz_assert(index_value.is_uint() || index_value.is_sint());
+				auto const index = index_value.is_uint()
+					? index_value.get_uint()
+					: static_cast<uint64_t>(index_value.get_sint());
+				return rvalue_tuple_subscript_expr.base.get_constant_value().get_aggregate()[index];
+			}
+			else
+			{
+				return {};
+			}
 		},
 		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value {
 			consteval_try_without_error(subscript_expr.base, context);
@@ -3992,6 +4044,9 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 					get_consteval_fail_notes_helper(elem, notes);
 				}
 			}
+		},
+		[&notes](ast::expr_rvalue_tuple_subscript const &rvalue_tuple_subscript_expr) {
+			get_consteval_fail_notes_helper(rvalue_tuple_subscript_expr.base, notes);
 		},
 		[&expr, &notes](ast::expr_subscript const &subscript_expr) {
 			bool any_failed = false;
