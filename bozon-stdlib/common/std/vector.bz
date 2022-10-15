@@ -179,6 +179,7 @@ export struct vector<T: typename>
 				--it;
 				__builtin_call_destructor(*it);
 			}
+			self._data_end = new_end;
 		}
 	}
 
