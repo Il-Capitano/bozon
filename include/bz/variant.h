@@ -18,8 +18,6 @@ public:
 	using value_type = meta::nth_type<N, Ts...>;
 
 protected:
-	static constexpr size_t null = std::numeric_limits<size_t>::max();
-
 	static constexpr auto data_align = meta::lcm_index<alignof (Ts)...>;
 	static constexpr auto data_size  = meta::max_index<sizeof (Ts)...>;
 
@@ -53,6 +51,8 @@ protected:
 		}
 	}();
 	using index_t = meta::remove_cv_reference<decltype(_index_type_dummy)>;
+
+	static constexpr index_t null = std::numeric_limits<size_t>::max();
 
 	alignas(data_align) uint8_t _data[data_size];
 	index_t _index = null;
