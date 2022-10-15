@@ -1,3 +1,4 @@
+import std::libc::types;
 import std::libc::stdio;
 import std::libc::stdlib;
 
@@ -12,7 +13,7 @@ export function __builtin_str_length(s: str) -> usize
 		const c = *it;
 		if ((c & 0b1100'0000u8) == 0b1000'0000u8)
 		{
-			continuation_byte_count += 1uz;
+			continuation_byte_count += 1;
 		}
 	}
 	const size = __builtin_str_size(s);
@@ -115,6 +116,16 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 			"' in 'function __builtin_inplace_construct'"
 		)));
 	} else {}, void);
+@__builtin export function __builtin_swap(lhs: &auto, rhs: &auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"different types '",
+			__builtin_typename_as_str(typeof lhs),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in 'function __builtin_swap'"
+		)));
+	} else {}, void);
 
 @__builtin export function __builtin_is_comptime() -> bool;
 
@@ -136,6 +147,72 @@ export function __builtin_panic(message: str)
 	{
 		std::libc::fwrite(__builtin_str_begin_ptr(message), 1, __builtin_str_size(message), std::libc::stderr());
 		std::libc::abort();
+	}
+}
+
+@__builtin
+function __builtin_call_main(args: [: const str]) -> int32;
+
+@symbol_name("main")
+function __libc_main(argc_int: std::libc::int, argv: *const *const std::libc::char) -> std::libc::int
+{
+	let args_buffer = [8: str]();
+
+	const args = if (argc_int <= 0) {
+		__builtin_slice_from_ptrs(args_buffer.begin(), args_buffer.begin() + 1)
+	} else {
+		const argc = argc_int as usize;
+
+		const args_ptr = if (argc <= 8) {
+			args_buffer.begin()
+		} else {
+			const malloc_result = __builtin_pointer_cast(*str, std::libc::malloc(argc * sizeof str));
+			if (malloc_result == null)
+			{
+				return 1;
+			}
+			malloc_result
+		};
+
+		const args = __builtin_slice_from_ptrs(args_ptr, args_ptr + argc);
+
+		for (let i = 0uz; i < argc; ++i)
+		{
+			const begin_ptr = *(argv + i);
+			const end_ptr = {
+				let it = begin_ptr;
+				while (*it != 0)
+				{
+					++it;
+				}
+				it
+			};
+			args[i] = __builtin_str_from_ptrs(begin_ptr, end_ptr);
+		}
+		args
+	};
+
+	const result = __builtin_call_main(args);
+	if (args.begin() != args_buffer.begin())
+	{
+		std::libc::free(args.begin());
+	}
+
+	if consteval (std::libc::int == int32)
+	{
+		return result;
+	}
+	else
+	{
+		const result_c_int = result as std::libc::int;
+		if (result != 0 && result_c_int == 0)
+		{
+			return 1;
+		}
+		else
+		{
+			return result_c_int;
+		}
 	}
 }
 
@@ -177,7 +254,12 @@ export function __builtin_print_stderr(s: str)
 @__builtin export consteval function __builtin_is_default_constructible(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_copy_constructible(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_trivially_copy_constructible(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_move_constructible(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_trivially_move_constructible(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_trivially_destructible(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_trivially_move_destructible(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_trivially_relocatable(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_trivial(T: typename) -> bool;
 
 @__builtin @symbol_name("llvm.lifetime.start.p0") function __builtin_lifetime_start(size: uint64, ptr: *void);
 @__builtin @symbol_name("llvm.lifetime.end.p0") function __builtin_lifetime_end(size: uint64, ptr: *void);
@@ -209,6 +291,13 @@ export function __builtin_print_stderr(s: str)
 		unreachable
 	}
 ) export function __builtin_memset(dest: *void, val: uint8, n: usize);
+
+@__builtin @symbol_name("llvm.abs.i8")  export function __builtin_abs_i8(n: int8)   -> int8;
+@__builtin @symbol_name("llvm.abs.i16") export function __builtin_abs_i16(n: int16) -> int16;
+@__builtin @symbol_name("llvm.abs.i32") export function __builtin_abs_i32(n: int32) -> int32;
+@__builtin @symbol_name("llvm.abs.i64") export function __builtin_abs_i64(n: int64) -> int64;
+@__builtin @symbol_name("llvm.fabs.f32") export function __builtin_fabs_f32(n: float32) -> float32;
+@__builtin @symbol_name("llvm.fabs.f64") export function __builtin_fabs_f64(n: float64) -> float64;
 
 @__builtin @symbol_name("llvm.exp.f32") export function __builtin_exp_f32(x: float32) -> float32;
 @__builtin @symbol_name("llvm.exp.f64") export function __builtin_exp_f64(x: float64) -> float64;
@@ -362,20 +451,20 @@ export function __builtin_print_stderr(s: str)
 // binary operators
 //
 
-@__builtin export operator = (lhs: &int8,  rhs: int8)  -> &int8;
-@__builtin export operator = (lhs: &int16, rhs: int16) -> &int16;
-@__builtin export operator = (lhs: &int32, rhs: int32) -> &int32;
-@__builtin export operator = (lhs: &int64, rhs: int64) -> &int64;
-@__builtin export operator = (lhs: &uint8,  rhs: uint8)  -> &uint8;
-@__builtin export operator = (lhs: &uint16, rhs: uint16) -> &uint16;
-@__builtin export operator = (lhs: &uint32, rhs: uint32) -> &uint32;
-@__builtin export operator = (lhs: &uint64, rhs: uint64) -> &uint64;
-@__builtin export operator = (lhs: &float32, rhs: float32) -> &float32;
-@__builtin export operator = (lhs: &float64, rhs: float64) -> &float64;
-@__builtin export operator = (lhs: &char, rhs: char) -> &char;
-@__builtin export operator = (lhs: &str, rhs: str) -> &str;
-@__builtin export operator = (lhs: &bool, rhs: bool) -> &bool;
-@__builtin export operator = (lhs: &*auto, rhs: *auto)
+@__builtin_assign export operator = (lhs: &int8,  rhs: int8)  -> &int8;
+@__builtin_assign export operator = (lhs: &int16, rhs: int16) -> &int16;
+@__builtin_assign export operator = (lhs: &int32, rhs: int32) -> &int32;
+@__builtin_assign export operator = (lhs: &int64, rhs: int64) -> &int64;
+@__builtin_assign export operator = (lhs: &uint8,  rhs: uint8)  -> &uint8;
+@__builtin_assign export operator = (lhs: &uint16, rhs: uint16) -> &uint16;
+@__builtin_assign export operator = (lhs: &uint32, rhs: uint32) -> &uint32;
+@__builtin_assign export operator = (lhs: &uint64, rhs: uint64) -> &uint64;
+@__builtin_assign export operator = (lhs: &float32, rhs: float32) -> &float32;
+@__builtin_assign export operator = (lhs: &float64, rhs: float64) -> &float64;
+@__builtin_assign export operator = (lhs: &char, rhs: char) -> &char;
+@__builtin_assign export operator = (lhs: &str, rhs: str) -> &str;
+@__builtin_assign export operator = (lhs: &bool, rhs: bool) -> &bool;
+@__builtin_assign export operator = (lhs: &*auto, rhs: *auto)
 	-> (if consteval (__builtin_remove_reference(typeof lhs) != typeof rhs) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"mismatched pointer types '",
@@ -385,7 +474,7 @@ export function __builtin_print_stderr(s: str)
 			"' in assignment"
 		)));
 	} else {}, typeof lhs);
-@__builtin export operator = (lhs: &*const auto, rhs: *const auto)
+@__builtin_assign export operator = (lhs: &*const auto, rhs: *const auto)
 	-> (if consteval (__builtin_remove_reference(typeof lhs) != typeof rhs) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"mismatched pointer types '",
@@ -397,7 +486,7 @@ export function __builtin_print_stderr(s: str)
 	} else {}, typeof lhs);
 @__builtin export operator = (lhs: &*auto, rhs: __null_t) -> typeof lhs;
 @__builtin export operator = (lhs: &*const auto, rhs: __null_t) -> typeof lhs;
-@__builtin export operator = (lhs: &[: auto], rhs: [: auto])
+@__builtin_assign export operator = (lhs: &[: auto], rhs: [: auto])
 	-> (if consteval (__builtin_remove_reference(typeof lhs) != typeof rhs) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"mismatched slice types '",
@@ -407,7 +496,7 @@ export function __builtin_print_stderr(s: str)
 			"' in assignment"
 		)));
 	} else {}, typeof lhs);
-@__builtin export operator = (lhs: &[: const auto], rhs: [: const auto])
+@__builtin_assign export operator = (lhs: &[: const auto], rhs: [: const auto])
 	-> (if consteval (__builtin_remove_reference(typeof lhs) != typeof rhs) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"mismatched slice types '",
@@ -417,6 +506,8 @@ export function __builtin_print_stderr(s: str)
 			"' in assignment"
 		)));
 	} else {}, typeof lhs);
+@__builtin_assign export operator = (lhs: &[...auto], rhs: ##[...auto]) -> typeof lhs;
+@__builtin_assign export operator = (lhs: &[??: auto], rhs: ##[??: auto]) -> typeof lhs;
 
 @__builtin export operator + (lhs: int8,  rhs: int8)  -> int8;
 @__builtin export operator + (lhs: int16, rhs: int16) -> int16;

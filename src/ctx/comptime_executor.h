@@ -74,6 +74,10 @@ enum class comptime_function_kind : uint32_t
 	u32_modulo_check,
 	u64_modulo_check,
 
+	abs_i8_check,   abs_i16_check,
+	abs_i32_check,  abs_i64_check,
+	fabs_f32_check, fabs_f64_check,
+
 	exp_f32_check,   exp_f64_check,
 	exp2_f32_check,  exp2_f64_check,
 	expm1_f32_check, expm1_f64_check,
@@ -178,7 +182,7 @@ struct comptime_executor_context
 	template<abi::platform_abi abi>
 	abi::pass_kind get_pass_kind(ast::typespec_view ts)
 	{
-		if (ast::is_non_trivial(ts))
+		if (bc::is_non_trivial_pass_kind(ts))
 		{
 			return abi::pass_kind::non_trivial;
 		}
@@ -192,7 +196,7 @@ struct comptime_executor_context
 	template<abi::platform_abi abi>
 	abi::pass_kind get_pass_kind(ast::typespec_view ts, llvm::Type *llvm_type)
 	{
-		if (ast::is_non_trivial(ts))
+		if (bc::is_non_trivial_pass_kind(ts))
 		{
 			return abi::pass_kind::non_trivial;
 		}
@@ -204,8 +208,10 @@ struct comptime_executor_context
 
 	llvm::BasicBlock *add_basic_block(bz::u8string_view name);
 	llvm::Value *create_alloca(llvm::Type *t);
+	llvm::Value *create_alloca(llvm::Type *t, llvm::Value *init_val);
 	llvm::Value *create_alloca(llvm::Type *t, size_t align);
 	llvm::Value *create_alloca_without_lifetime_start(llvm::Type *t);
+	llvm::Value *create_alloca_without_lifetime_start(llvm::Type *t, llvm::Value *init_val);
 	llvm::Value *create_alloca_without_lifetime_start(llvm::Type *t, size_t align);
 	llvm::Value *create_string(bz::u8string_view str);
 
@@ -257,18 +263,35 @@ struct comptime_executor_context
 	void start_lifetime(llvm::Value *ptr, size_t size);
 	void end_lifetime(llvm::Value *ptr, size_t size);
 
-	void push_expression_scope(void);
-	void pop_expression_scope(void);
+	struct expression_scope_info_t
+	{
+		llvm::Value *destruct_condition;
+	};
 
-	void push_destructor_call(lex::src_tokens const &src_tokens, ast::function_body *dtor_func, llvm::Value *ptr);
-	void emit_destructor_calls(void);
-	void emit_loop_destructor_calls(void);
-	void emit_all_destructor_calls(void);
+	[[nodiscard]] expression_scope_info_t push_expression_scope(void);
+	void pop_expression_scope(expression_scope_info_t prev_info);
+
+	[[nodiscard]] llvm::Value *push_destruct_condition(void);
+	void pop_destruct_condition(llvm::Value *prev_condition);
+
+	llvm::Value *add_move_destruct_indicator(ast::decl_variable const *decl);
+	llvm::Value *get_move_destruct_indicator(ast::decl_variable const *decl) const;
+
+	void push_destruct_operation(ast::destruct_operation const &destruct_op);
+	void push_variable_destruct_operation(ast::destruct_operation const &destruct_op, llvm::Value *move_destruct_indicator = nullptr);
+	void push_self_destruct_operation(ast::destruct_operation const &destruct_op, llvm::Value *ptr, llvm::Type *type);
+	void emit_destruct_operations(void);
+	void emit_loop_destruct_operations(void);
+	void emit_all_destruct_operations(void);
 
 	void push_end_lifetime_call(llvm::Value *ptr, size_t size);
 	void emit_end_lifetime_calls(void);
 	void emit_loop_end_lifetime_calls(void);
 	void emit_all_end_lifetime_calls(void);
+
+	[[nodiscard]] bc::val_ptr push_value_reference(bc::val_ptr new_value);
+	void pop_value_reference(bc::val_ptr prev_value);
+	bc::val_ptr get_value_reference(size_t index);
 
 	struct loop_info_t
 	{
@@ -290,8 +313,7 @@ struct comptime_executor_context
 
 	std::pair<ast::constant_value, bz::vector<error>> execute_function(
 		lex::src_tokens const &src_tokens,
-		ast::function_body *body,
-		bz::array_view<ast::expression const> params
+		ast::expr_function_call &func_call
 	);
 	std::pair<ast::constant_value, bz::vector<error>> execute_compound_expression(ast::expr_compound &expr);
 	void initialize_optimizer(void);
@@ -321,6 +343,7 @@ struct comptime_executor_context
 	parse_context *current_parse_ctx = nullptr;
 	llvm::Module *current_module = nullptr;
 
+	std::unordered_map<ast::decl_variable const *, llvm::Value *> move_destruct_indicators{};
 	std::unordered_map<ast::decl_variable const *, bc::value_and_type_pair> vars_{};
 	std::unordered_map<ast::decl_variable const *, variable_definition_and_declaration_pair> global_vars_{};
 	std::unordered_map<ast::type_info     const *, llvm::Type *> types_{};
@@ -330,22 +353,34 @@ struct comptime_executor_context
 
 	bz::vector<ast::function_body *> functions_to_compile{};
 
-	struct destructor_call_t
+	struct destruct_operation_info_t
 	{
-		lex::src_tokens src_tokens;
-		ast::function_body *dtor_func;
+		ast::destruct_operation const *destruct_op;
 		llvm::Value *ptr;
+		llvm::Type *type;
+		llvm::Value *condition;
+		llvm::Value *move_destruct_indicator;
 	};
 
-	bz::vector<bz::vector<destructor_call_t>> destructor_calls{};
-	bz::vector<bz::vector<std::pair<llvm::Value *, size_t>>> end_lifetime_calls{};
+	struct end_lifetime_info_t
+	{
+		llvm::Value *ptr;
+		size_t size;
+	};
+
+	bz::vector<bz::vector<destruct_operation_info_t>> destructor_calls{};
+	bz::vector<bz::vector<end_lifetime_info_t>> end_lifetime_calls{};
+	llvm::Value *destruct_condition = nullptr;
 
 
 	std::pair<ast::function_body const *, llvm::Function *> current_function = { nullptr, nullptr };
-	llvm::BasicBlock *error_bb    = nullptr;
-	llvm::BasicBlock *alloca_bb   = nullptr;
-	llvm::Value *output_pointer   = nullptr;
+	llvm::BasicBlock *error_bb  = nullptr;
+	llvm::BasicBlock *alloca_bb = nullptr;
+	llvm::Value *output_pointer = nullptr;
 	loop_info_t loop_info = {};
+	bz::array<bc::val_ptr, 4> current_value_references;
+	size_t current_value_reference_stack_size = 0;
+
 	llvm::IRBuilder<> builder;
 
 	std::list<source_highlight>   execution_errors{}; // a list is used, so pointers are stable
@@ -418,6 +453,13 @@ constexpr bz::array comptime_function_info = {
 	def_element(u16_modulo_check),
 	def_element(u32_modulo_check),
 	def_element(u64_modulo_check),
+
+	def_element(abs_i8_check),
+	def_element(abs_i16_check),
+	def_element(abs_i32_check),
+	def_element(abs_i64_check),
+	def_element(fabs_f32_check),
+	def_element(fabs_f64_check),
 
 	def_element(exp_f32_check),
 	def_element(exp_f64_check),

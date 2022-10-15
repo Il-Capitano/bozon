@@ -17,6 +17,33 @@ void emit_global_type_symbol(ast::type_info const &info, ctx::bitcode_context &c
 void emit_global_type(ast::type_info const &info, ctx::bitcode_context &context);
 void emit_necessary_functions(ctx::bitcode_context &context);
 
+void emit_destruct_operation(
+	ast::destruct_operation const &destruct_op,
+	llvm::Value *condition,
+	llvm::Value *move_destruct_indicator,
+	ctx::bitcode_context &context
+);
+void emit_destruct_operation(
+	ast::destruct_operation const &destruct_op,
+	llvm::Value *condition,
+	llvm::Value *move_destruct_indicator,
+	ctx::comptime_executor_context &context
+);
+void emit_destruct_operation(
+	ast::destruct_operation const &destruct_op,
+	val_ptr value,
+	llvm::Value *condition,
+	llvm::Value *move_destruct_indicator,
+	ctx::bitcode_context &context
+);
+void emit_destruct_operation(
+	ast::destruct_operation const &destruct_op,
+	val_ptr value,
+	llvm::Value *condition,
+	llvm::Value *move_destruct_indicator,
+	ctx::comptime_executor_context &context
+);
+
 
 llvm::Function *add_function_to_module(ast::function_body *func_body, ctx::comptime_executor_context &context);
 void emit_function_bitcode(ast::function_body &func_body, ctx::comptime_executor_context &context);
@@ -26,8 +53,7 @@ void resolve_global_type(ast::type_info *info, llvm::Type *type, ctx::comptime_e
 [[nodiscard]] bool emit_necessary_functions(size_t start_index, ctx::comptime_executor_context &context);
 
 std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function_for_comptime_execution(
-	ast::function_body *body,
-	bz::array_view<ast::expression const> params,
+	ast::expr_function_call &func_call,
 	ctx::comptime_executor_context &context
 );
 

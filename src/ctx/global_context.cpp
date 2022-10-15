@@ -219,6 +219,144 @@ resolve::attribute_info_t *global_context::get_builtin_attribute(bz::u8string_vi
 	}
 }
 
+void global_context::report_error_or_warning(error &&err)
+{
+	this->_errors.emplace_back(std::move(err));
+}
+
+void global_context::report_error(error &&err)
+{
+	bz_assert(err.is_error());
+	this->report_error_or_warning(std::move(err));
+}
+
+void global_context::report_error(bz::u8string message, bz::vector<source_highlight> notes, bz::vector<source_highlight> suggestions)
+{
+	this->report_error_or_warning(error{
+		warning_kind::_last,
+		{
+			global_context::compiler_file_id, 0,
+			char_pos(), char_pos(), char_pos(),
+			suggestion_range{}, suggestion_range{},
+			std::move(message),
+		},
+		std::move(notes), std::move(suggestions)
+	});
+}
+
+void global_context::report_error(
+	lex::src_tokens const &src_tokens, bz::u8string message,
+	bz::vector<source_highlight> notes,
+	bz::vector<source_highlight> suggestions
+)
+{
+	this->_errors.push_back(error{
+		warning_kind::_last,
+		{
+			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+			src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
+			suggestion_range{}, suggestion_range{},
+			std::move(message),
+		},
+		std::move(notes), std::move(suggestions)
+	});
+}
+
+void global_context::report_warning(error &&err)
+{
+	bz_assert(err.is_warning());
+	if (is_warning_enabled(err.kind))
+	{
+		this->report_error_or_warning(std::move(err));
+	}
+}
+
+void global_context::report_warning(warning_kind kind, bz::u8string message)
+{
+	if (is_warning_enabled(kind))
+	{
+		this->report_error_or_warning(error{
+			kind,
+			{
+				global_context::compiler_file_id, 0,
+				char_pos(), char_pos(), char_pos(),
+				suggestion_range{}, suggestion_range{},
+				std::move(message),
+			},
+			{}, {}
+		});
+	}
+}
+
+[[nodiscard]] source_highlight global_context::make_note(bz::u8string message)
+{
+	return source_highlight{
+		global_context::compiler_file_id, 0,
+		char_pos(), char_pos(), char_pos(),
+		{}, {}, std::move(message)
+	};
+}
+
+[[nodiscard]] source_highlight global_context::make_note(lex::src_tokens const &src_tokens, bz::u8string message)
+{
+	return source_highlight{
+		src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+		src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
+		{}, {},
+		std::move(message)
+	};
+}
+
+src_file &global_context::get_src_file(uint32_t file_id) noexcept
+{
+	auto const it = std::find_if(
+		this->_src_files.begin(), this->_src_files.end(),
+		[&](auto const &src_file) {
+			return file_id == src_file._file_id;
+		}
+	);
+	bz_assert(it != this->_src_files.end());
+	return *it;
+}
+
+src_file const &global_context::get_src_file(uint32_t file_id) const noexcept
+{
+	auto const it = std::find_if(
+		this->_src_files.begin(), this->_src_files.end(),
+		[&](auto const &src_file) {
+			return file_id == src_file._file_id;
+		}
+	);
+	bz_assert(it != this->_src_files.end());
+	return *it;
+}
+
+char_pos global_context::get_file_begin(uint32_t file_id) const noexcept
+{
+	if (file_id == compiler_file_id || file_id == command_line_file_id)
+	{
+		return char_pos();
+	}
+	bz_assert(file_id < this->_src_files.size());
+	return this->get_src_file(file_id)._file.begin();
+}
+
+std::pair<char_pos, char_pos> global_context::get_file_begin_and_end(uint32_t file_id) const noexcept
+{
+	if (file_id == compiler_file_id || file_id == command_line_file_id)
+	{
+		return { char_pos(), char_pos() };
+	}
+	bz_assert(file_id < this->_src_files.size());
+	auto const &src_file = this->get_src_file(file_id);
+	return { src_file._file.begin(), src_file._file.end() };
+}
+
+bool global_context::is_library_file(uint32_t file_id) const noexcept
+{
+	return file_id == compiler_file_id || file_id == command_line_file_id || this->get_src_file(file_id)._is_library_file;
+}
+
 
 bool global_context::has_errors(void) const
 {
@@ -377,6 +515,24 @@ uint32_t global_context::add_module(uint32_t current_file_id, ast::identifier co
 ast::scope_t *global_context::get_file_export_decls(uint32_t file_id)
 {
 	return &this->get_src_file(file_id)._export_decls;
+}
+
+bz::u8string global_context::get_file_name(uint32_t file_id)
+{
+	if (file_id == command_line_file_id)
+	{
+		return "<command-line>";
+	}
+	else
+	{
+		bz_assert(file_id != compiler_file_id);
+		return this->get_src_file(file_id).get_file_path().generic_string().c_str();
+	}
+}
+
+bz::u8string global_context::get_location_string(lex::token_pos t)
+{
+	return bz::format("{}:{}", this->get_file_name(t->src_pos.file_id), t->src_pos.line);
 }
 
 bool global_context::add_comptime_checking_function(bz::u8string_view kind, ast::function_body *func_body)
@@ -577,6 +733,8 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 [[nodiscard]] bool global_context::initialize_llvm(void)
 {
+	this->_llvm_context.setDiscardValueNames(discard_llvm_value_names);
+
 	auto const is_native_target = target == "" || target == "native";
 	auto const target_triple = is_native_target
 		? llvm::Triple::normalize(llvm::sys::getDefaultTargetTriple())
@@ -763,6 +921,113 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	return true;
 }
 
+static auto filter_struct_decls(bz::array_view<ast::statement const> decls)
+{
+	return decls
+		.filter([](auto const &stmt) { return stmt.template is<ast::decl_struct>(); })
+		.transform([](auto const &stmt) -> ast::decl_struct const & { return stmt.template get<ast::decl_struct>(); });
+}
+
+static auto filter_var_decls(bz::array_view<ast::statement const> decls)
+{
+	return decls
+		.filter([](auto const &stmt) { return stmt.template is<ast::decl_variable>(); })
+		.transform([](auto const &stmt) -> ast::decl_variable const & { return stmt.template get<ast::decl_variable>(); });
+}
+
+static void emit_struct_symbols_helper(bz::array_view<ast::statement const> decls, bitcode_context &context)
+{
+	for (auto const &struct_decl : filter_struct_decls(decls))
+	{
+		bc::emit_global_type_symbol(struct_decl.info, context);
+
+		if (struct_decl.info.kind == ast::type_info::aggregate)
+		{
+			if (struct_decl.info.is_generic())
+			{
+				for (auto const &instantiation_decl : struct_decl.info.generic_instantiations)
+				{
+					if (instantiation_decl->state == ast::resolve_state::all)
+					{
+						emit_struct_symbols_helper(instantiation_decl->body.get<bz::vector<ast::statement>>(), context);
+					}
+				}
+			}
+			else
+			{
+				if (struct_decl.info.state == ast::resolve_state::all)
+				{
+					emit_struct_symbols_helper(struct_decl.info.body.get<bz::vector<ast::statement>>(), context);
+				}
+			}
+		}
+	}
+}
+
+static void emit_structs_helper(bz::array_view<ast::statement const> decls, bitcode_context &context)
+{
+	for (auto const &struct_decl : filter_struct_decls(decls))
+	{
+		bc::emit_global_type(struct_decl.info, context);
+
+		if (struct_decl.info.kind == ast::type_info::aggregate)
+		{
+			if (struct_decl.info.is_generic())
+			{
+				for (auto const &instantiation_decl : struct_decl.info.generic_instantiations)
+				{
+					if (instantiation_decl->state == ast::resolve_state::all)
+					{
+						emit_structs_helper(instantiation_decl->body.get<bz::vector<ast::statement>>(), context);
+					}
+				}
+			}
+			else
+			{
+				if (struct_decl.info.state == ast::resolve_state::all)
+				{
+					emit_structs_helper(struct_decl.info.body.get<bz::vector<ast::statement>>(), context);
+				}
+			}
+		}
+	}
+}
+
+static void emit_variables_helper(bz::array_view<ast::statement const> decls, bitcode_context &context)
+{
+	for (auto const &var_decl : filter_var_decls(decls))
+	{
+		if (var_decl.is_global())
+		{
+			bc::emit_global_variable(var_decl, context);
+		}
+	}
+
+	for (auto const &struct_decl : filter_struct_decls(decls))
+	{
+		if (struct_decl.info.kind == ast::type_info::aggregate)
+		{
+			if (struct_decl.info.is_generic())
+			{
+				for (auto const &instantiation_decl : struct_decl.info.generic_instantiations)
+				{
+					if (instantiation_decl->state == ast::resolve_state::all)
+					{
+						emit_variables_helper(instantiation_decl->body.get<bz::vector<ast::statement>>(), context);
+					}
+				}
+			}
+			else
+			{
+				if (struct_decl.info.state == ast::resolve_state::all)
+				{
+					emit_variables_helper(struct_decl.info.body.get<bz::vector<ast::statement>>(), context);
+				}
+			}
+		}
+	}
+}
+
 [[nodiscard]] bool global_context::emit_bitcode(void)
 {
 	bitcode_context context(*this, &this->_module);
@@ -771,28 +1036,25 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	bz_assert(this->_compile_decls.var_decls.size() == 0);
 	for (auto const &file : this->_src_files)
 	{
-		for (auto const struct_decl : file._global_decls.get_global().structs)
-		{
-			bc::emit_global_type_symbol(struct_decl->info, context);
-		}
+		emit_struct_symbols_helper(file._declarations, context);
 	}
 	for (auto const &file : this->_src_files)
 	{
-		for (auto const struct_decl : file._global_decls.get_global().structs)
-		{
-			bc::emit_global_type(struct_decl->info, context);
-		}
+		emit_structs_helper(file._declarations, context);
 	}
 	for (auto const &file : this->_src_files)
 	{
-		for (auto const var_decl : file._global_decls.get_global().variables)
-		{
-			bc::emit_global_variable(*var_decl, context);
-		}
+		emit_variables_helper(file._declarations, context);
 	}
 	for (auto const func : this->_compile_decls.funcs)
 	{
-		if (func->is_external_linkage())
+		if (
+			func->is_external_linkage()
+			&& !(
+				this->_main == nullptr
+				&& func->symbol_name == "main"
+			)
+		)
 		{
 			context.ensure_function_emission(func);
 		}

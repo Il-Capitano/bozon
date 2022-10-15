@@ -1,6 +1,5 @@
 #include "statement.h"
 #include "token_info.h"
-#include "ctx/global_context.h"
 
 namespace ast
 {
@@ -86,7 +85,14 @@ bz::u8string function_body::get_symbol_name(void) const
 {
 	if (this->is_destructor())
 	{
-		return bz::format("dtor.{}", ast::type_info::decode_symbol_name(this->get_destructor_of()->symbol_name));
+		if (this->params[0].get_type().is<ast::ts_move_reference>())
+		{
+			return bz::format("move_dtor.{}", ast::type_info::decode_symbol_name(this->get_destructor_of()->symbol_name));
+		}
+		else
+		{
+			return bz::format("dtor.{}", ast::type_info::decode_symbol_name(this->get_destructor_of()->symbol_name));
+		}
 	}
 	else if (this->is_constructor())
 	{
@@ -148,6 +154,10 @@ bz::u8string function_body::get_candidate_message(void) const
 	{
 		return bz::format("candidate: (the default copy constructor) '{}'", this->get_signature());
 	}
+	else if (this->is_default_move_constructor())
+	{
+		return bz::format("candidate (the default move constructor) '{}'", this->get_signature());
+	}
 	else
 	{
 		return bz::format("candidate: '{}'", this->get_signature());
@@ -165,6 +175,12 @@ std::pair<function_body *, bz::u8string> function_body::add_specialized_body(
 )
 {
 	bz_assert(params.size() == this->params.size() || (!this->params.empty() && this->params.back().get_type().is<ast::ts_variadic>()));
+
+	if (params.is_any([](auto const &param) { return is_generic_parameter(param) && param.init_expr.is_error(); }))
+	{
+		return { nullptr, bz::u8string() };
+	}
+
 	auto const is_equal_params = [](auto const &lhs, auto const &rhs) {
 		if (lhs.size() != rhs.size())
 		{
@@ -429,8 +445,33 @@ type_info::decl_function_ptr type_info::make_default_copy_constructor(lex::src_t
 	result->body.return_type = std::move(ret_t);
 	result->body.src_tokens = src_tokens;
 	result->body.state = resolve_state::symbol;
-	result->body.flags |= function_body::default_copy_constructor;
 	result->body.flags |= function_body::constructor;
+	result->body.flags |= function_body::copy_constructor;
+	result->body.flags |= function_body::default_copy_constructor;
+	result->body.constructor_or_destructor_of = &info;
+	return result;
+}
+
+type_info::decl_function_ptr type_info::make_default_move_constructor(lex::src_tokens const &src_tokens, type_info &info)
+{
+	auto param_t = make_base_type_typespec({}, &info);
+	param_t.add_layer<ts_move_reference>();
+
+	auto ret_t = make_base_type_typespec({}, &info);
+
+	auto result = make_ast_unique<decl_function>();
+	result->body.params.emplace_back(
+		lex::src_tokens{},
+		lex::token_range{},
+		var_id_and_type(identifier{}, type_as_expression(std::move(param_t))),
+		enclosing_scope_t{}
+	);
+	result->body.return_type = std::move(ret_t);
+	result->body.src_tokens = src_tokens;
+	result->body.state = resolve_state::symbol;
+	result->body.flags |= function_body::constructor;
+	result->body.flags |= function_body::move_constructor;
+	result->body.flags |= function_body::default_move_constructor;
 	result->body.constructor_or_destructor_of = &info;
 	return result;
 }
@@ -447,8 +488,9 @@ type_info::decl_function_ptr type_info::make_default_default_constructor(lex::sr
 	result->body.return_type = std::move(ret_t);
 	result->body.src_tokens = src_tokens;
 	result->body.state = resolve_state::symbol;
-	result->body.flags |= function_body::default_default_constructor;
 	result->body.flags |= function_body::constructor;
+	result->body.flags |= function_body::default_constructor;
+	result->body.flags |= function_body::default_default_constructor;
 	result->body.constructor_or_destructor_of = &info;
 	return result;
 }
@@ -574,7 +616,7 @@ static_assert(type_info::str_     == 11);
 static_assert(type_info::bool_    == 12);
 static_assert(type_info::null_t_  == 13);
 
-static type_info::decl_function_ptr make_default_constructor(type_info *info)
+static type_info::decl_function_ptr make_builtin_default_constructor(type_info *info)
 {
 	auto result = make_ast_unique<decl_function>();
 	result->body.return_type = make_base_type_typespec({}, info);
@@ -627,6 +669,7 @@ static type_info::decl_function_ptr make_default_constructor(type_info *info)
 	}
 	result->body.flags = function_body::intrinsic
 		| function_body::constructor
+		| function_body::default_constructor
 		| function_body::default_default_constructor;
 	result->body.constructor_or_destructor_of = info;
 	result->body.state = resolve_state::symbol;
@@ -654,7 +697,7 @@ bz::vector<type_info> make_builtin_type_infos(void)
 	result.push_back(type_info::make_builtin("__null_t", type_info::null_t_));
 	for (auto &info : result)
 	{
-		info.default_default_constructor = make_default_constructor(&info);
+		info.default_default_constructor = make_builtin_default_constructor(&info);
 		info.constructors.push_back(info.default_default_constructor.get());
 	}
 	return result;

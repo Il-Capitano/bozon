@@ -4,6 +4,84 @@
 namespace ast
 {
 
+destruct_variable::destruct_variable(expression _destruct_call)
+	: destruct_call(make_ast_unique<expression>(std::move(_destruct_call)))
+{}
+
+destruct_variable::destruct_variable(destruct_variable const &other)
+	: destruct_call(make_ast_unique<expression>(*other.destruct_call))
+{}
+
+destruct_variable &destruct_variable::operator = (destruct_variable const &other)
+{
+	if (this == &other)
+	{
+		return *this;
+	}
+
+	if (this->destruct_call == nullptr)
+	{
+		this->destruct_call = make_ast_unique<expression>(*other.destruct_call);
+	}
+	else
+	{
+		*this->destruct_call = *other.destruct_call;
+	}
+	return *this;
+}
+
+destruct_self::destruct_self(expression _destruct_call)
+	: destruct_call(make_ast_unique<expression>(std::move(_destruct_call)))
+{}
+
+destruct_self::destruct_self(destruct_self const &other)
+	: destruct_call(make_ast_unique<expression>(*other.destruct_call))
+{}
+
+destruct_self &destruct_self::operator = (destruct_self const &other)
+{
+	if (this == &other)
+	{
+		return *this;
+	}
+
+	if (this->destruct_call == nullptr)
+	{
+		this->destruct_call = make_ast_unique<expression>(*other.destruct_call);
+	}
+	else
+	{
+		*this->destruct_call = *other.destruct_call;
+	}
+	return *this;
+}
+
+defer_expression::defer_expression(expression _expr)
+	: expr(make_ast_unique<expression>(std::move(_expr)))
+{}
+
+defer_expression::defer_expression(defer_expression const &other)
+	: expr(make_ast_unique<expression>(*other.expr))
+{}
+
+defer_expression &defer_expression::operator = (defer_expression const &other)
+{
+	if (this == &other)
+	{
+		return *this;
+	}
+
+	if (this->expr == nullptr)
+	{
+		this->expr = make_ast_unique<expression>(*other.expr);
+	}
+	else
+	{
+		*this->expr = *other.expr;
+	}
+	return *this;
+}
+
 void expression::to_error(void)
 {
 	if (this->is<constant_expression>())
@@ -41,7 +119,7 @@ bool expression::is_typename(void) const noexcept
 {
 	auto const const_expr = this->get_if<constant_expression>();
 	return const_expr
-		&& (const_expr->kind == expression_type_kind::type_name || const_expr->value.is<constant_value::type>());
+		&& (const_expr->kind == expression_type_kind::type_name || const_expr->value.is_type());
 }
 
 typespec &expression::get_typename(void) noexcept
@@ -86,10 +164,10 @@ static bz::meta::conditional<get_inner, expr_t, expression> &get_expr_kind(expre
 		bz_assert(subscript.base.is_tuple());
 		bz_assert(subscript.index.is<constant_expression>());
 		auto const &index_value = subscript.index.get<constant_expression>().value;
-		bz_assert((index_value.is_any<constant_value::sint, constant_value::uint>()));
-		auto const index = index_value.is<constant_value::sint>()
-			? static_cast<uint64_t>(index_value.get<constant_value::sint>())
-			: index_value.get<constant_value::uint>();
+		bz_assert(index_value.is_sint() || index_value.is_uint());
+		auto const index = index_value.is_sint()
+			? static_cast<uint64_t>(index_value.get_sint())
+			: index_value.get_uint();
 		bz_assert(index < subscript.base.get_tuple().elems.size());
 		return get_expr_kind<expr_t, get_inner>(subscript.base.get_tuple().elems[index]);
 	}
@@ -129,10 +207,10 @@ static bz::meta::conditional<get_inner, expr_t, expression> const &get_expr_kind
 		bz_assert(subscript.base.is_tuple());
 		bz_assert(subscript.index.is<constant_expression>());
 		auto const &index_value = subscript.index.get<constant_expression>().value;
-		bz_assert((index_value.is_any<constant_value::sint, constant_value::uint>()));
-		auto const index = index_value.is<constant_value::sint>()
-			? static_cast<uint64_t>(index_value.get<constant_value::sint>())
-			: index_value.get<constant_value::uint>();
+		bz_assert(index_value.is_sint() || index_value.is_uint());
+		auto const index = index_value.is_sint()
+			? static_cast<uint64_t>(index_value.get_sint())
+			: index_value.get_uint();
 		bz_assert(index < subscript.base.get_tuple().elems.size());
 		return get_expr_kind<expr_t, get_inner>(subscript.base.get_tuple().elems[index]);
 	}
@@ -474,7 +552,7 @@ expr_compound::expr_compound(
 )
 	: statements(std::move(_statements)),
 	  final_expr(std::move(_final_expr)),
-	  scope     (make_local_scope(_enclosing_scope))
+	  scope     (make_local_scope(_enclosing_scope, false))
 {}
 
 } // namespace ast

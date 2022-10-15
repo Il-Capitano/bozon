@@ -1,0 +1,6 @@
+function test(val: int32)
+{
+	let _ = switch (val) {
+		0, 1, 2 => 0,
+	};
+}

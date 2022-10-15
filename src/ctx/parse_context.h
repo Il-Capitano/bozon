@@ -54,14 +54,23 @@ struct parse_context
 	bz::vector<bz::u8string_view> current_unresolved_locals = {};
 	ast::function_body           *current_function = nullptr;
 
-	bool is_aggressive_consteval_enabled = false;
+	struct move_scope_t
+	{
+		lex::src_tokens src_tokens;
+		bz::vector<bz::vector<ast::decl_variable *>> move_branches;
+	};
 
-	bool in_loop = false;
-	variadic_resolve_info_t variadic_info = { false, false, 0, 0, {} };
-	bool parsing_variadic_expansion = false;
-	int parsing_template_argument = 0;
+	bz::vector<move_scope_t> move_scopes = {};
 
 	bz::vector<resolve_queue_t> resolve_queue{};
+
+	variadic_resolve_info_t variadic_info = { false, false, 0, 0, {} };
+
+	bool is_aggressive_consteval_enabled = false;
+	bool in_loop = false;
+	bool parsing_variadic_expansion = false;
+	bool in_unevaluated_context = false;
+	int parsing_template_argument = 0;
 
 
 	struct local_copy_t {};
@@ -82,14 +91,23 @@ struct parse_context
 	ast::decl_function *get_builtin_function(uint32_t kind) const;
 	bz::array_view<uint32_t const> get_builtin_universal_functions(bz::u8string_view id);
 
-	[[nodiscard]] bool push_loop(void) noexcept;
-	void pop_loop(bool prev_in_loop) noexcept;
+	struct loop_info_t
+	{
+		bool in_loop;
+	};
+
+	[[nodiscard]] loop_info_t push_loop(void) noexcept;
+	void pop_loop(loop_info_t prev_info) noexcept;
+	bool is_in_loop(void) const noexcept;
 
 	[[nodiscard]] variadic_resolve_info_t push_variadic_resolver(void) noexcept;
 	void pop_variadic_resolver(variadic_resolve_info_t const &prev_info) noexcept;
 
 	[[nodiscard]] bool push_parsing_variadic_expansion(void) noexcept;
 	void pop_parsing_variadic_expansion(bool prev_value) noexcept;
+
+	[[nodiscard]] bool push_unevaluated_context(void) noexcept;
+	void pop_unevaluated_context(bool prev_value) noexcept;
 
 	void push_parsing_template_argument(void) noexcept;
 	void pop_parsing_template_argument(void) noexcept;
@@ -122,6 +140,12 @@ struct parse_context
 	ast::enclosing_scope_t get_current_enclosing_scope(void) const noexcept;
 
 	bool has_common_global_scope(ast::enclosing_scope_t scope) const noexcept;
+
+	void push_move_scope(lex::src_tokens const &src_tokens) noexcept;
+	void pop_move_scope(void) noexcept;
+	void push_new_move_branch(void) noexcept;
+	void register_move(lex::src_tokens const &src_tokens, ast::decl_variable *decl) noexcept;
+	void register_move_construction(ast::decl_variable *decl) noexcept;
 
 	void report_error(lex::token_pos it) const;
 	void report_error(
@@ -352,6 +376,10 @@ struct parse_context
 
 	void report_ambiguous_id_error(lex::token_pos id) const;
 
+	bool has_main(void) const;
+	ast::function_body *get_main(void) const;
+	void set_main(ast::function_body *body);
+
 	[[nodiscard]] size_t add_unresolved_scope(void);
 	void remove_unresolved_scope(size_t prev_size);
 
@@ -416,15 +444,33 @@ struct parse_context
 		ast::arena_vector<ast::expression> args
 	);
 
-	bool is_instantiable(ast::typespec_view ts);
+	ast::expression make_default_construction(lex::src_tokens const &src_tokens, ast::typespec_view type);
+	ast::expression make_copy_construction(ast::expression expr);
+	ast::expression make_move_construction(ast::expression expr);
+	ast::expression make_default_assignment(lex::src_tokens const &src_tokens, ast::expression lhs, ast::expression rhs);
+
+	void add_self_destruction(ast::expression &expr);
+	void add_self_move_destruction(ast::expression &expr);
+	ast::destruct_operation make_variable_destruction(ast::decl_variable *var_decl);
+
+	void resolve_type(lex::src_tokens const &src_tokens, ast::type_info *info);
+	bool is_default_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
+	bool is_copy_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
+	bool is_trivially_copy_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
+	bool is_move_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
+	bool is_trivially_move_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
+	bool is_trivially_destructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
+	bool is_trivially_move_destructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
+	bool is_trivially_relocatable(lex::src_tokens const &src_tokens, ast::typespec_view ts);
+	bool is_trivial(lex::src_tokens const &src_tokens, ast::typespec_view ts);
+	bool is_instantiable(lex::src_tokens const &src_tokens, ast::typespec_view ts);
 	size_t get_sizeof(ast::typespec_view ts);
 
 	ast::identifier make_qualified_identifier(lex::token_pos id);
 
 	ast::constant_value execute_function(
 		lex::src_tokens const &src_tokens,
-		ast::function_body *body,
-		bz::array_view<ast::expression const> params
+		ast::expr_function_call &func_call
 	);
 
 	ast::constant_value execute_compound_expression(
@@ -434,8 +480,7 @@ struct parse_context
 
 	ast::constant_value execute_function_without_error(
 		lex::src_tokens const &src_tokens,
-		ast::function_body *body,
-		bz::array_view<ast::expression const> params
+		ast::expr_function_call &func_call
 	);
 
 	ast::constant_value execute_compound_expression_without_error(

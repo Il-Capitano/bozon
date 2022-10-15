@@ -83,6 +83,7 @@ enum : uint64_t
 	unary_type_op                    = bit_at<11>,
 	binary_type_op                   = bit_at<12>,
 	type_op                          = bit_at<13>,
+	unary_has_unevaluated_context    = bit_at<14>,
 };
 
 } // namespace token_info_flags
@@ -111,6 +112,7 @@ constexpr bz::array operator_precedences = {
 	prec_t{ prec_t::unary,  lex::token::kw_sizeof,          {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::kw_typeof,          {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::kw_move,            {  3, false } },
+	prec_t{ prec_t::unary,  lex::token::kw_unsafe_move,     {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::kw_forward,         {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::dot_dot_dot,        {  3, false } },
 
@@ -225,6 +227,8 @@ constexpr auto token_info = []() {
 	result[lex::token::auto_ref]       = { lex::token::auto_ref,       "#",  "", unary_type_op_flags };
 	result[lex::token::auto_ref_const] = { lex::token::auto_ref_const, "##", "", unary_type_op_flags };
 
+	result[lex::token::placeholder_literal] = { lex::token::placeholder_literal, "??", "", expr_type_flags };
+
 	// bit_and, address_of
 	result[lex::token::ampersand]          = { lex::token::ampersand,          "&",   "", both_builtin_flags   | binary_overloadable_flags | unary_type_op_flags };
 	result[lex::token::bit_and_eq]         = { lex::token::bit_and_eq,         "&=",  "", binary_builtin_flags | binary_overloadable_flags };
@@ -287,6 +291,7 @@ constexpr auto token_info = []() {
 	result[lex::token::kw_while]         = { lex::token::kw_while,         "while",         "", keyword_flags                   };
 	result[lex::token::kw_for]           = { lex::token::kw_for,           "for",           "", keyword_flags                   };
 	result[lex::token::kw_return]        = { lex::token::kw_return,        "return",        "", keyword_flags                   };
+	result[lex::token::kw_defer]         = { lex::token::kw_defer,         "defer",         "", keyword_flags                   };
 	result[lex::token::kw_function]      = { lex::token::kw_function,      "function",      "", keyword_flags                   };
 	result[lex::token::kw_operator]      = { lex::token::kw_operator,      "operator",      "", keyword_flags                   };
 	result[lex::token::kw_class]         = { lex::token::kw_class,         "class",         "", keyword_flags                   };
@@ -299,11 +304,15 @@ constexpr auto token_info = []() {
 	result[lex::token::kw_import]        = { lex::token::kw_import,        "import",        "", keyword_flags                   };
 	result[lex::token::kw_in]            = { lex::token::kw_in,            "in",            "", keyword_flags                   };
 
-	result[lex::token::kw_sizeof] = { lex::token::kw_sizeof, "sizeof", "", keyword_flags | unary_builtin_flags };
-	result[lex::token::kw_typeof] = { lex::token::kw_typeof, "typeof", "", keyword_flags | unary_builtin_flags };
+	result[lex::token::kw_sizeof] = { lex::token::kw_sizeof, "sizeof", "", keyword_flags | unary_builtin_flags | unary_has_unevaluated_context };
+	result[lex::token::kw_typeof] = { lex::token::kw_typeof, "typeof", "", keyword_flags | unary_builtin_flags | unary_has_unevaluated_context };
 
-	result[lex::token::kw_move]    = { lex::token::kw_move,    "move",      "", keyword_flags | unary_type_op_flags | unary_builtin_flags };
-	result[lex::token::kw_forward] = { lex::token::kw_forward, "__forward", "", keyword_flags | unary_builtin_flags };
+	result[lex::token::kw_move]        = { lex::token::kw_move,        "move",      "", keyword_flags | unary_type_op_flags | unary_builtin_flags };
+	result[lex::token::kw_unsafe_move] = { lex::token::kw_unsafe_move, "__move__",  "", keyword_flags | unary_builtin_flags                       };
+	result[lex::token::kw_forward]     = { lex::token::kw_forward,     "__forward", "", keyword_flags | unary_builtin_flags                       };
+
+	result[lex::token::kw_default] = { lex::token::kw_default, "__default__", "", keyword_flags };
+	result[lex::token::kw_delete]  = { lex::token::kw_delete,  "__delete__",  "", keyword_flags };
 
 	result[lex::token::kw_auto]     = { lex::token::kw_auto,     "auto",     "", keyword_flags | expr_type_flags };
 	result[lex::token::kw_typename] = { lex::token::kw_typename, "typename", "", keyword_flags | expr_type_flags };
@@ -471,6 +480,7 @@ def_token_flag_query(is_builtin_operator,        builtin)
 def_token_flag_query(is_unary_type_op,  unary_type_op)
 def_token_flag_query(is_binary_type_op, binary_type_op)
 def_token_flag_query(is_type_op,        type_op)
+def_token_flag_query(is_unary_has_unevaluated_context,  unary_has_unevaluated_context)
 
 #undef def_token_flag_query
 

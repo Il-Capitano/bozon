@@ -1,0 +1,9 @@
+function test(t: &const T)
+{
+	t[0];
+}
+
+struct T
+{
+	operator [] (self: &const T, : uint64);
+}

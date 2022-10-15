@@ -1661,8 +1661,8 @@ export function string_test()
 	{
 		let world = std::string("World");
 		world ..= '!';
-		std::print("Hello " .. world .. '\n');
-		std::print("Hello {}\n".std::format(world.as_str()));
+		std::print(("Hello " .. world .. '\n').as_str());
+		std::print("Hello {}\n".std::format(world.as_str()).as_str());
 		std::print("---\n");
 		std::printf("{}\n", world.empty());
 		std::printf("{}\n", world.not_empty());

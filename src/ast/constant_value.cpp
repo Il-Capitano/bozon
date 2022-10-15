@@ -31,37 +31,75 @@ static bz::u8string get_aggregate_like_value_string(bz::array_view<constant_valu
 	return result;
 }
 
+template<typename T>
+static bz::u8string get_aggregate_like_value_string(bz::array_view<T const> values)
+{
+	if (values.empty())
+	{
+		return "[]";
+	}
+	bz::u8string result = "[";
+	bool first = true;
+	for (auto const &value : values)
+	{
+		if (first)
+		{
+			first = false;
+			result += ' ';
+			result += bz::format("{}", value);
+		}
+		else
+		{
+			result += ", ";
+			result += bz::format("{}", value);
+		}
+	}
+	result += " ]";
+	return result;
+}
+
 bz::u8string get_value_string(constant_value const &value)
 {
 	switch (value.kind())
 	{
+	static_assert(constant_value::variant_count == 20);
 	case constant_value::sint:
-		return bz::format("{}", value.get<constant_value::sint>());
+		return bz::format("{}", value.get_sint());
 	case constant_value::uint:
-		return bz::format("{}", value.get<constant_value::uint>());
+		return bz::format("{}", value.get_uint());
 	case constant_value::float32:
-		return bz::format("{}", value.get<constant_value::float32>());
+		return bz::format("{}", value.get_float32());
 	case constant_value::float64:
-		return bz::format("{}", value.get<constant_value::float64>());
+		return bz::format("{}", value.get_float64());
 	case constant_value::u8char:
-		return bz::format("'{}'", add_escape_sequences(value.get<constant_value::u8char>()));
+		return bz::format("'{}'", add_escape_sequences(value.get_u8char()));
 	case constant_value::string:
-		return bz::format("\"{}\"", add_escape_sequences(value.get<constant_value::string>()));
+		return bz::format("\"{}\"", add_escape_sequences(value.get_string()));
 	case constant_value::boolean:
-		return bz::format("{}", value.get<constant_value::boolean>());
+		return bz::format("{}", value.get_boolean());
 	case constant_value::null:
 		return "null";
+	case constant_value::void_:
+		return "void()";
 	case constant_value::array:
-		return get_aggregate_like_value_string(value.get<constant_value::array>());
+		return get_aggregate_like_value_string(value.get_array());
+	case constant_value::sint_array:
+		return get_aggregate_like_value_string(value.get_sint_array());
+	case constant_value::uint_array:
+		return get_aggregate_like_value_string(value.get_uint_array());
+	case constant_value::float32_array:
+		return get_aggregate_like_value_string(value.get_float32_array());
+	case constant_value::float64_array:
+		return get_aggregate_like_value_string(value.get_float64_array());
 	case constant_value::tuple:
-		return get_aggregate_like_value_string(value.get<constant_value::tuple>());
+		return get_aggregate_like_value_string(value.get_tuple());
 	case constant_value::function:
 		return "";
 	case constant_value::unqualified_function_set_id:
 	{
 		bz::u8string result;
 		bool first = true;
-		for (auto const id : value.get<constant_value::qualified_function_set_id>().id)
+		for (auto const id : value.get_unqualified_function_set_id().id)
 		{
 			if (first)
 			{
@@ -78,7 +116,7 @@ bz::u8string get_value_string(constant_value const &value)
 	case constant_value::qualified_function_set_id:
 	{
 		bz::u8string result;
-		for (auto const id : value.get<constant_value::qualified_function_set_id>().id)
+		for (auto const id : value.get_qualified_function_set_id().id)
 		{
 			result += "::";
 			result += id;
@@ -86,9 +124,9 @@ bz::u8string get_value_string(constant_value const &value)
 		return result;
 	}
 	case constant_value::type:
-		return bz::format("{}", value.get<constant_value::type>());
+		return bz::format("{}", value.get_type());
 	case constant_value::aggregate:
-		return get_aggregate_like_value_string(value.get<constant_value::aggregate>());
+		return get_aggregate_like_value_string(value.get_aggregate());
 	default:
 		return "";
 	}
@@ -104,33 +142,74 @@ static void encode_array_like(bz::u8string &out, bz::array_view<constant_value c
 	}
 }
 
+static void encode_array_like(bz::u8string &out, bz::array_view<int64_t const> values)
+{
+	out += bz::format("{}", values.size());
+	for (auto const &value : values)
+	{
+		out += '.';
+		out += bz::format("{}", bit_cast<uint64_t>(value));
+	}
+}
+
+static void encode_array_like(bz::u8string &out, bz::array_view<uint64_t const> values)
+{
+	out += bz::format("{}", values.size());
+	for (auto const &value : values)
+	{
+		out += '.';
+		out += bz::format("{}", value);
+	}
+}
+
+static void encode_array_like(bz::u8string &out, bz::array_view<float32_t const> values)
+{
+	out += bz::format("{}", values.size());
+	for (auto const &value : values)
+	{
+		out += '.';
+		out += bz::format("{:08x}", bit_cast<uint32_t>(value));
+	}
+}
+
+static void encode_array_like(bz::u8string &out, bz::array_view<float64_t const> values)
+{
+	out += bz::format("{}", values.size());
+	for (auto const &value : values)
+	{
+		out += '.';
+		out += bz::format("{:016x}", bit_cast<uint64_t>(value));
+	}
+}
+
 void constant_value::encode_for_symbol_name(bz::u8string &out, constant_value const &value)
 {
 	switch (value.kind())
 	{
+	static_assert(constant_value::variant_count == 20);
 	case sint:
 		out += 'i';
-		out += bz::format("{}", bit_cast<uint64_t>(value.get<sint>()));
+		out += bz::format("{}", bit_cast<uint64_t>(value.get_sint()));
 		break;
 	case uint:
 		out += 'u';
-		out += bz::format("{}", value.get<uint>());
+		out += bz::format("{}", value.get_uint());
 		break;
 	case float32:
 		out += 'f';
-		out += bz::format("{:8x}", bit_cast<uint32_t>(value.get<float32>()));
+		out += bz::format("{:08x}", bit_cast<uint32_t>(value.get_float32()));
 		break;
 	case float64:
 		out += 'd';
-		out += bz::format("{:16x}", bit_cast<uint64_t>(value.get<float64>()));
+		out += bz::format("{:016x}", bit_cast<uint64_t>(value.get_float64()));
 		break;
 	case u8char:
 		out += 'c';
-		out += bz::format("{}", bit_cast<uint32_t>(value.get<u8char>()));
+		out += bz::format("{}", bit_cast<uint32_t>(value.get_u8char()));
 		break;
 	case string:
 	{
-		auto const str = value.get<string>().as_string_view();
+		auto const str = value.get_string();
 		out += 's';
 		out += bz::format("{}", str.size());
 		out += '.';
@@ -139,7 +218,7 @@ void constant_value::encode_for_symbol_name(bz::u8string &out, constant_value co
 	}
 	case boolean:
 		out += 'b';
-		out += value.get<boolean>() ? '1' : '0';
+		out += value.get_boolean() ? '1' : '0';
 		break;
 	case null:
 		out += 'n';
@@ -149,15 +228,31 @@ void constant_value::encode_for_symbol_name(bz::u8string &out, constant_value co
 		break;
 	case array:
 		out += 'A';
-		encode_array_like(out, value.get<array>());
+		encode_array_like(out, value.get_array());
+		break;
+	case sint_array:
+		out += 'I';
+		encode_array_like(out, value.get_sint_array());
+		break;
+	case uint_array:
+		out += 'U';
+		encode_array_like(out, value.get_uint_array());
+		break;
+	case float32_array:
+		out += 'G';
+		encode_array_like(out, value.get_float32_array());
+		break;
+	case float64_array:
+		out += 'D';
+		encode_array_like(out, value.get_float64_array());
 		break;
 	case tuple:
 		out += 'T';
-		encode_array_like(out, value.get<tuple>());
+		encode_array_like(out, value.get_tuple());
 		break;
 	case function:
 	{
-		auto const func = value.get<function>();
+		auto const func = value.get_function();
 		auto const func_symbol = func->body.symbol_name.as_string_view();
 		out += 'F';
 		out += bz::format("{}", func_symbol.size());
@@ -170,7 +265,7 @@ void constant_value::encode_for_symbol_name(bz::u8string &out, constant_value co
 		bz_unreachable;
 	case type:
 	{
-		auto const symbol = value.get<type>().get_symbol_name();
+		auto const symbol = value.get_type().get_symbol_name();
 		out += 't';
 		out += bz::format("{}", symbol.size());
 		out += '.';
@@ -179,7 +274,7 @@ void constant_value::encode_for_symbol_name(bz::u8string &out, constant_value co
 	}
 	case aggregate:
 		out += 'a';
-		encode_array_like(out, value.get<aggregate>());
+		encode_array_like(out, value.get_aggregate());
 		break;
 	default:
 		bz_unreachable;
@@ -248,6 +343,90 @@ static void decode_array_like(
 	out += " ]";
 }
 
+static void decode_sint_array(
+	bz::u8string_view::const_iterator &it,
+	bz::u8string_view::const_iterator end,
+	bz::u8string &out
+)
+{
+	auto const size = parse_int<size_t>(it, end);
+	out += "[ ";
+	for (auto const i : bz::iota(0, size))
+	{
+		if (i != 0)
+		{
+			out += ", ";
+		}
+		bz_assert(*it == '.');
+		++it;
+		out += bz::format("{}", bit_cast<int64_t>(parse_int<uint64_t>(it, end)));
+	}
+	out += " ]";
+}
+
+static void decode_uint_array(
+	bz::u8string_view::const_iterator &it,
+	bz::u8string_view::const_iterator end,
+	bz::u8string &out
+)
+{
+	auto const size = parse_int<size_t>(it, end);
+	out += "[ ";
+	for (auto const i : bz::iota(0, size))
+	{
+		if (i != 0)
+		{
+			out += ", ";
+		}
+		bz_assert(*it == '.');
+		++it;
+		out += bz::format("{}", parse_int<uint64_t>(it, end));
+	}
+	out += " ]";
+}
+
+static void decode_float32_array(
+	bz::u8string_view::const_iterator &it,
+	bz::u8string_view::const_iterator end,
+	bz::u8string &out
+)
+{
+	auto const size = parse_int<size_t>(it, end);
+	out += "[ ";
+	for (auto const i : bz::iota(0, size))
+	{
+		if (i != 0)
+		{
+			out += ", ";
+		}
+		bz_assert(*it == '.');
+		++it;
+		out += bz::format("{}", bit_cast<float32_t>(parse_hex<uint32_t>(it, end)));
+	}
+	out += " ]";
+}
+
+static void decode_float64_array(
+	bz::u8string_view::const_iterator &it,
+	bz::u8string_view::const_iterator end,
+	bz::u8string &out
+)
+{
+	auto const size = parse_int<size_t>(it, end);
+	out += "[ ";
+	for (auto const i : bz::iota(0, size))
+	{
+		if (i != 0)
+		{
+			out += ", ";
+		}
+		bz_assert(*it == '.');
+		++it;
+		out += bz::format("{}", bit_cast<float64_t>(parse_hex<uint64_t>(it, end)));
+	}
+	out += " ]";
+}
+
 bz::u8string constant_value::decode_from_symbol_name(bz::u8string_view::const_iterator &it, bz::u8string_view::const_iterator end)
 {
 	switch (*it)
@@ -297,6 +476,34 @@ bz::u8string constant_value::decode_from_symbol_name(bz::u8string_view::const_it
 		decode_array_like(it, end, result);
 		return result;
 	}
+	case 'I':
+	{
+		++it;
+		bz::u8string result;
+		decode_sint_array(it, end, result);
+		return result;
+	}
+	case 'U':
+	{
+		++it;
+		bz::u8string result;
+		decode_uint_array(it, end, result);
+		return result;
+	}
+	case 'G':
+	{
+		++it;
+		bz::u8string result;
+		decode_float32_array(it, end, result);
+		return result;
+	}
+	case 'D':
+	{
+		++it;
+		bz::u8string result;
+		decode_float64_array(it, end, result);
+		return result;
+	}
 	case 'T':
 	{
 		++it;
@@ -315,9 +522,6 @@ bz::u8string constant_value::decode_from_symbol_name(bz::u8string_view::const_it
 		it = str_end;
 		return ast::function_body::decode_symbol_name(result_symbol);
 	}
-	case 'U':
-	case 'Q':
-		bz_unreachable;
 	case 't':
 	{
 		++it;
@@ -349,32 +553,43 @@ bool operator == (constant_value const &lhs, constant_value const &rhs) noexcept
 	}
 	switch (lhs.kind())
 	{
+	static_assert(constant_value::variant_count == 20);
 	case constant_value::sint:
-		return lhs.get<constant_value::sint>() == rhs.get<constant_value::sint>();
+		return lhs.get_sint() == rhs.get_sint();
 	case constant_value::uint:
-		return lhs.get<constant_value::uint>() == rhs.get<constant_value::uint>();
+		return lhs.get_uint() == rhs.get_uint();
 	case constant_value::float32:
-		return lhs.get<constant_value::float32>() == rhs.get<constant_value::float32>();
+		return lhs.get_float32() == rhs.get_float32();
 	case constant_value::float64:
-		return lhs.get<constant_value::float64>() == rhs.get<constant_value::float64>();
+		return lhs.get_float64() == rhs.get_float64();
 	case constant_value::u8char:
-		return lhs.get<constant_value::u8char>() == rhs.get<constant_value::u8char>();
+		return lhs.get_u8char() == rhs.get_u8char();
 	case constant_value::string:
-		return lhs.get<constant_value::string>() == rhs.get<constant_value::string>();
+		return lhs.get_string() == rhs.get_string();
 	case constant_value::boolean:
-		return lhs.get<constant_value::boolean>() == rhs.get<constant_value::boolean>();
+		return lhs.get_boolean() == rhs.get_boolean();
 	case constant_value::null:
 		return true;
+	case constant_value::void_:
+		return true;
 	case constant_value::array:
-		return lhs.get<constant_value::array>() == rhs.get<constant_value::array>();
+		return lhs.get_array() == rhs.get_array();
+	case constant_value::sint_array:
+		return lhs.get_sint_array() == rhs.get_sint_array();
+	case constant_value::uint_array:
+		return lhs.get_uint_array() == rhs.get_uint_array();
+	case constant_value::float32_array:
+		return lhs.get_float32_array() == rhs.get_float32_array();
+	case constant_value::float64_array:
+		return lhs.get_float64_array() == rhs.get_float64_array();
 	case constant_value::tuple:
-		return lhs.get<constant_value::tuple>() == rhs.get<constant_value::tuple>();
+		return lhs.get_tuple() == rhs.get_tuple();
 	case constant_value::function:
-		return lhs.get<constant_value::function>() == rhs.get<constant_value::function>();
+		return lhs.get_function() == rhs.get_function();
 	case constant_value::unqualified_function_set_id:
 	{
-		auto const &[lhs_id, lhs_bodies] = lhs.get<constant_value::unqualified_function_set_id>();
-		auto const &[rhs_id, rhs_bodies] = rhs.get<constant_value::unqualified_function_set_id>();
+		auto const &[lhs_id, lhs_bodies] = lhs.get_unqualified_function_set_id();
+		auto const &[rhs_id, rhs_bodies] = rhs.get_unqualified_function_set_id();
 		if (lhs_bodies.empty() && rhs_bodies.empty())
 		{
 			return lhs_id == rhs_id;
@@ -390,8 +605,8 @@ bool operator == (constant_value const &lhs, constant_value const &rhs) noexcept
 	}
 	case constant_value::qualified_function_set_id:
 	{
-		auto const &[lhs_id, lhs_bodies] = lhs.get<constant_value::qualified_function_set_id>();
-		auto const &[rhs_id, rhs_bodies] = rhs.get<constant_value::qualified_function_set_id>();
+		auto const &[lhs_id, lhs_bodies] = lhs.get_qualified_function_set_id();
+		auto const &[rhs_id, rhs_bodies] = rhs.get_qualified_function_set_id();
 		if (lhs_bodies.empty() && rhs_bodies.empty())
 		{
 			return lhs_id == rhs_id;
@@ -406,9 +621,9 @@ bool operator == (constant_value const &lhs, constant_value const &rhs) noexcept
 		}
 	}
 	case constant_value::type:
-		return lhs.get<constant_value::type>() == rhs.get<constant_value::type>();
+		return lhs.get_type() == rhs.get_type();
 	case constant_value::aggregate:
-		return lhs.get<constant_value::aggregate>() == rhs.get<constant_value::aggregate>();
+		return lhs.get_aggregate() == rhs.get_aggregate();
 	default:
 		return false;
 	}

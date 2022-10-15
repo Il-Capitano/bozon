@@ -5,7 +5,6 @@
 #include "consteval.h"
 #include "parse/statement_parser.h"
 #include "parse/expression_parser.h"
-#include "ctx/global_context.h"
 
 namespace resolve
 {
@@ -13,7 +12,14 @@ namespace resolve
 static void resolve_stmt(ast::stmt_while &while_stmt, ctx::parse_context &context)
 {
 	resolve_expression(while_stmt.condition, context);
+
+	auto const prev_info = context.push_loop();
+	bz_assert(while_stmt.loop_scope.is_null());
+	while_stmt.loop_scope = ast::make_local_scope(context.get_current_enclosing_scope(), true);
+	context.push_local_scope(&while_stmt.loop_scope);
 	resolve_expression(while_stmt.while_block, context);
+	context.pop_local_scope(true);
+	context.pop_loop(prev_info);
 
 	auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
 	match_expression_to_type(while_stmt.condition, bool_type, context);
@@ -21,13 +27,20 @@ static void resolve_stmt(ast::stmt_while &while_stmt, ctx::parse_context &contex
 
 static void resolve_stmt(ast::stmt_for &for_stmt, ctx::parse_context &context)
 {
-	bz_assert(for_stmt.scope.is_null());
-	for_stmt.scope = ast::make_local_scope(context.get_current_enclosing_scope());
-	context.push_local_scope(&for_stmt.scope);
+	bz_assert(for_stmt.init_scope.is_null());
+	for_stmt.init_scope = ast::make_local_scope(context.get_current_enclosing_scope(), false);
+	context.push_local_scope(&for_stmt.init_scope);
 	resolve_statement(for_stmt.init, context);
 	resolve_expression(for_stmt.condition, context);
+
+	auto const prev_info = context.push_loop();
+	bz_assert(for_stmt.loop_scope.is_null());
+	for_stmt.loop_scope = ast::make_local_scope(context.get_current_enclosing_scope(), true);
+	context.push_local_scope(&for_stmt.loop_scope);
 	resolve_expression(for_stmt.iteration, context);
 	resolve_expression(for_stmt.for_block, context);
+	context.pop_local_scope(true);
+	context.pop_loop(prev_info);
 
 	auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
 	if (for_stmt.condition.not_null())
@@ -40,9 +53,9 @@ static void resolve_stmt(ast::stmt_for &for_stmt, ctx::parse_context &context)
 static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &context)
 {
 	bz_assert(foreach_stmt.iter_var_decl.is_null());
-	bz_assert(foreach_stmt.scope.is_null());
-	foreach_stmt.scope = ast::make_local_scope(context.get_current_enclosing_scope());
-	context.push_local_scope(&foreach_stmt.scope);
+	bz_assert(foreach_stmt.init_scope.is_null());
+	foreach_stmt.init_scope = ast::make_local_scope(context.get_current_enclosing_scope(), false);
+	context.push_local_scope(&foreach_stmt.init_scope);
 	resolve_statement(foreach_stmt.range_var_decl, context);
 	bz_assert(foreach_stmt.range_var_decl.is<ast::decl_variable>());
 	auto &range_var_decl = foreach_stmt.range_var_decl.get<ast::decl_variable>();
@@ -68,7 +81,8 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto range_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			type_kind, type,
-			ast::make_expr_identifier(ast::identifier{}, &range_var_decl)
+			ast::make_expr_identifier(ast::identifier{}, &range_var_decl, 0, true),
+			ast::destruct_operation()
 		);
 		return context.make_universal_function_call_expression(
 			range_expr_src_tokens,
@@ -105,7 +119,8 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto range_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			type_kind, type,
-			ast::make_expr_identifier(ast::identifier{}, &range_var_decl)
+			ast::make_expr_identifier(ast::identifier{}, &range_var_decl, 0, true),
+			ast::destruct_operation()
 		);
 		return context.make_universal_function_call_expression(
 			range_expr_src_tokens,
@@ -138,12 +153,14 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			ast::expression_type_kind::lvalue, iter_var_decl.get_type(),
-			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
+			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl, 0, true),
+			ast::destruct_operation()
 		);
 		auto end_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			ast::expression_type_kind::lvalue, end_var_decl.get_type(),
-			ast::make_expr_identifier(ast::identifier{}, &end_var_decl)
+			ast::make_expr_identifier(ast::identifier{}, &end_var_decl, 0, true),
+			ast::destruct_operation()
 		);
 		return context.make_binary_operator_expression(
 			range_expr_src_tokens,
@@ -158,6 +175,10 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		match_expression_to_type(foreach_stmt.condition, bool_type, context);
 	}
 
+	auto const prev_info = context.push_loop();
+	bz_assert(foreach_stmt.loop_scope.is_null());
+	foreach_stmt.loop_scope = ast::make_local_scope(context.get_current_enclosing_scope(), true);
+	context.push_local_scope(&foreach_stmt.loop_scope);
 	foreach_stmt.iteration = [&]() {
 		if (iter_var_decl.get_type().is_empty())
 		{
@@ -166,7 +187,8 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			ast::expression_type_kind::lvalue, iter_var_decl.get_type(),
-			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
+			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl, 1, true),
+			ast::destruct_operation()
 		);
 		return context.make_unary_operator_expression(
 			range_expr_src_tokens,
@@ -186,7 +208,8 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			ast::expression_type_kind::lvalue, iter_var_decl.get_type(),
-			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
+			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl, 1, true),
+			ast::destruct_operation()
 		);
 		return context.make_unary_operator_expression(
 			range_expr_src_tokens,
@@ -198,6 +221,8 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	context.add_local_variable(iter_deref_var_decl);
 
 	resolve_expression(foreach_stmt.for_block, context);
+	context.pop_local_scope(true);
+	context.pop_loop(prev_info);
 	context.pop_local_scope(true);
 }
 
@@ -221,6 +246,12 @@ static void resolve_stmt(ast::stmt_return &return_stmt, ctx::parse_context &cont
 		bz_assert(ast::is_complete(context.current_function->return_type));
 		match_expression_to_type(return_stmt.expr, context.current_function->return_type, context);
 	}
+}
+
+static void resolve_stmt(ast::stmt_defer &defer_stmt, ctx::parse_context &context)
+{
+	bz_assert(defer_stmt.deferred_expr.is<ast::defer_expression>());
+	resolve_expression(*defer_stmt.deferred_expr.get<ast::defer_expression>().expr, context);
 }
 
 static void resolve_stmt(ast::stmt_no_op &, ctx::parse_context &)
@@ -374,7 +405,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 
 	auto &cond_const_expr = static_assert_stmt.condition.get_constant();
 	bz_assert(cond_const_expr.value.kind() == ast::constant_value::boolean);
-	auto const cond = cond_const_expr.value.get<ast::constant_value::boolean>();
+	auto const cond = cond_const_expr.value.get_boolean();
 
 	if (!cond)
 	{
@@ -388,7 +419,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 		{
 			auto &message_const_expr = static_assert_stmt.message.get_constant();
 			bz_assert(message_const_expr.value.kind() == ast::constant_value::string);
-			auto const message = message_const_expr.value.get<ast::constant_value::string>().as_string_view();
+			auto const message = message_const_expr.value.get_string();
 			error_message += bz::format(", message: '{}'", message);
 		}
 		context.report_error(static_assert_stmt.condition, std::move(error_message));
@@ -398,6 +429,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 static void resolve_stmt(ast::stmt_expression &expr_stmt, ctx::parse_context &context)
 {
 	resolve_expression(expr_stmt.expr, context);
+	context.add_self_destruction(expr_stmt.expr);
 }
 
 static void resolve_stmt(ast::decl_variable &var_decl, ctx::parse_context &context)
@@ -521,11 +553,21 @@ static void resolve_variable_type(ast::decl_variable &var_decl, ctx::parse_conte
 	bz_assert(var_decl.state == ast::resolve_state::resolving_symbol);
 	if (var_decl.tuple_decls.not_empty())
 	{
-		for (auto &decl : var_decl.tuple_decls)
+		auto const decls_size = var_decl.tuple_decls.size();
+		for (auto const i : bz::iota(0, decls_size))
 		{
+			auto &decl = var_decl.tuple_decls[i];
 			bz_assert(decl.state < ast::resolve_state::symbol);
 			decl.state = ast::resolve_state::resolving_symbol;
 			resolve_variable_type(decl, context);
+			if (decl.get_type().is<ast::ts_variadic>() && i != decls_size - 1)
+			{
+				context.report_error(
+					decl.src_tokens,
+					bz::format("variable with variadic type '{}' must be the last element in tuple decomposition", decl.get_type())
+				);
+				decl.get_type().remove_layer();
+			}
 			if (decl.state != ast::resolve_state::error)
 			{
 				decl.state = ast::resolve_state::symbol;
@@ -606,6 +648,15 @@ static void resolve_variable_type(ast::decl_variable &var_decl, ctx::parse_conte
 		}
 	}
 	apply_prototype(var_decl.get_prototype_range(), var_decl, context);
+
+	if (!var_decl.is_parameter() && var_decl.get_type().is<ast::ts_move_reference>())
+	{
+		context.report_error(
+			var_decl.src_tokens,
+			bz::format("non-parameter variable cannot have a move reference type '{}'", var_decl.get_type())
+		);
+	}
+
 }
 
 static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_decl, ctx::parse_context &context)
@@ -697,39 +748,15 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 			);
 			var_decl.state = ast::resolve_state::error;
 		}
-		else if (var_decl.get_type().is<ast::ts_base_type>())
+		else
 		{
-			auto const info = var_decl.get_type().get<ast::ts_base_type>().info;
-			auto const def_ctor = info->default_constructor != nullptr
-				? info->default_constructor
-				: info->default_default_constructor.get();
-			if (def_ctor != nullptr)
-			{
-				var_decl.init_expr = ast::make_dynamic_expression(
-					var_decl.src_tokens,
-					ast::expression_type_kind::rvalue,
-					var_decl.get_type(),
-					ast::make_expr_function_call(
-						var_decl.src_tokens,
-						ast::arena_vector<ast::expression>{},
-						&def_ctor->body,
-						ast::resolve_order::regular
-					)
-				);
-				resolve::consteval_guaranteed(var_decl.init_expr, context);
-			}
-			else
-			{
-				context.report_error(
-					var_decl.src_tokens,
-					bz::format("variable type '{}' does not have a default constructor", var_decl.get_type())
-				);
-			}
+			var_decl.init_expr = context.make_default_construction(var_decl.src_tokens, var_decl.get_type());
+			resolve::consteval_guaranteed(var_decl.init_expr, context);
 		}
 	}
 	if (
 		!var_decl.get_type().is_empty()
-		&& !context.is_instantiable(var_decl.get_type())
+		&& !context.is_instantiable(var_decl.src_tokens, var_decl.get_type())
 		&& var_decl.state != ast::resolve_state::error
 	)
 	{
@@ -811,6 +838,36 @@ void resolve_variable_symbol(ast::decl_variable &var_decl, ctx::parse_context &c
 	}
 }
 
+static void resolve_variable_destruction(ast::decl_variable &var_decl, ctx::parse_context &context)
+{
+	auto const type = ast::remove_const_or_consteval(var_decl.get_type());
+	if (type.is<ast::ts_base_type>())
+	{
+		auto const info = type.get<ast::ts_base_type>().info;
+		if (info->state < ast::resolve_state::all)
+		{
+			context.add_to_resolve_queue(var_decl.src_tokens, *info);
+			resolve_type_info(*info, context);
+			context.pop_resolve_queue();
+		}
+	}
+
+	if (!var_decl.is_member() && !context.is_trivially_destructible(var_decl.src_tokens, type))
+	{
+		if (var_decl.tuple_decls.not_empty())
+		{
+			for (auto &decl : var_decl.tuple_decls)
+			{
+				resolve_variable_destruction(decl, context);
+			}
+		}
+		else
+		{
+			var_decl.destruction = context.make_variable_destruction(&var_decl);
+		}
+	}
+}
+
 static void resolve_variable_impl(ast::decl_variable &var_decl, ctx::parse_context &context)
 {
 	if (var_decl.state < ast::resolve_state::symbol)
@@ -828,6 +885,7 @@ static void resolve_variable_impl(ast::decl_variable &var_decl, ctx::parse_conte
 	{
 		return;
 	}
+	resolve_variable_destruction(var_decl, context);
 	var_decl.state = ast::resolve_state::all;
 }
 
@@ -906,9 +964,9 @@ static void resolve_type_alias_impl(ast::decl_type_alias &alias_decl, ctx::parse
 	}
 
 	auto const &value = alias_decl.alias_expr.get_constant_value();
-	if (value.is<ast::constant_value::type>())
+	if (value.is_type())
 	{
-		auto const &type = value.get<ast::constant_value::type>();
+		auto const type = value.get_type();
 		if (ast::is_complete(type))
 		{
 			alias_decl.state = ast::resolve_state::all;
@@ -1026,18 +1084,18 @@ static void resolve_function_alias_impl(ast::decl_function_alias &alias_decl, ct
 	}
 
 	auto const &value = alias_decl.alias_expr.get_constant_value();
-	if (value.is<ast::constant_value::function>())
+	if (value.is_function())
 	{
-		auto const func_decl = value.get<ast::constant_value::function>();
+		auto const func_decl = value.get_function();
 		bz_assert(alias_decl.aliased_decls.empty());
 		alias_decl.aliased_decls = { func_decl };
 		alias_decl.state = ast::resolve_state::all;
 	}
-	else if (value.is<ast::constant_value::unqualified_function_set_id>() || value.is<ast::constant_value::qualified_function_set_id>())
+	else if (value.is_unqualified_function_set_id() || value.is_qualified_function_set_id())
 	{
-		auto const &func_set = value.is<ast::constant_value::unqualified_function_set_id>()
-			? value.get<ast::constant_value::unqualified_function_set_id>()
-			: value.get<ast::constant_value::qualified_function_set_id>();
+		auto const &func_set = value.is_unqualified_function_set_id()
+			? value.get_unqualified_function_set_id()
+			: value.get_qualified_function_set_id();
 		bz_assert(alias_decl.aliased_decls.empty());
 		alias_decl.aliased_decls = get_function_decls_from_set(func_set);
 		if (alias_decl.state != ast::resolve_state::error && !alias_decl.aliased_decls.empty())
@@ -1074,6 +1132,64 @@ void resolve_function_alias(ast::decl_function_alias &alias_decl, ctx::parse_con
 	auto prev_scopes = context.push_enclosing_scope(alias_decl.enclosing_scope);
 	resolve_function_alias_impl(alias_decl, context);
 	context.pop_enclosing_scope(std::move(prev_scopes));
+}
+
+static bool is_valid_copy_assign_op(ast::function_body &func_body)
+{
+	if (
+		!func_body.function_name_or_operator_kind.is<uint32_t>()
+		|| func_body.function_name_or_operator_kind.get<uint32_t>() != lex::token::assign
+	)
+	{
+		return false;
+	}
+
+	bz_assert(func_body.params.size() == 2);
+	auto const lhs_type = func_body.params[0].get_type().as_typespec_view();
+	if (
+		lhs_type.nodes.size() != 2
+		|| !lhs_type.nodes[0].is<ast::ts_lvalue_reference>()
+		|| !lhs_type.nodes[1].is<ast::ts_base_type>()
+	)
+	{
+		return false;
+	}
+
+	auto const info = lhs_type.nodes[1].get<ast::ts_base_type>().info;
+	auto const rhs_type = func_body.params[1].get_type().as_typespec_view();
+	return rhs_type.nodes.size() == 3
+		&& rhs_type.nodes[0].is<ast::ts_lvalue_reference>()
+		&& rhs_type.nodes[1].is<ast::ts_const>()
+		&& rhs_type.nodes[2].is<ast::ts_base_type>()
+		&& rhs_type.nodes[2].get<ast::ts_base_type>().info == info;
+}
+
+static bool is_valid_move_assign_op(ast::function_body &func_body)
+{
+	if (
+		!func_body.function_name_or_operator_kind.is<uint32_t>()
+		|| func_body.function_name_or_operator_kind.get<uint32_t>() != lex::token::assign
+	)
+	{
+		return false;
+	}
+
+	bz_assert(func_body.params.size() == 2);
+	auto const lhs_type = func_body.params[0].get_type().as_typespec_view();
+	if (
+		lhs_type.nodes.size() != 2
+		|| !lhs_type.nodes[0].is<ast::ts_lvalue_reference>()
+		|| !lhs_type.nodes[1].is<ast::ts_base_type>()
+	)
+	{
+		return false;
+	}
+
+	auto const info = lhs_type.nodes[1].get<ast::ts_base_type>().info;
+	auto const rhs_type = func_body.params[1].get_type().as_typespec_view();
+	return rhs_type.nodes.size() == 1
+		&& rhs_type.nodes[0].is<ast::ts_base_type>()
+		&& rhs_type.nodes[0].get<ast::ts_base_type>().info == info;
 }
 
 static bool resolve_function_parameters_helper(
@@ -1130,42 +1246,7 @@ static bool resolve_function_parameters_helper(
 		}
 	}
 
-	if (
-		good
-		&& !func_body.is_generic()
-		&& func_stmt.is<ast::decl_operator>()
-		&& func_stmt.get<ast::decl_operator>().op->kind == lex::token::assign
-	)
-	{
-		bz_assert(func_body.params.size() == 2);
-		auto const lhs_t = func_body.params[0].get_type().as_typespec_view();
-		auto const rhs_t = func_body.params[1].get_type().as_typespec_view();
-		if (
-			lhs_t.is<ast::ts_lvalue_reference>()
-			&& lhs_t.get<ast::ts_lvalue_reference>().is<ast::ts_base_type>()
-			&& ((
-				rhs_t.is<ast::ts_lvalue_reference>()
-				&& rhs_t.get<ast::ts_lvalue_reference>().is<ast::ts_const>()
-				&& rhs_t.get<ast::ts_lvalue_reference>().get<ast::ts_const>() == lhs_t.get<ast::ts_lvalue_reference>()
-			) || (
-				ast::remove_const_or_consteval(rhs_t) == lhs_t.get<ast::ts_lvalue_reference>()
-			))
-		)
-		{
-			auto const info = lhs_t.get<ast::ts_lvalue_reference>().get<ast::ts_base_type>().info;
-			bz_assert(func_stmt.is<ast::decl_operator>());
-			auto const op_decl = &func_stmt.get<ast::decl_operator>();
-			if (rhs_t.is<ast::ts_lvalue_reference>())
-			{
-				info->op_assign = op_decl;
-			}
-			else
-			{
-				info->op_move_assign = op_decl;
-			}
-		}
-	}
-	else if (good && func_body.is_destructor())
+	if (good && func_body.is_destructor())
 	{
 		if (func_body.params.size() != 1)
 		{
@@ -1179,16 +1260,16 @@ static bool resolve_function_parameters_helper(
 			return false;
 		}
 
+		auto const param_type = func_body.params[0].get_type().as_typespec_view();
 		if (func_body.is_generic())
 		{
 			func_body.flags &= ~ast::function_body::generic;
 
-			auto const param_type = func_body.params[0].get_type().as_typespec_view();
-			// if the parameter is generic, then it must be &auto
-			// either as `destructor(&self)` or `destructor(self: &auto)`
+			// if the parameter is generic, then it must be &auto or move auto
+			// either as `destructor(&self)`, `destructor(move self)`, `destructor(self: &auto)` or `destructor(self: move auto)`
 			if (
 				param_type.nodes.size() != 2
-				|| !param_type.nodes[0].is<ast::ts_lvalue_reference>()
+				|| (!param_type.nodes[0].is<ast::ts_lvalue_reference>() && !param_type.nodes[0].is<ast::ts_move_reference>())
 				|| !param_type.nodes[1].is<ast::ts_auto>()
 			)
 			{
@@ -1200,7 +1281,7 @@ static bool resolve_function_parameters_helper(
 						"invalid parameter type '{}' in destructor of type '{}'",
 						param_type, destructor_of_type
 					),
-					{ context.make_note(bz::format("it must be either '&auto' or '&{}'", destructor_of_type)) }
+					{ context.make_note(bz::format("it must be either '&auto', 'move auto', '&{0}' or 'move {0}'", destructor_of_type)) }
 				);
 				return false;
 			}
@@ -1209,11 +1290,10 @@ static bool resolve_function_parameters_helper(
 		}
 		else
 		{
-			auto const param_type = func_body.params[0].get_type().as_typespec_view();
 			// if the parameter is non-generic, then it must be &<type>
 			if (
 				param_type.nodes.size() != 2
-				|| !param_type.nodes[0].is<ast::ts_lvalue_reference>()
+				|| (!param_type.nodes[0].is<ast::ts_lvalue_reference>() && !param_type.nodes[0].is<ast::ts_move_reference>())
 				|| !param_type.nodes[1].is<ast::ts_base_type>()
 				|| param_type.nodes[1].get<ast::ts_base_type>().info != func_body.get_destructor_of()
 			)
@@ -1225,9 +1305,50 @@ static bool resolve_function_parameters_helper(
 						"invalid parameter type '{}' in destructor of type '{}'",
 						param_type, destructor_of_type
 					),
-					{ context.make_note(bz::format("it must be either '&auto' or '&{}'", destructor_of_type)) }
+					{ context.make_note(bz::format("it must be either '&auto', 'move auto', '&{0}' or 'move {0}'", destructor_of_type)) }
 				);
 				return false;
+			}
+		}
+
+		bz_assert(func_stmt.is<ast::decl_function>());
+		auto const info = func_body.get_destructor_of();
+		if (param_type.is<ast::ts_lvalue_reference>())
+		{
+			if (info->destructor != nullptr)
+			{
+				context.report_error(
+					func_body.src_tokens,
+					bz::format("redefinition of destructor for type '{}'", ast::make_base_type_typespec({}, info)),
+					{ context.make_note(
+						info->destructor->body.src_tokens,
+						"destructor previously defined here"
+					) }
+				);
+				return false;
+			}
+			else
+			{
+				info->destructor = &func_stmt.get<ast::decl_function>();
+			}
+		}
+		else
+		{
+			if (info->move_destructor != nullptr)
+			{
+				context.report_error(
+					func_body.src_tokens,
+					bz::format("redefinition of move destructor for type '{}'", ast::make_base_type_typespec({}, info)),
+					{ context.make_note(
+						info->move_destructor->body.src_tokens,
+						"move destructor previously defined here"
+					) }
+				);
+				return false;
+			}
+			else
+			{
+				info->move_destructor = &func_stmt.get<ast::decl_function>();
 			}
 		}
 	}
@@ -1251,6 +1372,7 @@ static bool resolve_function_parameters_helper(
 			else
 			{
 				bz_assert(func_stmt.is<ast::decl_function>());
+				func_body.flags |= ast::function_body::default_constructor;
 				info->default_constructor = &func_stmt.get<ast::decl_function>();
 			}
 		}
@@ -1279,9 +1401,46 @@ static bool resolve_function_parameters_helper(
 			else
 			{
 				bz_assert(func_stmt.is<ast::decl_function>());
+				func_body.flags |= ast::function_body::copy_constructor;
 				info->copy_constructor = &func_stmt.get<ast::decl_function>();
 			}
 		}
+		else if (
+			func_body.params.size() == 1
+			&& func_body.params[0].get_type().nodes.size() == 2
+			&& func_body.params[0].get_type().nodes[0].is<ast::ts_move_reference>()
+			&& func_body.params[0].get_type().nodes[1].is<ast::ts_base_type>()
+			&& func_body.params[0].get_type().nodes[1].get<ast::ts_base_type>().info == func_body.get_constructor_of()
+		)
+		{
+			auto const info = func_body.get_constructor_of();
+			if (info->move_constructor != nullptr)
+			{
+				context.report_error(
+					func_body.src_tokens,
+					bz::format("redefinition of move constructor for type '{}'", ast::make_base_type_typespec({}, info)),
+					{ context.make_note(
+						info->move_constructor->body.src_tokens,
+						"move constructor previously defined here"
+					) }
+				);
+				return false;
+			}
+			else
+			{
+				bz_assert(func_stmt.is<ast::decl_function>());
+				func_body.flags |= ast::function_body::move_constructor;
+				info->move_constructor = &func_stmt.get<ast::decl_function>();
+			}
+		}
+	}
+	else if (good && is_valid_copy_assign_op(func_body))
+	{
+		func_body.flags |= ast::function_body::copy_assign_op;
+	}
+	else if (good && is_valid_move_assign_op(func_body))
+	{
+		func_body.flags |= ast::function_body::move_assign_op;
 	}
 
 	if (func_stmt.is<ast::decl_function>())
@@ -1404,12 +1563,24 @@ static bool resolve_function_return_type_helper(ast::function_body &func_body, c
 			);
 			return false;
 		}
-		return !func_body.return_type.is_empty();
+		if (func_body.return_type.is_empty())
+		{
+			func_body.return_type = ast::make_void_typespec(nullptr);
+		}
+		return true;
 	}
 	else if (func_body.is_constructor())
 	{
 		// constructors can't have their return type specified, so we have to always set it here
 		func_body.return_type = ast::make_base_type_typespec({}, func_body.get_constructor_of());
+		return true;
+	}
+	else if (
+		(func_body.is_copy_assign_op() || func_body.is_move_assign_op())
+		&& (func_body.is_defaulted() || func_body.is_deleted())
+	)
+	{
+		func_body.return_type = func_body.params[0].get_type();
 		return true;
 	}
 	else
@@ -1576,9 +1747,24 @@ static bool resolve_function_symbol_helper(
 		return false;
 	}
 
-	if (func_body.is_main() && !is_valid_main(func_body))
+	if (func_body.is_main())
 	{
-		report_invalid_main_error(func_body, context);
+		if (!is_valid_main(func_body))
+		{
+			report_invalid_main_error(func_body, context);
+		}
+		else if (context.has_main())
+		{
+			context.report_error(
+				func_body.src_tokens,
+				"redefinition of program entry point",
+				{ context.make_note(context.get_main()->src_tokens, "previous definition was here") }
+			);
+		}
+		else
+		{
+			context.set_main(&func_body);
+		}
 	}
 	func_body.resolve_symbol_name();
 	context.add_function_for_compilation(func_body);
@@ -1591,9 +1777,9 @@ static void resolve_function_symbol_impl(
 	ctx::parse_context &context
 )
 {
+	context.push_local_scope(&func_body.scope);
 	if (func_body.state == ast::resolve_state::none)
 	{
-		context.push_local_scope(&func_body.scope);
 		func_body.state = ast::resolve_state::resolving_parameters;
 		if (!resolve_function_parameters_helper(func_stmt, func_body, context))
 		{
@@ -1604,10 +1790,6 @@ static void resolve_function_symbol_impl(
 	}
 	if (func_body.state <= ast::resolve_state::parameters)
 	{
-		if (func_body.state == ast::resolve_state::parameters)
-		{
-			context.push_local_scope(&func_body.scope);
-		}
 		func_body.state = ast::resolve_state::resolving_symbol;
 		if (!resolve_function_symbol_helper(func_stmt, func_body, context))
 		{
@@ -1624,9 +1806,9 @@ static void resolve_function_symbol_impl(
 		else
 		{
 			func_body.state = ast::resolve_state::symbol;
-			context.pop_local_scope(false);
 		}
 	}
+	context.pop_local_scope(false);
 }
 
 void resolve_function_symbol(
@@ -1662,15 +1844,23 @@ static void resolve_local_statements(
 	}
 }
 
+static void resolve_function_parameter_destructions(ast::function_body &func_body, ctx::parse_context &context)
+{
+	for (auto &param : func_body.params)
+	{
+		resolve_variable_destruction(param, context);
+	}
+}
+
 static void resolve_function_impl(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
 	ctx::parse_context &context
 )
 {
+	context.push_local_scope(&func_body.scope);
 	if (func_body.state == ast::resolve_state::none)
 	{
-		context.push_local_scope(&func_body.scope);
 		func_body.state = ast::resolve_state::resolving_parameters;
 		if (!resolve_function_parameters_helper(func_stmt, func_body, context))
 		{
@@ -1681,10 +1871,6 @@ static void resolve_function_impl(
 	}
 	if (func_body.state <= ast::resolve_state::parameters)
 	{
-		if (func_body.state == ast::resolve_state::parameters)
-		{
-			context.push_local_scope(&func_body.scope);
-		}
 		func_body.state = ast::resolve_state::resolving_symbol;
 		if (!resolve_function_symbol_helper(func_stmt, func_body, context))
 		{
@@ -1701,11 +1887,28 @@ static void resolve_function_impl(
 		else
 		{
 			func_body.state = ast::resolve_state::symbol;
-			context.pop_local_scope(false);
 		}
 	}
 
-	if (func_body.body.is_null())
+	context.pop_local_scope(false);
+
+	if (
+		func_body.is_defaulted()
+		&& !func_body.is_destructor()
+		&& !func_body.is_default_constructor()
+		&& !func_body.is_copy_constructor()
+		&& !func_body.is_move_constructor()
+		&& !func_body.is_copy_assign_op()
+		&& !func_body.is_move_assign_op()
+	)
+	{
+		context.report_error(
+			func_body.src_tokens,
+			bz::format("'{}' cannot be defaulted", func_body.get_signature())
+		);
+		return;
+	}
+	else if (func_body.body.is_null())
 	{
 		return;
 	}
@@ -1724,6 +1927,7 @@ static void resolve_function_impl(
 	}
 
 	context.push_local_scope(&func_body.scope);
+	resolve_function_parameter_destructions(func_body, context);
 	resolve_local_statements(func_body.get_statements(), context);
 	context.pop_local_scope(true);
 
@@ -1768,6 +1972,22 @@ static void resolve_type_info_parameters_impl(ast::type_info &info, ctx::parse_c
 		{
 			p.state = ast::resolve_state::resolving_symbol;
 			resolve_variable_type(p, context);
+			if (!p.get_type().is_typename())
+			{
+				auto &type = p.get_type();
+				if (type.is<ast::ts_consteval>())
+				{
+					// nothing
+				}
+				else if (type.is<ast::ts_const>())
+				{
+					type.nodes.front().emplace<ast::ts_consteval>();
+				}
+				else
+				{
+					type.add_layer<ast::ts_consteval>();
+				}
+			}
 			if (p.state != ast::resolve_state::error)
 			{
 				p.state = ast::resolve_state::symbol;
@@ -1865,17 +2085,8 @@ static void add_type_info_members(
 			auto &decl = stmt.get<ast::decl_function>();
 			if (decl.body.is_destructor())
 			{
-				if (info.destructor != nullptr)
-				{
-					auto const type_name = ast::type_info::decode_symbol_name(info.symbol_name);
-					context.report_error(
-						decl.body.src_tokens, bz::format("redefinition of destructor for type '{}'", type_name),
-						{ context.make_note(info.destructor->body.src_tokens, "previously defined here") }
-					);
-				}
-
 				decl.body.constructor_or_destructor_of = &info;
-				info.destructor = &decl;
+				info.destructors.push_back(&decl);
 			}
 			else if (decl.body.is_constructor())
 			{
@@ -1937,30 +2148,142 @@ static void add_type_info_members(
 	}
 }
 
-static void add_default_constructors(ast::type_info &info)
+static bool add_default_default_constructor(ast::type_info &info, ctx::parse_context &context)
+{
+	if (info.default_constructor != nullptr && !info.default_constructor->body.is_defaulted())
+	{
+		return false;
+	}
+	else if (info.default_constructor == nullptr)
+	{
+		auto const has_copy = static_cast<size_t>(info.copy_constructor != nullptr);
+		auto const has_move = static_cast<size_t>(info.move_constructor != nullptr);
+		if (info.constructors.size() - (has_copy + has_move) != 0)
+		{
+			return false;
+		}
+	}
+
+	return info.member_variables.is_all([&](auto const member) {
+		return context.is_default_constructible(member->src_tokens, member->get_type());
+	});
+}
+
+static bool add_default_copy_constructor(ast::type_info &info, ctx::parse_context &context)
+{
+	return (info.copy_constructor == nullptr || info.copy_constructor->body.is_defaulted())
+		&& info.member_variables.is_all([&](auto const member) {
+			return context.is_copy_constructible(member->src_tokens, member->get_type());
+		});
+}
+
+static bool add_default_move_constructor(ast::type_info &info, ctx::parse_context &context)
+{
+	return (info.move_constructor == nullptr || info.move_constructor->body.is_defaulted())
+		&& info.member_variables.is_all([&](auto const member) {
+			return context.is_move_constructible(member->src_tokens, member->get_type());
+		});
+}
+
+static void add_default_constructors(ast::type_info &info, ctx::parse_context &context)
 {
 	// only add default constructor if there are no other non-copy constructors
-	if (info.default_constructor == nullptr && info.constructors.size() - static_cast<size_t>(info.copy_constructor != nullptr) == 0)
+	if (add_default_default_constructor(info, context))
 	{
+		if (info.default_constructor != nullptr)
+		{
+			info.constructors.erase_value(info.default_constructor);
+			info.default_constructor = nullptr;
+		}
 		bz_assert(info.default_default_constructor == nullptr);
 		info.default_default_constructor = ast::type_info::make_default_default_constructor(info.src_tokens, info);
 		info.constructors.push_back(info.default_default_constructor.get());
 	}
-
-	if (
-		info.copy_constructor == nullptr
-		&& info.member_variables.is_all([](auto const member) { return ast::is_copy_constructible(member->get_type()); })
-	)
+	else if (info.default_constructor != nullptr && info.default_constructor->body.is_defaulted())
 	{
+		auto notes = info.member_variables
+			.filter([&](auto const member) { return !context.is_default_constructible(member->src_tokens, member->get_type()); })
+			.transform([](auto const member) {
+				return ctx::parse_context::make_note(
+					member->src_tokens,
+					bz::format(
+						"member '{}' with type '{}' is not default constructible",
+						member->get_id().format_as_unqualified(), member->get_type()
+					)
+				);
+			})
+			.collect();
+		context.report_error(
+			info.default_constructor->body.src_tokens,
+			"default constructor cannot be defaulted",
+			std::move(notes)
+		);
+	}
+
+	if (add_default_copy_constructor(info, context))
+	{
+		if (info.copy_constructor != nullptr)
+		{
+			info.constructors.erase_value(info.copy_constructor);
+			info.copy_constructor = nullptr;
+		}
 		bz_assert(info.default_copy_constructor == nullptr);
 		info.default_copy_constructor = ast::type_info::make_default_copy_constructor(info.src_tokens, info);
 		info.constructors.push_back(info.default_copy_constructor.get());
 	}
+	else if (info.copy_constructor != nullptr && info.copy_constructor->body.is_defaulted())
+	{
+		auto notes = info.member_variables
+			.filter([&](auto const member) { return !context.is_copy_constructible(member->src_tokens, member->get_type()); })
+			.transform([](auto const member) {
+				return ctx::parse_context::make_note(
+					member->src_tokens,
+					bz::format(
+						"member '{}' with type '{}' is not copy constructible",
+						member->get_id().format_as_unqualified(), member->get_type()
+					)
+				);
+			})
+			.collect();
+		context.report_error(
+			info.copy_constructor->body.src_tokens,
+			"copy constructor cannot be defaulted",
+			std::move(notes)
+		);
+	}
 
-	bz_assert(info.default_op_assign == nullptr);
-	info.default_op_assign = ast::type_info::make_default_op_assign(info.src_tokens, info);
-	bz_assert(info.default_op_move_assign == nullptr);
-	info.default_op_move_assign = ast::type_info::make_default_op_move_assign(info.src_tokens, info);
+	if (add_default_move_constructor(info, context))
+	{
+		if (info.move_constructor != nullptr)
+		{
+			info.constructors.erase_value(info.move_constructor);
+			info.move_constructor = nullptr;
+		}
+		bz_assert(info.default_move_constructor == nullptr);
+		info.default_move_constructor = ast::type_info::make_default_move_constructor(info.src_tokens, info);
+		info.constructors.push_back(info.default_move_constructor.get());
+	}
+	else if (info.move_constructor != nullptr && info.move_constructor->body.is_defaulted())
+	{
+		auto notes = info.member_variables
+			.filter([&](auto const member) { return !context.is_move_constructible(member->src_tokens, member->get_type()); })
+			.transform([](auto const member) {
+				return ctx::parse_context::make_note(
+					member->src_tokens,
+					bz::format(
+						"member '{}' with type '{}' is not move constructible",
+						member->get_id().format_as_unqualified(), member->get_type()
+					)
+				);
+			})
+			.collect();
+		context.report_error(
+			info.move_constructor->body.src_tokens,
+			"move constructor cannot be defaulted",
+			std::move(notes)
+		);
+	}
+
 	if (
 		!info.body.get<bz::vector<ast::statement>>()
 			.filter([](auto const &stmt) {
@@ -1972,30 +2295,43 @@ static void add_default_constructors(ast::type_info &info)
 			.contains(lex::token::assign)
 	)
 	{
-		info.scope.get_global().add_operator(*info.default_op_assign);
-		info.scope.get_global().add_operator(*info.default_op_move_assign);
+		if (info.copy_constructor != nullptr || info.default_copy_constructor != nullptr)
+		{
+			bz_assert(info.default_op_assign == nullptr);
+			info.default_op_assign = ast::type_info::make_default_op_assign(info.src_tokens, info);
+			info.scope.get_global().add_operator(*info.default_op_assign);
+		}
+		if (info.move_constructor != nullptr || info.default_move_constructor != nullptr)
+		{
+			bz_assert(info.default_op_move_assign == nullptr);
+			info.default_op_move_assign = ast::type_info::make_default_op_move_assign(info.src_tokens, info);
+			info.scope.get_global().add_operator(*info.default_op_move_assign);
+		}
+	}
+
+	if (info.destructor != nullptr && info.destructor->body.is_defaulted())
+	{
+		info.destructor = nullptr;
+	}
+
+	if (info.move_destructor != nullptr && info.move_destructor->body.is_defaulted())
+	{
+		info.move_destructor = nullptr;
 	}
 }
 
-static void add_flags(ast::type_info &info)
+static void add_flags(ast::type_info &info, ctx::parse_context &context)
 {
-	if (
-		info.default_default_constructor != nullptr
-		&& info.member_variables.is_all([](auto const member) { return ast::is_default_zero_initialized(member->get_type()); })
-	)
-	{
-		bz_assert(info.default_constructor == nullptr);
-		info.flags |= ast::type_info::default_constructible;
-		info.flags |= ast::type_info::default_zero_initialized;
-	}
-	else if (info.default_constructor != nullptr || info.default_default_constructor != nullptr)
+	if (info.default_constructor != nullptr || info.default_default_constructor != nullptr)
 	{
 		info.flags |= ast::type_info::default_constructible;
 	}
 
 	if (
 		info.default_copy_constructor != nullptr
-		&& info.member_variables.is_all([](auto const member) { return ast::is_trivially_copy_constructible(member->get_type()); })
+		&& info.member_variables.is_all([&](auto const member) {
+			return context.is_trivially_copy_constructible(member->src_tokens, member->get_type());
+		})
 	)
 	{
 		bz_assert(info.copy_constructor == nullptr);
@@ -2008,16 +2344,49 @@ static void add_flags(ast::type_info &info)
 	}
 
 	if (
+		info.default_move_constructor != nullptr
+		&& info.member_variables.is_all([&](auto const member) {
+			return context.is_trivially_move_constructible(member->src_tokens, member->get_type());
+		})
+	)
+	{
+		bz_assert(info.move_constructor == nullptr);
+		info.flags |= ast::type_info::move_constructible;
+		info.flags |= ast::type_info::trivially_move_constructible;
+	}
+	else if (info.move_constructor != nullptr || info.default_move_constructor != nullptr)
+	{
+		info.flags |= ast::type_info::move_constructible;
+	}
+
+	if (
 		info.destructor == nullptr
-		&& info.member_variables.is_all([](auto const member) { return ast::is_trivially_destructible(member->get_type()); })
+		&& info.member_variables.is_all([&](auto const member) {
+			return context.is_trivially_destructible(member->src_tokens, member->get_type());
+		})
 	)
 	{
 		info.flags |= ast::type_info::trivially_destructible;
 	}
 
-	if (info.is_trivially_copy_constructible() && info.is_trivially_destructible())
+	if (
+		info.move_destructor == nullptr
+		&& info.member_variables.is_all([&](auto const member) {
+			return context.is_trivially_move_destructible(member->src_tokens, member->get_type());
+		})
+	)
 	{
-		info.flags |= ast::type_info::trivial;
+		info.flags |= ast::type_info::trivially_move_destructible;
+	}
+
+	if (info.is_trivially_move_constructible() && info.is_trivially_move_destructible())
+	{
+		info.flags |= ast::type_info::trivially_relocatable;
+
+		if (info.is_trivially_copy_constructible() && info.is_trivially_destructible())
+		{
+			info.flags |= ast::type_info::trivial;
+		}
 	}
 }
 
@@ -2068,11 +2437,9 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 	bz_assert(info.body.is<lex::token_range>());
 	auto [stream, end] = info.body.get<lex::token_range>();
 
-	info.body.emplace<bz::vector<ast::statement>>();
-	auto &info_body = info.body.get<bz::vector<ast::statement>>();
+	auto &info_body = info.body.emplace<bz::vector<ast::statement>>();
 
 	auto prev_scope_info = context.push_global_scope(&info.scope);
-	// bz::log(">>> pushing struct scope: {} ({})\n", &info.scope, info.get_typename_as_string());
 	info_body = parse::parse_struct_body_statements(stream, end, context);
 
 	add_type_info_members(info, context);
@@ -2084,6 +2451,11 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 	for (auto const ctor_decl : info.constructors)
 	{
 		resolve_function_parameters(ctor_decl, ctor_decl->body, context);
+	}
+
+	for (auto const dtor_decl : info.destructors)
+	{
+		resolve_function_parameters(dtor_decl, dtor_decl->body, context);
 	}
 
 	for (auto const member : info.member_variables)
@@ -2101,7 +2473,7 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 				);
 				member->state = ast::resolve_state::error;
 			}
-			else if (!context.is_instantiable(member->get_type()))
+			else if (!context.is_instantiable(member->src_tokens, member->get_type()))
 			{
 				context.report_error(
 					member->src_tokens,
@@ -2126,12 +2498,10 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 		context.pop_global_scope(std::move(prev_scope_info));
 		return;
 	}
-	else
-	{
-		add_default_constructors(info);
-		add_flags(info);
-		info.state = ast::resolve_state::all;
-	}
+
+	add_default_constructors(info, context);
+	add_flags(info, context);
+	info.state = ast::resolve_state::all;
 
 	for (auto &stmt : info_body)
 	{

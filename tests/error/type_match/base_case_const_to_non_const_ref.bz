@@ -1,0 +1,5 @@
+function test()
+{
+	const ci = 0i32;
+	let _: &int32 = ci;
+}

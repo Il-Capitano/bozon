@@ -68,6 +68,7 @@ struct stmt_while
 {
 	expression condition;
 	expression while_block;
+	scope_t    loop_scope;
 
 	stmt_while(
 		expression _condition,
@@ -84,7 +85,8 @@ struct stmt_for
 	expression condition;
 	expression iteration;
 	expression for_block;
-	scope_t    scope;
+	scope_t    init_scope;
+	scope_t    loop_scope;
 
 	stmt_for(
 		statement  _init,
@@ -108,7 +110,8 @@ struct stmt_foreach
 	expression condition;
 	expression iteration;
 	expression for_block;
-	scope_t    scope;
+	scope_t    init_scope;
+	scope_t    loop_scope;
 
 	stmt_foreach(
 		statement  _range_var_decl,
@@ -132,6 +135,16 @@ struct stmt_return
 
 	stmt_return(lex::token_pos _return_pos, expression _expr)
 		: return_pos(_return_pos), expr(std::move(_expr))
+	{}
+};
+
+struct stmt_defer
+{
+	lex::token_pos defer_pos;
+	destruct_operation deferred_expr;
+
+	stmt_defer(lex::token_pos _defer_pos, expression _expr)
+		: defer_pos(_defer_pos), deferred_expr(defer_expression(std::move(_expr)))
 	{}
 };
 
@@ -188,16 +201,19 @@ struct decl_variable
 {
 	enum : uint16_t
 	{
-		maybe_unused     = bit_at<0>,
-		used             = bit_at<1>,
-		module_export    = bit_at<2>,
-		external_linkage = bit_at<3>,
-		extern_          = bit_at<4>,
-		no_runtime_emit  = bit_at<5>,
-		member           = bit_at<6>,
-		global           = bit_at<7>,
-		variadic         = bit_at<8>,
-		tuple_outer_ref  = bit_at<9>,
+		maybe_unused     = bit_at< 0>,
+		used             = bit_at< 1>,
+		module_export    = bit_at< 2>,
+		external_linkage = bit_at< 3>,
+		extern_          = bit_at< 4>,
+		no_runtime_emit  = bit_at< 5>,
+		member           = bit_at< 6>,
+		global           = bit_at< 7>,
+		parameter        = bit_at< 8>,
+		variadic         = bit_at< 9>,
+		tuple_outer_ref  = bit_at<10>,
+		moved            = bit_at<11>,
+		ever_moved_from  = bit_at<12>,
 	};
 
 	lex::src_tokens src_tokens;
@@ -207,7 +223,9 @@ struct decl_variable
 	arena_vector<decl_variable> tuple_decls;
 
 	expression init_expr; // is null if there's no initializer
+	destruct_operation destruction;
 	ast_unique_ptr<decl_variable> original_tuple_variadic_decl; // non-null only if tuple_decls has an empty variadic declaration at the end
+	lex::src_tokens move_position = {};
 
 	arena_vector<attribute> attributes;
 	enclosing_scope_t enclosing_scope;
@@ -222,11 +240,14 @@ struct decl_variable
 		  symbol_name(other.symbol_name),
 		  tuple_decls(other.tuple_decls),
 		  init_expr(other.init_expr),
+		  destruction(other.destruction),
 		  original_tuple_variadic_decl(nullptr),
+		  move_position(other.move_position),
 		  attributes(other.attributes),
 		  enclosing_scope(other.enclosing_scope),
 		  flags(other.flags), state(other.state)
 	{
+		bz_assert(other.destruction.is_null());
 		if (other.original_tuple_variadic_decl != nullptr)
 		{
 			this->original_tuple_variadic_decl = make_ast_unique<decl_variable>(*other.original_tuple_variadic_decl);
@@ -239,16 +260,19 @@ struct decl_variable
 		{
 			return *this;
 		}
+		bz_assert(other.destruction.is_null());
 		this->src_tokens = other.src_tokens;
 		this->prototype_range = other.prototype_range;
 		this->id_and_type = other.id_and_type;
 		this->symbol_name = other.symbol_name;
 		this->tuple_decls = other.tuple_decls;
 		this->init_expr = other.init_expr;
+		this->destruction = other.destruction;
 		if (other.original_tuple_variadic_decl != nullptr)
 		{
 			this->original_tuple_variadic_decl = make_ast_unique<decl_variable>(*other.original_tuple_variadic_decl);
 		}
+		this->move_position = other.move_position;
 		this->attributes = other.attributes;
 		this->enclosing_scope = other.enclosing_scope;
 		this->flags = other.flags;
@@ -340,11 +364,20 @@ struct decl_variable
 	bool is_global(void) const noexcept
 	{ return (this->flags & global) != 0; }
 
+	bool is_parameter(void) const noexcept
+	{ return (this->flags & parameter) != 0; }
+
 	bool is_variadic(void) const noexcept
 	{ return (this->flags & variadic) != 0; }
 
 	bool is_tuple_outer_ref(void) const noexcept
 	{ return (this->flags & tuple_outer_ref) != 0; }
+
+	bool is_moved(void) const noexcept
+	{ return (this->flags & moved) != 0; }
+
+	bool is_ever_moved_from(void) const noexcept
+	{ return (this->flags & ever_moved_from) != 0; }
 
 	typespec &get_type(void)
 	{
@@ -422,12 +455,21 @@ struct function_body
 		local                       = bit_at< 9>,
 		destructor                  = bit_at<10>,
 		constructor                 = bit_at<11>,
-		default_default_constructor = bit_at<12>,
-		default_copy_constructor    = bit_at<13>,
-		bitcode_emitted             = bit_at<14>,
-		comptime_bitcode_emitted    = bit_at<15>,
-		only_consteval              = bit_at<16>,
-		builtin_operator            = bit_at<17>,
+		default_constructor         = bit_at<12>,
+		copy_constructor            = bit_at<13>,
+		move_constructor            = bit_at<14>,
+		default_default_constructor = bit_at<15>,
+		default_copy_constructor    = bit_at<16>,
+		default_move_constructor    = bit_at<17>,
+		bitcode_emitted             = bit_at<18>,
+		comptime_bitcode_emitted    = bit_at<19>,
+		only_consteval              = bit_at<20>,
+		builtin_operator            = bit_at<21>,
+		builtin_assign              = bit_at<22>,
+		defaulted                   = bit_at<23>,
+		deleted                     = bit_at<24>,
+		copy_assign_op              = bit_at<25>,
+		move_assign_op              = bit_at<26>,
 	};
 
 	enum : uint8_t
@@ -457,11 +499,14 @@ struct function_body
 
 		builtin_call_destructor,
 		builtin_inplace_construct,
+		builtin_swap,
 
 		builtin_is_comptime,
 		builtin_is_option_set_impl,
 		builtin_is_option_set,
 		builtin_panic,
+
+		builtin_call_main,
 
 		print_stdout,
 		print_stderr,
@@ -478,7 +523,6 @@ struct function_body
 		comptime_create_global_string,
 
 		comptime_concatenate_strs,
-
 		comptime_format_float32,
 		comptime_format_float64,
 
@@ -501,7 +545,12 @@ struct function_body
 		is_default_constructible,
 		is_copy_constructible,
 		is_trivially_copy_constructible,
+		is_move_constructible,
+		is_trivially_move_constructible,
 		is_trivially_destructible,
+		is_trivially_move_destructible,
+		is_trivially_relocatable,
+		is_trivial,
 
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions
@@ -514,6 +563,9 @@ struct function_body
 		memset,
 
 		// C standard library math functions
+
+		abs_i8, abs_i16, abs_i32, abs_i64,
+		fabs_f32, fabs_f64,
 
 		exp_f32,   exp_f64,
 		exp2_f32,  exp2_f64,
@@ -729,11 +781,23 @@ struct function_body
 	bool is_constructor(void) const noexcept
 	{ return (this->flags & constructor) != 0; }
 
+	bool is_default_constructor(void) const noexcept
+	{ return (this->flags & default_constructor) != 0; }
+
+	bool is_copy_constructor(void) const noexcept
+	{ return (this->flags & copy_constructor) != 0; }
+
+	bool is_move_constructor(void) const noexcept
+	{ return (this->flags & move_constructor) != 0; }
+
 	bool is_default_default_constructor(void) const noexcept
 	{ return (this->flags & default_default_constructor) != 0; }
 
 	bool is_default_copy_constructor(void) const noexcept
 	{ return (this->flags & default_copy_constructor) != 0; }
+
+	bool is_default_move_constructor(void) const noexcept
+	{ return (this->flags & default_move_constructor) != 0; }
 
 	bool is_bitcode_emitted(void) const noexcept
 	{ return (this->flags & bitcode_emitted) != 0; }
@@ -747,11 +811,27 @@ struct function_body
 	bool is_builtin_operator(void) const noexcept
 	{ return (this->flags & builtin_operator) != 0; }
 
+	bool is_builtin_assign(void) const noexcept
+	{ return (this->flags & builtin_assign) != 0; }
+
+	bool is_defaulted(void) const noexcept
+	{ return (this->flags & defaulted) != 0; }
+
+	bool is_deleted(void) const noexcept
+	{ return (this->flags & deleted) != 0; }
+
+	bool is_copy_assign_op(void) const noexcept
+	{ return (this->flags & copy_assign_op) != 0; }
+
+	bool is_move_assign_op(void) const noexcept
+	{ return (this->flags & move_assign_op) != 0; }
+
 	bool has_builtin_implementation(void) const noexcept
 	{
 		return (this->is_intrinsic() && this->body.is_null())
 			|| this->is_default_default_constructor()
 			|| this->is_default_copy_constructor()
+			|| this->is_default_move_constructor()
 			|| this->is_default_op_assign()
 			|| this->is_default_op_move_assign();
 	}
@@ -897,16 +977,19 @@ struct type_info
 
 	enum : uint32_t
 	{
-		generic                         = bit_at<0>,
-		generic_instantiation           = bit_at<1>,
+		generic                         = bit_at< 0>,
+		generic_instantiation           = bit_at< 1>,
 
-		default_constructible           = bit_at<2>,
-		default_zero_initialized        = bit_at<3>,
-		copy_constructible              = bit_at<4>,
-		trivially_copy_constructible    = bit_at<5>,
-		trivially_destructible          = bit_at<6>,
-		trivial                         = bit_at<7>,
-		module_export                   = bit_at<8>,
+		default_constructible           = bit_at< 2>,
+		copy_constructible              = bit_at< 3>,
+		trivially_copy_constructible    = bit_at< 4>,
+		move_constructible              = bit_at< 5>,
+		trivially_move_constructible    = bit_at< 6>,
+		trivially_destructible          = bit_at< 7>,
+		trivially_move_destructible     = bit_at< 8>,
+		trivially_relocatable           = bit_at< 9>,
+		trivial                         = bit_at<10>,
+		module_export                   = bit_at<11>,
 	};
 
 	enum : uint8_t
@@ -940,15 +1023,17 @@ struct type_info
 
 	decl_function_ptr default_default_constructor;
 	decl_function_ptr default_copy_constructor;
-
-	decl_operator *op_assign = nullptr;
-	decl_operator *op_move_assign = nullptr;
+	decl_function_ptr default_move_constructor;
 
 	decl_function *default_constructor = nullptr;
 	decl_function *copy_constructor = nullptr;
+	decl_function *move_constructor = nullptr;
 
 	decl_function *destructor = nullptr;
+	decl_function *move_destructor = nullptr;
+
 	arena_vector<decl_function *> constructors{};
+	arena_vector<decl_function *> destructors{};
 
 	arena_vector<decl_variable>             generic_parameters{};
 	arena_vector<ast_unique_ptr<type_info>> generic_instantiations{};
@@ -967,8 +1052,6 @@ struct type_info
 		  symbol_name(),
 		  body(range),
 		  scope(make_global_scope(_enclosing_scope, {}))
-//		  move_constructor(nullptr),
-//		  move_destuctor(nullptr)
 	{}
 
 	type_info(
@@ -1012,9 +1095,12 @@ private:
 			  default_constructible
 			  | copy_constructible
 			  | trivially_copy_constructible
+			  | move_constructible
+			  | trivially_move_constructible
 			  | trivially_destructible
+			  | trivially_move_destructible
 			  | trivial
-			  | default_zero_initialized
+			  | trivially_relocatable
 		  ),
 		  type_name(),
 		  symbol_name(bz::format("builtin.{}", name)),
@@ -1024,9 +1110,8 @@ private:
 		  default_op_assign(nullptr),
 		  default_op_move_assign(nullptr),
 		  default_default_constructor(nullptr),
-		  default_copy_constructor(nullptr)
-//		  move_constructor(nullptr),
-//		  move_destuctor(nullptr)
+		  default_copy_constructor(nullptr),
+		  default_move_constructor(nullptr)
 	{}
 public:
 
@@ -1045,14 +1130,23 @@ public:
 	bool is_trivially_copy_constructible(void) const noexcept
 	{ return (this->flags & trivially_copy_constructible) != 0; }
 
+	bool is_move_constructible(void) const noexcept
+	{ return (this->flags & move_constructible) != 0; }
+
+	bool is_trivially_move_constructible(void) const noexcept
+	{ return (this->flags & trivially_move_constructible) != 0; }
+
 	bool is_trivially_destructible(void) const noexcept
 	{ return (this->flags & trivially_destructible) != 0; }
 
+	bool is_trivially_move_destructible(void) const noexcept
+	{ return (this->flags & trivially_move_destructible) != 0; }
+
+	bool is_trivially_relocatable(void) const noexcept
+	{ return (this->flags & trivially_relocatable) != 0; }
+
 	bool is_trivial(void) const noexcept
 	{ return (this->flags & trivial) != 0; }
-
-	bool is_default_zero_initialized(void) const noexcept
-	{ return (this->flags & default_zero_initialized) != 0; }
 
 	bool is_module_export(void) const noexcept
 	{ return (this->flags & module_export) != 0; }
@@ -1061,6 +1155,7 @@ public:
 	static decl_operator_ptr make_default_op_move_assign(lex::src_tokens const &src_tokens, type_info &info);
 	static decl_function_ptr make_default_default_constructor(lex::src_tokens const &src_tokens, type_info &info);
 	static decl_function_ptr make_default_copy_constructor(lex::src_tokens const &src_tokens, type_info &info);
+	static decl_function_ptr make_default_move_constructor(lex::src_tokens const &src_tokens, type_info &info);
 
 	arena_vector<decl_variable> get_params_copy_for_generic_instantiation(void);
 	type_info *add_generic_instantiation(
@@ -1346,6 +1441,7 @@ def_make_fn(statement, stmt_while)
 def_make_fn(statement, stmt_for)
 def_make_fn(statement, stmt_foreach)
 def_make_fn(statement, stmt_return)
+def_make_fn(statement, stmt_defer)
 def_make_fn(statement, stmt_no_op)
 def_make_fn(statement, stmt_expression)
 def_make_fn(statement, stmt_static_assert)
@@ -1386,7 +1482,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 139);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 152);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1412,11 +1508,14 @@ constexpr auto intrinsic_info = []() {
 
 		{ function_body::builtin_call_destructor,   "__builtin_call_destructor"   },
 		{ function_body::builtin_inplace_construct, "__builtin_inplace_construct" },
+		{ function_body::builtin_swap,              "__builtin_swap"              },
 
 		{ function_body::builtin_is_comptime,        "__builtin_is_comptime"        },
 		{ function_body::builtin_is_option_set_impl, "__builtin_is_option_set_impl" },
 		{ function_body::builtin_is_option_set,      "__builtin_is_option_set"      },
 		{ function_body::builtin_panic,              "__builtin_panic"              },
+
+		{ function_body::builtin_call_main, "__builtin_call_main" },
 
 		{ function_body::print_stdout,   "__builtin_print_stdout"   },
 		{ function_body::print_stderr,   "__builtin_print_stderr"   },
@@ -1433,9 +1532,8 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::comptime_create_global_string, "__builtin_comptime_create_global_string" },
 
 		{ function_body::comptime_concatenate_strs, "__builtin_comptime_concatenate_strs" },
-
-		{ function_body::comptime_format_float32, "__builtin_comptime_format_float32" },
-		{ function_body::comptime_format_float64, "__builtin_comptime_format_float64" },
+		{ function_body::comptime_format_float32,   "__builtin_comptime_format_float32"   },
+		{ function_body::comptime_format_float64,   "__builtin_comptime_format_float64"   },
 
 		{ function_body::typename_as_str, "__builtin_typename_as_str" },
 
@@ -1454,7 +1552,12 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::is_default_constructible,        "__builtin_is_default_constructible"        },
 		{ function_body::is_copy_constructible,           "__builtin_is_copy_constructible"           },
 		{ function_body::is_trivially_copy_constructible, "__builtin_is_trivially_copy_constructible" },
+		{ function_body::is_move_constructible,           "__builtin_is_move_constructible"           },
+		{ function_body::is_trivially_move_constructible, "__builtin_is_trivially_move_constructible" },
 		{ function_body::is_trivially_destructible,       "__builtin_is_trivially_destructible"       },
+		{ function_body::is_trivially_move_destructible,  "__builtin_is_trivially_move_destructible"  },
+		{ function_body::is_trivially_relocatable,        "__builtin_is_trivially_relocatable"        },
+		{ function_body::is_trivial,                      "__builtin_is_trivial"                      },
 
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions
@@ -1467,6 +1570,13 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::memset,  "__builtin_memset"  },
 
 		// C standard library math functions
+
+		{ function_body::abs_i8,   "__builtin_abs_i8"   },
+		{ function_body::abs_i16,  "__builtin_abs_i16"  },
+		{ function_body::abs_i32,  "__builtin_abs_i32"  },
+		{ function_body::abs_i64,  "__builtin_abs_i64"  },
+		{ function_body::fabs_f32, "__builtin_fabs_f32" },
+		{ function_body::fabs_f64, "__builtin_fabs_f64" },
 
 		{ function_body::exp_f32,   "__builtin_exp_f32"   },
 		{ function_body::exp_f64,   "__builtin_exp_f64"   },

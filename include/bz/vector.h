@@ -832,6 +832,51 @@ public:
 		--this->_data_end;
 	}
 
+private:
+	void erase(value_type const *it_) noexcept(
+		nothrow_destruct_value
+		&& (nothrow_move_value || nothrow_copy_value)
+	)
+	{
+		auto it = const_cast<value_type *>(it_);
+		auto trace = it;
+		auto const end = this->_data_end;
+		++it;
+		for (; it != end; ++it, ++trace)
+		{
+			trace->~value_type();
+			if constexpr (nothrow_move_value)
+			{
+				this->try_emplace(trace, std::move(*it));
+			}
+			else
+			{
+				this->try_emplace(trace, *it);
+			}
+		}
+		trace->~value_type();
+		--this->_data_end;
+	}
+
+public:
+	const_iterator erase(const_iterator it) noexcept(
+		nothrow_destruct_value
+		&& (nothrow_move_value || nothrow_copy_value)
+	)
+	{
+		this->erase(it.data());
+		return it;
+	}
+
+	iterator erase(iterator it) noexcept(
+		nothrow_destruct_value
+		&& (nothrow_move_value || nothrow_copy_value)
+	)
+	{
+		this->erase(it.data());
+		return it;
+	}
+
 
 public:
 	// ==== member access ====

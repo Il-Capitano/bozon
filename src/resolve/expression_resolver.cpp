@@ -114,6 +114,12 @@ static ast::expression resolve_expr(
 	{
 		return resolve_variadic_expr(src_tokens, unary_op, context);
 	}
+	else if (is_unary_has_unevaluated_context(unary_op.op))
+	{
+		auto const prev_value = context.push_unevaluated_context();
+		resolve_expression(unary_op.expr, context);
+		context.pop_unevaluated_context(prev_value);
+	}
 	else
 	{
 		resolve_expression(unary_op.expr, context);
@@ -127,8 +133,16 @@ static ast::expression resolve_expr(
 	ctx::parse_context &context
 )
 {
-	resolve_expression(binary_op.lhs, context);
-	resolve_expression(binary_op.rhs, context);
+	if (token_info[binary_op.op].binary_prec.is_left_associative)
+	{
+		resolve_expression(binary_op.lhs, context);
+		resolve_expression(binary_op.rhs, context);
+	}
+	else
+	{
+		resolve_expression(binary_op.rhs, context);
+		resolve_expression(binary_op.lhs, context);
+	}
 	return context.make_binary_operator_expression(src_tokens, binary_op.op, std::move(binary_op.lhs), std::move(binary_op.rhs));
 }
 
@@ -222,6 +236,9 @@ static bool is_statement_noreturn(ast::statement const &stmt)
 		[](ast::stmt_return const &) {
 			return true;
 		},
+		[](ast::stmt_defer const &) {
+			return false;
+		},
 		[](ast::stmt_no_op const &) {
 			return false;
 		},
@@ -266,7 +283,7 @@ static ast::expression resolve_expr(
 	bool is_noreturn = false;
 	if (compound_expr.scope.is_null())
 	{
-		compound_expr.scope = ast::make_local_scope(context.get_current_enclosing_scope());
+		compound_expr.scope = ast::make_local_scope(context.get_current_enclosing_scope(), false);
 	}
 	context.push_local_scope(&compound_expr.scope);
 	for (auto &stmt : compound_expr.statements)
@@ -285,7 +302,8 @@ static ast::expression resolve_expr(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::noreturn, ast::make_void_typespec(nullptr),
-			std::move(result_node)
+			std::move(result_node),
+			ast::destruct_operation()
 		);
 	}
 	else if (compound_expr.final_expr.is_null())
@@ -293,7 +311,8 @@ static ast::expression resolve_expr(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
-			std::move(result_node)
+			std::move(result_node),
+			ast::destruct_operation()
 		);
 	}
 	else
@@ -302,7 +321,8 @@ static ast::expression resolve_expr(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			result_kind, result_type,
-			std::move(result_node)
+			std::move(result_node),
+			ast::destruct_operation()
 		);
 	}
 }
@@ -315,14 +335,19 @@ static ast::expression resolve_expr(
 {
 	auto result_node = ast::make_ast_unique<ast::expr_if>(std::move(if_expr_));
 	auto &if_expr = *result_node;
-	resolve_expression(if_expr.condition, context);
-	resolve_expression(if_expr.then_block, context);
-	resolve_expression(if_expr.else_block, context);
 
+	resolve_expression(if_expr.condition, context);
 	{
 		auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
 		match_expression_to_type(if_expr.condition, bool_type, context);
 	}
+
+	context.push_move_scope(src_tokens);
+	context.push_new_move_branch();
+	resolve_expression(if_expr.then_block, context);
+	context.push_new_move_branch();
+	resolve_expression(if_expr.else_block, context);
+	context.pop_move_scope();
 
 	if (if_expr.condition.is_error() || if_expr.then_block.is_error() || if_expr.else_block.is_error())
 	{
@@ -333,7 +358,8 @@ static ast::expression resolve_expr(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::noreturn, ast::make_void_typespec(nullptr),
-			std::move(result_node)
+			std::move(result_node),
+			ast::destruct_operation()
 		);
 	}
 	else if (if_expr.then_block.is_none() || if_expr.else_block.is_none())
@@ -341,7 +367,8 @@ static ast::expression resolve_expr(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
-			std::move(result_node)
+			std::move(result_node),
+			ast::destruct_operation()
 		);
 	}
 	else
@@ -349,7 +376,8 @@ static ast::expression resolve_expr(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::if_expr, ast::typespec(),
-			std::move(result_node)
+			std::move(result_node),
+			ast::destruct_operation()
 		);
 	}
 }
@@ -382,18 +410,18 @@ static ast::expression resolve_expr(
 	}
 
 	auto const &condition_value = if_expr.condition.get_constant_value();
-	bz_assert(condition_value.is<ast::constant_value::boolean>());
-	if (condition_value.get<ast::constant_value::boolean>())
+	bz_assert(condition_value.is_boolean());
+	if (condition_value.get_boolean())
 	{
 		resolve_expression(if_expr.then_block, context);
 		auto const [type, kind] = if_expr.then_block.get_expr_type_and_kind();
-		return ast::make_dynamic_expression(src_tokens, kind, type, std::move(result_node));
+		return ast::make_dynamic_expression(src_tokens, kind, type, std::move(result_node), ast::destruct_operation());
 	}
 	else if (if_expr.else_block.not_null())
 	{
 		resolve_expression(if_expr.else_block, context);
 		auto const [type, kind] = if_expr.else_block.get_expr_type_and_kind();
-		return ast::make_dynamic_expression(src_tokens, kind, type, std::move(result_node));
+		return ast::make_dynamic_expression(src_tokens, kind, type, std::move(result_node), ast::destruct_operation());
 	}
 	else
 	{
@@ -462,20 +490,26 @@ static ast::expression resolve_expr(
 {
 	auto result_node = ast::make_ast_unique<ast::expr_switch>(std::move(switch_expr_));
 	auto &switch_expr = *result_node;
+
 	resolve_expression(switch_expr.matched_expr, context);
+	ast::typespec match_type = ast::make_auto_typespec(nullptr);
+	match_expression_to_type(switch_expr.matched_expr, match_type, context);
+	check_switch_type(switch_expr.matched_expr, match_type, context);
+
+	context.push_move_scope(src_tokens);
 	for (auto &[case_values, case_expr] : switch_expr.cases)
 	{
 		for (auto &case_value : case_values)
 		{
 			resolve_expression(case_value, context);
 		}
+		context.push_new_move_branch();
 		resolve_expression(case_expr, context);
 	}
+	context.push_new_move_branch();
 	resolve_expression(switch_expr.default_case, context);
+	context.pop_move_scope();
 
-	ast::typespec match_type = ast::make_auto_typespec(nullptr);
-	match_expression_to_type(switch_expr.matched_expr, match_type, context);
-	check_switch_type(switch_expr.matched_expr, match_type, context);
 	if (switch_expr.matched_expr.is_error())
 	{
 		return ast::make_error_expression(src_tokens, std::move(result_node));
@@ -527,17 +561,18 @@ static ast::expression resolve_expr(
 				{
 					switch (rhs_value.kind())
 					{
+					static_assert(ast::constant_value::variant_count == 20);
 					case ast::constant_value::sint:
 						context.report_error(
 							rhs.src_tokens,
-							bz::format("duplicate value {} in switch expression", lhs_value.get<ast::constant_value::sint>()),
+							bz::format("duplicate value {} in switch expression", lhs_value.get_sint()),
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
 						break;
 					case ast::constant_value::uint:
 						context.report_error(
 							rhs.src_tokens,
-							bz::format("duplicate value {} in switch expression", lhs_value.get<ast::constant_value::uint>()),
+							bz::format("duplicate value {} in switch expression", lhs_value.get_uint()),
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
 						break;
@@ -546,7 +581,7 @@ static ast::expression resolve_expr(
 							rhs.src_tokens,
 							bz::format(
 								"duplicate value '{}' in switch expression",
-								add_escape_sequences(lhs_value.get<ast::constant_value::u8char>())
+								add_escape_sequences(lhs_value.get_u8char())
 							),
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
@@ -554,7 +589,7 @@ static ast::expression resolve_expr(
 					case ast::constant_value::boolean:
 						context.report_error(
 							rhs.src_tokens,
-							bz::format("duplicate value '{}' in switch expression", lhs_value.get<ast::constant_value::boolean>()),
+							bz::format("duplicate value '{}' in switch expression", lhs_value.get_boolean()),
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
 						break;
@@ -612,7 +647,8 @@ static ast::expression resolve_expr(
 			src_tokens,
 			ast::expression_type_kind::none,
 			ast::make_void_typespec(nullptr),
-			std::move(result_node)
+			std::move(result_node),
+			ast::destruct_operation()
 		);
 	}
 	else if (case_count == max_case_count && switch_expr.default_case.not_null())
@@ -624,41 +660,48 @@ static ast::expression resolve_expr(
 		);
 	}
 
-	auto const expr_kind = switch_expr.cases
-		.transform([](auto const &case_) {
-			bz_assert(case_.expr.is_constant_or_dynamic());
-			auto const kind = case_.expr.is_constant()
-				? case_.expr.get_constant().kind
-				: case_.expr.get_dynamic().kind;
-			switch (kind)
-			{
-			case ast::expression_type_kind::none:
-			case ast::expression_type_kind::noreturn:
-				return kind;
-			default:
-				return ast::expression_type_kind::switch_expr;
-			}
-		})
-		.reduce(ast::expression_type_kind::noreturn, [](auto const lhs, auto const rhs) {
-			switch (lhs)
+	auto const get_expr_kind = [](auto const &expr) {
+		bz_assert(expr.is_constant_or_dynamic());
+		auto const kind = expr.get_expr_type_and_kind().second;
+		switch (kind)
+		{
+		case ast::expression_type_kind::none:
+		case ast::expression_type_kind::noreturn:
+			return kind;
+		default:
+			return ast::expression_type_kind::switch_expr;
+		}
+	};
+
+	auto const expr_kind_reduce = [](auto const lhs, auto const rhs) {
+		switch (lhs)
+		{
+		case ast::expression_type_kind::switch_expr:
+			return lhs;
+		case ast::expression_type_kind::none:
+			switch (rhs)
 			{
 			case ast::expression_type_kind::switch_expr:
-				return lhs;
 			case ast::expression_type_kind::none:
-				switch (rhs)
-				{
-				case ast::expression_type_kind::switch_expr:
-				case ast::expression_type_kind::none:
-					return rhs;
-				default:
-					return lhs;
-				}
-			case ast::expression_type_kind::noreturn:
 				return rhs;
 			default:
-				bz_unreachable;
+				return lhs;
 			}
-		});
+		case ast::expression_type_kind::noreturn:
+			return rhs;
+		default:
+			bz_unreachable;
+		}
+	};
+
+	auto const start_kind = switch_expr.default_case.not_null()
+		? expr_kind_reduce(ast::expression_type_kind::noreturn, get_expr_kind(switch_expr.default_case))
+		: ast::expression_type_kind::noreturn;
+
+	auto const expr_kind = switch_expr.cases
+		.member<&ast::switch_case::expr>()
+		.transform(get_expr_kind)
+		.reduce(start_kind, expr_kind_reduce);
 
 	if (expr_kind == ast::expression_type_kind::switch_expr)
 	{
@@ -666,7 +709,8 @@ static ast::expression resolve_expr(
 			src_tokens,
 			expr_kind,
 			ast::typespec(),
-			std::move(result_node)
+			std::move(result_node),
+			ast::destruct_operation()
 		);
 	}
 	else
@@ -675,7 +719,8 @@ static ast::expression resolve_expr(
 			src_tokens,
 			expr_kind,
 			ast::make_void_typespec(nullptr),
-			std::move(result_node)
+			std::move(result_node),
+			ast::destruct_operation()
 		);
 	}
 }
@@ -716,9 +761,10 @@ static ast::expression resolve_expr(
 				ast::constant_value const &size_value = size.get_constant_value();
 				switch (size_value.kind())
 				{
+				static_assert(ast::constant_value::variant_count == 20);
 				case ast::constant_value::sint:
 				{
-					auto const value = size_value.get<ast::constant_value::sint>();
+					auto const value = size_value.get_sint();
 					if (value <= 0)
 					{
 						good = false;
@@ -731,7 +777,7 @@ static ast::expression resolve_expr(
 				}
 				case ast::constant_value::uint:
 				{
-					auto const value = size_value.get<ast::constant_value::uint>();
+					auto const value = size_value.get_uint();
 					if (value == 0)
 					{
 						good = false;

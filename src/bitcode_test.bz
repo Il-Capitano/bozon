@@ -41,7 +41,7 @@ function factorial_recursive(n: auto) -> typeof n
 	}
 }
 
-function sum_array(arr: #const [?: auto]) -> int32
+function sum_array(arr: #const [??: auto]) -> int32
 {
 	let result = 0;
 	for (const val in arr)
@@ -91,7 +91,7 @@ struct foo_t
 
 function main(args: [: const str]) -> int32
 {
-	let arr: [?: int32] = [ 0, 1 ];
+	let arr: [??: int32] = [ 0, 1 ];
 	sum_array(arr);
 
 	sum_array([ 0, 1, 2, 3, 4 ]);
@@ -375,6 +375,12 @@ function main(args: [: const str]) -> int32
 	std::print("\n==== generic_type_test ====\n");
 	generic_type_test();
 
+	std::print("\n==== unique_ptr_test ====\n");
+	unique_ptr_test();
+
+	std::print("\n==== defer_test ====\n");
+	defer_test();
+
 	std::print("\n==== end main ====\n");
 	std::printf("e  = {}\n", std::e);
 	std::printf("pi = {}\n", std::pi);
@@ -401,6 +407,23 @@ function main(args: [: const str]) -> int32
 	std::printf("{}\n", t);
 	static_assert(std::format("{}", [ 3, 3.234, "hello" ]) == "[ 3, 3.234, hello ]");
 	static_assert(std::format("{}", {[ 3, 3.234, "hello" ]}) == "[ 3, 3.234, hello ]");
+
+	t = [ 4i8, 2.334, "hi" ];
+	std::printf("{}\n", t);
+
+	let arr: [??: str] = [ "hello", "there", "hi", "this" ];
+	std::printf("{}\n", arr);
+	arr = [ "hmm", "this", "is", "different" ];
+	std::printf("{}\n", arr);
+
+	let t1 = [ std::string ]();
+	std::printf("{}\n", t1);
+	const t2 = [ "hi" ];
+	t1 = t2;
+	std::printf("{}\n", t1);
+
+	let r = make_resource();
+	r = make_resource();
 
 	const s = std::string("Hello");
 	const *const p = &s;
@@ -461,6 +484,13 @@ function main(args: [: const str]) -> int32
 	static_assert(size == 3u);
 
 	static_assert(if (size == 3u) true else false, "hello");
+
+	consteval s = std::comptime_format("{}", switch (size) {
+		0, 1, 2 => [ 0, 0.0, "zero" ],
+		3, 4, 5 => [ 1, 1.0, "one" ],
+		else => unreachable,
+	});
+	static_assert(s == "[ 1, 1.0, one ]");
 
 	std::printf("{}\n", switch (size) {
 		0, 1, 2 => [ 0, 0.0, "zero" ],
@@ -1431,7 +1461,7 @@ function generic_test()
 	static_assert(typeof add_wrapper(1i8, 2i8) == int8);
 	static_assert(typeof add_wrapper(1i64, 2i8) == int64);
 	// static_assert(typeof add_wrapper("", "") == int32);
-//	foo("", "");
+	// foo("", "");
 
 	const a = 3;
 	const b = 7;
@@ -1662,6 +1692,10 @@ function destructor_test()
 
 	const res1 = make_resource();
 	@maybe_unused const res2 = res1;
+
+	let r = make_resource();
+	static_assert(typeof r == resource_t);
+	r = r;
 }
 
 export function string_test()
@@ -1696,8 +1730,8 @@ export function string_test()
 	{
 		let world = std::string("World");
 		world ..= '!';
-		std::print("Hello " .. world .. '\n');
-		std::print("Hello {}\n".std::format(world.as_str()));
+		std::print(("Hello " .. world .. '\n').as_str());
+		std::print("Hello {}\n".std::format(world.as_str()).as_str());
 		std::print("---\n");
 		std::printf("{}\n", world.empty());
 		std::printf("{}\n", world.not_empty());
@@ -1804,4 +1838,78 @@ function generic_type_test()
 		std::printf("{}, ", i);
 	}
 	std::printf("\n");
+}
+
+struct unique_ptr<T: typename>
+{
+	type _self_t = unique_ptr<T>;
+
+	._ptr: *T;
+
+	constructor(ptr: *T)
+	{
+		return _self_t[ ptr ];
+	}
+
+	destructor(&self)
+	{
+		__builtin_call_destructor(*self._ptr);
+		std::free(self._ptr);
+	}
+
+	constructor(other: &const _self_t) = __delete__;
+	constructor(other: move _self_t) = __default__;
+	operator = (lhs: &_self_t, rhs: &const _self_t) = __delete__;
+	operator = (lhs: &_self_t, rhs: _self_t) = __default__;
+
+	operator * (self: &_self_t) -> &T
+	{
+		return *self._ptr;
+	}
+
+	operator * (self: &const _self_t) -> &const T
+	{
+		return *self._ptr;
+	}
+}
+
+function add_two(n: int32) -> int32
+{
+	return n + 2;
+}
+
+function unique_ptr_test()
+{
+	let ptr = unique_ptr<int32>(std::malloc(int32, 1));
+	ptr = unique_ptr<int32>(std::malloc(int32, 1));
+
+	// ptr = ptr;
+
+	*ptr = 3;
+	std::printf("{}\n", ptr->add_two());
+}
+
+@symbol_name("move_test") export function move_test()
+{
+	let i = 0;
+	let _ = if (i == 3) {
+		let j = move i;
+		j
+	} else {
+		let j = move i;
+		j
+	};
+	// i;
+}
+
+function defer_test()
+{
+	(consteval {
+		const p = std::malloc(int32, 1);
+		defer std::free(p);
+	});
+
+	defer std::printf("defer 1\n");
+	defer std::printf("defer 2\n");
+	defer std::printf("defer 3\n");
 }

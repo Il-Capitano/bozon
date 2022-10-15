@@ -8,6 +8,7 @@
 #include "constant_value.h"
 #include "identifier.h"
 #include "scope.h"
+#include "statement_forward.h"
 
 namespace ast
 {
@@ -22,14 +23,41 @@ struct expr_placeholder_literal;
 struct expr_tuple;
 struct expr_unary_op;
 struct expr_binary_op;
+struct expr_tuple_subscript;
 struct expr_subscript;
 struct expr_function_call;
 struct expr_cast;
 struct expr_take_reference;
-struct expr_struct_init;
-struct expr_array_init;
+struct expr_take_move_reference;
+struct expr_aggregate_init;
+
+struct expr_aggregate_default_construct;
 struct expr_array_default_construct;
 struct expr_builtin_default_construct;
+
+struct expr_aggregate_copy_construct;
+struct expr_array_copy_construct;
+struct expr_builtin_copy_construct;
+
+struct expr_aggregate_move_construct;
+struct expr_array_move_construct;
+struct expr_trivial_relocate;
+
+struct expr_aggregate_destruct;
+struct expr_array_destruct;
+struct expr_base_type_destruct;
+struct expr_destruct_value;
+
+struct expr_aggregate_assign;
+struct expr_array_assign;
+struct expr_base_type_assign;
+struct expr_trivial_assign;
+
+struct expr_aggregate_swap;
+struct expr_array_swap;
+struct expr_base_type_swap;
+struct expr_trivial_swap;
+
 struct expr_member_access;
 struct expr_type_member_access;
 struct expr_compound;
@@ -40,6 +68,8 @@ struct expr_break;
 struct expr_continue;
 struct expr_unreachable;
 struct expr_generic_type_instantiation;
+
+struct expr_bitcode_value_reference;
 
 struct expr_unresolved_subscript;
 struct expr_unresolved_function_call;
@@ -59,14 +89,34 @@ using expr_t = node<
 	expr_tuple,
 	expr_unary_op,
 	expr_binary_op,
+	expr_tuple_subscript,
 	expr_subscript,
 	expr_function_call,
 	expr_cast,
 	expr_take_reference,
-	expr_struct_init,
-	expr_array_init,
+	expr_take_move_reference,
+	expr_aggregate_init,
+	expr_aggregate_default_construct,
 	expr_array_default_construct,
 	expr_builtin_default_construct,
+	expr_aggregate_copy_construct,
+	expr_array_copy_construct,
+	expr_builtin_copy_construct,
+	expr_aggregate_move_construct,
+	expr_array_move_construct,
+	expr_trivial_relocate,
+	expr_aggregate_destruct,
+	expr_array_destruct,
+	expr_base_type_destruct,
+	expr_destruct_value,
+	expr_aggregate_assign,
+	expr_aggregate_swap,
+	expr_array_swap,
+	expr_base_type_swap,
+	expr_trivial_swap,
+	expr_array_assign,
+	expr_base_type_assign,
+	expr_trivial_assign,
 	expr_member_access,
 	expr_type_member_access,
 	expr_compound,
@@ -76,7 +126,8 @@ using expr_t = node<
 	expr_break,
 	expr_continue,
 	expr_unreachable,
-	expr_generic_type_instantiation
+	expr_generic_type_instantiation,
+	expr_bitcode_value_reference
 >;
 
 using unresolved_expr_t = node<
@@ -97,12 +148,62 @@ using unresolved_expr_t = node<
 	expr_unresolved_generic_type_instantiation
 >;
 
+
+struct destruct_variable
+{
+	ast_unique_ptr<expression> destruct_call;
+
+	destruct_variable(expression _destruct_call);
+
+	destruct_variable(destruct_variable const &other);
+	destruct_variable(destruct_variable &&other) = default;
+
+	destruct_variable &operator = (destruct_variable const &other);
+	destruct_variable &operator = (destruct_variable &&other) = default;
+};
+
+struct destruct_self
+{
+	ast_unique_ptr<expression> destruct_call;
+
+	destruct_self(expression _destruct_call);
+
+	destruct_self(destruct_self const &other);
+	destruct_self(destruct_self &&other) = default;
+
+	destruct_self &operator = (destruct_self const &other);
+	destruct_self &operator = (destruct_self &&other) = default;
+};
+
+struct defer_expression
+{
+	ast_unique_ptr<expression> expr;
+
+	defer_expression(expression _expr);
+
+	defer_expression(defer_expression const &other);
+	defer_expression(defer_expression &&other) = default;
+
+	defer_expression &operator = (defer_expression const &other);
+	defer_expression &operator = (defer_expression &&other) = default;
+};
+
+struct destruct_operation : bz::variant<destruct_variable, destruct_self, defer_expression>
+{
+	using base_t = bz::variant<destruct_variable, destruct_self, defer_expression>;
+	using base_t::variant;
+
+	ast::decl_variable const *move_destructed_decl = nullptr;
+};
+
+
 enum class expression_type_kind
 {
 	lvalue,
 	lvalue_reference,
 	rvalue,
 	moved_lvalue,
+	rvalue_reference,
 	integer_literal,
 	null_literal,
 	placeholder_literal,
@@ -132,6 +233,7 @@ constexpr bool is_lvalue(expression_type_kind kind)
 constexpr bool is_rvalue(expression_type_kind kind)
 {
 	return kind == expression_type_kind::rvalue
+		|| kind == expression_type_kind::rvalue_reference
 		|| kind == expression_type_kind::moved_lvalue
 		|| kind == expression_type_kind::integer_literal
 		|| kind == expression_type_kind::null_literal;
@@ -162,6 +264,7 @@ struct dynamic_expression
 	expression_type_kind kind;
 	typespec             type;
 	expr_t               expr;
+	destruct_operation   destruct_op;
 };
 
 struct expanded_variadic_expression
@@ -173,6 +276,7 @@ struct error_expression
 {
 	expr_t expr;
 };
+
 
 struct expression : bz::variant<
 	unresolved_expression,
@@ -227,6 +331,12 @@ struct expression : bz::variant<
 			|| this->get_expr_type_and_kind().second != ast::expression_type_kind::rvalue
 		);
 	}
+
+	expression(expression const &other) = default;
+	expression(expression &&other) = default;
+
+	expression &operator = (expression const &other) = default;
+	expression &operator = (expression &&other) = default;
 
 	lex::token_pos get_tokens_begin(void) const { return this->src_tokens.begin; }
 	lex::token_pos get_tokens_pivot(void) const { return this->src_tokens.pivot; }
@@ -302,22 +412,19 @@ struct expression : bz::variant<
 };
 
 
-struct decl_variable;
-struct decl_function;
-struct function_body;
-
-
 struct expr_identifier
 {
 	identifier id;
-	decl_variable const *decl;
+	decl_variable *decl;
+	int loop_boundary_count;
+	bool is_local;
 
-	expr_identifier(identifier _id, decl_variable const *var_decl)
-		: id(std::move(_id)), decl(var_decl)
+	expr_identifier(identifier _id, decl_variable *var_decl, int _loop_boundary_count, bool _is_local)
+		: id(std::move(_id)), decl(var_decl), loop_boundary_count(_loop_boundary_count), is_local(_is_local)
 	{}
 
 	expr_identifier(identifier _id)
-		: id(std::move(_id)), decl(nullptr)
+		: id(std::move(_id)), decl(nullptr), loop_boundary_count(0), is_local(false)
 	{}
 };
 
@@ -390,6 +497,20 @@ struct expr_binary_op
 	{}
 };
 
+struct expr_tuple_subscript
+{
+	expr_tuple base;
+	expression index;
+
+	expr_tuple_subscript(
+		expr_tuple _base,
+		expression _index
+	)
+		: base (std::move(_base)),
+		  index(std::move(_index))
+	{}
+};
+
 struct expr_subscript
 {
 	expression base;
@@ -452,45 +573,54 @@ struct expr_take_reference
 	{}
 };
 
-struct expr_struct_init
+struct expr_take_move_reference
 {
-	arena_vector<expression> exprs;
-	typespec                 type;
+	expression expr;
 
-	expr_struct_init(
-		arena_vector<expression> _exprs,
-		typespec                 _type
-	)
-		: exprs(std::move(_exprs)),
-		  type (std::move(_type))
+	expr_take_move_reference(expression _expr)
+		: expr(std::move(_expr))
 	{}
 };
 
-struct expr_array_init
+struct expr_aggregate_init
 {
-	arena_vector<expression> exprs;
 	typespec                 type;
+	arena_vector<expression> exprs;
 
-	expr_array_init(
-		arena_vector<expression> _exprs,
-		typespec                 _type
+	expr_aggregate_init(
+		typespec                 _type,
+		arena_vector<expression> _exprs
 	)
-		: exprs(std::move(_exprs)),
-		  type (std::move(_type))
+		: type (std::move(_type)),
+		  exprs(std::move(_exprs))
+	{}
+};
+
+struct expr_aggregate_default_construct
+{
+	typespec                 type;
+	arena_vector<expression> default_construct_exprs;
+
+	expr_aggregate_default_construct(
+		typespec                 _type,
+		arena_vector<expression> _default_construct_exprs
+	)
+		: type(std::move(_type)),
+		  default_construct_exprs(std::move(_default_construct_exprs))
 	{}
 };
 
 struct expr_array_default_construct
 {
-	expression elem_ctor_call;
 	typespec   type;
+	expression default_construct_expr;
 
 	expr_array_default_construct(
-		expression _elem_ctor_call,
-		typespec   _type
+		typespec   _type,
+		expression _default_construct_expr
 	)
-		: elem_ctor_call(std::move(_elem_ctor_call)),
-		  type(std::move(_type))
+		: type(std::move(_type)),
+		  default_construct_expr(std::move(_default_construct_expr))
 	{}
 };
 
@@ -500,6 +630,278 @@ struct expr_builtin_default_construct
 
 	expr_builtin_default_construct(typespec _type)
 		: type(std::move(_type))
+	{}
+};
+
+struct expr_aggregate_copy_construct
+{
+	expression               copied_value;
+	arena_vector<expression> copy_exprs;
+
+	expr_aggregate_copy_construct(
+		expression               _copied_value,
+		arena_vector<expression> _copy_exprs
+	)
+		: copied_value(std::move(_copied_value)),
+		  copy_exprs  (std::move(_copy_exprs))
+	{}
+};
+
+struct expr_array_copy_construct
+{
+	expression copied_value;
+	expression copy_expr;
+
+	expr_array_copy_construct(
+		expression _copied_value,
+		expression _copy_expr
+	)
+		: copied_value(std::move(_copied_value)),
+		  copy_expr   (std::move(_copy_expr))
+	{}
+};
+
+struct expr_builtin_copy_construct
+{
+	expression copied_value;
+
+	expr_builtin_copy_construct(expression _copied_value)
+		: copied_value(std::move(_copied_value))
+	{}
+};
+
+struct expr_aggregate_move_construct
+{
+	expression               moved_value;
+	arena_vector<expression> move_exprs;
+
+	expr_aggregate_move_construct(
+		expression               _moved_value,
+		arena_vector<expression> _move_exprs
+	)
+		: moved_value(std::move(_moved_value)),
+		  move_exprs (std::move(_move_exprs))
+	{}
+};
+
+struct expr_array_move_construct
+{
+	expression moved_value;
+	expression move_expr;
+
+	expr_array_move_construct(
+		expression _moved_value,
+		expression _move_expr
+	)
+		: moved_value(std::move(_moved_value)),
+		  move_expr  (std::move(_move_expr))
+	{}
+};
+
+struct expr_trivial_relocate
+{
+	expression value;
+
+	expr_trivial_relocate(expression _value)
+		: value(std::move(_value))
+	{}
+};
+
+struct expr_aggregate_destruct
+{
+	expression               value;
+	arena_vector<expression> elem_destruct_calls;
+
+	expr_aggregate_destruct(
+		expression               _value,
+		arena_vector<expression> _elem_destruct_calls
+	)
+		: value(std::move(_value)),
+		  elem_destruct_calls(std::move(_elem_destruct_calls))
+	{}
+};
+
+struct expr_array_destruct
+{
+	expression value;
+	expression elem_destruct_call;
+
+	expr_array_destruct(
+		expression _value,
+		expression _elem_destruct_call
+	)
+		: value(std::move(_value)),
+		  elem_destruct_call(std::move(_elem_destruct_call))
+	{}
+};
+
+struct expr_base_type_destruct
+{
+	expression               value;
+	expression               destruct_call;
+	arena_vector<expression> member_destruct_calls;
+
+	expr_base_type_destruct(
+		expression               _value,
+		expression               _destruct_call,
+		arena_vector<expression> _member_destruct_calls
+	)
+		: value(std::move(_value)),
+		  destruct_call(std::move(_destruct_call)),
+		  member_destruct_calls(std::move(_member_destruct_calls))
+	{}
+};
+
+struct expr_destruct_value
+{
+	expression value;
+	expression destruct_call;
+
+	expr_destruct_value(
+		expression _value,
+		expression _destruct_call
+	)
+		: value(std::move(_value)),
+		  destruct_call(std::move(_destruct_call))
+	{}
+};
+
+struct expr_aggregate_assign
+{
+	expression lhs;
+	expression rhs;
+	arena_vector<expression> assign_exprs;
+
+	expr_aggregate_assign(
+		expression _lhs,
+		expression _rhs,
+		arena_vector<expression> _assign_exprs
+	)
+		: lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs)),
+		  assign_exprs(std::move(_assign_exprs))
+	{}
+};
+
+struct expr_array_assign
+{
+	expression lhs;
+	expression rhs;
+	expression assign_expr;
+
+	expr_array_assign(
+		expression _lhs,
+		expression _rhs,
+		expression _assign_expr
+	)
+		: lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs)),
+		  assign_expr(std::move(_assign_expr))
+	{}
+};
+
+struct expr_base_type_assign
+{
+	expression lhs;
+	expression rhs;
+	expression lhs_destruct_expr;
+	expression rhs_copy_expr;
+
+	expr_base_type_assign(
+		expression _lhs,
+		expression _rhs,
+		expression _lhs_destruct_expr,
+		expression _rhs_copy_expr
+	)
+		: lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs)),
+		  lhs_destruct_expr(std::move(_lhs_destruct_expr)),
+		  rhs_copy_expr(std::move(_rhs_copy_expr))
+	{}
+};
+
+struct expr_trivial_assign
+{
+	expression lhs;
+	expression rhs;
+
+	expr_trivial_assign(
+		expression _lhs,
+		expression _rhs
+	)
+		: lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs))
+	{}
+};
+
+struct expr_aggregate_swap
+{
+	expression lhs;
+	expression rhs;
+	arena_vector<expression> swap_exprs;
+
+	expr_aggregate_swap(
+		expression _lhs,
+		expression _rhs,
+		arena_vector<expression> _swap_exprs
+	)
+		: lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs)),
+		  swap_exprs(std::move(_swap_exprs))
+	{}
+};
+
+struct expr_array_swap
+{
+	expression lhs;
+	expression rhs;
+	expression swap_expr;
+
+	expr_array_swap(
+		expression _lhs,
+		expression _rhs,
+		expression _swap_expr
+	)
+		: lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs)),
+		  swap_expr(std::move(_swap_expr))
+	{}
+};
+
+struct expr_base_type_swap
+{
+	expression lhs;
+	expression rhs;
+	expression lhs_move_expr;
+	expression rhs_move_expr;
+	expression temp_move_expr;
+
+	expr_base_type_swap(
+		expression _lhs,
+		expression _rhs,
+		expression _lhs_move_expr,
+		expression _rhs_move_expr,
+		expression _temp_move_expr
+	)
+		: lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs)),
+		  lhs_move_expr(std::move(_lhs_move_expr)),
+		  rhs_move_expr(std::move(_rhs_move_expr)),
+		  temp_move_expr(std::move(_temp_move_expr))
+	{}
+};
+
+struct expr_trivial_swap
+{
+	expression lhs;
+	expression rhs;
+
+	expr_trivial_swap(
+		expression _lhs,
+		expression _rhs
+	)
+		: lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs))
 	{}
 };
 
@@ -656,6 +1058,16 @@ struct expr_generic_type_instantiation
 };
 
 
+struct expr_bitcode_value_reference
+{
+	size_t index;
+
+	expr_bitcode_value_reference(size_t _index = 0)
+		: index(_index)
+	{}
+};
+
+
 struct expr_unresolved_subscript
 {
 	expression               base;
@@ -792,14 +1204,34 @@ def_make_fn(expr_t, expr_placeholder_literal)
 def_make_fn(expr_t, expr_tuple)
 def_make_fn(expr_t, expr_unary_op)
 def_make_fn(expr_t, expr_binary_op)
+def_make_fn(expr_t, expr_tuple_subscript)
 def_make_fn(expr_t, expr_subscript)
 def_make_fn(expr_t, expr_function_call)
 def_make_fn(expr_t, expr_cast)
 def_make_fn(expr_t, expr_take_reference)
-def_make_fn(expr_t, expr_struct_init)
-def_make_fn(expr_t, expr_array_init)
+def_make_fn(expr_t, expr_take_move_reference)
+def_make_fn(expr_t, expr_aggregate_init)
+def_make_fn(expr_t, expr_aggregate_default_construct)
 def_make_fn(expr_t, expr_array_default_construct)
 def_make_fn(expr_t, expr_builtin_default_construct)
+def_make_fn(expr_t, expr_aggregate_copy_construct)
+def_make_fn(expr_t, expr_array_copy_construct)
+def_make_fn(expr_t, expr_builtin_copy_construct)
+def_make_fn(expr_t, expr_aggregate_move_construct)
+def_make_fn(expr_t, expr_array_move_construct)
+def_make_fn(expr_t, expr_trivial_relocate)
+def_make_fn(expr_t, expr_aggregate_destruct)
+def_make_fn(expr_t, expr_array_destruct)
+def_make_fn(expr_t, expr_base_type_destruct)
+def_make_fn(expr_t, expr_destruct_value)
+def_make_fn(expr_t, expr_aggregate_assign)
+def_make_fn(expr_t, expr_aggregate_swap)
+def_make_fn(expr_t, expr_array_swap)
+def_make_fn(expr_t, expr_base_type_swap)
+def_make_fn(expr_t, expr_trivial_swap)
+def_make_fn(expr_t, expr_array_assign)
+def_make_fn(expr_t, expr_base_type_assign)
+def_make_fn(expr_t, expr_trivial_assign)
 def_make_fn(expr_t, expr_member_access)
 def_make_fn(expr_t, expr_type_member_access)
 def_make_fn(expr_t, expr_compound)
@@ -810,6 +1242,7 @@ def_make_fn(expr_t, expr_break)
 def_make_fn(expr_t, expr_continue)
 def_make_fn(expr_t, expr_unreachable)
 def_make_fn(expr_t, expr_generic_type_instantiation)
+def_make_fn(expr_t, expr_bitcode_value_reference)
 
 #undef def_make_fn
 

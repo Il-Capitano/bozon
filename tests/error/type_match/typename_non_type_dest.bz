@@ -1,0 +1,6 @@
+function test1(val: int32);
+
+function test()
+{
+	test1(float32);
+}

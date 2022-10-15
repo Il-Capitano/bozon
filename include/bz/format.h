@@ -1266,6 +1266,7 @@ inline u8string format_number(u8string_view number_str, format_spec spec, bool p
 			}
 			result += number_str;
 		}
+		return result;
 	}
 	case '>':
 	{

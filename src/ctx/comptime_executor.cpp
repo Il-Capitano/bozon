@@ -6,6 +6,8 @@
 #include "resolve/statement_resolver.h"
 #include <llvm/ExecutionEngine/GenericValue.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
+#include <llvm/ExecutionEngine/Interpreter.h>
+#include <llvm/ExecutionEngine/MCJIT.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Host.h>
 #include <llvm/Support/TargetSelect.h>
@@ -42,6 +44,7 @@ static bz::vector<comptime_function> create_empty_comptime_functions(void)
 
 comptime_executor_context::comptime_executor_context(global_context &_global_ctx)
 	: global_ctx(_global_ctx),
+	  current_value_references{ bc::val_ptr::get_none(), bc::val_ptr::get_none(), bc::val_ptr::get_none(), bc::val_ptr::get_none() },
 	  builder(_global_ctx._llvm_context),
 	  comptime_functions(create_empty_comptime_functions())
 {}
@@ -276,6 +279,7 @@ size_t comptime_executor_context::get_align(ast::typespec_view ts)
 
 size_t comptime_executor_context::get_size(llvm::Type *t) const
 {
+	bz_assert(t->isSized());
 	return this->global_ctx._data_layout->getTypeAllocSize(t);
 }
 
@@ -321,6 +325,7 @@ llvm::BasicBlock *comptime_executor_context::add_basic_block(bz::u8string_view n
 
 llvm::Value *comptime_executor_context::create_alloca(llvm::Type *t)
 {
+	bz_assert(t->isSized());
 	auto const bb = this->builder.GetInsertBlock();
 	this->builder.SetInsertPoint(this->alloca_bb);
 	auto const result = this->builder.CreateAlloca(t);
@@ -331,8 +336,23 @@ llvm::Value *comptime_executor_context::create_alloca(llvm::Type *t)
 	return result;
 }
 
+llvm::Value *comptime_executor_context::create_alloca(llvm::Type *t, llvm::Value *init_val)
+{
+	bz_assert(t->isSized());
+	auto const bb = this->builder.GetInsertBlock();
+	this->builder.SetInsertPoint(this->alloca_bb);
+	auto const result = this->builder.CreateAlloca(t);
+	this->builder.CreateStore(init_val, result);
+	this->builder.SetInsertPoint(bb);
+	auto const size = this->get_size(t);
+	this->start_lifetime(result, size);
+	this->push_end_lifetime_call(result, size);
+	return result;
+}
+
 llvm::Value *comptime_executor_context::create_alloca(llvm::Type *t, size_t align)
 {
+	bz_assert(t->isSized());
 	auto const bb = this->builder.GetInsertBlock();
 	this->builder.SetInsertPoint(this->alloca_bb);
 	auto const result = this->builder.CreateAlloca(t);
@@ -346,6 +366,7 @@ llvm::Value *comptime_executor_context::create_alloca(llvm::Type *t, size_t alig
 
 llvm::Value *comptime_executor_context::create_alloca_without_lifetime_start(llvm::Type *t)
 {
+	bz_assert(t->isSized());
 	auto const bb = this->builder.GetInsertBlock();
 	this->builder.SetInsertPoint(this->alloca_bb);
 	auto const result = this->builder.CreateAlloca(t);
@@ -353,8 +374,20 @@ llvm::Value *comptime_executor_context::create_alloca_without_lifetime_start(llv
 	return result;
 }
 
+llvm::Value *comptime_executor_context::create_alloca_without_lifetime_start(llvm::Type *t, llvm::Value *init_val)
+{
+	bz_assert(t->isSized());
+	auto const bb = this->builder.GetInsertBlock();
+	this->builder.SetInsertPoint(this->alloca_bb);
+	auto const result = this->builder.CreateAlloca(t);
+	this->builder.CreateStore(init_val, result);
+	this->builder.SetInsertPoint(bb);
+	return result;
+}
+
 llvm::Value *comptime_executor_context::create_alloca_without_lifetime_start(llvm::Type *t, size_t align)
 {
+	bz_assert(t->isSized());
 	auto const bb = this->builder.GetInsertBlock();
 	this->builder.SetInsertPoint(this->alloca_bb);
 	auto const result = this->builder.CreateAlloca(t);
@@ -624,67 +657,168 @@ bool comptime_executor_context::do_error_checking(void) const
 		);
 }
 
-void comptime_executor_context::push_expression_scope(void)
+[[nodiscard]] comptime_executor_context::expression_scope_info_t comptime_executor_context::push_expression_scope(void)
 {
 	this->destructor_calls.emplace_back();
 	this->end_lifetime_calls.emplace_back();
+	auto const result = expression_scope_info_t{ this->destruct_condition };
+	this->destruct_condition = nullptr;
+	return result;
 }
 
-void comptime_executor_context::pop_expression_scope(void)
+void comptime_executor_context::pop_expression_scope(expression_scope_info_t prev_info)
 {
 	if (!this->has_terminator())
 	{
-		this->emit_destructor_calls();
+		this->emit_destruct_operations();
 		this->emit_end_lifetime_calls();
 	}
 	this->destructor_calls.pop_back();
 	this->end_lifetime_calls.pop_back();
+
+	this->destruct_condition = prev_info.destruct_condition;
 }
 
-void comptime_executor_context::push_destructor_call(lex::src_tokens const &src_tokens, ast::function_body *dtor_func, llvm::Value *ptr)
+[[nodiscard]] llvm::Value *comptime_executor_context::push_destruct_condition(void)
 {
-	bz_assert(!this->destructor_calls.empty());
-	this->destructor_calls.back().push_back({ src_tokens, dtor_func, ptr });
+	auto const result = this->destruct_condition;
+	auto const bool_t = this->get_bool_t();
+	this->destruct_condition = this->create_alloca_without_lifetime_start(bool_t, llvm::ConstantInt::getFalse(bool_t));
+	this->builder.CreateStore(llvm::ConstantInt::getTrue(bool_t), this->destruct_condition);
+	return result;
 }
 
-void comptime_executor_context::emit_destructor_calls(void)
+void comptime_executor_context::pop_destruct_condition(llvm::Value *prev_condition)
 {
-	bz_assert(!this->has_terminator());
-	bz_assert(!this->destructor_calls.empty());
-	for (auto const &[src_tokens, func, val] : this->destructor_calls.back().reversed())
+	this->destruct_condition = prev_condition;
+}
+
+llvm::Value *comptime_executor_context::add_move_destruct_indicator(ast::decl_variable const *decl)
+{
+	auto const indicator = this->create_alloca_without_lifetime_start(this->get_bool_t());
+	[[maybe_unused]] auto const [it, inserted] = this->move_destruct_indicators.insert({ decl, indicator });
+	bz_assert(inserted);
+	this->builder.CreateStore(llvm::ConstantInt::getTrue(this->get_llvm_context()), indicator);
+	return indicator;
+}
+
+llvm::Value *comptime_executor_context::get_move_destruct_indicator(ast::decl_variable const *decl) const
+{
+	if (decl == nullptr)
 	{
-		auto const error_count = bc::emit_push_call(src_tokens, func, *this);
-		this->create_call(this->get_function(func), val);
-		bc::emit_pop_call(error_count, *this);
+		return nullptr;
+	}
+
+	auto const it = this->move_destruct_indicators.find(decl);
+	if (it == this->move_destruct_indicators.end())
+	{
+		return nullptr;
+	}
+
+	return it->second;
+}
+
+void comptime_executor_context::push_destruct_operation(ast::destruct_operation const &destruct_op)
+{
+	bz_assert(this->destructor_calls.not_empty());
+	auto const move_destruct_indicator = this->get_move_destruct_indicator(destruct_op.move_destructed_decl);
+	if (move_destruct_indicator != nullptr || destruct_op.not_null())
+	{
+		this->destructor_calls.back().push_back({
+			.destruct_op = &destruct_op,
+			.ptr         = nullptr,
+			.type        = nullptr,
+			.condition   = this->destruct_condition,
+			.move_destruct_indicator = move_destruct_indicator,
+		});
 	}
 }
 
-void comptime_executor_context::emit_loop_destructor_calls(void)
+void comptime_executor_context::push_variable_destruct_operation(ast::destruct_operation const &destruct_op, llvm::Value *move_destruct_indicator)
+{
+	bz_assert(this->destructor_calls.not_empty());
+	bz_assert(this->destruct_condition == nullptr);
+	if (destruct_op.not_null())
+	{
+		this->destructor_calls.back().push_back({
+			.destruct_op = &destruct_op,
+			.ptr         = nullptr,
+			.type        = nullptr,
+			.condition   = move_destruct_indicator,
+			.move_destruct_indicator = nullptr,
+		});
+	}
+}
+
+void comptime_executor_context::push_self_destruct_operation(ast::destruct_operation const &destruct_op, llvm::Value *ptr, llvm::Type *type)
+{
+	bz_assert(this->destructor_calls.not_empty());
+	auto const move_destruct_indicator = this->get_move_destruct_indicator(destruct_op.move_destructed_decl);
+	if (move_destruct_indicator != nullptr || destruct_op.not_null())
+	{
+		this->destructor_calls.back().push_back({
+			.destruct_op = &destruct_op,
+			.ptr         = ptr,
+			.type        = type,
+			.condition   = this->destruct_condition,
+			.move_destruct_indicator = move_destruct_indicator,
+		});
+	}
+}
+
+void comptime_executor_context::emit_destruct_operations(void)
 {
 	bz_assert(!this->has_terminator());
-	bz_assert(!this->destructor_calls.empty());
-	for (auto const &scope_calls : this->destructor_calls.slice(this->loop_info.destructor_stack_begin).reversed())
+	bz_assert(this->destructor_calls.not_empty());
+	for (auto const &[destruct_op, ptr, type, condition, move_destruct_indicator] : this->destructor_calls.back().reversed())
 	{
-		for (auto const &[src_tokens, func, val] : scope_calls.reversed())
+		if (ptr == nullptr)
 		{
-			auto const error_count = bc::emit_push_call(src_tokens, func, *this);
-			this->create_call(this->get_function(func), val);
-			bc::emit_pop_call(error_count, *this);
+			bc::emit_destruct_operation(*destruct_op, condition, move_destruct_indicator, *this);
+		}
+		else
+		{
+			bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), condition, move_destruct_indicator, *this);
 		}
 	}
 }
 
-void comptime_executor_context::emit_all_destructor_calls(void)
+void comptime_executor_context::emit_loop_destruct_operations(void)
 {
 	bz_assert(!this->has_terminator());
-	bz_assert(!this->destructor_calls.empty());
-	for (auto const &scope_calls : this->destructor_calls.reversed())
+	bz_assert(this->destructor_calls.not_empty());
+	for (auto const &calls : this->destructor_calls.slice(this->loop_info.destructor_stack_begin).reversed())
 	{
-		for (auto const &[src_tokens, func, val] : scope_calls.reversed())
+		for (auto const &[destruct_op, ptr, type, condition, move_destruct_indicator] : calls.reversed())
 		{
-			auto const error_count = bc::emit_push_call(src_tokens, func, *this);
-			this->create_call(this->get_function(func), val);
-			bc::emit_pop_call(error_count, *this);
+			if (ptr == nullptr)
+			{
+				bc::emit_destruct_operation(*destruct_op, condition, move_destruct_indicator, *this);
+			}
+			else
+			{
+				bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), condition, move_destruct_indicator, *this);
+			}
+		}
+	}
+}
+
+void comptime_executor_context::emit_all_destruct_operations(void)
+{
+	bz_assert(!this->has_terminator());
+	bz_assert(this->destructor_calls.not_empty());
+	for (auto const &calls : this->destructor_calls.reversed())
+	{
+		for (auto const &[destruct_op, ptr, type, condition, move_destruct_indicator] : calls.reversed())
+		{
+			if (ptr == nullptr)
+			{
+				bc::emit_destruct_operation(*destruct_op, condition, move_destruct_indicator, *this);
+			}
+			else
+			{
+				bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), condition, move_destruct_indicator, *this);
+			}
 		}
 	}
 }
@@ -729,6 +863,31 @@ void comptime_executor_context::emit_all_end_lifetime_calls(void)
 			this->end_lifetime(ptr, size);
 		}
 	}
+}
+
+[[nodiscard]] bc::val_ptr comptime_executor_context::push_value_reference(bc::val_ptr new_value)
+{
+	auto const index = this->current_value_reference_stack_size % this->current_value_references.size();
+	this->current_value_reference_stack_size += 1;
+	auto const result = this->current_value_references[index];
+	this->current_value_references[index] = new_value;
+	return result;
+}
+
+void comptime_executor_context::pop_value_reference(bc::val_ptr prev_value)
+{
+	bz_assert(this->current_value_reference_stack_size > 0);
+	this->current_value_reference_stack_size -= 1;
+	auto const index = this->current_value_reference_stack_size % this->current_value_references.size();
+	this->current_value_references[index] = prev_value;
+}
+
+bc::val_ptr comptime_executor_context::get_value_reference(size_t index)
+{
+	bz_assert(index < this->current_value_reference_stack_size);
+	bz_assert(index < this->current_value_references.size());
+	auto const stack_index = (this->current_value_reference_stack_size - index - 1) % this->current_value_references.size();
+	return this->current_value_references[stack_index];
 }
 
 [[nodiscard]] comptime_executor_context::loop_info_t
@@ -943,8 +1102,7 @@ static ast::constant_value constant_value_from_global_getters(
 		},
 		[&](ast::ts_array const &array_t) -> ast::constant_value {
 			ast::constant_value result;
-			result.emplace<ast::constant_value::array>();
-			auto &arr = result.get<ast::constant_value::array>();
+			auto &arr = result.emplace<ast::constant_value::array>();
 			arr.reserve(array_t.size);
 			for ([[maybe_unused]] auto const _ : bz::iota(0, array_t.size))
 			{
@@ -954,8 +1112,7 @@ static ast::constant_value constant_value_from_global_getters(
 		},
 		[&](ast::ts_tuple const &tuple_t) -> ast::constant_value {
 			ast::constant_value result;
-			result.emplace<ast::constant_value::tuple>();
-			auto &tuple = result.get<ast::constant_value::tuple>();
+			auto &tuple = result.emplace<ast::constant_value::tuple>();
 			tuple.reserve(tuple_t.types.size());
 			for (auto const &type : tuple_t.types)
 			{
@@ -973,19 +1130,18 @@ static ast::constant_value constant_value_from_global_getters(
 
 std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::execute_function(
 	lex::src_tokens const &src_tokens,
-	ast::function_body *body,
-	bz::array_view<ast::expression const> params
+	ast::expr_function_call &func_call
 )
 {
 	bz_assert(this->destructor_calls.empty());
 
-	(void)this->resolve_function(body);
+	(void)this->resolve_function(func_call.func_body);
 	std::pair<ast::constant_value, bz::vector<error>> result;
-	if (body->state == ast::resolve_state::error)
+	if (func_call.func_body->state == ast::resolve_state::error)
 	{
 		return result;
 	}
-	else if (body->state != ast::resolve_state::all && !body->has_builtin_implementation())
+	else if (func_call.func_body->state != ast::resolve_state::all && !func_call.func_body->has_builtin_implementation())
 	{
 		result.second.push_back(error{
 			warning_kind::_last,
@@ -993,7 +1149,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
 				src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
 				suggestion_range{}, suggestion_range{},
-				bz::format("unable to call external function '{}' in a constant expression", body->get_signature())
+				bz::format("unable to call external function '{}' in a constant expression", func_call.func_body->get_signature())
 			},
 			{}, {}
 		});
@@ -1006,7 +1162,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 		auto const prev_module = this->push_module(module.get());
 
 		auto const start_index = this->functions_to_compile.size();
-		auto const [fn, global_result_getters] = bc::create_function_for_comptime_execution(body, params, *this);
+		auto const [fn, global_result_getters] = bc::create_function_for_comptime_execution(func_call, *this);
 		if (!bc::emit_necessary_functions(start_index, *this))
 		{
 			this->functions_to_compile.resize(start_index);
@@ -1015,19 +1171,20 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 		}
 
 		this->add_module(std::move(module));
-		// bz::log("running '{}' at {}:{}\n", body->get_signature(), this->global_ctx.get_file_name(src_tokens.pivot->src_pos.file_id), src_tokens.pivot->src_pos.line);
+		// bz::log("running '{}' at {}\n", func_call.func_body->get_signature(), this->global_ctx.get_location_string(src_tokens.pivot));
 		auto const call_result = this->engine->runFunction(fn, {});
 
 		if (!this->has_error())
 		{
 			if (global_result_getters.empty())
 			{
-				result.first = constant_value_from_generic_value(call_result, body->return_type);
+				result.first = constant_value_from_generic_value(call_result, func_call.func_body->return_type);
 			}
 			else
 			{
 				auto getter_it = global_result_getters.cbegin();
-				result.first = constant_value_from_global_getters(body->return_type, getter_it, *this);
+				result.first = constant_value_from_global_getters(func_call.func_body->return_type, getter_it, *this);
+				bz_assert(getter_it == global_result_getters.end());
 			}
 		}
 		result.second.append_move(this->consume_errors());
@@ -1084,6 +1241,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 			auto const result_type = expr.final_expr.get_expr_type();
 			auto getter_it = global_result_getters.cbegin();
 			result.first = constant_value_from_global_getters(result_type, getter_it, *this);
+			bz_assert(getter_it == global_result_getters.end());
 		}
 	}
 	result.second.append_move(this->consume_errors());
@@ -1261,7 +1419,8 @@ void comptime_executor_context::add_module(std::unique_ptr<llvm::Module> module)
 		output_file.flush();
 	}
 	// bz::log("{}>>>>>>>> verifying module <<<<<<<<{}\n", colors::bright_red, colors::clear);
-	llvm::verifyModule(*module, &llvm::dbgs());
+	auto const verify_result = llvm::verifyModule(*module, &llvm::dbgs());
+	bz_assert(verify_result == false);
 	this->engine->addModule(std::move(module));
 }
 

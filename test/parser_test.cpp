@@ -152,7 +152,7 @@ xx_compiles(                                                                    
 )
 
 	// add scope to allow variables
-	auto local_scope = ast::make_local_scope(parse_ctx.get_current_enclosing_scope());
+	auto local_scope = ast::make_local_scope(parse_ctx.get_current_enclosing_scope(), false);
 	parse_ctx.push_local_scope(&local_scope);
 
 
@@ -398,7 +398,7 @@ xx(                                                                             
 
 
 	// add scope to allow variables
-	auto local_scope = ast::make_local_scope(parse_ctx.get_current_enclosing_scope());
+	auto local_scope = ast::make_local_scope(parse_ctx.get_current_enclosing_scope(), false);
 	parse_ctx.push_local_scope(&local_scope);
 
 	declare_var("i8",  "int8", "");

@@ -1,0 +1,6 @@
+function test()
+{
+	let i = 0;
+	let arr: [1: *int32] = [ &i ];
+	let _: [: *const int32] = arr;
+}

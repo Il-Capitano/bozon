@@ -126,8 +126,8 @@ struct local_symbol_t : bz::variant<
 struct local_scope_t
 {
 	arena_vector<local_symbol_t> symbols{};
-	std::list<scope_t, vector_arena_allocator<scope_t>> inner_scopes{};
 	enclosing_scope_t parent = {};
+	bool is_loop_scope = false;
 
 	local_symbol_t *find_by_id(identifier const &id, size_t bound) noexcept;
 
@@ -174,11 +174,12 @@ inline scope_t make_global_scope(enclosing_scope_t enclosing_scope, bz::array_vi
 	return result;
 }
 
-inline scope_t make_local_scope(enclosing_scope_t enclosing_scope)
+inline scope_t make_local_scope(enclosing_scope_t enclosing_scope, bool is_loop_scope)
 {
 	scope_t result;
 	auto &local_scope = result.emplace<local_scope_t>();
 	local_scope.parent = enclosing_scope;
+	local_scope.is_loop_scope = is_loop_scope;
 	return result;
 }
 

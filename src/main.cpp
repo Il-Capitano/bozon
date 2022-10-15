@@ -1,33 +1,5 @@
 /*
 
-TODO:
-	- user-defined type implementation
-
-match_expression_to_type:
-()(if) -> match_if
-()(switch) -> match_switch
-(typename)(typename) -> strict_type_match
-(&mut)(&mut) -> strict
-(&const)(&const) -> strict_prop_const
-(&const)(&mut) -> strict_prop_const
-(#const)()
-(#const)(&mut)
-(#const)(&const)
-(#mut)()
-(#mut)(&mut)
-(##)()
-(##)(&mut)
-(##)(&const)
-(*mut)(*mut) -> strict
-(*const)(*const) -> strict_prop_const
-(*const)(*mut) -> strict_prop_const
-()() -> non-strict
-
-strict:
-(T)(T)
-(auto)(T)
-
-
 
 {
 	let v: vector = { 1.0, 2.5, -0.9 };
@@ -42,21 +14,9 @@ strict:
 	}
 } // move d-tor or regular d-tor ??
 
-set a flag in a register?
+set a flag in a register?   <--- (this is what I went with)
 have different stack unwind labels?
 maybe it could only be used when the compiler decides to?
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1599,123 +1559,128 @@ int main(int argc, char const **argv)
 		) * 1e-6;
 	};
 
-	ctx::global_context global_ctx;
+	auto t = timer();
 
-	auto const begin = timer::now();
-
-	if (!global_ctx.parse_command_line(argc, argv))
 	{
-		global_ctx.report_and_clear_errors_and_warnings();
-		return_from_main(1);
-	}
-	auto const after_command_line_parsing = timer::now();
+		ctx::global_context global_ctx;
 
-	if (compile_until <= compilation_phase::parse_command_line)
-	{
-		global_ctx.report_and_clear_errors_and_warnings();
-		return_from_main(0);
-	}
+		t.start_section("command line parse time");
+		if (!global_ctx.parse_command_line(argc, argv))
+		{
+			global_ctx.report_and_clear_errors_and_warnings();
+			return_from_main(1);
+		}
+		t.end_section();
 
-	auto const before_initialization = timer::now();
-	if (!global_ctx.initialize_llvm())
-	{
-		global_ctx.report_and_clear_errors_and_warnings();
-		return_from_main(2);
-	}
-	if (!global_ctx.initialize_builtins())
-	{
-		global_ctx.report_and_clear_errors_and_warnings();
-		return_from_main(2);
-	}
-	auto const after_initialization = timer::now();
+		if (compile_until <= compilation_phase::parse_command_line)
+		{
+			global_ctx.report_and_clear_errors_and_warnings();
+			return_from_main(0);
+		}
 
-	auto const before_parse_global_symbols = timer::now();
-	if (!global_ctx.parse_global_symbols())
-	{
+		t.start_section("initialization time");
+		if (!global_ctx.initialize_llvm())
+		{
+			global_ctx.report_and_clear_errors_and_warnings();
+			return_from_main(2);
+		}
+		if (!global_ctx.initialize_builtins())
+		{
+			global_ctx.report_and_clear_errors_and_warnings();
+			return_from_main(2);
+		}
+		t.end_section();
+
+		t.start_section("global symbol parse time");
+		if (!global_ctx.parse_global_symbols())
+		{
+			global_ctx.report_and_clear_errors_and_warnings();
+			return_from_main(3);
+		}
+		t.end_section();
+
+		if (compile_until <= compilation_phase::parse_global_symbols)
+		{
+			global_ctx.report_and_clear_errors_and_warnings();
+			return_from_main(0);
+		}
+
+		t.start_section("parse time");
+		if (!global_ctx.parse())
+		{
+			global_ctx.report_and_clear_errors_and_warnings();
+			return_from_main(4);
+		}
+		t.end_section();
+
+		if (compile_until <= compilation_phase::parse)
+		{
+			global_ctx.report_and_clear_errors_and_warnings();
+			return_from_main(0);
+		}
+
+		t.start_section("bitcode emission time");
+		if (!global_ctx.emit_bitcode())
+		{
+			global_ctx.report_and_clear_errors_and_warnings();
+			return_from_main(5);
+		}
+		t.end_section();
+
+		// report all errors and warnings now, so we don't have to wait for optimization
+		// and file emission
 		global_ctx.report_and_clear_errors_and_warnings();
-		return_from_main(3);
+
+		t.start_section("optimization time");
+		if (!global_ctx.optimize())
+		{
+			global_ctx.report_and_clear_errors_and_warnings();
+			return_from_main(6);
+		}
+		t.end_section();
+
+		t.start_section("file emission time");
+		if (!global_ctx.emit_file())
+		{
+			global_ctx.report_and_clear_errors_and_warnings();
+			return_from_main(7);
+		}
+		t.end_section();
+
+		if (compile_until <= compilation_phase::emit_bitcode)
+		{
+			global_ctx.report_and_clear_errors_and_warnings();
+			return_from_main(0);
+		}
 	}
-	auto const after_parse_global_symbols = timer::now();
-
-	if (compile_until <= compilation_phase::parse_global_symbols)
-	{
-		global_ctx.report_and_clear_errors_and_warnings();
-		return_from_main(0);
-	}
-
-	auto const before_parse = timer::now();
-	if (!global_ctx.parse())
-	{
-		global_ctx.report_and_clear_errors_and_warnings();
-		return_from_main(4);
-	}
-	auto const after_parse = timer::now();
-
-	if (compile_until <= compilation_phase::parse)
-	{
-		global_ctx.report_and_clear_errors_and_warnings();
-		return_from_main(0);
-	}
-
-	auto const before_bitcode_emission = timer::now();
-	if (!global_ctx.emit_bitcode())
-	{
-		global_ctx.report_and_clear_errors_and_warnings();
-		return_from_main(5);
-	}
-	auto const after_bitcode_emission = timer::now();
-
-	// report all errors and warnings now, so we don't have to wait for optimization
-	// and file emission
-	global_ctx.report_and_clear_errors_and_warnings();
-
-	auto const before_optimization = timer::now();
-	if (!global_ctx.optimize())
-	{
-		global_ctx.report_and_clear_errors_and_warnings();
-		return_from_main(6);
-	}
-	auto const after_optimization = timer::now();
-
-	auto const before_file_emission = timer::now();
-	if (!global_ctx.emit_file())
-	{
-		global_ctx.report_and_clear_errors_and_warnings();
-		return_from_main(7);
-	}
-	auto const after_file_emission = timer::now();
-
-	if (compile_until <= compilation_phase::emit_bitcode)
-	{
-		global_ctx.report_and_clear_errors_and_warnings();
-		return_from_main(0);
-	}
-
-	auto const end = timer::now();
 
 	if (do_profile)
 	{
-		auto const compilation_time          = (after_bitcode_emission - begin) + (end - before_optimization);
-		auto const front_end_time            = after_bitcode_emission - begin;
-		auto const llvm_time                 = after_file_emission - before_optimization;
-		auto const command_line_parsing_time = after_command_line_parsing - begin;
-		auto const initialization_time       = after_initialization - before_initialization;
-		auto const first_pass_parse_time     = after_parse_global_symbols - before_parse_global_symbols;
-		auto const resolve_time              = after_parse - before_parse;
-		auto const bitcode_emission_time     = after_bitcode_emission - before_bitcode_emission;
-		auto const optimization_time         = after_optimization - before_optimization;
-		auto const file_emission_time        = after_file_emission - before_file_emission;
+		auto const compilation_time = t.get_total_duration();
+		auto const front_end_time   =
+			t.get_section_duration("command line parse time")
+			+ t.get_section_duration("initialization time")
+			+ t.get_section_duration("global symbol parse time")
+			+ t.get_section_duration("parse time")
+			+ t.get_section_duration("bitcode emission time");
+		auto const llvm_time        =
+			t.get_section_duration("optimization time")
+			+ t.get_section_duration("file emission time");
 
 		bz::print("successful compilation in {:8.3f}ms\n", in_ms(compilation_time));
 		bz::print("front-end time:           {:8.3f}ms\n", in_ms(front_end_time));
 		bz::print("LLVM time:                {:8.3f}ms\n", in_ms(llvm_time));
-		bz::print("command line parse time:  {:8.3f}ms\n", in_ms(command_line_parsing_time));
-		bz::print("initialization time:      {:8.3f}ms\n", in_ms(initialization_time));
-		bz::print("global symbol parse time: {:8.3f}ms\n", in_ms(first_pass_parse_time));
-		bz::print("parse time:               {:8.3f}ms\n", in_ms(resolve_time));
-		bz::print("bitcode emission time:    {:8.3f}ms\n", in_ms(bitcode_emission_time));
-		bz::print("optimization time:        {:8.3f}ms\n", in_ms(optimization_time));
-		bz::print("file emission time:       {:8.3f}ms\n", in_ms(file_emission_time));
+		for (auto const &[name, begin, end] : t.timing_sections)
+		{
+			bz::print("{:25} {:8.3f}ms\n", bz::format("{}:", name), in_ms(end - begin));
+		}
+
+#ifdef BOZON_PROFILE_ALLOCATIONS
+		bz::print("allocations:              {:8}\n", ast::arena_allocator::get_allocation_count());
+		bz::print("deallocations:            {:8}\n", ast::arena_allocator::get_deallocation_count());
+		bz::print("total allocation size:    {:8}\n", ast::arena_allocator::get_total_allocation_size());
+		bz_assert(ast::arena_allocator::get_allocation_count() == ast::arena_allocator::get_deallocation_count());
+#endif // BOZON_PROFILE_ALLOCATIONS
 	}
 
 	return_from_main(0);

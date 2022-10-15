@@ -1,0 +1,9 @@
+function test()
+{
+	let i = 0;
+	let arr = [2: int32]();
+	for (const _ in arr)
+	{
+		move i;
+	}
+}

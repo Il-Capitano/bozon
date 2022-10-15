@@ -1,0 +1,19 @@
+function foo(#const val) -> int32
+{
+	return 0;
+}
+
+function bar(i: int32) -> int32
+{
+	return foo(switch (i) {
+		0 => [ 0, 0.0, "zero" ],
+		1 => [ 1, 1.0, "one" ],
+		else => unreachable,
+	});
+}
+
+function main()
+{
+	(consteval bar(0));
+	bar(0);
+}

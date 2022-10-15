@@ -10,6 +10,7 @@ struct stmt_while;
 struct stmt_for;
 struct stmt_foreach;
 struct stmt_return;
+struct stmt_defer;
 struct stmt_no_op;
 struct stmt_static_assert;
 struct stmt_expression;
@@ -22,12 +23,16 @@ struct decl_type_alias;
 struct decl_struct;
 struct decl_import;
 
+struct function_body;
+struct type_info;
+
 
 using statement_types = bz::meta::type_pack<
 	stmt_while,
 	stmt_for,
 	stmt_foreach,
 	stmt_return,
+	stmt_defer,
 	stmt_no_op,
 	stmt_static_assert,
 	stmt_expression,

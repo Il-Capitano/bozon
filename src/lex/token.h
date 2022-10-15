@@ -92,6 +92,7 @@ struct token
 		dot_dot_eq,          // ..=
 		dot_dot_dot,         // ...
 		auto_ref_const,      // ##
+		placeholder_literal, // ??
 
 
 		// keywords
@@ -101,6 +102,7 @@ struct token
 		kw_while,            // while
 		kw_for,              // for
 		kw_return,           // return
+		kw_defer,            // defer
 		kw_function,         // function
 		kw_operator,         // operator
 		kw_class,            // class
@@ -123,7 +125,10 @@ struct token
 		kw_const,            // const
 		kw_consteval,        // consteval
 		kw_move,             // move
+		kw_unsafe_move,      // __move__
 		kw_forward,          // __forward
+		kw_default,          // __default__
+		kw_delete,           // __delete__
 
 		kw_true,             // true
 		kw_false,            // false

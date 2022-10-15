@@ -1,0 +1,4 @@
+function test()
+{
+	let _: [4: int32] = [4: int64]();
+}

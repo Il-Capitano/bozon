@@ -167,14 +167,14 @@ static bool is_integer_literal_implicitly_convertible(
 	}
 
 	auto const dest_kind = dest.get<ast::ts_base_type>().info->kind;
-	if (!ast::is_integer_kind(dest_kind) || !value.is_any<ast::constant_value::sint, ast::constant_value::uint>())
+	if (!ast::is_integer_kind(dest_kind) || (!value.is_sint() && !value.is_uint()))
 	{
 		return false;
 	}
 
-	return value.is<ast::constant_value::sint>()
-		? is_integer_implicitly_convertible(dest_kind, kind, value.get<ast::constant_value::sint>())
-		: is_integer_implicitly_convertible(dest_kind, kind, value.get<ast::constant_value::uint>());
+	return value.is_sint()
+		? is_integer_implicitly_convertible(dest_kind, kind, value.get_sint())
+		: is_integer_implicitly_convertible(dest_kind, kind, value.get_uint());
 }
 
 static bool is_null_literal_implicitly_convertible(ast::typespec_view dest)
@@ -197,9 +197,9 @@ bool is_implicitly_convertible(
 	else if (expr.is_switch_expr())
 	{
 		auto const &switch_expr = expr.get_switch_expr();
-		auto const is_default_convirtible = switch_expr.default_case.is_null()
+		auto const is_default_convertible = switch_expr.default_case.is_null()
 			|| is_implicitly_convertible(dest, switch_expr.default_case, context);
-		return is_default_convirtible
+		return is_default_convertible
 			&& switch_expr.cases
 				.member<&ast::switch_case::expr>()
 				.filter([](auto const &expr) { return expr.not_null(); })

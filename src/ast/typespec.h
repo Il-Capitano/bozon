@@ -237,18 +237,11 @@ typespec_view remove_lvalue_reference(typespec_view ts) noexcept;
 typespec_view remove_pointer(typespec_view ts) noexcept;
 typespec_view remove_const_or_consteval(typespec_view ts) noexcept;
 typespec_view remove_lvalue_or_move_reference(typespec_view ts) noexcept;
+typespec_view remove_any_reference(typespec_view ts) noexcept;
 
 bool is_complete(typespec_view ts) noexcept;
 
-bool needs_destructor(typespec_view ts) noexcept;
-bool is_non_trivial(typespec_view ts) noexcept;
-
-bool is_default_constructible(typespec_view ts) noexcept;
-bool is_copy_constructible(typespec_view ts) noexcept;
-bool is_trivially_copy_constructible(typespec_view ts) noexcept;
-bool is_trivially_destructible(typespec_view ts) noexcept;
-bool is_trivial(typespec_view ts) noexcept;
-bool is_default_zero_initialized(typespec_view ts) noexcept;
+bool is_trivially_relocatable(typespec_view ts) noexcept;
 
 bool operator == (typespec_view lhs, typespec_view rhs);
 inline bool operator != (typespec_view lhs, typespec_view rhs)

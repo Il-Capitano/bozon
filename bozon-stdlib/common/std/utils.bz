@@ -1,10 +1,12 @@
 import std::libc::stdlib;
 import meta::comptime;
+import meta::types;
 import format;
 
 export function memcpy  = __builtin_memcpy;
 export function memmove = __builtin_memmove;
 export function memset  = __builtin_memset;
+export function swap = __builtin_swap;
 
 export function assert(b: bool)
 {
@@ -16,20 +18,38 @@ export function exit(code: int32) -> void
 	libc::exit(code);
 }
 
+export function malloc_raw(T: typename, n: usize) -> *T
+{
+	static_assert(!meta::is_reference(T), "type in 'malloc_raw' can't be a reference type");
+	static_assert(!meta::is_const(T), "type in 'malloc_raw' can't be 'const'");
+	static_assert(!meta::is_consteval(T), "type in 'malloc_raw' can't be 'consteval'");
+
+	return if (meta::is_comptime()) {
+		meta::malloc(T, n)
+	} else {
+		__builtin_pointer_cast(*T, libc::malloc(n * sizeof T))
+	};
+}
+
 export function malloc(T: typename, n: usize) -> *T
 {
-	static_assert(&T != T, "type in malloc can't be a reference type");
-	static_assert(const T != T, "type in malloc can't be const");
-	static_assert(consteval T != T, "type in malloc can't be consteval");
+	static_assert(!meta::is_reference(T), "type in 'malloc' can't be a reference type");
+	static_assert(!meta::is_move_reference(T), "type in 'malloc' can't be a move reference type");
+	static_assert(!meta::is_const(T), "type in 'malloc' can't be 'const'");
+	static_assert(!meta::is_consteval(T), "type in 'malloc' can't be 'consteval'");
 
-	if (meta::is_comptime())
+	const result = if (meta::is_comptime()) {
+		meta::malloc(T, n)
+	} else {
+		__builtin_pointer_cast(*T, libc::malloc(n * sizeof T))
+	};
+
+	for (let [it, const end] = [ result, result + n ]; it != end; ++it)
 	{
-		return meta::malloc(T, n);
+		__builtin_inplace_construct(it, T());
 	}
-	else
-	{
-		return __builtin_pointer_cast(*T, libc::malloc(n * sizeof T));
-	}
+
+	return result;
 }
 
 export function free(p: *void)
@@ -42,14 +62,6 @@ export function free(p: *void)
 	{
 		libc::free(p);
 	}
-}
-
-export function swap(a: &auto, b: &auto)
-{
-	static_assert(typeof a == typeof b, "different types in swap");
-	const tmp = a;
-	a = b;
-	b = tmp;
 }
 
 consteval function is_integer_type(T: typename) -> bool
@@ -66,9 +78,25 @@ export struct iota_range<T: typename>
 	);
 
 	type value_type = T;
+	type _self_t = iota_range<T>;
 
 	._begin: T;
 	._end: T;
+
+	function begin(self: _self_t) -> iota_iterator_t<value_type>
+	{
+		return iota_iterator_t<value_type>[ self._begin ];
+	}
+
+	function end(self: _self_t) -> iota_iterator_t<value_type>
+	{
+		return iota_iterator_t<value_type>[ self._end ];
+	}
+
+	function size(self: _self_t) -> usize
+	{
+		return (self._end - self._begin) as usize;
+	}
 }
 
 export struct iota_iterator_t<T: typename>
@@ -79,56 +107,36 @@ export struct iota_iterator_t<T: typename>
 	);
 
 	type value_type = T;
+	type _self_t = iota_iterator_t<T>;
 
 	._value: T;
+
+	operator * (self: _self_t) -> value_type
+	{
+		return self._value;
+	}
+
+	operator ++ (self: &_self_t) -> &_self_t
+	{
+		++self._value;
+		return self;
+	}
+
+	operator == (lhs: _self_t, rhs: _self_t) -> bool
+	{
+		return lhs._value == rhs._value;
+	}
+
+	operator != (lhs: _self_t, rhs: _self_t) -> bool
+	{
+		return lhs._value != rhs._value;
+	}
 }
-
-export function begin(iota: iota_range) -> iota_iterator_t<(typeof iota).value_type>
-{
-	type T = (typeof iota).value_type;
-	return iota_iterator_t<T>[ iota._begin ];
-}
-
-export function end(iota: iota_range) -> iota_iterator_t<(typeof iota).value_type>
-{
-	type T = (typeof iota).value_type;
-	return iota_iterator_t<T>[ iota._end ];
-}
-
-export function size(iota: iota_range) -> usize
-{
-	return (iota._end - iota._begin) as usize;
-}
-
-
-export operator * (it: iota_iterator_t) -> (typeof it).value_type
-{
-	return it._value;
-}
-
-export operator ++ (it: &iota_iterator_t) -> typeof it
-{
-	++it._value;
-	return it;
-}
-
-export operator == (lhs: iota_iterator_t, rhs: iota_iterator_t) -> bool
-{
-	static_assert(typeof lhs == typeof rhs);
-	return lhs._value == rhs._value;
-}
-
-export operator != (lhs: iota_iterator_t, rhs: iota_iterator_t) -> bool
-{
-	static_assert(typeof lhs == typeof rhs);
-	return lhs._value != rhs._value;
-}
-
 
 export function iota(end) -> iota_range<typeof end>
 {
 	type T = typeof end;
-	return iota_range<T>[ 0 as T, end ];
+	return iota_range<T>[ T(), end ];
 }
 
 export function iota(begin, end) -> iota_range<typeof begin>
@@ -136,7 +144,7 @@ export function iota(begin, end) -> iota_range<typeof begin>
 	static_assert(
 		typeof begin == typeof end,
 		comptime_format(
-			"begin and end have different types '{}' and '{}' in std::iota",
+			"begin and end have different types '{}' and '{}' in 'std::iota'",
 			__builtin_typename_as_str(typeof begin), __builtin_typename_as_str(typeof end)
 		)
 	);
@@ -148,6 +156,6 @@ export function iota(begin, end) -> iota_range<typeof begin>
 	else
 	{
 		type T = typeof begin;
-		return iota_range<T>[ 0 as T, 0 as T ];
+		return iota_range<T>[ T(), T() ];
 	}
 }

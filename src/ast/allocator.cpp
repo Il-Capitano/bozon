@@ -4,6 +4,29 @@
 namespace ast
 {
 
+#ifdef BOZON_PROFILE_ALLOCATIONS
+
+static std::size_t allocation_count = 0;
+static std::size_t deallocation_count = 0;
+static std::size_t total_allocation_size = 0;
+
+std::size_t arena_allocator::get_allocation_count(void)
+{
+	return allocation_count;
+}
+
+std::size_t arena_allocator::get_deallocation_count(void)
+{
+	return deallocation_count;
+}
+
+std::size_t arena_allocator::get_total_allocation_size(void)
+{
+	return total_allocation_size;
+}
+
+#endif // BOZON_PROFILE_ALLOCATIONS
+
 #ifndef BOZON_NO_ARENA
 
 constexpr size_t default_node_capacity =  1024 * 1024;
@@ -51,6 +74,12 @@ static size_t round_up_to_alignment(size_t size)
 void *arena_allocator::sized_allocate(size_t size)
 {
 	size = round_up_to_alignment(size);
+
+#ifdef BOZON_PROFILE_ALLOCATIONS
+	allocation_count += 1;
+	total_allocation_size += size;
+#endif // BOZON_PROFILE_ALLOCATIONS
+
 	if (size > default_node_capacity)
 	{
 		auto const new_node_memory = std::malloc(sizeof (node_t) + size);
@@ -126,6 +155,13 @@ void *arena_allocator::sized_allocate(size_t size)
 
 void arena_allocator::sized_free(void *p, size_t size)
 {
+#ifdef BOZON_PROFILE_ALLOCATIONS
+	if (p != nullptr)
+	{
+		deallocation_count += 1;
+	}
+#endif // BOZON_PROFILE_ALLOCATIONS
+
 	size = round_up_to_alignment(size);
 	if (arena.last_node->data + arena.last_node->size - size == p)
 	{
@@ -135,6 +171,13 @@ void arena_allocator::sized_free(void *p, size_t size)
 
 void arena_allocator::unsized_free([[maybe_unused]] void *p)
 {
+#ifdef BOZON_PROFILE_ALLOCATIONS
+	if (p != nullptr)
+	{
+		deallocation_count += 1;
+	}
+#endif // BOZON_PROFILE_ALLOCATIONS
+
 	// nothing
 }
 
@@ -142,16 +185,35 @@ void arena_allocator::unsized_free([[maybe_unused]] void *p)
 
 void *arena_allocator::sized_allocate(size_t size)
 {
+#ifdef BOZON_PROFILE_ALLOCATIONS
+	allocation_count += 1;
+	total_allocation_size += size;
+#endif // BOZON_PROFILE_ALLOCATIONS
+
 	return std::malloc(size);
 }
 
 void arena_allocator::sized_free(void *p, [[maybe_unused]] size_t size)
 {
+#ifdef BOZON_PROFILE_ALLOCATIONS
+	if (p != nullptr)
+	{
+		deallocation_count += 1;
+	}
+#endif // BOZON_PROFILE_ALLOCATIONS
+
 	std::free(p);
 }
 
 void arena_allocator::unsized_free(void *p)
 {
+#ifdef BOZON_PROFILE_ALLOCATIONS
+	if (p != nullptr)
+	{
+		deallocation_count += 1;
+	}
+#endif // BOZON_PROFILE_ALLOCATIONS
+
 	std::free(p);
 }
 

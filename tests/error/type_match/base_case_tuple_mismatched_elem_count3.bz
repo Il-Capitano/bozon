@@ -1,0 +1,4 @@
+function test()
+{
+	let _: [int32, float64, ...str] = [int32]();
+}

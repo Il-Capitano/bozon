@@ -4,7 +4,6 @@
 #include "expression_parser.h"
 #include "parse_common.h"
 #include "token_info.h"
-#include "ctx/global_context.h"
 #include "escape_sequences.h"
 #include "resolve/statement_resolver.h"
 
@@ -399,6 +398,7 @@ static ast::arena_vector<ast::decl_variable> parse_parameter_list(
 			context, false
 		));
 		auto &param_decl = result.back();
+		param_decl.flags |= ast::decl_variable::parameter;
 		if (param_decl.get_id().values.empty())
 		{
 			param_decl.flags |= ast::decl_variable::maybe_unused;
@@ -426,7 +426,7 @@ static ast::function_body parse_function_body(
 )
 {
 	ast::function_body result = {};
-	result.scope = ast::make_local_scope(context.get_current_enclosing_scope());
+	result.scope = ast::make_local_scope(context.get_current_enclosing_scope(), false);
 	auto const open_paren = context.assert_token(stream, lex::token::paren_open);
 	auto const param_range = get_expression_tokens<
 		lex::token::paren_close
@@ -452,6 +452,21 @@ static ast::function_body parse_function_body(
 			lex::token::curly_open
 		>(stream, end, context);
 		result.return_type = ast::make_unresolved_typespec(ret_type);
+	}
+	else if (stream != end && stream->kind == lex::token::assign)
+	{
+		++stream; // '='
+		auto const delete_or_default = context.assert_token(stream, lex::token::kw_default, lex::token::kw_delete);
+		if (delete_or_default->kind == lex::token::kw_default)
+		{
+			result.flags |= ast::function_body::defaulted;
+		}
+		else if (delete_or_default->kind == lex::token::kw_delete)
+		{
+			result.flags |= ast::function_body::deleted;
+		}
+		context.assert_token(stream, lex::token::semi_colon);
+		return result;
 	}
 	else if (stream != end)
 	{
@@ -624,7 +639,7 @@ ast::statement parse_decl_function_or_alias(
 			: ast::make_identifier(id);
 		auto body = parse_function_body(src_tokens, std::move(func_name), stream, end, context);
 		body.cc = cc;
-		if (id->value == "main")
+		if (scope == parse_scope::global && id->value == "main")
 		{
 			body.flags |= ast::function_body::main;
 			body.flags |= ast::function_body::external_linkage;
@@ -636,7 +651,8 @@ ast::statement parse_decl_function_or_alias(
 
 		if constexpr (scope == parse_scope::global || scope == parse_scope::struct_body)
 		{
-			return ast::make_decl_function(context.make_qualified_identifier(id), std::move(body));
+			auto result = ast::make_decl_function(context.make_qualified_identifier(id), std::move(body));
+			return result;
 		}
 		else
 		{
@@ -834,6 +850,8 @@ static ast::statement parse_type_info_member_variable(
 		else
 		{
 			context.assert_token(stream, lex::token::dot);
+			++stream;
+			return ast::statement();
 		}
 	}
 	else
@@ -1370,6 +1388,21 @@ ast::statement parse_stmt_return(
 	auto expr = parse_expression(stream, end, context, precedence{});
 	context.assert_token(stream, lex::token::semi_colon);
 	return ast::make_stmt_return(return_pos, std::move(expr));
+}
+
+ast::statement parse_stmt_defer(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream != end);
+	bz_assert(stream->kind == lex::token::kw_defer);
+	auto const defer_pos = stream;
+	++stream; // 'defer'
+
+	auto const deferred_expr = parse_expression(stream, end, context, precedence{});
+	context.assert_token(stream, lex::token::semi_colon);
+	return ast::make_stmt_defer(defer_pos, std::move(deferred_expr));
 }
 
 ast::statement parse_stmt_no_op(

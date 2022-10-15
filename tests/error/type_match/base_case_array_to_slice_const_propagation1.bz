@@ -1,0 +1,5 @@
+function test()
+{
+	const arr = [32: int32]();
+	let _: [: int32] = arr;
+}

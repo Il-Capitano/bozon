@@ -287,6 +287,20 @@ struct collection_base_reversed
 	auto reversed(void) const noexcept;
 };
 
+template<typename Collection>
+struct collection_base_erase_value
+{
+	template<typename Val>
+	void erase_value(Val &&val);
+};
+
+template<typename Collection>
+struct collection_base_erase_if
+{
+	template<typename Func>
+	void erase_if(Func &&func);
+};
+
 } // namespace internal
 
 
@@ -310,21 +324,23 @@ struct range_base :
 
 template<typename Collection>
 struct collection_base :
-	internal::collection_base_filter   <Collection>,
-	internal::collection_base_transform<Collection>,
-	internal::collection_base_enumerate<Collection>,
-	internal::collection_base_member   <Collection>,
-	internal::collection_base_is_any   <Collection>,
-	internal::collection_base_is_all   <Collection>,
-	internal::collection_base_contains <Collection>,
-	internal::collection_base_for_each <Collection>,
-	internal::collection_base_sum      <Collection>,
-	internal::collection_base_max      <Collection>,
-	internal::collection_base_min      <Collection>,
-	internal::collection_base_reduce   <Collection>,
-	internal::collection_base_sort     <Collection>,
-	internal::collection_base_append   <Collection>,
-	internal::collection_base_reversed <Collection>
+	internal::collection_base_filter     <Collection>,
+	internal::collection_base_transform  <Collection>,
+	internal::collection_base_enumerate  <Collection>,
+	internal::collection_base_member     <Collection>,
+	internal::collection_base_is_any     <Collection>,
+	internal::collection_base_is_all     <Collection>,
+	internal::collection_base_contains   <Collection>,
+	internal::collection_base_for_each   <Collection>,
+	internal::collection_base_sum        <Collection>,
+	internal::collection_base_max        <Collection>,
+	internal::collection_base_min        <Collection>,
+	internal::collection_base_reduce     <Collection>,
+	internal::collection_base_sort       <Collection>,
+	internal::collection_base_append     <Collection>,
+	internal::collection_base_reversed   <Collection>,
+	internal::collection_base_erase_value<Collection>,
+	internal::collection_base_erase_if   <Collection>
 {
 	constexpr auto as_range(void) const noexcept;
 	constexpr auto as_range(void) noexcept;
@@ -402,6 +418,67 @@ public:
 };
 
 template<typename T>
+struct reverse_iota_range : range_base<reverse_iota_range<T>>
+{
+private:
+	using self_t = reverse_iota_range<T>;
+private:
+	T _it;
+	T _end;
+
+public:
+	constexpr reverse_iota_range(T it, T end)
+		: _it(std::move(it)), _end(std::move(end))
+	{}
+
+	template<typename T1, typename T2>
+	constexpr reverse_iota_range(T1 it, T2 end)
+		: _it(std::move(it)), _end(std::move(end))
+	{}
+
+	constexpr bool at_end(void) const noexcept
+	{ return this->_it == this->_end; }
+
+	constexpr self_t &operator ++ (void) noexcept
+	{
+		--this->_it;
+		return *this;
+	}
+
+	template<typename U = T, meta::enable_if<internal::has_difference<U, U>, int> = 0>
+	constexpr std::size_t size(void) const noexcept
+	{
+		static_assert(meta::is_same<U, T>);
+		return static_cast<std::size_t>(this->_it - this->_end);
+	}
+
+	constexpr decltype(auto) operator * (void) const noexcept
+	{ return this->_it - 1; }
+
+	constexpr friend bool operator == (self_t const &lhs, [[maybe_unused]] universal_end_sentinel<self_t> rhs) noexcept
+	{ return lhs.at_end(); }
+
+	constexpr friend bool operator == ([[maybe_unused]] universal_end_sentinel<self_t> lhs, self_t const &rhs) noexcept
+	{ return rhs.at_end(); }
+
+	constexpr friend bool operator != (self_t const &lhs, [[maybe_unused]] universal_end_sentinel<self_t> rhs) noexcept
+	{ return !lhs.at_end(); }
+
+	constexpr friend bool operator != ([[maybe_unused]] universal_end_sentinel<self_t> lhs, self_t const &rhs) noexcept
+	{ return !rhs.at_end(); }
+
+	constexpr decltype(auto) front(void) const noexcept
+	{ return this->operator*(); }
+
+
+	constexpr self_t begin(void) const noexcept
+	{ return *this; }
+
+	constexpr universal_end_sentinel<self_t> end(void) const noexcept
+	{ return universal_end_sentinel<self_t>{}; }
+};
+
+template<typename T>
 struct iota_range : range_base<iota_range<T>>
 {
 private:
@@ -436,10 +513,10 @@ public:
 		return static_cast<std::size_t>(this->_end - this->_it);
 	}
 
-	constexpr decltype(auto) operator * (void) const noexcept
+	constexpr auto const &operator * (void) const noexcept
 	{ return this->_it; }
 
-	constexpr auto const &operator -> (void) const noexcept
+	constexpr decltype(auto) operator -> (void) const noexcept
 	{ return &this->_it; }
 
 	constexpr friend bool operator == (self_t const &lhs, [[maybe_unused]] universal_end_sentinel<self_t> rhs) noexcept
@@ -463,6 +540,9 @@ public:
 
 	constexpr universal_end_sentinel<self_t> end(void) const noexcept
 	{ return universal_end_sentinel<self_t>{}; }
+
+	constexpr reverse_iota_range<T> reversed(void) const noexcept
+	{ return reverse_iota_range<T>(this->_end, this->_it); }
 };
 
 template<typename ItType, typename EndType, typename FilterFuncType>
@@ -1237,6 +1317,44 @@ auto collection_base_reversed<Collection>::reversed(void) const noexcept
 {
 	auto const self = static_cast<Collection const *>(this);
 	return basic_range{ self->rbegin(), self->rend() };
+}
+
+template<typename Collection>
+template<typename Val>
+void collection_base_erase_value<Collection>::erase_value(Val &&val)
+{
+	auto const self = static_cast<Collection *>(this);
+	auto it = self->begin();
+	while (it != self->end())
+	{
+		if (*it == val)
+		{
+			it = self->erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+}
+
+template<typename Collection>
+template<typename Func>
+void collection_base_erase_if<Collection>::erase_if(Func &&func)
+{
+	auto const self = static_cast<Collection *>(this);
+	auto it = self->begin();
+	while (it != self->end())
+	{
+		if (func(*it))
+		{
+			it = self->erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
 }
 
 } // namespace internal

@@ -1,0 +1,4 @@
+function test()
+{
+	let _: [: *const int32] = [: *int32]();
+}

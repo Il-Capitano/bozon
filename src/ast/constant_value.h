@@ -26,7 +26,7 @@ struct function_set_t
 	arena_vector<statement_view> stmts;
 };
 
-struct constant_value : bz::variant<
+using constant_value_base_t = bz::variant<
 	int64_t, uint64_t,
 	float32_t, float64_t,
 	bz::u8char, bz::u8string,
@@ -35,6 +35,10 @@ struct constant_value : bz::variant<
 
 	// arrays
 	bz::vector<constant_value>,
+	bz::vector<int64_t>,
+	bz::vector<uint64_t>,
+	bz::vector<float32_t>,
+	bz::vector<float64_t>,
 	// tuples
 	bz::vector<constant_value>,
 
@@ -46,29 +50,11 @@ struct constant_value : bz::variant<
 
 	// structs
 	bz::vector<constant_value>
->
+>;
+
+struct constant_value : constant_value_base_t
 {
-	using base_t = bz::variant<
-		int64_t, uint64_t,
-		float32_t, float64_t,
-		bz::u8char, bz::u8string,
-		bool, internal::null_t,
-		internal::void_t,
-
-		// arrays
-		bz::vector<constant_value>,
-		// tuples
-		bz::vector<constant_value>,
-
-		decl_function *,
-		function_set_t,
-		function_set_t,
-
-		typespec,
-
-		// structs
-		bz::vector<constant_value>
-	>;
+	using base_t = constant_value_base_t;
 
 	enum : size_t
 	{
@@ -82,6 +68,10 @@ struct constant_value : bz::variant<
 		null            = base_t::index_of<internal::null_t>,
 		void_           = base_t::index_of<internal::void_t>,
 		array,
+		sint_array      = base_t::index_of<bz::vector<int64_t>>,
+		uint_array      = base_t::index_of<bz::vector<uint64_t>>,
+		float32_array   = base_t::index_of<bz::vector<float32_t>>,
+		float64_array   = base_t::index_of<bz::vector<float64_t>>,
 		tuple,
 		function        = base_t::index_of<decl_function *>,
 		unqualified_function_set_id,
@@ -102,6 +92,123 @@ struct constant_value : bz::variant<
 
 	size_t kind(void) const noexcept
 	{ return this->base_t::index(); }
+
+
+	bool is_sint(void) const noexcept
+	{ return this->is<sint>(); }
+
+	bool is_uint(void) const noexcept
+	{ return this->is<uint>(); }
+
+	bool is_float32(void) const noexcept
+	{ return this->is<float32>(); }
+
+	bool is_float64(void) const noexcept
+	{ return this->is<float64>(); }
+
+	bool is_u8char(void) const noexcept
+	{ return this->is<u8char>(); }
+
+	bool is_string(void) const noexcept
+	{ return this->is<string>(); }
+
+	bool is_boolean(void) const noexcept
+	{ return this->is<boolean>(); }
+
+	bool is_null_constant(void) const noexcept
+	{ return this->is<null>(); }
+
+	bool is_void(void) const noexcept
+	{ return this->is<void_>(); }
+
+	bool is_array(void) const noexcept
+	{ return this->is<array>(); }
+
+	bool is_sint_array(void) const noexcept
+	{ return this->is<sint_array>(); }
+
+	bool is_uint_array(void) const noexcept
+	{ return this->is<uint_array>(); }
+
+	bool is_float32_array(void) const noexcept
+	{ return this->is<float32_array>(); }
+
+	bool is_float64_array(void) const noexcept
+	{ return this->is<float64_array>(); }
+
+	bool is_tuple(void) const noexcept
+	{ return this->is<tuple>(); }
+
+	bool is_function(void) const noexcept
+	{ return this->is<function>(); }
+
+	bool is_unqualified_function_set_id(void) const noexcept
+	{ return this->is<unqualified_function_set_id>(); }
+
+	bool is_qualified_function_set_id(void) const noexcept
+	{ return this->is<qualified_function_set_id>(); }
+
+	bool is_type(void) const noexcept
+	{ return this->is<type>(); }
+
+	bool is_aggregate(void) const noexcept
+	{ return this->is<aggregate>(); }
+
+
+	int64_t get_sint(void) const noexcept
+	{ return this->get<sint>(); }
+
+	uint64_t get_uint(void) const noexcept
+	{ return this->get<uint>(); }
+
+	float32_t get_float32(void) const noexcept
+	{ return this->get<float32>(); }
+
+	float64_t get_float64(void) const noexcept
+	{ return this->get<float64>(); }
+
+	bz::u8char get_u8char(void) const noexcept
+	{ return this->get<u8char>(); }
+
+	bz::u8string_view get_string(void) const noexcept
+	{ return this->get<string>(); }
+
+	bool get_boolean(void) const noexcept
+	{ return this->get<boolean>(); }
+
+	bz::array_view<constant_value const> get_array(void) const noexcept
+	{ return this->get<array>(); }
+
+	bz::array_view<int64_t const> get_sint_array(void) const noexcept
+	{ return this->get<sint_array>(); }
+
+	bz::array_view<uint64_t const> get_uint_array(void) const noexcept
+	{ return this->get<uint_array>(); }
+
+	bz::array_view<float32_t const> get_float32_array(void) const noexcept
+	{ return this->get<float32_array>(); }
+
+	bz::array_view<float64_t const> get_float64_array(void) const noexcept
+	{ return this->get<float64_array>(); }
+
+	bz::array_view<constant_value const> get_tuple(void) const noexcept
+	{ return this->get<tuple>(); }
+
+	decl_function *get_function(void) const noexcept
+	{ return this->get<function>(); }
+
+	function_set_t const &get_unqualified_function_set_id(void) const noexcept
+	{ return this->get<unqualified_function_set_id>(); }
+
+	function_set_t const &get_qualified_function_set_id(void) const noexcept
+	{ return this->get<qualified_function_set_id>(); }
+
+	typespec_view get_type(void) const noexcept
+	{ return this->get<type>(); }
+
+	bz::array_view<constant_value const> get_aggregate(void) const noexcept
+	{ return this->get<aggregate>(); }
+
 
 	constant_value(void) = default;
 

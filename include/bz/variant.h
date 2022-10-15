@@ -385,7 +385,11 @@ public:
 
 	variant(void) noexcept = default;
 	using base_t::base_t;
-	using base_t::operator =;
+
+	variant(self_t const &other) = default;
+	variant(self_t &&other) = default;
+	self_t &operator = (self_t const &other) = default;
+	self_t &operator = (self_t &&other) = default;
 
 	template<
 		typename T,

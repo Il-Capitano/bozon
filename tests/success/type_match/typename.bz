@@ -1,0 +1,51 @@
+function test1(T: typename);
+function test2(T: **typename);
+function test3(T: [4: typename]);
+function test4(T: [??: *typename]);
+function test5(T: [: typename]);
+function test6(T: [typename, typename]);
+function test7(T: [...typename]);
+function test8(T: [typename, ...typename]);
+function test9(T: [typename, int32]);
+
+function test()
+{
+	test1(int32);
+	test1(const int32);
+	test1(*int32);
+	test1([: const int32]);
+	test1(&[10: int32]);
+	test1(move [str, float32, [[3: int8], usize]]);
+
+	test2(**int32);
+	test2(**const *[float32, float64]);
+
+	test3([4: int32]);
+
+	test4([3: *int32]);
+	test4([4: *int32]);
+	test4([2: *const int32]);
+	test4([8: **const int32]);
+
+	test5([: int32]);
+	test5([: const int32]);
+	test5([: **int32]);
+	test5([: const [4: int32]]);
+
+	test6([int32, float32]);
+	test6([str, char]);
+	test6([[: const str], [int8, uint64, *int32]]);
+
+	test7([int32]);
+	test7([int32, float32]);
+	test7([int32, float32, str]);
+	test7([int32, float32, str, char]);
+
+	test8([int32]);
+	test8([int32, float32]);
+	test8([int32, float32, str]);
+	test8([int32, float32, str, char]);
+
+	test9([int32, int32]);
+	test9([str, int32]);
+}

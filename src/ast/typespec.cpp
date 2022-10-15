@@ -182,6 +182,11 @@ typespec_view remove_lvalue_or_move_reference(typespec_view ts) noexcept
 	return remove_kind_helper<ts_lvalue_reference, ts_move_reference>(ts);
 }
 
+typespec_view remove_any_reference(typespec_view ts) noexcept
+{
+	return remove_kind_helper<ts_lvalue_reference, ts_move_reference, ts_auto_reference, ts_auto_reference_const>(ts);
+}
+
 bool is_complete(typespec_view ts) noexcept
 {
 	if (ts.nodes.size() == 0)
@@ -230,210 +235,40 @@ bool is_complete(typespec_view ts) noexcept
 	});
 }
 
-bool needs_destructor(typespec_view ts) noexcept
+template<
+	bool (type_info::*base_type_property_func)(void) const,
+	bool default_value, typename ...exception_types
+>
+static bool type_property_helper(typespec_view ts) noexcept
 {
 	ts = remove_const_or_consteval(ts);
 	if (ts.is<ts_base_type>())
 	{
-		auto const &info = *ts.get<ts_base_type>().info;
-		return info.destructor != nullptr
-			|| info.member_variables.is_any([](auto const member) {
-				return needs_destructor(member->get_type());
-			});
-	}
-	else if (ts.is<ts_tuple>())
-	{
-		return ts.get<ts_tuple>().types.is_any([](auto const &type) {
-			return needs_destructor(type);
-		});
-	}
-	else if (ts.is<ts_array>())
-	{
-		return needs_destructor(ts.get<ts_array>().elem_type);
-	}
-	else
-	{
-		return false;
-	}
-}
-
-bool is_non_trivial(typespec_view ts) noexcept
-{
-	ts = remove_const_or_consteval(ts);
-	if (ts.is<ts_base_type>())
-	{
-		auto const &info = *ts.get<ts_base_type>().info;
-		return info.destructor != nullptr || info.copy_constructor != nullptr
-			|| info.member_variables.is_any([](auto const member) {
-				return is_non_trivial(member->get_type());
-			});
-	}
-	else if (ts.is<ts_tuple>())
-	{
-		return ts.get<ts_tuple>().types.is_any([](auto const &type) {
-			return is_non_trivial(type);
-		});
-	}
-	else if (ts.is<ts_array>())
-	{
-		return is_non_trivial(ts.get<ts_array>().elem_type);
-	}
-	else
-	{
-		return false;
-	}
-}
-
-bool is_default_constructible(typespec_view ts) noexcept
-{
-	ts = remove_const_or_consteval(ts);
-	if (ts.is<ts_base_type>())
-	{
-		return ts.get<ts_base_type>().info->is_default_constructible();
+		bz_assert(ts.get<ts_base_type>().info->state == ast::resolve_state::all);
+		return (ts.get<ts_base_type>().info->*base_type_property_func)();
 	}
 	else if (ts.is<ts_tuple>())
 	{
 		return ts.get<ts_tuple>().types.is_all([](auto const &type) {
-			return is_default_constructible(type);
+			return type_property_helper<base_type_property_func, default_value, exception_types...>(type);
 		});
 	}
 	else if (ts.is<ts_array>())
 	{
-		return is_default_constructible(ts.get<ts_array>().elem_type);
-	}
-	else if (ts.is<ts_lvalue_reference>() || ts.is<ts_move_reference>())
-	{
-		return false;
+		return type_property_helper<base_type_property_func, default_value, exception_types...>(ts.get<ts_array>().elem_type);
 	}
 	else
 	{
-		// pointers, slices, function pointers are trivially copy constructible
-		return true;
+		return (ts.is<exception_types>() || ...) ? !default_value : default_value;
 	}
 }
 
-bool is_copy_constructible(typespec_view ts) noexcept
+bool is_trivially_relocatable(typespec_view ts) noexcept
 {
-	ts = remove_const_or_consteval(ts);
-	if (ts.is<ts_base_type>())
-	{
-		return ts.get<ts_base_type>().info->is_copy_constructible();
-	}
-	else if (ts.is<ts_tuple>())
-	{
-		return ts.get<ts_tuple>().types.is_all([](auto const &type) {
-			return is_copy_constructible(type);
-		});
-	}
-	else if (ts.is<ts_array>())
-	{
-		return is_copy_constructible(ts.get<ts_array>().elem_type);
-	}
-	else
-	{
-		// pointers, slices, function pointers are trivially copy constructible
-		return true;
-	}
-}
-
-bool is_trivially_copy_constructible(typespec_view ts) noexcept
-{
-	ts = remove_const_or_consteval(ts);
-	if (ts.is<ts_base_type>())
-	{
-		return ts.get<ts_base_type>().info->is_trivially_copy_constructible();
-	}
-	else if (ts.is<ts_tuple>())
-	{
-		return ts.get<ts_tuple>().types.is_all([](auto const &type) {
-			return is_trivially_copy_constructible(type);
-		});
-	}
-	else if (ts.is<ts_array>())
-	{
-		return is_trivially_copy_constructible(ts.get<ts_array>().elem_type);
-	}
-	else
-	{
-		// pointers, slices, function pointers are trivially copy constructible
-		return true;
-	}
-}
-
-bool is_trivially_destructible(typespec_view ts) noexcept
-{
-	ts = remove_const_or_consteval(ts);
-	if (ts.is<ts_base_type>())
-	{
-		return ts.get<ts_base_type>().info->is_trivially_destructible();
-	}
-	else if (ts.is<ts_tuple>())
-	{
-		return ts.get<ts_tuple>().types.is_all([](auto const &type) {
-			return is_trivially_destructible(type);
-		});
-	}
-	else if (ts.is<ts_array>())
-	{
-		return is_trivially_destructible(ts.get<ts_array>().elem_type);
-	}
-	else
-	{
-		// pointers, slices, function pointers are trivially destructible
-		return true;
-	}
-}
-
-bool is_trivial(typespec_view ts) noexcept
-{
-	ts = remove_const_or_consteval(ts);
-	if (ts.is<ts_base_type>())
-	{
-		return ts.get<ts_base_type>().info->is_trivial();
-	}
-	else if (ts.is<ts_tuple>())
-	{
-		return ts.get<ts_tuple>().types.is_all([](auto const &type) {
-			return is_trivial(type);
-		});
-	}
-	else if (ts.is<ts_array>())
-	{
-		return is_trivial(ts.get<ts_array>().elem_type);
-	}
-	else
-	{
-		// pointers, slices, function pointers are trivial
-		return true;
-	}
-}
-
-bool is_default_zero_initialized(typespec_view ts) noexcept
-{
-	ts = remove_const_or_consteval(ts);
-	if (ts.is<ts_base_type>())
-	{
-		return ts.get<ts_base_type>().info->is_default_zero_initialized();
-	}
-	else if (ts.is<ts_tuple>())
-	{
-		return ts.get<ts_tuple>().types.is_all([](auto const &type) {
-			return is_default_zero_initialized(type);
-		});
-	}
-	else if (ts.is<ts_array>())
-	{
-		return is_default_zero_initialized(ts.get<ts_array>().elem_type);
-	}
-	else if (ts.is<ts_lvalue_reference>() || ts.is<ts_move_reference>())
-	{
-		return false;
-	}
-	else
-	{
-		// pointers, slices, function pointers are zero initialized
-		return true;
-	}
+	return type_property_helper<
+		&type_info::is_trivially_relocatable,
+		false, ts_pointer, ts_array_slice
+	>(ts);
 }
 
 bz::u8string typespec_view::get_symbol_name(void) const
@@ -482,6 +317,9 @@ bz::u8string typespec_view::get_symbol_name(void) const
 			[&](ts_typename const &) {
 				result += "0N";
 			},
+			[&](ts_variadic const &) {
+				result += "0V";
+			},
 			[](auto const &) {
 				bz_unreachable;
 			}
@@ -501,11 +339,13 @@ bz::u8string typespec::decode_symbol_name(
 	constexpr bz::u8string_view move_reference = "0M.";
 	constexpr bz::u8string_view const_         = "const.";
 	constexpr bz::u8string_view consteval_     = "consteval.";
+	constexpr bz::u8string_view variadic       = "0V.";
 
 	constexpr bz::u8string_view void_       = "void";
 	constexpr bz::u8string_view array       = "0A.";
 	constexpr bz::u8string_view array_slice = "0S.";
 	constexpr bz::u8string_view tuple       = "0T.";
+	constexpr bz::u8string_view typename_   = "0N.";
 
 	auto const parse_int = [](bz::u8string_view str) {
 		uint64_t result = 0;
@@ -547,6 +387,11 @@ bz::u8string typespec::decode_symbol_name(
 		{
 			result += "consteval ";
 			it = bz::u8string_view::const_iterator(it.data() + consteval_.size());
+		}
+		else if (symbol_name.starts_with(variadic))
+		{
+			result += "...";
+			it = bz::u8string_view::const_iterator(it.data() + variadic.size());
 		}
 		else if (symbol_name.starts_with(array))
 		{
@@ -607,6 +452,11 @@ bz::u8string typespec::decode_symbol_name(
 		else if (symbol_name.starts_with(void_))
 		{
 			result += "void";
+			break;
+		}
+		else if (symbol_name.starts_with(typename_))
+		{
+			result += "typename";
 			break;
 		}
 		else
@@ -755,7 +605,7 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 				}
 				else
 				{
-					result += '?';
+					result += "??";
 				}
 				while (current_array_t->elem_type.is<ast::ts_array>())
 				{

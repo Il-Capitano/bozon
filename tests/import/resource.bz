@@ -1,0 +1,21 @@
+import std::utils;
+
+export struct resource_t
+{
+	.p: *int32;
+
+	constructor()
+	{
+		return resource_t[ std::malloc(int32, 1) ];
+	}
+
+	destructor(&self)
+	{
+		std::free(self.p);
+	}
+
+	constructor(other: &const resource_t)
+	{
+		return resource_t[ std::malloc(int32, 1) ];
+	}
+}

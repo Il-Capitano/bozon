@@ -86,27 +86,29 @@ struct match_level_t : public bz::variant<single_match_t, bz::vector<match_level
 // returns -1 if lhs < rhs, 0 if lhs == rhs or they are ambiguous and 1 if lhs > rhs
 int match_level_compare(match_level_t const &lhs, match_level_t const &rhs);
 bool operator < (match_level_t const &lhs, match_level_t const &rhs);
+match_level_t &operator += (match_level_t &lhs, uint16_t rhs);
+match_level_t operator + (match_level_t lhs, uint16_t rhs);
 
-match_level_t get_type_match_level(ast::typespec_view dest, ast::expression &expr, ctx::parse_context &context);
+match_level_t get_type_match_level(ast::typespec_view dest, ast::expression const &expr, ctx::parse_context &context);
 match_level_t get_function_call_match_level(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
-	bz::array_view<ast::expression> params,
+	bz::array_view<ast::expression const> params,
 	ctx::parse_context &context,
 	lex::src_tokens const &src_tokens
 );
 match_level_t get_function_call_match_level(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
-	ast::expression &expr,
+	ast::expression const &expr,
 	ctx::parse_context &context,
 	lex::src_tokens const &src_tokens
 );
 match_level_t get_function_call_match_level(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
-	ast::expression &lhs,
-	ast::expression &rhs,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::parse_context &context,
 	lex::src_tokens const &src_tokens
 );

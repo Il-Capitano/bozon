@@ -1,0 +1,4 @@
+function test()
+{
+	let _: move int32 = 0i32;
+}
