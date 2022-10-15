@@ -1,0 +1,14 @@
+struct test1_t
+{
+	constructor();
+}
+
+struct test2_t
+{
+	.value: test1_t;
+}
+
+function main()
+{
+	let _ = test2_t();
+}

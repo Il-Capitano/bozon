@@ -3626,6 +3626,12 @@ static ast::expression make_expr_function_call_from_body(
 		ast::typespec const expr_type = args[0].get_expr_type();
 		return make_swap_expression(src_tokens, expr_type, std::move(args[0]), std::move(args[1]), context);
 	}
+	else if (body->is_default_default_constructor() || (body->is_default_constructor() && body->is_defaulted()))
+	{
+		bz_assert(args.size() == 0);
+		auto const type = ast::make_base_type_typespec(src_tokens, body->get_constructor_of());
+		return context.make_default_construction(src_tokens, type);
+	}
 	else if (body->is_default_copy_constructor() || (body->is_copy_constructor() && body->is_defaulted()))
 	{
 		bz_assert(args.size() == 1);
