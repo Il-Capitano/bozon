@@ -6,24 +6,22 @@ namespace ast
 
 bool typespec_view::is_safe_blind_get(void) const noexcept
 {
-	return [this]<typename ...Ts>(bz::meta::type_pack<Ts...>) {
-		return ((!is_terminator_typespec<Ts> && this->is<Ts>()) || ...);
-	}(typespec_types{});
+	return this->modifiers.not_empty();
 }
 
 typespec_view typespec_view::blind_get(void) const noexcept
 {
-	return typespec_view{ this->src_tokens, { this->nodes.begin() + 1, this->nodes.end() } };
+	return typespec_view{ this->src_tokens, { this->modifiers.begin() + 1, this->modifiers.end() }, this->terminator };
 }
 
 bool typespec_view::is_typename(void) const noexcept
 {
-	if (this->nodes.empty())
+	if (this->is_empty())
 	{
 		return false;
 	}
 
-	return this->nodes.back().visit(bz::overload{
+	return this->terminator->visit(bz::overload{
 		[](ts_unresolved const &) {
 			return false;
 		},
@@ -51,96 +49,149 @@ bool typespec_view::is_typename(void) const noexcept
 		[](ts_typename const &) {
 			return true;
 		},
-		[](ts_const const &) {
-			bz_unreachable;
-			return false;
-		},
-		[](ts_consteval const &) {
-			bz_unreachable;
-			return false;
-		},
-		[](ts_pointer const &) {
-			bz_unreachable;
-			return false;
-		},
-		[](ts_lvalue_reference const &) {
-			bz_unreachable;
-			return false;
-		},
-		[](ts_move_reference const &) {
-			bz_unreachable;
-			return false;
-		},
-		[](ts_auto_reference const &) {
-			bz_unreachable;
-			return false;
-		},
-		[](ts_auto_reference_const const &) {
-			bz_unreachable;
-			return false;
-		},
-		[](ts_variadic const &) {
-			bz_unreachable;
-			return false;
-		},
 	});
 }
 
-typespec::typespec(lex::src_tokens const &_src_tokens, arena_vector<typespec_node_t> _nodes)
-	: src_tokens(_src_tokens), nodes(std::move(_nodes))
+typespec::typespec(
+	lex::src_tokens const &_src_tokens,
+	arena_vector<modifier_typespec_node_t> _modifiers,
+	ast_unique_ptr<terminator_typespec_node_t> _terminator
+)
+	: src_tokens(_src_tokens),
+	  modifiers(std::move(_modifiers)),
+	  terminator(std::move(_terminator))
 {}
 
 typespec::typespec(typespec_view ts)
-	: nodes(ts.nodes)
-{}
+	: src_tokens(ts.src_tokens),
+	  modifiers(ts.modifiers),
+	  terminator()
+{
+	if (ts.terminator != nullptr)
+	{
+		this->terminator = make_ast_unique<terminator_typespec_node_t>(*ts.terminator);
+	}
+}
+
+typespec::typespec(typespec const &other)
+	: src_tokens(other.src_tokens),
+	  modifiers(other.modifiers),
+	  terminator()
+{
+	if (other.terminator != nullptr)
+	{
+		this->terminator = make_ast_unique<terminator_typespec_node_t>(*other.terminator);
+	}
+}
+
+typespec &typespec::operator = (typespec const &other)
+{
+	if (this == &other)
+	{
+		return *this;
+	}
+
+	this->src_tokens = other.src_tokens;
+	this->modifiers = other.modifiers;
+	if (this->terminator != nullptr && other.terminator != nullptr)
+	{
+		*this->terminator = *other.terminator;
+	}
+	else if (other.terminator != nullptr)
+	{
+		this->terminator = make_ast_unique<terminator_typespec_node_t>(*other.terminator);
+	}
+	else
+	{
+		this->terminator = nullptr;
+	}
+
+	return *this;
+}
 
 bool typespec::is_unresolved(void) const noexcept
 {
-	return this->nodes.size() == 1 && this->nodes.front().is<ts_unresolved>();
+	return this->terminator != nullptr && this->modifiers.empty() && this->terminator->is<ts_unresolved>();
 }
 
-uint64_t typespec_view::kind(void) const noexcept
+bool typespec::is_empty(void) const noexcept
 {
-	return this->nodes.size() == 0 ? uint64_t(-1) : this->nodes.front().index();
+	return this->terminator == nullptr;
+}
+
+bool typespec::not_empty(void) const noexcept
+{
+	return this->terminator != nullptr;
+}
+
+uint64_t typespec_view::modifier_kind(void) const noexcept
+{
+	return this->modifiers.empty() ? uint64_t(-1) : this->modifiers[0].index();
+}
+
+uint64_t typespec_view::terminator_kind(void) const noexcept
+{
+	return this->terminator == nullptr ? uint64_t(-1) : this->terminator->index();
+}
+
+bool typespec_view::same_kind_as(typespec_view const &other) const noexcept
+{
+	if (this->modifiers.not_empty())
+	{
+		return other.modifiers.not_empty() && this->modifier_kind() == other.modifier_kind();
+	}
+	else
+	{
+		return other.modifiers.empty() && this->terminator_kind() == other.terminator_kind();
+	}
 }
 
 void typespec::clear(void) noexcept
 {
-	this->nodes.clear();
+	this->modifiers.clear();
+	this->terminator = nullptr;
 }
 
 void typespec::copy_from(typespec_view pos, typespec_view source)
 {
-	auto const it_pos = pos.nodes.begin();
-	bz_assert(it_pos >= this->nodes.begin() && it_pos < this->nodes.end());
-	bz_assert(pos.nodes.end() == this->nodes.end());
-	bz_assert(source.nodes.end() <= this->nodes.begin() || source.nodes.begin() >= this->nodes.end());
-	auto const it_index = static_cast<size_t>(it_pos - this->nodes.begin());
-	this->nodes.resize(it_index + source.nodes.size());
-	auto it = this->nodes.begin() + it_index;
-	auto const end = this->nodes.end();
-	auto src_it = source.nodes.begin();
+	auto const it_pos = pos.modifiers.empty() ? this->modifiers.end() : pos.modifiers.begin();
+	bz_assert(it_pos >= this->modifiers.begin() && it_pos <= this->modifiers.end());
+	bz_assert(pos.modifiers.empty() || pos.modifiers.end() == this->modifiers.end());
+	bz_assert(source.modifiers.end() <= this->modifiers.begin() || source.modifiers.begin() >= this->modifiers.end());
+	bz_assert(pos.terminator == this->terminator.get());
+	auto const it_index = static_cast<size_t>(it_pos - this->modifiers.begin());
+	this->modifiers.resize(it_index + source.modifiers.size());
+	auto it = this->modifiers.begin() + it_index;
+	auto const end = this->modifiers.end();
+	auto src_it = source.modifiers.begin();
 	for (; it != end; ++it, ++src_it)
 	{
 		*it = *src_it;
 	}
+	bz_assert(this->terminator != nullptr);
+	bz_assert(source.terminator != nullptr);
+	*this->terminator = *source.terminator;
 }
 
 void typespec::move_from(typespec_view pos, typespec &source)
 {
-	auto const it_pos = pos.nodes.begin();
-	bz_assert(it_pos >= this->nodes.begin() && it_pos < this->nodes.end());
-	bz_assert(pos.nodes.end() == this->nodes.end());
-	bz_assert(source.nodes.end() < this->nodes.begin() || source.nodes.begin() >= this->nodes.end());
-	auto const it_index = static_cast<size_t>(it_pos - this->nodes.begin());
-	this->nodes.resize(it_index + source.nodes.size());
-	auto it = this->nodes.begin() + it_index;
-	auto const end = this->nodes.end();
-	auto src_it = source.nodes.begin();
+	auto const it_pos = pos.modifiers.empty() ? this->modifiers.end() : pos.modifiers.begin();
+	bz_assert(it_pos >= this->modifiers.begin() && it_pos <= this->modifiers.end());
+	bz_assert(pos.modifiers.empty() || pos.modifiers.end() == this->modifiers.end());
+	bz_assert(source.modifiers.end() < this->modifiers.begin() || source.modifiers.begin() >= this->modifiers.end());
+	bz_assert(pos.terminator == this->terminator.get());
+	auto const it_index = static_cast<size_t>(it_pos - this->modifiers.begin());
+	this->modifiers.resize(it_index + source.modifiers.size());
+	auto it = this->modifiers.begin() + it_index;
+	auto const end = this->modifiers.end();
+	auto src_it = source.modifiers.begin();
 	for (; it != end; ++it, ++src_it)
 	{
 		*it = std::move(*src_it);
 	}
+	bz_assert(this->terminator != nullptr);
+	bz_assert(source.terminator != nullptr);
+	this->terminator = std::move(source.terminator);
 }
 
 void typespec::move_from(typespec_view pos, typespec &&source)
@@ -152,9 +203,9 @@ void typespec::move_from(typespec_view pos, typespec &&source)
 template<typename ...Kinds>
 static typespec_view remove_kind_helper(typespec_view ts) noexcept
 {
-	if (ts.nodes.size() != 0 && (ts.nodes.front().is<Kinds>() || ...))
+	if (ts.modifiers.not_empty() && (ts.modifiers[0].is<Kinds>() || ...))
 	{
-		return typespec_view{ ts.src_tokens, { ts.nodes.begin() + 1, ts.nodes.end() } };
+		return typespec_view{ ts.src_tokens, { ts.modifiers.begin() + 1, ts.modifiers.end() }, ts.terminator };
 	}
 	else
 	{
@@ -189,14 +240,15 @@ typespec_view remove_any_reference(typespec_view ts) noexcept
 
 bool is_complete(typespec_view ts) noexcept
 {
-	if (ts.nodes.size() == 0)
+	if (ts.is_empty())
 	{
 		return false;
 	}
 
-	auto const is_auto_ref_or_variadic = ts.nodes.front().is_any<ts_auto_reference, ts_auto_reference_const, ts_variadic>();
+	auto const is_auto_ref_or_variadic = ts.modifiers.not_empty()
+		&& ts.modifiers[0].is_any<ts_auto_reference, ts_auto_reference_const, ts_variadic>();
 
-	return !is_auto_ref_or_variadic && ts.nodes.back().visit(bz::overload{
+	return !is_auto_ref_or_variadic && ts.terminator->visit(bz::overload{
 		[](ts_base_type const &base_t) {
 			return !base_t.info->is_generic();
 		},
@@ -273,24 +325,12 @@ bool is_trivially_relocatable(typespec_view ts) noexcept
 
 bz::u8string typespec_view::get_symbol_name(void) const
 {
+	bz_assert(this->not_empty());
 	static_assert(typespec_types::size() == 17);
 	bz::u8string result = "";
-	for (auto &node : this->nodes)
+	for (auto &modifier : this->modifiers)
 	{
-		node.visit(bz::overload{
-			[&](ts_base_type const &base_type) {
-				result += base_type.info->symbol_name;
-			},
-			[&](ts_array const &array_t) {
-				result += bz::format("0A.{}.", array_t.size);
-				result += array_t.elem_type.get_symbol_name();
-			},
-			[&](ts_array_slice const &array_slice_t) {
-				result += bz::format("0S.{}", array_slice_t.elem_type.get_symbol_name());
-			},
-			[&](ts_void const &) {
-				result += "void";
-			},
+		modifier.visit(bz::overload{
 			[&](ts_const const &) {
 				result += "const.";
 			},
@@ -306,17 +346,6 @@ bz::u8string typespec_view::get_symbol_name(void) const
 			[&](ts_move_reference const &) {
 				result += "0M.";
 			},
-			[&](ts_tuple const &tuple_t) {
-				result += bz::format("0T.{}", tuple_t.types.size());
-				for (auto const &elem_type : tuple_t.types)
-				{
-					result += '.';
-					result += elem_type.get_symbol_name();
-				}
-			},
-			[&](ts_typename const &) {
-				result += "0N";
-			},
 			[&](ts_variadic const &) {
 				result += "0V";
 			},
@@ -325,6 +354,36 @@ bz::u8string typespec_view::get_symbol_name(void) const
 			}
 		});
 	}
+	this->terminator->visit(bz::overload{
+		[&](ts_base_type const &base_type) {
+			result += base_type.info->symbol_name;
+		},
+		[&](ts_array const &array_t) {
+			result += bz::format("0A.{}.", array_t.size);
+			result += array_t.elem_type.get_symbol_name();
+		},
+		[&](ts_array_slice const &array_slice_t) {
+			result += bz::format("0S.{}", array_slice_t.elem_type.get_symbol_name());
+		},
+		[&](ts_void const &) {
+			result += "void";
+		},
+		[&](ts_tuple const &tuple_t) {
+			result += bz::format("0T.{}", tuple_t.types.size());
+			for (auto const &elem_type : tuple_t.types)
+			{
+				result += '.';
+				result += elem_type.get_symbol_name();
+			}
+		},
+		[&](ts_typename const &) {
+			result += "0N";
+		},
+		[](auto const &) {
+			bz_unreachable;
+		}
+	});
+
 	return result;
 }
 
@@ -471,40 +530,45 @@ bz::u8string typespec::decode_symbol_name(
 
 bool operator == (typespec_view lhs, typespec_view rhs)
 {
-	if (lhs.nodes.size() != rhs.nodes.size())
+	if (lhs.is_empty() || rhs.is_empty())
+	{
+		return lhs.is_empty() && rhs.is_empty();
+	}
+	if (lhs.modifiers.size() != rhs.modifiers.size())
 	{
 		return false;
 	}
-	if (lhs.is_empty())
-	{
-		return true;
-	}
 
-	for (auto const &[lhs_node, rhs_node] : bz::zip(lhs.nodes, rhs.nodes))
+	for (auto const &[lhs_modifier, rhs_modifier] : bz::zip(lhs.modifiers, rhs.modifiers))
 	{
-		if (lhs_node.index() != rhs_node.index())
+		if (lhs_modifier.index() != rhs_modifier.index())
 		{
 			return false;
 		}
 	}
 
-	auto const &lhs_last = lhs.nodes.back();
-	auto const &rhs_last = rhs.nodes.back();
+	auto const &lhs_terminator = *lhs.terminator;
+	auto const &rhs_terminator = *rhs.terminator;
 
-	switch (lhs_last.index())
+	if (lhs_terminator.index() != rhs_terminator.index())
 	{
-	case typespec_node_t::index_of<ts_base_type>:
+		return false;
+	}
+
+	switch (lhs_terminator.index())
 	{
-		auto const lhs_info = lhs_last.get<ts_base_type>().info;
-		auto const rhs_info = rhs_last.get<ts_base_type>().info;
+	case terminator_typespec_node_t::index_of<ts_base_type>:
+	{
+		auto const lhs_info = lhs_terminator.get<ts_base_type>().info;
+		auto const rhs_info = rhs_terminator.get<ts_base_type>().info;
 		return lhs_info == rhs_info;
 	}
-	case typespec_node_t::index_of<ts_void>:
+	case terminator_typespec_node_t::index_of<ts_void>:
 		return true;
-	case typespec_node_t::index_of<ts_function>:
+	case terminator_typespec_node_t::index_of<ts_function>:
 	{
-		auto const &lhs_fn_t = lhs_last.get<ts_function>();
-		auto const &rhs_fn_t = rhs_last.get<ts_function>();
+		auto const &lhs_fn_t = lhs_terminator.get<ts_function>();
+		auto const &rhs_fn_t = rhs_terminator.get<ts_function>();
 		if (lhs_fn_t.param_types.size() != rhs_fn_t.param_types.size())
 		{
 			return false;
@@ -518,24 +582,24 @@ bool operator == (typespec_view lhs, typespec_view rhs)
 		}
 		return lhs_fn_t.return_type == rhs_fn_t.return_type;
 	}
-	case typespec_node_t::index_of<ts_array>:
+	case terminator_typespec_node_t::index_of<ts_array>:
 	{
-		auto const &lhs_array_t = lhs_last.get<ts_array>();
-		auto const &rhs_array_t = rhs_last.get<ts_array>();
+		auto const &lhs_array_t = lhs_terminator.get<ts_array>();
+		auto const &rhs_array_t = rhs_terminator.get<ts_array>();
 
 		return lhs_array_t.size == rhs_array_t.size && lhs_array_t.elem_type == rhs_array_t.elem_type;
 	}
-	case typespec_node_t::index_of<ts_array_slice>:
+	case terminator_typespec_node_t::index_of<ts_array_slice>:
 	{
-		auto const &lhs_array_slice_t = lhs_last.get<ts_array_slice>();
-		auto const &rhs_array_slice_t = rhs_last.get<ts_array_slice>();
+		auto const &lhs_array_slice_t = lhs_terminator.get<ts_array_slice>();
+		auto const &rhs_array_slice_t = rhs_terminator.get<ts_array_slice>();
 
 		return lhs_array_slice_t.elem_type == rhs_array_slice_t.elem_type;
 	}
-	case typespec_node_t::index_of<ts_tuple>:
+	case terminator_typespec_node_t::index_of<ts_tuple>:
 	{
-		auto const &lhs_tuple_t = lhs_last.get<ts_tuple>();
-		auto const &rhs_tuple_t = rhs_last.get<ts_tuple>();
+		auto const &lhs_tuple_t = lhs_terminator.get<ts_tuple>();
+		auto const &rhs_tuple_t = rhs_terminator.get<ts_tuple>();
 		if (lhs_tuple_t.types.size() != rhs_tuple_t.types.size())
 		{
 			return false;
@@ -549,9 +613,9 @@ bool operator == (typespec_view lhs, typespec_view rhs)
 		}
 		return true;
 	}
-	case typespec_node_t::index_of<ts_auto>:
+	case terminator_typespec_node_t::index_of<ts_auto>:
 		return true;
-	case typespec_node_t::index_of<ts_typename>:
+	case terminator_typespec_node_t::index_of<ts_typename>:
 		return true;
 	default:
 		bz_unreachable;
@@ -568,80 +632,15 @@ bz::u8string bz::formatter<ast::typespec>::format(ast::typespec const &typespec,
 bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typespec, bz::u8string_view)
 {
 	static_assert(ast::typespec_types::size() == 17);
-	bz::u8string result = "";
-	for (auto &node : typespec.nodes)
+	if (typespec.is_empty())
 	{
-		node.visit(bz::overload{
-			[&](ast::ts_unresolved const &) {
-				result += "<unresolved>";
-			},
-			[&](ast::ts_base_type const &base_type) {
-				result += base_type.info->get_typename_as_string();
-			},
-			[&](ast::ts_void const &) {
-				result += "void";
-			},
-			[&](ast::ts_function const &func_t) {
-				if (func_t.param_types.size() == 0)
-				{
-					result += bz::format("function() -> {}", func_t.return_type);
-				}
-				else
-				{
-					result += bz::format("function({}", func_t.param_types[0]);
-					for (auto const &param_type : bz::array_view{ func_t.param_types.begin() + 1, func_t.param_types.end() })
-					{
-						result += bz::format(", {}", param_type);
-					}
-					result += bz::format(") -> {}", func_t.return_type);
-				}
-			},
-			[&](ast::ts_array const &array_t) {
-				result += "[";
-				ast::ts_array const *current_array_t = &array_t;
-				if (current_array_t->size != 0)
-				{
-					result += bz::format("{}", current_array_t->size);
-				}
-				else
-				{
-					result += "??";
-				}
-				while (current_array_t->elem_type.is<ast::ts_array>())
-				{
-					current_array_t = &current_array_t->elem_type.get<ast::ts_array>();
-					result += bz::format(", {}", current_array_t->size);
-				}
-				result += bz::format(": {}]", current_array_t->elem_type);
-			},
-			[&](ast::ts_array_slice const &array_slice_t) {
-				result += bz::format("[: {}]", array_slice_t.elem_type);
-			},
-			[&](ast::ts_tuple const &tuple_t) {
-				if (tuple_t.types.size() == 0)
-				{
-					result += "[]";
-				}
-				else if (tuple_t.types.size() == 1)
-				{
-					result += bz::format("[{}]", tuple_t.types[0]);
-				}
-				else
-				{
-					result += bz::format("[{}", tuple_t.types[0]);
-					for (auto const &type : bz::array_view{ tuple_t.types.begin() + 1, tuple_t.types.end() })
-					{
-						result += bz::format(", {}", type);
-					}
-					result += "]";
-				}
-			},
-			[&](ast::ts_auto const &) {
-				result += "auto";
-			},
-			[&](ast::ts_typename const &) {
-				result += "typename";
-			},
+		return "<error-type>";
+	}
+
+	bz::u8string result = "";
+	for (auto &modifier : typespec.modifiers)
+	{
+		modifier.visit(bz::overload{
 			[&](ast::ts_const const &) {
 				result += "const ";
 			},
@@ -671,9 +670,77 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 			}
 		});
 	}
-	if (result == "")
-	{
-		result = "<error-type>";
-	}
+	typespec.terminator->visit(bz::overload{
+		[&](ast::ts_unresolved const &) {
+			result += "<unresolved>";
+		},
+		[&](ast::ts_base_type const &base_type) {
+			result += base_type.info->get_typename_as_string();
+		},
+		[&](ast::ts_void const &) {
+			result += "void";
+		},
+		[&](ast::ts_function const &func_t) {
+			if (func_t.param_types.size() == 0)
+			{
+				result += bz::format("function() -> {}", func_t.return_type);
+			}
+			else
+			{
+				result += bz::format("function({}", func_t.param_types[0]);
+				for (auto const &param_type : bz::array_view{ func_t.param_types.begin() + 1, func_t.param_types.end() })
+				{
+					result += bz::format(", {}", param_type);
+				}
+				result += bz::format(") -> {}", func_t.return_type);
+			}
+		},
+		[&](ast::ts_array const &array_t) {
+			result += "[";
+			ast::ts_array const *current_array_t = &array_t;
+			if (current_array_t->size != 0)
+			{
+				result += bz::format("{}", current_array_t->size);
+			}
+			else
+			{
+				result += "??";
+			}
+			while (current_array_t->elem_type.is<ast::ts_array>())
+			{
+				current_array_t = &current_array_t->elem_type.get<ast::ts_array>();
+				result += bz::format(", {}", current_array_t->size);
+			}
+			result += bz::format(": {}]", current_array_t->elem_type);
+		},
+		[&](ast::ts_array_slice const &array_slice_t) {
+			result += bz::format("[: {}]", array_slice_t.elem_type);
+		},
+		[&](ast::ts_tuple const &tuple_t) {
+			if (tuple_t.types.size() == 0)
+			{
+				result += "[]";
+			}
+			else if (tuple_t.types.size() == 1)
+			{
+				result += bz::format("[{}]", tuple_t.types[0]);
+			}
+			else
+			{
+				result += bz::format("[{}", tuple_t.types[0]);
+				for (auto const &type : bz::array_view{ tuple_t.types.begin() + 1, tuple_t.types.end() })
+				{
+					result += bz::format(", {}", type);
+				}
+				result += "]";
+			}
+		},
+		[&](ast::ts_auto const &) {
+			result += "auto";
+		},
+		[&](ast::ts_typename const &) {
+			result += "typename";
+		},
+	});
 	return result;
 }

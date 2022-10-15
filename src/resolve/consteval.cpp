@@ -1723,47 +1723,133 @@ static ast::constant_value get_default_constructed_value(
 	}
 
 	type = ast::remove_const_or_consteval(type);
-	return type.nodes.front().visit(bz::overload{
-		[exec_kind, &src_tokens, &context](ast::ts_base_type const &base_t) -> ast::constant_value {
-			if (base_t.info->kind != ast::type_info::aggregate)
-			{
-				switch (base_t.info->kind)
+	if (type.modifiers.not_empty())
+	{
+		return type.modifiers[0].visit(bz::overload{
+			[](ast::ts_pointer const &) -> ast::constant_value {
+				return ast::constant_value(ast::internal::null_t{});
+			},
+			[](auto const &) -> ast::constant_value {
+				bz_unreachable;
+			}
+		});
+	}
+	else
+	{
+		return type.terminator->visit(bz::overload{
+			[exec_kind, &src_tokens, &context](ast::ts_base_type const &base_t) -> ast::constant_value {
+				if (base_t.info->kind != ast::type_info::aggregate)
+				{
+					switch (base_t.info->kind)
+					{
+					case ast::type_info::int8_:
+					case ast::type_info::int16_:
+					case ast::type_info::int32_:
+					case ast::type_info::int64_:
+						return ast::constant_value(int64_t());
+					case ast::type_info::uint8_:
+					case ast::type_info::uint16_:
+					case ast::type_info::uint32_:
+					case ast::type_info::uint64_:
+						return ast::constant_value(uint64_t());
+					case ast::type_info::float32_:
+						return ast::constant_value(float32_t());
+					case ast::type_info::float64_:
+						return ast::constant_value(float64_t());
+					case ast::type_info::char_:
+						return ast::constant_value(bz::u8char());
+					case ast::type_info::str_:
+						return ast::constant_value(bz::u8string());
+					case ast::type_info::bool_:
+						return ast::constant_value(bool());
+					case ast::type_info::null_t_:
+						return ast::constant_value(ast::internal::null_t{});
+
+					default:
+						bz_unreachable;
+					}
+				}
+				else if (base_t.info->kind == ast::type_info::aggregate && base_t.info->default_constructor == nullptr)
+				{
+					ast::constant_value result;
+					auto &elems = result.emplace<ast::constant_value::aggregate>();
+					elems.reserve(base_t.info->member_variables.size());
+					for (auto const member : base_t.info->member_variables)
+					{
+						elems.push_back(get_default_constructed_value(src_tokens, member->get_type(), exec_kind, context));
+						if (elems.back().is_null())
+						{
+							result.clear();
+							return result;
+						}
+					}
+					return result;
+				}
+				else
+				{
+					auto const decl = base_t.info->default_constructor;
+					bz_assert(decl != nullptr);
+					if (exec_kind == function_execution_kind::force_evaluate)
+					{
+						bz_unreachable;
+					}
+					else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+					{
+						bz_unreachable;
+					}
+					else
+					{
+						return {};
+					}
+				}
+			},
+			[exec_kind, &src_tokens, &context](ast::ts_array const &array_t) -> ast::constant_value {
+				ast::constant_value result;
+				auto const elem_builtin_kind = array_t.elem_type.is<ast::ts_base_type>()
+					? array_t.elem_type.get<ast::ts_base_type>().info->kind
+					: ast::type_info::aggregate;
+				switch (elem_builtin_kind)
 				{
 				case ast::type_info::int8_:
 				case ast::type_info::int16_:
 				case ast::type_info::int32_:
 				case ast::type_info::int64_:
-					return ast::constant_value(int64_t());
+					result.emplace<ast::constant_value::sint_array>(array_t.size, 0);
+					break;
 				case ast::type_info::uint8_:
 				case ast::type_info::uint16_:
 				case ast::type_info::uint32_:
 				case ast::type_info::uint64_:
-					return ast::constant_value(uint64_t());
+					result.emplace<ast::constant_value::uint_array>(array_t.size, 0);
+					break;
 				case ast::type_info::float32_:
-					return ast::constant_value(float32_t());
+					result.emplace<ast::constant_value::float32_array>(array_t.size, 0.0f);
+					break;
 				case ast::type_info::float64_:
-					return ast::constant_value(float64_t());
-				case ast::type_info::char_:
-					return ast::constant_value(bz::u8char());
-				case ast::type_info::str_:
-					return ast::constant_value(bz::u8string());
-				case ast::type_info::bool_:
-					return ast::constant_value(bool());
-				case ast::type_info::null_t_:
-					return ast::constant_value(ast::internal::null_t{});
-
+					result.emplace<ast::constant_value::float64_array>(array_t.size, 0.0);
+					break;
 				default:
-					bz_unreachable;
-				}
-			}
-			else if (base_t.info->kind == ast::type_info::aggregate && base_t.info->default_constructor == nullptr)
-			{
-				ast::constant_value result;
-				auto &elems = result.emplace<ast::constant_value::aggregate>();
-				elems.reserve(base_t.info->member_variables.size());
-				for (auto const member : base_t.info->member_variables)
 				{
-					elems.push_back(get_default_constructed_value(src_tokens, member->get_type(), exec_kind, context));
+					auto const elem_value = get_default_constructed_value(src_tokens, array_t.elem_type, exec_kind, context);
+					if (elem_value.not_null())
+					{
+						result.emplace<ast::constant_value::array>(array_t.size, elem_value);
+					}
+					break;
+				}
+				}
+				return result;
+			},
+			[](ast::ts_array_slice const &) -> ast::constant_value {
+				return {};
+			},
+			[exec_kind, &src_tokens, &context](ast::ts_tuple const &tuple_t) -> ast::constant_value {
+				ast::constant_value result;
+				auto &elems = result.emplace<ast::constant_value::tuple>();
+				elems.reserve(tuple_t.types.size());
+				for (auto const &type : tuple_t.types)
+				{
+					elems.push_back(get_default_constructed_value(src_tokens, type, exec_kind, context));
 					if (elems.back().is_null())
 					{
 						result.clear();
@@ -1771,87 +1857,12 @@ static ast::constant_value get_default_constructed_value(
 					}
 				}
 				return result;
+			},
+			[](auto const &) -> ast::constant_value {
+				bz_unreachable;
 			}
-			else
-			{
-				auto const decl = base_t.info->default_constructor;
-				bz_assert(decl != nullptr);
-				if (exec_kind == function_execution_kind::force_evaluate)
-				{
-					bz_unreachable;
-				}
-				else if (exec_kind == function_execution_kind::force_evaluate_without_error)
-				{
-					bz_unreachable;
-				}
-				else
-				{
-					return {};
-				}
-			}
-		},
-		[exec_kind, &src_tokens, &context](ast::ts_array const &array_t) -> ast::constant_value {
-			ast::constant_value result;
-			auto const elem_builtin_kind = array_t.elem_type.is<ast::ts_base_type>()
-				? array_t.elem_type.get<ast::ts_base_type>().info->kind
-				: ast::type_info::aggregate;
-			switch (elem_builtin_kind)
-			{
-			case ast::type_info::int8_:
-			case ast::type_info::int16_:
-			case ast::type_info::int32_:
-			case ast::type_info::int64_:
-				result.emplace<ast::constant_value::sint_array>(array_t.size, 0);
-				break;
-			case ast::type_info::uint8_:
-			case ast::type_info::uint16_:
-			case ast::type_info::uint32_:
-			case ast::type_info::uint64_:
-				result.emplace<ast::constant_value::uint_array>(array_t.size, 0);
-				break;
-			case ast::type_info::float32_:
-				result.emplace<ast::constant_value::float32_array>(array_t.size, 0.0f);
-				break;
-			case ast::type_info::float64_:
-				result.emplace<ast::constant_value::float64_array>(array_t.size, 0.0);
-				break;
-			default:
-			{
-				auto const elem_value = get_default_constructed_value(src_tokens, array_t.elem_type, exec_kind, context);
-				if (elem_value.not_null())
-				{
-					result.emplace<ast::constant_value::array>(array_t.size, elem_value);
-				}
-				break;
-			}
-			}
-			return result;
-		},
-		[](ast::ts_array_slice const &) -> ast::constant_value {
-			return {};
-		},
-		[exec_kind, &src_tokens, &context](ast::ts_tuple const &tuple_t) -> ast::constant_value {
-			ast::constant_value result;
-			auto &elems = result.emplace<ast::constant_value::tuple>();
-			elems.reserve(tuple_t.types.size());
-			for (auto const &type : tuple_t.types)
-			{
-				elems.push_back(get_default_constructed_value(src_tokens, type, exec_kind, context));
-				if (elems.back().is_null())
-				{
-					result.clear();
-					return result;
-				}
-			}
-			return result;
-		},
-		[](ast::ts_pointer const &) -> ast::constant_value {
-			return ast::constant_value(ast::internal::null_t{});
-		},
-		[](auto const &) -> ast::constant_value {
-			bz_unreachable;
-		}
-	});
+		});
+	}
 }
 
 static ast::constant_value evaluate_function_call(

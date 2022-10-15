@@ -625,7 +625,7 @@ static ast::expression get_builtin_unary_typeof(
 
 	ast::typespec result_type = type;
 	result_type.src_tokens = src_tokens;
-	bz_assert(type.has_value());
+	bz_assert(type.not_empty());
 	if (kind == ast::expression_type_kind::lvalue_reference)
 	{
 		result_type.add_layer<ast::ts_lvalue_reference>();
@@ -946,7 +946,11 @@ ast::expression make_builtin_cast(
 		}
 		inner_dest_t = ast::remove_const_or_consteval(inner_dest_t);
 		inner_expr_t = ast::remove_const_or_consteval(inner_expr_t);
-		while (inner_dest_t.is_safe_blind_get() && inner_expr_t.is_safe_blind_get() && inner_dest_t.kind() == inner_expr_t.kind())
+		while (
+			inner_dest_t.is_safe_blind_get()
+			&& inner_expr_t.is_safe_blind_get()
+			&& inner_dest_t.modifier_kind() == inner_expr_t.modifier_kind()
+		)
 		{
 			inner_dest_t = inner_dest_t.blind_get();
 			inner_expr_t = inner_expr_t.blind_get();
@@ -1264,7 +1268,7 @@ static ast::expression get_type_op_binary_equals_not_equals(
 	return ast::make_constant_expression(
 		src_tokens,
 		ast::expression_type_kind::rvalue,
-		ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(ast::type_info::bool_) } }),
+		ast::make_base_type_typespec(src_tokens, context.get_builtin_type_info(ast::type_info::bool_)),
 		ast::constant_value(result),
 		ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 	);

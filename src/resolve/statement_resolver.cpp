@@ -1147,21 +1147,21 @@ static bool is_valid_copy_assign_op(ast::function_body &func_body)
 	bz_assert(func_body.params.size() == 2);
 	auto const lhs_type = func_body.params[0].get_type().as_typespec_view();
 	if (
-		lhs_type.nodes.size() != 2
-		|| !lhs_type.nodes[0].is<ast::ts_lvalue_reference>()
-		|| !lhs_type.nodes[1].is<ast::ts_base_type>()
+		lhs_type.modifiers.size() != 1
+		|| !lhs_type.modifiers[0].is<ast::ts_lvalue_reference>()
+		|| !lhs_type.terminator->is<ast::ts_base_type>()
 	)
 	{
 		return false;
 	}
 
-	auto const info = lhs_type.nodes[1].get<ast::ts_base_type>().info;
+	auto const info = lhs_type.terminator->get<ast::ts_base_type>().info;
 	auto const rhs_type = func_body.params[1].get_type().as_typespec_view();
-	return rhs_type.nodes.size() == 3
-		&& rhs_type.nodes[0].is<ast::ts_lvalue_reference>()
-		&& rhs_type.nodes[1].is<ast::ts_const>()
-		&& rhs_type.nodes[2].is<ast::ts_base_type>()
-		&& rhs_type.nodes[2].get<ast::ts_base_type>().info == info;
+	return rhs_type.modifiers.size() == 2
+		&& rhs_type.modifiers[0].is<ast::ts_lvalue_reference>()
+		&& rhs_type.modifiers[1].is<ast::ts_const>()
+		&& rhs_type.terminator->is<ast::ts_base_type>()
+		&& rhs_type.terminator->get<ast::ts_base_type>().info == info;
 }
 
 static bool is_valid_move_assign_op(ast::function_body &func_body)
@@ -1177,19 +1177,19 @@ static bool is_valid_move_assign_op(ast::function_body &func_body)
 	bz_assert(func_body.params.size() == 2);
 	auto const lhs_type = func_body.params[0].get_type().as_typespec_view();
 	if (
-		lhs_type.nodes.size() != 2
-		|| !lhs_type.nodes[0].is<ast::ts_lvalue_reference>()
-		|| !lhs_type.nodes[1].is<ast::ts_base_type>()
+		lhs_type.modifiers.size() != 1
+		|| !lhs_type.modifiers[0].is<ast::ts_lvalue_reference>()
+		|| !lhs_type.terminator->is<ast::ts_base_type>()
 	)
 	{
 		return false;
 	}
 
-	auto const info = lhs_type.nodes[1].get<ast::ts_base_type>().info;
+	auto const info = lhs_type.terminator->get<ast::ts_base_type>().info;
 	auto const rhs_type = func_body.params[1].get_type().as_typespec_view();
-	return rhs_type.nodes.size() == 1
-		&& rhs_type.nodes[0].is<ast::ts_base_type>()
-		&& rhs_type.nodes[0].get<ast::ts_base_type>().info == info;
+	return rhs_type.modifiers.size() == 0
+		&& rhs_type.terminator->is<ast::ts_base_type>()
+		&& rhs_type.terminator->get<ast::ts_base_type>().info == info;
 }
 
 static bool resolve_function_parameters_helper(
@@ -1268,9 +1268,9 @@ static bool resolve_function_parameters_helper(
 			// if the parameter is generic, then it must be &auto or move auto
 			// either as `destructor(&self)`, `destructor(move self)`, `destructor(self: &auto)` or `destructor(self: move auto)`
 			if (
-				param_type.nodes.size() != 2
-				|| (!param_type.nodes[0].is<ast::ts_lvalue_reference>() && !param_type.nodes[0].is<ast::ts_move_reference>())
-				|| !param_type.nodes[1].is<ast::ts_auto>()
+				param_type.modifiers.size() != 1
+				|| (!param_type.modifiers[0].is<ast::ts_lvalue_reference>() && !param_type.modifiers[0].is<ast::ts_move_reference>())
+				|| !param_type.terminator->is<ast::ts_auto>()
 			)
 			{
 				bz_unreachable;
@@ -1286,16 +1286,16 @@ static bool resolve_function_parameters_helper(
 				return false;
 			}
 
-			func_body.params[0].get_type().nodes[1] = ast::ts_base_type{ func_body.get_destructor_of() };
+			func_body.params[0].get_type().terminator->emplace<ast::ts_base_type>(func_body.get_destructor_of());
 		}
 		else
 		{
 			// if the parameter is non-generic, then it must be &<type>
 			if (
-				param_type.nodes.size() != 2
-				|| (!param_type.nodes[0].is<ast::ts_lvalue_reference>() && !param_type.nodes[0].is<ast::ts_move_reference>())
-				|| !param_type.nodes[1].is<ast::ts_base_type>()
-				|| param_type.nodes[1].get<ast::ts_base_type>().info != func_body.get_destructor_of()
+				param_type.modifiers.size() != 1
+				|| (!param_type.modifiers[0].is<ast::ts_lvalue_reference>() && !param_type.modifiers[0].is<ast::ts_move_reference>())
+				|| !param_type.terminator->is<ast::ts_base_type>()
+				|| param_type.terminator->get<ast::ts_base_type>().info != func_body.get_destructor_of()
 			)
 			{
 				auto const destructor_of_type = ast::type_info::decode_symbol_name(func_body.get_destructor_of()->symbol_name);
@@ -1378,11 +1378,11 @@ static bool resolve_function_parameters_helper(
 		}
 		else if (
 			func_body.params.size() == 1
-			&& func_body.params[0].get_type().nodes.size() == 3
-			&& func_body.params[0].get_type().nodes[0].is<ast::ts_lvalue_reference>()
-			&& func_body.params[0].get_type().nodes[1].is<ast::ts_const>()
-			&& func_body.params[0].get_type().nodes[2].is<ast::ts_base_type>()
-			&& func_body.params[0].get_type().nodes[2].get<ast::ts_base_type>().info == func_body.get_constructor_of()
+			&& func_body.params[0].get_type().modifiers.size() == 2
+			&& func_body.params[0].get_type().modifiers[0].is<ast::ts_lvalue_reference>()
+			&& func_body.params[0].get_type().modifiers[1].is<ast::ts_const>()
+			&& func_body.params[0].get_type().terminator->is<ast::ts_base_type>()
+			&& func_body.params[0].get_type().terminator->get<ast::ts_base_type>().info == func_body.get_constructor_of()
 		)
 		{
 			auto const info = func_body.get_constructor_of();
@@ -1407,10 +1407,10 @@ static bool resolve_function_parameters_helper(
 		}
 		else if (
 			func_body.params.size() == 1
-			&& func_body.params[0].get_type().nodes.size() == 2
-			&& func_body.params[0].get_type().nodes[0].is<ast::ts_move_reference>()
-			&& func_body.params[0].get_type().nodes[1].is<ast::ts_base_type>()
-			&& func_body.params[0].get_type().nodes[1].get<ast::ts_base_type>().info == func_body.get_constructor_of()
+			&& func_body.params[0].get_type().modifiers.size() == 1
+			&& func_body.params[0].get_type().modifiers[0].is<ast::ts_move_reference>()
+			&& func_body.params[0].get_type().terminator->is<ast::ts_base_type>()
+			&& func_body.params[0].get_type().terminator->get<ast::ts_base_type>().info == func_body.get_constructor_of()
 		)
 		{
 			auto const info = func_body.get_constructor_of();
@@ -1981,7 +1981,7 @@ static void resolve_type_info_parameters_impl(ast::type_info &info, ctx::parse_c
 				}
 				else if (type.is<ast::ts_const>())
 				{
-					type.nodes.front().emplace<ast::ts_consteval>();
+					type.modifiers.front().emplace<ast::ts_consteval>();
 				}
 				else
 				{

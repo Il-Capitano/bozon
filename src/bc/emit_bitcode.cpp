@@ -3169,6 +3169,13 @@ static val_ptr emit_bitcode(
 			// do nothing for typename args
 			return;
 		}
+		else if (p.is_error())
+		{
+			auto const param_llvm_type = get_llvm_type(param_type, context);
+			emit_bitcode<abi>(p, context, nullptr);
+			auto const param_val = val_ptr::get_value(llvm::UndefValue::get(param_llvm_type));
+			add_call_parameter<abi, push_to_front>(param_type, param_llvm_type, param_val, params, params_is_byval, context);
+		}
 		else
 		{
 			auto const param_llvm_type = get_llvm_type(param_type, context);

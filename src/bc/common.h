@@ -46,53 +46,65 @@ template<typename Context>
 llvm::Type *get_llvm_type(ast::typespec_view ts, Context &context, bool is_top_level = true)
 {
 	static_assert(ast::typespec_types::size() == 17);
-	switch (ts.kind())
+	if (ts.modifiers.empty())
 	{
-	case ast::typespec_node_t::index_of<ast::ts_base_type>:
-		return get_llvm_base_type(ts.get<ast::ts_base_type>(), context);
-	case ast::typespec_node_t::index_of<ast::ts_void>:
-		if (is_top_level)
+		switch (ts.terminator_kind())
 		{
-			return llvm::Type::getVoidTy(context.get_llvm_context());
-		}
-		else
+		case ast::terminator_typespec_node_t::index_of<ast::ts_base_type>:
+			return get_llvm_base_type(ts.get<ast::ts_base_type>(), context);
+		case ast::terminator_typespec_node_t::index_of<ast::ts_void>:
+			if (is_top_level)
+			{
+				return llvm::Type::getVoidTy(context.get_llvm_context());
+			}
+			else
+			{
+				// llvm doesn't allow void*, so we use i8* instead
+				return llvm::Type::getInt8Ty(context.get_llvm_context());
+			}
+		case ast::terminator_typespec_node_t::index_of<ast::ts_function>:
+			return context.get_opaque_pointer_t();
+		case ast::terminator_typespec_node_t::index_of<ast::ts_array>:
 		{
-			// llvm doesn't allow void*, so we use i8* instead
-			return llvm::Type::getInt8Ty(context.get_llvm_context());
+			auto &arr_t = ts.get<ast::ts_array>();
+			auto elem_t = get_llvm_type(arr_t.elem_type, context);
+			return llvm::ArrayType::get(elem_t, arr_t.size);
 		}
-	case ast::typespec_node_t::index_of<ast::ts_const>:
-		return get_llvm_type(ts.get<ast::ts_const>(), context, is_top_level);
-	case ast::typespec_node_t::index_of<ast::ts_consteval>:
-		return get_llvm_type(ts.get<ast::ts_consteval>(), context, is_top_level);
-	case ast::typespec_node_t::index_of<ast::ts_pointer>:
-	case ast::typespec_node_t::index_of<ast::ts_lvalue_reference>:
-	case ast::typespec_node_t::index_of<ast::ts_move_reference>:
-	case ast::typespec_node_t::index_of<ast::ts_function>:
-		return context.get_opaque_pointer_t();
-	case ast::typespec_node_t::index_of<ast::ts_array>:
-	{
-		auto &arr_t = ts.get<ast::ts_array>();
-		auto elem_t = get_llvm_type(arr_t.elem_type, context);
-		return llvm::ArrayType::get(elem_t, arr_t.size);
+		case ast::terminator_typespec_node_t::index_of<ast::ts_array_slice>:
+			return context.get_slice_t();
+		case ast::terminator_typespec_node_t::index_of<ast::ts_tuple>:
+		{
+			auto &tuple_t = ts.get<ast::ts_tuple>();
+			auto const types = tuple_t.types
+				.transform([&context](auto const &ts) { return get_llvm_type(ts, context); })
+				.template collect<ast::arena_vector>();
+			return context.get_tuple_t(types);
+		}
+		case ast::terminator_typespec_node_t::index_of<ast::ts_auto>:
+			bz_unreachable;
+		case ast::terminator_typespec_node_t::index_of<ast::ts_unresolved>:
+			bz_unreachable;
+		case ast::terminator_typespec_node_t::index_of<ast::ts_typename>:
+			bz_unreachable;
+		default:
+			bz_unreachable;
+		}
 	}
-	case ast::typespec_node_t::index_of<ast::ts_array_slice>:
-		return context.get_slice_t();
-	case ast::typespec_node_t::index_of<ast::ts_tuple>:
+	else
 	{
-		auto &tuple_t = ts.get<ast::ts_tuple>();
-		auto const types = tuple_t.types
-			.transform([&context](auto const &ts) { return get_llvm_type(ts, context); })
-			.template collect<ast::arena_vector>();
-		return context.get_tuple_t(types);
-	}
-	case ast::typespec_node_t::index_of<ast::ts_auto>:
-		bz_unreachable;
-	case ast::typespec_node_t::index_of<ast::ts_unresolved>:
-		bz_unreachable;
-	case ast::typespec_node_t::index_of<ast::ts_typename>:
-		bz_unreachable;
-	default:
-		bz_unreachable;
+		switch (ts.modifier_kind())
+		{
+		case ast::modifier_typespec_node_t::index_of<ast::ts_const>:
+			return get_llvm_type(ts.get<ast::ts_const>(), context, is_top_level);
+		case ast::modifier_typespec_node_t::index_of<ast::ts_consteval>:
+			return get_llvm_type(ts.get<ast::ts_consteval>(), context, is_top_level);
+		case ast::modifier_typespec_node_t::index_of<ast::ts_pointer>:
+		case ast::modifier_typespec_node_t::index_of<ast::ts_lvalue_reference>:
+		case ast::modifier_typespec_node_t::index_of<ast::ts_move_reference>:
+			return context.get_opaque_pointer_t();
+		default:
+			bz_unreachable;
+		}
 	}
 }
 

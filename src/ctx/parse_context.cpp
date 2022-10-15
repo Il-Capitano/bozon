@@ -1558,7 +1558,7 @@ static ast::typespec get_function_type(ast::function_body &body)
 {
 	auto const &return_type = body.return_type;
 	auto param_types = body.params.transform([](auto &p) { return p.get_type(); }).collect();
-	return ast::typespec(body.src_tokens, { ast::ts_function{ std::move(param_types), return_type } });
+	return ast::make_function_typespec(body.src_tokens, std::move(param_types), return_type);
 }
 
 static ast::expression make_variable_expression(
@@ -1803,7 +1803,7 @@ static ast::expression make_type_alias_expression(
 )
 {
 	auto const type = type_alias->get_type();
-	if (type.has_value())
+	if (type.not_empty())
 	{
 		return ast::make_constant_expression(
 			src_tokens,
@@ -2657,7 +2657,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 	if (id.values.size() == 1)
 	{
 		auto const id_value = id.values.front();
-		if (auto const builtin_type = this->get_builtin_type(id_value); builtin_type.has_value())
+		if (auto const builtin_type = this->get_builtin_type(id_value); builtin_type.not_empty())
 		{
 			return ast::make_constant_expression(
 				src_tokens,
@@ -3358,25 +3358,13 @@ ast::expression parse_context::make_unreachable(lex::token_pos t)
 
 static bool is_builtin_type(ast::typespec_view ts)
 {
-	switch (ts.kind())
-	{
-	case ast::typespec_node_t::index_of<ast::ts_const>:
-		return is_builtin_type(ts.get<ast::ts_const>());
-	case ast::typespec_node_t::index_of<ast::ts_base_type>:
-	{
-		auto &base = ts.get<ast::ts_base_type>();
-		bz_assert(base.info->kind != ast::type_info::forward_declaration);
-		return base.info->kind != ast::type_info::aggregate;
-	}
-	case ast::typespec_node_t::index_of<ast::ts_pointer>:
-	case ast::typespec_node_t::index_of<ast::ts_function>:
-	case ast::typespec_node_t::index_of<ast::ts_tuple>:
-	case ast::typespec_node_t::index_of<ast::ts_array>:
-	case ast::typespec_node_t::index_of<ast::ts_array_slice>:
-		return true;
-	default:
-		return false;
-	}
+	ts = ast::remove_const_or_consteval(ts);
+	return ts.is<ast::ts_pointer>()
+		|| ts.is<ast::ts_function>()
+		|| ts.is<ast::ts_tuple>()
+		|| ts.is<ast::ts_array>()
+		|| ts.is<ast::ts_array_slice>()
+		|| (ts.is<ast::ts_base_type>() && ts.get<ast::ts_base_type>().info->kind != ast::type_info::aggregate);
 }
 
 /*
@@ -6749,7 +6737,7 @@ bool parse_context::is_trivial(lex::src_tokens const &src_tokens, ast::typespec_
 
 bool parse_context::is_instantiable(lex::src_tokens const &src_tokens, ast::typespec_view ts)
 {
-	if (ts.nodes.size() == 0)
+	if (ts.is_empty())
 	{
 		return false;
 	}

@@ -614,7 +614,7 @@ static match_function_result_t<kind> generic_type_match_switch_expr(match_contex
 			return false;
 		}
 
-		bz_assert(!matched_type.is_empty());
+		bz_assert(matched_type.not_empty());
 		auto const new_context = change_dest_and_dest_container(match_context, std::move(matched_type));
 		bool all_good = true;
 		for (auto &[_, expr] : switch_expr.cases)
@@ -651,7 +651,7 @@ static match_function_result_t<kind> generic_type_match_typename_strict_match(
 	static_assert(kind != type_match_function_kind::matched_type);
 
 	uint16_t modifier_match_level = 0;
-	while (source.kind() == dest.kind() && source.is_safe_blind_get())
+	while (source.is_safe_blind_get() && source.modifier_kind() == dest.modifier_kind())
 	{
 		source = source.blind_get();
 		dest = dest.blind_get();
@@ -673,7 +673,7 @@ static match_function_result_t<kind> generic_type_match_typename_strict_match(
 			return true;
 		}
 	}
-	else if (dest.kind() != source.kind())
+	else if (!dest.same_kind_as(source))
 	{
 		if constexpr (match_context_t<kind>::report_errors)
 		{
@@ -988,13 +988,8 @@ static match_function_result_t<kind> generic_type_match_tuple(match_context_t<ki
 
 	ast::typespec_view dest = match_context.dest;
 
-
 	auto const original_dest = dest;
-	if (dest.is<ast::ts_auto_reference>() || dest.is<ast::ts_auto_reference_const>())
-	{
-		dest = ast::remove_const_or_consteval(dest.blind_get());
-	}
-	else if (dest.is<ast::ts_move_reference>())
+	if (dest.is<ast::ts_auto_reference>() || dest.is<ast::ts_auto_reference_const>() || dest.is<ast::ts_move_reference>())
 	{
 		dest = dest.blind_get();
 	}
@@ -1089,9 +1084,9 @@ static match_function_result_t<kind> generic_type_match_tuple(match_context_t<ki
 		}
 		else if constexpr (kind == type_match_function_kind::matched_type)
 		{
-			ast::typespec result = original_dest;
-			bz_assert(result.nodes.back().is<ast::ts_tuple>());
-			auto &result_vec = result.nodes.back().get<ast::ts_tuple>().types;
+			ast::typespec result = ast::remove_any_reference(original_dest);
+			bz_assert(result.terminator->is<ast::ts_tuple>());
+			auto &result_vec = result.terminator->get<ast::ts_tuple>().types;
 			result_vec.clear();
 			result_vec.reserve(tuple_expr.elems.size());
 
@@ -1123,8 +1118,8 @@ static match_function_result_t<kind> generic_type_match_tuple(match_context_t<ki
 		}
 		else if constexpr (kind == type_match_function_kind::match_expression)
 		{
-			bz_assert(match_context.dest_container.nodes.back().template is<ast::ts_tuple>());
-			auto &dest_types_container = match_context.dest_container.nodes.back().template get<ast::ts_tuple>().types;
+			bz_assert(match_context.dest_container.terminator->template is<ast::ts_tuple>());
+			auto &dest_types_container = match_context.dest_container.terminator->template get<ast::ts_tuple>().types;
 			// save dest in case we have an error
 			auto dest_types_copy = dest_types_container;
 			if (is_variadic)
@@ -1272,8 +1267,8 @@ static match_function_result_t<kind> generic_type_match_tuple(match_context_t<ki
 		}
 		else if constexpr (kind == type_match_function_kind::matched_type)
 		{
-			ast::typespec result = original_dest;
-			auto &result_array_t = result.nodes.back().get<ast::ts_array>();
+			ast::typespec result = ast::remove_any_reference(original_dest);
+			auto &result_array_t = result.terminator->get<ast::ts_array>();
 
 			if (ast::is_complete(result_array_t.elem_type))
 			{
@@ -1336,7 +1331,7 @@ static match_function_result_t<kind> generic_type_match_tuple(match_context_t<ki
 			if (matched_elem_type.is_empty())
 			{
 				// try to match the first element in order to provide a meaningful error
-				auto &dest_array_t = match_context.dest_container.nodes.back().template get<ast::ts_array>();
+				auto &dest_array_t = match_context.dest_container.terminator->template get<ast::ts_array>();
 				auto const first_elem_good = generic_type_match(match_context_t<type_match_function_kind::match_expression>{
 					.expr = tuple_expr.elems[0],
 					.dest_container = dest_array_t.elem_type,
@@ -1363,7 +1358,7 @@ static match_function_result_t<kind> generic_type_match_tuple(match_context_t<ki
 				return false;
 			}
 
-			auto &dest_array_t = match_context.dest_container.nodes.back().template get<ast::ts_array>();
+			auto &dest_array_t = match_context.dest_container.terminator->template get<ast::ts_array>();
 			dest_array_t.elem_type = std::move(matched_elem_type);
 			dest_array_t.size = tuple_expr.elems.size();
 
@@ -1410,8 +1405,8 @@ static match_function_result_t<kind> generic_type_match_tuple(match_context_t<ki
 		}
 		else if constexpr (kind == type_match_function_kind::matched_type)
 		{
-			ast::typespec result = original_dest;
-			auto &result_vec = result.nodes.back().emplace<ast::ts_tuple>().types;
+			ast::typespec result = ast::remove_any_reference(original_dest);
+			auto &result_vec = result.terminator->emplace<ast::ts_tuple>().types;
 			result_vec.reserve(tuple_expr.elems.size());
 
 			auto const new_match_context = change_dest(match_context, dest);
@@ -1430,7 +1425,7 @@ static match_function_result_t<kind> generic_type_match_tuple(match_context_t<ki
 		else if constexpr (kind == type_match_function_kind::match_expression)
 		{
 			auto const auto_pos = dest.src_tokens.pivot;
-			auto &dest_types = match_context.dest_container.nodes.back().template emplace<ast::ts_tuple>().types;
+			auto &dest_types = match_context.dest_container.terminator->template emplace<ast::ts_tuple>().types;
 			dest_types.reserve(tuple_expr.elems.size());
 
 			bool good = true;
@@ -1534,7 +1529,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			}
 		}
 
-		if (dest.kind() == source.kind() && dest.is_safe_blind_get())
+		if (dest.is_safe_blind_get() && dest.modifier_kind() == source.modifier_kind())
 		{
 			bz_assert(source.is_safe_blind_get());
 			dest = dest.blind_get();
@@ -1564,8 +1559,8 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 		else if constexpr (kind == type_match_function_kind::matched_type)
 		{
 			ast::typespec result = match_context.original_dest;
-			bz_assert(result.nodes.back().is<ast::ts_auto>());
-			auto const result_auto_view = ast::typespec_view{ result.src_tokens, { result.nodes.end() - 1, result.nodes.end() } };
+			bz_assert(result.terminator->is<ast::ts_auto>());
+			auto const result_auto_view = ast::typespec_view{ result.src_tokens, {}, result.terminator.get() };
 			bz_assert(result_auto_view.is<ast::ts_auto>());
 			result.copy_from(result_auto_view, source);
 			return result;
@@ -1657,14 +1652,14 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 		else if constexpr (kind == type_match_function_kind::matched_type)
 		{
 			ast::typespec result = match_context.original_dest;
-			bz_assert(result.nodes.back().is<ast::ts_base_type>());
-			result.nodes.back().get<ast::ts_base_type>() = source.get<ast::ts_base_type>();
+			bz_assert(result.terminator->is<ast::ts_base_type>());
+			result.terminator->get<ast::ts_base_type>() = source.get<ast::ts_base_type>();
 			return result;
 		}
 		else if constexpr (kind == type_match_function_kind::match_expression)
 		{
-			bz_assert(match_context.dest_container.nodes.back().template is<ast::ts_base_type>());
-			match_context.dest_container.nodes.back().template get<ast::ts_base_type>() = source.get<ast::ts_base_type>();
+			bz_assert(match_context.dest_container.terminator->template is<ast::ts_base_type>());
+			match_context.dest_container.terminator->template get<ast::ts_base_type>() = source.get<ast::ts_base_type>();
 			return true;
 		}
 		else
@@ -1686,7 +1681,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			if constexpr (match_context_t<kind>::report_errors)
 			{
 				bz::vector<ctx::source_highlight> notes;
-				if (dest.nodes.size() != match_context.dest.nodes.size())
+				if (dest.modifiers.size() != match_context.dest.modifiers.size())
 				{
 					notes.push_back(match_context.context.make_note(
 						match_context.expr.src_tokens,
@@ -1810,8 +1805,8 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 		else if constexpr (kind == type_match_function_kind::matched_type)
 		{
 			ast::typespec result = match_context.original_dest;
-			bz_assert(result.nodes.back().is<ast::ts_tuple>());
-			auto &result_vec = result.nodes.back().get<ast::ts_tuple>().types;
+			bz_assert(result.terminator->is<ast::ts_tuple>());
+			auto &result_vec = result.terminator->get<ast::ts_tuple>().types;
 			result_vec.clear();
 			result_vec.reserve(source_types.size());
 
@@ -1855,8 +1850,8 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 		}
 		else if constexpr (kind == type_match_function_kind::match_expression)
 		{
-			bz_assert(match_context.dest_container.nodes.back().template is<ast::ts_tuple>());
-			auto &dest_types = match_context.dest_container.nodes.back().template get<ast::ts_tuple>().types;
+			bz_assert(match_context.dest_container.terminator->template is<ast::ts_tuple>());
+			auto &dest_types = match_context.dest_container.terminator->template get<ast::ts_tuple>().types;
 			if (is_variadic)
 			{
 				expand_variadic_tuple_type(dest_types, source_types.size());
@@ -1916,8 +1911,8 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 		else if constexpr (kind == type_match_function_kind::matched_type)
 		{
 			ast::typespec result = match_context.original_dest;
-			bz_assert(result.nodes.back().is<ast::ts_array_slice>());
-			auto &array_slice = result.nodes.back().get<ast::ts_array_slice>();
+			bz_assert(result.terminator->is<ast::ts_array_slice>());
+			auto &array_slice = result.terminator->get<ast::ts_array_slice>();
 			array_slice.elem_type = generic_type_match_strict_match(
 				strict_match_context_t<type_match_function_kind::matched_type>{
 					.source = source.get<ast::ts_array_slice>().elem_type,
@@ -1935,8 +1930,8 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 		}
 		else if constexpr (kind == type_match_function_kind::match_expression)
 		{
-			bz_assert(match_context.dest_container.nodes.back().template is<ast::ts_array_slice>());
-			auto &dest_container = match_context.dest_container.nodes.back().template get<ast::ts_array_slice>().elem_type;
+			bz_assert(match_context.dest_container.terminator->template is<ast::ts_array_slice>());
+			auto &dest_container = match_context.dest_container.terminator->template get<ast::ts_array_slice>().elem_type;
 			return generic_type_match_strict_match(
 				strict_match_context_t<type_match_function_kind::match_expression>{
 					.expr = match_context.expr,
@@ -1968,7 +1963,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			if constexpr (match_context_t<kind>::report_errors)
 			{
 				bz::vector<ctx::source_highlight> notes;
-				if (source.nodes.size() != match_context.source.nodes.size())
+				if (source.modifiers.size() != match_context.source.modifiers.size())
 				{
 					notes.push_back(match_context.context.make_note(
 						match_context.expr.src_tokens,
@@ -2038,8 +2033,8 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 		else if constexpr (kind == type_match_function_kind::matched_type)
 		{
 			ast::typespec result = match_context.original_dest;
-			bz_assert(result.nodes.back().is<ast::ts_array>());
-			auto &array = result.nodes.back().get<ast::ts_array>();
+			bz_assert(result.terminator->is<ast::ts_array>());
+			auto &array = result.terminator->get<ast::ts_array>();
 			array.size = source_array_type.size;
 			array.elem_type = generic_type_match_strict_match(
 				strict_match_context_t<type_match_function_kind::matched_type>{
@@ -2058,8 +2053,8 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 		}
 		else if constexpr (kind == type_match_function_kind::match_expression)
 		{
-			bz_assert(match_context.dest_container.nodes.back().template is<ast::ts_array>());
-			auto &dest_array = match_context.dest_container.nodes.back().template get<ast::ts_array>();
+			bz_assert(match_context.dest_container.terminator->template is<ast::ts_array>());
+			auto &dest_array = match_context.dest_container.terminator->template get<ast::ts_array>();
 			auto const good = generic_type_match_strict_match(
 				strict_match_context_t<type_match_function_kind::match_expression>{
 					.expr = match_context.expr,
@@ -2088,7 +2083,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 		if constexpr (match_context_t<kind>::report_errors)
 		{
 			bz::vector<ctx::source_highlight> notes;
-			if (source.nodes.size() != match_context.source.nodes.size())
+			if (source.modifiers.size() != match_context.source.modifiers.size())
 			{
 				notes.push_back(match_context.context.make_note(
 					match_context.expr.src_tokens,
@@ -2282,7 +2277,10 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		}
 		else if constexpr (kind == type_match_function_kind::match_expression)
 		{
-			bz_assert(match_context.dest_container.nodes.front().template is<ast::ts_auto_reference>());
+			bz_assert(
+				match_context.dest_container.modifiers.not_empty()
+				&& match_context.dest_container.modifiers[0].template is<ast::ts_auto_reference>()
+			);
 			if (is_lvalue)
 			{
 				auto const good = generic_type_match_strict_match(
@@ -2298,7 +2296,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 				);
 				if (good)
 				{
-					match_context.dest_container.nodes.front().template emplace<ast::ts_lvalue_reference>();
+					match_context.dest_container.modifiers[0].template emplace<ast::ts_lvalue_reference>();
 				}
 				return good;
 			}
@@ -2375,7 +2373,10 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		}
 		else if constexpr (kind == type_match_function_kind::match_expression)
 		{
-			bz_assert(match_context.dest_container.nodes.front().template is<ast::ts_auto_reference_const>());
+			bz_assert(
+				match_context.dest_container.modifiers.not_empty()
+				&& match_context.dest_container.modifiers[0].template is<ast::ts_auto_reference_const>()
+			);
 			if (is_lvalue)
 			{
 				auto const good = generic_type_match_strict_match(
@@ -2393,12 +2394,12 @@ static match_function_result_t<kind> generic_type_match_base_case(
 				{
 					if (expr_is_const)
 					{
-						match_context.dest_container.nodes.front().template emplace<ast::ts_const>();
+						match_context.dest_container.modifiers[0].template emplace<ast::ts_const>();
 						match_context.dest_container.template add_layer<ast::ts_lvalue_reference>();
 					}
 					else
 					{
-						match_context.dest_container.nodes.front().template emplace<ast::ts_lvalue_reference>();
+						match_context.dest_container.modifiers[0].template emplace<ast::ts_lvalue_reference>();
 					}
 				}
 				return good;
@@ -2442,7 +2443,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		dest.is<ast::ts_auto>()
 		|| (dest.is<ast::ts_base_type>() && dest.get<ast::ts_base_type>().info->is_generic())
 		|| (
-			dest.kind() == expr_type_without_const.kind()
+			dest.same_kind_as(expr_type_without_const)
 			&& (dest.is<ast::ts_pointer>() || dest.is<ast::ts_array_slice>() || dest.is<ast::ts_array>() || dest.is<ast::ts_tuple>())
 		)
 	)
@@ -2522,8 +2523,8 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		else if constexpr (kind == type_match_function_kind::matched_type)
 		{
 			ast::typespec result = original_dest;
-			bz_assert(result.nodes.back().is<ast::ts_array_slice>());
-			auto &result_slice_t = result.nodes.back().get<ast::ts_array_slice>();
+			bz_assert(result.terminator->is<ast::ts_array_slice>());
+			auto &result_slice_t = result.terminator->get<ast::ts_array_slice>();
 			result_slice_t.elem_type = generic_type_match_strict_match(
 				make_strict_match_context(
 					match_context,
@@ -2547,12 +2548,12 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		}
 		else if constexpr (kind == type_match_function_kind::match_expression)
 		{
-			bz_assert(match_context.dest_container.nodes.back().template is<ast::ts_array_slice>());
+			bz_assert(match_context.dest_container.terminator->template is<ast::ts_array_slice>());
 			auto const good = generic_type_match_strict_match(
 				strict_match_context_t<type_match_function_kind::match_expression>{
 					.expr = match_context.expr,
 					.original_dest_container = match_context.dest_container,
-					.dest_container = match_context.dest_container.nodes.back().template get<ast::ts_array_slice>().elem_type,
+					.dest_container = match_context.dest_container.terminator->template get<ast::ts_array_slice>().elem_type,
 					.source = expr_elem_t,
 					.dest = ast::remove_const_or_consteval(dest_elem_t),
 					.context = match_context.context,
