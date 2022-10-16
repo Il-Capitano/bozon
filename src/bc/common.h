@@ -43,9 +43,9 @@ llvm::Type *get_llvm_base_type(ast::ts_base_type const &base_t, Context &context
 }
 
 template<typename Context>
-llvm::Type *get_llvm_type(ast::typespec_view ts, Context &context, bool is_top_level = true)
+llvm::Type *get_llvm_type(ast::typespec_view ts, Context &context)
 {
-	static_assert(ast::typespec_types::size() == 17);
+	static_assert(ast::typespec_types::size() == 18);
 	if (ts.modifiers.empty())
 	{
 		switch (ts.terminator_kind())
@@ -53,15 +53,7 @@ llvm::Type *get_llvm_type(ast::typespec_view ts, Context &context, bool is_top_l
 		case ast::terminator_typespec_node_t::index_of<ast::ts_base_type>:
 			return get_llvm_base_type(ts.get<ast::ts_base_type>(), context);
 		case ast::terminator_typespec_node_t::index_of<ast::ts_void>:
-			if (is_top_level)
-			{
-				return llvm::Type::getVoidTy(context.get_llvm_context());
-			}
-			else
-			{
-				// llvm doesn't allow void*, so we use i8* instead
-				return llvm::Type::getInt8Ty(context.get_llvm_context());
-			}
+			return llvm::Type::getVoidTy(context.get_llvm_context());
 		case ast::terminator_typespec_node_t::index_of<ast::ts_function>:
 			return context.get_opaque_pointer_t();
 		case ast::terminator_typespec_node_t::index_of<ast::ts_array>:
@@ -95,13 +87,26 @@ llvm::Type *get_llvm_type(ast::typespec_view ts, Context &context, bool is_top_l
 		switch (ts.modifier_kind())
 		{
 		case ast::modifier_typespec_node_t::index_of<ast::ts_const>:
-			return get_llvm_type(ts.get<ast::ts_const>(), context, is_top_level);
+			return get_llvm_type(ts.get<ast::ts_const>(), context);
 		case ast::modifier_typespec_node_t::index_of<ast::ts_consteval>:
-			return get_llvm_type(ts.get<ast::ts_consteval>(), context, is_top_level);
+			return get_llvm_type(ts.get<ast::ts_consteval>(), context);
 		case ast::modifier_typespec_node_t::index_of<ast::ts_pointer>:
 		case ast::modifier_typespec_node_t::index_of<ast::ts_lvalue_reference>:
 		case ast::modifier_typespec_node_t::index_of<ast::ts_move_reference>:
 			return context.get_opaque_pointer_t();
+		case ast::modifier_typespec_node_t::index_of<ast::ts_optional>:
+		{
+			auto const inner_type = ts.get<ast::ts_optional>();
+			if (inner_type.is<ast::ts_pointer>() || inner_type.is<ast::ts_function>())
+			{
+				return context.get_opaque_pointer_t();
+			}
+			else
+			{
+				auto const inner_llvm_type = get_llvm_type(inner_type, context);
+				return llvm::StructType::get(inner_llvm_type, context.get_bool_t());
+			}
+		}
 		default:
 			bz_unreachable;
 		}

@@ -1017,14 +1017,27 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 				.collect()
 			);
 		},
-		[&](ast::ts_pointer const &) {
-			if (value.PointerVal == nullptr)
+		[](ast::ts_pointer const &) {
+			bz_unreachable;
+		},
+		[&](ast::ts_optional const &) {
+			auto const type = ast::remove_const_or_consteval(result_type).get<ast::ts_optional>();
+			if (type.is<ast::ts_pointer>() || type.is<ast::ts_function>())
 			{
+				bz_assert(value.PointerVal == nullptr);
 				result.emplace<ast::constant_value::null>();
 			}
 			else
 			{
-				// nothing
+				auto const has_value = value.AggregateVal[1].IntVal.getBoolValue();
+				if (!has_value)
+				{
+					result.emplace<ast::constant_value::null>();
+				}
+				else
+				{
+					result = constant_value_from_generic_value(value.AggregateVal[0], type);
+				}
 			}
 		},
 		[](ast::ts_lvalue_reference const &) {

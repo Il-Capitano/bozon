@@ -5232,16 +5232,7 @@ static ast::expression make_builtin_default_construction(
 		);
 	}
 
-	if (type.is<ast::ts_pointer>())
-	{
-		return ast::make_constant_expression(
-			src_tokens,
-			ast::expression_type_kind::rvalue, type,
-			ast::constant_value(ast::internal::null_t{}),
-			ast::make_expr_builtin_default_construct(type)
-		);
-	}
-	else if (type.is<ast::ts_array_slice>())
+	if (type.is<ast::ts_array_slice>())
 	{
 		return ast::make_dynamic_expression(
 			src_tokens,
@@ -5349,7 +5340,7 @@ ast::expression parse_context::make_default_construction(lex::src_tokens const &
 	{
 		return make_array_default_construction(src_tokens, type, *this);
 	}
-	else if (type.is<ast::ts_pointer>() || type.is<ast::ts_array_slice>())
+	else if (type.is<ast::ts_array_slice>())
 	{
 		return make_builtin_default_construction(src_tokens, type, *this);
 	}
@@ -6676,7 +6667,7 @@ bool parse_context::is_default_constructible(lex::src_tokens const &src_tokens, 
 {
 	return type_property_helper<
 		&ast::type_info::is_default_constructible,
-		false, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_array_slice
 	>(src_tokens, ts, *this);
 }
 

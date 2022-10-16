@@ -2079,7 +2079,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 	}
 	else
 	{
-		static_assert(ast::typespec_types::size() == 17);
+		static_assert(ast::typespec_types::size() == 18);
 		if constexpr (match_context_t<kind>::report_errors)
 		{
 			bz::vector<ctx::source_highlight> notes;
@@ -2641,7 +2641,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 	}
 	else
 	{
-		static_assert(ast::typespec_types::size() == 17);
+		static_assert(ast::typespec_types::size() == 18);
 		if constexpr (match_context_t<kind>::report_errors)
 		{
 			match_context.context.report_error(

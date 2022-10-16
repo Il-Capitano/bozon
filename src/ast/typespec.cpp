@@ -326,7 +326,7 @@ bool is_trivially_relocatable(typespec_view ts) noexcept
 bz::u8string typespec_view::get_symbol_name(void) const
 {
 	bz_assert(this->not_empty());
-	static_assert(typespec_types::size() == 17);
+	static_assert(typespec_types::size() == 18);
 	bz::u8string result = "";
 	for (auto &modifier : this->modifiers)
 	{
@@ -339,6 +339,9 @@ bz::u8string typespec_view::get_symbol_name(void) const
 			},
 			[&](ts_pointer const &) {
 				result += "0P.";
+			},
+			[&](ts_optional const &) {
+				result += "0O.";
 			},
 			[&](ts_lvalue_reference const &) {
 				result += "0R.";
@@ -392,8 +395,9 @@ bz::u8string typespec::decode_symbol_name(
 	bz::u8string_view::const_iterator end
 )
 {
-	static_assert(typespec_types::size() == 17);
+	static_assert(typespec_types::size() == 18);
 	constexpr bz::u8string_view pointer        = "0P.";
+	constexpr bz::u8string_view optional       = "0O.";
 	constexpr bz::u8string_view reference      = "0R.";
 	constexpr bz::u8string_view move_reference = "0M.";
 	constexpr bz::u8string_view const_         = "const.";
@@ -426,6 +430,11 @@ bz::u8string typespec::decode_symbol_name(
 		{
 			result += "*";
 			it = bz::u8string_view::const_iterator(it.data() + pointer.size());
+		}
+		else if (symbol_name.starts_with(optional))
+		{
+			result += "?";
+			it = bz::u8string_view::const_iterator(it.data() + optional.size());
 		}
 		else if (symbol_name.starts_with(reference))
 		{
@@ -631,7 +640,7 @@ bz::u8string bz::formatter<ast::typespec>::format(ast::typespec const &typespec,
 
 bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typespec, bz::u8string_view)
 {
-	static_assert(ast::typespec_types::size() == 17);
+	static_assert(ast::typespec_types::size() == 18);
 	if (typespec.is_empty())
 	{
 		return "<error-type>";
@@ -649,6 +658,9 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 			},
 			[&](ast::ts_pointer const &) {
 				result += '*';
+			},
+			[&](ast::ts_optional const &) {
+				result += '?';
 			},
 			[&](ast::ts_lvalue_reference const &) {
 				result += '&';
