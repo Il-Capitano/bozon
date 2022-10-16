@@ -19,3 +19,44 @@ export struct resource_t
 		return resource_t[ std::malloc(int32, 1) ];
 	}
 }
+
+export struct complex_resource_t
+{
+	.p: *int32;
+	.instance_p: *int32;
+
+	constructor()
+	{
+		return complex_resource_t[
+			std::malloc(int32, 1),
+			std::malloc(int32, 1),
+		];
+	}
+
+	constructor(other: &const complex_resource_t)
+	{
+		return complex_resource_t[
+			std::malloc(int32, 1),
+			std::malloc(int32, 1),
+		];
+	}
+
+	constructor(other: move complex_resource_t)
+	{
+		return complex_resource_t[
+			other.p,
+			std::malloc(int32, 1),
+		];
+	}
+
+	destructor(&self)
+	{
+		std::free(self.p);
+		std::free(self.instance_p);
+	}
+
+	destructor(move self)
+	{
+		std::free(self.instance_p);
+	}
+}
