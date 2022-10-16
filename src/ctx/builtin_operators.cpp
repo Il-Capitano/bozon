@@ -969,9 +969,9 @@ ast::expression make_builtin_cast(
 	auto const dest_t = ast::remove_const_or_consteval(dest_type);
 	bz_assert(ast::is_complete(dest_t));
 
-	// case from null to a pointer type
+	// case from null to a optional type
 	if (
-		dest_t.is<ast::ts_pointer>()
+		dest_t.is<ast::ts_optional>()
 		&& ((
 			expr.is_constant()
 			&& expr.get_constant_value().is_null_constant()
