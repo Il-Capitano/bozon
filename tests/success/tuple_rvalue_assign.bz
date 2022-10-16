@@ -1,0 +1,14 @@
+import resource;
+
+function get_values() -> [complex_resource_t]
+{
+	return [ complex_resource_t() ];
+}
+
+function test()
+{
+	(consteval {
+		let arr = [complex_resource_t]();
+		arr = get_values();
+	});
+}

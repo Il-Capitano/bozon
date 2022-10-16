@@ -5793,6 +5793,10 @@ ast::expression parse_context::make_move_construction(ast::expression expr)
 			this->add_self_move_destruction(expr);
 		}
 	}
+	else
+	{
+		this->add_self_move_destruction(expr);
+	}
 
 	if (this->is_trivially_relocatable(expr.src_tokens, type))
 	{
@@ -5995,11 +5999,6 @@ static ast::expression make_struct_assignment(
 		),
 		context
 	);
-
-	if (rhs_expr_type_kind == ast::expression_type_kind::rvalue)
-	{
-		context.add_self_move_destruction(rhs);
-	}
 
 	auto const rhs_value_ref_type_kind = rhs_expr_type_kind == ast::expression_type_kind::lvalue_reference
 		? ast::expression_type_kind::lvalue_reference
@@ -6283,7 +6282,6 @@ static ast::expression make_base_type_destruct_expression(
 			return make_destruct_expression(ast::remove_const_or_consteval(member->get_type()), std::move(value_ref), context);
 		})
 		.collect<ast::arena_vector>();
-	bz_assert(member_destruct_calls.size() != 0);
 	return ast::make_dynamic_expression(
 		src_tokens,
 		ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
@@ -6413,7 +6411,6 @@ static ast::expression make_base_type_move_destruct_expression(
 			return make_move_destruct_expression(ast::remove_const_or_consteval(member->get_type()), std::move(value_ref), context);
 		})
 		.collect<ast::arena_vector>();
-	bz_assert(member_destruct_calls.size() != 0);
 	return ast::make_dynamic_expression(
 		src_tokens,
 		ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
