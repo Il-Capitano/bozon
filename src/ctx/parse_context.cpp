@@ -6971,7 +6971,11 @@ template<
 static bool type_property_helper(lex::src_tokens const &src_tokens, ast::typespec_view ts, parse_context &context)
 {
 	ts = remove_const_or_consteval(ts);
-	if (ts.is<ast::ts_base_type>())
+	if ((ts.is<exception_types>() || ...))
+	{
+		return !default_value;
+	}
+	else if (ts.is<ast::ts_base_type>())
 	{
 		auto const info = ts.get<ast::ts_base_type>().info;
 		context.resolve_type(src_tokens, info);
@@ -6995,9 +6999,17 @@ static bool type_property_helper(lex::src_tokens const &src_tokens, ast::typespe
 			exception_types...
 		>(src_tokens, ts.get<ast::ts_array>().elem_type, context);
 	}
+	else if (ts.is<ast::ts_optional>())
+	{
+		return type_property_helper<
+			base_type_property_func,
+			default_value,
+			exception_types...
+		>(src_tokens, ts.get<ast::ts_optional>(), context);
+	}
 	else
 	{
-		return (ts.is<exception_types>() || ...) ? !default_value : default_value;
+		return default_value;
 	}
 }
 
@@ -7005,7 +7017,7 @@ bool parse_context::is_default_constructible(lex::src_tokens const &src_tokens, 
 {
 	return type_property_helper<
 		&ast::type_info::is_default_constructible,
-		false, ast::ts_array_slice
+		false, ast::ts_optional, ast::ts_array_slice
 	>(src_tokens, ts, *this);
 }
 
@@ -7096,6 +7108,10 @@ bool parse_context::is_instantiable(lex::src_tokens const &src_tokens, ast::type
 		// array slice type needs to be sized, because pointer arithmetic is required
 		// when accessing elements
 		return this->is_instantiable(src_tokens, ts.get<ast::ts_array_slice>().elem_type);
+	}
+	else if (ts.is<ast::ts_optional>())
+	{
+		return this->is_instantiable(src_tokens, ts.get<ast::ts_optional>());
 	}
 	else if (ts.is<ast::ts_tuple>())
 	{

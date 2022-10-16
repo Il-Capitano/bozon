@@ -844,12 +844,7 @@ static void resolve_variable_destruction(ast::decl_variable &var_decl, ctx::pars
 	if (type.is<ast::ts_base_type>())
 	{
 		auto const info = type.get<ast::ts_base_type>().info;
-		if (info->state < ast::resolve_state::all)
-		{
-			context.add_to_resolve_queue(var_decl.src_tokens, *info);
-			resolve_type_info(*info, context);
-			context.pop_resolve_queue();
-		}
+		context.resolve_type(var_decl.src_tokens, info);
 	}
 
 	if (!var_decl.is_member() && !context.is_trivially_destructible(var_decl.src_tokens, type))
