@@ -416,6 +416,7 @@ void global_context::add_compile_function(ast::function_body &func_body)
 static std::pair<fs::path, bool> search_for_source_file(ast::identifier const &id, fs::path const &current_path)
 {
 	bz::u8string module_file_name;
+	bool allow_library = true;
 	bool first = true;
 	for (auto const value : id.values)
 	{
@@ -428,35 +429,136 @@ static std::pair<fs::path, bool> search_for_source_file(ast::identifier const &i
 			module_file_name += '/';
 		}
 		module_file_name += value;
+		allow_library &= !value.starts_with('_');
 	}
 	module_file_name += ".bz";
-	std::string_view std_sv(module_file_name.data_as_char_ptr(), module_file_name.size());
+	std::string_view module_folder_name_sv(module_file_name.data_as_char_ptr(), module_file_name.size() - 3);
+	std::string_view module_file_name_sv(module_file_name.data_as_char_ptr(), module_file_name.size());
 	if (!id.is_qualified)
 	{
-		auto same_dir_module = current_path / std_sv;
+		auto same_dir_module = current_path / module_file_name_sv;
 		if (fs::exists(same_dir_module))
 		{
 			return { std::move(same_dir_module), false };
 		}
+		auto same_dir_module_folder = current_path / module_folder_name_sv;
+		if (fs::exists(same_dir_module_folder) && fs::is_directory(same_dir_module_folder))
+		{
+			return { std::move(same_dir_module_folder), false };
+		}
 	}
 
-	for (auto const &import_dir : import_dirs)
+	if (allow_library)
 	{
-		std::string_view import_dir_sv(import_dir.data_as_char_ptr(), import_dir.size());
-		auto module = fs::path(import_dir_sv) / std_sv;
-		if (fs::exists(module))
+		for (auto const &import_dir : import_dirs)
 		{
-			return { std::move(module), true };
+			std::string_view import_dir_sv(import_dir.data_as_char_ptr(), import_dir.size());
+			auto library_module = fs::path(import_dir_sv) / module_file_name_sv;
+			if (fs::exists(library_module))
+			{
+				return { std::move(library_module), true };
+			}
+			auto library_module_folder = fs::path(import_dir_sv) / module_folder_name_sv;
+			if (fs::exists(library_module_folder) && fs::is_directory(library_module_folder))
+			{
+				return { std::move(library_module_folder), true };
+			}
 		}
 	}
 	return {};
 }
 
-uint32_t global_context::add_module(uint32_t current_file_id, ast::identifier const &id)
+static uint32_t add_module_file(
+	src_file &current_file,
+	fs::path const &module_path,
+	bool is_library_file,
+	bz::vector<bz::u8string> scope,
+	global_context &context
+)
+{
+	auto &file = [&]() -> auto & {
+		auto const file_it = std::find_if(
+			context._src_files.begin(), context._src_files.end(),
+			[&](auto const &src_file) {
+				return fs::equivalent(src_file.get_file_path(), module_path);
+			}
+		);
+		if (file_it == context._src_files.end())
+		{
+			return context._src_files.emplace_back(
+				module_path, context._src_files.size(), std::move(scope), is_library_file || current_file._is_library_file
+			);
+		}
+		else
+		{
+			return *file_it;
+		}
+	}();
+
+	if (file._stage < src_file::parsed_global_symbols)
+	{
+		if (!file.parse_global_symbols(context))
+		{
+			return std::numeric_limits<uint32_t>::max();
+		}
+	}
+	return file._file_id;
+}
+
+static bz::vector<uint32_t> add_module_folder(
+	src_file &current_file,
+	fs::path const &module_path,
+	bool is_library_folder,
+	bz::vector<bz::u8string> &scope,
+	global_context &context
+)
+{
+	bz::vector<uint32_t> result;
+	bz_assert(fs::is_directory(module_path));
+	for (auto const &p : bz::basic_range(fs::directory_iterator(module_path), fs::directory_iterator()))
+	{
+		if (is_library_folder && p.path().filename().generic_string().starts_with('_'))
+		{
+			continue;
+		}
+
+		if (p.is_directory())
+		{
+			auto const folder_name_s = p.path().filename().generic_string();
+			auto const folder_name = bz::u8string_view(folder_name_s.data(), folder_name_s.data() + folder_name_s.size());
+			auto const is_identifier = [&]() {
+				auto const first_char = *folder_name.begin();
+				auto const is_valid_first_char =
+					(first_char >= 'a' && first_char <= 'z')
+					|| (first_char >= 'A' && first_char <= 'Z')
+					|| first_char == '_';
+				return is_valid_first_char && bz::to_range(folder_name).is_all([](bz::u8char c) {
+					return (c >= 'a' && c <= 'z')
+					|| (c >= 'A' && c <= 'Z')
+					|| (c >= '0' && c <= '9')
+					|| c == '_';
+				});
+			}();
+			if (is_identifier)
+			{
+				scope.push_back(folder_name);
+				result.append(add_module_folder(current_file, p.path(), is_library_folder, scope, context));
+				scope.pop_back();
+			}
+		}
+		else if (p.path().filename().generic_string().ends_with(".bz"))
+		{
+			result.push_back(add_module_file(current_file, p.path(), is_library_folder, scope, context));
+		}
+	}
+	return result;
+}
+
+bz::vector<uint32_t> global_context::add_module(uint32_t current_file_id, ast::identifier const &id)
 {
 	auto &current_file = this->get_src_file(current_file_id);
-	auto const [file_path, is_library_file] = search_for_source_file(id, current_file.get_file_path().parent_path());
-	if (file_path.empty())
+	auto const [module_path, is_library_path] = search_for_source_file(id, current_file.get_file_path().parent_path());
+	if (module_path.empty())
 	{
 		this->report_error(error{
 			warning_kind::_last,
@@ -468,48 +570,45 @@ uint32_t global_context::add_module(uint32_t current_file_id, ast::identifier co
 			},
 			{}, {}
 		});
-		return std::numeric_limits<uint32_t>::max();
+		return { std::numeric_limits<uint32_t>::max() };
 	}
-	auto scope = [&, is_library_file = is_library_file]() {
-		if (is_library_file)
-		{
-			return bz::vector(id.values.begin(), id.values.end() - 1);
-		}
-		else
-		{
-			auto result = this->get_src_file(current_file_id)._scope;
-			result.append(bz::array_view(id.values.begin(), id.values.end() - 1));
-			return result;
-		}
-	}();
 
-	auto &file = [&, &file_path = file_path, is_library_file = is_library_file]() -> auto & {
-		auto const file_it = std::find_if(
-			this->_src_files.begin(), this->_src_files.end(),
-			[&](auto const &src_file) {
-				return fs::equivalent(src_file.get_file_path(), file_path);
-			}
-		);
-		if (file_it == this->_src_files.end())
-		{
-			return this->_src_files.emplace_back(
-				file_path, this->_src_files.size(), std::move(scope), is_library_file || current_file._is_library_file
-			);
-		}
-		else
-		{
-			return *file_it;
-		}
-	}();
-
-	if (file._stage < src_file::parsed_global_symbols)
+	if (module_path.filename().generic_string().ends_with(".bz"))
 	{
-		if (!file.parse_global_symbols(*this))
-		{
-			return std::numeric_limits<uint32_t>::max();
-		}
+		auto scope = [&, is_library_path = is_library_path]() {
+			if (is_library_path)
+			{
+				auto result = bz::vector<bz::u8string>();
+				result.append(bz::array_view(id.values.begin(), id.values.end() - 1));
+				return result;
+			}
+			else
+			{
+				auto result = this->get_src_file(current_file_id)._scope_container;
+				result.append(bz::array_view(id.values.begin(), id.values.end() - 1));
+				return result;
+			}
+		}();
+		return { add_module_file(current_file, module_path, is_library_path, std::move(scope), *this) };
 	}
-	return file._file_id;
+	else
+	{
+		auto scope = [&, is_library_path = is_library_path]() {
+			if (is_library_path)
+			{
+				auto result = bz::vector<bz::u8string>();
+				result.append(bz::array_view(id.values.begin(), id.values.end()));
+				return result;
+			}
+			else
+			{
+				auto result = this->get_src_file(current_file_id)._scope_container;
+				result.append(bz::array_view(id.values.begin(), id.values.end()));
+				return result;
+			}
+		}();
+		return add_module_folder(current_file, module_path, is_library_path, scope, *this);
+	}
 }
 
 ast::scope_t *global_context::get_file_export_decls(uint32_t file_id)
@@ -859,7 +958,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 	auto const builtins_file_path = stdlib_dir_path / "compiler/__builtins.bz";
 	auto &builtins_file = this->_src_files.emplace_back(
-		builtins_file_path, this->_src_files.size(), bz::vector<bz::u8string_view>{}, true
+		builtins_file_path, this->_src_files.size(), bz::vector<bz::u8string>(), true
 	);
 	this->_builtin_global_scope = &builtins_file._export_decls;
 	if (!builtins_file.parse_global_symbols(*this))
@@ -869,7 +968,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 	auto const comptime_checking_file_path = stdlib_dir_path / "compiler/__comptime_checking.bz";
 	auto &comptime_checking_file = this->_src_files.emplace_back(
-		comptime_checking_file_path, this->_src_files.size(), bz::vector<bz::u8string_view>{}, true
+		comptime_checking_file_path, this->_src_files.size(), bz::vector<bz::u8string>(), true
 	);
 	this->_comptime_executor.comptime_checking_file_id = comptime_checking_file._file_id;
 	if (!comptime_checking_file.parse_global_symbols(*this))
@@ -899,7 +998,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	}
 
 	auto const source_file_path = fs::path(std::string_view(source_file.data_as_char_ptr(), source_file.size()));
-	auto &file = this->_src_files.emplace_back(source_file_path, this->_src_files.size(), bz::vector<bz::u8string_view>{}, false);
+	auto &file = this->_src_files.emplace_back(source_file_path, this->_src_files.size(), bz::vector<bz::u8string>(), false);
 	if (!file.parse_global_symbols(*this))
 	{
 		return false;

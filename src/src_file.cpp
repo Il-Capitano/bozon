@@ -88,7 +88,7 @@ static void add_import_decls(src_file &file, ast::global_scope_t &import_scope)
 }
 
 
-src_file::src_file(fs::path file_path, uint32_t file_id, bz::vector<bz::u8string_view> scope, bool is_library_file)
+src_file::src_file(fs::path file_path, uint32_t file_id, bz::vector<bz::u8string> scope, bool is_library_file)
 	: _stage(constructed),
 	  _is_library_file(is_library_file),
 	  _file_id(file_id),
@@ -96,8 +96,11 @@ src_file::src_file(fs::path file_path, uint32_t file_id, bz::vector<bz::u8string
 	  _file(), _tokens(),
 	  _declarations{},
 	  _global_decls{},
-	  _scope(std::move(scope))
-{}
+	  _scope_container(std::move(scope)),
+	  _scope()
+{
+	this->_scope = this->_scope_container.transform([](auto const &s) { return s.as_string_view(); }).collect();
+}
 
 
 [[nodiscard]] bool src_file::read_file(ctx::global_context &global_ctx)
@@ -265,11 +268,14 @@ src_file::src_file(fs::path file_path, uint32_t file_id, bz::vector<bz::u8string
 
 	for (auto const import : imports)
 	{
-		auto const import_file_id = global_ctx.add_module(this->_file_id, import->id);
-		if (import_file_id != std::numeric_limits<uint32_t>::max())
+		auto const import_file_ids = global_ctx.add_module(this->_file_id, import->id);
+		for (auto const id : import_file_ids)
 		{
-			auto const import_decls = global_ctx.get_file_export_decls(import_file_id);
-			add_import_decls(*this, import_decls->get_global());
+			if (id != std::numeric_limits<uint32_t>::max())
+			{
+				auto const import_decls = global_ctx.get_file_export_decls(id);
+				add_import_decls(*this, import_decls->get_global());
+			}
 		}
 	}
 
