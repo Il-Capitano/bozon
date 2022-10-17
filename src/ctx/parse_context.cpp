@@ -1557,7 +1557,7 @@ ast::expression::expr_type_t parse_context::get_identifier_type(lex::token_pos i
 static ast::typespec get_function_type(ast::function_body &body)
 {
 	auto const &return_type = body.return_type;
-	auto param_types = body.params.transform([](auto &p) { return p.get_type(); }).collect();
+	auto param_types = body.params.transform([](auto &p) { return p.get_type(); }).collect<ast::arena_vector>();
 	return ast::make_function_typespec(body.src_tokens, std::move(param_types), return_type);
 }
 
@@ -3291,7 +3291,7 @@ ast::expression parse_context::make_tuple(lex::src_tokens const &src_tokens, ast
 	}
 	else if (elems.is_all([](auto &expr) { return expr.is_typename(); }))
 	{
-		bz::vector<ast::typespec> types = {};
+		ast::arena_vector<ast::typespec> types = {};
 		auto const size = elems.size();
 		types.reserve(size);
 		for (auto const i : bz::iota(0, size))

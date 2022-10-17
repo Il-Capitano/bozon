@@ -3,7 +3,7 @@
 namespace resolve
 {
 
-void expand_variadic_tuple_type(bz::vector<ast::typespec> &tuple_types, size_t new_size)
+void expand_variadic_tuple_type(ast::arena_vector<ast::typespec> &tuple_types, size_t new_size)
 {
 	bz_assert(tuple_types.not_empty() && tuple_types.back().is<ast::ts_variadic>());
 	auto const non_variadic_count = tuple_types.size() - 1;

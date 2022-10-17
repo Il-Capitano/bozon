@@ -9,7 +9,7 @@
 namespace resolve
 {
 
-void expand_variadic_tuple_type(bz::vector<ast::typespec> &tuple_types, size_t new_size);
+void expand_variadic_tuple_type(ast::arena_vector<ast::typespec> &tuple_types, size_t new_size);
 bool is_implicitly_convertible(
 	ast::typespec_view dest,
 	ast::expression const &expr,
