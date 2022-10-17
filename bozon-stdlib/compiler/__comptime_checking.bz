@@ -23,23 +23,6 @@ function free   = __builtin_comptime_free;
 function memcpy = __builtin_memcpy;
 function swap   = __builtin_swap;
 
-/*
-function alloc(T: typename, count: usize) -> *T
-{
-	return __builtin_comptime_malloc_type(T, count);
-}
-
-function free(p: *void)
-{
-	__builtin_comptime_free(p);
-}
-
-function memcpy(dest: *void, src: *const void, n: usize)
-{
-	__builtin_memcpy(dest, src, n);
-}
-*/
-
 function round_to_next_power_of_two(n: usize) -> usize
 {
 	// https://stackoverflow.com/a/466242/11488457
@@ -88,9 +71,9 @@ struct vector<T: typename>
 	type value_type = T;
 	type _self_t = vector<T>;
 
-	._data_begin: *T;
-	._data_end:   *T;
-	._alloc_end:  *T;
+	._data_begin: ?*T;
+	._data_end:   ?*T;
+	._alloc_end:  ?*T;
 
 	destructor(&self)
 	{
@@ -152,7 +135,7 @@ struct vector<T: typename>
 		}
 		else if (other.begin() >= self._data_begin && other.begin() < self._data_end)
 		{
-			let self_it = self._data_begin;
+			let self_it = self._data_begin.get_value();
 			let other_it = other.begin();
 			const other_end = other.end();
 			for (; other_it != other_end; ++self_it, ++other_it)
@@ -165,15 +148,15 @@ struct vector<T: typename>
 			{
 				__builtin_call_destructor(*self_it);
 			}
-			self._data_end = new_end;
+			self._data_end.get_value() = new_end;
 		}
 		else
 		{
 			const size = other.size();
 			self.clear();
 			self.reserve(size);
-			self._data_end = self._data_begin + size;
-			copy_range(self._data_begin, self._data_end, other.begin());
+			self._data_end.get_value() = self._data_begin.get_value() + size;
+			copy_range(self._data_begin.get_value(), self._data_end.get_value(), other.begin());
 			return self;
 		}
 	}
