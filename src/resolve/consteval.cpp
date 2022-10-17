@@ -1331,7 +1331,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->body.is_null());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 152);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 156);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -1395,6 +1395,8 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		return is_typespec_kind_helper<ast::ts_consteval>(func_call);
 	case ast::function_body::is_pointer:
 		return is_typespec_kind_helper<ast::ts_pointer>(func_call);
+	case ast::function_body::is_optional:
+		return is_typespec_kind_helper<ast::ts_optional>(func_call);
 	case ast::function_body::is_reference:
 		return is_typespec_kind_helper<ast::ts_lvalue_reference>(func_call);
 	case ast::function_body::is_move_reference:
@@ -1406,6 +1408,8 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		return remove_typespec_kind_helper<ast::ts_consteval>(func_call);
 	case ast::function_body::remove_pointer:
 		return remove_typespec_kind_helper<ast::ts_pointer>(func_call);
+	case ast::function_body::remove_optional:
+		return remove_typespec_kind_helper<ast::ts_optional>(func_call);
 	case ast::function_body::remove_reference:
 		return remove_typespec_kind_helper<ast::ts_lvalue_reference>(func_call);
 	case ast::function_body::remove_move_reference:

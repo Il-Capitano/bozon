@@ -493,6 +493,9 @@ struct function_body
 		builtin_slice_from_ptrs,
 		builtin_slice_from_const_ptrs,
 
+		builtin_optional_get_value,
+		builtin_optional_get_const_value,
+
 		builtin_pointer_cast,
 		builtin_pointer_to_int,
 		builtin_int_to_pointer,
@@ -533,12 +536,14 @@ struct function_body
 		is_const,
 		is_consteval,
 		is_pointer,
+		is_optional,
 		is_reference,
 		is_move_reference,
 
 		remove_const,
 		remove_consteval,
 		remove_pointer,
+		remove_optional,
 		remove_reference,
 		remove_move_reference,
 
@@ -1482,7 +1487,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 152);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 156);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1501,6 +1506,9 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_slice_size,            "__builtin_slice_size"            },
 		{ function_body::builtin_slice_from_ptrs,       "__builtin_slice_from_ptrs"       },
 		{ function_body::builtin_slice_from_const_ptrs, "__builtin_slice_from_const_ptrs" },
+
+		{ function_body::builtin_optional_get_value,       "__builtin_optional_get_value"       },
+		{ function_body::builtin_optional_get_const_value, "__builtin_optional_get_const_value" },
 
 		{ function_body::builtin_pointer_cast,   "__builtin_pointer_cast"   },
 		{ function_body::builtin_pointer_to_int, "__builtin_pointer_to_int" },
@@ -1540,12 +1548,14 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::is_const,          "__builtin_is_const"          },
 		{ function_body::is_consteval,      "__builtin_is_consteval"      },
 		{ function_body::is_pointer,        "__builtin_is_pointer"        },
+		{ function_body::is_optional,       "__builtin_is_optional"       },
 		{ function_body::is_reference,      "__builtin_is_reference"      },
 		{ function_body::is_move_reference, "__builtin_is_move_reference" },
 
 		{ function_body::remove_const,          "__builtin_remove_const"          },
 		{ function_body::remove_consteval,      "__builtin_remove_consteval"      },
 		{ function_body::remove_pointer,        "__builtin_remove_pointer"        },
+		{ function_body::remove_optional,       "__builtin_remove_optional"       },
 		{ function_body::remove_reference,      "__builtin_remove_reference"      },
 		{ function_body::remove_move_reference, "__builtin_remove_move_reference" },
 

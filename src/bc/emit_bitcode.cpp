@@ -856,7 +856,7 @@ static val_ptr emit_builtin_binary_assign(
 	bz_assert(lhs_val.kind == val_ptr::reference);
 	bz_assert(lhs_val.get_type()->isPointerTy());
 
-	context.builder.CreateStore(llvm::ConstantPointerNull::get(static_cast<llvm::PointerType *>(lhs_val.get_type())), lhs_val.val);
+	context.builder.CreateStore(llvm::ConstantPointerNull::get(context.get_opaque_pointer_t()), lhs_val.val);
 	bz_assert(result_address == nullptr);
 	return lhs_val;
 }
@@ -1714,33 +1714,34 @@ static val_ptr emit_builtin_binary_cmp(
 			return val_ptr::get_reference(result_address, result_type);
 		}
 	}
+	else if (
+		(lhs_t.is<ast::ts_optional>() && rhs_t.is<ast::ts_base_type>())
+		|| (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_optional>())
+	)
+	{
+		auto const optional_val = lhs_t.is<ast::ts_optional>()
+			? emit_bitcode<abi>(lhs, context, nullptr)
+			: emit_bitcode<abi>(rhs, context, nullptr);
+		auto const has_value = optional_has_value(optional_val, context);
+		if (result_address == nullptr)
+		{
+			return val_ptr::get_value(has_value);
+		}
+		else
+		{
+			context.builder.CreateStore(has_value, result_address);
+			return val_ptr::get_reference(result_address, has_value->getType());
+		}
+	}
 	else // if pointer
 	{
-		auto const [lhs_val, rhs_val] = [&]() -> std::pair<llvm::Value *, llvm::Value *> {
-			if (lhs_t.is<ast::ts_base_type>())
-			{
-				auto const rhs_ptr_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-				auto const rhs_val = context.builder.CreatePtrToInt(rhs_ptr_val, context.get_usize_t());
-				auto const lhs_val = llvm::ConstantInt::get(rhs_val->getType(), 0);
-				return { lhs_val, rhs_val };
-			}
-			else if (rhs_t.is<ast::ts_base_type>())
-			{
-				auto const lhs_ptr_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
-				auto const lhs_val = context.builder.CreatePtrToInt(lhs_ptr_val, context.get_usize_t());
-				auto const rhs_val = llvm::ConstantInt::get(lhs_val->getType(), 0);
-				return { lhs_val, rhs_val };
-			}
-			else
-			{
-				bz_assert(lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_pointer>());
-				auto const lhs_ptr_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
-				auto const rhs_ptr_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-				auto const lhs_val = context.builder.CreatePtrToInt(lhs_ptr_val, context.get_usize_t());
-				auto const rhs_val = context.builder.CreatePtrToInt(rhs_ptr_val, context.get_usize_t());
-				return { lhs_val, rhs_val };
-			}
-		}();
+		auto const lhs_ptr_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
+		auto const rhs_ptr_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
+		bz_assert(lhs_ptr_val->getType()->isPointerTy());
+		bz_assert(rhs_ptr_val->getType()->isPointerTy());
+		auto const lhs_val = context.builder.CreatePtrToInt(lhs_ptr_val, context.get_usize_t());
+		auto const rhs_val = context.builder.CreatePtrToInt(rhs_ptr_val, context.get_usize_t());
+
 		auto const p = get_cmp_predicate(1); // unsigned compare
 		auto const result_val = context.builder.CreateICmp(p, lhs_val, rhs_val, "cmp_tmp");
 		if (result_address == nullptr)
@@ -1749,9 +1750,8 @@ static val_ptr emit_builtin_binary_cmp(
 		}
 		else
 		{
-			auto const result_type = result_val->getType();
 			context.builder.CreateStore(result_val, result_address);
-			return val_ptr::get_reference(result_address, result_type);
+			return val_ptr::get_reference(result_address, result_val->getType());
 		}
 	}
 }
@@ -2461,7 +2461,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 152);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 156);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2587,6 +2587,14 @@ static val_ptr emit_bitcode(
 				result = context.builder.CreateInsertValue(result, end_ptr,   1);
 				return val_ptr::get_value(result);
 			}
+		}
+		case ast::function_body::builtin_optional_get_value:
+		case ast::function_body::builtin_optional_get_const_value:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const optional_val = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			bz_assert(result_address == nullptr);
+			return optional_get_value_ptr(optional_val, context);
 		}
 		case ast::function_body::builtin_pointer_cast:
 			if constexpr (is_comptime<decltype(context)>)
@@ -3068,11 +3076,13 @@ static val_ptr emit_bitcode(
 		case ast::function_body::is_const:
 		case ast::function_body::is_consteval:
 		case ast::function_body::is_pointer:
+		case ast::function_body::is_optional:
 		case ast::function_body::is_reference:
 		case ast::function_body::is_move_reference:
 		case ast::function_body::remove_const:
 		case ast::function_body::remove_consteval:
 		case ast::function_body::remove_pointer:
+		case ast::function_body::remove_optional:
 		case ast::function_body::remove_reference:
 		case ast::function_body::remove_move_reference:
 		case ast::function_body::is_default_constructible:
