@@ -995,10 +995,18 @@ ast::expression make_builtin_cast(
 			ast::make_expr_cast(std::move(expr), std::move(dest_type))
 		);
 	}
-	else if (dest_t.is<ast::ts_pointer>() && expr_t.is<ast::ts_pointer>())
+	else if (
+		(
+			dest_t.is<ast::ts_pointer>()
+			|| (dest_t.is<ast::ts_optional>() && dest_t.get<ast::ts_optional>().is<ast::ts_pointer>())
+		) && (
+			expr_t.is<ast::ts_pointer>()
+			|| (expr_t.is<ast::ts_optional>() && expr_t.get<ast::ts_optional>().is<ast::ts_pointer>())
+		)
+	)
 	{
-		auto inner_dest_t = dest_t.get<ast::ts_pointer>();
-		auto inner_expr_t = expr_t.get<ast::ts_pointer>();
+		auto inner_dest_t = ast::remove_optional(dest_t).get<ast::ts_pointer>();
+		auto inner_expr_t = ast::remove_optional(expr_t).get<ast::ts_pointer>();
 		if (!inner_dest_t.is<ast::ts_const>() && inner_expr_t.is<ast::ts_const>())
 		{
 			context.report_error(

@@ -223,6 +223,11 @@ typespec_view remove_pointer(typespec_view ts) noexcept
 	return remove_kind_helper<ts_pointer>(ts);
 }
 
+typespec_view remove_optional(typespec_view ts) noexcept
+{
+	return remove_kind_helper<ts_optional>(ts);
+}
+
 typespec_view remove_const_or_consteval(typespec_view ts) noexcept
 {
 	return remove_kind_helper<ts_const, ts_consteval>(ts);

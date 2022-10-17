@@ -1471,9 +1471,14 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 	ast::typespec_view source = match_context.source;
 	ast::typespec_view dest = match_context.dest;
 	uint16_t modifier_match_level = 0;
+	type_match_kind match_kind = type_match_kind::none;
+	if constexpr (kind == type_match_function_kind::match_level)
+	{
+		match_kind = match_context.base_type_match;
+	}
 	while (true)
 	{
-		// remove consts if there are any
+		// remove consts and optionals from pointers if there are any
 		{
 			auto const dest_is_const = dest.is<ast::ts_const>();
 			auto const source_is_const = source.is<ast::ts_const>();
@@ -1527,11 +1532,31 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			{
 				source = source.blind_get();
 			}
+
+			if (
+				propagate_const
+				&& dest.is<ast::ts_optional>()
+				&& dest.get<ast::ts_optional>().is<ast::ts_pointer>()
+				&& source.is<ast::ts_pointer>()
+			)
+			{
+				dest = dest.blind_get();
+				modifier_match_level += 1;
+				if constexpr (kind == type_match_function_kind::match_level)
+				{
+					match_kind = std::max(match_kind, type_match_kind::implicit_conversion);
+				}
+			}
 		}
 
-		if (dest.is_safe_blind_get() && dest.modifier_kind() == source.modifier_kind())
+		if (dest.is<ast::ts_optional>() && source.is<ast::ts_optional>())
 		{
-			bz_assert(source.is_safe_blind_get());
+			dest = dest.blind_get();
+			source = source.blind_get();
+			modifier_match_level += 1;
+		}
+		if (dest.is<ast::ts_pointer>() && source.is<ast::ts_pointer>())
+		{
 			dest = dest.blind_get();
 			source = source.blind_get();
 			modifier_match_level += 1;
@@ -1553,7 +1578,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			return single_match_t{
 				.modifier_match_level = modifier_match_level,
 				.reference_match = match_context.reference_match,
-				.type_match = std::max(match_context.base_type_match, type_match_kind::direct_match)
+				.type_match = std::max(match_kind, type_match_kind::direct_match)
 			};
 		}
 		else if constexpr (kind == type_match_function_kind::matched_type)
@@ -1586,7 +1611,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			return single_match_t{
 				.modifier_match_level = modifier_match_level,
 				.reference_match = match_context.reference_match,
-				.type_match = std::max(match_context.base_type_match, type_match_kind::exact_match)
+				.type_match = std::max(match_kind, type_match_kind::exact_match)
 			};
 		}
 		else if constexpr (kind == type_match_function_kind::matched_type)
@@ -1595,6 +1620,44 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 		}
 		else if constexpr (kind == type_match_function_kind::match_expression)
 		{
+			return true;
+		}
+		else
+		{
+			static_assert(bz::meta::always_false<match_context_t<kind>>);
+		}
+	}
+	else if (
+		propagate_const
+		&& dest.is<ast::ts_optional>()
+		&& dest.get<ast::ts_optional>().is<ast::ts_auto>()
+		&& source.is<ast::ts_pointer>()
+	)
+	{
+		if constexpr (kind == type_match_function_kind::can_match)
+		{
+			return true;
+		}
+		else if constexpr (kind == type_match_function_kind::match_level)
+		{
+			return single_match_t{
+				.modifier_match_level = modifier_match_level,
+				.reference_match = match_context.reference_match,
+				.type_match = std::max(match_kind, type_match_kind::implicit_conversion)
+			};
+		}
+		else if constexpr (kind == type_match_function_kind::matched_type)
+		{
+			ast::typespec result = match_context.original_dest;
+			bz_assert(result.terminator->is<ast::ts_auto>());
+			auto const result_auto_view = ast::typespec_view{ result.src_tokens, {}, result.terminator.get() };
+			bz_assert(result_auto_view.is<ast::ts_auto>());
+			result.copy_from(result_auto_view, source);
+			return result;
+		}
+		else if constexpr (kind == type_match_function_kind::match_expression)
+		{
+			match_context.dest_container.copy_from(dest, source);
 			return true;
 		}
 		else
@@ -1613,7 +1676,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			return single_match_t{
 				.modifier_match_level = modifier_match_level,
 				.reference_match = match_context.reference_match,
-				.type_match = std::max(match_context.base_type_match, type_match_kind::implicit_conversion)
+				.type_match = std::max(match_kind, type_match_kind::implicit_conversion)
 			};
 		}
 		else if constexpr (kind == type_match_function_kind::matched_type)
@@ -1646,7 +1709,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			return single_match_t{
 				.modifier_match_level = modifier_match_level,
 				.reference_match = match_context.reference_match,
-				.type_match = std::max(match_context.base_type_match, type_match_kind::generic_match)
+				.type_match = std::max(match_kind, type_match_kind::generic_match)
 			};
 		}
 		else if constexpr (kind == type_match_function_kind::matched_type)
@@ -2444,10 +2507,23 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		|| (dest.is<ast::ts_base_type>() && dest.get<ast::ts_base_type>().info->is_generic())
 		|| (
 			dest.same_kind_as(expr_type_without_const)
-			&& (dest.is<ast::ts_pointer>() || dest.is<ast::ts_array_slice>() || dest.is<ast::ts_array>() || dest.is<ast::ts_tuple>())
+			&& (
+				dest.is<ast::ts_pointer>()
+				|| dest.is<ast::ts_optional>()
+				|| dest.is<ast::ts_array_slice>()
+				|| dest.is<ast::ts_array>()
+				|| dest.is<ast::ts_tuple>()
+			)
+		)
+		|| (
+			expr_type_without_const.is<ast::ts_pointer>()
+			&& dest.is<ast::ts_optional>()
+			&& dest.get<ast::ts_optional>().is<ast::ts_pointer>()
 		)
 	)
 	{
+		auto const accept_void = dest.is<ast::ts_pointer>()
+			|| (dest.is<ast::ts_optional>() && dest.get<ast::ts_optional>().is<ast::ts_pointer>());
 		auto const reference_kind = parent_reference_kind.has_value()
 			? parent_reference_kind.get()
 			: get_reference_match_kind_from_expr_kind(expr_type_kind);
@@ -2460,7 +2536,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 				reference_kind,
 				type_match_kind::exact_match
 			),
-			dest.is<ast::ts_pointer>(), true, true
+			accept_void, true, true
 		);
 	}
 	else if (dest.is<ast::ts_array_slice>() && expr_type_without_const.is<ast::ts_array>())

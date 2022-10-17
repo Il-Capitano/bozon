@@ -267,6 +267,7 @@ struct ts_variadic
 
 typespec_view remove_lvalue_reference(typespec_view ts) noexcept;
 typespec_view remove_pointer(typespec_view ts) noexcept;
+typespec_view remove_optional(typespec_view ts) noexcept;
 typespec_view remove_const_or_consteval(typespec_view ts) noexcept;
 typespec_view remove_lvalue_or_move_reference(typespec_view ts) noexcept;
 typespec_view remove_any_reference(typespec_view ts) noexcept;
