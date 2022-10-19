@@ -173,22 +173,38 @@ struct vector<T: typename>
 
 	function as_slice(self: &_self_t) -> [: value_type]
 	{
-		return __builtin_slice_from_ptrs(self._data_begin, self._data_end);
+		return if (self._data_begin == null) {
+			[: value_type]()
+		} else {
+			__builtin_slice_from_ptrs(self._data_begin.get_value(), self._data_end.get_value())
+		};
 	}
 
 	function as_slice(self: &const _self_t) -> [: const value_type]
 	{
-		return __builtin_slice_from_const_ptrs(self._data_begin, self._data_end);
+		return if (self._data_begin == null) {
+			[: const value_type]()
+		} else {
+			__builtin_slice_from_const_ptrs(self._data_begin.get_value(), self._data_end.get_value())
+		};
 	}
 
 	operator [] (self: &_self_t, i: uint64) -> &value_type
 	{
-		return *(self._data_begin + i);
+		if (i < self.size())
+		{
+			unreachable;
+		}
+		return *(self._data_begin.get_value() + i);
 	}
 
 	operator [] (self: &const _self_t, i: uint64) -> &const value_type
 	{
-		return *(self._data_begin + i);
+		if (i < self.size())
+		{
+			unreachable;
+		}
+		return *(self._data_begin.get_value() + i);
 	}
 
 	function front(self: &_self_t) -> &value_type
@@ -219,7 +235,10 @@ struct vector<T: typename>
 			const [new_data_begin, new_alloc_size] = rounded_alloc(T, new_capacity);
 			const new_data_end = new_data_begin + self.size();
 			const new_alloc_end = new_data_begin + new_alloc_size;
-			move_range(new_data_begin, new_data_end, self._data_begin);
+			if (self._data_begin != null)
+			{
+				move_range(new_data_begin, new_data_end, self._data_begin.get_value());
+			}
 			free(self._data_begin);
 			self._data_begin = new_data_begin;
 			self._data_end   = new_data_end;
