@@ -35,11 +35,6 @@ int match_level_compare(match_level_t const &lhs, match_level_t const &rhs)
 		auto const [lhs_level, lhs_ref_kind, lhs_type_kind] = lhs.get_single();
 		auto const [rhs_level, rhs_ref_kind, rhs_type_kind] = rhs.get_single();
 
-		if (lhs_level != rhs_level)
-		{
-			return lhs_level < rhs_level ? -2 : 2;
-		}
-
 		if (lhs_type_kind != rhs_type_kind)
 		{
 			if (lhs_type_kind == type_match_kind::exact_match && rhs_type_kind == type_match_kind::implicit_literal_conversion)
@@ -54,6 +49,11 @@ int match_level_compare(match_level_t const &lhs, match_level_t const &rhs)
 			{
 				return lhs_type_kind > rhs_type_kind ? -2 : 2;
 			}
+		}
+
+		if (lhs_level != rhs_level)
+		{
+			return lhs_level < rhs_level ? -2 : 2;
 		}
 
 		if (lhs_ref_kind != rhs_ref_kind)
