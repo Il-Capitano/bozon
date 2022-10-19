@@ -58,6 +58,31 @@ static llvm::Value *emit_get_error_count(ctx::comptime_executor_context &context
 	return context.create_call(context.get_comptime_function(ctx::comptime_function_kind::get_error_count));
 }
 
+static void emit_error(
+	lex::src_tokens const &src_tokens,
+	bz::u8string message,
+	ctx::comptime_executor_context &context
+)
+{
+	bz_assert(src_tokens.begin != nullptr && src_tokens.pivot != nullptr && src_tokens.end != nullptr);
+	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
+	{
+		return;
+	}
+	auto const error_kind_val  = llvm::ConstantInt::get(context.get_uint32_t(), static_cast<uint32_t>(ctx::warning_kind::_last));
+	auto const [error_begin_val, error_pivot_val, error_end_val] = get_src_tokens_llvm_value(src_tokens, context);
+	auto const string_constant = context.create_string(message);
+	auto const string_type = llvm::ArrayType::get(context.get_uint8_t(), message.size() + 1);
+	auto const message_val = context.create_struct_gep(string_type, string_constant, 0);
+	context.create_call(
+		context.get_comptime_function(ctx::comptime_function_kind::add_error),
+		{ error_kind_val, error_begin_val, error_pivot_val, error_end_val, message_val }
+	);
+	auto const continue_bb = context.add_basic_block("error_dummy_continue");
+	context.builder.CreateCondBr(llvm::ConstantInt::getFalse(context.get_llvm_context()), continue_bb, context.error_bb);
+	context.builder.SetInsertPoint(continue_bb);
+}
+
 static void emit_error_check(llvm::Value *pre_call_error_count, ctx::comptime_executor_context &context)
 {
 	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
@@ -81,6 +106,28 @@ static void emit_error_assert(llvm::Value *bool_val, ctx::comptime_executor_cont
 	bz_assert(context.error_bb != nullptr);
 	auto const continue_bb = context.add_basic_block("error_assert_continue");
 	context.builder.CreateCondBr(bool_val, continue_bb, context.error_bb);
+	context.builder.SetInsertPoint(continue_bb);
+}
+
+static void emit_error_assert(
+	lex::src_tokens const &src_tokens,
+	llvm::Value *bool_val,
+	bz::u8string message,
+	ctx::comptime_executor_context &context
+)
+{
+	if (context.current_function.first != nullptr)
+	{
+		return;
+	}
+	auto const begin_bb = context.builder.GetInsertBlock();
+	auto const error_bb = context.add_basic_block("error_assert_fail");
+	context.builder.SetInsertPoint(error_bb);
+	emit_error(src_tokens, std::move(message), context);
+
+	auto const continue_bb = context.builder.GetInsertBlock();
+	context.builder.SetInsertPoint(begin_bb);
+	context.builder.CreateCondBr(bool_val, continue_bb, error_bb);
 	context.builder.SetInsertPoint(continue_bb);
 }
 
@@ -112,31 +159,6 @@ static void emit_index_bounds_check(
 		);
 		emit_error_assert(is_in_bounds, context);
 	}
-}
-
-static void emit_error(
-	lex::src_tokens const &src_tokens,
-	bz::u8string message,
-	ctx::comptime_executor_context &context
-)
-{
-	bz_assert(src_tokens.begin != nullptr && src_tokens.pivot != nullptr && src_tokens.end != nullptr);
-	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
-	{
-		return;
-	}
-	auto const error_kind_val  = llvm::ConstantInt::get(context.get_uint32_t(), static_cast<uint32_t>(ctx::warning_kind::_last));
-	auto const [error_begin_val, error_pivot_val, error_end_val] = get_src_tokens_llvm_value(src_tokens, context);
-	auto const string_constant = context.create_string(message);
-	auto const string_type = llvm::ArrayType::get(context.get_uint8_t(), message.size() + 1);
-	auto const message_val = context.create_struct_gep(string_type, string_constant, 0);
-	context.create_call(
-		context.get_comptime_function(ctx::comptime_function_kind::add_error),
-		{ error_kind_val, error_begin_val, error_pivot_val, error_end_val, message_val }
-	);
-	auto const continue_bb = context.add_basic_block("error_dummy_continue");
-	context.builder.CreateCondBr(llvm::ConstantInt::getFalse(context.get_llvm_context()), continue_bb, context.error_bb);
-	context.builder.SetInsertPoint(continue_bb);
 }
 
 [[nodiscard]] llvm::Value *emit_push_call(
@@ -2598,6 +2620,18 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 1);
 			auto const optional_val = emit_bitcode<abi>(func_call.params[0], context, nullptr);
 			bz_assert(result_address == nullptr);
+			if constexpr (is_comptime<decltype(context)>)
+			{
+				emit_error_assert(
+					src_tokens,
+					optional_has_value(optional_val, context),
+					bz::format(
+						"'{}' called on a null value",
+						func_call.func_body->function_name_or_operator_kind.get<ast::identifier>().format_as_unqualified()
+					),
+					context
+				);
+			}
 			return optional_get_value_ptr(optional_val, context);
 		}
 		case ast::function_body::builtin_pointer_cast:
