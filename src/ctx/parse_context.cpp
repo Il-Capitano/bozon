@@ -260,7 +260,6 @@ void parse_context::pop_current_function(ast::function_body *prev_function) noex
 
 [[nodiscard]] parse_context::global_local_scope_pair_t parse_context::push_global_scope(ast::scope_t *new_scope) noexcept
 {
-	// bz::log("pushing global scope {}\n", new_scope);
 	auto prev_scopes = global_local_scope_pair_t{
 		this->current_global_scope,
 		this->current_local_scope,
@@ -275,7 +274,6 @@ void parse_context::pop_current_function(ast::function_body *prev_function) noex
 
 void parse_context::pop_global_scope(global_local_scope_pair_t prev_scopes) noexcept
 {
-	// bz::log("popping global scope\n");
 	this->current_global_scope = prev_scopes.global_scope;
 	this->current_local_scope  = prev_scopes.local_scope;
 	this->current_unresolved_locals = std::move(prev_scopes.unresolved_locals);
@@ -283,7 +281,6 @@ void parse_context::pop_global_scope(global_local_scope_pair_t prev_scopes) noex
 
 void parse_context::push_local_scope(ast::scope_t *new_scope) noexcept
 {
-	// bz::log("pushing local scope ({}, ...) from ({}, {})\n", new_scope, this->get_current_enclosing_scope().scope, this->get_current_enclosing_scope().symbol_count);
 	bz_assert(new_scope->is_local());
 	bz_assert(new_scope->get_local().parent == this->get_current_enclosing_scope());
 	this->current_local_scope = { new_scope, new_scope->get_local().symbols.size() };
@@ -345,14 +342,11 @@ void parse_context::pop_local_scope(bool report_unused) noexcept
 	bz_assert(parent.scope != nullptr);
 	if (parent.scope == this->current_global_scope)
 	{
-		// bz::log("popping local scope {} to none\n", this->current_local_scope.scope);
 		this->current_local_scope = {};
 	}
 	else
 	{
-		// bz::log("popping local scope {} to ({}, {})\n", this->current_local_scope.scope, parent.scope, parent.symbol_count);
 		this->current_local_scope = parent;
-		// bz::log("sanity check: ({}, {})\n", this->current_local_scope.scope, this->current_local_scope.symbol_count);
 	}
 }
 
@@ -381,7 +375,6 @@ static ast::scope_t *get_global_scope(ast::enclosing_scope_t scope, ast::scope_t
 
 [[nodiscard]] parse_context::global_local_scope_pair_t parse_context::push_enclosing_scope(ast::enclosing_scope_t new_scope) noexcept
 {
-	// bz::log("pushing enclosing scope ({}, {})\n", new_scope.scope, new_scope.symbol_count);
 	auto const prev_scopes = global_local_scope_pair_t{
 		this->current_global_scope,
 		this->current_local_scope,
@@ -397,7 +390,6 @@ static ast::scope_t *get_global_scope(ast::enclosing_scope_t scope, ast::scope_t
 
 void parse_context::pop_enclosing_scope(global_local_scope_pair_t prev_scopes) noexcept
 {
-	// bz::log("pop_enclosing_scope\n");
 	this->current_global_scope = prev_scopes.global_scope;
 	this->current_local_scope  = prev_scopes.local_scope;
 	this->current_unresolved_locals = std::move(prev_scopes.unresolved_locals);
@@ -424,7 +416,6 @@ bz::array_view<bz::u8string_view const> parse_context::get_current_enclosing_id_
 
 ast::enclosing_scope_t parse_context::get_current_enclosing_scope(void) const noexcept
 {
-	// bz::log("get_current_enclosing_scope: ({}, {})\n", this->current_local_scope.scope, this->current_local_scope.symbol_count);
 	if (this->current_local_scope.scope == nullptr)
 	{
 		return { this->current_global_scope, 0 };
@@ -1285,13 +1276,11 @@ static bz::u8string format_array(bz::array_view<bz::u8string_view const> ids)
 
 [[nodiscard]] size_t parse_context::add_unresolved_scope(void)
 {
-	// bz::log("++ new scope: {} {}\n", this->current_unresolved_locals.size(), format_array(this->current_unresolved_locals));
 	return this->current_unresolved_locals.size();
 }
 
 void parse_context::remove_unresolved_scope(size_t prev_size)
 {
-	// bz::log("-- remove scope: {} {}\n", prev_size, format_array(this->current_unresolved_locals));
 	this->current_unresolved_locals.resize(prev_size);
 }
 
@@ -1301,7 +1290,6 @@ void parse_context::add_unresolved_local(ast::identifier const &id)
 	if (id.values.not_empty())
 	{
 		bz_assert(id.values.size() == 1);
-		// bz::log("adding '{}'\n", id.values[0]);
 		this->current_unresolved_locals.push_back(id.values[0]);
 	}
 }
@@ -2592,7 +2580,6 @@ struct id_search_result_t
 
 static id_search_result_t find_id_in_scope(ast::enclosing_scope_t scope, ast::identifier const &id, parse_context &context)
 {
-	// bz::log("find_id_in_scope: ({}, {})\n", scope.scope, scope.symbol_count);
 	int loop_boundary_count = 0;
 	bool is_local = true;
 	while (scope.scope != nullptr)
@@ -2669,7 +2656,6 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 		}
 		else if (id_value.starts_with("__builtin"))
 		{
-			// bz::log("{}\n", id_value);
 			auto const it = std::find_if(ast::intrinsic_info.begin(), ast::intrinsic_info.end(), [id_value](auto const &p) {
 				return p.func_name == id_value;
 			});
@@ -2690,7 +2676,6 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 		}
 	}
 
-	// bz::log("failed to find '{}'\n", id.as_string());
 	this->report_error(src_tokens, bz::format("undeclared identifier '{}'", id.as_string()));
 	return ast::make_error_expression(src_tokens, ast::make_expr_identifier(std::move(id)));
 }
@@ -7182,7 +7167,6 @@ ast::constant_value parse_context::execute_compound_expression(
 {
 	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
 	this->global_ctx._comptime_executor.current_parse_ctx = this;
-	// bz::log("line {}\n", src_tokens.pivot->src_pos.line);
 	auto [result, errors] = this->global_ctx._comptime_executor.execute_compound_expression(expr);
 	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
 	if (!errors.empty())
