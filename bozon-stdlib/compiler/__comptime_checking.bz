@@ -199,19 +199,11 @@ struct vector<T: typename>
 
 	operator [] (self: &_self_t, i: uint64) -> &value_type
 	{
-		if (i < self.size())
-		{
-			unreachable;
-		}
 		return *(self._data_begin.get_value() + i);
 	}
 
 	operator [] (self: &const _self_t, i: uint64) -> &const value_type
 	{
-		if (i < self.size())
-		{
-			unreachable;
-		}
 		return *(self._data_begin.get_value() + i);
 	}
 
@@ -973,7 +965,7 @@ function comptime_malloc_check(
 
 @__comptime_error_checking("comptime_memcpy_check")
 // dest and src are passed as *const uint8 because pointer casts are not allowed in comptime code
-function comptime_memcpy_check(dest: *const uint8, src: *const uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
+function comptime_memcpy_check(dest: ?*const uint8, src: ?*const uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (size == 0)
 	{
@@ -990,7 +982,10 @@ function comptime_memcpy_check(dest: *const uint8, src: *const uint8, size: usiz
 		emit_diagnostic(warning_kind_error, "'memcpy' called with null as the source pointer", begin, pivot, end);
 		return false;
 	}
-	else if (dest != src && dest < src + size && src < dest + size)
+
+	const dest = dest.get_value();
+	const src = src.get_value();
+	if (dest != src && dest < src + size && src < dest + size)
 	{
 		emit_diagnostic(warning_kind_error, "'memcpy' called with overlapping ranges", begin, pivot, end);
 		return false;
@@ -1003,7 +998,7 @@ function comptime_memcpy_check(dest: *const uint8, src: *const uint8, size: usiz
 
 @__comptime_error_checking("comptime_memmove_check")
 // dest and src are passed as *const uint8 because pointer casts are not allowed in comptime code
-function comptime_memmove_check(dest: *const uint8, src: *const uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
+function comptime_memmove_check(dest: ?*const uint8, src: ?*const uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (size == 0)
 	{
@@ -1028,7 +1023,7 @@ function comptime_memmove_check(dest: *const uint8, src: *const uint8, size: usi
 
 @__comptime_error_checking("comptime_memset_check")
 // dest is passed as *const uint8 because pointer casts are not allowed in comptime code
-function comptime_memset_check(dest: *const uint8, : uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
+function comptime_memset_check(dest: ?*const uint8, : uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (size == 0)
 	{
