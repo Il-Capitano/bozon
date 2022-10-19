@@ -319,7 +319,11 @@ template<
 static bool type_property_helper(typespec_view ts) noexcept
 {
 	ts = remove_const_or_consteval(ts);
-	if (ts.is<ts_base_type>())
+	if ((ts.is<exception_types>() || ...))
+	{
+		return !default_value;
+	}
+	else if (ts.is<ts_base_type>())
 	{
 		bz_assert(ts.get<ts_base_type>().info->state == ast::resolve_state::all);
 		return (ts.get<ts_base_type>().info->*base_type_property_func)();
@@ -334,9 +338,13 @@ static bool type_property_helper(typespec_view ts) noexcept
 	{
 		return type_property_helper<base_type_property_func, default_value, exception_types...>(ts.get<ts_array>().elem_type);
 	}
+	else if (ts.is<ts_optional>())
+	{
+		return type_property_helper<base_type_property_func, default_value, exception_types...>(ts.get<ts_optional>());
+	}
 	else
 	{
-		return (ts.is<exception_types>() || ...) ? !default_value : default_value;
+		return default_value;
 	}
 }
 

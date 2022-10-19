@@ -1715,22 +1715,26 @@ static val_ptr emit_builtin_binary_cmp(
 		}
 	}
 	else if (
-		(lhs_t.is<ast::ts_optional>() && rhs_t.is<ast::ts_base_type>())
-		|| (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_optional>())
+		(lhs_t.is_optional_pointer_like() && rhs_t.is<ast::ts_base_type>())
+		|| (lhs_t.is<ast::ts_base_type>() && rhs_t.is_optional_pointer_like())
 	)
 	{
-		auto const optional_val = lhs_t.is<ast::ts_optional>()
+		auto const optional_val = lhs_t.is_optional_pointer_like()
 			? emit_bitcode<abi>(lhs, context, nullptr)
 			: emit_bitcode<abi>(rhs, context, nullptr);
 		auto const has_value = optional_has_value(optional_val, context);
+		bz_assert(op == lex::token::equals || op == lex::token::not_equals);
+		auto const result = op == lex::token::not_equals
+			? has_value
+			: context.builder.CreateNot(has_value);
 		if (result_address == nullptr)
 		{
-			return val_ptr::get_value(has_value);
+			return val_ptr::get_value(result);
 		}
 		else
 		{
-			context.builder.CreateStore(has_value, result_address);
-			return val_ptr::get_reference(result_address, has_value->getType());
+			context.builder.CreateStore(result, result_address);
+			return val_ptr::get_reference(result_address, result->getType());
 		}
 	}
 	else // if pointer
@@ -3796,7 +3800,10 @@ static val_ptr emit_bitcode(
 			}
 		}
 	}
-	else if (expr_t.is<ast::ts_pointer>() && dest_t.is<ast::ts_pointer>())
+	else if (
+		(expr_t.is<ast::ts_pointer>() || expr_t.is_optional_pointer())
+		&& (dest_t.is<ast::ts_pointer>() || dest_t.is_optional_pointer())
+	)
 	{
 		auto const llvm_dest_t = get_llvm_type(dest_t, context);
 		auto const expr = emit_bitcode<abi>(cast.expr, context, nullptr).get_value(context.builder);
@@ -5769,8 +5776,7 @@ static llvm::Constant *get_value(
 		bz_assert(ast::remove_const_or_consteval(type).is<ast::ts_optional>());
 		if (
 			auto const type_without_const = ast::remove_const_or_consteval(type);
-			type_without_const.is<ast::ts_pointer>()
-			|| type_without_const.is<ast::ts_function>()
+			type_without_const.is_optional_pointer_like()
 		)
 		{
 			return llvm::ConstantPointerNull::get(context.get_opaque_pointer_t());
