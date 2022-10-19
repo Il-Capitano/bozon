@@ -2852,10 +2852,11 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 			ast::typespec_view const dest = match_context.dest_container;
 
 			auto const bare_dest = ast::remove_lvalue_or_move_reference(dest);
+			auto const bare_dest_without_const = ast::remove_const_or_consteval(bare_dest);
 
 			if (
-				ast::remove_const_or_consteval(bare_dest).is<ast::ts_pointer>()
-				&& ast::remove_const_or_consteval(bare_dest) != expr.get_expr_type()
+				(bare_dest_without_const.is<ast::ts_pointer>() || bare_dest_without_const.is_optional_pointer())
+				&& bare_dest != expr.get_expr_type()
 			)
 			{
 				expr.set_type(bare_dest);
