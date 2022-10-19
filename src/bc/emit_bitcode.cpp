@@ -5807,7 +5807,6 @@ static llvm::Constant *get_value(
 			static_cast<uint64_t>(value.get_boolean())
 		);
 	case ast::constant_value::null:
-		bz_assert(ast::remove_const_or_consteval(type).is<ast::ts_optional>());
 		if (
 			auto const type_without_const = ast::remove_const_or_consteval(type);
 			type_without_const.is_optional_pointer_like()
