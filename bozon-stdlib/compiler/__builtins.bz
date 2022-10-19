@@ -279,7 +279,7 @@ export function __builtin_print_stderr(s: str)
 	} else {
 		unreachable
 	}
-) export function __builtin_memcpy(dest: *void, src: *const void, n: usize);
+) export function __builtin_memcpy(dest: ?*void, src: ?*const void, n: usize);
 @__builtin @symbol_name(
 	if (sizeof usize == 8u) {
 		"llvm.memmove.p0.p0.i64"
@@ -288,7 +288,7 @@ export function __builtin_print_stderr(s: str)
 	} else {
 		unreachable
 	}
-) export function __builtin_memmove(dest: *void, src: *const void, n: usize);
+) export function __builtin_memmove(dest: ?*void, src: ?*const void, n: usize);
 @__builtin @symbol_name(
 	if (sizeof usize == 8u) {
 		"llvm.memset.p0.i64"
@@ -297,7 +297,7 @@ export function __builtin_print_stderr(s: str)
 	} else {
 		unreachable
 	}
-) export function __builtin_memset(dest: *void, val: uint8, n: usize);
+) export function __builtin_memset(dest: ?*void, val: uint8, n: usize);
 
 @__builtin @symbol_name("llvm.abs.i8")  export function __builtin_abs_i8(n: int8)   -> int8;
 @__builtin @symbol_name("llvm.abs.i16") export function __builtin_abs_i16(n: int16) -> int16;
