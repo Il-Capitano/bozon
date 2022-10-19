@@ -748,12 +748,21 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 			);
 			var_decl.state = ast::resolve_state::error;
 		}
+		else if (!context.is_default_constructible(var_decl.src_tokens, var_decl.get_type()))
+		{
+			context.report_error(
+				var_decl.src_tokens,
+				bz::format("variable type '{}' is not default constructible and must be initialized", var_decl.get_type())
+			);
+			var_decl.state = ast::resolve_state::error;
+		}
 		else
 		{
 			var_decl.init_expr = context.make_default_construction(var_decl.src_tokens, var_decl.get_type());
 			resolve::consteval_guaranteed(var_decl.init_expr, context);
 		}
 	}
+
 	if (
 		!var_decl.get_type().is_empty()
 		&& !context.is_instantiable(var_decl.src_tokens, var_decl.get_type())
