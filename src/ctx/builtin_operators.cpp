@@ -996,13 +996,8 @@ ast::expression make_builtin_cast(
 		);
 	}
 	else if (
-		(
-			dest_t.is<ast::ts_pointer>()
-			|| (dest_t.is<ast::ts_optional>() && dest_t.get<ast::ts_optional>().is<ast::ts_pointer>())
-		) && (
-			expr_t.is<ast::ts_pointer>()
-			|| (expr_t.is<ast::ts_optional>() && expr_t.get<ast::ts_optional>().is<ast::ts_pointer>())
-		)
+		(dest_t.is<ast::ts_pointer>() || dest_t.is_optional_pointer())
+		&& (expr_t.is<ast::ts_pointer>() || expr_t.is_optional_pointer())
 	)
 	{
 		auto inner_dest_t = ast::remove_optional(dest_t).get<ast::ts_pointer>();

@@ -5466,8 +5466,7 @@ static ast::expression make_optional_copy_construction(
 )
 {
 	bz_assert(optional_type.is<ast::ts_optional>());
-	auto const value_type = optional_type.get<ast::ts_optional>();
-	if (value_type.is<ast::ts_pointer>() || value_type.is<ast::ts_function>())
+	if (optional_type.is_optional_pointer_like())
 	{
 		ast::typespec type = optional_type;
 		return ast::make_dynamic_expression(
@@ -5479,6 +5478,7 @@ static ast::expression make_optional_copy_construction(
 	}
 	else
 	{
+		auto const value_type = optional_type.get<ast::ts_optional>();
 		if (!context.is_copy_constructible(expr.src_tokens, value_type))
 		{
 			context.report_error(
@@ -5752,8 +5752,8 @@ static ast::expression make_optional_move_construction(
 )
 {
 	bz_assert(optional_type.is<ast::ts_optional>());
+	bz_assert(!optional_type.is_optional_pointer_like());
 	auto const value_type = optional_type.get<ast::ts_optional>();
-	bz_assert(!value_type.is<ast::ts_pointer>() && !value_type.is<ast::ts_function>());
 
 	if (!context.is_move_constructible(expr.src_tokens, value_type))
 	{
@@ -6371,6 +6371,7 @@ static ast::expression make_optional_swap(
 )
 {
 	bz_assert(type.is<ast::ts_optional>());
+	bz_assert(!type.is_optional_pointer_like());
 	auto const value_type = type.get<ast::ts_optional>();
 
 	auto value_swap_expr = make_swap_expression(
@@ -6619,6 +6620,7 @@ static ast::expression make_optional_destruct_expression(
 )
 {
 	bz_assert(type.is<ast::ts_optional>());
+	bz_assert(!type.is_optional_pointer_like());
 	auto const src_tokens = value.src_tokens;
 	auto const value_type = type.get<ast::ts_optional>();
 	auto value_ref = ast::make_dynamic_expression(
@@ -6776,6 +6778,7 @@ static ast::expression make_optional_move_destruct_expression(
 )
 {
 	bz_assert(type.is<ast::ts_optional>());
+	bz_assert(!type.is_optional_pointer_like());
 	auto const src_tokens = value.src_tokens;
 	auto const value_type = type.get<ast::ts_optional>();
 	auto value_ref = ast::make_dynamic_expression(

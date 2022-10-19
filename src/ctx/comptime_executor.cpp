@@ -943,7 +943,8 @@ void comptime_executor_context::set_comptime_function(comptime_function_kind kin
 static ast::constant_value constant_value_from_generic_value(llvm::GenericValue const &value, ast::typespec_view result_type)
 {
 	ast::constant_value result;
-	ast::remove_const_or_consteval(result_type).visit(bz::overload{
+	result_type = ast::remove_const_or_consteval(result_type);
+	result_type.visit(bz::overload{
 		[&](ast::ts_base_type const &base_t) {
 			switch (base_t.info->kind)
 			{
@@ -1021,8 +1022,7 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 			bz_unreachable;
 		},
 		[&](ast::ts_optional const &) {
-			auto const type = ast::remove_const_or_consteval(result_type).get<ast::ts_optional>();
-			if (type.is<ast::ts_pointer>() || type.is<ast::ts_function>())
+			if (result_type.is_optional_pointer_like())
 			{
 				bz_assert(value.PointerVal == nullptr);
 				result.emplace<ast::constant_value::null>();
@@ -1036,6 +1036,7 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 				}
 				else
 				{
+					auto const type = result_type.get<ast::ts_optional>();
 					result = constant_value_from_generic_value(value.AggregateVal[0], type);
 				}
 			}

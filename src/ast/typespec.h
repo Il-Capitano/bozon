@@ -107,6 +107,9 @@ struct typespec_view
 	bool is_safe_blind_get(void) const noexcept;
 	typespec_view blind_get(void) const noexcept;
 	bool is_typename(void) const noexcept;
+	bool is_optional_pointer(void) const noexcept;
+	bool is_optional_pointer_like(void) const noexcept;
+	typespec_view get_optional_pointer(void) const noexcept;
 
 	template<typename Fn>
 	decltype(auto) visit(Fn &&fn) const;
@@ -165,6 +168,15 @@ struct typespec
 
 	bool is_typename(void) const noexcept
 	{ return this->as_typespec_view().is_typename(); }
+
+	bool is_optional_pointer_like(void) const noexcept
+	{ return this->as_typespec_view().is_optional_pointer_like(); }
+
+	bool is_optional_pointer(void) const noexcept
+	{ return this->as_typespec_view().is_optional_pointer(); }
+
+	typespec_view get_optional_pointer(void) const noexcept
+	{ return this->as_typespec_view().get_optional_pointer(); }
 
 	template<typename Fn>
 	decltype(auto) visit(Fn &&fn) const

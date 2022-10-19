@@ -52,6 +52,26 @@ bool typespec_view::is_typename(void) const noexcept
 	});
 }
 
+bool typespec_view::is_optional_pointer(void) const noexcept
+{
+	return this->modifiers.size() >= 2
+		&& this->modifiers[0].is<ts_optional>()
+		&& this->modifiers[1].is<ts_pointer>();
+}
+
+bool typespec_view::is_optional_pointer_like(void) const noexcept
+{
+	return this->modifiers.size() >= 2
+		&& this->modifiers[0].is<ts_optional>()
+		&& (this->modifiers[1].is<ts_pointer>() || this->modifiers[1].is<ast::ts_function>());
+}
+
+typespec_view typespec_view::get_optional_pointer(void) const noexcept
+{
+	bz_assert(this->is_optional_pointer());
+	return this->get<ts_optional>().get<ts_pointer>();
+}
+
 typespec::typespec(
 	lex::src_tokens const &_src_tokens,
 	arena_vector<modifier_typespec_node_t> _modifiers,

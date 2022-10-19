@@ -96,14 +96,13 @@ llvm::Type *get_llvm_type(ast::typespec_view ts, Context &context)
 			return context.get_opaque_pointer_t();
 		case ast::modifier_typespec_node_t::index_of<ast::ts_optional>:
 		{
-			auto const inner_type = ts.get<ast::ts_optional>();
-			if (inner_type.is<ast::ts_pointer>() || inner_type.is<ast::ts_function>())
+			if (ts.is_optional_pointer_like())
 			{
 				return context.get_opaque_pointer_t();
 			}
 			else
 			{
-				auto const inner_llvm_type = get_llvm_type(inner_type, context);
+				auto const inner_llvm_type = get_llvm_type(ts.get<ast::ts_optional>(), context);
 				return llvm::StructType::get(inner_llvm_type, context.get_bool_t());
 			}
 		}

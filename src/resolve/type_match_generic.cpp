@@ -1533,12 +1533,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 				source = source.blind_get();
 			}
 
-			if (
-				propagate_const
-				&& dest.is<ast::ts_optional>()
-				&& dest.get<ast::ts_optional>().is<ast::ts_pointer>()
-				&& source.is<ast::ts_pointer>()
-			)
+			if (propagate_const && dest.is_optional_pointer() && source.is<ast::ts_pointer>())
 			{
 				dest = dest.blind_get();
 				modifier_match_level += 1;
@@ -1627,12 +1622,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			static_assert(bz::meta::always_false<match_context_t<kind>>);
 		}
 	}
-	else if (
-		propagate_const
-		&& dest.is<ast::ts_optional>()
-		&& dest.get<ast::ts_optional>().is<ast::ts_auto>()
-		&& source.is<ast::ts_pointer>()
-	)
+	else if (propagate_const && dest.is_optional_pointer() && source.is<ast::ts_pointer>())
 	{
 		if constexpr (kind == type_match_function_kind::can_match)
 		{
@@ -2515,15 +2505,10 @@ static match_function_result_t<kind> generic_type_match_base_case(
 				|| dest.is<ast::ts_tuple>()
 			)
 		)
-		|| (
-			expr_type_without_const.is<ast::ts_pointer>()
-			&& dest.is<ast::ts_optional>()
-			&& dest.get<ast::ts_optional>().is<ast::ts_pointer>()
-		)
+		|| (expr_type_without_const.is<ast::ts_pointer>() && dest.is_optional_pointer())
 	)
 	{
-		auto const accept_void = dest.is<ast::ts_pointer>()
-			|| (dest.is<ast::ts_optional>() && dest.get<ast::ts_optional>().is<ast::ts_pointer>());
+		auto const accept_void = dest.is<ast::ts_pointer>() || dest.is_optional_pointer();
 		auto const reference_kind = parent_reference_kind.has_value()
 			? parent_reference_kind.get()
 			: get_reference_match_kind_from_expr_kind(expr_type_kind);
