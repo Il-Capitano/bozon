@@ -2494,8 +2494,8 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
-			auto const arg = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
-			auto const begin_ptr = context.builder.CreateExtractValue(arg, 0);
+			auto const arg = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			auto const begin_ptr = context.get_struct_element(arg, 0).get_value(context.builder);
 			if (result_address != nullptr)
 			{
 				auto const result_type = begin_ptr->getType();
@@ -2510,8 +2510,8 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_str_end_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
-			auto const arg = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
-			auto const end_ptr = context.builder.CreateExtractValue(arg, 1);
+			auto const arg = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			auto const end_ptr = context.get_struct_element(arg, 1).get_value(context.builder);
 			if (result_address != nullptr)
 			{
 				auto const result_type = end_ptr->getType();
@@ -2555,8 +2555,8 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_slice_begin_const_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
-			auto const slice = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
-			auto const begin_ptr = context.builder.CreateExtractValue(slice, 0);
+			auto const slice = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			auto const begin_ptr = context.get_struct_element(slice, 0).get_value(context.builder);
 			if (result_address != nullptr)
 			{
 				auto const result_type = begin_ptr->getType();
@@ -2572,8 +2572,8 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_slice_end_const_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
-			auto const slice = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
-			auto const end_ptr = context.builder.CreateExtractValue(slice, 1);
+			auto const slice = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			auto const end_ptr = context.get_struct_element(slice, 1).get_value(context.builder);
 			if (result_address != nullptr)
 			{
 				auto const result_type = end_ptr->getType();

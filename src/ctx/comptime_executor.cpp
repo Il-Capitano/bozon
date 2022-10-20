@@ -522,6 +522,22 @@ llvm::CallInst *comptime_executor_context::create_call(
 	return call;
 }
 
+bc::val_ptr comptime_executor_context::get_struct_element(bc::val_ptr value, uint64_t idx)
+{
+	bz_assert(value.get_type()->isStructTy());
+	if (value.kind == bc::val_ptr::value)
+	{
+		return bc::val_ptr::get_value(this->builder.CreateExtractValue(value.get_value(this->builder), idx));
+	}
+	else
+	{
+		auto const type = value.get_type();
+		auto const element_val = this->create_struct_gep(type, value.val, idx);
+		auto const element_type = type->getStructElementType(idx);
+		return bc::val_ptr::get_reference(element_val, element_type);
+	}
+}
+
 llvm::Type *comptime_executor_context::get_builtin_type(uint32_t kind) const
 {
 	bz_assert(kind <= ast::type_info::null_t_);
