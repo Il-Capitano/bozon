@@ -37,11 +37,11 @@ function round_to_next_power_of_two(n: usize) -> usize
 	return n;
 }
 
-function rounded_alloc(T: typename, n: usize) -> [*T, usize]
+function rounded_alloc(T: typename, n: usize) -> [?*T, usize]
 {
 	if (n == 0)
 	{
-		return [ alloc(T, 0), 0 ];
+		return [ null, 0 ];
 	}
 	else
 	{
@@ -50,7 +50,7 @@ function rounded_alloc(T: typename, n: usize) -> [*T, usize]
 	}
 }
 
-function move_range(begin: *auto, end: *auto, other_begin: *auto)
+function move_range(begin: ?*auto, end: ?*auto, other_begin: ?*auto)
 {
 	for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
 	{
@@ -58,7 +58,7 @@ function move_range(begin: *auto, end: *auto, other_begin: *auto)
 	}
 }
 
-function copy_range(begin: *auto, end: *auto, other_begin: *const auto)
+function copy_range(begin: ?*auto, end: ?*auto, other_begin: ?*const auto)
 {
 	for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
 	{
@@ -135,28 +135,28 @@ struct vector<T: typename>
 		}
 		else if (other.begin() >= self._data_begin && other.begin() < self._data_end)
 		{
-			let self_it = self._data_begin.get_value();
+			let self_it = self._data_begin;
 			let other_it = other.begin();
 			const other_end = other.end();
 			for (; other_it != other_end; ++self_it, ++other_it)
 			{
 				__builtin_call_destructor(*self_it);
-				__builtin_inplace_construct(self_it, *other_it);
+				__builtin_inplace_construct(self_it.get_value(), *other_it);
 			}
 			const new_end = self_it;
 			for (; self_it != self._data_end; ++self_it)
 			{
 				__builtin_call_destructor(*self_it);
 			}
-			self._data_end.get_value() = new_end;
+			self._data_end = new_end;
 		}
 		else
 		{
 			const size = other.size();
 			self.clear();
 			self.reserve(size);
-			self._data_end.get_value() = self._data_begin.get_value() + size;
-			copy_range(self._data_begin.get_value(), self._data_end.get_value(), other.begin());
+			self._data_end = self._data_begin + size;
+			copy_range(self._data_begin, self._data_end, other.begin());
 			return self;
 		}
 	}
@@ -166,7 +166,7 @@ struct vector<T: typename>
 		return if (self._data_begin == null) {
 			0
 		} else {
-			(self._data_end.get_value() - self._data_begin.get_value()) as usize
+			(self._data_end - self._data_begin) as usize
 		};
 	}
 
@@ -175,7 +175,7 @@ struct vector<T: typename>
 		return if (self._data_begin == null) {
 			0
 		} else {
-			(self._alloc_end.get_value() - self._data_begin.get_value()) as usize
+			(self._alloc_end - self._data_begin) as usize
 		};
 	}
 
@@ -184,7 +184,7 @@ struct vector<T: typename>
 		return if (self._data_begin == null) {
 			[: value_type]()
 		} else {
-			__builtin_slice_from_ptrs(self._data_begin.get_value(), self._data_end.get_value())
+			__builtin_slice_from_ptrs(self._data_begin, self._data_end)
 		};
 	}
 
@@ -193,18 +193,18 @@ struct vector<T: typename>
 		return if (self._data_begin == null) {
 			[: const value_type]()
 		} else {
-			__builtin_slice_from_const_ptrs(self._data_begin.get_value(), self._data_end.get_value())
+			__builtin_slice_from_const_ptrs(self._data_begin, self._data_end)
 		};
 	}
 
 	operator [] (self: &_self_t, i: uint64) -> &value_type
 	{
-		return *(self._data_begin.get_value() + i);
+		return *(self._data_begin + i);
 	}
 
 	operator [] (self: &const _self_t, i: uint64) -> &const value_type
 	{
-		return *(self._data_begin.get_value() + i);
+		return *(self._data_begin + i);
 	}
 
 	function front(self: &_self_t) -> &value_type
@@ -237,7 +237,7 @@ struct vector<T: typename>
 			const new_alloc_end = new_data_begin + new_alloc_size;
 			if (self._data_begin != null)
 			{
-				move_range(new_data_begin, new_data_end, self._data_begin.get_value());
+				move_range(new_data_begin, new_data_end, self._data_begin);
 			}
 			free(self._data_begin);
 			self._data_begin = new_data_begin;
@@ -257,8 +257,8 @@ struct vector<T: typename>
 		const current_size = self.size();
 		if (new_size <= current_size)
 		{
-			const new_end = self._data_begin.get_value() + new_size;
-			for (let it = self._data_end.get_value(); it != new_end;)
+			const new_end = self._data_begin + new_size;
+			for (let it = self._data_end; it != new_end;)
 			{
 				--it;
 				__builtin_call_destructor(*it);
@@ -268,10 +268,10 @@ struct vector<T: typename>
 		else
 		{
 			self.reserve(new_size);
-			const new_end = self._data_begin.get_value() + new_size;
-			for (let it = self._data_end.get_value(); it != new_end; ++it)
+			const new_end = self._data_begin + new_size;
+			for (let it = self._data_end; it != new_end; ++it)
 			{
-				__builtin_inplace_construct(it, value_type());
+				__builtin_inplace_construct(it.get_value(), value_type());
 			}
 			self._data_end = new_end;
 		}
@@ -295,7 +295,7 @@ struct vector<T: typename>
 			return;
 		}
 
-		for (let it = self._data_end.get_value(); it != self._data_begin.get_value();)
+		for (let it = self._data_end; it != self._data_begin;)
 		{
 			--it;
 			__builtin_call_destructor(*it);
@@ -307,15 +307,15 @@ struct vector<T: typename>
 	{
 		self.reserve(self.size() + 1);
 		__builtin_inplace_construct(self._data_end.get_value(), __forward value);
-		self._data_end.get_value() += 1;
+		self._data_end += 1;
 	}
 
 	function pop_back(self: &_self_t)
 	{
 		if (self._data_end != self._data_begin)
 		{
-			self._data_end.get_value() -= 1;
-			__builtin_call_destructor(*self._data_end.get_value());
+			self._data_end -= 1;
+			__builtin_call_destructor(*self._data_end);
 		}
 	}
 
@@ -323,7 +323,7 @@ struct vector<T: typename>
 	{
 		self.reserve(self.size() + 1);
 		__builtin_inplace_construct(self._data_end.get_value(), value_type(...__forward args));
-		self._data_end.get_value() += 1;
+		self._data_end += 1;
 	}
 
 	function append(self: &_self_t, slice: [: const value_type])
@@ -334,8 +334,8 @@ struct vector<T: typename>
 			return;
 		}
 		self.reserve(self.size() + slice_size);
-		copy_range(self._data_end.get_value(), self._data_end.get_value() + slice_size, slice.begin());
-		self._data_end.get_value() += slice_size;
+		copy_range(self._data_end, self._data_end + slice_size, slice.begin());
+		self._data_end += slice_size;
 	}
 
 	function begin(vec: &_self_t) -> ?*value_type
@@ -387,7 +387,7 @@ struct string
 		return if (begin == end) {
 			""
 		} else {
-			__builtin_str_from_ptrs(begin.get_value(), end.get_value())
+			__builtin_str_from_ptrs(begin, end)
 		};
 	}
 
@@ -397,7 +397,7 @@ struct string
 		return if (begin == end) {
 			""
 		} else {
-			__builtin_str_from_ptrs(begin.get_value(), end.get_value())
+			__builtin_str_from_ptrs(begin, end)
 		};
 	}
 
@@ -983,8 +983,8 @@ function comptime_memcpy_check(dest: ?*const uint8, src: ?*const uint8, size: us
 		return false;
 	}
 
-	const dest = dest.get_value();
-	const src = src.get_value();
+	const dest = dest;
+	const src = src;
 	if (dest != src && dest < src + size && src < dest + size)
 	{
 		emit_diagnostic(warning_kind_error, "'memcpy' called with overlapping ranges", begin, pivot, end);
