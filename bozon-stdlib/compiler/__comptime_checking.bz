@@ -54,7 +54,7 @@ function move_range(begin: ?*auto, end: ?*auto, other_begin: ?*auto)
 {
 	for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
 	{
-		__builtin_inplace_construct(it, __move__ *other_it);
+		__builtin_inplace_construct(it.get_value(), __move__ *other_it);
 	}
 }
 
@@ -62,7 +62,7 @@ function copy_range(begin: ?*auto, end: ?*auto, other_begin: ?*const auto)
 {
 	for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
 	{
-		__builtin_inplace_construct(it, *other_it);
+		__builtin_inplace_construct(it.get_value(), *other_it);
 	}
 }
 
