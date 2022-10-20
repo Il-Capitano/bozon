@@ -8,7 +8,7 @@ export struct imaxdiv_t
 }
 @symbol_name("imaxabs") export function "c" imaxabs(j: intmax_t) -> intmax_t;
 @symbol_name("imaxdiv") export function "c" imaxdiv(numer: intmax_t, denom: intmax_t) -> imaxdiv_t;
-@symbol_name("strtoimax") export function "c" strtoimax(nptr: *const char, endptr: **char, base: int) -> intmax_t;
-@symbol_name("strtoumax") export function "c" strtoumax(nptr: *const char, endptr: **char, base: int) -> uintmax_t;
-@symbol_name("wcstoimax") export function "c" wcstoimax(nptr: *const wchar_t, endptr: **wchar_t, base: int) -> intmax_t;
-@symbol_name("wcstoumax") export function "c" wcstoumax(nptr: *const wchar_t, endptr: **wchar_t, base: int) -> uintmax_t;
+@symbol_name("strtoimax") export function "c" strtoimax(nptr: ?*const char, endptr: ?*?*char, base: int) -> intmax_t;
+@symbol_name("strtoumax") export function "c" strtoumax(nptr: ?*const char, endptr: ?*?*char, base: int) -> uintmax_t;
+@symbol_name("wcstoimax") export function "c" wcstoimax(nptr: ?*const wchar_t, endptr: ?*?*wchar_t, base: int) -> intmax_t;
+@symbol_name("wcstoumax") export function "c" wcstoumax(nptr: ?*const wchar_t, endptr: ?*?*wchar_t, base: int) -> uintmax_t;

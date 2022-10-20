@@ -1,0 +1,77 @@
+import types;
+export function CHAR_BIT() -> int
+{
+	return 8;
+}
+export function CHAR_MAX() -> int
+{
+	return 127;
+}
+export function CHAR_MIN() -> int
+{
+	return -128;
+}
+export function INT_MAX() -> int
+{
+	return 2147483647;
+}
+export function INT_MIN() -> int
+{
+	return -2147483648;
+}
+export function LLONG_MAX() -> long_long
+{
+	return 9223372036854775807;
+}
+export function LLONG_MIN() -> long_long
+{
+	return (-9223372036854775807 - 1);
+}
+export function LONG_MAX() -> long
+{
+	return 2147483647;
+}
+export function LONG_MIN() -> long
+{
+	return -2147483648;
+}
+export function MB_LEN_MAX() -> int
+{
+	return 5;
+}
+export function SCHAR_MAX() -> int
+{
+	return 127;
+}
+export function SCHAR_MIN() -> int
+{
+	return -128;
+}
+export function SHRT_MAX() -> int
+{
+	return 32767;
+}
+export function SHRT_MIN() -> int
+{
+	return -32768;
+}
+export function UCHAR_MAX() -> int
+{
+	return 255;
+}
+export function UINT_MAX() -> unsigned_int
+{
+	return 4294967295;
+}
+export function ULLONG_MAX() -> unsigned_long_long
+{
+	return 18446744073709551615;
+}
+export function ULONG_MAX() -> unsigned_long
+{
+	return 4294967295;
+}
+export function USHRT_MAX() -> int
+{
+	return 65535;
+}

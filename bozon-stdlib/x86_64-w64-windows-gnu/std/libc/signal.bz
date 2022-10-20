@@ -1,0 +1,27 @@
+import types;
+export type sig_atomic_t = int;
+@symbol_name("raise") export function "c" raise(sig_num: int) -> int;
+export function SIGABRT() -> int
+{
+	return 22;
+}
+export function SIGFPE() -> int
+{
+	return 8;
+}
+export function SIGILL() -> int
+{
+	return 4;
+}
+export function SIGINT() -> int
+{
+	return 2;
+}
+export function SIGSEGV() -> int
+{
+	return 11;
+}
+export function SIGTERM() -> int
+{
+	return 15;
+}
