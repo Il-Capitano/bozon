@@ -89,7 +89,7 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 			__builtin_typename_as_str(__builtin_remove_optional(typeof end)),
 			"' in 'function __builtin_slice_from_ptrs'"
 		)));
-	} else {}, [: __builtin_remove_pointer(typeof begin)]);
+	} else {}, [: __builtin_remove_pointer(__builtin_remove_optional(typeof begin))]);
 @__builtin export function __builtin_slice_from_const_ptrs(begin: ?*const auto, end: ?*const auto)
 	-> (if consteval (typeof begin != typeof end) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
@@ -99,7 +99,7 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 			__builtin_typename_as_str(__builtin_remove_optional(typeof end)),
 			"' in 'function __builtin_slice_from_const_ptrs'"
 		)));
-	} else {}, [: __builtin_remove_pointer(typeof begin)]);
+	} else {}, [: __builtin_remove_pointer(__builtin_remove_optional(typeof begin))]);
 
 @__builtin export function __builtin_optional_get_value(value: &?auto)
 	-> &__builtin_remove_optional(__builtin_remove_reference(typeof value));
