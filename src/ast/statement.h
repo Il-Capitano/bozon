@@ -539,6 +539,8 @@ struct function_body
 		is_optional,
 		is_reference,
 		is_move_reference,
+		is_slice,
+		is_array,
 
 		remove_const,
 		remove_consteval,
@@ -546,6 +548,8 @@ struct function_body
 		remove_optional,
 		remove_reference,
 		remove_move_reference,
+		slice_value_type,
+		array_value_type,
 
 		is_default_constructible,
 		is_copy_constructible,
@@ -1487,7 +1491,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 156);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 160);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1551,6 +1555,8 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::is_optional,       "__builtin_is_optional"       },
 		{ function_body::is_reference,      "__builtin_is_reference"      },
 		{ function_body::is_move_reference, "__builtin_is_move_reference" },
+		{ function_body::is_slice,          "__builtin_is_slice"          },
+		{ function_body::is_array,          "__builtin_is_array"          },
 
 		{ function_body::remove_const,          "__builtin_remove_const"          },
 		{ function_body::remove_consteval,      "__builtin_remove_consteval"      },
@@ -1558,6 +1564,8 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::remove_optional,       "__builtin_remove_optional"       },
 		{ function_body::remove_reference,      "__builtin_remove_reference"      },
 		{ function_body::remove_move_reference, "__builtin_remove_move_reference" },
+		{ function_body::slice_value_type,      "__builtin_slice_value_type"      },
+		{ function_body::array_value_type,      "__builtin_array_value_type"      },
 
 		{ function_body::is_default_constructible,        "__builtin_is_default_constructible"        },
 		{ function_body::is_copy_constructible,           "__builtin_is_copy_constructible"           },

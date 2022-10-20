@@ -71,10 +71,10 @@ export function __builtin_str_size(s: str) -> usize
 }
 @__builtin export function __builtin_str_from_ptrs(begin: ?*const uint8, end: ?*const uint8) -> str;
 
-@__builtin export function __builtin_slice_begin_ptr(slice: [: auto]) -> ?typeof &slice[0];
-@__builtin export function __builtin_slice_begin_const_ptr(slice: [: const auto]) -> ?typeof &slice[0];
-@__builtin export function __builtin_slice_end_ptr(slice: [: auto]) -> ?typeof &slice[0];
-@__builtin export function __builtin_slice_end_const_ptr(slice: [: const auto]) -> ?typeof &slice[0];
+@__builtin export function __builtin_slice_begin_ptr(slice: [: auto]) -> ?*__builtin_slice_value_type(typeof slice);
+@__builtin export function __builtin_slice_begin_const_ptr(slice: [: const auto]) -> ?*__builtin_slice_value_type(typeof slice);
+@__builtin export function __builtin_slice_end_ptr(slice: [: auto]) -> ?*__builtin_slice_value_type(typeof slice);
+@__builtin export function __builtin_slice_end_const_ptr(slice: [: const auto]) -> ?*__builtin_slice_value_type(typeof slice);
 @__builtin
 export function __builtin_slice_size(slice: [: const auto]) -> usize
 {
@@ -250,6 +250,8 @@ export function __builtin_print_stderr(s: str)
 @__builtin export consteval function __builtin_is_optional(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_reference(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_move_reference(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_slice(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_array(T: typename) -> bool;
 
 @__builtin export consteval function __builtin_remove_const(T: typename) -> typename;
 @__builtin export consteval function __builtin_remove_consteval(T: typename) -> typename;
@@ -257,6 +259,8 @@ export function __builtin_print_stderr(s: str)
 @__builtin export consteval function __builtin_remove_optional(T: typename) -> typename;
 @__builtin export consteval function __builtin_remove_reference(T: typename) -> typename;
 @__builtin export consteval function __builtin_remove_move_reference(T: typename) -> typename;
+@__builtin export consteval function __builtin_slice_value_type(T: typename) -> typename;
+@__builtin export consteval function __builtin_array_value_type(T: typename) -> typename;
 
 @__builtin export consteval function __builtin_is_default_constructible(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_copy_constructible(T: typename) -> bool;

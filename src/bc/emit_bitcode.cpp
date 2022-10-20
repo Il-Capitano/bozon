@@ -2670,7 +2670,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 156);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 160);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -3300,12 +3300,16 @@ static val_ptr emit_bitcode(
 		case ast::function_body::is_optional:
 		case ast::function_body::is_reference:
 		case ast::function_body::is_move_reference:
+		case ast::function_body::is_slice:
+		case ast::function_body::is_array:
 		case ast::function_body::remove_const:
 		case ast::function_body::remove_consteval:
 		case ast::function_body::remove_pointer:
 		case ast::function_body::remove_optional:
 		case ast::function_body::remove_reference:
 		case ast::function_body::remove_move_reference:
+		case ast::function_body::slice_value_type:
+		case ast::function_body::array_value_type:
 		case ast::function_body::is_default_constructible:
 		case ast::function_body::is_copy_constructible:
 		case ast::function_body::is_trivially_copy_constructible:

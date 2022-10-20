@@ -1331,7 +1331,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->body.is_null());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 156);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 160);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -1401,6 +1401,10 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		return is_typespec_kind_helper<ast::ts_lvalue_reference>(func_call);
 	case ast::function_body::is_move_reference:
 		return is_typespec_kind_helper<ast::ts_move_reference>(func_call);
+	case ast::function_body::is_slice:
+		return is_typespec_kind_helper<ast::ts_array_slice>(func_call);
+	case ast::function_body::is_array:
+		return is_typespec_kind_helper<ast::ts_array>(func_call);
 
 	case ast::function_body::remove_const:
 		return remove_typespec_kind_helper<ast::ts_const>(func_call);
@@ -1414,6 +1418,48 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		return remove_typespec_kind_helper<ast::ts_lvalue_reference>(func_call);
 	case ast::function_body::remove_move_reference:
 		return remove_typespec_kind_helper<ast::ts_move_reference>(func_call);
+	case ast::function_body::slice_value_type:
+	{
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is_type());
+		auto const type = func_call.params[0]
+			.get_constant_value()
+			.get_type();
+		if (!type.is<ast::ts_array_slice>())
+		{
+			context.report_error(
+				original_expr.src_tokens,
+				bz::format("'__builtin_slice_value_type' called on non-slice type '{}'", type)
+			);
+			return ast::constant_value(type);
+		}
+		else
+		{
+			return ast::constant_value(type.get<ast::ts_array_slice>().elem_type);
+		}
+	}
+	case ast::function_body::array_value_type:
+	{
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is_type());
+		auto const type = func_call.params[0]
+			.get_constant_value()
+			.get_type();
+		if (!type.is<ast::ts_array>())
+		{
+			context.report_error(
+				original_expr.src_tokens,
+				bz::format("'__builtin_array_value_type' called on non-array type '{}'", type)
+			);
+			return ast::constant_value(type);
+		}
+		else
+		{
+			return ast::constant_value(type.get<ast::ts_array>().elem_type);
+		}
+	}
 
 	case ast::function_body::is_default_constructible:
 	{
