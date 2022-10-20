@@ -442,6 +442,8 @@ export function __builtin_print_stderr(s: str)
 @__builtin export operator ++ (c: &char) -> &char;
 @__builtin export operator ++ (p: &*auto) -> typeof p;
 @__builtin export operator ++ (p: &*const auto) -> typeof p;
+@__builtin export operator ++ (p: &?*auto) -> typeof p;
+@__builtin export operator ++ (p: &?*const auto) -> typeof p;
 
 @__builtin export operator -- (n: &int8)  -> &int8;
 @__builtin export operator -- (n: &int16) -> &int16;
@@ -454,6 +456,8 @@ export function __builtin_print_stderr(s: str)
 @__builtin export operator -- (c: &char) -> &char;
 @__builtin export operator -- (p: &*auto) -> typeof p;
 @__builtin export operator -- (p: &*const auto) -> typeof p;
+@__builtin export operator -- (p: &?*auto) -> typeof p;
+@__builtin export operator -- (p: &?*const auto) -> typeof p;
 
 
 //

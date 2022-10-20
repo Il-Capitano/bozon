@@ -488,6 +488,34 @@ static void optional_set_has_value(val_ptr optional_val, llvm::Value *has_value,
 	context.builder.CreateStore(has_value, has_value_ptr);
 }
 
+template<abi::platform_abi abi>
+static void emit_null_pointer_arithmetic_check(
+	lex::src_tokens const &src_tokens,
+	llvm::Value *ptr,
+	auto &context
+)
+{
+	if constexpr (is_comptime<decltype(context)>)
+	{
+		auto const has_value = optional_has_value(val_ptr::get_value(ptr), context);
+		emit_error_assert(src_tokens, has_value, "null value used in pointer arithmetic", context);
+	}
+	else if (panic_on_null_pointer_arithmetic)
+	{
+		auto const has_value = optional_has_value(val_ptr::get_value(ptr), context);
+		auto const begin_bb = context.builder.GetInsertBlock();
+		auto const error_bb = context.add_basic_block("deref_null_check_error");
+		context.builder.SetInsertPoint(error_bb);
+		emit_panic_call<abi>(src_tokens, "null value used in pointer arithmetic", context);
+		bz_assert(context.has_terminator());
+
+		auto const continue_bb = context.add_basic_block("deref_null_check_continue");
+		context.builder.SetInsertPoint(begin_bb);
+		context.builder.CreateCondBr(has_value, continue_bb, error_bb);
+		context.builder.SetInsertPoint(continue_bb);
+	}
+}
+
 // ================================================================
 // -------------------------- expression --------------------------
 // ================================================================
@@ -837,8 +865,13 @@ static val_ptr emit_builtin_unary_plus_plus(
 	if (type->isPointerTy())
 	{
 		auto const expr_type = expr.get_expr_type();
-		bz_assert(expr_type.is<ast::ts_pointer>());
-		auto const inner_type = get_llvm_type(expr_type.get<ast::ts_pointer>(), context);
+		bz_assert(expr_type.is<ast::ts_pointer>() || expr_type.is_optional_pointer());
+		auto const inner_type = expr_type.is<ast::ts_pointer>()
+			? get_llvm_type(expr_type.get<ast::ts_pointer>(), context)
+			: get_llvm_type(expr_type.get_optional_pointer(), context);
+
+		emit_null_pointer_arithmetic_check<abi>(expr.src_tokens, original_value, context);
+
 		auto const incremented_value = context.create_gep(inner_type, original_value, 1);
 		context.builder.CreateStore(incremented_value, val.val);
 		if (result_address == nullptr)
@@ -884,8 +917,13 @@ static val_ptr emit_builtin_unary_minus_minus(
 	if (type->isPointerTy())
 	{
 		auto const expr_type = expr.get_expr_type();
-		bz_assert(expr_type.is<ast::ts_pointer>());
-		auto const inner_type = get_llvm_type(expr_type.get<ast::ts_pointer>(), context);
+		bz_assert(expr_type.is<ast::ts_pointer>() || expr_type.is_optional_pointer());
+		auto const inner_type = expr_type.is<ast::ts_pointer>()
+			? get_llvm_type(expr_type.get<ast::ts_pointer>(), context)
+			: get_llvm_type(expr_type.get_optional_pointer(), context);
+
+		emit_null_pointer_arithmetic_check<abi>(expr.src_tokens, original_value, context);
+
 		auto const incremented_value = context.create_gep(inner_type, original_value, uint64_t(-1));
 		context.builder.CreateStore(incremented_value, val.val);
 		if (result_address == nullptr)
