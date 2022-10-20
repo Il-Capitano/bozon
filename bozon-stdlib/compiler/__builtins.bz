@@ -108,7 +108,7 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 @__builtin export function __builtin_array_end_ptr(array: &[??: auto])
 	-> *__builtin_array_value_type(__builtin_remove_reference(typeof array));
 @__builtin export function __builtin_array_end_const_ptr(array: &const [??: auto])
-	-> *__builtin_array_value_type(__builtin_remove_const(__builtin_remove_reference(typeof array)));
+	-> *const __builtin_array_value_type(__builtin_remove_const(__builtin_remove_reference(typeof array)));
 @__builtin export function __builtin_array_size(array: &const [??: auto]) -> usize;
 
 @__builtin export function __builtin_optional_get_value(value: &?auto)

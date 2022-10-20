@@ -2802,8 +2802,9 @@ static val_ptr emit_bitcode(
 		{
 			bz_assert(func_call.params.size() == 1);
 			auto const arr = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			bz_assert(arr.kind == val_ptr::reference);
 			bz_assert(arr.get_type()->isArrayTy());
-			auto const begin_ptr = context.get_struct_element(arr, 0).get_value(context.builder);
+			auto const begin_ptr = context.get_struct_element(arr, 0).val;
 			if (result_address != nullptr)
 			{
 				auto const result_type = begin_ptr->getType();
@@ -2820,9 +2821,10 @@ static val_ptr emit_bitcode(
 		{
 			bz_assert(func_call.params.size() == 1);
 			auto const arr = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			bz_assert(arr.kind == val_ptr::reference);
 			bz_assert(arr.get_type()->isArrayTy());
 			auto const size = arr.get_type()->getArrayNumElements();
-			auto const end_ptr = context.get_struct_element(arr, size).get_value(context.builder);
+			auto const end_ptr = context.get_struct_element(arr, size).val;
 			if (result_address != nullptr)
 			{
 				auto const result_type = end_ptr->getType();
