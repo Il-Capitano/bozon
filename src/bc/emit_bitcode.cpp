@@ -11,6 +11,14 @@ namespace bc
 constexpr size_t array_loop_threshold = 16;
 
 template<abi::platform_abi abi>
+static llvm::Constant *get_value(
+	ast::constant_value const &value,
+	ast::typespec_view type,
+	ast::constant_expression const *const_expr,
+	auto &context
+);
+
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	ast::expression const &expr,
 	auto &context,
@@ -357,6 +365,65 @@ static void add_byval_attributes(llvm::Argument &arg, llvm::Type *byval_type, au
 	}
 }
 
+template<abi::platform_abi abi>
+static void emit_panic_call(
+	lex::src_tokens const &src_tokens,
+	bz::u8string_view message,
+	ctx::bitcode_context &context
+)
+{
+	auto const panic_func_body = context.get_builtin_function(ast::function_body::builtin_panic);
+	bz_assert(panic_func_body->params.size() == 1);
+	bz_assert(panic_func_body->params[0].get_type().is<ast::ts_base_type>());
+	bz_assert(panic_func_body->params[0].get_type().get<ast::ts_base_type>().info->kind == ast::type_info::str_);
+	auto const panic_fn = context.get_function(panic_func_body);
+	bz_assert(panic_fn != nullptr);
+
+	auto const result_type = get_llvm_type(panic_func_body->return_type, context);
+	bz_assert(result_type->isVoidTy());
+	auto const result_kind = context.get_pass_kind<abi>(panic_func_body->return_type, result_type);
+	bz_assert(result_kind == abi::pass_kind::value);
+
+	ast::arena_vector<llvm::Value *> params = {};
+	params.reserve(2); // on linux str is passed in two registers
+	ast::arena_vector<is_byval_and_type_pair> params_is_byval = {};
+	params.reserve(2);
+
+	auto const param_val = get_value<abi>(
+		ast::constant_value(bz::format("panic called from {}: {}", context.global_ctx.get_location_string(src_tokens.pivot), message)),
+		panic_func_body->params[0].get_type(),
+		nullptr,
+		context
+	);
+	auto const param = val_ptr::get_value(param_val);
+	auto const param_type = panic_func_body->params[0].get_type().as_typespec_view();
+	auto const param_llvm_type = context.get_str_t();
+	add_call_parameter<abi, false>(param_type, param_llvm_type, param, params, params_is_byval, context);
+
+	auto const call = context.create_call(panic_fn, llvm::ArrayRef(params.data(), params.size()));
+	auto is_byval_it = params_is_byval.begin();
+	auto const is_byval_end = params_is_byval.end();
+	unsigned i = 0;
+	bz_assert(panic_fn->arg_size() == call->arg_size());
+	for (; is_byval_it != is_byval_end; ++is_byval_it, ++i)
+	{
+		if (is_byval_it->is_byval)
+		{
+			add_byval_attributes<abi>(call, is_byval_it->type, i, context);
+		}
+	}
+
+	auto const current_ret_type = context.current_function.second->getReturnType();
+	if (current_ret_type->isVoidTy())
+	{
+		context.builder.CreateRetVoid();
+	}
+	else
+	{
+		context.builder.CreateRet(llvm::UndefValue::get(current_ret_type));
+	}
+}
+
 static llvm::Value *optional_has_value(val_ptr optional_val, auto &context)
 {
 	if (optional_val.get_type()->isPointerTy())
@@ -424,14 +491,6 @@ static void optional_set_has_value(val_ptr optional_val, llvm::Value *has_value,
 // ================================================================
 // -------------------------- expression --------------------------
 // ================================================================
-
-template<abi::platform_abi abi>
-static llvm::Constant *get_value(
-	ast::constant_value const &value,
-	ast::typespec_view type,
-	ast::constant_expression const *const_expr,
-	auto &context
-);
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
@@ -683,7 +742,7 @@ static val_ptr emit_builtin_unary_minus(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_unary_dereference(
-	lex::src_tokens const &,
+	lex::src_tokens const &src_tokens,
 	ast::expression const &expr,
 	auto &context,
 	llvm::Value *result_address
@@ -691,10 +750,38 @@ static val_ptr emit_builtin_unary_dereference(
 {
 	auto const val = emit_bitcode<abi>(expr, context, nullptr).get_value(context.builder);
 	auto const type = ast::remove_const_or_consteval(expr.get_expr_type());
-	bz_assert(type.template is<ast::ts_pointer>());
-	auto const result_type = get_llvm_type(type.template get<ast::ts_pointer>(), context);
-	bz_assert(result_address == nullptr);
-	return val_ptr::get_reference(val, result_type);
+	bz_assert(type.template is<ast::ts_pointer>() || type.is_optional_pointer());
+	if (type.is_optional_pointer())
+	{
+		if constexpr (is_comptime<decltype(context)>)
+		{
+			auto const has_value = optional_has_value(val_ptr::get_value(val), context);
+			emit_error_assert(src_tokens, has_value, "null pointer dereferenced", context);
+		}
+		else if (panic_on_null_dereference)
+		{
+			auto const has_value = optional_has_value(val_ptr::get_value(val), context);
+			auto const begin_bb = context.builder.GetInsertBlock();
+			auto const error_bb = context.add_basic_block("deref_null_check_error");
+			context.builder.SetInsertPoint(error_bb);
+			emit_panic_call<abi>(src_tokens, "null pointer dereferenced", context);
+			bz_assert(context.has_terminator());
+
+			auto const continue_bb = context.add_basic_block("deref_null_check_continue");
+			context.builder.SetInsertPoint(begin_bb);
+			context.builder.CreateCondBr(has_value, continue_bb, error_bb);
+			context.builder.SetInsertPoint(continue_bb);
+		}
+
+		auto const result_type = get_llvm_type(type.get_optional_pointer(), context);
+		return val_ptr::get_reference(val, result_type);
+	}
+	else
+	{
+		auto const result_type = get_llvm_type(type.template get<ast::ts_pointer>(), context);
+		bz_assert(result_address == nullptr);
+		return val_ptr::get_reference(val, result_type);
+	}
 }
 
 template<abi::platform_abi abi>

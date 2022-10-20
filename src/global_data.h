@@ -91,6 +91,7 @@ inline bool use_interpreter = false;
 inline bool force_use_jit = false;
 inline bool do_verbose = false;
 inline bool panic_on_unreachable = true;
+inline bool panic_on_null_dereference = true;
 inline bool discard_llvm_value_names = true;
 inline bool return_zero_on_error = false;
 

@@ -81,8 +81,9 @@ inline constexpr bz::array ctcli::option_group_alias<opt_group_id> = {
 
 template<>
 inline constexpr bz::array ctcli::option_group<code_gen_group_id> = {
-	ctcli::create_group_element("panic-on-unreachable",     "Call '__builtin_panic' if unreachable is hit (default=true)"),
-	ctcli::create_group_element("discard-llvm-value-names", "Discard values names for LLVM bitcode (default=true)"),
+	ctcli::create_group_element("panic-on-unreachable",             "Call '__builtin_panic' if unreachable is hit (default=true)"),
+	ctcli::create_group_element("panic-on-null-dereference",        "Call '__builtin_panic' if null is dereferenced (default=true)"),
+	ctcli::create_group_element("discard-llvm-value-names",         "Discard values names for LLVM bitcode (default=true)"),
 };
 
 template<>
@@ -167,8 +168,9 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element(
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt size-opt-level")>     = &size_opt_level;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt comptime-opt-level")> = &comptime_opt_level;
 
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-unreachable")>     = &panic_on_unreachable;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen discard-llvm-value-names")> = &discard_llvm_value_names;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-unreachable")>             = &panic_on_unreachable;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-null-dereference")>        = &panic_on_null_dereference;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen discard-llvm-value-names")>         = &discard_llvm_value_names;
 
 template<>
 inline constexpr auto ctcli::argument_parse_function<ctcli::option("--emit")> = [](bz::u8string_view arg) -> std::optional<emit_type> {

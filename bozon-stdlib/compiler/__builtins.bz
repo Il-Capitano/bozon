@@ -420,6 +420,8 @@ export function __builtin_print_stderr(s: str)
 
 @__builtin export operator * (p: *auto) -> &__builtin_remove_pointer(typeof p);
 @__builtin export operator * (p: *const auto) -> &__builtin_remove_pointer(typeof p);
+@__builtin export operator * (p: ?*auto) -> &__builtin_remove_pointer(__builtin_remove_optional(typeof p));
+@__builtin export operator * (p: ?*const auto) -> &__builtin_remove_pointer(__builtin_remove_optional(typeof p));
 
 @__builtin export operator ~ (n: uint8)  -> uint8;
 @__builtin export operator ~ (n: uint16) -> uint16;
