@@ -1085,7 +1085,7 @@ static val_ptr emit_builtin_binary_plus(
 			}
 		}
 	}
-	else if (lhs_t.is<ast::ts_pointer>())
+	else if (lhs_t.is<ast::ts_pointer>() || lhs_t.is_optional_pointer())
 	{
 		bz_assert(rhs_t.is<ast::ts_base_type>());
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
@@ -1096,7 +1096,12 @@ static val_ptr emit_builtin_binary_plus(
 		{
 			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_usize_t(), false);
 		}
-		auto const lhs_inner_type = get_llvm_type(lhs_t.get<ast::ts_pointer>(), context);
+		auto const lhs_inner_type = lhs_t.is<ast::ts_pointer>()
+			? get_llvm_type(lhs_t.get<ast::ts_pointer>(), context)
+			: get_llvm_type(lhs_t.get_optional_pointer(), context);
+
+		emit_null_pointer_arithmetic_check<abi>(lhs.src_tokens, lhs_val, context);
+
 		auto const result_val = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_add_tmp");
 		if (result_address == nullptr)
 		{
@@ -1111,7 +1116,7 @@ static val_ptr emit_builtin_binary_plus(
 	}
 	else
 	{
-		bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_pointer>());
+		bz_assert(lhs_t.is<ast::ts_base_type>() && (rhs_t.is<ast::ts_pointer>() || rhs_t.is_optional_pointer()));
 		auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 		auto lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
@@ -1120,7 +1125,12 @@ static val_ptr emit_builtin_binary_plus(
 		{
 			lhs_val = context.builder.CreateIntCast(lhs_val, context.get_usize_t(), false);
 		}
-		auto const rhs_inner_type = get_llvm_type(rhs_t.get<ast::ts_pointer>(), context);
+		auto const rhs_inner_type = rhs_t.is<ast::ts_pointer>()
+			? get_llvm_type(rhs_t.get<ast::ts_pointer>(), context)
+			: get_llvm_type(rhs_t.get_optional_pointer(), context);
+
+		emit_null_pointer_arithmetic_check<abi>(rhs.src_tokens, rhs_val, context);
+
 		auto const result_val = context.create_gep(rhs_inner_type, rhs_val, lhs_val, "ptr_add_tmp");
 		if (result_address == nullptr)
 		{
@@ -1207,7 +1217,7 @@ static val_ptr emit_builtin_binary_plus_eq(
 	}
 	else
 	{
-		bz_assert(lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_base_type>());
+		bz_assert((lhs_t.is<ast::ts_pointer>() || lhs_t.is_optional_pointer()) && rhs_t.is<ast::ts_base_type>());
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 		// we calculate the right hand side first
 		auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
@@ -1219,7 +1229,12 @@ static val_ptr emit_builtin_binary_plus_eq(
 		auto const lhs_val_ref = emit_bitcode<abi>(lhs, context, nullptr);
 		bz_assert(lhs_val_ref.kind == val_ptr::reference);
 		auto const lhs_val = lhs_val_ref.get_value(context.builder);
-		auto const lhs_inner_type = get_llvm_type(lhs_t.get<ast::ts_pointer>(), context);
+		auto const lhs_inner_type = lhs_t.is<ast::ts_pointer>()
+			? get_llvm_type(lhs_t.get<ast::ts_pointer>(), context)
+			: get_llvm_type(lhs_t.get_optional_pointer(), context);
+
+		emit_null_pointer_arithmetic_check<abi>(lhs.src_tokens, lhs_val, context);
+
 		auto const res = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_add_tmp");
 		context.builder.CreateStore(res, lhs_val_ref.val);
 		if (result_address == nullptr)
