@@ -2670,7 +2670,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 160);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 165);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2797,6 +2797,46 @@ static val_ptr emit_bitcode(
 				return val_ptr::get_value(result);
 			}
 		}
+		case ast::function_body::builtin_array_begin_ptr:
+		case ast::function_body::builtin_array_begin_const_ptr:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const arr = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			bz_assert(arr.get_type()->isArrayTy());
+			auto const begin_ptr = context.get_struct_element(arr, 0).get_value(context.builder);
+			if (result_address != nullptr)
+			{
+				auto const result_type = begin_ptr->getType();
+				context.builder.CreateStore(begin_ptr, result_address);
+				return val_ptr::get_reference(result_address, result_type);
+			}
+			else
+			{
+				return val_ptr::get_value(begin_ptr);
+			}
+		}
+		case ast::function_body::builtin_array_end_ptr:
+		case ast::function_body::builtin_array_end_const_ptr:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const arr = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			bz_assert(arr.get_type()->isArrayTy());
+			auto const size = arr.get_type()->getArrayNumElements();
+			auto const end_ptr = context.get_struct_element(arr, size).get_value(context.builder);
+			if (result_address != nullptr)
+			{
+				auto const result_type = end_ptr->getType();
+				context.builder.CreateStore(end_ptr, result_address);
+				return val_ptr::get_reference(result_address, result_type);
+			}
+			else
+			{
+				return val_ptr::get_value(end_ptr);
+			}
+		}
+		case ast::function_body::builtin_array_size:
+			// this is guaranteed to be constant evaluated
+			bz_unreachable;
 		case ast::function_body::builtin_optional_get_value:
 		case ast::function_body::builtin_optional_get_const_value:
 		{

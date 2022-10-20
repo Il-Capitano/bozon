@@ -101,6 +101,16 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 		)));
 	} else {}, [: __builtin_remove_pointer(__builtin_remove_optional(typeof begin))]);
 
+@__builtin export function __builtin_array_begin_ptr(array: &[??: auto])
+	-> *__builtin_array_value_type(__builtin_remove_reference(typeof array));
+@__builtin export function __builtin_array_begin_const_ptr(array: &const [??: auto])
+	-> *const __builtin_array_value_type(__builtin_remove_const(__builtin_remove_reference(typeof array)));
+@__builtin export function __builtin_array_end_ptr(array: &[??: auto])
+	-> *__builtin_array_value_type(__builtin_remove_reference(typeof array));
+@__builtin export function __builtin_array_end_const_ptr(array: &const [??: auto])
+	-> *__builtin_array_value_type(__builtin_remove_const(__builtin_remove_reference(typeof array)));
+@__builtin export function __builtin_array_size(array: &const [??: auto]) -> usize;
+
 @__builtin export function __builtin_optional_get_value(value: &?auto)
 	-> &__builtin_remove_optional(__builtin_remove_reference(typeof value));
 @__builtin export function __builtin_optional_get_const_value(value: &const ?auto)

@@ -1331,11 +1331,19 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->body.is_null());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 160);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 165);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
 
+	case ast::function_body::builtin_array_size:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const type = ast::remove_const_or_consteval(func_call.params[0].get_expr_type());
+		bz_assert(type.is<ast::ts_array>());
+		bz_assert(type.get<ast::ts_array>().size != 0);
+		return ast::constant_value(type.get<ast::ts_array>().size);
+	}
 	case ast::function_body::builtin_is_comptime:
 		if (exec_kind == function_execution_kind::force_evaluate)
 		{

@@ -493,6 +493,12 @@ struct function_body
 		builtin_slice_from_ptrs,
 		builtin_slice_from_const_ptrs,
 
+		builtin_array_begin_ptr,
+		builtin_array_begin_const_ptr,
+		builtin_array_end_ptr,
+		builtin_array_end_const_ptr,
+		builtin_array_size,
+
 		builtin_optional_get_value,
 		builtin_optional_get_const_value,
 
@@ -1491,7 +1497,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 160);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 165);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1510,6 +1516,12 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_slice_size,            "__builtin_slice_size"            },
 		{ function_body::builtin_slice_from_ptrs,       "__builtin_slice_from_ptrs"       },
 		{ function_body::builtin_slice_from_const_ptrs, "__builtin_slice_from_const_ptrs" },
+
+		{ function_body::builtin_array_begin_ptr,       "__builtin_array_begin_ptr"       },
+		{ function_body::builtin_array_begin_const_ptr, "__builtin_array_begin_const_ptr" },
+		{ function_body::builtin_array_end_ptr,         "__builtin_array_end_ptr"         },
+		{ function_body::builtin_array_end_const_ptr,   "__builtin_array_end_const_ptr"   },
+		{ function_body::builtin_array_size,            "__builtin_array_size"            },
 
 		{ function_body::builtin_optional_get_value,       "__builtin_optional_get_value"       },
 		{ function_body::builtin_optional_get_const_value, "__builtin_optional_get_const_value" },

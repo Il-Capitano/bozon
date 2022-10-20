@@ -524,7 +524,7 @@ llvm::CallInst *comptime_executor_context::create_call(
 
 bc::val_ptr comptime_executor_context::get_struct_element(bc::val_ptr value, uint64_t idx)
 {
-	bz_assert(value.get_type()->isStructTy());
+	bz_assert(value.get_type()->isStructTy() || value.get_type()->isArrayTy());
 	if (value.kind == bc::val_ptr::value)
 	{
 		return bc::val_ptr::get_value(this->builder.CreateExtractValue(value.get_value(this->builder), idx));
@@ -533,7 +533,9 @@ bc::val_ptr comptime_executor_context::get_struct_element(bc::val_ptr value, uin
 	{
 		auto const type = value.get_type();
 		auto const element_val = this->create_struct_gep(type, value.val, idx);
-		auto const element_type = type->getStructElementType(idx);
+		auto const element_type = type->isStructTy()
+			? type->getStructElementType(idx)
+			: type->getArrayElementType();
 		return bc::val_ptr::get_reference(element_val, element_type);
 	}
 }
