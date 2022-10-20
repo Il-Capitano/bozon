@@ -870,7 +870,10 @@ static val_ptr emit_builtin_unary_plus_plus(
 			? get_llvm_type(expr_type.get<ast::ts_pointer>(), context)
 			: get_llvm_type(expr_type.get_optional_pointer(), context);
 
-		emit_null_pointer_arithmetic_check<abi>(expr.src_tokens, original_value, context);
+		if (expr_type.is_optional_pointer())
+		{
+			emit_null_pointer_arithmetic_check<abi>(expr.src_tokens, original_value, context);
+		}
 
 		auto const incremented_value = context.create_gep(inner_type, original_value, 1);
 		context.builder.CreateStore(incremented_value, val.val);
@@ -922,7 +925,10 @@ static val_ptr emit_builtin_unary_minus_minus(
 			? get_llvm_type(expr_type.get<ast::ts_pointer>(), context)
 			: get_llvm_type(expr_type.get_optional_pointer(), context);
 
-		emit_null_pointer_arithmetic_check<abi>(expr.src_tokens, original_value, context);
+		if (expr_type.is_optional_pointer())
+		{
+			emit_null_pointer_arithmetic_check<abi>(expr.src_tokens, original_value, context);
+		}
 
 		auto const incremented_value = context.create_gep(inner_type, original_value, uint64_t(-1));
 		context.builder.CreateStore(incremented_value, val.val);
@@ -1100,7 +1106,10 @@ static val_ptr emit_builtin_binary_plus(
 			? get_llvm_type(lhs_t.get<ast::ts_pointer>(), context)
 			: get_llvm_type(lhs_t.get_optional_pointer(), context);
 
-		emit_null_pointer_arithmetic_check<abi>(lhs.src_tokens, lhs_val, context);
+		if (lhs_t.is_optional_pointer())
+		{
+			emit_null_pointer_arithmetic_check<abi>(lhs.src_tokens, lhs_val, context);
+		}
 
 		auto const result_val = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_add_tmp");
 		if (result_address == nullptr)
@@ -1129,7 +1138,10 @@ static val_ptr emit_builtin_binary_plus(
 			? get_llvm_type(rhs_t.get<ast::ts_pointer>(), context)
 			: get_llvm_type(rhs_t.get_optional_pointer(), context);
 
-		emit_null_pointer_arithmetic_check<abi>(rhs.src_tokens, rhs_val, context);
+		if (rhs_t.is_optional_pointer())
+		{
+			emit_null_pointer_arithmetic_check<abi>(rhs.src_tokens, rhs_val, context);
+		}
 
 		auto const result_val = context.create_gep(rhs_inner_type, rhs_val, lhs_val, "ptr_add_tmp");
 		if (result_address == nullptr)
@@ -1233,7 +1245,10 @@ static val_ptr emit_builtin_binary_plus_eq(
 			? get_llvm_type(lhs_t.get<ast::ts_pointer>(), context)
 			: get_llvm_type(lhs_t.get_optional_pointer(), context);
 
-		emit_null_pointer_arithmetic_check<abi>(lhs.src_tokens, lhs_val, context);
+		if (lhs_t.is_optional_pointer())
+		{
+			emit_null_pointer_arithmetic_check<abi>(lhs.src_tokens, lhs_val, context);
+		}
 
 		auto const res = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_add_tmp");
 		context.builder.CreateStore(res, lhs_val_ref.val);
@@ -1329,7 +1344,7 @@ static val_ptr emit_builtin_binary_minus(
 	}
 	else if (rhs_t.is<ast::ts_base_type>())
 	{
-		bz_assert(lhs_t.is<ast::ts_pointer>());
+		bz_assert(lhs_t.is<ast::ts_pointer>() || lhs_t.is_optional_pointer());
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
@@ -1340,7 +1355,15 @@ static val_ptr emit_builtin_binary_minus(
 		}
 		// negate rhs_val
 		rhs_val = context.builder.CreateNeg(rhs_val);
-		auto const lhs_inner_type = get_llvm_type(lhs_t.get<ast::ts_pointer>(), context);
+		auto const lhs_inner_type = lhs_t.is<ast::ts_pointer>()
+			? get_llvm_type(lhs_t.get<ast::ts_pointer>(), context)
+			: get_llvm_type(lhs_t.get_optional_pointer(), context);
+
+		if (lhs_t.is_optional_pointer())
+		{
+			emit_null_pointer_arithmetic_check<abi>(lhs.src_tokens, lhs_val, context);
+		}
+
 		auto const result_val = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_sub_tmp");
 		if (result_address == nullptr)
 		{
@@ -1355,10 +1378,21 @@ static val_ptr emit_builtin_binary_minus(
 	}
 	else
 	{
-		bz_assert(lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_pointer>());
-		auto const elem_type = get_llvm_type(ast::remove_const_or_consteval(lhs_t.get<ast::ts_pointer>()), context);
+		bz_assert(lhs_t.is<ast::ts_pointer>() || lhs_t.is_optional_pointer());
+		bz_assert(rhs_t.is<ast::ts_pointer>() || rhs_t.is_optional_pointer());
+		bz_assert(lhs_t.is_optional_pointer() == rhs_t.is_optional_pointer());
+		auto const elem_type = lhs_t.is<ast::ts_pointer>()
+			? get_llvm_type(lhs_t.get<ast::ts_pointer>(), context)
+			: get_llvm_type(lhs_t.get_optional_pointer(), context);
 		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
+
+		if (lhs_t.is_optional_pointer())
+		{
+			emit_null_pointer_arithmetic_check<abi>(lhs.src_tokens, lhs_val, context);
+			emit_null_pointer_arithmetic_check<abi>(rhs.src_tokens, rhs_val, context);
+		}
+
 		auto const result_val = context.builder.CreatePtrDiff(elem_type, lhs_val, rhs_val, "ptr_diff_tmp");
 		if (result_address == nullptr)
 		{
@@ -1450,7 +1484,8 @@ static val_ptr emit_builtin_binary_minus_eq(
 	}
 	else
 	{
-		bz_assert(lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_base_type>());
+		bz_assert(lhs_t.is<ast::ts_pointer>() || lhs_t.is_optional_pointer());
+		bz_assert(rhs_t.is<ast::ts_base_type>());
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 		// we calculate the right hand side first
 		auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
@@ -1464,7 +1499,15 @@ static val_ptr emit_builtin_binary_minus_eq(
 		auto const lhs_val_ref = emit_bitcode<abi>(lhs, context, nullptr);
 		bz_assert(lhs_val_ref.kind == val_ptr::reference);
 		auto const lhs_val = lhs_val_ref.get_value(context.builder);
-		auto const lhs_inner_type = get_llvm_type(lhs_t.get<ast::ts_pointer>(), context);
+		auto const lhs_inner_type = lhs_t.is<ast::ts_pointer>()
+			? get_llvm_type(lhs_t.get<ast::ts_pointer>(), context)
+			: get_llvm_type(lhs_t.get_optional_pointer(), context);
+
+		if (lhs_t.is_optional_pointer())
+		{
+			emit_null_pointer_arithmetic_check<abi>(lhs.src_tokens, lhs_val, context);
+		}
+
 		auto const res = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_sub_tmp");
 		context.builder.CreateStore(res, lhs_val_ref.val);
 		if (result_address == nullptr)

@@ -722,10 +722,36 @@ export function __builtin_print_stderr(s: str)
 @__builtin export operator - (lhs: *const auto, rhs: uint16) -> typeof lhs;
 @__builtin export operator - (lhs: *const auto, rhs: uint32) -> typeof lhs;
 @__builtin export operator - (lhs: *const auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator - (lhs: ?*auto, rhs:  int8)  -> typeof lhs;
+@__builtin export operator - (lhs: ?*auto, rhs:  int16) -> typeof lhs;
+@__builtin export operator - (lhs: ?*auto, rhs:  int32) -> typeof lhs;
+@__builtin export operator - (lhs: ?*auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator - (lhs: ?*auto, rhs: uint8)  -> typeof lhs;
+@__builtin export operator - (lhs: ?*auto, rhs: uint16) -> typeof lhs;
+@__builtin export operator - (lhs: ?*auto, rhs: uint32) -> typeof lhs;
+@__builtin export operator - (lhs: ?*auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator - (lhs: ?*const auto, rhs:  int8)  -> typeof lhs;
+@__builtin export operator - (lhs: ?*const auto, rhs:  int16) -> typeof lhs;
+@__builtin export operator - (lhs: ?*const auto, rhs:  int32) -> typeof lhs;
+@__builtin export operator - (lhs: ?*const auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator - (lhs: ?*const auto, rhs: uint8)  -> typeof lhs;
+@__builtin export operator - (lhs: ?*const auto, rhs: uint16) -> typeof lhs;
+@__builtin export operator - (lhs: ?*const auto, rhs: uint32) -> typeof lhs;
+@__builtin export operator - (lhs: ?*const auto, rhs: uint64) -> typeof lhs;
 @__builtin export operator - (lhs: *const auto, rhs: *const auto)
 	-> (if consteval (typeof lhs != typeof rhs) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"mismatched pointer types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in 'operator -'"
+		)));
+	} else {}, isize);
+@__builtin export operator - (lhs: ?*const auto, rhs: ?*const auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched optional pointer types '",
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
@@ -768,6 +794,22 @@ export function __builtin_print_stderr(s: str)
 @__builtin export operator -= (lhs: &*const auto, rhs: uint16) -> typeof lhs;
 @__builtin export operator -= (lhs: &*const auto, rhs: uint32) -> typeof lhs;
 @__builtin export operator -= (lhs: &*const auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*auto, rhs:  int8)  -> typeof lhs;
+@__builtin export operator -= (lhs: &?*auto, rhs:  int16) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*auto, rhs:  int32) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*auto, rhs: uint8)  -> typeof lhs;
+@__builtin export operator -= (lhs: &?*auto, rhs: uint16) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*auto, rhs: uint32) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*const auto, rhs:  int8)  -> typeof lhs;
+@__builtin export operator -= (lhs: &?*const auto, rhs:  int16) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*const auto, rhs:  int32) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*const auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*const auto, rhs: uint8)  -> typeof lhs;
+@__builtin export operator -= (lhs: &?*const auto, rhs: uint16) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*const auto, rhs: uint32) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*const auto, rhs: uint64) -> typeof lhs;
 
 @__builtin export operator * (lhs: int8,  rhs: int8)  -> int8;
 @__builtin export operator * (lhs: int16, rhs: int16) -> int16;
