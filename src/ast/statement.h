@@ -499,8 +499,9 @@ struct function_body
 		builtin_array_end_const_ptr,
 		builtin_array_size,
 
+		builtin_optional_get_value_ref,
+		builtin_optional_get_const_value_ref,
 		builtin_optional_get_value,
-		builtin_optional_get_const_value,
 
 		builtin_pointer_cast,
 		builtin_pointer_to_int,
@@ -1497,7 +1498,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 165);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 166);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1523,8 +1524,9 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_array_end_const_ptr,   "__builtin_array_end_const_ptr"   },
 		{ function_body::builtin_array_size,            "__builtin_array_size"            },
 
-		{ function_body::builtin_optional_get_value,       "__builtin_optional_get_value"       },
-		{ function_body::builtin_optional_get_const_value, "__builtin_optional_get_const_value" },
+		{ function_body::builtin_optional_get_value_ref,       "__builtin_optional_get_value_ref"       },
+		{ function_body::builtin_optional_get_const_value_ref, "__builtin_optional_get_const_value_ref" },
+		{ function_body::builtin_optional_get_value,           "__builtin_optional_get_value"           },
 
 		{ function_body::builtin_pointer_cast,   "__builtin_pointer_cast"   },
 		{ function_body::builtin_pointer_to_int, "__builtin_pointer_to_int" },

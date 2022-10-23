@@ -489,6 +489,34 @@ static void optional_set_has_value(val_ptr optional_val, llvm::Value *has_value,
 }
 
 template<abi::platform_abi abi>
+static void emit_null_optional_get_value_check(
+	lex::src_tokens const &src_tokens,
+	val_ptr optional_val,
+	auto &context
+)
+{
+	if constexpr (is_comptime<decltype(context)>)
+	{
+		auto const has_value = optional_has_value(optional_val, context);
+		emit_error_assert(src_tokens, has_value, "'get_value' called on a null optional", context);
+	}
+	else if (panic_on_null_pointer_arithmetic)
+	{
+		auto const has_value = optional_has_value(optional_val, context);
+		auto const begin_bb = context.builder.GetInsertBlock();
+		auto const error_bb = context.add_basic_block("get_value_null_check_error");
+		context.builder.SetInsertPoint(error_bb);
+		emit_panic_call<abi>(src_tokens, "'get_value' called on a null optional", context);
+		bz_assert(context.has_terminator());
+
+		auto const continue_bb = context.add_basic_block("get_value_null_check_continue");
+		context.builder.SetInsertPoint(begin_bb);
+		context.builder.CreateCondBr(has_value, continue_bb, error_bb);
+		context.builder.SetInsertPoint(continue_bb);
+	}
+}
+
+template<abi::platform_abi abi>
 static void emit_null_pointer_arithmetic_check(
 	lex::src_tokens const &src_tokens,
 	llvm::Value *ptr,
@@ -504,12 +532,12 @@ static void emit_null_pointer_arithmetic_check(
 	{
 		auto const has_value = optional_has_value(val_ptr::get_value(ptr), context);
 		auto const begin_bb = context.builder.GetInsertBlock();
-		auto const error_bb = context.add_basic_block("deref_null_check_error");
+		auto const error_bb = context.add_basic_block("arithmetic_null_check_error");
 		context.builder.SetInsertPoint(error_bb);
 		emit_panic_call<abi>(src_tokens, "null value used in pointer arithmetic", context);
 		bz_assert(context.has_terminator());
 
-		auto const continue_bb = context.add_basic_block("deref_null_check_continue");
+		auto const continue_bb = context.add_basic_block("arithmetic_null_check_continue");
 		context.builder.SetInsertPoint(begin_bb);
 		context.builder.CreateCondBr(has_value, continue_bb, error_bb);
 		context.builder.SetInsertPoint(continue_bb);
@@ -2670,7 +2698,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 165);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 166);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2839,26 +2867,17 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_array_size:
 			// this is guaranteed to be constant evaluated
 			bz_unreachable;
-		case ast::function_body::builtin_optional_get_value:
-		case ast::function_body::builtin_optional_get_const_value:
+		case ast::function_body::builtin_optional_get_value_ref:
+		case ast::function_body::builtin_optional_get_const_value_ref:
 		{
 			bz_assert(func_call.params.size() == 1);
 			auto const optional_val = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			emit_null_optional_get_value_check<abi>(src_tokens, optional_val, context);
 			bz_assert(result_address == nullptr);
-			if constexpr (is_comptime<decltype(context)>)
-			{
-				emit_error_assert(
-					src_tokens,
-					optional_has_value(optional_val, context),
-					bz::format(
-						"'{}' called on a null value",
-						func_call.func_body->function_name_or_operator_kind.get<ast::identifier>().format_as_unqualified()
-					),
-					context
-				);
-			}
 			return optional_get_value_ptr(optional_val, context);
 		}
+		case ast::function_body::builtin_optional_get_value:
+			bz_unreachable;
 		case ast::function_body::builtin_pointer_cast:
 			if constexpr (is_comptime<decltype(context)>)
 			{
@@ -5495,6 +5514,24 @@ static val_ptr emit_bitcode(
 			return val_ptr::get_reference(result_address, val->getType());
 		}
 	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &src_tokens,
+	ast::expr_optional_extract_value const &optional_extract_value,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const optional_val = emit_bitcode<abi>(optional_extract_value.optional_value, context, nullptr);
+	emit_null_optional_get_value_check<abi>(src_tokens, optional_val, context);
+
+	auto const prev_val = context.push_value_reference(optional_val);
+	auto const result_val = emit_bitcode<abi>(optional_extract_value.value_move_expr, context, result_address);
+	context.pop_value_reference(prev_val);
+
+	return result_val;
 }
 
 template<abi::platform_abi abi>

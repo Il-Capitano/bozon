@@ -762,8 +762,9 @@ bz::vector<universal_function_set> make_builtin_universal_functions(void)
 		{ "starts_with", { function_body::builtin_str_starts_with } },
 		{ "ends_with",   { function_body::builtin_str_ends_with   } },
 		{ "get_value", {
+			function_body::builtin_optional_get_value_ref,
+			function_body::builtin_optional_get_const_value_ref,
 			function_body::builtin_optional_get_value,
-			function_body::builtin_optional_get_const_value,
 		}},
 	};
 }

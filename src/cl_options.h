@@ -161,8 +161,9 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element(
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn non-exhaustive-switch")>    = &warnings[static_cast<size_t>(ctx::warning_kind::non_exhaustive_switch)];
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unneeded-else")>            = &warnings[static_cast<size_t>(ctx::warning_kind::unneeded_else)];
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn assign-in-condition")>      = &warnings[static_cast<size_t>(ctx::warning_kind::assign_in_condition)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn get-value-null")>           = &warnings[static_cast<size_t>(ctx::warning_kind::get_value_null)];
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn comptime-warning")>         = &warnings[static_cast<size_t>(ctx::warning_kind::comptime_warning)];
-static_assert(static_cast<size_t>(ctx::warning_kind::_last) == 24);
+static_assert(static_cast<size_t>(ctx::warning_kind::_last) == 25);
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt max-iter-count")>     = &max_opt_iter_count;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt opt-level")>          = &opt_level;

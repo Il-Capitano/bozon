@@ -111,10 +111,12 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 	-> *const __builtin_array_value_type(__builtin_remove_const(__builtin_remove_reference(typeof array)));
 @__builtin export function __builtin_array_size(array: &const [??: auto]) -> usize;
 
-@__builtin export function __builtin_optional_get_value(value: &?auto)
+@__builtin export function __builtin_optional_get_value_ref(value: &?auto)
 	-> &__builtin_remove_optional(__builtin_remove_reference(typeof value));
-@__builtin export function __builtin_optional_get_const_value(value: &const ?auto)
+@__builtin export function __builtin_optional_get_const_value_ref(value: &const ?auto)
 	-> &const __builtin_remove_optional(__builtin_remove_const(__builtin_remove_reference(typeof value)));
+@__builtin export function __builtin_optional_get_value(value: ?auto)
+	-> __builtin_remove_optional(typeof value);
 
 @__builtin export function __builtin_pointer_cast(T: *typename, ptr: *const void) -> T;
 @__builtin export function __builtin_pointer_to_int(ptr: ?*const void) -> usize;
@@ -186,7 +188,7 @@ function __libc_main(argc_int: std::libc::int, argv: *const *const std::libc::ch
 			{
 				return 1;
 			}
-			__builtin_pointer_cast(*str, __builtin_optional_get_const_value(malloc_result))
+			__builtin_pointer_cast(*str, __builtin_optional_get_const_value_ref(malloc_result))
 		};
 
 		const args = __builtin_slice_from_ptrs(args_ptr, args_ptr + argc);
@@ -943,8 +945,6 @@ export function __builtin_print_stderr(s: str)
 			"' in comparison operator"
 		)));
 	} else {}, bool);
-@__builtin export operator == (lhs: ?*const auto, rhs: __null_t) -> bool;
-@__builtin export operator == (lhs: __null_t, rhs: ?*const auto) -> bool;
 @__builtin export operator == (lhs: #const ?auto, rhs: __null_t) -> bool;
 @__builtin export operator == (lhs: __null_t, rhs: #const ?auto) -> bool;
 

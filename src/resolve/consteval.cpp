@@ -1331,7 +1331,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->body.is_null());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 165);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 166);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2664,6 +2664,30 @@ static ast::constant_value guaranteed_evaluate_expr(
 				return {};
 			}
 		},
+		[&context, &expr](ast::expr_optional_extract_value &optional_extract_value) -> ast::constant_value {
+			consteval_guaranteed(optional_extract_value.optional_value, context);
+			if (optional_extract_value.optional_value.has_consteval_succeeded())
+			{
+				auto const &value = optional_extract_value.optional_value.get_constant_value();
+				if (value.is_null_constant())
+				{
+					context.report_warning(
+						ctx::warning_kind::get_value_null,
+						expr.src_tokens,
+						"getting value of a null optional"
+					);
+					return {};
+				}
+				else
+				{
+					return value;
+				}
+			}
+			else
+			{
+				return {};
+			}
+		},
 		[](ast::expr_type_member_access &) -> ast::constant_value {
 			// variable constevalness is handled in parse_context::make_member_access_expression
 			return {};
@@ -3204,6 +3228,30 @@ static ast::constant_value try_evaluate_expr(
 				return member_access_expr.base
 					.get_constant_value()
 					.get_aggregate()[member_access_expr.index];
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&context, &expr](ast::expr_optional_extract_value &optional_extract_value) -> ast::constant_value {
+			consteval_try(optional_extract_value.optional_value, context);
+			if (optional_extract_value.optional_value.has_consteval_succeeded())
+			{
+				auto const &value = optional_extract_value.optional_value.get_constant_value();
+				if (value.is_null_constant())
+				{
+					context.report_warning(
+						ctx::warning_kind::get_value_null,
+						expr.src_tokens,
+						"getting value of a null optional"
+					);
+					return {};
+				}
+				else
+				{
+					return value;
+				}
 			}
 			else
 			{
@@ -3755,6 +3803,30 @@ static ast::constant_value try_evaluate_expr_without_error(
 				return member_access_expr.base
 					.get_constant_value()
 					.get_aggregate()[member_access_expr.index];
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&context, &expr](ast::expr_optional_extract_value &optional_extract_value) -> ast::constant_value {
+			consteval_try_without_error(optional_extract_value.optional_value, context);
+			if (optional_extract_value.optional_value.has_consteval_succeeded())
+			{
+				auto const &value = optional_extract_value.optional_value.get_constant_value();
+				if (value.is_null_constant())
+				{
+					context.report_warning(
+						ctx::warning_kind::get_value_null,
+						expr.src_tokens,
+						"getting value of a null optional"
+					);
+					return {};
+				}
+				else
+				{
+					return value;
+				}
 			}
 			else
 			{
@@ -4550,6 +4622,28 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 		[&notes](ast::expr_member_access const &member_access_expr) {
 			bz_assert(!member_access_expr.base.has_consteval_succeeded());
 			get_consteval_fail_notes_helper(member_access_expr.base, notes);
+		},
+		[&expr, &notes](ast::expr_optional_extract_value const &optional_extract_value) {
+			if (optional_extract_value.optional_value.has_consteval_failed())
+			{
+				get_consteval_fail_notes_helper(optional_extract_value.optional_value, notes);
+			}
+			else if (optional_extract_value.optional_value.get_constant_value().is_null_constant())
+			{
+				notes.push_back(ctx::parse_context::make_note(
+					expr.src_tokens, "getting value of a null optional is not a constant expression"
+				));
+			}
+			else
+			{
+				notes.push_back(ctx::parse_context::make_note(
+					expr.src_tokens,
+					bz::format(
+						"getting value of an optional of type '{}' is not a constant expression",
+						optional_extract_value.optional_value.get_expr_type()
+					)
+				));
+			}
 		},
 		[&expr, &notes](ast::expr_type_member_access const &) {
 			notes.emplace_back(ctx::parse_context::make_note(

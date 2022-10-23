@@ -28,6 +28,11 @@ static ast::expression make_swap_expression(
 	ast::expression rhs,
 	parse_context &context
 );
+static ast::expression make_optional_extract_value_expression(
+	lex::src_tokens const &src_tokens,
+	ast::expression optional_value,
+	parse_context &context
+);
 static ast::expression make_destruct_expression(
 	ast::typespec_view type,
 	ast::expression value,
@@ -3612,6 +3617,11 @@ static ast::expression make_expr_function_call_from_body(
 		ast::typespec const expr_type = args[0].get_expr_type();
 		return make_swap_expression(src_tokens, expr_type, std::move(args[0]), std::move(args[1]), context);
 	}
+	else if (body->is_intrinsic() && body->intrinsic_kind == ast::function_body::builtin_optional_get_value)
+	{
+		bz_assert(args.size() == 1);
+		return make_optional_extract_value_expression(src_tokens, std::move(args[0]), context);
+	}
 	else if (body->is_default_default_constructor() || (body->is_default_constructor() && body->is_defaulted()))
 	{
 		bz_assert(args.size() == 0);
@@ -6511,6 +6521,31 @@ static ast::expression make_swap_expression(
 	{
 		bz_unreachable;
 	}
+}
+
+static ast::expression make_optional_extract_value_expression(
+	lex::src_tokens const &src_tokens,
+	ast::expression optional_value,
+	parse_context &context
+)
+{
+	auto const value_type = optional_value.get_expr_type().get<ast::ts_optional>();
+	auto value_move_expr = context.make_move_construction(
+		ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue_reference, value_type,
+			ast::make_expr_bitcode_value_reference(),
+			ast::destruct_operation()
+		)
+	);
+
+	ast::typespec result_type = value_type;
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::rvalue, std::move(result_type),
+		ast::make_expr_optional_extract_value(std::move(optional_value), std::move(value_move_expr)),
+		ast::destruct_operation()
+	);
 }
 
 static ast::expression make_base_type_destruct_expression(
