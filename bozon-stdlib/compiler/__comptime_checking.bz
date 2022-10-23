@@ -819,7 +819,7 @@ function register_malloc(ptr: *uint8, size: usize, begin: uint64, pivot: uint64,
 }
 
 @__comptime_error_checking("register_free")
-function register_free(ptr: *uint8, begin: uint64, pivot: uint64, end: uint64) -> bool
+function register_free(ptr: ?*uint8, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (ptr == null)
 	{
