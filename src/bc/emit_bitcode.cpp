@@ -500,7 +500,7 @@ static void emit_null_optional_get_value_check(
 		auto const has_value = optional_has_value(optional_val, context);
 		emit_error_assert(src_tokens, has_value, "'get_value' called on a null optional", context);
 	}
-	else if (panic_on_null_pointer_arithmetic)
+	else if (panic_on_null_get_value)
 	{
 		auto const has_value = optional_has_value(optional_val, context);
 		auto const begin_bb = context.builder.GetInsertBlock();
@@ -1505,8 +1505,53 @@ static val_ptr emit_builtin_binary_minus(
 
 		if (lhs_t.is_optional_pointer())
 		{
-			emit_null_pointer_arithmetic_check<abi>(lhs.src_tokens, lhs_val, context);
-			emit_null_pointer_arithmetic_check<abi>(rhs.src_tokens, rhs_val, context);
+			if constexpr (is_comptime<decltype(context)>)
+			{
+				auto const lhs_has_value = optional_has_value(val_ptr::get_value(lhs_val), context);
+				auto const rhs_has_value = optional_has_value(val_ptr::get_value(rhs_val), context);
+				auto const is_valid = context.builder.CreateICmpEQ(lhs_has_value, rhs_has_value);
+
+				auto const begin_bb = context.builder.GetInsertBlock();
+				auto const error_bb = context.add_basic_block("pointer_diff_null_check_error");
+				context.builder.SetInsertPoint(error_bb);
+				emit_error_assert(lhs.src_tokens, lhs_has_value, "null value used in pointer arithmetic", context);
+				emit_error_assert(rhs.src_tokens, rhs_has_value, "null value used in pointer arithmetic", context);
+
+				auto const end_bb = context.add_basic_block("pointer_diff_null_check_end");
+				context.builder.CreateBr(end_bb);
+
+				context.builder.SetInsertPoint(begin_bb);
+				context.builder.CreateCondBr(is_valid, end_bb, error_bb);
+
+				context.builder.SetInsertPoint(end_bb);
+			}
+			else if (panic_on_null_pointer_arithmetic)
+			{
+				auto const lhs_has_value = optional_has_value(val_ptr::get_value(lhs_val), context);
+				auto const rhs_has_value = optional_has_value(val_ptr::get_value(rhs_val), context);
+				auto const is_valid = context.builder.CreateICmpEQ(lhs_has_value, rhs_has_value);
+
+				auto const begin_bb = context.builder.GetInsertBlock();
+				auto const error_bb = context.add_basic_block("pointer_diff_null_check_error");
+
+				auto const lhs_null_bb = context.add_basic_block("pointer_diff_null_check_error_lhs");
+				context.builder.SetInsertPoint(lhs_null_bb);
+				emit_panic_call<abi>(lhs.src_tokens, "null value used in pointer arithmetic", context);
+				bz_assert(context.has_terminator());
+
+				auto const rhs_null_bb = context.add_basic_block("pointer_diff_null_check_error_rhs");
+				context.builder.SetInsertPoint(rhs_null_bb);
+				emit_panic_call<abi>(rhs.src_tokens, "null value used in pointer arithmetic", context);
+				bz_assert(context.has_terminator());
+
+				context.builder.SetInsertPoint(error_bb);
+				context.builder.CreateCondBr(lhs_has_value, rhs_null_bb, lhs_null_bb);
+
+				auto const end_bb = context.add_basic_block("pointer_diff_null_check_end");
+				context.builder.SetInsertPoint(begin_bb);
+				context.builder.CreateCondBr(is_valid, end_bb, error_bb);
+				context.builder.SetInsertPoint(end_bb);
+			}
 		}
 
 		auto const result_val = context.builder.CreatePtrDiff(elem_type, lhs_val, rhs_val, "ptr_diff_tmp");
