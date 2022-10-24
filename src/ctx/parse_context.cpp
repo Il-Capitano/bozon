@@ -4280,7 +4280,21 @@ static ast::expression make_constructor_call_expression(
 	}
 	else if (args.empty())
 	{
-		return context.make_default_construction(src_tokens, called_type);
+		if (context.is_default_constructible(src_tokens, called_type))
+		{
+			return context.make_default_construction(src_tokens, called_type);
+		}
+		else
+		{
+			context.report_error(
+				src_tokens,
+				bz::format("type '{}' is not default constructible", called_type)
+			);
+			return ast::make_error_expression(
+				src_tokens,
+				ast::make_expr_function_call(src_tokens, std::move(args), nullptr, ast::resolve_order::regular)
+			);
+		}
 	}
 	else if (args.size() == 1)
 	{
