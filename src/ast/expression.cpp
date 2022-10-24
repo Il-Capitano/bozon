@@ -56,6 +56,32 @@ destruct_self &destruct_self::operator = (destruct_self const &other)
 	return *this;
 }
 
+destruct_rvalue_array::destruct_rvalue_array(expression _elem_destruct_call)
+	: elem_destruct_call(make_ast_unique<expression>(std::move(_elem_destruct_call)))
+{}
+
+destruct_rvalue_array::destruct_rvalue_array(destruct_rvalue_array const &other)
+	: elem_destruct_call(make_ast_unique<expression>(*other.elem_destruct_call))
+{}
+
+destruct_rvalue_array &destruct_rvalue_array::operator = (destruct_rvalue_array const &other)
+{
+	if (this == &other)
+	{
+		return *this;
+	}
+
+	if (this->elem_destruct_call == nullptr)
+	{
+		this->elem_destruct_call = make_ast_unique<expression>(*other.elem_destruct_call);
+	}
+	else
+	{
+		*this->elem_destruct_call = *other.elem_destruct_call;
+	}
+	return *this;
+}
+
 defer_expression::defer_expression(expression _expr)
 	: expr(make_ast_unique<expression>(std::move(_expr)))
 {}

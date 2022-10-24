@@ -452,6 +452,7 @@ struct parse_context
 	void add_self_destruction(ast::expression &expr);
 	void add_self_move_destruction(ast::expression &expr);
 	ast::destruct_operation make_variable_destruction(ast::decl_variable *var_decl);
+	ast::destruct_operation make_rvalue_array_destruction(lex::src_tokens const &src_tokens, ast::typespec_view type);
 
 	void resolve_type(lex::src_tokens const &src_tokens, ast::type_info *info);
 	bool is_default_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);

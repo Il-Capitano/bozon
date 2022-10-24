@@ -1,22 +1,5 @@
-import std::print;
-import std::math;
-import std::utils;
-import std::generic;
-import std::complex;
-import std::algorithm;
-import std::bit;
-import std::format;
-import std::string;
-import std::vector;
-
-import std::libc::math;
-import std::libc::stdlib;
-import std::libc::stdio;
-
-import std::fs::path;
-
-import std::meta::comptime;
-
+import std;
+import std::libc;
 import private_member_test;
 
 function factorial(n: auto) -> typeof n

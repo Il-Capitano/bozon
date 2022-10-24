@@ -544,6 +544,94 @@ static void emit_null_pointer_arithmetic_check(
 	}
 }
 
+struct array_init_loop_info_t
+{
+	llvm::BasicBlock *condition_check_bb;
+	llvm::BasicBlock *end_bb;
+	llvm::PHINode *iter_val;
+};
+
+static array_init_loop_info_t create_loop_start(size_t size, auto &context)
+{
+	// create a loop
+	auto const start_bb = context.builder.GetInsertBlock();
+	auto const condition_check_bb = context.add_basic_block("array_init_condition_check");
+	auto const loop_bb = context.add_basic_block("array_init_loop");
+	auto const end_bb = context.add_basic_block("array_init_end");
+
+	context.builder.CreateBr(condition_check_bb);
+	context.builder.SetInsertPoint(condition_check_bb);
+	auto const iter_val = context.builder.CreatePHI(context.get_usize_t(), 2);
+	auto const zero_value = llvm::ConstantInt::get(iter_val->getType(), 0);
+	iter_val->addIncoming(zero_value, start_bb);
+	auto const size_value = llvm::ConstantInt::get(iter_val->getType(), size);
+	auto const is_at_end = context.builder.CreateICmpEQ(iter_val, size_value);
+	context.builder.CreateCondBr(is_at_end, end_bb, loop_bb);
+	context.builder.SetInsertPoint(loop_bb);
+
+	return {
+		.condition_check_bb = condition_check_bb,
+		.end_bb = end_bb,
+		.iter_val = iter_val
+	};
+}
+
+static void create_loop_end(array_init_loop_info_t loop_info, auto &context)
+{
+	auto const one_value = llvm::ConstantInt::get(loop_info.iter_val->getType(), 1);
+	auto const next_iter_val = context.builder.CreateAdd(loop_info.iter_val, one_value);
+	context.builder.CreateBr(loop_info.condition_check_bb);
+	auto const loop_end_bb = context.builder.GetInsertBlock();
+
+	loop_info.iter_val->addIncoming(next_iter_val, loop_end_bb);
+	context.builder.SetInsertPoint(loop_info.end_bb);
+}
+
+struct array_destruct_loop_info_t
+{
+	llvm::BasicBlock *condition_check_bb;
+	llvm::BasicBlock *end_bb;
+	llvm::PHINode *condition_check_iter_val;
+	llvm::Value *iter_val;
+};
+
+static array_destruct_loop_info_t create_reversed_loop_start(size_t size, auto &context)
+{
+	// create a loop
+	auto const start_bb = context.builder.GetInsertBlock();
+	auto const condition_check_bb = context.add_basic_block("array_init_condition_check");
+	auto const loop_bb = context.add_basic_block("array_init_loop");
+	auto const end_bb = context.add_basic_block("array_init_end");
+
+	context.builder.CreateBr(condition_check_bb);
+	context.builder.SetInsertPoint(condition_check_bb);
+	auto const iter_val = context.builder.CreatePHI(context.get_usize_t(), 2);
+	auto const zero_value = llvm::ConstantInt::get(iter_val->getType(), 0);
+	auto const size_value = llvm::ConstantInt::get(iter_val->getType(), size);
+	iter_val->addIncoming(size_value, start_bb);
+	auto const is_at_end = context.builder.CreateICmpEQ(iter_val, zero_value);
+	context.builder.CreateCondBr(is_at_end, end_bb, loop_bb);
+	context.builder.SetInsertPoint(loop_bb);
+	auto const one_value = llvm::ConstantInt::get(iter_val->getType(), 1);
+	auto const next_iter_val = context.builder.CreateSub(iter_val, one_value);
+
+	return {
+		.condition_check_bb = condition_check_bb,
+		.end_bb = end_bb,
+		.condition_check_iter_val = iter_val,
+		.iter_val = next_iter_val
+	};
+}
+
+static void create_reversed_loop_end(array_destruct_loop_info_t loop_info, auto &context)
+{
+	context.builder.CreateBr(loop_info.condition_check_bb);
+	auto const loop_end_bb = context.builder.GetInsertBlock();
+
+	loop_info.condition_check_iter_val->addIncoming(loop_info.iter_val, loop_end_bb);
+	context.builder.SetInsertPoint(loop_info.end_bb);
+}
+
 // ================================================================
 // -------------------------- expression --------------------------
 // ================================================================
@@ -3972,6 +4060,62 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
+	lex::src_tokens const &src_tokens,
+	ast::expr_rvalue_array_subscript const &subscript,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	bz_assert(subscript.base.get_expr_type().is<ast::ts_array>());
+	auto const &array_t = subscript.base.get_expr_type().get<ast::ts_array>();
+	auto const array = emit_bitcode<abi>(subscript.base, context, nullptr);
+	auto index_val = emit_bitcode<abi>(subscript.index, context, nullptr).get_value(context.builder);
+	bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type()).is<ast::ts_base_type>());
+	auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
+	if (ast::is_unsigned_integer_kind(kind))
+	{
+		index_val = context.builder.CreateIntCast(index_val, context.get_usize_t(), false);
+	}
+
+	// array bounds check
+	if constexpr (is_comptime<decltype(context)>)
+	{
+		if (context.do_error_checking())
+		{
+			auto const array_size = array_t.size;
+			auto const array_size_val = llvm::ConstantInt::get(context.get_usize_t(), array_size);
+			emit_index_bounds_check(
+				src_tokens,
+				context.builder.CreateIntCast(index_val, array_size_val->getType(), ast::is_signed_integer_kind(kind)),
+				array_size_val,
+				ast::is_unsigned_integer_kind(kind),
+				context
+			);
+		}
+	}
+
+	if (array.kind == val_ptr::value)
+	{
+		auto const array_value = array.get_value(context.builder);
+		auto const array_type = array_value->getType();
+		auto const array_address = context.create_alloca(array_type);
+		context.builder.CreateStore(array_value, array_address);
+		auto const result_ptr = context.create_array_gep(array_type, array_address, index_val);
+		return val_ptr::get_reference(result_ptr, array_type->getArrayElementType());
+	}
+
+	auto const array_type = array.get_type();
+	auto const result_ptr = context.create_array_gep(array_type, array.val, index_val);
+	auto const result_type = array.get_type()->getArrayElementType();
+
+	context.push_rvalue_array_destruct_operation(subscript.elem_destruct_op, array.val, array_type, result_ptr);
+
+	bz_assert(result_address == nullptr);
+	return val_ptr::get_reference(result_ptr, result_type);
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_cast const &cast,
 	auto &context,
@@ -4225,94 +4369,6 @@ static val_ptr emit_bitcode(
 		emit_bitcode<abi>(aggregate_init.exprs[i], context, member_ptr);
 	}
 	return val_ptr::get_reference(result_ptr, type);
-}
-
-struct array_init_loop_info_t
-{
-	llvm::BasicBlock *condition_check_bb;
-	llvm::BasicBlock *end_bb;
-	llvm::PHINode *iter_val;
-};
-
-static array_init_loop_info_t create_loop_start(size_t size, auto &context)
-{
-	// create a loop
-	auto const start_bb = context.builder.GetInsertBlock();
-	auto const condition_check_bb = context.add_basic_block("array_init_condition_check");
-	auto const loop_bb = context.add_basic_block("array_init_loop");
-	auto const end_bb = context.add_basic_block("array_init_end");
-
-	context.builder.CreateBr(condition_check_bb);
-	context.builder.SetInsertPoint(condition_check_bb);
-	auto const iter_val = context.builder.CreatePHI(context.get_usize_t(), 2);
-	auto const zero_value = llvm::ConstantInt::get(iter_val->getType(), 0);
-	iter_val->addIncoming(zero_value, start_bb);
-	auto const size_value = llvm::ConstantInt::get(iter_val->getType(), size);
-	auto const is_at_end = context.builder.CreateICmpEQ(iter_val, size_value);
-	context.builder.CreateCondBr(is_at_end, end_bb, loop_bb);
-	context.builder.SetInsertPoint(loop_bb);
-
-	return {
-		.condition_check_bb = condition_check_bb,
-		.end_bb = end_bb,
-		.iter_val = iter_val
-	};
-}
-
-static void create_loop_end(array_init_loop_info_t loop_info, auto &context)
-{
-	auto const one_value = llvm::ConstantInt::get(loop_info.iter_val->getType(), 1);
-	auto const next_iter_val = context.builder.CreateAdd(loop_info.iter_val, one_value);
-	context.builder.CreateBr(loop_info.condition_check_bb);
-	auto const loop_end_bb = context.builder.GetInsertBlock();
-
-	loop_info.iter_val->addIncoming(next_iter_val, loop_end_bb);
-	context.builder.SetInsertPoint(loop_info.end_bb);
-}
-
-struct array_destruct_loop_info_t
-{
-	llvm::BasicBlock *condition_check_bb;
-	llvm::BasicBlock *end_bb;
-	llvm::PHINode *condition_check_iter_val;
-	llvm::Value *iter_val;
-};
-
-static array_destruct_loop_info_t create_reversed_loop_start(size_t size, auto &context)
-{
-	// create a loop
-	auto const start_bb = context.builder.GetInsertBlock();
-	auto const condition_check_bb = context.add_basic_block("array_init_condition_check");
-	auto const loop_bb = context.add_basic_block("array_init_loop");
-	auto const end_bb = context.add_basic_block("array_init_end");
-
-	context.builder.CreateBr(condition_check_bb);
-	context.builder.SetInsertPoint(condition_check_bb);
-	auto const iter_val = context.builder.CreatePHI(context.get_usize_t(), 2);
-	auto const zero_value = llvm::ConstantInt::get(iter_val->getType(), 0);
-	auto const size_value = llvm::ConstantInt::get(iter_val->getType(), size);
-	iter_val->addIncoming(size_value, start_bb);
-	auto const is_at_end = context.builder.CreateICmpEQ(iter_val, zero_value);
-	context.builder.CreateCondBr(is_at_end, end_bb, loop_bb);
-	context.builder.SetInsertPoint(loop_bb);
-	auto const one_value = llvm::ConstantInt::get(iter_val->getType(), 1);
-	auto const next_iter_val = context.builder.CreateSub(iter_val, one_value);
-
-	return {
-		.condition_check_bb = condition_check_bb,
-		.end_bb = end_bb,
-		.condition_check_iter_val = iter_val,
-		.iter_val = next_iter_val
-	};
-}
-
-static void create_reversed_loop_end(array_destruct_loop_info_t loop_info, auto &context)
-{
-	context.builder.CreateBr(loop_info.condition_check_bb);
-	auto const loop_end_bb = context.builder.GetInsertBlock();
-
-	loop_info.condition_check_iter_val->addIncoming(loop_info.iter_val, loop_end_bb);
-	context.builder.SetInsertPoint(loop_info.end_bb);
 }
 
 template<abi::platform_abi abi>
@@ -5532,6 +5588,59 @@ static val_ptr emit_bitcode(
 	context.pop_value_reference(prev_val);
 
 	return result_val;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_rvalue_member_access const &rvalue_member_access,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const base = emit_bitcode<abi>(rvalue_member_access.base, context, nullptr);
+	bz_assert(base.kind == val_ptr::reference);
+	auto const base_type = ast::remove_const_or_consteval(rvalue_member_access.base.get_expr_type());
+	bz_assert(base_type.is<ast::ts_base_type>());
+	auto const accessed_type = base_type.get<ast::ts_base_type>()
+		.info->member_variables[rvalue_member_access.index]->get_type().as_typespec_view();
+
+	val_ptr result = val_ptr::get_none();
+	for (auto const i : bz::iota(0, rvalue_member_access.member_refs.size()))
+	{
+		if (rvalue_member_access.member_refs[i].is_null())
+		{
+			continue;
+		}
+
+		auto const member_val = [&]() {
+			if (i == rvalue_member_access.index && accessed_type.is<ast::ts_lvalue_reference>())
+			{
+				auto const ref_member_ptr = context.create_struct_gep(base.get_type(), base.val, i);
+				auto const member_ptr = context.builder.CreateLoad(context.get_opaque_pointer_t(), ref_member_ptr);
+				auto const member_type = get_llvm_type(accessed_type.get<ast::ts_lvalue_reference>(), context);
+				return val_ptr::get_reference(member_ptr, member_type);
+			}
+			else
+			{
+				auto const member_ptr = context.create_struct_gep(base.get_type(), base.val, i);
+				auto const member_type = base.get_type()->getStructElementType(i);
+				return val_ptr::get_reference(member_ptr, member_type);
+			}
+		}();
+
+		auto const prev_value = context.push_value_reference(member_val);
+		if (i == rvalue_member_access.index)
+		{
+			result = emit_bitcode<abi>(rvalue_member_access.member_refs[i], context, result_address);
+		}
+		else
+		{
+			emit_bitcode<abi>(rvalue_member_access.member_refs[i], context, nullptr);
+		}
+		context.pop_value_reference(prev_value);
+	}
+	return result;
 }
 
 template<abi::platform_abi abi>
@@ -7714,11 +7823,89 @@ bool emit_necessary_functions(size_t start_index, ctx::comptime_executor_context
 }
 
 template<abi::platform_abi abi>
+static void emit_rvalue_array_destruct(
+	ast::expression const &elem_destruct_expr,
+	val_ptr array_value,
+	llvm::Value *rvalue_array_elem_ptr,
+	auto &context
+)
+{
+	auto const array_type = array_value.get_type();
+	bz_assert(array_type->isArrayTy());
+	size_t const size = array_type->getArrayNumElements();
+	auto const elem_type = array_type->getArrayElementType();
+
+	if (size <= array_loop_threshold)
+	{
+		for (auto const i : bz::iota(0, size).reversed())
+		{
+			auto const elem_ptr = context.create_struct_gep(array_type, array_value.val, i);
+			auto const skip_elem = context.builder.CreateICmpEQ(elem_ptr, rvalue_array_elem_ptr);
+
+			auto const begin_bb = context.builder.GetInsertBlock();
+			auto const destruct_bb = context.add_basic_block("rvalue_array_destruct_destruct");
+			context.builder.SetInsertPoint(destruct_bb);
+
+			auto const prev_value = context.push_value_reference(val_ptr::get_reference(elem_ptr, elem_type));
+			emit_bitcode<abi>(elem_destruct_expr, context, nullptr);
+			context.pop_value_reference(prev_value);
+
+			auto const end_bb = context.add_basic_block("rvalue_array_destruct_end");
+			context.builder.CreateBr(end_bb);
+
+			context.builder.SetInsertPoint(begin_bb);
+			context.builder.CreateCondBr(skip_elem, end_bb, destruct_bb);
+
+			context.builder.SetInsertPoint(end_bb);
+		}
+	}
+	else
+	{
+		auto const begin_bb = context.builder.GetInsertBlock();
+		auto const begin_elem_ptr = context.create_struct_gep(array_type, array_value.val, 0);
+		auto const end_elem_ptr = context.create_struct_gep(array_type, array_value.val, size);
+
+		auto const loop_begin_bb = context.add_basic_block("rvalue_array_destruct_loop_begin");
+		context.builder.CreateBr(loop_begin_bb);
+		context.builder.SetInsertPoint(loop_begin_bb);
+
+		auto const elem_ptr_phi = context.builder.CreatePHI(end_elem_ptr->getType(), 2);
+		elem_ptr_phi->addIncoming(end_elem_ptr, begin_bb);
+		auto const elem_ptr = context.builder.CreateConstGEP1_64(elem_type, elem_ptr_phi, uint64_t(-1));
+
+		auto const skip_elem = context.builder.CreateICmpEQ(elem_ptr, rvalue_array_elem_ptr);
+
+		auto const destruct_bb = context.add_basic_block("rvalue_array_destruct_loop_destruct");
+		context.builder.SetInsertPoint(destruct_bb);
+
+		auto const prev_value = context.push_value_reference(val_ptr::get_reference(elem_ptr, elem_type));
+		emit_bitcode<abi>(elem_destruct_expr, context, nullptr);
+		context.pop_value_reference(prev_value);
+
+		auto const loop_end_bb = context.add_basic_block("rvalue_array_destruct_loop_end");
+		context.builder.CreateBr(loop_end_bb);
+
+		context.builder.SetInsertPoint(loop_begin_bb);
+		context.builder.CreateCondBr(skip_elem, loop_end_bb, destruct_bb);
+
+		context.builder.SetInsertPoint(loop_end_bb);
+		elem_ptr_phi->addIncoming(elem_ptr, loop_end_bb);
+		auto const end_loop = context.builder.CreateICmpEQ(elem_ptr, begin_elem_ptr);
+
+		auto const end_bb = context.add_basic_block("rvalue_array_destruct_end");
+		context.builder.CreateCondBr(end_loop, end_bb, loop_begin_bb);
+
+		context.builder.SetInsertPoint(end_bb);
+	}
+}
+
+template<abi::platform_abi abi>
 static void emit_destruct_operation_impl(
 	ast::destruct_operation const &destruct_op,
 	val_ptr value,
 	llvm::Value *condition,
 	llvm::Value *move_destruct_indicator,
+	llvm::Value *rvalue_array_elem_ptr,
 	auto &context
 )
 {
@@ -7776,9 +7963,41 @@ static void emit_destruct_operation_impl(
 		bz_assert(condition == nullptr);
 		emit_bitcode<abi>(*destruct_op.get<ast::defer_expression>().expr, context, nullptr);
 	}
+	else if (destruct_op.is<ast::destruct_rvalue_array>())
+	{
+		bz_assert(rvalue_array_elem_ptr != nullptr);
+		if (condition != nullptr)
+		{
+			bz_assert(condition->getType()->isPointerTy());
+			auto const destruct_bb = context.add_basic_block("conditional_destruct");
+			auto const end_bb = context.add_basic_block("conditional_destruct_end");
+			auto const condition_val = context.create_load(context.get_bool_t(), condition);
+			context.builder.CreateCondBr(condition_val, destruct_bb, end_bb);
+
+			context.builder.SetInsertPoint(destruct_bb);
+			emit_rvalue_array_destruct<abi>(
+				*destruct_op.get<ast::destruct_rvalue_array>().elem_destruct_call,
+				value,
+				rvalue_array_elem_ptr,
+				context
+			);
+			context.builder.CreateBr(end_bb);
+
+			context.builder.SetInsertPoint(end_bb);
+		}
+		else
+		{
+			emit_rvalue_array_destruct<abi>(
+				*destruct_op.get<ast::destruct_rvalue_array>().elem_destruct_call,
+				value,
+				rvalue_array_elem_ptr,
+				context
+			);
+		}
+	}
 	else
 	{
-		static_assert(ast::destruct_operation::variant_count == 3);
+		static_assert(ast::destruct_operation::variant_count == 4);
 		bz_assert(destruct_op.is_null());
 		// nothing
 	}
@@ -7805,6 +8024,7 @@ void emit_destruct_operation(
 			val_ptr::get_none(),
 			condition,
 			move_destruct_indicator,
+			nullptr,
 			context
 		);
 		return;
@@ -7814,6 +8034,7 @@ void emit_destruct_operation(
 			val_ptr::get_none(),
 			condition,
 			move_destruct_indicator,
+			nullptr,
 			context
 		);
 		return;
@@ -7823,6 +8044,7 @@ void emit_destruct_operation(
 			val_ptr::get_none(),
 			condition,
 			move_destruct_indicator,
+			nullptr,
 			context
 		);
 		return;
@@ -7846,6 +8068,7 @@ void emit_destruct_operation(
 			val_ptr::get_none(),
 			condition,
 			move_destruct_indicator,
+			nullptr,
 			context
 		);
 		return;
@@ -7855,6 +8078,7 @@ void emit_destruct_operation(
 			val_ptr::get_none(),
 			condition,
 			move_destruct_indicator,
+			nullptr,
 			context
 		);
 		return;
@@ -7864,6 +8088,7 @@ void emit_destruct_operation(
 			val_ptr::get_none(),
 			condition,
 			move_destruct_indicator,
+			nullptr,
 			context
 		);
 		return;
@@ -7876,6 +8101,7 @@ void emit_destruct_operation(
 	val_ptr value,
 	llvm::Value *condition,
 	llvm::Value *move_destruct_indicator,
+	llvm::Value *rvalue_array_elem_ptr,
 	ctx::bitcode_context &context
 )
 {
@@ -7888,6 +8114,7 @@ void emit_destruct_operation(
 			value,
 			condition,
 			move_destruct_indicator,
+			rvalue_array_elem_ptr,
 			context
 		);
 		return;
@@ -7897,6 +8124,7 @@ void emit_destruct_operation(
 			value,
 			condition,
 			move_destruct_indicator,
+			rvalue_array_elem_ptr,
 			context
 		);
 		return;
@@ -7906,6 +8134,7 @@ void emit_destruct_operation(
 			value,
 			condition,
 			move_destruct_indicator,
+			rvalue_array_elem_ptr,
 			context
 		);
 		return;
@@ -7918,6 +8147,7 @@ void emit_destruct_operation(
 	val_ptr value,
 	llvm::Value *condition,
 	llvm::Value *move_destruct_indicator,
+	llvm::Value *rvalue_array_elem_ptr,
 	ctx::comptime_executor_context &context
 )
 {
@@ -7930,6 +8160,7 @@ void emit_destruct_operation(
 			value,
 			condition,
 			move_destruct_indicator,
+			rvalue_array_elem_ptr,
 			context
 		);
 		return;
@@ -7939,6 +8170,7 @@ void emit_destruct_operation(
 			value,
 			condition,
 			move_destruct_indicator,
+			rvalue_array_elem_ptr,
 			context
 		);
 		return;
@@ -7948,6 +8180,7 @@ void emit_destruct_operation(
 			value,
 			condition,
 			move_destruct_indicator,
+			rvalue_array_elem_ptr,
 			context
 		);
 		return;

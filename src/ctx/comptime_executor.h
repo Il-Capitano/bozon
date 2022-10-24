@@ -282,6 +282,7 @@ struct comptime_executor_context
 	void push_destruct_operation(ast::destruct_operation const &destruct_op);
 	void push_variable_destruct_operation(ast::destruct_operation const &destruct_op, llvm::Value *move_destruct_indicator = nullptr);
 	void push_self_destruct_operation(ast::destruct_operation const &destruct_op, llvm::Value *ptr, llvm::Type *type);
+	void push_rvalue_array_destruct_operation(ast::destruct_operation const &destruct_op, llvm::Value *ptr, llvm::Type *type, llvm::Value *rvalue_array_elem_ptr);
 	void emit_destruct_operations(void);
 	void emit_loop_destruct_operations(void);
 	void emit_all_destruct_operations(void);
@@ -362,6 +363,7 @@ struct comptime_executor_context
 		llvm::Type *type;
 		llvm::Value *condition;
 		llvm::Value *move_destruct_indicator;
+		llvm::Value *rvalue_array_elem_ptr;
 	};
 
 	struct end_lifetime_info_t

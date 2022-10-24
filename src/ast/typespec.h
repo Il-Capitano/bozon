@@ -223,7 +223,7 @@ struct ts_void
 
 struct ts_function
 {
-	bz::vector<typespec> param_types;
+	arena_vector<typespec> param_types;
 	typespec return_type;
 };
 
@@ -240,7 +240,7 @@ struct ts_array_slice
 
 struct ts_tuple
 {
-	bz::vector<typespec> types;
+	arena_vector<typespec> types;
 };
 
 struct ts_auto
@@ -337,7 +337,7 @@ inline typespec make_array_slice_typespec(
 
 inline typespec make_tuple_typespec(
 	lex::src_tokens const &src_tokens,
-	bz::vector<typespec> types
+	arena_vector<typespec> types
 )
 {
 	return typespec{ src_tokens, {}, make_ast_unique<terminator_typespec_node_t>(ts_tuple{ std::move(types) }) };
@@ -345,7 +345,7 @@ inline typespec make_tuple_typespec(
 
 inline typespec make_function_typespec(
 	lex::src_tokens const &src_tokens,
-	bz::vector<typespec> param_types,
+	arena_vector<typespec> param_types,
 	typespec return_type
 )
 {

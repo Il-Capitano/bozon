@@ -1,0 +1,20 @@
+import resource;
+
+function get_resources(size: consteval usize) -> [size: complex_resource_t]
+{
+	return [size: complex_resource_t]();
+}
+
+function main()
+{
+	(consteval {
+		let _ = get_resources(4)[2];
+		get_resources(4)[2];
+		let _ = get_resources(20)[10];
+		get_resources(20)[10];
+	});
+	let _ = get_resources(4)[2];
+	get_resources(4)[2];
+	let _ = get_resources(20)[10];
+	get_resources(20)[10];
+}

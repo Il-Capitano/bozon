@@ -1,7 +1,19 @@
-function get_value() -> [ int32, str ];
+import resource;
+
+function get_value() -> [int32, str];
+
+function get_resources() -> [complex_resource_t, complex_resource_t]
+{
+	return [complex_resource_t, complex_resource_t]();
+}
 
 function main()
 {
 	let _ = [ 0, 0.0, "" ][1];
 	let _ = get_value()[1];
+
+	(consteval {
+		let _ = get_resources()[0];
+		get_resources()[0];
+	});
 }
