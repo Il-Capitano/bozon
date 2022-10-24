@@ -122,6 +122,9 @@
 			"defines": [],
 			"run_args": [ "-Wall", "--debug-comptime-ir-output", "--no-error-highlight", "--stdlib-dir", "bozon-stdlib" ],
 			"configs": {
+				"windows-debug": {
+					"optimization": "g"
+				},
 				"linux": {
 					"cpp_compiler_flags": [ "-fno-var-tracking-assignments" ]
 				}
