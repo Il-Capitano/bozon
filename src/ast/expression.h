@@ -1095,7 +1095,7 @@ struct expr_optional_extract_value
 		: optional_value(std::move(_optional_value)),
 		  value_move_expr(std::move(_value_move_expr))
 	{}
-}
+};
 
 struct expr_rvalue_member_access
 {
