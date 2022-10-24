@@ -487,9 +487,14 @@ export function d2s_buffered(f: float64, result: *uint8)
 	*(result + index) = 0;
 }
 
-export function d2s(f: float64) -> *uint8
+export function d2s(f: float64) -> ?*uint8
 {
-	const result = __builtin_pointer_cast(*uint8, libc::malloc(25));
+	const buffer_alloc = libc::malloc(25);
+	if (buffer_alloc == null)
+	{
+		return null;
+	}
+	const result = __builtin_pointer_cast(*uint8, buffer_alloc.get_value());
 	d2s_buffered(f, result);
 	return result;
 }

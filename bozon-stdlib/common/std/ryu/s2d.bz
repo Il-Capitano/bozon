@@ -48,7 +48,7 @@ function int64Bits2Double(bits: uint64) -> float64
 	return f;
 }
 
-export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> uint32
+export function s2d_n(buffer: ?*const uint8, len: int32, result: *float64) -> uint32
 {
 	if (len == 0)
 	{
@@ -237,7 +237,7 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> uin
 	return s2d_SUCCESS;
 }
 
-function c_strlen(c_str: *const uint8) -> int32
+function c_strlen(c_str: ?*const uint8) -> int32
 {
 	if (c_str == null)
 	{
@@ -253,7 +253,7 @@ function c_strlen(c_str: *const uint8) -> int32
 	return result;
 }
 
-export function s2d(buffer: *const uint8, result: *float64) -> uint32
+export function s2d(buffer: ?*const uint8, result: *float64) -> uint32
 {
 	return s2d_n(buffer, c_strlen(buffer), result);
 }

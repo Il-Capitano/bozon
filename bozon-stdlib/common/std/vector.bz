@@ -30,9 +30,9 @@ export struct vector<T: typename>
 		.meta::remove_consteval();
 	type _self_t = vector<T>;
 
-	._data_begin: *value_type;
-	._data_end:   *value_type;
-	._alloc_end:  *value_type;
+	._data_begin: ?*value_type;
+	._data_end:   ?*value_type;
+	._alloc_end:  ?*value_type;
 
 	destructor(&self)
 	{
@@ -167,7 +167,7 @@ export struct vector<T: typename>
 			const new_end = self._data_begin + new_size;
 			for (let it = self._data_end; it != new_end; ++it)
 			{
-				__builtin_inplace_construct(it, value_type());
+				__builtin_inplace_construct(it.get_value(), value_type());
 			}
 			self._data_end = new_end;
 		}
@@ -210,7 +210,7 @@ export struct vector<T: typename>
 		{
 			self.reserve(self.size() + 1);
 		}
-		__builtin_inplace_construct(self._data_end, value_type(__forward value));
+		__builtin_inplace_construct(self._data_end.get_value(), value_type(__forward value));
 		self._data_end += 1;
 	}
 
@@ -220,50 +220,50 @@ export struct vector<T: typename>
 		{
 			self.reserve(self.size() + 1);
 		}
-		__builtin_inplace_construct(self._data_end, value_type(...__forward args));
+		__builtin_inplace_construct(self._data_end.get_value(), value_type(...__forward args));
 		self._data_end += 1;
 		return *(self._data_end - 1);
 	}
 }
 
-export function begin(vec: &vector) -> *(typeof vec).value_type
+export function begin(vec: &vector) -> ?*(typeof vec).value_type
 {
 	return vec._data_begin;
 }
 
-export function end(vec: &vector) -> *(typeof vec).value_type
+export function end(vec: &vector) -> ?*(typeof vec).value_type
 {
 	return vec._data_end;
 }
 
-export function begin(vec: &const vector) -> *const (typeof vec).value_type
+export function begin(vec: &const vector) -> ?*const (typeof vec).value_type
 {
 	return vec._data_begin;
 }
 
-export function end(vec: &const vector) -> *const (typeof vec).value_type
+export function end(vec: &const vector) -> ?*const (typeof vec).value_type
 {
 	return vec._data_end;
 }
 
 
-function move_range(begin: *auto, end: *auto, other_begin: *auto)
+function move_range(begin: ?*auto, end: ?*auto, other_begin: ?*auto)
 {
 	for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
 	{
-		__builtin_inplace_construct(it, __move__ *other_it);
+		__builtin_inplace_construct(it.get_value(), __move__ *other_it);
 	}
 }
 
-function copy_range(begin: *auto, end: *auto, other_begin: *const auto)
+function copy_range(begin: ?*auto, end: ?*auto, other_begin: ?*const auto)
 {
 	for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
 	{
-		__builtin_inplace_construct(it, *other_it);
+		__builtin_inplace_construct(it.get_value(), *other_it);
 	}
 }
 
-function destruct_range(begin: *auto, end: *auto)
+function destruct_range(begin: ?*auto, end: ?*auto)
 {
 	for (let it = begin; it < end; ++it)
 	{
@@ -280,7 +280,7 @@ function round_to_next_power_of_two(n: usize) -> usize
 	};
 }
 
-function rounded_alloc(T: typename, n: usize) -> [*T, usize]
+function rounded_alloc(T: typename, n: usize) -> [?*T, usize]
 {
 	if (n == 0)
 	{

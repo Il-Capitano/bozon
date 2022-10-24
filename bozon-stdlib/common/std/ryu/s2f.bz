@@ -49,7 +49,7 @@ function int32Bits2Float(bits: uint32) -> float32
 	return f;
 }
 
-export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uint32
+export function s2f_n(buffer: ?*const uint8, len: int32, result: *float32) -> uint32
 {
 	if (len == 0)
 	{
@@ -251,7 +251,7 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 	return s2f_SUCCESS;
 }
 
-function c_strlen(c_str: *const uint8) -> int32
+function c_strlen(c_str: ?*const uint8) -> int32
 {
 	if (c_str == null)
 	{
@@ -267,7 +267,7 @@ function c_strlen(c_str: *const uint8) -> int32
 	return result;
 }
 
-export function s2f(buffer: *const uint8, result: *float32) -> uint32
+export function s2f(buffer: ?*const uint8, result: *float32) -> uint32
 {
 	return s2f_n(buffer, c_strlen(buffer), result);
 }
