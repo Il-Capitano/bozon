@@ -26,6 +26,7 @@ struct expr_binary_op;
 struct expr_tuple_subscript;
 struct expr_rvalue_tuple_subscript;
 struct expr_subscript;
+struct expr_rvalue_array_subscript;
 struct expr_function_call;
 struct expr_cast;
 struct expr_take_reference;
@@ -93,6 +94,7 @@ using expr_t = node<
 	expr_tuple_subscript,
 	expr_rvalue_tuple_subscript,
 	expr_subscript,
+	expr_rvalue_array_subscript,
 	expr_function_call,
 	expr_cast,
 	expr_take_reference,
@@ -190,9 +192,22 @@ struct defer_expression
 	defer_expression &operator = (defer_expression &&other) = default;
 };
 
-struct destruct_operation : bz::variant<destruct_variable, destruct_self, defer_expression>
+struct destruct_rvalue_array
 {
-	using base_t = bz::variant<destruct_variable, destruct_self, defer_expression>;
+	ast_unique_ptr<expression> elem_destruct_call;
+
+	destruct_rvalue_array(expression _elem_destruct_call);
+
+	destruct_rvalue_array(destruct_rvalue_array const &other);
+	destruct_rvalue_array(destruct_rvalue_array &&other) = default;
+
+	destruct_rvalue_array &operator = (destruct_rvalue_array const &other);
+	destruct_rvalue_array &operator = (destruct_rvalue_array &&other) = default;
+};
+
+struct destruct_operation : bz::variant<destruct_variable, destruct_self, defer_expression, destruct_rvalue_array>
+{
+	using base_t = bz::variant<destruct_variable, destruct_self, defer_expression, destruct_rvalue_array>;
 	using base_t::variant;
 
 	ast::decl_variable const *move_destructed_decl = nullptr;
@@ -540,6 +555,23 @@ struct expr_subscript
 		expression _index
 	)
 		: base (std::move(_base)),
+		  index(std::move(_index))
+	{}
+};
+
+struct expr_rvalue_array_subscript
+{
+	expression base;
+	destruct_operation elem_destruct_op;
+	expression index;
+
+	expr_rvalue_array_subscript(
+		expression _base,
+		destruct_operation _elem_destruct_op,
+		expression _index
+	)
+		: base (std::move(_base)),
+		  elem_destruct_op(std::move(_elem_destruct_op)),
 		  index(std::move(_index))
 	{}
 };
@@ -1226,6 +1258,7 @@ def_make_fn(expr_t, expr_binary_op)
 def_make_fn(expr_t, expr_tuple_subscript)
 def_make_fn(expr_t, expr_rvalue_tuple_subscript)
 def_make_fn(expr_t, expr_subscript)
+def_make_fn(expr_t, expr_rvalue_array_subscript)
 def_make_fn(expr_t, expr_function_call)
 def_make_fn(expr_t, expr_cast)
 def_make_fn(expr_t, expr_take_reference)

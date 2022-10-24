@@ -2349,6 +2349,40 @@ static ast::constant_value guaranteed_evaluate_expr(
 
 			return evaluate_subscript(subscript_expr, context);
 		},
+		[&context](ast::expr_rvalue_array_subscript &rvalue_array_subscript_expr) -> ast::constant_value {
+			consteval_guaranteed(rvalue_array_subscript_expr.base, context);
+			consteval_guaranteed(rvalue_array_subscript_expr.index, context);
+
+			if (rvalue_array_subscript_expr.base.is_constant() && rvalue_array_subscript_expr.index.is_constant())
+			{
+				auto const &index_value = rvalue_array_subscript_expr.index.get_constant_value();
+				bz_assert(index_value.is_uint() || index_value.is_sint());
+				auto const index = index_value.is_uint()
+					? index_value.get_uint()
+					: static_cast<uint64_t>(index_value.get_sint());
+				auto const &base_value = rvalue_array_subscript_expr.base.get_constant_value();
+				switch (base_value.kind())
+				{
+				static_assert(ast::constant_value::variant_count == 20);
+				case ast::constant_value::array:
+					return base_value.get_array()[index];
+				case ast::constant_value::uint_array:
+					return ast::constant_value(base_value.get_uint_array()[index]);
+				case ast::constant_value::sint_array:
+					return ast::constant_value(base_value.get_sint_array()[index]);
+				case ast::constant_value::float32_array:
+					return ast::constant_value(base_value.get_float32_array()[index]);
+				case ast::constant_value::float64_array:
+					return ast::constant_value(base_value.get_float64_array()[index]);
+				default:
+					bz_unreachable;
+				}
+			}
+			else
+			{
+				return {};
+			}
+		},
 		[&expr, &context](ast::expr_function_call &func_call) -> ast::constant_value {
 			for (auto &param : func_call.params)
 			{
@@ -2844,6 +2878,40 @@ static ast::constant_value try_evaluate_expr(
 			consteval_try(subscript_expr.base, context);
 
 			return evaluate_subscript(subscript_expr, context);
+		},
+		[&context](ast::expr_rvalue_array_subscript &rvalue_array_subscript_expr) -> ast::constant_value {
+			consteval_try(rvalue_array_subscript_expr.base, context);
+			consteval_try(rvalue_array_subscript_expr.index, context);
+
+			if (rvalue_array_subscript_expr.base.is_constant() && rvalue_array_subscript_expr.index.is_constant())
+			{
+				auto const &index_value = rvalue_array_subscript_expr.index.get_constant_value();
+				bz_assert(index_value.is_uint() || index_value.is_sint());
+				auto const index = index_value.is_uint()
+					? index_value.get_uint()
+					: static_cast<uint64_t>(index_value.get_sint());
+				auto const &base_value = rvalue_array_subscript_expr.base.get_constant_value();
+				switch (base_value.kind())
+				{
+				static_assert(ast::constant_value::variant_count == 20);
+				case ast::constant_value::array:
+					return base_value.get_array()[index];
+				case ast::constant_value::uint_array:
+					return ast::constant_value(base_value.get_uint_array()[index]);
+				case ast::constant_value::sint_array:
+					return ast::constant_value(base_value.get_sint_array()[index]);
+				case ast::constant_value::float32_array:
+					return ast::constant_value(base_value.get_float32_array()[index]);
+				case ast::constant_value::float64_array:
+					return ast::constant_value(base_value.get_float64_array()[index]);
+				default:
+					bz_unreachable;
+				}
+			}
+			else
+			{
+				return {};
+			}
 		},
 		[&expr, &context](ast::expr_function_call &func_call) -> ast::constant_value {
 			for (auto &param : func_call.params)
@@ -3344,6 +3412,40 @@ static ast::constant_value try_evaluate_expr_without_error(
 			consteval_try_without_error(subscript_expr.index, context);
 
 			return evaluate_subscript(subscript_expr, context);
+		},
+		[&context](ast::expr_rvalue_array_subscript &rvalue_array_subscript_expr) -> ast::constant_value {
+			consteval_try_without_error(rvalue_array_subscript_expr.base, context);
+			consteval_try_without_error(rvalue_array_subscript_expr.index, context);
+
+			if (rvalue_array_subscript_expr.base.is_constant() && rvalue_array_subscript_expr.index.is_constant())
+			{
+				auto const &index_value = rvalue_array_subscript_expr.index.get_constant_value();
+				bz_assert(index_value.is_uint() || index_value.is_sint());
+				auto const index = index_value.is_uint()
+					? index_value.get_uint()
+					: static_cast<uint64_t>(index_value.get_sint());
+				auto const &base_value = rvalue_array_subscript_expr.base.get_constant_value();
+				switch (base_value.kind())
+				{
+				static_assert(ast::constant_value::variant_count == 20);
+				case ast::constant_value::array:
+					return base_value.get_array()[index];
+				case ast::constant_value::uint_array:
+					return ast::constant_value(base_value.get_uint_array()[index]);
+				case ast::constant_value::sint_array:
+					return ast::constant_value(base_value.get_sint_array()[index]);
+				case ast::constant_value::float32_array:
+					return ast::constant_value(base_value.get_float32_array()[index]);
+				case ast::constant_value::float64_array:
+					return ast::constant_value(base_value.get_float64_array()[index]);
+				default:
+					bz_unreachable;
+				}
+			}
+			else
+			{
+				return {};
+			}
 		},
 		[&expr, &context](ast::expr_function_call &func_call) -> ast::constant_value {
 			for (auto &param : func_call.params)
@@ -4059,6 +4161,25 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			{
 				any_failed = true;
 				get_consteval_fail_notes_helper(subscript_expr.index, notes);
+			}
+			if (!any_failed)
+			{
+				notes.emplace_back(ctx::parse_context::make_note(
+					expr.src_tokens, "subexpression is not a constant expression"
+				));
+			}
+		},
+		[&expr, &notes](ast::expr_rvalue_array_subscript const &rvalue_array_subscript_expr) {
+			bool any_failed = false;
+			if (rvalue_array_subscript_expr.base.has_consteval_failed())
+			{
+				any_failed = true;
+				get_consteval_fail_notes_helper(rvalue_array_subscript_expr.base, notes);
+			}
+			if (rvalue_array_subscript_expr.index.has_consteval_failed())
+			{
+				any_failed = true;
+				get_consteval_fail_notes_helper(rvalue_array_subscript_expr.index, notes);
 			}
 			if (!any_failed)
 			{

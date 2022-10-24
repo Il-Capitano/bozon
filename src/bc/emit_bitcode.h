@@ -34,6 +34,7 @@ void emit_destruct_operation(
 	val_ptr value,
 	llvm::Value *condition,
 	llvm::Value *move_destruct_indicator,
+	llvm::Value *rvalue_array_elem_ptr,
 	ctx::bitcode_context &context
 );
 void emit_destruct_operation(
@@ -41,6 +42,7 @@ void emit_destruct_operation(
 	val_ptr value,
 	llvm::Value *condition,
 	llvm::Value *move_destruct_indicator,
+	llvm::Value *rvalue_array_elem_ptr,
 	ctx::comptime_executor_context &context
 );
 

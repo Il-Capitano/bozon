@@ -539,6 +539,7 @@ void bitcode_context::push_destruct_operation(ast::destruct_operation const &des
 			.type        = nullptr,
 			.condition   = this->destruct_condition,
 			.move_destruct_indicator = move_destruct_indicator,
+			.rvalue_array_elem_ptr = nullptr,
 		});
 	}
 }
@@ -555,6 +556,7 @@ void bitcode_context::push_variable_destruct_operation(ast::destruct_operation c
 			.type        = nullptr,
 			.condition   = move_destruct_indicator,
 			.move_destruct_indicator = nullptr,
+			.rvalue_array_elem_ptr = nullptr,
 		});
 	}
 }
@@ -571,7 +573,54 @@ void bitcode_context::push_self_destruct_operation(ast::destruct_operation const
 			.type        = type,
 			.condition   = this->destruct_condition,
 			.move_destruct_indicator = move_destruct_indicator,
+			.rvalue_array_elem_ptr = nullptr,
 		});
+	}
+}
+
+void bitcode_context::push_rvalue_array_destruct_operation(
+	ast::destruct_operation const &destruct_op,
+	llvm::Value *ptr,
+	llvm::Type *type,
+	llvm::Value *rvalue_array_elem_ptr
+)
+{
+	bz_assert(this->destructor_calls.not_empty());
+	auto const move_destruct_indicator = this->get_move_destruct_indicator(destruct_op.move_destructed_decl);
+	if (move_destruct_indicator != nullptr || destruct_op.not_null())
+	{
+		this->destructor_calls.back().push_back({
+			.destruct_op = &destruct_op,
+			.ptr         = ptr,
+			.type        = type,
+			.condition   = this->destruct_condition,
+			.move_destruct_indicator = move_destruct_indicator,
+			.rvalue_array_elem_ptr = rvalue_array_elem_ptr,
+		});
+	}
+}
+
+static void emit_destruct_operation(bitcode_context::destruct_operation_info_t const &info, bitcode_context &context)
+{
+	if (info.ptr != nullptr)
+	{
+		bc::emit_destruct_operation(
+			*info.destruct_op,
+			bc::val_ptr::get_reference(info.ptr, info.type),
+			info.condition,
+			info.move_destruct_indicator,
+			info.rvalue_array_elem_ptr,
+			context
+		);
+	}
+	else
+	{
+		bc::emit_destruct_operation(
+			*info.destruct_op,
+			info.condition,
+			info.move_destruct_indicator,
+			context
+		);
 	}
 }
 
@@ -579,16 +628,9 @@ void bitcode_context::emit_destruct_operations(void)
 {
 	bz_assert(!this->has_terminator());
 	bz_assert(this->destructor_calls.not_empty());
-	for (auto const &[destruct_op, ptr, type, condition, move_destruct_indicator] : this->destructor_calls.back().reversed())
+	for (auto const &info : this->destructor_calls.back().reversed())
 	{
-		if (ptr == nullptr)
-		{
-			bc::emit_destruct_operation(*destruct_op, condition, move_destruct_indicator, *this);
-		}
-		else
-		{
-			bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), condition, move_destruct_indicator, *this);
-		}
+		emit_destruct_operation(info, *this);
 	}
 }
 
@@ -598,16 +640,9 @@ void bitcode_context::emit_loop_destruct_operations(void)
 	bz_assert(this->destructor_calls.not_empty());
 	for (auto const &calls : this->destructor_calls.slice(this->loop_info.destructor_stack_begin).reversed())
 	{
-		for (auto const &[destruct_op, ptr, type, condition, move_destruct_indicator] : calls.reversed())
+		for (auto const &info : calls.reversed())
 		{
-			if (ptr == nullptr)
-			{
-				bc::emit_destruct_operation(*destruct_op, condition, move_destruct_indicator, *this);
-			}
-			else
-			{
-				bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), condition, move_destruct_indicator, *this);
-			}
+			emit_destruct_operation(info, *this);
 		}
 	}
 }
@@ -618,16 +653,9 @@ void bitcode_context::emit_all_destruct_operations(void)
 	bz_assert(this->destructor_calls.not_empty());
 	for (auto const &calls : this->destructor_calls.reversed())
 	{
-		for (auto const &[destruct_op, ptr, type, condition, move_destruct_indicator] : calls.reversed())
+		for (auto const &info : calls.reversed())
 		{
-			if (ptr == nullptr)
-			{
-				bc::emit_destruct_operation(*destruct_op, condition, move_destruct_indicator, *this);
-			}
-			else
-			{
-				bc::emit_destruct_operation(*destruct_op, bc::val_ptr::get_reference(ptr, type), condition, move_destruct_indicator, *this);
-			}
+			emit_destruct_operation(info, *this);
 		}
 	}
 }

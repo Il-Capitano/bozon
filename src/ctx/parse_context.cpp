@@ -6622,6 +6622,30 @@ ast::destruct_operation parse_context::make_variable_destruction(ast::decl_varia
 	return result;
 }
 
+ast::destruct_operation parse_context::make_rvalue_array_destruction(lex::src_tokens const &src_tokens, ast::typespec_view type)
+{
+	bz_assert(type.is<ast::ts_array>());
+	auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
+
+	if (this->is_trivially_destructible(src_tokens, elem_type))
+	{
+		return ast::destruct_operation();
+	}
+
+	auto result = ast::destruct_operation();
+	result.emplace<ast::destruct_rvalue_array>(make_destruct_expression(
+		elem_type,
+		ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::lvalue_reference, elem_type,
+			ast::make_expr_bitcode_value_reference(),
+			ast::destruct_operation()
+		),
+		*this
+	));
+	return result;
+}
+
 void parse_context::resolve_type(lex::src_tokens const &src_tokens, ast::type_info *info)
 {
 	if (info->state != ast::resolve_state::error && info->state < ast::resolve_state::all)

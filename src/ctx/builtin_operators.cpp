@@ -1230,7 +1230,7 @@ ast::expression make_builtin_subscript_operator(
 
 		return ast::make_dynamic_expression(
 			src_tokens,
-			ast::expression_type_kind::lvalue, std::move(result_type),
+			ast::expression_type_kind::lvalue_reference, std::move(result_type),
 			ast::make_expr_subscript(std::move(called), std::move(arg)),
 			ast::destruct_operation()
 		);
@@ -1248,20 +1248,37 @@ ast::expression make_builtin_subscript_operator(
 			return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), std::move(arg)));
 		}
 
-		auto const result_kind = called_kind;
-		ast::typespec result_type = array_t.elem_type;
-
-		if (called_type.is<ast::ts_const>() || called_type.is<ast::ts_consteval>())
+		if (called_kind == ast::expression_type_kind::rvalue)
 		{
-			result_type.add_layer<ast::ts_const>();
-		}
+			auto const elem_destruct_op = context.make_rvalue_array_destruction(src_tokens, called_t);
 
-		return ast::make_dynamic_expression(
-			src_tokens,
-			result_kind, std::move(result_type),
-			ast::make_expr_subscript(std::move(called), std::move(arg)),
-			ast::destruct_operation()
-		);
+			ast::typespec result_type = array_t.elem_type;
+			return ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::rvalue_reference, std::move(result_type),
+				ast::make_expr_rvalue_array_subscript(std::move(called), std::move(elem_destruct_op), std::move(arg)),
+				ast::destruct_operation()
+			);
+		}
+		else
+		{
+			auto const result_kind = called_kind == ast::expression_type_kind::rvalue_reference
+				? ast::expression_type_kind::rvalue_reference
+				: ast::expression_type_kind::lvalue_reference;
+
+			ast::typespec result_type = array_t.elem_type;
+			if (called_type.is<ast::ts_const>() || called_type.is<ast::ts_consteval>())
+			{
+				result_type.add_layer<ast::ts_const>();
+			}
+
+			return ast::make_dynamic_expression(
+				src_tokens,
+				result_kind, std::move(result_type),
+				ast::make_expr_subscript(std::move(called), std::move(arg)),
+				ast::destruct_operation()
+			);
+		}
 	}
 }
 
