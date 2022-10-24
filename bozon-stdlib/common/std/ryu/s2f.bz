@@ -49,7 +49,7 @@ function int32Bits2Float(bits: uint32) -> float32
 	return f;
 }
 
-export function s2f_n(buffer: ?*const uint8, len: int32, result: *float32) -> uint32
+export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uint32
 {
 	if (len == 0)
 	{
@@ -251,13 +251,8 @@ export function s2f_n(buffer: ?*const uint8, len: int32, result: *float32) -> ui
 	return s2f_SUCCESS;
 }
 
-function c_strlen(c_str: ?*const uint8) -> int32
+function c_strlen(c_str: *const uint8) -> int32
 {
-	if (c_str == null)
-	{
-		return 0;
-	}
-
 	let result = 0;
 	while (*c_str != 0)
 	{
@@ -269,10 +264,19 @@ function c_strlen(c_str: ?*const uint8) -> int32
 
 export function s2f(buffer: ?*const uint8, result: *float32) -> uint32
 {
+	if (buffer == null)
+	{
+		return s2f_INPUT_TOO_SHORT;
+	}
+	const buffer = buffer.get_value();
 	return s2f_n(buffer, c_strlen(buffer), result);
 }
 
 export function s2f_str(s: str, result: *float32) -> uint32
 {
-	return s2f_n(__builtin_str_begin_ptr(s), s.size() as int32, result);
+	if (s.size() == 0)
+	{
+		return s2f_INPUT_TOO_SHORT;
+	}
+	return s2f_n(__builtin_str_begin_ptr(s).get_value(), s.size() as int32, result);
 }
