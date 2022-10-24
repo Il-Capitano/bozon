@@ -1,0 +1,11 @@
+struct test_t
+{
+	.a: int32;
+
+	destructor(&self);
+}
+
+function test()
+{
+	test_t().a;
+}

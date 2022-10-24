@@ -2589,6 +2589,20 @@ static ast::constant_value guaranteed_evaluate_expr(
 				return {};
 			}
 		},
+		[&context](ast::expr_rvalue_member_access &rvalue_member_access_expr) -> ast::constant_value {
+			consteval_guaranteed(rvalue_member_access_expr.base, context);
+			if (rvalue_member_access_expr.base.has_consteval_succeeded())
+			{
+				bz_assert(rvalue_member_access_expr.base.get_constant_value().is_aggregate());
+				return rvalue_member_access_expr.base
+					.get_constant_value()
+					.get_aggregate()[rvalue_member_access_expr.index];
+			}
+			else
+			{
+				return {};
+			}
+		},
 		[](ast::expr_type_member_access &) -> ast::constant_value {
 			// variable constevalness is handled in parse_context::make_member_access_expression
 			return {};
@@ -3112,6 +3126,20 @@ static ast::constant_value try_evaluate_expr(
 				return member_access_expr.base
 					.get_constant_value()
 					.get_aggregate()[member_access_expr.index];
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&context](ast::expr_rvalue_member_access &rvalue_member_access_expr) -> ast::constant_value {
+			consteval_try(rvalue_member_access_expr.base, context);
+			if (rvalue_member_access_expr.base.has_consteval_succeeded())
+			{
+				bz_assert(rvalue_member_access_expr.base.get_constant_value().is_aggregate());
+				return rvalue_member_access_expr.base
+					.get_constant_value()
+					.get_aggregate()[rvalue_member_access_expr.index];
 			}
 			else
 			{
@@ -3646,6 +3674,20 @@ static ast::constant_value try_evaluate_expr_without_error(
 				return member_access_expr.base
 					.get_constant_value()
 					.get_aggregate()[member_access_expr.index];
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&context](ast::expr_rvalue_member_access &rvalue_member_access_expr) -> ast::constant_value {
+			consteval_try_without_error(rvalue_member_access_expr.base, context);
+			if (rvalue_member_access_expr.base.has_consteval_succeeded())
+			{
+				bz_assert(rvalue_member_access_expr.base.get_constant_value().is_aggregate());
+				return rvalue_member_access_expr.base
+					.get_constant_value()
+					.get_aggregate()[rvalue_member_access_expr.index];
 			}
 			else
 			{
@@ -4413,6 +4455,10 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 		[&notes](ast::expr_member_access const &member_access_expr) {
 			bz_assert(!member_access_expr.base.has_consteval_succeeded());
 			get_consteval_fail_notes_helper(member_access_expr.base, notes);
+		},
+		[&notes](ast::expr_rvalue_member_access const &rvalue_member_access_expr) {
+			bz_assert(!rvalue_member_access_expr.base.has_consteval_succeeded());
+			get_consteval_fail_notes_helper(rvalue_member_access_expr.base, notes);
 		},
 		[&expr, &notes](ast::expr_type_member_access const &) {
 			notes.emplace_back(ctx::parse_context::make_note(

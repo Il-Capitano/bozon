@@ -1,0 +1,22 @@
+import resource;
+
+struct test_t
+{
+	.a: complex_resource_t;
+	.b: complex_resource_t;
+}
+
+function get_value() -> test_t
+{
+	return test_t();
+}
+
+function main()
+{
+	(consteval {
+		let _ = get_value().a;
+		get_value().a;
+	});
+	let _ = get_value().a;
+	get_value().a;
+}

@@ -1164,7 +1164,7 @@ ast::expression make_builtin_subscript_operator(
 			if (result_kind == ast::expression_type_kind::rvalue)
 			{
 				auto const elem_refs = bz::iota(0, tuple_t.types.size())
-					.transform([&](auto const i) {
+					.transform([&](size_t const i) {
 						if (i == index)
 						{
 							return ast::make_dynamic_expression(
@@ -1177,7 +1177,7 @@ ast::expression make_builtin_subscript_operator(
 
 						auto const elem_t = tuple_t.types[i].as_typespec_view();
 						if (
-							elem_t.template is<ast::ts_lvalue_reference>()
+							elem_t.is<ast::ts_lvalue_reference>()
 							|| context.is_trivially_destructible(called.src_tokens, elem_t)
 						)
 						{

@@ -5052,20 +5052,84 @@ ast::expression parse_context::make_member_access_expression(
 		result_type.add_layer<ast::ts_const>();
 	}
 
-	auto const result_kind = result_type.is<ast::ts_lvalue_reference>()
-		? ast::expression_type_kind::lvalue_reference
-		: base_type_kind;
-
-	if (result_type.is<ast::ts_lvalue_reference>())
+	if (base_type_kind == ast::expression_type_kind::rvalue)
 	{
-		result_type.remove_layer();
+		bz_assert(base_t.is<ast::ts_base_type>());
+		if (base_t.get<ast::ts_base_type>().info->destructor != nullptr)
+		{
+			auto const dtor = base_t.get<ast::ts_base_type>().info->destructor;
+			this->report_error(
+				src_tokens,
+				bz::format("accessing member '{}' of a value of type '{}' is not allowed", member->value, base_t),
+				{ this->make_note(
+					dtor->body.src_tokens,
+					bz::format("type '{}' has a non-default destructor defined here", base_t)
+				) }
+			);
+			return ast::make_error_expression(src_tokens, ast::make_expr_member_access(std::move(base), index));
+		}
+
+		auto const elem_refs = bz::iota(0, members.size())
+			.transform([&](size_t const i) {
+				if (i == index)
+				{
+					return ast::make_dynamic_expression(
+						src_tokens,
+						ast::expression_type_kind::rvalue_reference, result_type,
+						ast::make_expr_bitcode_value_reference(),
+						ast::destruct_operation()
+					);
+				}
+
+				auto const elem_t = members[i]->get_type().as_typespec_view();
+				if (elem_t.is<ast::ts_lvalue_reference>() || this->is_trivially_destructible(base.src_tokens, elem_t))
+				{
+					return ast::expression();
+				}
+
+				auto result = ast::make_dynamic_expression(
+					src_tokens,
+					ast::expression_type_kind::rvalue_reference, elem_t,
+					ast::make_expr_bitcode_value_reference(),
+					ast::destruct_operation()
+				);
+				this->add_self_destruction(result);
+				return result;
+			})
+			.collect<ast::arena_vector>();
+
+		auto const result_kind = result_type.is<ast::ts_lvalue_reference>()
+			? ast::expression_type_kind::lvalue_reference
+			: ast::expression_type_kind::rvalue_reference;
+
+		if (result_type.is<ast::ts_lvalue_reference>())
+		{
+			result_type.remove_layer();
+		}
+		return ast::make_dynamic_expression(
+			src_tokens,
+			result_kind, std::move(result_type),
+			ast::make_expr_rvalue_member_access(std::move(base), std::move(elem_refs), index),
+			ast::destruct_operation()
+		);
 	}
-	return ast::make_dynamic_expression(
-		src_tokens,
-		result_kind, std::move(result_type),
-		ast::make_expr_member_access(std::move(base), index),
-		ast::destruct_operation()
-	);
+	else
+	{
+		auto const result_kind = result_type.is<ast::ts_lvalue_reference>()
+			? ast::expression_type_kind::lvalue_reference
+			: base_type_kind;
+
+		if (result_type.is<ast::ts_lvalue_reference>())
+		{
+			result_type.remove_layer();
+		}
+		return ast::make_dynamic_expression(
+			src_tokens,
+			result_kind, std::move(result_type),
+			ast::make_expr_member_access(std::move(base), index),
+			ast::destruct_operation()
+		);
+	}
 }
 
 ast::expression parse_context::make_generic_type_instantiation_expression(

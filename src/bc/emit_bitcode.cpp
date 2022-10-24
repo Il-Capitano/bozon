@@ -4865,6 +4865,59 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
+	ast::expr_rvalue_member_access const &rvalue_member_access,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const base = emit_bitcode<abi>(rvalue_member_access.base, context, nullptr);
+	bz_assert(base.kind == val_ptr::reference);
+	auto const base_type = ast::remove_const_or_consteval(rvalue_member_access.base.get_expr_type());
+	bz_assert(base_type.is<ast::ts_base_type>());
+	auto const accessed_type = base_type.get<ast::ts_base_type>()
+		.info->member_variables[rvalue_member_access.index]->get_type().as_typespec_view();
+
+	val_ptr result = val_ptr::get_none();
+	for (auto const i : bz::iota(0, rvalue_member_access.member_refs.size()))
+	{
+		if (rvalue_member_access.member_refs[i].is_null())
+		{
+			continue;
+		}
+
+		auto const member_val = [&]() {
+			if (i == rvalue_member_access.index && accessed_type.is<ast::ts_lvalue_reference>())
+			{
+				auto const ref_member_ptr = context.create_struct_gep(base.get_type(), base.val, i);
+				auto const member_ptr = context.builder.CreateLoad(context.get_opaque_pointer_t(), ref_member_ptr);
+				auto const member_type = get_llvm_type(accessed_type.get<ast::ts_lvalue_reference>(), context);
+				return val_ptr::get_reference(member_ptr, member_type);
+			}
+			else
+			{
+				auto const member_ptr = context.create_struct_gep(base.get_type(), base.val, i);
+				auto const member_type = base.get_type()->getStructElementType(i);
+				return val_ptr::get_reference(member_ptr, member_type);
+			}
+		}();
+
+		auto const prev_value = context.push_value_reference(member_val);
+		if (i == rvalue_member_access.index)
+		{
+			result = emit_bitcode<abi>(rvalue_member_access.member_refs[i], context, result_address);
+		}
+		else
+		{
+			emit_bitcode<abi>(rvalue_member_access.member_refs[i], context, nullptr);
+		}
+		context.pop_value_reference(prev_value);
+	}
+	return result;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
 	ast::expr_type_member_access const &member_access,
 	auto &context,
 	llvm::Value *result_address
