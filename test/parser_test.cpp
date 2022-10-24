@@ -245,7 +245,7 @@ xx_compiles(                                                                    
 
 	declare_var("a", "int32", "");
 	x("++a");
-	declare_var("p", "*int32", "");
+	declare_var("p", "*int32", "&a");
 	x("++p");
 	declare_var("c", "char", "");
 	x("++c");
@@ -413,7 +413,8 @@ xx(                                                                             
 	declare_var("f64", "float64", "");
 	declare_var("c", "char", "");
 	declare_var("s", "str", "");
-	declare_var("p", "*int32", "");
+	declare_var("p", "*int32", "&i32");
+	declare_var("op", "?*int32", "");
 
 	x_err("");
 
@@ -475,7 +476,8 @@ do {                                                                            
 
 
 	x_base_t("c = 'a'", ast::type_info::char_);
-	x("p = null");
+	x_err("p = null");
+	x("op = null");
 
 	x_ii("+", true, std::max(a.second, b.second));
 	x_iu("+", false, 0);

@@ -186,5 +186,6 @@ function test()
 	let _: uint8 = 0;
 	let _: int64 = 0i16;
 	let _: uint64 = 0u32;
-	let _: *int32 = null;
+	let _: ?int32 = null;
+	let _: ?*int32 = null;
 }
