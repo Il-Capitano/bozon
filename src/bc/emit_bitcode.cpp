@@ -2081,13 +2081,13 @@ static val_ptr emit_builtin_binary_cmp(
 		}
 	}
 	else if (
-		(lhs_t.is_optional_pointer_like() && rhs_t.is<ast::ts_base_type>())
-		|| (lhs_t.is<ast::ts_base_type>() && rhs_t.is_optional_pointer_like())
+		(lhs_t.is<ast::ts_optional>() && rhs_t.is<ast::ts_base_type>())
+		|| (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_optional>())
 	)
 	{
-		auto const optional_val = lhs_t.is_optional_pointer_like()
-			? emit_bitcode<abi>(lhs, context, nullptr)
-			: emit_bitcode<abi>(rhs, context, nullptr);
+		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr);
+		auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr);
+		auto const optional_val = lhs_t.is<ast::ts_optional>() ? lhs_val : rhs_val;
 		auto const has_value = optional_has_value(optional_val, context);
 		bz_assert(op == lex::token::equals || op == lex::token::not_equals);
 		auto const result = op == lex::token::not_equals
