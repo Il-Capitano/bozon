@@ -1,0 +1,4 @@
+function test()
+{
+	let _ = if consteval (true) { [ null as int32 ] };
+}
