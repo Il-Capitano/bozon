@@ -414,12 +414,20 @@ static ast::expression resolve_expr(
 	if (condition_value.get_boolean())
 	{
 		resolve_expression(if_expr.then_block, context);
+		if (if_expr.then_block.is_error())
+		{
+			return ast::make_error_expression(src_tokens, std::move(result_node));
+		}
 		auto const [type, kind] = if_expr.then_block.get_expr_type_and_kind();
 		return ast::make_dynamic_expression(src_tokens, kind, type, std::move(result_node), ast::destruct_operation());
 	}
 	else if (if_expr.else_block.not_null())
 	{
 		resolve_expression(if_expr.else_block, context);
+		if (if_expr.else_block.is_error())
+		{
+			return ast::make_error_expression(src_tokens, std::move(result_node));
+		}
 		auto const [type, kind] = if_expr.else_block.get_expr_type_and_kind();
 		return ast::make_dynamic_expression(src_tokens, kind, type, std::move(result_node), ast::destruct_operation());
 	}
