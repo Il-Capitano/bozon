@@ -364,6 +364,9 @@ function main(args: [: const str]) -> int32
 	std::print("\n==== defer_test ====\n");
 	defer_test();
 
+	std::print("\n==== optional_test ====\n");
+	optional_test();
+
 	std::print("\n==== end main ====\n");
 	std::printf("e  = {}\n", std::e);
 	std::printf("pi = {}\n", std::pi);
@@ -1838,4 +1841,11 @@ function defer_test()
 	defer std::printf("defer 1\n");
 	defer std::printf("defer 2\n");
 	defer std::printf("defer 3\n");
+}
+
+function optional_test()
+{
+	let o: ?int32 = null;
+	o = null;
+	o = 3;
 }

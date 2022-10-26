@@ -63,6 +63,8 @@ struct expr_trivial_swap;
 struct expr_aggregate_assign;
 struct expr_array_assign;
 struct expr_optional_assign;
+struct expr_optional_null_assign;
+struct expr_optional_value_assign;
 struct expr_base_type_assign;
 struct expr_trivial_assign;
 
@@ -133,6 +135,8 @@ using expr_t = node<
 	expr_trivial_swap,
 	expr_array_assign,
 	expr_optional_assign,
+	expr_optional_null_assign,
+	expr_optional_value_assign,
 	expr_base_type_assign,
 	expr_trivial_assign,
 	expr_member_access,
@@ -1035,6 +1039,43 @@ struct expr_optional_assign
 	{}
 };
 
+struct expr_optional_null_assign
+{
+	expression lhs;
+	expression rhs;
+	expression value_destruct_expr;
+
+	expr_optional_null_assign(
+		expression _lhs,
+		expression _rhs,
+		expression _value_destruct_expr
+	)
+		: lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs)),
+		  value_destruct_expr(std::move(_value_destruct_expr))
+	{}
+};
+
+struct expr_optional_value_assign
+{
+	expression lhs;
+	expression rhs;
+	expression value_assign_expr;
+	expression value_construct_expr;
+
+	expr_optional_value_assign(
+		expression _lhs,
+		expression _rhs,
+		expression _value_assign_expr,
+		expression _value_construct_expr
+	)
+		: lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs)),
+		  value_assign_expr(std::move(_value_assign_expr)),
+		  value_construct_expr(std::move(_value_construct_expr))
+	{}
+};
+
 struct expr_base_type_assign
 {
 	expression lhs;
@@ -1433,6 +1474,8 @@ def_make_fn(expr_t, expr_base_type_swap)
 def_make_fn(expr_t, expr_trivial_swap)
 def_make_fn(expr_t, expr_array_assign)
 def_make_fn(expr_t, expr_optional_assign)
+def_make_fn(expr_t, expr_optional_null_assign)
+def_make_fn(expr_t, expr_optional_value_assign)
 def_make_fn(expr_t, expr_base_type_assign)
 def_make_fn(expr_t, expr_trivial_assign)
 def_make_fn(expr_t, expr_member_access)

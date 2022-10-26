@@ -631,6 +631,7 @@ bz::u8string global_context::get_file_name(uint32_t file_id)
 
 bz::u8string global_context::get_location_string(lex::token_pos t)
 {
+	bz_assert(t != nullptr);
 	return bz::format("{}:{}", this->get_file_name(t->src_pos.file_id), t->src_pos.line);
 }
 
