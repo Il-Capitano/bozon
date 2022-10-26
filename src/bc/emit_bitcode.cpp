@@ -456,7 +456,7 @@ static val_ptr optional_get_value_ptr(val_ptr optional_val, auto &context)
 	}
 	else
 	{
-		auto const value_ptr = context.create_struct_gep(optional_val.get_type(), optional_val.val, 1);
+		auto const value_ptr = context.create_struct_gep(optional_val.get_type(), optional_val.val, 0);
 		bz_assert(optional_val.get_type()->isStructTy());
 		return val_ptr::get_reference(value_ptr, optional_val.get_type()->getStructElementType(0));
 	}
@@ -5256,6 +5256,8 @@ static val_ptr emit_bitcode(
 		auto const lhs_value_ptr = optional_get_value_ptr(lhs, context);
 		emit_bitcode<abi>(optional_value_assign.value_construct_expr, context, lhs_value_ptr.val);
 		context.pop_value_reference(prev_value);
+
+		optional_set_has_value(lhs, true, context);
 	}
 
 	auto const end_bb = context.add_basic_block("optional_null_assign_end");
