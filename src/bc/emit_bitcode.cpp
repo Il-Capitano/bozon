@@ -1115,6 +1115,7 @@ static val_ptr emit_builtin_binary_assign(
 	llvm::Value *result_address
 )
 {
+	bz_unreachable;
 	bz_assert(
 		rhs.get_expr_type().is<ast::ts_base_type>()
 		&& rhs.get_expr_type().get<ast::ts_base_type>().info->kind == ast::type_info::null_t_
@@ -1123,7 +1124,6 @@ static val_ptr emit_builtin_binary_assign(
 	emit_bitcode<abi>(rhs, context, nullptr);
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr);
 	bz_assert(lhs_val.kind == val_ptr::reference);
-	bz_assert(lhs_val.get_type()->isPointerTy());
 
 	context.builder.CreateStore(llvm::ConstantPointerNull::get(context.get_opaque_pointer_t()), lhs_val.val);
 	bz_assert(result_address == nullptr);
@@ -5173,6 +5173,98 @@ static val_ptr emit_bitcode(
 
 	context.builder.SetInsertPoint(rhs_has_value_bb);
 	context.builder.CreateBr(end_bb);
+
+	context.builder.SetInsertPoint(end_bb);
+
+	bz_assert(result_address == nullptr);
+	return lhs;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_optional_null_assign const &optional_null_assign,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	emit_bitcode<abi>(optional_null_assign.rhs, context, nullptr);
+	auto const lhs = emit_bitcode<abi>(optional_null_assign.lhs, context, nullptr);
+	bz_assert(lhs.kind == val_ptr::reference);
+
+	auto const has_value = optional_has_value(lhs, context);
+
+	auto const begin_bb = context.builder.GetInsertBlock();
+
+	auto const destruct_bb = context.add_basic_block("optional_null_assign_destruct");
+	context.builder.SetInsertPoint(destruct_bb);
+
+	if (optional_null_assign.value_destruct_expr.not_null())
+	{
+		auto const prev_value = context.push_value_reference(optional_get_value_ptr(lhs, context));
+		emit_bitcode<abi>(optional_null_assign.value_destruct_expr, context, nullptr);
+		context.pop_value_reference(prev_value);
+	}
+	optional_set_has_value(lhs, false, context);
+
+	auto const end_bb = context.add_basic_block("optional_null_assign_end");
+	context.builder.CreateBr(end_bb);
+
+	context.builder.SetInsertPoint(begin_bb);
+	context.builder.CreateCondBr(has_value, destruct_bb, end_bb);
+
+	context.builder.SetInsertPoint(end_bb);
+
+	bz_assert(result_address == nullptr);
+	return lhs;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_optional_value_assign const &optional_value_assign,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const rhs = emit_bitcode<abi>(optional_value_assign.rhs, context, nullptr);
+	auto const lhs = emit_bitcode<abi>(optional_value_assign.lhs, context, nullptr);
+	bz_assert(lhs.kind == val_ptr::reference);
+
+	auto const has_value = optional_has_value(lhs, context);
+
+	auto const begin_bb = context.builder.GetInsertBlock();
+
+	auto const assign_bb = context.add_basic_block("optional_value_assign_assign");
+	context.builder.SetInsertPoint(assign_bb);
+
+	{
+		auto const lhs_prev_value = context.push_value_reference(optional_get_value_ptr(lhs, context));
+		auto const rhs_prev_value = context.push_value_reference(rhs);
+		emit_bitcode<abi>(optional_value_assign.value_assign_expr, context, nullptr);
+		context.pop_value_reference(rhs_prev_value);
+		context.pop_value_reference(lhs_prev_value);
+	}
+
+	auto const assign_end_bb = context.builder.GetInsertBlock();
+
+	auto const construct_bb = context.add_basic_block("optional_value_assign_construct");
+	context.builder.SetInsertPoint(construct_bb);
+
+	{
+		auto const prev_value = context.push_value_reference(rhs);
+		auto const lhs_value_ptr = optional_get_value_ptr(lhs, context);
+		emit_bitcode<abi>(optional_value_assign.value_construct_expr, context, lhs_value_ptr.val);
+		context.pop_value_reference(prev_value);
+	}
+
+	auto const end_bb = context.add_basic_block("optional_null_assign_end");
+	context.builder.CreateBr(end_bb);
+	context.builder.SetInsertPoint(assign_end_bb);
+	context.builder.CreateBr(end_bb);
+
+	context.builder.SetInsertPoint(begin_bb);
+	context.builder.CreateCondBr(has_value, assign_bb, construct_bb);
 
 	context.builder.SetInsertPoint(end_bb);
 

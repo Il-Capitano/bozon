@@ -6263,6 +6263,124 @@ static ast::expression make_optional_assignment(
 	);
 }
 
+static ast::expression make_optional_null_assignment(
+	lex::src_tokens const &src_tokens,
+	ast::expression lhs,
+	ast::expression rhs,
+	parse_context &context
+)
+{
+	auto const lhs_type = lhs.get_expr_type();
+	bz_assert(lhs_type.is<ast::ts_optional>());
+
+	bz_assert(lhs.get_expr_type_and_kind().second == ast::expression_type_kind::lvalue_reference);
+	ast::typespec lhs_value_type = lhs_type.get<ast::ts_optional>();
+
+	auto value_destruct_expr = make_destruct_expression(
+		lhs_value_type,
+		ast::make_dynamic_expression(
+			lhs.src_tokens,
+			ast::expression_type_kind::lvalue_reference, std::move(lhs_value_type),
+			ast::make_expr_bitcode_value_reference(1),
+			ast::destruct_operation()
+		),
+		context
+	);
+
+	ast::typespec result_type = lhs_type;
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::lvalue_reference, std::move(result_type),
+		ast::make_expr_optional_null_assign(
+			std::move(lhs),
+			std::move(rhs),
+			std::move(value_destruct_expr)
+		),
+		ast::destruct_operation()
+	);
+}
+
+static ast::expression make_optional_value_assignment(
+	lex::src_tokens const &src_tokens,
+	ast::expression lhs,
+	ast::expression rhs,
+	parse_context &context
+)
+{
+	auto const lhs_type = lhs.get_expr_type();
+	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
+	bz_assert(lhs_type.is<ast::ts_optional>());
+
+	bz_assert(lhs.get_expr_type_and_kind().second == ast::expression_type_kind::lvalue_reference);
+	auto const [rhs_type_with_const, rhs_expr_type_kind] = rhs.get_expr_type_and_kind();
+	auto const rhs_value_expr_type_kind = rhs_expr_type_kind == ast::expression_type_kind::lvalue_reference
+		? ast::expression_type_kind::lvalue_reference
+		: ast::expression_type_kind::rvalue_reference;
+	ast::typespec lhs_value_type = lhs_type.get<ast::ts_optional>();
+	ast::typespec rhs_value_type = rhs_type;
+
+	if (rhs_type_with_const.is<ast::ts_const>())
+	{
+		rhs_value_type.add_layer<ast::ts_const>();
+	}
+
+	auto value_assign_expr = context.make_binary_operator_expression(
+		src_tokens,
+		lex::token::assign,
+		ast::make_dynamic_expression(
+			lhs.src_tokens,
+			ast::expression_type_kind::lvalue_reference, lhs_value_type,
+			ast::make_expr_bitcode_value_reference(1),
+			ast::destruct_operation()
+		),
+		ast::make_dynamic_expression(
+			rhs.src_tokens,
+			rhs_value_expr_type_kind, rhs_value_type,
+			ast::make_expr_bitcode_value_reference(0),
+			ast::destruct_operation()
+		)
+	);
+	auto value_construct_expr = [&]() -> ast::expression {
+		if (lhs_value_type == rhs_value_type)
+		{
+			auto rhs_ref = ast::make_dynamic_expression(
+				rhs.src_tokens,
+				rhs_value_expr_type_kind, rhs_value_type,
+				ast::make_expr_bitcode_value_reference(0),
+				ast::destruct_operation()
+			);
+			return rhs_value_expr_type_kind == ast::expression_type_kind::lvalue_reference
+				? context.make_copy_construction(std::move(rhs_ref))
+				: context.make_move_construction(std::move(rhs_ref));
+		}
+		else
+		{
+			auto rhs_ref = ast::make_dynamic_expression(
+				rhs.src_tokens,
+				rhs_value_expr_type_kind, rhs_value_type,
+				ast::make_expr_bitcode_value_reference(0),
+				ast::destruct_operation()
+			);
+			bz_assert(ast::is_complete(lhs_value_type));
+			resolve::match_expression_to_type(rhs_ref, lhs_value_type, context);
+			return rhs_ref;
+		}
+	}();
+
+	ast::typespec result_type = lhs_type;
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::lvalue_reference, std::move(result_type),
+		ast::make_expr_optional_value_assign(
+			std::move(lhs),
+			std::move(rhs),
+			std::move(value_assign_expr),
+			std::move(value_construct_expr)
+		),
+		ast::destruct_operation()
+	);
+}
+
 static ast::expression make_struct_assignment(
 	lex::src_tokens const &src_tokens,
 	ast::expression lhs,
@@ -6340,6 +6458,17 @@ ast::expression parse_context::make_default_assignment(lex::src_tokens const &sr
 	else if (lhs_type.is<ast::ts_optional>() && rhs_type.is<ast::ts_optional>())
 	{
 		return make_optional_assignment(src_tokens, std::move(lhs), std::move(rhs), *this);
+	}
+	else if (lhs_type.is<ast::ts_optional>())
+	{
+		if (rhs_type.is<ast::ts_base_type>() && rhs_type.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_)
+		{
+			return make_optional_null_assignment(src_tokens, std::move(lhs), std::move(rhs), *this);
+		}
+		else
+		{
+			return make_optional_value_assignment(src_tokens, std::move(lhs), std::move(rhs), *this);
+		}
 	}
 	else if (!are_types_equal)
 	{
