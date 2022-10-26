@@ -1849,7 +1849,8 @@ function optional_test()
 	std::printf("{}\n", oi);
 	oi = 3;
 	std::printf("{}\n", oi);
-	// let oi: ?int32 = 3;
+
+	let oi: ?int32 = 3;
 	std::printf("{}\n", oi);
 	oi = null;
 	std::printf("{}\n", oi);

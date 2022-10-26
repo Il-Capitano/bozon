@@ -4342,6 +4342,25 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
+	ast::expr_optional_cast const &optional_cast,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	bz_assert(result_address != nullptr);
+	auto const result_type = get_llvm_type(optional_cast.type, context);
+	auto const result_val = val_ptr::get_reference(result_address, result_type);
+	auto const value_ptr = optional_get_value_ptr(result_val, context);
+
+	emit_bitcode<abi>(optional_cast.expr, context, value_ptr.val);
+	optional_set_has_value(result_val, true, context);
+
+	return result_val;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
 	ast::expr_take_reference const &take_ref,
 	auto &context,
 	llvm::Value *result_address
@@ -6249,7 +6268,7 @@ static val_ptr emit_bitcode(
 }
 
 template<abi::platform_abi abi>
-static llvm::Constant *get_value(
+static llvm::Constant *get_value_helper(
 	ast::constant_value const &value,
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
@@ -6452,6 +6471,50 @@ static llvm::Constant *get_value(
 		bz_unreachable;
 	default:
 		bz_unreachable;
+	}
+}
+
+template<abi::platform_abi abi>
+static llvm::Constant *get_value(
+	ast::constant_value const &value,
+	ast::typespec_view type,
+	ast::constant_expression const *const_expr,
+	auto &context
+)
+{
+	type = ast::remove_const_or_consteval(type);
+	if (type.is<ast::ts_optional>() && value.is_null_constant())
+	{
+		auto const result_type = get_llvm_type(type, context);
+		if (result_type->isPointerTy())
+		{
+			return llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(result_type));
+		}
+		else
+		{
+			return llvm::ConstantAggregateZero::get(result_type);
+		}
+	}
+	else if (type.is<ast::ts_optional>())
+	{
+		auto const const_value = get_value_helper<abi>(value, type.get<ast::ts_optional>(), const_expr, context);
+		if (type.is_optional_pointer_like())
+		{
+			return const_value;
+		}
+		else
+		{
+			auto const result_type = get_llvm_type(type, context);
+			bz_assert(result_type->isStructTy());
+			return llvm::ConstantStruct::get(
+				llvm::cast<llvm::StructType>(result_type),
+				const_value, llvm::ConstantInt::getTrue(context.get_llvm_context())
+			);
+		}
+	}
+	else
+	{
+		return get_value_helper<abi>(value, type, const_expr, context);
 	}
 }
 

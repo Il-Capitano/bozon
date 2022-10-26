@@ -2524,6 +2524,52 @@ static match_function_result_t<kind> generic_type_match_base_case(
 			accept_void, true, true
 		);
 	}
+	else if (
+		dest.is<ast::ts_optional>()
+		&& !(
+			expr_type_without_const.is<ast::ts_base_type>()
+			&& expr_type_without_const.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_
+		)
+	)
+	{
+		if constexpr (kind == type_match_function_kind::can_match)
+		{
+			return generic_type_match_base_case(change_dest(match_context, dest.get<ast::ts_optional>()));
+		}
+		else if constexpr (kind == type_match_function_kind::match_level)
+		{
+			auto result = generic_type_match_base_case(change_dest(match_context, dest.get<ast::ts_optional>()), parent_reference_kind);
+			if (result.not_null())
+			{
+				bz_assert(result.is_single());
+				auto &single = result.get_single();
+				single.type_match = std::max(single.type_match, type_match_kind::implicit_conversion);
+			}
+			return result;
+		}
+		else if constexpr (kind == type_match_function_kind::matched_type)
+		{
+			auto result = generic_type_match_base_case(change_dest(match_context, dest.get<ast::ts_optional>()));
+			if (result.not_empty())
+			{
+				result.template add_layer<ast::ts_optional>();
+			}
+			return result;
+		}
+		else if constexpr (kind == type_match_function_kind::match_expression)
+		{
+			auto const is_good = generic_type_match(change_dest(match_context, dest.get<ast::ts_optional>()));
+			if (is_good)
+			{
+				expr = match_context.context.make_optional_cast_expression(std::move(expr));
+			}
+			return is_good;
+		}
+		else
+		{
+			static_assert(bz::meta::always_false<match_context_t<kind>>);
+		}
+	}
 	else if (dest.is<ast::ts_array_slice>() && expr_type_without_const.is<ast::ts_array>())
 	{
 		auto const reference_kind = parent_reference_kind.has_value()

@@ -4944,6 +4944,21 @@ ast::expression parse_context::make_cast_expression(
 	}
 }
 
+ast::expression parse_context::make_optional_cast_expression(ast::expression expr)
+{
+	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
+	bz_assert(ast::is_rvalue_or_literal(expr_type_kind));
+	ast::typespec result_type = expr_type;
+	result_type.add_layer<ast::ts_optional>();
+	ast::typespec optional_cast_type = result_type;
+	return ast::make_dynamic_expression(
+		expr.src_tokens,
+		ast::expression_type_kind::rvalue, std::move(result_type),
+		ast::make_expr_optional_cast(std::move(expr), std::move(optional_cast_type)),
+		ast::destruct_operation()
+	);
+}
+
 ast::expression parse_context::make_member_access_expression(
 	lex::src_tokens const &src_tokens,
 	ast::expression base,

@@ -2459,6 +2459,17 @@ static ast::constant_value guaranteed_evaluate_expr(
 				return {};
 			}
 		},
+		[&context](ast::expr_optional_cast &optional_cast_expr) -> ast::constant_value {
+			consteval_guaranteed(optional_cast_expr.expr, context);
+			if (optional_cast_expr.expr.has_consteval_succeeded())
+			{
+				return optional_cast_expr.expr.get_constant_value();
+			}
+			else
+			{
+				return {};
+			}
+		},
 		[](ast::expr_take_reference const &) -> ast::constant_value {
 			return {};
 		},
@@ -3078,6 +3089,17 @@ static ast::constant_value try_evaluate_expr(
 			if (cast_expr.expr.has_consteval_succeeded())
 			{
 				return evaluate_cast(expr, cast_expr, context);
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&context](ast::expr_optional_cast &optional_cast_expr) -> ast::constant_value {
+			consteval_try(optional_cast_expr.expr, context);
+			if (optional_cast_expr.expr.has_consteval_succeeded())
+			{
+				return optional_cast_expr.expr.get_constant_value();
 			}
 			else
 			{
@@ -3707,6 +3729,17 @@ static ast::constant_value try_evaluate_expr_without_error(
 			if (cast_expr.expr.has_consteval_succeeded())
 			{
 				return evaluate_cast(expr, cast_expr, context);
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&context](ast::expr_optional_cast &optional_cast_expr) -> ast::constant_value {
+			consteval_try_without_error(optional_cast_expr.expr, context);
+			if (optional_cast_expr.expr.has_consteval_succeeded())
+			{
+				return optional_cast_expr.expr.get_constant_value();
 			}
 			else
 			{
@@ -4564,6 +4597,9 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			{
 				get_consteval_fail_notes_helper(cast_expr.expr, notes);
 			}
+		},
+		[&notes](ast::expr_optional_cast const &optional_cast_expr) {
+			get_consteval_fail_notes_helper(optional_cast_expr.expr, notes);
 		},
 		[&expr, &notes](ast::expr_take_reference const &take_ref_expr) {
 			if (take_ref_expr.expr.is_constant())
