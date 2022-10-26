@@ -1845,7 +1845,12 @@ function defer_test()
 
 function optional_test()
 {
-	let o: ?int32 = null;
-	o = null;
-	o = 3;
+	let oi: ?int32 = null;
+	std::printf("{}\n", oi);
+	oi = 3;
+	std::printf("{}\n", oi);
+	// let oi: ?int32 = 3;
+	std::printf("{}\n", oi);
+	oi = null;
+	std::printf("{}\n", oi);
 }
