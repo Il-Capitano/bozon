@@ -6232,7 +6232,7 @@ static ast::expression make_optional_assignment(
 			auto rhs_ref = ast::make_dynamic_expression(
 				rhs.src_tokens,
 				rhs_value_expr_type_kind, rhs_value_type,
-				ast::make_expr_bitcode_value_reference(0),
+				ast::make_expr_bitcode_value_reference(),
 				ast::destruct_operation()
 			);
 			return rhs_value_expr_type_kind == ast::expression_type_kind::lvalue_reference
@@ -6244,7 +6244,7 @@ static ast::expression make_optional_assignment(
 			auto rhs_ref = ast::make_dynamic_expression(
 				rhs.src_tokens,
 				rhs_value_expr_type_kind, rhs_value_type,
-				ast::make_expr_bitcode_value_reference(0),
+				ast::make_expr_bitcode_value_reference(),
 				ast::destruct_operation()
 			);
 			bz_assert(ast::is_complete(lhs_value_type));
@@ -6257,7 +6257,7 @@ static ast::expression make_optional_assignment(
 		ast::make_dynamic_expression(
 			lhs.src_tokens,
 			ast::expression_type_kind::lvalue_reference, std::move(lhs_value_type),
-			ast::make_expr_bitcode_value_reference(1),
+			ast::make_expr_bitcode_value_reference(),
 			ast::destruct_operation()
 		),
 		context
@@ -6296,7 +6296,7 @@ static ast::expression make_optional_null_assignment(
 		ast::make_dynamic_expression(
 			lhs.src_tokens,
 			ast::expression_type_kind::lvalue_reference, std::move(lhs_value_type),
-			ast::make_expr_bitcode_value_reference(1),
+			ast::make_expr_bitcode_value_reference(),
 			ast::destruct_operation()
 		),
 		context
@@ -6361,7 +6361,7 @@ static ast::expression make_optional_value_assignment(
 			auto rhs_ref = ast::make_dynamic_expression(
 				rhs.src_tokens,
 				rhs_value_expr_type_kind, rhs_value_type,
-				ast::make_expr_bitcode_value_reference(0),
+				ast::make_expr_bitcode_value_reference(),
 				ast::destruct_operation()
 			);
 			return rhs_value_expr_type_kind == ast::expression_type_kind::lvalue_reference
@@ -6373,7 +6373,7 @@ static ast::expression make_optional_value_assignment(
 			auto rhs_ref = ast::make_dynamic_expression(
 				rhs.src_tokens,
 				rhs_value_expr_type_kind, rhs_value_type,
-				ast::make_expr_bitcode_value_reference(0),
+				ast::make_expr_bitcode_value_reference(),
 				ast::destruct_operation()
 			);
 			bz_assert(ast::is_complete(lhs_value_type));
