@@ -1854,4 +1854,12 @@ function optional_test()
 	std::printf("{}\n", oi);
 	oi = null;
 	std::printf("{}\n", oi);
+
+	(consteval {
+		let s: ?auto = std::string("Hello");
+		let s2: ?std::string = null;
+		s = s2;
+		s = std::string("Hi");
+		s = null;
+	});
 }
