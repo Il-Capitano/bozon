@@ -86,7 +86,9 @@
 			],
 
 			"configs": {
-				"windows-debug": {},
+				"windows-debug": {
+					"optimization": "g"
+				},
 				"windows-release": {},
 				"linux-debug": {
 					"optimization": "1",
