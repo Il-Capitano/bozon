@@ -5162,6 +5162,7 @@ static val_ptr emit_bitcode(
 	// only lhs has value, so we need to destruct it
 	auto const lhs_has_value_bb = context.add_basic_block("optional_assign_lhs_has_value");
 	context.builder.SetInsertPoint(lhs_has_value_bb);
+	if (optional_assign.value_destruct_expr.not_null())
 	{
 		auto const prev_value = context.push_value_reference(optional_get_value_ptr(lhs, context));
 		emit_bitcode<abi>(optional_assign.value_destruct_expr, context, nullptr);

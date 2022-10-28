@@ -6202,7 +6202,7 @@ static ast::expression make_optional_assignment(
 	auto const rhs_value_expr_type_kind = rhs_expr_type_kind == ast::expression_type_kind::lvalue_reference
 		? ast::expression_type_kind::lvalue_reference
 		: ast::expression_type_kind::rvalue_reference;
-	ast::typespec lhs_value_type = lhs_type.get<ast::ts_optional>();
+	auto const lhs_value_type = lhs_type.get<ast::ts_optional>();
 	ast::typespec rhs_value_type = rhs_type.get<ast::ts_optional>();
 
 	if (rhs_type_with_const.is<ast::ts_const>())
@@ -6248,7 +6248,8 @@ static ast::expression make_optional_assignment(
 				ast::destruct_operation()
 			);
 			bz_assert(ast::is_complete(lhs_value_type));
-			resolve::match_expression_to_type(rhs_ref, lhs_value_type, context);
+			ast::typespec lhs_value_type_copy = lhs_value_type;
+			resolve::match_expression_to_type(rhs_ref, lhs_value_type_copy, context);
 			return rhs_ref;
 		}
 	}();
@@ -6256,7 +6257,7 @@ static ast::expression make_optional_assignment(
 		lhs_value_type,
 		ast::make_dynamic_expression(
 			lhs.src_tokens,
-			ast::expression_type_kind::lvalue_reference, std::move(lhs_value_type),
+			ast::expression_type_kind::lvalue_reference, lhs_value_type,
 			ast::make_expr_bitcode_value_reference(),
 			ast::destruct_operation()
 		),
@@ -6289,13 +6290,13 @@ static ast::expression make_optional_null_assignment(
 	bz_assert(lhs_type.is<ast::ts_optional>());
 
 	bz_assert(lhs.get_expr_type_and_kind().second == ast::expression_type_kind::lvalue_reference);
-	ast::typespec lhs_value_type = lhs_type.get<ast::ts_optional>();
+	auto const lhs_value_type = lhs_type.get<ast::ts_optional>();
 
 	auto value_destruct_expr = make_destruct_expression(
 		lhs_value_type,
 		ast::make_dynamic_expression(
 			lhs.src_tokens,
-			ast::expression_type_kind::lvalue_reference, std::move(lhs_value_type),
+			ast::expression_type_kind::lvalue_reference, lhs_value_type,
 			ast::make_expr_bitcode_value_reference(),
 			ast::destruct_operation()
 		),
@@ -6323,21 +6324,14 @@ static ast::expression make_optional_value_assignment(
 )
 {
 	auto const lhs_type = lhs.get_expr_type();
-	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
 	bz_assert(lhs_type.is<ast::ts_optional>());
 
 	bz_assert(lhs.get_expr_type_and_kind().second == ast::expression_type_kind::lvalue_reference);
-	auto const [rhs_type_with_const, rhs_expr_type_kind] = rhs.get_expr_type_and_kind();
+	auto const lhs_value_type = lhs_type.get<ast::ts_optional>();
+	auto const [rhs_value_type, rhs_expr_type_kind] = rhs.get_expr_type_and_kind();
 	auto const rhs_value_expr_type_kind = rhs_expr_type_kind == ast::expression_type_kind::lvalue_reference
 		? ast::expression_type_kind::lvalue_reference
 		: ast::expression_type_kind::rvalue_reference;
-	ast::typespec lhs_value_type = lhs_type.get<ast::ts_optional>();
-	ast::typespec rhs_value_type = rhs_type;
-
-	if (rhs_type_with_const.is<ast::ts_const>())
-	{
-		rhs_value_type.add_layer<ast::ts_const>();
-	}
 
 	auto value_assign_expr = context.make_binary_operator_expression(
 		src_tokens,
@@ -6355,7 +6349,7 @@ static ast::expression make_optional_value_assignment(
 			ast::destruct_operation()
 		)
 	);
-	auto value_construct_expr = [&]() -> ast::expression {
+	auto value_construct_expr = [&, &rhs_value_type = rhs_value_type]() -> ast::expression {
 		if (lhs_value_type == rhs_value_type)
 		{
 			auto rhs_ref = ast::make_dynamic_expression(
@@ -6377,7 +6371,8 @@ static ast::expression make_optional_value_assignment(
 				ast::destruct_operation()
 			);
 			bz_assert(ast::is_complete(lhs_value_type));
-			resolve::match_expression_to_type(rhs_ref, lhs_value_type, context);
+			ast::typespec lhs_value_type_copy = lhs_value_type;
+			resolve::match_expression_to_type(rhs_ref, lhs_value_type_copy, context);
 			return rhs_ref;
 		}
 	}();
