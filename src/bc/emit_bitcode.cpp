@@ -4940,13 +4940,28 @@ static val_ptr emit_bitcode(
 )
 {
 	bz_assert(result_address == nullptr);
+	bz_assert(optional_destruct.value_destruct_call.not_null());
 
 	auto const val = emit_bitcode<abi>(optional_destruct.value, context, nullptr);
 	bz_assert(val.kind == val_ptr::reference);
 
+	auto const has_value = optional_has_value(val, context);
+
+	auto const begin_bb = context.builder.GetInsertBlock();
+	auto const destruct_bb = context.add_basic_block("optional_destruct_destruct");
+	context.builder.SetInsertPoint(destruct_bb);
+
 	auto const prev_value = context.push_value_reference(optional_get_value_ptr(val, context));
 	emit_bitcode<abi>(optional_destruct.value_destruct_call, context, nullptr);
 	context.pop_value_reference(prev_value);
+
+	auto const end_bb = context.add_basic_block("optional_destruct_end");
+	context.builder.CreateBr(end_bb);
+
+	context.builder.SetInsertPoint(begin_bb);
+	context.builder.CreateCondBr(has_value, destruct_bb, end_bb);
+
+	context.builder.SetInsertPoint(end_bb);
 
 	return val_ptr::get_none();
 }
@@ -5117,11 +5132,7 @@ static val_ptr emit_bitcode(
 	bz_assert(lhs_type->isStructTy());
 	bz_assert(rhs_type->isStructTy());
 
-	auto const begin_bb = context.builder.GetInsertBlock();
-	auto const are_pointers_equal = context.builder.CreateICmpEQ(lhs.val, rhs.val);
-
-	auto const assign_begin_bb = context.add_basic_block("optional_assign");
-	context.builder.SetInsertPoint(assign_begin_bb);
+	auto const assign_begin_bb = context.builder.GetInsertBlock();
 
 	// decide which branch to go down on
 	auto const lhs_has_value = optional_has_value(lhs, context);
@@ -5143,6 +5154,7 @@ static val_ptr emit_bitcode(
 		context.pop_value_reference(rhs_prev_value);
 		context.pop_value_reference(lhs_prev_value);
 	}
+	auto const both_have_value_bb_end = context.builder.GetInsertBlock();
 
 	auto const one_has_value_bb = context.add_basic_block("optional_assign_one_has_value");
 	// context.builder.SetInsertPoint(one_has_value_bb);
@@ -5157,6 +5169,7 @@ static val_ptr emit_bitcode(
 
 		optional_set_has_value(lhs, false, context);
 	}
+	auto const lhs_has_value_bb_end = context.builder.GetInsertBlock();
 
 	// only rhs has value, so we need to copy construct it into lhs
 	auto const rhs_has_value_bb = context.add_basic_block("optional_assign_rhs_has_value");
@@ -5169,11 +5182,9 @@ static val_ptr emit_bitcode(
 
 		optional_set_has_value(lhs, true, context);
 	}
+	auto const rhs_has_value_bb_end = context.builder.GetInsertBlock();
 
 	auto const end_bb = context.add_basic_block("optional_assign_end");
-
-	context.builder.SetInsertPoint(begin_bb);
-	context.builder.CreateCondBr(are_pointers_equal, end_bb, assign_begin_bb);
 
 	context.builder.SetInsertPoint(assign_begin_bb);
 	context.builder.CreateCondBr(any_has_value, any_has_value_bb, end_bb);
@@ -5181,16 +5192,16 @@ static val_ptr emit_bitcode(
 	context.builder.SetInsertPoint(any_has_value_bb);
 	context.builder.CreateCondBr(both_have_value, both_have_value_bb, one_has_value_bb);
 
-	context.builder.SetInsertPoint(both_have_value_bb);
+	context.builder.SetInsertPoint(both_have_value_bb_end);
 	context.builder.CreateBr(end_bb);
 
 	context.builder.SetInsertPoint(one_has_value_bb);
 	context.builder.CreateCondBr(lhs_has_value, lhs_has_value_bb, rhs_has_value_bb);
 
-	context.builder.SetInsertPoint(lhs_has_value_bb);
+	context.builder.SetInsertPoint(lhs_has_value_bb_end);
 	context.builder.CreateBr(end_bb);
 
-	context.builder.SetInsertPoint(rhs_has_value_bb);
+	context.builder.SetInsertPoint(rhs_has_value_bb_end);
 	context.builder.CreateBr(end_bb);
 
 	context.builder.SetInsertPoint(end_bb);
@@ -5281,6 +5292,7 @@ static val_ptr emit_bitcode(
 
 	auto const end_bb = context.add_basic_block("optional_null_assign_end");
 	context.builder.CreateBr(end_bb);
+
 	context.builder.SetInsertPoint(assign_end_bb);
 	context.builder.CreateBr(end_bb);
 
