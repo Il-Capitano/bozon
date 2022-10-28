@@ -175,45 +175,26 @@ function __libc_main(argc_int: std::libc::int, argv: *const *const std::libc::ch
 {
 	let args_buffer = [8: str]();
 
-	const args = if (argc_int <= 0) {
-		__builtin_slice_from_ptrs(args_buffer.begin(), args_buffer.begin() + 1)
+	const argc = if (argc_int <= 0) { 0 } else { argc_int as usize };
+	const args_alloc: ?*str = if (argc <= args_buffer.size()) {
+		null
 	} else {
-		const argc = argc_int as usize;
-
-		const args_ptr = if (argc <= 8) {
-			args_buffer.begin()
-		} else {
-			const malloc_result = std::libc::malloc(argc * sizeof str);
-			if (malloc_result == null)
-			{
-				return 1;
-			}
-			__builtin_pointer_cast(*str, __builtin_optional_get_const_value_ref(malloc_result))
-		};
-
-		const args = __builtin_slice_from_ptrs(args_ptr, args_ptr + argc);
-
-		for (let i = 0uz; i < argc; ++i)
+		const malloc_result = std::libc::malloc(argc * sizeof str);
+		if (malloc_result == null)
 		{
-			const begin_ptr = *(argv + i);
-			const end_ptr = {
-				let it = begin_ptr;
-				while (*it != 0)
-				{
-					++it;
-				}
-				it
-			};
-			args[i] = __builtin_str_from_ptrs(begin_ptr, end_ptr);
+			return 1;
 		}
-		args
+		__builtin_pointer_cast(*str, malloc_result.get_value())
+	};
+	defer std::libc::free(args_alloc);
+
+	const args = if (args_alloc == null) {
+		__builtin_slice_from_const_ptrs(args_buffer.begin(), args_buffer.begin() + argc)
+	} else {
+		__builtin_slice_from_const_ptrs(args_alloc, args_alloc + argc)
 	};
 
 	const result = __builtin_call_main(args);
-	if (args.begin() != args_buffer.begin())
-	{
-		std::libc::free(args.begin());
-	}
 
 	if consteval (std::libc::int == int32)
 	{
