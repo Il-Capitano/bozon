@@ -23,7 +23,7 @@ jobs:
           mingw-w64-x86_64-clang
           mingw-w64-x86_64-dwarfstack
           mingw-w64-x86_64-python
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - run: git clone https://github.com/Il-Capitano/cppb.git
     - name: Build cppb
       run: |
@@ -68,7 +68,7 @@ jobs:
           mingw-w64-x86_64-gcc
           mingw-w64-x86_64-dwarfstack
           mingw-w64-x86_64-python
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Build cppb
       run: |
         git clone https://github.com/Il-Capitano/cppb.git
@@ -93,7 +93,7 @@ jobs:
   linux-clang:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install packages
       run: |
         printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-15 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-15.list
@@ -133,7 +133,7 @@ jobs:
   linux-gcc:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install packages
       run: |
         printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-15 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-15.list
