@@ -1720,7 +1720,7 @@ export function format_to(o: &const ?auto, buffer: &format_buffer, fmt_spec: str
 {
 	if (o == null)
 	{
-		buffer.write_into("null");
+		"null".format_to(buffer, fmt_spec);
 	}
 	else
 	{
@@ -1732,7 +1732,7 @@ export function format_to(o: &const ?auto, buffer: &format_buffer, fmt_spec: for
 {
 	if (o == null)
 	{
-		buffer.write_into("null");
+		"null".format_to(buffer, fmt_spec);
 	}
 	else
 	{
