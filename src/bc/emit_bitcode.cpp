@@ -4551,9 +4551,7 @@ static val_ptr emit_bitcode(
 		&& rhs.kind == val_ptr::reference
 	)
 	{
-		auto const lhs_ptr_int_val = context.builder.CreatePtrToInt(lhs.val, context.get_usize_t());
-		auto const rhs_ptr_int_val = context.builder.CreatePtrToInt(rhs.val, context.get_usize_t());
-		auto const are_equal = context.builder.CreateICmpEQ(lhs_ptr_int_val, rhs_ptr_int_val);
+		auto const are_equal = context.builder.CreateICmpEQ(lhs.val, rhs.val);
 		ptr_eq_bb = context.add_basic_block("assign_ptr_eq");
 		auto const neq_bb = context.add_basic_block("assign_ptr_neq");
 		context.builder.CreateCondBr(are_equal, ptr_eq_bb, neq_bb);
@@ -4598,9 +4596,7 @@ static val_ptr emit_bitcode(
 	llvm::BasicBlock *ptr_eq_bb = nullptr;
 	if (lhs.kind == val_ptr::reference && rhs.kind == val_ptr::reference)
 	{
-		auto const lhs_ptr_int_val = context.builder.CreatePtrToInt(lhs.val, context.get_usize_t());
-		auto const rhs_ptr_int_val = context.builder.CreatePtrToInt(rhs.val, context.get_usize_t());
-		auto const are_equal = context.builder.CreateICmpEQ(lhs_ptr_int_val, rhs_ptr_int_val);
+		auto const are_equal = context.builder.CreateICmpEQ(lhs.val, rhs.val);
 		ptr_eq_bb = context.add_basic_block("assign_ptr_eq");
 		auto const neq_bb = context.add_basic_block("assign_ptr_neq");
 		context.builder.CreateCondBr(are_equal, ptr_eq_bb, neq_bb);
@@ -4719,9 +4715,7 @@ static val_ptr emit_bitcode(
 	bz_assert(lhs.get_type() == rhs.get_type());
 	auto const type = lhs.get_type();
 
-	auto const lhs_ptr_int_val = context.builder.CreatePtrToInt(lhs.val, context.get_usize_t());
-	auto const rhs_ptr_int_val = context.builder.CreatePtrToInt(rhs.val, context.get_usize_t());
-	auto const are_equal = context.builder.CreateICmpEQ(lhs_ptr_int_val, rhs_ptr_int_val);
+	auto const are_equal = context.builder.CreateICmpEQ(lhs.val, rhs.val);
 	auto const ptr_eq_bb = context.add_basic_block("swap_ptr_eq");
 	auto const neq_bb = context.add_basic_block("swap_ptr_neq");
 	context.builder.CreateCondBr(are_equal, ptr_eq_bb, neq_bb);
@@ -4781,9 +4775,7 @@ static val_ptr emit_bitcode(
 	bz_assert(lhs.get_type() == rhs.get_type());
 	auto const type = lhs.get_type();
 
-	auto const lhs_ptr_int_val = context.builder.CreatePtrToInt(lhs.val, context.get_usize_t());
-	auto const rhs_ptr_int_val = context.builder.CreatePtrToInt(rhs.val, context.get_usize_t());
-	auto const are_equal = context.builder.CreateICmpEQ(lhs_ptr_int_val, rhs_ptr_int_val);
+	auto const are_equal = context.builder.CreateICmpEQ(lhs.val, rhs.val);
 	auto const ptr_eq_bb = context.add_basic_block("assign_ptr_eq");
 	auto const neq_bb = context.add_basic_block("assign_ptr_neq");
 	context.builder.CreateCondBr(are_equal, ptr_eq_bb, neq_bb);
