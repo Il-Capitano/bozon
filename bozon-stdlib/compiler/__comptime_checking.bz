@@ -52,17 +52,35 @@ function rounded_alloc(T: typename, n: usize) -> [?*T, usize]
 
 function move_range(begin: ?*auto, end: ?*auto, other_begin: ?*auto)
 {
-	for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
+	type value_type = __builtin_remove_pointer(__builtin_remove_optional(typeof begin));
+	if consteval (__builtin_is_trivially_relocatable(value_type))
 	{
-		__builtin_inplace_construct(it.get_value(), __move__ *other_it);
+		const size = (end - begin) as usize * sizeof value_type;
+		memcpy(begin, other_begin, size);
+	}
+	else
+	{
+		for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
+		{
+			__builtin_inplace_construct(it.get_value(), __move__ *other_it);
+		}
 	}
 }
 
 function copy_range(begin: ?*auto, end: ?*auto, other_begin: ?*const auto)
 {
-	for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
+	type value_type = __builtin_remove_pointer(__builtin_remove_optional(typeof begin));
+	if consteval (__builtin_is_trivially_copy_constructible(value_type))
 	{
-		__builtin_inplace_construct(it.get_value(), *other_it);
+		const size = (end - begin) as usize * sizeof value_type;
+		memcpy(begin, other_begin, size);
+	}
+	else
+	{
+		for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
+		{
+			__builtin_inplace_construct(it.get_value(), *other_it);
+		}
 	}
 }
 
@@ -163,38 +181,22 @@ struct vector<T: typename>
 
 	function size(self: #const _self_t) -> usize
 	{
-		return if (self._data_begin == null) {
-			0
-		} else {
-			(self._data_end - self._data_begin) as usize
-		};
+		return (self._data_end - self._data_begin) as usize;
 	}
 
 	function capacity(self: #const _self_t) -> usize
 	{
-		return if (self._data_begin == null) {
-			0
-		} else {
-			(self._alloc_end - self._data_begin) as usize
-		};
+		return (self._alloc_end - self._data_begin) as usize;
 	}
 
 	function as_slice(self: &_self_t) -> [: value_type]
 	{
-		return if (self._data_begin == null) {
-			[: value_type]()
-		} else {
-			__builtin_slice_from_ptrs(self._data_begin, self._data_end)
-		};
+		return __builtin_slice_from_ptrs(self._data_begin, self._data_end);
 	}
 
 	function as_slice(self: &const _self_t) -> [: const value_type]
 	{
-		return if (self._data_begin == null) {
-			[: const value_type]()
-		} else {
-			__builtin_slice_from_const_ptrs(self._data_begin, self._data_end)
-		};
+		return __builtin_slice_from_const_ptrs(self._data_begin, self._data_end);
 	}
 
 	operator [] (self: &_self_t, i: uint64) -> &value_type
@@ -235,10 +237,7 @@ struct vector<T: typename>
 			const [new_data_begin, new_alloc_size] = rounded_alloc(T, new_capacity);
 			const new_data_end = new_data_begin + self.size();
 			const new_alloc_end = new_data_begin + new_alloc_size;
-			if (self._data_begin != null)
-			{
-				move_range(new_data_begin, new_data_end, self._data_begin);
-			}
+			move_range(new_data_begin, new_data_end, self._data_begin);
 			free(self._data_begin);
 			self._data_begin = new_data_begin;
 			self._data_end   = new_data_end;
@@ -384,21 +383,13 @@ struct string
 	function as_str(self: &const string) -> str
 	{
 		const [begin, end] = [ self._buffer.begin(), self._buffer.end() ];
-		return if (begin == end) {
-			""
-		} else {
-			__builtin_str_from_ptrs(begin, end)
-		};
+		return __builtin_str_from_ptrs(begin, end);
 	}
 
 	function as_str(self: move string) -> str
 	{
 		const [begin, end] = [ self._buffer.begin(), self._buffer.end() ];
-		return if (begin == end) {
-			""
-		} else {
-			__builtin_str_from_ptrs(begin, end)
-		};
+		return __builtin_str_from_ptrs(begin, end);
 	}
 
 	function size(self: &const string) -> usize
