@@ -6660,7 +6660,6 @@ static ast::expression make_base_type_swap(
 			ast::destruct_operation()
 		)
 	);
-	context.add_self_move_destruction(lhs_move_expr);
 	auto rhs_move_expr = context.make_move_construction(
 		ast::make_dynamic_expression(
 			rhs.src_tokens,
@@ -6669,7 +6668,6 @@ static ast::expression make_base_type_swap(
 			ast::destruct_operation()
 		)
 	);
-	context.add_self_move_destruction(rhs_move_expr);
 	auto temp_move_expr = context.make_move_construction(
 		ast::make_dynamic_expression(
 			src_tokens,
@@ -6678,7 +6676,6 @@ static ast::expression make_base_type_swap(
 			ast::destruct_operation()
 		)
 	);
-	context.add_self_move_destruction(temp_move_expr);
 
 	return ast::make_dynamic_expression(
 		src_tokens,
