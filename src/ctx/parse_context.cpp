@@ -5804,6 +5804,7 @@ static ast::expression make_struct_move_construction(
 
 	if (info->move_constructor != nullptr)
 	{
+		context.add_self_move_destruction(expr);
 		auto const src_tokens = expr.src_tokens;
 		ast::arena_vector<ast::expression> args;
 		args.push_back(std::move(expr));
@@ -5857,22 +5858,14 @@ ast::expression parse_context::make_move_construction(ast::expression expr)
 			bz_assert(expr.get_expr().get<ast::expr_unary_op>().expr.get_expr().is<ast::expr_identifier>());
 			auto const decl = expr.get_expr().get<ast::expr_unary_op>().expr.get_expr().get<ast::expr_identifier>().decl;
 			this->register_move_construction(decl);
-			this->add_self_move_destruction(expr);
 			bz_assert(expr.is_dynamic());
 			expr.get_dynamic().destruct_op.move_destructed_decl = decl;
 		}
-		else
-		{
-			this->add_self_move_destruction(expr);
-		}
-	}
-	else
-	{
-		this->add_self_move_destruction(expr);
 	}
 
 	if (this->is_trivially_relocatable(expr.src_tokens, type))
 	{
+		bz_assert(this->is_trivially_move_destructible(expr.src_tokens, type));
 		auto const src_tokens = expr.src_tokens;
 		ast::typespec result_type = type;
 		return ast::make_dynamic_expression(
@@ -6659,7 +6652,9 @@ void parse_context::add_self_move_destruction(ast::expression &expr)
 			ast::make_expr_bitcode_value_reference(),
 			ast::destruct_operation()
 		);
+		auto const decl = expr.get_dynamic().destruct_op.move_destructed_decl;
 		expr.get_dynamic().destruct_op = ast::destruct_self(make_move_destruct_expression(type, std::move(value_ref), *this));
+		bz_assert(decl == expr.get_dynamic().destruct_op.move_destructed_decl);
 	}
 }
 

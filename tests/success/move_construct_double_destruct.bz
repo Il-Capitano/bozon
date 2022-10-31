@@ -1,0 +1,13 @@
+import resource;
+
+function test()
+{
+	(consteval {
+		let v = [complex_resource_t]();
+		let _ = move v;
+		let v = [2: complex_resource_t]();
+		let _ = move v;
+		let v = complex_resource_t();
+		let _ = move v;
+	});
+}

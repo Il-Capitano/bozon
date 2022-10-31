@@ -211,6 +211,7 @@ struct destruct_operation : bz::variant<destruct_variable, destruct_self, defer_
 {
 	using base_t = bz::variant<destruct_variable, destruct_self, defer_expression, destruct_rvalue_array>;
 	using base_t::variant;
+	using base_t::operator =;
 
 	ast::decl_variable const *move_destructed_decl = nullptr;
 };

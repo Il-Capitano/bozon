@@ -2140,15 +2140,17 @@ static val_ptr emit_builtin_binary_bool_and(
 	bz_assert(rhs_t.get<ast::ts_base_type>().info->kind == ast::type_info::bool_);
 
 	// generate computation of lhs
+	auto const lhs_prev_info = context.push_expression_scope();
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
+	context.pop_expression_scope(lhs_prev_info);
 	auto const lhs_bb_end = context.builder.GetInsertBlock();
 
 	// generate computation of rhs
 	auto const rhs_bb = context.add_basic_block("bool_and_rhs");
 	context.builder.SetInsertPoint(rhs_bb);
-	auto const prev_condition = context.push_destruct_condition();
+	auto const rhs_prev_info = context.push_expression_scope();
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-	context.pop_destruct_condition(prev_condition);
+	context.pop_expression_scope(rhs_prev_info);
 	auto const rhs_bb_end = context.builder.GetInsertBlock();
 
 	auto const end_bb = context.add_basic_block("bool_and_end");
@@ -2227,15 +2229,17 @@ static val_ptr emit_builtin_binary_bool_or(
 	bz_assert(rhs_t.get<ast::ts_base_type>().info->kind == ast::type_info::bool_);
 
 	// generate computation of lhs
+	auto const lhs_prev_info = context.push_expression_scope();
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
+	context.pop_expression_scope(lhs_prev_info);
 	auto const lhs_bb_end = context.builder.GetInsertBlock();
 
 	// generate computation of rhs
 	auto const rhs_bb = context.add_basic_block("bool_or_rhs");
 	context.builder.SetInsertPoint(rhs_bb);
-	auto const prev_condition = context.push_destruct_condition();
+	auto const rhs_prev_info = context.push_expression_scope();
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-	context.pop_destruct_condition(prev_condition);
+	context.pop_expression_scope(rhs_prev_info);
 	auto const rhs_bb_end = context.builder.GetInsertBlock();
 
 	auto const end_bb = context.add_basic_block("bool_or_end");
