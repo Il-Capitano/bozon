@@ -1011,11 +1011,24 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 			bz_unreachable;
 		},
 		[&](ast::ts_array const &array_t) {
-			result.emplace<ast::constant_value::array>(
-				bz::basic_range(value.AggregateVal.begin(), value.AggregateVal.end())
-				.transform([&](auto const &val) { return constant_value_from_generic_value(val, array_t.elem_type); })
-				.collect<ast::arena_vector>()
-			);
+			if (array_t.elem_type.is<ast::ts_array>())
+			{
+				auto &array = result.emplace<ast::constant_value::array>();
+				for (auto const &val : value.AggregateVal)
+				{
+					auto inner_array = constant_value_from_generic_value(val, array_t.elem_type);
+					bz_assert(inner_array.is_array());
+					array.append_move(inner_array.get_array());
+				}
+			}
+			else
+			{
+				result.emplace<ast::constant_value::array>(
+					bz::basic_range(value.AggregateVal.begin(), value.AggregateVal.end())
+					.transform([&](auto const &val) { return constant_value_from_generic_value(val, array_t.elem_type); })
+					.collect<ast::arena_vector>()
+				);
+			}
 		},
 		[](ast::ts_array_slice const &) {
 			bz_unreachable;
@@ -1112,11 +1125,23 @@ static ast::constant_value constant_value_from_global_getters(
 		},
 		[&](ast::ts_array const &array_t) -> ast::constant_value {
 			ast::constant_value result;
-			auto &arr = result.emplace<ast::constant_value::array>();
-			arr.reserve(array_t.size);
-			for ([[maybe_unused]] auto const _ : bz::iota(0, array_t.size))
+			auto &array = result.emplace<ast::constant_value::array>();
+			if (array_t.elem_type.is<ast::ts_array>())
 			{
-				arr.push_back(constant_value_from_global_getters(array_t.elem_type, getter_it, context));
+				for ([[maybe_unused]] auto const _ : bz::iota(0, array_t.size))
+				{
+					auto inner_array = constant_value_from_global_getters(array_t.elem_type, getter_it, context);
+					bz_assert(inner_array.is_array());
+					array.append_move(inner_array.get_array());
+				}
+			}
+			else
+			{
+				array.reserve(array_t.size);
+				for ([[maybe_unused]] auto const _ : bz::iota(0, array_t.size))
+				{
+					array.push_back(constant_value_from_global_getters(array_t.elem_type, getter_it, context));
+				}
 			}
 			return result;
 		},

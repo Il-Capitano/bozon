@@ -6,6 +6,27 @@
 namespace resolve
 {
 
+struct flattened_array_info_t
+{
+	ast::typespec_view elem_type;
+	size_t size;
+	bool is_multi_dimensional;
+};
+
+static flattened_array_info_t get_flattened_array_type_and_size(ast::typespec_view type)
+{
+	size_t size = type.get<ast::ts_array>().size;
+	bool is_multi_dimensional = false;
+	type = type.get<ast::ts_array>().elem_type;
+	while (type.is<ast::ts_array>())
+	{
+		size *= type.get<ast::ts_array>().size;
+		type = type.get<ast::ts_array>().elem_type;
+		is_multi_dimensional = true;
+	}
+	return { type, size, is_multi_dimensional };
+}
+
 static ast::constant_value evaluate_binary_plus(
 	ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
@@ -1151,14 +1172,14 @@ static ast::constant_value evaluate_tuple_subscript(ast::expr_tuple_subscript co
 }
 
 static ast::constant_value evaluate_subscript(
-	ast::expr_subscript const &subscript_expr,
+	ast::expression const &base,
+	ast::expression const &index,
 	ctx::parse_context &context
 )
 {
 	bool is_consteval = true;
-	auto const &base_type = ast::remove_const_or_consteval(subscript_expr.base.get_expr_type());
+	auto const &base_type = ast::remove_const_or_consteval(base.get_expr_type());
 
-	auto const &index = subscript_expr.index;
 	uint64_t index_value = 0;
 
 	if (index.is_constant())
@@ -1227,49 +1248,107 @@ static ast::constant_value evaluate_subscript(
 		is_consteval = false;
 	}
 
-	if (!is_consteval || !subscript_expr.base.has_consteval_succeeded())
+	if (!is_consteval || !base.has_consteval_succeeded())
 	{
 		return {};
 	}
 
-	bz_assert(subscript_expr.base.is_constant());
-	auto const &value = subscript_expr.base.get_constant_value();
+	bz_assert(base.is_constant());
+	auto const &value = base.get_constant_value();
 	if (base_type.is<ast::ts_array>())
 	{
-		switch (value.index())
+		auto const elem_type = base_type.get<ast::ts_array>().elem_type.as_typespec_view();
+
+		if (elem_type.is<ast::ts_array>())
 		{
-		case ast::constant_value::array:
-		{
-			auto const &array_value = value.get_array();
-			bz_assert(index_value < array_value.size());
-			return array_value[index_value];
+			auto const [inner_elem_type, inner_size, is_multi_dimensional] = get_flattened_array_type_and_size(elem_type);
+			auto const begin_index = index_value * inner_size;
+			auto const end_index = begin_index + inner_size;
+			switch (value.index())
+			{
+			static_assert(ast::constant_value::variant_count == 20);
+			case ast::constant_value::array:
+			{
+				auto const &array_value = value.get_array();
+				bz_assert(end_index <= array_value.size());
+				auto result = ast::constant_value();
+				result.emplace<ast::constant_value::array>(array_value.slice(begin_index, end_index));
+				return result;
+			}
+			case ast::constant_value::sint_array:
+			{
+				auto const &array_value = value.get_sint_array();
+				bz_assert(end_index <= array_value.size());
+				auto result = ast::constant_value();
+				result.emplace<ast::constant_value::sint_array>(array_value.slice(begin_index, end_index));
+				return result;
+			}
+			case ast::constant_value::uint_array:
+			{
+				auto const &array_value = value.get_uint_array();
+				bz_assert(end_index <= array_value.size());
+				auto result = ast::constant_value();
+				result.emplace<ast::constant_value::uint_array>(array_value.slice(begin_index, end_index));
+				return result;
+			}
+			case ast::constant_value::float32_array:
+			{
+				auto const &array_value = value.get_float32_array();
+				bz_assert(end_index <= array_value.size());
+				auto result = ast::constant_value();
+				result.emplace<ast::constant_value::float32_array>(array_value.slice(begin_index, end_index));
+				return result;
+			}
+			case ast::constant_value::float64_array:
+			{
+				auto const &array_value = value.get_float64_array();
+				bz_assert(end_index <= array_value.size());
+				auto result = ast::constant_value();
+				result.emplace<ast::constant_value::float64_array>(array_value.slice(begin_index, end_index));
+				return result;
+			}
+			default:
+				bz_unreachable;
+			}
 		}
-		case ast::constant_value::sint_array:
+		else
 		{
-			auto const &array_value = value.get_sint_array();
-			bz_assert(index_value < array_value.size());
-			return ast::constant_value(array_value[index_value]);
-		}
-		case ast::constant_value::uint_array:
-		{
-			auto const &array_value = value.get_uint_array();
-			bz_assert(index_value < array_value.size());
-			return ast::constant_value(array_value[index_value]);
-		}
-		case ast::constant_value::float32_array:
-		{
-			auto const &array_value = value.get_float32_array();
-			bz_assert(index_value < array_value.size());
-			return ast::constant_value(array_value[index_value]);
-		}
-		case ast::constant_value::float64_array:
-		{
-			auto const &array_value = value.get_float64_array();
-			bz_assert(index_value < array_value.size());
-			return ast::constant_value(array_value[index_value]);
-		}
-		default:
-			bz_unreachable;
+			switch (value.index())
+			{
+			static_assert(ast::constant_value::variant_count == 20);
+			case ast::constant_value::array:
+			{
+				auto const &array_value = value.get_array();
+				bz_assert(index_value < array_value.size());
+				return array_value[index_value];
+			}
+			case ast::constant_value::sint_array:
+			{
+				auto const &array_value = value.get_sint_array();
+				bz_assert(index_value < array_value.size());
+				return ast::constant_value(array_value[index_value]);
+			}
+			case ast::constant_value::uint_array:
+			{
+				auto const &array_value = value.get_uint_array();
+				bz_assert(index_value < array_value.size());
+				return ast::constant_value(array_value[index_value]);
+			}
+			case ast::constant_value::float32_array:
+			{
+				auto const &array_value = value.get_float32_array();
+				bz_assert(index_value < array_value.size());
+				return ast::constant_value(array_value[index_value]);
+			}
+			case ast::constant_value::float64_array:
+			{
+				auto const &array_value = value.get_float64_array();
+				bz_assert(index_value < array_value.size());
+				return ast::constant_value(array_value[index_value]);
+			}
+			default:
+				bz_unreachable;
+			}
 		}
 	}
 	else
@@ -1734,6 +1813,45 @@ static ast::constant_value get_default_constructed_value(
 			}
 		});
 	}
+	else if (type.is<ast::ts_array>())
+	{
+		auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(type);
+		ast::constant_value result;
+		auto const elem_builtin_kind = elem_type.is<ast::ts_base_type>()
+			? elem_type.get<ast::ts_base_type>().info->kind
+			: ast::type_info::aggregate;
+		switch (elem_builtin_kind)
+		{
+		case ast::type_info::int8_:
+		case ast::type_info::int16_:
+		case ast::type_info::int32_:
+		case ast::type_info::int64_:
+			result.emplace<ast::constant_value::sint_array>(size, 0);
+			break;
+		case ast::type_info::uint8_:
+		case ast::type_info::uint16_:
+		case ast::type_info::uint32_:
+		case ast::type_info::uint64_:
+			result.emplace<ast::constant_value::uint_array>(size, 0);
+			break;
+		case ast::type_info::float32_:
+			result.emplace<ast::constant_value::float32_array>(size, 0.0f);
+			break;
+		case ast::type_info::float64_:
+			result.emplace<ast::constant_value::float64_array>(size, 0.0);
+			break;
+		default:
+		{
+			auto const elem_value = get_default_constructed_value(src_tokens, elem_type, exec_kind, context);
+			if (elem_value.not_null())
+			{
+				result.emplace<ast::constant_value::array>(size, elem_value);
+			}
+			break;
+		}
+		}
+		return result;
+	}
 	else
 	{
 		return type.terminator->visit(bz::overload{
@@ -1802,43 +1920,6 @@ static ast::constant_value get_default_constructed_value(
 						return {};
 					}
 				}
-			},
-			[exec_kind, &src_tokens, &context](ast::ts_array const &array_t) -> ast::constant_value {
-				ast::constant_value result;
-				auto const elem_builtin_kind = array_t.elem_type.is<ast::ts_base_type>()
-					? array_t.elem_type.get<ast::ts_base_type>().info->kind
-					: ast::type_info::aggregate;
-				switch (elem_builtin_kind)
-				{
-				case ast::type_info::int8_:
-				case ast::type_info::int16_:
-				case ast::type_info::int32_:
-				case ast::type_info::int64_:
-					result.emplace<ast::constant_value::sint_array>(array_t.size, 0);
-					break;
-				case ast::type_info::uint8_:
-				case ast::type_info::uint16_:
-				case ast::type_info::uint32_:
-				case ast::type_info::uint64_:
-					result.emplace<ast::constant_value::uint_array>(array_t.size, 0);
-					break;
-				case ast::type_info::float32_:
-					result.emplace<ast::constant_value::float32_array>(array_t.size, 0.0f);
-					break;
-				case ast::type_info::float64_:
-					result.emplace<ast::constant_value::float64_array>(array_t.size, 0.0);
-					break;
-				default:
-				{
-					auto const elem_value = get_default_constructed_value(src_tokens, array_t.elem_type, exec_kind, context);
-					if (elem_value.not_null())
-					{
-						result.emplace<ast::constant_value::array>(array_t.size, elem_value);
-					}
-					break;
-				}
-				}
-				return result;
 			},
 			[](ast::ts_array_slice const &) -> ast::constant_value {
 				return {};
@@ -2158,7 +2239,11 @@ static bool is_special_array_type(ast::typespec_view type)
 		return false;
 	}
 
-	auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
+	auto elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
+	while (elem_type.is<ast::ts_array>())
+	{
+		elem_type = elem_type.get<ast::ts_array>().elem_type;
+	}
 
 	if (!elem_type.is<ast::ts_base_type>())
 	{
@@ -2185,8 +2270,9 @@ static bool is_special_array_type(ast::typespec_view type)
 	}
 }
 
-static ast::constant_value get_special_array_value(ast::typespec_view elem_type, bz::array_view<ast::expression const> exprs)
+static ast::constant_value get_special_array_value(ast::typespec_view array_type, bz::array_view<ast::expression const> exprs)
 {
+	auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(array_type);
 	bz_assert(elem_type.is<ast::ts_base_type>());
 	auto const type_kind = elem_type.get<ast::ts_base_type>().info->kind;
 
@@ -2197,42 +2283,90 @@ static ast::constant_value get_special_array_value(ast::typespec_view elem_type,
 	case ast::type_info::int32_:
 	case ast::type_info::int64_:
 	{
-		auto sint_array = exprs
-			.transform([](auto const &expr) {
-				return expr.get_constant_value().get_sint();
-			})
-			.collect<ast::arena_vector>();
-		return ast::constant_value(std::move(sint_array));
+		auto result = ast::constant_value();
+		auto &sint_array = result.emplace<ast::constant_value::sint_array>();
+		sint_array.reserve(size);
+		if (is_multi_dimensional)
+		{
+			for (auto const &expr : exprs)
+			{
+				sint_array.append(expr.get_constant_value().get_sint_array());
+			}
+		}
+		else
+		{
+			for (auto const &expr : exprs)
+			{
+				sint_array.push_back(expr.get_constant_value().get_sint());
+			}
+		}
+		return result;
 	}
 	case ast::type_info::uint8_:
 	case ast::type_info::uint16_:
 	case ast::type_info::uint32_:
 	case ast::type_info::uint64_:
 	{
-		auto uint_array = exprs
-			.transform([](auto const &expr) {
-				return expr.get_constant_value().get_uint();
-			})
-			.collect<ast::arena_vector>();
-		return ast::constant_value(std::move(uint_array));
+		auto result = ast::constant_value();
+		auto &uint_array = result.emplace<ast::constant_value::uint_array>();
+		uint_array.reserve(size);
+		if (is_multi_dimensional)
+		{
+			for (auto const &expr : exprs)
+			{
+				uint_array.append(expr.get_constant_value().get_uint_array());
+			}
+		}
+		else
+		{
+			for (auto const &expr : exprs)
+			{
+				uint_array.push_back(expr.get_constant_value().get_uint());
+			}
+		}
+		return result;
 	}
 	case ast::type_info::float32_:
 	{
-		auto float32_array = exprs
-			.transform([](auto const &expr) {
-				return expr.get_constant_value().get_float32();
-			})
-			.collect<ast::arena_vector>();
-		return ast::constant_value(std::move(float32_array));
+		auto result = ast::constant_value();
+		auto &float32_array = result.emplace<ast::constant_value::float32_array>();
+		float32_array.reserve(size);
+		if (is_multi_dimensional)
+		{
+			for (auto const &expr : exprs)
+			{
+				float32_array.append(expr.get_constant_value().get_float32_array());
+			}
+		}
+		else
+		{
+			for (auto const &expr : exprs)
+			{
+				float32_array.push_back(expr.get_constant_value().get_float32());
+			}
+		}
+		return result;
 	}
 	case ast::type_info::float64_:
 	{
-		auto float64_array = exprs
-			.transform([](auto const &expr) {
-				return expr.get_constant_value().get_float64();
-			})
-			.collect<ast::arena_vector>();
-		return ast::constant_value(std::move(float64_array));
+		auto result = ast::constant_value();
+		auto &float64_array = result.emplace<ast::constant_value::float64_array>();
+		float64_array.reserve(size);
+		if (is_multi_dimensional)
+		{
+			for (auto const &expr : exprs)
+			{
+				float64_array.append(expr.get_constant_value().get_float64_array());
+			}
+		}
+		else
+		{
+			for (auto const &expr : exprs)
+			{
+				float64_array.push_back(expr.get_constant_value().get_float64());
+			}
+		}
+		return result;
 	}
 	default:
 		bz_unreachable;
@@ -2346,42 +2480,17 @@ static ast::constant_value guaranteed_evaluate_expr(
 		},
 		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value {
 			consteval_guaranteed(subscript_expr.base, context);
+			consteval_guaranteed(subscript_expr.index, context);
 
-			return evaluate_subscript(subscript_expr, context);
+			// don't evaluate the subscript, because that may cause it to convert from an
+			// lvalue reference to an rvalue
+			return {};
 		},
 		[&context](ast::expr_rvalue_array_subscript &rvalue_array_subscript_expr) -> ast::constant_value {
 			consteval_guaranteed(rvalue_array_subscript_expr.base, context);
 			consteval_guaranteed(rvalue_array_subscript_expr.index, context);
 
-			if (rvalue_array_subscript_expr.base.is_constant() && rvalue_array_subscript_expr.index.is_constant())
-			{
-				auto const &index_value = rvalue_array_subscript_expr.index.get_constant_value();
-				bz_assert(index_value.is_uint() || index_value.is_sint());
-				auto const index = index_value.is_uint()
-					? index_value.get_uint()
-					: static_cast<uint64_t>(index_value.get_sint());
-				auto const &base_value = rvalue_array_subscript_expr.base.get_constant_value();
-				switch (base_value.kind())
-				{
-				static_assert(ast::constant_value::variant_count == 20);
-				case ast::constant_value::array:
-					return base_value.get_array()[index];
-				case ast::constant_value::uint_array:
-					return ast::constant_value(base_value.get_uint_array()[index]);
-				case ast::constant_value::sint_array:
-					return ast::constant_value(base_value.get_sint_array()[index]);
-				case ast::constant_value::float32_array:
-					return ast::constant_value(base_value.get_float32_array()[index]);
-				case ast::constant_value::float64_array:
-					return ast::constant_value(base_value.get_float64_array()[index]);
-				default:
-					bz_unreachable;
-				}
-			}
-			else
-			{
-				return {};
-			}
+			return evaluate_subscript(rvalue_array_subscript_expr.base, rvalue_array_subscript_expr.index, context);
 		},
 		[&expr, &context](ast::expr_function_call &func_call) -> ast::constant_value {
 			for (auto &param : func_call.params)
@@ -2421,14 +2530,35 @@ static ast::constant_value guaranteed_evaluate_expr(
 
 			if (is_special_array_type(aggregate_init_expr.type))
 			{
-				return get_special_array_value(aggregate_init_expr.type.get<ast::ts_array>().elem_type, aggregate_init_expr.exprs);
+				return get_special_array_value(aggregate_init_expr.type, aggregate_init_expr.exprs);
+			}
+			else if (aggregate_init_expr.type.is<ast::ts_array>())
+			{
+				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(aggregate_init_expr.type);
+				auto result = ast::constant_value();
+				auto &array = result.emplace<ast::constant_value::array>();
+				array.reserve(size);
+				if (is_multi_dimensional)
+				{
+					for (auto const &expr : aggregate_init_expr.exprs)
+					{
+						array.append(expr.get_constant_value().get_array());
+					}
+				}
+				else
+				{
+					for (auto const &expr : aggregate_init_expr.exprs)
+					{
+						array.emplace_back(expr.get_constant_value());
+					}
+				}
+
+				return result;
 			}
 			else
 			{
-				ast::constant_value result{};
-				auto &aggregate = aggregate_init_expr.type.is<ast::ts_array>()
-					? result.emplace<ast::constant_value::array>()
-					: result.emplace<ast::constant_value::aggregate>();
+				auto result = ast::constant_value();
+				auto &aggregate = result.emplace<ast::constant_value::aggregate>();
 				aggregate.reserve(aggregate_init_expr.exprs.size());
 				for (auto const &expr : aggregate_init_expr.exprs)
 				{
@@ -2496,8 +2626,17 @@ static ast::constant_value guaranteed_evaluate_expr(
 			else
 			{
 				auto const &value = array_default_construct_expr.default_construct_expr.get<ast::constant_expression>().value;
-				ast::constant_value result;
-				result.emplace<ast::constant_value::array>(type.get<ast::ts_array>().size, value);
+				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(type);
+				auto result = ast::constant_value();
+				if (is_multi_dimensional)
+				{
+					bz_assert(value.is_array() && value.get_array().not_empty());
+					result.emplace<ast::constant_value::array>(size, value.get_array()[0]);
+				}
+				else
+				{
+					result.emplace<ast::constant_value::array>(size, value);
+				}
 				return result;
 			}
 		},
@@ -2798,14 +2937,35 @@ static ast::constant_value try_evaluate_expr(
 			auto const expr_type = expr.get_expr_type();
 			if (is_special_array_type(expr_type))
 			{
-				return get_special_array_value(expr_type.get<ast::ts_array>().elem_type, tuple.elems);
+				return get_special_array_value(expr_type, tuple.elems);
+			}
+			else if (expr_type.is<ast::ts_array>())
+			{
+				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(expr_type);
+				auto result = ast::constant_value();
+				auto &array = result.emplace<ast::constant_value::array>();
+				array.reserve(size);
+				if (is_multi_dimensional)
+				{
+					for (auto &elem : tuple.elems)
+					{
+						bz_assert(elem.get_constant_value().is_array());
+						array.append(elem.get_constant_value().get_array());
+					}
+				}
+				else
+				{
+					for (auto &elem : tuple.elems)
+					{
+						array.emplace_back(elem.get_constant_value());
+					}
+				}
+				return result;
 			}
 			else
 			{
-				ast::constant_value result;
-				auto &elem_values = expr_type.is<ast::ts_array>()
-					? (result.emplace<ast::constant_value::array>(), result.get<ast::constant_value::array>())
-					: (result.emplace<ast::constant_value::tuple>(), result.get<ast::constant_value::tuple>());
+				auto result = ast::constant_value();
+				auto &elem_values = result.emplace<ast::constant_value::tuple>();
 				elem_values.reserve(tuple.elems.size());
 				for (auto &elem : tuple.elems)
 				{
@@ -2890,42 +3050,15 @@ static ast::constant_value try_evaluate_expr(
 		},
 		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value {
 			consteval_try(subscript_expr.base, context);
+			consteval_try(subscript_expr.index, context);
 
-			return evaluate_subscript(subscript_expr, context);
+			return evaluate_subscript(subscript_expr.base, subscript_expr.index, context);
 		},
 		[&context](ast::expr_rvalue_array_subscript &rvalue_array_subscript_expr) -> ast::constant_value {
 			consteval_try(rvalue_array_subscript_expr.base, context);
 			consteval_try(rvalue_array_subscript_expr.index, context);
 
-			if (rvalue_array_subscript_expr.base.is_constant() && rvalue_array_subscript_expr.index.is_constant())
-			{
-				auto const &index_value = rvalue_array_subscript_expr.index.get_constant_value();
-				bz_assert(index_value.is_uint() || index_value.is_sint());
-				auto const index = index_value.is_uint()
-					? index_value.get_uint()
-					: static_cast<uint64_t>(index_value.get_sint());
-				auto const &base_value = rvalue_array_subscript_expr.base.get_constant_value();
-				switch (base_value.kind())
-				{
-				static_assert(ast::constant_value::variant_count == 20);
-				case ast::constant_value::array:
-					return base_value.get_array()[index];
-				case ast::constant_value::uint_array:
-					return ast::constant_value(base_value.get_uint_array()[index]);
-				case ast::constant_value::sint_array:
-					return ast::constant_value(base_value.get_sint_array()[index]);
-				case ast::constant_value::float32_array:
-					return ast::constant_value(base_value.get_float32_array()[index]);
-				case ast::constant_value::float64_array:
-					return ast::constant_value(base_value.get_float64_array()[index]);
-				default:
-					bz_unreachable;
-				}
-			}
-			else
-			{
-				return {};
-			}
+			return evaluate_subscript(rvalue_array_subscript_expr.base, rvalue_array_subscript_expr.index, context);
 		},
 		[&expr, &context](ast::expr_function_call &func_call) -> ast::constant_value {
 			for (auto &param : func_call.params)
@@ -2965,14 +3098,35 @@ static ast::constant_value try_evaluate_expr(
 
 			if (is_special_array_type(aggregate_init_expr.type))
 			{
-				return get_special_array_value(aggregate_init_expr.type.get<ast::ts_array>().elem_type, aggregate_init_expr.exprs);
+				return get_special_array_value(aggregate_init_expr.type, aggregate_init_expr.exprs);
+			}
+			else if (aggregate_init_expr.type.is<ast::ts_array>())
+			{
+				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(aggregate_init_expr.type);
+				auto result = ast::constant_value();
+				auto &array = result.emplace<ast::constant_value::array>();
+				array.reserve(size);
+				if (is_multi_dimensional)
+				{
+					for (auto const &expr : aggregate_init_expr.exprs)
+					{
+						array.append(expr.get_constant_value().get_array());
+					}
+				}
+				else
+				{
+					for (auto const &expr : aggregate_init_expr.exprs)
+					{
+						array.emplace_back(expr.get_constant_value());
+					}
+				}
+
+				return result;
 			}
 			else
 			{
-				ast::constant_value result{};
-				auto &aggregate = aggregate_init_expr.type.is<ast::ts_array>()
-					? result.emplace<ast::constant_value::array>()
-					: result.emplace<ast::constant_value::aggregate>();
+				auto result = ast::constant_value();
+				auto &aggregate = result.emplace<ast::constant_value::aggregate>();
 				aggregate.reserve(aggregate_init_expr.exprs.size());
 				for (auto const &expr : aggregate_init_expr.exprs)
 				{
@@ -3040,8 +3194,17 @@ static ast::constant_value try_evaluate_expr(
 			else
 			{
 				auto const &value = array_default_construct_expr.default_construct_expr.get<ast::constant_expression>().value;
-				ast::constant_value result;
-				result.emplace<ast::constant_value::array>(type.get<ast::ts_array>().size, value);
+				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(type);
+				auto result = ast::constant_value();
+				if (is_multi_dimensional)
+				{
+					bz_assert(value.is_array() && value.get_array().not_empty());
+					result.emplace<ast::constant_value::array>(size, value.get_array()[0]);
+				}
+				else
+				{
+					result.emplace<ast::constant_value::array>(size, value);
+				}
 				return result;
 			}
 		},
@@ -3346,14 +3509,35 @@ static ast::constant_value try_evaluate_expr_without_error(
 			auto const expr_type = expr.get_expr_type();
 			if (is_special_array_type(expr_type))
 			{
-				return get_special_array_value(expr_type.get<ast::ts_array>().elem_type, tuple.elems);
+				return get_special_array_value(expr_type, tuple.elems);
+			}
+			else if (expr_type.is<ast::ts_array>())
+			{
+				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(expr_type);
+				auto result = ast::constant_value();
+				auto &array = result.emplace<ast::constant_value::array>();
+				array.reserve(size);
+				if (is_multi_dimensional)
+				{
+					for (auto &elem : tuple.elems)
+					{
+						bz_assert(elem.get_constant_value().is_array());
+						array.append(elem.get_constant_value().get_array());
+					}
+				}
+				else
+				{
+					for (auto &elem : tuple.elems)
+					{
+						array.emplace_back(elem.get_constant_value());
+					}
+				}
+				return result;
 			}
 			else
 			{
-				ast::constant_value result;
-				auto &elem_values = expr_type.is<ast::ts_array>()
-					? (result.emplace<ast::constant_value::array>(), result.get<ast::constant_value::array>())
-					: (result.emplace<ast::constant_value::tuple>(), result.get<ast::constant_value::tuple>());
+				auto result = ast::constant_value();
+				auto &elem_values = result.emplace<ast::constant_value::tuple>();
 				elem_values.reserve(tuple.elems.size());
 				for (auto &elem : tuple.elems)
 				{
@@ -3439,41 +3623,13 @@ static ast::constant_value try_evaluate_expr_without_error(
 			consteval_try_without_error(subscript_expr.base, context);
 			consteval_try_without_error(subscript_expr.index, context);
 
-			return evaluate_subscript(subscript_expr, context);
+			return evaluate_subscript(subscript_expr.base, subscript_expr.index, context);
 		},
 		[&context](ast::expr_rvalue_array_subscript &rvalue_array_subscript_expr) -> ast::constant_value {
 			consteval_try_without_error(rvalue_array_subscript_expr.base, context);
 			consteval_try_without_error(rvalue_array_subscript_expr.index, context);
 
-			if (rvalue_array_subscript_expr.base.is_constant() && rvalue_array_subscript_expr.index.is_constant())
-			{
-				auto const &index_value = rvalue_array_subscript_expr.index.get_constant_value();
-				bz_assert(index_value.is_uint() || index_value.is_sint());
-				auto const index = index_value.is_uint()
-					? index_value.get_uint()
-					: static_cast<uint64_t>(index_value.get_sint());
-				auto const &base_value = rvalue_array_subscript_expr.base.get_constant_value();
-				switch (base_value.kind())
-				{
-				static_assert(ast::constant_value::variant_count == 20);
-				case ast::constant_value::array:
-					return base_value.get_array()[index];
-				case ast::constant_value::uint_array:
-					return ast::constant_value(base_value.get_uint_array()[index]);
-				case ast::constant_value::sint_array:
-					return ast::constant_value(base_value.get_sint_array()[index]);
-				case ast::constant_value::float32_array:
-					return ast::constant_value(base_value.get_float32_array()[index]);
-				case ast::constant_value::float64_array:
-					return ast::constant_value(base_value.get_float64_array()[index]);
-				default:
-					bz_unreachable;
-				}
-			}
-			else
-			{
-				return {};
-			}
+			return evaluate_subscript(rvalue_array_subscript_expr.base, rvalue_array_subscript_expr.index, context);
 		},
 		[&expr, &context](ast::expr_function_call &func_call) -> ast::constant_value {
 			for (auto &param : func_call.params)
@@ -3513,14 +3669,35 @@ static ast::constant_value try_evaluate_expr_without_error(
 
 			if (is_special_array_type(aggregate_init_expr.type))
 			{
-				return get_special_array_value(aggregate_init_expr.type.get<ast::ts_array>().elem_type, aggregate_init_expr.exprs);
+				return get_special_array_value(aggregate_init_expr.type, aggregate_init_expr.exprs);
+			}
+			else if (aggregate_init_expr.type.is<ast::ts_array>())
+			{
+				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(aggregate_init_expr.type);
+				auto result = ast::constant_value();
+				auto &array = result.emplace<ast::constant_value::array>();
+				array.reserve(size);
+				if (is_multi_dimensional)
+				{
+					for (auto const &expr : aggregate_init_expr.exprs)
+					{
+						array.append(expr.get_constant_value().get_array());
+					}
+				}
+				else
+				{
+					for (auto const &expr : aggregate_init_expr.exprs)
+					{
+						array.emplace_back(expr.get_constant_value());
+					}
+				}
+
+				return result;
 			}
 			else
 			{
-				ast::constant_value result{};
-				auto &aggregate = aggregate_init_expr.type.is<ast::ts_array>()
-					? result.emplace<ast::constant_value::array>()
-					: result.emplace<ast::constant_value::aggregate>();
+				auto result = ast::constant_value();
+				auto &aggregate = result.emplace<ast::constant_value::aggregate>();
 				aggregate.reserve(aggregate_init_expr.exprs.size());
 				for (auto const &expr : aggregate_init_expr.exprs)
 				{
@@ -3588,8 +3765,17 @@ static ast::constant_value try_evaluate_expr_without_error(
 			else
 			{
 				auto const &value = array_default_construct_expr.default_construct_expr.get<ast::constant_expression>().value;
-				ast::constant_value result;
-				result.emplace<ast::constant_value::array>(type.get<ast::ts_array>().size, value);
+				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(type);
+				auto result = ast::constant_value();
+				if (is_multi_dimensional)
+				{
+					bz_assert(value.is_array() && value.get_array().not_empty());
+					result.emplace<ast::constant_value::array>(size, value.get_array()[0]);
+				}
+				else
+				{
+					result.emplace<ast::constant_value::array>(size, value);
+				}
 				return result;
 			}
 		},
