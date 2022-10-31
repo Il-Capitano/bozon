@@ -4722,8 +4722,8 @@ static val_ptr emit_bitcode(
 	auto const lhs_ptr_int_val = context.builder.CreatePtrToInt(lhs.val, context.get_usize_t());
 	auto const rhs_ptr_int_val = context.builder.CreatePtrToInt(rhs.val, context.get_usize_t());
 	auto const are_equal = context.builder.CreateICmpEQ(lhs_ptr_int_val, rhs_ptr_int_val);
-	auto const ptr_eq_bb = context.add_basic_block("assign_ptr_eq");
-	auto const neq_bb = context.add_basic_block("assign_ptr_neq");
+	auto const ptr_eq_bb = context.add_basic_block("swap_ptr_eq");
+	auto const neq_bb = context.add_basic_block("swap_ptr_neq");
 	context.builder.CreateCondBr(are_equal, ptr_eq_bb, neq_bb);
 	context.builder.SetInsertPoint(neq_bb);
 
