@@ -4815,10 +4815,12 @@ static val_ptr emit_bitcode(
 	auto const copy_bb = context.add_basic_block("optional_move_construct_has_value");
 	context.builder.SetInsertPoint(copy_bb);
 
+	auto const prev_info = context.push_expression_scope();
 	auto const result_value_ptr = optional_get_value_ptr(result, context);
 	auto const prev_value = context.push_value_reference(optional_get_value_ptr(moved_val, context));
 	emit_bitcode<abi>(optional_move_construct.value_move_expr, context, result_value_ptr.val);
 	context.pop_value_reference(prev_value);
+	context.pop_expression_scope(prev_info);
 
 	auto const end_bb = context.add_basic_block("optional_move_construct_end");
 	context.builder.CreateBr(end_bb);
@@ -5152,11 +5154,13 @@ static val_ptr emit_bitcode(
 	auto const both_have_value_bb = context.add_basic_block("optional_assign_both_have_value");
 	context.builder.SetInsertPoint(both_have_value_bb);
 	{
+		auto const prev_info = context.push_expression_scope();
 		auto const lhs_prev_value = context.push_value_reference(optional_get_value_ptr(lhs, context));
 		auto const rhs_prev_value = context.push_value_reference(optional_get_value_ptr(rhs, context));
 		emit_bitcode<abi>(optional_assign.value_assign_expr, context, nullptr);
 		context.pop_value_reference(rhs_prev_value);
 		context.pop_value_reference(lhs_prev_value);
+		context.pop_expression_scope(prev_info);
 	}
 	auto const both_have_value_bb_end = context.builder.GetInsertBlock();
 
@@ -5180,10 +5184,12 @@ static val_ptr emit_bitcode(
 	auto const rhs_has_value_bb = context.add_basic_block("optional_assign_rhs_has_value");
 	context.builder.SetInsertPoint(rhs_has_value_bb);
 	{
+		auto const prev_info = context.push_expression_scope();
 		auto const lhs_value_ptr = optional_get_value_ptr(lhs, context);
 		auto const prev_value = context.push_value_reference(optional_get_value_ptr(rhs, context));
 		emit_bitcode<abi>(optional_assign.value_construct_expr, context, lhs_value_ptr.val);
 		context.pop_value_reference(prev_value);
+		context.pop_expression_scope(prev_info);
 
 		optional_set_has_value(lhs, true, context);
 	}
@@ -5274,11 +5280,13 @@ static val_ptr emit_bitcode(
 	context.builder.SetInsertPoint(assign_bb);
 
 	{
+		auto const prev_info = context.push_expression_scope();
 		auto const lhs_prev_value = context.push_value_reference(optional_get_value_ptr(lhs, context));
 		auto const rhs_prev_value = context.push_value_reference(rhs);
 		emit_bitcode<abi>(optional_value_assign.value_assign_expr, context, nullptr);
 		context.pop_value_reference(rhs_prev_value);
 		context.pop_value_reference(lhs_prev_value);
+		context.pop_expression_scope(prev_info);
 	}
 
 	auto const assign_end_bb = context.builder.GetInsertBlock();
@@ -5287,10 +5295,12 @@ static val_ptr emit_bitcode(
 	context.builder.SetInsertPoint(construct_bb);
 
 	{
+		auto const prev_info = context.push_expression_scope();
 		auto const prev_value = context.push_value_reference(rhs);
 		auto const lhs_value_ptr = optional_get_value_ptr(lhs, context);
 		emit_bitcode<abi>(optional_value_assign.value_construct_expr, context, lhs_value_ptr.val);
 		context.pop_value_reference(prev_value);
+		context.pop_expression_scope(prev_info);
 
 		optional_set_has_value(lhs, true, context);
 	}
@@ -5520,12 +5530,15 @@ static val_ptr emit_bitcode(
 	auto const both_have_value_bb = context.add_basic_block("optional_swap_both_have_value");
 	context.builder.SetInsertPoint(both_have_value_bb);
 	{
+		auto const prev_info = context.push_expression_scope();
 		auto const lhs_prev_value = context.push_value_reference(optional_get_value_ptr(lhs, context));
 		auto const rhs_prev_value = context.push_value_reference(optional_get_value_ptr(rhs, context));
 		emit_bitcode<abi>(optional_swap.value_swap_expr, context, nullptr);
 		context.pop_value_reference(rhs_prev_value);
 		context.pop_value_reference(lhs_prev_value);
+		context.pop_expression_scope(prev_info);
 	}
+	auto const both_have_value_bb_end = context.builder.GetInsertBlock();
 
 	auto const one_has_value_bb = context.add_basic_block("optional_swap_one_has_value");
 	// context.builder.SetInsertPoint(one_has_value_bb);
@@ -5534,6 +5547,7 @@ static val_ptr emit_bitcode(
 	auto const lhs_has_value_bb = context.add_basic_block("optional_swap_lhs_has_value");
 	context.builder.SetInsertPoint(lhs_has_value_bb);
 	{
+		auto const prev_info = context.push_expression_scope();
 		auto const rhs_value_ptr = optional_get_value_ptr(rhs, context);
 		auto const prev_value = context.push_value_reference(optional_get_value_ptr(lhs, context));
 		emit_bitcode<abi>(optional_swap.lhs_move_expr, context, rhs_value_ptr.val);
@@ -5541,12 +5555,15 @@ static val_ptr emit_bitcode(
 
 		optional_set_has_value(lhs, false, context);
 		optional_set_has_value(rhs, true, context);
+		context.pop_expression_scope(prev_info);
 	}
+	auto const lhs_has_value_bb_end = context.builder.GetInsertBlock();
 
 	// only rhs has value, so we need to move it to lhs
 	auto const rhs_has_value_bb = context.add_basic_block("optional_swap_rhs_has_value");
 	context.builder.SetInsertPoint(rhs_has_value_bb);
 	{
+		auto const prev_info = context.push_expression_scope();
 		auto const lhs_value_ptr = optional_get_value_ptr(lhs, context);
 		auto const prev_value = context.push_value_reference(optional_get_value_ptr(rhs, context));
 		emit_bitcode<abi>(optional_swap.rhs_move_expr, context, lhs_value_ptr.val);
@@ -5554,7 +5571,9 @@ static val_ptr emit_bitcode(
 
 		optional_set_has_value(lhs, true, context);
 		optional_set_has_value(rhs, false, context);
+		context.pop_expression_scope(prev_info);
 	}
+	auto const rhs_has_value_bb_end = context.builder.GetInsertBlock();
 
 	auto const end_bb = context.add_basic_block("optional_assign_end");
 
@@ -5567,16 +5586,16 @@ static val_ptr emit_bitcode(
 	context.builder.SetInsertPoint(any_has_value_bb);
 	context.builder.CreateCondBr(both_have_value, both_have_value_bb, one_has_value_bb);
 
-	context.builder.SetInsertPoint(both_have_value_bb);
+	context.builder.SetInsertPoint(both_have_value_bb_end);
 	context.builder.CreateBr(end_bb);
 
 	context.builder.SetInsertPoint(one_has_value_bb);
 	context.builder.CreateCondBr(lhs_has_value, lhs_has_value_bb, rhs_has_value_bb);
 
-	context.builder.SetInsertPoint(lhs_has_value_bb);
+	context.builder.SetInsertPoint(lhs_has_value_bb_end);
 	context.builder.CreateBr(end_bb);
 
-	context.builder.SetInsertPoint(rhs_has_value_bb);
+	context.builder.SetInsertPoint(rhs_has_value_bb_end);
 	context.builder.CreateBr(end_bb);
 
 	context.builder.SetInsertPoint(end_bb);
