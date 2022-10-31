@@ -34,13 +34,13 @@ using constant_value_base_t = bz::variant<
 	internal::void_t,
 
 	// arrays
-	bz::vector<constant_value>,
-	bz::vector<int64_t>,
-	bz::vector<uint64_t>,
-	bz::vector<float32_t>,
-	bz::vector<float64_t>,
+	arena_vector<constant_value>,
+	arena_vector<int64_t>,
+	arena_vector<uint64_t>,
+	arena_vector<float32_t>,
+	arena_vector<float64_t>,
 	// tuples
-	bz::vector<constant_value>,
+	arena_vector<constant_value>,
 
 	decl_function *,
 	function_set_t,
@@ -49,7 +49,7 @@ using constant_value_base_t = bz::variant<
 	typespec,
 
 	// structs
-	bz::vector<constant_value>
+	arena_vector<constant_value>
 >;
 
 struct constant_value : constant_value_base_t
@@ -68,10 +68,10 @@ struct constant_value : constant_value_base_t
 		null            = base_t::index_of<internal::null_t>,
 		void_           = base_t::index_of<internal::void_t>,
 		array,
-		sint_array      = base_t::index_of<bz::vector<int64_t>>,
-		uint_array      = base_t::index_of<bz::vector<uint64_t>>,
-		float32_array   = base_t::index_of<bz::vector<float32_t>>,
-		float64_array   = base_t::index_of<bz::vector<float64_t>>,
+		sint_array      = base_t::index_of<arena_vector<int64_t>>,
+		uint_array      = base_t::index_of<arena_vector<uint64_t>>,
+		float32_array   = base_t::index_of<arena_vector<float32_t>>,
+		float64_array   = base_t::index_of<arena_vector<float64_t>>,
 		tuple,
 		function        = base_t::index_of<decl_function *>,
 		unqualified_function_set_id,
@@ -80,9 +80,9 @@ struct constant_value : constant_value_base_t
 		aggregate,
 	};
 
-	static_assert(bz::meta::is_same<base_t::value_type<array>, bz::vector<constant_value>>);
-	static_assert(bz::meta::is_same<base_t::value_type<tuple>, bz::vector<constant_value>>);
-	static_assert(bz::meta::is_same<base_t::value_type<aggregate>, bz::vector<constant_value>>);
+	static_assert(bz::meta::is_same<base_t::value_type<array>, arena_vector<constant_value>>);
+	static_assert(bz::meta::is_same<base_t::value_type<tuple>, arena_vector<constant_value>>);
+	static_assert(bz::meta::is_same<base_t::value_type<aggregate>, arena_vector<constant_value>>);
 	static_assert(array != tuple && array != aggregate && tuple != aggregate);
 	static_assert(bz::meta::is_same<base_t::value_type<unqualified_function_set_id>, function_set_t>);
 	static_assert(bz::meta::is_same<base_t::value_type<qualified_function_set_id>, function_set_t>);

@@ -996,7 +996,7 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 				result.emplace<ast::constant_value::aggregate>(
 					bz::zip(value.AggregateVal, base_t.info->member_variables)
 					.transform([](auto const &pair) { return constant_value_from_generic_value(pair.first, pair.second->get_type()); })
-					.collect()
+					.collect<ast::arena_vector>()
 				);
 				break;
 			}
@@ -1014,7 +1014,7 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 			result.emplace<ast::constant_value::array>(
 				bz::basic_range(value.AggregateVal.begin(), value.AggregateVal.end())
 				.transform([&](auto const &val) { return constant_value_from_generic_value(val, array_t.elem_type); })
-				.collect()
+				.collect<ast::arena_vector>()
 			);
 		},
 		[](ast::ts_array_slice const &) {
@@ -1024,7 +1024,7 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 			result.emplace<ast::constant_value::tuple>(
 				bz::zip(value.AggregateVal, tuple_t.types)
 				.transform([](auto const &pair) { return constant_value_from_generic_value(pair.first, pair.second); })
-				.collect()
+				.collect<ast::arena_vector>()
 			);
 		},
 		[&](ast::ts_pointer const &) {

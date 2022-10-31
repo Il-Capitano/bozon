@@ -2201,7 +2201,7 @@ static ast::constant_value get_special_array_value(ast::typespec_view elem_type,
 			.transform([](auto const &expr) {
 				return expr.get_constant_value().get_sint();
 			})
-			.collect();
+			.collect<ast::arena_vector>();
 		return ast::constant_value(std::move(sint_array));
 	}
 	case ast::type_info::uint8_:
@@ -2213,7 +2213,7 @@ static ast::constant_value get_special_array_value(ast::typespec_view elem_type,
 			.transform([](auto const &expr) {
 				return expr.get_constant_value().get_uint();
 			})
-			.collect();
+			.collect<ast::arena_vector>();
 		return ast::constant_value(std::move(uint_array));
 	}
 	case ast::type_info::float32_:
@@ -2222,7 +2222,7 @@ static ast::constant_value get_special_array_value(ast::typespec_view elem_type,
 			.transform([](auto const &expr) {
 				return expr.get_constant_value().get_float32();
 			})
-			.collect();
+			.collect<ast::arena_vector>();
 		return ast::constant_value(std::move(float32_array));
 	}
 	case ast::type_info::float64_:
@@ -2231,7 +2231,7 @@ static ast::constant_value get_special_array_value(ast::typespec_view elem_type,
 			.transform([](auto const &expr) {
 				return expr.get_constant_value().get_float64();
 			})
-			.collect();
+			.collect<ast::arena_vector>();
 		return ast::constant_value(std::move(float64_array));
 	}
 	default:
