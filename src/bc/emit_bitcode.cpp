@@ -6294,6 +6294,187 @@ static val_ptr emit_bitcode(
 }
 
 template<abi::platform_abi abi>
+static llvm::Constant *get_array_value(
+	bz::array_view<ast::constant_value const> values,
+	ast::ts_array const &array_type,
+	llvm::ArrayType *type,
+	auto &context
+)
+{
+	if (array_type.elem_type.is<ast::ts_array>())
+	{
+		bz_assert(type->getElementType()->isArrayTy());
+		bz_assert(values.size() % array_type.size == 0);
+		auto const stride = values.size() / array_type.size;
+		auto const elems = bz::iota(0, array_type.size)
+			.transform([&](auto const i) {
+				auto const begin_index = i * stride;
+				return values.slice(begin_index, begin_index + stride);
+			})
+			.transform([&](auto const inner_values) {
+				return get_array_value<abi>(inner_values, array_type.elem_type.get<ast::ts_array>(), llvm::cast<llvm::ArrayType>(type->getElementType()), context);
+			})
+			.template collect<ast::arena_vector>();
+		return llvm::ConstantArray::get(type, llvm::ArrayRef(elems.data(), elems.size()));
+	}
+	else
+	{
+		auto const elems = values
+			.transform([&](auto const &value) {
+				return get_value<abi>(value, array_type.elem_type, nullptr, context);
+			})
+			.template collect<ast::arena_vector>();
+		return llvm::ConstantArray::get(type, llvm::ArrayRef(elems.data(), elems.size()));
+	}
+}
+
+template<abi::platform_abi abi>
+static llvm::Constant *get_sint_array_value(
+	bz::array_view<int64_t const> values,
+	ast::ts_array const &array_type,
+	llvm::ArrayType *type,
+	auto &context
+)
+{
+	if (array_type.elem_type.is<ast::ts_array>())
+	{
+		bz_assert(type->getElementType()->isArrayTy());
+		bz_assert(values.size() % array_type.size == 0);
+		auto const stride = values.size() / array_type.size;
+		auto const elems = bz::iota(0, array_type.size)
+			.transform([&](auto const i) {
+				auto const begin_index = i * stride;
+				return values.slice(begin_index, begin_index + stride);
+			})
+			.transform([&](auto const inner_values) {
+				return get_sint_array_value<abi>(inner_values, array_type.elem_type.get<ast::ts_array>(), llvm::cast<llvm::ArrayType>(type->getElementType()), context);
+			})
+			.template collect<ast::arena_vector>();
+		return llvm::ConstantArray::get(type, llvm::ArrayRef(elems.data(), elems.size()));
+	}
+	else
+	{
+		auto const elem_type = type->getElementType();
+		auto const elems = values
+			.transform([&](auto const value) -> llvm::Constant * {
+				return llvm::ConstantInt::get(elem_type, value);
+			})
+			.template collect<ast::arena_vector>();
+		return llvm::ConstantArray::get(type, llvm::ArrayRef(elems.data(), elems.size()));
+	}
+}
+
+template<abi::platform_abi abi>
+static llvm::Constant *get_uint_array_value(
+	bz::array_view<uint64_t const> values,
+	ast::ts_array const &array_type,
+	llvm::ArrayType *type,
+	auto &context
+)
+{
+	if (array_type.elem_type.is<ast::ts_array>())
+	{
+		bz_assert(type->getElementType()->isArrayTy());
+		bz_assert(values.size() % array_type.size == 0);
+		auto const stride = values.size() / array_type.size;
+		auto const elems = bz::iota(0, array_type.size)
+			.transform([&](auto const i) {
+				auto const begin_index = i * stride;
+				return values.slice(begin_index, begin_index + stride);
+			})
+			.transform([&](auto const inner_values) {
+				return get_uint_array_value<abi>(inner_values, array_type.elem_type.get<ast::ts_array>(), llvm::cast<llvm::ArrayType>(type->getElementType()), context);
+			})
+			.template collect<ast::arena_vector>();
+		return llvm::ConstantArray::get(type, llvm::ArrayRef(elems.data(), elems.size()));
+	}
+	else
+	{
+		auto const elem_type = type->getElementType();
+		auto const elems = values
+			.transform([&](auto const value) -> llvm::Constant * {
+				return llvm::ConstantInt::get(elem_type, value);
+			})
+			.template collect<ast::arena_vector>();
+		return llvm::ConstantArray::get(type, llvm::ArrayRef(elems.data(), elems.size()));
+	}
+}
+
+template<abi::platform_abi abi>
+static llvm::Constant *get_float32_array_value(
+	bz::array_view<float32_t const> values,
+	ast::ts_array const &array_type,
+	llvm::ArrayType *type,
+	auto &context
+)
+{
+	if (array_type.elem_type.is<ast::ts_array>())
+	{
+		bz_assert(type->getElementType()->isArrayTy());
+		bz_assert(values.size() % array_type.size == 0);
+		auto const stride = values.size() / array_type.size;
+		auto const elems = bz::iota(0, array_type.size)
+			.transform([&](auto const i) {
+				auto const begin_index = i * stride;
+				return values.slice(begin_index, begin_index + stride);
+			})
+			.transform([&](auto const inner_values) {
+				return get_float32_array_value<abi>(inner_values, array_type.elem_type.get<ast::ts_array>(), llvm::cast<llvm::ArrayType>(type->getElementType()), context);
+			})
+			.template collect<ast::arena_vector>();
+		return llvm::ConstantArray::get(type, llvm::ArrayRef(elems.data(), elems.size()));
+	}
+	else
+	{
+		auto const elem_type = type->getElementType();
+		bz_assert(elem_type == context.get_float32_t());
+		auto const elems = values
+			.transform([&](auto const value) -> llvm::Constant * {
+				return llvm::ConstantFP::get(elem_type, static_cast<float64_t>(value));
+			})
+			.template collect<ast::arena_vector>();
+		return llvm::ConstantArray::get(type, llvm::ArrayRef(elems.data(), elems.size()));
+	}
+}
+
+template<abi::platform_abi abi>
+static llvm::Constant *get_float64_array_value(
+	bz::array_view<float64_t const> values,
+	ast::ts_array const &array_type,
+	llvm::ArrayType *type,
+	auto &context
+)
+{
+	if (array_type.elem_type.is<ast::ts_array>())
+	{
+		bz_assert(type->getElementType()->isArrayTy());
+		bz_assert(values.size() % array_type.size == 0);
+		auto const stride = values.size() / array_type.size;
+		auto const elems = bz::iota(0, array_type.size)
+			.transform([&](auto const i) {
+				auto const begin_index = i * stride;
+				return values.slice(begin_index, begin_index + stride);
+			})
+			.transform([&](auto const inner_values) {
+				return get_float64_array_value<abi>(inner_values, array_type.elem_type.get<ast::ts_array>(), llvm::cast<llvm::ArrayType>(type->getElementType()), context);
+			})
+			.template collect<ast::arena_vector>();
+		return llvm::ConstantArray::get(type, llvm::ArrayRef(elems.data(), elems.size()));
+	}
+	else
+	{
+		auto const elem_type = type->getElementType();
+		bz_assert(elem_type == context.get_float64_t());
+		auto const elems = values
+			.transform([&](auto const value) -> llvm::Constant * {
+				return llvm::ConstantFP::get(elem_type, value);
+			})
+			.template collect<ast::arena_vector>();
+		return llvm::ConstantArray::get(type, llvm::ArrayRef(elems.data(), elems.size()));
+	}
+}
+
+template<abi::platform_abi abi>
 static llvm::Constant *get_value_helper(
 	ast::constant_value const &value,
 	ast::typespec_view type,
@@ -6383,61 +6564,58 @@ static llvm::Constant *get_value_helper(
 		return nullptr;
 	case ast::constant_value::array:
 	{
-		bz_assert(ast::remove_const_or_consteval(type).is<ast::ts_array>());
-		auto const elem_type = ast::remove_const_or_consteval(type)
-			.get<ast::ts_array>().elem_type.as_typespec_view();
-		auto const array_type = llvm::dyn_cast<llvm::ArrayType>(get_llvm_type(type, context));
-		bz_assert(array_type != nullptr);
-		auto const elems = value.get_array()
-			.transform([&](auto const &val) {
-				return get_value<abi>(val, elem_type, nullptr, context);
-			})
-			.template collect<ast::arena_vector>();
-		return llvm::ConstantArray::get(array_type, llvm::ArrayRef(elems.data(), elems.size()));
+		auto const array_type = ast::remove_const_or_consteval(type);
+		bz_assert(array_type.is<ast::ts_array>());
+		return get_array_value<abi>(
+			value.get_array(),
+			array_type.get<ast::ts_array>(),
+			llvm::cast<llvm::ArrayType>(get_llvm_type(array_type, context)),
+			context
+		);
 	}
 	case ast::constant_value::sint_array:
 	{
-		auto const array_type = llvm::dyn_cast<llvm::ArrayType>(get_llvm_type(type, context));
-		bz_assert(array_type != nullptr);
-		auto const elems = value.get_sint_array()
-			.transform([&](auto const val) -> llvm::Constant * {
-				return llvm::ConstantInt::get(array_type->getElementType(), val);
-			})
-			.template collect<ast::arena_vector>();
-		return llvm::ConstantArray::get(array_type, llvm::ArrayRef(elems.data(), elems.size()));
+		auto const array_type = ast::remove_const_or_consteval(type);
+		bz_assert(array_type.is<ast::ts_array>());
+		return get_sint_array_value<abi>(
+			value.get_sint_array(),
+			array_type.get<ast::ts_array>(),
+			llvm::cast<llvm::ArrayType>(get_llvm_type(array_type, context)),
+			context
+		);
 	}
 	case ast::constant_value::uint_array:
 	{
-		auto const array_type = llvm::dyn_cast<llvm::ArrayType>(get_llvm_type(type, context));
-		bz_assert(array_type != nullptr);
-		auto const elems = value.get_uint_array()
-			.transform([&](auto const val) -> llvm::Constant * {
-				return llvm::ConstantInt::get(array_type->getElementType(), val);
-			})
-			.template collect<ast::arena_vector>();
-		return llvm::ConstantArray::get(array_type, llvm::ArrayRef(elems.data(), elems.size()));
+		auto const array_type = ast::remove_const_or_consteval(type);
+		bz_assert(array_type.is<ast::ts_array>());
+		return get_uint_array_value<abi>(
+			value.get_uint_array(),
+			array_type.get<ast::ts_array>(),
+			llvm::cast<llvm::ArrayType>(get_llvm_type(array_type, context)),
+			context
+		);
 	}
 	case ast::constant_value::float32_array:
 	{
-		auto const array_type = llvm::dyn_cast<llvm::ArrayType>(get_llvm_type(type, context));
-		bz_assert(array_type != nullptr);
-		auto const elems = value.get_float32_array()
-			.transform([&](auto const val) -> llvm::Constant * {
-				return llvm::ConstantFP::get(context.get_float32_t(), static_cast<double>(val));
-			})
-			.template collect<ast::arena_vector>();
-		return llvm::ConstantArray::get(array_type, llvm::ArrayRef(elems.data(), elems.size()));
+		auto const array_type = ast::remove_const_or_consteval(type);
+		bz_assert(array_type.is<ast::ts_array>());
+		return get_float32_array_value<abi>(
+			value.get_float32_array(),
+			array_type.get<ast::ts_array>(),
+			llvm::cast<llvm::ArrayType>(get_llvm_type(array_type, context)),
+			context
+		);
 	}
 	case ast::constant_value::float64_array:
 	{
-		auto const array_type = llvm::dyn_cast<llvm::ArrayType>(get_llvm_type(type, context));
-		bz_assert(array_type != nullptr);
-		auto const elems = value.get_float64_array()
-			.transform([&](auto const val) -> llvm::Constant * {
-				return llvm::ConstantFP::get(context.get_float64_t(), val);
-			})
-			.template collect<ast::arena_vector>();
-		return llvm::ConstantArray::get(array_type, llvm::ArrayRef(elems.data(), elems.size()));
+		auto const array_type = ast::remove_const_or_consteval(type);
+		bz_assert(array_type.is<ast::ts_array>());
+		return get_float64_array_value<abi>(
+			value.get_float64_array(),
+			array_type.get<ast::ts_array>(),
+			llvm::cast<llvm::ArrayType>(get_llvm_type(array_type, context)),
+			context
+		);
 	}
 	case ast::constant_value::tuple:
 	{
