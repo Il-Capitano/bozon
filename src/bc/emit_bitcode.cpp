@@ -2105,12 +2105,10 @@ static val_ptr emit_builtin_binary_cmp(
 	}
 	else // if pointer
 	{
-		auto const lhs_ptr_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
-		auto const rhs_ptr_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-		bz_assert(lhs_ptr_val->getType()->isPointerTy());
-		bz_assert(rhs_ptr_val->getType()->isPointerTy());
-		auto const lhs_val = context.builder.CreatePtrToInt(lhs_ptr_val, context.get_usize_t());
-		auto const rhs_val = context.builder.CreatePtrToInt(rhs_ptr_val, context.get_usize_t());
+		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
+		auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
+		bz_assert(lhs_val->getType()->isPointerTy());
+		bz_assert(rhs_val->getType()->isPointerTy());
 
 		auto const p = get_cmp_predicate(1); // unsigned compare
 		auto const result_val = context.builder.CreateICmp(p, lhs_val, rhs_val, "cmp_tmp");
