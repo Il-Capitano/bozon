@@ -661,12 +661,11 @@ bool comptime_executor_context::do_error_checking(void) const
 {
 	this->destructor_calls.emplace_back();
 	this->end_lifetime_calls.emplace_back();
-	auto const result = expression_scope_info_t{ this->destruct_condition };
-	this->destruct_condition = nullptr;
+	auto const result = expression_scope_info_t{};
 	return result;
 }
 
-void comptime_executor_context::pop_expression_scope(expression_scope_info_t prev_info)
+void comptime_executor_context::pop_expression_scope([[maybe_unused]] expression_scope_info_t prev_info)
 {
 	if (!this->has_terminator())
 	{
@@ -675,22 +674,6 @@ void comptime_executor_context::pop_expression_scope(expression_scope_info_t pre
 	}
 	this->destructor_calls.pop_back();
 	this->end_lifetime_calls.pop_back();
-
-	this->destruct_condition = prev_info.destruct_condition;
-}
-
-[[nodiscard]] llvm::Value *comptime_executor_context::push_destruct_condition(void)
-{
-	auto const result = this->destruct_condition;
-	auto const bool_t = this->get_bool_t();
-	this->destruct_condition = this->create_alloca_without_lifetime_start(bool_t, llvm::ConstantInt::getFalse(bool_t));
-	this->builder.CreateStore(llvm::ConstantInt::getTrue(bool_t), this->destruct_condition);
-	return result;
-}
-
-void comptime_executor_context::pop_destruct_condition(llvm::Value *prev_condition)
-{
-	this->destruct_condition = prev_condition;
 }
 
 llvm::Value *comptime_executor_context::add_move_destruct_indicator(ast::decl_variable const *decl)
@@ -728,7 +711,7 @@ void comptime_executor_context::push_destruct_operation(ast::destruct_operation 
 			.destruct_op = &destruct_op,
 			.ptr         = nullptr,
 			.type        = nullptr,
-			.condition   = this->destruct_condition,
+			.condition   = nullptr,
 			.move_destruct_indicator = move_destruct_indicator,
 			.rvalue_array_elem_ptr = nullptr,
 		});
@@ -738,7 +721,6 @@ void comptime_executor_context::push_destruct_operation(ast::destruct_operation 
 void comptime_executor_context::push_variable_destruct_operation(ast::destruct_operation const &destruct_op, llvm::Value *move_destruct_indicator)
 {
 	bz_assert(this->destructor_calls.not_empty());
-	bz_assert(this->destruct_condition == nullptr);
 	if (destruct_op.not_null())
 	{
 		this->destructor_calls.back().push_back({
@@ -762,7 +744,7 @@ void comptime_executor_context::push_self_destruct_operation(ast::destruct_opera
 			.destruct_op = &destruct_op,
 			.ptr         = ptr,
 			.type        = type,
-			.condition   = this->destruct_condition,
+			.condition   = nullptr,
 			.move_destruct_indicator = move_destruct_indicator,
 			.rvalue_array_elem_ptr = nullptr,
 		});
@@ -784,7 +766,7 @@ void comptime_executor_context::push_rvalue_array_destruct_operation(
 			.destruct_op = &destruct_op,
 			.ptr         = ptr,
 			.type        = type,
-			.condition   = this->destruct_condition,
+			.condition   = nullptr,
 			.move_destruct_indicator = move_destruct_indicator,
 			.rvalue_array_elem_ptr = rvalue_array_elem_ptr,
 		});

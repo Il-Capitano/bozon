@@ -134,14 +134,10 @@ struct bitcode_context
 
 	struct expression_scope_info_t
 	{
-		llvm::Value *destruct_condition;
 	};
 
 	[[nodiscard]] expression_scope_info_t push_expression_scope(void);
 	void pop_expression_scope(expression_scope_info_t prev_info);
-
-	[[nodiscard]] llvm::Value *push_destruct_condition(void);
-	void pop_destruct_condition(llvm::Value *prev_condition);
 
 	llvm::Value *add_move_destruct_indicator(ast::decl_variable const *decl);
 	llvm::Value *get_move_destruct_indicator(ast::decl_variable const *decl) const;
@@ -213,7 +209,6 @@ struct bitcode_context
 
 	bz::vector<bz::vector<destruct_operation_info_t>> destructor_calls{};
 	bz::vector<bz::vector<end_lifetime_info_t>> end_lifetime_calls{};
-	llvm::Value *destruct_condition = nullptr;
 
 	std::pair<ast::function_body const *, llvm::Function *> current_function = { nullptr, nullptr };
 	llvm::BasicBlock *alloca_bb = nullptr;
