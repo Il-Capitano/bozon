@@ -6089,8 +6089,7 @@ static val_ptr emit_bitcode(
 			bz_assert(expr.is_constant());
 			auto const &const_expr = expr.get_constant();
 			auto const val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
-			bz_assert(val != nullptr && llvm::dyn_cast<llvm::ConstantInt>(val) != nullptr);
-			auto const const_int_val = static_cast<llvm::ConstantInt *>(val);
+			auto const const_int_val = llvm::cast<llvm::ConstantInt>(val);
 			switch_inst->addCase(const_int_val, bb);
 		}
 		context.builder.SetInsertPoint(bb);
@@ -6517,8 +6516,7 @@ static llvm::Constant *get_value_helper(
 	case ast::constant_value::string:
 	{
 		auto const str = value.get_string();
-		auto const str_t = llvm::dyn_cast<llvm::StructType>(context.get_str_t());
-		bz_assert(str_t != nullptr);
+		auto const str_t = llvm::cast<llvm::StructType>(context.get_str_t());
 
 		// if the string is empty, we make a zero initialized string, so
 		// structs with a default value of "" get to be zero initialized
@@ -6531,12 +6529,10 @@ static llvm::Constant *get_value_helper(
 		auto const string_type = llvm::ArrayType::get(context.get_uint8_t(), str.size() + 1);
 
 		auto const begin_ptr = context.create_struct_gep(string_type, string_constant, 0);
-		auto const const_begin_ptr = llvm::dyn_cast<llvm::Constant>(begin_ptr);
-		bz_assert(const_begin_ptr != nullptr);
+		auto const const_begin_ptr = llvm::cast<llvm::Constant>(begin_ptr);
 
 		auto const end_ptr = context.create_struct_gep(string_type, string_constant, str.size());
-		auto const const_end_ptr = llvm::dyn_cast<llvm::Constant>(end_ptr);
-		bz_assert(const_end_ptr != nullptr);
+		auto const const_end_ptr = llvm::cast<llvm::Constant>(end_ptr);
 		llvm::Constant *elems[] = { const_begin_ptr, const_end_ptr };
 
 		return llvm::ConstantStruct::get(str_t, elems);
@@ -7981,8 +7977,7 @@ static void emit_global_variable_impl(ast::decl_variable const &var_decl, auto &
 	auto const name_ref = llvm::StringRef(name.data_as_char_ptr(), name.size());
 	auto const type = get_llvm_type(var_decl.get_type(), context);
 	auto const val = context.get_module().getOrInsertGlobal(name_ref, type);
-	bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(val) != nullptr);
-	auto const global_var = static_cast<llvm::GlobalVariable *>(val);
+	auto const global_var = llvm::cast<llvm::GlobalVariable>(val);
 	if (is_comptime<decltype(context)> || var_decl.is_external_linkage())
 	{
 		global_var->setLinkage(llvm::GlobalValue::ExternalLinkage);
@@ -8761,8 +8756,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 			auto const symbol_name = bz::format("__anon_func_call_result.{}", get_unique_id());
 			auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
 			auto const global_result = context.current_module->getOrInsertGlobal(symbol_name_ref, result_type);
-			bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(global_result) != nullptr);
-			static_cast<llvm::GlobalVariable *>(global_result)->setInitializer(llvm::UndefValue::get(result_type));
+			llvm::cast<llvm::GlobalVariable>(global_result)->setInitializer(llvm::UndefValue::get(result_type));
 
 			emit_value_copy(result_val, global_result, context);
 
@@ -8932,8 +8926,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 			auto const symbol_name = bz::format("__anon_compound_expr_result.{}", get_unique_id());
 			auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
 			auto const global_result = context.current_module->getOrInsertGlobal(symbol_name_ref, result_type);
-			bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(global_result) != nullptr);
-			static_cast<llvm::GlobalVariable *>(global_result)->setInitializer(llvm::UndefValue::get(result_type));
+			llvm::cast<llvm::GlobalVariable>(global_result)->setInitializer(llvm::UndefValue::get(result_type));
 
 			emit_value_copy(result_val, global_result, context);
 
