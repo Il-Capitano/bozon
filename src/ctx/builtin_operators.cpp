@@ -1598,9 +1598,10 @@ ast::expression make_builtin_operation(
 {
 	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
 		ast::expression result;
+		bool done = false;
 		((
-			op_kind == builtin_unary_operators[Ns].kind
-			? (void)(result = builtin_unary_operators[Ns].parse_function(src_tokens, op_kind, std::move(expr), context))
+			!done && op_kind == builtin_unary_operators[Ns].kind
+			? (void)(done = true, result = builtin_unary_operators[Ns].parse_function(src_tokens, op_kind, std::move(expr), context))
 			: (void)0
 		), ...);
 		return result;
@@ -1616,9 +1617,10 @@ ast::expression make_builtin_type_operation(
 {
 	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
 		ast::expression result;
+		bool done = false;
 		((
-			op_kind == type_op_unary_operators[Ns].kind
-			? (void)(result = type_op_unary_operators[Ns].parse_function(src_tokens, op_kind, std::move(expr), context))
+			!done && op_kind == type_op_unary_operators[Ns].kind
+			? (void)(done = true, result = type_op_unary_operators[Ns].parse_function(src_tokens, op_kind, std::move(expr), context))
 			: (void)0
 		), ...);
 		return result;
@@ -1635,9 +1637,10 @@ ast::expression make_builtin_operation(
 {
 	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
 		ast::expression result;
+		bool done = false;
 		((
-			op_kind == builtin_binary_operators[Ns].kind
-			? (void)(result = builtin_binary_operators[Ns].parse_function(src_tokens, op_kind, std::move(lhs), std::move(rhs), context))
+			!done && op_kind == builtin_binary_operators[Ns].kind
+			? (void)(done = true, result = builtin_binary_operators[Ns].parse_function(src_tokens, op_kind, std::move(lhs), std::move(rhs), context))
 			: (void)0
 		), ...);
 		return result;
@@ -1654,9 +1657,10 @@ ast::expression make_builtin_type_operation(
 {
 	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
 		ast::expression result;
+		bool done = false;
 		((
-			op_kind == type_op_binary_operators[Ns].kind
-			? (void)(result = type_op_binary_operators[Ns].parse_function(src_tokens, op_kind, std::move(lhs), std::move(rhs), context))
+			!done && op_kind == type_op_binary_operators[Ns].kind
+			? (void)(done = true, result = type_op_binary_operators[Ns].parse_function(src_tokens, op_kind, std::move(lhs), std::move(rhs), context))
 			: (void)0
 		), ...);
 		return result;
