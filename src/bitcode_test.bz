@@ -1768,39 +1768,6 @@ function generic_type_test()
 	std::printf("\n");
 }
 
-struct unique_ptr<T: typename>
-{
-	type _self_t = unique_ptr<T>;
-
-	._ptr: *T;
-
-	constructor(ptr: *T)
-	{
-		return _self_t[ ptr ];
-	}
-
-	destructor(&self)
-	{
-		__builtin_call_destructor(*self._ptr);
-		std::free(self._ptr);
-	}
-
-	constructor(other: &const _self_t) = __delete__;
-	constructor(other: move _self_t) = __default__;
-	operator = (lhs: &_self_t, rhs: &const _self_t) = __delete__;
-	operator = (lhs: &_self_t, rhs: _self_t) = __default__;
-
-	operator * (self: &_self_t) -> &T
-	{
-		return *self._ptr;
-	}
-
-	operator * (self: &const _self_t) -> &const T
-	{
-		return *self._ptr;
-	}
-}
-
 function add_two(n: int32) -> int32
 {
 	return n + 2;
@@ -1808,13 +1775,22 @@ function add_two(n: int32) -> int32
 
 function unique_ptr_test()
 {
-	let ptr = unique_ptr<int32>(std::malloc(int32, 1));
-	ptr = unique_ptr<int32>(std::malloc(int32, 1));
+	let ptr = (std::unique_ptr<int32, false>.create)();
+	ptr = (std::unique_ptr<int32, false>.create)();
 
 	// ptr = ptr;
 
 	*ptr = 3;
 	std::printf("{}\n", ptr->add_two());
+
+	let ptr = (std::unique_ptr<int32, true>.create)();
+	ptr = (std::unique_ptr<int32, true>.create)();
+
+	(consteval {
+		let ptr = (std::unique_ptr<std::vector<int32>, true>.create)();
+		ptr->push_back(1);
+		ptr->push_back(2);
+	});
 }
 
 @symbol_name("move_test") export function move_test()

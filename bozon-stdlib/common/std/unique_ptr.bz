@@ -1,0 +1,70 @@
+import utils;
+import meta::types;
+import format;
+
+export struct unique_ptr<T: typename, nullable: bool>
+{
+	static_assert(
+		!meta::is_const(T),
+		comptime_format("unique_ptr value_type can't be a const type '{}'", meta::typename_as_str(T))
+	);
+	static_assert(
+		!meta::is_consteval(T),
+		comptime_format("unique_ptr value_type can't be a consteval type '{}'", meta::typename_as_str(T))
+	);
+	static_assert(
+		!meta::is_reference(T),
+		comptime_format("unique_ptr value_type can't be a reference type '{}'", meta::typename_as_str(T))
+	);
+	static_assert(
+		!meta::is_move_reference(T),
+		comptime_format("unique_ptr value_type can't be a move reference type '{}'", meta::typename_as_str(T))
+	);
+
+	type value_type = T
+		.meta::remove_reference()
+		.meta::remove_move_reference()
+		.meta::remove_const()
+		.meta::remove_consteval();
+	type _self_t = unique_ptr<T, nullable>;
+	type _data_type = if consteval (nullable) { ?*value_type } else { *value_type };
+
+	._data: _data_type;
+
+	destructor(&self)
+	{
+		if (!self._is_null())
+		{
+			__builtin_call_destructor(*self);
+		}
+		free(self._data);
+	}
+
+	constructor(other: &const _self_t) = __delete__;
+
+	function _is_null(self: &const _self_t) -> bool
+	{
+		return if consteval (nullable) {
+			self._data == null
+		} else {
+			false
+		};
+	}
+
+	operator * (self: &const _self_t) -> &value_type
+	{
+		return *self._data;
+	}
+
+	function create(args: ...##auto) -> _self_t
+	{
+		const data = malloc_raw(value_type, 1);
+		__builtin_inplace_construct(data, value_type(...__forward args));
+		return _self_t[ data ];
+	}
+
+	function get(self: &const _self_t) -> _data_type
+	{
+		return self._data;
+	}
+}
