@@ -7033,7 +7033,7 @@ static ast::expression make_optional_move_destruct_expression(
 	return ast::make_dynamic_expression(
 		src_tokens,
 		ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
-		ast::make_expr_array_destruct(std::move(value), std::move(value_destruct_call)),
+		ast::make_expr_optional_destruct(std::move(value), std::move(value_destruct_call)),
 		ast::destruct_operation()
 	);
 }
