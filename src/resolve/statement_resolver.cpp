@@ -748,12 +748,21 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 			);
 			var_decl.state = ast::resolve_state::error;
 		}
+		else if (!context.is_default_constructible(var_decl.src_tokens, var_decl.get_type()))
+		{
+			context.report_error(
+				var_decl.src_tokens,
+				bz::format("variable type '{}' is not default constructible and must be initialized", var_decl.get_type())
+			);
+			var_decl.state = ast::resolve_state::error;
+		}
 		else
 		{
 			var_decl.init_expr = context.make_default_construction(var_decl.src_tokens, var_decl.get_type());
 			resolve::consteval_guaranteed(var_decl.init_expr, context);
 		}
 	}
+
 	if (
 		!var_decl.get_type().is_empty()
 		&& !context.is_instantiable(var_decl.src_tokens, var_decl.get_type())
@@ -844,12 +853,7 @@ static void resolve_variable_destruction(ast::decl_variable &var_decl, ctx::pars
 	if (type.is<ast::ts_base_type>())
 	{
 		auto const info = type.get<ast::ts_base_type>().info;
-		if (info->state < ast::resolve_state::all)
-		{
-			context.add_to_resolve_queue(var_decl.src_tokens, *info);
-			resolve_type_info(*info, context);
-			context.pop_resolve_queue();
-		}
+		context.resolve_type(var_decl.src_tokens, info);
 	}
 
 	if (!var_decl.is_member() && !context.is_trivially_destructible(var_decl.src_tokens, type))

@@ -235,6 +235,8 @@ struct comptime_executor_context
 		llvm::ArrayRef<llvm::Value *> args = llvm::None
 	);
 
+	bc::val_ptr get_struct_element(bc::val_ptr value, uint64_t idx);
+
 	llvm::Type *get_builtin_type(uint32_t kind) const;
 	llvm::Type *get_int8_t(void) const;
 	llvm::Type *get_int16_t(void) const;

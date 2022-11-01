@@ -1,0 +1,18 @@
+import types;
+@symbol_name("_errno") function "c" _errno() -> ?*int;
+export function EDOM() -> int
+{
+	return 33;
+}
+export function EILSEQ() -> int
+{
+	return 42;
+}
+export function ERANGE() -> int
+{
+	return 34;
+}
+export function errno() -> &int
+{
+	return (*_errno());
+}

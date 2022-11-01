@@ -17,16 +17,16 @@ export struct fenv_t
 }
 export type fexcept_t = unsigned_short;
 @symbol_name("feclearexcept") export function "c" feclearexcept(: int) -> int;
-@symbol_name("fegetenv") export function "c" fegetenv(envp: *fenv_t) -> int;
-@symbol_name("fegetexceptflag") export function "c" fegetexceptflag(flagp: *fexcept_t, excepts: int) -> int;
+@symbol_name("fegetenv") export function "c" fegetenv(envp: ?*fenv_t) -> int;
+@symbol_name("fegetexceptflag") export function "c" fegetexceptflag(flagp: ?*fexcept_t, excepts: int) -> int;
 @symbol_name("fegetround") export function "c" fegetround() -> int;
-@symbol_name("feholdexcept") export function "c" feholdexcept(: *fenv_t) -> int;
+@symbol_name("feholdexcept") export function "c" feholdexcept(: ?*fenv_t) -> int;
 @symbol_name("feraiseexcept") export function "c" feraiseexcept(excepts: int) -> int;
-@symbol_name("fesetenv") export function "c" fesetenv(: *const fenv_t) -> int;
-@symbol_name("fesetexceptflag") export function "c" fesetexceptflag(: *const fexcept_t, : int) -> int;
+@symbol_name("fesetenv") export function "c" fesetenv(: ?*const fenv_t) -> int;
+@symbol_name("fesetexceptflag") export function "c" fesetexceptflag(: ?*const fexcept_t, : int) -> int;
 @symbol_name("fesetround") export function "c" fesetround(mode: int) -> int;
 @symbol_name("fetestexcept") export function "c" fetestexcept(excepts: int) -> int;
-@symbol_name("feupdateenv") export function "c" feupdateenv(: *const fenv_t) -> int;
+@symbol_name("feupdateenv") export function "c" feupdateenv(: ?*const fenv_t) -> int;
 export function FE_ALL_EXCEPT() -> int
 {
 	return 63;

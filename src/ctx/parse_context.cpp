@@ -28,6 +28,11 @@ static ast::expression make_swap_expression(
 	ast::expression rhs,
 	parse_context &context
 );
+static ast::expression make_optional_extract_value_expression(
+	lex::src_tokens const &src_tokens,
+	ast::expression optional_value,
+	parse_context &context
+);
 static ast::expression make_destruct_expression(
 	ast::typespec_view type,
 	ast::expression value,
@@ -260,7 +265,6 @@ void parse_context::pop_current_function(ast::function_body *prev_function) noex
 
 [[nodiscard]] parse_context::global_local_scope_pair_t parse_context::push_global_scope(ast::scope_t *new_scope) noexcept
 {
-	// bz::log("pushing global scope {}\n", new_scope);
 	auto prev_scopes = global_local_scope_pair_t{
 		this->current_global_scope,
 		this->current_local_scope,
@@ -275,7 +279,6 @@ void parse_context::pop_current_function(ast::function_body *prev_function) noex
 
 void parse_context::pop_global_scope(global_local_scope_pair_t prev_scopes) noexcept
 {
-	// bz::log("popping global scope\n");
 	this->current_global_scope = prev_scopes.global_scope;
 	this->current_local_scope  = prev_scopes.local_scope;
 	this->current_unresolved_locals = std::move(prev_scopes.unresolved_locals);
@@ -283,7 +286,6 @@ void parse_context::pop_global_scope(global_local_scope_pair_t prev_scopes) noex
 
 void parse_context::push_local_scope(ast::scope_t *new_scope) noexcept
 {
-	// bz::log("pushing local scope ({}, ...) from ({}, {})\n", new_scope, this->get_current_enclosing_scope().scope, this->get_current_enclosing_scope().symbol_count);
 	bz_assert(new_scope->is_local());
 	bz_assert(new_scope->get_local().parent == this->get_current_enclosing_scope());
 	this->current_local_scope = { new_scope, new_scope->get_local().symbols.size() };
@@ -345,14 +347,11 @@ void parse_context::pop_local_scope(bool report_unused) noexcept
 	bz_assert(parent.scope != nullptr);
 	if (parent.scope == this->current_global_scope)
 	{
-		// bz::log("popping local scope {} to none\n", this->current_local_scope.scope);
 		this->current_local_scope = {};
 	}
 	else
 	{
-		// bz::log("popping local scope {} to ({}, {})\n", this->current_local_scope.scope, parent.scope, parent.symbol_count);
 		this->current_local_scope = parent;
-		// bz::log("sanity check: ({}, {})\n", this->current_local_scope.scope, this->current_local_scope.symbol_count);
 	}
 }
 
@@ -381,7 +380,6 @@ static ast::scope_t *get_global_scope(ast::enclosing_scope_t scope, ast::scope_t
 
 [[nodiscard]] parse_context::global_local_scope_pair_t parse_context::push_enclosing_scope(ast::enclosing_scope_t new_scope) noexcept
 {
-	// bz::log("pushing enclosing scope ({}, {})\n", new_scope.scope, new_scope.symbol_count);
 	auto const prev_scopes = global_local_scope_pair_t{
 		this->current_global_scope,
 		this->current_local_scope,
@@ -397,7 +395,6 @@ static ast::scope_t *get_global_scope(ast::enclosing_scope_t scope, ast::scope_t
 
 void parse_context::pop_enclosing_scope(global_local_scope_pair_t prev_scopes) noexcept
 {
-	// bz::log("pop_enclosing_scope\n");
 	this->current_global_scope = prev_scopes.global_scope;
 	this->current_local_scope  = prev_scopes.local_scope;
 	this->current_unresolved_locals = std::move(prev_scopes.unresolved_locals);
@@ -424,7 +421,6 @@ bz::array_view<bz::u8string_view const> parse_context::get_current_enclosing_id_
 
 ast::enclosing_scope_t parse_context::get_current_enclosing_scope(void) const noexcept
 {
-	// bz::log("get_current_enclosing_scope: ({}, {})\n", this->current_local_scope.scope, this->current_local_scope.symbol_count);
 	if (this->current_local_scope.scope == nullptr)
 	{
 		return { this->current_global_scope, 0 };
@@ -1285,13 +1281,11 @@ static bz::u8string format_array(bz::array_view<bz::u8string_view const> ids)
 
 [[nodiscard]] size_t parse_context::add_unresolved_scope(void)
 {
-	// bz::log("++ new scope: {} {}\n", this->current_unresolved_locals.size(), format_array(this->current_unresolved_locals));
 	return this->current_unresolved_locals.size();
 }
 
 void parse_context::remove_unresolved_scope(size_t prev_size)
 {
-	// bz::log("-- remove scope: {} {}\n", prev_size, format_array(this->current_unresolved_locals));
 	this->current_unresolved_locals.resize(prev_size);
 }
 
@@ -1301,7 +1295,6 @@ void parse_context::add_unresolved_local(ast::identifier const &id)
 	if (id.values.not_empty())
 	{
 		bz_assert(id.values.size() == 1);
-		// bz::log("adding '{}'\n", id.values[0]);
 		this->current_unresolved_locals.push_back(id.values[0]);
 	}
 }
@@ -2592,7 +2585,6 @@ struct id_search_result_t
 
 static id_search_result_t find_id_in_scope(ast::enclosing_scope_t scope, ast::identifier const &id, parse_context &context)
 {
-	// bz::log("find_id_in_scope: ({}, {})\n", scope.scope, scope.symbol_count);
 	int loop_boundary_count = 0;
 	bool is_local = true;
 	while (scope.scope != nullptr)
@@ -2669,7 +2661,6 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 		}
 		else if (id_value.starts_with("__builtin"))
 		{
-			// bz::log("{}\n", id_value);
 			auto const it = std::find_if(ast::intrinsic_info.begin(), ast::intrinsic_info.end(), [id_value](auto const &p) {
 				return p.func_name == id_value;
 			});
@@ -2690,7 +2681,6 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 		}
 	}
 
-	// bz::log("failed to find '{}'\n", id.as_string());
 	this->report_error(src_tokens, bz::format("undeclared identifier '{}'", id.as_string()));
 	return ast::make_error_expression(src_tokens, ast::make_expr_identifier(std::move(id)));
 }
@@ -3364,6 +3354,7 @@ static bool is_builtin_type(ast::typespec_view ts)
 		|| ts.is<ast::ts_tuple>()
 		|| ts.is<ast::ts_array>()
 		|| ts.is<ast::ts_array_slice>()
+		|| ts.is<ast::ts_optional>()
 		|| (ts.is<ast::ts_base_type>() && ts.get<ast::ts_base_type>().info->kind != ast::type_info::aggregate);
 }
 
@@ -3625,6 +3616,11 @@ static ast::expression make_expr_function_call_from_body(
 		bz_assert(args.size() == 2);
 		ast::typespec const expr_type = args[0].get_expr_type();
 		return make_swap_expression(src_tokens, expr_type, std::move(args[0]), std::move(args[1]), context);
+	}
+	else if (body->is_intrinsic() && body->intrinsic_kind == ast::function_body::builtin_optional_get_value)
+	{
+		bz_assert(args.size() == 1);
+		return make_optional_extract_value_expression(src_tokens, std::move(args[0]), context);
 	}
 	else if (body->is_default_default_constructor() || (body->is_default_constructor() && body->is_defaulted()))
 	{
@@ -4284,7 +4280,21 @@ static ast::expression make_constructor_call_expression(
 	}
 	else if (args.empty())
 	{
-		return context.make_default_construction(src_tokens, called_type);
+		if (context.is_default_constructible(src_tokens, called_type))
+		{
+			return context.make_default_construction(src_tokens, called_type);
+		}
+		else
+		{
+			context.report_error(
+				src_tokens,
+				bz::format("type '{}' is not default constructible", called_type)
+			);
+			return ast::make_error_expression(
+				src_tokens,
+				ast::make_expr_function_call(src_tokens, std::move(args), nullptr, ast::resolve_order::regular)
+			);
+		}
 	}
 	else if (args.size() == 1)
 	{
@@ -4934,6 +4944,21 @@ ast::expression parse_context::make_cast_expression(
 	}
 }
 
+ast::expression parse_context::make_optional_cast_expression(ast::expression expr)
+{
+	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
+	bz_assert(ast::is_rvalue_or_literal(expr_type_kind));
+	ast::typespec result_type = expr_type;
+	result_type.add_layer<ast::ts_optional>();
+	ast::typespec optional_cast_type = result_type;
+	return ast::make_dynamic_expression(
+		expr.src_tokens,
+		ast::expression_type_kind::rvalue, std::move(result_type),
+		ast::make_expr_optional_cast(std::move(expr), std::move(optional_cast_type)),
+		ast::destruct_operation()
+	);
+}
+
 ast::expression parse_context::make_member_access_expression(
 	lex::src_tokens const &src_tokens,
 	ast::expression base,
@@ -5278,6 +5303,21 @@ static ast::expression make_array_default_construction(
 	);
 }
 
+static ast::expression make_optional_default_construction(
+	lex::src_tokens const &src_tokens,
+	ast::typespec_view type,
+	parse_context &
+)
+{
+	bz_assert(type.is<ast::ts_optional>());
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::rvalue, type,
+		ast::make_expr_optional_default_construct(type),
+		ast::destruct_operation()
+	);
+}
+
 static ast::expression make_builtin_default_construction(
 	lex::src_tokens const &src_tokens,
 	ast::typespec_view type,
@@ -5296,16 +5336,7 @@ static ast::expression make_builtin_default_construction(
 		);
 	}
 
-	if (type.is<ast::ts_pointer>())
-	{
-		return ast::make_constant_expression(
-			src_tokens,
-			ast::expression_type_kind::rvalue, type,
-			ast::constant_value(ast::internal::null_t{}),
-			ast::make_expr_builtin_default_construct(type)
-		);
-	}
-	else if (type.is<ast::ts_array_slice>())
+	if (type.is<ast::ts_array_slice>())
 	{
 		return ast::make_dynamic_expression(
 			src_tokens,
@@ -5413,7 +5444,11 @@ ast::expression parse_context::make_default_construction(lex::src_tokens const &
 	{
 		return make_array_default_construction(src_tokens, type, *this);
 	}
-	else if (type.is<ast::ts_pointer>() || type.is<ast::ts_array_slice>())
+	else if (type.is<ast::ts_optional>())
+	{
+		return make_optional_default_construction(src_tokens, type, *this);
+	}
+	else if (type.is<ast::ts_array_slice>())
 	{
 		return make_builtin_default_construction(src_tokens, type, *this);
 	}
@@ -5525,6 +5560,60 @@ static ast::expression make_array_copy_construction(
 		ast::make_expr_array_copy_construct(std::move(expr), std::move(elem_copy_expr)),
 		ast::destruct_operation()
 	);
+}
+
+static ast::expression make_optional_copy_construction(
+	ast::typespec_view optional_type,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	bz_assert(optional_type.is<ast::ts_optional>());
+	if (optional_type.is_optional_pointer_like())
+	{
+		ast::typespec type = optional_type;
+		return ast::make_dynamic_expression(
+			expr.src_tokens,
+			ast::expression_type_kind::rvalue, std::move(type),
+			ast::make_expr_builtin_copy_construct(std::move(expr)),
+			ast::destruct_operation()
+		);
+	}
+	else
+	{
+		auto const value_type = optional_type.get<ast::ts_optional>();
+		if (!context.is_copy_constructible(expr.src_tokens, value_type))
+		{
+			context.report_error(
+				expr.src_tokens,
+				bz::format("value of type '{}' is not copy constructible", optional_type),
+				{
+					context.make_note(
+						expr.src_tokens,
+						bz::format("optional value type '{}' is not copy constructible", value_type)
+					)
+				}
+			);
+			return ast::make_error_expression(
+				expr.src_tokens,
+				ast::make_expr_optional_copy_construct(std::move(expr), ast::expression())
+			);
+		}
+
+		auto value_copy_expr = context.make_copy_construction(ast::make_dynamic_expression(
+			expr.src_tokens,
+			ast::expression_type_kind::lvalue_reference, value_type,
+			ast::make_expr_bitcode_value_reference(),
+			ast::destruct_operation()
+		));
+		ast::typespec type = optional_type;
+		return ast::make_dynamic_expression(
+			expr.src_tokens,
+			ast::expression_type_kind::rvalue, std::move(type),
+			ast::make_expr_optional_copy_construct(std::move(expr), std::move(value_copy_expr)),
+			ast::destruct_operation()
+		);
+	}
 }
 
 static ast::expression make_builtin_copy_construction(
@@ -5641,6 +5730,10 @@ ast::expression parse_context::make_copy_construction(ast::expression expr)
 	{
 		return make_array_copy_construction(type, std::move(expr), *this);
 	}
+	else if (type.is<ast::ts_optional>())
+	{
+		return make_optional_copy_construction(type, std::move(expr), *this);
+	}
 	else if (type.is<ast::ts_pointer>() || type.is<ast::ts_array_slice>())
 	{
 		return make_builtin_copy_construction(type, std::move(expr), *this);
@@ -5751,6 +5844,49 @@ static ast::expression make_array_move_construction(
 		expr.src_tokens,
 		ast::expression_type_kind::rvalue, std::move(type),
 		ast::make_expr_array_move_construct(std::move(expr), std::move(elem_move_expr)),
+		ast::destruct_operation()
+	);
+}
+
+static ast::expression make_optional_move_construction(
+	ast::typespec_view optional_type,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	bz_assert(optional_type.is<ast::ts_optional>());
+	bz_assert(!optional_type.is_optional_pointer_like());
+	auto const value_type = optional_type.get<ast::ts_optional>();
+
+	if (!context.is_move_constructible(expr.src_tokens, value_type))
+	{
+		context.report_error(
+			expr.src_tokens,
+			bz::format("value of type '{}' is not move constructible", optional_type),
+			{
+				context.make_note(
+					expr.src_tokens,
+					bz::format("optional value type '{}' is not move constructible", value_type)
+				)
+			}
+		);
+		return ast::make_error_expression(
+			expr.src_tokens,
+			ast::make_expr_optional_move_construct(std::move(expr), ast::expression())
+		);
+	}
+
+	auto value_move_expr = context.make_move_construction(ast::make_dynamic_expression(
+		expr.src_tokens,
+		ast::expression_type_kind::rvalue_reference, value_type,
+		ast::make_expr_bitcode_value_reference(),
+		ast::destruct_operation()
+	));
+	ast::typespec type = optional_type;
+	return ast::make_dynamic_expression(
+		expr.src_tokens,
+		ast::expression_type_kind::rvalue, std::move(type),
+		ast::make_expr_optional_move_construct(std::move(expr), std::move(value_move_expr)),
 		ast::destruct_operation()
 	);
 }
@@ -5882,6 +6018,10 @@ ast::expression parse_context::make_move_construction(ast::expression expr)
 	else if (type.is<ast::ts_array>())
 	{
 		return make_array_move_construction(type, std::move(expr), *this);
+	}
+	else if (type.is<ast::ts_optional>())
+	{
+		return make_optional_move_construction(type, std::move(expr), *this);
 	}
 	else if (type.is<ast::ts_base_type>())
 	{
@@ -6038,6 +6178,212 @@ static ast::expression make_array_assignment(
 	);
 }
 
+static ast::expression make_optional_assignment(
+	lex::src_tokens const &src_tokens,
+	ast::expression lhs,
+	ast::expression rhs,
+	parse_context &context
+)
+{
+	auto const lhs_type = lhs.get_expr_type();
+	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
+	bz_assert(lhs_type.is<ast::ts_optional>());
+	bz_assert(rhs_type.is<ast::ts_optional>());
+
+	bz_assert(lhs.get_expr_type_and_kind().second == ast::expression_type_kind::lvalue_reference);
+	auto const [rhs_type_with_const, rhs_expr_type_kind] = rhs.get_expr_type_and_kind();
+	auto const rhs_value_expr_type_kind = rhs_expr_type_kind == ast::expression_type_kind::lvalue_reference
+		? ast::expression_type_kind::lvalue_reference
+		: ast::expression_type_kind::rvalue_reference;
+	auto const lhs_value_type = lhs_type.get<ast::ts_optional>();
+	ast::typespec rhs_value_type = rhs_type.get<ast::ts_optional>();
+
+	if (rhs_type_with_const.is<ast::ts_const>())
+	{
+		rhs_value_type.add_layer<ast::ts_const>();
+	}
+
+	auto value_assign_expr = context.make_binary_operator_expression(
+		src_tokens,
+		lex::token::assign,
+		ast::make_dynamic_expression(
+			lhs.src_tokens,
+			ast::expression_type_kind::lvalue_reference, lhs_value_type,
+			ast::make_expr_bitcode_value_reference(1),
+			ast::destruct_operation()
+		),
+		ast::make_dynamic_expression(
+			rhs.src_tokens,
+			rhs_value_expr_type_kind, rhs_value_type,
+			ast::make_expr_bitcode_value_reference(0),
+			ast::destruct_operation()
+		)
+	);
+	auto value_construct_expr = [&]() -> ast::expression {
+		if (lhs_value_type == rhs_value_type)
+		{
+			auto rhs_ref = ast::make_dynamic_expression(
+				rhs.src_tokens,
+				rhs_value_expr_type_kind, rhs_value_type,
+				ast::make_expr_bitcode_value_reference(),
+				ast::destruct_operation()
+			);
+			return rhs_value_expr_type_kind == ast::expression_type_kind::lvalue_reference
+				? context.make_copy_construction(std::move(rhs_ref))
+				: context.make_move_construction(std::move(rhs_ref));
+		}
+		else
+		{
+			auto rhs_ref = ast::make_dynamic_expression(
+				rhs.src_tokens,
+				rhs_value_expr_type_kind, rhs_value_type,
+				ast::make_expr_bitcode_value_reference(),
+				ast::destruct_operation()
+			);
+			bz_assert(ast::is_complete(lhs_value_type));
+			ast::typespec lhs_value_type_copy = lhs_value_type;
+			resolve::match_expression_to_type(rhs_ref, lhs_value_type_copy, context);
+			return rhs_ref;
+		}
+	}();
+	auto value_destruct_expr = make_destruct_expression(
+		lhs_value_type,
+		ast::make_dynamic_expression(
+			lhs.src_tokens,
+			ast::expression_type_kind::lvalue_reference, lhs_value_type,
+			ast::make_expr_bitcode_value_reference(),
+			ast::destruct_operation()
+		),
+		context
+	);
+
+	ast::typespec result_type = lhs_type;
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::lvalue_reference, std::move(result_type),
+		ast::make_expr_optional_assign(
+			std::move(lhs),
+			std::move(rhs),
+			std::move(value_assign_expr),
+			std::move(value_construct_expr),
+			std::move(value_destruct_expr)
+		),
+		ast::destruct_operation()
+	);
+}
+
+static ast::expression make_optional_null_assignment(
+	lex::src_tokens const &src_tokens,
+	ast::expression lhs,
+	ast::expression rhs,
+	parse_context &context
+)
+{
+	auto const lhs_type = lhs.get_expr_type();
+	bz_assert(lhs_type.is<ast::ts_optional>());
+
+	bz_assert(lhs.get_expr_type_and_kind().second == ast::expression_type_kind::lvalue_reference);
+	auto const lhs_value_type = lhs_type.get<ast::ts_optional>();
+
+	auto value_destruct_expr = make_destruct_expression(
+		lhs_value_type,
+		ast::make_dynamic_expression(
+			lhs.src_tokens,
+			ast::expression_type_kind::lvalue_reference, lhs_value_type,
+			ast::make_expr_bitcode_value_reference(),
+			ast::destruct_operation()
+		),
+		context
+	);
+
+	ast::typespec result_type = lhs_type;
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::lvalue_reference, std::move(result_type),
+		ast::make_expr_optional_null_assign(
+			std::move(lhs),
+			std::move(rhs),
+			std::move(value_destruct_expr)
+		),
+		ast::destruct_operation()
+	);
+}
+
+static ast::expression make_optional_value_assignment(
+	lex::src_tokens const &src_tokens,
+	ast::expression lhs,
+	ast::expression rhs,
+	parse_context &context
+)
+{
+	auto const lhs_type = lhs.get_expr_type();
+	bz_assert(lhs_type.is<ast::ts_optional>());
+
+	bz_assert(lhs.get_expr_type_and_kind().second == ast::expression_type_kind::lvalue_reference);
+	auto const lhs_value_type = lhs_type.get<ast::ts_optional>();
+	auto const [rhs_value_type, rhs_expr_type_kind] = rhs.get_expr_type_and_kind();
+	auto const rhs_value_expr_type_kind = rhs_expr_type_kind == ast::expression_type_kind::lvalue_reference
+		? ast::expression_type_kind::lvalue_reference
+		: ast::expression_type_kind::rvalue_reference;
+
+	auto value_assign_expr = context.make_binary_operator_expression(
+		src_tokens,
+		lex::token::assign,
+		ast::make_dynamic_expression(
+			lhs.src_tokens,
+			ast::expression_type_kind::lvalue_reference, lhs_value_type,
+			ast::make_expr_bitcode_value_reference(1),
+			ast::destruct_operation()
+		),
+		ast::make_dynamic_expression(
+			rhs.src_tokens,
+			rhs_value_expr_type_kind, rhs_value_type,
+			ast::make_expr_bitcode_value_reference(0),
+			ast::destruct_operation()
+		)
+	);
+	auto value_construct_expr = [&, &rhs_value_type = rhs_value_type]() -> ast::expression {
+		if (lhs_value_type == rhs_value_type)
+		{
+			auto rhs_ref = ast::make_dynamic_expression(
+				rhs.src_tokens,
+				rhs_value_expr_type_kind, rhs_value_type,
+				ast::make_expr_bitcode_value_reference(),
+				ast::destruct_operation()
+			);
+			return rhs_value_expr_type_kind == ast::expression_type_kind::lvalue_reference
+				? context.make_copy_construction(std::move(rhs_ref))
+				: context.make_move_construction(std::move(rhs_ref));
+		}
+		else
+		{
+			auto rhs_ref = ast::make_dynamic_expression(
+				rhs.src_tokens,
+				rhs_value_expr_type_kind, rhs_value_type,
+				ast::make_expr_bitcode_value_reference(),
+				ast::destruct_operation()
+			);
+			bz_assert(ast::is_complete(lhs_value_type));
+			ast::typespec lhs_value_type_copy = lhs_value_type;
+			resolve::match_expression_to_type(rhs_ref, lhs_value_type_copy, context);
+			return rhs_ref;
+		}
+	}();
+
+	ast::typespec result_type = lhs_type;
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::lvalue_reference, std::move(result_type),
+		ast::make_expr_optional_value_assign(
+			std::move(lhs),
+			std::move(rhs),
+			std::move(value_assign_expr),
+			std::move(value_construct_expr)
+		),
+		ast::destruct_operation()
+	);
+}
+
 static ast::expression make_struct_assignment(
 	lex::src_tokens const &src_tokens,
 	ast::expression lhs,
@@ -6111,6 +6457,21 @@ ast::expression parse_context::make_default_assignment(lex::src_tokens const &sr
 	else if (lhs_type.is<ast::ts_array>() && rhs_type.is<ast::ts_array>())
 	{
 		return make_array_assignment(src_tokens, std::move(lhs), std::move(rhs), *this);
+	}
+	else if (lhs_type.is<ast::ts_optional>() && rhs_type.is<ast::ts_optional>())
+	{
+		return make_optional_assignment(src_tokens, std::move(lhs), std::move(rhs), *this);
+	}
+	else if (lhs_type.is<ast::ts_optional>())
+	{
+		if (rhs_type.is<ast::ts_base_type>() && rhs_type.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_)
+		{
+			return make_optional_null_assignment(src_tokens, std::move(lhs), std::move(rhs), *this);
+		}
+		else
+		{
+			return make_optional_value_assignment(src_tokens, std::move(lhs), std::move(rhs), *this);
+		}
 	}
 	else if (!are_types_equal)
 	{
@@ -6221,6 +6582,66 @@ static ast::expression make_array_swap(
 	);
 }
 
+static ast::expression make_optional_swap(
+	lex::src_tokens const &src_tokens,
+	ast::typespec_view type,
+	ast::expression lhs,
+	ast::expression rhs,
+	parse_context &context
+)
+{
+	bz_assert(type.is<ast::ts_optional>());
+	bz_assert(!type.is_optional_pointer_like());
+	auto const value_type = type.get<ast::ts_optional>();
+
+	auto value_swap_expr = make_swap_expression(
+		src_tokens,
+		value_type,
+		ast::make_dynamic_expression(
+			lhs.src_tokens,
+			ast::expression_type_kind::lvalue_reference, value_type,
+			ast::make_expr_bitcode_value_reference(1),
+			ast::destruct_operation()
+		),
+		ast::make_dynamic_expression(
+			lhs.src_tokens,
+			ast::expression_type_kind::lvalue_reference, value_type,
+			ast::make_expr_bitcode_value_reference(0),
+			ast::destruct_operation()
+		),
+		context
+	);
+	auto lhs_move_expr = context.make_move_construction(
+		ast::make_dynamic_expression(
+			lhs.src_tokens,
+			ast::expression_type_kind::rvalue_reference, value_type,
+			ast::make_expr_bitcode_value_reference(),
+			ast::destruct_operation()
+		)
+	);
+	auto rhs_move_expr = context.make_move_construction(
+		ast::make_dynamic_expression(
+			rhs.src_tokens,
+			ast::expression_type_kind::rvalue_reference, value_type,
+			ast::make_expr_bitcode_value_reference(),
+			ast::destruct_operation()
+		)
+	);
+
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+		ast::make_expr_optional_swap(
+			std::move(lhs),
+			std::move(rhs),
+			std::move(value_swap_expr),
+			std::move(lhs_move_expr),
+			std::move(rhs_move_expr)
+		),
+		ast::destruct_operation()
+	);
+}
+
 static ast::expression make_base_type_swap(
 	lex::src_tokens const &src_tokens,
 	ast::typespec_view type,
@@ -6295,6 +6716,10 @@ static ast::expression make_swap_expression(
 	{
 		return make_array_swap(src_tokens, type, std::move(lhs), std::move(rhs), context);
 	}
+	else if (type.is<ast::ts_optional>())
+	{
+		return make_optional_swap(src_tokens, type, std::move(lhs), std::move(rhs), context);
+	}
 	else if (type.is<ast::ts_base_type>())
 	{
 		return make_base_type_swap(src_tokens, type, std::move(lhs), std::move(rhs), context);
@@ -6303,6 +6728,31 @@ static ast::expression make_swap_expression(
 	{
 		bz_unreachable;
 	}
+}
+
+static ast::expression make_optional_extract_value_expression(
+	lex::src_tokens const &src_tokens,
+	ast::expression optional_value,
+	parse_context &context
+)
+{
+	auto const value_type = optional_value.get_expr_type().get<ast::ts_optional>();
+	auto value_move_expr = context.make_move_construction(
+		ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue_reference, value_type,
+			ast::make_expr_bitcode_value_reference(),
+			ast::destruct_operation()
+		)
+	);
+
+	ast::typespec result_type = value_type;
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::rvalue, std::move(result_type),
+		ast::make_expr_optional_extract_value(std::move(optional_value), std::move(value_move_expr)),
+		ast::destruct_operation()
+	);
 }
 
 static ast::expression make_base_type_destruct_expression(
@@ -6405,6 +6855,31 @@ static ast::expression make_array_destruct_expression(
 	);
 }
 
+static ast::expression make_optional_destruct_expression(
+	ast::typespec_view type,
+	ast::expression value,
+	parse_context &context
+)
+{
+	bz_assert(type.is<ast::ts_optional>());
+	bz_assert(!type.is_optional_pointer_like());
+	auto const src_tokens = value.src_tokens;
+	auto const value_type = type.get<ast::ts_optional>();
+	auto value_ref = ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::lvalue_reference, value_type,
+		ast::make_expr_bitcode_value_reference(),
+		ast::destruct_operation()
+	);
+	auto value_destruct_call = make_destruct_expression(value_type, std::move(value_ref), context);
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+		ast::make_expr_optional_destruct(std::move(value), std::move(value_destruct_call)),
+		ast::destruct_operation()
+	);
+}
+
 static ast::expression make_destruct_expression(
 	ast::typespec_view type,
 	ast::expression value,
@@ -6428,9 +6903,13 @@ static ast::expression make_destruct_expression(
 	{
 		return make_array_destruct_expression(type, std::move(value), context);
 	}
+	else if (type.is<ast::ts_optional>())
+	{
+		return make_optional_destruct_expression(type, std::move(value), context);
+	}
 	else
 	{
-		return ast::expression();
+		bz_unreachable;
 	}
 }
 
@@ -6534,6 +7013,31 @@ static ast::expression make_array_move_destruct_expression(
 	);
 }
 
+static ast::expression make_optional_move_destruct_expression(
+	ast::typespec_view type,
+	ast::expression value,
+	parse_context &context
+)
+{
+	bz_assert(type.is<ast::ts_optional>());
+	bz_assert(!type.is_optional_pointer_like());
+	auto const src_tokens = value.src_tokens;
+	auto const value_type = type.get<ast::ts_optional>();
+	auto value_ref = ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::rvalue_reference, value_type,
+		ast::make_expr_bitcode_value_reference(),
+		ast::destruct_operation()
+	);
+	auto value_destruct_call = make_move_destruct_expression(value_type, std::move(value_ref), context);
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+		ast::make_expr_array_destruct(std::move(value), std::move(value_destruct_call)),
+		ast::destruct_operation()
+	);
+}
+
 static ast::expression make_move_destruct_expression(
 	ast::typespec_view type,
 	ast::expression value,
@@ -6557,9 +7061,13 @@ static ast::expression make_move_destruct_expression(
 	{
 		return make_array_move_destruct_expression(type, std::move(value), context);
 	}
+	else if (type.is<ast::ts_optional>())
+	{
+		return make_optional_move_destruct_expression(type, std::move(value), context);
+	}
 	else
 	{
-		return ast::expression();
+		bz_unreachable;
 	}
 }
 
@@ -6719,7 +7227,11 @@ template<
 static bool type_property_helper(lex::src_tokens const &src_tokens, ast::typespec_view ts, parse_context &context)
 {
 	ts = remove_const_or_consteval(ts);
-	if (ts.is<ast::ts_base_type>())
+	if ((ts.is<exception_types>() || ...))
+	{
+		return !default_value;
+	}
+	else if (ts.is<ast::ts_base_type>())
 	{
 		auto const info = ts.get<ast::ts_base_type>().info;
 		context.resolve_type(src_tokens, info);
@@ -6743,9 +7255,17 @@ static bool type_property_helper(lex::src_tokens const &src_tokens, ast::typespe
 			exception_types...
 		>(src_tokens, ts.get<ast::ts_array>().elem_type, context);
 	}
+	else if (ts.is<ast::ts_optional>())
+	{
+		return type_property_helper<
+			base_type_property_func,
+			default_value,
+			exception_types...
+		>(src_tokens, ts.get<ast::ts_optional>(), context);
+	}
 	else
 	{
-		return (ts.is<exception_types>() || ...) ? !default_value : default_value;
+		return default_value;
 	}
 }
 
@@ -6753,7 +7273,7 @@ bool parse_context::is_default_constructible(lex::src_tokens const &src_tokens, 
 {
 	return type_property_helper<
 		&ast::type_info::is_default_constructible,
-		false, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_optional, ast::ts_array_slice
 	>(src_tokens, ts, *this);
 }
 
@@ -6845,6 +7365,10 @@ bool parse_context::is_instantiable(lex::src_tokens const &src_tokens, ast::type
 		// when accessing elements
 		return this->is_instantiable(src_tokens, ts.get<ast::ts_array_slice>().elem_type);
 	}
+	else if (ts.is<ast::ts_optional>())
+	{
+		return this->is_instantiable(src_tokens, ts.get<ast::ts_optional>());
+	}
 	else if (ts.is<ast::ts_tuple>())
 	{
 		return ts.get<ast::ts_tuple>().types.is_all([&](auto const &type) {
@@ -6914,7 +7438,6 @@ ast::constant_value parse_context::execute_compound_expression(
 {
 	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
 	this->global_ctx._comptime_executor.current_parse_ctx = this;
-	// bz::log("line {}\n", src_tokens.pivot->src_pos.line);
 	auto [result, errors] = this->global_ctx._comptime_executor.execute_compound_expression(expr);
 	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
 	if (!errors.empty())

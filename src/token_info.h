@@ -106,6 +106,7 @@ constexpr bz::array operator_precedences = {
 	prec_t{ prec_t::unary,  lex::token::address_of,         {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::auto_ref,           {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::auto_ref_const,     {  3, false } },
+	prec_t{ prec_t::unary,  lex::token::question_mark,      {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::dereference,        {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::kw_const,           {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::kw_consteval,       {  3, false } },
@@ -205,7 +206,6 @@ constexpr auto token_info = []() {
 	result[lex::token::square_close]  = { lex::token::square_close,  "]", "", expr_type_flags    };
 	result[lex::token::semi_colon]    = { lex::token::semi_colon,    ";", "", 0                  };
 	result[lex::token::colon]         = { lex::token::colon,         ":", "", expr_type_flags    };
-	result[lex::token::question_mark] = { lex::token::question_mark, "?", "", expr_type_flags    };
 	result[lex::token::at]            = { lex::token::at,            "@", "", 0                  };
 
 
@@ -226,6 +226,7 @@ constexpr auto token_info = []() {
 
 	result[lex::token::auto_ref]       = { lex::token::auto_ref,       "#",  "", unary_type_op_flags };
 	result[lex::token::auto_ref_const] = { lex::token::auto_ref_const, "##", "", unary_type_op_flags };
+	result[lex::token::question_mark]  = { lex::token::question_mark,  "?",  "", unary_type_op_flags };
 
 	result[lex::token::placeholder_literal] = { lex::token::placeholder_literal, "??", "", expr_type_flags };
 

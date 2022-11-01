@@ -62,47 +62,64 @@ export function __builtin_str_ends_with(s: str, postfix: str) -> bool
 	return true;
 }
 
-@__builtin export function __builtin_str_begin_ptr(s: str) -> *const uint8;
-@__builtin export function __builtin_str_end_ptr(s: str) -> *const uint8;
+@__builtin export function __builtin_str_begin_ptr(s: str) -> ?*const uint8;
+@__builtin export function __builtin_str_end_ptr(s: str) -> ?*const uint8;
 @__builtin
 export function __builtin_str_size(s: str) -> usize
 {
 	return (__builtin_str_end_ptr(s) - __builtin_str_begin_ptr(s)) as usize;
 }
-@__builtin export function __builtin_str_from_ptrs(begin: *const uint8, end: *const uint8) -> str;
+@__builtin export function __builtin_str_from_ptrs(begin: ?*const uint8, end: ?*const uint8) -> str;
 
-@__builtin export function __builtin_slice_begin_ptr(slice: [: auto]) -> typeof &slice[0];
-@__builtin export function __builtin_slice_begin_const_ptr(slice: [: const auto]) -> typeof &slice[0];
-@__builtin export function __builtin_slice_end_ptr(slice: [: auto]) -> typeof &slice[0];
-@__builtin export function __builtin_slice_end_const_ptr(slice: [: const auto]) -> typeof &slice[0];
+@__builtin export function __builtin_slice_begin_ptr(slice: [: auto]) -> ?*__builtin_slice_value_type(typeof slice);
+@__builtin export function __builtin_slice_begin_const_ptr(slice: [: const auto]) -> ?*__builtin_slice_value_type(typeof slice);
+@__builtin export function __builtin_slice_end_ptr(slice: [: auto]) -> ?*__builtin_slice_value_type(typeof slice);
+@__builtin export function __builtin_slice_end_const_ptr(slice: [: const auto]) -> ?*__builtin_slice_value_type(typeof slice);
 @__builtin
 export function __builtin_slice_size(slice: [: const auto]) -> usize
 {
 	return (__builtin_slice_end_const_ptr(slice) - __builtin_slice_begin_const_ptr(slice)) as usize;
 }
-@__builtin export function __builtin_slice_from_ptrs(begin: *auto, end: *auto)
+@__builtin export function __builtin_slice_from_ptrs(begin: ?*auto, end: ?*auto)
 	-> (if consteval (typeof begin != typeof end) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"mismatched pointer types '",
-			__builtin_typename_as_str(typeof begin),
+			__builtin_typename_as_str(__builtin_remove_optional(typeof begin)),
 			"' and '",
-			__builtin_typename_as_str(typeof end),
+			__builtin_typename_as_str(__builtin_remove_optional(typeof end)),
 			"' in 'function __builtin_slice_from_ptrs'"
 		)));
-	} else {}, [: __builtin_remove_pointer(typeof begin)]);
-@__builtin export function __builtin_slice_from_const_ptrs(begin: *const auto, end: *const auto)
+	} else {}, [: __builtin_remove_pointer(__builtin_remove_optional(typeof begin))]);
+@__builtin export function __builtin_slice_from_const_ptrs(begin: ?*const auto, end: ?*const auto)
 	-> (if consteval (typeof begin != typeof end) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"mismatched pointer types '",
-			__builtin_typename_as_str(typeof begin),
+			__builtin_typename_as_str(__builtin_remove_optional(typeof begin)),
 			"' and '",
-			__builtin_typename_as_str(typeof end),
+			__builtin_typename_as_str(__builtin_remove_optional(typeof end)),
 			"' in 'function __builtin_slice_from_const_ptrs'"
 		)));
-	} else {}, [: __builtin_remove_pointer(typeof begin)]);
+	} else {}, [: __builtin_remove_pointer(__builtin_remove_optional(typeof begin))]);
+
+@__builtin export function __builtin_array_begin_ptr(array: &[??: auto])
+	-> *__builtin_array_value_type(__builtin_remove_reference(typeof array));
+@__builtin export function __builtin_array_begin_const_ptr(array: &const [??: auto])
+	-> *const __builtin_array_value_type(__builtin_remove_const(__builtin_remove_reference(typeof array)));
+@__builtin export function __builtin_array_end_ptr(array: &[??: auto])
+	-> *__builtin_array_value_type(__builtin_remove_reference(typeof array));
+@__builtin export function __builtin_array_end_const_ptr(array: &const [??: auto])
+	-> *const __builtin_array_value_type(__builtin_remove_const(__builtin_remove_reference(typeof array)));
+@__builtin export function __builtin_array_size(array: &const [??: auto]) -> usize;
+
+@__builtin export function __builtin_optional_get_value_ref(value: &?auto)
+	-> &__builtin_remove_optional(__builtin_remove_reference(typeof value));
+@__builtin export function __builtin_optional_get_const_value_ref(value: &const ?auto)
+	-> &const __builtin_remove_optional(__builtin_remove_const(__builtin_remove_reference(typeof value)));
+@__builtin export function __builtin_optional_get_value(value: ?auto)
+	-> __builtin_remove_optional(typeof value);
 
 @__builtin export function __builtin_pointer_cast(T: *typename, ptr: *const void) -> T;
-@__builtin export function __builtin_pointer_to_int(ptr: *const void) -> usize;
+@__builtin export function __builtin_pointer_to_int(ptr: ?*const void) -> usize;
 @__builtin export function __builtin_int_to_pointer(T: *typename, n: usize) -> T;
 
 @__builtin export function __builtin_call_destructor(obj: &auto);
@@ -129,7 +146,7 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 
 @__builtin export function __builtin_is_comptime() -> bool;
 
-@__builtin @symbol_name("__bozon_builtin_is_option_set_impl") consteval function __builtin_is_option_set_impl(begin: *const uint8, end: *const uint8) -> bool;
+@__builtin @symbol_name("__bozon_builtin_is_option_set_impl") consteval function __builtin_is_option_set_impl(begin: ?*const uint8, end: ?*const uint8) -> bool;
 @__builtin
 export consteval function __builtin_is_option_set(option: str) -> bool
 {
@@ -158,45 +175,26 @@ function __libc_main(argc_int: std::libc::int, argv: *const *const std::libc::ch
 {
 	let args_buffer = [8: str]();
 
-	const args = if (argc_int <= 0) {
-		__builtin_slice_from_ptrs(args_buffer.begin(), args_buffer.begin() + 1)
+	const argc = if (argc_int <= 0) { 0 } else { argc_int as usize };
+	const args_alloc: ?*str = if (argc <= args_buffer.size()) {
+		null
 	} else {
-		const argc = argc_int as usize;
-
-		const args_ptr = if (argc <= 8) {
-			args_buffer.begin()
-		} else {
-			const malloc_result = __builtin_pointer_cast(*str, std::libc::malloc(argc * sizeof str));
-			if (malloc_result == null)
-			{
-				return 1;
-			}
-			malloc_result
-		};
-
-		const args = __builtin_slice_from_ptrs(args_ptr, args_ptr + argc);
-
-		for (let i = 0uz; i < argc; ++i)
+		const malloc_result = std::libc::malloc(argc * sizeof str);
+		if (malloc_result == null)
 		{
-			const begin_ptr = *(argv + i);
-			const end_ptr = {
-				let it = begin_ptr;
-				while (*it != 0)
-				{
-					++it;
-				}
-				it
-			};
-			args[i] = __builtin_str_from_ptrs(begin_ptr, end_ptr);
+			std::libc::abort();
 		}
-		args
+		__builtin_pointer_cast(*str, malloc_result.get_value())
+	};
+	defer std::libc::free(args_alloc);
+
+	const args = if (args_alloc == null) {
+		__builtin_slice_from_const_ptrs(args_buffer.begin(), args_buffer.begin() + argc)
+	} else {
+		__builtin_slice_from_const_ptrs(args_alloc, args_alloc + argc)
 	};
 
 	const result = __builtin_call_main(args);
-	if (args.begin() != args_buffer.begin())
-	{
-		std::libc::free(args.begin());
-	}
 
 	if consteval (std::libc::int == int32)
 	{
@@ -229,7 +227,7 @@ export function __builtin_print_stderr(s: str)
 
 @__builtin @symbol_name("__bozon_builtin_comptime_malloc") consteval function __builtin_comptime_malloc(size: usize) -> *void;
 @__builtin export consteval function __builtin_comptime_malloc_type(T: typename, count: usize) -> *T;
-@__builtin @symbol_name("__bozon_builtin_comptime_free") export consteval function __builtin_comptime_free(ptr: *void);
+@__builtin @symbol_name("__bozon_builtin_comptime_free") export consteval function __builtin_comptime_free(ptr: ?*void);
 
 @__builtin export consteval function __builtin_comptime_compile_error(message: str);
 @__builtin export consteval function __builtin_comptime_compile_warning(message: str);
@@ -242,14 +240,20 @@ export function __builtin_print_stderr(s: str)
 @__builtin export consteval function __builtin_is_const(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_consteval(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_pointer(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_optional(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_reference(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_move_reference(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_slice(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_array(T: typename) -> bool;
 
 @__builtin export consteval function __builtin_remove_const(T: typename) -> typename;
 @__builtin export consteval function __builtin_remove_consteval(T: typename) -> typename;
 @__builtin export consteval function __builtin_remove_pointer(T: typename) -> typename;
+@__builtin export consteval function __builtin_remove_optional(T: typename) -> typename;
 @__builtin export consteval function __builtin_remove_reference(T: typename) -> typename;
 @__builtin export consteval function __builtin_remove_move_reference(T: typename) -> typename;
+@__builtin export consteval function __builtin_slice_value_type(T: typename) -> typename;
+@__builtin export consteval function __builtin_array_value_type(T: typename) -> typename;
 
 @__builtin export consteval function __builtin_is_default_constructible(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_copy_constructible(T: typename) -> bool;
@@ -272,7 +276,7 @@ export function __builtin_print_stderr(s: str)
 	} else {
 		unreachable
 	}
-) export function __builtin_memcpy(dest: *void, src: *const void, n: usize);
+) export function __builtin_memcpy(dest: ?*void, src: ?*const void, n: usize);
 @__builtin @symbol_name(
 	if (sizeof usize == 8u) {
 		"llvm.memmove.p0.p0.i64"
@@ -281,7 +285,7 @@ export function __builtin_print_stderr(s: str)
 	} else {
 		unreachable
 	}
-) export function __builtin_memmove(dest: *void, src: *const void, n: usize);
+) export function __builtin_memmove(dest: ?*void, src: ?*const void, n: usize);
 @__builtin @symbol_name(
 	if (sizeof usize == 8u) {
 		"llvm.memset.p0.i64"
@@ -290,7 +294,7 @@ export function __builtin_print_stderr(s: str)
 	} else {
 		unreachable
 	}
-) export function __builtin_memset(dest: *void, val: uint8, n: usize);
+) export function __builtin_memset(dest: ?*void, val: uint8, n: usize);
 
 @__builtin @symbol_name("llvm.abs.i8")  export function __builtin_abs_i8(n: int8)   -> int8;
 @__builtin @symbol_name("llvm.abs.i16") export function __builtin_abs_i16(n: int16) -> int16;
@@ -413,6 +417,8 @@ export function __builtin_print_stderr(s: str)
 
 @__builtin export operator * (p: *auto) -> &__builtin_remove_pointer(typeof p);
 @__builtin export operator * (p: *const auto) -> &__builtin_remove_pointer(typeof p);
+@__builtin export operator * (p: ?*auto) -> &__builtin_remove_pointer(__builtin_remove_optional(typeof p));
+@__builtin export operator * (p: ?*const auto) -> &__builtin_remove_pointer(__builtin_remove_optional(typeof p));
 
 @__builtin export operator ~ (n: uint8)  -> uint8;
 @__builtin export operator ~ (n: uint16) -> uint16;
@@ -433,6 +439,8 @@ export function __builtin_print_stderr(s: str)
 @__builtin export operator ++ (c: &char) -> &char;
 @__builtin export operator ++ (p: &*auto) -> typeof p;
 @__builtin export operator ++ (p: &*const auto) -> typeof p;
+@__builtin export operator ++ (p: &?*auto) -> typeof p;
+@__builtin export operator ++ (p: &?*const auto) -> typeof p;
 
 @__builtin export operator -- (n: &int8)  -> &int8;
 @__builtin export operator -- (n: &int16) -> &int16;
@@ -445,6 +453,8 @@ export function __builtin_print_stderr(s: str)
 @__builtin export operator -- (c: &char) -> &char;
 @__builtin export operator -- (p: &*auto) -> typeof p;
 @__builtin export operator -- (p: &*const auto) -> typeof p;
+@__builtin export operator -- (p: &?*auto) -> typeof p;
+@__builtin export operator -- (p: &?*const auto) -> typeof p;
 
 
 //
@@ -484,8 +494,8 @@ export function __builtin_print_stderr(s: str)
 			"' in assignment"
 		)));
 	} else {}, typeof lhs);
-@__builtin export operator = (lhs: &*auto, rhs: __null_t) -> typeof lhs;
-@__builtin export operator = (lhs: &*const auto, rhs: __null_t) -> typeof lhs;
+@__builtin_assign export operator = (lhs: &?auto, rhs: ##auto) -> typeof lhs;
+@__builtin_assign export operator = (lhs: &?auto, rhs: __null_t) -> typeof lhs;
 @__builtin_assign export operator = (lhs: &[: auto], rhs: [: auto])
 	-> (if consteval (__builtin_remove_reference(typeof lhs) != typeof rhs) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
@@ -552,6 +562,22 @@ export function __builtin_print_stderr(s: str)
 @__builtin export operator + (lhs: *const auto, rhs: uint16) -> typeof lhs;
 @__builtin export operator + (lhs: *const auto, rhs: uint32) -> typeof lhs;
 @__builtin export operator + (lhs: *const auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator + (lhs: ?*auto, rhs:  int8)  -> typeof lhs;
+@__builtin export operator + (lhs: ?*auto, rhs:  int16) -> typeof lhs;
+@__builtin export operator + (lhs: ?*auto, rhs:  int32) -> typeof lhs;
+@__builtin export operator + (lhs: ?*auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator + (lhs: ?*auto, rhs: uint8)  -> typeof lhs;
+@__builtin export operator + (lhs: ?*auto, rhs: uint16) -> typeof lhs;
+@__builtin export operator + (lhs: ?*auto, rhs: uint32) -> typeof lhs;
+@__builtin export operator + (lhs: ?*auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator + (lhs: ?*const auto, rhs:  int8)  -> typeof lhs;
+@__builtin export operator + (lhs: ?*const auto, rhs:  int16) -> typeof lhs;
+@__builtin export operator + (lhs: ?*const auto, rhs:  int32) -> typeof lhs;
+@__builtin export operator + (lhs: ?*const auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator + (lhs: ?*const auto, rhs: uint8)  -> typeof lhs;
+@__builtin export operator + (lhs: ?*const auto, rhs: uint16) -> typeof lhs;
+@__builtin export operator + (lhs: ?*const auto, rhs: uint32) -> typeof lhs;
+@__builtin export operator + (lhs: ?*const auto, rhs: uint64) -> typeof lhs;
 @__builtin export operator + (lhs:  int8,  rhs: *auto) -> typeof rhs;
 @__builtin export operator + (lhs:  int16, rhs: *auto) -> typeof rhs;
 @__builtin export operator + (lhs:  int32, rhs: *auto) -> typeof rhs;
@@ -568,6 +594,22 @@ export function __builtin_print_stderr(s: str)
 @__builtin export operator + (lhs: uint16, rhs: *const auto) -> typeof rhs;
 @__builtin export operator + (lhs: uint32, rhs: *const auto) -> typeof rhs;
 @__builtin export operator + (lhs: uint64, rhs: *const auto) -> typeof rhs;
+@__builtin export operator + (lhs:  int8,  rhs: ?*auto) -> typeof rhs;
+@__builtin export operator + (lhs:  int16, rhs: ?*auto) -> typeof rhs;
+@__builtin export operator + (lhs:  int32, rhs: ?*auto) -> typeof rhs;
+@__builtin export operator + (lhs:  int64, rhs: ?*auto) -> typeof rhs;
+@__builtin export operator + (lhs: uint8,  rhs: ?*auto) -> typeof rhs;
+@__builtin export operator + (lhs: uint16, rhs: ?*auto) -> typeof rhs;
+@__builtin export operator + (lhs: uint32, rhs: ?*auto) -> typeof rhs;
+@__builtin export operator + (lhs: uint64, rhs: ?*auto) -> typeof rhs;
+@__builtin export operator + (lhs:  int8,  rhs: ?*const auto) -> typeof rhs;
+@__builtin export operator + (lhs:  int16, rhs: ?*const auto) -> typeof rhs;
+@__builtin export operator + (lhs:  int32, rhs: ?*const auto) -> typeof rhs;
+@__builtin export operator + (lhs:  int64, rhs: ?*const auto) -> typeof rhs;
+@__builtin export operator + (lhs: uint8,  rhs: ?*const auto) -> typeof rhs;
+@__builtin export operator + (lhs: uint16, rhs: ?*const auto) -> typeof rhs;
+@__builtin export operator + (lhs: uint32, rhs: ?*const auto) -> typeof rhs;
+@__builtin export operator + (lhs: uint64, rhs: ?*const auto) -> typeof rhs;
 
 @__builtin export operator += (lhs: &int8,  rhs: int8)  -> &int8;
 @__builtin export operator += (lhs: &int16, rhs: int16) -> &int16;
@@ -604,6 +646,22 @@ export function __builtin_print_stderr(s: str)
 @__builtin export operator += (lhs: &*const auto, rhs: uint16) -> typeof lhs;
 @__builtin export operator += (lhs: &*const auto, rhs: uint32) -> typeof lhs;
 @__builtin export operator += (lhs: &*const auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator += (lhs: &?*auto, rhs:  int8)  -> typeof lhs;
+@__builtin export operator += (lhs: &?*auto, rhs:  int16) -> typeof lhs;
+@__builtin export operator += (lhs: &?*auto, rhs:  int32) -> typeof lhs;
+@__builtin export operator += (lhs: &?*auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator += (lhs: &?*auto, rhs: uint8)  -> typeof lhs;
+@__builtin export operator += (lhs: &?*auto, rhs: uint16) -> typeof lhs;
+@__builtin export operator += (lhs: &?*auto, rhs: uint32) -> typeof lhs;
+@__builtin export operator += (lhs: &?*auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator += (lhs: &?*const auto, rhs:  int8)  -> typeof lhs;
+@__builtin export operator += (lhs: &?*const auto, rhs:  int16) -> typeof lhs;
+@__builtin export operator += (lhs: &?*const auto, rhs:  int32) -> typeof lhs;
+@__builtin export operator += (lhs: &?*const auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator += (lhs: &?*const auto, rhs: uint8)  -> typeof lhs;
+@__builtin export operator += (lhs: &?*const auto, rhs: uint16) -> typeof lhs;
+@__builtin export operator += (lhs: &?*const auto, rhs: uint32) -> typeof lhs;
+@__builtin export operator += (lhs: &?*const auto, rhs: uint64) -> typeof lhs;
 
 @__builtin export operator - (lhs: int8,  rhs: int8)  -> int8;
 @__builtin export operator - (lhs: int16, rhs: int16) -> int16;
@@ -641,10 +699,36 @@ export function __builtin_print_stderr(s: str)
 @__builtin export operator - (lhs: *const auto, rhs: uint16) -> typeof lhs;
 @__builtin export operator - (lhs: *const auto, rhs: uint32) -> typeof lhs;
 @__builtin export operator - (lhs: *const auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator - (lhs: ?*auto, rhs:  int8)  -> typeof lhs;
+@__builtin export operator - (lhs: ?*auto, rhs:  int16) -> typeof lhs;
+@__builtin export operator - (lhs: ?*auto, rhs:  int32) -> typeof lhs;
+@__builtin export operator - (lhs: ?*auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator - (lhs: ?*auto, rhs: uint8)  -> typeof lhs;
+@__builtin export operator - (lhs: ?*auto, rhs: uint16) -> typeof lhs;
+@__builtin export operator - (lhs: ?*auto, rhs: uint32) -> typeof lhs;
+@__builtin export operator - (lhs: ?*auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator - (lhs: ?*const auto, rhs:  int8)  -> typeof lhs;
+@__builtin export operator - (lhs: ?*const auto, rhs:  int16) -> typeof lhs;
+@__builtin export operator - (lhs: ?*const auto, rhs:  int32) -> typeof lhs;
+@__builtin export operator - (lhs: ?*const auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator - (lhs: ?*const auto, rhs: uint8)  -> typeof lhs;
+@__builtin export operator - (lhs: ?*const auto, rhs: uint16) -> typeof lhs;
+@__builtin export operator - (lhs: ?*const auto, rhs: uint32) -> typeof lhs;
+@__builtin export operator - (lhs: ?*const auto, rhs: uint64) -> typeof lhs;
 @__builtin export operator - (lhs: *const auto, rhs: *const auto)
 	-> (if consteval (typeof lhs != typeof rhs) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"mismatched pointer types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in 'operator -'"
+		)));
+	} else {}, isize);
+@__builtin export operator - (lhs: ?*const auto, rhs: ?*const auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched optional pointer types '",
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
@@ -687,6 +771,22 @@ export function __builtin_print_stderr(s: str)
 @__builtin export operator -= (lhs: &*const auto, rhs: uint16) -> typeof lhs;
 @__builtin export operator -= (lhs: &*const auto, rhs: uint32) -> typeof lhs;
 @__builtin export operator -= (lhs: &*const auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*auto, rhs:  int8)  -> typeof lhs;
+@__builtin export operator -= (lhs: &?*auto, rhs:  int16) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*auto, rhs:  int32) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*auto, rhs: uint8)  -> typeof lhs;
+@__builtin export operator -= (lhs: &?*auto, rhs: uint16) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*auto, rhs: uint32) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*const auto, rhs:  int8)  -> typeof lhs;
+@__builtin export operator -= (lhs: &?*const auto, rhs:  int16) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*const auto, rhs:  int32) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*const auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*const auto, rhs: uint8)  -> typeof lhs;
+@__builtin export operator -= (lhs: &?*const auto, rhs: uint16) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*const auto, rhs: uint32) -> typeof lhs;
+@__builtin export operator -= (lhs: &?*const auto, rhs: uint64) -> typeof lhs;
 
 @__builtin export operator * (lhs: int8,  rhs: int8)  -> int8;
 @__builtin export operator * (lhs: int16, rhs: int16) -> int16;
@@ -796,8 +896,18 @@ export function __builtin_print_stderr(s: str)
 			"' in comparison operator"
 		)));
 	} else {}, bool);
-@__builtin export operator == (lhs: *const auto, rhs: __null_t) -> bool;
-@__builtin export operator == (lhs: __null_t, rhs: *const auto) -> bool;
+@__builtin export operator == (lhs: ?*const auto, rhs: ?*const auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched optional pointer types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in comparison operator"
+		)));
+	} else {}, bool);
+@__builtin export operator == (lhs: #const ?auto, rhs: __null_t) -> bool;
+@__builtin export operator == (lhs: __null_t, rhs: #const ?auto) -> bool;
 
 @__builtin export operator != (lhs: int8,  rhs: int8)  -> bool;
 @__builtin export operator != (lhs: int16, rhs: int16) -> bool;
@@ -845,8 +955,18 @@ export function __builtin_print_stderr(s: str)
 			"' in comparison operator"
 		)));
 	} else {}, bool);
-@__builtin export operator != (lhs: *const auto, rhs: __null_t) -> bool;
-@__builtin export operator != (lhs: __null_t, rhs: *const auto) -> bool;
+@__builtin export operator != (lhs: ?*const auto, rhs: ?*const auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched optional pointer types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in comparison operator"
+		)));
+	} else {}, bool);
+@__builtin export operator != (lhs: #const ?auto, rhs: __null_t) -> bool;
+@__builtin export operator != (lhs: __null_t, rhs: #const ?auto) -> bool;
 
 @__builtin export operator < (lhs: int8,  rhs: int8)  -> bool;
 @__builtin export operator < (lhs: int16, rhs: int16) -> bool;
@@ -863,6 +983,16 @@ export function __builtin_print_stderr(s: str)
 	-> (if consteval (typeof lhs != typeof rhs) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"mismatched pointer types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in comparison operator"
+		)));
+	} else {}, bool);
+@__builtin export operator < (lhs: ?*const auto, rhs: ?*const auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched optional pointer types '",
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),
@@ -891,6 +1021,16 @@ export function __builtin_print_stderr(s: str)
 			"' in comparison operator"
 		)));
 	} else {}, bool);
+@__builtin export operator <= (lhs: ?*const auto, rhs: ?*const auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched optional pointer types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in comparison operator"
+		)));
+	} else {}, bool);
 
 @__builtin export operator > (lhs: int8,  rhs: int8)  -> bool;
 @__builtin export operator > (lhs: int16, rhs: int16) -> bool;
@@ -913,6 +1053,16 @@ export function __builtin_print_stderr(s: str)
 			"' in comparison operator"
 		)));
 	} else {}, bool);
+@__builtin export operator > (lhs: ?*const auto, rhs: ?*const auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched optional pointer types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in comparison operator"
+		)));
+	} else {}, bool);
 
 @__builtin export operator >= (lhs: int8,  rhs: int8)  -> bool;
 @__builtin export operator >= (lhs: int16, rhs: int16) -> bool;
@@ -929,6 +1079,16 @@ export function __builtin_print_stderr(s: str)
 	-> (if consteval (typeof lhs != typeof rhs) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"mismatched pointer types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in comparison operator"
+		)));
+	} else {}, bool);
+@__builtin export operator >= (lhs: ?*const auto, rhs: ?*const auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched optional pointer types '",
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),

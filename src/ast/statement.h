@@ -493,6 +493,16 @@ struct function_body
 		builtin_slice_from_ptrs,
 		builtin_slice_from_const_ptrs,
 
+		builtin_array_begin_ptr,
+		builtin_array_begin_const_ptr,
+		builtin_array_end_ptr,
+		builtin_array_end_const_ptr,
+		builtin_array_size,
+
+		builtin_optional_get_value_ref,
+		builtin_optional_get_const_value_ref,
+		builtin_optional_get_value,
+
 		builtin_pointer_cast,
 		builtin_pointer_to_int,
 		builtin_int_to_pointer,
@@ -533,14 +543,20 @@ struct function_body
 		is_const,
 		is_consteval,
 		is_pointer,
+		is_optional,
 		is_reference,
 		is_move_reference,
+		is_slice,
+		is_array,
 
 		remove_const,
 		remove_consteval,
 		remove_pointer,
+		remove_optional,
 		remove_reference,
 		remove_move_reference,
+		slice_value_type,
+		array_value_type,
 
 		is_default_constructible,
 		is_copy_constructible,
@@ -1482,7 +1498,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 152);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 166);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1501,6 +1517,16 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_slice_size,            "__builtin_slice_size"            },
 		{ function_body::builtin_slice_from_ptrs,       "__builtin_slice_from_ptrs"       },
 		{ function_body::builtin_slice_from_const_ptrs, "__builtin_slice_from_const_ptrs" },
+
+		{ function_body::builtin_array_begin_ptr,       "__builtin_array_begin_ptr"       },
+		{ function_body::builtin_array_begin_const_ptr, "__builtin_array_begin_const_ptr" },
+		{ function_body::builtin_array_end_ptr,         "__builtin_array_end_ptr"         },
+		{ function_body::builtin_array_end_const_ptr,   "__builtin_array_end_const_ptr"   },
+		{ function_body::builtin_array_size,            "__builtin_array_size"            },
+
+		{ function_body::builtin_optional_get_value_ref,       "__builtin_optional_get_value_ref"       },
+		{ function_body::builtin_optional_get_const_value_ref, "__builtin_optional_get_const_value_ref" },
+		{ function_body::builtin_optional_get_value,           "__builtin_optional_get_value"           },
 
 		{ function_body::builtin_pointer_cast,   "__builtin_pointer_cast"   },
 		{ function_body::builtin_pointer_to_int, "__builtin_pointer_to_int" },
@@ -1540,14 +1566,20 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::is_const,          "__builtin_is_const"          },
 		{ function_body::is_consteval,      "__builtin_is_consteval"      },
 		{ function_body::is_pointer,        "__builtin_is_pointer"        },
+		{ function_body::is_optional,       "__builtin_is_optional"       },
 		{ function_body::is_reference,      "__builtin_is_reference"      },
 		{ function_body::is_move_reference, "__builtin_is_move_reference" },
+		{ function_body::is_slice,          "__builtin_is_slice"          },
+		{ function_body::is_array,          "__builtin_is_array"          },
 
 		{ function_body::remove_const,          "__builtin_remove_const"          },
 		{ function_body::remove_consteval,      "__builtin_remove_consteval"      },
 		{ function_body::remove_pointer,        "__builtin_remove_pointer"        },
+		{ function_body::remove_optional,       "__builtin_remove_optional"       },
 		{ function_body::remove_reference,      "__builtin_remove_reference"      },
 		{ function_body::remove_move_reference, "__builtin_remove_move_reference" },
+		{ function_body::slice_value_type,      "__builtin_slice_value_type"      },
+		{ function_body::array_value_type,      "__builtin_array_value_type"      },
 
 		{ function_body::is_default_constructible,        "__builtin_is_default_constructible"        },
 		{ function_body::is_copy_constructible,           "__builtin_is_copy_constructible"           },

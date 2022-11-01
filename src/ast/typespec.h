@@ -22,6 +22,7 @@ struct ts_typename;
 struct ts_const;
 struct ts_consteval;
 struct ts_pointer;
+struct ts_optional;
 struct ts_lvalue_reference;
 struct ts_move_reference;
 struct ts_auto_reference;
@@ -41,6 +42,7 @@ using typespec_types = bz::meta::type_pack<
 	ts_const,
 	ts_consteval,
 	ts_pointer,
+	ts_optional,
 	ts_lvalue_reference,
 	ts_move_reference,
 	ts_auto_reference,
@@ -52,6 +54,7 @@ using modifier_typespec_types = bz::meta::type_pack<
 	ts_const,
 	ts_consteval,
 	ts_pointer,
+	ts_optional,
 	ts_lvalue_reference,
 	ts_move_reference,
 	ts_auto_reference,
@@ -104,6 +107,9 @@ struct typespec_view
 	bool is_safe_blind_get(void) const noexcept;
 	typespec_view blind_get(void) const noexcept;
 	bool is_typename(void) const noexcept;
+	bool is_optional_pointer(void) const noexcept;
+	bool is_optional_pointer_like(void) const noexcept;
+	typespec_view get_optional_pointer(void) const noexcept;
 
 	template<typename Fn>
 	decltype(auto) visit(Fn &&fn) const;
@@ -162,6 +168,15 @@ struct typespec
 
 	bool is_typename(void) const noexcept
 	{ return this->as_typespec_view().is_typename(); }
+
+	bool is_optional_pointer_like(void) const noexcept
+	{ return this->as_typespec_view().is_optional_pointer_like(); }
+
+	bool is_optional_pointer(void) const noexcept
+	{ return this->as_typespec_view().is_optional_pointer(); }
+
+	typespec_view get_optional_pointer(void) const noexcept
+	{ return this->as_typespec_view().get_optional_pointer(); }
 
 	template<typename Fn>
 	decltype(auto) visit(Fn &&fn) const
@@ -243,6 +258,9 @@ struct ts_consteval
 struct ts_pointer
 {};
 
+struct ts_optional
+{};
+
 struct ts_lvalue_reference
 {};
 
@@ -261,6 +279,7 @@ struct ts_variadic
 
 typespec_view remove_lvalue_reference(typespec_view ts) noexcept;
 typespec_view remove_pointer(typespec_view ts) noexcept;
+typespec_view remove_optional(typespec_view ts) noexcept;
 typespec_view remove_const_or_consteval(typespec_view ts) noexcept;
 typespec_view remove_lvalue_or_move_reference(typespec_view ts) noexcept;
 typespec_view remove_any_reference(typespec_view ts) noexcept;

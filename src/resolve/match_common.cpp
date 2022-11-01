@@ -179,7 +179,7 @@ static bool is_integer_literal_implicitly_convertible(
 
 static bool is_null_literal_implicitly_convertible(ast::typespec_view dest)
 {
-	return dest.is<ast::ts_pointer>();
+	return ast::is_complete(dest) && dest.is<ast::ts_optional>();
 }
 
 bool is_implicitly_convertible(

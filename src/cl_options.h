@@ -81,8 +81,11 @@ inline constexpr bz::array ctcli::option_group_alias<opt_group_id> = {
 
 template<>
 inline constexpr bz::array ctcli::option_group<code_gen_group_id> = {
-	ctcli::create_group_element("panic-on-unreachable",     "Call '__builtin_panic' if unreachable is hit (default=true)"),
-	ctcli::create_group_element("discard-llvm-value-names", "Discard values names for LLVM bitcode (default=true)"),
+	ctcli::create_group_element("panic-on-unreachable",             "Call '__builtin_panic' if unreachable is hit (default=true)"),
+	ctcli::create_group_element("panic-on-null-dereference",        "Call '__builtin_panic' if null is dereferenced (default=true)"),
+	ctcli::create_group_element("panic-on-null-pointer-arithmetic", "Call '__builtin_panic' if null is used in pointer arithmetic (default=true)"),
+	ctcli::create_group_element("panic-on-null-get-value", "Call '__builtin_panic' if 'get_value' is called with a null value (default=true)"),
+	ctcli::create_group_element("discard-llvm-value-names",         "Discard values names for LLVM bitcode (default=true)"),
 };
 
 template<>
@@ -159,16 +162,20 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element(
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn non-exhaustive-switch")>    = &warnings[static_cast<size_t>(ctx::warning_kind::non_exhaustive_switch)];
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unneeded-else")>            = &warnings[static_cast<size_t>(ctx::warning_kind::unneeded_else)];
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn assign-in-condition")>      = &warnings[static_cast<size_t>(ctx::warning_kind::assign_in_condition)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn get-value-null")>           = &warnings[static_cast<size_t>(ctx::warning_kind::get_value_null)];
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn comptime-warning")>         = &warnings[static_cast<size_t>(ctx::warning_kind::comptime_warning)];
-static_assert(static_cast<size_t>(ctx::warning_kind::_last) == 24);
+static_assert(static_cast<size_t>(ctx::warning_kind::_last) == 25);
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt max-iter-count")>     = &max_opt_iter_count;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt opt-level")>          = &opt_level;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt size-opt-level")>     = &size_opt_level;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt comptime-opt-level")> = &comptime_opt_level;
 
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-unreachable")>     = &panic_on_unreachable;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen discard-llvm-value-names")> = &discard_llvm_value_names;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-unreachable")>             = &panic_on_unreachable;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-null-dereference")>        = &panic_on_null_dereference;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-null-pointer-arithmetic")> = &panic_on_null_pointer_arithmetic;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-null-get-value")>          = &panic_on_null_get_value;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen discard-llvm-value-names")>         = &discard_llvm_value_names;
 
 template<>
 inline constexpr auto ctcli::argument_parse_function<ctcli::option("--emit")> = [](bz::u8string_view arg) -> std::optional<emit_type> {

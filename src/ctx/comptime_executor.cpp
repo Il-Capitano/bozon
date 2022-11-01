@@ -522,6 +522,24 @@ llvm::CallInst *comptime_executor_context::create_call(
 	return call;
 }
 
+bc::val_ptr comptime_executor_context::get_struct_element(bc::val_ptr value, uint64_t idx)
+{
+	bz_assert(value.get_type()->isStructTy() || value.get_type()->isArrayTy());
+	if (value.kind == bc::val_ptr::value)
+	{
+		return bc::val_ptr::get_value(this->builder.CreateExtractValue(value.get_value(this->builder), idx));
+	}
+	else
+	{
+		auto const type = value.get_type();
+		auto const element_val = this->create_struct_gep(type, value.val, idx);
+		auto const element_type = type->isStructTy()
+			? type->getStructElementType(idx)
+			: type->getArrayElementType();
+		return bc::val_ptr::get_reference(element_val, element_type);
+	}
+}
+
 llvm::Type *comptime_executor_context::get_builtin_type(uint32_t kind) const
 {
 	bz_assert(kind <= ast::type_info::null_t_);
@@ -953,7 +971,8 @@ void comptime_executor_context::set_comptime_function(comptime_function_kind kin
 static ast::constant_value constant_value_from_generic_value(llvm::GenericValue const &value, ast::typespec_view result_type)
 {
 	ast::constant_value result;
-	ast::remove_const_or_consteval(result_type).visit(bz::overload{
+	result_type = ast::remove_const_or_consteval(result_type);
+	result_type.visit(bz::overload{
 		[&](ast::ts_base_type const &base_t) {
 			switch (base_t.info->kind)
 			{
@@ -1040,14 +1059,27 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 				.collect<ast::arena_vector>()
 			);
 		},
-		[&](ast::ts_pointer const &) {
-			if (value.PointerVal == nullptr)
+		[](ast::ts_pointer const &) {
+			bz_unreachable;
+		},
+		[&](ast::ts_optional const &) {
+			if (result_type.is_optional_pointer_like())
 			{
+				bz_assert(value.PointerVal == nullptr);
 				result.emplace<ast::constant_value::null>();
 			}
 			else
 			{
-				// nothing
+				auto const has_value = value.AggregateVal[1].IntVal.getBoolValue();
+				if (!has_value)
+				{
+					result.emplace<ast::constant_value::null>();
+				}
+				else
+				{
+					auto const type = result_type.get<ast::ts_optional>();
+					result = constant_value_from_generic_value(value.AggregateVal[0], type);
+				}
 			}
 		},
 		[](ast::ts_lvalue_reference const &) {

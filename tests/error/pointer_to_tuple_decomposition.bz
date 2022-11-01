@@ -1,4 +1,5 @@
 function main()
 {
-	let *[e] = (*[int32])();
+	let t = [int32]();
+	let *[_] = &t;
 }

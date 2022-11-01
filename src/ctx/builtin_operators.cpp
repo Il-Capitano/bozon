@@ -66,10 +66,7 @@ static ast::expression get_builtin_unary_address_of(
 	auto [type, type_kind] = expr.get_expr_type_and_kind();
 	ast::typespec result_type = type;
 	result_type.add_layer<ast::ts_pointer>();
-	if (
-		type_kind == ast::expression_type_kind::lvalue
-		|| type_kind == ast::expression_type_kind::lvalue_reference
-	)
+	if (ast::is_lvalue(type_kind))
 	{
 		return ast::make_dynamic_expression(
 			src_tokens,
@@ -324,6 +321,72 @@ static ast::expression get_type_op_unary_pointer(
 	}
 
 	result_type.add_layer<ast::ts_pointer>();
+
+	return ast::make_constant_expression(
+		src_tokens,
+		ast::expression_type_kind::type_name,
+		ast::make_typename_typespec(nullptr),
+		ast::constant_value(std::move(result_type)),
+		ast::make_expr_unary_op(op_kind, std::move(expr))
+	);
+}
+
+// ?(typename) -> (?typename)
+static ast::expression get_type_op_unary_question_mark(
+	lex::src_tokens const &src_tokens,
+	uint32_t op_kind,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	bz_assert(op_kind == lex::token::question_mark);
+	bz_assert(expr.not_error());
+	bz_assert(expr.is_typename());
+
+	ast::typespec result_type = expr.get_typename();
+	result_type.src_tokens = src_tokens;
+	if (result_type.is<ast::ts_lvalue_reference>())
+	{
+		context.report_error(src_tokens, "optional of reference is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+	else if (result_type.is<ast::ts_move_reference>())
+	{
+		context.report_error(src_tokens, "optional of move reference is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+	else if (result_type.is<ast::ts_auto_reference>())
+	{
+		context.report_error(src_tokens, "optional of auto reference is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+	else if (result_type.is<ast::ts_auto_reference_const>())
+	{
+		context.report_error(src_tokens, "optional of auto reference-const is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+	else if (result_type.is<ast::ts_const>())
+	{
+		context.report_error(src_tokens, "optional of const is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+	else if (result_type.is<ast::ts_consteval>())
+	{
+		context.report_error(src_tokens, "optional of consteval is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+	else if (result_type.is<ast::ts_optional>())
+	{
+		context.report_error(src_tokens, "optional of optional is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+	else if (result_type.is<ast::ts_variadic>())
+	{
+		context.report_error(src_tokens, "optional of variadic type is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+
+	result_type.add_layer<ast::ts_optional>();
 
 	return ast::make_constant_expression(
 		src_tokens,
@@ -906,9 +969,9 @@ ast::expression make_builtin_cast(
 	auto const dest_t = ast::remove_const_or_consteval(dest_type);
 	bz_assert(ast::is_complete(dest_t));
 
-	// case from null to a pointer type
+	// case from null to a optional type
 	if (
-		dest_t.is<ast::ts_pointer>()
+		dest_t.is<ast::ts_optional>()
 		&& ((
 			expr.is_constant()
 			&& expr.get_constant_value().is_null_constant()
@@ -932,10 +995,13 @@ ast::expression make_builtin_cast(
 			ast::make_expr_cast(std::move(expr), std::move(dest_type))
 		);
 	}
-	else if (dest_t.is<ast::ts_pointer>() && expr_t.is<ast::ts_pointer>())
+	else if (
+		(dest_t.is<ast::ts_pointer>() || dest_t.is_optional_pointer())
+		&& (expr_t.is<ast::ts_pointer>() || expr_t.is_optional_pointer())
+	)
 	{
-		auto inner_dest_t = dest_t.get<ast::ts_pointer>();
-		auto inner_expr_t = expr_t.get<ast::ts_pointer>();
+		auto inner_dest_t = ast::remove_optional(dest_t).get<ast::ts_pointer>();
+		auto inner_expr_t = ast::remove_optional(expr_t).get<ast::ts_pointer>();
 		if (!inner_dest_t.is<ast::ts_const>() && inner_expr_t.is<ast::ts_const>())
 		{
 			context.report_error(
@@ -1395,7 +1461,8 @@ constexpr auto type_op_unary_operators = []() {
 		T{ lex::token::address_of,     &get_type_op_unary_reference      }, // &
 		T{ lex::token::auto_ref,       &get_type_op_unary_auto_ref       }, // #
 		T{ lex::token::auto_ref_const, &get_type_op_unary_auto_ref_const }, // ##
-		T{ lex::token::dereference,    &get_type_op_unary_pointer        }, // *
+		T{ lex::token::star,           &get_type_op_unary_pointer        }, // *
+		T{ lex::token::question_mark,  &get_type_op_unary_question_mark  }, // ?
 		T{ lex::token::dot_dot_dot,    &get_type_op_unary_dot_dot_dot    }, // ...
 		T{ lex::token::kw_const,       &get_type_op_unary_const          }, // const
 		T{ lex::token::kw_consteval,   &get_type_op_unary_consteval      }, // consteval

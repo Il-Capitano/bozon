@@ -11,6 +11,14 @@ namespace bc
 constexpr size_t array_loop_threshold = 16;
 
 template<abi::platform_abi abi>
+static llvm::Constant *get_value(
+	ast::constant_value const &value,
+	ast::typespec_view type,
+	ast::constant_expression const *const_expr,
+	auto &context
+);
+
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	ast::expression const &expr,
 	auto &context,
@@ -58,6 +66,31 @@ static llvm::Value *emit_get_error_count(ctx::comptime_executor_context &context
 	return context.create_call(context.get_comptime_function(ctx::comptime_function_kind::get_error_count));
 }
 
+static void emit_error(
+	lex::src_tokens const &src_tokens,
+	bz::u8string message,
+	ctx::comptime_executor_context &context
+)
+{
+	bz_assert(src_tokens.begin != nullptr && src_tokens.pivot != nullptr && src_tokens.end != nullptr);
+	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
+	{
+		return;
+	}
+	auto const error_kind_val  = llvm::ConstantInt::get(context.get_uint32_t(), static_cast<uint32_t>(ctx::warning_kind::_last));
+	auto const [error_begin_val, error_pivot_val, error_end_val] = get_src_tokens_llvm_value(src_tokens, context);
+	auto const string_constant = context.create_string(message);
+	auto const string_type = llvm::ArrayType::get(context.get_uint8_t(), message.size() + 1);
+	auto const message_val = context.create_struct_gep(string_type, string_constant, 0);
+	context.create_call(
+		context.get_comptime_function(ctx::comptime_function_kind::add_error),
+		{ error_kind_val, error_begin_val, error_pivot_val, error_end_val, message_val }
+	);
+	auto const continue_bb = context.add_basic_block("error_dummy_continue");
+	context.builder.CreateCondBr(llvm::ConstantInt::getFalse(context.get_llvm_context()), continue_bb, context.error_bb);
+	context.builder.SetInsertPoint(continue_bb);
+}
+
 static void emit_error_check(llvm::Value *pre_call_error_count, ctx::comptime_executor_context &context)
 {
 	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
@@ -81,6 +114,28 @@ static void emit_error_assert(llvm::Value *bool_val, ctx::comptime_executor_cont
 	bz_assert(context.error_bb != nullptr);
 	auto const continue_bb = context.add_basic_block("error_assert_continue");
 	context.builder.CreateCondBr(bool_val, continue_bb, context.error_bb);
+	context.builder.SetInsertPoint(continue_bb);
+}
+
+static void emit_error_assert(
+	lex::src_tokens const &src_tokens,
+	llvm::Value *bool_val,
+	bz::u8string message,
+	ctx::comptime_executor_context &context
+)
+{
+	if (context.current_function.first != nullptr)
+	{
+		return;
+	}
+	auto const begin_bb = context.builder.GetInsertBlock();
+	auto const error_bb = context.add_basic_block("error_assert_fail");
+	context.builder.SetInsertPoint(error_bb);
+	emit_error(src_tokens, std::move(message), context);
+
+	auto const continue_bb = context.builder.GetInsertBlock();
+	context.builder.SetInsertPoint(begin_bb);
+	context.builder.CreateCondBr(bool_val, continue_bb, error_bb);
 	context.builder.SetInsertPoint(continue_bb);
 }
 
@@ -112,31 +167,6 @@ static void emit_index_bounds_check(
 		);
 		emit_error_assert(is_in_bounds, context);
 	}
-}
-
-static void emit_error(
-	lex::src_tokens const &src_tokens,
-	bz::u8string message,
-	ctx::comptime_executor_context &context
-)
-{
-	bz_assert(src_tokens.begin != nullptr && src_tokens.pivot != nullptr && src_tokens.end != nullptr);
-	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
-	{
-		return;
-	}
-	auto const error_kind_val  = llvm::ConstantInt::get(context.get_uint32_t(), static_cast<uint32_t>(ctx::warning_kind::_last));
-	auto const [error_begin_val, error_pivot_val, error_end_val] = get_src_tokens_llvm_value(src_tokens, context);
-	auto const string_constant = context.create_string(message);
-	auto const string_type = llvm::ArrayType::get(context.get_uint8_t(), message.size() + 1);
-	auto const message_val = context.create_struct_gep(string_type, string_constant, 0);
-	context.create_call(
-		context.get_comptime_function(ctx::comptime_function_kind::add_error),
-		{ error_kind_val, error_begin_val, error_pivot_val, error_end_val, message_val }
-	);
-	auto const continue_bb = context.add_basic_block("error_dummy_continue");
-	context.builder.CreateCondBr(llvm::ConstantInt::getFalse(context.get_llvm_context()), continue_bb, context.error_bb);
-	context.builder.SetInsertPoint(continue_bb);
 }
 
 [[nodiscard]] llvm::Value *emit_push_call(
@@ -335,6 +365,185 @@ static void add_byval_attributes(llvm::Argument &arg, llvm::Type *byval_type, au
 	}
 }
 
+template<abi::platform_abi abi>
+static void emit_panic_call(
+	lex::src_tokens const &src_tokens,
+	bz::u8string_view message,
+	ctx::bitcode_context &context
+)
+{
+	auto const panic_func_body = context.get_builtin_function(ast::function_body::builtin_panic);
+	bz_assert(panic_func_body->params.size() == 1);
+	bz_assert(panic_func_body->params[0].get_type().is<ast::ts_base_type>());
+	bz_assert(panic_func_body->params[0].get_type().get<ast::ts_base_type>().info->kind == ast::type_info::str_);
+	auto const panic_fn = context.get_function(panic_func_body);
+	bz_assert(panic_fn != nullptr);
+
+	auto const result_type = get_llvm_type(panic_func_body->return_type, context);
+	bz_assert(result_type->isVoidTy());
+	auto const result_kind = context.get_pass_kind<abi>(panic_func_body->return_type, result_type);
+	bz_assert(result_kind == abi::pass_kind::value);
+
+	ast::arena_vector<llvm::Value *> params = {};
+	params.reserve(2); // on linux str is passed in two registers
+	ast::arena_vector<is_byval_and_type_pair> params_is_byval = {};
+	params.reserve(2);
+
+	auto const param_val = get_value<abi>(
+		ast::constant_value(bz::format("panic called from {}: {}", context.global_ctx.get_location_string(src_tokens.pivot), message)),
+		panic_func_body->params[0].get_type(),
+		nullptr,
+		context
+	);
+	auto const param = val_ptr::get_value(param_val);
+	auto const param_type = panic_func_body->params[0].get_type().as_typespec_view();
+	auto const param_llvm_type = context.get_str_t();
+	add_call_parameter<abi, false>(param_type, param_llvm_type, param, params, params_is_byval, context);
+
+	auto const call = context.create_call(panic_fn, llvm::ArrayRef(params.data(), params.size()));
+	auto is_byval_it = params_is_byval.begin();
+	auto const is_byval_end = params_is_byval.end();
+	unsigned i = 0;
+	bz_assert(panic_fn->arg_size() == call->arg_size());
+	for (; is_byval_it != is_byval_end; ++is_byval_it, ++i)
+	{
+		if (is_byval_it->is_byval)
+		{
+			add_byval_attributes<abi>(call, is_byval_it->type, i, context);
+		}
+	}
+
+	auto const current_ret_type = context.current_function.second->getReturnType();
+	if (current_ret_type->isVoidTy())
+	{
+		context.builder.CreateRetVoid();
+	}
+	else
+	{
+		context.builder.CreateRet(llvm::UndefValue::get(current_ret_type));
+	}
+}
+
+static llvm::Value *optional_has_value(val_ptr optional_val, auto &context)
+{
+	if (optional_val.get_type()->isPointerTy())
+	{
+		return context.builder.CreateICmpNE(
+			optional_val.get_value(context.builder),
+			llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(optional_val.get_type()))
+		);
+	}
+	else if (optional_val.kind == val_ptr::value)
+	{
+		return context.builder.CreateExtractValue(optional_val.get_value(context.builder), 1);
+	}
+	else
+	{
+		auto const has_value_ptr = context.create_struct_gep(optional_val.get_type(), optional_val.val, 1);
+		return context.builder.CreateLoad(context.get_bool_t(), has_value_ptr);
+	}
+}
+
+static val_ptr optional_get_value_ptr(val_ptr optional_val, auto &context)
+{
+	if (optional_val.get_type()->isPointerTy())
+	{
+		return optional_val;
+	}
+	else if (optional_val.kind == val_ptr::value)
+	{
+		return val_ptr::get_value(context.builder.CreateExtractValue(optional_val.get_value(context.builder), 0));
+	}
+	else
+	{
+		auto const value_ptr = context.create_struct_gep(optional_val.get_type(), optional_val.val, 0);
+		bz_assert(optional_val.get_type()->isStructTy());
+		return val_ptr::get_reference(value_ptr, optional_val.get_type()->getStructElementType(0));
+	}
+}
+
+static void optional_set_has_value(val_ptr optional_val, bool has_value, auto &context)
+{
+	bz_assert(optional_val.kind == val_ptr::reference);
+	if (optional_val.get_type()->isPointerTy())
+	{
+		if (has_value == false)
+		{
+			context.builder.CreateStore(llvm::ConstantPointerNull::get(context.get_opaque_pointer_t()), optional_val.val);
+		}
+	}
+	else
+	{
+		auto const has_value_ptr = context.create_struct_gep(optional_val.get_type(), optional_val.val, 1);
+		context.builder.CreateStore(llvm::ConstantInt::getBool(context.get_llvm_context(), has_value), has_value_ptr);
+	}
+}
+
+static void optional_set_has_value(val_ptr optional_val, llvm::Value *has_value, auto &context)
+{
+	bz_assert(optional_val.kind == val_ptr::reference);
+	bz_assert(!optional_val.get_type()->isPointerTy());
+	bz_assert(has_value->getType()->isIntegerTy());
+	auto const has_value_ptr = context.create_struct_gep(optional_val.get_type(), optional_val.val, 1);
+	context.builder.CreateStore(has_value, has_value_ptr);
+}
+
+template<abi::platform_abi abi>
+static void emit_null_optional_get_value_check(
+	lex::src_tokens const &src_tokens,
+	val_ptr optional_val,
+	auto &context
+)
+{
+	if constexpr (is_comptime<decltype(context)>)
+	{
+		auto const has_value = optional_has_value(optional_val, context);
+		emit_error_assert(src_tokens, has_value, "'get_value' called on a null optional", context);
+	}
+	else if (panic_on_null_get_value)
+	{
+		auto const has_value = optional_has_value(optional_val, context);
+		auto const begin_bb = context.builder.GetInsertBlock();
+		auto const error_bb = context.add_basic_block("get_value_null_check_error");
+		context.builder.SetInsertPoint(error_bb);
+		emit_panic_call<abi>(src_tokens, "'get_value' called on a null optional", context);
+		bz_assert(context.has_terminator());
+
+		auto const continue_bb = context.add_basic_block("get_value_null_check_continue");
+		context.builder.SetInsertPoint(begin_bb);
+		context.builder.CreateCondBr(has_value, continue_bb, error_bb);
+		context.builder.SetInsertPoint(continue_bb);
+	}
+}
+
+template<abi::platform_abi abi>
+static void emit_null_pointer_arithmetic_check(
+	lex::src_tokens const &src_tokens,
+	llvm::Value *ptr,
+	auto &context
+)
+{
+	if constexpr (is_comptime<decltype(context)>)
+	{
+		auto const has_value = optional_has_value(val_ptr::get_value(ptr), context);
+		emit_error_assert(src_tokens, has_value, "null value used in pointer arithmetic", context);
+	}
+	else if (panic_on_null_pointer_arithmetic)
+	{
+		auto const has_value = optional_has_value(val_ptr::get_value(ptr), context);
+		auto const begin_bb = context.builder.GetInsertBlock();
+		auto const error_bb = context.add_basic_block("arithmetic_null_check_error");
+		context.builder.SetInsertPoint(error_bb);
+		emit_panic_call<abi>(src_tokens, "null value used in pointer arithmetic", context);
+		bz_assert(context.has_terminator());
+
+		auto const continue_bb = context.add_basic_block("arithmetic_null_check_continue");
+		context.builder.SetInsertPoint(begin_bb);
+		context.builder.CreateCondBr(has_value, continue_bb, error_bb);
+		context.builder.SetInsertPoint(continue_bb);
+	}
+}
+
 struct array_init_loop_info_t
 {
 	llvm::BasicBlock *condition_check_bb;
@@ -426,14 +635,6 @@ static void create_reversed_loop_end(array_destruct_loop_info_t loop_info, auto 
 // ================================================================
 // -------------------------- expression --------------------------
 // ================================================================
-
-template<abi::platform_abi abi>
-static llvm::Constant *get_value(
-	ast::constant_value const &value,
-	ast::typespec_view type,
-	ast::constant_expression const *const_expr,
-	auto &context
-);
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
@@ -685,7 +886,7 @@ static val_ptr emit_builtin_unary_minus(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_unary_dereference(
-	lex::src_tokens const &,
+	lex::src_tokens const &src_tokens,
 	ast::expression const &expr,
 	auto &context,
 	llvm::Value *result_address
@@ -693,10 +894,38 @@ static val_ptr emit_builtin_unary_dereference(
 {
 	auto const val = emit_bitcode<abi>(expr, context, nullptr).get_value(context.builder);
 	auto const type = ast::remove_const_or_consteval(expr.get_expr_type());
-	bz_assert(type.template is<ast::ts_pointer>());
-	auto const result_type = get_llvm_type(type.template get<ast::ts_pointer>(), context);
-	bz_assert(result_address == nullptr);
-	return val_ptr::get_reference(val, result_type);
+	bz_assert(type.template is<ast::ts_pointer>() || type.is_optional_pointer());
+	if (type.is_optional_pointer())
+	{
+		if constexpr (is_comptime<decltype(context)>)
+		{
+			auto const has_value = optional_has_value(val_ptr::get_value(val), context);
+			emit_error_assert(src_tokens, has_value, "null pointer dereferenced", context);
+		}
+		else if (panic_on_null_dereference)
+		{
+			auto const has_value = optional_has_value(val_ptr::get_value(val), context);
+			auto const begin_bb = context.builder.GetInsertBlock();
+			auto const error_bb = context.add_basic_block("deref_null_check_error");
+			context.builder.SetInsertPoint(error_bb);
+			emit_panic_call<abi>(src_tokens, "null pointer dereferenced", context);
+			bz_assert(context.has_terminator());
+
+			auto const continue_bb = context.add_basic_block("deref_null_check_continue");
+			context.builder.SetInsertPoint(begin_bb);
+			context.builder.CreateCondBr(has_value, continue_bb, error_bb);
+			context.builder.SetInsertPoint(continue_bb);
+		}
+
+		auto const result_type = get_llvm_type(type.get_optional_pointer(), context);
+		return val_ptr::get_reference(val, result_type);
+	}
+	else
+	{
+		auto const result_type = get_llvm_type(type.template get<ast::ts_pointer>(), context);
+		bz_assert(result_address == nullptr);
+		return val_ptr::get_reference(val, result_type);
+	}
 }
 
 template<abi::platform_abi abi>
@@ -752,8 +981,16 @@ static val_ptr emit_builtin_unary_plus_plus(
 	if (type->isPointerTy())
 	{
 		auto const expr_type = expr.get_expr_type();
-		bz_assert(expr_type.is<ast::ts_pointer>());
-		auto const inner_type = get_llvm_type(expr_type.get<ast::ts_pointer>(), context);
+		bz_assert(expr_type.is<ast::ts_pointer>() || expr_type.is_optional_pointer());
+		auto const inner_type = expr_type.is<ast::ts_pointer>()
+			? get_llvm_type(expr_type.get<ast::ts_pointer>(), context)
+			: get_llvm_type(expr_type.get_optional_pointer(), context);
+
+		if (expr_type.is_optional_pointer())
+		{
+			emit_null_pointer_arithmetic_check<abi>(expr.src_tokens, original_value, context);
+		}
+
 		auto const incremented_value = context.create_gep(inner_type, original_value, 1);
 		context.builder.CreateStore(incremented_value, val.val);
 		if (result_address == nullptr)
@@ -799,8 +1036,16 @@ static val_ptr emit_builtin_unary_minus_minus(
 	if (type->isPointerTy())
 	{
 		auto const expr_type = expr.get_expr_type();
-		bz_assert(expr_type.is<ast::ts_pointer>());
-		auto const inner_type = get_llvm_type(expr_type.get<ast::ts_pointer>(), context);
+		bz_assert(expr_type.is<ast::ts_pointer>() || expr_type.is_optional_pointer());
+		auto const inner_type = expr_type.is<ast::ts_pointer>()
+			? get_llvm_type(expr_type.get<ast::ts_pointer>(), context)
+			: get_llvm_type(expr_type.get_optional_pointer(), context);
+
+		if (expr_type.is_optional_pointer())
+		{
+			emit_null_pointer_arithmetic_check<abi>(expr.src_tokens, original_value, context);
+		}
+
 		auto const incremented_value = context.create_gep(inner_type, original_value, uint64_t(-1));
 		context.builder.CreateStore(incremented_value, val.val);
 		if (result_address == nullptr)
@@ -870,6 +1115,7 @@ static val_ptr emit_builtin_binary_assign(
 	llvm::Value *result_address
 )
 {
+	bz_unreachable;
 	bz_assert(
 		rhs.get_expr_type().is<ast::ts_base_type>()
 		&& rhs.get_expr_type().get<ast::ts_base_type>().info->kind == ast::type_info::null_t_
@@ -878,9 +1124,8 @@ static val_ptr emit_builtin_binary_assign(
 	emit_bitcode<abi>(rhs, context, nullptr);
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr);
 	bz_assert(lhs_val.kind == val_ptr::reference);
-	bz_assert(lhs_val.get_type()->isPointerTy());
 
-	context.builder.CreateStore(llvm::ConstantPointerNull::get(static_cast<llvm::PointerType *>(lhs_val.get_type())), lhs_val.val);
+	context.builder.CreateStore(llvm::ConstantPointerNull::get(context.get_opaque_pointer_t()), lhs_val.val);
 	bz_assert(result_address == nullptr);
 	return lhs_val;
 }
@@ -962,7 +1207,7 @@ static val_ptr emit_builtin_binary_plus(
 			}
 		}
 	}
-	else if (lhs_t.is<ast::ts_pointer>())
+	else if (lhs_t.is<ast::ts_pointer>() || lhs_t.is_optional_pointer())
 	{
 		bz_assert(rhs_t.is<ast::ts_base_type>());
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
@@ -973,7 +1218,15 @@ static val_ptr emit_builtin_binary_plus(
 		{
 			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_usize_t(), false);
 		}
-		auto const lhs_inner_type = get_llvm_type(lhs_t.get<ast::ts_pointer>(), context);
+		auto const lhs_inner_type = lhs_t.is<ast::ts_pointer>()
+			? get_llvm_type(lhs_t.get<ast::ts_pointer>(), context)
+			: get_llvm_type(lhs_t.get_optional_pointer(), context);
+
+		if (lhs_t.is_optional_pointer())
+		{
+			emit_null_pointer_arithmetic_check<abi>(lhs.src_tokens, lhs_val, context);
+		}
+
 		auto const result_val = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_add_tmp");
 		if (result_address == nullptr)
 		{
@@ -988,7 +1241,7 @@ static val_ptr emit_builtin_binary_plus(
 	}
 	else
 	{
-		bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_pointer>());
+		bz_assert(lhs_t.is<ast::ts_base_type>() && (rhs_t.is<ast::ts_pointer>() || rhs_t.is_optional_pointer()));
 		auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 		auto lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
@@ -997,7 +1250,15 @@ static val_ptr emit_builtin_binary_plus(
 		{
 			lhs_val = context.builder.CreateIntCast(lhs_val, context.get_usize_t(), false);
 		}
-		auto const rhs_inner_type = get_llvm_type(rhs_t.get<ast::ts_pointer>(), context);
+		auto const rhs_inner_type = rhs_t.is<ast::ts_pointer>()
+			? get_llvm_type(rhs_t.get<ast::ts_pointer>(), context)
+			: get_llvm_type(rhs_t.get_optional_pointer(), context);
+
+		if (rhs_t.is_optional_pointer())
+		{
+			emit_null_pointer_arithmetic_check<abi>(rhs.src_tokens, rhs_val, context);
+		}
+
 		auto const result_val = context.create_gep(rhs_inner_type, rhs_val, lhs_val, "ptr_add_tmp");
 		if (result_address == nullptr)
 		{
@@ -1084,7 +1345,7 @@ static val_ptr emit_builtin_binary_plus_eq(
 	}
 	else
 	{
-		bz_assert(lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_base_type>());
+		bz_assert((lhs_t.is<ast::ts_pointer>() || lhs_t.is_optional_pointer()) && rhs_t.is<ast::ts_base_type>());
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 		// we calculate the right hand side first
 		auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
@@ -1096,7 +1357,15 @@ static val_ptr emit_builtin_binary_plus_eq(
 		auto const lhs_val_ref = emit_bitcode<abi>(lhs, context, nullptr);
 		bz_assert(lhs_val_ref.kind == val_ptr::reference);
 		auto const lhs_val = lhs_val_ref.get_value(context.builder);
-		auto const lhs_inner_type = get_llvm_type(lhs_t.get<ast::ts_pointer>(), context);
+		auto const lhs_inner_type = lhs_t.is<ast::ts_pointer>()
+			? get_llvm_type(lhs_t.get<ast::ts_pointer>(), context)
+			: get_llvm_type(lhs_t.get_optional_pointer(), context);
+
+		if (lhs_t.is_optional_pointer())
+		{
+			emit_null_pointer_arithmetic_check<abi>(lhs.src_tokens, lhs_val, context);
+		}
+
 		auto const res = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_add_tmp");
 		context.builder.CreateStore(res, lhs_val_ref.val);
 		if (result_address == nullptr)
@@ -1191,7 +1460,7 @@ static val_ptr emit_builtin_binary_minus(
 	}
 	else if (rhs_t.is<ast::ts_base_type>())
 	{
-		bz_assert(lhs_t.is<ast::ts_pointer>());
+		bz_assert(lhs_t.is<ast::ts_pointer>() || lhs_t.is_optional_pointer());
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
@@ -1202,7 +1471,15 @@ static val_ptr emit_builtin_binary_minus(
 		}
 		// negate rhs_val
 		rhs_val = context.builder.CreateNeg(rhs_val);
-		auto const lhs_inner_type = get_llvm_type(lhs_t.get<ast::ts_pointer>(), context);
+		auto const lhs_inner_type = lhs_t.is<ast::ts_pointer>()
+			? get_llvm_type(lhs_t.get<ast::ts_pointer>(), context)
+			: get_llvm_type(lhs_t.get_optional_pointer(), context);
+
+		if (lhs_t.is_optional_pointer())
+		{
+			emit_null_pointer_arithmetic_check<abi>(lhs.src_tokens, lhs_val, context);
+		}
+
 		auto const result_val = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_sub_tmp");
 		if (result_address == nullptr)
 		{
@@ -1217,10 +1494,66 @@ static val_ptr emit_builtin_binary_minus(
 	}
 	else
 	{
-		bz_assert(lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_pointer>());
-		auto const elem_type = get_llvm_type(ast::remove_const_or_consteval(lhs_t.get<ast::ts_pointer>()), context);
+		bz_assert(lhs_t.is<ast::ts_pointer>() || lhs_t.is_optional_pointer());
+		bz_assert(rhs_t.is<ast::ts_pointer>() || rhs_t.is_optional_pointer());
+		bz_assert(lhs_t.is_optional_pointer() == rhs_t.is_optional_pointer());
+		auto const elem_type = lhs_t.is<ast::ts_pointer>()
+			? get_llvm_type(lhs_t.get<ast::ts_pointer>(), context)
+			: get_llvm_type(lhs_t.get_optional_pointer(), context);
 		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
+
+		if (lhs_t.is_optional_pointer())
+		{
+			if constexpr (is_comptime<decltype(context)>)
+			{
+				auto const lhs_has_value = optional_has_value(val_ptr::get_value(lhs_val), context);
+				auto const rhs_has_value = optional_has_value(val_ptr::get_value(rhs_val), context);
+				auto const is_valid = context.builder.CreateICmpEQ(lhs_has_value, rhs_has_value);
+
+				auto const begin_bb = context.builder.GetInsertBlock();
+				auto const error_bb = context.add_basic_block("pointer_diff_null_check_error");
+				context.builder.SetInsertPoint(error_bb);
+				emit_error_assert(lhs.src_tokens, lhs_has_value, "null value used in pointer arithmetic", context);
+				emit_error_assert(rhs.src_tokens, rhs_has_value, "null value used in pointer arithmetic", context);
+
+				auto const end_bb = context.add_basic_block("pointer_diff_null_check_end");
+				context.builder.CreateBr(end_bb);
+
+				context.builder.SetInsertPoint(begin_bb);
+				context.builder.CreateCondBr(is_valid, end_bb, error_bb);
+
+				context.builder.SetInsertPoint(end_bb);
+			}
+			else if (panic_on_null_pointer_arithmetic)
+			{
+				auto const lhs_has_value = optional_has_value(val_ptr::get_value(lhs_val), context);
+				auto const rhs_has_value = optional_has_value(val_ptr::get_value(rhs_val), context);
+				auto const is_valid = context.builder.CreateICmpEQ(lhs_has_value, rhs_has_value);
+
+				auto const begin_bb = context.builder.GetInsertBlock();
+				auto const error_bb = context.add_basic_block("pointer_diff_null_check_error");
+
+				auto const lhs_null_bb = context.add_basic_block("pointer_diff_null_check_error_lhs");
+				context.builder.SetInsertPoint(lhs_null_bb);
+				emit_panic_call<abi>(lhs.src_tokens, "null value used in pointer arithmetic", context);
+				bz_assert(context.has_terminator());
+
+				auto const rhs_null_bb = context.add_basic_block("pointer_diff_null_check_error_rhs");
+				context.builder.SetInsertPoint(rhs_null_bb);
+				emit_panic_call<abi>(rhs.src_tokens, "null value used in pointer arithmetic", context);
+				bz_assert(context.has_terminator());
+
+				context.builder.SetInsertPoint(error_bb);
+				context.builder.CreateCondBr(lhs_has_value, rhs_null_bb, lhs_null_bb);
+
+				auto const end_bb = context.add_basic_block("pointer_diff_null_check_end");
+				context.builder.SetInsertPoint(begin_bb);
+				context.builder.CreateCondBr(is_valid, end_bb, error_bb);
+				context.builder.SetInsertPoint(end_bb);
+			}
+		}
+
 		auto const result_val = context.builder.CreatePtrDiff(elem_type, lhs_val, rhs_val, "ptr_diff_tmp");
 		if (result_address == nullptr)
 		{
@@ -1312,7 +1645,8 @@ static val_ptr emit_builtin_binary_minus_eq(
 	}
 	else
 	{
-		bz_assert(lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_base_type>());
+		bz_assert(lhs_t.is<ast::ts_pointer>() || lhs_t.is_optional_pointer());
+		bz_assert(rhs_t.is<ast::ts_base_type>());
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 		// we calculate the right hand side first
 		auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
@@ -1326,7 +1660,15 @@ static val_ptr emit_builtin_binary_minus_eq(
 		auto const lhs_val_ref = emit_bitcode<abi>(lhs, context, nullptr);
 		bz_assert(lhs_val_ref.kind == val_ptr::reference);
 		auto const lhs_val = lhs_val_ref.get_value(context.builder);
-		auto const lhs_inner_type = get_llvm_type(lhs_t.get<ast::ts_pointer>(), context);
+		auto const lhs_inner_type = lhs_t.is<ast::ts_pointer>()
+			? get_llvm_type(lhs_t.get<ast::ts_pointer>(), context)
+			: get_llvm_type(lhs_t.get_optional_pointer(), context);
+
+		if (lhs_t.is_optional_pointer())
+		{
+			emit_null_pointer_arithmetic_check<abi>(lhs.src_tokens, lhs_val, context);
+		}
+
 		auto const res = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_sub_tmp");
 		context.builder.CreateStore(res, lhs_val_ref.val);
 		if (result_address == nullptr)
@@ -1738,33 +2080,36 @@ static val_ptr emit_builtin_binary_cmp(
 			return val_ptr::get_reference(result_address, result_type);
 		}
 	}
+	else if (
+		(lhs_t.is<ast::ts_optional>() && rhs_t.is<ast::ts_base_type>())
+		|| (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_optional>())
+	)
+	{
+		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr);
+		auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr);
+		auto const optional_val = lhs_t.is<ast::ts_optional>() ? lhs_val : rhs_val;
+		auto const has_value = optional_has_value(optional_val, context);
+		bz_assert(op == lex::token::equals || op == lex::token::not_equals);
+		auto const result = op == lex::token::not_equals
+			? has_value
+			: context.builder.CreateNot(has_value);
+		if (result_address == nullptr)
+		{
+			return val_ptr::get_value(result);
+		}
+		else
+		{
+			context.builder.CreateStore(result, result_address);
+			return val_ptr::get_reference(result_address, result->getType());
+		}
+	}
 	else // if pointer
 	{
-		auto const [lhs_val, rhs_val] = [&]() -> std::pair<llvm::Value *, llvm::Value *> {
-			if (lhs_t.is<ast::ts_base_type>())
-			{
-				auto const rhs_ptr_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-				auto const rhs_val = context.builder.CreatePtrToInt(rhs_ptr_val, context.get_usize_t());
-				auto const lhs_val = llvm::ConstantInt::get(rhs_val->getType(), 0);
-				return { lhs_val, rhs_val };
-			}
-			else if (rhs_t.is<ast::ts_base_type>())
-			{
-				auto const lhs_ptr_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
-				auto const lhs_val = context.builder.CreatePtrToInt(lhs_ptr_val, context.get_usize_t());
-				auto const rhs_val = llvm::ConstantInt::get(lhs_val->getType(), 0);
-				return { lhs_val, rhs_val };
-			}
-			else
-			{
-				bz_assert(lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_pointer>());
-				auto const lhs_ptr_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
-				auto const rhs_ptr_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-				auto const lhs_val = context.builder.CreatePtrToInt(lhs_ptr_val, context.get_usize_t());
-				auto const rhs_val = context.builder.CreatePtrToInt(rhs_ptr_val, context.get_usize_t());
-				return { lhs_val, rhs_val };
-			}
-		}();
+		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
+		auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
+		bz_assert(lhs_val->getType()->isPointerTy());
+		bz_assert(rhs_val->getType()->isPointerTy());
+
 		auto const p = get_cmp_predicate(1); // unsigned compare
 		auto const result_val = context.builder.CreateICmp(p, lhs_val, rhs_val, "cmp_tmp");
 		if (result_address == nullptr)
@@ -1773,9 +2118,8 @@ static val_ptr emit_builtin_binary_cmp(
 		}
 		else
 		{
-			auto const result_type = result_val->getType();
 			context.builder.CreateStore(result_val, result_address);
-			return val_ptr::get_reference(result_address, result_type);
+			return val_ptr::get_reference(result_address, result_val->getType());
 		}
 	}
 }
@@ -2489,15 +2833,15 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 152);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 166);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
-			auto const arg = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
-			auto const begin_ptr = context.builder.CreateExtractValue(arg, 0);
+			auto const arg = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			auto const begin_ptr = context.get_struct_element(arg, 0).get_value(context.builder);
 			if (result_address != nullptr)
 			{
 				auto const result_type = begin_ptr->getType();
@@ -2512,8 +2856,8 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_str_end_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
-			auto const arg = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
-			auto const end_ptr = context.builder.CreateExtractValue(arg, 1);
+			auto const arg = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			auto const end_ptr = context.get_struct_element(arg, 1).get_value(context.builder);
 			if (result_address != nullptr)
 			{
 				auto const result_type = end_ptr->getType();
@@ -2557,8 +2901,8 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_slice_begin_const_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
-			auto const slice = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
-			auto const begin_ptr = context.builder.CreateExtractValue(slice, 0);
+			auto const slice = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			auto const begin_ptr = context.get_struct_element(slice, 0).get_value(context.builder);
 			if (result_address != nullptr)
 			{
 				auto const result_type = begin_ptr->getType();
@@ -2574,8 +2918,8 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_slice_end_const_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
-			auto const slice = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
-			auto const end_ptr = context.builder.CreateExtractValue(slice, 1);
+			auto const slice = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			auto const end_ptr = context.get_struct_element(slice, 1).get_value(context.builder);
 			if (result_address != nullptr)
 			{
 				auto const result_type = end_ptr->getType();
@@ -2616,6 +2960,59 @@ static val_ptr emit_bitcode(
 				return val_ptr::get_value(result);
 			}
 		}
+		case ast::function_body::builtin_array_begin_ptr:
+		case ast::function_body::builtin_array_begin_const_ptr:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const arr = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			bz_assert(arr.kind == val_ptr::reference);
+			bz_assert(arr.get_type()->isArrayTy());
+			auto const begin_ptr = context.get_struct_element(arr, 0).val;
+			if (result_address != nullptr)
+			{
+				auto const result_type = begin_ptr->getType();
+				context.builder.CreateStore(begin_ptr, result_address);
+				return val_ptr::get_reference(result_address, result_type);
+			}
+			else
+			{
+				return val_ptr::get_value(begin_ptr);
+			}
+		}
+		case ast::function_body::builtin_array_end_ptr:
+		case ast::function_body::builtin_array_end_const_ptr:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const arr = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			bz_assert(arr.kind == val_ptr::reference);
+			bz_assert(arr.get_type()->isArrayTy());
+			auto const size = arr.get_type()->getArrayNumElements();
+			auto const end_ptr = context.get_struct_element(arr, size).val;
+			if (result_address != nullptr)
+			{
+				auto const result_type = end_ptr->getType();
+				context.builder.CreateStore(end_ptr, result_address);
+				return val_ptr::get_reference(result_address, result_type);
+			}
+			else
+			{
+				return val_ptr::get_value(end_ptr);
+			}
+		}
+		case ast::function_body::builtin_array_size:
+			// this is guaranteed to be constant evaluated
+			bz_unreachable;
+		case ast::function_body::builtin_optional_get_value_ref:
+		case ast::function_body::builtin_optional_get_const_value_ref:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const optional_val = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			emit_null_optional_get_value_check<abi>(src_tokens, optional_val, context);
+			bz_assert(result_address == nullptr);
+			return optional_get_value_ptr(optional_val, context);
+		}
+		case ast::function_body::builtin_optional_get_value:
+			bz_unreachable;
 		case ast::function_body::builtin_pointer_cast:
 			if constexpr (is_comptime<decltype(context)>)
 			{
@@ -3096,13 +3493,19 @@ static val_ptr emit_bitcode(
 		case ast::function_body::is_const:
 		case ast::function_body::is_consteval:
 		case ast::function_body::is_pointer:
+		case ast::function_body::is_optional:
 		case ast::function_body::is_reference:
 		case ast::function_body::is_move_reference:
+		case ast::function_body::is_slice:
+		case ast::function_body::is_array:
 		case ast::function_body::remove_const:
 		case ast::function_body::remove_consteval:
 		case ast::function_body::remove_pointer:
+		case ast::function_body::remove_optional:
 		case ast::function_body::remove_reference:
 		case ast::function_body::remove_move_reference:
+		case ast::function_body::slice_value_type:
+		case ast::function_body::array_value_type:
 		case ast::function_body::is_default_constructible:
 		case ast::function_body::is_copy_constructible:
 		case ast::function_body::is_trivially_copy_constructible:
@@ -3870,7 +4273,10 @@ static val_ptr emit_bitcode(
 			}
 		}
 	}
-	else if (expr_t.is<ast::ts_pointer>() && dest_t.is<ast::ts_pointer>())
+	else if (
+		(expr_t.is<ast::ts_pointer>() || expr_t.is_optional_pointer())
+		&& (dest_t.is<ast::ts_pointer>() || dest_t.is_optional_pointer())
+	)
 	{
 		auto const llvm_dest_t = get_llvm_type(dest_t, context);
 		auto const expr = emit_bitcode<abi>(cast.expr, context, nullptr).get_value(context.builder);
@@ -3933,6 +4339,25 @@ static val_ptr emit_bitcode(
 		bz_unreachable;
 		return val_ptr::get_none();
 	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_optional_cast const &optional_cast,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	bz_assert(result_address != nullptr);
+	auto const result_type = get_llvm_type(optional_cast.type, context);
+	auto const result_val = val_ptr::get_reference(result_address, result_type);
+	auto const value_ptr = optional_get_value_ptr(result_val, context);
+
+	emit_bitcode<abi>(optional_cast.expr, context, value_ptr.val);
+	optional_set_has_value(result_val, true, context);
+
+	return result_val;
 }
 
 template<abi::platform_abi abi>
@@ -4072,6 +4497,43 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
+	ast::expr_optional_default_construct const &optional_default_construct,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const llvm_type = get_llvm_type(optional_default_construct.type, context);
+
+	if (llvm_type->isPointerTy())
+	{
+		auto const value = llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(llvm_type));
+		if (result_address == nullptr)
+		{
+			return val_ptr::get_value(value);
+		}
+		else
+		{
+			context.builder.CreateStore(value, result_address);
+			return val_ptr::get_reference(result_address, llvm_type);
+		}
+	}
+	else
+	{
+		if (result_address == nullptr)
+		{
+			result_address = context.create_alloca(llvm_type);
+		}
+
+		auto const result = val_ptr::get_reference(result_address, llvm_type);
+		optional_set_has_value(result, false, context);
+
+		return result;
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
 	ast::expr_builtin_default_construct const &builtin_default_construct,
 	auto &context,
 	llvm::Value *result_address
@@ -4184,6 +4646,47 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
+	ast::expr_optional_copy_construct const &optional_copy_construct,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const copied_val = emit_bitcode<abi>(optional_copy_construct.copied_value, context, nullptr);
+	auto const type = copied_val.get_type();
+	bz_assert(type->isStructTy());
+	bz_assert(copied_val.kind == val_ptr::reference);
+
+	auto const result = val_ptr::get_reference(
+		result_address != nullptr ? result_address : context.create_alloca(type),
+		type
+	);
+	auto const has_value = optional_has_value(copied_val, context);
+
+	optional_set_has_value(result, has_value, context);
+
+	auto const decide_bb = context.builder.GetInsertBlock();
+
+	auto const copy_bb = context.add_basic_block("optional_copy_construct_has_value");
+	context.builder.SetInsertPoint(copy_bb);
+
+	auto const result_value_ptr = optional_get_value_ptr(result, context);
+	auto const prev_value = context.push_value_reference(optional_get_value_ptr(copied_val, context));
+	emit_bitcode<abi>(optional_copy_construct.value_copy_expr, context, result_value_ptr.val);
+	context.pop_value_reference(prev_value);
+
+	auto const end_bb = context.add_basic_block("optional_copy_construct_end");
+	context.builder.CreateBr(end_bb);
+
+	context.builder.SetInsertPoint(decide_bb);
+	context.builder.CreateCondBr(has_value, copy_bb, end_bb);
+	context.builder.SetInsertPoint(end_bb);
+
+	return result;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
 	ast::expr_builtin_copy_construct const &builtin_copy_construct,
 	auto &context,
 	llvm::Value *result_address
@@ -4276,6 +4779,55 @@ static val_ptr emit_bitcode(
 
 		return val_ptr::get_reference(result_ptr, type);
 	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_optional_move_construct const &optional_move_construct,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const moved_val = emit_bitcode<abi>(optional_move_construct.moved_value, context, nullptr);
+	auto const type = moved_val.get_type();
+	bz_assert(type->isStructTy());
+
+	auto const result = val_ptr::get_reference(
+		result_address != nullptr ? result_address : context.create_alloca(type),
+		type
+	);
+
+	if (moved_val.kind == val_ptr::value)
+	{
+		context.builder.CreateStore(moved_val.get_value(context.builder), result.val);
+		return result;
+	}
+
+	auto const has_value = optional_has_value(moved_val, context);
+
+	optional_set_has_value(result, has_value, context);
+
+	auto const decide_bb = context.builder.GetInsertBlock();
+
+	auto const copy_bb = context.add_basic_block("optional_move_construct_has_value");
+	context.builder.SetInsertPoint(copy_bb);
+
+	auto const prev_info = context.push_expression_scope();
+	auto const result_value_ptr = optional_get_value_ptr(result, context);
+	auto const prev_value = context.push_value_reference(optional_get_value_ptr(moved_val, context));
+	emit_bitcode<abi>(optional_move_construct.value_move_expr, context, result_value_ptr.val);
+	context.pop_value_reference(prev_value);
+	context.pop_expression_scope(prev_info);
+
+	auto const end_bb = context.add_basic_block("optional_move_construct_end");
+	context.builder.CreateBr(end_bb);
+
+	context.builder.SetInsertPoint(decide_bb);
+	context.builder.CreateCondBr(has_value, copy_bb, end_bb);
+	context.builder.SetInsertPoint(end_bb);
+
+	return result;
 }
 
 template<abi::platform_abi abi>
@@ -4379,6 +4931,41 @@ static val_ptr emit_bitcode(
 
 		create_reversed_loop_end(loop_info, context);
 	}
+
+	return val_ptr::get_none();
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_optional_destruct const &optional_destruct,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	bz_assert(result_address == nullptr);
+	bz_assert(optional_destruct.value_destruct_call.not_null());
+
+	auto const val = emit_bitcode<abi>(optional_destruct.value, context, nullptr);
+	bz_assert(val.kind == val_ptr::reference);
+
+	auto const has_value = optional_has_value(val, context);
+
+	auto const begin_bb = context.builder.GetInsertBlock();
+	auto const destruct_bb = context.add_basic_block("optional_destruct_destruct");
+	context.builder.SetInsertPoint(destruct_bb);
+
+	auto const prev_value = context.push_value_reference(optional_get_value_ptr(val, context));
+	emit_bitcode<abi>(optional_destruct.value_destruct_call, context, nullptr);
+	context.pop_value_reference(prev_value);
+
+	auto const end_bb = context.add_basic_block("optional_destruct_end");
+	context.builder.CreateBr(end_bb);
+
+	context.builder.SetInsertPoint(begin_bb);
+	context.builder.CreateCondBr(has_value, destruct_bb, end_bb);
+
+	context.builder.SetInsertPoint(end_bb);
 
 	return val_ptr::get_none();
 }
@@ -4529,6 +5116,206 @@ static val_ptr emit_bitcode(
 		bz_assert(result_address == nullptr);
 		return lhs;
 	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_optional_assign const &optional_assign,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const rhs = emit_bitcode<abi>(optional_assign.rhs, context, nullptr);
+	auto const lhs = emit_bitcode<abi>(optional_assign.lhs, context, nullptr);
+	bz_assert(lhs.kind == val_ptr::reference);
+	bz_assert(rhs.kind == val_ptr::reference);
+
+	auto const lhs_type = lhs.get_type();
+	auto const rhs_type = lhs.get_type();
+	bz_assert(lhs_type->isStructTy());
+	bz_assert(rhs_type->isStructTy());
+
+	auto const assign_begin_bb = context.builder.GetInsertBlock();
+
+	// decide which branch to go down on
+	auto const lhs_has_value = optional_has_value(lhs, context);
+	auto const rhs_has_value = optional_has_value(rhs, context);
+	auto const any_has_value = context.builder.CreateOr(lhs_has_value, rhs_has_value);
+
+	auto const any_has_value_bb = context.add_basic_block("optional_assign_any_has_value");
+	context.builder.SetInsertPoint(any_has_value_bb);
+
+	auto const both_have_value = context.builder.CreateAnd(lhs_has_value, rhs_has_value);
+
+	// both optionals have a value, so we do assignment
+	auto const both_have_value_bb = context.add_basic_block("optional_assign_both_have_value");
+	context.builder.SetInsertPoint(both_have_value_bb);
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const lhs_prev_value = context.push_value_reference(optional_get_value_ptr(lhs, context));
+		auto const rhs_prev_value = context.push_value_reference(optional_get_value_ptr(rhs, context));
+		emit_bitcode<abi>(optional_assign.value_assign_expr, context, nullptr);
+		context.pop_value_reference(rhs_prev_value);
+		context.pop_value_reference(lhs_prev_value);
+		context.pop_expression_scope(prev_info);
+	}
+	auto const both_have_value_bb_end = context.builder.GetInsertBlock();
+
+	auto const one_has_value_bb = context.add_basic_block("optional_assign_one_has_value");
+	// context.builder.SetInsertPoint(one_has_value_bb);
+
+	// only lhs has value, so we need to destruct it
+	auto const lhs_has_value_bb = context.add_basic_block("optional_assign_lhs_has_value");
+	context.builder.SetInsertPoint(lhs_has_value_bb);
+	if (optional_assign.value_destruct_expr.not_null())
+	{
+		auto const prev_value = context.push_value_reference(optional_get_value_ptr(lhs, context));
+		emit_bitcode<abi>(optional_assign.value_destruct_expr, context, nullptr);
+		context.pop_value_reference(prev_value);
+
+		optional_set_has_value(lhs, false, context);
+	}
+	auto const lhs_has_value_bb_end = context.builder.GetInsertBlock();
+
+	// only rhs has value, so we need to copy construct it into lhs
+	auto const rhs_has_value_bb = context.add_basic_block("optional_assign_rhs_has_value");
+	context.builder.SetInsertPoint(rhs_has_value_bb);
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const lhs_value_ptr = optional_get_value_ptr(lhs, context);
+		auto const prev_value = context.push_value_reference(optional_get_value_ptr(rhs, context));
+		emit_bitcode<abi>(optional_assign.value_construct_expr, context, lhs_value_ptr.val);
+		context.pop_value_reference(prev_value);
+		context.pop_expression_scope(prev_info);
+
+		optional_set_has_value(lhs, true, context);
+	}
+	auto const rhs_has_value_bb_end = context.builder.GetInsertBlock();
+
+	auto const end_bb = context.add_basic_block("optional_assign_end");
+
+	context.builder.SetInsertPoint(assign_begin_bb);
+	context.builder.CreateCondBr(any_has_value, any_has_value_bb, end_bb);
+
+	context.builder.SetInsertPoint(any_has_value_bb);
+	context.builder.CreateCondBr(both_have_value, both_have_value_bb, one_has_value_bb);
+
+	context.builder.SetInsertPoint(both_have_value_bb_end);
+	context.builder.CreateBr(end_bb);
+
+	context.builder.SetInsertPoint(one_has_value_bb);
+	context.builder.CreateCondBr(lhs_has_value, lhs_has_value_bb, rhs_has_value_bb);
+
+	context.builder.SetInsertPoint(lhs_has_value_bb_end);
+	context.builder.CreateBr(end_bb);
+
+	context.builder.SetInsertPoint(rhs_has_value_bb_end);
+	context.builder.CreateBr(end_bb);
+
+	context.builder.SetInsertPoint(end_bb);
+
+	bz_assert(result_address == nullptr);
+	return lhs;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_optional_null_assign const &optional_null_assign,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	emit_bitcode<abi>(optional_null_assign.rhs, context, nullptr);
+	auto const lhs = emit_bitcode<abi>(optional_null_assign.lhs, context, nullptr);
+	bz_assert(lhs.kind == val_ptr::reference);
+
+	auto const has_value = optional_has_value(lhs, context);
+
+	auto const begin_bb = context.builder.GetInsertBlock();
+
+	auto const destruct_bb = context.add_basic_block("optional_null_assign_destruct");
+	context.builder.SetInsertPoint(destruct_bb);
+
+	if (optional_null_assign.value_destruct_expr.not_null())
+	{
+		auto const prev_value = context.push_value_reference(optional_get_value_ptr(lhs, context));
+		emit_bitcode<abi>(optional_null_assign.value_destruct_expr, context, nullptr);
+		context.pop_value_reference(prev_value);
+	}
+	optional_set_has_value(lhs, false, context);
+
+	auto const end_bb = context.add_basic_block("optional_null_assign_end");
+	context.builder.CreateBr(end_bb);
+
+	context.builder.SetInsertPoint(begin_bb);
+	context.builder.CreateCondBr(has_value, destruct_bb, end_bb);
+
+	context.builder.SetInsertPoint(end_bb);
+
+	bz_assert(result_address == nullptr);
+	return lhs;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_optional_value_assign const &optional_value_assign,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const rhs = emit_bitcode<abi>(optional_value_assign.rhs, context, nullptr);
+	auto const lhs = emit_bitcode<abi>(optional_value_assign.lhs, context, nullptr);
+	bz_assert(lhs.kind == val_ptr::reference);
+
+	auto const has_value = optional_has_value(lhs, context);
+
+	auto const begin_bb = context.builder.GetInsertBlock();
+
+	auto const assign_bb = context.add_basic_block("optional_value_assign_assign");
+	context.builder.SetInsertPoint(assign_bb);
+
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const lhs_prev_value = context.push_value_reference(optional_get_value_ptr(lhs, context));
+		auto const rhs_prev_value = context.push_value_reference(rhs);
+		emit_bitcode<abi>(optional_value_assign.value_assign_expr, context, nullptr);
+		context.pop_value_reference(rhs_prev_value);
+		context.pop_value_reference(lhs_prev_value);
+		context.pop_expression_scope(prev_info);
+	}
+
+	auto const assign_end_bb = context.builder.GetInsertBlock();
+
+	auto const construct_bb = context.add_basic_block("optional_value_assign_construct");
+	context.builder.SetInsertPoint(construct_bb);
+
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const prev_value = context.push_value_reference(rhs);
+		auto const lhs_value_ptr = optional_get_value_ptr(lhs, context);
+		emit_bitcode<abi>(optional_value_assign.value_construct_expr, context, lhs_value_ptr.val);
+		context.pop_value_reference(prev_value);
+		context.pop_expression_scope(prev_info);
+
+		optional_set_has_value(lhs, true, context);
+	}
+
+	auto const end_bb = context.add_basic_block("optional_null_assign_end");
+	context.builder.CreateBr(end_bb);
+
+	context.builder.SetInsertPoint(assign_end_bb);
+	context.builder.CreateBr(end_bb);
+
+	context.builder.SetInsertPoint(begin_bb);
+	context.builder.CreateCondBr(has_value, assign_bb, construct_bb);
+
+	context.builder.SetInsertPoint(end_bb);
+
+	bz_assert(result_address == nullptr);
+	return lhs;
 }
 
 template<abi::platform_abi abi>
@@ -4703,6 +5490,117 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
+	ast::expr_optional_swap const &optional_swap,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const lhs = emit_bitcode<abi>(optional_swap.lhs, context, nullptr);
+	auto const rhs = emit_bitcode<abi>(optional_swap.rhs, context, nullptr);
+	bz_assert(lhs.kind == val_ptr::reference);
+	bz_assert(rhs.kind == val_ptr::reference);
+	bz_assert(lhs.get_type() == rhs.get_type());
+
+	auto const type = lhs.get_type();
+	bz_assert(type->isStructTy());
+
+	auto const begin_bb = context.builder.GetInsertBlock();
+	auto const are_pointers_equal = context.builder.CreateICmpEQ(lhs.val, rhs.val);
+
+	auto const swap_begin_bb = context.add_basic_block("optional_swap");
+	context.builder.SetInsertPoint(swap_begin_bb);
+
+	// decide which branch to go down on
+	auto const lhs_has_value = optional_has_value(lhs, context);
+	auto const rhs_has_value = optional_has_value(rhs, context);
+	auto const any_has_value = context.builder.CreateOr(lhs_has_value, rhs_has_value);
+
+	auto const any_has_value_bb = context.add_basic_block("optional_swap_any_has_value");
+	context.builder.SetInsertPoint(any_has_value_bb);
+
+	auto const both_have_value = context.builder.CreateAnd(lhs_has_value, rhs_has_value);
+
+	// both optionals have a value, so we do a swap
+	auto const both_have_value_bb = context.add_basic_block("optional_swap_both_have_value");
+	context.builder.SetInsertPoint(both_have_value_bb);
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const lhs_prev_value = context.push_value_reference(optional_get_value_ptr(lhs, context));
+		auto const rhs_prev_value = context.push_value_reference(optional_get_value_ptr(rhs, context));
+		emit_bitcode<abi>(optional_swap.value_swap_expr, context, nullptr);
+		context.pop_value_reference(rhs_prev_value);
+		context.pop_value_reference(lhs_prev_value);
+		context.pop_expression_scope(prev_info);
+	}
+	auto const both_have_value_bb_end = context.builder.GetInsertBlock();
+
+	auto const one_has_value_bb = context.add_basic_block("optional_swap_one_has_value");
+	// context.builder.SetInsertPoint(one_has_value_bb);
+
+	// only lhs has value, so we need to move it to rhs
+	auto const lhs_has_value_bb = context.add_basic_block("optional_swap_lhs_has_value");
+	context.builder.SetInsertPoint(lhs_has_value_bb);
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const rhs_value_ptr = optional_get_value_ptr(rhs, context);
+		auto const prev_value = context.push_value_reference(optional_get_value_ptr(lhs, context));
+		emit_bitcode<abi>(optional_swap.lhs_move_expr, context, rhs_value_ptr.val);
+		context.pop_value_reference(prev_value);
+
+		optional_set_has_value(lhs, false, context);
+		optional_set_has_value(rhs, true, context);
+		context.pop_expression_scope(prev_info);
+	}
+	auto const lhs_has_value_bb_end = context.builder.GetInsertBlock();
+
+	// only rhs has value, so we need to move it to lhs
+	auto const rhs_has_value_bb = context.add_basic_block("optional_swap_rhs_has_value");
+	context.builder.SetInsertPoint(rhs_has_value_bb);
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const lhs_value_ptr = optional_get_value_ptr(lhs, context);
+		auto const prev_value = context.push_value_reference(optional_get_value_ptr(rhs, context));
+		emit_bitcode<abi>(optional_swap.rhs_move_expr, context, lhs_value_ptr.val);
+		context.pop_value_reference(prev_value);
+
+		optional_set_has_value(lhs, true, context);
+		optional_set_has_value(rhs, false, context);
+		context.pop_expression_scope(prev_info);
+	}
+	auto const rhs_has_value_bb_end = context.builder.GetInsertBlock();
+
+	auto const end_bb = context.add_basic_block("optional_assign_end");
+
+	context.builder.SetInsertPoint(begin_bb);
+	context.builder.CreateCondBr(are_pointers_equal, end_bb, swap_begin_bb);
+
+	context.builder.SetInsertPoint(swap_begin_bb);
+	context.builder.CreateCondBr(any_has_value, any_has_value_bb, end_bb);
+
+	context.builder.SetInsertPoint(any_has_value_bb);
+	context.builder.CreateCondBr(both_have_value, both_have_value_bb, one_has_value_bb);
+
+	context.builder.SetInsertPoint(both_have_value_bb_end);
+	context.builder.CreateBr(end_bb);
+
+	context.builder.SetInsertPoint(one_has_value_bb);
+	context.builder.CreateCondBr(lhs_has_value, lhs_has_value_bb, rhs_has_value_bb);
+
+	context.builder.SetInsertPoint(lhs_has_value_bb_end);
+	context.builder.CreateBr(end_bb);
+
+	context.builder.SetInsertPoint(rhs_has_value_bb_end);
+	context.builder.CreateBr(end_bb);
+
+	context.builder.SetInsertPoint(end_bb);
+
+	bz_assert(result_address == nullptr);
+	return lhs;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
 	ast::expr_base_type_swap const &base_type_swap,
 	auto &context,
 	llvm::Value *result_address
@@ -4856,6 +5754,24 @@ static val_ptr emit_bitcode(
 			return val_ptr::get_reference(result_address, val->getType());
 		}
 	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &src_tokens,
+	ast::expr_optional_extract_value const &optional_extract_value,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const optional_val = emit_bitcode<abi>(optional_extract_value.optional_value, context, nullptr);
+	emit_null_optional_get_value_check<abi>(src_tokens, optional_val, context);
+
+	auto const prev_val = context.push_value_reference(optional_val);
+	auto const result_val = emit_bitcode<abi>(optional_extract_value.value_move_expr, context, result_address);
+	context.pop_value_reference(prev_val);
+
+	return result_val;
 }
 
 template<abi::platform_abi abi>
@@ -5173,8 +6089,7 @@ static val_ptr emit_bitcode(
 			bz_assert(expr.is_constant());
 			auto const &const_expr = expr.get_constant();
 			auto const val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
-			bz_assert(val != nullptr && llvm::dyn_cast<llvm::ConstantInt>(val) != nullptr);
-			auto const const_int_val = static_cast<llvm::ConstantInt *>(val);
+			auto const const_int_val = llvm::cast<llvm::ConstantInt>(val);
 			switch_inst->addCase(const_int_val, bb);
 		}
 		context.builder.SetInsertPoint(bb);
@@ -5559,7 +6474,7 @@ static llvm::Constant *get_float64_array_value(
 }
 
 template<abi::platform_abi abi>
-static llvm::Constant *get_value(
+static llvm::Constant *get_value_helper(
 	ast::constant_value const &value,
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
@@ -5601,8 +6516,7 @@ static llvm::Constant *get_value(
 	case ast::constant_value::string:
 	{
 		auto const str = value.get_string();
-		auto const str_t = llvm::dyn_cast<llvm::StructType>(context.get_str_t());
-		bz_assert(str_t != nullptr);
+		auto const str_t = llvm::cast<llvm::StructType>(context.get_str_t());
 
 		// if the string is empty, we make a zero initialized string, so
 		// structs with a default value of "" get to be zero initialized
@@ -5615,12 +6529,10 @@ static llvm::Constant *get_value(
 		auto const string_type = llvm::ArrayType::get(context.get_uint8_t(), str.size() + 1);
 
 		auto const begin_ptr = context.create_struct_gep(string_type, string_constant, 0);
-		auto const const_begin_ptr = llvm::dyn_cast<llvm::Constant>(begin_ptr);
-		bz_assert(const_begin_ptr != nullptr);
+		auto const const_begin_ptr = llvm::cast<llvm::Constant>(begin_ptr);
 
 		auto const end_ptr = context.create_struct_gep(string_type, string_constant, str.size());
-		auto const const_end_ptr = llvm::dyn_cast<llvm::Constant>(end_ptr);
-		bz_assert(const_end_ptr != nullptr);
+		auto const const_end_ptr = llvm::cast<llvm::Constant>(end_ptr);
 		llvm::Constant *elems[] = { const_begin_ptr, const_end_ptr };
 
 		return llvm::ConstantStruct::get(str_t, elems);
@@ -5631,17 +6543,18 @@ static llvm::Constant *get_value(
 			static_cast<uint64_t>(value.get_boolean())
 		);
 	case ast::constant_value::null:
-		if (ast::remove_const_or_consteval(type).is<ast::ts_pointer>())
+		if (
+			auto const type_without_const = ast::remove_const_or_consteval(type);
+			type_without_const.is_optional_pointer_like()
+		)
 		{
-			auto const ptr_t = llvm::dyn_cast<llvm::PointerType>(get_llvm_type(type, context));
-			bz_assert(ptr_t != nullptr);
-			return llvm::ConstantPointerNull::get(ptr_t);
+			return llvm::ConstantPointerNull::get(context.get_opaque_pointer_t());
 		}
 		else
 		{
-			return llvm::ConstantStruct::get(
-				llvm::dyn_cast<llvm::StructType>(context.get_null_t())
-			);
+			auto const llvm_type = get_llvm_type(type_without_const, context);
+			bz_assert(llvm_type->isStructTy());
+			return llvm::ConstantAggregateZero::get(llvm::cast<llvm::StructType>(llvm_type));
 		}
 	case ast::constant_value::void_:
 		return nullptr;
@@ -5758,6 +6671,50 @@ static llvm::Constant *get_value(
 		bz_unreachable;
 	default:
 		bz_unreachable;
+	}
+}
+
+template<abi::platform_abi abi>
+static llvm::Constant *get_value(
+	ast::constant_value const &value,
+	ast::typespec_view type,
+	ast::constant_expression const *const_expr,
+	auto &context
+)
+{
+	type = ast::remove_const_or_consteval(type);
+	if (type.is<ast::ts_optional>() && value.is_null_constant())
+	{
+		auto const result_type = get_llvm_type(type, context);
+		if (result_type->isPointerTy())
+		{
+			return llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(result_type));
+		}
+		else
+		{
+			return llvm::ConstantAggregateZero::get(result_type);
+		}
+	}
+	else if (type.is<ast::ts_optional>())
+	{
+		auto const const_value = get_value_helper<abi>(value, type.get<ast::ts_optional>(), const_expr, context);
+		if (type.is_optional_pointer_like())
+		{
+			return const_value;
+		}
+		else
+		{
+			auto const result_type = get_llvm_type(type, context);
+			bz_assert(result_type->isStructTy());
+			return llvm::ConstantStruct::get(
+				llvm::cast<llvm::StructType>(result_type),
+				const_value, llvm::ConstantInt::getTrue(context.get_llvm_context())
+			);
+		}
+	}
+	else
+	{
+		return get_value_helper<abi>(value, type, const_expr, context);
 	}
 }
 
@@ -7020,8 +7977,7 @@ static void emit_global_variable_impl(ast::decl_variable const &var_decl, auto &
 	auto const name_ref = llvm::StringRef(name.data_as_char_ptr(), name.size());
 	auto const type = get_llvm_type(var_decl.get_type(), context);
 	auto const val = context.get_module().getOrInsertGlobal(name_ref, type);
-	bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(val) != nullptr);
-	auto const global_var = static_cast<llvm::GlobalVariable *>(val);
+	auto const global_var = llvm::cast<llvm::GlobalVariable>(val);
 	if (is_comptime<decltype(context)> || var_decl.is_external_linkage())
 	{
 		global_var->setLinkage(llvm::GlobalValue::ExternalLinkage);
@@ -7800,8 +8756,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 			auto const symbol_name = bz::format("__anon_func_call_result.{}", get_unique_id());
 			auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
 			auto const global_result = context.current_module->getOrInsertGlobal(symbol_name_ref, result_type);
-			bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(global_result) != nullptr);
-			static_cast<llvm::GlobalVariable *>(global_result)->setInitializer(llvm::UndefValue::get(result_type));
+			llvm::cast<llvm::GlobalVariable>(global_result)->setInitializer(llvm::UndefValue::get(result_type));
 
 			emit_value_copy(result_val, global_result, context);
 
@@ -7971,8 +8926,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 			auto const symbol_name = bz::format("__anon_compound_expr_result.{}", get_unique_id());
 			auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
 			auto const global_result = context.current_module->getOrInsertGlobal(symbol_name_ref, result_type);
-			bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(global_result) != nullptr);
-			static_cast<llvm::GlobalVariable *>(global_result)->setInitializer(llvm::UndefValue::get(result_type));
+			llvm::cast<llvm::GlobalVariable>(global_result)->setInitializer(llvm::UndefValue::get(result_type));
 
 			emit_value_copy(result_val, global_result, context);
 

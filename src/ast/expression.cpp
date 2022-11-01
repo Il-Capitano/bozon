@@ -151,13 +151,13 @@ bool expression::is_typename(void) const noexcept
 typespec &expression::get_typename(void) noexcept
 {
 	bz_assert(this->is_typename());
-	return this->get<constant_expression>().value.get<constant_value::type>();
+	return this->get_constant_value().get<constant_value::type>();
 }
 
 typespec const &expression::get_typename(void) const noexcept
 {
 	bz_assert(this->is_typename());
-	return this->get<constant_expression>().value.get<constant_value::type>();
+	return this->get_constant_value().get<constant_value::type>();
 }
 
 template<typename expr_t, bool get_inner = true>
@@ -196,6 +196,20 @@ static bz::meta::conditional<get_inner, expr_t, expression> &get_expr_kind(expre
 			: index_value.get_uint();
 		bz_assert(index < subscript.base.get_tuple().elems.size());
 		return get_expr_kind<expr_t, get_inner>(subscript.base.get_tuple().elems[index]);
+	}
+	else if (expr.is<expr_if_consteval>())
+	{
+		auto &if_consteval = expr.get<expr_if_consteval>();
+		bz_assert(if_consteval.condition.is_constant() && if_consteval.condition.get_constant_value().is_boolean());
+		auto const condition = if_consteval.condition.get_constant_value().get_boolean();
+		if (condition)
+		{
+			return get_expr_kind<expr_t, get_inner>(if_consteval.then_block);
+		}
+		else
+		{
+			return get_expr_kind<expr_t, get_inner>(if_consteval.else_block);
+		}
 	}
 	else
 	{
@@ -239,6 +253,20 @@ static bz::meta::conditional<get_inner, expr_t, expression> const &get_expr_kind
 			: index_value.get_uint();
 		bz_assert(index < subscript.base.get_tuple().elems.size());
 		return get_expr_kind<expr_t, get_inner>(subscript.base.get_tuple().elems[index]);
+	}
+	else if (expr.is<expr_if_consteval>())
+	{
+		auto &if_consteval = expr.get<expr_if_consteval>();
+		bz_assert(if_consteval.condition.is_constant() && if_consteval.condition.get_constant_value().is_boolean());
+		auto const condition = if_consteval.condition.get_constant_value().get_boolean();
+		if (condition)
+		{
+			return get_expr_kind<expr_t, get_inner>(if_consteval.then_block);
+		}
+		else
+		{
+			return get_expr_kind<expr_t, get_inner>(if_consteval.else_block);
+		}
 	}
 	else
 	{

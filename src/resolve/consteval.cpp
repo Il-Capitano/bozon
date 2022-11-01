@@ -1160,7 +1160,7 @@ static ast::constant_value evaluate_tuple_subscript(ast::expr_tuple_subscript co
 		return {};
 	}
 
-	auto const &index_value = tuple_subscript_expr.index.get<ast::constant_expression>().value;
+	auto const &index_value = tuple_subscript_expr.index.get_constant_value();
 	bz_assert(
 		index_value.is_uint()
 		|| (index_value.is_sint() && index_value.get_sint() >= 0)
@@ -1168,7 +1168,7 @@ static ast::constant_value evaluate_tuple_subscript(ast::expr_tuple_subscript co
 	auto const index_int_value = index_value.is_uint()
 		? index_value.get_uint()
 		: static_cast<uint64_t>(index_value.get_sint());
-	return tuple_subscript_expr.base.elems[index_int_value].get<ast::constant_expression>().value;
+	return tuple_subscript_expr.base.elems[index_int_value].get_constant_value();
 }
 
 static ast::constant_value evaluate_subscript(
@@ -1410,11 +1410,19 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->body.is_null());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 152);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 166);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
 
+	case ast::function_body::builtin_array_size:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const type = ast::remove_const_or_consteval(func_call.params[0].get_expr_type());
+		bz_assert(type.is<ast::ts_array>());
+		bz_assert(type.get<ast::ts_array>().size != 0);
+		return ast::constant_value(type.get<ast::ts_array>().size);
+	}
 	case ast::function_body::builtin_is_comptime:
 		if (exec_kind == function_execution_kind::force_evaluate)
 		{
@@ -1474,10 +1482,16 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		return is_typespec_kind_helper<ast::ts_consteval>(func_call);
 	case ast::function_body::is_pointer:
 		return is_typespec_kind_helper<ast::ts_pointer>(func_call);
+	case ast::function_body::is_optional:
+		return is_typespec_kind_helper<ast::ts_optional>(func_call);
 	case ast::function_body::is_reference:
 		return is_typespec_kind_helper<ast::ts_lvalue_reference>(func_call);
 	case ast::function_body::is_move_reference:
 		return is_typespec_kind_helper<ast::ts_move_reference>(func_call);
+	case ast::function_body::is_slice:
+		return is_typespec_kind_helper<ast::ts_array_slice>(func_call);
+	case ast::function_body::is_array:
+		return is_typespec_kind_helper<ast::ts_array>(func_call);
 
 	case ast::function_body::remove_const:
 		return remove_typespec_kind_helper<ast::ts_const>(func_call);
@@ -1485,10 +1499,54 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		return remove_typespec_kind_helper<ast::ts_consteval>(func_call);
 	case ast::function_body::remove_pointer:
 		return remove_typespec_kind_helper<ast::ts_pointer>(func_call);
+	case ast::function_body::remove_optional:
+		return remove_typespec_kind_helper<ast::ts_optional>(func_call);
 	case ast::function_body::remove_reference:
 		return remove_typespec_kind_helper<ast::ts_lvalue_reference>(func_call);
 	case ast::function_body::remove_move_reference:
 		return remove_typespec_kind_helper<ast::ts_move_reference>(func_call);
+	case ast::function_body::slice_value_type:
+	{
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is_type());
+		auto const type = func_call.params[0]
+			.get_constant_value()
+			.get_type();
+		if (!type.is<ast::ts_array_slice>())
+		{
+			context.report_error(
+				original_expr.src_tokens,
+				bz::format("'__builtin_slice_value_type' called on non-slice type '{}'", type)
+			);
+			return ast::constant_value(type);
+		}
+		else
+		{
+			return ast::constant_value(type.get<ast::ts_array_slice>().elem_type);
+		}
+	}
+	case ast::function_body::array_value_type:
+	{
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is_type());
+		auto const type = func_call.params[0]
+			.get_constant_value()
+			.get_type();
+		if (!type.is<ast::ts_array>())
+		{
+			context.report_error(
+				original_expr.src_tokens,
+				bz::format("'__builtin_array_value_type' called on non-array type '{}'", type)
+			);
+			return ast::constant_value(type);
+		}
+		else
+		{
+			return ast::constant_value(type.get<ast::ts_array>().elem_type);
+		}
+	}
 
 	case ast::function_body::is_default_constructible:
 	{
@@ -1805,7 +1863,7 @@ static ast::constant_value get_default_constructed_value(
 	if (type.modifiers.not_empty())
 	{
 		return type.modifiers[0].visit(bz::overload{
-			[](ast::ts_pointer const &) -> ast::constant_value {
+			[](ast::ts_optional const &) -> ast::constant_value {
 				return ast::constant_value(ast::internal::null_t{});
 			},
 			[](auto const &) -> ast::constant_value {
@@ -2510,6 +2568,17 @@ static ast::constant_value guaranteed_evaluate_expr(
 				return {};
 			}
 		},
+		[&context](ast::expr_optional_cast &optional_cast_expr) -> ast::constant_value {
+			consteval_guaranteed(optional_cast_expr.expr, context);
+			if (optional_cast_expr.expr.has_consteval_succeeded())
+			{
+				return optional_cast_expr.expr.get_constant_value();
+			}
+			else
+			{
+				return {};
+			}
+		},
 		[](ast::expr_take_reference const &) -> ast::constant_value {
 			return {};
 		},
@@ -2599,7 +2668,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 
 			if (context.is_trivially_copy_constructible(expr.src_tokens, aggregate_copy_construct_expr.copied_value.get_expr_type()))
 			{
-				return aggregate_copy_construct_expr.copied_value.get<ast::constant_expression>().value;
+				return aggregate_copy_construct_expr.copied_value.get_constant_value();
 			}
 			else
 			{
@@ -2614,7 +2683,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			auto const type = array_default_construct_expr.type.as_typespec_view();
 			bz_assert(type.is<ast::ts_array>());
 			consteval_guaranteed(array_default_construct_expr.default_construct_expr, context);
-			if (!array_default_construct_expr.default_construct_expr.is<ast::constant_expression>())
+			if (!array_default_construct_expr.default_construct_expr.is_constant())
 			{
 				return {};
 			}
@@ -2625,7 +2694,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			}
 			else
 			{
-				auto const &value = array_default_construct_expr.default_construct_expr.get<ast::constant_expression>().value;
+				auto const &value = array_default_construct_expr.default_construct_expr.get_constant_value();
 				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(type);
 				auto result = ast::constant_value();
 				if (is_multi_dimensional)
@@ -2649,7 +2718,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 
 			if (context.is_trivially_copy_constructible(expr.src_tokens, array_copy_construct_expr.copied_value.get_expr_type()))
 			{
-				return array_copy_construct_expr.copied_value.get<ast::constant_expression>().value;
+				return array_copy_construct_expr.copied_value.get_constant_value();
 			}
 			else
 			{
@@ -2659,6 +2728,48 @@ static ast::constant_value guaranteed_evaluate_expr(
 		[&context](ast::expr_array_move_construct &array_move_construct_expr) -> ast::constant_value {
 			consteval_guaranteed(array_move_construct_expr.moved_value, context);
 			return {};
+		},
+		[&expr, &context](ast::expr_optional_default_construct &optional_default_construct_expr) -> ast::constant_value {
+			if (context.is_trivially_destructible(expr.src_tokens, optional_default_construct_expr.type))
+			{
+				return ast::constant_value(ast::internal::null_t());
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&expr, &context](ast::expr_optional_copy_construct &optional_copy_construct_expr) -> ast::constant_value {
+			consteval_guaranteed(optional_copy_construct_expr.copied_value, context);
+			if (!optional_copy_construct_expr.copied_value.has_consteval_succeeded())
+			{
+				return {};
+			}
+
+			if (context.is_trivially_copy_constructible(expr.src_tokens, optional_copy_construct_expr.copied_value.get_expr_type()))
+			{
+				return optional_copy_construct_expr.copied_value.get_constant_value();
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&expr, &context](ast::expr_optional_move_construct &optional_move_construct_expr) -> ast::constant_value {
+			consteval_guaranteed(optional_move_construct_expr.moved_value, context);
+			if (!optional_move_construct_expr.moved_value.has_consteval_succeeded())
+			{
+				return {};
+			}
+
+			if (context.is_trivially_copy_constructible(expr.src_tokens, optional_move_construct_expr.moved_value.get_expr_type()))
+			{
+				return optional_move_construct_expr.moved_value.get_constant_value();
+			}
+			else
+			{
+				return {};
+			}
 		},
 		[](ast::expr_builtin_default_construct &builtin_default_construct_expr) -> ast::constant_value {
 			bz_assert(builtin_default_construct_expr.type.is<ast::ts_array_slice>());
@@ -2672,7 +2783,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			}
 
 			bz_assert(context.is_trivially_copy_constructible(expr.src_tokens, builtin_copy_construct_expr.copied_value.get_expr_type()));
-			return builtin_copy_construct_expr.copied_value.get<ast::constant_expression>().value;
+			return builtin_copy_construct_expr.copied_value.get_constant_value();
 		},
 		[&context](ast::expr_trivial_relocate &trivial_relocate_expr) -> ast::constant_value {
 			consteval_guaranteed(trivial_relocate_expr.value, context);
@@ -2682,6 +2793,9 @@ static ast::constant_value guaranteed_evaluate_expr(
 			return {};
 		},
 		[](ast::expr_array_destruct &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_optional_destruct &) -> ast::constant_value {
 			return {};
 		},
 		[](ast::expr_base_type_destruct &) -> ast::constant_value {
@@ -2696,6 +2810,15 @@ static ast::constant_value guaranteed_evaluate_expr(
 		[](ast::expr_array_assign &) -> ast::constant_value {
 			return {};
 		},
+		[](ast::expr_optional_assign &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_optional_null_assign &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_optional_value_assign &) -> ast::constant_value {
+			return {};
+		},
 		[](ast::expr_base_type_assign &) -> ast::constant_value {
 			return {};
 		},
@@ -2706,6 +2829,9 @@ static ast::constant_value guaranteed_evaluate_expr(
 			return {};
 		},
 		[](ast::expr_array_swap &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_optional_swap &) -> ast::constant_value {
 			return {};
 		},
 		[](ast::expr_base_type_swap &) -> ast::constant_value {
@@ -2722,6 +2848,30 @@ static ast::constant_value guaranteed_evaluate_expr(
 				return member_access_expr.base
 					.get_constant_value()
 					.get_aggregate()[member_access_expr.index];
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&context, &expr](ast::expr_optional_extract_value &optional_extract_value) -> ast::constant_value {
+			consteval_guaranteed(optional_extract_value.optional_value, context);
+			if (optional_extract_value.optional_value.has_consteval_succeeded())
+			{
+				auto const &value = optional_extract_value.optional_value.get_constant_value();
+				if (value.is_null_constant())
+				{
+					context.report_warning(
+						ctx::warning_kind::get_value_null,
+						expr.src_tokens,
+						"getting value of a null optional"
+					);
+					return {};
+				}
+				else
+				{
+					return value;
+				}
 			}
 			else
 			{
@@ -3078,6 +3228,17 @@ static ast::constant_value try_evaluate_expr(
 				return {};
 			}
 		},
+		[&context](ast::expr_optional_cast &optional_cast_expr) -> ast::constant_value {
+			consteval_try(optional_cast_expr.expr, context);
+			if (optional_cast_expr.expr.has_consteval_succeeded())
+			{
+				return optional_cast_expr.expr.get_constant_value();
+			}
+			else
+			{
+				return {};
+			}
+		},
 		[](ast::expr_take_reference const &) -> ast::constant_value {
 			return {};
 		},
@@ -3193,7 +3354,7 @@ static ast::constant_value try_evaluate_expr(
 			}
 			else
 			{
-				auto const &value = array_default_construct_expr.default_construct_expr.get<ast::constant_expression>().value;
+				auto const &value = array_default_construct_expr.default_construct_expr.get_constant_value();
 				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(type);
 				auto result = ast::constant_value();
 				if (is_multi_dimensional)
@@ -3217,7 +3378,7 @@ static ast::constant_value try_evaluate_expr(
 
 			if (context.is_trivially_copy_constructible(expr.src_tokens, array_copy_construct_expr.copied_value.get_expr_type()))
 			{
-				return array_copy_construct_expr.copied_value.get<ast::constant_expression>().value;
+				return array_copy_construct_expr.copied_value.get_constant_value();
 			}
 			else
 			{
@@ -3227,6 +3388,48 @@ static ast::constant_value try_evaluate_expr(
 		[&context](ast::expr_array_move_construct &array_move_construct_expr) -> ast::constant_value {
 			consteval_try(array_move_construct_expr.moved_value, context);
 			return {};
+		},
+		[&expr, &context](ast::expr_optional_default_construct &optional_default_construct_expr) -> ast::constant_value {
+			if (context.is_trivially_destructible(expr.src_tokens, optional_default_construct_expr.type))
+			{
+				return ast::constant_value(ast::internal::null_t());
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&expr, &context](ast::expr_optional_copy_construct &optional_copy_construct_expr) -> ast::constant_value {
+			consteval_try(optional_copy_construct_expr.copied_value, context);
+			if (!optional_copy_construct_expr.copied_value.has_consteval_succeeded())
+			{
+				return {};
+			}
+
+			if (context.is_trivially_copy_constructible(expr.src_tokens, optional_copy_construct_expr.copied_value.get_expr_type()))
+			{
+				return optional_copy_construct_expr.copied_value.get_constant_value();
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&expr, &context](ast::expr_optional_move_construct &optional_move_construct_expr) -> ast::constant_value {
+			consteval_try(optional_move_construct_expr.moved_value, context);
+			if (!optional_move_construct_expr.moved_value.has_consteval_succeeded())
+			{
+				return {};
+			}
+
+			if (context.is_trivially_copy_constructible(expr.src_tokens, optional_move_construct_expr.moved_value.get_expr_type()))
+			{
+				return optional_move_construct_expr.moved_value.get_constant_value();
+			}
+			else
+			{
+				return {};
+			}
 		},
 		[](ast::expr_builtin_default_construct &builtin_default_construct_expr) -> ast::constant_value {
 			bz_assert(builtin_default_construct_expr.type.is<ast::ts_array_slice>());
@@ -3240,7 +3443,7 @@ static ast::constant_value try_evaluate_expr(
 			}
 
 			bz_assert(context.is_trivially_copy_constructible(expr.src_tokens, builtin_copy_construct_expr.copied_value.get_expr_type()));
-			return builtin_copy_construct_expr.copied_value.get<ast::constant_expression>().value;
+			return builtin_copy_construct_expr.copied_value.get_constant_value();
 		},
 		[&context](ast::expr_trivial_relocate &trivial_relocate_expr) -> ast::constant_value {
 			consteval_try(trivial_relocate_expr.value, context);
@@ -3250,6 +3453,9 @@ static ast::constant_value try_evaluate_expr(
 			return {};
 		},
 		[](ast::expr_array_destruct &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_optional_destruct &) -> ast::constant_value {
 			return {};
 		},
 		[](ast::expr_base_type_destruct &) -> ast::constant_value {
@@ -3264,6 +3470,15 @@ static ast::constant_value try_evaluate_expr(
 		[](ast::expr_array_assign &) -> ast::constant_value {
 			return {};
 		},
+		[](ast::expr_optional_assign &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_optional_null_assign &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_optional_value_assign &) -> ast::constant_value {
+			return {};
+		},
 		[](ast::expr_base_type_assign &) -> ast::constant_value {
 			return {};
 		},
@@ -3274,6 +3489,9 @@ static ast::constant_value try_evaluate_expr(
 			return {};
 		},
 		[](ast::expr_array_swap &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_optional_swap &) -> ast::constant_value {
 			return {};
 		},
 		[](ast::expr_base_type_swap &) -> ast::constant_value {
@@ -3289,6 +3507,30 @@ static ast::constant_value try_evaluate_expr(
 				return member_access_expr.base
 					.get_constant_value()
 					.get_aggregate()[member_access_expr.index];
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&context, &expr](ast::expr_optional_extract_value &optional_extract_value) -> ast::constant_value {
+			consteval_try(optional_extract_value.optional_value, context);
+			if (optional_extract_value.optional_value.has_consteval_succeeded())
+			{
+				auto const &value = optional_extract_value.optional_value.get_constant_value();
+				if (value.is_null_constant())
+				{
+					context.report_warning(
+						ctx::warning_kind::get_value_null,
+						expr.src_tokens,
+						"getting value of a null optional"
+					);
+					return {};
+				}
+				else
+				{
+					return value;
+				}
 			}
 			else
 			{
@@ -3649,6 +3891,17 @@ static ast::constant_value try_evaluate_expr_without_error(
 				return {};
 			}
 		},
+		[&context](ast::expr_optional_cast &optional_cast_expr) -> ast::constant_value {
+			consteval_try_without_error(optional_cast_expr.expr, context);
+			if (optional_cast_expr.expr.has_consteval_succeeded())
+			{
+				return optional_cast_expr.expr.get_constant_value();
+			}
+			else
+			{
+				return {};
+			}
+		},
 		[](ast::expr_take_reference const &) -> ast::constant_value {
 			return {};
 		},
@@ -3764,7 +4017,7 @@ static ast::constant_value try_evaluate_expr_without_error(
 			}
 			else
 			{
-				auto const &value = array_default_construct_expr.default_construct_expr.get<ast::constant_expression>().value;
+				auto const &value = array_default_construct_expr.default_construct_expr.get_constant_value();
 				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(type);
 				auto result = ast::constant_value();
 				if (is_multi_dimensional)
@@ -3788,7 +4041,7 @@ static ast::constant_value try_evaluate_expr_without_error(
 
 			if (context.is_trivially_copy_constructible(expr.src_tokens, array_copy_construct_expr.copied_value.get_expr_type()))
 			{
-				return array_copy_construct_expr.copied_value.get<ast::constant_expression>().value;
+				return array_copy_construct_expr.copied_value.get_constant_value();
 			}
 			else
 			{
@@ -3798,6 +4051,48 @@ static ast::constant_value try_evaluate_expr_without_error(
 		[&context](ast::expr_array_move_construct &array_move_construct_expr) -> ast::constant_value {
 			consteval_try_without_error(array_move_construct_expr.moved_value, context);
 			return {};
+		},
+		[&expr, &context](ast::expr_optional_default_construct &optional_default_construct_expr) -> ast::constant_value {
+			if (context.is_trivially_destructible(expr.src_tokens, optional_default_construct_expr.type))
+			{
+				return ast::constant_value(ast::internal::null_t());
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&expr, &context](ast::expr_optional_copy_construct &optional_copy_construct_expr) -> ast::constant_value {
+			consteval_try_without_error(optional_copy_construct_expr.copied_value, context);
+			if (!optional_copy_construct_expr.copied_value.has_consteval_succeeded())
+			{
+				return {};
+			}
+
+			if (context.is_trivially_copy_constructible(expr.src_tokens, optional_copy_construct_expr.copied_value.get_expr_type()))
+			{
+				return optional_copy_construct_expr.copied_value.get_constant_value();
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&expr, &context](ast::expr_optional_move_construct &optional_move_construct_expr) -> ast::constant_value {
+			consteval_try_without_error(optional_move_construct_expr.moved_value, context);
+			if (!optional_move_construct_expr.moved_value.has_consteval_succeeded())
+			{
+				return {};
+			}
+
+			if (context.is_trivially_copy_constructible(expr.src_tokens, optional_move_construct_expr.moved_value.get_expr_type()))
+			{
+				return optional_move_construct_expr.moved_value.get_constant_value();
+			}
+			else
+			{
+				return {};
+			}
 		},
 		[](ast::expr_builtin_default_construct &builtin_default_construct_expr) -> ast::constant_value {
 			bz_assert(builtin_default_construct_expr.type.is<ast::ts_array_slice>());
@@ -3811,7 +4106,7 @@ static ast::constant_value try_evaluate_expr_without_error(
 			}
 
 			bz_assert(context.is_trivially_copy_constructible(expr.src_tokens, builtin_copy_construct_expr.copied_value.get_expr_type()));
-			return builtin_copy_construct_expr.copied_value.get<ast::constant_expression>().value;
+			return builtin_copy_construct_expr.copied_value.get_constant_value();
 		},
 		[&context](ast::expr_trivial_relocate &trivial_relocate_expr) -> ast::constant_value {
 			consteval_try_without_error(trivial_relocate_expr.value, context);
@@ -3821,6 +4116,9 @@ static ast::constant_value try_evaluate_expr_without_error(
 			return {};
 		},
 		[](ast::expr_array_destruct &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_optional_destruct &) -> ast::constant_value {
 			return {};
 		},
 		[](ast::expr_base_type_destruct &) -> ast::constant_value {
@@ -3835,6 +4133,15 @@ static ast::constant_value try_evaluate_expr_without_error(
 		[](ast::expr_array_assign &) -> ast::constant_value {
 			return {};
 		},
+		[](ast::expr_optional_assign &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_optional_null_assign &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_optional_value_assign &) -> ast::constant_value {
+			return {};
+		},
 		[](ast::expr_base_type_assign &) -> ast::constant_value {
 			return {};
 		},
@@ -3845,6 +4152,9 @@ static ast::constant_value try_evaluate_expr_without_error(
 			return {};
 		},
 		[](ast::expr_array_swap &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_optional_swap &) -> ast::constant_value {
 			return {};
 		},
 		[](ast::expr_base_type_swap &) -> ast::constant_value {
@@ -3860,6 +4170,30 @@ static ast::constant_value try_evaluate_expr_without_error(
 				return member_access_expr.base
 					.get_constant_value()
 					.get_aggregate()[member_access_expr.index];
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&context, &expr](ast::expr_optional_extract_value &optional_extract_value) -> ast::constant_value {
+			consteval_try_without_error(optional_extract_value.optional_value, context);
+			if (optional_extract_value.optional_value.has_consteval_succeeded())
+			{
+				auto const &value = optional_extract_value.optional_value.get_constant_value();
+				if (value.is_null_constant())
+				{
+					context.report_warning(
+						ctx::warning_kind::get_value_null,
+						expr.src_tokens,
+						"getting value of a null optional"
+					);
+					return {};
+				}
+				else
+				{
+					return value;
+				}
 			}
 			else
 			{
@@ -4450,6 +4784,9 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 				get_consteval_fail_notes_helper(cast_expr.expr, notes);
 			}
 		},
+		[&notes](ast::expr_optional_cast const &optional_cast_expr) {
+			get_consteval_fail_notes_helper(optional_cast_expr.expr, notes);
+		},
 		[&expr, &notes](ast::expr_take_reference const &take_ref_expr) {
 			if (take_ref_expr.expr.is_constant())
 			{
@@ -4546,6 +4883,38 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 				));
 			}
 		},
+		[&expr, &notes](ast::expr_optional_default_construct const &optional_default_construct_expr) {
+			auto const type = optional_default_construct_expr.type.as_typespec_view();
+			notes.emplace_back(ctx::parse_context::make_note(
+				expr.src_tokens, bz::format("subexpression '({})()' is not a constant expression", type)
+			));
+		},
+		[&expr, &notes](ast::expr_optional_copy_construct const &optional_copy_construct_expr) {
+			if (optional_copy_construct_expr.copied_value.has_consteval_failed())
+			{
+				get_consteval_fail_notes_helper(optional_copy_construct_expr.copied_value, notes);
+			}
+			else
+			{
+				auto const type = ast::remove_const_or_consteval(optional_copy_construct_expr.copied_value.get_expr_type());
+				notes.emplace_back(ctx::parse_context::make_note(
+					expr.src_tokens, bz::format("copy construction of a value of type '{}' is not a constant expression", type)
+				));
+			}
+		},
+		[&expr, &notes](ast::expr_optional_move_construct const &optional_move_construct_expr) {
+			if (optional_move_construct_expr.moved_value.has_consteval_failed())
+			{
+				get_consteval_fail_notes_helper(optional_move_construct_expr.moved_value, notes);
+			}
+			else
+			{
+				auto const type = ast::remove_const_or_consteval(optional_move_construct_expr.moved_value.get_expr_type());
+				notes.emplace_back(ctx::parse_context::make_note(
+					expr.src_tokens, bz::format("move construction of a value of type '{}' is not a constant expression", type)
+				));
+			}
+		},
 		[&expr, &notes](ast::expr_builtin_default_construct const &builtin_default_construct_expr) {
 			auto const type = builtin_default_construct_expr.type.as_typespec_view();
 			notes.emplace_back(ctx::parse_context::make_note(
@@ -4588,6 +4957,11 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 				expr.src_tokens, "value destruction is not a constant expression"
 			));
 		},
+		[&expr, &notes](ast::expr_optional_destruct const &) {
+			notes.push_back(ctx::parse_context::make_note(
+				expr.src_tokens, "value destruction is not a constant expression"
+			));
+		},
 		[&expr, &notes](ast::expr_base_type_destruct const &) {
 			notes.push_back(ctx::parse_context::make_note(
 				expr.src_tokens, "value destruction is not a constant expression"
@@ -4604,6 +4978,21 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			));
 		},
 		[&expr, &notes](ast::expr_array_assign const &) {
+			notes.push_back(ctx::parse_context::make_note(
+				expr.src_tokens, "assignment is not a constant expression"
+			));
+		},
+		[&expr, &notes](ast::expr_optional_assign const &) {
+			notes.push_back(ctx::parse_context::make_note(
+				expr.src_tokens, "assignment is not a constant expression"
+			));
+		},
+		[&expr, &notes](ast::expr_optional_null_assign const &) {
+			notes.push_back(ctx::parse_context::make_note(
+				expr.src_tokens, "assignment is not a constant expression"
+			));
+		},
+		[&expr, &notes](ast::expr_optional_value_assign const &) {
 			notes.push_back(ctx::parse_context::make_note(
 				expr.src_tokens, "assignment is not a constant expression"
 			));
@@ -4628,6 +5017,11 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 				expr.src_tokens, "swapping is not a constant expression"
 			));
 		},
+		[&expr, &notes](ast::expr_optional_swap const &) {
+			notes.push_back(ctx::parse_context::make_note(
+				expr.src_tokens, "swapping is not a constant expression"
+			));
+		},
 		[&expr, &notes](ast::expr_base_type_swap const &) {
 			notes.push_back(ctx::parse_context::make_note(
 				expr.src_tokens, "swapping is not a constant expression"
@@ -4641,6 +5035,28 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 		[&notes](ast::expr_member_access const &member_access_expr) {
 			bz_assert(!member_access_expr.base.has_consteval_succeeded());
 			get_consteval_fail_notes_helper(member_access_expr.base, notes);
+		},
+		[&expr, &notes](ast::expr_optional_extract_value const &optional_extract_value) {
+			if (optional_extract_value.optional_value.has_consteval_failed())
+			{
+				get_consteval_fail_notes_helper(optional_extract_value.optional_value, notes);
+			}
+			else if (optional_extract_value.optional_value.get_constant_value().is_null_constant())
+			{
+				notes.push_back(ctx::parse_context::make_note(
+					expr.src_tokens, "getting value of a null optional is not a constant expression"
+				));
+			}
+			else
+			{
+				notes.push_back(ctx::parse_context::make_note(
+					expr.src_tokens,
+					bz::format(
+						"getting value of an optional of type '{}' is not a constant expression",
+						optional_extract_value.optional_value.get_expr_type()
+					)
+				));
+			}
 		},
 		[&notes](ast::expr_rvalue_member_access const &rvalue_member_access_expr) {
 			bz_assert(!rvalue_member_access_expr.base.has_consteval_succeeded());

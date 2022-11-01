@@ -1,14 +1,20 @@
 export function is_const          = __builtin_is_const;
 export function is_consteval      = __builtin_is_consteval;
 export function is_pointer        = __builtin_is_pointer;
+export function is_optional       = __builtin_is_optional;
 export function is_reference      = __builtin_is_reference;
 export function is_move_reference = __builtin_is_move_reference;
+export function is_slice          = __builtin_is_slice;
+export function is_array          = __builtin_is_array;
 
 export function remove_const          = __builtin_remove_const;
 export function remove_consteval      = __builtin_remove_consteval;
 export function remove_pointer        = __builtin_remove_pointer;
+export function remove_optional       = __builtin_remove_optional;
 export function remove_reference      = __builtin_remove_reference;
 export function remove_move_reference = __builtin_remove_move_reference;
+export function slice_value_type      = __builtin_slice_value_type;
+export function array_value_type      = __builtin_array_value_type;
 
 export function typename_as_str = __builtin_typename_as_str;
 

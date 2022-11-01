@@ -364,6 +364,9 @@ function main(args: [: const str]) -> int32
 	std::print("\n==== defer_test ====\n");
 	defer_test();
 
+	std::print("\n==== optional_test ====\n");
+	optional_test();
+
 	std::print("\n==== end main ====\n");
 	std::printf("e  = {}\n", std::e);
 	std::printf("pi = {}\n", std::pi);
@@ -543,64 +546,7 @@ function main(args: [: const str]) -> int32
 		move_func(std::string("Hello!"));
 	});
 
-	if (false)
-	{
-		// __builtin_slice_from_ptrs(null as *int32, null as *uint32);
-		__builtin_slice_from_ptrs(null as *int32, null as *int32);
-		// __builtin_inplace_construct(null as *int32, 0u);
-		__builtin_inplace_construct(null as *int32, 0);
-
-		// let p: *int32 = null as *uint32;
-		let p: *int32 = null as *int32;
-		// p = null as *uint32;
-		p = null as *int32;
-
-		// let p: *const int32 = null as *uint32;
-		let p: *const int32 = null as *int32;
-		// p = null as *uint32;
-		p = null as *int32;
-	}
-
-	/*
-	let s1 = "hello1";
-	let s2 = "hello2";
-	std::println(s1 == s2);
-	std::println(s1 != s2);
-	std::logln("Hello from stderr");
-	std::logln("Hello again from stderr");
-
-	std::println(std::pi);
-	std::println(std::e);
-	std::println(std::tau);
-
-	arr2_tester();
-
-	/*
-	for (let i = 0; i < 10; ++i)
-	{
-		std::print("rand(): ");
-		std::println(std::libc::rand());
-	}
-	*/
-
-	std::libc::puts(__builtin_str_begin_ptr("Hello puts()"));
-	*/
-
-
 	return 0;
-/*
-	let bool: bool = false;
-	while (bool)
-	{
-		bool = false;
-	}
-	std::print("hello");
-	let n: int32 = 0;
-	change_val(n);
-	let str = "hello";
-	let str2 = "hello"; /* nested comment */
-	return factorial(1);
-*/
 }
 
 function set_to_zero(n: &int32) -> void
@@ -774,11 +720,10 @@ function const_expr_test() -> void
 	@maybe_unused let b = false && FALSE;
 	@maybe_unused let c = true || FALSE;
 
-	const p = null as *int32;
+	const p = null as ?*int32;
 	std::assert(p == null);
 
-	const *const p = &n;
-	std::assert(p != null);
+	const *const _p = &n;
 
 //	*(null as *int32) = 2;
 	std::print("hello" " again" ", and again!" "\n");
@@ -852,7 +797,7 @@ function scope_test() -> void
 
 	((-1 as uint64));
 
-	let p: *int32;
+	let p: ?*int32;
 	p = null;
 
 	((-((2i8 + 126i8))));
@@ -1059,11 +1004,11 @@ function static_assert_test() -> void
 
 	@maybe_unused let n = null;
 	let i: int32;
-	@maybe_unused let p: *int32;
+	// let p: *int32;
 //	const p: *int32;
 //	let ref: &int32;
-	consteval p: *int32 = null;
-	static_assert(p == null);
+	// consteval p: ?*int32 = null;
+	// static_assert(p == null);
 
 	let &i_ref = i;
 //	let i_ref_: typeof i_ref;
@@ -1177,7 +1122,7 @@ function built_in_op_error_test() -> void
 	@maybe_unused let f32 = 0.0f32;
 	@maybe_unused let f64 = 0.0f64;
 	@maybe_unused let c = ' ';
-	@maybe_unused let p = null as *int32;
+	@maybe_unused let p = null as ?*int32;
 	@maybe_unused let s = "";
 
 //	-(u32 + u8);
@@ -1323,7 +1268,7 @@ function str_pointer_test()
 	const s = "hello";
 	const begin = s.begin_ptr();
 	const end   = s.end_ptr();
-	static_assert(typeof begin == const *const uint8);
+	static_assert(typeof begin == const ?*const uint8);
 	static_assert(typeof begin == typeof end);
 
 	std::printf("{}, {}\n", begin, end);
@@ -1585,9 +1530,9 @@ function complex_test()
 	function void_ptr(: *const void) {}
 	void_ptr(&z);
 
-	const p: *int32 = __builtin_pointer_cast(*int32, std::libc::malloc(4u));
+	const p: *int32 = __builtin_pointer_cast(*int32, std::libc::malloc(4u).get_value());
 	std::libc::free(p);
-	const p: *float32 = __builtin_pointer_cast(*float32, std::libc::malloc(4u));
+	const p: *float32 = __builtin_pointer_cast(*float32, std::libc::malloc(4u).get_value());
 	std::libc::free(p);
 	type_test(int32, 3);
 	type_test(uint32, 2);
@@ -1823,39 +1768,6 @@ function generic_type_test()
 	std::printf("\n");
 }
 
-struct unique_ptr<T: typename>
-{
-	type _self_t = unique_ptr<T>;
-
-	._ptr: *T;
-
-	constructor(ptr: *T)
-	{
-		return _self_t[ ptr ];
-	}
-
-	destructor(&self)
-	{
-		__builtin_call_destructor(*self._ptr);
-		std::free(self._ptr);
-	}
-
-	constructor(other: &const _self_t) = __delete__;
-	constructor(other: move _self_t) = __default__;
-	operator = (lhs: &_self_t, rhs: &const _self_t) = __delete__;
-	operator = (lhs: &_self_t, rhs: _self_t) = __default__;
-
-	operator * (self: &_self_t) -> &T
-	{
-		return *self._ptr;
-	}
-
-	operator * (self: &const _self_t) -> &const T
-	{
-		return *self._ptr;
-	}
-}
-
 function add_two(n: int32) -> int32
 {
 	return n + 2;
@@ -1863,13 +1775,22 @@ function add_two(n: int32) -> int32
 
 function unique_ptr_test()
 {
-	let ptr = unique_ptr<int32>(std::malloc(int32, 1));
-	ptr = unique_ptr<int32>(std::malloc(int32, 1));
+	let ptr = (std::unique_ptr<int32, false>.create)();
+	ptr = (std::unique_ptr<int32, false>.create)();
 
 	// ptr = ptr;
 
 	*ptr = 3;
 	std::printf("{}\n", ptr->add_two());
+
+	let ptr = (std::unique_ptr<int32, true>.create)();
+	ptr = (std::unique_ptr<int32, true>.create)();
+
+	(consteval {
+		let ptr = (std::unique_ptr<std::vector<int32>, true>.create)();
+		ptr->push_back(1);
+		ptr->push_back(2);
+	});
 }
 
 @symbol_name("move_test") export function move_test()
@@ -1895,4 +1816,25 @@ function defer_test()
 	defer std::printf("defer 1\n");
 	defer std::printf("defer 2\n");
 	defer std::printf("defer 3\n");
+}
+
+function optional_test()
+{
+	let oi: ?int32 = null;
+	std::printf("{}\n", oi);
+	oi = 3;
+	std::printf("{}\n", oi);
+
+	let oi: ?int32 = 3;
+	std::printf("{}\n", oi);
+	oi = null;
+	std::printf("{}\n", oi);
+
+	(consteval {
+		let s: ?auto = std::string("Hello");
+		let s2: ?std::string = null;
+		s = s2;
+		s = std::string("Hi");
+		s = null;
+	});
 }

@@ -3,8 +3,8 @@ import ::std::unicode;
 @__no_runtime_emit consteval warning_kind_int_overflow      = 0u32;
 @__no_runtime_emit consteval warning_kind_float_nan_math    = 4u32;
 @__no_runtime_emit consteval warning_kind_math_domain_error = 17u32;
-@__no_runtime_emit consteval warning_kind_comptime_warning  = 23u32;
-@__no_runtime_emit consteval warning_kind_error             = 24u32;
+@__no_runtime_emit consteval warning_kind_comptime_warning  = 24u32;
+@__no_runtime_emit consteval warning_kind_error             = 25u32;
 
 @__no_runtime_emit consteval inf_f32 = ((1.0f32 / 0.0f32));
 @__no_runtime_emit consteval inf_f64 = ((1.0 / 0.0));
@@ -23,23 +23,6 @@ function free   = __builtin_comptime_free;
 function memcpy = __builtin_memcpy;
 function swap   = __builtin_swap;
 
-/*
-function alloc(T: typename, count: usize) -> *T
-{
-	return __builtin_comptime_malloc_type(T, count);
-}
-
-function free(p: *void)
-{
-	__builtin_comptime_free(p);
-}
-
-function memcpy(dest: *void, src: *const void, n: usize)
-{
-	__builtin_memcpy(dest, src, n);
-}
-*/
-
 function round_to_next_power_of_two(n: usize) -> usize
 {
 	// https://stackoverflow.com/a/466242/11488457
@@ -54,7 +37,7 @@ function round_to_next_power_of_two(n: usize) -> usize
 	return n;
 }
 
-function rounded_alloc(T: typename, n: usize) -> [*T, usize]
+function rounded_alloc(T: typename, n: usize) -> [?*T, usize]
 {
 	if (n == 0)
 	{
@@ -67,19 +50,37 @@ function rounded_alloc(T: typename, n: usize) -> [*T, usize]
 	}
 }
 
-function move_range(begin: *auto, end: *auto, other_begin: *auto)
+function move_range(begin: ?*auto, end: ?*auto, other_begin: ?*auto)
 {
-	for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
+	type value_type = __builtin_remove_pointer(__builtin_remove_optional(typeof begin));
+	if consteval (__builtin_is_trivially_relocatable(value_type))
 	{
-		__builtin_inplace_construct(it, __move__ *other_it);
+		const size = (end - begin) as usize * sizeof value_type;
+		memcpy(begin, other_begin, size);
+	}
+	else
+	{
+		for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
+		{
+			__builtin_inplace_construct(it.get_value(), __move__ *other_it);
+		}
 	}
 }
 
-function copy_range(begin: *auto, end: *auto, other_begin: *const auto)
+function copy_range(begin: ?*auto, end: ?*auto, other_begin: ?*const auto)
 {
-	for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
+	type value_type = __builtin_remove_pointer(__builtin_remove_optional(typeof begin));
+	if consteval (__builtin_is_trivially_copy_constructible(value_type))
 	{
-		__builtin_inplace_construct(it, *other_it);
+		const size = (end - begin) as usize * sizeof value_type;
+		memcpy(begin, other_begin, size);
+	}
+	else
+	{
+		for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
+		{
+			__builtin_inplace_construct(it.get_value(), *other_it);
+		}
 	}
 }
 
@@ -88,9 +89,9 @@ struct vector<T: typename>
 	type value_type = T;
 	type _self_t = vector<T>;
 
-	._data_begin: *T;
-	._data_end:   *T;
-	._alloc_end:  *T;
+	._data_begin: ?*T;
+	._data_end:   ?*T;
+	._alloc_end:  ?*T;
 
 	destructor(&self)
 	{
@@ -158,7 +159,7 @@ struct vector<T: typename>
 			for (; other_it != other_end; ++self_it, ++other_it)
 			{
 				__builtin_call_destructor(*self_it);
-				__builtin_inplace_construct(self_it, *other_it);
+				__builtin_inplace_construct(self_it.get_value(), *other_it);
 			}
 			const new_end = self_it;
 			for (; self_it != self._data_end; ++self_it)
@@ -246,6 +247,12 @@ struct vector<T: typename>
 
 	function resize(self: &_self_t, new_size: usize)
 	{
+		if (new_size == 0)
+		{
+			self.clear();
+			return;
+		}
+
 		const current_size = self.size();
 		if (new_size <= current_size)
 		{
@@ -263,7 +270,7 @@ struct vector<T: typename>
 			const new_end = self._data_begin + new_size;
 			for (let it = self._data_end; it != new_end; ++it)
 			{
-				__builtin_inplace_construct(it, value_type());
+				__builtin_inplace_construct(it.get_value(), value_type());
 			}
 			self._data_end = new_end;
 		}
@@ -282,6 +289,11 @@ struct vector<T: typename>
 
 	function clear(self: &_self_t)
 	{
+		if (self._data_begin == self._data_end)
+		{
+			return;
+		}
+
 		for (let it = self._data_end; it != self._data_begin;)
 		{
 			--it;
@@ -293,7 +305,7 @@ struct vector<T: typename>
 	function push_back(self: &_self_t, value: ##value_type)
 	{
 		self.reserve(self.size() + 1);
-		__builtin_inplace_construct(self._data_end, __forward value);
+		__builtin_inplace_construct(self._data_end.get_value(), __forward value);
 		self._data_end += 1;
 	}
 
@@ -309,34 +321,38 @@ struct vector<T: typename>
 	function emplace_back(self: &_self_t, ...##args)
 	{
 		self.reserve(self.size() + 1);
-		__builtin_inplace_construct(self._data_end, value_type(...__forward args));
+		__builtin_inplace_construct(self._data_end.get_value(), value_type(...__forward args));
 		self._data_end += 1;
 	}
 
 	function append(self: &_self_t, slice: [: const value_type])
 	{
 		const slice_size = slice.size();
+		if (slice_size == 0)
+		{
+			return;
+		}
 		self.reserve(self.size() + slice_size);
 		copy_range(self._data_end, self._data_end + slice_size, slice.begin());
 		self._data_end += slice_size;
 	}
 
-	function begin(vec: &_self_t) -> *value_type
+	function begin(vec: &_self_t) -> ?*value_type
 	{
 		return vec._data_begin;
 	}
 
-	function end(vec: &_self_t) -> *value_type
+	function end(vec: &_self_t) -> ?*value_type
 	{
 		return vec._data_end;
 	}
 
-	function begin(vec: &const _self_t) -> *const value_type
+	function begin(vec: &const _self_t) -> ?*const value_type
 	{
 		return vec._data_begin;
 	}
 
-	function end(vec: &const _self_t) -> *const value_type
+	function end(vec: &const _self_t) -> ?*const value_type
 	{
 		return vec._data_end;
 	}
@@ -366,12 +382,14 @@ struct string
 
 	function as_str(self: &const string) -> str
 	{
-		return __builtin_str_from_ptrs(self._buffer.begin(), self._buffer.end());
+		const [begin, end] = [ self._buffer.begin(), self._buffer.end() ];
+		return __builtin_str_from_ptrs(begin, end);
 	}
 
 	function as_str(self: move string) -> str
 	{
-		return __builtin_str_from_ptrs(self._buffer.begin(), self._buffer.end());
+		const [begin, end] = [ self._buffer.begin(), self._buffer.end() ];
+		return __builtin_str_from_ptrs(begin, end);
 	}
 
 	function size(self: &const string) -> usize
@@ -394,12 +412,12 @@ struct string
 		self._buffer.reserve(new_capacity);
 	}
 
-	function begin_ptr(self: &const string) -> *const uint8
+	function begin_ptr(self: &const string) -> ?*const uint8
 	{
 		return self._buffer.begin();
 	}
 
-	function end_ptr(self: &const string) -> *const uint8
+	function end_ptr(self: &const string) -> ?*const uint8
 	{
 		return self._buffer.end();
 	}
@@ -742,7 +760,7 @@ function clear_errors()
 
 struct malloc_info_t
 {
-	.ptr: *uint8;
+	.ptr: ?*uint8;
 	.size: usize;
 	.malloc_src_tokens: src_tokens_t;
 	.malloc_call_stack: vector<uint64>;
@@ -792,7 +810,7 @@ function register_malloc(ptr: *uint8, size: usize, begin: uint64, pivot: uint64,
 }
 
 @__comptime_error_checking("register_free")
-function register_free(ptr: *uint8, begin: uint64, pivot: uint64, end: uint64) -> bool
+function register_free(ptr: ?*uint8, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (ptr == null)
 	{
@@ -917,7 +935,7 @@ function make_malloc_error_message(size: usize) -> string
 
 @__comptime_error_checking("comptime_malloc_check")
 function comptime_malloc_check(
-	ptr: *void,
+	ptr: ?*void,
 	size: usize,
 	begin: uint64,
 	pivot: uint64,
@@ -938,7 +956,7 @@ function comptime_malloc_check(
 
 @__comptime_error_checking("comptime_memcpy_check")
 // dest and src are passed as *const uint8 because pointer casts are not allowed in comptime code
-function comptime_memcpy_check(dest: *const uint8, src: *const uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
+function comptime_memcpy_check(dest: ?*const uint8, src: ?*const uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (size == 0)
 	{
@@ -955,7 +973,10 @@ function comptime_memcpy_check(dest: *const uint8, src: *const uint8, size: usiz
 		emit_diagnostic(warning_kind_error, "'memcpy' called with null as the source pointer", begin, pivot, end);
 		return false;
 	}
-	else if (dest != src && dest < src + size && src < dest + size)
+
+	const dest = dest;
+	const src = src;
+	if (dest != src && dest < src + size && src < dest + size)
 	{
 		emit_diagnostic(warning_kind_error, "'memcpy' called with overlapping ranges", begin, pivot, end);
 		return false;
@@ -968,7 +989,7 @@ function comptime_memcpy_check(dest: *const uint8, src: *const uint8, size: usiz
 
 @__comptime_error_checking("comptime_memmove_check")
 // dest and src are passed as *const uint8 because pointer casts are not allowed in comptime code
-function comptime_memmove_check(dest: *const uint8, src: *const uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
+function comptime_memmove_check(dest: ?*const uint8, src: ?*const uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (size == 0)
 	{
@@ -993,7 +1014,7 @@ function comptime_memmove_check(dest: *const uint8, src: *const uint8, size: usi
 
 @__comptime_error_checking("comptime_memset_check")
 // dest is passed as *const uint8 because pointer casts are not allowed in comptime code
-function comptime_memset_check(dest: *const uint8, : uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
+function comptime_memset_check(dest: ?*const uint8, : uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (size == 0)
 	{

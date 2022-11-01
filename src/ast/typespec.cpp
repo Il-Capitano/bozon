@@ -52,6 +52,26 @@ bool typespec_view::is_typename(void) const noexcept
 	});
 }
 
+bool typespec_view::is_optional_pointer(void) const noexcept
+{
+	return this->modifiers.size() >= 2
+		&& this->modifiers[0].is<ts_optional>()
+		&& this->modifiers[1].is<ts_pointer>();
+}
+
+bool typespec_view::is_optional_pointer_like(void) const noexcept
+{
+	return this->modifiers.size() >= 2
+		&& this->modifiers[0].is<ts_optional>()
+		&& (this->modifiers[1].is<ts_pointer>() || this->modifiers[1].is<ast::ts_function>());
+}
+
+typespec_view typespec_view::get_optional_pointer(void) const noexcept
+{
+	bz_assert(this->is_optional_pointer());
+	return this->get<ts_optional>().get<ts_pointer>();
+}
+
 typespec::typespec(
 	lex::src_tokens const &_src_tokens,
 	arena_vector<modifier_typespec_node_t> _modifiers,
@@ -223,6 +243,11 @@ typespec_view remove_pointer(typespec_view ts) noexcept
 	return remove_kind_helper<ts_pointer>(ts);
 }
 
+typespec_view remove_optional(typespec_view ts) noexcept
+{
+	return remove_kind_helper<ts_optional>(ts);
+}
+
 typespec_view remove_const_or_consteval(typespec_view ts) noexcept
 {
 	return remove_kind_helper<ts_const, ts_consteval>(ts);
@@ -294,7 +319,11 @@ template<
 static bool type_property_helper(typespec_view ts) noexcept
 {
 	ts = remove_const_or_consteval(ts);
-	if (ts.is<ts_base_type>())
+	if ((ts.is<exception_types>() || ...))
+	{
+		return !default_value;
+	}
+	else if (ts.is<ts_base_type>())
 	{
 		bz_assert(ts.get<ts_base_type>().info->state == ast::resolve_state::all);
 		return (ts.get<ts_base_type>().info->*base_type_property_func)();
@@ -309,9 +338,13 @@ static bool type_property_helper(typespec_view ts) noexcept
 	{
 		return type_property_helper<base_type_property_func, default_value, exception_types...>(ts.get<ts_array>().elem_type);
 	}
+	else if (ts.is<ts_optional>())
+	{
+		return type_property_helper<base_type_property_func, default_value, exception_types...>(ts.get<ts_optional>());
+	}
 	else
 	{
-		return (ts.is<exception_types>() || ...) ? !default_value : default_value;
+		return default_value;
 	}
 }
 
@@ -326,7 +359,7 @@ bool is_trivially_relocatable(typespec_view ts) noexcept
 bz::u8string typespec_view::get_symbol_name(void) const
 {
 	bz_assert(this->not_empty());
-	static_assert(typespec_types::size() == 17);
+	static_assert(typespec_types::size() == 18);
 	bz::u8string result = "";
 	for (auto &modifier : this->modifiers)
 	{
@@ -339,6 +372,9 @@ bz::u8string typespec_view::get_symbol_name(void) const
 			},
 			[&](ts_pointer const &) {
 				result += "0P.";
+			},
+			[&](ts_optional const &) {
+				result += "0O.";
 			},
 			[&](ts_lvalue_reference const &) {
 				result += "0R.";
@@ -392,8 +428,9 @@ bz::u8string typespec::decode_symbol_name(
 	bz::u8string_view::const_iterator end
 )
 {
-	static_assert(typespec_types::size() == 17);
+	static_assert(typespec_types::size() == 18);
 	constexpr bz::u8string_view pointer        = "0P.";
+	constexpr bz::u8string_view optional       = "0O.";
 	constexpr bz::u8string_view reference      = "0R.";
 	constexpr bz::u8string_view move_reference = "0M.";
 	constexpr bz::u8string_view const_         = "const.";
@@ -426,6 +463,11 @@ bz::u8string typespec::decode_symbol_name(
 		{
 			result += "*";
 			it = bz::u8string_view::const_iterator(it.data() + pointer.size());
+		}
+		else if (symbol_name.starts_with(optional))
+		{
+			result += "?";
+			it = bz::u8string_view::const_iterator(it.data() + optional.size());
 		}
 		else if (symbol_name.starts_with(reference))
 		{
@@ -631,7 +673,7 @@ bz::u8string bz::formatter<ast::typespec>::format(ast::typespec const &typespec,
 
 bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typespec, bz::u8string_view)
 {
-	static_assert(ast::typespec_types::size() == 17);
+	static_assert(ast::typespec_types::size() == 18);
 	if (typespec.is_empty())
 	{
 		return "<error-type>";
@@ -649,6 +691,9 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 			},
 			[&](ast::ts_pointer const &) {
 				result += '*';
+			},
+			[&](ast::ts_optional const &) {
+				result += '?';
 			},
 			[&](ast::ts_lvalue_reference const &) {
 				result += '&';

@@ -21,13 +21,19 @@ export function exit(code: int32) -> void
 export function malloc_raw(T: typename, n: usize) -> *T
 {
 	static_assert(!meta::is_reference(T), "type in 'malloc_raw' can't be a reference type");
+	static_assert(!meta::is_move_reference(T), "type in 'malloc_raw' can't be a move reference type");
 	static_assert(!meta::is_const(T), "type in 'malloc_raw' can't be 'const'");
 	static_assert(!meta::is_consteval(T), "type in 'malloc_raw' can't be 'consteval'");
 
 	return if (meta::is_comptime()) {
 		meta::malloc(T, n)
 	} else {
-		__builtin_pointer_cast(*T, libc::malloc(n * sizeof T))
+		const malloc_result = libc::malloc(n * sizeof T);
+		if (malloc_result == null)
+		{
+			unreachable;
+		}
+		__builtin_pointer_cast(*T, malloc_result.get_value())
 	};
 }
 
@@ -41,7 +47,12 @@ export function malloc(T: typename, n: usize) -> *T
 	const result = if (meta::is_comptime()) {
 		meta::malloc(T, n)
 	} else {
-		__builtin_pointer_cast(*T, libc::malloc(n * sizeof T))
+		const malloc_result = libc::malloc(n * sizeof T);
+		if (malloc_result == null)
+		{
+			unreachable;
+		}
+		__builtin_pointer_cast(*T, malloc_result.get_value())
 	};
 
 	for (let [it, const end] = [ result, result + n ]; it != end; ++it)
@@ -52,7 +63,7 @@ export function malloc(T: typename, n: usize) -> *T
 	return result;
 }
 
-export function free(p: *void)
+export function free(p: ?*void)
 {
 	if (meta::is_comptime())
 	{
