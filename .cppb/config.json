@@ -152,6 +152,11 @@
 					"warnings": [ "no-unused-parameter", "error=deprecated-declarations" ]
 				}
 			}
+		},
+		"analyze": {
+			"depends_on": "default",
+			"emit_compile_commands": false,
+			"cpp_compiler_flags": [ "--analyze", "--analyzer-output", "text" ]
 		}
 	},
 	"rules": {
