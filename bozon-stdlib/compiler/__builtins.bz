@@ -189,10 +189,26 @@ function __libc_main(argc_int: std::libc::int, argv: *const *const std::libc::ch
 	defer std::libc::free(args_alloc);
 
 	const args = if (args_alloc == null) {
-		__builtin_slice_from_const_ptrs(args_buffer.begin(), args_buffer.begin() + argc)
+		__builtin_slice_from_ptrs(args_buffer.begin(), args_buffer.begin() + argc)
 	} else {
-		__builtin_slice_from_const_ptrs(args_alloc, args_alloc + argc)
+		__builtin_slice_from_ptrs(args_alloc, args_alloc + argc)
 	};
+
+	let argv_it = argv;
+	for (let &arg in args)
+	{
+		const begin_ptr = *argv_it;
+		const end_ptr = {
+			let it = begin_ptr;
+			while (*it != 0)
+			{
+				++it;
+			}
+			it
+		};
+		arg = __builtin_str_from_ptrs(begin_ptr, end_ptr);
+		++argv_it;
+	}
 
 	const result = __builtin_call_main(args);
 
