@@ -18,6 +18,15 @@ function test()
 		let o1: ?complex_resource_t = complex_resource_t();
 		o = move o1;
 		o = ([complex_resource_t](), (?complex_resource_t)());
+		let o1: ?complex_resource_t = null;
+		let _ = move o1;
+
+		let o: ?complex_resource_t = null;
+		let o1: ?complex_resource_t = complex_resource_t();
+		o = null;
+		o = o1;
+		o = o1;
+		o = null;
 
 		let o1: ?complex_resource_t = null;
 		let o2: ?complex_resource_t = null;
