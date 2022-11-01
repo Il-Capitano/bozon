@@ -1,6 +1,5 @@
 import utils;
 import bit;
-import meta::comptime;
 import meta::types;
 import format;
 
@@ -305,6 +304,6 @@ function rounded_alloc(T: typename, n: usize) -> [?*T, usize]
 	else
 	{
 		const rounded_n = round_to_next_power_of_two(n);
-		return [ malloc(T, rounded_n), rounded_n ];
+		return [ malloc_raw(T, rounded_n), rounded_n ];
 	}
 }
