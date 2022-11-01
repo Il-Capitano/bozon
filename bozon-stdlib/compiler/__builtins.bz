@@ -182,7 +182,7 @@ function __libc_main(argc_int: std::libc::int, argv: *const *const std::libc::ch
 		const malloc_result = std::libc::malloc(argc * sizeof str);
 		if (malloc_result == null)
 		{
-			return 1;
+			std::libc::abort();
 		}
 		__builtin_pointer_cast(*str, malloc_result.get_value())
 	};
