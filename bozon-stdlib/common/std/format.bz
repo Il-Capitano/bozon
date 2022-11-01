@@ -1363,7 +1363,6 @@ function format_float64_fixed(x: float64, buffer: &format_buffer, fmt_spec: form
 	} else {
 		malloc(uint8, result_len)
 	};
-	assert(result_buffer != null);
 
 	const end = ryu::d2fixed_short(
 		x,
@@ -1408,7 +1407,6 @@ function format_float64_exponential(x: float64, buffer: &format_buffer, fmt_spec
 	} else {
 		malloc(uint8, result_len)
 	};
-	assert(result_buffer != null);
 
 	const end = ryu::d2exp_short(
 		x,
@@ -1518,7 +1516,6 @@ function format_float64_percentage(x: float64, buffer: &format_buffer, fmt_spec:
 	} else {
 		malloc(uint8, result_len)
 	};
-	assert(result_buffer != null);
 
 	let end = ryu::d2fixed_short(
 		x,
