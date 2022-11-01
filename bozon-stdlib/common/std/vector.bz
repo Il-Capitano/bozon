@@ -249,17 +249,33 @@ export function end(vec: &const vector) -> ?*const (typeof vec).value_type
 
 function move_range(begin: ?*auto, end: ?*auto, other_begin: ?*auto)
 {
-	for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
+	type value_type = (typeof begin).meta::remove_optional().meta::remove_pointer();
+	if consteval (meta::is_trivially_relocatable(value_type))
 	{
-		__builtin_inplace_construct(it.get_value(), __move__ *other_it);
+		memcpy(begin, other_begin, (end - begin) as usize * sizeof value_type);
+	}
+	else
+	{
+		for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
+		{
+			__builtin_inplace_construct(it.get_value(), __move__ *other_it);
+		}
 	}
 }
 
 function copy_range(begin: ?*auto, end: ?*auto, other_begin: ?*const auto)
 {
-	for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
+	type value_type = (typeof begin).meta::remove_optional().meta::remove_pointer();
+	if consteval (meta::is_trivially_copy_constructible(value_type))
 	{
-		__builtin_inplace_construct(it.get_value(), *other_it);
+		memcpy(begin, other_begin, (end - begin) as usize * sizeof value_type);
+	}
+	else
+	{
+		for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
+		{
+			__builtin_inplace_construct(it.get_value(), *other_it);
+		}
 	}
 }
 
