@@ -720,8 +720,7 @@ function const_expr_test() -> void
 	const p = null as ?*int32;
 	std::assert(p == null);
 
-	const *const p = &n;
-	std::assert(p != null);
+	const *const _p = &n;
 
 //	*(null as *int32) = 2;
 	std::print("hello" " again" ", and again!" "\n");
