@@ -1863,7 +1863,7 @@ static ast::constant_value get_default_constructed_value(
 	if (type.modifiers.not_empty())
 	{
 		return type.modifiers[0].visit(bz::overload{
-			[](ast::ts_pointer const &) -> ast::constant_value {
+			[](ast::ts_optional const &) -> ast::constant_value {
 				return ast::constant_value(ast::internal::null_t{});
 			},
 			[](auto const &) -> ast::constant_value {
