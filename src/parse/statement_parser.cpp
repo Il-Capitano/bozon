@@ -1009,7 +1009,129 @@ template ast::statement parse_decl_struct<parse_scope::struct_body>(
 	ctx::parse_context &context
 );
 
-template ast::statement parse_decl_struct<parse_scope::local>(
+static ast::decl_enum::name_value_pair parse_enum_name_value_pair(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream != end);
+	auto const id = context.assert_token(stream, lex::token::identifier);
+	if (id->kind != lex::token::identifier)
+	{
+		return {};
+	}
+
+	if (stream == end || stream->kind != lex::token::assign)
+	{
+		return ast::decl_enum::name_value_pair{
+			id, {}, ast::expression()
+		};
+	}
+
+	++stream; // '='
+	auto value_expr = parse_expression(stream, end, context, no_comma);
+
+	return ast::decl_enum::name_value_pair{
+		id, {}, std::move(value_expr)
+	};
+}
+
+static ast::statement parse_decl_enum_impl(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream->kind == lex::token::kw_enum);
+	auto const begin_token = stream;
+	++stream; // 'enum'
+	bz_assert(stream != end || stream->kind != lex::token::identifier);
+	auto const id = context.assert_token(stream, lex::token::identifier);
+	auto const src_tokens = lex::src_tokens{ begin_token, (id == stream ? begin_token : id), stream };
+
+	if (stream != end && stream->kind == lex::token::curly_open)
+	{
+		++stream; // '{'
+		auto const range = get_tokens_in_curly<>(stream, end, context);
+
+		auto inner_stream = range.begin;
+		auto const inner_end = range.end;
+
+		auto values = ast::arena_vector<ast::decl_enum::name_value_pair>();
+
+		while (inner_stream != inner_end)
+		{
+			values.push_back(parse_enum_name_value_pair(inner_stream, inner_end, context));
+			if (values.back().id == nullptr)
+			{
+				values.pop_back();
+				break;
+			}
+
+			if (inner_stream != inner_end)
+			{
+				context.assert_token(inner_stream, lex::token::comma);
+			}
+		}
+
+		return ast::make_decl_enum(
+			src_tokens,
+			context.get_current_enclosing_scope(),
+			context.make_qualified_identifier(id),
+			ast::typespec(),
+			std::move(values)
+		);
+	}
+	else
+	{
+		context.report_error(stream, "an enum must have a body");
+		return ast::make_decl_enum(
+			src_tokens,
+			context.get_current_enclosing_scope(),
+			context.make_qualified_identifier(id),
+			ast::typespec(),
+			ast::arena_vector<ast::decl_enum::name_value_pair>()
+		);
+	}
+}
+
+template<parse_scope scope>
+ast::statement parse_decl_enum(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	auto result = parse_decl_enum_impl(stream, end, context);
+	if (result.is_null())
+	{
+		return result;
+	}
+
+	if constexpr (scope == parse_scope::global || scope == parse_scope::struct_body)
+	{
+		return result;
+	}
+	else
+	{
+		bz_assert(result.is<ast::decl_enum>());
+		auto &enum_decl = result.get<ast::decl_enum>();
+		context.add_to_resolve_queue({}, enum_decl);
+		resolve::resolve_enum(enum_decl, context);
+		context.pop_resolve_queue();
+		return result;
+	}
+}
+
+template ast::statement parse_decl_enum<parse_scope::global>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template ast::statement parse_decl_enum<parse_scope::struct_body>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template ast::statement parse_decl_enum<parse_scope::local>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
