@@ -5134,26 +5134,59 @@ ast::expression parse_context::make_member_access_expression(
 	if (base.is_typename())
 	{
 		auto const type = ast::remove_const_or_consteval(ast::remove_lvalue_reference(base.get_typename().as_typespec_view()));
-		if (!type.is<ast::ts_base_type>())
+		if (type.is<ast::ts_base_type>())
 		{
-			this->report_error(member, bz::format("no member named '{}' in type '{}'", member->value, type));
-			return ast::make_error_expression(src_tokens, ast::make_expr_type_member_access(std::move(base), member, nullptr));
+			auto const info = type.get<ast::ts_base_type>().info;
+			this->resolve_type(src_tokens, info);
+			bz_assert(info->scope.is_global());
+			auto id = ast::make_identifier(member);
+			auto const symbol = find_id_in_global_scope(info->scope.get_global(), id, *this);
+
+			if (symbol.is_null())
+			{
+				this->report_error(member, bz::format("no member named '{}' in type '{}'", member->value, type));
+				return ast::make_error_expression(src_tokens, ast::make_expr_type_member_access(std::move(base), member, nullptr));
+			}
+			else
+			{
+				return expression_from_symbol(src_tokens, std::move(id), symbol, 0, false, *this);
+			}
 		}
-
-		auto const info = type.get<ast::ts_base_type>().info;
-		this->resolve_type(src_tokens, info);
-		bz_assert(info->scope.is_global());
-		auto id = ast::make_identifier(member);
-		auto const symbol = find_id_in_global_scope(info->scope.get_global(), id, *this);
-
-		if (symbol.is_null())
+		else if (type.is<ast::ts_enum>())
 		{
-			this->report_error(member, bz::format("no member named '{}' in type '{}'", member->value, type));
-			return ast::make_error_expression(src_tokens, ast::make_expr_type_member_access(std::move(base), member, nullptr));
+			auto const decl = type.get<ast::ts_enum>().decl;
+			this->resolve_type(src_tokens, decl);
+			auto const member_value = member->value;
+
+			auto const result_it = std::find_if(
+				decl->values.begin(), decl->values.end(),
+				[member_value](auto const &value) {
+					return value.id->value == member_value;
+				}
+			);
+			if (result_it == decl->values.end())
+			{
+				this->report_error(member, bz::format("no value named '{}' in enum '{}'", member->value, type));
+				return ast::make_error_expression(src_tokens, ast::make_expr_type_member_access(std::move(base), member, nullptr));
+			}
+			else
+			{
+				bz_assert(result_it->value.not_null());
+				auto value = result_it->value.is<int64_t>()
+					? ast::constant_value(result_it->value.get<int64_t>())
+					: ast::constant_value(result_it->value.get<uint64_t>());
+				return ast::make_constant_expression(
+					src_tokens,
+					ast::expression_type_kind::rvalue, type,
+					std::move(value),
+					ast::make_expr_type_member_access(std::move(base), member, nullptr)
+				);
+			}
 		}
 		else
 		{
-			return expression_from_symbol(src_tokens, std::move(id), symbol, 0, false, *this);
+			this->report_error(member, bz::format("no member named '{}' in type '{}'", member->value, type));
+			return ast::make_error_expression(src_tokens, ast::make_expr_type_member_access(std::move(base), member, nullptr));
 		}
 	}
 
@@ -5887,7 +5920,7 @@ ast::expression parse_context::make_copy_construction(ast::expression expr)
 	{
 		return make_optional_copy_construction(type, std::move(expr), *this);
 	}
-	else if (type.is<ast::ts_pointer>() || type.is<ast::ts_array_slice>())
+	else if (type.is<ast::ts_enum>() || type.is<ast::ts_pointer>() || type.is<ast::ts_array_slice>())
 	{
 		return make_builtin_copy_construction(type, std::move(expr), *this);
 	}
@@ -7373,6 +7406,16 @@ void parse_context::resolve_type(lex::src_tokens const &src_tokens, ast::type_in
 	}
 }
 
+void parse_context::resolve_type(lex::src_tokens const &src_tokens, ast::decl_enum *decl)
+{
+	if (decl->state != ast::resolve_state::error && decl->state < ast::resolve_state::all)
+	{
+		this->add_to_resolve_queue(src_tokens, *decl);
+		resolve::resolve_enum(*decl, *this);
+		this->pop_resolve_queue();
+	}
+}
+
 template<
 	bool (ast::type_info::*base_type_property_func)(void) const,
 	bool default_value, typename ...exception_types
@@ -7434,7 +7477,7 @@ bool parse_context::is_copy_constructible(lex::src_tokens const &src_tokens, ast
 {
 	return type_property_helper<
 		&ast::type_info::is_copy_constructible,
-		false, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice
 	>(src_tokens, ts, *this);
 }
 
@@ -7442,7 +7485,7 @@ bool parse_context::is_trivially_copy_constructible(lex::src_tokens const &src_t
 {
 	return type_property_helper<
 		&ast::type_info::is_trivially_copy_constructible,
-		false, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice
 	>(src_tokens, ts, *this);
 }
 
@@ -7450,7 +7493,7 @@ bool parse_context::is_move_constructible(lex::src_tokens const &src_tokens, ast
 {
 	return type_property_helper<
 		&ast::type_info::is_move_constructible,
-		false, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice
 	>(src_tokens, ts, *this);
 }
 
@@ -7458,7 +7501,7 @@ bool parse_context::is_trivially_move_constructible(lex::src_tokens const &src_t
 {
 	return type_property_helper<
 		&ast::type_info::is_trivially_move_constructible,
-		false, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice
 	>(src_tokens, ts, *this);
 }
 
@@ -7482,7 +7525,7 @@ bool parse_context::is_trivially_relocatable(lex::src_tokens const &src_tokens, 
 {
 	return type_property_helper<
 		&ast::type_info::is_trivially_relocatable,
-		false, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice
 	>(src_tokens, ts, *this);
 }
 
@@ -7490,7 +7533,7 @@ bool parse_context::is_trivial(lex::src_tokens const &src_tokens, ast::typespec_
 {
 	return type_property_helper<
 		&ast::type_info::is_trivial,
-		false, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice
 	>(src_tokens, ts, *this);
 }
 
@@ -7507,6 +7550,10 @@ bool parse_context::is_instantiable(lex::src_tokens const &src_tokens, ast::type
 		auto const info = ts.get<ast::ts_base_type>().info;
 		this->resolve_type(src_tokens, info);
 		return info->state == ast::resolve_state::all;
+	}
+	else if (ts.is<ast::ts_enum>())
+	{
+		return true;
 	}
 	else if (ts.is<ast::ts_array>())
 	{

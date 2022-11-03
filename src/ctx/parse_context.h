@@ -458,6 +458,7 @@ struct parse_context
 	ast::destruct_operation make_rvalue_array_destruction(lex::src_tokens const &src_tokens, ast::typespec_view type);
 
 	void resolve_type(lex::src_tokens const &src_tokens, ast::type_info *info);
+	void resolve_type(lex::src_tokens const &src_tokens, ast::decl_enum *decl);
 	bool is_default_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
 	bool is_copy_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
 	bool is_trivially_copy_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
