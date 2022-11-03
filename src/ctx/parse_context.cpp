@@ -750,6 +750,7 @@ static bz::vector<source_highlight> get_circular_notes(T *decl, parse_context co
 	{
 		if (!notes.empty())
 		{
+			static_assert(decltype(parse_context::resolve_queue_t::requested)::variant_count == 6);
 			if (dep.requested.is<ast::function_body *>())
 			{
 				auto const func_body = dep.requested.get<ast::function_body *>();
@@ -781,6 +782,13 @@ static bz::vector<source_highlight> get_circular_notes(T *decl, parse_context co
 				notes.back().message = bz::format(
 					"required from instantiation of type 'struct {}'",
 					dep.requested.get<ast::type_info *>()->get_typename_as_string()
+				);
+			}
+			else if (dep.requested.is<ast::decl_enum *>())
+			{
+				notes.back().message = bz::format(
+					"required from instantiation of type 'enum {}'",
+					dep.requested.get<ast::decl_enum *>()->id.format_as_unqualified()
 				);
 			}
 		}
@@ -854,6 +862,17 @@ void parse_context::report_circular_dependency_error(ast::type_info &info) const
 	this->report_error(
 		info.src_tokens,
 		bz::format("circular dependency encountered while resolving type 'struct {}'", info.get_typename_as_string()),
+		std::move(notes)
+	);
+}
+
+void parse_context::report_circular_dependency_error(ast::decl_enum &enum_decl) const
+{
+	auto notes = get_circular_notes(&enum_decl, *this);
+
+	this->report_error(
+		enum_decl.src_tokens,
+		bz::format("circular dependency encountered while resolving type 'enum {}'", enum_decl.id.format_as_unqualified()),
 		std::move(notes)
 	);
 }

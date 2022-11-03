@@ -25,7 +25,8 @@ struct parse_context
 			ast::decl_variable *,
 			ast::decl_function_alias *,
 			ast::decl_type_alias *,
-			ast::type_info *
+			ast::type_info *,
+			ast::decl_enum *
 		> requested;
 	};
 
@@ -208,6 +209,7 @@ struct parse_context
 	void report_circular_dependency_error(ast::decl_function_alias &alias_decl) const;
 	void report_circular_dependency_error(ast::decl_type_alias &alias_decl) const;
 	void report_circular_dependency_error(ast::type_info &info) const;
+	void report_circular_dependency_error(ast::decl_enum &enum_decl) const;
 	void report_circular_dependency_error(ast::decl_variable &var_decl) const;
 
 	void report_warning(
@@ -501,6 +503,8 @@ struct parse_context
 	{ this->resolve_queue.emplace_back(tokens, &alias_decl); }
 	void add_to_resolve_queue(lex::src_tokens const &tokens, ast::type_info &info)
 	{ this->resolve_queue.emplace_back(tokens, &info); }
+	void add_to_resolve_queue(lex::src_tokens const &tokens, ast::decl_enum &enum_decl)
+	{ this->resolve_queue.emplace_back(tokens, &enum_decl); }
 	void add_to_resolve_queue(lex::src_tokens const &tokens, ast::decl_variable &var_decl)
 	{ this->resolve_queue.emplace_back(tokens, &var_decl); }
 

@@ -465,6 +465,11 @@ static void resolve_stmt(ast::decl_struct &struct_decl, ctx::parse_context &cont
 	resolve_type_info(struct_decl.info, context);
 }
 
+static void resolve_stmt(ast::decl_enum &enum_decl, ctx::parse_context &context)
+{
+	resolve_enum(enum_decl, context);
+}
+
 static void resolve_stmt(ast::decl_import &, ctx::parse_context &)
 {
 	bz_unreachable;
@@ -2539,8 +2544,63 @@ void resolve_type_info(ast::type_info &info, ctx::parse_context &context)
 	context.pop_enclosing_scope(std::move(prev_scopes));
 }
 
+static void resolve_enum_impl(ast::decl_enum &enum_decl, ctx::parse_context &context)
+{
+	enum_decl.state = ast::resolve_state::resolving_all;
+
+	enum_decl.underlying_type = ast::make_base_type_typespec(enum_decl.src_tokens, context.get_builtin_type_info(ast::type_info::int32_));
+
+	int64_t current_value = 0;
+	for (auto &[id, value, value_expr] : enum_decl.values)
+	{
+		if (value_expr.not_null())
+		{
+			resolve_expression(value_expr, context);
+			match_expression_to_type(value_expr, enum_decl.underlying_type, context);
+			consteval_try(value_expr, context);
+			if (value_expr.has_consteval_failed())
+			{
+				context.report_error(
+					value_expr.src_tokens,
+					bz::format("enum value expression must be a constant expression"),
+					get_consteval_fail_notes(value_expr)
+				);
+			}
+			else
+			{
+				bz_assert(value_expr.get_constant_value().is_sint());
+				current_value = value_expr.get_constant_value().get_sint();
+			}
+		}
+
+		value = current_value;
+		current_value += 1;
+	}
+
+	enum_decl.state = ast::resolve_state::all;
+}
+
+void resolve_enum(ast::decl_enum &enum_decl, ctx::parse_context &context)
+{
+	if (enum_decl.state >= ast::resolve_state::all || enum_decl.state == ast::resolve_state::error)
+	{
+		return;
+	}
+	else if (enum_decl.state == ast::resolve_state::resolving_all)
+	{
+		context.report_circular_dependency_error(enum_decl);
+		enum_decl.state = ast::resolve_state::error;
+		return;
+	}
+
+	auto prev_scopes = context.push_enclosing_scope(enum_decl.enclosing_scope);
+	resolve_enum_impl(enum_decl, context);
+	context.pop_enclosing_scope(std::move(prev_scopes));
+}
+
 void resolve_global_statement(ast::statement &stmt, ctx::parse_context &context)
 {
+	static_assert(ast::statement::variant_count == 16);
 	stmt.visit(bz::overload{
 		[&](ast::decl_function &func_decl) {
 			context.add_to_resolve_queue({}, func_decl.body);
@@ -2565,6 +2625,11 @@ void resolve_global_statement(ast::statement &stmt, ctx::parse_context &context)
 		[&](ast::decl_struct &struct_decl) {
 			context.add_to_resolve_queue({}, struct_decl.info);
 			resolve_type_info(struct_decl.info, context);
+			context.pop_resolve_queue();
+		},
+		[&](ast::decl_enum &enum_decl) {
+			context.add_to_resolve_queue({}, enum_decl);
+			resolve_enum(enum_decl, context);
 			context.pop_resolve_queue();
 		},
 		[&](ast::decl_variable &var_decl) {
