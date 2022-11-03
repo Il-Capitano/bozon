@@ -276,9 +276,13 @@ bool is_complete(typespec_view ts) noexcept
 	auto const is_auto_ref_or_variadic = ts.modifiers.not_empty()
 		&& ts.modifiers[0].is_any<ts_auto_reference, ts_auto_reference_const, ts_variadic>();
 
+	static_assert(typespec_types::size() == 19);
 	return !is_auto_ref_or_variadic && ts.terminator->visit(bz::overload{
 		[](ts_base_type const &base_t) {
 			return !base_t.info->is_generic();
+		},
+		[](ts_enum const &) {
+			return true;
 		},
 		[](ts_void const &) {
 			return true;
@@ -624,6 +628,7 @@ bool operator == (typespec_view lhs, typespec_view rhs)
 		return false;
 	}
 
+	static_assert(terminator_typespec_types::size() == 10);
 	switch (lhs_terminator.index())
 	{
 	case terminator_typespec_node_t::index_of<ts_base_type>:
@@ -631,6 +636,12 @@ bool operator == (typespec_view lhs, typespec_view rhs)
 		auto const lhs_info = lhs_terminator.get<ts_base_type>().info;
 		auto const rhs_info = rhs_terminator.get<ts_base_type>().info;
 		return lhs_info == rhs_info;
+	}
+	case terminator_typespec_node_t::index_of<ts_enum>:
+	{
+		auto const lhs_decl = lhs_terminator.get<ts_enum>().decl;
+		auto const rhs_decl = rhs_terminator.get<ts_enum>().decl;
+		return lhs_decl == rhs_decl;
 	}
 	case terminator_typespec_node_t::index_of<ts_void>:
 		return true;
