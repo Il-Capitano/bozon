@@ -28,6 +28,9 @@ bool typespec_view::is_typename(void) const noexcept
 		[](ts_base_type const &) {
 			return false;
 		},
+		[](ts_enum const &) {
+			return false;
+		},
 		[](ts_void const &) {
 			return false;
 		},
@@ -359,7 +362,7 @@ bool is_trivially_relocatable(typespec_view ts) noexcept
 bz::u8string typespec_view::get_symbol_name(void) const
 {
 	bz_assert(this->not_empty());
-	static_assert(typespec_types::size() == 18);
+	static_assert(typespec_types::size() == 19);
 	bz::u8string result = "";
 	for (auto &modifier : this->modifiers)
 	{
@@ -393,6 +396,16 @@ bz::u8string typespec_view::get_symbol_name(void) const
 	this->terminator->visit(bz::overload{
 		[&](ts_base_type const &base_type) {
 			result += base_type.info->symbol_name;
+		},
+		[&](ts_enum const &enum_type) {
+			if (enum_type.decl->id.is_qualified)
+			{
+				result += bz::format("enum.{}", enum_type.decl->id.format_as_unqualified());
+			}
+			else
+			{
+				result += bz::format("non_global_enum.{}", enum_type.decl->id.format_as_unqualified());
+			}
 		},
 		[&](ts_array const &array_t) {
 			result += bz::format("0A.{}.", array_t.size);
@@ -428,7 +441,7 @@ bz::u8string typespec::decode_symbol_name(
 	bz::u8string_view::const_iterator end
 )
 {
-	static_assert(typespec_types::size() == 18);
+	static_assert(typespec_types::size() == 19);
 	constexpr bz::u8string_view pointer        = "0P.";
 	constexpr bz::u8string_view optional       = "0O.";
 	constexpr bz::u8string_view reference      = "0R.";
@@ -442,6 +455,8 @@ bz::u8string typespec::decode_symbol_name(
 	constexpr bz::u8string_view array_slice = "0S.";
 	constexpr bz::u8string_view tuple       = "0T.";
 	constexpr bz::u8string_view typename_   = "0N.";
+	constexpr bz::u8string_view global_enum     = "enum.";
+	constexpr bz::u8string_view non_global_enum = "non_global_enum.";
 
 	auto const parse_int = [](bz::u8string_view str) {
 		uint64_t result = 0;
@@ -560,6 +575,18 @@ bz::u8string typespec::decode_symbol_name(
 			result += "typename";
 			break;
 		}
+		else if (symbol_name.starts_with(global_enum))
+		{
+			auto const begin = bz::u8string_view::const_iterator(it.data() + global_enum.size());
+			result += bz::u8string_view(begin, end);
+			break;
+		}
+		else if (symbol_name.starts_with(non_global_enum))
+		{
+			auto const begin = bz::u8string_view::const_iterator(it.data() + non_global_enum.size());
+			result += bz::u8string_view(begin, end);
+			break;
+		}
 		else
 		{
 			result += type_info::decode_symbol_name(it, end);
@@ -673,7 +700,7 @@ bz::u8string bz::formatter<ast::typespec>::format(ast::typespec const &typespec,
 
 bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typespec, bz::u8string_view)
 {
-	static_assert(ast::typespec_types::size() == 18);
+	static_assert(ast::typespec_types::size() == 19);
 	if (typespec.is_empty())
 	{
 		return "<error-type>";
@@ -721,6 +748,9 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 		},
 		[&](ast::ts_base_type const &base_type) {
 			result += base_type.info->get_typename_as_string();
+		},
+		[&](ast::ts_enum const &enum_type) {
+			result += enum_type.decl->id.format_as_unqualified();
 		},
 		[&](ast::ts_void const &) {
 			result += "void";
