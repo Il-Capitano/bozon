@@ -107,6 +107,7 @@ struct token
 		kw_operator,         // operator
 		kw_class,            // class
 		kw_struct,           // struct
+		kw_enum,             // enum
 		kw_typename,         // typename
 		kw_type,             // type
 		kw_namespace,        // namespace
