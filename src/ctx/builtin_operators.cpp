@@ -1,5 +1,4 @@
 #include "builtin_operators.h"
-#include "global_context.h"
 #include "parse_context.h"
 #include "token_info.h"
 #include "resolve/consteval.h"
