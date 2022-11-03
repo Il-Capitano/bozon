@@ -1425,6 +1425,38 @@ struct decl_struct
 	lex::token_pos get_tokens_end(void) const;
 };
 
+struct decl_enum
+{
+	struct name_value_pair
+	{
+		lex::token_pos id;
+		bz::variant<int64_t, uint64_t> value;
+		ast::expression value_expr;
+	};
+
+	lex::src_tokens src_tokens;
+	enclosing_scope_t enclosing_scope;
+	identifier id;
+	typespec   underlying_type;
+	arena_vector<name_value_pair> values;
+	resolve_state state;
+
+	decl_enum(
+		lex::src_tokens const &_src_tokens,
+		enclosing_scope_t _enclosing_scope,
+		identifier _id,
+		typespec _underlying_type,
+		arena_vector<name_value_pair> _values
+	)
+		: src_tokens(_src_tokens),
+		  enclosing_scope(_enclosing_scope),
+		  id(std::move(_id)),
+		  underlying_type(std::move(_underlying_type)),
+		  values(std::move(_values)),
+		  state(resolve_state::none)
+	{}
+};
+
 struct decl_import
 {
 	identifier id;
@@ -1451,6 +1483,7 @@ def_make_fn(statement, decl_operator)
 def_make_fn(statement, decl_function_alias)
 def_make_fn(statement, decl_type_alias)
 def_make_fn(statement, decl_struct)
+def_make_fn(statement, decl_enum)
 def_make_fn(statement, decl_import)
 
 def_make_fn(statement, stmt_while)

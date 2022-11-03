@@ -266,6 +266,9 @@ static bool is_statement_noreturn(ast::statement const &stmt)
 		[](ast::decl_struct const &) {
 			return false;
 		},
+		[](ast::decl_enum const &) {
+			return false;
+		},
 		[](ast::decl_import const &) {
 			return false;
 		},

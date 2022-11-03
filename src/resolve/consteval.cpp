@@ -4602,6 +4602,7 @@ void consteval_try_without_error_decl(ast::statement &stmt, ctx::parse_context &
 				}
 			}
 		},
+		[](ast::decl_enum &) {},
 		[](ast::decl_import &) {},
 	});
 }
