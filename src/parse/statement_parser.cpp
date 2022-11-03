@@ -1108,6 +1108,9 @@ ast::statement parse_decl_enum(
 
 	if constexpr (scope == parse_scope::global || scope == parse_scope::struct_body)
 	{
+		bz_assert(result.is<ast::decl_enum>());
+		auto &enum_decl = result.get<ast::decl_enum>();
+		enum_decl.flags |= ast::decl_enum::global;
 		return result;
 	}
 	else
@@ -1270,6 +1273,9 @@ ast::statement parse_export_statement(
 			},
 			[](ast::decl_struct &struct_decl) {
 				struct_decl.info.flags |= ast::type_info::module_export;
+			},
+			[](ast::decl_enum &enum_decl) {
+				enum_decl.flags |= ast::decl_enum::module_export;
 			},
 			[&](auto const &) {
 				context.report_error(after_export_token, "invalid statement to be exported");

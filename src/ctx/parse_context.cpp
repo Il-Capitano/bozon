@@ -1808,6 +1808,28 @@ static ast::expression make_type_expression(
 	}
 }
 
+static ast::expression make_enum_type_expression(
+	lex::src_tokens const &src_tokens,
+	ast::identifier id,
+	ast::decl_enum *decl
+)
+{
+	if (decl->state != ast::resolve_state::error)
+	{
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::type_name,
+			ast::make_typename_typespec(nullptr),
+			ast::constant_value(ast::make_enum_typespec(src_tokens, decl)),
+			ast::make_expr_identifier(std::move(id))
+		);
+	}
+	else
+	{
+		return ast::make_error_expression(src_tokens, ast::make_expr_identifier(std::move(id)));
+	}
+}
+
 static ast::expression make_type_alias_expression(
 	lex::src_tokens const &src_tokens,
 	ast::identifier id,
@@ -1838,12 +1860,13 @@ using symbol_t = bz::variant<
 	ast::decl_function_alias *,
 	function_overload_set_decls,
 	ast::decl_type_alias *,
-	ast::decl_struct *
+	ast::decl_struct *,
+	ast::decl_enum *
 >;
 
 static symbol_t symbol_ref_from_local_symbol(ast::local_symbol_t const &symbol)
 {
-	static_assert(ast::local_symbol_t::variant_count == 6);
+	static_assert(ast::local_symbol_t::variant_count == 7);
 	switch (symbol.index())
 	{
 	case ast::local_symbol_t::index_of<ast::decl_variable *>:
@@ -1861,6 +1884,8 @@ static symbol_t symbol_ref_from_local_symbol(ast::local_symbol_t const &symbol)
 		return symbol.get_type_alias();
 	case ast::local_symbol_t::index_of<ast::decl_struct *>:
 		return symbol.get_struct();
+	case ast::local_symbol_t::index_of<ast::decl_enum *>:
+		return symbol.get_enum();
 	default:
 		bz_unreachable;
 	}
@@ -1875,7 +1900,7 @@ static ast::expression expression_from_symbol(
 	parse_context &context
 )
 {
-	static_assert(symbol_t::variant_count == 7);
+	static_assert(symbol_t::variant_count == 8);
 
 	switch (symbol.index())
 	{
@@ -1968,6 +1993,8 @@ static ast::expression expression_from_symbol(
 	}
 	case symbol_t::index_of<ast::decl_struct *>:
 		return make_type_expression(src_tokens, std::move(id), symbol.get<ast::decl_struct *>(), context);
+	case symbol_t::index_of<ast::decl_enum *>:
+		return make_enum_type_expression(src_tokens, std::move(id), symbol.get<ast::decl_enum *>());
 	default:
 		bz_unreachable;
 	}
@@ -1975,7 +2002,7 @@ static ast::expression expression_from_symbol(
 
 static source_highlight get_ambiguous_note(symbol_t const &symbol)
 {
-	static_assert(symbol_t::variant_count == 7);
+	static_assert(symbol_t::variant_count == 8);
 	switch (symbol.index())
 	{
 	case symbol_t::index_of<ast::decl_variable *>:
@@ -2043,6 +2070,14 @@ static source_highlight get_ambiguous_note(symbol_t const &symbol)
 		return parse_context::make_note(
 			struct_decl->info.src_tokens,
 			bz::format("it may refer to the type 'struct {}'", struct_decl->id.format_as_unqualified())
+		);
+	}
+	case symbol_t::index_of<ast::decl_enum *>:
+	{
+		auto const enum_decl = symbol.get<ast::decl_enum *>();
+		return parse_context::make_note(
+			enum_decl->src_tokens,
+			bz::format("it may refer to the type 'enum {}'", enum_decl->id.format_as_unqualified())
 		);
 	}
 	default:
@@ -2156,6 +2191,27 @@ static ast::decl_struct *find_struct_by_qualified_id(
 	}
 }
 
+static ast::decl_enum *find_enum_by_qualified_id(
+	bz::array_view<ast::decl_enum *> enums,
+	ast::identifier const &id
+)
+{
+	auto const it = std::find_if(
+		enums.begin(), enums.end(),
+		[&id](auto const decl) {
+			return decl->id == id;
+		}
+	);
+	if (it != enums.end())
+	{
+		return *it;
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
 static bool unqualified_equals(
 	ast::identifier const &lhs,
 	ast::identifier const &rhs,
@@ -2239,6 +2295,19 @@ static auto get_struct_range_by_unqualified_id(
 )
 {
 	return structs.filter(
+		[&id, id_scope](auto const decl) {
+			return unqualified_equals(decl->id, id, id_scope);
+		}
+	);
+}
+
+static auto get_enum_range_by_unqualified_id(
+	bz::array_view<ast::decl_enum *> enums,
+	ast::identifier const &id,
+	bz::array_view<bz::u8string_view const> id_scope
+)
+{
+	return enums.filter(
 		[&id, id_scope](auto const decl) {
 			return unqualified_equals(decl->id, id, id_scope);
 		}
@@ -2392,6 +2461,34 @@ static void try_find_struct_by_qualified_id(
 	}
 }
 
+static void try_find_enum_by_qualified_id(
+	symbol_t &result,
+	ast::global_scope_t &scope,
+	ast::identifier const &id,
+	parse_context &context
+)
+{
+	auto const enum_decl = find_enum_by_qualified_id(scope.enums, id);
+	if (enum_decl != nullptr && result.not_null())
+	{
+		context.report_error(
+			lex::src_tokens::from_range(id.tokens),
+			bz::format("identifier '{}' is ambiguous", id.as_string()),
+			{
+				get_ambiguous_note(result),
+				context.make_note(
+					enum_decl->src_tokens,
+					bz::format("it may refer to the type 'enum {}'", id.format_as_unqualified())
+				)
+			}
+		);
+	}
+	else if (enum_decl != nullptr)
+	{
+		result = enum_decl;
+	}
+}
+
 static void try_find_function_set_by_unqualified_id(
 	symbol_t &result,
 	ast::global_scope_t &scope,
@@ -2415,7 +2512,7 @@ static void try_find_function_set_by_unqualified_id(
 					)
 					: context.make_note(
 						func_set.alias_decls.front()->src_tokens,
-						bz::format("it may refer to the alias 'function {}'", id.format_as_unqualified())
+						bz::format("it may refer to the alias 'function {}'", func_set.id.format_as_unqualified())
 					)
 				}
 			);
@@ -2450,7 +2547,7 @@ static void try_find_variable_by_unqualified_id(
 					get_ambiguous_note(result),
 					context.make_note(
 						var_decl->src_tokens,
-						bz::format("it may refer to the variable '{}'", id.format_as_unqualified())
+						bz::format("it may refer to the variable '{}'", var_decl->get_id().format_as_unqualified())
 					)
 				}
 			);
@@ -2481,7 +2578,7 @@ static void try_find_variadic_variable_by_unqualified_id(
 					get_ambiguous_note(result),
 					context.make_note(
 						variadic_var_decl.original_decl->src_tokens,
-						bz::format("it may refer to the variable '{}'", id.format_as_unqualified())
+						bz::format("it may refer to the variable '{}'", variadic_var_decl.original_decl->get_id().format_as_unqualified())
 					)
 				}
 			);
@@ -2512,7 +2609,7 @@ static void try_find_type_alias_by_unqualified_id(
 					get_ambiguous_note(result),
 					context.make_note(
 						alias_decl->src_tokens,
-						bz::format("it may refer to the alias 'type {}'", id.format_as_unqualified())
+						bz::format("it may refer to the alias 'type {}'", alias_decl->id.format_as_unqualified())
 					)
 				}
 			);
@@ -2543,7 +2640,7 @@ static void try_find_struct_by_unqualified_id(
 					get_ambiguous_note(result),
 					context.make_note(
 						struct_decl->info.src_tokens,
-						bz::format("it may refer to the type 'struct {}'", id.format_as_unqualified())
+						bz::format("it may refer to the type 'struct {}'", struct_decl->id.format_as_unqualified())
 					)
 				}
 			);
@@ -2552,6 +2649,37 @@ static void try_find_struct_by_unqualified_id(
 		else
 		{
 			result = struct_decl;
+		}
+	}
+}
+
+static void try_find_enum_by_unqualified_id(
+	symbol_t &result,
+	ast::global_scope_t &scope,
+	ast::identifier const &id,
+	parse_context &context
+)
+{
+	for (auto const enum_decl : get_enum_range_by_unqualified_id(scope.enums, id, scope.id_scope))
+	{
+		if (result.not_null())
+		{
+			context.report_error(
+				lex::src_tokens::from_range(id.tokens),
+				bz::format("identifier '{}' is ambiguous", id.as_string()),
+				{
+					get_ambiguous_note(result),
+					context.make_note(
+						enum_decl->src_tokens,
+						bz::format("it may refer to the type 'enum {}'", enum_decl->id.format_as_unqualified())
+					)
+				}
+			);
+			return;
+		}
+		else
+		{
+			result = enum_decl;
 		}
 	}
 }
@@ -2573,11 +2701,14 @@ static symbol_t find_id_in_global_scope(ast::global_scope_t &scope, ast::identif
 
 		symbol_t result;
 
+		static_assert(sizeof (ast::global_scope_t) == 200);
+		static_assert(symbol_t::variant_count == 8);
 		try_find_function_set_by_qualified_id(result, scope, id, context);
 		try_find_variable_by_qualified_id(result, scope, id, context);
 		try_find_variadic_variable_by_qualified_id(result, scope, id, context);
 		try_find_type_alias_by_qualified_id(result, scope, id, context);
 		try_find_struct_by_qualified_id(result, scope, id, context);
+		try_find_enum_by_qualified_id(result, scope, id, context);
 
 		return result;
 	}
@@ -2585,11 +2716,14 @@ static symbol_t find_id_in_global_scope(ast::global_scope_t &scope, ast::identif
 	{
 		symbol_t result;
 
+		static_assert(sizeof (ast::global_scope_t) == 200);
+		static_assert(symbol_t::variant_count == 8);
 		try_find_function_set_by_unqualified_id(result, scope, id, context);
 		try_find_variable_by_unqualified_id(result, scope, id, context);
 		try_find_variadic_variable_by_unqualified_id(result, scope, id, context);
 		try_find_type_alias_by_unqualified_id(result, scope, id, context);
 		try_find_struct_by_unqualified_id(result, scope, id, context);
+		try_find_enum_by_unqualified_id(result, scope, id, context);
 
 		return result;
 	}
@@ -3822,7 +3956,7 @@ static void get_possible_funcs_for_operator_helper(
 		if (scope.scope->is_local())
 		{
 			// we do nothing, because operators can't be local
-			static_assert(ast::local_symbol_t::variant_count == 6);
+			static_assert(ast::local_symbol_t::variant_count == 7);
 			scope = scope.scope->get_local().parent;
 		}
 		else
@@ -3977,7 +4111,7 @@ static void get_possible_funcs_for_operator_helper(
 		if (scope.scope->is_local())
 		{
 			// we do nothing, because operators can't be local
-			static_assert(ast::local_symbol_t::variant_count == 6);
+			static_assert(ast::local_symbol_t::variant_count == 7);
 			scope = scope.scope->get_local().parent;
 		}
 		else

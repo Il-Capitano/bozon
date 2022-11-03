@@ -1023,6 +1023,9 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 				bz_unreachable;
 			}
 		},
+		[&](ast::ts_enum const &enum_type) {
+			result = constant_value_from_generic_value(value, enum_type.decl->underlying_type);
+		},
 		[&](ast::ts_void const &) {
 			result.emplace<ast::constant_value::void_>();
 		},

@@ -62,6 +62,7 @@ struct global_scope_t
 	arena_vector<variadic_var_decl> variadic_variables;
 	arena_vector<decl_type_alias *> type_aliases;
 	arena_vector<decl_struct     *> structs;
+	arena_vector<decl_enum       *> enums;
 
 	void add_variable(decl_variable &var_decl);
 	void add_variable(decl_variable &original_decl, arena_vector<decl_variable *> variadic_decls);
@@ -70,6 +71,7 @@ struct global_scope_t
 	void add_operator(decl_operator &op_decl);
 	void add_type_alias(decl_type_alias &alias_decl);
 	void add_struct(decl_struct &struct_decl);
+	void add_enum(decl_enum &enum_decl);
 
 	enclosing_scope_t parent = {};
 };
@@ -80,7 +82,8 @@ struct local_symbol_t : bz::variant<
 	decl_function *,
 	decl_function_alias *,
 	decl_type_alias *,
-	decl_struct *
+	decl_struct *,
+	decl_enum *
 >
 {
 	identifier const &get_id(void) const;
@@ -104,6 +107,9 @@ struct local_symbol_t : bz::variant<
 	bool is_struct(void) const noexcept
 	{ return this->is<decl_struct *>(); }
 
+	bool is_enum(void) const noexcept
+	{ return this->is<decl_enum *>(); }
+
 	decl_variable *get_variable(void) const noexcept
 	{ bz_assert(this->is_variable()); return this->get<decl_variable *>(); }
 
@@ -121,6 +127,9 @@ struct local_symbol_t : bz::variant<
 
 	decl_struct *get_struct(void) const noexcept
 	{ bz_assert(this->is_struct()); return this->get<decl_struct *>(); }
+
+	decl_enum *get_enum(void) const noexcept
+	{ bz_assert(this->is_enum()); return this->get<decl_enum *>(); }
 };
 
 struct local_scope_t

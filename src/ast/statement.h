@@ -1434,12 +1434,19 @@ struct decl_enum
 		ast::expression value_expr;
 	};
 
+	enum : uint8_t
+	{
+		module_export = bit_at<0>,
+		global        = bit_at<1>,
+	};
+
 	lex::src_tokens src_tokens;
 	enclosing_scope_t enclosing_scope;
 	identifier id;
 	typespec   underlying_type;
 	arena_vector<name_value_pair> values;
 	resolve_state state;
+	uint8_t flags;
 
 	decl_enum(
 		lex::src_tokens const &_src_tokens,
@@ -1453,8 +1460,15 @@ struct decl_enum
 		  id(std::move(_id)),
 		  underlying_type(std::move(_underlying_type)),
 		  values(std::move(_values)),
-		  state(resolve_state::none)
+		  state(resolve_state::none),
+		  flags(0)
 	{}
+
+	bool is_module_export(void) const noexcept
+	{ return (this->flags & module_export) != 0; }
+
+	bool is_global(void) const noexcept
+	{ return (this->flags & global) != 0; }
 };
 
 struct decl_import

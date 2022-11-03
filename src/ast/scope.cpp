@@ -86,8 +86,14 @@ void global_scope_t::add_struct(decl_struct &struct_decl)
 	this->structs.push_back(&struct_decl);
 }
 
+void global_scope_t::add_enum(decl_enum &enum_decl)
+{
+	this->enums.push_back(&enum_decl);
+}
+
 identifier const &local_symbol_t::get_id(void) const
 {
+	static_assert(variant_count == 7);
 	switch (this->index())
 	{
 	case index_of<decl_variable *>:
@@ -102,6 +108,8 @@ identifier const &local_symbol_t::get_id(void) const
 		return this->get<decl_type_alias *>()->id;
 	case index_of<decl_struct *>:
 		return this->get<decl_struct *>()->id;
+	case index_of<decl_enum *>:
+		return this->get<decl_enum *>()->id;
 	default:
 		bz_unreachable;
 	}
@@ -109,6 +117,7 @@ identifier const &local_symbol_t::get_id(void) const
 
 lex::src_tokens const &local_symbol_t::get_src_tokens(void) const
 {
+	static_assert(variant_count == 7);
 	switch (this->index())
 	{
 	case index_of<decl_variable *>:
@@ -123,6 +132,8 @@ lex::src_tokens const &local_symbol_t::get_src_tokens(void) const
 		return this->get<decl_type_alias *>()->src_tokens;
 	case index_of<decl_struct *>:
 		return this->get<decl_struct *>()->info.src_tokens;
+	case index_of<decl_enum *>:
+		return this->get<decl_enum *>()->src_tokens;
 	default:
 		bz_unreachable;
 	}
@@ -130,10 +141,8 @@ lex::src_tokens const &local_symbol_t::get_src_tokens(void) const
 
 local_symbol_t *local_scope_t::find_by_id(identifier const &id, size_t bound) noexcept
 {
-	// bz::log("trying to find '{}'...\n", id.as_string());
 	if (id.is_qualified || id.values.size() != 1)
 	{
-		// bz::log("FAIL 1\n");
 		return nullptr;
 	}
 
@@ -141,18 +150,15 @@ local_symbol_t *local_scope_t::find_by_id(identifier const &id, size_t bound) no
 	auto const it = std::find_if(
 		symbols.rbegin(), symbols.rend(),
 		[&id](auto const &symbol) {
-			// bz::log("testing {}\n", symbol.get_id().as_string());
 			return symbol.get_id() == id;
 		}
 	);
 	if (it != symbols.rend())
 	{
-		// bz::log("SUCCESS\n");
 		return &*it;
 	}
 	else
 	{
-		// bz::log("FAIL 2\n");
 		return nullptr;
 	}
 }
