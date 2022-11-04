@@ -677,6 +677,33 @@ static type_info::decl_function_ptr make_builtin_default_constructor(type_info *
 	return result;
 }
 
+uint64_t decl_enum::get_unique_values_count(void) const
+{
+	if (this->values.empty())
+	{
+		return 0;
+	}
+
+	bz_assert(this->values[0].value.not_null());
+	auto values_vec = [&]() -> arena_vector<uint64_t> {
+		if (this->values[0].value.is<int64_t>())
+		{
+			return this->values
+				.transform([](auto const &value) { return static_cast<uint64_t>(value.value.template get<int64_t>()); })
+				.collect<arena_vector>();
+		}
+		else
+		{
+			return this->values
+				.transform([](auto const &value) { return value.value.template get<uint64_t>(); })
+				.collect<arena_vector>();
+		}
+	}();
+
+	std::sort(values_vec.begin(), values_vec.end());
+	return static_cast<uint64_t>(std::unique(values_vec.begin(), values_vec.end()) - values_vec.begin());
+}
+
 decl_enum::decl_operator_ptr decl_enum::make_default_op_assign(lex::src_tokens const &src_tokens, decl_enum &decl)
 {
 	auto lhs_t = [&]() {

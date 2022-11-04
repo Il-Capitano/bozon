@@ -1489,6 +1489,8 @@ struct decl_enum
 		return this->scope.get_global().parent;
 	}
 
+	uint64_t get_unique_values_count(void) const;
+
 	static decl_operator_ptr make_default_op_assign(lex::src_tokens const &src_tokens, decl_enum &decl);
 	static decl_operator_ptr make_default_compare_op(
 		lex::src_tokens const &src_tokens,
