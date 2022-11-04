@@ -2080,6 +2080,24 @@ static val_ptr emit_builtin_binary_cmp(
 			return val_ptr::get_reference(result_address, result_type);
 		}
 	}
+	else if (lhs_t.is<ast::ts_enum>() && rhs_t.is<ast::ts_enum>())
+	{
+		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
+		auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
+		auto const type_kind = lhs_t.get<ast::ts_enum>().decl->underlying_type.get<ast::ts_base_type>().info->kind;
+		auto const pred = ast::is_signed_integer_kind(type_kind) ? get_cmp_predicate(0) : get_cmp_predicate(1);
+		auto const result_val = context.builder.CreateICmp(pred, lhs_val, rhs_val);
+		if (result_address == nullptr)
+		{
+			return val_ptr::get_value(result_val);
+		}
+		else
+		{
+			auto const result_type = result_val->getType();
+			context.builder.CreateStore(result_val, result_address);
+			return val_ptr::get_reference(result_address, result_type);
+		}
+	}
 	else if (
 		(lhs_t.is<ast::ts_optional>() && rhs_t.is<ast::ts_base_type>())
 		|| (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_optional>())

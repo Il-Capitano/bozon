@@ -709,6 +709,62 @@ decl_enum::decl_operator_ptr decl_enum::make_default_op_assign(lex::src_tokens c
 	return result;
 }
 
+decl_enum::decl_operator_ptr decl_enum::make_default_compare_op(
+	lex::src_tokens const &src_tokens,
+	decl_enum &decl,
+	uint32_t op_kind,
+	typespec result_type
+)
+{
+	auto lhs_t = make_enum_typespec({}, &decl);
+	auto rhs_t = make_enum_typespec({}, &decl);
+
+	auto result = make_ast_unique<decl_operator>();
+	result->body.params.reserve(2);
+	result->body.params.emplace_back(
+		lex::src_tokens{},
+		lex::token_range{},
+		var_id_and_type(identifier{}, type_as_expression(std::move(lhs_t))),
+		enclosing_scope_t{}
+	);
+	result->body.params.emplace_back(
+		lex::src_tokens{},
+		lex::token_range{},
+		var_id_and_type(identifier{}, type_as_expression(std::move(rhs_t))),
+		enclosing_scope_t{}
+	);
+	result->body.return_type = std::move(result_type);
+	result->body.function_name_or_operator_kind = op_kind;
+	result->body.src_tokens = src_tokens;
+	result->body.state = resolve_state::symbol;
+	result->body.flags |= function_body::intrinsic;
+	result->body.flags |= function_body::builtin_operator;
+	switch (op_kind)
+	{
+	case lex::token::equals:
+		result->body.intrinsic_kind = function_body::builtin_binary_equals;
+		break;
+	case lex::token::not_equals:
+		result->body.intrinsic_kind = function_body::builtin_binary_not_equals;
+		break;
+	case lex::token::less_than:
+		result->body.intrinsic_kind = function_body::builtin_binary_less_than;
+		break;
+	case lex::token::less_than_eq:
+		result->body.intrinsic_kind = function_body::builtin_binary_less_than_eq;
+		break;
+	case lex::token::greater_than:
+		result->body.intrinsic_kind = function_body::builtin_binary_greater_than;
+		break;
+	case lex::token::greater_than_eq:
+		result->body.intrinsic_kind = function_body::builtin_binary_greater_than_eq;
+		break;
+	default:
+		bz_unreachable;
+	}
+	return result;
+}
+
 bz::vector<type_info> make_builtin_type_infos(void)
 {
 	bz::vector<type_info> result;

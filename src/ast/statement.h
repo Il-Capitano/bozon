@@ -1446,6 +1446,12 @@ struct decl_enum
 	using decl_operator_ptr = ast_unique_ptr<decl_operator>;
 
 	decl_operator_ptr default_op_assign;
+	decl_operator_ptr default_op_equals;
+	decl_operator_ptr default_op_not_equals;
+	decl_operator_ptr default_op_less_than;
+	decl_operator_ptr default_op_less_than_eq;
+	decl_operator_ptr default_op_greater_than;
+	decl_operator_ptr default_op_greater_than_eq;
 
 	resolve_state state;
 	uint8_t flags;
@@ -1484,6 +1490,12 @@ struct decl_enum
 	}
 
 	static decl_operator_ptr make_default_op_assign(lex::src_tokens const &src_tokens, decl_enum &decl);
+	static decl_operator_ptr make_default_compare_op(
+		lex::src_tokens const &src_tokens,
+		decl_enum &decl,
+		uint32_t op_kind,
+		typespec result_type
+	);
 };
 
 struct decl_import

@@ -2578,9 +2578,51 @@ static void resolve_enum_impl(ast::decl_enum &enum_decl, ctx::parse_context &con
 	}
 
 	enum_decl.default_op_assign = ast::decl_enum::make_default_op_assign(enum_decl.src_tokens, enum_decl);
+	enum_decl.default_op_equals = ast::decl_enum::make_default_compare_op(
+		enum_decl.src_tokens,
+		enum_decl,
+		lex::token::equals,
+		ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_))
+	);
+	enum_decl.default_op_not_equals = ast::decl_enum::make_default_compare_op(
+		enum_decl.src_tokens,
+		enum_decl,
+		lex::token::not_equals,
+		ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_))
+	);
+	enum_decl.default_op_less_than = ast::decl_enum::make_default_compare_op(
+		enum_decl.src_tokens,
+		enum_decl,
+		lex::token::less_than,
+		ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_))
+	);
+	enum_decl.default_op_less_than_eq = ast::decl_enum::make_default_compare_op(
+		enum_decl.src_tokens,
+		enum_decl,
+		lex::token::less_than_eq,
+		ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_))
+	);
+	enum_decl.default_op_greater_than = ast::decl_enum::make_default_compare_op(
+		enum_decl.src_tokens,
+		enum_decl,
+		lex::token::greater_than,
+		ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_))
+	);
+	enum_decl.default_op_greater_than_eq = ast::decl_enum::make_default_compare_op(
+		enum_decl.src_tokens,
+		enum_decl,
+		lex::token::greater_than_eq,
+		ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_))
+	);
 
 	bz_assert(enum_decl.scope.is_global());
 	enum_decl.scope.get_global().add_operator(*enum_decl.default_op_assign);
+	enum_decl.scope.get_global().add_operator(*enum_decl.default_op_equals);
+	enum_decl.scope.get_global().add_operator(*enum_decl.default_op_not_equals);
+	enum_decl.scope.get_global().add_operator(*enum_decl.default_op_less_than);
+	enum_decl.scope.get_global().add_operator(*enum_decl.default_op_less_than_eq);
+	enum_decl.scope.get_global().add_operator(*enum_decl.default_op_greater_than);
+	enum_decl.scope.get_global().add_operator(*enum_decl.default_op_greater_than_eq);
 
 	enum_decl.state = ast::resolve_state::all;
 }
