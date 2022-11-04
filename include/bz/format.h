@@ -2019,12 +2019,12 @@ u8string format(u8string_view fmt, Ts const &...ts)
 	}
 }
 
-enum class float_parse_result : uint32_t
+enum class float_parse_result : int32_t
 {
-	SUCCESS         = 0u,
-	INPUT_TOO_SHORT = 1u,
-	INPUT_TOO_LONG  = 2u,
-	MALFORMED_INPUT = 3u,
+	SUCCESS         = 0,
+	INPUT_TOO_SHORT = 1,
+	INPUT_TOO_LONG  = 2,
+	MALFORMED_INPUT = 3,
 };
 
 extern "C" [[nodiscard]] float_parse_result s2d_str(char const *begin, char const *end, double *result);
