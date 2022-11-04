@@ -1410,7 +1410,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->body.is_null());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 166);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 167);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -1545,6 +1545,28 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		else
 		{
 			return ast::constant_value(type.get<ast::ts_array>().elem_type);
+		}
+	}
+	case ast::function_body::enum_underlying_type:
+	{
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is_type());
+		auto const type = func_call.params[0]
+			.get_constant_value()
+			.get_type();
+		if (!type.is<ast::ts_enum>())
+		{
+			context.report_error(
+				original_expr.src_tokens,
+				bz::format("'__builtin_enum_underlying_type' called on non-enum type '{}'", type)
+			);
+			return ast::constant_value(type);
+		}
+		else
+		{
+			context.resolve_type(original_expr.src_tokens, type.get<ast::ts_enum>().decl);
+			return ast::constant_value(type.get<ast::ts_enum>().decl->underlying_type);
 		}
 	}
 

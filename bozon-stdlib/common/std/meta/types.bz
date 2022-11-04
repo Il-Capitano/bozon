@@ -15,6 +15,7 @@ export function remove_reference      = __builtin_remove_reference;
 export function remove_move_reference = __builtin_remove_move_reference;
 export function slice_value_type      = __builtin_slice_value_type;
 export function array_value_type      = __builtin_array_value_type;
+export function enum_underlying_type  = __builtin_enum_underlying_type;
 
 export function typename_as_str = __builtin_typename_as_str;
 

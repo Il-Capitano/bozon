@@ -270,6 +270,7 @@ export function __builtin_print_stderr(s: str)
 @__builtin export consteval function __builtin_remove_move_reference(T: typename) -> typename;
 @__builtin export consteval function __builtin_slice_value_type(T: typename) -> typename;
 @__builtin export consteval function __builtin_array_value_type(T: typename) -> typename;
+@__builtin export consteval function __builtin_enum_underlying_type(T: typename) -> typename;
 
 @__builtin export consteval function __builtin_is_default_constructible(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_copy_constructible(T: typename) -> bool;
