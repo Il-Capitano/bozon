@@ -677,6 +677,38 @@ static type_info::decl_function_ptr make_builtin_default_constructor(type_info *
 	return result;
 }
 
+decl_enum::decl_operator_ptr decl_enum::make_default_op_assign(lex::src_tokens const &src_tokens, decl_enum &decl)
+{
+	auto lhs_t = [&]() {
+		typespec result = make_enum_typespec({}, &decl);
+		result.add_layer<ts_lvalue_reference>();
+		return result;
+	}();
+	auto rhs_t = make_enum_typespec({}, &decl);
+	auto ret_t = lhs_t;
+
+	auto result = make_ast_unique<decl_operator>();
+	result->body.params.reserve(2);
+	result->body.params.emplace_back(
+		lex::src_tokens{},
+		lex::token_range{},
+		var_id_and_type(identifier{}, type_as_expression(std::move(lhs_t))),
+		enclosing_scope_t{}
+	);
+	result->body.params.emplace_back(
+		lex::src_tokens{},
+		lex::token_range{},
+		var_id_and_type(identifier{}, type_as_expression(std::move(rhs_t))),
+		enclosing_scope_t{}
+	);
+	result->body.return_type = std::move(ret_t);
+	result->body.function_name_or_operator_kind = lex::token::assign;
+	result->body.src_tokens = src_tokens;
+	result->body.state = resolve_state::symbol;
+	result->body.flags |= function_body::default_op_assign;
+	return result;
+}
+
 bz::vector<type_info> make_builtin_type_infos(void)
 {
 	bz::vector<type_info> result;

@@ -2577,6 +2577,11 @@ static void resolve_enum_impl(ast::decl_enum &enum_decl, ctx::parse_context &con
 		current_value += 1;
 	}
 
+	enum_decl.default_op_assign = ast::decl_enum::make_default_op_assign(enum_decl.src_tokens, enum_decl);
+
+	bz_assert(enum_decl.scope.is_global());
+	enum_decl.scope.get_global().add_operator(*enum_decl.default_op_assign);
+
 	enum_decl.state = ast::resolve_state::all;
 }
 
@@ -2593,7 +2598,7 @@ void resolve_enum(ast::decl_enum &enum_decl, ctx::parse_context &context)
 		return;
 	}
 
-	auto prev_scopes = context.push_enclosing_scope(enum_decl.enclosing_scope);
+	auto prev_scopes = context.push_enclosing_scope(enum_decl.get_enclosing_scope());
 	resolve_enum_impl(enum_decl, context);
 	context.pop_enclosing_scope(std::move(prev_scopes));
 }

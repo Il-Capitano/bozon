@@ -1056,9 +1056,6 @@ struct type_info
 	type_info *generic_parent = nullptr;
 	arena_vector<generic_required_from_t> generic_required_from;
 
-//	function_body *move_constructor;
-//	function_body_ptr move_destuctor;
-
 	type_info(lex::src_tokens const &_src_tokens, identifier _type_name, lex::token_range range, enclosing_scope_t _enclosing_scope)
 		: src_tokens(_src_tokens),
 		  kind(range.begin == nullptr ? forward_declaration : aggregate),
@@ -1441,25 +1438,30 @@ struct decl_enum
 	};
 
 	lex::src_tokens src_tokens;
-	enclosing_scope_t enclosing_scope;
 	identifier id;
 	typespec   underlying_type;
 	arena_vector<name_value_pair> values;
+	scope_t scope;
+
+	using decl_operator_ptr = ast_unique_ptr<decl_operator>;
+
+	decl_operator_ptr default_op_assign;
+
 	resolve_state state;
 	uint8_t flags;
 
 	decl_enum(
 		lex::src_tokens const &_src_tokens,
-		enclosing_scope_t _enclosing_scope,
 		identifier _id,
 		typespec _underlying_type,
-		arena_vector<name_value_pair> _values
+		arena_vector<name_value_pair> _values,
+		enclosing_scope_t _enclosing_scope
 	)
 		: src_tokens(_src_tokens),
-		  enclosing_scope(_enclosing_scope),
 		  id(std::move(_id)),
 		  underlying_type(std::move(_underlying_type)),
 		  values(std::move(_values)),
+		  scope(make_global_scope(_enclosing_scope, {})),
 		  state(resolve_state::none),
 		  flags(0)
 	{}
@@ -1469,6 +1471,19 @@ struct decl_enum
 
 	bool is_global(void) const noexcept
 	{ return (this->flags & global) != 0; }
+
+	enclosing_scope_t get_scope(void) noexcept
+	{
+		return { &this->scope, 0 };
+	}
+
+	enclosing_scope_t get_enclosing_scope(void) const noexcept
+	{
+		bz_assert(this->scope.is_global());
+		return this->scope.get_global().parent;
+	}
+
+	static decl_operator_ptr make_default_op_assign(lex::src_tokens const &src_tokens, decl_enum &decl);
 };
 
 struct decl_import

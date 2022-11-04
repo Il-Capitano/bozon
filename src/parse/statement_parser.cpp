@@ -1075,10 +1075,10 @@ static ast::statement parse_decl_enum_impl(
 
 		return ast::make_decl_enum(
 			src_tokens,
-			context.get_current_enclosing_scope(),
 			context.make_qualified_identifier(id),
 			ast::typespec(),
-			std::move(values)
+			std::move(values),
+			context.get_current_enclosing_scope()
 		);
 	}
 	else
@@ -1086,10 +1086,10 @@ static ast::statement parse_decl_enum_impl(
 		context.report_error(stream, "an enum must have a body");
 		return ast::make_decl_enum(
 			src_tokens,
-			context.get_current_enclosing_scope(),
 			context.make_qualified_identifier(id),
 			ast::typespec(),
-			ast::arena_vector<ast::decl_enum::name_value_pair>()
+			ast::arena_vector<ast::decl_enum::name_value_pair>(),
+			context.get_current_enclosing_scope()
 		);
 	}
 }
