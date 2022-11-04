@@ -359,7 +359,7 @@ bool is_trivially_relocatable(typespec_view ts) noexcept
 {
 	return type_property_helper<
 		&type_info::is_trivially_relocatable,
-		false, ts_pointer, ts_array_slice
+		false, ts_enum, ts_pointer, ts_array_slice
 	>(ts);
 }
 
