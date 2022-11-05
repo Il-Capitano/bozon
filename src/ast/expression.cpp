@@ -363,6 +363,23 @@ std::pair<literal_kind, constant_value const &> expression::get_integer_literal_
 	};
 }
 
+bool expression::is_enum_literal(void) const noexcept
+{
+	return is_expr_kind_helper(*this, expression_type_kind::enum_literal);
+}
+
+expr_enum_literal &expression::get_enum_literal(void) noexcept
+{
+	bz_assert(this->is_enum_literal());
+	return get_expr_kind<expr_enum_literal>(*this);
+}
+
+expr_enum_literal const &expression::get_enum_literal(void) const noexcept
+{
+	bz_assert(this->is_enum_literal());
+	return get_expr_kind<expr_enum_literal>(*this);
+}
+
 bool expression::is_null_literal(void) const noexcept
 {
 	return is_expr_kind_helper(*this, expression_type_kind::null_literal);

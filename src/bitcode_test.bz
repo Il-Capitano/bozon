@@ -1855,15 +1855,17 @@ function enum_test()
 {
 	let v: animal_kind = animal_kind.mouse;
 	let _ = v;
-	v = animal_kind.fish;
+	v = .fish;
 
 	let _ = v == animal_kind.dog;
-	static_assert(animal_kind.cat != animal_kind.dog);
+	static_assert(animal_kind.cat != .dog);
+	type T = animal_kind;
+	static_assert(animal_kind.cat == T.cat);
 
 	switch (v)
 	{
-		animal_kind.cat => {},
-		animal_kind.dog => {},
+		.cat => {},
+		.dog => {},
 		else => {}
 	}
 }

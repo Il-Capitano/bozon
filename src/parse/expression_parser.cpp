@@ -570,6 +570,28 @@ static ast::expression parse_primary_expression(
 		++stream;
 		return context.make_literal(literal);
 	}
+	case lex::token::dot:
+	{
+		auto const dot_pos = stream;
+		++stream;
+		if (stream != end && stream->kind == lex::token::identifier)
+		{
+			auto const id = stream;
+			++stream;
+			return ast::make_constant_expression(
+				lex::src_tokens::from_range({ dot_pos, stream }),
+				ast::expression_type_kind::enum_literal,
+				ast::typespec(),
+				ast::constant_value(),
+				ast::make_expr_enum_literal(id)
+			);
+		}
+		else
+		{
+			context.report_error(stream, "expected an identifier after '.'");
+			return parse_primary_expression(stream, end, context);
+		}
+	}
 
 	case lex::token::kw_unreachable:
 	{

@@ -735,6 +735,18 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
+	ast::expr_enum_literal const &,
+	auto &,
+	llvm::Value *
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
 	ast::expr_typed_literal const &,
 	auto &,
 	llvm::Value *

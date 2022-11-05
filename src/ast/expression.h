@@ -18,6 +18,7 @@ struct expression;
 struct expr_identifier;
 struct expr_integer_literal;
 struct expr_null_literal;
+struct expr_enum_literal;
 struct expr_typed_literal;
 struct expr_placeholder_literal;
 struct expr_tuple;
@@ -97,6 +98,7 @@ using expr_t = node<
 	expr_identifier,
 	expr_integer_literal,
 	expr_null_literal,
+	expr_enum_literal,
 	expr_typed_literal,
 	expr_placeholder_literal,
 	expr_tuple,
@@ -246,6 +248,7 @@ enum class expression_type_kind
 	rvalue_reference,
 	integer_literal,
 	null_literal,
+	enum_literal,
 	placeholder_literal,
 	function_name,
 	type_name,
@@ -276,14 +279,16 @@ constexpr bool is_rvalue(expression_type_kind kind)
 		|| kind == expression_type_kind::rvalue_reference
 		|| kind == expression_type_kind::moved_lvalue
 		|| kind == expression_type_kind::integer_literal
-		|| kind == expression_type_kind::null_literal;
+		|| kind == expression_type_kind::null_literal
+		|| kind == expression_type_kind::enum_literal;
 }
 
 constexpr bool is_rvalue_or_literal(expression_type_kind kind)
 {
 	return kind == expression_type_kind::rvalue
 		|| kind == expression_type_kind::integer_literal
-		|| kind == expression_type_kind::null_literal;
+		|| kind == expression_type_kind::null_literal
+		|| kind == expression_type_kind::enum_literal;
 }
 
 struct unresolved_expression
@@ -411,6 +416,10 @@ struct expression : bz::variant<
 	constant_value const &get_integer_literal_value(void) const noexcept;
 	std::pair<literal_kind, constant_value const &> get_integer_literal_kind_and_value(void) const noexcept;
 
+	bool is_enum_literal(void) const noexcept;
+	expr_enum_literal &get_enum_literal(void) noexcept;
+	expr_enum_literal const &get_enum_literal(void) const noexcept;
+
 	bool is_null_literal(void) const noexcept;
 	bool is_placeholder_literal(void) const noexcept;
 
@@ -479,6 +488,15 @@ struct expr_integer_literal
 
 struct expr_null_literal
 {
+};
+
+struct expr_enum_literal
+{
+	lex::token_pos id;
+
+	expr_enum_literal(lex::token_pos _id)
+		: id(_id)
+	{}
 };
 
 struct expr_typed_literal
@@ -1452,6 +1470,7 @@ ret_type make_ ## node_type (Args &&...args)                                   \
 def_make_fn(expr_t, expr_identifier)
 def_make_fn(expr_t, expr_integer_literal)
 def_make_fn(expr_t, expr_null_literal)
+def_make_fn(expr_t, expr_enum_literal)
 def_make_fn(expr_t, expr_typed_literal)
 def_make_fn(expr_t, expr_placeholder_literal)
 def_make_fn(expr_t, expr_tuple)
