@@ -2548,9 +2548,72 @@ static void resolve_enum_impl(ast::decl_enum &enum_decl, ctx::parse_context &con
 {
 	enum_decl.state = ast::resolve_state::resolving_all;
 
-	enum_decl.underlying_type = ast::make_base_type_typespec(enum_decl.src_tokens, context.get_builtin_type_info(ast::type_info::int32_));
+	if (enum_decl.underlying_type.is_empty())
+	{
+		enum_decl.underlying_type = ast::make_base_type_typespec(
+			enum_decl.src_tokens,
+			context.get_builtin_type_info(ast::type_info::int32_)
+		);
+	}
+	else
+	{
+		bz_assert(enum_decl.underlying_type.is<ast::ts_unresolved>());
+		auto const underlying_type_tokens = enum_decl.underlying_type.get<ast::ts_unresolved>().tokens;
+		resolve_typespec(enum_decl.underlying_type, context, precedence{});
 
-	int64_t current_value = 0;
+		if (enum_decl.underlying_type.is<ast::ts_const>() || enum_decl.underlying_type.is<ast::ts_consteval>())
+		{
+			enum_decl.underlying_type.remove_layer();
+		}
+
+		if (
+			enum_decl.underlying_type.is_empty()
+			|| !enum_decl.underlying_type.is<ast::ts_base_type>()
+			|| !ast::is_integer_kind(enum_decl.underlying_type.get<ast::ts_base_type>().info->kind)
+		)
+		{
+			if (enum_decl.underlying_type.not_empty())
+			{
+				context.report_error(
+					lex::src_tokens::from_range(underlying_type_tokens),
+					bz::format("invalid type '{}' for underlying type of enum; it must be an integer type", enum_decl.underlying_type)
+				);
+			}
+			enum_decl.underlying_type = ast::make_base_type_typespec(
+				enum_decl.src_tokens,
+				context.get_builtin_type_info(ast::type_info::int32_)
+			);
+		}
+	}
+
+	auto const [max_value, is_signed] = [&]() -> std::pair<uint64_t, bool> {
+		auto const kind = enum_decl.underlying_type.get<ast::ts_base_type>().info->kind;
+		switch (kind)
+		{
+		case ast::type_info::int8_:
+			return { static_cast<uint64_t>(std::numeric_limits<int8_t>::max()), true };
+		case ast::type_info::int16_:
+			return { static_cast<uint64_t>(std::numeric_limits<int16_t>::max()), true };
+		case ast::type_info::int32_:
+			return { static_cast<uint64_t>(std::numeric_limits<int32_t>::max()), true };
+		case ast::type_info::int64_:
+			return { static_cast<uint64_t>(std::numeric_limits<int64_t>::max()), true };
+		case ast::type_info::uint8_:
+			return { std::numeric_limits<uint8_t>::max(), false };
+		case ast::type_info::uint16_:
+			return { std::numeric_limits<uint16_t>::max(), false };
+		case ast::type_info::uint32_:
+			return { std::numeric_limits<uint32_t>::max(), false };
+		case ast::type_info::uint64_:
+			return { std::numeric_limits<uint64_t>::max(), false };
+		default:
+			bz_unreachable;
+		}
+	}();
+	auto const min_value = is_signed ? (max_value + 1) : 0; // max_value + 1 will give the 2's complement representation of min_value
+
+	uint64_t current_value = 0;
+	bool prev_was_max_value = false;
 	for (auto &[id, value, value_expr] : enum_decl.values)
 	{
 		if (value_expr.not_null())
@@ -2568,13 +2631,42 @@ static void resolve_enum_impl(ast::decl_enum &enum_decl, ctx::parse_context &con
 			}
 			else
 			{
-				bz_assert(value_expr.get_constant_value().is_sint());
-				current_value = value_expr.get_constant_value().get_sint();
+				bz_assert(value_expr.get_constant_value().is_sint() || value_expr.get_constant_value().is_uint());
+				current_value = value_expr.get_constant_value().is_sint()
+					? static_cast<uint64_t>(value_expr.get_constant_value().get_sint())
+					: value_expr.get_constant_value().get_uint();
 			}
 		}
+		else if (prev_was_max_value)
+		{
+			context.report_warning(
+				ctx::warning_kind::enum_value_overflow,
+				id,
+				is_signed
+					? bz::format("implicit enum value overflowed from {} to {}", max_value, static_cast<int64_t>(min_value))
+					: bz::format("implicit enum value overflowed from {} to {}", max_value, min_value)
+			);
+		}
 
-		value = current_value;
-		current_value += 1;
+		if (is_signed)
+		{
+			value = static_cast<int64_t>(current_value);
+		}
+		else
+		{
+			value = static_cast<uint64_t>(current_value);
+		}
+
+		if (current_value == max_value)
+		{
+			current_value = min_value;
+			prev_was_max_value = true;
+		}
+		else
+		{
+			current_value += 1;
+			prev_was_max_value = false;
+		}
 	}
 
 	enum_decl.default_op_assign = ast::decl_enum::make_default_op_assign(enum_decl.src_tokens, enum_decl);

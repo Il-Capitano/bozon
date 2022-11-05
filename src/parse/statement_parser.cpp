@@ -1048,6 +1048,16 @@ static ast::statement parse_decl_enum_impl(
 	auto const id = context.assert_token(stream, lex::token::identifier);
 	auto const src_tokens = lex::src_tokens{ begin_token, (id == stream ? begin_token : id), stream };
 
+	ast::typespec underlying_type;
+	if (stream != end && stream->kind == lex::token::colon)
+	{
+		++stream;
+		auto const underlying_type_tokens = get_expression_tokens<
+			lex::token::curly_open
+		>(stream, end, context);
+		underlying_type = ast::make_unresolved_typespec(underlying_type_tokens);
+	}
+
 	if (stream != end && stream->kind == lex::token::curly_open)
 	{
 		++stream; // '{'
@@ -1076,7 +1086,7 @@ static ast::statement parse_decl_enum_impl(
 		return ast::make_decl_enum(
 			src_tokens,
 			context.make_qualified_identifier(id),
-			ast::typespec(),
+			std::move(underlying_type),
 			std::move(values),
 			context.get_current_enclosing_scope()
 		);
@@ -1087,7 +1097,7 @@ static ast::statement parse_decl_enum_impl(
 		return ast::make_decl_enum(
 			src_tokens,
 			context.make_qualified_identifier(id),
-			ast::typespec(),
+			std::move(underlying_type),
 			ast::arena_vector<ast::decl_enum::name_value_pair>(),
 			context.get_current_enclosing_scope()
 		);

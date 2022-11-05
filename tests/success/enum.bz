@@ -28,3 +28,10 @@ function test()
 	v = E.b;
 	v = .c;
 }
+
+enum E1: int32 {}
+static_assert(__builtin_enum_underlying_type(E1) == int32);
+enum E2: uint32 {}
+static_assert(__builtin_enum_underlying_type(E2) == uint32);
+enum E3: uint8 {}
+static_assert(__builtin_enum_underlying_type(E3) == uint8);

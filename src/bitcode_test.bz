@@ -1842,7 +1842,7 @@ function optional_test()
 	});
 }
 
-enum animal_kind
+enum animal_kind: uint32
 {
 	cat,
 	dog,

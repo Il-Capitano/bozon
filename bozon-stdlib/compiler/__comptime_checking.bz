@@ -3,8 +3,8 @@ import ::std::unicode;
 @__no_runtime_emit consteval warning_kind_int_overflow      = 0u32;
 @__no_runtime_emit consteval warning_kind_float_nan_math    = 4u32;
 @__no_runtime_emit consteval warning_kind_math_domain_error = 17u32;
-@__no_runtime_emit consteval warning_kind_comptime_warning  = 24u32;
-@__no_runtime_emit consteval warning_kind_error             = 25u32;
+@__no_runtime_emit consteval warning_kind_comptime_warning  = 25u32;
+@__no_runtime_emit consteval warning_kind_error             = 26u32;
 
 @__no_runtime_emit consteval inf_f32 = ((1.0f32 / 0.0f32));
 @__no_runtime_emit consteval inf_f64 = ((1.0 / 0.0));
