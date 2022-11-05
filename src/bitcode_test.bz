@@ -1837,4 +1837,8 @@ function optional_test()
 		s = std::string("Hi");
 		s = null;
 	});
+
+	let i = 0;
+	let p = &i;
+	(p + 0) == null;
 }

@@ -4349,15 +4349,22 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	bz_assert(result_address != nullptr);
 	auto const result_type = get_llvm_type(optional_cast.type, context);
-	auto const result_val = val_ptr::get_reference(result_address, result_type);
-	auto const value_ptr = optional_get_value_ptr(result_val, context);
+	if (result_type->isPointerTy())
+	{
+		return emit_bitcode<abi>(optional_cast.expr, context, result_address);
+	}
+	else
+	{
+		bz_assert(result_address != nullptr);
+		auto const result_val = val_ptr::get_reference(result_address, result_type);
+		auto const value_ptr = optional_get_value_ptr(result_val, context);
 
-	emit_bitcode<abi>(optional_cast.expr, context, value_ptr.val);
-	optional_set_has_value(result_val, true, context);
+		emit_bitcode<abi>(optional_cast.expr, context, value_ptr.val);
+		optional_set_has_value(result_val, true, context);
 
-	return result_val;
+		return result_val;
+	}
 }
 
 template<abi::platform_abi abi>
