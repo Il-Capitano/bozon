@@ -6514,7 +6514,7 @@ static llvm::Constant *get_value_helper(
 {
 	switch (value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 20);
+	static_assert(ast::constant_value::variant_count == 21);
 	case ast::constant_value::sint:
 		bz_assert(!type.is_empty());
 		return llvm::ConstantInt::get(
@@ -6589,6 +6589,16 @@ static llvm::Constant *get_value_helper(
 		}
 	case ast::constant_value::void_:
 		return nullptr;
+	case ast::constant_value::enum_:
+	{
+		auto const [decl, enum_value] = value.get_enum();
+		auto const is_signed = ast::is_signed_integer_kind(decl->underlying_type.get<ast::ts_base_type>().info->kind);
+		return llvm::ConstantInt::get(
+			get_llvm_type(decl->underlying_type, context),
+			enum_value,
+			is_signed
+		);
+	}
 	case ast::constant_value::array:
 	{
 		auto const array_type = ast::remove_const_or_consteval(type);

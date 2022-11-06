@@ -560,7 +560,7 @@ static ast::expression resolve_expr(
 				{
 					switch (rhs_value.kind())
 					{
-					static_assert(ast::constant_value::variant_count == 20);
+					static_assert(ast::constant_value::variant_count == 21);
 					case ast::constant_value::sint:
 						context.report_error(
 							rhs.src_tokens,
@@ -589,6 +589,13 @@ static ast::expression resolve_expr(
 						context.report_error(
 							rhs.src_tokens,
 							bz::format("duplicate value '{}' in switch expression", lhs_value.get_boolean()),
+							{ context.make_note(lhs.src_tokens, "value previously used here") }
+						);
+						break;
+					case ast::constant_value::enum_:
+						context.report_error(
+							rhs.src_tokens,
+							bz::format("duplicate value '{}' in switch expression", get_value_string(lhs_value)),
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
 						break;
@@ -769,7 +776,7 @@ static ast::expression resolve_expr(
 				ast::constant_value const &size_value = size.get_constant_value();
 				switch (size_value.kind())
 				{
-				static_assert(ast::constant_value::variant_count == 20);
+				static_assert(ast::constant_value::variant_count == 21);
 				case ast::constant_value::sint:
 				{
 					auto const value = size_value.get_sint();

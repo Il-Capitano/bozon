@@ -704,6 +704,50 @@ uint64_t decl_enum::get_unique_values_count(void) const
 	return static_cast<uint64_t>(std::unique(values_vec.begin(), values_vec.end()) - values_vec.begin());
 }
 
+bz::u8string_view decl_enum::get_value_name(uint64_t value) const
+{
+	if (this->values.empty())
+	{
+		return "";
+	}
+
+	auto const is_signed = this->values[0].value.is<int64_t>();
+	if (is_signed)
+	{
+		auto const it = std::find_if(
+			this->values.begin(), this->values.end(),
+			[signed_value = bit_cast<int64_t>(value)](auto const &enum_value) {
+				return enum_value.value.template get<int64_t>() == signed_value;
+			}
+		);
+		if (it == this->values.end())
+		{
+			return "";
+		}
+		else
+		{
+			return it->id->value;
+		}
+	}
+	else
+	{
+		auto const it = std::find_if(
+			this->values.begin(), this->values.end(),
+			[value](auto const &enum_value) {
+				return enum_value.value.template get<uint64_t>() == value;
+			}
+		);
+		if (it == this->values.end())
+		{
+			return "";
+		}
+		else
+		{
+			return it->id->value;
+		}
+	}
+}
+
 decl_enum::decl_operator_ptr decl_enum::make_default_op_assign(lex::src_tokens const &src_tokens, decl_enum &decl)
 {
 	auto lhs_t = [&]() {

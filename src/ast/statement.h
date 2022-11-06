@@ -1491,6 +1491,7 @@ struct decl_enum
 	}
 
 	uint64_t get_unique_values_count(void) const;
+	bz::u8string_view get_value_name(uint64_t value) const;
 
 	static decl_operator_ptr make_default_op_assign(lex::src_tokens const &src_tokens, decl_enum &decl);
 	static decl_operator_ptr make_default_compare_op(

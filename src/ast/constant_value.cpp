@@ -62,7 +62,7 @@ bz::u8string get_value_string(constant_value const &value)
 {
 	switch (value.kind())
 	{
-	static_assert(constant_value::variant_count == 20);
+	static_assert(constant_value::variant_count == 21);
 	case constant_value::sint:
 		return bz::format("{}", value.get_sint());
 	case constant_value::uint:
@@ -81,6 +81,28 @@ bz::u8string get_value_string(constant_value const &value)
 		return "null";
 	case constant_value::void_:
 		return "void()";
+	case constant_value::enum_:
+	{
+		auto const [decl, enum_value] = value.get_enum();
+		auto const value_name = decl->get_value_name(enum_value);
+		auto const type_name = decl->id.format_as_unqualified();
+		if (value_name != "")
+		{
+			return bz::format("{}.{}", type_name, value_name);
+		}
+		else
+		{
+			auto const kind = decl->underlying_type.get<ast::ts_base_type>().info->kind;
+			if (ast::is_signed_integer_kind(kind))
+			{
+				return bz::format("{}({})", type_name, bit_cast<int64_t>(enum_value));
+			}
+			else
+			{
+				return bz::format("{}({})", type_name, enum_value);
+			}
+		}
+	}
 	case constant_value::array:
 		return get_aggregate_like_value_string(value.get_array());
 	case constant_value::sint_array:
@@ -186,7 +208,7 @@ void constant_value::encode_for_symbol_name(bz::u8string &out, constant_value co
 {
 	switch (value.kind())
 	{
-	static_assert(constant_value::variant_count == 20);
+	static_assert(constant_value::variant_count == 21);
 	case sint:
 		out += 'i';
 		out += bz::format("{}", bit_cast<uint64_t>(value.get_sint()));
@@ -226,6 +248,31 @@ void constant_value::encode_for_symbol_name(bz::u8string &out, constant_value co
 	case void_:
 		out += 'v';
 		break;
+	case enum_:
+	{
+		auto const [decl, enum_value] = value.get_enum();
+		out += 'e';
+		out += decl->id.format_as_unqualified();
+		out += '.';
+		auto const value_name = decl->get_value_name(enum_value);
+		if (value_name != "")
+		{
+			out += bz::format("{}.{}", value_name.size(), value_name);
+		}
+		else
+		{
+			auto const is_signed = is_signed_integer_kind(decl->underlying_type.get<ast::ts_base_type>().info->kind);
+			if (is_signed)
+			{
+				out += bz::format("0{}", enum_value);
+			}
+			else
+			{
+				out += bz::format("{}", enum_value);
+			}
+		}
+		break;
+	}
 	case array:
 		out += 'A';
 		encode_array_like(out, value.get_array());
@@ -429,6 +476,7 @@ static void decode_float64_array(
 
 bz::u8string constant_value::decode_from_symbol_name(bz::u8string_view::const_iterator &it, bz::u8string_view::const_iterator end)
 {
+	static_assert(constant_value::variant_count == 21);
 	switch (*it)
 	{
 	case 'i':
@@ -468,7 +516,35 @@ bz::u8string constant_value::decode_from_symbol_name(bz::u8string_view::const_it
 	case 'n':
 		return "null";
 	case 'v':
-		return "void";
+		return "void()";
+	case 'e':
+	{
+		++it;
+		auto const dot = bz::u8string_view(it, end).find('.');
+		auto const type_name = bz::u8string_view(it, dot);
+		it = dot + 1;
+		auto const c = *it;
+		if (c >= '0' && c <= '9')
+		{
+			auto const value = parse_int<uint64_t>(it, end);
+			if (c == '0')
+			{
+				return bz::format("{}({})", type_name, bit_cast<int64_t>(value));
+			}
+			else
+			{
+				return bz::format("{}({})", type_name, value);
+			}
+		}
+		else
+		{
+			auto const value_name_size = parse_int<size_t>(it, end);
+			auto const value_name_end_it = bz::u8string_view::const_iterator(it.data() + value_name_size);
+			auto const value_name = bz::u8string_view(it, value_name_end_it);
+			it = value_name_end_it;
+			return bz::format("{}.{}", type_name, value_name);
+		}
+	}
 	case 'A':
 	{
 		++it;
@@ -553,7 +629,7 @@ bool operator == (constant_value const &lhs, constant_value const &rhs) noexcept
 	}
 	switch (lhs.kind())
 	{
-	static_assert(constant_value::variant_count == 20);
+	static_assert(constant_value::variant_count == 21);
 	case constant_value::sint:
 		return lhs.get_sint() == rhs.get_sint();
 	case constant_value::uint:
@@ -572,6 +648,12 @@ bool operator == (constant_value const &lhs, constant_value const &rhs) noexcept
 		return true;
 	case constant_value::void_:
 		return true;
+	case constant_value::enum_:
+	{
+		auto const [lhs_decl, lhs_value] = lhs.get_enum();
+		auto const [rhs_decl, rhs_value] = rhs.get_enum();
+		return lhs_decl == rhs_decl && lhs_value == rhs_value;
+	}
 	case constant_value::array:
 		return lhs.get_array() == rhs.get_array();
 	case constant_value::sint_array:

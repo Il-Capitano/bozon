@@ -5200,8 +5200,8 @@ ast::expression parse_context::make_member_access_expression(
 			{
 				bz_assert(result_it->value.not_null());
 				auto value = result_it->value.is<int64_t>()
-					? ast::constant_value(result_it->value.get<int64_t>())
-					: ast::constant_value(result_it->value.get<uint64_t>());
+					? ast::constant_value::get_enum(decl, result_it->value.get<int64_t>())
+					: ast::constant_value::get_enum(decl, result_it->value.get<uint64_t>());
 				return ast::make_constant_expression(
 					src_tokens,
 					ast::expression_type_kind::rvalue, type,

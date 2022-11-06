@@ -2947,8 +2947,8 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 				expr.src_tokens,
 				ast::expression_type_kind::rvalue, dest,
 				value.value.template is<int64_t>()
-					? ast::constant_value(value.value.template get<int64_t>())
-					: ast::constant_value(value.value.template get<uint64_t>()),
+					? ast::constant_value::get_enum(decl, value.value.template get<int64_t>())
+					: ast::constant_value::get_enum(decl, value.value.template get<uint64_t>()),
 				ast::make_expr_enum_literal(expr.get_enum_literal().id)
 			);
 			return true;
