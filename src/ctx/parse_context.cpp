@@ -3350,7 +3350,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 			src_tokens,
 			ast::expression_type_kind::null_literal,
 			ast::make_base_type_typespec(src_tokens, this->get_builtin_type_info(ast::type_info::null_t_)),
-			ast::constant_value(ast::internal::null_t{}),
+			ast::constant_value::get_null(),
 			ast::make_expr_null_literal()
 		);
 	case lex::token::placeholder_literal:
@@ -5586,7 +5586,7 @@ static ast::expression make_builtin_default_construction(
 			case ast::type_info::bool_:
 				return ast::constant_value(bool());
 			case ast::type_info::null_t_:
-				return ast::constant_value(ast::internal::null_t());
+				return ast::constant_value::get_null();
 			default:
 				bz_unreachable;
 			}

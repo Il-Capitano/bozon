@@ -990,7 +990,7 @@ ast::expression make_builtin_cast(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 			std::move(dest_t_copy),
-			ast::constant_value(ast::internal::null_t{}),
+			ast::constant_value::get_null(),
 			ast::make_expr_cast(std::move(expr), std::move(dest_type))
 		);
 	}

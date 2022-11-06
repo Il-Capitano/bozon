@@ -220,6 +220,9 @@ struct constant_value : constant_value_base_t
 	static constant_value get_void(void)
 	{ return constant_value(internal::void_t{}); }
 
+	static constant_value get_null(void)
+	{ return constant_value(internal::null_t{}); }
+
 	static void encode_for_symbol_name(bz::u8string &out, constant_value const &value);
 	static bz::u8string decode_from_symbol_name(bz::u8string_view::const_iterator &it, bz::u8string_view::const_iterator end);
 	static bz::u8string decode_from_symbol_name(bz::u8string_view str)

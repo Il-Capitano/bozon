@@ -1682,7 +1682,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	case ast::function_body::bool_default_constructor:
 		return ast::constant_value(bool());
 	case ast::function_body::null_t_default_constructor:
-		return ast::constant_value(ast::internal::null_t());
+		return ast::constant_value::get_null();
 
 	case ast::function_body::builtin_unary_plus:
 	{
@@ -1886,7 +1886,7 @@ static ast::constant_value get_default_constructed_value(
 	{
 		return type.modifiers[0].visit(bz::overload{
 			[](ast::ts_optional const &) -> ast::constant_value {
-				return ast::constant_value(ast::internal::null_t{});
+				return ast::constant_value::get_null();
 			},
 			[](auto const &) -> ast::constant_value {
 				bz_unreachable;
@@ -1961,7 +1961,7 @@ static ast::constant_value get_default_constructed_value(
 					case ast::type_info::bool_:
 						return ast::constant_value(bool());
 					case ast::type_info::null_t_:
-						return ast::constant_value(ast::internal::null_t{});
+						return ast::constant_value::get_null();
 
 					default:
 						bz_unreachable;
@@ -2758,7 +2758,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 		[&expr, &context](ast::expr_optional_default_construct &optional_default_construct_expr) -> ast::constant_value {
 			if (context.is_trivially_destructible(expr.src_tokens, optional_default_construct_expr.type))
 			{
-				return ast::constant_value(ast::internal::null_t());
+				return ast::constant_value::get_null();
 			}
 			else
 			{
@@ -3422,7 +3422,7 @@ static ast::constant_value try_evaluate_expr(
 		[&expr, &context](ast::expr_optional_default_construct &optional_default_construct_expr) -> ast::constant_value {
 			if (context.is_trivially_destructible(expr.src_tokens, optional_default_construct_expr.type))
 			{
-				return ast::constant_value(ast::internal::null_t());
+				return ast::constant_value::get_null();
 			}
 			else
 			{
@@ -4089,7 +4089,7 @@ static ast::constant_value try_evaluate_expr_without_error(
 		[&expr, &context](ast::expr_optional_default_construct &optional_default_construct_expr) -> ast::constant_value {
 			if (context.is_trivially_destructible(expr.src_tokens, optional_default_construct_expr.type))
 			{
-				return ast::constant_value(ast::internal::null_t());
+				return ast::constant_value::get_null();
 			}
 			else
 			{
