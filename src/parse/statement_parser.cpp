@@ -1077,6 +1077,20 @@ static ast::statement parse_decl_enum_impl(
 				break;
 			}
 
+			auto const duplicate_it = std::find_if(
+				values.begin(), values.end() - 1,
+				[current_id = values.back().id->value](auto const &value) { return value.id->value == current_id; }
+			);
+			if (duplicate_it != values.end() - 1)
+			{
+				context.report_error(
+					values.back().id,
+					bz::format("duplicate enum member name '{}'", duplicate_it->id->value),
+					{ context.make_note(duplicate_it->id, "member was previously defined here") }
+				);
+				values.pop_back();
+			}
+
 			if (inner_stream != inner_end)
 			{
 				context.assert_token(inner_stream, lex::token::comma);
