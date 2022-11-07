@@ -2863,7 +2863,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 167);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 168);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -3528,6 +3528,7 @@ static val_ptr emit_bitcode(
 		case ast::function_body::is_move_reference:
 		case ast::function_body::is_slice:
 		case ast::function_body::is_array:
+		case ast::function_body::is_enum:
 		case ast::function_body::remove_const:
 		case ast::function_body::remove_consteval:
 		case ast::function_body::remove_pointer:

@@ -548,6 +548,7 @@ struct function_body
 		is_move_reference,
 		is_slice,
 		is_array,
+		is_enum,
 
 		remove_const,
 		remove_consteval,
@@ -1576,7 +1577,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 167);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 168);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1649,6 +1650,7 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::is_move_reference, "__builtin_is_move_reference" },
 		{ function_body::is_slice,          "__builtin_is_slice"          },
 		{ function_body::is_array,          "__builtin_is_array"          },
+		{ function_body::is_enum,           "__builtin_is_enum"           },
 
 		{ function_body::remove_const,          "__builtin_remove_const"          },
 		{ function_body::remove_consteval,      "__builtin_remove_consteval"      },

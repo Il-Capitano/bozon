@@ -1851,6 +1851,9 @@ enum animal_kind: uint32
 	pidgeon
 }
 
+static_assert(std::meta::is_enum(animal_kind));
+static_assert(!std::meta::is_enum(int32));
+
 function enum_test()
 {
 	let v: animal_kind = animal_kind.mouse;

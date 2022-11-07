@@ -261,6 +261,7 @@ export function __builtin_print_stderr(s: str)
 @__builtin export consteval function __builtin_is_move_reference(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_slice(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_array(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_enum(T: typename) -> bool;
 
 @__builtin export consteval function __builtin_remove_const(T: typename) -> typename;
 @__builtin export consteval function __builtin_remove_consteval(T: typename) -> typename;
