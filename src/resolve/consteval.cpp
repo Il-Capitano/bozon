@@ -1458,7 +1458,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->body.is_null());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 168);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 169);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -1470,6 +1470,36 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		bz_assert(type.is<ast::ts_array>());
 		bz_assert(type.get<ast::ts_array>().size != 0);
 		return ast::constant_value(type.get<ast::ts_array>().size);
+	}
+	case ast::function_body::builtin_enum_value:
+	{
+		bz_assert(func_call.params.size() == 1);
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			consteval_try(func_call.params[0], context);
+		}
+		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+		{
+			consteval_try_without_error(func_call.params[0], context);
+		}
+		if (!func_call.params[0].has_consteval_succeeded())
+		{
+			return {};
+		}
+		bz_assert(func_call.params[0].is_constant());
+		auto const &value = func_call.params[0].get_constant_value();
+		bz_assert(value.is_enum());
+		auto const [decl, enum_value] = value.get_enum();
+		bz_assert(decl->underlying_type.is<ast::ts_base_type>());
+		auto const is_signed = ast::is_signed_integer_kind(decl->underlying_type.get<ast::ts_base_type>().info->kind);
+		if (is_signed)
+		{
+			return ast::constant_value(bit_cast<int64_t>(enum_value));
+		}
+		else
+		{
+			return ast::constant_value(enum_value);
+		}
 	}
 	case ast::function_body::builtin_is_comptime:
 		if (exec_kind == function_execution_kind::force_evaluate)

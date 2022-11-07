@@ -1853,6 +1853,8 @@ enum animal_kind: uint32
 
 static_assert(std::meta::is_enum(animal_kind));
 static_assert(!std::meta::is_enum(int32));
+static_assert(__builtin_enum_value(animal_kind.cat) == 0);
+static_assert(__builtin_enum_value(animal_kind.dog) == 1);
 
 function enum_test()
 {

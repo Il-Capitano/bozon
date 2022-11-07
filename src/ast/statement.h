@@ -506,6 +506,7 @@ struct function_body
 		builtin_pointer_cast,
 		builtin_pointer_to_int,
 		builtin_int_to_pointer,
+		builtin_enum_value,
 
 		builtin_call_destructor,
 		builtin_inplace_construct,
@@ -1577,7 +1578,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 168);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 169);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1610,6 +1611,7 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_pointer_cast,   "__builtin_pointer_cast"   },
 		{ function_body::builtin_pointer_to_int, "__builtin_pointer_to_int" },
 		{ function_body::builtin_int_to_pointer, "__builtin_int_to_pointer" },
+		{ function_body::builtin_enum_value,     "__builtin_enum_value"     },
 
 		{ function_body::builtin_call_destructor,   "__builtin_call_destructor"   },
 		{ function_body::builtin_inplace_construct, "__builtin_inplace_construct" },

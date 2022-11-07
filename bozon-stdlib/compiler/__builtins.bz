@@ -121,6 +121,16 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 @__builtin export function __builtin_pointer_cast(T: *typename, ptr: *const void) -> T;
 @__builtin export function __builtin_pointer_to_int(ptr: ?*const void) -> usize;
 @__builtin export function __builtin_int_to_pointer(T: *typename, n: usize) -> T;
+@__builtin export function __builtin_enum_value(v: auto)
+	-> (if consteval (!__builtin_is_enum(typeof v)) {
+		((consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"invalid type '",
+			__builtin_typename_as_str(typeof v),
+			"' in 'function __builtin_enum_value'"
+		))), int32)
+	} else {
+		__builtin_enum_underlying_type(typeof v)
+	});
 
 @__builtin export function __builtin_call_destructor(obj: &auto);
 @__builtin export function __builtin_inplace_construct(ptr: *auto, val: auto)
