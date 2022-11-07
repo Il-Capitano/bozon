@@ -6985,7 +6985,9 @@ static void emit_bitcode(
 
 	context.builder.CreateBr(condition_check_bb);
 	context.builder.SetInsertPoint(condition_check_bb);
-	auto const condition = emit_bitcode<abi>(foreach_stmt.condition, context, nullptr).get_value(context.builder);
+	auto const condition = is_comptime<decltype(context)> && foreach_stmt.condition.is_error()
+		? llvm::ConstantInt::getFalse(context.get_llvm_context())
+		: emit_bitcode<abi>(foreach_stmt.condition, context, nullptr).get_value(context.builder);
 	auto const condition_check_end = context.builder.GetInsertBlock();
 
 	context.builder.SetInsertPoint(iteration_bb);
@@ -7298,7 +7300,14 @@ static void emit_bitcode(
 	case ast::statement::index<ast::decl_type_alias>:
 		break;
 	default:
-		bz_unreachable;
+		if constexpr (is_comptime<decltype(context)>)
+		{
+			// ignore this
+		}
+		else
+		{
+			bz_unreachable;
+		}
 		break;
 	}
 }

@@ -1,0 +1,7 @@
+consteval arr: [??: auto] = [
+];
+
+static_assert({
+	for (const v in arr) {}
+	true
+});

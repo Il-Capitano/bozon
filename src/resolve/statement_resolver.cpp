@@ -62,6 +62,14 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	range_var_decl.flags |= ast::decl_variable::used;
 	if (range_var_decl.get_type().is_empty())
 	{
+		foreach_stmt.condition = ast::make_error_expression(range_var_decl.init_expr.src_tokens);
+		foreach_stmt.iteration = ast::make_error_expression(range_var_decl.init_expr.src_tokens);
+		bz_assert(foreach_stmt.iter_deref_var_decl.is<ast::decl_variable>());
+		auto &decl = foreach_stmt.iter_deref_var_decl.get<ast::decl_variable>();
+		if (!ast::is_complete(decl.get_type()))
+		{
+			decl.clear_type();
+		}
 		context.pop_local_scope(true);
 		return;
 	}
