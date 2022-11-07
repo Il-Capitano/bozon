@@ -380,6 +380,18 @@ expr_enum_literal const &expression::get_enum_literal(void) const noexcept
 	return get_expr_kind<expr_enum_literal>(*this);
 }
 
+expression &expression::get_enum_literal_expr(void) noexcept
+{
+	bz_assert(this->is_enum_literal());
+	return get_expr_kind<expr_enum_literal, false>(*this);
+}
+
+expression const &expression::get_enum_literal_expr(void) const noexcept
+{
+	bz_assert(this->is_enum_literal());
+	return get_expr_kind<expr_enum_literal, false>(*this);
+}
+
 bool expression::is_null_literal(void) const noexcept
 {
 	return is_expr_kind_helper(*this, expression_type_kind::null_literal);

@@ -2544,6 +2544,208 @@ void resolve_type_info(ast::type_info &info, ctx::parse_context &context)
 	context.pop_enclosing_scope(std::move(prev_scopes));
 }
 
+using name_value_pair_it = ast::arena_vector<ast::decl_enum::name_value_pair>::iterator;
+
+static name_value_pair_it resolve_enum_members(
+	name_value_pair_it it,
+	name_value_pair_it end,
+	uint64_t current_value,
+	uint64_t min_value,
+	uint64_t max_value,
+	bool is_signed,
+	ctx::parse_context &context
+)
+{
+	bool first = true;
+	bool prev_was_max_value = false;
+	for (; it != end; ++it)
+	{
+		if (!first && it->value_expr.not_null())
+		{
+			break;
+		}
+		first = false;
+
+		if (prev_was_max_value)
+		{
+			context.report_warning(
+				ctx::warning_kind::enum_value_overflow,
+				it->id,
+				is_signed
+					? bz::format("implicit enum value overflowed from {} to {}", max_value, bit_cast<int64_t>(min_value))
+					: bz::format("implicit enum value overflowed from {} to {}", max_value, min_value)
+			);
+		}
+
+		if (is_signed)
+		{
+			it->value = bit_cast<int64_t>(current_value);
+		}
+		else
+		{
+			it->value = current_value;
+		}
+
+		if (current_value == max_value)
+		{
+			current_value = min_value;
+			prev_was_max_value = true;
+		}
+		else
+		{
+			current_value += 1;
+			prev_was_max_value = false;
+		}
+	}
+
+	return it;
+}
+
+struct name_value_pair_it_pair
+{
+	name_value_pair_it it;
+	name_value_pair_it depends_on_it;
+};
+
+static name_value_pair_it_pair find_enum_member(ast::decl_enum &enum_decl, bz::u8string_view id_value)
+{
+	auto it = enum_decl.values.begin();
+	auto const end = enum_decl.values.end();
+
+	auto depends_on_it = it;
+	for (; it != end; ++it)
+	{
+		if (it->value_expr.not_null())
+		{
+			depends_on_it = it;
+		}
+
+		if (it->id->value == id_value)
+		{
+			return { it, depends_on_it };
+		}
+	}
+
+	return { end, end };
+}
+
+static void resolve_literal_init_enum_members_helper(
+	ast::decl_enum &enum_decl,
+	uint64_t min_value,
+	uint64_t max_value,
+	bool is_signed,
+	ctx::parse_context &context,
+	ast::arena_vector<name_value_pair_it> &resolve_stack
+)
+{
+	bz_assert(resolve_stack.not_empty());
+
+	auto const current_it = resolve_stack.back();
+	bz_assert(current_it->value_expr.is_enum_literal());
+	auto &literal_expr = current_it->value_expr.get_enum_literal_expr();
+	bz_assert(literal_expr.is_constant());
+	bz_assert(literal_expr.get_constant().expr.is<ast::expr_enum_literal>());
+	auto const id = literal_expr.get_constant().expr.get<ast::expr_enum_literal>().id;
+	auto const [it, depends_on_it] = find_enum_member(enum_decl, id->value);
+	if (it == enum_decl.values.end())
+	{
+		resolve_enum_members(it, enum_decl.values.end(), 0, min_value, max_value, is_signed, context);
+		context.report_error(
+			literal_expr.src_tokens,
+			bz::format("no member named '{}' in enum '{}'", id->value, enum_decl.id.format_as_unqualified())
+		);
+	}
+	else if (it->value.not_null())
+	{
+		auto const current_value = it->value.is<int64_t>()
+			? bit_cast<uint64_t>(it->value.get<int64_t>())
+			: it->value.get<uint64_t>();
+		resolve_enum_members(current_it, enum_decl.values.end(), current_value, min_value, max_value, is_signed, context);
+		auto &const_literal_expr = literal_expr.get_constant();
+		const_literal_expr.kind = ast::expression_type_kind::rvalue;
+		const_literal_expr.type = ast::make_enum_typespec({}, &enum_decl);
+		const_literal_expr.value = it->value.is<int64_t>()
+			? ast::constant_value::get_enum(&enum_decl, it->value.get<int64_t>())
+			: ast::constant_value::get_enum(&enum_decl, it->value.get<uint64_t>());
+	}
+	else if (
+		auto const already_resolving_it = std::find(resolve_stack.begin(), resolve_stack.end() - 1, current_it);
+		already_resolving_it != resolve_stack.end() - 1
+	)
+	{
+		// circular dependency
+		auto notes = resolve_stack.slice(already_resolving_it - resolve_stack.begin(), resolve_stack.size() - 1)
+			.reversed()
+			.transform([](auto const it) {
+				return ctx::parse_context::make_note(
+					it->value_expr.src_tokens,
+					bz::format("required by member '{}'", it->id->value)
+				);
+			})
+			.collect();
+		context.report_error(
+			current_it->id,
+			bz::format("circular dependency encountered while trying to resolve value of enum member '{}'", current_it->id->value),
+			std::move(notes)
+		);
+
+		resolve_enum_members(current_it, enum_decl.values.end(), 0, min_value, max_value, is_signed, context);
+		bz_assert(current_it->value.not_null());
+		auto &const_literal_expr = literal_expr.get_constant();
+		const_literal_expr.kind = ast::expression_type_kind::rvalue;
+		const_literal_expr.type = ast::make_enum_typespec({}, &enum_decl);
+		const_literal_expr.value = current_it->value.is<int64_t>()
+			? ast::constant_value::get_enum(&enum_decl, current_it->value.get<int64_t>())
+			: ast::constant_value::get_enum(&enum_decl, current_it->value.get<uint64_t>());
+	}
+	else
+	{
+		resolve_stack.push_back(depends_on_it);
+		resolve_literal_init_enum_members_helper(enum_decl, min_value, max_value, is_signed, context, resolve_stack);
+		resolve_stack.pop_back();
+
+		bz_assert(it->value.not_null());
+		auto const current_value = it->value.is<int64_t>()
+			? bit_cast<uint64_t>(it->value.get<int64_t>())
+			: it->value.get<uint64_t>();
+		resolve_enum_members(current_it, enum_decl.values.end(), current_value, min_value, max_value, is_signed, context);
+		auto &const_literal_expr = literal_expr.get_constant();
+		const_literal_expr.kind = ast::expression_type_kind::rvalue;
+		const_literal_expr.type = ast::make_enum_typespec({}, &enum_decl);
+		const_literal_expr.value = it->value.is<int64_t>()
+			? ast::constant_value::get_enum(&enum_decl, it->value.get<int64_t>())
+			: ast::constant_value::get_enum(&enum_decl, it->value.get<uint64_t>());
+	}
+}
+
+static void resolve_literal_init_enum_members(
+	ast::decl_enum &enum_decl,
+	bz::array_view<name_value_pair_it const> unresolved_values,
+	uint64_t min_value,
+	uint64_t max_value,
+	bool is_signed,
+	ctx::parse_context &context
+)
+{
+	bz_assert(unresolved_values.not_empty());
+	ast::arena_vector<name_value_pair_it> resolve_stack = {};
+
+	auto it = unresolved_values.begin();
+	auto const end = unresolved_values.end();
+
+	for (; it != end; ++it)
+	{
+		if ((*it)->value.not_null())
+		{
+			continue;
+		}
+
+		resolve_stack.push_back(*it);
+		resolve_literal_init_enum_members_helper(enum_decl, min_value, max_value, is_signed, context, resolve_stack);
+		resolve_stack.pop_back();
+	}
+}
+
 static void resolve_enum_impl(ast::decl_enum &enum_decl, ctx::parse_context &context)
 {
 	enum_decl.state = ast::resolve_state::resolving_all;
@@ -2612,60 +2814,61 @@ static void resolve_enum_impl(ast::decl_enum &enum_decl, ctx::parse_context &con
 	}();
 	auto const min_value = is_signed ? (max_value + 1) : 0; // max_value + 1 will give the 2's complement representation of min_value
 
-	uint64_t current_value = 0;
-	bool prev_was_max_value = false;
-	for (auto &[id, value, value_expr] : enum_decl.values)
+	auto it = enum_decl.values.begin();
+	auto const end = enum_decl.values.end();
+
+	if (it != end && it->value_expr.is_null())
 	{
-		if (value_expr.not_null())
+		it = resolve_enum_members(it, end, 0, min_value, max_value, is_signed, context);
+	}
+
+	ast::arena_vector<name_value_pair_it> unresolved_values = {};
+	while (it != end)
+	{
+		bz_assert(it->value_expr.not_null());
+		resolve_expression(it->value_expr, context);
+		if (it->value_expr.is_enum_literal())
 		{
-			resolve_expression(value_expr, context);
-			match_expression_to_type(value_expr, enum_decl.underlying_type, context);
-			consteval_try(value_expr, context);
-			if (value_expr.has_consteval_failed())
+			unresolved_values.push_back(it);
+			// search for the next expression
+			it = std::find_if(it + 1, end, [](auto const &value) { return value.value_expr.not_null(); });
+			continue;
+		}
+		match_expression_to_type(it->value_expr, enum_decl.underlying_type, context);
+		consteval_try(it->value_expr, context);
+		if (it->value_expr.has_consteval_failed())
+		{
+			context.report_error(
+				it->value_expr.src_tokens,
+				bz::format("enum value expression must be a constant expression"),
+				get_consteval_fail_notes(it->value_expr)
+			);
+			it = resolve_enum_members(it, end, 0, min_value, max_value, is_signed, context);
+		}
+		else
+		{
+			bz_assert(it->value_expr.get_constant_value().is_sint() || it->value_expr.get_constant_value().is_uint());
+			auto const current_value = it->value_expr.get_constant_value().is_sint()
+				? bit_cast<uint64_t>(it->value_expr.get_constant_value().get_sint())
+				: it->value_expr.get_constant_value().get_uint();
+			it = resolve_enum_members(it, end, current_value, min_value, max_value, is_signed, context);
+		}
+	}
+
+	if (unresolved_values.not_empty())
+	{
+		resolve_literal_init_enum_members(enum_decl, unresolved_values, min_value, max_value, is_signed, context);
+		for (auto const value : unresolved_values)
+		{
+			consteval_try(value->value_expr, context);
+			if (value->value_expr.has_consteval_failed())
 			{
 				context.report_error(
-					value_expr.src_tokens,
+					value->value_expr.src_tokens,
 					bz::format("enum value expression must be a constant expression"),
-					get_consteval_fail_notes(value_expr)
+					get_consteval_fail_notes(value->value_expr)
 				);
 			}
-			else
-			{
-				bz_assert(value_expr.get_constant_value().is_sint() || value_expr.get_constant_value().is_uint());
-				current_value = value_expr.get_constant_value().is_sint()
-					? static_cast<uint64_t>(value_expr.get_constant_value().get_sint())
-					: value_expr.get_constant_value().get_uint();
-			}
-		}
-		else if (prev_was_max_value)
-		{
-			context.report_warning(
-				ctx::warning_kind::enum_value_overflow,
-				id,
-				is_signed
-					? bz::format("implicit enum value overflowed from {} to {}", max_value, static_cast<int64_t>(min_value))
-					: bz::format("implicit enum value overflowed from {} to {}", max_value, min_value)
-			);
-		}
-
-		if (is_signed)
-		{
-			value = static_cast<int64_t>(current_value);
-		}
-		else
-		{
-			value = static_cast<uint64_t>(current_value);
-		}
-
-		if (current_value == max_value)
-		{
-			current_value = min_value;
-			prev_was_max_value = true;
-		}
-		else
-		{
-			current_value += 1;
-			prev_was_max_value = false;
 		}
 	}
 

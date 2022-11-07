@@ -2900,13 +2900,14 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 			return match_function_result_t<kind>();
 		}
 
-		auto const id = expr.get_enum_literal().id->value;
+		auto const id = expr.get_enum_literal().id;
+		auto const id_value = id->value;
 		auto const decl = dest.get<ast::ts_enum>().decl;
 
 		auto const it = std::find_if(
 			decl->values.begin(), decl->values.end(),
-			[id](auto const &value) {
-				return value.id->value == id;
+			[id_value](auto const &value) {
+				return value.id->value == id_value;
 			}
 		);
 
@@ -2914,10 +2915,9 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 		{
 			if constexpr (match_context_t<kind>::report_errors)
 			{
-				auto const id = expr.get_enum_literal().id->value;
 				match_context.context.report_error(
 					expr.src_tokens,
-					bz::format("enum type '{}' has no member named '{}'", dest, id)
+					bz::format("enum type '{}' has no member named '{}'", dest, id_value)
 				);
 			}
 			return match_function_result_t<kind>();
@@ -2943,13 +2943,15 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 		{
 			auto const &value = *it;
 
-			expr = ast::make_constant_expression(
-				expr.src_tokens,
+			auto &inner_expr = expr.get_enum_literal_expr();
+
+			inner_expr = ast::make_constant_expression(
+				inner_expr.src_tokens,
 				ast::expression_type_kind::rvalue, dest,
 				value.value.template is<int64_t>()
 					? ast::constant_value::get_enum(decl, value.value.template get<int64_t>())
 					: ast::constant_value::get_enum(decl, value.value.template get<uint64_t>()),
-				ast::make_expr_enum_literal(expr.get_enum_literal().id)
+				ast::make_expr_enum_literal(id)
 			);
 			return true;
 		}

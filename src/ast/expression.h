@@ -419,6 +419,8 @@ struct expression : bz::variant<
 	bool is_enum_literal(void) const noexcept;
 	expr_enum_literal &get_enum_literal(void) noexcept;
 	expr_enum_literal const &get_enum_literal(void) const noexcept;
+	expression &get_enum_literal_expr(void) noexcept;
+	expression const &get_enum_literal_expr(void) const noexcept;
 
 	bool is_null_literal(void) const noexcept;
 	bool is_placeholder_literal(void) const noexcept;
