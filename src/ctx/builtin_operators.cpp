@@ -868,8 +868,6 @@ static ast::expression get_builtin_unary_consteval(
 
 #define undeclared_binary_message(op) "no match for binary operator " op " with types '{}' and '{}'"
 
-// uintN <<>> uintM -> uintN
-// uintN <<>> intM -> uintN
 // bool &&^^|| bool -> bool
 static ast::expression get_builtin_binary_bool_and_xor_or(
 	lex::src_tokens const &src_tokens,
@@ -886,6 +884,18 @@ static ast::expression get_builtin_binary_bool_and_xor_or(
 	);
 	bz_assert(lhs.not_error());
 	bz_assert(rhs.not_error());
+
+	{
+		auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
+		resolve::match_expression_to_type(lhs, bool_type, context);
+		resolve::match_expression_to_type(rhs, bool_type, context);
+	}
+
+	if (lhs.is_error() || rhs.is_error())
+	{
+		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs)));
+	}
+
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto const lhs_t = ast::remove_const_or_consteval(lhs_type);
