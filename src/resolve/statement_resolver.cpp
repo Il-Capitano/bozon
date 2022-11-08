@@ -2413,9 +2413,12 @@ static void resolve_member_type_size(lex::src_tokens const &src_tokens, ast::typ
 	if (member_type.is<ast::ts_base_type>())
 	{
 		auto const info = member_type.get<ast::ts_base_type>().info;
-		context.add_to_resolve_queue(src_tokens, *info);
-		resolve_type_info(*info, context);
-		context.pop_resolve_queue();
+		context.resolve_type(src_tokens, info);
+	}
+	else if (member_type.is<ast::ts_enum>())
+	{
+		auto const decl = member_type.get<ast::ts_enum>().decl;
+		context.resolve_type(src_tokens, decl);
 	}
 	else if (member_type.is<ast::ts_array>())
 	{
