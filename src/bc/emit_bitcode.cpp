@@ -6144,7 +6144,7 @@ static val_ptr emit_bitcode(
 		}
 	}
 	auto const end_bb = has_default ? context.add_basic_block("switch_end") : default_bb;
-	auto const has_value = case_result_vals.is_all([&](auto const &pair) {
+	auto const has_value = case_result_vals.not_empty() && case_result_vals.is_all([&](auto const &pair) {
 		return pair.second.val != nullptr || pair.second.consteval_val != nullptr;
 	});
 	if (result_address == nullptr && has_default && has_value)
