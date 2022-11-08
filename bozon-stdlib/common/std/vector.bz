@@ -162,13 +162,20 @@ export struct vector<T: typename>
 	{
 		if (new_size > self.size())
 		{
-			self.reserve(new_size);
-			const new_end = self._data_begin + new_size;
-			for (let it = self._data_end; it != new_end; ++it)
+			if consteval (meta::is_default_constructible(value_type))
 			{
-				__builtin_inplace_construct(it.get_value(), value_type());
+				self.reserve(new_size);
+				const new_end = self._data_begin + new_size;
+				for (let it = self._data_end; it != new_end; ++it)
+				{
+					__builtin_inplace_construct(it.get_value(), value_type());
+				}
+				self._data_end = new_end;
 			}
-			self._data_end = new_end;
+			else
+			{
+				unreachable;
+			}
 		}
 		else
 		{
