@@ -266,6 +266,9 @@ static bool is_statement_noreturn(ast::statement const &stmt)
 		[](ast::decl_struct const &) {
 			return false;
 		},
+		[](ast::decl_enum const &) {
+			return false;
+		},
 		[](ast::decl_import const &) {
 			return false;
 		},
@@ -453,41 +456,29 @@ static void check_switch_type(
 		return;
 	}
 
-	if (!match_type.is<ast::ts_base_type>())
+	if (match_type.is<ast::ts_enum>())
 	{
-		if (do_verbose)
-		{
-			context.report_error(
-				matched_expr, bz::format("invalid type '{}' for switch expression", match_type),
-				{ context.make_note("only integral types can be used in switch expressions") }
-			);
-		}
-		else
-		{
-			context.report_error(matched_expr, bz::format("invalid type '{}' for switch expression", match_type));
-		}
-		matched_expr.to_error();
+		// this is a valid type
+		return;
 	}
-	else if (
+
+	if (match_type.is<ast::ts_base_type>())
+	{
 		auto const info = match_type.get<ast::ts_base_type>().info;
-		!ast::is_integer_kind(info->kind)
-		&& info->kind != ast::type_info::char_
-		&& info->kind != ast::type_info::bool_
-	)
-	{
-		if (do_verbose)
+		if (ast::is_integer_kind(info->kind) || info->kind == ast::type_info::char_ || info->kind == ast::type_info::bool_)
 		{
-			context.report_error(
-				matched_expr, bz::format("invalid type '{}' for switch expression", match_type),
-				{ context.make_note("only integral types can be used in switch expressions") }
-			);
+			// integers, char and bool are valid
+			return;
 		}
-		else
-		{
-			context.report_error(matched_expr, bz::format("invalid type '{}' for switch expression", match_type));
-		}
-		matched_expr.to_error();
 	}
+
+	bz::vector<ctx::source_highlight> notes = {};
+	if (do_verbose)
+	{
+		notes.push_back(context.make_note("only integral types can be used in switch expressions"));
+	}
+	context.report_error(matched_expr, bz::format("invalid type '{}' for switch expression", match_type), std::move(notes));
+	matched_expr.to_error();
 }
 
 static ast::expression resolve_expr(
@@ -569,7 +560,7 @@ static ast::expression resolve_expr(
 				{
 					switch (rhs_value.kind())
 					{
-					static_assert(ast::constant_value::variant_count == 20);
+					static_assert(ast::constant_value::variant_count == 21);
 					case ast::constant_value::sint:
 						context.report_error(
 							rhs.src_tokens,
@@ -601,6 +592,13 @@ static ast::expression resolve_expr(
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
 						break;
+					case ast::constant_value::enum_:
+						context.report_error(
+							rhs.src_tokens,
+							bz::format("duplicate value '{}' in switch expression", get_value_string(lhs_value)),
+							{ context.make_note(lhs.src_tokens, "value previously used here") }
+						);
+						break;
 					default:
 						bz_unreachable;
 					}
@@ -620,27 +618,36 @@ static ast::expression resolve_expr(
 		switch_expr.cases.transform([](auto const &case_) {
 			return case_.values.size();
 		}).sum();
-	auto const match_type_info = match_type.get<ast::ts_base_type>().info;
 	auto const max_case_count = [&]() -> uint64_t {
-		switch (match_type_info->kind)
+		if (match_type.is<ast::ts_base_type>())
 		{
-		case ast::type_info::bool_:
-			return 2;
-		case ast::type_info::int8_:
-		case ast::type_info::uint8_:
-			return std::numeric_limits<uint8_t>::max();
-		case ast::type_info::int16_:
-		case ast::type_info::uint16_:
-			return std::numeric_limits<uint16_t>::max();
-		case ast::type_info::int32_:
-		case ast::type_info::uint32_:
-		case ast::type_info::char_:
-			return std::numeric_limits<uint32_t>::max();
-		case ast::type_info::int64_:
-		case ast::type_info::uint64_:
-			return std::numeric_limits<uint64_t>::max();
-		default:
-			bz_unreachable;
+			auto const match_type_info = match_type.get<ast::ts_base_type>().info;
+
+			switch (match_type_info->kind)
+			{
+			case ast::type_info::bool_:
+				return 2;
+			case ast::type_info::int8_:
+			case ast::type_info::uint8_:
+				return std::numeric_limits<uint8_t>::max();
+			case ast::type_info::int16_:
+			case ast::type_info::uint16_:
+				return std::numeric_limits<uint16_t>::max();
+			case ast::type_info::int32_:
+			case ast::type_info::uint32_:
+			case ast::type_info::char_:
+				return std::numeric_limits<uint32_t>::max();
+			case ast::type_info::int64_:
+			case ast::type_info::uint64_:
+				return std::numeric_limits<uint64_t>::max();
+			default:
+				bz_unreachable;
+			}
+		}
+		else
+		{
+			bz_assert(match_type.is<ast::ts_enum>());
+			return match_type.get<ast::ts_enum>().decl->get_unique_values_count();
 		}
 	}();
 
@@ -769,7 +776,7 @@ static ast::expression resolve_expr(
 				ast::constant_value const &size_value = size.get_constant_value();
 				switch (size_value.kind())
 				{
-				static_assert(ast::constant_value::variant_count == 20);
+				static_assert(ast::constant_value::variant_count == 21);
 				case ast::constant_value::sint:
 				{
 					auto const value = size_value.get_sint();

@@ -367,6 +367,9 @@ function main(args: [: const str]) -> int32
 	std::print("\n==== optional_test ====\n");
 	optional_test();
 
+	std::print("\n==== enum_test ====\n");
+	enum_test();
+
 	std::print("\n==== end main ====\n");
 	std::printf("e  = {}\n", std::e);
 	std::printf("pi = {}\n", std::pi);
@@ -1841,4 +1844,37 @@ function optional_test()
 	let i = 0;
 	let p = &i;
 	(p + 0) == null;
+}
+
+enum animal_kind: uint32
+{
+	cat,
+	dog,
+	fish,
+	mouse,
+	pidgeon
+}
+
+static_assert(std::meta::is_enum(animal_kind));
+static_assert(!std::meta::is_enum(int32));
+static_assert(__builtin_enum_value(animal_kind.cat) == 0);
+static_assert(__builtin_enum_value(animal_kind.dog) == 1);
+
+function enum_test()
+{
+	let v: animal_kind = animal_kind.mouse;
+	let _ = v;
+	v = .fish;
+
+	let _ = v == animal_kind.dog;
+	static_assert(animal_kind.cat != .dog);
+	type T = animal_kind;
+	static_assert(animal_kind.cat == T.cat);
+
+	switch (v)
+	{
+		.cat => {},
+		.dog => {},
+		else => {}
+	}
 }

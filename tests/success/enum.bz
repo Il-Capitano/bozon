@@ -1,0 +1,39 @@
+enum E
+{
+	a = 0,
+	b = 3,
+	c,
+	d,
+	e,
+	A = 0,
+	B = 3,
+	C = .c,
+}
+
+function test()
+{
+	let _ = E.a;
+	let _: E = .a;
+
+	static_assert(E.a == E.a);
+	static_assert(E.a == E.A);
+	static_assert(.a == E.A);
+	static_assert(E.a == .A);
+	static_assert(E.a != .b);
+	static_assert(E.a < .c);
+	static_assert(E.a <= .c);
+	static_assert(E.d > .c);
+	static_assert(E.d >= .c);
+	static_assert(E.c == E.C);
+
+	let v = E.a;
+	v = E.b;
+	v = .c;
+}
+
+enum E1: int32 {}
+static_assert(__builtin_enum_underlying_type(E1) == int32);
+enum E2: uint32 {}
+static_assert(__builtin_enum_underlying_type(E2) == uint32);
+enum E3: uint8 {}
+static_assert(__builtin_enum_underlying_type(E3) == uint8);

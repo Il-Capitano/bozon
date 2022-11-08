@@ -84,7 +84,12 @@ static void add_import_decls(src_file &file, ast::global_scope_t &import_scope)
 		file._global_decls.get_global().add_struct(*struct_decl);
 	}
 
-	static_assert(sizeof (ast::global_scope_t) == 176);
+	for (auto const enum_decl : import_scope.enums)
+	{
+		file._global_decls.get_global().add_enum(*enum_decl);
+	}
+
+	static_assert(sizeof (ast::global_scope_t) == 200);
 }
 
 
@@ -193,6 +198,8 @@ src_file::src_file(fs::path file_path, uint32_t file_id, bz::vector<bz::u8string
 
 	for (auto &decl : this->_declarations)
 	{
+		static_assert(sizeof (ast::global_scope_t) == 200);
+		static_assert(ast::statement_types::size() == 16);
 		switch (decl.kind())
 		{
 		case ast::statement::index<ast::decl_variable>:
@@ -252,6 +259,16 @@ src_file::src_file(fs::path file_path, uint32_t file_id, bz::vector<bz::u8string
 			if (struct_decl.info.is_module_export())
 			{
 				this->_export_decls.get_global().add_struct(struct_decl);
+			}
+			break;
+		}
+		case ast::statement::index<ast::decl_enum>:
+		{
+			auto &enum_decl = decl.get<ast::decl_enum>();
+			this->_global_decls.get_global().add_enum(enum_decl);
+			if (enum_decl.is_module_export())
+			{
+				this->_export_decls.get_global().add_enum(enum_decl);
 			}
 			break;
 		}

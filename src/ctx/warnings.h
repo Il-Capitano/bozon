@@ -32,6 +32,7 @@ enum class warning_kind
 	unneeded_else,
 	assign_in_condition,
 	get_value_null,
+	enum_value_overflow,
 
 	comptime_warning,
 
@@ -74,6 +75,7 @@ constexpr auto warning_infos = []() {
 		T{ warning_kind::unneeded_else,            "unneeded-else",            "else case in switch expression is not needed, as all possible values are covered"    },
 		T{ warning_kind::assign_in_condition,      "assign-in-condition",      "Assign operator used in condition, which could be mistaken with the equals operator" },
 		T{ warning_kind::get_value_null,           "get-value-null",           "Getting value of a null optional"                                                    },
+		T{ warning_kind::enum_value_overflow,      "enum-value-overflow",      "Calculating the next implicit value for an enum member causes overflow"              },
 		T{ warning_kind::comptime_warning,         "comptime-warning",         "Warning emitted with '__builtin_comptime_compile_warning'"                           },
 	};
 

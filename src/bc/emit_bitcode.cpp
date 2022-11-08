@@ -735,6 +735,18 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
+	ast::expr_enum_literal const &,
+	auto &,
+	llvm::Value *
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
 	ast::expr_typed_literal const &,
 	auto &,
 	llvm::Value *
@@ -2080,6 +2092,24 @@ static val_ptr emit_builtin_binary_cmp(
 			return val_ptr::get_reference(result_address, result_type);
 		}
 	}
+	else if (lhs_t.is<ast::ts_enum>() && rhs_t.is<ast::ts_enum>())
+	{
+		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
+		auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
+		auto const type_kind = lhs_t.get<ast::ts_enum>().decl->underlying_type.get<ast::ts_base_type>().info->kind;
+		auto const pred = ast::is_signed_integer_kind(type_kind) ? get_cmp_predicate(0) : get_cmp_predicate(1);
+		auto const result_val = context.builder.CreateICmp(pred, lhs_val, rhs_val);
+		if (result_address == nullptr)
+		{
+			return val_ptr::get_value(result_val);
+		}
+		else
+		{
+			auto const result_type = result_val->getType();
+			context.builder.CreateStore(result_val, result_address);
+			return val_ptr::get_reference(result_address, result_type);
+		}
+	}
 	else if (
 		(lhs_t.is<ast::ts_optional>() && rhs_t.is<ast::ts_base_type>())
 		|| (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_optional>())
@@ -2833,7 +2863,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 166);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 169);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -3103,6 +3133,9 @@ static val_ptr emit_bitcode(
 					return val_ptr::get_value(result);
 				}
 			}
+		case ast::function_body::builtin_enum_value:
+			bz_assert(func_call.params.size() == 1);
+			return emit_bitcode<abi>(func_call.params[0], context, result_address);
 		case ast::function_body::builtin_call_destructor:
 			// this is already handled in src/ctx/parse_context.cpp, in the function make_expr_function_call_from_body
 			bz_unreachable;
@@ -3498,6 +3531,7 @@ static val_ptr emit_bitcode(
 		case ast::function_body::is_move_reference:
 		case ast::function_body::is_slice:
 		case ast::function_body::is_array:
+		case ast::function_body::is_enum:
 		case ast::function_body::remove_const:
 		case ast::function_body::remove_consteval:
 		case ast::function_body::remove_pointer:
@@ -3506,6 +3540,7 @@ static val_ptr emit_bitcode(
 		case ast::function_body::remove_move_reference:
 		case ast::function_body::slice_value_type:
 		case ast::function_body::array_value_type:
+		case ast::function_body::enum_underlying_type:
 		case ast::function_body::is_default_constructible:
 		case ast::function_body::is_copy_constructible:
 		case ast::function_body::is_trivially_copy_constructible:
@@ -6490,7 +6525,7 @@ static llvm::Constant *get_value_helper(
 {
 	switch (value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 20);
+	static_assert(ast::constant_value::variant_count == 21);
 	case ast::constant_value::sint:
 		bz_assert(!type.is_empty());
 		return llvm::ConstantInt::get(
@@ -6565,6 +6600,16 @@ static llvm::Constant *get_value_helper(
 		}
 	case ast::constant_value::void_:
 		return nullptr;
+	case ast::constant_value::enum_:
+	{
+		auto const [decl, enum_value] = value.get_enum();
+		auto const is_signed = ast::is_signed_integer_kind(decl->underlying_type.get<ast::ts_base_type>().info->kind);
+		return llvm::ConstantInt::get(
+			get_llvm_type(decl->underlying_type, context),
+			enum_value,
+			is_signed
+		);
+	}
 	case ast::constant_value::array:
 	{
 		auto const array_type = ast::remove_const_or_consteval(type);
@@ -7261,7 +7306,7 @@ static void emit_bitcode(
 		return;
 	}
 
-	static_assert(ast::statement::variant_count == 15);
+	static_assert(ast::statement::variant_count == 16);
 	switch (stmt.kind())
 	{
 	case ast::statement::index<ast::stmt_while>:
@@ -7296,6 +7341,7 @@ static void emit_bitcode(
 	case ast::statement::index<ast::decl_function>:
 	case ast::statement::index<ast::decl_operator>:
 	case ast::statement::index<ast::decl_struct>:
+	case ast::statement::index<ast::decl_enum>:
 	case ast::statement::index<ast::decl_import>:
 	case ast::statement::index<ast::decl_type_alias>:
 		break;

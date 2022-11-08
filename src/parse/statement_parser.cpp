@@ -1009,7 +1009,156 @@ template ast::statement parse_decl_struct<parse_scope::struct_body>(
 	ctx::parse_context &context
 );
 
-template ast::statement parse_decl_struct<parse_scope::local>(
+static ast::decl_enum::name_value_pair parse_enum_name_value_pair(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream != end);
+	auto const id = context.assert_token(stream, lex::token::identifier);
+	if (id->kind != lex::token::identifier)
+	{
+		return {};
+	}
+
+	if (stream == end || stream->kind != lex::token::assign)
+	{
+		return ast::decl_enum::name_value_pair{
+			id, {}, ast::expression()
+		};
+	}
+
+	++stream; // '='
+	auto value_expr = parse_expression(stream, end, context, no_comma);
+
+	return ast::decl_enum::name_value_pair{
+		id, {}, std::move(value_expr)
+	};
+}
+
+static ast::statement parse_decl_enum_impl(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream->kind == lex::token::kw_enum);
+	auto const begin_token = stream;
+	++stream; // 'enum'
+	bz_assert(stream != end || stream->kind != lex::token::identifier);
+	auto const id = context.assert_token(stream, lex::token::identifier);
+	auto const src_tokens = lex::src_tokens{ begin_token, (id == stream ? begin_token : id), stream };
+
+	ast::typespec underlying_type;
+	if (stream != end && stream->kind == lex::token::colon)
+	{
+		++stream;
+		auto const underlying_type_tokens = get_expression_tokens<
+			lex::token::curly_open
+		>(stream, end, context);
+		underlying_type = ast::make_unresolved_typespec(underlying_type_tokens);
+	}
+
+	if (stream != end && stream->kind == lex::token::curly_open)
+	{
+		++stream; // '{'
+		auto const range = get_tokens_in_curly<>(stream, end, context);
+
+		auto inner_stream = range.begin;
+		auto const inner_end = range.end;
+
+		auto values = ast::arena_vector<ast::decl_enum::name_value_pair>();
+
+		while (inner_stream != inner_end)
+		{
+			values.push_back(parse_enum_name_value_pair(inner_stream, inner_end, context));
+			if (values.back().id == nullptr)
+			{
+				values.pop_back();
+				break;
+			}
+
+			auto const duplicate_it = std::find_if(
+				values.begin(), values.end() - 1,
+				[current_id = values.back().id->value](auto const &value) { return value.id->value == current_id; }
+			);
+			if (duplicate_it != values.end() - 1)
+			{
+				context.report_error(
+					values.back().id,
+					bz::format("duplicate enum member name '{}'", duplicate_it->id->value),
+					{ context.make_note(duplicate_it->id, "member was previously defined here") }
+				);
+				values.pop_back();
+			}
+
+			if (inner_stream != inner_end)
+			{
+				context.assert_token(inner_stream, lex::token::comma);
+			}
+		}
+
+		return ast::make_decl_enum(
+			src_tokens,
+			context.make_qualified_identifier(id),
+			std::move(underlying_type),
+			std::move(values),
+			context.get_current_enclosing_scope()
+		);
+	}
+	else
+	{
+		context.report_error(stream, "an enum must have a body");
+		return ast::make_decl_enum(
+			src_tokens,
+			context.make_qualified_identifier(id),
+			std::move(underlying_type),
+			ast::arena_vector<ast::decl_enum::name_value_pair>(),
+			context.get_current_enclosing_scope()
+		);
+	}
+}
+
+template<parse_scope scope>
+ast::statement parse_decl_enum(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	auto result = parse_decl_enum_impl(stream, end, context);
+	if (result.is_null())
+	{
+		return result;
+	}
+
+	if constexpr (scope == parse_scope::global || scope == parse_scope::struct_body)
+	{
+		bz_assert(result.is<ast::decl_enum>());
+		auto &enum_decl = result.get<ast::decl_enum>();
+		enum_decl.flags |= ast::decl_enum::global;
+		return result;
+	}
+	else
+	{
+		bz_assert(result.is<ast::decl_enum>());
+		auto &enum_decl = result.get<ast::decl_enum>();
+		context.add_to_resolve_queue({}, enum_decl);
+		resolve::resolve_enum(enum_decl, context);
+		context.pop_resolve_queue();
+		return result;
+	}
+}
+
+template ast::statement parse_decl_enum<parse_scope::global>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template ast::statement parse_decl_enum<parse_scope::struct_body>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template ast::statement parse_decl_enum<parse_scope::local>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
@@ -1148,6 +1297,9 @@ ast::statement parse_export_statement(
 			},
 			[](ast::decl_struct &struct_decl) {
 				struct_decl.info.flags |= ast::type_info::module_export;
+			},
+			[](ast::decl_enum &enum_decl) {
+				enum_decl.flags |= ast::decl_enum::module_export;
 			},
 			[&](auto const &) {
 				context.report_error(after_export_token, "invalid statement to be exported");
@@ -1424,11 +1576,15 @@ ast::statement parse_stmt_expression(
 	auto expr = parse_top_level_expression(stream, end, context);
 	if (expr.is<ast::expanded_variadic_expression>())
 	{
-		context.report_error(expr.src_tokens, "expanded variadic expression is not allowed as top-level expression");
+		context.report_error(expr.src_tokens, "expanded variadic expression is not allowed as a top-level expression");
 	}
 	else if (expr.is_placeholder_literal())
 	{
-		context.report_error(expr.src_tokens, "placeholder literal is not allowed as top-level expression");
+		context.report_error(expr.src_tokens, "placeholder literal is not allowed as a top-level expression");
+	}
+	else if (expr.is_enum_literal())
+	{
+		context.report_error(expr.src_tokens, "enum literal is not allowed as a top-level expression");
 	}
 	return ast::make_stmt_expression(std::move(expr));
 }

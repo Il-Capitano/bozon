@@ -7,8 +7,8 @@ namespace ctx
 static_assert(static_cast<int>(warning_kind::int_overflow)      == 0);
 static_assert(static_cast<int>(warning_kind::float_nan_math)    == 4);
 static_assert(static_cast<int>(warning_kind::math_domain_error) == 17);
-static_assert(static_cast<int>(warning_kind::comptime_warning)  == 24);
-static_assert(static_cast<int>(warning_kind::_last)             == 25);
+static_assert(static_cast<int>(warning_kind::comptime_warning)  == 25);
+static_assert(static_cast<int>(warning_kind::_last)             == 26);
 
 static_assert(
 	warning_infos.is_all([](auto const &info) { return !info.name.starts_with("no-"); }),

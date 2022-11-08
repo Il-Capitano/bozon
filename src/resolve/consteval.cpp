@@ -46,7 +46,7 @@ static ast::constant_value evaluate_binary_plus(
 		auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 		switch (lhs_value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 20);
+		static_assert(ast::constant_value::variant_count == 21);
 		case ast::constant_value::sint:
 		{
 			auto const lhs_int_val = lhs_value.get_sint();
@@ -157,7 +157,7 @@ static ast::constant_value evaluate_binary_minus(
 		auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 		switch (lhs_value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 20);
+		static_assert(ast::constant_value::variant_count == 21);
 		case ast::constant_value::sint:
 		{
 			auto const lhs_int_val = lhs_value.get_sint();
@@ -248,7 +248,7 @@ static ast::constant_value evaluate_binary_multiply(
 	auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 20);
+	static_assert(ast::constant_value::variant_count == 21);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -308,7 +308,7 @@ static ast::constant_value evaluate_binary_divide(
 	auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 20);
+	static_assert(ast::constant_value::variant_count == 21);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -384,7 +384,7 @@ static ast::constant_value evaluate_binary_modulo(
 	auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 20);
+	static_assert(ast::constant_value::variant_count == 21);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -441,7 +441,7 @@ static ast::constant_value evaluate_binary_equals(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 20);
+	static_assert(ast::constant_value::variant_count == 21);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -494,6 +494,12 @@ static ast::constant_value evaluate_binary_equals(
 	{
 		return ast::constant_value(true);
 	}
+	case ast::constant_value::enum_:
+	{
+		auto const lhs_enum_value = lhs_value.get_enum().value;
+		auto const rhs_enum_value = rhs_value.get_enum().value;
+		return ast::constant_value(lhs_enum_value == rhs_enum_value);
+	}
 	default:
 		bz_unreachable;
 	}
@@ -516,7 +522,7 @@ static ast::constant_value evaluate_binary_not_equals(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 20);
+	static_assert(ast::constant_value::variant_count == 21);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -563,6 +569,12 @@ static ast::constant_value evaluate_binary_not_equals(
 	{
 		return ast::constant_value(false);
 	}
+	case ast::constant_value::enum_:
+	{
+		auto const lhs_enum_value = lhs_value.get_enum().value;
+		auto const rhs_enum_value = rhs_value.get_enum().value;
+		return ast::constant_value(lhs_enum_value != rhs_enum_value);
+	}
 	default:
 		bz_unreachable;
 	}
@@ -585,7 +597,7 @@ static ast::constant_value evaluate_binary_less_than(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 20);
+	static_assert(ast::constant_value::variant_count == 21);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -620,6 +632,15 @@ static ast::constant_value evaluate_binary_less_than(
 	{
 		return ast::constant_value(false);
 	}
+	case ast::constant_value::enum_:
+	{
+		auto const [decl, lhs_enum_value] = lhs_value.get_enum();
+		auto const rhs_enum_value = rhs_value.get_enum().value;
+		auto const is_signed = ast::is_signed_integer_kind(decl->underlying_type.get<ast::ts_base_type>().info->kind);
+		return is_signed
+			? ast::constant_value(bit_cast<int64_t>(lhs_enum_value) < bit_cast<int64_t>(rhs_enum_value))
+			: ast::constant_value(lhs_enum_value < rhs_enum_value);
+	}
 	default:
 		bz_unreachable;
 	}
@@ -642,7 +663,7 @@ static ast::constant_value evaluate_binary_less_than_eq(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 20);
+	static_assert(ast::constant_value::variant_count == 21);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -677,6 +698,15 @@ static ast::constant_value evaluate_binary_less_than_eq(
 	{
 		return ast::constant_value(true);
 	}
+	case ast::constant_value::enum_:
+	{
+		auto const [decl, lhs_enum_value] = lhs_value.get_enum();
+		auto const rhs_enum_value = rhs_value.get_enum().value;
+		auto const is_signed = ast::is_signed_integer_kind(decl->underlying_type.get<ast::ts_base_type>().info->kind);
+		return is_signed
+			? ast::constant_value(bit_cast<int64_t>(lhs_enum_value) <= bit_cast<int64_t>(rhs_enum_value))
+			: ast::constant_value(lhs_enum_value <= rhs_enum_value);
+	}
 	default:
 		bz_unreachable;
 	}
@@ -699,7 +729,7 @@ static ast::constant_value evaluate_binary_greater_than(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 20);
+	static_assert(ast::constant_value::variant_count == 21);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -734,6 +764,15 @@ static ast::constant_value evaluate_binary_greater_than(
 	{
 		return ast::constant_value(false);
 	}
+	case ast::constant_value::enum_:
+	{
+		auto const [decl, lhs_enum_value] = lhs_value.get_enum();
+		auto const rhs_enum_value = rhs_value.get_enum().value;
+		auto const is_signed = ast::is_signed_integer_kind(decl->underlying_type.get<ast::ts_base_type>().info->kind);
+		return is_signed
+			? ast::constant_value(bit_cast<int64_t>(lhs_enum_value) > bit_cast<int64_t>(rhs_enum_value))
+			: ast::constant_value(lhs_enum_value > rhs_enum_value);
+	}
 	default:
 		bz_unreachable;
 	}
@@ -756,7 +795,7 @@ static ast::constant_value evaluate_binary_greater_than_eq(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 20);
+	static_assert(ast::constant_value::variant_count == 21);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -791,6 +830,15 @@ static ast::constant_value evaluate_binary_greater_than_eq(
 	{
 		return ast::constant_value(true);
 	}
+	case ast::constant_value::enum_:
+	{
+		auto const [decl, lhs_enum_value] = lhs_value.get_enum();
+		auto const rhs_enum_value = rhs_value.get_enum().value;
+		auto const is_signed = ast::is_signed_integer_kind(decl->underlying_type.get<ast::ts_base_type>().info->kind);
+		return is_signed
+			? ast::constant_value(bit_cast<int64_t>(lhs_enum_value) >= bit_cast<int64_t>(rhs_enum_value))
+			: ast::constant_value(lhs_enum_value >= rhs_enum_value);
+	}
 	default:
 		bz_unreachable;
 	}
@@ -813,7 +861,7 @@ static ast::constant_value evaluate_binary_bit_and(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 20);
+	static_assert(ast::constant_value::variant_count == 21);
 	case ast::constant_value::uint:
 	{
 		auto const lhs_int_val = lhs_value.get_uint();
@@ -848,7 +896,7 @@ static ast::constant_value evaluate_binary_bit_xor(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 20);
+	static_assert(ast::constant_value::variant_count == 21);
 	case ast::constant_value::uint:
 	{
 		auto const lhs_int_val = lhs_value.get_uint();
@@ -883,7 +931,7 @@ static ast::constant_value evaluate_binary_bit_or(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 20);
+	static_assert(ast::constant_value::variant_count == 21);
 	case ast::constant_value::uint:
 	{
 		auto const lhs_int_val = lhs_value.get_uint();
@@ -1266,7 +1314,7 @@ static ast::constant_value evaluate_subscript(
 			auto const end_index = begin_index + inner_size;
 			switch (value.index())
 			{
-			static_assert(ast::constant_value::variant_count == 20);
+			static_assert(ast::constant_value::variant_count == 21);
 			case ast::constant_value::array:
 			{
 				auto const &array_value = value.get_array();
@@ -1315,7 +1363,7 @@ static ast::constant_value evaluate_subscript(
 		{
 			switch (value.index())
 			{
-			static_assert(ast::constant_value::variant_count == 20);
+			static_assert(ast::constant_value::variant_count == 21);
 			case ast::constant_value::array:
 			{
 				auto const &array_value = value.get_array();
@@ -1410,7 +1458,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->body.is_null());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 166);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 169);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -1422,6 +1470,36 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		bz_assert(type.is<ast::ts_array>());
 		bz_assert(type.get<ast::ts_array>().size != 0);
 		return ast::constant_value(type.get<ast::ts_array>().size);
+	}
+	case ast::function_body::builtin_enum_value:
+	{
+		bz_assert(func_call.params.size() == 1);
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			consteval_try(func_call.params[0], context);
+		}
+		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+		{
+			consteval_try_without_error(func_call.params[0], context);
+		}
+		if (!func_call.params[0].has_consteval_succeeded())
+		{
+			return {};
+		}
+		bz_assert(func_call.params[0].is_constant());
+		auto const &value = func_call.params[0].get_constant_value();
+		bz_assert(value.is_enum());
+		auto const [decl, enum_value] = value.get_enum();
+		bz_assert(decl->underlying_type.is<ast::ts_base_type>());
+		auto const is_signed = ast::is_signed_integer_kind(decl->underlying_type.get<ast::ts_base_type>().info->kind);
+		if (is_signed)
+		{
+			return ast::constant_value(bit_cast<int64_t>(enum_value));
+		}
+		else
+		{
+			return ast::constant_value(enum_value);
+		}
 	}
 	case ast::function_body::builtin_is_comptime:
 		if (exec_kind == function_execution_kind::force_evaluate)
@@ -1492,6 +1570,8 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		return is_typespec_kind_helper<ast::ts_array_slice>(func_call);
 	case ast::function_body::is_array:
 		return is_typespec_kind_helper<ast::ts_array>(func_call);
+	case ast::function_body::is_enum:
+		return is_typespec_kind_helper<ast::ts_enum>(func_call);
 
 	case ast::function_body::remove_const:
 		return remove_typespec_kind_helper<ast::ts_const>(func_call);
@@ -1545,6 +1625,28 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		else
 		{
 			return ast::constant_value(type.get<ast::ts_array>().elem_type);
+		}
+	}
+	case ast::function_body::enum_underlying_type:
+	{
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is_type());
+		auto const type = func_call.params[0]
+			.get_constant_value()
+			.get_type();
+		if (!type.is<ast::ts_enum>())
+		{
+			context.report_error(
+				original_expr.src_tokens,
+				bz::format("'__builtin_enum_underlying_type' called on non-enum type '{}'", type)
+			);
+			return ast::constant_value(type);
+		}
+		else
+		{
+			context.resolve_type(original_expr.src_tokens, type.get<ast::ts_enum>().decl);
+			return ast::constant_value(type.get<ast::ts_enum>().decl->underlying_type);
 		}
 	}
 
@@ -1660,7 +1762,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	case ast::function_body::bool_default_constructor:
 		return ast::constant_value(bool());
 	case ast::function_body::null_t_default_constructor:
-		return ast::constant_value(ast::internal::null_t());
+		return ast::constant_value::get_null();
 
 	case ast::function_body::builtin_unary_plus:
 	{
@@ -1864,7 +1966,7 @@ static ast::constant_value get_default_constructed_value(
 	{
 		return type.modifiers[0].visit(bz::overload{
 			[](ast::ts_optional const &) -> ast::constant_value {
-				return ast::constant_value(ast::internal::null_t{});
+				return ast::constant_value::get_null();
 			},
 			[](auto const &) -> ast::constant_value {
 				bz_unreachable;
@@ -1939,7 +2041,7 @@ static ast::constant_value get_default_constructed_value(
 					case ast::type_info::bool_:
 						return ast::constant_value(bool());
 					case ast::type_info::null_t_:
-						return ast::constant_value(ast::internal::null_t{});
+						return ast::constant_value::get_null();
 
 					default:
 						bz_unreachable;
@@ -2065,7 +2167,7 @@ static ast::constant_value evaluate_cast(
 	{
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 20);
+		static_assert(ast::constant_value::variant_count == 21);
 		case ast::constant_value::sint:
 		{
 			using T = std::tuple<bz::u8string_view, int64_t, int64_t, int64_t>;
@@ -2141,7 +2243,7 @@ static ast::constant_value evaluate_cast(
 	{
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 20);
+		static_assert(ast::constant_value::variant_count == 21);
 		case ast::constant_value::sint:
 		{
 			using T = std::tuple<bz::u8string_view, uint64_t, uint64_t>;
@@ -2213,7 +2315,7 @@ static ast::constant_value evaluate_cast(
 	case ast::type_info::float32_:
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 20);
+		static_assert(ast::constant_value::variant_count == 21);
 		case ast::constant_value::sint:
 			return ast::constant_value(static_cast<float32_t>(value.get_sint()));
 		case ast::constant_value::uint:
@@ -2228,7 +2330,7 @@ static ast::constant_value evaluate_cast(
 	case ast::type_info::float64_:
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 20);
+		static_assert(ast::constant_value::variant_count == 21);
 		case ast::constant_value::sint:
 			return ast::constant_value(static_cast<float64_t>(value.get_sint()));
 		case ast::constant_value::uint:
@@ -2243,7 +2345,7 @@ static ast::constant_value evaluate_cast(
 	case ast::type_info::char_:
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 20);
+		static_assert(ast::constant_value::variant_count == 21);
 		case ast::constant_value::sint:
 		{
 			auto const result = static_cast<bz::u8char>(value.get_sint());
@@ -2447,6 +2549,10 @@ static ast::constant_value guaranteed_evaluate_expr(
 			bz_unreachable;
 		},
 		[](ast::expr_null_literal &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_enum_literal &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
 		},
@@ -2732,7 +2838,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 		[&expr, &context](ast::expr_optional_default_construct &optional_default_construct_expr) -> ast::constant_value {
 			if (context.is_trivially_destructible(expr.src_tokens, optional_default_construct_expr.type))
 			{
-				return ast::constant_value(ast::internal::null_t());
+				return ast::constant_value::get_null();
 			}
 			else
 			{
@@ -3065,6 +3171,10 @@ static ast::constant_value try_evaluate_expr(
 			// these are always constant expressions
 			bz_unreachable;
 		},
+		[](ast::expr_enum_literal &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
 		[](ast::expr_typed_literal &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
@@ -3392,7 +3502,7 @@ static ast::constant_value try_evaluate_expr(
 		[&expr, &context](ast::expr_optional_default_construct &optional_default_construct_expr) -> ast::constant_value {
 			if (context.is_trivially_destructible(expr.src_tokens, optional_default_construct_expr.type))
 			{
-				return ast::constant_value(ast::internal::null_t());
+				return ast::constant_value::get_null();
 			}
 			else
 			{
@@ -3729,6 +3839,10 @@ static ast::constant_value try_evaluate_expr_without_error(
 			// these are always constant expressions
 			bz_unreachable;
 		},
+		[](ast::expr_enum_literal &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
 		[](ast::expr_typed_literal &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
@@ -4055,7 +4169,7 @@ static ast::constant_value try_evaluate_expr_without_error(
 		[&expr, &context](ast::expr_optional_default_construct &optional_default_construct_expr) -> ast::constant_value {
 			if (context.is_trivially_destructible(expr.src_tokens, optional_default_construct_expr.type))
 			{
-				return ast::constant_value(ast::internal::null_t());
+				return ast::constant_value::get_null();
 			}
 			else
 			{
@@ -4602,6 +4716,7 @@ void consteval_try_without_error_decl(ast::statement &stmt, ctx::parse_context &
 				}
 			}
 		},
+		[](ast::decl_enum &) {},
 		[](ast::decl_import &) {},
 	});
 }
@@ -4633,6 +4748,10 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			bz_unreachable;
 		},
 		[](ast::expr_null_literal const &) {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_enum_literal const &) {
 			// these are always constant expressions
 			bz_unreachable;
 		},

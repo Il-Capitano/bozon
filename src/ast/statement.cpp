@@ -677,6 +677,165 @@ static type_info::decl_function_ptr make_builtin_default_constructor(type_info *
 	return result;
 }
 
+uint64_t decl_enum::get_unique_values_count(void) const
+{
+	if (this->values.empty())
+	{
+		return 0;
+	}
+
+	bz_assert(this->values[0].value.not_null());
+	auto values_vec = [&]() -> arena_vector<uint64_t> {
+		if (this->values[0].value.is<int64_t>())
+		{
+			return this->values
+				.transform([](auto const &value) { return static_cast<uint64_t>(value.value.template get<int64_t>()); })
+				.collect<arena_vector>();
+		}
+		else
+		{
+			return this->values
+				.transform([](auto const &value) { return value.value.template get<uint64_t>(); })
+				.collect<arena_vector>();
+		}
+	}();
+
+	std::sort(values_vec.begin(), values_vec.end());
+	return static_cast<uint64_t>(std::unique(values_vec.begin(), values_vec.end()) - values_vec.begin());
+}
+
+bz::u8string_view decl_enum::get_value_name(uint64_t value) const
+{
+	if (this->values.empty())
+	{
+		return "";
+	}
+
+	auto const is_signed = this->values[0].value.is<int64_t>();
+	if (is_signed)
+	{
+		auto const it = std::find_if(
+			this->values.begin(), this->values.end(),
+			[signed_value = bit_cast<int64_t>(value)](auto const &enum_value) {
+				return enum_value.value.template get<int64_t>() == signed_value;
+			}
+		);
+		if (it == this->values.end())
+		{
+			return "";
+		}
+		else
+		{
+			return it->id->value;
+		}
+	}
+	else
+	{
+		auto const it = std::find_if(
+			this->values.begin(), this->values.end(),
+			[value](auto const &enum_value) {
+				return enum_value.value.template get<uint64_t>() == value;
+			}
+		);
+		if (it == this->values.end())
+		{
+			return "";
+		}
+		else
+		{
+			return it->id->value;
+		}
+	}
+}
+
+decl_enum::decl_operator_ptr decl_enum::make_default_op_assign(lex::src_tokens const &src_tokens, decl_enum &decl)
+{
+	auto lhs_t = [&]() {
+		typespec result = make_enum_typespec({}, &decl);
+		result.add_layer<ts_lvalue_reference>();
+		return result;
+	}();
+	auto rhs_t = make_enum_typespec({}, &decl);
+	auto ret_t = lhs_t;
+
+	auto result = make_ast_unique<decl_operator>();
+	result->body.params.reserve(2);
+	result->body.params.emplace_back(
+		lex::src_tokens{},
+		lex::token_range{},
+		var_id_and_type(identifier{}, type_as_expression(std::move(lhs_t))),
+		enclosing_scope_t{}
+	);
+	result->body.params.emplace_back(
+		lex::src_tokens{},
+		lex::token_range{},
+		var_id_and_type(identifier{}, type_as_expression(std::move(rhs_t))),
+		enclosing_scope_t{}
+	);
+	result->body.return_type = std::move(ret_t);
+	result->body.function_name_or_operator_kind = lex::token::assign;
+	result->body.src_tokens = src_tokens;
+	result->body.state = resolve_state::symbol;
+	result->body.flags |= function_body::default_op_assign;
+	return result;
+}
+
+decl_enum::decl_operator_ptr decl_enum::make_default_compare_op(
+	lex::src_tokens const &src_tokens,
+	decl_enum &decl,
+	uint32_t op_kind,
+	typespec result_type
+)
+{
+	auto lhs_t = make_enum_typespec({}, &decl);
+	auto rhs_t = make_enum_typespec({}, &decl);
+
+	auto result = make_ast_unique<decl_operator>();
+	result->body.params.reserve(2);
+	result->body.params.emplace_back(
+		lex::src_tokens{},
+		lex::token_range{},
+		var_id_and_type(identifier{}, type_as_expression(std::move(lhs_t))),
+		enclosing_scope_t{}
+	);
+	result->body.params.emplace_back(
+		lex::src_tokens{},
+		lex::token_range{},
+		var_id_and_type(identifier{}, type_as_expression(std::move(rhs_t))),
+		enclosing_scope_t{}
+	);
+	result->body.return_type = std::move(result_type);
+	result->body.function_name_or_operator_kind = op_kind;
+	result->body.src_tokens = src_tokens;
+	result->body.state = resolve_state::symbol;
+	result->body.flags |= function_body::intrinsic;
+	result->body.flags |= function_body::builtin_operator;
+	switch (op_kind)
+	{
+	case lex::token::equals:
+		result->body.intrinsic_kind = function_body::builtin_binary_equals;
+		break;
+	case lex::token::not_equals:
+		result->body.intrinsic_kind = function_body::builtin_binary_not_equals;
+		break;
+	case lex::token::less_than:
+		result->body.intrinsic_kind = function_body::builtin_binary_less_than;
+		break;
+	case lex::token::less_than_eq:
+		result->body.intrinsic_kind = function_body::builtin_binary_less_than_eq;
+		break;
+	case lex::token::greater_than:
+		result->body.intrinsic_kind = function_body::builtin_binary_greater_than;
+		break;
+	case lex::token::greater_than_eq:
+		result->body.intrinsic_kind = function_body::builtin_binary_greater_than_eq;
+		break;
+	default:
+		bz_unreachable;
+	}
+	return result;
+}
+
 bz::vector<type_info> make_builtin_type_infos(void)
 {
 	bz::vector<type_info> result;

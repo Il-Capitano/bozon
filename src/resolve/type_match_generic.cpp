@@ -2132,7 +2132,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 	}
 	else
 	{
-		static_assert(ast::typespec_types::size() == 18);
+		static_assert(ast::typespec_types::size() == 19);
 		if constexpr (match_context_t<kind>::report_errors)
 		{
 			bz::vector<ctx::source_highlight> notes;
@@ -2748,7 +2748,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 	}
 	else
 	{
-		static_assert(ast::typespec_types::size() == 18);
+		static_assert(ast::typespec_types::size() == 19);
 		if constexpr (match_context_t<kind>::report_errors)
 		{
 			match_context.context.report_error(
@@ -2883,6 +2883,82 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 			}
 		}
 		return result;
+	}
+	else if (expr.is_enum_literal())
+	{
+		ast::typespec_view const dest = ast::remove_const_or_consteval(match_context.dest);
+		if (!dest.is<ast::ts_enum>())
+		{
+			if constexpr (match_context_t<kind>::report_errors)
+			{
+				auto const id = expr.get_enum_literal().id->value;
+				match_context.context.report_error(
+					expr.src_tokens,
+					bz::format("unable to match enum literal '.{}' to non-enum type '{}'", id, dest)
+				);
+			}
+			return match_function_result_t<kind>();
+		}
+
+		auto const id = expr.get_enum_literal().id;
+		auto const id_value = id->value;
+		auto const decl = dest.get<ast::ts_enum>().decl;
+
+		auto const it = std::find_if(
+			decl->values.begin(), decl->values.end(),
+			[id_value](auto const &value) {
+				return value.id->value == id_value;
+			}
+		);
+
+		if (it == decl->values.end())
+		{
+			if constexpr (match_context_t<kind>::report_errors)
+			{
+				match_context.context.report_error(
+					expr.src_tokens,
+					bz::format("enum type '{}' has no member named '{}'", dest, id_value)
+				);
+			}
+			return match_function_result_t<kind>();
+		}
+
+		if constexpr (kind == type_match_function_kind::can_match)
+		{
+			return true;
+		}
+		else if constexpr (kind == type_match_function_kind::match_level)
+		{
+			return single_match_t{
+				.modifier_match_level = 0,
+				.reference_match = reference_match_kind::rvalue_copy,
+				.type_match = type_match_kind::exact_match
+			};
+		}
+		else if constexpr (kind == type_match_function_kind::matched_type)
+		{
+			return match_context.dest;
+		}
+		else if constexpr (kind == type_match_function_kind::match_expression)
+		{
+			auto const &value = *it;
+
+			auto &inner_expr = expr.get_enum_literal_expr();
+
+			inner_expr = ast::make_constant_expression(
+				inner_expr.src_tokens,
+				ast::expression_type_kind::rvalue, dest,
+				value.value.template is<int64_t>()
+					? ast::constant_value::get_enum(decl, value.value.template get<int64_t>())
+					: ast::constant_value::get_enum(decl, value.value.template get<uint64_t>()),
+				ast::make_expr_enum_literal(id)
+			);
+			return true;
+		}
+		else
+		{
+			static_assert(bz::meta::always_false<match_context_t<kind>>);
+		}
 	}
 	else
 	{

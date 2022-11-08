@@ -750,6 +750,7 @@ static bz::vector<source_highlight> get_circular_notes(T *decl, parse_context co
 	{
 		if (!notes.empty())
 		{
+			static_assert(decltype(parse_context::resolve_queue_t::requested)::variant_count == 6);
 			if (dep.requested.is<ast::function_body *>())
 			{
 				auto const func_body = dep.requested.get<ast::function_body *>();
@@ -781,6 +782,13 @@ static bz::vector<source_highlight> get_circular_notes(T *decl, parse_context co
 				notes.back().message = bz::format(
 					"required from instantiation of type 'struct {}'",
 					dep.requested.get<ast::type_info *>()->get_typename_as_string()
+				);
+			}
+			else if (dep.requested.is<ast::decl_enum *>())
+			{
+				notes.back().message = bz::format(
+					"required from instantiation of type 'enum {}'",
+					dep.requested.get<ast::decl_enum *>()->id.format_as_unqualified()
 				);
 			}
 		}
@@ -854,6 +862,17 @@ void parse_context::report_circular_dependency_error(ast::type_info &info) const
 	this->report_error(
 		info.src_tokens,
 		bz::format("circular dependency encountered while resolving type 'struct {}'", info.get_typename_as_string()),
+		std::move(notes)
+	);
+}
+
+void parse_context::report_circular_dependency_error(ast::decl_enum &enum_decl) const
+{
+	auto notes = get_circular_notes(&enum_decl, *this);
+
+	this->report_error(
+		enum_decl.src_tokens,
+		bz::format("circular dependency encountered while resolving type 'enum {}'", enum_decl.id.format_as_unqualified()),
 		std::move(notes)
 	);
 }
@@ -1789,6 +1808,28 @@ static ast::expression make_type_expression(
 	}
 }
 
+static ast::expression make_enum_type_expression(
+	lex::src_tokens const &src_tokens,
+	ast::identifier id,
+	ast::decl_enum *decl
+)
+{
+	if (decl->state != ast::resolve_state::error)
+	{
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::type_name,
+			ast::make_typename_typespec(nullptr),
+			ast::constant_value(ast::make_enum_typespec(src_tokens, decl)),
+			ast::make_expr_identifier(std::move(id))
+		);
+	}
+	else
+	{
+		return ast::make_error_expression(src_tokens, ast::make_expr_identifier(std::move(id)));
+	}
+}
+
 static ast::expression make_type_alias_expression(
 	lex::src_tokens const &src_tokens,
 	ast::identifier id,
@@ -1819,12 +1860,13 @@ using symbol_t = bz::variant<
 	ast::decl_function_alias *,
 	function_overload_set_decls,
 	ast::decl_type_alias *,
-	ast::decl_struct *
+	ast::decl_struct *,
+	ast::decl_enum *
 >;
 
 static symbol_t symbol_ref_from_local_symbol(ast::local_symbol_t const &symbol)
 {
-	static_assert(ast::local_symbol_t::variant_count == 6);
+	static_assert(ast::local_symbol_t::variant_count == 7);
 	switch (symbol.index())
 	{
 	case ast::local_symbol_t::index_of<ast::decl_variable *>:
@@ -1842,6 +1884,8 @@ static symbol_t symbol_ref_from_local_symbol(ast::local_symbol_t const &symbol)
 		return symbol.get_type_alias();
 	case ast::local_symbol_t::index_of<ast::decl_struct *>:
 		return symbol.get_struct();
+	case ast::local_symbol_t::index_of<ast::decl_enum *>:
+		return symbol.get_enum();
 	default:
 		bz_unreachable;
 	}
@@ -1856,7 +1900,7 @@ static ast::expression expression_from_symbol(
 	parse_context &context
 )
 {
-	static_assert(symbol_t::variant_count == 7);
+	static_assert(symbol_t::variant_count == 8);
 
 	switch (symbol.index())
 	{
@@ -1949,6 +1993,8 @@ static ast::expression expression_from_symbol(
 	}
 	case symbol_t::index_of<ast::decl_struct *>:
 		return make_type_expression(src_tokens, std::move(id), symbol.get<ast::decl_struct *>(), context);
+	case symbol_t::index_of<ast::decl_enum *>:
+		return make_enum_type_expression(src_tokens, std::move(id), symbol.get<ast::decl_enum *>());
 	default:
 		bz_unreachable;
 	}
@@ -1956,7 +2002,7 @@ static ast::expression expression_from_symbol(
 
 static source_highlight get_ambiguous_note(symbol_t const &symbol)
 {
-	static_assert(symbol_t::variant_count == 7);
+	static_assert(symbol_t::variant_count == 8);
 	switch (symbol.index())
 	{
 	case symbol_t::index_of<ast::decl_variable *>:
@@ -2024,6 +2070,14 @@ static source_highlight get_ambiguous_note(symbol_t const &symbol)
 		return parse_context::make_note(
 			struct_decl->info.src_tokens,
 			bz::format("it may refer to the type 'struct {}'", struct_decl->id.format_as_unqualified())
+		);
+	}
+	case symbol_t::index_of<ast::decl_enum *>:
+	{
+		auto const enum_decl = symbol.get<ast::decl_enum *>();
+		return parse_context::make_note(
+			enum_decl->src_tokens,
+			bz::format("it may refer to the type 'enum {}'", enum_decl->id.format_as_unqualified())
 		);
 	}
 	default:
@@ -2137,6 +2191,27 @@ static ast::decl_struct *find_struct_by_qualified_id(
 	}
 }
 
+static ast::decl_enum *find_enum_by_qualified_id(
+	bz::array_view<ast::decl_enum *> enums,
+	ast::identifier const &id
+)
+{
+	auto const it = std::find_if(
+		enums.begin(), enums.end(),
+		[&id](auto const decl) {
+			return decl->id == id;
+		}
+	);
+	if (it != enums.end())
+	{
+		return *it;
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
 static bool unqualified_equals(
 	ast::identifier const &lhs,
 	ast::identifier const &rhs,
@@ -2220,6 +2295,19 @@ static auto get_struct_range_by_unqualified_id(
 )
 {
 	return structs.filter(
+		[&id, id_scope](auto const decl) {
+			return unqualified_equals(decl->id, id, id_scope);
+		}
+	);
+}
+
+static auto get_enum_range_by_unqualified_id(
+	bz::array_view<ast::decl_enum *> enums,
+	ast::identifier const &id,
+	bz::array_view<bz::u8string_view const> id_scope
+)
+{
+	return enums.filter(
 		[&id, id_scope](auto const decl) {
 			return unqualified_equals(decl->id, id, id_scope);
 		}
@@ -2373,6 +2461,34 @@ static void try_find_struct_by_qualified_id(
 	}
 }
 
+static void try_find_enum_by_qualified_id(
+	symbol_t &result,
+	ast::global_scope_t &scope,
+	ast::identifier const &id,
+	parse_context &context
+)
+{
+	auto const enum_decl = find_enum_by_qualified_id(scope.enums, id);
+	if (enum_decl != nullptr && result.not_null())
+	{
+		context.report_error(
+			lex::src_tokens::from_range(id.tokens),
+			bz::format("identifier '{}' is ambiguous", id.as_string()),
+			{
+				get_ambiguous_note(result),
+				context.make_note(
+					enum_decl->src_tokens,
+					bz::format("it may refer to the type 'enum {}'", id.format_as_unqualified())
+				)
+			}
+		);
+	}
+	else if (enum_decl != nullptr)
+	{
+		result = enum_decl;
+	}
+}
+
 static void try_find_function_set_by_unqualified_id(
 	symbol_t &result,
 	ast::global_scope_t &scope,
@@ -2396,7 +2512,7 @@ static void try_find_function_set_by_unqualified_id(
 					)
 					: context.make_note(
 						func_set.alias_decls.front()->src_tokens,
-						bz::format("it may refer to the alias 'function {}'", id.format_as_unqualified())
+						bz::format("it may refer to the alias 'function {}'", func_set.id.format_as_unqualified())
 					)
 				}
 			);
@@ -2431,7 +2547,7 @@ static void try_find_variable_by_unqualified_id(
 					get_ambiguous_note(result),
 					context.make_note(
 						var_decl->src_tokens,
-						bz::format("it may refer to the variable '{}'", id.format_as_unqualified())
+						bz::format("it may refer to the variable '{}'", var_decl->get_id().format_as_unqualified())
 					)
 				}
 			);
@@ -2462,7 +2578,7 @@ static void try_find_variadic_variable_by_unqualified_id(
 					get_ambiguous_note(result),
 					context.make_note(
 						variadic_var_decl.original_decl->src_tokens,
-						bz::format("it may refer to the variable '{}'", id.format_as_unqualified())
+						bz::format("it may refer to the variable '{}'", variadic_var_decl.original_decl->get_id().format_as_unqualified())
 					)
 				}
 			);
@@ -2493,7 +2609,7 @@ static void try_find_type_alias_by_unqualified_id(
 					get_ambiguous_note(result),
 					context.make_note(
 						alias_decl->src_tokens,
-						bz::format("it may refer to the alias 'type {}'", id.format_as_unqualified())
+						bz::format("it may refer to the alias 'type {}'", alias_decl->id.format_as_unqualified())
 					)
 				}
 			);
@@ -2524,7 +2640,7 @@ static void try_find_struct_by_unqualified_id(
 					get_ambiguous_note(result),
 					context.make_note(
 						struct_decl->info.src_tokens,
-						bz::format("it may refer to the type 'struct {}'", id.format_as_unqualified())
+						bz::format("it may refer to the type 'struct {}'", struct_decl->id.format_as_unqualified())
 					)
 				}
 			);
@@ -2533,6 +2649,37 @@ static void try_find_struct_by_unqualified_id(
 		else
 		{
 			result = struct_decl;
+		}
+	}
+}
+
+static void try_find_enum_by_unqualified_id(
+	symbol_t &result,
+	ast::global_scope_t &scope,
+	ast::identifier const &id,
+	parse_context &context
+)
+{
+	for (auto const enum_decl : get_enum_range_by_unqualified_id(scope.enums, id, scope.id_scope))
+	{
+		if (result.not_null())
+		{
+			context.report_error(
+				lex::src_tokens::from_range(id.tokens),
+				bz::format("identifier '{}' is ambiguous", id.as_string()),
+				{
+					get_ambiguous_note(result),
+					context.make_note(
+						enum_decl->src_tokens,
+						bz::format("it may refer to the type 'enum {}'", enum_decl->id.format_as_unqualified())
+					)
+				}
+			);
+			return;
+		}
+		else
+		{
+			result = enum_decl;
 		}
 	}
 }
@@ -2554,11 +2701,14 @@ static symbol_t find_id_in_global_scope(ast::global_scope_t &scope, ast::identif
 
 		symbol_t result;
 
+		static_assert(sizeof (ast::global_scope_t) == 200);
+		static_assert(symbol_t::variant_count == 8);
 		try_find_function_set_by_qualified_id(result, scope, id, context);
 		try_find_variable_by_qualified_id(result, scope, id, context);
 		try_find_variadic_variable_by_qualified_id(result, scope, id, context);
 		try_find_type_alias_by_qualified_id(result, scope, id, context);
 		try_find_struct_by_qualified_id(result, scope, id, context);
+		try_find_enum_by_qualified_id(result, scope, id, context);
 
 		return result;
 	}
@@ -2566,11 +2716,14 @@ static symbol_t find_id_in_global_scope(ast::global_scope_t &scope, ast::identif
 	{
 		symbol_t result;
 
+		static_assert(sizeof (ast::global_scope_t) == 200);
+		static_assert(symbol_t::variant_count == 8);
 		try_find_function_set_by_unqualified_id(result, scope, id, context);
 		try_find_variable_by_unqualified_id(result, scope, id, context);
 		try_find_variadic_variable_by_unqualified_id(result, scope, id, context);
 		try_find_type_alias_by_unqualified_id(result, scope, id, context);
 		try_find_struct_by_unqualified_id(result, scope, id, context);
+		try_find_enum_by_unqualified_id(result, scope, id, context);
 
 		return result;
 	}
@@ -3197,7 +3350,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 			src_tokens,
 			ast::expression_type_kind::null_literal,
 			ast::make_base_type_typespec(src_tokens, this->get_builtin_type_info(ast::type_info::null_t_)),
-			ast::constant_value(ast::internal::null_t{}),
+			ast::constant_value::get_null(),
 			ast::make_expr_null_literal()
 		);
 	case lex::token::placeholder_literal:
@@ -3803,7 +3956,7 @@ static void get_possible_funcs_for_operator_helper(
 		if (scope.scope->is_local())
 		{
 			// we do nothing, because operators can't be local
-			static_assert(ast::local_symbol_t::variant_count == 6);
+			static_assert(ast::local_symbol_t::variant_count == 7);
 			scope = scope.scope->get_local().parent;
 		}
 		else
@@ -3831,6 +3984,12 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 		auto const info = expr_type.get<ast::ts_base_type>().info;
 		context.resolve_type(src_tokens, info);
 		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, expr, info->get_scope(), context);
+	}
+	else if (expr_type.is<ast::ts_enum>())
+	{
+		auto const decl = expr_type.get<ast::ts_enum>().decl;
+		context.resolve_type(src_tokens, decl);
+		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, expr, decl->get_scope(), context);
 	}
 
 	return possible_funcs;
@@ -3958,7 +4117,7 @@ static void get_possible_funcs_for_operator_helper(
 		if (scope.scope->is_local())
 		{
 			// we do nothing, because operators can't be local
-			static_assert(ast::local_symbol_t::variant_count == 6);
+			static_assert(ast::local_symbol_t::variant_count == 7);
 			scope = scope.scope->get_local().parent;
 		}
 		else
@@ -3988,12 +4147,24 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 		context.resolve_type(src_tokens, info);
 		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
 	}
+	else if (lhs_type.is<ast::ts_enum>())
+	{
+		auto const decl = lhs_type.get<ast::ts_enum>().decl;
+		context.resolve_type(src_tokens, decl);
+		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, decl->get_scope(), context);
+	}
 	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
 	if (rhs_type.is<ast::ts_base_type>())
 	{
 		auto const info = rhs_type.get<ast::ts_base_type>().info;
 		context.resolve_type(src_tokens, info);
 		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
+	}
+	else if (rhs_type.is<ast::ts_enum>())
+	{
+		auto const decl = rhs_type.get<ast::ts_enum>().decl;
+		context.resolve_type(src_tokens, decl);
+		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, decl->get_scope(), context);
 	}
 
 	return possible_funcs;
@@ -4587,6 +4758,15 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 				possible_funcs, src_tokens, id, params, info->get_scope(), context
 			);
 		}
+		else if (type.is<ast::ts_enum>())
+		{
+			auto const decl = type.get<ast::ts_enum>().decl;
+			context.resolve_type(src_tokens, decl);
+			// TODO: don't use info->enclosing_scope here, because that includes non-exported symbols too
+			get_possible_funcs_for_universal_function_call_helper(
+				possible_funcs, src_tokens, id, params, decl->get_scope(), context
+			);
+		}
 	}
 
 	if (id.values.size() == 1)
@@ -4981,26 +5161,59 @@ ast::expression parse_context::make_member_access_expression(
 	if (base.is_typename())
 	{
 		auto const type = ast::remove_const_or_consteval(ast::remove_lvalue_reference(base.get_typename().as_typespec_view()));
-		if (!type.is<ast::ts_base_type>())
+		if (type.is<ast::ts_base_type>())
 		{
-			this->report_error(member, bz::format("no member named '{}' in type '{}'", member->value, type));
-			return ast::make_error_expression(src_tokens, ast::make_expr_type_member_access(std::move(base), member, nullptr));
+			auto const info = type.get<ast::ts_base_type>().info;
+			this->resolve_type(src_tokens, info);
+			bz_assert(info->scope.is_global());
+			auto id = ast::make_identifier(member);
+			auto const symbol = find_id_in_global_scope(info->scope.get_global(), id, *this);
+
+			if (symbol.is_null())
+			{
+				this->report_error(member, bz::format("no member named '{}' in type '{}'", member->value, type));
+				return ast::make_error_expression(src_tokens, ast::make_expr_type_member_access(std::move(base), member, nullptr));
+			}
+			else
+			{
+				return expression_from_symbol(src_tokens, std::move(id), symbol, 0, false, *this);
+			}
 		}
-
-		auto const info = type.get<ast::ts_base_type>().info;
-		this->resolve_type(src_tokens, info);
-		bz_assert(info->scope.is_global());
-		auto id = ast::make_identifier(member);
-		auto const symbol = find_id_in_global_scope(info->scope.get_global(), id, *this);
-
-		if (symbol.is_null())
+		else if (type.is<ast::ts_enum>())
 		{
-			this->report_error(member, bz::format("no member named '{}' in type '{}'", member->value, type));
-			return ast::make_error_expression(src_tokens, ast::make_expr_type_member_access(std::move(base), member, nullptr));
+			auto const decl = type.get<ast::ts_enum>().decl;
+			this->resolve_type(src_tokens, decl);
+			auto const member_value = member->value;
+
+			auto const result_it = std::find_if(
+				decl->values.begin(), decl->values.end(),
+				[member_value](auto const &value) {
+					return value.id->value == member_value;
+				}
+			);
+			if (result_it == decl->values.end())
+			{
+				this->report_error(member, bz::format("no value named '{}' in enum '{}'", member->value, type));
+				return ast::make_error_expression(src_tokens, ast::make_expr_type_member_access(std::move(base), member, nullptr));
+			}
+			else
+			{
+				bz_assert(result_it->value.not_null());
+				auto value = result_it->value.is<int64_t>()
+					? ast::constant_value::get_enum(decl, result_it->value.get<int64_t>())
+					: ast::constant_value::get_enum(decl, result_it->value.get<uint64_t>());
+				return ast::make_constant_expression(
+					src_tokens,
+					ast::expression_type_kind::rvalue, type,
+					std::move(value),
+					ast::make_expr_type_member_access(std::move(base), member, nullptr)
+				);
+			}
 		}
 		else
 		{
-			return expression_from_symbol(src_tokens, std::move(id), symbol, 0, false, *this);
+			this->report_error(member, bz::format("no member named '{}' in type '{}'", member->value, type));
+			return ast::make_error_expression(src_tokens, ast::make_expr_type_member_access(std::move(base), member, nullptr));
 		}
 	}
 
@@ -5373,7 +5586,7 @@ static ast::expression make_builtin_default_construction(
 			case ast::type_info::bool_:
 				return ast::constant_value(bool());
 			case ast::type_info::null_t_:
-				return ast::constant_value(ast::internal::null_t());
+				return ast::constant_value::get_null();
 			default:
 				bz_unreachable;
 			}
@@ -5734,7 +5947,7 @@ ast::expression parse_context::make_copy_construction(ast::expression expr)
 	{
 		return make_optional_copy_construction(type, std::move(expr), *this);
 	}
-	else if (type.is<ast::ts_pointer>() || type.is<ast::ts_array_slice>())
+	else if (type.is<ast::ts_enum>() || type.is<ast::ts_pointer>() || type.is<ast::ts_array_slice>())
 	{
 		return make_builtin_copy_construction(type, std::move(expr), *this);
 	}
@@ -7220,6 +7433,16 @@ void parse_context::resolve_type(lex::src_tokens const &src_tokens, ast::type_in
 	}
 }
 
+void parse_context::resolve_type(lex::src_tokens const &src_tokens, ast::decl_enum *decl)
+{
+	if (decl->state != ast::resolve_state::error && decl->state < ast::resolve_state::all)
+	{
+		this->add_to_resolve_queue(src_tokens, *decl);
+		resolve::resolve_enum(*decl, *this);
+		this->pop_resolve_queue();
+	}
+}
+
 template<
 	bool (ast::type_info::*base_type_property_func)(void) const,
 	bool default_value, typename ...exception_types
@@ -7281,7 +7504,7 @@ bool parse_context::is_copy_constructible(lex::src_tokens const &src_tokens, ast
 {
 	return type_property_helper<
 		&ast::type_info::is_copy_constructible,
-		false, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice
 	>(src_tokens, ts, *this);
 }
 
@@ -7289,7 +7512,7 @@ bool parse_context::is_trivially_copy_constructible(lex::src_tokens const &src_t
 {
 	return type_property_helper<
 		&ast::type_info::is_trivially_copy_constructible,
-		false, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice
 	>(src_tokens, ts, *this);
 }
 
@@ -7297,7 +7520,7 @@ bool parse_context::is_move_constructible(lex::src_tokens const &src_tokens, ast
 {
 	return type_property_helper<
 		&ast::type_info::is_move_constructible,
-		false, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice
 	>(src_tokens, ts, *this);
 }
 
@@ -7305,7 +7528,7 @@ bool parse_context::is_trivially_move_constructible(lex::src_tokens const &src_t
 {
 	return type_property_helper<
 		&ast::type_info::is_trivially_move_constructible,
-		false, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice
 	>(src_tokens, ts, *this);
 }
 
@@ -7329,7 +7552,7 @@ bool parse_context::is_trivially_relocatable(lex::src_tokens const &src_tokens, 
 {
 	return type_property_helper<
 		&ast::type_info::is_trivially_relocatable,
-		false, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice
 	>(src_tokens, ts, *this);
 }
 
@@ -7337,7 +7560,7 @@ bool parse_context::is_trivial(lex::src_tokens const &src_tokens, ast::typespec_
 {
 	return type_property_helper<
 		&ast::type_info::is_trivial,
-		false, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice
 	>(src_tokens, ts, *this);
 }
 
@@ -7354,6 +7577,10 @@ bool parse_context::is_instantiable(lex::src_tokens const &src_tokens, ast::type
 		auto const info = ts.get<ast::ts_base_type>().info;
 		this->resolve_type(src_tokens, info);
 		return info->state == ast::resolve_state::all;
+	}
+	else if (ts.is<ast::ts_enum>())
+	{
+		return true;
 	}
 	else if (ts.is<ast::ts_array>())
 	{

@@ -1,8 +1,10 @@
+import std::ryu::common;
 import std::ryu::d2s;
 import std::ryu::f2s;
 import std::ryu::s2d;
 import std::ryu::s2f;
 import std::ryu::d2fixed;
+import std::meta::types;
 
 @symbol_name("d2s_short")
 export function d2s_short(x: float64, buffer: *uint8) -> *uint8
@@ -28,14 +30,16 @@ export function f2s_short(x: float32, buffer: *uint8) -> *uint8
 	return std::ryu::f2s_shortest(x, buffer);
 }
 
+static_assert(std::meta::enum_underlying_type(std::ryu::parse_result) == int32);
+
 @symbol_name("s2d_str")
-export function s2d_str(begin: *const uint8, end: *const uint8, result: *float64) -> uint32
+export function s2d_str(begin: *const uint8, end: *const uint8, result: *float64) -> std::ryu::parse_result
 {
 	return std::ryu::s2d_str(__builtin_str_from_ptrs(begin, end), result);
 }
 
 @symbol_name("s2f_str")
-export function s2f_str(begin: *const uint8, end: *const uint8, result: *float32) -> uint32
+export function s2f_str(begin: *const uint8, end: *const uint8, result: *float32) -> std::ryu::parse_result
 {
 	return std::ryu::s2f_str(__builtin_str_from_ptrs(begin, end), result);
 }

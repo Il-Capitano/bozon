@@ -1,0 +1,10 @@
+enum E
+{
+	a,
+	b,
+}
+
+function test()
+{
+	.a == .b;
+}

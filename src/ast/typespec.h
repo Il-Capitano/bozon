@@ -4,6 +4,7 @@
 #include "core.h"
 #include "lex/token.h"
 #include "allocator.h"
+#include "statement_forward.h"
 
 namespace ast
 {
@@ -11,6 +12,7 @@ namespace ast
 struct ts_unresolved;
 
 struct ts_base_type;
+struct ts_enum;
 struct ts_void;
 struct ts_function;
 struct ts_array;
@@ -32,6 +34,7 @@ struct ts_variadic;
 using typespec_types = bz::meta::type_pack<
 	ts_unresolved,
 	ts_base_type,
+	ts_enum,
 	ts_void,
 	ts_function,
 	ts_array,
@@ -65,6 +68,7 @@ using modifier_typespec_types = bz::meta::type_pack<
 using terminator_typespec_types = bz::meta::type_pack<
 	ts_unresolved,
 	ts_base_type,
+	ts_enum,
 	ts_void,
 	ts_function,
 	ts_array,
@@ -206,8 +210,6 @@ struct typespec
 };
 
 
-struct type_info;
-
 struct ts_unresolved
 {
 	lex::token_range tokens;
@@ -216,6 +218,11 @@ struct ts_unresolved
 struct ts_base_type
 {
 	type_info *info;
+};
+
+struct ts_enum
+{
+	decl_enum *decl;
 };
 
 struct ts_void
@@ -311,6 +318,11 @@ inline typespec make_unresolved_typespec(lex::token_range range)
 inline typespec make_base_type_typespec(lex::src_tokens const &src_tokens, type_info *info)
 {
 	return typespec{ src_tokens, {}, make_ast_unique<terminator_typespec_node_t>(ts_base_type{ info }) };
+}
+
+inline typespec make_enum_typespec(lex::src_tokens const &src_tokens, decl_enum *decl)
+{
+	return typespec{ src_tokens, {}, make_ast_unique<terminator_typespec_node_t>(ts_enum{ decl }) };
 }
 
 inline typespec make_void_typespec(lex::token_pos void_pos)

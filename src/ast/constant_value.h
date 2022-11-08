@@ -18,6 +18,12 @@ namespace internal
 struct null_t {};
 struct void_t {};
 
+struct enum_t
+{
+	decl_enum *decl;
+	uint64_t value;
+};
+
 } // namespace internal
 
 struct function_set_t
@@ -32,6 +38,7 @@ using constant_value_base_t = bz::variant<
 	bz::u8char, bz::u8string,
 	bool, internal::null_t,
 	internal::void_t,
+	internal::enum_t,
 
 	// arrays
 	arena_vector<constant_value>,
@@ -67,6 +74,7 @@ struct constant_value : constant_value_base_t
 		boolean         = base_t::index_of<bool>,
 		null            = base_t::index_of<internal::null_t>,
 		void_           = base_t::index_of<internal::void_t>,
+		enum_           = base_t::index_of<internal::enum_t>,
 		array,
 		sint_array      = base_t::index_of<arena_vector<int64_t>>,
 		uint_array      = base_t::index_of<arena_vector<uint64_t>>,
@@ -120,6 +128,9 @@ struct constant_value : constant_value_base_t
 
 	bool is_void(void) const noexcept
 	{ return this->is<void_>(); }
+
+	bool is_enum(void) const noexcept
+	{ return this->is<enum_>(); }
 
 	bool is_array(void) const noexcept
 	{ return this->is<array>(); }
@@ -176,6 +187,9 @@ struct constant_value : constant_value_base_t
 	bool get_boolean(void) const noexcept
 	{ return this->get<boolean>(); }
 
+	internal::enum_t get_enum(void) const noexcept
+	{ return this->get<enum_>(); }
+
 	bz::array_view<constant_value const> get_array(void) const noexcept
 	{ return this->get<array>(); }
 
@@ -219,6 +233,15 @@ struct constant_value : constant_value_base_t
 
 	static constant_value get_void(void)
 	{ return constant_value(internal::void_t{}); }
+
+	static constant_value get_null(void)
+	{ return constant_value(internal::null_t{}); }
+
+	static constant_value get_enum(decl_enum *decl, int64_t value)
+	{ return constant_value(internal::enum_t{ decl, bit_cast<uint64_t>(value) }); }
+
+	static constant_value get_enum(decl_enum *decl, uint64_t value)
+	{ return constant_value(internal::enum_t{ decl, value }); }
 
 	static void encode_for_symbol_name(bz::u8string &out, constant_value const &value);
 	static bz::u8string decode_from_symbol_name(bz::u8string_view::const_iterator &it, bz::u8string_view::const_iterator end);

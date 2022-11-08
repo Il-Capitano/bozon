@@ -506,6 +506,7 @@ struct function_body
 		builtin_pointer_cast,
 		builtin_pointer_to_int,
 		builtin_int_to_pointer,
+		builtin_enum_value,
 
 		builtin_call_destructor,
 		builtin_inplace_construct,
@@ -548,6 +549,7 @@ struct function_body
 		is_move_reference,
 		is_slice,
 		is_array,
+		is_enum,
 
 		remove_const,
 		remove_consteval,
@@ -557,6 +559,7 @@ struct function_body
 		remove_move_reference,
 		slice_value_type,
 		array_value_type,
+		enum_underlying_type,
 
 		is_default_constructible,
 		is_copy_constructible,
@@ -1056,9 +1059,6 @@ struct type_info
 	type_info *generic_parent = nullptr;
 	arena_vector<generic_required_from_t> generic_required_from;
 
-//	function_body *move_constructor;
-//	function_body_ptr move_destuctor;
-
 	type_info(lex::src_tokens const &_src_tokens, identifier _type_name, lex::token_range range, enclosing_scope_t _enclosing_scope)
 		: src_tokens(_src_tokens),
 		  kind(range.begin == nullptr ? forward_declaration : aggregate),
@@ -1425,6 +1425,85 @@ struct decl_struct
 	lex::token_pos get_tokens_end(void) const;
 };
 
+struct decl_enum
+{
+	struct name_value_pair
+	{
+		lex::token_pos id;
+		bz::variant<int64_t, uint64_t> value;
+		ast::expression value_expr;
+	};
+
+	enum : uint8_t
+	{
+		module_export = bit_at<0>,
+		global        = bit_at<1>,
+	};
+
+	lex::src_tokens src_tokens;
+	identifier id;
+	typespec   underlying_type;
+	arena_vector<name_value_pair> values;
+	scope_t scope;
+
+	using decl_operator_ptr = ast_unique_ptr<decl_operator>;
+
+	decl_operator_ptr default_op_assign;
+	decl_operator_ptr default_op_equals;
+	decl_operator_ptr default_op_not_equals;
+	decl_operator_ptr default_op_less_than;
+	decl_operator_ptr default_op_less_than_eq;
+	decl_operator_ptr default_op_greater_than;
+	decl_operator_ptr default_op_greater_than_eq;
+
+	resolve_state state;
+	uint8_t flags;
+
+	decl_enum(
+		lex::src_tokens const &_src_tokens,
+		identifier _id,
+		typespec _underlying_type,
+		arena_vector<name_value_pair> _values,
+		enclosing_scope_t _enclosing_scope
+	)
+		: src_tokens(_src_tokens),
+		  id(std::move(_id)),
+		  underlying_type(std::move(_underlying_type)),
+		  values(std::move(_values)),
+		  scope(make_global_scope(_enclosing_scope, {})),
+		  state(resolve_state::none),
+		  flags(0)
+	{}
+
+	bool is_module_export(void) const noexcept
+	{ return (this->flags & module_export) != 0; }
+
+	bool is_global(void) const noexcept
+	{ return (this->flags & global) != 0; }
+
+	enclosing_scope_t get_scope(void) noexcept
+	{
+		return { &this->scope, 0 };
+	}
+
+	enclosing_scope_t get_enclosing_scope(void) const noexcept
+	{
+		bz_assert(this->scope.is_global());
+		return this->scope.get_global().parent;
+	}
+
+	uint64_t get_unique_values_count(void) const;
+	bz::u8string_view get_value_name(uint64_t value) const;
+
+	static decl_operator_ptr make_default_op_assign(lex::src_tokens const &src_tokens, decl_enum &decl);
+	static decl_operator_ptr make_default_compare_op(
+		lex::src_tokens const &src_tokens,
+		decl_enum &decl,
+		uint32_t op_kind,
+		typespec result_type
+	);
+};
+
 struct decl_import
 {
 	identifier id;
@@ -1451,6 +1530,7 @@ def_make_fn(statement, decl_operator)
 def_make_fn(statement, decl_function_alias)
 def_make_fn(statement, decl_type_alias)
 def_make_fn(statement, decl_struct)
+def_make_fn(statement, decl_enum)
 def_make_fn(statement, decl_import)
 
 def_make_fn(statement, stmt_while)
@@ -1498,7 +1578,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 166);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 169);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1531,6 +1611,7 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_pointer_cast,   "__builtin_pointer_cast"   },
 		{ function_body::builtin_pointer_to_int, "__builtin_pointer_to_int" },
 		{ function_body::builtin_int_to_pointer, "__builtin_int_to_pointer" },
+		{ function_body::builtin_enum_value,     "__builtin_enum_value"     },
 
 		{ function_body::builtin_call_destructor,   "__builtin_call_destructor"   },
 		{ function_body::builtin_inplace_construct, "__builtin_inplace_construct" },
@@ -1571,6 +1652,7 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::is_move_reference, "__builtin_is_move_reference" },
 		{ function_body::is_slice,          "__builtin_is_slice"          },
 		{ function_body::is_array,          "__builtin_is_array"          },
+		{ function_body::is_enum,           "__builtin_is_enum"           },
 
 		{ function_body::remove_const,          "__builtin_remove_const"          },
 		{ function_body::remove_consteval,      "__builtin_remove_consteval"      },
@@ -1580,6 +1662,7 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::remove_move_reference, "__builtin_remove_move_reference" },
 		{ function_body::slice_value_type,      "__builtin_slice_value_type"      },
 		{ function_body::array_value_type,      "__builtin_array_value_type"      },
+		{ function_body::enum_underlying_type,  "__builtin_enum_underlying_type"  },
 
 		{ function_body::is_default_constructible,        "__builtin_is_default_constructible"        },
 		{ function_body::is_copy_constructible,           "__builtin_is_copy_constructible"           },

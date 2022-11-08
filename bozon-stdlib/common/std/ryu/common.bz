@@ -152,3 +152,11 @@ export function bits_to_double(bits: uint64) -> float64
 	memcpy(&x, &bits, sizeof float64);
 	return x;
 }
+
+export enum parse_result
+{
+	SUCCESS         = 0,
+	INPUT_TOO_SHORT = 1,
+	INPUT_TOO_LONG  = 2,
+	MALFORMED_INPUT = 3,
+}
