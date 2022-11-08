@@ -2903,6 +2903,7 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 		auto const id = expr.get_enum_literal().id;
 		auto const id_value = id->value;
 		auto const decl = dest.get<ast::ts_enum>().decl;
+		match_context.context.resolve_type(expr.src_tokens, decl);
 
 		auto const it = std::find_if(
 			decl->values.begin(), decl->values.end(),

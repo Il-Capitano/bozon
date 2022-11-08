@@ -1,0 +1,17 @@
+struct S
+{
+	.i: int32;
+	.e: E;
+}
+
+consteval s = get_s();
+
+function get_s() -> S
+{
+	return S[ 0, .a ];
+}
+
+enum E
+{
+	a, b, c
+}
