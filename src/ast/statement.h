@@ -581,10 +581,18 @@ struct function_body
 		memmove,
 		memset,
 
-		// C standard library math functions
-
 		abs_i8, abs_i16, abs_i32, abs_i64,
 		fabs_f32, fabs_f64,
+
+		min_i8, min_i16, min_i32, min_i64,
+		min_u8, min_u16, min_u32, min_u64,
+		fmin_f32, fmin_f64,
+
+		max_i8, max_i16, max_i32, max_i64,
+		max_u8, max_u16, max_u32, max_u64,
+		fmax_f32, fmax_f64,
+
+		// C standard library math functions
 
 		exp_f32,   exp_f64,
 		exp2_f32,  exp2_f64,
@@ -1578,7 +1586,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 169);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 189);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1692,6 +1700,28 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::abs_i64,  "__builtin_abs_i64"  },
 		{ function_body::fabs_f32, "__builtin_fabs_f32" },
 		{ function_body::fabs_f64, "__builtin_fabs_f64" },
+
+		{ function_body::min_i8,   "__builtin_min_i8"   },
+		{ function_body::min_i16,  "__builtin_min_i16"  },
+		{ function_body::min_i32,  "__builtin_min_i32"  },
+		{ function_body::min_i64,  "__builtin_min_i64"  },
+		{ function_body::min_u8,   "__builtin_min_u8"   },
+		{ function_body::min_u16,  "__builtin_min_u16"  },
+		{ function_body::min_u32,  "__builtin_min_u32"  },
+		{ function_body::min_u64,  "__builtin_min_u64"  },
+		{ function_body::fmin_f32, "__builtin_fmin_f32" },
+		{ function_body::fmin_f64, "__builtin_fmin_f64" },
+
+		{ function_body::max_i8,   "__builtin_max_i8"   },
+		{ function_body::max_i16,  "__builtin_max_i16"  },
+		{ function_body::max_i32,  "__builtin_max_i32"  },
+		{ function_body::max_i64,  "__builtin_max_i64"  },
+		{ function_body::max_u8,   "__builtin_max_u8"   },
+		{ function_body::max_u16,  "__builtin_max_u16"  },
+		{ function_body::max_u32,  "__builtin_max_u32"  },
+		{ function_body::max_u64,  "__builtin_max_u64"  },
+		{ function_body::fmax_f32, "__builtin_fmax_f32" },
+		{ function_body::fmax_f64, "__builtin_fmax_f64" },
 
 		{ function_body::exp_f32,   "__builtin_exp_f32"   },
 		{ function_body::exp_f64,   "__builtin_exp_f64"   },

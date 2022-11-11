@@ -1568,6 +1568,62 @@ function fabs_f64_check(x: float64, result: float64, begin: uint64, pivot: uint6
 	return true;
 }
 
+@__comptime_error_checking("fmin_f32_check")
+function fmin_f32_check(a: float32, b: float32, _result: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(a) || isnan(b))
+	{
+		emit_diagnostic(
+			warning_kind_math_domain_error,
+			concat("calling 'fmin' with ", a, " and ", b).as_str(),
+			begin, pivot, end
+		);
+	}
+	return true;
+}
+
+@__comptime_error_checking("fmin_f64_check")
+function fmin_f64_check(a: float64, b: float64, _result: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(a) || isnan(b))
+	{
+		emit_diagnostic(
+			warning_kind_math_domain_error,
+			concat("calling 'fmin' with ", a, " and ", b).as_str(),
+			begin, pivot, end
+		);
+	}
+	return true;
+}
+
+@__comptime_error_checking("fmax_f32_check")
+function fmax_f32_check(a: float32, b: float32, _result: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(a) || isnan(b))
+	{
+		emit_diagnostic(
+			warning_kind_math_domain_error,
+			concat("calling 'fmax' with ", a, " and ", b).as_str(),
+			begin, pivot, end
+		);
+	}
+	return true;
+}
+
+@__comptime_error_checking("fmax_f64_check")
+function fmax_f64_check(a: float64, b: float64, _result: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(a) || isnan(b))
+	{
+		emit_diagnostic(
+			warning_kind_math_domain_error,
+			concat("calling 'fmax' with ", a, " and ", b).as_str(),
+			begin, pivot, end
+		);
+	}
+	return true;
+}
+
 @__comptime_error_checking("exp_f32_check")
 function exp_f32_check(x: float32, result: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {

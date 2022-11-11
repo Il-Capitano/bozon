@@ -78,6 +78,9 @@ enum class comptime_function_kind : uint32_t
 	abs_i32_check,  abs_i64_check,
 	fabs_f32_check, fabs_f64_check,
 
+	fmin_f32_check, fmin_f64_check,
+	fmax_f32_check, fmax_f64_check,
+
 	exp_f32_check,   exp_f64_check,
 	exp2_f32_check,  exp2_f64_check,
 	expm1_f32_check, expm1_f64_check,
@@ -459,6 +462,11 @@ constexpr bz::array comptime_function_info = {
 	def_element(abs_i64_check),
 	def_element(fabs_f32_check),
 	def_element(fabs_f64_check),
+
+	def_element(fmin_f32_check),
+	def_element(fmin_f64_check),
+	def_element(fmax_f32_check),
+	def_element(fmax_f64_check),
 
 	def_element(exp_f32_check),
 	def_element(exp_f64_check),

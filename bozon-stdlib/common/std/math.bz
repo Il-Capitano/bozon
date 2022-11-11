@@ -59,13 +59,71 @@ export function tgamma = __builtin_tgamma_f64;
 export function lgamma = __builtin_lgamma_f32;
 export function lgamma = __builtin_lgamma_f64;
 
-export function min(a, b) -> typeof a
+export function min = __builtin_min_i8;
+export function min = __builtin_min_i16;
+export function min = __builtin_min_i32;
+export function min = __builtin_min_i64;
+export function min = __builtin_min_u8;
+export function min = __builtin_min_u16;
+export function min = __builtin_min_u32;
+export function min = __builtin_min_u64;
+export function min = __builtin_fmin_f32;
+export function min = __builtin_fmin_f64;
+
+export function max = __builtin_max_i8;
+export function max = __builtin_max_i16;
+export function max = __builtin_max_i32;
+export function max = __builtin_max_i64;
+export function max = __builtin_max_u8;
+export function max = __builtin_max_u16;
+export function max = __builtin_max_u32;
+export function max = __builtin_max_u64;
+export function max = __builtin_fmax_f32;
+export function max = __builtin_fmax_f64;
+
+export function min(a: *auto, b: *auto) -> typeof a
 {
 	static_assert(typeof a == typeof b, "mismatched types in 'std::min'");
 	return if (a < b) { a } else { b };
 }
 
-export function max(a, b) -> typeof a
+export function min(a: *const auto, b: *const auto) -> typeof a
+{
+	static_assert(typeof a == typeof b, "mismatched types in 'std::min'");
+	return if (a < b) { a } else { b };
+}
+
+export function min(a: ?*auto, b: ?*auto) -> typeof a
+{
+	static_assert(typeof a == typeof b, "mismatched types in 'std::min'");
+	return if (a < b) { a } else { b };
+}
+
+export function min(a: ?*const auto, b: ?*const auto) -> typeof a
+{
+	static_assert(typeof a == typeof b, "mismatched types in 'std::min'");
+	return if (a < b) { a } else { b };
+}
+
+export function max(a: *auto, b: *auto) -> typeof a
+{
+	static_assert(typeof a == typeof b, "mismatched types in 'std::max'");
+	return if (a > b) { a } else { b };
+}
+
+export function max(a: *const auto, b: *const auto) -> typeof a
+{
+	static_assert(typeof a == typeof b, "mismatched types in 'std::max'");
+	return if (a > b) { a } else { b };
+}
+
+export function max(a: ?*auto, b: ?*auto) -> typeof a
+{
+	static_assert(typeof a == typeof b, "mismatched types in 'std::max'");
+	return if (a > b) { a } else { b };
+}
+
+export function max(a: ?*const auto, b: ?*const auto) -> typeof a
 {
 	static_assert(typeof a == typeof b, "mismatched types in 'std::max'");
 	return if (a > b) { a } else { b };

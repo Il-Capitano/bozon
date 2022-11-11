@@ -2680,6 +2680,7 @@ static val_ptr emit_bitcode(
 
 static ctx::comptime_function_kind get_math_check_function_kind(uint32_t intrinsic_kind)
 {
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 189);
 	switch (intrinsic_kind)
 	{
 	case ast::function_body::abs_i8:
@@ -2694,6 +2695,14 @@ static ctx::comptime_function_kind get_math_check_function_kind(uint32_t intrins
 		return ctx::comptime_function_kind::fabs_f32_check;
 	case ast::function_body::fabs_f64:
 		return ctx::comptime_function_kind::fabs_f64_check;
+	case ast::function_body::fmin_f32:
+		return ctx::comptime_function_kind::fmin_f32_check;
+	case ast::function_body::fmin_f64:
+		return ctx::comptime_function_kind::fmin_f64_check;
+	case ast::function_body::fmax_f32:
+		return ctx::comptime_function_kind::fmax_f32_check;
+	case ast::function_body::fmax_f64:
+		return ctx::comptime_function_kind::fmax_f64_check;
 	case ast::function_body::exp_f32:
 		return ctx::comptime_function_kind::exp_f32_check;
 	case ast::function_body::exp_f64:
@@ -2863,7 +2872,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 169);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 189);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -3486,6 +3495,8 @@ static val_ptr emit_bitcode(
 				break;
 			}
 
+		case ast::function_body::fmin_f32:  case ast::function_body::fmin_f64:
+		case ast::function_body::fmax_f32:  case ast::function_body::fmax_f64:
 		case ast::function_body::pow_f32:   case ast::function_body::pow_f64:
 		case ast::function_body::hypot_f32: case ast::function_body::hypot_f64:
 		case ast::function_body::atan2_f32: case ast::function_body::atan2_f64:

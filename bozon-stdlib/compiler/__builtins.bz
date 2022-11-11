@@ -331,6 +331,28 @@ export function __builtin_print_stderr(s: str)
 @__builtin @symbol_name("llvm.fabs.f32") export function __builtin_fabs_f32(n: float32) -> float32;
 @__builtin @symbol_name("llvm.fabs.f64") export function __builtin_fabs_f64(n: float64) -> float64;
 
+@__builtin @symbol_name("llvm.smin.i8")  export function __builtin_min_i8(n: int8)   -> int8;
+@__builtin @symbol_name("llvm.smin.i16") export function __builtin_min_i16(n: int16) -> int16;
+@__builtin @symbol_name("llvm.smin.i32") export function __builtin_min_i32(n: int32) -> int32;
+@__builtin @symbol_name("llvm.smin.i64") export function __builtin_min_i64(n: int64) -> int64;
+@__builtin @symbol_name("llvm.umin.i8")  export function __builtin_min_u8(n: uint8)   -> uint8;
+@__builtin @symbol_name("llvm.umin.i16") export function __builtin_min_u16(n: uint16) -> uint16;
+@__builtin @symbol_name("llvm.umin.i32") export function __builtin_min_u32(n: uint32) -> uint32;
+@__builtin @symbol_name("llvm.umin.i64") export function __builtin_min_u64(n: uint64) -> uint64;
+@__builtin @symbol_name("llvm.minnum.f32") export function __builtin_fmin_f32(n: float32) -> float32;
+@__builtin @symbol_name("llvm.minnum.f64") export function __builtin_fmin_f64(n: float64) -> float64;
+
+@__builtin @symbol_name("llvm.smax.i8")  export function __builtin_max_i8(n: int8)   -> int8;
+@__builtin @symbol_name("llvm.smax.i16") export function __builtin_max_i16(n: int16) -> int16;
+@__builtin @symbol_name("llvm.smax.i32") export function __builtin_max_i32(n: int32) -> int32;
+@__builtin @symbol_name("llvm.smax.i64") export function __builtin_max_i64(n: int64) -> int64;
+@__builtin @symbol_name("llvm.umax.i8")  export function __builtin_max_u8(n: uint8)   -> uint8;
+@__builtin @symbol_name("llvm.umax.i16") export function __builtin_max_u16(n: uint16) -> uint16;
+@__builtin @symbol_name("llvm.umax.i32") export function __builtin_max_u32(n: uint32) -> uint32;
+@__builtin @symbol_name("llvm.umax.i64") export function __builtin_max_u64(n: uint64) -> uint64;
+@__builtin @symbol_name("llvm.maxnum.f32") export function __builtin_fmax_f32(n: float32) -> float32;
+@__builtin @symbol_name("llvm.maxnum.f64") export function __builtin_fmax_f64(n: float64) -> float64;
+
 @__builtin @symbol_name("llvm.exp.f32") export function __builtin_exp_f32(x: float32) -> float32;
 @__builtin @symbol_name("llvm.exp.f64") export function __builtin_exp_f64(x: float64) -> float64;
 @__builtin @symbol_name("llvm.exp2.f32") export function __builtin_exp2_f32(x: float32) -> float32;
