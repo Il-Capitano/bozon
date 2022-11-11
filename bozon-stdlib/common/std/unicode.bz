@@ -155,4 +155,14 @@ export function decode_char_utf8(data: *const uint8, end: *const uint8) -> [char
 	{
 		return [ '\x00', data ];
 	}
+}+
+
+export function is_valid_unicode_value(val: uint32) -> bool
+{
+	return val <= 0x10'ffff && !(val >= 0xd800 && val <= 0xdfff);
+}
+
+export function is_valid_unicode_value(val: int32) -> bool
+{
+	return val <= 0x10'ffff as int32 && !(val >= 0xd800 as int32 && val <= 0xdfff as int32);
 }
