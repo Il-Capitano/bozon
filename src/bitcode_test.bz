@@ -531,6 +531,17 @@ function main(args: [: const str]) -> int32
 
 	let n = 1;
 
+	let s = "hello";
+	switch (s)
+	{
+		"hello" => {},
+		"there" => {},
+		"hi" => {},
+		"" => {},
+		"this is a long string" => {},
+		else => {},
+	}
+
 	function move_func(n: move auto)
 	{
 	}

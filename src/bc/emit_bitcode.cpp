@@ -6238,6 +6238,76 @@ struct string_switch_case_info_t
 	ast::arena_vector<value_bb_pair_t> values;
 };
 
+static llvm::ConstantInt *get_string_int_val(bz::u8string_view str, llvm::Type *int_type, auto &context)
+{
+	bz_assert(str.size() <= 8);
+	uint64_t result = 0;
+	if (context.get_data_layout().isLittleEndian())
+	{
+		for (auto const i : bz::iota(0, str.size()))
+		{
+			auto const c = static_cast<uint64_t>(static_cast<uint8_t>(*(str.data() + i)));
+			result |= c << (i * 8);
+		}
+	}
+	else
+	{
+		for (auto const i : bz::iota(0, str.size()))
+		{
+			auto const c = static_cast<uint64_t>(static_cast<uint8_t>(*(str.data() + i)));
+			result |= c << ((7 - i) * 8);
+		}
+	}
+
+	return llvm::cast<llvm::ConstantInt>(llvm::ConstantInt::get(int_type, result));
+}
+
+static llvm::Value *are_strings_equal(llvm::Value *begin_ptr, bz::u8string_view str, auto &context)
+{
+	auto const global_str = context.create_string(str);
+	auto const size = str.size();
+
+	auto const int_type = context.get_uint64_t();
+	auto const char_type = context.get_uint8_t();
+	auto const lhs_int_ref = context.create_alloca_without_lifetime_start(int_type);
+	auto const rhs_int_ref = context.create_alloca_without_lifetime_start(int_type);
+	auto const zero_val = llvm::ConstantInt::get(int_type, 0);
+	auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+	auto const eight_val = llvm::ConstantInt::get(context.get_usize_t(), 8);
+	auto const memcpy_fn = context.get_function(context.get_builtin_function(ast::function_body::memcpy));
+
+	auto lhs_it = begin_ptr;
+	auto rhs_it = global_str;
+
+	llvm::Value *result = llvm::ConstantInt::getTrue(context.get_llvm_context());
+
+	for ([[maybe_unused]] auto const _ : bz::iota(0, size / 8))
+	{
+		context.builder.CreateStore(zero_val, lhs_int_ref);
+		context.builder.CreateStore(zero_val, rhs_int_ref);
+		context.create_call(memcpy_fn, { lhs_int_ref, lhs_it, eight_val, false_val });
+		context.create_call(memcpy_fn, { rhs_int_ref, rhs_it, eight_val, false_val });
+		auto const lhs_val = context.builder.CreateLoad(int_type, lhs_int_ref);
+		auto const rhs_val = context.builder.CreateLoad(int_type, rhs_int_ref);
+		auto const are_equal = context.builder.CreateICmpEQ(lhs_val, rhs_val);
+		result = context.builder.CreateAnd(result, are_equal);
+		lhs_it = context.builder.CreateConstGEP1_64(char_type, lhs_it, 8);
+		rhs_it = context.builder.CreateConstGEP1_64(char_type, rhs_it, 8);
+	}
+
+	auto const remaining_size = size % 8;
+	auto const remaining_size_val = llvm::ConstantInt::get(context.get_usize_t(), remaining_size);
+	context.builder.CreateStore(zero_val, lhs_int_ref);
+	context.builder.CreateStore(zero_val, rhs_int_ref);
+	context.create_call(memcpy_fn, { lhs_int_ref, lhs_it, remaining_size_val, false_val });
+	context.create_call(memcpy_fn, { rhs_int_ref, rhs_it, remaining_size_val, false_val });
+	auto const lhs_val = context.builder.CreateLoad(int_type, lhs_int_ref);
+	auto const rhs_val = context.builder.CreateLoad(int_type, rhs_int_ref);
+	auto const are_equal = context.builder.CreateICmpEQ(lhs_val, rhs_val);
+	result = context.builder.CreateAnd(result, are_equal);
+	return result;
+}
+
 template<abi::platform_abi abi>
 static val_ptr emit_string_switch(
 	val_ptr matched_value,
@@ -6331,7 +6401,8 @@ static val_ptr emit_string_switch(
 	for (auto const &[str_size, bb, values] : size_cases)
 	{
 		context.builder.SetInsertPoint(bb);
-		// if the string is less than 8 bytes we copy them into an integer and do a switch on that
+		// if the string is less than 8 bytes we copy them into an integer and do a switch on that,
+		// otherwise we do an if-else chain
 		if (str_size <= 8)
 		{
 			auto const int_type = context.get_uint64_t();
@@ -6346,35 +6417,22 @@ static val_ptr emit_string_switch(
 			auto const str_int_switch = context.builder.CreateSwitch(str_int_val, default_bb, values.size());
 			for (auto const &[value, expr_bb] : values)
 			{
-				auto const value_int_value = [&, &value = value]() {
-					if (context.get_data_layout().isLittleEndian())
-					{
-						uint64_t result = 0;
-						for (auto const i : bz::iota(0, value.size()))
-						{
-							auto const c = static_cast<uint64_t>(static_cast<uint8_t>(*(value.data() + i)));
-							result |= c << (i * 8);
-						}
-						return result;
-					}
-					else
-					{
-						uint64_t result = 0;
-						for (auto const i : bz::iota(0, value.size()))
-						{
-							auto const c = static_cast<uint64_t>(static_cast<uint8_t>(*(value.data() + i)));
-							result |= c << ((7 - i) * 8);
-						}
-						return result;
-					}
-				}();
-				auto const value_int_val = llvm::ConstantInt::get(int_type, value_int_value);
+				auto const value_int_val = get_string_int_val(value, int_type, context);
 				str_int_switch->addCase(llvm::cast<llvm::ConstantInt>(value_int_val), expr_bb);
 			}
 		}
 		else
 		{
-			bz_unreachable;
+			auto current_bb = bb;
+			for (auto const &[value, expr_bb] : values)
+			{
+				auto const are_equal = are_strings_equal(begin_ptr, value, context);
+				auto const else_bb = context.add_basic_block("string_switch_long_string");
+				context.builder.CreateCondBr(are_equal, expr_bb, else_bb);
+				current_bb = else_bb;
+				context.builder.SetInsertPoint(current_bb);
+			}
+			context.builder.CreateBr(default_bb);
 		}
 	}
 
