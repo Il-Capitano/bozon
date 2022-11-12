@@ -6262,7 +6262,7 @@ static llvm::ConstantInt *get_string_int_val(bz::u8string_view str, llvm::Type *
 	return llvm::cast<llvm::ConstantInt>(llvm::ConstantInt::get(int_type, result));
 }
 
-static llvm::Value *are_strings_equal(llvm::Value *begin_ptr, bz::u8string_view str, auto &context)
+static llvm::Value *are_strings_equal(llvm::Value *begin_ptr, bz::u8string_view str, llvm::BasicBlock *else_bb, auto &context)
 {
 	auto const global_str = context.create_string(str);
 	auto const size = str.size();
@@ -6279,8 +6279,6 @@ static llvm::Value *are_strings_equal(llvm::Value *begin_ptr, bz::u8string_view 
 	auto lhs_it = begin_ptr;
 	auto rhs_it = global_str;
 
-	llvm::Value *result = llvm::ConstantInt::getTrue(context.get_llvm_context());
-
 	for ([[maybe_unused]] auto const _ : bz::iota(0, size / 8))
 	{
 		context.builder.CreateStore(zero_val, lhs_int_ref);
@@ -6290,7 +6288,9 @@ static llvm::Value *are_strings_equal(llvm::Value *begin_ptr, bz::u8string_view 
 		auto const lhs_val = context.builder.CreateLoad(int_type, lhs_int_ref);
 		auto const rhs_val = context.builder.CreateLoad(int_type, rhs_int_ref);
 		auto const are_equal = context.builder.CreateICmpEQ(lhs_val, rhs_val);
-		result = context.builder.CreateAnd(result, are_equal);
+		auto const equal_bb = context.add_basic_block("string_switch_long_string");
+		context.builder.CreateCondBr(are_equal, equal_bb, else_bb);
+		context.builder.SetInsertPoint(equal_bb);
 		lhs_it = context.builder.CreateConstGEP1_64(char_type, lhs_it, 8);
 		rhs_it = context.builder.CreateConstGEP1_64(char_type, rhs_it, 8);
 	}
@@ -6304,8 +6304,7 @@ static llvm::Value *are_strings_equal(llvm::Value *begin_ptr, bz::u8string_view 
 	auto const lhs_val = context.builder.CreateLoad(int_type, lhs_int_ref);
 	auto const rhs_val = context.builder.CreateLoad(int_type, rhs_int_ref);
 	auto const are_equal = context.builder.CreateICmpEQ(lhs_val, rhs_val);
-	result = context.builder.CreateAnd(result, are_equal);
-	return result;
+	return are_equal;
 }
 
 template<abi::platform_abi abi>
@@ -6426,8 +6425,8 @@ static val_ptr emit_string_switch(
 			auto current_bb = bb;
 			for (auto const &[value, expr_bb] : values)
 			{
-				auto const are_equal = are_strings_equal(begin_ptr, value, context);
 				auto const else_bb = context.add_basic_block("string_switch_long_string");
+				auto const are_equal = are_strings_equal(begin_ptr, value, else_bb, context);
 				context.builder.CreateCondBr(are_equal, expr_bb, else_bb);
 				current_bb = else_bb;
 				context.builder.SetInsertPoint(current_bb);
