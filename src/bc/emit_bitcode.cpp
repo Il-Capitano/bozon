@@ -6103,16 +6103,13 @@ static val_ptr emit_bitcode(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_bitcode(
-	lex::src_tokens const &,
+static val_ptr emit_integral_switch(
+	llvm::Value *matched_value,
 	ast::expr_switch const &switch_expr,
 	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const matched_value_prev_info = context.push_expression_scope();
-	auto const matched_value = emit_bitcode<abi>(switch_expr.matched_expr, context, nullptr).get_value(context.builder);
-	context.pop_expression_scope(matched_value_prev_info);
 	bz_assert(matched_value->getType()->isIntegerTy());
 	auto const default_bb = context.add_basic_block("switch_else");
 	auto const has_default = switch_expr.default_case.not_null();
@@ -6224,6 +6221,255 @@ static val_ptr emit_bitcode(
 		context.builder.SetInsertPoint(end_bb);
 		bz_assert(result_address == nullptr);
 		return val_ptr::get_none();
+	}
+}
+
+struct string_switch_case_info_t
+{
+	size_t str_size;
+	llvm::BasicBlock *bb;
+
+	struct value_bb_pair_t
+	{
+		bz::u8string_view value;
+		llvm::BasicBlock *bb;
+	};
+
+	ast::arena_vector<value_bb_pair_t> values;
+};
+
+template<abi::platform_abi abi>
+static val_ptr emit_string_switch(
+	val_ptr matched_value,
+	ast::expr_switch const &switch_expr,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	// switching on strings is done in two main steps:
+	//   1. do a switch on the size of the string to narrow it down
+	//   2. for each unique size in the cases determine the matching case
+
+	auto const begin_ptr = context.get_struct_element(matched_value, 0).get_value(context.builder);
+	auto const end_ptr   = context.get_struct_element(matched_value, 1).get_value(context.builder);
+	auto const size = context.builder.CreatePtrDiff(context.get_uint8_t(), end_ptr, begin_ptr);
+
+	auto size_cases = ast::arena_vector<string_switch_case_info_t>();
+
+	// start building up the size info of the cases
+	for (auto const &[case_vals, _] : switch_expr.cases)
+	{
+		for (auto const &val : case_vals)
+		{
+			bz_assert(val.is_constant() && val.get_constant_value().is_string());
+			auto const val_str = val.get_constant_value().get_string();
+			auto const val_str_size = val_str.size();
+			auto const it = std::find_if(
+				size_cases.begin(), size_cases.end(),
+				[val_str_size](auto const &case_) { return case_.str_size == val_str_size; }
+			);
+			if (it == size_cases.end())
+			{
+				size_cases.push_back({ val_str_size, context.add_basic_block("string_switch_size_case"), {} });
+			}
+		}
+	}
+
+	auto const default_bb = context.add_basic_block("string_switch_else");
+	auto const has_default = switch_expr.default_case.not_null();
+	bz_assert(result_address == nullptr || has_default);
+
+	// switch on the string size
+	auto const switch_inst = context.builder.CreateSwitch(size, default_bb, size_cases.size());
+	for (auto const &[case_size, bb, _] : size_cases)
+	{
+		auto const size_val = llvm::cast<llvm::ConstantInt>(llvm::ConstantInt::get(size->getType(), case_size));
+		switch_inst->addCase(size_val, bb);
+	}
+
+	// emit the case expressions and finish building up the size switch info
+	ast::arena_vector<std::pair<llvm::BasicBlock *, val_ptr>> case_result_vals;
+	case_result_vals.reserve(switch_expr.cases.size() + 1);
+	if (has_default)
+	{
+		context.builder.SetInsertPoint(default_bb);
+		auto const prev_info = context.push_expression_scope();
+		auto const default_val = emit_bitcode<abi>(switch_expr.default_case, context, result_address);
+		context.pop_expression_scope(prev_info);
+		if (!context.has_terminator())
+		{
+			case_result_vals.push_back({ context.builder.GetInsertBlock(), default_val });
+		}
+	}
+	for (auto const &[case_vals, case_expr] : switch_expr.cases)
+	{
+		auto const expr_bb = context.add_basic_block("string_switch_case");
+
+		for (auto const &val : case_vals)
+		{
+			auto const val_str = val.get_constant_value().get_string();
+			auto const val_str_size = val_str.size();
+			auto const it = std::find_if(
+				size_cases.begin(), size_cases.end(),
+				[val_str_size](auto const &case_) { return case_.str_size == val_str_size; }
+			);
+			bz_assert(it != size_cases.end());
+			it->values.push_back({ val_str, expr_bb });
+		}
+
+		context.builder.SetInsertPoint(expr_bb);
+		auto const prev_info = context.push_expression_scope();
+		auto const case_val = emit_bitcode<abi>(case_expr, context, result_address);
+		context.pop_expression_scope(prev_info);
+		if (!context.has_terminator())
+		{
+			case_result_vals.push_back({ context.builder.GetInsertBlock(), case_val });
+		}
+	}
+
+	// for each size case determine which case we have
+	for (auto const &[str_size, bb, values] : size_cases)
+	{
+		context.builder.SetInsertPoint(bb);
+		// if the string is less than 8 bytes we copy them into an integer and do a switch on that
+		if (str_size <= 8)
+		{
+			auto const int_type = context.get_uint64_t();
+			auto const str_int_ref = context.create_alloca_without_lifetime_start(int_type);
+			context.builder.CreateStore(llvm::ConstantInt::get(int_type, 0), str_int_ref);
+			auto const memcpy_fn = context.get_function(context.get_builtin_function(ast::function_body::memcpy));
+			auto const str_size_val = llvm::ConstantInt::get(context.get_usize_t(), str_size);
+			auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+			context.create_call(memcpy_fn, { str_int_ref, begin_ptr, str_size_val, false_val });
+
+			auto const str_int_val = context.builder.CreateLoad(int_type, str_int_ref);
+			auto const str_int_switch = context.builder.CreateSwitch(str_int_val, default_bb, values.size());
+			for (auto const &[value, expr_bb] : values)
+			{
+				auto const value_int_value = [&, &value = value]() {
+					if (context.get_data_layout().isLittleEndian())
+					{
+						uint64_t result = 0;
+						for (auto const i : bz::iota(0, value.size()))
+						{
+							auto const c = static_cast<uint64_t>(static_cast<uint8_t>(*(value.data() + i)));
+							result |= c << (i * 8);
+						}
+						return result;
+					}
+					else
+					{
+						uint64_t result = 0;
+						for (auto const i : bz::iota(0, value.size()))
+						{
+							auto const c = static_cast<uint64_t>(static_cast<uint8_t>(*(value.data() + i)));
+							result |= c << ((7 - i) * 8);
+						}
+						return result;
+					}
+				}();
+				auto const value_int_val = llvm::ConstantInt::get(int_type, value_int_value);
+				str_int_switch->addCase(llvm::cast<llvm::ConstantInt>(value_int_val), expr_bb);
+			}
+		}
+		else
+		{
+			bz_unreachable;
+		}
+	}
+
+	auto const end_bb = has_default ? context.add_basic_block("string_switch_end") : default_bb;
+	auto const has_value = case_result_vals.not_empty() && case_result_vals.is_all([&](auto const &pair) {
+		return pair.second.val != nullptr || pair.second.consteval_val != nullptr;
+	});
+	if (result_address == nullptr && has_default && has_value)
+	{
+		auto const is_all_ref = case_result_vals.is_all([&](auto const &pair) {
+			return pair.second.val != nullptr && pair.second.kind == val_ptr::reference;
+		});
+		context.builder.SetInsertPoint(end_bb);
+		bz_assert(case_result_vals.not_empty());
+		auto const result_type = case_result_vals.front().second.get_type();
+		bz_assert(case_result_vals.not_empty());
+		bz_assert(!is_all_ref || case_result_vals.front().second.val != nullptr);
+		auto const phi_type = is_all_ref
+			? case_result_vals.front().second.val->getType()
+			: case_result_vals.front().second.get_type();
+		auto const phi = context.builder.CreatePHI(phi_type, case_result_vals.size());
+		if (is_all_ref)
+		{
+			for (auto const &[bb, val] : case_result_vals)
+			{
+				bz_assert(!context.has_terminator(bb));
+				context.builder.SetInsertPoint(bb);
+				context.builder.CreateBr(end_bb);
+				phi->addIncoming(val.val, bb);
+			}
+		}
+		else
+		{
+			for (auto const &[bb, val] : case_result_vals)
+			{
+				bz_assert(!context.has_terminator(bb));
+				context.builder.SetInsertPoint(bb);
+				phi->addIncoming(val.get_value(context.builder), bb);
+				context.builder.CreateBr(end_bb);
+				bz_assert(context.builder.GetInsertBlock() == bb);
+			}
+		}
+		context.builder.SetInsertPoint(end_bb);
+		return is_all_ref
+			? val_ptr::get_reference(phi, result_type)
+			: val_ptr::get_value(phi);
+	}
+	else if (has_default && has_value)
+	{
+		for (auto const &[bb, _] : case_result_vals)
+		{
+			bz_assert(!context.has_terminator(bb));
+			context.builder.SetInsertPoint(bb);
+			context.builder.CreateBr(end_bb);
+		}
+		context.builder.SetInsertPoint(end_bb);
+
+		bz_assert(result_address != nullptr);
+		bz_assert(case_result_vals.not_empty());
+		auto const result_type = case_result_vals.front().second.get_type();
+		return val_ptr::get_reference(result_address, result_type);
+	}
+	else
+	{
+		for (auto const &[bb, _] : case_result_vals)
+		{
+			bz_assert(!context.has_terminator(bb));
+			context.builder.SetInsertPoint(bb);
+			context.builder.CreateBr(end_bb);
+		}
+		context.builder.SetInsertPoint(end_bb);
+		bz_assert(result_address == nullptr);
+		return val_ptr::get_none();
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_switch const &switch_expr,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const matched_value_prev_info = context.push_expression_scope();
+	auto const matched_value = emit_bitcode<abi>(switch_expr.matched_expr, context, nullptr);
+	context.pop_expression_scope(matched_value_prev_info);
+	if (matched_value.get_type()->isIntegerTy())
+	{
+		return emit_integral_switch<abi>(matched_value.get_value(context.builder), switch_expr, context, result_address);
+	}
+	else
+	{
+		bz_assert(matched_value.get_type() == context.get_str_t());
+		return emit_string_switch<abi>(matched_value, switch_expr, context, result_address);
 	}
 }
 

@@ -465,9 +465,14 @@ static void check_switch_type(
 	if (match_type.is<ast::ts_base_type>())
 	{
 		auto const info = match_type.get<ast::ts_base_type>().info;
-		if (ast::is_integer_kind(info->kind) || info->kind == ast::type_info::char_ || info->kind == ast::type_info::bool_)
+		if (
+			ast::is_integer_kind(info->kind)
+			|| info->kind == ast::type_info::char_
+			|| info->kind == ast::type_info::bool_
+			|| info->kind == ast::type_info::str_
+		)
 		{
-			// integers, char and bool are valid
+			// integers, char, bool and str are valid
 			return;
 		}
 	}
@@ -475,7 +480,7 @@ static void check_switch_type(
 	bz::vector<ctx::source_highlight> notes = {};
 	if (do_verbose)
 	{
-		notes.push_back(context.make_note("only integral types can be used in switch expressions"));
+		notes.push_back(context.make_note("only integer types, enum types, 'char', 'bool' and 'str' can be used in switch expressions"));
 	}
 	context.report_error(matched_expr, bz::format("invalid type '{}' for switch expression", match_type), std::move(notes));
 	matched_expr.to_error();
@@ -599,6 +604,13 @@ static ast::expression resolve_expr(
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
 						break;
+					case ast::constant_value::string:
+						context.report_error(
+							rhs.src_tokens,
+							bz::format("duplicate value {} in switch expression", get_value_string(lhs_value)),
+							{ context.make_note(lhs.src_tokens, "value previously used here") }
+						);
+						break;
 					default:
 						bz_unreachable;
 					}
@@ -639,6 +651,9 @@ static ast::expression resolve_expr(
 				return std::numeric_limits<uint32_t>::max();
 			case ast::type_info::int64_:
 			case ast::type_info::uint64_:
+				return std::numeric_limits<uint64_t>::max();
+			case ast::type_info::str_:
+				// just return a basically infinite value
 				return std::numeric_limits<uint64_t>::max();
 			default:
 				bz_unreachable;
