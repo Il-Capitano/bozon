@@ -396,6 +396,8 @@ function main(args: [: const str]) -> int32
 	std::printf("{}\n", t);
 	static_assert(std::format("{}", [ 3, 3.234, "hello" ]) == "[ 3, 3.234, hello ]");
 	static_assert(std::format("{}", {[ 3, 3.234, "hello" ]}) == "[ 3, 3.234, hello ]");
+	static_assert(std::format("{{") == "{");
+	static_assert(std::format("}}") == "}");
 
 	t = [ 4i8, 2.334, "hi" ];
 	std::printf("{}\n", t);

@@ -495,7 +495,15 @@ consteval function get_fmt_info(fmt_str: str, slices: [: str], fmt_specs: [: str
 			it = closing_bracket_it;
 		}
 	}
-	slices[index] = __builtin_str_from_ptrs(prev_begin, it);
+	if (contains_escaped_bracket)
+	{
+		const s = __builtin_str_from_ptrs(prev_begin, it);
+		slices[index] = remove_escaped_brackets(s);
+	}
+	else
+	{
+		slices[index] = __builtin_str_from_ptrs(prev_begin, it);
+	}
 }
 
 consteval function get_fmt_info(fmt_str: str, args_count: consteval usize)
