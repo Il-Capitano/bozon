@@ -71,6 +71,7 @@ struct parse_context
 	bool in_loop = false;
 	bool parsing_variadic_expansion = false;
 	bool in_unevaluated_context = false;
+	bool in_unresolved_context = false;
 	int parsing_template_argument = 0;
 
 
@@ -109,6 +110,9 @@ struct parse_context
 
 	[[nodiscard]] bool push_unevaluated_context(void) noexcept;
 	void pop_unevaluated_context(bool prev_value) noexcept;
+
+	[[nodiscard]] bool push_unresolved_context(void) noexcept;
+	void pop_unresolved_context(bool prev_value) noexcept;
 
 	void push_parsing_template_argument(void) noexcept;
 	void pop_parsing_template_argument(void) noexcept;

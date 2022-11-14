@@ -92,6 +92,7 @@ parse_context::parse_context(parse_context const &other, local_copy_t)
 	  in_loop(other.in_loop),
 	  parsing_variadic_expansion(other.parsing_variadic_expansion),
 	  in_unevaluated_context(other.in_unevaluated_context),
+	  in_unresolved_context(other.in_unresolved_context),
 	  parsing_template_argument(other.parsing_template_argument)
 {}
 
@@ -183,6 +184,18 @@ void parse_context::pop_parsing_variadic_expansion(bool prev_value) noexcept
 void parse_context::pop_unevaluated_context(bool prev_value) noexcept
 {
 	this->in_unevaluated_context = prev_value;
+}
+
+[[nodiscard]] bool parse_context::push_unresolved_context(void) noexcept
+{
+	auto const result = this->in_unresolved_context;
+	this->in_unresolved_context = true;
+	return result;
+}
+
+void parse_context::pop_unresolved_context(bool prev_value) noexcept
+{
+	this->in_unresolved_context = prev_value;
 }
 
 void parse_context::push_parsing_template_argument(void) noexcept
@@ -2792,6 +2805,21 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 
 	auto const [symbol, loop_boundary_count, is_local] = find_id_in_scope(this->get_current_enclosing_scope(), id, *this);
 
+	if (
+		this->in_unresolved_context
+		&& (
+			symbol.is_null()
+			|| !symbol.is<ast::decl_struct *>()
+			|| !symbol.get<ast::decl_struct *>()->info.is_generic()
+		)
+	)
+	{
+		return ast::make_unresolved_expression(
+			src_tokens,
+			ast::make_unresolved_expr_identifier(std::move(id))
+		);
+	}
+
 	if (symbol.not_null())
 	{
 		return expression_from_symbol(src_tokens, std::move(id), symbol, loop_boundary_count, is_local, *this);
@@ -2834,8 +2862,15 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 		}
 	}
 
-	this->report_error(src_tokens, bz::format("undeclared identifier '{}'", id.as_string()));
-	return ast::make_error_expression(src_tokens, ast::make_expr_identifier(std::move(id)));
+	if (this->in_unresolved_context)
+	{
+		return ast::make_unresolved_expression(src_tokens, ast::make_unresolved_expr_identifier(std::move(id)));
+	}
+	else
+	{
+		this->report_error(src_tokens, bz::format("undeclared identifier '{}'", id.as_string()));
+		return ast::make_error_expression(src_tokens, ast::make_expr_identifier(std::move(id)));
+	}
 }
 
 static bz::u8char get_character(bz::u8string_view::const_iterator &it)
@@ -3421,7 +3456,11 @@ ast::expression parse_context::make_string_literal(lex::token_pos const begin, l
 
 ast::expression parse_context::make_tuple(lex::src_tokens const &src_tokens, ast::arena_vector<ast::expression> elems) const
 {
-	if (this->current_unresolved_locals.not_empty() || elems.is_any([](auto &expr) { return expr.is_unresolved(); }))
+	if (
+		this->in_unresolved_context
+		|| this->current_unresolved_locals.not_empty()
+		|| elems.is_any([](auto &expr) { return expr.is_unresolved(); })
+	)
 	{
 		return ast::make_unresolved_expression(src_tokens, ast::make_unresolved_expr_tuple(std::move(elems)));
 	}
@@ -4006,7 +4045,7 @@ ast::expression parse_context::make_unary_operator_expression(
 		bz_assert(this->has_errors());
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
-	else if (expr.is_unresolved() || (op_kind == lex::token::dot_dot_dot && !expr.is_typename()))
+	else if (this->in_unresolved_context || expr.is_unresolved() || (op_kind == lex::token::dot_dot_dot && !expr.is_typename()))
 	{
 		return ast::make_unresolved_expression(src_tokens, ast::make_unresolved_expr_unary_op(op_kind, std::move(expr)));
 	}
@@ -4182,7 +4221,7 @@ ast::expression parse_context::make_binary_operator_expression(
 		bz_assert(this->has_errors());
 		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs)));
 	}
-	else if (lhs.is_unresolved() || rhs.is_unresolved())
+	else if (this->in_unresolved_context || lhs.is_unresolved() || rhs.is_unresolved())
 	{
 		return ast::make_unresolved_expression(
 			src_tokens,
@@ -4515,7 +4554,8 @@ ast::expression parse_context::make_function_call_expression(
 		);
 	}
 	else if (
-		this->current_unresolved_locals.not_empty()
+		this->in_unresolved_context
+		|| this->current_unresolved_locals.not_empty()
 		|| called.is_unresolved()
 		|| args.is_any([](auto const &arg) { return arg.is_unresolved(); })
 	)
@@ -4789,7 +4829,7 @@ ast::expression parse_context::make_universal_function_call_expression(
 	ast::arena_vector<ast::expression> args
 )
 {
-	if (base.is_unresolved() || args.is_any([](auto &arg) { return arg.is_unresolved(); }))
+	if (this->in_unresolved_context || base.is_unresolved() || args.is_any([](auto &arg) { return arg.is_unresolved(); }))
 	{
 		return ast::make_unresolved_expression(
 			src_tokens,
@@ -4870,7 +4910,11 @@ ast::expression parse_context::make_subscript_operator_expression(
 		bz_assert(this->has_errors());
 		return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), ast::expression()));
 	}
-	else if (called.is_unresolved() || args.is_any([](auto const &arg) { return arg.is_unresolved(); }))
+	else if (
+		this->in_unresolved_context
+		|| called.is_unresolved()
+		|| args.is_any([](auto const &arg) { return arg.is_unresolved(); })
+	)
 	{
 		return ast::make_unresolved_expression(
 			src_tokens,
@@ -5150,7 +5194,7 @@ ast::expression parse_context::make_member_access_expression(
 		bz_assert(this->has_errors());
 		return ast::make_error_expression(src_tokens, ast::make_expr_member_access(std::move(base), 0));
 	}
-	else if (base.is_unresolved())
+	else if (this->in_unresolved_context || base.is_unresolved())
 	{
 		return ast::make_unresolved_expression(
 			src_tokens,
@@ -5381,7 +5425,11 @@ ast::expression parse_context::make_generic_type_instantiation_expression(
 	{
 		return ast::make_error_expression(src_tokens);
 	}
-	else if (base.is_unresolved() || args.is_any([](auto const &arg) { return arg.is_unresolved(); }))
+	else if (
+		this->in_unresolved_context
+		|| base.is_unresolved()
+		|| args.is_any([](auto const &arg) { return arg.is_unresolved(); })
+	)
 	{
 		return ast::make_unresolved_expression(
 			src_tokens,

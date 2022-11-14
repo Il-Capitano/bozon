@@ -276,6 +276,9 @@ ast::expression parse_if_expression(
 		++stream; // 'consteval'
 	}
 	auto condition = parse_parenthesized_condition(stream, end, context);
+
+	auto const prev_unresolved_context = is_if_consteval && context.push_unresolved_context();
+
 	auto then_block = parse_expression_without_semi_colon(stream, end, context, precedence{});
 	if (
 		stream != end
@@ -298,6 +301,11 @@ ast::expression parse_if_expression(
 		}
 	}
 	auto const src_tokens = lex::src_tokens{ begin, begin, stream };
+
+	if (is_if_consteval)
+	{
+		context.pop_unresolved_context(prev_unresolved_context);
+	}
 
 	if (else_block.is_null())
 	{
