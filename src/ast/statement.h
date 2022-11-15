@@ -549,6 +549,7 @@ struct function_body
 		is_move_reference,
 		is_slice,
 		is_array,
+		is_tuple,
 		is_enum,
 
 		remove_const,
@@ -559,6 +560,8 @@ struct function_body
 		remove_move_reference,
 		slice_value_type,
 		array_value_type,
+		tuple_value_type,
+		concat_tuple_types,
 		enum_underlying_type,
 
 		is_default_constructible,
@@ -1586,7 +1589,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 189);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 192);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1660,6 +1663,7 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::is_move_reference, "__builtin_is_move_reference" },
 		{ function_body::is_slice,          "__builtin_is_slice"          },
 		{ function_body::is_array,          "__builtin_is_array"          },
+		{ function_body::is_tuple,          "__builtin_is_tuple"          },
 		{ function_body::is_enum,           "__builtin_is_enum"           },
 
 		{ function_body::remove_const,          "__builtin_remove_const"          },
@@ -1670,6 +1674,8 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::remove_move_reference, "__builtin_remove_move_reference" },
 		{ function_body::slice_value_type,      "__builtin_slice_value_type"      },
 		{ function_body::array_value_type,      "__builtin_array_value_type"      },
+		{ function_body::tuple_value_type,      "__builtin_tuple_value_type"      },
+		{ function_body::concat_tuple_types,    "__builtin_concat_tuple_types"    },
 		{ function_body::enum_underlying_type,  "__builtin_enum_underlying_type"  },
 
 		{ function_body::is_default_constructible,        "__builtin_is_default_constructible"        },

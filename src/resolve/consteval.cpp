@@ -1458,7 +1458,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->body.is_null());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 189);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 192);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -1570,6 +1570,8 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		return is_typespec_kind_helper<ast::ts_array_slice>(func_call);
 	case ast::function_body::is_array:
 		return is_typespec_kind_helper<ast::ts_array>(func_call);
+	case ast::function_body::is_tuple:
+		return is_typespec_kind_helper<ast::ts_tuple>(func_call);
 	case ast::function_body::is_enum:
 		return is_typespec_kind_helper<ast::ts_enum>(func_call);
 
@@ -1625,6 +1627,87 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		else
 		{
 			return ast::constant_value(type.get<ast::ts_array>().elem_type);
+		}
+	}
+	case ast::function_body::tuple_value_type:
+	{
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is_type());
+		bz_assert(func_call.params[1].is_constant());
+		bz_assert(func_call.params[1].get_constant_value().is_uint());
+		auto const type = func_call.params[0]
+			.get_constant_value()
+			.get_type();
+		auto const index = func_call.params[1]
+			.get_constant_value()
+			.get_uint();
+		if (!type.is<ast::ts_tuple>())
+		{
+			context.report_error(
+				original_expr.src_tokens,
+				bz::format("'__builtin_tuple_value_type' called on non-tuple type '{}'", type)
+			);
+			return ast::constant_value(type);
+		}
+		else if (index >= type.get<ast::ts_tuple>().types.size())
+		{
+			context.report_error(
+				original_expr.src_tokens,
+				bz::format("index {} is out of range in '__builtin_tuple_value_type' with tuple type '{}'", index, type)
+			);
+			return ast::constant_value(type.get<ast::ts_tuple>().types.back());
+		}
+		else
+		{
+			return ast::constant_value(type.get<ast::ts_tuple>().types[index]);
+		}
+	}
+	case ast::function_body::concat_tuple_types:
+	{
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(func_call.params[0].is_constant());
+		bz_assert(func_call.params[0].get_constant_value().is_type());
+		bz_assert(func_call.params[1].is_constant());
+		bz_assert(func_call.params[1].get_constant_value().is_type());
+		auto const lhs_type = func_call.params[0]
+			.get_constant_value()
+			.get_type();
+		auto const rhs_type = func_call.params[1]
+			.get_constant_value()
+			.get_type();
+		if (!lhs_type.is<ast::ts_tuple>() || !rhs_type.is<ast::ts_tuple>())
+		{
+			if (!lhs_type.is<ast::ts_tuple>())
+			{
+				context.report_error(
+					original_expr.src_tokens,
+					bz::format("'__builtin_concat_tuple_types' called with non-tuple type '{}' as lhs", lhs_type)
+				);
+			}
+			if (!rhs_type.is<ast::ts_tuple>())
+			{
+				context.report_error(
+					original_expr.src_tokens,
+					bz::format("'__builtin_concat_tuple_types' called with non-tuple type '{}' as rhs", rhs_type)
+				);
+			}
+			return ast::constant_value(lhs_type);
+		}
+		else
+		{
+			auto result = ast::constant_value();
+			auto &result_type = result.emplace<ast::constant_value::type>();
+			result_type = ast::make_tuple_typespec(original_expr.src_tokens, {});
+			auto const &lhs_tuple_types = lhs_type.get<ast::ts_tuple>().types;
+			auto const &rhs_tuple_types = rhs_type.get<ast::ts_tuple>().types;
+
+			auto &result_tuple_types = result_type.terminator->get<ast::ts_tuple>().types;
+			result_tuple_types.reserve(lhs_tuple_types.size() + rhs_tuple_types.size());
+			result_tuple_types.append(lhs_tuple_types);
+			result_tuple_types.append(rhs_tuple_types);
+
+			return result;
 		}
 	}
 	case ast::function_body::enum_underlying_type:

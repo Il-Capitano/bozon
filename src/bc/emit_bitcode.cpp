@@ -2680,7 +2680,7 @@ static val_ptr emit_bitcode(
 
 static ctx::comptime_function_kind get_math_check_function_kind(uint32_t intrinsic_kind)
 {
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 189);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 192);
 	switch (intrinsic_kind)
 	{
 	case ast::function_body::abs_i8:
@@ -2872,7 +2872,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 189);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 192);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -3542,6 +3542,7 @@ static val_ptr emit_bitcode(
 		case ast::function_body::is_move_reference:
 		case ast::function_body::is_slice:
 		case ast::function_body::is_array:
+		case ast::function_body::is_tuple:
 		case ast::function_body::is_enum:
 		case ast::function_body::remove_const:
 		case ast::function_body::remove_consteval:
@@ -3551,6 +3552,8 @@ static val_ptr emit_bitcode(
 		case ast::function_body::remove_move_reference:
 		case ast::function_body::slice_value_type:
 		case ast::function_body::array_value_type:
+		case ast::function_body::tuple_value_type:
+		case ast::function_body::concat_tuple_types:
 		case ast::function_body::enum_underlying_type:
 		case ast::function_body::is_default_constructible:
 		case ast::function_body::is_copy_constructible:

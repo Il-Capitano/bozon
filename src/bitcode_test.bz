@@ -44,6 +44,11 @@ type asdf = const asdf0;
 static_assert(asdf == const int32);
 static_assert(0.1 + 0.2 != 0.3);
 
+static_assert(std::meta::is_tuple([int32, str]));
+static_assert(std::meta::tuple_value_type([int32, str], 0) == int32);
+static_assert(std::meta::tuple_value_type([int32, str], 1) == str);
+static_assert(std::meta::concat_tuple_types([int32, str], [float64]) == [int32, str, float64]);
+
 struct foo_t
 {
 	.n: int32;
