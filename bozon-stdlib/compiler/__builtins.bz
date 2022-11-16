@@ -1,6 +1,7 @@
 import std::libc::types;
 import std::libc::stdio;
 import std::libc::stdlib;
+import std::libc::string;
 
 @__builtin
 export function __builtin_str_length(s: str) -> usize
@@ -208,14 +209,7 @@ function __libc_main(argc_int: std::libc::int, argv: *const *const std::libc::ch
 	for (let &arg in args)
 	{
 		const begin_ptr = *argv_it;
-		const end_ptr = {
-			let it = begin_ptr;
-			while (*it != 0)
-			{
-				++it;
-			}
-			it
-		};
+		const end_ptr = begin_ptr + std::libc::strlen(begin_ptr);
 		arg = __builtin_str_from_ptrs(begin_ptr, end_ptr);
 		++argv_it;
 	}
