@@ -904,6 +904,12 @@ public:
 	auto const *data(void) const noexcept
 	{ return this->_data_begin; }
 
+	auto *data_end(void) noexcept
+	{ return this->_data_end; }
+
+	auto const *data_end(void) const noexcept
+	{ return this->_data_end; }
+
 	operator array_view<value_type> (void) noexcept
 	{ return array_view<value_type>(this->_data_begin, this->_data_end); }
 
