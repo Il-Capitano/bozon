@@ -7361,14 +7361,12 @@ static void emit_bitcode(
 	context.builder.SetInsertPoint(foreach_bb);
 	auto const iter_var_prev_info = context.push_expression_scope();
 	emit_bitcode<abi>(foreach_stmt.iter_deref_var_decl, context);
-	auto const for_block_prev_info = context.push_expression_scope();
 	emit_bitcode<abi>(foreach_stmt.for_block, context, nullptr);
-	context.pop_expression_scope(for_block_prev_info);
+	context.pop_expression_scope(iter_var_prev_info);
 	if (!context.has_terminator())
 	{
 		context.builder.CreateBr(iteration_bb);
 	}
-	context.pop_expression_scope(iter_var_prev_info);
 
 	context.builder.SetInsertPoint(condition_check_end);
 	context.builder.CreateCondBr(condition, foreach_bb, end_bb);
