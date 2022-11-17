@@ -23,9 +23,10 @@ instruction_value executor_context::get_instruction_value(instructions::arg_t in
 	return this->current_function->instruction_values[inst_index];
 }
 
-void executor_context::do_jump(basic_block const *next_bb)
+void executor_context::do_jump(uint32_t next_bb_index)
 {
-	this->next_bb = next_bb;
+	bz_assert(next_bb_index < this->current_function->blocks.size());
+	this->next_bb = &this->current_function->blocks[next_bb_index];
 }
 
 void executor_context::advance(void)

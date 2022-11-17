@@ -314,18 +314,18 @@ static void execute(instructions::store_ptr64_le const &, ptr_t value, ptr_t ptr
 
 static void execute(instructions::jump const &inst, executor_context &context)
 {
-	context.do_jump(inst.next_bb);
+	context.do_jump(inst.next_bb_index);
 }
 
 static void execute(instructions::conditional_jump const &inst, bool condition, executor_context &context)
 {
 	if (condition)
 	{
-		context.do_jump(inst.true_bb);
+		context.do_jump(inst.true_bb_index);
 	}
 	else
 	{
-		context.do_jump(inst.false_bb);
+		context.do_jump(inst.false_bb_index);
 	}
 }
 

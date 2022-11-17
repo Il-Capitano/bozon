@@ -378,7 +378,7 @@ struct jump
 	static inline constexpr int arg_types = 0;
 	static inline constexpr value_type result_type = value_type::none;
 
-	basic_block *next_bb;
+	uint32_t next_bb_index;
 };
 
 struct conditional_jump
@@ -388,8 +388,8 @@ struct conditional_jump
 
 	bz::array<arg_t, arg_types.size()> args;
 
-	basic_block *true_bb;
-	basic_block *false_bb;
+	uint32_t true_bb_index;
+	uint32_t false_bb_index;
 };
 
 } // namespace instructions

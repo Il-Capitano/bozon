@@ -21,7 +21,7 @@ struct executor_context
 	void set_current_instruction_value(instruction_value value);
 	instruction_value get_instruction_value(instructions::arg_t inst_index);
 
-	void do_jump(basic_block const *next_bb);
+	void do_jump(uint32_t next_bb_index);
 
 	void advance(void);
 };
