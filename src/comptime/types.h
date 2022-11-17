@@ -28,6 +28,7 @@ struct pointer_type
 struct aggregate_type
 {
 	bz::vector<type const *> elems;
+	bz::vector<size_t> offsets;
 };
 
 struct array_type
@@ -78,6 +79,12 @@ struct type : type_base_t
 	{
 		bz_assert(this->is_aggregate());
 		return this->get<aggregate_type>().elems;
+	}
+
+	bz::array_view<size_t const> get_aggregate_offsets(void) const
+	{
+		bz_assert(this->is_aggregate());
+		return this->get<aggregate_type>().offsets;
 	}
 
 	bool is_array(void) const
