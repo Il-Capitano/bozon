@@ -312,6 +312,11 @@ static void execute(instructions::store_ptr64_le const &, ptr_t value, ptr_t ptr
 	store_little_endian<uint64_t>(mem, static_cast<uint64_t>(value));
 }
 
+static ptr_t execute(instructions::const_gep const &inst, ptr_t ptr, executor_context &)
+{
+	return ptr + inst.offset;
+}
+
 static void execute(instructions::jump const &inst, executor_context &context)
 {
 	context.do_jump(inst.next_bb_index);
@@ -533,7 +538,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 42);
+		static_assert(instruction::variant_count == 43);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -647,6 +652,9 @@ void execute(executor_context &context)
 			break;
 		case instruction::store_ptr64_le:
 			execute<instructions::store_ptr64_le>(context);
+			break;
+		case instruction::const_gep:
+			execute<instructions::const_gep>(context);
 			break;
 		case instruction::jump:
 			execute<instructions::jump>(context);
