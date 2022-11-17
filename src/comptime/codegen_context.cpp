@@ -220,31 +220,49 @@ instruction_ref codegen_context::create_conditional_jump(
 	basic_block_ref false_bb
 )
 {
-	auto const result = this->add_instruction(instructions::conditional_jump{
+	return this->add_instruction(instructions::conditional_jump{
 		.args = {},
 		.true_bb_index = true_bb.bb_index,
 		.false_bb_index = false_bb.bb_index,
-	});
-	this->unresolved_instructions.push_back({
-		.inst = result,
-		.args = { condition, {} },
-	});
-	return result;
+	}, condition);
 }
 
 instruction_ref codegen_context::create_ret(instruction_ref value)
 {
-	auto const result = this->add_instruction(instructions::ret{ .args= {} });
-	this->unresolved_instructions.push_back({
-		.inst = result,
-		.args = { value, {} },
-	});
-	return result;
+	return this->add_instruction(instructions::ret{ .args= {} }, value);
 }
 
 instruction_ref codegen_context::create_ret_void(void)
 {
 	return this->add_instruction(instructions::ret_void{});
+}
+
+expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
+{
+	bz_assert(value.is_reference());
+	auto const type = value.get_type();
+	if (type->is_array())
+	{
+		bz_assert(index < type->get_array_size());
+		auto const offset = index * type->get_array_element_type()->size;
+		auto const result_ptr = this->add_instruction(instructions::const_gep{
+			.args = {},
+			.offset = offset
+		}, value.get_reference());
+		return expr_value::get_reference(result_ptr, type->get_array_element_type());
+	}
+	else
+	{
+		bz_assert(type->is_aggregate());
+		auto const types = type->get_aggregate_types();
+		auto const offsets = type->get_aggregate_offsets();
+		bz_assert(index < types.size());
+		auto const result_ptr = this->add_instruction(instructions::const_gep{
+			.args = {},
+			.offset = offsets[index]
+		}, value.get_reference());
+		return expr_value::get_reference(result_ptr, types[index]);
+	}
 }
 
 } // namespace comptime

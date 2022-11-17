@@ -31,14 +31,26 @@ enum class expr_value_kind
 
 struct expr_value
 {
-	instruction_ref inst;
+	instruction_ref value;
 	expr_value_kind kind;
+	type const *value_type;
 
-	instruction_ref get_value(codegen_context &context);
+	bool is_value(void) const;
+	bool is_reference(void) const;
+	bool is_none(void) const;
+
+	instruction_ref get_value(codegen_context &context) const;
+	instruction_ref get_reference(void) const;
+	type const *get_type(void) const;
 
 	static expr_value get_none(void)
 	{
-		return { .inst = {}, .kind = expr_value_kind::none };
+		return { .value = {}, .kind = expr_value_kind::none, .value_type = nullptr };
+	}
+
+	static expr_value get_reference(instruction_ref value, type const *value_type)
+	{
+		return { .value = value, .kind = expr_value_kind::reference, .value_type = value_type };
 	}
 };
 
@@ -126,14 +138,45 @@ struct codegen_context
 	void emit_all_destruct_operations(void);
 
 	// instruction creation functions
-	template<typename ...Ts>
-	instruction_ref add_instruction(Ts &&...args)
+	template<typename Inst>
+	instruction_ref add_instruction(Inst &&inst)
 	{
-		this->current_function->blocks[this->current_bb.bb_index].instructions.emplace_back(std::forward<Ts>(args)...);
-		return {
+		this->current_function->blocks[this->current_bb.bb_index].instructions.emplace_back(std::forward<Inst>(inst));
+		auto const result = instruction_ref{
 			.bb_index   = this->current_bb.bb_index,
 			.inst_index = static_cast<uint32_t>(this->current_function->blocks[this->current_bb.bb_index].instructions.size() - 1),
 		};
+		return result;
+	}
+
+	template<typename Inst>
+	instruction_ref add_instruction(Inst &&inst, instruction_ref arg)
+	{
+		this->current_function->blocks[this->current_bb.bb_index].instructions.emplace_back(std::forward<Inst>(inst));
+		auto const result = instruction_ref{
+			.bb_index   = this->current_bb.bb_index,
+			.inst_index = static_cast<uint32_t>(this->current_function->blocks[this->current_bb.bb_index].instructions.size() - 1),
+		};
+		this->unresolved_instructions.push_back({
+			.inst = result,
+			.args = { arg, {} },
+		});
+		return result;
+	}
+
+	template<typename Inst>
+	instruction_ref add_instruction(Inst &&inst, instruction_ref arg1, instruction_ref arg2)
+	{
+		this->current_function->blocks[this->current_bb.bb_index].instructions.emplace_back(std::forward<Inst>(inst));
+		auto const result = instruction_ref{
+			.bb_index   = this->current_bb.bb_index,
+			.inst_index = static_cast<uint32_t>(this->current_function->blocks[this->current_bb.bb_index].instructions.size() - 1),
+		};
+		this->unresolved_instructions.push_back({
+			.inst = result,
+			.args = { arg1, arg2 },
+		});
+		return result;
 	}
 
 	instruction_ref create_alloca(type const *type);
@@ -141,6 +184,7 @@ struct codegen_context
 	instruction_ref create_conditional_jump(instruction_ref condition, basic_block_ref true_bb, basic_block_ref false_bb);
 	instruction_ref create_ret(instruction_ref value);
 	instruction_ref create_ret_void(void);
+	expr_value create_struct_gep(expr_value value, size_t index);
 
 	void finalize_function(void);
 };
