@@ -329,6 +329,16 @@ static void execute(instructions::conditional_jump const &inst, bool condition, 
 	}
 }
 
+static void execute(instructions::ret const &, instruction_value value, executor_context &context)
+{
+	context.do_ret(value);
+}
+
+static void execute(instructions::ret_void const &, executor_context &context)
+{
+	context.do_ret_void();
+}
+
 
 template<value_type type>
 struct get_value_type;
@@ -381,6 +391,12 @@ struct get_value_type<value_type::ptr>
 	using type = ptr_t;
 };
 
+template<>
+struct get_value_type<value_type::any>
+{
+	using type = instruction_value;
+};
+
 template<value_type type>
 using get_value_type_t = typename get_value_type<type>::type;
 
@@ -418,6 +434,10 @@ static get_value_type_t<type> get_value(instruction_value value)
 	else if constexpr (type == value_type::ptr)
 	{
 		return value.ptr;
+	}
+	else if constexpr (type == value_type::any)
+	{
+		return value;
 	}
 	else
 	{
@@ -513,7 +533,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 40);
+		static_assert(instruction::variant_count == 42);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -540,6 +560,9 @@ void execute(executor_context &context)
 			break;
 		case instruction::const_u64:
 			execute<instructions::const_u64>(context);
+			break;
+		case instruction::alloca:
+			execute<instructions::alloca>(context);
 			break;
 		case instruction::load1_be:
 			execute<instructions::load1_be>(context);
@@ -630,6 +653,12 @@ void execute(executor_context &context)
 			break;
 		case instruction::conditional_jump:
 			execute<instructions::conditional_jump>(context);
+			break;
+		case instruction::ret:
+			execute<instructions::ret>(context);
+			break;
+		case instruction::ret_void:
+			execute<instructions::ret_void>(context);
 			break;
 		default:
 			bz_unreachable;

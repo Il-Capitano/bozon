@@ -11,7 +11,7 @@ enum class value_type
 	i1, i8, i16, i32, i64,
 	f32, f64,
 	ptr,
-	none,
+	none, any,
 };
 
 struct none_t
@@ -392,6 +392,20 @@ struct conditional_jump
 	uint32_t false_bb_index;
 };
 
+struct ret
+{
+	static inline constexpr bz::array arg_types = { value_type::any };
+	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<arg_t, arg_types.size()> args;
+};
+
+struct ret_void
+{
+	static inline constexpr int arg_types = 0;
+	static inline constexpr value_type result_type = value_type::none;
+};
+
 } // namespace instructions
 
 using instruction_list = bz::meta::type_pack<
@@ -434,7 +448,9 @@ using instruction_list = bz::meta::type_pack<
 	instructions::store_ptr32_le,
 	instructions::store_ptr64_le,
 	instructions::jump,
-	instructions::conditional_jump
+	instructions::conditional_jump,
+	instructions::ret,
+	instructions::ret_void
 >;
 
 using instruction_base_t = bz::meta::apply_type_pack<bz::variant, instruction_list>;
@@ -443,7 +459,7 @@ struct instruction : instruction_base_t
 {
 	using base_t = instruction_base_t;
 
-	static_assert(variant_count == 40);
+	static_assert(variant_count == 42);
 	enum : base_t::index_t
 	{
 		const_i1          = base_t::index_of<instructions::const_i1>,
@@ -486,6 +502,8 @@ struct instruction : instruction_base_t
 		store_ptr64_le    = base_t::index_of<instructions::store_ptr64_le>,
 		jump              = base_t::index_of<instructions::jump>,
 		conditional_jump  = base_t::index_of<instructions::conditional_jump>,
+		ret               = base_t::index_of<instructions::ret>,
+		ret_void          = base_t::index_of<instructions::ret_void>,
 	};
 
 	bool is_terminator(void) const
@@ -494,6 +512,8 @@ struct instruction : instruction_base_t
 		{
 		case jump:
 		case conditional_jump:
+		case ret:
+		case ret_void:
 			return true;
 		default:
 			return false;

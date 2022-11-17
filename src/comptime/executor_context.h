@@ -14,6 +14,8 @@ struct executor_context
 
 	size_t instruction_value_offset;
 	basic_block const *next_bb;
+	instruction_value ret_value;
+	bool returned;
 
 	uint8_t *get_memory(ptr_t ptr, size_t size);
 	ptr_t do_alloca(size_t size, size_t align);
@@ -22,6 +24,8 @@ struct executor_context
 	instruction_value get_instruction_value(instructions::arg_t inst_index);
 
 	void do_jump(uint32_t next_bb_index);
+	void do_ret(instruction_value value);
+	void do_ret_void(void);
 
 	void advance(void);
 };

@@ -29,6 +29,17 @@ void executor_context::do_jump(uint32_t next_bb_index)
 	this->next_bb = &this->current_function->blocks[next_bb_index];
 }
 
+void executor_context::do_ret(instruction_value value)
+{
+	this->ret_value = value;
+	this->returned = true;
+}
+
+void executor_context::do_ret_void(void)
+{
+	this->returned = true;
+}
+
 void executor_context::advance(void)
 {
 	if (this->next_bb != nullptr)
@@ -36,6 +47,10 @@ void executor_context::advance(void)
 		bz_assert(this->next_bb >= this->current_function->blocks.data() && this->next_bb < this->current_function->blocks.data_end());
 		this->current_instruction = this->next_bb->instructions.data();
 		this->instruction_value_offset = this->next_bb->instruction_value_offset;
+	}
+	else if (this->returned)
+	{
+		bz_unreachable;
 	}
 	else
 	{
