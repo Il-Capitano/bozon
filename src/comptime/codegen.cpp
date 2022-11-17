@@ -128,36 +128,83 @@ static expr_value generate_expr_code(
 	codegen_context &context,
 	bz::optional<instruction_ref> result_address
 );
+
 static expr_value generate_expr_code(
 	ast::expr_integer_literal const &,
-	codegen_context &context,
-	bz::optional<instruction_ref> result_address
-);
+	codegen_context &,
+	bz::optional<instruction_ref>
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
 static expr_value generate_expr_code(
 	ast::expr_null_literal const &,
-	codegen_context &context,
-	bz::optional<instruction_ref> result_address
-);
+	codegen_context &,
+	bz::optional<instruction_ref>
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
 static expr_value generate_expr_code(
 	ast::expr_enum_literal const &,
-	codegen_context &context,
-	bz::optional<instruction_ref> result_address
-);
+	codegen_context &,
+	bz::optional<instruction_ref>
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
 static expr_value generate_expr_code(
 	ast::expr_typed_literal const &,
-	codegen_context &context,
-	bz::optional<instruction_ref> result_address
-);
+	codegen_context &,
+	bz::optional<instruction_ref>
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
 static expr_value generate_expr_code(
 	ast::expr_placeholder_literal const &,
-	codegen_context &context,
-	bz::optional<instruction_ref> result_address
-);
+	codegen_context &,
+	bz::optional<instruction_ref>
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
 static expr_value generate_expr_code(
-	ast::expr_tuple const &,
+	ast::expr_tuple const &tuple_expr,
 	codegen_context &context,
 	bz::optional<instruction_ref> result_address
-);
+)
+{
+	auto const types = tuple_expr.elems
+		.transform([](auto const &expr) { return expr.get_expr_type(); })
+		.transform([&context](auto const ts) { return get_type(ts, context); })
+		.collect();
+	auto const result_type = context.get_aggregate_type(types);
+	if (!result_address.has_value())
+	{
+		result_address = context.create_alloca(result_type);
+	}
+
+	auto const result_expr_value = expr_value::get_reference(result_address.get(), result_type);
+	for (auto const i : bz::iota(0, tuple_expr.elems.size()))
+	{
+		auto const elem_result_address = context.create_struct_gep(result_expr_value, i);
+		generate_expr_code(tuple_expr.elems[i], context, elem_result_address.get_reference());
+	}
+
+	return result_expr_value;
+}
+
 static expr_value generate_expr_code(
 	ast::expr_unary_op const &,
 	codegen_context &context,
@@ -168,11 +215,35 @@ static expr_value generate_expr_code(
 	codegen_context &context,
 	bz::optional<instruction_ref> result_address
 );
+
 static expr_value generate_expr_code(
-	ast::expr_tuple_subscript const &,
+	ast::expr_tuple_subscript const &tuple_subscript,
 	codegen_context &context,
 	bz::optional<instruction_ref> result_address
-);
+)
+{
+	bz_assert(tuple_subscript.index.is<ast::constant_expression>());
+	auto const &index_value = tuple_subscript.index.get<ast::constant_expression>().value;
+	bz_assert(index_value.is_uint() || index_value.is_sint());
+	auto const index_int_value = index_value.is_uint()
+		? index_value.get_uint()
+		: static_cast<uint64_t>(index_value.get_sint());
+
+	expr_value result = expr_value::get_none();
+	for (auto const i : bz::iota(0, tuple_subscript.base.elems.size()))
+	{
+		if (i == index_int_value)
+		{
+			result = generate_expr_code(tuple_subscript.base.elems[i], context, result_address);
+		}
+		else
+		{
+			generate_expr_code(tuple_subscript.base.elems[i], context, {});
+		}
+	}
+	return result;
+}
+
 static expr_value generate_expr_code(
 	ast::expr_rvalue_tuple_subscript const &,
 	codegen_context &context,
