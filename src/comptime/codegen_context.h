@@ -2,6 +2,8 @@
 #define COMPTIME_CODEGEN_CONTEXT_H
 
 #include "instructions.h"
+#include "types.h"
+#include "global_codegen_context.h"
 #include "ast/expression.h"
 
 namespace comptime
@@ -50,6 +52,7 @@ struct codegen_context
 {
 	function *current_function = nullptr;
 	basic_block_ref current_bb = {};
+	bz::optional<instruction_ref> function_return_address;
 	bz::vector<unresolved_instruction> unresolved_instructions;
 
 	struct destruct_operation_info_t
@@ -72,6 +75,17 @@ struct codegen_context
 	};
 
 	loop_info_t loop_info = {};
+
+	global_codegen_context *global_codegen_ctx;
+
+	type const *get_builtin_type(builtin_type_kind kind);
+	type const *get_pointer_type(void);
+	type const *get_aggregate_type(bz::array_view<type const * const> elem_types);
+	type const *get_array_type(type const *elem_type, size_t size);
+	type const *get_str_t(void);
+	type const *get_null_t(void);
+	type const *get_slice_t(void);
+	type const *get_optional_type(type const *value_type);
 
 	// control flow structure
 	basic_block_ref get_current_basic_block(void);
@@ -112,8 +126,21 @@ struct codegen_context
 	void emit_all_destruct_operations(void);
 
 	// instruction creation functions
+	template<typename ...Ts>
+	instruction_ref add_instruction(Ts &&...args)
+	{
+		this->current_function->blocks[this->current_bb.bb_index].instructions.emplace_back(std::forward<Ts>(args)...);
+		return {
+			.bb_index   = this->current_bb.bb_index,
+			.inst_index = static_cast<uint32_t>(this->current_function->blocks[this->current_bb.bb_index].instructions.size() - 1),
+		};
+	}
+
+	instruction_ref create_alloca(type const *type);
 	instruction_ref create_jump(basic_block_ref bb);
 	instruction_ref create_conditional_jump(instruction_ref condition, basic_block_ref true_bb, basic_block_ref false_bb);
+	instruction_ref create_ret(instruction_ref value);
+	instruction_ref create_ret_void(void);
 
 	void finalize_function(void);
 };

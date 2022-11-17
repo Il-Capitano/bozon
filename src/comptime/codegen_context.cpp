@@ -4,6 +4,46 @@
 namespace comptime
 {
 
+type const *codegen_context::get_builtin_type(builtin_type_kind kind)
+{
+	return this->global_codegen_ctx->get_builtin_type(kind);
+}
+
+type const *codegen_context::get_pointer_type(void)
+{
+	return this->global_codegen_ctx->get_pointer_type();
+}
+
+type const *codegen_context::get_aggregate_type(bz::array_view<type const * const> elem_types)
+{
+	return this->global_codegen_ctx->get_aggregate_type(elem_types);
+}
+
+type const *codegen_context::get_array_type(type const *elem_type, size_t size)
+{
+	return this->global_codegen_ctx->get_array_type(elem_type, size);
+}
+
+type const *codegen_context::get_str_t(void)
+{
+	return this->global_codegen_ctx->get_str_t();
+}
+
+type const *codegen_context::get_null_t(void)
+{
+	return this->global_codegen_ctx->get_null_t();
+}
+
+type const *codegen_context::get_slice_t(void)
+{
+	return this->global_codegen_ctx->get_slice_t();
+}
+
+type const *codegen_context::get_optional_type(type const *value_type)
+{
+	return this->global_codegen_ctx->get_optional_type(value_type);
+}
+
 basic_block_ref codegen_context::get_current_basic_block(void)
 {
 	return this->current_bb;
@@ -164,15 +204,14 @@ void codegen_context::emit_all_destruct_operations(void)
 }
 
 
+instruction_ref codegen_context::create_alloca(type const *type)
+{
+	return this->add_instruction(instructions::alloca{ .size = type->size, .align = type->align });
+}
+
 instruction_ref codegen_context::create_jump(basic_block_ref bb)
 {
-	this->current_function->blocks[this->current_bb.bb_index].instructions.emplace_back(
-		instructions::jump{ .next_bb_index = bb.bb_index }
-	);
-	return {
-		.bb_index   = this->current_bb.bb_index,
-		.inst_index = static_cast<uint32_t>(this->current_function->blocks[this->current_bb.bb_index].instructions.size() - 1),
-	};
+	return this->add_instruction(instructions::jump{ .next_bb_index = bb.bb_index });
 }
 
 instruction_ref codegen_context::create_conditional_jump(
@@ -181,22 +220,31 @@ instruction_ref codegen_context::create_conditional_jump(
 	basic_block_ref false_bb
 )
 {
-	this->current_function->blocks[this->current_bb.bb_index].instructions.emplace_back(
-		instructions::conditional_jump{
-			.args = {},
-			.true_bb_index = true_bb.bb_index,
-			.false_bb_index = false_bb.bb_index,
-		}
-	);
-	auto const result = instruction_ref{
-		.bb_index   = this->current_bb.bb_index,
-		.inst_index = static_cast<uint32_t>(this->current_function->blocks[this->current_bb.bb_index].instructions.size() - 1),
-	};
+	auto const result = this->add_instruction(instructions::conditional_jump{
+		.args = {},
+		.true_bb_index = true_bb.bb_index,
+		.false_bb_index = false_bb.bb_index,
+	});
 	this->unresolved_instructions.push_back({
 		.inst = result,
 		.args = { condition, {} },
 	});
 	return result;
+}
+
+instruction_ref codegen_context::create_ret(instruction_ref value)
+{
+	auto const result = this->add_instruction(instructions::ret{ .args= {} });
+	this->unresolved_instructions.push_back({
+		.inst = result,
+		.args = { value, {} },
+	});
+	return result;
+}
+
+instruction_ref codegen_context::create_ret_void(void)
+{
+	return this->add_instruction(instructions::ret_void{});
 }
 
 } // namespace comptime
