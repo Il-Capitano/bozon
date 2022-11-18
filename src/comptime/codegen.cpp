@@ -390,7 +390,10 @@ static expr_value generate_expr_code(
 		result_address = context.create_alloca(slice_type);
 	}
 
-	auto const result_value = result_address.get();
+	auto const &result_value = result_address.get();
+	auto const null_value = context.create_const_ptr_null();
+	context.create_store(null_value, context.create_struct_gep(result_value, 0));
+	context.create_store(null_value, context.create_struct_gep(result_value, 1));
 
 	return result_value;
 }

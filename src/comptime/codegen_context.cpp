@@ -229,6 +229,93 @@ void codegen_context::emit_all_destruct_operations(void)
 }
 
 
+expr_value codegen_context::create_const_ptr_null(void)
+{
+	auto const inst_ref = this->add_instruction(instructions::const_ptr_null{});
+	return expr_value::get_value(inst_ref, this->get_pointer_type());
+}
+
+instruction_ref codegen_context::create_store(expr_value value, expr_value ptr)
+{
+	bz_assert(value.get_type() == ptr.get_type());
+	auto const type = value.get_type();
+	bz_assert(type->is_builtin() || type->is_pointer());
+	auto const value_ = value.get_value(*this);
+	auto const ptr_ = ptr.get_reference();
+	if (type->is_pointer())
+	{
+		if (this->is_little_endian())
+		{
+			if (this->is_64_bit())
+			{
+				return this->add_instruction(instructions::store_ptr64_le{ .args = {} }, value_, ptr_);
+			}
+			else
+			{
+				return this->add_instruction(instructions::store_ptr32_le{ .args = {} }, value_, ptr_);
+			}
+		}
+		else
+		{
+			if (this->is_64_bit())
+			{
+				return this->add_instruction(instructions::store_ptr64_be{ .args = {} }, value_, ptr_);
+			}
+			else
+			{
+				return this->add_instruction(instructions::store_ptr32_be{ .args = {} }, value_, ptr_);
+			}
+		}
+	}
+	else
+	{
+		if (this->is_little_endian())
+		{
+			switch (type->get_builtin_kind())
+			{
+			case builtin_type_kind::i1:
+				return this->add_instruction(instructions::store_i1_le{ .args = {} }, value_, ptr_);
+			case builtin_type_kind::i8:
+				return this->add_instruction(instructions::store_i8_le{ .args = {} }, value_, ptr_);
+			case builtin_type_kind::i16:
+				return this->add_instruction(instructions::store_i16_le{ .args = {} }, value_, ptr_);
+			case builtin_type_kind::i32:
+				return this->add_instruction(instructions::store_i32_le{ .args = {} }, value_, ptr_);
+			case builtin_type_kind::i64:
+				return this->add_instruction(instructions::store_i64_le{ .args = {} }, value_, ptr_);
+			case builtin_type_kind::f32:
+				return this->add_instruction(instructions::store_f32_le{ .args = {} }, value_, ptr_);
+			case builtin_type_kind::f64:
+				return this->add_instruction(instructions::store_f64_le{ .args = {} }, value_, ptr_);
+			case builtin_type_kind::void_:
+				bz_unreachable;
+			}
+		}
+		else
+		{
+			switch (type->get_builtin_kind())
+			{
+			case builtin_type_kind::i1:
+				return this->add_instruction(instructions::store_i1_be{ .args = {} }, value_, ptr_);
+			case builtin_type_kind::i8:
+				return this->add_instruction(instructions::store_i8_be{ .args = {} }, value_, ptr_);
+			case builtin_type_kind::i16:
+				return this->add_instruction(instructions::store_i16_be{ .args = {} }, value_, ptr_);
+			case builtin_type_kind::i32:
+				return this->add_instruction(instructions::store_i32_be{ .args = {} }, value_, ptr_);
+			case builtin_type_kind::i64:
+				return this->add_instruction(instructions::store_i64_be{ .args = {} }, value_, ptr_);
+			case builtin_type_kind::f32:
+				return this->add_instruction(instructions::store_f32_be{ .args = {} }, value_, ptr_);
+			case builtin_type_kind::f64:
+				return this->add_instruction(instructions::store_f64_be{ .args = {} }, value_, ptr_);
+			case builtin_type_kind::void_:
+				bz_unreachable;
+			}
+		}
+	}
+}
+
 expr_value codegen_context::create_alloca(type const *type)
 {
 	bz_assert(this->current_function->blocks.not_empty());
