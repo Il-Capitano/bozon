@@ -399,10 +399,31 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	ast::expr_aggregate_copy_construct const &,
+	ast::expr_aggregate_copy_construct const &aggregate_copy_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const copied_val = generate_expr_code(aggregate_copy_construct.copied_value, context, {});
+	if (!result_address.has_value())
+	{
+		auto const type = copied_val.get_type();
+		bz_assert(type->is_aggregate());
+		result_address = context.create_alloca(type);
+	}
+
+	auto const &result_value = result_address.get();
+	for (auto const i : bz::iota(0, aggregate_copy_construct.copy_exprs.size()))
+	{
+		auto const result_member_value = context.create_struct_gep(result_value, i);
+		auto const member_value = context.create_struct_gep(copied_val, i);
+		auto const prev_value = context.push_value_reference(member_value);
+		generate_expr_code(aggregate_copy_construct.copy_exprs[i], context, result_member_value);
+		context.pop_value_reference(prev_value);
+	}
+	return result_value;
+}
+
 static expr_value generate_expr_code(
 	ast::expr_array_copy_construct const &,
 	codegen_context &context,
@@ -413,16 +434,65 @@ static expr_value generate_expr_code(
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 );
+
 static expr_value generate_expr_code(
-	ast::expr_builtin_copy_construct const &,
+	ast::expr_builtin_copy_construct const &builtin_copy_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const copied_val = generate_expr_code(builtin_copy_construct.copied_value, context, {});
+	if (copied_val.get_type()->is_aggregate())
+	{
+		if (!result_address.has_value())
+		{
+			result_address = context.create_alloca(copied_val.get_type());
+		}
+
+		auto const &result_value = result_address.get();
+		context.create_const_memcpy(result_value, copied_val, copied_val.get_type()->size);
+		return result_value;
+	}
+	else
+	{
+		if (result_address.has_value())
+		{
+			context.create_store(copied_val, result_address.get());
+			return result_address.get();
+		}
+		else
+		{
+			return expr_value::get_value(copied_val.get_value(context), copied_val.get_type());
+		}
+	}
+}
+
 static expr_value generate_expr_code(
-	ast::expr_aggregate_move_construct const &,
+	ast::expr_aggregate_move_construct const &aggregate_move_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const moved_val = generate_expr_code(aggregate_move_construct.moved_value, context, {});
+	if (!result_address.has_value())
+	{
+		auto const type = moved_val.get_type();
+		bz_assert(type->is_aggregate());
+		result_address = context.create_alloca(type);
+	}
+
+	auto const &result_value = result_address.get();
+	for (auto const i : bz::iota(0, aggregate_move_construct.move_exprs.size()))
+	{
+		auto const result_member_value = context.create_struct_gep(result_value, i);
+		auto const member_value = context.create_struct_gep(moved_val, i);
+		auto const prev_value = context.push_value_reference(member_value);
+		generate_expr_code(aggregate_move_construct.move_exprs[i], context, result_member_value);
+		context.pop_value_reference(prev_value);
+	}
+	return result_value;
+}
+
 static expr_value generate_expr_code(
 	ast::expr_array_move_construct const &,
 	codegen_context &context,
@@ -433,11 +503,41 @@ static expr_value generate_expr_code(
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 );
+
 static expr_value generate_expr_code(
-	ast::expr_trivial_relocate const &,
+	ast::expr_trivial_relocate const &trivial_relocate,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const val = generate_expr_code(trivial_relocate.value, context, {});
+	auto const type = val.get_type();
+
+	if (type->is_builtin() || type->is_pointer())
+	{
+		if (result_address.has_value())
+		{
+			context.create_store(val, result_address.get());
+			return result_address.get();
+		}
+		else
+		{
+			return expr_value::get_value(val.get_value(context), type);
+		}
+	}
+	else
+	{
+		if (!result_address.has_value())
+		{
+			result_address = context.create_alloca(type);
+		}
+
+		auto const &result_value = result_address.get();
+		context.create_const_memcpy(result_value, val, type->size);
+		return result_value;
+	}
+}
+
 static expr_value generate_expr_code(
 	ast::expr_aggregate_destruct const &,
 	codegen_context &context,
