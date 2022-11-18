@@ -517,4 +517,12 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 	}
 }
 
+instruction_ref codegen_context::create_const_memcpy(expr_value dest, expr_value source, size_t size)
+{
+	bz_assert(dest.is_reference());
+	bz_assert(source.is_reference());
+
+	return this->add_instruction(instructions::const_memcpy{ .args = {}, .size = size }, dest.get_reference(), source.get_reference());
+}
+
 } // namespace comptime

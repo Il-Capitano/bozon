@@ -370,6 +370,13 @@ static ptr_t execute(instructions::const_gep const &inst, ptr_t ptr, executor_co
 	return ptr + inst.offset;
 }
 
+static void execute(instructions::const_memcpy const &inst, ptr_t dest, ptr_t src, executor_context &context)
+{
+	auto const dest_mem = context.get_memory(dest, inst.size);
+	auto const src_mem  = context.get_memory(src, inst.size);
+	std::memcpy(dest_mem, src_mem, inst.size);
+}
+
 static void execute(instructions::jump const &inst, executor_context &context)
 {
 	context.do_jump(inst.next_bb_index);
@@ -591,7 +598,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 52);
+		static_assert(instruction::variant_count == 53);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -735,6 +742,9 @@ void execute(executor_context &context)
 			break;
 		case instruction::const_gep:
 			execute<instructions::const_gep>(context);
+			break;
+		case instruction::const_memcpy:
+			execute<instructions::const_memcpy>(context);
 			break;
 		case instruction::jump:
 			execute<instructions::jump>(context);

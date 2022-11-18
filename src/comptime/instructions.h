@@ -452,6 +452,16 @@ struct const_gep
 	size_t offset;
 };
 
+struct const_memcpy
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<arg_t, arg_types.size()> args;
+
+	size_t size;
+};
+
 
 struct jump
 {
@@ -537,6 +547,7 @@ using instruction_list = bz::meta::type_pack<
 	instructions::store_ptr32_le,
 	instructions::store_ptr64_le,
 	instructions::const_gep,
+	instructions::const_memcpy,
 	instructions::jump,
 	instructions::conditional_jump,
 	instructions::ret,
@@ -549,7 +560,7 @@ struct instruction : instruction_base_t
 {
 	using base_t = instruction_base_t;
 
-	static_assert(variant_count == 52);
+	static_assert(variant_count == 53);
 	enum : base_t::index_t
 	{
 		const_i1          = base_t::index_of<instructions::const_i1>,
@@ -600,6 +611,7 @@ struct instruction : instruction_base_t
 		store_ptr32_le    = base_t::index_of<instructions::store_ptr32_le>,
 		store_ptr64_le    = base_t::index_of<instructions::store_ptr64_le>,
 		const_gep         = base_t::index_of<instructions::const_gep>,
+		const_memcpy      = base_t::index_of<instructions::const_memcpy>,
 		jump              = base_t::index_of<instructions::jump>,
 		conditional_jump  = base_t::index_of<instructions::conditional_jump>,
 		ret               = base_t::index_of<instructions::ret>,
