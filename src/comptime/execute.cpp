@@ -445,6 +445,36 @@ static uint64_t execute(instructions::cast_sext_i32_to_i64 const &, uint32_t val
 	return static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(value)));
 }
 
+static uint8_t execute(instructions::cast_trunc_i64_to_i8 const &, uint64_t value, executor_context &)
+{
+	return static_cast<uint8_t>(value);
+}
+
+static uint16_t execute(instructions::cast_trunc_i64_to_i16 const &, uint64_t value, executor_context &)
+{
+	return static_cast<uint16_t>(value);
+}
+
+static uint32_t execute(instructions::cast_trunc_i64_to_i32 const &, uint64_t value, executor_context &)
+{
+	return static_cast<uint32_t>(value);
+}
+
+static uint8_t execute(instructions::cast_trunc_i32_to_i8 const &, uint32_t value, executor_context &)
+{
+	return static_cast<uint8_t>(value);
+}
+
+static uint16_t execute(instructions::cast_trunc_i32_to_i16 const &, uint32_t value, executor_context &)
+{
+	return static_cast<uint16_t>(value);
+}
+
+static uint8_t execute(instructions::cast_trunc_i16_to_i8 const &, uint16_t value, executor_context &)
+{
+	return static_cast<uint8_t>(value);
+}
+
 static ptr_t execute(instructions::const_gep const &inst, ptr_t ptr, executor_context &)
 {
 	return ptr + inst.offset;
@@ -678,7 +708,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 69);
+		static_assert(instruction::variant_count == 75);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -867,6 +897,24 @@ void execute(executor_context &context)
 			break;
 		case instruction::cast_sext_i32_to_i64:
 			execute<instructions::cast_sext_i32_to_i64>(context);
+			break;
+		case instruction::cast_trunc_i64_to_i8:
+			execute<instructions::cast_trunc_i64_to_i8>(context);
+			break;
+		case instruction::cast_trunc_i64_to_i16:
+			execute<instructions::cast_trunc_i64_to_i16>(context);
+			break;
+		case instruction::cast_trunc_i64_to_i32:
+			execute<instructions::cast_trunc_i64_to_i32>(context);
+			break;
+		case instruction::cast_trunc_i32_to_i8:
+			execute<instructions::cast_trunc_i32_to_i8>(context);
+			break;
+		case instruction::cast_trunc_i32_to_i16:
+			execute<instructions::cast_trunc_i32_to_i16>(context);
+			break;
+		case instruction::cast_trunc_i16_to_i8:
+			execute<instructions::cast_trunc_i16_to_i8>(context);
 			break;
 		case instruction::const_gep:
 			execute<instructions::const_gep>(context);

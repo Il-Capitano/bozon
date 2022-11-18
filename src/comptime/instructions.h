@@ -570,6 +570,54 @@ struct cast_sext_i32_to_i64
 	bz::array<arg_t, arg_types.size()> args;
 };
 
+struct cast_trunc_i64_to_i8
+{
+	static inline constexpr bz::array arg_types = { value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<arg_t, arg_types.size()> args;
+};
+
+struct cast_trunc_i64_to_i16
+{
+	static inline constexpr bz::array arg_types = { value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<arg_t, arg_types.size()> args;
+};
+
+struct cast_trunc_i64_to_i32
+{
+	static inline constexpr bz::array arg_types = { value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<arg_t, arg_types.size()> args;
+};
+
+struct cast_trunc_i32_to_i8
+{
+	static inline constexpr bz::array arg_types = { value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<arg_t, arg_types.size()> args;
+};
+
+struct cast_trunc_i32_to_i16
+{
+	static inline constexpr bz::array arg_types = { value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<arg_t, arg_types.size()> args;
+};
+
+struct cast_trunc_i16_to_i8
+{
+	static inline constexpr bz::array arg_types = { value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<arg_t, arg_types.size()> args;
+};
+
 struct const_gep
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
@@ -690,6 +738,12 @@ using instruction_list = bz::meta::type_pack<
 	instructions::cast_sext_i16_to_i32,
 	instructions::cast_sext_i16_to_i64,
 	instructions::cast_sext_i32_to_i64,
+	instructions::cast_trunc_i64_to_i8,
+	instructions::cast_trunc_i64_to_i16,
+	instructions::cast_trunc_i64_to_i32,
+	instructions::cast_trunc_i32_to_i8,
+	instructions::cast_trunc_i32_to_i16,
+	instructions::cast_trunc_i16_to_i8,
 	instructions::const_gep,
 	instructions::const_memcpy,
 	instructions::jump,
@@ -704,78 +758,84 @@ struct instruction : instruction_base_t
 {
 	using base_t = instruction_base_t;
 
-	static_assert(variant_count == 69);
+	static_assert(variant_count == 75);
 	enum : base_t::index_t
 	{
-		const_i1             = base_t::index_of<instructions::const_i1>,
-		const_i8             = base_t::index_of<instructions::const_i8>,
-		const_i16            = base_t::index_of<instructions::const_i16>,
-		const_i32            = base_t::index_of<instructions::const_i32>,
-		const_i64            = base_t::index_of<instructions::const_i64>,
-		const_u8             = base_t::index_of<instructions::const_u8>,
-		const_u16            = base_t::index_of<instructions::const_u16>,
-		const_u32            = base_t::index_of<instructions::const_u32>,
-		const_u64            = base_t::index_of<instructions::const_u64>,
-		const_ptr_null       = base_t::index_of<instructions::const_ptr_null>,
-		alloca               = base_t::index_of<instructions::alloca>,
-		load_i1_be           = base_t::index_of<instructions::load_i1_be>,
-		load_i8_be           = base_t::index_of<instructions::load_i8_be>,
-		load_i16_be          = base_t::index_of<instructions::load_i16_be>,
-		load_i32_be          = base_t::index_of<instructions::load_i32_be>,
-		load_i64_be          = base_t::index_of<instructions::load_i64_be>,
-		load_f32_be          = base_t::index_of<instructions::load_f32_be>,
-		load_f64_be          = base_t::index_of<instructions::load_f64_be>,
-		load_ptr32_be        = base_t::index_of<instructions::load_ptr32_be>,
-		load_ptr64_be        = base_t::index_of<instructions::load_ptr64_be>,
-		load_i1_le           = base_t::index_of<instructions::load_i1_le>,
-		load_i8_le           = base_t::index_of<instructions::load_i8_le>,
-		load_i16_le          = base_t::index_of<instructions::load_i16_le>,
-		load_i32_le          = base_t::index_of<instructions::load_i32_le>,
-		load_i64_le          = base_t::index_of<instructions::load_i64_le>,
-		load_f32_le          = base_t::index_of<instructions::load_f32_le>,
-		load_f64_le          = base_t::index_of<instructions::load_f64_le>,
-		load_ptr32_le        = base_t::index_of<instructions::load_ptr32_le>,
-		load_ptr64_le        = base_t::index_of<instructions::load_ptr64_le>,
-		store_i1_be          = base_t::index_of<instructions::store_i1_be>,
-		store_i8_be          = base_t::index_of<instructions::store_i8_be>,
-		store_i16_be         = base_t::index_of<instructions::store_i16_be>,
-		store_i32_be         = base_t::index_of<instructions::store_i32_be>,
-		store_i64_be         = base_t::index_of<instructions::store_i64_be>,
-		store_f32_be         = base_t::index_of<instructions::store_f32_be>,
-		store_f64_be         = base_t::index_of<instructions::store_f64_be>,
-		store_ptr32_be       = base_t::index_of<instructions::store_ptr32_be>,
-		store_ptr64_be       = base_t::index_of<instructions::store_ptr64_be>,
-		store_i1_le          = base_t::index_of<instructions::store_i1_le>,
-		store_i8_le          = base_t::index_of<instructions::store_i8_le>,
-		store_i16_le         = base_t::index_of<instructions::store_i16_le>,
-		store_i32_le         = base_t::index_of<instructions::store_i32_le>,
-		store_i64_le         = base_t::index_of<instructions::store_i64_le>,
-		store_f32_le         = base_t::index_of<instructions::store_f32_le>,
-		store_f64_le         = base_t::index_of<instructions::store_f64_le>,
-		store_ptr32_le       = base_t::index_of<instructions::store_ptr32_le>,
-		store_ptr64_le       = base_t::index_of<instructions::store_ptr64_le>,
-		cast_zext_i1_to_i8   = base_t::index_of<instructions::cast_zext_i1_to_i8>,
-		cast_zext_i1_to_i16  = base_t::index_of<instructions::cast_zext_i1_to_i16>,
-		cast_zext_i1_to_i32  = base_t::index_of<instructions::cast_zext_i1_to_i32>,
-		cast_zext_i1_to_i64  = base_t::index_of<instructions::cast_zext_i1_to_i64>,
-		cast_zext_i8_to_i16  = base_t::index_of<instructions::cast_zext_i8_to_i16>,
-		cast_zext_i8_to_i32  = base_t::index_of<instructions::cast_zext_i8_to_i32>,
-		cast_zext_i8_to_i64  = base_t::index_of<instructions::cast_zext_i8_to_i64>,
-		cast_zext_i16_to_i32 = base_t::index_of<instructions::cast_zext_i16_to_i32>,
-		cast_zext_i16_to_i64 = base_t::index_of<instructions::cast_zext_i16_to_i64>,
-		cast_zext_i32_to_i64 = base_t::index_of<instructions::cast_zext_i32_to_i64>,
-		cast_sext_i8_to_i16  = base_t::index_of<instructions::cast_sext_i8_to_i16>,
-		cast_sext_i8_to_i32  = base_t::index_of<instructions::cast_sext_i8_to_i32>,
-		cast_sext_i8_to_i64  = base_t::index_of<instructions::cast_sext_i8_to_i64>,
-		cast_sext_i16_to_i32 = base_t::index_of<instructions::cast_sext_i16_to_i32>,
-		cast_sext_i16_to_i64 = base_t::index_of<instructions::cast_sext_i16_to_i64>,
-		cast_sext_i32_to_i64 = base_t::index_of<instructions::cast_sext_i32_to_i64>,
-		const_gep            = base_t::index_of<instructions::const_gep>,
-		const_memcpy         = base_t::index_of<instructions::const_memcpy>,
-		jump                 = base_t::index_of<instructions::jump>,
-		conditional_jump     = base_t::index_of<instructions::conditional_jump>,
-		ret                  = base_t::index_of<instructions::ret>,
-		ret_void             = base_t::index_of<instructions::ret_void>,
+		const_i1              = base_t::index_of<instructions::const_i1>,
+		const_i8              = base_t::index_of<instructions::const_i8>,
+		const_i16             = base_t::index_of<instructions::const_i16>,
+		const_i32             = base_t::index_of<instructions::const_i32>,
+		const_i64             = base_t::index_of<instructions::const_i64>,
+		const_u8              = base_t::index_of<instructions::const_u8>,
+		const_u16             = base_t::index_of<instructions::const_u16>,
+		const_u32             = base_t::index_of<instructions::const_u32>,
+		const_u64             = base_t::index_of<instructions::const_u64>,
+		const_ptr_null        = base_t::index_of<instructions::const_ptr_null>,
+		alloca                = base_t::index_of<instructions::alloca>,
+		load_i1_be            = base_t::index_of<instructions::load_i1_be>,
+		load_i8_be            = base_t::index_of<instructions::load_i8_be>,
+		load_i16_be           = base_t::index_of<instructions::load_i16_be>,
+		load_i32_be           = base_t::index_of<instructions::load_i32_be>,
+		load_i64_be           = base_t::index_of<instructions::load_i64_be>,
+		load_f32_be           = base_t::index_of<instructions::load_f32_be>,
+		load_f64_be           = base_t::index_of<instructions::load_f64_be>,
+		load_ptr32_be         = base_t::index_of<instructions::load_ptr32_be>,
+		load_ptr64_be         = base_t::index_of<instructions::load_ptr64_be>,
+		load_i1_le            = base_t::index_of<instructions::load_i1_le>,
+		load_i8_le            = base_t::index_of<instructions::load_i8_le>,
+		load_i16_le           = base_t::index_of<instructions::load_i16_le>,
+		load_i32_le           = base_t::index_of<instructions::load_i32_le>,
+		load_i64_le           = base_t::index_of<instructions::load_i64_le>,
+		load_f32_le           = base_t::index_of<instructions::load_f32_le>,
+		load_f64_le           = base_t::index_of<instructions::load_f64_le>,
+		load_ptr32_le         = base_t::index_of<instructions::load_ptr32_le>,
+		load_ptr64_le         = base_t::index_of<instructions::load_ptr64_le>,
+		store_i1_be           = base_t::index_of<instructions::store_i1_be>,
+		store_i8_be           = base_t::index_of<instructions::store_i8_be>,
+		store_i16_be          = base_t::index_of<instructions::store_i16_be>,
+		store_i32_be          = base_t::index_of<instructions::store_i32_be>,
+		store_i64_be          = base_t::index_of<instructions::store_i64_be>,
+		store_f32_be          = base_t::index_of<instructions::store_f32_be>,
+		store_f64_be          = base_t::index_of<instructions::store_f64_be>,
+		store_ptr32_be        = base_t::index_of<instructions::store_ptr32_be>,
+		store_ptr64_be        = base_t::index_of<instructions::store_ptr64_be>,
+		store_i1_le           = base_t::index_of<instructions::store_i1_le>,
+		store_i8_le           = base_t::index_of<instructions::store_i8_le>,
+		store_i16_le          = base_t::index_of<instructions::store_i16_le>,
+		store_i32_le          = base_t::index_of<instructions::store_i32_le>,
+		store_i64_le          = base_t::index_of<instructions::store_i64_le>,
+		store_f32_le          = base_t::index_of<instructions::store_f32_le>,
+		store_f64_le          = base_t::index_of<instructions::store_f64_le>,
+		store_ptr32_le        = base_t::index_of<instructions::store_ptr32_le>,
+		store_ptr64_le        = base_t::index_of<instructions::store_ptr64_le>,
+		cast_zext_i1_to_i8    = base_t::index_of<instructions::cast_zext_i1_to_i8>,
+		cast_zext_i1_to_i16   = base_t::index_of<instructions::cast_zext_i1_to_i16>,
+		cast_zext_i1_to_i32   = base_t::index_of<instructions::cast_zext_i1_to_i32>,
+		cast_zext_i1_to_i64   = base_t::index_of<instructions::cast_zext_i1_to_i64>,
+		cast_zext_i8_to_i16   = base_t::index_of<instructions::cast_zext_i8_to_i16>,
+		cast_zext_i8_to_i32   = base_t::index_of<instructions::cast_zext_i8_to_i32>,
+		cast_zext_i8_to_i64   = base_t::index_of<instructions::cast_zext_i8_to_i64>,
+		cast_zext_i16_to_i32  = base_t::index_of<instructions::cast_zext_i16_to_i32>,
+		cast_zext_i16_to_i64  = base_t::index_of<instructions::cast_zext_i16_to_i64>,
+		cast_zext_i32_to_i64  = base_t::index_of<instructions::cast_zext_i32_to_i64>,
+		cast_sext_i8_to_i16   = base_t::index_of<instructions::cast_sext_i8_to_i16>,
+		cast_sext_i8_to_i32   = base_t::index_of<instructions::cast_sext_i8_to_i32>,
+		cast_sext_i8_to_i64   = base_t::index_of<instructions::cast_sext_i8_to_i64>,
+		cast_sext_i16_to_i32  = base_t::index_of<instructions::cast_sext_i16_to_i32>,
+		cast_sext_i16_to_i64  = base_t::index_of<instructions::cast_sext_i16_to_i64>,
+		cast_sext_i32_to_i64  = base_t::index_of<instructions::cast_sext_i32_to_i64>,
+		cast_trunc_i64_to_i8  = base_t::index_of<instructions::cast_trunc_i64_to_i8>,
+		cast_trunc_i64_to_i16 = base_t::index_of<instructions::cast_trunc_i64_to_i16>,
+		cast_trunc_i64_to_i32 = base_t::index_of<instructions::cast_trunc_i64_to_i32>,
+		cast_trunc_i32_to_i8  = base_t::index_of<instructions::cast_trunc_i32_to_i8>,
+		cast_trunc_i32_to_i16 = base_t::index_of<instructions::cast_trunc_i32_to_i16>,
+		cast_trunc_i16_to_i8  = base_t::index_of<instructions::cast_trunc_i16_to_i8>,
+		const_gep             = base_t::index_of<instructions::const_gep>,
+		const_memcpy          = base_t::index_of<instructions::const_memcpy>,
+		jump                  = base_t::index_of<instructions::jump>,
+		conditional_jump      = base_t::index_of<instructions::conditional_jump>,
+		ret                   = base_t::index_of<instructions::ret>,
+		ret_void              = base_t::index_of<instructions::ret_void>,
 	};
 
 	bool is_terminator(void) const
