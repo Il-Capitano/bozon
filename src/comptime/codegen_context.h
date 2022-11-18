@@ -64,7 +64,7 @@ struct codegen_context
 {
 	function *current_function = nullptr;
 	basic_block_ref current_bb = {};
-	bz::optional<instruction_ref> function_return_address;
+	bz::optional<expr_value> function_return_address;
 	bz::vector<unresolved_instruction> unresolved_instructions;
 
 	struct destruct_operation_info_t
@@ -87,6 +87,8 @@ struct codegen_context
 	};
 
 	loop_info_t loop_info = {};
+	bz::array<expr_value, 4> current_value_references = {};
+	size_t current_value_reference_stack_size = 0;
 
 	global_codegen_context *global_codegen_ctx;
 
@@ -115,6 +117,10 @@ struct codegen_context
 
 	[[nodiscard]] loop_info_t push_loop(basic_block_ref break_bb, basic_block_ref continue_bb);
 	void pop_loop(loop_info_t prev_info);
+
+	[[nodiscard]] expr_value push_value_reference(expr_value new_value);
+	void pop_value_reference(expr_value prev_value);
+	expr_value get_value_reference(size_t index);
 
 	instruction_ref add_move_destruct_indicator(ast::decl_variable const *decl);
 	bz::optional<instruction_ref> get_move_destruct_indicator(ast::decl_variable const *decl) const;
@@ -179,7 +185,7 @@ struct codegen_context
 		return result;
 	}
 
-	instruction_ref create_alloca(type const *type);
+	expr_value create_alloca(type const *type);
 	instruction_ref create_jump(basic_block_ref bb);
 	instruction_ref create_conditional_jump(instruction_ref condition, basic_block_ref true_bb, basic_block_ref false_bb);
 	instruction_ref create_ret(instruction_ref value);

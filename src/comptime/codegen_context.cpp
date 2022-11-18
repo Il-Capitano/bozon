@@ -85,6 +85,31 @@ void codegen_context::pop_loop(loop_info_t prev_info)
 	this->loop_info = prev_info;
 }
 
+[[nodiscard]] expr_value codegen_context::push_value_reference(expr_value new_value)
+{
+	auto const index = this->current_value_reference_stack_size % this->current_value_references.size();
+	this->current_value_reference_stack_size += 1;
+	auto const result = this->current_value_references[index];
+	this->current_value_references[index] = new_value;
+	return result;
+}
+
+void codegen_context::pop_value_reference(expr_value prev_value)
+{
+	bz_assert(this->current_value_reference_stack_size > 0);
+	this->current_value_reference_stack_size -= 1;
+	auto const index = this->current_value_reference_stack_size % this->current_value_references.size();
+	this->current_value_references[index] = prev_value;
+}
+
+expr_value codegen_context::get_value_reference(size_t index)
+{
+	bz_assert(index < this->current_value_reference_stack_size);
+	bz_assert(index < this->current_value_references.size());
+	auto const stack_index = (this->current_value_reference_stack_size - index - 1) % this->current_value_references.size();
+	return this->current_value_references[stack_index];
+}
+
 // instruction_ref codegen_context::add_move_destruct_indicator(ast::decl_variable const *decl)
 // {
 // // make sure the returned value is not { 0, 0 } !!
@@ -204,9 +229,15 @@ void codegen_context::emit_all_destruct_operations(void)
 }
 
 
-instruction_ref codegen_context::create_alloca(type const *type)
+expr_value codegen_context::create_alloca(type const *type)
 {
-	return this->add_instruction(instructions::alloca{ .size = type->size, .align = type->align });
+	bz_assert(this->current_function->blocks.not_empty());
+	this->current_function->blocks[0].instructions.emplace_back(instructions::alloca{ .size = type->size, .align = type->align });
+	auto const alloca_ref = instruction_ref{
+		.bb_index = 0,
+		.inst_index = static_cast<uint32_t>(this->current_function->blocks[0].instructions.size() - 1),
+	};
+	return expr_value::get_reference(alloca_ref, type);
 }
 
 instruction_ref codegen_context::create_jump(basic_block_ref bb)
