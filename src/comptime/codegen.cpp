@@ -120,19 +120,19 @@ static void generate_stmt_code(ast::statement const &stmt, codegen_context &cont
 static expr_value generate_expr_code(
 	ast::expression const &expr,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 
 static expr_value generate_expr_code(
 	ast::expr_identifier const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 
 static expr_value generate_expr_code(
 	ast::expr_integer_literal const &,
 	codegen_context &,
-	bz::optional<instruction_ref>
+	bz::optional<expr_value>
 )
 {
 	// this is always a constant expression
@@ -142,7 +142,7 @@ static expr_value generate_expr_code(
 static expr_value generate_expr_code(
 	ast::expr_null_literal const &,
 	codegen_context &,
-	bz::optional<instruction_ref>
+	bz::optional<expr_value>
 )
 {
 	// this is always a constant expression
@@ -152,7 +152,7 @@ static expr_value generate_expr_code(
 static expr_value generate_expr_code(
 	ast::expr_enum_literal const &,
 	codegen_context &,
-	bz::optional<instruction_ref>
+	bz::optional<expr_value>
 )
 {
 	// this is always a constant expression
@@ -162,7 +162,7 @@ static expr_value generate_expr_code(
 static expr_value generate_expr_code(
 	ast::expr_typed_literal const &,
 	codegen_context &,
-	bz::optional<instruction_ref>
+	bz::optional<expr_value>
 )
 {
 	// this is always a constant expression
@@ -172,7 +172,7 @@ static expr_value generate_expr_code(
 static expr_value generate_expr_code(
 	ast::expr_placeholder_literal const &,
 	codegen_context &,
-	bz::optional<instruction_ref>
+	bz::optional<expr_value>
 )
 {
 	// this is always a constant expression
@@ -182,24 +182,26 @@ static expr_value generate_expr_code(
 static expr_value generate_expr_code(
 	ast::expr_tuple const &tuple_expr,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 )
 {
-	auto const types = tuple_expr.elems
-		.transform([](auto const &expr) { return expr.get_expr_type(); })
-		.transform([&context](auto const ts) { return get_type(ts, context); })
-		.collect();
-	auto const result_type = context.get_aggregate_type(types);
 	if (!result_address.has_value())
 	{
+		auto const types = tuple_expr.elems
+			.transform([](auto const &expr) { return expr.get_expr_type(); })
+			.transform([&context](auto const ts) { return get_type(ts, context); })
+			.collect();
+		auto const result_type = context.get_aggregate_type(types);
 		result_address = context.create_alloca(result_type);
 	}
 
-	auto const result_expr_value = expr_value::get_reference(result_address.get(), result_type);
+	auto const &result_expr_value = result_address.get();
+	bz_assert(result_expr_value.get_type()->is_aggregate());
+	bz_assert(result_expr_value.get_type()->get_aggregate_types().size() == tuple_expr.elems.size());
 	for (auto const i : bz::iota(0, tuple_expr.elems.size()))
 	{
 		auto const elem_result_address = context.create_struct_gep(result_expr_value, i);
-		generate_expr_code(tuple_expr.elems[i], context, elem_result_address.get_reference());
+		generate_expr_code(tuple_expr.elems[i], context, elem_result_address);
 	}
 
 	return result_expr_value;
@@ -208,18 +210,18 @@ static expr_value generate_expr_code(
 static expr_value generate_expr_code(
 	ast::expr_unary_op const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_binary_op const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 
 static expr_value generate_expr_code(
 	ast::expr_tuple_subscript const &tuple_subscript,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 )
 {
 	bz_assert(tuple_subscript.index.is<ast::constant_expression>());
@@ -245,265 +247,349 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	ast::expr_rvalue_tuple_subscript const &,
+	ast::expr_rvalue_tuple_subscript const &rvalue_tuple_subscript,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
-);
+	bz::optional<expr_value> result_address
+)
+{
+	bz_assert(rvalue_tuple_subscript.index.is<ast::constant_expression>());
+	auto const &index_value = rvalue_tuple_subscript.index.get<ast::constant_expression>().value;
+	bz_assert(index_value.is_uint() || index_value.is_sint());
+	auto const index_int_value = index_value.is_uint()
+		? index_value.get_uint()
+		: static_cast<uint64_t>(index_value.get_sint());
+
+	auto const base_val = generate_expr_code(rvalue_tuple_subscript.base, context, {});
+	bz_assert(base_val.is_reference());
+	bz_assert(base_val.get_type()->is_aggregate());
+
+	expr_value result = expr_value::get_none();
+	for (auto const i : bz::iota(0, rvalue_tuple_subscript.elem_refs.size()))
+	{
+		if (rvalue_tuple_subscript.elem_refs[i].is_null())
+		{
+			continue;
+		}
+
+		auto const elem_ptr = context.create_struct_gep(base_val, i);
+		auto const prev_value = context.push_value_reference(elem_ptr);
+		if (i == index_int_value)
+		{
+			result = generate_expr_code(rvalue_tuple_subscript.elem_refs[i], context, result_address);
+		}
+		else
+		{
+			generate_expr_code(rvalue_tuple_subscript.elem_refs[i], context, {});
+		}
+		context.pop_value_reference(prev_value);
+	}
+	return result;
+}
+
 static expr_value generate_expr_code(
 	ast::expr_subscript const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_rvalue_array_subscript const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_function_call const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_cast const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_optional_cast const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_take_reference const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_take_move_reference const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
+
 static expr_value generate_expr_code(
-	ast::expr_aggregate_init const &,
+	ast::expr_aggregate_init const &aggregate_init,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
-);
+	bz::optional<expr_value> result_address
+)
+{
+	if (!result_address.has_value())
+	{
+		auto const type = get_type(aggregate_init.type, context);
+		result_address = context.create_alloca(type);
+	}
+
+	auto const &result_value = result_address.get();
+	bz_assert(result_value.get_type()->is_aggregate() || result_value.get_type()->is_array());
+	for (auto const i : bz::iota(0, aggregate_init.exprs.size()))
+	{
+		auto const member_ptr = context.create_struct_gep(result_value, i);
+		generate_expr_code(aggregate_init.exprs[i], context, member_ptr);
+	}
+	return result_value;
+}
+
 static expr_value generate_expr_code(
-	ast::expr_aggregate_default_construct const &,
+	ast::expr_aggregate_default_construct const &aggregate_default_construct,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
-);
+	bz::optional<expr_value> result_address
+)
+{
+	if (!result_address.has_value())
+	{
+		auto const type = get_type(aggregate_default_construct.type, context);
+		result_address = context.create_alloca(type);
+	}
+
+	auto const &result_value = result_address.get();
+	bz_assert(result_value.get_type()->is_aggregate() || result_value.get_type()->is_array());
+	for (auto const i : bz::iota(0, aggregate_default_construct.default_construct_exprs.size()))
+	{
+		auto const member_ptr = context.create_struct_gep(result_value, i);
+		generate_expr_code(aggregate_default_construct.default_construct_exprs[i], context, member_ptr);
+	}
+	return result_value;
+}
+
 static expr_value generate_expr_code(
 	ast::expr_array_default_construct const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_optional_default_construct const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
+
 static expr_value generate_expr_code(
-	ast::expr_builtin_default_construct const &,
+	ast::expr_builtin_default_construct const &builtin_default_construct,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
-);
+	bz::optional<expr_value> result_address
+)
+{
+	bz_assert(builtin_default_construct.type.is<ast::ts_array_slice>());
+	if (!result_address.has_value())
+	{
+		auto const slice_type = context.get_slice_t();
+		result_address = context.create_alloca(slice_type);
+	}
+
+	auto const result_value = result_address.get();
+
+	return result_value;
+}
+
 static expr_value generate_expr_code(
 	ast::expr_aggregate_copy_construct const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_array_copy_construct const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_optional_copy_construct const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_builtin_copy_construct const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_aggregate_move_construct const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_array_move_construct const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_optional_move_construct const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_trivial_relocate const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_aggregate_destruct const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_array_destruct const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_optional_destruct const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_base_type_destruct const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_destruct_value const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_aggregate_assign const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_aggregate_swap const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_array_swap const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_optional_swap const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_base_type_swap const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_trivial_swap const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_array_assign const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_optional_assign const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_optional_null_assign const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_optional_value_assign const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_base_type_assign const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_trivial_assign const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_member_access const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_optional_extract_value const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_rvalue_member_access const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_type_member_access const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_compound const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_if const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_if_consteval const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_switch const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_break const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_continue const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_unreachable const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_generic_type_instantiation const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
 	ast::expr_bitcode_value_reference const &,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 );
 
 static expr_value generate_expr_code(
 	ast::constant_expression const &const_expr,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 )
 {
 	bz_unreachable;
@@ -512,7 +598,7 @@ static expr_value generate_expr_code(
 static expr_value generate_expr_code(
 	ast::dynamic_expression const &dyn_expr,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 )
 {
 	if (
@@ -731,7 +817,7 @@ static expr_value generate_expr_code(
 static expr_value generate_expr_code(
 	ast::expression const &expr,
 	codegen_context &context,
-	bz::optional<instruction_ref> result_address
+	bz::optional<expr_value> result_address
 )
 {
 	switch (expr.kind())
