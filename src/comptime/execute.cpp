@@ -85,34 +85,46 @@ static Int load_big_endian(uint8_t *mem)
 	}
 }
 
-static bool execute(instructions::load1_be const &, ptr_t ptr, executor_context &context)
+static bool execute(instructions::load_i1_be const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 1);
 	return load_big_endian<uint8_t>(mem) != 0;
 }
 
-static uint8_t execute(instructions::load8_be const &, ptr_t ptr, executor_context &context)
+static uint8_t execute(instructions::load_i8_be const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 1);
 	return load_big_endian<uint8_t>(mem);
 }
 
-static uint16_t execute(instructions::load16_be const &, ptr_t ptr, executor_context &context)
+static uint16_t execute(instructions::load_i16_be const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 2);
 	return load_big_endian<uint16_t>(mem);
 }
 
-static uint32_t execute(instructions::load32_be const &, ptr_t ptr, executor_context &context)
+static uint32_t execute(instructions::load_i32_be const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 4);
 	return load_big_endian<uint32_t>(mem);
 }
 
-static uint64_t execute(instructions::load64_be const &, ptr_t ptr, executor_context &context)
+static uint64_t execute(instructions::load_i64_be const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 8);
 	return load_big_endian<uint64_t>(mem);
+}
+
+static float32_t execute(instructions::load_f32_be const &, ptr_t ptr, executor_context &context)
+{
+	auto const mem = context.get_memory(ptr, 4);
+	return bit_cast<float32_t>(load_big_endian<uint32_t>(mem));
+}
+
+static float64_t execute(instructions::load_f64_be const &, ptr_t ptr, executor_context &context)
+{
+	auto const mem = context.get_memory(ptr, 8);
+	return bit_cast<float64_t>(load_big_endian<uint64_t>(mem));
 }
 
 static ptr_t execute(instructions::load_ptr32_be const &, ptr_t ptr, executor_context &context)
@@ -151,34 +163,46 @@ static Int load_little_endian(uint8_t *mem)
 	}
 }
 
-static bool execute(instructions::load1_le const &, ptr_t ptr, executor_context &context)
+static bool execute(instructions::load_i1_le const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 1);
 	return load_little_endian<uint8_t>(mem) != 0;
 }
 
-static uint8_t execute(instructions::load8_le const &, ptr_t ptr, executor_context &context)
+static uint8_t execute(instructions::load_i8_le const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 1);
 	return load_little_endian<uint8_t>(mem);
 }
 
-static uint16_t execute(instructions::load16_le const &, ptr_t ptr, executor_context &context)
+static uint16_t execute(instructions::load_i16_le const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 2);
 	return load_little_endian<uint16_t>(mem);
 }
 
-static uint32_t execute(instructions::load32_le const &, ptr_t ptr, executor_context &context)
+static uint32_t execute(instructions::load_i32_le const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 4);
 	return load_little_endian<uint32_t>(mem);
 }
 
-static uint64_t execute(instructions::load64_le const &, ptr_t ptr, executor_context &context)
+static uint64_t execute(instructions::load_i64_le const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 8);
 	return load_little_endian<uint64_t>(mem);
+}
+
+static float32_t execute(instructions::load_f32_le const &, ptr_t ptr, executor_context &context)
+{
+	auto const mem = context.get_memory(ptr, 4);
+	return bit_cast<float32_t>(load_little_endian<uint32_t>(mem));
+}
+
+static float64_t execute(instructions::load_f64_le const &, ptr_t ptr, executor_context &context)
+{
+	auto const mem = context.get_memory(ptr, 8);
+	return bit_cast<float64_t>(load_little_endian<uint64_t>(mem));
 }
 
 static ptr_t execute(instructions::load_ptr32_le const &, ptr_t ptr, executor_context &context)
@@ -567,7 +591,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 48);
+		static_assert(instruction::variant_count == 52);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -601,20 +625,26 @@ void execute(executor_context &context)
 		case instruction::alloca:
 			execute<instructions::alloca>(context);
 			break;
-		case instruction::load1_be:
-			execute<instructions::load1_be>(context);
+		case instruction::load_i1_be:
+			execute<instructions::load_i1_be>(context);
 			break;
-		case instruction::load8_be:
-			execute<instructions::load8_be>(context);
+		case instruction::load_i8_be:
+			execute<instructions::load_i8_be>(context);
 			break;
-		case instruction::load16_be:
-			execute<instructions::load16_be>(context);
+		case instruction::load_i16_be:
+			execute<instructions::load_i16_be>(context);
 			break;
-		case instruction::load32_be:
-			execute<instructions::load32_be>(context);
+		case instruction::load_i32_be:
+			execute<instructions::load_i32_be>(context);
 			break;
-		case instruction::load64_be:
-			execute<instructions::load64_be>(context);
+		case instruction::load_i64_be:
+			execute<instructions::load_i64_be>(context);
+			break;
+		case instruction::load_f32_be:
+			execute<instructions::load_f32_be>(context);
+			break;
+		case instruction::load_f64_be:
+			execute<instructions::load_f64_be>(context);
 			break;
 		case instruction::load_ptr32_be:
 			execute<instructions::load_ptr32_be>(context);
@@ -622,20 +652,26 @@ void execute(executor_context &context)
 		case instruction::load_ptr64_be:
 			execute<instructions::load_ptr64_be>(context);
 			break;
-		case instruction::load1_le:
-			execute<instructions::load1_le>(context);
+		case instruction::load_i1_le:
+			execute<instructions::load_i1_le>(context);
 			break;
-		case instruction::load8_le:
-			execute<instructions::load8_le>(context);
+		case instruction::load_i8_le:
+			execute<instructions::load_i8_le>(context);
 			break;
-		case instruction::load16_le:
-			execute<instructions::load16_le>(context);
+		case instruction::load_i16_le:
+			execute<instructions::load_i16_le>(context);
 			break;
-		case instruction::load32_le:
-			execute<instructions::load32_le>(context);
+		case instruction::load_i32_le:
+			execute<instructions::load_i32_le>(context);
 			break;
-		case instruction::load64_le:
-			execute<instructions::load64_le>(context);
+		case instruction::load_i64_le:
+			execute<instructions::load_i64_le>(context);
+			break;
+		case instruction::load_f32_le:
+			execute<instructions::load_f32_le>(context);
+			break;
+		case instruction::load_f64_le:
+			execute<instructions::load_f64_le>(context);
 			break;
 		case instruction::load_ptr32_le:
 			execute<instructions::load_ptr32_le>(context);
