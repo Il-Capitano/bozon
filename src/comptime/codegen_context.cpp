@@ -4,6 +4,45 @@
 namespace comptime
 {
 
+bool expr_value::is_value(void) const
+{
+	return this->kind == expr_value_kind::value;
+}
+
+bool expr_value::is_reference(void) const
+{
+	return this->kind == expr_value_kind::reference;
+}
+
+bool expr_value::is_none(void) const
+{
+	return this->kind == expr_value_kind::none;
+}
+
+instruction_ref expr_value::get_value(codegen_context &context) const
+{
+	if (this->is_value())
+	{
+		return this->value;
+	}
+	else
+	{
+		return context.create_load(*this).value;
+	}
+}
+
+instruction_ref expr_value::get_reference(void) const
+{
+	bz_assert(this->is_reference());
+	return this->value;
+}
+
+type const *expr_value::get_type(void) const
+{
+	bz_assert(this->value_type != nullptr);
+	return this->value_type;
+}
+
 type const *codegen_context::get_builtin_type(builtin_type_kind kind)
 {
 	return this->global_codegen_ctx->get_builtin_type(kind);
