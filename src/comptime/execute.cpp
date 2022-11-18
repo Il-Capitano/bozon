@@ -365,6 +365,86 @@ static void execute(instructions::store_ptr64_le const &, ptr_t value, ptr_t ptr
 	store_little_endian<uint64_t>(mem, static_cast<uint64_t>(value));
 }
 
+static uint8_t execute(instructions::cast_zext_i1_to_i8 const &, bool value, executor_context &)
+{
+	return value ? 1 : 0;
+}
+
+static uint16_t execute(instructions::cast_zext_i1_to_i16 const &, bool value, executor_context &)
+{
+	return value ? 1 : 0;
+}
+
+static uint32_t execute(instructions::cast_zext_i1_to_i32 const &, bool value, executor_context &)
+{
+	return value ? 1 : 0;
+}
+
+static uint64_t execute(instructions::cast_zext_i1_to_i64 const &, bool value, executor_context &)
+{
+	return value ? 1 : 0;
+}
+
+static uint16_t execute(instructions::cast_zext_i8_to_i16 const &, uint8_t value, executor_context &)
+{
+	return static_cast<uint16_t>(value);
+}
+
+static uint32_t execute(instructions::cast_zext_i8_to_i32 const &, uint8_t value, executor_context &)
+{
+	return static_cast<uint32_t>(value);
+}
+
+static uint64_t execute(instructions::cast_zext_i8_to_i64 const &, uint8_t value, executor_context &)
+{
+	return static_cast<uint64_t>(value);
+}
+
+static uint32_t execute(instructions::cast_zext_i16_to_i32 const &, uint16_t value, executor_context &)
+{
+	return static_cast<uint32_t>(value);
+}
+
+static uint64_t execute(instructions::cast_zext_i16_to_i64 const &, uint16_t value, executor_context &)
+{
+	return static_cast<uint64_t>(value);
+}
+
+static uint64_t execute(instructions::cast_zext_i32_to_i64 const &, uint32_t value, executor_context &)
+{
+	return static_cast<uint64_t>(value);
+}
+
+static uint16_t execute(instructions::cast_sext_i8_to_i16 const &, uint8_t value, executor_context &)
+{
+	return static_cast<uint16_t>(static_cast<int16_t>(static_cast<int8_t>(value)));
+}
+
+static uint32_t execute(instructions::cast_sext_i8_to_i32 const &, uint8_t value, executor_context &)
+{
+	return static_cast<uint32_t>(static_cast<int32_t>(static_cast<int8_t>(value)));
+}
+
+static uint64_t execute(instructions::cast_sext_i8_to_i64 const &, uint8_t value, executor_context &)
+{
+	return static_cast<uint64_t>(static_cast<int64_t>(static_cast<int8_t>(value)));
+}
+
+static uint32_t execute(instructions::cast_sext_i16_to_i32 const &, uint16_t value, executor_context &)
+{
+	return static_cast<uint32_t>(static_cast<int32_t>(static_cast<int16_t>(value)));
+}
+
+static uint64_t execute(instructions::cast_sext_i16_to_i64 const &, uint16_t value, executor_context &)
+{
+	return static_cast<uint64_t>(static_cast<int64_t>(static_cast<int16_t>(value)));
+}
+
+static uint64_t execute(instructions::cast_sext_i32_to_i64 const &, uint32_t value, executor_context &)
+{
+	return static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(value)));
+}
+
 static ptr_t execute(instructions::const_gep const &inst, ptr_t ptr, executor_context &)
 {
 	return ptr + inst.offset;
@@ -598,7 +678,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 53);
+		static_assert(instruction::variant_count == 69);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -739,6 +819,54 @@ void execute(executor_context &context)
 			break;
 		case instruction::store_ptr64_le:
 			execute<instructions::store_ptr64_le>(context);
+			break;
+		case instruction::cast_zext_i1_to_i8:
+			execute<instructions::cast_zext_i1_to_i8>(context);
+			break;
+		case instruction::cast_zext_i1_to_i16:
+			execute<instructions::cast_zext_i1_to_i16>(context);
+			break;
+		case instruction::cast_zext_i1_to_i32:
+			execute<instructions::cast_zext_i1_to_i32>(context);
+			break;
+		case instruction::cast_zext_i1_to_i64:
+			execute<instructions::cast_zext_i1_to_i64>(context);
+			break;
+		case instruction::cast_zext_i8_to_i16:
+			execute<instructions::cast_zext_i8_to_i16>(context);
+			break;
+		case instruction::cast_zext_i8_to_i32:
+			execute<instructions::cast_zext_i8_to_i32>(context);
+			break;
+		case instruction::cast_zext_i8_to_i64:
+			execute<instructions::cast_zext_i8_to_i64>(context);
+			break;
+		case instruction::cast_zext_i16_to_i32:
+			execute<instructions::cast_zext_i16_to_i32>(context);
+			break;
+		case instruction::cast_zext_i16_to_i64:
+			execute<instructions::cast_zext_i16_to_i64>(context);
+			break;
+		case instruction::cast_zext_i32_to_i64:
+			execute<instructions::cast_zext_i32_to_i64>(context);
+			break;
+		case instruction::cast_sext_i8_to_i16:
+			execute<instructions::cast_sext_i8_to_i16>(context);
+			break;
+		case instruction::cast_sext_i8_to_i32:
+			execute<instructions::cast_sext_i8_to_i32>(context);
+			break;
+		case instruction::cast_sext_i8_to_i64:
+			execute<instructions::cast_sext_i8_to_i64>(context);
+			break;
+		case instruction::cast_sext_i16_to_i32:
+			execute<instructions::cast_sext_i16_to_i32>(context);
+			break;
+		case instruction::cast_sext_i16_to_i64:
+			execute<instructions::cast_sext_i16_to_i64>(context);
+			break;
+		case instruction::cast_sext_i32_to_i64:
+			execute<instructions::cast_sext_i32_to_i64>(context);
 			break;
 		case instruction::const_gep:
 			execute<instructions::const_gep>(context);
