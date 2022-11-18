@@ -50,6 +50,11 @@ static uint64_t execute(instructions::const_u64 const &inst, executor_context &)
 	return inst.value;
 }
 
+static ptr_t execute(instructions::const_ptr_null const &, executor_context &)
+{
+	return 0;
+}
+
 static ptr_t execute(instructions::alloca const &inst, executor_context &context)
 {
 	return context.do_alloca(inst.size, inst.align);
@@ -208,34 +213,46 @@ static void store_big_endian(uint8_t *mem, Int value)
 	}
 }
 
-static void execute(instructions::store1_be const &, bool value, ptr_t ptr, executor_context &context)
+static void execute(instructions::store_i1_be const &, bool value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 1);
 	store_big_endian<uint8_t>(mem, value ? 1 : 0);
 }
 
-static void execute(instructions::store8_be const &, uint8_t value, ptr_t ptr, executor_context &context)
+static void execute(instructions::store_i8_be const &, uint8_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 1);
 	store_big_endian<uint8_t>(mem, value);
 }
 
-static void execute(instructions::store16_be const &, uint16_t value, ptr_t ptr, executor_context &context)
+static void execute(instructions::store_i16_be const &, uint16_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 2);
 	store_big_endian<uint16_t>(mem, value);
 }
 
-static void execute(instructions::store32_be const &, uint32_t value, ptr_t ptr, executor_context &context)
+static void execute(instructions::store_i32_be const &, uint32_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 4);
 	store_big_endian<uint32_t>(mem, value);
 }
 
-static void execute(instructions::store64_be const &, uint64_t value, ptr_t ptr, executor_context &context)
+static void execute(instructions::store_i64_be const &, uint64_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 8);
 	store_big_endian<uint64_t>(mem, value);
+}
+
+static void execute(instructions::store_f32_be const &, float32_t value, ptr_t ptr, executor_context &context)
+{
+	auto const mem = context.get_memory(ptr, 4);
+	store_big_endian<uint32_t>(mem, bit_cast<uint32_t>(value));
+}
+
+static void execute(instructions::store_f64_be const &, float64_t value, ptr_t ptr, executor_context &context)
+{
+	auto const mem = context.get_memory(ptr, 8);
+	store_big_endian<uint64_t>(mem, bit_cast<uint64_t>(value));
 }
 
 static void execute(instructions::store_ptr32_be const &, ptr_t value, ptr_t ptr, executor_context &context)
@@ -270,34 +287,46 @@ static void store_little_endian(uint8_t *mem, Int value)
 	}
 }
 
-static void execute(instructions::store1_le const &, bool value, ptr_t ptr, executor_context &context)
+static void execute(instructions::store_i1_le const &, bool value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 1);
 	store_little_endian<uint8_t>(mem, value ? 1 : 0);
 }
 
-static void execute(instructions::store8_le const &, uint8_t value, ptr_t ptr, executor_context &context)
+static void execute(instructions::store_i8_le const &, uint8_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 1);
 	store_little_endian<uint8_t>(mem, value);
 }
 
-static void execute(instructions::store16_le const &, uint16_t value, ptr_t ptr, executor_context &context)
+static void execute(instructions::store_i16_le const &, uint16_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 2);
 	store_little_endian<uint16_t>(mem, value);
 }
 
-static void execute(instructions::store32_le const &, uint32_t value, ptr_t ptr, executor_context &context)
+static void execute(instructions::store_i32_le const &, uint32_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 4);
 	store_little_endian<uint32_t>(mem, value);
 }
 
-static void execute(instructions::store64_le const &, uint64_t value, ptr_t ptr, executor_context &context)
+static void execute(instructions::store_i64_le const &, uint64_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 8);
 	store_little_endian<uint64_t>(mem, value);
+}
+
+static void execute(instructions::store_f32_le const &, float32_t value, ptr_t ptr, executor_context &context)
+{
+	auto const mem = context.get_memory(ptr, 4);
+	store_little_endian<uint32_t>(mem, bit_cast<uint32_t>(value));
+}
+
+static void execute(instructions::store_f64_le const &, float64_t value, ptr_t ptr, executor_context &context)
+{
+	auto const mem = context.get_memory(ptr, 8);
+	store_little_endian<uint64_t>(mem, bit_cast<uint64_t>(value));
 }
 
 static void execute(instructions::store_ptr32_le const &, ptr_t value, ptr_t ptr, executor_context &context)
@@ -538,7 +567,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 43);
+		static_assert(instruction::variant_count == 48);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -565,6 +594,9 @@ void execute(executor_context &context)
 			break;
 		case instruction::const_u64:
 			execute<instructions::const_u64>(context);
+			break;
+		case instruction::const_ptr_null:
+			execute<instructions::const_ptr_null>(context);
 			break;
 		case instruction::alloca:
 			execute<instructions::alloca>(context);
@@ -611,20 +643,26 @@ void execute(executor_context &context)
 		case instruction::load_ptr64_le:
 			execute<instructions::load_ptr64_le>(context);
 			break;
-		case instruction::store1_be:
-			execute<instructions::store1_be>(context);
+		case instruction::store_i1_be:
+			execute<instructions::store_i1_be>(context);
 			break;
-		case instruction::store8_be:
-			execute<instructions::store8_be>(context);
+		case instruction::store_i8_be:
+			execute<instructions::store_i8_be>(context);
 			break;
-		case instruction::store16_be:
-			execute<instructions::store16_be>(context);
+		case instruction::store_i16_be:
+			execute<instructions::store_i16_be>(context);
 			break;
-		case instruction::store32_be:
-			execute<instructions::store32_be>(context);
+		case instruction::store_i32_be:
+			execute<instructions::store_i32_be>(context);
 			break;
-		case instruction::store64_be:
-			execute<instructions::store64_be>(context);
+		case instruction::store_i64_be:
+			execute<instructions::store_i64_be>(context);
+			break;
+		case instruction::store_f32_be:
+			execute<instructions::store_f32_be>(context);
+			break;
+		case instruction::store_f64_be:
+			execute<instructions::store_f64_be>(context);
 			break;
 		case instruction::store_ptr32_be:
 			execute<instructions::store_ptr32_be>(context);
@@ -632,20 +670,26 @@ void execute(executor_context &context)
 		case instruction::store_ptr64_be:
 			execute<instructions::store_ptr64_be>(context);
 			break;
-		case instruction::store1_le:
-			execute<instructions::store1_le>(context);
+		case instruction::store_i1_le:
+			execute<instructions::store_i1_le>(context);
 			break;
-		case instruction::store8_le:
-			execute<instructions::store8_le>(context);
+		case instruction::store_i8_le:
+			execute<instructions::store_i8_le>(context);
 			break;
-		case instruction::store16_le:
-			execute<instructions::store16_le>(context);
+		case instruction::store_i16_le:
+			execute<instructions::store_i16_le>(context);
 			break;
-		case instruction::store32_le:
-			execute<instructions::store32_le>(context);
+		case instruction::store_i32_le:
+			execute<instructions::store_i32_le>(context);
 			break;
-		case instruction::store64_le:
-			execute<instructions::store64_le>(context);
+		case instruction::store_i64_le:
+			execute<instructions::store_i64_le>(context);
+			break;
+		case instruction::store_f32_le:
+			execute<instructions::store_f32_le>(context);
+			break;
+		case instruction::store_f64_le:
+			execute<instructions::store_f64_le>(context);
 			break;
 		case instruction::store_ptr32_le:
 			execute<instructions::store_ptr32_le>(context);

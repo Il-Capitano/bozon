@@ -136,6 +136,12 @@ struct const_u64
 	uint64_t value;
 };
 
+struct const_ptr_null
+{
+	static inline constexpr int arg_types = 0;
+	static inline constexpr value_type result_type = value_type::ptr;
+};
+
 
 struct alloca
 {
@@ -260,7 +266,7 @@ struct load_ptr64_le
 };
 
 
-struct store1_be
+struct store_i1_be
 {
 	static inline constexpr bz::array arg_types = { value_type::i1, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
@@ -268,7 +274,7 @@ struct store1_be
 	bz::array<arg_t, arg_types.size()> args;
 };
 
-struct store8_be
+struct store_i8_be
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
@@ -276,7 +282,7 @@ struct store8_be
 	bz::array<arg_t, arg_types.size()> args;
 };
 
-struct store16_be
+struct store_i16_be
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
@@ -284,7 +290,7 @@ struct store16_be
 	bz::array<arg_t, arg_types.size()> args;
 };
 
-struct store32_be
+struct store_i32_be
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
@@ -292,9 +298,25 @@ struct store32_be
 	bz::array<arg_t, arg_types.size()> args;
 };
 
-struct store64_be
+struct store_i64_be
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<arg_t, arg_types.size()> args;
+};
+
+struct store_f32_be
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<arg_t, arg_types.size()> args;
+};
+
+struct store_f64_be
+{
+	static inline constexpr bz::array arg_types = { value_type::f64, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
 
 	bz::array<arg_t, arg_types.size()> args;
@@ -316,7 +338,7 @@ struct store_ptr64_be
 	bz::array<arg_t, arg_types.size()> args;
 };
 
-struct store1_le
+struct store_i1_le
 {
 	static inline constexpr bz::array arg_types = { value_type::i1, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
@@ -324,7 +346,7 @@ struct store1_le
 	bz::array<arg_t, arg_types.size()> args;
 };
 
-struct store8_le
+struct store_i8_le
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
@@ -332,7 +354,7 @@ struct store8_le
 	bz::array<arg_t, arg_types.size()> args;
 };
 
-struct store16_le
+struct store_i16_le
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
@@ -340,7 +362,7 @@ struct store16_le
 	bz::array<arg_t, arg_types.size()> args;
 };
 
-struct store32_le
+struct store_i32_le
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
@@ -348,9 +370,25 @@ struct store32_le
 	bz::array<arg_t, arg_types.size()> args;
 };
 
-struct store64_le
+struct store_i64_le
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<arg_t, arg_types.size()> args;
+};
+
+struct store_f32_le
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<arg_t, arg_types.size()> args;
+};
+
+struct store_f64_le
+{
+	static inline constexpr bz::array arg_types = { value_type::f64, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
 
 	bz::array<arg_t, arg_types.size()> args;
@@ -428,6 +466,7 @@ using instruction_list = bz::meta::type_pack<
 	instructions::const_u16,
 	instructions::const_u32,
 	instructions::const_u64,
+	instructions::const_ptr_null,
 	instructions::alloca,
 	instructions::load1_be,
 	instructions::load8_be,
@@ -443,18 +482,22 @@ using instruction_list = bz::meta::type_pack<
 	instructions::load64_le,
 	instructions::load_ptr32_le,
 	instructions::load_ptr64_le,
-	instructions::store1_be,
-	instructions::store8_be,
-	instructions::store16_be,
-	instructions::store32_be,
-	instructions::store64_be,
+	instructions::store_i1_be,
+	instructions::store_i8_be,
+	instructions::store_i16_be,
+	instructions::store_i32_be,
+	instructions::store_i64_be,
+	instructions::store_f32_be,
+	instructions::store_f64_be,
 	instructions::store_ptr32_be,
 	instructions::store_ptr64_be,
-	instructions::store1_le,
-	instructions::store8_le,
-	instructions::store16_le,
-	instructions::store32_le,
-	instructions::store64_le,
+	instructions::store_i1_le,
+	instructions::store_i8_le,
+	instructions::store_i16_le,
+	instructions::store_i32_le,
+	instructions::store_i64_le,
+	instructions::store_f32_le,
+	instructions::store_f64_le,
 	instructions::store_ptr32_le,
 	instructions::store_ptr64_le,
 	instructions::const_gep,
@@ -470,7 +513,7 @@ struct instruction : instruction_base_t
 {
 	using base_t = instruction_base_t;
 
-	static_assert(variant_count == 43);
+	static_assert(variant_count == 48);
 	enum : base_t::index_t
 	{
 		const_i1          = base_t::index_of<instructions::const_i1>,
@@ -482,6 +525,7 @@ struct instruction : instruction_base_t
 		const_u16         = base_t::index_of<instructions::const_u16>,
 		const_u32         = base_t::index_of<instructions::const_u32>,
 		const_u64         = base_t::index_of<instructions::const_u64>,
+		const_ptr_null    = base_t::index_of<instructions::const_ptr_null>,
 		alloca            = base_t::index_of<instructions::alloca>,
 		load1_be          = base_t::index_of<instructions::load1_be>,
 		load8_be          = base_t::index_of<instructions::load8_be>,
@@ -497,18 +541,22 @@ struct instruction : instruction_base_t
 		load64_le         = base_t::index_of<instructions::load64_le>,
 		load_ptr32_le     = base_t::index_of<instructions::load_ptr32_le>,
 		load_ptr64_le     = base_t::index_of<instructions::load_ptr64_le>,
-		store1_be         = base_t::index_of<instructions::store1_be>,
-		store8_be         = base_t::index_of<instructions::store8_be>,
-		store16_be        = base_t::index_of<instructions::store16_be>,
-		store32_be        = base_t::index_of<instructions::store32_be>,
-		store64_be        = base_t::index_of<instructions::store64_be>,
+		store_i1_be       = base_t::index_of<instructions::store_i1_be>,
+		store_i8_be       = base_t::index_of<instructions::store_i8_be>,
+		store_i16_be      = base_t::index_of<instructions::store_i16_be>,
+		store_i32_be      = base_t::index_of<instructions::store_i32_be>,
+		store_i64_be      = base_t::index_of<instructions::store_i64_be>,
+		store_f32_be      = base_t::index_of<instructions::store_f32_be>,
+		store_f64_be      = base_t::index_of<instructions::store_f64_be>,
 		store_ptr32_be    = base_t::index_of<instructions::store_ptr32_be>,
 		store_ptr64_be    = base_t::index_of<instructions::store_ptr64_be>,
-		store1_le         = base_t::index_of<instructions::store1_le>,
-		store8_le         = base_t::index_of<instructions::store8_le>,
-		store16_le        = base_t::index_of<instructions::store16_le>,
-		store32_le        = base_t::index_of<instructions::store32_le>,
-		store64_le        = base_t::index_of<instructions::store64_le>,
+		store_i1_le       = base_t::index_of<instructions::store_i1_le>,
+		store_i8_le       = base_t::index_of<instructions::store_i8_le>,
+		store_i16_le      = base_t::index_of<instructions::store_i16_le>,
+		store_i32_le      = base_t::index_of<instructions::store_i32_le>,
+		store_i64_le      = base_t::index_of<instructions::store_i64_le>,
+		store_f32_le      = base_t::index_of<instructions::store_f32_le>,
+		store_f64_le      = base_t::index_of<instructions::store_f64_le>,
 		store_ptr32_le    = base_t::index_of<instructions::store_ptr32_le>,
 		store_ptr64_le    = base_t::index_of<instructions::store_ptr64_le>,
 		const_gep         = base_t::index_of<instructions::const_gep>,

@@ -52,6 +52,11 @@ struct expr_value
 	{
 		return { .value = value, .kind = expr_value_kind::reference, .value_type = value_type };
 	}
+
+	static expr_value get_value(instruction_ref value, type const *value_type)
+	{
+		return { .value = value, .kind = expr_value_kind::value, .value_type = value_type };
+	}
 };
 
 struct unresolved_instruction
@@ -91,6 +96,11 @@ struct codegen_context
 	size_t current_value_reference_stack_size = 0;
 
 	global_codegen_context *global_codegen_ctx;
+
+	bool is_little_endian(void) const;
+	bool is_big_endian(void) const;
+	bool is_64_bit(void) const;
+	bool is_32_bit(void) const;
 
 	type const *get_builtin_type(builtin_type_kind kind);
 	type const *get_pointer_type(void);
@@ -185,6 +195,8 @@ struct codegen_context
 		return result;
 	}
 
+	expr_value create_const_ptr_null(void);
+	instruction_ref create_store(expr_value value, expr_value ptr);
 	expr_value create_alloca(type const *type);
 	instruction_ref create_jump(basic_block_ref bb);
 	instruction_ref create_conditional_jump(instruction_ref condition, basic_block_ref true_bb, basic_block_ref false_bb);
