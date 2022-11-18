@@ -196,6 +196,7 @@ struct codegen_context
 	}
 
 	expr_value create_const_ptr_null(void);
+	expr_value create_load(expr_value ptr);
 	instruction_ref create_store(expr_value value, expr_value ptr);
 	expr_value create_alloca(type const *type);
 	instruction_ref create_jump(basic_block_ref bb);
