@@ -3,6 +3,33 @@
 namespace comptime
 {
 
+bool is_integer_kind(builtin_type_kind kind)
+{
+	switch (kind)
+	{
+	case builtin_type_kind::i1:
+	case builtin_type_kind::i8:
+	case builtin_type_kind::i16:
+	case builtin_type_kind::i32:
+	case builtin_type_kind::i64:
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool is_floating_point_kind(builtin_type_kind kind)
+{
+	switch (kind)
+	{
+	case builtin_type_kind::f32:
+	case builtin_type_kind::f64:
+		return true;
+	default:
+		return false;
+	}
+}
+
 type_set_t::type_set_t(size_t pointer_size)
 	: aggregate_map(),
 	  array_map(),

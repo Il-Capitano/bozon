@@ -534,7 +534,7 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 	auto const type = value.get_type();
 	if (type->is_array())
 	{
-		bz_assert(index < type->get_array_size());
+		bz_assert(index <= type->get_array_size()); // one-past-the-end is allowed
 		auto const offset = index * type->get_array_element_type()->size;
 		auto const result_ptr = this->add_instruction(instructions::const_gep{
 			.args = {},
@@ -562,6 +562,168 @@ instruction_ref codegen_context::create_const_memcpy(expr_value dest, expr_value
 	bz_assert(source.is_reference());
 
 	return this->add_instruction(instructions::const_memcpy{ .args = {}, .size = size }, dest.get_reference(), source.get_reference());
+}
+
+expr_value codegen_context::create_int_cast(expr_value value, type const *dest, bool is_value_signed)
+{
+	auto const value_type = value.get_type();
+	bz_assert(value_type->is_builtin() && dest->is_builtin());
+	bz_assert(is_integer_kind(value_type->get_builtin_kind()));
+	bz_assert(is_integer_kind(dest->get_builtin_kind()));
+
+	if (value_type->get_builtin_kind() == dest->get_builtin_kind())
+	{
+		return value;
+	}
+
+	auto const value_ref = value.get_value(*this);
+	switch (value_type->get_builtin_kind())
+	{
+	case builtin_type_kind::i1:
+		switch (dest->get_builtin_kind())
+		{
+		// case builtin_type_kind::i1:
+		case builtin_type_kind::i8:
+			return expr_value::get_value(this->add_instruction(instructions::cast_zext_i1_to_i8{ .args = {} }, value_ref), dest);
+		case builtin_type_kind::i16:
+			return expr_value::get_value(this->add_instruction(instructions::cast_zext_i1_to_i16{ .args = {} }, value_ref), dest);
+		case builtin_type_kind::i32:
+			return expr_value::get_value(this->add_instruction(instructions::cast_zext_i1_to_i32{ .args = {} }, value_ref), dest);
+		case builtin_type_kind::i64:
+			return expr_value::get_value(this->add_instruction(instructions::cast_zext_i1_to_i64{ .args = {} }, value_ref), dest);
+		default:
+			bz_unreachable;
+		}
+	case builtin_type_kind::i8:
+		if (is_value_signed)
+		{
+			switch (dest->get_builtin_kind())
+			{
+			// case builtin_type_kind::i8:
+			case builtin_type_kind::i16:
+				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i8_to_i16{ .args = {} }, value_ref), dest);
+			case builtin_type_kind::i32:
+				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i8_to_i32{ .args = {} }, value_ref), dest);
+			case builtin_type_kind::i64:
+				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i8_to_i64{ .args = {} }, value_ref), dest);
+			default:
+				bz_unreachable;
+			}
+		}
+		else
+		{
+			switch (dest->get_builtin_kind())
+			{
+			// case builtin_type_kind::i8:
+			case builtin_type_kind::i16:
+				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i8_to_i16{ .args = {} }, value_ref), dest);
+			case builtin_type_kind::i32:
+				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i8_to_i32{ .args = {} }, value_ref), dest);
+			case builtin_type_kind::i64:
+				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i8_to_i64{ .args = {} }, value_ref), dest);
+			default:
+				bz_unreachable;
+			}
+		}
+	case builtin_type_kind::i16:
+		if (is_value_signed)
+		{
+			switch (dest->get_builtin_kind())
+			{
+			case builtin_type_kind::i8:
+				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i16_to_i8{ .args = {} }, value_ref), dest);
+			// case builtin_type_kind::i16:
+			case builtin_type_kind::i32:
+				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i16_to_i32{ .args = {} }, value_ref), dest);
+			case builtin_type_kind::i64:
+				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i16_to_i64{ .args = {} }, value_ref), dest);
+			default:
+				bz_unreachable;
+			}
+		}
+		else
+		{
+			switch (dest->get_builtin_kind())
+			{
+			case builtin_type_kind::i8:
+				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i16_to_i8{ .args = {} }, value_ref), dest);
+			// case builtin_type_kind::i16:
+			case builtin_type_kind::i32:
+				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i16_to_i32{ .args = {} }, value_ref), dest);
+			case builtin_type_kind::i64:
+				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i16_to_i64{ .args = {} }, value_ref), dest);
+			default:
+				bz_unreachable;
+			}
+		}
+	case builtin_type_kind::i32:
+		if (is_value_signed)
+		{
+			switch (dest->get_builtin_kind())
+			{
+			case builtin_type_kind::i8:
+				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i32_to_i8{ .args = {} }, value_ref), dest);
+			case builtin_type_kind::i16:
+				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i32_to_i16{ .args = {} }, value_ref), dest);
+			// case builtin_type_kind::i32:
+			case builtin_type_kind::i64:
+				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i32_to_i64{ .args = {} }, value_ref), dest);
+			default:
+				bz_unreachable;
+			}
+		}
+		else
+		{
+			switch (dest->get_builtin_kind())
+			{
+			case builtin_type_kind::i8:
+				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i32_to_i8{ .args = {} }, value_ref), dest);
+			case builtin_type_kind::i16:
+				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i32_to_i16{ .args = {} }, value_ref), dest);
+			// case builtin_type_kind::i32:
+			case builtin_type_kind::i64:
+				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i32_to_i64{ .args = {} }, value_ref), dest);
+			default:
+				bz_unreachable;
+			}
+		}
+	case builtin_type_kind::i64:
+		switch (dest->get_builtin_kind())
+		{
+		case builtin_type_kind::i8:
+			return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i64_to_i8{ .args = {} }, value_ref), dest);
+		case builtin_type_kind::i16:
+			return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i64_to_i16{ .args = {} }, value_ref), dest);
+		case builtin_type_kind::i32:
+			return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i64_to_i32{ .args = {} }, value_ref), dest);
+		// case builtin_type_kind::i64:
+		default:
+			bz_unreachable;
+		}
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_float_cast(expr_value value, type const *dest)
+{
+	auto const value_type = value.get_type();
+	bz_assert(value_type->is_builtin() && dest->is_builtin());
+	bz_assert(is_floating_point_kind(value_type->get_builtin_kind()));
+	bz_assert(is_floating_point_kind(dest->get_builtin_kind()));
+
+	if (value_type->get_builtin_kind() == dest->get_builtin_kind())
+	{
+		return value;
+	}
+	else if (value_type->get_builtin_kind() == builtin_type_kind::f32)
+	{
+		return expr_value::get_value(this->add_instruction(instructions::cast_f32_to_f64{ .args = {} }, value.get_value(*this)), dest);
+	}
+	else
+	{
+		return expr_value::get_value(this->add_instruction(instructions::cast_f64_to_f32{ .args = {} }, value.get_value(*this)), dest);
+	}
 }
 
 } // namespace comptime

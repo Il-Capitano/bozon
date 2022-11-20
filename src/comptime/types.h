@@ -16,6 +16,9 @@ enum class builtin_type_kind : uint8_t
 	void_,
 };
 
+bool is_integer_kind(builtin_type_kind kind);
+bool is_floating_point_kind(builtin_type_kind kind);
+
 struct builtin_type
 {
 	builtin_type_kind kind;

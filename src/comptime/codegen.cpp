@@ -301,11 +301,136 @@ static expr_value generate_expr_code(
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 );
+
 static expr_value generate_expr_code(
-	ast::expr_cast const &,
+	ast::expr_cast const &cast,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const expr_t = ast::remove_const_or_consteval(cast.expr.get_expr_type());
+	auto const dest_t = ast::remove_const_or_consteval(cast.type);
+
+	if (expr_t.is<ast::ts_base_type>() && dest_t.is<ast::ts_base_type>())
+	{
+		auto const dest_type = get_type(dest_t, context);
+		auto const expr = generate_expr_code(cast.expr, context, {});
+		auto const expr_kind = expr_t.get<ast::ts_base_type>().info->kind;
+		auto const dest_kind = dest_t.get<ast::ts_base_type>().info->kind;
+
+		if ((ast::is_integer_kind(expr_kind) || expr_kind == ast::type_info::bool_) && ast::is_integer_kind(dest_kind))
+		{
+			auto const result_value = context.create_int_cast(expr, dest_type, ast::is_signed_integer_kind(expr_kind));
+			if (result_address.has_value())
+			{
+				context.create_store(result_value, result_address.get());
+				return result_address.get();
+			}
+			else
+			{
+				return result_value;
+			}
+		}
+		else if (ast::is_floating_point_kind(expr_kind) && ast::is_floating_point_kind(dest_kind))
+		{
+			auto const result_value = context.create_float_cast(expr, dest_type);
+			if (result_address.has_value())
+			{
+				context.create_store(result_value, result_address.get());
+				return result_address.get();
+			}
+			else
+			{
+				return result_value;
+			}
+		}
+		else if (ast::is_floating_point_kind(expr_kind))
+		{
+			bz_assert(ast::is_integer_kind(dest_kind));
+			auto const result_value = context.create_float_to_int_cast(expr, dest_type);
+			if (result_address.has_value())
+			{
+				context.create_store(result_value, result_address.get());
+				return result_address.get();
+			}
+			else
+			{
+				return result_value;
+			}
+		}
+		else if (ast::is_integer_kind(expr_kind) && ast::is_floating_point_kind(dest_kind))
+		{
+			auto const result_value = context.create_int_to_float_cast(expr, dest_type);
+			if (result_address.has_value())
+			{
+				context.create_store(result_value, result_address.get());
+				return result_address.get();
+			}
+			else
+			{
+				return result_value;
+			}
+		}
+		else
+		{
+			bz_assert(
+				(expr_kind == ast::type_info::char_ && ast::is_integer_kind(dest_kind))
+				|| (ast::is_integer_kind(expr_kind) && dest_kind == ast::type_info::char_)
+			);
+			auto const result_value = context.create_int_cast(expr, dest_type, ast::is_signed_integer_kind(expr_kind));
+			if (result_address.has_value())
+			{
+				context.create_store(result_value, result_address.get());
+				return result_address.get();
+			}
+			else
+			{
+				return result_value;
+			}
+		}
+	}
+	else if (
+		(expr_t.is<ast::ts_pointer>() || expr_t.is_optional_pointer())
+		&& (dest_t.is<ast::ts_pointer>() || dest_t.is_optional_pointer())
+	)
+	{
+		auto const result_value = generate_expr_code(cast.expr, context, {});
+		if (result_address.has_value())
+		{
+			context.create_store(result_value, result_address.get());
+			return result_address.get();
+		}
+		else
+		{
+			return result_value;
+		}
+	}
+	else if (expr_t.is<ast::ts_array>() && dest_t.is<ast::ts_array_slice>())
+	{
+		auto const expr_val = generate_expr_code(cast.expr, context, {});
+		bz_assert(expr_val.get_type()->is_array());
+		auto const array_size = expr_val.get_type()->get_array_size();
+		auto const begin_ptr = context.create_struct_gep(expr_val, 0).get_reference();
+		auto const end_ptr   = context.create_struct_gep(expr_val, array_size).get_reference();
+
+		if (!result_address.has_value())
+		{
+			result_address = context.create_alloca(context.get_slice_t());
+		}
+
+		auto const &result_value = result_address.get();
+		auto const begin_ptr_value = expr_value::get_value(begin_ptr, context.get_pointer_type());
+		auto const end_ptr_value = expr_value::get_value(end_ptr, context.get_pointer_type());
+		context.create_store(begin_ptr_value, context.create_struct_gep(result_value, 0));
+		context.create_store(end_ptr_value, context.create_struct_gep(result_value, 1));
+		return result_value;
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
 static expr_value generate_expr_code(
 	ast::expr_optional_cast const &,
 	codegen_context &context,
