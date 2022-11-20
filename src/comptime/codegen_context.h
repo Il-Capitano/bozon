@@ -155,9 +155,11 @@ struct codegen_context
 
 	// instruction creation functions
 	template<typename Inst>
-	instruction_ref add_instruction(Inst &&inst)
+	instruction_ref add_instruction(Inst inst)
 	{
-		this->current_function->blocks[this->current_bb.bb_index].instructions.emplace_back(std::forward<Inst>(inst));
+		static_assert(instructions::arg_count<Inst> == 0);
+		this->current_function->blocks[this->current_bb.bb_index].instructions
+			.emplace_back(instructions::instruction_with_args<Inst>{ .inst = std::move(inst) });
 		auto const result = instruction_ref{
 			.bb_index   = this->current_bb.bb_index,
 			.inst_index = static_cast<uint32_t>(this->current_function->blocks[this->current_bb.bb_index].instructions.size() - 1),
@@ -166,9 +168,14 @@ struct codegen_context
 	}
 
 	template<typename Inst>
-	instruction_ref add_instruction(Inst &&inst, instruction_ref arg)
+	instruction_ref add_instruction(Inst inst, instruction_ref arg)
 	{
-		this->current_function->blocks[this->current_bb.bb_index].instructions.emplace_back(std::forward<Inst>(inst));
+		static_assert(instructions::arg_count<Inst> == 1);
+		this->current_function->blocks[this->current_bb.bb_index].instructions
+			.emplace_back(instructions::instruction_with_args<Inst>{
+				.args = {},
+				.inst = std::move(inst),
+			});
 		auto const result = instruction_ref{
 			.bb_index   = this->current_bb.bb_index,
 			.inst_index = static_cast<uint32_t>(this->current_function->blocks[this->current_bb.bb_index].instructions.size() - 1),
@@ -181,9 +188,14 @@ struct codegen_context
 	}
 
 	template<typename Inst>
-	instruction_ref add_instruction(Inst &&inst, instruction_ref arg1, instruction_ref arg2)
+	instruction_ref add_instruction(Inst inst, instruction_ref arg1, instruction_ref arg2)
 	{
-		this->current_function->blocks[this->current_bb.bb_index].instructions.emplace_back(std::forward<Inst>(inst));
+		static_assert(instructions::arg_count<Inst> == 2);
+		this->current_function->blocks[this->current_bb.bb_index].instructions
+			.emplace_back(instructions::instruction_with_args<Inst>{
+				.args = {},
+				.inst = std::move(inst),
+			});
 		auto const result = instruction_ref{
 			.bb_index   = this->current_bb.bb_index,
 			.inst_index = static_cast<uint32_t>(this->current_function->blocks[this->current_bb.bb_index].instructions.size() - 1),

@@ -679,32 +679,34 @@ static void execute(executor_context &context)
 	instruction_value result;
 	if constexpr (instructions::arg_count<Inst> == 0)
 	{
+		auto const &inst_with_args = inst->get<instructions::instruction_with_args<Inst>>();
 		if constexpr (Inst::result_type != value_type::none)
 		{
-			get_value_ref<Inst::result_type>(result) = execute(inst->get<Inst>(), context);
+			get_value_ref<Inst::result_type>(result) = execute(inst_with_args.inst, context);
 		}
 		else
 		{
-			execute(inst->get<Inst>(), context);
+			execute(inst_with_args.inst, context);
 			result.none = none_t();
 		}
 	}
 	else
 	{
 		[&]<size_t ...Is>(bz::meta::index_sequence<Is...>) {
+			auto const &inst_with_args = inst->get<instructions::instruction_with_args<Inst>>();
 			if constexpr (Inst::result_type != value_type::none)
 			{
 				get_value_ref<Inst::result_type>(result) = execute(
-					inst->get<Inst>(),
-					get_value<Inst::arg_types[Is]>(context.get_instruction_value(inst->get<Inst>().args[Is]))...,
+					inst_with_args.inst,
+					get_value<Inst::arg_types[Is]>(context.get_instruction_value(inst_with_args.args[Is]))...,
 					context
 				);
 			}
 			else
 			{
 				execute(
-					inst->get<Inst>(),
-					get_value<Inst::arg_types[Is]>(context.get_instruction_value(inst->get<Inst>().args[Is]))...,
+					inst_with_args.inst,
+					get_value<Inst::arg_types[Is]>(context.get_instruction_value(inst_with_args.args[Is]))...,
 					context
 				);
 				result.none = none_t();

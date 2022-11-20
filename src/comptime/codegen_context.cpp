@@ -287,14 +287,14 @@ expr_value codegen_context::create_load(expr_value ptr)
 			if (this->is_64_bit())
 			{
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_ptr64_le{ .args = {} }, ptr_),
+					this->add_instruction(instructions::load_ptr64_le{}, ptr_),
 					type
 				);
 			}
 			else
 			{
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_ptr32_le{ .args = {} }, ptr_),
+					this->add_instruction(instructions::load_ptr32_le{}, ptr_),
 					type
 				);
 			}
@@ -304,14 +304,14 @@ expr_value codegen_context::create_load(expr_value ptr)
 			if (this->is_64_bit())
 			{
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_ptr64_be{ .args = {} }, ptr_),
+					this->add_instruction(instructions::load_ptr64_be{}, ptr_),
 					type
 				);
 			}
 			else
 			{
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_ptr32_be{ .args = {} }, ptr_),
+					this->add_instruction(instructions::load_ptr32_be{}, ptr_),
 					type
 				);
 			}
@@ -325,37 +325,37 @@ expr_value codegen_context::create_load(expr_value ptr)
 			{
 			case builtin_type_kind::i1:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i1_le{ .args = {} }, ptr_),
+					this->add_instruction(instructions::load_i1_le{}, ptr_),
 					type
 				);
 			case builtin_type_kind::i8:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i8_le{ .args = {} }, ptr_),
+					this->add_instruction(instructions::load_i8_le{}, ptr_),
 					type
 				);
 			case builtin_type_kind::i16:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i16_le{ .args = {} }, ptr_),
+					this->add_instruction(instructions::load_i16_le{}, ptr_),
 					type
 				);
 			case builtin_type_kind::i32:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i32_le{ .args = {} }, ptr_),
+					this->add_instruction(instructions::load_i32_le{}, ptr_),
 					type
 				);
 			case builtin_type_kind::i64:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i64_le{ .args = {} }, ptr_),
+					this->add_instruction(instructions::load_i64_le{}, ptr_),
 					type
 				);
 			case builtin_type_kind::f32:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_f32_le{ .args = {} }, ptr_),
+					this->add_instruction(instructions::load_f32_le{}, ptr_),
 					type
 				);
 			case builtin_type_kind::f64:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_f64_le{ .args = {} }, ptr_),
+					this->add_instruction(instructions::load_f64_le{}, ptr_),
 					type
 				);
 			case builtin_type_kind::void_:
@@ -368,37 +368,37 @@ expr_value codegen_context::create_load(expr_value ptr)
 			{
 			case builtin_type_kind::i1:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i1_be{ .args = {} }, ptr_),
+					this->add_instruction(instructions::load_i1_be{}, ptr_),
 					type
 				);
 			case builtin_type_kind::i8:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i8_be{ .args = {} }, ptr_),
+					this->add_instruction(instructions::load_i8_be{}, ptr_),
 					type
 				);
 			case builtin_type_kind::i16:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i16_be{ .args = {} }, ptr_),
+					this->add_instruction(instructions::load_i16_be{}, ptr_),
 					type
 				);
 			case builtin_type_kind::i32:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i32_be{ .args = {} }, ptr_),
+					this->add_instruction(instructions::load_i32_be{}, ptr_),
 					type
 				);
 			case builtin_type_kind::i64:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i64_be{ .args = {} }, ptr_),
+					this->add_instruction(instructions::load_i64_be{}, ptr_),
 					type
 				);
 			case builtin_type_kind::f32:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_f32_be{ .args = {} }, ptr_),
+					this->add_instruction(instructions::load_f32_be{}, ptr_),
 					type
 				);
 			case builtin_type_kind::f64:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_f64_be{ .args = {} }, ptr_),
+					this->add_instruction(instructions::load_f64_be{}, ptr_),
 					type
 				);
 			case builtin_type_kind::void_:
@@ -421,22 +421,22 @@ instruction_ref codegen_context::create_store(expr_value value, expr_value ptr)
 		{
 			if (this->is_64_bit())
 			{
-				return this->add_instruction(instructions::store_ptr64_le{ .args = {} }, value_, ptr_);
+				return this->add_instruction(instructions::store_ptr64_le{}, value_, ptr_);
 			}
 			else
 			{
-				return this->add_instruction(instructions::store_ptr32_le{ .args = {} }, value_, ptr_);
+				return this->add_instruction(instructions::store_ptr32_le{}, value_, ptr_);
 			}
 		}
 		else
 		{
 			if (this->is_64_bit())
 			{
-				return this->add_instruction(instructions::store_ptr64_be{ .args = {} }, value_, ptr_);
+				return this->add_instruction(instructions::store_ptr64_be{}, value_, ptr_);
 			}
 			else
 			{
-				return this->add_instruction(instructions::store_ptr32_be{ .args = {} }, value_, ptr_);
+				return this->add_instruction(instructions::store_ptr32_be{}, value_, ptr_);
 			}
 		}
 	}
@@ -447,19 +447,19 @@ instruction_ref codegen_context::create_store(expr_value value, expr_value ptr)
 			switch (type->get_builtin_kind())
 			{
 			case builtin_type_kind::i1:
-				return this->add_instruction(instructions::store_i1_le{ .args = {} }, value_, ptr_);
+				return this->add_instruction(instructions::store_i1_le{}, value_, ptr_);
 			case builtin_type_kind::i8:
-				return this->add_instruction(instructions::store_i8_le{ .args = {} }, value_, ptr_);
+				return this->add_instruction(instructions::store_i8_le{}, value_, ptr_);
 			case builtin_type_kind::i16:
-				return this->add_instruction(instructions::store_i16_le{ .args = {} }, value_, ptr_);
+				return this->add_instruction(instructions::store_i16_le{}, value_, ptr_);
 			case builtin_type_kind::i32:
-				return this->add_instruction(instructions::store_i32_le{ .args = {} }, value_, ptr_);
+				return this->add_instruction(instructions::store_i32_le{}, value_, ptr_);
 			case builtin_type_kind::i64:
-				return this->add_instruction(instructions::store_i64_le{ .args = {} }, value_, ptr_);
+				return this->add_instruction(instructions::store_i64_le{}, value_, ptr_);
 			case builtin_type_kind::f32:
-				return this->add_instruction(instructions::store_f32_le{ .args = {} }, value_, ptr_);
+				return this->add_instruction(instructions::store_f32_le{}, value_, ptr_);
 			case builtin_type_kind::f64:
-				return this->add_instruction(instructions::store_f64_le{ .args = {} }, value_, ptr_);
+				return this->add_instruction(instructions::store_f64_le{}, value_, ptr_);
 			case builtin_type_kind::void_:
 				bz_unreachable;
 			}
@@ -469,19 +469,19 @@ instruction_ref codegen_context::create_store(expr_value value, expr_value ptr)
 			switch (type->get_builtin_kind())
 			{
 			case builtin_type_kind::i1:
-				return this->add_instruction(instructions::store_i1_be{ .args = {} }, value_, ptr_);
+				return this->add_instruction(instructions::store_i1_be{}, value_, ptr_);
 			case builtin_type_kind::i8:
-				return this->add_instruction(instructions::store_i8_be{ .args = {} }, value_, ptr_);
+				return this->add_instruction(instructions::store_i8_be{}, value_, ptr_);
 			case builtin_type_kind::i16:
-				return this->add_instruction(instructions::store_i16_be{ .args = {} }, value_, ptr_);
+				return this->add_instruction(instructions::store_i16_be{}, value_, ptr_);
 			case builtin_type_kind::i32:
-				return this->add_instruction(instructions::store_i32_be{ .args = {} }, value_, ptr_);
+				return this->add_instruction(instructions::store_i32_be{}, value_, ptr_);
 			case builtin_type_kind::i64:
-				return this->add_instruction(instructions::store_i64_be{ .args = {} }, value_, ptr_);
+				return this->add_instruction(instructions::store_i64_be{}, value_, ptr_);
 			case builtin_type_kind::f32:
-				return this->add_instruction(instructions::store_f32_be{ .args = {} }, value_, ptr_);
+				return this->add_instruction(instructions::store_f32_be{}, value_, ptr_);
 			case builtin_type_kind::f64:
-				return this->add_instruction(instructions::store_f64_be{ .args = {} }, value_, ptr_);
+				return this->add_instruction(instructions::store_f64_be{}, value_, ptr_);
 			case builtin_type_kind::void_:
 				bz_unreachable;
 			}
@@ -492,7 +492,13 @@ instruction_ref codegen_context::create_store(expr_value value, expr_value ptr)
 expr_value codegen_context::create_alloca(type const *type)
 {
 	bz_assert(this->current_function->blocks.not_empty());
-	this->current_function->blocks[0].instructions.emplace_back(instructions::alloca{ .size = type->size, .align = type->align });
+	this->current_function->blocks[0].instructions
+		.emplace_back(instructions::instruction_with_args<instructions::alloca>{
+			.inst = {
+				.size = type->size,
+				.align = type->align,
+			},
+		});
 	auto const alloca_ref = instruction_ref{
 		.bb_index = 0,
 		.inst_index = static_cast<uint32_t>(this->current_function->blocks[0].instructions.size() - 1),
@@ -512,7 +518,6 @@ instruction_ref codegen_context::create_conditional_jump(
 )
 {
 	return this->add_instruction(instructions::conditional_jump{
-		.args = {},
 		.true_bb_index = true_bb.bb_index,
 		.false_bb_index = false_bb.bb_index,
 	}, condition);
@@ -520,7 +525,7 @@ instruction_ref codegen_context::create_conditional_jump(
 
 instruction_ref codegen_context::create_ret(instruction_ref value)
 {
-	return this->add_instruction(instructions::ret{ .args= {} }, value);
+	return this->add_instruction(instructions::ret{}, value);
 }
 
 instruction_ref codegen_context::create_ret_void(void)
@@ -536,10 +541,7 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 	{
 		bz_assert(index <= type->get_array_size()); // one-past-the-end is allowed
 		auto const offset = index * type->get_array_element_type()->size;
-		auto const result_ptr = this->add_instruction(instructions::const_gep{
-			.args = {},
-			.offset = offset
-		}, value.get_reference());
+		auto const result_ptr = this->add_instruction(instructions::const_gep{ .offset = offset }, value.get_reference());
 		return expr_value::get_reference(result_ptr, type->get_array_element_type());
 	}
 	else
@@ -548,10 +550,7 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 		auto const types = type->get_aggregate_types();
 		auto const offsets = type->get_aggregate_offsets();
 		bz_assert(index < types.size());
-		auto const result_ptr = this->add_instruction(instructions::const_gep{
-			.args = {},
-			.offset = offsets[index]
-		}, value.get_reference());
+		auto const result_ptr = this->add_instruction(instructions::const_gep{ .offset = offsets[index] }, value.get_reference());
 		return expr_value::get_reference(result_ptr, types[index]);
 	}
 }
@@ -561,7 +560,7 @@ instruction_ref codegen_context::create_const_memcpy(expr_value dest, expr_value
 	bz_assert(dest.is_reference());
 	bz_assert(source.is_reference());
 
-	return this->add_instruction(instructions::const_memcpy{ .args = {}, .size = size }, dest.get_reference(), source.get_reference());
+	return this->add_instruction(instructions::const_memcpy{ .size = size }, dest.get_reference(), source.get_reference());
 }
 
 expr_value codegen_context::create_int_cast(expr_value value, type const *dest, bool is_value_signed)
@@ -584,13 +583,13 @@ expr_value codegen_context::create_int_cast(expr_value value, type const *dest, 
 		{
 		// case builtin_type_kind::i1:
 		case builtin_type_kind::i8:
-			return expr_value::get_value(this->add_instruction(instructions::cast_zext_i1_to_i8{ .args = {} }, value_ref), dest);
+			return expr_value::get_value(this->add_instruction(instructions::cast_zext_i1_to_i8{}, value_ref), dest);
 		case builtin_type_kind::i16:
-			return expr_value::get_value(this->add_instruction(instructions::cast_zext_i1_to_i16{ .args = {} }, value_ref), dest);
+			return expr_value::get_value(this->add_instruction(instructions::cast_zext_i1_to_i16{}, value_ref), dest);
 		case builtin_type_kind::i32:
-			return expr_value::get_value(this->add_instruction(instructions::cast_zext_i1_to_i32{ .args = {} }, value_ref), dest);
+			return expr_value::get_value(this->add_instruction(instructions::cast_zext_i1_to_i32{}, value_ref), dest);
 		case builtin_type_kind::i64:
-			return expr_value::get_value(this->add_instruction(instructions::cast_zext_i1_to_i64{ .args = {} }, value_ref), dest);
+			return expr_value::get_value(this->add_instruction(instructions::cast_zext_i1_to_i64{}, value_ref), dest);
 		default:
 			bz_unreachable;
 		}
@@ -601,11 +600,11 @@ expr_value codegen_context::create_int_cast(expr_value value, type const *dest, 
 			{
 			// case builtin_type_kind::i8:
 			case builtin_type_kind::i16:
-				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i8_to_i16{ .args = {} }, value_ref), dest);
+				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i8_to_i16{}, value_ref), dest);
 			case builtin_type_kind::i32:
-				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i8_to_i32{ .args = {} }, value_ref), dest);
+				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i8_to_i32{}, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i8_to_i64{ .args = {} }, value_ref), dest);
+				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i8_to_i64{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -616,11 +615,11 @@ expr_value codegen_context::create_int_cast(expr_value value, type const *dest, 
 			{
 			// case builtin_type_kind::i8:
 			case builtin_type_kind::i16:
-				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i8_to_i16{ .args = {} }, value_ref), dest);
+				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i8_to_i16{}, value_ref), dest);
 			case builtin_type_kind::i32:
-				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i8_to_i32{ .args = {} }, value_ref), dest);
+				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i8_to_i32{}, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i8_to_i64{ .args = {} }, value_ref), dest);
+				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i8_to_i64{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -631,12 +630,12 @@ expr_value codegen_context::create_int_cast(expr_value value, type const *dest, 
 			switch (dest->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i16_to_i8{ .args = {} }, value_ref), dest);
+				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i16_to_i8{}, value_ref), dest);
 			// case builtin_type_kind::i16:
 			case builtin_type_kind::i32:
-				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i16_to_i32{ .args = {} }, value_ref), dest);
+				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i16_to_i32{}, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i16_to_i64{ .args = {} }, value_ref), dest);
+				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i16_to_i64{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -646,12 +645,12 @@ expr_value codegen_context::create_int_cast(expr_value value, type const *dest, 
 			switch (dest->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i16_to_i8{ .args = {} }, value_ref), dest);
+				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i16_to_i8{}, value_ref), dest);
 			// case builtin_type_kind::i16:
 			case builtin_type_kind::i32:
-				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i16_to_i32{ .args = {} }, value_ref), dest);
+				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i16_to_i32{}, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i16_to_i64{ .args = {} }, value_ref), dest);
+				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i16_to_i64{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -662,12 +661,12 @@ expr_value codegen_context::create_int_cast(expr_value value, type const *dest, 
 			switch (dest->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i32_to_i8{ .args = {} }, value_ref), dest);
+				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i32_to_i8{}, value_ref), dest);
 			case builtin_type_kind::i16:
-				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i32_to_i16{ .args = {} }, value_ref), dest);
+				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i32_to_i16{}, value_ref), dest);
 			// case builtin_type_kind::i32:
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i32_to_i64{ .args = {} }, value_ref), dest);
+				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i32_to_i64{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -677,12 +676,12 @@ expr_value codegen_context::create_int_cast(expr_value value, type const *dest, 
 			switch (dest->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i32_to_i8{ .args = {} }, value_ref), dest);
+				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i32_to_i8{}, value_ref), dest);
 			case builtin_type_kind::i16:
-				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i32_to_i16{ .args = {} }, value_ref), dest);
+				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i32_to_i16{}, value_ref), dest);
 			// case builtin_type_kind::i32:
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i32_to_i64{ .args = {} }, value_ref), dest);
+				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i32_to_i64{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -691,11 +690,11 @@ expr_value codegen_context::create_int_cast(expr_value value, type const *dest, 
 		switch (dest->get_builtin_kind())
 		{
 		case builtin_type_kind::i8:
-			return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i64_to_i8{ .args = {} }, value_ref), dest);
+			return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i64_to_i8{}, value_ref), dest);
 		case builtin_type_kind::i16:
-			return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i64_to_i16{ .args = {} }, value_ref), dest);
+			return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i64_to_i16{}, value_ref), dest);
 		case builtin_type_kind::i32:
-			return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i64_to_i32{ .args = {} }, value_ref), dest);
+			return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i64_to_i32{}, value_ref), dest);
 		// case builtin_type_kind::i64:
 		default:
 			bz_unreachable;
@@ -718,11 +717,11 @@ expr_value codegen_context::create_float_cast(expr_value value, type const *dest
 	}
 	else if (value_type->get_builtin_kind() == builtin_type_kind::f32)
 	{
-		return expr_value::get_value(this->add_instruction(instructions::cast_f32_to_f64{ .args = {} }, value.get_value(*this)), dest);
+		return expr_value::get_value(this->add_instruction(instructions::cast_f32_to_f64{}, value.get_value(*this)), dest);
 	}
 	else
 	{
-		return expr_value::get_value(this->add_instruction(instructions::cast_f64_to_f32{ .args = {} }, value.get_value(*this)), dest);
+		return expr_value::get_value(this->add_instruction(instructions::cast_f64_to_f32{}, value.get_value(*this)), dest);
 	}
 }
 
