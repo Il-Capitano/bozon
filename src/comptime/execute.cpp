@@ -565,6 +565,86 @@ static uint64_t execute(instructions::cast_f64_to_u64 const &, float64_t value, 
 	return static_cast<uint64_t>(value);
 }
 
+static float32_t execute(instructions::cast_i8_to_f32 const &, uint8_t value, executor_context &)
+{
+	return static_cast<float32_t>(static_cast<int8_t>(value));
+}
+
+static float32_t execute(instructions::cast_i16_to_f32 const &, uint16_t value, executor_context &)
+{
+	return static_cast<float32_t>(static_cast<int16_t>(value));
+}
+
+static float32_t execute(instructions::cast_i32_to_f32 const &, uint32_t value, executor_context &)
+{
+	return static_cast<float32_t>(static_cast<int32_t>(value));
+}
+
+static float32_t execute(instructions::cast_i64_to_f32 const &, uint64_t value, executor_context &)
+{
+	return static_cast<float32_t>(static_cast<int64_t>(value));
+}
+
+static float32_t execute(instructions::cast_u8_to_f32 const &, uint8_t value, executor_context &)
+{
+	return static_cast<float32_t>(value);
+}
+
+static float32_t execute(instructions::cast_u16_to_f32 const &, uint16_t value, executor_context &)
+{
+	return static_cast<float32_t>(value);
+}
+
+static float32_t execute(instructions::cast_u32_to_f32 const &, uint32_t value, executor_context &)
+{
+	return static_cast<float32_t>(value);
+}
+
+static float32_t execute(instructions::cast_u64_to_f32 const &, uint64_t value, executor_context &)
+{
+	return static_cast<float32_t>(value);
+}
+
+static float64_t execute(instructions::cast_i8_to_f64 const &, uint8_t value, executor_context &)
+{
+	return static_cast<float64_t>(static_cast<int8_t>(value));
+}
+
+static float64_t execute(instructions::cast_i16_to_f64 const &, uint16_t value, executor_context &)
+{
+	return static_cast<float64_t>(static_cast<int16_t>(value));
+}
+
+static float64_t execute(instructions::cast_i32_to_f64 const &, uint32_t value, executor_context &)
+{
+	return static_cast<float64_t>(static_cast<int32_t>(value));
+}
+
+static float64_t execute(instructions::cast_i64_to_f64 const &, uint64_t value, executor_context &)
+{
+	return static_cast<float64_t>(static_cast<int64_t>(value));
+}
+
+static float64_t execute(instructions::cast_u8_to_f64 const &, uint8_t value, executor_context &)
+{
+	return static_cast<float64_t>(value);
+}
+
+static float64_t execute(instructions::cast_u16_to_f64 const &, uint16_t value, executor_context &)
+{
+	return static_cast<float64_t>(value);
+}
+
+static float64_t execute(instructions::cast_u32_to_f64 const &, uint32_t value, executor_context &)
+{
+	return static_cast<float64_t>(value);
+}
+
+static float64_t execute(instructions::cast_u64_to_f64 const &, uint64_t value, executor_context &)
+{
+	return static_cast<float64_t>(value);
+}
+
 static ptr_t execute(instructions::const_gep const &inst, ptr_t ptr, executor_context &)
 {
 	return ptr + inst.offset;
@@ -800,7 +880,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 93);
+		static_assert(instruction::variant_count == 109);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -1061,6 +1141,54 @@ void execute(executor_context &context)
 			break;
 		case instruction::cast_f64_to_u64:
 			execute<instructions::cast_f64_to_u64>(context);
+			break;
+		case instruction::cast_i8_to_f32:
+			execute<instructions::cast_i8_to_f32>(context);
+			break;
+		case instruction::cast_i16_to_f32:
+			execute<instructions::cast_i16_to_f32>(context);
+			break;
+		case instruction::cast_i32_to_f32:
+			execute<instructions::cast_i32_to_f32>(context);
+			break;
+		case instruction::cast_i64_to_f32:
+			execute<instructions::cast_i64_to_f32>(context);
+			break;
+		case instruction::cast_u8_to_f32:
+			execute<instructions::cast_u8_to_f32>(context);
+			break;
+		case instruction::cast_u16_to_f32:
+			execute<instructions::cast_u16_to_f32>(context);
+			break;
+		case instruction::cast_u32_to_f32:
+			execute<instructions::cast_u32_to_f32>(context);
+			break;
+		case instruction::cast_u64_to_f32:
+			execute<instructions::cast_u64_to_f32>(context);
+			break;
+		case instruction::cast_i8_to_f64:
+			execute<instructions::cast_i8_to_f64>(context);
+			break;
+		case instruction::cast_i16_to_f64:
+			execute<instructions::cast_i16_to_f64>(context);
+			break;
+		case instruction::cast_i32_to_f64:
+			execute<instructions::cast_i32_to_f64>(context);
+			break;
+		case instruction::cast_i64_to_f64:
+			execute<instructions::cast_i64_to_f64>(context);
+			break;
+		case instruction::cast_u8_to_f64:
+			execute<instructions::cast_u8_to_f64>(context);
+			break;
+		case instruction::cast_u16_to_f64:
+			execute<instructions::cast_u16_to_f64>(context);
+			break;
+		case instruction::cast_u32_to_f64:
+			execute<instructions::cast_u32_to_f64>(context);
+			break;
+		case instruction::cast_u64_to_f64:
+			execute<instructions::cast_u64_to_f64>(context);
 			break;
 		case instruction::const_gep:
 			execute<instructions::const_gep>(context);
