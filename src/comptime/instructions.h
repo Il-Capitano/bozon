@@ -536,6 +536,102 @@ struct cast_f64_to_f32
 	static inline constexpr value_type result_type = value_type::f32;
 };
 
+struct cast_f32_to_i8
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i8;
+};
+
+struct cast_f32_to_i16
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i16;
+};
+
+struct cast_f32_to_i32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i32;
+};
+
+struct cast_f32_to_i64
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i64;
+};
+
+struct cast_f32_to_u8
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i8;
+};
+
+struct cast_f32_to_u16
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i16;
+};
+
+struct cast_f32_to_u32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i32;
+};
+
+struct cast_f32_to_u64
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i64;
+};
+
+struct cast_f64_to_i8
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i8;
+};
+
+struct cast_f64_to_i16
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i16;
+};
+
+struct cast_f64_to_i32
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i32;
+};
+
+struct cast_f64_to_i64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i64;
+};
+
+struct cast_f64_to_u8
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i8;
+};
+
+struct cast_f64_to_u16
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i16;
+};
+
+struct cast_f64_to_u32
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i32;
+};
+
+struct cast_f64_to_u64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i64;
+};
+
 struct const_gep
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
@@ -656,6 +752,22 @@ using instruction_list = bz::meta::type_pack<
 	instructions::cast_trunc_i16_to_i8,
 	instructions::cast_f32_to_f64,
 	instructions::cast_f64_to_f32,
+	instructions::cast_f32_to_i8,
+	instructions::cast_f32_to_i16,
+	instructions::cast_f32_to_i32,
+	instructions::cast_f32_to_i64,
+	instructions::cast_f32_to_u8,
+	instructions::cast_f32_to_u16,
+	instructions::cast_f32_to_u32,
+	instructions::cast_f32_to_u64,
+	instructions::cast_f64_to_i8,
+	instructions::cast_f64_to_i16,
+	instructions::cast_f64_to_i32,
+	instructions::cast_f64_to_i64,
+	instructions::cast_f64_to_u8,
+	instructions::cast_f64_to_u16,
+	instructions::cast_f64_to_u32,
+	instructions::cast_f64_to_u64,
 	instructions::const_gep,
 	instructions::const_memcpy,
 	instructions::jump,
@@ -673,7 +785,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 77);
+	static_assert(variant_count == 93);
 	enum : base_t::index_t
 	{
 		const_i1              = index_of<instructions::const_i1>,
@@ -747,6 +859,22 @@ struct instruction : instruction_base_t
 		cast_trunc_i16_to_i8  = index_of<instructions::cast_trunc_i16_to_i8>,
 		cast_f32_to_f64       = index_of<instructions::cast_f32_to_f64>,
 		cast_f64_to_f32       = index_of<instructions::cast_f64_to_f32>,
+		cast_f32_to_i8        = index_of<instructions::cast_f32_to_i8>,
+		cast_f32_to_i16       = index_of<instructions::cast_f32_to_i16>,
+		cast_f32_to_i32       = index_of<instructions::cast_f32_to_i32>,
+		cast_f32_to_i64       = index_of<instructions::cast_f32_to_i64>,
+		cast_f32_to_u8        = index_of<instructions::cast_f32_to_u8>,
+		cast_f32_to_u16       = index_of<instructions::cast_f32_to_u16>,
+		cast_f32_to_u32       = index_of<instructions::cast_f32_to_u32>,
+		cast_f32_to_u64       = index_of<instructions::cast_f32_to_u64>,
+		cast_f64_to_i8        = index_of<instructions::cast_f64_to_i8>,
+		cast_f64_to_i16       = index_of<instructions::cast_f64_to_i16>,
+		cast_f64_to_i32       = index_of<instructions::cast_f64_to_i32>,
+		cast_f64_to_i64       = index_of<instructions::cast_f64_to_i64>,
+		cast_f64_to_u8        = index_of<instructions::cast_f64_to_u8>,
+		cast_f64_to_u16       = index_of<instructions::cast_f64_to_u16>,
+		cast_f64_to_u32       = index_of<instructions::cast_f64_to_u32>,
+		cast_f64_to_u64       = index_of<instructions::cast_f64_to_u64>,
 		const_gep             = index_of<instructions::const_gep>,
 		const_memcpy          = index_of<instructions::const_memcpy>,
 		jump                  = index_of<instructions::jump>,
