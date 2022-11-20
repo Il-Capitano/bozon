@@ -580,10 +580,22 @@ struct apply_type_pack_impl<T, type_pack<Ts...>>
 	using type = T<Ts...>;
 };
 
+template<template<typename> typename T, typename TypePack>
+struct transform_type_pack_impl;
+
+template<template<typename> typename T, typename ...Ts>
+struct transform_type_pack_impl<T, type_pack<Ts...>>
+{
+	using type = type_pack<T<Ts>...>;
+};
+
 } // namespace internal
 
 template<template<typename ...> typename T, typename Pack>
 using apply_type_pack = typename internal::apply_type_pack_impl<T, Pack>::type;
+
+template<template<typename> typename T, typename Pack>
+using transform_type_pack = typename internal::transform_type_pack_impl<T, Pack>::type;
 
 
 namespace internal
