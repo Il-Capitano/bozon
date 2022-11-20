@@ -475,6 +475,16 @@ static uint8_t execute(instructions::cast_trunc_i16_to_i8 const &, uint16_t valu
 	return static_cast<uint8_t>(value);
 }
 
+static float64_t execute(instructions::cast_f32_to_f64 const &, float32_t value, executor_context &)
+{
+	return static_cast<float64_t>(value);
+}
+
+static float32_t execute(instructions::cast_f64_to_f32 const &, float64_t value, executor_context &)
+{
+	return static_cast<float32_t>(value);
+}
+
 static ptr_t execute(instructions::const_gep const &inst, ptr_t ptr, executor_context &)
 {
 	return ptr + inst.offset;
@@ -708,7 +718,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 75);
+		static_assert(instruction::variant_count == 77);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -915,6 +925,12 @@ void execute(executor_context &context)
 			break;
 		case instruction::cast_trunc_i16_to_i8:
 			execute<instructions::cast_trunc_i16_to_i8>(context);
+			break;
+		case instruction::cast_f32_to_f64:
+			execute<instructions::cast_f32_to_f64>(context);
+			break;
+		case instruction::cast_f64_to_f32:
+			execute<instructions::cast_f64_to_f32>(context);
 			break;
 		case instruction::const_gep:
 			execute<instructions::const_gep>(context);

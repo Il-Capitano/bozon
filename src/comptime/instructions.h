@@ -618,6 +618,22 @@ struct cast_trunc_i16_to_i8
 	bz::array<arg_t, arg_types.size()> args;
 };
 
+struct cast_f32_to_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<arg_t, arg_types.size()> args;
+};
+
+struct cast_f64_to_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<arg_t, arg_types.size()> args;
+};
+
 struct const_gep
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
@@ -744,6 +760,8 @@ using instruction_list = bz::meta::type_pack<
 	instructions::cast_trunc_i32_to_i8,
 	instructions::cast_trunc_i32_to_i16,
 	instructions::cast_trunc_i16_to_i8,
+	instructions::cast_f32_to_f64,
+	instructions::cast_f64_to_f32,
 	instructions::const_gep,
 	instructions::const_memcpy,
 	instructions::jump,
@@ -758,7 +776,7 @@ struct instruction : instruction_base_t
 {
 	using base_t = instruction_base_t;
 
-	static_assert(variant_count == 75);
+	static_assert(variant_count == 77);
 	enum : base_t::index_t
 	{
 		const_i1              = base_t::index_of<instructions::const_i1>,
@@ -830,6 +848,8 @@ struct instruction : instruction_base_t
 		cast_trunc_i32_to_i8  = base_t::index_of<instructions::cast_trunc_i32_to_i8>,
 		cast_trunc_i32_to_i16 = base_t::index_of<instructions::cast_trunc_i32_to_i16>,
 		cast_trunc_i16_to_i8  = base_t::index_of<instructions::cast_trunc_i16_to_i8>,
+		cast_f32_to_f64       = base_t::index_of<instructions::cast_f32_to_f64>,
+		cast_f64_to_f32       = base_t::index_of<instructions::cast_f64_to_f32>,
 		const_gep             = base_t::index_of<instructions::const_gep>,
 		const_memcpy          = base_t::index_of<instructions::const_memcpy>,
 		jump                  = base_t::index_of<instructions::jump>,
