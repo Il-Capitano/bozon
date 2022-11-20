@@ -360,7 +360,7 @@ static expr_value generate_expr_code(
 		}
 		else if (ast::is_integer_kind(expr_kind) && ast::is_floating_point_kind(dest_kind))
 		{
-			auto const result_value = context.create_int_to_float_cast(expr, dest_type);
+			auto const result_value = context.create_int_to_float_cast(expr, dest_type, ast::is_signed_integer_kind(expr_kind));
 			if (result_address.has_value())
 			{
 				context.create_store(result_value, result_address.get());

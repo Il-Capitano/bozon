@@ -805,4 +805,84 @@ expr_value codegen_context::create_float_to_int_cast(expr_value value, type cons
 	}
 }
 
+expr_value codegen_context::create_int_to_float_cast(expr_value value, type const *dest, bool is_value_signed)
+{
+	auto const value_type = value.get_type();
+	bz_assert(value_type->is_builtin() && dest->is_builtin());
+	bz_assert(is_integer_kind(value_type->get_builtin_kind()));
+	bz_assert(is_floating_point_kind(dest->get_builtin_kind()));
+
+	auto const value_ref = value.get_value(*this);
+	if (dest->get_builtin_kind() == builtin_type_kind::f32)
+	{
+		if (is_value_signed)
+		{
+			switch (value_type->get_builtin_kind())
+			{
+			case builtin_type_kind::i8:
+				return expr_value::get_value(this->add_instruction(instructions::cast_i8_to_f32{}, value_ref), dest);
+			case builtin_type_kind::i16:
+				return expr_value::get_value(this->add_instruction(instructions::cast_i16_to_f32{}, value_ref), dest);
+			case builtin_type_kind::i32:
+				return expr_value::get_value(this->add_instruction(instructions::cast_i32_to_f32{}, value_ref), dest);
+			case builtin_type_kind::i64:
+				return expr_value::get_value(this->add_instruction(instructions::cast_i64_to_f32{}, value_ref), dest);
+			default:
+				bz_unreachable;
+			}
+		}
+		else
+		{
+			switch (value_type->get_builtin_kind())
+			{
+			case builtin_type_kind::i8:
+				return expr_value::get_value(this->add_instruction(instructions::cast_u8_to_f32{}, value_ref), dest);
+			case builtin_type_kind::i16:
+				return expr_value::get_value(this->add_instruction(instructions::cast_u16_to_f32{}, value_ref), dest);
+			case builtin_type_kind::i32:
+				return expr_value::get_value(this->add_instruction(instructions::cast_u32_to_f32{}, value_ref), dest);
+			case builtin_type_kind::i64:
+				return expr_value::get_value(this->add_instruction(instructions::cast_u64_to_f32{}, value_ref), dest);
+			default:
+				bz_unreachable;
+			}
+		}
+	}
+	else
+	{
+		if (is_value_signed)
+		{
+			switch (value_type->get_builtin_kind())
+			{
+			case builtin_type_kind::i8:
+				return expr_value::get_value(this->add_instruction(instructions::cast_i8_to_f64{}, value_ref), dest);
+			case builtin_type_kind::i16:
+				return expr_value::get_value(this->add_instruction(instructions::cast_i16_to_f64{}, value_ref), dest);
+			case builtin_type_kind::i32:
+				return expr_value::get_value(this->add_instruction(instructions::cast_i32_to_f64{}, value_ref), dest);
+			case builtin_type_kind::i64:
+				return expr_value::get_value(this->add_instruction(instructions::cast_i64_to_f64{}, value_ref), dest);
+			default:
+				bz_unreachable;
+			}
+		}
+		else
+		{
+			switch (value_type->get_builtin_kind())
+			{
+			case builtin_type_kind::i8:
+				return expr_value::get_value(this->add_instruction(instructions::cast_u8_to_f64{}, value_ref), dest);
+			case builtin_type_kind::i16:
+				return expr_value::get_value(this->add_instruction(instructions::cast_u16_to_f64{}, value_ref), dest);
+			case builtin_type_kind::i32:
+				return expr_value::get_value(this->add_instruction(instructions::cast_u32_to_f64{}, value_ref), dest);
+			case builtin_type_kind::i64:
+				return expr_value::get_value(this->add_instruction(instructions::cast_u64_to_f64{}, value_ref), dest);
+			default:
+				bz_unreachable;
+			}
+		}
+	}
+}
+
 } // namespace comptime
