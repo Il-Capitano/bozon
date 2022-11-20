@@ -219,7 +219,7 @@ struct codegen_context
 	instruction_ref create_const_memcpy(expr_value dest, expr_value source, size_t size);
 	expr_value create_int_cast(expr_value value, type const *dest, bool is_value_signed);
 	expr_value create_float_cast(expr_value value, type const *dest);
-	expr_value create_float_to_int_cast(expr_value value, type const *dest);
+	expr_value create_float_to_int_cast(expr_value value, type const *dest, bool is_dest_signed);
 	expr_value create_int_to_float_cast(expr_value value, type const *dest);
 
 	void finalize_function(void);
