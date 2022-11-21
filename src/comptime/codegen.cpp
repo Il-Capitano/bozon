@@ -744,15 +744,24 @@ static expr_value generate_expr_code(
 	bz::optional<expr_value> result_address
 );
 static expr_value generate_expr_code(
-	ast::expr_trivial_assign const &,
+	ast::expr_trivial_assign const &trivial_assign,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 );
+
 static expr_value generate_expr_code(
-	ast::expr_member_access const &,
+	ast::expr_member_access const &member_access,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const base = generate_expr_code(member_access.base, context, {});
+	bz_assert(base.is_reference());
+	bz_assert(base.get_type()->is_aggregate());
+	bz_assert(!result_address.has_value());
+	return context.create_struct_gep(base, member_access.index);
+}
+
 static expr_value generate_expr_code(
 	ast::expr_optional_extract_value const &,
 	codegen_context &context,
@@ -768,51 +777,190 @@ static expr_value generate_expr_code(
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 );
+
 static expr_value generate_expr_code(
-	ast::expr_compound const &,
+	ast::expr_compound const &compound_expr,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const prev_info = context.push_expression_scope();
+	for (auto const &stmt : compound_expr.statements)
+	{
+		generate_stmt_code(stmt, context);
+	}
+
+	if (compound_expr.final_expr.is_null())
+	{
+		context.pop_expression_scope(prev_info);
+		return expr_value::get_none();
+	}
+	else
+	{
+		bz_assert(result_address.has_value());
+		auto const result = generate_expr_code(compound_expr.final_expr, context, result_address);
+		context.pop_expression_scope(prev_info);
+		return result;
+	}
+}
+
 static expr_value generate_expr_code(
-	ast::expr_if const &,
+	ast::expr_if const &if_expr,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const condition_prev_info = context.push_expression_scope();
+	auto const condition = generate_expr_code(if_expr.condition, context, {}).get_value(context);
+	context.pop_expression_scope(condition_prev_info);
+
+	auto const begin_bb = context.get_current_basic_block();
+
+	auto const then_bb = context.add_basic_block();
+	context.set_current_basic_block(then_bb);
+
+	auto const then_prev_info = context.push_expression_scope();
+	generate_expr_code(if_expr.then_block, context, result_address);
+	context.pop_expression_scope(then_prev_info);
+
+	if (if_expr.else_block.is_null())
+	{
+		auto const end_bb = context.add_basic_block();
+		context.create_jump(end_bb); // then -> end
+		context.set_current_basic_block(begin_bb);
+		context.create_conditional_jump(condition, then_bb, end_bb);
+		context.set_current_basic_block(end_bb);
+		bz_assert(!result_address.has_value());
+		return expr_value::get_none();
+	}
+
+	auto const then_bb_end = context.get_current_basic_block();
+	auto const else_bb = context.add_basic_block();
+	context.set_current_basic_block(else_bb);
+
+	auto const else_prev_info = context.push_expression_scope();
+	generate_expr_code(if_expr.else_block, context, result_address);
+	context.pop_expression_scope(else_prev_info);
+
+	auto const end_bb = context.add_basic_block();
+	context.create_jump(end_bb); // else -> end
+	context.set_current_basic_block(then_bb_end);
+	context.create_jump(end_bb); // then -> end
+
+	context.set_current_basic_block(begin_bb);
+	context.create_conditional_jump(condition, then_bb, else_bb);
+	context.set_current_basic_block(end_bb);
+
+	if (result_address.has_value())
+	{
+		return result_address.get();
+	}
+	else
+	{
+		return expr_value::get_none();
+	}
+}
+
 static expr_value generate_expr_code(
-	ast::expr_if_consteval const &,
+	ast::expr_if_consteval const &if_consteval_expr,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	bz_assert(if_consteval_expr.condition.is_constant());
+	bz_assert(if_consteval_expr.condition.get_constant_value().is_boolean());
+	auto const condition = if_consteval_expr.condition.get_constant_value().get_boolean();
+	if (condition)
+	{
+		return generate_expr_code(if_consteval_expr.then_block, context, result_address);
+	}
+	else if (if_consteval_expr.else_block.not_null())
+	{
+		return generate_expr_code(if_consteval_expr.else_block, context, result_address);
+	}
+	else
+	{
+		bz_assert(!result_address.has_value());
+		return expr_value::get_none();
+	}
+}
+
 static expr_value generate_expr_code(
 	ast::expr_switch const &,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 );
+
 static expr_value generate_expr_code(
+	lex::src_tokens const &src_tokens,
 	ast::expr_break const &,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	if (!context.loop_info.in_loop)
+	{
+		context.create_error(src_tokens, "'break' hit in compile time execution without an outer loop");
+	}
+	else
+	{
+		context.emit_loop_destruct_operations();
+		context.create_jump(context.loop_info.break_bb);
+	}
+	bz_assert(!result_address.has_value());
+	return expr_value::get_none();
+}
+
 static expr_value generate_expr_code(
+	lex::src_tokens const &src_tokens,
 	ast::expr_continue const &,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	if (!context.loop_info.in_loop)
+	{
+		context.create_error(src_tokens, "'continue' hit in compile time execution without an outer loop");
+	}
+	else
+	{
+		context.emit_loop_destruct_operations();
+		context.create_jump(context.loop_info.continue_bb);
+	}
+	bz_assert(!result_address.has_value());
+	return expr_value::get_none();
+}
+
 static expr_value generate_expr_code(
+	lex::src_tokens const &src_tokens,
 	ast::expr_unreachable const &,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	context.create_error(src_tokens, "'unreachable' hit in compile time execution");
+	bz_assert(!result_address.has_value());
+	return expr_value::get_none();
+}
+
 static expr_value generate_expr_code(
 	ast::expr_generic_type_instantiation const &,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
-);
+	codegen_context &,
+	bz::optional<expr_value>
+)
+{
+	bz_unreachable;
+}
+
 static expr_value generate_expr_code(
-	ast::expr_bitcode_value_reference const &,
+	ast::expr_bitcode_value_reference const &bitcode_value_reference,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	bz_assert(!result_address.has_value());
+	return context.get_value_reference(bitcode_value_reference.index);
+}
 
 static expr_value generate_expr_code(
 	ast::constant_expression const &const_expr,
@@ -824,6 +972,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	lex::src_tokens const &src_tokens,
 	ast::dynamic_expression const &dyn_expr,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -1016,13 +1165,13 @@ static expr_value generate_expr_code(
 		result = generate_expr_code(dyn_expr.expr.get<ast::expr_switch>(), context, result_address);
 		break;
 	case ast::expr_t::index<ast::expr_break>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_break>(), context, result_address);
+		result = generate_expr_code(src_tokens, dyn_expr.expr.get<ast::expr_break>(), context, result_address);
 		break;
 	case ast::expr_t::index<ast::expr_continue>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_continue>(), context, result_address);
+		result = generate_expr_code(src_tokens, dyn_expr.expr.get<ast::expr_continue>(), context, result_address);
 		break;
 	case ast::expr_t::index<ast::expr_unreachable>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_unreachable>(), context, result_address);
+		result = generate_expr_code(src_tokens, dyn_expr.expr.get<ast::expr_unreachable>(), context, result_address);
 		break;
 	case ast::expr_t::index<ast::expr_generic_type_instantiation>:
 		result = generate_expr_code(dyn_expr.expr.get<ast::expr_generic_type_instantiation>(), context, result_address);
@@ -1053,7 +1202,7 @@ static expr_value generate_expr_code(
 		case ast::expression::index_of<ast::constant_expression>:
 			return generate_expr_code(expr.get_constant(), context, result_address);
 		case ast::expression::index_of<ast::dynamic_expression>:
-			return generate_expr_code(expr.get_dynamic(), context, result_address);
+			return generate_expr_code(expr.src_tokens, expr.get_dynamic(), context, result_address);
 		case ast::expression::index_of<ast::error_expression>:
 			bz_unreachable;
 		default:
