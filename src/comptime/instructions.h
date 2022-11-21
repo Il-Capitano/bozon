@@ -774,6 +774,14 @@ struct ret_void
 	static inline constexpr value_type result_type = value_type::none;
 };
 
+struct error
+{
+	static inline constexpr int arg_types = 0;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t error_index;
+};
+
 } // namespace instructions
 
 using instruction_list = bz::meta::type_pack<
@@ -885,7 +893,8 @@ using instruction_list = bz::meta::type_pack<
 	instructions::jump,
 	instructions::conditional_jump,
 	instructions::ret,
-	instructions::ret_void
+	instructions::ret_void,
+	instructions::error
 >;
 
 using instruction_with_args_list = bz::meta::transform_type_pack<instructions::instruction_with_args, instruction_list>;
@@ -897,7 +906,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 109);
+	static_assert(variant_count == 110);
 	enum : base_t::index_t
 	{
 		const_i1              = index_of<instructions::const_i1>,
@@ -1009,6 +1018,7 @@ struct instruction : instruction_base_t
 		conditional_jump      = index_of<instructions::conditional_jump>,
 		ret                   = index_of<instructions::ret>,
 		ret_void              = index_of<instructions::ret_void>,
+		error                 = index_of<instructions::error>,
 	};
 
 	bool is_terminator(void) const
@@ -1019,6 +1029,7 @@ struct instruction : instruction_base_t
 		case conditional_jump:
 		case ret:
 		case ret_void:
+		case error:
 			return true;
 		default:
 			return false;

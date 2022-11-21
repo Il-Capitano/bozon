@@ -3,15 +3,24 @@
 
 #include "core.h"
 #include "types.h"
+#include "lex/token.h"
 
 namespace comptime
 {
+
+struct error_info_t
+{
+	lex::src_tokens src_tokens;
+	bz::u8string message;
+};
 
 struct global_codegen_context
 {
 	type_set_t type_set;
 	type const *pointer_pair_t;
 	type const *null_t;
+
+	bz::vector<error_info_t> errors;
 
 	global_codegen_context(size_t pointer_size);
 

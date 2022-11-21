@@ -116,6 +116,7 @@ void codegen_context::pop_expression_scope(expression_scope_info_t prev_info)
 	this->loop_info.destructor_stack_begin = this->destructor_calls.size();
 	this->loop_info.break_bb = break_bb;
 	this->loop_info.continue_bb = continue_bb;
+	this->loop_info.in_loop = true;
 	return result;
 }
 
@@ -883,6 +884,17 @@ expr_value codegen_context::create_int_to_float_cast(expr_value value, type cons
 			}
 		}
 	}
+}
+
+instruction_ref codegen_context::create_error(lex::src_tokens const &src_tokens, bz::u8string message)
+{
+	this->global_codegen_ctx->errors.push_back({
+		.src_tokens = src_tokens,
+		.message = std::move(message),
+	});
+	auto const index = this->global_codegen_ctx->errors.size() - 1;
+	bz_assert(index <= std::numeric_limits<uint32_t>::max());
+	return this->add_instruction(instructions::error{ .error_index = static_cast<uint32_t>(index) });
 }
 
 } // namespace comptime

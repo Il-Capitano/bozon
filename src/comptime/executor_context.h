@@ -26,6 +26,7 @@ struct executor_context
 	void do_jump(uint32_t next_bb_index);
 	void do_ret(instruction_value value);
 	void do_ret_void(void);
+	void report_error(uint32_t error_index);
 
 	void advance(void);
 };

@@ -86,9 +86,10 @@ struct codegen_context
 
 	struct loop_info_t
 	{
-		basic_block_ref break_bb;
-		basic_block_ref continue_bb;
-		size_t destructor_stack_begin;
+		basic_block_ref break_bb = {};
+		basic_block_ref continue_bb = {};
+		size_t destructor_stack_begin = 0;
+		bool in_loop = false;
 	};
 
 	loop_info_t loop_info = {};
@@ -221,6 +222,8 @@ struct codegen_context
 	expr_value create_float_cast(expr_value value, type const *dest);
 	expr_value create_float_to_int_cast(expr_value value, type const *dest, bool is_dest_signed);
 	expr_value create_int_to_float_cast(expr_value value, type const *dest, bool is_value_signed);
+
+	instruction_ref create_error(lex::src_tokens const &src_tokens, bz::u8string message);
 
 	void finalize_function(void);
 };

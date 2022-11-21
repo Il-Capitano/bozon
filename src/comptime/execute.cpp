@@ -684,6 +684,11 @@ static void execute(instructions::ret_void const &, executor_context &context)
 	context.do_ret_void();
 }
 
+static void execute(instructions::error const &error, executor_context &context)
+{
+	context.report_error(error.error_index);
+}
+
 
 template<value_type type>
 struct get_value_type;
@@ -880,7 +885,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 109);
+		static_assert(instruction::variant_count == 110);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -1207,6 +1212,9 @@ void execute(executor_context &context)
 			break;
 		case instruction::ret_void:
 			execute<instructions::ret_void>(context);
+			break;
+		case instruction::error:
+			execute<instructions::error>(context);
 			break;
 		default:
 			bz_unreachable;
