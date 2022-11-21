@@ -135,7 +135,7 @@ static expr_value generate_expr_code(
 	{
 		context.create_error(
 			lex::src_tokens::from_range(identifier.id.tokens),
-			bz::format("variable '{}' cannot be used in a constant expression", identifier.id.format_as_unqualified())
+			bz::format("variable '{}' cannot be used in a constant expression", identifier.id.as_string())
 		);
 		auto const type = get_type(identifier.decl->get_type(), context);
 		return expr_value::get_reference(instruction_ref{}, type);
@@ -452,16 +452,30 @@ static expr_value generate_expr_code(
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 );
+
 static expr_value generate_expr_code(
-	ast::expr_take_reference const &,
+	ast::expr_take_reference const &take_ref,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const result = generate_expr_code(take_ref.expr, context, {});
+	bz_assert(result.is_reference());
+	bz_assert(!result_address.has_value());
+	return result;
+}
+
 static expr_value generate_expr_code(
-	ast::expr_take_move_reference const &,
+	ast::expr_take_move_reference const &take_move_ref,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const result = generate_expr_code(take_move_ref.expr, context, {});
+	bz_assert(result.is_reference());
+	bz_assert(!result_address.has_value());
+	return result;
+}
 
 static expr_value generate_expr_code(
 	ast::expr_aggregate_init const &aggregate_init,
@@ -680,10 +694,31 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	ast::expr_aggregate_destruct const &,
+	ast::expr_aggregate_destruct const &aggregate_destruct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const value = generate_expr_code(aggregate_destruct.value, context, {});
+	bz_assert(value.is_reference());
+	auto const type = value.get_type();
+	bz_assert(type->is_aggregate() && aggregate_destruct.elem_destruct_calls.size() == type->get_aggregate_types().size());
+
+	for (auto const i : bz::iota(0, aggregate_destruct.elem_destruct_calls.size()).reversed())
+	{
+		if (aggregate_destruct.elem_destruct_calls[i].not_null())
+		{
+			auto const elem_value = context.create_struct_gep(value, i);
+			auto const prev_value = context.push_value_reference(elem_value);
+			generate_expr_code(aggregate_destruct.elem_destruct_calls[i], context, {});
+			context.pop_value_reference(prev_value);
+		}
+	}
+
+	bz_assert(!result_address.has_value());
+	return expr_value::get_none();
+}
+
 static expr_value generate_expr_code(
 	ast::expr_array_destruct const &,
 	codegen_context &context,
@@ -694,21 +729,58 @@ static expr_value generate_expr_code(
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 );
+
 static expr_value generate_expr_code(
-	ast::expr_base_type_destruct const &,
+	ast::expr_base_type_destruct const &base_type_destruct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const value = generate_expr_code(base_type_destruct.value, context, {});
+	bz_assert(value.is_reference());
+	auto const type = value.get_type();
+	bz_assert(type->is_aggregate() && base_type_destruct.member_destruct_calls.size() == type->get_aggregate_types().size());
+
+	if (base_type_destruct.destruct_call.not_null())
+	{
+		auto const prev_value = context.push_value_reference(value);
+		generate_expr_code(base_type_destruct.destruct_call, context, {});
+		context.pop_value_reference(prev_value);
+	}
+
+	for (auto const i : bz::iota(0, base_type_destruct.member_destruct_calls.size()).reversed())
+	{
+		if (base_type_destruct.member_destruct_calls[i].not_null())
+		{
+			auto const elem_value = context.create_struct_gep(value, i);
+			auto const prev_value = context.push_value_reference(elem_value);
+			generate_expr_code(base_type_destruct.member_destruct_calls[i], context, {});
+			context.pop_value_reference(prev_value);
+		}
+	}
+
+	bz_assert(!result_address.has_value());
+	return expr_value::get_none();
+}
+
 static expr_value generate_expr_code(
-	ast::expr_destruct_value const &,
+	ast::expr_destruct_value const &destruct_value,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
-static expr_value generate_expr_code(
-	ast::expr_aggregate_assign const &,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const value = generate_expr_code(destruct_value.value, context, {});
+	if (destruct_value.destruct_call.not_null())
+	{
+		auto const prev_value = context.push_value_reference(value);
+		generate_expr_code(destruct_value.destruct_call, context, {});
+		context.pop_value_reference(prev_value);
+	}
+
+	bz_assert(!result_address.has_value());
+	return expr_value::get_none();
+}
+
 static expr_value generate_expr_code(
 	ast::expr_aggregate_swap const &,
 	codegen_context &context,
@@ -731,6 +803,11 @@ static expr_value generate_expr_code(
 );
 static expr_value generate_expr_code(
 	ast::expr_trivial_swap const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_expr_code(
+	ast::expr_aggregate_assign const &,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 );
