@@ -124,10 +124,26 @@ static expr_value generate_expr_code(
 );
 
 static expr_value generate_expr_code(
-	ast::expr_identifier const &,
+	ast::expr_identifier const &identifier,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const result = context.get_variable(identifier.decl);
+
+	if (result.is_none())
+	{
+		context.create_error(
+			lex::src_tokens::from_range(identifier.id.tokens),
+			bz::format("variable '{}' cannot be used in a constant expression", identifier.id.format_as_unqualified())
+		);
+		auto const type = get_type(identifier.decl->get_type(), context);
+		return expr_value::get_reference(instruction_ref{}, type);
+	}
+
+	bz_assert(!result_address.has_value());
+	return result;
+}
 
 static expr_value generate_expr_code(
 	ast::expr_integer_literal const &,
@@ -1377,7 +1393,77 @@ static void generate_stmt_code(ast::stmt_expression const &expr_stmt, codegen_co
 	context.pop_expression_scope(prev_info);
 }
 
-static void generate_stmt_code(ast::decl_variable const &, codegen_context &context);
+static void add_variable_helper(
+	ast::decl_variable const &var_decl,
+	expr_value value,
+	codegen_context &context
+)
+{
+	if (var_decl.tuple_decls.empty())
+	{
+		bz_assert(!var_decl.get_type().is<ast::ts_lvalue_reference>());
+		context.add_variable(&var_decl, value);
+		if (var_decl.is_ever_moved_from() && var_decl.destruction.not_null())
+		{
+			auto const indicator = context.add_move_destruct_indicator(&var_decl);
+			context.push_variable_destruct_operation(var_decl.destruction, indicator);
+		}
+		else
+		{
+			context.push_variable_destruct_operation(var_decl.destruction);
+		}
+	}
+	else
+	{
+		bz_assert(value.get_type()->is_aggregate());
+		for (auto const &[decl, i] : var_decl.tuple_decls.enumerate())
+		{
+			auto const elem_value = context.create_struct_gep(value, i);
+			add_variable_helper(decl, elem_value, context);
+		}
+	}
+}
+
+static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_context &context)
+{
+	if (var_decl.get_type().is_empty())
+	{
+		context.create_error(var_decl.src_tokens, "failed to resolve variable declaration");
+		return;
+	}
+
+	if (var_decl.get_type().is<ast::ts_lvalue_reference>())
+	{
+		bz_assert(var_decl.init_expr.not_null());
+		auto const prev_info = context.push_expression_scope();
+		auto const init_val = generate_expr_code(var_decl.init_expr, context, {});
+		context.pop_expression_scope(prev_info);
+		auto const ref_value = init_val.is_none()
+			? expr_value::get_reference(instruction_ref{}, get_type(var_decl.get_type().get<ast::ts_lvalue_reference>(), context))
+			: init_val;
+		if (var_decl.tuple_decls.empty())
+		{
+			context.add_variable(&var_decl, ref_value);
+			bz_assert(var_decl.destruction.is_null());
+		}
+		else
+		{
+			add_variable_helper(var_decl, ref_value, context);
+		}
+	}
+	else
+	{
+		auto const type = get_type(var_decl.get_type(), context);
+		auto const alloca = context.create_alloca(type);
+		if (var_decl.init_expr.not_null())
+		{
+			auto const prev_info = context.push_expression_scope();
+			generate_expr_code(var_decl.init_expr, context, alloca);
+			context.pop_expression_scope(prev_info);
+		}
+		add_variable_helper(var_decl, alloca, context);
+	}
+}
 
 static void generate_stmt_code(ast::statement const &stmt, codegen_context &context)
 {

@@ -43,6 +43,25 @@ type const *expr_value::get_type(void) const
 	return this->value_type;
 }
 
+void codegen_context::add_variable(ast::decl_variable const *decl, expr_value value)
+{
+	bz_assert(!this->variables.contains(decl));
+	this->variables.insert({ decl, value });
+}
+
+expr_value codegen_context::get_variable(ast::decl_variable const *decl)
+{
+	auto const it = this->variables.find(decl);
+	if (it == this->variables.end())
+	{
+		return expr_value::get_none();
+	}
+	else
+	{
+		return it->second;
+	}
+}
+
 type const *codegen_context::get_builtin_type(builtin_type_kind kind)
 {
 	return this->global_codegen_ctx->get_builtin_type(kind);

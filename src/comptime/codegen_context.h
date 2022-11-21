@@ -83,6 +83,7 @@ struct codegen_context
 
 	bz::vector<destruct_operation_info_t> destructor_calls;
 	std::unordered_map<ast::decl_variable const *, instruction_ref> move_destruct_indicators;
+	std::unordered_map<ast::decl_variable const *, expr_value> variables;
 
 	struct loop_info_t
 	{
@@ -102,6 +103,9 @@ struct codegen_context
 	bool is_big_endian(void) const;
 	bool is_64_bit(void) const;
 	bool is_32_bit(void) const;
+
+	void add_variable(ast::decl_variable const *decl, expr_value value);
+	expr_value get_variable(ast::decl_variable const *decl);
 
 	type const *get_builtin_type(builtin_type_kind kind);
 	type const *get_pointer_type(void);
