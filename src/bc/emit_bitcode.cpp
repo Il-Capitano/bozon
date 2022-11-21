@@ -4440,7 +4440,7 @@ static val_ptr emit_bitcode(
 			}
 			else
 			{
-				emit_error(take_ref.expr.src_tokens, "unable to take refernce to value", context);
+				emit_error(take_ref.expr.src_tokens, "unable to take reference to value", context);
 			}
 			// just make sure the returned value is valid
 			bz_assert(result_address == nullptr);
