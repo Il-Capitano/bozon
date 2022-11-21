@@ -662,8 +662,9 @@ static val_ptr emit_bitcode(
 	// we emit consteval global variables to avoid generating huge arrays every time
 	// one is indexed into.  e.g. ryu has large consteval tables which would be constructed
 	// in IR each time they're indexed into.
-	if (id.decl->is_global() && id.decl->get_type().is<ast::ts_consteval>() && id.decl->init_expr.not_error())
+	if (id.decl->get_type().is<ast::ts_consteval>() && id.decl->init_expr.not_error())
 	{
+		bz_assert(id.decl->is_global_storage());
 		context.add_global_variable(id.decl);
 	}
 	auto const [ptr, type] = context.get_variable(id.decl);
@@ -7567,7 +7568,12 @@ static void emit_bitcode(
 			return;
 		}
 	}
-	if (var_decl.get_type().is<ast::ts_lvalue_reference>())
+
+	if (var_decl.is_global_storage())
+	{
+		emit_global_variable(var_decl, context);
+	}
+	else if (var_decl.get_type().is<ast::ts_lvalue_reference>())
 	{
 		bz_assert(var_decl.init_expr.not_null());
 		auto const init_val = [&]() {
@@ -8175,11 +8181,7 @@ static void emit_function_bitcode_impl(
 			{
 				bz_assert(p.get_type().is<ast::ts_consteval>());
 				bz_assert(p.init_expr.is_constant());
-				auto const &const_expr = p.init_expr.get_constant();
-				auto const val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
-				auto const alloca = context.create_alloca(val->getType());
-				context.builder.CreateStore(val, alloca);
-				add_variable_helper(p, alloca, val->getType(), context);
+				emit_global_variable(p, context);
 				++p_it;
 				continue;
 			}
@@ -8350,6 +8352,7 @@ void emit_function_bitcode(
 template<abi::platform_abi abi>
 static void emit_global_variable_impl(ast::decl_variable const &var_decl, auto &context)
 {
+	bz_assert(var_decl.is_global_storage());
 	auto const name = var_decl.symbol_name != "" ? var_decl.symbol_name : var_decl.get_id().format_for_symbol(get_unique_id());
 	auto const name_ref = llvm::StringRef(name.data_as_char_ptr(), name.size());
 	auto const type = get_llvm_type(var_decl.get_type(), context);

@@ -120,8 +120,8 @@ bc::value_and_type_pair comptime_executor_context::get_variable(ast::decl_variab
 	{
 		global_it->second.module = &this->get_module();
 		auto const new_declaration = this->get_module().getOrInsertGlobal(definition->getName(), definition->getValueType());
-		bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(new_declaration) != nullptr);
-		global_it->second.declaration = static_cast<llvm::GlobalVariable *>(new_declaration);
+		bz_assert(llvm::isa<llvm::GlobalVariable>(new_declaration));
+		global_it->second.declaration = llvm::cast<llvm::GlobalVariable>(new_declaration);
 		return bc::value_and_type_pair{ global_it->second.declaration, global_it->second.declaration->getValueType() };
 	}
 	else
@@ -133,10 +133,10 @@ bc::value_and_type_pair comptime_executor_context::get_variable(ast::decl_variab
 
 void comptime_executor_context::add_variable(ast::decl_variable const *var_decl, llvm::Value *val, llvm::Type *type)
 {
-	if (var_decl->is_global())
+	if (var_decl->is_global_storage())
 	{
-		bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(val) != nullptr);
-		this->global_vars_[var_decl] = { static_cast<llvm::GlobalVariable *>(val), nullptr, nullptr };
+		bz_assert(llvm::isa<llvm::GlobalVariable>(val));
+		this->global_vars_[var_decl] = { llvm::cast<llvm::GlobalVariable>(val), nullptr, nullptr };
 	}
 	else
 	{

@@ -1508,14 +1508,7 @@ function complex_test()
 {
 	function println(z: std::complex)
 	{
-		if (z.im >= 0.0)
-		{
-			std::printf("{}+{}i\n", z.re, z.im);
-		}
-		else
-		{
-			std::printf("{}{}i\n", z.re, z.im);
-		}
+		std::printf("{}{:+}i\n", z.re, z.im);
 	}
 
 	consteval z = std::complex[ 0.0, 1.0 ] * std::complex[ 0.0, 1.0 ];
@@ -1547,6 +1540,10 @@ function complex_test()
 
 	let n = (if (z == std::complex[ 0.0, 1.0 ]) 1 else 1i64);
 	static_assert(typeof n == int64);
+
+	consteval z = std::complex[ 1.0, -2.0 ];
+	static_assert(z != std::complex());
+	static_assert(z.abs() > 1.0);
 
 	function void_ptr(: *const void) {}
 	void_ptr(&z);

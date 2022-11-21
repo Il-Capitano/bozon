@@ -196,6 +196,7 @@ ast::statement parse_decl_variable(
 			bz_assert(result.is<ast::decl_variable>());
 			auto &var_decl = result.get<ast::decl_variable>();
 			var_decl.flags |= ast::decl_variable::global;
+			var_decl.flags |= ast::decl_variable::global_storage;
 			if (is_extern)
 			{
 				var_decl.flags |= ast::decl_variable::external_linkage;
@@ -260,6 +261,7 @@ ast::statement parse_decl_variable(
 			bz_assert(result.is<ast::decl_variable>());
 			auto &var_decl = result.get<ast::decl_variable>();
 			var_decl.flags |= ast::decl_variable::global;
+			var_decl.flags |= ast::decl_variable::global_storage;
 			if (is_extern)
 			{
 				var_decl.flags |= ast::decl_variable::external_linkage;
