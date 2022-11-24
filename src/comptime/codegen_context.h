@@ -20,6 +20,8 @@ struct instruction_ref
 {
 	uint32_t bb_index;
 	uint32_t inst_index;
+
+	bool operator == (instruction_ref const &rhs) const = default;
 };
 
 enum class expr_value_kind
@@ -57,6 +59,8 @@ struct expr_value
 	{
 		return { .value = value, .kind = expr_value_kind::value, .value_type = value_type };
 	}
+
+	bool operator == (expr_value const &rhs) const = default;
 };
 
 struct unresolved_instruction
@@ -212,20 +216,40 @@ struct codegen_context
 		return result;
 	}
 
+	expr_value create_const_i1(bool value);
+	expr_value create_const_i8(int8_t value);
+	expr_value create_const_i16(int16_t value);
+	expr_value create_const_i32(int32_t value);
+	expr_value create_const_i64(int64_t value);
+	expr_value create_const_u8(uint8_t value);
+	expr_value create_const_u16(uint16_t value);
+	expr_value create_const_u32(uint32_t value);
+	expr_value create_const_u64(uint64_t value);
+	expr_value create_const_f32(float32_t value);
+	expr_value create_const_f64(float64_t value);
 	expr_value create_const_ptr_null(void);
+
 	expr_value create_load(expr_value ptr);
 	instruction_ref create_store(expr_value value, expr_value ptr);
+
 	expr_value create_alloca(type const *type);
+
 	instruction_ref create_jump(basic_block_ref bb);
 	instruction_ref create_conditional_jump(instruction_ref condition, basic_block_ref true_bb, basic_block_ref false_bb);
 	instruction_ref create_ret(instruction_ref value);
 	instruction_ref create_ret_void(void);
+
 	expr_value create_struct_gep(expr_value value, size_t index);
 	instruction_ref create_const_memcpy(expr_value dest, expr_value source, size_t size);
+	instruction_ref create_const_memset_zero(expr_value dest, size_t size);
+
 	expr_value create_int_cast(expr_value value, type const *dest, bool is_value_signed);
 	expr_value create_float_cast(expr_value value, type const *dest);
 	expr_value create_float_to_int_cast(expr_value value, type const *dest, bool is_dest_signed);
 	expr_value create_int_to_float_cast(expr_value value, type const *dest, bool is_value_signed);
+
+	expr_value create_cmp_eq_ptr(expr_value lhs, expr_value rhs);
+	expr_value create_cmp_neq_ptr(expr_value lhs, expr_value rhs);
 
 	instruction_ref create_error(lex::src_tokens const &src_tokens, bz::u8string message);
 

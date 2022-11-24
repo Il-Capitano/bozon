@@ -288,6 +288,72 @@ void codegen_context::emit_all_destruct_operations(void)
 }
 
 
+expr_value codegen_context::create_const_i1(bool value)
+{
+	auto const inst_ref = this->add_instruction(instructions::const_i1{ .value = value });
+	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
+}
+
+expr_value codegen_context::create_const_i8(int8_t value)
+{
+	auto const inst_ref = this->add_instruction(instructions::const_i8{ .value = value });
+	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i8));
+}
+
+expr_value codegen_context::create_const_i16(int16_t value)
+{
+	auto const inst_ref = this->add_instruction(instructions::const_i16{ .value = value });
+	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i16));
+}
+
+expr_value codegen_context::create_const_i32(int32_t value)
+{
+	auto const inst_ref = this->add_instruction(instructions::const_i32{ .value = value });
+	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i32));
+}
+
+expr_value codegen_context::create_const_i64(int64_t value)
+{
+	auto const inst_ref = this->add_instruction(instructions::const_i64{ .value = value });
+	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i64));
+}
+
+expr_value codegen_context::create_const_u8(uint8_t value)
+{
+	auto const inst_ref = this->add_instruction(instructions::const_u8{ .value = value });
+	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i8));
+}
+
+expr_value codegen_context::create_const_u16(uint16_t value)
+{
+	auto const inst_ref = this->add_instruction(instructions::const_u16{ .value = value });
+	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i16));
+}
+
+expr_value codegen_context::create_const_u32(uint32_t value)
+{
+	auto const inst_ref = this->add_instruction(instructions::const_u32{ .value = value });
+	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i32));
+}
+
+expr_value codegen_context::create_const_u64(uint64_t value)
+{
+	auto const inst_ref = this->add_instruction(instructions::const_u64{ .value = value });
+	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i64));
+}
+
+expr_value codegen_context::create_const_f32(float32_t value)
+{
+	auto const inst_ref = this->add_instruction(instructions::const_f32{ .value = value });
+	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::f32));
+}
+
+expr_value codegen_context::create_const_f64(float64_t value)
+{
+	auto const inst_ref = this->add_instruction(instructions::const_f64{ .value = value });
+	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::f64));
+}
+
 expr_value codegen_context::create_const_ptr_null(void)
 {
 	auto const inst_ref = this->add_instruction(instructions::const_ptr_null{});
@@ -581,6 +647,13 @@ instruction_ref codegen_context::create_const_memcpy(expr_value dest, expr_value
 	bz_assert(source.is_reference());
 
 	return this->add_instruction(instructions::const_memcpy{ .size = size }, dest.get_reference(), source.get_reference());
+}
+
+instruction_ref codegen_context::create_const_memset_zero(expr_value dest, size_t size)
+{
+	bz_assert(dest.is_reference());
+
+	return this->add_instruction(instructions::const_memset_zero{ .size = size }, dest.get_reference());
 }
 
 expr_value codegen_context::create_int_cast(expr_value value, type const *dest, bool is_value_signed)
@@ -903,6 +976,20 @@ expr_value codegen_context::create_int_to_float_cast(expr_value value, type cons
 			}
 		}
 	}
+}
+
+expr_value codegen_context::create_cmp_eq_ptr(expr_value lhs, expr_value rhs)
+{
+	bz_assert(lhs.get_type()->is_pointer() && rhs.get_type()->is_pointer());
+	auto const inst_ref = this->add_instruction(instructions::cmp_eq_ptr{}, lhs.get_value(*this), rhs.get_value(*this));
+	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
+}
+
+expr_value codegen_context::create_cmp_neq_ptr(expr_value lhs, expr_value rhs)
+{
+	bz_assert(lhs.get_type()->is_pointer() && rhs.get_type()->is_pointer());
+	auto const inst_ref = this->add_instruction(instructions::cmp_neq_ptr{}, lhs.get_value(*this), rhs.get_value(*this));
+	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
 
 instruction_ref codegen_context::create_error(lex::src_tokens const &src_tokens, bz::u8string message)

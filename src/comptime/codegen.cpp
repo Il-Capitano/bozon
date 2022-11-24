@@ -115,6 +115,55 @@ static type const *get_type(ast::typespec_view type, codegen_context &context)
 	}
 }
 
+static expr_value get_optional_value(expr_value opt_value, codegen_context &context)
+{
+	if (opt_value.get_type()->is_pointer())
+	{
+		return opt_value;
+	}
+	else
+	{
+		return context.create_struct_gep(opt_value, 0);
+	}
+}
+
+static expr_value get_optional_has_value(expr_value opt_value, codegen_context &context)
+{
+	if (opt_value.get_type()->is_pointer())
+	{
+		return context.create_cmp_neq_ptr(opt_value, context.create_const_ptr_null());
+	}
+	else
+	{
+		return context.create_struct_gep(opt_value, 1);
+	}
+}
+
+static void set_optional_has_value(expr_value opt_value, bool has_value, codegen_context &context)
+{
+	if (opt_value.get_type()->is_pointer())
+	{
+		if (!has_value)
+		{
+			context.create_store(context.create_const_ptr_null(), opt_value);
+		}
+	}
+	else
+	{
+		auto const has_value_ref = context.create_struct_gep(opt_value, 1);
+		bz_assert(has_value_ref.get_type()->is_builtin() && has_value_ref.get_type()->get_builtin_kind() == builtin_type_kind::i1);
+		context.create_store(context.create_const_i1(has_value), has_value_ref);
+	}
+}
+
+static void set_optional_has_value(expr_value opt_value, expr_value has_value, codegen_context &context)
+{
+	bz_assert(opt_value.get_type()->is_aggregate());
+	auto const has_value_ref = context.create_struct_gep(opt_value, 1);
+	bz_assert(has_value_ref.get_type()->is_builtin() && has_value_ref.get_type()->get_builtin_kind() == builtin_type_kind::i1);
+	context.create_store(has_value, has_value_ref);
+}
+
 static void generate_stmt_code(ast::statement const &stmt, codegen_context &context);
 
 static expr_value generate_expr_code(
@@ -125,8 +174,7 @@ static expr_value generate_expr_code(
 
 static expr_value generate_expr_code(
 	ast::expr_identifier const &identifier,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
+	codegen_context &context
 )
 {
 	auto const result = context.get_variable(identifier.decl);
@@ -141,7 +189,6 @@ static expr_value generate_expr_code(
 		return expr_value::get_reference(instruction_ref{}, type);
 	}
 
-	bz_assert(!result_address.has_value());
 	return result;
 }
 
@@ -448,32 +495,44 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	ast::expr_optional_cast const &,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
-);
-
-static expr_value generate_expr_code(
-	ast::expr_take_reference const &take_ref,
+	ast::expr_optional_cast const &optional_cast,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 )
 {
+	if (!result_address.has_value())
+	{
+		bz_assert(optional_cast.type.is<ast::ts_optional>());
+		auto const type = get_type(optional_cast.type, context);
+		result_address = context.create_alloca(type);
+	}
+
+	auto const &result_value = result_address.get();
+
+	auto const opt_value = get_optional_value(result_value, context);
+	generate_expr_code(optional_cast.expr, context, opt_value);
+	set_optional_has_value(result_value, true, context);
+
+	return result_value;
+}
+
+static expr_value generate_expr_code(
+	ast::expr_take_reference const &take_ref,
+	codegen_context &context
+)
+{
 	auto const result = generate_expr_code(take_ref.expr, context, {});
 	bz_assert(result.is_reference());
-	bz_assert(!result_address.has_value());
 	return result;
 }
 
 static expr_value generate_expr_code(
 	ast::expr_take_move_reference const &take_move_ref,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
+	codegen_context &context
 )
 {
 	auto const result = generate_expr_code(take_move_ref.expr, context, {});
 	bz_assert(result.is_reference());
-	bz_assert(!result_address.has_value());
 	return result;
 }
 
@@ -526,11 +585,36 @@ static expr_value generate_expr_code(
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 );
+
 static expr_value generate_expr_code(
-	ast::expr_optional_default_construct const &,
+	ast::expr_optional_default_construct const &optional_default_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const is_ptr = optional_default_construct.type.is_optional_pointer_like();
+	if (is_ptr && !result_address.has_value())
+	{
+		return context.create_const_ptr_null();
+	}
+	else if (is_ptr)
+	{
+		context.create_store(context.create_const_ptr_null(), result_address.get());
+		return result_address.get();
+	}
+	else
+	{
+		if (!result_address.has_value())
+		{
+			auto const type = get_type(optional_default_construct.type, context);
+			result_address = context.create_alloca(type);
+		}
+
+		auto const &result_value = result_address.get();
+		set_optional_has_value(result_value, false, context);
+		return result_value;
+	}
+}
 
 static expr_value generate_expr_code(
 	ast::expr_builtin_default_construct const &builtin_default_construct,
@@ -584,11 +668,43 @@ static expr_value generate_expr_code(
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 );
+
 static expr_value generate_expr_code(
-	ast::expr_optional_copy_construct const &,
+	ast::expr_optional_copy_construct const &optional_copy_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const copied_val = generate_expr_code(optional_copy_construct.copied_value, context, {});
+
+	if (!result_address.has_value())
+	{
+		result_address = context.create_alloca(copied_val.get_type());
+	}
+
+	auto const &result_value = result_address.get();
+
+	auto const has_value = get_optional_has_value(copied_val, context);
+	set_optional_has_value(result_value, has_value, context);
+	auto const begin_bb = context.get_current_basic_block();
+
+	auto const copy_bb = context.add_basic_block();
+	context.set_current_basic_block(copy_bb);
+
+	auto const result_opt_value = get_optional_value(result_value, context);
+	auto const prev_value = context.push_value_reference(get_optional_value(copied_val, context));
+	generate_expr_code(optional_copy_construct.value_copy_expr, context, result_opt_value);
+	context.pop_value_reference(prev_value);
+
+	auto const end_bb = context.add_basic_block();
+	context.create_jump(end_bb);
+
+	context.set_current_basic_block(begin_bb);
+	context.create_conditional_jump(has_value.get_value(context), copy_bb, end_bb);
+	context.set_current_basic_block(end_bb);
+
+	return result_value;
+}
 
 static expr_value generate_expr_code(
 	ast::expr_builtin_copy_construct const &builtin_copy_construct,
@@ -653,11 +769,43 @@ static expr_value generate_expr_code(
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 );
+
 static expr_value generate_expr_code(
-	ast::expr_optional_move_construct const &,
+	ast::expr_optional_move_construct const &optional_move_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const moved_val = generate_expr_code(optional_move_construct.moved_value, context, {});
+
+	if (!result_address.has_value())
+	{
+		result_address = context.create_alloca(moved_val.get_type());
+	}
+
+	auto const &result_value = result_address.get();
+
+	auto const has_value = get_optional_has_value(moved_val, context);
+	set_optional_has_value(result_value, has_value, context);
+	auto const begin_bb = context.get_current_basic_block();
+
+	auto const copy_bb = context.add_basic_block();
+	context.set_current_basic_block(copy_bb);
+
+	auto const result_opt_value = get_optional_value(result_value, context);
+	auto const prev_value = context.push_value_reference(get_optional_value(moved_val, context));
+	generate_expr_code(optional_move_construct.value_move_expr, context, result_opt_value);
+	context.pop_value_reference(prev_value);
+
+	auto const end_bb = context.add_basic_block();
+	context.create_jump(end_bb);
+
+	context.set_current_basic_block(begin_bb);
+	context.create_conditional_jump(has_value.get_value(context), copy_bb, end_bb);
+	context.set_current_basic_block(end_bb);
+
+	return result_value;
+}
 
 static expr_value generate_expr_code(
 	ast::expr_trivial_relocate const &trivial_relocate,
@@ -695,8 +843,7 @@ static expr_value generate_expr_code(
 
 static expr_value generate_expr_code(
 	ast::expr_aggregate_destruct const &aggregate_destruct,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
+	codegen_context &context
 )
 {
 	auto const value = generate_expr_code(aggregate_destruct.value, context, {});
@@ -715,25 +862,46 @@ static expr_value generate_expr_code(
 		}
 	}
 
-	bz_assert(!result_address.has_value());
 	return expr_value::get_none();
 }
 
 static expr_value generate_expr_code(
 	ast::expr_array_destruct const &,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
-);
-static expr_value generate_expr_code(
-	ast::expr_optional_destruct const &,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
+	codegen_context &context
 );
 
 static expr_value generate_expr_code(
+	ast::expr_optional_destruct const &optional_destruct,
+	codegen_context &context
+)
+{
+	bz_assert(optional_destruct.value_destruct_call.not_null());
+
+	auto const value = generate_expr_code(optional_destruct.value, context, {});
+
+	auto const has_value = get_optional_has_value(value, context);
+	auto const begin_bb = context.get_current_basic_block();
+
+	auto const destruct_bb = context.add_basic_block();
+	context.set_current_basic_block(destruct_bb);
+
+	auto const prev_value = context.push_value_reference(get_optional_value(value, context));
+	generate_expr_code(optional_destruct.value_destruct_call, context, {});
+	context.pop_value_reference(prev_value);
+
+	auto const end_bb = context.add_basic_block();
+	context.create_jump(end_bb);
+
+	context.set_current_basic_block(begin_bb);
+	context.create_conditional_jump(has_value.get_value(context), destruct_bb, end_bb);
+	context.set_current_basic_block(end_bb);
+
+	return expr_value::get_none();
+}
+
+static expr_value generate_expr_code(
 	ast::expr_base_type_destruct const &base_type_destruct,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
+	codegen_context &context
 )
 {
 	auto const value = generate_expr_code(base_type_destruct.value, context, {});
@@ -759,14 +927,12 @@ static expr_value generate_expr_code(
 		}
 	}
 
-	bz_assert(!result_address.has_value());
 	return expr_value::get_none();
 }
 
 static expr_value generate_expr_code(
 	ast::expr_destruct_value const &destruct_value,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
+	codegen_context &context
 )
 {
 	auto const value = generate_expr_code(destruct_value.value, context, {});
@@ -777,7 +943,6 @@ static expr_value generate_expr_code(
 		context.pop_value_reference(prev_value);
 	}
 
-	bz_assert(!result_address.has_value());
 	return expr_value::get_none();
 }
 
@@ -844,14 +1009,12 @@ static expr_value generate_expr_code(
 
 static expr_value generate_expr_code(
 	ast::expr_member_access const &member_access,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
+	codegen_context &context
 )
 {
 	auto const base = generate_expr_code(member_access.base, context, {});
 	bz_assert(base.is_reference());
 	bz_assert(base.get_type()->is_aggregate());
-	bz_assert(!result_address.has_value());
 	return context.create_struct_gep(base, member_access.index);
 }
 
@@ -865,11 +1028,26 @@ static expr_value generate_expr_code(
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 );
+
 static expr_value generate_expr_code(
-	ast::expr_type_member_access const &,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
-);
+	ast::expr_type_member_access const &type_member_access,
+	codegen_context &context
+)
+{
+	auto const result = context.get_variable(type_member_access.var_decl);
+
+	if (result.is_none())
+	{
+		context.create_error(
+			lex::src_tokens::from_single_token(type_member_access.member),
+			bz::format("member '{}' cannot be used in a constant expression", type_member_access.member->value)
+		);
+		auto const type = get_type(type_member_access.var_decl->get_type(), context);
+		return expr_value::get_reference(instruction_ref{}, type);
+	}
+
+	return result;
+}
 
 static expr_value generate_expr_code(
 	ast::expr_compound const &compound_expr,
@@ -987,8 +1165,7 @@ static expr_value generate_expr_code(
 static expr_value generate_expr_code(
 	lex::src_tokens const &src_tokens,
 	ast::expr_break const &,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
+	codegen_context &context
 )
 {
 	if (!context.loop_info.in_loop)
@@ -1000,15 +1177,13 @@ static expr_value generate_expr_code(
 		context.emit_loop_destruct_operations();
 		context.create_jump(context.loop_info.break_bb);
 	}
-	bz_assert(!result_address.has_value());
 	return expr_value::get_none();
 }
 
 static expr_value generate_expr_code(
 	lex::src_tokens const &src_tokens,
 	ast::expr_continue const &,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
+	codegen_context &context
 )
 {
 	if (!context.loop_info.in_loop)
@@ -1020,19 +1195,16 @@ static expr_value generate_expr_code(
 		context.emit_loop_destruct_operations();
 		context.create_jump(context.loop_info.continue_bb);
 	}
-	bz_assert(!result_address.has_value());
 	return expr_value::get_none();
 }
 
 static expr_value generate_expr_code(
 	lex::src_tokens const &src_tokens,
 	ast::expr_unreachable const &,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
+	codegen_context &context
 )
 {
 	context.create_error(src_tokens, "'unreachable' hit in compile time execution");
-	bz_assert(!result_address.has_value());
 	return expr_value::get_none();
 }
 
@@ -1047,21 +1219,895 @@ static expr_value generate_expr_code(
 
 static expr_value generate_expr_code(
 	ast::expr_bitcode_value_reference const &bitcode_value_reference,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
+	codegen_context &context
 )
 {
-	bz_assert(!result_address.has_value());
 	return context.get_value_reference(bitcode_value_reference.index);
 }
 
 static expr_value generate_expr_code(
+	lex::src_tokens const &src_tokens,
+	ast::expr_t const &expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+)
+{
+	switch (expr.kind())
+	{
+	static_assert(ast::expr_t::variant_count == 61);
+	case ast::expr_t::index<ast::expr_identifier>:
+		bz_assert(!result_address.has_value());
+		return generate_expr_code(expr.get<ast::expr_identifier>(), context);
+	case ast::expr_t::index<ast::expr_integer_literal>:
+		return generate_expr_code(expr.get<ast::expr_integer_literal>(), context, result_address);
+	case ast::expr_t::index<ast::expr_null_literal>:
+		return generate_expr_code(expr.get<ast::expr_null_literal>(), context, result_address);
+	case ast::expr_t::index<ast::expr_enum_literal>:
+		return generate_expr_code(expr.get<ast::expr_enum_literal>(), context, result_address);
+	case ast::expr_t::index<ast::expr_typed_literal>:
+		return generate_expr_code(expr.get<ast::expr_typed_literal>(), context, result_address);
+	case ast::expr_t::index<ast::expr_placeholder_literal>:
+		return generate_expr_code(expr.get<ast::expr_placeholder_literal>(), context, result_address);
+	case ast::expr_t::index<ast::expr_tuple>:
+		return generate_expr_code(expr.get<ast::expr_tuple>(), context, result_address);
+	case ast::expr_t::index<ast::expr_unary_op>:
+		return generate_expr_code(expr.get<ast::expr_unary_op>(), context, result_address);
+	case ast::expr_t::index<ast::expr_binary_op>:
+		return generate_expr_code(expr.get<ast::expr_binary_op>(), context, result_address);
+	case ast::expr_t::index<ast::expr_tuple_subscript>:
+		return generate_expr_code(expr.get<ast::expr_tuple_subscript>(), context, result_address);
+	case ast::expr_t::index<ast::expr_rvalue_tuple_subscript>:
+		return generate_expr_code(expr.get<ast::expr_rvalue_tuple_subscript>(), context, result_address);
+	case ast::expr_t::index<ast::expr_subscript>:
+		return generate_expr_code(expr.get<ast::expr_subscript>(), context, result_address);
+	case ast::expr_t::index<ast::expr_rvalue_array_subscript>:
+		return generate_expr_code(expr.get<ast::expr_rvalue_array_subscript>(), context, result_address);
+	case ast::expr_t::index<ast::expr_function_call>:
+		return generate_expr_code(expr.get<ast::expr_function_call>(), context, result_address);
+	case ast::expr_t::index<ast::expr_cast>:
+		return generate_expr_code(expr.get<ast::expr_cast>(), context, result_address);
+	case ast::expr_t::index<ast::expr_optional_cast>:
+		return generate_expr_code(expr.get<ast::expr_optional_cast>(), context, result_address);
+	case ast::expr_t::index<ast::expr_take_reference>:
+		bz_assert(!result_address.has_value());
+		return generate_expr_code(expr.get<ast::expr_take_reference>(), context);
+	case ast::expr_t::index<ast::expr_take_move_reference>:
+		bz_assert(!result_address.has_value());
+		return generate_expr_code(expr.get<ast::expr_take_move_reference>(), context);
+	case ast::expr_t::index<ast::expr_aggregate_init>:
+		return generate_expr_code(expr.get<ast::expr_aggregate_init>(), context, result_address);
+	case ast::expr_t::index<ast::expr_aggregate_default_construct>:
+		return generate_expr_code(expr.get<ast::expr_aggregate_default_construct>(), context, result_address);
+	case ast::expr_t::index<ast::expr_array_default_construct>:
+		return generate_expr_code(expr.get<ast::expr_array_default_construct>(), context, result_address);
+	case ast::expr_t::index<ast::expr_optional_default_construct>:
+		return generate_expr_code(expr.get<ast::expr_optional_default_construct>(), context, result_address);
+	case ast::expr_t::index<ast::expr_builtin_default_construct>:
+		return generate_expr_code(expr.get<ast::expr_builtin_default_construct>(), context, result_address);
+	case ast::expr_t::index<ast::expr_aggregate_copy_construct>:
+		return generate_expr_code(expr.get<ast::expr_aggregate_copy_construct>(), context, result_address);
+	case ast::expr_t::index<ast::expr_array_copy_construct>:
+		return generate_expr_code(expr.get<ast::expr_array_copy_construct>(), context, result_address);
+	case ast::expr_t::index<ast::expr_optional_copy_construct>:
+		return generate_expr_code(expr.get<ast::expr_optional_copy_construct>(), context, result_address);
+	case ast::expr_t::index<ast::expr_builtin_copy_construct>:
+		return generate_expr_code(expr.get<ast::expr_builtin_copy_construct>(), context, result_address);
+	case ast::expr_t::index<ast::expr_aggregate_move_construct>:
+		return generate_expr_code(expr.get<ast::expr_aggregate_move_construct>(), context, result_address);
+	case ast::expr_t::index<ast::expr_array_move_construct>:
+		return generate_expr_code(expr.get<ast::expr_array_move_construct>(), context, result_address);
+	case ast::expr_t::index<ast::expr_optional_move_construct>:
+		return generate_expr_code(expr.get<ast::expr_optional_move_construct>(), context, result_address);
+	case ast::expr_t::index<ast::expr_trivial_relocate>:
+		return generate_expr_code(expr.get<ast::expr_trivial_relocate>(), context, result_address);
+	case ast::expr_t::index<ast::expr_aggregate_destruct>:
+		bz_assert(!result_address.has_value());
+		return generate_expr_code(expr.get<ast::expr_aggregate_destruct>(), context);
+	case ast::expr_t::index<ast::expr_array_destruct>:
+		bz_assert(!result_address.has_value());
+		return generate_expr_code(expr.get<ast::expr_array_destruct>(), context);
+	case ast::expr_t::index<ast::expr_optional_destruct>:
+		bz_assert(!result_address.has_value());
+		return generate_expr_code(expr.get<ast::expr_optional_destruct>(), context);
+	case ast::expr_t::index<ast::expr_base_type_destruct>:
+		bz_assert(!result_address.has_value());
+		return generate_expr_code(expr.get<ast::expr_base_type_destruct>(), context);
+	case ast::expr_t::index<ast::expr_destruct_value>:
+		bz_assert(!result_address.has_value());
+		return generate_expr_code(expr.get<ast::expr_destruct_value>(), context);
+	case ast::expr_t::index<ast::expr_aggregate_assign>:
+		return generate_expr_code(expr.get<ast::expr_aggregate_assign>(), context, result_address);
+	case ast::expr_t::index<ast::expr_aggregate_swap>:
+		return generate_expr_code(expr.get<ast::expr_aggregate_swap>(), context, result_address);
+	case ast::expr_t::index<ast::expr_array_swap>:
+		return generate_expr_code(expr.get<ast::expr_array_swap>(), context, result_address);
+	case ast::expr_t::index<ast::expr_optional_swap>:
+		return generate_expr_code(expr.get<ast::expr_optional_swap>(), context, result_address);
+	case ast::expr_t::index<ast::expr_base_type_swap>:
+		return generate_expr_code(expr.get<ast::expr_base_type_swap>(), context, result_address);
+	case ast::expr_t::index<ast::expr_trivial_swap>:
+		return generate_expr_code(expr.get<ast::expr_trivial_swap>(), context, result_address);
+	case ast::expr_t::index<ast::expr_array_assign>:
+		return generate_expr_code(expr.get<ast::expr_array_assign>(), context, result_address);
+	case ast::expr_t::index<ast::expr_optional_assign>:
+		return generate_expr_code(expr.get<ast::expr_optional_assign>(), context, result_address);
+	case ast::expr_t::index<ast::expr_optional_null_assign>:
+		return generate_expr_code(expr.get<ast::expr_optional_null_assign>(), context, result_address);
+	case ast::expr_t::index<ast::expr_optional_value_assign>:
+		return generate_expr_code(expr.get<ast::expr_optional_value_assign>(), context, result_address);
+	case ast::expr_t::index<ast::expr_base_type_assign>:
+		return generate_expr_code(expr.get<ast::expr_base_type_assign>(), context, result_address);
+	case ast::expr_t::index<ast::expr_trivial_assign>:
+		return generate_expr_code(expr.get<ast::expr_trivial_assign>(), context, result_address);
+	case ast::expr_t::index<ast::expr_member_access>:
+		bz_assert(!result_address.has_value());
+		return generate_expr_code(expr.get<ast::expr_member_access>(), context);
+	case ast::expr_t::index<ast::expr_optional_extract_value>:
+		return generate_expr_code(expr.get<ast::expr_optional_extract_value>(), context, result_address);
+	case ast::expr_t::index<ast::expr_rvalue_member_access>:
+		return generate_expr_code(expr.get<ast::expr_rvalue_member_access>(), context, result_address);
+	case ast::expr_t::index<ast::expr_type_member_access>:
+		bz_assert(!result_address.has_value());
+		return generate_expr_code(expr.get<ast::expr_type_member_access>(), context);
+	case ast::expr_t::index<ast::expr_compound>:
+		return generate_expr_code(expr.get<ast::expr_compound>(), context, result_address);
+	case ast::expr_t::index<ast::expr_if>:
+		return generate_expr_code(expr.get<ast::expr_if>(), context, result_address);
+	case ast::expr_t::index<ast::expr_if_consteval>:
+		return generate_expr_code(expr.get<ast::expr_if_consteval>(), context, result_address);
+	case ast::expr_t::index<ast::expr_switch>:
+		return generate_expr_code(expr.get<ast::expr_switch>(), context, result_address);
+	case ast::expr_t::index<ast::expr_break>:
+		bz_assert(!result_address.has_value());
+		return generate_expr_code(src_tokens, expr.get<ast::expr_break>(), context);
+	case ast::expr_t::index<ast::expr_continue>:
+		bz_assert(!result_address.has_value());
+		return generate_expr_code(src_tokens, expr.get<ast::expr_continue>(), context);
+	case ast::expr_t::index<ast::expr_unreachable>:
+		bz_assert(!result_address.has_value());
+		return generate_expr_code(src_tokens, expr.get<ast::expr_unreachable>(), context);
+	case ast::expr_t::index<ast::expr_generic_type_instantiation>:
+		return generate_expr_code(expr.get<ast::expr_generic_type_instantiation>(), context, result_address);
+	case ast::expr_t::index<ast::expr_bitcode_value_reference>:
+		bz_assert(!result_address.has_value());
+		return generate_expr_code(expr.get<ast::expr_bitcode_value_reference>(), context);
+	default:
+		bz_unreachable;
+	}
+}
+
+static expr_value get_constant_value(
+	ast::constant_value const &value,
+	ast::typespec_view type,
+	ast::constant_expression const *const_expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+
+static bool is_zero_value(ast::constant_value const &value)
+{
+	switch (value.kind())
+	{
+	static_assert(ast::constant_value::variant_count == 21);
+	case ast::constant_value::sint:
+		return value.get_sint() == 0;
+	case ast::constant_value::uint:
+		return value.get_uint() == 0;
+	case ast::constant_value::float32:
+		return bit_cast<uint32_t>(value.get_float32()) == 0;
+	case ast::constant_value::float64:
+		return bit_cast<uint64_t>(value.get_float64()) == 0;
+	case ast::constant_value::u8char:
+		return value.get_u8char() == 0;
+	case ast::constant_value::string:
+		return value.get_string() == "";
+	case ast::constant_value::boolean:
+		return value.get_boolean() == false;
+	case ast::constant_value::null:
+		return true;
+	case ast::constant_value::void_:
+		return true;
+	case ast::constant_value::enum_:
+		return value.get_enum().value == 0;
+	case ast::constant_value::array:
+		return value.get_array().is_all([](auto const &value) { return is_zero_value(value); });
+	case ast::constant_value::sint_array:
+		return value.get_sint_array().is_all([](auto const value) { return value == 0; });
+	case ast::constant_value::uint_array:
+		return value.get_sint_array().is_all([](auto const value) { return value == 0; });
+	case ast::constant_value::float32_array:
+		return value.get_float32_array().is_all([](auto const value) { return bit_cast<uint32_t>(value) == 0; });
+	case ast::constant_value::float64_array:
+		return value.get_float64_array().is_all([](auto const value) { return bit_cast<uint64_t>(value) == 0; });
+	case ast::constant_value::tuple:
+		return value.get_tuple().is_all([](auto const &value) { return is_zero_value(value); });
+	case ast::constant_value::function:
+		return false;
+	case ast::constant_value::aggregate:
+		return value.get_aggregate().is_all([](auto const &value) { return is_zero_value(value); });
+	case ast::constant_value::unqualified_function_set_id:
+	case ast::constant_value::qualified_function_set_id:
+		bz_unreachable;
+	case ast::constant_value::type:
+		bz_unreachable;
+	default:
+		bz_unreachable;
+	}
+}
+
+static ast::typespec_view flattened_array_elem_type(ast::ts_array const &array_t)
+{
+	ast::typespec_view result = array_t.elem_type;
+	while (result.is<ast::ts_array>())
+	{
+		result = result.get<ast::ts_array>().elem_type;
+	}
+	return result;
+}
+
+static void get_nonzero_constant_array_value(
+	bz::array_view<ast::constant_value const> values,
+	ast::ts_array const &array_type,
+	codegen_context &context,
+	expr_value result_address
+)
+{
+	bz_assert(result_address.get_type()->is_array());
+	if (array_type.elem_type.is<ast::ts_array>())
+	{
+		bz_assert(result_address.get_type()->get_array_element_type()->is_array());
+		bz_assert(values.size() % array_type.size == 0);
+		auto const stride = values.size() / array_type.size;
+		for (auto const i : bz::iota(0, array_type.size))
+		{
+			auto const begin_index = i * stride;
+			auto const sub_array = values.slice(begin_index, begin_index + stride);
+			auto const elem_result_address = context.create_struct_gep(result_address, i);
+			get_nonzero_constant_array_value(sub_array, array_type.elem_type.get<ast::ts_array>(), context, elem_result_address);
+		}
+	}
+	else
+	{
+		for (auto const i : bz::iota(0, array_type.size))
+		{
+			auto const elem_result_address = context.create_struct_gep(result_address, i);
+			get_constant_value(values[i], array_type.elem_type, nullptr, context, elem_result_address);
+		}
+	}
+}
+
+static void get_constant_array_value(
+	bz::array_view<ast::constant_value const> values,
+	ast::ts_array const &array_type,
+	codegen_context &context,
+	expr_value result_address
+)
+{
+	if (values.is_all([](auto const &value) { return is_zero_value(value); }))
+	{
+		context.create_const_memset_zero(result_address, result_address.get_type()->size);
+	}
+	else
+	{
+		get_nonzero_constant_array_value(values, array_type, context, result_address);
+	}
+}
+
+template<typename ValueType, expr_value (codegen_context::*create_const_int)(ValueType value), typename T>
+static void get_nonzero_constant_numeric_array_value(
+	bz::array_view<T const> values,
+	ast::ts_array const &array_type,
+	codegen_context &context,
+	expr_value result_address
+)
+{
+	static_assert(
+		(std::is_floating_point_v<ValueType> && std::is_same_v<ValueType, T>)
+		|| (std::is_integral_v<ValueType> && std::is_integral_v<T> && std::is_signed_v<ValueType> == std::is_signed_v<T>)
+	);
+	bz_assert(result_address.get_type()->is_array());
+	if (array_type.elem_type.is<ast::ts_array>())
+	{
+		bz_assert(result_address.get_type()->get_array_element_type()->is_array());
+		bz_assert(values.size() % array_type.size == 0);
+		auto const stride = values.size() / array_type.size;
+		for (auto const i : bz::iota(0, array_type.size))
+		{
+			auto const begin_index = i * stride;
+			auto const sub_array = values.slice(begin_index, begin_index + stride);
+			auto const elem_result_address = context.create_struct_gep(result_address, i);
+			get_nonzero_constant_numeric_array_value<ValueType, create_const_int>(
+				sub_array,
+				array_type.elem_type.get<ast::ts_array>(),
+				context,
+				elem_result_address
+			);
+		}
+	}
+	else
+	{
+		for (auto const i : bz::iota(0, array_type.size))
+		{
+			auto const elem_result_address = context.create_struct_gep(result_address, i);
+			context.create_store((context.*create_const_int)(static_cast<ValueType>(values[i])), elem_result_address);
+		}
+	}
+}
+
+static void get_constant_sint_array_value(
+	bz::array_view<int64_t const> values,
+	ast::ts_array const &array_type,
+	codegen_context &context,
+	expr_value result_address
+)
+{
+	if (values.is_all([](auto const value) { return value == 0; }))
+	{
+		context.create_const_memset_zero(result_address, result_address.get_type()->size);
+	}
+	else
+	{
+		auto const elem_type = flattened_array_elem_type(array_type);
+		bz_assert(elem_type.is<ast::ts_base_type>());
+		switch (elem_type.get<ast::ts_base_type>().info->kind)
+		{
+		case ast::type_info::int8_:
+			get_nonzero_constant_numeric_array_value<
+				int8_t, &codegen_context::create_const_i8
+			>(values, array_type, context, result_address);
+			break;
+		case ast::type_info::int16_:
+			get_nonzero_constant_numeric_array_value<
+				int16_t, &codegen_context::create_const_i16
+			>(values, array_type, context, result_address);
+			break;
+		case ast::type_info::int32_:
+			get_nonzero_constant_numeric_array_value<
+				int32_t, &codegen_context::create_const_i32
+			>(values, array_type, context, result_address);
+			break;
+		case ast::type_info::int64_:
+			get_nonzero_constant_numeric_array_value<
+				int64_t, &codegen_context::create_const_i64
+			>(values, array_type, context, result_address);
+			break;
+		default:
+			bz_unreachable;
+		}
+	}
+}
+
+static void get_constant_uint_array_value(
+	bz::array_view<uint64_t const> values,
+	ast::ts_array const &array_type,
+	codegen_context &context,
+	expr_value result_address
+)
+{
+	if (values.is_all([](auto const value) { return value == 0; }))
+	{
+		context.create_const_memset_zero(result_address, result_address.get_type()->size);
+	}
+	else
+	{
+		auto const elem_type = flattened_array_elem_type(array_type);
+		bz_assert(elem_type.is<ast::ts_base_type>());
+		switch (elem_type.get<ast::ts_base_type>().info->kind)
+		{
+		case ast::type_info::uint8_:
+			get_nonzero_constant_numeric_array_value<
+				uint8_t, &codegen_context::create_const_u8
+			>(values, array_type, context, result_address);
+			break;
+		case ast::type_info::uint16_:
+			get_nonzero_constant_numeric_array_value<
+				uint16_t, &codegen_context::create_const_u16
+			>(values, array_type, context, result_address);
+			break;
+		case ast::type_info::uint32_:
+			get_nonzero_constant_numeric_array_value<
+				uint32_t, &codegen_context::create_const_u32
+			>(values, array_type, context, result_address);
+			break;
+		case ast::type_info::uint64_:
+			get_nonzero_constant_numeric_array_value<
+				uint64_t, &codegen_context::create_const_u64
+			>(values, array_type, context, result_address);
+			break;
+		default:
+			bz_unreachable;
+		}
+	}
+}
+
+static void get_constant_float32_array_value(
+	bz::array_view<float32_t const> values,
+	ast::ts_array const &array_type,
+	codegen_context &context,
+	expr_value result_address
+)
+{
+	if (values.is_all([](auto const value) { return bit_cast<uint32_t>(value) == 0; }))
+	{
+		context.create_const_memset_zero(result_address, result_address.get_type()->size);
+	}
+	else
+	{
+		get_nonzero_constant_numeric_array_value<
+			float32_t, &codegen_context::create_const_f32
+		>(values, array_type, context, result_address);
+	}
+}
+
+static void get_constant_float64_array_value(
+	bz::array_view<float64_t const> values,
+	ast::ts_array const &array_type,
+	codegen_context &context,
+	expr_value result_address
+)
+{
+	if (values.is_all([](auto const value) { return bit_cast<uint64_t>(value) == 0; }))
+	{
+		context.create_const_memset_zero(result_address, result_address.get_type()->size);
+	}
+	else
+	{
+		get_nonzero_constant_numeric_array_value<
+			float64_t, &codegen_context::create_const_f64
+		>(values, array_type, context, result_address);
+	}
+}
+
+static type const *get_tuple_type(ast::typespec_view type, ast::constant_expression const *const_expr, codegen_context &context)
+{
+	if (type.not_empty())
+	{
+		return get_type(type, context);
+	}
+
+	bz_assert(const_expr != nullptr && const_expr->expr.is<ast::expr_tuple>());
+	auto const types = const_expr->expr.get<ast::expr_tuple>().elems
+		.transform([](auto const &elem) { return elem.get_constant(); })
+		.transform([&context](auto const &const_elem) { return get_tuple_type(const_elem.type, &const_elem, context); })
+		.collect();
+	return context.get_aggregate_type(types);
+}
+
+static expr_value get_constant_value_helper(
+	ast::constant_value const &value,
+	ast::typespec_view type,
+	ast::constant_expression const *const_expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+)
+{
+	switch (value.kind())
+	{
+	static_assert(ast::constant_value::variant_count == 21);
+	case ast::constant_value::sint:
+	{
+		auto int_value = expr_value::get_none();
+		bz_assert(type.is<ast::ts_base_type>());
+		switch (type.get<ast::ts_base_type>().info->kind)
+		{
+		case ast::type_info::int8_:
+			int_value = context.create_const_i8(static_cast<int8_t>(value.get_sint()));
+			break;
+		case ast::type_info::int16_:
+			int_value = context.create_const_i16(static_cast<int16_t>(value.get_sint()));
+			break;
+		case ast::type_info::int32_:
+			int_value = context.create_const_i32(static_cast<int32_t>(value.get_sint()));
+			break;
+		case ast::type_info::int64_:
+			int_value = context.create_const_i64(static_cast<int64_t>(value.get_sint()));
+			break;
+		default:
+			bz_unreachable;
+		}
+		if (result_address.has_value())
+		{
+			context.create_store(int_value, result_address.get());
+			return result_address.get();
+		}
+		else
+		{
+			return int_value;
+		}
+	}
+	case ast::constant_value::uint:
+	{
+		auto int_value = expr_value::get_none();
+		bz_assert(type.is<ast::ts_base_type>());
+		switch (type.get<ast::ts_base_type>().info->kind)
+		{
+		case ast::type_info::uint8_:
+			int_value = context.create_const_u8(static_cast<uint8_t>(value.get_uint()));
+			break;
+		case ast::type_info::uint16_:
+			int_value = context.create_const_u16(static_cast<uint16_t>(value.get_uint()));
+			break;
+		case ast::type_info::uint32_:
+			int_value = context.create_const_u32(static_cast<uint32_t>(value.get_uint()));
+			break;
+		case ast::type_info::uint64_:
+			int_value = context.create_const_u64(static_cast<uint64_t>(value.get_uint()));
+			break;
+		default:
+			bz_unreachable;
+		}
+		if (result_address.has_value())
+		{
+			context.create_store(int_value, result_address.get());
+			return result_address.get();
+		}
+		else
+		{
+			return int_value;
+		}
+	}
+	case ast::constant_value::float32:
+		if (result_address.has_value())
+		{
+			context.create_store(context.create_const_f32(value.get_float32()), result_address.get());
+			return result_address.get();
+		}
+		else
+		{
+			return context.create_const_f32(value.get_float32());
+		}
+	case ast::constant_value::float64:
+		if (result_address.has_value())
+		{
+			context.create_store(context.create_const_f64(value.get_float64()), result_address.get());
+			return result_address.get();
+		}
+		else
+		{
+			return context.create_const_f64(value.get_float64());
+		}
+	case ast::constant_value::u8char:
+		if (result_address.has_value())
+		{
+			context.create_store(context.create_const_u32(value.get_u8char()), result_address.get());
+			return result_address.get();
+		}
+		else
+		{
+			return context.create_const_u32(value.get_u8char());
+		}
+	case ast::constant_value::string:
+	{
+		if (!result_address.has_value())
+		{
+			result_address = context.create_alloca(context.get_str_t());
+		}
+
+		auto const &result_value = result_address.get();
+
+		auto const str = value.get_string();
+
+		// if the string is empty, we make a zero initialized string, so
+		// structs with a default value of "" get to be zero initialized
+		if (str == "")
+		{
+			auto const null_ptr_value = context.create_const_ptr_null();
+			context.create_store(null_ptr_value, context.create_struct_gep(result_value, 0));
+			context.create_store(null_ptr_value, context.create_struct_gep(result_value, 1));
+			return result_value;
+		}
+
+		bz_unreachable;
+		return result_value;
+	}
+	case ast::constant_value::boolean:
+		if (result_address.has_value())
+		{
+			context.create_store(context.create_const_i1(value.get_boolean()), result_address.get());
+			return result_address.get();
+		}
+		else
+		{
+			return context.create_const_i1(value.get_boolean());
+		}
+	case ast::constant_value::null:
+		if (
+			auto const type_without_const = ast::remove_const_or_consteval(type);
+			type_without_const.is_optional_pointer_like() && !result_address.has_value()
+		)
+		{
+			return context.create_const_ptr_null();
+		}
+		else
+		{
+			if (!result_address.has_value())
+			{
+				auto const type = get_type(type_without_const, context);
+				result_address = context.create_alloca(type);
+			}
+
+			auto const &result_value = result_address.get();
+			set_optional_has_value(result_value, false, context);
+			return result_value;
+		}
+	case ast::constant_value::void_:
+		bz_unreachable;
+	case ast::constant_value::enum_:
+	{
+		auto const [decl, enum_value] = value.get_enum();
+		auto const signed_enum_value = bit_cast<int64_t>(enum_value);
+
+		auto enum_int_value = expr_value::get_none();
+		switch (decl->underlying_type.get<ast::ts_base_type>().info->kind)
+		{
+		case ast::type_info::int8_:
+			enum_int_value = context.create_const_i8(static_cast<int8_t>(signed_enum_value));
+			break;
+		case ast::type_info::int16_:
+			enum_int_value = context.create_const_i16(static_cast<int16_t>(signed_enum_value));
+			break;
+		case ast::type_info::int32_:
+			enum_int_value = context.create_const_i32(static_cast<int32_t>(signed_enum_value));
+			break;
+		case ast::type_info::int64_:
+			enum_int_value = context.create_const_i64(static_cast<int64_t>(signed_enum_value));
+			break;
+		case ast::type_info::uint8_:
+			enum_int_value = context.create_const_u8(static_cast<uint8_t>(enum_value));
+			break;
+		case ast::type_info::uint16_:
+			enum_int_value = context.create_const_u16(static_cast<uint16_t>(enum_value));
+			break;
+		case ast::type_info::uint32_:
+			enum_int_value = context.create_const_u32(static_cast<uint32_t>(enum_value));
+			break;
+		case ast::type_info::uint64_:
+			enum_int_value = context.create_const_u64(static_cast<uint64_t>(enum_value));
+			break;
+		default:
+			bz_unreachable;
+		}
+
+		if (result_address.has_value())
+		{
+			context.create_store(enum_int_value, result_address.get());
+			return result_address.get();
+		}
+		else
+		{
+			return enum_int_value;
+		}
+	}
+	case ast::constant_value::array:
+	{
+		auto const array_type = ast::remove_const_or_consteval(type);
+		bz_assert(array_type.is<ast::ts_array>());
+		if (!result_address.has_value())
+		{
+			result_address = context.create_alloca(get_type(array_type, context));
+		}
+		get_constant_array_value(
+			value.get_array(),
+			array_type.get<ast::ts_array>(),
+			context,
+			result_address.get()
+		);
+		return result_address.get();
+	}
+	case ast::constant_value::sint_array:
+	{
+		auto const array_type = ast::remove_const_or_consteval(type);
+		bz_assert(array_type.is<ast::ts_array>());
+		if (!result_address.has_value())
+		{
+			result_address = context.create_alloca(get_type(array_type, context));
+		}
+		get_constant_sint_array_value(
+			value.get_sint_array(),
+			array_type.get<ast::ts_array>(),
+			context,
+			result_address.get()
+		);
+		return result_address.get();
+	}
+	case ast::constant_value::uint_array:
+	{
+		auto const array_type = ast::remove_const_or_consteval(type);
+		bz_assert(array_type.is<ast::ts_array>());
+		if (!result_address.has_value())
+		{
+			result_address = context.create_alloca(get_type(array_type, context));
+		}
+		get_constant_uint_array_value(
+			value.get_uint_array(),
+			array_type.get<ast::ts_array>(),
+			context,
+			result_address.get()
+		);
+		return result_address.get();
+	}
+	case ast::constant_value::float32_array:
+	{
+		auto const array_type = ast::remove_const_or_consteval(type);
+		bz_assert(array_type.is<ast::ts_array>());
+		if (!result_address.has_value())
+		{
+			result_address = context.create_alloca(get_type(array_type, context));
+		}
+		get_constant_float32_array_value(
+			value.get_float32_array(),
+			array_type.get<ast::ts_array>(),
+			context,
+			result_address.get()
+		);
+		return result_address.get();
+	}
+	case ast::constant_value::float64_array:
+	{
+		auto const array_type = ast::remove_const_or_consteval(type);
+		bz_assert(array_type.is<ast::ts_array>());
+		if (!result_address.has_value())
+		{
+			result_address = context.create_alloca(get_type(array_type, context));
+		}
+		get_constant_float64_array_value(
+			value.get_float64_array(),
+			array_type.get<ast::ts_array>(),
+			context,
+			result_address.get()
+		);
+		return result_address.get();
+	}
+	case ast::constant_value::tuple:
+	{
+		if (!result_address.has_value())
+		{
+			result_address = context.create_alloca(get_tuple_type(type, const_expr, context));
+		}
+
+		auto const &result_value = result_address.get();
+
+		if (const_expr != nullptr && const_expr->expr.is<ast::expr_tuple>())
+		{
+			auto &tuple = const_expr->expr.get<ast::expr_tuple>();
+			bz_assert(tuple.elems.size() == result_value.get_type()->get_aggregate_types().size());
+			for (auto const i : bz::iota(0, tuple.elems.size()))
+			{
+				bz_assert(tuple.elems[i].is_constant());
+				auto const &const_elem = tuple.elems[i].get_constant();
+				auto const elem_result_address = context.create_struct_gep(result_value, i);
+				get_constant_value(const_elem.value, const_elem.type, &const_elem, context, elem_result_address);
+			}
+		}
+		else
+		{
+			auto const tuple_values = value.get_tuple();
+			bz_assert(ast::remove_const_or_consteval(type).is<ast::ts_tuple>());
+			auto const &tuple_t = ast::remove_const_or_consteval(type).get<ast::ts_tuple>();
+			bz_assert(
+				tuple_t.types.size() == tuple_values.size()
+				&& tuple_t.types.size() == result_value.get_type()->get_aggregate_types().size()
+			);
+			for (auto const i : bz::iota(0, tuple_values.size()))
+			{
+				auto const elem_result_address = context.create_struct_gep(result_value, i);
+				get_constant_value(tuple_values[i], tuple_t.types[i], nullptr, context, elem_result_address);
+			}
+		}
+		return result_value;
+	}
+	case ast::constant_value::function:
+		bz_unreachable;
+	case ast::constant_value::aggregate:
+	{
+		auto const aggregate = value.get_aggregate();
+		bz_assert(ast::remove_const_or_consteval(type).is<ast::ts_base_type>());
+		auto const info = ast::remove_const_or_consteval(type).get<ast::ts_base_type>().info;
+		if (!result_address.has_value())
+		{
+			result_address = context.create_alloca(get_type(type, context));
+		}
+
+		auto const &result_value = result_address.get();
+		bz_assert(aggregate.size() == result_value.get_type()->get_aggregate_types().size());
+		for (auto const i : bz::iota(0, aggregate.size()))
+		{
+			auto const member_result_address = context.create_struct_gep(result_value, i);
+			get_constant_value(aggregate[i], info->member_variables[i]->get_type(), nullptr, context, member_result_address);
+		}
+		return result_value;
+	}
+	case ast::constant_value::unqualified_function_set_id:
+	case ast::constant_value::qualified_function_set_id:
+		bz_unreachable;
+	case ast::constant_value::type:
+		bz_unreachable;
+	default:
+		bz_unreachable;
+	}
+}
+
+static expr_value get_constant_value(
+	ast::constant_value const &value,
+	ast::typespec_view type,
+	ast::constant_expression const *const_expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+)
+{
+	type = ast::remove_const_or_consteval(type);
+	if (type.is<ast::ts_optional>() && value.is_null_constant())
+	{
+		if (type.is_optional_pointer_like() && !result_address.has_value())
+		{
+			return context.create_const_ptr_null();
+		}
+		else
+		{
+			if (!result_address.has_value())
+			{
+				result_address = context.create_alloca(get_type(type, context));
+			}
+
+			auto const &result_value = result_address.get();
+			set_optional_has_value(result_value, false, context);
+			return result_value;
+		}
+	}
+	else if (type.is<ast::ts_optional>())
+	{
+		if (type.is_optional_pointer_like())
+		{
+			return get_constant_value_helper(value, type.get<ast::ts_optional>(), const_expr, context, result_address);
+		}
+		else
+		{
+			if (!result_address.has_value())
+			{
+				result_address = context.create_alloca(get_type(type, context));
+			}
+
+			auto const &result_value = result_address.get();
+			get_constant_value_helper(
+				value,
+				type.get<ast::ts_optional>(),
+				const_expr,
+				context,
+				get_optional_value(result_value, context)
+			);
+			set_optional_has_value(result_value, true, context);
+			return result_value;
+		}
+	}
+	else
+	{
+			return get_constant_value_helper(value, type, const_expr, context, result_address);
+	}
+}
+
+static expr_value generate_expr_code(
+	lex::src_tokens const &src_tokens,
 	ast::constant_expression const &const_expr,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 )
 {
-	bz_unreachable;
+	bz_assert(const_expr.kind != ast::expression_type_kind::noreturn);
+	if (
+		const_expr.kind == ast::expression_type_kind::type_name
+		|| const_expr.kind == ast::expression_type_kind::none
+	)
+	{
+		bz_assert(!result_address.has_value());
+		return expr_value::get_none();
+	}
+
+	auto const result = const_expr.kind == ast::expression_type_kind::lvalue
+		? generate_expr_code(src_tokens, const_expr.expr, context, {})
+		: get_constant_value(const_expr.value, const_expr.type, &const_expr, context, result_address);
+
+	bz_assert(!result_address.has_value() || result == result_address.get());
+	return result;
 }
 
 static expr_value generate_expr_code(
@@ -1085,196 +2131,7 @@ static expr_value generate_expr_code(
 		result_address = context.create_alloca(get_type(dyn_expr.type, context));
 	}
 
-	expr_value result = expr_value::get_none();
-	switch (dyn_expr.expr.kind())
-	{
-	static_assert(ast::expr_t::variant_count == 61);
-	case ast::expr_t::index<ast::expr_identifier>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_identifier>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_integer_literal>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_integer_literal>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_null_literal>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_null_literal>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_enum_literal>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_enum_literal>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_typed_literal>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_typed_literal>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_placeholder_literal>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_placeholder_literal>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_tuple>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_tuple>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_unary_op>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_unary_op>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_binary_op>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_binary_op>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_tuple_subscript>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_tuple_subscript>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_rvalue_tuple_subscript>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_rvalue_tuple_subscript>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_subscript>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_subscript>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_rvalue_array_subscript>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_rvalue_array_subscript>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_function_call>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_function_call>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_cast>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_cast>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_optional_cast>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_optional_cast>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_take_reference>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_take_reference>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_take_move_reference>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_take_move_reference>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_aggregate_init>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_aggregate_init>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_aggregate_default_construct>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_aggregate_default_construct>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_array_default_construct>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_array_default_construct>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_optional_default_construct>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_optional_default_construct>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_builtin_default_construct>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_builtin_default_construct>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_aggregate_copy_construct>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_aggregate_copy_construct>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_array_copy_construct>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_array_copy_construct>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_optional_copy_construct>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_optional_copy_construct>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_builtin_copy_construct>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_builtin_copy_construct>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_aggregate_move_construct>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_aggregate_move_construct>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_array_move_construct>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_array_move_construct>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_optional_move_construct>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_optional_move_construct>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_trivial_relocate>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_trivial_relocate>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_aggregate_destruct>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_aggregate_destruct>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_array_destruct>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_array_destruct>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_optional_destruct>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_optional_destruct>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_base_type_destruct>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_base_type_destruct>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_destruct_value>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_destruct_value>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_aggregate_assign>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_aggregate_assign>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_aggregate_swap>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_aggregate_swap>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_array_swap>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_array_swap>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_optional_swap>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_optional_swap>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_base_type_swap>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_base_type_swap>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_trivial_swap>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_trivial_swap>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_array_assign>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_array_assign>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_optional_assign>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_optional_assign>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_optional_null_assign>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_optional_null_assign>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_optional_value_assign>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_optional_value_assign>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_base_type_assign>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_base_type_assign>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_trivial_assign>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_trivial_assign>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_member_access>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_member_access>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_optional_extract_value>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_optional_extract_value>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_rvalue_member_access>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_rvalue_member_access>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_type_member_access>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_type_member_access>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_compound>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_compound>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_if>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_if>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_if_consteval>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_if_consteval>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_switch>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_switch>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_break>:
-		result = generate_expr_code(src_tokens, dyn_expr.expr.get<ast::expr_break>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_continue>:
-		result = generate_expr_code(src_tokens, dyn_expr.expr.get<ast::expr_continue>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_unreachable>:
-		result = generate_expr_code(src_tokens, dyn_expr.expr.get<ast::expr_unreachable>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_generic_type_instantiation>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_generic_type_instantiation>(), context, result_address);
-		break;
-	case ast::expr_t::index<ast::expr_bitcode_value_reference>:
-		result = generate_expr_code(dyn_expr.expr.get<ast::expr_bitcode_value_reference>(), context, result_address);
-		break;
-	default:
-		bz_unreachable;
-	}
+	auto const result = generate_expr_code(src_tokens, dyn_expr.expr, context, result_address);
 
 	if (dyn_expr.destruct_op.not_null() || dyn_expr.destruct_op.move_destructed_decl != nullptr)
 	{
@@ -1293,7 +2150,7 @@ static expr_value generate_expr_code(
 	switch (expr.kind())
 	{
 		case ast::expression::index_of<ast::constant_expression>:
-			return generate_expr_code(expr.get_constant(), context, result_address);
+			return generate_expr_code(expr.src_tokens, expr.get_constant(), context, result_address);
 		case ast::expression::index_of<ast::dynamic_expression>:
 			return generate_expr_code(expr.src_tokens, expr.get_dynamic(), context, result_address);
 		case ast::expression::index_of<ast::error_expression>:
