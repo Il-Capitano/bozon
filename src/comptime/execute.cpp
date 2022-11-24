@@ -50,6 +50,16 @@ static uint64_t execute(instructions::const_u64 const &inst, executor_context &)
 	return inst.value;
 }
 
+static float32_t execute(instructions::const_f32 const &inst, executor_context &)
+{
+	return inst.value;
+}
+
+static float64_t execute(instructions::const_f64 const &inst, executor_context &)
+{
+	return inst.value;
+}
+
 static ptr_t execute(instructions::const_ptr_null const &, executor_context &)
 {
 	return 0;
@@ -912,6 +922,12 @@ void execute(executor_context &context)
 			break;
 		case instruction::const_u64:
 			execute<instructions::const_u64>(context);
+			break;
+		case instruction::const_f32:
+			execute<instructions::const_f32>(context);
+			break;
+		case instruction::const_f64:
+			execute<instructions::const_f64>(context);
 			break;
 		case instruction::const_ptr_null:
 			execute<instructions::const_ptr_null>(context);

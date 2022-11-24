@@ -158,6 +158,22 @@ struct const_u64
 	uint64_t value;
 };
 
+struct const_f32
+{
+	static inline constexpr int arg_types = 0;
+	static inline constexpr value_type result_type = value_type::f32;
+
+	float32_t value;
+};
+
+struct const_f64
+{
+	static inline constexpr int arg_types = 0;
+	static inline constexpr value_type result_type = value_type::f64;
+
+	float64_t value;
+};
+
 struct const_ptr_null
 {
 	static inline constexpr int arg_types = 0;
@@ -794,6 +810,8 @@ using instruction_list = bz::meta::type_pack<
 	instructions::const_u16,
 	instructions::const_u32,
 	instructions::const_u64,
+	instructions::const_f32,
+	instructions::const_f64,
 	instructions::const_ptr_null,
 	instructions::alloca,
 	instructions::load_i1_be,
@@ -918,6 +936,8 @@ struct instruction : instruction_base_t
 		const_u16             = index_of<instructions::const_u16>,
 		const_u32             = index_of<instructions::const_u32>,
 		const_u64             = index_of<instructions::const_u64>,
+		const_f32             = index_of<instructions::const_f32>,
+		const_f64             = index_of<instructions::const_f64>,
 		const_ptr_null        = index_of<instructions::const_ptr_null>,
 		alloca                = index_of<instructions::alloca>,
 		load_i1_be            = index_of<instructions::load_i1_be>,
