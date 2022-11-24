@@ -760,6 +760,14 @@ struct const_memcpy
 	size_t size;
 };
 
+struct const_memset_zero
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr };
+	static inline constexpr value_type result_type = value_type::none;
+
+	size_t size;
+};
+
 
 struct jump
 {
@@ -908,6 +916,7 @@ using instruction_list = bz::meta::type_pack<
 	instructions::cast_u64_to_f64,
 	instructions::const_gep,
 	instructions::const_memcpy,
+	instructions::const_memset_zero,
 	instructions::jump,
 	instructions::conditional_jump,
 	instructions::ret,
@@ -1034,6 +1043,7 @@ struct instruction : instruction_base_t
 		cast_u64_to_f64       = index_of<instructions::cast_u64_to_f64>,
 		const_gep             = index_of<instructions::const_gep>,
 		const_memcpy          = index_of<instructions::const_memcpy>,
+		const_memset_zero     = index_of<instructions::const_memset_zero>,
 		jump                  = index_of<instructions::jump>,
 		conditional_jump      = index_of<instructions::conditional_jump>,
 		ret                   = index_of<instructions::ret>,

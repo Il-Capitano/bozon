@@ -667,6 +667,12 @@ static void execute(instructions::const_memcpy const &inst, ptr_t dest, ptr_t sr
 	std::memcpy(dest_mem, src_mem, inst.size);
 }
 
+static void execute(instructions::const_memset_zero const &inst, ptr_t dest, executor_context &context)
+{
+	auto const dest_mem = context.get_memory(dest, inst.size);
+	std::memset(dest_mem, 0, inst.size);
+}
+
 static void execute(instructions::jump const &inst, executor_context &context)
 {
 	context.do_jump(inst.next_bb_index);
@@ -1216,6 +1222,9 @@ void execute(executor_context &context)
 			break;
 		case instruction::const_memcpy:
 			execute<instructions::const_memcpy>(context);
+			break;
+		case instruction::const_memset_zero:
+			execute<instructions::const_memset_zero>(context);
 			break;
 		case instruction::jump:
 			execute<instructions::jump>(context);
