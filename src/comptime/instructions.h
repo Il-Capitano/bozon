@@ -744,6 +744,18 @@ struct cast_u64_to_f64
 	static inline constexpr value_type result_type = value_type::f64;
 };
 
+struct cmp_eq_ptr
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_neq_ptr
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::i1;
+};
+
 struct const_gep
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
@@ -914,6 +926,8 @@ using instruction_list = bz::meta::type_pack<
 	instructions::cast_u16_to_f64,
 	instructions::cast_u32_to_f64,
 	instructions::cast_u64_to_f64,
+	instructions::cmp_eq_ptr,
+	instructions::cmp_neq_ptr,
 	instructions::const_gep,
 	instructions::const_memcpy,
 	instructions::const_memset_zero,
@@ -933,7 +947,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 110);
+	static_assert(variant_count == 115);
 	enum : base_t::index_t
 	{
 		const_i1              = index_of<instructions::const_i1>,
@@ -1041,6 +1055,8 @@ struct instruction : instruction_base_t
 		cast_u16_to_f64       = index_of<instructions::cast_u16_to_f64>,
 		cast_u32_to_f64       = index_of<instructions::cast_u32_to_f64>,
 		cast_u64_to_f64       = index_of<instructions::cast_u64_to_f64>,
+		cmp_eq_ptr            = index_of<instructions::cmp_eq_ptr>,
+		cmp_neq_ptr           = index_of<instructions::cmp_neq_ptr>,
 		const_gep             = index_of<instructions::const_gep>,
 		const_memcpy          = index_of<instructions::const_memcpy>,
 		const_memset_zero     = index_of<instructions::const_memset_zero>,

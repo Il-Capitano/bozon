@@ -655,6 +655,16 @@ static float64_t execute(instructions::cast_u64_to_f64 const &, uint64_t value, 
 	return static_cast<float64_t>(value);
 }
 
+static bool execute(instructions::cmp_eq_ptr const &, ptr_t lhs, ptr_t rhs, executor_context &)
+{
+	return lhs == rhs;
+}
+
+static bool execute(instructions::cmp_neq_ptr const &, ptr_t lhs, ptr_t rhs, executor_context &)
+{
+	return lhs != rhs;
+}
+
 static ptr_t execute(instructions::const_gep const &inst, ptr_t ptr, executor_context &)
 {
 	return ptr + inst.offset;
@@ -901,7 +911,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 110);
+		static_assert(instruction::variant_count == 115);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -1216,6 +1226,12 @@ void execute(executor_context &context)
 			break;
 		case instruction::cast_u64_to_f64:
 			execute<instructions::cast_u64_to_f64>(context);
+			break;
+		case instruction::cmp_eq_ptr:
+			execute<instructions::cmp_eq_ptr>(context);
+			break;
+		case instruction::cmp_neq_ptr:
+			execute<instructions::cmp_neq_ptr>(context);
 			break;
 		case instruction::const_gep:
 			execute<instructions::const_gep>(context);
