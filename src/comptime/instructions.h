@@ -880,6 +880,22 @@ struct const_gep
 	size_t offset;
 };
 
+struct array_gep_i32
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::ptr;
+
+	size_t stride;
+};
+
+struct array_gep_i64
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::ptr;
+
+	size_t stride;
+};
+
 struct const_memcpy
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
@@ -1063,6 +1079,8 @@ using instruction_list = bz::meta::type_pack<
 	instructions::cmp_neq_f64_unchecked,
 	instructions::cmp_neq_ptr,
 	instructions::const_gep,
+	instructions::array_gep_i32,
+	instructions::array_gep_i64,
 	instructions::const_memcpy,
 	instructions::const_memset_zero,
 	instructions::jump,
@@ -1210,6 +1228,8 @@ struct instruction : instruction_base_t
 		cmp_neq_f64_unchecked = index_of<instructions::cmp_neq_f64_unchecked>,
 		cmp_neq_ptr           = index_of<instructions::cmp_neq_ptr>,
 		const_gep             = index_of<instructions::const_gep>,
+		array_gep_i32         = index_of<instructions::array_gep_i32>,
+		array_gep_i64         = index_of<instructions::array_gep_i64>,
 		const_memcpy          = index_of<instructions::const_memcpy>,
 		const_memset_zero     = index_of<instructions::const_memset_zero>,
 		jump                  = index_of<instructions::jump>,

@@ -824,6 +824,16 @@ static ptr_t execute(instructions::const_gep const &inst, ptr_t ptr, executor_co
 	return ptr + inst.offset;
 }
 
+static ptr_t execute(instructions::array_gep_i32 const &inst, ptr_t ptr, uint32_t index, executor_context &)
+{
+	return ptr + inst.stride * index;
+}
+
+static ptr_t execute(instructions::array_gep_i64 const &inst, ptr_t ptr, uint64_t index, executor_context &)
+{
+	return ptr + inst.stride * index;
+}
+
 static void execute(instructions::const_memcpy const &inst, ptr_t dest, ptr_t src, executor_context &context)
 {
 	auto const dest_mem = context.get_memory(dest, inst.size);
@@ -1443,6 +1453,12 @@ void execute(executor_context &context)
 			break;
 		case instruction::const_gep:
 			execute<instructions::const_gep>(context);
+			break;
+		case instruction::array_gep_i32:
+			execute<instructions::array_gep_i32>(context);
+			break;
+		case instruction::array_gep_i64:
+			execute<instructions::array_gep_i64>(context);
 			break;
 		case instruction::const_memcpy:
 			execute<instructions::const_memcpy>(context);
