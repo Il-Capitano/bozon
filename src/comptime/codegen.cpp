@@ -120,35 +120,81 @@ struct loop_info_t
 {
 	basic_block_ref condition_check_bb;
 	basic_block_ref loop_bb;
-	expr_value iter_alloca;
+	expr_value index_alloca;
+	expr_value index;
 	expr_value condition;
 };
 
 static loop_info_t create_loop_start(size_t size, codegen_context &context)
 {
-	auto const iter_alloca = context.create_alloca(context.get_builtin_type(builtin_type_kind::i64));
-	context.create_store(context.create_const_u64(0), iter_alloca);
+	auto const index_alloca = context.create_alloca(context.get_builtin_type(builtin_type_kind::i64));
+	context.create_store(context.create_const_u64(0), index_alloca);
 
 	auto const condition_check_bb = context.add_basic_block();
 	context.create_jump(condition_check_bb);
 	context.set_current_basic_block(condition_check_bb);
-	auto const condition = context.create_cmp_neq_i64(iter_alloca, context.create_const_i64(size));
+	auto const condition = context.create_cmp_neq_i64(index_alloca, context.create_const_u64(size));
 
 	auto const loop_bb = context.add_basic_block();
 	context.set_current_basic_block(loop_bb);
+	auto const index = expr_value::get_value(index_alloca.get_value(context), index_alloca.get_type());
 
 	return {
 		.condition_check_bb = condition_check_bb,
 		.loop_bb = loop_bb,
-		.iter_alloca = iter_alloca,
+		.index_alloca = index_alloca,
+		.index = index,
 		.condition = condition,
 	};
 }
 
 static void create_loop_end(loop_info_t loop_info, codegen_context &context)
 {
-	auto const next_i = context.create_add_i64_unchecked(loop_info.iter_alloca, context.create_const_u64(1));
-	context.create_store(next_i, loop_info.iter_alloca);
+	auto const next_i = context.create_add_i64_unchecked(loop_info.index, context.create_const_u64(1));
+	context.create_store(next_i, loop_info.index_alloca);
+	context.create_jump(loop_info.condition_check_bb);
+
+	auto const end_bb = context.add_basic_block();
+	context.set_current_basic_block(loop_info.condition_check_bb);
+	context.create_conditional_jump(loop_info.condition.get_value(context), loop_info.loop_bb, end_bb);
+	context.set_current_basic_block(end_bb);
+}
+
+struct reversed_loop_info_t
+{
+	basic_block_ref condition_check_bb;
+	basic_block_ref loop_bb;
+	expr_value index_alloca;
+	expr_value index;
+	expr_value condition;
+};
+
+static reversed_loop_info_t create_reversed_loop_start(size_t size, codegen_context &context)
+{
+	auto const index_alloca = context.create_alloca(context.get_builtin_type(builtin_type_kind::i64));
+	context.create_store(context.create_const_u64(size), index_alloca);
+
+	auto const condition_check_bb = context.add_basic_block();
+	context.create_jump(condition_check_bb);
+	context.set_current_basic_block(condition_check_bb);
+	auto const condition = context.create_cmp_neq_i64(index_alloca, context.create_const_u64(0));
+
+	auto const loop_bb = context.add_basic_block();
+	context.set_current_basic_block(loop_bb);
+	auto const index = context.create_sub_i64_unchecked(index_alloca, context.create_const_u64(1));
+
+	return {
+		.condition_check_bb = condition_check_bb,
+		.loop_bb = loop_bb,
+		.index_alloca = index_alloca,
+		.index = index,
+		.condition = condition,
+	};
+}
+
+static void create_reversed_loop_end(reversed_loop_info_t loop_info, codegen_context &context)
+{
+	context.create_store(loop_info.index, loop_info.index_alloca);
 	context.create_jump(loop_info.condition_check_bb);
 
 	auto const end_bb = context.add_basic_block();
@@ -640,7 +686,7 @@ static expr_value generate_expr_code(
 
 	auto const loop_info = create_loop_start(size, context);
 
-	auto const elem_result_address = context.create_array_gep(result_value, loop_info.iter_alloca);
+	auto const elem_result_address = context.create_array_gep(result_value, loop_info.index);
 	generate_expr_code(array_default_construct.default_construct_expr, context, elem_result_address);
 
 	create_loop_end(loop_info, context);
@@ -726,10 +772,33 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	ast::expr_array_copy_construct const &,
+	ast::expr_array_copy_construct const &array_copy_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const copied_val = generate_expr_code(array_copy_construct.copied_value, context, {});
+
+	if (!result_address.has_value())
+	{
+		result_address = context.create_alloca(copied_val.get_type());
+	}
+
+	auto const &result_value = result_address.get();
+
+	bz_assert(copied_val.get_type()->is_array());
+	auto const loop_info = create_loop_start(copied_val.get_type()->get_array_size(), context);
+
+	auto const elem_result_address = context.create_array_gep(result_value, loop_info.index);
+	auto const copied_elem = context.create_array_gep(copied_val, loop_info.index);
+	auto const prev_value = context.push_value_reference(copied_elem);
+	generate_expr_code(array_copy_construct.copy_expr, context, elem_result_address);
+	context.pop_value_reference(prev_value);
+
+	create_loop_end(loop_info, context);
+
+	return result_value;
+}
 
 static expr_value generate_expr_code(
 	ast::expr_optional_copy_construct const &optional_copy_construct,
@@ -827,10 +896,33 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	ast::expr_array_move_construct const &,
+	ast::expr_array_move_construct const &array_move_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const moved_val = generate_expr_code(array_move_construct.moved_value, context, {});
+
+	if (!result_address.has_value())
+	{
+		result_address = context.create_alloca(moved_val.get_type());
+	}
+
+	auto const &result_value = result_address.get();
+
+	bz_assert(moved_val.get_type()->is_array());
+	auto const loop_info = create_loop_start(moved_val.get_type()->get_array_size(), context);
+
+	auto const elem_result_address = context.create_array_gep(result_value, loop_info.index);
+	auto const moved_elem = context.create_array_gep(moved_val, loop_info.index);
+	auto const prev_value = context.push_value_reference(moved_elem);
+	generate_expr_code(array_move_construct.move_expr, context, elem_result_address);
+	context.pop_value_reference(prev_value);
+
+	create_loop_end(loop_info, context);
+
+	return result_value;
+}
 
 static expr_value generate_expr_code(
 	ast::expr_optional_move_construct const &optional_move_construct,
@@ -928,17 +1020,30 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	ast::expr_array_destruct const &,
+	ast::expr_array_destruct const &array_destruct,
 	codegen_context &context
-);
+)
+{
+	auto const value = generate_expr_code(array_destruct.value, context, {});
+	bz_assert(value.get_type()->is_array());
+
+	auto const loop_info = create_reversed_loop_start(value.get_type()->get_array_size(), context);
+
+	auto const elem_value = context.create_array_gep(value, loop_info.index);
+	auto const prev_value = context.push_value_reference(elem_value);
+	generate_expr_code(array_destruct.elem_destruct_call, context, {});
+	context.pop_value_reference(prev_value);
+
+	create_reversed_loop_end(loop_info, context);
+
+	return expr_value::get_none();
+}
 
 static expr_value generate_expr_code(
 	ast::expr_optional_destruct const &optional_destruct,
 	codegen_context &context
 )
 {
-	bz_assert(optional_destruct.value_destruct_call.not_null());
-
 	auto const value = generate_expr_code(optional_destruct.value, context, {});
 
 	auto const has_value = get_optional_has_value(value, context);
