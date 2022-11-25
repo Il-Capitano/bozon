@@ -8275,18 +8275,6 @@ static void emit_function_bitcode_impl(
 	context.builder.SetInsertPoint(alloca_bb);
 	context.builder.CreateBr(entry_bb);
 
-	// true means it failed
-	/*
-	if (llvm::verifyFunction(*fn, &llvm::dbgs()) == true)
-	{
-		bz::log(
-			"{}verifyFunction failed on '{}' !!!{}\n",
-			colors::bright_red,
-			func_body.get_signature(),
-			colors::clear
-		);
-	}
-	*/
 	context.current_function = {};
 	context.alloca_bb = nullptr;
 	context.error_bb = nullptr;

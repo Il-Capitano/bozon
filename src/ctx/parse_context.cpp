@@ -1446,138 +1446,10 @@ void parse_context::add_local_type_alias(ast::decl_type_alias &type_alias)
 	this->current_local_scope.symbol_count += 1;
 }
 
-/*
-void parse_context::add_local_struct(ast::decl_struct &struct_decl)
-{
-	bz_assert(this->scope_decls.size() != 0);
-	this->scope_decls.back().types.push_back({ struct_decl.identifier->value, &struct_decl.info });
-}
-
-auto parse_context::get_identifier_decl(lex::token_pos id) const
-	-> bz::variant<ast::decl_variable const *, ast::decl_function const *>
-{
-	// ==== local decls ====
-	// we go in reverse through the scopes and the variables
-	// in case there's shadowing
-	for (
-		auto scope = this->scope_decls.rbegin();
-		scope != this->scope_decls.rend();
-		++scope
-	)
-	{
-		auto const var = std::find_if(
-			scope->var_decls.rbegin(), scope->var_decls.rend(),
-			[id = id->value](auto const &var) {
-				return var->identifier->value == id;
-			}
-		);
-		if (var != scope->var_decls.rend())
-		{
-			return *var;
-		}
-
-		auto const fn_set = std::find_if(
-			scope->func_sets.begin(), scope->func_sets.end(),
-			[id = id->value](auto const &fn_set) {
-				return fn_set.id == id;
-			}
-		);
-		if (fn_set != scope->func_sets.end())
-		{
-			if (fn_set->func_decls.size() == 1)
-			{
-				return fn_set->func_decls[0];
-			}
-			else
-			{
-				bz_assert(!fn_set->func_decls.empty());
-				return static_cast<ast::decl_function const *>(nullptr);
-			}
-		}
-	}
-
-	// ==== export (global) decls ====
-	auto &export_decls = this->global_ctx._export_decls;
-	auto const var = std::find_if(
-		export_decls.var_decls.begin(), export_decls.var_decls.end(),
-		[id = id->value](auto const &var) {
-			return id == var->identifier->value;
-		}
-	);
-	if (var != export_decls.var_decls.end())
-	{
-		return *var;
-	}
-
-	auto const fn_set = std::find_if(
-		export_decls.func_sets.begin(), export_decls.func_sets.end(),
-		[id = id->value](auto const &fn_set) {
-			return id == fn_set.id;
-		}
-	);
-	if (fn_set != export_decls.func_sets.end())
-	{
-		if (fn_set->func_decls.size() == 1)
-		{
-			return fn_set->func_decls[0];
-		}
-		else
-		{
-			bz_assert(!fn_set->func_decls.empty());
-			return static_cast<ast::decl_function const *>(nullptr);
-		}
-	}
-	return {};
-}
-*/
-
 void parse_context::add_function_for_compilation(ast::function_body &func_body) const
 {
 	this->global_ctx.add_compile_function(func_body);
 }
-
-/*
-ast::expression::expr_type_t parse_context::get_identifier_type(lex::token_pos id) const
-{
-	auto decl = this->get_identifier_decl(id);
-	switch (decl.index())
-	{
-	case decl.index_of<ast::decl_variable const *>:
-	{
-		auto const var = decl.get<ast::decl_variable const *>();
-		return {
-			var->var_type.is<ast::ts_lvalue_reference>()
-			? ast::expression::lvalue_reference
-			: ast::expression::lvalue,
-			ast::remove_lvalue_reference(var->var_type)
-		};
-	}
-	case decl.index_of<ast::decl_function const *>:
-	{
-		auto const fn = decl.get<ast::decl_function const *>();
-		auto fn_t = [&]() -> ast::typespec {
-			if (fn == nullptr)
-			{
-				return ast::typespec();
-			}
-			bz::vector<ast::typespec> arg_types = {};
-			for (auto &p : fn->body.params)
-			{
-				arg_types.emplace_back(p.var_type);
-			}
-			return ast::make_ts_function({ nullptr, nullptr }, nullptr, fn->body.return_type, arg_types);
-		}();
-		return { ast::expression::function_name, fn_t };
-	}
-	case decl.null:
-		this->report_error(id, "undeclared identifier");
-		return { ast::expression::rvalue, ast::typespec() };
-	default:
-		bz_unreachable;
-	}
-}
-*/
-
 
 static ast::typespec get_function_type(ast::function_body &body)
 {
@@ -3550,54 +3422,6 @@ static bool is_builtin_type(ast::typespec_view ts)
 		|| (ts.is<ast::ts_base_type>() && ts.get<ast::ts_base_type>().info->kind != ast::type_info::aggregate);
 }
 
-/*
-static error get_bad_call_error(
-	ast::decl_function *func,
-	ast::expr_function_call const &func_call
-)
-{
-	if (func->body.params.size() != func_call.params.size())
-	{
-		return make_error(
-			func_call,
-			bz::format(
-				"expected {} {} for call to '{}', but was given {}",
-				func->body.params.size(), func->body.params.size() == 1 ? "argument" : "arguments",
-				func->identifier->value, func_call.params.size()
-			),
-			{
-				make_note(
-					func->identifier,
-					bz::format("see declaration of '{}':", func->identifier->value)
-				)
-			}
-		);
-	}
-
-	auto params_it = func->body.params.begin();
-	auto call_it  = func_call.params.begin();
-	auto const types_end = func->body.params.end();
-//	auto const call_end  = func_call.params.end();
-	for (; params_it != types_end; ++call_it, ++params_it)
-	{
-		bz_assert(!call_it->is<ast::tuple_expression>());
-		if (get_type_match_level(params_it->var_type, *call_it) == -1)
-		{
-			auto const [call_it_type, _] = call_it->get_expr_type_and_kind();
-			return make_error(
-				*call_it,
-				bz::format(
-					"unable to convert argument {} from '{}' to '{}'",
-					(call_it - func_call.params.begin()) + 1,
-					call_it_type, params_it->var_type
-				)
-			);
-		}
-	}
-
-	bz_unreachable;
-}
-*/
 
 struct possible_func_t
 {
@@ -7750,24 +7574,5 @@ ast::constant_value parse_context::execute_compound_expression_without_error(
 	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
 	return result;
 }
-
-/*
-auto parse_context::get_cast_body_and_type(ast::expr_cast const &cast)
-	-> std::pair<ast::function_body *, ast::expression::expr_type_t>
-{
-	auto res = get_builtin_cast_type(cast.expr.expr_type, cast.type, *this);
-	if (res.expr_type.kind() == ast::typespec::null)
-	{
-		this->report_error(cast, bz::format("invalid cast from '{}' to '{}'", cast.expr.expr_type.expr_type, cast.type));
-	}
-	return { nullptr, std::move(res) };
-}
-*/
-/*
-bool parse_context::is_convertible(ast::expression::expr_type_t const &from, ast::typespec const &to)
-{
-	return are_directly_matchable_types(from, to);
-}
-*/
 
 } // namespace ctx
