@@ -859,6 +859,22 @@ static uint64_t execute(instructions::sub_i64_unchecked const &, uint64_t lhs, u
 	return lhs - rhs;
 }
 
+static uint32_t execute(instructions::ptr32_diff const &inst, ptr_t lhs, ptr_t rhs, executor_context &)
+{
+	auto const result = static_cast<int32_t>(lhs - rhs);
+	auto const stride = static_cast<int32_t>(inst.stride);
+	bz_assert(result % stride == 0);
+	return static_cast<uint32_t>(result / stride);
+}
+
+static uint64_t execute(instructions::ptr64_diff const &inst, ptr_t lhs, ptr_t rhs, executor_context &)
+{
+	auto const result = static_cast<int64_t>(lhs - rhs);
+	auto const stride = static_cast<int64_t>(inst.stride);
+	bz_assert(result % stride == 0);
+	return static_cast<uint64_t>(result / stride);
+}
+
 static ptr_t execute(instructions::const_gep const &inst, ptr_t ptr, executor_context &)
 {
 	return ptr + inst.offset;
@@ -1115,7 +1131,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 143);
+		static_assert(instruction::variant_count == 145);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -1514,6 +1530,12 @@ void execute(executor_context &context)
 			break;
 		case instruction::sub_i64_unchecked:
 			execute<instructions::sub_i64_unchecked>(context);
+			break;
+		case instruction::ptr32_diff:
+			execute<instructions::ptr32_diff>(context);
+			break;
+		case instruction::ptr64_diff:
+			execute<instructions::ptr64_diff>(context);
 			break;
 		case instruction::const_gep:
 			execute<instructions::const_gep>(context);

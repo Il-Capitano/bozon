@@ -920,6 +920,22 @@ struct sub_i64_unchecked
 	static inline constexpr value_type result_type = value_type::i64;
 };
 
+struct ptr32_diff
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::i32;
+
+	size_t stride;
+};
+
+struct ptr64_diff
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::i64;
+
+	size_t stride;
+};
+
 struct const_gep
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
@@ -1134,6 +1150,8 @@ using instruction_list = bz::meta::type_pack<
 	instructions::sub_i16_unchecked,
 	instructions::sub_i32_unchecked,
 	instructions::sub_i64_unchecked,
+	instructions::ptr32_diff,
+	instructions::ptr64_diff,
 	instructions::const_gep,
 	instructions::array_gep_i32,
 	instructions::array_gep_i64,
@@ -1155,7 +1173,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 143);
+	static_assert(variant_count == 145);
 	enum : base_t::index_t
 	{
 		const_i1              = index_of<instructions::const_i1>,
@@ -1291,6 +1309,8 @@ struct instruction : instruction_base_t
 		sub_i16_unchecked     = index_of<instructions::sub_i16_unchecked>,
 		sub_i32_unchecked     = index_of<instructions::sub_i32_unchecked>,
 		sub_i64_unchecked     = index_of<instructions::sub_i64_unchecked>,
+		ptr32_diff            = index_of<instructions::ptr32_diff>,
+		ptr64_diff            = index_of<instructions::ptr64_diff>,
 		const_gep             = index_of<instructions::const_gep>,
 		array_gep_i32         = index_of<instructions::array_gep_i32>,
 		array_gep_i64         = index_of<instructions::array_gep_i64>,
