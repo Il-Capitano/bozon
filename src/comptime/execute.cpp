@@ -839,6 +839,26 @@ static uint64_t execute(instructions::add_i64_unchecked const &, uint64_t lhs, u
 	return lhs + rhs;
 }
 
+static uint8_t execute(instructions::sub_i8_unchecked const &, uint8_t lhs, uint8_t rhs, executor_context &)
+{
+	return lhs - rhs;
+}
+
+static uint16_t execute(instructions::sub_i16_unchecked const &, uint16_t lhs, uint16_t rhs, executor_context &)
+{
+	return lhs - rhs;
+}
+
+static uint32_t execute(instructions::sub_i32_unchecked const &, uint32_t lhs, uint32_t rhs, executor_context &)
+{
+	return lhs - rhs;
+}
+
+static uint64_t execute(instructions::sub_i64_unchecked const &, uint64_t lhs, uint64_t rhs, executor_context &)
+{
+	return lhs - rhs;
+}
+
 static ptr_t execute(instructions::const_gep const &inst, ptr_t ptr, executor_context &)
 {
 	return ptr + inst.offset;
@@ -1095,7 +1115,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 139);
+		static_assert(instruction::variant_count == 143);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -1482,6 +1502,18 @@ void execute(executor_context &context)
 			break;
 		case instruction::add_i64_unchecked:
 			execute<instructions::add_i64_unchecked>(context);
+			break;
+		case instruction::sub_i8_unchecked:
+			execute<instructions::sub_i8_unchecked>(context);
+			break;
+		case instruction::sub_i16_unchecked:
+			execute<instructions::sub_i16_unchecked>(context);
+			break;
+		case instruction::sub_i32_unchecked:
+			execute<instructions::sub_i32_unchecked>(context);
+			break;
+		case instruction::sub_i64_unchecked:
+			execute<instructions::sub_i64_unchecked>(context);
 			break;
 		case instruction::const_gep:
 			execute<instructions::const_gep>(context);
