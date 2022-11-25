@@ -115,6 +115,48 @@ static type const *get_type(ast::typespec_view type, codegen_context &context)
 	}
 }
 
+
+struct loop_info_t
+{
+	basic_block_ref condition_check_bb;
+	basic_block_ref loop_bb;
+	expr_value iter_alloca;
+	expr_value condition;
+};
+
+static loop_info_t create_loop_start(size_t size, codegen_context &context)
+{
+	auto const iter_alloca = context.create_alloca(context.get_builtin_type(builtin_type_kind::i64));
+	context.create_store(context.create_const_u64(0), iter_alloca);
+
+	auto const condition_check_bb = context.add_basic_block();
+	context.create_jump(condition_check_bb);
+	context.set_current_basic_block(condition_check_bb);
+	auto const condition = context.create_cmp_neq_i64(iter_alloca, context.create_const_i64(size));
+
+	auto const loop_bb = context.add_basic_block();
+	context.set_current_basic_block(loop_bb);
+
+	return {
+		.condition_check_bb = condition_check_bb,
+		.loop_bb = loop_bb,
+		.iter_alloca = iter_alloca,
+		.condition = condition,
+	};
+}
+
+static void create_loop_end(loop_info_t loop_info, codegen_context &context)
+{
+	auto const next_i = context.create_add_i64_unchecked(loop_info.iter_alloca, context.create_const_u64(1));
+	context.create_store(next_i, loop_info.iter_alloca);
+	context.create_jump(loop_info.condition_check_bb);
+
+	auto const end_bb = context.add_basic_block();
+	context.set_current_basic_block(loop_info.condition_check_bb);
+	context.create_conditional_jump(loop_info.condition.get_value(context), loop_info.loop_bb, end_bb);
+	context.set_current_basic_block(end_bb);
+}
+
 static expr_value get_optional_value(expr_value opt_value, codegen_context &context)
 {
 	if (opt_value.get_type()->is_pointer())
@@ -581,10 +623,30 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	ast::expr_array_default_construct const &,
+	ast::expr_array_default_construct const &array_default_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	bz_assert(array_default_construct.type.is<ast::ts_array>());
+	auto const size = array_default_construct.type.get<ast::ts_array>().size;
+
+	if (!result_address.has_value())
+	{
+		result_address = context.create_alloca(get_type(array_default_construct.type, context));
+	}
+
+	auto const &result_value = result_address.get();
+
+	auto const loop_info = create_loop_start(size, context);
+
+	auto const elem_result_address = context.create_array_gep(result_value, loop_info.iter_alloca);
+	generate_expr_code(array_default_construct.default_construct_expr, context, elem_result_address);
+
+	create_loop_end(loop_info, context);
+
+	return result_value;
+}
 
 static expr_value generate_expr_code(
 	ast::expr_optional_default_construct const &optional_default_construct,
