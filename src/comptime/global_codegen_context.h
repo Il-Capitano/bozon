@@ -21,6 +21,7 @@ struct global_codegen_context
 	type const *null_t;
 
 	bz::vector<error_info_t> errors;
+	bz::vector<lex::src_tokens> src_tokens;
 
 	global_codegen_context(size_t pointer_size);
 

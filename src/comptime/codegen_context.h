@@ -248,7 +248,25 @@ struct codegen_context
 	expr_value create_float_to_int_cast(expr_value value, type const *dest, bool is_dest_signed);
 	expr_value create_int_to_float_cast(expr_value value, type const *dest, bool is_value_signed);
 
+	expr_value create_cmp_eq_i1(expr_value lhs, expr_value rhs);
+	expr_value create_cmp_eq_i8(expr_value lhs, expr_value rhs);
+	expr_value create_cmp_eq_i16(expr_value lhs, expr_value rhs);
+	expr_value create_cmp_eq_i32(expr_value lhs, expr_value rhs);
+	expr_value create_cmp_eq_i64(expr_value lhs, expr_value rhs);
+	expr_value create_cmp_eq_f32(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs);
+	expr_value create_cmp_eq_f64(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs);
+	expr_value create_cmp_eq_f32_unchecked(expr_value lhs, expr_value rhs);
+	expr_value create_cmp_eq_f64_unchecked(expr_value lhs, expr_value rhs);
 	expr_value create_cmp_eq_ptr(expr_value lhs, expr_value rhs);
+	expr_value create_cmp_neq_i1(expr_value lhs, expr_value rhs);
+	expr_value create_cmp_neq_i8(expr_value lhs, expr_value rhs);
+	expr_value create_cmp_neq_i16(expr_value lhs, expr_value rhs);
+	expr_value create_cmp_neq_i32(expr_value lhs, expr_value rhs);
+	expr_value create_cmp_neq_i64(expr_value lhs, expr_value rhs);
+	expr_value create_cmp_neq_f32(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs);
+	expr_value create_cmp_neq_f64(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs);
+	expr_value create_cmp_neq_f32_unchecked(expr_value lhs, expr_value rhs);
+	expr_value create_cmp_neq_f64_unchecked(expr_value lhs, expr_value rhs);
 	expr_value create_cmp_neq_ptr(expr_value lhs, expr_value rhs);
 
 	instruction_ref create_error(lex::src_tokens const &src_tokens, bz::u8string message);
