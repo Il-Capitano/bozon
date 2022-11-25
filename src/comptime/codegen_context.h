@@ -270,6 +270,11 @@ struct codegen_context
 	expr_value create_cmp_neq_f64_unchecked(expr_value lhs, expr_value rhs);
 	expr_value create_cmp_neq_ptr(expr_value lhs, expr_value rhs);
 
+	expr_value create_add_i8_unchecked(expr_value lhs, expr_value rhs);
+	expr_value create_add_i16_unchecked(expr_value lhs, expr_value rhs);
+	expr_value create_add_i32_unchecked(expr_value lhs, expr_value rhs);
+	expr_value create_add_i64_unchecked(expr_value lhs, expr_value rhs);
+
 	instruction_ref create_error(lex::src_tokens const &src_tokens, bz::u8string message);
 
 	void finalize_function(void);

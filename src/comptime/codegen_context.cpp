@@ -1190,6 +1190,38 @@ expr_value codegen_context::create_cmp_neq_ptr(expr_value lhs, expr_value rhs)
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
 
+expr_value codegen_context::create_add_i8_unchecked(expr_value lhs, expr_value rhs)
+{
+	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i8);
+	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i8);
+	auto const inst_ref = this->add_instruction(instructions::add_i8_unchecked{}, lhs.get_value(*this), rhs.get_value(*this));
+	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i8));
+}
+
+expr_value codegen_context::create_add_i16_unchecked(expr_value lhs, expr_value rhs)
+{
+	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i16);
+	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i16);
+	auto const inst_ref = this->add_instruction(instructions::add_i16_unchecked{}, lhs.get_value(*this), rhs.get_value(*this));
+	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i16));
+}
+
+expr_value codegen_context::create_add_i32_unchecked(expr_value lhs, expr_value rhs)
+{
+	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i32);
+	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i32);
+	auto const inst_ref = this->add_instruction(instructions::add_i32_unchecked{}, lhs.get_value(*this), rhs.get_value(*this));
+	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i32));
+}
+
+expr_value codegen_context::create_add_i64_unchecked(expr_value lhs, expr_value rhs)
+{
+	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i64);
+	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i64);
+	auto const inst_ref = this->add_instruction(instructions::add_i64_unchecked{}, lhs.get_value(*this), rhs.get_value(*this));
+	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i64));
+}
+
 instruction_ref codegen_context::create_error(lex::src_tokens const &src_tokens, bz::u8string message)
 {
 	this->global_codegen_ctx->errors.push_back({
