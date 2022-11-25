@@ -115,6 +115,14 @@ static type const *get_type(ast::typespec_view type, codegen_context &context)
 	}
 }
 
+static void emit_index_bounds_check(
+	lex::src_tokens const &src_tokens,
+	expr_value index,
+	expr_value size,
+	bool is_index_signed,
+	codegen_context &context
+);
+
 
 struct loop_info_t
 {
@@ -133,7 +141,7 @@ static loop_info_t create_loop_start(size_t size, codegen_context &context)
 	auto const condition_check_bb = context.add_basic_block();
 	context.create_jump(condition_check_bb);
 	context.set_current_basic_block(condition_check_bb);
-	auto const condition = context.create_cmp_neq_i64(index_alloca, context.create_const_u64(size));
+	auto const condition = context.create_int_cmp_neq(index_alloca, context.create_const_u64(size));
 
 	auto const loop_bb = context.add_basic_block();
 	context.set_current_basic_block(loop_bb);
@@ -150,7 +158,7 @@ static loop_info_t create_loop_start(size_t size, codegen_context &context)
 
 static void create_loop_end(loop_info_t loop_info, codegen_context &context)
 {
-	auto const next_i = context.create_add_i64_unchecked(loop_info.index, context.create_const_u64(1));
+	auto const next_i = context.create_add_unchecked(loop_info.index, context.create_const_u64(1));
 	context.create_store(next_i, loop_info.index_alloca);
 	context.create_jump(loop_info.condition_check_bb);
 
@@ -177,11 +185,11 @@ static reversed_loop_info_t create_reversed_loop_start(size_t size, codegen_cont
 	auto const condition_check_bb = context.add_basic_block();
 	context.create_jump(condition_check_bb);
 	context.set_current_basic_block(condition_check_bb);
-	auto const condition = context.create_cmp_neq_i64(index_alloca, context.create_const_u64(0));
+	auto const condition = context.create_int_cmp_neq(index_alloca, context.create_const_u64(0));
 
 	auto const loop_bb = context.add_basic_block();
 	context.set_current_basic_block(loop_bb);
-	auto const index = context.create_sub_i64_unchecked(index_alloca, context.create_const_u64(1));
+	auto const index = context.create_sub_unchecked(index_alloca, context.create_const_u64(1));
 
 	return {
 		.condition_check_bb = condition_check_bb,
@@ -438,10 +446,111 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	ast::expr_subscript const &,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
-);
+	lex::src_tokens const &src_tokens,
+	ast::expr_subscript const &subscript,
+	codegen_context &context
+)
+{
+	auto const base_type = ast::remove_const_or_consteval(subscript.base.get_expr_type());
+	if (base_type.is<ast::ts_array>())
+	{
+		auto const array = generate_expr_code(subscript.base, context, {});
+		auto const index = generate_expr_code(subscript.index, context, {}).get_value(context);
+		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type()).is<ast::ts_base_type>());
+		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
+
+		bz_assert(index.get_type()->is_builtin());
+		auto const size = base_type.get<ast::ts_array>().size;
+		auto const is_index_signed = ast::is_signed_integer_kind(kind);
+		if (context.is_64_bit() || index.get_type()->get_builtin_kind() == builtin_type_kind::i64)
+		{
+			bz_assert(size <= static_cast<size_t>(std::numeric_limits<int64_t>::max()));
+			auto const index_cast = context.create_int_cast(index, context.get_builtin_type(builtin_type_kind::i64), is_index_signed);
+			emit_index_bounds_check(
+				src_tokens,
+				index_cast,
+				is_index_signed
+					? context.create_const_i64(static_cast<int64_t>(size))
+					: context.create_const_u64(size),
+				is_index_signed,
+				context
+			);
+			return context.create_array_gep(array, index_cast);
+		}
+		else
+		{
+			bz_assert(size <= static_cast<size_t>(std::numeric_limits<int32_t>::max()));
+			auto const index_cast = context.create_int_cast(index, context.get_builtin_type(builtin_type_kind::i32), is_index_signed);
+			emit_index_bounds_check(
+				src_tokens,
+				index_cast,
+				is_index_signed
+					? context.create_const_i32(static_cast<int32_t>(size))
+					: context.create_const_u32(static_cast<uint32_t>(size)),
+				is_index_signed,
+				context
+			);
+			return context.create_array_gep(array, index_cast);
+		}
+	}
+	else if (base_type.is<ast::ts_array_slice>())
+	{
+		auto const slice = generate_expr_code(subscript.base, context, {});
+		auto const index = generate_expr_code(subscript.index, context, {}).get_value(context);
+		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type()).is<ast::ts_base_type>());
+		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
+		auto const elem_type = get_type(base_type.get<ast::ts_array_slice>().elem_type, context);
+
+		auto const begin_ptr = context.create_struct_gep(slice, 0).get_value(context);
+		auto const end_ptr   = context.create_struct_gep(slice, 1).get_value(context);
+
+		auto const size = context.create_ptrdiff(end_ptr, begin_ptr, elem_type);
+		auto const is_index_signed = ast::is_signed_integer_kind(kind);
+		if (context.is_64_bit() || index.get_type()->get_builtin_kind() == builtin_type_kind::i64)
+		{
+			auto const index_cast = context.create_int_cast(index, context.get_builtin_type(builtin_type_kind::i64), is_index_signed);
+			auto const size_cast = size.get_type() != index_cast.get_type()
+				? context.create_int_cast(size, index_cast.get_type(), false)
+				: size;
+			emit_index_bounds_check(
+				src_tokens,
+				index_cast,
+				size_cast,
+				is_index_signed,
+				context
+			);
+			return context.create_array_slice_gep(begin_ptr, index_cast, elem_type);
+		}
+		else
+		{
+			auto const index_cast = context.create_int_cast(index, context.get_builtin_type(builtin_type_kind::i32), is_index_signed);
+			bz_assert(size.get_type() == index_cast.get_type());
+			emit_index_bounds_check(
+				src_tokens,
+				index_cast,
+				size,
+				is_index_signed,
+				context
+			);
+			return context.create_array_slice_gep(begin_ptr, index_cast, elem_type);
+		}
+	}
+	else
+	{
+		bz_assert(base_type.is<ast::ts_tuple>() || subscript.base.is_tuple());
+		auto const tuple = generate_expr_code(subscript.base, context, {});
+		bz_assert(subscript.index.is_constant());
+		auto const &index_value = subscript.index.get_constant_value();
+		bz_assert(index_value.is_uint() || index_value.is_sint());
+		auto const index_int_value = index_value.is_uint()
+			? index_value.get_uint()
+			: static_cast<uint64_t>(index_value.get_sint());
+
+		bz_assert(tuple.get_type()->is_aggregate());
+		return context.create_struct_gep(tuple, index_int_value);
+	}
+}
+
 static expr_value generate_expr_code(
 	ast::expr_rvalue_array_subscript const &,
 	codegen_context &context,
@@ -1426,7 +1535,7 @@ static expr_value generate_expr_code(
 	case ast::expr_t::index<ast::expr_rvalue_tuple_subscript>:
 		return generate_expr_code(expr.get<ast::expr_rvalue_tuple_subscript>(), context, result_address);
 	case ast::expr_t::index<ast::expr_subscript>:
-		return generate_expr_code(expr.get<ast::expr_subscript>(), context, result_address);
+		return generate_expr_code(src_tokens, expr.get<ast::expr_subscript>(), context);
 	case ast::expr_t::index<ast::expr_rvalue_array_subscript>:
 		return generate_expr_code(expr.get<ast::expr_rvalue_array_subscript>(), context, result_address);
 	case ast::expr_t::index<ast::expr_function_call>:
