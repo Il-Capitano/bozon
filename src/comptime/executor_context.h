@@ -2,6 +2,7 @@
 #define COMPTIME_EXECUTOR_CONTEXT_H
 
 #include "instructions.h"
+#include "ctx/warnings.h"
 
 namespace comptime
 {
@@ -27,6 +28,7 @@ struct executor_context
 	void do_ret(instruction_value value);
 	void do_ret_void(void);
 	void report_error(uint32_t error_index);
+	void report_warning(ctx::warning_kind kind, uint32_t src_tokens_index, bz::u8string message);
 
 	void advance(void);
 };

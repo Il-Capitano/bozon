@@ -744,9 +744,125 @@ struct cast_u64_to_f64
 	static inline constexpr value_type result_type = value_type::f64;
 };
 
+struct cmp_eq_i1
+{
+	static inline constexpr bz::array arg_types = { value_type::i1, value_type::i1 };
+	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_eq_i8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_eq_i16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_eq_i32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_eq_i64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_eq_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i1;
+
+	uint32_t src_tokens_index;
+};
+
+struct cmp_eq_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i1;
+
+	uint32_t src_tokens_index;
+};
+
+struct cmp_eq_f32_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_eq_f64_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i1;
+};
+
 struct cmp_eq_ptr
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_neq_i1
+{
+	static inline constexpr bz::array arg_types = { value_type::i1, value_type::i1 };
+	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_neq_i8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_neq_i16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_neq_i32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_neq_i64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_neq_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i1;
+
+	uint32_t src_tokens_index;
+};
+
+struct cmp_neq_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i1;
+
+	uint32_t src_tokens_index;
+};
+
+struct cmp_neq_f32_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_neq_f64_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i1;
 };
 
@@ -926,7 +1042,25 @@ using instruction_list = bz::meta::type_pack<
 	instructions::cast_u16_to_f64,
 	instructions::cast_u32_to_f64,
 	instructions::cast_u64_to_f64,
+	instructions::cmp_eq_i1,
+	instructions::cmp_eq_i8,
+	instructions::cmp_eq_i16,
+	instructions::cmp_eq_i32,
+	instructions::cmp_eq_i64,
+	instructions::cmp_eq_f32,
+	instructions::cmp_eq_f64,
+	instructions::cmp_eq_f32_unchecked,
+	instructions::cmp_eq_f64_unchecked,
 	instructions::cmp_eq_ptr,
+	instructions::cmp_neq_i1,
+	instructions::cmp_neq_i8,
+	instructions::cmp_neq_i16,
+	instructions::cmp_neq_i32,
+	instructions::cmp_neq_i64,
+	instructions::cmp_neq_f32,
+	instructions::cmp_neq_f64,
+	instructions::cmp_neq_f32_unchecked,
+	instructions::cmp_neq_f64_unchecked,
 	instructions::cmp_neq_ptr,
 	instructions::const_gep,
 	instructions::const_memcpy,
@@ -1055,7 +1189,25 @@ struct instruction : instruction_base_t
 		cast_u16_to_f64       = index_of<instructions::cast_u16_to_f64>,
 		cast_u32_to_f64       = index_of<instructions::cast_u32_to_f64>,
 		cast_u64_to_f64       = index_of<instructions::cast_u64_to_f64>,
+		cmp_eq_i1             = index_of<instructions::cmp_eq_i1>,
+		cmp_eq_i8             = index_of<instructions::cmp_eq_i8>,
+		cmp_eq_i16            = index_of<instructions::cmp_eq_i16>,
+		cmp_eq_i32            = index_of<instructions::cmp_eq_i32>,
+		cmp_eq_i64            = index_of<instructions::cmp_eq_i64>,
+		cmp_eq_f32            = index_of<instructions::cmp_eq_f32>,
+		cmp_eq_f64            = index_of<instructions::cmp_eq_f64>,
+		cmp_eq_f32_unchecked  = index_of<instructions::cmp_eq_f32_unchecked>,
+		cmp_eq_f64_unchecked  = index_of<instructions::cmp_eq_f64_unchecked>,
 		cmp_eq_ptr            = index_of<instructions::cmp_eq_ptr>,
+		cmp_neq_i1            = index_of<instructions::cmp_neq_i1>,
+		cmp_neq_i8            = index_of<instructions::cmp_neq_i8>,
+		cmp_neq_i16           = index_of<instructions::cmp_neq_i16>,
+		cmp_neq_i32           = index_of<instructions::cmp_neq_i32>,
+		cmp_neq_i64           = index_of<instructions::cmp_neq_i64>,
+		cmp_neq_f32           = index_of<instructions::cmp_neq_f32>,
+		cmp_neq_f64           = index_of<instructions::cmp_neq_f64>,
+		cmp_neq_f32_unchecked = index_of<instructions::cmp_neq_f32_unchecked>,
+		cmp_neq_f64_unchecked = index_of<instructions::cmp_neq_f64_unchecked>,
 		cmp_neq_ptr           = index_of<instructions::cmp_neq_ptr>,
 		const_gep             = index_of<instructions::const_gep>,
 		const_memcpy          = index_of<instructions::const_memcpy>,

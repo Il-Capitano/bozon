@@ -655,9 +655,163 @@ static float64_t execute(instructions::cast_u64_to_f64 const &, uint64_t value, 
 	return static_cast<float64_t>(value);
 }
 
+static bool execute(instructions::cmp_eq_i1 const &, bool lhs, bool rhs, executor_context &)
+{
+	return lhs == rhs;
+}
+
+static bool execute(instructions::cmp_eq_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+{
+	return lhs == rhs;
+}
+
+static bool execute(instructions::cmp_eq_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+{
+	return lhs == rhs;
+}
+
+static bool execute(instructions::cmp_eq_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+{
+	return lhs == rhs;
+}
+
+static bool execute(instructions::cmp_eq_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+{
+	return lhs == rhs;
+}
+
+static bool execute(instructions::cmp_eq_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &context)
+{
+	if (std::isnan(lhs) && std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing nans in expression '{} == {}' with type 'float32' evaluates to false", lhs, rhs)
+		);
+	}
+	else if (std::isnan(lhs) || std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing against nan in expression '{} == {}' with type 'float32' evaluates to false", lhs, rhs)
+		);
+	}
+	return lhs == rhs;
+}
+
+static bool execute(instructions::cmp_eq_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &context)
+{
+	if (std::isnan(lhs) && std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing nans in expression '{} == {}' with type 'float64' evaluates to false", lhs, rhs)
+		);
+	}
+	else if (std::isnan(lhs) || std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing against nan in expression '{} == {}' with type 'float64' evaluates to false", lhs, rhs)
+		);
+	}
+	return lhs == rhs;
+}
+
+static bool execute(instructions::cmp_eq_f32_unchecked const &, float32_t lhs, float32_t rhs, executor_context &)
+{
+	return lhs == rhs;
+}
+
+static bool execute(instructions::cmp_eq_f64_unchecked const &, float64_t lhs, float64_t rhs, executor_context &)
+{
+	return lhs == rhs;
+}
+
 static bool execute(instructions::cmp_eq_ptr const &, ptr_t lhs, ptr_t rhs, executor_context &)
 {
 	return lhs == rhs;
+}
+
+static bool execute(instructions::cmp_neq_i1 const &, bool lhs, bool rhs, executor_context &)
+{
+	return lhs != rhs;
+}
+
+static bool execute(instructions::cmp_neq_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+{
+	return lhs != rhs;
+}
+
+static bool execute(instructions::cmp_neq_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+{
+	return lhs != rhs;
+}
+
+static bool execute(instructions::cmp_neq_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+{
+	return lhs != rhs;
+}
+
+static bool execute(instructions::cmp_neq_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+{
+	return lhs != rhs;
+}
+
+static bool execute(instructions::cmp_neq_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &context)
+{
+	if (std::isnan(lhs) && std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing nans in expression '{} != {}' with type 'float32' evaluates to true", lhs, rhs)
+		);
+	}
+	else if (std::isnan(lhs) || std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing against nan in expression '{} != {}' with type 'float32' evaluates to true", lhs, rhs)
+		);
+	}
+	return lhs != rhs;
+}
+
+static bool execute(instructions::cmp_neq_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &context)
+{
+	if (std::isnan(lhs) && std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing nans in expression '{} != {}' with type 'float64' evaluates to true", lhs, rhs)
+		);
+	}
+	else if (std::isnan(lhs) || std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing against nan in expression '{} != {}' with type 'float64' evaluates to true", lhs, rhs)
+		);
+	}
+	return lhs != rhs;
+}
+
+static bool execute(instructions::cmp_neq_f32_unchecked const &, float32_t lhs, float32_t rhs, executor_context &)
+{
+	return lhs != rhs;
+}
+
+static bool execute(instructions::cmp_neq_f64_unchecked const &, float64_t lhs, float64_t rhs, executor_context &)
+{
+	return lhs != rhs;
 }
 
 static bool execute(instructions::cmp_neq_ptr const &, ptr_t lhs, ptr_t rhs, executor_context &)
@@ -1227,8 +1381,62 @@ void execute(executor_context &context)
 		case instruction::cast_u64_to_f64:
 			execute<instructions::cast_u64_to_f64>(context);
 			break;
+		case instruction::cmp_eq_i1:
+			execute<instructions::cmp_eq_i1>(context);
+			break;
+		case instruction::cmp_eq_i8:
+			execute<instructions::cmp_eq_i8>(context);
+			break;
+		case instruction::cmp_eq_i16:
+			execute<instructions::cmp_eq_i16>(context);
+			break;
+		case instruction::cmp_eq_i32:
+			execute<instructions::cmp_eq_i32>(context);
+			break;
+		case instruction::cmp_eq_i64:
+			execute<instructions::cmp_eq_i64>(context);
+			break;
+		case instruction::cmp_eq_f32:
+			execute<instructions::cmp_eq_f32>(context);
+			break;
+		case instruction::cmp_eq_f64:
+			execute<instructions::cmp_eq_f64>(context);
+			break;
+		case instruction::cmp_eq_f32_unchecked:
+			execute<instructions::cmp_eq_f32_unchecked>(context);
+			break;
+		case instruction::cmp_eq_f64_unchecked:
+			execute<instructions::cmp_eq_f64_unchecked>(context);
+			break;
 		case instruction::cmp_eq_ptr:
 			execute<instructions::cmp_eq_ptr>(context);
+			break;
+		case instruction::cmp_neq_i1:
+			execute<instructions::cmp_neq_i1>(context);
+			break;
+		case instruction::cmp_neq_i8:
+			execute<instructions::cmp_neq_i8>(context);
+			break;
+		case instruction::cmp_neq_i16:
+			execute<instructions::cmp_neq_i16>(context);
+			break;
+		case instruction::cmp_neq_i32:
+			execute<instructions::cmp_neq_i32>(context);
+			break;
+		case instruction::cmp_neq_i64:
+			execute<instructions::cmp_neq_i64>(context);
+			break;
+		case instruction::cmp_neq_f32:
+			execute<instructions::cmp_neq_f32>(context);
+			break;
+		case instruction::cmp_neq_f64:
+			execute<instructions::cmp_neq_f64>(context);
+			break;
+		case instruction::cmp_neq_f32_unchecked:
+			execute<instructions::cmp_neq_f32_unchecked>(context);
+			break;
+		case instruction::cmp_neq_f64_unchecked:
+			execute<instructions::cmp_neq_f64_unchecked>(context);
 			break;
 		case instruction::cmp_neq_ptr:
 			execute<instructions::cmp_neq_ptr>(context);
