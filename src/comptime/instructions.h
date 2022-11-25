@@ -872,6 +872,30 @@ struct cmp_neq_ptr
 	static inline constexpr value_type result_type = value_type::i1;
 };
 
+struct add_i8_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+};
+
+struct add_i16_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+};
+
+struct add_i32_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+};
+
+struct add_i64_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+};
+
 struct const_gep
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
@@ -1078,6 +1102,10 @@ using instruction_list = bz::meta::type_pack<
 	instructions::cmp_neq_f32_unchecked,
 	instructions::cmp_neq_f64_unchecked,
 	instructions::cmp_neq_ptr,
+	instructions::add_i8_unchecked,
+	instructions::add_i16_unchecked,
+	instructions::add_i32_unchecked,
+	instructions::add_i64_unchecked,
 	instructions::const_gep,
 	instructions::array_gep_i32,
 	instructions::array_gep_i64,
@@ -1099,7 +1127,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 115);
+	static_assert(variant_count == 139);
 	enum : base_t::index_t
 	{
 		const_i1              = index_of<instructions::const_i1>,
@@ -1227,6 +1255,10 @@ struct instruction : instruction_base_t
 		cmp_neq_f32_unchecked = index_of<instructions::cmp_neq_f32_unchecked>,
 		cmp_neq_f64_unchecked = index_of<instructions::cmp_neq_f64_unchecked>,
 		cmp_neq_ptr           = index_of<instructions::cmp_neq_ptr>,
+		add_i8_unchecked      = index_of<instructions::add_i8_unchecked>,
+		add_i16_unchecked     = index_of<instructions::add_i16_unchecked>,
+		add_i32_unchecked     = index_of<instructions::add_i32_unchecked>,
+		add_i64_unchecked     = index_of<instructions::add_i64_unchecked>,
 		const_gep             = index_of<instructions::const_gep>,
 		array_gep_i32         = index_of<instructions::array_gep_i32>,
 		array_gep_i64         = index_of<instructions::array_gep_i64>,
