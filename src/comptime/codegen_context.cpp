@@ -19,7 +19,19 @@ bool expr_value::is_none(void) const
 	return this->kind == expr_value_kind::none;
 }
 
-instruction_ref expr_value::get_value(codegen_context &context) const
+expr_value expr_value::get_value(codegen_context &context) const
+{
+	if (this->is_value())
+	{
+		return *this;
+	}
+	else
+	{
+		return context.create_load(*this);
+	}
+}
+
+instruction_ref expr_value::get_value_as_instruction(codegen_context &context) const
 {
 	if (this->is_value())
 	{
@@ -499,7 +511,7 @@ instruction_ref codegen_context::create_store(expr_value value, expr_value ptr)
 	bz_assert(value.get_type() == ptr.get_type());
 	auto const type = value.get_type();
 	bz_assert(type->is_builtin() || type->is_pointer());
-	auto const value_ = value.get_value(*this);
+	auto const value_ = value.get_value_as_instruction(*this);
 	auto const ptr_ = ptr.get_reference();
 	if (type->is_pointer())
 	{
@@ -598,7 +610,7 @@ instruction_ref codegen_context::create_jump(basic_block_ref bb)
 }
 
 instruction_ref codegen_context::create_conditional_jump(
-	instruction_ref condition,
+	expr_value condition,
 	basic_block_ref true_bb,
 	basic_block_ref false_bb
 )
@@ -606,7 +618,7 @@ instruction_ref codegen_context::create_conditional_jump(
 	return this->add_instruction(instructions::conditional_jump{
 		.true_bb_index = true_bb.bb_index,
 		.false_bb_index = false_bb.bb_index,
-	}, condition);
+	}, condition.get_value_as_instruction(*this));
 }
 
 instruction_ref codegen_context::create_ret(instruction_ref value)
@@ -658,7 +670,7 @@ expr_value codegen_context::create_array_gep(expr_value value, expr_value index)
 	{
 		auto const result_ptr = this->add_instruction(
 			instructions::array_gep_i32{ .stride = elem_type->size },
-			value.get_reference(), index.get_value(*this)
+			value.get_reference(), index.get_value_as_instruction(*this)
 		);
 		return expr_value::get_reference(result_ptr, elem_type);
 	}
@@ -666,7 +678,7 @@ expr_value codegen_context::create_array_gep(expr_value value, expr_value index)
 	{
 		auto const result_ptr = this->add_instruction(
 			instructions::array_gep_i64{ .stride = elem_type->size },
-			value.get_reference(), index.get_value(*this)
+			value.get_reference(), index.get_value_as_instruction(*this)
 		);
 		return expr_value::get_reference(result_ptr, elem_type);
 	}
@@ -702,7 +714,7 @@ expr_value codegen_context::create_int_cast(expr_value value, type const *dest, 
 		return value;
 	}
 
-	auto const value_ref = value.get_value(*this);
+	auto const value_ref = value.get_value_as_instruction(*this);
 	switch (value_type->get_builtin_kind())
 	{
 	case builtin_type_kind::i1:
@@ -844,11 +856,17 @@ expr_value codegen_context::create_float_cast(expr_value value, type const *dest
 	}
 	else if (value_type->get_builtin_kind() == builtin_type_kind::f32)
 	{
-		return expr_value::get_value(this->add_instruction(instructions::cast_f32_to_f64{}, value.get_value(*this)), dest);
+		return expr_value::get_value(this->add_instruction(
+			instructions::cast_f32_to_f64{},
+			value.get_value_as_instruction(*this)
+		), dest);
 	}
 	else
 	{
-		return expr_value::get_value(this->add_instruction(instructions::cast_f64_to_f32{}, value.get_value(*this)), dest);
+		return expr_value::get_value(this->add_instruction(
+			instructions::cast_f64_to_f32{},
+			value.get_value_as_instruction(*this)
+		), dest);
 	}
 }
 
@@ -859,7 +877,7 @@ expr_value codegen_context::create_float_to_int_cast(expr_value value, type cons
 	bz_assert(is_floating_point_kind(value_type->get_builtin_kind()));
 	bz_assert(is_integer_kind(dest->get_builtin_kind()));
 
-	auto const value_ref = value.get_value(*this);
+	auto const value_ref = value.get_value_as_instruction(*this);
 	if (value_type->get_builtin_kind() == builtin_type_kind::f32)
 	{
 		if (is_dest_signed)
@@ -939,7 +957,7 @@ expr_value codegen_context::create_int_to_float_cast(expr_value value, type cons
 	bz_assert(is_integer_kind(value_type->get_builtin_kind()));
 	bz_assert(is_floating_point_kind(dest->get_builtin_kind()));
 
-	auto const value_ref = value.get_value(*this);
+	auto const value_ref = value.get_value_as_instruction(*this);
 	if (dest->get_builtin_kind() == builtin_type_kind::f32)
 	{
 		if (is_value_signed)
@@ -1016,8 +1034,8 @@ expr_value codegen_context::create_cmp_eq_i1(expr_value lhs, expr_value rhs)
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i1);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i1);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::cmp_eq_i1{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
@@ -1026,8 +1044,8 @@ expr_value codegen_context::create_cmp_eq_i8(expr_value lhs, expr_value rhs)
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i8);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i8);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::cmp_eq_i8{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
@@ -1036,8 +1054,8 @@ expr_value codegen_context::create_cmp_eq_i16(expr_value lhs, expr_value rhs)
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i16);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i16);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::cmp_eq_i16{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
@@ -1046,8 +1064,8 @@ expr_value codegen_context::create_cmp_eq_i32(expr_value lhs, expr_value rhs)
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i32);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i32);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::cmp_eq_i32{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
@@ -1056,8 +1074,8 @@ expr_value codegen_context::create_cmp_eq_i64(expr_value lhs, expr_value rhs)
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i64);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i64);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::cmp_eq_i64{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
@@ -1068,8 +1086,8 @@ expr_value codegen_context::create_cmp_eq_f32(lex::src_tokens const &src_tokens,
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::f32);
 	this->global_codegen_ctx->src_tokens.push_back(src_tokens);
 	auto const src_tokens_index = this->global_codegen_ctx->src_tokens.size() - 1;
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(
 		instructions::cmp_eq_f32{ .src_tokens_index = static_cast<uint32_t>(src_tokens_index) },
 		lhs_val, rhs_val
@@ -1083,8 +1101,8 @@ expr_value codegen_context::create_cmp_eq_f64(lex::src_tokens const &src_tokens,
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::f64);
 	this->global_codegen_ctx->src_tokens.push_back(src_tokens);
 	auto const src_tokens_index = this->global_codegen_ctx->src_tokens.size() - 1;
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(
 		instructions::cmp_eq_f64{ .src_tokens_index = static_cast<uint32_t>(src_tokens_index) },
 		lhs_val, rhs_val
@@ -1096,8 +1114,8 @@ expr_value codegen_context::create_cmp_eq_f32_unchecked(expr_value lhs, expr_val
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::f32);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::f32);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::cmp_eq_f32_unchecked{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
@@ -1106,8 +1124,8 @@ expr_value codegen_context::create_cmp_eq_f64_unchecked(expr_value lhs, expr_val
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::f64);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::f64);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::cmp_eq_f64_unchecked{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
@@ -1115,8 +1133,8 @@ expr_value codegen_context::create_cmp_eq_f64_unchecked(expr_value lhs, expr_val
 expr_value codegen_context::create_cmp_eq_ptr(expr_value lhs, expr_value rhs)
 {
 	bz_assert(lhs.get_type()->is_pointer() && rhs.get_type()->is_pointer());
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::cmp_eq_ptr{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
@@ -1125,8 +1143,8 @@ expr_value codegen_context::create_cmp_neq_i1(expr_value lhs, expr_value rhs)
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i1);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i1);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::cmp_neq_i1{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
@@ -1135,8 +1153,8 @@ expr_value codegen_context::create_cmp_neq_i8(expr_value lhs, expr_value rhs)
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i8);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i8);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::cmp_neq_i8{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
@@ -1145,8 +1163,8 @@ expr_value codegen_context::create_cmp_neq_i16(expr_value lhs, expr_value rhs)
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i16);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i16);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::cmp_neq_i16{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
@@ -1155,8 +1173,8 @@ expr_value codegen_context::create_cmp_neq_i32(expr_value lhs, expr_value rhs)
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i32);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i32);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::cmp_neq_i32{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
@@ -1165,8 +1183,8 @@ expr_value codegen_context::create_cmp_neq_i64(expr_value lhs, expr_value rhs)
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i64);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i64);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::cmp_neq_i64{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
@@ -1177,8 +1195,8 @@ expr_value codegen_context::create_cmp_neq_f32(lex::src_tokens const &src_tokens
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::f32);
 	this->global_codegen_ctx->src_tokens.push_back(src_tokens);
 	auto const src_tokens_index = this->global_codegen_ctx->src_tokens.size() - 1;
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(
 		instructions::cmp_neq_f32{ .src_tokens_index = static_cast<uint32_t>(src_tokens_index) },
 		lhs_val, rhs_val
@@ -1192,8 +1210,8 @@ expr_value codegen_context::create_cmp_neq_f64(lex::src_tokens const &src_tokens
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::f64);
 	this->global_codegen_ctx->src_tokens.push_back(src_tokens);
 	auto const src_tokens_index = this->global_codegen_ctx->src_tokens.size() - 1;
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(
 		instructions::cmp_neq_f64{ .src_tokens_index = static_cast<uint32_t>(src_tokens_index) },
 		lhs_val, rhs_val
@@ -1205,8 +1223,8 @@ expr_value codegen_context::create_cmp_neq_f32_unchecked(expr_value lhs, expr_va
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::f32);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::f32);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::cmp_neq_f32_unchecked{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
@@ -1215,8 +1233,8 @@ expr_value codegen_context::create_cmp_neq_f64_unchecked(expr_value lhs, expr_va
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::f64);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::f64);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::cmp_neq_f64_unchecked{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
@@ -1224,8 +1242,8 @@ expr_value codegen_context::create_cmp_neq_f64_unchecked(expr_value lhs, expr_va
 expr_value codegen_context::create_cmp_neq_ptr(expr_value lhs, expr_value rhs)
 {
 	bz_assert(lhs.get_type()->is_pointer() && rhs.get_type()->is_pointer());
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::cmp_neq_ptr{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
@@ -1234,8 +1252,8 @@ expr_value codegen_context::create_add_i8_unchecked(expr_value lhs, expr_value r
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i8);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i8);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::add_i8_unchecked{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i8));
 }
@@ -1244,8 +1262,8 @@ expr_value codegen_context::create_add_i16_unchecked(expr_value lhs, expr_value 
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i16);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i16);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::add_i16_unchecked{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i16));
 }
@@ -1254,8 +1272,8 @@ expr_value codegen_context::create_add_i32_unchecked(expr_value lhs, expr_value 
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i32);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i32);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::add_i32_unchecked{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i32));
 }
@@ -1264,8 +1282,8 @@ expr_value codegen_context::create_add_i64_unchecked(expr_value lhs, expr_value 
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i64);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i64);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::add_i64_unchecked{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i64));
 }
@@ -1274,8 +1292,8 @@ expr_value codegen_context::create_sub_i8_unchecked(expr_value lhs, expr_value r
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i8);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i8);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::sub_i8_unchecked{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i8));
 }
@@ -1284,8 +1302,8 @@ expr_value codegen_context::create_sub_i16_unchecked(expr_value lhs, expr_value 
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i16);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i16);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::sub_i16_unchecked{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i16));
 }
@@ -1294,8 +1312,8 @@ expr_value codegen_context::create_sub_i32_unchecked(expr_value lhs, expr_value 
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i32);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i32);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::sub_i32_unchecked{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i32));
 }
@@ -1304,8 +1322,8 @@ expr_value codegen_context::create_sub_i64_unchecked(expr_value lhs, expr_value 
 {
 	bz_assert(lhs.get_type()->is_builtin() && lhs.get_type()->get_builtin_kind() == builtin_type_kind::i64);
 	bz_assert(rhs.get_type()->is_builtin() && rhs.get_type()->get_builtin_kind() == builtin_type_kind::i64);
-	auto const lhs_val = lhs.get_value(*this);
-	auto const rhs_val = rhs.get_value(*this);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	auto const inst_ref = this->add_instruction(instructions::sub_i64_unchecked{}, lhs_val, rhs_val);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i64));
 }

@@ -41,7 +41,8 @@ struct expr_value
 	bool is_reference(void) const;
 	bool is_none(void) const;
 
-	instruction_ref get_value(codegen_context &context) const;
+	expr_value get_value(codegen_context &context) const;
+	instruction_ref get_value_as_instruction(codegen_context &context) const;
 	instruction_ref get_reference(void) const;
 	type const *get_type(void) const;
 
@@ -235,7 +236,7 @@ struct codegen_context
 	expr_value create_alloca(type const *type);
 
 	instruction_ref create_jump(basic_block_ref bb);
-	instruction_ref create_conditional_jump(instruction_ref condition, basic_block_ref true_bb, basic_block_ref false_bb);
+	instruction_ref create_conditional_jump(expr_value condition, basic_block_ref true_bb, basic_block_ref false_bb);
 	instruction_ref create_ret(instruction_ref value);
 	instruction_ref create_ret_void(void);
 

@@ -137,7 +137,7 @@ static loop_info_t create_loop_start(size_t size, codegen_context &context)
 
 	auto const loop_bb = context.add_basic_block();
 	context.set_current_basic_block(loop_bb);
-	auto const index = expr_value::get_value(index_alloca.get_value(context), index_alloca.get_type());
+	auto const index = index_alloca.get_value(context);
 
 	return {
 		.condition_check_bb = condition_check_bb,
@@ -156,7 +156,7 @@ static void create_loop_end(loop_info_t loop_info, codegen_context &context)
 
 	auto const end_bb = context.add_basic_block();
 	context.set_current_basic_block(loop_info.condition_check_bb);
-	context.create_conditional_jump(loop_info.condition.get_value(context), loop_info.loop_bb, end_bb);
+	context.create_conditional_jump(loop_info.condition, loop_info.loop_bb, end_bb);
 	context.set_current_basic_block(end_bb);
 }
 
@@ -199,7 +199,7 @@ static void create_reversed_loop_end(reversed_loop_info_t loop_info, codegen_con
 
 	auto const end_bb = context.add_basic_block();
 	context.set_current_basic_block(loop_info.condition_check_bb);
-	context.create_conditional_jump(loop_info.condition.get_value(context), loop_info.loop_bb, end_bb);
+	context.create_conditional_jump(loop_info.condition, loop_info.loop_bb, end_bb);
 	context.set_current_basic_block(end_bb);
 }
 
@@ -831,7 +831,7 @@ static expr_value generate_expr_code(
 	context.create_jump(end_bb);
 
 	context.set_current_basic_block(begin_bb);
-	context.create_conditional_jump(has_value.get_value(context), copy_bb, end_bb);
+	context.create_conditional_jump(has_value, copy_bb, end_bb);
 	context.set_current_basic_block(end_bb);
 
 	return result_value;
@@ -864,7 +864,7 @@ static expr_value generate_expr_code(
 		}
 		else
 		{
-			return expr_value::get_value(copied_val.get_value(context), copied_val.get_type());
+			return copied_val.get_value(context);
 		}
 	}
 }
@@ -955,7 +955,7 @@ static expr_value generate_expr_code(
 	context.create_jump(end_bb);
 
 	context.set_current_basic_block(begin_bb);
-	context.create_conditional_jump(has_value.get_value(context), copy_bb, end_bb);
+	context.create_conditional_jump(has_value, copy_bb, end_bb);
 	context.set_current_basic_block(end_bb);
 
 	return result_value;
@@ -979,7 +979,7 @@ static expr_value generate_expr_code(
 		}
 		else
 		{
-			return expr_value::get_value(val.get_value(context), type);
+			return val.get_value(context);
 		}
 	}
 	else
@@ -1060,7 +1060,7 @@ static expr_value generate_expr_code(
 	context.create_jump(end_bb);
 
 	context.set_current_basic_block(begin_bb);
-	context.create_conditional_jump(has_value.get_value(context), destruct_bb, end_bb);
+	context.create_conditional_jump(has_value, destruct_bb, end_bb);
 	context.set_current_basic_block(end_bb);
 
 	return expr_value::get_none();
@@ -2384,7 +2384,7 @@ static void generate_stmt_code(ast::stmt_for const &for_stmt, codegen_context &c
 
 	context.set_current_basic_block(cond_check_bb);
 
-	instruction_ref condition = {};
+	auto condition = expr_value::get_none();
 	if (for_stmt.condition.not_null())
 	{
 		auto const prev_info = context.push_expression_scope();
@@ -2437,7 +2437,7 @@ static void generate_stmt_code(ast::stmt_foreach const &foreach_stmt, codegen_co
 	context.create_jump(condition_check_bb);
 
 	context.set_current_basic_block(condition_check_bb);
-	auto const condition = generate_expr_code(foreach_stmt.condition, context, {}).get_value(context);
+	auto const condition = generate_expr_code(foreach_stmt.condition, context, {});
 
 	auto const foreach_bb = context.add_basic_block();
 	context.create_conditional_jump(condition, foreach_bb, end_bb);
@@ -2471,7 +2471,7 @@ static void generate_stmt_code(ast::stmt_return const &return_stmt, codegen_cont
 	}
 	else
 	{
-		auto const result_value = generate_expr_code(return_stmt.expr, context, {}).get_value(context);
+		auto const result_value = generate_expr_code(return_stmt.expr, context, {}).get_value_as_instruction(context);
 		context.emit_all_destruct_operations();
 		context.create_ret(result_value);
 	}
