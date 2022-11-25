@@ -240,6 +240,7 @@ struct codegen_context
 	instruction_ref create_ret_void(void);
 
 	expr_value create_struct_gep(expr_value value, size_t index);
+	expr_value create_array_gep(expr_value value, expr_value index);
 	instruction_ref create_const_memcpy(expr_value dest, expr_value source, size_t size);
 	instruction_ref create_const_memset_zero(expr_value dest, size_t size);
 

@@ -641,6 +641,40 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 	}
 }
 
+expr_value codegen_context::create_array_gep(expr_value value, expr_value index)
+{
+	bz_assert(value.is_reference());
+	bz_assert(value.get_type()->is_array());
+
+	auto const elem_type = value.get_type()->get_array_element_type();
+	bz_assert(index.get_type()->is_builtin());
+	switch (index.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::i8:
+	case builtin_type_kind::i16:
+		index = this->create_int_cast(index, this->get_builtin_type(builtin_type_kind::i32), false);
+		[[fallthrough]];
+	case builtin_type_kind::i32:
+	{
+		auto const result_ptr = this->add_instruction(
+			instructions::array_gep_i32{ .stride = elem_type->size },
+			value.get_reference(), index.get_value(*this)
+		);
+		return expr_value::get_reference(result_ptr, elem_type);
+	}
+	case builtin_type_kind::i64:
+	{
+		auto const result_ptr = this->add_instruction(
+			instructions::array_gep_i64{ .stride = elem_type->size },
+			value.get_reference(), index.get_value(*this)
+		);
+		return expr_value::get_reference(result_ptr, elem_type);
+	}
+	default:
+		bz_unreachable;
+	}
+}
+
 instruction_ref codegen_context::create_const_memcpy(expr_value dest, expr_value source, size_t size)
 {
 	bz_assert(dest.is_reference());
