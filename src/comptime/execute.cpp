@@ -1298,6 +1298,66 @@ static void execute(instructions::error const &error, executor_context &context)
 	context.report_error(error.error_index);
 }
 
+static void execute(instructions::array_bounds_check_i32 const &inst, uint32_t uindex, uint32_t size, executor_context &context)
+{
+	auto const index = static_cast<int32_t>(uindex);
+	if (index < 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("negative index {} in subscript for an array of size {}", index, size)
+		);
+	}
+	else if (uindex >= size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("index {} is out-of-bounds for an array of size {}", uindex, size)
+		);
+	}
+}
+
+static void execute(instructions::array_bounds_check_u32 const &inst, uint32_t index, uint32_t size, executor_context &context)
+{
+	if (index >= size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("index {} is out-of-bounds for an array of size {}", index, size)
+		);
+	}
+}
+
+static void execute(instructions::array_bounds_check_i64 const &inst, uint64_t uindex, uint64_t size, executor_context &context)
+{
+	auto const index = static_cast<int64_t>(uindex);
+	if (index < 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("negative index {} in subscript for an array of size {}", index, size)
+		);
+	}
+	else if (uindex >= size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("index {} is out-of-bounds for an array of size {}", uindex, size)
+		);
+	}
+}
+
+static void execute(instructions::array_bounds_check_u64 const &inst, uint64_t index, uint64_t size, executor_context &context)
+{
+	if (index >= size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("index {} is out-of-bounds for an array of size {}", index, size)
+		);
+	}
+}
+
 
 template<value_type type>
 struct get_value_type;
@@ -1494,7 +1554,7 @@ void execute(executor_context &context)
 {
 	switch (context.instructions[context.current_instruction_index].index())
 	{
-		static_assert(instruction::variant_count == 192);
+		static_assert(instruction::variant_count == 196);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -2070,6 +2130,18 @@ void execute(executor_context &context)
 			break;
 		case instruction::error:
 			execute<instructions::error>(context);
+			break;
+		case instruction::array_bounds_check_i32:
+			execute<instructions::array_bounds_check_i32>(context);
+			break;
+		case instruction::array_bounds_check_u32:
+			execute<instructions::array_bounds_check_u32>(context);
+			break;
+		case instruction::array_bounds_check_i64:
+			execute<instructions::array_bounds_check_i64>(context);
+			break;
+		case instruction::array_bounds_check_u64:
+			execute<instructions::array_bounds_check_u64>(context);
 			break;
 		default:
 			bz_unreachable;
