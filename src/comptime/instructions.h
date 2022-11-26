@@ -40,11 +40,21 @@ struct basic_block
 	size_t instruction_value_offset;
 };
 
+struct alloca
+{
+	size_t size;
+	size_t align;
+};
+
 struct function
 {
-	bz::vector<basic_block> blocks;
+	bz::vector<instruction> instructions;
 	bz::vector<instruction_value> instruction_values;
-	bz::vector<uint32_t> parameter_offsets;
+};
+
+struct instruction_index
+{
+	uint32_t index;
 };
 
 namespace instructions
@@ -180,15 +190,6 @@ struct const_ptr_null
 	static inline constexpr value_type result_type = value_type::ptr;
 };
 
-
-struct alloca
-{
-	static inline constexpr int arg_types = 0;
-	static inline constexpr value_type result_type = value_type::ptr;
-
-	size_t size;
-	size_t align;
-};
 
 
 struct load_i1_be
@@ -982,7 +983,7 @@ struct jump
 	static inline constexpr int arg_types = 0;
 	static inline constexpr value_type result_type = value_type::none;
 
-	uint32_t next_bb_index;
+	instruction_index dest;
 };
 
 struct conditional_jump
@@ -990,8 +991,8 @@ struct conditional_jump
 	static inline constexpr bz::array arg_types = { value_type::i1 };
 	static inline constexpr value_type result_type = value_type::none;
 
-	uint32_t true_bb_index;
-	uint32_t false_bb_index;
+	instruction_index true_dest;
+	instruction_index false_dest;
 };
 
 struct ret
@@ -1029,7 +1030,6 @@ using instruction_list = bz::meta::type_pack<
 	instructions::const_f32,
 	instructions::const_f64,
 	instructions::const_ptr_null,
-	instructions::alloca,
 	instructions::load_i1_be,
 	instructions::load_i8_be,
 	instructions::load_i16_be,
@@ -1173,7 +1173,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 145);
+	static_assert(variant_count == 144);
 	enum : base_t::index_t
 	{
 		const_i1              = index_of<instructions::const_i1>,
@@ -1188,7 +1188,6 @@ struct instruction : instruction_base_t
 		const_f32             = index_of<instructions::const_f32>,
 		const_f64             = index_of<instructions::const_f64>,
 		const_ptr_null        = index_of<instructions::const_ptr_null>,
-		alloca                = index_of<instructions::alloca>,
 		load_i1_be            = index_of<instructions::load_i1_be>,
 		load_i8_be            = index_of<instructions::load_i8_be>,
 		load_i16_be           = index_of<instructions::load_i16_be>,

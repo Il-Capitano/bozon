@@ -3,30 +3,20 @@
 namespace comptime
 {
 
-uint8_t *executor_context::get_memory(ptr_t ptr, size_t size)
-{
-	bz_unreachable;
-}
-
-ptr_t executor_context::do_alloca(size_t size, size_t align)
-{
-	bz_unreachable;
-}
-
 void executor_context::set_current_instruction_value(instruction_value value)
 {
-	this->current_function->instruction_values[this->instruction_value_offset] = value;
+	this->instruction_values[this->current_instruction_index] = value;
 }
 
 instruction_value executor_context::get_instruction_value(instructions::arg_t inst_index)
 {
-	return this->current_function->instruction_values[inst_index];
+	return this->instruction_values[inst_index];
 }
 
-void executor_context::do_jump(uint32_t next_bb_index)
+void executor_context::do_jump(instruction_index dest)
 {
-	bz_assert(next_bb_index < this->current_function->blocks.size());
-	this->next_bb = &this->current_function->blocks[next_bb_index];
+	bz_assert(dest.index < this->instructions.size());
+	this->next_instruction_index = dest.index;
 }
 
 void executor_context::do_ret(instruction_value value)
@@ -42,11 +32,10 @@ void executor_context::do_ret_void(void)
 
 void executor_context::advance(void)
 {
-	if (this->next_bb != nullptr)
+	if (this->next_instruction_index.has_value())
 	{
-		bz_assert(this->next_bb >= this->current_function->blocks.data() && this->next_bb < this->current_function->blocks.data_end());
-		this->current_instruction = this->next_bb->instructions.data();
-		this->instruction_value_offset = this->next_bb->instruction_value_offset;
+		bz_assert(this->next_instruction_index.get() < this->instructions.size());
+		this->current_instruction_index = this->next_instruction_index.get();
 	}
 	else if (this->returned)
 	{
@@ -54,8 +43,8 @@ void executor_context::advance(void)
 	}
 	else
 	{
-		bz_assert(!this->current_instruction->is_terminator());
-		++this->current_instruction;
+		bz_assert(!this->instructions[this->current_instruction_index].is_terminator());
+		this->current_instruction_index += 1;
 	}
 }
 

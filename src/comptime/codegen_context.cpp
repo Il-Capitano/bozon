@@ -121,8 +121,8 @@ basic_block_ref codegen_context::get_current_basic_block(void)
 
 basic_block_ref codegen_context::add_basic_block(void)
 {
-	this->current_function->blocks.emplace_back();
-	return basic_block_ref{ static_cast<uint32_t>(this->current_function->blocks.size() - 1) };
+	this->blocks.emplace_back();
+	return basic_block_ref{ static_cast<uint32_t>(this->blocks.size() - 1) };
 }
 
 void codegen_context::set_current_basic_block(basic_block_ref bb)
@@ -589,24 +589,22 @@ instruction_ref codegen_context::create_store(expr_value value, expr_value ptr)
 
 expr_value codegen_context::create_alloca(type const *type)
 {
-	bz_assert(this->current_function->blocks.not_empty());
-	this->current_function->blocks[0].instructions
-		.emplace_back(instructions::instruction_with_args<instructions::alloca>{
-			.inst = {
-				.size = type->size,
-				.align = type->align,
-			},
-		});
+	this->allocas.push_back({
+		.size = type->size,
+		.align = type->align,
+	});
 	auto const alloca_ref = instruction_ref{
-		.bb_index = 0,
-		.inst_index = static_cast<uint32_t>(this->current_function->blocks[0].instructions.size() - 1),
+		.bb_index = instruction_ref::alloca_bb_index,
+		.inst_index = static_cast<uint32_t>(this->allocas.size() - 1),
 	};
 	return expr_value::get_reference(alloca_ref, type);
 }
 
 instruction_ref codegen_context::create_jump(basic_block_ref bb)
 {
-	return this->add_instruction(instructions::jump{ .next_bb_index = bb.bb_index });
+	auto const result = this->add_instruction(instructions::jump{});
+	this->unresolved_jumps.push_back({ .inst = result, .dests = { bb, {} } });
+	return result;
 }
 
 instruction_ref codegen_context::create_conditional_jump(
@@ -615,10 +613,9 @@ instruction_ref codegen_context::create_conditional_jump(
 	basic_block_ref false_bb
 )
 {
-	return this->add_instruction(instructions::conditional_jump{
-		.true_bb_index = true_bb.bb_index,
-		.false_bb_index = false_bb.bb_index,
-	}, condition.get_value_as_instruction(*this));
+	auto const result = this->add_instruction(instructions::conditional_jump{}, condition.get_value_as_instruction(*this));
+	this->unresolved_jumps.push_back({ .inst = result, .dests = { true_bb, false_bb } });
+	return result;
 }
 
 instruction_ref codegen_context::create_ret(instruction_ref value)

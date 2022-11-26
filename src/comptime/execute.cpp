@@ -65,11 +65,6 @@ static ptr_t execute(instructions::const_ptr_null const &, executor_context &)
 	return 0;
 }
 
-static ptr_t execute(instructions::alloca const &inst, executor_context &context)
-{
-	return context.do_alloca(inst.size, inst.align);
-}
-
 template<typename Int>
 static Int load_big_endian(uint8_t *mem)
 {
@@ -905,18 +900,18 @@ static void execute(instructions::const_memset_zero const &inst, ptr_t dest, exe
 
 static void execute(instructions::jump const &inst, executor_context &context)
 {
-	context.do_jump(inst.next_bb_index);
+	context.do_jump(inst.dest);
 }
 
 static void execute(instructions::conditional_jump const &inst, bool condition, executor_context &context)
 {
 	if (condition)
 	{
-		context.do_jump(inst.true_bb_index);
+		context.do_jump(inst.true_dest);
 	}
 	else
 	{
-		context.do_jump(inst.false_bb_index);
+		context.do_jump(inst.false_dest);
 	}
 }
 
@@ -1086,11 +1081,11 @@ static get_value_type_t<type> &get_value_ref(instruction_value &value)
 template<typename Inst>
 static void execute(executor_context &context)
 {
-	auto const inst = context.current_instruction;
+	auto const &inst = context.instructions[context.current_instruction_index];
 	instruction_value result;
 	if constexpr (instructions::arg_count<Inst> == 0)
 	{
-		auto const &inst_with_args = inst->get<instructions::instruction_with_args<Inst>>();
+		auto const &inst_with_args = inst.get<instructions::instruction_with_args<Inst>>();
 		if constexpr (Inst::result_type != value_type::none)
 		{
 			get_value_ref<Inst::result_type>(result) = execute(inst_with_args.inst, context);
@@ -1104,7 +1099,7 @@ static void execute(executor_context &context)
 	else
 	{
 		[&]<size_t ...Is>(bz::meta::index_sequence<Is...>) {
-			auto const &inst_with_args = inst->get<instructions::instruction_with_args<Inst>>();
+			auto const &inst_with_args = inst.get<instructions::instruction_with_args<Inst>>();
 			if constexpr (Inst::result_type != value_type::none)
 			{
 				get_value_ref<Inst::result_type>(result) = execute(
@@ -1129,9 +1124,9 @@ static void execute(executor_context &context)
 
 void execute(executor_context &context)
 {
-	switch (context.current_instruction->index())
+	switch (context.instructions[context.current_instruction_index].index())
 	{
-		static_assert(instruction::variant_count == 145);
+		static_assert(instruction::variant_count == 144);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -1167,9 +1162,6 @@ void execute(executor_context &context)
 			break;
 		case instruction::const_ptr_null:
 			execute<instructions::const_ptr_null>(context);
-			break;
-		case instruction::alloca:
-			execute<instructions::alloca>(context);
 			break;
 		case instruction::load_i1_be:
 			execute<instructions::load_i1_be>(context);

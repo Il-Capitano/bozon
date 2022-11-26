@@ -22,6 +22,8 @@ struct instruction_ref
 	uint32_t inst_index;
 
 	bool operator == (instruction_ref const &rhs) const = default;
+
+	static inline constexpr uint32_t alloca_bb_index = std::numeric_limits<uint32_t>::max();
 };
 
 enum class expr_value_kind
@@ -70,12 +72,20 @@ struct unresolved_instruction
 	bz::array<instruction_ref, 2> args;
 };
 
+struct unresolved_jump
+{
+	instruction_ref inst;
+	bz::array<basic_block_ref, 2> dests;
+};
+
 struct codegen_context
 {
-	function *current_function = nullptr;
 	basic_block_ref current_bb = {};
 	bz::optional<expr_value> function_return_address;
+	bz::vector<alloca> allocas;
+	bz::vector<basic_block> blocks;
 	bz::vector<unresolved_instruction> unresolved_instructions;
+	bz::vector<unresolved_jump> unresolved_jumps;
 
 	struct destruct_operation_info_t
 	{
@@ -168,11 +178,11 @@ struct codegen_context
 	instruction_ref add_instruction(Inst inst)
 	{
 		static_assert(instructions::arg_count<Inst> == 0);
-		this->current_function->blocks[this->current_bb.bb_index].instructions
+		this->blocks[this->current_bb.bb_index].instructions
 			.emplace_back(instructions::instruction_with_args<Inst>{ .inst = std::move(inst) });
 		auto const result = instruction_ref{
 			.bb_index   = this->current_bb.bb_index,
-			.inst_index = static_cast<uint32_t>(this->current_function->blocks[this->current_bb.bb_index].instructions.size() - 1),
+			.inst_index = static_cast<uint32_t>(this->blocks[this->current_bb.bb_index].instructions.size() - 1),
 		};
 		return result;
 	}
@@ -181,14 +191,14 @@ struct codegen_context
 	instruction_ref add_instruction(Inst inst, instruction_ref arg)
 	{
 		static_assert(instructions::arg_count<Inst> == 1);
-		this->current_function->blocks[this->current_bb.bb_index].instructions
+		this->blocks[this->current_bb.bb_index].instructions
 			.emplace_back(instructions::instruction_with_args<Inst>{
 				.args = {},
 				.inst = std::move(inst),
 			});
 		auto const result = instruction_ref{
 			.bb_index   = this->current_bb.bb_index,
-			.inst_index = static_cast<uint32_t>(this->current_function->blocks[this->current_bb.bb_index].instructions.size() - 1),
+			.inst_index = static_cast<uint32_t>(this->blocks[this->current_bb.bb_index].instructions.size() - 1),
 		};
 		this->unresolved_instructions.push_back({
 			.inst = result,
@@ -201,14 +211,14 @@ struct codegen_context
 	instruction_ref add_instruction(Inst inst, instruction_ref arg1, instruction_ref arg2)
 	{
 		static_assert(instructions::arg_count<Inst> == 2);
-		this->current_function->blocks[this->current_bb.bb_index].instructions
+		this->blocks[this->current_bb.bb_index].instructions
 			.emplace_back(instructions::instruction_with_args<Inst>{
 				.args = {},
 				.inst = std::move(inst),
 			});
 		auto const result = instruction_ref{
 			.bb_index   = this->current_bb.bb_index,
-			.inst_index = static_cast<uint32_t>(this->current_function->blocks[this->current_bb.bb_index].instructions.size() - 1),
+			.inst_index = static_cast<uint32_t>(this->blocks[this->current_bb.bb_index].instructions.size() - 1),
 		};
 		this->unresolved_instructions.push_back({
 			.inst = result,
@@ -267,7 +277,7 @@ struct codegen_context
 
 	instruction_ref create_error(lex::src_tokens const &src_tokens, bz::u8string message);
 
-	void finalize_function(void);
+	void finalize_function(function &func);
 };
 
 } // namespace comptime
