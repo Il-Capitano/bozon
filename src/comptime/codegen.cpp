@@ -115,14 +115,6 @@ static type const *get_type(ast::typespec_view type, codegen_context &context)
 	}
 }
 
-static void emit_index_bounds_check(
-	lex::src_tokens const &src_tokens,
-	expr_value index,
-	expr_value size,
-	bool is_index_signed,
-	codegen_context &context
-);
-
 
 struct loop_info_t
 {
@@ -466,14 +458,13 @@ static expr_value generate_expr_code(
 		{
 			bz_assert(size <= static_cast<size_t>(std::numeric_limits<int64_t>::max()));
 			auto const index_cast = context.create_int_cast(index, context.get_builtin_type(builtin_type_kind::i64), is_index_signed);
-			emit_index_bounds_check(
+			context.create_array_bounds_check(
 				src_tokens,
 				index_cast,
 				is_index_signed
 					? context.create_const_i64(static_cast<int64_t>(size))
 					: context.create_const_u64(size),
-				is_index_signed,
-				context
+				is_index_signed
 			);
 			return context.create_array_gep(array, index_cast);
 		}
@@ -481,14 +472,13 @@ static expr_value generate_expr_code(
 		{
 			bz_assert(size <= static_cast<size_t>(std::numeric_limits<int32_t>::max()));
 			auto const index_cast = context.create_int_cast(index, context.get_builtin_type(builtin_type_kind::i32), is_index_signed);
-			emit_index_bounds_check(
+			context.create_array_bounds_check(
 				src_tokens,
 				index_cast,
 				is_index_signed
 					? context.create_const_i32(static_cast<int32_t>(size))
 					: context.create_const_u32(static_cast<uint32_t>(size)),
-				is_index_signed,
-				context
+				is_index_signed
 			);
 			return context.create_array_gep(array, index_cast);
 		}
@@ -512,26 +502,14 @@ static expr_value generate_expr_code(
 			auto const size_cast = size.get_type() != index_cast.get_type()
 				? context.create_int_cast(size, index_cast.get_type(), false)
 				: size;
-			emit_index_bounds_check(
-				src_tokens,
-				index_cast,
-				size_cast,
-				is_index_signed,
-				context
-			);
+			context.create_array_bounds_check(src_tokens, index_cast, size_cast, is_index_signed);
 			return context.create_array_slice_gep(begin_ptr, index_cast, elem_type);
 		}
 		else
 		{
 			auto const index_cast = context.create_int_cast(index, context.get_builtin_type(builtin_type_kind::i32), is_index_signed);
 			bz_assert(size.get_type() == index_cast.get_type());
-			emit_index_bounds_check(
-				src_tokens,
-				index_cast,
-				size,
-				is_index_signed,
-				context
-			);
+			context.create_array_bounds_check(src_tokens, index_cast, size, is_index_signed);
 			return context.create_array_slice_gep(begin_ptr, index_cast, elem_type);
 		}
 	}

@@ -1892,4 +1892,56 @@ instruction_ref codegen_context::create_error(lex::src_tokens const &src_tokens,
 	return this->add_instruction(instructions::error{ .error_index = static_cast<uint32_t>(index) });
 }
 
+instruction_ref codegen_context::create_array_bounds_check(
+	lex::src_tokens const &src_tokens,
+	expr_value index,
+	expr_value size,
+	bool is_index_signed
+)
+{
+	this->global_codegen_ctx->src_tokens.push_back(src_tokens);
+	auto const src_tokens_index = static_cast<uint32_t>(this->global_codegen_ctx->src_tokens.size() - 1);
+
+	bz_assert(index.get_type() == size.get_type());
+	bz_assert(index.get_type()->is_builtin());
+
+	auto const index_val = index.get_value_as_instruction(*this);
+	auto const size_val = size.get_value_as_instruction(*this);
+
+	if (index.get_type()->get_builtin_kind() == builtin_type_kind::i64)
+	{
+		if (is_index_signed)
+		{
+			return this->add_instruction(
+				instructions::array_bounds_check_i32{ .src_tokens_index = src_tokens_index },
+				index_val, size_val
+			);
+		}
+		else
+		{
+			return this->add_instruction(
+				instructions::array_bounds_check_u32{ .src_tokens_index = src_tokens_index },
+				index_val, size_val
+			);
+		}
+	}
+	else
+	{
+		if (is_index_signed)
+		{
+			return this->add_instruction(
+				instructions::array_bounds_check_i64{ .src_tokens_index = src_tokens_index },
+				index_val, size_val
+			);
+		}
+		else
+		{
+			return this->add_instruction(
+				instructions::array_bounds_check_u64{ .src_tokens_index = src_tokens_index },
+				index_val, size_val
+			);
+		}
+	}
+}
+
 } // namespace comptime
