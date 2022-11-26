@@ -262,12 +262,24 @@ struct codegen_context
 	expr_value create_int_to_float_cast(expr_value value, type const *dest, bool is_value_signed);
 
 	expr_value create_int_cmp_eq(expr_value lhs, expr_value rhs);
-	expr_value create_float_cmp_eq(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs);
-	expr_value create_float_cmp_eq_unchecked(expr_value lhs, expr_value rhs);
-	expr_value create_cmp_eq_ptr(expr_value lhs, expr_value rhs);
 	expr_value create_int_cmp_neq(expr_value lhs, expr_value rhs);
+	expr_value create_int_cmp_lt(expr_value lhs, expr_value rhs, bool is_signed);
+	expr_value create_int_cmp_gt(expr_value lhs, expr_value rhs, bool is_signed);
+	expr_value create_int_cmp_lte(expr_value lhs, expr_value rhs, bool is_signed);
+	expr_value create_int_cmp_gte(expr_value lhs, expr_value rhs, bool is_signed);
+	expr_value create_float_cmp_eq(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs);
 	expr_value create_float_cmp_neq(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs);
+	expr_value create_float_cmp_lt(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs);
+	expr_value create_float_cmp_gt(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs);
+	expr_value create_float_cmp_lte(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs);
+	expr_value create_float_cmp_gte(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs);
+	expr_value create_float_cmp_eq_unchecked(expr_value lhs, expr_value rhs);
 	expr_value create_float_cmp_neq_unchecked(expr_value lhs, expr_value rhs);
+	expr_value create_float_cmp_lt_unchecked(expr_value lhs, expr_value rhs);
+	expr_value create_float_cmp_gt_unchecked(expr_value lhs, expr_value rhs);
+	expr_value create_float_cmp_lte_unchecked(expr_value lhs, expr_value rhs);
+	expr_value create_float_cmp_gte_unchecked(expr_value lhs, expr_value rhs);
+	expr_value create_cmp_eq_ptr(expr_value lhs, expr_value rhs);
 	expr_value create_cmp_neq_ptr(expr_value lhs, expr_value rhs);
 
 	expr_value create_add_unchecked(expr_value lhs, expr_value rhs);

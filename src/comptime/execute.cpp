@@ -814,6 +814,374 @@ static bool execute(instructions::cmp_neq_ptr const &, ptr_t lhs, ptr_t rhs, exe
 	return lhs != rhs;
 }
 
+static bool execute(instructions::cmp_lt_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+{
+	return static_cast<int8_t>(lhs) < static_cast<int8_t>(rhs);
+}
+
+static bool execute(instructions::cmp_lt_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+{
+	return static_cast<int16_t>(lhs) < static_cast<int16_t>(rhs);
+}
+
+static bool execute(instructions::cmp_lt_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+{
+	return static_cast<int32_t>(lhs) < static_cast<int32_t>(rhs);
+}
+
+static bool execute(instructions::cmp_lt_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+{
+	return static_cast<int64_t>(lhs) < static_cast<int64_t>(rhs);
+}
+
+static bool execute(instructions::cmp_lt_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+{
+	return lhs < rhs;
+}
+
+static bool execute(instructions::cmp_lt_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+{
+	return lhs < rhs;
+}
+
+static bool execute(instructions::cmp_lt_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+{
+	return lhs < rhs;
+}
+
+static bool execute(instructions::cmp_lt_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+{
+	return lhs < rhs;
+}
+
+static bool execute(instructions::cmp_lt_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &context)
+{
+	if (std::isnan(lhs) && std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing nans in expression '{} < {}' with type 'float32' evaluates to false", lhs, rhs)
+		);
+	}
+	else if (std::isnan(lhs) || std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing against nan in expression '{} < {}' with type 'float32' evaluates to false", lhs, rhs)
+		);
+	}
+	return lhs < rhs;
+}
+
+static bool execute(instructions::cmp_lt_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &context)
+{
+	if (std::isnan(lhs) && std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing nans in expression '{} < {}' with type 'float64' evaluates to false", lhs, rhs)
+		);
+	}
+	else if (std::isnan(lhs) || std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing against nan in expression '{} < {}' with type 'float64' evaluates to false", lhs, rhs)
+		);
+	}
+	return lhs < rhs;
+}
+
+static bool execute(instructions::cmp_lt_f32_unchecked const &, float32_t lhs, float32_t rhs, executor_context &)
+{
+	return lhs < rhs;
+}
+
+static bool execute(instructions::cmp_lt_f64_unchecked const &, float64_t lhs, float64_t rhs, executor_context &)
+{
+	return lhs < rhs;
+}
+
+static bool execute(instructions::cmp_gt_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+{
+	return static_cast<int8_t>(lhs) > static_cast<int8_t>(rhs);
+}
+
+static bool execute(instructions::cmp_gt_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+{
+	return static_cast<int16_t>(lhs) > static_cast<int16_t>(rhs);
+}
+
+static bool execute(instructions::cmp_gt_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+{
+	return static_cast<int32_t>(lhs) > static_cast<int32_t>(rhs);
+}
+
+static bool execute(instructions::cmp_gt_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+{
+	return static_cast<int64_t>(lhs) > static_cast<int64_t>(rhs);
+}
+
+static bool execute(instructions::cmp_gt_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+{
+	return lhs > rhs;
+}
+
+static bool execute(instructions::cmp_gt_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+{
+	return lhs > rhs;
+}
+
+static bool execute(instructions::cmp_gt_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+{
+	return lhs > rhs;
+}
+
+static bool execute(instructions::cmp_gt_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+{
+	return lhs > rhs;
+}
+
+static bool execute(instructions::cmp_gt_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &context)
+{
+	if (std::isnan(lhs) && std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing nans in expression '{} > {}' with type 'float32' evaluates to false", lhs, rhs)
+		);
+	}
+	else if (std::isnan(lhs) || std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing against nan in expression '{} > {}' with type 'float32' evaluates to false", lhs, rhs)
+		);
+	}
+	return lhs > rhs;
+}
+
+static bool execute(instructions::cmp_gt_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &context)
+{
+	if (std::isnan(lhs) && std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing nans in expression '{} > {}' with type 'float64' evaluates to false", lhs, rhs)
+		);
+	}
+	else if (std::isnan(lhs) || std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing against nan in expression '{} > {}' with type 'float64' evaluates to false", lhs, rhs)
+		);
+	}
+	return lhs > rhs;
+}
+
+static bool execute(instructions::cmp_gt_f32_unchecked const &, float32_t lhs, float32_t rhs, executor_context &)
+{
+	return lhs > rhs;
+}
+
+static bool execute(instructions::cmp_gt_f64_unchecked const &, float64_t lhs, float64_t rhs, executor_context &)
+{
+	return lhs > rhs;
+}
+
+static bool execute(instructions::cmp_lte_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+{
+	return static_cast<int8_t>(lhs) <= static_cast<int8_t>(rhs);
+}
+
+static bool execute(instructions::cmp_lte_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+{
+	return static_cast<int16_t>(lhs) <= static_cast<int16_t>(rhs);
+}
+
+static bool execute(instructions::cmp_lte_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+{
+	return static_cast<int32_t>(lhs) <= static_cast<int32_t>(rhs);
+}
+
+static bool execute(instructions::cmp_lte_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+{
+	return static_cast<int64_t>(lhs) <= static_cast<int64_t>(rhs);
+}
+
+static bool execute(instructions::cmp_lte_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+{
+	return lhs <= rhs;
+}
+
+static bool execute(instructions::cmp_lte_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+{
+	return lhs <= rhs;
+}
+
+static bool execute(instructions::cmp_lte_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+{
+	return lhs <= rhs;
+}
+
+static bool execute(instructions::cmp_lte_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+{
+	return lhs <= rhs;
+}
+
+static bool execute(instructions::cmp_lte_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &context)
+{
+	if (std::isnan(lhs) && std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing nans in expression '{} <= {}' with type 'float32' evaluates to false", lhs, rhs)
+		);
+	}
+	else if (std::isnan(lhs) || std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing against nan in expression '{} <= {}' with type 'float32' evaluates to false", lhs, rhs)
+		);
+	}
+	return lhs <= rhs;
+}
+
+static bool execute(instructions::cmp_lte_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &context)
+{
+	if (std::isnan(lhs) && std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing nans in expression '{} <= {}' with type 'float64' evaluates to false", lhs, rhs)
+		);
+	}
+	else if (std::isnan(lhs) || std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing against nan in expression '{} <= {}' with type 'float64' evaluates to false", lhs, rhs)
+		);
+	}
+	return lhs <= rhs;
+}
+
+static bool execute(instructions::cmp_lte_f32_unchecked const &, float32_t lhs, float32_t rhs, executor_context &)
+{
+	return lhs <= rhs;
+}
+
+static bool execute(instructions::cmp_lte_f64_unchecked const &, float64_t lhs, float64_t rhs, executor_context &)
+{
+	return lhs <= rhs;
+}
+
+static bool execute(instructions::cmp_gte_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+{
+	return static_cast<int8_t>(lhs) >= static_cast<int8_t>(rhs);
+}
+
+static bool execute(instructions::cmp_gte_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+{
+	return static_cast<int16_t>(lhs) >= static_cast<int16_t>(rhs);
+}
+
+static bool execute(instructions::cmp_gte_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+{
+	return static_cast<int32_t>(lhs) >= static_cast<int32_t>(rhs);
+}
+
+static bool execute(instructions::cmp_gte_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+{
+	return static_cast<int64_t>(lhs) >= static_cast<int64_t>(rhs);
+}
+
+static bool execute(instructions::cmp_gte_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+{
+	return lhs >= rhs;
+}
+
+static bool execute(instructions::cmp_gte_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+{
+	return lhs >= rhs;
+}
+
+static bool execute(instructions::cmp_gte_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+{
+	return lhs >= rhs;
+}
+
+static bool execute(instructions::cmp_gte_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+{
+	return lhs >= rhs;
+}
+
+static bool execute(instructions::cmp_gte_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &context)
+{
+	if (std::isnan(lhs) && std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing nans in expression '{} >= {}' with type 'float32' evaluates to false", lhs, rhs)
+		);
+	}
+	else if (std::isnan(lhs) || std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing against nan in expression '{} >= {}' with type 'float32' evaluates to false", lhs, rhs)
+		);
+	}
+	return lhs >= rhs;
+}
+
+static bool execute(instructions::cmp_gte_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &context)
+{
+	if (std::isnan(lhs) && std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing nans in expression '{} >= {}' with type 'float64' evaluates to false", lhs, rhs)
+		);
+	}
+	else if (std::isnan(lhs) || std::isnan(rhs))
+	{
+		context.report_warning(
+			ctx::warning_kind::nan_compare,
+			inst.src_tokens_index,
+			bz::format("comparing against nan in expression '{} >= {}' with type 'float64' evaluates to false", lhs, rhs)
+		);
+	}
+	return lhs >= rhs;
+}
+
+static bool execute(instructions::cmp_gte_f32_unchecked const &, float32_t lhs, float32_t rhs, executor_context &)
+{
+	return lhs >= rhs;
+}
+
+static bool execute(instructions::cmp_gte_f64_unchecked const &, float64_t lhs, float64_t rhs, executor_context &)
+{
+	return lhs >= rhs;
+}
+
 static uint8_t execute(instructions::add_i8_unchecked const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return lhs + rhs;
@@ -1126,7 +1494,7 @@ void execute(executor_context &context)
 {
 	switch (context.instructions[context.current_instruction_index].index())
 	{
-		static_assert(instruction::variant_count == 144);
+		static_assert(instruction::variant_count == 192);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -1498,6 +1866,150 @@ void execute(executor_context &context)
 			break;
 		case instruction::cmp_neq_ptr:
 			execute<instructions::cmp_neq_ptr>(context);
+			break;
+		case instruction::cmp_lt_i8:
+			execute<instructions::cmp_lt_i8>(context);
+			break;
+		case instruction::cmp_lt_i16:
+			execute<instructions::cmp_lt_i16>(context);
+			break;
+		case instruction::cmp_lt_i32:
+			execute<instructions::cmp_lt_i32>(context);
+			break;
+		case instruction::cmp_lt_i64:
+			execute<instructions::cmp_lt_i64>(context);
+			break;
+		case instruction::cmp_lt_u8:
+			execute<instructions::cmp_lt_u8>(context);
+			break;
+		case instruction::cmp_lt_u16:
+			execute<instructions::cmp_lt_u16>(context);
+			break;
+		case instruction::cmp_lt_u32:
+			execute<instructions::cmp_lt_u32>(context);
+			break;
+		case instruction::cmp_lt_u64:
+			execute<instructions::cmp_lt_u64>(context);
+			break;
+		case instruction::cmp_lt_f32:
+			execute<instructions::cmp_lt_f32>(context);
+			break;
+		case instruction::cmp_lt_f64:
+			execute<instructions::cmp_lt_f64>(context);
+			break;
+		case instruction::cmp_lt_f32_unchecked:
+			execute<instructions::cmp_lt_f32_unchecked>(context);
+			break;
+		case instruction::cmp_lt_f64_unchecked:
+			execute<instructions::cmp_lt_f64_unchecked>(context);
+			break;
+		case instruction::cmp_gt_i8:
+			execute<instructions::cmp_gt_i8>(context);
+			break;
+		case instruction::cmp_gt_i16:
+			execute<instructions::cmp_gt_i16>(context);
+			break;
+		case instruction::cmp_gt_i32:
+			execute<instructions::cmp_gt_i32>(context);
+			break;
+		case instruction::cmp_gt_i64:
+			execute<instructions::cmp_gt_i64>(context);
+			break;
+		case instruction::cmp_gt_u8:
+			execute<instructions::cmp_gt_u8>(context);
+			break;
+		case instruction::cmp_gt_u16:
+			execute<instructions::cmp_gt_u16>(context);
+			break;
+		case instruction::cmp_gt_u32:
+			execute<instructions::cmp_gt_u32>(context);
+			break;
+		case instruction::cmp_gt_u64:
+			execute<instructions::cmp_gt_u64>(context);
+			break;
+		case instruction::cmp_gt_f32:
+			execute<instructions::cmp_gt_f32>(context);
+			break;
+		case instruction::cmp_gt_f64:
+			execute<instructions::cmp_gt_f64>(context);
+			break;
+		case instruction::cmp_gt_f32_unchecked:
+			execute<instructions::cmp_gt_f32_unchecked>(context);
+			break;
+		case instruction::cmp_gt_f64_unchecked:
+			execute<instructions::cmp_gt_f64_unchecked>(context);
+			break;
+		case instruction::cmp_lte_i8:
+			execute<instructions::cmp_lte_i8>(context);
+			break;
+		case instruction::cmp_lte_i16:
+			execute<instructions::cmp_lte_i16>(context);
+			break;
+		case instruction::cmp_lte_i32:
+			execute<instructions::cmp_lte_i32>(context);
+			break;
+		case instruction::cmp_lte_i64:
+			execute<instructions::cmp_lte_i64>(context);
+			break;
+		case instruction::cmp_lte_u8:
+			execute<instructions::cmp_lte_u8>(context);
+			break;
+		case instruction::cmp_lte_u16:
+			execute<instructions::cmp_lte_u16>(context);
+			break;
+		case instruction::cmp_lte_u32:
+			execute<instructions::cmp_lte_u32>(context);
+			break;
+		case instruction::cmp_lte_u64:
+			execute<instructions::cmp_lte_u64>(context);
+			break;
+		case instruction::cmp_lte_f32:
+			execute<instructions::cmp_lte_f32>(context);
+			break;
+		case instruction::cmp_lte_f64:
+			execute<instructions::cmp_lte_f64>(context);
+			break;
+		case instruction::cmp_lte_f32_unchecked:
+			execute<instructions::cmp_lte_f32_unchecked>(context);
+			break;
+		case instruction::cmp_lte_f64_unchecked:
+			execute<instructions::cmp_lte_f64_unchecked>(context);
+			break;
+		case instruction::cmp_gte_i8:
+			execute<instructions::cmp_gte_i8>(context);
+			break;
+		case instruction::cmp_gte_i16:
+			execute<instructions::cmp_gte_i16>(context);
+			break;
+		case instruction::cmp_gte_i32:
+			execute<instructions::cmp_gte_i32>(context);
+			break;
+		case instruction::cmp_gte_i64:
+			execute<instructions::cmp_gte_i64>(context);
+			break;
+		case instruction::cmp_gte_u8:
+			execute<instructions::cmp_gte_u8>(context);
+			break;
+		case instruction::cmp_gte_u16:
+			execute<instructions::cmp_gte_u16>(context);
+			break;
+		case instruction::cmp_gte_u32:
+			execute<instructions::cmp_gte_u32>(context);
+			break;
+		case instruction::cmp_gte_u64:
+			execute<instructions::cmp_gte_u64>(context);
+			break;
+		case instruction::cmp_gte_f32:
+			execute<instructions::cmp_gte_f32>(context);
+			break;
+		case instruction::cmp_gte_f64:
+			execute<instructions::cmp_gte_f64>(context);
+			break;
+		case instruction::cmp_gte_f32_unchecked:
+			execute<instructions::cmp_gte_f32_unchecked>(context);
+			break;
+		case instruction::cmp_gte_f64_unchecked:
+			execute<instructions::cmp_gte_f64_unchecked>(context);
 			break;
 		case instruction::add_i8_unchecked:
 			execute<instructions::add_i8_unchecked>(context);
