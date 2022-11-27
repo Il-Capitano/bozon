@@ -1238,6 +1238,31 @@ static uint64_t execute(instructions::ptr64_diff const &inst, ptr_t lhs, ptr_t r
 	return static_cast<uint64_t>(result / stride);
 }
 
+static bool execute(instructions::and_i1 const &, bool lhs, bool rhs, executor_context &)
+{
+	return lhs && rhs;
+}
+
+static uint8_t execute(instructions::and_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+{
+	return lhs & rhs;
+}
+
+static uint16_t execute(instructions::and_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+{
+	return lhs & rhs;
+}
+
+static uint32_t execute(instructions::and_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+{
+	return lhs & rhs;
+}
+
+static uint64_t execute(instructions::and_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+{
+	return lhs & rhs;
+}
+
 static bool execute(instructions::xor_i1 const &, bool lhs, bool rhs, executor_context &)
 {
 	return lhs != rhs;
@@ -1261,6 +1286,31 @@ static uint32_t execute(instructions::xor_i32 const &, uint32_t lhs, uint32_t rh
 static uint64_t execute(instructions::xor_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
 {
 	return lhs ^ rhs;
+}
+
+static bool execute(instructions::or_i1 const &, bool lhs, bool rhs, executor_context &)
+{
+	return lhs || rhs;
+}
+
+static uint8_t execute(instructions::or_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+{
+	return lhs | rhs;
+}
+
+static uint16_t execute(instructions::or_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+{
+	return lhs | rhs;
+}
+
+static uint32_t execute(instructions::or_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+{
+	return lhs | rhs;
+}
+
+static uint64_t execute(instructions::or_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+{
+	return lhs | rhs;
 }
 
 static ptr_t execute(instructions::const_gep const &inst, ptr_t ptr, executor_context &)
@@ -1587,7 +1637,7 @@ void execute(executor_context &context)
 {
 	switch (context.instructions[context.current_instruction_index].index())
 	{
-		static_assert(instruction::variant_count == 202);
+		static_assert(instruction::variant_count == 212);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -2134,6 +2184,21 @@ void execute(executor_context &context)
 		case instruction::ptr64_diff:
 			execute<instructions::ptr64_diff>(context);
 			break;
+		case instruction::and_i1:
+			execute<instructions::and_i1>(context);
+			break;
+		case instruction::and_i8:
+			execute<instructions::and_i8>(context);
+			break;
+		case instruction::and_i16:
+			execute<instructions::and_i16>(context);
+			break;
+		case instruction::and_i32:
+			execute<instructions::and_i32>(context);
+			break;
+		case instruction::and_i64:
+			execute<instructions::and_i64>(context);
+			break;
 		case instruction::xor_i1:
 			execute<instructions::xor_i1>(context);
 			break;
@@ -2148,6 +2213,21 @@ void execute(executor_context &context)
 			break;
 		case instruction::xor_i64:
 			execute<instructions::xor_i64>(context);
+			break;
+		case instruction::or_i1:
+			execute<instructions::or_i1>(context);
+			break;
+		case instruction::or_i8:
+			execute<instructions::or_i8>(context);
+			break;
+		case instruction::or_i16:
+			execute<instructions::or_i16>(context);
+			break;
+		case instruction::or_i32:
+			execute<instructions::or_i32>(context);
+			break;
+		case instruction::or_i64:
+			execute<instructions::or_i64>(context);
 			break;
 		case instruction::const_gep:
 			execute<instructions::const_gep>(context);
