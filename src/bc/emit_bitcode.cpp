@@ -5626,7 +5626,7 @@ static val_ptr emit_bitcode(
 	}
 	auto const rhs_has_value_bb_end = context.builder.GetInsertBlock();
 
-	auto const end_bb = context.add_basic_block("optional_assign_end");
+	auto const end_bb = context.add_basic_block("optional_swap_end");
 
 	context.builder.SetInsertPoint(begin_bb);
 	context.builder.CreateCondBr(are_pointers_equal, end_bb, swap_begin_bb);
@@ -5731,8 +5731,8 @@ static val_ptr emit_bitcode(
 	auto const type = lhs.get_type();
 
 	auto const are_equal = context.builder.CreateICmpEQ(lhs.val, rhs.val);
-	auto const ptr_eq_bb = context.add_basic_block("assign_ptr_eq");
-	auto const neq_bb = context.add_basic_block("assign_ptr_neq");
+	auto const ptr_eq_bb = context.add_basic_block("swap_ptr_eq");
+	auto const neq_bb = context.add_basic_block("swap_ptr_neq");
 	context.builder.CreateCondBr(are_equal, ptr_eq_bb, neq_bb);
 	context.builder.SetInsertPoint(neq_bb);
 
