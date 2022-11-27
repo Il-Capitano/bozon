@@ -525,12 +525,8 @@ static expr_value generate_expr_code(
 	switch (binary_op.op)
 	{
 	case lex::token::comma:
-	{
-		auto const prev_info = context.push_expression_scope();
 		generate_expr_code(binary_op.lhs, context, {});
-		context.pop_expression_scope(prev_info);
 		return generate_expr_code(binary_op.rhs, context, result_address);
-	}
 	case lex::token::bool_and:
 		return generate_builtin_binary_bool_and_code(binary_op.lhs, binary_op.rhs, context, result_address);
 	case lex::token::bool_xor:
@@ -620,7 +616,7 @@ static expr_value generate_expr_code(
 	if (base_type.is<ast::ts_array>())
 	{
 		auto const array = generate_expr_code(subscript.base, context, {});
-		auto const index = generate_expr_code(subscript.index, context, {}).get_value(context);
+		auto index = generate_expr_code(subscript.index, context, {}).get_value(context);
 		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type()).is<ast::ts_base_type>());
 		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
 
@@ -630,31 +626,30 @@ static expr_value generate_expr_code(
 		if (context.is_64_bit() || index.get_type()->get_builtin_kind() == builtin_type_kind::i64)
 		{
 			bz_assert(size <= static_cast<size_t>(std::numeric_limits<int64_t>::max()));
-			auto const index_cast = context.create_int_cast(index, context.get_builtin_type(builtin_type_kind::i64), is_index_signed);
+			index = context.create_int_cast(index, context.get_builtin_type(builtin_type_kind::i64), is_index_signed);
 			context.create_array_bounds_check(
 				src_tokens,
-				index_cast,
+				index,
 				is_index_signed
 					? context.create_const_i64(static_cast<int64_t>(size))
 					: context.create_const_u64(size),
 				is_index_signed
 			);
-			return context.create_array_gep(array, index_cast);
 		}
 		else
 		{
 			bz_assert(size <= static_cast<size_t>(std::numeric_limits<int32_t>::max()));
-			auto const index_cast = context.create_int_cast(index, context.get_builtin_type(builtin_type_kind::i32), is_index_signed);
+			index = context.create_int_cast(index, context.get_builtin_type(builtin_type_kind::i32), is_index_signed);
 			context.create_array_bounds_check(
 				src_tokens,
-				index_cast,
+				index,
 				is_index_signed
 					? context.create_const_i32(static_cast<int32_t>(size))
 					: context.create_const_u32(static_cast<uint32_t>(size)),
 				is_index_signed
 			);
-			return context.create_array_gep(array, index_cast);
 		}
+		return context.create_array_gep(array, index);
 	}
 	else if (base_type.is<ast::ts_array_slice>())
 	{
@@ -703,10 +698,53 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	ast::expr_rvalue_array_subscript const &,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
-);
+	lex::src_tokens const &src_tokens,
+	ast::expr_rvalue_array_subscript const &rvalue_array_subscript,
+	codegen_context &context
+)
+{
+	bz_assert(rvalue_array_subscript.base.get_expr_type().is<ast::ts_array>());
+	auto const &array_t = rvalue_array_subscript.base.get_expr_type().get<ast::ts_array>();
+	auto const array = generate_expr_code(rvalue_array_subscript.base, context, {});
+	auto index = generate_expr_code(rvalue_array_subscript.index, context, {}).get_value(context);
+	bz_assert(ast::remove_const_or_consteval(rvalue_array_subscript.index.get_expr_type()).is<ast::ts_base_type>());
+	auto const kind = ast::remove_const_or_consteval(rvalue_array_subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
+
+	bz_assert(index.get_type()->is_builtin());
+	auto const size = array_t.size;
+	auto const is_index_signed = ast::is_signed_integer_kind(kind);
+	if (context.is_64_bit() || index.get_type()->get_builtin_kind() == builtin_type_kind::i64)
+	{
+		bz_assert(size <= static_cast<size_t>(std::numeric_limits<int64_t>::max()));
+		index = context.create_int_cast(index, context.get_builtin_type(builtin_type_kind::i64), is_index_signed);
+		context.create_array_bounds_check(
+			src_tokens,
+			index,
+			is_index_signed
+				? context.create_const_i64(static_cast<int64_t>(size))
+				: context.create_const_u64(size),
+			is_index_signed
+		);
+	}
+	else
+	{
+		bz_assert(size <= static_cast<size_t>(std::numeric_limits<int32_t>::max()));
+		index = context.create_int_cast(index, context.get_builtin_type(builtin_type_kind::i32), is_index_signed);
+		context.create_array_bounds_check(
+			src_tokens,
+			index,
+			is_index_signed
+				? context.create_const_i32(static_cast<int32_t>(size))
+				: context.create_const_u32(static_cast<uint32_t>(size)),
+			is_index_signed
+		);
+	}
+
+	auto const result_value = context.create_array_gep(array, index);
+	context.push_rvalue_array_destruct_operation(rvalue_array_subscript.elem_destruct_op, array, result_value.get_reference());
+	return result_value;
+}
+
 static expr_value generate_expr_code(
 	ast::expr_function_call const &,
 	codegen_context &context,
@@ -1446,15 +1484,54 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	ast::expr_optional_extract_value const &,
+	lex::src_tokens const &src_tokens,
+	ast::expr_optional_extract_value const &optional_extract_value,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const optional_value = generate_expr_code(optional_extract_value.optional_value, context, {});
+	context.create_optional_get_value_check(src_tokens, get_optional_has_value(optional_value, context));
+
+	auto const prev_value = context.push_value_reference(get_optional_value(optional_value, context));
+	auto const result_value = generate_expr_code(optional_extract_value.value_move_expr, context, result_address);
+	context.pop_value_reference(prev_value);
+
+	return result_value;
+}
+
 static expr_value generate_expr_code(
-	ast::expr_rvalue_member_access const &,
+	ast::expr_rvalue_member_access const &rvalue_member_access,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const base = generate_expr_code(rvalue_member_access.base, context, {});
+
+	expr_value result = expr_value::get_none();
+	for (auto const i : bz::iota(0, rvalue_member_access.member_refs.size()))
+	{
+		if (rvalue_member_access.member_refs[i].is_null())
+		{
+			continue;
+		}
+
+		auto const member_value = context.create_struct_gep(base, i);
+
+		auto const prev_value = context.push_value_reference(member_value);
+		if (i == rvalue_member_access.index)
+		{
+			result = generate_expr_code(rvalue_member_access.member_refs[i], context, result_address);
+		}
+		else
+		{
+			generate_expr_code(rvalue_member_access.member_refs[i], context, {});
+		}
+		context.pop_value_reference(prev_value);
+	}
+
+	return result;
+}
 
 static expr_value generate_expr_code(
 	ast::expr_type_member_access const &type_member_access,
@@ -1689,7 +1766,8 @@ static expr_value generate_expr_code(
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(src_tokens, expr.get<ast::expr_subscript>(), context);
 	case ast::expr_t::index<ast::expr_rvalue_array_subscript>:
-		return generate_expr_code(expr.get<ast::expr_rvalue_array_subscript>(), context, result_address);
+		bz_assert(!result_address.has_value());
+		return generate_expr_code(src_tokens, expr.get<ast::expr_rvalue_array_subscript>(), context);
 	case ast::expr_t::index<ast::expr_function_call>:
 		return generate_expr_code(expr.get<ast::expr_function_call>(), context, result_address);
 	case ast::expr_t::index<ast::expr_cast>:
@@ -1771,7 +1849,7 @@ static expr_value generate_expr_code(
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(expr.get<ast::expr_member_access>(), context);
 	case ast::expr_t::index<ast::expr_optional_extract_value>:
-		return generate_expr_code(expr.get<ast::expr_optional_extract_value>(), context, result_address);
+		return generate_expr_code(src_tokens, expr.get<ast::expr_optional_extract_value>(), context, result_address);
 	case ast::expr_t::index<ast::expr_rvalue_member_access>:
 		return generate_expr_code(expr.get<ast::expr_rvalue_member_access>(), context, result_address);
 	case ast::expr_t::index<ast::expr_type_member_access>:
