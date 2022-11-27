@@ -5824,7 +5824,7 @@ static val_ptr emit_bitcode(
 	auto const optional_val = emit_bitcode<abi>(optional_extract_value.optional_value, context, nullptr);
 	emit_null_optional_get_value_check<abi>(src_tokens, optional_val, context);
 
-	auto const prev_val = context.push_value_reference(optional_val);
+	auto const prev_val = context.push_value_reference(optional_get_value_ptr(optional_val, context));
 	auto const result_val = emit_bitcode<abi>(optional_extract_value.value_move_expr, context, result_address);
 	context.pop_value_reference(prev_val);
 
