@@ -287,6 +287,8 @@ struct codegen_context
 
 	expr_value create_ptrdiff(expr_value lhs, expr_value rhs, type const *elem_type);
 
+	expr_value create_xor(expr_value lhs, expr_value rhs);
+
 	instruction_ref create_error(lex::src_tokens const &src_tokens, bz::u8string message);
 	instruction_ref create_array_bounds_check(lex::src_tokens const &src_tokens, expr_value index, expr_value size, bool is_index_signed);
 

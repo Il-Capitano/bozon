@@ -1241,6 +1241,36 @@ struct ptr64_diff
 	size_t stride;
 };
 
+struct xor_i1
+{
+	static inline constexpr bz::array arg_types = { value_type::i1, value_type::i1 };
+	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct xor_i8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+};
+
+struct xor_i16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+};
+
+struct xor_i32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+};
+
+struct xor_i64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+};
+
 struct const_gep
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
@@ -1536,6 +1566,11 @@ using instruction_list = bz::meta::type_pack<
 	instructions::sub_i64_unchecked,
 	instructions::ptr32_diff,
 	instructions::ptr64_diff,
+	instructions::xor_i1,
+	instructions::xor_i8,
+	instructions::xor_i16,
+	instructions::xor_i32,
+	instructions::xor_i64,
 	instructions::const_gep,
 	instructions::array_gep_i32,
 	instructions::array_gep_i64,
@@ -1561,7 +1596,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 196);
+	static_assert(variant_count == 201);
 	enum : base_t::index_t
 	{
 		const_i1               = index_of<instructions::const_i1>,
@@ -1746,6 +1781,11 @@ struct instruction : instruction_base_t
 		sub_i64_unchecked      = index_of<instructions::sub_i64_unchecked>,
 		ptr32_diff             = index_of<instructions::ptr32_diff>,
 		ptr64_diff             = index_of<instructions::ptr64_diff>,
+		xor_i1                 = index_of<instructions::xor_i1>,
+		xor_i8                 = index_of<instructions::xor_i8>,
+		xor_i16                = index_of<instructions::xor_i16>,
+		xor_i32                = index_of<instructions::xor_i32>,
+		xor_i64                = index_of<instructions::xor_i64>,
 		const_gep              = index_of<instructions::const_gep>,
 		array_gep_i32          = index_of<instructions::array_gep_i32>,
 		array_gep_i64          = index_of<instructions::array_gep_i64>,

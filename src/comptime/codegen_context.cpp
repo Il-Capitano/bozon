@@ -1881,6 +1881,47 @@ expr_value codegen_context::create_ptrdiff(expr_value lhs, expr_value rhs, type 
 	}
 }
 
+expr_value codegen_context::create_xor(expr_value lhs, expr_value rhs)
+{
+	bz_assert(lhs.get_type()->is_builtin());
+	bz_assert(rhs.get_type()->is_builtin());
+	bz_assert(lhs.get_type()->get_builtin_kind() == rhs.get_type()->get_builtin_kind());
+
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
+
+	switch (lhs.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::i1:
+		return expr_value::get_value(
+			this->add_instruction(instructions::xor_i1{}, lhs_val, rhs_val),
+			this->get_builtin_type(builtin_type_kind::i1)
+		);
+	case builtin_type_kind::i8:
+		return expr_value::get_value(
+			this->add_instruction(instructions::xor_i8{}, lhs_val, rhs_val),
+			this->get_builtin_type(builtin_type_kind::i8)
+		);
+	case builtin_type_kind::i16:
+		return expr_value::get_value(
+			this->add_instruction(instructions::xor_i16{}, lhs_val, rhs_val),
+			this->get_builtin_type(builtin_type_kind::i16)
+		);
+	case builtin_type_kind::i32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::xor_i32{}, lhs_val, rhs_val),
+			this->get_builtin_type(builtin_type_kind::i32)
+		);
+	case builtin_type_kind::i64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::xor_i64{}, lhs_val, rhs_val),
+			this->get_builtin_type(builtin_type_kind::i64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
 instruction_ref codegen_context::create_error(lex::src_tokens const &src_tokens, bz::u8string message)
 {
 	this->global_codegen_ctx->errors.push_back({
