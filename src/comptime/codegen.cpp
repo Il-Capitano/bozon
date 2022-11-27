@@ -1514,7 +1514,60 @@ static expr_value generate_expr_code(
 	return expr_value::get_none();
 }
 
+static basic_block_ref generate_optional_swap_both(
+	expr_value lhs,
+	expr_value rhs,
+	ast::expression const &value_swap_expr,
+	codegen_context &context
+)
+{
+	auto const prev_info = context.push_expression_scope();
+	auto const lhs_prev_value = context.push_value_reference(get_optional_value(lhs, context));
+	auto const rhs_prev_value = context.push_value_reference(get_optional_value(rhs, context));
+	generate_expr_code(value_swap_expr, context, {});
+	context.pop_value_reference(rhs_prev_value);
+	context.pop_value_reference(lhs_prev_value);
+	context.pop_expression_scope(prev_info);
+	return context.get_current_basic_block();
+}
 
+static basic_block_ref generate_optional_swap_lhs(
+	expr_value lhs,
+	expr_value rhs,
+	ast::expression const &lhs_move_expr,
+	codegen_context &context
+)
+{
+	auto const prev_info = context.push_expression_scope();
+	auto const rhs_value = get_optional_value(rhs, context);
+	auto const prev_value = context.push_value_reference(get_optional_value(lhs, context));
+	generate_expr_code(lhs_move_expr, context, rhs_value);
+	context.pop_value_reference(prev_value);
+
+	set_optional_has_value(lhs, false, context);
+	set_optional_has_value(rhs, true, context);
+	context.pop_expression_scope(prev_info);
+	return context.get_current_basic_block();
+}
+
+static basic_block_ref generate_optional_swap_rhs(
+	expr_value lhs,
+	expr_value rhs,
+	ast::expression const &rhs_move_expr,
+	codegen_context &context
+)
+{
+	auto const prev_info = context.push_expression_scope();
+	auto const lhs_value = get_optional_value(lhs, context);
+	auto const prev_value = context.push_value_reference(get_optional_value(rhs, context));
+	generate_expr_code(rhs_move_expr, context, lhs_value);
+	context.pop_value_reference(prev_value);
+
+	set_optional_has_value(lhs, true, context);
+	set_optional_has_value(rhs, false, context);
+	context.pop_expression_scope(prev_info);
+	return context.get_current_basic_block();
+}
 
 static expr_value generate_expr_code(
 	ast::expr_optional_swap const &optional_swap,
@@ -1525,6 +1578,48 @@ static expr_value generate_expr_code(
 	auto const rhs = generate_expr_code(optional_swap.rhs, context, {});
 	auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
 
+	auto const lhs_has_value = get_optional_has_value(lhs, context).get_value(context);
+	auto const rhs_has_value = get_optional_has_value(rhs, context).get_value(context);
+	auto const any_has_value = context.create_or(lhs_has_value, rhs_has_value);
+	auto const begin_bb = context.get_current_basic_block();
+
+	auto const any_has_value_bb = context.add_basic_block();
+	context.set_current_basic_block(any_has_value_bb);
+
+	auto const both_have_value = context.create_and(lhs_has_value, rhs_has_value);
+
+	auto const both_have_value_bb = context.add_basic_block();
+	auto const both_have_value_bb_end = generate_optional_swap_both(lhs, rhs, optional_swap.value_swap_expr, context);
+
+	auto const one_has_value_bb = context.add_basic_block();
+
+	auto const lhs_has_value_bb = context.add_basic_block();
+	auto const lhs_has_value_bb_end = generate_optional_swap_lhs(lhs, rhs, optional_swap.lhs_move_expr, context);
+
+	auto const rhs_has_value_bb = context.add_basic_block();
+	auto const rhs_has_value_bb_end = generate_optional_swap_rhs(lhs, rhs, optional_swap.rhs_move_expr, context);
+
+	auto const end_bb = context.add_basic_block();
+
+	context.set_current_basic_block(begin_bb);
+	context.create_conditional_jump(any_has_value, any_has_value_bb, end_bb);
+
+	context.set_current_basic_block(any_has_value_bb);
+	context.create_conditional_jump(both_have_value, both_have_value_bb, one_has_value_bb);
+
+	context.set_current_basic_block(both_have_value_bb_end);
+	context.create_jump(end_bb);
+
+	context.set_current_basic_block(one_has_value_bb);
+	context.create_conditional_jump(lhs_has_value, lhs_has_value_bb, rhs_has_value_bb);
+
+	context.set_current_basic_block(lhs_has_value_bb_end);
+	context.create_jump(end_bb);
+
+	context.set_current_basic_block(rhs_has_value_bb_end);
+	context.create_jump(end_bb);
+
+	context.set_current_basic_block(end_bb);
 
 	create_pointer_compare_end(pointer_compare_info, context);
 	return expr_value::get_none();
@@ -1610,9 +1705,6 @@ static expr_value generate_expr_code(
 {
 	auto const rhs = generate_expr_code(aggregate_assign.rhs, context, {});
 	auto const lhs = generate_expr_code(aggregate_assign.lhs, context, {});
-	bz_assert(lhs.is_reference());
-	bz_assert(rhs.is_reference());
-
 	auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
 
 	for (auto const i : bz::iota(0, aggregate_assign.assign_exprs.size()))
@@ -1628,7 +1720,7 @@ static expr_value generate_expr_code(
 	}
 
 	create_pointer_compare_end(pointer_compare_info, context);
-	return expr_value::get_none();
+	return lhs;
 }
 
 static expr_value generate_expr_code(
@@ -1638,9 +1730,6 @@ static expr_value generate_expr_code(
 {
 	auto const rhs = generate_expr_code(array_assign.rhs, context, {});
 	auto const lhs = generate_expr_code(array_assign.lhs, context, {});
-	bz_assert(lhs.is_reference());
-	bz_assert(rhs.is_reference());
-
 	auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
 
 	bz_assert(array_assign.lhs.get_expr_type().is<ast::ts_array>());
@@ -1659,24 +1748,203 @@ static expr_value generate_expr_code(
 	create_loop_end(loop_info, context);
 
 	create_pointer_compare_end(pointer_compare_info, context);
-	return expr_value::get_none();
+	return lhs;
+}
+
+static basic_block_ref generate_optional_assign_both(
+	expr_value lhs,
+	expr_value rhs,
+	ast::expression const &value_assign_expr,
+	codegen_context &context
+)
+{
+	auto const prev_info = context.push_expression_scope();
+	auto const lhs_prev_value = context.push_value_reference(get_optional_value(lhs, context));
+	auto const rhs_prev_value = context.push_value_reference(get_optional_value(rhs, context));
+	generate_expr_code(value_assign_expr, context, {});
+	context.pop_value_reference(rhs_prev_value);
+	context.pop_value_reference(lhs_prev_value);
+	context.pop_expression_scope(prev_info);
+	return context.get_current_basic_block();
+}
+
+static basic_block_ref generate_optional_assign_lhs(
+	expr_value lhs,
+	ast::expression const &value_destruct_expr,
+	codegen_context &context
+)
+{
+	auto const prev_value = context.push_value_reference(get_optional_value(lhs, context));
+	generate_expr_code(value_destruct_expr, context, {});
+	context.pop_value_reference(prev_value);
+
+	set_optional_has_value(lhs, false, context);
+	return context.get_current_basic_block();
+}
+
+static basic_block_ref generate_optional_assign_rhs(
+	expr_value lhs,
+	expr_value rhs,
+	ast::expression const &value_construct_expr,
+	codegen_context &context
+)
+{
+	auto const prev_info = context.push_expression_scope();
+	auto const lhs_value = get_optional_value(lhs, context);
+	auto const prev_value = context.push_value_reference(get_optional_value(rhs, context));
+	generate_expr_code(value_construct_expr, context, lhs_value);
+	context.pop_value_reference(prev_value);
+	context.pop_expression_scope(prev_info);
+
+	set_optional_has_value(lhs, true, context);
+	return context.get_current_basic_block();
 }
 
 static expr_value generate_expr_code(
-	ast::expr_optional_assign const &,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
-);
+	ast::expr_optional_assign const &optional_assign,
+	codegen_context &context
+)
+{
+	auto const rhs = generate_expr_code(optional_assign.rhs, context, {});
+	auto const lhs = generate_expr_code(optional_assign.lhs, context, {});
+	auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
+
+	auto const lhs_has_value = get_optional_has_value(lhs, context).get_value(context);
+	auto const rhs_has_value = get_optional_has_value(rhs, context).get_value(context);
+	auto const any_has_value = context.create_or(lhs_has_value, rhs_has_value);
+	auto const begin_bb = context.get_current_basic_block();
+
+	auto const any_has_value_bb = context.add_basic_block();
+	context.set_current_basic_block(any_has_value_bb);
+
+	auto const both_have_value = context.create_and(lhs_has_value, rhs_has_value);
+
+	auto const both_have_value_bb = context.add_basic_block();
+	auto const both_have_value_bb_end = generate_optional_assign_both(lhs, rhs, optional_assign.value_assign_expr, context);
+
+	auto const one_has_value_bb = context.add_basic_block();
+
+	auto const lhs_has_value_bb = context.add_basic_block();
+	auto const lhs_has_value_bb_end = generate_optional_assign_lhs(lhs, optional_assign.value_destruct_expr, context);
+
+	auto const rhs_has_value_bb = context.add_basic_block();
+	auto const rhs_has_value_bb_end = generate_optional_assign_rhs(lhs, rhs, optional_assign.value_construct_expr, context);
+
+	auto const end_bb = context.add_basic_block();
+
+	context.set_current_basic_block(begin_bb);
+	context.create_conditional_jump(any_has_value, any_has_value_bb, end_bb);
+
+	context.set_current_basic_block(any_has_value_bb);
+	context.create_conditional_jump(both_have_value, both_have_value_bb, one_has_value_bb);
+
+	context.set_current_basic_block(both_have_value_bb_end);
+	context.create_jump(end_bb);
+
+	context.set_current_basic_block(one_has_value_bb);
+	context.create_conditional_jump(lhs_has_value, lhs_has_value_bb, rhs_has_value_bb);
+
+	context.set_current_basic_block(lhs_has_value_bb_end);
+	context.create_jump(end_bb);
+
+	context.set_current_basic_block(rhs_has_value_bb_end);
+	context.create_jump(end_bb);
+
+	context.set_current_basic_block(end_bb);
+
+	create_pointer_compare_end(pointer_compare_info, context);
+	return lhs;
+}
+
 static expr_value generate_expr_code(
-	ast::expr_optional_null_assign const &,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
-);
+	ast::expr_optional_null_assign const &optional_null_assign,
+	codegen_context &context
+)
+{
+	generate_expr_code(optional_null_assign.rhs, context, {});
+	auto const lhs = generate_expr_code(optional_null_assign.lhs, context, {});
+	bz_assert(lhs.is_reference());
+
+	if (optional_null_assign.value_destruct_expr.not_null())
+	{
+		auto const has_value = get_optional_has_value(lhs, context).get_value(context);
+		auto const begin_bb = context.get_current_basic_block();
+
+		auto const destruct_bb = context.add_basic_block();
+		context.set_current_basic_block(destruct_bb);
+
+		auto const prev_value = context.push_value_reference(get_optional_value(lhs, context));
+		generate_expr_code(optional_null_assign.value_destruct_expr, context, {});
+		context.pop_value_reference(prev_value);
+
+		set_optional_has_value(lhs, false, context);
+
+		auto const end_bb = context.add_basic_block();
+		context.create_jump(end_bb);
+
+		context.set_current_basic_block(begin_bb);
+		context.create_conditional_jump(has_value, destruct_bb, end_bb);
+
+		context.set_current_basic_block(end_bb);
+	}
+	else
+	{
+		set_optional_has_value(lhs, false, context);
+	}
+
+	return lhs;
+}
+
 static expr_value generate_expr_code(
-	ast::expr_optional_value_assign const &,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
-);
+	ast::expr_optional_value_assign const &optional_value_assign,
+	codegen_context &context
+)
+{
+	auto const rhs = generate_expr_code(optional_value_assign.rhs, context, {});
+	auto const lhs = generate_expr_code(optional_value_assign.lhs, context, {});
+
+	auto const has_value = get_optional_has_value(lhs, context).get_value(context);
+	auto const begin_bb = context.get_current_basic_block();
+
+	auto const assign_bb = context.add_basic_block();
+	context.set_current_basic_block(assign_bb);
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const lhs_prev_value = context.push_value_reference(get_optional_value(lhs, context));
+		auto const rhs_prev_value = context.push_value_reference(rhs);
+		generate_expr_code(optional_value_assign.value_assign_expr, context, {});
+		context.pop_value_reference(rhs_prev_value);
+		context.pop_value_reference(lhs_prev_value);
+		context.pop_expression_scope(prev_info);
+	}
+	auto const assign_bb_end = context.get_current_basic_block();
+
+	auto const construct_bb = context.add_basic_block();
+	context.set_current_basic_block(construct_bb);
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const prev_value = context.push_value_reference(rhs);
+		auto const lhs_value = get_optional_value(lhs, context);
+		generate_expr_code(optional_value_assign.value_construct_expr, context, lhs_value);
+		context.pop_value_reference(prev_value);
+		context.pop_expression_scope(prev_info);
+
+		set_optional_has_value(lhs, true, context);
+	}
+
+	auto const end_bb = context.add_basic_block();
+	context.create_jump(end_bb);
+
+	context.set_current_basic_block(begin_bb);
+	context.create_conditional_jump(has_value, assign_bb, construct_bb);
+
+	context.set_current_basic_block(assign_bb_end);
+	context.create_jump(end_bb);
+
+	context.set_current_basic_block(end_bb);
+
+	return lhs;
+}
 
 static expr_value generate_expr_code(
 	ast::expr_base_type_assign const &base_type_assign,
@@ -1685,9 +1953,6 @@ static expr_value generate_expr_code(
 {
 	auto const rhs = generate_expr_code(base_type_assign.rhs, context, {});
 	auto const lhs = generate_expr_code(base_type_assign.lhs, context, {});
-	bz_assert(lhs.is_reference());
-	bz_assert(rhs.is_reference());
-
 	auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
 
 	{
@@ -1703,7 +1968,7 @@ static expr_value generate_expr_code(
 	}
 
 	create_pointer_compare_end(pointer_compare_info, context);
-	return expr_value::get_none();
+	return lhs;
 }
 
 static expr_value generate_expr_code(
@@ -1728,7 +1993,7 @@ static expr_value generate_expr_code(
 		generate_value_copy(rhs, lhs, context);
 	}
 
-	return expr_value::get_none();
+	return lhs;
 }
 
 static expr_value generate_expr_code(
@@ -2103,13 +2368,13 @@ static expr_value generate_expr_code(
 		return generate_expr_code(expr.get<ast::expr_array_assign>(), context);
 	case ast::expr_t::index<ast::expr_optional_assign>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(expr.get<ast::expr_optional_assign>(), context, result_address);
+		return generate_expr_code(expr.get<ast::expr_optional_assign>(), context);
 	case ast::expr_t::index<ast::expr_optional_null_assign>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(expr.get<ast::expr_optional_null_assign>(), context, result_address);
+		return generate_expr_code(expr.get<ast::expr_optional_null_assign>(), context);
 	case ast::expr_t::index<ast::expr_optional_value_assign>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(expr.get<ast::expr_optional_value_assign>(), context, result_address);
+		return generate_expr_code(expr.get<ast::expr_optional_value_assign>(), context);
 	case ast::expr_t::index<ast::expr_base_type_assign>:
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(expr.get<ast::expr_base_type_assign>(), context);
