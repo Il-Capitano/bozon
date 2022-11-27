@@ -1383,6 +1383,14 @@ static void execute(instructions::array_bounds_check_u64 const &inst, uint64_t i
 	}
 }
 
+static void execute(instructions::optional_get_value_check const &inst, bool has_value, executor_context &context)
+{
+	if (!has_value)
+	{
+		context.report_error(inst.src_tokens_index, "getting value of a null optional");
+	}
+}
+
 
 template<value_type type>
 struct get_value_type;
@@ -1579,7 +1587,7 @@ void execute(executor_context &context)
 {
 	switch (context.instructions[context.current_instruction_index].index())
 	{
-		static_assert(instruction::variant_count == 201);
+		static_assert(instruction::variant_count == 202);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -2182,6 +2190,9 @@ void execute(executor_context &context)
 			break;
 		case instruction::array_bounds_check_u64:
 			execute<instructions::array_bounds_check_u64>(context);
+			break;
+		case instruction::optional_get_value_check:
+			execute<instructions::optional_get_value_check>(context);
 			break;
 		default:
 			bz_unreachable;

@@ -1985,4 +1985,16 @@ instruction_ref codegen_context::create_array_bounds_check(
 	}
 }
 
+instruction_ref codegen_context::create_optional_get_value_check(lex::src_tokens const &src_tokens, expr_value has_value)
+{
+	this->global_codegen_ctx->src_tokens.push_back(src_tokens);
+	auto const src_tokens_index = static_cast<uint32_t>(this->global_codegen_ctx->src_tokens.size() - 1);
+
+	auto const has_value_val = has_value.get_value_as_instruction(*this);
+	return this->add_instruction(
+		instructions::optional_get_value_check{ .src_tokens_index = src_tokens_index },
+		has_value_val
+	);
+}
+
 } // namespace comptime

@@ -291,6 +291,7 @@ struct codegen_context
 
 	instruction_ref create_error(lex::src_tokens const &src_tokens, bz::u8string message);
 	instruction_ref create_array_bounds_check(lex::src_tokens const &src_tokens, expr_value index, expr_value size, bool is_index_signed);
+	instruction_ref create_optional_get_value_check(lex::src_tokens const &src_tokens, expr_value has_value);
 
 	void finalize_function(function &func);
 };
