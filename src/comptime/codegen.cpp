@@ -358,16 +358,189 @@ static expr_value generate_expr_code(
 	return result_expr_value;
 }
 
-static expr_value generate_expr_code(
-	ast::expr_unary_op const &,
+static expr_value generate_builtin_unary_address_of_code(
+	ast::expression const &expr,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const value = generate_expr_code(expr, context, {});
+	if (!value.is_reference())
+	{
+		if (auto const id_expr = expr.get_expr().get_if<ast::expr_identifier>(); id_expr && id_expr->decl != nullptr)
+		{
+			context.create_error(
+				expr.src_tokens,
+				bz::format("unable to take address of variable '{}'", id_expr->decl->get_id().format_as_unqualified())
+			);
+		}
+		else
+		{
+			context.create_error(expr.src_tokens, "unable to take address of value");
+		}
+		return result_address.has_value()
+			? result_address.get()
+			: expr_value::get_none();
+	}
+	else if (result_address.has_value())
+	{
+		context.create_store(value, result_address.get());
+		return result_address.get();
+	}
+	else
+	{
+		return value;
+	}
+}
+
 static expr_value generate_expr_code(
-	ast::expr_binary_op const &,
+	ast::expr_unary_op const &unary_op,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	switch (unary_op.op)
+	{
+	case lex::token::address_of:
+		return generate_builtin_unary_address_of_code(unary_op.expr, context, result_address);
+	case lex::token::kw_move:
+	case lex::token::kw_unsafe_move:
+		bz_assert(!result_address.has_value());
+		return generate_expr_code(unary_op.expr, context, result_address);
+	default:
+		bz_unreachable;
+	}
+}
+
+static expr_value generate_builtin_binary_bool_and_code(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+)
+{
+	if (!result_address.has_value())
+	{
+		result_address = context.create_alloca(context.get_builtin_type(builtin_type_kind::i1));
+	}
+
+	auto const &result_value = result_address.get();
+
+	auto const lhs_prev_info = context.push_expression_scope();
+	auto const lhs_value = generate_expr_code(lhs, context, result_value).get_value(context);
+	context.pop_expression_scope(lhs_prev_info);
+	auto const lhs_bb_end = context.get_current_basic_block();
+
+	auto const rhs_bb = context.add_basic_block();
+	context.set_current_basic_block(rhs_bb);
+
+	auto const rhs_prev_info = context.push_expression_scope();
+	generate_expr_code(rhs, context, result_value); // we don't need the value of this
+	context.pop_expression_scope(rhs_prev_info);
+	auto const rhs_bb_end = context.get_current_basic_block();
+
+	auto const end_bb = context.add_basic_block();
+
+	context.set_current_basic_block(lhs_bb_end);
+	// if lhs is true we need to check rhs, otherwise short-circuit to end_bb
+	context.create_conditional_jump(lhs_value, rhs_bb, end_bb);
+
+	context.set_current_basic_block(rhs_bb_end);
+	context.create_jump(end_bb);
+
+	context.set_current_basic_block(end_bb);
+
+	return result_value;
+}
+
+static expr_value generate_builtin_binary_bool_xor_code(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+)
+{
+	auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+	auto const result_value = context.create_xor(lhs_value, rhs_value);
+
+	if (result_address.has_value())
+	{
+		context.create_store(result_value, result_address.get());
+		return result_address.get();
+	}
+	else
+	{
+		return result_value;
+	}
+}
+
+static expr_value generate_builtin_binary_bool_or_code(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+)
+{
+	if (!result_address.has_value())
+	{
+		result_address = context.create_alloca(context.get_builtin_type(builtin_type_kind::i1));
+	}
+
+	auto const &result_value = result_address.get();
+
+	auto const lhs_prev_info = context.push_expression_scope();
+	auto const lhs_value = generate_expr_code(lhs, context, result_value).get_value(context);
+	context.pop_expression_scope(lhs_prev_info);
+	auto const lhs_bb_end = context.get_current_basic_block();
+
+	auto const rhs_bb = context.add_basic_block();
+	context.set_current_basic_block(rhs_bb);
+
+	auto const rhs_prev_info = context.push_expression_scope();
+	generate_expr_code(rhs, context, result_value); // we don't need the value of this
+	context.pop_expression_scope(rhs_prev_info);
+	auto const rhs_bb_end = context.get_current_basic_block();
+
+	auto const end_bb = context.add_basic_block();
+
+	context.set_current_basic_block(lhs_bb_end);
+	// if lhs is false we need to check rhs, otherwise short-circuit to end_bb
+	context.create_conditional_jump(lhs_value, end_bb, rhs_bb);
+
+	context.set_current_basic_block(rhs_bb_end);
+	context.create_jump(end_bb);
+
+	context.set_current_basic_block(end_bb);
+
+	return result_value;
+}
+
+static expr_value generate_expr_code(
+	ast::expr_binary_op const &binary_op,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+)
+{
+	switch (binary_op.op)
+	{
+	case lex::token::comma:
+	{
+		auto const prev_info = context.push_expression_scope();
+		generate_expr_code(binary_op.lhs, context, {});
+		context.pop_expression_scope(prev_info);
+		return generate_expr_code(binary_op.rhs, context, result_address);
+	}
+	case lex::token::bool_and:
+		return generate_builtin_binary_bool_and_code(binary_op.lhs, binary_op.rhs, context, result_address);
+	case lex::token::bool_xor:
+		return generate_builtin_binary_bool_xor_code(binary_op.lhs, binary_op.rhs, context, result_address);
+	case lex::token::bool_or:
+		return generate_builtin_binary_bool_or_code(binary_op.lhs, binary_op.rhs, context, result_address);
+	default:
+		bz_unreachable;
+	}
+}
 
 static expr_value generate_expr_code(
 	ast::expr_tuple_subscript const &tuple_subscript,
@@ -1513,6 +1686,7 @@ static expr_value generate_expr_code(
 	case ast::expr_t::index<ast::expr_rvalue_tuple_subscript>:
 		return generate_expr_code(expr.get<ast::expr_rvalue_tuple_subscript>(), context, result_address);
 	case ast::expr_t::index<ast::expr_subscript>:
+		bz_assert(!result_address.has_value());
 		return generate_expr_code(src_tokens, expr.get<ast::expr_subscript>(), context);
 	case ast::expr_t::index<ast::expr_rvalue_array_subscript>:
 		return generate_expr_code(expr.get<ast::expr_rvalue_array_subscript>(), context, result_address);
