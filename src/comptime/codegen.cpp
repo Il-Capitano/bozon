@@ -1425,13 +1425,15 @@ static expr_value generate_expr_code(
 	return expr_value::get_none();
 }
 
-static expr_value generate_expr_code(
-	ast::expr_aggregate_swap const &aggregate_swap,
-	codegen_context &context
-)
+struct pointer_compare_info_t
 {
-	auto const lhs = generate_expr_code(aggregate_swap.lhs, context, {});
-	auto const rhs = generate_expr_code(aggregate_swap.rhs, context, {});
+	basic_block_ref begin_bb;
+	basic_block_ref neq_bb;
+	expr_value are_pointers_equal;
+};
+
+static pointer_compare_info_t create_pointer_compare_begin(expr_value lhs, expr_value rhs, codegen_context &context)
+{
 	bz_assert(lhs.is_reference());
 	bz_assert(rhs.is_reference());
 
@@ -1440,8 +1442,34 @@ static expr_value generate_expr_code(
 	auto const are_pointers_equal = context.create_cmp_eq_ptr(lhs_ptr, rhs_ptr);
 
 	auto const begin_bb = context.get_current_basic_block();
-	auto const assign_bb = context.add_basic_block();
-	context.set_current_basic_block(assign_bb);
+	auto const neq_bb = context.add_basic_block();
+	context.set_current_basic_block(neq_bb);
+
+	return {
+		.begin_bb = begin_bb,
+		.neq_bb = neq_bb,
+		.are_pointers_equal = are_pointers_equal,
+	};
+}
+
+static void create_pointer_compare_end(pointer_compare_info_t const &info, codegen_context &context)
+{
+	auto const end_bb = context.add_basic_block();
+	context.create_jump(end_bb);
+
+	context.set_current_basic_block(info.begin_bb);
+	context.create_conditional_jump(info.are_pointers_equal, end_bb, info.neq_bb);
+	context.set_current_basic_block(end_bb);
+}
+
+static expr_value generate_expr_code(
+	ast::expr_aggregate_swap const &aggregate_swap,
+	codegen_context &context
+)
+{
+	auto const lhs = generate_expr_code(aggregate_swap.lhs, context, {});
+	auto const rhs = generate_expr_code(aggregate_swap.rhs, context, {});
+	auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
 
 	for (auto const i : bz::iota(0, aggregate_swap.swap_exprs.size()))
 	{
@@ -1454,13 +1482,7 @@ static expr_value generate_expr_code(
 		context.pop_value_reference(lhs_prev_value);
 	}
 
-	auto const end_bb = context.add_basic_block();
-	context.create_jump(end_bb);
-
-	context.set_current_basic_block(begin_bb);
-	context.create_conditional_jump(are_pointers_equal, end_bb, assign_bb);
-	context.set_current_basic_block(end_bb);
-
+	create_pointer_compare_end(pointer_compare_info, context);
 	return expr_value::get_none();
 }
 
@@ -1471,16 +1493,7 @@ static expr_value generate_expr_code(
 {
 	auto const lhs = generate_expr_code(array_swap.lhs, context, {});
 	auto const rhs = generate_expr_code(array_swap.rhs, context, {});
-	bz_assert(lhs.is_reference());
-	bz_assert(rhs.is_reference());
-
-	auto const lhs_ptr = expr_value::get_value(lhs.get_reference(), context.get_pointer_type());
-	auto const rhs_ptr = expr_value::get_value(rhs.get_reference(), context.get_pointer_type());
-	auto const are_pointers_equal = context.create_cmp_eq_ptr(lhs_ptr, rhs_ptr);
-
-	auto const begin_bb = context.get_current_basic_block();
-	auto const assign_bb = context.add_basic_block();
-	context.set_current_basic_block(assign_bb);
+	auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
 
 	bz_assert(lhs.get_type()->is_array());
 	auto const size = lhs.get_type()->get_array_size();
@@ -1497,20 +1510,25 @@ static expr_value generate_expr_code(
 
 	create_loop_end(loop_info, context);
 
-	auto const end_bb = context.add_basic_block();
-	context.create_jump(end_bb);
-
-	context.set_current_basic_block(begin_bb);
-	context.create_conditional_jump(are_pointers_equal, end_bb, assign_bb);
-	context.set_current_basic_block(end_bb);
-
+	create_pointer_compare_end(pointer_compare_info, context);
 	return expr_value::get_none();
 }
 
+
+
 static expr_value generate_expr_code(
-	ast::expr_optional_swap const &,
+	ast::expr_optional_swap const &optional_swap,
 	codegen_context &context
-);
+)
+{
+	auto const lhs = generate_expr_code(optional_swap.lhs, context, {});
+	auto const rhs = generate_expr_code(optional_swap.rhs, context, {});
+	auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
+
+
+	create_pointer_compare_end(pointer_compare_info, context);
+	return expr_value::get_none();
+}
 
 static expr_value generate_expr_code(
 	ast::expr_base_type_swap const &base_type_swap,
@@ -1519,16 +1537,7 @@ static expr_value generate_expr_code(
 {
 	auto const lhs = generate_expr_code(base_type_swap.lhs, context, {});
 	auto const rhs = generate_expr_code(base_type_swap.rhs, context, {});
-	bz_assert(lhs.is_reference());
-	bz_assert(rhs.is_reference());
-
-	auto const lhs_ptr = expr_value::get_value(lhs.get_reference(), context.get_pointer_type());
-	auto const rhs_ptr = expr_value::get_value(rhs.get_reference(), context.get_pointer_type());
-	auto const are_pointers_equal = context.create_cmp_eq_ptr(lhs_ptr, rhs_ptr);
-
-	auto const begin_bb = context.get_current_basic_block();
-	auto const assign_bb = context.add_basic_block();
-	context.set_current_basic_block(assign_bb);
+	auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
 
 	bz_assert(lhs.get_type() == rhs.get_type());
 	auto const type = lhs.get_type();
@@ -1559,13 +1568,7 @@ static expr_value generate_expr_code(
 		context.pop_expression_scope(prev_info);
 	}
 
-	auto const end_bb = context.add_basic_block();
-	context.create_jump(end_bb);
-
-	context.set_current_basic_block(begin_bb);
-	context.create_conditional_jump(are_pointers_equal, end_bb, assign_bb);
-	context.set_current_basic_block(end_bb);
-
+	create_pointer_compare_end(pointer_compare_info, context);
 	return expr_value::get_none();
 }
 
@@ -1576,16 +1579,7 @@ static expr_value generate_expr_code(
 {
 	auto const lhs = generate_expr_code(trivial_swap.lhs, context, {});
 	auto const rhs = generate_expr_code(trivial_swap.rhs, context, {});
-	bz_assert(lhs.is_reference());
-	bz_assert(rhs.is_reference());
-
-	auto const lhs_ptr = expr_value::get_value(lhs.get_reference(), context.get_pointer_type());
-	auto const rhs_ptr = expr_value::get_value(rhs.get_reference(), context.get_pointer_type());
-	auto const are_pointers_equal = context.create_cmp_eq_ptr(lhs_ptr, rhs_ptr);
-
-	auto const begin_bb = context.get_current_basic_block();
-	auto const assign_bb = context.add_basic_block();
-	context.set_current_basic_block(assign_bb);
+	auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
 
 	bz_assert(lhs.get_type() == rhs.get_type());
 	auto const type = lhs.get_type();
@@ -1600,18 +1594,12 @@ static expr_value generate_expr_code(
 	{
 		auto const temp = context.create_alloca(type);
 
-		generate_value_copy(lhs, temp, context);
-		generate_value_copy(rhs, lhs, context);
-		generate_value_copy(temp, rhs, context);
+		generate_value_copy(lhs, temp, context); // temp = lhs
+		generate_value_copy(rhs, lhs, context);  // lhs = rhs
+		generate_value_copy(temp, rhs, context); // rhs = temp
 	}
 
-	auto const end_bb = context.add_basic_block();
-	context.create_jump(end_bb);
-
-	context.set_current_basic_block(begin_bb);
-	context.create_conditional_jump(are_pointers_equal, end_bb, assign_bb);
-	context.set_current_basic_block(end_bb);
-
+	create_pointer_compare_end(pointer_compare_info, context);
 	return expr_value::get_none();
 }
 
@@ -1625,13 +1613,7 @@ static expr_value generate_expr_code(
 	bz_assert(lhs.is_reference());
 	bz_assert(rhs.is_reference());
 
-	auto const lhs_ptr = expr_value::get_value(lhs.get_reference(), context.get_pointer_type());
-	auto const rhs_ptr = expr_value::get_value(rhs.get_reference(), context.get_pointer_type());
-	auto const are_pointers_equal = context.create_cmp_eq_ptr(lhs_ptr, rhs_ptr);
-
-	auto const begin_bb = context.get_current_basic_block();
-	auto const assign_bb = context.add_basic_block();
-	context.set_current_basic_block(assign_bb);
+	auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
 
 	for (auto const i : bz::iota(0, aggregate_assign.assign_exprs.size()))
 	{
@@ -1645,13 +1627,7 @@ static expr_value generate_expr_code(
 		context.pop_value_reference(lhs_prev_value);
 	}
 
-	auto const end_bb = context.add_basic_block();
-	context.create_jump(end_bb);
-
-	context.set_current_basic_block(begin_bb);
-	context.create_conditional_jump(are_pointers_equal, end_bb, assign_bb);
-	context.set_current_basic_block(end_bb);
-
+	create_pointer_compare_end(pointer_compare_info, context);
 	return expr_value::get_none();
 }
 
@@ -1665,13 +1641,7 @@ static expr_value generate_expr_code(
 	bz_assert(lhs.is_reference());
 	bz_assert(rhs.is_reference());
 
-	auto const lhs_ptr = expr_value::get_value(lhs.get_reference(), context.get_pointer_type());
-	auto const rhs_ptr = expr_value::get_value(rhs.get_reference(), context.get_pointer_type());
-	auto const are_pointers_equal = context.create_cmp_eq_ptr(lhs_ptr, rhs_ptr);
-
-	auto const begin_bb = context.get_current_basic_block();
-	auto const assign_bb = context.add_basic_block();
-	context.set_current_basic_block(assign_bb);
+	auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
 
 	bz_assert(array_assign.lhs.get_expr_type().is<ast::ts_array>());
 	auto const size = array_assign.lhs.get_expr_type().get<ast::ts_array>().size;
@@ -1688,13 +1658,7 @@ static expr_value generate_expr_code(
 
 	create_loop_end(loop_info, context);
 
-	auto const end_bb = context.add_basic_block();
-	context.create_jump(end_bb);
-
-	context.set_current_basic_block(begin_bb);
-	context.create_conditional_jump(are_pointers_equal, end_bb, assign_bb);
-	context.set_current_basic_block(end_bb);
-
+	create_pointer_compare_end(pointer_compare_info, context);
 	return expr_value::get_none();
 }
 
@@ -1724,13 +1688,7 @@ static expr_value generate_expr_code(
 	bz_assert(lhs.is_reference());
 	bz_assert(rhs.is_reference());
 
-	auto const lhs_ptr = expr_value::get_value(lhs.get_reference(), context.get_pointer_type());
-	auto const rhs_ptr = expr_value::get_value(rhs.get_reference(), context.get_pointer_type());
-	auto const are_pointers_equal = context.create_cmp_eq_ptr(lhs_ptr, rhs_ptr);
-
-	auto const begin_bb = context.get_current_basic_block();
-	auto const assign_bb = context.add_basic_block();
-	context.set_current_basic_block(assign_bb);
+	auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
 
 	{
 		auto const prev_value = context.push_value_reference(lhs);
@@ -1744,13 +1702,7 @@ static expr_value generate_expr_code(
 		context.pop_value_reference(prev_value);
 	}
 
-	auto const end_bb = context.add_basic_block();
-	context.create_jump(end_bb);
-
-	context.set_current_basic_block(begin_bb);
-	context.create_conditional_jump(are_pointers_equal, end_bb, assign_bb);
-	context.set_current_basic_block(end_bb);
-
+	create_pointer_compare_end(pointer_compare_info, context);
 	return expr_value::get_none();
 }
 
@@ -1765,22 +1717,11 @@ static expr_value generate_expr_code(
 
 	if (rhs.is_reference())
 	{
-		auto const lhs_ptr = expr_value::get_value(lhs.get_reference(), context.get_pointer_type());
-		auto const rhs_ptr = expr_value::get_value(rhs.get_reference(), context.get_pointer_type());
-		auto const are_pointers_equal = context.create_cmp_eq_ptr(lhs_ptr, rhs_ptr);
-
-		auto const begin_bb = context.get_current_basic_block();
-		auto const assign_bb = context.add_basic_block();
-		context.set_current_basic_block(assign_bb);
+		auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
 
 		generate_value_copy(rhs, lhs, context);
 
-		auto const end_bb = context.add_basic_block();
-		context.create_jump(end_bb);
-
-		context.set_current_basic_block(begin_bb);
-		context.create_conditional_jump(are_pointers_equal, end_bb, assign_bb);
-		context.set_current_basic_block(end_bb);
+		create_pointer_compare_end(pointer_compare_info, context);
 	}
 	else
 	{
