@@ -34,6 +34,7 @@
 #include <bz/format.h>
 #include <bz/result.h>
 #include <bz/array.h>
+#include <bz/fixed_vector.h>
 
 #include "my_assert.h"
 
