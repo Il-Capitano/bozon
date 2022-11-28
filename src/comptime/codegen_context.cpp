@@ -2079,4 +2079,106 @@ instruction_ref codegen_context::create_optional_get_value_check(lex::src_tokens
 	);
 }
 
+static void resolve_instruction_args(instruction &inst, bz::array<instruction_ref, 2> const &args, auto get_instruction_value_index)
+{
+	inst.visit([&](auto &inst) {
+		using inst_type = bz::meta::remove_reference<decltype(inst.inst)>;
+		if constexpr (instructions::arg_count<inst_type> == 0)
+		{
+			// such an instruction shouldn't be in unresolved_instructions
+			bz_unreachable;
+		}
+		else if constexpr (instructions::arg_count<inst_type> == 1)
+		{
+			inst.args[0] = get_instruction_value_index(args[0]);
+		}
+		else if constexpr (instructions::arg_count<inst_type> == 2)
+		{
+			inst.args[0] = get_instruction_value_index(args[0]);
+			inst.args[1] = get_instruction_value_index(args[1]);
+		}
+		else
+		{
+			static_assert(bz::meta::always_false<inst_type>);
+		}
+	});
+}
+
+static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> const &dests, auto get_instruction_index)
+{
+	switch (inst.index())
+	{
+	static_assert(instruction::variant_count == 212);
+	case instruction::jump:
+	{
+		auto &jump_inst = inst.get<instruction::jump>().inst;
+		jump_inst.dest = get_instruction_index({ .bb_index = dests[0].bb_index, .inst_index = 0 });
+		break;
+	}
+	case instruction::conditional_jump:
+	{
+		auto &jump_inst = inst.get<instruction::conditional_jump>().inst;
+		jump_inst.true_dest  = get_instruction_index({ .bb_index = dests[0].bb_index, .inst_index = 0 });
+		jump_inst.false_dest = get_instruction_index({ .bb_index = dests[1].bb_index, .inst_index = 0 });
+		break;
+	}
+	default:
+		bz_unreachable;
+	}
+}
+
+void codegen_context::finalize_function(function &func)
+{
+	uint32_t instruction_value_offset = this->allocas.size();
+	for (auto &bb : this->blocks)
+	{
+		bb.instruction_value_offset = instruction_value_offset;
+		instruction_value_offset += bb.instructions.size();
+	}
+
+	auto const instruction_values_count = instruction_value_offset;
+	auto const instructions_count = instruction_value_offset - this->blocks[0].instruction_value_offset;
+
+	auto const get_instruction_value_index = [this](instruction_ref inst_ref) -> instruction_value_index {
+		if (inst_ref.bb_index == instruction_ref::alloca_bb_index)
+		{
+			return { .index = inst_ref.inst_index };
+		}
+		else
+		{
+			return { .index = this->blocks[inst_ref.bb_index].instruction_value_offset + inst_ref.inst_index };
+		}
+	};
+
+	auto const get_instruction_index = [this](instruction_ref inst_ref) -> instruction_index {
+		bz_assert(inst_ref.bb_index != instruction_ref::alloca_bb_index);
+		auto const bb_offset = this->blocks[inst_ref.bb_index].instruction_value_offset - this->blocks[0].instruction_value_offset;
+		return { .index = bb_offset + inst_ref.inst_index };
+	};
+
+	auto const get_instruction = [this](instruction_ref inst_ref) -> instruction & {
+		bz_assert(inst_ref.bb_index != instruction_ref::alloca_bb_index);
+		return this->blocks[inst_ref.bb_index].instructions[inst_ref.inst_index];
+	};
+
+	for (auto const &[inst_ref, args] : this->unresolved_instructions)
+	{
+		resolve_instruction_args(get_instruction(inst_ref), args, get_instruction_value_index);
+	}
+
+	for (auto const &[inst_ref, dests] : this->unresolved_jumps)
+	{
+		resolve_jump_dests(get_instruction(inst_ref), dests, get_instruction_index);
+	}
+
+	func.instructions = bz::fixed_vector<instruction>(instructions_count);
+	auto it = func.instructions.begin();
+	for (auto const &bb : this->blocks)
+	{
+		std::copy_n(bb.instructions.begin(), bb.instructions.size(), it);
+		it += bb.instructions.size();
+	}
+	bz_assert(it == func.instructions.end());
+}
+
 } // namespace comptime
