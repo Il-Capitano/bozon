@@ -1592,7 +1592,7 @@ static get_value_type_t<type> &get_value_ref(instruction_value &value)
 template<typename Inst>
 static void execute(executor_context &context)
 {
-	auto const &inst = context.instructions[context.current_instruction_index];
+	auto const &inst = *context.current_instruction;
 	instruction_value result;
 	if constexpr (instructions::arg_count<Inst> == 0)
 	{
@@ -1635,7 +1635,7 @@ static void execute(executor_context &context)
 
 void execute(executor_context &context)
 {
-	switch (context.instructions[context.current_instruction_index].index())
+	switch (context.current_instruction->index())
 	{
 		static_assert(instruction::variant_count == 212);
 		case instruction::const_i1:

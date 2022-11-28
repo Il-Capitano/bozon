@@ -14,15 +14,18 @@ struct executor_context
 	bz::array_view<instruction const> instructions;
 	bz::array_view<instruction_value> instruction_values;
 
-	uint32_t current_instruction_index;
-	bz::optional<uint32_t> next_instruction_index;
+	uint32_t alloca_offset;
+	instruction const *current_instruction;
+	instruction_value *current_instruction_value;
+	instruction const *next_instruction;
+
 	instruction_value ret_value;
 	bool returned;
 
 	uint8_t *get_memory(ptr_t ptr, size_t size);
 
 	void set_current_instruction_value(instruction_value value);
-	instruction_value get_instruction_value(instructions::arg_t inst_index);
+	instruction_value get_instruction_value(instruction_value_index index);
 
 	void do_jump(instruction_index dest);
 	void do_ret(instruction_value value);

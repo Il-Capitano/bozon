@@ -5,18 +5,18 @@ namespace comptime
 
 void executor_context::set_current_instruction_value(instruction_value value)
 {
-	this->instruction_values[this->current_instruction_index] = value;
+	*this->current_instruction_value = value;
 }
 
-instruction_value executor_context::get_instruction_value(instructions::arg_t inst_index)
+instruction_value executor_context::get_instruction_value(instruction_value_index index)
 {
-	return this->instruction_values[inst_index];
+	return this->instruction_values[index.index];
 }
 
 void executor_context::do_jump(instruction_index dest)
 {
 	bz_assert(dest.index < this->instructions.size());
-	this->next_instruction_index = dest.index;
+	this->next_instruction = &this->instructions[dest.index];
 }
 
 void executor_context::do_ret(instruction_value value)
@@ -32,10 +32,12 @@ void executor_context::do_ret_void(void)
 
 void executor_context::advance(void)
 {
-	if (this->next_instruction_index.has_value())
+	if (this->next_instruction != nullptr)
 	{
-		bz_assert(this->next_instruction_index.get() < this->instructions.size());
-		this->current_instruction_index = this->next_instruction_index.get();
+		auto const next_instruction_index = this->next_instruction - this->instructions.data();
+		this->current_instruction = this->next_instruction;
+		this->current_instruction_value = this->instruction_values.data() + next_instruction_index + this->alloca_offset;
+		this->next_instruction = nullptr;
 	}
 	else if (this->returned)
 	{
@@ -43,8 +45,8 @@ void executor_context::advance(void)
 	}
 	else
 	{
-		bz_assert(!this->instructions[this->current_instruction_index].is_terminator());
-		this->current_instruction_index += 1;
+		bz_assert(!this->current_instruction->is_terminator());
+		this->current_instruction += 1;
 	}
 }
 

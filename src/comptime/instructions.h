@@ -37,7 +37,7 @@ struct instruction;
 struct basic_block
 {
 	bz::vector<instruction> instructions;
-	size_t instruction_value_offset;
+	uint32_t instruction_value_offset;
 };
 
 struct alloca
@@ -48,8 +48,7 @@ struct alloca
 
 struct function
 {
-	bz::vector<instruction> instructions;
-	bz::vector<instruction_value> instruction_values;
+	bz::fixed_vector<instruction> instructions;
 };
 
 struct instruction_index
@@ -57,10 +56,13 @@ struct instruction_index
 	uint32_t index;
 };
 
+struct instruction_value_index
+{
+	uint32_t index;
+};
+
 namespace instructions
 {
-
-using arg_t = uint32_t;
 
 template<typename Inst>
 inline constexpr size_t arg_count = []() {
@@ -80,7 +82,7 @@ namespace internal
 template<typename Inst, size_t ArgsCount>
 struct instruction_with_args
 {
-	bz::array<arg_t, ArgsCount> args;
+	bz::array<instruction_value_index, ArgsCount> args;
 	Inst inst;
 };
 
@@ -1907,6 +1909,9 @@ struct instruction : instruction_base_t
 		}
 	}
 };
+
+static_assert(std::is_trivially_copy_constructible_v<instruction>);
+static_assert(std::is_trivially_destructible_v<instruction>);
 
 
 } // namespace comptime
