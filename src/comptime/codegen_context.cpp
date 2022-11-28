@@ -731,6 +731,24 @@ instruction_ref codegen_context::create_const_memset_zero(expr_value dest, size_
 	return this->add_instruction(instructions::const_memset_zero{ .size = size }, dest.get_reference());
 }
 
+expr_value codegen_context::create_function_call(function const *func, bz::fixed_vector<instruction_ref> args)
+{
+	auto const args_index = this->call_args.size();
+	this->call_args.push_back(std::move(args));
+
+	auto const inst_ref = this->add_instruction(
+		instructions::function_call{ .func = func, .args_index = args_index }
+	);
+	if (func->return_type->is_simple_value_type())
+	{
+		return expr_value::get_value(inst_ref, func->return_type);
+	}
+	else
+	{
+		return expr_value::get_none();
+	}
+}
+
 expr_value codegen_context::create_int_cast(expr_value value, type const *dest, bool is_value_signed)
 {
 	auto const value_type = value.get_type();
@@ -2108,7 +2126,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 212);
+	static_assert(instruction::variant_count == 213);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>().inst;
@@ -2171,14 +2189,30 @@ void codegen_context::finalize_function(function &func)
 		resolve_jump_dests(get_instruction(inst_ref), dests, get_instruction_index);
 	}
 
-	func.instructions = bz::fixed_vector<instruction>(instructions_count);
-	auto it = func.instructions.begin();
-	for (auto const &bb : this->blocks)
+	// finalize instructions
 	{
-		std::copy_n(bb.instructions.begin(), bb.instructions.size(), it);
-		it += bb.instructions.size();
+		func.instructions = bz::fixed_vector<instruction>(instructions_count);
+		auto it = func.instructions.begin();
+		for (auto const &bb : this->blocks)
+		{
+			std::copy_n(bb.instructions.begin(), bb.instructions.size(), it);
+			it += bb.instructions.size();
+		}
+		bz_assert(it == func.instructions.end());
 	}
-	bz_assert(it == func.instructions.end());
+
+	// finalize call_args
+	{
+		func.call_args = bz::fixed_vector<bz::fixed_vector<instruction_index>>(this->call_args.size());
+		for (auto const i : bz::iota(0, func.call_args.size()))
+		{
+			func.call_args[i] = bz::fixed_vector<instruction_index>(this->call_args[i].size());
+			for (auto const j : bz::iota(0, func.call_args[i].size()))
+			{
+				func.call_args[i][j] = get_instruction_index(this->call_args[i][j]);
+			}
+		}
+	}
 }
 
 } // namespace comptime

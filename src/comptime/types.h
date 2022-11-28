@@ -107,6 +107,11 @@ struct type : type_base_t
 		return this->get<array_type>().size;
 	}
 
+	bool is_simple_value_type(void) const
+	{
+		return this->is_builtin() || this->is_pointer();
+	}
+
 	friend bool operator == (type const &lhs, type const &rhs)
 	{
 		if (lhs.index() != rhs.index())
@@ -161,6 +166,7 @@ struct std::hash<comptime::array_type>
 		return elem_hash ^ ((size_hash << 3) + (size_hash >> 7));
 	}
 };
+
 
 namespace comptime
 {

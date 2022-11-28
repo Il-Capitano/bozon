@@ -759,11 +759,156 @@ static expr_value generate_expr_code(
 	return result_value;
 }
 
-static expr_value generate_expr_code(
-	ast::expr_function_call const &,
+static expr_value generate_intrinsic_function_call_code(
+	ast::expr_function_call const &func_call,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 );
+
+static expr_value generate_expr_code(
+	ast::expr_function_call const &func_call,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+)
+{
+	if (func_call.func_body->is_intrinsic() && func_call.func_body->body.is_null())
+	{
+		return generate_intrinsic_function_call_code(func_call, context, result_address);
+	}
+	bz_assert(!func_call.func_body->is_default_copy_constructor());
+	bz_assert(!func_call.func_body->is_default_move_constructor());
+	bz_assert(!func_call.func_body->is_default_default_constructor());
+	bz_assert(!func_call.func_body->is_default_op_assign());
+	bz_assert(!func_call.func_body->is_default_op_move_assign());
+
+	if (!func_call.func_body->is_intrinsic() && func_call.func_body->body.is_null())
+	{
+		context.create_error(
+			func_call.src_tokens,
+			bz::format("unable to call external function '{}' in compile time execution", func_call.func_body->get_signature())
+		);
+		if (result_address.has_value())
+		{
+			return result_address.get();
+		}
+		else if (func_call.func_body->return_type.is<ast::ts_void>())
+		{
+			return expr_value::get_none();
+		}
+		else
+		{
+			return context.create_alloca(get_type(func_call.func_body->return_type, context));
+		}
+	}
+
+	auto const func = context.get_function(func_call.func_body);
+	bz_assert(func != nullptr);
+
+	// along with the arguments, the result address is passed as the first argument if it's not a builtin or pointer type
+	auto const needs_result_address = !func->return_type->is_simple_value_type();
+	auto arg_refs = bz::fixed_vector<instruction_ref>(func->arg_types.size() + (needs_result_address ? 1 : 0));
+
+	if (func_call.param_resolve_order == ast::resolve_order::regular)
+	{
+		size_t arg_ref_index = needs_result_address ? 1 : 0;
+
+		for (auto const arg_index : bz::iota(0, func_call.params.size()))
+		{
+			if (ast::is_generic_parameter(func_call.func_body->params[arg_index]))
+			{
+				bz_assert(func_call.params[arg_index].is_constant() || func_call.params[arg_index].is_error());
+				continue;
+			}
+			else if (func_call.params[arg_index].is_error())
+			{
+				continue;
+			}
+			else
+			{
+				auto const arg_value = generate_expr_code(func_call.params[arg_index], context, {});
+				bz_assert(arg_value.get_type() == func->arg_types[arg_ref_index - needs_result_address]);
+				if (arg_value.get_type()->is_simple_value_type())
+				{
+					arg_refs[arg_ref_index] = arg_value.get_value_as_instruction(context);
+				}
+				else
+				{
+					bz_assert(arg_value.is_reference());
+					arg_refs[arg_ref_index] = arg_value.get_reference();
+				}
+				++arg_ref_index;
+			}
+		}
+
+		bz_assert(arg_ref_index == arg_refs.size());
+	}
+	else
+	{
+		size_t arg_ref_index = arg_refs.size();
+
+		for (auto const arg_index : bz::iota(0, func_call.params.size()))
+		{
+			if (ast::is_generic_parameter(func_call.func_body->params[arg_index]))
+			{
+				bz_assert(func_call.params[arg_index].is_constant() || func_call.params[arg_index].is_error());
+				continue;
+			}
+			else if (func_call.params[arg_index].is_error())
+			{
+				continue;
+			}
+			else
+			{
+				auto const arg_value = generate_expr_code(func_call.params[arg_index], context, {});
+				--arg_ref_index;
+				bz_assert(arg_value.get_type() == func->arg_types[arg_ref_index - needs_result_address]);
+				if (arg_value.get_type()->is_simple_value_type())
+				{
+					arg_refs[arg_ref_index] = arg_value.get_value_as_instruction(context);
+				}
+				else
+				{
+					bz_assert(arg_value.is_reference());
+					arg_refs[arg_ref_index] = arg_value.get_reference();
+				}
+			}
+		}
+
+		bz_assert(arg_ref_index == (needs_result_address ? 1 : 0));
+	}
+
+	if (needs_result_address)
+	{
+		if (!result_address.has_value())
+		{
+			result_address = context.create_alloca(func->return_type);
+		}
+
+		auto const &result_value = result_address.get();
+		bz_assert(result_value.get_type() == func->return_type);
+
+		arg_refs[0] = result_value.get_reference();
+
+		context.create_function_call(func, std::move(arg_refs));
+
+		return result_value;
+	}
+	else
+	{
+		auto const result_value = context.create_function_call(func, std::move(arg_refs));
+
+		if (result_address.has_value())
+		{
+			bz_assert(result_address.get().get_type() == result_value.get_type());
+			context.create_store(result_value, result_address.get());
+			return result_address.get();
+		}
+		else
+		{
+			return result_value;
+		}
+	}
+}
 
 static expr_value generate_expr_code(
 	ast::expr_cast const &cast,

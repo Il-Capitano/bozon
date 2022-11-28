@@ -84,6 +84,7 @@ struct codegen_context
 	bz::optional<expr_value> function_return_address;
 	bz::vector<alloca> allocas;
 	bz::vector<basic_block> blocks;
+	bz::vector<bz::fixed_vector<instruction_ref>> call_args;
 	bz::vector<unresolved_instruction> unresolved_instructions;
 	bz::vector<unresolved_jump> unresolved_jumps;
 
@@ -121,6 +122,7 @@ struct codegen_context
 
 	void add_variable(ast::decl_variable const *decl, expr_value value);
 	expr_value get_variable(ast::decl_variable const *decl);
+	function const *get_function(ast::function_body const *body);
 
 	type const *get_builtin_type(builtin_type_kind kind);
 	type const *get_pointer_type(void);
@@ -255,6 +257,8 @@ struct codegen_context
 	expr_value create_array_slice_gep(expr_value begin_ptr, expr_value index, type const *elem_type);
 	instruction_ref create_const_memcpy(expr_value dest, expr_value source, size_t size);
 	instruction_ref create_const_memset_zero(expr_value dest, size_t size);
+
+	expr_value create_function_call(function const *func, bz::fixed_vector<instruction_ref> args);
 
 	expr_value create_int_cast(expr_value value, type const *dest, bool is_value_signed);
 	expr_value create_float_cast(expr_value value, type const *dest);
