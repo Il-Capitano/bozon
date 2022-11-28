@@ -2,6 +2,7 @@
 #define COMPTIME_INSTRUCTIONS_H
 
 #include "core.h"
+#include "types.h"
 
 namespace comptime
 {
@@ -40,6 +41,16 @@ struct basic_block
 	uint32_t instruction_value_offset;
 };
 
+struct instruction_index
+{
+	uint32_t index;
+};
+
+struct instruction_value_index
+{
+	uint32_t index;
+};
+
 struct alloca
 {
 	size_t size;
@@ -49,16 +60,9 @@ struct alloca
 struct function
 {
 	bz::fixed_vector<instruction> instructions;
-};
-
-struct instruction_index
-{
-	uint32_t index;
-};
-
-struct instruction_value_index
-{
-	uint32_t index;
+	bz::fixed_vector<bz::fixed_vector<instruction_index>> call_args;
+	bz::fixed_vector<type const *> arg_types;
+	type const *return_type;
 };
 
 namespace instructions
@@ -192,8 +196,6 @@ struct const_ptr_null
 	static inline constexpr value_type result_type = value_type::ptr;
 };
 
-
-
 struct load_i1_be
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
@@ -301,7 +303,6 @@ struct load_ptr64_le
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::ptr;
 };
-
 
 struct store_i1_be
 {
@@ -1373,6 +1374,14 @@ struct const_memset_zero
 	size_t size;
 };
 
+struct function_call
+{
+	static inline constexpr int arg_types = 0;
+	static inline constexpr value_type result_type = value_type::any;
+
+	function const *func;
+	size_t args_index;
+};
 
 struct jump
 {
@@ -1656,6 +1665,7 @@ using instruction_list = bz::meta::type_pack<
 	instructions::array_gep_i64,
 	instructions::const_memcpy,
 	instructions::const_memset_zero,
+	instructions::function_call,
 	instructions::jump,
 	instructions::conditional_jump,
 	instructions::ret,
@@ -1677,7 +1687,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 212);
+	static_assert(variant_count == 213);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -1882,6 +1892,7 @@ struct instruction : instruction_base_t
 		array_gep_i64            = index_of<instructions::array_gep_i64>,
 		const_memcpy             = index_of<instructions::const_memcpy>,
 		const_memset_zero        = index_of<instructions::const_memset_zero>,
+		function_call            = index_of<instructions::function_call>,
 		jump                     = index_of<instructions::jump>,
 		conditional_jump         = index_of<instructions::conditional_jump>,
 		ret                      = index_of<instructions::ret>,

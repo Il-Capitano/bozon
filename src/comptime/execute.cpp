@@ -1341,6 +1341,8 @@ static void execute(instructions::const_memset_zero const &inst, ptr_t dest, exe
 	std::memset(dest_mem, 0, inst.size);
 }
 
+static instruction_value execute(instructions::function_call const &inst, executor_context &context);
+
 static void execute(instructions::jump const &inst, executor_context &context)
 {
 	context.do_jump(inst.dest);
@@ -1582,6 +1584,10 @@ static get_value_type_t<type> &get_value_ref(instruction_value &value)
 	{
 		return value.ptr;
 	}
+	else if constexpr (type == value_type::any)
+	{
+		return value;
+	}
 	else
 	{
 		static_assert(bz::meta::always_false<get_value_type<type>>);
@@ -1637,7 +1643,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 212);
+		static_assert(instruction::variant_count == 213);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -2243,6 +2249,9 @@ void execute(executor_context &context)
 			break;
 		case instruction::const_memset_zero:
 			execute<instructions::const_memset_zero>(context);
+			break;
+		case instruction::function_call:
+			execute<instructions::function_call>(context);
 			break;
 		case instruction::jump:
 			execute<instructions::jump>(context);
