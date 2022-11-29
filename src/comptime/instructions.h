@@ -1495,6 +1495,82 @@ struct min_f64_unchecked
 	static inline constexpr value_type result_type = value_type::f64;
 };
 
+struct max_i8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+};
+
+struct max_i16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+};
+
+struct max_i32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+};
+
+struct max_i64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+};
+
+struct max_u8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+};
+
+struct max_u16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+};
+
+struct max_u32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+};
+
+struct max_u64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+};
+
+struct max_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+
+	uint32_t src_tokens_index;
+};
+
+struct max_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+
+	uint32_t src_tokens_index;
+};
+
+struct max_f32_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+};
+
+struct max_f64_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+};
+
 struct const_gep
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
@@ -1876,6 +1952,18 @@ using instruction_list = bz::meta::type_pack<
 	instructions::min_f64,
 	instructions::min_f32_unchecked,
 	instructions::min_f64_unchecked,
+	instructions::max_i8,
+	instructions::max_i16,
+	instructions::max_i32,
+	instructions::max_i64,
+	instructions::max_u8,
+	instructions::max_u16,
+	instructions::max_u32,
+	instructions::max_u64,
+	instructions::max_f32,
+	instructions::max_f64,
+	instructions::max_f32_unchecked,
+	instructions::max_f64_unchecked,
 	instructions::const_gep,
 	instructions::array_gep_i32,
 	instructions::array_gep_i64,
@@ -1907,7 +1995,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 241);
+	static_assert(variant_count == 253);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -2131,6 +2219,18 @@ struct instruction : instruction_base_t
 		min_f64                  = index_of<instructions::min_f64>,
 		min_f32_unchecked        = index_of<instructions::min_f32_unchecked>,
 		min_f64_unchecked        = index_of<instructions::min_f64_unchecked>,
+		max_i8                   = index_of<instructions::max_i8>,
+		max_i16                  = index_of<instructions::max_i16>,
+		max_i32                  = index_of<instructions::max_i32>,
+		max_i64                  = index_of<instructions::max_i64>,
+		max_u8                   = index_of<instructions::max_u8>,
+		max_u16                  = index_of<instructions::max_u16>,
+		max_u32                  = index_of<instructions::max_u32>,
+		max_u64                  = index_of<instructions::max_u64>,
+		max_f32                  = index_of<instructions::max_f32>,
+		max_f64                  = index_of<instructions::max_f64>,
+		max_f32_unchecked        = index_of<instructions::max_f32_unchecked>,
+		max_f64_unchecked        = index_of<instructions::max_f64_unchecked>,
 		const_gep                = index_of<instructions::const_gep>,
 		array_gep_i32            = index_of<instructions::array_gep_i32>,
 		array_gep_i64            = index_of<instructions::array_gep_i64>,

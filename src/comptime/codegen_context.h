@@ -304,6 +304,9 @@ struct codegen_context
 	expr_value create_int_min(expr_value a, expr_value b, bool is_signed);
 	expr_value create_float_min(lex::src_tokens const &src_tokens, expr_value x, expr_value y);
 	expr_value create_float_min_unchecked(expr_value x, expr_value y);
+	expr_value create_int_max(expr_value a, expr_value b, bool is_signed);
+	expr_value create_float_max(lex::src_tokens const &src_tokens, expr_value x, expr_value y);
+	expr_value create_float_max_unchecked(expr_value x, expr_value y);
 
 	instruction_ref create_unreachable(void);
 	instruction_ref create_error(lex::src_tokens const &src_tokens, bz::u8string message);

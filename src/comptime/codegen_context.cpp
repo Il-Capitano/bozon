@@ -2235,6 +2235,127 @@ expr_value codegen_context::create_float_min_unchecked(expr_value x, expr_value 
 	}
 }
 
+expr_value codegen_context::create_int_max(expr_value a, expr_value b, bool is_signed)
+{
+	bz_assert(a.get_type()->is_builtin());
+	bz_assert(b.get_type()->is_builtin());
+	bz_assert(a.get_type()->get_builtin_kind() == b.get_type()->get_builtin_kind());
+
+	auto const a_val = a.get_value_as_instruction(*this);
+	auto const b_val = b.get_value_as_instruction(*this);
+
+	if (is_signed)
+	{
+		switch (a.get_type()->get_builtin_kind())
+		{
+		case builtin_type_kind::i8:
+			return expr_value::get_value(
+				this->add_instruction(instructions::max_i8{}, a_val, b_val),
+				this->get_builtin_type(builtin_type_kind::i8)
+			);
+		case builtin_type_kind::i16:
+			return expr_value::get_value(
+				this->add_instruction(instructions::max_i16{}, a_val, b_val),
+				this->get_builtin_type(builtin_type_kind::i16)
+			);
+		case builtin_type_kind::i32:
+			return expr_value::get_value(
+				this->add_instruction(instructions::max_i32{}, a_val, b_val),
+				this->get_builtin_type(builtin_type_kind::i32)
+			);
+		case builtin_type_kind::i64:
+			return expr_value::get_value(
+				this->add_instruction(instructions::max_i64{}, a_val, b_val),
+				this->get_builtin_type(builtin_type_kind::i64)
+			);
+		default:
+			bz_unreachable;
+		}
+	}
+	else
+	{
+		switch (a.get_type()->get_builtin_kind())
+		{
+		case builtin_type_kind::i8:
+			return expr_value::get_value(
+				this->add_instruction(instructions::max_u8{}, a_val, b_val),
+				this->get_builtin_type(builtin_type_kind::i8)
+			);
+		case builtin_type_kind::i16:
+			return expr_value::get_value(
+				this->add_instruction(instructions::max_u16{}, a_val, b_val),
+				this->get_builtin_type(builtin_type_kind::i16)
+			);
+		case builtin_type_kind::i32:
+			return expr_value::get_value(
+				this->add_instruction(instructions::max_u32{}, a_val, b_val),
+				this->get_builtin_type(builtin_type_kind::i32)
+			);
+		case builtin_type_kind::i64:
+			return expr_value::get_value(
+				this->add_instruction(instructions::max_u64{}, a_val, b_val),
+				this->get_builtin_type(builtin_type_kind::i64)
+			);
+		default:
+			bz_unreachable;
+		}
+	}
+}
+
+expr_value codegen_context::create_float_max(lex::src_tokens const &src_tokens, expr_value x, expr_value y)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+	bz_assert(y.get_type()->is_builtin());
+	bz_assert(x.get_type()->get_builtin_kind() == y.get_type()->get_builtin_kind());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+	auto const y_val = y.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::max_f32{ .src_tokens_index = src_tokens_index }, x_val, y_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::max_f64{ .src_tokens_index = src_tokens_index }, x_val, y_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_float_max_unchecked(expr_value x, expr_value y)
+{
+	bz_assert(x.get_type()->is_builtin());
+	bz_assert(y.get_type()->is_builtin());
+	bz_assert(x.get_type()->get_builtin_kind() == y.get_type()->get_builtin_kind());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+	auto const y_val = y.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::max_f32_unchecked{}, x_val, y_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::max_f64_unchecked{}, x_val, y_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
 instruction_ref codegen_context::create_unreachable(void)
 {
 	return this->add_instruction(instructions::unreachable{});
@@ -2415,7 +2536,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 241);
+	static_assert(instruction::variant_count == 253);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>().inst;

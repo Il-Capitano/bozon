@@ -1525,6 +1525,82 @@ static float64_t execute(instructions::min_f64_unchecked const &, float64_t x, f
 	return std::fmin(x, y);
 }
 
+static uint8_t execute(instructions::max_i8 const &, uint8_t a, uint8_t b, executor_context &)
+{
+	return static_cast<int8_t>(a) < static_cast<int8_t>(b) ? a : b;
+}
+
+static uint16_t execute(instructions::max_i16 const &, uint16_t a, uint16_t b, executor_context &)
+{
+	return static_cast<int16_t>(a) < static_cast<int16_t>(b) ? a : b;
+}
+
+static uint32_t execute(instructions::max_i32 const &, uint32_t a, uint32_t b, executor_context &)
+{
+	return static_cast<int32_t>(a) < static_cast<int32_t>(b) ? a : b;
+}
+
+static uint64_t execute(instructions::max_i64 const &, uint64_t a, uint64_t b, executor_context &)
+{
+	return static_cast<int64_t>(a) < static_cast<int64_t>(b) ? a : b;
+}
+
+static uint8_t execute(instructions::max_u8 const &, uint8_t a, uint8_t b, executor_context &)
+{
+	return a < b ? a : b;
+}
+
+static uint16_t execute(instructions::max_u16 const &, uint16_t a, uint16_t b, executor_context &)
+{
+	return a < b ? a : b;
+}
+
+static uint32_t execute(instructions::max_u32 const &, uint32_t a, uint32_t b, executor_context &)
+{
+	return a < b ? a : b;
+}
+
+static uint64_t execute(instructions::max_u64 const &, uint64_t a, uint64_t b, executor_context &)
+{
+	return a < b ? a : b;
+}
+
+static float32_t execute(instructions::max_f32 const &inst, float32_t x, float32_t y, executor_context &context)
+{
+	if (std::isnan(x) || std::isnan(y))
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'max' with {} and {} of type 'float32'")
+		);
+	}
+	return std::fmax(x, y);
+}
+
+static float64_t execute(instructions::max_f64 const &inst, float64_t x, float64_t y, executor_context &context)
+{
+	if (std::isnan(x) || std::isnan(y))
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'max' with {} and {} of type 'float64'")
+		);
+	}
+	return std::fmax(x, y);
+}
+
+static float32_t execute(instructions::max_f32_unchecked const &, float32_t x, float32_t y, executor_context &)
+{
+	return std::fmax(x, y);
+}
+
+static float64_t execute(instructions::max_f64_unchecked const &, float64_t x, float64_t y, executor_context &)
+{
+	return std::fmax(x, y);
+}
+
 static ptr_t execute(instructions::const_gep const &inst, ptr_t ptr, executor_context &)
 {
 	return ptr + inst.offset;
@@ -1878,7 +1954,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 241);
+		static_assert(instruction::variant_count == 253);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -2541,6 +2617,42 @@ void execute(executor_context &context)
 			break;
 		case instruction::min_f64_unchecked:
 			execute<instructions::min_f64_unchecked>(context);
+			break;
+		case instruction::max_i8:
+			execute<instructions::max_i8>(context);
+			break;
+		case instruction::max_i16:
+			execute<instructions::max_i16>(context);
+			break;
+		case instruction::max_i32:
+			execute<instructions::max_i32>(context);
+			break;
+		case instruction::max_i64:
+			execute<instructions::max_i64>(context);
+			break;
+		case instruction::max_u8:
+			execute<instructions::max_u8>(context);
+			break;
+		case instruction::max_u16:
+			execute<instructions::max_u16>(context);
+			break;
+		case instruction::max_u32:
+			execute<instructions::max_u32>(context);
+			break;
+		case instruction::max_u64:
+			execute<instructions::max_u64>(context);
+			break;
+		case instruction::max_f32:
+			execute<instructions::max_f32>(context);
+			break;
+		case instruction::max_f64:
+			execute<instructions::max_f64>(context);
+			break;
+		case instruction::max_f32_unchecked:
+			execute<instructions::max_f32_unchecked>(context);
+			break;
+		case instruction::max_f64_unchecked:
+			execute<instructions::max_f64_unchecked>(context);
 			break;
 		case instruction::const_gep:
 			execute<instructions::const_gep>(context);
