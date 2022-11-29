@@ -299,6 +299,9 @@ struct codegen_context
 	expr_value create_xor(expr_value lhs, expr_value rhs);
 	expr_value create_or(expr_value lhs, expr_value rhs);
 
+	expr_value create_abs(lex::src_tokens const &src_tokens, expr_value value);
+	expr_value create_abs_unchecked(expr_value value);
+
 	instruction_ref create_unreachable(void);
 	instruction_ref create_error(lex::src_tokens const &src_tokens, bz::u8string message);
 	instruction_ref create_error_str(lex::src_tokens const &src_tokens, expr_value begin_ptr, expr_value end_ptr);

@@ -1313,6 +1313,142 @@ static uint64_t execute(instructions::or_i64 const &, uint64_t lhs, uint64_t rhs
 	return lhs | rhs;
 }
 
+static uint8_t execute(instructions::abs_i8 const &inst, uint8_t uvalue, executor_context &context)
+{
+	auto const value = static_cast<int8_t>(uvalue);
+	if (value == std::numeric_limits<int8_t>::min())
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'abs' with {} of type 'int8' results in {}", value, value)
+		);
+		return static_cast<uint8_t>(value);
+	}
+	return static_cast<uint8_t>(value < 0 ? -value : value);
+}
+
+static uint16_t execute(instructions::abs_i16 const &inst, uint16_t uvalue, executor_context &context)
+{
+	auto const value = static_cast<int16_t>(uvalue);
+	if (value == std::numeric_limits<int16_t>::min())
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'abs' with {} of type 'int16' results in {}", value, value)
+		);
+		return static_cast<uint16_t>(value);
+	}
+	return static_cast<uint8_t>(value < 0 ? -value : value);
+}
+
+static uint32_t execute(instructions::abs_i32 const &inst, uint32_t uvalue, executor_context &context)
+{
+	auto const value = static_cast<int32_t>(uvalue);
+	if (value == std::numeric_limits<int32_t>::min())
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'abs' with {} of type 'int32' results in {}", value, value)
+		);
+		return static_cast<uint32_t>(value);
+	}
+	return static_cast<uint8_t>(value < 0 ? -value : value);
+}
+
+static uint64_t execute(instructions::abs_i64 const &inst, uint64_t uvalue, executor_context &context)
+{
+	auto const value = static_cast<int64_t>(uvalue);
+	if (value == std::numeric_limits<int64_t>::min())
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'abs' with {} of type 'int64' results in {}", value, value)
+		);
+		return static_cast<uint64_t>(value);
+	}
+	return static_cast<uint8_t>(value < 0 ? -value : value);
+}
+
+static float32_t execute(instructions::abs_f32 const &inst, float32_t value, executor_context &context)
+{
+	if (std::isnan(value))
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			"calling 'abs' with nan of type 'float32' results in nan"
+		);
+	}
+	return std::fabs(value);
+}
+
+static float64_t execute(instructions::abs_f64 const &inst, float64_t value, executor_context &context)
+{
+	if (std::isnan(value))
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			"calling 'abs' with nan of type 'float64' results in nan"
+		);
+	}
+	return std::fabs(value);
+}
+
+static uint8_t execute(instructions::abs_i8_unchecked const &, uint8_t uvalue, executor_context &)
+{
+	auto const value = static_cast<int8_t>(uvalue);
+	return static_cast<uint8_t>(
+		value == std::numeric_limits<int8_t>::min() ? value :
+		value < 0 ? -value :
+		value
+	);
+}
+
+static uint16_t execute(instructions::abs_i16_unchecked const &, uint16_t uvalue, executor_context &)
+{
+	auto const value = static_cast<int16_t>(uvalue);
+	return static_cast<uint16_t>(
+		value == std::numeric_limits<int16_t>::min() ? value :
+		value < 0 ? -value :
+		value
+	);
+}
+
+static uint32_t execute(instructions::abs_i32_unchecked const &, uint32_t uvalue, executor_context &)
+{
+	auto const value = static_cast<int32_t>(uvalue);
+	return static_cast<uint32_t>(
+		value == std::numeric_limits<int32_t>::min() ? value :
+		value < 0 ? -value :
+		value
+	);
+}
+
+static uint64_t execute(instructions::abs_i64_unchecked const &, uint64_t uvalue, executor_context &)
+{
+	auto const value = static_cast<int64_t>(uvalue);
+	return static_cast<uint64_t>(
+		value == std::numeric_limits<int64_t>::min() ? value :
+		value < 0 ? -value :
+		value
+	);
+}
+
+static float32_t execute(instructions::abs_f32_unchecked const &, float32_t value, executor_context &)
+{
+	return std::fabs(value);
+}
+
+static float64_t execute(instructions::abs_f64_unchecked const &, float64_t value, executor_context &)
+{
+	return std::fabs(value);
+}
+
 static ptr_t execute(instructions::const_gep const &inst, ptr_t ptr, executor_context &)
 {
 	return ptr + inst.offset;
@@ -1666,7 +1802,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 213);
+		static_assert(instruction::variant_count == 229);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -2257,6 +2393,42 @@ void execute(executor_context &context)
 			break;
 		case instruction::or_i64:
 			execute<instructions::or_i64>(context);
+			break;
+		case instruction::abs_i8:
+			execute<instructions::abs_i8>(context);
+			break;
+		case instruction::abs_i16:
+			execute<instructions::abs_i16>(context);
+			break;
+		case instruction::abs_i32:
+			execute<instructions::abs_i32>(context);
+			break;
+		case instruction::abs_i64:
+			execute<instructions::abs_i64>(context);
+			break;
+		case instruction::abs_f32:
+			execute<instructions::abs_f32>(context);
+			break;
+		case instruction::abs_f64:
+			execute<instructions::abs_f64>(context);
+			break;
+		case instruction::abs_i8_unchecked:
+			execute<instructions::abs_i8_unchecked>(context);
+			break;
+		case instruction::abs_i16_unchecked:
+			execute<instructions::abs_i16_unchecked>(context);
+			break;
+		case instruction::abs_i32_unchecked:
+			execute<instructions::abs_i32_unchecked>(context);
+			break;
+		case instruction::abs_i64_unchecked:
+			execute<instructions::abs_i64_unchecked>(context);
+			break;
+		case instruction::abs_f32_unchecked:
+			execute<instructions::abs_f32_unchecked>(context);
+			break;
+		case instruction::abs_f64_unchecked:
+			execute<instructions::abs_f64_unchecked>(context);
 			break;
 		case instruction::const_gep:
 			execute<instructions::const_gep>(context);

@@ -1335,6 +1335,91 @@ struct or_i64
 	static inline constexpr value_type result_type = value_type::i64;
 };
 
+struct abs_i8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+
+	uint32_t src_tokens_index;
+};
+
+
+struct abs_i16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+
+	uint32_t src_tokens_index;
+};
+
+struct abs_i32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+
+	uint32_t src_tokens_index;
+};
+
+struct abs_i64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+
+	uint32_t src_tokens_index;
+};
+
+struct abs_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+
+	uint32_t src_tokens_index;
+};
+
+struct abs_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+
+	uint32_t src_tokens_index;
+};
+
+struct abs_i8_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+};
+
+struct abs_i16_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+};
+
+struct abs_i32_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+};
+
+struct abs_i64_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+};
+
+struct abs_f32_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+};
+
+struct abs_f64_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+};
+
 struct const_gep
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
@@ -1692,6 +1777,18 @@ using instruction_list = bz::meta::type_pack<
 	instructions::or_i16,
 	instructions::or_i32,
 	instructions::or_i64,
+	instructions::abs_i8,
+	instructions::abs_i16,
+	instructions::abs_i32,
+	instructions::abs_i64,
+	instructions::abs_f32,
+	instructions::abs_f64,
+	instructions::abs_i8_unchecked,
+	instructions::abs_i16_unchecked,
+	instructions::abs_i32_unchecked,
+	instructions::abs_i64_unchecked,
+	instructions::abs_f32_unchecked,
+	instructions::abs_f64_unchecked,
 	instructions::const_gep,
 	instructions::array_gep_i32,
 	instructions::array_gep_i64,
@@ -1723,7 +1820,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 213);
+	static_assert(variant_count == 229);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -1923,6 +2020,18 @@ struct instruction : instruction_base_t
 		or_i16                   = index_of<instructions::or_i16>,
 		or_i32                   = index_of<instructions::or_i32>,
 		or_i64                   = index_of<instructions::or_i64>,
+		abs_i8                   = index_of<instructions::abs_i8>,
+		abs_i16                  = index_of<instructions::abs_i16>,
+		abs_i32                  = index_of<instructions::abs_i32>,
+		abs_i64                  = index_of<instructions::abs_i64>,
+		abs_f32                  = index_of<instructions::abs_f32>,
+		abs_f64                  = index_of<instructions::abs_f64>,
+		abs_i8_unchecked         = index_of<instructions::abs_i8_unchecked>,
+		abs_i16_unchecked        = index_of<instructions::abs_i16_unchecked>,
+		abs_i32_unchecked        = index_of<instructions::abs_i32_unchecked>,
+		abs_i64_unchecked        = index_of<instructions::abs_i64_unchecked>,
+		abs_f32_unchecked        = index_of<instructions::abs_f32_unchecked>,
+		abs_f64_unchecked        = index_of<instructions::abs_f64_unchecked>,
 		const_gep                = index_of<instructions::const_gep>,
 		array_gep_i32            = index_of<instructions::array_gep_i32>,
 		array_gep_i64            = index_of<instructions::array_gep_i64>,
