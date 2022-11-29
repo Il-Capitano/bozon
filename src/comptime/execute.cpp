@@ -1443,6 +1443,9 @@ static void execute(instructions::optional_get_value_check const &inst, bool has
 	}
 }
 
+static void execute(instructions::str_construction_check const &inst, ptr_t begin_ptr, ptr_t end_ptr, executor_context &context);
+static void execute(instructions::slice_construction_check const &inst, ptr_t begin_ptr, ptr_t end_ptr, executor_context &context);
+
 
 template<value_type type>
 struct get_value_type;
@@ -2282,6 +2285,12 @@ void execute(executor_context &context)
 			break;
 		case instruction::optional_get_value_check:
 			execute<instructions::optional_get_value_check>(context);
+			break;
+		case instruction::str_construction_check:
+			execute<instructions::str_construction_check>(context);
+			break;
+		case instruction::slice_construction_check:
+			execute<instructions::slice_construction_check>(context);
 			break;
 		default:
 			bz_unreachable;

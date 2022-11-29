@@ -2097,6 +2097,42 @@ instruction_ref codegen_context::create_optional_get_value_check(lex::src_tokens
 	);
 }
 
+instruction_ref codegen_context::create_str_construction_check(
+	lex::src_tokens const &src_tokens,
+	expr_value begin_ptr,
+	expr_value end_ptr
+)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	auto const begin_ptr_value = begin_ptr.get_value_as_instruction(*this);
+	auto const end_ptr_value = end_ptr.get_value_as_instruction(*this);
+
+	return this->add_instruction(
+		instructions::str_construction_check{ .src_tokens_index = src_tokens_index },
+		begin_ptr_value,
+		end_ptr_value
+	);
+}
+
+instruction_ref codegen_context::create_slice_construction_check(
+	lex::src_tokens const &src_tokens,
+	expr_value begin_ptr,
+	expr_value end_ptr
+)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	auto const begin_ptr_value = begin_ptr.get_value_as_instruction(*this);
+	auto const end_ptr_value = end_ptr.get_value_as_instruction(*this);
+
+	return this->add_instruction(
+		instructions::slice_construction_check{ .src_tokens_index = src_tokens_index },
+		begin_ptr_value,
+		end_ptr_value
+	);
+}
+
 static void resolve_instruction_args(instruction &inst, bz::array<instruction_ref, 2> const &args, auto get_instruction_value_index)
 {
 	inst.visit([&](auto &inst) {

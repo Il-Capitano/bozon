@@ -3,6 +3,7 @@
 
 #include "core.h"
 #include "types.h"
+#include "ctx/warnings.h"
 
 namespace comptime
 {
@@ -1460,6 +1461,22 @@ struct optional_get_value_check
 	uint32_t src_tokens_index;
 };
 
+struct str_construction_check
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct slice_construction_check
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
 } // namespace instructions
 
 using instruction_list = bz::meta::type_pack<
@@ -1675,7 +1692,9 @@ using instruction_list = bz::meta::type_pack<
 	instructions::array_bounds_check_u32,
 	instructions::array_bounds_check_i64,
 	instructions::array_bounds_check_u64,
-	instructions::optional_get_value_check
+	instructions::optional_get_value_check,
+	instructions::str_construction_check,
+	instructions::slice_construction_check
 >;
 
 using instruction_with_args_list = bz::meta::transform_type_pack<instructions::instruction_with_args, instruction_list>;
@@ -1903,6 +1922,8 @@ struct instruction : instruction_base_t
 		array_bounds_check_i64   = index_of<instructions::array_bounds_check_i64>,
 		array_bounds_check_u64   = index_of<instructions::array_bounds_check_u64>,
 		optional_get_value_check = index_of<instructions::optional_get_value_check>,
+		str_construction_check   = index_of<instructions::str_construction_check>,
+		slice_construction_check = index_of<instructions::slice_construction_check>,
 	};
 
 	bool is_terminator(void) const
