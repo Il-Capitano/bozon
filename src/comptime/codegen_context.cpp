@@ -299,6 +299,18 @@ void codegen_context::emit_all_destruct_operations(void)
 	}
 }
 
+uint32_t codegen_context::add_src_tokens(lex::src_tokens const &src_tokens)
+{
+	auto const result = this->global_codegen_ctx->src_tokens.size();
+	this->global_codegen_ctx->src_tokens.push_back(src_tokens);
+	return static_cast<uint32_t>(result);
+}
+
+expr_value codegen_context::get_dummy_value(type const *t)
+{
+	return expr_value::get_reference(instruction_ref{}, t);
+}
+
 
 expr_value codegen_context::create_const_i1(bool value)
 {
@@ -1435,15 +1447,14 @@ expr_value codegen_context::create_float_cmp_eq(lex::src_tokens const &src_token
 
 	auto const lhs_val = lhs.get_value_as_instruction(*this);
 	auto const rhs_val = rhs.get_value_as_instruction(*this);
-	this->global_codegen_ctx->src_tokens.push_back(src_tokens);
-	auto const src_tokens_index = this->global_codegen_ctx->src_tokens.size() - 1;
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 
 	switch (lhs.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
 			this->add_instruction(
-				instructions::cmp_eq_f32{ .src_tokens_index = static_cast<uint32_t>(src_tokens_index) },
+				instructions::cmp_eq_f32{ .src_tokens_index = src_tokens_index },
 				lhs_val, rhs_val
 			),
 			this->get_builtin_type(builtin_type_kind::i1)
@@ -1451,7 +1462,7 @@ expr_value codegen_context::create_float_cmp_eq(lex::src_tokens const &src_token
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
 			this->add_instruction(
-				instructions::cmp_eq_f64{ .src_tokens_index = static_cast<uint32_t>(src_tokens_index) },
+				instructions::cmp_eq_f64{ .src_tokens_index = src_tokens_index },
 				lhs_val, rhs_val
 			),
 			this->get_builtin_type(builtin_type_kind::i1)
@@ -1469,15 +1480,14 @@ expr_value codegen_context::create_float_cmp_neq(lex::src_tokens const &src_toke
 
 	auto const lhs_val = lhs.get_value_as_instruction(*this);
 	auto const rhs_val = rhs.get_value_as_instruction(*this);
-	this->global_codegen_ctx->src_tokens.push_back(src_tokens);
-	auto const src_tokens_index = this->global_codegen_ctx->src_tokens.size() - 1;
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 
 	switch (lhs.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
 			this->add_instruction(
-				instructions::cmp_neq_f32{ .src_tokens_index = static_cast<uint32_t>(src_tokens_index) },
+				instructions::cmp_neq_f32{ .src_tokens_index = src_tokens_index },
 				lhs_val, rhs_val
 			),
 			this->get_builtin_type(builtin_type_kind::i1)
@@ -1485,7 +1495,7 @@ expr_value codegen_context::create_float_cmp_neq(lex::src_tokens const &src_toke
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
 			this->add_instruction(
-				instructions::cmp_neq_f64{ .src_tokens_index = static_cast<uint32_t>(src_tokens_index) },
+				instructions::cmp_neq_f64{ .src_tokens_index = src_tokens_index },
 				lhs_val, rhs_val
 			),
 			this->get_builtin_type(builtin_type_kind::i1)
@@ -1503,15 +1513,14 @@ expr_value codegen_context::create_float_cmp_lt(lex::src_tokens const &src_token
 
 	auto const lhs_val = lhs.get_value_as_instruction(*this);
 	auto const rhs_val = rhs.get_value_as_instruction(*this);
-	this->global_codegen_ctx->src_tokens.push_back(src_tokens);
-	auto const src_tokens_index = this->global_codegen_ctx->src_tokens.size() - 1;
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 
 	switch (lhs.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
 			this->add_instruction(
-				instructions::cmp_lt_f32{ .src_tokens_index = static_cast<uint32_t>(src_tokens_index) },
+				instructions::cmp_lt_f32{ .src_tokens_index = src_tokens_index },
 				lhs_val, rhs_val
 			),
 			this->get_builtin_type(builtin_type_kind::i1)
@@ -1519,7 +1528,7 @@ expr_value codegen_context::create_float_cmp_lt(lex::src_tokens const &src_token
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
 			this->add_instruction(
-				instructions::cmp_lt_f64{ .src_tokens_index = static_cast<uint32_t>(src_tokens_index) },
+				instructions::cmp_lt_f64{ .src_tokens_index = src_tokens_index },
 				lhs_val, rhs_val
 			),
 			this->get_builtin_type(builtin_type_kind::i1)
@@ -1537,15 +1546,14 @@ expr_value codegen_context::create_float_cmp_gt(lex::src_tokens const &src_token
 
 	auto const lhs_val = lhs.get_value_as_instruction(*this);
 	auto const rhs_val = rhs.get_value_as_instruction(*this);
-	this->global_codegen_ctx->src_tokens.push_back(src_tokens);
-	auto const src_tokens_index = this->global_codegen_ctx->src_tokens.size() - 1;
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 
 	switch (lhs.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
 			this->add_instruction(
-				instructions::cmp_gt_f32{ .src_tokens_index = static_cast<uint32_t>(src_tokens_index) },
+				instructions::cmp_gt_f32{ .src_tokens_index = src_tokens_index },
 				lhs_val, rhs_val
 			),
 			this->get_builtin_type(builtin_type_kind::i1)
@@ -1553,7 +1561,7 @@ expr_value codegen_context::create_float_cmp_gt(lex::src_tokens const &src_token
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
 			this->add_instruction(
-				instructions::cmp_gt_f64{ .src_tokens_index = static_cast<uint32_t>(src_tokens_index) },
+				instructions::cmp_gt_f64{ .src_tokens_index = src_tokens_index },
 				lhs_val, rhs_val
 			),
 			this->get_builtin_type(builtin_type_kind::i1)
@@ -1571,15 +1579,14 @@ expr_value codegen_context::create_float_cmp_lte(lex::src_tokens const &src_toke
 
 	auto const lhs_val = lhs.get_value_as_instruction(*this);
 	auto const rhs_val = rhs.get_value_as_instruction(*this);
-	this->global_codegen_ctx->src_tokens.push_back(src_tokens);
-	auto const src_tokens_index = this->global_codegen_ctx->src_tokens.size() - 1;
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 
 	switch (lhs.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
 			this->add_instruction(
-				instructions::cmp_lte_f32{ .src_tokens_index = static_cast<uint32_t>(src_tokens_index) },
+				instructions::cmp_lte_f32{ .src_tokens_index = src_tokens_index },
 				lhs_val, rhs_val
 			),
 			this->get_builtin_type(builtin_type_kind::i1)
@@ -1587,7 +1594,7 @@ expr_value codegen_context::create_float_cmp_lte(lex::src_tokens const &src_toke
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
 			this->add_instruction(
-				instructions::cmp_lte_f64{ .src_tokens_index = static_cast<uint32_t>(src_tokens_index) },
+				instructions::cmp_lte_f64{ .src_tokens_index = src_tokens_index },
 				lhs_val, rhs_val
 			),
 			this->get_builtin_type(builtin_type_kind::i1)
@@ -1605,15 +1612,14 @@ expr_value codegen_context::create_float_cmp_gte(lex::src_tokens const &src_toke
 
 	auto const lhs_val = lhs.get_value_as_instruction(*this);
 	auto const rhs_val = rhs.get_value_as_instruction(*this);
-	this->global_codegen_ctx->src_tokens.push_back(src_tokens);
-	auto const src_tokens_index = this->global_codegen_ctx->src_tokens.size() - 1;
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 
 	switch (lhs.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
 			this->add_instruction(
-				instructions::cmp_gte_f32{ .src_tokens_index = static_cast<uint32_t>(src_tokens_index) },
+				instructions::cmp_gte_f32{ .src_tokens_index = src_tokens_index },
 				lhs_val, rhs_val
 			),
 			this->get_builtin_type(builtin_type_kind::i1)
@@ -1621,7 +1627,7 @@ expr_value codegen_context::create_float_cmp_gte(lex::src_tokens const &src_toke
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
 			this->add_instruction(
-				instructions::cmp_gte_f64{ .src_tokens_index = static_cast<uint32_t>(src_tokens_index) },
+				instructions::cmp_gte_f64{ .src_tokens_index = src_tokens_index },
 				lhs_val, rhs_val
 			),
 			this->get_builtin_type(builtin_type_kind::i1)
@@ -2022,6 +2028,11 @@ expr_value codegen_context::create_or(expr_value lhs, expr_value rhs)
 	}
 }
 
+instruction_ref codegen_context::create_unreachable(void)
+{
+	return this->add_instruction(instructions::unreachable{});
+}
+
 instruction_ref codegen_context::create_error(lex::src_tokens const &src_tokens, bz::u8string message)
 {
 	this->global_codegen_ctx->errors.push_back({
@@ -2033,6 +2044,43 @@ instruction_ref codegen_context::create_error(lex::src_tokens const &src_tokens,
 	return this->add_instruction(instructions::error{ .error_index = static_cast<uint32_t>(index) });
 }
 
+instruction_ref codegen_context::create_error_str(
+	lex::src_tokens const &src_tokens,
+	expr_value begin_ptr,
+	expr_value end_ptr
+)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	auto const begin_ptr_value = begin_ptr.get_value_as_instruction(*this);
+	auto const end_ptr_value = end_ptr.get_value_as_instruction(*this);
+
+	return this->add_instruction(
+		instructions::diagnostic_str{ .src_tokens_index = src_tokens_index, .kind = ctx::warning_kind::_last },
+		begin_ptr_value,
+		end_ptr_value
+	);
+}
+
+instruction_ref codegen_context::create_warning_str(
+	lex::src_tokens const &src_tokens,
+	ctx::warning_kind kind,
+	expr_value begin_ptr,
+	expr_value end_ptr
+)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	auto const begin_ptr_value = begin_ptr.get_value_as_instruction(*this);
+	auto const end_ptr_value = end_ptr.get_value_as_instruction(*this);
+
+	return this->add_instruction(
+		instructions::diagnostic_str{ .src_tokens_index = src_tokens_index, .kind = kind },
+		begin_ptr_value,
+		end_ptr_value
+	);
+}
+
 instruction_ref codegen_context::create_array_bounds_check(
 	lex::src_tokens const &src_tokens,
 	expr_value index,
@@ -2040,8 +2088,7 @@ instruction_ref codegen_context::create_array_bounds_check(
 	bool is_index_signed
 )
 {
-	this->global_codegen_ctx->src_tokens.push_back(src_tokens);
-	auto const src_tokens_index = static_cast<uint32_t>(this->global_codegen_ctx->src_tokens.size() - 1);
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 
 	bz_assert(index.get_type() == size.get_type());
 	bz_assert(index.get_type()->is_builtin());
@@ -2087,8 +2134,7 @@ instruction_ref codegen_context::create_array_bounds_check(
 
 instruction_ref codegen_context::create_optional_get_value_check(lex::src_tokens const &src_tokens, expr_value has_value)
 {
-	this->global_codegen_ctx->src_tokens.push_back(src_tokens);
-	auto const src_tokens_index = static_cast<uint32_t>(this->global_codegen_ctx->src_tokens.size() - 1);
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 
 	auto const has_value_val = has_value.get_value_as_instruction(*this);
 	return this->add_instruction(

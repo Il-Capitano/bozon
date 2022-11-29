@@ -1370,9 +1370,29 @@ static void execute(instructions::ret_void const &, executor_context &context)
 	context.do_ret_void();
 }
 
+static void execute(instructions::unreachable const &, executor_context &)
+{
+	bz_unreachable;
+}
+
 static void execute(instructions::error const &error, executor_context &context)
 {
 	context.report_error(error.error_index);
+}
+
+static void execute(instructions::diagnostic_str const &inst, ptr_t begin, ptr_t end, executor_context &context)
+{
+	auto const begin_ptr = context.get_memory(begin, 0);
+	auto const end_ptr = context.get_memory(end, 0);
+	auto const message = bz::u8string_view(begin_ptr, end_ptr);
+	if (inst.kind == ctx::warning_kind::_last)
+	{
+		context.report_error(inst.src_tokens_index, message);
+	}
+	else
+	{
+		context.report_warning(inst.kind, inst.src_tokens_index, message);
+	}
 }
 
 static void execute(instructions::array_bounds_check_i32 const &inst, uint32_t uindex, uint32_t size, executor_context &context)
@@ -2268,8 +2288,14 @@ void execute(executor_context &context)
 		case instruction::ret_void:
 			execute<instructions::ret_void>(context);
 			break;
+		case instruction::unreachable:
+			execute<instructions::unreachable>(context);
+			break;
 		case instruction::error:
 			execute<instructions::error>(context);
+			break;
+		case instruction::diagnostic_str:
+			execute<instructions::diagnostic_str>(context);
 			break;
 		case instruction::array_bounds_check_i32:
 			execute<instructions::array_bounds_check_i32>(context);

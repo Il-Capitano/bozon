@@ -229,6 +229,10 @@ struct codegen_context
 		return result;
 	}
 
+	uint32_t add_src_tokens(lex::src_tokens const &src_tokens);
+
+	expr_value get_dummy_value(type const *t);
+
 	expr_value create_const_i1(bool value);
 	expr_value create_const_i8(int8_t value);
 	expr_value create_const_i16(int16_t value);
@@ -295,7 +299,10 @@ struct codegen_context
 	expr_value create_xor(expr_value lhs, expr_value rhs);
 	expr_value create_or(expr_value lhs, expr_value rhs);
 
+	instruction_ref create_unreachable(void);
 	instruction_ref create_error(lex::src_tokens const &src_tokens, bz::u8string message);
+	instruction_ref create_error_str(lex::src_tokens const &src_tokens, expr_value begin_ptr, expr_value end_ptr);
+	instruction_ref create_warning_str(lex::src_tokens const &src_tokens, ctx::warning_kind kind, expr_value begin_ptr, expr_value end_ptr);
 	instruction_ref create_array_bounds_check(lex::src_tokens const &src_tokens, expr_value index, expr_value size, bool is_index_signed);
 	instruction_ref create_optional_get_value_check(lex::src_tokens const &src_tokens, expr_value has_value);
 	instruction_ref create_str_construction_check(lex::src_tokens const &src_tokens, expr_value begin_ptr, expr_value end_ptr);

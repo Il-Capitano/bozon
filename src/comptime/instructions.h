@@ -1413,12 +1413,27 @@ struct ret_void
 	static inline constexpr value_type result_type = value_type::none;
 };
 
+struct unreachable
+{
+	static inline constexpr int arg_types = 0;
+	static inline constexpr value_type result_type = value_type::none;
+};
+
 struct error
 {
 	static inline constexpr int arg_types = 0;
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t error_index;
+};
+
+struct diagnostic_str
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+	ctx::warning_kind kind;
 };
 
 struct array_bounds_check_i32
@@ -1687,7 +1702,9 @@ using instruction_list = bz::meta::type_pack<
 	instructions::conditional_jump,
 	instructions::ret,
 	instructions::ret_void,
+	instructions::unreachable,
 	instructions::error,
+	instructions::diagnostic_str,
 	instructions::array_bounds_check_i32,
 	instructions::array_bounds_check_u32,
 	instructions::array_bounds_check_i64,
@@ -1916,7 +1933,9 @@ struct instruction : instruction_base_t
 		conditional_jump         = index_of<instructions::conditional_jump>,
 		ret                      = index_of<instructions::ret>,
 		ret_void                 = index_of<instructions::ret_void>,
+		unreachable              = index_of<instructions::unreachable>,
 		error                    = index_of<instructions::error>,
+		diagnostic_str           = index_of<instructions::diagnostic_str>,
 		array_bounds_check_i32   = index_of<instructions::array_bounds_check_i32>,
 		array_bounds_check_u32   = index_of<instructions::array_bounds_check_u32>,
 		array_bounds_check_i64   = index_of<instructions::array_bounds_check_i64>,
@@ -1934,7 +1953,7 @@ struct instruction : instruction_base_t
 		case conditional_jump:
 		case ret:
 		case ret_void:
-		case error:
+		case unreachable:
 			return true;
 		default:
 			return false;
