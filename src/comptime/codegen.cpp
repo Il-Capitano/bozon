@@ -288,7 +288,7 @@ static expr_value generate_expr_code(
 			bz::format("variable '{}' cannot be used in a constant expression", identifier.id.as_string())
 		);
 		auto const type = get_type(identifier.decl->get_type(), context);
-		return expr_value::get_reference(instruction_ref{}, type);
+		return context.get_dummy_value(type);
 	}
 
 	return result;
@@ -394,7 +394,7 @@ static expr_value generate_builtin_unary_address_of_code(
 		}
 		return result_address.has_value()
 			? result_address.get()
-			: expr_value::get_none();
+			: context.get_dummy_value(context.get_pointer_type());
 	}
 	else if (result_address.has_value())
 	{
@@ -759,13 +759,569 @@ static expr_value generate_expr_code(
 	return result_value;
 }
 
+static expr_value value_or_result_address(expr_value value, bz::optional<expr_value> result_address, codegen_context &context)
+{
+	if (result_address.has_value())
+	{
+		context.create_store(value, result_address.get());
+		return result_address.get();
+	}
+	else
+	{
+		return value;
+	}
+}
+
 static expr_value generate_intrinsic_function_call_code(
+	ast::expression const &original_expression,
 	ast::expr_function_call const &func_call,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	switch (func_call.func_body->intrinsic_kind)
+	{
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 192);
+	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
+	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
+	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
+	case ast::function_body::builtin_str_length:
+		// implemented in __builtins.bz
+		bz_unreachable;
+	case ast::function_body::builtin_str_starts_with:
+		// implemented in __builtins.bz
+		bz_unreachable;
+	case ast::function_body::builtin_str_ends_with:
+		// implemented in __builtins.bz
+		bz_unreachable;
+	case ast::function_body::builtin_str_begin_ptr:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const s = generate_expr_code(func_call.params[0], context, {});
+		auto const result_value = context.create_struct_gep(s, 0).get_value(context);
+		return value_or_result_address(result_value, result_address, context);
+	}
+	case ast::function_body::builtin_str_end_ptr:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const s = generate_expr_code(func_call.params[0], context, {});
+		auto const result_value = context.create_struct_gep(s, 1).get_value(context);
+		return value_or_result_address(result_value, result_address, context);
+	}
+	case ast::function_body::builtin_str_size:
+		// implemented in __builtins.bz
+		bz_unreachable;
+	case ast::function_body::builtin_str_from_ptrs:
+	{
+		bz_assert(func_call.params.size() == 2);
+		if (!result_address.has_value())
+		{
+			result_address = context.create_alloca(context.get_str_t());
+		}
+		auto const &result_value = result_address.get();
+
+		auto const begin_ptr = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		auto const end_ptr   = generate_expr_code(func_call.params[1], context, {}).get_value(context);
+		context.create_str_construction_check(func_call.src_tokens, begin_ptr, end_ptr);
+		context.create_store(begin_ptr, context.create_struct_gep(result_value, 0));
+		context.create_store(end_ptr,   context.create_struct_gep(result_value, 1));
+		return result_value;
+	}
+	case ast::function_body::builtin_slice_begin_ptr:
+	case ast::function_body::builtin_slice_begin_const_ptr:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const slice = generate_expr_code(func_call.params[0], context, {});
+		auto const result_value = context.create_struct_gep(slice, 0).get_value(context);
+		return value_or_result_address(result_value, result_address, context);
+	}
+	case ast::function_body::builtin_slice_end_ptr:
+	case ast::function_body::builtin_slice_end_const_ptr:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const slice = generate_expr_code(func_call.params[0], context, {});
+		auto const result_value = context.create_struct_gep(slice, 1).get_value(context);
+		return value_or_result_address(result_value, result_address, context);
+	}
+	case ast::function_body::builtin_slice_size:
+		// implemented in __builtins.bz
+		bz_unreachable;
+	case ast::function_body::builtin_slice_from_ptrs:
+	{
+		bz_assert(func_call.params.size() == 2);
+		if (!result_address.has_value())
+		{
+			result_address = context.create_alloca(context.get_str_t());
+		}
+		auto const &result_value = result_address.get();
+
+		auto const begin_ptr = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		auto const end_ptr   = generate_expr_code(func_call.params[1], context, {}).get_value(context);
+		context.create_slice_construction_check(func_call.src_tokens, begin_ptr, end_ptr);
+		context.create_store(begin_ptr, context.create_struct_gep(result_value, 0));
+		context.create_store(end_ptr,   context.create_struct_gep(result_value, 1));
+		return result_value;
+	}
+	case ast::function_body::builtin_slice_from_const_ptrs:
+	{
+		bz_assert(func_call.params.size() == 2);
+		if (!result_address.has_value())
+		{
+			result_address = context.create_alloca(context.get_str_t());
+		}
+		auto const &result_value = result_address.get();
+
+		auto const begin_ptr = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		auto const end_ptr   = generate_expr_code(func_call.params[1], context, {}).get_value(context);
+		context.create_slice_construction_check(func_call.src_tokens, begin_ptr, end_ptr);
+		context.create_store(begin_ptr, context.create_struct_gep(result_value, 0));
+		context.create_store(end_ptr,   context.create_struct_gep(result_value, 1));
+		return result_value;
+	}
+	case ast::function_body::builtin_array_begin_ptr:
+	case ast::function_body::builtin_array_begin_const_ptr:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const array = generate_expr_code(func_call.params[0], context, {});
+		bz_assert(array.get_type()->is_array());
+		auto const result_value = expr_value::get_value(
+			context.create_struct_gep(array, 0).get_reference(),
+			context.get_pointer_type()
+		);
+		return value_or_result_address(result_value, result_address, context);
+	}
+	case ast::function_body::builtin_array_end_ptr:
+	case ast::function_body::builtin_array_end_const_ptr:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const array = generate_expr_code(func_call.params[0], context, {});
+		bz_assert(array.get_type()->is_array());
+		auto const result_value = expr_value::get_value(
+			context.create_struct_gep(array, array.get_type()->get_array_size()).get_reference(),
+			context.get_pointer_type()
+		);
+		return value_or_result_address(result_value, result_address, context);
+	}
+	case ast::function_body::builtin_array_size:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::builtin_optional_get_value_ref:
+	case ast::function_body::builtin_optional_get_const_value_ref:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const value = generate_expr_code(func_call.params[0], context, {});
+		context.create_optional_get_value_check(func_call.src_tokens, get_optional_has_value(value, context));
+		bz_assert(!result_address.has_value());
+		return get_optional_value(value, context);
+	}
+	case ast::function_body::builtin_optional_get_value:
+		// this is handled as a separate expression, not a function call
+		bz_unreachable;
+	case ast::function_body::builtin_pointer_cast:
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(func_call.params[0].is_typename());
+		generate_expr_code(func_call.params[1], context, {});
+		context.create_error(
+			func_call.src_tokens,
+			bz::format("'{}' cannot be used in a constant expression", func_call.func_body->get_signature())
+		);
+		return value_or_result_address(
+			context.get_dummy_value(context.get_pointer_type()),
+			result_address,
+			context
+		);
+	case ast::function_body::builtin_pointer_to_int:
+		bz_assert(func_call.params.size() == 1);
+		generate_expr_code(func_call.params[0], context, {});
+		context.create_error(
+			func_call.src_tokens,
+			bz::format("'{}' cannot be used in a constant expression", func_call.func_body->get_signature())
+		);
+		return value_or_result_address(
+			context.get_dummy_value(get_type(func_call.func_body->return_type, context)),
+			result_address,
+			context
+		);
+	case ast::function_body::builtin_int_to_pointer:
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(func_call.params[0].is_typename());
+		generate_expr_code(func_call.params[1], context, {});
+		context.create_error(
+			func_call.src_tokens,
+			bz::format("'{}' cannot be used in a constant expression", func_call.func_body->get_signature())
+		);
+		return value_or_result_address(
+			context.get_dummy_value(context.get_pointer_type()),
+			result_address,
+			context
+		);
+	case ast::function_body::builtin_enum_value:
+		bz_assert(func_call.params.size() == 1);
+		return generate_expr_code(func_call.params[0], context, result_address);
+	case ast::function_body::builtin_call_destructor:
+		// this is handled as a separate expression, not a function call
+		bz_unreachable;
+	case ast::function_body::builtin_inplace_construct:
+	{
+		bz_assert(func_call.params.size() == 2);
+		auto const dest_ptr = generate_expr_code(func_call.params[0], context, {});
+		auto const dest_type = get_type(func_call.func_body->params[1].get_type(), context);
+		auto const dest_ref = expr_value::get_reference(dest_ptr.get_value_as_instruction(context), dest_type);
+		generate_expr_code(func_call.params[1], context, dest_ref);
+		bz_assert(!result_address.has_value());
+		return expr_value::get_none();
+	}
+	case ast::function_body::builtin_swap:
+		// this is handled as a separate expression, not a function call
+		bz_unreachable;
+	case ast::function_body::builtin_is_comptime:
+		return value_or_result_address(context.create_const_i1(true), result_address, context);
+	case ast::function_body::builtin_is_option_set_impl:
+		bz_unreachable; // TODO
+	case ast::function_body::builtin_is_option_set:
+		// implemented in __builtins.bz
+		bz_unreachable;
+	case ast::function_body::builtin_panic:
+		// implemented in __builtins.bz
+		bz_unreachable;
+	case ast::function_body::builtin_call_main:
+		bz_assert(func_call.params.size() == 1);
+		generate_expr_code(func_call.params[0], context, {});
+		context.create_error(
+			func_call.src_tokens,
+			bz::format("'{}' cannot be used in a constant expression", func_call.func_body->get_signature())
+		);
+		return value_or_result_address(
+			context.get_dummy_value(get_type(func_call.func_body->return_type, context)),
+			result_address,
+			context
+		);
+	case ast::function_body::print_stdout:
+		// implemented in __builtins.bz
+		bz_unreachable;
+	case ast::function_body::print_stderr:
+		// implemented in __builtins.bz
+		bz_unreachable;
+	case ast::function_body::comptime_malloc:
+		bz_unreachable; // TODO: remove this function
+	case ast::function_body::comptime_malloc_type:
+		bz_unreachable; // TODO
+	case ast::function_body::comptime_free:
+		bz_unreachable; // TODO
+	case ast::function_body::comptime_compile_error:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const message_value = generate_expr_code(func_call.params[0], context, {});
+		auto const begin_ptr = context.create_struct_gep(message_value, 0);
+		auto const end_ptr = context.create_struct_gep(message_value, 1);
+		context.create_error_str(func_call.src_tokens, begin_ptr, end_ptr);
+		bz_assert(!result_address.has_value());
+		return expr_value::get_none();
+	}
+	case ast::function_body::comptime_compile_warning:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const message_value = generate_expr_code(func_call.params[0], context, {});
+		auto const begin_ptr = context.create_struct_gep(message_value, 0);
+		auto const end_ptr = context.create_struct_gep(message_value, 1);
+		context.create_warning_str(func_call.src_tokens, ctx::warning_kind::comptime_warning, begin_ptr, end_ptr);
+		bz_assert(!result_address.has_value());
+		return expr_value::get_none();
+	}
+	case ast::function_body::comptime_compile_error_src_tokens:
+		bz_unreachable; // TODO: remove this function
+	case ast::function_body::comptime_compile_warning_src_tokens:
+		bz_unreachable; // TODO: remove this function
+	case ast::function_body::comptime_create_global_string:
+		bz_unreachable; // TODO
+	case ast::function_body::comptime_concatenate_strs:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::comptime_format_float32:
+		bz_unreachable; // TODO: remove this function
+	case ast::function_body::comptime_format_float64:
+		bz_unreachable; // TODO: remove this function
+	case ast::function_body::typename_as_str:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::is_const:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::is_consteval:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::is_pointer:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::is_optional:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::is_reference:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::is_move_reference:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::is_slice:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::is_array:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::is_tuple:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::is_enum:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::remove_const:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::remove_consteval:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::remove_pointer:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::remove_optional:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::remove_reference:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::remove_move_reference:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::slice_value_type:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::array_value_type:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::tuple_value_type:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::concat_tuple_types:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::enum_underlying_type:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::is_default_constructible:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::is_copy_constructible:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::is_trivially_copy_constructible:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::is_move_constructible:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::is_trivially_move_constructible:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::is_trivially_destructible:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::is_trivially_move_destructible:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::is_trivially_relocatable:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::is_trivial:
+		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::lifetime_start:
+		// this is an LLVM intrinsic
+		bz_unreachable;
+	case ast::function_body::lifetime_end:
+		// this is an LLVM intrinsic
+		bz_unreachable;
+	case ast::function_body::memcpy:
+		bz_unreachable; // TODO
+	case ast::function_body::memmove:
+		bz_unreachable; // TODO
+	case ast::function_body::memset:
+		bz_unreachable; // TODO
+	case ast::function_body::abs_i8:
+	case ast::function_body::abs_i16:
+	case ast::function_body::abs_i32:
+	case ast::function_body::abs_i64:
+	case ast::function_body::fabs_f32: // TODO: rename this to abs_f32
+	case ast::function_body::fabs_f64: // TODO: rename this to abs_f64
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const value = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_abs_unchecked(value), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_abs(func_call.src_tokens, value), result_address, context);
+		}
+	}
+	case ast::function_body::min_i8:
+	case ast::function_body::min_i16:
+	case ast::function_body::min_i32:
+	case ast::function_body::min_i64:
+	case ast::function_body::min_u8:
+	case ast::function_body::min_u16:
+	case ast::function_body::min_u32:
+	case ast::function_body::min_u64:
+	case ast::function_body::fmin_f32:
+	case ast::function_body::fmin_f64:
+	case ast::function_body::max_i8:
+	case ast::function_body::max_i16:
+	case ast::function_body::max_i32:
+	case ast::function_body::max_i64:
+	case ast::function_body::max_u8:
+	case ast::function_body::max_u16:
+	case ast::function_body::max_u32:
+	case ast::function_body::max_u64:
+	case ast::function_body::fmax_f32:
+	case ast::function_body::fmax_f64:
+	case ast::function_body::exp_f32:
+	case ast::function_body::exp_f64:
+	case ast::function_body::exp2_f32:
+	case ast::function_body::exp2_f64:
+	case ast::function_body::expm1_f32:
+	case ast::function_body::expm1_f64:
+	case ast::function_body::log_f32:
+	case ast::function_body::log_f64:
+	case ast::function_body::log10_f32:
+	case ast::function_body::log10_f64:
+	case ast::function_body::log2_f32:
+	case ast::function_body::log2_f64:
+	case ast::function_body::log1p_f32:
+	case ast::function_body::log1p_f64:
+	case ast::function_body::sqrt_f32:
+	case ast::function_body::sqrt_f64:
+	case ast::function_body::pow_f32:
+	case ast::function_body::pow_f64:
+	case ast::function_body::cbrt_f32:
+	case ast::function_body::cbrt_f64:
+	case ast::function_body::hypot_f32:
+	case ast::function_body::hypot_f64:
+	case ast::function_body::sin_f32:
+	case ast::function_body::sin_f64:
+	case ast::function_body::cos_f32:
+	case ast::function_body::cos_f64:
+	case ast::function_body::tan_f32:
+	case ast::function_body::tan_f64:
+	case ast::function_body::asin_f32:
+	case ast::function_body::asin_f64:
+	case ast::function_body::acos_f32:
+	case ast::function_body::acos_f64:
+	case ast::function_body::atan_f32:
+	case ast::function_body::atan_f64:
+	case ast::function_body::atan2_f32:
+	case ast::function_body::atan2_f64:
+	case ast::function_body::sinh_f32:
+	case ast::function_body::sinh_f64:
+	case ast::function_body::cosh_f32:
+	case ast::function_body::cosh_f64:
+	case ast::function_body::tanh_f32:
+	case ast::function_body::tanh_f64:
+	case ast::function_body::asinh_f32:
+	case ast::function_body::asinh_f64:
+	case ast::function_body::acosh_f32:
+	case ast::function_body::acosh_f64:
+	case ast::function_body::atanh_f32:
+	case ast::function_body::atanh_f64:
+	case ast::function_body::erf_f32:
+	case ast::function_body::erf_f64:
+	case ast::function_body::erfc_f32:
+	case ast::function_body::erfc_f64:
+	case ast::function_body::tgamma_f32:
+	case ast::function_body::tgamma_f64:
+	case ast::function_body::lgamma_f32:
+	case ast::function_body::lgamma_f64:
+	case ast::function_body::bitreverse_u8:
+	case ast::function_body::bitreverse_u16:
+	case ast::function_body::bitreverse_u32:
+	case ast::function_body::bitreverse_u64:
+	case ast::function_body::popcount_u8:
+	case ast::function_body::popcount_u16:
+	case ast::function_body::popcount_u32:
+	case ast::function_body::popcount_u64:
+	case ast::function_body::byteswap_u16:
+	case ast::function_body::byteswap_u32:
+	case ast::function_body::byteswap_u64:
+	case ast::function_body::clz_u8:
+	case ast::function_body::clz_u16:
+	case ast::function_body::clz_u32:
+	case ast::function_body::clz_u64:
+	case ast::function_body::ctz_u8:
+	case ast::function_body::ctz_u16:
+	case ast::function_body::ctz_u32:
+	case ast::function_body::ctz_u64:
+	case ast::function_body::fshl_u8:
+	case ast::function_body::fshl_u16:
+	case ast::function_body::fshl_u32:
+	case ast::function_body::fshl_u64:
+	case ast::function_body::fshr_u8:
+	case ast::function_body::fshr_u16:
+	case ast::function_body::fshr_u32:
+	case ast::function_body::fshr_u64:
+	case ast::function_body::i8_default_constructor:
+	case ast::function_body::i16_default_constructor:
+	case ast::function_body::i32_default_constructor:
+	case ast::function_body::i64_default_constructor:
+	case ast::function_body::u8_default_constructor:
+	case ast::function_body::u16_default_constructor:
+	case ast::function_body::u32_default_constructor:
+	case ast::function_body::u64_default_constructor:
+	case ast::function_body::f32_default_constructor:
+	case ast::function_body::f64_default_constructor:
+	case ast::function_body::char_default_constructor:
+	case ast::function_body::str_default_constructor:
+	case ast::function_body::bool_default_constructor:
+	case ast::function_body::null_t_default_constructor:
+	case ast::function_body::builtin_unary_plus:
+	case ast::function_body::builtin_unary_minus:
+	case ast::function_body::builtin_unary_dereference:
+	case ast::function_body::builtin_unary_bit_not:
+	case ast::function_body::builtin_unary_bool_not:
+	case ast::function_body::builtin_unary_plus_plus:
+	case ast::function_body::builtin_unary_minus_minus:
+	case ast::function_body::builtin_binary_assign:
+	case ast::function_body::builtin_binary_plus:
+	case ast::function_body::builtin_binary_plus_eq:
+	case ast::function_body::builtin_binary_minus:
+	case ast::function_body::builtin_binary_minus_eq:
+	case ast::function_body::builtin_binary_multiply:
+	case ast::function_body::builtin_binary_multiply_eq:
+	case ast::function_body::builtin_binary_divide:
+	case ast::function_body::builtin_binary_divide_eq:
+	case ast::function_body::builtin_binary_modulo:
+	case ast::function_body::builtin_binary_modulo_eq:
+	case ast::function_body::builtin_binary_equals:
+	case ast::function_body::builtin_binary_not_equals:
+	case ast::function_body::builtin_binary_less_than:
+	case ast::function_body::builtin_binary_less_than_eq:
+	case ast::function_body::builtin_binary_greater_than:
+	case ast::function_body::builtin_binary_greater_than_eq:
+	case ast::function_body::builtin_binary_bit_and:
+	case ast::function_body::builtin_binary_bit_and_eq:
+	case ast::function_body::builtin_binary_bit_xor:
+	case ast::function_body::builtin_binary_bit_xor_eq:
+	case ast::function_body::builtin_binary_bit_or:
+	case ast::function_body::builtin_binary_bit_or_eq:
+	case ast::function_body::builtin_binary_bit_left_shift:
+	case ast::function_body::builtin_binary_bit_left_shift_eq:
+	case ast::function_body::builtin_binary_bit_right_shift:
+	case ast::function_body::builtin_binary_bit_right_shift_eq:
+	default:
+		bz_unreachable;
+	}
+}
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_function_call const &func_call,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -773,7 +1329,7 @@ static expr_value generate_expr_code(
 {
 	if (func_call.func_body->is_intrinsic() && func_call.func_body->body.is_null())
 	{
-		return generate_intrinsic_function_call_code(func_call, context, result_address);
+		return generate_intrinsic_function_call_code(original_expression, func_call, context, result_address);
 	}
 	bz_assert(!func_call.func_body->is_default_copy_constructor());
 	bz_assert(!func_call.func_body->is_default_move_constructor());
@@ -797,7 +1353,7 @@ static expr_value generate_expr_code(
 		}
 		else
 		{
-			return context.create_alloca(get_type(func_call.func_body->return_type, context));
+			return context.get_dummy_value(get_type(func_call.func_body->return_type, context));
 		}
 	}
 
@@ -827,7 +1383,13 @@ static expr_value generate_expr_code(
 			{
 				auto const arg_value = generate_expr_code(func_call.params[arg_index], context, {});
 				bz_assert(arg_value.get_type() == func->arg_types[arg_ref_index - needs_result_address]);
-				if (arg_value.get_type()->is_simple_value_type())
+				auto const &param_type = func_call.func_body->params[arg_index].get_type();
+				if (param_type.is<ast::ts_lvalue_reference>() || param_type.is<ast::ts_move_reference>())
+				{
+					bz_assert(arg_value.is_reference());
+					arg_refs[arg_ref_index] = arg_value.get_reference();
+				}
+				else if (arg_value.get_type()->is_simple_value_type())
 				{
 					arg_refs[arg_ref_index] = arg_value.get_value_as_instruction(context);
 				}
@@ -2216,7 +2778,7 @@ static expr_value generate_expr_code(
 			bz::format("member '{}' cannot be used in a constant expression", type_member_access.member->value)
 		);
 		auto const type = get_type(type_member_access.var_decl->get_type(), context);
-		return expr_value::get_reference(instruction_ref{}, type);
+		return context.get_dummy_value(type);
 	}
 
 	return result;
@@ -2344,6 +2906,7 @@ static expr_value generate_expr_code(
 	if (!context.loop_info.in_loop)
 	{
 		context.create_error(src_tokens, "'break' hit in compile time execution without an outer loop");
+		context.create_unreachable();
 	}
 	else
 	{
@@ -2362,6 +2925,7 @@ static expr_value generate_expr_code(
 	if (!context.loop_info.in_loop)
 	{
 		context.create_error(src_tokens, "'continue' hit in compile time execution without an outer loop");
+		context.create_unreachable();
 	}
 	else
 	{
@@ -2378,6 +2942,7 @@ static expr_value generate_expr_code(
 )
 {
 	context.create_error(src_tokens, "'unreachable' hit in compile time execution");
+	context.create_unreachable();
 	return expr_value::get_none();
 }
 
@@ -2399,7 +2964,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	lex::src_tokens const &src_tokens,
+	ast::expression const &original_expression,
 	ast::expr_t const &expr,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -2433,12 +2998,12 @@ static expr_value generate_expr_code(
 		return generate_expr_code(expr.get<ast::expr_rvalue_tuple_subscript>(), context, result_address);
 	case ast::expr_t::index<ast::expr_subscript>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(src_tokens, expr.get<ast::expr_subscript>(), context);
+		return generate_expr_code(original_expression.src_tokens, expr.get<ast::expr_subscript>(), context);
 	case ast::expr_t::index<ast::expr_rvalue_array_subscript>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(src_tokens, expr.get<ast::expr_rvalue_array_subscript>(), context);
+		return generate_expr_code(original_expression.src_tokens, expr.get<ast::expr_rvalue_array_subscript>(), context);
 	case ast::expr_t::index<ast::expr_function_call>:
-		return generate_expr_code(expr.get<ast::expr_function_call>(), context, result_address);
+		return generate_expr_code(original_expression, expr.get<ast::expr_function_call>(), context, result_address);
 	case ast::expr_t::index<ast::expr_cast>:
 		return generate_expr_code(expr.get<ast::expr_cast>(), context, result_address);
 	case ast::expr_t::index<ast::expr_optional_cast>:
@@ -2530,7 +3095,7 @@ static expr_value generate_expr_code(
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(expr.get<ast::expr_member_access>(), context);
 	case ast::expr_t::index<ast::expr_optional_extract_value>:
-		return generate_expr_code(src_tokens, expr.get<ast::expr_optional_extract_value>(), context, result_address);
+		return generate_expr_code(original_expression.src_tokens, expr.get<ast::expr_optional_extract_value>(), context, result_address);
 	case ast::expr_t::index<ast::expr_rvalue_member_access>:
 		return generate_expr_code(expr.get<ast::expr_rvalue_member_access>(), context, result_address);
 	case ast::expr_t::index<ast::expr_type_member_access>:
@@ -2546,13 +3111,13 @@ static expr_value generate_expr_code(
 		return generate_expr_code(expr.get<ast::expr_switch>(), context, result_address);
 	case ast::expr_t::index<ast::expr_break>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(src_tokens, expr.get<ast::expr_break>(), context);
+		return generate_expr_code(original_expression.src_tokens, expr.get<ast::expr_break>(), context);
 	case ast::expr_t::index<ast::expr_continue>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(src_tokens, expr.get<ast::expr_continue>(), context);
+		return generate_expr_code(original_expression.src_tokens, expr.get<ast::expr_continue>(), context);
 	case ast::expr_t::index<ast::expr_unreachable>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(src_tokens, expr.get<ast::expr_unreachable>(), context);
+		return generate_expr_code(original_expression.src_tokens, expr.get<ast::expr_unreachable>(), context);
 	case ast::expr_t::index<ast::expr_generic_type_instantiation>:
 		return generate_expr_code(expr.get<ast::expr_generic_type_instantiation>(), context, result_address);
 	case ast::expr_t::index<ast::expr_bitcode_value_reference>:
@@ -3273,7 +3838,7 @@ static expr_value get_constant_value(
 }
 
 static expr_value generate_expr_code(
-	lex::src_tokens const &src_tokens,
+	ast::expression const &original_expression,
 	ast::constant_expression const &const_expr,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -3290,7 +3855,7 @@ static expr_value generate_expr_code(
 	}
 
 	auto const result = const_expr.kind == ast::expression_type_kind::lvalue
-		? generate_expr_code(src_tokens, const_expr.expr, context, {})
+		? generate_expr_code(original_expression, const_expr.expr, context, {})
 		: get_constant_value(const_expr.value, const_expr.type, &const_expr, context, result_address);
 
 	bz_assert(!result_address.has_value() || result == result_address.get());
@@ -3298,7 +3863,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	lex::src_tokens const &src_tokens,
+	ast::expression const &original_expression,
 	ast::dynamic_expression const &dyn_expr,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -3318,7 +3883,7 @@ static expr_value generate_expr_code(
 		result_address = context.create_alloca(get_type(dyn_expr.type, context));
 	}
 
-	auto const result = generate_expr_code(src_tokens, dyn_expr.expr, context, result_address);
+	auto const result = generate_expr_code(original_expression, dyn_expr.expr, context, result_address);
 
 	if (dyn_expr.destruct_op.not_null() || dyn_expr.destruct_op.move_destructed_decl != nullptr)
 	{
@@ -3337,11 +3902,12 @@ static expr_value generate_expr_code(
 	switch (expr.kind())
 	{
 		case ast::expression::index_of<ast::constant_expression>:
-			return generate_expr_code(expr.src_tokens, expr.get_constant(), context, result_address);
+			return generate_expr_code(expr, expr.get_constant(), context, result_address);
 		case ast::expression::index_of<ast::dynamic_expression>:
-			return generate_expr_code(expr.src_tokens, expr.get_dynamic(), context, result_address);
+			return generate_expr_code(expr, expr.get_dynamic(), context, result_address);
 		case ast::expression::index_of<ast::error_expression>:
-			bz_unreachable;
+			context.create_error(expr.src_tokens, "failed to resolve expression");
+			return expr_value::get_none();
 		default:
 			bz_unreachable;
 	}
@@ -3550,6 +4116,7 @@ static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_conte
 	if (var_decl.get_type().is_empty())
 	{
 		context.create_error(var_decl.src_tokens, "failed to resolve variable declaration");
+		context.create_unreachable();
 		return;
 	}
 
