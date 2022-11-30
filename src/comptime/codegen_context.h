@@ -307,6 +307,20 @@ struct codegen_context
 	expr_value create_int_max(expr_value a, expr_value b, bool is_signed);
 	expr_value create_float_max(lex::src_tokens const &src_tokens, expr_value x, expr_value y);
 	expr_value create_float_max_unchecked(expr_value x, expr_value y);
+	expr_value create_exp(lex::src_tokens const &src_tokens, expr_value x);
+	expr_value create_exp_unchecked(expr_value x);
+	expr_value create_exp2(lex::src_tokens const &src_tokens, expr_value x);
+	expr_value create_exp2_unchecked(expr_value x);
+	expr_value create_expm1(lex::src_tokens const &src_tokens, expr_value x);
+	expr_value create_expm1_unchecked(expr_value x);
+	expr_value create_log(lex::src_tokens const &src_tokens, expr_value x);
+	expr_value create_log_unchecked(expr_value x);
+	expr_value create_log10(lex::src_tokens const &src_tokens, expr_value x);
+	expr_value create_log10_unchecked(expr_value x);
+	expr_value create_log2(lex::src_tokens const &src_tokens, expr_value x);
+	expr_value create_log2_unchecked(expr_value x);
+	expr_value create_log1p(lex::src_tokens const &src_tokens, expr_value x);
+	expr_value create_log1p_unchecked(expr_value x);
 
 	instruction_ref create_unreachable(void);
 	instruction_ref create_error(lex::src_tokens const &src_tokens, bz::u8string message);
