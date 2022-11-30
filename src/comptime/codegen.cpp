@@ -1334,46 +1334,301 @@ static expr_value generate_intrinsic_function_call_code(
 	}
 	case ast::function_body::sqrt_f32:
 	case ast::function_body::sqrt_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_sqrt_unchecked(x), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_sqrt(original_expression.src_tokens, x), result_address, context);
+		}
+	}
 	case ast::function_body::pow_f32:
 	case ast::function_body::pow_f64:
+	{
+		bz_assert(func_call.params.size() == 2);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		auto const y = generate_expr_code(func_call.params[1], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_pow_unchecked(x, y), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_pow(original_expression.src_tokens, x, y), result_address, context);
+		}
+	}
 	case ast::function_body::cbrt_f32:
 	case ast::function_body::cbrt_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_cbrt_unchecked(x), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_cbrt(original_expression.src_tokens, x), result_address, context);
+		}
+	}
 	case ast::function_body::hypot_f32:
 	case ast::function_body::hypot_f64:
+	{
+		bz_assert(func_call.params.size() == 2);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		auto const y = generate_expr_code(func_call.params[1], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_hypot_unchecked(x, y), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_hypot(original_expression.src_tokens, x, y), result_address, context);
+		}
+	}
 	case ast::function_body::sin_f32:
 	case ast::function_body::sin_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_sin_unchecked(x), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_sin(original_expression.src_tokens, x), result_address, context);
+		}
+	}
 	case ast::function_body::cos_f32:
 	case ast::function_body::cos_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_cos_unchecked(x), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_cos(original_expression.src_tokens, x), result_address, context);
+		}
+	}
 	case ast::function_body::tan_f32:
 	case ast::function_body::tan_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_tan_unchecked(x), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_tan(original_expression.src_tokens, x), result_address, context);
+		}
+	}
 	case ast::function_body::asin_f32:
 	case ast::function_body::asin_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_asin_unchecked(x), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_asin(original_expression.src_tokens, x), result_address, context);
+		}
+	}
 	case ast::function_body::acos_f32:
 	case ast::function_body::acos_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_acos_unchecked(x), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_acos(original_expression.src_tokens, x), result_address, context);
+		}
+	}
 	case ast::function_body::atan_f32:
 	case ast::function_body::atan_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_atan_unchecked(x), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_atan(original_expression.src_tokens, x), result_address, context);
+		}
+	}
 	case ast::function_body::atan2_f32:
 	case ast::function_body::atan2_f64:
+	{
+		bz_assert(func_call.params.size() == 2);
+		auto const y = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		auto const x = generate_expr_code(func_call.params[1], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_atan2_unchecked(y, x), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_atan2(original_expression.src_tokens, y, x), result_address, context);
+		}
+	}
 	case ast::function_body::sinh_f32:
 	case ast::function_body::sinh_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_sinh_unchecked(x), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_sinh(original_expression.src_tokens, x), result_address, context);
+		}
+	}
 	case ast::function_body::cosh_f32:
 	case ast::function_body::cosh_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_cosh_unchecked(x), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_cosh(original_expression.src_tokens, x), result_address, context);
+		}
+	}
 	case ast::function_body::tanh_f32:
 	case ast::function_body::tanh_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_tanh_unchecked(x), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_tanh(original_expression.src_tokens, x), result_address, context);
+		}
+	}
 	case ast::function_body::asinh_f32:
 	case ast::function_body::asinh_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_asinh_unchecked(x), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_asinh(original_expression.src_tokens, x), result_address, context);
+		}
+	}
 	case ast::function_body::acosh_f32:
 	case ast::function_body::acosh_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_acosh_unchecked(x), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_acosh(original_expression.src_tokens, x), result_address, context);
+		}
+	}
 	case ast::function_body::atanh_f32:
 	case ast::function_body::atanh_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_atanh_unchecked(x), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_atanh(original_expression.src_tokens, x), result_address, context);
+		}
+	}
 	case ast::function_body::erf_f32:
 	case ast::function_body::erf_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_erf_unchecked(x), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_erf(original_expression.src_tokens, x), result_address, context);
+		}
+	}
 	case ast::function_body::erfc_f32:
 	case ast::function_body::erfc_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_erfc_unchecked(x), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_erfc(original_expression.src_tokens, x), result_address, context);
+		}
+	}
 	case ast::function_body::tgamma_f32:
 	case ast::function_body::tgamma_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_tgamma_unchecked(x), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_tgamma(original_expression.src_tokens, x), result_address, context);
+		}
+	}
 	case ast::function_body::lgamma_f32:
 	case ast::function_body::lgamma_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level >= 2)
+		{
+			return value_or_result_address(context.create_lgamma_unchecked(x), result_address, context);
+		}
+		else
+		{
+			return value_or_result_address(context.create_lgamma(original_expression.src_tokens, x), result_address, context);
+		}
+	}
 	case ast::function_body::bitreverse_u8:
 	case ast::function_body::bitreverse_u16:
 	case ast::function_body::bitreverse_u32:

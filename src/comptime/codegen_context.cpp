@@ -2692,6 +2692,1033 @@ expr_value codegen_context::create_log1p_unchecked(expr_value x)
 	}
 }
 
+expr_value codegen_context::create_sqrt(lex::src_tokens const &src_tokens, expr_value x)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::sqrt_f32{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::sqrt_f64{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_sqrt_unchecked(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::sqrt_f32_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::sqrt_f64_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_pow(lex::src_tokens const &src_tokens, expr_value x, expr_value y)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+	bz_assert(y.get_type()->is_builtin());
+	bz_assert(x.get_type()->get_builtin_kind() == y.get_type()->get_builtin_kind());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+	auto const y_val = y.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::pow_f32{ .src_tokens_index = src_tokens_index }, x_val, y_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::pow_f64{ .src_tokens_index = src_tokens_index }, x_val, y_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_pow_unchecked(expr_value x, expr_value y)
+{
+	bz_assert(x.get_type()->is_builtin());
+	bz_assert(y.get_type()->is_builtin());
+	bz_assert(x.get_type()->get_builtin_kind() == y.get_type()->get_builtin_kind());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+	auto const y_val = y.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::pow_f32_unchecked{}, x_val, y_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::pow_f64_unchecked{}, x_val, y_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_cbrt(lex::src_tokens const &src_tokens, expr_value x)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::cbrt_f32{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::cbrt_f64{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_cbrt_unchecked(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::cbrt_f32_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::cbrt_f64_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_hypot(lex::src_tokens const &src_tokens, expr_value x, expr_value y)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+	bz_assert(y.get_type()->is_builtin());
+	bz_assert(x.get_type()->get_builtin_kind() == y.get_type()->get_builtin_kind());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+	auto const y_val = y.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::hypot_f32{ .src_tokens_index = src_tokens_index }, x_val, y_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::hypot_f64{ .src_tokens_index = src_tokens_index }, x_val, y_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_hypot_unchecked(expr_value x, expr_value y)
+{
+	bz_assert(x.get_type()->is_builtin());
+	bz_assert(y.get_type()->is_builtin());
+	bz_assert(x.get_type()->get_builtin_kind() == y.get_type()->get_builtin_kind());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+	auto const y_val = y.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::hypot_f32_unchecked{}, x_val, y_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::hypot_f64_unchecked{}, x_val, y_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_sin(lex::src_tokens const &src_tokens, expr_value x)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::sin_f32{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::sin_f64{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_sin_unchecked(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::sin_f32_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::sin_f64_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_cos(lex::src_tokens const &src_tokens, expr_value x)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::cos_f32{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::cos_f64{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_cos_unchecked(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::cos_f32_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::cos_f64_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_tan(lex::src_tokens const &src_tokens, expr_value x)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::tan_f32{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::tan_f64{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_tan_unchecked(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::tan_f32_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::tan_f64_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_asin(lex::src_tokens const &src_tokens, expr_value x)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::asin_f32{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::asin_f64{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_asin_unchecked(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::asin_f32_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::asin_f64_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_acos(lex::src_tokens const &src_tokens, expr_value x)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::acos_f32{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::acos_f64{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_acos_unchecked(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::acos_f32_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::acos_f64_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_atan(lex::src_tokens const &src_tokens, expr_value x)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::atan_f32{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::atan_f64{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_atan_unchecked(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::atan_f32_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::atan_f64_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_atan2(lex::src_tokens const &src_tokens, expr_value y, expr_value x)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(y.get_type()->is_builtin());
+	bz_assert(x.get_type()->is_builtin());
+	bz_assert(y.get_type()->get_builtin_kind() == x.get_type()->get_builtin_kind());
+
+	auto const y_val = y.get_value_as_instruction(*this);
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (y.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::atan2_f32{ .src_tokens_index = src_tokens_index }, y_val, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::atan2_f64{ .src_tokens_index = src_tokens_index }, y_val, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_atan2_unchecked(expr_value y, expr_value x)
+{
+	bz_assert(y.get_type()->is_builtin());
+	bz_assert(x.get_type()->is_builtin());
+	bz_assert(y.get_type()->get_builtin_kind() == x.get_type()->get_builtin_kind());
+
+	auto const y_val = y.get_value_as_instruction(*this);
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (y.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::atan2_f32_unchecked{}, y_val, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::atan2_f64_unchecked{}, y_val, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_sinh(lex::src_tokens const &src_tokens, expr_value x)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::sinh_f32{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::sinh_f64{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_sinh_unchecked(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::sinh_f32_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::sinh_f64_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_cosh(lex::src_tokens const &src_tokens, expr_value x)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::cosh_f32{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::cosh_f64{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_cosh_unchecked(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::cosh_f32_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::cosh_f64_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_tanh(lex::src_tokens const &src_tokens, expr_value x)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::tanh_f32{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::tanh_f64{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_tanh_unchecked(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::tanh_f32_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::tanh_f64_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_asinh(lex::src_tokens const &src_tokens, expr_value x)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::asinh_f32{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::asinh_f64{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_asinh_unchecked(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::asinh_f32_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::asinh_f64_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_acosh(lex::src_tokens const &src_tokens, expr_value x)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::acosh_f32{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::acosh_f64{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_acosh_unchecked(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::acosh_f32_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::acosh_f64_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_atanh(lex::src_tokens const &src_tokens, expr_value x)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::atanh_f32{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::atanh_f64{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_atanh_unchecked(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::atanh_f32_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::atanh_f64_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_erf(lex::src_tokens const &src_tokens, expr_value x)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::erf_f32{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::erf_f64{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_erf_unchecked(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::erf_f32_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::erf_f64_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_erfc(lex::src_tokens const &src_tokens, expr_value x)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::erfc_f32{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::erfc_f64{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_erfc_unchecked(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::erfc_f32_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::erfc_f64_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_tgamma(lex::src_tokens const &src_tokens, expr_value x)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::tgamma_f32{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::tgamma_f64{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_tgamma_unchecked(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::tgamma_f32_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::tgamma_f64_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_lgamma(lex::src_tokens const &src_tokens, expr_value x)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::lgamma_f32{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::lgamma_f64{ .src_tokens_index = src_tokens_index }, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_lgamma_unchecked(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::lgamma_f32_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::lgamma_f64_unchecked{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+
 instruction_ref codegen_context::create_unreachable(void)
 {
 	return this->add_instruction(instructions::unreachable{});
@@ -2872,7 +3899,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 281);
+	static_assert(instruction::variant_count == 365);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>().inst;
