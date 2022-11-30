@@ -3812,6 +3812,72 @@ expr_value codegen_context::create_byteswap(expr_value value)
 	}
 }
 
+expr_value codegen_context::create_clz(expr_value value)
+{
+	bz_assert(value.get_type()->is_builtin());
+
+	auto const value_ref = value.get_value_as_instruction(*this);
+
+	switch (value.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::i8:
+		return expr_value::get_value(
+			this->add_instruction(instructions::clz_u8{}, value_ref),
+			this->get_builtin_type(builtin_type_kind::i8)
+		);
+	case builtin_type_kind::i16:
+		return expr_value::get_value(
+			this->add_instruction(instructions::clz_u16{}, value_ref),
+			this->get_builtin_type(builtin_type_kind::i16)
+		);
+	case builtin_type_kind::i32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::clz_u32{}, value_ref),
+			this->get_builtin_type(builtin_type_kind::i32)
+		);
+	case builtin_type_kind::i64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::clz_u64{}, value_ref),
+			this->get_builtin_type(builtin_type_kind::i64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_ctz(expr_value value)
+{
+	bz_assert(value.get_type()->is_builtin());
+
+	auto const value_ref = value.get_value_as_instruction(*this);
+
+	switch (value.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::i8:
+		return expr_value::get_value(
+			this->add_instruction(instructions::ctz_u8{}, value_ref),
+			this->get_builtin_type(builtin_type_kind::i8)
+		);
+	case builtin_type_kind::i16:
+		return expr_value::get_value(
+			this->add_instruction(instructions::ctz_u16{}, value_ref),
+			this->get_builtin_type(builtin_type_kind::i16)
+		);
+	case builtin_type_kind::i32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::ctz_u32{}, value_ref),
+			this->get_builtin_type(builtin_type_kind::i32)
+		);
+	case builtin_type_kind::i64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::ctz_u64{}, value_ref),
+			this->get_builtin_type(builtin_type_kind::i64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
 
 instruction_ref codegen_context::create_unreachable(void)
 {
@@ -3993,7 +4059,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 376);
+	static_assert(instruction::variant_count == 384);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>().inst;

@@ -2750,6 +2750,46 @@ static uint64_t execute(instructions::byteswap_u64 const &, uint64_t value, exec
 	return value;
 }
 
+static uint8_t execute(instructions::clz_u8 const &, uint8_t value, executor_context &)
+{
+	return std::countl_zero(value);
+}
+
+static uint16_t execute(instructions::clz_u16 const &, uint16_t value, executor_context &)
+{
+	return std::countl_zero(value);
+}
+
+static uint32_t execute(instructions::clz_u32 const &, uint32_t value, executor_context &)
+{
+	return std::countl_zero(value);
+}
+
+static uint64_t execute(instructions::clz_u64 const &, uint64_t value, executor_context &)
+{
+	return std::countl_zero(value);
+}
+
+static uint8_t execute(instructions::ctz_u8 const &, uint8_t value, executor_context &)
+{
+	return std::countr_zero(value);
+}
+
+static uint16_t execute(instructions::ctz_u16 const &, uint16_t value, executor_context &)
+{
+	return std::countr_zero(value);
+}
+
+static uint32_t execute(instructions::ctz_u32 const &, uint32_t value, executor_context &)
+{
+	return std::countr_zero(value);
+}
+
+static uint64_t execute(instructions::ctz_u64 const &, uint64_t value, executor_context &)
+{
+	return std::countr_zero(value);
+}
+
 static ptr_t execute(instructions::const_gep const &inst, ptr_t ptr, executor_context &)
 {
 	return ptr + inst.offset;
@@ -3103,7 +3143,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 376);
+		static_assert(instruction::variant_count == 384);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -4171,6 +4211,30 @@ void execute(executor_context &context)
 			break;
 		case instruction::byteswap_u64:
 			execute<instructions::byteswap_u64>(context);
+			break;
+		case instruction::clz_u8:
+			execute<instructions::clz_u8>(context);
+			break;
+		case instruction::clz_u16:
+			execute<instructions::clz_u16>(context);
+			break;
+		case instruction::clz_u32:
+			execute<instructions::clz_u32>(context);
+			break;
+		case instruction::clz_u64:
+			execute<instructions::clz_u64>(context);
+			break;
+		case instruction::ctz_u8:
+			execute<instructions::ctz_u8>(context);
+			break;
+		case instruction::ctz_u16:
+			execute<instructions::ctz_u16>(context);
+			break;
+		case instruction::ctz_u32:
+			execute<instructions::ctz_u32>(context);
+			break;
+		case instruction::ctz_u64:
+			execute<instructions::ctz_u64>(context);
 			break;
 		case instruction::const_gep:
 			execute<instructions::const_gep>(context);

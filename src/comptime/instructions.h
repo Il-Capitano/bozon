@@ -2421,6 +2421,54 @@ struct byteswap_u64
 	static inline constexpr value_type result_type = value_type::i64;
 };
 
+struct clz_u8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+};
+
+struct clz_u16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+};
+
+struct clz_u32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+};
+
+struct clz_u64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+};
+
+struct ctz_u8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+};
+
+struct ctz_u16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+};
+
+struct ctz_u32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+};
+
+struct ctz_u64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+};
+
 struct const_gep
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
@@ -2937,6 +2985,14 @@ using instruction_list = bz::meta::type_pack<
 	instructions::byteswap_u16,
 	instructions::byteswap_u32,
 	instructions::byteswap_u64,
+	instructions::clz_u8,
+	instructions::clz_u16,
+	instructions::clz_u32,
+	instructions::clz_u64,
+	instructions::ctz_u8,
+	instructions::ctz_u16,
+	instructions::ctz_u32,
+	instructions::ctz_u64,
 	instructions::const_gep,
 	instructions::array_gep_i32,
 	instructions::array_gep_i64,
@@ -2968,7 +3024,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 376);
+	static_assert(variant_count == 384);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -3327,6 +3383,14 @@ struct instruction : instruction_base_t
 		byteswap_u16             = index_of<instructions::byteswap_u16>,
 		byteswap_u32             = index_of<instructions::byteswap_u32>,
 		byteswap_u64             = index_of<instructions::byteswap_u64>,
+		clz_u8                   = index_of<instructions::clz_u8>,
+		clz_u16                  = index_of<instructions::clz_u16>,
+		clz_u32                  = index_of<instructions::clz_u32>,
+		clz_u64                  = index_of<instructions::clz_u64>,
+		ctz_u8                   = index_of<instructions::ctz_u8>,
+		ctz_u16                  = index_of<instructions::ctz_u16>,
+		ctz_u32                  = index_of<instructions::ctz_u32>,
+		ctz_u64                  = index_of<instructions::ctz_u64>,
 		const_gep                = index_of<instructions::const_gep>,
 		array_gep_i32            = index_of<instructions::array_gep_i32>,
 		array_gep_i64            = index_of<instructions::array_gep_i64>,

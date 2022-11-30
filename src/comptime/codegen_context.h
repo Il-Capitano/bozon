@@ -366,6 +366,8 @@ struct codegen_context
 	expr_value create_bitreverse(expr_value value);
 	expr_value create_popcount(expr_value value);
 	expr_value create_byteswap(expr_value value);
+	expr_value create_clz(expr_value value);
+	expr_value create_ctz(expr_value value);
 
 	instruction_ref create_unreachable(void);
 	instruction_ref create_error(lex::src_tokens const &src_tokens, bz::u8string message);

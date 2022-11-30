@@ -1633,21 +1633,46 @@ static expr_value generate_intrinsic_function_call_code(
 	case ast::function_body::bitreverse_u16:
 	case ast::function_body::bitreverse_u32:
 	case ast::function_body::bitreverse_u64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const value = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		return value_or_result_address(context.create_bitreverse(value), result_address, context);
+	}
 	case ast::function_body::popcount_u8:
 	case ast::function_body::popcount_u16:
 	case ast::function_body::popcount_u32:
 	case ast::function_body::popcount_u64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const value = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		return value_or_result_address(context.create_popcount(value), result_address, context);
+	}
 	case ast::function_body::byteswap_u16:
 	case ast::function_body::byteswap_u32:
 	case ast::function_body::byteswap_u64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const value = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		return value_or_result_address(context.create_byteswap(value), result_address, context);
+	}
 	case ast::function_body::clz_u8:
 	case ast::function_body::clz_u16:
 	case ast::function_body::clz_u32:
 	case ast::function_body::clz_u64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const value = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		return value_or_result_address(context.create_clz(value), result_address, context);
+	}
 	case ast::function_body::ctz_u8:
 	case ast::function_body::ctz_u16:
 	case ast::function_body::ctz_u32:
 	case ast::function_body::ctz_u64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const value = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		return value_or_result_address(context.create_ctz(value), result_address, context);
+	}
 	case ast::function_body::fshl_u8:
 	case ast::function_body::fshl_u16:
 	case ast::function_body::fshl_u32:
