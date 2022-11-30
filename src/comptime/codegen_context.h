@@ -363,6 +363,9 @@ struct codegen_context
 	expr_value create_tgamma_unchecked(expr_value x);
 	expr_value create_lgamma(lex::src_tokens const &src_tokens, expr_value x);
 	expr_value create_lgamma_unchecked(expr_value x);
+	expr_value create_bitreverse(expr_value value);
+	expr_value create_popcount(expr_value value);
+	expr_value create_byteswap(expr_value value);
 
 	instruction_ref create_unreachable(void);
 	instruction_ref create_error(lex::src_tokens const &src_tokens, bz::u8string message);

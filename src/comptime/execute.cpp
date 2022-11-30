@@ -2665,6 +2665,91 @@ static float64_t execute(instructions::lgamma_f64_unchecked const &, float64_t x
 	return std::lgamma(x);
 }
 
+static uint8_t execute(instructions::bitreverse_u8 const &, uint8_t value, executor_context &)
+{
+	value = ((value & uint8_t(0b1111'0000)) >> 4) | ((value & uint8_t(0b0000'1111)) << 4);
+	value = ((value & uint8_t(0b1100'1100)) >> 2) | ((value & uint8_t(0b0011'0011)) << 2);
+	value = ((value & uint8_t(0b1010'1010)) >> 1) | ((value & uint8_t(0b0101'0101)) << 1);
+	return value;
+}
+
+static uint16_t execute(instructions::bitreverse_u16 const &, uint16_t value, executor_context &)
+{
+	value = ((value & uint16_t(0xff00)) >> 8) | ((value & uint16_t(0x00ff)) << 8);
+	value = ((value & uint16_t(0b1111'0000'1111'0000)) >> 4) | ((value & uint16_t(0b0000'1111'0000'1111)) << 4);
+	value = ((value & uint16_t(0b1100'1100'1100'1100)) >> 2) | ((value & uint16_t(0b0011'0011'0011'0011)) << 2);
+	value = ((value & uint16_t(0b1010'1010'1010'1010)) >> 1) | ((value & uint16_t(0b0101'0101'0101'0101)) << 1);
+	return value;
+}
+
+static uint32_t execute(instructions::bitreverse_u32 const &, uint32_t value, executor_context &)
+{
+	value = ((value & uint32_t(0xffff'0000)) >> 16) | ((value & uint32_t(0x0000'ffff)) << 16);
+	value = ((value & uint32_t(0xff00'ff00)) >> 8) | ((value & uint32_t(0x00ff'00ff)) << 8);
+	value = ((value & uint32_t(0b1111'0000'1111'0000'1111'0000'1111'0000)) >> 4)
+		| ((value & uint32_t(0b0000'1111'0000'1111'0000'1111'0000'1111)) << 4);
+	value = ((value & uint32_t(0b1100'1100'1100'1100'1100'1100'1100'1100)) >> 2)
+		| ((value & uint32_t(0b0011'0011'0011'0011'0011'0011'0011'0011)) << 2);
+	value = ((value & uint32_t(0b1010'1010'1010'1010'1010'1010'1010'1010)) >> 1)
+		| ((value & uint32_t(0b0101'0101'0101'0101'0101'0101'0101'0101)) << 1);
+	return value;
+}
+
+static uint64_t execute(instructions::bitreverse_u64 const &, uint64_t value, executor_context &)
+{
+	value = ((value & uint64_t(0xffff'ffff'0000'0000)) >> 32) | ((value & uint64_t(0x0000'0000'ffff'ffff)) << 32);
+	value = ((value & uint64_t(0xffff'0000'ffff'0000)) >> 16) | ((value & uint64_t(0x0000'ffff'0000'ffff)) << 16);
+	value = ((value & uint64_t(0xff00'ff00'ff00'ff00)) >> 8) | ((value & uint64_t(0x00ff'00ff'00ff'00ff)) << 8);
+	value = ((value & uint64_t(0b1111'0000'1111'0000'1111'0000'1111'0000'1111'0000'1111'0000'1111'0000'1111'0000)) >> 4)
+		| ((value & uint64_t(0b0000'1111'0000'1111'0000'1111'0000'1111'0000'1111'0000'1111'0000'1111'0000'1111)) << 4);
+	value = ((value & uint64_t(0b1100'1100'1100'1100'1100'1100'1100'1100'1100'1100'1100'1100'1100'1100'1100'1100)) >> 2)
+		| ((value & uint64_t(0b0011'0011'0011'0011'0011'0011'0011'0011'0011'0011'0011'0011'0011'0011'0011'0011)) << 2);
+	value = ((value & uint64_t(0b1010'1010'1010'1010'1010'1010'1010'1010'1010'1010'1010'1010'1010'1010'1010'1010)) >> 1)
+		| ((value & uint64_t(0b0101'0101'0101'0101'0101'0101'0101'0101'0101'0101'0101'0101'0101'0101'0101'0101)) << 1);
+	return value;
+}
+
+static uint8_t execute(instructions::popcount_u8 const &, uint8_t value, executor_context &)
+{
+	return std::popcount(value);
+}
+
+static uint16_t execute(instructions::popcount_u16 const &, uint16_t value, executor_context &)
+{
+	return std::popcount(value);
+}
+
+static uint32_t execute(instructions::popcount_u32 const &, uint32_t value, executor_context &)
+{
+	return std::popcount(value);
+}
+
+static uint64_t execute(instructions::popcount_u64 const &, uint64_t value, executor_context &)
+{
+	return std::popcount(value);
+}
+
+static uint16_t execute(instructions::byteswap_u16 const &, uint16_t value, executor_context &)
+{
+	value = ((value & uint16_t(0xff00)) >> 8) | ((value & uint16_t(0x00ff)) << 8);
+	return value;
+}
+
+static uint32_t execute(instructions::byteswap_u32 const &, uint32_t value, executor_context &)
+{
+	value = ((value & uint32_t(0xffff'0000)) >> 16) | ((value & uint32_t(0x0000'ffff)) << 16);
+	value = ((value & uint32_t(0xff00'ff00)) >> 8) | ((value & uint32_t(0x00ff'00ff)) << 8);
+	return value;
+}
+
+static uint64_t execute(instructions::byteswap_u64 const &, uint64_t value, executor_context &)
+{
+	value = ((value & uint64_t(0xffff'ffff'0000'0000)) >> 32) | ((value & uint64_t(0x0000'0000'ffff'ffff)) << 32);
+	value = ((value & uint64_t(0xffff'0000'ffff'0000)) >> 16) | ((value & uint64_t(0x0000'ffff'0000'ffff)) << 16);
+	value = ((value & uint64_t(0xff00'ff00'ff00'ff00)) >> 8) | ((value & uint64_t(0x00ff'00ff'00ff'00ff)) << 8);
+	return value;
+}
+
 static ptr_t execute(instructions::const_gep const &inst, ptr_t ptr, executor_context &)
 {
 	return ptr + inst.offset;
@@ -3018,7 +3103,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 365);
+		static_assert(instruction::variant_count == 376);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -4053,6 +4138,39 @@ void execute(executor_context &context)
 			break;
 		case instruction::lgamma_f64_unchecked:
 			execute<instructions::lgamma_f64_unchecked>(context);
+			break;
+		case instruction::bitreverse_u8:
+			execute<instructions::bitreverse_u8>(context);
+			break;
+		case instruction::bitreverse_u16:
+			execute<instructions::bitreverse_u16>(context);
+			break;
+		case instruction::bitreverse_u32:
+			execute<instructions::bitreverse_u32>(context);
+			break;
+		case instruction::bitreverse_u64:
+			execute<instructions::bitreverse_u64>(context);
+			break;
+		case instruction::popcount_u8:
+			execute<instructions::popcount_u8>(context);
+			break;
+		case instruction::popcount_u16:
+			execute<instructions::popcount_u16>(context);
+			break;
+		case instruction::popcount_u32:
+			execute<instructions::popcount_u32>(context);
+			break;
+		case instruction::popcount_u64:
+			execute<instructions::popcount_u64>(context);
+			break;
+		case instruction::byteswap_u16:
+			execute<instructions::byteswap_u16>(context);
+			break;
+		case instruction::byteswap_u32:
+			execute<instructions::byteswap_u32>(context);
+			break;
+		case instruction::byteswap_u64:
+			execute<instructions::byteswap_u64>(context);
 			break;
 		case instruction::const_gep:
 			execute<instructions::const_gep>(context);

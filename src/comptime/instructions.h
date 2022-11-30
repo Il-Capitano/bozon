@@ -2355,6 +2355,72 @@ struct lgamma_f64_unchecked
 	static inline constexpr value_type result_type = value_type::f64;
 };
 
+struct bitreverse_u8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+};
+
+struct bitreverse_u16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+};
+
+struct bitreverse_u32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+};
+
+struct bitreverse_u64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+};
+
+struct popcount_u8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+};
+
+struct popcount_u16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+};
+
+struct popcount_u32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+};
+
+struct popcount_u64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+};
+
+struct byteswap_u16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+};
+
+struct byteswap_u32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+};
+
+struct byteswap_u64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+};
+
 struct const_gep
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
@@ -2860,6 +2926,17 @@ using instruction_list = bz::meta::type_pack<
 	instructions::lgamma_f64,
 	instructions::lgamma_f32_unchecked,
 	instructions::lgamma_f64_unchecked,
+	instructions::bitreverse_u8,
+	instructions::bitreverse_u16,
+	instructions::bitreverse_u32,
+	instructions::bitreverse_u64,
+	instructions::popcount_u8,
+	instructions::popcount_u16,
+	instructions::popcount_u32,
+	instructions::popcount_u64,
+	instructions::byteswap_u16,
+	instructions::byteswap_u32,
+	instructions::byteswap_u64,
 	instructions::const_gep,
 	instructions::array_gep_i32,
 	instructions::array_gep_i64,
@@ -2891,7 +2968,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 365);
+	static_assert(variant_count == 376);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -3239,6 +3316,17 @@ struct instruction : instruction_base_t
 		lgamma_f64               = index_of<instructions::lgamma_f64>,
 		lgamma_f32_unchecked     = index_of<instructions::lgamma_f32_unchecked>,
 		lgamma_f64_unchecked     = index_of<instructions::lgamma_f64_unchecked>,
+		bitreverse_u8            = index_of<instructions::bitreverse_u8>,
+		bitreverse_u16           = index_of<instructions::bitreverse_u16>,
+		bitreverse_u32           = index_of<instructions::bitreverse_u32>,
+		bitreverse_u64           = index_of<instructions::bitreverse_u64>,
+		popcount_u8              = index_of<instructions::popcount_u8>,
+		popcount_u16             = index_of<instructions::popcount_u16>,
+		popcount_u32             = index_of<instructions::popcount_u32>,
+		popcount_u64             = index_of<instructions::popcount_u64>,
+		byteswap_u16             = index_of<instructions::byteswap_u16>,
+		byteswap_u32             = index_of<instructions::byteswap_u32>,
+		byteswap_u64             = index_of<instructions::byteswap_u64>,
 		const_gep                = index_of<instructions::const_gep>,
 		array_gep_i32            = index_of<instructions::array_gep_i32>,
 		array_gep_i64            = index_of<instructions::array_gep_i64>,
