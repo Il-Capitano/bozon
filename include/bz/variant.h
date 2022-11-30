@@ -125,9 +125,11 @@ private:
 	{
 		[&]<size_t ...Ns>(std::index_sequence<Ns...>)
 		{
-			((this->_index == Ns
-			? (void)(this->template no_check_get<Ns>().~Ts())
-			: (void)0 ), ...);
+			[[maybe_unused]] int _dummy[] = {
+				((this->_index == Ns
+				? (void)(this->template no_check_get<Ns>().~Ts())
+				: (void)0 ), 0)...
+			};
 		}(std::make_index_sequence<sizeof... (Ts)>());
 	}
 
@@ -137,28 +139,32 @@ public:
 	variant_non_trivial_base(void) noexcept = default;
 
 	variant_non_trivial_base(self_t const &other) noexcept(
-		(meta::is_nothrow_copy_constructible_v<Ts> && ...)
+		meta::is_all<meta::is_nothrow_copy_constructible_v<Ts>...>
 	)
 		: base_t()
 	{
 		[&other, this]<size_t ...Ns>(std::index_sequence<Ns...>)
 		{
-			((other._index == Ns
-			? (void)(this->template no_clear_emplace<Ns>(other.template no_check_get<Ns>()))
-			: (void)0 ), ...);
+			[[maybe_unused]] int _dummy[] = {
+				((other._index == Ns
+				? (void)(this->template no_clear_emplace<Ns>(other.template no_check_get<Ns>()))
+				: (void)0 ), 0)...
+			};
 		}(std::make_index_sequence<sizeof...(Ts)>());
 	}
 
 	variant_non_trivial_base(self_t &&other) noexcept(
-		(meta::is_nothrow_move_constructible_v<Ts> && ...)
+		meta::is_all<meta::is_nothrow_move_constructible_v<Ts>...>
 	)
 		: base_t()
 	{
 		[&other, this]<size_t ...Ns>(std::index_sequence<Ns...>)
 		{
-			((other._index == Ns
-			? (void)(this->template no_clear_emplace<Ns>(std::move(other.template no_check_get<Ns>())))
-			: (void)0 ), ...);
+			[[maybe_unused]] int _dummy[] = {
+				((other._index == Ns
+				? (void)(this->template no_clear_emplace<Ns>(std::move(other.template no_check_get<Ns>())))
+				: (void)0 ), 0)...
+			};
 		}(std::make_index_sequence<sizeof...(Ts)>());
 	}
 
@@ -168,8 +174,8 @@ public:
 	}
 
 	self_t &operator = (self_t const &rhs) noexcept(
-		(meta::is_nothrow_copy_constructible_v<Ts> && ...)
-		&& (meta::is_nothrow_copy_assignable_v<Ts> && ...)
+		meta::is_all<meta::is_nothrow_copy_constructible_v<Ts>...>
+		&& meta::is_all<meta::is_nothrow_copy_assignable_v<Ts>...>
 	)
 	{
 		this->assign(rhs);
@@ -177,8 +183,8 @@ public:
 	}
 
 	self_t &operator = (self_t &&rhs) noexcept(
-		(meta::is_nothrow_move_constructible_v<Ts> && ...)
-		&& (meta::is_nothrow_move_assignable_v<Ts> && ...)
+		meta::is_all<meta::is_nothrow_move_constructible_v<Ts>...>
+		&& meta::is_all<meta::is_nothrow_move_assignable_v<Ts>...>
 	)
 	{
 		this->assign(std::move(rhs));
@@ -196,8 +202,8 @@ public:
 	}
 
 	void assign(self_t const &other) noexcept(
-		(meta::is_nothrow_copy_constructible_v<Ts> && ...)
-		&& (meta::is_nothrow_copy_assignable_v<Ts> && ...)
+		meta::is_all<meta::is_nothrow_copy_constructible_v<Ts>...>
+		&& meta::is_all<meta::is_nothrow_copy_assignable_v<Ts>...>
 	)
 	{
 		if (this == &other)
@@ -213,26 +219,28 @@ public:
 
 		[&other, this]<size_t ...Ns>(std::index_sequence<Ns...>)
 		{
-			((other._index == Ns
-			? (void)[&other, this]()
-			{
-				if (this->_index == Ns)
+			[[maybe_unused]] int _dummy[] = {
+				((other._index == Ns
+				? (void)[&other, this]()
 				{
-					this->template no_check_get<Ns>() = other.template no_check_get<Ns>();
-				}
-				else
-				{
-					this->clear();
-					this->template no_clear_emplace<Ns>(other.template no_check_get<Ns>());
-				}
-			}()
-			: (void)0 ), ...);
+					if (this->_index == Ns)
+					{
+						this->template no_check_get<Ns>() = other.template no_check_get<Ns>();
+					}
+					else
+					{
+						this->clear();
+						this->template no_clear_emplace<Ns>(other.template no_check_get<Ns>());
+					}
+				}()
+				: (void)0 ), 0)...
+			};
 		}(std::make_index_sequence<sizeof... (Ts)>());
 	}
 
 	void assign(self_t &&other) noexcept(
-		(meta::is_nothrow_move_constructible_v<Ts> && ...)
-		&& (meta::is_nothrow_move_assignable_v<Ts> && ...)
+		meta::is_all<meta::is_nothrow_move_constructible_v<Ts>...>
+		&& meta::is_all<meta::is_nothrow_move_assignable_v<Ts>...>
 	)
 	{
 		if (this == &other)
@@ -248,20 +256,22 @@ public:
 
 		[&other, this]<size_t ...Ns>(std::index_sequence<Ns...>)
 		{
-			((other._index == Ns
-			? (void)[&other, this]()
-			{
-				if (this->_index == Ns)
+			[[maybe_unused]] int _dummy[] = {
+				((other._index == Ns
+				? (void)[&other, this]()
 				{
-					this->template no_check_get<Ns>() = std::move(other.template no_check_get<Ns>());
-				}
-				else
-				{
-					this->clear();
-					this->template no_clear_emplace<Ns>(std::move(other.template no_check_get<Ns>()));
-				}
-			}()
-			: (void)0 ), ...);
+					if (this->_index == Ns)
+					{
+						this->template no_check_get<Ns>() = std::move(other.template no_check_get<Ns>());
+					}
+					else
+					{
+						this->clear();
+						this->template no_clear_emplace<Ns>(std::move(other.template no_check_get<Ns>()));
+					}
+				}()
+				: (void)0 ), 0)...
+			};
 		}(std::make_index_sequence<sizeof... (Ts)>());
 	}
 };
@@ -272,23 +282,23 @@ public:
 template<typename ...Ts>
 class variant :
 	public meta::conditional<
-		(meta::is_trivial_v<Ts> && ...),
+		meta::is_all<meta::is_trivial_v<Ts>...>,
 		internal::variant_trivial_base<Ts...>,
 		internal::variant_non_trivial_base<Ts...>
 	>
 {
 	static_assert(sizeof... (Ts) > 0);
 	// don't allow void as a type
-	static_assert(((!meta::is_void<Ts>) && ...));
+	static_assert(meta::is_all<!meta::is_void<Ts>...>);
 	// don't allow references as types
-	static_assert(((!meta::is_reference<Ts>) && ...));
+	static_assert(meta::is_all<!meta::is_reference<Ts>...>);
 	// don't allow const types
-	static_assert(((!meta::is_const<Ts>) && ...));
+	static_assert(meta::is_all<!meta::is_const<Ts>...>);
 
 private:
 	using self_t = variant<Ts...>;
 	using base_t = meta::conditional<
-		(meta::is_trivial_v<Ts> && ...),
+		meta::is_all<meta::is_trivial_v<Ts>...>,
 		internal::variant_trivial_base<Ts...>,
 		internal::variant_non_trivial_base<Ts...>
 	>;
@@ -309,9 +319,11 @@ private:
 				size_t candidate_count = 0;
 				size_t it = 0;
 
-				((meta::is_convertible_v<T, Ts>
-				? (void)(index = it, ++it, ++candidate_count)
-				: (void)(++it) ), ...);
+				[[maybe_unused]] int _dummy[] = {
+					((meta::is_convertible_v<T, Ts>
+					? (void)(index = it, ++it, ++candidate_count)
+					: (void)(++it) ), 0)...
+				};
 
 				if (candidate_count == 1)
 				{
@@ -367,7 +379,7 @@ public:
 
 	template<size_t N, typename ...Args>
 	auto &emplace(Args &&...args) noexcept(
-		(meta::is_nothrow_destructible_v<Ts> && ...)
+		meta::is_all<meta::is_nothrow_destructible_v<Ts>...>
 		&& meta::is_nothrow_constructible_v<value_type<N>, Args...>
 	)
 	{
@@ -378,7 +390,7 @@ public:
 
 	template<typename T, typename ...Args>
 	auto &emplace(Args &&...args) noexcept(
-		(meta::is_nothrow_destructible_v<Ts> && ...)
+		meta::is_all<meta::is_nothrow_destructible_v<Ts>...>
 		&& meta::is_nothrow_constructible_v<T, Args...>
 	)
 	{ return this->emplace<index_of<T>>(std::forward<Args>(args)...); }
@@ -398,7 +410,7 @@ public:
 				meta::remove_cv_reference<T>,
 				self_t
 			>
-			&& (meta::is_constructible_v<Ts, T> || ...)
+			&& meta::is_any<meta::is_constructible_v<Ts, T>...>
 		>
 	>
 	variant(T &&val) noexcept(
@@ -416,7 +428,7 @@ public:
 		>
 	>
 	self_t &operator = (T &&val) noexcept(
-		(meta::is_nothrow_destructible_v<Ts> && ...)
+		meta::is_all<meta::is_nothrow_destructible_v<Ts>...>
 		&& meta::is_nothrow_assignable_v<value_type_from<T>, T>
 		&& meta::is_nothrow_constructible_v<value_type_from<T>, T>
 	)
@@ -522,7 +534,7 @@ public:
 
 	template<typename Visitor>
 	auto visit(Visitor &&visitor) noexcept(
-		(meta::is_nothrow_invocable_v<Visitor, Ts &> && ...)
+		meta::is_all<meta::is_nothrow_invocable_v<Visitor, Ts &>...>
 	) -> decltype(
 		std::forward<decltype(visitor)>(visitor)(
 			std::declval<value_type<0> &>()
@@ -534,7 +546,7 @@ public:
 			"Visitor must return the same type for every element"
 		);
 		static_assert(
-			(meta::is_invocable_v<Visitor, Ts &> && ...),
+			meta::is_all<meta::is_invocable_v<Visitor, Ts &> ...>,
 			"Visitor is not invocable for one or more variants"
 		);
 		bz_assert(this->_index != base_t::null && "visit called on empty variant");
@@ -557,7 +569,7 @@ public:
 
 	template<typename Visitor>
 	auto visit(Visitor &&visitor) const noexcept(
-		(meta::is_nothrow_invocable_v<Visitor, Ts const &> && ...)
+		meta::is_all<meta::is_nothrow_invocable_v<Visitor, Ts const &>...>
 	) -> decltype(
 		std::forward<decltype(visitor)>(visitor)(
 			std::declval<value_type<0> const &>()
@@ -569,7 +581,7 @@ public:
 			"Visitor must return the same type for every element"
 		);
 		static_assert(
-			(meta::is_invocable_v<Visitor, Ts const &> && ...),
+			meta::is_all<meta::is_invocable_v<Visitor, Ts const &> ...>,
 			"Visitor is not invocable for one or more variants"
 		);
 		bz_assert(this->_index != base_t::null && "visit called on empty variant");
@@ -634,9 +646,11 @@ bool operator == (variant<Ts...> const &lhs, variant<Ts...> const &rhs)
 		{
 			bool result;
 
-			((lhs.index() == Ns
-			? (void)(result = (lhs.template get<Ns>() == rhs.template get<Ns>()))
-			: (void)0 ), ...);
+			[[maybe_unused]] int _dummy[] = {
+				((lhs.index() == Ns
+				? (void)(result = (lhs.template get<Ns>() == rhs.template get<Ns>()))
+				: (void)0 ), 0)...
+			};
 
 			return result;
 		}
@@ -672,9 +686,11 @@ bool operator != (variant<Ts...> const &lhs, variant<Ts...> const &rhs)
 		{
 			bool result;
 
-			((lhs.index() == Ns
-			? (void)(result = (lhs.template get<Ns>() != rhs.template get<Ns>()))
-			: (void)0 ), ...);
+			[[maybe_unused]] int _dummy[] = {
+				((lhs.index() == Ns
+				? (void)(result = (lhs.template get<Ns>() != rhs.template get<Ns>()))
+				: (void)0 ), 0)...
+			};
 
 			return result;
 		}

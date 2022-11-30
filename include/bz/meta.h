@@ -11,6 +11,32 @@ bz_begin_namespace
 namespace meta
 {
 
+template<bool ...Vals>
+constexpr bool is_all = []() {
+	bool const values[] = { Vals... };
+	for (auto const value : values)
+	{
+		if (!value)
+		{
+			return false;
+		}
+	}
+	return true;
+}();
+
+template<bool ...Vals>
+constexpr bool is_any = []() {
+	bool const values[] = { Vals... };
+	for (auto const value : values)
+	{
+		if (value)
+		{
+			return true;
+		}
+	}
+	return false;
+}();
+
 template<typename T, T _value>
 struct integral_constant
 { static constexpr T value = _value; };
@@ -36,7 +62,7 @@ struct type_identity
 
 
 template<typename T, typename U, typename ...Ts>
-constexpr bool is_same = is_same<T, U> && (is_same<T, Ts> && ...);
+constexpr bool is_same = is_all<is_same<T, U>, is_same<T, Ts>...>;
 
 template<typename T, typename U>
 constexpr bool is_same<T, U> = false;
@@ -163,11 +189,16 @@ constexpr bool is_trivially_destructible_v = std::is_trivially_destructible_v<T>
 template<typename T, T N, T ...Ns>
 constexpr T max = []
 {
+	T const values[] = { Ns... };
 	auto res = N;
 
-	((res < Ns
-	? (void)(res = Ns)
-	: (void)0 ), ...);
+	for (auto const value : values)
+	{
+		if (value > res)
+		{
+			res = value;
+		}
+	}
 
 	return res;
 }();
@@ -179,11 +210,16 @@ constexpr size_t max_index = max<size_t, N, Ns...>;
 template<typename T, T N, T ...Ns>
 constexpr T min = []
 {
+	T const values[] = { Ns... };
 	auto res = N;
 
-	((Ns < res
-	? (void)(res = Ns)
-	: (void)0 ), ...);
+	for (auto const value : values)
+	{
+		if (value < res)
+		{
+			res = value;
+		}
+	}
 
 	return res;
 }();
@@ -262,7 +298,7 @@ constexpr size_t type_index<T, U, Ts...> = type_index<T, Ts...> + 1;
 
 
 template<typename T, typename ...Ts>
-constexpr bool is_in_types = (false || ... || is_same<T, Ts> );
+constexpr bool is_in_types = is_any<false, is_same<T, Ts>...>;
 
 template<typename T, typename TypePack>
 constexpr bool is_in_type_pack = []() {
