@@ -1571,6 +1571,202 @@ struct max_f64_unchecked
 	static inline constexpr value_type result_type = value_type::f64;
 };
 
+struct exp_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+
+	uint32_t src_tokens_index;
+};
+
+struct exp_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+
+	uint32_t src_tokens_index;
+};
+
+struct exp_f32_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+};
+
+struct exp_f64_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct exp2_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+
+	uint32_t src_tokens_index;
+};
+
+struct exp2_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+
+	uint32_t src_tokens_index;
+};
+
+struct exp2_f32_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+};
+
+struct exp2_f64_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct expm1_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+
+	uint32_t src_tokens_index;
+};
+
+struct expm1_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+
+	uint32_t src_tokens_index;
+};
+
+struct expm1_f32_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+};
+
+struct expm1_f64_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct log_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+
+	uint32_t src_tokens_index;
+};
+
+struct log_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+
+	uint32_t src_tokens_index;
+};
+
+struct log_f32_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+};
+
+struct log_f64_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct log10_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+
+	uint32_t src_tokens_index;
+};
+
+struct log10_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+
+	uint32_t src_tokens_index;
+};
+
+struct log10_f32_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+};
+
+struct log10_f64_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct log2_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+
+	uint32_t src_tokens_index;
+};
+
+struct log2_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+
+	uint32_t src_tokens_index;
+};
+
+struct log2_f32_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+};
+
+struct log2_f64_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct log1p_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+
+	uint32_t src_tokens_index;
+};
+
+struct log1p_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+
+	uint32_t src_tokens_index;
+};
+
+struct log1p_f32_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+};
+
+struct log1p_f64_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+};
+
 struct const_gep
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
@@ -1964,6 +2160,34 @@ using instruction_list = bz::meta::type_pack<
 	instructions::max_f64,
 	instructions::max_f32_unchecked,
 	instructions::max_f64_unchecked,
+	instructions::exp_f32,
+	instructions::exp_f64,
+	instructions::exp_f32_unchecked,
+	instructions::exp_f64_unchecked,
+	instructions::exp2_f32,
+	instructions::exp2_f64,
+	instructions::exp2_f32_unchecked,
+	instructions::exp2_f64_unchecked,
+	instructions::expm1_f32,
+	instructions::expm1_f64,
+	instructions::expm1_f32_unchecked,
+	instructions::expm1_f64_unchecked,
+	instructions::log_f32,
+	instructions::log_f64,
+	instructions::log_f32_unchecked,
+	instructions::log_f64_unchecked,
+	instructions::log10_f32,
+	instructions::log10_f64,
+	instructions::log10_f32_unchecked,
+	instructions::log10_f64_unchecked,
+	instructions::log2_f32,
+	instructions::log2_f64,
+	instructions::log2_f32_unchecked,
+	instructions::log2_f64_unchecked,
+	instructions::log1p_f32,
+	instructions::log1p_f64,
+	instructions::log1p_f32_unchecked,
+	instructions::log1p_f64_unchecked,
 	instructions::const_gep,
 	instructions::array_gep_i32,
 	instructions::array_gep_i64,
@@ -1995,7 +2219,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 253);
+	static_assert(variant_count == 281);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -2231,6 +2455,34 @@ struct instruction : instruction_base_t
 		max_f64                  = index_of<instructions::max_f64>,
 		max_f32_unchecked        = index_of<instructions::max_f32_unchecked>,
 		max_f64_unchecked        = index_of<instructions::max_f64_unchecked>,
+		exp_f32                  = index_of<instructions::exp_f32>,
+		exp_f64                  = index_of<instructions::exp_f64>,
+		exp_f32_unchecked        = index_of<instructions::exp_f32_unchecked>,
+		exp_f64_unchecked        = index_of<instructions::exp_f64_unchecked>,
+		exp2_f32                  = index_of<instructions::exp2_f32>,
+		exp2_f64                  = index_of<instructions::exp2_f64>,
+		exp2_f32_unchecked        = index_of<instructions::exp2_f32_unchecked>,
+		exp2_f64_unchecked        = index_of<instructions::exp2_f64_unchecked>,
+		expm1_f32                  = index_of<instructions::expm1_f32>,
+		expm1_f64                  = index_of<instructions::expm1_f64>,
+		expm1_f32_unchecked        = index_of<instructions::expm1_f32_unchecked>,
+		expm1_f64_unchecked        = index_of<instructions::expm1_f64_unchecked>,
+		log_f32                  = index_of<instructions::log_f32>,
+		log_f64                  = index_of<instructions::log_f64>,
+		log_f32_unchecked        = index_of<instructions::log_f32_unchecked>,
+		log_f64_unchecked        = index_of<instructions::log_f64_unchecked>,
+		log10_f32                  = index_of<instructions::log10_f32>,
+		log10_f64                  = index_of<instructions::log10_f64>,
+		log10_f32_unchecked        = index_of<instructions::log10_f32_unchecked>,
+		log10_f64_unchecked        = index_of<instructions::log10_f64_unchecked>,
+		log2_f32                  = index_of<instructions::log2_f32>,
+		log2_f64                  = index_of<instructions::log2_f64>,
+		log2_f32_unchecked        = index_of<instructions::log2_f32_unchecked>,
+		log2_f64_unchecked        = index_of<instructions::log2_f64_unchecked>,
+		log1p_f32                  = index_of<instructions::log1p_f32>,
+		log1p_f64                  = index_of<instructions::log1p_f64>,
+		log1p_f32_unchecked        = index_of<instructions::log1p_f32_unchecked>,
+		log1p_f64_unchecked        = index_of<instructions::log1p_f64_unchecked>,
 		const_gep                = index_of<instructions::const_gep>,
 		array_gep_i32            = index_of<instructions::array_gep_i32>,
 		array_gep_i64            = index_of<instructions::array_gep_i64>,

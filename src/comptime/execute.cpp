@@ -1,6 +1,6 @@
-#include <bit>
 #include "instructions.h"
 #include "executor_context.h"
+#include <bit>
 
 namespace comptime
 {
@@ -1601,6 +1601,296 @@ static float64_t execute(instructions::max_f64_unchecked const &, float64_t x, f
 	return std::fmax(x, y);
 }
 
+static void check_for_nan(bz::u8string_view func_name, uint32_t src_tokens_index, float32_t x, executor_context &context)
+{
+	if (std::isnan(x))
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			src_tokens_index,
+			bz::format("calling '{}' with nan results in nan", func_name)
+		);
+	}
+}
+
+static void check_for_nan(bz::u8string_view func_name, uint32_t src_tokens_index, float64_t x, executor_context &context)
+{
+	if (std::isnan(x))
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			src_tokens_index,
+			bz::format("calling '{}' with nan results in nan", func_name)
+		);
+	}
+}
+
+static float32_t execute(instructions::exp_f32 const &inst, float32_t x, executor_context &context)
+{
+	check_for_nan("exp", inst.src_tokens_index, x, context);
+	return std::exp(x);
+}
+
+static float64_t execute(instructions::exp_f64 const &inst, float64_t x, executor_context &context)
+{
+	check_for_nan("exp", inst.src_tokens_index, x, context);
+	return std::exp(x);
+}
+
+static float32_t execute(instructions::exp_f32_unchecked const &, float32_t x, executor_context &)
+{
+	return std::exp(x);
+}
+
+static float64_t execute(instructions::exp_f64_unchecked const &, float64_t x, executor_context &)
+{
+	return std::exp(x);
+}
+
+static float32_t execute(instructions::exp2_f32 const &inst, float32_t x, executor_context &context)
+{
+	check_for_nan("exp2", inst.src_tokens_index, x, context);
+	return std::exp2(x);
+}
+
+static float64_t execute(instructions::exp2_f64 const &inst, float64_t x, executor_context &context)
+{
+	check_for_nan("exp2", inst.src_tokens_index, x, context);
+	return std::exp2(x);
+}
+
+static float32_t execute(instructions::exp2_f32_unchecked const &, float32_t x, executor_context &)
+{
+	return std::exp2(x);
+}
+
+static float64_t execute(instructions::exp2_f64_unchecked const &, float64_t x, executor_context &)
+{
+	return std::exp2(x);
+}
+
+static float32_t execute(instructions::expm1_f32 const &inst, float32_t x, executor_context &context)
+{
+	check_for_nan("expm1", inst.src_tokens_index, x, context);
+	return std::expm1(x);
+}
+
+static float64_t execute(instructions::expm1_f64 const &inst, float64_t x, executor_context &context)
+{
+	check_for_nan("expm1", inst.src_tokens_index, x, context);
+	return std::expm1(x);
+}
+
+static float32_t execute(instructions::expm1_f32_unchecked const &, float32_t x, executor_context &)
+{
+	return std::expm1(x);
+}
+
+static float64_t execute(instructions::expm1_f64_unchecked const &, float64_t x, executor_context &)
+{
+	return std::expm1(x);
+}
+
+static float32_t execute(instructions::log_f32 const &inst, float32_t x, executor_context &context)
+{
+	auto const result = std::log(x);
+	if (std::isnan(x) || x == 0.0f)
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'log' with {} results in {}", x, result)
+		);
+	}
+	else if (x < 0.0f)
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'log' with a negative value {} results in {}", x, result)
+		);
+	}
+	return result;
+}
+
+static float64_t execute(instructions::log_f64 const &inst, float64_t x, executor_context &context)
+{
+	auto const result = std::log(x);
+	if (std::isnan(x) || x == 0.0)
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'log' with {} results in {}", x, result)
+		);
+	}
+	else if (x < 0.0)
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'log' with a negative value {} results in {}", x, result)
+		);
+	}
+	return result;
+}
+
+static float32_t execute(instructions::log_f32_unchecked const &, float32_t x, executor_context &)
+{
+	return std::log(x);
+}
+
+static float64_t execute(instructions::log_f64_unchecked const &, float64_t x, executor_context &)
+{
+	return std::log(x);
+}
+
+static float32_t execute(instructions::log10_f32 const &inst, float32_t x, executor_context &context)
+{
+	auto const result = std::log10(x);
+	if (std::isnan(x) || x == 0.0f)
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'log10' with {} results in {}", x, result)
+		);
+	}
+	else if (x < 0.0f)
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'log10' with a negative value {} results in {}", x, result)
+		);
+	}
+	return result;
+}
+
+static float64_t execute(instructions::log10_f64 const &inst, float64_t x, executor_context &context)
+{
+	auto const result = std::log10(x);
+	if (std::isnan(x) || x == 0.0)
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'log10' with {} results in {}", x, result)
+		);
+	}
+	else if (x < 0.0)
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'log10' with a negative value {} results in {}", x, result)
+		);
+	}
+	return result;
+}
+
+static float32_t execute(instructions::log10_f32_unchecked const &, float32_t x, executor_context &)
+{
+	return std::log10(x);
+}
+
+static float64_t execute(instructions::log10_f64_unchecked const &, float64_t x, executor_context &)
+{
+	return std::log10(x);
+}
+
+static float32_t execute(instructions::log2_f32 const &inst, float32_t x, executor_context &context)
+{
+	auto const result = std::log2(x);
+	if (std::isnan(x) || x == 0.0f)
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'log2' with {} results in {}", x, result)
+		);
+	}
+	else if (x < 0.0f)
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'log2' with a negative value {} results in {}", x, result)
+		);
+	}
+	return result;
+}
+
+static float64_t execute(instructions::log2_f64 const &inst, float64_t x, executor_context &context)
+{
+	auto const result = std::log2(x);
+	if (std::isnan(x) || x == 0.0)
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'log2' with {} results in {}", x, result)
+		);
+	}
+	else if (x < 0.0)
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'log2' with a negative value {} results in {}", x, result)
+		);
+	}
+	return result;
+}
+
+static float32_t execute(instructions::log2_f32_unchecked const &, float32_t x, executor_context &)
+{
+	return std::log2(x);
+}
+
+static float64_t execute(instructions::log2_f64_unchecked const &, float64_t x, executor_context &)
+{
+	return std::log2(x);
+}
+
+static float32_t execute(instructions::log1p_f32 const &inst, float32_t x, executor_context &context)
+{
+	auto const result = std::log1p(x);
+	if (std::isnan(x) || x <= -1.0f)
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'log1p' with {} results in {}", x, result)
+		);
+	}
+	return result;
+}
+
+static float64_t execute(instructions::log1p_f64 const &inst, float64_t x, executor_context &context)
+{
+	auto const result = std::log1p(x);
+	if (std::isnan(x) || x <= -1.0)
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'log1p' with {} results in {}", x, result)
+		);
+	}
+	return result;
+}
+
+static float32_t execute(instructions::log1p_f32_unchecked const &, float32_t x, executor_context &)
+{
+	return std::log1p(x);
+}
+
+static float64_t execute(instructions::log1p_f64_unchecked const &, float64_t x, executor_context &)
+{
+	return std::log1p(x);
+}
+
 static ptr_t execute(instructions::const_gep const &inst, ptr_t ptr, executor_context &)
 {
 	return ptr + inst.offset;
@@ -1954,7 +2244,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 253);
+		static_assert(instruction::variant_count == 281);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -2653,6 +2943,90 @@ void execute(executor_context &context)
 			break;
 		case instruction::max_f64_unchecked:
 			execute<instructions::max_f64_unchecked>(context);
+			break;
+		case instruction::exp_f32:
+			execute<instructions::exp_f32>(context);
+			break;
+		case instruction::exp_f64:
+			execute<instructions::exp_f64>(context);
+			break;
+		case instruction::exp_f32_unchecked:
+			execute<instructions::exp_f32_unchecked>(context);
+			break;
+		case instruction::exp_f64_unchecked:
+			execute<instructions::exp_f64_unchecked>(context);
+			break;
+		case instruction::exp2_f32:
+			execute<instructions::exp2_f32>(context);
+			break;
+		case instruction::exp2_f64:
+			execute<instructions::exp2_f64>(context);
+			break;
+		case instruction::exp2_f32_unchecked:
+			execute<instructions::exp2_f32_unchecked>(context);
+			break;
+		case instruction::exp2_f64_unchecked:
+			execute<instructions::exp2_f64_unchecked>(context);
+			break;
+		case instruction::expm1_f32:
+			execute<instructions::expm1_f32>(context);
+			break;
+		case instruction::expm1_f64:
+			execute<instructions::expm1_f64>(context);
+			break;
+		case instruction::expm1_f32_unchecked:
+			execute<instructions::expm1_f32_unchecked>(context);
+			break;
+		case instruction::expm1_f64_unchecked:
+			execute<instructions::expm1_f64_unchecked>(context);
+			break;
+		case instruction::log_f32:
+			execute<instructions::log_f32>(context);
+			break;
+		case instruction::log_f64:
+			execute<instructions::log_f64>(context);
+			break;
+		case instruction::log_f32_unchecked:
+			execute<instructions::log_f32_unchecked>(context);
+			break;
+		case instruction::log_f64_unchecked:
+			execute<instructions::log_f64_unchecked>(context);
+			break;
+		case instruction::log10_f32:
+			execute<instructions::log10_f32>(context);
+			break;
+		case instruction::log10_f64:
+			execute<instructions::log10_f64>(context);
+			break;
+		case instruction::log10_f32_unchecked:
+			execute<instructions::log10_f32_unchecked>(context);
+			break;
+		case instruction::log10_f64_unchecked:
+			execute<instructions::log10_f64_unchecked>(context);
+			break;
+		case instruction::log2_f32:
+			execute<instructions::log2_f32>(context);
+			break;
+		case instruction::log2_f64:
+			execute<instructions::log2_f64>(context);
+			break;
+		case instruction::log2_f32_unchecked:
+			execute<instructions::log2_f32_unchecked>(context);
+			break;
+		case instruction::log2_f64_unchecked:
+			execute<instructions::log2_f64_unchecked>(context);
+			break;
+		case instruction::log1p_f32:
+			execute<instructions::log1p_f32>(context);
+			break;
+		case instruction::log1p_f64:
+			execute<instructions::log1p_f64>(context);
+			break;
+		case instruction::log1p_f32_unchecked:
+			execute<instructions::log1p_f32_unchecked>(context);
+			break;
+		case instruction::log1p_f64_unchecked:
+			execute<instructions::log1p_f64_unchecked>(context);
 			break;
 		case instruction::const_gep:
 			execute<instructions::const_gep>(context);
