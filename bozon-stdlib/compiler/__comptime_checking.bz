@@ -1873,11 +1873,19 @@ function sqrt_f32_check(x: float32, result: float32, begin: uint64, pivot: uint6
 {
 	if (isnan(x))
 	{
-		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'sqrt' results in nan", begin, pivot, end);
+		emit_diagnostic(
+			warning_kind_math_domain_error,
+			get_regular_math_error_message("sqrt", x, result).as_str(),
+			begin, pivot, end
+		);
 	}
 	else if (x < 0.0f32)
 	{
-		emit_diagnostic(warning_kind_error, "calling 'sqrt' with a negative value", begin, pivot, end);
+		emit_diagnostic(
+			warning_kind_math_domain_error,
+			get_negative_math_error_message("sqrt", x, result).as_str(),
+			begin, pivot, end
+		);
 		return false;
 	}
 	return true;
