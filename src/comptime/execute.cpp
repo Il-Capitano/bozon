@@ -1182,6 +1182,140 @@ static bool execute(instructions::cmp_gte_f64_unchecked const &, float64_t lhs, 
 	return lhs >= rhs;
 }
 
+static uint8_t execute(instructions::neg_i8 const &inst, uint8_t uvalue, executor_context &context)
+{
+	auto const value = static_cast<int8_t>(uvalue);
+	if (value == std::numeric_limits<int8_t>::min())
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '-({})' with type 'int8' results in {}", value, value)
+		);
+		return static_cast<uint8_t>(value);
+	}
+	else
+	{
+		return static_cast<uint8_t>(-value);
+	}
+}
+
+static uint16_t execute(instructions::neg_i16 const &inst, uint16_t uvalue, executor_context &context)
+{
+	auto const value = static_cast<int16_t>(uvalue);
+	if (value == std::numeric_limits<int16_t>::min())
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '-({})' with type 'int16' results in {}", value, value)
+		);
+		return static_cast<uint16_t>(value);
+	}
+	else
+	{
+		return static_cast<uint16_t>(-value);
+	}
+}
+
+static uint32_t execute(instructions::neg_i32 const &inst, uint32_t uvalue, executor_context &context)
+{
+	auto const value = static_cast<int32_t>(uvalue);
+	if (value == std::numeric_limits<int32_t>::min())
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '-({})' with type 'int32' results in {}", value, value)
+		);
+		return static_cast<uint32_t>(value);
+	}
+	else
+	{
+		return static_cast<uint32_t>(-value);
+	}
+}
+
+static uint64_t execute(instructions::neg_i64 const &inst, uint64_t uvalue, executor_context &context)
+{
+	auto const value = static_cast<int64_t>(uvalue);
+	if (value == std::numeric_limits<int64_t>::min())
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '-({})' with type 'int64' results in {}", value, value)
+		);
+		return static_cast<uint64_t>(value);
+	}
+	else
+	{
+		return static_cast<uint64_t>(-value);
+	}
+}
+
+static uint8_t execute(instructions::neg_i8_unchecked const &, uint8_t uvalue, executor_context &)
+{
+	auto const value = static_cast<int8_t>(uvalue);
+	if (value == std::numeric_limits<int8_t>::min())
+	{
+		return static_cast<uint8_t>(value);
+	}
+	else
+	{
+		return static_cast<uint8_t>(-value);
+	}
+}
+
+static uint16_t execute(instructions::neg_i16_unchecked const &, uint16_t uvalue, executor_context &)
+{
+	auto const value = static_cast<int16_t>(uvalue);
+	if (value == std::numeric_limits<int16_t>::min())
+	{
+		return static_cast<uint16_t>(value);
+	}
+	else
+	{
+		return static_cast<uint16_t>(-value);
+	}
+}
+
+static uint32_t execute(instructions::neg_i32_unchecked const &, uint32_t uvalue, executor_context &)
+{
+	auto const value = static_cast<int32_t>(uvalue);
+	if (value == std::numeric_limits<int32_t>::min())
+	{
+		return static_cast<uint32_t>(value);
+	}
+	else
+	{
+		return static_cast<uint32_t>(-value);
+	}
+}
+
+static uint64_t execute(instructions::neg_i64_unchecked const &, uint64_t uvalue, executor_context &)
+{
+	auto const value = static_cast<int64_t>(uvalue);
+	if (value == std::numeric_limits<int64_t>::min())
+	{
+		return static_cast<uint64_t>(value);
+	}
+	else
+	{
+		return static_cast<uint64_t>(-value);
+	}
+}
+
+static float32_t execute(instructions::neg_f32 const &, float32_t value, executor_context &)
+{
+	return -value;
+}
+
+static float64_t execute(instructions::neg_f64 const &, float64_t value, executor_context &)
+{
+	return -value;
+}
+
 static uint8_t execute(instructions::add_i8_unchecked const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return lhs + rhs;
@@ -3191,7 +3325,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 392);
+		static_assert(instruction::variant_count == 402);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -3707,6 +3841,36 @@ void execute(executor_context &context)
 			break;
 		case instruction::cmp_gte_f64_unchecked:
 			execute<instructions::cmp_gte_f64_unchecked>(context);
+			break;
+		case instruction::neg_i8:
+			execute<instructions::neg_i8>(context);
+			break;
+		case instruction::neg_i16:
+			execute<instructions::neg_i16>(context);
+			break;
+		case instruction::neg_i32:
+			execute<instructions::neg_i32>(context);
+			break;
+		case instruction::neg_i64:
+			execute<instructions::neg_i64>(context);
+			break;
+		case instruction::neg_i8_unchecked:
+			execute<instructions::neg_i8_unchecked>(context);
+			break;
+		case instruction::neg_i16_unchecked:
+			execute<instructions::neg_i16_unchecked>(context);
+			break;
+		case instruction::neg_i32_unchecked:
+			execute<instructions::neg_i32_unchecked>(context);
+			break;
+		case instruction::neg_i64_unchecked:
+			execute<instructions::neg_i64_unchecked>(context);
+			break;
+		case instruction::neg_f32:
+			execute<instructions::neg_f32>(context);
+			break;
+		case instruction::neg_f64:
+			execute<instructions::neg_f64>(context);
 			break;
 		case instruction::add_i8_unchecked:
 			execute<instructions::add_i8_unchecked>(context);
