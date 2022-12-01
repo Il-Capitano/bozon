@@ -2790,6 +2790,54 @@ static uint64_t execute(instructions::ctz_u64 const &, uint64_t value, executor_
 	return std::countr_zero(value);
 }
 
+static uint8_t execute(instructions::fshl_u8 const &, uint8_t a, uint8_t b, uint8_t amount, executor_context &)
+{
+	amount %= 8;
+	return amount == 0 ? a : ((a << amount) | (b >> (8 - amount)));
+}
+
+static uint16_t execute(instructions::fshl_u16 const &, uint16_t a, uint16_t b, uint16_t amount, executor_context &)
+{
+	amount %= 16;
+	return amount == 0 ? a : ((a << amount) | (b >> (16 - amount)));
+}
+
+static uint32_t execute(instructions::fshl_u32 const &, uint32_t a, uint32_t b, uint32_t amount, executor_context &)
+{
+	amount %= 32;
+	return amount == 0 ? a : ((a << amount) | (b >> (32 - amount)));
+}
+
+static uint64_t execute(instructions::fshl_u64 const &, uint64_t a, uint64_t b, uint64_t amount, executor_context &)
+{
+	amount %= 64;
+	return amount == 0 ? a : ((a << amount) | (b >> (64 - amount)));
+}
+
+static uint8_t execute(instructions::fshr_u8 const &, uint8_t a, uint8_t b, uint8_t amount, executor_context &)
+{
+	amount %= 8;
+	return amount == 0 ? b : ((b >> amount) | (a << (8 - amount)));
+}
+
+static uint16_t execute(instructions::fshr_u16 const &, uint16_t a, uint16_t b, uint16_t amount, executor_context &)
+{
+	amount %= 16;
+	return amount == 0 ? b : ((b >> amount) | (a << (16 - amount)));
+}
+
+static uint32_t execute(instructions::fshr_u32 const &, uint32_t a, uint32_t b, uint32_t amount, executor_context &)
+{
+	amount %= 32;
+	return amount == 0 ? b : ((b >> amount) | (a << (32 - amount)));
+}
+
+static uint64_t execute(instructions::fshr_u64 const &, uint64_t a, uint64_t b, uint64_t amount, executor_context &)
+{
+	amount %= 64;
+	return amount == 0 ? b : ((b >> amount) | (a << (64 - amount)));
+}
+
 static ptr_t execute(instructions::const_gep const &inst, ptr_t ptr, executor_context &)
 {
 	return ptr + inst.offset;
@@ -3143,7 +3191,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 384);
+		static_assert(instruction::variant_count == 392);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -4235,6 +4283,30 @@ void execute(executor_context &context)
 			break;
 		case instruction::ctz_u64:
 			execute<instructions::ctz_u64>(context);
+			break;
+		case instruction::fshl_u8:
+			execute<instructions::fshl_u8>(context);
+			break;
+		case instruction::fshl_u16:
+			execute<instructions::fshl_u16>(context);
+			break;
+		case instruction::fshl_u32:
+			execute<instructions::fshl_u32>(context);
+			break;
+		case instruction::fshl_u64:
+			execute<instructions::fshl_u64>(context);
+			break;
+		case instruction::fshr_u8:
+			execute<instructions::fshr_u8>(context);
+			break;
+		case instruction::fshr_u16:
+			execute<instructions::fshr_u16>(context);
+			break;
+		case instruction::fshr_u32:
+			execute<instructions::fshr_u32>(context);
+			break;
+		case instruction::fshr_u64:
+			execute<instructions::fshr_u64>(context);
 			break;
 		case instruction::const_gep:
 			execute<instructions::const_gep>(context);

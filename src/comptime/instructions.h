@@ -2469,6 +2469,54 @@ struct ctz_u64
 	static inline constexpr value_type result_type = value_type::i64;
 };
 
+struct fshl_u8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+};
+
+struct fshl_u16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+};
+
+struct fshl_u32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+};
+
+struct fshl_u64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+};
+
+struct fshr_u8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+};
+
+struct fshr_u16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+};
+
+struct fshr_u32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+};
+
+struct fshr_u64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+};
+
 struct const_gep
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
@@ -2993,6 +3041,14 @@ using instruction_list = bz::meta::type_pack<
 	instructions::ctz_u16,
 	instructions::ctz_u32,
 	instructions::ctz_u64,
+	instructions::fshl_u8,
+	instructions::fshl_u16,
+	instructions::fshl_u32,
+	instructions::fshl_u64,
+	instructions::fshr_u8,
+	instructions::fshr_u16,
+	instructions::fshr_u32,
+	instructions::fshr_u64,
 	instructions::const_gep,
 	instructions::array_gep_i32,
 	instructions::array_gep_i64,
@@ -3024,7 +3080,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 384);
+	static_assert(variant_count == 392);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -3391,6 +3447,14 @@ struct instruction : instruction_base_t
 		ctz_u16                  = index_of<instructions::ctz_u16>,
 		ctz_u32                  = index_of<instructions::ctz_u32>,
 		ctz_u64                  = index_of<instructions::ctz_u64>,
+		fshl_u8                  = index_of<instructions::fshl_u8>,
+		fshl_u16                 = index_of<instructions::fshl_u16>,
+		fshl_u32                 = index_of<instructions::fshl_u32>,
+		fshl_u64                 = index_of<instructions::fshl_u64>,
+		fshr_u8                  = index_of<instructions::fshr_u8>,
+		fshr_u16                 = index_of<instructions::fshr_u16>,
+		fshr_u32                 = index_of<instructions::fshr_u32>,
+		fshr_u64                 = index_of<instructions::fshr_u64>,
 		const_gep                = index_of<instructions::const_gep>,
 		array_gep_i32            = index_of<instructions::array_gep_i32>,
 		array_gep_i64            = index_of<instructions::array_gep_i64>,
