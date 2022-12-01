@@ -69,7 +69,7 @@ struct expr_value
 struct unresolved_instruction
 {
 	instruction_ref inst;
-	bz::array<instruction_ref, 2> args;
+	bz::array<instruction_ref, 3> args;
 };
 
 struct unresolved_jump
@@ -229,6 +229,26 @@ struct codegen_context
 		return result;
 	}
 
+	template<typename Inst>
+	instruction_ref add_instruction(Inst inst, instruction_ref arg1, instruction_ref arg2, instruction_ref arg3)
+	{
+		static_assert(instructions::arg_count<Inst> == 3);
+		this->blocks[this->current_bb.bb_index].instructions
+			.emplace_back(instructions::instruction_with_args<Inst>{
+				.args = {},
+				.inst = std::move(inst),
+			});
+		auto const result = instruction_ref{
+			.bb_index   = this->current_bb.bb_index,
+			.inst_index = static_cast<uint32_t>(this->blocks[this->current_bb.bb_index].instructions.size() - 1),
+		};
+		this->unresolved_instructions.push_back({
+			.inst = result,
+			.args = { arg1, arg2, arg3 },
+		});
+		return result;
+	}
+
 	uint32_t add_src_tokens(lex::src_tokens const &src_tokens);
 
 	expr_value get_dummy_value(type const *t);
@@ -368,6 +388,8 @@ struct codegen_context
 	expr_value create_byteswap(expr_value value);
 	expr_value create_clz(expr_value value);
 	expr_value create_ctz(expr_value value);
+	expr_value create_fshl(expr_value a, expr_value b, expr_value amount);
+	expr_value create_fshr(expr_value a, expr_value b, expr_value amount);
 
 	instruction_ref create_unreachable(void);
 	instruction_ref create_error(lex::src_tokens const &src_tokens, bz::u8string message);

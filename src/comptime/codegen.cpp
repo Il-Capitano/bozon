@@ -1677,10 +1677,24 @@ static expr_value generate_intrinsic_function_call_code(
 	case ast::function_body::fshl_u16:
 	case ast::function_body::fshl_u32:
 	case ast::function_body::fshl_u64:
+	{
+		bz_assert(func_call.params.size() == 3);
+		auto const a = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		auto const b = generate_expr_code(func_call.params[1], context, {}).get_value(context);
+		auto const amount = generate_expr_code(func_call.params[2], context, {}).get_value(context);
+		return value_or_result_address(context.create_fshl(a, b, amount), result_address, context);
+	}
 	case ast::function_body::fshr_u8:
 	case ast::function_body::fshr_u16:
 	case ast::function_body::fshr_u32:
 	case ast::function_body::fshr_u64:
+	{
+		bz_assert(func_call.params.size() == 3);
+		auto const a = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		auto const b = generate_expr_code(func_call.params[1], context, {}).get_value(context);
+		auto const amount = generate_expr_code(func_call.params[2], context, {}).get_value(context);
+		return value_or_result_address(context.create_fshr(a, b, amount), result_address, context);
+	}
 	case ast::function_body::i8_default_constructor:
 	case ast::function_body::i16_default_constructor:
 	case ast::function_body::i32_default_constructor:

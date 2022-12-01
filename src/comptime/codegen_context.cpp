@@ -3878,6 +3878,84 @@ expr_value codegen_context::create_ctz(expr_value value)
 	}
 }
 
+expr_value codegen_context::create_fshl(expr_value a, expr_value b, expr_value amount)
+{
+	bz_assert(a.get_type()->is_builtin());
+	bz_assert(b.get_type()->is_builtin());
+	bz_assert(amount.get_type()->is_builtin());
+	bz_assert(a.get_type()->get_builtin_kind() == b.get_type()->get_builtin_kind());
+	bz_assert(a.get_type()->get_builtin_kind() == amount.get_type()->get_builtin_kind());
+
+	auto const a_val = a.get_value_as_instruction(*this);
+	auto const b_val = b.get_value_as_instruction(*this);
+	auto const amount_val = amount.get_value_as_instruction(*this);
+
+	switch (a.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::i8:
+		return expr_value::get_value(
+			this->add_instruction(instructions::fshl_u8{}, a_val, b_val, amount_val),
+			this->get_builtin_type(builtin_type_kind::i8)
+		);
+	case builtin_type_kind::i16:
+		return expr_value::get_value(
+			this->add_instruction(instructions::fshl_u16{}, a_val, b_val, amount_val),
+			this->get_builtin_type(builtin_type_kind::i16)
+		);
+	case builtin_type_kind::i32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::fshl_u32{}, a_val, b_val, amount_val),
+			this->get_builtin_type(builtin_type_kind::i32)
+		);
+	case builtin_type_kind::i64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::fshl_u64{}, a_val, b_val, amount_val),
+			this->get_builtin_type(builtin_type_kind::i64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_fshr(expr_value a, expr_value b, expr_value amount)
+{
+	bz_assert(a.get_type()->is_builtin());
+	bz_assert(b.get_type()->is_builtin());
+	bz_assert(amount.get_type()->is_builtin());
+	bz_assert(a.get_type()->get_builtin_kind() == b.get_type()->get_builtin_kind());
+	bz_assert(a.get_type()->get_builtin_kind() == amount.get_type()->get_builtin_kind());
+
+	auto const a_val = a.get_value_as_instruction(*this);
+	auto const b_val = b.get_value_as_instruction(*this);
+	auto const amount_val = amount.get_value_as_instruction(*this);
+
+	switch (a.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::i8:
+		return expr_value::get_value(
+			this->add_instruction(instructions::fshr_u8{}, a_val, b_val, amount_val),
+			this->get_builtin_type(builtin_type_kind::i8)
+		);
+	case builtin_type_kind::i16:
+		return expr_value::get_value(
+			this->add_instruction(instructions::fshr_u16{}, a_val, b_val, amount_val),
+			this->get_builtin_type(builtin_type_kind::i16)
+		);
+	case builtin_type_kind::i32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::fshr_u32{}, a_val, b_val, amount_val),
+			this->get_builtin_type(builtin_type_kind::i32)
+		);
+	case builtin_type_kind::i64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::fshr_u64{}, a_val, b_val, amount_val),
+			this->get_builtin_type(builtin_type_kind::i64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
 
 instruction_ref codegen_context::create_unreachable(void)
 {
@@ -4030,7 +4108,7 @@ instruction_ref codegen_context::create_slice_construction_check(
 	);
 }
 
-static void resolve_instruction_args(instruction &inst, bz::array<instruction_ref, 2> const &args, auto get_instruction_value_index)
+static void resolve_instruction_args(instruction &inst, bz::array<instruction_ref, 3> const &args, auto get_instruction_value_index)
 {
 	inst.visit([&](auto &inst) {
 		using inst_type = bz::meta::remove_reference<decltype(inst.inst)>;
@@ -4048,6 +4126,12 @@ static void resolve_instruction_args(instruction &inst, bz::array<instruction_re
 			inst.args[0] = get_instruction_value_index(args[0]);
 			inst.args[1] = get_instruction_value_index(args[1]);
 		}
+		else if constexpr (instructions::arg_count<inst_type> == 3)
+		{
+			inst.args[0] = get_instruction_value_index(args[0]);
+			inst.args[1] = get_instruction_value_index(args[1]);
+			inst.args[2] = get_instruction_value_index(args[2]);
+		}
 		else
 		{
 			static_assert(bz::meta::always_false<inst_type>);
@@ -4059,7 +4143,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 384);
+	static_assert(instruction::variant_count == 392);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>().inst;
