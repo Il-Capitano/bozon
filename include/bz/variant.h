@@ -10,6 +10,43 @@ bz_begin_namespace
 namespace internal
 {
 
+constexpr size_t max(std::initializer_list<size_t> values)
+{
+	size_t result = 0;
+	for (size_t value : values)
+	{
+		if (value > result)
+		{
+			result = value;
+		}
+	}
+	return result;
+}
+
+constexpr bool is_all(std::initializer_list<bool> values)
+{
+	for (bool value : values)
+	{
+		if (!value)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+constexpr bool is_any(std::initializer_list<bool> values)
+{
+	for (bool value : values)
+	{
+		if (value)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 template<typename ...Ts>
 struct variant_storage_t
 {
@@ -18,8 +55,8 @@ public:
 	using value_type = meta::nth_type<N, Ts...>;
 
 protected:
-	static constexpr auto data_align = meta::lcm_index<alignof (Ts)...>;
-	static constexpr auto data_size  = meta::max_index<sizeof (Ts)...>;
+	static constexpr auto data_align = max({ alignof (Ts)... });
+	static constexpr auto data_size  = max({ sizeof (Ts)... });
 
 	static constexpr auto _index_type_dummy = []()
 	{
@@ -139,7 +176,7 @@ public:
 	variant_non_trivial_base(void) noexcept = default;
 
 	variant_non_trivial_base(self_t const &other) noexcept(
-		meta::is_all<meta::is_nothrow_copy_constructible_v<Ts>...>
+		is_all({ meta::is_nothrow_copy_constructible_v<Ts>... })
 	)
 		: base_t()
 	{
@@ -154,7 +191,7 @@ public:
 	}
 
 	variant_non_trivial_base(self_t &&other) noexcept(
-		meta::is_all<meta::is_nothrow_move_constructible_v<Ts>...>
+		is_all({ meta::is_nothrow_move_constructible_v<Ts>... })
 	)
 		: base_t()
 	{
@@ -174,8 +211,8 @@ public:
 	}
 
 	self_t &operator = (self_t const &rhs) noexcept(
-		meta::is_all<meta::is_nothrow_copy_constructible_v<Ts>...>
-		&& meta::is_all<meta::is_nothrow_copy_assignable_v<Ts>...>
+		is_all({ meta::is_nothrow_copy_constructible_v<Ts>... })
+		&& is_all({ meta::is_nothrow_copy_assignable_v<Ts>... })
 	)
 	{
 		this->assign(rhs);
@@ -183,8 +220,8 @@ public:
 	}
 
 	self_t &operator = (self_t &&rhs) noexcept(
-		meta::is_all<meta::is_nothrow_move_constructible_v<Ts>...>
-		&& meta::is_all<meta::is_nothrow_move_assignable_v<Ts>...>
+		is_all({ meta::is_nothrow_move_constructible_v<Ts>... })
+		&& is_all({ meta::is_nothrow_move_assignable_v<Ts>... })
 	)
 	{
 		this->assign(std::move(rhs));
@@ -202,8 +239,8 @@ public:
 	}
 
 	void assign(self_t const &other) noexcept(
-		meta::is_all<meta::is_nothrow_copy_constructible_v<Ts>...>
-		&& meta::is_all<meta::is_nothrow_copy_assignable_v<Ts>...>
+		is_all({ meta::is_nothrow_copy_constructible_v<Ts>... })
+		&& is_all({ meta::is_nothrow_copy_assignable_v<Ts>... })
 	)
 	{
 		if (this == &other)
@@ -239,8 +276,8 @@ public:
 	}
 
 	void assign(self_t &&other) noexcept(
-		meta::is_all<meta::is_nothrow_move_constructible_v<Ts>...>
-		&& meta::is_all<meta::is_nothrow_move_assignable_v<Ts>...>
+		is_all({ meta::is_nothrow_move_constructible_v<Ts>... })
+		&& is_all({ meta::is_nothrow_move_assignable_v<Ts>... })
 	)
 	{
 		if (this == &other)
@@ -282,23 +319,23 @@ public:
 template<typename ...Ts>
 class variant :
 	public meta::conditional<
-		meta::is_all<meta::is_trivial_v<Ts>...>,
+		internal::is_all({ meta::is_trivial_v<Ts>... }),
 		internal::variant_trivial_base<Ts...>,
 		internal::variant_non_trivial_base<Ts...>
 	>
 {
 	static_assert(sizeof... (Ts) > 0);
 	// don't allow void as a type
-	static_assert(meta::is_all<!meta::is_void<Ts>...>);
+	static_assert(internal::is_all({ !meta::is_void<Ts>... }));
 	// don't allow references as types
-	static_assert(meta::is_all<!meta::is_reference<Ts>...>);
+	static_assert(internal::is_all({ !meta::is_reference<Ts>... }));
 	// don't allow const types
-	static_assert(meta::is_all<!meta::is_const<Ts>...>);
+	static_assert(internal::is_all({ !meta::is_const<Ts>... }));
 
 private:
 	using self_t = variant<Ts...>;
 	using base_t = meta::conditional<
-		meta::is_all<meta::is_trivial_v<Ts>...>,
+		internal::is_all({ meta::is_trivial_v<Ts>... }),
 		internal::variant_trivial_base<Ts...>,
 		internal::variant_non_trivial_base<Ts...>
 	>;
@@ -379,7 +416,7 @@ public:
 
 	template<size_t N, typename ...Args>
 	auto &emplace(Args &&...args) noexcept(
-		meta::is_all<meta::is_nothrow_destructible_v<Ts>...>
+		internal::is_all({ meta::is_nothrow_destructible_v<Ts>... })
 		&& meta::is_nothrow_constructible_v<value_type<N>, Args...>
 	)
 	{
@@ -390,7 +427,7 @@ public:
 
 	template<typename T, typename ...Args>
 	auto &emplace(Args &&...args) noexcept(
-		meta::is_all<meta::is_nothrow_destructible_v<Ts>...>
+		internal::is_all({ meta::is_nothrow_destructible_v<Ts>... })
 		&& meta::is_nothrow_constructible_v<T, Args...>
 	)
 	{ return this->emplace<index_of<T>>(std::forward<Args>(args)...); }
@@ -410,7 +447,7 @@ public:
 				meta::remove_cv_reference<T>,
 				self_t
 			>
-			&& meta::is_any<meta::is_constructible_v<Ts, T>...>
+			&& internal::is_any({ meta::is_constructible_v<Ts, T>... })
 		>
 	>
 	variant(T &&val) noexcept(
@@ -428,7 +465,7 @@ public:
 		>
 	>
 	self_t &operator = (T &&val) noexcept(
-		meta::is_all<meta::is_nothrow_destructible_v<Ts>...>
+		internal::is_all({ meta::is_nothrow_destructible_v<Ts>... })
 		&& meta::is_nothrow_assignable_v<value_type_from<T>, T>
 		&& meta::is_nothrow_constructible_v<value_type_from<T>, T>
 	)
@@ -534,7 +571,7 @@ public:
 
 	template<typename Visitor>
 	auto visit(Visitor &&visitor) noexcept(
-		meta::is_all<meta::is_nothrow_invocable_v<Visitor, Ts &>...>
+		internal::is_all({ meta::is_nothrow_invocable_v<Visitor, Ts &>... })
 	) -> decltype(
 		std::forward<decltype(visitor)>(visitor)(
 			std::declval<value_type<0> &>()
@@ -546,7 +583,7 @@ public:
 			"Visitor must return the same type for every element"
 		);
 		static_assert(
-			meta::is_all<meta::is_invocable_v<Visitor, Ts &> ...>,
+			internal::is_all({ meta::is_invocable_v<Visitor, Ts &> ... }),
 			"Visitor is not invocable for one or more variants"
 		);
 		bz_assert(this->_index != base_t::null && "visit called on empty variant");
@@ -569,7 +606,7 @@ public:
 
 	template<typename Visitor>
 	auto visit(Visitor &&visitor) const noexcept(
-		meta::is_all<meta::is_nothrow_invocable_v<Visitor, Ts const &>...>
+		internal::is_all({ meta::is_nothrow_invocable_v<Visitor, Ts const &>... })
 	) -> decltype(
 		std::forward<decltype(visitor)>(visitor)(
 			std::declval<value_type<0> const &>()
@@ -581,7 +618,7 @@ public:
 			"Visitor must return the same type for every element"
 		);
 		static_assert(
-			meta::is_all<meta::is_invocable_v<Visitor, Ts const &> ...>,
+			internal::is_all({ meta::is_invocable_v<Visitor, Ts const &> ... }),
 			"Visitor is not invocable for one or more variants"
 		);
 		bz_assert(this->_index != base_t::null && "visit called on empty variant");
