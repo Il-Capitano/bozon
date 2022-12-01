@@ -310,6 +310,8 @@ struct codegen_context
 	expr_value create_cmp_eq_ptr(expr_value lhs, expr_value rhs);
 	expr_value create_cmp_neq_ptr(expr_value lhs, expr_value rhs);
 
+	expr_value create_neg(lex::src_tokens const &src_tokens, expr_value value);
+	expr_value create_neg_unchecked(expr_value value);
 	expr_value create_add_unchecked(expr_value lhs, expr_value rhs);
 	expr_value create_sub_unchecked(expr_value lhs, expr_value rhs);
 

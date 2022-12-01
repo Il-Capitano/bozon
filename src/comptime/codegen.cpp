@@ -372,7 +372,7 @@ static expr_value generate_expr_code(
 	return result_expr_value;
 }
 
-static expr_value generate_builtin_unary_address_of_code(
+static expr_value generate_builtin_unary_address_of(
 	ast::expression const &expr,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -416,7 +416,7 @@ static expr_value generate_expr_code(
 	switch (unary_op.op)
 	{
 	case lex::token::address_of:
-		return generate_builtin_unary_address_of_code(unary_op.expr, context, result_address);
+		return generate_builtin_unary_address_of(unary_op.expr, context, result_address);
 	case lex::token::kw_move:
 	case lex::token::kw_unsafe_move:
 		bz_assert(!result_address.has_value());
@@ -426,7 +426,7 @@ static expr_value generate_expr_code(
 	}
 }
 
-static expr_value generate_builtin_binary_bool_and_code(
+static expr_value generate_builtin_binary_bool_and(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
@@ -467,7 +467,7 @@ static expr_value generate_builtin_binary_bool_and_code(
 	return result_value;
 }
 
-static expr_value generate_builtin_binary_bool_xor_code(
+static expr_value generate_builtin_binary_bool_xor(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
@@ -489,7 +489,7 @@ static expr_value generate_builtin_binary_bool_xor_code(
 	}
 }
 
-static expr_value generate_builtin_binary_bool_or_code(
+static expr_value generate_builtin_binary_bool_or(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
@@ -542,11 +542,11 @@ static expr_value generate_expr_code(
 		generate_expr_code(binary_op.lhs, context, {});
 		return generate_expr_code(binary_op.rhs, context, result_address);
 	case lex::token::bool_and:
-		return generate_builtin_binary_bool_and_code(binary_op.lhs, binary_op.rhs, context, result_address);
+		return generate_builtin_binary_bool_and(binary_op.lhs, binary_op.rhs, context, result_address);
 	case lex::token::bool_xor:
-		return generate_builtin_binary_bool_xor_code(binary_op.lhs, binary_op.rhs, context, result_address);
+		return generate_builtin_binary_bool_xor(binary_op.lhs, binary_op.rhs, context, result_address);
 	case lex::token::bool_or:
-		return generate_builtin_binary_bool_or_code(binary_op.lhs, binary_op.rhs, context, result_address);
+		return generate_builtin_binary_bool_or(binary_op.lhs, binary_op.rhs, context, result_address);
 	default:
 		bz_unreachable;
 	}
@@ -771,6 +771,64 @@ static expr_value value_or_result_address(expr_value value, bz::optional<expr_va
 		return value;
 	}
 }
+
+static expr_value generate_builtin_unary_plus(
+	ast::expression const &expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+)
+{
+	return generate_expr_code(expr, context, result_address);
+}
+
+static expr_value generate_builtin_unary_minus(
+	ast::expression const &original_expression,
+	ast::expression const &expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+)
+{
+	auto const value = generate_expr_code(expr, context, {}).get_value(context);
+	if (original_expression.paren_level >= 2)
+	{
+		return value_or_result_address(context.create_neg_unchecked(value), result_address, context);
+	}
+	else
+	{
+		return value_or_result_address(context.create_neg(original_expression.src_tokens, value), result_address, context);
+	}
+}
+
+static expr_value generate_builtin_unary_dereference(
+	ast::expression const &original_expression,
+	ast::expression const &expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+
+static expr_value generate_builtin_unary_bit_not(
+	ast::expression const &expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+
+static expr_value generate_builtin_unary_bool_not(
+	ast::expression const &expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+
+static expr_value generate_builtin_unary_plus_plus(
+	ast::expression const &expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+
+static expr_value generate_builtin_unary_minus_minus(
+	ast::expression const &expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
 
 static expr_value generate_intrinsic_function_call_code(
 	ast::expression const &original_expression,
@@ -1709,13 +1767,29 @@ static expr_value generate_intrinsic_function_call_code(
 	case ast::function_body::str_default_constructor:
 	case ast::function_body::bool_default_constructor:
 	case ast::function_body::null_t_default_constructor:
+		// these are guaranteed to be constant evaluated
+		bz_unreachable;
 	case ast::function_body::builtin_unary_plus:
+		bz_assert(func_call.params.size() == 1);
+		return generate_builtin_unary_plus(func_call.params[0], context, result_address);
 	case ast::function_body::builtin_unary_minus:
+		bz_assert(func_call.params.size() == 1);
+		return generate_builtin_unary_minus(original_expression, func_call.params[0], context, result_address);
 	case ast::function_body::builtin_unary_dereference:
+		bz_assert(func_call.params.size() == 1);
+		return generate_builtin_unary_dereference(original_expression, func_call.params[0], context, result_address);
 	case ast::function_body::builtin_unary_bit_not:
+		bz_assert(func_call.params.size() == 1);
+		return generate_builtin_unary_bit_not(func_call.params[0], context, result_address);
 	case ast::function_body::builtin_unary_bool_not:
+		bz_assert(func_call.params.size() == 1);
+		return generate_builtin_unary_bool_not(func_call.params[0], context, result_address);
 	case ast::function_body::builtin_unary_plus_plus:
+		bz_assert(func_call.params.size() == 1);
+		return generate_builtin_unary_plus_plus(func_call.params[0], context, result_address);
 	case ast::function_body::builtin_unary_minus_minus:
+		bz_assert(func_call.params.size() == 1);
+		return generate_builtin_unary_minus_minus(func_call.params[0], context, result_address);
 	case ast::function_body::builtin_binary_assign:
 	case ast::function_body::builtin_binary_plus:
 	case ast::function_body::builtin_binary_plus_eq:

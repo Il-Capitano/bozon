@@ -1811,6 +1811,92 @@ expr_value codegen_context::create_cmp_neq_ptr(expr_value lhs, expr_value rhs)
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
 
+expr_value codegen_context::create_neg(lex::src_tokens const &src_tokens, expr_value value)
+{
+	bz_assert(value.get_type()->is_builtin());
+
+	auto const value_ref = value.get_value_as_instruction(*this);
+
+	switch (value.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::i8:
+		return expr_value::get_value(
+			this->add_instruction(instructions::neg_i8{ .src_tokens_index = this->add_src_tokens(src_tokens) }, value_ref),
+			this->get_builtin_type(builtin_type_kind::i8)
+		);
+	case builtin_type_kind::i16:
+		return expr_value::get_value(
+			this->add_instruction(instructions::neg_i16{ .src_tokens_index = this->add_src_tokens(src_tokens) }, value_ref),
+			this->get_builtin_type(builtin_type_kind::i16)
+		);
+	case builtin_type_kind::i32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::neg_i32{ .src_tokens_index = this->add_src_tokens(src_tokens) }, value_ref),
+			this->get_builtin_type(builtin_type_kind::i32)
+		);
+	case builtin_type_kind::i64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::neg_i64{ .src_tokens_index = this->add_src_tokens(src_tokens) }, value_ref),
+			this->get_builtin_type(builtin_type_kind::i64)
+		);
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::neg_f32{}, value_ref),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::neg_f64{}, value_ref),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_neg_unchecked(expr_value value)
+{
+	bz_assert(value.get_type()->is_builtin());
+
+	auto const value_ref = value.get_value_as_instruction(*this);
+
+	switch (value.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::i8:
+		return expr_value::get_value(
+			this->add_instruction(instructions::neg_i8_unchecked{}, value_ref),
+			this->get_builtin_type(builtin_type_kind::i8)
+		);
+	case builtin_type_kind::i16:
+		return expr_value::get_value(
+			this->add_instruction(instructions::neg_i16_unchecked{}, value_ref),
+			this->get_builtin_type(builtin_type_kind::i16)
+		);
+	case builtin_type_kind::i32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::neg_i32_unchecked{}, value_ref),
+			this->get_builtin_type(builtin_type_kind::i32)
+		);
+	case builtin_type_kind::i64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::neg_i64_unchecked{}, value_ref),
+			this->get_builtin_type(builtin_type_kind::i64)
+		);
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::neg_f32{}, value_ref),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::neg_f64{}, value_ref),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
 expr_value codegen_context::create_add_unchecked(expr_value lhs, expr_value rhs)
 {
 	bz_assert(lhs.get_type()->is_builtin());
@@ -4143,7 +4229,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 392);
+	static_assert(instruction::variant_count == 402);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>().inst;
