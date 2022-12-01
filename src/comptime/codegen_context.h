@@ -317,6 +317,7 @@ struct codegen_context
 
 	expr_value create_ptrdiff(expr_value lhs, expr_value rhs, type const *elem_type);
 
+	expr_value create_not(expr_value value);
 	expr_value create_and(expr_value lhs, expr_value rhs);
 	expr_value create_xor(expr_value lhs, expr_value rhs);
 	expr_value create_or(expr_value lhs, expr_value rhs);

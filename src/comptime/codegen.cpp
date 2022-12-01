@@ -810,13 +810,21 @@ static expr_value generate_builtin_unary_bit_not(
 	ast::expression const &expr,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const value = generate_expr_code(expr, context, {}).get_value(context);
+	return value_or_result_address(context.create_not(value), result_address, context);
+}
 
 static expr_value generate_builtin_unary_bool_not(
 	ast::expression const &expr,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const value = generate_expr_code(expr, context, {}).get_value(context);
+	return value_or_result_address(context.create_not(value), result_address, context);
+}
 
 static expr_value generate_builtin_unary_plus_plus(
 	ast::expression const &expr,

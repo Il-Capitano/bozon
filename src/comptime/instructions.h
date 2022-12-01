@@ -1313,6 +1313,36 @@ struct ptr64_diff
 	size_t stride;
 };
 
+struct not_i1
+{
+	static inline constexpr bz::array arg_types = { value_type::i1 };
+	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct not_i8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+};
+
+struct not_i16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+};
+
+struct not_i32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+};
+
+struct not_i64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+};
+
 struct and_i1
 {
 	static inline constexpr bz::array arg_types = { value_type::i1, value_type::i1 };
@@ -2937,6 +2967,11 @@ using instruction_list = bz::meta::type_pack<
 	instructions::sub_i64_unchecked,
 	instructions::ptr32_diff,
 	instructions::ptr64_diff,
+	instructions::not_i1,
+	instructions::not_i8,
+	instructions::not_i16,
+	instructions::not_i32,
+	instructions::not_i64,
 	instructions::and_i1,
 	instructions::and_i8,
 	instructions::and_i16,
@@ -3158,7 +3193,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 402);
+	static_assert(variant_count == 407);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -3353,6 +3388,11 @@ struct instruction : instruction_base_t
 		sub_i64_unchecked        = index_of<instructions::sub_i64_unchecked>,
 		ptr32_diff               = index_of<instructions::ptr32_diff>,
 		ptr64_diff               = index_of<instructions::ptr64_diff>,
+		not_i1                   = index_of<instructions::not_i1>,
+		not_i8                   = index_of<instructions::not_i8>,
+		not_i16                  = index_of<instructions::not_i16>,
+		not_i32                  = index_of<instructions::not_i32>,
+		not_i64                  = index_of<instructions::not_i64>,
 		and_i1                   = index_of<instructions::and_i1>,
 		and_i8                   = index_of<instructions::and_i8>,
 		and_i16                  = index_of<instructions::and_i16>,

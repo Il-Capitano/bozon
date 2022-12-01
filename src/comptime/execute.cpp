@@ -1372,6 +1372,31 @@ static uint64_t execute(instructions::ptr64_diff const &inst, ptr_t lhs, ptr_t r
 	return static_cast<uint64_t>(result / stride);
 }
 
+static bool execute(instructions::not_i1 const &, bool value, executor_context &)
+{
+	return !value;
+}
+
+static uint8_t execute(instructions::not_i8 const &, uint8_t value, executor_context &)
+{
+	return ~value;
+}
+
+static uint16_t execute(instructions::not_i16 const &, uint16_t value, executor_context &)
+{
+	return ~value;
+}
+
+static uint32_t execute(instructions::not_i32 const &, uint32_t value, executor_context &)
+{
+	return ~value;
+}
+
+static uint64_t execute(instructions::not_i64 const &, uint64_t value, executor_context &)
+{
+	return ~value;
+}
+
 static bool execute(instructions::and_i1 const &, bool lhs, bool rhs, executor_context &)
 {
 	return lhs && rhs;
@@ -3325,7 +3350,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 402);
+		static_assert(instruction::variant_count == 407);
 		case instruction::const_i1:
 			execute<instructions::const_i1>(context);
 			break;
@@ -3901,6 +3926,21 @@ void execute(executor_context &context)
 			break;
 		case instruction::ptr64_diff:
 			execute<instructions::ptr64_diff>(context);
+			break;
+		case instruction::not_i1:
+			execute<instructions::not_i1>(context);
+			break;
+		case instruction::not_i8:
+			execute<instructions::not_i8>(context);
+			break;
+		case instruction::not_i16:
+			execute<instructions::not_i16>(context);
+			break;
+		case instruction::not_i32:
+			execute<instructions::not_i32>(context);
+			break;
+		case instruction::not_i64:
+			execute<instructions::not_i64>(context);
 			break;
 		case instruction::and_i1:
 			execute<instructions::and_i1>(context);
