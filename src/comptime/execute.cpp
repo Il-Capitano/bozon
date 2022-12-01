@@ -5,62 +5,62 @@
 namespace comptime
 {
 
-static bool execute(instructions::const_i1 const &inst, executor_context &)
+static bool execute_const_i1(instructions::const_i1 const &inst, executor_context &)
 {
 	return inst.value;
 }
 
-static uint8_t execute(instructions::const_i8 const &inst, executor_context &)
+static uint8_t execute_const_i8(instructions::const_i8 const &inst, executor_context &)
 {
 	return bit_cast<uint8_t>(inst.value);
 }
 
-static uint16_t execute(instructions::const_i16 const &inst, executor_context &)
+static uint16_t execute_const_i16(instructions::const_i16 const &inst, executor_context &)
 {
 	return bit_cast<uint16_t>(inst.value);
 }
 
-static uint32_t execute(instructions::const_i32 const &inst, executor_context &)
+static uint32_t execute_const_i32(instructions::const_i32 const &inst, executor_context &)
 {
 	return bit_cast<uint32_t>(inst.value);
 }
 
-static uint64_t execute(instructions::const_i64 const &inst, executor_context &)
+static uint64_t execute_const_i64(instructions::const_i64 const &inst, executor_context &)
 {
 	return bit_cast<uint64_t>(inst.value);
 }
 
-static uint8_t execute(instructions::const_u8 const &inst, executor_context &)
+static uint8_t execute_const_u8(instructions::const_u8 const &inst, executor_context &)
 {
 	return inst.value;
 }
 
-static uint16_t execute(instructions::const_u16 const &inst, executor_context &)
+static uint16_t execute_const_u16(instructions::const_u16 const &inst, executor_context &)
 {
 	return inst.value;
 }
 
-static uint32_t execute(instructions::const_u32 const &inst, executor_context &)
+static uint32_t execute_const_u32(instructions::const_u32 const &inst, executor_context &)
 {
 	return inst.value;
 }
 
-static uint64_t execute(instructions::const_u64 const &inst, executor_context &)
+static uint64_t execute_const_u64(instructions::const_u64 const &inst, executor_context &)
 {
 	return inst.value;
 }
 
-static float32_t execute(instructions::const_f32 const &inst, executor_context &)
+static float32_t execute_const_f32(instructions::const_f32 const &inst, executor_context &)
 {
 	return inst.value;
 }
 
-static float64_t execute(instructions::const_f64 const &inst, executor_context &)
+static float64_t execute_const_f64(instructions::const_f64 const &inst, executor_context &)
 {
 	return inst.value;
 }
 
-static ptr_t execute(instructions::const_ptr_null const &, executor_context &)
+static ptr_t execute_const_ptr_null(instructions::const_ptr_null const &, executor_context &)
 {
 	return 0;
 }
@@ -90,55 +90,55 @@ static Int load_big_endian(uint8_t *mem)
 	}
 }
 
-static bool execute(instructions::load_i1_be const &, ptr_t ptr, executor_context &context)
+static bool execute_load_i1_be(instructions::load_i1_be const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 1);
 	return load_big_endian<uint8_t>(mem) != 0;
 }
 
-static uint8_t execute(instructions::load_i8_be const &, ptr_t ptr, executor_context &context)
+static uint8_t execute_load_i8_be(instructions::load_i8_be const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 1);
 	return load_big_endian<uint8_t>(mem);
 }
 
-static uint16_t execute(instructions::load_i16_be const &, ptr_t ptr, executor_context &context)
+static uint16_t execute_load_i16_be(instructions::load_i16_be const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 2);
 	return load_big_endian<uint16_t>(mem);
 }
 
-static uint32_t execute(instructions::load_i32_be const &, ptr_t ptr, executor_context &context)
+static uint32_t execute_load_i32_be(instructions::load_i32_be const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 4);
 	return load_big_endian<uint32_t>(mem);
 }
 
-static uint64_t execute(instructions::load_i64_be const &, ptr_t ptr, executor_context &context)
+static uint64_t execute_load_i64_be(instructions::load_i64_be const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 8);
 	return load_big_endian<uint64_t>(mem);
 }
 
-static float32_t execute(instructions::load_f32_be const &, ptr_t ptr, executor_context &context)
+static float32_t execute_load_f32_be(instructions::load_f32_be const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 4);
 	return bit_cast<float32_t>(load_big_endian<uint32_t>(mem));
 }
 
-static float64_t execute(instructions::load_f64_be const &, ptr_t ptr, executor_context &context)
+static float64_t execute_load_f64_be(instructions::load_f64_be const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 8);
 	return bit_cast<float64_t>(load_big_endian<uint64_t>(mem));
 }
 
-static ptr_t execute(instructions::load_ptr32_be const &, ptr_t ptr, executor_context &context)
+static ptr_t execute_load_ptr32_be(instructions::load_ptr32_be const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 4);
 	return load_big_endian<uint32_t>(mem);
 }
 
-static ptr_t execute(instructions::load_ptr64_be const &, ptr_t ptr, executor_context &context)
+static ptr_t execute_load_ptr64_be(instructions::load_ptr64_be const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 8);
 	return load_big_endian<uint64_t>(mem);
@@ -168,55 +168,55 @@ static Int load_little_endian(uint8_t *mem)
 	}
 }
 
-static bool execute(instructions::load_i1_le const &, ptr_t ptr, executor_context &context)
+static bool execute_load_i1_le(instructions::load_i1_le const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 1);
 	return load_little_endian<uint8_t>(mem) != 0;
 }
 
-static uint8_t execute(instructions::load_i8_le const &, ptr_t ptr, executor_context &context)
+static uint8_t execute_load_i8_le(instructions::load_i8_le const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 1);
 	return load_little_endian<uint8_t>(mem);
 }
 
-static uint16_t execute(instructions::load_i16_le const &, ptr_t ptr, executor_context &context)
+static uint16_t execute_load_i16_le(instructions::load_i16_le const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 2);
 	return load_little_endian<uint16_t>(mem);
 }
 
-static uint32_t execute(instructions::load_i32_le const &, ptr_t ptr, executor_context &context)
+static uint32_t execute_load_i32_le(instructions::load_i32_le const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 4);
 	return load_little_endian<uint32_t>(mem);
 }
 
-static uint64_t execute(instructions::load_i64_le const &, ptr_t ptr, executor_context &context)
+static uint64_t execute_load_i64_le(instructions::load_i64_le const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 8);
 	return load_little_endian<uint64_t>(mem);
 }
 
-static float32_t execute(instructions::load_f32_le const &, ptr_t ptr, executor_context &context)
+static float32_t execute_load_f32_le(instructions::load_f32_le const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 4);
 	return bit_cast<float32_t>(load_little_endian<uint32_t>(mem));
 }
 
-static float64_t execute(instructions::load_f64_le const &, ptr_t ptr, executor_context &context)
+static float64_t execute_load_f64_le(instructions::load_f64_le const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 8);
 	return bit_cast<float64_t>(load_little_endian<uint64_t>(mem));
 }
 
-static ptr_t execute(instructions::load_ptr32_le const &, ptr_t ptr, executor_context &context)
+static ptr_t execute_load_ptr32_le(instructions::load_ptr32_le const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 4);
 	return load_little_endian<uint32_t>(mem);
 }
 
-static ptr_t execute(instructions::load_ptr64_le const &, ptr_t ptr, executor_context &context)
+static ptr_t execute_load_ptr64_le(instructions::load_ptr64_le const &, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 8);
 	return load_little_endian<uint64_t>(mem);
@@ -242,55 +242,55 @@ static void store_big_endian(uint8_t *mem, Int value)
 	}
 }
 
-static void execute(instructions::store_i1_be const &, bool value, ptr_t ptr, executor_context &context)
+static void execute_store_i1_be(instructions::store_i1_be const &, bool value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 1);
 	store_big_endian<uint8_t>(mem, value ? 1 : 0);
 }
 
-static void execute(instructions::store_i8_be const &, uint8_t value, ptr_t ptr, executor_context &context)
+static void execute_store_i8_be(instructions::store_i8_be const &, uint8_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 1);
 	store_big_endian<uint8_t>(mem, value);
 }
 
-static void execute(instructions::store_i16_be const &, uint16_t value, ptr_t ptr, executor_context &context)
+static void execute_store_i16_be(instructions::store_i16_be const &, uint16_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 2);
 	store_big_endian<uint16_t>(mem, value);
 }
 
-static void execute(instructions::store_i32_be const &, uint32_t value, ptr_t ptr, executor_context &context)
+static void execute_store_i32_be(instructions::store_i32_be const &, uint32_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 4);
 	store_big_endian<uint32_t>(mem, value);
 }
 
-static void execute(instructions::store_i64_be const &, uint64_t value, ptr_t ptr, executor_context &context)
+static void execute_store_i64_be(instructions::store_i64_be const &, uint64_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 8);
 	store_big_endian<uint64_t>(mem, value);
 }
 
-static void execute(instructions::store_f32_be const &, float32_t value, ptr_t ptr, executor_context &context)
+static void execute_store_f32_be(instructions::store_f32_be const &, float32_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 4);
 	store_big_endian<uint32_t>(mem, bit_cast<uint32_t>(value));
 }
 
-static void execute(instructions::store_f64_be const &, float64_t value, ptr_t ptr, executor_context &context)
+static void execute_store_f64_be(instructions::store_f64_be const &, float64_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 8);
 	store_big_endian<uint64_t>(mem, bit_cast<uint64_t>(value));
 }
 
-static void execute(instructions::store_ptr32_be const &, ptr_t value, ptr_t ptr, executor_context &context)
+static void execute_store_ptr32_be(instructions::store_ptr32_be const &, ptr_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 4);
 	store_big_endian<uint32_t>(mem, static_cast<uint32_t>(value));
 }
 
-static void execute(instructions::store_ptr64_be const &, ptr_t value, ptr_t ptr, executor_context &context)
+static void execute_store_ptr64_be(instructions::store_ptr64_be const &, ptr_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 8);
 	store_big_endian<uint64_t>(mem, static_cast<uint64_t>(value));
@@ -316,366 +316,366 @@ static void store_little_endian(uint8_t *mem, Int value)
 	}
 }
 
-static void execute(instructions::store_i1_le const &, bool value, ptr_t ptr, executor_context &context)
+static void execute_store_i1_le(instructions::store_i1_le const &, bool value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 1);
 	store_little_endian<uint8_t>(mem, value ? 1 : 0);
 }
 
-static void execute(instructions::store_i8_le const &, uint8_t value, ptr_t ptr, executor_context &context)
+static void execute_store_i8_le(instructions::store_i8_le const &, uint8_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 1);
 	store_little_endian<uint8_t>(mem, value);
 }
 
-static void execute(instructions::store_i16_le const &, uint16_t value, ptr_t ptr, executor_context &context)
+static void execute_store_i16_le(instructions::store_i16_le const &, uint16_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 2);
 	store_little_endian<uint16_t>(mem, value);
 }
 
-static void execute(instructions::store_i32_le const &, uint32_t value, ptr_t ptr, executor_context &context)
+static void execute_store_i32_le(instructions::store_i32_le const &, uint32_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 4);
 	store_little_endian<uint32_t>(mem, value);
 }
 
-static void execute(instructions::store_i64_le const &, uint64_t value, ptr_t ptr, executor_context &context)
+static void execute_store_i64_le(instructions::store_i64_le const &, uint64_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 8);
 	store_little_endian<uint64_t>(mem, value);
 }
 
-static void execute(instructions::store_f32_le const &, float32_t value, ptr_t ptr, executor_context &context)
+static void execute_store_f32_le(instructions::store_f32_le const &, float32_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 4);
 	store_little_endian<uint32_t>(mem, bit_cast<uint32_t>(value));
 }
 
-static void execute(instructions::store_f64_le const &, float64_t value, ptr_t ptr, executor_context &context)
+static void execute_store_f64_le(instructions::store_f64_le const &, float64_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 8);
 	store_little_endian<uint64_t>(mem, bit_cast<uint64_t>(value));
 }
 
-static void execute(instructions::store_ptr32_le const &, ptr_t value, ptr_t ptr, executor_context &context)
+static void execute_store_ptr32_le(instructions::store_ptr32_le const &, ptr_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 4);
 	store_little_endian<uint32_t>(mem, static_cast<uint32_t>(value));
 }
 
-static void execute(instructions::store_ptr64_le const &, ptr_t value, ptr_t ptr, executor_context &context)
+static void execute_store_ptr64_le(instructions::store_ptr64_le const &, ptr_t value, ptr_t ptr, executor_context &context)
 {
 	auto const mem = context.get_memory(ptr, 8);
 	store_little_endian<uint64_t>(mem, static_cast<uint64_t>(value));
 }
 
-static uint8_t execute(instructions::cast_zext_i1_to_i8 const &, bool value, executor_context &)
+static uint8_t execute_cast_zext_i1_to_i8(instructions::cast_zext_i1_to_i8 const &, bool value, executor_context &)
 {
 	return value ? 1 : 0;
 }
 
-static uint16_t execute(instructions::cast_zext_i1_to_i16 const &, bool value, executor_context &)
+static uint16_t execute_cast_zext_i1_to_i16(instructions::cast_zext_i1_to_i16 const &, bool value, executor_context &)
 {
 	return value ? 1 : 0;
 }
 
-static uint32_t execute(instructions::cast_zext_i1_to_i32 const &, bool value, executor_context &)
+static uint32_t execute_cast_zext_i1_to_i32(instructions::cast_zext_i1_to_i32 const &, bool value, executor_context &)
 {
 	return value ? 1 : 0;
 }
 
-static uint64_t execute(instructions::cast_zext_i1_to_i64 const &, bool value, executor_context &)
+static uint64_t execute_cast_zext_i1_to_i64(instructions::cast_zext_i1_to_i64 const &, bool value, executor_context &)
 {
 	return value ? 1 : 0;
 }
 
-static uint16_t execute(instructions::cast_zext_i8_to_i16 const &, uint8_t value, executor_context &)
+static uint16_t execute_cast_zext_i8_to_i16(instructions::cast_zext_i8_to_i16 const &, uint8_t value, executor_context &)
 {
 	return static_cast<uint16_t>(value);
 }
 
-static uint32_t execute(instructions::cast_zext_i8_to_i32 const &, uint8_t value, executor_context &)
+static uint32_t execute_cast_zext_i8_to_i32(instructions::cast_zext_i8_to_i32 const &, uint8_t value, executor_context &)
 {
 	return static_cast<uint32_t>(value);
 }
 
-static uint64_t execute(instructions::cast_zext_i8_to_i64 const &, uint8_t value, executor_context &)
+static uint64_t execute_cast_zext_i8_to_i64(instructions::cast_zext_i8_to_i64 const &, uint8_t value, executor_context &)
 {
 	return static_cast<uint64_t>(value);
 }
 
-static uint32_t execute(instructions::cast_zext_i16_to_i32 const &, uint16_t value, executor_context &)
+static uint32_t execute_cast_zext_i16_to_i32(instructions::cast_zext_i16_to_i32 const &, uint16_t value, executor_context &)
 {
 	return static_cast<uint32_t>(value);
 }
 
-static uint64_t execute(instructions::cast_zext_i16_to_i64 const &, uint16_t value, executor_context &)
+static uint64_t execute_cast_zext_i16_to_i64(instructions::cast_zext_i16_to_i64 const &, uint16_t value, executor_context &)
 {
 	return static_cast<uint64_t>(value);
 }
 
-static uint64_t execute(instructions::cast_zext_i32_to_i64 const &, uint32_t value, executor_context &)
+static uint64_t execute_cast_zext_i32_to_i64(instructions::cast_zext_i32_to_i64 const &, uint32_t value, executor_context &)
 {
 	return static_cast<uint64_t>(value);
 }
 
-static uint16_t execute(instructions::cast_sext_i8_to_i16 const &, uint8_t value, executor_context &)
+static uint16_t execute_cast_sext_i8_to_i16(instructions::cast_sext_i8_to_i16 const &, uint8_t value, executor_context &)
 {
 	return static_cast<uint16_t>(static_cast<int16_t>(static_cast<int8_t>(value)));
 }
 
-static uint32_t execute(instructions::cast_sext_i8_to_i32 const &, uint8_t value, executor_context &)
+static uint32_t execute_cast_sext_i8_to_i32(instructions::cast_sext_i8_to_i32 const &, uint8_t value, executor_context &)
 {
 	return static_cast<uint32_t>(static_cast<int32_t>(static_cast<int8_t>(value)));
 }
 
-static uint64_t execute(instructions::cast_sext_i8_to_i64 const &, uint8_t value, executor_context &)
+static uint64_t execute_cast_sext_i8_to_i64(instructions::cast_sext_i8_to_i64 const &, uint8_t value, executor_context &)
 {
 	return static_cast<uint64_t>(static_cast<int64_t>(static_cast<int8_t>(value)));
 }
 
-static uint32_t execute(instructions::cast_sext_i16_to_i32 const &, uint16_t value, executor_context &)
+static uint32_t execute_cast_sext_i16_to_i32(instructions::cast_sext_i16_to_i32 const &, uint16_t value, executor_context &)
 {
 	return static_cast<uint32_t>(static_cast<int32_t>(static_cast<int16_t>(value)));
 }
 
-static uint64_t execute(instructions::cast_sext_i16_to_i64 const &, uint16_t value, executor_context &)
+static uint64_t execute_cast_sext_i16_to_i64(instructions::cast_sext_i16_to_i64 const &, uint16_t value, executor_context &)
 {
 	return static_cast<uint64_t>(static_cast<int64_t>(static_cast<int16_t>(value)));
 }
 
-static uint64_t execute(instructions::cast_sext_i32_to_i64 const &, uint32_t value, executor_context &)
+static uint64_t execute_cast_sext_i32_to_i64(instructions::cast_sext_i32_to_i64 const &, uint32_t value, executor_context &)
 {
 	return static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(value)));
 }
 
-static uint8_t execute(instructions::cast_trunc_i64_to_i8 const &, uint64_t value, executor_context &)
+static uint8_t execute_cast_trunc_i64_to_i8(instructions::cast_trunc_i64_to_i8 const &, uint64_t value, executor_context &)
 {
 	return static_cast<uint8_t>(value);
 }
 
-static uint16_t execute(instructions::cast_trunc_i64_to_i16 const &, uint64_t value, executor_context &)
+static uint16_t execute_cast_trunc_i64_to_i16(instructions::cast_trunc_i64_to_i16 const &, uint64_t value, executor_context &)
 {
 	return static_cast<uint16_t>(value);
 }
 
-static uint32_t execute(instructions::cast_trunc_i64_to_i32 const &, uint64_t value, executor_context &)
+static uint32_t execute_cast_trunc_i64_to_i32(instructions::cast_trunc_i64_to_i32 const &, uint64_t value, executor_context &)
 {
 	return static_cast<uint32_t>(value);
 }
 
-static uint8_t execute(instructions::cast_trunc_i32_to_i8 const &, uint32_t value, executor_context &)
+static uint8_t execute_cast_trunc_i32_to_i8(instructions::cast_trunc_i32_to_i8 const &, uint32_t value, executor_context &)
 {
 	return static_cast<uint8_t>(value);
 }
 
-static uint16_t execute(instructions::cast_trunc_i32_to_i16 const &, uint32_t value, executor_context &)
+static uint16_t execute_cast_trunc_i32_to_i16(instructions::cast_trunc_i32_to_i16 const &, uint32_t value, executor_context &)
 {
 	return static_cast<uint16_t>(value);
 }
 
-static uint8_t execute(instructions::cast_trunc_i16_to_i8 const &, uint16_t value, executor_context &)
+static uint8_t execute_cast_trunc_i16_to_i8(instructions::cast_trunc_i16_to_i8 const &, uint16_t value, executor_context &)
 {
 	return static_cast<uint8_t>(value);
 }
 
-static float64_t execute(instructions::cast_f32_to_f64 const &, float32_t value, executor_context &)
+static float64_t execute_cast_f32_to_f64(instructions::cast_f32_to_f64 const &, float32_t value, executor_context &)
 {
 	return static_cast<float64_t>(value);
 }
 
-static float32_t execute(instructions::cast_f64_to_f32 const &, float64_t value, executor_context &)
+static float32_t execute_cast_f64_to_f32(instructions::cast_f64_to_f32 const &, float64_t value, executor_context &)
 {
 	return static_cast<float32_t>(value);
 }
 
-static uint8_t execute(instructions::cast_f32_to_i8 const &, float32_t value, executor_context &)
+static uint8_t execute_cast_f32_to_i8(instructions::cast_f32_to_i8 const &, float32_t value, executor_context &)
 {
 	return static_cast<uint8_t>(static_cast<int8_t>(value));
 }
 
-static uint16_t execute(instructions::cast_f32_to_i16 const &, float32_t value, executor_context &)
+static uint16_t execute_cast_f32_to_i16(instructions::cast_f32_to_i16 const &, float32_t value, executor_context &)
 {
 	return static_cast<uint16_t>(static_cast<int16_t>(value));
 }
 
-static uint32_t execute(instructions::cast_f32_to_i32 const &, float32_t value, executor_context &)
+static uint32_t execute_cast_f32_to_i32(instructions::cast_f32_to_i32 const &, float32_t value, executor_context &)
 {
 	return static_cast<uint32_t>(static_cast<int32_t>(value));
 }
 
-static uint64_t execute(instructions::cast_f32_to_i64 const &, float32_t value, executor_context &)
+static uint64_t execute_cast_f32_to_i64(instructions::cast_f32_to_i64 const &, float32_t value, executor_context &)
 {
 	return static_cast<uint64_t>(static_cast<int64_t>(value));
 }
 
-static uint8_t execute(instructions::cast_f32_to_u8 const &, float32_t value, executor_context &)
+static uint8_t execute_cast_f32_to_u8(instructions::cast_f32_to_u8 const &, float32_t value, executor_context &)
 {
 	return static_cast<uint8_t>(value);
 }
 
-static uint16_t execute(instructions::cast_f32_to_u16 const &, float32_t value, executor_context &)
+static uint16_t execute_cast_f32_to_u16(instructions::cast_f32_to_u16 const &, float32_t value, executor_context &)
 {
 	return static_cast<uint16_t>(value);
 }
 
-static uint32_t execute(instructions::cast_f32_to_u32 const &, float32_t value, executor_context &)
+static uint32_t execute_cast_f32_to_u32(instructions::cast_f32_to_u32 const &, float32_t value, executor_context &)
 {
 	return static_cast<uint32_t>(value);
 }
 
-static uint64_t execute(instructions::cast_f32_to_u64 const &, float32_t value, executor_context &)
+static uint64_t execute_cast_f32_to_u64(instructions::cast_f32_to_u64 const &, float32_t value, executor_context &)
 {
 	return static_cast<uint64_t>(value);
 }
 
-static uint8_t execute(instructions::cast_f64_to_i8 const &, float64_t value, executor_context &)
+static uint8_t execute_cast_f64_to_i8(instructions::cast_f64_to_i8 const &, float64_t value, executor_context &)
 {
 	return static_cast<uint8_t>(static_cast<int8_t>(value));
 }
 
-static uint16_t execute(instructions::cast_f64_to_i16 const &, float64_t value, executor_context &)
+static uint16_t execute_cast_f64_to_i16(instructions::cast_f64_to_i16 const &, float64_t value, executor_context &)
 {
 	return static_cast<uint16_t>(static_cast<int16_t>(value));
 }
 
-static uint32_t execute(instructions::cast_f64_to_i32 const &, float64_t value, executor_context &)
+static uint32_t execute_cast_f64_to_i32(instructions::cast_f64_to_i32 const &, float64_t value, executor_context &)
 {
 	return static_cast<uint32_t>(static_cast<int32_t>(value));
 }
 
-static uint64_t execute(instructions::cast_f64_to_i64 const &, float64_t value, executor_context &)
+static uint64_t execute_cast_f64_to_i64(instructions::cast_f64_to_i64 const &, float64_t value, executor_context &)
 {
 	return static_cast<uint64_t>(static_cast<int64_t>(value));
 }
 
-static uint8_t execute(instructions::cast_f64_to_u8 const &, float64_t value, executor_context &)
+static uint8_t execute_cast_f64_to_u8(instructions::cast_f64_to_u8 const &, float64_t value, executor_context &)
 {
 	return static_cast<uint8_t>(value);
 }
 
-static uint16_t execute(instructions::cast_f64_to_u16 const &, float64_t value, executor_context &)
+static uint16_t execute_cast_f64_to_u16(instructions::cast_f64_to_u16 const &, float64_t value, executor_context &)
 {
 	return static_cast<uint16_t>(value);
 }
 
-static uint32_t execute(instructions::cast_f64_to_u32 const &, float64_t value, executor_context &)
+static uint32_t execute_cast_f64_to_u32(instructions::cast_f64_to_u32 const &, float64_t value, executor_context &)
 {
 	return static_cast<uint32_t>(value);
 }
 
-static uint64_t execute(instructions::cast_f64_to_u64 const &, float64_t value, executor_context &)
+static uint64_t execute_cast_f64_to_u64(instructions::cast_f64_to_u64 const &, float64_t value, executor_context &)
 {
 	return static_cast<uint64_t>(value);
 }
 
-static float32_t execute(instructions::cast_i8_to_f32 const &, uint8_t value, executor_context &)
+static float32_t execute_cast_i8_to_f32(instructions::cast_i8_to_f32 const &, uint8_t value, executor_context &)
 {
 	return static_cast<float32_t>(static_cast<int8_t>(value));
 }
 
-static float32_t execute(instructions::cast_i16_to_f32 const &, uint16_t value, executor_context &)
+static float32_t execute_cast_i16_to_f32(instructions::cast_i16_to_f32 const &, uint16_t value, executor_context &)
 {
 	return static_cast<float32_t>(static_cast<int16_t>(value));
 }
 
-static float32_t execute(instructions::cast_i32_to_f32 const &, uint32_t value, executor_context &)
+static float32_t execute_cast_i32_to_f32(instructions::cast_i32_to_f32 const &, uint32_t value, executor_context &)
 {
 	return static_cast<float32_t>(static_cast<int32_t>(value));
 }
 
-static float32_t execute(instructions::cast_i64_to_f32 const &, uint64_t value, executor_context &)
+static float32_t execute_cast_i64_to_f32(instructions::cast_i64_to_f32 const &, uint64_t value, executor_context &)
 {
 	return static_cast<float32_t>(static_cast<int64_t>(value));
 }
 
-static float32_t execute(instructions::cast_u8_to_f32 const &, uint8_t value, executor_context &)
+static float32_t execute_cast_u8_to_f32(instructions::cast_u8_to_f32 const &, uint8_t value, executor_context &)
 {
 	return static_cast<float32_t>(value);
 }
 
-static float32_t execute(instructions::cast_u16_to_f32 const &, uint16_t value, executor_context &)
+static float32_t execute_cast_u16_to_f32(instructions::cast_u16_to_f32 const &, uint16_t value, executor_context &)
 {
 	return static_cast<float32_t>(value);
 }
 
-static float32_t execute(instructions::cast_u32_to_f32 const &, uint32_t value, executor_context &)
+static float32_t execute_cast_u32_to_f32(instructions::cast_u32_to_f32 const &, uint32_t value, executor_context &)
 {
 	return static_cast<float32_t>(value);
 }
 
-static float32_t execute(instructions::cast_u64_to_f32 const &, uint64_t value, executor_context &)
+static float32_t execute_cast_u64_to_f32(instructions::cast_u64_to_f32 const &, uint64_t value, executor_context &)
 {
 	return static_cast<float32_t>(value);
 }
 
-static float64_t execute(instructions::cast_i8_to_f64 const &, uint8_t value, executor_context &)
+static float64_t execute_cast_i8_to_f64(instructions::cast_i8_to_f64 const &, uint8_t value, executor_context &)
 {
 	return static_cast<float64_t>(static_cast<int8_t>(value));
 }
 
-static float64_t execute(instructions::cast_i16_to_f64 const &, uint16_t value, executor_context &)
+static float64_t execute_cast_i16_to_f64(instructions::cast_i16_to_f64 const &, uint16_t value, executor_context &)
 {
 	return static_cast<float64_t>(static_cast<int16_t>(value));
 }
 
-static float64_t execute(instructions::cast_i32_to_f64 const &, uint32_t value, executor_context &)
+static float64_t execute_cast_i32_to_f64(instructions::cast_i32_to_f64 const &, uint32_t value, executor_context &)
 {
 	return static_cast<float64_t>(static_cast<int32_t>(value));
 }
 
-static float64_t execute(instructions::cast_i64_to_f64 const &, uint64_t value, executor_context &)
+static float64_t execute_cast_i64_to_f64(instructions::cast_i64_to_f64 const &, uint64_t value, executor_context &)
 {
 	return static_cast<float64_t>(static_cast<int64_t>(value));
 }
 
-static float64_t execute(instructions::cast_u8_to_f64 const &, uint8_t value, executor_context &)
+static float64_t execute_cast_u8_to_f64(instructions::cast_u8_to_f64 const &, uint8_t value, executor_context &)
 {
 	return static_cast<float64_t>(value);
 }
 
-static float64_t execute(instructions::cast_u16_to_f64 const &, uint16_t value, executor_context &)
+static float64_t execute_cast_u16_to_f64(instructions::cast_u16_to_f64 const &, uint16_t value, executor_context &)
 {
 	return static_cast<float64_t>(value);
 }
 
-static float64_t execute(instructions::cast_u32_to_f64 const &, uint32_t value, executor_context &)
+static float64_t execute_cast_u32_to_f64(instructions::cast_u32_to_f64 const &, uint32_t value, executor_context &)
 {
 	return static_cast<float64_t>(value);
 }
 
-static float64_t execute(instructions::cast_u64_to_f64 const &, uint64_t value, executor_context &)
+static float64_t execute_cast_u64_to_f64(instructions::cast_u64_to_f64 const &, uint64_t value, executor_context &)
 {
 	return static_cast<float64_t>(value);
 }
 
-static bool execute(instructions::cmp_eq_i1 const &, bool lhs, bool rhs, executor_context &)
+static bool execute_cmp_eq_i1(instructions::cmp_eq_i1 const &, bool lhs, bool rhs, executor_context &)
 {
 	return lhs == rhs;
 }
 
-static bool execute(instructions::cmp_eq_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+static bool execute_cmp_eq_i8(instructions::cmp_eq_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return lhs == rhs;
 }
 
-static bool execute(instructions::cmp_eq_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+static bool execute_cmp_eq_i16(instructions::cmp_eq_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
 {
 	return lhs == rhs;
 }
 
-static bool execute(instructions::cmp_eq_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+static bool execute_cmp_eq_i32(instructions::cmp_eq_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
 {
 	return lhs == rhs;
 }
 
-static bool execute(instructions::cmp_eq_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+static bool execute_cmp_eq_i64(instructions::cmp_eq_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
 {
 	return lhs == rhs;
 }
 
-static bool execute(instructions::cmp_eq_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &context)
+static bool execute_cmp_eq_f32(instructions::cmp_eq_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &context)
 {
 	if (std::isnan(lhs) && std::isnan(rhs))
 	{
@@ -696,7 +696,7 @@ static bool execute(instructions::cmp_eq_f32 const &inst, float32_t lhs, float32
 	return lhs == rhs;
 }
 
-static bool execute(instructions::cmp_eq_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &context)
+static bool execute_cmp_eq_f64(instructions::cmp_eq_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &context)
 {
 	if (std::isnan(lhs) && std::isnan(rhs))
 	{
@@ -717,47 +717,47 @@ static bool execute(instructions::cmp_eq_f64 const &inst, float64_t lhs, float64
 	return lhs == rhs;
 }
 
-static bool execute(instructions::cmp_eq_f32_unchecked const &, float32_t lhs, float32_t rhs, executor_context &)
+static bool execute_cmp_eq_f32_unchecked(instructions::cmp_eq_f32_unchecked const &, float32_t lhs, float32_t rhs, executor_context &)
 {
 	return lhs == rhs;
 }
 
-static bool execute(instructions::cmp_eq_f64_unchecked const &, float64_t lhs, float64_t rhs, executor_context &)
+static bool execute_cmp_eq_f64_unchecked(instructions::cmp_eq_f64_unchecked const &, float64_t lhs, float64_t rhs, executor_context &)
 {
 	return lhs == rhs;
 }
 
-static bool execute(instructions::cmp_eq_ptr const &, ptr_t lhs, ptr_t rhs, executor_context &)
+static bool execute_cmp_eq_ptr(instructions::cmp_eq_ptr const &, ptr_t lhs, ptr_t rhs, executor_context &)
 {
 	return lhs == rhs;
 }
 
-static bool execute(instructions::cmp_neq_i1 const &, bool lhs, bool rhs, executor_context &)
+static bool execute_cmp_neq_i1(instructions::cmp_neq_i1 const &, bool lhs, bool rhs, executor_context &)
 {
 	return lhs != rhs;
 }
 
-static bool execute(instructions::cmp_neq_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+static bool execute_cmp_neq_i8(instructions::cmp_neq_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return lhs != rhs;
 }
 
-static bool execute(instructions::cmp_neq_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+static bool execute_cmp_neq_i16(instructions::cmp_neq_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
 {
 	return lhs != rhs;
 }
 
-static bool execute(instructions::cmp_neq_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+static bool execute_cmp_neq_i32(instructions::cmp_neq_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
 {
 	return lhs != rhs;
 }
 
-static bool execute(instructions::cmp_neq_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+static bool execute_cmp_neq_i64(instructions::cmp_neq_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
 {
 	return lhs != rhs;
 }
 
-static bool execute(instructions::cmp_neq_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &context)
+static bool execute_cmp_neq_f32(instructions::cmp_neq_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &context)
 {
 	if (std::isnan(lhs) && std::isnan(rhs))
 	{
@@ -778,7 +778,7 @@ static bool execute(instructions::cmp_neq_f32 const &inst, float32_t lhs, float3
 	return lhs != rhs;
 }
 
-static bool execute(instructions::cmp_neq_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &context)
+static bool execute_cmp_neq_f64(instructions::cmp_neq_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &context)
 {
 	if (std::isnan(lhs) && std::isnan(rhs))
 	{
@@ -799,62 +799,62 @@ static bool execute(instructions::cmp_neq_f64 const &inst, float64_t lhs, float6
 	return lhs != rhs;
 }
 
-static bool execute(instructions::cmp_neq_f32_unchecked const &, float32_t lhs, float32_t rhs, executor_context &)
+static bool execute_cmp_neq_f32_unchecked(instructions::cmp_neq_f32_unchecked const &, float32_t lhs, float32_t rhs, executor_context &)
 {
 	return lhs != rhs;
 }
 
-static bool execute(instructions::cmp_neq_f64_unchecked const &, float64_t lhs, float64_t rhs, executor_context &)
+static bool execute_cmp_neq_f64_unchecked(instructions::cmp_neq_f64_unchecked const &, float64_t lhs, float64_t rhs, executor_context &)
 {
 	return lhs != rhs;
 }
 
-static bool execute(instructions::cmp_neq_ptr const &, ptr_t lhs, ptr_t rhs, executor_context &)
+static bool execute_cmp_neq_ptr(instructions::cmp_neq_ptr const &, ptr_t lhs, ptr_t rhs, executor_context &)
 {
 	return lhs != rhs;
 }
 
-static bool execute(instructions::cmp_lt_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+static bool execute_cmp_lt_i8(instructions::cmp_lt_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return static_cast<int8_t>(lhs) < static_cast<int8_t>(rhs);
 }
 
-static bool execute(instructions::cmp_lt_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+static bool execute_cmp_lt_i16(instructions::cmp_lt_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
 {
 	return static_cast<int16_t>(lhs) < static_cast<int16_t>(rhs);
 }
 
-static bool execute(instructions::cmp_lt_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+static bool execute_cmp_lt_i32(instructions::cmp_lt_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
 {
 	return static_cast<int32_t>(lhs) < static_cast<int32_t>(rhs);
 }
 
-static bool execute(instructions::cmp_lt_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+static bool execute_cmp_lt_i64(instructions::cmp_lt_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
 {
 	return static_cast<int64_t>(lhs) < static_cast<int64_t>(rhs);
 }
 
-static bool execute(instructions::cmp_lt_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+static bool execute_cmp_lt_u8(instructions::cmp_lt_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return lhs < rhs;
 }
 
-static bool execute(instructions::cmp_lt_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+static bool execute_cmp_lt_u16(instructions::cmp_lt_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
 {
 	return lhs < rhs;
 }
 
-static bool execute(instructions::cmp_lt_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+static bool execute_cmp_lt_u32(instructions::cmp_lt_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
 {
 	return lhs < rhs;
 }
 
-static bool execute(instructions::cmp_lt_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+static bool execute_cmp_lt_u64(instructions::cmp_lt_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
 {
 	return lhs < rhs;
 }
 
-static bool execute(instructions::cmp_lt_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &context)
+static bool execute_cmp_lt_f32(instructions::cmp_lt_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &context)
 {
 	if (std::isnan(lhs) && std::isnan(rhs))
 	{
@@ -875,7 +875,7 @@ static bool execute(instructions::cmp_lt_f32 const &inst, float32_t lhs, float32
 	return lhs < rhs;
 }
 
-static bool execute(instructions::cmp_lt_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &context)
+static bool execute_cmp_lt_f64(instructions::cmp_lt_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &context)
 {
 	if (std::isnan(lhs) && std::isnan(rhs))
 	{
@@ -896,57 +896,57 @@ static bool execute(instructions::cmp_lt_f64 const &inst, float64_t lhs, float64
 	return lhs < rhs;
 }
 
-static bool execute(instructions::cmp_lt_f32_unchecked const &, float32_t lhs, float32_t rhs, executor_context &)
+static bool execute_cmp_lt_f32_unchecked(instructions::cmp_lt_f32_unchecked const &, float32_t lhs, float32_t rhs, executor_context &)
 {
 	return lhs < rhs;
 }
 
-static bool execute(instructions::cmp_lt_f64_unchecked const &, float64_t lhs, float64_t rhs, executor_context &)
+static bool execute_cmp_lt_f64_unchecked(instructions::cmp_lt_f64_unchecked const &, float64_t lhs, float64_t rhs, executor_context &)
 {
 	return lhs < rhs;
 }
 
-static bool execute(instructions::cmp_gt_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+static bool execute_cmp_gt_i8(instructions::cmp_gt_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return static_cast<int8_t>(lhs) > static_cast<int8_t>(rhs);
 }
 
-static bool execute(instructions::cmp_gt_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+static bool execute_cmp_gt_i16(instructions::cmp_gt_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
 {
 	return static_cast<int16_t>(lhs) > static_cast<int16_t>(rhs);
 }
 
-static bool execute(instructions::cmp_gt_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+static bool execute_cmp_gt_i32(instructions::cmp_gt_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
 {
 	return static_cast<int32_t>(lhs) > static_cast<int32_t>(rhs);
 }
 
-static bool execute(instructions::cmp_gt_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+static bool execute_cmp_gt_i64(instructions::cmp_gt_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
 {
 	return static_cast<int64_t>(lhs) > static_cast<int64_t>(rhs);
 }
 
-static bool execute(instructions::cmp_gt_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+static bool execute_cmp_gt_u8(instructions::cmp_gt_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return lhs > rhs;
 }
 
-static bool execute(instructions::cmp_gt_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+static bool execute_cmp_gt_u16(instructions::cmp_gt_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
 {
 	return lhs > rhs;
 }
 
-static bool execute(instructions::cmp_gt_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+static bool execute_cmp_gt_u32(instructions::cmp_gt_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
 {
 	return lhs > rhs;
 }
 
-static bool execute(instructions::cmp_gt_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+static bool execute_cmp_gt_u64(instructions::cmp_gt_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
 {
 	return lhs > rhs;
 }
 
-static bool execute(instructions::cmp_gt_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &context)
+static bool execute_cmp_gt_f32(instructions::cmp_gt_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &context)
 {
 	if (std::isnan(lhs) && std::isnan(rhs))
 	{
@@ -967,7 +967,7 @@ static bool execute(instructions::cmp_gt_f32 const &inst, float32_t lhs, float32
 	return lhs > rhs;
 }
 
-static bool execute(instructions::cmp_gt_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &context)
+static bool execute_cmp_gt_f64(instructions::cmp_gt_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &context)
 {
 	if (std::isnan(lhs) && std::isnan(rhs))
 	{
@@ -988,57 +988,57 @@ static bool execute(instructions::cmp_gt_f64 const &inst, float64_t lhs, float64
 	return lhs > rhs;
 }
 
-static bool execute(instructions::cmp_gt_f32_unchecked const &, float32_t lhs, float32_t rhs, executor_context &)
+static bool execute_cmp_gt_f32_unchecked(instructions::cmp_gt_f32_unchecked const &, float32_t lhs, float32_t rhs, executor_context &)
 {
 	return lhs > rhs;
 }
 
-static bool execute(instructions::cmp_gt_f64_unchecked const &, float64_t lhs, float64_t rhs, executor_context &)
+static bool execute_cmp_gt_f64_unchecked(instructions::cmp_gt_f64_unchecked const &, float64_t lhs, float64_t rhs, executor_context &)
 {
 	return lhs > rhs;
 }
 
-static bool execute(instructions::cmp_lte_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+static bool execute_cmp_lte_i8(instructions::cmp_lte_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return static_cast<int8_t>(lhs) <= static_cast<int8_t>(rhs);
 }
 
-static bool execute(instructions::cmp_lte_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+static bool execute_cmp_lte_i16(instructions::cmp_lte_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
 {
 	return static_cast<int16_t>(lhs) <= static_cast<int16_t>(rhs);
 }
 
-static bool execute(instructions::cmp_lte_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+static bool execute_cmp_lte_i32(instructions::cmp_lte_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
 {
 	return static_cast<int32_t>(lhs) <= static_cast<int32_t>(rhs);
 }
 
-static bool execute(instructions::cmp_lte_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+static bool execute_cmp_lte_i64(instructions::cmp_lte_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
 {
 	return static_cast<int64_t>(lhs) <= static_cast<int64_t>(rhs);
 }
 
-static bool execute(instructions::cmp_lte_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+static bool execute_cmp_lte_u8(instructions::cmp_lte_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return lhs <= rhs;
 }
 
-static bool execute(instructions::cmp_lte_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+static bool execute_cmp_lte_u16(instructions::cmp_lte_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
 {
 	return lhs <= rhs;
 }
 
-static bool execute(instructions::cmp_lte_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+static bool execute_cmp_lte_u32(instructions::cmp_lte_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
 {
 	return lhs <= rhs;
 }
 
-static bool execute(instructions::cmp_lte_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+static bool execute_cmp_lte_u64(instructions::cmp_lte_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
 {
 	return lhs <= rhs;
 }
 
-static bool execute(instructions::cmp_lte_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &context)
+static bool execute_cmp_lte_f32(instructions::cmp_lte_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &context)
 {
 	if (std::isnan(lhs) && std::isnan(rhs))
 	{
@@ -1059,7 +1059,7 @@ static bool execute(instructions::cmp_lte_f32 const &inst, float32_t lhs, float3
 	return lhs <= rhs;
 }
 
-static bool execute(instructions::cmp_lte_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &context)
+static bool execute_cmp_lte_f64(instructions::cmp_lte_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &context)
 {
 	if (std::isnan(lhs) && std::isnan(rhs))
 	{
@@ -1080,57 +1080,57 @@ static bool execute(instructions::cmp_lte_f64 const &inst, float64_t lhs, float6
 	return lhs <= rhs;
 }
 
-static bool execute(instructions::cmp_lte_f32_unchecked const &, float32_t lhs, float32_t rhs, executor_context &)
+static bool execute_cmp_lte_f32_unchecked(instructions::cmp_lte_f32_unchecked const &, float32_t lhs, float32_t rhs, executor_context &)
 {
 	return lhs <= rhs;
 }
 
-static bool execute(instructions::cmp_lte_f64_unchecked const &, float64_t lhs, float64_t rhs, executor_context &)
+static bool execute_cmp_lte_f64_unchecked(instructions::cmp_lte_f64_unchecked const &, float64_t lhs, float64_t rhs, executor_context &)
 {
 	return lhs <= rhs;
 }
 
-static bool execute(instructions::cmp_gte_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+static bool execute_cmp_gte_i8(instructions::cmp_gte_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return static_cast<int8_t>(lhs) >= static_cast<int8_t>(rhs);
 }
 
-static bool execute(instructions::cmp_gte_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+static bool execute_cmp_gte_i16(instructions::cmp_gte_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
 {
 	return static_cast<int16_t>(lhs) >= static_cast<int16_t>(rhs);
 }
 
-static bool execute(instructions::cmp_gte_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+static bool execute_cmp_gte_i32(instructions::cmp_gte_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
 {
 	return static_cast<int32_t>(lhs) >= static_cast<int32_t>(rhs);
 }
 
-static bool execute(instructions::cmp_gte_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+static bool execute_cmp_gte_i64(instructions::cmp_gte_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
 {
 	return static_cast<int64_t>(lhs) >= static_cast<int64_t>(rhs);
 }
 
-static bool execute(instructions::cmp_gte_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+static bool execute_cmp_gte_u8(instructions::cmp_gte_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return lhs >= rhs;
 }
 
-static bool execute(instructions::cmp_gte_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+static bool execute_cmp_gte_u16(instructions::cmp_gte_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
 {
 	return lhs >= rhs;
 }
 
-static bool execute(instructions::cmp_gte_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+static bool execute_cmp_gte_u32(instructions::cmp_gte_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
 {
 	return lhs >= rhs;
 }
 
-static bool execute(instructions::cmp_gte_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+static bool execute_cmp_gte_u64(instructions::cmp_gte_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
 {
 	return lhs >= rhs;
 }
 
-static bool execute(instructions::cmp_gte_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &context)
+static bool execute_cmp_gte_f32(instructions::cmp_gte_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &context)
 {
 	if (std::isnan(lhs) && std::isnan(rhs))
 	{
@@ -1151,7 +1151,7 @@ static bool execute(instructions::cmp_gte_f32 const &inst, float32_t lhs, float3
 	return lhs >= rhs;
 }
 
-static bool execute(instructions::cmp_gte_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &context)
+static bool execute_cmp_gte_f64(instructions::cmp_gte_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &context)
 {
 	if (std::isnan(lhs) && std::isnan(rhs))
 	{
@@ -1172,17 +1172,17 @@ static bool execute(instructions::cmp_gte_f64 const &inst, float64_t lhs, float6
 	return lhs >= rhs;
 }
 
-static bool execute(instructions::cmp_gte_f32_unchecked const &, float32_t lhs, float32_t rhs, executor_context &)
+static bool execute_cmp_gte_f32_unchecked(instructions::cmp_gte_f32_unchecked const &, float32_t lhs, float32_t rhs, executor_context &)
 {
 	return lhs >= rhs;
 }
 
-static bool execute(instructions::cmp_gte_f64_unchecked const &, float64_t lhs, float64_t rhs, executor_context &)
+static bool execute_cmp_gte_f64_unchecked(instructions::cmp_gte_f64_unchecked const &, float64_t lhs, float64_t rhs, executor_context &)
 {
 	return lhs >= rhs;
 }
 
-static uint8_t execute(instructions::neg_i8 const &inst, uint8_t uvalue, executor_context &context)
+static uint8_t execute_neg_i8(instructions::neg_i8 const &inst, uint8_t uvalue, executor_context &context)
 {
 	auto const value = static_cast<int8_t>(uvalue);
 	if (value == std::numeric_limits<int8_t>::min())
@@ -1200,7 +1200,7 @@ static uint8_t execute(instructions::neg_i8 const &inst, uint8_t uvalue, executo
 	}
 }
 
-static uint16_t execute(instructions::neg_i16 const &inst, uint16_t uvalue, executor_context &context)
+static uint16_t execute_neg_i16(instructions::neg_i16 const &inst, uint16_t uvalue, executor_context &context)
 {
 	auto const value = static_cast<int16_t>(uvalue);
 	if (value == std::numeric_limits<int16_t>::min())
@@ -1218,7 +1218,7 @@ static uint16_t execute(instructions::neg_i16 const &inst, uint16_t uvalue, exec
 	}
 }
 
-static uint32_t execute(instructions::neg_i32 const &inst, uint32_t uvalue, executor_context &context)
+static uint32_t execute_neg_i32(instructions::neg_i32 const &inst, uint32_t uvalue, executor_context &context)
 {
 	auto const value = static_cast<int32_t>(uvalue);
 	if (value == std::numeric_limits<int32_t>::min())
@@ -1236,7 +1236,7 @@ static uint32_t execute(instructions::neg_i32 const &inst, uint32_t uvalue, exec
 	}
 }
 
-static uint64_t execute(instructions::neg_i64 const &inst, uint64_t uvalue, executor_context &context)
+static uint64_t execute_neg_i64(instructions::neg_i64 const &inst, uint64_t uvalue, executor_context &context)
 {
 	auto const value = static_cast<int64_t>(uvalue);
 	if (value == std::numeric_limits<int64_t>::min())
@@ -1254,7 +1254,7 @@ static uint64_t execute(instructions::neg_i64 const &inst, uint64_t uvalue, exec
 	}
 }
 
-static uint8_t execute(instructions::neg_i8_unchecked const &, uint8_t uvalue, executor_context &)
+static uint8_t execute_neg_i8_unchecked(instructions::neg_i8_unchecked const &, uint8_t uvalue, executor_context &)
 {
 	auto const value = static_cast<int8_t>(uvalue);
 	if (value == std::numeric_limits<int8_t>::min())
@@ -1267,7 +1267,7 @@ static uint8_t execute(instructions::neg_i8_unchecked const &, uint8_t uvalue, e
 	}
 }
 
-static uint16_t execute(instructions::neg_i16_unchecked const &, uint16_t uvalue, executor_context &)
+static uint16_t execute_neg_i16_unchecked(instructions::neg_i16_unchecked const &, uint16_t uvalue, executor_context &)
 {
 	auto const value = static_cast<int16_t>(uvalue);
 	if (value == std::numeric_limits<int16_t>::min())
@@ -1280,7 +1280,7 @@ static uint16_t execute(instructions::neg_i16_unchecked const &, uint16_t uvalue
 	}
 }
 
-static uint32_t execute(instructions::neg_i32_unchecked const &, uint32_t uvalue, executor_context &)
+static uint32_t execute_neg_i32_unchecked(instructions::neg_i32_unchecked const &, uint32_t uvalue, executor_context &)
 {
 	auto const value = static_cast<int32_t>(uvalue);
 	if (value == std::numeric_limits<int32_t>::min())
@@ -1293,7 +1293,7 @@ static uint32_t execute(instructions::neg_i32_unchecked const &, uint32_t uvalue
 	}
 }
 
-static uint64_t execute(instructions::neg_i64_unchecked const &, uint64_t uvalue, executor_context &)
+static uint64_t execute_neg_i64_unchecked(instructions::neg_i64_unchecked const &, uint64_t uvalue, executor_context &)
 {
 	auto const value = static_cast<int64_t>(uvalue);
 	if (value == std::numeric_limits<int64_t>::min())
@@ -1306,57 +1306,57 @@ static uint64_t execute(instructions::neg_i64_unchecked const &, uint64_t uvalue
 	}
 }
 
-static float32_t execute(instructions::neg_f32 const &, float32_t value, executor_context &)
+static float32_t execute_neg_f32(instructions::neg_f32 const &, float32_t value, executor_context &)
 {
 	return -value;
 }
 
-static float64_t execute(instructions::neg_f64 const &, float64_t value, executor_context &)
+static float64_t execute_neg_f64(instructions::neg_f64 const &, float64_t value, executor_context &)
 {
 	return -value;
 }
 
-static uint8_t execute(instructions::add_i8_unchecked const &, uint8_t lhs, uint8_t rhs, executor_context &)
+static uint8_t execute_add_i8_unchecked(instructions::add_i8_unchecked const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return lhs + rhs;
 }
 
-static uint16_t execute(instructions::add_i16_unchecked const &, uint16_t lhs, uint16_t rhs, executor_context &)
+static uint16_t execute_add_i16_unchecked(instructions::add_i16_unchecked const &, uint16_t lhs, uint16_t rhs, executor_context &)
 {
 	return lhs + rhs;
 }
 
-static uint32_t execute(instructions::add_i32_unchecked const &, uint32_t lhs, uint32_t rhs, executor_context &)
+static uint32_t execute_add_i32_unchecked(instructions::add_i32_unchecked const &, uint32_t lhs, uint32_t rhs, executor_context &)
 {
 	return lhs + rhs;
 }
 
-static uint64_t execute(instructions::add_i64_unchecked const &, uint64_t lhs, uint64_t rhs, executor_context &)
+static uint64_t execute_add_i64_unchecked(instructions::add_i64_unchecked const &, uint64_t lhs, uint64_t rhs, executor_context &)
 {
 	return lhs + rhs;
 }
 
-static uint8_t execute(instructions::sub_i8_unchecked const &, uint8_t lhs, uint8_t rhs, executor_context &)
+static uint8_t execute_sub_i8_unchecked(instructions::sub_i8_unchecked const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return lhs - rhs;
 }
 
-static uint16_t execute(instructions::sub_i16_unchecked const &, uint16_t lhs, uint16_t rhs, executor_context &)
+static uint16_t execute_sub_i16_unchecked(instructions::sub_i16_unchecked const &, uint16_t lhs, uint16_t rhs, executor_context &)
 {
 	return lhs - rhs;
 }
 
-static uint32_t execute(instructions::sub_i32_unchecked const &, uint32_t lhs, uint32_t rhs, executor_context &)
+static uint32_t execute_sub_i32_unchecked(instructions::sub_i32_unchecked const &, uint32_t lhs, uint32_t rhs, executor_context &)
 {
 	return lhs - rhs;
 }
 
-static uint64_t execute(instructions::sub_i64_unchecked const &, uint64_t lhs, uint64_t rhs, executor_context &)
+static uint64_t execute_sub_i64_unchecked(instructions::sub_i64_unchecked const &, uint64_t lhs, uint64_t rhs, executor_context &)
 {
 	return lhs - rhs;
 }
 
-static uint32_t execute(instructions::ptr32_diff const &inst, ptr_t lhs, ptr_t rhs, executor_context &)
+static uint32_t execute_ptr32_diff(instructions::ptr32_diff const &inst, ptr_t lhs, ptr_t rhs, executor_context &)
 {
 	auto const result = static_cast<int32_t>(lhs - rhs);
 	auto const stride = static_cast<int32_t>(inst.stride);
@@ -1364,7 +1364,7 @@ static uint32_t execute(instructions::ptr32_diff const &inst, ptr_t lhs, ptr_t r
 	return static_cast<uint32_t>(result / stride);
 }
 
-static uint64_t execute(instructions::ptr64_diff const &inst, ptr_t lhs, ptr_t rhs, executor_context &)
+static uint64_t execute_ptr64_diff(instructions::ptr64_diff const &inst, ptr_t lhs, ptr_t rhs, executor_context &)
 {
 	auto const result = static_cast<int64_t>(lhs - rhs);
 	auto const stride = static_cast<int64_t>(inst.stride);
@@ -1372,107 +1372,107 @@ static uint64_t execute(instructions::ptr64_diff const &inst, ptr_t lhs, ptr_t r
 	return static_cast<uint64_t>(result / stride);
 }
 
-static bool execute(instructions::not_i1 const &, bool value, executor_context &)
+static bool execute_not_i1(instructions::not_i1 const &, bool value, executor_context &)
 {
 	return !value;
 }
 
-static uint8_t execute(instructions::not_i8 const &, uint8_t value, executor_context &)
+static uint8_t execute_not_i8(instructions::not_i8 const &, uint8_t value, executor_context &)
 {
 	return ~value;
 }
 
-static uint16_t execute(instructions::not_i16 const &, uint16_t value, executor_context &)
+static uint16_t execute_not_i16(instructions::not_i16 const &, uint16_t value, executor_context &)
 {
 	return ~value;
 }
 
-static uint32_t execute(instructions::not_i32 const &, uint32_t value, executor_context &)
+static uint32_t execute_not_i32(instructions::not_i32 const &, uint32_t value, executor_context &)
 {
 	return ~value;
 }
 
-static uint64_t execute(instructions::not_i64 const &, uint64_t value, executor_context &)
+static uint64_t execute_not_i64(instructions::not_i64 const &, uint64_t value, executor_context &)
 {
 	return ~value;
 }
 
-static bool execute(instructions::and_i1 const &, bool lhs, bool rhs, executor_context &)
+static bool execute_and_i1(instructions::and_i1 const &, bool lhs, bool rhs, executor_context &)
 {
 	return lhs && rhs;
 }
 
-static uint8_t execute(instructions::and_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+static uint8_t execute_and_i8(instructions::and_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return lhs & rhs;
 }
 
-static uint16_t execute(instructions::and_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+static uint16_t execute_and_i16(instructions::and_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
 {
 	return lhs & rhs;
 }
 
-static uint32_t execute(instructions::and_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+static uint32_t execute_and_i32(instructions::and_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
 {
 	return lhs & rhs;
 }
 
-static uint64_t execute(instructions::and_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+static uint64_t execute_and_i64(instructions::and_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
 {
 	return lhs & rhs;
 }
 
-static bool execute(instructions::xor_i1 const &, bool lhs, bool rhs, executor_context &)
+static bool execute_xor_i1(instructions::xor_i1 const &, bool lhs, bool rhs, executor_context &)
 {
 	return lhs != rhs;
 }
 
-static uint8_t execute(instructions::xor_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+static uint8_t execute_xor_i8(instructions::xor_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return lhs ^ rhs;
 }
 
-static uint16_t execute(instructions::xor_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+static uint16_t execute_xor_i16(instructions::xor_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
 {
 	return lhs ^ rhs;
 }
 
-static uint32_t execute(instructions::xor_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+static uint32_t execute_xor_i32(instructions::xor_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
 {
 	return lhs ^ rhs;
 }
 
-static uint64_t execute(instructions::xor_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+static uint64_t execute_xor_i64(instructions::xor_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
 {
 	return lhs ^ rhs;
 }
 
-static bool execute(instructions::or_i1 const &, bool lhs, bool rhs, executor_context &)
+static bool execute_or_i1(instructions::or_i1 const &, bool lhs, bool rhs, executor_context &)
 {
 	return lhs || rhs;
 }
 
-static uint8_t execute(instructions::or_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+static uint8_t execute_or_i8(instructions::or_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return lhs | rhs;
 }
 
-static uint16_t execute(instructions::or_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+static uint16_t execute_or_i16(instructions::or_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
 {
 	return lhs | rhs;
 }
 
-static uint32_t execute(instructions::or_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+static uint32_t execute_or_i32(instructions::or_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
 {
 	return lhs | rhs;
 }
 
-static uint64_t execute(instructions::or_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+static uint64_t execute_or_i64(instructions::or_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
 {
 	return lhs | rhs;
 }
 
-static uint8_t execute(instructions::abs_i8 const &inst, uint8_t uvalue, executor_context &context)
+static uint8_t execute_abs_i8(instructions::abs_i8 const &inst, uint8_t uvalue, executor_context &context)
 {
 	auto const value = static_cast<int8_t>(uvalue);
 	if (value == std::numeric_limits<int8_t>::min())
@@ -1487,7 +1487,7 @@ static uint8_t execute(instructions::abs_i8 const &inst, uint8_t uvalue, executo
 	return static_cast<uint8_t>(value < 0 ? -value : value);
 }
 
-static uint16_t execute(instructions::abs_i16 const &inst, uint16_t uvalue, executor_context &context)
+static uint16_t execute_abs_i16(instructions::abs_i16 const &inst, uint16_t uvalue, executor_context &context)
 {
 	auto const value = static_cast<int16_t>(uvalue);
 	if (value == std::numeric_limits<int16_t>::min())
@@ -1502,7 +1502,7 @@ static uint16_t execute(instructions::abs_i16 const &inst, uint16_t uvalue, exec
 	return static_cast<uint8_t>(value < 0 ? -value : value);
 }
 
-static uint32_t execute(instructions::abs_i32 const &inst, uint32_t uvalue, executor_context &context)
+static uint32_t execute_abs_i32(instructions::abs_i32 const &inst, uint32_t uvalue, executor_context &context)
 {
 	auto const value = static_cast<int32_t>(uvalue);
 	if (value == std::numeric_limits<int32_t>::min())
@@ -1517,7 +1517,7 @@ static uint32_t execute(instructions::abs_i32 const &inst, uint32_t uvalue, exec
 	return static_cast<uint8_t>(value < 0 ? -value : value);
 }
 
-static uint64_t execute(instructions::abs_i64 const &inst, uint64_t uvalue, executor_context &context)
+static uint64_t execute_abs_i64(instructions::abs_i64 const &inst, uint64_t uvalue, executor_context &context)
 {
 	auto const value = static_cast<int64_t>(uvalue);
 	if (value == std::numeric_limits<int64_t>::min())
@@ -1532,7 +1532,7 @@ static uint64_t execute(instructions::abs_i64 const &inst, uint64_t uvalue, exec
 	return static_cast<uint8_t>(value < 0 ? -value : value);
 }
 
-static float32_t execute(instructions::abs_f32 const &inst, float32_t value, executor_context &context)
+static float32_t execute_abs_f32(instructions::abs_f32 const &inst, float32_t value, executor_context &context)
 {
 	if (std::isnan(value))
 	{
@@ -1545,7 +1545,7 @@ static float32_t execute(instructions::abs_f32 const &inst, float32_t value, exe
 	return std::fabs(value);
 }
 
-static float64_t execute(instructions::abs_f64 const &inst, float64_t value, executor_context &context)
+static float64_t execute_abs_f64(instructions::abs_f64 const &inst, float64_t value, executor_context &context)
 {
 	if (std::isnan(value))
 	{
@@ -1558,7 +1558,7 @@ static float64_t execute(instructions::abs_f64 const &inst, float64_t value, exe
 	return std::fabs(value);
 }
 
-static uint8_t execute(instructions::abs_i8_unchecked const &, uint8_t uvalue, executor_context &)
+static uint8_t execute_abs_i8_unchecked(instructions::abs_i8_unchecked const &, uint8_t uvalue, executor_context &)
 {
 	auto const value = static_cast<int8_t>(uvalue);
 	return static_cast<uint8_t>(
@@ -1568,7 +1568,7 @@ static uint8_t execute(instructions::abs_i8_unchecked const &, uint8_t uvalue, e
 	);
 }
 
-static uint16_t execute(instructions::abs_i16_unchecked const &, uint16_t uvalue, executor_context &)
+static uint16_t execute_abs_i16_unchecked(instructions::abs_i16_unchecked const &, uint16_t uvalue, executor_context &)
 {
 	auto const value = static_cast<int16_t>(uvalue);
 	return static_cast<uint16_t>(
@@ -1578,7 +1578,7 @@ static uint16_t execute(instructions::abs_i16_unchecked const &, uint16_t uvalue
 	);
 }
 
-static uint32_t execute(instructions::abs_i32_unchecked const &, uint32_t uvalue, executor_context &)
+static uint32_t execute_abs_i32_unchecked(instructions::abs_i32_unchecked const &, uint32_t uvalue, executor_context &)
 {
 	auto const value = static_cast<int32_t>(uvalue);
 	return static_cast<uint32_t>(
@@ -1588,7 +1588,7 @@ static uint32_t execute(instructions::abs_i32_unchecked const &, uint32_t uvalue
 	);
 }
 
-static uint64_t execute(instructions::abs_i64_unchecked const &, uint64_t uvalue, executor_context &)
+static uint64_t execute_abs_i64_unchecked(instructions::abs_i64_unchecked const &, uint64_t uvalue, executor_context &)
 {
 	auto const value = static_cast<int64_t>(uvalue);
 	return static_cast<uint64_t>(
@@ -1598,57 +1598,57 @@ static uint64_t execute(instructions::abs_i64_unchecked const &, uint64_t uvalue
 	);
 }
 
-static float32_t execute(instructions::abs_f32_unchecked const &, float32_t value, executor_context &)
+static float32_t execute_abs_f32_unchecked(instructions::abs_f32_unchecked const &, float32_t value, executor_context &)
 {
 	return std::fabs(value);
 }
 
-static float64_t execute(instructions::abs_f64_unchecked const &, float64_t value, executor_context &)
+static float64_t execute_abs_f64_unchecked(instructions::abs_f64_unchecked const &, float64_t value, executor_context &)
 {
 	return std::fabs(value);
 }
 
-static uint8_t execute(instructions::min_i8 const &, uint8_t a, uint8_t b, executor_context &)
+static uint8_t execute_min_i8(instructions::min_i8 const &, uint8_t a, uint8_t b, executor_context &)
 {
 	return static_cast<int8_t>(a) < static_cast<int8_t>(b) ? a : b;
 }
 
-static uint16_t execute(instructions::min_i16 const &, uint16_t a, uint16_t b, executor_context &)
+static uint16_t execute_min_i16(instructions::min_i16 const &, uint16_t a, uint16_t b, executor_context &)
 {
 	return static_cast<int16_t>(a) < static_cast<int16_t>(b) ? a : b;
 }
 
-static uint32_t execute(instructions::min_i32 const &, uint32_t a, uint32_t b, executor_context &)
+static uint32_t execute_min_i32(instructions::min_i32 const &, uint32_t a, uint32_t b, executor_context &)
 {
 	return static_cast<int32_t>(a) < static_cast<int32_t>(b) ? a : b;
 }
 
-static uint64_t execute(instructions::min_i64 const &, uint64_t a, uint64_t b, executor_context &)
+static uint64_t execute_min_i64(instructions::min_i64 const &, uint64_t a, uint64_t b, executor_context &)
 {
 	return static_cast<int64_t>(a) < static_cast<int64_t>(b) ? a : b;
 }
 
-static uint8_t execute(instructions::min_u8 const &, uint8_t a, uint8_t b, executor_context &)
+static uint8_t execute_min_u8(instructions::min_u8 const &, uint8_t a, uint8_t b, executor_context &)
 {
 	return a < b ? a : b;
 }
 
-static uint16_t execute(instructions::min_u16 const &, uint16_t a, uint16_t b, executor_context &)
+static uint16_t execute_min_u16(instructions::min_u16 const &, uint16_t a, uint16_t b, executor_context &)
 {
 	return a < b ? a : b;
 }
 
-static uint32_t execute(instructions::min_u32 const &, uint32_t a, uint32_t b, executor_context &)
+static uint32_t execute_min_u32(instructions::min_u32 const &, uint32_t a, uint32_t b, executor_context &)
 {
 	return a < b ? a : b;
 }
 
-static uint64_t execute(instructions::min_u64 const &, uint64_t a, uint64_t b, executor_context &)
+static uint64_t execute_min_u64(instructions::min_u64 const &, uint64_t a, uint64_t b, executor_context &)
 {
 	return a < b ? a : b;
 }
 
-static float32_t execute(instructions::min_f32 const &inst, float32_t x, float32_t y, executor_context &context)
+static float32_t execute_min_f32(instructions::min_f32 const &inst, float32_t x, float32_t y, executor_context &context)
 {
 	if (std::isnan(x) || std::isnan(y))
 	{
@@ -1661,7 +1661,7 @@ static float32_t execute(instructions::min_f32 const &inst, float32_t x, float32
 	return std::fmin(x, y);
 }
 
-static float64_t execute(instructions::min_f64 const &inst, float64_t x, float64_t y, executor_context &context)
+static float64_t execute_min_f64(instructions::min_f64 const &inst, float64_t x, float64_t y, executor_context &context)
 {
 	if (std::isnan(x) || std::isnan(y))
 	{
@@ -1674,57 +1674,57 @@ static float64_t execute(instructions::min_f64 const &inst, float64_t x, float64
 	return std::fmin(x, y);
 }
 
-static float32_t execute(instructions::min_f32_unchecked const &, float32_t x, float32_t y, executor_context &)
+static float32_t execute_min_f32_unchecked(instructions::min_f32_unchecked const &, float32_t x, float32_t y, executor_context &)
 {
 	return std::fmin(x, y);
 }
 
-static float64_t execute(instructions::min_f64_unchecked const &, float64_t x, float64_t y, executor_context &)
+static float64_t execute_min_f64_unchecked(instructions::min_f64_unchecked const &, float64_t x, float64_t y, executor_context &)
 {
 	return std::fmin(x, y);
 }
 
-static uint8_t execute(instructions::max_i8 const &, uint8_t a, uint8_t b, executor_context &)
+static uint8_t execute_max_i8(instructions::max_i8 const &, uint8_t a, uint8_t b, executor_context &)
 {
 	return static_cast<int8_t>(a) < static_cast<int8_t>(b) ? a : b;
 }
 
-static uint16_t execute(instructions::max_i16 const &, uint16_t a, uint16_t b, executor_context &)
+static uint16_t execute_max_i16(instructions::max_i16 const &, uint16_t a, uint16_t b, executor_context &)
 {
 	return static_cast<int16_t>(a) < static_cast<int16_t>(b) ? a : b;
 }
 
-static uint32_t execute(instructions::max_i32 const &, uint32_t a, uint32_t b, executor_context &)
+static uint32_t execute_max_i32(instructions::max_i32 const &, uint32_t a, uint32_t b, executor_context &)
 {
 	return static_cast<int32_t>(a) < static_cast<int32_t>(b) ? a : b;
 }
 
-static uint64_t execute(instructions::max_i64 const &, uint64_t a, uint64_t b, executor_context &)
+static uint64_t execute_max_i64(instructions::max_i64 const &, uint64_t a, uint64_t b, executor_context &)
 {
 	return static_cast<int64_t>(a) < static_cast<int64_t>(b) ? a : b;
 }
 
-static uint8_t execute(instructions::max_u8 const &, uint8_t a, uint8_t b, executor_context &)
+static uint8_t execute_max_u8(instructions::max_u8 const &, uint8_t a, uint8_t b, executor_context &)
 {
 	return a < b ? a : b;
 }
 
-static uint16_t execute(instructions::max_u16 const &, uint16_t a, uint16_t b, executor_context &)
+static uint16_t execute_max_u16(instructions::max_u16 const &, uint16_t a, uint16_t b, executor_context &)
 {
 	return a < b ? a : b;
 }
 
-static uint32_t execute(instructions::max_u32 const &, uint32_t a, uint32_t b, executor_context &)
+static uint32_t execute_max_u32(instructions::max_u32 const &, uint32_t a, uint32_t b, executor_context &)
 {
 	return a < b ? a : b;
 }
 
-static uint64_t execute(instructions::max_u64 const &, uint64_t a, uint64_t b, executor_context &)
+static uint64_t execute_max_u64(instructions::max_u64 const &, uint64_t a, uint64_t b, executor_context &)
 {
 	return a < b ? a : b;
 }
 
-static float32_t execute(instructions::max_f32 const &inst, float32_t x, float32_t y, executor_context &context)
+static float32_t execute_max_f32(instructions::max_f32 const &inst, float32_t x, float32_t y, executor_context &context)
 {
 	if (std::isnan(x) || std::isnan(y))
 	{
@@ -1737,7 +1737,7 @@ static float32_t execute(instructions::max_f32 const &inst, float32_t x, float32
 	return std::fmax(x, y);
 }
 
-static float64_t execute(instructions::max_f64 const &inst, float64_t x, float64_t y, executor_context &context)
+static float64_t execute_max_f64(instructions::max_f64 const &inst, float64_t x, float64_t y, executor_context &context)
 {
 	if (std::isnan(x) || std::isnan(y))
 	{
@@ -1750,12 +1750,12 @@ static float64_t execute(instructions::max_f64 const &inst, float64_t x, float64
 	return std::fmax(x, y);
 }
 
-static float32_t execute(instructions::max_f32_unchecked const &, float32_t x, float32_t y, executor_context &)
+static float32_t execute_max_f32_unchecked(instructions::max_f32_unchecked const &, float32_t x, float32_t y, executor_context &)
 {
 	return std::fmax(x, y);
 }
 
-static float64_t execute(instructions::max_f64_unchecked const &, float64_t x, float64_t y, executor_context &)
+static float64_t execute_max_f64_unchecked(instructions::max_f64_unchecked const &, float64_t x, float64_t y, executor_context &)
 {
 	return std::fmax(x, y);
 }
@@ -1984,73 +1984,73 @@ static bool isint(float64_t x)
 		&& exponent - exponent_bias >= mantissa_non_zero;
 }
 
-static float32_t execute(instructions::exp_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_exp_f32(instructions::exp_f32 const &inst, float32_t x, executor_context &context)
 {
 	check_for_nan("exp", inst.src_tokens_index, x, context);
 	return std::exp(x);
 }
 
-static float64_t execute(instructions::exp_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_exp_f64(instructions::exp_f64 const &inst, float64_t x, executor_context &context)
 {
 	check_for_nan("exp", inst.src_tokens_index, x, context);
 	return std::exp(x);
 }
 
-static float32_t execute(instructions::exp_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_exp_f32_unchecked(instructions::exp_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::exp(x);
 }
 
-static float64_t execute(instructions::exp_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_exp_f64_unchecked(instructions::exp_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::exp(x);
 }
 
-static float32_t execute(instructions::exp2_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_exp2_f32(instructions::exp2_f32 const &inst, float32_t x, executor_context &context)
 {
 	check_for_nan("exp2", inst.src_tokens_index, x, context);
 	return std::exp2(x);
 }
 
-static float64_t execute(instructions::exp2_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_exp2_f64(instructions::exp2_f64 const &inst, float64_t x, executor_context &context)
 {
 	check_for_nan("exp2", inst.src_tokens_index, x, context);
 	return std::exp2(x);
 }
 
-static float32_t execute(instructions::exp2_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_exp2_f32_unchecked(instructions::exp2_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::exp2(x);
 }
 
-static float64_t execute(instructions::exp2_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_exp2_f64_unchecked(instructions::exp2_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::exp2(x);
 }
 
-static float32_t execute(instructions::expm1_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_expm1_f32(instructions::expm1_f32 const &inst, float32_t x, executor_context &context)
 {
 	check_for_nan("expm1", inst.src_tokens_index, x, context);
 	return std::expm1(x);
 }
 
-static float64_t execute(instructions::expm1_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_expm1_f64(instructions::expm1_f64 const &inst, float64_t x, executor_context &context)
 {
 	check_for_nan("expm1", inst.src_tokens_index, x, context);
 	return std::expm1(x);
 }
 
-static float32_t execute(instructions::expm1_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_expm1_f32_unchecked(instructions::expm1_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::expm1(x);
 }
 
-static float64_t execute(instructions::expm1_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_expm1_f64_unchecked(instructions::expm1_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::expm1(x);
 }
 
-static float32_t execute(instructions::log_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_log_f32(instructions::log_f32 const &inst, float32_t x, executor_context &context)
 {
 	auto const result = std::log(x);
 	if (std::isnan(x) || x == 0.0f)
@@ -2065,7 +2065,7 @@ static float32_t execute(instructions::log_f32 const &inst, float32_t x, executo
 	return result;
 }
 
-static float64_t execute(instructions::log_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_log_f64(instructions::log_f64 const &inst, float64_t x, executor_context &context)
 {
 	auto const result = std::log(x);
 	if (std::isnan(x) || x == 0.0)
@@ -2080,17 +2080,17 @@ static float64_t execute(instructions::log_f64 const &inst, float64_t x, executo
 	return result;
 }
 
-static float32_t execute(instructions::log_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_log_f32_unchecked(instructions::log_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::log(x);
 }
 
-static float64_t execute(instructions::log_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_log_f64_unchecked(instructions::log_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::log(x);
 }
 
-static float32_t execute(instructions::log10_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_log10_f32(instructions::log10_f32 const &inst, float32_t x, executor_context &context)
 {
 	auto const result = std::log10(x);
 	if (std::isnan(x) || x == 0.0f)
@@ -2105,7 +2105,7 @@ static float32_t execute(instructions::log10_f32 const &inst, float32_t x, execu
 	return result;
 }
 
-static float64_t execute(instructions::log10_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_log10_f64(instructions::log10_f64 const &inst, float64_t x, executor_context &context)
 {
 	auto const result = std::log10(x);
 	if (std::isnan(x) || x == 0.0)
@@ -2120,17 +2120,17 @@ static float64_t execute(instructions::log10_f64 const &inst, float64_t x, execu
 	return result;
 }
 
-static float32_t execute(instructions::log10_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_log10_f32_unchecked(instructions::log10_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::log10(x);
 }
 
-static float64_t execute(instructions::log10_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_log10_f64_unchecked(instructions::log10_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::log10(x);
 }
 
-static float32_t execute(instructions::log2_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_log2_f32(instructions::log2_f32 const &inst, float32_t x, executor_context &context)
 {
 	auto const result = std::log2(x);
 	if (std::isnan(x) || x == 0.0f)
@@ -2145,7 +2145,7 @@ static float32_t execute(instructions::log2_f32 const &inst, float32_t x, execut
 	return result;
 }
 
-static float64_t execute(instructions::log2_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_log2_f64(instructions::log2_f64 const &inst, float64_t x, executor_context &context)
 {
 	auto const result = std::log2(x);
 	if (std::isnan(x) || x == 0.0)
@@ -2160,17 +2160,17 @@ static float64_t execute(instructions::log2_f64 const &inst, float64_t x, execut
 	return result;
 }
 
-static float32_t execute(instructions::log2_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_log2_f32_unchecked(instructions::log2_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::log2(x);
 }
 
-static float64_t execute(instructions::log2_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_log2_f64_unchecked(instructions::log2_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::log2(x);
 }
 
-static float32_t execute(instructions::log1p_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_log1p_f32(instructions::log1p_f32 const &inst, float32_t x, executor_context &context)
 {
 	auto const result = std::log1p(x);
 	if (std::isnan(x) || x <= -1.0f)
@@ -2184,7 +2184,7 @@ static float32_t execute(instructions::log1p_f32 const &inst, float32_t x, execu
 	return result;
 }
 
-static float64_t execute(instructions::log1p_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_log1p_f64(instructions::log1p_f64 const &inst, float64_t x, executor_context &context)
 {
 	auto const result = std::log1p(x);
 	if (std::isnan(x) || x <= -1.0)
@@ -2198,17 +2198,17 @@ static float64_t execute(instructions::log1p_f64 const &inst, float64_t x, execu
 	return result;
 }
 
-static float32_t execute(instructions::log1p_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_log1p_f32_unchecked(instructions::log1p_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::log1p(x);
 }
 
-static float64_t execute(instructions::log1p_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_log1p_f64_unchecked(instructions::log1p_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::log1p(x);
 }
 
-static float32_t execute(instructions::sqrt_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_sqrt_f32(instructions::sqrt_f32 const &inst, float32_t x, executor_context &context)
 {
 	auto const result = std::sqrt(x);
 	check_for_nan("sqrt", inst.src_tokens_index, x, context);
@@ -2216,7 +2216,7 @@ static float32_t execute(instructions::sqrt_f32 const &inst, float32_t x, execut
 	return result;
 }
 
-static float64_t execute(instructions::sqrt_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_sqrt_f64(instructions::sqrt_f64 const &inst, float64_t x, executor_context &context)
 {
 	auto const result = std::sqrt(x);
 	check_for_nan("sqrt", inst.src_tokens_index, x, context);
@@ -2224,17 +2224,17 @@ static float64_t execute(instructions::sqrt_f64 const &inst, float64_t x, execut
 	return result;
 }
 
-static float32_t execute(instructions::sqrt_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_sqrt_f32_unchecked(instructions::sqrt_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::sqrt(x);
 }
 
-static float64_t execute(instructions::sqrt_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_sqrt_f64_unchecked(instructions::sqrt_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::sqrt(x);
 }
 
-static float32_t execute(instructions::pow_f32 const &inst, float32_t x, float32_t y, executor_context &context)
+static float32_t execute_pow_f32(instructions::pow_f32 const &inst, float32_t x, float32_t y, executor_context &context)
 {
 	auto const result = std::pow(x, y);
 	if (x == 0.0f && y < 0.0f)
@@ -2264,7 +2264,7 @@ static float32_t execute(instructions::pow_f32 const &inst, float32_t x, float32
 	return result;
 }
 
-static float64_t execute(instructions::pow_f64 const &inst, float64_t x, float64_t y, executor_context &context)
+static float64_t execute_pow_f64(instructions::pow_f64 const &inst, float64_t x, float64_t y, executor_context &context)
 {
 	auto const result = std::pow(x, y);
 	if (x == 0.0 && y < 0.0)
@@ -2294,39 +2294,39 @@ static float64_t execute(instructions::pow_f64 const &inst, float64_t x, float64
 	return result;
 }
 
-static float32_t execute(instructions::pow_f32_unchecked const &, float32_t x, float32_t y, executor_context &)
+static float32_t execute_pow_f32_unchecked(instructions::pow_f32_unchecked const &, float32_t x, float32_t y, executor_context &)
 {
 	return std::pow(x, y);
 }
 
-static float64_t execute(instructions::pow_f64_unchecked const &, float64_t x, float64_t y, executor_context &)
+static float64_t execute_pow_f64_unchecked(instructions::pow_f64_unchecked const &, float64_t x, float64_t y, executor_context &)
 {
 	return std::pow(x, y);
 }
 
-static float32_t execute(instructions::cbrt_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_cbrt_f32(instructions::cbrt_f32 const &inst, float32_t x, executor_context &context)
 {
 	check_for_nan("cbrt", inst.src_tokens_index, x, context);
 	return std::cbrt(x);
 }
 
-static float64_t execute(instructions::cbrt_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_cbrt_f64(instructions::cbrt_f64 const &inst, float64_t x, executor_context &context)
 {
 	check_for_nan("cbrt", inst.src_tokens_index, x, context);
 	return std::cbrt(x);
 }
 
-static float32_t execute(instructions::cbrt_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_cbrt_f32_unchecked(instructions::cbrt_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::cbrt(x);
 }
 
-static float64_t execute(instructions::cbrt_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_cbrt_f64_unchecked(instructions::cbrt_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::cbrt(x);
 }
 
-static float32_t execute(instructions::hypot_f32 const &inst, float32_t x, float32_t y, executor_context &context)
+static float32_t execute_hypot_f32(instructions::hypot_f32 const &inst, float32_t x, float32_t y, executor_context &context)
 {
 	auto const result = std::hypot(x, y);
 	if (!std::isinf(x) && !std::isinf(y) && (std::isnan(x) || std::isnan(y)))
@@ -2340,7 +2340,7 @@ static float32_t execute(instructions::hypot_f32 const &inst, float32_t x, float
 	return result;
 }
 
-static float64_t execute(instructions::hypot_f64 const &inst, float64_t x, float64_t y, executor_context &context)
+static float64_t execute_hypot_f64(instructions::hypot_f64 const &inst, float64_t x, float64_t y, executor_context &context)
 {
 	auto const result = std::hypot(x, y);
 	if (!std::isinf(x) && !std::isinf(y) && (std::isnan(x) || std::isnan(y)))
@@ -2354,89 +2354,89 @@ static float64_t execute(instructions::hypot_f64 const &inst, float64_t x, float
 	return result;
 }
 
-static float32_t execute(instructions::hypot_f32_unchecked const &, float32_t x, float32_t y, executor_context &)
+static float32_t execute_hypot_f32_unchecked(instructions::hypot_f32_unchecked const &, float32_t x, float32_t y, executor_context &)
 {
 	return std::hypot(x, y);
 }
 
-static float64_t execute(instructions::hypot_f64_unchecked const &, float64_t x, float64_t y, executor_context &)
+static float64_t execute_hypot_f64_unchecked(instructions::hypot_f64_unchecked const &, float64_t x, float64_t y, executor_context &)
 {
 	return std::hypot(x, y);
 }
 
-static float32_t execute(instructions::sin_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_sin_f32(instructions::sin_f32 const &inst, float32_t x, executor_context &context)
 {
 	auto const result = std::sin(x);
 	check_for_nan_or_inf("sin", inst.src_tokens_index, x, result, context);
 	return result;
 }
 
-static float64_t execute(instructions::sin_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_sin_f64(instructions::sin_f64 const &inst, float64_t x, executor_context &context)
 {
 	auto const result = std::sin(x);
 	check_for_nan_or_inf("sin", inst.src_tokens_index, x, result, context);
 	return result;
 }
 
-static float32_t execute(instructions::sin_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_sin_f32_unchecked(instructions::sin_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::sin(x);
 }
 
-static float64_t execute(instructions::sin_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_sin_f64_unchecked(instructions::sin_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::sin(x);
 }
 
-static float32_t execute(instructions::cos_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_cos_f32(instructions::cos_f32 const &inst, float32_t x, executor_context &context)
 {
 	auto const result = std::cos(x);
 	check_for_nan_or_inf("cos", inst.src_tokens_index, x, result, context);
 	return result;
 }
 
-static float64_t execute(instructions::cos_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_cos_f64(instructions::cos_f64 const &inst, float64_t x, executor_context &context)
 {
 	auto const result = std::cos(x);
 	check_for_nan_or_inf("cos", inst.src_tokens_index, x, result, context);
 	return result;
 }
 
-static float32_t execute(instructions::cos_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_cos_f32_unchecked(instructions::cos_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::cos(x);
 }
 
-static float64_t execute(instructions::cos_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_cos_f64_unchecked(instructions::cos_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::cos(x);
 }
 
-static float32_t execute(instructions::tan_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_tan_f32(instructions::tan_f32 const &inst, float32_t x, executor_context &context)
 {
 	auto const result = std::tan(x);
 	check_for_nan_or_inf("tan", inst.src_tokens_index, x, result, context);
 	return result;
 }
 
-static float64_t execute(instructions::tan_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_tan_f64(instructions::tan_f64 const &inst, float64_t x, executor_context &context)
 {
 	auto const result = std::tan(x);
 	check_for_nan_or_inf("tan", inst.src_tokens_index, x, result, context);
 	return result;
 }
 
-static float32_t execute(instructions::tan_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_tan_f32_unchecked(instructions::tan_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::tan(x);
 }
 
-static float64_t execute(instructions::tan_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_tan_f64_unchecked(instructions::tan_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::tan(x);
 }
 
-static float32_t execute(instructions::asin_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_asin_f32(instructions::asin_f32 const &inst, float32_t x, executor_context &context)
 {
 	auto const result = std::asin(x);
 	if (std::isnan(x) || std::fabs(x) > 1.0f)
@@ -2446,7 +2446,7 @@ static float32_t execute(instructions::asin_f32 const &inst, float32_t x, execut
 	return result;
 }
 
-static float64_t execute(instructions::asin_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_asin_f64(instructions::asin_f64 const &inst, float64_t x, executor_context &context)
 {
 	auto const result = std::asin(x);
 	if (std::isnan(x) || std::fabs(x) > 1.0)
@@ -2456,17 +2456,17 @@ static float64_t execute(instructions::asin_f64 const &inst, float64_t x, execut
 	return result;
 }
 
-static float32_t execute(instructions::asin_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_asin_f32_unchecked(instructions::asin_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::asin(x);
 }
 
-static float64_t execute(instructions::asin_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_asin_f64_unchecked(instructions::asin_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::asin(x);
 }
 
-static float32_t execute(instructions::acos_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_acos_f32(instructions::acos_f32 const &inst, float32_t x, executor_context &context)
 {
 	auto const result = std::acos(x);
 	if (std::isnan(x) || std::fabs(x) > 1.0f)
@@ -2476,7 +2476,7 @@ static float32_t execute(instructions::acos_f32 const &inst, float32_t x, execut
 	return result;
 }
 
-static float64_t execute(instructions::acos_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_acos_f64(instructions::acos_f64 const &inst, float64_t x, executor_context &context)
 {
 	auto const result = std::acos(x);
 	if (std::isnan(x) || std::fabs(x) > 1.0)
@@ -2486,39 +2486,39 @@ static float64_t execute(instructions::acos_f64 const &inst, float64_t x, execut
 	return result;
 }
 
-static float32_t execute(instructions::acos_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_acos_f32_unchecked(instructions::acos_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::acos(x);
 }
 
-static float64_t execute(instructions::acos_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_acos_f64_unchecked(instructions::acos_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::acos(x);
 }
 
-static float32_t execute(instructions::atan_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_atan_f32(instructions::atan_f32 const &inst, float32_t x, executor_context &context)
 {
 	check_for_nan("atan", inst.src_tokens_index, x, context);
 	return std::atan(x);
 }
 
-static float64_t execute(instructions::atan_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_atan_f64(instructions::atan_f64 const &inst, float64_t x, executor_context &context)
 {
 	check_for_nan("atan", inst.src_tokens_index, x, context);
 	return std::atan(x);
 }
 
-static float32_t execute(instructions::atan_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_atan_f32_unchecked(instructions::atan_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::atan(x);
 }
 
-static float64_t execute(instructions::atan_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_atan_f64_unchecked(instructions::atan_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::atan(x);
 }
 
-static float32_t execute(instructions::atan2_f32 const &inst, float32_t y, float32_t x, executor_context &context)
+static float32_t execute_atan2_f32(instructions::atan2_f32 const &inst, float32_t y, float32_t x, executor_context &context)
 {
 	auto const result = std::atan2(y, x);
 	if (std::isnan(y) || std::isnan(x))
@@ -2532,7 +2532,7 @@ static float32_t execute(instructions::atan2_f32 const &inst, float32_t y, float
 	return result;
 }
 
-static float64_t execute(instructions::atan2_f64 const &inst, float64_t y, float64_t x, executor_context &context)
+static float64_t execute_atan2_f64(instructions::atan2_f64 const &inst, float64_t y, float64_t x, executor_context &context)
 {
 	auto const result = std::atan2(y, x);
 	if (std::isnan(y) || std::isnan(x))
@@ -2546,105 +2546,105 @@ static float64_t execute(instructions::atan2_f64 const &inst, float64_t y, float
 	return result;
 }
 
-static float32_t execute(instructions::atan2_f32_unchecked const &, float32_t y, float32_t x, executor_context &)
+static float32_t execute_atan2_f32_unchecked(instructions::atan2_f32_unchecked const &, float32_t y, float32_t x, executor_context &)
 {
 	return std::atan2(y, x);
 }
 
-static float64_t execute(instructions::atan2_f64_unchecked const &, float64_t y, float64_t x, executor_context &)
+static float64_t execute_atan2_f64_unchecked(instructions::atan2_f64_unchecked const &, float64_t y, float64_t x, executor_context &)
 {
 	return std::atan2(y, x);
 }
 
-static float32_t execute(instructions::sinh_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_sinh_f32(instructions::sinh_f32 const &inst, float32_t x, executor_context &context)
 {
 	check_for_nan("sinh", inst.src_tokens_index, x, context);
 	return std::sinh(x);
 }
 
-static float64_t execute(instructions::sinh_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_sinh_f64(instructions::sinh_f64 const &inst, float64_t x, executor_context &context)
 {
 	check_for_nan("sinh", inst.src_tokens_index, x, context);
 	return std::sinh(x);
 }
 
-static float32_t execute(instructions::sinh_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_sinh_f32_unchecked(instructions::sinh_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::sinh(x);
 }
 
-static float64_t execute(instructions::sinh_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_sinh_f64_unchecked(instructions::sinh_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::sinh(x);
 }
 
-static float32_t execute(instructions::cosh_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_cosh_f32(instructions::cosh_f32 const &inst, float32_t x, executor_context &context)
 {
 	check_for_nan("cosh", inst.src_tokens_index, x, context);
 	return std::cosh(x);
 }
 
-static float64_t execute(instructions::cosh_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_cosh_f64(instructions::cosh_f64 const &inst, float64_t x, executor_context &context)
 {
 	check_for_nan("cosh", inst.src_tokens_index, x, context);
 	return std::cosh(x);
 }
 
-static float32_t execute(instructions::cosh_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_cosh_f32_unchecked(instructions::cosh_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::cosh(x);
 }
 
-static float64_t execute(instructions::cosh_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_cosh_f64_unchecked(instructions::cosh_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::cosh(x);
 }
 
-static float32_t execute(instructions::tanh_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_tanh_f32(instructions::tanh_f32 const &inst, float32_t x, executor_context &context)
 {
 	check_for_nan("tanh", inst.src_tokens_index, x, context);
 	return std::tanh(x);
 }
 
-static float64_t execute(instructions::tanh_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_tanh_f64(instructions::tanh_f64 const &inst, float64_t x, executor_context &context)
 {
 	check_for_nan("tanh", inst.src_tokens_index, x, context);
 	return std::tanh(x);
 }
 
-static float32_t execute(instructions::tanh_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_tanh_f32_unchecked(instructions::tanh_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::tanh(x);
 }
 
-static float64_t execute(instructions::tanh_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_tanh_f64_unchecked(instructions::tanh_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::tanh(x);
 }
 
-static float32_t execute(instructions::asinh_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_asinh_f32(instructions::asinh_f32 const &inst, float32_t x, executor_context &context)
 {
 	check_for_nan("asinh", inst.src_tokens_index, x, context);
 	return std::asinh(x);
 }
 
-static float64_t execute(instructions::asinh_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_asinh_f64(instructions::asinh_f64 const &inst, float64_t x, executor_context &context)
 {
 	check_for_nan("asinh", inst.src_tokens_index, x, context);
 	return std::asinh(x);
 }
 
-static float32_t execute(instructions::asinh_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_asinh_f32_unchecked(instructions::asinh_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::asinh(x);
 }
 
-static float64_t execute(instructions::asinh_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_asinh_f64_unchecked(instructions::asinh_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::asinh(x);
 }
 
-static float32_t execute(instructions::acosh_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_acosh_f32(instructions::acosh_f32 const &inst, float32_t x, executor_context &context)
 {
 	auto const result = std::acosh(x);
 	if (std::isnan(x) || x < 1.0f)
@@ -2654,7 +2654,7 @@ static float32_t execute(instructions::acosh_f32 const &inst, float32_t x, execu
 	return result;
 }
 
-static float64_t execute(instructions::acosh_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_acosh_f64(instructions::acosh_f64 const &inst, float64_t x, executor_context &context)
 {
 	auto const result = std::acosh(x);
 	if (std::isnan(x) || x < 1.0)
@@ -2664,17 +2664,17 @@ static float64_t execute(instructions::acosh_f64 const &inst, float64_t x, execu
 	return result;
 }
 
-static float32_t execute(instructions::acosh_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_acosh_f32_unchecked(instructions::acosh_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::acosh(x);
 }
 
-static float64_t execute(instructions::acosh_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_acosh_f64_unchecked(instructions::acosh_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::acosh(x);
 }
 
-static float32_t execute(instructions::atanh_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_atanh_f32(instructions::atanh_f32 const &inst, float32_t x, executor_context &context)
 {
 	auto const result = std::atanh(x);
 	if (std::isnan(x) || std::fabs(x) >= 1.0f)
@@ -2684,7 +2684,7 @@ static float32_t execute(instructions::atanh_f32 const &inst, float32_t x, execu
 	return result;
 }
 
-static float64_t execute(instructions::atanh_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_atanh_f64(instructions::atanh_f64 const &inst, float64_t x, executor_context &context)
 {
 	auto const result = std::atanh(x);
 	if (std::isnan(x) || std::fabs(x) >= 1.0)
@@ -2694,61 +2694,61 @@ static float64_t execute(instructions::atanh_f64 const &inst, float64_t x, execu
 	return result;
 }
 
-static float32_t execute(instructions::atanh_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_atanh_f32_unchecked(instructions::atanh_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::atanh(x);
 }
 
-static float64_t execute(instructions::atanh_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_atanh_f64_unchecked(instructions::atanh_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::atanh(x);
 }
 
-static float32_t execute(instructions::erf_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_erf_f32(instructions::erf_f32 const &inst, float32_t x, executor_context &context)
 {
 	check_for_nan("erf", inst.src_tokens_index, x, context);
 	return std::erf(x);
 }
 
-static float64_t execute(instructions::erf_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_erf_f64(instructions::erf_f64 const &inst, float64_t x, executor_context &context)
 {
 	check_for_nan("erf", inst.src_tokens_index, x, context);
 	return std::erf(x);
 }
 
-static float32_t execute(instructions::erf_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_erf_f32_unchecked(instructions::erf_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::erf(x);
 }
 
-static float64_t execute(instructions::erf_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_erf_f64_unchecked(instructions::erf_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::erf(x);
 }
 
-static float32_t execute(instructions::erfc_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_erfc_f32(instructions::erfc_f32 const &inst, float32_t x, executor_context &context)
 {
 	check_for_nan("erfc", inst.src_tokens_index, x, context);
 	return std::erfc(x);
 }
 
-static float64_t execute(instructions::erfc_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_erfc_f64(instructions::erfc_f64 const &inst, float64_t x, executor_context &context)
 {
 	check_for_nan("erfc", inst.src_tokens_index, x, context);
 	return std::erfc(x);
 }
 
-static float32_t execute(instructions::erfc_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_erfc_f32_unchecked(instructions::erfc_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::erfc(x);
 }
 
-static float64_t execute(instructions::erfc_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_erfc_f64_unchecked(instructions::erfc_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::erfc(x);
 }
 
-static float32_t execute(instructions::tgamma_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_tgamma_f32(instructions::tgamma_f32 const &inst, float32_t x, executor_context &context)
 {
 	auto const result = std::tgamma(x);
 	if (std::isnan(x) || x == 0.0f || x == -std::numeric_limits<float32_t>::infinity())
@@ -2762,7 +2762,7 @@ static float32_t execute(instructions::tgamma_f32 const &inst, float32_t x, exec
 	return result;
 }
 
-static float64_t execute(instructions::tgamma_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_tgamma_f64(instructions::tgamma_f64 const &inst, float64_t x, executor_context &context)
 {
 	auto const result = std::tgamma(x);
 	if (std::isnan(x) || x == 0.0 || x == -std::numeric_limits<float64_t>::infinity())
@@ -2776,17 +2776,17 @@ static float64_t execute(instructions::tgamma_f64 const &inst, float64_t x, exec
 	return result;
 }
 
-static float32_t execute(instructions::tgamma_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_tgamma_f32_unchecked(instructions::tgamma_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::tgamma(x);
 }
 
-static float64_t execute(instructions::tgamma_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_tgamma_f64_unchecked(instructions::tgamma_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::tgamma(x);
 }
 
-static float32_t execute(instructions::lgamma_f32 const &inst, float32_t x, executor_context &context)
+static float32_t execute_lgamma_f32(instructions::lgamma_f32 const &inst, float32_t x, executor_context &context)
 {
 	auto const result = std::lgamma(x);
 	if (std::isnan(x) || x == 0.0f)
@@ -2800,7 +2800,7 @@ static float32_t execute(instructions::lgamma_f32 const &inst, float32_t x, exec
 	return result;
 }
 
-static float64_t execute(instructions::lgamma_f64 const &inst, float64_t x, executor_context &context)
+static float64_t execute_lgamma_f64(instructions::lgamma_f64 const &inst, float64_t x, executor_context &context)
 {
 	auto const result = std::lgamma(x);
 	if (std::isnan(x) || x == 0.0)
@@ -2814,17 +2814,17 @@ static float64_t execute(instructions::lgamma_f64 const &inst, float64_t x, exec
 	return result;
 }
 
-static float32_t execute(instructions::lgamma_f32_unchecked const &, float32_t x, executor_context &)
+static float32_t execute_lgamma_f32_unchecked(instructions::lgamma_f32_unchecked const &, float32_t x, executor_context &)
 {
 	return std::lgamma(x);
 }
 
-static float64_t execute(instructions::lgamma_f64_unchecked const &, float64_t x, executor_context &)
+static float64_t execute_lgamma_f64_unchecked(instructions::lgamma_f64_unchecked const &, float64_t x, executor_context &)
 {
 	return std::lgamma(x);
 }
 
-static uint8_t execute(instructions::bitreverse_u8 const &, uint8_t value, executor_context &)
+static uint8_t execute_bitreverse_u8(instructions::bitreverse_u8 const &, uint8_t value, executor_context &)
 {
 	value = ((value & uint8_t(0b1111'0000)) >> 4) | ((value & uint8_t(0b0000'1111)) << 4);
 	value = ((value & uint8_t(0b1100'1100)) >> 2) | ((value & uint8_t(0b0011'0011)) << 2);
@@ -2832,7 +2832,7 @@ static uint8_t execute(instructions::bitreverse_u8 const &, uint8_t value, execu
 	return value;
 }
 
-static uint16_t execute(instructions::bitreverse_u16 const &, uint16_t value, executor_context &)
+static uint16_t execute_bitreverse_u16(instructions::bitreverse_u16 const &, uint16_t value, executor_context &)
 {
 	value = ((value & uint16_t(0xff00)) >> 8) | ((value & uint16_t(0x00ff)) << 8);
 	value = ((value & uint16_t(0b1111'0000'1111'0000)) >> 4) | ((value & uint16_t(0b0000'1111'0000'1111)) << 4);
@@ -2841,7 +2841,7 @@ static uint16_t execute(instructions::bitreverse_u16 const &, uint16_t value, ex
 	return value;
 }
 
-static uint32_t execute(instructions::bitreverse_u32 const &, uint32_t value, executor_context &)
+static uint32_t execute_bitreverse_u32(instructions::bitreverse_u32 const &, uint32_t value, executor_context &)
 {
 	value = ((value & uint32_t(0xffff'0000)) >> 16) | ((value & uint32_t(0x0000'ffff)) << 16);
 	value = ((value & uint32_t(0xff00'ff00)) >> 8) | ((value & uint32_t(0x00ff'00ff)) << 8);
@@ -2854,7 +2854,7 @@ static uint32_t execute(instructions::bitreverse_u32 const &, uint32_t value, ex
 	return value;
 }
 
-static uint64_t execute(instructions::bitreverse_u64 const &, uint64_t value, executor_context &)
+static uint64_t execute_bitreverse_u64(instructions::bitreverse_u64 const &, uint64_t value, executor_context &)
 {
 	value = ((value & uint64_t(0xffff'ffff'0000'0000)) >> 32) | ((value & uint64_t(0x0000'0000'ffff'ffff)) << 32);
 	value = ((value & uint64_t(0xffff'0000'ffff'0000)) >> 16) | ((value & uint64_t(0x0000'ffff'0000'ffff)) << 16);
@@ -2868,40 +2868,40 @@ static uint64_t execute(instructions::bitreverse_u64 const &, uint64_t value, ex
 	return value;
 }
 
-static uint8_t execute(instructions::popcount_u8 const &, uint8_t value, executor_context &)
+static uint8_t execute_popcount_u8(instructions::popcount_u8 const &, uint8_t value, executor_context &)
 {
 	return std::popcount(value);
 }
 
-static uint16_t execute(instructions::popcount_u16 const &, uint16_t value, executor_context &)
+static uint16_t execute_popcount_u16(instructions::popcount_u16 const &, uint16_t value, executor_context &)
 {
 	return std::popcount(value);
 }
 
-static uint32_t execute(instructions::popcount_u32 const &, uint32_t value, executor_context &)
+static uint32_t execute_popcount_u32(instructions::popcount_u32 const &, uint32_t value, executor_context &)
 {
 	return std::popcount(value);
 }
 
-static uint64_t execute(instructions::popcount_u64 const &, uint64_t value, executor_context &)
+static uint64_t execute_popcount_u64(instructions::popcount_u64 const &, uint64_t value, executor_context &)
 {
 	return std::popcount(value);
 }
 
-static uint16_t execute(instructions::byteswap_u16 const &, uint16_t value, executor_context &)
+static uint16_t execute_byteswap_u16(instructions::byteswap_u16 const &, uint16_t value, executor_context &)
 {
 	value = ((value & uint16_t(0xff00)) >> 8) | ((value & uint16_t(0x00ff)) << 8);
 	return value;
 }
 
-static uint32_t execute(instructions::byteswap_u32 const &, uint32_t value, executor_context &)
+static uint32_t execute_byteswap_u32(instructions::byteswap_u32 const &, uint32_t value, executor_context &)
 {
 	value = ((value & uint32_t(0xffff'0000)) >> 16) | ((value & uint32_t(0x0000'ffff)) << 16);
 	value = ((value & uint32_t(0xff00'ff00)) >> 8) | ((value & uint32_t(0x00ff'00ff)) << 8);
 	return value;
 }
 
-static uint64_t execute(instructions::byteswap_u64 const &, uint64_t value, executor_context &)
+static uint64_t execute_byteswap_u64(instructions::byteswap_u64 const &, uint64_t value, executor_context &)
 {
 	value = ((value & uint64_t(0xffff'ffff'0000'0000)) >> 32) | ((value & uint64_t(0x0000'0000'ffff'ffff)) << 32);
 	value = ((value & uint64_t(0xffff'0000'ffff'0000)) >> 16) | ((value & uint64_t(0x0000'ffff'0000'ffff)) << 16);
@@ -2909,130 +2909,130 @@ static uint64_t execute(instructions::byteswap_u64 const &, uint64_t value, exec
 	return value;
 }
 
-static uint8_t execute(instructions::clz_u8 const &, uint8_t value, executor_context &)
+static uint8_t execute_clz_u8(instructions::clz_u8 const &, uint8_t value, executor_context &)
 {
 	return std::countl_zero(value);
 }
 
-static uint16_t execute(instructions::clz_u16 const &, uint16_t value, executor_context &)
+static uint16_t execute_clz_u16(instructions::clz_u16 const &, uint16_t value, executor_context &)
 {
 	return std::countl_zero(value);
 }
 
-static uint32_t execute(instructions::clz_u32 const &, uint32_t value, executor_context &)
+static uint32_t execute_clz_u32(instructions::clz_u32 const &, uint32_t value, executor_context &)
 {
 	return std::countl_zero(value);
 }
 
-static uint64_t execute(instructions::clz_u64 const &, uint64_t value, executor_context &)
+static uint64_t execute_clz_u64(instructions::clz_u64 const &, uint64_t value, executor_context &)
 {
 	return std::countl_zero(value);
 }
 
-static uint8_t execute(instructions::ctz_u8 const &, uint8_t value, executor_context &)
+static uint8_t execute_ctz_u8(instructions::ctz_u8 const &, uint8_t value, executor_context &)
 {
 	return std::countr_zero(value);
 }
 
-static uint16_t execute(instructions::ctz_u16 const &, uint16_t value, executor_context &)
+static uint16_t execute_ctz_u16(instructions::ctz_u16 const &, uint16_t value, executor_context &)
 {
 	return std::countr_zero(value);
 }
 
-static uint32_t execute(instructions::ctz_u32 const &, uint32_t value, executor_context &)
+static uint32_t execute_ctz_u32(instructions::ctz_u32 const &, uint32_t value, executor_context &)
 {
 	return std::countr_zero(value);
 }
 
-static uint64_t execute(instructions::ctz_u64 const &, uint64_t value, executor_context &)
+static uint64_t execute_ctz_u64(instructions::ctz_u64 const &, uint64_t value, executor_context &)
 {
 	return std::countr_zero(value);
 }
 
-static uint8_t execute(instructions::fshl_u8 const &, uint8_t a, uint8_t b, uint8_t amount, executor_context &)
+static uint8_t execute_fshl_u8(instructions::fshl_u8 const &, uint8_t a, uint8_t b, uint8_t amount, executor_context &)
 {
 	amount %= 8;
 	return amount == 0 ? a : ((a << amount) | (b >> (8 - amount)));
 }
 
-static uint16_t execute(instructions::fshl_u16 const &, uint16_t a, uint16_t b, uint16_t amount, executor_context &)
+static uint16_t execute_fshl_u16(instructions::fshl_u16 const &, uint16_t a, uint16_t b, uint16_t amount, executor_context &)
 {
 	amount %= 16;
 	return amount == 0 ? a : ((a << amount) | (b >> (16 - amount)));
 }
 
-static uint32_t execute(instructions::fshl_u32 const &, uint32_t a, uint32_t b, uint32_t amount, executor_context &)
+static uint32_t execute_fshl_u32(instructions::fshl_u32 const &, uint32_t a, uint32_t b, uint32_t amount, executor_context &)
 {
 	amount %= 32;
 	return amount == 0 ? a : ((a << amount) | (b >> (32 - amount)));
 }
 
-static uint64_t execute(instructions::fshl_u64 const &, uint64_t a, uint64_t b, uint64_t amount, executor_context &)
+static uint64_t execute_fshl_u64(instructions::fshl_u64 const &, uint64_t a, uint64_t b, uint64_t amount, executor_context &)
 {
 	amount %= 64;
 	return amount == 0 ? a : ((a << amount) | (b >> (64 - amount)));
 }
 
-static uint8_t execute(instructions::fshr_u8 const &, uint8_t a, uint8_t b, uint8_t amount, executor_context &)
+static uint8_t execute_fshr_u8(instructions::fshr_u8 const &, uint8_t a, uint8_t b, uint8_t amount, executor_context &)
 {
 	amount %= 8;
 	return amount == 0 ? b : ((b >> amount) | (a << (8 - amount)));
 }
 
-static uint16_t execute(instructions::fshr_u16 const &, uint16_t a, uint16_t b, uint16_t amount, executor_context &)
+static uint16_t execute_fshr_u16(instructions::fshr_u16 const &, uint16_t a, uint16_t b, uint16_t amount, executor_context &)
 {
 	amount %= 16;
 	return amount == 0 ? b : ((b >> amount) | (a << (16 - amount)));
 }
 
-static uint32_t execute(instructions::fshr_u32 const &, uint32_t a, uint32_t b, uint32_t amount, executor_context &)
+static uint32_t execute_fshr_u32(instructions::fshr_u32 const &, uint32_t a, uint32_t b, uint32_t amount, executor_context &)
 {
 	amount %= 32;
 	return amount == 0 ? b : ((b >> amount) | (a << (32 - amount)));
 }
 
-static uint64_t execute(instructions::fshr_u64 const &, uint64_t a, uint64_t b, uint64_t amount, executor_context &)
+static uint64_t execute_fshr_u64(instructions::fshr_u64 const &, uint64_t a, uint64_t b, uint64_t amount, executor_context &)
 {
 	amount %= 64;
 	return amount == 0 ? b : ((b >> amount) | (a << (64 - amount)));
 }
 
-static ptr_t execute(instructions::const_gep const &inst, ptr_t ptr, executor_context &)
+static ptr_t execute_const_gep(instructions::const_gep const &inst, ptr_t ptr, executor_context &)
 {
 	return ptr + inst.offset;
 }
 
-static ptr_t execute(instructions::array_gep_i32 const &inst, ptr_t ptr, uint32_t index, executor_context &)
+static ptr_t execute_array_gep_i32(instructions::array_gep_i32 const &inst, ptr_t ptr, uint32_t index, executor_context &)
 {
 	return ptr + inst.stride * index;
 }
 
-static ptr_t execute(instructions::array_gep_i64 const &inst, ptr_t ptr, uint64_t index, executor_context &)
+static ptr_t execute_array_gep_i64(instructions::array_gep_i64 const &inst, ptr_t ptr, uint64_t index, executor_context &)
 {
 	return ptr + inst.stride * index;
 }
 
-static void execute(instructions::const_memcpy const &inst, ptr_t dest, ptr_t src, executor_context &context)
+static void execute_const_memcpy(instructions::const_memcpy const &inst, ptr_t dest, ptr_t src, executor_context &context)
 {
 	auto const dest_mem = context.get_memory(dest, inst.size);
 	auto const src_mem  = context.get_memory(src, inst.size);
 	std::memcpy(dest_mem, src_mem, inst.size);
 }
 
-static void execute(instructions::const_memset_zero const &inst, ptr_t dest, executor_context &context)
+static void execute_const_memset_zero(instructions::const_memset_zero const &inst, ptr_t dest, executor_context &context)
 {
 	auto const dest_mem = context.get_memory(dest, inst.size);
 	std::memset(dest_mem, 0, inst.size);
 }
 
-static instruction_value execute(instructions::function_call const &inst, executor_context &context);
+static instruction_value execute_function_call(instructions::function_call const &inst, executor_context &context);
 
-static void execute(instructions::jump const &inst, executor_context &context)
+static void execute_jump(instructions::jump const &inst, executor_context &context)
 {
 	context.do_jump(inst.dest);
 }
 
-static void execute(instructions::conditional_jump const &inst, bool condition, executor_context &context)
+static void execute_conditional_jump(instructions::conditional_jump const &inst, bool condition, executor_context &context)
 {
 	if (condition)
 	{
@@ -3044,27 +3044,27 @@ static void execute(instructions::conditional_jump const &inst, bool condition, 
 	}
 }
 
-static void execute(instructions::ret const &, instruction_value value, executor_context &context)
+static void execute_ret(instructions::ret const &, instruction_value value, executor_context &context)
 {
 	context.do_ret(value);
 }
 
-static void execute(instructions::ret_void const &, executor_context &context)
+static void execute_ret_void(instructions::ret_void const &, executor_context &context)
 {
 	context.do_ret_void();
 }
 
-static void execute(instructions::unreachable const &, executor_context &)
+static void execute_unreachable(instructions::unreachable const &, executor_context &)
 {
 	bz_unreachable;
 }
 
-static void execute(instructions::error const &error, executor_context &context)
+static void execute_error(instructions::error const &error, executor_context &context)
 {
 	context.report_error(error.error_index);
 }
 
-static void execute(instructions::diagnostic_str const &inst, ptr_t begin, ptr_t end, executor_context &context)
+static void execute_diagnostic_str(instructions::diagnostic_str const &inst, ptr_t begin, ptr_t end, executor_context &context)
 {
 	auto const begin_ptr = context.get_memory(begin, 0);
 	auto const end_ptr = context.get_memory(end, 0);
@@ -3079,7 +3079,7 @@ static void execute(instructions::diagnostic_str const &inst, ptr_t begin, ptr_t
 	}
 }
 
-static void execute(instructions::array_bounds_check_i32 const &inst, uint32_t uindex, uint32_t size, executor_context &context)
+static void execute_array_bounds_check_i32(instructions::array_bounds_check_i32 const &inst, uint32_t uindex, uint32_t size, executor_context &context)
 {
 	auto const index = static_cast<int32_t>(uindex);
 	if (index < 0)
@@ -3098,7 +3098,7 @@ static void execute(instructions::array_bounds_check_i32 const &inst, uint32_t u
 	}
 }
 
-static void execute(instructions::array_bounds_check_u32 const &inst, uint32_t index, uint32_t size, executor_context &context)
+static void execute_array_bounds_check_u32(instructions::array_bounds_check_u32 const &inst, uint32_t index, uint32_t size, executor_context &context)
 {
 	if (index >= size)
 	{
@@ -3109,7 +3109,7 @@ static void execute(instructions::array_bounds_check_u32 const &inst, uint32_t i
 	}
 }
 
-static void execute(instructions::array_bounds_check_i64 const &inst, uint64_t uindex, uint64_t size, executor_context &context)
+static void execute_array_bounds_check_i64(instructions::array_bounds_check_i64 const &inst, uint64_t uindex, uint64_t size, executor_context &context)
 {
 	auto const index = static_cast<int64_t>(uindex);
 	if (index < 0)
@@ -3128,7 +3128,7 @@ static void execute(instructions::array_bounds_check_i64 const &inst, uint64_t u
 	}
 }
 
-static void execute(instructions::array_bounds_check_u64 const &inst, uint64_t index, uint64_t size, executor_context &context)
+static void execute_array_bounds_check_u64(instructions::array_bounds_check_u64 const &inst, uint64_t index, uint64_t size, executor_context &context)
 {
 	if (index >= size)
 	{
@@ -3139,7 +3139,7 @@ static void execute(instructions::array_bounds_check_u64 const &inst, uint64_t i
 	}
 }
 
-static void execute(instructions::optional_get_value_check const &inst, bool has_value, executor_context &context)
+static void execute_optional_get_value_check(instructions::optional_get_value_check const &inst, bool has_value, executor_context &context)
 {
 	if (!has_value)
 	{
@@ -3147,8 +3147,8 @@ static void execute(instructions::optional_get_value_check const &inst, bool has
 	}
 }
 
-static void execute(instructions::str_construction_check const &inst, ptr_t begin_ptr, ptr_t end_ptr, executor_context &context);
-static void execute(instructions::slice_construction_check const &inst, ptr_t begin_ptr, ptr_t end_ptr, executor_context &context);
+static void execute_str_construction_check(instructions::str_construction_check const &inst, ptr_t begin_ptr, ptr_t end_ptr, executor_context &context);
+static void execute_slice_construction_check(instructions::slice_construction_check const &inst, ptr_t begin_ptr, ptr_t end_ptr, executor_context &context);
 
 
 template<value_type type>
@@ -3302,7 +3302,7 @@ static get_value_type_t<type> &get_value_ref(instruction_value &value)
 }
 
 
-template<typename Inst>
+template<typename Inst, auto execute_func>
 static void execute(executor_context &context)
 {
 	auto const &inst = *context.current_instruction;
@@ -3312,11 +3312,11 @@ static void execute(executor_context &context)
 		auto const &inst_with_args = inst.get<instructions::instruction_with_args<Inst>>();
 		if constexpr (Inst::result_type != value_type::none)
 		{
-			get_value_ref<Inst::result_type>(result) = execute(inst_with_args.inst, context);
+			get_value_ref<Inst::result_type>(result) = execute_func(inst_with_args.inst, context);
 		}
 		else
 		{
-			execute(inst_with_args.inst, context);
+			execute_func(inst_with_args.inst, context);
 			result.none = none_t();
 		}
 	}
@@ -3326,7 +3326,7 @@ static void execute(executor_context &context)
 			auto const &inst_with_args = inst.get<instructions::instruction_with_args<Inst>>();
 			if constexpr (Inst::result_type != value_type::none)
 			{
-				get_value_ref<Inst::result_type>(result) = execute(
+				get_value_ref<Inst::result_type>(result) = execute_func(
 					inst_with_args.inst,
 					get_value<Inst::arg_types[Is]>(context.get_instruction_value(inst_with_args.args[Is]))...,
 					context
@@ -3334,7 +3334,7 @@ static void execute(executor_context &context)
 			}
 			else
 			{
-				execute(
+				execute_func(
 					inst_with_args.inst,
 					get_value<Inst::arg_types[Is]>(context.get_instruction_value(inst_with_args.args[Is]))...,
 					context
@@ -3352,1225 +3352,1225 @@ void execute(executor_context &context)
 	{
 		static_assert(instruction::variant_count == 407);
 		case instruction::const_i1:
-			execute<instructions::const_i1>(context);
+			execute<instructions::const_i1, &execute_const_i1>(context);
 			break;
 		case instruction::const_i8:
-			execute<instructions::const_i8>(context);
+			execute<instructions::const_i8, &execute_const_i8>(context);
 			break;
 		case instruction::const_i16:
-			execute<instructions::const_i16>(context);
+			execute<instructions::const_i16, &execute_const_i16>(context);
 			break;
 		case instruction::const_i32:
-			execute<instructions::const_i32>(context);
+			execute<instructions::const_i32, &execute_const_i32>(context);
 			break;
 		case instruction::const_i64:
-			execute<instructions::const_i64>(context);
+			execute<instructions::const_i64, &execute_const_i64>(context);
 			break;
 		case instruction::const_u8:
-			execute<instructions::const_u8>(context);
+			execute<instructions::const_u8, &execute_const_u8>(context);
 			break;
 		case instruction::const_u16:
-			execute<instructions::const_u16>(context);
+			execute<instructions::const_u16, &execute_const_u16>(context);
 			break;
 		case instruction::const_u32:
-			execute<instructions::const_u32>(context);
+			execute<instructions::const_u32, &execute_const_u32>(context);
 			break;
 		case instruction::const_u64:
-			execute<instructions::const_u64>(context);
+			execute<instructions::const_u64, &execute_const_u64>(context);
 			break;
 		case instruction::const_f32:
-			execute<instructions::const_f32>(context);
+			execute<instructions::const_f32, &execute_const_f32>(context);
 			break;
 		case instruction::const_f64:
-			execute<instructions::const_f64>(context);
+			execute<instructions::const_f64, &execute_const_f64>(context);
 			break;
 		case instruction::const_ptr_null:
-			execute<instructions::const_ptr_null>(context);
+			execute<instructions::const_ptr_null, &execute_const_ptr_null>(context);
 			break;
 		case instruction::load_i1_be:
-			execute<instructions::load_i1_be>(context);
+			execute<instructions::load_i1_be, &execute_load_i1_be>(context);
 			break;
 		case instruction::load_i8_be:
-			execute<instructions::load_i8_be>(context);
+			execute<instructions::load_i8_be, &execute_load_i8_be>(context);
 			break;
 		case instruction::load_i16_be:
-			execute<instructions::load_i16_be>(context);
+			execute<instructions::load_i16_be, &execute_load_i16_be>(context);
 			break;
 		case instruction::load_i32_be:
-			execute<instructions::load_i32_be>(context);
+			execute<instructions::load_i32_be, &execute_load_i32_be>(context);
 			break;
 		case instruction::load_i64_be:
-			execute<instructions::load_i64_be>(context);
+			execute<instructions::load_i64_be, &execute_load_i64_be>(context);
 			break;
 		case instruction::load_f32_be:
-			execute<instructions::load_f32_be>(context);
+			execute<instructions::load_f32_be, &execute_load_f32_be>(context);
 			break;
 		case instruction::load_f64_be:
-			execute<instructions::load_f64_be>(context);
+			execute<instructions::load_f64_be, &execute_load_f64_be>(context);
 			break;
 		case instruction::load_ptr32_be:
-			execute<instructions::load_ptr32_be>(context);
+			execute<instructions::load_ptr32_be, &execute_load_ptr32_be>(context);
 			break;
 		case instruction::load_ptr64_be:
-			execute<instructions::load_ptr64_be>(context);
+			execute<instructions::load_ptr64_be, &execute_load_ptr64_be>(context);
 			break;
 		case instruction::load_i1_le:
-			execute<instructions::load_i1_le>(context);
+			execute<instructions::load_i1_le, &execute_load_i1_le>(context);
 			break;
 		case instruction::load_i8_le:
-			execute<instructions::load_i8_le>(context);
+			execute<instructions::load_i8_le, &execute_load_i8_le>(context);
 			break;
 		case instruction::load_i16_le:
-			execute<instructions::load_i16_le>(context);
+			execute<instructions::load_i16_le, &execute_load_i16_le>(context);
 			break;
 		case instruction::load_i32_le:
-			execute<instructions::load_i32_le>(context);
+			execute<instructions::load_i32_le, &execute_load_i32_le>(context);
 			break;
 		case instruction::load_i64_le:
-			execute<instructions::load_i64_le>(context);
+			execute<instructions::load_i64_le, &execute_load_i64_le>(context);
 			break;
 		case instruction::load_f32_le:
-			execute<instructions::load_f32_le>(context);
+			execute<instructions::load_f32_le, &execute_load_f32_le>(context);
 			break;
 		case instruction::load_f64_le:
-			execute<instructions::load_f64_le>(context);
+			execute<instructions::load_f64_le, &execute_load_f64_le>(context);
 			break;
 		case instruction::load_ptr32_le:
-			execute<instructions::load_ptr32_le>(context);
+			execute<instructions::load_ptr32_le, &execute_load_ptr32_le>(context);
 			break;
 		case instruction::load_ptr64_le:
-			execute<instructions::load_ptr64_le>(context);
+			execute<instructions::load_ptr64_le, &execute_load_ptr64_le>(context);
 			break;
 		case instruction::store_i1_be:
-			execute<instructions::store_i1_be>(context);
+			execute<instructions::store_i1_be, &execute_store_i1_be>(context);
 			break;
 		case instruction::store_i8_be:
-			execute<instructions::store_i8_be>(context);
+			execute<instructions::store_i8_be, &execute_store_i8_be>(context);
 			break;
 		case instruction::store_i16_be:
-			execute<instructions::store_i16_be>(context);
+			execute<instructions::store_i16_be, &execute_store_i16_be>(context);
 			break;
 		case instruction::store_i32_be:
-			execute<instructions::store_i32_be>(context);
+			execute<instructions::store_i32_be, &execute_store_i32_be>(context);
 			break;
 		case instruction::store_i64_be:
-			execute<instructions::store_i64_be>(context);
+			execute<instructions::store_i64_be, &execute_store_i64_be>(context);
 			break;
 		case instruction::store_f32_be:
-			execute<instructions::store_f32_be>(context);
+			execute<instructions::store_f32_be, &execute_store_f32_be>(context);
 			break;
 		case instruction::store_f64_be:
-			execute<instructions::store_f64_be>(context);
+			execute<instructions::store_f64_be, &execute_store_f64_be>(context);
 			break;
 		case instruction::store_ptr32_be:
-			execute<instructions::store_ptr32_be>(context);
+			execute<instructions::store_ptr32_be, &execute_store_ptr32_be>(context);
 			break;
 		case instruction::store_ptr64_be:
-			execute<instructions::store_ptr64_be>(context);
+			execute<instructions::store_ptr64_be, &execute_store_ptr64_be>(context);
 			break;
 		case instruction::store_i1_le:
-			execute<instructions::store_i1_le>(context);
+			execute<instructions::store_i1_le, &execute_store_i1_le>(context);
 			break;
 		case instruction::store_i8_le:
-			execute<instructions::store_i8_le>(context);
+			execute<instructions::store_i8_le, &execute_store_i8_le>(context);
 			break;
 		case instruction::store_i16_le:
-			execute<instructions::store_i16_le>(context);
+			execute<instructions::store_i16_le, &execute_store_i16_le>(context);
 			break;
 		case instruction::store_i32_le:
-			execute<instructions::store_i32_le>(context);
+			execute<instructions::store_i32_le, &execute_store_i32_le>(context);
 			break;
 		case instruction::store_i64_le:
-			execute<instructions::store_i64_le>(context);
+			execute<instructions::store_i64_le, &execute_store_i64_le>(context);
 			break;
 		case instruction::store_f32_le:
-			execute<instructions::store_f32_le>(context);
+			execute<instructions::store_f32_le, &execute_store_f32_le>(context);
 			break;
 		case instruction::store_f64_le:
-			execute<instructions::store_f64_le>(context);
+			execute<instructions::store_f64_le, &execute_store_f64_le>(context);
 			break;
 		case instruction::store_ptr32_le:
-			execute<instructions::store_ptr32_le>(context);
+			execute<instructions::store_ptr32_le, &execute_store_ptr32_le>(context);
 			break;
 		case instruction::store_ptr64_le:
-			execute<instructions::store_ptr64_le>(context);
+			execute<instructions::store_ptr64_le, &execute_store_ptr64_le>(context);
 			break;
 		case instruction::cast_zext_i1_to_i8:
-			execute<instructions::cast_zext_i1_to_i8>(context);
+			execute<instructions::cast_zext_i1_to_i8, &execute_cast_zext_i1_to_i8>(context);
 			break;
 		case instruction::cast_zext_i1_to_i16:
-			execute<instructions::cast_zext_i1_to_i16>(context);
+			execute<instructions::cast_zext_i1_to_i16, &execute_cast_zext_i1_to_i16>(context);
 			break;
 		case instruction::cast_zext_i1_to_i32:
-			execute<instructions::cast_zext_i1_to_i32>(context);
+			execute<instructions::cast_zext_i1_to_i32, &execute_cast_zext_i1_to_i32>(context);
 			break;
 		case instruction::cast_zext_i1_to_i64:
-			execute<instructions::cast_zext_i1_to_i64>(context);
+			execute<instructions::cast_zext_i1_to_i64, &execute_cast_zext_i1_to_i64>(context);
 			break;
 		case instruction::cast_zext_i8_to_i16:
-			execute<instructions::cast_zext_i8_to_i16>(context);
+			execute<instructions::cast_zext_i8_to_i16, &execute_cast_zext_i8_to_i16>(context);
 			break;
 		case instruction::cast_zext_i8_to_i32:
-			execute<instructions::cast_zext_i8_to_i32>(context);
+			execute<instructions::cast_zext_i8_to_i32, &execute_cast_zext_i8_to_i32>(context);
 			break;
 		case instruction::cast_zext_i8_to_i64:
-			execute<instructions::cast_zext_i8_to_i64>(context);
+			execute<instructions::cast_zext_i8_to_i64, &execute_cast_zext_i8_to_i64>(context);
 			break;
 		case instruction::cast_zext_i16_to_i32:
-			execute<instructions::cast_zext_i16_to_i32>(context);
+			execute<instructions::cast_zext_i16_to_i32, &execute_cast_zext_i16_to_i32>(context);
 			break;
 		case instruction::cast_zext_i16_to_i64:
-			execute<instructions::cast_zext_i16_to_i64>(context);
+			execute<instructions::cast_zext_i16_to_i64, &execute_cast_zext_i16_to_i64>(context);
 			break;
 		case instruction::cast_zext_i32_to_i64:
-			execute<instructions::cast_zext_i32_to_i64>(context);
+			execute<instructions::cast_zext_i32_to_i64, &execute_cast_zext_i32_to_i64>(context);
 			break;
 		case instruction::cast_sext_i8_to_i16:
-			execute<instructions::cast_sext_i8_to_i16>(context);
+			execute<instructions::cast_sext_i8_to_i16, &execute_cast_sext_i8_to_i16>(context);
 			break;
 		case instruction::cast_sext_i8_to_i32:
-			execute<instructions::cast_sext_i8_to_i32>(context);
+			execute<instructions::cast_sext_i8_to_i32, &execute_cast_sext_i8_to_i32>(context);
 			break;
 		case instruction::cast_sext_i8_to_i64:
-			execute<instructions::cast_sext_i8_to_i64>(context);
+			execute<instructions::cast_sext_i8_to_i64, &execute_cast_sext_i8_to_i64>(context);
 			break;
 		case instruction::cast_sext_i16_to_i32:
-			execute<instructions::cast_sext_i16_to_i32>(context);
+			execute<instructions::cast_sext_i16_to_i32, &execute_cast_sext_i16_to_i32>(context);
 			break;
 		case instruction::cast_sext_i16_to_i64:
-			execute<instructions::cast_sext_i16_to_i64>(context);
+			execute<instructions::cast_sext_i16_to_i64, &execute_cast_sext_i16_to_i64>(context);
 			break;
 		case instruction::cast_sext_i32_to_i64:
-			execute<instructions::cast_sext_i32_to_i64>(context);
+			execute<instructions::cast_sext_i32_to_i64, &execute_cast_sext_i32_to_i64>(context);
 			break;
 		case instruction::cast_trunc_i64_to_i8:
-			execute<instructions::cast_trunc_i64_to_i8>(context);
+			execute<instructions::cast_trunc_i64_to_i8, &execute_cast_trunc_i64_to_i8>(context);
 			break;
 		case instruction::cast_trunc_i64_to_i16:
-			execute<instructions::cast_trunc_i64_to_i16>(context);
+			execute<instructions::cast_trunc_i64_to_i16, &execute_cast_trunc_i64_to_i16>(context);
 			break;
 		case instruction::cast_trunc_i64_to_i32:
-			execute<instructions::cast_trunc_i64_to_i32>(context);
+			execute<instructions::cast_trunc_i64_to_i32, &execute_cast_trunc_i64_to_i32>(context);
 			break;
 		case instruction::cast_trunc_i32_to_i8:
-			execute<instructions::cast_trunc_i32_to_i8>(context);
+			execute<instructions::cast_trunc_i32_to_i8, &execute_cast_trunc_i32_to_i8>(context);
 			break;
 		case instruction::cast_trunc_i32_to_i16:
-			execute<instructions::cast_trunc_i32_to_i16>(context);
+			execute<instructions::cast_trunc_i32_to_i16, &execute_cast_trunc_i32_to_i16>(context);
 			break;
 		case instruction::cast_trunc_i16_to_i8:
-			execute<instructions::cast_trunc_i16_to_i8>(context);
+			execute<instructions::cast_trunc_i16_to_i8, &execute_cast_trunc_i16_to_i8>(context);
 			break;
 		case instruction::cast_f32_to_f64:
-			execute<instructions::cast_f32_to_f64>(context);
+			execute<instructions::cast_f32_to_f64, &execute_cast_f32_to_f64>(context);
 			break;
 		case instruction::cast_f64_to_f32:
-			execute<instructions::cast_f64_to_f32>(context);
+			execute<instructions::cast_f64_to_f32, &execute_cast_f64_to_f32>(context);
 			break;
 		case instruction::cast_f32_to_i8:
-			execute<instructions::cast_f32_to_i8>(context);
+			execute<instructions::cast_f32_to_i8, &execute_cast_f32_to_i8>(context);
 			break;
 		case instruction::cast_f32_to_i16:
-			execute<instructions::cast_f32_to_i16>(context);
+			execute<instructions::cast_f32_to_i16, &execute_cast_f32_to_i16>(context);
 			break;
 		case instruction::cast_f32_to_i32:
-			execute<instructions::cast_f32_to_i32>(context);
+			execute<instructions::cast_f32_to_i32, &execute_cast_f32_to_i32>(context);
 			break;
 		case instruction::cast_f32_to_i64:
-			execute<instructions::cast_f32_to_i64>(context);
+			execute<instructions::cast_f32_to_i64, &execute_cast_f32_to_i64>(context);
 			break;
 		case instruction::cast_f32_to_u8:
-			execute<instructions::cast_f32_to_u8>(context);
+			execute<instructions::cast_f32_to_u8, &execute_cast_f32_to_u8>(context);
 			break;
 		case instruction::cast_f32_to_u16:
-			execute<instructions::cast_f32_to_u16>(context);
+			execute<instructions::cast_f32_to_u16, &execute_cast_f32_to_u16>(context);
 			break;
 		case instruction::cast_f32_to_u32:
-			execute<instructions::cast_f32_to_u32>(context);
+			execute<instructions::cast_f32_to_u32, &execute_cast_f32_to_u32>(context);
 			break;
 		case instruction::cast_f32_to_u64:
-			execute<instructions::cast_f32_to_u64>(context);
+			execute<instructions::cast_f32_to_u64, &execute_cast_f32_to_u64>(context);
 			break;
 		case instruction::cast_f64_to_i8:
-			execute<instructions::cast_f64_to_i8>(context);
+			execute<instructions::cast_f64_to_i8, &execute_cast_f64_to_i8>(context);
 			break;
 		case instruction::cast_f64_to_i16:
-			execute<instructions::cast_f64_to_i16>(context);
+			execute<instructions::cast_f64_to_i16, &execute_cast_f64_to_i16>(context);
 			break;
 		case instruction::cast_f64_to_i32:
-			execute<instructions::cast_f64_to_i32>(context);
+			execute<instructions::cast_f64_to_i32, &execute_cast_f64_to_i32>(context);
 			break;
 		case instruction::cast_f64_to_i64:
-			execute<instructions::cast_f64_to_i64>(context);
+			execute<instructions::cast_f64_to_i64, &execute_cast_f64_to_i64>(context);
 			break;
 		case instruction::cast_f64_to_u8:
-			execute<instructions::cast_f64_to_u8>(context);
+			execute<instructions::cast_f64_to_u8, &execute_cast_f64_to_u8>(context);
 			break;
 		case instruction::cast_f64_to_u16:
-			execute<instructions::cast_f64_to_u16>(context);
+			execute<instructions::cast_f64_to_u16, &execute_cast_f64_to_u16>(context);
 			break;
 		case instruction::cast_f64_to_u32:
-			execute<instructions::cast_f64_to_u32>(context);
+			execute<instructions::cast_f64_to_u32, &execute_cast_f64_to_u32>(context);
 			break;
 		case instruction::cast_f64_to_u64:
-			execute<instructions::cast_f64_to_u64>(context);
+			execute<instructions::cast_f64_to_u64, &execute_cast_f64_to_u64>(context);
 			break;
 		case instruction::cast_i8_to_f32:
-			execute<instructions::cast_i8_to_f32>(context);
+			execute<instructions::cast_i8_to_f32, &execute_cast_i8_to_f32>(context);
 			break;
 		case instruction::cast_i16_to_f32:
-			execute<instructions::cast_i16_to_f32>(context);
+			execute<instructions::cast_i16_to_f32, &execute_cast_i16_to_f32>(context);
 			break;
 		case instruction::cast_i32_to_f32:
-			execute<instructions::cast_i32_to_f32>(context);
+			execute<instructions::cast_i32_to_f32, &execute_cast_i32_to_f32>(context);
 			break;
 		case instruction::cast_i64_to_f32:
-			execute<instructions::cast_i64_to_f32>(context);
+			execute<instructions::cast_i64_to_f32, &execute_cast_i64_to_f32>(context);
 			break;
 		case instruction::cast_u8_to_f32:
-			execute<instructions::cast_u8_to_f32>(context);
+			execute<instructions::cast_u8_to_f32, &execute_cast_u8_to_f32>(context);
 			break;
 		case instruction::cast_u16_to_f32:
-			execute<instructions::cast_u16_to_f32>(context);
+			execute<instructions::cast_u16_to_f32, &execute_cast_u16_to_f32>(context);
 			break;
 		case instruction::cast_u32_to_f32:
-			execute<instructions::cast_u32_to_f32>(context);
+			execute<instructions::cast_u32_to_f32, &execute_cast_u32_to_f32>(context);
 			break;
 		case instruction::cast_u64_to_f32:
-			execute<instructions::cast_u64_to_f32>(context);
+			execute<instructions::cast_u64_to_f32, &execute_cast_u64_to_f32>(context);
 			break;
 		case instruction::cast_i8_to_f64:
-			execute<instructions::cast_i8_to_f64>(context);
+			execute<instructions::cast_i8_to_f64, &execute_cast_i8_to_f64>(context);
 			break;
 		case instruction::cast_i16_to_f64:
-			execute<instructions::cast_i16_to_f64>(context);
+			execute<instructions::cast_i16_to_f64, &execute_cast_i16_to_f64>(context);
 			break;
 		case instruction::cast_i32_to_f64:
-			execute<instructions::cast_i32_to_f64>(context);
+			execute<instructions::cast_i32_to_f64, &execute_cast_i32_to_f64>(context);
 			break;
 		case instruction::cast_i64_to_f64:
-			execute<instructions::cast_i64_to_f64>(context);
+			execute<instructions::cast_i64_to_f64, &execute_cast_i64_to_f64>(context);
 			break;
 		case instruction::cast_u8_to_f64:
-			execute<instructions::cast_u8_to_f64>(context);
+			execute<instructions::cast_u8_to_f64, &execute_cast_u8_to_f64>(context);
 			break;
 		case instruction::cast_u16_to_f64:
-			execute<instructions::cast_u16_to_f64>(context);
+			execute<instructions::cast_u16_to_f64, &execute_cast_u16_to_f64>(context);
 			break;
 		case instruction::cast_u32_to_f64:
-			execute<instructions::cast_u32_to_f64>(context);
+			execute<instructions::cast_u32_to_f64, &execute_cast_u32_to_f64>(context);
 			break;
 		case instruction::cast_u64_to_f64:
-			execute<instructions::cast_u64_to_f64>(context);
+			execute<instructions::cast_u64_to_f64, &execute_cast_u64_to_f64>(context);
 			break;
 		case instruction::cmp_eq_i1:
-			execute<instructions::cmp_eq_i1>(context);
+			execute<instructions::cmp_eq_i1, &execute_cmp_eq_i1>(context);
 			break;
 		case instruction::cmp_eq_i8:
-			execute<instructions::cmp_eq_i8>(context);
+			execute<instructions::cmp_eq_i8, &execute_cmp_eq_i8>(context);
 			break;
 		case instruction::cmp_eq_i16:
-			execute<instructions::cmp_eq_i16>(context);
+			execute<instructions::cmp_eq_i16, &execute_cmp_eq_i16>(context);
 			break;
 		case instruction::cmp_eq_i32:
-			execute<instructions::cmp_eq_i32>(context);
+			execute<instructions::cmp_eq_i32, &execute_cmp_eq_i32>(context);
 			break;
 		case instruction::cmp_eq_i64:
-			execute<instructions::cmp_eq_i64>(context);
+			execute<instructions::cmp_eq_i64, &execute_cmp_eq_i64>(context);
 			break;
 		case instruction::cmp_eq_f32:
-			execute<instructions::cmp_eq_f32>(context);
+			execute<instructions::cmp_eq_f32, &execute_cmp_eq_f32>(context);
 			break;
 		case instruction::cmp_eq_f64:
-			execute<instructions::cmp_eq_f64>(context);
+			execute<instructions::cmp_eq_f64, &execute_cmp_eq_f64>(context);
 			break;
 		case instruction::cmp_eq_f32_unchecked:
-			execute<instructions::cmp_eq_f32_unchecked>(context);
+			execute<instructions::cmp_eq_f32_unchecked, &execute_cmp_eq_f32_unchecked>(context);
 			break;
 		case instruction::cmp_eq_f64_unchecked:
-			execute<instructions::cmp_eq_f64_unchecked>(context);
+			execute<instructions::cmp_eq_f64_unchecked, &execute_cmp_eq_f64_unchecked>(context);
 			break;
 		case instruction::cmp_eq_ptr:
-			execute<instructions::cmp_eq_ptr>(context);
+			execute<instructions::cmp_eq_ptr, &execute_cmp_eq_ptr>(context);
 			break;
 		case instruction::cmp_neq_i1:
-			execute<instructions::cmp_neq_i1>(context);
+			execute<instructions::cmp_neq_i1, &execute_cmp_neq_i1>(context);
 			break;
 		case instruction::cmp_neq_i8:
-			execute<instructions::cmp_neq_i8>(context);
+			execute<instructions::cmp_neq_i8, &execute_cmp_neq_i8>(context);
 			break;
 		case instruction::cmp_neq_i16:
-			execute<instructions::cmp_neq_i16>(context);
+			execute<instructions::cmp_neq_i16, &execute_cmp_neq_i16>(context);
 			break;
 		case instruction::cmp_neq_i32:
-			execute<instructions::cmp_neq_i32>(context);
+			execute<instructions::cmp_neq_i32, &execute_cmp_neq_i32>(context);
 			break;
 		case instruction::cmp_neq_i64:
-			execute<instructions::cmp_neq_i64>(context);
+			execute<instructions::cmp_neq_i64, &execute_cmp_neq_i64>(context);
 			break;
 		case instruction::cmp_neq_f32:
-			execute<instructions::cmp_neq_f32>(context);
+			execute<instructions::cmp_neq_f32, &execute_cmp_neq_f32>(context);
 			break;
 		case instruction::cmp_neq_f64:
-			execute<instructions::cmp_neq_f64>(context);
+			execute<instructions::cmp_neq_f64, &execute_cmp_neq_f64>(context);
 			break;
 		case instruction::cmp_neq_f32_unchecked:
-			execute<instructions::cmp_neq_f32_unchecked>(context);
+			execute<instructions::cmp_neq_f32_unchecked, &execute_cmp_neq_f32_unchecked>(context);
 			break;
 		case instruction::cmp_neq_f64_unchecked:
-			execute<instructions::cmp_neq_f64_unchecked>(context);
+			execute<instructions::cmp_neq_f64_unchecked, &execute_cmp_neq_f64_unchecked>(context);
 			break;
 		case instruction::cmp_neq_ptr:
-			execute<instructions::cmp_neq_ptr>(context);
+			execute<instructions::cmp_neq_ptr, &execute_cmp_neq_ptr>(context);
 			break;
 		case instruction::cmp_lt_i8:
-			execute<instructions::cmp_lt_i8>(context);
+			execute<instructions::cmp_lt_i8, &execute_cmp_lt_i8>(context);
 			break;
 		case instruction::cmp_lt_i16:
-			execute<instructions::cmp_lt_i16>(context);
+			execute<instructions::cmp_lt_i16, &execute_cmp_lt_i16>(context);
 			break;
 		case instruction::cmp_lt_i32:
-			execute<instructions::cmp_lt_i32>(context);
+			execute<instructions::cmp_lt_i32, &execute_cmp_lt_i32>(context);
 			break;
 		case instruction::cmp_lt_i64:
-			execute<instructions::cmp_lt_i64>(context);
+			execute<instructions::cmp_lt_i64, &execute_cmp_lt_i64>(context);
 			break;
 		case instruction::cmp_lt_u8:
-			execute<instructions::cmp_lt_u8>(context);
+			execute<instructions::cmp_lt_u8, &execute_cmp_lt_u8>(context);
 			break;
 		case instruction::cmp_lt_u16:
-			execute<instructions::cmp_lt_u16>(context);
+			execute<instructions::cmp_lt_u16, &execute_cmp_lt_u16>(context);
 			break;
 		case instruction::cmp_lt_u32:
-			execute<instructions::cmp_lt_u32>(context);
+			execute<instructions::cmp_lt_u32, &execute_cmp_lt_u32>(context);
 			break;
 		case instruction::cmp_lt_u64:
-			execute<instructions::cmp_lt_u64>(context);
+			execute<instructions::cmp_lt_u64, &execute_cmp_lt_u64>(context);
 			break;
 		case instruction::cmp_lt_f32:
-			execute<instructions::cmp_lt_f32>(context);
+			execute<instructions::cmp_lt_f32, &execute_cmp_lt_f32>(context);
 			break;
 		case instruction::cmp_lt_f64:
-			execute<instructions::cmp_lt_f64>(context);
+			execute<instructions::cmp_lt_f64, &execute_cmp_lt_f64>(context);
 			break;
 		case instruction::cmp_lt_f32_unchecked:
-			execute<instructions::cmp_lt_f32_unchecked>(context);
+			execute<instructions::cmp_lt_f32_unchecked, &execute_cmp_lt_f32_unchecked>(context);
 			break;
 		case instruction::cmp_lt_f64_unchecked:
-			execute<instructions::cmp_lt_f64_unchecked>(context);
+			execute<instructions::cmp_lt_f64_unchecked, &execute_cmp_lt_f64_unchecked>(context);
 			break;
 		case instruction::cmp_gt_i8:
-			execute<instructions::cmp_gt_i8>(context);
+			execute<instructions::cmp_gt_i8, &execute_cmp_gt_i8>(context);
 			break;
 		case instruction::cmp_gt_i16:
-			execute<instructions::cmp_gt_i16>(context);
+			execute<instructions::cmp_gt_i16, &execute_cmp_gt_i16>(context);
 			break;
 		case instruction::cmp_gt_i32:
-			execute<instructions::cmp_gt_i32>(context);
+			execute<instructions::cmp_gt_i32, &execute_cmp_gt_i32>(context);
 			break;
 		case instruction::cmp_gt_i64:
-			execute<instructions::cmp_gt_i64>(context);
+			execute<instructions::cmp_gt_i64, &execute_cmp_gt_i64>(context);
 			break;
 		case instruction::cmp_gt_u8:
-			execute<instructions::cmp_gt_u8>(context);
+			execute<instructions::cmp_gt_u8, &execute_cmp_gt_u8>(context);
 			break;
 		case instruction::cmp_gt_u16:
-			execute<instructions::cmp_gt_u16>(context);
+			execute<instructions::cmp_gt_u16, &execute_cmp_gt_u16>(context);
 			break;
 		case instruction::cmp_gt_u32:
-			execute<instructions::cmp_gt_u32>(context);
+			execute<instructions::cmp_gt_u32, &execute_cmp_gt_u32>(context);
 			break;
 		case instruction::cmp_gt_u64:
-			execute<instructions::cmp_gt_u64>(context);
+			execute<instructions::cmp_gt_u64, &execute_cmp_gt_u64>(context);
 			break;
 		case instruction::cmp_gt_f32:
-			execute<instructions::cmp_gt_f32>(context);
+			execute<instructions::cmp_gt_f32, &execute_cmp_gt_f32>(context);
 			break;
 		case instruction::cmp_gt_f64:
-			execute<instructions::cmp_gt_f64>(context);
+			execute<instructions::cmp_gt_f64, &execute_cmp_gt_f64>(context);
 			break;
 		case instruction::cmp_gt_f32_unchecked:
-			execute<instructions::cmp_gt_f32_unchecked>(context);
+			execute<instructions::cmp_gt_f32_unchecked, &execute_cmp_gt_f32_unchecked>(context);
 			break;
 		case instruction::cmp_gt_f64_unchecked:
-			execute<instructions::cmp_gt_f64_unchecked>(context);
+			execute<instructions::cmp_gt_f64_unchecked, &execute_cmp_gt_f64_unchecked>(context);
 			break;
 		case instruction::cmp_lte_i8:
-			execute<instructions::cmp_lte_i8>(context);
+			execute<instructions::cmp_lte_i8, &execute_cmp_lte_i8>(context);
 			break;
 		case instruction::cmp_lte_i16:
-			execute<instructions::cmp_lte_i16>(context);
+			execute<instructions::cmp_lte_i16, &execute_cmp_lte_i16>(context);
 			break;
 		case instruction::cmp_lte_i32:
-			execute<instructions::cmp_lte_i32>(context);
+			execute<instructions::cmp_lte_i32, &execute_cmp_lte_i32>(context);
 			break;
 		case instruction::cmp_lte_i64:
-			execute<instructions::cmp_lte_i64>(context);
+			execute<instructions::cmp_lte_i64, &execute_cmp_lte_i64>(context);
 			break;
 		case instruction::cmp_lte_u8:
-			execute<instructions::cmp_lte_u8>(context);
+			execute<instructions::cmp_lte_u8, &execute_cmp_lte_u8>(context);
 			break;
 		case instruction::cmp_lte_u16:
-			execute<instructions::cmp_lte_u16>(context);
+			execute<instructions::cmp_lte_u16, &execute_cmp_lte_u16>(context);
 			break;
 		case instruction::cmp_lte_u32:
-			execute<instructions::cmp_lte_u32>(context);
+			execute<instructions::cmp_lte_u32, &execute_cmp_lte_u32>(context);
 			break;
 		case instruction::cmp_lte_u64:
-			execute<instructions::cmp_lte_u64>(context);
+			execute<instructions::cmp_lte_u64, &execute_cmp_lte_u64>(context);
 			break;
 		case instruction::cmp_lte_f32:
-			execute<instructions::cmp_lte_f32>(context);
+			execute<instructions::cmp_lte_f32, &execute_cmp_lte_f32>(context);
 			break;
 		case instruction::cmp_lte_f64:
-			execute<instructions::cmp_lte_f64>(context);
+			execute<instructions::cmp_lte_f64, &execute_cmp_lte_f64>(context);
 			break;
 		case instruction::cmp_lte_f32_unchecked:
-			execute<instructions::cmp_lte_f32_unchecked>(context);
+			execute<instructions::cmp_lte_f32_unchecked, &execute_cmp_lte_f32_unchecked>(context);
 			break;
 		case instruction::cmp_lte_f64_unchecked:
-			execute<instructions::cmp_lte_f64_unchecked>(context);
+			execute<instructions::cmp_lte_f64_unchecked, &execute_cmp_lte_f64_unchecked>(context);
 			break;
 		case instruction::cmp_gte_i8:
-			execute<instructions::cmp_gte_i8>(context);
+			execute<instructions::cmp_gte_i8, &execute_cmp_gte_i8>(context);
 			break;
 		case instruction::cmp_gte_i16:
-			execute<instructions::cmp_gte_i16>(context);
+			execute<instructions::cmp_gte_i16, &execute_cmp_gte_i16>(context);
 			break;
 		case instruction::cmp_gte_i32:
-			execute<instructions::cmp_gte_i32>(context);
+			execute<instructions::cmp_gte_i32, &execute_cmp_gte_i32>(context);
 			break;
 		case instruction::cmp_gte_i64:
-			execute<instructions::cmp_gte_i64>(context);
+			execute<instructions::cmp_gte_i64, &execute_cmp_gte_i64>(context);
 			break;
 		case instruction::cmp_gte_u8:
-			execute<instructions::cmp_gte_u8>(context);
+			execute<instructions::cmp_gte_u8, &execute_cmp_gte_u8>(context);
 			break;
 		case instruction::cmp_gte_u16:
-			execute<instructions::cmp_gte_u16>(context);
+			execute<instructions::cmp_gte_u16, &execute_cmp_gte_u16>(context);
 			break;
 		case instruction::cmp_gte_u32:
-			execute<instructions::cmp_gte_u32>(context);
+			execute<instructions::cmp_gte_u32, &execute_cmp_gte_u32>(context);
 			break;
 		case instruction::cmp_gte_u64:
-			execute<instructions::cmp_gte_u64>(context);
+			execute<instructions::cmp_gte_u64, &execute_cmp_gte_u64>(context);
 			break;
 		case instruction::cmp_gte_f32:
-			execute<instructions::cmp_gte_f32>(context);
+			execute<instructions::cmp_gte_f32, &execute_cmp_gte_f32>(context);
 			break;
 		case instruction::cmp_gte_f64:
-			execute<instructions::cmp_gte_f64>(context);
+			execute<instructions::cmp_gte_f64, &execute_cmp_gte_f64>(context);
 			break;
 		case instruction::cmp_gte_f32_unchecked:
-			execute<instructions::cmp_gte_f32_unchecked>(context);
+			execute<instructions::cmp_gte_f32_unchecked, &execute_cmp_gte_f32_unchecked>(context);
 			break;
 		case instruction::cmp_gte_f64_unchecked:
-			execute<instructions::cmp_gte_f64_unchecked>(context);
+			execute<instructions::cmp_gte_f64_unchecked, &execute_cmp_gte_f64_unchecked>(context);
 			break;
 		case instruction::neg_i8:
-			execute<instructions::neg_i8>(context);
+			execute<instructions::neg_i8, &execute_neg_i8>(context);
 			break;
 		case instruction::neg_i16:
-			execute<instructions::neg_i16>(context);
+			execute<instructions::neg_i16, &execute_neg_i16>(context);
 			break;
 		case instruction::neg_i32:
-			execute<instructions::neg_i32>(context);
+			execute<instructions::neg_i32, &execute_neg_i32>(context);
 			break;
 		case instruction::neg_i64:
-			execute<instructions::neg_i64>(context);
+			execute<instructions::neg_i64, &execute_neg_i64>(context);
 			break;
 		case instruction::neg_i8_unchecked:
-			execute<instructions::neg_i8_unchecked>(context);
+			execute<instructions::neg_i8_unchecked, &execute_neg_i8_unchecked>(context);
 			break;
 		case instruction::neg_i16_unchecked:
-			execute<instructions::neg_i16_unchecked>(context);
+			execute<instructions::neg_i16_unchecked, &execute_neg_i16_unchecked>(context);
 			break;
 		case instruction::neg_i32_unchecked:
-			execute<instructions::neg_i32_unchecked>(context);
+			execute<instructions::neg_i32_unchecked, &execute_neg_i32_unchecked>(context);
 			break;
 		case instruction::neg_i64_unchecked:
-			execute<instructions::neg_i64_unchecked>(context);
+			execute<instructions::neg_i64_unchecked, &execute_neg_i64_unchecked>(context);
 			break;
 		case instruction::neg_f32:
-			execute<instructions::neg_f32>(context);
+			execute<instructions::neg_f32, &execute_neg_f32>(context);
 			break;
 		case instruction::neg_f64:
-			execute<instructions::neg_f64>(context);
+			execute<instructions::neg_f64, &execute_neg_f64>(context);
 			break;
 		case instruction::add_i8_unchecked:
-			execute<instructions::add_i8_unchecked>(context);
+			execute<instructions::add_i8_unchecked, &execute_add_i8_unchecked>(context);
 			break;
 		case instruction::add_i16_unchecked:
-			execute<instructions::add_i16_unchecked>(context);
+			execute<instructions::add_i16_unchecked, &execute_add_i16_unchecked>(context);
 			break;
 		case instruction::add_i32_unchecked:
-			execute<instructions::add_i32_unchecked>(context);
+			execute<instructions::add_i32_unchecked, &execute_add_i32_unchecked>(context);
 			break;
 		case instruction::add_i64_unchecked:
-			execute<instructions::add_i64_unchecked>(context);
+			execute<instructions::add_i64_unchecked, &execute_add_i64_unchecked>(context);
 			break;
 		case instruction::sub_i8_unchecked:
-			execute<instructions::sub_i8_unchecked>(context);
+			execute<instructions::sub_i8_unchecked, &execute_sub_i8_unchecked>(context);
 			break;
 		case instruction::sub_i16_unchecked:
-			execute<instructions::sub_i16_unchecked>(context);
+			execute<instructions::sub_i16_unchecked, &execute_sub_i16_unchecked>(context);
 			break;
 		case instruction::sub_i32_unchecked:
-			execute<instructions::sub_i32_unchecked>(context);
+			execute<instructions::sub_i32_unchecked, &execute_sub_i32_unchecked>(context);
 			break;
 		case instruction::sub_i64_unchecked:
-			execute<instructions::sub_i64_unchecked>(context);
+			execute<instructions::sub_i64_unchecked, &execute_sub_i64_unchecked>(context);
 			break;
 		case instruction::ptr32_diff:
-			execute<instructions::ptr32_diff>(context);
+			execute<instructions::ptr32_diff, &execute_ptr32_diff>(context);
 			break;
 		case instruction::ptr64_diff:
-			execute<instructions::ptr64_diff>(context);
+			execute<instructions::ptr64_diff, &execute_ptr64_diff>(context);
 			break;
 		case instruction::not_i1:
-			execute<instructions::not_i1>(context);
+			execute<instructions::not_i1, &execute_not_i1>(context);
 			break;
 		case instruction::not_i8:
-			execute<instructions::not_i8>(context);
+			execute<instructions::not_i8, &execute_not_i8>(context);
 			break;
 		case instruction::not_i16:
-			execute<instructions::not_i16>(context);
+			execute<instructions::not_i16, &execute_not_i16>(context);
 			break;
 		case instruction::not_i32:
-			execute<instructions::not_i32>(context);
+			execute<instructions::not_i32, &execute_not_i32>(context);
 			break;
 		case instruction::not_i64:
-			execute<instructions::not_i64>(context);
+			execute<instructions::not_i64, &execute_not_i64>(context);
 			break;
 		case instruction::and_i1:
-			execute<instructions::and_i1>(context);
+			execute<instructions::and_i1, &execute_and_i1>(context);
 			break;
 		case instruction::and_i8:
-			execute<instructions::and_i8>(context);
+			execute<instructions::and_i8, &execute_and_i8>(context);
 			break;
 		case instruction::and_i16:
-			execute<instructions::and_i16>(context);
+			execute<instructions::and_i16, &execute_and_i16>(context);
 			break;
 		case instruction::and_i32:
-			execute<instructions::and_i32>(context);
+			execute<instructions::and_i32, &execute_and_i32>(context);
 			break;
 		case instruction::and_i64:
-			execute<instructions::and_i64>(context);
+			execute<instructions::and_i64, &execute_and_i64>(context);
 			break;
 		case instruction::xor_i1:
-			execute<instructions::xor_i1>(context);
+			execute<instructions::xor_i1, &execute_xor_i1>(context);
 			break;
 		case instruction::xor_i8:
-			execute<instructions::xor_i8>(context);
+			execute<instructions::xor_i8, &execute_xor_i8>(context);
 			break;
 		case instruction::xor_i16:
-			execute<instructions::xor_i16>(context);
+			execute<instructions::xor_i16, &execute_xor_i16>(context);
 			break;
 		case instruction::xor_i32:
-			execute<instructions::xor_i32>(context);
+			execute<instructions::xor_i32, &execute_xor_i32>(context);
 			break;
 		case instruction::xor_i64:
-			execute<instructions::xor_i64>(context);
+			execute<instructions::xor_i64, &execute_xor_i64>(context);
 			break;
 		case instruction::or_i1:
-			execute<instructions::or_i1>(context);
+			execute<instructions::or_i1, &execute_or_i1>(context);
 			break;
 		case instruction::or_i8:
-			execute<instructions::or_i8>(context);
+			execute<instructions::or_i8, &execute_or_i8>(context);
 			break;
 		case instruction::or_i16:
-			execute<instructions::or_i16>(context);
+			execute<instructions::or_i16, &execute_or_i16>(context);
 			break;
 		case instruction::or_i32:
-			execute<instructions::or_i32>(context);
+			execute<instructions::or_i32, &execute_or_i32>(context);
 			break;
 		case instruction::or_i64:
-			execute<instructions::or_i64>(context);
+			execute<instructions::or_i64, &execute_or_i64>(context);
 			break;
 		case instruction::abs_i8:
-			execute<instructions::abs_i8>(context);
+			execute<instructions::abs_i8, &execute_abs_i8>(context);
 			break;
 		case instruction::abs_i16:
-			execute<instructions::abs_i16>(context);
+			execute<instructions::abs_i16, &execute_abs_i16>(context);
 			break;
 		case instruction::abs_i32:
-			execute<instructions::abs_i32>(context);
+			execute<instructions::abs_i32, &execute_abs_i32>(context);
 			break;
 		case instruction::abs_i64:
-			execute<instructions::abs_i64>(context);
+			execute<instructions::abs_i64, &execute_abs_i64>(context);
 			break;
 		case instruction::abs_f32:
-			execute<instructions::abs_f32>(context);
+			execute<instructions::abs_f32, &execute_abs_f32>(context);
 			break;
 		case instruction::abs_f64:
-			execute<instructions::abs_f64>(context);
+			execute<instructions::abs_f64, &execute_abs_f64>(context);
 			break;
 		case instruction::abs_i8_unchecked:
-			execute<instructions::abs_i8_unchecked>(context);
+			execute<instructions::abs_i8_unchecked, &execute_abs_i8_unchecked>(context);
 			break;
 		case instruction::abs_i16_unchecked:
-			execute<instructions::abs_i16_unchecked>(context);
+			execute<instructions::abs_i16_unchecked, &execute_abs_i16_unchecked>(context);
 			break;
 		case instruction::abs_i32_unchecked:
-			execute<instructions::abs_i32_unchecked>(context);
+			execute<instructions::abs_i32_unchecked, &execute_abs_i32_unchecked>(context);
 			break;
 		case instruction::abs_i64_unchecked:
-			execute<instructions::abs_i64_unchecked>(context);
+			execute<instructions::abs_i64_unchecked, &execute_abs_i64_unchecked>(context);
 			break;
 		case instruction::abs_f32_unchecked:
-			execute<instructions::abs_f32_unchecked>(context);
+			execute<instructions::abs_f32_unchecked, &execute_abs_f32_unchecked>(context);
 			break;
 		case instruction::abs_f64_unchecked:
-			execute<instructions::abs_f64_unchecked>(context);
+			execute<instructions::abs_f64_unchecked, &execute_abs_f64_unchecked>(context);
 			break;
 		case instruction::min_i8:
-			execute<instructions::min_i8>(context);
+			execute<instructions::min_i8, &execute_min_i8>(context);
 			break;
 		case instruction::min_i16:
-			execute<instructions::min_i16>(context);
+			execute<instructions::min_i16, &execute_min_i16>(context);
 			break;
 		case instruction::min_i32:
-			execute<instructions::min_i32>(context);
+			execute<instructions::min_i32, &execute_min_i32>(context);
 			break;
 		case instruction::min_i64:
-			execute<instructions::min_i64>(context);
+			execute<instructions::min_i64, &execute_min_i64>(context);
 			break;
 		case instruction::min_u8:
-			execute<instructions::min_u8>(context);
+			execute<instructions::min_u8, &execute_min_u8>(context);
 			break;
 		case instruction::min_u16:
-			execute<instructions::min_u16>(context);
+			execute<instructions::min_u16, &execute_min_u16>(context);
 			break;
 		case instruction::min_u32:
-			execute<instructions::min_u32>(context);
+			execute<instructions::min_u32, &execute_min_u32>(context);
 			break;
 		case instruction::min_u64:
-			execute<instructions::min_u64>(context);
+			execute<instructions::min_u64, &execute_min_u64>(context);
 			break;
 		case instruction::min_f32:
-			execute<instructions::min_f32>(context);
+			execute<instructions::min_f32, &execute_min_f32>(context);
 			break;
 		case instruction::min_f64:
-			execute<instructions::min_f64>(context);
+			execute<instructions::min_f64, &execute_min_f64>(context);
 			break;
 		case instruction::min_f32_unchecked:
-			execute<instructions::min_f32_unchecked>(context);
+			execute<instructions::min_f32_unchecked, &execute_min_f32_unchecked>(context);
 			break;
 		case instruction::min_f64_unchecked:
-			execute<instructions::min_f64_unchecked>(context);
+			execute<instructions::min_f64_unchecked, &execute_min_f64_unchecked>(context);
 			break;
 		case instruction::max_i8:
-			execute<instructions::max_i8>(context);
+			execute<instructions::max_i8, &execute_max_i8>(context);
 			break;
 		case instruction::max_i16:
-			execute<instructions::max_i16>(context);
+			execute<instructions::max_i16, &execute_max_i16>(context);
 			break;
 		case instruction::max_i32:
-			execute<instructions::max_i32>(context);
+			execute<instructions::max_i32, &execute_max_i32>(context);
 			break;
 		case instruction::max_i64:
-			execute<instructions::max_i64>(context);
+			execute<instructions::max_i64, &execute_max_i64>(context);
 			break;
 		case instruction::max_u8:
-			execute<instructions::max_u8>(context);
+			execute<instructions::max_u8, &execute_max_u8>(context);
 			break;
 		case instruction::max_u16:
-			execute<instructions::max_u16>(context);
+			execute<instructions::max_u16, &execute_max_u16>(context);
 			break;
 		case instruction::max_u32:
-			execute<instructions::max_u32>(context);
+			execute<instructions::max_u32, &execute_max_u32>(context);
 			break;
 		case instruction::max_u64:
-			execute<instructions::max_u64>(context);
+			execute<instructions::max_u64, &execute_max_u64>(context);
 			break;
 		case instruction::max_f32:
-			execute<instructions::max_f32>(context);
+			execute<instructions::max_f32, &execute_max_f32>(context);
 			break;
 		case instruction::max_f64:
-			execute<instructions::max_f64>(context);
+			execute<instructions::max_f64, &execute_max_f64>(context);
 			break;
 		case instruction::max_f32_unchecked:
-			execute<instructions::max_f32_unchecked>(context);
+			execute<instructions::max_f32_unchecked, &execute_max_f32_unchecked>(context);
 			break;
 		case instruction::max_f64_unchecked:
-			execute<instructions::max_f64_unchecked>(context);
+			execute<instructions::max_f64_unchecked, &execute_max_f64_unchecked>(context);
 			break;
 		case instruction::exp_f32:
-			execute<instructions::exp_f32>(context);
+			execute<instructions::exp_f32, &execute_exp_f32>(context);
 			break;
 		case instruction::exp_f64:
-			execute<instructions::exp_f64>(context);
+			execute<instructions::exp_f64, &execute_exp_f64>(context);
 			break;
 		case instruction::exp_f32_unchecked:
-			execute<instructions::exp_f32_unchecked>(context);
+			execute<instructions::exp_f32_unchecked, &execute_exp_f32_unchecked>(context);
 			break;
 		case instruction::exp_f64_unchecked:
-			execute<instructions::exp_f64_unchecked>(context);
+			execute<instructions::exp_f64_unchecked, &execute_exp_f64_unchecked>(context);
 			break;
 		case instruction::exp2_f32:
-			execute<instructions::exp2_f32>(context);
+			execute<instructions::exp2_f32, &execute_exp2_f32>(context);
 			break;
 		case instruction::exp2_f64:
-			execute<instructions::exp2_f64>(context);
+			execute<instructions::exp2_f64, &execute_exp2_f64>(context);
 			break;
 		case instruction::exp2_f32_unchecked:
-			execute<instructions::exp2_f32_unchecked>(context);
+			execute<instructions::exp2_f32_unchecked, &execute_exp2_f32_unchecked>(context);
 			break;
 		case instruction::exp2_f64_unchecked:
-			execute<instructions::exp2_f64_unchecked>(context);
+			execute<instructions::exp2_f64_unchecked, &execute_exp2_f64_unchecked>(context);
 			break;
 		case instruction::expm1_f32:
-			execute<instructions::expm1_f32>(context);
+			execute<instructions::expm1_f32, &execute_expm1_f32>(context);
 			break;
 		case instruction::expm1_f64:
-			execute<instructions::expm1_f64>(context);
+			execute<instructions::expm1_f64, &execute_expm1_f64>(context);
 			break;
 		case instruction::expm1_f32_unchecked:
-			execute<instructions::expm1_f32_unchecked>(context);
+			execute<instructions::expm1_f32_unchecked, &execute_expm1_f32_unchecked>(context);
 			break;
 		case instruction::expm1_f64_unchecked:
-			execute<instructions::expm1_f64_unchecked>(context);
+			execute<instructions::expm1_f64_unchecked, &execute_expm1_f64_unchecked>(context);
 			break;
 		case instruction::log_f32:
-			execute<instructions::log_f32>(context);
+			execute<instructions::log_f32, &execute_log_f32>(context);
 			break;
 		case instruction::log_f64:
-			execute<instructions::log_f64>(context);
+			execute<instructions::log_f64, &execute_log_f64>(context);
 			break;
 		case instruction::log_f32_unchecked:
-			execute<instructions::log_f32_unchecked>(context);
+			execute<instructions::log_f32_unchecked, &execute_log_f32_unchecked>(context);
 			break;
 		case instruction::log_f64_unchecked:
-			execute<instructions::log_f64_unchecked>(context);
+			execute<instructions::log_f64_unchecked, &execute_log_f64_unchecked>(context);
 			break;
 		case instruction::log10_f32:
-			execute<instructions::log10_f32>(context);
+			execute<instructions::log10_f32, &execute_log10_f32>(context);
 			break;
 		case instruction::log10_f64:
-			execute<instructions::log10_f64>(context);
+			execute<instructions::log10_f64, &execute_log10_f64>(context);
 			break;
 		case instruction::log10_f32_unchecked:
-			execute<instructions::log10_f32_unchecked>(context);
+			execute<instructions::log10_f32_unchecked, &execute_log10_f32_unchecked>(context);
 			break;
 		case instruction::log10_f64_unchecked:
-			execute<instructions::log10_f64_unchecked>(context);
+			execute<instructions::log10_f64_unchecked, &execute_log10_f64_unchecked>(context);
 			break;
 		case instruction::log2_f32:
-			execute<instructions::log2_f32>(context);
+			execute<instructions::log2_f32, &execute_log2_f32>(context);
 			break;
 		case instruction::log2_f64:
-			execute<instructions::log2_f64>(context);
+			execute<instructions::log2_f64, &execute_log2_f64>(context);
 			break;
 		case instruction::log2_f32_unchecked:
-			execute<instructions::log2_f32_unchecked>(context);
+			execute<instructions::log2_f32_unchecked, &execute_log2_f32_unchecked>(context);
 			break;
 		case instruction::log2_f64_unchecked:
-			execute<instructions::log2_f64_unchecked>(context);
+			execute<instructions::log2_f64_unchecked, &execute_log2_f64_unchecked>(context);
 			break;
 		case instruction::log1p_f32:
-			execute<instructions::log1p_f32>(context);
+			execute<instructions::log1p_f32, &execute_log1p_f32>(context);
 			break;
 		case instruction::log1p_f64:
-			execute<instructions::log1p_f64>(context);
+			execute<instructions::log1p_f64, &execute_log1p_f64>(context);
 			break;
 		case instruction::log1p_f32_unchecked:
-			execute<instructions::log1p_f32_unchecked>(context);
+			execute<instructions::log1p_f32_unchecked, &execute_log1p_f32_unchecked>(context);
 			break;
 		case instruction::log1p_f64_unchecked:
-			execute<instructions::log1p_f64_unchecked>(context);
+			execute<instructions::log1p_f64_unchecked, &execute_log1p_f64_unchecked>(context);
 			break;
 		case instruction::sqrt_f32:
-			execute<instructions::sqrt_f32>(context);
+			execute<instructions::sqrt_f32, &execute_sqrt_f32>(context);
 			break;
 		case instruction::sqrt_f64:
-			execute<instructions::sqrt_f64>(context);
+			execute<instructions::sqrt_f64, &execute_sqrt_f64>(context);
 			break;
 		case instruction::sqrt_f32_unchecked:
-			execute<instructions::sqrt_f32_unchecked>(context);
+			execute<instructions::sqrt_f32_unchecked, &execute_sqrt_f32_unchecked>(context);
 			break;
 		case instruction::sqrt_f64_unchecked:
-			execute<instructions::sqrt_f64_unchecked>(context);
+			execute<instructions::sqrt_f64_unchecked, &execute_sqrt_f64_unchecked>(context);
 			break;
 		case instruction::pow_f32:
-			execute<instructions::pow_f32>(context);
+			execute<instructions::pow_f32, &execute_pow_f32>(context);
 			break;
 		case instruction::pow_f64:
-			execute<instructions::pow_f64>(context);
+			execute<instructions::pow_f64, &execute_pow_f64>(context);
 			break;
 		case instruction::pow_f32_unchecked:
-			execute<instructions::pow_f32_unchecked>(context);
+			execute<instructions::pow_f32_unchecked, &execute_pow_f32_unchecked>(context);
 			break;
 		case instruction::pow_f64_unchecked:
-			execute<instructions::pow_f64_unchecked>(context);
+			execute<instructions::pow_f64_unchecked, &execute_pow_f64_unchecked>(context);
 			break;
 		case instruction::cbrt_f32:
-			execute<instructions::cbrt_f32>(context);
+			execute<instructions::cbrt_f32, &execute_cbrt_f32>(context);
 			break;
 		case instruction::cbrt_f64:
-			execute<instructions::cbrt_f64>(context);
+			execute<instructions::cbrt_f64, &execute_cbrt_f64>(context);
 			break;
 		case instruction::cbrt_f32_unchecked:
-			execute<instructions::cbrt_f32_unchecked>(context);
+			execute<instructions::cbrt_f32_unchecked, &execute_cbrt_f32_unchecked>(context);
 			break;
 		case instruction::cbrt_f64_unchecked:
-			execute<instructions::cbrt_f64_unchecked>(context);
+			execute<instructions::cbrt_f64_unchecked, &execute_cbrt_f64_unchecked>(context);
 			break;
 		case instruction::hypot_f32:
-			execute<instructions::hypot_f32>(context);
+			execute<instructions::hypot_f32, &execute_hypot_f32>(context);
 			break;
 		case instruction::hypot_f64:
-			execute<instructions::hypot_f64>(context);
+			execute<instructions::hypot_f64, &execute_hypot_f64>(context);
 			break;
 		case instruction::hypot_f32_unchecked:
-			execute<instructions::hypot_f32_unchecked>(context);
+			execute<instructions::hypot_f32_unchecked, &execute_hypot_f32_unchecked>(context);
 			break;
 		case instruction::hypot_f64_unchecked:
-			execute<instructions::hypot_f64_unchecked>(context);
+			execute<instructions::hypot_f64_unchecked, &execute_hypot_f64_unchecked>(context);
 			break;
 		case instruction::sin_f32:
-			execute<instructions::sin_f32>(context);
+			execute<instructions::sin_f32, &execute_sin_f32>(context);
 			break;
 		case instruction::sin_f64:
-			execute<instructions::sin_f64>(context);
+			execute<instructions::sin_f64, &execute_sin_f64>(context);
 			break;
 		case instruction::sin_f32_unchecked:
-			execute<instructions::sin_f32_unchecked>(context);
+			execute<instructions::sin_f32_unchecked, &execute_sin_f32_unchecked>(context);
 			break;
 		case instruction::sin_f64_unchecked:
-			execute<instructions::sin_f64_unchecked>(context);
+			execute<instructions::sin_f64_unchecked, &execute_sin_f64_unchecked>(context);
 			break;
 		case instruction::cos_f32:
-			execute<instructions::cos_f32>(context);
+			execute<instructions::cos_f32, &execute_cos_f32>(context);
 			break;
 		case instruction::cos_f64:
-			execute<instructions::cos_f64>(context);
+			execute<instructions::cos_f64, &execute_cos_f64>(context);
 			break;
 		case instruction::cos_f32_unchecked:
-			execute<instructions::cos_f32_unchecked>(context);
+			execute<instructions::cos_f32_unchecked, &execute_cos_f32_unchecked>(context);
 			break;
 		case instruction::cos_f64_unchecked:
-			execute<instructions::cos_f64_unchecked>(context);
+			execute<instructions::cos_f64_unchecked, &execute_cos_f64_unchecked>(context);
 			break;
 		case instruction::tan_f32:
-			execute<instructions::tan_f32>(context);
+			execute<instructions::tan_f32, &execute_tan_f32>(context);
 			break;
 		case instruction::tan_f64:
-			execute<instructions::tan_f64>(context);
+			execute<instructions::tan_f64, &execute_tan_f64>(context);
 			break;
 		case instruction::tan_f32_unchecked:
-			execute<instructions::tan_f32_unchecked>(context);
+			execute<instructions::tan_f32_unchecked, &execute_tan_f32_unchecked>(context);
 			break;
 		case instruction::tan_f64_unchecked:
-			execute<instructions::tan_f64_unchecked>(context);
+			execute<instructions::tan_f64_unchecked, &execute_tan_f64_unchecked>(context);
 			break;
 		case instruction::asin_f32:
-			execute<instructions::asin_f32>(context);
+			execute<instructions::asin_f32, &execute_asin_f32>(context);
 			break;
 		case instruction::asin_f64:
-			execute<instructions::asin_f64>(context);
+			execute<instructions::asin_f64, &execute_asin_f64>(context);
 			break;
 		case instruction::asin_f32_unchecked:
-			execute<instructions::asin_f32_unchecked>(context);
+			execute<instructions::asin_f32_unchecked, &execute_asin_f32_unchecked>(context);
 			break;
 		case instruction::asin_f64_unchecked:
-			execute<instructions::asin_f64_unchecked>(context);
+			execute<instructions::asin_f64_unchecked, &execute_asin_f64_unchecked>(context);
 			break;
 		case instruction::acos_f32:
-			execute<instructions::acos_f32>(context);
+			execute<instructions::acos_f32, &execute_acos_f32>(context);
 			break;
 		case instruction::acos_f64:
-			execute<instructions::acos_f64>(context);
+			execute<instructions::acos_f64, &execute_acos_f64>(context);
 			break;
 		case instruction::acos_f32_unchecked:
-			execute<instructions::acos_f32_unchecked>(context);
+			execute<instructions::acos_f32_unchecked, &execute_acos_f32_unchecked>(context);
 			break;
 		case instruction::acos_f64_unchecked:
-			execute<instructions::acos_f64_unchecked>(context);
+			execute<instructions::acos_f64_unchecked, &execute_acos_f64_unchecked>(context);
 			break;
 		case instruction::atan_f32:
-			execute<instructions::atan_f32>(context);
+			execute<instructions::atan_f32, &execute_atan_f32>(context);
 			break;
 		case instruction::atan_f64:
-			execute<instructions::atan_f64>(context);
+			execute<instructions::atan_f64, &execute_atan_f64>(context);
 			break;
 		case instruction::atan_f32_unchecked:
-			execute<instructions::atan_f32_unchecked>(context);
+			execute<instructions::atan_f32_unchecked, &execute_atan_f32_unchecked>(context);
 			break;
 		case instruction::atan_f64_unchecked:
-			execute<instructions::atan_f64_unchecked>(context);
+			execute<instructions::atan_f64_unchecked, &execute_atan_f64_unchecked>(context);
 			break;
 		case instruction::atan2_f32:
-			execute<instructions::atan2_f32>(context);
+			execute<instructions::atan2_f32, &execute_atan2_f32>(context);
 			break;
 		case instruction::atan2_f64:
-			execute<instructions::atan2_f64>(context);
+			execute<instructions::atan2_f64, &execute_atan2_f64>(context);
 			break;
 		case instruction::atan2_f32_unchecked:
-			execute<instructions::atan2_f32_unchecked>(context);
+			execute<instructions::atan2_f32_unchecked, &execute_atan2_f32_unchecked>(context);
 			break;
 		case instruction::atan2_f64_unchecked:
-			execute<instructions::atan2_f64_unchecked>(context);
+			execute<instructions::atan2_f64_unchecked, &execute_atan2_f64_unchecked>(context);
 			break;
 		case instruction::sinh_f32:
-			execute<instructions::sinh_f32>(context);
+			execute<instructions::sinh_f32, &execute_sinh_f32>(context);
 			break;
 		case instruction::sinh_f64:
-			execute<instructions::sinh_f64>(context);
+			execute<instructions::sinh_f64, &execute_sinh_f64>(context);
 			break;
 		case instruction::sinh_f32_unchecked:
-			execute<instructions::sinh_f32_unchecked>(context);
+			execute<instructions::sinh_f32_unchecked, &execute_sinh_f32_unchecked>(context);
 			break;
 		case instruction::sinh_f64_unchecked:
-			execute<instructions::sinh_f64_unchecked>(context);
+			execute<instructions::sinh_f64_unchecked, &execute_sinh_f64_unchecked>(context);
 			break;
 		case instruction::cosh_f32:
-			execute<instructions::cosh_f32>(context);
+			execute<instructions::cosh_f32, &execute_cosh_f32>(context);
 			break;
 		case instruction::cosh_f64:
-			execute<instructions::cosh_f64>(context);
+			execute<instructions::cosh_f64, &execute_cosh_f64>(context);
 			break;
 		case instruction::cosh_f32_unchecked:
-			execute<instructions::cosh_f32_unchecked>(context);
+			execute<instructions::cosh_f32_unchecked, &execute_cosh_f32_unchecked>(context);
 			break;
 		case instruction::cosh_f64_unchecked:
-			execute<instructions::cosh_f64_unchecked>(context);
+			execute<instructions::cosh_f64_unchecked, &execute_cosh_f64_unchecked>(context);
 			break;
 		case instruction::tanh_f32:
-			execute<instructions::tanh_f32>(context);
+			execute<instructions::tanh_f32, &execute_tanh_f32>(context);
 			break;
 		case instruction::tanh_f64:
-			execute<instructions::tanh_f64>(context);
+			execute<instructions::tanh_f64, &execute_tanh_f64>(context);
 			break;
 		case instruction::tanh_f32_unchecked:
-			execute<instructions::tanh_f32_unchecked>(context);
+			execute<instructions::tanh_f32_unchecked, &execute_tanh_f32_unchecked>(context);
 			break;
 		case instruction::tanh_f64_unchecked:
-			execute<instructions::tanh_f64_unchecked>(context);
+			execute<instructions::tanh_f64_unchecked, &execute_tanh_f64_unchecked>(context);
 			break;
 		case instruction::asinh_f32:
-			execute<instructions::asinh_f32>(context);
+			execute<instructions::asinh_f32, &execute_asinh_f32>(context);
 			break;
 		case instruction::asinh_f64:
-			execute<instructions::asinh_f64>(context);
+			execute<instructions::asinh_f64, &execute_asinh_f64>(context);
 			break;
 		case instruction::asinh_f32_unchecked:
-			execute<instructions::asinh_f32_unchecked>(context);
+			execute<instructions::asinh_f32_unchecked, &execute_asinh_f32_unchecked>(context);
 			break;
 		case instruction::asinh_f64_unchecked:
-			execute<instructions::asinh_f64_unchecked>(context);
+			execute<instructions::asinh_f64_unchecked, &execute_asinh_f64_unchecked>(context);
 			break;
 		case instruction::acosh_f32:
-			execute<instructions::acosh_f32>(context);
+			execute<instructions::acosh_f32, &execute_acosh_f32>(context);
 			break;
 		case instruction::acosh_f64:
-			execute<instructions::acosh_f64>(context);
+			execute<instructions::acosh_f64, &execute_acosh_f64>(context);
 			break;
 		case instruction::acosh_f32_unchecked:
-			execute<instructions::acosh_f32_unchecked>(context);
+			execute<instructions::acosh_f32_unchecked, &execute_acosh_f32_unchecked>(context);
 			break;
 		case instruction::acosh_f64_unchecked:
-			execute<instructions::acosh_f64_unchecked>(context);
+			execute<instructions::acosh_f64_unchecked, &execute_acosh_f64_unchecked>(context);
 			break;
 		case instruction::atanh_f32:
-			execute<instructions::atanh_f32>(context);
+			execute<instructions::atanh_f32, &execute_atanh_f32>(context);
 			break;
 		case instruction::atanh_f64:
-			execute<instructions::atanh_f64>(context);
+			execute<instructions::atanh_f64, &execute_atanh_f64>(context);
 			break;
 		case instruction::atanh_f32_unchecked:
-			execute<instructions::atanh_f32_unchecked>(context);
+			execute<instructions::atanh_f32_unchecked, &execute_atanh_f32_unchecked>(context);
 			break;
 		case instruction::atanh_f64_unchecked:
-			execute<instructions::atanh_f64_unchecked>(context);
+			execute<instructions::atanh_f64_unchecked, &execute_atanh_f64_unchecked>(context);
 			break;
 		case instruction::erf_f32:
-			execute<instructions::erf_f32>(context);
+			execute<instructions::erf_f32, &execute_erf_f32>(context);
 			break;
 		case instruction::erf_f64:
-			execute<instructions::erf_f64>(context);
+			execute<instructions::erf_f64, &execute_erf_f64>(context);
 			break;
 		case instruction::erf_f32_unchecked:
-			execute<instructions::erf_f32_unchecked>(context);
+			execute<instructions::erf_f32_unchecked, &execute_erf_f32_unchecked>(context);
 			break;
 		case instruction::erf_f64_unchecked:
-			execute<instructions::erf_f64_unchecked>(context);
+			execute<instructions::erf_f64_unchecked, &execute_erf_f64_unchecked>(context);
 			break;
 		case instruction::erfc_f32:
-			execute<instructions::erfc_f32>(context);
+			execute<instructions::erfc_f32, &execute_erfc_f32>(context);
 			break;
 		case instruction::erfc_f64:
-			execute<instructions::erfc_f64>(context);
+			execute<instructions::erfc_f64, &execute_erfc_f64>(context);
 			break;
 		case instruction::erfc_f32_unchecked:
-			execute<instructions::erfc_f32_unchecked>(context);
+			execute<instructions::erfc_f32_unchecked, &execute_erfc_f32_unchecked>(context);
 			break;
 		case instruction::erfc_f64_unchecked:
-			execute<instructions::erfc_f64_unchecked>(context);
+			execute<instructions::erfc_f64_unchecked, &execute_erfc_f64_unchecked>(context);
 			break;
 		case instruction::tgamma_f32:
-			execute<instructions::tgamma_f32>(context);
+			execute<instructions::tgamma_f32, &execute_tgamma_f32>(context);
 			break;
 		case instruction::tgamma_f64:
-			execute<instructions::tgamma_f64>(context);
+			execute<instructions::tgamma_f64, &execute_tgamma_f64>(context);
 			break;
 		case instruction::tgamma_f32_unchecked:
-			execute<instructions::tgamma_f32_unchecked>(context);
+			execute<instructions::tgamma_f32_unchecked, &execute_tgamma_f32_unchecked>(context);
 			break;
 		case instruction::tgamma_f64_unchecked:
-			execute<instructions::tgamma_f64_unchecked>(context);
+			execute<instructions::tgamma_f64_unchecked, &execute_tgamma_f64_unchecked>(context);
 			break;
 		case instruction::lgamma_f32:
-			execute<instructions::lgamma_f32>(context);
+			execute<instructions::lgamma_f32, &execute_lgamma_f32>(context);
 			break;
 		case instruction::lgamma_f64:
-			execute<instructions::lgamma_f64>(context);
+			execute<instructions::lgamma_f64, &execute_lgamma_f64>(context);
 			break;
 		case instruction::lgamma_f32_unchecked:
-			execute<instructions::lgamma_f32_unchecked>(context);
+			execute<instructions::lgamma_f32_unchecked, &execute_lgamma_f32_unchecked>(context);
 			break;
 		case instruction::lgamma_f64_unchecked:
-			execute<instructions::lgamma_f64_unchecked>(context);
+			execute<instructions::lgamma_f64_unchecked, &execute_lgamma_f64_unchecked>(context);
 			break;
 		case instruction::bitreverse_u8:
-			execute<instructions::bitreverse_u8>(context);
+			execute<instructions::bitreverse_u8, &execute_bitreverse_u8>(context);
 			break;
 		case instruction::bitreverse_u16:
-			execute<instructions::bitreverse_u16>(context);
+			execute<instructions::bitreverse_u16, &execute_bitreverse_u16>(context);
 			break;
 		case instruction::bitreverse_u32:
-			execute<instructions::bitreverse_u32>(context);
+			execute<instructions::bitreverse_u32, &execute_bitreverse_u32>(context);
 			break;
 		case instruction::bitreverse_u64:
-			execute<instructions::bitreverse_u64>(context);
+			execute<instructions::bitreverse_u64, &execute_bitreverse_u64>(context);
 			break;
 		case instruction::popcount_u8:
-			execute<instructions::popcount_u8>(context);
+			execute<instructions::popcount_u8, &execute_popcount_u8>(context);
 			break;
 		case instruction::popcount_u16:
-			execute<instructions::popcount_u16>(context);
+			execute<instructions::popcount_u16, &execute_popcount_u16>(context);
 			break;
 		case instruction::popcount_u32:
-			execute<instructions::popcount_u32>(context);
+			execute<instructions::popcount_u32, &execute_popcount_u32>(context);
 			break;
 		case instruction::popcount_u64:
-			execute<instructions::popcount_u64>(context);
+			execute<instructions::popcount_u64, &execute_popcount_u64>(context);
 			break;
 		case instruction::byteswap_u16:
-			execute<instructions::byteswap_u16>(context);
+			execute<instructions::byteswap_u16, &execute_byteswap_u16>(context);
 			break;
 		case instruction::byteswap_u32:
-			execute<instructions::byteswap_u32>(context);
+			execute<instructions::byteswap_u32, &execute_byteswap_u32>(context);
 			break;
 		case instruction::byteswap_u64:
-			execute<instructions::byteswap_u64>(context);
+			execute<instructions::byteswap_u64, &execute_byteswap_u64>(context);
 			break;
 		case instruction::clz_u8:
-			execute<instructions::clz_u8>(context);
+			execute<instructions::clz_u8, &execute_clz_u8>(context);
 			break;
 		case instruction::clz_u16:
-			execute<instructions::clz_u16>(context);
+			execute<instructions::clz_u16, &execute_clz_u16>(context);
 			break;
 		case instruction::clz_u32:
-			execute<instructions::clz_u32>(context);
+			execute<instructions::clz_u32, &execute_clz_u32>(context);
 			break;
 		case instruction::clz_u64:
-			execute<instructions::clz_u64>(context);
+			execute<instructions::clz_u64, &execute_clz_u64>(context);
 			break;
 		case instruction::ctz_u8:
-			execute<instructions::ctz_u8>(context);
+			execute<instructions::ctz_u8, &execute_ctz_u8>(context);
 			break;
 		case instruction::ctz_u16:
-			execute<instructions::ctz_u16>(context);
+			execute<instructions::ctz_u16, &execute_ctz_u16>(context);
 			break;
 		case instruction::ctz_u32:
-			execute<instructions::ctz_u32>(context);
+			execute<instructions::ctz_u32, &execute_ctz_u32>(context);
 			break;
 		case instruction::ctz_u64:
-			execute<instructions::ctz_u64>(context);
+			execute<instructions::ctz_u64, &execute_ctz_u64>(context);
 			break;
 		case instruction::fshl_u8:
-			execute<instructions::fshl_u8>(context);
+			execute<instructions::fshl_u8, &execute_fshl_u8>(context);
 			break;
 		case instruction::fshl_u16:
-			execute<instructions::fshl_u16>(context);
+			execute<instructions::fshl_u16, &execute_fshl_u16>(context);
 			break;
 		case instruction::fshl_u32:
-			execute<instructions::fshl_u32>(context);
+			execute<instructions::fshl_u32, &execute_fshl_u32>(context);
 			break;
 		case instruction::fshl_u64:
-			execute<instructions::fshl_u64>(context);
+			execute<instructions::fshl_u64, &execute_fshl_u64>(context);
 			break;
 		case instruction::fshr_u8:
-			execute<instructions::fshr_u8>(context);
+			execute<instructions::fshr_u8, &execute_fshr_u8>(context);
 			break;
 		case instruction::fshr_u16:
-			execute<instructions::fshr_u16>(context);
+			execute<instructions::fshr_u16, &execute_fshr_u16>(context);
 			break;
 		case instruction::fshr_u32:
-			execute<instructions::fshr_u32>(context);
+			execute<instructions::fshr_u32, &execute_fshr_u32>(context);
 			break;
 		case instruction::fshr_u64:
-			execute<instructions::fshr_u64>(context);
+			execute<instructions::fshr_u64, &execute_fshr_u64>(context);
 			break;
 		case instruction::const_gep:
-			execute<instructions::const_gep>(context);
+			execute<instructions::const_gep, &execute_const_gep>(context);
 			break;
 		case instruction::array_gep_i32:
-			execute<instructions::array_gep_i32>(context);
+			execute<instructions::array_gep_i32, &execute_array_gep_i32>(context);
 			break;
 		case instruction::array_gep_i64:
-			execute<instructions::array_gep_i64>(context);
+			execute<instructions::array_gep_i64, &execute_array_gep_i64>(context);
 			break;
 		case instruction::const_memcpy:
-			execute<instructions::const_memcpy>(context);
+			execute<instructions::const_memcpy, &execute_const_memcpy>(context);
 			break;
 		case instruction::const_memset_zero:
-			execute<instructions::const_memset_zero>(context);
+			execute<instructions::const_memset_zero, &execute_const_memset_zero>(context);
 			break;
 		case instruction::function_call:
-			execute<instructions::function_call>(context);
+			execute<instructions::function_call, &execute_function_call>(context);
 			break;
 		case instruction::jump:
-			execute<instructions::jump>(context);
+			execute<instructions::jump, &execute_jump>(context);
 			break;
 		case instruction::conditional_jump:
-			execute<instructions::conditional_jump>(context);
+			execute<instructions::conditional_jump, &execute_conditional_jump>(context);
 			break;
 		case instruction::ret:
-			execute<instructions::ret>(context);
+			execute<instructions::ret, &execute_ret>(context);
 			break;
 		case instruction::ret_void:
-			execute<instructions::ret_void>(context);
+			execute<instructions::ret_void, &execute_ret_void>(context);
 			break;
 		case instruction::unreachable:
-			execute<instructions::unreachable>(context);
+			execute<instructions::unreachable, &execute_unreachable>(context);
 			break;
 		case instruction::error:
-			execute<instructions::error>(context);
+			execute<instructions::error, &execute_error>(context);
 			break;
 		case instruction::diagnostic_str:
-			execute<instructions::diagnostic_str>(context);
+			execute<instructions::diagnostic_str, &execute_diagnostic_str>(context);
 			break;
 		case instruction::array_bounds_check_i32:
-			execute<instructions::array_bounds_check_i32>(context);
+			execute<instructions::array_bounds_check_i32, &execute_array_bounds_check_i32>(context);
 			break;
 		case instruction::array_bounds_check_u32:
-			execute<instructions::array_bounds_check_u32>(context);
+			execute<instructions::array_bounds_check_u32, &execute_array_bounds_check_u32>(context);
 			break;
 		case instruction::array_bounds_check_i64:
-			execute<instructions::array_bounds_check_i64>(context);
+			execute<instructions::array_bounds_check_i64, &execute_array_bounds_check_i64>(context);
 			break;
 		case instruction::array_bounds_check_u64:
-			execute<instructions::array_bounds_check_u64>(context);
+			execute<instructions::array_bounds_check_u64, &execute_array_bounds_check_u64>(context);
 			break;
 		case instruction::optional_get_value_check:
-			execute<instructions::optional_get_value_check>(context);
+			execute<instructions::optional_get_value_check, &execute_optional_get_value_check>(context);
 			break;
 		case instruction::str_construction_check:
-			execute<instructions::str_construction_check>(context);
+			execute<instructions::str_construction_check, &execute_str_construction_check>(context);
 			break;
 		case instruction::slice_construction_check:
-			execute<instructions::slice_construction_check>(context);
+			execute<instructions::slice_construction_check, &execute_slice_construction_check>(context);
 			break;
 		default:
 			bz_unreachable;
