@@ -96,11 +96,11 @@ protected:
 
 
 	template<size_t N>
-	value_type<N> &no_check_get(void) noexcept
+	[[gnu::always_inline]] value_type<N> &no_check_get(void) noexcept
 	{ return *reinterpret_cast<value_type<N> *>(this->_data); }
 
 	template<size_t N>
-	value_type<N> const &no_check_get(void) const noexcept
+	[[gnu::always_inline]] value_type<N> const &no_check_get(void) const noexcept
 	{ return *reinterpret_cast<const value_type<N> *>(this->_data); }
 
 	template<size_t N, typename ...Args>
@@ -415,7 +415,7 @@ public:
 	{ return make<index_of<T>>(std::forward<Args>(args)...); }
 
 	template<size_t N, typename ...Args>
-	auto &emplace(Args &&...args) noexcept(
+	[[gnu::always_inline]] auto &emplace(Args &&...args) noexcept(
 		internal::is_all({ meta::is_nothrow_destructible_v<Ts>... })
 		&& meta::is_nothrow_constructible_v<value_type<N>, Args...>
 	)
@@ -426,7 +426,7 @@ public:
 	}
 
 	template<typename T, typename ...Args>
-	auto &emplace(Args &&...args) noexcept(
+	[[gnu::always_inline]] auto &emplace(Args &&...args) noexcept(
 		internal::is_all({ meta::is_nothrow_destructible_v<Ts>... })
 		&& meta::is_nothrow_constructible_v<T, Args...>
 	)
@@ -484,28 +484,28 @@ public:
 	}
 
 	template<size_t N>
-	value_type<N> &get(void) noexcept
+	[[gnu::always_inline]] value_type<N> &get(void) noexcept
 	{
 		bz_assert(this->_index == N);
 		return this->template no_check_get<N>();
 	}
 
 	template<size_t N>
-	value_type<N> const &get(void) const noexcept
+	[[gnu::always_inline]] value_type<N> const &get(void) const noexcept
 	{
 		bz_assert(this->_index == N);
 		return this->template no_check_get<N>();
 	}
 
 	template<typename T>
-	T &get(void) noexcept
+	[[gnu::always_inline]] T &get(void) noexcept
 	{
 		static_assert(meta::is_in_types<T, Ts...>);
 		return this->get<index_of<T>>();
 	}
 
 	template<typename T>
-	T const &get(void) const noexcept
+	[[gnu::always_inline]] T const &get(void) const noexcept
 	{
 		static_assert(meta::is_in_types<T, Ts...>);
 		return this->get<index_of<T>>();
@@ -513,7 +513,7 @@ public:
 
 
 	template<size_t N>
-	value_type<N> get_by_move(void) noexcept
+	[[gnu::always_inline]] value_type<N> get_by_move(void) noexcept
 	{
 		bz_assert(this->_index == N);
 		using T = value_type<N>;
@@ -527,7 +527,7 @@ public:
 	}
 
 	template<typename T>
-	T get_by_move(void) noexcept
+	[[gnu::always_inline]] T get_by_move(void) noexcept
 	{
 		static_assert(meta::is_in_types<T, Ts...>);
 		return this->get_by_move<index_of<T>>();
@@ -535,7 +535,7 @@ public:
 
 
 	template<size_t N>
-	value_type<N> *get_if(void) noexcept
+	[[gnu::always_inline]] value_type<N> *get_if(void) noexcept
 	{
 		if (this->_index == N)
 		{
@@ -548,7 +548,7 @@ public:
 	}
 
 	template<size_t N>
-	value_type<N> const *get_if(void) const noexcept
+	[[gnu::always_inline]] value_type<N> const *get_if(void) const noexcept
 	{
 		if (this->_index == N)
 		{
@@ -561,11 +561,11 @@ public:
 	}
 
 	template<typename T>
-	T *get_if(void) noexcept
+	[[gnu::always_inline]] T *get_if(void) noexcept
 	{ return this->get_if<index_of<T>>(); }
 
 	template<typename T>
-	T const *get_if(void) const noexcept
+	[[gnu::always_inline]] T const *get_if(void) const noexcept
 	{ return this->get_if<index_of<T>>(); }
 
 
