@@ -94,6 +94,7 @@ inline bool panic_on_unreachable = true;
 inline bool panic_on_null_dereference = true;
 inline bool panic_on_null_pointer_arithmetic = true;
 inline bool panic_on_null_get_value = true;
+inline bool panic_on_invalid_switch = true;
 inline bool discard_llvm_value_names = true;
 inline bool return_zero_on_error = false;
 

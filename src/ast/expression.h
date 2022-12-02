@@ -1292,6 +1292,7 @@ struct expr_switch
 	expression                matched_expr;
 	expression                default_case;
 	arena_vector<switch_case> cases;
+	bool                      is_complete;
 
 	expr_switch(
 		expression                _matched_expr,
@@ -1300,7 +1301,8 @@ struct expr_switch
 	)
 		: matched_expr(std::move(_matched_expr)),
 		  default_case(std::move(_default_case)),
-		  cases       (std::move(_cases))
+		  cases       (std::move(_cases)),
+		  is_complete (false)
 	{}
 };
 

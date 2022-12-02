@@ -673,6 +673,7 @@ static ast::expression resolve_expr(
 			src_tokens,
 			"switch expression doesn't cover all possible values and doesn't have an else case"
 		);
+		result_node->is_complete = false;
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::none,
@@ -689,6 +690,8 @@ static ast::expression resolve_expr(
 			"else case is not needed as all possible values are already covered"
 		);
 	}
+
+	result_node->is_complete = true;
 
 	auto const get_expr_kind = [](auto const &expr) {
 		bz_assert(expr.is_constant_or_dynamic());

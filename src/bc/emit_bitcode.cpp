@@ -6108,6 +6108,7 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_integral_switch(
+	lex::src_tokens const &src_tokens,
 	llvm::Value *matched_value,
 	ast::expr_switch const &switch_expr,
 	auto &context,
@@ -6117,7 +6118,7 @@ static val_ptr emit_integral_switch(
 	bz_assert(matched_value->getType()->isIntegerTy());
 	auto const default_bb = context.add_basic_block("switch_else");
 	auto const has_default = switch_expr.default_case.not_null();
-	bz_assert(result_address == nullptr || has_default);
+	bz_assert(result_address == nullptr  || switch_expr.is_complete);
 
 	auto const case_count = switch_expr.cases.transform([](auto const &switch_case) { return switch_case.values.size(); }).sum();
 
@@ -6134,6 +6135,32 @@ static val_ptr emit_integral_switch(
 		{
 			case_result_vals.push_back({ context.builder.GetInsertBlock(), default_val });
 		}
+	}
+	else if (switch_expr.is_complete)
+	{
+		context.builder.SetInsertPoint(default_bb);
+		if constexpr (is_comptime<decltype(context)>)
+		{
+			emit_error(src_tokens, "invalid value used in 'switch'", context);
+			auto const current_ret_type = context.current_function.second->getReturnType();
+			if (current_ret_type->isVoidTy())
+			{
+				context.builder.CreateRetVoid();
+			}
+			else
+			{
+				context.builder.CreateRet(llvm::UndefValue::get(current_ret_type));
+			}
+		}
+		else if (panic_on_invalid_switch)
+		{
+			emit_panic_call<abi>(src_tokens, "invalid value used in 'switch'", context);
+		}
+		else
+		{
+			context.builder.CreateUnreachable();
+		}
+		bz_assert(context.has_terminator());
 	}
 	for (auto const &[case_vals, case_expr] : switch_expr.cases)
 	{
@@ -6155,11 +6182,11 @@ static val_ptr emit_integral_switch(
 			case_result_vals.push_back({ context.builder.GetInsertBlock(), case_val });
 		}
 	}
-	auto const end_bb = has_default ? context.add_basic_block("switch_end") : default_bb;
+	auto const end_bb = switch_expr.is_complete ? context.add_basic_block("switch_end") : default_bb;
 	auto const has_value = case_result_vals.not_empty() && case_result_vals.is_all([&](auto const &pair) {
 		return pair.second.val != nullptr || pair.second.consteval_val != nullptr;
 	});
-	if (result_address == nullptr && has_default && has_value)
+	if (result_address == nullptr && switch_expr.is_complete && has_value)
 	{
 		auto const is_all_ref = case_result_vals.is_all([&](auto const &pair) {
 			return pair.second.val != nullptr && pair.second.kind == val_ptr::reference;
@@ -6199,7 +6226,7 @@ static val_ptr emit_integral_switch(
 			? val_ptr::get_reference(phi, result_type)
 			: val_ptr::get_value(phi);
 	}
-	else if (has_default && has_value)
+	else if (switch_expr.is_complete && has_value)
 	{
 		for (auto const &[bb, _] : case_result_vals)
 		{
@@ -6514,7 +6541,7 @@ static val_ptr emit_string_switch(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
-	lex::src_tokens const &,
+	lex::src_tokens const &src_tokens,
 	ast::expr_switch const &switch_expr,
 	auto &context,
 	llvm::Value *result_address
@@ -6525,7 +6552,7 @@ static val_ptr emit_bitcode(
 	context.pop_expression_scope(matched_value_prev_info);
 	if (matched_value.get_type()->isIntegerTy())
 	{
-		return emit_integral_switch<abi>(matched_value.get_value(context.builder), switch_expr, context, result_address);
+		return emit_integral_switch<abi>(src_tokens, matched_value.get_value(context.builder), switch_expr, context, result_address);
 	}
 	else
 	{
