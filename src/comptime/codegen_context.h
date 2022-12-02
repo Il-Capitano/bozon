@@ -180,8 +180,11 @@ struct codegen_context
 	instruction_ref add_instruction(Inst inst)
 	{
 		static_assert(instructions::arg_count<Inst> == 0);
-		this->blocks[this->current_bb.bb_index].instructions
-			.emplace_back(instructions::instruction_with_args<Inst>{ .inst = std::move(inst) });
+		instruction new_inst = instruction();
+		new_inst.emplace<instructions::instruction_with_args<Inst>>(instructions::instruction_with_args<Inst>{
+			.inst = std::move(inst)
+		});
+		this->blocks[this->current_bb.bb_index].instructions.push_back(std::move(new_inst));
 		auto const result = instruction_ref{
 			.bb_index   = this->current_bb.bb_index,
 			.inst_index = static_cast<uint32_t>(this->blocks[this->current_bb.bb_index].instructions.size() - 1),
@@ -193,11 +196,12 @@ struct codegen_context
 	instruction_ref add_instruction(Inst inst, instruction_ref arg)
 	{
 		static_assert(instructions::arg_count<Inst> == 1);
-		this->blocks[this->current_bb.bb_index].instructions
-			.emplace_back(instructions::instruction_with_args<Inst>{
-				.args = {},
-				.inst = std::move(inst),
-			});
+		instruction new_inst = instruction();
+		new_inst.emplace<instructions::instruction_with_args<Inst>>(instructions::instruction_with_args<Inst>{
+			.args = {},
+			.inst = std::move(inst)
+		});
+		this->blocks[this->current_bb.bb_index].instructions.push_back(std::move(new_inst));
 		auto const result = instruction_ref{
 			.bb_index   = this->current_bb.bb_index,
 			.inst_index = static_cast<uint32_t>(this->blocks[this->current_bb.bb_index].instructions.size() - 1),
@@ -213,11 +217,12 @@ struct codegen_context
 	instruction_ref add_instruction(Inst inst, instruction_ref arg1, instruction_ref arg2)
 	{
 		static_assert(instructions::arg_count<Inst> == 2);
-		this->blocks[this->current_bb.bb_index].instructions
-			.emplace_back(instructions::instruction_with_args<Inst>{
-				.args = {},
-				.inst = std::move(inst),
-			});
+		instruction new_inst = instruction();
+		new_inst.emplace<instructions::instruction_with_args<Inst>>(instructions::instruction_with_args<Inst>{
+			.args = {},
+			.inst = std::move(inst)
+		});
+		this->blocks[this->current_bb.bb_index].instructions.push_back(std::move(new_inst));
 		auto const result = instruction_ref{
 			.bb_index   = this->current_bb.bb_index,
 			.inst_index = static_cast<uint32_t>(this->blocks[this->current_bb.bb_index].instructions.size() - 1),
@@ -233,11 +238,12 @@ struct codegen_context
 	instruction_ref add_instruction(Inst inst, instruction_ref arg1, instruction_ref arg2, instruction_ref arg3)
 	{
 		static_assert(instructions::arg_count<Inst> == 3);
-		this->blocks[this->current_bb.bb_index].instructions
-			.emplace_back(instructions::instruction_with_args<Inst>{
-				.args = {},
-				.inst = std::move(inst),
-			});
+		instruction new_inst = instruction();
+		new_inst.emplace<instructions::instruction_with_args<Inst>>(instructions::instruction_with_args<Inst>{
+			.args = {},
+			.inst = std::move(inst)
+		});
+		this->blocks[this->current_bb.bb_index].instructions.push_back(std::move(new_inst));
 		auto const result = instruction_ref{
 			.bb_index   = this->current_bb.bb_index,
 			.inst_index = static_cast<uint32_t>(this->blocks[this->current_bb.bb_index].instructions.size() - 1),
