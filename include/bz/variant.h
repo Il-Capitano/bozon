@@ -591,7 +591,7 @@ public:
 		using visitor_t = decltype(visitor);
 		using fn_t      = ret_t (*)(visitor_t, void *);
 
-		constexpr fn_t calls[] = {
+		static constexpr fn_t calls[] = {
 			[](visitor_t visitor, void *ptr) -> ret_t
 			{
 				return std::forward<visitor_t>(visitor)(*reinterpret_cast<Ts *>(ptr));

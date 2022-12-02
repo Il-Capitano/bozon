@@ -11,9 +11,11 @@ bz_begin_namespace
 namespace meta
 {
 
-template<bool ...Vals>
-constexpr bool is_all = []() {
-	bool const values[] = { Vals... };
+namespace internal
+{
+
+constexpr bool is_all_func(std::initializer_list<bool> values)
+{
 	for (auto const value : values)
 	{
 		if (!value)
@@ -22,11 +24,10 @@ constexpr bool is_all = []() {
 		}
 	}
 	return true;
-}();
+}
 
-template<bool ...Vals>
-constexpr bool is_any = []() {
-	bool const values[] = { Vals... };
+constexpr bool is_any_func(std::initializer_list<bool> values)
+{
 	for (auto const value : values)
 	{
 		if (value)
@@ -35,7 +36,15 @@ constexpr bool is_any = []() {
 		}
 	}
 	return false;
-}();
+}
+
+} // namespace internal
+
+template<bool ...Vals>
+constexpr bool is_all = internal::is_all_func({ Vals... });
+
+template<bool ...Vals>
+constexpr bool is_any = internal::is_any_func({ Vals... });
 
 template<typename T, T _value>
 struct integral_constant
@@ -62,7 +71,7 @@ struct type_identity
 
 
 template<typename T, typename U, typename ...Ts>
-constexpr bool is_same = is_all<is_same<T, U>, is_same<T, Ts>...>;
+constexpr bool is_same = internal::is_all_func({ is_same<T, U>, is_same<T, Ts>... });
 
 template<typename T, typename U>
 constexpr bool is_same<T, U> = false;
@@ -272,13 +281,236 @@ namespace internal
 template<size_t, typename ...>
 struct nth_type_impl;
 
-template<size_t N, typename T, typename ...Ts>
-struct nth_type_impl<N, T, Ts...>
-{ using type = typename nth_type_impl<N - 1, Ts...>::type; };
+template<
+	size_t N,
+	typename T0,
+	typename T1,
+	typename T2,
+	typename T3,
+	typename T4,
+	typename T5,
+	typename T6,
+	typename T7,
+	typename T8,
+	typename T9,
+	typename ...Ts
+>
+requires (N >= 10)
+struct nth_type_impl<
+	N,
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+	T7,
+	T8,
+	T9,
+	Ts...
+>
+{ using type = typename nth_type_impl<N - 10, Ts...>::type; };
 
-template<typename T, typename ...Ts>
-struct nth_type_impl<0, T, Ts...>
-{ using type = T; };
+template<
+	typename T0,
+	typename ...Ts
+>
+struct nth_type_impl<
+	0,
+	T0,
+	Ts...
+>
+{ using type = T0; };
+
+template<
+	typename T0,
+	typename T1,
+	typename ...Ts
+>
+struct nth_type_impl<
+	1,
+	T0,
+	T1,
+	Ts...
+>
+{ using type = T1; };
+
+template<
+	typename T0,
+	typename T1,
+	typename T2,
+	typename ...Ts
+>
+struct nth_type_impl<
+	2,
+	T0,
+	T1,
+	T2,
+	Ts...
+>
+{ using type = T2; };
+
+template<
+	typename T0,
+	typename T1,
+	typename T2,
+	typename T3,
+	typename ...Ts
+>
+struct nth_type_impl<
+	3,
+	T0,
+	T1,
+	T2,
+	T3,
+	Ts...
+>
+{ using type = T3; };
+
+template<
+	typename T0,
+	typename T1,
+	typename T2,
+	typename T3,
+	typename T4,
+	typename ...Ts
+>
+struct nth_type_impl<
+	4,
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+	Ts...
+>
+{ using type = T4; };
+
+template<
+	typename T0,
+	typename T1,
+	typename T2,
+	typename T3,
+	typename T4,
+	typename T5,
+	typename ...Ts
+>
+struct nth_type_impl<
+	5,
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	Ts...
+>
+{ using type = T5; };
+
+template<
+	typename T0,
+	typename T1,
+	typename T2,
+	typename T3,
+	typename T4,
+	typename T5,
+	typename T6,
+	typename ...Ts
+>
+struct nth_type_impl<
+	6,
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+	Ts...
+>
+{ using type = T6; };
+
+template<
+	typename T0,
+	typename T1,
+	typename T2,
+	typename T3,
+	typename T4,
+	typename T5,
+	typename T6,
+	typename T7,
+	typename ...Ts
+>
+struct nth_type_impl<
+	7,
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+	T7,
+	Ts...
+>
+{ using type = T7; };
+
+template<
+	typename T0,
+	typename T1,
+	typename T2,
+	typename T3,
+	typename T4,
+	typename T5,
+	typename T6,
+	typename T7,
+	typename T8,
+	typename ...Ts
+>
+struct nth_type_impl<
+	8,
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+	T7,
+	T8,
+	Ts...
+>
+{ using type = T8; };
+
+template<
+	typename T0,
+	typename T1,
+	typename T2,
+	typename T3,
+	typename T4,
+	typename T5,
+	typename T6,
+	typename T7,
+	typename T8,
+	typename T9,
+	typename ...Ts
+>
+struct nth_type_impl<
+	9,
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+	T7,
+	T8,
+	T9,
+	Ts...
+>
+{ using type = T9; };
 
 } // namespace internal
 
@@ -288,17 +520,30 @@ using nth_type = typename internal::nth_type_impl<N, Ts...>::type;
 
 
 template<typename T, typename ...Ts>
-constexpr size_t type_index = std::numeric_limits<size_t>::max();
+constexpr size_t type_index = []() {
+	if constexpr (sizeof... (Ts) == 0)
+	{
+		return std::numeric_limits<size_t>::max();
+	}
+	else
+	{
+		bool const is_same_results[] = { is_same<T, Ts>... };
+		size_t result = 0;
+		for (auto const is_same : is_same_results)
+		{
+			if (is_same)
+			{
+				return result;
+			}
+			result += 1;
+		}
+		return std::numeric_limits<size_t>::max();
+	}
+}();
+
 
 template<typename T, typename ...Ts>
-constexpr size_t type_index<T, T, Ts...> = 0;
-
-template<typename T, typename U, typename ...Ts>
-constexpr size_t type_index<T, U, Ts...> = type_index<T, Ts...> + 1;
-
-
-template<typename T, typename ...Ts>
-constexpr bool is_in_types = is_any<false, is_same<T, Ts>...>;
+constexpr bool is_in_types = internal::is_any_func({ false, is_same<T, Ts>... });
 
 template<typename T, typename TypePack>
 constexpr bool is_in_type_pack = []() {
