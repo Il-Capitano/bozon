@@ -783,28 +783,28 @@ struct cmp_eq_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i1;
-
-	uint32_t src_tokens_index;
 };
 
 struct cmp_eq_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_eq_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct cmp_eq_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::i1;
-};
-
-struct cmp_eq_f64_unchecked
+struct cmp_eq_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct cmp_eq_ptr
@@ -847,28 +847,28 @@ struct cmp_neq_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i1;
-
-	uint32_t src_tokens_index;
 };
 
 struct cmp_neq_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_neq_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct cmp_neq_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::i1;
-};
-
-struct cmp_neq_f64_unchecked
+struct cmp_neq_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct cmp_neq_ptr
@@ -929,28 +929,28 @@ struct cmp_lt_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i1;
-
-	uint32_t src_tokens_index;
 };
 
 struct cmp_lt_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_lt_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct cmp_lt_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::i1;
-};
-
-struct cmp_lt_f64_unchecked
+struct cmp_lt_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct cmp_gt_i8
@@ -1005,28 +1005,28 @@ struct cmp_gt_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i1;
-
-	uint32_t src_tokens_index;
 };
 
 struct cmp_gt_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_gt_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct cmp_gt_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::i1;
-};
-
-struct cmp_gt_f64_unchecked
+struct cmp_gt_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct cmp_lte_i8
@@ -1081,28 +1081,28 @@ struct cmp_lte_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i1;
-
-	uint32_t src_tokens_index;
 };
 
 struct cmp_lte_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_lte_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct cmp_lte_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::i1;
-};
-
-struct cmp_lte_f64_unchecked
+struct cmp_lte_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct cmp_gte_i8
@@ -1157,81 +1157,49 @@ struct cmp_gte_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i1;
-
-	uint32_t src_tokens_index;
 };
 
 struct cmp_gte_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i1;
+};
+
+struct cmp_gte_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct cmp_gte_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::i1;
-};
-
-struct cmp_gte_f64_unchecked
+struct cmp_gte_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct neg_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
-
-	uint32_t src_tokens_index;
 };
 
 struct neg_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
-
-	uint32_t src_tokens_index;
 };
 
 struct neg_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
-
-	uint32_t src_tokens_index;
 };
 
 struct neg_i64
-{
-	static inline constexpr bz::array arg_types = { value_type::i64 };
-	static inline constexpr value_type result_type = value_type::i64;
-
-	uint32_t src_tokens_index;
-};
-
-struct neg_i8_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::i8 };
-	static inline constexpr value_type result_type = value_type::i8;
-};
-
-struct neg_i16_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::i16 };
-	static inline constexpr value_type result_type = value_type::i16;
-};
-
-struct neg_i32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::i32 };
-	static inline constexpr value_type result_type = value_type::i32;
-};
-
-struct neg_i64_unchecked
 {
 	static inline constexpr bz::array arg_types = { value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
@@ -1249,49 +1217,81 @@ struct neg_f64
 	static inline constexpr value_type result_type = value_type::f64;
 };
 
-struct add_i8_unchecked
+struct neg_i8_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i8 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct neg_i16_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i16 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct neg_i32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i32 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct neg_i64_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct add_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
 };
 
-struct add_i16_unchecked
+struct add_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
 };
 
-struct add_i32_unchecked
+struct add_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
 };
 
-struct add_i64_unchecked
+struct add_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
 };
 
-struct sub_i8_unchecked
+struct sub_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
 };
 
-struct sub_i16_unchecked
+struct sub_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
 };
 
-struct sub_i32_unchecked
+struct sub_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
 };
 
-struct sub_i64_unchecked
+struct sub_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
@@ -1437,84 +1437,84 @@ struct abs_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
-
-	uint32_t src_tokens_index;
 };
 
 struct abs_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
-
-	uint32_t src_tokens_index;
 };
 
 struct abs_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
-
-	uint32_t src_tokens_index;
 };
 
 struct abs_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
-
-	uint32_t src_tokens_index;
 };
 
 struct abs_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct abs_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct abs_i8_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i8 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct abs_i8_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::i8 };
-	static inline constexpr value_type result_type = value_type::i8;
-};
-
-struct abs_i16_unchecked
+struct abs_i16_check
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
-	static inline constexpr value_type result_type = value_type::i16;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
-struct abs_i32_unchecked
+struct abs_i32_check
 {
 	static inline constexpr bz::array arg_types = { value_type::i32 };
-	static inline constexpr value_type result_type = value_type::i32;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
-struct abs_i64_unchecked
+struct abs_i64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::i64 };
-	static inline constexpr value_type result_type = value_type::i64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
-struct abs_f32_unchecked
+struct abs_f32_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
-struct abs_f64_unchecked
+struct abs_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct min_i8
@@ -1569,28 +1569,28 @@ struct min_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct min_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct min_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct min_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct min_f64_unchecked
+struct min_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct max_i8
@@ -1645,812 +1645,812 @@ struct max_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct max_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct max_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct max_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct max_f64_unchecked
+struct max_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct exp_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct exp_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct exp_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct exp_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct exp_f64_unchecked
+struct exp_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct exp2_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct exp2_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct exp2_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct exp2_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct exp2_f64_unchecked
+struct exp2_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct expm1_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct expm1_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct expm1_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct expm1_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct expm1_f64_unchecked
+struct expm1_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct log_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct log_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct log_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct log_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct log_f64_unchecked
+struct log_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct log10_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct log10_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct log10_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct log10_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct log10_f64_unchecked
+struct log10_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct log2_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct log2_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct log2_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct log2_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct log2_f64_unchecked
+struct log2_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct log1p_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct log1p_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct log1p_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct log1p_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct log1p_f64_unchecked
+struct log1p_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct sqrt_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct sqrt_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct sqrt_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct sqrt_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct sqrt_f64_unchecked
+struct sqrt_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct pow_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct pow_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct pow_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct pow_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct pow_f64_unchecked
+struct pow_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct cbrt_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct cbrt_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct cbrt_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct cbrt_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct cbrt_f64_unchecked
+struct cbrt_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct hypot_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct hypot_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct hypot_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct hypot_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct hypot_f64_unchecked
+struct hypot_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct sin_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct sin_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct sin_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct sin_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct sin_f64_unchecked
+struct sin_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct cos_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct cos_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct cos_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct cos_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct cos_f64_unchecked
+struct cos_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct tan_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct tan_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct tan_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct tan_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct tan_f64_unchecked
+struct tan_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct asin_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct asin_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct asin_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct asin_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct asin_f64_unchecked
+struct asin_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct acos_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct acos_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct acos_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct acos_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct acos_f64_unchecked
+struct acos_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct atan_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct atan_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct atan_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct atan_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct atan_f64_unchecked
+struct atan_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct atan2_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct atan2_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct atan2_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct atan2_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct atan2_f64_unchecked
+struct atan2_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct sinh_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct sinh_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct sinh_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct sinh_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct sinh_f64_unchecked
+struct sinh_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct cosh_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct cosh_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct cosh_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct cosh_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct cosh_f64_unchecked
+struct cosh_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct tanh_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct tanh_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct tanh_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct tanh_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct tanh_f64_unchecked
+struct tanh_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct asinh_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct asinh_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct asinh_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct asinh_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct asinh_f64_unchecked
+struct asinh_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct acosh_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct acosh_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct acosh_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct acosh_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct acosh_f64_unchecked
+struct acosh_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct atanh_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct atanh_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct atanh_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct atanh_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct atanh_f64_unchecked
+struct atanh_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct erf_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct erf_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct erf_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct erf_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct erf_f64_unchecked
+struct erf_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct erfc_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct erfc_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct erfc_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct erfc_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct erfc_f64_unchecked
+struct erfc_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct tgamma_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct tgamma_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct tgamma_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct tgamma_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct tgamma_f64_unchecked
+struct tgamma_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct lgamma_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
-
-	uint32_t src_tokens_index;
 };
 
 struct lgamma_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct lgamma_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
 };
 
-struct lgamma_f32_unchecked
-{
-	static inline constexpr bz::array arg_types = { value_type::f32 };
-	static inline constexpr value_type result_type = value_type::f32;
-};
-
-struct lgamma_f64_unchecked
+struct lgamma_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
-	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
 };
 
 struct bitreverse_u8
@@ -2886,8 +2886,8 @@ using instruction_list = bz::meta::type_pack<
 	instructions::cmp_eq_i64,
 	instructions::cmp_eq_f32,
 	instructions::cmp_eq_f64,
-	instructions::cmp_eq_f32_unchecked,
-	instructions::cmp_eq_f64_unchecked,
+	instructions::cmp_eq_f32_check,
+	instructions::cmp_eq_f64_check,
 	instructions::cmp_eq_ptr,
 	instructions::cmp_neq_i1,
 	instructions::cmp_neq_i8,
@@ -2896,8 +2896,8 @@ using instruction_list = bz::meta::type_pack<
 	instructions::cmp_neq_i64,
 	instructions::cmp_neq_f32,
 	instructions::cmp_neq_f64,
-	instructions::cmp_neq_f32_unchecked,
-	instructions::cmp_neq_f64_unchecked,
+	instructions::cmp_neq_f32_check,
+	instructions::cmp_neq_f64_check,
 	instructions::cmp_neq_ptr,
 	instructions::cmp_lt_i8,
 	instructions::cmp_lt_i16,
@@ -2909,8 +2909,8 @@ using instruction_list = bz::meta::type_pack<
 	instructions::cmp_lt_u64,
 	instructions::cmp_lt_f32,
 	instructions::cmp_lt_f64,
-	instructions::cmp_lt_f32_unchecked,
-	instructions::cmp_lt_f64_unchecked,
+	instructions::cmp_lt_f32_check,
+	instructions::cmp_lt_f64_check,
 	instructions::cmp_gt_i8,
 	instructions::cmp_gt_i16,
 	instructions::cmp_gt_i32,
@@ -2921,8 +2921,8 @@ using instruction_list = bz::meta::type_pack<
 	instructions::cmp_gt_u64,
 	instructions::cmp_gt_f32,
 	instructions::cmp_gt_f64,
-	instructions::cmp_gt_f32_unchecked,
-	instructions::cmp_gt_f64_unchecked,
+	instructions::cmp_gt_f32_check,
+	instructions::cmp_gt_f64_check,
 	instructions::cmp_lte_i8,
 	instructions::cmp_lte_i16,
 	instructions::cmp_lte_i32,
@@ -2933,8 +2933,8 @@ using instruction_list = bz::meta::type_pack<
 	instructions::cmp_lte_u64,
 	instructions::cmp_lte_f32,
 	instructions::cmp_lte_f64,
-	instructions::cmp_lte_f32_unchecked,
-	instructions::cmp_lte_f64_unchecked,
+	instructions::cmp_lte_f32_check,
+	instructions::cmp_lte_f64_check,
 	instructions::cmp_gte_i8,
 	instructions::cmp_gte_i16,
 	instructions::cmp_gte_i32,
@@ -2945,26 +2945,26 @@ using instruction_list = bz::meta::type_pack<
 	instructions::cmp_gte_u64,
 	instructions::cmp_gte_f32,
 	instructions::cmp_gte_f64,
-	instructions::cmp_gte_f32_unchecked,
-	instructions::cmp_gte_f64_unchecked,
+	instructions::cmp_gte_f32_check,
+	instructions::cmp_gte_f64_check,
 	instructions::neg_i8,
 	instructions::neg_i16,
 	instructions::neg_i32,
 	instructions::neg_i64,
-	instructions::neg_i8_unchecked,
-	instructions::neg_i16_unchecked,
-	instructions::neg_i32_unchecked,
-	instructions::neg_i64_unchecked,
 	instructions::neg_f32,
 	instructions::neg_f64,
-	instructions::add_i8_unchecked,
-	instructions::add_i16_unchecked,
-	instructions::add_i32_unchecked,
-	instructions::add_i64_unchecked,
-	instructions::sub_i8_unchecked,
-	instructions::sub_i16_unchecked,
-	instructions::sub_i32_unchecked,
-	instructions::sub_i64_unchecked,
+	instructions::neg_i8_check,
+	instructions::neg_i16_check,
+	instructions::neg_i32_check,
+	instructions::neg_i64_check,
+	instructions::add_i8,
+	instructions::add_i16,
+	instructions::add_i32,
+	instructions::add_i64,
+	instructions::sub_i8,
+	instructions::sub_i16,
+	instructions::sub_i32,
+	instructions::sub_i64,
 	instructions::ptr32_diff,
 	instructions::ptr64_diff,
 	instructions::not_i1,
@@ -2993,12 +2993,12 @@ using instruction_list = bz::meta::type_pack<
 	instructions::abs_i64,
 	instructions::abs_f32,
 	instructions::abs_f64,
-	instructions::abs_i8_unchecked,
-	instructions::abs_i16_unchecked,
-	instructions::abs_i32_unchecked,
-	instructions::abs_i64_unchecked,
-	instructions::abs_f32_unchecked,
-	instructions::abs_f64_unchecked,
+	instructions::abs_i8_check,
+	instructions::abs_i16_check,
+	instructions::abs_i32_check,
+	instructions::abs_i64_check,
+	instructions::abs_f32_check,
+	instructions::abs_f64_check,
 	instructions::min_i8,
 	instructions::min_i16,
 	instructions::min_i32,
@@ -3007,10 +3007,10 @@ using instruction_list = bz::meta::type_pack<
 	instructions::min_u16,
 	instructions::min_u32,
 	instructions::min_u64,
+	instructions::min_f32_check,
+	instructions::min_f64_check,
 	instructions::min_f32,
 	instructions::min_f64,
-	instructions::min_f32_unchecked,
-	instructions::min_f64_unchecked,
 	instructions::max_i8,
 	instructions::max_i16,
 	instructions::max_i32,
@@ -3019,122 +3019,122 @@ using instruction_list = bz::meta::type_pack<
 	instructions::max_u16,
 	instructions::max_u32,
 	instructions::max_u64,
+	instructions::max_f32_check,
+	instructions::max_f64_check,
 	instructions::max_f32,
 	instructions::max_f64,
-	instructions::max_f32_unchecked,
-	instructions::max_f64_unchecked,
 	instructions::exp_f32,
 	instructions::exp_f64,
-	instructions::exp_f32_unchecked,
-	instructions::exp_f64_unchecked,
+	instructions::exp_f32_check,
+	instructions::exp_f64_check,
 	instructions::exp2_f32,
 	instructions::exp2_f64,
-	instructions::exp2_f32_unchecked,
-	instructions::exp2_f64_unchecked,
+	instructions::exp2_f32_check,
+	instructions::exp2_f64_check,
 	instructions::expm1_f32,
 	instructions::expm1_f64,
-	instructions::expm1_f32_unchecked,
-	instructions::expm1_f64_unchecked,
+	instructions::expm1_f32_check,
+	instructions::expm1_f64_check,
 	instructions::log_f32,
 	instructions::log_f64,
-	instructions::log_f32_unchecked,
-	instructions::log_f64_unchecked,
+	instructions::log_f32_check,
+	instructions::log_f64_check,
 	instructions::log10_f32,
 	instructions::log10_f64,
-	instructions::log10_f32_unchecked,
-	instructions::log10_f64_unchecked,
+	instructions::log10_f32_check,
+	instructions::log10_f64_check,
 	instructions::log2_f32,
 	instructions::log2_f64,
-	instructions::log2_f32_unchecked,
-	instructions::log2_f64_unchecked,
+	instructions::log2_f32_check,
+	instructions::log2_f64_check,
 	instructions::log1p_f32,
 	instructions::log1p_f64,
-	instructions::log1p_f32_unchecked,
-	instructions::log1p_f64_unchecked,
+	instructions::log1p_f32_check,
+	instructions::log1p_f64_check,
 	instructions::sqrt_f32,
 	instructions::sqrt_f64,
-	instructions::sqrt_f32_unchecked,
-	instructions::sqrt_f64_unchecked,
+	instructions::sqrt_f32_check,
+	instructions::sqrt_f64_check,
 	instructions::pow_f32,
 	instructions::pow_f64,
-	instructions::pow_f32_unchecked,
-	instructions::pow_f64_unchecked,
+	instructions::pow_f32_check,
+	instructions::pow_f64_check,
 	instructions::cbrt_f32,
 	instructions::cbrt_f64,
-	instructions::cbrt_f32_unchecked,
-	instructions::cbrt_f64_unchecked,
+	instructions::cbrt_f32_check,
+	instructions::cbrt_f64_check,
 	instructions::hypot_f32,
 	instructions::hypot_f64,
-	instructions::hypot_f32_unchecked,
-	instructions::hypot_f64_unchecked,
+	instructions::hypot_f32_check,
+	instructions::hypot_f64_check,
 	instructions::sin_f32,
 	instructions::sin_f64,
-	instructions::sin_f32_unchecked,
-	instructions::sin_f64_unchecked,
+	instructions::sin_f32_check,
+	instructions::sin_f64_check,
 	instructions::cos_f32,
 	instructions::cos_f64,
-	instructions::cos_f32_unchecked,
-	instructions::cos_f64_unchecked,
+	instructions::cos_f32_check,
+	instructions::cos_f64_check,
 	instructions::tan_f32,
 	instructions::tan_f64,
-	instructions::tan_f32_unchecked,
-	instructions::tan_f64_unchecked,
+	instructions::tan_f32_check,
+	instructions::tan_f64_check,
 	instructions::asin_f32,
 	instructions::asin_f64,
-	instructions::asin_f32_unchecked,
-	instructions::asin_f64_unchecked,
+	instructions::asin_f32_check,
+	instructions::asin_f64_check,
 	instructions::acos_f32,
 	instructions::acos_f64,
-	instructions::acos_f32_unchecked,
-	instructions::acos_f64_unchecked,
+	instructions::acos_f32_check,
+	instructions::acos_f64_check,
 	instructions::atan_f32,
 	instructions::atan_f64,
-	instructions::atan_f32_unchecked,
-	instructions::atan_f64_unchecked,
+	instructions::atan_f32_check,
+	instructions::atan_f64_check,
 	instructions::atan2_f32,
 	instructions::atan2_f64,
-	instructions::atan2_f32_unchecked,
-	instructions::atan2_f64_unchecked,
+	instructions::atan2_f32_check,
+	instructions::atan2_f64_check,
 	instructions::sinh_f32,
 	instructions::sinh_f64,
-	instructions::sinh_f32_unchecked,
-	instructions::sinh_f64_unchecked,
+	instructions::sinh_f32_check,
+	instructions::sinh_f64_check,
 	instructions::cosh_f32,
 	instructions::cosh_f64,
-	instructions::cosh_f32_unchecked,
-	instructions::cosh_f64_unchecked,
+	instructions::cosh_f32_check,
+	instructions::cosh_f64_check,
 	instructions::tanh_f32,
 	instructions::tanh_f64,
-	instructions::tanh_f32_unchecked,
-	instructions::tanh_f64_unchecked,
+	instructions::tanh_f32_check,
+	instructions::tanh_f64_check,
 	instructions::asinh_f32,
 	instructions::asinh_f64,
-	instructions::asinh_f32_unchecked,
-	instructions::asinh_f64_unchecked,
+	instructions::asinh_f32_check,
+	instructions::asinh_f64_check,
 	instructions::acosh_f32,
 	instructions::acosh_f64,
-	instructions::acosh_f32_unchecked,
-	instructions::acosh_f64_unchecked,
+	instructions::acosh_f32_check,
+	instructions::acosh_f64_check,
 	instructions::atanh_f32,
 	instructions::atanh_f64,
-	instructions::atanh_f32_unchecked,
-	instructions::atanh_f64_unchecked,
+	instructions::atanh_f32_check,
+	instructions::atanh_f64_check,
 	instructions::erf_f32,
 	instructions::erf_f64,
-	instructions::erf_f32_unchecked,
-	instructions::erf_f64_unchecked,
+	instructions::erf_f32_check,
+	instructions::erf_f64_check,
 	instructions::erfc_f32,
 	instructions::erfc_f64,
-	instructions::erfc_f32_unchecked,
-	instructions::erfc_f64_unchecked,
+	instructions::erfc_f32_check,
+	instructions::erfc_f64_check,
 	instructions::tgamma_f32,
 	instructions::tgamma_f64,
-	instructions::tgamma_f32_unchecked,
-	instructions::tgamma_f64_unchecked,
+	instructions::tgamma_f32_check,
+	instructions::tgamma_f64_check,
 	instructions::lgamma_f32,
 	instructions::lgamma_f64,
-	instructions::lgamma_f32_unchecked,
-	instructions::lgamma_f64_unchecked,
+	instructions::lgamma_f32_check,
+	instructions::lgamma_f64_check,
 	instructions::bitreverse_u8,
 	instructions::bitreverse_u16,
 	instructions::bitreverse_u32,
@@ -3307,8 +3307,8 @@ struct instruction : instruction_base_t
 		cmp_eq_i64               = index_of<instructions::cmp_eq_i64>,
 		cmp_eq_f32               = index_of<instructions::cmp_eq_f32>,
 		cmp_eq_f64               = index_of<instructions::cmp_eq_f64>,
-		cmp_eq_f32_unchecked     = index_of<instructions::cmp_eq_f32_unchecked>,
-		cmp_eq_f64_unchecked     = index_of<instructions::cmp_eq_f64_unchecked>,
+		cmp_eq_f32_check         = index_of<instructions::cmp_eq_f32_check>,
+		cmp_eq_f64_check         = index_of<instructions::cmp_eq_f64_check>,
 		cmp_eq_ptr               = index_of<instructions::cmp_eq_ptr>,
 		cmp_neq_i1               = index_of<instructions::cmp_neq_i1>,
 		cmp_neq_i8               = index_of<instructions::cmp_neq_i8>,
@@ -3317,8 +3317,8 @@ struct instruction : instruction_base_t
 		cmp_neq_i64              = index_of<instructions::cmp_neq_i64>,
 		cmp_neq_f32              = index_of<instructions::cmp_neq_f32>,
 		cmp_neq_f64              = index_of<instructions::cmp_neq_f64>,
-		cmp_neq_f32_unchecked    = index_of<instructions::cmp_neq_f32_unchecked>,
-		cmp_neq_f64_unchecked    = index_of<instructions::cmp_neq_f64_unchecked>,
+		cmp_neq_f32_check        = index_of<instructions::cmp_neq_f32_check>,
+		cmp_neq_f64_check        = index_of<instructions::cmp_neq_f64_check>,
 		cmp_neq_ptr              = index_of<instructions::cmp_neq_ptr>,
 		cmp_lt_i8                = index_of<instructions::cmp_lt_i8>,
 		cmp_lt_i16               = index_of<instructions::cmp_lt_i16>,
@@ -3330,8 +3330,8 @@ struct instruction : instruction_base_t
 		cmp_lt_u64               = index_of<instructions::cmp_lt_u64>,
 		cmp_lt_f32               = index_of<instructions::cmp_lt_f32>,
 		cmp_lt_f64               = index_of<instructions::cmp_lt_f64>,
-		cmp_lt_f32_unchecked     = index_of<instructions::cmp_lt_f32_unchecked>,
-		cmp_lt_f64_unchecked     = index_of<instructions::cmp_lt_f64_unchecked>,
+		cmp_lt_f32_check         = index_of<instructions::cmp_lt_f32_check>,
+		cmp_lt_f64_check         = index_of<instructions::cmp_lt_f64_check>,
 		cmp_gt_i8                = index_of<instructions::cmp_gt_i8>,
 		cmp_gt_i16               = index_of<instructions::cmp_gt_i16>,
 		cmp_gt_i32               = index_of<instructions::cmp_gt_i32>,
@@ -3342,8 +3342,8 @@ struct instruction : instruction_base_t
 		cmp_gt_u64               = index_of<instructions::cmp_gt_u64>,
 		cmp_gt_f32               = index_of<instructions::cmp_gt_f32>,
 		cmp_gt_f64               = index_of<instructions::cmp_gt_f64>,
-		cmp_gt_f32_unchecked     = index_of<instructions::cmp_gt_f32_unchecked>,
-		cmp_gt_f64_unchecked     = index_of<instructions::cmp_gt_f64_unchecked>,
+		cmp_gt_f32_check         = index_of<instructions::cmp_gt_f32_check>,
+		cmp_gt_f64_check         = index_of<instructions::cmp_gt_f64_check>,
 		cmp_lte_i8               = index_of<instructions::cmp_lte_i8>,
 		cmp_lte_i16              = index_of<instructions::cmp_lte_i16>,
 		cmp_lte_i32              = index_of<instructions::cmp_lte_i32>,
@@ -3354,8 +3354,8 @@ struct instruction : instruction_base_t
 		cmp_lte_u64              = index_of<instructions::cmp_lte_u64>,
 		cmp_lte_f32              = index_of<instructions::cmp_lte_f32>,
 		cmp_lte_f64              = index_of<instructions::cmp_lte_f64>,
-		cmp_lte_f32_unchecked    = index_of<instructions::cmp_lte_f32_unchecked>,
-		cmp_lte_f64_unchecked    = index_of<instructions::cmp_lte_f64_unchecked>,
+		cmp_lte_f32_check        = index_of<instructions::cmp_lte_f32_check>,
+		cmp_lte_f64_check        = index_of<instructions::cmp_lte_f64_check>,
 		cmp_gte_i8               = index_of<instructions::cmp_gte_i8>,
 		cmp_gte_i16              = index_of<instructions::cmp_gte_i16>,
 		cmp_gte_i32              = index_of<instructions::cmp_gte_i32>,
@@ -3366,26 +3366,26 @@ struct instruction : instruction_base_t
 		cmp_gte_u64              = index_of<instructions::cmp_gte_u64>,
 		cmp_gte_f32              = index_of<instructions::cmp_gte_f32>,
 		cmp_gte_f64              = index_of<instructions::cmp_gte_f64>,
-		cmp_gte_f32_unchecked    = index_of<instructions::cmp_gte_f32_unchecked>,
-		cmp_gte_f64_unchecked    = index_of<instructions::cmp_gte_f64_unchecked>,
+		cmp_gte_f32_check        = index_of<instructions::cmp_gte_f32_check>,
+		cmp_gte_f64_check        = index_of<instructions::cmp_gte_f64_check>,
 		neg_i8                   = index_of<instructions::neg_i8>,
 		neg_i16                  = index_of<instructions::neg_i16>,
 		neg_i32                  = index_of<instructions::neg_i32>,
 		neg_i64                  = index_of<instructions::neg_i64>,
-		neg_i8_unchecked         = index_of<instructions::neg_i8_unchecked>,
-		neg_i16_unchecked        = index_of<instructions::neg_i16_unchecked>,
-		neg_i32_unchecked        = index_of<instructions::neg_i32_unchecked>,
-		neg_i64_unchecked        = index_of<instructions::neg_i64_unchecked>,
 		neg_f32                  = index_of<instructions::neg_f32>,
 		neg_f64                  = index_of<instructions::neg_f64>,
-		add_i8_unchecked         = index_of<instructions::add_i8_unchecked>,
-		add_i16_unchecked        = index_of<instructions::add_i16_unchecked>,
-		add_i32_unchecked        = index_of<instructions::add_i32_unchecked>,
-		add_i64_unchecked        = index_of<instructions::add_i64_unchecked>,
-		sub_i8_unchecked         = index_of<instructions::sub_i8_unchecked>,
-		sub_i16_unchecked        = index_of<instructions::sub_i16_unchecked>,
-		sub_i32_unchecked        = index_of<instructions::sub_i32_unchecked>,
-		sub_i64_unchecked        = index_of<instructions::sub_i64_unchecked>,
+		neg_i8_check             = index_of<instructions::neg_i8_check>,
+		neg_i16_check            = index_of<instructions::neg_i16_check>,
+		neg_i32_check            = index_of<instructions::neg_i32_check>,
+		neg_i64_check            = index_of<instructions::neg_i64_check>,
+		add_i8                   = index_of<instructions::add_i8>,
+		add_i16                  = index_of<instructions::add_i16>,
+		add_i32                  = index_of<instructions::add_i32>,
+		add_i64                  = index_of<instructions::add_i64>,
+		sub_i8                   = index_of<instructions::sub_i8>,
+		sub_i16                  = index_of<instructions::sub_i16>,
+		sub_i32                  = index_of<instructions::sub_i32>,
+		sub_i64                  = index_of<instructions::sub_i64>,
 		ptr32_diff               = index_of<instructions::ptr32_diff>,
 		ptr64_diff               = index_of<instructions::ptr64_diff>,
 		not_i1                   = index_of<instructions::not_i1>,
@@ -3414,12 +3414,12 @@ struct instruction : instruction_base_t
 		abs_i64                  = index_of<instructions::abs_i64>,
 		abs_f32                  = index_of<instructions::abs_f32>,
 		abs_f64                  = index_of<instructions::abs_f64>,
-		abs_i8_unchecked         = index_of<instructions::abs_i8_unchecked>,
-		abs_i16_unchecked        = index_of<instructions::abs_i16_unchecked>,
-		abs_i32_unchecked        = index_of<instructions::abs_i32_unchecked>,
-		abs_i64_unchecked        = index_of<instructions::abs_i64_unchecked>,
-		abs_f32_unchecked        = index_of<instructions::abs_f32_unchecked>,
-		abs_f64_unchecked        = index_of<instructions::abs_f64_unchecked>,
+		abs_i8_check             = index_of<instructions::abs_i8_check>,
+		abs_i16_check            = index_of<instructions::abs_i16_check>,
+		abs_i32_check            = index_of<instructions::abs_i32_check>,
+		abs_i64_check            = index_of<instructions::abs_i64_check>,
+		abs_f32_check            = index_of<instructions::abs_f32_check>,
+		abs_f64_check            = index_of<instructions::abs_f64_check>,
 		min_i8                   = index_of<instructions::min_i8>,
 		min_i16                  = index_of<instructions::min_i16>,
 		min_i32                  = index_of<instructions::min_i32>,
@@ -3430,8 +3430,8 @@ struct instruction : instruction_base_t
 		min_u64                  = index_of<instructions::min_u64>,
 		min_f32                  = index_of<instructions::min_f32>,
 		min_f64                  = index_of<instructions::min_f64>,
-		min_f32_unchecked        = index_of<instructions::min_f32_unchecked>,
-		min_f64_unchecked        = index_of<instructions::min_f64_unchecked>,
+		min_f32_check            = index_of<instructions::min_f32_check>,
+		min_f64_check            = index_of<instructions::min_f64_check>,
 		max_i8                   = index_of<instructions::max_i8>,
 		max_i16                  = index_of<instructions::max_i16>,
 		max_i32                  = index_of<instructions::max_i32>,
@@ -3442,120 +3442,120 @@ struct instruction : instruction_base_t
 		max_u64                  = index_of<instructions::max_u64>,
 		max_f32                  = index_of<instructions::max_f32>,
 		max_f64                  = index_of<instructions::max_f64>,
-		max_f32_unchecked        = index_of<instructions::max_f32_unchecked>,
-		max_f64_unchecked        = index_of<instructions::max_f64_unchecked>,
+		max_f32_check            = index_of<instructions::max_f32_check>,
+		max_f64_check            = index_of<instructions::max_f64_check>,
 		exp_f32                  = index_of<instructions::exp_f32>,
 		exp_f64                  = index_of<instructions::exp_f64>,
-		exp_f32_unchecked        = index_of<instructions::exp_f32_unchecked>,
-		exp_f64_unchecked        = index_of<instructions::exp_f64_unchecked>,
+		exp_f32_check            = index_of<instructions::exp_f32_check>,
+		exp_f64_check            = index_of<instructions::exp_f64_check>,
 		exp2_f32                 = index_of<instructions::exp2_f32>,
 		exp2_f64                 = index_of<instructions::exp2_f64>,
-		exp2_f32_unchecked       = index_of<instructions::exp2_f32_unchecked>,
-		exp2_f64_unchecked       = index_of<instructions::exp2_f64_unchecked>,
+		exp2_f32_check           = index_of<instructions::exp2_f32_check>,
+		exp2_f64_check           = index_of<instructions::exp2_f64_check>,
 		expm1_f32                = index_of<instructions::expm1_f32>,
 		expm1_f64                = index_of<instructions::expm1_f64>,
-		expm1_f32_unchecked      = index_of<instructions::expm1_f32_unchecked>,
-		expm1_f64_unchecked      = index_of<instructions::expm1_f64_unchecked>,
+		expm1_f32_check          = index_of<instructions::expm1_f32_check>,
+		expm1_f64_check          = index_of<instructions::expm1_f64_check>,
 		log_f32                  = index_of<instructions::log_f32>,
 		log_f64                  = index_of<instructions::log_f64>,
-		log_f32_unchecked        = index_of<instructions::log_f32_unchecked>,
-		log_f64_unchecked        = index_of<instructions::log_f64_unchecked>,
+		log_f32_check            = index_of<instructions::log_f32_check>,
+		log_f64_check            = index_of<instructions::log_f64_check>,
 		log10_f32                = index_of<instructions::log10_f32>,
 		log10_f64                = index_of<instructions::log10_f64>,
-		log10_f32_unchecked      = index_of<instructions::log10_f32_unchecked>,
-		log10_f64_unchecked      = index_of<instructions::log10_f64_unchecked>,
+		log10_f32_check          = index_of<instructions::log10_f32_check>,
+		log10_f64_check          = index_of<instructions::log10_f64_check>,
 		log2_f32                 = index_of<instructions::log2_f32>,
 		log2_f64                 = index_of<instructions::log2_f64>,
-		log2_f32_unchecked       = index_of<instructions::log2_f32_unchecked>,
-		log2_f64_unchecked       = index_of<instructions::log2_f64_unchecked>,
+		log2_f32_check           = index_of<instructions::log2_f32_check>,
+		log2_f64_check           = index_of<instructions::log2_f64_check>,
 		log1p_f32                = index_of<instructions::log1p_f32>,
 		log1p_f64                = index_of<instructions::log1p_f64>,
-		log1p_f32_unchecked      = index_of<instructions::log1p_f32_unchecked>,
-		log1p_f64_unchecked      = index_of<instructions::log1p_f64_unchecked>,
+		log1p_f32_check          = index_of<instructions::log1p_f32_check>,
+		log1p_f64_check          = index_of<instructions::log1p_f64_check>,
 		sqrt_f32                 = index_of<instructions::sqrt_f32>,
 		sqrt_f64                 = index_of<instructions::sqrt_f64>,
-		sqrt_f32_unchecked       = index_of<instructions::sqrt_f32_unchecked>,
-		sqrt_f64_unchecked       = index_of<instructions::sqrt_f64_unchecked>,
+		sqrt_f32_check           = index_of<instructions::sqrt_f32_check>,
+		sqrt_f64_check           = index_of<instructions::sqrt_f64_check>,
 		pow_f32                  = index_of<instructions::pow_f32>,
 		pow_f64                  = index_of<instructions::pow_f64>,
-		pow_f32_unchecked        = index_of<instructions::pow_f32_unchecked>,
-		pow_f64_unchecked        = index_of<instructions::pow_f64_unchecked>,
+		pow_f32_check            = index_of<instructions::pow_f32_check>,
+		pow_f64_check            = index_of<instructions::pow_f64_check>,
 		cbrt_f32                 = index_of<instructions::cbrt_f32>,
 		cbrt_f64                 = index_of<instructions::cbrt_f64>,
-		cbrt_f32_unchecked       = index_of<instructions::cbrt_f32_unchecked>,
-		cbrt_f64_unchecked       = index_of<instructions::cbrt_f64_unchecked>,
+		cbrt_f32_check           = index_of<instructions::cbrt_f32_check>,
+		cbrt_f64_check           = index_of<instructions::cbrt_f64_check>,
 		hypot_f32                = index_of<instructions::hypot_f32>,
 		hypot_f64                = index_of<instructions::hypot_f64>,
-		hypot_f32_unchecked      = index_of<instructions::hypot_f32_unchecked>,
-		hypot_f64_unchecked      = index_of<instructions::hypot_f64_unchecked>,
+		hypot_f32_check          = index_of<instructions::hypot_f32_check>,
+		hypot_f64_check          = index_of<instructions::hypot_f64_check>,
 		sin_f32                  = index_of<instructions::sin_f32>,
 		sin_f64                  = index_of<instructions::sin_f64>,
-		sin_f32_unchecked        = index_of<instructions::sin_f32_unchecked>,
-		sin_f64_unchecked        = index_of<instructions::sin_f64_unchecked>,
+		sin_f32_check            = index_of<instructions::sin_f32_check>,
+		sin_f64_check            = index_of<instructions::sin_f64_check>,
 		cos_f32                  = index_of<instructions::cos_f32>,
 		cos_f64                  = index_of<instructions::cos_f64>,
-		cos_f32_unchecked        = index_of<instructions::cos_f32_unchecked>,
-		cos_f64_unchecked        = index_of<instructions::cos_f64_unchecked>,
+		cos_f32_check            = index_of<instructions::cos_f32_check>,
+		cos_f64_check            = index_of<instructions::cos_f64_check>,
 		tan_f32                  = index_of<instructions::tan_f32>,
 		tan_f64                  = index_of<instructions::tan_f64>,
-		tan_f32_unchecked        = index_of<instructions::tan_f32_unchecked>,
-		tan_f64_unchecked        = index_of<instructions::tan_f64_unchecked>,
+		tan_f32_check            = index_of<instructions::tan_f32_check>,
+		tan_f64_check            = index_of<instructions::tan_f64_check>,
 		asin_f32                 = index_of<instructions::asin_f32>,
 		asin_f64                 = index_of<instructions::asin_f64>,
-		asin_f32_unchecked       = index_of<instructions::asin_f32_unchecked>,
-		asin_f64_unchecked       = index_of<instructions::asin_f64_unchecked>,
+		asin_f32_check           = index_of<instructions::asin_f32_check>,
+		asin_f64_check           = index_of<instructions::asin_f64_check>,
 		acos_f32                 = index_of<instructions::acos_f32>,
 		acos_f64                 = index_of<instructions::acos_f64>,
-		acos_f32_unchecked       = index_of<instructions::acos_f32_unchecked>,
-		acos_f64_unchecked       = index_of<instructions::acos_f64_unchecked>,
+		acos_f32_check           = index_of<instructions::acos_f32_check>,
+		acos_f64_check           = index_of<instructions::acos_f64_check>,
 		atan_f32                 = index_of<instructions::atan_f32>,
 		atan_f64                 = index_of<instructions::atan_f64>,
-		atan_f32_unchecked       = index_of<instructions::atan_f32_unchecked>,
-		atan_f64_unchecked       = index_of<instructions::atan_f64_unchecked>,
+		atan_f32_check           = index_of<instructions::atan_f32_check>,
+		atan_f64_check           = index_of<instructions::atan_f64_check>,
 		atan2_f32                = index_of<instructions::atan2_f32>,
 		atan2_f64                = index_of<instructions::atan2_f64>,
-		atan2_f32_unchecked      = index_of<instructions::atan2_f32_unchecked>,
-		atan2_f64_unchecked      = index_of<instructions::atan2_f64_unchecked>,
+		atan2_f32_check          = index_of<instructions::atan2_f32_check>,
+		atan2_f64_check          = index_of<instructions::atan2_f64_check>,
 		sinh_f32                 = index_of<instructions::sinh_f32>,
 		sinh_f64                 = index_of<instructions::sinh_f64>,
-		sinh_f32_unchecked       = index_of<instructions::sinh_f32_unchecked>,
-		sinh_f64_unchecked       = index_of<instructions::sinh_f64_unchecked>,
+		sinh_f32_check           = index_of<instructions::sinh_f32_check>,
+		sinh_f64_check           = index_of<instructions::sinh_f64_check>,
 		cosh_f32                 = index_of<instructions::cosh_f32>,
 		cosh_f64                 = index_of<instructions::cosh_f64>,
-		cosh_f32_unchecked       = index_of<instructions::cosh_f32_unchecked>,
-		cosh_f64_unchecked       = index_of<instructions::cosh_f64_unchecked>,
+		cosh_f32_check           = index_of<instructions::cosh_f32_check>,
+		cosh_f64_check           = index_of<instructions::cosh_f64_check>,
 		tanh_f32                 = index_of<instructions::tanh_f32>,
 		tanh_f64                 = index_of<instructions::tanh_f64>,
-		tanh_f32_unchecked       = index_of<instructions::tanh_f32_unchecked>,
-		tanh_f64_unchecked       = index_of<instructions::tanh_f64_unchecked>,
+		tanh_f32_check           = index_of<instructions::tanh_f32_check>,
+		tanh_f64_check           = index_of<instructions::tanh_f64_check>,
 		asinh_f32                = index_of<instructions::asinh_f32>,
 		asinh_f64                = index_of<instructions::asinh_f64>,
-		asinh_f32_unchecked      = index_of<instructions::asinh_f32_unchecked>,
-		asinh_f64_unchecked      = index_of<instructions::asinh_f64_unchecked>,
+		asinh_f32_check          = index_of<instructions::asinh_f32_check>,
+		asinh_f64_check          = index_of<instructions::asinh_f64_check>,
 		acosh_f32                = index_of<instructions::acosh_f32>,
 		acosh_f64                = index_of<instructions::acosh_f64>,
-		acosh_f32_unchecked      = index_of<instructions::acosh_f32_unchecked>,
-		acosh_f64_unchecked      = index_of<instructions::acosh_f64_unchecked>,
+		acosh_f32_check          = index_of<instructions::acosh_f32_check>,
+		acosh_f64_check          = index_of<instructions::acosh_f64_check>,
 		atanh_f32                = index_of<instructions::atanh_f32>,
 		atanh_f64                = index_of<instructions::atanh_f64>,
-		atanh_f32_unchecked      = index_of<instructions::atanh_f32_unchecked>,
-		atanh_f64_unchecked      = index_of<instructions::atanh_f64_unchecked>,
+		atanh_f32_check          = index_of<instructions::atanh_f32_check>,
+		atanh_f64_check          = index_of<instructions::atanh_f64_check>,
 		erf_f32                  = index_of<instructions::erf_f32>,
 		erf_f64                  = index_of<instructions::erf_f64>,
-		erf_f32_unchecked        = index_of<instructions::erf_f32_unchecked>,
-		erf_f64_unchecked        = index_of<instructions::erf_f64_unchecked>,
+		erf_f32_check            = index_of<instructions::erf_f32_check>,
+		erf_f64_check            = index_of<instructions::erf_f64_check>,
 		erfc_f32                 = index_of<instructions::erfc_f32>,
 		erfc_f64                 = index_of<instructions::erfc_f64>,
-		erfc_f32_unchecked       = index_of<instructions::erfc_f32_unchecked>,
-		erfc_f64_unchecked       = index_of<instructions::erfc_f64_unchecked>,
+		erfc_f32_check           = index_of<instructions::erfc_f32_check>,
+		erfc_f64_check           = index_of<instructions::erfc_f64_check>,
 		tgamma_f32               = index_of<instructions::tgamma_f32>,
 		tgamma_f64               = index_of<instructions::tgamma_f64>,
-		tgamma_f32_unchecked     = index_of<instructions::tgamma_f32_unchecked>,
-		tgamma_f64_unchecked     = index_of<instructions::tgamma_f64_unchecked>,
+		tgamma_f32_check         = index_of<instructions::tgamma_f32_check>,
+		tgamma_f64_check         = index_of<instructions::tgamma_f64_check>,
 		lgamma_f32               = index_of<instructions::lgamma_f32>,
 		lgamma_f64               = index_of<instructions::lgamma_f64>,
-		lgamma_f32_unchecked     = index_of<instructions::lgamma_f32_unchecked>,
-		lgamma_f64_unchecked     = index_of<instructions::lgamma_f64_unchecked>,
+		lgamma_f32_check         = index_of<instructions::lgamma_f32_check>,
+		lgamma_f64_check         = index_of<instructions::lgamma_f64_check>,
 		bitreverse_u8            = index_of<instructions::bitreverse_u8>,
 		bitreverse_u16           = index_of<instructions::bitreverse_u16>,
 		bitreverse_u32           = index_of<instructions::bitreverse_u32>,

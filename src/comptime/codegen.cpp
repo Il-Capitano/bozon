@@ -164,7 +164,7 @@ static loop_info_t create_loop_start(size_t size, codegen_context &context)
 
 static void create_loop_end(loop_info_t loop_info, codegen_context &context)
 {
-	auto const next_i = context.create_add_unchecked(loop_info.index, context.create_const_u64(1));
+	auto const next_i = context.create_add(loop_info.index, context.create_const_u64(1));
 	context.create_store(next_i, loop_info.index_alloca);
 	context.create_jump(loop_info.condition_check_bb);
 
@@ -195,7 +195,7 @@ static reversed_loop_info_t create_reversed_loop_start(size_t size, codegen_cont
 
 	auto const loop_bb = context.add_basic_block();
 	context.set_current_basic_block(loop_bb);
-	auto const index = context.create_sub_unchecked(index_alloca, context.create_const_u64(1));
+	auto const index = context.create_sub(index_alloca, context.create_const_u64(1));
 
 	return {
 		.condition_check_bb = condition_check_bb,
@@ -789,14 +789,11 @@ static expr_value generate_builtin_unary_minus(
 )
 {
 	auto const value = generate_expr_code(expr, context, {}).get_value(context);
-	if (original_expression.paren_level >= 2)
+	if (original_expression.paren_level < 2)
 	{
-		return value_or_result_address(context.create_neg_unchecked(value), result_address, context);
+		context.create_neg_check(original_expression.src_tokens, value);
 	}
-	else
-	{
-		return value_or_result_address(context.create_neg(original_expression.src_tokens, value), result_address, context);
-	}
+	return value_or_result_address(context.create_neg(value), result_address, context);
 }
 
 static expr_value generate_builtin_unary_dereference(
@@ -1221,14 +1218,11 @@ static expr_value generate_intrinsic_function_call_code(
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const value = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_abs_unchecked(value), result_address, context);
+			context.create_abs_check(func_call.src_tokens, value);
 		}
-		else
-		{
-			return value_or_result_address(context.create_abs(func_call.src_tokens, value), result_address, context);
-		}
+		return value_or_result_address(context.create_abs(value), result_address, context);
 	}
 	case ast::function_body::min_i8:
 	case ast::function_body::min_i16:
@@ -1256,14 +1250,11 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(func_call.params.size() == 2);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
 		auto const y = generate_expr_code(func_call.params[1], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_float_min_unchecked(x, y), result_address, context);
+			context.create_float_min_check(func_call.src_tokens, x, y);
 		}
-		else
-		{
-			return value_or_result_address(context.create_float_min(func_call.src_tokens, x, y), result_address, context);
-		}
+		return value_or_result_address(context.create_float_min(x, y), result_address, context);
 	}
 	case ast::function_body::max_i8:
 	case ast::function_body::max_i16:
@@ -1291,126 +1282,99 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(func_call.params.size() == 2);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
 		auto const y = generate_expr_code(func_call.params[1], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_float_max_unchecked(x, y), result_address, context);
+			context.create_float_max_check(func_call.src_tokens, x, y);
 		}
-		else
-		{
-			return value_or_result_address(context.create_float_max(func_call.src_tokens, x, y), result_address, context);
-		}
+		return value_or_result_address(context.create_float_max(x, y), result_address, context);
 	}
 	case ast::function_body::exp_f32:
 	case ast::function_body::exp_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_exp_unchecked(x), result_address, context);
+			context.create_exp_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_exp(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_exp(x), result_address, context);
 	}
 	case ast::function_body::exp2_f32:
 	case ast::function_body::exp2_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_exp2_unchecked(x), result_address, context);
+			context.create_exp2_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_exp2(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_exp2(x), result_address, context);
 	}
 	case ast::function_body::expm1_f32:
 	case ast::function_body::expm1_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_expm1_unchecked(x), result_address, context);
+			context.create_expm1_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_expm1(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_expm1(x), result_address, context);
 	}
 	case ast::function_body::log_f32:
 	case ast::function_body::log_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_log_unchecked(x), result_address, context);
+			context.create_log_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_log(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_log(x), result_address, context);
 	}
 	case ast::function_body::log10_f32:
 	case ast::function_body::log10_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_log10_unchecked(x), result_address, context);
+			context.create_log10_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_log10(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_log10(x), result_address, context);
 	}
 	case ast::function_body::log2_f32:
 	case ast::function_body::log2_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_log2_unchecked(x), result_address, context);
+			context.create_log2_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_log2(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_log2(x), result_address, context);
 	}
 	case ast::function_body::log1p_f32:
 	case ast::function_body::log1p_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_log1p_unchecked(x), result_address, context);
+			context.create_log1p_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_log1p(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_log1p(x), result_address, context);
 	}
 	case ast::function_body::sqrt_f32:
 	case ast::function_body::sqrt_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_sqrt_unchecked(x), result_address, context);
+			context.create_sqrt_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_sqrt(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_sqrt(x), result_address, context);
 	}
 	case ast::function_body::pow_f32:
 	case ast::function_body::pow_f64:
@@ -1418,28 +1382,22 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(func_call.params.size() == 2);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
 		auto const y = generate_expr_code(func_call.params[1], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_pow_unchecked(x, y), result_address, context);
+			context.create_pow_check(original_expression.src_tokens, x, y);
 		}
-		else
-		{
-			return value_or_result_address(context.create_pow(original_expression.src_tokens, x, y), result_address, context);
-		}
+		return value_or_result_address(context.create_pow(x, y), result_address, context);
 	}
 	case ast::function_body::cbrt_f32:
 	case ast::function_body::cbrt_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_cbrt_unchecked(x), result_address, context);
+			context.create_cbrt_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_cbrt(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_cbrt(x), result_address, context);
 	}
 	case ast::function_body::hypot_f32:
 	case ast::function_body::hypot_f64:
@@ -1447,98 +1405,77 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(func_call.params.size() == 2);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
 		auto const y = generate_expr_code(func_call.params[1], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_hypot_unchecked(x, y), result_address, context);
+			context.create_hypot_check(original_expression.src_tokens, x, y);
 		}
-		else
-		{
-			return value_or_result_address(context.create_hypot(original_expression.src_tokens, x, y), result_address, context);
-		}
+		return value_or_result_address(context.create_hypot(x, y), result_address, context);
 	}
 	case ast::function_body::sin_f32:
 	case ast::function_body::sin_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_sin_unchecked(x), result_address, context);
+			context.create_sin_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_sin(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_sin(x), result_address, context);
 	}
 	case ast::function_body::cos_f32:
 	case ast::function_body::cos_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_cos_unchecked(x), result_address, context);
+			context.create_cos_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_cos(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_cos(x), result_address, context);
 	}
 	case ast::function_body::tan_f32:
 	case ast::function_body::tan_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_tan_unchecked(x), result_address, context);
+			context.create_tan_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_tan(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_tan(x), result_address, context);
 	}
 	case ast::function_body::asin_f32:
 	case ast::function_body::asin_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_asin_unchecked(x), result_address, context);
+			context.create_asin_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_asin(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_asin(x), result_address, context);
 	}
 	case ast::function_body::acos_f32:
 	case ast::function_body::acos_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_acos_unchecked(x), result_address, context);
+			context.create_acos_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_acos(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_acos(x), result_address, context);
 	}
 	case ast::function_body::atan_f32:
 	case ast::function_body::atan_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_atan_unchecked(x), result_address, context);
+			context.create_atan_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_atan(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_atan(x), result_address, context);
 	}
 	case ast::function_body::atan2_f32:
 	case ast::function_body::atan2_f64:
@@ -1546,154 +1483,121 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(func_call.params.size() == 2);
 		auto const y = generate_expr_code(func_call.params[0], context, {}).get_value(context);
 		auto const x = generate_expr_code(func_call.params[1], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_atan2_unchecked(y, x), result_address, context);
+			context.create_atan2_check(original_expression.src_tokens, y, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_atan2(original_expression.src_tokens, y, x), result_address, context);
-		}
+		return value_or_result_address(context.create_atan2(y, x), result_address, context);
 	}
 	case ast::function_body::sinh_f32:
 	case ast::function_body::sinh_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_sinh_unchecked(x), result_address, context);
+			context.create_sinh_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_sinh(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_sinh(x), result_address, context);
 	}
 	case ast::function_body::cosh_f32:
 	case ast::function_body::cosh_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_cosh_unchecked(x), result_address, context);
+			context.create_cosh_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_cosh(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_cosh(x), result_address, context);
 	}
 	case ast::function_body::tanh_f32:
 	case ast::function_body::tanh_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_tanh_unchecked(x), result_address, context);
+			context.create_tanh_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_tanh(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_tanh(x), result_address, context);
 	}
 	case ast::function_body::asinh_f32:
 	case ast::function_body::asinh_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_asinh_unchecked(x), result_address, context);
+			context.create_asinh_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_asinh(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_asinh(x), result_address, context);
 	}
 	case ast::function_body::acosh_f32:
 	case ast::function_body::acosh_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_acosh_unchecked(x), result_address, context);
+			context.create_acosh_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_acosh(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_acosh(x), result_address, context);
 	}
 	case ast::function_body::atanh_f32:
 	case ast::function_body::atanh_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_atanh_unchecked(x), result_address, context);
+			context.create_atanh_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_atanh(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_atanh(x), result_address, context);
 	}
 	case ast::function_body::erf_f32:
 	case ast::function_body::erf_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_erf_unchecked(x), result_address, context);
+			context.create_erf_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_erf(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_erf(x), result_address, context);
 	}
 	case ast::function_body::erfc_f32:
 	case ast::function_body::erfc_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_erfc_unchecked(x), result_address, context);
+			context.create_erfc_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_erfc(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_erfc(x), result_address, context);
 	}
 	case ast::function_body::tgamma_f32:
 	case ast::function_body::tgamma_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_tgamma_unchecked(x), result_address, context);
+			context.create_tgamma_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_tgamma(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_tgamma(x), result_address, context);
 	}
 	case ast::function_body::lgamma_f32:
 	case ast::function_body::lgamma_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level >= 2)
+		if (original_expression.paren_level < 2)
 		{
-			return value_or_result_address(context.create_lgamma_unchecked(x), result_address, context);
+			context.create_lgamma_check(original_expression.src_tokens, x);
 		}
-		else
-		{
-			return value_or_result_address(context.create_lgamma(original_expression.src_tokens, x), result_address, context);
-		}
+		return value_or_result_address(context.create_lgamma(x), result_address, context);
 	}
 	case ast::function_body::bitreverse_u8:
 	case ast::function_body::bitreverse_u16:
