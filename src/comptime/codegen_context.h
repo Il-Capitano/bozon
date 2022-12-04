@@ -319,6 +319,7 @@ struct codegen_context
 	expr_value create_neg(expr_value value);
 	instruction_ref create_neg_check(lex::src_tokens const &src_tokens, expr_value value);
 	expr_value create_add(expr_value lhs, expr_value rhs);
+	instruction_ref create_add_check(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int);
 	expr_value create_sub(expr_value lhs, expr_value rhs);
 
 	expr_value create_ptrdiff(expr_value lhs, expr_value rhs, type const *elem_type);

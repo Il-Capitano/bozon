@@ -1285,6 +1285,86 @@ struct add_f64
 	static inline constexpr value_type result_type = value_type::f64;
 };
 
+struct add_i8_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct add_i16_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct add_i32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct add_i64_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct add_u8_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct add_u16_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct add_u32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct add_u64_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct add_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct add_f64_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
 struct sub_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
@@ -2975,6 +3055,16 @@ using instruction_list = bz::meta::type_pack<
 	instructions::add_i64,
 	instructions::add_f32,
 	instructions::add_f64,
+	instructions::add_i8_check,
+	instructions::add_i16_check,
+	instructions::add_i32_check,
+	instructions::add_i64_check,
+	instructions::add_u8_check,
+	instructions::add_u16_check,
+	instructions::add_u32_check,
+	instructions::add_u64_check,
+	instructions::add_f32_check,
+	instructions::add_f64_check,
 	instructions::sub_i8,
 	instructions::sub_i16,
 	instructions::sub_i32,
@@ -3207,7 +3297,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 407);
+	static_assert(variant_count == 419);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -3398,6 +3488,16 @@ struct instruction : instruction_base_t
 		add_i64                  = index_of<instructions::add_i64>,
 		add_f32                  = index_of<instructions::add_f32>,
 		add_f64                  = index_of<instructions::add_f64>,
+		add_i8_check             = index_of<instructions::add_i8_check>,
+		add_i16_check            = index_of<instructions::add_i16_check>,
+		add_i32_check            = index_of<instructions::add_i32_check>,
+		add_i64_check            = index_of<instructions::add_i64_check>,
+		add_u8_check             = index_of<instructions::add_u8_check>,
+		add_u16_check            = index_of<instructions::add_u16_check>,
+		add_u32_check            = index_of<instructions::add_u32_check>,
+		add_u64_check            = index_of<instructions::add_u64_check>,
+		add_f32_check            = index_of<instructions::add_f32_check>,
+		add_f64_check            = index_of<instructions::add_f64_check>,
 		sub_i8                   = index_of<instructions::sub_i8>,
 		sub_i16                  = index_of<instructions::sub_i16>,
 		sub_i32                  = index_of<instructions::sub_i32>,

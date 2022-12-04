@@ -1,9 +1,16 @@
 #include "instructions.h"
 #include "executor_context.h"
+#include "overflow_operations.h"
 #include <bit>
 
 namespace comptime
 {
+
+static bool float_operation_overflowed(float32_t lhs, float32_t rhs, float32_t result)
+{
+	return (!std::isnan(lhs) && !std::isnan(rhs) && std::isnan(result))
+		|| (std::isfinite(lhs) && std::isfinite(rhs) && !std::isfinite(result));
+}
 
 static bool execute_const_i1(instructions::const_i1 const &inst, executor_context &)
 {
@@ -1312,6 +1319,144 @@ static float32_t execute_add_f32(instructions::add_f32 const &, float32_t lhs, f
 static float64_t execute_add_f64(instructions::add_f64 const &, float64_t lhs, float64_t rhs, executor_context &)
 {
 	return lhs + rhs;
+}
+
+static void execute_add_i8_check(instructions::add_i8_check const &inst, uint8_t lhs, uint8_t rhs, executor_context &context)
+{
+	auto const ilhs = static_cast<int8_t>(lhs);
+	auto const irhs = static_cast<int8_t>(rhs);
+	auto const [result, overflowed] = add_overflow<int8_t>(static_cast<int64_t>(ilhs), static_cast<int64_t>(irhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} + {}' with type 'int8' results in {}", ilhs, irhs, result)
+		);
+	}
+}
+
+static void execute_add_i16_check(instructions::add_i16_check const &inst, uint16_t lhs, uint16_t rhs, executor_context &context)
+{
+	auto const ilhs = static_cast<int16_t>(lhs);
+	auto const irhs = static_cast<int16_t>(rhs);
+	auto const [result, overflowed] = add_overflow<int16_t>(static_cast<int64_t>(ilhs), static_cast<int64_t>(irhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} + {}' with type 'int16' results in {}", ilhs, irhs, result)
+		);
+	}
+}
+
+static void execute_add_i32_check(instructions::add_i32_check const &inst, uint32_t lhs, uint32_t rhs, executor_context &context)
+{
+	auto const ilhs = static_cast<int32_t>(lhs);
+	auto const irhs = static_cast<int32_t>(rhs);
+	auto const [result, overflowed] = add_overflow<int32_t>(static_cast<int64_t>(ilhs), static_cast<int64_t>(irhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} + {}' with type 'int32' results in {}", ilhs, irhs, result)
+		);
+	}
+}
+
+static void execute_add_i64_check(instructions::add_i64_check const &inst, uint64_t lhs, uint64_t rhs, executor_context &context)
+{
+	auto const ilhs = static_cast<int64_t>(lhs);
+	auto const irhs = static_cast<int64_t>(rhs);
+	auto const [result, overflowed] = add_overflow<int64_t>(static_cast<int64_t>(ilhs), static_cast<int64_t>(irhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} + {}' with type 'int64' results in {}", ilhs, irhs, result)
+		);
+	}
+}
+
+static void execute_add_u8_check(instructions::add_u8_check const &inst, uint8_t lhs, uint8_t rhs, executor_context &context)
+{
+	auto const [result, overflowed] = add_overflow<uint8_t>(static_cast<uint64_t>(lhs), static_cast<uint64_t>(rhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} + {}' with type 'uint8' results in {}", lhs, rhs, result)
+		);
+	}
+}
+
+static void execute_add_u16_check(instructions::add_u16_check const &inst, uint16_t lhs, uint16_t rhs, executor_context &context)
+{
+	auto const [result, overflowed] = add_overflow<uint16_t>(static_cast<uint64_t>(lhs), static_cast<uint64_t>(rhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} + {}' with type 'uint16' results in {}", lhs, rhs, result)
+		);
+	}
+}
+
+static void execute_add_u32_check(instructions::add_u32_check const &inst, uint32_t lhs, uint32_t rhs, executor_context &context)
+{
+	auto const [result, overflowed] = add_overflow<uint32_t>(static_cast<uint64_t>(lhs), static_cast<uint64_t>(rhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} + {}' with type 'uint32' results in {}", lhs, rhs, result)
+		);
+	}
+}
+
+static void execute_add_u64_check(instructions::add_u64_check const &inst, uint64_t lhs, uint64_t rhs, executor_context &context)
+{
+	auto const [result, overflowed] = add_overflow<uint64_t>(static_cast<uint64_t>(lhs), static_cast<uint64_t>(rhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} + {}' with type 'uint64' results in {}", lhs, rhs, result)
+		);
+	}
+}
+
+static void execute_add_f32_check(instructions::add_f32_check const &inst, float32_t lhs, float32_t rhs, executor_context &context)
+{
+	auto const result = lhs + rhs;
+	if (float_operation_overflowed(lhs, rhs, result))
+	{
+		context.report_warning(
+			ctx::warning_kind::float_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} + {}' with type 'float32' results in {}", lhs, rhs, result)
+		);
+	}
+}
+
+static void execute_add_f64_check(instructions::add_f64_check const &inst, float64_t lhs, float64_t rhs, executor_context &context)
+{
+	auto const result = lhs + rhs;
+	if (float_operation_overflowed(lhs, rhs, result))
+	{
+		context.report_warning(
+			ctx::warning_kind::float_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} + {}' with type 'float64' results in {}", lhs, rhs, result)
+		);
+	}
 }
 
 static uint8_t execute_sub_i8(instructions::sub_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
@@ -3258,7 +3403,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 407);
+		static_assert(instruction::variant_count == 419);
 		case instruction::const_i1:
 			execute<instructions::const_i1, &execute_const_i1>(context);
 			break;
@@ -3822,6 +3967,36 @@ void execute(executor_context &context)
 			break;
 		case instruction::add_f64:
 			execute<instructions::add_f64, &execute_add_f64>(context);
+			break;
+		case instruction::add_i8_check:
+			execute<instructions::add_i8_check, &execute_add_i8_check>(context);
+			break;
+		case instruction::add_i16_check:
+			execute<instructions::add_i16_check, &execute_add_i16_check>(context);
+			break;
+		case instruction::add_i32_check:
+			execute<instructions::add_i32_check, &execute_add_i32_check>(context);
+			break;
+		case instruction::add_i64_check:
+			execute<instructions::add_i64_check, &execute_add_i64_check>(context);
+			break;
+		case instruction::add_u8_check:
+			execute<instructions::add_u8_check, &execute_add_u8_check>(context);
+			break;
+		case instruction::add_u16_check:
+			execute<instructions::add_u16_check, &execute_add_u16_check>(context);
+			break;
+		case instruction::add_u32_check:
+			execute<instructions::add_u32_check, &execute_add_u32_check>(context);
+			break;
+		case instruction::add_u64_check:
+			execute<instructions::add_u64_check, &execute_add_u64_check>(context);
+			break;
+		case instruction::add_f32_check:
+			execute<instructions::add_f32_check, &execute_add_f32_check>(context);
+			break;
+		case instruction::add_f64_check:
+			execute<instructions::add_f64_check, &execute_add_f64_check>(context);
 			break;
 		case instruction::sub_i8:
 			execute<instructions::sub_i8, &execute_sub_i8>(context);

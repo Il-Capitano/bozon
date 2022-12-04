@@ -1885,6 +1885,64 @@ expr_value codegen_context::create_add(expr_value lhs, expr_value rhs)
 	}
 }
 
+instruction_ref codegen_context::create_add_check(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(lhs.get_type()->is_builtin());
+	bz_assert(rhs.get_type()->is_builtin());
+	bz_assert(lhs.get_type()->get_builtin_kind() == rhs.get_type()->get_builtin_kind());
+
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
+
+	switch (lhs.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::i8:
+		if (is_signed_int)
+		{
+			return this->add_instruction(instructions::add_i8_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		}
+		else
+		{
+			return this->add_instruction(instructions::add_u8_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		}
+	case builtin_type_kind::i16:
+		if (is_signed_int)
+		{
+			return this->add_instruction(instructions::add_i16_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		}
+		else
+		{
+			return this->add_instruction(instructions::add_u16_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		}
+	case builtin_type_kind::i32:
+		if (is_signed_int)
+		{
+			return this->add_instruction(instructions::add_i32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		}
+		else
+		{
+			return this->add_instruction(instructions::add_u32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		}
+	case builtin_type_kind::i64:
+		if (is_signed_int)
+		{
+			return this->add_instruction(instructions::add_i64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		}
+		else
+		{
+			return this->add_instruction(instructions::add_u64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		}
+	case builtin_type_kind::f32:
+		return this->add_instruction(instructions::add_f32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+	case builtin_type_kind::f64:
+		return this->add_instruction(instructions::add_f64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+	default:
+		bz_unreachable;
+	}
+}
+
 expr_value codegen_context::create_sub(expr_value lhs, expr_value rhs)
 {
 	bz_assert(lhs.get_type()->is_builtin());
@@ -4021,7 +4079,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 407);
+	static_assert(instruction::variant_count == 419);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>().inst;
