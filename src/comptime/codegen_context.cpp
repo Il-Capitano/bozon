@@ -1870,6 +1870,16 @@ expr_value codegen_context::create_add(expr_value lhs, expr_value rhs)
 			this->add_instruction(instructions::add_i64{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i64)
 		);
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::add_f32{}, lhs_val, rhs_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::add_f64{}, lhs_val, rhs_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
 	default:
 		bz_unreachable;
 	}

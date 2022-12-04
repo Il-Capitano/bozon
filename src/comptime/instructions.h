@@ -1273,6 +1273,18 @@ struct add_i64
 	static inline constexpr value_type result_type = value_type::i64;
 };
 
+struct add_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+};
+
+struct add_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+};
+
 struct sub_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
@@ -2961,6 +2973,8 @@ using instruction_list = bz::meta::type_pack<
 	instructions::add_i16,
 	instructions::add_i32,
 	instructions::add_i64,
+	instructions::add_f32,
+	instructions::add_f64,
 	instructions::sub_i8,
 	instructions::sub_i16,
 	instructions::sub_i32,
@@ -3382,6 +3396,8 @@ struct instruction : instruction_base_t
 		add_i16                  = index_of<instructions::add_i16>,
 		add_i32                  = index_of<instructions::add_i32>,
 		add_i64                  = index_of<instructions::add_i64>,
+		add_f32                  = index_of<instructions::add_f32>,
+		add_f64                  = index_of<instructions::add_f64>,
 		sub_i8                   = index_of<instructions::sub_i8>,
 		sub_i16                  = index_of<instructions::sub_i16>,
 		sub_i32                  = index_of<instructions::sub_i32>,

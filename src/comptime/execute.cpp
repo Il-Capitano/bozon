@@ -1304,6 +1304,16 @@ static uint64_t execute_add_i64(instructions::add_i64 const &, uint64_t lhs, uin
 	return lhs + rhs;
 }
 
+static float32_t execute_add_f32(instructions::add_f32 const &, float32_t lhs, float32_t rhs, executor_context &)
+{
+	return lhs + rhs;
+}
+
+static float64_t execute_add_f64(instructions::add_f64 const &, float64_t lhs, float64_t rhs, executor_context &)
+{
+	return lhs + rhs;
+}
+
 static uint8_t execute_sub_i8(instructions::sub_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return lhs - rhs;
@@ -3806,6 +3816,12 @@ void execute(executor_context &context)
 			break;
 		case instruction::add_i64:
 			execute<instructions::add_i64, &execute_add_i64>(context);
+			break;
+		case instruction::add_f32:
+			execute<instructions::add_f32, &execute_add_f32>(context);
+			break;
+		case instruction::add_f64:
+			execute<instructions::add_f64, &execute_add_f64>(context);
 			break;
 		case instruction::sub_i8:
 			execute<instructions::sub_i8, &execute_sub_i8>(context);
