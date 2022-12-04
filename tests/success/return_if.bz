@@ -1,0 +1,9 @@
+function main() -> int32
+{
+	let b = true;
+	return if (b) {
+		0
+	} else {
+		unreachable
+	};
+}

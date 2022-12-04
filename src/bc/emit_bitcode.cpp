@@ -6050,13 +6050,21 @@ static val_ptr emit_bitcode(
 	}
 
 	context.builder.SetInsertPoint(end_bb);
-	if (!then_val.has_value() || !else_val.has_value())
+	if ((!then_val.has_value() && !if_expr.then_block.is_noreturn()) || (!else_val.has_value() && !if_expr.else_block.is_noreturn()))
 	{
 		return val_ptr::get_none();
 	}
 
 	auto const result_type = then_val.get_type();
-	if (result_address != nullptr)
+	if (if_expr.then_block.is_noreturn())
+	{
+		return else_val;
+	}
+	else if (if_expr.else_block.is_noreturn())
+	{
+		return then_val;
+	}
+	else if (result_address != nullptr)
 	{
 		bz_assert(then_val.val == result_address && else_val.val == result_address);
 		return val_ptr::get_reference(result_address, result_type);
@@ -7488,7 +7496,8 @@ static void emit_bitcode(
 				bz_unreachable;
 			case abi::pass_kind::value:
 			{
-				auto const ret_val = emit_bitcode<abi>(ret_stmt.expr, context, context.output_pointer).get_value(context.builder);
+				auto const ret_val = emit_bitcode<abi>(ret_stmt.expr, context, nullptr).get_value(context.builder);
+				bz_assert(ret_val != nullptr);
 				context.emit_all_destruct_operations();
 				context.emit_all_end_lifetime_calls();
 				context.builder.CreateRet(ret_val);
