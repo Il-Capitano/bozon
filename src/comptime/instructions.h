@@ -1401,6 +1401,86 @@ struct sub_f64
 	static inline constexpr value_type result_type = value_type::f64;
 };
 
+struct sub_i8_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct sub_i16_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct sub_i32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct sub_i64_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct sub_u8_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct sub_u16_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct sub_u32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct sub_u64_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct sub_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct sub_f64_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
 struct ptr32_diff
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
@@ -3083,6 +3163,16 @@ using instruction_list = bz::meta::type_pack<
 	instructions::sub_i64,
 	instructions::sub_f32,
 	instructions::sub_f64,
+	instructions::sub_i8_check,
+	instructions::sub_i16_check,
+	instructions::sub_i32_check,
+	instructions::sub_i64_check,
+	instructions::sub_u8_check,
+	instructions::sub_u16_check,
+	instructions::sub_u32_check,
+	instructions::sub_u64_check,
+	instructions::sub_f32_check,
+	instructions::sub_f64_check,
 	instructions::ptr32_diff,
 	instructions::ptr64_diff,
 	instructions::not_i1,
@@ -3311,7 +3401,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 419);
+	static_assert(variant_count == 431);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -3516,6 +3606,18 @@ struct instruction : instruction_base_t
 		sub_i16                  = index_of<instructions::sub_i16>,
 		sub_i32                  = index_of<instructions::sub_i32>,
 		sub_i64                  = index_of<instructions::sub_i64>,
+		sub_f32                  = index_of<instructions::sub_f32>,
+		sub_f64                  = index_of<instructions::sub_f64>,
+		sub_i8_check             = index_of<instructions::sub_i8_check>,
+		sub_i16_check            = index_of<instructions::sub_i16_check>,
+		sub_i32_check            = index_of<instructions::sub_i32_check>,
+		sub_i64_check            = index_of<instructions::sub_i64_check>,
+		sub_u8_check             = index_of<instructions::sub_u8_check>,
+		sub_u16_check            = index_of<instructions::sub_u16_check>,
+		sub_u32_check            = index_of<instructions::sub_u32_check>,
+		sub_u64_check            = index_of<instructions::sub_u64_check>,
+		sub_f32_check            = index_of<instructions::sub_f32_check>,
+		sub_f64_check            = index_of<instructions::sub_f64_check>,
 		ptr32_diff               = index_of<instructions::ptr32_diff>,
 		ptr64_diff               = index_of<instructions::ptr64_diff>,
 		not_i1                   = index_of<instructions::not_i1>,
