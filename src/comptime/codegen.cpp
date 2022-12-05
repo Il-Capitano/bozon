@@ -835,6 +835,169 @@ static expr_value generate_builtin_unary_minus_minus(
 	bz::optional<expr_value> result_address
 );
 
+static expr_value generate_builtin_binary_assign(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_plus(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_plus_eq(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_minus(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_minus_eq(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_multiply(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_multiply_eq(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_divide(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_divide_eq(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_modulo(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_modulo_eq(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_equals(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_not_equals(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_less_than(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_less_than_eq(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_greater_than(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_greater_than_eq(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_bit_and(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_bit_and_eq(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_bit_xor(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_bit_xor_eq(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_bit_or(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_bit_or_eq(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_bit_left_shift(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_bit_left_shift_eq(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_bit_right_shift(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+static expr_value generate_builtin_binary_bit_right_shift_eq(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+
 static expr_value generate_intrinsic_function_call_code(
 	ast::expression const &original_expression,
 	ast::expr_function_call const &func_call,
@@ -1703,32 +1866,86 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(func_call.params.size() == 1);
 		return generate_builtin_unary_minus_minus(func_call.params[0], context, result_address);
 	case ast::function_body::builtin_binary_assign:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_assign(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_plus:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_plus(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_plus_eq:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_plus_eq(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_minus:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_minus(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_minus_eq:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_minus_eq(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_multiply:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_multiply(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_multiply_eq:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_multiply_eq(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_divide:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_divide(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_divide_eq:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_divide_eq(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_modulo:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_modulo(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_modulo_eq:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_modulo_eq(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_equals:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_equals(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_not_equals:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_not_equals(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_less_than:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_less_than(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_less_than_eq:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_less_than_eq(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_greater_than:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_greater_than(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_greater_than_eq:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_greater_than_eq(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_bit_and:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_bit_and(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_bit_and_eq:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_bit_and_eq(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_bit_xor:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_bit_xor(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_bit_xor_eq:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_bit_xor_eq(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_bit_or:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_bit_or(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_bit_or_eq:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_bit_or_eq(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_bit_left_shift:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_bit_left_shift(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_bit_left_shift_eq:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_bit_left_shift_eq(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_bit_right_shift:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_bit_right_shift(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_bit_right_shift_eq:
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_bit_right_shift_eq(func_call.params[0], func_call.params[1], context, result_address);
 	default:
 		bz_unreachable;
 	}
