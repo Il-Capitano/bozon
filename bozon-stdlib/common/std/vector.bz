@@ -230,6 +230,61 @@ export struct vector<T: typename>
 		self._data_end += 1;
 		return *(self._data_end - 1);
 	}
+
+	function push_front(self: &_self_t, value: ##value_type)
+	{
+		if (self._data_end == self._alloc_end)
+		{
+			const new_size = self.size() + 1;
+			const [new_data_begin, new_alloc_size] = rounded_alloc(value_type, new_size);
+			const new_data_end = new_data_begin + new_size;
+			const new_alloc_end = new_data_begin + new_alloc_size;
+
+			move_range(new_data_begin + 1, new_data_end, self._data_begin);
+			__builtin_inplace_construct(new_data_begin.get_value(), value_type(__forward value));
+			free(self._data_begin);
+			self._data_begin = new_data_begin;
+			self._data_end   = new_data_end;
+			self._alloc_end  = new_alloc_end;
+		}
+		else
+		{
+			for (let it = self._data_end; it != self._data_begin; --it)
+			{
+				__builtin_inplace_construct(it.get_value(), __move__ *(it - 1));
+			}
+			__builtin_inplace_construct(self._data_begin.get_value(), value_type(__forward value));
+			self._data_end += 1;
+		}
+	}
+
+	function emplace_front(self: &_self_t, args: ...##auto) -> &value_type
+	{
+		if (self._data_end == self._alloc_end)
+		{
+			const new_size = self.size() + 1;
+			const [new_data_begin, new_alloc_size] = rounded_alloc(value_type, new_size);
+			const new_data_end = new_data_begin + new_size;
+			const new_alloc_end = new_data_begin + new_alloc_size;
+
+			move_range(new_data_begin.get_value() + 1, new_data_end, self._data_begin);
+			__builtin_inplace_construct(new_data_begin, value_type(...__forward args));
+			free(self._data_begin);
+			self._data_begin = new_data_begin;
+			self._data_end   = new_data_end;
+			self._alloc_end  = new_alloc_end;
+		}
+		else
+		{
+			for (let it = self._data_end; it != self._data_begin; --it)
+			{
+				__builtin_inplace_construct(it.get_value(), __move__ *(it - 1));
+			}
+			__builtin_inplace_construct(self._data_begin.get_value(), value_type(...__forward args));
+			self._data_end += 1;
+		}
+		return *self._data_begin;
+	}
 }
 
 export function begin(vec: &vector) -> ?*(typeof vec).value_type
