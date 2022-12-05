@@ -1479,6 +1479,16 @@ static uint64_t execute_sub_i64(instructions::sub_i64 const &, uint64_t lhs, uin
 	return lhs - rhs;
 }
 
+static float32_t execute_sub_f32(instructions::sub_f32 const &, float32_t lhs, float32_t rhs, executor_context &)
+{
+	return lhs - rhs;
+}
+
+static float64_t execute_sub_f64(instructions::sub_f64 const &, float64_t lhs, float64_t rhs, executor_context &)
+{
+	return lhs - rhs;
+}
+
 static uint32_t execute_ptr32_diff(instructions::ptr32_diff const &inst, ptr_t lhs, ptr_t rhs, executor_context &)
 {
 	auto const result = static_cast<int32_t>(lhs - rhs);

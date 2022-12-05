@@ -1389,6 +1389,18 @@ struct sub_i64
 	static inline constexpr value_type result_type = value_type::i64;
 };
 
+struct sub_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+};
+
+struct sub_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+};
+
 struct ptr32_diff
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
@@ -3069,6 +3081,8 @@ using instruction_list = bz::meta::type_pack<
 	instructions::sub_i16,
 	instructions::sub_i32,
 	instructions::sub_i64,
+	instructions::sub_f32,
+	instructions::sub_f64,
 	instructions::ptr32_diff,
 	instructions::ptr64_diff,
 	instructions::not_i1,
