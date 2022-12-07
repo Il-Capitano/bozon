@@ -36,6 +36,7 @@ void resolve_function(
 
 void resolve_type_info_parameters(ast::type_info &info, ctx::parse_context &context);
 void resolve_type_info_symbol(ast::type_info &info, ctx::parse_context &context);
+void resolve_type_info_members(ast::type_info &info, ctx::parse_context &context);
 void resolve_type_info(ast::type_info &info, ctx::parse_context &context);
 void resolve_enum(ast::decl_enum &enum_decl, ctx::parse_context &context);
 

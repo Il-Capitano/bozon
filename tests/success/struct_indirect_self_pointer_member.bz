@@ -1,0 +1,14 @@
+struct T
+{
+	.s: S;
+}
+
+struct S
+{
+	.t: *T;
+
+	function foo(self: S)
+	{
+		__builtin_call_destructor(*self.t);
+	}
+}

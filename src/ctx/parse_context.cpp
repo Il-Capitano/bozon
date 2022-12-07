@@ -4239,7 +4239,7 @@ static ast::expression make_base_type_constructor_call_expression(
 )
 {
 	auto const info = called_type.get<ast::ts_base_type>().info;
-	context.resolve_type(src_tokens, info);
+	context.resolve_type_members(src_tokens, info);
 
 	if (info->is_generic())
 	{
@@ -4757,7 +4757,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 		}
 
 		auto const info = type_without_const.get<ast::ts_base_type>().info;
-		this->resolve_type(src_tokens, info);
+		this->resolve_type_members(src_tokens, info);
 		if (info->kind != ast::type_info::aggregate)
 		{
 			this->report_error(src_tokens, bz::format("invalid type '{}' for struct initializer", type));
@@ -5032,7 +5032,7 @@ ast::expression parse_context::make_member_access_expression(
 		if (type.is<ast::ts_base_type>())
 		{
 			auto const info = type.get<ast::ts_base_type>().info;
-			this->resolve_type(src_tokens, info);
+			this->resolve_type_members(src_tokens, info);
 			bz_assert(info->scope.is_global());
 			auto id = ast::make_identifier(member);
 			auto const symbol = find_id_in_global_scope(info->scope.get_global(), id, *this);
@@ -5089,7 +5089,7 @@ ast::expression parse_context::make_member_access_expression(
 	auto const base_t = ast::remove_const_or_consteval(base_type);
 	if (base_t.is<ast::ts_base_type>())
 	{
-		this->resolve_type(src_tokens, base_t.get<ast::ts_base_type>().info);
+		this->resolve_type_members(src_tokens, base_t.get<ast::ts_base_type>().info);
 	}
 	auto const members = [&]() -> bz::array_view<ast::decl_variable *> {
 		if (base_t.is<ast::ts_base_type>())
@@ -6847,10 +6847,17 @@ static ast::expression make_base_type_destruct_expression(
 )
 {
 	bz_assert(type.is<ast::ts_base_type>());
-	auto const info = type.get<ast::ts_base_type>().info;
-	bz_assert(info->state == ast::resolve_state::all);
-
 	auto const src_tokens = value.src_tokens;
+	auto const info = type.get<ast::ts_base_type>().info;
+	context.resolve_type_members(src_tokens, info);
+	if (info->state < ast::resolve_state::members)
+	{
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_base_type_destruct(std::move(value), ast::expression(), ast::arena_vector<ast::expression>())
+		);
+	}
+
 	auto destruct_call = [&]() {
 		if (info->destructor == nullptr)
 		{
@@ -7005,10 +7012,17 @@ static ast::expression make_base_type_move_destruct_expression(
 )
 {
 	bz_assert(type.is<ast::ts_base_type>());
-	auto const info = type.get<ast::ts_base_type>().info;
-	bz_assert(info->state == ast::resolve_state::all);
-
 	auto const src_tokens = value.src_tokens;
+	auto const info = type.get<ast::ts_base_type>().info;
+	context.resolve_type_members(src_tokens, info);
+	if (info->state < ast::resolve_state::members)
+	{
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_base_type_destruct(std::move(value), ast::expression(), ast::arena_vector<ast::expression>())
+		);
+	}
+
 	auto destruct_call = [&]() {
 		if (info->move_destructor == nullptr)
 		{
@@ -7305,6 +7319,16 @@ void parse_context::resolve_type(lex::src_tokens const &src_tokens, ast::type_in
 	}
 }
 
+void parse_context::resolve_type_members(lex::src_tokens const &src_tokens, ast::type_info *info)
+{
+	if (info->state != ast::resolve_state::error && info->state < ast::resolve_state::members)
+	{
+		this->add_to_resolve_queue(src_tokens, *info);
+		resolve::resolve_type_info_members(*info, *this);
+		this->pop_resolve_queue();
+	}
+}
+
 void parse_context::resolve_type(lex::src_tokens const &src_tokens, ast::decl_enum *decl)
 {
 	if (decl->state != ast::resolve_state::error && decl->state < ast::resolve_state::all)
@@ -7329,7 +7353,7 @@ static bool type_property_helper(lex::src_tokens const &src_tokens, ast::typespe
 	else if (ts.is<ast::ts_base_type>())
 	{
 		auto const info = ts.get<ast::ts_base_type>().info;
-		context.resolve_type(src_tokens, info);
+		context.resolve_type_members(src_tokens, info);
 		return (ts.get<ast::ts_base_type>().info->*base_type_property_func)();
 	}
 	else if (ts.is<ast::ts_tuple>())
@@ -7447,8 +7471,8 @@ bool parse_context::is_instantiable(lex::src_tokens const &src_tokens, ast::type
 	if (ts.is<ast::ts_base_type>())
 	{
 		auto const info = ts.get<ast::ts_base_type>().info;
-		this->resolve_type(src_tokens, info);
-		return info->state == ast::resolve_state::all;
+		this->resolve_type_members(src_tokens, info);
+		return info->state >= ast::resolve_state::members;
 	}
 	else if (ts.is<ast::ts_enum>())
 	{
