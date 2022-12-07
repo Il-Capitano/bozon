@@ -31,6 +31,8 @@ enum class resolve_state : int8_t
 	parameters,
 	resolving_symbol,
 	symbol,
+	resolving_members,
+	members,
 	resolving_all,
 	all,
 };

@@ -2422,7 +2422,7 @@ static void resolve_member_type_size(lex::src_tokens const &src_tokens, ast::typ
 	if (member_type.is<ast::ts_base_type>())
 	{
 		auto const info = member_type.get<ast::ts_base_type>().info;
-		context.resolve_type(src_tokens, info);
+		context.resolve_type_members(src_tokens, info);
 	}
 	else if (member_type.is<ast::ts_enum>())
 	{
@@ -2442,7 +2442,7 @@ static void resolve_member_type_size(lex::src_tokens const &src_tokens, ast::typ
 	}
 }
 
-static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &context)
+static void resolve_type_info_members_impl(ast::type_info &info, ctx::parse_context &context)
 {
 	if (info.is_generic())
 	{
@@ -2462,7 +2462,7 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 		return;
 	}
 
-	info.state = ast::resolve_state::resolving_all;
+	info.state = ast::resolve_state::resolving_members;
 	bz_assert(info.body.is<lex::token_range>());
 	auto [stream, end] = info.body.get<lex::token_range>();
 
@@ -2530,6 +2530,55 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 
 	add_default_constructors(info, context);
 	add_flags(info, context);
+
+	info.state = ast::resolve_state::members;
+	context.pop_global_scope(std::move(prev_scope_info));
+}
+
+void resolve_type_info_members(ast::type_info &info, ctx::parse_context &context)
+{
+	if (info.state >= ast::resolve_state::members || info.state == ast::resolve_state::error)
+	{
+		return;
+	}
+	else if (info.state == ast::resolve_state::resolving_members)
+	{
+		context.report_circular_dependency_error(info);
+		info.state = ast::resolve_state::error;
+		return;
+	}
+
+	bz_assert(info.state != ast::resolve_state::resolving_parameters);
+	bz_assert(info.state != ast::resolve_state::resolving_symbol);
+
+	auto prev_scopes = context.push_enclosing_scope(info.get_enclosing_scope());
+	resolve_type_info_members_impl(info, context);
+	context.pop_enclosing_scope(std::move(prev_scopes));
+}
+
+static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &context)
+{
+	if (info.is_generic())
+	{
+		if (info.state < ast::resolve_state::parameters)
+		{
+			resolve_type_info_parameters_impl(info, context);
+		}
+		return;
+	}
+
+	if (info.state < ast::resolve_state::members)
+	{
+		resolve_type_info_members_impl(info, context);
+	}
+	if (info.state == ast::resolve_state::error || info.kind == ast::type_info::forward_declaration)
+	{
+		return;
+	}
+
+	info.state = ast::resolve_state::resolving_all;
+	auto &info_body = info.body.get<bz::vector<ast::statement>>();
+	auto prev_scope_info = context.push_global_scope(&info.scope);
 	info.state = ast::resolve_state::all;
 
 	for (auto &stmt : info_body)
@@ -2549,7 +2598,7 @@ void resolve_type_info(ast::type_info &info, ctx::parse_context &context)
 	{
 		return;
 	}
-	else if (info.state == ast::resolve_state::resolving_all)
+	else if (info.state == ast::resolve_state::resolving_all || info.state == ast::resolve_state::resolving_members)
 	{
 		context.report_circular_dependency_error(info);
 		info.state = ast::resolve_state::error;
