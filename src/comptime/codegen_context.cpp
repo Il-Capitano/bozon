@@ -2140,6 +2140,123 @@ expr_value codegen_context::create_ptrdiff(expr_value lhs, expr_value rhs, type 
 	}
 }
 
+expr_value codegen_context::create_mul(expr_value lhs, expr_value rhs)
+{
+	bz_assert(lhs.get_type()->is_builtin());
+	bz_assert(rhs.get_type()->is_builtin());
+	bz_assert(lhs.get_type()->get_builtin_kind() == rhs.get_type()->get_builtin_kind());
+
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
+
+	switch (lhs.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::i8:
+		return expr_value::get_value(
+			this->add_instruction(instructions::mul_i8{}, lhs_val, rhs_val),
+			this->get_builtin_type(builtin_type_kind::i8)
+		);
+	case builtin_type_kind::i16:
+		return expr_value::get_value(
+			this->add_instruction(instructions::mul_i16{}, lhs_val, rhs_val),
+			this->get_builtin_type(builtin_type_kind::i16)
+		);
+	case builtin_type_kind::i32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::mul_i32{}, lhs_val, rhs_val),
+			this->get_builtin_type(builtin_type_kind::i32)
+		);
+	case builtin_type_kind::i64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::mul_i64{}, lhs_val, rhs_val),
+			this->get_builtin_type(builtin_type_kind::i64)
+		);
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::mul_f32{}, lhs_val, rhs_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::mul_f64{}, lhs_val, rhs_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+void codegen_context::create_mul_check(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int)
+{
+	if (
+		(lhs.get_type()->is_integer_type() && !is_warning_enabled(ctx::warning_kind::int_overflow))
+		|| (lhs.get_type()->is_floating_point_type() && !is_warning_enabled(ctx::warning_kind::float_overflow))
+	)
+	{
+		return;
+	}
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(lhs.get_type()->is_builtin());
+	bz_assert(rhs.get_type()->is_builtin());
+	bz_assert(lhs.get_type()->get_builtin_kind() == rhs.get_type()->get_builtin_kind());
+
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
+
+	switch (lhs.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::i8:
+		if (is_signed_int)
+		{
+			this->add_instruction(instructions::mul_i8_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		}
+		else
+		{
+			this->add_instruction(instructions::mul_u8_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		}
+		break;
+	case builtin_type_kind::i16:
+		if (is_signed_int)
+		{
+			this->add_instruction(instructions::mul_i16_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		}
+		else
+		{
+			this->add_instruction(instructions::mul_u16_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		}
+		break;
+	case builtin_type_kind::i32:
+		if (is_signed_int)
+		{
+			this->add_instruction(instructions::mul_i32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		}
+		else
+		{
+			this->add_instruction(instructions::mul_u32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		}
+		break;
+	case builtin_type_kind::i64:
+		if (is_signed_int)
+		{
+			this->add_instruction(instructions::mul_i64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		}
+		else
+		{
+			this->add_instruction(instructions::mul_u64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		}
+		break;
+	case builtin_type_kind::f32:
+		this->add_instruction(instructions::mul_f32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		break;
+	case builtin_type_kind::f64:
+		this->add_instruction(instructions::mul_f64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		break;
+	default:
+		bz_unreachable;
+	}
+}
+
 expr_value codegen_context::create_not(expr_value value)
 {
 	bz_assert(value.get_type()->is_builtin());

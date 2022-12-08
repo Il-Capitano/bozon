@@ -1497,6 +1497,122 @@ struct ptr64_diff
 	size_t stride;
 };
 
+struct mul_i8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+};
+
+struct mul_i16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+};
+
+struct mul_i32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+};
+
+struct mul_i64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+};
+
+struct mul_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+};
+
+struct mul_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct mul_i8_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct mul_i16_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct mul_i32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct mul_i64_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct mul_u8_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct mul_u16_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct mul_u32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct mul_u64_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct mul_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct mul_f64_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
 struct not_i1
 {
 	static inline constexpr bz::array arg_types = { value_type::i1 };
@@ -3175,6 +3291,22 @@ using instruction_list = bz::meta::type_pack<
 	instructions::sub_f64_check,
 	instructions::ptr32_diff,
 	instructions::ptr64_diff,
+	instructions::mul_i8,
+	instructions::mul_i16,
+	instructions::mul_i32,
+	instructions::mul_i64,
+	instructions::mul_f32,
+	instructions::mul_f64,
+	instructions::mul_i8_check,
+	instructions::mul_i16_check,
+	instructions::mul_i32_check,
+	instructions::mul_i64_check,
+	instructions::mul_u8_check,
+	instructions::mul_u16_check,
+	instructions::mul_u32_check,
+	instructions::mul_u64_check,
+	instructions::mul_f32_check,
+	instructions::mul_f64_check,
 	instructions::not_i1,
 	instructions::not_i8,
 	instructions::not_i16,
@@ -3620,6 +3752,22 @@ struct instruction : instruction_base_t
 		sub_f64_check            = index_of<instructions::sub_f64_check>,
 		ptr32_diff               = index_of<instructions::ptr32_diff>,
 		ptr64_diff               = index_of<instructions::ptr64_diff>,
+		mul_i8                   = index_of<instructions::mul_i8>,
+		mul_i16                  = index_of<instructions::mul_i16>,
+		mul_i32                  = index_of<instructions::mul_i32>,
+		mul_i64                  = index_of<instructions::mul_i64>,
+		mul_f32                  = index_of<instructions::mul_f32>,
+		mul_f64                  = index_of<instructions::mul_f64>,
+		mul_i8_check             = index_of<instructions::mul_i8_check>,
+		mul_i16_check            = index_of<instructions::mul_i16_check>,
+		mul_i32_check            = index_of<instructions::mul_i32_check>,
+		mul_i64_check            = index_of<instructions::mul_i64_check>,
+		mul_u8_check             = index_of<instructions::mul_u8_check>,
+		mul_u16_check            = index_of<instructions::mul_u16_check>,
+		mul_u32_check            = index_of<instructions::mul_u32_check>,
+		mul_u64_check            = index_of<instructions::mul_u64_check>,
+		mul_f32_check            = index_of<instructions::mul_f32_check>,
+		mul_f64_check            = index_of<instructions::mul_f64_check>,
 		not_i1                   = index_of<instructions::not_i1>,
 		not_i8                   = index_of<instructions::not_i8>,
 		not_i16                  = index_of<instructions::not_i16>,

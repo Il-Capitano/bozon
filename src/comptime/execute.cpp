@@ -1643,6 +1643,174 @@ static uint64_t execute_ptr64_diff(instructions::ptr64_diff const &inst, ptr_t l
 	return static_cast<uint64_t>(result / stride);
 }
 
+static uint8_t execute_mul_i8(instructions::mul_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+{
+	return lhs * rhs;
+}
+
+static uint16_t execute_mul_i16(instructions::mul_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+{
+	return lhs * rhs;
+}
+
+static uint32_t execute_mul_i32(instructions::mul_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+{
+	return lhs * rhs;
+}
+
+static uint64_t execute_mul_i64(instructions::mul_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+{
+	return lhs * rhs;
+}
+
+static float32_t execute_mul_f32(instructions::mul_f32 const &, float32_t lhs, float32_t rhs, executor_context &)
+{
+	return lhs * rhs;
+}
+
+static float64_t execute_mul_f64(instructions::mul_f64 const &, float64_t lhs, float64_t rhs, executor_context &)
+{
+	return lhs * rhs;
+}
+
+static void execute_mul_i8_check(instructions::mul_i8_check const &inst, uint8_t lhs, uint8_t rhs, executor_context &context)
+{
+	auto const ilhs = static_cast<int8_t>(lhs);
+	auto const irhs = static_cast<int8_t>(rhs);
+	auto const [result, overflowed] = mul_overflow<int8_t>(static_cast<int64_t>(ilhs), static_cast<int64_t>(irhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} * {}' with type 'int8' results in {}", ilhs, irhs, result)
+		);
+	}
+}
+
+static void execute_mul_i16_check(instructions::mul_i16_check const &inst, uint16_t lhs, uint16_t rhs, executor_context &context)
+{
+	auto const ilhs = static_cast<int16_t>(lhs);
+	auto const irhs = static_cast<int16_t>(rhs);
+	auto const [result, overflowed] = mul_overflow<int16_t>(static_cast<int64_t>(ilhs), static_cast<int64_t>(irhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} * {}' with type 'int16' results in {}", ilhs, irhs, result)
+		);
+	}
+}
+
+static void execute_mul_i32_check(instructions::mul_i32_check const &inst, uint32_t lhs, uint32_t rhs, executor_context &context)
+{
+	auto const ilhs = static_cast<int32_t>(lhs);
+	auto const irhs = static_cast<int32_t>(rhs);
+	auto const [result, overflowed] = mul_overflow<int32_t>(static_cast<int64_t>(ilhs), static_cast<int64_t>(irhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} * {}' with type 'int32' results in {}", ilhs, irhs, result)
+		);
+	}
+}
+
+static void execute_mul_i64_check(instructions::mul_i64_check const &inst, uint64_t lhs, uint64_t rhs, executor_context &context)
+{
+	auto const ilhs = static_cast<int64_t>(lhs);
+	auto const irhs = static_cast<int64_t>(rhs);
+	auto const [result, overflowed] = mul_overflow<int64_t>(static_cast<int64_t>(ilhs), static_cast<int64_t>(irhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} * {}' with type 'int64' results in {}", ilhs, irhs, result)
+		);
+	}
+}
+
+static void execute_mul_u8_check(instructions::mul_u8_check const &inst, uint8_t lhs, uint8_t rhs, executor_context &context)
+{
+	auto const [result, overflowed] = mul_overflow<uint8_t>(static_cast<uint64_t>(lhs), static_cast<uint64_t>(rhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} * {}' with type 'uint8' results in {}", lhs, rhs, result)
+		);
+	}
+}
+
+static void execute_mul_u16_check(instructions::mul_u16_check const &inst, uint16_t lhs, uint16_t rhs, executor_context &context)
+{
+	auto const [result, overflowed] = mul_overflow<uint16_t>(static_cast<uint64_t>(lhs), static_cast<uint64_t>(rhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} * {}' with type 'uint16' results in {}", lhs, rhs, result)
+		);
+	}
+}
+
+static void execute_mul_u32_check(instructions::mul_u32_check const &inst, uint32_t lhs, uint32_t rhs, executor_context &context)
+{
+	auto const [result, overflowed] = mul_overflow<uint32_t>(static_cast<uint64_t>(lhs), static_cast<uint64_t>(rhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} * {}' with type 'uint32' results in {}", lhs, rhs, result)
+		);
+	}
+}
+
+static void execute_mul_u64_check(instructions::mul_u64_check const &inst, uint64_t lhs, uint64_t rhs, executor_context &context)
+{
+	auto const [result, overflowed] = mul_overflow<uint64_t>(static_cast<uint64_t>(lhs), static_cast<uint64_t>(rhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} * {}' with type 'uint64' results in {}", lhs, rhs, result)
+		);
+	}
+}
+
+static void execute_mul_f32_check(instructions::mul_f32_check const &inst, float32_t lhs, float32_t rhs, executor_context &context)
+{
+	auto const result = lhs * rhs;
+	if (float_operation_overflowed(lhs, rhs, result))
+	{
+		context.report_warning(
+			ctx::warning_kind::float_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} * {}' with type 'float32' results in {}", lhs, rhs, result)
+		);
+	}
+}
+
+static void execute_mul_f64_check(instructions::mul_f64_check const &inst, float64_t lhs, float64_t rhs, executor_context &context)
+{
+	auto const result = lhs * rhs;
+	if (float_operation_overflowed(lhs, rhs, result))
+	{
+		context.report_warning(
+			ctx::warning_kind::float_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} * {}' with type 'float64' results in {}", lhs, rhs, result)
+		);
+	}
+}
+
 static bool execute_not_i1(instructions::not_i1 const &, bool value, executor_context &)
 {
 	return !value;
@@ -4199,6 +4367,54 @@ void execute(executor_context &context)
 			break;
 		case instruction::ptr64_diff:
 			execute<instructions::ptr64_diff, &execute_ptr64_diff>(context);
+			break;
+		case instruction::mul_i8:
+			execute<instructions::mul_i8, &execute_mul_i8>(context);
+			break;
+		case instruction::mul_i16:
+			execute<instructions::mul_i16, &execute_mul_i16>(context);
+			break;
+		case instruction::mul_i32:
+			execute<instructions::mul_i32, &execute_mul_i32>(context);
+			break;
+		case instruction::mul_i64:
+			execute<instructions::mul_i64, &execute_mul_i64>(context);
+			break;
+		case instruction::mul_f32:
+			execute<instructions::mul_f32, &execute_mul_f32>(context);
+			break;
+		case instruction::mul_f64:
+			execute<instructions::mul_f64, &execute_mul_f64>(context);
+			break;
+		case instruction::mul_i8_check:
+			execute<instructions::mul_i8_check, &execute_mul_i8_check>(context);
+			break;
+		case instruction::mul_i16_check:
+			execute<instructions::mul_i16_check, &execute_mul_i16_check>(context);
+			break;
+		case instruction::mul_i32_check:
+			execute<instructions::mul_i32_check, &execute_mul_i32_check>(context);
+			break;
+		case instruction::mul_i64_check:
+			execute<instructions::mul_i64_check, &execute_mul_i64_check>(context);
+			break;
+		case instruction::mul_u8_check:
+			execute<instructions::mul_u8_check, &execute_mul_u8_check>(context);
+			break;
+		case instruction::mul_u16_check:
+			execute<instructions::mul_u16_check, &execute_mul_u16_check>(context);
+			break;
+		case instruction::mul_u32_check:
+			execute<instructions::mul_u32_check, &execute_mul_u32_check>(context);
+			break;
+		case instruction::mul_u64_check:
+			execute<instructions::mul_u64_check, &execute_mul_u64_check>(context);
+			break;
+		case instruction::mul_f32_check:
+			execute<instructions::mul_f32_check, &execute_mul_f32_check>(context);
+			break;
+		case instruction::mul_f64_check:
+			execute<instructions::mul_f64_check, &execute_mul_f64_check>(context);
 			break;
 		case instruction::not_i1:
 			execute<instructions::not_i1, &execute_not_i1>(context);

@@ -322,6 +322,8 @@ struct codegen_context
 	void create_add_check(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int);
 	expr_value create_sub(expr_value lhs, expr_value rhs);
 	void create_sub_check(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int);
+	expr_value create_mul(expr_value lhs, expr_value rhs);
+	void create_mul_check(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int);
 
 	expr_value create_ptrdiff(expr_value lhs, expr_value rhs, type const *elem_type);
 
