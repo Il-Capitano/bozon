@@ -959,17 +959,43 @@ static expr_value generate_builtin_binary_divide_eq(
 }
 
 static expr_value generate_builtin_binary_modulo(
+	ast::expression const &original_expression,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+
+	bz_assert(ast::remove_const_or_consteval(lhs.get_expr_type()).is<ast::ts_base_type>());
+	auto const type_kind = ast::remove_const_or_consteval(lhs.get_expr_type()).get<ast::ts_base_type>().info->kind;
+
+	auto const result_value = context.create_rem(original_expression.src_tokens, lhs_value, rhs_value, ast::is_signed_integer_kind(type_kind));
+	return value_or_result_address(result_value, result_address, context);
+}
+
 static expr_value generate_builtin_binary_modulo_eq(
+	ast::expression const &original_expression,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
-);
+	codegen_context &context
+)
+{
+	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+	auto const lhs_ref = generate_expr_code(lhs, context, {});
+	bz_assert(lhs_ref.is_reference());
+	auto const lhs_value = lhs_ref.get_value(context);
+
+	bz_assert(ast::remove_const_or_consteval(lhs.get_expr_type()).is<ast::ts_base_type>());
+	auto const type_kind = ast::remove_const_or_consteval(lhs.get_expr_type()).get<ast::ts_base_type>().info->kind;
+
+	auto const result_value = context.create_rem(original_expression.src_tokens, lhs_value, rhs_value, ast::is_signed_integer_kind(type_kind));
+	context.create_store(result_value, lhs_ref);
+	return lhs_ref;
+}
+
 static expr_value generate_builtin_binary_equals(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
@@ -2013,13 +2039,15 @@ static expr_value generate_intrinsic_function_call_code(
 		return generate_builtin_binary_divide(original_expression, func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_divide_eq:
 		bz_assert(func_call.params.size() == 2);
+		bz_assert(!result_address.has_value());
 		return generate_builtin_binary_divide_eq(original_expression, func_call.params[0], func_call.params[1], context);
 	case ast::function_body::builtin_binary_modulo:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_modulo(func_call.params[0], func_call.params[1], context, result_address);
+		return generate_builtin_binary_modulo(original_expression, func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_modulo_eq:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_modulo_eq(func_call.params[0], func_call.params[1], context, result_address);
+		bz_assert(!result_address.has_value());
+		return generate_builtin_binary_modulo_eq(original_expression, func_call.params[0], func_call.params[1], context);
 	case ast::function_body::builtin_binary_equals:
 		bz_assert(func_call.params.size() == 2);
 		return generate_builtin_binary_equals(func_call.params[0], func_call.params[1], context, result_address);
