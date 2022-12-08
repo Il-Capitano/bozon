@@ -1737,6 +1737,70 @@ struct div_f64_check
 	uint32_t src_tokens_index;
 };
 
+struct rem_i8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+
+	uint32_t src_tokens_index;
+};
+
+struct rem_i16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+
+	uint32_t src_tokens_index;
+};
+
+struct rem_i32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+
+	uint32_t src_tokens_index;
+};
+
+struct rem_i64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+
+	uint32_t src_tokens_index;
+};
+
+struct rem_u8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+
+	uint32_t src_tokens_index;
+};
+
+struct rem_u16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+
+	uint32_t src_tokens_index;
+};
+
+struct rem_u32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+
+	uint32_t src_tokens_index;
+};
+
+struct rem_u64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+
+	uint32_t src_tokens_index;
+};
+
 struct not_i1
 {
 	static inline constexpr bz::array arg_types = { value_type::i1 };
@@ -3447,6 +3511,14 @@ using instruction_list = bz::meta::type_pack<
 	instructions::div_i64_check,
 	instructions::div_f32_check,
 	instructions::div_f64_check,
+	instructions::rem_i8,
+	instructions::rem_i16,
+	instructions::rem_i32,
+	instructions::rem_i64,
+	instructions::rem_u8,
+	instructions::rem_u16,
+	instructions::rem_u32,
+	instructions::rem_u64,
 	instructions::not_i1,
 	instructions::not_i8,
 	instructions::not_i16,
@@ -3673,7 +3745,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 463);
+	static_assert(variant_count == 471);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -3924,6 +3996,14 @@ struct instruction : instruction_base_t
 		div_i64_check            = index_of<instructions::div_i64_check>,
 		div_f32_check            = index_of<instructions::div_f32_check>,
 		div_f64_check            = index_of<instructions::div_f64_check>,
+		rem_i8                   = index_of<instructions::rem_i8>,
+		rem_i16                  = index_of<instructions::rem_i16>,
+		rem_i32                  = index_of<instructions::rem_i32>,
+		rem_i64                  = index_of<instructions::rem_i64>,
+		rem_u8                   = index_of<instructions::rem_u8>,
+		rem_u16                  = index_of<instructions::rem_u16>,
+		rem_u32                  = index_of<instructions::rem_u32>,
+		rem_u64                  = index_of<instructions::rem_u64>,
 		not_i1                   = index_of<instructions::not_i1>,
 		not_i8                   = index_of<instructions::not_i8>,
 		not_i16                  = index_of<instructions::not_i16>,

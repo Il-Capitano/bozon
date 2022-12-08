@@ -2099,6 +2099,162 @@ static void execute_div_f64_check(instructions::div_f64_check const &inst, float
 	}
 }
 
+static uint8_t execute_rem_i8(instructions::rem_i8 const &inst, uint8_t lhs, uint8_t rhs, executor_context &context)
+{
+	auto const ilhs = static_cast<int8_t>(lhs);
+	auto const irhs = static_cast<int8_t>(rhs);
+
+	if (irhs == 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'int8'", ilhs, irhs)
+		);
+		return 0;
+	}
+	else if (ilhs == std::numeric_limits<int8_t>::min() && irhs == -1)
+	{
+		return 0;
+	}
+	else
+	{
+		return static_cast<uint8_t>(ilhs % irhs);
+	}
+}
+
+static uint16_t execute_rem_i16(instructions::rem_i16 const &inst, uint16_t lhs, uint16_t rhs, executor_context &context)
+{
+	auto const ilhs = static_cast<int16_t>(lhs);
+	auto const irhs = static_cast<int16_t>(rhs);
+
+	if (irhs == 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'int16'", ilhs, irhs)
+		);
+		return 0;
+	}
+	else if (ilhs == std::numeric_limits<int16_t>::min() && irhs == -1)
+	{
+		return 0;
+	}
+	else
+	{
+		return static_cast<uint16_t>(ilhs % irhs);
+	}
+}
+
+static uint32_t execute_rem_i32(instructions::rem_i32 const &inst, uint32_t lhs, uint32_t rhs, executor_context &context)
+{
+	auto const ilhs = static_cast<int32_t>(lhs);
+	auto const irhs = static_cast<int32_t>(rhs);
+
+	if (irhs == 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'int32'", ilhs, irhs)
+		);
+		return 0;
+	}
+	else if (ilhs == std::numeric_limits<int32_t>::min() && irhs == -1)
+	{
+		return 0;
+	}
+	else
+	{
+		return static_cast<uint32_t>(ilhs % irhs);
+	}
+}
+
+static uint64_t execute_rem_i64(instructions::rem_i64 const &inst, uint64_t lhs, uint64_t rhs, executor_context &context)
+{
+	auto const ilhs = static_cast<int64_t>(lhs);
+	auto const irhs = static_cast<int64_t>(rhs);
+
+	if (irhs == 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'int64'", ilhs, irhs)
+		);
+		return 0;
+	}
+	else if (ilhs == std::numeric_limits<int64_t>::min() && irhs == -1)
+	{
+		return 0;
+	}
+	else
+	{
+		return static_cast<uint64_t>(ilhs % irhs);
+	}
+}
+
+static uint8_t execute_rem_u8(instructions::rem_u8 const &inst, uint8_t lhs, uint8_t rhs, executor_context &context)
+{
+	if (rhs == 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'uint8'", lhs, rhs)
+		);
+		return 0;
+	}
+	else
+	{
+		return lhs % rhs;
+	}
+}
+
+static uint16_t execute_rem_u16(instructions::rem_u16 const &inst, uint16_t lhs, uint16_t rhs, executor_context &context)
+{
+	if (rhs == 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'uint16'", lhs, rhs)
+		);
+		return 0;
+	}
+	else
+	{
+		return lhs % rhs;
+	}
+}
+
+static uint32_t execute_rem_u32(instructions::rem_u32 const &inst, uint32_t lhs, uint32_t rhs, executor_context &context)
+{
+	if (rhs == 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'uint32'", lhs, rhs)
+		);
+		return 0;
+	}
+	else
+	{
+		return lhs % rhs;
+	}
+}
+
+static uint64_t execute_rem_u64(instructions::rem_u64 const &inst, uint64_t lhs, uint64_t rhs, executor_context &context)
+{
+	if (rhs == 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'uint64'", lhs, rhs)
+		);
+		return 0;
+	}
+	else
+	{
+		return lhs % rhs;
+	}
+}
+
 static bool execute_not_i1(instructions::not_i1 const &, bool value, executor_context &)
 {
 	return !value;
@@ -4007,7 +4163,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 463);
+		static_assert(instruction::variant_count == 471);
 		case instruction::const_i1:
 			execute<instructions::const_i1, &execute_const_i1>(context);
 			break;
@@ -4751,6 +4907,30 @@ void execute(executor_context &context)
 			break;
 		case instruction::div_f64_check:
 			execute<instructions::div_f64_check, &execute_div_f64_check>(context);
+			break;
+		case instruction::rem_i8:
+			execute<instructions::rem_i8, &execute_rem_i8>(context);
+			break;
+		case instruction::rem_i16:
+			execute<instructions::rem_i16, &execute_rem_i16>(context);
+			break;
+		case instruction::rem_i32:
+			execute<instructions::rem_i32, &execute_rem_i32>(context);
+			break;
+		case instruction::rem_i64:
+			execute<instructions::rem_i64, &execute_rem_i64>(context);
+			break;
+		case instruction::rem_u8:
+			execute<instructions::rem_u8, &execute_rem_u8>(context);
+			break;
+		case instruction::rem_u16:
+			execute<instructions::rem_u16, &execute_rem_u16>(context);
+			break;
+		case instruction::rem_u32:
+			execute<instructions::rem_u32, &execute_rem_u32>(context);
+			break;
+		case instruction::rem_u64:
+			execute<instructions::rem_u64, &execute_rem_u64>(context);
 			break;
 		case instruction::not_i1:
 			execute<instructions::not_i1, &execute_not_i1>(context);

@@ -2386,6 +2386,84 @@ void codegen_context::create_div_check(lex::src_tokens const &src_tokens, expr_v
 	}
 }
 
+expr_value codegen_context::create_rem(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(lhs.get_type()->is_builtin());
+	bz_assert(rhs.get_type()->is_builtin());
+	bz_assert(lhs.get_type()->get_builtin_kind() == rhs.get_type()->get_builtin_kind());
+
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
+
+	switch (lhs.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::i8:
+		if (is_signed_int)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::rem_i8{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i8)
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::rem_u8{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i8)
+			);
+		}
+	case builtin_type_kind::i16:
+		if (is_signed_int)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::rem_i16{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i16)
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::rem_u16{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i16)
+			);
+		}
+	case builtin_type_kind::i32:
+		if (is_signed_int)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::rem_i32{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i32)
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::rem_u32{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i32)
+			);
+		}
+	case builtin_type_kind::i64:
+		if (is_signed_int)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::rem_i64{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i64)
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::rem_u64{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i64)
+			);
+		}
+	default:
+		bz_unreachable;
+	}
+}
+
 expr_value codegen_context::create_not(expr_value value)
 {
 	bz_assert(value.get_type()->is_builtin());
@@ -4643,7 +4721,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 463);
+	static_assert(instruction::variant_count == 471);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>().inst;
