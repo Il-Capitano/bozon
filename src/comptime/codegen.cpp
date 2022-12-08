@@ -937,42 +937,94 @@ static expr_value generate_builtin_binary_greater_than_eq(
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 );
+
 static expr_value generate_builtin_binary_bit_and(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const lhs_value = generate_expr_code(lhs, context, {});
+	auto const rhs_value = generate_expr_code(rhs, context, {});
+
+	auto const result_value = context.create_and(lhs_value, rhs_value);
+	return value_or_result_address(result_value, result_address, context);
+}
+
 static expr_value generate_builtin_binary_bit_and_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
-);
+	codegen_context &context
+)
+{
+	auto const rhs_value = generate_expr_code(rhs, context, {});
+	auto const lhs_ref = generate_expr_code(lhs, context, {});
+	bz_assert(lhs_ref.is_reference());
+
+	auto const result_value = context.create_and(lhs_ref, rhs_value);
+	context.create_store(result_value, lhs_ref);
+	return lhs_ref;
+}
+
 static expr_value generate_builtin_binary_bit_xor(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const lhs_value = generate_expr_code(lhs, context, {});
+	auto const rhs_value = generate_expr_code(rhs, context, {});
+
+	auto const result_value = context.create_xor(lhs_value, rhs_value);
+	return value_or_result_address(result_value, result_address, context);
+}
+
 static expr_value generate_builtin_binary_bit_xor_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
-);
+	codegen_context &context
+)
+{
+	auto const rhs_value = generate_expr_code(rhs, context, {});
+	auto const lhs_ref = generate_expr_code(lhs, context, {});
+	bz_assert(lhs_ref.is_reference());
+
+	auto const result_value = context.create_xor(lhs_ref, rhs_value);
+	context.create_store(result_value, lhs_ref);
+	return lhs_ref;
+}
+
 static expr_value generate_builtin_binary_bit_or(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const lhs_value = generate_expr_code(lhs, context, {});
+	auto const rhs_value = generate_expr_code(rhs, context, {});
+
+	auto const result_value = context.create_or(lhs_value, rhs_value);
+	return value_or_result_address(result_value, result_address, context);
+}
+
 static expr_value generate_builtin_binary_bit_or_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
-);
+	codegen_context &context
+)
+{
+	auto const rhs_value = generate_expr_code(rhs, context, {});
+	auto const lhs_ref = generate_expr_code(lhs, context, {});
+	bz_assert(lhs_ref.is_reference());
+
+	auto const result_value = context.create_or(lhs_ref, rhs_value);
+	context.create_store(result_value, lhs_ref);
+	return lhs_ref;
+}
+
 static expr_value generate_builtin_binary_bit_left_shift(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
@@ -1921,19 +1973,22 @@ static expr_value generate_intrinsic_function_call_code(
 		return generate_builtin_binary_bit_and(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_bit_and_eq:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_bit_and_eq(func_call.params[0], func_call.params[1], context, result_address);
+		bz_assert(!result_address.has_value());
+		return generate_builtin_binary_bit_and_eq(func_call.params[0], func_call.params[1], context);
 	case ast::function_body::builtin_binary_bit_xor:
 		bz_assert(func_call.params.size() == 2);
 		return generate_builtin_binary_bit_xor(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_bit_xor_eq:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_bit_xor_eq(func_call.params[0], func_call.params[1], context, result_address);
+		bz_assert(!result_address.has_value());
+		return generate_builtin_binary_bit_xor_eq(func_call.params[0], func_call.params[1], context);
 	case ast::function_body::builtin_binary_bit_or:
 		bz_assert(func_call.params.size() == 2);
 		return generate_builtin_binary_bit_or(func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_bit_or_eq:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_bit_or_eq(func_call.params[0], func_call.params[1], context, result_address);
+		bz_assert(!result_address.has_value());
+		return generate_builtin_binary_bit_or_eq(func_call.params[0], func_call.params[1], context);
 	case ast::function_body::builtin_binary_bit_left_shift:
 		bz_assert(func_call.params.size() == 2);
 		return generate_builtin_binary_bit_left_shift(func_call.params[0], func_call.params[1], context, result_address);
