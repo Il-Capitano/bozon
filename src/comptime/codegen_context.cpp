@@ -2257,6 +2257,135 @@ void codegen_context::create_mul_check(lex::src_tokens const &src_tokens, expr_v
 	}
 }
 
+expr_value codegen_context::create_div(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int)
+{
+	bz_assert(lhs.get_type()->is_builtin());
+	bz_assert(rhs.get_type()->is_builtin());
+	bz_assert(lhs.get_type()->get_builtin_kind() == rhs.get_type()->get_builtin_kind());
+
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
+
+	switch (lhs.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::i8:
+		if (is_signed_int)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::div_i8{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i8)
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::div_u8{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i8)
+			);
+		}
+	case builtin_type_kind::i16:
+		if (is_signed_int)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::div_i16{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i16)
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::div_u16{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i16)
+			);
+		}
+	case builtin_type_kind::i32:
+		if (is_signed_int)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::div_i32{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i32)
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::div_u32{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i32)
+			);
+		}
+	case builtin_type_kind::i64:
+		if (is_signed_int)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::div_i64{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i64)
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::div_u64{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i64)
+			);
+		}
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			this->add_instruction(instructions::div_f32{}, lhs_val, rhs_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			this->add_instruction(instructions::div_f64{}, lhs_val, rhs_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+void codegen_context::create_div_check(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int)
+{
+	if (
+		(lhs.get_type()->is_integer_type() && (!is_signed_int || !is_warning_enabled(ctx::warning_kind::int_overflow)))
+		|| (lhs.get_type()->is_floating_point_type() && !is_warning_enabled(ctx::warning_kind::float_overflow))
+	)
+	{
+		return;
+	}
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(lhs.get_type()->is_builtin());
+	bz_assert(rhs.get_type()->is_builtin());
+	bz_assert(lhs.get_type()->get_builtin_kind() == rhs.get_type()->get_builtin_kind());
+
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
+
+	switch (lhs.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::i8:
+		this->add_instruction(instructions::div_i8_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		break;
+	case builtin_type_kind::i16:
+		this->add_instruction(instructions::div_i16_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		break;
+	case builtin_type_kind::i32:
+		this->add_instruction(instructions::div_i32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		break;
+	case builtin_type_kind::i64:
+		this->add_instruction(instructions::div_i64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		break;
+	case builtin_type_kind::f32:
+		this->add_instruction(instructions::div_f32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		break;
+	case builtin_type_kind::f64:
+		this->add_instruction(instructions::div_f64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		break;
+	default:
+		bz_unreachable;
+	}
+}
+
 expr_value codegen_context::create_not(expr_value value)
 {
 	bz_assert(value.get_type()->is_builtin());
@@ -4514,7 +4643,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 431);
+	static_assert(instruction::variant_count == 463);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>().inst;

@@ -1613,6 +1613,130 @@ struct mul_f64_check
 	uint32_t src_tokens_index;
 };
 
+struct div_i8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+
+	uint32_t src_tokens_index;
+};
+
+struct div_i16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+
+	uint32_t src_tokens_index;
+};
+
+struct div_i32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+
+	uint32_t src_tokens_index;
+};
+
+struct div_i64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+
+	uint32_t src_tokens_index;
+};
+
+struct div_u8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+
+	uint32_t src_tokens_index;
+};
+
+struct div_u16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+
+	uint32_t src_tokens_index;
+};
+
+struct div_u32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+
+	uint32_t src_tokens_index;
+};
+
+struct div_u64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+
+	uint32_t src_tokens_index;
+};
+
+struct div_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+};
+
+struct div_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+};
+
+struct div_i8_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct div_i16_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct div_i32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct div_i64_check
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct div_f32_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct div_f64_check
+{
+	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
 struct not_i1
 {
 	static inline constexpr bz::array arg_types = { value_type::i1 };
@@ -3307,6 +3431,22 @@ using instruction_list = bz::meta::type_pack<
 	instructions::mul_u64_check,
 	instructions::mul_f32_check,
 	instructions::mul_f64_check,
+	instructions::div_i8,
+	instructions::div_i16,
+	instructions::div_i32,
+	instructions::div_i64,
+	instructions::div_u8,
+	instructions::div_u16,
+	instructions::div_u32,
+	instructions::div_u64,
+	instructions::div_f32,
+	instructions::div_f64,
+	instructions::div_i8_check,
+	instructions::div_i16_check,
+	instructions::div_i32_check,
+	instructions::div_i64_check,
+	instructions::div_f32_check,
+	instructions::div_f64_check,
 	instructions::not_i1,
 	instructions::not_i8,
 	instructions::not_i16,
@@ -3533,7 +3673,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 431);
+	static_assert(variant_count == 463);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -3768,6 +3908,22 @@ struct instruction : instruction_base_t
 		mul_u64_check            = index_of<instructions::mul_u64_check>,
 		mul_f32_check            = index_of<instructions::mul_f32_check>,
 		mul_f64_check            = index_of<instructions::mul_f64_check>,
+		div_i8                   = index_of<instructions::div_i8>,
+		div_i16                  = index_of<instructions::div_i16>,
+		div_i32                  = index_of<instructions::div_i32>,
+		div_i64                  = index_of<instructions::div_i64>,
+		div_u8                   = index_of<instructions::div_u8>,
+		div_u16                  = index_of<instructions::div_u16>,
+		div_u32                  = index_of<instructions::div_u32>,
+		div_u64                  = index_of<instructions::div_u64>,
+		div_f32                  = index_of<instructions::div_f32>,
+		div_f64                  = index_of<instructions::div_f64>,
+		div_i8_check             = index_of<instructions::div_i8_check>,
+		div_i16_check            = index_of<instructions::div_i16_check>,
+		div_i32_check            = index_of<instructions::div_i32_check>,
+		div_i64_check            = index_of<instructions::div_i64_check>,
+		div_f32_check            = index_of<instructions::div_f32_check>,
+		div_f64_check            = index_of<instructions::div_f64_check>,
 		not_i1                   = index_of<instructions::not_i1>,
 		not_i8                   = index_of<instructions::not_i8>,
 		not_i16                  = index_of<instructions::not_i16>,

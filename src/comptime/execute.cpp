@@ -1811,6 +1811,294 @@ static void execute_mul_f64_check(instructions::mul_f64_check const &inst, float
 	}
 }
 
+static uint8_t execute_div_i8(instructions::div_i8 const &inst, uint8_t lhs, uint8_t rhs, executor_context &context)
+{
+	auto const ilhs = static_cast<int8_t>(lhs);
+	auto const irhs = static_cast<int8_t>(rhs);
+
+	if (irhs == 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("dividing by zero in expression '{} / {}' with type 'int8'", ilhs, irhs)
+		);
+		return 0;
+	}
+	else if (ilhs == std::numeric_limits<int8_t>::min() && irhs == -1)
+	{
+		return static_cast<uint8_t>(std::numeric_limits<int8_t>::min());
+	}
+	else
+	{
+		return static_cast<uint8_t>(ilhs / irhs);
+	}
+}
+
+static uint16_t execute_div_i16(instructions::div_i16 const &inst, uint16_t lhs, uint16_t rhs, executor_context &context)
+{
+	auto const ilhs = static_cast<int16_t>(lhs);
+	auto const irhs = static_cast<int16_t>(rhs);
+
+	if (irhs == 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("dividing by zero in expression '{} / {}' with type 'int16'", ilhs, irhs)
+		);
+		return 0;
+	}
+	else if (ilhs == std::numeric_limits<int16_t>::min() && irhs == -1)
+	{
+		return static_cast<uint16_t>(std::numeric_limits<int16_t>::min());
+	}
+	else
+	{
+		return static_cast<uint16_t>(ilhs / irhs);
+	}
+}
+
+static uint32_t execute_div_i32(instructions::div_i32 const &inst, uint32_t lhs, uint32_t rhs, executor_context &context)
+{
+	auto const ilhs = static_cast<int32_t>(lhs);
+	auto const irhs = static_cast<int32_t>(rhs);
+
+	if (irhs == 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("dividing by zero in expression '{} / {}' with type 'int32'", ilhs, irhs)
+		);
+		return 0;
+	}
+	else if (ilhs == std::numeric_limits<int32_t>::min() && irhs == -1)
+	{
+		return static_cast<uint32_t>(std::numeric_limits<int32_t>::min());
+	}
+	else
+	{
+		return static_cast<uint32_t>(ilhs / irhs);
+	}
+}
+
+static uint64_t execute_div_i64(instructions::div_i64 const &inst, uint64_t lhs, uint64_t rhs, executor_context &context)
+{
+	auto const ilhs = static_cast<int64_t>(lhs);
+	auto const irhs = static_cast<int64_t>(rhs);
+
+	if (irhs == 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("dividing by zero in expression '{} / {}' with type 'int64'", ilhs, irhs)
+		);
+		return 0;
+	}
+	else if (ilhs == std::numeric_limits<int64_t>::min() && irhs == -1)
+	{
+		return static_cast<uint64_t>(std::numeric_limits<int64_t>::min());
+	}
+	else
+	{
+		return static_cast<uint64_t>(ilhs / irhs);
+	}
+}
+
+static uint8_t execute_div_u8(instructions::div_u8 const &inst, uint8_t lhs, uint8_t rhs, executor_context &context)
+{
+	if (rhs == 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("dividing by zero in expression '{} / {}' with type 'uint8'", lhs, rhs)
+		);
+		return 0;
+	}
+	else
+	{
+		return lhs / rhs;
+	}
+}
+
+static uint16_t execute_div_u16(instructions::div_u16 const &inst, uint16_t lhs, uint16_t rhs, executor_context &context)
+{
+	if (rhs == 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("dividing by zero in expression '{} / {}' with type 'uint16'", lhs, rhs)
+		);
+		return 0;
+	}
+	else
+	{
+		return lhs / rhs;
+	}
+}
+
+static uint32_t execute_div_u32(instructions::div_u32 const &inst, uint32_t lhs, uint32_t rhs, executor_context &context)
+{
+	if (rhs == 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("dividing by zero in expression '{} / {}' with type 'uint32'", lhs, rhs)
+		);
+		return 0;
+	}
+	else
+	{
+		return lhs / rhs;
+	}
+}
+
+static uint64_t execute_div_u64(instructions::div_u64 const &inst, uint64_t lhs, uint64_t rhs, executor_context &context)
+{
+	if (rhs == 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("dividing by zero in expression '{} / {}' with type 'uint64'", lhs, rhs)
+		);
+		return 0;
+	}
+	else
+	{
+		return lhs / rhs;
+	}
+}
+
+static float32_t execute_div_f32(instructions::div_f32 const &, float32_t lhs, float32_t rhs, executor_context &)
+{
+	return lhs / rhs;
+}
+
+static float64_t execute_div_f64(instructions::div_f64 const &, float64_t lhs, float64_t rhs, executor_context &)
+{
+	return lhs / rhs;
+}
+
+static void execute_div_i8_check(instructions::div_i8_check const &inst, uint8_t lhs, uint8_t rhs, executor_context &context)
+{
+	if (rhs == 0)
+	{
+		// this is handled in div_i8
+		return;
+	}
+	auto const ilhs = static_cast<int8_t>(lhs);
+	auto const irhs = static_cast<int8_t>(rhs);
+	auto const [result, overflowed] = div_overflow<int8_t>(static_cast<int64_t>(ilhs), static_cast<int64_t>(irhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} / {}' with type 'int8' results in {}", ilhs, irhs, result)
+		);
+	}
+}
+
+static void execute_div_i16_check(instructions::div_i16_check const &inst, uint16_t lhs, uint16_t rhs, executor_context &context)
+{
+	if (rhs == 0)
+	{
+		// this is handled in div_i16
+		return;
+	}
+	auto const ilhs = static_cast<int16_t>(lhs);
+	auto const irhs = static_cast<int16_t>(rhs);
+	auto const [result, overflowed] = div_overflow<int16_t>(static_cast<int64_t>(ilhs), static_cast<int64_t>(irhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} / {}' with type 'int16' results in {}", ilhs, irhs, result)
+		);
+	}
+}
+
+static void execute_div_i32_check(instructions::div_i32_check const &inst, uint32_t lhs, uint32_t rhs, executor_context &context)
+{
+	if (rhs == 0)
+	{
+		// this is handled in div_i32
+		return;
+	}
+	auto const ilhs = static_cast<int32_t>(lhs);
+	auto const irhs = static_cast<int32_t>(rhs);
+	auto const [result, overflowed] = div_overflow<int32_t>(static_cast<int64_t>(ilhs), static_cast<int64_t>(irhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} / {}' with type 'int32' results in {}", ilhs, irhs, result)
+		);
+	}
+}
+
+static void execute_div_i64_check(instructions::div_i64_check const &inst, uint64_t lhs, uint64_t rhs, executor_context &context)
+{
+	if (rhs == 0)
+	{
+		// this is handled in div_i64
+		return;
+	}
+	auto const ilhs = static_cast<int64_t>(lhs);
+	auto const irhs = static_cast<int64_t>(rhs);
+	auto const [result, overflowed] = div_overflow<int64_t>(static_cast<int64_t>(ilhs), static_cast<int64_t>(irhs));
+	if (overflowed)
+	{
+		context.report_warning(
+			ctx::warning_kind::int_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} / {}' with type 'int64' results in {}", ilhs, irhs, result)
+		);
+	}
+}
+
+static void execute_div_f32_check(instructions::div_f32_check const &inst, float32_t lhs, float32_t rhs, executor_context &context)
+{
+	auto const result = lhs / rhs;
+	if (rhs == 0.0f)
+	{
+		context.report_warning(
+			ctx::warning_kind::float_overflow,
+			inst.src_tokens_index,
+			bz::format("dividing by zero in expression '{} / {}' with type 'float32' results in {}", lhs, rhs, result)
+		);
+	}
+	else if (float_operation_overflowed(lhs, rhs, result))
+	{
+		context.report_warning(
+			ctx::warning_kind::float_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} / {}' with type 'float32' results in {}", lhs, rhs, result)
+		);
+	}
+}
+
+static void execute_div_f64_check(instructions::div_f64_check const &inst, float64_t lhs, float64_t rhs, executor_context &context)
+{
+	auto const result = lhs / rhs;
+	if (rhs == 0.0)
+	{
+		context.report_warning(
+			ctx::warning_kind::float_overflow,
+			inst.src_tokens_index,
+			bz::format("dividing by zero in expression '{} / {}' with type 'float64' results in {}", lhs, rhs, result)
+		);
+	}
+	else if (float_operation_overflowed(lhs, rhs, result))
+	{
+		context.report_warning(
+			ctx::warning_kind::float_overflow,
+			inst.src_tokens_index,
+			bz::format("overflow in expression '{} / {}' with type 'float64' results in {}", lhs, rhs, result)
+		);
+	}
+}
+
 static bool execute_not_i1(instructions::not_i1 const &, bool value, executor_context &)
 {
 	return !value;
@@ -3719,7 +4007,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 431);
+		static_assert(instruction::variant_count == 463);
 		case instruction::const_i1:
 			execute<instructions::const_i1, &execute_const_i1>(context);
 			break;
@@ -4415,6 +4703,54 @@ void execute(executor_context &context)
 			break;
 		case instruction::mul_f64_check:
 			execute<instructions::mul_f64_check, &execute_mul_f64_check>(context);
+			break;
+		case instruction::div_i8:
+			execute<instructions::div_i8, &execute_div_i8>(context);
+			break;
+		case instruction::div_i16:
+			execute<instructions::div_i16, &execute_div_i16>(context);
+			break;
+		case instruction::div_i32:
+			execute<instructions::div_i32, &execute_div_i32>(context);
+			break;
+		case instruction::div_i64:
+			execute<instructions::div_i64, &execute_div_i64>(context);
+			break;
+		case instruction::div_u8:
+			execute<instructions::div_u8, &execute_div_u8>(context);
+			break;
+		case instruction::div_u16:
+			execute<instructions::div_u16, &execute_div_u16>(context);
+			break;
+		case instruction::div_u32:
+			execute<instructions::div_u32, &execute_div_u32>(context);
+			break;
+		case instruction::div_u64:
+			execute<instructions::div_u64, &execute_div_u64>(context);
+			break;
+		case instruction::div_f32:
+			execute<instructions::div_f32, &execute_div_f32>(context);
+			break;
+		case instruction::div_f64:
+			execute<instructions::div_f64, &execute_div_f64>(context);
+			break;
+		case instruction::div_i8_check:
+			execute<instructions::div_i8_check, &execute_div_i8_check>(context);
+			break;
+		case instruction::div_i16_check:
+			execute<instructions::div_i16_check, &execute_div_i16_check>(context);
+			break;
+		case instruction::div_i32_check:
+			execute<instructions::div_i32_check, &execute_div_i32_check>(context);
+			break;
+		case instruction::div_i64_check:
+			execute<instructions::div_i64_check, &execute_div_i64_check>(context);
+			break;
+		case instruction::div_f32_check:
+			execute<instructions::div_f32_check, &execute_div_f32_check>(context);
+			break;
+		case instruction::div_f64_check:
+			execute<instructions::div_f64_check, &execute_div_f64_check>(context);
 			break;
 		case instruction::not_i1:
 			execute<instructions::not_i1, &execute_not_i1>(context);
