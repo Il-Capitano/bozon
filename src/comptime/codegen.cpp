@@ -1395,7 +1395,7 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(func_call.params.size() == 2);
 		auto const a = generate_expr_code(func_call.params[0], context, {}).get_value(context);
 		auto const b = generate_expr_code(func_call.params[1], context, {}).get_value(context);
-		return value_or_result_address(context.create_int_min(a, b, true), result_address, context);
+		return value_or_result_address(context.create_min(a, b, true), result_address, context);
 	}
 	case ast::function_body::min_u8:
 	case ast::function_body::min_u16:
@@ -1405,7 +1405,7 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(func_call.params.size() == 2);
 		auto const a = generate_expr_code(func_call.params[0], context, {}).get_value(context);
 		auto const b = generate_expr_code(func_call.params[1], context, {}).get_value(context);
-		return value_or_result_address(context.create_int_min(a, b, false), result_address, context);
+		return value_or_result_address(context.create_min(a, b, false), result_address, context);
 	}
 	case ast::function_body::fmin_f32:
 	case ast::function_body::fmin_f64:
@@ -1415,9 +1415,9 @@ static expr_value generate_intrinsic_function_call_code(
 		auto const y = generate_expr_code(func_call.params[1], context, {}).get_value(context);
 		if (original_expression.paren_level < 2)
 		{
-			context.create_float_min_check(func_call.src_tokens, x, y);
+			context.create_min_check(func_call.src_tokens, x, y);
 		}
-		return value_or_result_address(context.create_float_min(x, y), result_address, context);
+		return value_or_result_address(context.create_min(x, y, false), result_address, context);
 	}
 	case ast::function_body::max_i8:
 	case ast::function_body::max_i16:
@@ -1427,7 +1427,7 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(func_call.params.size() == 2);
 		auto const a = generate_expr_code(func_call.params[0], context, {}).get_value(context);
 		auto const b = generate_expr_code(func_call.params[1], context, {}).get_value(context);
-		return value_or_result_address(context.create_int_max(a, b, true), result_address, context);
+		return value_or_result_address(context.create_max(a, b, true), result_address, context);
 	}
 	case ast::function_body::max_u8:
 	case ast::function_body::max_u16:
@@ -1437,7 +1437,7 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(func_call.params.size() == 2);
 		auto const a = generate_expr_code(func_call.params[0], context, {}).get_value(context);
 		auto const b = generate_expr_code(func_call.params[1], context, {}).get_value(context);
-		return value_or_result_address(context.create_int_max(a, b, false), result_address, context);
+		return value_or_result_address(context.create_max(a, b, false), result_address, context);
 	}
 	case ast::function_body::fmax_f32:
 	case ast::function_body::fmax_f64:
@@ -1447,9 +1447,9 @@ static expr_value generate_intrinsic_function_call_code(
 		auto const y = generate_expr_code(func_call.params[1], context, {}).get_value(context);
 		if (original_expression.paren_level < 2)
 		{
-			context.create_float_max_check(func_call.src_tokens, x, y);
+			context.create_max_check(func_call.src_tokens, x, y);
 		}
-		return value_or_result_address(context.create_float_max(x, y), result_address, context);
+		return value_or_result_address(context.create_max(x, y, false), result_address, context);
 	}
 	case ast::function_body::exp_f32:
 	case ast::function_body::exp_f64:

@@ -68,6 +68,16 @@ struct type : type_base_t
 		return this->get<builtin_type>().kind;
 	}
 
+	bool is_integer_type(void) const
+	{
+		return this->is_builtin() && is_integer_kind(this->get_builtin_kind());
+	}
+
+	bool is_floating_point_type(void) const
+	{
+		return this->is_builtin() && is_floating_point_kind(this->get_builtin_kind());
+	}
+
 	bool is_pointer(void) const
 	{
 		return this->is<pointer_type>();

@@ -1799,7 +1799,7 @@ static void execute_abs_i8_check(instructions::abs_i8_check const &inst, uint8_t
 	if (value == std::numeric_limits<int8_t>::min())
 	{
 		context.report_warning(
-			ctx::warning_kind::math_domain_error,
+			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
 			bz::format("calling 'abs' with {} of type 'int8' results in {}", value, value)
 		);
@@ -1812,7 +1812,7 @@ static void execute_abs_i16_check(instructions::abs_i16_check const &inst, uint1
 	if (value == std::numeric_limits<int16_t>::min())
 	{
 		context.report_warning(
-			ctx::warning_kind::math_domain_error,
+			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
 			bz::format("calling 'abs' with {} of type 'int16' results in {}", value, value)
 		);
@@ -1825,7 +1825,7 @@ static void execute_abs_i32_check(instructions::abs_i32_check const &inst, uint3
 	if (value == std::numeric_limits<int32_t>::min())
 	{
 		context.report_warning(
-			ctx::warning_kind::math_domain_error,
+			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
 			bz::format("calling 'abs' with {} of type 'int32' results in {}", value, value)
 		);
@@ -1838,7 +1838,7 @@ static void execute_abs_i64_check(instructions::abs_i64_check const &inst, uint6
 	if (value == std::numeric_limits<int64_t>::min())
 	{
 		context.report_warning(
-			ctx::warning_kind::math_domain_error,
+			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
 			bz::format("calling 'abs' with {} of type 'int64' results in {}", value, value)
 		);
