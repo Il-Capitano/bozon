@@ -202,12 +202,9 @@ void emit_pop_call(llvm::Value *pre_call_error_count, ctx::comptime_executor_con
 static void emit_memcpy(llvm::Value *dest, llvm::Value *source, size_t size, auto &context)
 {
 	auto const memcpy_fn = context.get_function(context.get_builtin_function(ast::function_body::memcpy));
-	auto const void_ptr_type = context.get_uint8_t()->getPointerTo();
-	auto const dest_void_ptr = context.builder.CreatePointerCast(dest, void_ptr_type);
-	auto const src_void_ptr = context.builder.CreatePointerCast(source, void_ptr_type);
-	auto const size_val = llvm::ConstantInt::get(context.get_uint64_t(), size);
+	auto const size_val = llvm::ConstantInt::get(context.get_usize_t(), size);
 	auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
-	context.create_call(memcpy_fn, { dest_void_ptr, src_void_ptr, size_val, false_val });
+	context.create_call(memcpy_fn, { dest, source, size_val, false_val });
 }
 
 static void emit_value_copy(val_ptr value, llvm::Value *dest_ptr, auto &context)
