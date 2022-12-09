@@ -133,6 +133,12 @@ export struct iota_iterator_t<T: typename>
 		return self;
 	}
 
+	operator -- (self: &_self_t) -> &_self_t
+	{
+		--self._value;
+		return self;
+	}
+
 	operator == (lhs: _self_t, rhs: _self_t) -> bool
 	{
 		return lhs._value == rhs._value;
