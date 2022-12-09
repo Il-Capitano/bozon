@@ -6684,6 +6684,57 @@ static val_ptr emit_bitcode(
 	return context.get_value_reference(bitcode_value_reference.index);
 }
 
+static bool is_zero_value(ast::constant_value const &value)
+{
+	switch (value.kind())
+	{
+	static_assert(ast::constant_value::variant_count == 21);
+	case ast::constant_value::sint:
+		return value.get_sint() == 0;
+	case ast::constant_value::uint:
+		return value.get_uint() == 0;
+	case ast::constant_value::float32:
+		return bit_cast<uint32_t>(value.get_float32()) == 0;
+	case ast::constant_value::float64:
+		return bit_cast<uint64_t>(value.get_float64()) == 0;
+	case ast::constant_value::u8char:
+		return value.get_u8char() == 0;
+	case ast::constant_value::string:
+		return value.get_string() == "";
+	case ast::constant_value::boolean:
+		return value.get_boolean() == false;
+	case ast::constant_value::null:
+		return true;
+	case ast::constant_value::void_:
+		return true;
+	case ast::constant_value::enum_:
+		return value.get_enum().value == 0;
+	case ast::constant_value::array:
+		return value.get_array().is_all([](auto const &value) { return is_zero_value(value); });
+	case ast::constant_value::sint_array:
+		return value.get_sint_array().is_all([](auto const value) { return value == 0; });
+	case ast::constant_value::uint_array:
+		return value.get_sint_array().is_all([](auto const value) { return value == 0; });
+	case ast::constant_value::float32_array:
+		return value.get_float32_array().is_all([](auto const value) { return bit_cast<uint32_t>(value) == 0; });
+	case ast::constant_value::float64_array:
+		return value.get_float64_array().is_all([](auto const value) { return bit_cast<uint64_t>(value) == 0; });
+	case ast::constant_value::tuple:
+		return value.get_tuple().is_all([](auto const &value) { return is_zero_value(value); });
+	case ast::constant_value::function:
+		return false;
+	case ast::constant_value::aggregate:
+		return value.get_aggregate().is_all([](auto const &value) { return is_zero_value(value); });
+	case ast::constant_value::unqualified_function_set_id:
+	case ast::constant_value::qualified_function_set_id:
+		bz_unreachable;
+	case ast::constant_value::type:
+		bz_unreachable;
+	default:
+		bz_unreachable;
+	}
+}
+
 template<abi::platform_abi abi>
 static llvm::Constant *get_array_value(
 	bz::array_view<ast::constant_value const> values,
@@ -6692,7 +6743,11 @@ static llvm::Constant *get_array_value(
 	auto &context
 )
 {
-	if (array_type.elem_type.is<ast::ts_array>())
+	if (values.is_all([](auto const &value) { return is_zero_value(value); }))
+	{
+		return llvm::ConstantAggregateZero::get(type);
+	}
+	else if (array_type.elem_type.is<ast::ts_array>())
 	{
 		bz_assert(type->getElementType()->isArrayTy());
 		bz_assert(values.size() % array_type.size == 0);
@@ -6727,7 +6782,11 @@ static llvm::Constant *get_sint_array_value(
 	auto &context
 )
 {
-	if (array_type.elem_type.is<ast::ts_array>())
+	if (values.is_all([](auto const value) { return value == 0; }))
+	{
+		return llvm::ConstantAggregateZero::get(type);
+	}
+	else if (array_type.elem_type.is<ast::ts_array>())
 	{
 		bz_assert(type->getElementType()->isArrayTy());
 		bz_assert(values.size() % array_type.size == 0);
@@ -6763,7 +6822,11 @@ static llvm::Constant *get_uint_array_value(
 	auto &context
 )
 {
-	if (array_type.elem_type.is<ast::ts_array>())
+	if (values.is_all([](auto const value) { return value == 0; }))
+	{
+		return llvm::ConstantAggregateZero::get(type);
+	}
+	else if (array_type.elem_type.is<ast::ts_array>())
 	{
 		bz_assert(type->getElementType()->isArrayTy());
 		bz_assert(values.size() % array_type.size == 0);
@@ -6799,7 +6862,11 @@ static llvm::Constant *get_float32_array_value(
 	auto &context
 )
 {
-	if (array_type.elem_type.is<ast::ts_array>())
+	if (values.is_all([](auto const value) { return bit_cast<uint32_t>(value) == 0; }))
+	{
+		return llvm::ConstantAggregateZero::get(type);
+	}
+	else if (array_type.elem_type.is<ast::ts_array>())
 	{
 		bz_assert(type->getElementType()->isArrayTy());
 		bz_assert(values.size() % array_type.size == 0);
@@ -6836,7 +6903,11 @@ static llvm::Constant *get_float64_array_value(
 	auto &context
 )
 {
-	if (array_type.elem_type.is<ast::ts_array>())
+	if (values.is_all([](auto const value) { return bit_cast<uint64_t>(value) == 0; }))
+	{
+		return llvm::ConstantAggregateZero::get(type);
+	}
+	else if (array_type.elem_type.is<ast::ts_array>())
 	{
 		bz_assert(type->getElementType()->isArrayTy());
 		bz_assert(values.size() % array_type.size == 0);
@@ -7123,7 +7194,16 @@ static llvm::Constant *get_value(
 static void store_constant_at_address(llvm::Constant *const_val, llvm::Value *dest, auto &context)
 {
 	auto const type = const_val->getType();
-	if (type->isArrayTy())
+	if (type->isAggregateType() && const_val->isNullValue())
+	{
+		auto const size = context.get_size(type);
+		auto const memset_fn = context.get_function(context.get_builtin_function(ast::function_body::memset));
+		auto const size_val = llvm::ConstantInt::get(context.get_usize_t(), size);
+		auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+		auto const zero_val = llvm::ConstantInt::get(context.get_uint8_t(), 0);
+		context.create_call(memset_fn, { dest, zero_val, size_val, false_val });
+	}
+	else if (type->isArrayTy())
 	{
 		auto const size = type->getArrayNumElements();
 		for (auto const i : bz::iota(0, size))
