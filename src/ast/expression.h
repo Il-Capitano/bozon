@@ -393,6 +393,7 @@ struct expression : bz::variant<
 	bool not_error(void) const;
 
 	bool is_function(void) const noexcept;
+	constant_value const &get_function(void) const noexcept;
 	bool is_overloaded_function(void) const noexcept;
 
 	bool is_typename(void) const noexcept;

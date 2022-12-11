@@ -126,56 +126,40 @@ bool expression::is_error(void) const
 bool expression::not_error(void) const
 { return !this->is<error_expression>(); }
 
-bool expression::is_function(void) const noexcept
-{
-	auto const const_expr = this->get_if<constant_expression>();
-	return const_expr
-		&& const_expr->kind == expression_type_kind::function_name;
-}
-
-bool expression::is_overloaded_function(void) const noexcept
-{
-	auto const const_expr = this->get_if<constant_expression>();
-	return const_expr
-		&& const_expr->kind == expression_type_kind::function_name
-		&& const_expr->type.is_empty();
-}
-
-bool expression::is_typename(void) const noexcept
-{
-	auto const const_expr = this->get_if<constant_expression>();
-	return const_expr
-		&& (const_expr->kind == expression_type_kind::type_name || const_expr->value.is_type());
-}
-
-typespec &expression::get_typename(void) noexcept
-{
-	bz_assert(this->is_typename());
-	return this->get_constant_value().get<constant_value::type>();
-}
-
-typespec const &expression::get_typename(void) const noexcept
-{
-	bz_assert(this->is_typename());
-	return this->get_constant_value().get<constant_value::type>();
-}
-
 template<typename expr_t, bool get_inner = true>
 static bz::meta::conditional<get_inner, expr_t, expression> &get_expr_kind(expression &expr_)
 {
 	auto &expr = expr_.get_expr();
-	if (expr.is<expr_t>())
+	if constexpr (bz::meta::is_same<expr_t, constant_expression>)
 	{
-		if constexpr (get_inner)
+		if (expr_.is_constant())
 		{
-			return expr.get<expr_t>();
-		}
-		else
-		{
-			return expr_;
+			if constexpr (get_inner)
+			{
+				return expr_.get_constant();
+			}
+			else
+			{
+				return expr_;
+			}
 		}
 	}
-	else if (expr.is<expr_compound>())
+	else
+	{
+		if (expr.is<expr_t>())
+		{
+			if constexpr (get_inner)
+			{
+				return expr.get<expr_t>();
+			}
+			else
+			{
+				return expr_;
+			}
+		}
+	}
+
+	if (expr.is<expr_compound>())
 	{
 		return get_expr_kind<expr_t, get_inner>(expr.get<expr_compound>().final_expr);
 	}
@@ -221,18 +205,36 @@ template<typename expr_t, bool get_inner = true>
 static bz::meta::conditional<get_inner, expr_t, expression> const &get_expr_kind(expression const &expr_)
 {
 	auto &expr = expr_.get_expr();
-	if (expr.is<expr_t>())
+	if constexpr (bz::meta::is_same<expr_t, constant_expression>)
 	{
-		if constexpr (get_inner)
+		if (expr_.is_constant())
 		{
-			return expr.get<expr_t>();
-		}
-		else
-		{
-			return expr_;
+			if constexpr (get_inner)
+			{
+				return expr_.get_constant();
+			}
+			else
+			{
+				return expr_;
+			}
 		}
 	}
-	else if (expr.is<expr_compound>())
+	else
+	{
+		if (expr.is<expr_t>())
+		{
+			if constexpr (get_inner)
+			{
+				return expr.get<expr_t>();
+			}
+			else
+			{
+				return expr_;
+			}
+		}
+	}
+
+	if (expr.is<expr_compound>())
 	{
 		return get_expr_kind<expr_t, get_inner>(expr.get<expr_compound>().final_expr);
 	}
@@ -278,6 +280,42 @@ static bool is_expr_kind_helper(expression const &expr, expression_type_kind kin
 {
 	return (expr.is<constant_expression>() && expr.get<constant_expression>().kind == kind)
 		|| (expr.is<dynamic_expression>() && expr.get<dynamic_expression>().kind == kind);
+}
+
+bool expression::is_function(void) const noexcept
+{
+	return is_expr_kind_helper(*this, expression_type_kind::function_name);
+}
+
+constant_value const &expression::get_function(void) const noexcept
+{
+	bz_assert(this->is_function());
+	auto const &const_expr = get_expr_kind<constant_expression>(*this);
+	return const_expr.value;
+}
+
+bool expression::is_overloaded_function(void) const noexcept
+{
+	return this->is_function() && !this->get_function().is_function();
+}
+
+bool expression::is_typename(void) const noexcept
+{
+	auto const const_expr = this->get_if<constant_expression>();
+	return const_expr
+		&& (const_expr->kind == expression_type_kind::type_name || const_expr->value.is_type());
+}
+
+typespec &expression::get_typename(void) noexcept
+{
+	bz_assert(this->is_typename());
+	return this->get_constant_value().get<constant_value::type>();
+}
+
+typespec const &expression::get_typename(void) const noexcept
+{
+	bz_assert(this->is_typename());
+	return this->get_constant_value().get<constant_value::type>();
 }
 
 bool expression::is_tuple(void) const noexcept
