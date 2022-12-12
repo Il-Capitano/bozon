@@ -26,12 +26,6 @@ struct enum_t
 
 } // namespace internal
 
-struct function_set_t
-{
-	arena_vector<bz::u8string_view> id;
-	arena_vector<statement_view> stmts;
-};
-
 using constant_value_base_t = bz::variant<
 	int64_t, uint64_t,
 	float32_t, float64_t,
@@ -50,8 +44,6 @@ using constant_value_base_t = bz::variant<
 	arena_vector<constant_value>,
 
 	decl_function *,
-	function_set_t,
-	function_set_t,
 
 	typespec,
 
@@ -82,8 +74,6 @@ struct constant_value : constant_value_base_t
 		float64_array   = base_t::index_of<arena_vector<float64_t>>,
 		tuple,
 		function        = base_t::index_of<decl_function *>,
-		unqualified_function_set_id,
-		qualified_function_set_id,
 		type            = base_t::index_of<typespec>,
 		aggregate,
 	};
@@ -92,9 +82,6 @@ struct constant_value : constant_value_base_t
 	static_assert(bz::meta::is_same<base_t::value_type<tuple>, arena_vector<constant_value>>);
 	static_assert(bz::meta::is_same<base_t::value_type<aggregate>, arena_vector<constant_value>>);
 	static_assert(array != tuple && array != aggregate && tuple != aggregate);
-	static_assert(bz::meta::is_same<base_t::value_type<unqualified_function_set_id>, function_set_t>);
-	static_assert(bz::meta::is_same<base_t::value_type<qualified_function_set_id>, function_set_t>);
-	static_assert(unqualified_function_set_id != qualified_function_set_id);
 
 	using base_t::operator =;
 
@@ -153,12 +140,6 @@ struct constant_value : constant_value_base_t
 	bool is_function(void) const noexcept
 	{ return this->is<function>(); }
 
-	bool is_unqualified_function_set_id(void) const noexcept
-	{ return this->is<unqualified_function_set_id>(); }
-
-	bool is_qualified_function_set_id(void) const noexcept
-	{ return this->is<qualified_function_set_id>(); }
-
 	bool is_type(void) const noexcept
 	{ return this->is<type>(); }
 
@@ -210,12 +191,6 @@ struct constant_value : constant_value_base_t
 
 	decl_function *get_function(void) const noexcept
 	{ return this->get<function>(); }
-
-	function_set_t const &get_unqualified_function_set_id(void) const noexcept
-	{ return this->get<unqualified_function_set_id>(); }
-
-	function_set_t const &get_qualified_function_set_id(void) const noexcept
-	{ return this->get<qualified_function_set_id>(); }
 
 	typespec_view get_type(void) const noexcept
 	{ return this->get<type>(); }

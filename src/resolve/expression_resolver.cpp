@@ -12,11 +12,10 @@ namespace resolve
 
 static ast::expression resolve_expr(
 	lex::src_tokens,
-	ast::expr_identifier id_expr,
+	ast::expr_unresolved_identifier id_expr,
 	ctx::parse_context &context
 )
 {
-	bz_assert(id_expr.decl == nullptr);
 	return context.make_identifier_expression(std::move(id_expr.id));
 }
 
@@ -565,7 +564,7 @@ static ast::expression resolve_expr(
 				{
 					switch (rhs_value.kind())
 					{
-					static_assert(ast::constant_value::variant_count == 21);
+					static_assert(ast::constant_value::variant_count == 19);
 					case ast::constant_value::sint:
 						context.report_error(
 							rhs.src_tokens,
@@ -794,7 +793,7 @@ static ast::expression resolve_expr(
 				ast::constant_value const &size_value = size.get_constant_value();
 				switch (size_value.kind())
 				{
-				static_assert(ast::constant_value::variant_count == 21);
+				static_assert(ast::constant_value::variant_count == 19);
 				case ast::constant_value::sint:
 				{
 					auto const value = size_value.get_sint();

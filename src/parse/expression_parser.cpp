@@ -672,7 +672,7 @@ static ast::expression parse_primary_expression(
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
 			ast::constant_value(ast::make_auto_typespec(auto_pos)),
-			ast::make_expr_identifier(ast::make_identifier(auto_pos))
+			ast::make_expr_typename_literal()
 		);
 	}
 
@@ -686,7 +686,7 @@ static ast::expression parse_primary_expression(
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
 			ast::constant_value(ast::make_typename_typespec(typename_pos)),
-			ast::make_expr_identifier(ast::make_identifier(typename_pos))
+			ast::make_expr_typename_literal()
 		);
 	}
 

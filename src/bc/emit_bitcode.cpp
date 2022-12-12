@@ -636,12 +636,12 @@ static void create_reversed_loop_end(array_destruct_loop_info_t loop_info, auto 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
-	ast::expr_identifier const &id,
+	ast::expr_variable_name const &var_name,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
 )
 {
-	auto const [ptr, type] = context.get_variable(id.decl);
+	auto const [ptr, type] = context.get_variable(var_name.decl);
 	bz_assert(ptr != nullptr);
 	bz_assert(result_address == nullptr);
 	return val_ptr::get_reference(ptr, type);
@@ -650,44 +650,44 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
-	ast::expr_identifier const &id,
+	ast::expr_variable_name const &var_name,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	bz_assert(id.decl != nullptr);
+	bz_assert(var_name.decl != nullptr);
 	// we emit consteval global variables to avoid generating huge arrays every time
 	// one is indexed into.  e.g. ryu has large consteval tables which would be constructed
 	// in IR each time they're indexed into.
-	if (id.decl->get_type().is<ast::ts_consteval>() && id.decl->init_expr.not_error())
+	if (var_name.decl->get_type().is<ast::ts_consteval>() && var_name.decl->init_expr.not_error())
 	{
-		bz_assert(id.decl->is_global_storage());
-		context.add_global_variable(id.decl);
+		bz_assert(var_name.decl->is_global_storage());
+		context.add_global_variable(var_name.decl);
 	}
-	auto const [ptr, type] = context.get_variable(id.decl);
-	if (ptr == nullptr && (!id.decl->get_type().is<ast::ts_consteval>() || id.decl->init_expr.is_error()))
+	auto const [ptr, type] = context.get_variable(var_name.decl);
+	if (ptr == nullptr && (!var_name.decl->get_type().is<ast::ts_consteval>() || var_name.decl->init_expr.is_error()))
 	{
 		emit_error(
-			{ id.id.tokens.begin, id.id.tokens.begin, id.id.tokens.end },
-			bz::format("variable '{}' cannot be used in a constant expression", id.id.format_as_unqualified()),
+			{ var_name.id.tokens.begin, var_name.id.tokens.begin, var_name.id.tokens.end },
+			bz::format("variable '{}' cannot be used in a constant expression", var_name.id.format_as_unqualified()),
 			context
 		);
 		if (result_address == nullptr)
 		{
-			auto const result_type = get_llvm_type(ast::remove_lvalue_reference(id.decl->get_type()), context);
+			auto const result_type = get_llvm_type(ast::remove_lvalue_reference(var_name.decl->get_type()), context);
 			auto const alloca = context.create_alloca(result_type);
 			return val_ptr::get_reference(alloca, result_type);
 		}
 		else
 		{
-			auto const result_type = get_llvm_type(ast::remove_lvalue_reference(id.decl->get_type()), context);
+			auto const result_type = get_llvm_type(ast::remove_lvalue_reference(var_name.decl->get_type()), context);
 			return val_ptr::get_reference(result_address, result_type);
 		}
 	}
 	else if (ptr == nullptr /* && consteval */)
 	{
-		bz_assert(id.decl->init_expr.not_error() && id.decl->init_expr.is_constant());
-		auto &const_expr = id.decl->init_expr.get_constant();
+		bz_assert(var_name.decl->init_expr.not_error() && var_name.decl->init_expr.is_constant());
+		auto &const_expr = var_name.decl->init_expr.get_constant();
 		auto const value = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
 		if (result_address == nullptr)
 		{
@@ -704,6 +704,78 @@ static val_ptr emit_bitcode(
 		bz_assert(result_address == nullptr);
 		return val_ptr::get_reference(ptr, type);
 	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_function_name const &,
+	auto &,
+	llvm::Value *result_address
+)
+{
+	bz_assert(result_address == nullptr);
+	return val_ptr::get_none();
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_function_alias_name const &,
+	auto &,
+	llvm::Value *result_address
+)
+{
+	bz_assert(result_address == nullptr);
+	return val_ptr::get_none();
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_function_overload_set const &,
+	auto &,
+	llvm::Value *result_address
+)
+{
+	bz_assert(result_address == nullptr);
+	return val_ptr::get_none();
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_struct_name const &,
+	auto &,
+	llvm::Value *
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_enum_name const &,
+	auto &,
+	llvm::Value *
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_type_alias_name const &,
+	auto &,
+	llvm::Value *
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
 }
 
 template<abi::platform_abi abi>
@@ -769,6 +841,18 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
+	ast::expr_typename_literal const &,
+	auto &,
+	llvm::Value *
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
 	ast::expr_tuple const &tuple_expr,
 	auto &context,
 	llvm::Value *result_address
@@ -822,11 +906,12 @@ static val_ptr emit_builtin_unary_address_of(
 	auto const val = emit_bitcode<abi>(expr, context, nullptr);
 	if (val.kind != val_ptr::reference)
 	{
-		if (auto const id_expr = expr.get_expr().get_if<ast::expr_identifier>(); id_expr && id_expr->decl != nullptr)
+		if (auto const var_name_expr = expr.get_expr().get_if<ast::expr_variable_name>())
 		{
+			bz_assert(var_name_expr->decl != nullptr);
 			emit_error(
 				expr.src_tokens,
-				bz::format("unable to take address of variable '{}'", id_expr->decl->get_id().format_as_unqualified()),
+				bz::format("unable to take address of variable '{}'", var_name_expr->decl->get_id().format_as_unqualified()),
 				context
 			);
 		}
@@ -4427,11 +4512,12 @@ static val_ptr emit_bitcode(
 	{
 		if (result.kind != val_ptr::reference)
 		{
-			if (auto const id_expr = take_ref.expr.get_expr().get_if<ast::expr_identifier>(); id_expr && id_expr->decl != nullptr)
+			if (auto const var_name_expr = take_ref.expr.get_expr().get_if<ast::expr_variable_name>())
 			{
+				bz_assert(var_name_expr->decl != nullptr);
 				emit_error(
 					take_ref.expr.src_tokens,
-					bz::format("unable to take reference to variable '{}'", id_expr->decl->get_id().format_as_unqualified()),
+					bz::format("unable to take reference to variable '{}'", var_name_expr->decl->get_id().format_as_unqualified()),
 					context
 				);
 			}
@@ -6688,7 +6774,7 @@ static bool is_zero_value(ast::constant_value const &value)
 {
 	switch (value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 21);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value::sint:
 		return value.get_sint() == 0;
 	case ast::constant_value::uint:
@@ -6725,9 +6811,6 @@ static bool is_zero_value(ast::constant_value const &value)
 		return false;
 	case ast::constant_value::aggregate:
 		return value.get_aggregate().is_all([](auto const &value) { return is_zero_value(value); });
-	case ast::constant_value::unqualified_function_set_id:
-	case ast::constant_value::qualified_function_set_id:
-		bz_unreachable;
 	case ast::constant_value::type:
 		bz_unreachable;
 	default:
@@ -6946,7 +7029,7 @@ static llvm::Constant *get_value_helper(
 {
 	switch (value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 21);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value::sint:
 		bz_assert(!type.is_empty());
 		return llvm::ConstantInt::get(
@@ -7137,9 +7220,6 @@ static llvm::Constant *get_value_helper(
 			.collect();
 		return llvm::ConstantStruct::get(val_struct_type, llvm::ArrayRef(members.data(), members.size()));
 	}
-	case ast::constant_value::unqualified_function_set_id:
-	case ast::constant_value::qualified_function_set_id:
-		bz_unreachable;
 	case ast::constant_value::type:
 		bz_unreachable;
 	default:
@@ -7241,8 +7321,14 @@ static val_ptr emit_bitcode(
 	if (
 		const_expr.kind == ast::expression_type_kind::type_name
 		|| const_expr.kind == ast::expression_type_kind::none
+		|| (const_expr.value.is_null() && (
+			const_expr.kind == ast::expression_type_kind::function_name
+			|| const_expr.kind == ast::expression_type_kind::function_alias_name
+			|| const_expr.kind == ast::expression_type_kind::function_overload_set
+		))
 	)
 	{
+		bz_assert(result_address == nullptr);
 		return val_ptr::get_none();
 	}
 

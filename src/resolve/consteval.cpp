@@ -46,7 +46,7 @@ static ast::constant_value evaluate_binary_plus(
 		auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 		switch (lhs_value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 21);
+		static_assert(ast::constant_value::variant_count == 19);
 		case ast::constant_value::sint:
 		{
 			auto const lhs_int_val = lhs_value.get_sint();
@@ -157,7 +157,7 @@ static ast::constant_value evaluate_binary_minus(
 		auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 		switch (lhs_value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 21);
+		static_assert(ast::constant_value::variant_count == 19);
 		case ast::constant_value::sint:
 		{
 			auto const lhs_int_val = lhs_value.get_sint();
@@ -248,7 +248,7 @@ static ast::constant_value evaluate_binary_multiply(
 	auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 21);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -308,7 +308,7 @@ static ast::constant_value evaluate_binary_divide(
 	auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 21);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -384,7 +384,7 @@ static ast::constant_value evaluate_binary_modulo(
 	auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 21);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -441,7 +441,7 @@ static ast::constant_value evaluate_binary_equals(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 21);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -522,7 +522,7 @@ static ast::constant_value evaluate_binary_not_equals(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 21);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -597,7 +597,7 @@ static ast::constant_value evaluate_binary_less_than(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 21);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -663,7 +663,7 @@ static ast::constant_value evaluate_binary_less_than_eq(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 21);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -729,7 +729,7 @@ static ast::constant_value evaluate_binary_greater_than(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 21);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -795,7 +795,7 @@ static ast::constant_value evaluate_binary_greater_than_eq(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 21);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -861,7 +861,7 @@ static ast::constant_value evaluate_binary_bit_and(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 21);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value::uint:
 	{
 		auto const lhs_int_val = lhs_value.get_uint();
@@ -896,7 +896,7 @@ static ast::constant_value evaluate_binary_bit_xor(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 21);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value::uint:
 	{
 		auto const lhs_int_val = lhs_value.get_uint();
@@ -931,7 +931,7 @@ static ast::constant_value evaluate_binary_bit_or(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 21);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value::uint:
 	{
 		auto const lhs_int_val = lhs_value.get_uint();
@@ -1314,7 +1314,7 @@ static ast::constant_value evaluate_subscript(
 			auto const end_index = begin_index + inner_size;
 			switch (value.index())
 			{
-			static_assert(ast::constant_value::variant_count == 21);
+			static_assert(ast::constant_value::variant_count == 19);
 			case ast::constant_value::array:
 			{
 				auto const &array_value = value.get_array();
@@ -1363,7 +1363,7 @@ static ast::constant_value evaluate_subscript(
 		{
 			switch (value.index())
 			{
-			static_assert(ast::constant_value::variant_count == 21);
+			static_assert(ast::constant_value::variant_count == 19);
 			case ast::constant_value::array:
 			{
 				auto const &array_value = value.get_array();
@@ -2250,7 +2250,7 @@ static ast::constant_value evaluate_cast(
 	{
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 21);
+		static_assert(ast::constant_value::variant_count == 19);
 		case ast::constant_value::sint:
 		{
 			using T = std::tuple<bz::u8string_view, int64_t, int64_t, int64_t>;
@@ -2326,7 +2326,7 @@ static ast::constant_value evaluate_cast(
 	{
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 21);
+		static_assert(ast::constant_value::variant_count == 19);
 		case ast::constant_value::sint:
 		{
 			using T = std::tuple<bz::u8string_view, uint64_t, uint64_t>;
@@ -2398,7 +2398,7 @@ static ast::constant_value evaluate_cast(
 	case ast::type_info::float32_:
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 21);
+		static_assert(ast::constant_value::variant_count == 19);
 		case ast::constant_value::sint:
 			return ast::constant_value(static_cast<float32_t>(value.get_sint()));
 		case ast::constant_value::uint:
@@ -2413,7 +2413,7 @@ static ast::constant_value evaluate_cast(
 	case ast::type_info::float64_:
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 21);
+		static_assert(ast::constant_value::variant_count == 19);
 		case ast::constant_value::sint:
 			return ast::constant_value(static_cast<float64_t>(value.get_sint()));
 		case ast::constant_value::uint:
@@ -2428,7 +2428,7 @@ static ast::constant_value evaluate_cast(
 	case ast::type_info::char_:
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value::variant_count == 21);
+		static_assert(ast::constant_value::variant_count == 19);
 		case ast::constant_value::sint:
 		{
 			auto const result = static_cast<bz::u8char>(value.get_sint());
@@ -2622,10 +2622,34 @@ static ast::constant_value guaranteed_evaluate_expr(
 )
 {
 	return expr.get_expr().visit(bz::overload{
-		[](ast::expr_identifier &) -> ast::constant_value {
+		[](ast::expr_variable_name &) -> ast::constant_value {
 			// identifiers are only constant expressions if they are a consteval
 			// variable, which is handled in parse_context::make_identifier_expr (or something similar)
 			return {};
+		},
+		[](ast::expr_function_name &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_function_alias_name &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_function_overload_set &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_struct_name &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_enum_name &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_type_alias_name &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
 		},
 		[](ast::expr_integer_literal &) -> ast::constant_value {
 			// these are always constant expressions
@@ -2645,6 +2669,10 @@ static ast::constant_value guaranteed_evaluate_expr(
 		},
 		[](ast::expr_placeholder_literal &) -> ast::constant_value {
 			return {};
+		},
+		[](ast::expr_typename_literal &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
 		},
 		[&context](ast::expr_tuple &tuple) -> ast::constant_value {
 			for (auto &elem : tuple.elems)
@@ -3241,10 +3269,34 @@ static ast::constant_value try_evaluate_expr(
 	bz_assert(!expr.has_consteval_succeeded());
 
 	return expr.get_expr().visit(bz::overload{
-		[](ast::expr_identifier &) -> ast::constant_value {
+		[](ast::expr_variable_name &) -> ast::constant_value {
 			// identifiers are only constant expressions if they are a consteval
 			// variable, which is handled in parse_context::make_identifier_expr (or something similar)
 			return {};
+		},
+		[](ast::expr_function_name &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_function_alias_name &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_function_overload_set &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_struct_name &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_enum_name &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_type_alias_name &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
 		},
 		[](ast::expr_integer_literal &) -> ast::constant_value {
 			// these are always constant expressions
@@ -3264,6 +3316,10 @@ static ast::constant_value try_evaluate_expr(
 		},
 		[](ast::expr_placeholder_literal &) -> ast::constant_value {
 			return {};
+		},
+		[](ast::expr_typename_literal &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
 		},
 		[&expr, &context](ast::expr_tuple &tuple) -> ast::constant_value {
 			bool is_consteval = true;
@@ -3909,10 +3965,34 @@ static ast::constant_value try_evaluate_expr_without_error(
 )
 {
 	return expr.get_expr().visit(bz::overload{
-		[](ast::expr_identifier &) -> ast::constant_value {
+		[](ast::expr_variable_name &) -> ast::constant_value {
 			// identifiers are only constant expressions if they are a consteval
 			// variable, which is handled in parse_context::make_identifier_expr (or something similar)
 			return {};
+		},
+		[](ast::expr_function_name &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_function_alias_name &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_function_overload_set &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_struct_name &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_enum_name &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_type_alias_name &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
 		},
 		[](ast::expr_integer_literal &) -> ast::constant_value {
 			// these are always constant expressions
@@ -3932,6 +4012,10 @@ static ast::constant_value try_evaluate_expr_without_error(
 		},
 		[](ast::expr_placeholder_literal &) -> ast::constant_value {
 			return {};
+		},
+		[](ast::expr_typename_literal &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
 		},
 		[&expr, &context](ast::expr_tuple &tuple) -> ast::constant_value {
 			bool is_consteval = true;
@@ -4814,17 +4898,41 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 	bz_assert(expr.has_consteval_failed());
 	bz_assert(expr.is_dynamic());
 	expr.get_expr().visit(bz::overload{
-		[&expr, &notes](ast::expr_identifier const &id_expr) {
+		[&expr, &notes](ast::expr_variable_name const &var_name_expr) {
 			notes.emplace_back(ctx::parse_context::make_note(
 				expr.src_tokens, "subexpression is not a constant expression"
 			));
-			if (id_expr.decl != nullptr)
+			if (var_name_expr.decl != nullptr)
 			{
 				notes.emplace_back(ctx::parse_context::make_note(
-					id_expr.decl->src_tokens,
-					bz::format("variable '{}' was declared here", id_expr.decl->get_id().format_as_unqualified())
+					var_name_expr.decl->src_tokens,
+					bz::format("variable '{}' was declared here", var_name_expr.decl->get_id().format_as_unqualified())
 				));
 			}
+		},
+		[](ast::expr_function_name const &) {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_function_alias_name const &) {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_function_overload_set const &) {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_struct_name const &) {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_enum_name const &) {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_type_alias_name const &) {
+			// these are always constant expressions
+			bz_unreachable;
 		},
 		[](ast::expr_integer_literal const &) {
 			// these are always constant expressions
@@ -4844,6 +4952,10 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 		},
 		[](ast::expr_placeholder_literal const &) {
 			// nothing
+		},
+		[](ast::expr_typename_literal const &) {
+			// these are always constant expressions
+			bz_unreachable;
 		},
 		[&notes](ast::expr_tuple const &tuple) {
 			bool any_failed = false;

@@ -89,7 +89,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto range_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			type_kind, type,
-			ast::make_expr_identifier(ast::identifier{}, &range_var_decl, 0, true),
+			ast::make_expr_variable_name(ast::identifier{}, &range_var_decl, 0, true),
 			ast::destruct_operation()
 		);
 		return context.make_universal_function_call_expression(
@@ -127,7 +127,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto range_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			type_kind, type,
-			ast::make_expr_identifier(ast::identifier{}, &range_var_decl, 0, true),
+			ast::make_expr_variable_name(ast::identifier{}, &range_var_decl, 0, true),
 			ast::destruct_operation()
 		);
 		return context.make_universal_function_call_expression(
@@ -161,13 +161,13 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			ast::expression_type_kind::lvalue, iter_var_decl.get_type(),
-			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl, 0, true),
+			ast::make_expr_variable_name(ast::identifier{}, &iter_var_decl, 0, true),
 			ast::destruct_operation()
 		);
 		auto end_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			ast::expression_type_kind::lvalue, end_var_decl.get_type(),
-			ast::make_expr_identifier(ast::identifier{}, &end_var_decl, 0, true),
+			ast::make_expr_variable_name(ast::identifier{}, &end_var_decl, 0, true),
 			ast::destruct_operation()
 		);
 		return context.make_binary_operator_expression(
@@ -195,7 +195,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			ast::expression_type_kind::lvalue, iter_var_decl.get_type(),
-			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl, 1, true),
+			ast::make_expr_variable_name(ast::identifier{}, &iter_var_decl, 1, true),
 			ast::destruct_operation()
 		);
 		return context.make_unary_operator_expression(
@@ -216,7 +216,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
 			ast::expression_type_kind::lvalue, iter_var_decl.get_type(),
-			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl, 1, true),
+			ast::make_expr_variable_name(ast::identifier{}, &iter_var_decl, 1, true),
 			ast::destruct_operation()
 		);
 		return context.make_unary_operator_expression(
@@ -1109,19 +1109,23 @@ static void resolve_function_alias_impl(ast::decl_function_alias &alias_decl, ct
 		return;
 	}
 
-	auto const &value = alias_decl.alias_expr.get_constant_value();
-	if (value.is_function())
+	if (alias_decl.alias_expr.is_function_name())
 	{
-		auto const func_decl = value.get_function();
+		auto const decl = alias_decl.alias_expr.get_function_name().decl;
 		bz_assert(alias_decl.aliased_decls.empty());
-		alias_decl.aliased_decls = { func_decl };
+		alias_decl.aliased_decls = { decl };
 		alias_decl.state = ast::resolve_state::all;
 	}
-	else if (value.is_unqualified_function_set_id() || value.is_qualified_function_set_id())
+	else if (alias_decl.alias_expr.is_function_alias_name())
 	{
-		auto const &func_set = value.is_unqualified_function_set_id()
-			? value.get_unqualified_function_set_id()
-			: value.get_qualified_function_set_id();
+		auto const decl = alias_decl.alias_expr.get_function_alias_name().decl;
+		bz_assert(alias_decl.aliased_decls.empty());
+		alias_decl.aliased_decls = decl->aliased_decls;
+		alias_decl.state = ast::resolve_state::all;
+	}
+	else if (alias_decl.alias_expr.is_function_overload_set())
+	{
+		auto const &func_set = alias_decl.alias_expr.get_function_overload_set().set;
 		bz_assert(alias_decl.aliased_decls.empty());
 		alias_decl.aliased_decls = get_function_decls_from_set(func_set);
 		if (alias_decl.state != ast::resolve_state::error && !alias_decl.aliased_decls.empty())

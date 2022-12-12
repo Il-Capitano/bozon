@@ -62,7 +62,7 @@ bz::u8string get_value_string(constant_value const &value)
 {
 	switch (value.kind())
 	{
-	static_assert(constant_value::variant_count == 21);
+	static_assert(constant_value::variant_count == 19);
 	case constant_value::sint:
 		return bz::format("{}", value.get_sint());
 	case constant_value::uint:
@@ -117,34 +117,6 @@ bz::u8string get_value_string(constant_value const &value)
 		return get_aggregate_like_value_string(value.get_tuple());
 	case constant_value::function:
 		return "";
-	case constant_value::unqualified_function_set_id:
-	{
-		bz::u8string result;
-		bool first = true;
-		for (auto const id : value.get_unqualified_function_set_id().id)
-		{
-			if (first)
-			{
-				first = false;
-			}
-			else
-			{
-				result += "::";
-			}
-			result += id;
-		}
-		return result;
-	}
-	case constant_value::qualified_function_set_id:
-	{
-		bz::u8string result;
-		for (auto const id : value.get_qualified_function_set_id().id)
-		{
-			result += "::";
-			result += id;
-		}
-		return result;
-	}
 	case constant_value::type:
 		return bz::format("{}", value.get_type());
 	case constant_value::aggregate:
@@ -208,7 +180,7 @@ void constant_value::encode_for_symbol_name(bz::u8string &out, constant_value co
 {
 	switch (value.kind())
 	{
-	static_assert(constant_value::variant_count == 21);
+	static_assert(constant_value::variant_count == 19);
 	case sint:
 		out += 'i';
 		out += bz::format("{}", bit_cast<uint64_t>(value.get_sint()));
@@ -307,9 +279,6 @@ void constant_value::encode_for_symbol_name(bz::u8string &out, constant_value co
 		out += func_symbol;
 		break;
 	}
-	case unqualified_function_set_id:
-	case qualified_function_set_id:
-		bz_unreachable;
 	case type:
 	{
 		auto const symbol = value.get_type().get_symbol_name();
@@ -476,7 +445,7 @@ static void decode_float64_array(
 
 bz::u8string constant_value::decode_from_symbol_name(bz::u8string_view::const_iterator &it, bz::u8string_view::const_iterator end)
 {
-	static_assert(constant_value::variant_count == 21);
+	static_assert(constant_value::variant_count == 19);
 	switch (*it)
 	{
 	case 'i':
@@ -629,7 +598,7 @@ bool operator == (constant_value const &lhs, constant_value const &rhs) noexcept
 	}
 	switch (lhs.kind())
 	{
-	static_assert(constant_value::variant_count == 21);
+	static_assert(constant_value::variant_count == 19);
 	case constant_value::sint:
 		return lhs.get_sint() == rhs.get_sint();
 	case constant_value::uint:
@@ -668,40 +637,6 @@ bool operator == (constant_value const &lhs, constant_value const &rhs) noexcept
 		return lhs.get_tuple() == rhs.get_tuple();
 	case constant_value::function:
 		return lhs.get_function() == rhs.get_function();
-	case constant_value::unqualified_function_set_id:
-	{
-		auto const &[lhs_id, lhs_bodies] = lhs.get_unqualified_function_set_id();
-		auto const &[rhs_id, rhs_bodies] = rhs.get_unqualified_function_set_id();
-		if (lhs_bodies.empty() && rhs_bodies.empty())
-		{
-			return lhs_id == rhs_id;
-		}
-		else if (lhs_bodies.not_empty() && rhs_bodies.not_empty())
-		{
-			return lhs_id == rhs_id && lhs_bodies == rhs_bodies;
-		}
-		else
-		{
-			return false;
-		}
-	}
-	case constant_value::qualified_function_set_id:
-	{
-		auto const &[lhs_id, lhs_bodies] = lhs.get_qualified_function_set_id();
-		auto const &[rhs_id, rhs_bodies] = rhs.get_qualified_function_set_id();
-		if (lhs_bodies.empty() && rhs_bodies.empty())
-		{
-			return lhs_id == rhs_id;
-		}
-		else if (lhs_bodies.not_empty() && rhs_bodies.not_empty())
-		{
-			return lhs_id == rhs_id && lhs_bodies == rhs_bodies;
-		}
-		else
-		{
-			return false;
-		}
-	}
 	case constant_value::type:
 		return lhs.get_type() == rhs.get_type();
 	case constant_value::aggregate:

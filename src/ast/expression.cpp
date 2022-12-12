@@ -282,21 +282,55 @@ static bool is_expr_kind_helper(expression const &expr, expression_type_kind kin
 		|| (expr.is<dynamic_expression>() && expr.get<dynamic_expression>().kind == kind);
 }
 
-bool expression::is_function(void) const noexcept
+bool expression::is_function_name(void) const noexcept
 {
 	return is_expr_kind_helper(*this, expression_type_kind::function_name);
 }
 
-constant_value const &expression::get_function(void) const noexcept
+expr_function_name &expression::get_function_name(void) noexcept
 {
-	bz_assert(this->is_function());
-	auto const &const_expr = get_expr_kind<constant_expression>(*this);
-	return const_expr.value;
+	bz_assert(this->is_function_name());
+	return get_expr_kind<expr_function_name>(*this);
 }
 
-bool expression::is_overloaded_function(void) const noexcept
+expr_function_name const &expression::get_function_name(void) const noexcept
 {
-	return this->is_function() && !this->get_function().is_function();
+	bz_assert(this->is_function_name());
+	return get_expr_kind<expr_function_name>(*this);
+}
+
+bool expression::is_function_alias_name(void) const noexcept
+{
+	return is_expr_kind_helper(*this, expression_type_kind::function_alias_name);
+}
+
+expr_function_alias_name &expression::get_function_alias_name(void) noexcept
+{
+	bz_assert(this->is_function_alias_name());
+	return get_expr_kind<expr_function_alias_name>(*this);
+}
+
+expr_function_alias_name const &expression::get_function_alias_name(void) const noexcept
+{
+	bz_assert(this->is_function_alias_name());
+	return get_expr_kind<expr_function_alias_name>(*this);
+}
+
+bool expression::is_function_overload_set(void) const noexcept
+{
+	return is_expr_kind_helper(*this, expression_type_kind::function_overload_set);
+}
+
+expr_function_overload_set &expression::get_function_overload_set(void) noexcept
+{
+	bz_assert(this->is_function_overload_set());
+	return get_expr_kind<expr_function_overload_set>(*this);
+}
+
+expr_function_overload_set const &expression::get_function_overload_set(void) const noexcept
+{
+	bz_assert(this->is_function_overload_set());
+	return get_expr_kind<expr_function_overload_set>(*this);
 }
 
 bool expression::is_typename(void) const noexcept

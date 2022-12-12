@@ -674,7 +674,19 @@ static ast::expression get_builtin_unary_typeof(
 	bz_assert(op_kind == lex::token::kw_typeof);
 	bz_assert(expr.not_error());
 	auto const [type, kind] = expr.get_expr_type_and_kind();
-	if (expr.is_overloaded_function())
+	if (expr.is_function_name() && type.is_empty())
+	{
+		bz_assert(expr.get_function_name().decl->body.is_generic());
+		context.report_error(
+			src_tokens,
+			bz::format("cannot take 'typeof' of a generic function '{}'", expr.get_function_name().decl->body.get_signature())
+		);
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+	else if (
+		(expr.is_function_alias_name() && type.is_empty())
+		|| expr.is_function_overload_set()
+	)
 	{
 		context.report_error(src_tokens, "type of an overloaded function is ambiguous");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
@@ -715,33 +727,33 @@ static ast::expression get_builtin_unary_move(
 
 	if (kind == ast::expression_type_kind::lvalue)
 	{
-		bz_assert(expr.get_expr().is<ast::expr_identifier>());
-		auto const &id_expr = expr.get_expr().get<ast::expr_identifier>();
-		bz_assert(id_expr.decl != nullptr);
-		if (!id_expr.is_local)
+		bz_assert(expr.get_expr().is<ast::expr_variable_name>());
+		auto const &var_name_expr = expr.get_expr().get<ast::expr_variable_name>();
+		bz_assert(var_name_expr.decl != nullptr);
+		if (!var_name_expr.is_local)
 		{
 			context.report_error(
 				src_tokens,
-				bz::format("unable to move non-local variable '{}'", id_expr.decl->get_id().format_as_unqualified()),
-				{ context.make_note(id_expr.decl->src_tokens, "variable was declared here") }
+				bz::format("unable to move non-local variable '{}'", var_name_expr.decl->get_id().format_as_unqualified()),
+				{ context.make_note(var_name_expr.decl->src_tokens, "variable was declared here") }
 			);
 			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 		}
-		else if (id_expr.loop_boundary_count != 0)
+		else if (var_name_expr.loop_boundary_count != 0)
 		{
 			context.report_error(
 				src_tokens,
 				bz::format(
 					"unable to move variable '{}', because it is outside a loop boundary",
-					id_expr.decl->get_id().format_as_unqualified()
+					var_name_expr.decl->get_id().format_as_unqualified()
 				),
-				{ context.make_note(id_expr.decl->src_tokens, "variable was declared here") }
+				{ context.make_note(var_name_expr.decl->src_tokens, "variable was declared here") }
 			);
 			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 		}
 		else
 		{
-			context.register_move(src_tokens, id_expr.decl);
+			context.register_move(src_tokens, var_name_expr.decl);
 			ast::typespec result_type = ast::remove_const_or_consteval(type);
 			return ast::make_dynamic_expression(
 				src_tokens,

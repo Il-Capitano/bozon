@@ -15,12 +15,19 @@ namespace ast
 
 struct expression;
 
-struct expr_identifier;
+struct expr_variable_name;
+struct expr_function_name;
+struct expr_function_alias_name;
+struct expr_function_overload_set;
+struct expr_struct_name;
+struct expr_enum_name;
+struct expr_type_alias_name;
 struct expr_integer_literal;
 struct expr_null_literal;
 struct expr_enum_literal;
 struct expr_typed_literal;
 struct expr_placeholder_literal;
+struct expr_typename_literal;
 struct expr_tuple;
 struct expr_unary_op;
 struct expr_binary_op;
@@ -85,6 +92,7 @@ struct expr_generic_type_instantiation;
 
 struct expr_bitcode_value_reference;
 
+struct expr_unresolved_identifier;
 struct expr_unresolved_subscript;
 struct expr_unresolved_function_call;
 struct expr_unresolved_universal_function_call;
@@ -95,12 +103,19 @@ struct expr_unresolved_generic_type_instantiation;
 
 
 using expr_t = node<
-	expr_identifier,
+	expr_variable_name,
+	expr_function_name,
+	expr_function_alias_name,
+	expr_function_overload_set,
+	expr_struct_name,
+	expr_enum_name,
+	expr_type_alias_name,
 	expr_integer_literal,
 	expr_null_literal,
 	expr_enum_literal,
 	expr_typed_literal,
 	expr_placeholder_literal,
+	expr_typename_literal,
 	expr_tuple,
 	expr_unary_op,
 	expr_binary_op,
@@ -159,7 +174,7 @@ using expr_t = node<
 >;
 
 using unresolved_expr_t = node<
-	expr_identifier,
+	expr_unresolved_identifier,
 	expr_tuple,
 	expr_unary_op,
 	expr_binary_op,
@@ -251,6 +266,8 @@ enum class expression_type_kind
 	enum_literal,
 	placeholder_literal,
 	function_name,
+	function_alias_name,
+	function_overload_set,
 	type_name,
 	tuple,
 	if_expr,
@@ -392,9 +409,15 @@ struct expression : bz::variant<
 	bool is_error(void) const;
 	bool not_error(void) const;
 
-	bool is_function(void) const noexcept;
-	constant_value const &get_function(void) const noexcept;
-	bool is_overloaded_function(void) const noexcept;
+	bool is_function_name(void) const noexcept;
+	expr_function_name &get_function_name(void) noexcept;
+	expr_function_name const &get_function_name(void) const noexcept;
+	bool is_function_alias_name(void) const noexcept;
+	expr_function_alias_name &get_function_alias_name(void) noexcept;
+	expr_function_alias_name const &get_function_alias_name(void) const noexcept;
+	bool is_function_overload_set(void) const noexcept;
+	expr_function_overload_set &get_function_overload_set(void) noexcept;
+	expr_function_overload_set const &get_function_overload_set(void) const noexcept;
 
 	bool is_typename(void) const noexcept;
 	typespec &get_typename(void) noexcept;
@@ -464,19 +487,87 @@ struct expression : bz::variant<
 };
 
 
-struct expr_identifier
+struct expr_variable_name
 {
 	identifier id;
 	decl_variable *decl;
 	int loop_boundary_count;
 	bool is_local;
 
-	expr_identifier(identifier _id, decl_variable *var_decl, int _loop_boundary_count, bool _is_local)
+	expr_variable_name(identifier _id, decl_variable *var_decl, int _loop_boundary_count, bool _is_local)
 		: id(std::move(_id)), decl(var_decl), loop_boundary_count(_loop_boundary_count), is_local(_is_local)
 	{}
+};
 
-	expr_identifier(identifier _id)
-		: id(std::move(_id)), decl(nullptr), loop_boundary_count(0), is_local(false)
+struct expr_function_name
+{
+	identifier id;
+	decl_function *decl;
+
+	expr_function_name(identifier _id, decl_function *_decl)
+		: id(std::move(_id)),
+		  decl(_decl)
+	{}
+};
+
+struct expr_function_alias_name
+{
+	identifier id;
+	decl_function_alias *decl;
+
+	expr_function_alias_name(identifier _id, decl_function_alias *_decl)
+		: id(std::move(_id)),
+		  decl(_decl)
+	{}
+};
+
+struct function_set_t
+{
+	arena_vector<bz::u8string_view> id;
+	arena_vector<statement_view> stmts;
+};
+
+struct expr_function_overload_set
+{
+	identifier id;
+	function_set_t set;
+
+	expr_function_overload_set(identifier _id, function_set_t _set)
+		: id(std::move(_id)),
+		  set(std::move(_set))
+	{}
+};
+
+struct expr_struct_name
+{
+	identifier id;
+	decl_struct *decl;
+
+	expr_struct_name(identifier _id, decl_struct *_decl)
+		: id(std::move(_id)),
+		  decl(_decl)
+	{}
+};
+
+struct expr_enum_name
+{
+	identifier id;
+	decl_enum *decl;
+
+	expr_enum_name(identifier _id, decl_enum *_decl)
+		: id(std::move(_id)),
+		  decl(_decl)
+	{}
+};
+
+struct expr_type_alias_name
+{
+	identifier id;
+	decl_type_alias *decl;
+
+	expr_type_alias_name(identifier _id, decl_type_alias *_decl)
+		: id(std::move(_id)),
+		  decl(_decl)
 	{}
 };
 
@@ -516,6 +607,9 @@ struct expr_typed_literal
 };
 
 struct expr_placeholder_literal
+{};
+
+struct expr_typename_literal
 {};
 
 struct expr_tuple
@@ -1344,6 +1438,15 @@ struct expr_bitcode_value_reference
 };
 
 
+struct expr_unresolved_identifier
+{
+	identifier id;
+
+	expr_unresolved_identifier(identifier _id)
+		: id(std::move(_id))
+	{}
+};
+
 struct expr_unresolved_subscript
 {
 	expression               base;
@@ -1472,12 +1575,19 @@ template<typename ...Args>                                                     \
 ret_type make_ ## node_type (Args &&...args)                                   \
 { return ret_type(make_ast_unique<node_type>(std::forward<Args>(args)...)); }
 
-def_make_fn(expr_t, expr_identifier)
+def_make_fn(expr_t, expr_variable_name)
+def_make_fn(expr_t, expr_function_name)
+def_make_fn(expr_t, expr_function_alias_name)
+def_make_fn(expr_t, expr_function_overload_set)
+def_make_fn(expr_t, expr_struct_name)
+def_make_fn(expr_t, expr_enum_name)
+def_make_fn(expr_t, expr_type_alias_name)
 def_make_fn(expr_t, expr_integer_literal)
 def_make_fn(expr_t, expr_null_literal)
 def_make_fn(expr_t, expr_enum_literal)
 def_make_fn(expr_t, expr_typed_literal)
 def_make_fn(expr_t, expr_placeholder_literal)
+def_make_fn(expr_t, expr_typename_literal)
 def_make_fn(expr_t, expr_tuple)
 def_make_fn(expr_t, expr_unary_op)
 def_make_fn(expr_t, expr_binary_op)
@@ -1541,7 +1651,7 @@ template<typename ...Args>                                                     \
 ret_type make_unresolved_ ## node_type (Args &&...args)                        \
 { return ret_type(make_ast_unique<node_type>(std::forward<Args>(args)...)); }
 
-def_make_unresolved_fn(unresolved_expr_t, expr_identifier)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_identifier)
 def_make_unresolved_fn(unresolved_expr_t, expr_tuple)
 def_make_unresolved_fn(unresolved_expr_t, expr_unary_op)
 def_make_unresolved_fn(unresolved_expr_t, expr_binary_op)
