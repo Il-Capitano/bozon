@@ -36,25 +36,25 @@ inline std::ostream &operator << (std::ostream &os, ast::constant_value const &v
 	switch (value.kind())
 	{
 	case ast::constant_value::sint:
-		os << "sint: " << value.get<ast::constant_value::sint>();
+		os << "sint: " << value.get_sint();
 		break;
 	case ast::constant_value::uint:
-		os << "uint: " << value.get<ast::constant_value::uint>();
+		os << "uint: " << value.get_uint();
 		break;
 	case ast::constant_value::float32:
-		os << "float32: " << value.get<ast::constant_value::float32>();
+		os << "float32: " << value.get_float32();
 		break;
 	case ast::constant_value::float64:
-		os << "float64: " << value.get<ast::constant_value::float64>();
+		os << "float64: " << value.get_float64();
 		break;
 	case ast::constant_value::u8char:
-		os << "u8char: " << value.get<ast::constant_value::u8char>();
+		os << "u8char: " << value.get_u8char();
 		break;
 	case ast::constant_value::string:
-		os << "string: " << value.get<ast::constant_value::string>();
+		os << "string: " << value.get_string();
 		break;
 	case ast::constant_value::boolean:
-		os << "boolean: " << value.get<ast::constant_value::boolean>();
+		os << "boolean: " << value.get_boolean();
 		break;
 	case ast::constant_value::null:
 		os << "null: []";
@@ -69,16 +69,10 @@ inline std::ostream &operator << (std::ostream &os, ast::constant_value const &v
 		os << "tuple: [...]";
 		break;
 	case ast::constant_value::function:
-		os << "function: " << value.get<ast::constant_value::function>()->body.get_signature();
-		break;
-	case ast::constant_value::unqualified_function_set_id:
-		os << "unqualified_function_set_id: ...";
-		break;
-	case ast::constant_value::qualified_function_set_id:
-		os << "qualified_function_set_id: ...";
+		os << "function: " << value.get_function()->body.get_signature();
 		break;
 	case ast::constant_value::type:
-		os << "type: " << bz::format("{}", value.get<ast::constant_value::type>());
+		os << "type: " << bz::format("{}", value.get_type());
 		break;
 	case ast::constant_value::aggregate:
 		os << "aggreate: [...]";
