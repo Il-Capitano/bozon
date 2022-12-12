@@ -7202,8 +7202,7 @@ static llvm::Constant *get_value_helper(
 	}
 	case ast::constant_value::function:
 	{
-		auto const decl = value.get_function();
-		return context.get_function(&decl->body);
+		return context.get_function(value.get_function());
 	}
 	case ast::constant_value::aggregate:
 	{

@@ -1586,7 +1586,7 @@ static ast::expression make_function_name_expression(
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::function_name, get_function_type(func_decl->body),
-			ast::constant_value(func_decl),
+			ast::constant_value(&func_decl->body),
 			ast::make_expr_function_name(std::move(id), func_decl)
 		);
 	}
@@ -1604,7 +1604,7 @@ static ast::expression make_function_name_expression(
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::function_alias_name, get_function_type(decl->body),
-			ast::constant_value(decl),
+			ast::constant_value(&decl->body),
 			ast::make_expr_function_alias_name(std::move(id), alias_decl)
 		);
 	}
@@ -2717,7 +2717,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 						src_tokens,
 						ast::expression_type_kind::function_name,
 						get_function_type(func_decl->body),
-						ast::constant_value(func_decl),
+						ast::constant_value(&func_decl->body),
 						ast::make_expr_function_name(std::move(id), func_decl)
 					);
 				}

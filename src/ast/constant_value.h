@@ -43,7 +43,7 @@ using constant_value_base_t = bz::variant<
 	// tuples
 	arena_vector<constant_value>,
 
-	decl_function *,
+	function_body *,
 
 	typespec,
 
@@ -73,7 +73,7 @@ struct constant_value : constant_value_base_t
 		float32_array   = base_t::index_of<arena_vector<float32_t>>,
 		float64_array   = base_t::index_of<arena_vector<float64_t>>,
 		tuple,
-		function        = base_t::index_of<decl_function *>,
+		function        = base_t::index_of<function_body *>,
 		type            = base_t::index_of<typespec>,
 		aggregate,
 	};
@@ -189,7 +189,7 @@ struct constant_value : constant_value_base_t
 	bz::array_view<constant_value const> get_tuple(void) const noexcept
 	{ return this->get<tuple>(); }
 
-	decl_function *get_function(void) const noexcept
+	function_body *get_function(void) const noexcept
 	{ return this->get<function>(); }
 
 	typespec_view get_type(void) const noexcept
