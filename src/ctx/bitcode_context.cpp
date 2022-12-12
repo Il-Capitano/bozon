@@ -332,6 +332,27 @@ llvm::CallInst *bitcode_context::create_call(
 	return call;
 }
 
+llvm::CallInst *bitcode_context::create_call(
+	llvm::Function *fn,
+	llvm::ArrayRef<llvm::Value *> args
+)
+{
+	auto const call = this->builder.CreateCall(fn, args);
+	call->setCallingConv(fn->getCallingConv());
+	return call;
+}
+
+llvm::CallInst *bitcode_context::create_call(
+	llvm::FunctionCallee fn,
+	llvm::CallingConv::ID calling_convention,
+	llvm::ArrayRef<llvm::Value *> args
+)
+{
+	auto const call = this->builder.CreateCall(fn, args);
+	call->setCallingConv(calling_convention);
+	return call;
+}
+
 bc::val_ptr bitcode_context::get_struct_element(bc::val_ptr value, uint64_t idx)
 {
 	bz_assert(value.get_type()->isStructTy() || value.get_type()->isArrayTy());
@@ -348,16 +369,6 @@ bc::val_ptr bitcode_context::get_struct_element(bc::val_ptr value, uint64_t idx)
 			: type->getArrayElementType();
 		return bc::val_ptr::get_reference(element_val, element_type);
 	}
-}
-
-llvm::CallInst *bitcode_context::create_call(
-	llvm::Function *fn,
-	llvm::ArrayRef<llvm::Value *> args
-)
-{
-	auto const call = this->builder.CreateCall(fn, args);
-	call->setCallingConv(fn->getCallingConv());
-	return call;
 }
 
 llvm::Type *bitcode_context::get_builtin_type(uint32_t kind) const

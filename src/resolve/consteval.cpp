@@ -2774,6 +2774,14 @@ static ast::constant_value guaranteed_evaluate_expr(
 			}
 			return evaluate_function_call(expr, func_call, function_execution_kind::guaranteed_evaluate, context);
 		},
+		[&context](ast::expr_indirect_function_call &func_call) -> ast::constant_value {
+			consteval_guaranteed(func_call.called, context);
+			for (auto &param : func_call.params)
+			{
+				consteval_guaranteed(param, context);
+			}
+			return {};
+		},
 		[&expr, &context](ast::expr_cast &cast_expr) -> ast::constant_value {
 			consteval_guaranteed(cast_expr.expr, context);
 			if (cast_expr.expr.has_consteval_succeeded())
@@ -3465,6 +3473,14 @@ static ast::constant_value try_evaluate_expr(
 				consteval_guaranteed(param, context);
 			}
 			return evaluate_function_call(expr, func_call, function_execution_kind::force_evaluate, context);
+		},
+		[&context](ast::expr_indirect_function_call &func_call) -> ast::constant_value {
+			consteval_guaranteed(func_call.called, context);
+			for (auto &param : func_call.params)
+			{
+				consteval_guaranteed(param, context);
+			}
+			return {};
 		},
 		[&expr, &context](ast::expr_cast &cast_expr) -> ast::constant_value {
 			consteval_try(cast_expr.expr, context);
@@ -4160,6 +4176,14 @@ static ast::constant_value try_evaluate_expr_without_error(
 				consteval_guaranteed(param, context);
 			}
 			return evaluate_function_call(expr, func_call, function_execution_kind::force_evaluate_without_error, context);
+		},
+		[&context](ast::expr_indirect_function_call &func_call) -> ast::constant_value {
+			consteval_guaranteed(func_call.called, context);
+			for (auto &param : func_call.params)
+			{
+				consteval_guaranteed(param, context);
+			}
+			return {};
 		},
 		[&expr, &context](ast::expr_cast &cast_expr) -> ast::constant_value {
 			consteval_try_without_error(cast_expr.expr, context);
@@ -5080,6 +5104,11 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 					expr.src_tokens, "subexpression is not a constant expression"
 				));
 			}
+		},
+		[&expr, &notes](ast::expr_indirect_function_call const &) {
+			notes.emplace_back(ctx::parse_context::make_note(
+				expr.src_tokens, "indirect function call is not a constant expression"
+			));
 		},
 		[&expr, &notes](ast::expr_cast const &cast_expr) {
 			if (cast_expr.expr.has_consteval_succeeded())
