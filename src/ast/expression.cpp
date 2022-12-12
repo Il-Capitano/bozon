@@ -110,11 +110,11 @@ defer_expression &defer_expression::operator = (defer_expression const &other)
 
 void expression::to_error(void)
 {
-	if (this->is<constant_expression>())
+	if (this->is_constant())
 	{
 		this->emplace<error_expression>(this->get_by_move<constant_expression>().expr);
 	}
-	else if (this->is<dynamic_expression>())
+	else if (this->is_dynamic())
 	{
 		this->emplace<error_expression>(this->get_by_move<dynamic_expression>().expr);
 	}
@@ -172,8 +172,8 @@ static bz::meta::conditional<get_inner, expr_t, expression> &get_expr_kind(expre
 	{
 		auto &subscript = expr.get<expr_subscript>();
 		bz_assert(subscript.base.is_tuple());
-		bz_assert(subscript.index.is<constant_expression>());
-		auto const &index_value = subscript.index.get<constant_expression>().value;
+		bz_assert(subscript.index.is_constant());
+		auto const &index_value = subscript.index.get_constant_value();
 		bz_assert(index_value.is_sint() || index_value.is_uint());
 		auto const index = index_value.is_sint()
 			? static_cast<uint64_t>(index_value.get_sint())
@@ -247,8 +247,8 @@ static bz::meta::conditional<get_inner, expr_t, expression> const &get_expr_kind
 	{
 		auto &subscript = expr.get<expr_subscript>();
 		bz_assert(subscript.base.is_tuple());
-		bz_assert(subscript.index.is<constant_expression>());
-		auto const &index_value = subscript.index.get<constant_expression>().value;
+		bz_assert(subscript.index.is_constant());
+		auto const &index_value = subscript.index.get_constant_value();
 		bz_assert(index_value.is_sint() || index_value.is_uint());
 		auto const index = index_value.is_sint()
 			? static_cast<uint64_t>(index_value.get_sint())
@@ -278,8 +278,8 @@ static bz::meta::conditional<get_inner, expr_t, expression> const &get_expr_kind
 
 static bool is_expr_kind_helper(expression const &expr, expression_type_kind kind)
 {
-	return (expr.is<constant_expression>() && expr.get<constant_expression>().kind == kind)
-		|| (expr.is<dynamic_expression>() && expr.get<dynamic_expression>().kind == kind);
+	return (expr.is_constant() && expr.get_constant().kind == kind)
+		|| (expr.is_dynamic() && expr.get_dynamic().kind == kind);
 }
 
 bool expression::is_function_name(void) const noexcept
@@ -412,26 +412,26 @@ constant_value &expression::get_integer_literal_value(void) noexcept
 {
 	bz_assert(this->is_integer_literal());
 	auto &literal_expr = get_expr_kind<expr_integer_literal, false>(*this);
-	bz_assert(literal_expr.is<constant_expression>());
-	return literal_expr.get<constant_expression>().value;
+	bz_assert(literal_expr.is_constant());
+	return literal_expr.get_constant_value();
 }
 
 constant_value const &expression::get_integer_literal_value(void) const noexcept
 {
 	bz_assert(this->is_integer_literal());
 	auto const &literal_expr = get_expr_kind<expr_integer_literal, false>(*this);
-	bz_assert(literal_expr.is<constant_expression>());
-	return literal_expr.get<constant_expression>().value;
+	bz_assert(literal_expr.is_constant());
+	return literal_expr.get_constant_value();
 }
 
 std::pair<literal_kind, constant_value const &> expression::get_integer_literal_kind_and_value(void) const noexcept
 {
 	bz_assert(this->is_integer_literal());
 	auto const &literal_expr = get_expr_kind<expr_integer_literal, false>(*this);
-	bz_assert(literal_expr.is<constant_expression>());
+	bz_assert(literal_expr.is_constant());
 	return {
-		literal_expr.get<constant_expression>().expr.get<expr_integer_literal>().kind,
-		literal_expr.get<constant_expression>().value
+		literal_expr.get_constant().expr.get<expr_integer_literal>().kind,
+		literal_expr.get_constant_value()
 	};
 }
 
@@ -493,25 +493,25 @@ type_info *expression::get_generic_type(void) const noexcept
 
 void expression::set_type(typespec new_type)
 {
-	if (this->is<constant_expression>())
+	if (this->is_constant())
 	{
-		this->get<constant_expression>().type = std::move(new_type);
+		this->get_constant().type = std::move(new_type);
 	}
-	else if (this->is<dynamic_expression>())
+	else if (this->is_dynamic())
 	{
-		this->get<dynamic_expression>().type = std::move(new_type);
+		this->get_dynamic().type = std::move(new_type);
 	}
 }
 
 void expression::set_type_kind(expression_type_kind new_kind)
 {
-	if (this->is<constant_expression>())
+	if (this->is_constant())
 	{
-		this->get<constant_expression>().kind = new_kind;
+		this->get_constant().kind = new_kind;
 	}
-	else if (this->is<dynamic_expression>())
+	else if (this->is_dynamic())
 	{
-		this->get<dynamic_expression>().kind = new_kind;
+		this->get_dynamic().kind = new_kind;
 	}
 }
 
@@ -521,12 +521,12 @@ std::pair<typespec_view, expression_type_kind> expression::get_expr_type_and_kin
 	{
 	case expression::index_of<constant_expression>:
 	{
-		auto &const_expr = this->get<constant_expression>();
+		auto &const_expr = this->get_constant();
 		return { const_expr.type, const_expr.kind };
 	}
 	case expression::index_of<dynamic_expression>:
 	{
-		auto &dyn_expr = this->get<dynamic_expression>();
+		auto &dyn_expr = this->get_dynamic();
 		return { dyn_expr.type, dyn_expr.kind };
 	}
 	default:
@@ -540,12 +540,12 @@ typespec_view expression::get_expr_type(void) const noexcept
 	{
 	case expression::index_of<constant_expression>:
 	{
-		auto &const_expr = this->get<constant_expression>();
+		auto &const_expr = this->get_constant();
 		return const_expr.type;
 	}
 	case expression::index_of<dynamic_expression>:
 	{
-		auto &dyn_expr = this->get<dynamic_expression>();
+		auto &dyn_expr = this->get_dynamic();
 		return dyn_expr.type;
 	}
 	default:
@@ -633,27 +633,27 @@ bool expression::has_consteval_failed(void) const noexcept
 
 expr_t &expression::get_expr(void)
 {
-	bz_assert(this->is<constant_expression>() || this->is<dynamic_expression>());
-	if (this->is<constant_expression>())
+	bz_assert(this->is_constant_or_dynamic());
+	if (this->is_constant())
 	{
-		return this->get<constant_expression>().expr;
+		return this->get_constant().expr;
 	}
 	else
 	{
-		return this->get<dynamic_expression>().expr;
+		return this->get_dynamic().expr;
 	}
 }
 
 expr_t const &expression::get_expr(void) const
 {
-	bz_assert(this->is<constant_expression>() || this->is<dynamic_expression>());
-	if (this->is<constant_expression>())
+	bz_assert(this->is_constant_or_dynamic());
+	if (this->is_constant())
 	{
-		return this->get<constant_expression>().expr;
+		return this->get_constant().expr;
 	}
 	else
 	{
-		return this->get<dynamic_expression>().expr;
+		return this->get_dynamic().expr;
 	}
 }
 
