@@ -2166,6 +2166,10 @@ static void add_type_info_members(
 		{
 			info.scope.get_global().add_struct(stmt.get<ast::decl_struct>());
 		}
+		else if (stmt.is<ast::decl_enum>())
+		{
+			info.scope.get_global().add_enum(stmt.get<ast::decl_enum>());
+		}
 		else if (stmt.is<ast::stmt_static_assert>())
 		{
 			// nothing
