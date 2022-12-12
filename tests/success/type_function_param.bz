@@ -1,0 +1,7 @@
+function test(T: typename) -> bool
+{
+	return T == int32;
+}
+
+static_assert(test(int32));
+static_assert(!test(int64));

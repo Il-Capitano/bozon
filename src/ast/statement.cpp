@@ -104,9 +104,9 @@ bz::u8string function_body::get_symbol_name(void) const
 			symbol_name += p.get_type().get_symbol_name();
 			if (p.get_type().is<ts_consteval>())
 			{
-				bz_assert(p.init_expr.is<constant_expression>());
+				bz_assert(p.init_expr.is_constant());
 				symbol_name += '.';
-				constant_value::encode_for_symbol_name(symbol_name, p.init_expr.get<constant_expression>().value);
+				constant_value::encode_for_symbol_name(symbol_name, p.init_expr.get_constant_value());
 			}
 		}
 		return symbol_name;
@@ -123,11 +123,11 @@ bz::u8string function_body::get_symbol_name(void) const
 		{
 			symbol_name += '.';
 			symbol_name += p.get_type().get_symbol_name();
-			if (p.get_type().is<ts_consteval>())
+			if (ast::is_generic_parameter(p))
 			{
-				bz_assert(p.init_expr.is<constant_expression>());
+				bz_assert(p.init_expr.is_constant());
 				symbol_name += '.';
-				constant_value::encode_for_symbol_name(symbol_name, p.init_expr.get<constant_expression>().value);
+				constant_value::encode_for_symbol_name(symbol_name, p.init_expr.get_constant_value());
 			}
 		}
 		symbol_name += '.';
@@ -324,7 +324,7 @@ bz::u8string function_body::decode_symbol_name(
 		}
 		auto const type = typespec::decode_symbol_name(it, end);
 		result += type;
-		if (type.starts_with("consteval"))
+		if (type.starts_with("consteval") || type.contains("typename"))
 		{
 			bz_assert(it != end);
 			bz_assert(*it == '.');
