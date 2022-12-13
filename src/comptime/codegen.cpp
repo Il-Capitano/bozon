@@ -2262,7 +2262,7 @@ static expr_value generate_expr_code(
 	{
 		size_t arg_ref_index = arg_refs.size();
 
-		for (auto const arg_index : bz::iota(0, func_call.params.size()))
+		for (auto const arg_index : bz::iota(0, func_call.params.size()).reversed())
 		{
 			if (ast::is_generic_parameter(func_call.func_body->params[arg_index]))
 			{
