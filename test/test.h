@@ -69,7 +69,7 @@ inline std::ostream &operator << (std::ostream &os, ast::constant_value const &v
 		os << "tuple: [...]";
 		break;
 	case ast::constant_value::function:
-		os << "function: " << value.get_function()->body.get_signature();
+		os << "function: " << value.get_function()->get_signature();
 		break;
 	case ast::constant_value::type:
 		os << "type: " << bz::format("{}", value.get_type());

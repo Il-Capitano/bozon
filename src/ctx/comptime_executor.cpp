@@ -522,6 +522,17 @@ llvm::CallInst *comptime_executor_context::create_call(
 	return call;
 }
 
+llvm::CallInst *comptime_executor_context::create_call(
+	llvm::FunctionCallee fn,
+	llvm::CallingConv::ID calling_convention,
+	llvm::ArrayRef<llvm::Value *> args
+)
+{
+	auto const call = this->builder.CreateCall(fn, args);
+	call->setCallingConv(calling_convention);
+	return call;
+}
+
 bc::val_ptr comptime_executor_context::get_struct_element(bc::val_ptr value, uint64_t idx)
 {
 	bz_assert(value.get_type()->isStructTy() || value.get_type()->isArrayTy());

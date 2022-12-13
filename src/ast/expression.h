@@ -36,6 +36,7 @@ struct expr_rvalue_tuple_subscript;
 struct expr_subscript;
 struct expr_rvalue_array_subscript;
 struct expr_function_call;
+struct expr_indirect_function_call;
 struct expr_cast;
 struct expr_optional_cast;
 struct expr_take_reference;
@@ -124,6 +125,7 @@ using expr_t = node<
 	expr_subscript,
 	expr_rvalue_array_subscript,
 	expr_function_call,
+	expr_indirect_function_call,
 	expr_cast,
 	expr_optional_cast,
 	expr_take_reference,
@@ -736,6 +738,23 @@ struct expr_function_call
 		  params    (std::move(_params)),
 		  func_body (_func_body),
 		  param_resolve_order(_param_resolve_order)
+	{}
+};
+
+struct expr_indirect_function_call
+{
+	lex::src_tokens          src_tokens;
+	expression               called;
+	arena_vector<expression> params;
+
+	expr_indirect_function_call(
+		lex::src_tokens   const &_src_tokens,
+		expression               _called,
+		arena_vector<expression> _params
+	)
+		: src_tokens(_src_tokens),
+		  called    (std::move(_called)),
+		  params    (std::move(_params))
 	{}
 };
 
@@ -1596,6 +1615,7 @@ def_make_fn(expr_t, expr_rvalue_tuple_subscript)
 def_make_fn(expr_t, expr_subscript)
 def_make_fn(expr_t, expr_rvalue_array_subscript)
 def_make_fn(expr_t, expr_function_call)
+def_make_fn(expr_t, expr_indirect_function_call)
 def_make_fn(expr_t, expr_cast)
 def_make_fn(expr_t, expr_optional_cast)
 def_make_fn(expr_t, expr_take_reference)

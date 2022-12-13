@@ -2903,6 +2903,231 @@ static ctx::comptime_function_kind get_math_check_function_kind(uint32_t intrins
 	}
 }
 
+struct call_args_info_t
+{
+	ast::arena_vector<llvm::Value *> args;
+	ast::arena_vector<is_byval_and_type_pair> args_is_byval;
+};
+
+template<abi::platform_abi abi>
+static call_args_info_t emit_function_call_args(
+	llvm::Type *result_type,
+	abi::pass_kind result_kind,
+	ast::expr_function_call const &func_call,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	ast::arena_vector<llvm::Value *> args = {};
+	ast::arena_vector<is_byval_and_type_pair> args_is_byval = {};
+	args.reserve(
+		func_call.params.size()
+		+ (result_kind == abi::pass_kind::reference || result_kind == abi::pass_kind::non_trivial ? 1 : 0)
+	);
+	args_is_byval.reserve(
+		func_call.params.size()
+		+ (result_kind == abi::pass_kind::reference || result_kind == abi::pass_kind::non_trivial ? 1 : 0)
+	);
+
+	auto const emit_arg = [&]<bool push_to_front>(size_t i, bz::meta::integral_constant<bool, push_to_front>)
+	{
+		auto &p = func_call.params[i];
+		auto &param_type = func_call.func_body->params[i].get_type();
+		if (ast::is_generic_parameter(func_call.func_body->params[i]))
+		{
+			// do nothing for typename args
+			return;
+		}
+		else if (p.is_error())
+		{
+			auto const param_llvm_type = get_llvm_type(param_type, context);
+			emit_bitcode<abi>(p, context, nullptr);
+			auto const param_val = val_ptr::get_value(llvm::UndefValue::get(param_llvm_type));
+			add_call_parameter<abi, push_to_front>(param_type, param_llvm_type, param_val, args, args_is_byval, context);
+		}
+		else
+		{
+			auto const param_llvm_type = get_llvm_type(param_type, context);
+			auto const param_val = emit_bitcode<abi>(p, context, nullptr);
+			bz_assert(param_val.val != nullptr || param_val.consteval_val != nullptr);
+			add_call_parameter<abi, push_to_front>(param_type, param_llvm_type, param_val, args, args_is_byval, context);
+		}
+	};
+
+	if (func_call.param_resolve_order == ast::resolve_order::reversed)
+	{
+		for (auto const i : bz::iota(0, func_call.params.size()).reversed())
+		{
+			emit_arg(i, bz::meta::integral_constant<bool, true>{});
+		}
+	}
+	else
+	{
+		for (auto const i : bz::iota(0, func_call.params.size()))
+		{
+			emit_arg(i, bz::meta::integral_constant<bool, false>{});
+		}
+	}
+
+	if (result_kind == abi::pass_kind::reference || result_kind == abi::pass_kind::non_trivial)
+	{
+		auto const output_ptr = result_address != nullptr
+			? result_address
+			: context.create_alloca(result_type);
+		args.push_front(output_ptr);
+		args_is_byval.push_front({ false, nullptr });
+	}
+
+	if (
+		func_call.func_body->is_intrinsic()
+		&& (
+			func_call.func_body->intrinsic_kind == ast::function_body::memcpy
+			|| func_call.func_body->intrinsic_kind == ast::function_body::memmove
+			|| func_call.func_body->intrinsic_kind == ast::function_body::memset
+			|| func_call.func_body->intrinsic_kind == ast::function_body::clz_u8
+			|| func_call.func_body->intrinsic_kind == ast::function_body::clz_u16
+			|| func_call.func_body->intrinsic_kind == ast::function_body::clz_u32
+			|| func_call.func_body->intrinsic_kind == ast::function_body::clz_u64
+			|| func_call.func_body->intrinsic_kind == ast::function_body::ctz_u8
+			|| func_call.func_body->intrinsic_kind == ast::function_body::ctz_u16
+			|| func_call.func_body->intrinsic_kind == ast::function_body::ctz_u32
+			|| func_call.func_body->intrinsic_kind == ast::function_body::ctz_u64
+			|| func_call.func_body->intrinsic_kind == ast::function_body::abs_i8
+			|| func_call.func_body->intrinsic_kind == ast::function_body::abs_i16
+			|| func_call.func_body->intrinsic_kind == ast::function_body::abs_i32
+			|| func_call.func_body->intrinsic_kind == ast::function_body::abs_i64
+		)
+	)
+	{
+		args.push_back(llvm::ConstantInt::getFalse(context.get_llvm_context()));
+		args_is_byval.push_back({ false, nullptr });
+	}
+
+	return { std::move(args), std::move(args_is_byval) };
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_function_call(
+	ast::typespec_view return_type,
+	llvm::Type *result_type,
+	abi::pass_kind result_kind,
+	llvm::FunctionType *fn_type,
+	llvm::Value *fn,
+	llvm::CallingConv::ID calling_convention,
+	bz::array_view<llvm::Value * const> args,
+	bz::array_view<is_byval_and_type_pair const> args_is_byval,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const call = [&]() {
+		if constexpr (is_comptime<decltype(context)>)
+		{
+			auto const call = context.create_call(
+				{ fn_type, fn },
+				calling_convention,
+				llvm::ArrayRef(args.data(), args.size())
+			);
+			auto is_byval_it = args_is_byval.begin();
+			auto const is_byval_end = args_is_byval.end();
+			unsigned i = 0;
+			bz_assert(fn_type->getNumParams() == call->arg_size());
+			if (result_kind == abi::pass_kind::reference || result_kind == abi::pass_kind::non_trivial)
+			{
+				call->addParamAttr(0, llvm::Attribute::getWithStructRetType(context.get_llvm_context(), result_type));
+				bz_assert(is_byval_it != is_byval_end);
+				++is_byval_it, ++i;
+			}
+			for (; is_byval_it != is_byval_end; ++is_byval_it, ++i)
+			{
+				if (is_byval_it->is_byval)
+				{
+					add_byval_attributes<abi>(call, is_byval_it->type, i, context);
+				}
+			}
+
+			return call;
+		}
+		else
+		{
+			auto const call = context.create_call(
+				{ fn_type, fn },
+				calling_convention,
+				llvm::ArrayRef(args.data(), args.size())
+			);
+			auto is_byval_it = args_is_byval.begin();
+			auto const is_byval_end = args_is_byval.end();
+			unsigned i = 0;
+			bz_assert(fn_type->getNumParams() == call->arg_size());
+			if (result_kind == abi::pass_kind::reference || result_kind == abi::pass_kind::non_trivial)
+			{
+				call->addParamAttr(0, llvm::Attribute::getWithStructRetType(context.get_llvm_context(), result_type));
+				bz_assert(is_byval_it != is_byval_end);
+				++is_byval_it, ++i;
+			}
+			for (; is_byval_it != is_byval_end; ++is_byval_it, ++i)
+			{
+				if (is_byval_it->is_byval)
+				{
+					add_byval_attributes<abi>(call, is_byval_it->type, i, context);
+				}
+			}
+			return call;
+		}
+	}();
+
+	switch (result_kind)
+	{
+	case abi::pass_kind::reference:
+	case abi::pass_kind::non_trivial:
+		bz_assert(result_address == nullptr || args.front() == result_address);
+		return val_ptr::get_reference(args.front(), result_type);
+	case abi::pass_kind::value:
+		if (call->getType()->isVoidTy())
+		{
+			return val_ptr::get_none();
+		}
+		else if (return_type.is<ast::ts_lvalue_reference>())
+		{
+			auto const inner_result_type = return_type.get<ast::ts_lvalue_reference>();
+			auto const inner_result_llvm_type = get_llvm_type(inner_result_type, context);
+			bz_assert(result_address == nullptr);
+			return val_ptr::get_reference(call, inner_result_llvm_type);
+		}
+		if (result_address == nullptr)
+		{
+			return val_ptr::get_value(call);
+		}
+		else
+		{
+			context.builder.CreateStore(call, result_address);
+			return val_ptr::get_reference(result_address, call->getType());
+		}
+	case abi::pass_kind::one_register:
+	case abi::pass_kind::two_registers:
+	{
+		auto const call_result_type = call->getType();
+		if (result_address != nullptr)
+		{
+			context.builder.CreateStore(call, result_address);
+			return val_ptr::get_reference(result_address, result_type);
+		}
+		else if (result_type == call_result_type)
+		{
+			return val_ptr::get_value(call);
+		}
+		else
+		{
+			auto const result_ptr = context.create_alloca(result_type);
+			context.builder.CreateStore(call, result_ptr);
+			return val_ptr::get_reference(result_ptr, result_type);
+		}
+	}
+	default:
+		bz_unreachable;
+	}
+}
+
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
@@ -3776,13 +4001,120 @@ static val_ptr emit_bitcode(
 	auto const result_type = get_llvm_type(func_call.func_body->return_type, context);
 	auto const result_kind = context.template get_pass_kind<abi>(func_call.func_body->return_type, result_type);
 
-	ast::arena_vector<llvm::Value *> params = {};
-	ast::arena_vector<is_byval_and_type_pair> params_is_byval = {};
-	params.reserve(
+	auto const [args, args_is_byval] = emit_function_call_args<abi>(
+		result_type,
+		result_kind,
+		func_call,
+		context,
+		result_address
+	);
+
+	if constexpr (is_comptime<decltype(context)>) if (false)
+	{
+		static auto const fn_type = llvm::FunctionType::get(
+			llvm::Type::getVoidTy(context.get_llvm_context()),
+			{ llvm::Type::getInt8PtrTy(context.get_llvm_context()) },
+			false
+		);
+		static auto const debug_print_func_definition = llvm::Function::Create(
+			fn_type,
+			llvm::Function::ExternalLinkage,
+			"__bozon_builtin_debug_print",
+			context.get_module()
+		);
+		static auto current_decl_module = &context.get_module();
+		static auto current_decl = debug_print_func_definition;
+
+		auto const debug_print_func = [&]() {
+			if (&context.get_module() == current_decl_module)
+			{
+				return current_decl;
+			}
+			else
+			{
+				current_decl = llvm::Function::Create(
+					fn_type,
+					llvm::Function::ExternalLinkage,
+					"__bozon_builtin_debug_print",
+					context.get_module()
+				);
+				current_decl_module = &context.get_module();
+				return current_decl;
+			}
+		}();
+
+		auto const file = context.global_ctx.get_file_name(src_tokens.pivot->src_pos.file_id);
+		// if (!file.ends_with("__comptime_checking.bz"))
+		{
+			auto const line = src_tokens.pivot->src_pos.line;
+			auto const message = bz::format("{}:{}: {}", file, line, func_call.func_body->get_signature());
+			auto const string_constant = context.create_string(message);
+			auto const c_str = string_constant;
+			context.create_call(debug_print_func, { c_str });
+		}
+	}
+
+	if constexpr (is_comptime<decltype(context)>)
+	{
+		llvm::Value *pre_call_error_count = nullptr;
+		if (!func_call.func_body->is_no_comptime_checking())
+		{
+			pre_call_error_count = emit_push_call(func_call.src_tokens, func_call.func_body, context);
+		}
+
+		auto const result = emit_function_call<abi>(
+			func_call.func_body->return_type,
+			result_type,
+			result_kind,
+			fn->getFunctionType(),
+			fn,
+			fn->getCallingConv(),
+			args,
+			args_is_byval,
+			context,
+			result_address
+		);
+
+		if (!func_call.func_body->is_no_comptime_checking())
+		{
+			emit_pop_call(pre_call_error_count, context);
+		}
+		return result;
+	}
+	else
+	{
+		return emit_function_call<abi>(
+			func_call.func_body->return_type,
+			result_type,
+			result_kind,
+			fn->getFunctionType(),
+			fn,
+			fn->getCallingConv(),
+			args,
+			args_is_byval,
+			context,
+			result_address
+		);
+	}
+}
+
+template<abi::platform_abi abi>
+static call_args_info_t emit_function_call_args(
+	llvm::Type *result_type,
+	abi::pass_kind result_kind,
+	ast::expr_indirect_function_call const &func_call,
+	bz::array_view<ast::typespec const> param_types,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	ast::arena_vector<llvm::Value *> args = {};
+	ast::arena_vector<is_byval_and_type_pair> args_is_byval = {};
+	args.reserve(
 		func_call.params.size()
 		+ (result_kind == abi::pass_kind::reference || result_kind == abi::pass_kind::non_trivial ? 1 : 0)
 	);
-	params_is_byval.reserve(
+	args_is_byval.reserve(
 		func_call.params.size()
 		+ (result_kind == abi::pass_kind::reference || result_kind == abi::pass_kind::non_trivial ? 1 : 0)
 	);
@@ -3790,41 +4122,26 @@ static val_ptr emit_bitcode(
 	auto const emit_arg = [&]<bool push_to_front>(size_t i, bz::meta::integral_constant<bool, push_to_front>)
 	{
 		auto &p = func_call.params[i];
-		auto &param_type = func_call.func_body->params[i].get_type();
-		if (ast::is_generic_parameter(func_call.func_body->params[i]))
-		{
-			// do nothing for typename args
-			return;
-		}
-		else if (p.is_error())
+		auto &param_type = param_types[i];
+		if (p.is_error())
 		{
 			auto const param_llvm_type = get_llvm_type(param_type, context);
 			emit_bitcode<abi>(p, context, nullptr);
 			auto const param_val = val_ptr::get_value(llvm::UndefValue::get(param_llvm_type));
-			add_call_parameter<abi, push_to_front>(param_type, param_llvm_type, param_val, params, params_is_byval, context);
+			add_call_parameter<abi, push_to_front>(param_type, param_llvm_type, param_val, args, args_is_byval, context);
 		}
 		else
 		{
 			auto const param_llvm_type = get_llvm_type(param_type, context);
 			auto const param_val = emit_bitcode<abi>(p, context, nullptr);
 			bz_assert(param_val.val != nullptr || param_val.consteval_val != nullptr);
-			add_call_parameter<abi, push_to_front>(param_type, param_llvm_type, param_val, params, params_is_byval, context);
+			add_call_parameter<abi, push_to_front>(param_type, param_llvm_type, param_val, args, args_is_byval, context);
 		}
 	};
 
-	if (func_call.param_resolve_order == ast::resolve_order::reversed)
+	for (auto const i : bz::iota(0, func_call.params.size()))
 	{
-		for (auto const i : bz::iota(0, func_call.params.size()).reversed())
-		{
-			emit_arg(i, bz::meta::integral_constant<bool, true>{});
-		}
-	}
-	else
-	{
-		for (auto const i : bz::iota(0, func_call.params.size()))
-		{
-			emit_arg(i, bz::meta::integral_constant<bool, false>{});
-		}
+		emit_arg(i, bz::meta::integral_constant<bool, false>{});
 	}
 
 	if (result_kind == abi::pass_kind::reference || result_kind == abi::pass_kind::non_trivial)
@@ -3832,188 +4149,62 @@ static val_ptr emit_bitcode(
 		auto const output_ptr = result_address != nullptr
 			? result_address
 			: context.create_alloca(result_type);
-		params.push_front(output_ptr);
-		params_is_byval.push_front({ false, nullptr });
+		args.push_front(output_ptr);
+		args_is_byval.push_front({ false, nullptr });
 	}
 
-	if (
-		func_call.func_body->is_intrinsic()
-		&& (
-			func_call.func_body->intrinsic_kind == ast::function_body::memcpy
-			|| func_call.func_body->intrinsic_kind == ast::function_body::memmove
-			|| func_call.func_body->intrinsic_kind == ast::function_body::memset
-			|| func_call.func_body->intrinsic_kind == ast::function_body::clz_u8
-			|| func_call.func_body->intrinsic_kind == ast::function_body::clz_u16
-			|| func_call.func_body->intrinsic_kind == ast::function_body::clz_u32
-			|| func_call.func_body->intrinsic_kind == ast::function_body::clz_u64
-			|| func_call.func_body->intrinsic_kind == ast::function_body::ctz_u8
-			|| func_call.func_body->intrinsic_kind == ast::function_body::ctz_u16
-			|| func_call.func_body->intrinsic_kind == ast::function_body::ctz_u32
-			|| func_call.func_body->intrinsic_kind == ast::function_body::ctz_u64
-			|| func_call.func_body->intrinsic_kind == ast::function_body::abs_i8
-			|| func_call.func_body->intrinsic_kind == ast::function_body::abs_i16
-			|| func_call.func_body->intrinsic_kind == ast::function_body::abs_i32
-			|| func_call.func_body->intrinsic_kind == ast::function_body::abs_i64
-		)
-	)
-	{
-		params.push_back(llvm::ConstantInt::getFalse(context.get_llvm_context()));
-		params_is_byval.push_back({ false, nullptr });
-	}
+	return { std::move(args), std::move(args_is_byval) };
+}
 
-	auto const call = [&]() {
-		if constexpr (is_comptime<decltype(context)>)
-		{
-			llvm::Value *pre_call_error_count = nullptr;
-			if (!func_call.func_body->is_no_comptime_checking())
-			{
-				pre_call_error_count = emit_push_call(func_call.src_tokens, func_call.func_body, context);
-			}
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_indirect_function_call const &func_call,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const fn_type = func_call.called.get_expr_type();
+	bz_assert(fn_type.is<ast::ts_function>());
+	auto const return_type = fn_type.get<ast::ts_function>().return_type.as_typespec_view();
 
-			if (false)
-			{
-				auto const fn_type = llvm::FunctionType::get(
-					llvm::Type::getVoidTy(context.get_llvm_context()),
-					{ llvm::Type::getInt8PtrTy(context.get_llvm_context()) },
-					false
-				);
-				static auto debug_print_func_definition = llvm::Function::Create(
-					fn_type,
-					llvm::Function::ExternalLinkage,
-					"__bozon_builtin_debug_print",
-					context.get_module()
-				);
-				static auto current_decl_module = &context.get_module();
-				static auto current_decl = debug_print_func_definition;
+	auto const result_type = get_llvm_type(return_type, context);
+	auto const result_kind = context.template get_pass_kind<abi>(return_type, result_type);
 
-				auto const debug_print_func = [&]() {
-					if (&context.get_module() == current_decl_module)
-					{
-						return current_decl;
-					}
-					else
-					{
-						current_decl = llvm::Function::Create(
-							fn_type,
-							llvm::Function::ExternalLinkage,
-							"__bozon_builtin_debug_print",
-							context.get_module()
-						);
-						current_decl_module = &context.get_module();
-						return current_decl;
-					}
-				}();
+	auto const called = emit_bitcode<abi>(func_call.called, context, result_address);
+	auto const fn = called.get_value(context.builder);
 
-				auto const file = context.global_ctx.get_file_name(src_tokens.pivot->src_pos.file_id);
-				// if (!file.ends_with("__comptime_checking.bz"))
-				{
-					auto const line = src_tokens.pivot->src_pos.line;
-					auto const message = bz::format("{}:{}: {}", file, line, func_call.func_body->get_signature());
-					auto const string_constant = context.create_string(message);
-					auto const c_str = string_constant;
-					context.create_call(debug_print_func, { c_str });
-				}
-			}
+	auto const [args, args_is_byval] = emit_function_call_args<abi>(
+		result_type,
+		result_kind,
+		func_call,
+		fn_type.get<ast::ts_function>().param_types,
+		context,
+		result_address
+	);
 
-			auto const call = context.create_call(fn, llvm::ArrayRef(params.data(), params.size()));
-			auto is_byval_it = params_is_byval.begin();
-			auto const is_byval_end = params_is_byval.end();
-			unsigned i = 0;
-			bz_assert(fn->arg_size() == call->arg_size());
-			if (result_kind == abi::pass_kind::reference || result_kind == abi::pass_kind::non_trivial)
-			{
-				call->addParamAttr(0, llvm::Attribute::getWithStructRetType(context.get_llvm_context(), result_type));
-				bz_assert(is_byval_it != is_byval_end);
-				++is_byval_it, ++i;
-			}
-			for (; is_byval_it != is_byval_end; ++is_byval_it, ++i)
-			{
-				if (is_byval_it->is_byval)
-				{
-					add_byval_attributes<abi>(call, is_byval_it->type, i, context);
-				}
-			}
-
-			if (!func_call.func_body->is_no_comptime_checking())
-			{
-				emit_pop_call(pre_call_error_count, context);
-			}
-			return call;
-		}
-		else
-		{
-			auto const call = context.create_call(fn, llvm::ArrayRef(params.data(), params.size()));
-			auto is_byval_it = params_is_byval.begin();
-			auto const is_byval_end = params_is_byval.end();
-			unsigned i = 0;
-			bz_assert(fn->arg_size() == call->arg_size());
-			if (result_kind == abi::pass_kind::reference || result_kind == abi::pass_kind::non_trivial)
-			{
-				call->addParamAttr(0, llvm::Attribute::getWithStructRetType(context.get_llvm_context(), result_type));
-				bz_assert(is_byval_it != is_byval_end);
-				++is_byval_it, ++i;
-			}
-			for (; is_byval_it != is_byval_end; ++is_byval_it, ++i)
-			{
-				if (is_byval_it->is_byval)
-				{
-					add_byval_attributes<abi>(call, is_byval_it->type, i, context);
-				}
-			}
-			return call;
-		}
+	auto const fn_llvm_type = [&, &args = args]() {
+		auto const param_llvm_types = args
+			.transform([](auto const arg) { return arg->getType(); })
+			.template collect<ast::arena_vector>();
+		return llvm::FunctionType::get(
+			result_type,
+			llvm::ArrayRef<llvm::Type *>(param_llvm_types.data(), param_llvm_types.size()),
+			false
+		);
 	}();
-
-	switch (result_kind)
-	{
-	case abi::pass_kind::reference:
-	case abi::pass_kind::non_trivial:
-		bz_assert(result_address == nullptr || params.front() == result_address);
-		return val_ptr::get_reference(params.front(), result_type);
-	case abi::pass_kind::value:
-		if (call->getType()->isVoidTy())
-		{
-			return val_ptr::get_none();
-		}
-		else if (func_call.func_body->return_type.is<ast::ts_lvalue_reference>())
-		{
-			auto const inner_result_type = func_call.func_body->return_type.get<ast::ts_lvalue_reference>();
-			auto const inner_result_llvm_type = get_llvm_type(inner_result_type, context);
-			bz_assert(result_address == nullptr);
-			return val_ptr::get_reference(call, inner_result_llvm_type);
-		}
-		if (result_address == nullptr)
-		{
-			return val_ptr::get_value(call);
-		}
-		else
-		{
-			context.builder.CreateStore(call, result_address);
-			return val_ptr::get_reference(result_address, call->getType());
-		}
-	case abi::pass_kind::one_register:
-	case abi::pass_kind::two_registers:
-	{
-		auto const call_result_type = call->getType();
-		if (result_address != nullptr)
-		{
-			context.builder.CreateStore(call, result_address);
-			return val_ptr::get_reference(result_address, result_type);
-		}
-		else if (result_type == call_result_type)
-		{
-			return val_ptr::get_value(call);
-		}
-		else
-		{
-			auto const result_ptr = context.create_alloca(result_type);
-			context.builder.CreateStore(call, result_ptr);
-			return val_ptr::get_reference(result_ptr, result_type);
-		}
-	}
-	default:
-		bz_unreachable;
-	}
+	return emit_function_call<abi>(
+		return_type,
+		result_type,
+		result_kind,
+		fn_llvm_type,
+		fn,
+		llvm::CallingConv::C,
+		args,
+		args_is_byval,
+		context,
+		result_address
+	);
 }
 
 template<abi::platform_abi abi>
@@ -7202,8 +7393,7 @@ static llvm::Constant *get_value_helper(
 	}
 	case ast::constant_value::function:
 	{
-		auto const decl = value.get_function();
-		return context.get_function(&decl->body);
+		return context.get_function(value.get_function());
 	}
 	case ast::constant_value::aggregate:
 	{

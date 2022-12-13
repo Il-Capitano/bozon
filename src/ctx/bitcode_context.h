@@ -104,6 +104,11 @@ struct bitcode_context
 		llvm::Function *fn,
 		llvm::ArrayRef<llvm::Value *> args = llvm::None
 	);
+	llvm::CallInst *create_call(
+		llvm::FunctionCallee fn,
+		llvm::CallingConv::ID calling_convention,
+		llvm::ArrayRef<llvm::Value *> args = llvm::None
+	);
 
 	bc::val_ptr get_struct_element(bc::val_ptr value, uint64_t idx);
 
