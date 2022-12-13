@@ -7539,7 +7539,13 @@ bool parse_context::is_instantiable(lex::src_tokens const &src_tokens, ast::type
 size_t parse_context::get_sizeof(ast::typespec_view ts)
 {
 	// constexpr uint64_t invalid_size = std::numeric_limits<uint64_t>::max();
-	return this->global_ctx._comptime_executor.get_size(ts);
+	auto const prev_parse_context = this->global_ctx._comptime_executor.current_parse_ctx;
+	this->global_ctx._comptime_executor.current_parse_ctx = this;
+
+	auto const result = this->global_ctx._comptime_executor.get_size(ts);
+
+	this->global_ctx._comptime_executor.current_parse_ctx = prev_parse_context;
+	return result;
 }
 
 ast::identifier parse_context::make_qualified_identifier(lex::token_pos id)
