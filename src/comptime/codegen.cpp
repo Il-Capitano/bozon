@@ -275,23 +275,83 @@ static expr_value generate_expr_code(
 );
 
 static expr_value generate_expr_code(
-	ast::expr_identifier const &identifier,
+	ast::expr_variable_name const &var_name,
 	codegen_context &context
 )
 {
-	auto const result = context.get_variable(identifier.decl);
+	auto const result = context.get_variable(var_name.decl);
 
 	if (result.is_none())
 	{
 		context.create_error(
-			lex::src_tokens::from_range(identifier.id.tokens),
-			bz::format("variable '{}' cannot be used in a constant expression", identifier.id.as_string())
+			lex::src_tokens::from_range(var_name.id.tokens),
+			bz::format("variable '{}' cannot be used in a constant expression", var_name.id.as_string())
 		);
-		auto const type = get_type(identifier.decl->get_type(), context);
+		auto const type = get_type(var_name.decl->get_type(), context);
 		return context.get_dummy_value(type);
 	}
 
 	return result;
+}
+
+static expr_value generate_expr_code(
+	ast::expr_function_name const &,
+	codegen_context &,
+	bz::optional<expr_value>
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+static expr_value generate_expr_code(
+	ast::expr_function_alias_name const &,
+	codegen_context &,
+	bz::optional<expr_value>
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+static expr_value generate_expr_code(
+	ast::expr_function_overload_set const &,
+	codegen_context &,
+	bz::optional<expr_value>
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+static expr_value generate_expr_code(
+	ast::expr_struct_name const &,
+	codegen_context &,
+	bz::optional<expr_value>
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+static expr_value generate_expr_code(
+	ast::expr_enum_name const &,
+	codegen_context &,
+	bz::optional<expr_value>
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+static expr_value generate_expr_code(
+	ast::expr_type_alias_name const &,
+	codegen_context &,
+	bz::optional<expr_value>
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
 }
 
 static expr_value generate_expr_code(
@@ -345,6 +405,16 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expr_typename_literal const &,
+	codegen_context &,
+	bz::optional<expr_value>
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+static expr_value generate_expr_code(
 	ast::expr_tuple const &tuple_expr,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -381,7 +451,7 @@ static expr_value generate_builtin_unary_address_of(
 	auto const value = generate_expr_code(expr, context, {});
 	if (!value.is_reference())
 	{
-		if (auto const id_expr = expr.get_expr().get_if<ast::expr_identifier>(); id_expr && id_expr->decl != nullptr)
+		if (auto const id_expr = expr.get_expr().get_if<ast::expr_variable_name>())
 		{
 			context.create_error(
 				expr.src_tokens,
@@ -2257,6 +2327,13 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
+	ast::expr_indirect_function_call const &func_call,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+);
+
+static expr_value generate_expr_code(
 	ast::expr_cast const &cast,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -3756,10 +3833,22 @@ static expr_value generate_expr_code(
 {
 	switch (expr.kind())
 	{
-	static_assert(ast::expr_t::variant_count == 61);
-	case ast::expr_t::index<ast::expr_identifier>:
+	static_assert(ast::expr_t::variant_count == 69);
+	case ast::expr_t::index<ast::expr_variable_name>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(expr.get<ast::expr_identifier>(), context);
+		return generate_expr_code(expr.get<ast::expr_variable_name>(), context);
+	case ast::expr_t::index<ast::expr_function_name>:
+		return generate_expr_code(expr.get<ast::expr_function_name>(), context, result_address);
+	case ast::expr_t::index<ast::expr_function_alias_name>:
+		return generate_expr_code(expr.get<ast::expr_function_alias_name>(), context, result_address);
+	case ast::expr_t::index<ast::expr_function_overload_set>:
+		return generate_expr_code(expr.get<ast::expr_function_overload_set>(), context, result_address);
+	case ast::expr_t::index<ast::expr_struct_name>:
+		return generate_expr_code(expr.get<ast::expr_struct_name>(), context, result_address);
+	case ast::expr_t::index<ast::expr_enum_name>:
+		return generate_expr_code(expr.get<ast::expr_enum_name>(), context, result_address);
+	case ast::expr_t::index<ast::expr_type_alias_name>:
+		return generate_expr_code(expr.get<ast::expr_type_alias_name>(), context, result_address);
 	case ast::expr_t::index<ast::expr_integer_literal>:
 		return generate_expr_code(expr.get<ast::expr_integer_literal>(), context, result_address);
 	case ast::expr_t::index<ast::expr_null_literal>:
@@ -3770,6 +3859,8 @@ static expr_value generate_expr_code(
 		return generate_expr_code(expr.get<ast::expr_typed_literal>(), context, result_address);
 	case ast::expr_t::index<ast::expr_placeholder_literal>:
 		return generate_expr_code(expr.get<ast::expr_placeholder_literal>(), context, result_address);
+	case ast::expr_t::index<ast::expr_typename_literal>:
+		return generate_expr_code(expr.get<ast::expr_typename_literal>(), context, result_address);
 	case ast::expr_t::index<ast::expr_tuple>:
 		return generate_expr_code(expr.get<ast::expr_tuple>(), context, result_address);
 	case ast::expr_t::index<ast::expr_unary_op>:
@@ -3788,6 +3879,8 @@ static expr_value generate_expr_code(
 		return generate_expr_code(original_expression.src_tokens, expr.get<ast::expr_rvalue_array_subscript>(), context);
 	case ast::expr_t::index<ast::expr_function_call>:
 		return generate_expr_code(original_expression, expr.get<ast::expr_function_call>(), context, result_address);
+	case ast::expr_t::index<ast::expr_indirect_function_call>:
+		return generate_expr_code(original_expression, expr.get<ast::expr_indirect_function_call>(), context, result_address);
 	case ast::expr_t::index<ast::expr_cast>:
 		return generate_expr_code(expr.get<ast::expr_cast>(), context, result_address);
 	case ast::expr_t::index<ast::expr_optional_cast>:
@@ -3924,7 +4017,7 @@ static bool is_zero_value(ast::constant_value const &value)
 {
 	switch (value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 21);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value::sint:
 		return value.get_sint() == 0;
 	case ast::constant_value::uint:
@@ -3961,9 +4054,6 @@ static bool is_zero_value(ast::constant_value const &value)
 		return false;
 	case ast::constant_value::aggregate:
 		return value.get_aggregate().is_all([](auto const &value) { return is_zero_value(value); });
-	case ast::constant_value::unqualified_function_set_id:
-	case ast::constant_value::qualified_function_set_id:
-		bz_unreachable;
 	case ast::constant_value::type:
 		bz_unreachable;
 	default:
@@ -4219,7 +4309,7 @@ static expr_value get_constant_value_helper(
 {
 	switch (value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 21);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value::sint:
 	{
 		auto int_value = expr_value::get_none();
@@ -4553,9 +4643,6 @@ static expr_value get_constant_value_helper(
 		}
 		return result_value;
 	}
-	case ast::constant_value::unqualified_function_set_id:
-	case ast::constant_value::qualified_function_set_id:
-		bz_unreachable;
 	case ast::constant_value::type:
 		bz_unreachable;
 	default:
