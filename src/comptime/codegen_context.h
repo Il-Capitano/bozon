@@ -334,6 +334,8 @@ struct codegen_context
 	expr_value create_and(expr_value lhs, expr_value rhs);
 	expr_value create_xor(expr_value lhs, expr_value rhs);
 	expr_value create_or(expr_value lhs, expr_value rhs);
+	expr_value create_shl(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_rhs_signed);
+	expr_value create_shr(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_rhs_signed);
 
 	expr_value create_abs(expr_value value);
 	void create_abs_check(lex::src_tokens const &src_tokens, expr_value value);

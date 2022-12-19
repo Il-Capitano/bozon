@@ -1896,6 +1896,134 @@ struct or_i64
 	static inline constexpr value_type result_type = value_type::i64;
 };
 
+struct shl_i8_signed
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i8;
+
+	uint32_t src_tokens_index;
+};
+
+struct shl_i16_signed
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i16;
+
+	uint32_t src_tokens_index;
+};
+
+struct shl_i32_signed
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i32;
+
+	uint32_t src_tokens_index;
+};
+
+struct shl_i64_signed
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+
+	uint32_t src_tokens_index;
+};
+
+struct shl_i8_unsigned
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i8;
+
+	uint32_t src_tokens_index;
+};
+
+struct shl_i16_unsigned
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i16;
+
+	uint32_t src_tokens_index;
+};
+
+struct shl_i32_unsigned
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i32;
+
+	uint32_t src_tokens_index;
+};
+
+struct shl_i64_unsigned
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+
+	uint32_t src_tokens_index;
+};
+
+struct shr_i8_signed
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i8;
+
+	uint32_t src_tokens_index;
+};
+
+struct shr_i16_signed
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i16;
+
+	uint32_t src_tokens_index;
+};
+
+struct shr_i32_signed
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i32;
+
+	uint32_t src_tokens_index;
+};
+
+struct shr_i64_signed
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+
+	uint32_t src_tokens_index;
+};
+
+struct shr_i8_unsigned
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i8;
+
+	uint32_t src_tokens_index;
+};
+
+struct shr_i16_unsigned
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i16;
+
+	uint32_t src_tokens_index;
+};
+
+struct shr_i32_unsigned
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i32;
+
+	uint32_t src_tokens_index;
+};
+
+struct shr_i64_unsigned
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+
+	uint32_t src_tokens_index;
+};
+
 struct abs_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
@@ -3514,6 +3642,22 @@ using instruction_list = bz::meta::type_pack<
 	instructions::or_i16,
 	instructions::or_i32,
 	instructions::or_i64,
+	instructions::shl_i8_signed,
+	instructions::shl_i16_signed,
+	instructions::shl_i32_signed,
+	instructions::shl_i64_signed,
+	instructions::shl_i8_unsigned,
+	instructions::shl_i16_unsigned,
+	instructions::shl_i32_unsigned,
+	instructions::shl_i64_unsigned,
+	instructions::shr_i8_signed,
+	instructions::shr_i16_signed,
+	instructions::shr_i32_signed,
+	instructions::shr_i64_signed,
+	instructions::shr_i8_unsigned,
+	instructions::shr_i16_unsigned,
+	instructions::shr_i32_unsigned,
+	instructions::shr_i64_unsigned,
 	instructions::abs_i8,
 	instructions::abs_i16,
 	instructions::abs_i32,
@@ -3720,7 +3864,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 471);
+	static_assert(variant_count == 487);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -3999,6 +4143,22 @@ struct instruction : instruction_base_t
 		or_i16                   = index_of<instructions::or_i16>,
 		or_i32                   = index_of<instructions::or_i32>,
 		or_i64                   = index_of<instructions::or_i64>,
+		shl_i8_signed            = index_of<instructions::shl_i8_signed>,
+		shl_i16_signed           = index_of<instructions::shl_i16_signed>,
+		shl_i32_signed           = index_of<instructions::shl_i32_signed>,
+		shl_i64_signed           = index_of<instructions::shl_i64_signed>,
+		shl_i8_unsigned          = index_of<instructions::shl_i8_unsigned>,
+		shl_i16_unsigned         = index_of<instructions::shl_i16_unsigned>,
+		shl_i32_unsigned         = index_of<instructions::shl_i32_unsigned>,
+		shl_i64_unsigned         = index_of<instructions::shl_i64_unsigned>,
+		shr_i8_signed            = index_of<instructions::shr_i8_signed>,
+		shr_i16_signed           = index_of<instructions::shr_i16_signed>,
+		shr_i32_signed           = index_of<instructions::shr_i32_signed>,
+		shr_i64_signed           = index_of<instructions::shr_i64_signed>,
+		shr_i8_unsigned          = index_of<instructions::shr_i8_unsigned>,
+		shr_i16_unsigned         = index_of<instructions::shr_i16_unsigned>,
+		shr_i32_unsigned         = index_of<instructions::shr_i32_unsigned>,
+		shr_i64_unsigned         = index_of<instructions::shr_i64_unsigned>,
 		abs_i8                   = index_of<instructions::abs_i8>,
 		abs_i16                  = index_of<instructions::abs_i16>,
 		abs_i32                  = index_of<instructions::abs_i32>,

@@ -2355,6 +2355,190 @@ static uint64_t execute_or_i64(instructions::or_i64 const &, uint64_t lhs, uint6
 	return lhs | rhs;
 }
 
+static uint8_t execute_shl_i8_signed(instructions::shl_i8_signed const &inst, uint8_t lhs, uint64_t rhs, executor_context &context)
+{
+	auto const irhs = static_cast<int64_t>(rhs);
+	if (irhs < 0)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint8'", irhs));
+	}
+	else if (irhs >= 8)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint8'", irhs));
+	}
+	return lhs << uint8_t(rhs);
+}
+
+static uint16_t execute_shl_i16_signed(instructions::shl_i16_signed const &inst, uint16_t lhs, uint64_t rhs, executor_context &context)
+{
+	auto const irhs = static_cast<int64_t>(rhs);
+	if (irhs < 0)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint16'", irhs));
+	}
+	else if (irhs >= 16)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint16'", irhs));
+	}
+	return lhs << uint16_t(rhs);
+}
+
+static uint32_t execute_shl_i32_signed(instructions::shl_i32_signed const &inst, uint32_t lhs, uint64_t rhs, executor_context &context)
+{
+	auto const irhs = static_cast<int64_t>(rhs);
+	if (irhs < 0)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint32'", irhs));
+	}
+	else if (irhs >= 32)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint32'", irhs));
+	}
+	return lhs << uint32_t(rhs);
+}
+
+static uint64_t execute_shl_i64_signed(instructions::shl_i64_signed const &inst, uint64_t lhs, uint64_t rhs, executor_context &context)
+{
+	auto const irhs = static_cast<int64_t>(rhs);
+	if (irhs < 0)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint64'", irhs));
+	}
+	else if (irhs >= 64)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint64'", irhs));
+	}
+	return lhs << uint64_t(rhs);
+}
+
+static uint8_t execute_shl_i8_unsigned(instructions::shl_i8_unsigned const &inst, uint8_t lhs, uint64_t rhs, executor_context &context)
+{
+	if (rhs >= 8)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint8'", rhs));
+	}
+	return lhs << uint8_t(rhs);
+}
+
+static uint16_t execute_shl_i16_unsigned(instructions::shl_i16_unsigned const &inst, uint16_t lhs, uint64_t rhs, executor_context &context)
+{
+	if (rhs >= 16)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint16'", rhs));
+	}
+	return lhs << uint16_t(rhs);
+}
+
+static uint32_t execute_shl_i32_unsigned(instructions::shl_i32_unsigned const &inst, uint32_t lhs, uint64_t rhs, executor_context &context)
+{
+	if (rhs >= 32)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint32'", rhs));
+	}
+	return lhs << uint32_t(rhs);
+}
+
+static uint64_t execute_shl_i64_unsigned(instructions::shl_i64_unsigned const &inst, uint64_t lhs, uint64_t rhs, executor_context &context)
+{
+	if (rhs >= 64)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint64'", rhs));
+	}
+	return lhs << uint64_t(rhs);
+}
+
+static uint8_t execute_shr_i8_signed(instructions::shr_i8_signed const &inst, uint8_t lhs, uint64_t rhs, executor_context &context)
+{
+	auto const irhs = static_cast<int64_t>(rhs);
+	if (irhs < 0)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint8'", irhs));
+	}
+	else if (irhs >= 8)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint8'", irhs));
+	}
+	return lhs >> uint8_t(rhs);
+}
+
+static uint16_t execute_shr_i16_signed(instructions::shr_i16_signed const &inst, uint16_t lhs, uint64_t rhs, executor_context &context)
+{
+	auto const irhs = static_cast<int64_t>(rhs);
+	if (irhs < 0)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint16'", irhs));
+	}
+	else if (irhs >= 16)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint16'", irhs));
+	}
+	return lhs >> uint16_t(rhs);
+}
+
+static uint32_t execute_shr_i32_signed(instructions::shr_i32_signed const &inst, uint32_t lhs, uint64_t rhs, executor_context &context)
+{
+	auto const irhs = static_cast<int64_t>(rhs);
+	if (irhs < 0)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint32'", irhs));
+	}
+	else if (irhs >= 32)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint32'", irhs));
+	}
+	return lhs >> uint32_t(rhs);
+}
+
+static uint64_t execute_shr_i64_signed(instructions::shr_i64_signed const &inst, uint64_t lhs, uint64_t rhs, executor_context &context)
+{
+	auto const irhs = static_cast<int64_t>(rhs);
+	if (irhs < 0)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint64'", irhs));
+	}
+	else if (irhs >= 64)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint64'", irhs));
+	}
+	return lhs >> uint64_t(rhs);
+}
+
+static uint8_t execute_shr_i8_unsigned(instructions::shr_i8_unsigned const &inst, uint8_t lhs, uint64_t rhs, executor_context &context)
+{
+	if (rhs >= 8)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint8'", rhs));
+	}
+	return lhs >> uint8_t(rhs);
+}
+
+static uint16_t execute_shr_i16_unsigned(instructions::shr_i16_unsigned const &inst, uint16_t lhs, uint64_t rhs, executor_context &context)
+{
+	if (rhs >= 16)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint16'", rhs));
+	}
+	return lhs >> uint16_t(rhs);
+}
+
+static uint32_t execute_shr_i32_unsigned(instructions::shr_i32_unsigned const &inst, uint32_t lhs, uint64_t rhs, executor_context &context)
+{
+	if (rhs >= 32)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint32'", rhs));
+	}
+	return lhs >> uint32_t(rhs);
+}
+
+static uint64_t execute_shr_i64_unsigned(instructions::shr_i64_unsigned const &inst, uint64_t lhs, uint64_t rhs, executor_context &context)
+{
+	if (rhs >= 64)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint64'", rhs));
+	}
+	return lhs >> uint64_t(rhs);
+}
+
 static uint8_t execute_abs_i8(instructions::abs_i8 const &, uint8_t uvalue, executor_context &)
 {
 	auto const value = static_cast<int8_t>(uvalue);
@@ -4163,7 +4347,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 471);
+		static_assert(instruction::variant_count == 487);
 		case instruction::const_i1:
 			execute<instructions::const_i1, &execute_const_i1>(context);
 			break;
@@ -4991,6 +5175,54 @@ void execute(executor_context &context)
 			break;
 		case instruction::or_i64:
 			execute<instructions::or_i64, &execute_or_i64>(context);
+			break;
+		case instruction::shl_i8_signed:
+			execute<instructions::shl_i8_signed, &execute_shl_i8_signed>(context);
+			break;
+		case instruction::shl_i16_signed:
+			execute<instructions::shl_i16_signed, &execute_shl_i16_signed>(context);
+			break;
+		case instruction::shl_i32_signed:
+			execute<instructions::shl_i32_signed, &execute_shl_i32_signed>(context);
+			break;
+		case instruction::shl_i64_signed:
+			execute<instructions::shl_i64_signed, &execute_shl_i64_signed>(context);
+			break;
+		case instruction::shl_i8_unsigned:
+			execute<instructions::shl_i8_unsigned, &execute_shl_i8_unsigned>(context);
+			break;
+		case instruction::shl_i16_unsigned:
+			execute<instructions::shl_i16_unsigned, &execute_shl_i16_unsigned>(context);
+			break;
+		case instruction::shl_i32_unsigned:
+			execute<instructions::shl_i32_unsigned, &execute_shl_i32_unsigned>(context);
+			break;
+		case instruction::shl_i64_unsigned:
+			execute<instructions::shl_i64_unsigned, &execute_shl_i64_unsigned>(context);
+			break;
+		case instruction::shr_i8_signed:
+			execute<instructions::shr_i8_signed, &execute_shr_i8_signed>(context);
+			break;
+		case instruction::shr_i16_signed:
+			execute<instructions::shr_i16_signed, &execute_shr_i16_signed>(context);
+			break;
+		case instruction::shr_i32_signed:
+			execute<instructions::shr_i32_signed, &execute_shr_i32_signed>(context);
+			break;
+		case instruction::shr_i64_signed:
+			execute<instructions::shr_i64_signed, &execute_shr_i64_signed>(context);
+			break;
+		case instruction::shr_i8_unsigned:
+			execute<instructions::shr_i8_unsigned, &execute_shr_i8_unsigned>(context);
+			break;
+		case instruction::shr_i16_unsigned:
+			execute<instructions::shr_i16_unsigned, &execute_shr_i16_unsigned>(context);
+			break;
+		case instruction::shr_i32_unsigned:
+			execute<instructions::shr_i32_unsigned, &execute_shr_i32_unsigned>(context);
+			break;
+		case instruction::shr_i64_unsigned:
+			execute<instructions::shr_i64_unsigned, &execute_shr_i64_unsigned>(context);
 			break;
 		case instruction::abs_i8:
 			execute<instructions::abs_i8, &execute_abs_i8>(context);

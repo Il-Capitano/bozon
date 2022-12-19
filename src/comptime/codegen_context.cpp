@@ -2625,6 +2625,162 @@ expr_value codegen_context::create_or(expr_value lhs, expr_value rhs)
 	}
 }
 
+expr_value codegen_context::create_shl(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_rhs_signed)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(lhs.get_type()->is_builtin());
+	bz_assert(rhs.get_type()->is_builtin());
+
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_cast = this->create_int_cast(rhs, this->get_builtin_type(builtin_type_kind::i64), is_rhs_signed);
+	auto const rhs_val = rhs_cast.get_value_as_instruction(*this);
+
+	switch (lhs.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::i8:
+		if (is_rhs_signed)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::shl_i8_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i8)
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::shl_i8_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i8)
+			);
+		}
+	case builtin_type_kind::i16:
+		if (is_rhs_signed)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::shl_i16_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i16)
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::shl_i16_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i16)
+			);
+		}
+	case builtin_type_kind::i32:
+		if (is_rhs_signed)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::shl_i32_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i32)
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::shl_i32_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i32)
+			);
+		}
+	case builtin_type_kind::i64:
+		if (is_rhs_signed)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::shl_i64_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i64)
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::shl_i64_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i64)
+			);
+		}
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_shr(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_rhs_signed)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(lhs.get_type()->is_builtin());
+	bz_assert(rhs.get_type()->is_builtin());
+
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_cast = this->create_int_cast(rhs, this->get_builtin_type(builtin_type_kind::i64), is_rhs_signed);
+	auto const rhs_val = rhs_cast.get_value_as_instruction(*this);
+
+	switch (lhs.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::i8:
+		if (is_rhs_signed)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::shr_i8_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i8)
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::shr_i8_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i8)
+			);
+		}
+	case builtin_type_kind::i16:
+		if (is_rhs_signed)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::shr_i16_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i16)
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::shr_i16_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i16)
+			);
+		}
+	case builtin_type_kind::i32:
+		if (is_rhs_signed)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::shr_i32_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i32)
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::shr_i32_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i32)
+			);
+		}
+	case builtin_type_kind::i64:
+		if (is_rhs_signed)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::shr_i64_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i64)
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::shr_i64_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				this->get_builtin_type(builtin_type_kind::i64)
+			);
+		}
+	default:
+		bz_unreachable;
+	}
+}
+
 expr_value codegen_context::create_abs(expr_value value)
 {
 	auto const value_ref = value.get_value_as_instruction(*this);
@@ -4721,7 +4877,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 471);
+	static_assert(instruction::variant_count == 487);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>().inst;
