@@ -1054,41 +1054,287 @@ static expr_value generate_builtin_binary_modulo_eq(
 }
 
 static expr_value generate_builtin_binary_equals(
+	ast::expression const &original_expression,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
+		auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+		auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+		bz_assert(lhs_kind != ast::type_info::str_);
+		if (ast::is_integer_kind(lhs_kind) || lhs_kind == ast::type_info::char_)
+		{
+			auto const result_value = context.create_int_cmp_eq(lhs_value, rhs_value);
+			return value_or_result_address(result_value, result_address, context);
+		}
+		else
+		{
+			if (original_expression.paren_level < 2)
+			{
+				context.create_float_cmp_eq_check(original_expression.src_tokens, lhs_value, rhs_value);
+			}
+			auto const result_value = context.create_float_cmp_eq(lhs_value, rhs_value);
+			return value_or_result_address(result_value, result_address, context);
+		}
+	}
+	else if (lhs_t.is<ast::ts_enum>() && rhs_t.is<ast::ts_enum>())
+	{
+		auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+		auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+		auto const result_value = context.create_int_cmp_eq(lhs_value, rhs_value);
+		return value_or_result_address(result_value, result_address, context);
+	}
+	else if (
+		(lhs_t.is<ast::ts_optional>() && rhs_t.is<ast::ts_base_type>())
+		|| (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_optional>())
+	)
+	{
+		auto const lhs_value = generate_expr_code(lhs, context, {});
+		auto const rhs_value = generate_expr_code(rhs, context, {});
+		auto const &optional_value = lhs_t.is<ast::ts_optional>() ? lhs_value : rhs_value;
+		auto const has_value = get_optional_has_value(optional_value, context);
+		auto const result_value = context.create_not(has_value);
+		return value_or_result_address(result_value, result_address, context);
+	}
+	else // if pointer
+	{
+		auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+		auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+		auto const result_value = context.create_pointer_cmp_eq(lhs_value, rhs_value);
+		return value_or_result_address(result_value, result_address, context);
+	}
+}
+
 static expr_value generate_builtin_binary_not_equals(
+	ast::expression const &original_expression,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
+		auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+		auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+		bz_assert(lhs_kind != ast::type_info::str_);
+		if (ast::is_integer_kind(lhs_kind) || lhs_kind == ast::type_info::char_)
+		{
+			auto const result_value = context.create_int_cmp_neq(lhs_value, rhs_value);
+			return value_or_result_address(result_value, result_address, context);
+		}
+		else
+		{
+			if (original_expression.paren_level < 2)
+			{
+				context.create_float_cmp_neq_check(original_expression.src_tokens, lhs_value, rhs_value);
+			}
+			auto const result_value = context.create_float_cmp_neq(lhs_value, rhs_value);
+			return value_or_result_address(result_value, result_address, context);
+		}
+	}
+	else if (lhs_t.is<ast::ts_enum>() && rhs_t.is<ast::ts_enum>())
+	{
+		auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+		auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+		auto const result_value = context.create_int_cmp_neq(lhs_value, rhs_value);
+		return value_or_result_address(result_value, result_address, context);
+	}
+	else if (
+		(lhs_t.is<ast::ts_optional>() && rhs_t.is<ast::ts_base_type>())
+		|| (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_optional>())
+	)
+	{
+		auto const lhs_value = generate_expr_code(lhs, context, {});
+		auto const rhs_value = generate_expr_code(rhs, context, {});
+		auto const &optional_value = lhs_t.is<ast::ts_optional>() ? lhs_value : rhs_value;
+		auto const result_value = get_optional_has_value(optional_value, context);
+		return value_or_result_address(result_value, result_address, context);
+	}
+	else // if pointer
+	{
+		auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+		auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+		auto const result_value = context.create_pointer_cmp_neq(lhs_value, rhs_value);
+		return value_or_result_address(result_value, result_address, context);
+	}
+}
+
 static expr_value generate_builtin_binary_less_than(
+	ast::expression const &original_expression,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
+		auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+		auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+		bz_assert(lhs_kind != ast::type_info::str_);
+		if (ast::is_integer_kind(lhs_kind) || lhs_kind == ast::type_info::char_)
+		{
+			auto const result_value = context.create_int_cmp_lt(lhs_value, rhs_value, ast::is_signed_integer_kind(lhs_kind));
+			return value_or_result_address(result_value, result_address, context);
+		}
+		else
+		{
+			if (original_expression.paren_level < 2)
+			{
+				context.create_float_cmp_lt_check(original_expression.src_tokens, lhs_value, rhs_value);
+			}
+			auto const result_value = context.create_float_cmp_lt(lhs_value, rhs_value);
+			return value_or_result_address(result_value, result_address, context);
+		}
+	}
+	else // if pointer
+	{
+		auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+		auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+		auto const result_value = context.create_pointer_cmp_lt(original_expression.src_tokens, lhs_value, rhs_value);
+		return value_or_result_address(result_value, result_address, context);
+	}
+}
+
 static expr_value generate_builtin_binary_less_than_eq(
+	ast::expression const &original_expression,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
+		auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+		auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+		bz_assert(lhs_kind != ast::type_info::str_);
+		if (ast::is_integer_kind(lhs_kind) || lhs_kind == ast::type_info::char_)
+		{
+			auto const result_value = context.create_int_cmp_lte(lhs_value, rhs_value, ast::is_signed_integer_kind(lhs_kind));
+			return value_or_result_address(result_value, result_address, context);
+		}
+		else
+		{
+			if (original_expression.paren_level < 2)
+			{
+				context.create_float_cmp_lte_check(original_expression.src_tokens, lhs_value, rhs_value);
+			}
+			auto const result_value = context.create_float_cmp_lte(lhs_value, rhs_value);
+			return value_or_result_address(result_value, result_address, context);
+		}
+	}
+	else // if pointer
+	{
+		auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+		auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+		auto const result_value = context.create_pointer_cmp_lte(original_expression.src_tokens, lhs_value, rhs_value);
+		return value_or_result_address(result_value, result_address, context);
+	}
+}
+
 static expr_value generate_builtin_binary_greater_than(
+	ast::expression const &original_expression,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
+		auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+		auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+		bz_assert(lhs_kind != ast::type_info::str_);
+		if (ast::is_integer_kind(lhs_kind) || lhs_kind == ast::type_info::char_)
+		{
+			auto const result_value = context.create_int_cmp_gt(lhs_value, rhs_value, ast::is_signed_integer_kind(lhs_kind));
+			return value_or_result_address(result_value, result_address, context);
+		}
+		else
+		{
+			if (original_expression.paren_level < 2)
+			{
+				context.create_float_cmp_gt_check(original_expression.src_tokens, lhs_value, rhs_value);
+			}
+			auto const result_value = context.create_float_cmp_gt(lhs_value, rhs_value);
+			return value_or_result_address(result_value, result_address, context);
+		}
+	}
+	else // if pointer
+	{
+		auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+		auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+		auto const result_value = context.create_pointer_cmp_gt(original_expression.src_tokens, lhs_value, rhs_value);
+		return value_or_result_address(result_value, result_address, context);
+	}
+}
+
 static expr_value generate_builtin_binary_greater_than_eq(
+	ast::expression const &original_expression,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
+		auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+		auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+		bz_assert(lhs_kind != ast::type_info::str_);
+		if (ast::is_integer_kind(lhs_kind) || lhs_kind == ast::type_info::char_)
+		{
+			auto const result_value = context.create_int_cmp_gte(lhs_value, rhs_value, ast::is_signed_integer_kind(lhs_kind));
+			return value_or_result_address(result_value, result_address, context);
+		}
+		else
+		{
+			if (original_expression.paren_level < 2)
+			{
+				context.create_float_cmp_gte_check(original_expression.src_tokens, lhs_value, rhs_value);
+			}
+			auto const result_value = context.create_float_cmp_gte(lhs_value, rhs_value);
+			return value_or_result_address(result_value, result_address, context);
+		}
+	}
+	else // if pointer
+	{
+		auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+		auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+		auto const result_value = context.create_pointer_cmp_gte(original_expression.src_tokens, lhs_value, rhs_value);
+		return value_or_result_address(result_value, result_address, context);
+	}
+}
 
 static expr_value generate_builtin_binary_bit_and(
 	ast::expression const &lhs,
@@ -2183,22 +2429,22 @@ static expr_value generate_intrinsic_function_call_code(
 		return generate_builtin_binary_modulo_eq(original_expression, func_call.params[0], func_call.params[1], context);
 	case ast::function_body::builtin_binary_equals:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_equals(func_call.params[0], func_call.params[1], context, result_address);
+		return generate_builtin_binary_equals(original_expression, func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_not_equals:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_not_equals(func_call.params[0], func_call.params[1], context, result_address);
+		return generate_builtin_binary_not_equals(original_expression, func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_less_than:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_less_than(func_call.params[0], func_call.params[1], context, result_address);
+		return generate_builtin_binary_less_than(original_expression, func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_less_than_eq:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_less_than_eq(func_call.params[0], func_call.params[1], context, result_address);
+		return generate_builtin_binary_less_than_eq(original_expression, func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_greater_than:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_greater_than(func_call.params[0], func_call.params[1], context, result_address);
+		return generate_builtin_binary_greater_than(original_expression, func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_greater_than_eq:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_greater_than_eq(func_call.params[0], func_call.params[1], context, result_address);
+		return generate_builtin_binary_greater_than_eq(original_expression, func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_bit_and:
 		bz_assert(func_call.params.size() == 2);
 		return generate_builtin_binary_bit_and(func_call.params[0], func_call.params[1], context, result_address);
