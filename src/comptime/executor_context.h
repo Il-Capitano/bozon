@@ -45,6 +45,9 @@ struct executor_context
 	void do_str_construction_check(uint32_t src_tokens_index, ptr_t begin, ptr_t end);
 	void do_slice_construction_check(uint32_t src_tokens_index, ptr_t begin, ptr_t end, type const *elem_type);
 
+	int compare_pointers(uint32_t src_tokens_index, ptr_t lhs, ptr_t rhs);
+	bool compare_pointers_equal(ptr_t lhs, ptr_t rhs);
+
 	void advance(void);
 };
 

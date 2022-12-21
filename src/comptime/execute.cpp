@@ -732,9 +732,9 @@ static void execute_cmp_eq_f64_check(instructions::cmp_eq_f64_check const &inst,
 	}
 }
 
-static bool execute_cmp_eq_ptr(instructions::cmp_eq_ptr const &, ptr_t lhs, ptr_t rhs, executor_context &)
+static bool execute_cmp_eq_ptr(instructions::cmp_eq_ptr const &, ptr_t lhs, ptr_t rhs, executor_context &context)
 {
-	return lhs == rhs;
+	return context.compare_pointers_equal(lhs, rhs);
 }
 
 static bool execute_cmp_neq_i1(instructions::cmp_neq_i1 const &, bool lhs, bool rhs, executor_context &)
@@ -812,9 +812,9 @@ static void execute_cmp_neq_f64_check(instructions::cmp_neq_f64_check const &ins
 	}
 }
 
-static bool execute_cmp_neq_ptr(instructions::cmp_neq_ptr const &, ptr_t lhs, ptr_t rhs, executor_context &)
+static bool execute_cmp_neq_ptr(instructions::cmp_neq_ptr const &, ptr_t lhs, ptr_t rhs, executor_context &context)
 {
-	return lhs != rhs;
+	return !context.compare_pointers_equal(lhs, rhs);
 }
 
 static bool execute_cmp_lt_i8(instructions::cmp_lt_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)

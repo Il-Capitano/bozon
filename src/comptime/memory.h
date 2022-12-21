@@ -94,6 +94,8 @@ struct memory_manager
 	bool check_memory_access(ptr_t address, type const *object_type);
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type);
 
+	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs);
+
 	uint8_t *get_memory(ptr_t address);
 };
 

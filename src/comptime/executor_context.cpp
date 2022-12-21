@@ -58,6 +58,26 @@ void executor_context::do_slice_construction_check(uint32_t src_tokens_index, pt
 	}
 }
 
+int executor_context::compare_pointers(uint32_t src_tokens_index, ptr_t lhs, ptr_t rhs)
+{
+	auto const compare_result = this->memory.compare_pointers(lhs, rhs);
+	if (!compare_result.has_value())
+	{
+		this->report_error(src_tokens_index, "comparing unrelated pointers");
+		return lhs < rhs ? -1 : lhs == rhs ? 0 : 1;
+	}
+	else
+	{
+		return compare_result.get();
+	}
+}
+
+bool executor_context::compare_pointers_equal(ptr_t lhs, ptr_t rhs)
+{
+	auto const compare_result = this->memory.compare_pointers(lhs, rhs);
+	return compare_result.has_value() && compare_result.get() == 0;
+}
+
 void executor_context::advance(void)
 {
 	if (this->next_instruction != nullptr)
