@@ -1097,8 +1097,8 @@ static expr_value generate_builtin_binary_bit_and(
 	bz::optional<expr_value> result_address
 )
 {
-	auto const lhs_value = generate_expr_code(lhs, context, {});
-	auto const rhs_value = generate_expr_code(rhs, context, {});
+	auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
 
 	auto const result_value = context.create_and(lhs_value, rhs_value);
 	return value_or_result_address(result_value, result_address, context);
@@ -1110,11 +1110,12 @@ static expr_value generate_builtin_binary_bit_and_eq(
 	codegen_context &context
 )
 {
-	auto const rhs_value = generate_expr_code(rhs, context, {});
+	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
 	auto const lhs_ref = generate_expr_code(lhs, context, {});
 	bz_assert(lhs_ref.is_reference());
+	auto const lhs_value = lhs_ref.get_value(context);
 
-	auto const result_value = context.create_and(lhs_ref, rhs_value);
+	auto const result_value = context.create_and(lhs_value, rhs_value);
 	context.create_store(result_value, lhs_ref);
 	return lhs_ref;
 }
@@ -1126,8 +1127,8 @@ static expr_value generate_builtin_binary_bit_xor(
 	bz::optional<expr_value> result_address
 )
 {
-	auto const lhs_value = generate_expr_code(lhs, context, {});
-	auto const rhs_value = generate_expr_code(rhs, context, {});
+	auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
 
 	auto const result_value = context.create_xor(lhs_value, rhs_value);
 	return value_or_result_address(result_value, result_address, context);
@@ -1139,11 +1140,12 @@ static expr_value generate_builtin_binary_bit_xor_eq(
 	codegen_context &context
 )
 {
-	auto const rhs_value = generate_expr_code(rhs, context, {});
+	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
 	auto const lhs_ref = generate_expr_code(lhs, context, {});
 	bz_assert(lhs_ref.is_reference());
+	auto const lhs_value = lhs_ref.get_value(context);
 
-	auto const result_value = context.create_xor(lhs_ref, rhs_value);
+	auto const result_value = context.create_xor(lhs_value, rhs_value);
 	context.create_store(result_value, lhs_ref);
 	return lhs_ref;
 }
@@ -1155,8 +1157,8 @@ static expr_value generate_builtin_binary_bit_or(
 	bz::optional<expr_value> result_address
 )
 {
-	auto const lhs_value = generate_expr_code(lhs, context, {});
-	auto const rhs_value = generate_expr_code(rhs, context, {});
+	auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
 
 	auto const result_value = context.create_or(lhs_value, rhs_value);
 	return value_or_result_address(result_value, result_address, context);
@@ -1168,11 +1170,12 @@ static expr_value generate_builtin_binary_bit_or_eq(
 	codegen_context &context
 )
 {
-	auto const rhs_value = generate_expr_code(rhs, context, {});
-	auto const lhs_ref = generate_expr_code(lhs, context, {});
+	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+	auto const lhs_ref = generate_expr_code(lhs, context, {}).get_value(context);
 	bz_assert(lhs_ref.is_reference());
+	auto const lhs_value = lhs_ref.get_value(context);
 
-	auto const result_value = context.create_or(lhs_ref, rhs_value);
+	auto const result_value = context.create_or(lhs_value, rhs_value);
 	context.create_store(result_value, lhs_ref);
 	return lhs_ref;
 }
@@ -1185,8 +1188,8 @@ static expr_value generate_builtin_binary_bit_left_shift(
 	bz::optional<expr_value> result_address
 )
 {
-	auto const lhs_value = generate_expr_code(lhs, context, {});
-	auto const rhs_value = generate_expr_code(rhs, context, {});
+	auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
 
 	bz_assert(ast::remove_const_or_consteval(rhs.get_expr_type()).is<ast::ts_base_type>());
 	auto const rhs_kind = ast::remove_const_or_consteval(rhs.get_expr_type()).get<ast::ts_base_type>().info->kind;
@@ -1207,16 +1210,17 @@ static expr_value generate_builtin_binary_bit_left_shift_eq(
 	codegen_context &context
 )
 {
-	auto const rhs_value = generate_expr_code(rhs, context, {});
+	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
 	auto const lhs_ref = generate_expr_code(lhs, context, {});
 	bz_assert(lhs_ref.is_reference());
+	auto const lhs_value = lhs_ref.get_value(context);
 
 	bz_assert(ast::remove_const_or_consteval(rhs.get_expr_type()).is<ast::ts_base_type>());
 	auto const rhs_kind = ast::remove_const_or_consteval(rhs.get_expr_type()).get<ast::ts_base_type>().info->kind;
 
 	auto const result_value = context.create_shl(
 		original_expression.src_tokens,
-		lhs_ref,
+		lhs_value,
 		rhs_value,
 		ast::is_signed_integer_kind(rhs_kind)
 	);
@@ -1232,8 +1236,8 @@ static expr_value generate_builtin_binary_bit_right_shift(
 	bz::optional<expr_value> result_address
 )
 {
-	auto const lhs_value = generate_expr_code(lhs, context, {});
-	auto const rhs_value = generate_expr_code(rhs, context, {});
+	auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
 
 	bz_assert(ast::remove_const_or_consteval(rhs.get_expr_type()).is<ast::ts_base_type>());
 	auto const rhs_kind = ast::remove_const_or_consteval(rhs.get_expr_type()).get<ast::ts_base_type>().info->kind;
@@ -1254,16 +1258,17 @@ static expr_value generate_builtin_binary_bit_right_shift_eq(
 	codegen_context &context
 )
 {
-	auto const rhs_value = generate_expr_code(rhs, context, {});
+	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
 	auto const lhs_ref = generate_expr_code(lhs, context, {});
 	bz_assert(lhs_ref.is_reference());
+	auto const lhs_value = lhs_ref.get_value(context);
 
 	bz_assert(ast::remove_const_or_consteval(rhs.get_expr_type()).is<ast::ts_base_type>());
 	auto const rhs_kind = ast::remove_const_or_consteval(rhs.get_expr_type()).get<ast::ts_base_type>().info->kind;
 
 	auto const result_value = context.create_shr(
 		original_expression.src_tokens,
-		lhs_ref,
+		lhs_value,
 		rhs_value,
 		ast::is_signed_integer_kind(rhs_kind)
 	);
