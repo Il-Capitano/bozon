@@ -3361,6 +3361,7 @@ struct slice_construction_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+	uint32_t slice_construction_check_info_index;
 };
 
 } // namespace instructions

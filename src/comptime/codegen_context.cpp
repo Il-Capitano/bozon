@@ -307,6 +307,13 @@ uint32_t codegen_context::add_src_tokens(lex::src_tokens const &src_tokens)
 	return static_cast<uint32_t>(result);
 }
 
+uint32_t codegen_context::add_slice_construction_check_info(slice_construction_check_info_t info)
+{
+	auto const result = this->global_codegen_ctx->slice_construction_check_infos.size();
+	this->global_codegen_ctx->slice_construction_check_infos.push_back(info);
+	return static_cast<uint32_t>(result);
+}
+
 expr_value codegen_context::get_dummy_value(type const *t)
 {
 	return expr_value::get_reference(instruction_ref{}, t);
@@ -4827,16 +4834,21 @@ instruction_ref codegen_context::create_str_construction_check(
 instruction_ref codegen_context::create_slice_construction_check(
 	lex::src_tokens const &src_tokens,
 	expr_value begin_ptr,
-	expr_value end_ptr
+	expr_value end_ptr,
+	type const *elem_type
 )
 {
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+	auto const slice_construction_check_info_index = this->add_slice_construction_check_info({ .elem_type = elem_type });
 
 	auto const begin_ptr_value = begin_ptr.get_value_as_instruction(*this);
 	auto const end_ptr_value = end_ptr.get_value_as_instruction(*this);
 
 	return this->add_instruction(
-		instructions::slice_construction_check{ .src_tokens_index = src_tokens_index },
+		instructions::slice_construction_check{
+			.src_tokens_index = src_tokens_index,
+			.slice_construction_check_info_index = slice_construction_check_info_index,
+		},
 		begin_ptr_value,
 		end_ptr_value
 	);

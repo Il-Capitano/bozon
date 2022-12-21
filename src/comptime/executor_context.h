@@ -37,6 +37,11 @@ struct executor_context
 	void report_error(uint32_t src_tokens_index, bz::u8string message);
 	void report_warning(ctx::warning_kind kind, uint32_t src_tokens_index, bz::u8string message);
 
+	slice_construction_check_info_t const &get_slice_construction_info(uint32_t index) const;
+
+	void do_str_construction_check(uint32_t src_tokens_index, ptr_t begin, ptr_t end);
+	void do_slice_construction_check(uint32_t src_tokens_index, ptr_t begin, ptr_t end, type const *elem_type);
+
 	void advance(void);
 };
 

@@ -30,6 +30,24 @@ void executor_context::do_ret_void(void)
 	this->returned = true;
 }
 
+void executor_context::do_str_construction_check(uint32_t src_tokens_index, ptr_t begin, ptr_t end)
+{
+	auto const is_good = this->memory.check_slice_construction(begin, end, this->get_builtin_type(builtin_type_kind::i8));
+	if (!is_good)
+	{
+		this->report_error(src_tokens_index, "invalid 'str' construction");
+	}
+}
+
+void executor_context::do_slice_construction_check(uint32_t src_tokens_index, ptr_t begin, ptr_t end, type const *elem_type)
+{
+	auto const is_good = this->memory.check_slice_construction(begin, end, elem_type);
+	if (!is_good)
+	{
+		this->report_error(src_tokens_index, "invalid slice construction");
+	}
+}
+
 void executor_context::advance(void)
 {
 	if (this->next_instruction != nullptr)

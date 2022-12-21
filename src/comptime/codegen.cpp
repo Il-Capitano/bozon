@@ -1350,13 +1350,14 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(func_call.params.size() == 2);
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca(context.get_str_t());
+			result_address = context.create_alloca(context.get_slice_t());
 		}
 		auto const &result_value = result_address.get();
 
+		auto const elem_type = get_type(func_call.func_body->params[0].get_type().get<ast::ts_pointer>(), context);
 		auto const begin_ptr = generate_expr_code(func_call.params[0], context, {}).get_value(context);
 		auto const end_ptr   = generate_expr_code(func_call.params[1], context, {}).get_value(context);
-		context.create_slice_construction_check(func_call.src_tokens, begin_ptr, end_ptr);
+		context.create_slice_construction_check(func_call.src_tokens, begin_ptr, end_ptr, elem_type);
 		context.create_store(begin_ptr, context.create_struct_gep(result_value, 0));
 		context.create_store(end_ptr,   context.create_struct_gep(result_value, 1));
 		return result_value;
@@ -1366,13 +1367,14 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(func_call.params.size() == 2);
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca(context.get_str_t());
+			result_address = context.create_alloca(context.get_slice_t());
 		}
 		auto const &result_value = result_address.get();
 
+		auto const elem_type = get_type(func_call.func_body->params[0].get_type().get<ast::ts_pointer>(), context);
 		auto const begin_ptr = generate_expr_code(func_call.params[0], context, {}).get_value(context);
 		auto const end_ptr   = generate_expr_code(func_call.params[1], context, {}).get_value(context);
-		context.create_slice_construction_check(func_call.src_tokens, begin_ptr, end_ptr);
+		context.create_slice_construction_check(func_call.src_tokens, begin_ptr, end_ptr, elem_type);
 		context.create_store(begin_ptr, context.create_struct_gep(result_value, 0));
 		context.create_store(end_ptr,   context.create_struct_gep(result_value, 1));
 		return result_value;

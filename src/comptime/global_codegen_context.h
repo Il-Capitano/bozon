@@ -14,6 +14,11 @@ struct error_info_t
 	bz::u8string message;
 };
 
+struct slice_construction_check_info_t
+{
+	type const *elem_type;
+};
+
 struct global_codegen_context
 {
 	type_set_t type_set;
@@ -22,6 +27,7 @@ struct global_codegen_context
 
 	bz::vector<error_info_t> errors;
 	bz::vector<lex::src_tokens> src_tokens;
+	bz::vector<slice_construction_check_info_t> slice_construction_check_infos;
 
 	global_codegen_context(size_t pointer_size);
 
