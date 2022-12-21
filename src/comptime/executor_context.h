@@ -22,6 +22,7 @@ struct executor_context
 	bz::array_view<instruction const> instructions;
 	bz::array_view<instruction_value> instruction_values;
 
+	memory::memory_manager memory;
 
 	type const *get_builtin_type(builtin_type_kind kind);
 	type const *get_pointer_type(void);

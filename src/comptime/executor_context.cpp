@@ -3,6 +3,16 @@
 namespace comptime
 {
 
+uint8_t *executor_context::get_memory(ptr_t ptr, type const *object_type)
+{
+	auto const is_good = this->memory.check_memory_access(ptr, object_type);
+	if (!is_good)
+	{
+		bz_unreachable;
+	}
+	return this->memory.get_memory(ptr);
+}
+
 void executor_context::set_current_instruction_value(instruction_value value)
 {
 	*this->current_instruction_value = value;

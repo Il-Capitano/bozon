@@ -91,7 +91,10 @@ struct memory_manager
 	heap_manager heap;
 	meta_memory_manager meta_memory;
 
+	bool check_memory_access(ptr_t address, type const *object_type);
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type);
+
+	uint8_t *get_memory(ptr_t address);
 };
 
 } // namespace comptime::memory
