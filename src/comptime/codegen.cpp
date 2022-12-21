@@ -246,7 +246,7 @@ static expr_value get_optional_has_value(expr_value opt_value, codegen_context &
 {
 	if (opt_value.get_type()->is_pointer())
 	{
-		return context.create_cmp_neq_ptr(opt_value, context.create_const_ptr_null());
+		return context.create_pointer_cmp_neq(opt_value, context.create_const_ptr_null());
 	}
 	else
 	{
@@ -2994,7 +2994,7 @@ static pointer_compare_info_t create_pointer_compare_begin(expr_value lhs, expr_
 
 	auto const lhs_ptr = expr_value::get_value(lhs.get_reference(), context.get_pointer_type());
 	auto const rhs_ptr = expr_value::get_value(rhs.get_reference(), context.get_pointer_type());
-	auto const are_pointers_equal = context.create_cmp_eq_ptr(lhs_ptr, rhs_ptr);
+	auto const are_pointers_equal = context.create_pointer_cmp_eq(lhs_ptr, rhs_ptr);
 
 	auto const begin_bb = context.get_current_basic_block();
 	auto const neq_bb = context.add_basic_block();
