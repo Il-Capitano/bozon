@@ -2,6 +2,8 @@
 #define COMPTIME_EXECUTOR_CONTEXT_H
 
 #include "instructions.h"
+#include "memory.h"
+#include "global_codegen_context.h"
 #include "ctx/warnings.h"
 
 namespace comptime
@@ -9,18 +11,18 @@ namespace comptime
 
 struct executor_context
 {
-	ptr_t function_stack_base;
+	instruction const *current_instruction;
+	instruction_value *current_instruction_value;
+	instruction const *next_instruction;
+	uint32_t alloca_offset;
+	bool returned;
+	instruction_value ret_value;
+
 	function *current_function;
 	bz::array_view<instruction const> instructions;
 	bz::array_view<instruction_value> instruction_values;
 
-	uint32_t alloca_offset;
-	instruction const *current_instruction;
-	instruction_value *current_instruction_value;
-	instruction const *next_instruction;
 
-	instruction_value ret_value;
-	bool returned;
 	type const *get_builtin_type(builtin_type_kind kind);
 	type const *get_pointer_type(void);
 
