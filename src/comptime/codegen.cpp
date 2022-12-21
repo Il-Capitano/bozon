@@ -116,6 +116,19 @@ static type const *get_type(ast::typespec_view type, codegen_context &context)
 }
 
 
+static expr_value value_or_result_address(expr_value value, bz::optional<expr_value> result_address, codegen_context &context)
+{
+	if (result_address.has_value())
+	{
+		context.create_store(value, result_address.get());
+		return result_address.get();
+	}
+	else
+	{
+		return value;
+	}
+}
+
 static void generate_value_copy(expr_value value, expr_value dest, codegen_context &context)
 {
 	bz_assert(dest.is_reference());
@@ -466,14 +479,9 @@ static expr_value generate_builtin_unary_address_of(
 			? result_address.get()
 			: context.get_dummy_value(context.get_pointer_type());
 	}
-	else if (result_address.has_value())
-	{
-		context.create_store(value, result_address.get());
-		return result_address.get();
-	}
 	else
 	{
-		return value;
+		return value_or_result_address(value, result_address, context);
 	}
 }
 
@@ -548,15 +556,7 @@ static expr_value generate_builtin_binary_bool_xor(
 	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
 	auto const result_value = context.create_xor(lhs_value, rhs_value);
 
-	if (result_address.has_value())
-	{
-		context.create_store(result_value, result_address.get());
-		return result_address.get();
-	}
-	else
-	{
-		return result_value;
-	}
+	return value_or_result_address(result_value, result_address, context);
 }
 
 static expr_value generate_builtin_binary_bool_or(
@@ -827,19 +827,6 @@ static expr_value generate_expr_code(
 	auto const result_value = context.create_array_gep(array, index);
 	context.push_rvalue_array_destruct_operation(rvalue_array_subscript.elem_destruct_op, array, result_value.get_reference());
 	return result_value;
-}
-
-static expr_value value_or_result_address(expr_value value, bz::optional<expr_value> result_address, codegen_context &context)
-{
-	if (result_address.has_value())
-	{
-		context.create_store(value, result_address.get());
-		return result_address.get();
-	}
-	else
-	{
-		return value;
-	}
 }
 
 static expr_value generate_builtin_unary_plus(
@@ -2384,16 +2371,7 @@ static expr_value generate_expr_code(
 	{
 		auto const result_value = context.create_function_call(func, std::move(arg_refs));
 
-		if (result_address.has_value())
-		{
-			bz_assert(result_address.get().get_type() == result_value.get_type());
-			context.create_store(result_value, result_address.get());
-			return result_address.get();
-		}
-		else
-		{
-			return result_value;
-		}
+		return value_or_result_address(result_value, result_address, context);
 	}
 }
 
@@ -2423,55 +2401,23 @@ static expr_value generate_expr_code(
 		if ((ast::is_integer_kind(expr_kind) || expr_kind == ast::type_info::bool_) && ast::is_integer_kind(dest_kind))
 		{
 			auto const result_value = context.create_int_cast(expr, dest_type, ast::is_signed_integer_kind(expr_kind));
-			if (result_address.has_value())
-			{
-				context.create_store(result_value, result_address.get());
-				return result_address.get();
-			}
-			else
-			{
-				return result_value;
-			}
+			return value_or_result_address(result_value, result_address, context);
 		}
 		else if (ast::is_floating_point_kind(expr_kind) && ast::is_floating_point_kind(dest_kind))
 		{
 			auto const result_value = context.create_float_cast(expr, dest_type);
-			if (result_address.has_value())
-			{
-				context.create_store(result_value, result_address.get());
-				return result_address.get();
-			}
-			else
-			{
-				return result_value;
-			}
+			return value_or_result_address(result_value, result_address, context);
 		}
 		else if (ast::is_floating_point_kind(expr_kind))
 		{
 			bz_assert(ast::is_integer_kind(dest_kind));
 			auto const result_value = context.create_float_to_int_cast(expr, dest_type, ast::is_signed_integer_kind(dest_kind));
-			if (result_address.has_value())
-			{
-				context.create_store(result_value, result_address.get());
-				return result_address.get();
-			}
-			else
-			{
-				return result_value;
-			}
+			return value_or_result_address(result_value, result_address, context);
 		}
 		else if (ast::is_integer_kind(expr_kind) && ast::is_floating_point_kind(dest_kind))
 		{
 			auto const result_value = context.create_int_to_float_cast(expr, dest_type, ast::is_signed_integer_kind(expr_kind));
-			if (result_address.has_value())
-			{
-				context.create_store(result_value, result_address.get());
-				return result_address.get();
-			}
-			else
-			{
-				return result_value;
-			}
+			return value_or_result_address(result_value, result_address, context);
 		}
 		else
 		{
@@ -2480,15 +2426,7 @@ static expr_value generate_expr_code(
 				|| (ast::is_integer_kind(expr_kind) && dest_kind == ast::type_info::char_)
 			);
 			auto const result_value = context.create_int_cast(expr, dest_type, ast::is_signed_integer_kind(expr_kind));
-			if (result_address.has_value())
-			{
-				context.create_store(result_value, result_address.get());
-				return result_address.get();
-			}
-			else
-			{
-				return result_value;
-			}
+			return value_or_result_address(result_value, result_address, context);
 		}
 	}
 	else if (
@@ -2497,15 +2435,7 @@ static expr_value generate_expr_code(
 	)
 	{
 		auto const result_value = generate_expr_code(cast.expr, context, {});
-		if (result_address.has_value())
-		{
-			context.create_store(result_value, result_address.get());
-			return result_address.get();
-		}
-		else
-		{
-			return result_value;
-		}
+		return value_or_result_address(result_value, result_address, context);
 	}
 	else if (expr_t.is<ast::ts_array>() && dest_t.is<ast::ts_array_slice>())
 	{
@@ -2808,15 +2738,7 @@ static expr_value generate_expr_code(
 	}
 	else
 	{
-		if (result_address.has_value())
-		{
-			context.create_store(copied_val, result_address.get());
-			return result_address.get();
-		}
-		else
-		{
-			return copied_val.get_value(context);
-		}
+		return value_or_result_address(copied_val, result_address, context);
 	}
 }
 
@@ -2918,20 +2840,12 @@ static expr_value generate_expr_code(
 	bz::optional<expr_value> result_address
 )
 {
-	auto const val = generate_expr_code(trivial_relocate.value, context, {});
-	auto const type = val.get_type();
+	auto const value = generate_expr_code(trivial_relocate.value, context, {});
+	auto const type = value.get_type();
 
 	if (type->is_builtin() || type->is_pointer())
 	{
-		if (result_address.has_value())
-		{
-			context.create_store(val, result_address.get());
-			return result_address.get();
-		}
-		else
-		{
-			return val.get_value(context);
-		}
+		return value_or_result_address(value, result_address, context);
 	}
 	else
 	{
@@ -2941,7 +2855,7 @@ static expr_value generate_expr_code(
 		}
 
 		auto const &result_value = result_address.get();
-		context.create_const_memcpy(result_value, val, type->size);
+		context.create_const_memcpy(result_value, value, type->size);
 		return result_value;
 	}
 }
@@ -4402,15 +4316,7 @@ static expr_value get_constant_value_helper(
 		default:
 			bz_unreachable;
 		}
-		if (result_address.has_value())
-		{
-			context.create_store(int_value, result_address.get());
-			return result_address.get();
-		}
-		else
-		{
-			return int_value;
-		}
+		return value_or_result_address(int_value, result_address, context);
 	}
 	case ast::constant_value::uint:
 	{
@@ -4433,46 +4339,14 @@ static expr_value get_constant_value_helper(
 		default:
 			bz_unreachable;
 		}
-		if (result_address.has_value())
-		{
-			context.create_store(int_value, result_address.get());
-			return result_address.get();
-		}
-		else
-		{
-			return int_value;
-		}
+		return value_or_result_address(int_value, result_address, context);
 	}
 	case ast::constant_value::float32:
-		if (result_address.has_value())
-		{
-			context.create_store(context.create_const_f32(value.get_float32()), result_address.get());
-			return result_address.get();
-		}
-		else
-		{
-			return context.create_const_f32(value.get_float32());
-		}
+		return value_or_result_address(context.create_const_f32(value.get_float32()), result_address, context);
 	case ast::constant_value::float64:
-		if (result_address.has_value())
-		{
-			context.create_store(context.create_const_f64(value.get_float64()), result_address.get());
-			return result_address.get();
-		}
-		else
-		{
-			return context.create_const_f64(value.get_float64());
-		}
+		return value_or_result_address(context.create_const_f64(value.get_float64()), result_address, context);
 	case ast::constant_value::u8char:
-		if (result_address.has_value())
-		{
-			context.create_store(context.create_const_u32(value.get_u8char()), result_address.get());
-			return result_address.get();
-		}
-		else
-		{
-			return context.create_const_u32(value.get_u8char());
-		}
+		return value_or_result_address(context.create_const_u32(value.get_u8char()), result_address, context);
 	case ast::constant_value::string:
 	{
 		if (!result_address.has_value())
@@ -4498,15 +4372,7 @@ static expr_value get_constant_value_helper(
 		return result_value;
 	}
 	case ast::constant_value::boolean:
-		if (result_address.has_value())
-		{
-			context.create_store(context.create_const_i1(value.get_boolean()), result_address.get());
-			return result_address.get();
-		}
-		else
-		{
-			return context.create_const_i1(value.get_boolean());
-		}
+		return value_or_result_address(context.create_const_i1(value.get_boolean()), result_address, context);
 	case ast::constant_value::null:
 		if (
 			auto const type_without_const = ast::remove_const_or_consteval(type);
@@ -4565,15 +4431,7 @@ static expr_value get_constant_value_helper(
 			bz_unreachable;
 		}
 
-		if (result_address.has_value())
-		{
-			context.create_store(enum_int_value, result_address.get());
-			return result_address.get();
-		}
-		else
-		{
-			return enum_int_value;
-		}
+		return value_or_result_address(enum_int_value, result_address, context);
 	}
 	case ast::constant_value::array:
 	{
