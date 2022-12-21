@@ -21,8 +21,11 @@ struct executor_context
 
 	instruction_value ret_value;
 	bool returned;
+	type const *get_builtin_type(builtin_type_kind kind);
+	type const *get_pointer_type(void);
 
-	uint8_t *get_memory(ptr_t ptr, size_t size);
+	uint8_t *get_memory(ptr_t ptr, type const *object_type);
+	uint8_t *get_memory_raw(ptr_t ptr);
 
 	void set_current_instruction_value(instruction_value value);
 	instruction_value get_instruction_value(instruction_value_index index);
