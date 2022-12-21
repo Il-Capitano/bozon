@@ -907,6 +907,11 @@ static void execute_cmp_lt_f64_check(instructions::cmp_lt_f64_check const &inst,
 	}
 }
 
+static bool execute_cmp_lt_ptr(instructions::cmp_lt_ptr const &inst, ptr_t lhs, ptr_t rhs, executor_context &context)
+{
+	return context.compare_pointers(inst.src_tokens_index, lhs, rhs) < 0;
+}
+
 static bool execute_cmp_gt_i8(instructions::cmp_gt_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return static_cast<int8_t>(lhs) > static_cast<int8_t>(rhs);
@@ -995,6 +1000,11 @@ static void execute_cmp_gt_f64_check(instructions::cmp_gt_f64_check const &inst,
 			bz::format("comparing against nan in expression '{} > {}' with type 'float64' evaluates to false", lhs, rhs)
 		);
 	}
+}
+
+static bool execute_cmp_gt_ptr(instructions::cmp_gt_ptr const &inst, ptr_t lhs, ptr_t rhs, executor_context &context)
+{
+	return context.compare_pointers(inst.src_tokens_index, lhs, rhs) > 0;
 }
 
 static bool execute_cmp_lte_i8(instructions::cmp_lte_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
@@ -1087,6 +1097,11 @@ static void execute_cmp_lte_f64_check(instructions::cmp_lte_f64_check const &ins
 	}
 }
 
+static bool execute_cmp_lte_ptr(instructions::cmp_lte_ptr const &inst, ptr_t lhs, ptr_t rhs, executor_context &context)
+{
+	return context.compare_pointers(inst.src_tokens_index, lhs, rhs) <= 0;
+}
+
 static bool execute_cmp_gte_i8(instructions::cmp_gte_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return static_cast<int8_t>(lhs) >= static_cast<int8_t>(rhs);
@@ -1175,6 +1190,11 @@ static void execute_cmp_gte_f64_check(instructions::cmp_gte_f64_check const &ins
 			bz::format("comparing against nan in expression '{} >= {}' with type 'float64' evaluates to false", lhs, rhs)
 		);
 	}
+}
+
+static bool execute_cmp_gte_ptr(instructions::cmp_gte_ptr const &inst, ptr_t lhs, ptr_t rhs, executor_context &context)
+{
+	return context.compare_pointers(inst.src_tokens_index, lhs, rhs) >= 0;
 }
 
 static uint8_t execute_neg_i8(instructions::neg_i8 const &, uint8_t uvalue, executor_context &)
@@ -4355,7 +4375,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 487);
+		static_assert(instruction::variant_count == 491);
 		case instruction::const_i1:
 			execute<instructions::const_i1, &execute_const_i1>(context);
 			break;
@@ -4764,6 +4784,9 @@ void execute(executor_context &context)
 		case instruction::cmp_lt_f64_check:
 			execute<instructions::cmp_lt_f64_check, &execute_cmp_lt_f64_check>(context);
 			break;
+		case instruction::cmp_lt_ptr:
+			execute<instructions::cmp_lt_ptr, &execute_cmp_lt_ptr>(context);
+			break;
 		case instruction::cmp_gt_i8:
 			execute<instructions::cmp_gt_i8, &execute_cmp_gt_i8>(context);
 			break;
@@ -4799,6 +4822,9 @@ void execute(executor_context &context)
 			break;
 		case instruction::cmp_gt_f64_check:
 			execute<instructions::cmp_gt_f64_check, &execute_cmp_gt_f64_check>(context);
+			break;
+		case instruction::cmp_gt_ptr:
+			execute<instructions::cmp_gt_ptr, &execute_cmp_gt_ptr>(context);
 			break;
 		case instruction::cmp_lte_i8:
 			execute<instructions::cmp_lte_i8, &execute_cmp_lte_i8>(context);
@@ -4836,6 +4862,9 @@ void execute(executor_context &context)
 		case instruction::cmp_lte_f64_check:
 			execute<instructions::cmp_lte_f64_check, &execute_cmp_lte_f64_check>(context);
 			break;
+		case instruction::cmp_lte_ptr:
+			execute<instructions::cmp_lte_ptr, &execute_cmp_lte_ptr>(context);
+			break;
 		case instruction::cmp_gte_i8:
 			execute<instructions::cmp_gte_i8, &execute_cmp_gte_i8>(context);
 			break;
@@ -4871,6 +4900,9 @@ void execute(executor_context &context)
 			break;
 		case instruction::cmp_gte_f64_check:
 			execute<instructions::cmp_gte_f64_check, &execute_cmp_gte_f64_check>(context);
+			break;
+		case instruction::cmp_gte_ptr:
+			execute<instructions::cmp_gte_ptr, &execute_cmp_gte_ptr>(context);
 			break;
 		case instruction::neg_i8:
 			execute<instructions::neg_i8, &execute_neg_i8>(context);

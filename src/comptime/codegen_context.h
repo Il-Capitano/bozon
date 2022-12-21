@@ -316,6 +316,10 @@ struct codegen_context
 	expr_value create_float_cmp_gte(expr_value lhs, expr_value rhs);
 	expr_value create_pointer_cmp_eq(expr_value lhs, expr_value rhs);
 	expr_value create_pointer_cmp_neq(expr_value lhs, expr_value rhs);
+	expr_value create_pointer_cmp_lt(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs);
+	expr_value create_pointer_cmp_gt(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs);
+	expr_value create_pointer_cmp_lte(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs);
+	expr_value create_pointer_cmp_gte(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs);
 
 	expr_value create_neg(expr_value value);
 	void create_neg_check(lex::src_tokens const &src_tokens, expr_value value);

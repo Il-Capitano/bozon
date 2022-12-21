@@ -1801,22 +1801,74 @@ expr_value codegen_context::create_float_cmp_gte(expr_value lhs, expr_value rhs)
 	}
 }
 
-expr_value codegen_context::create_cmp_eq_ptr(expr_value lhs, expr_value rhs)
+expr_value codegen_context::create_pointer_cmp_eq(expr_value lhs, expr_value rhs)
 {
 	bz_assert(lhs.get_type()->is_pointer() && rhs.get_type()->is_pointer());
 	auto const lhs_val = lhs.get_value_as_instruction(*this);
 	auto const rhs_val = rhs.get_value_as_instruction(*this);
-	auto const inst_ref = this->add_instruction(instructions::cmp_eq_ptr{}, lhs_val, rhs_val);
-	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
+	return expr_value::get_value(
+		this->add_instruction(instructions::cmp_eq_ptr{}, lhs_val, rhs_val),
+		this->get_builtin_type(builtin_type_kind::i1)
+	);
 }
 
-expr_value codegen_context::create_cmp_neq_ptr(expr_value lhs, expr_value rhs)
+expr_value codegen_context::create_pointer_cmp_neq(expr_value lhs, expr_value rhs)
 {
 	bz_assert(lhs.get_type()->is_pointer() && rhs.get_type()->is_pointer());
 	auto const lhs_val = lhs.get_value_as_instruction(*this);
 	auto const rhs_val = rhs.get_value_as_instruction(*this);
-	auto const inst_ref = this->add_instruction(instructions::cmp_neq_ptr{}, lhs_val, rhs_val);
-	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
+	return expr_value::get_value(
+		this->add_instruction(instructions::cmp_neq_ptr{}, lhs_val, rhs_val),
+		this->get_builtin_type(builtin_type_kind::i1)
+	);
+}
+
+expr_value codegen_context::create_pointer_cmp_lt(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs)
+{
+	bz_assert(lhs.get_type()->is_pointer() && rhs.get_type()->is_pointer());
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
+	return expr_value::get_value(
+		this->add_instruction(instructions::cmp_lt_ptr{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+		this->get_builtin_type(builtin_type_kind::i1)
+	);
+}
+
+expr_value codegen_context::create_pointer_cmp_gt(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs)
+{
+	bz_assert(lhs.get_type()->is_pointer() && rhs.get_type()->is_pointer());
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
+	return expr_value::get_value(
+		this->add_instruction(instructions::cmp_gt_ptr{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+		this->get_builtin_type(builtin_type_kind::i1)
+	);
+}
+
+expr_value codegen_context::create_pointer_cmp_lte(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs)
+{
+	bz_assert(lhs.get_type()->is_pointer() && rhs.get_type()->is_pointer());
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
+	return expr_value::get_value(
+		this->add_instruction(instructions::cmp_lte_ptr{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+		this->get_builtin_type(builtin_type_kind::i1)
+	);
+}
+
+expr_value codegen_context::create_pointer_cmp_gte(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs)
+{
+	bz_assert(lhs.get_type()->is_pointer() && rhs.get_type()->is_pointer());
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
+	return expr_value::get_value(
+		this->add_instruction(instructions::cmp_gte_ptr{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+		this->get_builtin_type(builtin_type_kind::i1)
+	);
 }
 
 expr_value codegen_context::create_neg(expr_value value)
@@ -4889,7 +4941,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 487);
+	static_assert(instruction::variant_count == 491);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>().inst;

@@ -928,6 +928,14 @@ struct cmp_lt_f64_check
 	uint32_t src_tokens_index;
 };
 
+struct cmp_lt_ptr
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::i1;
+
+	uint32_t src_tokens_index;
+};
+
 struct cmp_gt_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
@@ -1000,6 +1008,14 @@ struct cmp_gt_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct cmp_gt_ptr
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::i1;
 
 	uint32_t src_tokens_index;
 };
@@ -1080,6 +1096,14 @@ struct cmp_lte_f64_check
 	uint32_t src_tokens_index;
 };
 
+struct cmp_lte_ptr
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::i1;
+
+	uint32_t src_tokens_index;
+};
+
 struct cmp_gte_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
@@ -1152,6 +1176,14 @@ struct cmp_gte_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+};
+
+struct cmp_gte_ptr
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::i1;
 
 	uint32_t src_tokens_index;
 };
@@ -3503,6 +3535,7 @@ using instruction_list = bz::meta::type_pack<
 	instructions::cmp_lt_f64,
 	instructions::cmp_lt_f32_check,
 	instructions::cmp_lt_f64_check,
+	instructions::cmp_lt_ptr,
 	instructions::cmp_gt_i8,
 	instructions::cmp_gt_i16,
 	instructions::cmp_gt_i32,
@@ -3515,6 +3548,7 @@ using instruction_list = bz::meta::type_pack<
 	instructions::cmp_gt_f64,
 	instructions::cmp_gt_f32_check,
 	instructions::cmp_gt_f64_check,
+	instructions::cmp_gt_ptr,
 	instructions::cmp_lte_i8,
 	instructions::cmp_lte_i16,
 	instructions::cmp_lte_i32,
@@ -3527,6 +3561,7 @@ using instruction_list = bz::meta::type_pack<
 	instructions::cmp_lte_f64,
 	instructions::cmp_lte_f32_check,
 	instructions::cmp_lte_f64_check,
+	instructions::cmp_lte_ptr,
 	instructions::cmp_gte_i8,
 	instructions::cmp_gte_i16,
 	instructions::cmp_gte_i32,
@@ -3539,6 +3574,7 @@ using instruction_list = bz::meta::type_pack<
 	instructions::cmp_gte_f64,
 	instructions::cmp_gte_f32_check,
 	instructions::cmp_gte_f64_check,
+	instructions::cmp_gte_ptr,
 	instructions::neg_i8,
 	instructions::neg_i16,
 	instructions::neg_i32,
@@ -3865,7 +3901,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 487);
+	static_assert(variant_count == 491);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -4004,6 +4040,7 @@ struct instruction : instruction_base_t
 		cmp_lt_f64               = index_of<instructions::cmp_lt_f64>,
 		cmp_lt_f32_check         = index_of<instructions::cmp_lt_f32_check>,
 		cmp_lt_f64_check         = index_of<instructions::cmp_lt_f64_check>,
+		cmp_lt_ptr               = index_of<instructions::cmp_lt_ptr>,
 		cmp_gt_i8                = index_of<instructions::cmp_gt_i8>,
 		cmp_gt_i16               = index_of<instructions::cmp_gt_i16>,
 		cmp_gt_i32               = index_of<instructions::cmp_gt_i32>,
@@ -4016,6 +4053,7 @@ struct instruction : instruction_base_t
 		cmp_gt_f64               = index_of<instructions::cmp_gt_f64>,
 		cmp_gt_f32_check         = index_of<instructions::cmp_gt_f32_check>,
 		cmp_gt_f64_check         = index_of<instructions::cmp_gt_f64_check>,
+		cmp_gt_ptr               = index_of<instructions::cmp_gt_ptr>,
 		cmp_lte_i8               = index_of<instructions::cmp_lte_i8>,
 		cmp_lte_i16              = index_of<instructions::cmp_lte_i16>,
 		cmp_lte_i32              = index_of<instructions::cmp_lte_i32>,
@@ -4028,6 +4066,7 @@ struct instruction : instruction_base_t
 		cmp_lte_f64              = index_of<instructions::cmp_lte_f64>,
 		cmp_lte_f32_check        = index_of<instructions::cmp_lte_f32_check>,
 		cmp_lte_f64_check        = index_of<instructions::cmp_lte_f64_check>,
+		cmp_lte_ptr              = index_of<instructions::cmp_lte_ptr>,
 		cmp_gte_i8               = index_of<instructions::cmp_gte_i8>,
 		cmp_gte_i16              = index_of<instructions::cmp_gte_i16>,
 		cmp_gte_i32              = index_of<instructions::cmp_gte_i32>,
@@ -4040,6 +4079,7 @@ struct instruction : instruction_base_t
 		cmp_gte_f64              = index_of<instructions::cmp_gte_f64>,
 		cmp_gte_f32_check        = index_of<instructions::cmp_gte_f32_check>,
 		cmp_gte_f64_check        = index_of<instructions::cmp_gte_f64_check>,
+		cmp_gte_ptr              = index_of<instructions::cmp_gte_ptr>,
 		neg_i8                   = index_of<instructions::neg_i8>,
 		neg_i16                  = index_of<instructions::neg_i16>,
 		neg_i32                  = index_of<instructions::neg_i32>,
