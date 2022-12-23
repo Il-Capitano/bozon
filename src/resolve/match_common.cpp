@@ -182,6 +182,25 @@ static bool is_null_literal_implicitly_convertible(ast::typespec_view dest)
 	return ast::is_complete(dest) && dest.is<ast::ts_optional>();
 }
 
+static bool is_enum_literal_implicitly_convertible(
+	ast::typespec_view dest,
+	ast::expression const &expr
+)
+{
+	bz_assert(expr.is_enum_literal());
+	auto const &enum_literal = expr.get_enum_literal();
+
+	if (!dest.is<ast::ts_enum>())
+	{
+		return false;
+	}
+
+	auto const dest_enum_values = dest.get<ast::ts_enum>().decl->values.as_array_view();
+	return dest_enum_values.is_any([name = enum_literal.id->value](auto const &name_and_value) {
+		return name == name_and_value.id->value;
+	});
+}
+
 bool is_implicitly_convertible(
 	ast::typespec_view dest,
 	ast::expression const &expr,
@@ -212,6 +231,10 @@ bool is_implicitly_convertible(
 	else if (expr.is_null_literal())
 	{
 		return is_null_literal_implicitly_convertible(dest);
+	}
+	else if (expr.is_enum_literal())
+	{
+		return is_enum_literal_implicitly_convertible(dest, expr);
 	}
 
 	bz_assert(!dest.is<ast::ts_const>());

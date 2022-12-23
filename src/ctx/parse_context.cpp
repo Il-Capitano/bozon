@@ -4997,6 +4997,53 @@ ast::expression parse_context::make_cast_expression(
 		expr.src_tokens = src_tokens;
 		return expr;
 	}
+	else if (expr.is_enum_literal())
+	{
+		auto const id = expr.get_enum_literal().id;
+		auto const id_value = id->value;
+		if (!type.is<ast::ts_enum>())
+		{
+			this->report_error(
+				src_tokens,
+				bz::format("invalid conversion of enum literal '.{}' to non-enum type '{}'", id_value, type)
+			);
+			return ast::make_error_expression(src_tokens, ast::make_expr_cast(std::move(expr), std::move(type)));
+		}
+
+		auto const decl = type.get<ast::ts_enum>().decl;
+		this->resolve_type(src_tokens, decl);
+
+		auto const it = std::find_if(
+			decl->values.begin(), decl->values.end(),
+			[id_value](auto const &value) {
+				return value.id->value == id_value;
+			}
+		);
+
+		if (it == decl->values.end())
+		{
+			this->report_error(
+				src_tokens,
+				bz::format("invalid conversion of enum literal '.{}' to enum type '{}'", id_value, type),
+				{ make_note(decl->src_tokens, bz::format("enum type '{}' has no member named '{}'", type, id_value)) }
+			);
+			return ast::make_error_expression(src_tokens, ast::make_expr_cast(std::move(expr), std::move(type)));
+		}
+
+		auto const &value = *it;
+
+		auto &inner_expr = expr.get_enum_literal_expr();
+
+		inner_expr = ast::make_constant_expression(
+			inner_expr.src_tokens,
+			ast::expression_type_kind::rvalue, type,
+			value.value.is<int64_t>()
+				? ast::constant_value::get_enum(decl, value.value.get<int64_t>())
+				: ast::constant_value::get_enum(decl, value.value.get<uint64_t>()),
+			ast::make_expr_enum_literal(id)
+		);
+		return expr;
+	}
 	else
 	{
 		auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();

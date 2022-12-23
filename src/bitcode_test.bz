@@ -1907,4 +1907,9 @@ function enum_test()
 	}
 
 	const _ = std::create_initialized_array([100: animal_kind], animal_kind.cat);
+
+	let _: #animal_kind = .cat;
+	let _: ##animal_kind = .cat;
+	let _: ?animal_kind = .cat;
+	let _ = .cat as animal_kind;
 }
