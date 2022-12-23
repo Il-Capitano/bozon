@@ -8,6 +8,7 @@ export function memmove = __builtin_memmove;
 export function memset  = __builtin_memset;
 export function swap = __builtin_swap;
 
+export function enum_value = __builtin_enum_value;
 export function assert(b: bool)
 {
 	if (!b) unreachable;
