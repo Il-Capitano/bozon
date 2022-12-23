@@ -1531,7 +1531,7 @@ static expr_value generate_intrinsic_function_call_code(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 192);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 193);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -1885,6 +1885,9 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_unreachable;
 	case ast::function_body::is_trivial:
 		// this is guaranteed to be constant evaluated
+		bz_unreachable;
+	case ast::function_body::create_initialized_array:
+		// this is handled as a separate expression, not a function call
 		bz_unreachable;
 	case ast::function_body::lifetime_start:
 		// this is an LLVM intrinsic
@@ -2777,6 +2780,38 @@ static expr_value generate_expr_code(
 		auto const member_ptr = context.create_struct_gep(result_value, i);
 		generate_expr_code(aggregate_init.exprs[i], context, member_ptr);
 	}
+	return result_value;
+}
+
+static expr_value generate_expr_code(
+	ast::expr_array_value_init const &array_value_init,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+)
+{
+	bz_assert(array_value_init.type.is<ast::ts_array>());
+	auto const size = array_value_init.type.get<ast::ts_array>().size;
+
+	if (!result_address.has_value())
+	{
+		auto const type = get_type(array_value_init.type, context);
+		result_address = context.create_alloca(type);
+	}
+
+	auto const &result_value = result_address.get();
+	bz_assert(result_value.get_type()->is_array());
+
+	auto const value = generate_expr_code(array_value_init.value, context, {});
+	auto const prev_value = context.push_value_reference(value);
+
+	auto const loop_info = create_loop_start(size, context);
+
+	auto const elem_result_address = context.create_array_gep(result_value, loop_info.index);
+	generate_expr_code(array_value_init.copy_expr, context, elem_result_address);
+
+	create_loop_end(loop_info, context);
+
+	context.pop_value_reference(prev_value);
 	return result_value;
 }
 
@@ -4071,7 +4106,7 @@ static expr_value generate_expr_code(
 {
 	switch (expr.kind())
 	{
-	static_assert(ast::expr_t::variant_count == 69);
+	static_assert(ast::expr_t::variant_count == 70);
 	case ast::expr_t::index<ast::expr_variable_name>:
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(expr.get<ast::expr_variable_name>(), context);
@@ -4131,6 +4166,8 @@ static expr_value generate_expr_code(
 		return generate_expr_code(expr.get<ast::expr_take_move_reference>(), context);
 	case ast::expr_t::index<ast::expr_aggregate_init>:
 		return generate_expr_code(expr.get<ast::expr_aggregate_init>(), context, result_address);
+	case ast::expr_t::index<ast::expr_array_value_init>:
+		return generate_expr_code(expr.get<ast::expr_array_value_init>(), context, result_address);
 	case ast::expr_t::index<ast::expr_aggregate_default_construct>:
 		return generate_expr_code(expr.get<ast::expr_aggregate_default_construct>(), context, result_address);
 	case ast::expr_t::index<ast::expr_array_default_construct>:
