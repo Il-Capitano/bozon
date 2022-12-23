@@ -2493,19 +2493,22 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		}
 	}
 	else if (
-		dest.is<ast::ts_auto>()
-		|| (dest.is<ast::ts_base_type>() && dest.get<ast::ts_base_type>().info->is_generic())
-		|| (
-			dest.same_kind_as(expr_type_without_const)
-			&& (
-				dest.is<ast::ts_pointer>()
-				|| dest.is<ast::ts_optional>()
-				|| dest.is<ast::ts_array_slice>()
-				|| dest.is<ast::ts_array>()
-				|| dest.is<ast::ts_tuple>()
+		expr_type_without_const.not_empty()
+		&& (
+			dest.is<ast::ts_auto>()
+			|| (dest.is<ast::ts_base_type>() && dest.get<ast::ts_base_type>().info->is_generic())
+			|| (
+				dest.same_kind_as(expr_type_without_const)
+				&& (
+					dest.is<ast::ts_pointer>()
+					|| dest.is<ast::ts_optional>()
+					|| dest.is<ast::ts_array_slice>()
+					|| dest.is<ast::ts_array>()
+					|| dest.is<ast::ts_tuple>()
+				)
 			)
+			|| (expr_type_without_const.is<ast::ts_pointer>() && dest.is_optional_pointer())
 		)
-		|| (expr_type_without_const.is<ast::ts_pointer>() && dest.is_optional_pointer())
 	)
 	{
 		auto const accept_void = dest.is<ast::ts_pointer>() || dest.is_optional_pointer();
@@ -2751,10 +2754,20 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		static_assert(ast::typespec_types::size() == 19);
 		if constexpr (match_context_t<kind>::report_errors)
 		{
-			match_context.context.report_error(
-				expr.src_tokens,
-				bz::format("unable to match expression of type '{}' to '{}'", expr_type, original_dest)
-			);
+			if (expr.is_enum_literal())
+			{
+				match_context.context.report_error(
+					expr.src_tokens,
+					bz::format("unable to match enum literal '.{}' to type '{}'", expr.get_enum_literal().id->value, original_dest)
+				);
+			}
+			else
+			{
+				match_context.context.report_error(
+					expr.src_tokens,
+					bz::format("unable to match expression of type '{}' to '{}'", expr_type, original_dest)
+				);
+			}
 		}
 		return match_function_result_t<kind>();
 	}
