@@ -84,6 +84,19 @@ function main(args: [: const str]) -> int32
 
 	sum_array([ 0, 1, 2, 3, 4 ]);
 
+	let arr = __builtin_create_initialized_array([10: int32], 3);
+	static_assert(typeof arr == [10: int32]);
+	let arr = __builtin_create_initialized_array([10, 10: int32], __builtin_create_initialized_array([10: int32], 5));
+	static_assert(typeof arr == [10, 10: int32]);
+	let arr = __builtin_create_initialized_array([30: int32], 7);
+	static_assert(typeof arr == [30: int32]);
+	let arr = __builtin_create_initialized_array([30, 30: int32], __builtin_create_initialized_array([30: int32], 9));
+	static_assert(typeof arr == [30, 30: int32]);
+
+	consteval arr = __builtin_create_initialized_array([30: int32], 7);
+	static_assert(typeof arr == const [30: int32]);
+	static_assert(arr[5] == 7);
+
 	static_assert(typeof foo_t.inner_var == const int32);
 	static_assert(foo_t.inner_var == 0);
 	static_assert(foo_t.asdf == int32);
@@ -1892,4 +1905,6 @@ function enum_test()
 		.dog => {},
 		else => {}
 	}
+
+	const _ = std::create_initialized_array([100: animal_kind], animal_kind.cat);
 }

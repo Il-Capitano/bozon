@@ -290,6 +290,17 @@ export function __builtin_print_stderr(s: str)
 @__builtin export consteval function __builtin_is_trivially_relocatable(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_trivial(T: typename) -> bool;
 
+@__builtin export function __builtin_create_initialized_array(T: [??: typename], value: ##auto)
+	-> (if consteval (__builtin_array_value_type(T) != __builtin_remove_const(__builtin_remove_reference(typeof value))) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched array type '",
+			__builtin_typename_as_str(T),
+			"' and value type '",
+			__builtin_typename_as_str(__builtin_remove_const(__builtin_remove_reference(typeof value))),
+			"' in '__builtin_create_initialized_array'"
+		)));
+	} else {}, T);
+
 @__builtin @symbol_name("llvm.lifetime.start.p0") function __builtin_lifetime_start(size: uint64, ptr: *void);
 @__builtin @symbol_name("llvm.lifetime.end.p0") function __builtin_lifetime_end(size: uint64, ptr: *void);
 

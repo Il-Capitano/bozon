@@ -42,6 +42,7 @@ struct expr_optional_cast;
 struct expr_take_reference;
 struct expr_take_move_reference;
 struct expr_aggregate_init;
+struct expr_array_value_init;
 
 struct expr_aggregate_default_construct;
 struct expr_array_default_construct;
@@ -131,6 +132,7 @@ using expr_t = node<
 	expr_take_reference,
 	expr_take_move_reference,
 	expr_aggregate_init,
+	expr_array_value_init,
 	expr_aggregate_default_construct,
 	expr_array_default_construct,
 	expr_optional_default_construct,
@@ -815,6 +817,23 @@ struct expr_aggregate_init
 	)
 		: type (std::move(_type)),
 		  exprs(std::move(_exprs))
+	{}
+};
+
+struct expr_array_value_init
+{
+	typespec   type;
+	expression value;
+	expression copy_expr;
+
+	expr_array_value_init(
+		typespec   _type,
+		expression _value,
+		expression _copy_expr
+	)
+		: type     (std::move(_type)),
+		  value    (std::move(_value)),
+		  copy_expr(std::move(_copy_expr))
 	{}
 };
 
@@ -1621,6 +1640,7 @@ def_make_fn(expr_t, expr_optional_cast)
 def_make_fn(expr_t, expr_take_reference)
 def_make_fn(expr_t, expr_take_move_reference)
 def_make_fn(expr_t, expr_aggregate_init)
+def_make_fn(expr_t, expr_array_value_init)
 def_make_fn(expr_t, expr_aggregate_default_construct)
 def_make_fn(expr_t, expr_array_default_construct)
 def_make_fn(expr_t, expr_optional_default_construct)

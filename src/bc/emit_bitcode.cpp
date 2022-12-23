@@ -2763,7 +2763,7 @@ static val_ptr emit_bitcode(
 
 static ctx::comptime_function_kind get_math_check_function_kind(uint32_t intrinsic_kind)
 {
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 192);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 193);
 	switch (intrinsic_kind)
 	{
 	case ast::function_body::abs_i8:
@@ -3180,7 +3180,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 192);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 193);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -3872,6 +3872,7 @@ static val_ptr emit_bitcode(
 		case ast::function_body::is_trivially_move_destructible:
 		case ast::function_body::is_trivially_relocatable:
 		case ast::function_body::is_trivial:
+		case ast::function_body::create_initialized_array: // this is handled as a separate expression
 		case ast::function_body::i8_default_constructor:
 		case ast::function_body::i16_default_constructor:
 		case ast::function_body::i32_default_constructor:
@@ -4766,6 +4767,51 @@ static val_ptr emit_bitcode(
 		emit_bitcode<abi>(aggregate_init.exprs[i], context, member_ptr);
 	}
 	return val_ptr::get_reference(result_ptr, type);
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_array_value_init const &array_value_init,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const llvm_type = get_llvm_type(array_value_init.type, context);
+	if (result_address == nullptr)
+	{
+		result_address = context.create_alloca(llvm_type);
+	}
+
+	bz_assert(array_value_init.type.is<ast::ts_array>());
+	auto const size = array_value_init.type.get<ast::ts_array>().size;
+	if (size <= array_loop_threshold)
+	{
+		auto const value = emit_bitcode<abi>(array_value_init.value, context, nullptr);
+		auto const prev_value = context.push_value_reference(value);
+		for (auto const i : bz::iota(0, size))
+		{
+			auto const elem_result_address = context.create_struct_gep(llvm_type, result_address, i);
+			emit_bitcode<abi>(array_value_init.copy_expr, context, elem_result_address);
+		}
+		context.pop_value_reference(prev_value);
+		return val_ptr::get_reference(result_address, llvm_type);
+	}
+	else
+	{
+		auto const value = emit_bitcode<abi>(array_value_init.value, context, nullptr);
+		auto const prev_value = context.push_value_reference(value);
+
+		auto const loop_info = create_loop_start(size, context);
+
+		auto const elem_result_address = context.create_array_gep(llvm_type, result_address, loop_info.iter_val);
+		emit_bitcode<abi>(array_value_init.copy_expr, context, elem_result_address);
+
+		create_loop_end(loop_info, context);
+
+		context.pop_value_reference(prev_value);
+		return val_ptr::get_reference(result_address, llvm_type);
+	}
 }
 
 template<abi::platform_abi abi>

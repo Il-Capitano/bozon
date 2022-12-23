@@ -9,6 +9,8 @@ export function memset  = __builtin_memset;
 export function swap = __builtin_swap;
 
 export function enum_value = __builtin_enum_value;
+export function create_initialized_array = __builtin_create_initialized_array;
+
 export function assert(b: bool)
 {
 	if (!b) unreachable;

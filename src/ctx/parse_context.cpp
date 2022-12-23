@@ -33,6 +33,12 @@ static ast::expression make_optional_extract_value_expression(
 	ast::expression optional_value,
 	parse_context &context
 );
+static ast::expression make_array_value_init_expression(
+	lex::src_tokens const &src_tokens,
+	ast::typespec_view type,
+	ast::expression value,
+	parse_context &context
+);
 static ast::expression make_destruct_expression(
 	ast::typespec_view type,
 	ast::expression value,
@@ -3629,6 +3635,13 @@ static ast::expression make_expr_function_call_from_body(
 		bz_assert(args.size() == 1);
 		return make_optional_extract_value_expression(src_tokens, std::move(args[0]), context);
 	}
+	else if (body->is_intrinsic() && body->intrinsic_kind == ast::function_body::create_initialized_array)
+	{
+		bz_assert(args.size() == 2);
+		bz_assert(args[0].is_typename());
+		auto const &type = args[0].get_typename();
+		return make_array_value_init_expression(src_tokens, type, std::move(args[1]), context);
+	}
 	else if (body->is_default_default_constructor() || (body->is_default_constructor() && body->is_defaulted()))
 	{
 		bz_assert(args.size() == 0);
@@ -6859,6 +6872,34 @@ static ast::expression make_optional_extract_value_expression(
 		src_tokens,
 		ast::expression_type_kind::rvalue, std::move(result_type),
 		ast::make_expr_optional_extract_value(std::move(optional_value), std::move(value_move_expr)),
+		ast::destruct_operation()
+	);
+}
+
+static ast::expression make_array_value_init_expression(
+	lex::src_tokens const &src_tokens,
+	ast::typespec_view type,
+	ast::expression value,
+	parse_context &context
+)
+{
+	auto const [value_type, value_kind] = value.get_expr_type_and_kind();
+	if (value_kind == ast::expression_type_kind::rvalue)
+	{
+		context.add_self_destruction(value);
+	}
+
+	auto copy_expr = context.make_copy_construction(ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::lvalue_reference, value_type,
+		ast::make_expr_bitcode_value_reference(),
+		ast::destruct_operation()
+	));
+
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::rvalue, type,
+		ast::make_expr_array_value_init(type, std::move(value), std::move(copy_expr)),
 		ast::destruct_operation()
 	);
 }

@@ -1458,7 +1458,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->body.is_null());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 192);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 193);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2861,6 +2861,10 @@ static ast::constant_value guaranteed_evaluate_expr(
 				return result;
 			}
 		},
+		[&context](ast::expr_array_value_init &array_value_init_expr) -> ast::constant_value {
+			consteval_guaranteed(array_value_init_expr.value, context);
+			return {};
+		},
 		[&context](ast::expr_aggregate_default_construct &aggregate_default_construct_expr) -> ast::constant_value {
 			bool is_consteval = true;
 			for (auto &expr : aggregate_default_construct_expr.default_construct_exprs)
@@ -3557,6 +3561,136 @@ static ast::constant_value try_evaluate_expr(
 				for (auto const &expr : aggregate_init_expr.exprs)
 				{
 					aggregate.emplace_back(expr.get_constant_value());
+				}
+				return result;
+			}
+		},
+		[&context](ast::expr_array_value_init &array_value_init_expr) -> ast::constant_value {
+			auto const type = array_value_init_expr.type.as_typespec_view();
+			consteval_try(array_value_init_expr.value, context);
+			if (!array_value_init_expr.value.has_consteval_succeeded())
+			{
+				return {};
+			}
+
+			auto const &value = array_value_init_expr.value.get_constant_value();
+			if (is_special_array_type(type))
+			{
+				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(type);
+				auto result = ast::constant_value();
+				switch (elem_type.get<ast::ts_base_type>().info->kind)
+				{
+				case ast::type_info::int8_:
+				case ast::type_info::int16_:
+				case ast::type_info::int32_:
+				case ast::type_info::int64_:
+					if (is_multi_dimensional)
+					{
+						bz_assert(value.is_sint_array() && value.get_sint_array().not_empty());
+						auto const value_array = value.get_sint_array();
+						auto &result_array = result.emplace<ast::constant_value::sint_array>(size);
+						auto it = result_array.begin();
+						auto const end = result_array.end();
+						while (it != end)
+						{
+							std::copy_n(value_array.begin(), value_array.size(), it);
+							it += value_array.size();
+						}
+					}
+					else
+					{
+						bz_assert(value.is_sint());
+						result.emplace<ast::constant_value::sint_array>(size, value.get_sint());
+					}
+					break;
+				case ast::type_info::uint8_:
+				case ast::type_info::uint16_:
+				case ast::type_info::uint32_:
+				case ast::type_info::uint64_:
+					if (is_multi_dimensional)
+					{
+						bz_assert(value.is_uint_array() && value.get_uint_array().not_empty());
+						auto const value_array = value.get_uint_array();
+						auto &result_array = result.emplace<ast::constant_value::uint_array>(size);
+						auto it = result_array.begin();
+						auto const end = result_array.end();
+						while (it != end)
+						{
+							std::copy_n(value_array.begin(), value_array.size(), it);
+							it += value_array.size();
+						}
+					}
+					else
+					{
+						bz_assert(value.is_uint());
+						result.emplace<ast::constant_value::uint_array>(size, value.get_uint());
+					}
+					break;
+				case ast::type_info::float32_:
+					if (is_multi_dimensional)
+					{
+						bz_assert(value.is_float32_array() && value.get_float32_array().not_empty());
+						auto const value_array = value.get_float32_array();
+						auto &result_array = result.emplace<ast::constant_value::float32_array>(size);
+						auto it = result_array.begin();
+						auto const end = result_array.end();
+						while (it != end)
+						{
+							std::copy_n(value_array.begin(), value_array.size(), it);
+							it += value_array.size();
+						}
+					}
+					else
+					{
+						bz_assert(value.is_float32());
+						result.emplace<ast::constant_value::float32_array>(size, value.get_float32());
+					}
+					break;
+				case ast::type_info::float64_:
+					if (is_multi_dimensional)
+					{
+						bz_assert(value.is_float64_array() && value.get_float64_array().not_empty());
+						auto const value_array = value.get_float64_array();
+						auto &result_array = result.emplace<ast::constant_value::float64_array>(size);
+						auto it = result_array.begin();
+						auto const end = result_array.end();
+						while (it != end)
+						{
+							std::copy_n(value_array.begin(), value_array.size(), it);
+							it += value_array.size();
+						}
+					}
+					else
+					{
+						bz_assert(value.is_float64());
+						result.emplace<ast::constant_value::float64_array>(size, value.get_float64());
+					}
+					break;
+				default:
+					bz_unreachable;
+				}
+				return result;
+			}
+			else
+			{
+				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(type);
+				auto result = ast::constant_value();
+				if (is_multi_dimensional)
+				{
+					bz_assert(value.is_array() && value.get_array().not_empty());
+					auto const value_array = value.get_array();
+					auto &result_array = result.emplace<ast::constant_value::array>(size);
+					auto it = result_array.begin();
+					auto const end = result_array.end();
+					while (it != end)
+					{
+						std::copy_n(value_array.begin(), value_array.size(), it);
+						it += value_array.size();
+					}
+				}
+				else
+				{
+					result.emplace<ast::constant_value::array>(size, value);
 				}
 				return result;
 			}
@@ -4260,6 +4394,136 @@ static ast::constant_value try_evaluate_expr_without_error(
 				for (auto const &expr : aggregate_init_expr.exprs)
 				{
 					aggregate.emplace_back(expr.get_constant_value());
+				}
+				return result;
+			}
+		},
+		[&context](ast::expr_array_value_init &array_value_init_expr) -> ast::constant_value {
+			auto const type = array_value_init_expr.type.as_typespec_view();
+			consteval_try_without_error(array_value_init_expr.value, context);
+			if (!array_value_init_expr.value.has_consteval_succeeded())
+			{
+				return {};
+			}
+
+			auto const &value = array_value_init_expr.value.get_constant_value();
+			if (is_special_array_type(type))
+			{
+				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(type);
+				auto result = ast::constant_value();
+				switch (elem_type.get<ast::ts_base_type>().info->kind)
+				{
+				case ast::type_info::int8_:
+				case ast::type_info::int16_:
+				case ast::type_info::int32_:
+				case ast::type_info::int64_:
+					if (is_multi_dimensional)
+					{
+						bz_assert(value.is_sint_array() && value.get_sint_array().not_empty());
+						auto const value_array = value.get_sint_array();
+						auto &result_array = result.emplace<ast::constant_value::sint_array>(size);
+						auto it = result_array.begin();
+						auto const end = result_array.end();
+						while (it != end)
+						{
+							std::copy_n(value_array.begin(), value_array.size(), it);
+							it += value_array.size();
+						}
+					}
+					else
+					{
+						bz_assert(value.is_sint());
+						result.emplace<ast::constant_value::sint_array>(size, value.get_sint());
+					}
+					break;
+				case ast::type_info::uint8_:
+				case ast::type_info::uint16_:
+				case ast::type_info::uint32_:
+				case ast::type_info::uint64_:
+					if (is_multi_dimensional)
+					{
+						bz_assert(value.is_uint_array() && value.get_uint_array().not_empty());
+						auto const value_array = value.get_uint_array();
+						auto &result_array = result.emplace<ast::constant_value::uint_array>(size);
+						auto it = result_array.begin();
+						auto const end = result_array.end();
+						while (it != end)
+						{
+							std::copy_n(value_array.begin(), value_array.size(), it);
+							it += value_array.size();
+						}
+					}
+					else
+					{
+						bz_assert(value.is_uint());
+						result.emplace<ast::constant_value::uint_array>(size, value.get_uint());
+					}
+					break;
+				case ast::type_info::float32_:
+					if (is_multi_dimensional)
+					{
+						bz_assert(value.is_float32_array() && value.get_float32_array().not_empty());
+						auto const value_array = value.get_float32_array();
+						auto &result_array = result.emplace<ast::constant_value::float32_array>(size);
+						auto it = result_array.begin();
+						auto const end = result_array.end();
+						while (it != end)
+						{
+							std::copy_n(value_array.begin(), value_array.size(), it);
+							it += value_array.size();
+						}
+					}
+					else
+					{
+						bz_assert(value.is_float32());
+						result.emplace<ast::constant_value::float32_array>(size, value.get_float32());
+					}
+					break;
+				case ast::type_info::float64_:
+					if (is_multi_dimensional)
+					{
+						bz_assert(value.is_float64_array() && value.get_float64_array().not_empty());
+						auto const value_array = value.get_float64_array();
+						auto &result_array = result.emplace<ast::constant_value::float64_array>(size);
+						auto it = result_array.begin();
+						auto const end = result_array.end();
+						while (it != end)
+						{
+							std::copy_n(value_array.begin(), value_array.size(), it);
+							it += value_array.size();
+						}
+					}
+					else
+					{
+						bz_assert(value.is_float64());
+						result.emplace<ast::constant_value::float64_array>(size, value.get_float64());
+					}
+					break;
+				default:
+					bz_unreachable;
+				}
+				return result;
+			}
+			else
+			{
+				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(type);
+				auto result = ast::constant_value();
+				if (is_multi_dimensional)
+				{
+					bz_assert(value.is_array() && value.get_array().not_empty());
+					auto const value_array = value.get_array();
+					auto &result_array = result.emplace<ast::constant_value::array>(size);
+					auto it = result_array.begin();
+					auto const end = result_array.end();
+					while (it != end)
+					{
+						std::copy_n(value_array.begin(), value_array.size(), it);
+						it += value_array.size();
+					}
+				}
+				else
+				{
+					result.emplace<ast::constant_value::array>(size, value);
 				}
 				return result;
 			}
@@ -5155,6 +5419,9 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 					get_consteval_fail_notes_helper(expr, notes);
 				}
 			}
+		},
+		[&notes](ast::expr_array_value_init const &array_value_init_expr) {
+			get_consteval_fail_notes_helper(array_value_init_expr.value, notes);
 		},
 		[&notes](ast::expr_aggregate_default_construct const &aggregate_default_construct_expr) {
 			for (auto const &expr : aggregate_default_construct_expr.default_construct_exprs)
