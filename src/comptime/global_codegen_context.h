@@ -3,6 +3,7 @@
 
 #include "core.h"
 #include "types.h"
+#include "ast/typespec.h"
 #include "lex/token.h"
 
 namespace comptime
@@ -17,6 +18,7 @@ struct error_info_t
 struct slice_construction_check_info_t
 {
 	type const *elem_type;
+	ast::typespec_view slice_type;
 };
 
 struct global_codegen_context

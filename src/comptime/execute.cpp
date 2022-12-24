@@ -4172,7 +4172,7 @@ static void execute_str_construction_check(instructions::str_construction_check 
 static void execute_slice_construction_check(instructions::slice_construction_check const &inst, ptr_t begin_ptr, ptr_t end_ptr, executor_context &context)
 {
 	auto const &info = context.get_slice_construction_info(inst.slice_construction_check_info_index);
-	context.do_slice_construction_check(inst.src_tokens_index, begin_ptr, end_ptr, info.elem_type);
+	context.do_slice_construction_check(inst.src_tokens_index, begin_ptr, end_ptr, info.elem_type, info.slice_type);
 }
 
 

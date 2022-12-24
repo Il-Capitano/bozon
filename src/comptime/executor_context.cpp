@@ -45,16 +45,20 @@ void executor_context::do_str_construction_check(uint32_t src_tokens_index, ptr_
 	auto const is_good = this->memory.check_slice_construction(begin, end, this->get_builtin_type(builtin_type_kind::i8));
 	if (!is_good)
 	{
-		this->report_error(src_tokens_index, "invalid 'str' construction");
+		this->report_error(src_tokens_index, "invalid memory range for 'str'");
 	}
 }
 
-void executor_context::do_slice_construction_check(uint32_t src_tokens_index, ptr_t begin, ptr_t end, type const *elem_type)
+void executor_context::do_slice_construction_check(uint32_t src_tokens_index, ptr_t begin, ptr_t end, type const *elem_type, ast::typespec_view slice_type)
 {
 	auto const is_good = this->memory.check_slice_construction(begin, end, elem_type);
 	if (!is_good)
 	{
-		this->report_error(src_tokens_index, "invalid slice construction");
+		this->report_error(
+			src_tokens_index,
+			bz::format("invalid memory range for a slice of type '{}'", slice_type),
+			{ this->make_note(src_tokens_index, this->memory.get_slice_construction_error_reason(begin, end, elem_type)) }
+		);
 	}
 }
 

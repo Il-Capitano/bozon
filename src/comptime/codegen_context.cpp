@@ -4887,11 +4887,15 @@ instruction_ref codegen_context::create_slice_construction_check(
 	lex::src_tokens const &src_tokens,
 	expr_value begin_ptr,
 	expr_value end_ptr,
-	type const *elem_type
+	type const *elem_type,
+	ast::typespec_view slice_type
 )
 {
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
-	auto const slice_construction_check_info_index = this->add_slice_construction_check_info({ .elem_type = elem_type });
+	auto const slice_construction_check_info_index = this->add_slice_construction_check_info({
+		.elem_type = elem_type,
+		.slice_type = slice_type,
+	});
 
 	auto const begin_ptr_value = begin_ptr.get_value_as_instruction(*this);
 	auto const end_ptr_value = end_ptr.get_value_as_instruction(*this);

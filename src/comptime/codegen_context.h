@@ -419,7 +419,7 @@ struct codegen_context
 	instruction_ref create_array_bounds_check(lex::src_tokens const &src_tokens, expr_value index, expr_value size, bool is_index_signed);
 	instruction_ref create_optional_get_value_check(lex::src_tokens const &src_tokens, expr_value has_value);
 	instruction_ref create_str_construction_check(lex::src_tokens const &src_tokens, expr_value begin_ptr, expr_value end_ptr);
-	instruction_ref create_slice_construction_check(lex::src_tokens const &src_tokens, expr_value begin_ptr, expr_value end_ptr, type const *elem_type);
+	instruction_ref create_slice_construction_check(lex::src_tokens const &src_tokens, expr_value begin_ptr, expr_value end_ptr, type const *elem_type, ast::typespec_view slice_type);
 
 	void finalize_function(function &func);
 };
