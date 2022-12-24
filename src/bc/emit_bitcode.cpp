@@ -4960,7 +4960,7 @@ static val_ptr emit_bitcode(
 		auto const result_member_ptr = context.create_struct_gep(type, result_ptr, i);
 		auto const member_val = copied_val.kind == val_ptr::reference
 			? val_ptr::get_reference(context.create_struct_gep(type, copied_val.val, i), type->getStructElementType(i))
-			: val_ptr::get_value(context.builder.CreateExtractValue(copied_val.val, i));
+			: val_ptr::get_value(context.builder.CreateExtractValue(copied_val.get_value(context.builder), i));
 		auto const prev_value = context.push_value_reference(member_val);
 		emit_bitcode<abi>(aggregate_copy_construct.copy_exprs[i], context, result_member_ptr);
 		context.pop_value_reference(prev_value);
@@ -5098,7 +5098,7 @@ static val_ptr emit_bitcode(
 		auto const result_member_ptr = context.create_struct_gep(type, result_ptr, i);
 		auto const member_val = moved_val.kind == val_ptr::reference
 			? val_ptr::get_reference(context.create_struct_gep(type, moved_val.val, i), type->getStructElementType(i))
-			: val_ptr::get_value(context.builder.CreateExtractValue(moved_val.val, i));
+			: val_ptr::get_value(context.builder.CreateExtractValue(moved_val.get_value(context.builder), i));
 		auto const prev_value = context.push_value_reference(member_val);
 		emit_bitcode<abi>(aggregate_move_construct.move_exprs[i], context, result_member_ptr);
 		context.pop_value_reference(prev_value);
