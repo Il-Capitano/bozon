@@ -5737,64 +5737,38 @@ static ast::expression make_optional_copy_construction(
 )
 {
 	bz_assert(optional_type.is<ast::ts_optional>());
-	if (optional_type.is_optional_pointer_like())
+	bz_assert(!optional_type.is_optional_pointer_like());
+
+	auto const value_type = optional_type.get<ast::ts_optional>();
+	if (!context.is_copy_constructible(expr.src_tokens, value_type))
 	{
-		ast::typespec type = optional_type;
-		return ast::make_dynamic_expression(
+		context.report_error(
 			expr.src_tokens,
-			ast::expression_type_kind::rvalue, std::move(type),
-			ast::make_expr_builtin_copy_construct(std::move(expr)),
-			ast::destruct_operation()
+			bz::format("value of type '{}' is not copy constructible", optional_type),
+			{
+				context.make_note(
+					expr.src_tokens,
+					bz::format("optional value type '{}' is not copy constructible", value_type)
+				)
+			}
+		);
+		return ast::make_error_expression(
+			expr.src_tokens,
+			ast::make_expr_optional_copy_construct(std::move(expr), ast::expression())
 		);
 	}
-	else
-	{
-		auto const value_type = optional_type.get<ast::ts_optional>();
-		if (!context.is_copy_constructible(expr.src_tokens, value_type))
-		{
-			context.report_error(
-				expr.src_tokens,
-				bz::format("value of type '{}' is not copy constructible", optional_type),
-				{
-					context.make_note(
-						expr.src_tokens,
-						bz::format("optional value type '{}' is not copy constructible", value_type)
-					)
-				}
-			);
-			return ast::make_error_expression(
-				expr.src_tokens,
-				ast::make_expr_optional_copy_construct(std::move(expr), ast::expression())
-			);
-		}
 
-		auto value_copy_expr = context.make_copy_construction(ast::make_dynamic_expression(
-			expr.src_tokens,
-			ast::expression_type_kind::lvalue_reference, value_type,
-			ast::make_expr_bitcode_value_reference(),
-			ast::destruct_operation()
-		));
-		ast::typespec type = optional_type;
-		return ast::make_dynamic_expression(
-			expr.src_tokens,
-			ast::expression_type_kind::rvalue, std::move(type),
-			ast::make_expr_optional_copy_construct(std::move(expr), std::move(value_copy_expr)),
-			ast::destruct_operation()
-		);
-	}
-}
-
-static ast::expression make_builtin_copy_construction(
-	ast::typespec_view builtin_type,
-	ast::expression expr,
-	parse_context &
-)
-{
-	ast::typespec type = builtin_type;
+	auto value_copy_expr = context.make_copy_construction(ast::make_dynamic_expression(
+		expr.src_tokens,
+		ast::expression_type_kind::lvalue_reference, value_type,
+		ast::make_expr_bitcode_value_reference(),
+		ast::destruct_operation()
+	));
+	ast::typespec type = optional_type;
 	return ast::make_dynamic_expression(
 		expr.src_tokens,
 		ast::expression_type_kind::rvalue, std::move(type),
-		ast::make_expr_builtin_copy_construct(std::move(expr)),
+		ast::make_expr_optional_copy_construct(std::move(expr), std::move(value_copy_expr)),
 		ast::destruct_operation()
 	);
 }
@@ -5890,7 +5864,18 @@ ast::expression parse_context::make_copy_construction(ast::expression expr)
 {
 	auto const type = ast::remove_const_or_consteval(expr.get_expr_type());
 
-	if (type.is<ast::ts_tuple>())
+	if (this->is_trivially_copy_constructible(expr.src_tokens, type))
+	{
+		auto const src_tokens = expr.src_tokens;
+		ast::typespec result_type = type;
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue, std::move(result_type),
+			ast::make_expr_trivial_copy_construct(std::move(expr)),
+			ast::destruct_operation()
+		);
+	}
+	else if (type.is<ast::ts_tuple>())
 	{
 		return make_tuple_copy_construction(type, std::move(expr), *this);
 	}
@@ -5902,21 +5887,11 @@ ast::expression parse_context::make_copy_construction(ast::expression expr)
 	{
 		return make_optional_copy_construction(type, std::move(expr), *this);
 	}
-	else if (type.is<ast::ts_enum>() || type.is<ast::ts_pointer>() || type.is<ast::ts_array_slice>())
-	{
-		return make_builtin_copy_construction(type, std::move(expr), *this);
-	}
 	else if (type.is<ast::ts_base_type>())
 	{
 		auto const info = type.get<ast::ts_base_type>().info;
-		if (info->kind == ast::type_info::aggregate || info->kind == ast::type_info::forward_declaration)
-		{
-			return make_struct_copy_construction(type, std::move(expr), *this);
-		}
-		else
-		{
-			return make_builtin_copy_construction(type, std::move(expr), *this);
-		}
+		bz_assert(info->kind == ast::type_info::aggregate || info->kind == ast::type_info::forward_declaration);
+		return make_struct_copy_construction(type, std::move(expr), *this);
 	}
 	else
 	{

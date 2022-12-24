@@ -5064,15 +5064,20 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
-	ast::expr_builtin_copy_construct const &builtin_copy_construct,
+	ast::expr_trivial_copy_construct const &trivial_copy_construct,
 	auto &context,
 	llvm::Value *result_address
 )
 {
-	auto const result_val = emit_bitcode<abi>(builtin_copy_construct.copied_value, context, nullptr);
+	auto const result_val = emit_bitcode<abi>(trivial_copy_construct.copied_value, context, nullptr);
+	if (result_address == nullptr && result_val.get_type()->isAggregateType())
+	{
+		result_address = context.create_alloca(result_val.get_type());
+	}
+
 	if (result_address != nullptr)
 	{
-		context.builder.CreateStore(result_val.get_value(context.builder), result_address);
+		emit_value_copy(result_val, result_address, context);
 		return val_ptr::get_reference(result_address, result_val.get_type());
 	}
 	else

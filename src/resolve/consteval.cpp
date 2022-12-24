@@ -3004,15 +3004,14 @@ static ast::constant_value guaranteed_evaluate_expr(
 			bz_assert(builtin_default_construct_expr.type.is<ast::ts_array_slice>());
 			return {};
 		},
-		[&expr, &context](ast::expr_builtin_copy_construct &builtin_copy_construct_expr) -> ast::constant_value {
-			consteval_guaranteed(builtin_copy_construct_expr.copied_value, context);
-			if (!builtin_copy_construct_expr.copied_value.has_consteval_succeeded())
+		[&context](ast::expr_trivial_copy_construct &trivial_copy_construct_expr) -> ast::constant_value {
+			consteval_guaranteed(trivial_copy_construct_expr.copied_value, context);
+			if (!trivial_copy_construct_expr.copied_value.has_consteval_succeeded())
 			{
 				return {};
 			}
 
-			bz_assert(context.is_trivially_copy_constructible(expr.src_tokens, builtin_copy_construct_expr.copied_value.get_expr_type()));
-			return builtin_copy_construct_expr.copied_value.get_constant_value();
+			return trivial_copy_construct_expr.copied_value.get_constant_value();
 		},
 		[&context](ast::expr_trivial_relocate &trivial_relocate_expr) -> ast::constant_value {
 			consteval_guaranteed(trivial_relocate_expr.value, context);
@@ -3834,15 +3833,14 @@ static ast::constant_value try_evaluate_expr(
 			bz_assert(builtin_default_construct_expr.type.is<ast::ts_array_slice>());
 			return {};
 		},
-		[&expr, &context](ast::expr_builtin_copy_construct &builtin_copy_construct_expr) -> ast::constant_value {
-			consteval_try(builtin_copy_construct_expr.copied_value, context);
-			if (!builtin_copy_construct_expr.copied_value.has_consteval_succeeded())
+		[&context](ast::expr_trivial_copy_construct &trivial_copy_construct_expr) -> ast::constant_value {
+			consteval_try(trivial_copy_construct_expr.copied_value, context);
+			if (!trivial_copy_construct_expr.copied_value.has_consteval_succeeded())
 			{
 				return {};
 			}
 
-			bz_assert(context.is_trivially_copy_constructible(expr.src_tokens, builtin_copy_construct_expr.copied_value.get_expr_type()));
-			return builtin_copy_construct_expr.copied_value.get_constant_value();
+			return trivial_copy_construct_expr.copied_value.get_constant_value();
 		},
 		[&context](ast::expr_trivial_relocate &trivial_relocate_expr) -> ast::constant_value {
 			consteval_try(trivial_relocate_expr.value, context);
@@ -4667,15 +4665,14 @@ static ast::constant_value try_evaluate_expr_without_error(
 			bz_assert(builtin_default_construct_expr.type.is<ast::ts_array_slice>());
 			return {};
 		},
-		[&expr, &context](ast::expr_builtin_copy_construct &builtin_copy_construct_expr) -> ast::constant_value {
-			consteval_try_without_error(builtin_copy_construct_expr.copied_value, context);
-			if (!builtin_copy_construct_expr.copied_value.has_consteval_succeeded())
+		[&context](ast::expr_trivial_copy_construct &trivial_copy_construct_expr) -> ast::constant_value {
+			consteval_try_without_error(trivial_copy_construct_expr.copied_value, context);
+			if (!trivial_copy_construct_expr.copied_value.has_consteval_succeeded())
 			{
 				return {};
 			}
 
-			bz_assert(context.is_trivially_copy_constructible(expr.src_tokens, builtin_copy_construct_expr.copied_value.get_expr_type()));
-			return builtin_copy_construct_expr.copied_value.get_constant_value();
+			return trivial_copy_construct_expr.copied_value.get_constant_value();
 		},
 		[&context](ast::expr_trivial_relocate &trivial_relocate_expr) -> ast::constant_value {
 			consteval_try_without_error(trivial_relocate_expr.value, context);
@@ -5531,14 +5528,14 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 				expr.src_tokens, bz::format("subexpression '{}()' is not a constant expression", type)
 			));
 		},
-		[&expr, &notes](ast::expr_builtin_copy_construct const &builtin_copy_construct_expr) {
-			if (builtin_copy_construct_expr.copied_value.has_consteval_failed())
+		[&expr, &notes](ast::expr_trivial_copy_construct const &trivial_copy_construct_expr) {
+			if (trivial_copy_construct_expr.copied_value.has_consteval_failed())
 			{
-				get_consteval_fail_notes_helper(builtin_copy_construct_expr.copied_value, notes);
+				get_consteval_fail_notes_helper(trivial_copy_construct_expr.copied_value, notes);
 			}
 			else
 			{
-				auto const type = ast::remove_const_or_consteval(builtin_copy_construct_expr.copied_value.get_expr_type());
+				auto const type = ast::remove_const_or_consteval(trivial_copy_construct_expr.copied_value.get_expr_type());
 				notes.emplace_back(ctx::parse_context::make_note(
 					expr.src_tokens, bz::format("copy construction of a value of type '{}' is not a constant expression", type)
 				));

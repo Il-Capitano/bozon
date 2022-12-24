@@ -52,7 +52,7 @@ struct expr_builtin_default_construct;
 struct expr_aggregate_copy_construct;
 struct expr_array_copy_construct;
 struct expr_optional_copy_construct;
-struct expr_builtin_copy_construct;
+struct expr_trivial_copy_construct;
 
 struct expr_aggregate_move_construct;
 struct expr_array_move_construct;
@@ -140,7 +140,7 @@ using expr_t = node<
 	expr_aggregate_copy_construct,
 	expr_array_copy_construct,
 	expr_optional_copy_construct,
-	expr_builtin_copy_construct,
+	expr_trivial_copy_construct,
 	expr_aggregate_move_construct,
 	expr_array_move_construct,
 	expr_optional_move_construct,
@@ -925,11 +925,11 @@ struct expr_optional_copy_construct
 	{}
 };
 
-struct expr_builtin_copy_construct
+struct expr_trivial_copy_construct
 {
 	expression copied_value;
 
-	expr_builtin_copy_construct(expression _copied_value)
+	expr_trivial_copy_construct(expression _copied_value)
 		: copied_value(std::move(_copied_value))
 	{}
 };
@@ -1648,7 +1648,7 @@ def_make_fn(expr_t, expr_builtin_default_construct)
 def_make_fn(expr_t, expr_aggregate_copy_construct)
 def_make_fn(expr_t, expr_array_copy_construct)
 def_make_fn(expr_t, expr_optional_copy_construct)
-def_make_fn(expr_t, expr_builtin_copy_construct)
+def_make_fn(expr_t, expr_trivial_copy_construct)
 def_make_fn(expr_t, expr_aggregate_move_construct)
 def_make_fn(expr_t, expr_array_move_construct)
 def_make_fn(expr_t, expr_optional_move_construct)
