@@ -3007,12 +3007,12 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	ast::expr_builtin_copy_construct const &builtin_copy_construct,
+	ast::expr_trivial_copy_construct const &trivial_copy_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 )
 {
-	auto const copied_val = generate_expr_code(builtin_copy_construct.copied_value, context, {});
+	auto const copied_val = generate_expr_code(trivial_copy_construct.copied_value, context, {});
 	if (copied_val.get_type()->is_aggregate())
 	{
 		if (!result_address.has_value())
@@ -3021,7 +3021,7 @@ static expr_value generate_expr_code(
 		}
 
 		auto const &result_value = result_address.get();
-		context.create_const_memcpy(result_value, copied_val, copied_val.get_type()->size);
+		generate_value_copy(copied_val, result_value, context);
 		return result_value;
 	}
 	else
@@ -4182,8 +4182,8 @@ static expr_value generate_expr_code(
 		return generate_expr_code(expr.get<ast::expr_array_copy_construct>(), context, result_address);
 	case ast::expr_t::index<ast::expr_optional_copy_construct>:
 		return generate_expr_code(expr.get<ast::expr_optional_copy_construct>(), context, result_address);
-	case ast::expr_t::index<ast::expr_builtin_copy_construct>:
-		return generate_expr_code(expr.get<ast::expr_builtin_copy_construct>(), context, result_address);
+	case ast::expr_t::index<ast::expr_trivial_copy_construct>:
+		return generate_expr_code(expr.get<ast::expr_trivial_copy_construct>(), context, result_address);
 	case ast::expr_t::index<ast::expr_aggregate_move_construct>:
 		return generate_expr_code(expr.get<ast::expr_aggregate_move_construct>(), context, result_address);
 	case ast::expr_t::index<ast::expr_array_move_construct>:
