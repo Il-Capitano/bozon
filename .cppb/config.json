@@ -28,7 +28,8 @@
 				"extra",
 				"no-c++20-extensions",
 				"no-defaulted-function-deleted",
-				"no-bitwise-instead-of-logical"
+				"no-bitwise-instead-of-logical",
+				"no-unused-parameter"
 			],
 
 			"configs": {
@@ -41,9 +42,10 @@
 				},
 				"linux-release": {},
 				"windows": {
+					"llvm_config_path": "C:/dev/downloads/llvm-project/build/bin/llvm-config.exe",
 					"link_dependencies": [ "ryu_format.windows.o" ],
 					"link_flags": [ "-fuse-ld=lld" ],
-					"libraries": [ "LLVM", "dwarfstack" ]
+					"libraries": [ "LLVM", "dwarfstack", "ffi" ]
 				},
 				"linux": {
 					"link_dependencies": [ "ryu_format.linux.o" ],
