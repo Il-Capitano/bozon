@@ -4521,6 +4521,63 @@ ast::expression parse_context::make_function_call_expression(
 		bz_assert(called.is_constant());
 		return make_constructor_call_expression(src_tokens, std::move(called), std::move(args), *this);
 	}
+	else if (
+		auto const expr_type = ast::remove_const_or_consteval(called.get_expr_type());
+		expr_type.is<ast::ts_function>()
+	)
+	{
+		auto const &fn_type = expr_type.get<ast::ts_function>();
+		if (args.size() != fn_type.param_types.size())
+		{
+			this->report_error(
+				src_tokens,
+				bz::format(
+					"indirect call to a function of type '{}' expects {} arguments, but {} were provided",
+					expr_type, fn_type.param_types.size(), args.size()
+				)
+			);
+			return ast::make_error_expression(
+				src_tokens,
+				ast::make_expr_function_call(src_tokens, std::move(args), nullptr, ast::resolve_order::regular)
+			);
+		}
+
+		for (auto const &[arg, param_type] : bz::zip(args, fn_type.param_types))
+		{
+			bz_assert(ast::is_complete(param_type));
+			ast::typespec param_type_copy = param_type;
+			resolve::match_expression_to_type(arg, param_type_copy, *this);
+			bz_assert(param_type == param_type_copy);
+		}
+
+		if (fn_type.return_type.is<ast::ts_void>())
+		{
+			return ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::none, fn_type.return_type,
+				ast::make_expr_indirect_function_call(src_tokens, std::move(called), std::move(args)),
+				ast::destruct_operation()
+			);
+		}
+		else if (fn_type.return_type.is<ast::ts_lvalue_reference>())
+		{
+			return ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::lvalue_reference, fn_type.return_type.get<ast::ts_lvalue_reference>(),
+				ast::make_expr_indirect_function_call(src_tokens, std::move(called), std::move(args)),
+				ast::destruct_operation()
+			);
+		}
+		else
+		{
+			return ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::rvalue, fn_type.return_type,
+				ast::make_expr_indirect_function_call(src_tokens, std::move(called), std::move(args)),
+				ast::destruct_operation()
+			);
+		}
+	}
 	else
 	{
 		// function call operator

@@ -4165,7 +4165,7 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	auto const fn_type = func_call.called.get_expr_type();
+	auto const fn_type = ast::remove_const_or_consteval(func_call.called.get_expr_type());
 	bz_assert(fn_type.is<ast::ts_function>());
 	auto const return_type = fn_type.get<ast::ts_function>().return_type.as_typespec_view();
 
