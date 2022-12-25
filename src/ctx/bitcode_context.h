@@ -17,6 +17,7 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/PassManager.h>
 #include <unordered_map>
+#include <optional>
 
 namespace ctx
 {
@@ -97,16 +98,16 @@ struct bitcode_context
 		lex::src_tokens const &src_tokens,
 		ast::function_body *func_body,
 		llvm::Function *fn,
-		llvm::ArrayRef<llvm::Value *> args = llvm::None
+		llvm::ArrayRef<llvm::Value *> args = std::nullopt
 	);
 	llvm::CallInst *create_call(
 		llvm::Function *fn,
-		llvm::ArrayRef<llvm::Value *> args = llvm::None
+		llvm::ArrayRef<llvm::Value *> args = std::nullopt
 	);
 	llvm::CallInst *create_call(
 		llvm::FunctionCallee fn,
 		llvm::CallingConv::ID calling_convention,
-		llvm::ArrayRef<llvm::Value *> args = llvm::None
+		llvm::ArrayRef<llvm::Value *> args = std::nullopt
 	);
 
 	bc::val_ptr get_struct_element(bc::val_ptr value, uint64_t idx);
