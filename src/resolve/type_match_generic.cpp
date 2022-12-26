@@ -1562,7 +1562,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 		}
 	}
 
-	if (dest.is<ast::ts_auto>() && !source.is<ast::ts_const>())
+	if (source.not_empty() && dest.is<ast::ts_auto>() && !source.is<ast::ts_const>())
 	{
 		if constexpr (kind == type_match_function_kind::can_match)
 		{
@@ -2493,22 +2493,19 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		}
 	}
 	else if (
-		expr_type_without_const.not_empty()
-		&& (
-			dest.is<ast::ts_auto>()
-			|| (dest.is<ast::ts_base_type>() && dest.get<ast::ts_base_type>().info->is_generic())
-			|| (
-				dest.same_kind_as(expr_type_without_const)
-				&& (
-					dest.is<ast::ts_pointer>()
-					|| dest.is<ast::ts_optional>()
-					|| dest.is<ast::ts_array_slice>()
-					|| dest.is<ast::ts_array>()
-					|| dest.is<ast::ts_tuple>()
-				)
+		dest.is<ast::ts_auto>()
+		|| (dest.is<ast::ts_base_type>() && dest.get<ast::ts_base_type>().info->is_generic())
+		|| (
+			dest.same_kind_as(expr_type_without_const)
+			&& (
+				dest.is<ast::ts_pointer>()
+				|| dest.is<ast::ts_optional>()
+				|| dest.is<ast::ts_array_slice>()
+				|| dest.is<ast::ts_array>()
+				|| dest.is<ast::ts_tuple>()
 			)
-			|| (expr_type_without_const.is<ast::ts_pointer>() && dest.is_optional_pointer())
 		)
+		|| (expr_type_without_const.is<ast::ts_pointer>() && dest.is_optional_pointer())
 	)
 	{
 		auto const accept_void = dest.is<ast::ts_pointer>() || dest.is_optional_pointer();
