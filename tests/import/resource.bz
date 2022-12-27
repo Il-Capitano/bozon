@@ -1,4 +1,44 @@
-import std::utils;
+import std::meta::comptime;
+import std::meta::types;
+import std::libc::stdlib;
+
+function malloc(T: typename, n: usize) -> *T
+{
+	static_assert(!std::meta::is_reference(T), "type in 'malloc' can't be a reference type");
+	static_assert(!std::meta::is_move_reference(T), "type in 'malloc' can't be a move reference type");
+	static_assert(!std::meta::is_const(T), "type in 'malloc' can't be 'const'");
+	static_assert(!std::meta::is_consteval(T), "type in 'malloc' can't be 'consteval'");
+
+	const result = if (std::meta::is_comptime()) {
+		std::meta::malloc(T, n)
+	} else {
+		const malloc_result = std::libc::malloc(n * sizeof T);
+		if (malloc_result == null)
+		{
+			unreachable;
+		}
+		__builtin_pointer_cast(*T, malloc_result.get_value())
+	};
+
+	for (let [it, const end] = [ result, result + n ]; it != end; ++it)
+	{
+		__builtin_inplace_construct(it, T());
+	}
+
+	return result;
+}
+
+function free(p: ?*void)
+{
+	if (std::meta::is_comptime())
+	{
+		std::meta::free(p);
+	}
+	else
+	{
+		std::libc::free(p);
+	}
+}
 
 export struct resource_t
 {
@@ -6,17 +46,17 @@ export struct resource_t
 
 	constructor()
 	{
-		return resource_t[ std::malloc(int32, 1) ];
+		return resource_t[ malloc(int32, 1) ];
 	}
 
 	destructor(&self)
 	{
-		std::free(self.p);
+		free(self.p);
 	}
 
 	constructor(other: &const resource_t)
 	{
-		return resource_t[ std::malloc(int32, 1) ];
+		return resource_t[ malloc(int32, 1) ];
 	}
 }
 
@@ -28,16 +68,16 @@ export struct complex_resource_t
 	constructor()
 	{
 		return complex_resource_t[
-			std::malloc(int32, 1),
-			std::malloc(int32, 1),
+			malloc(int32, 1),
+			malloc(int32, 1),
 		];
 	}
 
 	constructor(other: &const complex_resource_t)
 	{
 		return complex_resource_t[
-			std::malloc(int32, 1),
-			std::malloc(int32, 1),
+			malloc(int32, 1),
+			malloc(int32, 1),
 		];
 	}
 
@@ -45,18 +85,18 @@ export struct complex_resource_t
 	{
 		return complex_resource_t[
 			other.p,
-			std::malloc(int32, 1),
+			malloc(int32, 1),
 		];
 	}
 
 	destructor(&self)
 	{
-		std::free(self.p);
-		std::free(self.instance_p);
+		free(self.p);
+		free(self.instance_p);
 	}
 
 	destructor(move self)
 	{
-		std::free(self.instance_p);
+		free(self.instance_p);
 	}
 }
