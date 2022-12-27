@@ -103,6 +103,7 @@ struct expr_unresolved_cast;
 struct expr_unresolved_member_access;
 struct expr_unresolved_array_type;
 struct expr_unresolved_generic_type_instantiation;
+struct expr_unresolved_function_type;
 
 
 using expr_t = node<
@@ -194,7 +195,8 @@ using unresolved_expr_t = node<
 	expr_if_consteval,
 	expr_switch,
 	expr_unresolved_array_type,
-	expr_unresolved_generic_type_instantiation
+	expr_unresolved_generic_type_instantiation,
+	expr_unresolved_function_type
 >;
 
 
@@ -1602,6 +1604,23 @@ struct expr_unresolved_generic_type_instantiation
 	{}
 };
 
+struct expr_unresolved_function_type
+{
+	arena_vector<expression> param_types;
+	expression               return_type;
+	abi::calling_convention  cc;
+
+	expr_unresolved_function_type(
+		arena_vector<expression> _param_types,
+		expression               _return_type,
+		abi::calling_convention  _cc
+	)
+		: param_types(std::move(_param_types)),
+		  return_type(std::move(_return_type)),
+		  cc         (_cc)
+	{}
+};
+
 
 template<typename ...Args>
 expression make_unresolved_expression(lex::src_tokens const &tokens, Args &&...args)
@@ -1723,6 +1742,7 @@ def_make_unresolved_fn(unresolved_expr_t, expr_if_consteval)
 def_make_unresolved_fn(unresolved_expr_t, expr_switch)
 def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_array_type)
 def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_generic_type_instantiation)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_function_type)
 
 #undef def_make_unresolved_fn
 

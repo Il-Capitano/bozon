@@ -552,6 +552,16 @@ export function __builtin_print_stderr(s: str)
 			"' in assignment"
 		)));
 	} else {}, typeof lhs);
+@__builtin_assign export operator = (lhs: &function(...##auto) -> ##auto, rhs: function(...##auto) -> ##auto)
+	-> (if consteval (__builtin_remove_reference(typeof lhs) != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched function types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in assignment"
+		)));
+	} else {}, typeof lhs);
 @__builtin_assign export operator = (lhs: &?##auto, rhs: ##auto) -> typeof lhs;
 @__builtin_assign export operator = (lhs: &?##auto, rhs: __null_t) -> typeof lhs;
 @__builtin_assign export operator = (lhs: &[: auto], rhs: [: auto])
@@ -964,6 +974,26 @@ export function __builtin_print_stderr(s: str)
 			"' in comparison operator"
 		)));
 	} else {}, bool);
+@__builtin export operator == (lhs: function(...##auto) -> ##auto, rhs: function(...##auto) -> ##auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched function types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in comparison operator"
+		)));
+	} else {}, bool);
+@__builtin export operator == (lhs: ?function(...##auto) -> ##auto, rhs: ?function(...##auto) -> ##auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched optional function types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in comparison operator"
+		)));
+	} else {}, bool);
 @__builtin export operator == (lhs: #const ?auto, rhs: __null_t) -> bool;
 @__builtin export operator == (lhs: __null_t, rhs: #const ?auto) -> bool;
 
@@ -1017,6 +1047,26 @@ export function __builtin_print_stderr(s: str)
 	-> (if consteval (typeof lhs != typeof rhs) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"mismatched optional pointer types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in comparison operator"
+		)));
+	} else {}, bool);
+@__builtin export operator != (lhs: function(...##auto) -> ##auto, rhs: function(...##auto) -> ##auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched function types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in comparison operator"
+		)));
+	} else {}, bool);
+@__builtin export operator != (lhs: ?function(...##auto) -> ##auto, rhs: ?function(...##auto) -> ##auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched optional function types '",
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
 			"' and '",
 			__builtin_typename_as_str(typeof rhs),

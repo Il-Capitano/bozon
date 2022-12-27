@@ -4,6 +4,7 @@
 #include "core.h"
 #include "lex/token.h"
 #include "token_info.h"
+#include "escape_sequences.h"
 #include "ctx/parse_context.h"
 
 namespace parse
@@ -261,6 +262,86 @@ inline lex::token_pos search_token(uint32_t kind, lex::token_pos begin, lex::tok
 		}
 	}
 	return end;
+}
+
+inline bz::u8char get_character(bz::u8string_view::const_iterator &it)
+{
+	auto const c = *it;
+	if (c == '\\')
+	{
+		++it;
+		return get_escape_sequence(it);
+	}
+	else
+	{
+		++it;
+		return c;
+	}
+}
+
+inline abi::calling_convention get_calling_convention(lex::token_pos it, ctx::parse_context &context)
+{
+	auto const string_value = [&]() -> bz::u8string {
+		if (it->kind == lex::token::raw_string_literal)
+		{
+			return it->value;
+		}
+		else
+		{
+			// copy pasted from parse_context.cpp
+			bz::u8string result = "";
+			auto const value = it->value;
+			auto it = value.begin();
+			auto const end = value.end();
+
+			while (it != end)
+			{
+				auto const slash = value.find(it, '\\');
+				result += bz::u8string_view(it, slash);
+				if (slash == end)
+				{
+					break;
+				}
+				it = slash;
+				result += get_character(it);
+			}
+
+			return result;
+		}
+	}();
+
+	static_assert(static_cast<int>(abi::calling_convention::_last) == 3);
+	if (string_value == "c")
+	{
+		return abi::calling_convention::c;
+	}
+	else if (string_value == "fast")
+	{
+		return abi::calling_convention::fast;
+	}
+	else if (string_value == "std")
+	{
+		return abi::calling_convention::std;
+	}
+	else
+	{
+		auto notes = [&]() -> bz::vector<ctx::source_highlight> {
+			if (do_verbose)
+			{
+				return { context.make_note(
+					it->src_pos.file_id, it->src_pos.line,
+					"available calling conventions are 'c', 'fast' and 'std'"
+				) };
+			}
+			else
+			{
+				return {};
+			}
+		}();
+		context.report_error(it, bz::format("invalid calling convention '{}'", string_value), std::move(notes));
+		// return c by default
+		return abi::calling_convention::c;
+	}
 }
 
 

@@ -2216,7 +2216,7 @@ static val_ptr emit_builtin_binary_cmp(
 			return val_ptr::get_reference(result_address, result->getType());
 		}
 	}
-	else // if pointer
+	else // if pointer or function
 	{
 		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);

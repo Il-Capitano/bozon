@@ -690,6 +690,58 @@ static ast::expression parse_primary_expression(
 		);
 	}
 
+	case lex::token::kw_function:
+	{
+		auto const begin = stream;
+		++stream; // 'function'
+		auto const cc_specified = stream->kind == lex::token::string_literal || stream->kind == lex::token::raw_string_literal;
+		auto const cc = cc_specified ? get_calling_convention(stream, context) : abi::default_cc;
+		if (cc_specified)
+		{
+			// only a single token may be used for calling convention
+			// e.g. `function "" "c" foo` is invalid even though `"" "c" == "c"`
+			++stream;
+		}
+
+		context.assert_token(stream, lex::token::paren_open);
+		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end, context);
+		auto param_types = parse_expression_comma_list(inner_stream, inner_end, context);
+		if (inner_stream != inner_end)
+		{
+			context.report_error(inner_stream, "expected ',' or closing )");
+		}
+
+		if (stream != end && stream->kind == lex::token::arrow)
+		{
+			++stream; // '->'
+			auto return_type = parse_expression(stream, end, context, no_comma);
+			auto const src_tokens = lex::src_tokens{ begin, begin, stream };
+			return ast::make_unresolved_expression(
+				src_tokens,
+				ast::make_unresolved_expr_unresolved_function_type(
+					std::move(param_types), std::move(return_type), cc
+				)
+			);
+		}
+		else
+		{
+			auto const src_tokens = lex::src_tokens{ begin, begin, stream };
+			auto return_type = ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::type_name,
+				ast::make_typename_typespec(nullptr),
+				ast::constant_value(ast::make_void_typespec(nullptr)),
+				ast::make_expr_typename_literal()
+			);
+			return ast::make_unresolved_expression(
+				src_tokens,
+				ast::make_unresolved_expr_unresolved_function_type(
+					std::move(param_types), std::move(return_type), cc
+				)
+			);
+		}
+	}
+
 	case lex::token::paren_open:
 	{
 		auto const paren_begin = stream;

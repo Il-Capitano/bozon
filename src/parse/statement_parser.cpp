@@ -4,7 +4,6 @@
 #include "expression_parser.h"
 #include "parse_common.h"
 #include "token_info.h"
-#include "escape_sequences.h"
 #include "resolve/statement_resolver.h"
 
 namespace parse
@@ -502,86 +501,6 @@ static ast::function_body parse_function_body(
 	return result;
 }
 
-static bz::u8char get_character(bz::u8string_view::const_iterator &it)
-{
-	auto const c = *it;
-	if (c == '\\')
-	{
-		++it;
-		return get_escape_sequence(it);
-	}
-	else
-	{
-		++it;
-		return c;
-	}
-}
-
-static abi::calling_convention get_calling_convention(lex::token_pos it, ctx::parse_context &context)
-{
-	auto const string_value = [&]() -> bz::u8string {
-		if (it->kind == lex::token::raw_string_literal)
-		{
-			return it->value;
-		}
-		else
-		{
-			// copa pasted from parse_context.cpp
-			bz::u8string result = "";
-			auto const value = it->value;
-			auto it = value.begin();
-			auto const end = value.end();
-
-			while (it != end)
-			{
-				auto const slash = value.find(it, '\\');
-				result += bz::u8string_view(it, slash);
-				if (slash == end)
-				{
-					break;
-				}
-				it = slash;
-				result += get_character(it);
-			}
-
-			return result;
-		}
-	}();
-
-	static_assert(static_cast<int>(abi::calling_convention::_last) == 3);
-	if (string_value == "c")
-	{
-		return abi::calling_convention::c;
-	}
-	else if (string_value == "fast")
-	{
-		return abi::calling_convention::fast;
-	}
-	else if (string_value == "std")
-	{
-		return abi::calling_convention::std;
-	}
-	else
-	{
-		auto notes = [&]() -> bz::vector<ctx::source_highlight> {
-			if (do_verbose)
-			{
-				return { context.make_note(
-					it->src_pos.file_id, it->src_pos.line,
-					"available calling conventions are 'c', 'fast' and 'std'"
-				) };
-			}
-			else
-			{
-				return {};
-			}
-		}();
-		context.report_error(it, bz::format("invalid calling convention '{}'", string_value), std::move(notes));
-		// return c by default
-		return abi::calling_convention::c;
-	}
-}
-
 template<parse_scope scope>
 ast::statement parse_decl_function_or_alias(
 	lex::token_pos &stream, lex::token_pos end,
@@ -600,7 +519,7 @@ ast::statement parse_decl_function_or_alias(
 	++stream; // 'function'
 	auto const cc_specified = stream->kind == lex::token::string_literal || stream->kind == lex::token::raw_string_literal;
 	auto const cc_token = stream;
-	auto const cc = cc_specified ? get_calling_convention(stream, context) : abi::calling_convention::c;
+	auto const cc = cc_specified ? get_calling_convention(stream, context) : abi::default_cc;
 	if (cc_specified)
 	{
 		// only a single token may be used for calling convention

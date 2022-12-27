@@ -999,6 +999,51 @@ static ast::expression resolve_expr(
 	);
 }
 
+static ast::expression resolve_expr(
+	lex::src_tokens const &src_tokens,
+	ast::expr_unresolved_function_type function_type,
+	ctx::parse_context &context
+)
+{
+	bool good = true;
+	for (auto &param_type : function_type.param_types)
+	{
+		resolve_expression(param_type, context);
+		if (!param_type.is_typename())
+		{
+			context.report_error(param_type.src_tokens, "expected a type");
+			good = false;
+		}
+	}
+	resolve_expression(function_type.return_type, context);
+	if (!function_type.return_type.is_typename())
+	{
+		context.report_error(function_type.return_type.src_tokens, "expected a type");
+		good = false;
+	}
+
+	if (!good)
+	{
+		return ast::make_error_expression(src_tokens);
+	}
+
+	auto fn_type = ast::make_function_typespec(
+		src_tokens,
+		function_type.param_types.transform([](auto &param_type) {
+			return std::move(param_type.get_typename());
+		}).collect<ast::arena_vector>(),
+		std::move(function_type.return_type.get_typename()),
+		function_type.cc
+	);
+	return ast::make_constant_expression(
+		src_tokens,
+		ast::expression_type_kind::type_name,
+		ast::make_typename_typespec(nullptr),
+		ast::constant_value(std::move(fn_type)),
+		ast::make_expr_typename_literal()
+	);
+}
+
 void resolve_expression(ast::expression &expr, ctx::parse_context &context)
 {
 	if (expr.is_unresolved())
