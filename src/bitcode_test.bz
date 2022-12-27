@@ -388,6 +388,9 @@ function main(args: [: const str]) -> int32
 	std::print("\n==== enum_test ====\n");
 	enum_test();
 
+	std::print("\n==== indirect_call_test ====\n");
+	indirect_call_test();
+
 	std::print("\n==== end main ====\n");
 	std::printf("e  = {}\n", std::e);
 	std::printf("pi = {}\n", std::pi);
@@ -1872,6 +1875,16 @@ function optional_test()
 	let i = 0;
 	let p = &i;
 	(p + 0) == null;
+
+	let or: ?&int32 = null;
+	or = i;
+	std::assert(&or.get_value() == &i);
+	or.get_value() == 3;
+
+	// let oror: ?&?&int32 = or;
+
+	let _: ?&const int32 = or;
+	// _.get_value() = 3;
 }
 
 enum animal_kind: uint32
@@ -1912,4 +1925,29 @@ function enum_test()
 	let _: ##animal_kind = .cat;
 	let _: ?animal_kind = .cat;
 	let _ = .cat as animal_kind;
+}
+
+function indirect_call_test()
+{
+	function add_i32(a: int32, b: int32) -> int32
+	{
+		return a + b;
+	}
+
+	function mul_i32(a: int32, b: int32) -> int32
+	{
+		return a * b;
+	}
+
+	function ret_void() -> void
+	{}
+
+	let _: function(...##auto) -> ##auto = ret_void;
+
+	let op: function(int32, int32) -> int32 = add_i32;
+	std::assert(op(2, 3) == 5);
+	op = mul_i32;
+	std::assert(op(2, 3) == 6);
+	std::assert(op == mul_i32);
+	std::assert(op != add_i32);
 }
