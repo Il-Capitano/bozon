@@ -1461,7 +1461,7 @@ static ast::typespec get_function_type(ast::function_body &body)
 {
 	auto const &return_type = body.return_type;
 	auto param_types = body.params.transform([](auto &p) { return p.get_type(); }).collect<ast::arena_vector>();
-	return ast::make_function_typespec(body.src_tokens, std::move(param_types), return_type);
+	return ast::make_function_typespec(body.src_tokens, std::move(param_types), return_type, body.cc);
 }
 
 static ast::expression make_variable_expression(
@@ -7621,7 +7621,7 @@ bool parse_context::is_copy_constructible(lex::src_tokens const &src_tokens, ast
 {
 	return type_property_helper<
 		&ast::type_info::is_copy_constructible,
-		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice, ast::ts_function
 	>(src_tokens, ts, *this);
 }
 
@@ -7629,7 +7629,7 @@ bool parse_context::is_trivially_copy_constructible(lex::src_tokens const &src_t
 {
 	return type_property_helper<
 		&ast::type_info::is_trivially_copy_constructible,
-		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice, ast::ts_function
 	>(src_tokens, ts, *this);
 }
 
@@ -7637,7 +7637,7 @@ bool parse_context::is_move_constructible(lex::src_tokens const &src_tokens, ast
 {
 	return type_property_helper<
 		&ast::type_info::is_move_constructible,
-		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice, ast::ts_function
 	>(src_tokens, ts, *this);
 }
 
@@ -7645,7 +7645,7 @@ bool parse_context::is_trivially_move_constructible(lex::src_tokens const &src_t
 {
 	return type_property_helper<
 		&ast::type_info::is_trivially_move_constructible,
-		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice, ast::ts_function
 	>(src_tokens, ts, *this);
 }
 
@@ -7669,7 +7669,7 @@ bool parse_context::is_trivially_relocatable(lex::src_tokens const &src_tokens, 
 {
 	return type_property_helper<
 		&ast::type_info::is_trivially_relocatable,
-		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice, ast::ts_function
 	>(src_tokens, ts, *this);
 }
 
@@ -7677,7 +7677,7 @@ bool parse_context::is_trivial(lex::src_tokens const &src_tokens, ast::typespec_
 {
 	return type_property_helper<
 		&ast::type_info::is_trivial,
-		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice
+		false, ast::ts_enum, ast::ts_pointer, ast::ts_array_slice, ast::ts_function
 	>(src_tokens, ts, *this);
 }
 

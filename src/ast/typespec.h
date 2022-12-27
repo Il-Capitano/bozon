@@ -5,6 +5,7 @@
 #include "lex/token.h"
 #include "allocator.h"
 #include "statement_forward.h"
+#include "abi/calling_conventions.h"
 
 namespace ast
 {
@@ -111,11 +112,13 @@ struct typespec_view
 	bool is_safe_blind_get(void) const noexcept;
 	typespec_view blind_get(void) const noexcept;
 	bool is_typename(void) const noexcept;
-	bool is_optional_pointer(void) const noexcept;
 	bool is_optional_pointer_like(void) const noexcept;
+	bool is_optional_pointer(void) const noexcept;
 	typespec_view get_optional_pointer(void) const noexcept;
 	bool is_optional_reference(void) const noexcept;
 	typespec_view get_optional_reference(void) const noexcept;
+	bool is_optional_function(void) const noexcept;
+	ts_function const &get_optional_function(void) const noexcept;
 
 	template<typename Fn>
 	decltype(auto) visit(Fn &&fn) const;
@@ -190,6 +193,14 @@ struct typespec
 	typespec_view get_optional_reference(void) const noexcept
 	{ return this->as_typespec_view().get_optional_reference(); }
 
+	bool is_optional_function(void) const noexcept
+	{ return this->as_typespec_view().is_optional_function(); }
+
+	ts_function &get_optional_function(void) noexcept;
+
+	ts_function const &get_optional_function(void) const noexcept
+	{ return this->as_typespec_view().get_optional_function(); }
+
 	template<typename Fn>
 	decltype(auto) visit(Fn &&fn) const
 	{ return this->as_typespec_view().visit(std::forward<Fn>(fn)); }
@@ -240,6 +251,7 @@ struct ts_function
 {
 	arena_vector<typespec> param_types;
 	typespec return_type;
+	abi::calling_convention cc;
 };
 
 struct ts_array
@@ -366,13 +378,14 @@ inline typespec make_tuple_typespec(
 inline typespec make_function_typespec(
 	lex::src_tokens const &src_tokens,
 	arena_vector<typespec> param_types,
-	typespec return_type
+	typespec return_type,
+	abi::calling_convention cc
 )
 {
 	return typespec{
 		src_tokens,
 		{},
-		make_ast_unique<terminator_typespec_node_t>(ts_function{ std::move(param_types), std::move(return_type) })
+		make_ast_unique<terminator_typespec_node_t>(ts_function{ std::move(param_types), std::move(return_type), cc })
 	};
 }
 

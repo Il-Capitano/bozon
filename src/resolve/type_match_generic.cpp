@@ -295,6 +295,57 @@ static strict_match_context_t<kind> change_inner_dest_and_source(
 	}
 }
 
+template<type_match_function_kind kind, typename DestType>
+static strict_match_context_t<kind> change_dest_and_source(
+	strict_match_context_t<kind> const &context,
+	DestType &&new_dest,
+	ast::typespec_view new_source
+)
+{
+	if constexpr (kind == type_match_function_kind::can_match)
+	{
+		return strict_match_context_t<type_match_function_kind::can_match>{
+			.source = new_source,
+			.dest = new_dest,
+			.context = context.context,
+		};
+	}
+	else if constexpr (kind == type_match_function_kind::match_level)
+	{
+		return strict_match_context_t<type_match_function_kind::match_level>{
+			.source = new_source,
+			.dest = new_dest,
+			.reference_match = context.reference_match,
+			.base_type_match = context.base_type_match,
+			.context = context.context,
+		};
+	}
+	else if constexpr (kind == type_match_function_kind::matched_type)
+	{
+		return strict_match_context_t<type_match_function_kind::matched_type>{
+			.source = new_source,
+			.dest = new_dest,
+			.original_dest = new_dest,
+			.context = context.context,
+		};
+	}
+	else if constexpr (kind == type_match_function_kind::match_expression)
+	{
+		return strict_match_context_t<type_match_function_kind::match_expression>{
+			.expr = context.expr,
+			.original_dest_container = context.original_dest_container,
+			.dest_container = new_dest,
+			.source = new_source,
+			.dest = new_dest,
+			.context = context.context,
+		};
+	}
+	else
+	{
+		static_assert(bz::meta::always_false<strict_match_context_t<kind>>);
+	}
+}
+
 
 template<type_match_function_kind kind>
 static match_function_result_t<kind> generic_type_match_if_expr_complete_type(match_context_t<kind> const &match_context)
@@ -1648,6 +1699,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 				&& (
 					(dest.is_optional_pointer() && source.is<ast::ts_pointer>())
 					|| (dest.is_optional_reference() && source.is<ast::ts_lvalue_reference>())
+					|| (dest.is_optional_function() && source.is<ast::ts_function>())
 				)
 			)
 			{
@@ -1694,7 +1746,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 					dest.get<ast::ts_auto_reference>(),
 					ast::remove_lvalue_reference(source)
 				),
-				false,
+				!source.is<ast::ts_lvalue_reference>(),
 				propagate_const && source.is<ast::ts_lvalue_reference>(),
 				false
 			);
@@ -1708,7 +1760,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 					dest.get<ast::ts_auto_reference>(),
 					ast::remove_lvalue_reference(source)
 				),
-				false,
+				!source.is<ast::ts_lvalue_reference>(),
 				propagate_const && source.is<ast::ts_lvalue_reference>(),
 				false
 			);
@@ -1723,7 +1775,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 					.dest = dest.get<ast::ts_auto_reference>(),
 					.context = match_context.context,
 				},
-				false,
+				!source.is<ast::ts_lvalue_reference>(),
 				propagate_const && source.is<ast::ts_lvalue_reference>(),
 				false
 			);
@@ -1751,7 +1803,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 					.dest = dest.get<ast::ts_auto_reference>(),
 					.context = match_context.context,
 				},
-				false,
+				!source.is<ast::ts_lvalue_reference>(),
 				propagate_const && source.is<ast::ts_lvalue_reference>(),
 				false
 			);
@@ -1795,7 +1847,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 					dest.get<ast::ts_auto_reference_const>(),
 					ast::remove_const_or_consteval(ast::remove_lvalue_reference(source))
 				),
-				false,
+				!source.is<ast::ts_lvalue_reference>(),
 				propagate_const
 				&& source.is<ast::ts_lvalue_reference>()
 				&& source.get<ast::ts_lvalue_reference>().is<ast::ts_const>(),
@@ -1812,7 +1864,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 					dest.get<ast::ts_auto_reference_const>(),
 					ast::remove_const_or_consteval(ast::remove_lvalue_reference(source))
 				),
-				false,
+				!source.is<ast::ts_lvalue_reference>(),
 				propagate_const
 				&& source.is<ast::ts_lvalue_reference>()
 				&& source.get<ast::ts_lvalue_reference>().is<ast::ts_const>(),
@@ -1830,7 +1882,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 					.dest = dest.get<ast::ts_auto_reference_const>(),
 					.context = match_context.context,
 				},
-				false,
+				!source.is<ast::ts_lvalue_reference>(),
 				propagate_const && source.is<ast::ts_lvalue_reference>(),
 				false
 			);
@@ -1858,7 +1910,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 					.dest = dest.get<ast::ts_auto_reference_const>(),
 					.context = match_context.context,
 				},
-				false,
+				!source.is<ast::ts_lvalue_reference>(),
 				propagate_const && source.is<ast::ts_lvalue_reference>(),
 				false
 			);
@@ -1946,6 +1998,292 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 		else if constexpr (kind == type_match_function_kind::match_expression)
 		{
 			return true;
+		}
+		else
+		{
+			static_assert(bz::meta::always_false<match_context_t<kind>>);
+		}
+	}
+	else if (dest.is<ast::ts_function>() && source.is<ast::ts_function>())
+	{
+		auto const &dest_fn = dest.get<ast::ts_function>();
+		auto const &source_fn = source.get<ast::ts_function>();
+
+		auto const is_variadic = dest_fn.param_types.not_empty() && dest_fn.param_types.back().is<ast::ts_variadic>();
+		if (
+			(is_variadic && source_fn.param_types.size() < dest_fn.param_types.size() - 1)
+			|| (!is_variadic && source_fn.param_types.size() != dest_fn.param_types.size())
+		)
+		{
+			if constexpr (match_context_t<kind>::report_errors)
+			{
+				bz::vector<ctx::source_highlight> notes;
+				if (source.modifiers.size() != match_context.source.modifiers.size())
+				{
+					notes.push_back(match_context.context.make_note(
+						match_context.expr.src_tokens,
+						bz::format(
+							"mismatched parameter counts {} and {} with function types '{}' and '{}'",
+							source_fn.param_types.size(), dest_fn.param_types.size(), source, dest
+						)
+					));
+				}
+				else
+				{
+					notes.push_back(match_context.context.make_note(
+						match_context.expr.src_tokens,
+						bz::format(
+							"mismatched parameter counts: {} and {}",
+							source_fn.param_types.size(), dest_fn.param_types.size()
+						)
+					));
+				}
+				if (&match_context.original_dest_container != &match_context.dest_container)
+				{
+					notes.push_back(match_context.context.make_note(
+						match_context.expr.src_tokens,
+						bz::format(
+							"while matching expression of type '{}' to '{}'",
+							match_context.expr.get_expr_type(), match_context.original_dest_container
+						)
+					));
+				}
+				match_context.context.report_error(
+					match_context.expr.src_tokens,
+					bz::format(
+						"unable to match type '{}' to '{}'",
+						match_context.source, match_context.dest
+					),
+					std::move(notes)
+				);
+			}
+			return match_function_result_t<kind>();
+		}
+		if (dest_fn.cc != source_fn.cc)
+		{
+			if constexpr (match_context_t<kind>::report_errors)
+			{
+				bz::vector<ctx::source_highlight> notes;
+				if (source.modifiers.size() != match_context.source.modifiers.size())
+				{
+					notes.push_back(match_context.context.make_note(
+						match_context.expr.src_tokens,
+						bz::format(
+							"mismatched calling conventions '{}' and '{}' with function types '{}' and '{}'",
+							abi::to_string(source_fn.cc), abi::to_string(dest_fn.cc), source, dest
+						)
+					));
+				}
+				else
+				{
+					notes.push_back(match_context.context.make_note(
+						match_context.expr.src_tokens,
+						bz::format(
+							"mismatched calling conventions: '{}' and '{}'",
+							abi::to_string(source_fn.cc), abi::to_string(dest_fn.cc)
+						)
+					));
+				}
+				if (&match_context.original_dest_container != &match_context.dest_container)
+				{
+					notes.push_back(match_context.context.make_note(
+						match_context.expr.src_tokens,
+						bz::format(
+							"while matching expression of type '{}' to '{}'",
+							match_context.expr.get_expr_type(), match_context.original_dest_container
+						)
+					));
+				}
+				match_context.context.report_error(
+					match_context.expr.src_tokens,
+					bz::format(
+						"unable to match type '{}' to '{}'",
+						match_context.source, match_context.dest
+					),
+					std::move(notes)
+				);
+			}
+			return match_function_result_t<kind>();
+		}
+
+		auto const non_variadic_count = dest_fn.param_types.size() - static_cast<size_t>(is_variadic);
+
+		if constexpr (kind == type_match_function_kind::can_match)
+		{
+			for (auto const i : bz::iota(0, non_variadic_count))
+			{
+				auto const is_good = generic_type_match_strict_match(
+					change_dest_and_source(
+						match_context,
+						dest_fn.param_types[i],
+						source_fn.param_types[i]
+					),
+					false, false, true
+				);
+				if (!is_good)
+				{
+					return false;
+				}
+			}
+
+			for (auto const i : bz::iota(non_variadic_count, source_fn.param_types.size()))
+			{
+				auto const is_good = generic_type_match_strict_match(
+					change_dest_and_source(
+						match_context,
+						dest_fn.param_types.back().get<ast::ts_variadic>(),
+						source_fn.param_types[i]
+					),
+					false, false, true
+				);
+				if (!is_good)
+				{
+					return false;
+				}
+			}
+
+			auto const does_return_type_match = generic_type_match_strict_match(
+				change_dest_and_source(match_context, dest_fn.return_type, source_fn.return_type),
+				true, false, true
+			);
+			return does_return_type_match;
+		}
+		else if constexpr (kind == type_match_function_kind::match_level)
+		{
+			auto result = match_level_t();
+			auto &result_vec = result.emplace_multi();
+			result_vec.reserve(source_fn.param_types.size() + 1);
+
+			for (auto const i : bz::iota(0, non_variadic_count))
+			{
+				result_vec.push_back(generic_type_match_strict_match(
+					change_dest_and_source(
+						match_context,
+						dest_fn.param_types[i],
+						source_fn.param_types[i]
+					),
+					false, false, true
+				));
+				if (result_vec.back().is_null())
+				{
+					result.clear();
+					return result;
+				}
+			}
+
+			for (auto const i : bz::iota(non_variadic_count, source_fn.param_types.size()))
+			{
+				result_vec.push_back(generic_type_match_strict_match(
+					change_dest_and_source(
+						match_context,
+						dest_fn.param_types.back().get<ast::ts_variadic>(),
+						source_fn.param_types[i]
+					),
+					false, false, true
+				));
+				if (result_vec.back().is_null())
+				{
+					result.clear();
+					return result;
+				}
+			}
+
+			result_vec.push_back(generic_type_match_strict_match(
+				change_dest_and_source(match_context, dest_fn.return_type, source_fn.return_type),
+				true, false, true
+			));
+			if (result_vec.back().is_null())
+			{
+				result.clear();
+				return result;
+			}
+
+			result += modifier_match_level;
+			return result;
+		}
+		else if constexpr (kind == type_match_function_kind::matched_type)
+		{
+			ast::typespec result = match_context.original_dest;
+			bz_assert(result.terminator->is<ast::ts_function>());
+			auto &result_fn = result.terminator->get<ast::ts_function>();
+			result_fn.param_types.clear();
+			result_fn.param_types.reserve(source_fn.param_types.size());
+
+			for (auto const i : bz::iota(0, non_variadic_count))
+			{
+				result_fn.param_types.push_back(generic_type_match_strict_match(
+					change_dest_and_source(
+						match_context,
+						dest_fn.param_types[i],
+						source_fn.param_types[i]
+					),
+					false, false, true
+				));
+				if (result_fn.param_types.back().is_empty())
+				{
+					result.clear();
+					return result;
+				}
+			}
+
+			for (auto const i : bz::iota(non_variadic_count, source_fn.param_types.size()))
+			{
+				result_fn.param_types.push_back(generic_type_match_strict_match(
+					change_dest_and_source(
+						match_context,
+						dest_fn.param_types.back().get<ast::ts_variadic>(),
+						source_fn.param_types[i]
+					),
+					false, false, true
+				));
+				if (result_fn.param_types.back().is_empty())
+				{
+					result.clear();
+					return result;
+				}
+			}
+
+			result_fn.return_type = generic_type_match_strict_match(
+				change_dest_and_source(match_context, dest_fn.return_type, source_fn.return_type),
+				true, false, true
+			);
+			if (result_fn.return_type.is_empty())
+			{
+				result.clear();
+				return result;
+			}
+
+			return result;
+		}
+		else if constexpr (kind == type_match_function_kind::match_expression)
+		{
+			bz_assert(match_context.dest_container.terminator->template is<ast::ts_function>());
+			ast::ts_function &dest_container_fn = match_context.dest_container.terminator->template get<ast::ts_function>();
+			if (is_variadic)
+			{
+				expand_variadic_tuple_type(dest_container_fn.param_types, source_fn.param_types.size());
+			}
+			bz_assert(dest_container_fn.param_types.size() == source_fn.param_types.size());
+
+			bool good = true;
+			for (auto const i : bz::iota(0, dest_container_fn.param_types.size()))
+			{
+				good &= generic_type_match_strict_match(
+					change_dest_and_source(
+						match_context,
+						dest_container_fn.param_types[i],
+						source_fn.param_types[i]
+					),
+					false, false, true
+				);
+			}
+
+			good &= generic_type_match_strict_match(
+				change_dest_and_source(match_context, dest_container_fn.return_type, source_fn.return_type),
+				true, false, true
+			);
+
+			return good;
 		}
 		else
 		{
@@ -2833,9 +3171,11 @@ static match_function_result_t<kind> generic_type_match_base_case(
 				|| dest.is<ast::ts_array_slice>()
 				|| dest.is<ast::ts_array>()
 				|| dest.is<ast::ts_tuple>()
+				|| dest.is<ast::ts_function>()
 			)
 		)
 		|| (expr_type_without_const.is<ast::ts_pointer>() && dest.is_optional_pointer())
+		|| (expr_type_without_const.is<ast::ts_function>() && dest.is_optional_function())
 	)
 	{
 		auto const accept_void = dest.is<ast::ts_pointer>() || dest.is_optional_pointer();

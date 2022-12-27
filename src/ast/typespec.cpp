@@ -55,13 +55,6 @@ bool typespec_view::is_typename(void) const noexcept
 	});
 }
 
-bool typespec_view::is_optional_pointer(void) const noexcept
-{
-	return this->modifiers.size() >= 2
-		&& this->modifiers[0].is<ts_optional>()
-		&& this->modifiers[1].is<ts_pointer>();
-}
-
 bool typespec_view::is_optional_pointer_like(void) const noexcept
 {
 	if (this->modifiers.size() >= 2
@@ -77,6 +70,13 @@ bool typespec_view::is_optional_pointer_like(void) const noexcept
 			&& this->modifiers[0].is<ast::ts_optional>()
 			&& this->terminator->is<ast::ts_function>();
 	}
+}
+
+bool typespec_view::is_optional_pointer(void) const noexcept
+{
+	return this->modifiers.size() >= 2
+		&& this->modifiers[0].is<ts_optional>()
+		&& this->modifiers[1].is<ts_pointer>();
 }
 
 typespec_view typespec_view::get_optional_pointer(void) const noexcept
@@ -96,6 +96,19 @@ typespec_view typespec_view::get_optional_reference(void) const noexcept
 {
 	bz_assert(this->is_optional_reference());
 	return this->get<ts_optional>().get<ts_lvalue_reference>();
+}
+
+bool typespec_view::is_optional_function(void) const noexcept
+{
+	return this->modifiers.size() == 1
+		&& this->modifiers[0].is<ts_optional>()
+		&& this->terminator->is<ts_function>();
+}
+
+ts_function const &typespec_view::get_optional_function(void) const noexcept
+{
+	bz_assert(this->is_optional_function());
+	return this->get<ts_optional>().get<ts_function>();
 }
 
 typespec::typespec(
@@ -168,6 +181,12 @@ bool typespec::is_empty(void) const noexcept
 bool typespec::not_empty(void) const noexcept
 {
 	return this->terminator != nullptr;
+}
+
+ts_function &typespec::get_optional_function(void) noexcept
+{
+	bz_assert(this->is_optional_function());
+	return this->terminator->get<ts_function>();
 }
 
 uint64_t typespec_view::modifier_kind(void) const noexcept
@@ -467,6 +486,16 @@ bz::u8string typespec_view::get_symbol_name(void) const
 		[&](ts_typename const &) {
 			result += "0N";
 		},
+		[&](ts_function const &fn_t) {
+			result += bz::format("0F.{}.{}", static_cast<int>(fn_t.cc), fn_t.param_types.size());
+			for (auto const &param_type : fn_t.param_types)
+			{
+				result += '.';
+				result += param_type.get_symbol_name();
+			}
+			result += '.';
+			result += fn_t.return_type.get_symbol_name();
+		},
 		[](auto const &) {
 			bz_unreachable;
 		}
@@ -494,6 +523,7 @@ bz::u8string typespec::decode_symbol_name(
 	constexpr bz::u8string_view array_slice = "0S.";
 	constexpr bz::u8string_view tuple       = "0T.";
 	constexpr bz::u8string_view typename_   = "0N.";
+	constexpr bz::u8string_view function    = "0F.";
 	constexpr bz::u8string_view global_enum     = "enum.";
 	constexpr bz::u8string_view non_global_enum = "non_global_enum.";
 
@@ -612,6 +642,39 @@ bz::u8string typespec::decode_symbol_name(
 		else if (symbol_name.starts_with(typename_))
 		{
 			result += "typename";
+			break;
+		}
+		else if (symbol_name.starts_with(function))
+		{
+			auto const cc_begin = bz::u8string_view::const_iterator(it.data() + tuple.size());
+			auto const cc_end = symbol_name.find(cc_begin, '.');
+			auto const cc = static_cast<abi::calling_convention>(parse_int(bz::u8string_view(cc_begin, cc_end)));
+			result += bz::format("function \"{}\" (", abi::to_string(cc));
+			auto const params_count_begin = bz::u8string_view::const_iterator(cc_end.data() + 1);
+			auto const params_count_end = symbol_name.find(params_count_begin, '.');
+			auto const params_count = parse_int(bz::u8string_view(params_count_begin, params_count_end));
+
+			if (params_count == 0)
+			{
+				result += ')';
+			}
+			else
+			{
+				it = params_count_end + 1;
+				result += decode_symbol_name(it, end);
+				for ([[maybe_unused]] auto const _ : bz::iota(1, params_count))
+				{
+					result += ", ";
+					bz_assert(*it == '.');
+					++it;
+					result += decode_symbol_name(it, end);
+				}
+				result += ")";
+			}
+			bz_assert(*it == '.');
+			++it;
+			result += bz::format(" -> {}", decode_symbol_name(it, end));
+
 			break;
 		}
 		else if (symbol_name.starts_with(global_enum))
