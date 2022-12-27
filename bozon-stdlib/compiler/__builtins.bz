@@ -116,7 +116,7 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 	-> &__builtin_remove_optional(__builtin_remove_reference(typeof value));
 @__builtin export function __builtin_optional_get_const_value_ref(value: &const ?auto)
 	-> &const __builtin_remove_optional(__builtin_remove_const(__builtin_remove_reference(typeof value)));
-@__builtin export function __builtin_optional_get_value(value: ?auto)
+@__builtin export function __builtin_optional_get_value(value: ?##auto)
 	-> __builtin_remove_optional(typeof value);
 
 @__builtin export function __builtin_pointer_cast(T: *typename, ptr: *const void) -> T;
@@ -552,8 +552,8 @@ export function __builtin_print_stderr(s: str)
 			"' in assignment"
 		)));
 	} else {}, typeof lhs);
-@__builtin_assign export operator = (lhs: &?auto, rhs: ##auto) -> typeof lhs;
-@__builtin_assign export operator = (lhs: &?auto, rhs: __null_t) -> typeof lhs;
+@__builtin_assign export operator = (lhs: &?##auto, rhs: ##auto) -> typeof lhs;
+@__builtin_assign export operator = (lhs: &?##auto, rhs: __null_t) -> typeof lhs;
 @__builtin_assign export operator = (lhs: &[: auto], rhs: [: auto])
 	-> (if consteval (__builtin_remove_reference(typeof lhs) != typeof rhs) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(

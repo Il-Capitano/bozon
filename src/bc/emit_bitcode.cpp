@@ -5703,6 +5703,25 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
+	ast::expr_optional_reference_value_assign const &optional_reference_value_assign,
+	auto &context,
+	llvm::Value *result_address
+)
+{
+	auto const rhs = emit_bitcode<abi>(optional_reference_value_assign.rhs, context, nullptr);
+	auto const lhs = emit_bitcode<abi>(optional_reference_value_assign.lhs, context, nullptr);
+	bz_assert(lhs.kind == val_ptr::reference);
+	bz_assert(rhs.kind == val_ptr::reference);
+
+	context.builder.CreateStore(rhs.val, lhs.val);
+
+	bz_assert(result_address == nullptr);
+	return lhs;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
 	ast::expr_base_type_assign const &base_type_assign,
 	auto &context,
 	llvm::Value *result_address
@@ -6149,11 +6168,27 @@ static val_ptr emit_bitcode(
 	auto const optional_val = emit_bitcode<abi>(optional_extract_value.optional_value, context, nullptr);
 	emit_null_optional_get_value_check<abi>(src_tokens, optional_val, context);
 
-	auto const prev_val = context.push_value_reference(optional_get_value_ptr(optional_val, context));
-	auto const result_val = emit_bitcode<abi>(optional_extract_value.value_move_expr, context, result_address);
-	context.pop_value_reference(prev_val);
+	if (ast::remove_const_or_consteval(optional_extract_value.optional_value.get_expr_type()).is_optional_reference())
+	{
+		bz_assert(optional_val.get_type()->isPointerTy());
+		auto const value_ref = optional_val.get_value(context.builder);
 
-	return result_val;
+		bz_assert(result_address == nullptr);
+		auto const type = get_llvm_type(
+			ast::remove_const_or_consteval(optional_extract_value.optional_value.get_expr_type())
+				.get_optional_reference(),
+			context
+		);
+		return val_ptr::get_reference(value_ref, type);
+	}
+	else
+	{
+		auto const prev_val = context.push_value_reference(optional_get_value_ptr(optional_val, context));
+		auto const result_val = emit_bitcode<abi>(optional_extract_value.value_move_expr, context, result_address);
+		context.pop_value_reference(prev_val);
+
+		return result_val;
+	}
 }
 
 template<abi::platform_abi abi>

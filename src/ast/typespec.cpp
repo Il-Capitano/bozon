@@ -64,15 +64,38 @@ bool typespec_view::is_optional_pointer(void) const noexcept
 
 bool typespec_view::is_optional_pointer_like(void) const noexcept
 {
-	return this->modifiers.size() >= 2
+	if (this->modifiers.size() >= 2
 		&& this->modifiers[0].is<ts_optional>()
-		&& (this->modifiers[1].is<ts_pointer>() || this->modifiers[1].is<ast::ts_function>());
+		&& (this->modifiers[1].is<ts_pointer>() || this->modifiers[1].is<ast::ts_lvalue_reference>())
+	)
+	{
+		return true;
+	}
+	else
+	{
+		return this->modifiers.size() == 1
+			&& this->modifiers[0].is<ast::ts_optional>()
+			&& this->terminator->is<ast::ts_function>();
+	}
 }
 
 typespec_view typespec_view::get_optional_pointer(void) const noexcept
 {
 	bz_assert(this->is_optional_pointer());
 	return this->get<ts_optional>().get<ts_pointer>();
+}
+
+bool typespec_view::is_optional_reference(void) const noexcept
+{
+	return this->modifiers.size() >= 2
+		&& this->modifiers[0].is<ts_optional>()
+		&& this->modifiers[1].is<ts_lvalue_reference>();
+}
+
+typespec_view typespec_view::get_optional_reference(void) const noexcept
+{
+	bz_assert(this->is_optional_reference());
+	return this->get<ts_optional>().get<ts_lvalue_reference>();
 }
 
 typespec::typespec(
@@ -274,7 +297,12 @@ bool is_complete(typespec_view ts) noexcept
 	}
 
 	auto const is_auto_ref_or_variadic = ts.modifiers.not_empty()
-		&& ts.modifiers[0].is_any<ts_auto_reference, ts_auto_reference_const, ts_variadic>();
+		&& (
+			ts.modifiers[0].is<ts_variadic>()
+			|| ts.modifiers.is_any([](auto const &mod) {
+				return mod.template is_any<ts_auto_reference, ts_auto_reference_const>();
+			})
+		);
 
 	static_assert(typespec_types::size() == 19);
 	return !is_auto_ref_or_variadic && ts.terminator->visit(bz::overload{
@@ -347,7 +375,14 @@ static bool type_property_helper(typespec_view ts) noexcept
 	}
 	else if (ts.is<ts_optional>())
 	{
-		return type_property_helper<base_type_property_func, default_value, exception_types...>(ts.get<ts_optional>());
+		if (ts.is_optional_pointer_like() || ts.is_optional_reference())
+		{
+			return bz::meta::is_in_types<ast::ts_pointer, exception_types...> ? !default_value : default_value;
+		}
+		else
+		{
+			return type_property_helper<base_type_property_func, default_value, exception_types...>(ts.get<ts_optional>());
+		}
 	}
 	else
 	{

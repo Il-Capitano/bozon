@@ -5795,8 +5795,8 @@ static ast::expression make_optional_copy_construction(
 {
 	bz_assert(optional_type.is<ast::ts_optional>());
 	bz_assert(!optional_type.is_optional_pointer_like());
-
 	auto const value_type = optional_type.get<ast::ts_optional>();
+
 	if (!context.is_copy_constructible(expr.src_tokens, value_type))
 	{
 		context.report_error(
@@ -6392,11 +6392,28 @@ static ast::expression make_optional_assignment(
 
 	bz_assert(lhs.get_expr_type_and_kind().second == ast::expression_type_kind::lvalue_reference);
 	auto const [rhs_type_with_const, rhs_expr_type_kind] = rhs.get_expr_type_and_kind();
+	auto const lhs_value_type = lhs_type.get<ast::ts_optional>();
+	ast::typespec rhs_value_type = rhs_type.get<ast::ts_optional>();
+
+	if (lhs_type.is_optional_reference())
+	{
+		bz_assert(lhs_type != ast::remove_const_or_consteval(rhs_type));
+		context.report_error(
+			src_tokens,
+			bz::format(
+				"mismatched reference types '{}' and '{}' in assignment to an optional reference value of type '{}'",
+				lhs_value_type, rhs_value_type, lhs_type
+			)
+		);
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_binary_op(lex::token::assign, std::move(lhs), std::move(rhs))
+		);
+	}
+
 	auto const rhs_value_expr_type_kind = rhs_expr_type_kind == ast::expression_type_kind::lvalue_reference
 		? ast::expression_type_kind::lvalue_reference
 		: ast::expression_type_kind::rvalue_reference;
-	auto const lhs_value_type = lhs_type.get<ast::ts_optional>();
-	ast::typespec rhs_value_type = rhs_type.get<ast::ts_optional>();
 
 	if (rhs_type_with_const.is<ast::ts_const>())
 	{
@@ -6522,6 +6539,48 @@ static ast::expression make_optional_value_assignment(
 	bz_assert(lhs.get_expr_type_and_kind().second == ast::expression_type_kind::lvalue_reference);
 	auto const lhs_value_type = lhs_type.get<ast::ts_optional>();
 	auto const [rhs_value_type, rhs_expr_type_kind] = rhs.get_expr_type_and_kind();
+
+	if (lhs_type.is_optional_reference())
+	{
+		if (rhs_expr_type_kind != ast::expression_type_kind::lvalue_reference)
+		{
+			context.report_error(
+				src_tokens,
+				bz::format(
+					"invalid assignment from an rvalue of type '{}' to an optional reference value of type '{}'",
+					rhs_value_type, lhs_type
+				)
+			);
+			return ast::make_error_expression(
+				src_tokens,
+				ast::make_expr_binary_op(lex::token::assign, std::move(lhs), std::move(rhs))
+			);
+		}
+		else if (lhs_value_type.get<ast::ts_lvalue_reference>() != rhs_value_type)
+		{
+			context.report_error(
+				src_tokens,
+				bz::format(
+					"mismatched reference types '{}' and '&{}' in assignment to an optional reference value of type '{}'",
+					lhs_value_type, rhs_value_type, lhs_type
+				)
+			);
+			return ast::make_error_expression(
+				src_tokens,
+				ast::make_expr_binary_op(lex::token::assign, std::move(lhs), std::move(rhs))
+			);
+		}
+		else
+		{
+			return ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::lvalue_reference, lhs_type,
+				ast::make_expr_optional_reference_value_assign(std::move(lhs), std::move(rhs)),
+				ast::destruct_operation()
+			);
+		}
+	}
+
 	auto const rhs_value_expr_type_kind = rhs_expr_type_kind == ast::expression_type_kind::lvalue_reference
 		? ast::expression_type_kind::lvalue_reference
 		: ast::expression_type_kind::rvalue_reference;
@@ -6937,22 +6996,34 @@ static ast::expression make_optional_extract_value_expression(
 )
 {
 	auto const value_type = optional_value.get_expr_type().get<ast::ts_optional>();
-	auto value_move_expr = context.make_move_construction(
-		ast::make_dynamic_expression(
+	if (value_type.is<ast::ts_lvalue_reference>())
+	{
+		return ast::make_dynamic_expression(
 			src_tokens,
-			ast::expression_type_kind::rvalue_reference, value_type,
-			ast::make_expr_bitcode_value_reference(),
+			ast::expression_type_kind::lvalue_reference, value_type.get<ast::ts_lvalue_reference>(),
+			ast::make_expr_optional_extract_value(std::move(optional_value), ast::expression()),
 			ast::destruct_operation()
-		)
-	);
+		);
+	}
+	else
+	{
+		auto value_move_expr = context.make_move_construction(
+			ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::rvalue_reference, value_type,
+				ast::make_expr_bitcode_value_reference(),
+				ast::destruct_operation()
+			)
+		);
 
-	ast::typespec result_type = value_type;
-	return ast::make_dynamic_expression(
-		src_tokens,
-		ast::expression_type_kind::rvalue, std::move(result_type),
-		ast::make_expr_optional_extract_value(std::move(optional_value), std::move(value_move_expr)),
-		ast::destruct_operation()
-	);
+		ast::typespec result_type = value_type;
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue, std::move(result_type),
+			ast::make_expr_optional_extract_value(std::move(optional_value), std::move(value_move_expr)),
+			ast::destruct_operation()
+		);
+	}
 }
 
 static ast::expression make_array_value_init_expression(
@@ -7519,11 +7590,18 @@ static bool type_property_helper(lex::src_tokens const &src_tokens, ast::typespe
 	}
 	else if (ts.is<ast::ts_optional>())
 	{
-		return type_property_helper<
-			base_type_property_func,
-			default_value,
-			exception_types...
-		>(src_tokens, ts.get<ast::ts_optional>(), context);
+		if (ts.is_optional_pointer_like())
+		{
+			return bz::meta::is_in_types<ast::ts_pointer, exception_types...> ? !default_value : default_value;
+		}
+		else
+		{
+			return type_property_helper<
+				base_type_property_func,
+				default_value,
+				exception_types...
+			>(src_tokens, ts.get<ast::ts_optional>(), context);
+		}
 	}
 	else
 	{

@@ -76,6 +76,7 @@ struct expr_array_assign;
 struct expr_optional_assign;
 struct expr_optional_null_assign;
 struct expr_optional_value_assign;
+struct expr_optional_reference_value_assign;
 struct expr_base_type_assign;
 struct expr_trivial_assign;
 
@@ -160,6 +161,7 @@ using expr_t = node<
 	expr_optional_assign,
 	expr_optional_null_assign,
 	expr_optional_value_assign,
+	expr_optional_reference_value_assign,
 	expr_base_type_assign,
 	expr_trivial_assign,
 	expr_member_access,
@@ -1246,6 +1248,20 @@ struct expr_optional_value_assign
 	{}
 };
 
+struct expr_optional_reference_value_assign
+{
+	expression lhs;
+	expression rhs;
+
+	expr_optional_reference_value_assign(
+		expression _lhs,
+		expression _rhs
+	)
+		: lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs))
+	{}
+};
+
 struct expr_base_type_assign
 {
 	expression lhs;
@@ -1668,6 +1684,7 @@ def_make_fn(expr_t, expr_array_assign)
 def_make_fn(expr_t, expr_optional_assign)
 def_make_fn(expr_t, expr_optional_null_assign)
 def_make_fn(expr_t, expr_optional_value_assign)
+def_make_fn(expr_t, expr_optional_reference_value_assign)
 def_make_fn(expr_t, expr_base_type_assign)
 def_make_fn(expr_t, expr_trivial_assign)
 def_make_fn(expr_t, expr_member_access)

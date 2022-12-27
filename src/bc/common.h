@@ -98,7 +98,7 @@ llvm::Type *get_llvm_type(ast::typespec_view ts, Context &context)
 			return context.get_opaque_pointer_t();
 		case ast::modifier_typespec_node_t::index_of<ast::ts_optional>:
 		{
-			if (ts.is_optional_pointer_like())
+			if (ts.is_optional_pointer_like() || ts.is_optional_reference())
 			{
 				return context.get_opaque_pointer_t();
 			}

@@ -344,24 +344,9 @@ static ast::expression get_type_op_unary_question_mark(
 
 	ast::typespec result_type = expr.get_typename();
 	result_type.src_tokens = src_tokens;
-	if (result_type.is<ast::ts_lvalue_reference>())
-	{
-		context.report_error(src_tokens, "optional of reference is not allowed");
-		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
-	}
-	else if (result_type.is<ast::ts_move_reference>())
+	if (result_type.is<ast::ts_move_reference>())
 	{
 		context.report_error(src_tokens, "optional of move reference is not allowed");
-		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
-	}
-	else if (result_type.is<ast::ts_auto_reference>())
-	{
-		context.report_error(src_tokens, "optional of auto reference is not allowed");
-		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
-	}
-	else if (result_type.is<ast::ts_auto_reference_const>())
-	{
-		context.report_error(src_tokens, "optional of auto reference-const is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else if (result_type.is<ast::ts_const>())

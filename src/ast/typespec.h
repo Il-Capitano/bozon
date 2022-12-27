@@ -114,6 +114,8 @@ struct typespec_view
 	bool is_optional_pointer(void) const noexcept;
 	bool is_optional_pointer_like(void) const noexcept;
 	typespec_view get_optional_pointer(void) const noexcept;
+	bool is_optional_reference(void) const noexcept;
+	typespec_view get_optional_reference(void) const noexcept;
 
 	template<typename Fn>
 	decltype(auto) visit(Fn &&fn) const;
@@ -181,6 +183,12 @@ struct typespec
 
 	typespec_view get_optional_pointer(void) const noexcept
 	{ return this->as_typespec_view().get_optional_pointer(); }
+
+	bool is_optional_reference(void) const noexcept
+	{ return this->as_typespec_view().is_optional_reference(); }
+
+	typespec_view get_optional_reference(void) const noexcept
+	{ return this->as_typespec_view().get_optional_reference(); }
 
 	template<typename Fn>
 	decltype(auto) visit(Fn &&fn) const

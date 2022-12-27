@@ -194,6 +194,107 @@ static strict_match_context_t<kind> make_strict_match_context(
 	}
 }
 
+template<type_match_function_kind kind>
+static strict_match_context_t<kind> change_inner_dest(
+	strict_match_context_t<kind> const &context,
+	ast::typespec_view new_dest
+)
+{
+	if constexpr (kind == type_match_function_kind::can_match)
+	{
+		return strict_match_context_t<type_match_function_kind::can_match>{
+			.source = context.source,
+			.dest = new_dest,
+			.context = context.context,
+		};
+	}
+	else if constexpr (kind == type_match_function_kind::match_level)
+	{
+		return strict_match_context_t<type_match_function_kind::match_level>{
+			.source = context.source,
+			.dest = new_dest,
+			.reference_match = context.reference_match,
+			.base_type_match = context.base_type_match,
+			.context = context.context,
+		};
+	}
+	else if constexpr (kind == type_match_function_kind::matched_type)
+	{
+		return strict_match_context_t<type_match_function_kind::matched_type>{
+			.source = context.source,
+			.dest = new_dest,
+			.original_dest = context.original_dest,
+			.context = context.context,
+		};
+	}
+	else if constexpr (kind == type_match_function_kind::match_expression)
+	{
+		return strict_match_context_t<type_match_function_kind::match_expression>{
+			.expr = context.expr,
+			.original_dest_container = context.original_dest_container,
+			.dest_container = context.dest_container,
+			.source = context.source,
+			.dest = new_dest,
+			.context = context.context,
+		};
+	}
+	else
+	{
+		static_assert(bz::meta::always_false<strict_match_context_t<kind>>);
+	}
+}
+
+template<type_match_function_kind kind>
+static strict_match_context_t<kind> change_inner_dest_and_source(
+	strict_match_context_t<kind> const &context,
+	ast::typespec_view new_dest,
+	ast::typespec_view new_source
+)
+{
+	if constexpr (kind == type_match_function_kind::can_match)
+	{
+		return strict_match_context_t<type_match_function_kind::can_match>{
+			.source = new_source,
+			.dest = new_dest,
+			.context = context.context,
+		};
+	}
+	else if constexpr (kind == type_match_function_kind::match_level)
+	{
+		return strict_match_context_t<type_match_function_kind::match_level>{
+			.source = new_source,
+			.dest = new_dest,
+			.reference_match = context.reference_match,
+			.base_type_match = context.base_type_match,
+			.context = context.context,
+		};
+	}
+	else if constexpr (kind == type_match_function_kind::matched_type)
+	{
+		return strict_match_context_t<type_match_function_kind::matched_type>{
+			.source = new_source,
+			.dest = new_dest,
+			.original_dest = context.original_dest,
+			.context = context.context,
+		};
+	}
+	else if constexpr (kind == type_match_function_kind::match_expression)
+	{
+		return strict_match_context_t<type_match_function_kind::match_expression>{
+			.expr = context.expr,
+			.original_dest_container = context.original_dest_container,
+			.dest_container = context.dest_container,
+			.source = new_source,
+			.dest = new_dest,
+			.context = context.context,
+		};
+	}
+	else
+	{
+		static_assert(bz::meta::always_false<strict_match_context_t<kind>>);
+	}
+}
+
 
 template<type_match_function_kind kind>
 static match_function_result_t<kind> generic_type_match_if_expr_complete_type(match_context_t<kind> const &match_context)
@@ -1478,6 +1579,15 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 	}
 	while (true)
 	{
+		if (
+			source.is<ast::ts_lvalue_reference>()
+			|| dest.is<ast::ts_lvalue_reference>()
+			|| dest.is<ast::ts_auto_reference>()
+			|| dest.is<ast::ts_auto_reference_const>()
+		)
+		{
+			break;
+		}
 		// remove consts and optionals from pointers if there are any
 		{
 			auto const dest_is_const = dest.is<ast::ts_const>();
@@ -1533,7 +1643,13 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 				source = source.blind_get();
 			}
 
-			if (propagate_const && dest.is_optional_pointer() && source.is<ast::ts_pointer>())
+			if (
+				propagate_const
+				&& (
+					(dest.is_optional_pointer() && source.is<ast::ts_pointer>())
+					|| (dest.is_optional_reference() && source.is<ast::ts_lvalue_reference>())
+				)
+			)
 			{
 				dest = dest.blind_get();
 				modifier_match_level += 1;
@@ -1556,13 +1672,227 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			source = source.blind_get();
 			modifier_match_level += 1;
 		}
+		else if (dest.is<ast::ts_lvalue_reference>() && source.is<ast::ts_lvalue_reference>())
+		{
+			dest = dest.blind_get();
+			source = source.blind_get();
+			modifier_match_level += 1;
+		}
 		else
 		{
 			break;
 		}
 	}
 
-	if (source.not_empty() && dest.is<ast::ts_auto>() && !source.is<ast::ts_const>())
+	if (dest.is<ast::ts_auto_reference>())
+	{
+		if constexpr (kind == type_match_function_kind::can_match)
+		{
+			return generic_type_match_strict_match(
+				change_inner_dest_and_source(
+					match_context,
+					dest.get<ast::ts_auto_reference>(),
+					ast::remove_lvalue_reference(source)
+				),
+				false,
+				propagate_const && source.is<ast::ts_lvalue_reference>(),
+				false
+			);
+		}
+		else if constexpr (kind == type_match_function_kind::match_level)
+		{
+			modifier_match_level += 1;
+			auto result = generic_type_match_strict_match(
+				change_inner_dest_and_source(
+					match_context,
+					dest.get<ast::ts_auto_reference>(),
+					ast::remove_lvalue_reference(source)
+				),
+				false,
+				propagate_const && source.is<ast::ts_lvalue_reference>(),
+				false
+			);
+			result += modifier_match_level;
+			return result;
+		}
+		else if constexpr (kind == type_match_function_kind::matched_type)
+		{
+			auto const can_match = generic_type_match_strict_match(
+				strict_match_context_t<type_match_function_kind::can_match>{
+					.source = ast::remove_lvalue_reference(source),
+					.dest = dest.get<ast::ts_auto_reference>(),
+					.context = match_context.context,
+				},
+				false,
+				propagate_const && source.is<ast::ts_lvalue_reference>(),
+				false
+			);
+			if (!can_match)
+			{
+				static_assert(!match_context_t<kind>::report_errors);
+				return ast::typespec();
+			}
+
+			ast::typespec result = match_context.original_dest;
+			auto const index = dest.modifiers.begin() - match_context.original_dest.modifiers.begin();
+			auto const result_dest_view = ast::typespec_view{
+				.src_tokens = dest.src_tokens,
+				.modifiers = result.modifiers.slice(index),
+				.terminator = result.terminator.get(),
+			};
+			result.copy_from(result_dest_view, source);
+			return result;
+		}
+		else if constexpr (kind == type_match_function_kind::match_expression)
+		{
+			auto const can_match = generic_type_match_strict_match(
+				strict_match_context_t<type_match_function_kind::can_match>{
+					.source = ast::remove_lvalue_reference(source),
+					.dest = dest.get<ast::ts_auto_reference>(),
+					.context = match_context.context,
+				},
+				false,
+				propagate_const && source.is<ast::ts_lvalue_reference>(),
+				false
+			);
+			if (!can_match)
+			{
+				static_assert(match_context_t<kind>::report_errors);
+				bz::vector<ctx::source_highlight> notes;
+				if (&match_context.original_dest_container != &match_context.dest_container)
+				{
+					notes.push_back(match_context.context.make_note(
+						match_context.expr.src_tokens,
+						bz::format(
+							"while matching expression of type '{}' to '{}'",
+							match_context.expr.get_expr_type(), match_context.original_dest_container
+						)
+					));
+				}
+				match_context.context.report_error(
+					match_context.expr.src_tokens,
+					bz::format("unable to match type '{}' to '{}'", match_context.source, match_context.dest),
+					std::move(notes)
+				);
+				return false;
+			}
+
+			match_context.dest_container.copy_from(dest, source);
+			return true;
+		}
+		else
+		{
+			static_assert(bz::meta::always_false<match_context_t<kind>>);
+		}
+	}
+	else if (dest.is<ast::ts_auto_reference_const>())
+	{
+		if constexpr (kind == type_match_function_kind::can_match)
+		{
+			return generic_type_match_strict_match(
+				change_inner_dest_and_source(
+					match_context,
+					dest.get<ast::ts_auto_reference_const>(),
+					ast::remove_const_or_consteval(ast::remove_lvalue_reference(source))
+				),
+				false,
+				propagate_const
+				&& source.is<ast::ts_lvalue_reference>()
+				&& source.get<ast::ts_lvalue_reference>().is<ast::ts_const>(),
+				source.is<ast::ts_lvalue_reference>()
+				&& source.get<ast::ts_lvalue_reference>().is<ast::ts_const>()
+			);
+		}
+		else if constexpr (kind == type_match_function_kind::match_level)
+		{
+			modifier_match_level += 1;
+			auto result = generic_type_match_strict_match(
+				change_inner_dest_and_source(
+					match_context,
+					dest.get<ast::ts_auto_reference_const>(),
+					ast::remove_const_or_consteval(ast::remove_lvalue_reference(source))
+				),
+				false,
+				propagate_const
+				&& source.is<ast::ts_lvalue_reference>()
+				&& source.get<ast::ts_lvalue_reference>().is<ast::ts_const>(),
+				source.is<ast::ts_lvalue_reference>()
+				&& source.get<ast::ts_lvalue_reference>().is<ast::ts_const>()
+			);
+			result += modifier_match_level;
+			return result;
+		}
+		else if constexpr (kind == type_match_function_kind::matched_type)
+		{
+			auto const can_match = generic_type_match_strict_match(
+				strict_match_context_t<type_match_function_kind::can_match>{
+					.source = ast::remove_const_or_consteval(ast::remove_lvalue_reference(source)),
+					.dest = dest.get<ast::ts_auto_reference_const>(),
+					.context = match_context.context,
+				},
+				false,
+				propagate_const && source.is<ast::ts_lvalue_reference>(),
+				false
+			);
+			if (!can_match)
+			{
+				static_assert(!match_context_t<kind>::report_errors);
+				return ast::typespec();
+			}
+
+			ast::typespec result = match_context.original_dest;
+			auto const index = dest.modifiers.begin() - match_context.original_dest.modifiers.begin();
+			auto const result_dest_view = ast::typespec_view{
+				.src_tokens = dest.src_tokens,
+				.modifiers = result.modifiers.slice(index),
+				.terminator = result.terminator.get(),
+			};
+			result.copy_from(result_dest_view, source);
+			return result;
+		}
+		else if constexpr (kind == type_match_function_kind::match_expression)
+		{
+			auto const can_match = generic_type_match_strict_match(
+				strict_match_context_t<type_match_function_kind::can_match>{
+					.source = ast::remove_const_or_consteval(ast::remove_lvalue_reference(source)),
+					.dest = dest.get<ast::ts_auto_reference_const>(),
+					.context = match_context.context,
+				},
+				false,
+				propagate_const && source.is<ast::ts_lvalue_reference>(),
+				false
+			);
+			if (!can_match)
+			{
+				static_assert(match_context_t<kind>::report_errors);
+				bz::vector<ctx::source_highlight> notes;
+				if (&match_context.original_dest_container != &match_context.dest_container)
+				{
+					notes.push_back(match_context.context.make_note(
+						match_context.expr.src_tokens,
+						bz::format(
+							"while matching expression of type '{}' to '{}'",
+							match_context.expr.get_expr_type(), match_context.original_dest_container
+						)
+					));
+				}
+				match_context.context.report_error(
+					match_context.expr.src_tokens,
+					bz::format("unable to match type '{}' to '{}'", match_context.source, match_context.dest),
+					std::move(notes)
+				);
+				return false;
+			}
+
+			match_context.dest_container.copy_from(dest, source);
+			return true;
+		}
+		else
+		{
+			static_assert(bz::meta::always_false<match_context_t<kind>>);
+		}
+	}
+	else if (source.not_empty() && dest.is<ast::ts_auto>() && !source.is<ast::ts_const>())
 	{
 		if constexpr (kind == type_match_function_kind::can_match)
 		{
