@@ -41,15 +41,18 @@ file_name_print_length = 3 + max((
 
 error = False
 
+def run_process(args):
+    while True:
+        process = subprocess.run(args, capture_output=True)
+        stdout = process.stdout.decode('utf-8')
+        stderr = process.stderr.decode('utf-8')
+        if 'LLVM ERROR: IMAGE_REL_AMD64_ADDR32NB relocation requires an ordered section layout' not in stderr:
+            return stdout, stderr, process.returncode
+
 for test_file in success_test_files:
     print(f'    {test_file:.<{file_name_print_length}}', end='', flush=True)
-    process = subprocess.run(
-        [ bozon, *flags, test_file ],
-        capture_output=True
-    )
-    stdout = process.stdout.decode('utf-8')
-    stderr = process.stderr.decode('utf-8')
-    if process.returncode == 0 and stdout == '' and stderr == '':
+    stdout, stderr, rc = run_process([ bozon, *flags, test_file ])
+    if rc == 0 and stdout == '' and stderr == '':
         print(f'{bright_green}OK{clear}')
     else:
         error = True
@@ -60,17 +63,12 @@ for test_file in success_test_files:
         if stderr != '':
             print('stderr:')
             print(stderr)
-        print(f'exit code: {process.returncode}')
+        print(f'exit code: {rc}')
 
 for test_file in warning_test_files:
     print(f'    {test_file:.<{file_name_print_length}}', end='', flush=True)
-    process = subprocess.run(
-        [ bozon, *flags, test_file ],
-        capture_output=True
-    )
-    stdout = process.stdout.decode('utf-8')
-    stderr = process.stderr.decode('utf-8')
-    if process.returncode == 0 and (stdout != '' or stderr != ''):
+    stdout, stderr, rc = run_process([ bozon, *flags, test_file ])
+    if rc == 0 and (stdout != '' or stderr != ''):
         print(f'{bright_green}OK{clear}')
     else:
         error = True
@@ -81,21 +79,13 @@ for test_file in warning_test_files:
         if stderr != '':
             print('stderr:')
             print(stderr)
-        print(f'exit code: {process.returncode}')
+        print(f'exit code: {rc}')
 
 for test_file in error_test_files:
     print(f'    {test_file:.<{file_name_print_length}}', end='', flush=True)
-    process = subprocess.run(
-        [ bozon, *flags, test_file ],
-        capture_output=True
-    )
-    stdout = process.stdout.decode('utf-8')
-    stderr = process.stderr.decode('utf-8')
-    process_rerun = subprocess.run(
-        [ bozon, *flags, '--return-zero-on-error', test_file ],
-        capture_output=True
-    )
-    if process.returncode != 0 and process_rerun.returncode == 0:
+    stdout, stderr, rc = run_process([ bozon, *flags, test_file ])
+    rerun_stdout, rerun_stderr, rerun_rc = run_process([ bozon, *flags, '--return-zero-on-error', test_file ])
+    if rc != 0 and rerun_rc == 0:
         print(f'{bright_green}OK{clear}')
     else:
         error = True
@@ -106,7 +96,7 @@ for test_file in error_test_files:
         if stderr != '':
             print('stderr:')
             print(stderr)
-        print(f'exit code: {process.returncode}')
+        print(f'exit code: {rc}')
 
 if error:
     exit(1)
