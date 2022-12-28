@@ -1104,7 +1104,7 @@ static expr_value generate_builtin_binary_equals(
 		auto const result_value = context.create_not(has_value);
 		return value_or_result_address(result_value, result_address, context);
 	}
-	else // if pointer
+	else // if pointer or function
 	{
 		auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
 		auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
@@ -1163,7 +1163,7 @@ static expr_value generate_builtin_binary_not_equals(
 		auto const result_value = get_optional_has_value(optional_value, context);
 		return value_or_result_address(result_value, result_address, context);
 	}
-	else // if pointer
+	else // if pointer or function
 	{
 		auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
 		auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
@@ -3788,6 +3788,22 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expr_optional_reference_value_assign const &optional_reference_value_assign,
+	codegen_context &context
+)
+{
+	auto const rhs = generate_expr_code(optional_reference_value_assign.rhs, context, {});
+	auto const lhs = generate_expr_code(optional_reference_value_assign.lhs, context, {});
+	bz_assert(lhs.is_reference());
+	bz_assert(rhs.is_reference());
+
+	auto const rhs_reference_value = expr_value::get_value(rhs.get_reference(), context.get_pointer_type());
+	context.create_store(rhs_reference_value, lhs);
+
+	return lhs;
+}
+
+static expr_value generate_expr_code(
 	ast::expr_base_type_assign const &base_type_assign,
 	codegen_context &context
 )
@@ -3858,11 +3874,23 @@ static expr_value generate_expr_code(
 	auto const optional_value = generate_expr_code(optional_extract_value.optional_value, context, {});
 	context.create_optional_get_value_check(src_tokens, get_optional_has_value(optional_value, context));
 
-	auto const prev_value = context.push_value_reference(get_optional_value(optional_value, context));
-	auto const result_value = generate_expr_code(optional_extract_value.value_move_expr, context, result_address);
-	context.pop_value_reference(prev_value);
+	auto const optional_value_type = ast::remove_const_or_consteval(optional_extract_value.optional_value.get_expr_type());
+	if (optional_value_type.is_optional_reference())
+	{
+		bz_assert(optional_value.get_type()->is_pointer());
+		auto const reference_value = optional_value.get_value_as_instruction(context);
+		auto const type = get_type(optional_value_type.get_optional_reference(), context);
+		bz_assert(!result_address.has_value());
+		return expr_value::get_reference(reference_value, type);
+	}
+	else
+	{
+		auto const prev_value = context.push_value_reference(get_optional_value(optional_value, context));
+		auto const result_value = generate_expr_code(optional_extract_value.value_move_expr, context, result_address);
+		context.pop_value_reference(prev_value);
 
-	return result_value;
+		return result_value;
+	}
 }
 
 static expr_value generate_expr_code(
@@ -4106,7 +4134,7 @@ static expr_value generate_expr_code(
 {
 	switch (expr.kind())
 	{
-	static_assert(ast::expr_t::variant_count == 70);
+	static_assert(ast::expr_t::variant_count == 71);
 	case ast::expr_t::index<ast::expr_variable_name>:
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(expr.get<ast::expr_variable_name>(), context);
@@ -4237,6 +4265,9 @@ static expr_value generate_expr_code(
 	case ast::expr_t::index<ast::expr_optional_value_assign>:
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(expr.get<ast::expr_optional_value_assign>(), context);
+	case ast::expr_t::index<ast::expr_optional_reference_value_assign>:
+		bz_assert(!result_address.has_value());
+		return generate_expr_code(expr.get<ast::expr_optional_reference_value_assign>(), context);
 	case ast::expr_t::index<ast::expr_base_type_assign>:
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(expr.get<ast::expr_base_type_assign>(), context);
