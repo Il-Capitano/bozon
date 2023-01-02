@@ -9,6 +9,12 @@
 namespace comptime::memory
 {
 
+struct pointer_arithmetic_result_t
+{
+	ptr_t address;
+	bool is_on_past_the_end;
+};
+
 struct stack_object
 {
 	ptr_t address;
@@ -26,6 +32,7 @@ struct stack_object
 
 	bool check_dereference(ptr_t address, type const *subobject_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
+	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const;
 };
 
 struct heap_object
@@ -47,6 +54,7 @@ struct heap_object
 
 	bool check_dereference(ptr_t address, type const *subobject_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
+	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const;
 };
 
 struct stack_frame
@@ -108,6 +116,7 @@ struct memory_manager
 	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type);
 
 	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs);
+	ptr_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type);
 
 	uint8_t *get_memory(ptr_t address);
 };

@@ -83,6 +83,107 @@ static bool slice_contained_in_object(type const *object_type, size_t offset, ty
 	}
 }
 
+enum class pointer_arithmetic_check_result
+{
+	fail,
+	good,
+	one_past_the_end,
+};
+
+static pointer_arithmetic_check_result check_pointer_arithmetic(
+	type const *object_type,
+	size_t offset,
+	size_t result_offset,
+	type const *pointer_type
+)
+{
+	static_assert(type::variant_count == 4);
+	if (result_offset > object_type->size)
+	{
+		return pointer_arithmetic_check_result::fail;
+	}
+	else if (object_type == pointer_type)
+	{
+		if (result_offset == 0)
+		{
+			return pointer_arithmetic_check_result::good;
+		}
+		else if (result_offset == object_type->size)
+		{
+			return pointer_arithmetic_check_result::one_past_the_end;
+		}
+		else
+		{
+			return pointer_arithmetic_check_result::fail;
+		}
+	}
+	else if (object_type->is_builtin() || object_type->is_pointer())
+	{
+		bz_unreachable;
+	}
+	else if (object_type->is_aggregate())
+	{
+		auto const members = object_type->get_aggregate_types();
+		auto const offsets = object_type->get_aggregate_offsets();
+		// get the index of the largest offset that is <= to offset
+		// upper_bound returns the first offset that is strictly greater than offset,
+		// so we need the previous element
+		auto const member_index = std::upper_bound(offsets.begin() + 1, offsets.end(), offset) - offsets.begin() - 1;
+		if (result_offset < offsets[member_index])
+		{
+			return pointer_arithmetic_check_result::fail;
+		}
+		else
+		{
+			return check_pointer_arithmetic(
+				members[member_index],
+				offset - offsets[member_index],
+				result_offset - offsets[member_index],
+				pointer_type
+			);
+		}
+	}
+	else if (object_type->is_array())
+	{
+		auto const array_elem_type = object_type->get_array_element_type();
+		if (array_elem_type == pointer_type)
+		{
+			// the result_offset must be valid, because of the check `result_offset > object_type->size` at the beginning
+			if (result_offset == object_type->size)
+			{
+				return pointer_arithmetic_check_result::one_past_the_end;
+			}
+			else
+			{
+				return pointer_arithmetic_check_result::good;
+			}
+		}
+		else
+		{
+			auto const elem_offset = offset - offset % array_elem_type->size;
+			if (result_offset < elem_offset)
+			{
+				return pointer_arithmetic_check_result::fail;
+			}
+			else
+			{
+				return check_pointer_arithmetic(
+					array_elem_type,
+					offset - elem_offset,
+					result_offset - elem_offset,
+					pointer_type
+				);
+			}
+		}
+	}
+	else
+	{
+		// we should never get to here...
+		bz_assert(false); // there's no point in using bz_unreachable here I think, so this branch is only checked in debug mode
+		return pointer_arithmetic_check_result::fail;
+	}
+}
+
 stack_object::stack_object(ptr_t _address, type const *_object_type)
 	: address(_address),
 	  object_type(_object_type),
@@ -161,6 +262,43 @@ bool stack_object::check_slice_construction(ptr_t begin, ptr_t end, type const *
 	else
 	{
 		return slice_contained_in_object(this->object_type, offset, elem_type, total_size);
+	}
+}
+
+pointer_arithmetic_result_t stack_object::do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const
+{
+	auto const result_address = address + static_cast<uint64_t>(amount * static_cast<int64_t>(pointer_type->size));
+	if (result_address < this->address || result_address > this->address + this->object_size())
+	{
+		return {
+			.address = 0,
+			.is_on_past_the_end = false,
+		};
+	}
+
+	auto const check_result = check_pointer_arithmetic(
+		this->object_type,
+		address - this->address,
+		result_address - this->address,
+		pointer_type
+	);
+	switch (check_result)
+	{
+	case pointer_arithmetic_check_result::fail:
+		return {
+			.address = 0,
+			.is_on_past_the_end = false,
+		};
+	case pointer_arithmetic_check_result::good:
+		return {
+			.address = result_address,
+			.is_on_past_the_end = false,
+		};
+	case pointer_arithmetic_check_result::one_past_the_end:
+		return {
+			.address = result_address,
+			.is_on_past_the_end = true,
+		};
 	}
 }
 
@@ -346,6 +484,62 @@ bool heap_object::check_slice_construction(ptr_t begin, ptr_t end, type const *e
 	else
 	{
 		return slice_contained_in_object(this->elem_type, offset % this->elem_size(), elem_type, total_size);
+	}
+}
+
+pointer_arithmetic_result_t heap_object::do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const
+{
+	auto const result_address = address + static_cast<uint64_t>(amount * static_cast<int64_t>(pointer_type->size));
+	if (result_address < this->address || result_address > this->address + this->object_size())
+	{
+		return {
+			.address = 0,
+			.is_on_past_the_end = false,
+		};
+	}
+	else if (pointer_type == this->elem_type)
+	{
+		return {
+			.address = result_address,
+			.is_on_past_the_end = result_address == this->address + this->object_size(),
+		};
+	}
+
+	auto const offset = address - this->address;
+	auto const result_offset = result_address - this->address;
+
+	auto const elem_offset = offset - offset % this->elem_size();
+	if (result_offset < elem_offset)
+	{
+		return {
+			.address = 0,
+			.is_on_past_the_end = false,
+		};
+	}
+
+	auto const check_result = check_pointer_arithmetic(
+		this->elem_type,
+		offset - elem_offset,
+		result_offset - elem_offset,
+		pointer_type
+	);
+	switch (check_result)
+	{
+	case pointer_arithmetic_check_result::fail:
+		return {
+			.address = 0,
+			.is_on_past_the_end = false,
+		};
+	case pointer_arithmetic_check_result::good:
+		return {
+			.address = result_address,
+			.is_on_past_the_end = false,
+		};
+	case pointer_arithmetic_check_result::one_past_the_end:
+		return {
+			.address = result_address,
+			.is_on_past_the_end = true,
+		};
 	}
 }
 
