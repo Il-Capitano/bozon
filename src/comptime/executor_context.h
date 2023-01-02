@@ -45,8 +45,14 @@ struct executor_context
 	slice_construction_check_info_t const &get_slice_construction_info(uint32_t index) const;
 	pointer_arithmetic_check_info_t const &get_pointer_arithmetic_info(uint32_t index) const;
 
-	void do_str_construction_check(uint32_t src_tokens_index, ptr_t begin, ptr_t end);
-	void do_slice_construction_check(uint32_t src_tokens_index, ptr_t begin, ptr_t end, type const *elem_type, ast::typespec_view slice_type);
+	void check_str_construction(uint32_t src_tokens_index, ptr_t begin, ptr_t end);
+	void check_slice_construction(
+		uint32_t src_tokens_index,
+		ptr_t begin,
+		ptr_t end,
+		type const *elem_type,
+		ast::typespec_view slice_type
+	);
 
 	int compare_pointers(uint32_t src_tokens_index, ptr_t lhs, ptr_t rhs);
 	bool compare_pointers_equal(ptr_t lhs, ptr_t rhs);

@@ -35,7 +35,7 @@ void executor_context::do_ret_void(void)
 	this->returned = true;
 }
 
-void executor_context::do_str_construction_check(uint32_t src_tokens_index, ptr_t begin, ptr_t end)
+void executor_context::check_str_construction(uint32_t src_tokens_index, ptr_t begin, ptr_t end)
 {
 	auto const elem_type = this->global_context->get_builtin_type(builtin_type_kind::i8);
 	auto const is_good = this->memory.check_slice_construction(begin, end, elem_type);
@@ -49,7 +49,13 @@ void executor_context::do_str_construction_check(uint32_t src_tokens_index, ptr_
 	}
 }
 
-void executor_context::do_slice_construction_check(uint32_t src_tokens_index, ptr_t begin, ptr_t end, type const *elem_type, ast::typespec_view slice_type)
+void executor_context::check_slice_construction(
+	uint32_t src_tokens_index,
+	ptr_t begin,
+	ptr_t end,
+	type const *elem_type,
+	ast::typespec_view slice_type
+)
 {
 	auto const is_good = this->memory.check_slice_construction(begin, end, elem_type);
 	if (!is_good)
