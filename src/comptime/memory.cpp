@@ -302,6 +302,34 @@ pointer_arithmetic_result_t stack_object::do_pointer_arithmetic(ptr_t address, i
 	}
 }
 
+bz::optional<int64_t> stack_object::do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type)
+{
+	if (lhs <= rhs)
+	{
+		auto const slice_check = this->check_slice_construction(lhs, rhs, object_type);
+		if (slice_check)
+		{
+			return static_cast<int64_t>((lhs - rhs) / object_type->size);
+		}
+		else
+		{
+			return {};
+		}
+	}
+	else
+	{
+		auto const slice_check = this->check_slice_construction(rhs, lhs, object_type);
+		if (slice_check)
+		{
+			return -static_cast<int64_t>((rhs - lhs) / object_type->size);
+		}
+		else
+		{
+			return {};
+		}
+	}
+}
+
 heap_object::heap_object(ptr_t _address, type const *_elem_type, size_t _count)
 	: address(_address),
 	  elem_type(_elem_type),
@@ -540,6 +568,34 @@ pointer_arithmetic_result_t heap_object::do_pointer_arithmetic(ptr_t address, in
 			.address = result_address,
 			.is_on_past_the_end = true,
 		};
+	}
+}
+
+bz::optional<int64_t> heap_object::do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type)
+{
+	if (lhs <= rhs)
+	{
+		auto const slice_check = this->check_slice_construction(lhs, rhs, object_type);
+		if (slice_check)
+		{
+			return static_cast<int64_t>((lhs - rhs) / object_type->size);
+		}
+		else
+		{
+			return {};
+		}
+	}
+	else
+	{
+		auto const slice_check = this->check_slice_construction(rhs, lhs, object_type);
+		if (slice_check)
+		{
+			return -static_cast<int64_t>((rhs - lhs) / object_type->size);
+		}
+		else
+		{
+			return {};
+		}
 	}
 }
 
