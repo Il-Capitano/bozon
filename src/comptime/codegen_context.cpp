@@ -2130,6 +2130,9 @@ expr_value codegen_context::create_ptr_add(
 	ast::typespec_view pointer_type
 )
 {
+	bz_assert(address.get_type()->is_pointer());
+	bz_assert(offset.get_type()->is_integer_type());
+
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 	auto const pointer_arithmetic_check_info_index = this->add_pointer_arithmetic_check_info({
 		.object_type = object_type,
@@ -2316,6 +2319,9 @@ expr_value codegen_context::create_ptr_sub(
 	ast::typespec_view pointer_type
 )
 {
+	bz_assert(address.get_type()->is_pointer());
+	bz_assert(offset.get_type()->is_integer_type());
+
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 	auto const pointer_arithmetic_check_info_index = this->add_pointer_arithmetic_check_info({
 		.object_type = object_type,
@@ -2376,23 +2382,43 @@ expr_value codegen_context::create_ptr_sub(
 	}
 }
 
-expr_value codegen_context::create_ptrdiff(expr_value lhs, expr_value rhs, type const *elem_type)
+expr_value codegen_context::create_ptrdiff(
+	lex::src_tokens const &src_tokens,
+	expr_value lhs,
+	expr_value rhs,
+	type const *object_type,
+	ast::typespec_view pointer_type
+)
 {
 	bz_assert(lhs.get_type()->is_pointer());
 	bz_assert(rhs.get_type()->is_pointer());
+
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+	auto const pointer_arithmetic_check_info_index = this->add_pointer_arithmetic_check_info({
+		.object_type = object_type,
+		.pointer_type = pointer_type,
+	});
+
 	auto const lhs_val = lhs.get_value_as_instruction(*this);
 	auto const rhs_val = rhs.get_value_as_instruction(*this);
+
 	if (this->is_64_bit())
 	{
 		return expr_value::get_value(
-			this->add_instruction(instructions::ptr64_diff{ .stride = elem_type->size }, lhs_val, rhs_val),
+			this->add_instruction(instructions::ptr64_diff{
+				.src_tokens_index = src_tokens_index,
+				.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
+			}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i64)
 		);
 	}
 	else
 	{
 		return expr_value::get_value(
-			this->add_instruction(instructions::ptr32_diff{ .stride = elem_type->size }, lhs_val, rhs_val),
+			this->add_instruction(instructions::ptr32_diff{
+				.src_tokens_index = src_tokens_index,
+				.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
+			}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i32)
 		);
 	}

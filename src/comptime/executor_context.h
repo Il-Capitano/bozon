@@ -78,6 +78,13 @@ struct executor_context
 		type const *object_type,
 		ast::typespec_view pointer_type
 	);
+	int64_t pointer_difference(
+		uint32_t src_tokens_index,
+		ptr_t lhs,
+		ptr_t rhs,
+		type const *object_type,
+		ast::typespec_view pointer_type
+	);
 
 	void advance(void);
 };

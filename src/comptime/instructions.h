@@ -1565,7 +1565,8 @@ struct ptr32_diff
 	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::i32;
 
-	size_t stride;
+	uint32_t src_tokens_index;
+	uint32_t pointer_arithmetic_check_info_index;
 };
 
 struct ptr64_diff
@@ -1573,7 +1574,8 @@ struct ptr64_diff
 	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::i64;
 
-	size_t stride;
+	uint32_t src_tokens_index;
+	uint32_t pointer_arithmetic_check_info_index;
 };
 
 struct mul_i8

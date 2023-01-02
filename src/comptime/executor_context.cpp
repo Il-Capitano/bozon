@@ -169,6 +169,29 @@ ptr_t executor_context::pointer_sub_unsigned(
 	return result;
 }
 
+int64_t executor_context::pointer_difference(
+	uint32_t src_tokens_index,
+	ptr_t lhs,
+	ptr_t rhs,
+	type const *object_type,
+	ast::typespec_view pointer_type
+)
+{
+	auto const result = this->memory.do_pointer_difference(lhs, rhs, object_type);
+	if (!result.has_value())
+	{
+		this->report_error(
+			src_tokens_index,
+			bz::format("invalid pointer arithmetic operation with type '{}'", pointer_type)
+		);
+		return 0;
+	}
+	else
+	{
+		return result.get();
+	}
+}
+
 void executor_context::advance(void)
 {
 	if (this->next_instruction != nullptr)

@@ -1699,20 +1699,18 @@ static void execute_sub_f64_check(instructions::sub_f64_check const &inst, float
 	}
 }
 
-static uint32_t execute_ptr32_diff(instructions::ptr32_diff const &inst, ptr_t lhs, ptr_t rhs, executor_context &)
+static uint32_t execute_ptr32_diff(instructions::ptr32_diff const &inst, ptr_t lhs, ptr_t rhs, executor_context &context)
 {
-	auto const result = static_cast<int32_t>(lhs - rhs);
-	auto const stride = static_cast<int32_t>(inst.stride);
-	bz_assert(result % stride == 0);
-	return static_cast<uint32_t>(result / stride);
+	auto const &info = context.get_pointer_arithmetic_info(inst.pointer_arithmetic_check_info_index);
+	auto const result = context.pointer_difference(inst.src_tokens_index, lhs, rhs, info.object_type, info.pointer_type);
+	return static_cast<uint32_t>(result);
 }
 
-static uint64_t execute_ptr64_diff(instructions::ptr64_diff const &inst, ptr_t lhs, ptr_t rhs, executor_context &)
+static uint64_t execute_ptr64_diff(instructions::ptr64_diff const &inst, ptr_t lhs, ptr_t rhs, executor_context &context)
 {
-	auto const result = static_cast<int64_t>(lhs - rhs);
-	auto const stride = static_cast<int64_t>(inst.stride);
-	bz_assert(result % stride == 0);
-	return static_cast<uint64_t>(result / stride);
+	auto const &info = context.get_pointer_arithmetic_info(inst.pointer_arithmetic_check_info_index);
+	auto const result = context.pointer_difference(inst.src_tokens_index, lhs, rhs, info.object_type, info.pointer_type);
+	return static_cast<uint64_t>(result);
 }
 
 static uint8_t execute_mul_i8(instructions::mul_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
@@ -4427,7 +4425,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 495);
+		static_assert(instruction::variant_count == 499);
 		case instruction::const_i1:
 			execute<instructions::const_i1, &execute_const_i1>(context);
 			break;
