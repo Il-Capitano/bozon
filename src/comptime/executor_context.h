@@ -85,6 +85,7 @@ struct executor_context
 		type const *object_type,
 		ast::typespec_view pointer_type
 	);
+	int64_t pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride);
 
 	void advance(void);
 };

@@ -353,6 +353,7 @@ struct codegen_context
 		type const *object_type,
 		ast::typespec_view pointer_type
 	);
+	expr_value create_ptrdiff_unchecked(expr_value lhs, expr_value rhs, type const *object_type);
 	expr_value create_mul(expr_value lhs, expr_value rhs);
 	void create_mul_check(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int);
 	expr_value create_div(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int);

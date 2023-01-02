@@ -120,6 +120,7 @@ struct memory_manager
 	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs);
 	ptr_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type);
 	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);
+	int64_t do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride);
 
 	uint8_t *get_memory(ptr_t address);
 };

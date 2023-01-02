@@ -192,6 +192,11 @@ int64_t executor_context::pointer_difference(
 	}
 }
 
+int64_t executor_context::pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride)
+{
+	return this->memory.do_pointer_difference_unchecked(lhs, rhs, stride);
+}
+
 void executor_context::advance(void)
 {
 	if (this->next_instruction != nullptr)

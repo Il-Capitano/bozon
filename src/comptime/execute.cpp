@@ -1713,6 +1713,18 @@ static uint64_t execute_ptr64_diff(instructions::ptr64_diff const &inst, ptr_t l
 	return static_cast<uint64_t>(result);
 }
 
+static uint32_t execute_ptr32_diff_unchecked(instructions::ptr32_diff_unchecked const &inst, ptr_t lhs, ptr_t rhs, executor_context &context)
+{
+	auto const result = context.pointer_difference_unchecked(lhs, rhs, inst.stride);
+	return static_cast<uint32_t>(result);
+}
+
+static uint64_t execute_ptr64_diff_unchecked(instructions::ptr64_diff_unchecked const &inst, ptr_t lhs, ptr_t rhs, executor_context &context)
+{
+	auto const result = context.pointer_difference_unchecked(lhs, rhs, inst.stride);
+	return static_cast<uint64_t>(result);
+}
+
 static uint8_t execute_mul_i8(instructions::mul_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
 	return lhs * rhs;
@@ -4425,7 +4437,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 499);
+		static_assert(instruction::variant_count == 501);
 		case instruction::const_i1:
 			execute<instructions::const_i1, &execute_const_i1>(context);
 			break;
@@ -5109,6 +5121,12 @@ void execute(executor_context &context)
 			break;
 		case instruction::ptr64_diff:
 			execute<instructions::ptr64_diff, &execute_ptr64_diff>(context);
+			break;
+		case instruction::ptr32_diff_unchecked:
+			execute<instructions::ptr32_diff_unchecked, &execute_ptr32_diff_unchecked>(context);
+			break;
+		case instruction::ptr64_diff_unchecked:
+			execute<instructions::ptr64_diff_unchecked, &execute_ptr64_diff_unchecked>(context);
 			break;
 		case instruction::mul_i8:
 			execute<instructions::mul_i8, &execute_mul_i8>(context);

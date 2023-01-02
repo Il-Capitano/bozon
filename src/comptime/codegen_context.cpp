@@ -2424,6 +2424,30 @@ expr_value codegen_context::create_ptrdiff(
 	}
 }
 
+expr_value codegen_context::create_ptrdiff_unchecked(expr_value lhs, expr_value rhs, type const *object_type)
+{
+	bz_assert(lhs.get_type()->is_pointer());
+	bz_assert(rhs.get_type()->is_pointer());
+
+	auto const lhs_val = lhs.get_value_as_instruction(*this);
+	auto const rhs_val = rhs.get_value_as_instruction(*this);
+
+	if (this->is_64_bit())
+	{
+		return expr_value::get_value(
+			this->add_instruction(instructions::ptr64_diff_unchecked{ .stride = object_type->size }, lhs_val, rhs_val),
+			this->get_builtin_type(builtin_type_kind::i64)
+		);
+	}
+	else
+	{
+		return expr_value::get_value(
+			this->add_instruction(instructions::ptr32_diff_unchecked{ .stride = object_type->size }, lhs_val, rhs_val),
+			this->get_builtin_type(builtin_type_kind::i32)
+		);
+	}
+}
+
 expr_value codegen_context::create_mul(expr_value lhs, expr_value rhs)
 {
 	bz_assert(lhs.get_type()->is_builtin());
@@ -5170,7 +5194,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 499);
+	static_assert(instruction::variant_count == 501);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>().inst;
