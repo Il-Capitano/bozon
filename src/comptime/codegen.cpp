@@ -881,46 +881,233 @@ static expr_value generate_builtin_unary_bool_not(
 }
 
 static expr_value generate_builtin_unary_plus_plus(
+	ast::expression const &original_expression,
 	ast::expression const &expr,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
-);
+	codegen_context &context
+)
+{
+	auto const value_ref = generate_expr_code(expr, context, {});
+	bz_assert(value_ref.is_reference());
+	auto const value = value_ref.get_value(context);
+
+	if (value.get_type()->is_pointer())
+	{
+		auto const expr_type = expr.get_expr_type();
+		bz_assert(expr_type.is<ast::ts_pointer>() || expr_type.is_optional_pointer());
+		auto const object_type = expr_type.is<ast::ts_pointer>()
+			? get_type(expr_type.get<ast::ts_pointer>(), context)
+			: get_type(expr_type.get_optional_pointer(), context);
+
+		auto const intptr_type = context.get_builtin_type(context.is_64_bit() ? builtin_type_kind::i64 : builtin_type_kind::i32);
+		auto const const_one = context.create_const_int(intptr_type, uint64_t(1));
+		auto const incremented_value = context.create_ptr_add(
+			original_expression.src_tokens,
+			value,
+			const_one,
+			false,
+			object_type,
+			expr_type
+		);
+		context.create_store(incremented_value, value_ref);
+		return value_ref;
+	}
+	else
+	{
+		bz_assert(value.get_type()->is_integer_type());
+		auto const expr_type = expr.get_expr_type();
+		bz_assert(expr_type.is<ast::ts_base_type>());
+		auto const expr_kind = expr_type.get<ast::ts_base_type>().info->kind;
+		auto const is_signed = ast::is_signed_integer_kind(expr_kind);
+
+		auto const const_one = is_signed
+			? context.create_const_int(value.get_type(), int64_t(1))
+			: context.create_const_int(value.get_type(), uint64_t(1));
+		if (original_expression.paren_level < 2)
+		{
+			context.create_add_check(original_expression.src_tokens, value, const_one, is_signed);
+		}
+		auto const incremented_value = context.create_add(value, const_one);
+		context.create_store(incremented_value, value_ref);
+		return value_ref;
+	}
+}
 
 static expr_value generate_builtin_unary_minus_minus(
+	ast::expression const &original_expression,
 	ast::expression const &expr,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
+	codegen_context &context
 );
 
-static expr_value generate_builtin_binary_assign(
-	ast::expression const &lhs,
-	ast::expression const &rhs,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
-);
 static expr_value generate_builtin_binary_plus(
+	ast::expression const &original_expression,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+
+	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
+	if (lhs_value.get_type()->is_pointer())
+	{
+		bz_assert(lhs_type.is<ast::ts_pointer>() || lhs_type.is_optional_pointer());
+		auto const object_type = lhs_type.is<ast::ts_pointer>()
+			? get_type(lhs_type.get<ast::ts_pointer>(), context)
+			: get_type(lhs_type.get_optional_pointer(), context);
+
+		bz_assert(rhs_type.is<ast::ts_base_type>());
+		auto const rhs_kind = rhs_type.get<ast::ts_base_type>().info->kind;
+
+		auto const result_value = context.create_ptr_add(
+			original_expression.src_tokens,
+			lhs_value,
+			rhs_value,
+			ast::is_signed_integer_kind(rhs_kind),
+			object_type,
+			lhs_type
+		);
+		return value_or_result_address(result_value, result_address, context);
+	}
+	else if (rhs_value.get_type()->is_pointer())
+	{
+		bz_assert(lhs_type.is<ast::ts_base_type>());
+		auto const lhs_kind = lhs_type.get<ast::ts_base_type>().info->kind;
+
+		bz_assert(rhs_type.is<ast::ts_pointer>() || rhs_type.is_optional_pointer());
+		auto const object_type = rhs_type.is<ast::ts_pointer>()
+			? get_type(rhs_type.get<ast::ts_pointer>(), context)
+			: get_type(rhs_type.get_optional_pointer(), context);
+
+		auto const result_value = context.create_ptr_add(
+			original_expression.src_tokens,
+			rhs_value,
+			lhs_value,
+			ast::is_signed_integer_kind(lhs_kind),
+			object_type,
+			rhs_type
+		);
+		return value_or_result_address(result_value, result_address, context);
+	}
+	else
+	{
+		bz_assert(lhs_type.is<ast::ts_base_type>() && rhs_type.is<ast::ts_base_type>());
+		auto const lhs_kind = lhs_type.get<ast::ts_base_type>().info->kind;
+		auto const rhs_kind = rhs_type.get<ast::ts_base_type>().info->kind;
+
+		if (lhs_kind == ast::type_info::char_)
+		{
+			auto const rhs_cast = context.create_int_cast(rhs_value, lhs_value.get_type(), ast::is_signed_integer_kind(rhs_kind));
+			if (original_expression.paren_level < 2)
+			{
+				context.create_add_check(original_expression.src_tokens, lhs_value, rhs_cast, false);
+			}
+			auto const result_value = context.create_add(lhs_value, rhs_cast);
+			return value_or_result_address(result_value, result_address, context);
+		}
+		else if (rhs_kind == ast::type_info::char_)
+		{
+			auto const lhs_cast = context.create_int_cast(lhs_value, rhs_value.get_type(), ast::is_signed_integer_kind(lhs_kind));
+			if (original_expression.paren_level < 2)
+			{
+				context.create_add_check(original_expression.src_tokens, lhs_cast, rhs_value, false);
+			}
+			auto const result_value = context.create_add(lhs_cast, rhs_value);
+			return value_or_result_address(result_value, result_address, context);
+		}
+		else
+		{
+			bz_assert(lhs_kind == rhs_kind);
+			if (original_expression.paren_level < 2)
+			{
+				context.create_add_check(original_expression.src_tokens, lhs_value, rhs_value, ast::is_signed_integer_kind(lhs_kind));
+			}
+			auto const result_value = context.create_add(lhs_value, rhs_value);
+			return value_or_result_address(result_value, result_address, context);
+		}
+	}
+}
+
 static expr_value generate_builtin_binary_plus_eq(
+	ast::expression const &original_expression,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
-);
+	codegen_context &context
+)
+{
+	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+	auto const lhs_ref = generate_expr_code(lhs, context, {});
+	bz_assert(lhs_ref.is_reference());
+	auto const lhs_value = lhs_ref.get_value(context);
+
+	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
+	if (lhs_value.get_type()->is_pointer())
+	{
+		bz_assert(lhs_type.is<ast::ts_pointer>() || lhs_type.is_optional_pointer());
+		auto const object_type = lhs_type.is<ast::ts_pointer>()
+			? get_type(lhs_type.get<ast::ts_pointer>(), context)
+			: get_type(lhs_type.get_optional_pointer(), context);
+
+		bz_assert(rhs_type.is<ast::ts_base_type>());
+		auto const rhs_kind = rhs_type.get<ast::ts_base_type>().info->kind;
+
+		auto const result_value = context.create_ptr_add(
+			original_expression.src_tokens,
+			lhs_value,
+			rhs_value,
+			ast::is_signed_integer_kind(rhs_kind),
+			object_type,
+			lhs_type
+		);
+		context.create_store(result_value, lhs_ref);
+		return lhs_ref;
+	}
+	else
+	{
+		bz_assert(lhs_type.is<ast::ts_base_type>() && rhs_type.is<ast::ts_base_type>());
+		auto const lhs_kind = lhs_type.get<ast::ts_base_type>().info->kind;
+		auto const rhs_kind = rhs_type.get<ast::ts_base_type>().info->kind;
+
+		if (lhs_kind == ast::type_info::char_)
+		{
+			auto const rhs_cast = context.create_int_cast(rhs_value, lhs_value.get_type(), ast::is_signed_integer_kind(rhs_kind));
+			if (original_expression.paren_level < 2)
+			{
+				context.create_add_check(original_expression.src_tokens, lhs_value, rhs_cast, false);
+			}
+			auto const result_value = context.create_add(lhs_value, rhs_cast);
+			context.create_store(result_value, lhs_ref);
+			return lhs_ref;
+		}
+		else
+		{
+			bz_assert(lhs_kind == rhs_kind);
+			if (original_expression.paren_level < 2)
+			{
+				context.create_add_check(original_expression.src_tokens, lhs_value, rhs_value, ast::is_signed_integer_kind(lhs_kind));
+			}
+			auto const result_value = context.create_add(lhs_value, rhs_value);
+			context.create_store(result_value, lhs_ref);
+			return lhs_ref;
+		}
+	}
+}
+
 static expr_value generate_builtin_binary_minus(
+	ast::expression const &original_expression,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 );
 static expr_value generate_builtin_binary_minus_eq(
+	ast::expression const &original_expression,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
+	codegen_context &context
 );
 
 static expr_value generate_builtin_binary_multiply(
@@ -2390,25 +2577,29 @@ static expr_value generate_intrinsic_function_call_code(
 		return generate_builtin_unary_bool_not(func_call.params[0], context, result_address);
 	case ast::function_body::builtin_unary_plus_plus:
 		bz_assert(func_call.params.size() == 1);
-		return generate_builtin_unary_plus_plus(func_call.params[0], context, result_address);
+		bz_assert(!result_address.has_value());
+		return generate_builtin_unary_plus_plus(original_expression, func_call.params[0], context);
 	case ast::function_body::builtin_unary_minus_minus:
 		bz_assert(func_call.params.size() == 1);
-		return generate_builtin_unary_minus_minus(func_call.params[0], context, result_address);
+		bz_assert(!result_address.has_value());
+		return generate_builtin_unary_minus_minus(original_expression, func_call.params[0], context);
 	case ast::function_body::builtin_binary_assign:
-		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_assign(func_call.params[0], func_call.params[1], context, result_address);
+		// assignment is handled as a separate expression
+		bz_unreachable;
 	case ast::function_body::builtin_binary_plus:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_plus(func_call.params[0], func_call.params[1], context, result_address);
+		return generate_builtin_binary_plus(original_expression, func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_plus_eq:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_plus_eq(func_call.params[0], func_call.params[1], context, result_address);
+		bz_assert(!result_address.has_value());
+		return generate_builtin_binary_plus_eq(original_expression, func_call.params[0], func_call.params[1], context);
 	case ast::function_body::builtin_binary_minus:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_minus(func_call.params[0], func_call.params[1], context, result_address);
+		return generate_builtin_binary_minus(original_expression, func_call.params[0], func_call.params[1], context, result_address);
 	case ast::function_body::builtin_binary_minus_eq:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_minus_eq(func_call.params[0], func_call.params[1], context, result_address);
+		bz_assert(!result_address.has_value());
+		return generate_builtin_binary_minus_eq(original_expression, func_call.params[0], func_call.params[1], context);
 	case ast::function_body::builtin_binary_multiply:
 		bz_assert(func_call.params.size() == 2);
 		return generate_builtin_binary_multiply(original_expression, func_call.params[0], func_call.params[1], context, result_address);

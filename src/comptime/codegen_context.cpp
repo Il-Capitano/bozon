@@ -2050,75 +2050,6 @@ expr_value codegen_context::create_add(expr_value lhs, expr_value rhs)
 	}
 }
 
-expr_value codegen_context::create_ptr_add(
-	lex::src_tokens const &src_tokens,
-	expr_value address,
-	expr_value offset,
-	bool is_offset_signed,
-	type const *object_type,
-	ast::typespec_view pointer_type
-)
-{
-	auto const src_tokens_index = this->add_src_tokens(src_tokens);
-	auto const pointer_arithmetic_check_info_index = this->add_pointer_arithmetic_check_info({
-		.object_type = object_type,
-		.pointer_type = pointer_type,
-	});
-
-	auto const address_val = address.get_value_as_instruction(*this);
-
-	if (this->is_64_bit())
-	{
-		auto const intptr_type = this->get_builtin_type(builtin_type_kind::i64);
-		auto const offset_val = this->create_int_cast(offset, intptr_type, is_offset_signed).get_value_as_instruction(*this);
-		if (is_offset_signed)
-		{
-			return expr_value::get_value(
-				this->add_instruction(instructions::add_ptr_i64{
-					.src_tokens_index = src_tokens_index,
-					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
-				}, address_val, offset_val),
-				this->get_pointer_type()
-			);
-		}
-		else
-		{
-			return expr_value::get_value(
-				this->add_instruction(instructions::add_ptr_u64{
-					.src_tokens_index = src_tokens_index,
-					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
-				}, address_val, offset_val),
-				this->get_pointer_type()
-			);
-		}
-	}
-	else
-	{
-		auto const intptr_type = this->get_builtin_type(builtin_type_kind::i32);
-		auto const offset_val = this->create_int_cast(offset, intptr_type, is_offset_signed).get_value_as_instruction(*this);
-		if (is_offset_signed)
-		{
-			return expr_value::get_value(
-				this->add_instruction(instructions::add_ptr_i32{
-					.src_tokens_index = src_tokens_index,
-					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
-				}, address_val, offset_val),
-				this->get_pointer_type()
-			);
-		}
-		else
-		{
-			return expr_value::get_value(
-				this->add_instruction(instructions::add_ptr_u32{
-					.src_tokens_index = src_tokens_index,
-					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
-				}, address_val, offset_val),
-				this->get_pointer_type()
-			);
-		}
-	}
-}
-
 void codegen_context::create_add_check(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int)
 {
 	if (
@@ -2187,6 +2118,75 @@ void codegen_context::create_add_check(lex::src_tokens const &src_tokens, expr_v
 		break;
 	default:
 		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_ptr_add(
+	lex::src_tokens const &src_tokens,
+	expr_value address,
+	expr_value offset,
+	bool is_offset_signed,
+	type const *object_type,
+	ast::typespec_view pointer_type
+)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+	auto const pointer_arithmetic_check_info_index = this->add_pointer_arithmetic_check_info({
+		.object_type = object_type,
+		.pointer_type = pointer_type,
+	});
+
+	auto const address_val = address.get_value_as_instruction(*this);
+
+	if (this->is_64_bit())
+	{
+		auto const intptr_type = this->get_builtin_type(builtin_type_kind::i64);
+		auto const offset_val = this->create_int_cast(offset, intptr_type, is_offset_signed).get_value_as_instruction(*this);
+		if (is_offset_signed)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::add_ptr_i64{
+					.src_tokens_index = src_tokens_index,
+					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
+				}, address_val, offset_val),
+				this->get_pointer_type()
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::add_ptr_u64{
+					.src_tokens_index = src_tokens_index,
+					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
+				}, address_val, offset_val),
+				this->get_pointer_type()
+			);
+		}
+	}
+	else
+	{
+		auto const intptr_type = this->get_builtin_type(builtin_type_kind::i32);
+		auto const offset_val = this->create_int_cast(offset, intptr_type, is_offset_signed).get_value_as_instruction(*this);
+		if (is_offset_signed)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::add_ptr_i32{
+					.src_tokens_index = src_tokens_index,
+					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
+				}, address_val, offset_val),
+				this->get_pointer_type()
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::add_ptr_u32{
+					.src_tokens_index = src_tokens_index,
+					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
+				}, address_val, offset_val),
+				this->get_pointer_type()
+			);
+		}
 	}
 }
 
@@ -5075,7 +5075,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 495);
+	static_assert(instruction::variant_count == 499);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>().inst;
