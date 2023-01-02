@@ -50,8 +50,34 @@ struct executor_context
 
 	int compare_pointers(uint32_t src_tokens_index, ptr_t lhs, ptr_t rhs);
 	bool compare_pointers_equal(ptr_t lhs, ptr_t rhs);
-	ptr_t pointer_add_signed(uint32_t src_tokens_index, ptr_t address, int64_t offset, type const *object_type, ast::typespec_view pointer_type);
-	ptr_t pointer_add_unsigned(uint32_t src_tokens_index, ptr_t address, uint64_t offset, type const *object_type, ast::typespec_view pointer_type);
+	ptr_t pointer_add_signed(
+		uint32_t src_tokens_index,
+		ptr_t address,
+		int64_t offset,
+		type const *object_type,
+		ast::typespec_view pointer_type
+	);
+	ptr_t pointer_add_unsigned(
+		uint32_t src_tokens_index,
+		ptr_t address,
+		uint64_t offset,
+		type const *object_type,
+		ast::typespec_view pointer_type
+	);
+	ptr_t pointer_sub_signed(
+		uint32_t src_tokens_index,
+		ptr_t address,
+		int64_t offset,
+		type const *object_type,
+		ast::typespec_view pointer_type
+	);
+	ptr_t pointer_sub_unsigned(
+		uint32_t src_tokens_index,
+		ptr_t address,
+		uint64_t offset,
+		type const *object_type,
+		ast::typespec_view pointer_type
+	);
 
 	void advance(void);
 };

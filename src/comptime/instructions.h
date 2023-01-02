@@ -1444,6 +1444,42 @@ struct sub_f64
 	static inline constexpr value_type result_type = value_type::f64;
 };
 
+struct sub_ptr_i32
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::ptr;
+
+	uint32_t src_tokens_index;
+	uint32_t pointer_arithmetic_check_info_index;
+};
+
+struct sub_ptr_u32
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::ptr;
+
+	uint32_t src_tokens_index;
+	uint32_t pointer_arithmetic_check_info_index;
+};
+
+struct sub_ptr_i64
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::ptr;
+
+	uint32_t src_tokens_index;
+	uint32_t pointer_arithmetic_check_info_index;
+};
+
+struct sub_ptr_u64
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::ptr;
+
+	uint32_t src_tokens_index;
+	uint32_t pointer_arithmetic_check_info_index;
+};
+
 struct sub_i8_check
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
@@ -3647,6 +3683,10 @@ using instruction_list = bz::meta::type_pack<
 	instructions::sub_i64,
 	instructions::sub_f32,
 	instructions::sub_f64,
+	instructions::sub_ptr_i32,
+	instructions::sub_ptr_u32,
+	instructions::sub_ptr_i64,
+	instructions::sub_ptr_u64,
 	instructions::sub_i8_check,
 	instructions::sub_i16_check,
 	instructions::sub_i32_check,
@@ -3941,7 +3981,7 @@ struct instruction : instruction_base_t
 	template<typename Inst>
 	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
-	static_assert(variant_count == 495);
+	static_assert(variant_count == 499);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -4156,6 +4196,10 @@ struct instruction : instruction_base_t
 		sub_i64                  = index_of<instructions::sub_i64>,
 		sub_f32                  = index_of<instructions::sub_f32>,
 		sub_f64                  = index_of<instructions::sub_f64>,
+		sub_ptr_i32              = index_of<instructions::sub_ptr_i32>,
+		sub_ptr_u32              = index_of<instructions::sub_ptr_u32>,
+		sub_ptr_i64              = index_of<instructions::sub_ptr_i64>,
+		sub_ptr_u64              = index_of<instructions::sub_ptr_u64>,
 		sub_i8_check             = index_of<instructions::sub_i8_check>,
 		sub_i16_check            = index_of<instructions::sub_i16_check>,
 		sub_i32_check            = index_of<instructions::sub_i32_check>,

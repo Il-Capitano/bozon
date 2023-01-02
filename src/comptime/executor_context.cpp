@@ -82,7 +82,13 @@ bool executor_context::compare_pointers_equal(ptr_t lhs, ptr_t rhs)
 	return compare_result.has_value() && compare_result.get() == 0;
 }
 
-ptr_t executor_context::pointer_add_signed(uint32_t src_tokens_index, ptr_t address, int64_t offset, type const *object_type, ast::typespec_view pointer_type)
+ptr_t executor_context::pointer_add_signed(
+	uint32_t src_tokens_index,
+	ptr_t address,
+	int64_t offset,
+	type const *object_type,
+	ast::typespec_view pointer_type
+)
 {
 	auto const result = this->memory.do_pointer_arithmetic(address, offset, object_type);
 	if (result == 0)
@@ -95,11 +101,64 @@ ptr_t executor_context::pointer_add_signed(uint32_t src_tokens_index, ptr_t addr
 	return result;
 }
 
-ptr_t executor_context::pointer_add_unsigned(uint32_t src_tokens_index, ptr_t address, uint64_t offset, type const *object_type, ast::typespec_view pointer_type)
+ptr_t executor_context::pointer_add_unsigned(
+	uint32_t src_tokens_index,
+	ptr_t address,
+	uint64_t offset,
+	type const *object_type,
+	ast::typespec_view pointer_type
+)
 {
 	auto const result = offset > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())
 		? 0
 		: this->memory.do_pointer_arithmetic(address, static_cast<int64_t>(offset), object_type);
+	if (result == 0)
+	{
+		this->report_error(
+			src_tokens_index,
+			bz::format("invalid pointer arithmetic operation with type '{}' and offset {}", pointer_type, offset)
+		);
+	}
+	return result;
+}
+
+ptr_t executor_context::pointer_sub_signed(
+	uint32_t src_tokens_index,
+	ptr_t address,
+	int64_t offset,
+	type const *object_type,
+	ast::typespec_view pointer_type
+)
+{
+	auto const result = offset == std::numeric_limits<int64_t>::min()
+		? 0
+		: this->memory.do_pointer_arithmetic(address, -offset, object_type);
+	if (result == 0)
+	{
+		this->report_error(
+			src_tokens_index,
+			bz::format("invalid pointer arithmetic operation with type '{}' and offset {}", pointer_type, offset)
+		);
+	}
+	return result;
+}
+
+ptr_t executor_context::pointer_sub_unsigned(
+	uint32_t src_tokens_index,
+	ptr_t address,
+	uint64_t offset,
+	type const *object_type,
+	ast::typespec_view pointer_type
+)
+{
+	constexpr auto max_value = static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1;
+	auto const result = offset > max_value
+		? 0
+		: this->memory.do_pointer_arithmetic(
+			address,
+			offset == max_value ? std::numeric_limits<int64_t>::min() : -static_cast<int64_t>(offset),
+			object_type
+		);
 	if (result == 0)
 	{
 		this->report_error(

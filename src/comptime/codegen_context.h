@@ -338,13 +338,20 @@ struct codegen_context
 	);
 	expr_value create_sub(expr_value lhs, expr_value rhs);
 	void create_sub_check(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int);
+	expr_value create_ptr_sub(
+		lex::src_tokens const &src_tokens,
+		expr_value address,
+		expr_value offset,
+		bool is_offset_signed,
+		type const *object_type,
+		ast::typespec_view pointer_type
+	);
+	expr_value create_ptrdiff(expr_value lhs, expr_value rhs, type const *elem_type);
 	expr_value create_mul(expr_value lhs, expr_value rhs);
 	void create_mul_check(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int);
 	expr_value create_div(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int);
 	void create_div_check(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int);
 	expr_value create_rem(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int);
-
-	expr_value create_ptrdiff(expr_value lhs, expr_value rhs, type const *elem_type);
 
 	expr_value create_not(expr_value value);
 	expr_value create_and(expr_value lhs, expr_value rhs);

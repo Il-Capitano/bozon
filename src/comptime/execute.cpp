@@ -1535,6 +1535,32 @@ static float64_t execute_sub_f64(instructions::sub_f64 const &, float64_t lhs, f
 	return lhs - rhs;
 }
 
+static ptr_t execute_sub_ptr_i32(instructions::sub_ptr_i32 const &inst, ptr_t lhs, uint32_t urhs, executor_context &context)
+{
+	auto const rhs = static_cast<int32_t>(urhs);
+	auto const &info = context.get_pointer_arithmetic_info(inst.pointer_arithmetic_check_info_index);
+	return context.pointer_sub_signed(inst.src_tokens_index, lhs, rhs, info.object_type, info.pointer_type);
+}
+
+static ptr_t execute_sub_ptr_u32(instructions::sub_ptr_u32 const &inst, ptr_t lhs, uint32_t rhs, executor_context &context)
+{
+	auto const &info = context.get_pointer_arithmetic_info(inst.pointer_arithmetic_check_info_index);
+	return context.pointer_sub_unsigned(inst.src_tokens_index, lhs, rhs, info.object_type, info.pointer_type);
+}
+
+static ptr_t execute_sub_ptr_i64(instructions::sub_ptr_i64 const &inst, ptr_t lhs, uint64_t urhs, executor_context &context)
+{
+	auto const rhs = static_cast<int64_t>(urhs);
+	auto const &info = context.get_pointer_arithmetic_info(inst.pointer_arithmetic_check_info_index);
+	return context.pointer_sub_signed(inst.src_tokens_index, lhs, rhs, info.object_type, info.pointer_type);
+}
+
+static ptr_t execute_sub_ptr_u64(instructions::sub_ptr_u64 const &inst, ptr_t lhs, uint64_t rhs, executor_context &context)
+{
+	auto const &info = context.get_pointer_arithmetic_info(inst.pointer_arithmetic_check_info_index);
+	return context.pointer_sub_unsigned(inst.src_tokens_index, lhs, rhs, info.object_type, info.pointer_type);
+}
+
 static void execute_sub_i8_check(instructions::sub_i8_check const &inst, uint8_t lhs, uint8_t rhs, executor_context &context)
 {
 	auto const ilhs = static_cast<int8_t>(lhs);
@@ -5037,6 +5063,18 @@ void execute(executor_context &context)
 			break;
 		case instruction::sub_f64:
 			execute<instructions::sub_f64, &execute_sub_f64>(context);
+			break;
+		case instruction::sub_ptr_i32:
+			execute<instructions::sub_ptr_i32, &execute_sub_ptr_i32>(context);
+			break;
+		case instruction::sub_ptr_u32:
+			execute<instructions::sub_ptr_u32, &execute_sub_ptr_u32>(context);
+			break;
+		case instruction::sub_ptr_i64:
+			execute<instructions::sub_ptr_i64, &execute_sub_ptr_i64>(context);
+			break;
+		case instruction::sub_ptr_u64:
+			execute<instructions::sub_ptr_u64, &execute_sub_ptr_u64>(context);
 			break;
 		case instruction::sub_i8_check:
 			execute<instructions::sub_i8_check, &execute_sub_i8_check>(context);

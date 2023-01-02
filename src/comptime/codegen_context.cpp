@@ -2307,6 +2307,75 @@ void codegen_context::create_sub_check(lex::src_tokens const &src_tokens, expr_v
 	}
 }
 
+expr_value codegen_context::create_ptr_sub(
+	lex::src_tokens const &src_tokens,
+	expr_value address,
+	expr_value offset,
+	bool is_offset_signed,
+	type const *object_type,
+	ast::typespec_view pointer_type
+)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+	auto const pointer_arithmetic_check_info_index = this->add_pointer_arithmetic_check_info({
+		.object_type = object_type,
+		.pointer_type = pointer_type,
+	});
+
+	auto const address_val = address.get_value_as_instruction(*this);
+
+	if (this->is_64_bit())
+	{
+		auto const intptr_type = this->get_builtin_type(builtin_type_kind::i64);
+		auto const offset_val = this->create_int_cast(offset, intptr_type, is_offset_signed).get_value_as_instruction(*this);
+		if (is_offset_signed)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::sub_ptr_i64{
+					.src_tokens_index = src_tokens_index,
+					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
+				}, address_val, offset_val),
+				this->get_pointer_type()
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::sub_ptr_u64{
+					.src_tokens_index = src_tokens_index,
+					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
+				}, address_val, offset_val),
+				this->get_pointer_type()
+			);
+		}
+	}
+	else
+	{
+		auto const intptr_type = this->get_builtin_type(builtin_type_kind::i32);
+		auto const offset_val = this->create_int_cast(offset, intptr_type, is_offset_signed).get_value_as_instruction(*this);
+		if (is_offset_signed)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::sub_ptr_i32{
+					.src_tokens_index = src_tokens_index,
+					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
+				}, address_val, offset_val),
+				this->get_pointer_type()
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::sub_ptr_u32{
+					.src_tokens_index = src_tokens_index,
+					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
+				}, address_val, offset_val),
+				this->get_pointer_type()
+			);
+		}
+	}
+}
+
 expr_value codegen_context::create_ptrdiff(expr_value lhs, expr_value rhs, type const *elem_type)
 {
 	bz_assert(lhs.get_type()->is_pointer());
