@@ -314,11 +314,72 @@ uint32_t codegen_context::add_slice_construction_check_info(slice_construction_c
 	return static_cast<uint32_t>(result);
 }
 
+uint32_t codegen_context::add_pointer_arithmetic_check_info(pointer_arithmetic_check_info_t info)
+{
+	auto const result = this->global_codegen_ctx->pointer_arithmetic_check_infos.size();
+	this->global_codegen_ctx->pointer_arithmetic_check_infos.push_back(info);
+	return static_cast<uint32_t>(result);
+}
+
 expr_value codegen_context::get_dummy_value(type const *t)
 {
 	return expr_value::get_reference(instruction_ref{}, t);
 }
 
+
+expr_value codegen_context::create_const_int(type const *int_type, int64_t value)
+{
+	bz_assert(int_type->is_integer_type());
+	switch (int_type->get_builtin_kind())
+	{
+	case builtin_type_kind::i1:
+		bz_assert(value >= 0 && value <= 1);
+		return this->create_const_i1(value != 0);
+	case builtin_type_kind::i8:
+		bz_assert(value >= std::numeric_limits<int8_t>::min());
+		bz_assert(value <= std::numeric_limits<int8_t>::max());
+		return this->create_const_i8(static_cast<int8_t>(value));
+	case builtin_type_kind::i16:
+		bz_assert(value >= std::numeric_limits<int16_t>::min());
+		bz_assert(value <= std::numeric_limits<int16_t>::max());
+		return this->create_const_i16(static_cast<int16_t>(value));
+	case builtin_type_kind::i32:
+		bz_assert(value >= std::numeric_limits<int32_t>::min());
+		bz_assert(value <= std::numeric_limits<int32_t>::max());
+		return this->create_const_i32(static_cast<int32_t>(value));
+	case builtin_type_kind::i64:
+		bz_assert(value >= std::numeric_limits<int64_t>::min());
+		bz_assert(value <= std::numeric_limits<int64_t>::max());
+		return this->create_const_i64(static_cast<int64_t>(value));
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_const_int(type const *int_type, uint64_t value)
+{
+	bz_assert(int_type->is_integer_type());
+	switch (int_type->get_builtin_kind())
+	{
+	case builtin_type_kind::i1:
+		bz_assert(value >= 0 && value <= 1);
+		return this->create_const_i1(value != 0);
+	case builtin_type_kind::i8:
+		bz_assert(value <= std::numeric_limits<uint8_t>::max());
+		return this->create_const_u8(static_cast<uint8_t>(value));
+	case builtin_type_kind::i16:
+		bz_assert(value <= std::numeric_limits<uint16_t>::max());
+		return this->create_const_u16(static_cast<uint16_t>(value));
+	case builtin_type_kind::i32:
+		bz_assert(value <= std::numeric_limits<uint32_t>::max());
+		return this->create_const_u32(static_cast<uint32_t>(value));
+	case builtin_type_kind::i64:
+		bz_assert(value <= std::numeric_limits<uint64_t>::max());
+		return this->create_const_u64(static_cast<uint64_t>(value));
+	default:
+		bz_unreachable;
+	}
+}
 
 expr_value codegen_context::create_const_i1(bool value)
 {
@@ -1986,6 +2047,75 @@ expr_value codegen_context::create_add(expr_value lhs, expr_value rhs)
 		);
 	default:
 		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_ptr_add(
+	lex::src_tokens const &src_tokens,
+	expr_value address,
+	expr_value offset,
+	bool is_offset_signed,
+	type const *object_type,
+	ast::typespec_view pointer_type
+)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+	auto const pointer_arithmetic_check_info_index = this->add_pointer_arithmetic_check_info({
+		.object_type = object_type,
+		.pointer_type = pointer_type,
+	});
+
+	auto const address_val = address.get_value_as_instruction(*this);
+
+	if (this->is_64_bit())
+	{
+		auto const intptr_type = this->get_builtin_type(builtin_type_kind::i64);
+		auto const offset_val = this->create_int_cast(offset, intptr_type, is_offset_signed).get_value_as_instruction(*this);
+		if (is_offset_signed)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::add_ptr_i64{
+					.src_tokens_index = src_tokens_index,
+					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
+				}, address_val, offset_val),
+				this->get_pointer_type()
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::add_ptr_u64{
+					.src_tokens_index = src_tokens_index,
+					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
+				}, address_val, offset_val),
+				this->get_pointer_type()
+			);
+		}
+	}
+	else
+	{
+		auto const intptr_type = this->get_builtin_type(builtin_type_kind::i32);
+		auto const offset_val = this->create_int_cast(offset, intptr_type, is_offset_signed).get_value_as_instruction(*this);
+		if (is_offset_signed)
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::add_ptr_i32{
+					.src_tokens_index = src_tokens_index,
+					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
+				}, address_val, offset_val),
+				this->get_pointer_type()
+			);
+		}
+		else
+		{
+			return expr_value::get_value(
+				this->add_instruction(instructions::add_ptr_u32{
+					.src_tokens_index = src_tokens_index,
+					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
+				}, address_val, offset_val),
+				this->get_pointer_type()
+			);
+		}
 	}
 }
 
@@ -4945,7 +5075,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 491);
+	static_assert(instruction::variant_count == 495);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>().inst;

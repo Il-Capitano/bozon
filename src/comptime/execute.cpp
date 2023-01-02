@@ -1341,6 +1341,32 @@ static float64_t execute_add_f64(instructions::add_f64 const &, float64_t lhs, f
 	return lhs + rhs;
 }
 
+static ptr_t execute_add_ptr_i32(instructions::add_ptr_i32 const &inst, ptr_t lhs, uint32_t urhs, executor_context &context)
+{
+	auto const rhs = static_cast<int32_t>(urhs);
+	auto const &info = context.get_pointer_arithmetic_info(inst.pointer_arithmetic_check_info_index);
+	return context.pointer_add_signed(inst.src_tokens_index, lhs, rhs, info.object_type, info.pointer_type);
+}
+
+static ptr_t execute_add_ptr_u32(instructions::add_ptr_u32 const &inst, ptr_t lhs, uint32_t rhs, executor_context &context)
+{
+	auto const &info = context.get_pointer_arithmetic_info(inst.pointer_arithmetic_check_info_index);
+	return context.pointer_add_unsigned(inst.src_tokens_index, lhs, rhs, info.object_type, info.pointer_type);
+}
+
+static ptr_t execute_add_ptr_i64(instructions::add_ptr_i64 const &inst, ptr_t lhs, uint64_t urhs, executor_context &context)
+{
+	auto const rhs = static_cast<int64_t>(urhs);
+	auto const &info = context.get_pointer_arithmetic_info(inst.pointer_arithmetic_check_info_index);
+	return context.pointer_add_signed(inst.src_tokens_index, lhs, rhs, info.object_type, info.pointer_type);
+}
+
+static ptr_t execute_add_ptr_u64(instructions::add_ptr_u64 const &inst, ptr_t lhs, uint64_t rhs, executor_context &context)
+{
+	auto const &info = context.get_pointer_arithmetic_info(inst.pointer_arithmetic_check_info_index);
+	return context.pointer_add_unsigned(inst.src_tokens_index, lhs, rhs, info.object_type, info.pointer_type);
+}
+
 static void execute_add_i8_check(instructions::add_i8_check const &inst, uint8_t lhs, uint8_t rhs, executor_context &context)
 {
 	auto const ilhs = static_cast<int8_t>(lhs);
@@ -4375,7 +4401,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 491);
+		static_assert(instruction::variant_count == 495);
 		case instruction::const_i1:
 			execute<instructions::const_i1, &execute_const_i1>(context);
 			break;
@@ -4951,6 +4977,18 @@ void execute(executor_context &context)
 			break;
 		case instruction::add_f64:
 			execute<instructions::add_f64, &execute_add_f64>(context);
+			break;
+		case instruction::add_ptr_i32:
+			execute<instructions::add_ptr_i32, &execute_add_ptr_i32>(context);
+			break;
+		case instruction::add_ptr_u32:
+			execute<instructions::add_ptr_u32, &execute_add_ptr_u32>(context);
+			break;
+		case instruction::add_ptr_i64:
+			execute<instructions::add_ptr_i64, &execute_add_ptr_i64>(context);
+			break;
+		case instruction::add_ptr_u64:
+			execute<instructions::add_ptr_u64, &execute_add_ptr_u64>(context);
 			break;
 		case instruction::add_i8_check:
 			execute<instructions::add_i8_check, &execute_add_i8_check>(context);

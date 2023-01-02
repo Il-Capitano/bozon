@@ -257,9 +257,12 @@ struct codegen_context
 
 	uint32_t add_src_tokens(lex::src_tokens const &src_tokens);
 	uint32_t add_slice_construction_check_info(slice_construction_check_info_t info);
+	uint32_t add_pointer_arithmetic_check_info(pointer_arithmetic_check_info_t info);
 
 	expr_value get_dummy_value(type const *t);
 
+	expr_value create_const_int(type const *int_type, int64_t value);
+	expr_value create_const_int(type const *int_type, uint64_t value);
 	expr_value create_const_i1(bool value);
 	expr_value create_const_i8(int8_t value);
 	expr_value create_const_i16(int16_t value);
@@ -324,6 +327,14 @@ struct codegen_context
 	expr_value create_neg(expr_value value);
 	void create_neg_check(lex::src_tokens const &src_tokens, expr_value value);
 	expr_value create_add(expr_value lhs, expr_value rhs);
+	expr_value create_ptr_add(
+		lex::src_tokens const &src_tokens,
+		expr_value address,
+		expr_value offset,
+		bool is_offset_signed,
+		type const *object_type,
+		ast::typespec_view pointer_type
+	);
 	void create_add_check(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int);
 	expr_value create_sub(expr_value lhs, expr_value rhs);
 	void create_sub_check(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int);
