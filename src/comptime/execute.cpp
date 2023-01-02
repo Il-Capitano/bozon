@@ -99,55 +99,55 @@ static Int load_big_endian(uint8_t *mem)
 
 static bool execute_load_i1_be(instructions::load_i1_be const &, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	return load_big_endian<uint8_t>(mem) != 0;
 }
 
 static uint8_t execute_load_i8_be(instructions::load_i8_be const &, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	return load_big_endian<uint8_t>(mem);
 }
 
 static uint16_t execute_load_i16_be(instructions::load_i16_be const &, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	return load_big_endian<uint16_t>(mem);
 }
 
 static uint32_t execute_load_i32_be(instructions::load_i32_be const &, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	return load_big_endian<uint32_t>(mem);
 }
 
 static uint64_t execute_load_i64_be(instructions::load_i64_be const &, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	return load_big_endian<uint64_t>(mem);
 }
 
 static float32_t execute_load_f32_be(instructions::load_f32_be const &, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	return bit_cast<float32_t>(load_big_endian<uint32_t>(mem));
 }
 
 static float64_t execute_load_f64_be(instructions::load_f64_be const &, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	return bit_cast<float64_t>(load_big_endian<uint64_t>(mem));
 }
 
 static ptr_t execute_load_ptr32_be(instructions::load_ptr32_be const &, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	return load_big_endian<uint32_t>(mem);
 }
 
 static ptr_t execute_load_ptr64_be(instructions::load_ptr64_be const &, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	return load_big_endian<uint64_t>(mem);
 }
 
@@ -177,55 +177,55 @@ static Int load_little_endian(uint8_t *mem)
 
 static bool execute_load_i1_le(instructions::load_i1_le const &, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	return load_little_endian<uint8_t>(mem) != 0;
 }
 
 static uint8_t execute_load_i8_le(instructions::load_i8_le const &, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	return load_little_endian<uint8_t>(mem);
 }
 
 static uint16_t execute_load_i16_le(instructions::load_i16_le const &, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	return load_little_endian<uint16_t>(mem);
 }
 
 static uint32_t execute_load_i32_le(instructions::load_i32_le const &, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	return load_little_endian<uint32_t>(mem);
 }
 
 static uint64_t execute_load_i64_le(instructions::load_i64_le const &, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	return load_little_endian<uint64_t>(mem);
 }
 
 static float32_t execute_load_f32_le(instructions::load_f32_le const &, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	return bit_cast<float32_t>(load_little_endian<uint32_t>(mem));
 }
 
 static float64_t execute_load_f64_le(instructions::load_f64_le const &, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	return bit_cast<float64_t>(load_little_endian<uint64_t>(mem));
 }
 
 static ptr_t execute_load_ptr32_le(instructions::load_ptr32_le const &, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	return load_little_endian<uint32_t>(mem);
 }
 
 static ptr_t execute_load_ptr64_le(instructions::load_ptr64_le const &, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	return load_little_endian<uint64_t>(mem);
 }
 
@@ -251,55 +251,55 @@ static void store_big_endian(uint8_t *mem, Int value)
 
 static void execute_store_i1_be(instructions::store_i1_be const &, bool value, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	store_big_endian<uint8_t>(mem, value ? 1 : 0);
 }
 
 static void execute_store_i8_be(instructions::store_i8_be const &, uint8_t value, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	store_big_endian<uint8_t>(mem, value);
 }
 
 static void execute_store_i16_be(instructions::store_i16_be const &, uint16_t value, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	store_big_endian<uint16_t>(mem, value);
 }
 
 static void execute_store_i32_be(instructions::store_i32_be const &, uint32_t value, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	store_big_endian<uint32_t>(mem, value);
 }
 
 static void execute_store_i64_be(instructions::store_i64_be const &, uint64_t value, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	store_big_endian<uint64_t>(mem, value);
 }
 
 static void execute_store_f32_be(instructions::store_f32_be const &, float32_t value, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	store_big_endian<uint32_t>(mem, bit_cast<uint32_t>(value));
 }
 
 static void execute_store_f64_be(instructions::store_f64_be const &, float64_t value, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	store_big_endian<uint64_t>(mem, bit_cast<uint64_t>(value));
 }
 
 static void execute_store_ptr32_be(instructions::store_ptr32_be const &, ptr_t value, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	store_big_endian<uint32_t>(mem, static_cast<uint32_t>(value));
 }
 
 static void execute_store_ptr64_be(instructions::store_ptr64_be const &, ptr_t value, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	store_big_endian<uint64_t>(mem, static_cast<uint64_t>(value));
 }
 
@@ -325,55 +325,55 @@ static void store_little_endian(uint8_t *mem, Int value)
 
 static void execute_store_i1_le(instructions::store_i1_le const &, bool value, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	store_little_endian<uint8_t>(mem, value ? 1 : 0);
 }
 
 static void execute_store_i8_le(instructions::store_i8_le const &, uint8_t value, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	store_little_endian<uint8_t>(mem, value);
 }
 
 static void execute_store_i16_le(instructions::store_i16_le const &, uint16_t value, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	store_little_endian<uint16_t>(mem, value);
 }
 
 static void execute_store_i32_le(instructions::store_i32_le const &, uint32_t value, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	store_little_endian<uint32_t>(mem, value);
 }
 
 static void execute_store_i64_le(instructions::store_i64_le const &, uint64_t value, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	store_little_endian<uint64_t>(mem, value);
 }
 
 static void execute_store_f32_le(instructions::store_f32_le const &, float32_t value, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	store_little_endian<uint32_t>(mem, bit_cast<uint32_t>(value));
 }
 
 static void execute_store_f64_le(instructions::store_f64_le const &, float64_t value, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	store_little_endian<uint64_t>(mem, bit_cast<uint64_t>(value));
 }
 
 static void execute_store_ptr32_le(instructions::store_ptr32_le const &, ptr_t value, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	store_little_endian<uint32_t>(mem, static_cast<uint32_t>(value));
 }
 
 static void execute_store_ptr64_le(instructions::store_ptr64_le const &, ptr_t value, ptr_t ptr, executor_context &context)
 {
-	auto const mem = context.get_memory_raw(ptr);
+	auto const mem = context.get_memory(ptr);
 	store_little_endian<uint64_t>(mem, static_cast<uint64_t>(value));
 }
 
@@ -4031,14 +4031,14 @@ static ptr_t execute_array_gep_i64(instructions::array_gep_i64 const &inst, ptr_
 
 static void execute_const_memcpy(instructions::const_memcpy const &inst, ptr_t dest, ptr_t src, executor_context &context)
 {
-	auto const dest_mem = context.get_memory_raw(dest);
-	auto const src_mem  = context.get_memory_raw(src);
+	auto const dest_mem = context.get_memory(dest);
+	auto const src_mem  = context.get_memory(src);
 	std::memcpy(dest_mem, src_mem, inst.size);
 }
 
 static void execute_const_memset_zero(instructions::const_memset_zero const &inst, ptr_t dest, executor_context &context)
 {
-	auto const dest_mem = context.get_memory_raw(dest);
+	auto const dest_mem = context.get_memory(dest);
 	std::memset(dest_mem, 0, inst.size);
 }
 
@@ -4083,8 +4083,8 @@ static void execute_error(instructions::error const &error, executor_context &co
 
 static void execute_diagnostic_str(instructions::diagnostic_str const &inst, ptr_t begin, ptr_t end, executor_context &context)
 {
-	auto const begin_ptr = context.get_memory_raw(begin);
-	auto const end_ptr = context.get_memory_raw(end);
+	auto const begin_ptr = context.get_memory(begin);
+	auto const end_ptr = context.get_memory(end);
 	auto const message = bz::u8string_view(begin_ptr, end_ptr);
 	if (inst.kind == ctx::warning_kind::_last)
 	{

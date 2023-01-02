@@ -24,7 +24,7 @@ struct stack_object
 	void deinitialize(void);
 	uint8_t *get_memory(ptr_t address);
 
-	bool check_memory_access(ptr_t address, type const *subobject_type) const;
+	bool check_dereference(ptr_t address, type const *subobject_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
 };
 
@@ -45,7 +45,7 @@ struct heap_object
 	bool is_region_initialized(ptr_t begin, ptr_t end) const;
 	uint8_t *get_memory(ptr_t address);
 
-	bool check_memory_access(ptr_t address, type const *subobject_type) const;
+	bool check_dereference(ptr_t address, type const *subobject_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
 };
 
@@ -81,8 +81,20 @@ struct heap_manager
 	uint8_t *get_memory(ptr_t address);
 };
 
+struct stack_object_pointer
+{
+	ptr_t stack_address;
+	size_t stack_frame_index;
+};
+
+struct one_past_the_end_pointer
+{
+	ptr_t address;
+};
+
 struct meta_memory_manager
 {
+	ptr_t begin_address;
 };
 
 struct memory_manager
@@ -91,7 +103,7 @@ struct memory_manager
 	heap_manager heap;
 	meta_memory_manager meta_memory;
 
-	bool check_memory_access(ptr_t address, type const *object_type);
+	bool check_dereference(ptr_t address, type const *object_type);
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type);
 	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type);
 

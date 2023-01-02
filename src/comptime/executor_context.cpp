@@ -3,14 +3,9 @@
 namespace comptime
 {
 
-uint8_t *executor_context::get_memory(ptr_t ptr, type const *object_type)
+uint8_t *executor_context::get_memory(ptr_t address)
 {
-	auto const is_good = this->memory.check_memory_access(ptr, object_type);
-	if (!is_good)
-	{
-		bz_unreachable;
-	}
-	return this->memory.get_memory(ptr);
+	return this->memory.get_memory(address);
 }
 
 void executor_context::set_current_instruction_value(instruction_value value)
@@ -42,10 +37,15 @@ void executor_context::do_ret_void(void)
 
 void executor_context::do_str_construction_check(uint32_t src_tokens_index, ptr_t begin, ptr_t end)
 {
-	auto const is_good = this->memory.check_slice_construction(begin, end, this->get_builtin_type(builtin_type_kind::i8));
+	auto const elem_type = this->global_context->get_builtin_type(builtin_type_kind::i8);
+	auto const is_good = this->memory.check_slice_construction(begin, end, elem_type);
 	if (!is_good)
 	{
-		this->report_error(src_tokens_index, "invalid memory range for 'str'");
+		this->report_error(
+			src_tokens_index,
+			"invalid memory range for 'str'",
+			{ this->make_note(src_tokens_index, this->memory.get_slice_construction_error_reason(begin, end, elem_type)) }
+		);
 	}
 }
 

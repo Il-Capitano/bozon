@@ -26,11 +26,10 @@ struct executor_context
 
 	memory::memory_manager memory;
 
-	type const *get_builtin_type(builtin_type_kind kind);
-	type const *get_pointer_type(void);
+	global_codegen_context *global_context;
 
-	uint8_t *get_memory(ptr_t ptr, type const *object_type);
-	uint8_t *get_memory_raw(ptr_t ptr);
+
+	uint8_t *get_memory(ptr_t address);
 
 	void set_current_instruction_value(instruction_value value);
 	instruction_value get_instruction_value(instruction_value_index index);

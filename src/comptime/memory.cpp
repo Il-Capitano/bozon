@@ -115,7 +115,7 @@ uint8_t *stack_object::get_memory(ptr_t address)
 	return this->memory.data() + (address - this->address);
 }
 
-bool stack_object::check_memory_access(ptr_t address, type const *subobject_type) const
+bool stack_object::check_dereference(ptr_t address, type const *subobject_type) const
 {
 	if (!this->is_initialized)
 	{
@@ -152,10 +152,9 @@ bool stack_object::check_slice_construction(ptr_t begin, ptr_t end, type const *
 
 	auto const total_size = end - begin;
 	bz_assert(total_size % elem_type->size == 0);
-	auto const size = total_size / elem_type->size;
 	auto const offset = begin - this->address;
 
-	if (size == 1)
+	if (total_size == elem_type->size) // slice of size 1
 	{
 		return contained_in_object(this->object_type, offset, elem_type);
 	}
@@ -297,7 +296,7 @@ uint8_t *heap_object::get_memory(ptr_t address)
 	return this->memory.data() + (address - this->address);
 }
 
-bool heap_object::check_memory_access(ptr_t address, type const *subobject_type) const
+bool heap_object::check_dereference(ptr_t address, type const *subobject_type) const
 {
 	if (!this->is_region_initialized(address, address + subobject_type->size))
 	{
@@ -334,14 +333,13 @@ bool heap_object::check_slice_construction(ptr_t begin, ptr_t end, type const *e
 
 	auto const total_size = end - begin;
 	bz_assert(total_size % elem_type->size == 0);
-	auto const size = total_size / elem_type->size;
 	auto const offset = begin - this->address;
 
 	if (elem_type == this->elem_type)
 	{
 		return offset % this->elem_size() == 0;
 	}
-	else if (size == 1)
+	else if (total_size == elem_type->size) // slice of size 1
 	{
 		return contained_in_object(this->elem_type, offset % this->elem_size(), elem_type);
 	}
@@ -363,18 +361,6 @@ bool allocation::free(lex::src_tokens const &free_src_tokens)
 	this->free_src_tokens = free_src_tokens;
 	this->is_freed = true;
 	return true;
-}
-
-static size_t round_up(size_t size, size_t align)
-{
-	if (size % align == 0)
-	{
-		return size;
-	}
-	else
-	{
-		return size + (align - size % align);
-	}
 }
 
 } // namespace comptime::memory
