@@ -377,6 +377,12 @@ static void execute_store_ptr64_le(instructions::store_ptr64_le const &, ptr_t v
 	store_little_endian<uint64_t>(mem, static_cast<uint64_t>(value));
 }
 
+static void execute_check_dereference(instructions::check_dereference const &inst, ptr_t address, executor_context &context)
+{
+	auto const &info = context.get_memory_access_info(inst.memory_access_check_info_index);
+	context.check_dereference(inst.src_tokens_index, address, info.object_type, info.object_typespec);
+}
+
 static uint8_t execute_cast_zext_i1_to_i8(instructions::cast_zext_i1_to_i8 const &, bool value, executor_context &)
 {
 	return value ? 1 : 0;
@@ -4437,7 +4443,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 501);
+		static_assert(instruction::variant_count == 502);
 		case instruction::const_i1:
 			execute<instructions::const_i1, &execute_const_i1>(context);
 			break;
@@ -4581,6 +4587,9 @@ void execute(executor_context &context)
 			break;
 		case instruction::store_ptr64_le:
 			execute<instructions::store_ptr64_le, &execute_store_ptr64_le>(context);
+			break;
+		case instruction::check_dereference:
+			execute<instructions::check_dereference, &execute_check_dereference>(context);
 			break;
 		case instruction::cast_zext_i1_to_i8:
 			execute<instructions::cast_zext_i1_to_i8, &execute_cast_zext_i1_to_i8>(context);

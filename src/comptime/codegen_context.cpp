@@ -321,6 +321,13 @@ uint32_t codegen_context::add_pointer_arithmetic_check_info(pointer_arithmetic_c
 	return static_cast<uint32_t>(result);
 }
 
+uint32_t codegen_context::add_memory_access_check_info(memory_access_check_info_t info)
+{
+	auto const result = this->global_codegen_ctx->memory_access_check_infos.size();
+	this->global_codegen_ctx->memory_access_check_infos.push_back(info);
+	return static_cast<uint32_t>(result);
+}
+
 expr_value codegen_context::get_dummy_value(type const *t)
 {
 	return expr_value::get_reference(instruction_ref{}, t);
@@ -666,6 +673,28 @@ instruction_ref codegen_context::create_store(expr_value value, expr_value ptr)
 			}
 		}
 	}
+}
+
+void codegen_context::create_memory_access_check(
+	lex::src_tokens const &src_tokens,
+	expr_value ptr,
+	type const *object_type,
+	ast::typespec_view object_typespec
+)
+{
+	bz_assert(ptr.get_type()->is_pointer());
+
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+	auto const memory_access_check_info_index = this->add_memory_access_check_info({
+		.object_type = object_type,
+		.object_typespec = object_typespec,
+	});
+	auto const ptr_value = ptr.get_value_as_instruction(*this);
+
+	this->add_instruction(instructions::check_dereference{
+		.src_tokens_index = src_tokens_index,
+		.memory_access_check_info_index = memory_access_check_info_index,
+	}, ptr_value);
 }
 
 expr_value codegen_context::create_alloca(type const *type)
@@ -5194,7 +5223,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 501);
+	static_assert(instruction::variant_count == 502);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>().inst;

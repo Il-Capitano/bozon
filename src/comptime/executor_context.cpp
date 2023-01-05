@@ -35,6 +35,18 @@ void executor_context::do_ret_void(void)
 	this->returned = true;
 }
 
+void executor_context::check_dereference(uint32_t src_tokens_index, ptr_t address, type const *object_type, ast::typespec_view object_typespec)
+{
+	auto const is_good = this->memory.check_dereference(address, object_type);
+	if (!is_good)
+	{
+		this->report_error(
+			src_tokens_index,
+			bz::format("invalid memory access of an object of type '{}'", object_typespec)
+		);
+	}
+}
+
 void executor_context::check_str_construction(uint32_t src_tokens_index, ptr_t begin, ptr_t end)
 {
 	auto const elem_type = this->global_context->get_builtin_type(builtin_type_kind::i8);

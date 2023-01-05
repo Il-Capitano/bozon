@@ -44,7 +44,9 @@ struct executor_context
 
 	slice_construction_check_info_t const &get_slice_construction_info(uint32_t index) const;
 	pointer_arithmetic_check_info_t const &get_pointer_arithmetic_info(uint32_t index) const;
+	memory_access_check_info_t const &get_memory_access_info(uint32_t index) const;
 
+	void check_dereference(uint32_t src_tokens_index, ptr_t address, type const *object_type, ast::typespec_view object_typespec);
 	void check_str_construction(uint32_t src_tokens_index, ptr_t begin, ptr_t end);
 	void check_slice_construction(
 		uint32_t src_tokens_index,

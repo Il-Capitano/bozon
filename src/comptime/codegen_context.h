@@ -258,6 +258,7 @@ struct codegen_context
 	uint32_t add_src_tokens(lex::src_tokens const &src_tokens);
 	uint32_t add_slice_construction_check_info(slice_construction_check_info_t info);
 	uint32_t add_pointer_arithmetic_check_info(pointer_arithmetic_check_info_t info);
+	uint32_t add_memory_access_check_info(memory_access_check_info_t info);
 
 	expr_value get_dummy_value(type const *t);
 
@@ -278,6 +279,12 @@ struct codegen_context
 
 	expr_value create_load(expr_value ptr);
 	instruction_ref create_store(expr_value value, expr_value ptr);
+	void create_memory_access_check(
+		lex::src_tokens const &src_tokens,
+		expr_value ptr,
+		type const *object_type,
+		ast::typespec_view object_typespec
+	);
 
 	expr_value create_alloca(type const *type);
 
