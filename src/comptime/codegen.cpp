@@ -856,9 +856,19 @@ static expr_value generate_builtin_unary_minus(
 static expr_value generate_builtin_unary_dereference(
 	ast::expression const &original_expression,
 	ast::expression const &expr,
-	codegen_context &context,
-	bz::optional<expr_value> result_address
-);
+	codegen_context &context
+)
+{
+	auto const ptr_value = generate_expr_code(expr, context, {}).get_value(context);
+	auto const type = ast::remove_const_or_consteval(expr.get_expr_type());
+	bz_assert(type.is_optional_pointer() || type.is<ast::ts_pointer>());
+	auto const object_typespec = type.is_optional_pointer()
+		? type.get_optional_pointer()
+		: type.get<ast::ts_pointer>();
+	auto const object_type = get_type(object_typespec, context);
+	context.create_memory_access_check(original_expression.src_tokens, ptr_value, object_type, object_typespec);
+	return expr_value::get_value(ptr_value.get_value_as_instruction(context), object_type);
+}
 
 static expr_value generate_builtin_unary_bit_not(
 	ast::expression const &expr,
@@ -2732,7 +2742,8 @@ static expr_value generate_intrinsic_function_call_code(
 		return generate_builtin_unary_minus(original_expression, func_call.params[0], context, result_address);
 	case ast::function_body::builtin_unary_dereference:
 		bz_assert(func_call.params.size() == 1);
-		return generate_builtin_unary_dereference(original_expression, func_call.params[0], context, result_address);
+		bz_assert(!result_address.has_value());
+		return generate_builtin_unary_dereference(original_expression, func_call.params[0], context);
 	case ast::function_body::builtin_unary_bit_not:
 		bz_assert(func_call.params.size() == 1);
 		return generate_builtin_unary_bit_not(func_call.params[0], context, result_address);
