@@ -3,47 +3,15 @@
 
 #include "core.h"
 #include "types.h"
-#include "ast/typespec.h"
-#include "lex/token.h"
 
 namespace comptime
 {
-
-struct error_info_t
-{
-	lex::src_tokens src_tokens;
-	bz::u8string message;
-};
-
-struct slice_construction_check_info_t
-{
-	type const *elem_type;
-	ast::typespec_view slice_type;
-};
-
-struct pointer_arithmetic_check_info_t
-{
-	type const *object_type;
-	ast::typespec_view pointer_type;
-};
-
-struct memory_access_check_info_t
-{
-	type const *object_type;
-	ast::typespec_view object_typespec;
-};
 
 struct global_codegen_context
 {
 	type_set_t type_set;
 	type const *pointer_pair_t;
 	type const *null_t;
-
-	bz::vector<error_info_t> errors;
-	bz::vector<lex::src_tokens> src_tokens;
-	bz::vector<slice_construction_check_info_t> slice_construction_check_infos;
-	bz::vector<pointer_arithmetic_check_info_t> pointer_arithmetic_check_infos;
-	bz::vector<memory_access_check_info_t> memory_access_check_infos;
 
 	global_codegen_context(size_t pointer_size);
 

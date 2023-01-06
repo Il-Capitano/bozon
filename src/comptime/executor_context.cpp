@@ -35,6 +35,24 @@ void executor_context::do_ret_void(void)
 	this->returned = true;
 }
 
+slice_construction_check_info_t const &executor_context::get_slice_construction_info(uint32_t index) const
+{
+	bz_assert(index < this->current_function->slice_construction_check_infos.size());
+	return this->current_function->slice_construction_check_infos[index];
+}
+
+pointer_arithmetic_check_info_t const &executor_context::get_pointer_arithmetic_info(uint32_t index) const
+{
+	bz_assert(index < this->current_function->pointer_arithmetic_check_infos.size());
+	return this->current_function->pointer_arithmetic_check_infos[index];
+}
+
+memory_access_check_info_t const &executor_context::get_memory_access_info(uint32_t index) const
+{
+	bz_assert(index < this->current_function->memory_access_check_infos.size());
+	return this->current_function->memory_access_check_infos[index];
+}
+
 void executor_context::check_dereference(uint32_t src_tokens_index, ptr_t address, type const *object_type, ast::typespec_view object_typespec)
 {
 	auto const is_good = this->memory.check_dereference(address, object_type);

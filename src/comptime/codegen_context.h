@@ -84,7 +84,12 @@ struct codegen_context
 	bz::optional<expr_value> function_return_address;
 	bz::vector<alloca> allocas;
 	bz::vector<basic_block> blocks;
+	bz::vector<error_info_t> errors;
+	bz::vector<lex::src_tokens> src_tokens;
 	bz::vector<bz::fixed_vector<instruction_ref>> call_args;
+	bz::vector<slice_construction_check_info_t> slice_construction_check_infos;
+	bz::vector<pointer_arithmetic_check_info_t> pointer_arithmetic_check_infos;
+	bz::vector<memory_access_check_info_t> memory_access_check_infos;
 	bz::vector<unresolved_instruction> unresolved_instructions;
 	bz::vector<unresolved_jump> unresolved_jumps;
 

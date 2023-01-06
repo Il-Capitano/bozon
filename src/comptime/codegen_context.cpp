@@ -306,29 +306,29 @@ void codegen_context::emit_all_destruct_operations(void)
 
 uint32_t codegen_context::add_src_tokens(lex::src_tokens const &src_tokens)
 {
-	auto const result = this->global_codegen_ctx->src_tokens.size();
-	this->global_codegen_ctx->src_tokens.push_back(src_tokens);
+	auto const result = this->src_tokens.size();
+	this->src_tokens.push_back(src_tokens);
 	return static_cast<uint32_t>(result);
 }
 
 uint32_t codegen_context::add_slice_construction_check_info(slice_construction_check_info_t info)
 {
-	auto const result = this->global_codegen_ctx->slice_construction_check_infos.size();
-	this->global_codegen_ctx->slice_construction_check_infos.push_back(info);
+	auto const result = this->slice_construction_check_infos.size();
+	this->slice_construction_check_infos.push_back(info);
 	return static_cast<uint32_t>(result);
 }
 
 uint32_t codegen_context::add_pointer_arithmetic_check_info(pointer_arithmetic_check_info_t info)
 {
-	auto const result = this->global_codegen_ctx->pointer_arithmetic_check_infos.size();
-	this->global_codegen_ctx->pointer_arithmetic_check_infos.push_back(info);
+	auto const result = this->pointer_arithmetic_check_infos.size();
+	this->pointer_arithmetic_check_infos.push_back(info);
 	return static_cast<uint32_t>(result);
 }
 
 uint32_t codegen_context::add_memory_access_check_info(memory_access_check_info_t info)
 {
-	auto const result = this->global_codegen_ctx->memory_access_check_infos.size();
-	this->global_codegen_ctx->memory_access_check_infos.push_back(info);
+	auto const result = this->memory_access_check_infos.size();
+	this->memory_access_check_infos.push_back(info);
 	return static_cast<uint32_t>(result);
 }
 
@@ -5057,11 +5057,11 @@ instruction_ref codegen_context::create_unreachable(void)
 
 instruction_ref codegen_context::create_error(lex::src_tokens const &src_tokens, bz::u8string message)
 {
-	this->global_codegen_ctx->errors.push_back({
+	auto const index = this->errors.size();
+	this->errors.push_back({
 		.src_tokens = src_tokens,
 		.message = std::move(message),
 	});
-	auto const index = this->global_codegen_ctx->errors.size() - 1;
 	bz_assert(index <= std::numeric_limits<uint32_t>::max());
 	return this->add_instruction(instructions::error{ .error_index = static_cast<uint32_t>(index) });
 }
@@ -5273,7 +5273,6 @@ void codegen_context::finalize_function(function &func)
 		instruction_value_offset += bb.instructions.size();
 	}
 
-	auto const instruction_values_count = instruction_value_offset;
 	auto const instructions_count = instruction_value_offset - this->blocks[0].instruction_value_offset;
 
 	auto const get_instruction_value_index = [this](instruction_ref inst_ref) -> instruction_value_index {
@@ -5314,11 +5313,26 @@ void codegen_context::finalize_function(function &func)
 		auto it = func.instructions.begin();
 		for (auto const &bb : this->blocks)
 		{
+			bz_assert(bb.instructions.not_empty());
+			bz_assert(bb.instructions.back().is_terminator());
 			std::copy_n(bb.instructions.begin(), bb.instructions.size(), it);
 			it += bb.instructions.size();
 		}
 		bz_assert(it == func.instructions.end());
 	}
+
+	// finalize errors
+	{
+		func.errors = bz::fixed_vector<error_info_t>(this->errors.size());
+		for (auto const i : bz::iota(0, func.errors.size()))
+		{
+			func.errors[i] = std::move(this->errors[i]);
+		}
+	}
+	func.errors = bz::fixed_vector(this->errors.as_array_view());
+
+	// finalize src_tokens
+	func.src_tokens = bz::fixed_vector(this->src_tokens.as_array_view());
 
 	// finalize call_args
 	{
@@ -5332,6 +5346,15 @@ void codegen_context::finalize_function(function &func)
 			}
 		}
 	}
+
+	// finalize slice_construction_check_infos
+	func.slice_construction_check_infos = bz::fixed_vector(this->slice_construction_check_infos.as_array_view());
+
+	// finalize pointer_arithmetic_check_infos
+	func.pointer_arithmetic_check_infos = bz::fixed_vector(this->pointer_arithmetic_check_infos.as_array_view());
+
+	// finalize memory_access_check_infos
+	func.memory_access_check_infos = bz::fixed_vector(this->memory_access_check_infos.as_array_view());
 }
 
 } // namespace comptime

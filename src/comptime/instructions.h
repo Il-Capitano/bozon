@@ -5,6 +5,8 @@
 #include "types.h"
 #include "values.h"
 #include "ctx/warnings.h"
+#include "ast/typespec.h"
+#include "lex/token.h"
 
 namespace comptime
 {
@@ -33,12 +35,42 @@ struct alloca
 	size_t align;
 };
 
+struct error_info_t
+{
+	lex::src_tokens src_tokens;
+	bz::u8string message;
+};
+
+struct slice_construction_check_info_t
+{
+	type const *elem_type;
+	ast::typespec_view slice_type;
+};
+
+struct pointer_arithmetic_check_info_t
+{
+	type const *object_type;
+	ast::typespec_view pointer_type;
+};
+
+struct memory_access_check_info_t
+{
+	type const *object_type;
+	ast::typespec_view object_typespec;
+};
+
 struct function
 {
 	bz::fixed_vector<instruction> instructions;
-	bz::fixed_vector<bz::fixed_vector<instruction_index>> call_args;
 	bz::fixed_vector<type const *> arg_types;
 	type const *return_type;
+
+	bz::fixed_vector<error_info_t> errors;
+	bz::fixed_vector<lex::src_tokens> src_tokens;
+	bz::fixed_vector<bz::fixed_vector<instruction_index>> call_args;
+	bz::fixed_vector<slice_construction_check_info_t> slice_construction_check_infos;
+	bz::fixed_vector<pointer_arithmetic_check_info_t> pointer_arithmetic_check_infos;
+	bz::fixed_vector<memory_access_check_info_t> memory_access_check_infos;
 };
 
 namespace instructions
