@@ -1373,6 +1373,11 @@ static ptr_t execute_add_ptr_u64(instructions::add_ptr_u64 const &inst, ptr_t lh
 	return context.pointer_add_unsigned(inst.src_tokens_index, lhs, rhs, info.object_type, info.pointer_type);
 }
 
+static ptr_t execute_add_ptr_const_unchecked(instructions::add_ptr_const_unchecked const &inst, ptr_t lhs, executor_context &context)
+{
+	return context.pointer_add_unchecked(lhs, inst.amount, inst.object_type);
+}
+
 static void execute_add_i8_check(instructions::add_i8_check const &inst, uint8_t lhs, uint8_t rhs, executor_context &context)
 {
 	auto const ilhs = static_cast<int8_t>(lhs);
@@ -4443,7 +4448,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 502);
+		static_assert(instruction::variant_count == 503);
 		case instruction::const_i1:
 			execute<instructions::const_i1, &execute_const_i1>(context);
 			break;
@@ -5034,6 +5039,9 @@ void execute(executor_context &context)
 			break;
 		case instruction::add_ptr_u64:
 			execute<instructions::add_ptr_u64, &execute_add_ptr_u64>(context);
+			break;
+		case instruction::add_ptr_const_unchecked:
+			execute<instructions::add_ptr_const_unchecked, &execute_add_ptr_const_unchecked>(context);
 			break;
 		case instruction::add_i8_check:
 			execute<instructions::add_i8_check, &execute_add_i8_check>(context);

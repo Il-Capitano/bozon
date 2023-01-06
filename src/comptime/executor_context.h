@@ -58,6 +58,7 @@ struct executor_context
 
 	int compare_pointers(uint32_t src_tokens_index, ptr_t lhs, ptr_t rhs);
 	bool compare_pointers_equal(ptr_t lhs, ptr_t rhs);
+	ptr_t pointer_add_unchecked(ptr_t address, int32_t offset, type const *object_type);
 	ptr_t pointer_add_signed(
 		uint32_t src_tokens_index,
 		ptr_t address,

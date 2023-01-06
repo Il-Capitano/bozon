@@ -324,6 +324,7 @@ struct codegen_context
 	void create_neg_check(lex::src_tokens const &src_tokens, expr_value value);
 	expr_value create_add(expr_value lhs, expr_value rhs);
 	void create_add_check(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_signed_int);
+	expr_value create_ptr_add_const_unchecked(expr_value address, int32_t amount, type const *object_type);
 	expr_value create_ptr_add(
 		lex::src_tokens const &src_tokens,
 		expr_value address,

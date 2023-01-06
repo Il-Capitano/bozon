@@ -100,6 +100,13 @@ bool executor_context::compare_pointers_equal(ptr_t lhs, ptr_t rhs)
 	return compare_result.has_value() && compare_result.get() == 0;
 }
 
+ptr_t executor_context::pointer_add_unchecked(ptr_t address, int32_t offset, type const *object_type)
+{
+	auto const result = this->memory.do_pointer_arithmetic(address, offset, object_type);
+	bz_assert(result != 0);
+	return result;
+}
+
 ptr_t executor_context::pointer_add_signed(
 	uint32_t src_tokens_index,
 	ptr_t address,

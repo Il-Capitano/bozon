@@ -2150,6 +2150,18 @@ void codegen_context::create_add_check(lex::src_tokens const &src_tokens, expr_v
 	}
 }
 
+expr_value codegen_context::create_ptr_add_const_unchecked(expr_value address, int32_t amount, type const *object_type)
+{
+	auto const address_val = address.get_value_as_instruction(*this);
+	return expr_value::get_value(
+		this->add_instruction(instructions::add_ptr_const_unchecked{
+			.object_type = object_type,
+			.amount = amount,
+		}, address_val),
+		this->get_pointer_type()
+	);
+}
+
 expr_value codegen_context::create_ptr_add(
 	lex::src_tokens const &src_tokens,
 	expr_value address,
@@ -5223,7 +5235,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 502);
+	static_assert(instruction::variant_count == 503);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>();

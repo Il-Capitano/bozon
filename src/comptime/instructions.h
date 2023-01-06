@@ -1686,6 +1686,17 @@ struct add_ptr_u64
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
+struct add_ptr_const_unchecked
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr };
+	static inline constexpr value_type result_type = value_type::ptr;
+
+	type const *object_type;
+	int32_t amount;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
 struct add_i8_check
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
@@ -4644,6 +4655,7 @@ using instruction_list = bz::meta::type_pack<
 	instructions::add_ptr_u32,
 	instructions::add_ptr_i64,
 	instructions::add_ptr_u64,
+	instructions::add_ptr_const_unchecked,
 	instructions::add_i8_check,
 	instructions::add_i16_check,
 	instructions::add_i32_check,
@@ -4957,7 +4969,7 @@ struct instruction : instruction_base_t
 {
 	using base_t = instruction_base_t;
 
-	static_assert(variant_count == 502);
+	static_assert(variant_count == 503);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -5157,6 +5169,7 @@ struct instruction : instruction_base_t
 		add_ptr_u32              = index_of<instructions::add_ptr_u32>,
 		add_ptr_i64              = index_of<instructions::add_ptr_i64>,
 		add_ptr_u64              = index_of<instructions::add_ptr_u64>,
+		add_ptr_const_unchecked  = index_of<instructions::add_ptr_const_unchecked>,
 		add_i8_check             = index_of<instructions::add_i8_check>,
 		add_i16_check            = index_of<instructions::add_i16_check>,
 		add_i32_check            = index_of<instructions::add_i32_check>,
