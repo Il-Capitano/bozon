@@ -147,7 +147,7 @@ private:
 	}
 
 	template<typename U>
-	void initialize_from(array_view<U const> arr) noexcept(
+	void initialize_from(array_view<U> arr) noexcept(
 		nothrow_alloc
 		&& nothrow_construct_value<U const &>
 	)
@@ -488,6 +488,12 @@ public:
 	const_reverse_iterator crend(void) const noexcept
 	{ return this->_data_begin - 1; }
 };
+
+template<typename T>
+fixed_vector(array_view<T>) -> fixed_vector<T>;
+
+template<typename T>
+fixed_vector(array_view<T const>) -> fixed_vector<T>;
 
 bz_end_namespace
 
