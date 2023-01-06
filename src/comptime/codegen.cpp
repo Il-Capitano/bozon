@@ -5696,4 +5696,195 @@ void generate_code(ast::function_body &body, codegen_context &context)
 	}
 }
 
+static void generate_rvalue_array_destruct(
+	ast::expression const &elem_destruct_expr,
+	expr_value array_value,
+	expr_value rvalue_array_elem_ptr_value,
+	codegen_context &context
+)
+{
+	bz_assert(array_value.get_type()->is_array());
+	auto const size = array_value.get_type()->get_array_size();
+	auto const elem_type = array_value.get_type()->get_array_element_type();
+
+	auto const begin_elem_ptr = context.create_struct_gep(array_value, 0);
+	auto const end_elem_ptr = context.create_struct_gep(array_value, size);
+
+	auto const begin_elem_ptr_value = expr_value::get_value(begin_elem_ptr.get_reference(), context.get_pointer_type());
+
+	auto const it_elem_ptr_ref = context.create_alloca(context.get_pointer_type());
+	context.create_store(expr_value::get_value(end_elem_ptr.get_reference(), context.get_pointer_type()), it_elem_ptr_ref);
+
+	auto const loop_begin_bb = context.add_basic_block();
+	context.create_jump(loop_begin_bb);
+	context.set_current_basic_block(loop_begin_bb);
+
+	auto const prev_elem_ptr = it_elem_ptr_ref.get_value(context);
+	auto const elem_ptr_value = context.create_ptr_add_const_unchecked(prev_elem_ptr, -1, elem_type);
+	context.create_store(elem_ptr_value, it_elem_ptr_ref);
+
+	auto const skip_elem = context.create_pointer_cmp_eq(elem_ptr_value, rvalue_array_elem_ptr_value);
+
+	auto const destruct_bb = context.add_basic_block();
+	context.set_current_basic_block(destruct_bb);
+
+	auto const elem_ptr = expr_value::get_reference(elem_ptr_value.get_value_as_instruction(context), elem_type);
+	auto const prev_value = context.push_value_reference(elem_ptr);
+	generate_expr_code(elem_destruct_expr, context, {});
+	context.pop_value_reference(prev_value);
+
+	auto const loop_end_bb = context.add_basic_block();
+
+	context.set_current_basic_block(loop_begin_bb);
+	context.create_conditional_jump(skip_elem, loop_end_bb, destruct_bb);
+	context.set_current_basic_block(loop_end_bb);
+
+	auto const end_loop = context.create_pointer_cmp_eq(elem_ptr_value, begin_elem_ptr_value);
+
+	auto const end_bb = context.add_basic_block();
+	context.create_conditional_jump(end_loop, end_bb, loop_begin_bb);
+	context.set_current_basic_block(end_bb);
+}
+
+void generate_destruct_operation(codegen_context::destruct_operation_info_t const &destruct_op_info, codegen_context &context)
+{
+	auto const &destruct_op = *destruct_op_info.destruct_op;
+	auto const &condition = destruct_op_info.condition;
+
+	if (destruct_op.is<ast::destruct_variable>())
+	{
+		bz_assert(destruct_op.get<ast::destruct_variable>().destruct_call->not_null());
+		if (condition.has_value())
+		{
+			auto const condition_value = expr_value::get_reference(
+				condition.get(),
+				context.get_builtin_type(builtin_type_kind::i1)
+			).get_value(context);
+
+			auto const begin_bb = context.get_current_basic_block();
+
+			auto const destruct_bb = context.add_basic_block();
+			context.set_current_basic_block(destruct_bb);
+			generate_expr_code(*destruct_op.get<ast::destruct_variable>().destruct_call, context, {});
+
+			auto const end_bb = context.add_basic_block();
+			context.create_jump(end_bb);
+
+			context.set_current_basic_block(begin_bb);
+			context.create_conditional_jump(condition_value, destruct_bb, end_bb);
+
+			context.set_current_basic_block(end_bb);
+		}
+		else
+		{
+			generate_expr_code(*destruct_op.get<ast::destruct_variable>().destruct_call, context, {});
+		}
+	}
+	else if (destruct_op.is<ast::destruct_self>())
+	{
+		auto const &value = destruct_op_info.value;
+		bz_assert(destruct_op.get<ast::destruct_self>().destruct_call->not_null());
+		bz_assert(!value.is_none());
+		if (condition.has_value())
+		{
+			auto const condition_value = expr_value::get_reference(
+				condition.get(),
+				context.get_builtin_type(builtin_type_kind::i1)
+			).get_value(context);
+
+			auto const begin_bb = context.get_current_basic_block();
+
+			auto const destruct_bb = context.add_basic_block();
+			context.set_current_basic_block(destruct_bb);
+
+			auto const prev_value = context.push_value_reference(value);
+			generate_expr_code(*destruct_op.get<ast::destruct_self>().destruct_call, context, {});
+			context.pop_value_reference(prev_value);
+
+			auto const end_bb = context.add_basic_block();
+			context.create_jump(end_bb);
+
+			context.set_current_basic_block(begin_bb);
+			context.create_conditional_jump(condition_value, destruct_bb, end_bb);
+
+			context.set_current_basic_block(end_bb);
+		}
+		else
+		{
+			auto const prev_value = context.push_value_reference(value);
+			generate_expr_code(*destruct_op.get<ast::destruct_self>().destruct_call, context, {});
+			context.pop_value_reference(prev_value);
+		}
+	}
+	else if (destruct_op.is<ast::defer_expression>())
+	{
+		bz_assert(!condition.has_value());
+		generate_expr_code(*destruct_op.get<ast::defer_expression>().expr, context, {});
+	}
+	else if (destruct_op.is<ast::destruct_rvalue_array>())
+	{
+		auto const &value = destruct_op_info.value;
+		bz_assert(destruct_op_info.rvalue_array_elem_ptr.has_value());
+		if (condition.has_value())
+		{
+			auto const condition_value = expr_value::get_reference(
+				condition.get(),
+				context.get_builtin_type(builtin_type_kind::i1)
+			).get_value(context);
+
+			auto const begin_bb = context.get_current_basic_block();
+
+			auto const destruct_bb = context.add_basic_block();
+			context.set_current_basic_block(destruct_bb);
+
+			auto const rvalue_array_elem_ptr = expr_value::get_value(
+				destruct_op_info.rvalue_array_elem_ptr.get(),
+				context.get_pointer_type()
+			);
+			generate_rvalue_array_destruct(
+				*destruct_op.get<ast::destruct_rvalue_array>().elem_destruct_call,
+				value,
+				rvalue_array_elem_ptr,
+				context
+			);
+
+			auto const end_bb = context.add_basic_block();
+			context.create_jump(end_bb);
+
+			context.set_current_basic_block(begin_bb);
+			context.create_conditional_jump(condition_value, destruct_bb, end_bb);
+
+			context.set_current_basic_block(end_bb);
+		}
+		else
+		{
+			auto const rvalue_array_elem_ptr = expr_value::get_value(
+				destruct_op_info.rvalue_array_elem_ptr.get(),
+				context.get_pointer_type()
+			);
+			generate_rvalue_array_destruct(
+				*destruct_op.get<ast::destruct_rvalue_array>().elem_destruct_call,
+				value,
+				rvalue_array_elem_ptr,
+				context
+			);
+		}
+	}
+	else
+	{
+		static_assert(ast::destruct_operation::variant_count == 4);
+		bz_assert(destruct_op.is_null());
+		// nothing
+	}
+
+	if (destruct_op_info.move_destruct_indicator.has_value())
+	{
+		auto const move_destruct_indicator_ref = expr_value::get_reference(
+			destruct_op_info.move_destruct_indicator.get(),
+			context.get_builtin_type(builtin_type_kind::i1)
+		);
+		context.create_store(context.create_const_i1(false), move_destruct_indicator_ref);
+	}
+}
+
 } // namespace comptime

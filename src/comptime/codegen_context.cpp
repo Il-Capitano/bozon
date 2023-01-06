@@ -1,6 +1,7 @@
 #include "codegen_context.h"
 #include "ast/statement.h"
 #include "global_data.h"
+#include "codegen.h"
 
 namespace comptime
 {
@@ -274,7 +275,10 @@ void codegen_context::push_rvalue_array_destruct_operation(
 	}
 }
 
-static void emit_destruct_operation(codegen_context::destruct_operation_info_t const &info, codegen_context &context);
+static void emit_destruct_operation(codegen_context::destruct_operation_info_t const &info, codegen_context &context)
+{
+	generate_destruct_operation(info, context);
+}
 
 void codegen_context::emit_destruct_operations(size_t start_index)
 {
