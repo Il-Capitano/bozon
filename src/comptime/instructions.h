@@ -56,27 +56,6 @@ inline constexpr size_t arg_count = []() {
 	}
 }();
 
-namespace internal
-{
-
-template<typename Inst, size_t ArgsCount>
-struct instruction_with_args
-{
-	bz::array<instruction_value_index, ArgsCount> args;
-	Inst inst;
-};
-
-template<typename Inst>
-struct instruction_with_args<Inst, 0>
-{
-	Inst inst;
-};
-
-} // namespace internal
-
-template<typename Inst>
-using instruction_with_args = internal::instruction_with_args<Inst, arg_count<Inst>>;
-
 
 struct const_i1
 {
@@ -176,216 +155,288 @@ struct load_i1_be
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct load_i8_be
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct load_i16_be
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct load_i32_be
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct load_i64_be
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct load_f32_be
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct load_f64_be
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct load_ptr32_be
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::ptr;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct load_ptr64_be
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::ptr;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct load_i1_le
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct load_i8_le
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct load_i16_le
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct load_i32_le
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct load_i64_le
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct load_f32_le
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct load_f64_le
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct load_ptr32_le
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::ptr;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct load_ptr64_le
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::ptr;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct store_i1_be
 {
 	static inline constexpr bz::array arg_types = { value_type::i1, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct store_i8_be
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct store_i16_be
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct store_i32_be
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct store_i64_be
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct store_f32_be
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct store_f64_be
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct store_ptr32_be
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct store_ptr64_be
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct store_i1_le
 {
 	static inline constexpr bz::array arg_types = { value_type::i1, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct store_i8_le
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct store_i16_le
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct store_i32_le
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct store_i64_le
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct store_f32_le
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct store_f64_le
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct store_ptr32_le
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct store_ptr64_le
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct check_dereference
@@ -395,384 +446,512 @@ struct check_dereference
 
 	uint32_t src_tokens_index;
 	uint32_t memory_access_check_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_zext_i1_to_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i1 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_zext_i1_to_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i1 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_zext_i1_to_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i1 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_zext_i1_to_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i1 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_zext_i8_to_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_zext_i8_to_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_zext_i8_to_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_zext_i16_to_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_zext_i16_to_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_zext_i32_to_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_sext_i8_to_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_sext_i8_to_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_sext_i8_to_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_sext_i16_to_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_sext_i16_to_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_sext_i32_to_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_trunc_i64_to_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_trunc_i64_to_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_trunc_i64_to_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_trunc_i32_to_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_trunc_i32_to_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_trunc_i16_to_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_f32_to_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_f64_to_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_f32_to_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_f32_to_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_f32_to_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_f32_to_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_f32_to_u8
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_f32_to_u16
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_f32_to_u32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_f32_to_u64
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_f64_to_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_f64_to_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_f64_to_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_f64_to_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_f64_to_u8
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_f64_to_u16
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_f64_to_u32
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_f64_to_u64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_i8_to_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_i16_to_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_i32_to_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_i64_to_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::i64 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_u8_to_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_u16_to_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_u32_to_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_u64_to_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::i64 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_i8_to_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_i16_to_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_i32_to_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::i32 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_i64_to_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_u8_to_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_u16_to_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_u32_to_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::i32 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cast_u64_to_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_eq_i1
 {
 	static inline constexpr bz::array arg_types = { value_type::i1, value_type::i1 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_eq_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_eq_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_eq_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_eq_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_eq_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_eq_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_eq_f32_check
@@ -781,6 +960,8 @@ struct cmp_eq_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_eq_f64_check
@@ -789,54 +970,72 @@ struct cmp_eq_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_eq_ptr
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_neq_i1
 {
 	static inline constexpr bz::array arg_types = { value_type::i1, value_type::i1 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_neq_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_neq_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_neq_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_neq_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_neq_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_neq_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_neq_f32_check
@@ -845,6 +1044,8 @@ struct cmp_neq_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_neq_f64_check
@@ -853,72 +1054,96 @@ struct cmp_neq_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_neq_ptr
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lt_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lt_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lt_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lt_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lt_u8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lt_u16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lt_u32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lt_u64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lt_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lt_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lt_f32_check
@@ -927,6 +1152,8 @@ struct cmp_lt_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lt_f64_check
@@ -935,6 +1162,8 @@ struct cmp_lt_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lt_ptr
@@ -943,66 +1172,88 @@ struct cmp_lt_ptr
 	static inline constexpr value_type result_type = value_type::i1;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gt_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gt_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gt_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gt_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gt_u8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gt_u16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gt_u32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gt_u64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gt_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gt_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gt_f32_check
@@ -1011,6 +1262,8 @@ struct cmp_gt_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gt_f64_check
@@ -1019,6 +1272,8 @@ struct cmp_gt_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gt_ptr
@@ -1027,66 +1282,88 @@ struct cmp_gt_ptr
 	static inline constexpr value_type result_type = value_type::i1;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lte_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lte_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lte_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lte_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lte_u8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lte_u16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lte_u32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lte_u64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lte_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lte_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lte_f32_check
@@ -1095,6 +1372,8 @@ struct cmp_lte_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lte_f64_check
@@ -1103,6 +1382,8 @@ struct cmp_lte_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_lte_ptr
@@ -1111,66 +1392,88 @@ struct cmp_lte_ptr
 	static inline constexpr value_type result_type = value_type::i1;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gte_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gte_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gte_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gte_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gte_u8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gte_u16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gte_u32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gte_u64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gte_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gte_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gte_f32_check
@@ -1179,6 +1482,8 @@ struct cmp_gte_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gte_f64_check
@@ -1187,6 +1492,8 @@ struct cmp_gte_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cmp_gte_ptr
@@ -1195,42 +1502,56 @@ struct cmp_gte_ptr
 	static inline constexpr value_type result_type = value_type::i1;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct neg_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct neg_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct neg_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct neg_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct neg_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct neg_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct neg_i8_check
@@ -1239,6 +1560,8 @@ struct neg_i8_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct neg_i16_check
@@ -1247,6 +1570,8 @@ struct neg_i16_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct neg_i32_check
@@ -1255,6 +1580,8 @@ struct neg_i32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct neg_i64_check
@@ -1263,42 +1590,56 @@ struct neg_i64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_ptr_i32
@@ -1308,6 +1649,8 @@ struct add_ptr_i32
 
 	uint32_t src_tokens_index;
 	uint32_t pointer_arithmetic_check_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_ptr_u32
@@ -1317,6 +1660,8 @@ struct add_ptr_u32
 
 	uint32_t src_tokens_index;
 	uint32_t pointer_arithmetic_check_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_ptr_i64
@@ -1326,6 +1671,8 @@ struct add_ptr_i64
 
 	uint32_t src_tokens_index;
 	uint32_t pointer_arithmetic_check_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_ptr_u64
@@ -1335,6 +1682,8 @@ struct add_ptr_u64
 
 	uint32_t src_tokens_index;
 	uint32_t pointer_arithmetic_check_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_i8_check
@@ -1343,6 +1692,8 @@ struct add_i8_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_i16_check
@@ -1351,6 +1702,8 @@ struct add_i16_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_i32_check
@@ -1359,6 +1712,8 @@ struct add_i32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_i64_check
@@ -1367,6 +1722,8 @@ struct add_i64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_u8_check
@@ -1375,6 +1732,8 @@ struct add_u8_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_u16_check
@@ -1383,6 +1742,8 @@ struct add_u16_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_u32_check
@@ -1391,6 +1752,8 @@ struct add_u32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_u64_check
@@ -1399,6 +1762,8 @@ struct add_u64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_f32_check
@@ -1407,6 +1772,8 @@ struct add_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct add_f64_check
@@ -1415,42 +1782,56 @@ struct add_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_ptr_i32
@@ -1460,6 +1841,8 @@ struct sub_ptr_i32
 
 	uint32_t src_tokens_index;
 	uint32_t pointer_arithmetic_check_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_ptr_u32
@@ -1469,6 +1852,8 @@ struct sub_ptr_u32
 
 	uint32_t src_tokens_index;
 	uint32_t pointer_arithmetic_check_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_ptr_i64
@@ -1478,6 +1863,8 @@ struct sub_ptr_i64
 
 	uint32_t src_tokens_index;
 	uint32_t pointer_arithmetic_check_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_ptr_u64
@@ -1487,6 +1874,8 @@ struct sub_ptr_u64
 
 	uint32_t src_tokens_index;
 	uint32_t pointer_arithmetic_check_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_i8_check
@@ -1495,6 +1884,8 @@ struct sub_i8_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_i16_check
@@ -1503,6 +1894,8 @@ struct sub_i16_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_i32_check
@@ -1511,6 +1904,8 @@ struct sub_i32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_i64_check
@@ -1519,6 +1914,8 @@ struct sub_i64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_u8_check
@@ -1527,6 +1924,8 @@ struct sub_u8_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_u16_check
@@ -1535,6 +1934,8 @@ struct sub_u16_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_u32_check
@@ -1543,6 +1944,8 @@ struct sub_u32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_u64_check
@@ -1551,6 +1954,8 @@ struct sub_u64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_f32_check
@@ -1559,6 +1964,8 @@ struct sub_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sub_f64_check
@@ -1567,6 +1974,8 @@ struct sub_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct ptr32_diff
@@ -1576,6 +1985,8 @@ struct ptr32_diff
 
 	uint32_t src_tokens_index;
 	uint32_t pointer_arithmetic_check_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct ptr64_diff
@@ -1585,6 +1996,8 @@ struct ptr64_diff
 
 	uint32_t src_tokens_index;
 	uint32_t pointer_arithmetic_check_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct ptr32_diff_unchecked
@@ -1593,6 +2006,8 @@ struct ptr32_diff_unchecked
 	static inline constexpr value_type result_type = value_type::i32;
 
 	size_t stride;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct ptr64_diff_unchecked
@@ -1601,42 +2016,56 @@ struct ptr64_diff_unchecked
 	static inline constexpr value_type result_type = value_type::i64;
 
 	size_t stride;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct mul_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct mul_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct mul_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct mul_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct mul_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct mul_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct mul_i8_check
@@ -1645,6 +2074,8 @@ struct mul_i8_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct mul_i16_check
@@ -1653,6 +2084,8 @@ struct mul_i16_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct mul_i32_check
@@ -1661,6 +2094,8 @@ struct mul_i32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct mul_i64_check
@@ -1669,6 +2104,8 @@ struct mul_i64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct mul_u8_check
@@ -1677,6 +2114,8 @@ struct mul_u8_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct mul_u16_check
@@ -1685,6 +2124,8 @@ struct mul_u16_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct mul_u32_check
@@ -1693,6 +2134,8 @@ struct mul_u32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct mul_u64_check
@@ -1701,6 +2144,8 @@ struct mul_u64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct mul_f32_check
@@ -1709,6 +2154,8 @@ struct mul_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct mul_f64_check
@@ -1717,6 +2164,8 @@ struct mul_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct div_i8
@@ -1725,6 +2174,8 @@ struct div_i8
 	static inline constexpr value_type result_type = value_type::i8;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct div_i16
@@ -1733,6 +2184,8 @@ struct div_i16
 	static inline constexpr value_type result_type = value_type::i16;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct div_i32
@@ -1741,6 +2194,8 @@ struct div_i32
 	static inline constexpr value_type result_type = value_type::i32;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct div_i64
@@ -1749,6 +2204,8 @@ struct div_i64
 	static inline constexpr value_type result_type = value_type::i64;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct div_u8
@@ -1757,6 +2214,8 @@ struct div_u8
 	static inline constexpr value_type result_type = value_type::i8;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct div_u16
@@ -1765,6 +2224,8 @@ struct div_u16
 	static inline constexpr value_type result_type = value_type::i16;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct div_u32
@@ -1773,6 +2234,8 @@ struct div_u32
 	static inline constexpr value_type result_type = value_type::i32;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct div_u64
@@ -1781,18 +2244,24 @@ struct div_u64
 	static inline constexpr value_type result_type = value_type::i64;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct div_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct div_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct div_i8_check
@@ -1801,6 +2270,8 @@ struct div_i8_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct div_i16_check
@@ -1809,6 +2280,8 @@ struct div_i16_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct div_i32_check
@@ -1817,6 +2290,8 @@ struct div_i32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct div_i64_check
@@ -1825,6 +2300,8 @@ struct div_i64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct div_f32_check
@@ -1833,6 +2310,8 @@ struct div_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct div_f64_check
@@ -1841,6 +2320,8 @@ struct div_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct rem_i8
@@ -1849,6 +2330,8 @@ struct rem_i8
 	static inline constexpr value_type result_type = value_type::i8;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct rem_i16
@@ -1857,6 +2340,8 @@ struct rem_i16
 	static inline constexpr value_type result_type = value_type::i16;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct rem_i32
@@ -1865,6 +2350,8 @@ struct rem_i32
 	static inline constexpr value_type result_type = value_type::i32;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct rem_i64
@@ -1873,6 +2360,8 @@ struct rem_i64
 	static inline constexpr value_type result_type = value_type::i64;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct rem_u8
@@ -1881,6 +2370,8 @@ struct rem_u8
 	static inline constexpr value_type result_type = value_type::i8;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct rem_u16
@@ -1889,6 +2380,8 @@ struct rem_u16
 	static inline constexpr value_type result_type = value_type::i16;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct rem_u32
@@ -1897,6 +2390,8 @@ struct rem_u32
 	static inline constexpr value_type result_type = value_type::i32;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct rem_u64
@@ -1905,126 +2400,168 @@ struct rem_u64
 	static inline constexpr value_type result_type = value_type::i64;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct not_i1
 {
 	static inline constexpr bz::array arg_types = { value_type::i1 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct not_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct not_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct not_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct not_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct and_i1
 {
 	static inline constexpr bz::array arg_types = { value_type::i1, value_type::i1 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct and_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct and_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct and_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct and_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct xor_i1
 {
 	static inline constexpr bz::array arg_types = { value_type::i1, value_type::i1 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct xor_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct xor_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct xor_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct xor_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct or_i1
 {
 	static inline constexpr bz::array arg_types = { value_type::i1, value_type::i1 };
 	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct or_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct or_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct or_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct or_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct shl_i8_signed
@@ -2033,6 +2570,8 @@ struct shl_i8_signed
 	static inline constexpr value_type result_type = value_type::i8;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct shl_i16_signed
@@ -2041,6 +2580,8 @@ struct shl_i16_signed
 	static inline constexpr value_type result_type = value_type::i16;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct shl_i32_signed
@@ -2049,6 +2590,8 @@ struct shl_i32_signed
 	static inline constexpr value_type result_type = value_type::i32;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct shl_i64_signed
@@ -2057,6 +2600,8 @@ struct shl_i64_signed
 	static inline constexpr value_type result_type = value_type::i64;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct shl_i8_unsigned
@@ -2065,6 +2610,8 @@ struct shl_i8_unsigned
 	static inline constexpr value_type result_type = value_type::i8;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct shl_i16_unsigned
@@ -2073,6 +2620,8 @@ struct shl_i16_unsigned
 	static inline constexpr value_type result_type = value_type::i16;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct shl_i32_unsigned
@@ -2081,6 +2630,8 @@ struct shl_i32_unsigned
 	static inline constexpr value_type result_type = value_type::i32;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct shl_i64_unsigned
@@ -2089,6 +2640,8 @@ struct shl_i64_unsigned
 	static inline constexpr value_type result_type = value_type::i64;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct shr_i8_signed
@@ -2097,6 +2650,8 @@ struct shr_i8_signed
 	static inline constexpr value_type result_type = value_type::i8;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct shr_i16_signed
@@ -2105,6 +2660,8 @@ struct shr_i16_signed
 	static inline constexpr value_type result_type = value_type::i16;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct shr_i32_signed
@@ -2113,6 +2670,8 @@ struct shr_i32_signed
 	static inline constexpr value_type result_type = value_type::i32;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct shr_i64_signed
@@ -2121,6 +2680,8 @@ struct shr_i64_signed
 	static inline constexpr value_type result_type = value_type::i64;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct shr_i8_unsigned
@@ -2129,6 +2690,8 @@ struct shr_i8_unsigned
 	static inline constexpr value_type result_type = value_type::i8;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct shr_i16_unsigned
@@ -2137,6 +2700,8 @@ struct shr_i16_unsigned
 	static inline constexpr value_type result_type = value_type::i16;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct shr_i32_unsigned
@@ -2145,6 +2710,8 @@ struct shr_i32_unsigned
 	static inline constexpr value_type result_type = value_type::i32;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct shr_i64_unsigned
@@ -2153,42 +2720,56 @@ struct shr_i64_unsigned
 	static inline constexpr value_type result_type = value_type::i64;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct abs_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct abs_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct abs_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct abs_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct abs_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct abs_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct abs_i8_check
@@ -2197,6 +2778,8 @@ struct abs_i8_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct abs_i16_check
@@ -2205,6 +2788,8 @@ struct abs_i16_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct abs_i32_check
@@ -2213,6 +2798,8 @@ struct abs_i32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct abs_i64_check
@@ -2221,6 +2808,8 @@ struct abs_i64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct abs_f32_check
@@ -2229,6 +2818,8 @@ struct abs_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct abs_f64_check
@@ -2237,66 +2828,88 @@ struct abs_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct min_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct min_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct min_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct min_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct min_u8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct min_u16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct min_u32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct min_u64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct min_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct min_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct min_f32_check
@@ -2305,6 +2918,8 @@ struct min_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct min_f64_check
@@ -2313,66 +2928,88 @@ struct min_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct max_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct max_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct max_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct max_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct max_u8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct max_u16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct max_u32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct max_u64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct max_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct max_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct max_f32_check
@@ -2381,6 +3018,8 @@ struct max_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct max_f64_check
@@ -2389,18 +3028,24 @@ struct max_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct exp_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct exp_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct exp_f32_check
@@ -2409,6 +3054,8 @@ struct exp_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct exp_f64_check
@@ -2417,18 +3064,24 @@ struct exp_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct exp2_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct exp2_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct exp2_f32_check
@@ -2437,6 +3090,8 @@ struct exp2_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct exp2_f64_check
@@ -2445,18 +3100,24 @@ struct exp2_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct expm1_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct expm1_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct expm1_f32_check
@@ -2465,6 +3126,8 @@ struct expm1_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct expm1_f64_check
@@ -2473,18 +3136,24 @@ struct expm1_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct log_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct log_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct log_f32_check
@@ -2493,6 +3162,8 @@ struct log_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct log_f64_check
@@ -2501,18 +3172,24 @@ struct log_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct log10_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct log10_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct log10_f32_check
@@ -2521,6 +3198,8 @@ struct log10_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct log10_f64_check
@@ -2529,18 +3208,24 @@ struct log10_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct log2_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct log2_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct log2_f32_check
@@ -2549,6 +3234,8 @@ struct log2_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct log2_f64_check
@@ -2557,18 +3244,24 @@ struct log2_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct log1p_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct log1p_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct log1p_f32_check
@@ -2577,6 +3270,8 @@ struct log1p_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct log1p_f64_check
@@ -2585,18 +3280,24 @@ struct log1p_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sqrt_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sqrt_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sqrt_f32_check
@@ -2605,6 +3306,8 @@ struct sqrt_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sqrt_f64_check
@@ -2613,18 +3316,24 @@ struct sqrt_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct pow_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct pow_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct pow_f32_check
@@ -2633,6 +3342,8 @@ struct pow_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct pow_f64_check
@@ -2641,18 +3352,24 @@ struct pow_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cbrt_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cbrt_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cbrt_f32_check
@@ -2661,6 +3378,8 @@ struct cbrt_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cbrt_f64_check
@@ -2669,18 +3388,24 @@ struct cbrt_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct hypot_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct hypot_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct hypot_f32_check
@@ -2689,6 +3414,8 @@ struct hypot_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct hypot_f64_check
@@ -2697,18 +3424,24 @@ struct hypot_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sin_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sin_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sin_f32_check
@@ -2717,6 +3450,8 @@ struct sin_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sin_f64_check
@@ -2725,18 +3460,24 @@ struct sin_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cos_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cos_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cos_f32_check
@@ -2745,6 +3486,8 @@ struct cos_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cos_f64_check
@@ -2753,18 +3496,24 @@ struct cos_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct tan_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct tan_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct tan_f32_check
@@ -2773,6 +3522,8 @@ struct tan_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct tan_f64_check
@@ -2781,18 +3532,24 @@ struct tan_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct asin_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct asin_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct asin_f32_check
@@ -2801,6 +3558,8 @@ struct asin_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct asin_f64_check
@@ -2809,18 +3568,24 @@ struct asin_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct acos_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct acos_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct acos_f32_check
@@ -2829,6 +3594,8 @@ struct acos_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct acos_f64_check
@@ -2837,18 +3604,24 @@ struct acos_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct atan_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct atan_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct atan_f32_check
@@ -2857,6 +3630,8 @@ struct atan_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct atan_f64_check
@@ -2865,18 +3640,24 @@ struct atan_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct atan2_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct atan2_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct atan2_f32_check
@@ -2885,6 +3666,8 @@ struct atan2_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct atan2_f64_check
@@ -2893,18 +3676,24 @@ struct atan2_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sinh_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sinh_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sinh_f32_check
@@ -2913,6 +3702,8 @@ struct sinh_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct sinh_f64_check
@@ -2921,18 +3712,24 @@ struct sinh_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cosh_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cosh_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cosh_f32_check
@@ -2941,6 +3738,8 @@ struct cosh_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct cosh_f64_check
@@ -2949,18 +3748,24 @@ struct cosh_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct tanh_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct tanh_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct tanh_f32_check
@@ -2969,6 +3774,8 @@ struct tanh_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct tanh_f64_check
@@ -2977,18 +3784,24 @@ struct tanh_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct asinh_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct asinh_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct asinh_f32_check
@@ -2997,6 +3810,8 @@ struct asinh_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct asinh_f64_check
@@ -3005,18 +3820,24 @@ struct asinh_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct acosh_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct acosh_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct acosh_f32_check
@@ -3025,6 +3846,8 @@ struct acosh_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct acosh_f64_check
@@ -3033,18 +3856,24 @@ struct acosh_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct atanh_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct atanh_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct atanh_f32_check
@@ -3053,6 +3882,8 @@ struct atanh_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct atanh_f64_check
@@ -3061,18 +3892,24 @@ struct atanh_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct erf_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct erf_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct erf_f32_check
@@ -3081,6 +3918,8 @@ struct erf_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct erf_f64_check
@@ -3089,18 +3928,24 @@ struct erf_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct erfc_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct erfc_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct erfc_f32_check
@@ -3109,6 +3954,8 @@ struct erfc_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct erfc_f64_check
@@ -3117,18 +3964,24 @@ struct erfc_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct tgamma_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct tgamma_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct tgamma_f32_check
@@ -3137,6 +3990,8 @@ struct tgamma_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct tgamma_f64_check
@@ -3145,18 +4000,24 @@ struct tgamma_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct lgamma_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32 };
 	static inline constexpr value_type result_type = value_type::f32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct lgamma_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64 };
 	static inline constexpr value_type result_type = value_type::f64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct lgamma_f32_check
@@ -3165,6 +4026,8 @@ struct lgamma_f32_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct lgamma_f64_check
@@ -3173,168 +4036,224 @@ struct lgamma_f64_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct bitreverse_u8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct bitreverse_u16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct bitreverse_u32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct bitreverse_u64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct popcount_u8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct popcount_u16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct popcount_u32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct popcount_u64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct byteswap_u16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct byteswap_u32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct byteswap_u64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct clz_u8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct clz_u16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct clz_u32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct clz_u64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct ctz_u8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct ctz_u16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct ctz_u32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct ctz_u64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct fshl_u8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct fshl_u16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct fshl_u32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct fshl_u64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct fshr_u8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i8;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct fshr_u16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i16;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct fshr_u32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i32;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct fshr_u64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i64;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct const_gep
@@ -3343,6 +4262,8 @@ struct const_gep
 	static inline constexpr value_type result_type = value_type::ptr;
 
 	size_t offset;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct array_gep_i32
@@ -3351,6 +4272,8 @@ struct array_gep_i32
 	static inline constexpr value_type result_type = value_type::ptr;
 
 	size_t stride;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct array_gep_i64
@@ -3359,6 +4282,8 @@ struct array_gep_i64
 	static inline constexpr value_type result_type = value_type::ptr;
 
 	size_t stride;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct const_memcpy
@@ -3367,6 +4292,8 @@ struct const_memcpy
 	static inline constexpr value_type result_type = value_type::none;
 
 	size_t size;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct const_memset_zero
@@ -3375,6 +4302,8 @@ struct const_memset_zero
 	static inline constexpr value_type result_type = value_type::none;
 
 	size_t size;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct function_call
@@ -3401,12 +4330,16 @@ struct conditional_jump
 
 	instruction_index true_dest;
 	instruction_index false_dest;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct ret
 {
 	static inline constexpr bz::array arg_types = { value_type::any };
 	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct ret_void
@@ -3436,6 +4369,8 @@ struct diagnostic_str
 
 	uint32_t src_tokens_index;
 	ctx::warning_kind kind;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct array_bounds_check_i32
@@ -3444,6 +4379,8 @@ struct array_bounds_check_i32
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct array_bounds_check_u32
@@ -3452,6 +4389,8 @@ struct array_bounds_check_u32
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct array_bounds_check_i64
@@ -3460,6 +4399,8 @@ struct array_bounds_check_i64
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct array_bounds_check_u64
@@ -3468,6 +4409,8 @@ struct array_bounds_check_u64
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct optional_get_value_check
@@ -3476,6 +4419,8 @@ struct optional_get_value_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct str_construction_check
@@ -3484,6 +4429,8 @@ struct str_construction_check
 	static inline constexpr value_type result_type = value_type::none;
 
 	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 struct slice_construction_check
@@ -3493,6 +4440,8 @@ struct slice_construction_check
 
 	uint32_t src_tokens_index;
 	uint32_t slice_construction_check_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
 } // namespace instructions
@@ -4002,14 +4951,11 @@ using instruction_list = bz::meta::type_pack<
 	instructions::slice_construction_check
 >;
 
-using instruction_with_args_list = bz::meta::transform_type_pack<instructions::instruction_with_args, instruction_list>;
-using instruction_base_t = bz::meta::apply_type_pack<bz::variant, instruction_with_args_list>;
+using instruction_base_t = bz::meta::apply_type_pack<bz::variant, instruction_list>;
 
 struct instruction : instruction_base_t
 {
 	using base_t = instruction_base_t;
-	template<typename Inst>
-	static inline constexpr base_t::index_t index_of = base_t::index_of<instructions::instruction_with_args<Inst>>;
 
 	static_assert(variant_count == 502);
 	enum : base_t::index_t
@@ -4534,6 +5480,7 @@ struct instruction : instruction_base_t
 	}
 };
 
+static_assert(sizeof (instruction) == 24);
 static_assert(std::is_trivially_copy_constructible_v<instruction>);
 static_assert(std::is_trivially_destructible_v<instruction>);
 

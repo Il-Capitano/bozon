@@ -5191,7 +5191,7 @@ instruction_ref codegen_context::create_slice_construction_check(
 static void resolve_instruction_args(instruction &inst, bz::array<instruction_ref, 3> const &args, auto get_instruction_value_index)
 {
 	inst.visit([&](auto &inst) {
-		using inst_type = bz::meta::remove_reference<decltype(inst.inst)>;
+		using inst_type = bz::meta::remove_reference<decltype(inst)>;
 		if constexpr (instructions::arg_count<inst_type> == 0)
 		{
 			// such an instruction shouldn't be in unresolved_instructions
@@ -5226,13 +5226,13 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 	static_assert(instruction::variant_count == 502);
 	case instruction::jump:
 	{
-		auto &jump_inst = inst.get<instruction::jump>().inst;
+		auto &jump_inst = inst.get<instruction::jump>();
 		jump_inst.dest = get_instruction_index({ .bb_index = dests[0].bb_index, .inst_index = 0 });
 		break;
 	}
 	case instruction::conditional_jump:
 	{
-		auto &jump_inst = inst.get<instruction::conditional_jump>().inst;
+		auto &jump_inst = inst.get<instruction::conditional_jump>();
 		jump_inst.true_dest  = get_instruction_index({ .bb_index = dests[0].bb_index, .inst_index = 0 });
 		jump_inst.false_dest = get_instruction_index({ .bb_index = dests[1].bb_index, .inst_index = 0 });
 		break;

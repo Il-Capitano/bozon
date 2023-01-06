@@ -181,9 +181,7 @@ struct codegen_context
 	{
 		static_assert(instructions::arg_count<Inst> == 0);
 		instruction new_inst = instruction();
-		new_inst.emplace<instructions::instruction_with_args<Inst>>(instructions::instruction_with_args<Inst>{
-			.inst = std::move(inst)
-		});
+		new_inst.emplace<Inst>(inst);
 		this->blocks[this->current_bb.bb_index].instructions.push_back(std::move(new_inst));
 		auto const result = instruction_ref{
 			.bb_index   = this->current_bb.bb_index,
@@ -197,10 +195,7 @@ struct codegen_context
 	{
 		static_assert(instructions::arg_count<Inst> == 1);
 		instruction new_inst = instruction();
-		new_inst.emplace<instructions::instruction_with_args<Inst>>(instructions::instruction_with_args<Inst>{
-			.args = {},
-			.inst = std::move(inst)
-		});
+		new_inst.emplace<Inst>(inst);
 		this->blocks[this->current_bb.bb_index].instructions.push_back(std::move(new_inst));
 		auto const result = instruction_ref{
 			.bb_index   = this->current_bb.bb_index,
@@ -208,7 +203,7 @@ struct codegen_context
 		};
 		this->unresolved_instructions.push_back({
 			.inst = result,
-			.args = { arg, {} },
+			.args = { arg, {}, {} },
 		});
 		return result;
 	}
@@ -218,10 +213,7 @@ struct codegen_context
 	{
 		static_assert(instructions::arg_count<Inst> == 2);
 		instruction new_inst = instruction();
-		new_inst.emplace<instructions::instruction_with_args<Inst>>(instructions::instruction_with_args<Inst>{
-			.args = {},
-			.inst = std::move(inst)
-		});
+		new_inst.emplace<Inst>(inst);
 		this->blocks[this->current_bb.bb_index].instructions.push_back(std::move(new_inst));
 		auto const result = instruction_ref{
 			.bb_index   = this->current_bb.bb_index,
@@ -229,7 +221,7 @@ struct codegen_context
 		};
 		this->unresolved_instructions.push_back({
 			.inst = result,
-			.args = { arg1, arg2 },
+			.args = { arg1, arg2, {} },
 		});
 		return result;
 	}
@@ -239,10 +231,7 @@ struct codegen_context
 	{
 		static_assert(instructions::arg_count<Inst> == 3);
 		instruction new_inst = instruction();
-		new_inst.emplace<instructions::instruction_with_args<Inst>>(instructions::instruction_with_args<Inst>{
-			.args = {},
-			.inst = std::move(inst)
-		});
+		new_inst.emplace<Inst>(inst);
 		this->blocks[this->current_bb.bb_index].instructions.push_back(std::move(new_inst));
 		auto const result = instruction_ref{
 			.bb_index   = this->current_bb.bb_index,
