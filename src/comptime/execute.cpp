@@ -4087,19 +4087,21 @@ static uint64_t execute_fshr_u64(instructions::fshr_u64 const &, uint64_t a, uin
 	return amount == 0 ? b : ((b >> amount) | (a << (64 - amount)));
 }
 
-static ptr_t execute_const_gep(instructions::const_gep const &inst, ptr_t ptr, executor_context &)
+static ptr_t execute_const_gep(instructions::const_gep const &inst, ptr_t ptr, executor_context &context)
 {
-	return ptr + inst.offset;
+	return context.gep(ptr, inst.object_type, inst.index);
 }
 
-static ptr_t execute_array_gep_i32(instructions::array_gep_i32 const &inst, ptr_t ptr, uint32_t index, executor_context &)
+static ptr_t execute_array_gep_i32(instructions::array_gep_i32 const &inst, ptr_t ptr, uint32_t index, executor_context &context)
 {
-	return ptr + inst.stride * index;
+	bz_assert(index <= static_cast<uint32_t>(std::numeric_limits<int32_t>::max()));
+	return context.pointer_add_unchecked(ptr, static_cast<int32_t>(index), inst.elem_type);
 }
 
-static ptr_t execute_array_gep_i64(instructions::array_gep_i64 const &inst, ptr_t ptr, uint64_t index, executor_context &)
+static ptr_t execute_array_gep_i64(instructions::array_gep_i64 const &inst, ptr_t ptr, uint64_t index, executor_context &context)
 {
-	return ptr + inst.stride * index;
+	bz_assert(index <= static_cast<uint64_t>(std::numeric_limits<int32_t>::max()));
+	return context.pointer_add_unchecked(ptr, static_cast<int32_t>(index), inst.elem_type);
 }
 
 static void execute_const_memcpy(instructions::const_memcpy const &inst, ptr_t dest, ptr_t src, executor_context &context)

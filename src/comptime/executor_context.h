@@ -87,6 +87,7 @@ struct executor_context
 		type const *object_type,
 		ast::typespec_view pointer_type
 	);
+	ptr_t gep(ptr_t address, type const *object_type, uint64_t index);
 	int64_t pointer_difference(
 		uint32_t src_tokens_index,
 		ptr_t lhs,

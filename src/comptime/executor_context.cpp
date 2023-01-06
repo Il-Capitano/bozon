@@ -194,6 +194,11 @@ ptr_t executor_context::pointer_sub_unsigned(
 	return result;
 }
 
+ptr_t executor_context::gep(ptr_t address, type const *object_type, uint64_t index)
+{
+	return this->memory.do_gep(address, object_type, index);
+}
+
 int64_t executor_context::pointer_difference(
 	uint32_t src_tokens_index,
 	ptr_t lhs,

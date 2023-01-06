@@ -749,17 +749,23 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 	if (type->is_array())
 	{
 		bz_assert(index <= type->get_array_size()); // one-past-the-end is allowed
-		auto const offset = index * type->get_array_element_type()->size;
-		auto const result_ptr = this->add_instruction(instructions::const_gep{ .offset = offset }, value.get_reference());
+		bz_assert(index <= std::numeric_limits<uint32_t>::max());
+		auto const result_ptr = this->add_instruction(instructions::const_gep{
+			.object_type = type,
+			.index = static_cast<uint32_t>(index),
+		}, value.get_reference());
 		return expr_value::get_reference(result_ptr, type->get_array_element_type());
 	}
 	else
 	{
 		bz_assert(type->is_aggregate());
 		auto const types = type->get_aggregate_types();
-		auto const offsets = type->get_aggregate_offsets();
 		bz_assert(index < types.size());
-		auto const result_ptr = this->add_instruction(instructions::const_gep{ .offset = offsets[index] }, value.get_reference());
+		bz_assert(index <= std::numeric_limits<uint32_t>::max());
+		auto const result_ptr = this->add_instruction(instructions::const_gep{
+			.object_type = type,
+			.index = static_cast<uint32_t>(index),
+		}, value.get_reference());
 		return expr_value::get_reference(result_ptr, types[index]);
 	}
 }
@@ -780,7 +786,7 @@ expr_value codegen_context::create_array_gep(expr_value value, expr_value index)
 	case builtin_type_kind::i32:
 	{
 		auto const result_ptr = this->add_instruction(
-			instructions::array_gep_i32{ .stride = elem_type->size },
+			instructions::array_gep_i32{ .elem_type = elem_type },
 			value.get_reference(), index.get_value_as_instruction(*this)
 		);
 		return expr_value::get_reference(result_ptr, elem_type);
@@ -788,7 +794,7 @@ expr_value codegen_context::create_array_gep(expr_value value, expr_value index)
 	case builtin_type_kind::i64:
 	{
 		auto const result_ptr = this->add_instruction(
-			instructions::array_gep_i64{ .stride = elem_type->size },
+			instructions::array_gep_i64{ .elem_type = elem_type },
 			value.get_reference(), index.get_value_as_instruction(*this)
 		);
 		return expr_value::get_reference(result_ptr, elem_type);
@@ -812,7 +818,7 @@ expr_value codegen_context::create_array_slice_gep(expr_value begin_ptr, expr_va
 	case builtin_type_kind::i32:
 	{
 		auto const result_ptr = this->add_instruction(
-			instructions::array_gep_i32{ .stride = elem_type->size },
+			instructions::array_gep_i32{ .elem_type = elem_type },
 			begin_ptr.get_value_as_instruction(*this), index.get_value_as_instruction(*this)
 		);
 		return expr_value::get_reference(result_ptr, elem_type);
@@ -820,7 +826,7 @@ expr_value codegen_context::create_array_slice_gep(expr_value begin_ptr, expr_va
 	case builtin_type_kind::i64:
 	{
 		auto const result_ptr = this->add_instruction(
-			instructions::array_gep_i64{ .stride = elem_type->size },
+			instructions::array_gep_i64{ .elem_type = elem_type },
 			begin_ptr.get_value_as_instruction(*this), index.get_value_as_instruction(*this)
 		);
 		return expr_value::get_reference(result_ptr, elem_type);

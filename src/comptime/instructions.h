@@ -4272,7 +4272,8 @@ struct const_gep
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::ptr;
 
-	size_t offset;
+	type const *object_type;
+	uint32_t index;
 
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
@@ -4282,7 +4283,7 @@ struct array_gep_i32
 	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::ptr;
 
-	size_t stride;
+	type const *elem_type;
 
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
@@ -4292,7 +4293,7 @@ struct array_gep_i64
 	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::ptr;
 
-	size_t stride;
+	type const *elem_type;
 
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
