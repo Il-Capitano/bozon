@@ -271,6 +271,8 @@ struct codegen_context
 	expr_value create_const_f64(float64_t value);
 	expr_value create_const_ptr_null(void);
 
+	expr_value create_get_function_arg(uint32_t arg_index);
+
 	expr_value create_load(expr_value ptr);
 	instruction_ref create_store(expr_value value, expr_value ptr);
 	void create_memory_access_check(

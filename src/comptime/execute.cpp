@@ -72,6 +72,11 @@ static ptr_t execute_const_ptr_null(instructions::const_ptr_null const &, execut
 	return 0;
 }
 
+static instruction_value execute_get_function_arg(instructions::get_function_arg const &inst, executor_context &context)
+{
+	return context.get_arg(inst.arg_index);
+}
+
 template<typename Int>
 static Int load_big_endian(uint8_t *mem)
 {
@@ -4450,7 +4455,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 503);
+		static_assert(instruction::variant_count == 504);
 		case instruction::const_i1:
 			execute<instructions::const_i1, &execute_const_i1>(context);
 			break;
@@ -4486,6 +4491,9 @@ void execute(executor_context &context)
 			break;
 		case instruction::const_ptr_null:
 			execute<instructions::const_ptr_null, &execute_const_ptr_null>(context);
+			break;
+		case instruction::get_function_arg:
+			execute<instructions::get_function_arg, &execute_get_function_arg>(context);
 			break;
 		case instruction::load_i1_be:
 			execute<instructions::load_i1_be, &execute_load_i1_be>(context);

@@ -18,6 +18,11 @@ instruction_value executor_context::get_instruction_value(instruction_value_inde
 	return this->instruction_values[index.index];
 }
 
+instruction_value executor_context::get_arg(uint32_t index)
+{
+	return this->args[index];
+}
+
 void executor_context::do_jump(instruction_index dest)
 {
 	bz_assert(dest.index < this->instructions.size());

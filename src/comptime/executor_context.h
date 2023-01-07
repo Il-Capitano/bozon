@@ -21,6 +21,7 @@ struct executor_context
 	instruction_value ret_value;
 
 	function *current_function;
+	bz::fixed_vector<instruction_value> args;
 	bz::array_view<instruction const> instructions;
 	bz::array_view<instruction_value> instruction_values;
 
@@ -34,13 +35,15 @@ struct executor_context
 	void set_current_instruction_value(instruction_value value);
 	instruction_value get_instruction_value(instruction_value_index index);
 
+	void report_error(uint32_t src_tokens_index, bz::u8string message, bz::vector<ctx::source_highlight> notes = {});
+	void report_warning(ctx::warning_kind kind, uint32_t src_tokens_index, bz::u8string message);
+	ctx::source_highlight make_note(uint32_t src_tokens_index, bz::u8string message);
+
+	instruction_value get_arg(uint32_t index);
 	void do_jump(instruction_index dest);
 	void do_ret(instruction_value value);
 	void do_ret_void(void);
 	void report_error(uint32_t error_index);
-	void report_error(uint32_t src_tokens_index, bz::u8string message, bz::vector<ctx::source_highlight> notes = {});
-	void report_warning(ctx::warning_kind kind, uint32_t src_tokens_index, bz::u8string message);
-	ctx::source_highlight make_note(uint32_t src_tokens_index, bz::u8string message);
 
 	slice_construction_check_info_t const &get_slice_construction_info(uint32_t index) const;
 	pointer_arithmetic_check_info_t const &get_pointer_arithmetic_info(uint32_t index) const;

@@ -5245,7 +5245,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 503);
+	static_assert(instruction::variant_count == 504);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>();
