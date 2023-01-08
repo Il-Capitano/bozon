@@ -5772,6 +5772,25 @@ void generate_code(ast::function_body &body, codegen_context &context)
 	{
 		generate_stmt_code(stmt, context);
 	}
+
+	if (!context.has_terminator())
+	{
+		auto const return_type = context.current_function_info.return_type;
+		if (return_type->is_void())
+		{
+			context.create_ret_void();
+		}
+		else if (body.is_main())
+		{
+			bz_assert(return_type->is_builtin() && return_type->get_builtin_kind() == builtin_type_kind::i32);
+			context.create_ret(context.create_const_i32(0).get_value_as_instruction(context));
+		}
+		else
+		{
+			context.create_error(body.src_tokens, "end of function reached without returning a value");
+			context.create_unreachable();
+		}
+	}
 }
 
 static void generate_rvalue_array_destruct(
