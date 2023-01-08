@@ -152,6 +152,7 @@ struct codegen_context
 	basic_block_ref get_current_basic_block(void);
 	basic_block_ref add_basic_block(void);
 	void set_current_basic_block(basic_block_ref bb_index);
+	bool has_terminator(void);
 
 	struct expression_scope_info_t
 	{
@@ -194,6 +195,7 @@ struct codegen_context
 	template<typename Inst>
 	instruction_ref add_instruction(Inst inst)
 	{
+		bz_assert(!this->has_terminator());
 		static_assert(instructions::arg_count<Inst> == 0);
 		instruction new_inst = instruction();
 		new_inst.emplace<Inst>(inst);
@@ -208,6 +210,7 @@ struct codegen_context
 	template<typename Inst>
 	instruction_ref add_instruction(Inst inst, instruction_ref arg)
 	{
+		bz_assert(!this->has_terminator());
 		static_assert(instructions::arg_count<Inst> == 1);
 		instruction new_inst = instruction();
 		new_inst.emplace<Inst>(inst);
@@ -226,6 +229,7 @@ struct codegen_context
 	template<typename Inst>
 	instruction_ref add_instruction(Inst inst, instruction_ref arg1, instruction_ref arg2)
 	{
+		bz_assert(!this->has_terminator());
 		static_assert(instructions::arg_count<Inst> == 2);
 		instruction new_inst = instruction();
 		new_inst.emplace<Inst>(inst);
@@ -244,6 +248,7 @@ struct codegen_context
 	template<typename Inst>
 	instruction_ref add_instruction(Inst inst, instruction_ref arg1, instruction_ref arg2, instruction_ref arg3)
 	{
+		bz_assert(!this->has_terminator());
 		static_assert(instructions::arg_count<Inst> == 3);
 		instruction new_inst = instruction();
 		new_inst.emplace<Inst>(inst);

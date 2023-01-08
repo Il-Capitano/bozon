@@ -132,6 +132,12 @@ void codegen_context::set_current_basic_block(basic_block_ref bb)
 	this->current_bb = bb;
 }
 
+bool codegen_context::has_terminator(void)
+{
+	auto const &bb = this->current_function_info.blocks[this->current_bb.bb_index];
+	return !bb.instructions.empty() && bb.instructions.back().is_terminator();
+}
+
 [[nodiscard]] codegen_context::expression_scope_info_t codegen_context::push_expression_scope(void)
 {
 	return { this->destructor_calls.size() };
