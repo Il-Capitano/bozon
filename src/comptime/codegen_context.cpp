@@ -123,8 +123,8 @@ basic_block_ref codegen_context::get_current_basic_block(void)
 
 basic_block_ref codegen_context::add_basic_block(void)
 {
-	this->blocks.emplace_back();
-	return basic_block_ref{ static_cast<uint32_t>(this->blocks.size() - 1) };
+	this->current_function_info.blocks.emplace_back();
+	return basic_block_ref{ static_cast<uint32_t>(this->current_function_info.blocks.size() - 1) };
 }
 
 void codegen_context::set_current_basic_block(basic_block_ref bb)
@@ -306,29 +306,29 @@ void codegen_context::emit_all_destruct_operations(void)
 
 uint32_t codegen_context::add_src_tokens(lex::src_tokens const &src_tokens)
 {
-	auto const result = this->src_tokens.size();
-	this->src_tokens.push_back(src_tokens);
+	auto const result = this->current_function_info.src_tokens.size();
+	this->current_function_info.src_tokens.push_back(src_tokens);
 	return static_cast<uint32_t>(result);
 }
 
 uint32_t codegen_context::add_slice_construction_check_info(slice_construction_check_info_t info)
 {
-	auto const result = this->slice_construction_check_infos.size();
-	this->slice_construction_check_infos.push_back(info);
+	auto const result = this->current_function_info.slice_construction_check_infos.size();
+	this->current_function_info.slice_construction_check_infos.push_back(info);
 	return static_cast<uint32_t>(result);
 }
 
 uint32_t codegen_context::add_pointer_arithmetic_check_info(pointer_arithmetic_check_info_t info)
 {
-	auto const result = this->pointer_arithmetic_check_infos.size();
-	this->pointer_arithmetic_check_infos.push_back(info);
+	auto const result = this->current_function_info.pointer_arithmetic_check_infos.size();
+	this->current_function_info.pointer_arithmetic_check_infos.push_back(info);
 	return static_cast<uint32_t>(result);
 }
 
 uint32_t codegen_context::add_memory_access_check_info(memory_access_check_info_t info)
 {
-	auto const result = this->memory_access_check_infos.size();
-	this->memory_access_check_infos.push_back(info);
+	auto const result = this->current_function_info.memory_access_check_infos.size();
+	this->current_function_info.memory_access_check_infos.push_back(info);
 	return static_cast<uint32_t>(result);
 }
 
@@ -462,6 +462,22 @@ expr_value codegen_context::create_const_ptr_null(void)
 {
 	auto const inst_ref = this->add_instruction(instructions::const_ptr_null{});
 	return expr_value::get_value(inst_ref, this->get_pointer_type());
+}
+
+expr_value codegen_context::create_get_function_return_address(void)
+{
+	auto const return_type = this->current_function_info.return_type;
+	bz_assert(!return_type->is_simple_value_type());
+	return expr_value::get_reference(
+		this->add_instruction(instructions::get_function_arg{ .arg_index = 0 }),
+		return_type
+	);
+}
+
+instruction_ref codegen_context::create_get_function_arg(uint32_t arg_index)
+{
+	auto const needs_return_address = !this->current_function_info.return_type->is_simple_value_type();
+	return this->add_instruction(instructions::get_function_arg{ .arg_index = arg_index + (needs_return_address ? 1 : 0) });
 }
 
 expr_value codegen_context::create_load(expr_value ptr)
@@ -703,13 +719,13 @@ void codegen_context::create_memory_access_check(
 
 expr_value codegen_context::create_alloca(type const *type)
 {
-	this->allocas.push_back({
+	this->current_function_info.allocas.push_back({
 		.size = type->size,
 		.align = type->align,
 	});
 	auto const alloca_ref = instruction_ref{
 		.bb_index = instruction_ref::alloca_bb_index,
-		.inst_index = static_cast<uint32_t>(this->allocas.size() - 1),
+		.inst_index = static_cast<uint32_t>(this->current_function_info.allocas.size() - 1),
 	};
 	return expr_value::get_reference(alloca_ref, type);
 }
@@ -717,7 +733,7 @@ expr_value codegen_context::create_alloca(type const *type)
 instruction_ref codegen_context::create_jump(basic_block_ref bb)
 {
 	auto const result = this->add_instruction(instructions::jump{});
-	this->unresolved_jumps.push_back({ .inst = result, .dests = { bb, {} } });
+	this->current_function_info.unresolved_jumps.push_back({ .inst = result, .dests = { bb, {} } });
 	return result;
 }
 
@@ -728,7 +744,7 @@ instruction_ref codegen_context::create_conditional_jump(
 )
 {
 	auto const result = this->add_instruction(instructions::conditional_jump{}, condition.get_value_as_instruction(*this));
-	this->unresolved_jumps.push_back({ .inst = result, .dests = { true_bb, false_bb } });
+	this->current_function_info.unresolved_jumps.push_back({ .inst = result, .dests = { true_bb, false_bb } });
 	return result;
 }
 
@@ -853,8 +869,8 @@ instruction_ref codegen_context::create_const_memset_zero(expr_value dest, size_
 
 expr_value codegen_context::create_function_call(function const *func, bz::fixed_vector<instruction_ref> args)
 {
-	auto const args_index = this->call_args.size();
-	this->call_args.push_back(std::move(args));
+	auto const args_index = this->current_function_info.call_args.size();
+	this->current_function_info.call_args.push_back(std::move(args));
 
 	auto const inst_ref = this->add_instruction(
 		instructions::function_call{ .func = func, .args_index = args_index }
@@ -5057,8 +5073,8 @@ instruction_ref codegen_context::create_unreachable(void)
 
 instruction_ref codegen_context::create_error(lex::src_tokens const &src_tokens, bz::u8string message)
 {
-	auto const index = this->errors.size();
-	this->errors.push_back({
+	auto const index = this->current_function_info.errors.size();
+	this->current_function_info.errors.push_back({
 		.src_tokens = src_tokens,
 		.message = std::move(message),
 	});
@@ -5264,8 +5280,11 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 	}
 }
 
-void codegen_context::finalize_function(function &func)
+void current_function_info_t::finalize_function(function &func)
 {
+	func.return_type = return_type;
+	func.arg_types = std::move(this->arg_types);
+
 	uint32_t instruction_value_offset = this->allocas.size();
 	for (auto &bb : this->blocks)
 	{
@@ -5355,6 +5374,12 @@ void codegen_context::finalize_function(function &func)
 
 	// finalize memory_access_check_infos
 	func.memory_access_check_infos = bz::fixed_vector(this->memory_access_check_infos.as_array_view());
+}
+
+void codegen_context::finalize_function(function &func)
+{
+	this->current_function_info.finalize_function(func);
+	this->current_function_info = current_function_info_t();
 }
 
 } // namespace comptime

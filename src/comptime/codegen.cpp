@@ -2895,12 +2895,12 @@ static expr_value generate_expr_code(
 	bz_assert(func != nullptr);
 
 	// along with the arguments, the result address is passed as the first argument if it's not a builtin or pointer type
-	auto const needs_result_address = !func->return_type->is_simple_value_type();
-	auto arg_refs = bz::fixed_vector<instruction_ref>(func->arg_types.size() + (needs_result_address ? 1 : 0));
+	auto const needs_return_address = !func->return_type->is_simple_value_type();
+	auto arg_refs = bz::fixed_vector<instruction_ref>(func->arg_types.size() + (needs_return_address ? 1 : 0));
 
 	if (func_call.param_resolve_order == ast::resolve_order::regular)
 	{
-		size_t arg_ref_index = needs_result_address ? 1 : 0;
+		size_t arg_ref_index = needs_return_address ? 1 : 0;
 
 		for (auto const arg_index : bz::iota(0, func_call.params.size()))
 		{
@@ -2916,19 +2916,21 @@ static expr_value generate_expr_code(
 			else
 			{
 				auto const arg_value = generate_expr_code(func_call.params[arg_index], context, {});
-				bz_assert(arg_value.get_type() == func->arg_types[arg_ref_index - needs_result_address]);
 				auto const &param_type = func_call.func_body->params[arg_index].get_type();
 				if (param_type.is<ast::ts_lvalue_reference>() || param_type.is<ast::ts_move_reference>())
 				{
+					bz_assert(func->arg_types[arg_ref_index - needs_return_address]->is_pointer());
 					bz_assert(arg_value.is_reference());
 					arg_refs[arg_ref_index] = arg_value.get_reference();
 				}
 				else if (arg_value.get_type()->is_simple_value_type())
 				{
+					bz_assert(arg_value.get_type() == func->arg_types[arg_ref_index - needs_return_address]);
 					arg_refs[arg_ref_index] = arg_value.get_value_as_instruction(context);
 				}
 				else
 				{
+					bz_assert(arg_value.get_type() == func->arg_types[arg_ref_index - needs_return_address]);
 					bz_assert(arg_value.is_reference());
 					arg_refs[arg_ref_index] = arg_value.get_reference();
 				}
@@ -2957,23 +2959,31 @@ static expr_value generate_expr_code(
 			{
 				auto const arg_value = generate_expr_code(func_call.params[arg_index], context, {});
 				--arg_ref_index;
-				bz_assert(arg_value.get_type() == func->arg_types[arg_ref_index - needs_result_address]);
-				if (arg_value.get_type()->is_simple_value_type())
+				auto const &param_type = func_call.func_body->params[arg_index].get_type();
+				if (param_type.is<ast::ts_lvalue_reference>() || param_type.is<ast::ts_move_reference>())
 				{
+					bz_assert(func->arg_types[arg_ref_index - needs_return_address]->is_pointer());
+					bz_assert(arg_value.is_reference());
+					arg_refs[arg_ref_index] = arg_value.get_reference();
+				}
+				else if (arg_value.get_type()->is_simple_value_type())
+				{
+					bz_assert(arg_value.get_type() == func->arg_types[arg_ref_index - needs_return_address]);
 					arg_refs[arg_ref_index] = arg_value.get_value_as_instruction(context);
 				}
 				else
 				{
+					bz_assert(arg_value.get_type() == func->arg_types[arg_ref_index - needs_return_address]);
 					bz_assert(arg_value.is_reference());
 					arg_refs[arg_ref_index] = arg_value.get_reference();
 				}
 			}
 		}
 
-		bz_assert(arg_ref_index == (needs_result_address ? 1 : 0));
+		bz_assert(arg_ref_index == (needs_return_address ? 1 : 0));
 	}
 
-	if (needs_result_address)
+	if (needs_return_address)
 	{
 		if (!result_address.has_value())
 		{
@@ -5535,10 +5545,10 @@ static void generate_stmt_code(ast::stmt_return const &return_stmt, codegen_cont
 		context.emit_all_destruct_operations();
 		context.create_ret_void();
 	}
-	if (context.function_return_address.has_value())
+	if (context.current_function_info.return_address.has_value())
 	{
 		bz_assert(return_stmt.expr.not_null());
-		generate_expr_code(return_stmt.expr, context, context.function_return_address);
+		generate_expr_code(return_stmt.expr, context, context.current_function_info.return_address);
 		context.emit_all_destruct_operations();
 		context.create_ret_void();
 	}
@@ -5575,7 +5585,7 @@ static void add_variable_helper(
 {
 	if (var_decl.tuple_decls.empty())
 	{
-		bz_assert(!var_decl.get_type().is<ast::ts_lvalue_reference>());
+		bz_assert(!var_decl.get_type().is<ast::ts_lvalue_reference>() && !var_decl.get_type().is<ast::ts_move_reference>());
 		context.add_variable(&var_decl, value);
 		if (var_decl.is_ever_moved_from() && var_decl.destruction.not_null())
 		{
@@ -5607,7 +5617,15 @@ static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_conte
 		return;
 	}
 
-	if (var_decl.get_type().is<ast::ts_lvalue_reference>())
+	if (var_decl.get_type().is_typename())
+	{
+		return;
+	}
+	else if (var_decl.get_type().is<ast::ts_consteval>())
+	{
+		bz_unreachable;
+	}
+	else if (var_decl.get_type().is<ast::ts_lvalue_reference>())
 	{
 		bz_assert(var_decl.init_expr.not_null());
 		auto const prev_info = context.push_expression_scope();

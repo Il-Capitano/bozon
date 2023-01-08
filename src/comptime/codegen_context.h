@@ -78,10 +78,11 @@ struct unresolved_jump
 	bz::array<basic_block_ref, 2> dests;
 };
 
-struct codegen_context
+struct current_function_info_t
 {
-	basic_block_ref current_bb = {};
-	bz::optional<expr_value> function_return_address;
+	bz::optional<expr_value> return_address;
+	type const *return_type;
+	bz::fixed_vector<type const *> arg_types;
 	bz::vector<alloca> allocas;
 	bz::vector<basic_block> blocks;
 	bz::vector<error_info_t> errors;
@@ -92,6 +93,15 @@ struct codegen_context
 	bz::vector<memory_access_check_info_t> memory_access_check_infos;
 	bz::vector<unresolved_instruction> unresolved_instructions;
 	bz::vector<unresolved_jump> unresolved_jumps;
+
+	void finalize_function(function &func);
+};
+
+struct codegen_context
+{
+	basic_block_ref current_bb = {};
+
+	current_function_info_t current_function_info;
 
 	struct destruct_operation_info_t
 	{
@@ -187,10 +197,10 @@ struct codegen_context
 		static_assert(instructions::arg_count<Inst> == 0);
 		instruction new_inst = instruction();
 		new_inst.emplace<Inst>(inst);
-		this->blocks[this->current_bb.bb_index].instructions.push_back(std::move(new_inst));
+		this->current_function_info.blocks[this->current_bb.bb_index].instructions.push_back(std::move(new_inst));
 		auto const result = instruction_ref{
 			.bb_index   = this->current_bb.bb_index,
-			.inst_index = static_cast<uint32_t>(this->blocks[this->current_bb.bb_index].instructions.size() - 1),
+			.inst_index = static_cast<uint32_t>(this->current_function_info.blocks[this->current_bb.bb_index].instructions.size() - 1),
 		};
 		return result;
 	}
@@ -201,12 +211,12 @@ struct codegen_context
 		static_assert(instructions::arg_count<Inst> == 1);
 		instruction new_inst = instruction();
 		new_inst.emplace<Inst>(inst);
-		this->blocks[this->current_bb.bb_index].instructions.push_back(std::move(new_inst));
+		this->current_function_info.blocks[this->current_bb.bb_index].instructions.push_back(std::move(new_inst));
 		auto const result = instruction_ref{
 			.bb_index   = this->current_bb.bb_index,
-			.inst_index = static_cast<uint32_t>(this->blocks[this->current_bb.bb_index].instructions.size() - 1),
+			.inst_index = static_cast<uint32_t>(this->current_function_info.blocks[this->current_bb.bb_index].instructions.size() - 1),
 		};
-		this->unresolved_instructions.push_back({
+		this->current_function_info.unresolved_instructions.push_back({
 			.inst = result,
 			.args = { arg, {}, {} },
 		});
@@ -219,12 +229,12 @@ struct codegen_context
 		static_assert(instructions::arg_count<Inst> == 2);
 		instruction new_inst = instruction();
 		new_inst.emplace<Inst>(inst);
-		this->blocks[this->current_bb.bb_index].instructions.push_back(std::move(new_inst));
+		this->current_function_info.blocks[this->current_bb.bb_index].instructions.push_back(std::move(new_inst));
 		auto const result = instruction_ref{
 			.bb_index   = this->current_bb.bb_index,
-			.inst_index = static_cast<uint32_t>(this->blocks[this->current_bb.bb_index].instructions.size() - 1),
+			.inst_index = static_cast<uint32_t>(this->current_function_info.blocks[this->current_bb.bb_index].instructions.size() - 1),
 		};
-		this->unresolved_instructions.push_back({
+		this->current_function_info.unresolved_instructions.push_back({
 			.inst = result,
 			.args = { arg1, arg2, {} },
 		});
@@ -237,12 +247,12 @@ struct codegen_context
 		static_assert(instructions::arg_count<Inst> == 3);
 		instruction new_inst = instruction();
 		new_inst.emplace<Inst>(inst);
-		this->blocks[this->current_bb.bb_index].instructions.push_back(std::move(new_inst));
+		this->current_function_info.blocks[this->current_bb.bb_index].instructions.push_back(std::move(new_inst));
 		auto const result = instruction_ref{
 			.bb_index   = this->current_bb.bb_index,
-			.inst_index = static_cast<uint32_t>(this->blocks[this->current_bb.bb_index].instructions.size() - 1),
+			.inst_index = static_cast<uint32_t>(this->current_function_info.blocks[this->current_bb.bb_index].instructions.size() - 1),
 		};
-		this->unresolved_instructions.push_back({
+		this->current_function_info.unresolved_instructions.push_back({
 			.inst = result,
 			.args = { arg1, arg2, arg3 },
 		});
@@ -271,7 +281,8 @@ struct codegen_context
 	expr_value create_const_f64(float64_t value);
 	expr_value create_const_ptr_null(void);
 
-	expr_value create_get_function_arg(uint32_t arg_index);
+	expr_value create_get_function_return_address(void);
+	instruction_ref create_get_function_arg(uint32_t arg_index);
 
 	expr_value create_load(expr_value ptr);
 	instruction_ref create_store(expr_value value, expr_value ptr);
