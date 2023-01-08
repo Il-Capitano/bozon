@@ -5708,6 +5708,66 @@ void generate_code(ast::function_body &body, codegen_context &context)
 {
 	bz_assert(body.state == ast::resolve_state::all);
 
+	bz_assert(context.current_function_info.return_type == nullptr);
+	context.current_function_info.return_type = get_type(body.return_type, context);
+	bz_assert(context.current_function_info.arg_types.empty());
+
+	context.current_function_info.arg_types = bz::fixed_vector(
+		body.params
+			.filter([](auto const &param) { return !ast::is_generic_parameter(param); })
+			.transform([&context](auto const &param) { return get_type(param.get_type(), context); })
+			.collect(body.params.size())
+			.as_array_view()
+	);
+
+	auto const needs_return_address = !context.current_function_info.return_type->is_simple_value_type();
+	if (needs_return_address)
+	{
+		context.current_function_info.return_address = context.create_get_function_return_address();
+	}
+
+	size_t i = 0;
+	for (auto const &param : body.params)
+	{
+		if (ast::is_generic_parameter(param))
+		{
+			generate_stmt_code(param, context);
+			continue;
+		}
+
+		if (param.get_type().is<ast::ts_lvalue_reference>() || param.get_type().is<ast::ts_move_reference>())
+		{
+			auto const inner_type = param.get_type().is<ast::ts_lvalue_reference>()
+				? param.get_type().get<ast::ts_lvalue_reference>()
+				: param.get_type().get<ast::ts_move_reference>();
+			auto const type = get_type(inner_type, context);
+			auto const value = expr_value::get_reference(context.create_get_function_arg(i), type);
+			if (param.tuple_decls.empty())
+			{
+				context.add_variable(&param, value);
+				bz_assert(param.destruction.is_null());
+			}
+			else
+			{
+				add_variable_helper(param, value, context);
+			}
+		}
+		else if (auto const type = context.current_function_info.arg_types[i]; type->is_simple_value_type())
+		{
+			auto const alloca = context.create_alloca(type);
+			auto const value = expr_value::get_value(context.create_get_function_arg(i), type);
+			context.create_store(value, alloca);
+			add_variable_helper(param, alloca, context);
+		}
+		else
+		{
+			auto const value = expr_value::get_reference(context.create_get_function_arg(i), type);
+			add_variable_helper(param, value, context);
+		}
+		++i;
+	}
+	bz_assert(i == context.current_function_info.arg_types.size());
+
 	for (auto const &stmt : body.get_statements())
 	{
 		generate_stmt_code(stmt, context);
