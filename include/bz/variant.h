@@ -47,12 +47,29 @@ constexpr bool is_any(std::initializer_list<bool> values)
 	return false;
 }
 
+template<size_t N, typename T>
+struct variant_value_type_helper_elem
+{
+	T operator [] (meta::index_constant<N>);
+};
+
+template<typename Seq, typename ...Ts>
+struct variant_value_type_helper;
+
+template<size_t ...Ns, typename ...Ts>
+struct variant_value_type_helper<std::index_sequence<Ns...>, Ts...> : variant_value_type_helper_elem<Ns, Ts>...
+{
+	using variant_value_type_helper_elem<Ns, Ts>::operator []...;
+};
+
 template<typename ...Ts>
 struct variant_storage_t
 {
+private:
+	using value_type_helper = variant_value_type_helper<std::make_index_sequence<sizeof ...(Ts)>, Ts...>;
 public:
 	template<size_t N>
-	using value_type = meta::nth_type<N, Ts...>;
+	using value_type = decltype(value_type_helper()[meta::index_constant<N>()]);
 
 protected:
 	static constexpr auto data_align = max({ alignof (Ts)... });
@@ -374,7 +391,7 @@ private:
 		}();
 		static_assert(index < sizeof... (Ts), "cannot decide which value type should be used");
 
-		using type = meta::nth_type<index, Ts...>;
+		using type = typename base_t::template value_type<index>;
 	};
 
 public:
