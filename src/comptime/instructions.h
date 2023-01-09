@@ -35,6 +35,18 @@ struct alloca
 	size_t align;
 };
 
+struct switch_info_t
+{
+	struct value_instruction_index_pair
+	{
+		uint64_t value;
+		instruction_index dest;
+	};
+
+	bz::fixed_vector<value_instruction_index_pair> values;
+	instruction_index default_dest;
+};
+
 struct error_info_t
 {
 	lex::src_tokens src_tokens;
@@ -65,6 +77,7 @@ struct function
 	bz::fixed_vector<type const *> arg_types;
 	type const *return_type;
 
+	bz::fixed_vector<switch_info_t> switch_infos;
 	bz::fixed_vector<error_info_t> errors;
 	bz::fixed_vector<lex::src_tokens> src_tokens;
 	bz::fixed_vector<bz::fixed_vector<instruction_index>> call_args;
@@ -4386,6 +4399,56 @@ struct conditional_jump
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
+struct switch_i1
+{
+	static inline constexpr bz::array arg_types = { value_type::i1 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t switch_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct switch_i8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t switch_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct switch_i16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t switch_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct switch_i32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t switch_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct switch_i64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t switch_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
 struct ret
 {
 	static inline constexpr bz::array arg_types = { value_type::any };
@@ -4991,6 +5054,11 @@ using instruction_list = bz::meta::type_pack<
 	instructions::function_call,
 	instructions::jump,
 	instructions::conditional_jump,
+	instructions::switch_i1,
+	instructions::switch_i8,
+	instructions::switch_i16,
+	instructions::switch_i32,
+	instructions::switch_i64,
 	instructions::ret,
 	instructions::ret_void,
 	instructions::unreachable,
@@ -5011,7 +5079,7 @@ struct instruction : instruction_base_t
 {
 	using base_t = instruction_base_t;
 
-	static_assert(variant_count == 504);
+	static_assert(variant_count == 509);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -5506,6 +5574,11 @@ struct instruction : instruction_base_t
 		function_call            = index_of<instructions::function_call>,
 		jump                     = index_of<instructions::jump>,
 		conditional_jump         = index_of<instructions::conditional_jump>,
+		switch_i1                = index_of<instructions::switch_i1>,
+		switch_i8                = index_of<instructions::switch_i8>,
+		switch_i16               = index_of<instructions::switch_i16>,
+		switch_i32               = index_of<instructions::switch_i32>,
+		switch_i64               = index_of<instructions::switch_i64>,
 		ret                      = index_of<instructions::ret>,
 		ret_void                 = index_of<instructions::ret_void>,
 		unreachable              = index_of<instructions::unreachable>,
@@ -5526,6 +5599,11 @@ struct instruction : instruction_base_t
 		{
 		case jump:
 		case conditional_jump:
+		case switch_i1:
+		case switch_i8:
+		case switch_i16:
+		case switch_i32:
+		case switch_i64:
 		case ret:
 		case ret_void:
 		case unreachable:

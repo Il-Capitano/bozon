@@ -4141,6 +4141,51 @@ static void execute_conditional_jump(instructions::conditional_jump const &inst,
 	}
 }
 
+static void execute_switch(switch_info_t const &info, uint64_t value, executor_context &context)
+{
+	auto const it = std::lower_bound(info.values.begin(), info.values.end(), value, [](auto const &lhs, uint64_t rhs) {
+		return lhs.value < rhs;
+	});
+	if (it != info.values.end() && it->value == value)
+	{
+		context.do_jump(it->dest);
+	}
+	else
+	{
+		context.do_jump(info.default_dest);
+	}
+}
+
+static void execute_switch_i1(instructions::switch_i1 const &inst, bool value, executor_context &context)
+{
+	auto const &info = context.get_switch_info(inst.switch_info_index);
+	execute_switch(info, value ? 1 : 0, context);
+}
+
+static void execute_switch_i8(instructions::switch_i8 const &inst, uint8_t value, executor_context &context)
+{
+	auto const &info = context.get_switch_info(inst.switch_info_index);
+	execute_switch(info, value, context);
+}
+
+static void execute_switch_i16(instructions::switch_i16 const &inst, uint16_t value, executor_context &context)
+{
+	auto const &info = context.get_switch_info(inst.switch_info_index);
+	execute_switch(info, value, context);
+}
+
+static void execute_switch_i32(instructions::switch_i32 const &inst, uint32_t value, executor_context &context)
+{
+	auto const &info = context.get_switch_info(inst.switch_info_index);
+	execute_switch(info, value, context);
+}
+
+static void execute_switch_i64(instructions::switch_i64 const &inst, uint64_t value, executor_context &context)
+{
+	auto const &info = context.get_switch_info(inst.switch_info_index);
+	execute_switch(info, value, context);
+}
+
 static void execute_ret(instructions::ret const &, instruction_value value, executor_context &context)
 {
 	context.do_ret(value);
@@ -4455,7 +4500,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 504);
+		static_assert(instruction::variant_count == 509);
 		case instruction::const_i1:
 			execute<instructions::const_i1, &execute_const_i1>(context);
 			break;
@@ -5931,6 +5976,21 @@ void execute(executor_context &context)
 			break;
 		case instruction::conditional_jump:
 			execute<instructions::conditional_jump, &execute_conditional_jump>(context);
+			break;
+		case instruction::switch_i1:
+			execute<instructions::switch_i1, &execute_switch_i1>(context);
+			break;
+		case instruction::switch_i8:
+			execute<instructions::switch_i8, &execute_switch_i8>(context);
+			break;
+		case instruction::switch_i16:
+			execute<instructions::switch_i16, &execute_switch_i16>(context);
+			break;
+		case instruction::switch_i32:
+			execute<instructions::switch_i32, &execute_switch_i32>(context);
+			break;
+		case instruction::switch_i64:
+			execute<instructions::switch_i64, &execute_switch_i64>(context);
 			break;
 		case instruction::ret:
 			execute<instructions::ret, &execute_ret>(context);

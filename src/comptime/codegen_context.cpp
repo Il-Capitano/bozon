@@ -754,6 +754,40 @@ instruction_ref codegen_context::create_conditional_jump(
 	return result;
 }
 
+instruction_ref codegen_context::create_switch(
+	expr_value value,
+	bz::vector<unresolved_switch::value_bb_pair> values,
+	basic_block_ref default_bb
+)
+{
+	auto const value_ref = value.get_value_as_instruction(*this);
+	auto const switch_info_index = static_cast<uint32_t>(this->current_function_info.unresolved_switches.size());
+	bz_assert(value.get_type()->is_integer_type());
+	auto const result = [&]() {
+		switch (value.get_type()->get_builtin_kind())
+		{
+		case builtin_type_kind::i1:
+			return this->add_instruction(instructions::switch_i1{ .switch_info_index = switch_info_index }, value_ref);
+		case builtin_type_kind::i8:
+			return this->add_instruction(instructions::switch_i8{ .switch_info_index = switch_info_index }, value_ref);
+		case builtin_type_kind::i16:
+			return this->add_instruction(instructions::switch_i16{ .switch_info_index = switch_info_index }, value_ref);
+		case builtin_type_kind::i32:
+			return this->add_instruction(instructions::switch_i32{ .switch_info_index = switch_info_index }, value_ref);
+		case builtin_type_kind::i64:
+			return this->add_instruction(instructions::switch_i64{ .switch_info_index = switch_info_index }, value_ref);
+		default:
+			bz_unreachable;
+		}
+	}();
+	this->current_function_info.unresolved_switches.push_back({
+		.inst = result,
+		.values = std::move(values),
+		.default_bb = default_bb,
+	});
+	return result;
+}
+
 instruction_ref codegen_context::create_ret(instruction_ref value)
 {
 	return this->add_instruction(instructions::ret{}, value);
@@ -5267,7 +5301,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 504);
+	static_assert(instruction::variant_count == 509);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>();
@@ -5330,6 +5364,20 @@ void current_function_info_t::finalize_function(function &func)
 	for (auto const &[inst_ref, dests] : this->unresolved_jumps)
 	{
 		resolve_jump_dests(get_instruction(inst_ref), dests, get_instruction_index);
+	}
+
+	// resolve switch_infos
+	func.switch_infos = bz::fixed_vector<switch_info_t>(this->unresolved_switches.size());
+	for (auto const i : bz::iota(0, func.switch_infos.size()))
+	{
+		auto const &[inst_ref, values, default_dest] = this->unresolved_switches[i];
+		func.switch_infos[i].values = bz::fixed_vector<switch_info_t::value_instruction_index_pair>(values.size());
+		for (auto const j : bz::iota(0, func.switch_infos[i].values.size()))
+		{
+			func.switch_infos[i].values[j].value = values[j].value;
+			func.switch_infos[i].values[j].dest = get_instruction_index({ .bb_index = values[j].bb.bb_index, .inst_index = 0 });
+		}
+		func.switch_infos[i].default_dest = get_instruction_index({ .bb_index = default_dest.bb_index, .inst_index = 0 });
 	}
 
 	// finalize instructions

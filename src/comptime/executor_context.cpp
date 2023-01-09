@@ -40,6 +40,12 @@ void executor_context::do_ret_void(void)
 	this->returned = true;
 }
 
+switch_info_t const &executor_context::get_switch_info(uint32_t index) const
+{
+	bz_assert(index < this->current_function->switch_infos.size());
+	return this->current_function->switch_infos[index];
+}
+
 slice_construction_check_info_t const &executor_context::get_slice_construction_info(uint32_t index) const
 {
 	bz_assert(index < this->current_function->slice_construction_check_infos.size());

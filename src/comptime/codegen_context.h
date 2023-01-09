@@ -78,6 +78,19 @@ struct unresolved_jump
 	bz::array<basic_block_ref, 2> dests;
 };
 
+struct unresolved_switch
+{
+	struct value_bb_pair
+	{
+		uint64_t value;
+		basic_block_ref bb;
+	};
+
+	instruction_ref inst;
+	bz::vector<value_bb_pair> values;
+	basic_block_ref default_bb;
+};
+
 struct current_function_info_t
 {
 	bz::optional<expr_value> return_address;
@@ -93,6 +106,7 @@ struct current_function_info_t
 	bz::vector<memory_access_check_info_t> memory_access_check_infos;
 	bz::vector<unresolved_instruction> unresolved_instructions;
 	bz::vector<unresolved_jump> unresolved_jumps;
+	bz::vector<unresolved_switch> unresolved_switches;
 
 	void finalize_function(function &func);
 };
@@ -302,6 +316,7 @@ struct codegen_context
 
 	instruction_ref create_jump(basic_block_ref bb);
 	instruction_ref create_conditional_jump(expr_value condition, basic_block_ref true_bb, basic_block_ref false_bb);
+	instruction_ref create_switch(expr_value value, bz::vector<unresolved_switch::value_bb_pair> values, basic_block_ref default_bb);
 	instruction_ref create_ret(instruction_ref value);
 	instruction_ref create_ret_void(void);
 
