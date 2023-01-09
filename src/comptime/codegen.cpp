@@ -4430,10 +4430,111 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	ast::expr_switch const &,
+	ast::expression const &original_expression,
+	ast::expr_switch const &switch_expr,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	auto const matched_value_prev_info = context.push_expression_scope();
+	auto const _matched_value = generate_expr_code(switch_expr.matched_expr, context, {});
+	bz_assert(_matched_value.get_type()->is_integer_type());
+	auto const matched_value = _matched_value.get_value(context);
+	context.pop_expression_scope(matched_value_prev_info);
+
+	auto const default_bb = context.add_basic_block();
+	auto const has_default = switch_expr.default_case.not_null();
+	bz_assert(result_address.has_value() ? switch_expr.is_complete : true);
+	auto const begin_bb = context.get_current_basic_block();
+
+	auto const case_count = switch_expr.cases.transform([](auto const &switch_case) { return switch_case.values.size(); }).sum();
+	auto cases = bz::vector<unresolved_switch::value_bb_pair>();
+	cases.reserve(case_count);
+	auto case_bb_ends = bz::vector<basic_block_ref>();
+	case_bb_ends.reserve(case_count + 1);
+
+	if (has_default)
+	{
+		context.set_current_basic_block(default_bb);
+		auto const prev_info = context.push_expression_scope();
+		generate_expr_code(switch_expr.default_case, context, result_address);
+		context.pop_expression_scope(prev_info);
+		if (!context.has_terminator())
+		{
+			case_bb_ends.push_back(context.get_current_basic_block());
+		}
+	}
+	else if (switch_expr.is_complete)
+	{
+		context.set_current_basic_block(default_bb);
+		context.create_error(original_expression.src_tokens, "invalid value used in 'switch'");
+		context.create_unreachable();
+	}
+	else
+	{
+		case_bb_ends.push_back(default_bb);
+	}
+
+	for (auto const &[case_vals, case_expr] : switch_expr.cases)
+	{
+		auto const bb = context.add_basic_block();
+		for (auto const &expr : case_vals)
+		{
+			bz_assert(expr.is_constant());
+			auto const &value = expr.get_constant_value();
+			switch (value.kind())
+			{
+			static_assert(ast::constant_value::variant_count == 19);
+			case ast::constant_value::sint:
+				cases.push_back({ .value = static_cast<uint64_t>(value.get_sint()), .bb = bb, });
+				break;
+			case ast::constant_value::uint:
+				cases.push_back({ .value = value.get_uint(), .bb = bb, });
+				break;
+			case ast::constant_value::u8char:
+				cases.push_back({ .value = static_cast<uint64_t>(value.get_u8char()), .bb = bb, });
+				break;
+			case ast::constant_value::boolean:
+				cases.push_back({ .value = static_cast<uint64_t>(value.get_boolean()), .bb = bb, });
+				break;
+			case ast::constant_value::enum_:
+				cases.push_back({ .value = value.get_enum().value, .bb = bb, });
+				break;
+			default:
+				bz_unreachable;
+			}
+		}
+
+		context.set_current_basic_block(bb);
+		auto const prev_info = context.push_expression_scope();
+		generate_expr_code(case_expr, context, result_address);
+		context.pop_expression_scope(prev_info);
+
+		if (!context.has_terminator())
+		{
+			case_bb_ends.push_back(context.get_current_basic_block());
+		}
+	}
+
+	auto const end_bb = context.add_basic_block();
+	for (auto const case_end_bb : case_bb_ends)
+	{
+		context.set_current_basic_block(case_end_bb);
+		context.create_jump(end_bb);
+	}
+
+	context.set_current_basic_block(begin_bb);
+	context.create_switch(matched_value, std::move(cases), default_bb);
+
+	if (result_address.has_value())
+	{
+		return result_address.get();
+	}
+	else
+	{
+		return expr_value::get_none();
+	}
+}
 
 static expr_value generate_expr_code(
 	lex::src_tokens const &src_tokens,
@@ -4667,7 +4768,7 @@ static expr_value generate_expr_code(
 	case ast::expr_t::index<ast::expr_if_consteval>:
 		return generate_expr_code(expr.get<ast::expr_if_consteval>(), context, result_address);
 	case ast::expr_t::index<ast::expr_switch>:
-		return generate_expr_code(expr.get<ast::expr_switch>(), context, result_address);
+		return generate_expr_code(original_expression, expr.get<ast::expr_switch>(), context, result_address);
 	case ast::expr_t::index<ast::expr_break>:
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(original_expression.src_tokens, expr.get<ast::expr_break>(), context);
