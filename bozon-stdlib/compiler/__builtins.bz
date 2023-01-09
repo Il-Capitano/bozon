@@ -156,13 +156,7 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 	} else {}, void);
 
 @__builtin export function __builtin_is_comptime() -> bool;
-
-@__builtin @symbol_name("__bozon_builtin_is_option_set_impl") consteval function __builtin_is_option_set_impl(begin: ?*const uint8, end: ?*const uint8) -> bool;
-@__builtin
-export consteval function __builtin_is_option_set(option: str) -> bool
-{
-	return __builtin_is_option_set_impl(__builtin_str_begin_ptr(option), __builtin_str_end_ptr(option));
-}
+@__builtin export consteval function __builtin_is_option_set(option: str) -> bool;
 
 @__builtin
 export function __builtin_panic(message: str)
@@ -245,9 +239,8 @@ export function __builtin_print_stderr(s: str)
 	std::libc::fwrite(__builtin_str_begin_ptr(s), 1, __builtin_str_size(s), std::libc::stderr());
 }
 
-@__builtin @symbol_name("__bozon_builtin_comptime_malloc") consteval function __builtin_comptime_malloc(size: usize) -> *void;
-@__builtin export consteval function __builtin_comptime_malloc_type(T: typename, count: usize) -> *T;
-@__builtin @symbol_name("__bozon_builtin_comptime_free") export consteval function __builtin_comptime_free(ptr: ?*void);
+@__builtin export consteval function __builtin_comptime_malloc(T: typename, count: usize) -> *T;
+@__builtin export consteval function __builtin_comptime_free(ptr: ?*void);
 
 @__builtin export consteval function __builtin_comptime_compile_error(message: str);
 @__builtin export consteval function __builtin_comptime_compile_warning(message: str);
@@ -336,8 +329,8 @@ export function __builtin_print_stderr(s: str)
 @__builtin @symbol_name("llvm.abs.i16") export function __builtin_abs_i16(n: int16) -> int16;
 @__builtin @symbol_name("llvm.abs.i32") export function __builtin_abs_i32(n: int32) -> int32;
 @__builtin @symbol_name("llvm.abs.i64") export function __builtin_abs_i64(n: int64) -> int64;
-@__builtin @symbol_name("llvm.fabs.f32") export function __builtin_fabs_f32(x: float32) -> float32;
-@__builtin @symbol_name("llvm.fabs.f64") export function __builtin_fabs_f64(x: float64) -> float64;
+@__builtin @symbol_name("llvm.fabs.f32") export function __builtin_abs_f32(x: float32) -> float32;
+@__builtin @symbol_name("llvm.fabs.f64") export function __builtin_abs_f64(x: float64) -> float64;
 
 @__builtin @symbol_name("llvm.smin.i8")  export function __builtin_min_i8 (a: int8,  b: int8)  -> int8;
 @__builtin @symbol_name("llvm.smin.i16") export function __builtin_min_i16(a: int16, b: int16) -> int16;

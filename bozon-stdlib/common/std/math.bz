@@ -133,8 +133,8 @@ export function abs = __builtin_abs_i8;
 export function abs = __builtin_abs_i16;
 export function abs = __builtin_abs_i32;
 export function abs = __builtin_abs_i64;
-export function abs = __builtin_fabs_f32;
-export function abs = __builtin_fabs_f64;
+export function abs = __builtin_abs_f32;
+export function abs = __builtin_abs_f64;
 
 // math constants
 

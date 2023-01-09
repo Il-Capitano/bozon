@@ -519,7 +519,6 @@ struct function_body
 		builtin_swap,
 
 		builtin_is_comptime,
-		builtin_is_option_set_impl,
 		builtin_is_option_set,
 		builtin_panic,
 
@@ -529,19 +528,14 @@ struct function_body
 		print_stderr,
 
 		comptime_malloc,
-		comptime_malloc_type,
 		comptime_free,
 
 		comptime_compile_error,
 		comptime_compile_warning,
-		comptime_compile_error_src_tokens,
-		comptime_compile_warning_src_tokens,
 
 		comptime_create_global_string,
 
 		comptime_concatenate_strs,
-		comptime_format_float32,
-		comptime_format_float64,
 
 		// type manipulation functions
 
@@ -593,7 +587,7 @@ struct function_body
 		memset,
 
 		abs_i8, abs_i16, abs_i32, abs_i64,
-		fabs_f32, fabs_f64,
+		abs_f32, abs_f64,
 
 		min_i8, min_i16, min_i32, min_i64,
 		min_u8, min_u16, min_u32, min_u64,
@@ -1597,7 +1591,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 193);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 187);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1637,7 +1631,6 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_swap,              "__builtin_swap"              },
 
 		{ function_body::builtin_is_comptime,        "__builtin_is_comptime"        },
-		{ function_body::builtin_is_option_set_impl, "__builtin_is_option_set_impl" },
 		{ function_body::builtin_is_option_set,      "__builtin_is_option_set"      },
 		{ function_body::builtin_panic,              "__builtin_panic"              },
 
@@ -1646,20 +1639,15 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::print_stdout,   "__builtin_print_stdout"   },
 		{ function_body::print_stderr,   "__builtin_print_stderr"   },
 
-		{ function_body::comptime_malloc,      "__builtin_comptime_malloc"      },
-		{ function_body::comptime_malloc_type, "__builtin_comptime_malloc_type" },
-		{ function_body::comptime_free,        "__builtin_comptime_free"        },
+		{ function_body::comptime_malloc, "__builtin_comptime_malloc" },
+		{ function_body::comptime_free,   "__builtin_comptime_free"   },
 
-		{ function_body::comptime_compile_error,              "__builtin_comptime_compile_error"              },
-		{ function_body::comptime_compile_warning,            "__builtin_comptime_compile_warning"            },
-		{ function_body::comptime_compile_error_src_tokens,   "__builtin_comptime_compile_error_src_tokens"   },
-		{ function_body::comptime_compile_warning_src_tokens, "__builtin_comptime_compile_warning_src_tokens" },
+		{ function_body::comptime_compile_error,   "__builtin_comptime_compile_error"   },
+		{ function_body::comptime_compile_warning, "__builtin_comptime_compile_warning" },
 
 		{ function_body::comptime_create_global_string, "__builtin_comptime_create_global_string" },
 
 		{ function_body::comptime_concatenate_strs, "__builtin_comptime_concatenate_strs" },
-		{ function_body::comptime_format_float32,   "__builtin_comptime_format_float32"   },
-		{ function_body::comptime_format_float64,   "__builtin_comptime_format_float64"   },
 
 		{ function_body::typename_as_str, "__builtin_typename_as_str" },
 
@@ -1710,12 +1698,12 @@ constexpr auto intrinsic_info = []() {
 
 		// C standard library math functions
 
-		{ function_body::abs_i8,   "__builtin_abs_i8"   },
-		{ function_body::abs_i16,  "__builtin_abs_i16"  },
-		{ function_body::abs_i32,  "__builtin_abs_i32"  },
-		{ function_body::abs_i64,  "__builtin_abs_i64"  },
-		{ function_body::fabs_f32, "__builtin_fabs_f32" },
-		{ function_body::fabs_f64, "__builtin_fabs_f64" },
+		{ function_body::abs_i8,  "__builtin_abs_i8"  },
+		{ function_body::abs_i16, "__builtin_abs_i16" },
+		{ function_body::abs_i32, "__builtin_abs_i32" },
+		{ function_body::abs_i64, "__builtin_abs_i64" },
+		{ function_body::abs_f32, "__builtin_abs_f32" },
+		{ function_body::abs_f64, "__builtin_abs_f64" },
 
 		{ function_body::min_i8,   "__builtin_min_i8"   },
 		{ function_body::min_i16,  "__builtin_min_i16"  },

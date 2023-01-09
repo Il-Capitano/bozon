@@ -1892,7 +1892,7 @@ static expr_value generate_intrinsic_function_call_code(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 193);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 187);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2089,8 +2089,6 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_unreachable;
 	case ast::function_body::builtin_is_comptime:
 		return value_or_result_address(context.create_const_i1(true), result_address, context);
-	case ast::function_body::builtin_is_option_set_impl:
-		bz_unreachable; // TODO
 	case ast::function_body::builtin_is_option_set:
 		// implemented in __builtins.bz
 		bz_unreachable;
@@ -2116,8 +2114,6 @@ static expr_value generate_intrinsic_function_call_code(
 		// implemented in __builtins.bz
 		bz_unreachable;
 	case ast::function_body::comptime_malloc:
-		bz_unreachable; // TODO: remove this function
-	case ast::function_body::comptime_malloc_type:
 		bz_unreachable; // TODO
 	case ast::function_body::comptime_free:
 		bz_unreachable; // TODO
@@ -2141,19 +2137,11 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(!result_address.has_value());
 		return expr_value::get_none();
 	}
-	case ast::function_body::comptime_compile_error_src_tokens:
-		bz_unreachable; // TODO: remove this function
-	case ast::function_body::comptime_compile_warning_src_tokens:
-		bz_unreachable; // TODO: remove this function
 	case ast::function_body::comptime_create_global_string:
 		bz_unreachable; // TODO
 	case ast::function_body::comptime_concatenate_strs:
 		// this is guaranteed to be constant evaluated
 		bz_unreachable;
-	case ast::function_body::comptime_format_float32:
-		bz_unreachable; // TODO: remove this function
-	case ast::function_body::comptime_format_float64:
-		bz_unreachable; // TODO: remove this function
 	case ast::function_body::typename_as_str:
 		// this is guaranteed to be constant evaluated
 		bz_unreachable;
@@ -2266,8 +2254,8 @@ static expr_value generate_intrinsic_function_call_code(
 	case ast::function_body::abs_i16:
 	case ast::function_body::abs_i32:
 	case ast::function_body::abs_i64:
-	case ast::function_body::fabs_f32: // TODO: rename this to abs_f32
-	case ast::function_body::fabs_f64: // TODO: rename this to abs_f64
+	case ast::function_body::abs_f32:
+	case ast::function_body::abs_f64:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const value = generate_expr_code(func_call.params[0], context, {}).get_value(context);

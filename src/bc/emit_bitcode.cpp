@@ -2777,7 +2777,7 @@ static val_ptr emit_bitcode(
 
 static ctx::comptime_function_kind get_math_check_function_kind(uint32_t intrinsic_kind)
 {
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 193);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 187);
 	switch (intrinsic_kind)
 	{
 	case ast::function_body::abs_i8:
@@ -2788,9 +2788,9 @@ static ctx::comptime_function_kind get_math_check_function_kind(uint32_t intrins
 		return ctx::comptime_function_kind::abs_i32_check;
 	case ast::function_body::abs_i64:
 		return ctx::comptime_function_kind::abs_i64_check;
-	case ast::function_body::fabs_f32:
+	case ast::function_body::abs_f32:
 		return ctx::comptime_function_kind::fabs_f32_check;
-	case ast::function_body::fabs_f64:
+	case ast::function_body::abs_f64:
 		return ctx::comptime_function_kind::fabs_f64_check;
 	case ast::function_body::fmin_f32:
 		return ctx::comptime_function_kind::fmin_f32_check;
@@ -3194,7 +3194,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 193);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 187);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -3544,7 +3544,7 @@ static val_ptr emit_bitcode(
 			{
 				break;
 			}
-		case ast::function_body::comptime_malloc_type:
+		case ast::function_body::comptime_malloc:
 			if constexpr (is_comptime<decltype(context)>)
 			{
 				bz_assert(func_call.params.size() == 2);
@@ -3614,31 +3614,7 @@ static val_ptr emit_bitcode(
 		case ast::function_body::comptime_compile_warning:
 			if constexpr (is_comptime<decltype(context)>)
 			{
-				auto const fn = func_call.func_body->intrinsic_kind == ast::function_body::comptime_compile_error
-					? context.get_function(context.get_builtin_function(ast::function_body::comptime_compile_error_src_tokens))
-					: context.get_function(context.get_builtin_function(ast::function_body::comptime_compile_warning_src_tokens));
-				auto const message_val = emit_bitcode<abi>(func_call.params[0], context, nullptr);
-				auto const [src_begin_val, src_pivot_val, src_end_val] = get_src_tokens_llvm_value(src_tokens, context);
-				ast::arena_vector<llvm::Value *> params;
-				params.reserve(5);
-				ast::arena_vector<is_byval_and_type_pair> params_is_byval;
-				params_is_byval.reserve(2);
-				add_call_parameter<abi>(
-					func_call.params[0].get_expr_type(), context.get_str_t(),
-					message_val, params, params_is_byval, context
-				);
-
-				params.push_back(src_begin_val);
-				params.push_back(src_pivot_val);
-				params.push_back(src_end_val);
-
-				auto const call = context.create_call(fn, llvm::ArrayRef(params.data(), params.size()));
-				bz_assert(!params_is_byval.empty());
-				if (params_is_byval[0].is_byval)
-				{
-					add_byval_attributes<abi>(call, params_is_byval[0].type, 0, context);
-				}
-				return val_ptr::get_none();
+				bz_unreachable;
 			}
 			else
 			{
@@ -3755,7 +3731,7 @@ static val_ptr emit_bitcode(
 				break;
 			}
 
-		case ast::function_body::fabs_f32:  case ast::function_body::fabs_f64:
+		case ast::function_body::abs_f32:  case ast::function_body::abs_f64:
 			[[fallthrough]];
 		case ast::function_body::exp_f32:   case ast::function_body::exp_f64:
 		case ast::function_body::exp2_f32:  case ast::function_body::exp2_f64:
