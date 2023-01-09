@@ -5366,18 +5366,20 @@ void current_function_info_t::finalize_function(function &func)
 		resolve_jump_dests(get_instruction(inst_ref), dests, get_instruction_index);
 	}
 
-	// resolve switch_infos
+	// finalize switch_infos
 	func.switch_infos = bz::fixed_vector<switch_info_t>(this->unresolved_switches.size());
 	for (auto const i : bz::iota(0, func.switch_infos.size()))
 	{
 		auto const &[inst_ref, values, default_dest] = this->unresolved_switches[i];
-		func.switch_infos[i].values = bz::fixed_vector<switch_info_t::value_instruction_index_pair>(values.size());
-		for (auto const j : bz::iota(0, func.switch_infos[i].values.size()))
+		auto &info = func.switch_infos[i];
+		info.values = bz::fixed_vector<switch_info_t::value_instruction_index_pair>(values.size());
+		for (auto const j : bz::iota(0, info.values.size()))
 		{
-			func.switch_infos[i].values[j].value = values[j].value;
-			func.switch_infos[i].values[j].dest = get_instruction_index({ .bb_index = values[j].bb.bb_index, .inst_index = 0 });
+			info.values[j].value = values[j].value;
+			info.values[j].dest = get_instruction_index({ .bb_index = values[j].bb.bb_index, .inst_index = 0 });
 		}
-		func.switch_infos[i].default_dest = get_instruction_index({ .bb_index = default_dest.bb_index, .inst_index = 0 });
+		info.values.sort([](auto const &lhs, auto const &rhs) { return lhs.value < rhs.value; });
+		info.default_dest = get_instruction_index({ .bb_index = default_dest.bb_index, .inst_index = 0 });
 	}
 
 	// finalize instructions
