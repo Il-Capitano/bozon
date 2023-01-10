@@ -244,7 +244,6 @@ export function __builtin_print_stderr(s: str)
 
 @__builtin export consteval function __builtin_comptime_compile_error(message: str);
 @__builtin export consteval function __builtin_comptime_compile_warning(message: str);
-// src_tokens variants are handled in __comptime_checking.bz
 
 @__builtin consteval function __builtin_comptime_concatenate_strs(s: ...consteval str) -> str;
 
@@ -298,27 +297,27 @@ export function __builtin_print_stderr(s: str)
 @__builtin @symbol_name("llvm.lifetime.end.p0") function __builtin_lifetime_end(size: uint64, ptr: *void);
 
 @__builtin @symbol_name(
-	if (sizeof usize == 8u) {
+	if (sizeof usize == 8) {
 		"llvm.memcpy.p0.p0.i64"
-	} else if (sizeof usize == 4u) {
+	} else if (sizeof usize == 4) {
 		"llvm.memcpy.p0.p0.i32"
 	} else {
 		unreachable
 	}
 ) export function __builtin_memcpy(dest: ?*void, src: ?*const void, n: usize);
 @__builtin @symbol_name(
-	if (sizeof usize == 8u) {
+	if (sizeof usize == 8) {
 		"llvm.memmove.p0.p0.i64"
-	} else if (sizeof usize == 4u) {
+	} else if (sizeof usize == 4) {
 		"llvm.memmove.p0.p0.i32"
 	} else {
 		unreachable
 	}
 ) export function __builtin_memmove(dest: ?*void, src: ?*const void, n: usize);
 @__builtin @symbol_name(
-	if (sizeof usize == 8u) {
+	if (sizeof usize == 8) {
 		"llvm.memset.p0.i64"
-	} else if (sizeof usize == 4u) {
+	} else if (sizeof usize == 4) {
 		"llvm.memset.p0.i32"
 	} else {
 		unreachable

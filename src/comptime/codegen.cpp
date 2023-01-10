@@ -3006,6 +3006,11 @@ static expr_value generate_expr_code(
 
 		return result_value;
 	}
+	else if (func->return_type->is_void())
+	{
+		context.create_function_call(func, std::move(arg_refs));
+		return expr_value::get_none();
+	}
 	else
 	{
 		auto const result_value = context.create_function_call(func, std::move(arg_refs));
@@ -5167,13 +5172,14 @@ static expr_value get_constant_value_helper(
 		// structs with a default value of "" get to be zero initialized
 		if (str == "")
 		{
-			auto const null_ptr_value = context.create_const_ptr_null();
-			context.create_store(null_ptr_value, context.create_struct_gep(result_value, 0));
-			context.create_store(null_ptr_value, context.create_struct_gep(result_value, 1));
+			context.create_const_memset_zero(result_value, result_value.get_type()->size);
 			return result_value;
 		}
-
-		bz_unreachable;
+		else
+		{
+			// TODO
+			bz_unreachable;
+		}
 		return result_value;
 	}
 	case ast::constant_value::boolean:
