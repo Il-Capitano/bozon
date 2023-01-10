@@ -5159,6 +5159,21 @@ instruction_ref codegen_context::create_warning_str(
 	);
 }
 
+expr_value codegen_context::create_is_option_set(expr_value begin_ptr, expr_value end_ptr)
+{
+	auto const begin_ptr_value = begin_ptr.get_value_as_instruction(*this);
+	auto const end_ptr_value = end_ptr.get_value_as_instruction(*this);
+
+	return expr_value::get_value(
+		this->add_instruction(
+			instructions::is_option_set{},
+			begin_ptr_value,
+			end_ptr_value
+		),
+		this->get_builtin_type(builtin_type_kind::i1)
+	);
+}
+
 instruction_ref codegen_context::create_array_bounds_check(
 	lex::src_tokens const &src_tokens,
 	expr_value index,
@@ -5301,7 +5316,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 509);
+	static_assert(instruction::variant_count == 510);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>();

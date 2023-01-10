@@ -2090,8 +2090,15 @@ static expr_value generate_intrinsic_function_call_code(
 	case ast::function_body::builtin_is_comptime:
 		return value_or_result_address(context.create_const_i1(true), result_address, context);
 	case ast::function_body::builtin_is_option_set:
-		// implemented in __builtins.bz
-		bz_unreachable;
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const option = generate_expr_code(func_call.params[0], context, {});
+		bz_assert(option.get_type() == context.get_str_t());
+		auto const begin_ptr = context.create_struct_gep(option, 0).get_value(context);
+		auto const end_ptr = context.create_struct_gep(option, 1).get_value(context);
+		auto const result_value = context.create_is_option_set(begin_ptr, end_ptr);
+		return value_or_result_address(result_value, result_address, context);
+	}
 	case ast::function_body::builtin_panic:
 		// implemented in __builtins.bz
 		bz_unreachable;

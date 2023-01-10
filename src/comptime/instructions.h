@@ -4488,6 +4488,14 @@ struct diagnostic_str
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
+struct is_option_set
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::i1;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
 struct array_bounds_check_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
@@ -5064,6 +5072,7 @@ using instruction_list = bz::meta::type_pack<
 	instructions::unreachable,
 	instructions::error,
 	instructions::diagnostic_str,
+	instructions::is_option_set,
 	instructions::array_bounds_check_i32,
 	instructions::array_bounds_check_u32,
 	instructions::array_bounds_check_i64,
@@ -5079,7 +5088,7 @@ struct instruction : instruction_base_t
 {
 	using base_t = instruction_base_t;
 
-	static_assert(variant_count == 509);
+	static_assert(variant_count == 510);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -5584,6 +5593,7 @@ struct instruction : instruction_base_t
 		unreachable              = index_of<instructions::unreachable>,
 		error                    = index_of<instructions::error>,
 		diagnostic_str           = index_of<instructions::diagnostic_str>,
+		is_option_set            = index_of<instructions::is_option_set>,
 		array_bounds_check_i32   = index_of<instructions::array_bounds_check_i32>,
 		array_bounds_check_u32   = index_of<instructions::array_bounds_check_u32>,
 		array_bounds_check_i64   = index_of<instructions::array_bounds_check_i64>,

@@ -4221,6 +4221,8 @@ static void execute_diagnostic_str(instructions::diagnostic_str const &inst, ptr
 	}
 }
 
+static bool execute_is_option_set(instructions::is_option_set const &, ptr_t begin, ptr_t end, executor_context &context);
+
 static void execute_array_bounds_check_i32(instructions::array_bounds_check_i32 const &inst, uint32_t uindex, uint32_t size, executor_context &context)
 {
 	auto const index = static_cast<int32_t>(uindex);
@@ -4500,7 +4502,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 509);
+		static_assert(instruction::variant_count == 510);
 		case instruction::const_i1:
 			execute<instructions::const_i1, &execute_const_i1>(context);
 			break;
@@ -6006,6 +6008,9 @@ void execute(executor_context &context)
 			break;
 		case instruction::diagnostic_str:
 			execute<instructions::diagnostic_str, &execute_diagnostic_str>(context);
+			break;
+		case instruction::is_option_set:
+			execute<instructions::is_option_set, &execute_is_option_set>(context);
 			break;
 		case instruction::array_bounds_check_i32:
 			execute<instructions::array_bounds_check_i32, &execute_array_bounds_check_i32>(context);
