@@ -62,12 +62,22 @@ struct heap_object
 struct stack_frame
 {
 	bz::fixed_vector<stack_object> objects;
+	uint32_t id;
 };
 
 struct stack_manager
 {
 	ptr_t head;
 	bz::vector<stack_frame> stack_frames;
+
+	bool check_dereference(ptr_t address, type const *object_type);
+	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type);
+	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type);
+
+	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type);
+	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);
+
+	uint8_t *get_memory(ptr_t address);
 };
 
 struct allocation
@@ -85,8 +95,15 @@ struct heap_manager
 	ptr_t head;
 	bz::vector<allocation> allocations;
 
-	ptr_t allocate(type const *object_type);
+	ptr_t allocate(type const *object_type, uint64_t count);
 	void free(lex::src_tokens const &free_src_tokens, ptr_t address);
+
+	bool check_dereference(ptr_t address, type const *object_type);
+	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type);
+	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type);
+
+	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type);
+	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);
 
 	uint8_t *get_memory(ptr_t address);
 };
@@ -94,7 +111,8 @@ struct heap_manager
 struct stack_object_pointer
 {
 	ptr_t stack_address;
-	size_t stack_frame_index;
+	uint32_t stack_frame_depth;
+	uint32_t stack_frame_id;
 };
 
 struct one_past_the_end_pointer
@@ -104,11 +122,39 @@ struct one_past_the_end_pointer
 
 struct meta_memory_manager
 {
-	ptr_t begin_address;
+	ptr_t stack_object_begin_address;
+	ptr_t one_past_the_end_begin_address;
+
+	bz::vector<stack_object_pointer> stack_object_pointers;
+	bz::vector<one_past_the_end_pointer> one_past_the_end_pointers;
+
+	ptr_t get_real_address(ptr_t address) const;
+	bool is_valid(ptr_t address, bz::array_view<stack_frame const> current_stack_frames) const;
+
+	ptr_t make_one_past_the_end_address(ptr_t address);
+};
+
+enum class memory_segment
+{
+	invalid,
+	stack,
+	heap,
+	meta,
+};
+
+struct memory_segment_info_t
+{
+	ptr_t stack_begin;
+	ptr_t heap_begin;
+	ptr_t meta_begin;
+
+	memory_segment get_segment(ptr_t address) const;
 };
 
 struct memory_manager
 {
+	memory_segment_info_t segment_info;
+
 	stack_manager stack;
 	heap_manager heap;
 	meta_memory_manager meta_memory;

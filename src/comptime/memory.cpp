@@ -613,4 +613,368 @@ bool allocation::free(lex::src_tokens const &free_src_tokens)
 	return true;
 }
 
+ptr_t meta_memory_manager::get_real_address(ptr_t address) const
+{
+	bz_assert(address >= this->stack_object_begin_address);
+	if (address < this->one_past_the_end_begin_address)
+	{
+		auto const index = address - this->stack_object_begin_address;
+		bz_assert(index < this->stack_object_pointers.size());
+		return this->stack_object_pointers[index].stack_address;
+	}
+	else
+	{
+		auto const index = address - this->one_past_the_end_begin_address;
+		bz_assert(index < this->one_past_the_end_pointers.size());
+		return this->one_past_the_end_pointers[index].address;
+	}
+}
+
+memory_segment memory_segment_info_t::get_segment(ptr_t address) const
+{
+	if (address < this->stack_begin)
+	{
+		return memory_segment::invalid;
+	}
+	else if (address < this->heap_begin)
+	{
+		return memory_segment::stack;
+	}
+	else if (address < this->meta_begin)
+	{
+		return memory_segment::heap;
+	}
+	else
+	{
+		return memory_segment::meta;
+	}
+}
+
+bool memory_manager::check_dereference(ptr_t address, type const *object_type)
+{
+	auto const segment = this->segment_info.get_segment(address);
+	switch (segment)
+	{
+	case memory_segment::invalid:
+		return false;
+	case memory_segment::stack:
+		return this->stack.check_dereference(address, object_type);
+	case memory_segment::heap:
+		return this->heap.check_dereference(address, object_type);
+	case memory_segment::meta:
+		return this->meta_memory.is_valid(address, this->stack.stack_frames)
+			&& this->check_dereference(this->meta_memory.get_real_address(address), object_type);
+	}
+}
+
+bool memory_manager::check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type)
+{
+	auto const begin_segment = this->segment_info.get_segment(begin);
+	auto const end_segment = this->segment_info.get_segment(end);
+
+	if (begin_segment == memory_segment::meta && end_segment == memory_segment::meta)
+	{
+		return this->meta_memory.is_valid(begin, this->stack.stack_frames)
+			&& this->meta_memory.is_valid(end, this->stack.stack_frames)
+			&& this->check_slice_construction(
+				this->meta_memory.get_real_address(begin),
+				this->meta_memory.get_real_address(end),
+				elem_type
+			);
+	}
+	else if (begin_segment == memory_segment::meta)
+	{
+		return this->meta_memory.is_valid(begin, this->stack.stack_frames)
+			&& this->check_slice_construction(
+				this->meta_memory.get_real_address(begin),
+				end,
+				elem_type
+			);
+	}
+	else if (end_segment == memory_segment::meta)
+	{
+		return this->meta_memory.is_valid(end, this->stack.stack_frames)
+			&& this->check_slice_construction(
+				begin,
+				this->meta_memory.get_real_address(end),
+				elem_type
+			);
+	}
+	else if (begin_segment != end_segment)
+	{
+		return false;
+	}
+	else
+	{
+		switch (begin_segment)
+		{
+		case memory_segment::invalid:
+			return false;
+		case memory_segment::stack:
+			return this->stack.check_slice_construction(begin, end, elem_type);
+		case memory_segment::heap:
+			return this->heap.check_slice_construction(begin, end, elem_type);
+		case memory_segment::meta:
+			bz_unreachable;
+		}
+	}
+}
+
+bz::optional<int> memory_manager::compare_pointers(ptr_t lhs, ptr_t rhs)
+{
+	auto const lhs_segment = this->segment_info.get_segment(lhs);
+	auto const rhs_segment = this->segment_info.get_segment(lhs);
+
+	if (lhs_segment == memory_segment::meta && rhs_segment == memory_segment::meta)
+	{
+		if (this->meta_memory.is_valid(lhs, this->stack.stack_frames) && this->meta_memory.is_valid(rhs, this->stack.stack_frames))
+		{
+			return this->compare_pointers(this->meta_memory.get_real_address(lhs), this->meta_memory.get_real_address(rhs));
+		}
+		else
+		{
+			return {};
+		}
+	}
+	else if (lhs_segment == memory_segment::meta)
+	{
+		if (this->meta_memory.is_valid(lhs, this->stack.stack_frames))
+		{
+			return this->compare_pointers(this->meta_memory.get_real_address(lhs), rhs);
+		}
+		else
+		{
+			return {};
+		}
+	}
+	else if (rhs_segment == memory_segment::meta)
+	{
+		if (this->meta_memory.is_valid(rhs, this->stack.stack_frames))
+		{
+			return this->compare_pointers(lhs, this->meta_memory.get_real_address(rhs));
+		}
+		else
+		{
+			return {};
+		}
+	}
+	else if (lhs_segment != rhs_segment)
+	{
+		return {};
+	}
+	else
+	{
+		switch (lhs_segment)
+		{
+		case memory_segment::invalid:
+			return {};
+		case memory_segment::stack:
+		case memory_segment::heap:
+			return lhs == rhs ? 0 : (lhs < rhs ? -1 : 1);
+		case memory_segment::meta:
+			bz_unreachable;
+		}
+	}
+}
+
+ptr_t memory_manager::do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type)
+{
+	auto const segment = this->segment_info.get_segment(address);
+	switch (segment)
+	{
+	case memory_segment::invalid:
+		return 0;
+	case memory_segment::stack:
+	{
+		auto const [result, is_one_past_the_end] = this->stack.do_pointer_arithmetic(address, offset, object_type);
+		if (is_one_past_the_end)
+		{
+			return this->meta_memory.make_one_past_the_end_address(result);
+		}
+		else
+		{
+			return result;
+		}
+	}
+	case memory_segment::heap:
+	{
+		auto const [result, is_one_past_the_end] = this->heap.do_pointer_arithmetic(address, offset, object_type);
+		if (is_one_past_the_end)
+		{
+			return this->meta_memory.make_one_past_the_end_address(result);
+		}
+		else
+		{
+			return result;
+		}
+	}
+	case memory_segment::meta:
+		if (this->meta_memory.is_valid(address, this->stack.stack_frames))
+		{
+			return this->do_pointer_arithmetic(this->meta_memory.get_real_address(address), offset, object_type);
+		}
+		else
+		{
+			return 0;
+		}
+	}
+}
+
+ptr_t memory_manager::do_gep(ptr_t address, type const *object_type, uint64_t index)
+{
+	auto const segment = this->segment_info.get_segment(address);
+	switch (segment)
+	{
+	case memory_segment::invalid:
+		bz_unreachable;
+	case memory_segment::stack:
+	case memory_segment::heap:
+	{
+		if (object_type->is_array())
+		{
+			auto const size = object_type->get_array_size();
+			auto const result = address + object_type->get_array_element_type()->size * index;
+			if (index == size)
+			{
+				return this->meta_memory.make_one_past_the_end_address(result);
+			}
+			else
+			{
+				return result;
+			}
+		}
+		else
+		{
+			bz_assert(object_type->is_aggregate());
+			auto const offsets = object_type->get_aggregate_offsets();
+			bz_assert(index < offsets.size());
+			return address + offsets[index];
+		}
+	}
+	case memory_segment::meta:
+		bz_assert(this->meta_memory.is_valid(address, this->stack.stack_frames));
+		return this->do_gep(this->meta_memory.get_real_address(address), object_type, index);
+	}
+}
+
+bz::optional<int64_t> memory_manager::do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type)
+{
+	auto const lhs_segment = this->segment_info.get_segment(lhs);
+	auto const rhs_segment = this->segment_info.get_segment(lhs);
+
+	if (lhs_segment == memory_segment::meta && rhs_segment == memory_segment::meta)
+	{
+		if (this->meta_memory.is_valid(lhs, this->stack.stack_frames) && this->meta_memory.is_valid(rhs, this->stack.stack_frames))
+		{
+			return this->do_pointer_difference(
+				this->meta_memory.get_real_address(lhs),
+				this->meta_memory.get_real_address(rhs),
+				object_type
+			);
+		}
+		else
+		{
+			return {};
+		}
+	}
+	else if (lhs_segment == memory_segment::meta)
+	{
+		if (this->meta_memory.is_valid(lhs, this->stack.stack_frames))
+		{
+			return this->do_pointer_difference(this->meta_memory.get_real_address(lhs), rhs, object_type);
+		}
+		else
+		{
+			return {};
+		}
+	}
+	else if (rhs_segment == memory_segment::meta)
+	{
+		if (this->meta_memory.is_valid(rhs, this->stack.stack_frames))
+		{
+			return this->do_pointer_difference(lhs, this->meta_memory.get_real_address(rhs), object_type);
+		}
+		else
+		{
+			return {};
+		}
+	}
+	else if (lhs_segment != rhs_segment)
+	{
+		return {};
+	}
+	else
+	{
+		switch (lhs_segment)
+		{
+		case memory_segment::invalid:
+			return {};
+		case memory_segment::stack:
+			return this->stack.do_pointer_difference(lhs, rhs, object_type);
+		case memory_segment::heap:
+			return this->heap.do_pointer_difference(lhs, rhs, object_type);
+		case memory_segment::meta:
+			bz_unreachable;
+		}
+	}
+}
+
+int64_t memory_manager::do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride)
+{
+	auto const lhs_segment = this->segment_info.get_segment(lhs);
+	auto const rhs_segment = this->segment_info.get_segment(lhs);
+
+	if (lhs_segment == memory_segment::meta && rhs_segment == memory_segment::meta)
+	{
+		bz_assert(this->meta_memory.is_valid(lhs, this->stack.stack_frames));
+		bz_assert(this->meta_memory.is_valid(rhs, this->stack.stack_frames));
+		return this->do_pointer_difference_unchecked(
+			this->meta_memory.get_real_address(lhs),
+			this->meta_memory.get_real_address(rhs),
+			stride
+		);
+	}
+	else if (lhs_segment == memory_segment::meta)
+	{
+		bz_assert(this->meta_memory.is_valid(lhs, this->stack.stack_frames));
+		return this->do_pointer_difference_unchecked(this->meta_memory.get_real_address(lhs), rhs, stride);
+	}
+	else if (rhs_segment == memory_segment::meta)
+	{
+		bz_assert(this->meta_memory.is_valid(rhs, this->stack.stack_frames));
+		return this->do_pointer_difference_unchecked(lhs, this->meta_memory.get_real_address(rhs), stride);
+	}
+	else
+	{
+		bz_assert(lhs_segment == rhs_segment);
+		if (lhs >= rhs)
+		{
+			bz_assert((lhs - rhs) % stride == 0);
+			return static_cast<int64_t>((lhs - rhs) / stride);
+		}
+		else
+		{
+			bz_assert((rhs - lhs) % stride == 0);
+			return -static_cast<int64_t>((rhs - lhs) / stride);
+		}
+	}
+}
+
+uint8_t *memory_manager::get_memory(ptr_t address)
+{
+	auto const segment = this->segment_info.get_segment(address);
+	switch (segment)
+	{
+	case memory_segment::invalid:
+		bz_unreachable;
+	case memory_segment::stack:
+		return this->stack.get_memory(address);
+	case memory_segment::heap:
+		return this->heap.get_memory(address);
+	case memory_segment::meta:
+		bz_assert(this->meta_memory.is_valid(address, this->stack.stack_frames));
+		return this->get_memory(this->meta_memory.get_real_address(address));
+	}
+}
+
 } // namespace comptime::memory
