@@ -12,7 +12,7 @@ namespace comptime::memory
 struct pointer_arithmetic_result_t
 {
 	ptr_t address;
-	bool is_on_past_the_end;
+	bool is_one_past_the_end;
 };
 
 struct stack_object

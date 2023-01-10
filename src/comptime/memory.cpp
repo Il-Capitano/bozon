@@ -272,7 +272,7 @@ pointer_arithmetic_result_t stack_object::do_pointer_arithmetic(ptr_t address, i
 	{
 		return {
 			.address = 0,
-			.is_on_past_the_end = false,
+			.is_one_past_the_end = false,
 		};
 	}
 
@@ -287,17 +287,17 @@ pointer_arithmetic_result_t stack_object::do_pointer_arithmetic(ptr_t address, i
 	case pointer_arithmetic_check_result::fail:
 		return {
 			.address = 0,
-			.is_on_past_the_end = false,
+			.is_one_past_the_end = false,
 		};
 	case pointer_arithmetic_check_result::good:
 		return {
 			.address = result_address,
-			.is_on_past_the_end = false,
+			.is_one_past_the_end = false,
 		};
 	case pointer_arithmetic_check_result::one_past_the_end:
 		return {
 			.address = result_address,
-			.is_on_past_the_end = true,
+			.is_one_past_the_end = true,
 		};
 	}
 }
@@ -522,14 +522,14 @@ pointer_arithmetic_result_t heap_object::do_pointer_arithmetic(ptr_t address, in
 	{
 		return {
 			.address = 0,
-			.is_on_past_the_end = false,
+			.is_one_past_the_end = false,
 		};
 	}
 	else if (pointer_type == this->elem_type)
 	{
 		return {
 			.address = result_address,
-			.is_on_past_the_end = result_address == this->address + this->object_size(),
+			.is_one_past_the_end = result_address == this->address + this->object_size(),
 		};
 	}
 
@@ -541,7 +541,7 @@ pointer_arithmetic_result_t heap_object::do_pointer_arithmetic(ptr_t address, in
 	{
 		return {
 			.address = 0,
-			.is_on_past_the_end = false,
+			.is_one_past_the_end = false,
 		};
 	}
 
@@ -556,17 +556,17 @@ pointer_arithmetic_result_t heap_object::do_pointer_arithmetic(ptr_t address, in
 	case pointer_arithmetic_check_result::fail:
 		return {
 			.address = 0,
-			.is_on_past_the_end = false,
+			.is_one_past_the_end = false,
 		};
 	case pointer_arithmetic_check_result::good:
 		return {
 			.address = result_address,
-			.is_on_past_the_end = false,
+			.is_one_past_the_end = false,
 		};
 	case pointer_arithmetic_check_result::one_past_the_end:
 		return {
 			.address = result_address,
-			.is_on_past_the_end = true,
+			.is_one_past_the_end = true,
 		};
 	}
 }
