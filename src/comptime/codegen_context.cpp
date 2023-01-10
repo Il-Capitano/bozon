@@ -189,10 +189,14 @@ expr_value codegen_context::get_value_reference(size_t index)
 	return this->current_value_references[stack_index];
 }
 
-// instruction_ref codegen_context::add_move_destruct_indicator(ast::decl_variable const *decl)
-// {
-// // make sure the returned value is not { 0, 0 } !!
-// }
+instruction_ref codegen_context::add_move_destruct_indicator(ast::decl_variable const *decl)
+{
+	auto const indicator = this->create_alloca(this->get_builtin_type(builtin_type_kind::i1));
+	[[maybe_unused]] auto const [it, inserted] = this->move_destruct_indicators.insert({ decl, indicator.get_reference() });
+	bz_assert(inserted);
+	this->create_store(this->create_const_i1(true), indicator);
+	return indicator.get_reference();
+}
 
 bz::optional<instruction_ref> codegen_context::get_move_destruct_indicator(ast::decl_variable const *decl) const
 {
