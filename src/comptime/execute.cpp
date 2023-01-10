@@ -4124,6 +4124,16 @@ static void execute_const_memset_zero(instructions::const_memset_zero const &ins
 
 static instruction_value execute_function_call(instructions::function_call const &inst, executor_context &context);
 
+static ptr_t execute_malloc(instructions::malloc const &inst, uint64_t count, executor_context &context)
+{
+	return context.malloc(inst.src_tokens_index, inst.type, count);
+}
+
+static void execute_free(instructions::free const &inst, ptr_t ptr, executor_context &context)
+{
+	return context.free(inst.src_tokens_index, ptr);
+}
+
 static void execute_jump(instructions::jump const &inst, executor_context &context)
 {
 	context.do_jump(inst.dest);
@@ -4221,7 +4231,13 @@ static void execute_diagnostic_str(instructions::diagnostic_str const &inst, ptr
 	}
 }
 
-static bool execute_is_option_set(instructions::is_option_set const &, ptr_t begin, ptr_t end, executor_context &context);
+static bool execute_is_option_set(instructions::is_option_set const &, ptr_t begin, ptr_t end, executor_context &context)
+{
+	auto const begin_ptr = context.get_memory(begin);
+	auto const end_ptr = context.get_memory(end);
+	auto const option = bz::u8string_view(begin_ptr, end_ptr);
+	return context.is_option_set(option);
+}
 
 static void execute_array_bounds_check_i32(instructions::array_bounds_check_i32 const &inst, uint32_t uindex, uint32_t size, executor_context &context)
 {
@@ -4502,7 +4518,7 @@ void execute(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 510);
+		static_assert(instruction::variant_count == 512);
 		case instruction::const_i1:
 			execute<instructions::const_i1, &execute_const_i1>(context);
 			break;
@@ -5972,6 +5988,12 @@ void execute(executor_context &context)
 			break;
 		case instruction::function_call:
 			execute<instructions::function_call, &execute_function_call>(context);
+			break;
+		case instruction::malloc:
+			execute<instructions::malloc, &execute_malloc>(context);
+			break;
+		case instruction::free:
+			execute<instructions::free, &execute_free>(context);
 			break;
 		case instruction::jump:
 			execute<instructions::jump, &execute_jump>(context);

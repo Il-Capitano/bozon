@@ -925,6 +925,30 @@ expr_value codegen_context::create_function_call(function const *func, bz::fixed
 	}
 }
 
+expr_value codegen_context::create_malloc(lex::src_tokens const &src_tokens, type const *type, expr_value count)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(count.get_type()->is_integer_type());
+	auto const count_val = this->create_int_cast(count, this->get_builtin_type(builtin_type_kind::i64), false)
+		.get_value_as_instruction(*this);
+
+	return expr_value::get_value(
+		this->add_instruction(instructions::malloc{ .type = type, .src_tokens_index = src_tokens_index }, count_val),
+		this->get_pointer_type()
+	);
+}
+
+void codegen_context::create_free(lex::src_tokens const &src_tokens, expr_value ptr)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(ptr.get_type()->is_pointer());
+	auto const ptr_val = ptr.get_value_as_instruction(*this);
+
+	this->add_instruction(instructions::free{ .src_tokens_index = src_tokens_index }, ptr_val);
+}
+
 expr_value codegen_context::create_int_cast(expr_value value, type const *dest, bool is_value_signed)
 {
 	auto const value_type = value.get_type();
@@ -5316,7 +5340,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 510);
+	static_assert(instruction::variant_count == 512);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>();

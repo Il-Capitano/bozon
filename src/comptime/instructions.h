@@ -4380,6 +4380,27 @@ struct function_call
 	size_t args_index;
 };
 
+struct malloc
+{
+	static inline constexpr bz::array arg_types = { value_type::i64 };
+	static inline constexpr value_type result_type = value_type::ptr;
+
+	type const *type;
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct free
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
 struct jump
 {
 	static inline constexpr int arg_types = 0;
@@ -5060,6 +5081,8 @@ using instruction_list = bz::meta::type_pack<
 	instructions::const_memcpy,
 	instructions::const_memset_zero,
 	instructions::function_call,
+	instructions::malloc,
+	instructions::free,
 	instructions::jump,
 	instructions::conditional_jump,
 	instructions::switch_i1,
@@ -5088,7 +5111,7 @@ struct instruction : instruction_base_t
 {
 	using base_t = instruction_base_t;
 
-	static_assert(variant_count == 510);
+	static_assert(variant_count == 512);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -5581,6 +5604,8 @@ struct instruction : instruction_base_t
 		const_memcpy             = index_of<instructions::const_memcpy>,
 		const_memset_zero        = index_of<instructions::const_memset_zero>,
 		function_call            = index_of<instructions::function_call>,
+		malloc                   = index_of<instructions::malloc>,
+		free                     = index_of<instructions::free>,
 		jump                     = index_of<instructions::jump>,
 		conditional_jump         = index_of<instructions::conditional_jump>,
 		switch_i1                = index_of<instructions::switch_i1>,

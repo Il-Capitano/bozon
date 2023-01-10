@@ -327,6 +327,8 @@ struct codegen_context
 	instruction_ref create_const_memset_zero(expr_value dest, size_t size);
 
 	expr_value create_function_call(function const *func, bz::fixed_vector<instruction_ref> args);
+	expr_value create_malloc(lex::src_tokens const &src_tokens, type const *type, expr_value count);
+	void create_free(lex::src_tokens const &src_tokens, expr_value ptr);
 
 	expr_value create_int_cast(expr_value value, type const *dest, bool is_value_signed);
 	expr_value create_float_cast(expr_value value, type const *dest);

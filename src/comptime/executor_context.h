@@ -38,6 +38,7 @@ struct executor_context
 	void report_error(uint32_t src_tokens_index, bz::u8string message, bz::vector<ctx::source_highlight> notes = {});
 	void report_warning(ctx::warning_kind kind, uint32_t src_tokens_index, bz::u8string message);
 	ctx::source_highlight make_note(uint32_t src_tokens_index, bz::u8string message);
+	bool is_option_set(bz::u8string_view option);
 
 	instruction_value get_arg(uint32_t index);
 	void do_jump(instruction_index dest);
@@ -49,6 +50,9 @@ struct executor_context
 	slice_construction_check_info_t const &get_slice_construction_info(uint32_t index) const;
 	pointer_arithmetic_check_info_t const &get_pointer_arithmetic_info(uint32_t index) const;
 	memory_access_check_info_t const &get_memory_access_info(uint32_t index) const;
+
+	ptr_t malloc(uint32_t src_tokens_index, type const *type, uint64_t count);
+	void free(uint32_t src_tokens_index, ptr_t ptr);
 
 	void check_dereference(uint32_t src_tokens_index, ptr_t address, type const *object_type, ast::typespec_view object_typespec);
 	void check_str_construction(uint32_t src_tokens_index, ptr_t begin, ptr_t end);
