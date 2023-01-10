@@ -2121,9 +2121,21 @@ static expr_value generate_intrinsic_function_call_code(
 		// implemented in __builtins.bz
 		bz_unreachable;
 	case ast::function_body::comptime_malloc:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(func_call.params[0].is_constant() && func_call.params[0].is_typename());
+		auto const alloc_type = get_type(func_call.params[0].get_typename(), context);
+		auto const count = generate_expr_code(func_call.params[1], context, {});
+		return value_or_result_address(context.create_malloc(func_call.src_tokens, alloc_type, count), result_address, context);
+	}
 	case ast::function_body::comptime_free:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const ptr = generate_expr_code(func_call.params[0], context, {});
+		context.create_free(func_call.src_tokens, ptr);
+		bz_assert(!result_address.has_value());
+		return expr_value::get_none();
+	}
 	case ast::function_body::comptime_compile_error:
 	{
 		bz_assert(func_call.params.size() == 1);
