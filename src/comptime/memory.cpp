@@ -599,18 +599,144 @@ bz::optional<int64_t> heap_object::do_pointer_difference(ptr_t lhs, ptr_t rhs, t
 	}
 }
 
-bool allocation::free(lex::src_tokens const &free_src_tokens)
+free_result allocation::free(lex::src_tokens const &free_src_tokens)
 {
 	if (this->is_freed)
 	{
-		return false;
+		return free_result::double_free;
 	}
 
 	this->object.memory.clear();
 	this->object.is_initialized.clear();
 	this->free_src_tokens = free_src_tokens;
 	this->is_freed = true;
-	return true;
+	return free_result::good;
+}
+
+allocation *heap_manager::get_allocation(ptr_t address)
+{
+	if (
+		this->allocations.empty()
+		|| address < this->allocations[0].object.address
+		|| address > this->allocations.back().object.address + this->allocations.back().object.object_size()
+	)
+	{
+		return nullptr;
+	}
+	// find the first element that has an address that is less than or equal to address
+	// we do this by finding the first element, whose address is greater than address
+	// and taking the element before that
+	auto const it = std::upper_bound(
+		this->allocations.begin(), this->allocations.end(),
+		address,
+		[](ptr_t address, auto const &allocation) {
+			return address < allocation.object.address;
+		}
+	);
+	return &*(it - 1);
+}
+
+ptr_t heap_manager::allocate(lex::src_tokens const &src_tokens, type const *object_type, uint64_t count)
+{
+	auto const address = this->head;
+	auto const allocation_size = object_type->size * count;
+	// we round up the allocation size to the nearest 16-byte boundary
+	// if it's already at such a boundary, then we simply add 16 to add some padding
+	auto const rounded_allocation_size = allocation_size + (16 - allocation_size % 16);
+	this->head += rounded_allocation_size;
+	this->allocations.emplace_back(src_tokens, address, object_type, count);
+	return address;
+}
+
+free_result heap_manager::free(lex::src_tokens const &src_tokens, ptr_t address)
+{
+	auto const allocation = this->get_allocation(address);
+	if (allocation == nullptr)
+	{
+		return free_result::unknown_address;
+	}
+	else if (address != allocation->object.address)
+	{
+		return free_result::address_inside_object;
+	}
+	else
+	{
+		return allocation->free(src_tokens);
+	}
+}
+
+bool heap_manager::check_dereference(ptr_t address, type const *object_type)
+{
+	auto const allocation = this->get_allocation(address);
+	return allocation != nullptr && !allocation->is_freed &&  allocation->object.check_dereference(address, object_type);
+}
+
+bool heap_manager::check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type)
+{
+	if (end < begin)
+	{
+		return false;
+	}
+
+	auto const allocation = this->get_allocation(begin);
+	if (allocation == nullptr)
+	{
+		return false;
+	}
+	else if (allocation->is_freed)
+	{
+		return false;
+	}
+	else if (end > allocation->object.address + allocation->object.object_size())
+	{
+		return false;
+	}
+	else
+	{
+		return allocation->object.check_slice_construction(begin, end, elem_type);
+	}
+}
+
+pointer_arithmetic_result_t heap_manager::do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type)
+{
+	auto const allocation = this->get_allocation(address);
+	if (allocation == nullptr || allocation->is_freed) // FIXME: should pointer arithmetic with a freed address be an error?
+	{
+		return { 0, false };
+	}
+	else
+	{
+		return allocation->object.do_pointer_arithmetic(address, offset, object_type);
+	}
+}
+
+bz::optional<int64_t> heap_manager::do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type)
+{
+	auto const allocation = this->get_allocation(lhs);
+	if (allocation == nullptr)
+	{
+		return false;
+	}
+	else if (allocation->is_freed)
+	{
+		return false;
+	}
+	else if (rhs < allocation->object.address || rhs > allocation->object.address + allocation->object.object_size())
+	{
+		return false;
+	}
+	else
+	{
+		return allocation->object.do_pointer_difference(lhs, rhs, object_type);
+	}
+}
+
+uint8_t *heap_manager::get_memory(ptr_t address)
+{
+	auto const allocation = this->get_allocation(address);
+	bz_assert(allocation != nullptr);
+	bz_assert(!allocation->is_freed);
+	return allocation->object.get_memory(address);
 }
 
 ptr_t meta_memory_manager::get_real_address(ptr_t address) const
@@ -628,6 +754,39 @@ ptr_t meta_memory_manager::get_real_address(ptr_t address) const
 		bz_assert(index < this->one_past_the_end_pointers.size());
 		return this->one_past_the_end_pointers[index].address;
 	}
+}
+
+bool meta_memory_manager::is_valid(ptr_t address, bz::array_view<stack_frame const> current_stack_frames) const
+{
+	if (address < this->stack_object_begin_address)
+	{
+		return false;
+	}
+
+	if (address < this->one_past_the_end_begin_address)
+	{
+		auto const index = address - this->stack_object_begin_address;
+		if (index >= this->stack_object_pointers.size())
+		{
+			return false;
+		}
+
+		auto const &object = this->stack_object_pointers[index];
+		return object.stack_frame_depth < current_stack_frames.size()
+			&& object.stack_frame_id == current_stack_frames[object.stack_frame_depth].id;
+	}
+	else
+	{
+		auto const index = address - this->one_past_the_end_begin_address;
+		return index < this->one_past_the_end_pointers.size();
+	}
+}
+
+ptr_t meta_memory_manager::make_one_past_the_end_address(ptr_t address)
+{
+	auto const result_index = this->one_past_the_end_pointers.size();
+	this->one_past_the_end_pointers.push_back({ address });
+	return this->one_past_the_end_begin_address + result_index;
 }
 
 memory_segment memory_segment_info_t::get_segment(ptr_t address) const

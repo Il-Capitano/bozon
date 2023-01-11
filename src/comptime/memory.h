@@ -44,7 +44,7 @@ struct heap_object
 	bz::fixed_vector<uint8_t> memory;
 	bz::fixed_vector<uint8_t> is_initialized;
 
-	heap_object(ptr_t address, type const *elem_type, size_t count);
+	heap_object(ptr_t address, type const *elem_type, uint64_t count);
 
 	size_t object_size(void) const;
 	size_t elem_size(void) const;
@@ -80,6 +80,14 @@ struct stack_manager
 	uint8_t *get_memory(ptr_t address);
 };
 
+enum class free_result
+{
+	good,
+	double_free,
+	unknown_address,
+	address_inside_object,
+};
+
 struct allocation
 {
 	heap_object object;
@@ -87,7 +95,9 @@ struct allocation
 	lex::src_tokens free_src_tokens;
 	bool is_freed;
 
-	bool free(lex::src_tokens const &free_src_tokens);
+	allocation(lex::src_tokens const &src_tokens, ptr_t address, type const *object_type, uint64_t count);
+
+	free_result free(lex::src_tokens const &free_src_tokens);
 };
 
 struct heap_manager
@@ -95,8 +105,10 @@ struct heap_manager
 	ptr_t head;
 	bz::vector<allocation> allocations;
 
-	ptr_t allocate(type const *object_type, uint64_t count);
-	void free(lex::src_tokens const &free_src_tokens, ptr_t address);
+	allocation *get_allocation(ptr_t address);
+
+	ptr_t allocate(lex::src_tokens const &src_tokens, type const *object_type, uint64_t count);
+	free_result free(lex::src_tokens const &src_tokens, ptr_t address);
 
 	bool check_dereference(ptr_t address, type const *object_type);
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type);
