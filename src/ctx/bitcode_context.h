@@ -15,7 +15,7 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Type.h>
-#include <llvm/IR/LegacyPassManager.h>
+#include <llvm/IR/PassManager.h>
 #include <unordered_map>
 
 namespace ctx
@@ -226,7 +226,8 @@ struct bitcode_context
 
 	llvm::IRBuilder<> builder;
 
-	llvm::legacy::FunctionPassManager function_pass_manager;
+	llvm::FunctionAnalysisManager *function_analysis_manager = nullptr;
+	llvm::FunctionPassManager *function_pass_manager = nullptr;
 };
 
 } // namespace ctx

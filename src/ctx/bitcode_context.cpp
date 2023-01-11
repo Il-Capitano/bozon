@@ -11,14 +11,15 @@ bitcode_context::bitcode_context(global_context &_global_ctx, llvm::Module *_mod
 	: global_ctx(_global_ctx),
 	  module(_module),
 	  current_value_references{ bc::val_ptr::get_none(), bc::val_ptr::get_none(), bc::val_ptr::get_none(), bc::val_ptr::get_none() },
-	  builder(_global_ctx._llvm_context),
-	  function_pass_manager(_module)
+	  builder(_global_ctx._llvm_context)
 {
+	/*
 	if (opt_level != 0)
 	{
 		auto builder = create_pass_manager_builder();
 		builder.populateFunctionPassManager(this->function_pass_manager);
 	}
+	*/
 }
 
 ast::type_info *bitcode_context::get_builtin_type_info(uint32_t kind)

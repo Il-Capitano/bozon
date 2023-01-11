@@ -6,6 +6,7 @@
 #include "colors.h"
 
 #include <cassert>
+#include <llvm/Passes/PassBuilder.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Host.h>
@@ -13,7 +14,6 @@
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
-#include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Dominators.h>
 #include <llvm/IR/Verifier.h>
 
@@ -94,6 +94,13 @@ get_llvm_builtin_types(llvm::LLVMContext &context)
 	};
 }
 
+static llvm::PassBuilder get_pass_builder(llvm::TargetMachine *tm)
+{
+	auto tuning_options = llvm::PipelineTuningOptions();
+	// we could later add command line options to set different tuning options
+	return llvm::PassBuilder(tm, tuning_options);
+}
+
 ast::scope_t get_default_decls(ast::scope_t *builtin_global_scope, bz::array_view<bz::u8string_view const> id_scope)
 {
 	ast::scope_t result;
@@ -101,25 +108,6 @@ ast::scope_t get_default_decls(ast::scope_t *builtin_global_scope, bz::array_vie
 	global_scope.parent = { builtin_global_scope, 0 };
 	global_scope.id_scope = id_scope;
 	return result;
-}
-
-llvm::PassManagerBuilder create_pass_manager_builder(void)
-{
-	auto builder = llvm::PassManagerBuilder();
-
-	builder.OptLevel = opt_level >= 3 ? 3 : opt_level;
-	builder.SizeLevel = size_opt_level >= 2 ? 2 : size_opt_level;
-
-	if (opt_level == 1)
-	{
-		builder.Inliner = llvm::createAlwaysInlinerLegacyPass();
-	}
-	else if (opt_level >= 2)
-	{
-		builder.Inliner = llvm::createFunctionInliningPass(builder.OptLevel, builder.SizeLevel, false);
-	}
-
-	return builder;
 }
 
 global_context::global_context(void)
@@ -930,6 +918,17 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	auto rm = llvm::Optional<llvm::Reloc::Model>(llvm::Reloc::Model::PIC_);
 	this->_target_machine.reset(this->_target->createTargetMachine(target_triple, cpu, features, options, rm));
 	bz_assert(this->_target_machine);
+	switch (opt_level)
+	{
+	case 0:
+		this->_target_machine->setOptLevel(llvm::CodeGenOpt::None);
+	case 1:
+		this->_target_machine->setOptLevel(llvm::CodeGenOpt::Less);
+	case 2:
+		this->_target_machine->setOptLevel(llvm::CodeGenOpt::Default);
+	default:
+		this->_target_machine->setOptLevel(llvm::CodeGenOpt::Aggressive);
+	}
 	this->_data_layout = this->_target_machine->createDataLayout();
 	this->_module.setDataLayout(*this->_data_layout);
 	this->_module.setTargetTriple(target_triple);
@@ -1131,6 +1130,55 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 [[nodiscard]] bool global_context::emit_bitcode(void)
 {
 	bitcode_context context(*this, &this->_module);
+
+	llvm::LoopAnalysisManager loop_analysis_manager;
+	llvm::FunctionAnalysisManager function_analysis_manager;
+	llvm::CGSCCAnalysisManager cgscc_analysis_manager;
+	llvm::ModuleAnalysisManager module_analysis_manager;
+
+	auto builder = get_pass_builder(this->_target_machine.get());
+
+	if (opt_level != 0 || size_opt_level != 0)
+	{
+		builder.registerModuleAnalyses(module_analysis_manager);
+		builder.registerCGSCCAnalyses(cgscc_analysis_manager);
+		builder.registerFunctionAnalyses(function_analysis_manager);
+		builder.registerLoopAnalyses(loop_analysis_manager);
+		builder.crossRegisterProxies(
+			loop_analysis_manager,
+			function_analysis_manager,
+			cgscc_analysis_manager,
+			module_analysis_manager
+		);
+	}
+
+	auto const llvm_opt_level = [&]() {
+		if (size_opt_level != 0)
+		{
+			return size_opt_level == 1 ? llvm::OptimizationLevel::Os : llvm::OptimizationLevel::Oz;
+		}
+		else if (opt_level != 0)
+		{
+			return
+				opt_level == 1 ? llvm::OptimizationLevel::O1 :
+				opt_level == 2 ? llvm::OptimizationLevel::O2 :
+				llvm::OptimizationLevel::O3;
+		}
+		else
+		{
+			return llvm::OptimizationLevel::O0;
+		}
+	}();
+
+	auto function_pass_manager = llvm_opt_level != llvm::OptimizationLevel::O0
+		? builder.buildFunctionSimplificationPipeline(llvm_opt_level, llvm::ThinOrFullLTOPhase::None)
+		: llvm::FunctionPassManager();
+
+	if (opt_level != 0 || size_opt_level != 0)
+	{
+		context.function_analysis_manager = &function_analysis_manager;
+		context.function_pass_manager = &function_pass_manager;
+	}
 
 	// add declarations to the module
 	bz_assert(this->_compile_decls.var_decls.size() == 0);
@@ -1419,328 +1467,49 @@ bool global_context::emit_llvm_ir(void)
 	}
 
 	auto &module = this->_module;
-	llvm::legacy::PassManager opt_pass_manager;
 
-	{
-		auto builder = create_pass_manager_builder();
-		builder.populateModulePassManager(opt_pass_manager);
-	}
-
-	for (auto const opt : optimizations)
-	{
-		// static_assert(static_cast<size_t>(bc::optimization_kind::_last) == 17);
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wswitch"
-#endif // __clang__
-		switch (opt)
+	auto const llvm_opt_level = [&]() {
+		if (size_opt_level != 0)
 		{
-		case ctcli::group_element("--opt aa"):
-			opt_pass_manager.add(llvm::createAAResultsWrapperPass());
-			break;
-		case ctcli::group_element("--opt aa-eval"):
-			opt_pass_manager.add(llvm::createAAEvalPass());
-			break;
-		case ctcli::group_element("--opt adce"):
-			opt_pass_manager.add(llvm::createAggressiveDCEPass());
-			break;
-		case ctcli::group_element("--opt aggressive-instcombine"):
-			opt_pass_manager.add(llvm::createAggressiveInstCombinerPass());
-			break;
-		case ctcli::group_element("--opt alignment-from-assumptions"):
-			opt_pass_manager.add(llvm::createAlignmentFromAssumptionsPass());
-			break;
-		case ctcli::group_element("--opt always-inline"):
-			opt_pass_manager.add(llvm::createAlwaysInlinerLegacyPass());
-			break;
-		case ctcli::group_element("--opt annotation2metadata"):
-			opt_pass_manager.add(llvm::createAnnotation2MetadataLegacyPass());
-			break;
-		case ctcli::group_element("--opt annotation-remarks"):
-			opt_pass_manager.add(llvm::createAnnotationRemarksLegacyPass());
-			break;
-		case ctcli::group_element("--opt assumption-cache-tracker"):
-			opt_pass_manager.add(new llvm::AssumptionCacheTracker());
-			break;
-		case ctcli::group_element("--opt barrier"):
-			opt_pass_manager.add(llvm::createBarrierNoopPass());
-			break;
-		case ctcli::group_element("--opt basic-aa"):
-			opt_pass_manager.add(llvm::createBasicAAWrapperPass());
-			break;
-		case ctcli::group_element("--opt basiccg"):
-			opt_pass_manager.add(new llvm::CallGraphWrapperPass());
-			break;
-		case ctcli::group_element("--opt bdce"):
-			opt_pass_manager.add(llvm::createBitTrackingDCEPass());
-			break;
-		case ctcli::group_element("--opt block-freq"):
-			opt_pass_manager.add(new llvm::BlockFrequencyInfoWrapperPass());
-			break;
-		case ctcli::group_element("--opt branch-prob"):
-			opt_pass_manager.add(new llvm::BranchProbabilityInfoWrapperPass());
-			break;
-		case ctcli::group_element("--opt called-value-propagation"):
-			opt_pass_manager.add(llvm::createCalledValuePropagationPass());
-			break;
-		case ctcli::group_element("--opt callsite-splitting"):
-			opt_pass_manager.add(llvm::createCallSiteSplittingPass());
-			break;
-		case ctcli::group_element("--opt constmerge"):
-			opt_pass_manager.add(llvm::createConstantMergePass());
-			break;
-		case ctcli::group_element("--opt correlated-propagation"):
-			opt_pass_manager.add(llvm::createCorrelatedValuePropagationPass());
-			break;
-		case ctcli::group_element("--opt dce"):
-			opt_pass_manager.add(llvm::createDeadCodeEliminationPass());
-			break;
-		case ctcli::group_element("--opt deadargelim"):
-			opt_pass_manager.add(llvm::createDeadArgEliminationPass());
-			break;
-		case ctcli::group_element("--opt demanded-bits"):
-			opt_pass_manager.add(llvm::createDemandedBitsWrapperPass());
-			break;
-		case ctcli::group_element("--opt div-rem-pairs"):
-			opt_pass_manager.add(llvm::createDivRemPairsPass());
-			break;
-		case ctcli::group_element("--opt domtree"):
-			opt_pass_manager.add(new llvm::DominatorTreeWrapperPass());
-			break;
-		case ctcli::group_element("--opt dse"):
-			opt_pass_manager.add(llvm::createDeadStoreEliminationPass());
-			break;
-		case ctcli::group_element("--opt early-cse"):
-			opt_pass_manager.add(llvm::createEarlyCSEPass(false));
-			break;
-		case ctcli::group_element("--opt early-cse-memssa"):
-			opt_pass_manager.add(llvm::createEarlyCSEPass(true));
-			break;
-		case ctcli::group_element("--opt elim-avail-extern"):
-			opt_pass_manager.add(llvm::createEliminateAvailableExternallyPass());
-			break;
-		case ctcli::group_element("--opt float2int"):
-			opt_pass_manager.add(llvm::createFloat2IntPass());
-			break;
-		case ctcli::group_element("--opt forceattrs"):
-			opt_pass_manager.add(llvm::createForceFunctionAttrsLegacyPass());
-			break;
-		case ctcli::group_element("--opt function-attrs"):
-			// not sure this is the right pass
-			opt_pass_manager.add(llvm::createPostOrderFunctionAttrsLegacyPass());
-			break;
-		case ctcli::group_element("--opt globaldce"):
-			opt_pass_manager.add(llvm::createGlobalDCEPass());
-			break;
-		case ctcli::group_element("--opt globalopt"):
-			opt_pass_manager.add(llvm::createGlobalOptimizerPass());
-			break;
-		case ctcli::group_element("--opt globals-aa"):
-			opt_pass_manager.add(llvm::createGlobalsAAWrapperPass());
-			break;
-		case ctcli::group_element("--opt gvn"):
-			opt_pass_manager.add(llvm::createGVNPass());
-			break;
-		case ctcli::group_element("--opt indvars"):
-			opt_pass_manager.add(llvm::createIndVarSimplifyPass());
-			break;
-		case ctcli::group_element("--opt inferattrs"):
-			opt_pass_manager.add(llvm::createInferFunctionAttrsLegacyPass());
-			break;
-		case ctcli::group_element("--opt inject-tli-mappings"):
-			opt_pass_manager.add(llvm::createInjectTLIMappingsLegacyPass());
-			break;
-		case ctcli::group_element("--opt inline"):
-			opt_pass_manager.add(llvm::createFunctionInliningPass());
-			break;
-		case ctcli::group_element("--opt instcombine"):
-			opt_pass_manager.add(llvm::createInstructionCombiningPass());
-			break;
-		case ctcli::group_element("--opt instsimplify"):
-			opt_pass_manager.add(llvm::createInstSimplifyLegacyPass());
-			break;
-		case ctcli::group_element("--opt ipsccp"):
-			opt_pass_manager.add(llvm::createIPSCCPPass());
-			break;
-		case ctcli::group_element("--opt jump-threading"):
-			opt_pass_manager.add(llvm::createJumpThreadingPass());
-			break;
-		case ctcli::group_element("--opt lazy-block-freq"):
-			opt_pass_manager.add(new llvm::LazyBlockFrequencyInfoPass());
-			break;
-		case ctcli::group_element("--opt lazy-branch-prob"):
-			opt_pass_manager.add(new llvm::LazyBranchProbabilityInfoPass());
-			break;
-		case ctcli::group_element("--opt lazy-value-info"):
-			opt_pass_manager.add(new llvm::LazyValueInfoWrapperPass());
-			break;
-		case ctcli::group_element("--opt lcssa"):
-			opt_pass_manager.add(llvm::createLCSSAPass());
-			break;
-		case ctcli::group_element("--opt lcssa-verification"):
-			opt_pass_manager.add(new llvm::LCSSAVerificationPass());
-			break;
-		case ctcli::group_element("--opt libcalls-shrinkwrap"):
-			opt_pass_manager.add(llvm::createLibCallsShrinkWrapPass());
-			break;
-		case ctcli::group_element("--opt licm"):
-			opt_pass_manager.add(llvm::createLICMPass());
-			break;
-		case ctcli::group_element("--opt loop-accesses"):
-			opt_pass_manager.add(new llvm::LoopAccessLegacyAnalysis());
-			break;
-		case ctcli::group_element("--opt loop-deletion"):
-			opt_pass_manager.add(llvm::createLoopDeletionPass());
-			break;
-		case ctcli::group_element("--opt loop-distribute"):
-			opt_pass_manager.add(llvm::createLoopDistributePass());
-			break;
-		case ctcli::group_element("--opt loop-idiom"):
-			opt_pass_manager.add(llvm::createLoopIdiomPass());
-			break;
-		case ctcli::group_element("--opt loop-load-elim"):
-			opt_pass_manager.add(llvm::createLoopLoadEliminationPass());
-			break;
-		case ctcli::group_element("--opt loop-rotate"):
-			opt_pass_manager.add(llvm::createLoopRotatePass());
-			break;
-		case ctcli::group_element("--opt loop-simplify"):
-			opt_pass_manager.add(llvm::createLoopSimplifyPass());
-			break;
-		case ctcli::group_element("--opt loop-sink"):
-			opt_pass_manager.add(llvm::createLoopSinkPass());
-			break;
-		case ctcli::group_element("--opt loop-unroll"):
-			opt_pass_manager.add(llvm::createLoopUnrollPass());
-			break;
-		case ctcli::group_element("--opt loop-vectorize"):
-			opt_pass_manager.add(llvm::createLoopVectorizePass());
-			break;
-		case ctcli::group_element("--opt loops"):
-			// not sure that this is the right pass
-			opt_pass_manager.add(new llvm::LoopInfoWrapperPass());
-			break;
-		case ctcli::group_element("--opt lower-constant-intrinsics"):
-			opt_pass_manager.add(llvm::createLowerConstantIntrinsicsPass());
-			break;
-		case ctcli::group_element("--opt lower-expect"):
-			opt_pass_manager.add(llvm::createLowerExpectIntrinsicPass());
-			break;
-		case ctcli::group_element("--opt mem2reg"):
-			opt_pass_manager.add(llvm::createPromoteMemoryToRegisterPass());
-			break;
-		case ctcli::group_element("--opt memcpyopt"):
-			opt_pass_manager.add(llvm::createMemCpyOptPass());
-			break;
-		case ctcli::group_element("--opt memdep"):
-			opt_pass_manager.add(new llvm::MemoryDependenceWrapperPass());
-			break;
-		case ctcli::group_element("--opt memoryssa"):
-			opt_pass_manager.add(new llvm::MemorySSAWrapperPass());
-			break;
-		case ctcli::group_element("--opt mldst-motion"):
-			opt_pass_manager.add(llvm::createMergedLoadStoreMotionPass());
-			break;
-		case ctcli::group_element("--opt openmp-opt-cgscc"):
-			opt_pass_manager.add(llvm::createOpenMPOptCGSCCLegacyPass());
-			break;
-		case ctcli::group_element("--opt opt-remark-emitter"):
-			opt_pass_manager.add(new llvm::OptimizationRemarkEmitterWrapperPass());
-			break;
-		case ctcli::group_element("--opt phi-values"):
-			opt_pass_manager.add(new llvm::PhiValuesWrapperPass());
-			break;
-		case ctcli::group_element("--opt postdomtree"):
-			opt_pass_manager.add(llvm::createPostDomTree());
-			break;
-		case ctcli::group_element("--opt profile-summary-info"):
-			opt_pass_manager.add(new llvm::ProfileSummaryInfoWrapperPass());
-			break;
-		case ctcli::group_element("--opt prune-eh"):
-			opt_pass_manager.add(llvm::createPruneEHPass());
-			break;
-		case ctcli::group_element("--opt reassociate"):
-			opt_pass_manager.add(llvm::createReassociatePass());
-			break;
-		case ctcli::group_element("--opt rpo-function-attrs"):
-			opt_pass_manager.add(llvm::createReversePostOrderFunctionAttrsPass());
-			break;
-		case ctcli::group_element("--opt scalar-evolution"):
-			opt_pass_manager.add(new llvm::ScalarEvolutionWrapperPass());
-			break;
-		case ctcli::group_element("--opt sccp"):
-			opt_pass_manager.add(llvm::createSCCPPass());
-			break;
-		case ctcli::group_element("--opt scoped-noalias-aa"):
-			opt_pass_manager.add(llvm::createScopedNoAliasAAWrapperPass());
-			break;
-		case ctcli::group_element("--opt simplifycfg"):
-			opt_pass_manager.add(llvm::createCFGSimplificationPass());
-			break;
-		case ctcli::group_element("--opt slp-vectorizer"):
-			opt_pass_manager.add(llvm::createSLPVectorizerPass());
-			break;
-		case ctcli::group_element("--opt speculative-execution"):
-			opt_pass_manager.add(llvm::createSpeculativeExecutionPass());
-			break;
-		case ctcli::group_element("--opt sroa"):
-			opt_pass_manager.add(llvm::createSROAPass());
-			break;
-		case ctcli::group_element("--opt strip-dead-prototypes"):
-			opt_pass_manager.add(llvm::createStripDeadPrototypesPass());
-			break;
-		case ctcli::group_element("--opt tailcallelim"):
-			opt_pass_manager.add(llvm::createTailCallEliminationPass());
-			break;
-		case ctcli::group_element("--opt targetlibinfo"):
-		{
-			auto const is_native_target = target == "" || target == "native";
-			auto const target_triple_string = is_native_target
-				? llvm::Triple::normalize(llvm::sys::getDefaultTargetTriple())
-				: llvm::Triple::normalize(std::string(target.data_as_char_ptr(), target.size()));
-			auto const target_triple = llvm::Triple(target_triple_string);
-			opt_pass_manager.add(new llvm::TargetLibraryInfoWrapperPass(target_triple));
-			break;
+			return size_opt_level == 1 ? llvm::OptimizationLevel::Os : llvm::OptimizationLevel::Oz;
 		}
-		case ctcli::group_element("--opt tbaa"):
-			opt_pass_manager.add(llvm::createTypeBasedAAWrapperPass());
-			break;
-		case ctcli::group_element("--opt transform-warning"):
-			opt_pass_manager.add(llvm::createWarnMissedTransformationsPass());
-			break;
-		case ctcli::group_element("--opt tti"):
-			opt_pass_manager.add(new llvm::TargetTransformInfoWrapperPass(llvm::TargetIRAnalysis()));
-			break;
-		case ctcli::group_element("--opt vector-combine"):
-			opt_pass_manager.add(llvm::createVectorCombinePass());
-			break;
-		case ctcli::group_element("--opt verify"):
-			opt_pass_manager.add(llvm::createVerifierPass());
-			break;
-
-		case ctcli::group_element("--opt aggressive-consteval"):
-			// this is an LLVM optimization
-			break;
-
-		default:
-			bz_unreachable;
-		}
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif // __clang__
-	}
-
-	{
-		size_t const max_iter = max_opt_iter_count;
-		for (size_t i = 0; i < max_iter; ++i)
+		else
 		{
-			// opt_pass_manager.run returns true if any of the passes modified the code
-			if (!opt_pass_manager.run(module))
+			switch (opt_level)
 			{
-				break;
+			case 1:
+				return llvm::OptimizationLevel::O1;
+			case 2:
+				return llvm::OptimizationLevel::O2;
+			default:
+				return llvm::OptimizationLevel::O3;
 			}
 		}
+	}();
+
+	for ([[maybe_unused]] auto const _ : bz::iota(0, max_opt_iter_count))
+	{
+		llvm::LoopAnalysisManager loop_analysis_manager;
+		llvm::FunctionAnalysisManager function_analysis_manager;
+		llvm::CGSCCAnalysisManager cgscc_analysis_manager;
+		llvm::ModuleAnalysisManager module_analysis_manager;
+
+		auto builder = get_pass_builder(this->_target_machine.get());
+
+		builder.registerModuleAnalyses(module_analysis_manager);
+		builder.registerCGSCCAnalyses(cgscc_analysis_manager);
+		builder.registerFunctionAnalyses(function_analysis_manager);
+		builder.registerLoopAnalyses(loop_analysis_manager);
+		builder.crossRegisterProxies(
+			loop_analysis_manager,
+			function_analysis_manager,
+			cgscc_analysis_manager,
+			module_analysis_manager
+		);
+
+		auto pass_manager = builder.buildPerModuleDefaultPipeline(llvm_opt_level);
+
+		pass_manager.run(module, module_analysis_manager);
 	}
 
 	// always return true

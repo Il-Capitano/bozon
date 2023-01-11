@@ -34,7 +34,6 @@ struct decl_list
 };
 
 ast::scope_t get_default_decls(ast::scope_t *builtin_global_scope, bz::array_view<bz::u8string_view const> id_scope);
-llvm::PassManagerBuilder create_pass_manager_builder(void);
 
 struct global_context
 {

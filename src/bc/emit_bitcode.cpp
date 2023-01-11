@@ -8587,7 +8587,10 @@ static void emit_function_bitcode_impl(
 	func_body.flags |= ast::function_body::bitcode_emitted;
 
 	// run the function pass manager on the generated function
-	context.function_pass_manager.run(*fn);
+	if (context.function_pass_manager != nullptr)
+	{
+		context.function_pass_manager->run(*fn, *context.function_analysis_manager);
+	}
 }
 
 template<abi::platform_abi abi>
