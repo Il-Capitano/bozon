@@ -3,7 +3,6 @@
 
 #include "instructions.h"
 #include "types.h"
-#include "global_codegen_context.h"
 #include "ast/expression.h"
 
 namespace comptime
@@ -114,8 +113,11 @@ struct current_function_info_t
 struct codegen_context
 {
 	basic_block_ref current_bb = {};
+	current_function_info_t current_function_info{};
 
-	current_function_info_t current_function_info;
+	type_set_t type_set;
+	type const *pointer_pair_t;
+	type const *null_t;
 
 	struct destruct_operation_info_t
 	{
@@ -126,9 +128,9 @@ struct codegen_context
 		bz::optional<instruction_ref> rvalue_array_elem_ptr;
 	};
 
-	bz::vector<destruct_operation_info_t> destructor_calls;
-	std::unordered_map<ast::decl_variable const *, instruction_ref> move_destruct_indicators;
-	std::unordered_map<ast::decl_variable const *, expr_value> variables;
+	bz::vector<destruct_operation_info_t> destructor_calls{};
+	std::unordered_map<ast::decl_variable const *, instruction_ref> move_destruct_indicators{};
+	std::unordered_map<ast::decl_variable const *, expr_value> variables{};
 
 	struct loop_info_t
 	{
@@ -142,7 +144,6 @@ struct codegen_context
 	bz::array<expr_value, 4> current_value_references = {};
 	size_t current_value_reference_stack_size = 0;
 
-	global_codegen_context *global_codegen_ctx;
 
 	bool is_little_endian(void) const;
 	bool is_big_endian(void) const;

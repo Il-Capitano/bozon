@@ -3,7 +3,7 @@
 
 #include "instructions.h"
 #include "memory.h"
-#include "global_codegen_context.h"
+#include "codegen_context.h"
 #include "ast/typespec.h"
 #include "ctx/warnings.h"
 #include "ctx/error.h"
@@ -20,14 +20,14 @@ struct executor_context
 	bool returned;
 	instruction_value ret_value;
 
-	function *current_function;
+	function const *current_function;
 	bz::fixed_vector<instruction_value> args;
 	bz::array_view<instruction const> instructions;
 	bz::array_view<instruction_value> instruction_values;
 
 	memory::memory_manager memory;
 
-	global_codegen_context *global_context;
+	codegen_context *codegen_context;
 
 
 	uint8_t *get_memory(ptr_t address);

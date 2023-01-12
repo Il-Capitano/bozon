@@ -78,7 +78,7 @@ void executor_context::check_dereference(uint32_t src_tokens_index, ptr_t addres
 
 void executor_context::check_str_construction(uint32_t src_tokens_index, ptr_t begin, ptr_t end)
 {
-	auto const elem_type = this->global_context->get_builtin_type(builtin_type_kind::i8);
+	auto const elem_type = this->codegen_context->get_builtin_type(builtin_type_kind::i8);
 	auto const is_good = this->memory.check_slice_construction(begin, end, elem_type);
 	if (!is_good)
 	{
