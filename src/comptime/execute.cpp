@@ -1,6 +1,7 @@
 #include "instructions.h"
 #include "executor_context.h"
 #include "overflow_operations.h"
+#include "ast/statement.h"
 #include <bit>
 
 namespace comptime
@@ -2820,7 +2821,7 @@ static void execute_min_f32_check(instructions::min_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::math_domain_error,
 			inst.src_tokens_index,
-			bz::format("calling 'min' with {} and {} of type 'float32'")
+			bz::format("calling 'min' with {} and {} of type 'float32'", x, y)
 		);
 	}
 }
@@ -2832,7 +2833,7 @@ static void execute_min_f64_check(instructions::min_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::math_domain_error,
 			inst.src_tokens_index,
-			bz::format("calling 'min' with {} and {} of type 'float64'")
+			bz::format("calling 'min' with {} and {} of type 'float64'", x, y)
 		);
 	}
 }
@@ -2894,7 +2895,7 @@ static void execute_max_f32_check(instructions::max_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::math_domain_error,
 			inst.src_tokens_index,
-			bz::format("calling 'max' with {} and {} of type 'float32'")
+			bz::format("calling 'max' with {} and {} of type 'float32'", x, y)
 		);
 	}
 }
@@ -2906,7 +2907,7 @@ static void execute_max_f64_check(instructions::max_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::math_domain_error,
 			inst.src_tokens_index,
-			bz::format("calling 'max' with {} and {} of type 'float64'")
+			bz::format("calling 'max' with {} and {} of type 'float64'", x, y)
 		);
 	}
 }

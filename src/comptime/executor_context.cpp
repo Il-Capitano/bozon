@@ -1,5 +1,6 @@
 #include "executor_context.h"
 #include "global_data.h"
+#include "ast/statement.h"
 
 namespace comptime
 {
