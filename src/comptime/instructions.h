@@ -31,8 +31,7 @@ struct instruction_value_index
 
 struct alloca
 {
-	size_t size;
-	size_t align;
+	type const *object_type;
 };
 
 struct switch_info_t

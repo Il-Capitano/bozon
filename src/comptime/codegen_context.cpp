@@ -730,10 +730,7 @@ void codegen_context::create_memory_access_check(
 
 expr_value codegen_context::create_alloca(type const *type)
 {
-	this->current_function_info.allocas.push_back({
-		.size = type->size,
-		.align = type->align,
-	});
+	this->current_function_info.allocas.push_back({ .object_type = type });
 	auto const alloca_ref = instruction_ref{
 		.bb_index = instruction_ref::alloca_bb_index,
 		.inst_index = static_cast<uint32_t>(this->current_function_info.allocas.size() - 1),
