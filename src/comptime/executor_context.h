@@ -46,13 +46,14 @@ struct executor_context
 	void do_ret_void(void);
 	void report_error(uint32_t error_index);
 
+	lex::src_tokens const &get_src_tokens(uint32_t index) const;
 	switch_info_t const &get_switch_info(uint32_t index) const;
 	slice_construction_check_info_t const &get_slice_construction_info(uint32_t index) const;
 	pointer_arithmetic_check_info_t const &get_pointer_arithmetic_info(uint32_t index) const;
 	memory_access_check_info_t const &get_memory_access_info(uint32_t index) const;
 
 	ptr_t malloc(uint32_t src_tokens_index, type const *type, uint64_t count);
-	void free(uint32_t src_tokens_index, ptr_t ptr);
+	void free(uint32_t src_tokens_index, ptr_t address);
 
 	void check_dereference(uint32_t src_tokens_index, ptr_t address, type const *object_type, ast::typespec_view object_typespec);
 	void check_str_construction(uint32_t src_tokens_index, ptr_t begin, ptr_t end);

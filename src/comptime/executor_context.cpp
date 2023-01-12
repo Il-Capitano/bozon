@@ -1,4 +1,5 @@
 #include "executor_context.h"
+#include "global_data.h"
 
 namespace comptime
 {
@@ -16,6 +17,11 @@ void executor_context::set_current_instruction_value(instruction_value value)
 instruction_value executor_context::get_instruction_value(instruction_value_index index)
 {
 	return this->instruction_values[index.index];
+}
+
+bool executor_context::is_option_set(bz::u8string_view option)
+{
+	return defines.contains(option);
 }
 
 instruction_value executor_context::get_arg(uint32_t index)
@@ -40,6 +46,12 @@ void executor_context::do_ret_void(void)
 	this->returned = true;
 }
 
+lex::src_tokens const &executor_context::get_src_tokens(uint32_t index) const
+{
+	bz_assert(index < this->current_function->src_tokens.size());
+	return this->current_function->src_tokens[index];
+}
+
 switch_info_t const &executor_context::get_switch_info(uint32_t index) const
 {
 	bz_assert(index < this->current_function->switch_infos.size());
@@ -62,6 +74,33 @@ memory_access_check_info_t const &executor_context::get_memory_access_info(uint3
 {
 	bz_assert(index < this->current_function->memory_access_check_infos.size());
 	return this->current_function->memory_access_check_infos[index];
+}
+
+ptr_t executor_context::malloc(uint32_t src_tokens_index, type const *type, uint64_t count)
+{
+	auto const result = this->memory.heap.allocate(this->get_src_tokens(src_tokens_index), type, count);
+	if (result == 0)
+	{
+		this->report_error(src_tokens_index, bz::format("unable to allocate a region of size {}", type->size * count));
+	}
+	return result;
+}
+
+void executor_context::free(uint32_t src_tokens_index, ptr_t address)
+{
+	auto const result = this->memory.heap.free(this->get_src_tokens(src_tokens_index), address);
+	switch (result)
+	{
+	case memory::free_result::good:
+		return;
+	case memory::free_result::double_free:
+		this->report_error(src_tokens_index, "double free detected");
+		break;
+	case memory::free_result::unknown_address:
+	case memory::free_result::address_inside_object:
+		this->report_error(src_tokens_index, "invalid free");
+		break;
+	}
 }
 
 void executor_context::check_dereference(uint32_t src_tokens_index, ptr_t address, type const *object_type, ast::typespec_view object_typespec)
