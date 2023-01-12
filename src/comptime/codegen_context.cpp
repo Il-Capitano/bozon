@@ -57,6 +57,36 @@ type const *expr_value::get_type(void) const
 	return this->value_type;
 }
 
+codegen_context::codegen_context(machine_parameters_t _machine_parameters)
+	: machine_parameters(_machine_parameters),
+	  type_set(_machine_parameters.pointer_size)
+{
+	auto const pointer_type = this->get_pointer_type();
+	type const *const pointer_pair_types[] = { pointer_type, pointer_type };
+	this->pointer_pair_t = this->get_aggregate_type(pointer_pair_types);
+	this->null_t = this->get_aggregate_type({});
+}
+
+bool codegen_context::is_little_endian(void) const
+{
+	return this->machine_parameters.endianness == endianness_kind::little;
+}
+
+bool codegen_context::is_big_endian(void) const
+{
+	return this->machine_parameters.endianness == endianness_kind::big;
+}
+
+bool codegen_context::is_64_bit(void) const
+{
+	return this->machine_parameters.pointer_size == 8;
+}
+
+bool codegen_context::is_32_bit(void) const
+{
+	return this->machine_parameters.pointer_size == 4;
+}
+
 void codegen_context::add_variable(ast::decl_variable const *decl, expr_value value)
 {
 	bz_assert(!this->variables.contains(decl));

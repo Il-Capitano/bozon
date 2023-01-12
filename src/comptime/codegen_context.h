@@ -110,11 +110,24 @@ struct current_function_info_t
 	void finalize_function(function &func);
 };
 
+enum class endianness_kind
+{
+	little,
+	big,
+};
+
+struct machine_parameters_t
+{
+	size_t pointer_size;
+	endianness_kind endianness;
+};
+
 struct codegen_context
 {
 	basic_block_ref current_bb = {};
 	current_function_info_t current_function_info{};
 
+	machine_parameters_t machine_parameters;
 	type_set_t type_set;
 	type const *pointer_pair_t;
 	type const *null_t;
@@ -144,6 +157,7 @@ struct codegen_context
 	bz::array<expr_value, 4> current_value_references = {};
 	size_t current_value_reference_stack_size = 0;
 
+	codegen_context(machine_parameters_t _machine_parameters);
 
 	bool is_little_endian(void) const;
 	bool is_big_endian(void) const;
