@@ -599,6 +599,133 @@ bz::optional<int64_t> heap_object::do_pointer_difference(ptr_t lhs, ptr_t rhs, t
 	}
 }
 
+stack_frame *stack_manager::get_stack_frame(ptr_t address)
+{
+	if (
+		this->stack_frames.empty()
+		|| address < this->stack_frames[0].begin_address
+		|| address > this->stack_frames.back().begin_address + this->stack_frames.back().total_size
+	)
+	{
+		return nullptr;
+	}
+
+	// find the first element that has an address that is less than or equal to address.
+	// we do this by finding the first element, whose address is greater than address
+	// and taking the element before that
+	auto const it = std::upper_bound(
+		this->stack_frames.begin(), this->stack_frames.end(),
+		address,
+		[](ptr_t address, auto const &stack_frame) {
+			return address < stack_frame.begin_address;
+		}
+	);
+	return &*(it - 1);
+}
+
+stack_object *stack_manager::get_stack_object(ptr_t address)
+{
+	auto const frame = this->get_stack_frame(address);
+	if (frame == nullptr)
+	{
+		return nullptr;
+	}
+
+	bz_assert(address >= frame->begin_address && address <= frame->begin_address + frame->total_size);
+	// find the first element that has an address that is less than or equal to address.
+	// we do this by finding the first element, whose address is greater than address
+	// and taking the element before that
+	auto const it = std::upper_bound(
+		frame->objects.begin(), frame->objects.end(),
+		address,
+		[](ptr_t address, auto const &object) {
+			return address < object.address;
+		}
+	);
+	return &*(it - 1);
+}
+
+bool stack_manager::check_dereference(ptr_t address, type const *object_type)
+{
+	auto const object = this->get_stack_object(address);
+	return object != nullptr && object->check_dereference(address, object_type);
+}
+
+bool stack_manager::check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type)
+{
+	if (end < begin)
+	{
+		return false;
+	}
+
+	auto const object = this->get_stack_object(begin);
+	if (object == nullptr)
+	{
+		return false;
+	}
+	else if (end > object->address + object->object_size())
+	{
+		return false;
+	}
+	else
+	{
+		return object->check_slice_construction(begin, end, elem_type);
+	}
+}
+
+pointer_arithmetic_result_t stack_manager::do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type)
+{
+	auto const object = this->get_stack_object(address);
+	if (object == nullptr)
+	{
+		return { 0, false };
+	}
+	else if (!object->is_initialized)
+	{
+		return { 0, false };
+	}
+	else
+	{
+		return object->do_pointer_arithmetic(address, offset, object_type);
+	}
+}
+
+bz::optional<int64_t> stack_manager::do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type)
+{
+	auto const object = this->get_stack_object(lhs);
+	if (object == nullptr)
+	{
+		return {};
+	}
+	else if (!object->is_initialized)
+	{
+		return {};
+	}
+	else if (rhs < object->address || rhs > object->address + object->object_size())
+	{
+		return {};
+	}
+	else
+	{
+		return object->do_pointer_difference(lhs, rhs, object_type);
+	}
+}
+
+uint8_t *stack_manager::get_memory(ptr_t address)
+{
+	auto const object = this->get_stack_object(address);
+	bz_assert(object != nullptr);
+	bz_assert(object->is_initialized);
+	return object->get_memory(address);
+}
+
+allocation::allocation(lex::src_tokens const &src_tokens, ptr_t address, type const *elem_type, uint64_t count)
+	: object(address, elem_type, count),
+	  malloc_src_tokens(src_tokens),
+	  free_src_tokens(),
+	  is_freed(false)
+{}
+
 free_result allocation::free(lex::src_tokens const &free_src_tokens)
 {
 	if (this->is_freed)
@@ -623,7 +750,7 @@ allocation *heap_manager::get_allocation(ptr_t address)
 	{
 		return nullptr;
 	}
-	// find the first element that has an address that is less than or equal to address
+	// find the first element that has an address that is less than or equal to address.
 	// we do this by finding the first element, whose address is greater than address
 	// and taking the element before that
 	auto const it = std::upper_bound(
@@ -715,15 +842,15 @@ bz::optional<int64_t> heap_manager::do_pointer_difference(ptr_t lhs, ptr_t rhs, 
 	auto const allocation = this->get_allocation(lhs);
 	if (allocation == nullptr)
 	{
-		return false;
+		return {};
 	}
 	else if (allocation->is_freed)
 	{
-		return false;
+		return {};
 	}
 	else if (rhs < allocation->object.address || rhs > allocation->object.address + allocation->object.object_size())
 	{
-		return false;
+		return {};
 	}
 	else
 	{
@@ -821,6 +948,7 @@ bool memory_manager::check_dereference(ptr_t address, type const *object_type)
 	case memory_segment::heap:
 		return this->heap.check_dereference(address, object_type);
 	case memory_segment::meta:
+		// TODO: one-past-the-end pointers shouldn't be valid here
 		return this->meta_memory.is_valid(address, this->stack.stack_frames)
 			&& this->check_dereference(this->meta_memory.get_real_address(address), object_type);
 	}

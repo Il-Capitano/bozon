@@ -62,6 +62,8 @@ struct heap_object
 struct stack_frame
 {
 	bz::fixed_vector<stack_object> objects;
+	ptr_t begin_address;
+	size_t total_size;
 	uint32_t id;
 };
 
@@ -69,6 +71,9 @@ struct stack_manager
 {
 	ptr_t head;
 	bz::vector<stack_frame> stack_frames;
+
+	stack_frame *get_stack_frame(ptr_t address);
+	stack_object *get_stack_object(ptr_t address);
 
 	bool check_dereference(ptr_t address, type const *object_type);
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type);
@@ -95,7 +100,7 @@ struct allocation
 	lex::src_tokens free_src_tokens;
 	bool is_freed;
 
-	allocation(lex::src_tokens const &src_tokens, ptr_t address, type const *object_type, uint64_t count);
+	allocation(lex::src_tokens const &src_tokens, ptr_t address, type const *elem_type, uint64_t count);
 
 	free_result free(lex::src_tokens const &free_src_tokens);
 };
