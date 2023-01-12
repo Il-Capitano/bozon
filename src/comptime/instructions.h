@@ -83,6 +83,8 @@ struct function
 	bz::fixed_vector<slice_construction_check_info_t> slice_construction_check_infos;
 	bz::fixed_vector<pointer_arithmetic_check_info_t> pointer_arithmetic_check_infos;
 	bz::fixed_vector<memory_access_check_info_t> memory_access_check_infos;
+
+	ast::function_body *func_body;
 };
 
 namespace instructions

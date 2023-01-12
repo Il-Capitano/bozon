@@ -67,6 +67,17 @@ codegen_context::codegen_context(machine_parameters_t _machine_parameters)
 	this->null_t = this->get_aggregate_type({});
 }
 
+void codegen_context::ensure_function_emission(ast::function_body *body)
+{
+	if (!body->has_builtin_implementation() || body->body.not_null())
+	{
+		if (!body->is_comptime_bitcode_emitted())
+		{
+			this->functions_to_compile.push_back(body);
+		}
+	}
+}
+
 bool codegen_context::is_little_endian(void) const
 {
 	return this->machine_parameters.endianness == endianness_kind::little;
@@ -104,6 +115,28 @@ expr_value codegen_context::get_variable(ast::decl_variable const *decl)
 	{
 		return it->second;
 	}
+}
+
+function *codegen_context::get_non_const_function(ast::function_body *body)
+{
+	auto const it = this->functions.find(body);
+	if (it == this->functions.end())
+	{
+		this->ensure_function_emission(body);
+		bz_assert(body->state != ast::resolve_state::error);
+		bz_assert(body->state >= ast::resolve_state::symbol);
+		auto const [it, inserted] = this->functions.insert({ body, generate_from_symbol(*body, *this) });
+		return it->second.get();
+	}
+	else
+	{
+		return it->second.get();
+	}
+}
+
+function const *codegen_context::get_function(ast::function_body *body)
+{
+	return this->get_non_const_function(body);
 }
 
 type const *codegen_context::get_builtin_type(builtin_type_kind kind)
@@ -507,7 +540,7 @@ expr_value codegen_context::create_const_ptr_null(void)
 
 expr_value codegen_context::create_get_function_return_address(void)
 {
-	auto const return_type = this->current_function_info.return_type;
+	auto const return_type = this->current_function_info.func->return_type;
 	bz_assert(!return_type->is_simple_value_type());
 	return expr_value::get_reference(
 		this->add_instruction(instructions::get_function_arg{ .arg_index = 0 }),
@@ -517,7 +550,7 @@ expr_value codegen_context::create_get_function_return_address(void)
 
 instruction_ref codegen_context::create_get_function_arg(uint32_t arg_index)
 {
-	auto const needs_return_address = !this->current_function_info.return_type->is_simple_value_type();
+	auto const needs_return_address = !this->current_function_info.func->return_type->is_simple_value_type();
 	return this->add_instruction(instructions::get_function_arg{ .arg_index = arg_index + (needs_return_address ? 1 : 0) });
 }
 
@@ -5391,10 +5424,10 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 	}
 }
 
-void current_function_info_t::finalize_function(function &func)
+void current_function_info_t::finalize_function(void)
 {
-	func.return_type = return_type;
-	func.arg_types = std::move(this->arg_types);
+	bz_assert(this->func != nullptr);
+	auto &func = *this->func;
 
 	uint32_t instruction_value_offset = this->allocas.size();
 	for (auto &bb : this->blocks)
@@ -5501,12 +5534,6 @@ void current_function_info_t::finalize_function(function &func)
 
 	// finalize memory_access_check_infos
 	func.memory_access_check_infos = bz::fixed_vector(this->memory_access_check_infos.as_array_view());
-}
-
-void codegen_context::finalize_function(function &func)
-{
-	this->current_function_info.finalize_function(func);
-	this->current_function_info = current_function_info_t();
 }
 
 } // namespace comptime

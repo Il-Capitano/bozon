@@ -92,9 +92,9 @@ struct unresolved_switch
 
 struct current_function_info_t
 {
+	function *func = nullptr;
+
 	bz::optional<expr_value> return_address;
-	type const *return_type;
-	bz::fixed_vector<type const *> arg_types;
 	bz::vector<alloca> allocas;
 	bz::vector<basic_block> blocks;
 	bz::vector<error_info_t> errors;
@@ -107,7 +107,7 @@ struct current_function_info_t
 	bz::vector<unresolved_jump> unresolved_jumps;
 	bz::vector<unresolved_switch> unresolved_switches;
 
-	void finalize_function(function &func);
+	void finalize_function(void);
 };
 
 enum class endianness_kind
@@ -143,7 +143,11 @@ struct codegen_context
 
 	bz::vector<destruct_operation_info_t> destructor_calls{};
 	std::unordered_map<ast::decl_variable const *, instruction_ref> move_destruct_indicators{};
+
 	std::unordered_map<ast::decl_variable const *, expr_value> variables{};
+	std::unordered_map<ast::function_body *, std::unique_ptr<function>> functions{};
+
+	bz::vector<ast::function_body *> functions_to_compile{};
 
 	struct loop_info_t
 	{
@@ -159,6 +163,8 @@ struct codegen_context
 
 	codegen_context(machine_parameters_t _machine_parameters);
 
+	void ensure_function_emission(ast::function_body *body);
+
 	bool is_little_endian(void) const;
 	bool is_big_endian(void) const;
 	bool is_64_bit(void) const;
@@ -166,7 +172,8 @@ struct codegen_context
 
 	void add_variable(ast::decl_variable const *decl, expr_value value);
 	expr_value get_variable(ast::decl_variable const *decl);
-	function const *get_function(ast::function_body const *body);
+	function *get_non_const_function(ast::function_body *body);
+	function const *get_function(ast::function_body *body);
 
 	type const *get_builtin_type(builtin_type_kind kind);
 	type const *get_pointer_type(void);
@@ -504,8 +511,6 @@ struct codegen_context
 		type const *elem_type,
 		ast::typespec_view slice_type
 	);
-
-	void finalize_function(function &func);
 };
 
 } // namespace comptime

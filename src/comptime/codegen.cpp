@@ -5737,7 +5737,7 @@ static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_conte
 	}
 	else if (var_decl.get_type().is<ast::ts_consteval>())
 	{
-		bz_unreachable;
+		bz_unreachable; // TODO
 	}
 	else if (var_decl.get_type().is<ast::ts_lvalue_reference>())
 	{
@@ -5818,23 +5818,14 @@ static void generate_stmt_code(ast::statement const &stmt, codegen_context &cont
 	}
 }
 
-void generate_code(ast::function_body &body, codegen_context &context)
+void generate_code(ast::function_body &body, function &func, codegen_context &context)
 {
 	bz_assert(body.state == ast::resolve_state::all);
+	bz_assert(context.current_function_info.func == nullptr);
 
-	bz_assert(context.current_function_info.return_type == nullptr);
-	context.current_function_info.return_type = get_type(body.return_type, context);
-	bz_assert(context.current_function_info.arg_types.empty());
+	context.current_function_info.func = &func;
 
-	context.current_function_info.arg_types = bz::fixed_vector(
-		body.params
-			.filter([](auto const &param) { return !ast::is_generic_parameter(param); })
-			.transform([&context](auto const &param) { return get_type(param.get_type(), context); })
-			.collect(body.params.size())
-			.as_array_view()
-	);
-
-	auto const needs_return_address = !context.current_function_info.return_type->is_simple_value_type();
+	auto const needs_return_address = !func.return_type->is_simple_value_type();
 	if (needs_return_address)
 	{
 		context.current_function_info.return_address = context.create_get_function_return_address();
@@ -5866,7 +5857,7 @@ void generate_code(ast::function_body &body, codegen_context &context)
 				add_variable_helper(param, value, context);
 			}
 		}
-		else if (auto const type = context.current_function_info.arg_types[i]; type->is_simple_value_type())
+		else if (auto const type = func.arg_types[i]; type->is_simple_value_type())
 		{
 			auto const alloca = context.create_alloca(type);
 			auto const value = expr_value::get_value(context.create_get_function_arg(i), type);
@@ -5880,7 +5871,7 @@ void generate_code(ast::function_body &body, codegen_context &context)
 		}
 		++i;
 	}
-	bz_assert(i == context.current_function_info.arg_types.size());
+	bz_assert(i == func.arg_types.size());
 
 	for (auto const &stmt : body.get_statements())
 	{
@@ -5889,7 +5880,7 @@ void generate_code(ast::function_body &body, codegen_context &context)
 
 	if (!context.has_terminator())
 	{
-		auto const return_type = context.current_function_info.return_type;
+		auto const return_type = func.return_type;
 		if (return_type->is_void())
 		{
 			context.create_ret_void();
@@ -5905,6 +5896,26 @@ void generate_code(ast::function_body &body, codegen_context &context)
 			context.create_unreachable();
 		}
 	}
+
+	context.current_function_info.finalize_function();
+	context.current_function_info = current_function_info_t();
+}
+
+std::unique_ptr<function> generate_from_symbol(ast::function_body &body, codegen_context &context)
+{
+	auto result = std::make_unique<function>();
+	result->func_body = &body;
+
+	result->return_type = get_type(body.return_type, context);
+	result->arg_types = bz::fixed_vector(
+		body.params
+			.filter([](auto const &param) { return !ast::is_generic_parameter(param); })
+			.transform([&context](auto const &param) { return get_type(param.get_type(), context); })
+			.collect(body.params.size())
+			.as_array_view()
+	);
+
+	return result;
 }
 
 static void generate_rvalue_array_destruct(
