@@ -47,6 +47,38 @@ void executor_context::do_ret_void(void)
 	this->returned = true;
 }
 
+void executor_context::call_function(uint32_t call_src_tokens_index, function const *func, uint32_t args_index)
+{
+	this->call_stack.push_back({
+		.func = this->current_function,
+		.call_inst = this->current_instruction,
+		.call_src_tokens_index = this->call_src_tokens_index,
+		.args = std::move(this->args),
+		.instruction_values = std::move(this->instruction_values),
+	});
+
+	auto const &prev_instruction_values = this->call_stack.back().instruction_values;
+
+	this->current_function = func;
+	auto const &call_args = this->current_function->call_args[args_index];
+	this->args = bz::fixed_vector<instruction_value>(
+		call_args.transform([&prev_instruction_values](auto const index) { return prev_instruction_values[index.index]; })
+	);
+	this->instruction_values = bz::fixed_vector<instruction_value>(func->allocas.size() + func->instructions.size());
+	this->instructions = func->instructions;
+	this->alloca_offset = static_cast<uint32_t>(func->allocas.size());
+	this->call_src_tokens_index = call_src_tokens_index;
+
+	this->memory.push_stack_frame(func->allocas);
+	auto const &alloca_objects = this->memory.stack.stack_frames.back().objects;
+	bz_assert(alloca_objects.size() == this->alloca_offset);
+	for (auto const i : bz::iota(0, this->alloca_offset))
+	{
+		this->instruction_values[i].ptr = alloca_objects[i].address;
+	}
+	this->next_instruction = this->instructions.data();
+}
+
 lex::src_tokens const &executor_context::get_src_tokens(uint32_t index) const
 {
 	bz_assert(index < this->current_function->src_tokens.size());
@@ -307,12 +339,32 @@ void executor_context::advance(void)
 	}
 	else if (this->returned)
 	{
-		bz_unreachable;
+		bz_assert(this->call_stack.not_empty());
+		auto &prev_call = this->call_stack.back();
+
+		this->current_function = prev_call.func;
+		this->args = std::move(prev_call.args);
+		this->instruction_values = std::move(prev_call.instruction_values);
+		this->instructions = this->current_function->instructions;
+		this->alloca_offset = static_cast<uint32_t>(this->current_function->allocas.size());
+		this->call_src_tokens_index = prev_call.call_src_tokens_index;
+
+		this->current_instruction = prev_call.call_inst + 1;
+		auto const instruction_index = this->current_instruction - this->instructions.data();
+		this->current_instruction_value = this->instruction_values.data() + instruction_index + this->alloca_offset;
+		this->returned = false;
+		*(this->current_instruction_value - 1) = this->ret_value;
+
+		this->call_stack.pop_back();
+		this->memory.pop_stack_frame();
 	}
 	else
 	{
 		bz_assert(!this->current_instruction->is_terminator());
+		bz_assert(this->current_instruction != &this->instructions.back());
+		bz_assert(this->current_instruction_value != &this->instruction_values.back());
 		this->current_instruction += 1;
+		this->current_instruction_value += 1;
 	}
 }
 

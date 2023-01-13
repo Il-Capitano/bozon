@@ -4123,7 +4123,10 @@ static void execute_const_memset_zero(instructions::const_memset_zero const &ins
 	std::memset(dest_mem, 0, inst.size);
 }
 
-static instruction_value execute_function_call(instructions::function_call const &inst, executor_context &context);
+static void execute_function_call(instructions::function_call const &inst, executor_context &context)
+{
+	context.call_function(inst.src_tokens_index, inst.func, inst.args_index);
+}
 
 static ptr_t execute_malloc(instructions::malloc const &inst, uint64_t count, executor_context &context)
 {

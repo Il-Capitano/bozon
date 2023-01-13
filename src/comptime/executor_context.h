@@ -11,21 +11,34 @@
 namespace comptime
 {
 
+struct execution_frame_info_t
+{
+	function const *func;
+	instruction const *call_inst;
+	uint32_t call_src_tokens_index;
+
+	bz::fixed_vector<instruction_value> args;
+	bz::fixed_vector<instruction_value> instruction_values;
+};
+
 struct executor_context
 {
 	instruction const *current_instruction;
 	instruction_value *current_instruction_value;
 	instruction const *next_instruction;
-	uint32_t alloca_offset;
-	bool returned;
 	instruction_value ret_value;
+	bool returned;
 
 	function const *current_function;
 	bz::fixed_vector<instruction_value> args;
+	bz::fixed_vector<instruction_value> instruction_values;
 	bz::array_view<instruction const> instructions;
-	bz::array_view<instruction_value> instruction_values;
+	uint32_t alloca_offset;
+	uint32_t call_src_tokens_index;
 
 	memory::memory_manager memory;
+
+	bz::vector<execution_frame_info_t> call_stack;
 
 	codegen_context *codegen_context;
 
@@ -45,6 +58,8 @@ struct executor_context
 	void do_ret(instruction_value value);
 	void do_ret_void(void);
 	void report_error(uint32_t error_index);
+
+	void call_function(uint32_t call_src_tokens_index, function const *func, uint32_t args_index);
 
 	lex::src_tokens const &get_src_tokens(uint32_t index) const;
 	switch_info_t const &get_switch_info(uint32_t index) const;
