@@ -107,6 +107,12 @@ constexpr bool is_reference =
 template<typename T>
 constexpr bool is_void = is_same<T, void>;
 
+template<typename T, template<typename ...> typename U>
+constexpr bool is_specialization_of = false;
+
+template<typename ...Ts, template<typename ...> typename U>
+constexpr bool is_specialization_of<U<Ts...>, U> = true;
+
 
 namespace internal
 {

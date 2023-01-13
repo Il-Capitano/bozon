@@ -366,6 +366,48 @@ public:
 		this->initialize_from(arr_view);
 	}
 
+	template<typename Range>
+	requires (
+		!meta::is_same<self_t, meta::remove_cv_reference<Range>>
+		&& !meta::is_specialization_of<meta::remove_cv_reference<Range>, array_view>
+		&& internal::has_size<Range>
+	)
+	fixed_vector(Range &&range) noexcept(nothrow_alloc && nothrow_construct_value<decltype(*range.begin())>)
+		: self_t()
+	{
+		auto const size = range.size();
+		if (size == 0)
+		{
+			return;
+		}
+
+		auto const data_begin = this->alloc_new(size);
+		auto const data_end = data_begin + size;
+
+		auto it = data_begin;
+		bz_try
+		{
+			auto other_it = range.begin();
+			for (; it != data_end; ++it, ++other_it)
+			{
+				this->try_emplace(it, *other_it);
+			}
+		}
+		bz_catch_all
+		{
+			while (it != data_begin)
+			{
+				--it;
+				it->~value_type();
+			}
+			this->_allocator.deallocate(data_begin, size);
+			bz_rethrow;
+		}
+
+		this->_data_begin = data_begin;
+		this->_data_end = data_end;
+	}
+
 public:
 	// ==== size queries ====
 	auto max_size(void) noexcept(
