@@ -29,11 +29,6 @@ struct instruction_value_index
 	uint32_t index;
 };
 
-struct alloca
-{
-	type const *object_type;
-};
-
 struct switch_info_t
 {
 	struct value_instruction_index_pair
@@ -76,6 +71,7 @@ struct function
 	bz::fixed_vector<type const *> arg_types;
 	type const *return_type;
 
+	bz::fixed_vector<type const *> allocas;
 	bz::fixed_vector<switch_info_t> switch_infos;
 	bz::fixed_vector<error_info_t> errors;
 	bz::fixed_vector<lex::src_tokens> src_tokens;
@@ -4375,10 +4371,11 @@ struct const_memset_zero
 struct function_call
 {
 	static inline constexpr int arg_types = 0;
-	static inline constexpr value_type result_type = value_type::any;
+	static inline constexpr value_type result_type = value_type::none;
 
 	function const *func;
-	size_t args_index;
+	uint32_t args_index;
+	uint32_t src_tokens_index;
 };
 
 struct malloc

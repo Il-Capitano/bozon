@@ -95,7 +95,7 @@ struct current_function_info_t
 	function *func = nullptr;
 
 	bz::optional<expr_value> return_address;
-	bz::vector<alloca> allocas;
+	bz::vector<type const *> allocas;
 	bz::vector<basic_block> blocks;
 	bz::vector<error_info_t> errors;
 	bz::vector<lex::src_tokens> src_tokens;
@@ -348,7 +348,7 @@ struct codegen_context
 	instruction_ref create_const_memcpy(expr_value dest, expr_value source, size_t size);
 	instruction_ref create_const_memset_zero(expr_value dest, size_t size);
 
-	expr_value create_function_call(function const *func, bz::fixed_vector<instruction_ref> args);
+	expr_value create_function_call(lex::src_tokens const &src_tokens, function const *func, bz::fixed_vector<instruction_ref> args);
 	expr_value create_malloc(lex::src_tokens const &src_tokens, type const *type, expr_value count);
 	void create_free(lex::src_tokens const &src_tokens, expr_value ptr);
 

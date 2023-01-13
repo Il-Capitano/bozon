@@ -793,7 +793,7 @@ void codegen_context::create_memory_access_check(
 
 expr_value codegen_context::create_alloca(type const *type)
 {
-	this->current_function_info.allocas.push_back({ .object_type = type });
+	this->current_function_info.allocas.push_back(type);
 	auto const alloca_ref = instruction_ref{
 		.bb_index = instruction_ref::alloca_bb_index,
 		.inst_index = static_cast<uint32_t>(this->current_function_info.allocas.size() - 1),
@@ -972,13 +972,14 @@ instruction_ref codegen_context::create_const_memset_zero(expr_value dest, size_
 	return this->add_instruction(instructions::const_memset_zero{ .size = size }, dest.get_reference());
 }
 
-expr_value codegen_context::create_function_call(function const *func, bz::fixed_vector<instruction_ref> args)
+expr_value codegen_context::create_function_call(lex::src_tokens const &src_tokens, function const *func, bz::fixed_vector<instruction_ref> args)
 {
-	auto const args_index = this->current_function_info.call_args.size();
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+	auto const args_index = static_cast<uint32_t>(this->current_function_info.call_args.size());
 	this->current_function_info.call_args.push_back(std::move(args));
 
 	auto const inst_ref = this->add_instruction(
-		instructions::function_call{ .func = func, .args_index = args_index }
+		instructions::function_call{ .func = func, .args_index = args_index, .src_tokens_index = src_tokens_index }
 	);
 	if (func->return_type->is_simple_value_type())
 	{
@@ -5499,6 +5500,9 @@ void current_function_info_t::finalize_function(void)
 		}
 		bz_assert(it == func.instructions.end());
 	}
+
+	// finalize allocas
+	func.allocas = bz::fixed_vector(this->allocas.as_array_view());
 
 	// finalize errors
 	{

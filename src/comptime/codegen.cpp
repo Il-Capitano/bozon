@@ -3002,18 +3002,18 @@ static expr_value generate_expr_code(
 
 		arg_refs[0] = result_value.get_reference();
 
-		context.create_function_call(func, std::move(arg_refs));
+		context.create_function_call(func_call.src_tokens, func, std::move(arg_refs));
 
 		return result_value;
 	}
 	else if (func->return_type->is_void())
 	{
-		context.create_function_call(func, std::move(arg_refs));
+		context.create_function_call(func_call.src_tokens, func, std::move(arg_refs));
 		return expr_value::get_none();
 	}
 	else
 	{
-		auto const result_value = context.create_function_call(func, std::move(arg_refs));
+		auto const result_value = context.create_function_call(func_call.src_tokens, func, std::move(arg_refs));
 
 		return value_or_result_address(result_value, result_address, context);
 	}
