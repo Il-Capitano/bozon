@@ -5898,7 +5898,6 @@ void generate_code(ast::function_body &body, function &func, codegen_context &co
 	}
 
 	context.current_function_info.finalize_function();
-	context.current_function_info = current_function_info_t();
 }
 
 std::unique_ptr<function> generate_from_symbol(ast::function_body &body, codegen_context &context)

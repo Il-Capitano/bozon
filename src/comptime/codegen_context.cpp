@@ -5534,6 +5534,8 @@ void current_function_info_t::finalize_function(void)
 
 	// finalize memory_access_check_infos
 	func.memory_access_check_infos = bz::fixed_vector(this->memory_access_check_infos.as_array_view());
+
+	*this = current_function_info_t();
 }
 
 } // namespace comptime
