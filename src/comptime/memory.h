@@ -71,6 +71,10 @@ struct stack_manager
 {
 	ptr_t head;
 	bz::vector<stack_frame> stack_frames;
+	uint32_t stack_frame_id;
+
+	void push_stack_frame(bz::array_view<type const *const> types);
+	void pop_stack_frame(void);
 
 	stack_frame *get_stack_frame(ptr_t address);
 	stack_object *get_stack_object(ptr_t address);
@@ -175,6 +179,9 @@ struct memory_manager
 	stack_manager stack;
 	heap_manager heap;
 	meta_memory_manager meta_memory;
+
+	void push_stack_frame(bz::array_view<type const *const> types);
+	void pop_stack_frame(void);
 
 	bool check_dereference(ptr_t address, type const *object_type);
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type);

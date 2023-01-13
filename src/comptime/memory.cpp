@@ -3,6 +3,8 @@
 namespace comptime::memory
 {
 
+static constexpr uint8_t max_object_align = 8;
+
 static bool contained_in_object(type const *object_type, size_t offset, type const *subobject_type)
 {
 	static_assert(type::variant_count == 4);
@@ -338,7 +340,7 @@ heap_object::heap_object(ptr_t _address, type const *_elem_type, size_t _count)
 	  is_initialized()
 {
 	auto const size = this->elem_type->size * this->count;
-	auto const rounded_size = size % 8 == 0 ? size : size + (8 - size % 8);
+	auto const rounded_size = size % max_object_align == 0 ? size : size + (max_object_align - size % max_object_align);
 	this->memory = bz::fixed_vector<uint8_t>(size, 0);
 	this->is_initialized = bz::fixed_vector<uint8_t>(rounded_size / 8, 0xff);
 }
@@ -597,6 +599,39 @@ bz::optional<int64_t> heap_object::do_pointer_difference(ptr_t lhs, ptr_t rhs, t
 			return {};
 		}
 	}
+}
+
+void stack_manager::push_stack_frame(bz::array_view<type const *const> types)
+{
+	auto const begin_address = this->head;
+
+	auto &new_frame = this->stack_frames.emplace_back();
+	new_frame.begin_address = begin_address;
+	new_frame.id = this->stack_frame_id;
+	this->stack_frame_id += 1;
+
+	auto object_address = begin_address;
+	new_frame.objects = bz::fixed_vector<stack_object>(
+		types.transform([&object_address, begin_address](type const *object_type) {
+			object_address = object_address == begin_address
+				? begin_address
+				: object_address + (object_type->align - object_address % object_type->align);
+			bz_assert(object_address % object_type->align == 0);
+			auto result = stack_object(object_address, object_type);
+			object_address += object_type->size;
+			return result;
+		})
+	);
+	new_frame.total_size = object_address - begin_address;
+
+	this->head = object_address + (max_object_align - object_address % max_object_align);
+}
+
+void stack_manager::pop_stack_frame(void)
+{
+	bz_assert(this->stack_frames.not_empty());
+	this->head = this->stack_frames.back().begin_address;
+	this->stack_frames.pop_back();
 }
 
 stack_frame *stack_manager::get_stack_frame(ptr_t address)
@@ -934,6 +969,16 @@ memory_segment memory_segment_info_t::get_segment(ptr_t address) const
 	{
 		return memory_segment::meta;
 	}
+}
+
+void memory_manager::push_stack_frame(bz::array_view<type const *const> types)
+{
+	this->stack.push_stack_frame(types);
+}
+
+void memory_manager::pop_stack_frame(void)
+{
+	this->stack.pop_stack_frame();
 }
 
 bool memory_manager::check_dereference(ptr_t address, type const *object_type)
