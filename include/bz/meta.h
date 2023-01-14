@@ -550,17 +550,35 @@ constexpr size_t type_index = []() {
 	}
 	else
 	{
-		bool const is_same_results[] = { is_same<T, Ts>... };
-		size_t result = 0;
-		for (auto const is_same : is_same_results)
+		bool value = false;
+		bool const is_same_results[] = { (value |= is_same<T, Ts>)... };
+
+		// find the index of the first true value with binary search
+		bool const *first = is_same_results;
+		bool const *last = is_same_results + (sizeof is_same_results / sizeof is_same_results[0]) - 1;
+
+		if (*first == true)
 		{
-			if (is_same)
-			{
-				return result;
-			}
-			result += 1;
+			return size_t(0);
 		}
-		return std::numeric_limits<size_t>::max();
+		if (*last == false)
+		{
+			return std::numeric_limits<size_t>::max();
+		}
+
+		while (first + 1 != last)
+		{
+			auto const midpoint = first + (last - first) / 2;
+			if (*midpoint == true)
+			{
+				last = midpoint;
+			}
+			else
+			{
+				first = midpoint;
+			}
+		}
+		return static_cast<size_t>(last - is_same_results);
 	}
 }();
 
