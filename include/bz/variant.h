@@ -47,6 +47,14 @@ constexpr bool is_any(std::initializer_list<bool> values)
 	return false;
 }
 
+#if defined(__has_builtin)
+#if __has_builtin(__type_pack_element)
+#define BZ_HAS_TYPE_PACK_ELEMENT
+#endif // __type_pack_element
+#endif // __has_builtin
+
+#ifndef BZ_HAS_TYPE_PACK_ELEMENT
+
 template<size_t N, typename T>
 struct variant_value_type_helper_elem
 {
@@ -62,14 +70,27 @@ struct variant_value_type_helper<std::index_sequence<Ns...>, Ts...> : variant_va
 	using variant_value_type_helper_elem<Ns, Ts>::operator []...;
 };
 
+#endif // BZ_HAS_TYPE_PACK_ELEMENT
+
 template<typename ...Ts>
 struct variant_storage_t
 {
+#ifdef BZ_HAS_TYPE_PACK_ELEMENT
+
+public:
+	template<size_t N>
+	using value_type = __type_pack_element<N, Ts...>;
+
+#undef BZ_HAS_TYPE_PACK_ELEMENT
+#else
+
 private:
 	using value_type_helper = variant_value_type_helper<std::make_index_sequence<sizeof ...(Ts)>, Ts...>;
 public:
 	template<size_t N>
 	using value_type = decltype(value_type_helper()[meta::index_constant<N>()]);
+
+#endif // BZ_HAS_TYPE_PACK_ELEMENT
 
 protected:
 	static constexpr auto data_align = max({ alignof (Ts)... });

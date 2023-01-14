@@ -280,6 +280,21 @@ constexpr T lcm<T, N> = N;
 template<size_t N, size_t ...Ns>
 constexpr size_t lcm_index = lcm<size_t, N, Ns...>;
 
+#if defined(__has_builtin)
+#if __has_builtin(__type_pack_element)
+#define BZ_USE_TYPE_PACK_ELEMENT
+#endif // __type_pack_element
+#endif // __has_builtin
+
+
+#ifdef BZ_USE_TYPE_PACK_ELEMENT
+
+template<size_t N, typename ...Ts>
+using nth_type = __type_pack_element<N, Ts...>;
+
+#undef BZ_USE_TYPE_PACK_ELEMENT
+
+#else // BZ_USE_TYPE_PACK_ELEMENT
 
 namespace internal
 {
@@ -523,6 +538,8 @@ struct nth_type_impl<
 
 template<size_t N, typename ...Ts>
 using nth_type = typename internal::nth_type_impl<N, Ts...>::type;
+
+#endif // BZ_USE_TYPE_PACK_ELEMENT
 
 
 template<typename T, typename ...Ts>
