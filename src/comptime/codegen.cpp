@@ -5820,10 +5820,21 @@ static void generate_stmt_code(ast::statement const &stmt, codegen_context &cont
 
 void generate_code(ast::function_body &body, function &func, codegen_context &context)
 {
-	bz_assert(body.state == ast::resolve_state::all);
+	bz_assert(!body.is_comptime_bitcode_emitted());
 	bz_assert(context.current_function_info.func == nullptr);
 
 	context.current_function_info.func = &func;
+
+	if (body.state == ast::resolve_state::error)
+	{
+		context.create_error(body.src_tokens, bz::format("'{}' could not be resolved", body.get_signature()));
+		context.create_unreachable();
+		context.current_function_info.finalize_function();
+		body.flags |= ast::function_body::comptime_bitcode_emitted;
+		return;
+	}
+
+	bz_assert(body.state == ast::resolve_state::all);
 
 	auto const needs_return_address = !func.return_type->is_simple_value_type();
 	if (needs_return_address)
@@ -5898,6 +5909,7 @@ void generate_code(ast::function_body &body, function &func, codegen_context &co
 	}
 
 	context.current_function_info.finalize_function();
+	body.flags |= ast::function_body::comptime_bitcode_emitted;
 }
 
 std::unique_ptr<function> generate_from_symbol(ast::function_body &body, codegen_context &context)
