@@ -40,6 +40,10 @@ static ctx::error make_diagnostic(
 	};
 }
 
+executor_context::executor_context(codegen_context *_codegen_ctx)
+	: codegen_ctx(_codegen_ctx)
+{}
+
 uint8_t *executor_context::get_memory(ptr_t address)
 {
 	return this->memory.get_memory(address);
@@ -266,7 +270,7 @@ void executor_context::check_dereference(uint32_t src_tokens_index, ptr_t addres
 
 void executor_context::check_str_construction(uint32_t src_tokens_index, ptr_t begin, ptr_t end)
 {
-	auto const elem_type = this->codegen_context->get_builtin_type(builtin_type_kind::i8);
+	auto const elem_type = this->codegen_ctx->get_builtin_type(builtin_type_kind::i8);
 	auto const is_good = this->memory.check_slice_construction(begin, end, elem_type);
 	if (!is_good)
 	{

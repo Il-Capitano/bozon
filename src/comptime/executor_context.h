@@ -23,28 +23,30 @@ struct execution_frame_info_t
 
 struct executor_context
 {
-	instruction const *current_instruction;
-	instruction_value *current_instruction_value;
-	instruction const *next_instruction;
-	instruction_value ret_value;
-	bool returned;
-	bool has_error;
+	instruction const *current_instruction = nullptr;
+	instruction_value *current_instruction_value = nullptr;
+	instruction const *next_instruction = nullptr;
+	instruction_value ret_value = { .none = none_t{} };
+	bool returned = false;
+	bool has_error = false;
 
-	function const *current_function;
-	bz::fixed_vector<instruction_value> args;
-	bz::fixed_vector<instruction_value> instruction_values;
-	bz::array_view<instruction const> instructions;
-	uint32_t alloca_offset;
-	uint32_t call_src_tokens_index;
+	function const *current_function = nullptr;
+	bz::fixed_vector<instruction_value> args{};
+	bz::fixed_vector<instruction_value> instruction_values{};
+	bz::array_view<instruction const> instructions{};
+	uint32_t alloca_offset = 0;
+	uint32_t call_src_tokens_index = 0;
 
-	bz::vector<execution_frame_info_t> call_stack;
-	bz::vector<ctx::error> diagnostics;
-	lex::src_tokens execution_start_src_tokens;
+	bz::vector<execution_frame_info_t> call_stack{};
+	bz::vector<ctx::error> diagnostics{};
+	lex::src_tokens execution_start_src_tokens{};
 
 	memory::memory_manager memory;
 
-	codegen_context *codegen_context;
+	codegen_context *codegen_ctx;
 
+
+	executor_context(codegen_context *_codegen_ctx);
 
 	uint8_t *get_memory(ptr_t address);
 
