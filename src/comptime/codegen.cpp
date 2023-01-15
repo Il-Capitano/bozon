@@ -5818,8 +5818,10 @@ static void generate_stmt_code(ast::statement const &stmt, codegen_context &cont
 	}
 }
 
-void generate_code(ast::function_body &body, function &func, codegen_context &context)
+void generate_code(function &func, codegen_context &context)
 {
+	bz_assert(func.func_body != nullptr);
+	auto &body = *func.func_body;
 	bz_assert(!body.is_comptime_bitcode_emitted());
 	bz_assert(context.current_function_info.func == nullptr);
 

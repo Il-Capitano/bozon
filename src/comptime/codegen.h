@@ -8,7 +8,7 @@
 namespace comptime
 {
 
-void generate_code(ast::function_body &body, function &func, codegen_context &context);
+void generate_code(function &func, codegen_context &context);
 std::unique_ptr<function> generate_from_symbol(ast::function_body &body, codegen_context &context);
 
 void generate_destruct_operation(codegen_context::destruct_operation_info_t const &destruct_op_info, codegen_context &context);
