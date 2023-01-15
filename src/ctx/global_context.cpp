@@ -4,6 +4,7 @@
 #include "cl_options.h"
 #include "bc/emit_bitcode.h"
 #include "colors.h"
+#include "comptime/codegen.h"
 
 #include <cassert>
 #include <llvm/Passes/PassBuilder.h>
@@ -204,6 +205,18 @@ resolve::attribute_info_t *global_context::get_builtin_attribute(bz::u8string_vi
 	{
 		return &*it;
 	}
+}
+
+size_t global_context::get_sizeof(ast::typespec_view ts)
+{
+	bz_assert(this->comptime_codegen_context != nullptr);
+	return comptime::get_type(ts, *this->comptime_codegen_context)->size;
+}
+
+size_t global_context::get_alignof(ast::typespec_view ts)
+{
+	bz_assert(this->comptime_codegen_context != nullptr);
+	return comptime::get_type(ts, *this->comptime_codegen_context)->align;
 }
 
 void global_context::report_error_or_warning(error &&err)

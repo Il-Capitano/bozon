@@ -79,6 +79,8 @@ struct global_context
 	ast::decl_function *get_builtin_function(uint32_t kind);
 	bz::array_view<uint32_t const> get_builtin_universal_functions(bz::u8string_view id);
 	resolve::attribute_info_t *get_builtin_attribute(bz::u8string_view name);
+	size_t get_sizeof(ast::typespec_view ts);
+	size_t get_alignof(ast::typespec_view ts);
 
 	void report_error_or_warning(error &&err);
 

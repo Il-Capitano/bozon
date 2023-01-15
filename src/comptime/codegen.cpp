@@ -4,7 +4,7 @@
 namespace comptime
 {
 
-static type const *get_type(ast::typespec_view type, codegen_context &context)
+type const *get_type(ast::typespec_view type, codegen_context &context)
 {
 	static_assert(ast::typespec_types::size() == 19);
 	if (type.modifiers.empty())

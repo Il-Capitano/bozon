@@ -7734,6 +7734,11 @@ bool parse_context::is_instantiable(lex::src_tokens const &src_tokens, ast::type
 	}
 }
 
+size_t parse_context::get_sizeof(ast::typespec_view ts)
+{
+	return this->global_ctx.get_sizeof(ts);
+}
+
 ast::identifier parse_context::make_qualified_identifier(lex::token_pos id)
 {
 	ast::identifier result;

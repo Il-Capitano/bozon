@@ -8,6 +8,8 @@
 namespace comptime
 {
 
+type const *get_type(ast::typespec_view type, codegen_context &context);
+
 void generate_code(function &func, codegen_context &context);
 std::unique_ptr<function> generate_from_symbol(ast::function_body &body, codegen_context &context);
 
