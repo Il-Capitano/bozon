@@ -138,6 +138,8 @@ struct executor_context
 	int64_t pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride);
 
 	void advance(void);
+
+	ast::constant_value execute_expression(function const &func);
 };
 
 } // namespace comptime

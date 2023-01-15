@@ -9,6 +9,8 @@
 #include "resolve/statement_resolver.h"
 #include "resolve/match_to_type.h"
 #include "resolve/match_expression.h"
+#include "comptime/codegen.h"
+#include "comptime/executor_context.h"
 
 namespace ctx
 {
@@ -7746,6 +7748,33 @@ ast::identifier parse_context::make_qualified_identifier(lex::token_pos id)
 	result.values = this->get_current_enclosing_id_scope();
 	result.values.push_back(id->value);
 	result.tokens = { id, id + 1 };
+	return result;
+}
+
+ast::constant_value parse_context::execute_expression(ast::expression &expr)
+{
+	auto &codegen_context = this->global_ctx.get_codegen_context();
+	auto const func = comptime::generate_code_for_expression(expr, codegen_context);
+
+	auto executor = comptime::executor_context(&codegen_context);
+	auto result = executor.execute_expression(func);
+
+	for (auto &diagnostic : executor.diagnostics)
+	{
+		this->global_ctx.report_error_or_warning(std::move(diagnostic));
+	}
+
+	return result;
+}
+
+ast::constant_value parse_context::execute_expression_without_error(ast::expression &expr)
+{
+	auto &codegen_context = this->global_ctx.get_codegen_context();
+	auto const func = comptime::generate_code_for_expression(expr, codegen_context);
+
+	auto executor = comptime::executor_context(&codegen_context);
+	auto result = executor.execute_expression(func);
+
 	return result;
 }
 

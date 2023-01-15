@@ -219,6 +219,12 @@ size_t global_context::get_alignof(ast::typespec_view ts)
 	return comptime::get_type(ts, *this->comptime_codegen_context)->align;
 }
 
+comptime::codegen_context &global_context::get_codegen_context(void)
+{
+	bz_assert(this->comptime_codegen_context != nullptr);
+	return *this->comptime_codegen_context;
+}
+
 void global_context::report_error_or_warning(error &&err)
 {
 	this->_errors.emplace_back(std::move(err));

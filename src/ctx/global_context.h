@@ -82,6 +82,8 @@ struct global_context
 	size_t get_sizeof(ast::typespec_view ts);
 	size_t get_alignof(ast::typespec_view ts);
 
+	comptime::codegen_context &get_codegen_context(void);
+
 	void report_error_or_warning(error &&err);
 
 	void report_error(error &&err);
