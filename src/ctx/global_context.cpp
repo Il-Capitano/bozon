@@ -124,8 +124,7 @@ global_context::global_context(void)
 	  _target(nullptr),
 	  _target_machine(nullptr),
 	  _data_layout(),
-	  _llvm_builtin_types(get_llvm_builtin_types(this->_llvm_context)),
-	  _comptime_executor(*this)
+	  _llvm_builtin_types(get_llvm_builtin_types(this->_llvm_context))
 {}
 
 ast::type_info *global_context::get_builtin_type_info(uint32_t kind)
@@ -623,55 +622,6 @@ bz::u8string global_context::get_location_string(lex::token_pos t)
 	return bz::format("{}:{}", this->get_file_name(t->src_pos.file_id), t->src_pos.line);
 }
 
-bool global_context::add_comptime_checking_function(bz::u8string_view kind, ast::function_body *func_body)
-{
-	auto const it = std::find_if(
-		comptime_function_info.begin(), comptime_function_info.end(),
-		[kind](auto const &info) { return info.name == kind; }
-	);
-	if (it != comptime_function_info.end())
-	{
-		this->_comptime_executor.set_comptime_function(it->kind, func_body);
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-bool global_context::add_comptime_checking_variable(bz::u8string_view kind, ast::decl_variable *var_decl)
-{
-	if (kind == "errors_var")
-	{
-		bz_assert(this->_comptime_executor.errors_array == nullptr);
-		this->_comptime_executor.errors_array = var_decl;
-		return true;
-	}
-	else if (kind == "call_stack_var")
-	{
-		bz_assert(this->_comptime_executor.call_stack == nullptr);
-		this->_comptime_executor.call_stack = var_decl;
-		return true;
-	}
-	else if (kind == "global_strings_var")
-	{
-		bz_assert(this->_comptime_executor.global_strings == nullptr);
-		this->_comptime_executor.global_strings = var_decl;
-		return true;
-	}
-	else if (kind == "malloc_infos_var")
-	{
-		bz_assert(this->_comptime_executor.malloc_infos == nullptr);
-		this->_comptime_executor.malloc_infos = var_decl;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
 bool global_context::add_builtin_function(ast::decl_function *func_decl)
 {
 	if (!func_decl->id.is_qualified || func_decl->id.values.size() != 1)
@@ -937,6 +887,13 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	this->_module.setDataLayout(*this->_data_layout);
 	this->_module.setTargetTriple(target_triple);
 
+	this->comptime_codegen_context = std::make_unique<comptime::codegen_context>(comptime::machine_parameters_t{
+		.pointer_size = this->get_data_layout().getPointerSize(),
+		.endianness = this->get_data_layout().isLittleEndian()
+			? comptime::endianness_kind::little
+			: comptime::endianness_kind::big,
+	});
+
 	return true;
 }
 
@@ -969,17 +926,6 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	{
 		return false;
 	}
-
-	auto const comptime_checking_file_path = stdlib_dir_path / "compiler/__comptime_checking.bz";
-	auto &comptime_checking_file = this->_src_files.emplace_back(
-		comptime_checking_file_path, this->_src_files.size(), bz::vector<bz::u8string>(), true
-	);
-	this->_comptime_executor.comptime_checking_file_id = comptime_checking_file._file_id;
-	if (!comptime_checking_file.parse_global_symbols(*this))
-	{
-		return false;
-	}
-
 	if (!builtins_file.parse(*this))
 	{
 		return false;

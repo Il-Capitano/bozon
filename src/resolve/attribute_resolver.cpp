@@ -123,73 +123,6 @@ static bool apply_builtin_assign(
 	}
 }
 
-static bool apply_comptime_error_checking(
-	ast::function_body &func_body,
-	ast::attribute &attribute,
-	ctx::parse_context &context
-)
-{
-	auto const kind = attribute.args[0]
-		.get_constant_value()
-		.get_string();
-
-	if (!context.global_ctx.add_comptime_checking_function(kind, &func_body))
-	{
-		context.report_error(attribute.args[0], bz::format("invalid kind '{}' for '@{}'", kind, attribute.name->value));
-		return false;
-	}
-	else
-	{
-		func_body.flags |= ast::function_body::no_comptime_checking;
-		return true;
-	}
-}
-
-static bool apply_comptime_error_checking(
-	ast::decl_variable &var_decl,
-	ast::attribute &attribute,
-	ctx::parse_context &context
-)
-{
-	auto const kind = attribute.args[0]
-		.get_constant_value()
-		.get_string();
-
-	if (!context.global_ctx.add_comptime_checking_variable(kind, &var_decl))
-	{
-		context.report_error(attribute.args[0], bz::format("invalid kind '{}' for '@{}'", kind, attribute.name->value));
-		return false;
-	}
-	else
-	{
-		return true;
-	}
-}
-
-static bool apply_no_comptime_checking(
-	ast::function_body &func_body,
-	ast::attribute &,
-	ctx::parse_context &
-)
-{
-	func_body.flags |= ast::function_body::no_comptime_checking;
-	for (auto const &specialization : func_body.generic_specializations)
-	{
-		specialization->flags |= ast::function_body::no_comptime_checking;
-	}
-	return true;
-}
-
-static bool apply_no_runtime_emit(
-	ast::decl_variable &var_decl,
-	ast::attribute &,
-	ctx::parse_context &
-)
-{
-	var_decl.flags |= ast::decl_variable::no_runtime_emit;
-	return true;
-}
-
 static bool apply_symbol_name(
 	ast::function_body &func_body,
 	ast::attribute &attribute,
@@ -266,21 +199,6 @@ bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info>
 		"__builtin_assign",
 		{},
 		{ nullptr, &apply_builtin_assign, nullptr, nullptr }
-	});
-	result.push_back({
-		"__comptime_error_checking",
-		{ str_type },
-		{ nullptr, nullptr, &apply_comptime_error_checking, &apply_comptime_error_checking }
-	});
-	result.push_back({
-		"__no_comptime_checking",
-		{},
-		{ nullptr, nullptr, &apply_no_comptime_checking, nullptr }
-	});
-	result.push_back({
-		"__no_runtime_emit",
-		{},
-		{ nullptr, nullptr, nullptr, &apply_no_runtime_emit }
 	});
 
 	result.push_back({

@@ -680,8 +680,7 @@ bool comptime_executor_context::do_error_checking(void) const
 	auto const current_function = this->current_function.first;
 	return current_function == nullptr
 		|| (
-			!current_function->is_no_comptime_checking()
-			&& current_function->src_tokens.pivot != nullptr
+			current_function->src_tokens.pivot != nullptr
 			&& current_function->src_tokens.pivot->src_pos.file_id != this->comptime_checking_file_id
 		);
 }

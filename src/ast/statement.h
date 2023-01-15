@@ -208,15 +208,14 @@ struct decl_variable
 		module_export    = bit_at< 2>,
 		external_linkage = bit_at< 3>,
 		extern_          = bit_at< 4>,
-		no_runtime_emit  = bit_at< 5>,
-		member           = bit_at< 6>,
-		global           = bit_at< 7>,
-		global_storage   = bit_at< 8>,
-		parameter        = bit_at< 9>,
-		variadic         = bit_at<10>,
-		tuple_outer_ref  = bit_at<11>,
-		moved            = bit_at<12>,
-		ever_moved_from  = bit_at<13>,
+		member           = bit_at< 5>,
+		global           = bit_at< 6>,
+		global_storage   = bit_at< 7>,
+		parameter        = bit_at< 8>,
+		variadic         = bit_at< 9>,
+		tuple_outer_ref  = bit_at<10>,
+		moved            = bit_at<11>,
+		ever_moved_from  = bit_at<12>,
 	};
 
 	lex::src_tokens src_tokens;
@@ -358,9 +357,6 @@ struct decl_variable
 	bool is_extern(void) const noexcept
 	{ return (this->flags & extern_) != 0; }
 
-	bool is_no_runtime_emit(void) const noexcept
-	{ return (this->flags & no_runtime_emit) != 0; }
-
 	bool is_member(void) const noexcept
 	{ return (this->flags & member) != 0; }
 
@@ -457,25 +453,24 @@ struct function_body
 		generic_specialization      = bit_at< 5>,
 		default_op_assign           = bit_at< 6>,
 		default_op_move_assign      = bit_at< 7>,
-		no_comptime_checking        = bit_at< 8>,
-		local                       = bit_at< 9>,
-		destructor                  = bit_at<10>,
-		constructor                 = bit_at<11>,
-		default_constructor         = bit_at<12>,
-		copy_constructor            = bit_at<13>,
-		move_constructor            = bit_at<14>,
-		default_default_constructor = bit_at<15>,
-		default_copy_constructor    = bit_at<16>,
-		default_move_constructor    = bit_at<17>,
-		bitcode_emitted             = bit_at<18>,
-		comptime_bitcode_emitted    = bit_at<19>,
-		only_consteval              = bit_at<20>,
-		builtin_operator            = bit_at<21>,
-		builtin_assign              = bit_at<22>,
-		defaulted                   = bit_at<23>,
-		deleted                     = bit_at<24>,
-		copy_assign_op              = bit_at<25>,
-		move_assign_op              = bit_at<26>,
+		local                       = bit_at< 8>,
+		destructor                  = bit_at< 9>,
+		constructor                 = bit_at<10>,
+		default_constructor         = bit_at<11>,
+		copy_constructor            = bit_at<12>,
+		move_constructor            = bit_at<13>,
+		default_default_constructor = bit_at<14>,
+		default_copy_constructor    = bit_at<15>,
+		default_move_constructor    = bit_at<16>,
+		bitcode_emitted             = bit_at<17>,
+		comptime_bitcode_emitted    = bit_at<18>,
+		only_consteval              = bit_at<19>,
+		builtin_operator            = bit_at<20>,
+		builtin_assign              = bit_at<21>,
+		defaulted                   = bit_at<22>,
+		deleted                     = bit_at<23>,
+		copy_assign_op              = bit_at<24>,
+		move_assign_op              = bit_at<25>,
 	};
 
 	enum : uint8_t
@@ -800,9 +795,6 @@ struct function_body
 
 	bool is_default_op_move_assign(void) const noexcept
 	{ return (this->flags & default_op_move_assign) != 0; }
-
-	bool is_no_comptime_checking(void) const noexcept
-	{ return (this->flags & no_comptime_checking) != 0; }
 
 	bool is_local(void) const noexcept
 	{ return (this->flags & local) != 0; }

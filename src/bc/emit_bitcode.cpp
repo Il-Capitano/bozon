@@ -73,7 +73,7 @@ static void emit_error(
 )
 {
 	bz_assert(src_tokens.begin != nullptr && src_tokens.pivot != nullptr && src_tokens.end != nullptr);
-	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
+	if (context.current_function.first != nullptr)
 	{
 		return;
 	}
@@ -93,7 +93,7 @@ static void emit_error(
 
 static void emit_error_check(llvm::Value *pre_call_error_count, ctx::comptime_executor_context &context)
 {
-	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
+	if (context.current_function.first != nullptr)
 	{
 		return;
 	}
@@ -107,7 +107,7 @@ static void emit_error_check(llvm::Value *pre_call_error_count, ctx::comptime_ex
 
 static void emit_error_assert(llvm::Value *bool_val, ctx::comptime_executor_context &context)
 {
-	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
+	if (context.current_function.first != nullptr)
 	{
 		return;
 	}
@@ -4048,10 +4048,7 @@ static val_ptr emit_bitcode(
 	if constexpr (is_comptime<decltype(context)>)
 	{
 		llvm::Value *pre_call_error_count = nullptr;
-		if (!func_call.func_body->is_no_comptime_checking())
-		{
-			pre_call_error_count = emit_push_call(func_call.src_tokens, func_call.func_body, context);
-		}
+		pre_call_error_count = emit_push_call(func_call.src_tokens, func_call.func_body, context);
 
 		auto const result = emit_function_call<abi>(
 			func_call.func_body->return_type,
@@ -4066,10 +4063,7 @@ static val_ptr emit_bitcode(
 			result_address
 		);
 
-		if (!func_call.func_body->is_no_comptime_checking())
-		{
-			emit_pop_call(pre_call_error_count, context);
-		}
+		emit_pop_call(pre_call_error_count, context);
 		return result;
 	}
 	else
@@ -8854,7 +8848,7 @@ static void emit_global_variable_impl(ast::decl_variable const &var_decl, auto &
 
 void emit_global_variable(ast::decl_variable const &var_decl, ctx::bitcode_context &context)
 {
-	if (context.vars_.find(&var_decl) != context.vars_.end() || var_decl.is_no_runtime_emit())
+	if (context.vars_.find(&var_decl) != context.vars_.end())
 	{
 		return;
 	}

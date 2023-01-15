@@ -7734,18 +7734,6 @@ bool parse_context::is_instantiable(lex::src_tokens const &src_tokens, ast::type
 	}
 }
 
-size_t parse_context::get_sizeof(ast::typespec_view ts)
-{
-	// constexpr uint64_t invalid_size = std::numeric_limits<uint64_t>::max();
-	auto const prev_parse_context = this->global_ctx._comptime_executor.current_parse_ctx;
-	this->global_ctx._comptime_executor.current_parse_ctx = this;
-
-	auto const result = this->global_ctx._comptime_executor.get_size(ts);
-
-	this->global_ctx._comptime_executor.current_parse_ctx = prev_parse_context;
-	return result;
-}
-
 ast::identifier parse_context::make_qualified_identifier(lex::token_pos id)
 {
 	ast::identifier result;
@@ -7753,76 +7741,6 @@ ast::identifier parse_context::make_qualified_identifier(lex::token_pos id)
 	result.values = this->get_current_enclosing_id_scope();
 	result.values.push_back(id->value);
 	result.tokens = { id, id + 1 };
-	return result;
-}
-
-ast::constant_value parse_context::execute_function(
-	lex::src_tokens const &src_tokens,
-	ast::expr_function_call &func_call
-)
-{
-	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
-	this->global_ctx._comptime_executor.current_parse_ctx = this;
-	auto [result, errors] = this->global_ctx._comptime_executor.execute_function(src_tokens, func_call);
-	// bz_assert(errors.not_empty() || result.not_null() || this->has_errors());
-	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
-	if (!errors.empty())
-	{
-		for (auto &error : errors)
-		{
-			error.notes.push_back(this->make_note(
-				src_tokens,
-				bz::format("while evaluating call to '{}' in a constant expression", func_call.func_body->get_signature())
-			));
-			add_generic_requirement_notes(error.notes, *this);
-			this->global_ctx.report_error_or_warning(std::move(error));
-		}
-	}
-	return result;
-}
-
-ast::constant_value parse_context::execute_compound_expression(
-	lex::src_tokens const &src_tokens,
-	ast::expr_compound &expr
-)
-{
-	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
-	this->global_ctx._comptime_executor.current_parse_ctx = this;
-	auto [result, errors] = this->global_ctx._comptime_executor.execute_compound_expression(expr);
-	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
-	if (!errors.empty())
-	{
-		for (auto &error : errors)
-		{
-			error.notes.push_back(this->make_note(src_tokens, "while evaluating compound expression in a constant expression"));
-			add_generic_requirement_notes(error.notes, *this);
-			this->global_ctx.report_error_or_warning(std::move(error));
-		}
-	}
-	return result;
-}
-
-ast::constant_value parse_context::execute_function_without_error(
-	lex::src_tokens const &src_tokens,
-	ast::expr_function_call &func_call
-)
-{
-	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
-	this->global_ctx._comptime_executor.current_parse_ctx = this;
-	auto [result, errors] = this->global_ctx._comptime_executor.execute_function(src_tokens, func_call);
-	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
-	return result;
-}
-
-ast::constant_value parse_context::execute_compound_expression_without_error(
-	[[maybe_unused]] lex::src_tokens const &src_tokens,
-	ast::expr_compound &expr
-)
-{
-	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
-	this->global_ctx._comptime_executor.current_parse_ctx = this;
-	auto [result, errors] = this->global_ctx._comptime_executor.execute_compound_expression(expr);
-	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
 	return result;
 }
 

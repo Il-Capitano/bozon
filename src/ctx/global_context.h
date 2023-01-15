@@ -20,8 +20,7 @@
 #include "src_file.h"
 #include "abi/platform_abi.h"
 #include "resolve/attribute_resolver.h"
-
-#include "comptime_executor.h"
+#include "comptime/codegen_context.h"
 
 namespace ctx
 {
@@ -53,10 +52,6 @@ struct global_context
 
 	ast::scope_t *_builtin_global_scope;
 
-	ast::function_body *_comptime_compile_error_src_tokens_func   = nullptr;
-	ast::function_body *_comptime_compile_warning_src_tokens_func = nullptr;
-	ast::function_body *_comptime_create_global_string_func       = nullptr;
-
 	ast::function_body *_main = nullptr;
 
 	std::list<src_file> _src_files;
@@ -69,7 +64,7 @@ struct global_context
 	bz::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1> _llvm_builtin_types;
 	abi::platform_abi _platform_abi;
 
-	comptime_executor_context _comptime_executor;
+	std::unique_ptr<comptime::codegen_context> comptime_codegen_context;
 
 	global_context(void);
 	global_context(global_context const &) = delete;
@@ -139,8 +134,6 @@ struct global_context
 	bz::u8string get_file_name(uint32_t file_id);
 	bz::u8string get_location_string(lex::token_pos t);
 
-	bool add_comptime_checking_function(bz::u8string_view kind, ast::function_body *func_body);
-	bool add_comptime_checking_variable(bz::u8string_view kind, ast::decl_variable *var_decl);
 	bool add_builtin_function(ast::decl_function *func_decl);
 	bool add_builtin_operator(ast::decl_operator *op_decl);
 
