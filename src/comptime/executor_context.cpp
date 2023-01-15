@@ -5,6 +5,41 @@
 namespace comptime
 {
 
+static ctx::source_highlight make_source_highlight(
+	lex::src_tokens const &src_tokens,
+	bz::u8string message
+)
+{
+	return ctx::source_highlight{
+		.file_id = src_tokens.pivot->src_pos.file_id,
+		.line = src_tokens.pivot->src_pos.line,
+
+		.src_begin = src_tokens.begin->src_pos.begin,
+		.src_pivot = src_tokens.pivot->src_pos.begin,
+		.src_end = src_tokens.end->src_pos.end,
+
+		.first_suggestion = ctx::suggestion_range{},
+		.second_suggestion = ctx::suggestion_range{},
+
+		.message = std::move(message),
+	};
+}
+
+static ctx::error make_diagnostic(
+	ctx::warning_kind kind,
+	lex::src_tokens const &src_tokens,
+	bz::u8string message,
+	bz::vector<ctx::source_highlight> notes
+)
+{
+	return ctx::error{
+		.kind = kind,
+		.src_highlight = make_source_highlight(src_tokens, std::move(message)),
+		.notes = std::move(notes),
+		.suggestions = {},
+	};
+}
+
 uint8_t *executor_context::get_memory(ptr_t address)
 {
 	return this->memory.get_memory(address);
@@ -18,6 +53,81 @@ void executor_context::set_current_instruction_value(instruction_value value)
 instruction_value executor_context::get_instruction_value(instruction_value_index index)
 {
 	return this->instruction_values[index.index];
+}
+
+void executor_context::add_call_stack_notes(bz::vector<ctx::source_highlight> &notes) const
+{
+	notes.reserve(notes.size() + this->call_stack.size() + 1);
+	auto call_src_tokens = this->call_src_tokens_index;
+	auto func_body = this->current_function->func_body;
+	for (auto const &info : this->call_stack.reversed())
+	{
+		notes.push_back(make_source_highlight(
+			info.func->src_tokens[call_src_tokens],
+			bz::format("in call to '{}'", func_body->get_signature())
+		));
+		call_src_tokens = info.call_src_tokens_index;
+		func_body = info.func->func_body;
+	}
+	bz_assert(func_body == nullptr);
+	notes.push_back(make_source_highlight(
+		this->execution_start_src_tokens,
+		"while evaluating expression at compile time"
+	));
+}
+
+void executor_context::report_error(uint32_t error_index)
+{
+	this->has_error = true;
+	auto const &info = this->get_error_info(error_index);
+	bz::vector<ctx::source_highlight> notes = {};
+	this->add_call_stack_notes(notes);
+
+	this->diagnostics.push_back(make_diagnostic(
+		ctx::warning_kind::_last,
+		info.src_tokens,
+		info.message,
+		std::move(notes)
+	));
+}
+
+void executor_context::report_error(
+	uint32_t src_tokens_index,
+	bz::u8string message,
+	bz::vector<ctx::source_highlight> notes
+)
+{
+	this->has_error = true;
+	this->add_call_stack_notes(notes);
+	auto const &src_tokens = this->get_src_tokens(src_tokens_index);
+	this->diagnostics.push_back(make_diagnostic(
+		ctx::warning_kind::_last,
+		src_tokens,
+		std::move(message),
+		std::move(notes)
+	));
+}
+
+void executor_context::report_warning(
+	ctx::warning_kind kind,
+	uint32_t src_tokens_index,
+	bz::u8string message,
+	bz::vector<ctx::source_highlight> notes
+)
+{
+	this->add_call_stack_notes(notes);
+	auto const &src_tokens = this->get_src_tokens(src_tokens_index);
+	this->diagnostics.push_back(make_diagnostic(
+		kind,
+		src_tokens,
+		std::move(message),
+		std::move(notes)
+	));
+}
+
+ctx::source_highlight executor_context::make_note(uint32_t src_tokens_index, bz::u8string message)
+{
+	return make_source_highlight(this->get_src_tokens(src_tokens_index), std::move(message));
 }
 
 bool executor_context::is_option_set(bz::u8string_view option)
@@ -79,16 +189,22 @@ void executor_context::call_function(uint32_t call_src_tokens_index, function co
 	this->next_instruction = this->instructions.data();
 }
 
-lex::src_tokens const &executor_context::get_src_tokens(uint32_t index) const
-{
-	bz_assert(index < this->current_function->src_tokens.size());
-	return this->current_function->src_tokens[index];
-}
-
 switch_info_t const &executor_context::get_switch_info(uint32_t index) const
 {
 	bz_assert(index < this->current_function->switch_infos.size());
 	return this->current_function->switch_infos[index];
+}
+
+error_info_t const &executor_context::get_error_info(uint32_t index) const
+{
+	bz_assert(index < this->current_function->errors.size());
+	return this->current_function->errors[index];
+}
+
+lex::src_tokens const &executor_context::get_src_tokens(uint32_t index) const
+{
+	bz_assert(index < this->current_function->src_tokens.size());
+	return this->current_function->src_tokens[index];
 }
 
 slice_construction_check_info_t const &executor_context::get_slice_construction_info(uint32_t index) const

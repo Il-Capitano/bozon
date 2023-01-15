@@ -28,6 +28,7 @@ struct executor_context
 	instruction const *next_instruction;
 	instruction_value ret_value;
 	bool returned;
+	bool has_error;
 
 	function const *current_function;
 	bz::fixed_vector<instruction_value> args;
@@ -36,9 +37,11 @@ struct executor_context
 	uint32_t alloca_offset;
 	uint32_t call_src_tokens_index;
 
-	memory::memory_manager memory;
-
 	bz::vector<execution_frame_info_t> call_stack;
+	bz::vector<ctx::error> diagnostics;
+	lex::src_tokens execution_start_src_tokens;
+
+	memory::memory_manager memory;
 
 	codegen_context *codegen_context;
 
@@ -48,8 +51,19 @@ struct executor_context
 	void set_current_instruction_value(instruction_value value);
 	instruction_value get_instruction_value(instruction_value_index index);
 
-	void report_error(uint32_t src_tokens_index, bz::u8string message, bz::vector<ctx::source_highlight> notes = {});
-	void report_warning(ctx::warning_kind kind, uint32_t src_tokens_index, bz::u8string message);
+	void add_call_stack_notes(bz::vector<ctx::source_highlight> &notes) const;
+	void report_error(uint32_t error_index);
+	void report_error(
+		uint32_t src_tokens_index,
+		bz::u8string message,
+		bz::vector<ctx::source_highlight> notes = {}
+	);
+	void report_warning(
+		ctx::warning_kind kind,
+		uint32_t src_tokens_index,
+		bz::u8string message,
+		bz::vector<ctx::source_highlight> notes = {}
+	);
 	ctx::source_highlight make_note(uint32_t src_tokens_index, bz::u8string message);
 	bool is_option_set(bz::u8string_view option);
 
@@ -57,12 +71,12 @@ struct executor_context
 	void do_jump(instruction_index dest);
 	void do_ret(instruction_value value);
 	void do_ret_void(void);
-	void report_error(uint32_t error_index);
 
 	void call_function(uint32_t call_src_tokens_index, function const *func, uint32_t args_index);
 
-	lex::src_tokens const &get_src_tokens(uint32_t index) const;
 	switch_info_t const &get_switch_info(uint32_t index) const;
+	error_info_t const &get_error_info(uint32_t index) const;
+	lex::src_tokens const &get_src_tokens(uint32_t index) const;
 	slice_construction_check_info_t const &get_slice_construction_info(uint32_t index) const;
 	pointer_arithmetic_check_info_t const &get_pointer_arithmetic_info(uint32_t index) const;
 	memory_access_check_info_t const &get_memory_access_info(uint32_t index) const;
