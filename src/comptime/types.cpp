@@ -169,7 +169,7 @@ type const *type_set_t::get_aggregate_type(bz::array_view<type const * const> el
 
 	auto [offsets, size, align] = get_type_size_info(elem_types);
 	auto &new_type = this->aggregate_and_array_types.emplace_back(aggregate_type{ elem_types, std::move(offsets) }, size, align);
-	this->aggregate_map.insert({ elem_types, &new_type });
+	this->aggregate_map.insert({ new_type.get_aggregate_types(), &new_type });
 	return &new_type;
 }
 
