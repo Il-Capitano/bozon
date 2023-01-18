@@ -114,6 +114,26 @@ bool codegen_context::is_32_bit(void) const
 	return this->machine_parameters.pointer_size == 4;
 }
 
+memory::memory_segment_info_t codegen_context::get_memory_segment_info(void) const
+{
+	if (this->is_64_bit())
+	{
+		return {
+			.stack_begin = 0x4000'0000'0000'0000,
+			.heap_begin  = 0x8000'0000'0000'0000,
+			.meta_begin  = 0xff00'0000'0000'0000,
+		};
+	}
+	else
+	{
+		return {
+			.stack_begin = 0x4000'0000,
+			.heap_begin  = 0x8000'0000,
+			.meta_begin  = 0xff00'0000,
+		};
+	}
+}
+
 void codegen_context::add_variable(ast::decl_variable const *decl, expr_value value)
 {
 	bz_assert(!this->variables.contains(decl));

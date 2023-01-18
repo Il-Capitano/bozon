@@ -3,6 +3,7 @@
 
 #include "instructions.h"
 #include "types.h"
+#include "memory.h"
 #include "ast/expression.h"
 #include "ctx/parse_context.h"
 
@@ -130,8 +131,8 @@ struct codegen_context
 
 	machine_parameters_t machine_parameters;
 	type_set_t type_set;
-	type const *pointer_pair_t;
-	type const *null_t;
+	type const *pointer_pair_t = nullptr;
+	type const *null_t = nullptr;
 
 	struct destruct_operation_info_t
 	{
@@ -173,6 +174,7 @@ struct codegen_context
 	bool is_big_endian(void) const;
 	bool is_64_bit(void) const;
 	bool is_32_bit(void) const;
+	memory::memory_segment_info_t get_memory_segment_info(void) const;
 
 	void add_variable(ast::decl_variable const *decl, expr_value value);
 	expr_value get_variable(ast::decl_variable const *decl);

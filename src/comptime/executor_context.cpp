@@ -43,7 +43,8 @@ static ctx::error make_diagnostic(
 }
 
 executor_context::executor_context(codegen_context *_codegen_ctx)
-	: codegen_ctx(_codegen_ctx)
+	: memory(_codegen_ctx->get_memory_segment_info()),
+	  codegen_ctx(_codegen_ctx)
 {}
 
 uint8_t *executor_context::get_memory(ptr_t address)

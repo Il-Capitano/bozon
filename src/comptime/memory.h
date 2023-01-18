@@ -73,6 +73,8 @@ struct stack_manager
 	bz::vector<stack_frame> stack_frames;
 	uint32_t stack_frame_id;
 
+	explicit stack_manager(ptr_t stack_begin);
+
 	void push_stack_frame(bz::array_view<type const *const> types);
 	void pop_stack_frame(void);
 
@@ -114,6 +116,8 @@ struct heap_manager
 	ptr_t head;
 	bz::vector<allocation> allocations;
 
+	explicit heap_manager(ptr_t heap_begin);
+
 	allocation *get_allocation(ptr_t address);
 
 	ptr_t allocate(lex::src_tokens const &src_tokens, type const *object_type, uint64_t count);
@@ -149,6 +153,8 @@ struct meta_memory_manager
 	bz::vector<stack_object_pointer> stack_object_pointers;
 	bz::vector<one_past_the_end_pointer> one_past_the_end_pointers;
 
+	explicit meta_memory_manager(ptr_t meta_begin);
+
 	ptr_t get_real_address(ptr_t address) const;
 	bool is_valid(ptr_t address, bz::array_view<stack_frame const> current_stack_frames) const;
 
@@ -180,7 +186,9 @@ struct memory_manager
 	heap_manager heap;
 	meta_memory_manager meta_memory;
 
-	void push_stack_frame(bz::array_view<type const *const> types);
+	explicit memory_manager(memory_segment_info_t _segment_info);
+
+	[[nodiscard]] bool push_stack_frame(bz::array_view<type const *const> types);
 	void pop_stack_frame(void);
 
 	bool check_dereference(ptr_t address, type const *object_type);

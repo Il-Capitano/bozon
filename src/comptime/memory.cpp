@@ -601,6 +601,12 @@ bz::optional<int64_t> heap_object::do_pointer_difference(ptr_t lhs, ptr_t rhs, t
 	}
 }
 
+stack_manager::stack_manager(ptr_t stack_begin)
+	: head(stack_begin),
+	  stack_frames(),
+	  stack_frame_id(0)
+{}
+
 void stack_manager::push_stack_frame(bz::array_view<type const *const> types)
 {
 	auto const begin_address = this->head;
@@ -750,7 +756,6 @@ uint8_t *stack_manager::get_memory(ptr_t address)
 {
 	auto const object = this->get_stack_object(address);
 	bz_assert(object != nullptr);
-	bz_assert(object->is_initialized);
 	return object->get_memory(address);
 }
 
@@ -774,6 +779,11 @@ free_result allocation::free(lex::src_tokens const &free_src_tokens)
 	this->is_freed = true;
 	return free_result::good;
 }
+
+heap_manager::heap_manager(ptr_t heap_begin)
+	: head(heap_begin),
+	  allocations()
+{}
 
 allocation *heap_manager::get_allocation(ptr_t address)
 {
@@ -901,6 +911,21 @@ uint8_t *heap_manager::get_memory(ptr_t address)
 	return allocation->object.get_memory(address);
 }
 
+meta_memory_manager::meta_memory_manager(ptr_t meta_begin)
+	: stack_object_begin_address(meta_begin),
+	  one_past_the_end_begin_address(meta_begin),
+	  stack_object_pointers(),
+	  one_past_the_end_pointers()
+{
+	auto const max_address = meta_begin <= std::numeric_limits<uint32_t>::max()
+		? std::numeric_limits<uint32_t>::max()
+		: std::numeric_limits<uint64_t>::max();
+	auto const meta_address_space_size = max_address - meta_begin + 1;
+	auto const segment_size = meta_address_space_size / 2;
+
+	this->one_past_the_end_begin_address += segment_size;
+}
+
 ptr_t meta_memory_manager::get_real_address(ptr_t address) const
 {
 	bz_assert(address >= this->stack_object_begin_address);
@@ -971,9 +996,17 @@ memory_segment memory_segment_info_t::get_segment(ptr_t address) const
 	}
 }
 
-void memory_manager::push_stack_frame(bz::array_view<type const *const> types)
+memory_manager::memory_manager(memory_segment_info_t _segment_info)
+	: segment_info(_segment_info),
+	  stack(_segment_info.stack_begin),
+	  heap(_segment_info.heap_begin),
+	  meta_memory(_segment_info.meta_begin)
+{}
+
+[[nodiscard]] bool memory_manager::push_stack_frame(bz::array_view<type const *const> types)
 {
 	this->stack.push_stack_frame(types);
+	return this->stack.head < this->segment_info.heap_begin;
 }
 
 void memory_manager::pop_stack_frame(void)
@@ -1303,6 +1336,7 @@ uint8_t *memory_manager::get_memory(ptr_t address)
 	switch (segment)
 	{
 	case memory_segment::invalid:
+		bz::log("0x{:x}\n", address);
 		bz_unreachable;
 	case memory_segment::stack:
 		return this->stack.get_memory(address);
