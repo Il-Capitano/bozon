@@ -78,7 +78,7 @@ bz::u8string type::to_string(void) const
 	}
 	else if (this->is_array())
 	{
-		return bz::format("[{}: {}]", this->get_array_size(), this->get_array_element_type());
+		return bz::format("[{}: {}]", this->get_array_size(), this->get_array_element_type()->to_string());
 	}
 	else
 	{
@@ -156,6 +156,11 @@ static type_size_info get_type_size_info(bz::array_view<type const * const> elem
 	}
 
 	size = round_up(size, align);
+	if (size == 0)
+	{
+		size = 1;
+		align = 1;
+	}
 	return { std::move(offsets), size, align };
 }
 

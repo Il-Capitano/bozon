@@ -3417,7 +3417,7 @@ static expr_value generate_expr_code(
 	}
 	else
 	{
-		return value_or_result_address(copied_val, result_address, context);
+		return value_or_result_address(copied_val.get_value(context), result_address, context);
 	}
 }
 
@@ -3524,7 +3524,7 @@ static expr_value generate_expr_code(
 
 	if (type->is_builtin() || type->is_pointer())
 	{
-		return value_or_result_address(value, result_address, context);
+		return value_or_result_address(value.get_value(context), result_address, context);
 	}
 	else
 	{
@@ -4385,7 +4385,10 @@ static expr_value generate_expr_code(
 	if (if_expr.else_block.is_null())
 	{
 		auto const end_bb = context.add_basic_block();
-		context.create_jump(end_bb); // then -> end
+		if (!context.has_terminator())
+		{
+			context.create_jump(end_bb); // then -> end
+		}
 		context.set_current_basic_block(begin_bb);
 		context.create_conditional_jump(condition, then_bb, end_bb);
 		context.set_current_basic_block(end_bb);
@@ -5204,7 +5207,11 @@ static expr_value get_constant_value_helper(
 			}
 
 			auto const &result_value = result_address.get();
-			set_optional_has_value(result_value, false, context);
+			// could also be __null_t
+			if (type_without_const.is<ast::ts_optional>())
+			{
+				set_optional_has_value(result_value, false, context);
+			}
 			return result_value;
 		}
 	case ast::constant_value::void_:
@@ -5845,6 +5852,7 @@ void generate_code(function &func, codegen_context &context)
 	bz_assert(body.state == ast::resolve_state::all);
 
 	auto const needs_return_address = !func.return_type->is_simple_value_type();
+	bz_assert(!context.current_function_info.return_address.has_value());
 	if (needs_return_address)
 	{
 		context.current_function_info.return_address = context.create_get_function_return_address();
