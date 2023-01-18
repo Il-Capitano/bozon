@@ -4,6 +4,7 @@
 #include "instructions.h"
 #include "types.h"
 #include "ast/expression.h"
+#include "ctx/parse_context.h"
 
 namespace comptime
 {
@@ -161,9 +162,12 @@ struct codegen_context
 	bz::array<expr_value, 4> current_value_references = {};
 	size_t current_value_reference_stack_size = 0;
 
+	ctx::parse_context *parse_ctx = nullptr;
+
 	codegen_context(machine_parameters_t _machine_parameters);
 
 	void ensure_function_emission(ast::function_body *body);
+	void resolve_function(lex::src_tokens const &src_tokens, ast::function_body &body);
 
 	bool is_little_endian(void) const;
 	bool is_big_endian(void) const;

@@ -7754,6 +7754,10 @@ ast::identifier parse_context::make_qualified_identifier(lex::token_pos id)
 ast::constant_value parse_context::execute_expression(ast::expression &expr)
 {
 	auto &codegen_context = this->global_ctx.get_codegen_context();
+
+	auto const prev_context = codegen_context.parse_ctx;
+	codegen_context.parse_ctx = this;
+
 	auto const func = comptime::generate_code_for_expression(expr, codegen_context);
 
 	auto executor = comptime::executor_context(&codegen_context);
@@ -7763,6 +7767,8 @@ ast::constant_value parse_context::execute_expression(ast::expression &expr)
 	{
 		this->global_ctx.report_error_or_warning(std::move(diagnostic));
 	}
+
+	codegen_context.parse_ctx = prev_context;
 
 	return result;
 }

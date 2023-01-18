@@ -1,7 +1,8 @@
 #include "codegen_context.h"
+#include "codegen.h"
 #include "ast/statement.h"
 #include "global_data.h"
-#include "codegen.h"
+#include "resolve/statement_resolver.h"
 
 namespace comptime
 {
@@ -76,6 +77,21 @@ void codegen_context::ensure_function_emission(ast::function_body *body)
 			this->functions_to_compile.push_back(body);
 		}
 	}
+}
+
+void codegen_context::resolve_function(lex::src_tokens const &src_tokens, ast::function_body &body)
+{
+	if (body.state == ast::resolve_state::all || body.state == ast::resolve_state::error)
+	{
+		return;
+	}
+
+	bz_assert(this->parse_ctx != nullptr);
+	auto &context = *this->parse_ctx;
+
+	context.add_to_resolve_queue(src_tokens, body);
+	resolve::resolve_function({}, body, context);
+	context.pop_resolve_queue();
 }
 
 bool codegen_context::is_little_endian(void) const
