@@ -3024,7 +3024,10 @@ static expr_value generate_expr_code(
 	ast::expr_indirect_function_call const &func_call,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
-);
+)
+{
+	bz_unreachable;
+}
 
 static expr_value generate_expr_code(
 	ast::expr_cast const &cast,
@@ -5929,6 +5932,47 @@ std::unique_ptr<function> generate_from_symbol(ast::function_body &body, codegen
 	);
 
 	return result;
+}
+
+function generate_code_for_expression(ast::expression const &expr, codegen_context &context)
+{
+	auto func = function();
+
+	bz_assert(context.current_function_info.func == nullptr);
+	context.current_function_info.func = &func;
+
+	auto const expr_type = expr.get_expr_type();
+	bz_assert(!expr_type.is_empty());
+
+	if (expr_type.is<ast::ts_void>() || expr_type.is_typename())
+	{
+		func.return_type = context.get_builtin_type(builtin_type_kind::void_);
+		auto const prev_info = context.push_expression_scope();
+		generate_expr_code(expr, context, {});
+		context.pop_expression_scope(prev_info);
+
+		if (!context.has_terminator())
+		{
+			context.create_ret_void();
+		}
+	}
+	else
+	{
+		func.return_type = context.get_pointer_type();
+
+		auto const result_address = context.create_alloca(get_type(expr_type, context));
+		auto const prev_info = context.push_expression_scope();
+		generate_expr_code(expr, context, result_address);
+		context.pop_expression_scope(prev_info);
+
+		if (!context.has_terminator())
+		{
+			context.create_ret(result_address.get_reference());
+		}
+	}
+
+	context.current_function_info.finalize_function();
+	return func;
 }
 
 static void generate_rvalue_array_destruct(
