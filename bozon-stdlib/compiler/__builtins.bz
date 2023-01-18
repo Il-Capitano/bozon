@@ -245,6 +245,8 @@ export function __builtin_print_stderr(s: str)
 @__builtin export consteval function __builtin_comptime_compile_error(message: str);
 @__builtin export consteval function __builtin_comptime_compile_warning(message: str);
 
+@__builtin export consteval function __builtin_comptime_create_global_string(s: str) -> str;
+
 @__builtin consteval function __builtin_comptime_concatenate_strs(s: ...consteval str) -> str;
 
 @__builtin export consteval function __builtin_typename_as_str(T: typename) -> str;
