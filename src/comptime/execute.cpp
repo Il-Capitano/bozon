@@ -4522,1545 +4522,1545 @@ void execute_current_instruction(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-		static_assert(instruction::variant_count == 512);
-		case instruction::const_i1:
-			execute<instructions::const_i1, &execute_const_i1>(context);
-			break;
-		case instruction::const_i8:
-			execute<instructions::const_i8, &execute_const_i8>(context);
-			break;
-		case instruction::const_i16:
-			execute<instructions::const_i16, &execute_const_i16>(context);
-			break;
-		case instruction::const_i32:
-			execute<instructions::const_i32, &execute_const_i32>(context);
-			break;
-		case instruction::const_i64:
-			execute<instructions::const_i64, &execute_const_i64>(context);
-			break;
-		case instruction::const_u8:
-			execute<instructions::const_u8, &execute_const_u8>(context);
-			break;
-		case instruction::const_u16:
-			execute<instructions::const_u16, &execute_const_u16>(context);
-			break;
-		case instruction::const_u32:
-			execute<instructions::const_u32, &execute_const_u32>(context);
-			break;
-		case instruction::const_u64:
-			execute<instructions::const_u64, &execute_const_u64>(context);
-			break;
-		case instruction::const_f32:
-			execute<instructions::const_f32, &execute_const_f32>(context);
-			break;
-		case instruction::const_f64:
-			execute<instructions::const_f64, &execute_const_f64>(context);
-			break;
-		case instruction::const_ptr_null:
-			execute<instructions::const_ptr_null, &execute_const_ptr_null>(context);
-			break;
-		case instruction::get_function_arg:
-			execute<instructions::get_function_arg, &execute_get_function_arg>(context);
-			break;
-		case instruction::load_i1_be:
-			execute<instructions::load_i1_be, &execute_load_i1_be>(context);
-			break;
-		case instruction::load_i8_be:
-			execute<instructions::load_i8_be, &execute_load_i8_be>(context);
-			break;
-		case instruction::load_i16_be:
-			execute<instructions::load_i16_be, &execute_load_i16_be>(context);
-			break;
-		case instruction::load_i32_be:
-			execute<instructions::load_i32_be, &execute_load_i32_be>(context);
-			break;
-		case instruction::load_i64_be:
-			execute<instructions::load_i64_be, &execute_load_i64_be>(context);
-			break;
-		case instruction::load_f32_be:
-			execute<instructions::load_f32_be, &execute_load_f32_be>(context);
-			break;
-		case instruction::load_f64_be:
-			execute<instructions::load_f64_be, &execute_load_f64_be>(context);
-			break;
-		case instruction::load_ptr32_be:
-			execute<instructions::load_ptr32_be, &execute_load_ptr32_be>(context);
-			break;
-		case instruction::load_ptr64_be:
-			execute<instructions::load_ptr64_be, &execute_load_ptr64_be>(context);
-			break;
-		case instruction::load_i1_le:
-			execute<instructions::load_i1_le, &execute_load_i1_le>(context);
-			break;
-		case instruction::load_i8_le:
-			execute<instructions::load_i8_le, &execute_load_i8_le>(context);
-			break;
-		case instruction::load_i16_le:
-			execute<instructions::load_i16_le, &execute_load_i16_le>(context);
-			break;
-		case instruction::load_i32_le:
-			execute<instructions::load_i32_le, &execute_load_i32_le>(context);
-			break;
-		case instruction::load_i64_le:
-			execute<instructions::load_i64_le, &execute_load_i64_le>(context);
-			break;
-		case instruction::load_f32_le:
-			execute<instructions::load_f32_le, &execute_load_f32_le>(context);
-			break;
-		case instruction::load_f64_le:
-			execute<instructions::load_f64_le, &execute_load_f64_le>(context);
-			break;
-		case instruction::load_ptr32_le:
-			execute<instructions::load_ptr32_le, &execute_load_ptr32_le>(context);
-			break;
-		case instruction::load_ptr64_le:
-			execute<instructions::load_ptr64_le, &execute_load_ptr64_le>(context);
-			break;
-		case instruction::store_i1_be:
-			execute<instructions::store_i1_be, &execute_store_i1_be>(context);
-			break;
-		case instruction::store_i8_be:
-			execute<instructions::store_i8_be, &execute_store_i8_be>(context);
-			break;
-		case instruction::store_i16_be:
-			execute<instructions::store_i16_be, &execute_store_i16_be>(context);
-			break;
-		case instruction::store_i32_be:
-			execute<instructions::store_i32_be, &execute_store_i32_be>(context);
-			break;
-		case instruction::store_i64_be:
-			execute<instructions::store_i64_be, &execute_store_i64_be>(context);
-			break;
-		case instruction::store_f32_be:
-			execute<instructions::store_f32_be, &execute_store_f32_be>(context);
-			break;
-		case instruction::store_f64_be:
-			execute<instructions::store_f64_be, &execute_store_f64_be>(context);
-			break;
-		case instruction::store_ptr32_be:
-			execute<instructions::store_ptr32_be, &execute_store_ptr32_be>(context);
-			break;
-		case instruction::store_ptr64_be:
-			execute<instructions::store_ptr64_be, &execute_store_ptr64_be>(context);
-			break;
-		case instruction::store_i1_le:
-			execute<instructions::store_i1_le, &execute_store_i1_le>(context);
-			break;
-		case instruction::store_i8_le:
-			execute<instructions::store_i8_le, &execute_store_i8_le>(context);
-			break;
-		case instruction::store_i16_le:
-			execute<instructions::store_i16_le, &execute_store_i16_le>(context);
-			break;
-		case instruction::store_i32_le:
-			execute<instructions::store_i32_le, &execute_store_i32_le>(context);
-			break;
-		case instruction::store_i64_le:
-			execute<instructions::store_i64_le, &execute_store_i64_le>(context);
-			break;
-		case instruction::store_f32_le:
-			execute<instructions::store_f32_le, &execute_store_f32_le>(context);
-			break;
-		case instruction::store_f64_le:
-			execute<instructions::store_f64_le, &execute_store_f64_le>(context);
-			break;
-		case instruction::store_ptr32_le:
-			execute<instructions::store_ptr32_le, &execute_store_ptr32_le>(context);
-			break;
-		case instruction::store_ptr64_le:
-			execute<instructions::store_ptr64_le, &execute_store_ptr64_le>(context);
-			break;
-		case instruction::check_dereference:
-			execute<instructions::check_dereference, &execute_check_dereference>(context);
-			break;
-		case instruction::cast_zext_i1_to_i8:
-			execute<instructions::cast_zext_i1_to_i8, &execute_cast_zext_i1_to_i8>(context);
-			break;
-		case instruction::cast_zext_i1_to_i16:
-			execute<instructions::cast_zext_i1_to_i16, &execute_cast_zext_i1_to_i16>(context);
-			break;
-		case instruction::cast_zext_i1_to_i32:
-			execute<instructions::cast_zext_i1_to_i32, &execute_cast_zext_i1_to_i32>(context);
-			break;
-		case instruction::cast_zext_i1_to_i64:
-			execute<instructions::cast_zext_i1_to_i64, &execute_cast_zext_i1_to_i64>(context);
-			break;
-		case instruction::cast_zext_i8_to_i16:
-			execute<instructions::cast_zext_i8_to_i16, &execute_cast_zext_i8_to_i16>(context);
-			break;
-		case instruction::cast_zext_i8_to_i32:
-			execute<instructions::cast_zext_i8_to_i32, &execute_cast_zext_i8_to_i32>(context);
-			break;
-		case instruction::cast_zext_i8_to_i64:
-			execute<instructions::cast_zext_i8_to_i64, &execute_cast_zext_i8_to_i64>(context);
-			break;
-		case instruction::cast_zext_i16_to_i32:
-			execute<instructions::cast_zext_i16_to_i32, &execute_cast_zext_i16_to_i32>(context);
-			break;
-		case instruction::cast_zext_i16_to_i64:
-			execute<instructions::cast_zext_i16_to_i64, &execute_cast_zext_i16_to_i64>(context);
-			break;
-		case instruction::cast_zext_i32_to_i64:
-			execute<instructions::cast_zext_i32_to_i64, &execute_cast_zext_i32_to_i64>(context);
-			break;
-		case instruction::cast_sext_i8_to_i16:
-			execute<instructions::cast_sext_i8_to_i16, &execute_cast_sext_i8_to_i16>(context);
-			break;
-		case instruction::cast_sext_i8_to_i32:
-			execute<instructions::cast_sext_i8_to_i32, &execute_cast_sext_i8_to_i32>(context);
-			break;
-		case instruction::cast_sext_i8_to_i64:
-			execute<instructions::cast_sext_i8_to_i64, &execute_cast_sext_i8_to_i64>(context);
-			break;
-		case instruction::cast_sext_i16_to_i32:
-			execute<instructions::cast_sext_i16_to_i32, &execute_cast_sext_i16_to_i32>(context);
-			break;
-		case instruction::cast_sext_i16_to_i64:
-			execute<instructions::cast_sext_i16_to_i64, &execute_cast_sext_i16_to_i64>(context);
-			break;
-		case instruction::cast_sext_i32_to_i64:
-			execute<instructions::cast_sext_i32_to_i64, &execute_cast_sext_i32_to_i64>(context);
-			break;
-		case instruction::cast_trunc_i64_to_i8:
-			execute<instructions::cast_trunc_i64_to_i8, &execute_cast_trunc_i64_to_i8>(context);
-			break;
-		case instruction::cast_trunc_i64_to_i16:
-			execute<instructions::cast_trunc_i64_to_i16, &execute_cast_trunc_i64_to_i16>(context);
-			break;
-		case instruction::cast_trunc_i64_to_i32:
-			execute<instructions::cast_trunc_i64_to_i32, &execute_cast_trunc_i64_to_i32>(context);
-			break;
-		case instruction::cast_trunc_i32_to_i8:
-			execute<instructions::cast_trunc_i32_to_i8, &execute_cast_trunc_i32_to_i8>(context);
-			break;
-		case instruction::cast_trunc_i32_to_i16:
-			execute<instructions::cast_trunc_i32_to_i16, &execute_cast_trunc_i32_to_i16>(context);
-			break;
-		case instruction::cast_trunc_i16_to_i8:
-			execute<instructions::cast_trunc_i16_to_i8, &execute_cast_trunc_i16_to_i8>(context);
-			break;
-		case instruction::cast_f32_to_f64:
-			execute<instructions::cast_f32_to_f64, &execute_cast_f32_to_f64>(context);
-			break;
-		case instruction::cast_f64_to_f32:
-			execute<instructions::cast_f64_to_f32, &execute_cast_f64_to_f32>(context);
-			break;
-		case instruction::cast_f32_to_i8:
-			execute<instructions::cast_f32_to_i8, &execute_cast_f32_to_i8>(context);
-			break;
-		case instruction::cast_f32_to_i16:
-			execute<instructions::cast_f32_to_i16, &execute_cast_f32_to_i16>(context);
-			break;
-		case instruction::cast_f32_to_i32:
-			execute<instructions::cast_f32_to_i32, &execute_cast_f32_to_i32>(context);
-			break;
-		case instruction::cast_f32_to_i64:
-			execute<instructions::cast_f32_to_i64, &execute_cast_f32_to_i64>(context);
-			break;
-		case instruction::cast_f32_to_u8:
-			execute<instructions::cast_f32_to_u8, &execute_cast_f32_to_u8>(context);
-			break;
-		case instruction::cast_f32_to_u16:
-			execute<instructions::cast_f32_to_u16, &execute_cast_f32_to_u16>(context);
-			break;
-		case instruction::cast_f32_to_u32:
-			execute<instructions::cast_f32_to_u32, &execute_cast_f32_to_u32>(context);
-			break;
-		case instruction::cast_f32_to_u64:
-			execute<instructions::cast_f32_to_u64, &execute_cast_f32_to_u64>(context);
-			break;
-		case instruction::cast_f64_to_i8:
-			execute<instructions::cast_f64_to_i8, &execute_cast_f64_to_i8>(context);
-			break;
-		case instruction::cast_f64_to_i16:
-			execute<instructions::cast_f64_to_i16, &execute_cast_f64_to_i16>(context);
-			break;
-		case instruction::cast_f64_to_i32:
-			execute<instructions::cast_f64_to_i32, &execute_cast_f64_to_i32>(context);
-			break;
-		case instruction::cast_f64_to_i64:
-			execute<instructions::cast_f64_to_i64, &execute_cast_f64_to_i64>(context);
-			break;
-		case instruction::cast_f64_to_u8:
-			execute<instructions::cast_f64_to_u8, &execute_cast_f64_to_u8>(context);
-			break;
-		case instruction::cast_f64_to_u16:
-			execute<instructions::cast_f64_to_u16, &execute_cast_f64_to_u16>(context);
-			break;
-		case instruction::cast_f64_to_u32:
-			execute<instructions::cast_f64_to_u32, &execute_cast_f64_to_u32>(context);
-			break;
-		case instruction::cast_f64_to_u64:
-			execute<instructions::cast_f64_to_u64, &execute_cast_f64_to_u64>(context);
-			break;
-		case instruction::cast_i8_to_f32:
-			execute<instructions::cast_i8_to_f32, &execute_cast_i8_to_f32>(context);
-			break;
-		case instruction::cast_i16_to_f32:
-			execute<instructions::cast_i16_to_f32, &execute_cast_i16_to_f32>(context);
-			break;
-		case instruction::cast_i32_to_f32:
-			execute<instructions::cast_i32_to_f32, &execute_cast_i32_to_f32>(context);
-			break;
-		case instruction::cast_i64_to_f32:
-			execute<instructions::cast_i64_to_f32, &execute_cast_i64_to_f32>(context);
-			break;
-		case instruction::cast_u8_to_f32:
-			execute<instructions::cast_u8_to_f32, &execute_cast_u8_to_f32>(context);
-			break;
-		case instruction::cast_u16_to_f32:
-			execute<instructions::cast_u16_to_f32, &execute_cast_u16_to_f32>(context);
-			break;
-		case instruction::cast_u32_to_f32:
-			execute<instructions::cast_u32_to_f32, &execute_cast_u32_to_f32>(context);
-			break;
-		case instruction::cast_u64_to_f32:
-			execute<instructions::cast_u64_to_f32, &execute_cast_u64_to_f32>(context);
-			break;
-		case instruction::cast_i8_to_f64:
-			execute<instructions::cast_i8_to_f64, &execute_cast_i8_to_f64>(context);
-			break;
-		case instruction::cast_i16_to_f64:
-			execute<instructions::cast_i16_to_f64, &execute_cast_i16_to_f64>(context);
-			break;
-		case instruction::cast_i32_to_f64:
-			execute<instructions::cast_i32_to_f64, &execute_cast_i32_to_f64>(context);
-			break;
-		case instruction::cast_i64_to_f64:
-			execute<instructions::cast_i64_to_f64, &execute_cast_i64_to_f64>(context);
-			break;
-		case instruction::cast_u8_to_f64:
-			execute<instructions::cast_u8_to_f64, &execute_cast_u8_to_f64>(context);
-			break;
-		case instruction::cast_u16_to_f64:
-			execute<instructions::cast_u16_to_f64, &execute_cast_u16_to_f64>(context);
-			break;
-		case instruction::cast_u32_to_f64:
-			execute<instructions::cast_u32_to_f64, &execute_cast_u32_to_f64>(context);
-			break;
-		case instruction::cast_u64_to_f64:
-			execute<instructions::cast_u64_to_f64, &execute_cast_u64_to_f64>(context);
-			break;
-		case instruction::cmp_eq_i1:
-			execute<instructions::cmp_eq_i1, &execute_cmp_eq_i1>(context);
-			break;
-		case instruction::cmp_eq_i8:
-			execute<instructions::cmp_eq_i8, &execute_cmp_eq_i8>(context);
-			break;
-		case instruction::cmp_eq_i16:
-			execute<instructions::cmp_eq_i16, &execute_cmp_eq_i16>(context);
-			break;
-		case instruction::cmp_eq_i32:
-			execute<instructions::cmp_eq_i32, &execute_cmp_eq_i32>(context);
-			break;
-		case instruction::cmp_eq_i64:
-			execute<instructions::cmp_eq_i64, &execute_cmp_eq_i64>(context);
-			break;
-		case instruction::cmp_eq_f32:
-			execute<instructions::cmp_eq_f32, &execute_cmp_eq_f32>(context);
-			break;
-		case instruction::cmp_eq_f64:
-			execute<instructions::cmp_eq_f64, &execute_cmp_eq_f64>(context);
-			break;
-		case instruction::cmp_eq_f32_check:
-			execute<instructions::cmp_eq_f32_check, &execute_cmp_eq_f32_check>(context);
-			break;
-		case instruction::cmp_eq_f64_check:
-			execute<instructions::cmp_eq_f64_check, &execute_cmp_eq_f64_check>(context);
-			break;
-		case instruction::cmp_eq_ptr:
-			execute<instructions::cmp_eq_ptr, &execute_cmp_eq_ptr>(context);
-			break;
-		case instruction::cmp_neq_i1:
-			execute<instructions::cmp_neq_i1, &execute_cmp_neq_i1>(context);
-			break;
-		case instruction::cmp_neq_i8:
-			execute<instructions::cmp_neq_i8, &execute_cmp_neq_i8>(context);
-			break;
-		case instruction::cmp_neq_i16:
-			execute<instructions::cmp_neq_i16, &execute_cmp_neq_i16>(context);
-			break;
-		case instruction::cmp_neq_i32:
-			execute<instructions::cmp_neq_i32, &execute_cmp_neq_i32>(context);
-			break;
-		case instruction::cmp_neq_i64:
-			execute<instructions::cmp_neq_i64, &execute_cmp_neq_i64>(context);
-			break;
-		case instruction::cmp_neq_f32:
-			execute<instructions::cmp_neq_f32, &execute_cmp_neq_f32>(context);
-			break;
-		case instruction::cmp_neq_f64:
-			execute<instructions::cmp_neq_f64, &execute_cmp_neq_f64>(context);
-			break;
-		case instruction::cmp_neq_f32_check:
-			execute<instructions::cmp_neq_f32_check, &execute_cmp_neq_f32_check>(context);
-			break;
-		case instruction::cmp_neq_f64_check:
-			execute<instructions::cmp_neq_f64_check, &execute_cmp_neq_f64_check>(context);
-			break;
-		case instruction::cmp_neq_ptr:
-			execute<instructions::cmp_neq_ptr, &execute_cmp_neq_ptr>(context);
-			break;
-		case instruction::cmp_lt_i8:
-			execute<instructions::cmp_lt_i8, &execute_cmp_lt_i8>(context);
-			break;
-		case instruction::cmp_lt_i16:
-			execute<instructions::cmp_lt_i16, &execute_cmp_lt_i16>(context);
-			break;
-		case instruction::cmp_lt_i32:
-			execute<instructions::cmp_lt_i32, &execute_cmp_lt_i32>(context);
-			break;
-		case instruction::cmp_lt_i64:
-			execute<instructions::cmp_lt_i64, &execute_cmp_lt_i64>(context);
-			break;
-		case instruction::cmp_lt_u8:
-			execute<instructions::cmp_lt_u8, &execute_cmp_lt_u8>(context);
-			break;
-		case instruction::cmp_lt_u16:
-			execute<instructions::cmp_lt_u16, &execute_cmp_lt_u16>(context);
-			break;
-		case instruction::cmp_lt_u32:
-			execute<instructions::cmp_lt_u32, &execute_cmp_lt_u32>(context);
-			break;
-		case instruction::cmp_lt_u64:
-			execute<instructions::cmp_lt_u64, &execute_cmp_lt_u64>(context);
-			break;
-		case instruction::cmp_lt_f32:
-			execute<instructions::cmp_lt_f32, &execute_cmp_lt_f32>(context);
-			break;
-		case instruction::cmp_lt_f64:
-			execute<instructions::cmp_lt_f64, &execute_cmp_lt_f64>(context);
-			break;
-		case instruction::cmp_lt_f32_check:
-			execute<instructions::cmp_lt_f32_check, &execute_cmp_lt_f32_check>(context);
-			break;
-		case instruction::cmp_lt_f64_check:
-			execute<instructions::cmp_lt_f64_check, &execute_cmp_lt_f64_check>(context);
-			break;
-		case instruction::cmp_lt_ptr:
-			execute<instructions::cmp_lt_ptr, &execute_cmp_lt_ptr>(context);
-			break;
-		case instruction::cmp_gt_i8:
-			execute<instructions::cmp_gt_i8, &execute_cmp_gt_i8>(context);
-			break;
-		case instruction::cmp_gt_i16:
-			execute<instructions::cmp_gt_i16, &execute_cmp_gt_i16>(context);
-			break;
-		case instruction::cmp_gt_i32:
-			execute<instructions::cmp_gt_i32, &execute_cmp_gt_i32>(context);
-			break;
-		case instruction::cmp_gt_i64:
-			execute<instructions::cmp_gt_i64, &execute_cmp_gt_i64>(context);
-			break;
-		case instruction::cmp_gt_u8:
-			execute<instructions::cmp_gt_u8, &execute_cmp_gt_u8>(context);
-			break;
-		case instruction::cmp_gt_u16:
-			execute<instructions::cmp_gt_u16, &execute_cmp_gt_u16>(context);
-			break;
-		case instruction::cmp_gt_u32:
-			execute<instructions::cmp_gt_u32, &execute_cmp_gt_u32>(context);
-			break;
-		case instruction::cmp_gt_u64:
-			execute<instructions::cmp_gt_u64, &execute_cmp_gt_u64>(context);
-			break;
-		case instruction::cmp_gt_f32:
-			execute<instructions::cmp_gt_f32, &execute_cmp_gt_f32>(context);
-			break;
-		case instruction::cmp_gt_f64:
-			execute<instructions::cmp_gt_f64, &execute_cmp_gt_f64>(context);
-			break;
-		case instruction::cmp_gt_f32_check:
-			execute<instructions::cmp_gt_f32_check, &execute_cmp_gt_f32_check>(context);
-			break;
-		case instruction::cmp_gt_f64_check:
-			execute<instructions::cmp_gt_f64_check, &execute_cmp_gt_f64_check>(context);
-			break;
-		case instruction::cmp_gt_ptr:
-			execute<instructions::cmp_gt_ptr, &execute_cmp_gt_ptr>(context);
-			break;
-		case instruction::cmp_lte_i8:
-			execute<instructions::cmp_lte_i8, &execute_cmp_lte_i8>(context);
-			break;
-		case instruction::cmp_lte_i16:
-			execute<instructions::cmp_lte_i16, &execute_cmp_lte_i16>(context);
-			break;
-		case instruction::cmp_lte_i32:
-			execute<instructions::cmp_lte_i32, &execute_cmp_lte_i32>(context);
-			break;
-		case instruction::cmp_lte_i64:
-			execute<instructions::cmp_lte_i64, &execute_cmp_lte_i64>(context);
-			break;
-		case instruction::cmp_lte_u8:
-			execute<instructions::cmp_lte_u8, &execute_cmp_lte_u8>(context);
-			break;
-		case instruction::cmp_lte_u16:
-			execute<instructions::cmp_lte_u16, &execute_cmp_lte_u16>(context);
-			break;
-		case instruction::cmp_lte_u32:
-			execute<instructions::cmp_lte_u32, &execute_cmp_lte_u32>(context);
-			break;
-		case instruction::cmp_lte_u64:
-			execute<instructions::cmp_lte_u64, &execute_cmp_lte_u64>(context);
-			break;
-		case instruction::cmp_lte_f32:
-			execute<instructions::cmp_lte_f32, &execute_cmp_lte_f32>(context);
-			break;
-		case instruction::cmp_lte_f64:
-			execute<instructions::cmp_lte_f64, &execute_cmp_lte_f64>(context);
-			break;
-		case instruction::cmp_lte_f32_check:
-			execute<instructions::cmp_lte_f32_check, &execute_cmp_lte_f32_check>(context);
-			break;
-		case instruction::cmp_lte_f64_check:
-			execute<instructions::cmp_lte_f64_check, &execute_cmp_lte_f64_check>(context);
-			break;
-		case instruction::cmp_lte_ptr:
-			execute<instructions::cmp_lte_ptr, &execute_cmp_lte_ptr>(context);
-			break;
-		case instruction::cmp_gte_i8:
-			execute<instructions::cmp_gte_i8, &execute_cmp_gte_i8>(context);
-			break;
-		case instruction::cmp_gte_i16:
-			execute<instructions::cmp_gte_i16, &execute_cmp_gte_i16>(context);
-			break;
-		case instruction::cmp_gte_i32:
-			execute<instructions::cmp_gte_i32, &execute_cmp_gte_i32>(context);
-			break;
-		case instruction::cmp_gte_i64:
-			execute<instructions::cmp_gte_i64, &execute_cmp_gte_i64>(context);
-			break;
-		case instruction::cmp_gte_u8:
-			execute<instructions::cmp_gte_u8, &execute_cmp_gte_u8>(context);
-			break;
-		case instruction::cmp_gte_u16:
-			execute<instructions::cmp_gte_u16, &execute_cmp_gte_u16>(context);
-			break;
-		case instruction::cmp_gte_u32:
-			execute<instructions::cmp_gte_u32, &execute_cmp_gte_u32>(context);
-			break;
-		case instruction::cmp_gte_u64:
-			execute<instructions::cmp_gte_u64, &execute_cmp_gte_u64>(context);
-			break;
-		case instruction::cmp_gte_f32:
-			execute<instructions::cmp_gte_f32, &execute_cmp_gte_f32>(context);
-			break;
-		case instruction::cmp_gte_f64:
-			execute<instructions::cmp_gte_f64, &execute_cmp_gte_f64>(context);
-			break;
-		case instruction::cmp_gte_f32_check:
-			execute<instructions::cmp_gte_f32_check, &execute_cmp_gte_f32_check>(context);
-			break;
-		case instruction::cmp_gte_f64_check:
-			execute<instructions::cmp_gte_f64_check, &execute_cmp_gte_f64_check>(context);
-			break;
-		case instruction::cmp_gte_ptr:
-			execute<instructions::cmp_gte_ptr, &execute_cmp_gte_ptr>(context);
-			break;
-		case instruction::neg_i8:
-			execute<instructions::neg_i8, &execute_neg_i8>(context);
-			break;
-		case instruction::neg_i16:
-			execute<instructions::neg_i16, &execute_neg_i16>(context);
-			break;
-		case instruction::neg_i32:
-			execute<instructions::neg_i32, &execute_neg_i32>(context);
-			break;
-		case instruction::neg_i64:
-			execute<instructions::neg_i64, &execute_neg_i64>(context);
-			break;
-		case instruction::neg_f32:
-			execute<instructions::neg_f32, &execute_neg_f32>(context);
-			break;
-		case instruction::neg_f64:
-			execute<instructions::neg_f64, &execute_neg_f64>(context);
-			break;
-		case instruction::neg_i8_check:
-			execute<instructions::neg_i8_check, &execute_neg_i8_check>(context);
-			break;
-		case instruction::neg_i16_check:
-			execute<instructions::neg_i16_check, &execute_neg_i16_check>(context);
-			break;
-		case instruction::neg_i32_check:
-			execute<instructions::neg_i32_check, &execute_neg_i32_check>(context);
-			break;
-		case instruction::neg_i64_check:
-			execute<instructions::neg_i64_check, &execute_neg_i64_check>(context);
-			break;
-		case instruction::add_i8:
-			execute<instructions::add_i8, &execute_add_i8>(context);
-			break;
-		case instruction::add_i16:
-			execute<instructions::add_i16, &execute_add_i16>(context);
-			break;
-		case instruction::add_i32:
-			execute<instructions::add_i32, &execute_add_i32>(context);
-			break;
-		case instruction::add_i64:
-			execute<instructions::add_i64, &execute_add_i64>(context);
-			break;
-		case instruction::add_f32:
-			execute<instructions::add_f32, &execute_add_f32>(context);
-			break;
-		case instruction::add_f64:
-			execute<instructions::add_f64, &execute_add_f64>(context);
-			break;
-		case instruction::add_ptr_i32:
-			execute<instructions::add_ptr_i32, &execute_add_ptr_i32>(context);
-			break;
-		case instruction::add_ptr_u32:
-			execute<instructions::add_ptr_u32, &execute_add_ptr_u32>(context);
-			break;
-		case instruction::add_ptr_i64:
-			execute<instructions::add_ptr_i64, &execute_add_ptr_i64>(context);
-			break;
-		case instruction::add_ptr_u64:
-			execute<instructions::add_ptr_u64, &execute_add_ptr_u64>(context);
-			break;
-		case instruction::add_ptr_const_unchecked:
-			execute<instructions::add_ptr_const_unchecked, &execute_add_ptr_const_unchecked>(context);
-			break;
-		case instruction::add_i8_check:
-			execute<instructions::add_i8_check, &execute_add_i8_check>(context);
-			break;
-		case instruction::add_i16_check:
-			execute<instructions::add_i16_check, &execute_add_i16_check>(context);
-			break;
-		case instruction::add_i32_check:
-			execute<instructions::add_i32_check, &execute_add_i32_check>(context);
-			break;
-		case instruction::add_i64_check:
-			execute<instructions::add_i64_check, &execute_add_i64_check>(context);
-			break;
-		case instruction::add_u8_check:
-			execute<instructions::add_u8_check, &execute_add_u8_check>(context);
-			break;
-		case instruction::add_u16_check:
-			execute<instructions::add_u16_check, &execute_add_u16_check>(context);
-			break;
-		case instruction::add_u32_check:
-			execute<instructions::add_u32_check, &execute_add_u32_check>(context);
-			break;
-		case instruction::add_u64_check:
-			execute<instructions::add_u64_check, &execute_add_u64_check>(context);
-			break;
-		case instruction::add_f32_check:
-			execute<instructions::add_f32_check, &execute_add_f32_check>(context);
-			break;
-		case instruction::add_f64_check:
-			execute<instructions::add_f64_check, &execute_add_f64_check>(context);
-			break;
-		case instruction::sub_i8:
-			execute<instructions::sub_i8, &execute_sub_i8>(context);
-			break;
-		case instruction::sub_i16:
-			execute<instructions::sub_i16, &execute_sub_i16>(context);
-			break;
-		case instruction::sub_i32:
-			execute<instructions::sub_i32, &execute_sub_i32>(context);
-			break;
-		case instruction::sub_i64:
-			execute<instructions::sub_i64, &execute_sub_i64>(context);
-			break;
-		case instruction::sub_f32:
-			execute<instructions::sub_f32, &execute_sub_f32>(context);
-			break;
-		case instruction::sub_f64:
-			execute<instructions::sub_f64, &execute_sub_f64>(context);
-			break;
-		case instruction::sub_ptr_i32:
-			execute<instructions::sub_ptr_i32, &execute_sub_ptr_i32>(context);
-			break;
-		case instruction::sub_ptr_u32:
-			execute<instructions::sub_ptr_u32, &execute_sub_ptr_u32>(context);
-			break;
-		case instruction::sub_ptr_i64:
-			execute<instructions::sub_ptr_i64, &execute_sub_ptr_i64>(context);
-			break;
-		case instruction::sub_ptr_u64:
-			execute<instructions::sub_ptr_u64, &execute_sub_ptr_u64>(context);
-			break;
-		case instruction::sub_i8_check:
-			execute<instructions::sub_i8_check, &execute_sub_i8_check>(context);
-			break;
-		case instruction::sub_i16_check:
-			execute<instructions::sub_i16_check, &execute_sub_i16_check>(context);
-			break;
-		case instruction::sub_i32_check:
-			execute<instructions::sub_i32_check, &execute_sub_i32_check>(context);
-			break;
-		case instruction::sub_i64_check:
-			execute<instructions::sub_i64_check, &execute_sub_i64_check>(context);
-			break;
-		case instruction::sub_u8_check:
-			execute<instructions::sub_u8_check, &execute_sub_u8_check>(context);
-			break;
-		case instruction::sub_u16_check:
-			execute<instructions::sub_u16_check, &execute_sub_u16_check>(context);
-			break;
-		case instruction::sub_u32_check:
-			execute<instructions::sub_u32_check, &execute_sub_u32_check>(context);
-			break;
-		case instruction::sub_u64_check:
-			execute<instructions::sub_u64_check, &execute_sub_u64_check>(context);
-			break;
-		case instruction::sub_f32_check:
-			execute<instructions::sub_f32_check, &execute_sub_f32_check>(context);
-			break;
-		case instruction::sub_f64_check:
-			execute<instructions::sub_f64_check, &execute_sub_f64_check>(context);
-			break;
-		case instruction::ptr32_diff:
-			execute<instructions::ptr32_diff, &execute_ptr32_diff>(context);
-			break;
-		case instruction::ptr64_diff:
-			execute<instructions::ptr64_diff, &execute_ptr64_diff>(context);
-			break;
-		case instruction::ptr32_diff_unchecked:
-			execute<instructions::ptr32_diff_unchecked, &execute_ptr32_diff_unchecked>(context);
-			break;
-		case instruction::ptr64_diff_unchecked:
-			execute<instructions::ptr64_diff_unchecked, &execute_ptr64_diff_unchecked>(context);
-			break;
-		case instruction::mul_i8:
-			execute<instructions::mul_i8, &execute_mul_i8>(context);
-			break;
-		case instruction::mul_i16:
-			execute<instructions::mul_i16, &execute_mul_i16>(context);
-			break;
-		case instruction::mul_i32:
-			execute<instructions::mul_i32, &execute_mul_i32>(context);
-			break;
-		case instruction::mul_i64:
-			execute<instructions::mul_i64, &execute_mul_i64>(context);
-			break;
-		case instruction::mul_f32:
-			execute<instructions::mul_f32, &execute_mul_f32>(context);
-			break;
-		case instruction::mul_f64:
-			execute<instructions::mul_f64, &execute_mul_f64>(context);
-			break;
-		case instruction::mul_i8_check:
-			execute<instructions::mul_i8_check, &execute_mul_i8_check>(context);
-			break;
-		case instruction::mul_i16_check:
-			execute<instructions::mul_i16_check, &execute_mul_i16_check>(context);
-			break;
-		case instruction::mul_i32_check:
-			execute<instructions::mul_i32_check, &execute_mul_i32_check>(context);
-			break;
-		case instruction::mul_i64_check:
-			execute<instructions::mul_i64_check, &execute_mul_i64_check>(context);
-			break;
-		case instruction::mul_u8_check:
-			execute<instructions::mul_u8_check, &execute_mul_u8_check>(context);
-			break;
-		case instruction::mul_u16_check:
-			execute<instructions::mul_u16_check, &execute_mul_u16_check>(context);
-			break;
-		case instruction::mul_u32_check:
-			execute<instructions::mul_u32_check, &execute_mul_u32_check>(context);
-			break;
-		case instruction::mul_u64_check:
-			execute<instructions::mul_u64_check, &execute_mul_u64_check>(context);
-			break;
-		case instruction::mul_f32_check:
-			execute<instructions::mul_f32_check, &execute_mul_f32_check>(context);
-			break;
-		case instruction::mul_f64_check:
-			execute<instructions::mul_f64_check, &execute_mul_f64_check>(context);
-			break;
-		case instruction::div_i8:
-			execute<instructions::div_i8, &execute_div_i8>(context);
-			break;
-		case instruction::div_i16:
-			execute<instructions::div_i16, &execute_div_i16>(context);
-			break;
-		case instruction::div_i32:
-			execute<instructions::div_i32, &execute_div_i32>(context);
-			break;
-		case instruction::div_i64:
-			execute<instructions::div_i64, &execute_div_i64>(context);
-			break;
-		case instruction::div_u8:
-			execute<instructions::div_u8, &execute_div_u8>(context);
-			break;
-		case instruction::div_u16:
-			execute<instructions::div_u16, &execute_div_u16>(context);
-			break;
-		case instruction::div_u32:
-			execute<instructions::div_u32, &execute_div_u32>(context);
-			break;
-		case instruction::div_u64:
-			execute<instructions::div_u64, &execute_div_u64>(context);
-			break;
-		case instruction::div_f32:
-			execute<instructions::div_f32, &execute_div_f32>(context);
-			break;
-		case instruction::div_f64:
-			execute<instructions::div_f64, &execute_div_f64>(context);
-			break;
-		case instruction::div_i8_check:
-			execute<instructions::div_i8_check, &execute_div_i8_check>(context);
-			break;
-		case instruction::div_i16_check:
-			execute<instructions::div_i16_check, &execute_div_i16_check>(context);
-			break;
-		case instruction::div_i32_check:
-			execute<instructions::div_i32_check, &execute_div_i32_check>(context);
-			break;
-		case instruction::div_i64_check:
-			execute<instructions::div_i64_check, &execute_div_i64_check>(context);
-			break;
-		case instruction::div_f32_check:
-			execute<instructions::div_f32_check, &execute_div_f32_check>(context);
-			break;
-		case instruction::div_f64_check:
-			execute<instructions::div_f64_check, &execute_div_f64_check>(context);
-			break;
-		case instruction::rem_i8:
-			execute<instructions::rem_i8, &execute_rem_i8>(context);
-			break;
-		case instruction::rem_i16:
-			execute<instructions::rem_i16, &execute_rem_i16>(context);
-			break;
-		case instruction::rem_i32:
-			execute<instructions::rem_i32, &execute_rem_i32>(context);
-			break;
-		case instruction::rem_i64:
-			execute<instructions::rem_i64, &execute_rem_i64>(context);
-			break;
-		case instruction::rem_u8:
-			execute<instructions::rem_u8, &execute_rem_u8>(context);
-			break;
-		case instruction::rem_u16:
-			execute<instructions::rem_u16, &execute_rem_u16>(context);
-			break;
-		case instruction::rem_u32:
-			execute<instructions::rem_u32, &execute_rem_u32>(context);
-			break;
-		case instruction::rem_u64:
-			execute<instructions::rem_u64, &execute_rem_u64>(context);
-			break;
-		case instruction::not_i1:
-			execute<instructions::not_i1, &execute_not_i1>(context);
-			break;
-		case instruction::not_i8:
-			execute<instructions::not_i8, &execute_not_i8>(context);
-			break;
-		case instruction::not_i16:
-			execute<instructions::not_i16, &execute_not_i16>(context);
-			break;
-		case instruction::not_i32:
-			execute<instructions::not_i32, &execute_not_i32>(context);
-			break;
-		case instruction::not_i64:
-			execute<instructions::not_i64, &execute_not_i64>(context);
-			break;
-		case instruction::and_i1:
-			execute<instructions::and_i1, &execute_and_i1>(context);
-			break;
-		case instruction::and_i8:
-			execute<instructions::and_i8, &execute_and_i8>(context);
-			break;
-		case instruction::and_i16:
-			execute<instructions::and_i16, &execute_and_i16>(context);
-			break;
-		case instruction::and_i32:
-			execute<instructions::and_i32, &execute_and_i32>(context);
-			break;
-		case instruction::and_i64:
-			execute<instructions::and_i64, &execute_and_i64>(context);
-			break;
-		case instruction::xor_i1:
-			execute<instructions::xor_i1, &execute_xor_i1>(context);
-			break;
-		case instruction::xor_i8:
-			execute<instructions::xor_i8, &execute_xor_i8>(context);
-			break;
-		case instruction::xor_i16:
-			execute<instructions::xor_i16, &execute_xor_i16>(context);
-			break;
-		case instruction::xor_i32:
-			execute<instructions::xor_i32, &execute_xor_i32>(context);
-			break;
-		case instruction::xor_i64:
-			execute<instructions::xor_i64, &execute_xor_i64>(context);
-			break;
-		case instruction::or_i1:
-			execute<instructions::or_i1, &execute_or_i1>(context);
-			break;
-		case instruction::or_i8:
-			execute<instructions::or_i8, &execute_or_i8>(context);
-			break;
-		case instruction::or_i16:
-			execute<instructions::or_i16, &execute_or_i16>(context);
-			break;
-		case instruction::or_i32:
-			execute<instructions::or_i32, &execute_or_i32>(context);
-			break;
-		case instruction::or_i64:
-			execute<instructions::or_i64, &execute_or_i64>(context);
-			break;
-		case instruction::shl_i8_signed:
-			execute<instructions::shl_i8_signed, &execute_shl_i8_signed>(context);
-			break;
-		case instruction::shl_i16_signed:
-			execute<instructions::shl_i16_signed, &execute_shl_i16_signed>(context);
-			break;
-		case instruction::shl_i32_signed:
-			execute<instructions::shl_i32_signed, &execute_shl_i32_signed>(context);
-			break;
-		case instruction::shl_i64_signed:
-			execute<instructions::shl_i64_signed, &execute_shl_i64_signed>(context);
-			break;
-		case instruction::shl_i8_unsigned:
-			execute<instructions::shl_i8_unsigned, &execute_shl_i8_unsigned>(context);
-			break;
-		case instruction::shl_i16_unsigned:
-			execute<instructions::shl_i16_unsigned, &execute_shl_i16_unsigned>(context);
-			break;
-		case instruction::shl_i32_unsigned:
-			execute<instructions::shl_i32_unsigned, &execute_shl_i32_unsigned>(context);
-			break;
-		case instruction::shl_i64_unsigned:
-			execute<instructions::shl_i64_unsigned, &execute_shl_i64_unsigned>(context);
-			break;
-		case instruction::shr_i8_signed:
-			execute<instructions::shr_i8_signed, &execute_shr_i8_signed>(context);
-			break;
-		case instruction::shr_i16_signed:
-			execute<instructions::shr_i16_signed, &execute_shr_i16_signed>(context);
-			break;
-		case instruction::shr_i32_signed:
-			execute<instructions::shr_i32_signed, &execute_shr_i32_signed>(context);
-			break;
-		case instruction::shr_i64_signed:
-			execute<instructions::shr_i64_signed, &execute_shr_i64_signed>(context);
-			break;
-		case instruction::shr_i8_unsigned:
-			execute<instructions::shr_i8_unsigned, &execute_shr_i8_unsigned>(context);
-			break;
-		case instruction::shr_i16_unsigned:
-			execute<instructions::shr_i16_unsigned, &execute_shr_i16_unsigned>(context);
-			break;
-		case instruction::shr_i32_unsigned:
-			execute<instructions::shr_i32_unsigned, &execute_shr_i32_unsigned>(context);
-			break;
-		case instruction::shr_i64_unsigned:
-			execute<instructions::shr_i64_unsigned, &execute_shr_i64_unsigned>(context);
-			break;
-		case instruction::abs_i8:
-			execute<instructions::abs_i8, &execute_abs_i8>(context);
-			break;
-		case instruction::abs_i16:
-			execute<instructions::abs_i16, &execute_abs_i16>(context);
-			break;
-		case instruction::abs_i32:
-			execute<instructions::abs_i32, &execute_abs_i32>(context);
-			break;
-		case instruction::abs_i64:
-			execute<instructions::abs_i64, &execute_abs_i64>(context);
-			break;
-		case instruction::abs_f32:
-			execute<instructions::abs_f32, &execute_abs_f32>(context);
-			break;
-		case instruction::abs_f64:
-			execute<instructions::abs_f64, &execute_abs_f64>(context);
-			break;
-		case instruction::abs_i8_check:
-			execute<instructions::abs_i8_check, &execute_abs_i8_check>(context);
-			break;
-		case instruction::abs_i16_check:
-			execute<instructions::abs_i16_check, &execute_abs_i16_check>(context);
-			break;
-		case instruction::abs_i32_check:
-			execute<instructions::abs_i32_check, &execute_abs_i32_check>(context);
-			break;
-		case instruction::abs_i64_check:
-			execute<instructions::abs_i64_check, &execute_abs_i64_check>(context);
-			break;
-		case instruction::abs_f32_check:
-			execute<instructions::abs_f32_check, &execute_abs_f32_check>(context);
-			break;
-		case instruction::abs_f64_check:
-			execute<instructions::abs_f64_check, &execute_abs_f64_check>(context);
-			break;
-		case instruction::min_i8:
-			execute<instructions::min_i8, &execute_min_i8>(context);
-			break;
-		case instruction::min_i16:
-			execute<instructions::min_i16, &execute_min_i16>(context);
-			break;
-		case instruction::min_i32:
-			execute<instructions::min_i32, &execute_min_i32>(context);
-			break;
-		case instruction::min_i64:
-			execute<instructions::min_i64, &execute_min_i64>(context);
-			break;
-		case instruction::min_u8:
-			execute<instructions::min_u8, &execute_min_u8>(context);
-			break;
-		case instruction::min_u16:
-			execute<instructions::min_u16, &execute_min_u16>(context);
-			break;
-		case instruction::min_u32:
-			execute<instructions::min_u32, &execute_min_u32>(context);
-			break;
-		case instruction::min_u64:
-			execute<instructions::min_u64, &execute_min_u64>(context);
-			break;
-		case instruction::min_f32:
-			execute<instructions::min_f32, &execute_min_f32>(context);
-			break;
-		case instruction::min_f64:
-			execute<instructions::min_f64, &execute_min_f64>(context);
-			break;
-		case instruction::min_f32_check:
-			execute<instructions::min_f32_check, &execute_min_f32_check>(context);
-			break;
-		case instruction::min_f64_check:
-			execute<instructions::min_f64_check, &execute_min_f64_check>(context);
-			break;
-		case instruction::max_i8:
-			execute<instructions::max_i8, &execute_max_i8>(context);
-			break;
-		case instruction::max_i16:
-			execute<instructions::max_i16, &execute_max_i16>(context);
-			break;
-		case instruction::max_i32:
-			execute<instructions::max_i32, &execute_max_i32>(context);
-			break;
-		case instruction::max_i64:
-			execute<instructions::max_i64, &execute_max_i64>(context);
-			break;
-		case instruction::max_u8:
-			execute<instructions::max_u8, &execute_max_u8>(context);
-			break;
-		case instruction::max_u16:
-			execute<instructions::max_u16, &execute_max_u16>(context);
-			break;
-		case instruction::max_u32:
-			execute<instructions::max_u32, &execute_max_u32>(context);
-			break;
-		case instruction::max_u64:
-			execute<instructions::max_u64, &execute_max_u64>(context);
-			break;
-		case instruction::max_f32:
-			execute<instructions::max_f32, &execute_max_f32>(context);
-			break;
-		case instruction::max_f64:
-			execute<instructions::max_f64, &execute_max_f64>(context);
-			break;
-		case instruction::max_f32_check:
-			execute<instructions::max_f32_check, &execute_max_f32_check>(context);
-			break;
-		case instruction::max_f64_check:
-			execute<instructions::max_f64_check, &execute_max_f64_check>(context);
-			break;
-		case instruction::exp_f32:
-			execute<instructions::exp_f32, &execute_exp_f32>(context);
-			break;
-		case instruction::exp_f64:
-			execute<instructions::exp_f64, &execute_exp_f64>(context);
-			break;
-		case instruction::exp_f32_check:
-			execute<instructions::exp_f32_check, &execute_exp_f32_check>(context);
-			break;
-		case instruction::exp_f64_check:
-			execute<instructions::exp_f64_check, &execute_exp_f64_check>(context);
-			break;
-		case instruction::exp2_f32:
-			execute<instructions::exp2_f32, &execute_exp2_f32>(context);
-			break;
-		case instruction::exp2_f64:
-			execute<instructions::exp2_f64, &execute_exp2_f64>(context);
-			break;
-		case instruction::exp2_f32_check:
-			execute<instructions::exp2_f32_check, &execute_exp2_f32_check>(context);
-			break;
-		case instruction::exp2_f64_check:
-			execute<instructions::exp2_f64_check, &execute_exp2_f64_check>(context);
-			break;
-		case instruction::expm1_f32:
-			execute<instructions::expm1_f32, &execute_expm1_f32>(context);
-			break;
-		case instruction::expm1_f64:
-			execute<instructions::expm1_f64, &execute_expm1_f64>(context);
-			break;
-		case instruction::expm1_f32_check:
-			execute<instructions::expm1_f32_check, &execute_expm1_f32_check>(context);
-			break;
-		case instruction::expm1_f64_check:
-			execute<instructions::expm1_f64_check, &execute_expm1_f64_check>(context);
-			break;
-		case instruction::log_f32:
-			execute<instructions::log_f32, &execute_log_f32>(context);
-			break;
-		case instruction::log_f64:
-			execute<instructions::log_f64, &execute_log_f64>(context);
-			break;
-		case instruction::log_f32_check:
-			execute<instructions::log_f32_check, &execute_log_f32_check>(context);
-			break;
-		case instruction::log_f64_check:
-			execute<instructions::log_f64_check, &execute_log_f64_check>(context);
-			break;
-		case instruction::log10_f32:
-			execute<instructions::log10_f32, &execute_log10_f32>(context);
-			break;
-		case instruction::log10_f64:
-			execute<instructions::log10_f64, &execute_log10_f64>(context);
-			break;
-		case instruction::log10_f32_check:
-			execute<instructions::log10_f32_check, &execute_log10_f32_check>(context);
-			break;
-		case instruction::log10_f64_check:
-			execute<instructions::log10_f64_check, &execute_log10_f64_check>(context);
-			break;
-		case instruction::log2_f32:
-			execute<instructions::log2_f32, &execute_log2_f32>(context);
-			break;
-		case instruction::log2_f64:
-			execute<instructions::log2_f64, &execute_log2_f64>(context);
-			break;
-		case instruction::log2_f32_check:
-			execute<instructions::log2_f32_check, &execute_log2_f32_check>(context);
-			break;
-		case instruction::log2_f64_check:
-			execute<instructions::log2_f64_check, &execute_log2_f64_check>(context);
-			break;
-		case instruction::log1p_f32:
-			execute<instructions::log1p_f32, &execute_log1p_f32>(context);
-			break;
-		case instruction::log1p_f64:
-			execute<instructions::log1p_f64, &execute_log1p_f64>(context);
-			break;
-		case instruction::log1p_f32_check:
-			execute<instructions::log1p_f32_check, &execute_log1p_f32_check>(context);
-			break;
-		case instruction::log1p_f64_check:
-			execute<instructions::log1p_f64_check, &execute_log1p_f64_check>(context);
-			break;
-		case instruction::sqrt_f32:
-			execute<instructions::sqrt_f32, &execute_sqrt_f32>(context);
-			break;
-		case instruction::sqrt_f64:
-			execute<instructions::sqrt_f64, &execute_sqrt_f64>(context);
-			break;
-		case instruction::sqrt_f32_check:
-			execute<instructions::sqrt_f32_check, &execute_sqrt_f32_check>(context);
-			break;
-		case instruction::sqrt_f64_check:
-			execute<instructions::sqrt_f64_check, &execute_sqrt_f64_check>(context);
-			break;
-		case instruction::pow_f32:
-			execute<instructions::pow_f32, &execute_pow_f32>(context);
-			break;
-		case instruction::pow_f64:
-			execute<instructions::pow_f64, &execute_pow_f64>(context);
-			break;
-		case instruction::pow_f32_check:
-			execute<instructions::pow_f32_check, &execute_pow_f32_check>(context);
-			break;
-		case instruction::pow_f64_check:
-			execute<instructions::pow_f64_check, &execute_pow_f64_check>(context);
-			break;
-		case instruction::cbrt_f32:
-			execute<instructions::cbrt_f32, &execute_cbrt_f32>(context);
-			break;
-		case instruction::cbrt_f64:
-			execute<instructions::cbrt_f64, &execute_cbrt_f64>(context);
-			break;
-		case instruction::cbrt_f32_check:
-			execute<instructions::cbrt_f32_check, &execute_cbrt_f32_check>(context);
-			break;
-		case instruction::cbrt_f64_check:
-			execute<instructions::cbrt_f64_check, &execute_cbrt_f64_check>(context);
-			break;
-		case instruction::hypot_f32:
-			execute<instructions::hypot_f32, &execute_hypot_f32>(context);
-			break;
-		case instruction::hypot_f64:
-			execute<instructions::hypot_f64, &execute_hypot_f64>(context);
-			break;
-		case instruction::hypot_f32_check:
-			execute<instructions::hypot_f32_check, &execute_hypot_f32_check>(context);
-			break;
-		case instruction::hypot_f64_check:
-			execute<instructions::hypot_f64_check, &execute_hypot_f64_check>(context);
-			break;
-		case instruction::sin_f32:
-			execute<instructions::sin_f32, &execute_sin_f32>(context);
-			break;
-		case instruction::sin_f64:
-			execute<instructions::sin_f64, &execute_sin_f64>(context);
-			break;
-		case instruction::sin_f32_check:
-			execute<instructions::sin_f32_check, &execute_sin_f32_check>(context);
-			break;
-		case instruction::sin_f64_check:
-			execute<instructions::sin_f64_check, &execute_sin_f64_check>(context);
-			break;
-		case instruction::cos_f32:
-			execute<instructions::cos_f32, &execute_cos_f32>(context);
-			break;
-		case instruction::cos_f64:
-			execute<instructions::cos_f64, &execute_cos_f64>(context);
-			break;
-		case instruction::cos_f32_check:
-			execute<instructions::cos_f32_check, &execute_cos_f32_check>(context);
-			break;
-		case instruction::cos_f64_check:
-			execute<instructions::cos_f64_check, &execute_cos_f64_check>(context);
-			break;
-		case instruction::tan_f32:
-			execute<instructions::tan_f32, &execute_tan_f32>(context);
-			break;
-		case instruction::tan_f64:
-			execute<instructions::tan_f64, &execute_tan_f64>(context);
-			break;
-		case instruction::tan_f32_check:
-			execute<instructions::tan_f32_check, &execute_tan_f32_check>(context);
-			break;
-		case instruction::tan_f64_check:
-			execute<instructions::tan_f64_check, &execute_tan_f64_check>(context);
-			break;
-		case instruction::asin_f32:
-			execute<instructions::asin_f32, &execute_asin_f32>(context);
-			break;
-		case instruction::asin_f64:
-			execute<instructions::asin_f64, &execute_asin_f64>(context);
-			break;
-		case instruction::asin_f32_check:
-			execute<instructions::asin_f32_check, &execute_asin_f32_check>(context);
-			break;
-		case instruction::asin_f64_check:
-			execute<instructions::asin_f64_check, &execute_asin_f64_check>(context);
-			break;
-		case instruction::acos_f32:
-			execute<instructions::acos_f32, &execute_acos_f32>(context);
-			break;
-		case instruction::acos_f64:
-			execute<instructions::acos_f64, &execute_acos_f64>(context);
-			break;
-		case instruction::acos_f32_check:
-			execute<instructions::acos_f32_check, &execute_acos_f32_check>(context);
-			break;
-		case instruction::acos_f64_check:
-			execute<instructions::acos_f64_check, &execute_acos_f64_check>(context);
-			break;
-		case instruction::atan_f32:
-			execute<instructions::atan_f32, &execute_atan_f32>(context);
-			break;
-		case instruction::atan_f64:
-			execute<instructions::atan_f64, &execute_atan_f64>(context);
-			break;
-		case instruction::atan_f32_check:
-			execute<instructions::atan_f32_check, &execute_atan_f32_check>(context);
-			break;
-		case instruction::atan_f64_check:
-			execute<instructions::atan_f64_check, &execute_atan_f64_check>(context);
-			break;
-		case instruction::atan2_f32:
-			execute<instructions::atan2_f32, &execute_atan2_f32>(context);
-			break;
-		case instruction::atan2_f64:
-			execute<instructions::atan2_f64, &execute_atan2_f64>(context);
-			break;
-		case instruction::atan2_f32_check:
-			execute<instructions::atan2_f32_check, &execute_atan2_f32_check>(context);
-			break;
-		case instruction::atan2_f64_check:
-			execute<instructions::atan2_f64_check, &execute_atan2_f64_check>(context);
-			break;
-		case instruction::sinh_f32:
-			execute<instructions::sinh_f32, &execute_sinh_f32>(context);
-			break;
-		case instruction::sinh_f64:
-			execute<instructions::sinh_f64, &execute_sinh_f64>(context);
-			break;
-		case instruction::sinh_f32_check:
-			execute<instructions::sinh_f32_check, &execute_sinh_f32_check>(context);
-			break;
-		case instruction::sinh_f64_check:
-			execute<instructions::sinh_f64_check, &execute_sinh_f64_check>(context);
-			break;
-		case instruction::cosh_f32:
-			execute<instructions::cosh_f32, &execute_cosh_f32>(context);
-			break;
-		case instruction::cosh_f64:
-			execute<instructions::cosh_f64, &execute_cosh_f64>(context);
-			break;
-		case instruction::cosh_f32_check:
-			execute<instructions::cosh_f32_check, &execute_cosh_f32_check>(context);
-			break;
-		case instruction::cosh_f64_check:
-			execute<instructions::cosh_f64_check, &execute_cosh_f64_check>(context);
-			break;
-		case instruction::tanh_f32:
-			execute<instructions::tanh_f32, &execute_tanh_f32>(context);
-			break;
-		case instruction::tanh_f64:
-			execute<instructions::tanh_f64, &execute_tanh_f64>(context);
-			break;
-		case instruction::tanh_f32_check:
-			execute<instructions::tanh_f32_check, &execute_tanh_f32_check>(context);
-			break;
-		case instruction::tanh_f64_check:
-			execute<instructions::tanh_f64_check, &execute_tanh_f64_check>(context);
-			break;
-		case instruction::asinh_f32:
-			execute<instructions::asinh_f32, &execute_asinh_f32>(context);
-			break;
-		case instruction::asinh_f64:
-			execute<instructions::asinh_f64, &execute_asinh_f64>(context);
-			break;
-		case instruction::asinh_f32_check:
-			execute<instructions::asinh_f32_check, &execute_asinh_f32_check>(context);
-			break;
-		case instruction::asinh_f64_check:
-			execute<instructions::asinh_f64_check, &execute_asinh_f64_check>(context);
-			break;
-		case instruction::acosh_f32:
-			execute<instructions::acosh_f32, &execute_acosh_f32>(context);
-			break;
-		case instruction::acosh_f64:
-			execute<instructions::acosh_f64, &execute_acosh_f64>(context);
-			break;
-		case instruction::acosh_f32_check:
-			execute<instructions::acosh_f32_check, &execute_acosh_f32_check>(context);
-			break;
-		case instruction::acosh_f64_check:
-			execute<instructions::acosh_f64_check, &execute_acosh_f64_check>(context);
-			break;
-		case instruction::atanh_f32:
-			execute<instructions::atanh_f32, &execute_atanh_f32>(context);
-			break;
-		case instruction::atanh_f64:
-			execute<instructions::atanh_f64, &execute_atanh_f64>(context);
-			break;
-		case instruction::atanh_f32_check:
-			execute<instructions::atanh_f32_check, &execute_atanh_f32_check>(context);
-			break;
-		case instruction::atanh_f64_check:
-			execute<instructions::atanh_f64_check, &execute_atanh_f64_check>(context);
-			break;
-		case instruction::erf_f32:
-			execute<instructions::erf_f32, &execute_erf_f32>(context);
-			break;
-		case instruction::erf_f64:
-			execute<instructions::erf_f64, &execute_erf_f64>(context);
-			break;
-		case instruction::erf_f32_check:
-			execute<instructions::erf_f32_check, &execute_erf_f32_check>(context);
-			break;
-		case instruction::erf_f64_check:
-			execute<instructions::erf_f64_check, &execute_erf_f64_check>(context);
-			break;
-		case instruction::erfc_f32:
-			execute<instructions::erfc_f32, &execute_erfc_f32>(context);
-			break;
-		case instruction::erfc_f64:
-			execute<instructions::erfc_f64, &execute_erfc_f64>(context);
-			break;
-		case instruction::erfc_f32_check:
-			execute<instructions::erfc_f32_check, &execute_erfc_f32_check>(context);
-			break;
-		case instruction::erfc_f64_check:
-			execute<instructions::erfc_f64_check, &execute_erfc_f64_check>(context);
-			break;
-		case instruction::tgamma_f32:
-			execute<instructions::tgamma_f32, &execute_tgamma_f32>(context);
-			break;
-		case instruction::tgamma_f64:
-			execute<instructions::tgamma_f64, &execute_tgamma_f64>(context);
-			break;
-		case instruction::tgamma_f32_check:
-			execute<instructions::tgamma_f32_check, &execute_tgamma_f32_check>(context);
-			break;
-		case instruction::tgamma_f64_check:
-			execute<instructions::tgamma_f64_check, &execute_tgamma_f64_check>(context);
-			break;
-		case instruction::lgamma_f32:
-			execute<instructions::lgamma_f32, &execute_lgamma_f32>(context);
-			break;
-		case instruction::lgamma_f64:
-			execute<instructions::lgamma_f64, &execute_lgamma_f64>(context);
-			break;
-		case instruction::lgamma_f32_check:
-			execute<instructions::lgamma_f32_check, &execute_lgamma_f32_check>(context);
-			break;
-		case instruction::lgamma_f64_check:
-			execute<instructions::lgamma_f64_check, &execute_lgamma_f64_check>(context);
-			break;
-		case instruction::bitreverse_u8:
-			execute<instructions::bitreverse_u8, &execute_bitreverse_u8>(context);
-			break;
-		case instruction::bitreverse_u16:
-			execute<instructions::bitreverse_u16, &execute_bitreverse_u16>(context);
-			break;
-		case instruction::bitreverse_u32:
-			execute<instructions::bitreverse_u32, &execute_bitreverse_u32>(context);
-			break;
-		case instruction::bitreverse_u64:
-			execute<instructions::bitreverse_u64, &execute_bitreverse_u64>(context);
-			break;
-		case instruction::popcount_u8:
-			execute<instructions::popcount_u8, &execute_popcount_u8>(context);
-			break;
-		case instruction::popcount_u16:
-			execute<instructions::popcount_u16, &execute_popcount_u16>(context);
-			break;
-		case instruction::popcount_u32:
-			execute<instructions::popcount_u32, &execute_popcount_u32>(context);
-			break;
-		case instruction::popcount_u64:
-			execute<instructions::popcount_u64, &execute_popcount_u64>(context);
-			break;
-		case instruction::byteswap_u16:
-			execute<instructions::byteswap_u16, &execute_byteswap_u16>(context);
-			break;
-		case instruction::byteswap_u32:
-			execute<instructions::byteswap_u32, &execute_byteswap_u32>(context);
-			break;
-		case instruction::byteswap_u64:
-			execute<instructions::byteswap_u64, &execute_byteswap_u64>(context);
-			break;
-		case instruction::clz_u8:
-			execute<instructions::clz_u8, &execute_clz_u8>(context);
-			break;
-		case instruction::clz_u16:
-			execute<instructions::clz_u16, &execute_clz_u16>(context);
-			break;
-		case instruction::clz_u32:
-			execute<instructions::clz_u32, &execute_clz_u32>(context);
-			break;
-		case instruction::clz_u64:
-			execute<instructions::clz_u64, &execute_clz_u64>(context);
-			break;
-		case instruction::ctz_u8:
-			execute<instructions::ctz_u8, &execute_ctz_u8>(context);
-			break;
-		case instruction::ctz_u16:
-			execute<instructions::ctz_u16, &execute_ctz_u16>(context);
-			break;
-		case instruction::ctz_u32:
-			execute<instructions::ctz_u32, &execute_ctz_u32>(context);
-			break;
-		case instruction::ctz_u64:
-			execute<instructions::ctz_u64, &execute_ctz_u64>(context);
-			break;
-		case instruction::fshl_u8:
-			execute<instructions::fshl_u8, &execute_fshl_u8>(context);
-			break;
-		case instruction::fshl_u16:
-			execute<instructions::fshl_u16, &execute_fshl_u16>(context);
-			break;
-		case instruction::fshl_u32:
-			execute<instructions::fshl_u32, &execute_fshl_u32>(context);
-			break;
-		case instruction::fshl_u64:
-			execute<instructions::fshl_u64, &execute_fshl_u64>(context);
-			break;
-		case instruction::fshr_u8:
-			execute<instructions::fshr_u8, &execute_fshr_u8>(context);
-			break;
-		case instruction::fshr_u16:
-			execute<instructions::fshr_u16, &execute_fshr_u16>(context);
-			break;
-		case instruction::fshr_u32:
-			execute<instructions::fshr_u32, &execute_fshr_u32>(context);
-			break;
-		case instruction::fshr_u64:
-			execute<instructions::fshr_u64, &execute_fshr_u64>(context);
-			break;
-		case instruction::const_gep:
-			execute<instructions::const_gep, &execute_const_gep>(context);
-			break;
-		case instruction::array_gep_i32:
-			execute<instructions::array_gep_i32, &execute_array_gep_i32>(context);
-			break;
-		case instruction::array_gep_i64:
-			execute<instructions::array_gep_i64, &execute_array_gep_i64>(context);
-			break;
-		case instruction::const_memcpy:
-			execute<instructions::const_memcpy, &execute_const_memcpy>(context);
-			break;
-		case instruction::const_memset_zero:
-			execute<instructions::const_memset_zero, &execute_const_memset_zero>(context);
-			break;
-		case instruction::function_call:
-			execute<instructions::function_call, &execute_function_call>(context);
-			break;
-		case instruction::malloc:
-			execute<instructions::malloc, &execute_malloc>(context);
-			break;
-		case instruction::free:
-			execute<instructions::free, &execute_free>(context);
-			break;
-		case instruction::jump:
-			execute<instructions::jump, &execute_jump>(context);
-			break;
-		case instruction::conditional_jump:
-			execute<instructions::conditional_jump, &execute_conditional_jump>(context);
-			break;
-		case instruction::switch_i1:
-			execute<instructions::switch_i1, &execute_switch_i1>(context);
-			break;
-		case instruction::switch_i8:
-			execute<instructions::switch_i8, &execute_switch_i8>(context);
-			break;
-		case instruction::switch_i16:
-			execute<instructions::switch_i16, &execute_switch_i16>(context);
-			break;
-		case instruction::switch_i32:
-			execute<instructions::switch_i32, &execute_switch_i32>(context);
-			break;
-		case instruction::switch_i64:
-			execute<instructions::switch_i64, &execute_switch_i64>(context);
-			break;
-		case instruction::ret:
-			execute<instructions::ret, &execute_ret>(context);
-			break;
-		case instruction::ret_void:
-			execute<instructions::ret_void, &execute_ret_void>(context);
-			break;
-		case instruction::unreachable:
-			execute<instructions::unreachable, &execute_unreachable>(context);
-			break;
-		case instruction::error:
-			execute<instructions::error, &execute_error>(context);
-			break;
-		case instruction::diagnostic_str:
-			execute<instructions::diagnostic_str, &execute_diagnostic_str>(context);
-			break;
-		case instruction::is_option_set:
-			execute<instructions::is_option_set, &execute_is_option_set>(context);
-			break;
-		case instruction::array_bounds_check_i32:
-			execute<instructions::array_bounds_check_i32, &execute_array_bounds_check_i32>(context);
-			break;
-		case instruction::array_bounds_check_u32:
-			execute<instructions::array_bounds_check_u32, &execute_array_bounds_check_u32>(context);
-			break;
-		case instruction::array_bounds_check_i64:
-			execute<instructions::array_bounds_check_i64, &execute_array_bounds_check_i64>(context);
-			break;
-		case instruction::array_bounds_check_u64:
-			execute<instructions::array_bounds_check_u64, &execute_array_bounds_check_u64>(context);
-			break;
-		case instruction::optional_get_value_check:
-			execute<instructions::optional_get_value_check, &execute_optional_get_value_check>(context);
-			break;
-		case instruction::str_construction_check:
-			execute<instructions::str_construction_check, &execute_str_construction_check>(context);
-			break;
-		case instruction::slice_construction_check:
-			execute<instructions::slice_construction_check, &execute_slice_construction_check>(context);
-			break;
-		default:
-			bz_unreachable;
+	static_assert(instruction::variant_count == 512);
+	case instruction::const_i1:
+		execute<instructions::const_i1, &execute_const_i1>(context);
+		break;
+	case instruction::const_i8:
+		execute<instructions::const_i8, &execute_const_i8>(context);
+		break;
+	case instruction::const_i16:
+		execute<instructions::const_i16, &execute_const_i16>(context);
+		break;
+	case instruction::const_i32:
+		execute<instructions::const_i32, &execute_const_i32>(context);
+		break;
+	case instruction::const_i64:
+		execute<instructions::const_i64, &execute_const_i64>(context);
+		break;
+	case instruction::const_u8:
+		execute<instructions::const_u8, &execute_const_u8>(context);
+		break;
+	case instruction::const_u16:
+		execute<instructions::const_u16, &execute_const_u16>(context);
+		break;
+	case instruction::const_u32:
+		execute<instructions::const_u32, &execute_const_u32>(context);
+		break;
+	case instruction::const_u64:
+		execute<instructions::const_u64, &execute_const_u64>(context);
+		break;
+	case instruction::const_f32:
+		execute<instructions::const_f32, &execute_const_f32>(context);
+		break;
+	case instruction::const_f64:
+		execute<instructions::const_f64, &execute_const_f64>(context);
+		break;
+	case instruction::const_ptr_null:
+		execute<instructions::const_ptr_null, &execute_const_ptr_null>(context);
+		break;
+	case instruction::get_function_arg:
+		execute<instructions::get_function_arg, &execute_get_function_arg>(context);
+		break;
+	case instruction::load_i1_be:
+		execute<instructions::load_i1_be, &execute_load_i1_be>(context);
+		break;
+	case instruction::load_i8_be:
+		execute<instructions::load_i8_be, &execute_load_i8_be>(context);
+		break;
+	case instruction::load_i16_be:
+		execute<instructions::load_i16_be, &execute_load_i16_be>(context);
+		break;
+	case instruction::load_i32_be:
+		execute<instructions::load_i32_be, &execute_load_i32_be>(context);
+		break;
+	case instruction::load_i64_be:
+		execute<instructions::load_i64_be, &execute_load_i64_be>(context);
+		break;
+	case instruction::load_f32_be:
+		execute<instructions::load_f32_be, &execute_load_f32_be>(context);
+		break;
+	case instruction::load_f64_be:
+		execute<instructions::load_f64_be, &execute_load_f64_be>(context);
+		break;
+	case instruction::load_ptr32_be:
+		execute<instructions::load_ptr32_be, &execute_load_ptr32_be>(context);
+		break;
+	case instruction::load_ptr64_be:
+		execute<instructions::load_ptr64_be, &execute_load_ptr64_be>(context);
+		break;
+	case instruction::load_i1_le:
+		execute<instructions::load_i1_le, &execute_load_i1_le>(context);
+		break;
+	case instruction::load_i8_le:
+		execute<instructions::load_i8_le, &execute_load_i8_le>(context);
+		break;
+	case instruction::load_i16_le:
+		execute<instructions::load_i16_le, &execute_load_i16_le>(context);
+		break;
+	case instruction::load_i32_le:
+		execute<instructions::load_i32_le, &execute_load_i32_le>(context);
+		break;
+	case instruction::load_i64_le:
+		execute<instructions::load_i64_le, &execute_load_i64_le>(context);
+		break;
+	case instruction::load_f32_le:
+		execute<instructions::load_f32_le, &execute_load_f32_le>(context);
+		break;
+	case instruction::load_f64_le:
+		execute<instructions::load_f64_le, &execute_load_f64_le>(context);
+		break;
+	case instruction::load_ptr32_le:
+		execute<instructions::load_ptr32_le, &execute_load_ptr32_le>(context);
+		break;
+	case instruction::load_ptr64_le:
+		execute<instructions::load_ptr64_le, &execute_load_ptr64_le>(context);
+		break;
+	case instruction::store_i1_be:
+		execute<instructions::store_i1_be, &execute_store_i1_be>(context);
+		break;
+	case instruction::store_i8_be:
+		execute<instructions::store_i8_be, &execute_store_i8_be>(context);
+		break;
+	case instruction::store_i16_be:
+		execute<instructions::store_i16_be, &execute_store_i16_be>(context);
+		break;
+	case instruction::store_i32_be:
+		execute<instructions::store_i32_be, &execute_store_i32_be>(context);
+		break;
+	case instruction::store_i64_be:
+		execute<instructions::store_i64_be, &execute_store_i64_be>(context);
+		break;
+	case instruction::store_f32_be:
+		execute<instructions::store_f32_be, &execute_store_f32_be>(context);
+		break;
+	case instruction::store_f64_be:
+		execute<instructions::store_f64_be, &execute_store_f64_be>(context);
+		break;
+	case instruction::store_ptr32_be:
+		execute<instructions::store_ptr32_be, &execute_store_ptr32_be>(context);
+		break;
+	case instruction::store_ptr64_be:
+		execute<instructions::store_ptr64_be, &execute_store_ptr64_be>(context);
+		break;
+	case instruction::store_i1_le:
+		execute<instructions::store_i1_le, &execute_store_i1_le>(context);
+		break;
+	case instruction::store_i8_le:
+		execute<instructions::store_i8_le, &execute_store_i8_le>(context);
+		break;
+	case instruction::store_i16_le:
+		execute<instructions::store_i16_le, &execute_store_i16_le>(context);
+		break;
+	case instruction::store_i32_le:
+		execute<instructions::store_i32_le, &execute_store_i32_le>(context);
+		break;
+	case instruction::store_i64_le:
+		execute<instructions::store_i64_le, &execute_store_i64_le>(context);
+		break;
+	case instruction::store_f32_le:
+		execute<instructions::store_f32_le, &execute_store_f32_le>(context);
+		break;
+	case instruction::store_f64_le:
+		execute<instructions::store_f64_le, &execute_store_f64_le>(context);
+		break;
+	case instruction::store_ptr32_le:
+		execute<instructions::store_ptr32_le, &execute_store_ptr32_le>(context);
+		break;
+	case instruction::store_ptr64_le:
+		execute<instructions::store_ptr64_le, &execute_store_ptr64_le>(context);
+		break;
+	case instruction::check_dereference:
+		execute<instructions::check_dereference, &execute_check_dereference>(context);
+		break;
+	case instruction::cast_zext_i1_to_i8:
+		execute<instructions::cast_zext_i1_to_i8, &execute_cast_zext_i1_to_i8>(context);
+		break;
+	case instruction::cast_zext_i1_to_i16:
+		execute<instructions::cast_zext_i1_to_i16, &execute_cast_zext_i1_to_i16>(context);
+		break;
+	case instruction::cast_zext_i1_to_i32:
+		execute<instructions::cast_zext_i1_to_i32, &execute_cast_zext_i1_to_i32>(context);
+		break;
+	case instruction::cast_zext_i1_to_i64:
+		execute<instructions::cast_zext_i1_to_i64, &execute_cast_zext_i1_to_i64>(context);
+		break;
+	case instruction::cast_zext_i8_to_i16:
+		execute<instructions::cast_zext_i8_to_i16, &execute_cast_zext_i8_to_i16>(context);
+		break;
+	case instruction::cast_zext_i8_to_i32:
+		execute<instructions::cast_zext_i8_to_i32, &execute_cast_zext_i8_to_i32>(context);
+		break;
+	case instruction::cast_zext_i8_to_i64:
+		execute<instructions::cast_zext_i8_to_i64, &execute_cast_zext_i8_to_i64>(context);
+		break;
+	case instruction::cast_zext_i16_to_i32:
+		execute<instructions::cast_zext_i16_to_i32, &execute_cast_zext_i16_to_i32>(context);
+		break;
+	case instruction::cast_zext_i16_to_i64:
+		execute<instructions::cast_zext_i16_to_i64, &execute_cast_zext_i16_to_i64>(context);
+		break;
+	case instruction::cast_zext_i32_to_i64:
+		execute<instructions::cast_zext_i32_to_i64, &execute_cast_zext_i32_to_i64>(context);
+		break;
+	case instruction::cast_sext_i8_to_i16:
+		execute<instructions::cast_sext_i8_to_i16, &execute_cast_sext_i8_to_i16>(context);
+		break;
+	case instruction::cast_sext_i8_to_i32:
+		execute<instructions::cast_sext_i8_to_i32, &execute_cast_sext_i8_to_i32>(context);
+		break;
+	case instruction::cast_sext_i8_to_i64:
+		execute<instructions::cast_sext_i8_to_i64, &execute_cast_sext_i8_to_i64>(context);
+		break;
+	case instruction::cast_sext_i16_to_i32:
+		execute<instructions::cast_sext_i16_to_i32, &execute_cast_sext_i16_to_i32>(context);
+		break;
+	case instruction::cast_sext_i16_to_i64:
+		execute<instructions::cast_sext_i16_to_i64, &execute_cast_sext_i16_to_i64>(context);
+		break;
+	case instruction::cast_sext_i32_to_i64:
+		execute<instructions::cast_sext_i32_to_i64, &execute_cast_sext_i32_to_i64>(context);
+		break;
+	case instruction::cast_trunc_i64_to_i8:
+		execute<instructions::cast_trunc_i64_to_i8, &execute_cast_trunc_i64_to_i8>(context);
+		break;
+	case instruction::cast_trunc_i64_to_i16:
+		execute<instructions::cast_trunc_i64_to_i16, &execute_cast_trunc_i64_to_i16>(context);
+		break;
+	case instruction::cast_trunc_i64_to_i32:
+		execute<instructions::cast_trunc_i64_to_i32, &execute_cast_trunc_i64_to_i32>(context);
+		break;
+	case instruction::cast_trunc_i32_to_i8:
+		execute<instructions::cast_trunc_i32_to_i8, &execute_cast_trunc_i32_to_i8>(context);
+		break;
+	case instruction::cast_trunc_i32_to_i16:
+		execute<instructions::cast_trunc_i32_to_i16, &execute_cast_trunc_i32_to_i16>(context);
+		break;
+	case instruction::cast_trunc_i16_to_i8:
+		execute<instructions::cast_trunc_i16_to_i8, &execute_cast_trunc_i16_to_i8>(context);
+		break;
+	case instruction::cast_f32_to_f64:
+		execute<instructions::cast_f32_to_f64, &execute_cast_f32_to_f64>(context);
+		break;
+	case instruction::cast_f64_to_f32:
+		execute<instructions::cast_f64_to_f32, &execute_cast_f64_to_f32>(context);
+		break;
+	case instruction::cast_f32_to_i8:
+		execute<instructions::cast_f32_to_i8, &execute_cast_f32_to_i8>(context);
+		break;
+	case instruction::cast_f32_to_i16:
+		execute<instructions::cast_f32_to_i16, &execute_cast_f32_to_i16>(context);
+		break;
+	case instruction::cast_f32_to_i32:
+		execute<instructions::cast_f32_to_i32, &execute_cast_f32_to_i32>(context);
+		break;
+	case instruction::cast_f32_to_i64:
+		execute<instructions::cast_f32_to_i64, &execute_cast_f32_to_i64>(context);
+		break;
+	case instruction::cast_f32_to_u8:
+		execute<instructions::cast_f32_to_u8, &execute_cast_f32_to_u8>(context);
+		break;
+	case instruction::cast_f32_to_u16:
+		execute<instructions::cast_f32_to_u16, &execute_cast_f32_to_u16>(context);
+		break;
+	case instruction::cast_f32_to_u32:
+		execute<instructions::cast_f32_to_u32, &execute_cast_f32_to_u32>(context);
+		break;
+	case instruction::cast_f32_to_u64:
+		execute<instructions::cast_f32_to_u64, &execute_cast_f32_to_u64>(context);
+		break;
+	case instruction::cast_f64_to_i8:
+		execute<instructions::cast_f64_to_i8, &execute_cast_f64_to_i8>(context);
+		break;
+	case instruction::cast_f64_to_i16:
+		execute<instructions::cast_f64_to_i16, &execute_cast_f64_to_i16>(context);
+		break;
+	case instruction::cast_f64_to_i32:
+		execute<instructions::cast_f64_to_i32, &execute_cast_f64_to_i32>(context);
+		break;
+	case instruction::cast_f64_to_i64:
+		execute<instructions::cast_f64_to_i64, &execute_cast_f64_to_i64>(context);
+		break;
+	case instruction::cast_f64_to_u8:
+		execute<instructions::cast_f64_to_u8, &execute_cast_f64_to_u8>(context);
+		break;
+	case instruction::cast_f64_to_u16:
+		execute<instructions::cast_f64_to_u16, &execute_cast_f64_to_u16>(context);
+		break;
+	case instruction::cast_f64_to_u32:
+		execute<instructions::cast_f64_to_u32, &execute_cast_f64_to_u32>(context);
+		break;
+	case instruction::cast_f64_to_u64:
+		execute<instructions::cast_f64_to_u64, &execute_cast_f64_to_u64>(context);
+		break;
+	case instruction::cast_i8_to_f32:
+		execute<instructions::cast_i8_to_f32, &execute_cast_i8_to_f32>(context);
+		break;
+	case instruction::cast_i16_to_f32:
+		execute<instructions::cast_i16_to_f32, &execute_cast_i16_to_f32>(context);
+		break;
+	case instruction::cast_i32_to_f32:
+		execute<instructions::cast_i32_to_f32, &execute_cast_i32_to_f32>(context);
+		break;
+	case instruction::cast_i64_to_f32:
+		execute<instructions::cast_i64_to_f32, &execute_cast_i64_to_f32>(context);
+		break;
+	case instruction::cast_u8_to_f32:
+		execute<instructions::cast_u8_to_f32, &execute_cast_u8_to_f32>(context);
+		break;
+	case instruction::cast_u16_to_f32:
+		execute<instructions::cast_u16_to_f32, &execute_cast_u16_to_f32>(context);
+		break;
+	case instruction::cast_u32_to_f32:
+		execute<instructions::cast_u32_to_f32, &execute_cast_u32_to_f32>(context);
+		break;
+	case instruction::cast_u64_to_f32:
+		execute<instructions::cast_u64_to_f32, &execute_cast_u64_to_f32>(context);
+		break;
+	case instruction::cast_i8_to_f64:
+		execute<instructions::cast_i8_to_f64, &execute_cast_i8_to_f64>(context);
+		break;
+	case instruction::cast_i16_to_f64:
+		execute<instructions::cast_i16_to_f64, &execute_cast_i16_to_f64>(context);
+		break;
+	case instruction::cast_i32_to_f64:
+		execute<instructions::cast_i32_to_f64, &execute_cast_i32_to_f64>(context);
+		break;
+	case instruction::cast_i64_to_f64:
+		execute<instructions::cast_i64_to_f64, &execute_cast_i64_to_f64>(context);
+		break;
+	case instruction::cast_u8_to_f64:
+		execute<instructions::cast_u8_to_f64, &execute_cast_u8_to_f64>(context);
+		break;
+	case instruction::cast_u16_to_f64:
+		execute<instructions::cast_u16_to_f64, &execute_cast_u16_to_f64>(context);
+		break;
+	case instruction::cast_u32_to_f64:
+		execute<instructions::cast_u32_to_f64, &execute_cast_u32_to_f64>(context);
+		break;
+	case instruction::cast_u64_to_f64:
+		execute<instructions::cast_u64_to_f64, &execute_cast_u64_to_f64>(context);
+		break;
+	case instruction::cmp_eq_i1:
+		execute<instructions::cmp_eq_i1, &execute_cmp_eq_i1>(context);
+		break;
+	case instruction::cmp_eq_i8:
+		execute<instructions::cmp_eq_i8, &execute_cmp_eq_i8>(context);
+		break;
+	case instruction::cmp_eq_i16:
+		execute<instructions::cmp_eq_i16, &execute_cmp_eq_i16>(context);
+		break;
+	case instruction::cmp_eq_i32:
+		execute<instructions::cmp_eq_i32, &execute_cmp_eq_i32>(context);
+		break;
+	case instruction::cmp_eq_i64:
+		execute<instructions::cmp_eq_i64, &execute_cmp_eq_i64>(context);
+		break;
+	case instruction::cmp_eq_f32:
+		execute<instructions::cmp_eq_f32, &execute_cmp_eq_f32>(context);
+		break;
+	case instruction::cmp_eq_f64:
+		execute<instructions::cmp_eq_f64, &execute_cmp_eq_f64>(context);
+		break;
+	case instruction::cmp_eq_f32_check:
+		execute<instructions::cmp_eq_f32_check, &execute_cmp_eq_f32_check>(context);
+		break;
+	case instruction::cmp_eq_f64_check:
+		execute<instructions::cmp_eq_f64_check, &execute_cmp_eq_f64_check>(context);
+		break;
+	case instruction::cmp_eq_ptr:
+		execute<instructions::cmp_eq_ptr, &execute_cmp_eq_ptr>(context);
+		break;
+	case instruction::cmp_neq_i1:
+		execute<instructions::cmp_neq_i1, &execute_cmp_neq_i1>(context);
+		break;
+	case instruction::cmp_neq_i8:
+		execute<instructions::cmp_neq_i8, &execute_cmp_neq_i8>(context);
+		break;
+	case instruction::cmp_neq_i16:
+		execute<instructions::cmp_neq_i16, &execute_cmp_neq_i16>(context);
+		break;
+	case instruction::cmp_neq_i32:
+		execute<instructions::cmp_neq_i32, &execute_cmp_neq_i32>(context);
+		break;
+	case instruction::cmp_neq_i64:
+		execute<instructions::cmp_neq_i64, &execute_cmp_neq_i64>(context);
+		break;
+	case instruction::cmp_neq_f32:
+		execute<instructions::cmp_neq_f32, &execute_cmp_neq_f32>(context);
+		break;
+	case instruction::cmp_neq_f64:
+		execute<instructions::cmp_neq_f64, &execute_cmp_neq_f64>(context);
+		break;
+	case instruction::cmp_neq_f32_check:
+		execute<instructions::cmp_neq_f32_check, &execute_cmp_neq_f32_check>(context);
+		break;
+	case instruction::cmp_neq_f64_check:
+		execute<instructions::cmp_neq_f64_check, &execute_cmp_neq_f64_check>(context);
+		break;
+	case instruction::cmp_neq_ptr:
+		execute<instructions::cmp_neq_ptr, &execute_cmp_neq_ptr>(context);
+		break;
+	case instruction::cmp_lt_i8:
+		execute<instructions::cmp_lt_i8, &execute_cmp_lt_i8>(context);
+		break;
+	case instruction::cmp_lt_i16:
+		execute<instructions::cmp_lt_i16, &execute_cmp_lt_i16>(context);
+		break;
+	case instruction::cmp_lt_i32:
+		execute<instructions::cmp_lt_i32, &execute_cmp_lt_i32>(context);
+		break;
+	case instruction::cmp_lt_i64:
+		execute<instructions::cmp_lt_i64, &execute_cmp_lt_i64>(context);
+		break;
+	case instruction::cmp_lt_u8:
+		execute<instructions::cmp_lt_u8, &execute_cmp_lt_u8>(context);
+		break;
+	case instruction::cmp_lt_u16:
+		execute<instructions::cmp_lt_u16, &execute_cmp_lt_u16>(context);
+		break;
+	case instruction::cmp_lt_u32:
+		execute<instructions::cmp_lt_u32, &execute_cmp_lt_u32>(context);
+		break;
+	case instruction::cmp_lt_u64:
+		execute<instructions::cmp_lt_u64, &execute_cmp_lt_u64>(context);
+		break;
+	case instruction::cmp_lt_f32:
+		execute<instructions::cmp_lt_f32, &execute_cmp_lt_f32>(context);
+		break;
+	case instruction::cmp_lt_f64:
+		execute<instructions::cmp_lt_f64, &execute_cmp_lt_f64>(context);
+		break;
+	case instruction::cmp_lt_f32_check:
+		execute<instructions::cmp_lt_f32_check, &execute_cmp_lt_f32_check>(context);
+		break;
+	case instruction::cmp_lt_f64_check:
+		execute<instructions::cmp_lt_f64_check, &execute_cmp_lt_f64_check>(context);
+		break;
+	case instruction::cmp_lt_ptr:
+		execute<instructions::cmp_lt_ptr, &execute_cmp_lt_ptr>(context);
+		break;
+	case instruction::cmp_gt_i8:
+		execute<instructions::cmp_gt_i8, &execute_cmp_gt_i8>(context);
+		break;
+	case instruction::cmp_gt_i16:
+		execute<instructions::cmp_gt_i16, &execute_cmp_gt_i16>(context);
+		break;
+	case instruction::cmp_gt_i32:
+		execute<instructions::cmp_gt_i32, &execute_cmp_gt_i32>(context);
+		break;
+	case instruction::cmp_gt_i64:
+		execute<instructions::cmp_gt_i64, &execute_cmp_gt_i64>(context);
+		break;
+	case instruction::cmp_gt_u8:
+		execute<instructions::cmp_gt_u8, &execute_cmp_gt_u8>(context);
+		break;
+	case instruction::cmp_gt_u16:
+		execute<instructions::cmp_gt_u16, &execute_cmp_gt_u16>(context);
+		break;
+	case instruction::cmp_gt_u32:
+		execute<instructions::cmp_gt_u32, &execute_cmp_gt_u32>(context);
+		break;
+	case instruction::cmp_gt_u64:
+		execute<instructions::cmp_gt_u64, &execute_cmp_gt_u64>(context);
+		break;
+	case instruction::cmp_gt_f32:
+		execute<instructions::cmp_gt_f32, &execute_cmp_gt_f32>(context);
+		break;
+	case instruction::cmp_gt_f64:
+		execute<instructions::cmp_gt_f64, &execute_cmp_gt_f64>(context);
+		break;
+	case instruction::cmp_gt_f32_check:
+		execute<instructions::cmp_gt_f32_check, &execute_cmp_gt_f32_check>(context);
+		break;
+	case instruction::cmp_gt_f64_check:
+		execute<instructions::cmp_gt_f64_check, &execute_cmp_gt_f64_check>(context);
+		break;
+	case instruction::cmp_gt_ptr:
+		execute<instructions::cmp_gt_ptr, &execute_cmp_gt_ptr>(context);
+		break;
+	case instruction::cmp_lte_i8:
+		execute<instructions::cmp_lte_i8, &execute_cmp_lte_i8>(context);
+		break;
+	case instruction::cmp_lte_i16:
+		execute<instructions::cmp_lte_i16, &execute_cmp_lte_i16>(context);
+		break;
+	case instruction::cmp_lte_i32:
+		execute<instructions::cmp_lte_i32, &execute_cmp_lte_i32>(context);
+		break;
+	case instruction::cmp_lte_i64:
+		execute<instructions::cmp_lte_i64, &execute_cmp_lte_i64>(context);
+		break;
+	case instruction::cmp_lte_u8:
+		execute<instructions::cmp_lte_u8, &execute_cmp_lte_u8>(context);
+		break;
+	case instruction::cmp_lte_u16:
+		execute<instructions::cmp_lte_u16, &execute_cmp_lte_u16>(context);
+		break;
+	case instruction::cmp_lte_u32:
+		execute<instructions::cmp_lte_u32, &execute_cmp_lte_u32>(context);
+		break;
+	case instruction::cmp_lte_u64:
+		execute<instructions::cmp_lte_u64, &execute_cmp_lte_u64>(context);
+		break;
+	case instruction::cmp_lte_f32:
+		execute<instructions::cmp_lte_f32, &execute_cmp_lte_f32>(context);
+		break;
+	case instruction::cmp_lte_f64:
+		execute<instructions::cmp_lte_f64, &execute_cmp_lte_f64>(context);
+		break;
+	case instruction::cmp_lte_f32_check:
+		execute<instructions::cmp_lte_f32_check, &execute_cmp_lte_f32_check>(context);
+		break;
+	case instruction::cmp_lte_f64_check:
+		execute<instructions::cmp_lte_f64_check, &execute_cmp_lte_f64_check>(context);
+		break;
+	case instruction::cmp_lte_ptr:
+		execute<instructions::cmp_lte_ptr, &execute_cmp_lte_ptr>(context);
+		break;
+	case instruction::cmp_gte_i8:
+		execute<instructions::cmp_gte_i8, &execute_cmp_gte_i8>(context);
+		break;
+	case instruction::cmp_gte_i16:
+		execute<instructions::cmp_gte_i16, &execute_cmp_gte_i16>(context);
+		break;
+	case instruction::cmp_gte_i32:
+		execute<instructions::cmp_gte_i32, &execute_cmp_gte_i32>(context);
+		break;
+	case instruction::cmp_gte_i64:
+		execute<instructions::cmp_gte_i64, &execute_cmp_gte_i64>(context);
+		break;
+	case instruction::cmp_gte_u8:
+		execute<instructions::cmp_gte_u8, &execute_cmp_gte_u8>(context);
+		break;
+	case instruction::cmp_gte_u16:
+		execute<instructions::cmp_gte_u16, &execute_cmp_gte_u16>(context);
+		break;
+	case instruction::cmp_gte_u32:
+		execute<instructions::cmp_gte_u32, &execute_cmp_gte_u32>(context);
+		break;
+	case instruction::cmp_gte_u64:
+		execute<instructions::cmp_gte_u64, &execute_cmp_gte_u64>(context);
+		break;
+	case instruction::cmp_gte_f32:
+		execute<instructions::cmp_gte_f32, &execute_cmp_gte_f32>(context);
+		break;
+	case instruction::cmp_gte_f64:
+		execute<instructions::cmp_gte_f64, &execute_cmp_gte_f64>(context);
+		break;
+	case instruction::cmp_gte_f32_check:
+		execute<instructions::cmp_gte_f32_check, &execute_cmp_gte_f32_check>(context);
+		break;
+	case instruction::cmp_gte_f64_check:
+		execute<instructions::cmp_gte_f64_check, &execute_cmp_gte_f64_check>(context);
+		break;
+	case instruction::cmp_gte_ptr:
+		execute<instructions::cmp_gte_ptr, &execute_cmp_gte_ptr>(context);
+		break;
+	case instruction::neg_i8:
+		execute<instructions::neg_i8, &execute_neg_i8>(context);
+		break;
+	case instruction::neg_i16:
+		execute<instructions::neg_i16, &execute_neg_i16>(context);
+		break;
+	case instruction::neg_i32:
+		execute<instructions::neg_i32, &execute_neg_i32>(context);
+		break;
+	case instruction::neg_i64:
+		execute<instructions::neg_i64, &execute_neg_i64>(context);
+		break;
+	case instruction::neg_f32:
+		execute<instructions::neg_f32, &execute_neg_f32>(context);
+		break;
+	case instruction::neg_f64:
+		execute<instructions::neg_f64, &execute_neg_f64>(context);
+		break;
+	case instruction::neg_i8_check:
+		execute<instructions::neg_i8_check, &execute_neg_i8_check>(context);
+		break;
+	case instruction::neg_i16_check:
+		execute<instructions::neg_i16_check, &execute_neg_i16_check>(context);
+		break;
+	case instruction::neg_i32_check:
+		execute<instructions::neg_i32_check, &execute_neg_i32_check>(context);
+		break;
+	case instruction::neg_i64_check:
+		execute<instructions::neg_i64_check, &execute_neg_i64_check>(context);
+		break;
+	case instruction::add_i8:
+		execute<instructions::add_i8, &execute_add_i8>(context);
+		break;
+	case instruction::add_i16:
+		execute<instructions::add_i16, &execute_add_i16>(context);
+		break;
+	case instruction::add_i32:
+		execute<instructions::add_i32, &execute_add_i32>(context);
+		break;
+	case instruction::add_i64:
+		execute<instructions::add_i64, &execute_add_i64>(context);
+		break;
+	case instruction::add_f32:
+		execute<instructions::add_f32, &execute_add_f32>(context);
+		break;
+	case instruction::add_f64:
+		execute<instructions::add_f64, &execute_add_f64>(context);
+		break;
+	case instruction::add_ptr_i32:
+		execute<instructions::add_ptr_i32, &execute_add_ptr_i32>(context);
+		break;
+	case instruction::add_ptr_u32:
+		execute<instructions::add_ptr_u32, &execute_add_ptr_u32>(context);
+		break;
+	case instruction::add_ptr_i64:
+		execute<instructions::add_ptr_i64, &execute_add_ptr_i64>(context);
+		break;
+	case instruction::add_ptr_u64:
+		execute<instructions::add_ptr_u64, &execute_add_ptr_u64>(context);
+		break;
+	case instruction::add_ptr_const_unchecked:
+		execute<instructions::add_ptr_const_unchecked, &execute_add_ptr_const_unchecked>(context);
+		break;
+	case instruction::add_i8_check:
+		execute<instructions::add_i8_check, &execute_add_i8_check>(context);
+		break;
+	case instruction::add_i16_check:
+		execute<instructions::add_i16_check, &execute_add_i16_check>(context);
+		break;
+	case instruction::add_i32_check:
+		execute<instructions::add_i32_check, &execute_add_i32_check>(context);
+		break;
+	case instruction::add_i64_check:
+		execute<instructions::add_i64_check, &execute_add_i64_check>(context);
+		break;
+	case instruction::add_u8_check:
+		execute<instructions::add_u8_check, &execute_add_u8_check>(context);
+		break;
+	case instruction::add_u16_check:
+		execute<instructions::add_u16_check, &execute_add_u16_check>(context);
+		break;
+	case instruction::add_u32_check:
+		execute<instructions::add_u32_check, &execute_add_u32_check>(context);
+		break;
+	case instruction::add_u64_check:
+		execute<instructions::add_u64_check, &execute_add_u64_check>(context);
+		break;
+	case instruction::add_f32_check:
+		execute<instructions::add_f32_check, &execute_add_f32_check>(context);
+		break;
+	case instruction::add_f64_check:
+		execute<instructions::add_f64_check, &execute_add_f64_check>(context);
+		break;
+	case instruction::sub_i8:
+		execute<instructions::sub_i8, &execute_sub_i8>(context);
+		break;
+	case instruction::sub_i16:
+		execute<instructions::sub_i16, &execute_sub_i16>(context);
+		break;
+	case instruction::sub_i32:
+		execute<instructions::sub_i32, &execute_sub_i32>(context);
+		break;
+	case instruction::sub_i64:
+		execute<instructions::sub_i64, &execute_sub_i64>(context);
+		break;
+	case instruction::sub_f32:
+		execute<instructions::sub_f32, &execute_sub_f32>(context);
+		break;
+	case instruction::sub_f64:
+		execute<instructions::sub_f64, &execute_sub_f64>(context);
+		break;
+	case instruction::sub_ptr_i32:
+		execute<instructions::sub_ptr_i32, &execute_sub_ptr_i32>(context);
+		break;
+	case instruction::sub_ptr_u32:
+		execute<instructions::sub_ptr_u32, &execute_sub_ptr_u32>(context);
+		break;
+	case instruction::sub_ptr_i64:
+		execute<instructions::sub_ptr_i64, &execute_sub_ptr_i64>(context);
+		break;
+	case instruction::sub_ptr_u64:
+		execute<instructions::sub_ptr_u64, &execute_sub_ptr_u64>(context);
+		break;
+	case instruction::sub_i8_check:
+		execute<instructions::sub_i8_check, &execute_sub_i8_check>(context);
+		break;
+	case instruction::sub_i16_check:
+		execute<instructions::sub_i16_check, &execute_sub_i16_check>(context);
+		break;
+	case instruction::sub_i32_check:
+		execute<instructions::sub_i32_check, &execute_sub_i32_check>(context);
+		break;
+	case instruction::sub_i64_check:
+		execute<instructions::sub_i64_check, &execute_sub_i64_check>(context);
+		break;
+	case instruction::sub_u8_check:
+		execute<instructions::sub_u8_check, &execute_sub_u8_check>(context);
+		break;
+	case instruction::sub_u16_check:
+		execute<instructions::sub_u16_check, &execute_sub_u16_check>(context);
+		break;
+	case instruction::sub_u32_check:
+		execute<instructions::sub_u32_check, &execute_sub_u32_check>(context);
+		break;
+	case instruction::sub_u64_check:
+		execute<instructions::sub_u64_check, &execute_sub_u64_check>(context);
+		break;
+	case instruction::sub_f32_check:
+		execute<instructions::sub_f32_check, &execute_sub_f32_check>(context);
+		break;
+	case instruction::sub_f64_check:
+		execute<instructions::sub_f64_check, &execute_sub_f64_check>(context);
+		break;
+	case instruction::ptr32_diff:
+		execute<instructions::ptr32_diff, &execute_ptr32_diff>(context);
+		break;
+	case instruction::ptr64_diff:
+		execute<instructions::ptr64_diff, &execute_ptr64_diff>(context);
+		break;
+	case instruction::ptr32_diff_unchecked:
+		execute<instructions::ptr32_diff_unchecked, &execute_ptr32_diff_unchecked>(context);
+		break;
+	case instruction::ptr64_diff_unchecked:
+		execute<instructions::ptr64_diff_unchecked, &execute_ptr64_diff_unchecked>(context);
+		break;
+	case instruction::mul_i8:
+		execute<instructions::mul_i8, &execute_mul_i8>(context);
+		break;
+	case instruction::mul_i16:
+		execute<instructions::mul_i16, &execute_mul_i16>(context);
+		break;
+	case instruction::mul_i32:
+		execute<instructions::mul_i32, &execute_mul_i32>(context);
+		break;
+	case instruction::mul_i64:
+		execute<instructions::mul_i64, &execute_mul_i64>(context);
+		break;
+	case instruction::mul_f32:
+		execute<instructions::mul_f32, &execute_mul_f32>(context);
+		break;
+	case instruction::mul_f64:
+		execute<instructions::mul_f64, &execute_mul_f64>(context);
+		break;
+	case instruction::mul_i8_check:
+		execute<instructions::mul_i8_check, &execute_mul_i8_check>(context);
+		break;
+	case instruction::mul_i16_check:
+		execute<instructions::mul_i16_check, &execute_mul_i16_check>(context);
+		break;
+	case instruction::mul_i32_check:
+		execute<instructions::mul_i32_check, &execute_mul_i32_check>(context);
+		break;
+	case instruction::mul_i64_check:
+		execute<instructions::mul_i64_check, &execute_mul_i64_check>(context);
+		break;
+	case instruction::mul_u8_check:
+		execute<instructions::mul_u8_check, &execute_mul_u8_check>(context);
+		break;
+	case instruction::mul_u16_check:
+		execute<instructions::mul_u16_check, &execute_mul_u16_check>(context);
+		break;
+	case instruction::mul_u32_check:
+		execute<instructions::mul_u32_check, &execute_mul_u32_check>(context);
+		break;
+	case instruction::mul_u64_check:
+		execute<instructions::mul_u64_check, &execute_mul_u64_check>(context);
+		break;
+	case instruction::mul_f32_check:
+		execute<instructions::mul_f32_check, &execute_mul_f32_check>(context);
+		break;
+	case instruction::mul_f64_check:
+		execute<instructions::mul_f64_check, &execute_mul_f64_check>(context);
+		break;
+	case instruction::div_i8:
+		execute<instructions::div_i8, &execute_div_i8>(context);
+		break;
+	case instruction::div_i16:
+		execute<instructions::div_i16, &execute_div_i16>(context);
+		break;
+	case instruction::div_i32:
+		execute<instructions::div_i32, &execute_div_i32>(context);
+		break;
+	case instruction::div_i64:
+		execute<instructions::div_i64, &execute_div_i64>(context);
+		break;
+	case instruction::div_u8:
+		execute<instructions::div_u8, &execute_div_u8>(context);
+		break;
+	case instruction::div_u16:
+		execute<instructions::div_u16, &execute_div_u16>(context);
+		break;
+	case instruction::div_u32:
+		execute<instructions::div_u32, &execute_div_u32>(context);
+		break;
+	case instruction::div_u64:
+		execute<instructions::div_u64, &execute_div_u64>(context);
+		break;
+	case instruction::div_f32:
+		execute<instructions::div_f32, &execute_div_f32>(context);
+		break;
+	case instruction::div_f64:
+		execute<instructions::div_f64, &execute_div_f64>(context);
+		break;
+	case instruction::div_i8_check:
+		execute<instructions::div_i8_check, &execute_div_i8_check>(context);
+		break;
+	case instruction::div_i16_check:
+		execute<instructions::div_i16_check, &execute_div_i16_check>(context);
+		break;
+	case instruction::div_i32_check:
+		execute<instructions::div_i32_check, &execute_div_i32_check>(context);
+		break;
+	case instruction::div_i64_check:
+		execute<instructions::div_i64_check, &execute_div_i64_check>(context);
+		break;
+	case instruction::div_f32_check:
+		execute<instructions::div_f32_check, &execute_div_f32_check>(context);
+		break;
+	case instruction::div_f64_check:
+		execute<instructions::div_f64_check, &execute_div_f64_check>(context);
+		break;
+	case instruction::rem_i8:
+		execute<instructions::rem_i8, &execute_rem_i8>(context);
+		break;
+	case instruction::rem_i16:
+		execute<instructions::rem_i16, &execute_rem_i16>(context);
+		break;
+	case instruction::rem_i32:
+		execute<instructions::rem_i32, &execute_rem_i32>(context);
+		break;
+	case instruction::rem_i64:
+		execute<instructions::rem_i64, &execute_rem_i64>(context);
+		break;
+	case instruction::rem_u8:
+		execute<instructions::rem_u8, &execute_rem_u8>(context);
+		break;
+	case instruction::rem_u16:
+		execute<instructions::rem_u16, &execute_rem_u16>(context);
+		break;
+	case instruction::rem_u32:
+		execute<instructions::rem_u32, &execute_rem_u32>(context);
+		break;
+	case instruction::rem_u64:
+		execute<instructions::rem_u64, &execute_rem_u64>(context);
+		break;
+	case instruction::not_i1:
+		execute<instructions::not_i1, &execute_not_i1>(context);
+		break;
+	case instruction::not_i8:
+		execute<instructions::not_i8, &execute_not_i8>(context);
+		break;
+	case instruction::not_i16:
+		execute<instructions::not_i16, &execute_not_i16>(context);
+		break;
+	case instruction::not_i32:
+		execute<instructions::not_i32, &execute_not_i32>(context);
+		break;
+	case instruction::not_i64:
+		execute<instructions::not_i64, &execute_not_i64>(context);
+		break;
+	case instruction::and_i1:
+		execute<instructions::and_i1, &execute_and_i1>(context);
+		break;
+	case instruction::and_i8:
+		execute<instructions::and_i8, &execute_and_i8>(context);
+		break;
+	case instruction::and_i16:
+		execute<instructions::and_i16, &execute_and_i16>(context);
+		break;
+	case instruction::and_i32:
+		execute<instructions::and_i32, &execute_and_i32>(context);
+		break;
+	case instruction::and_i64:
+		execute<instructions::and_i64, &execute_and_i64>(context);
+		break;
+	case instruction::xor_i1:
+		execute<instructions::xor_i1, &execute_xor_i1>(context);
+		break;
+	case instruction::xor_i8:
+		execute<instructions::xor_i8, &execute_xor_i8>(context);
+		break;
+	case instruction::xor_i16:
+		execute<instructions::xor_i16, &execute_xor_i16>(context);
+		break;
+	case instruction::xor_i32:
+		execute<instructions::xor_i32, &execute_xor_i32>(context);
+		break;
+	case instruction::xor_i64:
+		execute<instructions::xor_i64, &execute_xor_i64>(context);
+		break;
+	case instruction::or_i1:
+		execute<instructions::or_i1, &execute_or_i1>(context);
+		break;
+	case instruction::or_i8:
+		execute<instructions::or_i8, &execute_or_i8>(context);
+		break;
+	case instruction::or_i16:
+		execute<instructions::or_i16, &execute_or_i16>(context);
+		break;
+	case instruction::or_i32:
+		execute<instructions::or_i32, &execute_or_i32>(context);
+		break;
+	case instruction::or_i64:
+		execute<instructions::or_i64, &execute_or_i64>(context);
+		break;
+	case instruction::shl_i8_signed:
+		execute<instructions::shl_i8_signed, &execute_shl_i8_signed>(context);
+		break;
+	case instruction::shl_i16_signed:
+		execute<instructions::shl_i16_signed, &execute_shl_i16_signed>(context);
+		break;
+	case instruction::shl_i32_signed:
+		execute<instructions::shl_i32_signed, &execute_shl_i32_signed>(context);
+		break;
+	case instruction::shl_i64_signed:
+		execute<instructions::shl_i64_signed, &execute_shl_i64_signed>(context);
+		break;
+	case instruction::shl_i8_unsigned:
+		execute<instructions::shl_i8_unsigned, &execute_shl_i8_unsigned>(context);
+		break;
+	case instruction::shl_i16_unsigned:
+		execute<instructions::shl_i16_unsigned, &execute_shl_i16_unsigned>(context);
+		break;
+	case instruction::shl_i32_unsigned:
+		execute<instructions::shl_i32_unsigned, &execute_shl_i32_unsigned>(context);
+		break;
+	case instruction::shl_i64_unsigned:
+		execute<instructions::shl_i64_unsigned, &execute_shl_i64_unsigned>(context);
+		break;
+	case instruction::shr_i8_signed:
+		execute<instructions::shr_i8_signed, &execute_shr_i8_signed>(context);
+		break;
+	case instruction::shr_i16_signed:
+		execute<instructions::shr_i16_signed, &execute_shr_i16_signed>(context);
+		break;
+	case instruction::shr_i32_signed:
+		execute<instructions::shr_i32_signed, &execute_shr_i32_signed>(context);
+		break;
+	case instruction::shr_i64_signed:
+		execute<instructions::shr_i64_signed, &execute_shr_i64_signed>(context);
+		break;
+	case instruction::shr_i8_unsigned:
+		execute<instructions::shr_i8_unsigned, &execute_shr_i8_unsigned>(context);
+		break;
+	case instruction::shr_i16_unsigned:
+		execute<instructions::shr_i16_unsigned, &execute_shr_i16_unsigned>(context);
+		break;
+	case instruction::shr_i32_unsigned:
+		execute<instructions::shr_i32_unsigned, &execute_shr_i32_unsigned>(context);
+		break;
+	case instruction::shr_i64_unsigned:
+		execute<instructions::shr_i64_unsigned, &execute_shr_i64_unsigned>(context);
+		break;
+	case instruction::abs_i8:
+		execute<instructions::abs_i8, &execute_abs_i8>(context);
+		break;
+	case instruction::abs_i16:
+		execute<instructions::abs_i16, &execute_abs_i16>(context);
+		break;
+	case instruction::abs_i32:
+		execute<instructions::abs_i32, &execute_abs_i32>(context);
+		break;
+	case instruction::abs_i64:
+		execute<instructions::abs_i64, &execute_abs_i64>(context);
+		break;
+	case instruction::abs_f32:
+		execute<instructions::abs_f32, &execute_abs_f32>(context);
+		break;
+	case instruction::abs_f64:
+		execute<instructions::abs_f64, &execute_abs_f64>(context);
+		break;
+	case instruction::abs_i8_check:
+		execute<instructions::abs_i8_check, &execute_abs_i8_check>(context);
+		break;
+	case instruction::abs_i16_check:
+		execute<instructions::abs_i16_check, &execute_abs_i16_check>(context);
+		break;
+	case instruction::abs_i32_check:
+		execute<instructions::abs_i32_check, &execute_abs_i32_check>(context);
+		break;
+	case instruction::abs_i64_check:
+		execute<instructions::abs_i64_check, &execute_abs_i64_check>(context);
+		break;
+	case instruction::abs_f32_check:
+		execute<instructions::abs_f32_check, &execute_abs_f32_check>(context);
+		break;
+	case instruction::abs_f64_check:
+		execute<instructions::abs_f64_check, &execute_abs_f64_check>(context);
+		break;
+	case instruction::min_i8:
+		execute<instructions::min_i8, &execute_min_i8>(context);
+		break;
+	case instruction::min_i16:
+		execute<instructions::min_i16, &execute_min_i16>(context);
+		break;
+	case instruction::min_i32:
+		execute<instructions::min_i32, &execute_min_i32>(context);
+		break;
+	case instruction::min_i64:
+		execute<instructions::min_i64, &execute_min_i64>(context);
+		break;
+	case instruction::min_u8:
+		execute<instructions::min_u8, &execute_min_u8>(context);
+		break;
+	case instruction::min_u16:
+		execute<instructions::min_u16, &execute_min_u16>(context);
+		break;
+	case instruction::min_u32:
+		execute<instructions::min_u32, &execute_min_u32>(context);
+		break;
+	case instruction::min_u64:
+		execute<instructions::min_u64, &execute_min_u64>(context);
+		break;
+	case instruction::min_f32:
+		execute<instructions::min_f32, &execute_min_f32>(context);
+		break;
+	case instruction::min_f64:
+		execute<instructions::min_f64, &execute_min_f64>(context);
+		break;
+	case instruction::min_f32_check:
+		execute<instructions::min_f32_check, &execute_min_f32_check>(context);
+		break;
+	case instruction::min_f64_check:
+		execute<instructions::min_f64_check, &execute_min_f64_check>(context);
+		break;
+	case instruction::max_i8:
+		execute<instructions::max_i8, &execute_max_i8>(context);
+		break;
+	case instruction::max_i16:
+		execute<instructions::max_i16, &execute_max_i16>(context);
+		break;
+	case instruction::max_i32:
+		execute<instructions::max_i32, &execute_max_i32>(context);
+		break;
+	case instruction::max_i64:
+		execute<instructions::max_i64, &execute_max_i64>(context);
+		break;
+	case instruction::max_u8:
+		execute<instructions::max_u8, &execute_max_u8>(context);
+		break;
+	case instruction::max_u16:
+		execute<instructions::max_u16, &execute_max_u16>(context);
+		break;
+	case instruction::max_u32:
+		execute<instructions::max_u32, &execute_max_u32>(context);
+		break;
+	case instruction::max_u64:
+		execute<instructions::max_u64, &execute_max_u64>(context);
+		break;
+	case instruction::max_f32:
+		execute<instructions::max_f32, &execute_max_f32>(context);
+		break;
+	case instruction::max_f64:
+		execute<instructions::max_f64, &execute_max_f64>(context);
+		break;
+	case instruction::max_f32_check:
+		execute<instructions::max_f32_check, &execute_max_f32_check>(context);
+		break;
+	case instruction::max_f64_check:
+		execute<instructions::max_f64_check, &execute_max_f64_check>(context);
+		break;
+	case instruction::exp_f32:
+		execute<instructions::exp_f32, &execute_exp_f32>(context);
+		break;
+	case instruction::exp_f64:
+		execute<instructions::exp_f64, &execute_exp_f64>(context);
+		break;
+	case instruction::exp_f32_check:
+		execute<instructions::exp_f32_check, &execute_exp_f32_check>(context);
+		break;
+	case instruction::exp_f64_check:
+		execute<instructions::exp_f64_check, &execute_exp_f64_check>(context);
+		break;
+	case instruction::exp2_f32:
+		execute<instructions::exp2_f32, &execute_exp2_f32>(context);
+		break;
+	case instruction::exp2_f64:
+		execute<instructions::exp2_f64, &execute_exp2_f64>(context);
+		break;
+	case instruction::exp2_f32_check:
+		execute<instructions::exp2_f32_check, &execute_exp2_f32_check>(context);
+		break;
+	case instruction::exp2_f64_check:
+		execute<instructions::exp2_f64_check, &execute_exp2_f64_check>(context);
+		break;
+	case instruction::expm1_f32:
+		execute<instructions::expm1_f32, &execute_expm1_f32>(context);
+		break;
+	case instruction::expm1_f64:
+		execute<instructions::expm1_f64, &execute_expm1_f64>(context);
+		break;
+	case instruction::expm1_f32_check:
+		execute<instructions::expm1_f32_check, &execute_expm1_f32_check>(context);
+		break;
+	case instruction::expm1_f64_check:
+		execute<instructions::expm1_f64_check, &execute_expm1_f64_check>(context);
+		break;
+	case instruction::log_f32:
+		execute<instructions::log_f32, &execute_log_f32>(context);
+		break;
+	case instruction::log_f64:
+		execute<instructions::log_f64, &execute_log_f64>(context);
+		break;
+	case instruction::log_f32_check:
+		execute<instructions::log_f32_check, &execute_log_f32_check>(context);
+		break;
+	case instruction::log_f64_check:
+		execute<instructions::log_f64_check, &execute_log_f64_check>(context);
+		break;
+	case instruction::log10_f32:
+		execute<instructions::log10_f32, &execute_log10_f32>(context);
+		break;
+	case instruction::log10_f64:
+		execute<instructions::log10_f64, &execute_log10_f64>(context);
+		break;
+	case instruction::log10_f32_check:
+		execute<instructions::log10_f32_check, &execute_log10_f32_check>(context);
+		break;
+	case instruction::log10_f64_check:
+		execute<instructions::log10_f64_check, &execute_log10_f64_check>(context);
+		break;
+	case instruction::log2_f32:
+		execute<instructions::log2_f32, &execute_log2_f32>(context);
+		break;
+	case instruction::log2_f64:
+		execute<instructions::log2_f64, &execute_log2_f64>(context);
+		break;
+	case instruction::log2_f32_check:
+		execute<instructions::log2_f32_check, &execute_log2_f32_check>(context);
+		break;
+	case instruction::log2_f64_check:
+		execute<instructions::log2_f64_check, &execute_log2_f64_check>(context);
+		break;
+	case instruction::log1p_f32:
+		execute<instructions::log1p_f32, &execute_log1p_f32>(context);
+		break;
+	case instruction::log1p_f64:
+		execute<instructions::log1p_f64, &execute_log1p_f64>(context);
+		break;
+	case instruction::log1p_f32_check:
+		execute<instructions::log1p_f32_check, &execute_log1p_f32_check>(context);
+		break;
+	case instruction::log1p_f64_check:
+		execute<instructions::log1p_f64_check, &execute_log1p_f64_check>(context);
+		break;
+	case instruction::sqrt_f32:
+		execute<instructions::sqrt_f32, &execute_sqrt_f32>(context);
+		break;
+	case instruction::sqrt_f64:
+		execute<instructions::sqrt_f64, &execute_sqrt_f64>(context);
+		break;
+	case instruction::sqrt_f32_check:
+		execute<instructions::sqrt_f32_check, &execute_sqrt_f32_check>(context);
+		break;
+	case instruction::sqrt_f64_check:
+		execute<instructions::sqrt_f64_check, &execute_sqrt_f64_check>(context);
+		break;
+	case instruction::pow_f32:
+		execute<instructions::pow_f32, &execute_pow_f32>(context);
+		break;
+	case instruction::pow_f64:
+		execute<instructions::pow_f64, &execute_pow_f64>(context);
+		break;
+	case instruction::pow_f32_check:
+		execute<instructions::pow_f32_check, &execute_pow_f32_check>(context);
+		break;
+	case instruction::pow_f64_check:
+		execute<instructions::pow_f64_check, &execute_pow_f64_check>(context);
+		break;
+	case instruction::cbrt_f32:
+		execute<instructions::cbrt_f32, &execute_cbrt_f32>(context);
+		break;
+	case instruction::cbrt_f64:
+		execute<instructions::cbrt_f64, &execute_cbrt_f64>(context);
+		break;
+	case instruction::cbrt_f32_check:
+		execute<instructions::cbrt_f32_check, &execute_cbrt_f32_check>(context);
+		break;
+	case instruction::cbrt_f64_check:
+		execute<instructions::cbrt_f64_check, &execute_cbrt_f64_check>(context);
+		break;
+	case instruction::hypot_f32:
+		execute<instructions::hypot_f32, &execute_hypot_f32>(context);
+		break;
+	case instruction::hypot_f64:
+		execute<instructions::hypot_f64, &execute_hypot_f64>(context);
+		break;
+	case instruction::hypot_f32_check:
+		execute<instructions::hypot_f32_check, &execute_hypot_f32_check>(context);
+		break;
+	case instruction::hypot_f64_check:
+		execute<instructions::hypot_f64_check, &execute_hypot_f64_check>(context);
+		break;
+	case instruction::sin_f32:
+		execute<instructions::sin_f32, &execute_sin_f32>(context);
+		break;
+	case instruction::sin_f64:
+		execute<instructions::sin_f64, &execute_sin_f64>(context);
+		break;
+	case instruction::sin_f32_check:
+		execute<instructions::sin_f32_check, &execute_sin_f32_check>(context);
+		break;
+	case instruction::sin_f64_check:
+		execute<instructions::sin_f64_check, &execute_sin_f64_check>(context);
+		break;
+	case instruction::cos_f32:
+		execute<instructions::cos_f32, &execute_cos_f32>(context);
+		break;
+	case instruction::cos_f64:
+		execute<instructions::cos_f64, &execute_cos_f64>(context);
+		break;
+	case instruction::cos_f32_check:
+		execute<instructions::cos_f32_check, &execute_cos_f32_check>(context);
+		break;
+	case instruction::cos_f64_check:
+		execute<instructions::cos_f64_check, &execute_cos_f64_check>(context);
+		break;
+	case instruction::tan_f32:
+		execute<instructions::tan_f32, &execute_tan_f32>(context);
+		break;
+	case instruction::tan_f64:
+		execute<instructions::tan_f64, &execute_tan_f64>(context);
+		break;
+	case instruction::tan_f32_check:
+		execute<instructions::tan_f32_check, &execute_tan_f32_check>(context);
+		break;
+	case instruction::tan_f64_check:
+		execute<instructions::tan_f64_check, &execute_tan_f64_check>(context);
+		break;
+	case instruction::asin_f32:
+		execute<instructions::asin_f32, &execute_asin_f32>(context);
+		break;
+	case instruction::asin_f64:
+		execute<instructions::asin_f64, &execute_asin_f64>(context);
+		break;
+	case instruction::asin_f32_check:
+		execute<instructions::asin_f32_check, &execute_asin_f32_check>(context);
+		break;
+	case instruction::asin_f64_check:
+		execute<instructions::asin_f64_check, &execute_asin_f64_check>(context);
+		break;
+	case instruction::acos_f32:
+		execute<instructions::acos_f32, &execute_acos_f32>(context);
+		break;
+	case instruction::acos_f64:
+		execute<instructions::acos_f64, &execute_acos_f64>(context);
+		break;
+	case instruction::acos_f32_check:
+		execute<instructions::acos_f32_check, &execute_acos_f32_check>(context);
+		break;
+	case instruction::acos_f64_check:
+		execute<instructions::acos_f64_check, &execute_acos_f64_check>(context);
+		break;
+	case instruction::atan_f32:
+		execute<instructions::atan_f32, &execute_atan_f32>(context);
+		break;
+	case instruction::atan_f64:
+		execute<instructions::atan_f64, &execute_atan_f64>(context);
+		break;
+	case instruction::atan_f32_check:
+		execute<instructions::atan_f32_check, &execute_atan_f32_check>(context);
+		break;
+	case instruction::atan_f64_check:
+		execute<instructions::atan_f64_check, &execute_atan_f64_check>(context);
+		break;
+	case instruction::atan2_f32:
+		execute<instructions::atan2_f32, &execute_atan2_f32>(context);
+		break;
+	case instruction::atan2_f64:
+		execute<instructions::atan2_f64, &execute_atan2_f64>(context);
+		break;
+	case instruction::atan2_f32_check:
+		execute<instructions::atan2_f32_check, &execute_atan2_f32_check>(context);
+		break;
+	case instruction::atan2_f64_check:
+		execute<instructions::atan2_f64_check, &execute_atan2_f64_check>(context);
+		break;
+	case instruction::sinh_f32:
+		execute<instructions::sinh_f32, &execute_sinh_f32>(context);
+		break;
+	case instruction::sinh_f64:
+		execute<instructions::sinh_f64, &execute_sinh_f64>(context);
+		break;
+	case instruction::sinh_f32_check:
+		execute<instructions::sinh_f32_check, &execute_sinh_f32_check>(context);
+		break;
+	case instruction::sinh_f64_check:
+		execute<instructions::sinh_f64_check, &execute_sinh_f64_check>(context);
+		break;
+	case instruction::cosh_f32:
+		execute<instructions::cosh_f32, &execute_cosh_f32>(context);
+		break;
+	case instruction::cosh_f64:
+		execute<instructions::cosh_f64, &execute_cosh_f64>(context);
+		break;
+	case instruction::cosh_f32_check:
+		execute<instructions::cosh_f32_check, &execute_cosh_f32_check>(context);
+		break;
+	case instruction::cosh_f64_check:
+		execute<instructions::cosh_f64_check, &execute_cosh_f64_check>(context);
+		break;
+	case instruction::tanh_f32:
+		execute<instructions::tanh_f32, &execute_tanh_f32>(context);
+		break;
+	case instruction::tanh_f64:
+		execute<instructions::tanh_f64, &execute_tanh_f64>(context);
+		break;
+	case instruction::tanh_f32_check:
+		execute<instructions::tanh_f32_check, &execute_tanh_f32_check>(context);
+		break;
+	case instruction::tanh_f64_check:
+		execute<instructions::tanh_f64_check, &execute_tanh_f64_check>(context);
+		break;
+	case instruction::asinh_f32:
+		execute<instructions::asinh_f32, &execute_asinh_f32>(context);
+		break;
+	case instruction::asinh_f64:
+		execute<instructions::asinh_f64, &execute_asinh_f64>(context);
+		break;
+	case instruction::asinh_f32_check:
+		execute<instructions::asinh_f32_check, &execute_asinh_f32_check>(context);
+		break;
+	case instruction::asinh_f64_check:
+		execute<instructions::asinh_f64_check, &execute_asinh_f64_check>(context);
+		break;
+	case instruction::acosh_f32:
+		execute<instructions::acosh_f32, &execute_acosh_f32>(context);
+		break;
+	case instruction::acosh_f64:
+		execute<instructions::acosh_f64, &execute_acosh_f64>(context);
+		break;
+	case instruction::acosh_f32_check:
+		execute<instructions::acosh_f32_check, &execute_acosh_f32_check>(context);
+		break;
+	case instruction::acosh_f64_check:
+		execute<instructions::acosh_f64_check, &execute_acosh_f64_check>(context);
+		break;
+	case instruction::atanh_f32:
+		execute<instructions::atanh_f32, &execute_atanh_f32>(context);
+		break;
+	case instruction::atanh_f64:
+		execute<instructions::atanh_f64, &execute_atanh_f64>(context);
+		break;
+	case instruction::atanh_f32_check:
+		execute<instructions::atanh_f32_check, &execute_atanh_f32_check>(context);
+		break;
+	case instruction::atanh_f64_check:
+		execute<instructions::atanh_f64_check, &execute_atanh_f64_check>(context);
+		break;
+	case instruction::erf_f32:
+		execute<instructions::erf_f32, &execute_erf_f32>(context);
+		break;
+	case instruction::erf_f64:
+		execute<instructions::erf_f64, &execute_erf_f64>(context);
+		break;
+	case instruction::erf_f32_check:
+		execute<instructions::erf_f32_check, &execute_erf_f32_check>(context);
+		break;
+	case instruction::erf_f64_check:
+		execute<instructions::erf_f64_check, &execute_erf_f64_check>(context);
+		break;
+	case instruction::erfc_f32:
+		execute<instructions::erfc_f32, &execute_erfc_f32>(context);
+		break;
+	case instruction::erfc_f64:
+		execute<instructions::erfc_f64, &execute_erfc_f64>(context);
+		break;
+	case instruction::erfc_f32_check:
+		execute<instructions::erfc_f32_check, &execute_erfc_f32_check>(context);
+		break;
+	case instruction::erfc_f64_check:
+		execute<instructions::erfc_f64_check, &execute_erfc_f64_check>(context);
+		break;
+	case instruction::tgamma_f32:
+		execute<instructions::tgamma_f32, &execute_tgamma_f32>(context);
+		break;
+	case instruction::tgamma_f64:
+		execute<instructions::tgamma_f64, &execute_tgamma_f64>(context);
+		break;
+	case instruction::tgamma_f32_check:
+		execute<instructions::tgamma_f32_check, &execute_tgamma_f32_check>(context);
+		break;
+	case instruction::tgamma_f64_check:
+		execute<instructions::tgamma_f64_check, &execute_tgamma_f64_check>(context);
+		break;
+	case instruction::lgamma_f32:
+		execute<instructions::lgamma_f32, &execute_lgamma_f32>(context);
+		break;
+	case instruction::lgamma_f64:
+		execute<instructions::lgamma_f64, &execute_lgamma_f64>(context);
+		break;
+	case instruction::lgamma_f32_check:
+		execute<instructions::lgamma_f32_check, &execute_lgamma_f32_check>(context);
+		break;
+	case instruction::lgamma_f64_check:
+		execute<instructions::lgamma_f64_check, &execute_lgamma_f64_check>(context);
+		break;
+	case instruction::bitreverse_u8:
+		execute<instructions::bitreverse_u8, &execute_bitreverse_u8>(context);
+		break;
+	case instruction::bitreverse_u16:
+		execute<instructions::bitreverse_u16, &execute_bitreverse_u16>(context);
+		break;
+	case instruction::bitreverse_u32:
+		execute<instructions::bitreverse_u32, &execute_bitreverse_u32>(context);
+		break;
+	case instruction::bitreverse_u64:
+		execute<instructions::bitreverse_u64, &execute_bitreverse_u64>(context);
+		break;
+	case instruction::popcount_u8:
+		execute<instructions::popcount_u8, &execute_popcount_u8>(context);
+		break;
+	case instruction::popcount_u16:
+		execute<instructions::popcount_u16, &execute_popcount_u16>(context);
+		break;
+	case instruction::popcount_u32:
+		execute<instructions::popcount_u32, &execute_popcount_u32>(context);
+		break;
+	case instruction::popcount_u64:
+		execute<instructions::popcount_u64, &execute_popcount_u64>(context);
+		break;
+	case instruction::byteswap_u16:
+		execute<instructions::byteswap_u16, &execute_byteswap_u16>(context);
+		break;
+	case instruction::byteswap_u32:
+		execute<instructions::byteswap_u32, &execute_byteswap_u32>(context);
+		break;
+	case instruction::byteswap_u64:
+		execute<instructions::byteswap_u64, &execute_byteswap_u64>(context);
+		break;
+	case instruction::clz_u8:
+		execute<instructions::clz_u8, &execute_clz_u8>(context);
+		break;
+	case instruction::clz_u16:
+		execute<instructions::clz_u16, &execute_clz_u16>(context);
+		break;
+	case instruction::clz_u32:
+		execute<instructions::clz_u32, &execute_clz_u32>(context);
+		break;
+	case instruction::clz_u64:
+		execute<instructions::clz_u64, &execute_clz_u64>(context);
+		break;
+	case instruction::ctz_u8:
+		execute<instructions::ctz_u8, &execute_ctz_u8>(context);
+		break;
+	case instruction::ctz_u16:
+		execute<instructions::ctz_u16, &execute_ctz_u16>(context);
+		break;
+	case instruction::ctz_u32:
+		execute<instructions::ctz_u32, &execute_ctz_u32>(context);
+		break;
+	case instruction::ctz_u64:
+		execute<instructions::ctz_u64, &execute_ctz_u64>(context);
+		break;
+	case instruction::fshl_u8:
+		execute<instructions::fshl_u8, &execute_fshl_u8>(context);
+		break;
+	case instruction::fshl_u16:
+		execute<instructions::fshl_u16, &execute_fshl_u16>(context);
+		break;
+	case instruction::fshl_u32:
+		execute<instructions::fshl_u32, &execute_fshl_u32>(context);
+		break;
+	case instruction::fshl_u64:
+		execute<instructions::fshl_u64, &execute_fshl_u64>(context);
+		break;
+	case instruction::fshr_u8:
+		execute<instructions::fshr_u8, &execute_fshr_u8>(context);
+		break;
+	case instruction::fshr_u16:
+		execute<instructions::fshr_u16, &execute_fshr_u16>(context);
+		break;
+	case instruction::fshr_u32:
+		execute<instructions::fshr_u32, &execute_fshr_u32>(context);
+		break;
+	case instruction::fshr_u64:
+		execute<instructions::fshr_u64, &execute_fshr_u64>(context);
+		break;
+	case instruction::const_gep:
+		execute<instructions::const_gep, &execute_const_gep>(context);
+		break;
+	case instruction::array_gep_i32:
+		execute<instructions::array_gep_i32, &execute_array_gep_i32>(context);
+		break;
+	case instruction::array_gep_i64:
+		execute<instructions::array_gep_i64, &execute_array_gep_i64>(context);
+		break;
+	case instruction::const_memcpy:
+		execute<instructions::const_memcpy, &execute_const_memcpy>(context);
+		break;
+	case instruction::const_memset_zero:
+		execute<instructions::const_memset_zero, &execute_const_memset_zero>(context);
+		break;
+	case instruction::function_call:
+		execute<instructions::function_call, &execute_function_call>(context);
+		break;
+	case instruction::malloc:
+		execute<instructions::malloc, &execute_malloc>(context);
+		break;
+	case instruction::free:
+		execute<instructions::free, &execute_free>(context);
+		break;
+	case instruction::jump:
+		execute<instructions::jump, &execute_jump>(context);
+		break;
+	case instruction::conditional_jump:
+		execute<instructions::conditional_jump, &execute_conditional_jump>(context);
+		break;
+	case instruction::switch_i1:
+		execute<instructions::switch_i1, &execute_switch_i1>(context);
+		break;
+	case instruction::switch_i8:
+		execute<instructions::switch_i8, &execute_switch_i8>(context);
+		break;
+	case instruction::switch_i16:
+		execute<instructions::switch_i16, &execute_switch_i16>(context);
+		break;
+	case instruction::switch_i32:
+		execute<instructions::switch_i32, &execute_switch_i32>(context);
+		break;
+	case instruction::switch_i64:
+		execute<instructions::switch_i64, &execute_switch_i64>(context);
+		break;
+	case instruction::ret:
+		execute<instructions::ret, &execute_ret>(context);
+		break;
+	case instruction::ret_void:
+		execute<instructions::ret_void, &execute_ret_void>(context);
+		break;
+	case instruction::unreachable:
+		execute<instructions::unreachable, &execute_unreachable>(context);
+		break;
+	case instruction::error:
+		execute<instructions::error, &execute_error>(context);
+		break;
+	case instruction::diagnostic_str:
+		execute<instructions::diagnostic_str, &execute_diagnostic_str>(context);
+		break;
+	case instruction::is_option_set:
+		execute<instructions::is_option_set, &execute_is_option_set>(context);
+		break;
+	case instruction::array_bounds_check_i32:
+		execute<instructions::array_bounds_check_i32, &execute_array_bounds_check_i32>(context);
+		break;
+	case instruction::array_bounds_check_u32:
+		execute<instructions::array_bounds_check_u32, &execute_array_bounds_check_u32>(context);
+		break;
+	case instruction::array_bounds_check_i64:
+		execute<instructions::array_bounds_check_i64, &execute_array_bounds_check_i64>(context);
+		break;
+	case instruction::array_bounds_check_u64:
+		execute<instructions::array_bounds_check_u64, &execute_array_bounds_check_u64>(context);
+		break;
+	case instruction::optional_get_value_check:
+		execute<instructions::optional_get_value_check, &execute_optional_get_value_check>(context);
+		break;
+	case instruction::str_construction_check:
+		execute<instructions::str_construction_check, &execute_str_construction_check>(context);
+		break;
+	case instruction::slice_construction_check:
+		execute<instructions::slice_construction_check, &execute_slice_construction_check>(context);
+		break;
+	default:
+		bz_unreachable;
 	}
 }
 
