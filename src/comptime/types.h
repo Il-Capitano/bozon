@@ -127,6 +127,8 @@ struct type : type_base_t
 		return this->is_builtin() || this->is_pointer();
 	}
 
+	bz::u8string to_string(void) const;
+
 	friend bool operator == (type const &lhs, type const &rhs)
 	{
 		if (lhs.index() != rhs.index())

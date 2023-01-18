@@ -5652,6 +5652,18 @@ static_assert(std::is_trivially_copy_constructible_v<instruction>);
 static_assert(std::is_trivially_destructible_v<instruction>);
 
 
+bz::u8string to_string(instruction const &inst);
+bz::u8string to_string(function const &func);
+
 } // namespace comptime
+
+template<>
+struct bz::formatter<comptime::instruction_value_index>
+{
+	static bz::u8string format(comptime::instruction_value_index index, bz::u8string_view)
+	{
+		return bz::format("%{}", index.index);
+	}
+};
 
 #endif // COMPTIME_INSTRUCTIONS_H

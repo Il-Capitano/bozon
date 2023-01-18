@@ -30,6 +30,62 @@ bool is_floating_point_kind(builtin_type_kind kind)
 	}
 }
 
+bz::u8string type::to_string(void) const
+{
+	if (this->is_builtin())
+	{
+		switch (this->get_builtin_kind())
+		{
+		case builtin_type_kind::i1:
+			return "i1";
+		case builtin_type_kind::i8:
+			return "i8";
+		case builtin_type_kind::i16:
+			return "i16";
+		case builtin_type_kind::i32:
+			return "i32";
+		case builtin_type_kind::i64:
+			return "i64";
+		case builtin_type_kind::f32:
+			return "f32";
+		case builtin_type_kind::f64:
+			return "f64";
+		case builtin_type_kind::void_:
+			return "void";
+		}
+	}
+	else if (this->is_pointer())
+	{
+		return "ptr";
+	}
+	else if (this->is_aggregate())
+	{
+		auto const types = this->get_aggregate_types();
+		if (types.empty())
+		{
+			return "[]";
+		}
+
+		bz::u8string result = "[";
+		result += types[0]->to_string();
+		for (auto const type : types.slice(1))
+		{
+			result += ", ";
+			result += type->to_string();
+		}
+		result += "]";
+		return result;
+	}
+	else if (this->is_array())
+	{
+		return bz::format("[{}: {}]", this->get_array_size(), this->get_array_element_type());
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
 type_set_t::type_set_t(size_t pointer_size)
 	: aggregate_map(),
 	  array_map(),
