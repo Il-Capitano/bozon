@@ -5830,6 +5830,9 @@ void generate_code(function &func, codegen_context &context)
 
 	context.current_function_info.func = &func;
 
+	auto const entry_bb = context.add_basic_block();
+	context.set_current_basic_block(entry_bb);
+
 	if (body.state == ast::resolve_state::error)
 	{
 		context.create_error(body.src_tokens, bz::format("'{}' could not be resolved", body.get_signature()));
@@ -5943,6 +5946,9 @@ function generate_code_for_expression(ast::expression const &expr, codegen_conte
 
 	auto const expr_type = expr.get_expr_type();
 	bz_assert(!expr_type.is_empty());
+
+	auto const entry_bb = context.add_basic_block();
+	context.set_current_basic_block(entry_bb);
 
 	if (expr_type.is<ast::ts_void>() || expr_type.is_typename())
 	{
