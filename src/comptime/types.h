@@ -107,7 +107,7 @@ struct type : type_base_t
 
 	bool is_array(void) const
 	{
-		return this->is<aggregate_type>();
+		return this->is<array_type>();
 	}
 
 	type const *get_array_element_type(void) const
