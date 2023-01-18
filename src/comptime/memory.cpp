@@ -1052,6 +1052,11 @@ bool memory_manager::check_slice_construction(ptr_t begin, ptr_t end, type const
 	}
 }
 
+bz::u8string memory_manager::get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type)
+{
+	bz_unreachable;
+}
+
 bz::optional<int> memory_manager::compare_pointers(ptr_t lhs, ptr_t rhs)
 {
 	auto const lhs_segment = this->segment_info.get_segment(lhs);
