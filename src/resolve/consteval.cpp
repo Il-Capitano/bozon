@@ -6,14 +6,7 @@
 namespace resolve
 {
 
-struct flattened_array_info_t
-{
-	ast::typespec_view elem_type;
-	size_t size;
-	bool is_multi_dimensional;
-};
-
-static flattened_array_info_t get_flattened_array_type_and_size(ast::typespec_view type)
+flattened_array_info_t get_flattened_array_type_and_size(ast::typespec_view type)
 {
 	size_t size = type.get<ast::ts_array>().size;
 	bool is_multi_dimensional = false;
@@ -25,6 +18,44 @@ static flattened_array_info_t get_flattened_array_type_and_size(ast::typespec_vi
 		is_multi_dimensional = true;
 	}
 	return { type, size, is_multi_dimensional };
+}
+
+bool is_special_array_type(ast::typespec_view type)
+{
+	if (!type.is<ast::ts_array>())
+	{
+		return false;
+	}
+
+	auto elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
+	while (elem_type.is<ast::ts_array>())
+	{
+		elem_type = elem_type.get<ast::ts_array>().elem_type;
+	}
+
+	if (!elem_type.is<ast::ts_base_type>())
+	{
+		return false;
+	}
+
+	auto const type_kind = elem_type.get<ast::ts_base_type>().info->kind;
+
+	switch (type_kind)
+	{
+	case ast::type_info::int8_:
+	case ast::type_info::int16_:
+	case ast::type_info::int32_:
+	case ast::type_info::int64_:
+	case ast::type_info::uint8_:
+	case ast::type_info::uint16_:
+	case ast::type_info::uint32_:
+	case ast::type_info::uint64_:
+	case ast::type_info::float32_:
+	case ast::type_info::float64_:
+		return true;
+	default:
+		return false;
+	}
 }
 
 static ast::constant_value evaluate_binary_plus(
@@ -2378,44 +2409,6 @@ static ast::constant_value evaluate_cast(
 	return {};
 }
 
-static bool is_special_array_type(ast::typespec_view type)
-{
-	if (!type.is<ast::ts_array>())
-	{
-		return false;
-	}
-
-	auto elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
-	while (elem_type.is<ast::ts_array>())
-	{
-		elem_type = elem_type.get<ast::ts_array>().elem_type;
-	}
-
-	if (!elem_type.is<ast::ts_base_type>())
-	{
-		return false;
-	}
-
-	auto const type_kind = elem_type.get<ast::ts_base_type>().info->kind;
-
-	switch (type_kind)
-	{
-	case ast::type_info::int8_:
-	case ast::type_info::int16_:
-	case ast::type_info::int32_:
-	case ast::type_info::int64_:
-	case ast::type_info::uint8_:
-	case ast::type_info::uint16_:
-	case ast::type_info::uint32_:
-	case ast::type_info::uint64_:
-	case ast::type_info::float32_:
-	case ast::type_info::float64_:
-		return true;
-	default:
-		return false;
-	}
-}
-
 static ast::constant_value get_special_array_value(ast::typespec_view array_type, bz::array_view<ast::expression const> exprs)
 {
 	auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(array_type);
@@ -3247,6 +3240,8 @@ void consteval_guaranteed(ast::expression &expr, ctx::parse_context &context)
 
 void consteval_try(ast::expression &expr, ctx::parse_context &context)
 {
+	consteval_guaranteed(expr, context);
+
 	if (expr.is_constant())
 	{
 		expr.consteval_state = ast::expression::consteval_succeeded;
