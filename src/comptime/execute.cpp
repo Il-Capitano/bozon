@@ -4518,7 +4518,7 @@ static void execute(executor_context &context)
 	context.set_current_instruction_value(result);
 }
 
-void execute(executor_context &context)
+void execute_current_instruction(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{

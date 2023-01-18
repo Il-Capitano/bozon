@@ -7,7 +7,7 @@
 namespace comptime
 {
 
-void execute(executor_context &context);
+void execute_current_instruction(executor_context &context);
 
 } // namespace comptime
 
