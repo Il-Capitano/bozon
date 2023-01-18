@@ -75,7 +75,7 @@ struct function
 	bz::fixed_vector<switch_info_t> switch_infos;
 	bz::fixed_vector<error_info_t> errors;
 	bz::fixed_vector<lex::src_tokens> src_tokens;
-	bz::fixed_vector<bz::fixed_vector<instruction_index>> call_args;
+	bz::fixed_vector<bz::fixed_vector<instruction_value_index>> call_args;
 	bz::fixed_vector<slice_construction_check_info_t> slice_construction_check_infos;
 	bz::fixed_vector<pointer_arithmetic_check_info_t> pointer_arithmetic_check_infos;
 	bz::fixed_vector<memory_access_check_info_t> memory_access_check_infos;

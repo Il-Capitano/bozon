@@ -5555,13 +5555,13 @@ void current_function_info_t::finalize_function(void)
 
 	// finalize call_args
 	{
-		func.call_args = bz::fixed_vector<bz::fixed_vector<instruction_index>>(this->call_args.size());
+		func.call_args = bz::fixed_vector<bz::fixed_vector<instruction_value_index>>(this->call_args.size());
 		for (auto const i : bz::iota(0, func.call_args.size()))
 		{
-			func.call_args[i] = bz::fixed_vector<instruction_index>(this->call_args[i].size());
+			func.call_args[i] = bz::fixed_vector<instruction_value_index>(this->call_args[i].size());
 			for (auto const j : bz::iota(0, func.call_args[i].size()))
 			{
-				func.call_args[i][j] = get_instruction_index(this->call_args[i][j]);
+				func.call_args[i][j] = get_instruction_value_index(this->call_args[i][j]);
 			}
 		}
 	}

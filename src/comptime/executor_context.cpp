@@ -203,8 +203,8 @@ void executor_context::call_function(uint32_t call_src_tokens_index, function co
 	auto const &call_args = this->current_function->call_args[args_index];
 	this->current_function = func;
 	this->args = bz::fixed_vector<instruction_value>(
-		call_args.transform([&prev_instruction_values, offset = this->alloca_offset](auto const index) {
-			return prev_instruction_values[offset + index.index];
+		call_args.transform([&prev_instruction_values](auto const index) {
+			return prev_instruction_values[index.index];
 		})
 	);
 	this->instruction_values = bz::fixed_vector<instruction_value>(func->allocas.size() + func->instructions.size());
