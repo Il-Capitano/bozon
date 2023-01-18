@@ -1,5 +1,6 @@
 #include "executor_context.h"
 #include "execute.h"
+#include "codegen.h"
 #include "global_data.h"
 #include "ast/statement.h"
 #include "resolve/consteval.h"
@@ -164,8 +165,31 @@ void executor_context::do_ret_void(void)
 	this->returned = true;
 }
 
+static constexpr size_t max_call_depth = 1024;
+
 void executor_context::call_function(uint32_t call_src_tokens_index, function const *func, uint32_t args_index)
 {
+	if (this->memory.stack.stack_frames.size() >= max_call_depth)
+	{
+		this->report_error(call_src_tokens_index, bz::format("maximum call depth ({}) exceeded in compile time execution", max_call_depth));
+		return;
+	}
+
+	if (func->instructions.empty())
+	{
+		this->codegen_ctx->resolve_function(this->get_src_tokens(call_src_tokens_index), *func->func_body);
+		generate_code(*const_cast<function *>(func), *this->codegen_ctx);
+	}
+
+	auto const good = this->memory.push_stack_frame(func->allocas);
+	if (!good)
+	{
+		this->memory.pop_stack_frame();
+		this->report_error(call_src_tokens_index, "stack overflow in compile time execution");
+		return;
+	}
+
+	// bz::log("{}", to_string(*func));
 	this->call_stack.push_back({
 		.func = this->current_function,
 		.call_inst = this->current_instruction,
@@ -189,7 +213,6 @@ void executor_context::call_function(uint32_t call_src_tokens_index, function co
 	this->alloca_offset = static_cast<uint32_t>(func->allocas.size());
 	this->call_src_tokens_index = call_src_tokens_index;
 
-	this->memory.push_stack_frame(func->allocas);
 	auto const &alloca_objects = this->memory.stack.stack_frames.back().objects;
 	bz_assert(alloca_objects.size() == this->alloca_offset);
 	for (auto const i : bz::iota(0, this->alloca_offset))
