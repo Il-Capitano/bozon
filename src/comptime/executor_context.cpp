@@ -18,7 +18,7 @@ static ctx::source_highlight make_source_highlight(
 
 		.src_begin = src_tokens.begin->src_pos.begin,
 		.src_pivot = src_tokens.pivot->src_pos.begin,
-		.src_end = src_tokens.end->src_pos.end,
+		.src_end = (src_tokens.end - 1)->src_pos.end,
 
 		.first_suggestion = ctx::suggestion_range{},
 		.second_suggestion = ctx::suggestion_range{},
@@ -175,12 +175,15 @@ void executor_context::call_function(uint32_t call_src_tokens_index, function co
 
 	auto const &prev_instruction_values = this->call_stack.back().instruction_values;
 
-	this->current_function = func;
 	auto const &call_args = this->current_function->call_args[args_index];
+	this->current_function = func;
 	this->args = bz::fixed_vector<instruction_value>(
-		call_args.transform([&prev_instruction_values](auto const index) { return prev_instruction_values[index.index]; })
+		call_args.transform([&prev_instruction_values, offset = this->alloca_offset](auto const index) {
+			return prev_instruction_values[offset + index.index];
+		})
 	);
 	this->instruction_values = bz::fixed_vector<instruction_value>(func->allocas.size() + func->instructions.size());
+	bz_assert(func->instructions.not_empty());
 	this->instructions = func->instructions;
 	this->alloca_offset = static_cast<uint32_t>(func->allocas.size());
 	this->call_src_tokens_index = call_src_tokens_index;
@@ -889,7 +892,16 @@ ast::constant_value executor_context::execute_expression(ast::expression const &
 	this->execution_start_src_tokens = expr.src_tokens;
 
 	this->current_instruction = func.instructions.data();
-	this->current_instruction_value = this->instruction_values.data();
+	this->current_instruction_value = this->instruction_values.data() + this->alloca_offset;
+
+	[[maybe_unused]] auto const good = this->memory.push_stack_frame(func.allocas);
+	bz_assert(good);
+	auto const &alloca_objects = this->memory.stack.stack_frames.back().objects;
+	bz_assert(alloca_objects.size() == this->alloca_offset);
+	for (auto const i : bz::iota(0, this->alloca_offset))
+	{
+		this->instruction_values[i].ptr = alloca_objects[i].address;
+	}
 
 	while (!this->returned && !this->has_error)
 	{
