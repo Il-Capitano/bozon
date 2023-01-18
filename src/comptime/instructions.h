@@ -69,7 +69,7 @@ struct function
 {
 	bz::fixed_vector<instruction> instructions;
 	bz::fixed_vector<type const *> arg_types;
-	type const *return_type;
+	type const *return_type = nullptr;
 
 	bz::fixed_vector<type const *> allocas;
 	bz::fixed_vector<switch_info_t> switch_infos;
@@ -80,7 +80,7 @@ struct function
 	bz::fixed_vector<pointer_arithmetic_check_info_t> pointer_arithmetic_check_infos;
 	bz::fixed_vector<memory_access_check_info_t> memory_access_check_infos;
 
-	ast::function_body *func_body;
+	ast::function_body *func_body = nullptr;
 };
 
 namespace instructions
