@@ -7757,7 +7757,7 @@ ast::constant_value parse_context::execute_expression(ast::expression &expr)
 	auto const func = comptime::generate_code_for_expression(expr, codegen_context);
 
 	auto executor = comptime::executor_context(&codegen_context);
-	auto result = executor.execute_expression(func);
+	auto result = executor.execute_expression(expr, func);
 
 	for (auto &diagnostic : executor.diagnostics)
 	{
@@ -7773,7 +7773,7 @@ ast::constant_value parse_context::execute_expression_without_error(ast::express
 	auto const func = comptime::generate_code_for_expression(expr, codegen_context);
 
 	auto executor = comptime::executor_context(&codegen_context);
-	auto result = executor.execute_expression(func);
+	auto result = executor.execute_expression(expr, func);
 
 	return result;
 }

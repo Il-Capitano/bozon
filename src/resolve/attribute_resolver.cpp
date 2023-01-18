@@ -184,7 +184,7 @@ static bool apply_maybe_unused(
 }
 
 bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info> builtin_type_infos){
-	constexpr size_t N = 7;
+	constexpr size_t N = 4;
 	bz::vector<attribute_info_t> result;
 	result.reserve(N);
 
