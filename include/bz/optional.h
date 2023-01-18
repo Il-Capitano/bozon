@@ -164,10 +164,7 @@ public:
 		}
 		else
 		{
-			if (this->_has_value)
-			{
-				this->destruct();
-			}
+			this->clear();
 		}
 
 		return *this;
@@ -192,10 +189,7 @@ public:
 		}
 		else
 		{
-			if (this->_has_value)
-			{
-				this->destruct();
-			}
+			this->clear();
 		}
 
 		return *this;
