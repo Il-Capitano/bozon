@@ -139,7 +139,7 @@ struct executor_context
 
 	void advance(void);
 
-	ast::constant_value execute_expression(function const &func);
+	ast::constant_value execute_expression(ast::expression const &expr, function const &func);
 };
 
 } // namespace comptime
