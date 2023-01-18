@@ -5548,7 +5548,6 @@ void current_function_info_t::finalize_function(void)
 			func.errors[i] = std::move(this->errors[i]);
 		}
 	}
-	func.errors = bz::fixed_vector(this->errors.as_array_view());
 
 	// finalize src_tokens
 	func.src_tokens = bz::fixed_vector(this->src_tokens.as_array_view());
