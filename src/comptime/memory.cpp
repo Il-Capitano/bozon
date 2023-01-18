@@ -190,7 +190,7 @@ stack_object::stack_object(ptr_t _address, type const *_object_type)
 	: address(_address),
 	  object_type(_object_type),
 	  memory(),
-	  is_initialized(false)
+	  is_initialized(true)
 {
 	auto const size = this->object_type->size;
 	this->memory = bz::fixed_vector<uint8_t>(size, 0);
