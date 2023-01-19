@@ -5118,9 +5118,11 @@ static val_ptr emit_bitcode(
 		auto const member_val = moved_val.kind == val_ptr::reference
 			? val_ptr::get_reference(context.create_struct_gep(type, moved_val.val, i), type->getStructElementType(i))
 			: val_ptr::get_value(context.builder.CreateExtractValue(moved_val.get_value(context.builder), i));
+		auto const prev_info = context.push_expression_scope();
 		auto const prev_value = context.push_value_reference(member_val);
 		emit_bitcode<abi>(aggregate_move_construct.move_exprs[i], context, result_member_ptr);
 		context.pop_value_reference(prev_value);
+		context.pop_expression_scope(prev_info);
 	}
 	return val_ptr::get_reference(result_ptr, type);
 }
@@ -5155,9 +5157,11 @@ static val_ptr emit_bitcode(
 		{
 			auto const result_elem_ptr = context.create_struct_gep(type, result_ptr, i);
 			auto const elem_val = val_ptr::get_reference(context.create_struct_gep(type, moved_val.val, i), elem_type);
+			auto const prev_info = context.push_expression_scope();
 			auto const prev_value = context.push_value_reference(elem_val);
 			emit_bitcode<abi>(array_move_construct.move_expr, context, result_elem_ptr);
 			context.pop_value_reference(prev_value);
+			context.pop_expression_scope(prev_info);
 		}
 		return val_ptr::get_reference(result_ptr, type);
 	}
@@ -5446,11 +5450,13 @@ static val_ptr emit_bitcode(
 		auto const rhs_member_val = rhs.kind == val_ptr::reference
 			? val_ptr::get_reference(context.create_struct_gep(rhs_type, rhs.val, i), rhs_type->getStructElementType(i))
 			: val_ptr::get_value(context.builder.CreateExtractValue(rhs.get_value(context.builder), i));
+		auto const prev_info = context.push_expression_scope();
 		auto const lhs_prev_value = context.push_value_reference(val_ptr::get_reference(lhs_member_ptr, lhs_type->getStructElementType(i)));
 		auto const rhs_prev_value = context.push_value_reference(rhs_member_val);
 		emit_bitcode<abi>(aggregate_assign.assign_exprs[i], context, nullptr);
 		context.pop_value_reference(rhs_prev_value);
 		context.pop_value_reference(lhs_prev_value);
+		context.pop_expression_scope(prev_info);
 	}
 
 	bz_assert(result_address == nullptr);
@@ -5761,15 +5767,19 @@ static val_ptr emit_bitcode(
 	}
 
 	{
+		auto const prev_info = context.push_expression_scope();
 		auto const prev_value = context.push_value_reference(lhs);
 		emit_bitcode<abi>(base_type_assign.lhs_destruct_expr, context, nullptr);
 		context.pop_value_reference(prev_value);
+		context.pop_expression_scope(prev_info);
 	}
 
 	{
+		auto const prev_info = context.push_expression_scope();
 		auto const prev_value = context.push_value_reference(rhs);
 		emit_bitcode<abi>(base_type_assign.rhs_copy_expr, context, lhs.val);
 		context.pop_value_reference(prev_value);
+		context.pop_expression_scope(prev_info);
 	}
 
 	if (ptr_eq_bb != nullptr)
@@ -5838,11 +5848,13 @@ static val_ptr emit_bitcode(
 	{
 		auto const lhs_member_ptr = context.create_struct_gep(lhs_type, lhs.val, i);
 		auto const rhs_member_ptr = context.create_struct_gep(rhs_type, rhs.val, i);
+		auto const prev_info = context.push_expression_scope();
 		auto const lhs_prev_value = context.push_value_reference(val_ptr::get_reference(lhs_member_ptr, lhs_type->getStructElementType(i)));
 		auto const rhs_prev_value = context.push_value_reference(val_ptr::get_reference(rhs_member_ptr, rhs_type->getStructElementType(i)));
 		emit_bitcode<abi>(aggregate_swap.swap_exprs[i], context, nullptr);
 		context.pop_value_reference(rhs_prev_value);
 		context.pop_value_reference(lhs_prev_value);
+		context.pop_expression_scope(prev_info);
 	}
 
 	bz_assert(result_address == nullptr);
@@ -6197,9 +6209,11 @@ static val_ptr emit_bitcode(
 	}
 	else
 	{
+		auto const prev_info = context.push_expression_scope();
 		auto const prev_val = context.push_value_reference(optional_get_value_ptr(optional_val, context));
 		auto const result_val = emit_bitcode<abi>(optional_extract_value.value_move_expr, context, result_address);
 		context.pop_value_reference(prev_val);
+		context.pop_expression_scope(prev_info);
 
 		return result_val;
 	}
@@ -6220,6 +6234,7 @@ static val_ptr emit_bitcode(
 	auto const accessed_type = base_type.get<ast::ts_base_type>()
 		.info->member_variables[rvalue_member_access.index]->get_type().as_typespec_view();
 
+	auto const prev_info = context.push_expression_scope();
 	val_ptr result = val_ptr::get_none();
 	for (auto const i : bz::iota(0, rvalue_member_access.member_refs.size()))
 	{
@@ -6247,7 +6262,9 @@ static val_ptr emit_bitcode(
 		auto const prev_value = context.push_value_reference(member_val);
 		if (i == rvalue_member_access.index)
 		{
+			auto const prev_info = context.push_expression_scope();
 			result = emit_bitcode<abi>(rvalue_member_access.member_refs[i], context, result_address);
+			context.pop_expression_scope(prev_info);
 		}
 		else
 		{
@@ -6255,6 +6272,8 @@ static val_ptr emit_bitcode(
 		}
 		context.pop_value_reference(prev_value);
 	}
+	context.pop_expression_scope(prev_info);
+
 	return result;
 }
 
