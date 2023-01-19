@@ -83,6 +83,8 @@ struct executor_context
 	pointer_arithmetic_check_info_t const &get_pointer_arithmetic_info(uint32_t index) const;
 	memory_access_check_info_t const &get_memory_access_info(uint32_t index) const;
 
+	memory::call_stack_info_t get_call_stack_info(uint32_t src_tokens_index) const;
+
 	ptr_t malloc(uint32_t src_tokens_index, type const *type, uint64_t count);
 	void free(uint32_t src_tokens_index, ptr_t address);
 
@@ -139,6 +141,7 @@ struct executor_context
 
 	void advance(void);
 
+	bool check_memory_leaks(void);
 	ast::constant_value execute_expression(ast::expression const &expr, function const &func);
 };
 

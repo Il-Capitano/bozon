@@ -5,6 +5,7 @@
 #include "types.h"
 #include "values.h"
 #include "lex/token.h"
+#include "ast/statement_forward.h"
 
 namespace comptime::memory
 {
@@ -99,16 +100,28 @@ enum class free_result
 	address_inside_object,
 };
 
+struct call_stack_info_t
+{
+	struct src_tokens_function_pair_t
+	{
+		lex::src_tokens src_tokens;
+		ast::function_body const *body;
+	};
+
+	lex::src_tokens src_tokens;
+	bz::fixed_vector<src_tokens_function_pair_t> call_stack;
+};
+
 struct allocation
 {
 	heap_object object;
-	lex::src_tokens malloc_src_tokens;
-	lex::src_tokens free_src_tokens;
+	call_stack_info_t alloc_info;
+	call_stack_info_t free_info;
 	bool is_freed;
 
-	allocation(lex::src_tokens const &src_tokens, ptr_t address, type const *elem_type, uint64_t count);
+	allocation(call_stack_info_t alloc_info, ptr_t address, type const *elem_type, uint64_t count);
 
-	free_result free(lex::src_tokens const &free_src_tokens);
+	free_result free(call_stack_info_t free_info);
 };
 
 struct heap_manager
@@ -120,8 +133,8 @@ struct heap_manager
 
 	allocation *get_allocation(ptr_t address);
 
-	ptr_t allocate(lex::src_tokens const &src_tokens, type const *object_type, uint64_t count);
-	free_result free(lex::src_tokens const &src_tokens, ptr_t address);
+	ptr_t allocate(call_stack_info_t alloc_info, type const *object_type, uint64_t count);
+	free_result free(call_stack_info_t free_info, ptr_t address);
 
 	bool check_dereference(ptr_t address, type const *object_type);
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type);

@@ -258,9 +258,47 @@ memory_access_check_info_t const &executor_context::get_memory_access_info(uint3
 	return this->current_function->memory_access_check_infos[index];
 }
 
+memory::call_stack_info_t executor_context::get_call_stack_info(uint32_t src_tokens_index) const
+{
+	return {
+		.src_tokens = this->get_src_tokens(src_tokens_index),
+		.call_stack = bz::fixed_vector<memory::call_stack_info_t::src_tokens_function_pair_t>(
+			bz::iota(0, this->call_stack.size() + 1)
+				.transform([&](auto const i) -> memory::call_stack_info_t::src_tokens_function_pair_t {
+					if (i == 0)
+					{
+						return {
+							.src_tokens = this->execution_start_src_tokens,
+							.body = nullptr,
+						};
+					}
+					else if (i == this->call_stack.size())
+					{
+						auto const &info = this->call_stack[i - 1];
+						return {
+							.src_tokens = info.func->src_tokens[this->call_src_tokens_index],
+							.body = this->current_function->func_body,
+						};
+					}
+					else
+					{
+						auto const &info = this->call_stack[i - 1];
+						auto const &next_info = this->call_stack[i];
+						auto result = memory::call_stack_info_t::src_tokens_function_pair_t{
+							.src_tokens = info.func->src_tokens[next_info.call_src_tokens_index],
+							.body = next_info.func->func_body,
+						};
+						return result;
+					}
+				}
+			)
+		),
+	};
+}
+
 ptr_t executor_context::malloc(uint32_t src_tokens_index, type const *type, uint64_t count)
 {
-	auto const result = this->memory.heap.allocate(this->get_src_tokens(src_tokens_index), type, count);
+	auto const result = this->memory.heap.allocate(this->get_call_stack_info(src_tokens_index), type, count);
 	if (result == 0)
 	{
 		this->report_error(src_tokens_index, bz::format("unable to allocate a region of size {}", type->size * count));
@@ -270,7 +308,7 @@ ptr_t executor_context::malloc(uint32_t src_tokens_index, type const *type, uint
 
 void executor_context::free(uint32_t src_tokens_index, ptr_t address)
 {
-	auto const result = this->memory.heap.free(this->get_src_tokens(src_tokens_index), address);
+	auto const result = this->memory.heap.free(this->get_call_stack_info(src_tokens_index), address);
 	switch (result)
 	{
 	case memory::free_result::good:
@@ -519,6 +557,61 @@ void executor_context::advance(void)
 		this->current_instruction += 1;
 		this->current_instruction_value += 1;
 	}
+}
+
+bool executor_context::check_memory_leaks(void)
+{
+	bool result = false;
+	for (auto const &allocation : this->memory.heap.allocations)
+	{
+		if (!allocation.is_freed)
+		{
+			bz_assert(allocation.alloc_info.call_stack.not_empty());
+
+			auto notes = bz::vector<ctx::source_highlight>();
+			notes.reserve(allocation.alloc_info.call_stack.size());
+			if (allocation.alloc_info.call_stack.back().body != nullptr)
+			{
+				notes.push_back(make_source_highlight(
+					allocation.alloc_info.call_stack.back().src_tokens,
+					bz::format("allocation was made in call to '{}'", allocation.alloc_info.call_stack.back().body->get_signature())
+				));
+			}
+			else
+			{
+				notes.push_back(make_source_highlight(
+					allocation.alloc_info.call_stack.back().src_tokens,
+					"allocation was made while evaluating expression at compile time"
+				));
+			}
+			for (auto const &call : allocation.alloc_info.call_stack.slice(0, allocation.alloc_info.call_stack.size() - 1).reversed())
+			{
+				if (call.body != nullptr)
+				{
+					notes.push_back(make_source_highlight(
+						call.src_tokens,
+						bz::format("in call to '{}'", call.body->get_signature())
+					));
+				}
+				else
+				{
+					notes.push_back(make_source_highlight(
+						call.src_tokens,
+						"while evaluating expression at compile time"
+					));
+				}
+			}
+
+			result = true;
+			this->diagnostics.push_back(make_diagnostic(
+				ctx::warning_kind::_last,
+				allocation.alloc_info.src_tokens,
+				"allocation was never freed",
+				std::move(notes)
+			));
+		}
+	}
+	return result;
 }
 
 static bool is_native(endianness_kind endianness)
@@ -934,6 +1027,10 @@ ast::constant_value executor_context::execute_expression(ast::expression const &
 	}
 
 	if (this->has_error)
+	{
+		return ast::constant_value();
+	}
+	else if (this->check_memory_leaks())
 	{
 		return ast::constant_value();
 	}

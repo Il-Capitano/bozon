@@ -759,14 +759,14 @@ uint8_t *stack_manager::get_memory(ptr_t address)
 	return object->get_memory(address);
 }
 
-allocation::allocation(lex::src_tokens const &src_tokens, ptr_t address, type const *elem_type, uint64_t count)
+allocation::allocation(call_stack_info_t alloc_info, ptr_t address, type const *elem_type, uint64_t count)
 	: object(address, elem_type, count),
-	  malloc_src_tokens(src_tokens),
-	  free_src_tokens(),
+	  alloc_info(std::move(alloc_info)),
+	  free_info(),
 	  is_freed(false)
 {}
 
-free_result allocation::free(lex::src_tokens const &free_src_tokens)
+free_result allocation::free(call_stack_info_t free_info)
 {
 	if (this->is_freed)
 	{
@@ -775,7 +775,7 @@ free_result allocation::free(lex::src_tokens const &free_src_tokens)
 
 	this->object.memory.clear();
 	this->object.is_initialized.clear();
-	this->free_src_tokens = free_src_tokens;
+	this->free_info = std::move(free_info);
 	this->is_freed = true;
 	return free_result::good;
 }
@@ -808,7 +808,7 @@ allocation *heap_manager::get_allocation(ptr_t address)
 	return &*(it - 1);
 }
 
-ptr_t heap_manager::allocate(lex::src_tokens const &src_tokens, type const *object_type, uint64_t count)
+ptr_t heap_manager::allocate(call_stack_info_t alloc_info, type const *object_type, uint64_t count)
 {
 	auto const address = this->head;
 	auto const allocation_size = object_type->size * count;
@@ -816,11 +816,11 @@ ptr_t heap_manager::allocate(lex::src_tokens const &src_tokens, type const *obje
 	// if it's already at such a boundary, then we simply add 16 to add some padding
 	auto const rounded_allocation_size = allocation_size + (16 - allocation_size % 16);
 	this->head += rounded_allocation_size;
-	this->allocations.emplace_back(src_tokens, address, object_type, count);
+	this->allocations.emplace_back(std::move(alloc_info), address, object_type, count);
 	return address;
 }
 
-free_result heap_manager::free(lex::src_tokens const &src_tokens, ptr_t address)
+free_result heap_manager::free(call_stack_info_t free_info, ptr_t address)
 {
 	auto const allocation = this->get_allocation(address);
 	if (allocation == nullptr)
@@ -833,7 +833,7 @@ free_result heap_manager::free(lex::src_tokens const &src_tokens, ptr_t address)
 	}
 	else
 	{
-		return allocation->free(src_tokens);
+		return allocation->free(std::move(free_info));
 	}
 }
 
