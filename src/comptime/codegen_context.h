@@ -237,7 +237,10 @@ struct codegen_context
 	template<typename Inst>
 	instruction_ref add_instruction(Inst inst)
 	{
-		bz_assert(!this->has_terminator());
+		if (this->has_terminator())
+		{
+			this->set_current_basic_block(this->add_basic_block());
+		}
 		static_assert(instructions::arg_count<Inst> == 0);
 		instruction new_inst = instruction();
 		new_inst.emplace<Inst>(inst);
@@ -252,7 +255,10 @@ struct codegen_context
 	template<typename Inst>
 	instruction_ref add_instruction(Inst inst, instruction_ref arg)
 	{
-		bz_assert(!this->has_terminator());
+		if (this->has_terminator())
+		{
+			this->set_current_basic_block(this->add_basic_block());
+		}
 		static_assert(instructions::arg_count<Inst> == 1);
 		instruction new_inst = instruction();
 		new_inst.emplace<Inst>(inst);
@@ -271,7 +277,10 @@ struct codegen_context
 	template<typename Inst>
 	instruction_ref add_instruction(Inst inst, instruction_ref arg1, instruction_ref arg2)
 	{
-		bz_assert(!this->has_terminator());
+		if (this->has_terminator())
+		{
+			this->set_current_basic_block(this->add_basic_block());
+		}
 		static_assert(instructions::arg_count<Inst> == 2);
 		instruction new_inst = instruction();
 		new_inst.emplace<Inst>(inst);
@@ -290,7 +299,10 @@ struct codegen_context
 	template<typename Inst>
 	instruction_ref add_instruction(Inst inst, instruction_ref arg1, instruction_ref arg2, instruction_ref arg3)
 	{
-		bz_assert(!this->has_terminator());
+		if (this->has_terminator())
+		{
+			this->set_current_basic_block(this->add_basic_block());
+		}
 		static_assert(instructions::arg_count<Inst> == 3);
 		instruction new_inst = instruction();
 		new_inst.emplace<Inst>(inst);
