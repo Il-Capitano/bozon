@@ -1001,7 +1001,7 @@ bz::u8string to_string(instruction const &inst_)
 	case instruction::add_ptr_const_unchecked:
 	{
 		auto const &inst = inst_.get<instruction::add_ptr_const_unchecked>();
-		return bz::format("add ptr {} const {} {} ({})", inst.object_type->to_string(), inst.amount, inst.args[0]);
+		return bz::format("add ptr {} const {} {}", inst.object_type->to_string(), inst.amount, inst.args[0]);
 	}
 	case instruction::add_i8_check:
 	{
