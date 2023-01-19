@@ -4413,7 +4413,9 @@ static expr_value generate_expr_code(
 )
 {
 	auto const condition_prev_info = context.push_expression_scope();
-	auto const condition = generate_expr_code(if_expr.condition, context, {}).get_value(context);
+	auto const condition = if_expr.condition.is_error()
+		? context.get_dummy_value(context.get_builtin_type(builtin_type_kind::i1))
+		: generate_expr_code(if_expr.condition, context, {}).get_value(context);
 	context.pop_expression_scope(condition_prev_info);
 
 	auto const begin_bb = context.get_current_basic_block();
@@ -5417,7 +5419,7 @@ static expr_value get_constant_value_helper(
 		return result_value;
 	}
 	case ast::constant_value::function:
-		bz_unreachable;
+		bz_unreachable; // TODO
 	case ast::constant_value::aggregate:
 	{
 		auto const aggregate = value.get_aggregate();
@@ -5595,7 +5597,9 @@ static void generate_stmt_code(ast::stmt_while const &while_stmt, codegen_contex
 	context.create_jump(cond_check_bb);
 	context.set_current_basic_block(cond_check_bb);
 	auto const cond_prev_info = context.push_expression_scope();
-	auto const condition = generate_expr_code(while_stmt.condition, context, {}).get_value(context);
+	auto const condition = while_stmt.condition.is_error()
+		? context.get_dummy_value(context.get_builtin_type(builtin_type_kind::i1))
+		: generate_expr_code(while_stmt.condition, context, {}).get_value(context);
 	context.pop_expression_scope(cond_prev_info);
 
 	auto const while_bb = context.add_basic_block();
@@ -5643,7 +5647,7 @@ static void generate_stmt_code(ast::stmt_for const &for_stmt, codegen_context &c
 	context.set_current_basic_block(cond_check_bb);
 
 	auto condition = expr_value::get_none();
-	if (for_stmt.condition.not_null())
+	if (for_stmt.condition.not_null() && for_stmt.condition.not_error())
 	{
 		auto const prev_info = context.push_expression_scope();
 		condition = generate_expr_code(for_stmt.condition, context, {}).get_value(context);
@@ -5695,7 +5699,9 @@ static void generate_stmt_code(ast::stmt_foreach const &foreach_stmt, codegen_co
 	context.create_jump(condition_check_bb);
 
 	context.set_current_basic_block(condition_check_bb);
-	auto const condition = generate_expr_code(foreach_stmt.condition, context, {});
+	auto const condition = foreach_stmt.condition.is_error()
+		? context.get_dummy_value(context.get_builtin_type(builtin_type_kind::i1))
+		: generate_expr_code(foreach_stmt.condition, context, {});
 
 	auto const foreach_bb = context.add_basic_block();
 	context.create_conditional_jump(condition, foreach_bb, end_bb);
@@ -5876,7 +5882,12 @@ static void generate_stmt_code(ast::statement const &stmt, codegen_context &cont
 	case ast::statement::index<ast::decl_type_alias>:
 		break;
 	default:
-		bz_unreachable;
+		if (context.current_function_info.func->func_body != nullptr)
+		{
+			context.create_error(context.current_function_info.func->func_body->src_tokens, "failed to resolve a statement in the function");
+		}
+		context.create_unreachable();
+		break;
 	}
 }
 
