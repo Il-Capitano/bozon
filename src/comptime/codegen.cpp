@@ -4346,6 +4346,10 @@ static expr_value generate_expr_code(
 	auto const prev_info = context.push_expression_scope();
 	for (auto const &stmt : compound_expr.statements)
 	{
+		if (context.has_terminator())
+		{
+			break;
+		}
 		generate_stmt_code(stmt, context);
 	}
 
@@ -5902,6 +5906,10 @@ void generate_code(function &func, codegen_context &context)
 
 	for (auto const &stmt : body.get_statements())
 	{
+		if (context.has_terminator())
+		{
+			break;
+		}
 		generate_stmt_code(stmt, context);
 	}
 
