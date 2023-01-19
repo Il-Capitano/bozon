@@ -150,6 +150,7 @@ struct loop_info_t
 	expr_value index_alloca;
 	expr_value index;
 	expr_value condition;
+	codegen_context::expression_scope_info_t prev_scope_info;
 };
 
 static loop_info_t create_loop_start(size_t size, codegen_context &context)
@@ -172,11 +173,14 @@ static loop_info_t create_loop_start(size_t size, codegen_context &context)
 		.index_alloca = index_alloca,
 		.index = index,
 		.condition = condition,
+		.prev_scope_info = context.push_expression_scope(),
 	};
 }
 
 static void create_loop_end(loop_info_t loop_info, codegen_context &context)
 {
+	context.pop_expression_scope(loop_info.prev_scope_info);
+
 	auto const next_i = context.create_add(loop_info.index, context.create_const_u64(1));
 	context.create_store(next_i, loop_info.index_alloca);
 	context.create_jump(loop_info.condition_check_bb);
@@ -194,6 +198,7 @@ struct reversed_loop_info_t
 	expr_value index_alloca;
 	expr_value index;
 	expr_value condition;
+	codegen_context::expression_scope_info_t prev_scope_info;
 };
 
 static reversed_loop_info_t create_reversed_loop_start(size_t size, codegen_context &context)
@@ -216,11 +221,14 @@ static reversed_loop_info_t create_reversed_loop_start(size_t size, codegen_cont
 		.index_alloca = index_alloca,
 		.index = index,
 		.condition = condition,
+		.prev_scope_info = context.push_expression_scope(),
 	};
 }
 
 static void create_reversed_loop_end(reversed_loop_info_t loop_info, codegen_context &context)
 {
+	context.pop_expression_scope(loop_info.prev_scope_info);
+
 	context.create_store(loop_info.index, loop_info.index_alloca);
 	context.create_jump(loop_info.condition_check_bb);
 
