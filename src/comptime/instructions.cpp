@@ -2598,6 +2598,26 @@ bz::u8string to_string(function const &func)
 		++i;
 	}
 
+	result += "call_args:\n";
+	for (auto const i : bz::iota(0, func.call_args.size()))
+	{
+		result += bz::format("  {}: (", i);
+		auto const &args = func.call_args[i];
+		if (args.size() == 0)
+		{
+			result += ")\n";
+		}
+		else
+		{
+			result += bz::format("{}", args[0]);
+			for (auto const arg : args.slice(1))
+			{
+				result += bz::format(", {}", arg);
+			}
+			result += ")\n";
+		}
+	}
+
 	return result;
 }
 
