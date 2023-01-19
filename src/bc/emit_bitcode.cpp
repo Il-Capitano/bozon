@@ -541,14 +541,17 @@ static void emit_null_pointer_arithmetic_check(
 	}
 }
 
+template<typename ExprScopeInfoT>
 struct array_init_loop_info_t
 {
 	llvm::BasicBlock *condition_check_bb;
 	llvm::BasicBlock *end_bb;
 	llvm::PHINode *iter_val;
+	ExprScopeInfoT prev_info;
 };
 
-static array_init_loop_info_t create_loop_start(size_t size, auto &context)
+static auto create_loop_start(size_t size, auto &context)
+	-> array_init_loop_info_t<typename bz::meta::remove_cv_reference<decltype(context)>::expression_scope_info_t>
 {
 	// create a loop
 	auto const start_bb = context.builder.GetInsertBlock();
@@ -569,12 +572,16 @@ static array_init_loop_info_t create_loop_start(size_t size, auto &context)
 	return {
 		.condition_check_bb = condition_check_bb,
 		.end_bb = end_bb,
-		.iter_val = iter_val
+		.iter_val = iter_val,
+		.prev_info = context.push_expression_scope(),
 	};
 }
 
-static void create_loop_end(array_init_loop_info_t loop_info, auto &context)
+template<typename T>
+static void create_loop_end(array_init_loop_info_t<T> loop_info, auto &context)
 {
+	context.pop_expression_scope(loop_info.prev_info);
+
 	auto const one_value = llvm::ConstantInt::get(loop_info.iter_val->getType(), 1);
 	auto const next_iter_val = context.builder.CreateAdd(loop_info.iter_val, one_value);
 	context.builder.CreateBr(loop_info.condition_check_bb);
@@ -584,15 +591,18 @@ static void create_loop_end(array_init_loop_info_t loop_info, auto &context)
 	context.builder.SetInsertPoint(loop_info.end_bb);
 }
 
+template<typename ExprScopeInfoT>
 struct array_destruct_loop_info_t
 {
 	llvm::BasicBlock *condition_check_bb;
 	llvm::BasicBlock *end_bb;
 	llvm::PHINode *condition_check_iter_val;
 	llvm::Value *iter_val;
+	ExprScopeInfoT prev_info;
 };
 
-static array_destruct_loop_info_t create_reversed_loop_start(size_t size, auto &context)
+static auto create_reversed_loop_start(size_t size, auto &context)
+	-> array_destruct_loop_info_t<typename bz::meta::remove_cv_reference<decltype(context)>::expression_scope_info_t>
 {
 	// create a loop
 	auto const start_bb = context.builder.GetInsertBlock();
@@ -616,12 +626,16 @@ static array_destruct_loop_info_t create_reversed_loop_start(size_t size, auto &
 		.condition_check_bb = condition_check_bb,
 		.end_bb = end_bb,
 		.condition_check_iter_val = iter_val,
-		.iter_val = next_iter_val
+		.iter_val = next_iter_val,
+		.prev_info = context.push_expression_scope(),
 	};
 }
 
-static void create_reversed_loop_end(array_destruct_loop_info_t loop_info, auto &context)
+template<typename T>
+static void create_reversed_loop_end(array_destruct_loop_info_t<T> loop_info, auto &context)
 {
+	context.pop_expression_scope(loop_info.prev_info);
+
 	context.builder.CreateBr(loop_info.condition_check_bb);
 	auto const loop_end_bb = context.builder.GetInsertBlock();
 
