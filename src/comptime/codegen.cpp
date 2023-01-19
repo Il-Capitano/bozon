@@ -3456,9 +3456,11 @@ static expr_value generate_expr_code(
 	{
 		auto const result_member_value = context.create_struct_gep(result_value, i);
 		auto const member_value = context.create_struct_gep(moved_val, i);
+		auto const prev_info = context.push_expression_scope();
 		auto const prev_value = context.push_value_reference(member_value);
 		generate_expr_code(aggregate_move_construct.move_exprs[i], context, result_member_value);
 		context.pop_value_reference(prev_value);
+		context.pop_expression_scope(prev_info);
 	}
 	return result_value;
 }
@@ -3515,9 +3517,11 @@ static expr_value generate_expr_code(
 	context.set_current_basic_block(copy_bb);
 
 	auto const result_opt_value = get_optional_value(result_value, context);
+	auto const prev_info = context.push_expression_scope();
 	auto const prev_value = context.push_value_reference(get_optional_value(moved_val, context));
 	generate_expr_code(optional_move_construct.value_move_expr, context, result_opt_value);
 	context.pop_value_reference(prev_value);
+	context.pop_expression_scope(prev_info);
 
 	auto const end_bb = context.add_basic_block();
 	context.create_jump(end_bb);
@@ -3723,11 +3727,13 @@ static expr_value generate_expr_code(
 	{
 		auto const lhs_member = context.create_struct_gep(lhs, i);
 		auto const rhs_member = context.create_struct_gep(rhs, i);
+		auto const prev_info = context.push_expression_scope();
 		auto const lhs_prev_value = context.push_value_reference(lhs_member);
 		auto const rhs_prev_value = context.push_value_reference(rhs_member);
 		generate_expr_code(aggregate_swap.swap_exprs[i], context, {});
 		context.pop_value_reference(rhs_prev_value);
 		context.pop_value_reference(lhs_prev_value);
+		context.pop_expression_scope(prev_info);
 	}
 
 	create_pointer_compare_end(pointer_compare_info, context);
@@ -3837,14 +3843,17 @@ static expr_value generate_expr_code(
 	auto const both_have_value = context.create_and(lhs_has_value, rhs_has_value);
 
 	auto const both_have_value_bb = context.add_basic_block();
+	context.set_current_basic_block(both_have_value_bb);
 	auto const both_have_value_bb_end = generate_optional_swap_both(lhs, rhs, optional_swap.value_swap_expr, context);
 
 	auto const one_has_value_bb = context.add_basic_block();
 
 	auto const lhs_has_value_bb = context.add_basic_block();
+	context.set_current_basic_block(lhs_has_value_bb);
 	auto const lhs_has_value_bb_end = generate_optional_swap_lhs(lhs, rhs, optional_swap.lhs_move_expr, context);
 
 	auto const rhs_has_value_bb = context.add_basic_block();
+	context.set_current_basic_block(rhs_has_value_bb);
 	auto const rhs_has_value_bb_end = generate_optional_swap_rhs(lhs, rhs, optional_swap.rhs_move_expr, context);
 
 	auto const end_bb = context.add_basic_block();
@@ -3960,11 +3969,13 @@ static expr_value generate_expr_code(
 		auto const lhs_member = context.create_struct_gep(lhs, i);
 		auto const rhs_member = context.create_struct_gep(rhs, i);
 
+		auto const prev_info = context.push_expression_scope();
 		auto const lhs_prev_value = context.push_value_reference(lhs_member);
 		auto const rhs_prev_value = context.push_value_reference(rhs_member);
 		generate_expr_code(aggregate_assign.assign_exprs[i], context, {});
 		context.pop_value_reference(rhs_prev_value);
 		context.pop_value_reference(lhs_prev_value);
+		context.pop_expression_scope(prev_info);
 	}
 
 	create_pointer_compare_end(pointer_compare_info, context);
@@ -4068,14 +4079,17 @@ static expr_value generate_expr_code(
 	auto const both_have_value = context.create_and(lhs_has_value, rhs_has_value);
 
 	auto const both_have_value_bb = context.add_basic_block();
+	context.set_current_basic_block(both_have_value_bb);
 	auto const both_have_value_bb_end = generate_optional_assign_both(lhs, rhs, optional_assign.value_assign_expr, context);
 
 	auto const one_has_value_bb = context.add_basic_block();
 
 	auto const lhs_has_value_bb = context.add_basic_block();
+	context.set_current_basic_block(lhs_has_value_bb);
 	auto const lhs_has_value_bb_end = generate_optional_assign_lhs(lhs, optional_assign.value_destruct_expr, context);
 
 	auto const rhs_has_value_bb = context.add_basic_block();
+	context.set_current_basic_block(rhs_has_value_bb);
 	auto const rhs_has_value_bb_end = generate_optional_assign_rhs(lhs, rhs, optional_assign.value_construct_expr, context);
 
 	auto const end_bb = context.add_basic_block();
@@ -4220,15 +4234,19 @@ static expr_value generate_expr_code(
 	auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
 
 	{
+		auto const prev_info = context.push_expression_scope();
 		auto const prev_value = context.push_value_reference(lhs);
 		generate_expr_code(base_type_assign.lhs_destruct_expr, context, {});
 		context.pop_value_reference(prev_value);
+		context.pop_expression_scope(prev_info);
 	}
 
 	{
+		auto const prev_info = context.push_expression_scope();
 		auto const prev_value = context.push_value_reference(rhs);
 		generate_expr_code(base_type_assign.rhs_copy_expr, context, lhs);
 		context.pop_value_reference(prev_value);
+		context.pop_expression_scope(prev_info);
 	}
 
 	create_pointer_compare_end(pointer_compare_info, context);
@@ -4292,9 +4310,11 @@ static expr_value generate_expr_code(
 	}
 	else
 	{
+		auto const prev_info = context.push_expression_scope();
 		auto const prev_value = context.push_value_reference(get_optional_value(optional_value, context));
 		auto const result_value = generate_expr_code(optional_extract_value.value_move_expr, context, result_address);
 		context.pop_value_reference(prev_value);
+		context.pop_expression_scope(prev_info);
 
 		return result_value;
 	}
@@ -4308,6 +4328,7 @@ static expr_value generate_expr_code(
 {
 	auto const base = generate_expr_code(rvalue_member_access.base, context, {});
 
+	auto const prev_info = context.push_expression_scope();
 	expr_value result = expr_value::get_none();
 	for (auto const i : bz::iota(0, rvalue_member_access.member_refs.size()))
 	{
@@ -4321,7 +4342,9 @@ static expr_value generate_expr_code(
 		auto const prev_value = context.push_value_reference(member_value);
 		if (i == rvalue_member_access.index)
 		{
+			auto const prev_info = context.push_expression_scope();
 			result = generate_expr_code(rvalue_member_access.member_refs[i], context, result_address);
+			context.pop_expression_scope(prev_info);
 		}
 		else
 		{
@@ -4329,6 +4352,7 @@ static expr_value generate_expr_code(
 		}
 		context.pop_value_reference(prev_value);
 	}
+	context.pop_expression_scope(prev_info);
 
 	return result;
 }
@@ -4369,14 +4393,13 @@ static expr_value generate_expr_code(
 		generate_stmt_code(stmt, context);
 	}
 
-	if (compound_expr.final_expr.is_null() || compound_expr.final_expr.get_expr_type_and_kind().second == ast::expression_type_kind::none)
+	if (compound_expr.final_expr.is_null())
 	{
 		context.pop_expression_scope(prev_info);
 		return expr_value::get_none();
 	}
 	else
 	{
-		bz_assert(result_address.has_value());
 		auto const result = generate_expr_code(compound_expr.final_expr, context, result_address);
 		context.pop_expression_scope(prev_info);
 		return result;
@@ -6064,6 +6087,7 @@ static void generate_rvalue_array_destruct(
 	context.pop_value_reference(prev_value);
 
 	auto const loop_end_bb = context.add_basic_block();
+	context.create_jump(loop_end_bb);
 
 	context.set_current_basic_block(loop_begin_bb);
 	context.create_conditional_jump(skip_elem, loop_end_bb, destruct_bb);
