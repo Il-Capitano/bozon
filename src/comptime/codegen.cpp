@@ -867,7 +867,7 @@ static expr_value generate_builtin_unary_dereference(
 		: type.get<ast::ts_pointer>();
 	auto const object_type = get_type(object_typespec, context);
 	context.create_memory_access_check(original_expression.src_tokens, ptr_value, object_type, object_typespec);
-	return expr_value::get_value(ptr_value.get_value_as_instruction(context), object_type);
+	return expr_value::get_reference(ptr_value.get_value_as_instruction(context), object_type);
 }
 
 static expr_value generate_builtin_unary_bit_not(
@@ -3148,8 +3148,16 @@ static expr_value generate_expr_code(
 )
 {
 	auto const result = generate_expr_code(take_move_ref.expr, context, {});
-	bz_assert(result.is_reference());
-	return result;
+	if (result.is_reference())
+	{
+		return result;
+	}
+	else
+	{
+		auto const alloca = context.create_alloca(result.get_type());
+		context.create_store(result, alloca);
+		return alloca;
+	}
 }
 
 static expr_value generate_expr_code(
@@ -4353,7 +4361,7 @@ static expr_value generate_expr_code(
 		generate_stmt_code(stmt, context);
 	}
 
-	if (compound_expr.final_expr.is_null())
+	if (compound_expr.final_expr.is_null() || compound_expr.final_expr.get_expr_type_and_kind().second == ast::expression_type_kind::none)
 	{
 		context.pop_expression_scope(prev_info);
 		return expr_value::get_none();
@@ -4547,6 +4555,7 @@ static expr_value generate_expr_code(
 
 	context.set_current_basic_block(begin_bb);
 	context.create_switch(matched_value, std::move(cases), default_bb);
+	context.set_current_basic_block(end_bb);
 
 	if (result_address.has_value())
 	{
@@ -5508,6 +5517,13 @@ static expr_value generate_expr_code(
 		result_address = context.create_alloca(get_type(dyn_expr.type, context));
 	}
 
+	// noreturn expressions (e.g. 'unreachable') can match to any type, but cannot have a result,
+	// so we clear result_address in this case
+	if (dyn_expr.kind == ast::expression_type_kind::noreturn)
+	{
+		result_address.clear();
+	}
+
 	auto const result = generate_expr_code(original_expression, dyn_expr.expr, context, result_address);
 
 	if (dyn_expr.destruct_op.not_null() || dyn_expr.destruct_op.move_destructed_decl != nullptr)
@@ -5653,6 +5669,7 @@ static void generate_stmt_code(ast::stmt_foreach const &foreach_stmt, codegen_co
 	auto const foreach_bb = context.add_basic_block();
 	context.create_conditional_jump(condition, foreach_bb, end_bb);
 
+	context.set_current_basic_block(foreach_bb);
 	auto const iter_prev_info = context.push_expression_scope();
 	generate_stmt_code(foreach_stmt.iter_deref_var_decl, context);
 	generate_expr_code(foreach_stmt.for_block, context, {});
@@ -5862,6 +5879,8 @@ void generate_code(function &func, codegen_context &context)
 		context.current_function_info.return_address = context.create_get_function_return_address();
 	}
 
+	auto const prev_info = context.push_expression_scope();
+
 	size_t i = 0;
 	for (auto const &param : body.params)
 	{
@@ -5912,6 +5931,8 @@ void generate_code(function &func, codegen_context &context)
 		}
 		generate_stmt_code(stmt, context);
 	}
+
+	context.pop_expression_scope(prev_info);
 
 	if (!context.has_terminator())
 	{
