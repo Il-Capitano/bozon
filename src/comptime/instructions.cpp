@@ -8,7 +8,7 @@ bz::u8string to_string(instruction const &inst_)
 {
 	switch (inst_.index())
 	{
-	static_assert(instruction::variant_count == 512);
+	static_assert(instruction::variant_count == 513);
 	case instruction::const_i1:
 	{
 		auto const &inst = inst_.get<instruction::const_i1>();
@@ -67,6 +67,11 @@ bz::u8string to_string(instruction const &inst_)
 	case instruction::const_ptr_null:
 	{
 		return "const ptr null";
+	}
+	case instruction::get_global_address:
+	{
+		auto const &inst = inst_.get<instruction::get_global_address>();
+		return bz::format("get_global_address {}", inst.global_index);
 	}
 	case instruction::get_function_arg:
 	{

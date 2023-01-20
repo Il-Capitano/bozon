@@ -583,6 +583,15 @@ expr_value codegen_context::create_const_ptr_null(void)
 	return expr_value::get_value(inst_ref, this->get_pointer_type());
 }
 
+expr_value codegen_context::create_get_global_object(uint32_t global_index)
+{
+	bz_assert(global_index < this->global_memory.objects.size());
+	return expr_value::get_reference(
+		this->add_instruction(instructions::get_global_address{ .global_index = global_index }),
+		this->global_memory.objects[global_index].object_type
+	);
+}
+
 expr_value codegen_context::create_get_function_return_address(void)
 {
 	auto const return_type = this->current_function_info.func->return_type;

@@ -69,6 +69,7 @@ struct executor_context
 	ctx::source_highlight make_note(uint32_t src_tokens_index, bz::u8string message);
 	bool is_option_set(bz::u8string_view option);
 
+	ptr_t get_global(uint32_t index);
 	instruction_value get_arg(uint32_t index);
 	void do_jump(instruction_index dest);
 	void do_ret(instruction_value value);

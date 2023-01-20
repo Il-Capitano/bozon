@@ -143,6 +143,12 @@ bool executor_context::is_option_set(bz::u8string_view option)
 	return defines.contains(option);
 }
 
+ptr_t executor_context::get_global(uint32_t index)
+{
+	bz_assert(index < this->memory.global_memory->objects.size());
+	return this->memory.global_memory->objects[index].address;
+}
+
 instruction_value executor_context::get_arg(uint32_t index)
 {
 	return this->args[index];

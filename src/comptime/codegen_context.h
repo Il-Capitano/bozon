@@ -341,6 +341,7 @@ struct codegen_context
 	expr_value create_const_f64(float64_t value);
 	expr_value create_const_ptr_null(void);
 
+	expr_value create_get_global_object(uint32_t global_index);
 	expr_value create_get_function_return_address(void);
 	instruction_ref create_get_function_arg(uint32_t arg_index);
 
