@@ -583,6 +583,29 @@ expr_value codegen_context::create_const_ptr_null(void)
 	return expr_value::get_value(inst_ref, this->get_pointer_type());
 }
 
+void codegen_context::create_string(bz::u8string_view str, expr_value result_address)
+{
+	auto const global_object_type = this->get_array_type(this->get_builtin_type(builtin_type_kind::i8), str.size());
+	auto data = bz::fixed_vector(bz::array_view(str.data(), str.size()));
+	auto const index = this->global_memory.add_object(global_object_type, std::move(data));
+	auto const str_data = this->create_get_global_object(index);
+	auto const str_end = this->create_struct_gep(str_data, str.size());
+	auto const str_begin_ptr = expr_value::get_value(str_data.get_reference(), this->get_pointer_type());
+	auto const str_end_ptr = expr_value::get_value(str_end.get_reference(), this->get_pointer_type());
+
+	bz_assert(result_address.is_reference());
+	bz_assert(result_address.get_type() == this->get_str_t());
+	this->create_store(str_begin_ptr, this->create_struct_gep(result_address, 0));
+	this->create_store(str_end_ptr,   this->create_struct_gep(result_address, 1));
+}
+
+expr_value codegen_context::create_string(bz::u8string_view str)
+{
+	auto const result_address = this->create_alloca(this->get_str_t());
+	this->create_string(str, result_address);
+	return result_address;
+}
+
 expr_value codegen_context::create_get_global_object(uint32_t global_index)
 {
 	bz_assert(global_index < this->global_memory.objects.size());
