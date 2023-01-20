@@ -1332,7 +1332,7 @@ bz::u8string memory_manager::get_slice_construction_error_reason(ptr_t begin, pt
 bz::optional<int> memory_manager::compare_pointers(ptr_t lhs, ptr_t rhs)
 {
 	auto const lhs_segment = this->segment_info.get_segment(lhs);
-	auto const rhs_segment = this->segment_info.get_segment(lhs);
+	auto const rhs_segment = this->segment_info.get_segment(rhs);
 
 	if (lhs_segment == memory_segment::meta && rhs_segment == memory_segment::meta)
 	{
@@ -1484,7 +1484,7 @@ ptr_t memory_manager::do_gep(ptr_t address, type const *object_type, uint64_t in
 bz::optional<int64_t> memory_manager::do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type)
 {
 	auto const lhs_segment = this->segment_info.get_segment(lhs);
-	auto const rhs_segment = this->segment_info.get_segment(lhs);
+	auto const rhs_segment = this->segment_info.get_segment(rhs);
 
 	if (lhs_segment == memory_segment::meta && rhs_segment == memory_segment::meta)
 	{
@@ -1548,7 +1548,7 @@ bz::optional<int64_t> memory_manager::do_pointer_difference(ptr_t lhs, ptr_t rhs
 int64_t memory_manager::do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride)
 {
 	auto const lhs_segment = this->segment_info.get_segment(lhs);
-	auto const rhs_segment = this->segment_info.get_segment(lhs);
+	auto const rhs_segment = this->segment_info.get_segment(rhs);
 
 	if (lhs_segment == memory_segment::meta && rhs_segment == memory_segment::meta)
 	{
