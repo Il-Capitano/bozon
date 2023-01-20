@@ -5225,12 +5225,10 @@ static expr_value get_constant_value_helper(
 		if (str == "")
 		{
 			context.create_const_memset_zero(result_value, result_value.get_type()->size);
-			return result_value;
 		}
 		else
 		{
-			// TODO
-			bz_unreachable;
+			context.create_string(str, result_value);
 		}
 		return result_value;
 	}
