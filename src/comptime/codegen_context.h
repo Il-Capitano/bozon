@@ -130,6 +130,7 @@ struct codegen_context
 	current_function_info_t current_function_info{};
 
 	machine_parameters_t machine_parameters;
+	memory::global_memory_manager global_memory;
 	type_set_t type_set;
 	type const *pointer_pair_t = nullptr;
 	type const *null_t = nullptr;

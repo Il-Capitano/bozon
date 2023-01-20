@@ -7,6 +7,22 @@
 namespace comptime
 {
 
+static_assert(sizeof (memory::memory_segment_info_t) == 32);
+
+static constexpr memory::memory_segment_info_t segment_info_64_bit = {
+	.global_begin = 0x0000'0000'0001'0000,
+	.stack_begin  = 0x4000'0000'0000'0000,
+	.heap_begin   = 0x8000'0000'0000'0000,
+	.meta_begin   = 0xff00'0000'0000'0000,
+};
+
+static constexpr memory::memory_segment_info_t segment_info_32_bit = {
+	.global_begin = 0x0001'0000,
+	.stack_begin  = 0x4000'0000,
+	.heap_begin   = 0x8000'0000,
+	.meta_begin   = 0xff00'0000,
+};
+
 bool expr_value::is_value(void) const
 {
 	return this->kind == expr_value_kind::value;
@@ -60,6 +76,7 @@ type const *expr_value::get_type(void) const
 
 codegen_context::codegen_context(machine_parameters_t _machine_parameters)
 	: machine_parameters(_machine_parameters),
+	  global_memory(_machine_parameters.pointer_size == 8 ? segment_info_64_bit.global_begin : segment_info_32_bit.global_begin),
 	  type_set(_machine_parameters.pointer_size)
 {
 	auto const pointer_type = this->get_pointer_type();
@@ -118,19 +135,11 @@ memory::memory_segment_info_t codegen_context::get_memory_segment_info(void) con
 {
 	if (this->is_64_bit())
 	{
-		return {
-			.stack_begin = 0x4000'0000'0000'0000,
-			.heap_begin  = 0x8000'0000'0000'0000,
-			.meta_begin  = 0xff00'0000'0000'0000,
-		};
+		return segment_info_64_bit;
 	}
 	else
 	{
-		return {
-			.stack_begin = 0x4000'0000,
-			.heap_begin  = 0x8000'0000,
-			.meta_begin  = 0xff00'0000,
-		};
+		return segment_info_32_bit;
 	}
 }
 
@@ -5573,6 +5582,8 @@ void current_function_info_t::finalize_function(void)
 
 	// finalize memory_access_check_infos
 	func.memory_access_check_infos = bz::fixed_vector(this->memory_access_check_infos.as_array_view());
+
+	// bz::log("{}", to_string(func));
 
 	*this = current_function_info_t();
 }

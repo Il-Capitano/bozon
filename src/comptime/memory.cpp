@@ -4,6 +4,7 @@ namespace comptime::memory
 {
 
 static constexpr uint8_t max_object_align = 8;
+static constexpr uint8_t heap_object_align = 16;
 
 static bool contained_in_object(type const *object_type, size_t offset, type const *subobject_type)
 {
@@ -186,6 +187,130 @@ static pointer_arithmetic_check_result check_pointer_arithmetic(
 	}
 }
 
+global_object::global_object(ptr_t _address, type const *_object_type, bz::fixed_vector<uint8_t> data)
+	: address(_address),
+	  object_type(_object_type),
+	  memory(std::move(data))
+{}
+
+size_t global_object::object_size(void) const
+{
+	return this->memory.size();
+}
+
+uint8_t *global_object::get_memory(ptr_t address)
+{
+	bz_assert(address >= this->address && address < this->address + this->object_size());
+	bz_assert(this->memory.not_empty());
+	return this->memory.data() + (address - this->address);
+}
+
+bool global_object::check_dereference(ptr_t address, type const *subobject_type) const
+{
+	if (address < this->address || address >= this->address + this->object_size() || this->memory.empty())
+	{
+		return false;
+	}
+
+	auto const offset = address - this->address;
+	return contained_in_object(this->object_type, offset, subobject_type);
+}
+
+bool global_object::check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const
+{
+	if (begin == end)
+	{
+		return true;
+	}
+
+	if (
+		this->memory.empty()
+		|| begin < this->address || begin >= this->address + this->object_size()
+		|| end <= this->address || end > this->address + this->object_size()
+	)
+	{
+		return false;
+	}
+
+	auto const total_size = end - begin;
+	bz_assert(total_size % elem_type->size == 0);
+	auto const offset = begin - this->address;
+
+	if (total_size == elem_type->size) // slice of size 1
+	{
+		return contained_in_object(this->object_type, offset, elem_type);
+	}
+	else
+	{
+		return slice_contained_in_object(this->object_type, offset, elem_type, total_size);
+	}
+}
+
+pointer_arithmetic_result_t global_object::do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const
+{
+	auto const result_address = address + static_cast<uint64_t>(amount * static_cast<int64_t>(pointer_type->size));
+	if (result_address < this->address || result_address > this->address + this->object_size())
+	{
+		return {
+			.address = 0,
+			.is_one_past_the_end = false,
+		};
+	}
+
+	auto const check_result = check_pointer_arithmetic(
+		this->object_type,
+		address - this->address,
+		result_address - this->address,
+		pointer_type
+	);
+	switch (check_result)
+	{
+	case pointer_arithmetic_check_result::fail:
+		return {
+			.address = 0,
+			.is_one_past_the_end = false,
+		};
+	case pointer_arithmetic_check_result::good:
+		return {
+			.address = result_address,
+			.is_one_past_the_end = false,
+		};
+	case pointer_arithmetic_check_result::one_past_the_end:
+		return {
+			.address = result_address,
+			.is_one_past_the_end = true,
+		};
+	}
+}
+
+bz::optional<int64_t> global_object::do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type)
+{
+	if (lhs <= rhs)
+	{
+		auto const slice_check = this->check_slice_construction(lhs, rhs, object_type);
+		if (slice_check)
+		{
+			return static_cast<int64_t>((lhs - rhs) / object_type->size);
+		}
+		else
+		{
+			return {};
+		}
+	}
+	else
+	{
+		auto const slice_check = this->check_slice_construction(rhs, lhs, object_type);
+		if (slice_check)
+		{
+			return -static_cast<int64_t>((rhs - lhs) / object_type->size);
+		}
+		else
+		{
+			return {};
+		}
+	}
+}
+
 stack_object::stack_object(ptr_t _address, type const *_object_type)
 	: address(_address),
 	  object_type(_object_type),
@@ -340,7 +465,7 @@ heap_object::heap_object(ptr_t _address, type const *_elem_type, size_t _count)
 	  is_initialized()
 {
 	auto const size = this->elem_type->size * this->count;
-	auto const rounded_size = size % max_object_align == 0 ? size : size + (max_object_align - size % max_object_align);
+	auto const rounded_size = size % 8 == 0 ? size : size + (8 - size % 8);
 	this->memory = bz::fixed_vector<uint8_t>(size, 0);
 	this->is_initialized = bz::fixed_vector<uint8_t>(rounded_size / 8, 0xff);
 }
@@ -601,6 +726,109 @@ bz::optional<int64_t> heap_object::do_pointer_difference(ptr_t lhs, ptr_t rhs, t
 	}
 }
 
+global_memory_manager::global_memory_manager(ptr_t global_memory_begin)
+	: head(global_memory_begin),
+	  objects()
+{}
+
+uint32_t global_memory_manager::add_object(type const *object_type, bz::fixed_vector<uint8_t> data)
+{
+	auto const result = static_cast<uint32_t>(this->objects.size());
+	this->objects.emplace_back(this->head, object_type, std::move(data));
+	this->head += object_type->size;
+	this->head += (max_object_align - this->head % max_object_align);
+	return result;
+}
+
+global_object *global_memory_manager::get_global_object(ptr_t address)
+{
+	if (
+		this->objects.empty()
+		|| address < this->objects[0].address
+		|| address > this->objects.back().address + this->objects.back().object_size()
+	)
+	{
+		return nullptr;
+	}
+
+	// find the last element that has an address that is less than or equal to address.
+	// we do this by finding the first element, whose address is greater than address
+	// and taking the element before that
+	auto const it = std::upper_bound(
+		this->objects.begin(), this->objects.end(),
+		address,
+		[](ptr_t address, auto const &object) {
+			return address < object.address;
+		}
+	);
+	return &*(it - 1);
+}
+
+bool global_memory_manager::check_dereference(ptr_t address, type const *object_type)
+{
+	auto const object = this->get_global_object(address);
+	return object != nullptr && object->check_dereference(address, object_type);
+}
+
+bool global_memory_manager::check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type)
+{
+	if (end < begin)
+	{
+		return false;
+	}
+
+	auto const object = this->get_global_object(begin);
+	if (object == nullptr)
+	{
+		return false;
+	}
+	else if (end > object->address + object->object_size())
+	{
+		return false;
+	}
+	else
+	{
+		return object->check_slice_construction(begin, end, elem_type);
+	}
+}
+
+pointer_arithmetic_result_t global_memory_manager::do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type)
+{
+	auto const object = this->get_global_object(address);
+	if (object == nullptr)
+	{
+		return { 0, false };
+	}
+	else
+	{
+		return object->do_pointer_arithmetic(address, offset, object_type);
+	}
+}
+
+bz::optional<int64_t> global_memory_manager::do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type)
+{
+	auto const object = this->get_global_object(lhs);
+	if (object == nullptr)
+	{
+		return {};
+	}
+	else if (rhs < object->address || rhs > object->address + object->object_size())
+	{
+		return {};
+	}
+	else
+	{
+		return object->do_pointer_difference(lhs, rhs, object_type);
+	}
+}
+
+uint8_t *global_memory_manager::get_memory(ptr_t address)
+{
+	auto const object = this->get_global_object(address);
+	bz_assert(object != nullptr);
+	return object->get_memory(address);
+}
+
 stack_manager::stack_manager(ptr_t stack_begin)
 	: head(stack_begin),
 	  stack_frames(),
@@ -651,7 +879,7 @@ stack_frame *stack_manager::get_stack_frame(ptr_t address)
 		return nullptr;
 	}
 
-	// find the first element that has an address that is less than or equal to address.
+	// find the last element that has an address that is less than or equal to address.
 	// we do this by finding the first element, whose address is greater than address
 	// and taking the element before that
 	auto const it = std::upper_bound(
@@ -673,7 +901,7 @@ stack_object *stack_manager::get_stack_object(ptr_t address)
 	}
 
 	bz_assert(address >= frame->begin_address && address <= frame->begin_address + frame->total_size);
-	// find the first element that has an address that is less than or equal to address.
+	// find the last element that has an address that is less than or equal to address.
 	// we do this by finding the first element, whose address is greater than address
 	// and taking the element before that
 	auto const it = std::upper_bound(
@@ -812,9 +1040,9 @@ ptr_t heap_manager::allocate(call_stack_info_t alloc_info, type const *object_ty
 {
 	auto const address = this->head;
 	auto const allocation_size = object_type->size * count;
-	// we round up the allocation size to the nearest 16-byte boundary
+	// we round up the allocation size to the nearest 16-byte boundary (heap_object_align == 16)
 	// if it's already at such a boundary, then we simply add 16 to add some padding
-	auto const rounded_allocation_size = allocation_size + (16 - allocation_size % 16);
+	auto const rounded_allocation_size = allocation_size + (heap_object_align - allocation_size % heap_object_align);
 	this->head += rounded_allocation_size;
 	this->allocations.emplace_back(std::move(alloc_info), address, object_type, count);
 	return address;
@@ -978,26 +1206,33 @@ ptr_t meta_memory_manager::make_one_past_the_end_address(ptr_t address)
 
 memory_segment memory_segment_info_t::get_segment(ptr_t address) const
 {
-	if (address < this->stack_begin)
+	struct address_segment_pair
 	{
-		return memory_segment::invalid;
-	}
-	else if (address < this->heap_begin)
-	{
-		return memory_segment::stack;
-	}
-	else if (address < this->meta_begin)
-	{
-		return memory_segment::heap;
-	}
-	else
-	{
-		return memory_segment::meta;
-	}
+		ptr_t address_begin;
+		memory_segment segment_kind;
+	};
+
+	bz::array<address_segment_pair, 5> segment_info = {{
+		{ 0, memory_segment::invalid },
+		{ this->global_begin, memory_segment::global },
+		{ this->stack_begin, memory_segment::stack },
+		{ this->heap_begin, memory_segment::heap },
+		{ this->meta_begin, memory_segment::meta },
+	}};
+
+	auto const it = std::upper_bound(
+		segment_info.begin(), segment_info.end(),
+		address,
+		[](ptr_t p, address_segment_pair const &info) {
+			return p < info.address_begin;
+		}
+	);
+	return (it - 1)->segment_kind;
 }
 
-memory_manager::memory_manager(memory_segment_info_t _segment_info)
+memory_manager::memory_manager(memory_segment_info_t _segment_info, global_memory_manager *_global_memory)
 	: segment_info(_segment_info),
+	  global_memory(_global_memory),
 	  stack(_segment_info.stack_begin),
 	  heap(_segment_info.heap_begin),
 	  meta_memory(_segment_info.meta_begin)
@@ -1021,6 +1256,8 @@ bool memory_manager::check_dereference(ptr_t address, type const *object_type)
 	{
 	case memory_segment::invalid:
 		return false;
+	case memory_segment::global:
+		return this->global_memory->check_dereference(address, object_type);
 	case memory_segment::stack:
 		return this->stack.check_dereference(address, object_type);
 	case memory_segment::heap:
@@ -1075,6 +1312,8 @@ bool memory_manager::check_slice_construction(ptr_t begin, ptr_t end, type const
 		{
 		case memory_segment::invalid:
 			return false;
+		case memory_segment::global:
+			return this->global_memory->check_slice_construction(begin, end, elem_type);
 		case memory_segment::stack:
 			return this->stack.check_slice_construction(begin, end, elem_type);
 		case memory_segment::heap:
@@ -1134,10 +1373,12 @@ bz::optional<int> memory_manager::compare_pointers(ptr_t lhs, ptr_t rhs)
 	}
 	else
 	{
+		// TODO: this should be checked more thoroughly
 		switch (lhs_segment)
 		{
 		case memory_segment::invalid:
 			return {};
+		case memory_segment::global:
 		case memory_segment::stack:
 		case memory_segment::heap:
 			return lhs == rhs ? 0 : (lhs < rhs ? -1 : 1);
@@ -1154,6 +1395,18 @@ ptr_t memory_manager::do_pointer_arithmetic(ptr_t address, int64_t offset, type 
 	{
 	case memory_segment::invalid:
 		return 0;
+	case memory_segment::global:
+	{
+		auto const [result, is_one_past_the_end] = this->global_memory->do_pointer_arithmetic(address, offset, object_type);
+		if (is_one_past_the_end)
+		{
+			return this->meta_memory.make_one_past_the_end_address(result);
+		}
+		else
+		{
+			return result;
+		}
+	}
 	case memory_segment::stack:
 	{
 		auto const [result, is_one_past_the_end] = this->stack.do_pointer_arithmetic(address, offset, object_type);
@@ -1197,6 +1450,7 @@ ptr_t memory_manager::do_gep(ptr_t address, type const *object_type, uint64_t in
 	{
 	case memory_segment::invalid:
 		bz_unreachable;
+	case memory_segment::global:
 	case memory_segment::stack:
 	case memory_segment::heap:
 	{
@@ -1279,6 +1533,8 @@ bz::optional<int64_t> memory_manager::do_pointer_difference(ptr_t lhs, ptr_t rhs
 		{
 		case memory_segment::invalid:
 			return {};
+		case memory_segment::global:
+			return this->global_memory->do_pointer_difference(lhs, rhs, object_type);
 		case memory_segment::stack:
 			return this->stack.do_pointer_difference(lhs, rhs, object_type);
 		case memory_segment::heap:
@@ -1336,8 +1592,9 @@ uint8_t *memory_manager::get_memory(ptr_t address)
 	switch (segment)
 	{
 	case memory_segment::invalid:
-		bz::log("0x{:x}\n", address);
 		bz_unreachable;
+	case memory_segment::global:
+		return this->global_memory->get_memory(address);
 	case memory_segment::stack:
 		return this->stack.get_memory(address);
 	case memory_segment::heap:

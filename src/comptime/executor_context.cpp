@@ -44,7 +44,7 @@ static ctx::error make_diagnostic(
 }
 
 executor_context::executor_context(codegen_context *_codegen_ctx)
-	: memory(_codegen_ctx->get_memory_segment_info()),
+	: memory(_codegen_ctx->get_memory_segment_info(), &_codegen_ctx->global_memory),
 	  codegen_ctx(_codegen_ctx)
 {}
 
@@ -178,7 +178,10 @@ void executor_context::call_function(uint32_t call_src_tokens_index, function co
 	if (func->instructions.empty())
 	{
 		this->codegen_ctx->resolve_function(this->get_src_tokens(call_src_tokens_index), *func->func_body);
-		generate_code(*const_cast<function *>(func), *this->codegen_ctx);
+		if (func->instructions.empty())
+		{
+			generate_code(*const_cast<function *>(func), *this->codegen_ctx);
+		}
 	}
 
 	auto const good = this->memory.push_stack_frame(func->allocas);

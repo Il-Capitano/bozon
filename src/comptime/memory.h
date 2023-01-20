@@ -16,6 +16,24 @@ struct pointer_arithmetic_result_t
 	bool is_one_past_the_end;
 };
 
+struct global_object
+{
+	ptr_t address;
+	type const *object_type;
+	bz::fixed_vector<uint8_t> memory;
+
+	global_object(ptr_t address, type const *object_type, bz::fixed_vector<uint8_t> data);
+
+	size_t object_size(void) const;
+
+	uint8_t *get_memory(ptr_t address);
+
+	bool check_dereference(ptr_t address, type const *subobject_type) const;
+	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
+	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const;
+	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);
+};
+
 struct stack_object
 {
 	ptr_t address;
@@ -58,6 +76,27 @@ struct heap_object
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const;
 	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);
+};
+
+struct global_memory_manager
+{
+	ptr_t head;
+	bz::vector<global_object> objects;
+
+	explicit global_memory_manager(ptr_t global_memory_begin);
+
+	uint32_t add_object(type const *object_type, bz::fixed_vector<uint8_t> data);
+
+	global_object *get_global_object(ptr_t address);
+
+	bool check_dereference(ptr_t address, type const *object_type);
+	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type);
+	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type);
+
+	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type);
+	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);
+
+	uint8_t *get_memory(ptr_t address);
 };
 
 struct stack_frame
@@ -177,6 +216,7 @@ struct meta_memory_manager
 enum class memory_segment
 {
 	invalid,
+	global,
 	stack,
 	heap,
 	meta,
@@ -184,6 +224,7 @@ enum class memory_segment
 
 struct memory_segment_info_t
 {
+	ptr_t global_begin;
 	ptr_t stack_begin;
 	ptr_t heap_begin;
 	ptr_t meta_begin;
@@ -195,11 +236,12 @@ struct memory_manager
 {
 	memory_segment_info_t segment_info;
 
+	global_memory_manager *global_memory;
 	stack_manager stack;
 	heap_manager heap;
 	meta_memory_manager meta_memory;
 
-	explicit memory_manager(memory_segment_info_t _segment_info);
+	explicit memory_manager(memory_segment_info_t _segment_info, global_memory_manager *_global_memory);
 
 	[[nodiscard]] bool push_stack_frame(bz::array_view<type const *const> types);
 	void pop_stack_frame(void);
