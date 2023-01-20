@@ -200,7 +200,7 @@ size_t global_object::object_size(void) const
 
 uint8_t *global_object::get_memory(ptr_t address)
 {
-	bz_assert(address >= this->address && address < this->address + this->object_size());
+	bz_assert(address >= this->address && address <= this->address + this->object_size());
 	bz_assert(this->memory.not_empty());
 	return this->memory.data() + (address - this->address);
 }
@@ -338,7 +338,7 @@ void stack_object::deinitialize(void)
 
 uint8_t *stack_object::get_memory(ptr_t address)
 {
-	bz_assert(address >= this->address && address < this->address + this->object_size());
+	bz_assert(address >= this->address && address <= this->address + this->object_size());
 	bz_assert(this->memory.not_empty());
 	return this->memory.data() + (address - this->address);
 }
@@ -584,7 +584,7 @@ bool heap_object::is_region_initialized(ptr_t begin, ptr_t end) const
 
 uint8_t *heap_object::get_memory(ptr_t address)
 {
-	bz_assert(address >= this->address && address < this->address + this->object_size());
+	bz_assert(address >= this->address && address <= this->address + this->object_size());
 	bz_assert(this->memory.not_empty());
 	return this->memory.data() + (address - this->address);
 }
