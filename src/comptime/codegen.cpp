@@ -5803,7 +5803,12 @@ static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_conte
 	}
 	else if (var_decl.get_type().is<ast::ts_consteval>())
 	{
-		bz_unreachable; // TODO
+		bz_assert(var_decl.init_expr.is_constant());
+		auto const type = get_type(var_decl.get_type(), context);
+		auto const value = context.create_global_object(
+			type, memory::object_from_constant_value(var_decl.init_expr.get_constant_value(), type, context.get_endianness())
+		);
+		add_variable_helper(var_decl, value, context);
 	}
 	else if (var_decl.get_type().is<ast::ts_lvalue_reference>())
 	{
