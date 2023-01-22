@@ -111,14 +111,19 @@ void codegen_context::resolve_function(lex::src_tokens const &src_tokens, ast::f
 	context.pop_resolve_queue();
 }
 
+memory::endianness_kind codegen_context::get_endianness(void) const
+{
+	return this->machine_parameters.endianness;
+}
+
 bool codegen_context::is_little_endian(void) const
 {
-	return this->machine_parameters.endianness == endianness_kind::little;
+	return this->machine_parameters.endianness == memory::endianness_kind::little;
 }
 
 bool codegen_context::is_big_endian(void) const
 {
-	return this->machine_parameters.endianness == endianness_kind::big;
+	return this->machine_parameters.endianness == memory::endianness_kind::big;
 }
 
 bool codegen_context::is_64_bit(void) const
@@ -586,7 +591,7 @@ expr_value codegen_context::create_const_ptr_null(void)
 void codegen_context::create_string(bz::u8string_view str, expr_value result_address)
 {
 	auto const global_object_type = this->get_array_type(this->get_builtin_type(builtin_type_kind::i8), str.size());
-	auto data = bz::fixed_vector(bz::array_view(str.data(), str.size()));
+	auto data = bz::fixed_vector<uint8_t>(bz::array_view(str.data(), str.size()));
 	auto const index = this->global_memory.add_object(global_object_type, std::move(data));
 	auto const str_data = this->create_get_global_object(index);
 	auto const str_end = this->create_struct_gep(str_data, str.size());

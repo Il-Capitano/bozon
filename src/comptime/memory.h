@@ -6,9 +6,23 @@
 #include "values.h"
 #include "lex/token.h"
 #include "ast/statement_forward.h"
+#include "ast/constant_value.h"
 
 namespace comptime::memory
 {
+
+enum class endianness_kind
+{
+	little,
+	big,
+};
+
+ast::constant_value constant_value_from_object(
+	type const *object_type,
+	uint8_t const *mem,
+	ast::typespec_view ts,
+	endianness_kind endianness
+);
 
 struct pointer_arithmetic_result_t
 {

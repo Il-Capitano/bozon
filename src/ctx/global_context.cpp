@@ -909,8 +909,8 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	this->comptime_codegen_context = std::make_unique<comptime::codegen_context>(comptime::machine_parameters_t{
 		.pointer_size = this->get_data_layout().getPointerSize(),
 		.endianness = this->get_data_layout().isLittleEndian()
-			? comptime::endianness_kind::little
-			: comptime::endianness_kind::big,
+			? comptime::memory::endianness_kind::little
+			: comptime::memory::endianness_kind::big,
 	});
 
 	return true;

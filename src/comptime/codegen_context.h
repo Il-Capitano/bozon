@@ -112,16 +112,10 @@ struct current_function_info_t
 	void finalize_function(void);
 };
 
-enum class endianness_kind
-{
-	little,
-	big,
-};
-
 struct machine_parameters_t
 {
 	size_t pointer_size;
-	endianness_kind endianness;
+	memory::endianness_kind endianness;
 };
 
 struct codegen_context
@@ -171,6 +165,7 @@ struct codegen_context
 	void ensure_function_emission(ast::function_body *body);
 	void resolve_function(lex::src_tokens const &src_tokens, ast::function_body &body);
 
+	memory::endianness_kind get_endianness(void) const;
 	bool is_little_endian(void) const;
 	bool is_big_endian(void) const;
 	bool is_64_bit(void) const;
