@@ -611,6 +611,12 @@ expr_value codegen_context::create_string(bz::u8string_view str)
 	return result_address;
 }
 
+expr_value codegen_context::create_global_object(type const *object_type, bz::fixed_vector<uint8_t> data)
+{
+	auto const index = this->global_memory.add_object(object_type, std::move(data));
+	return this->create_get_global_object(index);
+}
+
 expr_value codegen_context::create_get_global_object(uint32_t global_index)
 {
 	bz_assert(global_index < this->global_memory.objects.size());

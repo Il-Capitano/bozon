@@ -337,6 +337,7 @@ struct codegen_context
 	expr_value create_const_ptr_null(void);
 	void create_string(bz::u8string_view str, expr_value result_address);
 	expr_value create_string(bz::u8string_view str);
+	expr_value create_global_object(type const *object_type, bz::fixed_vector<uint8_t> data);
 
 	expr_value create_get_global_object(uint32_t global_index);
 	expr_value create_get_function_return_address(void);

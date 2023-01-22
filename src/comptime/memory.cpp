@@ -84,6 +84,28 @@ static T load(uint8_t const *mem, endianness_kind endianness)
 	}
 }
 
+template<typename T>
+static void store(auto value, uint8_t *mem, endianness_kind endianness)
+{
+	if constexpr (bz::meta::is_same<T, bool>)
+	{
+		*mem = value ? 1 : 0;
+	}
+	else
+	{
+		if (is_native(endianness))
+		{
+			auto const actual_value = static_cast<T>(value);
+			std::memcpy(mem, &actual_value, sizeof (T));
+		}
+		else
+		{
+			auto const int_value = byteswap(bit_cast<uint_t<sizeof  (T)>>(static_cast<T>(value)));
+			std::memcpy(mem, &int_value, sizeof (T));
+		}
+	}
+}
+
 template<typename T, typename U>
 static void load_array(uint8_t const *mem, U *dest, size_t size, endianness_kind endianness)
 {
@@ -110,6 +132,34 @@ static void load_array(uint8_t const *mem, U *dest, size_t size, endianness_kind
 			uint_t<sizeof (T)> int_result = 0;
 			std::memcpy(&int_result, mem + i * sizeof (T), sizeof (T));
 			*(dest + i) = bit_cast<T>(byteswap(int_result));
+		}
+	}
+}
+
+template<typename T, typename U>
+static void store_array(bz::array_view<U const> values, uint8_t *mem, endianness_kind endianness)
+{
+	if (is_native(endianness))
+	{
+		if constexpr (sizeof (T) == sizeof (U))
+		{
+			std::memcpy(mem, values.data(), values.size() * sizeof (T));
+		}
+		else
+		{
+			for (auto const i : bz::iota(0, values.size()))
+			{
+				auto const elem = static_cast<T>(values[i]);
+				std::memcpy(mem + i * sizeof (T), &elem, sizeof (T));
+			}
+		}
+	}
+	else
+	{
+		for (auto const i : bz::iota(0, values.size()))
+		{
+			auto const int_value = byteswap(bit_cast<uint_t<sizeof (T)>>(static_cast<T>(values[i])));
+			std::memcpy(mem + i * sizeof (T), &int_value, sizeof (T));
 		}
 	}
 }
@@ -382,6 +432,234 @@ ast::constant_value constant_value_from_object(
 	{
 		bz_unreachable;
 	}
+}
+
+static void object_from_constant_value(
+	ast::constant_value const &value,
+	type const *object_type,
+	uint8_t *mem,
+	endianness_kind endianness
+)
+{
+	switch (value.kind())
+	{
+	case ast::constant_value::sint:
+		bz_assert(object_type->is_integer_type());
+		switch (object_type->get_builtin_kind())
+		{
+		case builtin_type_kind::i8:
+			store<int8_t>(value.get_sint(), mem, endianness);
+			break;
+		case builtin_type_kind::i16:
+			store<int16_t>(value.get_sint(), mem, endianness);
+			break;
+		case builtin_type_kind::i32:
+			store<int32_t>(value.get_sint(), mem, endianness);
+			break;
+		case builtin_type_kind::i64:
+			store<int64_t>(value.get_sint(), mem, endianness);
+			break;
+		default:
+			bz_unreachable;
+		}
+		break;
+	case ast::constant_value::uint:
+		bz_assert(object_type->is_integer_type());
+		switch (object_type->get_builtin_kind())
+		{
+		case builtin_type_kind::i8:
+			store<uint8_t>(value.get_uint(), mem, endianness);
+			break;
+		case builtin_type_kind::i16:
+			store<uint16_t>(value.get_uint(), mem, endianness);
+			break;
+		case builtin_type_kind::i32:
+			store<uint32_t>(value.get_uint(), mem, endianness);
+			break;
+		case builtin_type_kind::i64:
+			store<uint64_t>(value.get_uint(), mem, endianness);
+			break;
+		default:
+			bz_unreachable;
+		}
+		break;
+	case ast::constant_value::float32:
+		bz_assert(object_type->is_floating_point_type() && object_type->get_builtin_kind() == builtin_type_kind::f32);
+		store<float32_t>(value.get_float32(), mem, endianness);
+		break;
+	case ast::constant_value::float64:
+		bz_assert(object_type->is_floating_point_type() && object_type->get_builtin_kind() == builtin_type_kind::f64);
+		store<float64_t>(value.get_float64(), mem, endianness);
+		break;
+	case ast::constant_value::u8char:
+		bz_assert(object_type->is_integer_type() && object_type->get_builtin_kind() == builtin_type_kind::i32);
+		static_assert(sizeof (bz::u8char) == 4);
+		store<bz::u8char>(value.get_u8char(), mem, endianness);
+		break;
+	case ast::constant_value::string:
+		bz_unreachable; // TODO
+	case ast::constant_value::boolean:
+		bz_assert(object_type->is_integer_type() && object_type->get_builtin_kind() == builtin_type_kind::i1);
+		store<bool>(value.get_boolean(), mem, endianness);
+		break;
+	case ast::constant_value::null:
+		// pointers are set to null, optionals are set to not having a value
+		std::memset(mem, 0, object_type->size);
+		break;
+	case ast::constant_value::void_:
+		bz_unreachable;
+	case ast::constant_value::enum_:
+		bz_assert(object_type->is_integer_type());
+		switch (object_type->get_builtin_kind())
+		{
+		case builtin_type_kind::i8:
+			store<uint8_t>(value.get_enum().value, mem, endianness);
+			break;
+		case builtin_type_kind::i16:
+			store<uint16_t>(value.get_enum().value, mem, endianness);
+			break;
+		case builtin_type_kind::i32:
+			store<uint32_t>(value.get_enum().value, mem, endianness);
+			break;
+		case builtin_type_kind::i64:
+			store<uint64_t>(value.get_enum().value, mem, endianness);
+			break;
+		default:
+			bz_unreachable;
+		}
+		break;
+	case ast::constant_value::array:
+	{
+		bz_assert(object_type->is_array());
+		auto const elem_type = get_multi_dimensional_array_elem_type(object_type);
+		auto const array = value.get_array();
+		bz_assert(array.size() == object_type->size / elem_type->size);
+		auto const elem_size = elem_type->size;
+		for (auto const &elem : array)
+		{
+			object_from_constant_value(elem, elem_type, mem, endianness);
+			mem += elem_size;
+		}
+		break;
+	}
+	case ast::constant_value::sint_array:
+	{
+		bz_assert(object_type->is_array());
+		auto const elem_type = get_multi_dimensional_array_elem_type(object_type);
+		auto const array = value.get_sint_array();
+		bz_assert(array.size() == object_type->size / elem_type->size);
+		bz_assert(elem_type->is_integer_type());
+		switch (elem_type->get_builtin_kind())
+		{
+		case builtin_type_kind::i8:
+			store_array<int8_t>(array, mem, endianness);
+			break;
+		case builtin_type_kind::i16:
+			store_array<int16_t>(array, mem, endianness);
+			break;
+		case builtin_type_kind::i32:
+			store_array<int32_t>(array, mem, endianness);
+			break;
+		case builtin_type_kind::i64:
+			store_array<int64_t>(array, mem, endianness);
+			break;
+		default:
+			bz_unreachable;
+		}
+		break;
+	}
+	case ast::constant_value::uint_array:
+	{
+		bz_assert(object_type->is_array());
+		auto const elem_type = get_multi_dimensional_array_elem_type(object_type);
+		auto const array = value.get_uint_array();
+		bz_assert(array.size() == object_type->size / elem_type->size);
+		bz_assert(elem_type->is_integer_type());
+		switch (elem_type->get_builtin_kind())
+		{
+		case builtin_type_kind::i8:
+			store_array<uint8_t>(array, mem, endianness);
+			break;
+		case builtin_type_kind::i16:
+			store_array<uint16_t>(array, mem, endianness);
+			break;
+		case builtin_type_kind::i32:
+			store_array<uint32_t>(array, mem, endianness);
+			break;
+		case builtin_type_kind::i64:
+			store_array<uint64_t>(array, mem, endianness);
+			break;
+		default:
+			bz_unreachable;
+		}
+		break;
+	}
+	case ast::constant_value::float32_array:
+	{
+		bz_assert(object_type->is_array());
+		auto const elem_type = get_multi_dimensional_array_elem_type(object_type);
+		auto const array = value.get_float32_array();
+		bz_assert(array.size() == object_type->size / elem_type->size);
+		bz_assert(elem_type->is_floating_point_type() && elem_type->get_builtin_kind() == builtin_type_kind::f32);
+		store_array<float32_t>(array, mem, endianness);
+		break;
+	}
+	case ast::constant_value::float64_array:
+	{
+		bz_assert(object_type->is_array());
+		auto const elem_type = get_multi_dimensional_array_elem_type(object_type);
+		auto const array = value.get_float64_array();
+		bz_assert(array.size() == object_type->size / elem_type->size);
+		bz_assert(elem_type->is_floating_point_type() && elem_type->get_builtin_kind() == builtin_type_kind::f64);
+		store_array<float64_t>(array, mem, endianness);
+		break;
+	}
+	case ast::constant_value::tuple:
+	{
+		auto const values = value.get_tuple();
+		bz_assert(object_type->is_aggregate());
+		auto const types = object_type->get_aggregate_types();
+		auto const offsets = object_type->get_aggregate_offsets();
+		bz_assert(types.size() == values.size());
+
+		for (auto const i : bz::iota(0, values.size()))
+		{
+			object_from_constant_value(values[i], types[i], mem + offsets[i], endianness);
+		}
+		break;
+	}
+	case ast::constant_value::function:
+		bz_unreachable; // TODO
+	case ast::constant_value::type:
+		bz_unreachable;
+	case ast::constant_value::aggregate:
+	{
+		auto const values = value.get_aggregate();
+		bz_assert(object_type->is_aggregate());
+		auto const types = object_type->get_aggregate_types();
+		auto const offsets = object_type->get_aggregate_offsets();
+		bz_assert(types.size() == values.size());
+
+		for (auto const i : bz::iota(0, values.size()))
+		{
+			object_from_constant_value(values[i], types[i], mem + offsets[i], endianness);
+		}
+		break;
+	}
+	default:
+		bz_unreachable;
+	}
+}
+
+bz::fixed_vector<uint8_t> object_from_constant_value(
+	ast::constant_value const &value,
+	type const *object_type,
+	endianness_kind endianness
+)
+{
+	auto result = bz::fixed_vector<uint8_t>(object_type->size);
+	object_from_constant_value(value, object_type, result.data(), endianness);
+	return result;
 }
 
 static constexpr uint8_t max_object_align = 8;

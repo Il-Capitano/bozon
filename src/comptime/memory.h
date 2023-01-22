@@ -24,6 +24,12 @@ ast::constant_value constant_value_from_object(
 	endianness_kind endianness
 );
 
+bz::fixed_vector<uint8_t> object_from_constant_value(
+	ast::constant_value const &value,
+	type const *object_type,
+	endianness_kind endianness
+);
+
 struct pointer_arithmetic_result_t
 {
 	ptr_t address;
