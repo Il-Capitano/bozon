@@ -71,7 +71,7 @@ struct function
 	bz::fixed_vector<type const *> arg_types;
 	type const *return_type = nullptr;
 
-	bz::fixed_vector<type const *> allocas;
+	bz::fixed_vector<alloca> allocas;
 	bz::fixed_vector<switch_info_t> switch_infos;
 	bz::fixed_vector<error_info_t> errors;
 	bz::fixed_vector<lex::src_tokens> src_tokens;

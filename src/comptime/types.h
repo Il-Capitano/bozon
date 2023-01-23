@@ -153,6 +153,12 @@ struct type : type_base_t
 	}
 };
 
+struct alloca
+{
+	type const *object_type;
+	bool is_always_initialized;
+};
+
 } // namespace comptime
 
 

@@ -320,11 +320,11 @@ bz::optional<int64_t> global_object::do_pointer_difference(ptr_t lhs, ptr_t rhs,
 	}
 }
 
-stack_object::stack_object(ptr_t _address, type const *_object_type)
+stack_object::stack_object(ptr_t _address, type const *_object_type, bool is_always_initialized)
 	: address(_address),
 	  object_type(_object_type),
 	  memory(),
-	  is_initialized(false)
+	  is_initialized(is_always_initialized)
 {
 	auto const size = this->object_type->size;
 	this->memory = bz::fixed_vector<uint8_t>(size, 0);
@@ -894,7 +894,7 @@ stack_manager::stack_manager(ptr_t stack_begin)
 	  stack_frame_id(0)
 {}
 
-void stack_manager::push_stack_frame(bz::array_view<type const *const> types)
+void stack_manager::push_stack_frame(bz::array_view<alloca const> allocas)
 {
 	auto const begin_address = this->head;
 
@@ -905,12 +905,13 @@ void stack_manager::push_stack_frame(bz::array_view<type const *const> types)
 
 	auto object_address = begin_address;
 	new_frame.objects = bz::fixed_vector<stack_object>(
-		types.transform([&object_address, begin_address](type const *object_type) {
+		allocas.transform([&object_address, begin_address](alloca const &a) {
+			auto const [object_type, is_always_initialized] = a;
 			object_address = object_address == begin_address
 				? begin_address
 				: object_address + (object_type->align - object_address % object_type->align);
 			bz_assert(object_address % object_type->align == 0);
-			auto result = stack_object(object_address, object_type);
+			auto result = stack_object(object_address, object_type, is_always_initialized);
 			object_address += object_type->size;
 			return result;
 		})
@@ -1418,7 +1419,7 @@ ptr_t memory_manager::get_non_meta_address(ptr_t address)
 	return address;
 }
 
-[[nodiscard]] bool memory_manager::push_stack_frame(bz::array_view<type const *const> types)
+[[nodiscard]] bool memory_manager::push_stack_frame(bz::array_view<alloca const> types)
 {
 	this->stack.push_stack_frame(types);
 	return this->stack.head < this->segment_info.heap_begin;

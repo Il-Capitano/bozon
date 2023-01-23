@@ -2606,9 +2606,14 @@ bz::u8string to_string(function const &func)
 
 	uint32_t i = 0;
 
-	for (auto const type : func.allocas)
+	for (auto const &alloca : func.allocas)
 	{
-		result += bz::format("  {} = alloca {}\n", instruction_value_index{ .index = i }, type->to_string());
+		result += bz::format(
+			"  {} = alloca {} ({})\n",
+			instruction_value_index{ .index = i },
+			alloca.object_type->to_string(),
+			alloca.is_always_initialized
+		);
 		++i;
 	}
 

@@ -106,7 +106,7 @@ struct current_function_info_t
 	function *func = nullptr;
 
 	bz::optional<expr_value> return_address;
-	bz::vector<type const *> allocas;
+	bz::vector<alloca> allocas;
 	bz::vector<basic_block> blocks;
 	bz::vector<error_info_t> errors;
 	bz::vector<lex::src_tokens> src_tokens;
@@ -362,6 +362,7 @@ struct codegen_context
 	);
 
 	expr_value create_alloca(type const *type);
+	expr_value create_alloca_without_lifetime(type const *type);
 
 	instruction_ref create_jump(basic_block_ref bb);
 	instruction_ref create_conditional_jump(expr_value condition, basic_block_ref true_bb, basic_block_ref false_bb);

@@ -212,7 +212,6 @@ void executor_context::call_function(uint32_t call_src_tokens_index, function co
 		return;
 	}
 
-	// bz::log("{}", to_string(*func));
 	this->call_stack.push_back({
 		.func = this->current_function,
 		.call_inst = this->current_instruction,

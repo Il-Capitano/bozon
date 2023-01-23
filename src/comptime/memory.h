@@ -80,7 +80,7 @@ struct stack_object
 	bz::fixed_vector<uint8_t> memory;
 	bool is_initialized: 1;
 
-	stack_object(ptr_t address, type const *object_type);
+	stack_object(ptr_t address, type const *object_type, bool is_always_initialized);
 
 	size_t object_size(void) const;
 
@@ -168,7 +168,7 @@ struct stack_manager
 
 	explicit stack_manager(ptr_t stack_begin);
 
-	void push_stack_frame(bz::array_view<type const *const> types);
+	void push_stack_frame(bz::array_view<alloca const> types);
 	void pop_stack_frame(void);
 
 	stack_frame *get_stack_frame(ptr_t address);
@@ -308,7 +308,7 @@ struct memory_manager
 
 	ptr_t get_non_meta_address(ptr_t address);
 
-	[[nodiscard]] bool push_stack_frame(bz::array_view<type const *const> types);
+	[[nodiscard]] bool push_stack_frame(bz::array_view<alloca const> types);
 	void pop_stack_frame(void);
 
 	bool check_dereference(ptr_t address, type const *object_type) const;

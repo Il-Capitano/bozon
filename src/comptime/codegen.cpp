@@ -155,7 +155,7 @@ struct loop_info_t
 
 static loop_info_t create_loop_start(size_t size, codegen_context &context)
 {
-	auto const index_alloca = context.create_alloca(context.get_builtin_type(builtin_type_kind::i64));
+	auto const index_alloca = context.create_alloca_without_lifetime(context.get_builtin_type(builtin_type_kind::i64));
 	context.create_store(context.create_const_u64(0), index_alloca);
 
 	auto const condition_check_bb = context.add_basic_block();
@@ -203,7 +203,7 @@ struct reversed_loop_info_t
 
 static reversed_loop_info_t create_reversed_loop_start(size_t size, codegen_context &context)
 {
-	auto const index_alloca = context.create_alloca(context.get_builtin_type(builtin_type_kind::i64));
+	auto const index_alloca = context.create_alloca_without_lifetime(context.get_builtin_type(builtin_type_kind::i64));
 	context.create_store(context.create_const_u64(size), index_alloca);
 
 	auto const condition_check_bb = context.add_basic_block();
@@ -6083,7 +6083,7 @@ function generate_code_for_expression(ast::expression const &expr, codegen_conte
 	{
 		func.return_type = context.get_pointer_type();
 
-		auto const result_address = context.create_alloca(get_type(expr_type, context));
+		auto const result_address = context.create_alloca_without_lifetime(get_type(expr_type, context));
 		auto const prev_info = context.push_expression_scope();
 		generate_expr_code(expr, context, result_address);
 		context.pop_expression_scope(prev_info);
@@ -6114,7 +6114,7 @@ static void generate_rvalue_array_destruct(
 
 	auto const begin_elem_ptr_value = expr_value::get_value(begin_elem_ptr.get_reference(), context.get_pointer_type());
 
-	auto const it_elem_ptr_ref = context.create_alloca(context.get_pointer_type());
+	auto const it_elem_ptr_ref = context.create_alloca_without_lifetime(context.get_pointer_type());
 	context.create_store(expr_value::get_value(end_elem_ptr.get_reference(), context.get_pointer_type()), it_elem_ptr_ref);
 
 	auto const loop_begin_bb = context.add_basic_block();
