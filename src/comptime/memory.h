@@ -306,6 +306,8 @@ struct memory_manager
 		bool is_native_endianness
 	);
 
+	ptr_t get_non_meta_address(ptr_t address);
+
 	[[nodiscard]] bool push_stack_frame(bz::array_view<type const *const> types);
 	void pop_stack_frame(void);
 
@@ -318,6 +320,9 @@ struct memory_manager
 	ptr_t do_gep(ptr_t address, type const *object_type, uint64_t index);
 	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);
 	int64_t do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride);
+
+	void start_lifetime(ptr_t address);
+	void end_lifetime(ptr_t address);
 
 	bool is_global(ptr_t address) const;
 

@@ -8,7 +8,7 @@ bz::u8string to_string(instruction const &inst_)
 {
 	switch (inst_.index())
 	{
-	static_assert(instruction::variant_count == 514);
+	static_assert(instruction::variant_count == 516);
 	case instruction::const_i1:
 	{
 		auto const &inst = inst_.get<instruction::const_i1>();
@@ -2575,6 +2575,16 @@ bz::u8string to_string(instruction const &inst_)
 	{
 		auto const &inst = inst_.get<instruction::slice_construction_check>();
 		return bz::format("slice-construction-check {}, {} ({}, {})", inst.args[0], inst.args[1], inst.src_tokens_index, inst.slice_construction_check_info_index);
+	}
+	case instruction::start_lifetime:
+	{
+		auto const &inst = inst_.get<instruction::start_lifetime>();
+		return bz::format("start-lifetime {}", inst.args[0]);
+	}
+	case instruction::end_lifetime:
+	{
+		auto const &inst = inst_.get<instruction::end_lifetime>();
+		return bz::format("end-lifetime {}", inst.args[0]);
 	}
 	default:
 		bz_unreachable;

@@ -324,7 +324,7 @@ stack_object::stack_object(ptr_t _address, type const *_object_type)
 	: address(_address),
 	  object_type(_object_type),
 	  memory(),
-	  is_initialized(true)
+	  is_initialized(false)
 {
 	auto const size = this->object_type->size;
 	this->memory = bz::fixed_vector<uint8_t>(size, 0);
@@ -1406,6 +1406,18 @@ memory_manager::memory_manager(
 	}
 }
 
+ptr_t memory_manager::get_non_meta_address(ptr_t address)
+{
+	auto segment = this->segment_info.get_segment(address);
+	while (segment == memory_segment::meta)
+	{
+		address = this->meta_memory.get_real_address(address);
+		segment = this->segment_info.get_segment(address);
+	}
+
+	return address;
+}
+
 [[nodiscard]] bool memory_manager::push_stack_frame(bz::array_view<type const *const> types)
 {
 	this->stack.push_stack_frame(types);
@@ -1762,6 +1774,30 @@ int64_t memory_manager::do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, si
 			return -static_cast<int64_t>((rhs - lhs) / stride);
 		}
 	}
+}
+
+void memory_manager::start_lifetime(ptr_t address)
+{
+	address = this->get_non_meta_address(address);
+	bz_assert(this->segment_info.get_segment(address) == memory_segment::stack);
+
+	auto const object = this->stack.get_stack_object(address);
+	bz_assert(object != nullptr);
+	bz_assert(address == object->address);
+	bz_assert(!object->is_initialized);
+	object->initialize();
+}
+
+void memory_manager::end_lifetime(ptr_t address)
+{
+	address = this->get_non_meta_address(address);
+	bz_assert(this->segment_info.get_segment(address) == memory_segment::stack);
+
+	auto const object = this->stack.get_stack_object(address);
+	bz_assert(object != nullptr);
+	bz_assert(address == object->address);
+	bz_assert(object->is_initialized);
+	object->deinitialize();
 }
 
 bool memory_manager::is_global(ptr_t address) const

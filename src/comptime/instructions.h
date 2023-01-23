@@ -4604,6 +4604,22 @@ struct slice_construction_check
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
+struct start_lifetime
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr };
+	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct end_lifetime
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr };
+	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
 } // namespace instructions
 
 using instruction_list = bz::meta::type_pack<
@@ -5120,7 +5136,9 @@ using instruction_list = bz::meta::type_pack<
 	instructions::array_bounds_check_u64,
 	instructions::optional_get_value_check,
 	instructions::str_construction_check,
-	instructions::slice_construction_check
+	instructions::slice_construction_check,
+	instructions::start_lifetime,
+	instructions::end_lifetime
 >;
 
 using instruction_base_t = bz::meta::apply_type_pack<bz::variant, instruction_list>;
@@ -5129,7 +5147,7 @@ struct instruction : instruction_base_t
 {
 	using base_t = instruction_base_t;
 
-	static_assert(variant_count == 514);
+	static_assert(variant_count == 516);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -5646,6 +5664,8 @@ struct instruction : instruction_base_t
 		optional_get_value_check = index_of<instructions::optional_get_value_check>,
 		str_construction_check   = index_of<instructions::str_construction_check>,
 		slice_construction_check = index_of<instructions::slice_construction_check>,
+		start_lifetime           = index_of<instructions::start_lifetime>,
+		end_lifetime             = index_of<instructions::end_lifetime>,
 	};
 
 	bool is_terminator(void) const

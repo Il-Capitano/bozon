@@ -141,6 +141,9 @@ struct executor_context
 	);
 	int64_t pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride);
 
+	void start_lifetime(ptr_t address);
+	void end_lifetime(ptr_t address);
+
 	void advance(void);
 
 	bool check_memory_leaks(void);

@@ -4334,6 +4334,16 @@ static void execute_slice_construction_check(instructions::slice_construction_ch
 	context.check_slice_construction(inst.src_tokens_index, begin_ptr, end_ptr, info.elem_type, info.slice_type);
 }
 
+static void execute_start_lifetime(instructions::start_lifetime const &, ptr_t address, executor_context &context)
+{
+	context.start_lifetime(address);
+}
+
+static void execute_end_lifetime(instructions::end_lifetime const &, ptr_t address, executor_context &context)
+{
+	context.end_lifetime(address);
+}
+
 
 template<value_type type>
 struct get_value_type;
@@ -4534,7 +4544,7 @@ void execute_current_instruction(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-	static_assert(instruction::variant_count == 514);
+	static_assert(instruction::variant_count == 516);
 	case instruction::const_i1:
 		execute<instructions::const_i1, &execute_const_i1>(context);
 		break;
@@ -6076,6 +6086,12 @@ void execute_current_instruction(executor_context &context)
 		break;
 	case instruction::slice_construction_check:
 		execute<instructions::slice_construction_check, &execute_slice_construction_check>(context);
+		break;
+	case instruction::start_lifetime:
+		execute<instructions::start_lifetime, &execute_start_lifetime>(context);
+		break;
+	case instruction::end_lifetime:
+		execute<instructions::end_lifetime, &execute_end_lifetime>(context);
 		break;
 	default:
 		bz_unreachable;

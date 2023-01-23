@@ -538,6 +538,16 @@ int64_t executor_context::pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, siz
 	return this->memory.do_pointer_difference_unchecked(lhs, rhs, stride);
 }
 
+void executor_context::start_lifetime(ptr_t address)
+{
+	this->memory.start_lifetime(address);
+}
+
+void executor_context::end_lifetime(ptr_t address)
+{
+	this->memory.end_lifetime(address);
+}
+
 void executor_context::advance(void)
 {
 	if (this->next_instruction != nullptr)
