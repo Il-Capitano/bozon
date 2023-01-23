@@ -85,17 +85,6 @@ codegen_context::codegen_context(machine_parameters_t _machine_parameters)
 	this->null_t = this->get_aggregate_type({});
 }
 
-void codegen_context::ensure_function_emission(ast::function_body *body)
-{
-	if (!body->has_builtin_implementation() || body->body.not_null())
-	{
-		if (!body->is_comptime_bitcode_emitted())
-		{
-			this->functions_to_compile.push_back(body);
-		}
-	}
-}
-
 void codegen_context::resolve_function(lex::src_tokens const &src_tokens, ast::function_body &body)
 {
 	if (body.state == ast::resolve_state::all || body.state == ast::resolve_state::error)
@@ -200,7 +189,6 @@ function *codegen_context::get_non_const_function(ast::function_body *body)
 	auto const it = this->functions.find(body);
 	if (it == this->functions.end())
 	{
-		this->ensure_function_emission(body);
 		bz_assert(body->state != ast::resolve_state::error);
 		bz_assert(body->state >= ast::resolve_state::symbol);
 		auto const [it, inserted] = this->functions.insert({ body, generate_from_symbol(*body, *this) });

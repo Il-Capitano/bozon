@@ -145,8 +145,6 @@ struct codegen_context
 	std::unordered_map<ast::decl_variable const *, uint32_t> global_variables{};
 	std::unordered_map<ast::function_body *, std::unique_ptr<function>> functions{};
 
-	bz::vector<ast::function_body *> functions_to_compile{};
-
 	struct loop_info_t
 	{
 		basic_block_ref break_bb = {};
@@ -163,7 +161,6 @@ struct codegen_context
 
 	codegen_context(machine_parameters_t _machine_parameters);
 
-	void ensure_function_emission(ast::function_body *body);
 	void resolve_function(lex::src_tokens const &src_tokens, ast::function_body &body);
 
 	memory::endianness_kind get_endianness(void) const;
