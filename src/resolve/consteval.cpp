@@ -3027,10 +3027,6 @@ static ast::constant_value guaranteed_evaluate_expr(
 			if (compound_expr.statements.empty() && compound_expr.final_expr.not_null())
 			{
 				consteval_guaranteed(compound_expr.final_expr, context);
-				if (compound_expr.final_expr.has_consteval_succeeded())
-				{
-					return compound_expr.final_expr.get_constant_value();
-				}
 			}
 			return {};
 		},
@@ -3038,40 +3034,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			consteval_guaranteed(if_expr.condition, context);
 			consteval_guaranteed(if_expr.then_block, context);
 			consteval_guaranteed(if_expr.else_block, context);
-			if (if_expr.condition.has_consteval_succeeded())
-			{
-				bz_assert(if_expr.condition.is_constant());
-				bz_assert(if_expr.condition.get_constant_value().is_boolean());
-				auto const condition_value = if_expr.condition
-					.get_constant_value()
-					.get_boolean();
-				if (condition_value)
-				{
-					if (if_expr.then_block.has_consteval_succeeded())
-					{
-						return if_expr.then_block.get_constant_value();
-					}
-					else
-					{
-						return {};
-					}
-				}
-				else
-				{
-					if (if_expr.else_block.has_consteval_succeeded())
-					{
-						return if_expr.else_block.get_constant_value();
-					}
-					else
-					{
-						return {};
-					}
-				}
-			}
-			else
-			{
-				return {};
-			}
+			return {};
 		},
 		[&context](ast::expr_if_consteval &if_expr) -> ast::constant_value {
 			bz_assert(if_expr.condition.is_constant());
@@ -3115,43 +3078,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 				consteval_guaranteed(case_expr, context);
 			}
 			consteval_guaranteed(switch_expr.default_case, context);
-
-			if (!switch_expr.matched_expr.has_consteval_succeeded())
-			{
-				return {};
-			}
-
-			auto const &matched_value = switch_expr.matched_expr.get_constant_value();
-			auto const case_it = std::find_if(
-				switch_expr.cases.begin(), switch_expr.cases.end(),
-				[&](auto const &switch_case) {
-					return switch_case.values
-						.transform([](auto const &expr) -> auto const &{ return expr.get_constant_value(); })
-						.is_any(matched_value);
-				}
-			);
-			if (case_it == switch_expr.cases.end())
-			{
-				if (switch_expr.default_case.has_consteval_succeeded())
-				{
-					return switch_expr.default_case.get_constant_value();
-				}
-				else
-				{
-					return {};
-				}
-			}
-			else
-			{
-				if (case_it->expr.has_consteval_succeeded())
-				{
-					return case_it->expr.get_constant_value();
-				}
-				else
-				{
-					return {};
-				}
-			}
+			return {};
 		},
 		[](ast::expr_break &) -> ast::constant_value {
 			return {};
@@ -3219,7 +3146,11 @@ void consteval_guaranteed(ast::expression &expr, ctx::parse_context &context)
 	}
 
 	auto const value = guaranteed_evaluate_expr(expr, context);
-	if (value.is_null())
+	if (expr.get_dynamic().type.is_empty())
+	{
+		return;
+	}
+	else if (value.is_null())
 	{
 		expr.consteval_state = ast::expression::consteval_guaranteed_failed;
 		return;

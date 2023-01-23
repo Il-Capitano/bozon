@@ -238,26 +238,10 @@ ast::expression parse_compound_expression(
 	{
 		auto expr = std::move(statements.back().get<ast::stmt_expression>().expr);
 		statements.pop_back();
-		if (expr.is_constant() && statements.size() == 0)
-		{
-			auto &const_expr = expr.get_constant();
-			auto result_type = const_expr.type;
-			auto result_kind = const_expr.kind;
-			auto result_value = const_expr.value;
-			return ast::make_constant_expression(
-				{ begin, begin, stream },
-				result_kind, std::move(result_type),
-				std::move(result_value),
-				ast::make_expr_compound(decltype(statements)(), std::move(expr))
-			);
-		}
-		else
-		{
-			return ast::make_unresolved_expression(
-				{ begin, begin, stream },
-				ast::make_unresolved_expr_compound(std::move(statements), std::move(expr))
-			);
-		}
+		return ast::make_unresolved_expression(
+			{ begin, begin, stream },
+			ast::make_unresolved_expr_compound(std::move(statements), std::move(expr))
+		);
 	}
 }
 
