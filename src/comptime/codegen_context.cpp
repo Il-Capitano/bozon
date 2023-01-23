@@ -150,14 +150,14 @@ memory::memory_segment_info_t codegen_context::get_memory_segment_info(void) con
 
 void codegen_context::add_variable(ast::decl_variable const *decl, expr_value value)
 {
-	bz_assert(!this->variables.contains(decl));
-	this->variables.insert({ decl, value });
+	bz_assert(!this->current_function_info.variables.contains(decl));
+	this->current_function_info.variables.insert({ decl, value });
 }
 
 expr_value codegen_context::get_variable(ast::decl_variable const *decl)
 {
-	auto const it = this->variables.find(decl);
-	if (it == this->variables.end())
+	auto const it = this->current_function_info.variables.find(decl);
+	if (it == this->current_function_info.variables.end())
 	{
 		return expr_value::get_none();
 	}
@@ -254,19 +254,19 @@ bool codegen_context::has_terminator(void)
 
 [[nodiscard]] codegen_context::expression_scope_info_t codegen_context::push_expression_scope(void)
 {
-	return { this->destructor_calls.size() };
+	return { this->current_function_info.destructor_calls.size() };
 }
 
 void codegen_context::pop_expression_scope(expression_scope_info_t prev_info)
 {
 	this->emit_destruct_operations(prev_info.destructor_calls_size);
-	this->destructor_calls.resize(prev_info.destructor_calls_size);
+	this->current_function_info.destructor_calls.resize(prev_info.destructor_calls_size);
 }
 
 [[nodiscard]] codegen_context::loop_info_t codegen_context::push_loop(basic_block_ref break_bb, basic_block_ref continue_bb)
 {
 	auto const result = this->loop_info;
-	this->loop_info.destructor_stack_begin = this->destructor_calls.size();
+	this->loop_info.destructor_stack_begin = this->current_function_info.destructor_calls.size();
 	this->loop_info.break_bb = break_bb;
 	this->loop_info.continue_bb = continue_bb;
 	this->loop_info.in_loop = true;
@@ -306,7 +306,7 @@ expr_value codegen_context::get_value_reference(size_t index)
 instruction_ref codegen_context::add_move_destruct_indicator(ast::decl_variable const *decl)
 {
 	auto const indicator = this->create_alloca(this->get_builtin_type(builtin_type_kind::i1));
-	[[maybe_unused]] auto const [it, inserted] = this->move_destruct_indicators.insert({ decl, indicator.get_reference() });
+	[[maybe_unused]] auto const [it, inserted] = this->current_function_info.move_destruct_indicators.insert({ decl, indicator.get_reference() });
 	bz_assert(inserted);
 	this->create_store(this->create_const_i1(true), indicator);
 	return indicator.get_reference();
@@ -319,8 +319,8 @@ bz::optional<instruction_ref> codegen_context::get_move_destruct_indicator(ast::
 		return {};
 	}
 
-	auto const it = this->move_destruct_indicators.find(decl);
-	if (it == this->move_destruct_indicators.end())
+	auto const it = this->current_function_info.move_destruct_indicators.find(decl);
+	if (it == this->current_function_info.move_destruct_indicators.end())
 	{
 		return {};
 	}
@@ -335,7 +335,7 @@ void codegen_context::push_destruct_operation(ast::destruct_operation const &des
 	auto const move_destruct_indicator = this->get_move_destruct_indicator(destruct_op.move_destructed_decl);
 	if (move_destruct_indicator.has_value() || destruct_op.not_null())
 	{
-		this->destructor_calls.push_back({
+		this->current_function_info.destructor_calls.push_back({
 			.destruct_op = &destruct_op,
 			.value = expr_value::get_none(),
 			.condition = {},
@@ -352,7 +352,7 @@ void codegen_context::push_variable_destruct_operation(
 {
 	if (destruct_op.not_null())
 	{
-		this->destructor_calls.push_back({
+		this->current_function_info.destructor_calls.push_back({
 			.destruct_op = &destruct_op,
 			.value = expr_value::get_none(),
 			.condition = move_destruct_indicator,
@@ -370,7 +370,7 @@ void codegen_context::push_self_destruct_operation(
 	auto const move_destruct_indicator = this->get_move_destruct_indicator(destruct_op.move_destructed_decl);
 	if (move_destruct_indicator.has_value() || destruct_op.not_null())
 	{
-		this->destructor_calls.push_back({
+		this->current_function_info.destructor_calls.push_back({
 			.destruct_op = &destruct_op,
 			.value = value,
 			.condition = {},
@@ -389,7 +389,7 @@ void codegen_context::push_rvalue_array_destruct_operation(
 	auto const move_destruct_indicator = this->get_move_destruct_indicator(destruct_op.move_destructed_decl);
 	if (move_destruct_indicator.has_value() || destruct_op.not_null())
 	{
-		this->destructor_calls.push_back({
+		this->current_function_info.destructor_calls.push_back({
 			.destruct_op = &destruct_op,
 			.value = value,
 			.condition = {},
@@ -399,14 +399,14 @@ void codegen_context::push_rvalue_array_destruct_operation(
 	}
 }
 
-static void emit_destruct_operation(codegen_context::destruct_operation_info_t const &info, codegen_context &context)
+static void emit_destruct_operation(destruct_operation_info_t const &info, codegen_context &context)
 {
 	generate_destruct_operation(info, context);
 }
 
 void codegen_context::emit_destruct_operations(size_t start_index)
 {
-	for (auto const &info : this->destructor_calls.slice(start_index).reversed())
+	for (auto const &info : this->current_function_info.destructor_calls.slice(start_index).reversed())
 	{
 		emit_destruct_operation(info, *this);
 	}
@@ -414,7 +414,7 @@ void codegen_context::emit_destruct_operations(size_t start_index)
 
 void codegen_context::emit_loop_destruct_operations(void)
 {
-	for (auto const &info : this->destructor_calls.slice(this->loop_info.destructor_stack_begin).reversed())
+	for (auto const &info : this->current_function_info.destructor_calls.slice(this->loop_info.destructor_stack_begin).reversed())
 	{
 		emit_destruct_operation(info, *this);
 	}
@@ -422,7 +422,7 @@ void codegen_context::emit_loop_destruct_operations(void)
 
 void codegen_context::emit_all_destruct_operations(void)
 {
-	for (auto const &info : this->destructor_calls.reversed())
+	for (auto const &info : this->current_function_info.destructor_calls.reversed())
 	{
 		emit_destruct_operation(info, *this);
 	}

@@ -6128,7 +6128,7 @@ static void generate_rvalue_array_destruct(
 	context.set_current_basic_block(end_bb);
 }
 
-void generate_destruct_operation(codegen_context::destruct_operation_info_t const &destruct_op_info, codegen_context &context)
+void generate_destruct_operation(destruct_operation_info_t const &destruct_op_info, codegen_context &context)
 {
 	auto const &destruct_op = *destruct_op_info.destruct_op;
 	auto const &condition = destruct_op_info.condition;

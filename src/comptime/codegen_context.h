@@ -92,6 +92,15 @@ struct unresolved_switch
 	basic_block_ref default_bb;
 };
 
+struct destruct_operation_info_t
+{
+	ast::destruct_operation const *destruct_op;
+	expr_value value;
+	bz::optional<instruction_ref> condition;
+	bz::optional<instruction_ref> move_destruct_indicator;
+	bz::optional<instruction_ref> rvalue_array_elem_ptr;
+};
+
 struct current_function_info_t
 {
 	function *func = nullptr;
@@ -108,6 +117,10 @@ struct current_function_info_t
 	bz::vector<unresolved_instruction> unresolved_instructions;
 	bz::vector<unresolved_jump> unresolved_jumps;
 	bz::vector<unresolved_switch> unresolved_switches;
+
+	bz::vector<destruct_operation_info_t> destructor_calls{};
+	std::unordered_map<ast::decl_variable const *, instruction_ref> move_destruct_indicators{};
+	std::unordered_map<ast::decl_variable const *, expr_value> variables{};
 
 	void finalize_function(void);
 };
@@ -129,19 +142,6 @@ struct codegen_context
 	type const *pointer_pair_t = nullptr;
 	type const *null_t = nullptr;
 
-	struct destruct_operation_info_t
-	{
-		ast::destruct_operation const *destruct_op;
-		expr_value value;
-		bz::optional<instruction_ref> condition;
-		bz::optional<instruction_ref> move_destruct_indicator;
-		bz::optional<instruction_ref> rvalue_array_elem_ptr;
-	};
-
-	bz::vector<destruct_operation_info_t> destructor_calls{};
-	std::unordered_map<ast::decl_variable const *, instruction_ref> move_destruct_indicators{};
-
-	std::unordered_map<ast::decl_variable const *, expr_value> variables{};
 	std::unordered_map<ast::function_body *, std::unique_ptr<function>> functions{};
 
 	bz::vector<ast::function_body *> functions_to_compile{};
