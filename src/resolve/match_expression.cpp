@@ -69,7 +69,7 @@ void match_expression_to_type(ast::expression &expr, ast::typespec &dest_type, c
 			resolve::consteval_try(expr, context);
 			if (!expr.is_constant())
 			{
-				context.report_error(expr, "expression must be a constant expression", resolve::get_consteval_fail_notes(expr));
+				context.report_error(expr, "expression must be a constant expression");
 				if (!ast::is_complete(dest_type))
 				{
 					dest_type.clear();

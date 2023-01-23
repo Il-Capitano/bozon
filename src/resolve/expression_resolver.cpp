@@ -404,7 +404,7 @@ static ast::expression resolve_expr(
 		return ast::make_error_expression(src_tokens, std::move(result_node));
 	}
 
-	resolve::consteval_try(if_expr.condition, context);
+	consteval_try(if_expr.condition, context);
 	if (if_expr.condition.has_consteval_failed())
 	{
 		context.report_error(if_expr.condition.src_tokens, "condition for an if consteval expression must be a constant expression");
@@ -523,7 +523,7 @@ static ast::expression resolve_expr(
 		for (auto &case_value : case_values)
 		{
 			match_expression_to_type(case_value, match_type, context);
-			resolve::consteval_try(case_value, context);
+			consteval_try(case_value, context);
 		}
 	}
 
@@ -772,7 +772,15 @@ static ast::expression resolve_expr(
 	bool good = true;
 	auto const sizes = array_type.sizes
 		.transform([&good, &context](auto &size) -> uint64_t {
-			resolve::consteval_try(size, context);
+			if (size.is_placeholder_literal())
+			{
+				consteval_try(size, context);
+				return 0;
+			}
+
+			auto auto_type = ast::make_auto_typespec(nullptr);
+			match_expression_to_type(size, auto_type, context);
+			consteval_try(size, context);
 			if (size.is_error())
 			{
 				good = false;
@@ -782,10 +790,6 @@ static ast::expression resolve_expr(
 			{
 				good = false;
 				context.report_error(size.src_tokens, "array size must be a constant expression");
-				return 0;
-			}
-			else if (size.is_placeholder_literal())
-			{
 				return 0;
 			}
 			else
@@ -1057,7 +1061,7 @@ void resolve_expression(ast::expression &expr, ctx::parse_context &context)
 		expr.consteval_state = expr_consteval_state;
 		expr.paren_level = expr_paren_level;
 	}
-	resolve::consteval_guaranteed(expr, context);
+	consteval_guaranteed(expr, context);
 }
 
 } // namespace resolve

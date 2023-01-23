@@ -258,11 +258,7 @@ static bool resolve_attribute(
 				if (arg.not_error() && !arg.is_constant())
 				{
 					good = false;
-					context.report_error(
-						arg,
-						"attribute argument must be a constant expression",
-						resolve::get_consteval_fail_notes(arg)
-					);
+					context.report_error(arg, "attribute argument must be a constant expression");
 				}
 			}
 		}
