@@ -8,7 +8,7 @@ bz::u8string to_string(instruction const &inst_)
 {
 	switch (inst_.index())
 	{
-	static_assert(instruction::variant_count == 513);
+	static_assert(instruction::variant_count == 514);
 	case instruction::const_i1:
 	{
 		auto const &inst = inst_.get<instruction::const_i1>();
@@ -2451,12 +2451,12 @@ bz::u8string to_string(instruction const &inst_)
 	case instruction::const_memcpy:
 	{
 		auto const &inst = inst_.get<instruction::const_memcpy>();
-		return bz::format("const memcpy {} {}, {}", inst.size, inst.args[0], inst.args[1]);
+		return bz::format("const-memcpy {} {}, {}", inst.size, inst.args[0], inst.args[1]);
 	}
 	case instruction::const_memset_zero:
 	{
 		auto const &inst = inst_.get<instruction::const_memset_zero>();
-		return bz::format("const memset-zero {} {}", inst.size, inst.args[0]);
+		return bz::format("const-memset-zero {} {}", inst.size, inst.args[0]);
 	}
 	case instruction::function_call:
 	{
@@ -2536,40 +2536,45 @@ bz::u8string to_string(instruction const &inst_)
 		auto const &inst = inst_.get<instruction::is_option_set>();
 		return bz::format("is-option-set {}, {}", inst.args[0], inst.args[1]);
 	}
+	case instruction::add_global_array_data:
+	{
+		auto const &inst = inst_.get<instruction::add_global_array_data>();
+		return bz::format("add-global-array-data {} {}, {}", inst.elem_type->to_string(), inst.args[0], inst.args[1]);
+	}
 	case instruction::array_bounds_check_i32:
 	{
 		auto const &inst = inst_.get<instruction::array_bounds_check_i32>();
-		return bz::format("array bounds check i32 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+		return bz::format("array-bounds-check i32 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
 	}
 	case instruction::array_bounds_check_u32:
 	{
 		auto const &inst = inst_.get<instruction::array_bounds_check_u32>();
-		return bz::format("array bounds check u32 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+		return bz::format("array-bounds-check u32 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
 	}
 	case instruction::array_bounds_check_i64:
 	{
 		auto const &inst = inst_.get<instruction::array_bounds_check_i64>();
-		return bz::format("array bounds check i64 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+		return bz::format("array-bounds-check i64 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
 	}
 	case instruction::array_bounds_check_u64:
 	{
 		auto const &inst = inst_.get<instruction::array_bounds_check_u64>();
-		return bz::format("array bounds check u64 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+		return bz::format("array-bounds-check u64 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
 	}
 	case instruction::optional_get_value_check:
 	{
 		auto const &inst = inst_.get<instruction::optional_get_value_check>();
-		return bz::format("optional get_value check {} ({})", inst.args[0], inst.src_tokens_index);
+		return bz::format("optional-get_value-check {} ({})", inst.args[0], inst.src_tokens_index);
 	}
 	case instruction::str_construction_check:
 	{
 		auto const &inst = inst_.get<instruction::str_construction_check>();
-		return bz::format("str construction check {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+		return bz::format("str-construction-check {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
 	}
 	case instruction::slice_construction_check:
 	{
 		auto const &inst = inst_.get<instruction::slice_construction_check>();
-		return bz::format("slice construction check {}, {} ({}, {})", inst.args[0], inst.args[1], inst.src_tokens_index, inst.slice_construction_check_info_index);
+		return bz::format("slice-construction-check {}, {} ({}, {})", inst.args[0], inst.args[1], inst.src_tokens_index, inst.slice_construction_check_info_index);
 	}
 	default:
 		bz_unreachable;

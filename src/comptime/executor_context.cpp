@@ -149,6 +149,15 @@ ptr_t executor_context::get_global(uint32_t index)
 	return this->memory.global_memory->objects[index].address;
 }
 
+ptr_t executor_context::add_global_array_data(type const *elem_type, bz::array_view<uint8_t const> data)
+{
+	bz_assert(data.size() % elem_type->size == 0);
+	auto const size = data.size() / elem_type->size;
+	auto const array_type = this->codegen_ctx->get_array_type(elem_type, size);
+	auto const index = this->memory.global_memory->add_object(array_type, data);
+	return this->get_global(index);
+}
+
 instruction_value executor_context::get_arg(uint32_t index)
 {
 	return this->args[index];

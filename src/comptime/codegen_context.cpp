@@ -617,6 +617,16 @@ expr_value codegen_context::create_global_object(type const *object_type, bz::fi
 	return this->create_get_global_object(index);
 }
 
+expr_value codegen_context::create_add_global_array_data(type const *elem_type, expr_value begin_ptr, expr_value end_ptr)
+{
+	auto const begin_ptr_value = begin_ptr.get_value_as_instruction(*this);
+	auto const end_ptr_value = end_ptr.get_value_as_instruction(*this);
+	return expr_value::get_value(
+		this->add_instruction(instructions::add_global_array_data{ .elem_type = elem_type }, begin_ptr_value, end_ptr_value),
+		this->get_pointer_type()
+	);
+}
+
 expr_value codegen_context::create_get_global_object(uint32_t global_index)
 {
 	bz_assert(global_index < this->global_memory.objects.size());
@@ -5494,7 +5504,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 513);
+	static_assert(instruction::variant_count == 514);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>();
