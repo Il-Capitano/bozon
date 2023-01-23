@@ -1900,7 +1900,7 @@ static expr_value generate_intrinsic_function_call_code(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 187);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 188);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2164,8 +2164,22 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(!result_address.has_value());
 		return expr_value::get_none();
 	}
+	case ast::function_body::comptime_add_global_array_data:
+	{
+		bz_assert(func_call.params.size() == 2);
+		auto const begin_ptr = generate_expr_code(func_call.params[0], context, {});
+		auto const end_ptr = generate_expr_code(func_call.params[1], context, {});
+		bz_assert(func_call.params[0].get_expr_type().is<ast::ts_pointer>());
+		auto const elem_type = ast::remove_const_or_consteval(func_call.params[0].get_expr_type().get<ast::ts_pointer>());
+		return value_or_result_address(
+			context.create_add_global_array_data(get_type(elem_type, context), begin_ptr, end_ptr),
+			result_address,
+			context
+		);
+	}
 	case ast::function_body::comptime_create_global_string:
-		bz_unreachable; // TODO
+		// implemented in __builtins.bz
+		bz_unreachable;
 	case ast::function_body::comptime_concatenate_strs:
 		// this is guaranteed to be constant evaluated
 		bz_unreachable;

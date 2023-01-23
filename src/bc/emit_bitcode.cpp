@@ -2777,7 +2777,7 @@ static val_ptr emit_bitcode(
 
 static ctx::comptime_function_kind get_math_check_function_kind(uint32_t intrinsic_kind)
 {
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 187);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 188);
 	switch (intrinsic_kind)
 	{
 	case ast::function_body::abs_i8:
@@ -3194,7 +3194,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 187);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 188);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -3612,6 +3612,8 @@ static val_ptr emit_bitcode(
 
 		case ast::function_body::comptime_compile_error:
 		case ast::function_body::comptime_compile_warning:
+		case ast::function_body::comptime_add_global_array_data:
+		case ast::function_body::comptime_create_global_string:
 			if constexpr (is_comptime<decltype(context)>)
 			{
 				bz_unreachable;

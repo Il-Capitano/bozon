@@ -528,6 +528,7 @@ struct function_body
 		comptime_compile_error,
 		comptime_compile_warning,
 
+		comptime_add_global_array_data,
 		comptime_create_global_string,
 
 		comptime_concatenate_strs,
@@ -1583,7 +1584,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 187);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 188);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1637,7 +1638,8 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::comptime_compile_error,   "__builtin_comptime_compile_error"   },
 		{ function_body::comptime_compile_warning, "__builtin_comptime_compile_warning" },
 
-		{ function_body::comptime_create_global_string, "__builtin_comptime_create_global_string" },
+		{ function_body::comptime_add_global_array_data, "__builtin_comptime_add_global_array_data" },
+		{ function_body::comptime_create_global_string,  "__builtin_comptime_create_global_string"  },
 
 		{ function_body::comptime_concatenate_strs, "__builtin_comptime_concatenate_strs" },
 

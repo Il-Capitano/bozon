@@ -245,7 +245,31 @@ export function __builtin_print_stderr(s: str)
 @__builtin export consteval function __builtin_comptime_compile_error(message: str);
 @__builtin export consteval function __builtin_comptime_compile_warning(message: str);
 
-@__builtin export consteval function __builtin_comptime_create_global_string(s: str) -> str;
+@__builtin consteval function __builtin_comptime_add_global_array_data(begin: *const auto, end: *const auto)
+	-> (if consteval (typeof begin != typeof end) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched pointer types '",
+			__builtin_typename_as_str(typeof begin),
+			"' and '",
+			__builtin_typename_as_str(typeof end),
+			"' in '__builtin_comptime_add_global_data'"
+		)));
+	} else {}, typeof begin);
+@__builtin export consteval function __builtin_comptime_create_global_string(s: str) -> str
+{
+	if (__builtin_str_size(s) == 0)
+	{
+		return "";
+	}
+	else
+	{
+		const global_begin = __builtin_comptime_add_global_array_data(
+			__builtin_optional_get_value(__builtin_str_begin_ptr(s)),
+			__builtin_optional_get_value(__builtin_str_end_ptr(s)),
+		);
+		return __builtin_str_from_ptrs(global_begin, global_begin + __builtin_str_size(s));
+	}
+}
 
 @__builtin consteval function __builtin_comptime_concatenate_strs(s: ...consteval str) -> str;
 
