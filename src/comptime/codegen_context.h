@@ -118,6 +118,7 @@ struct current_function_info_t
 	bz::vector<unresolved_jump> unresolved_jumps;
 	bz::vector<unresolved_switch> unresolved_switches;
 
+	bz::vector<instruction_ref> lifetimes{};
 	bz::vector<destruct_operation_info_t> destructor_calls{};
 	std::unordered_map<ast::decl_variable const *, instruction_ref> move_destruct_indicators{};
 	std::unordered_map<ast::decl_variable const *, expr_value> variables{};
@@ -150,6 +151,7 @@ struct codegen_context
 		basic_block_ref break_bb = {};
 		basic_block_ref continue_bb = {};
 		size_t destructor_stack_begin = 0;
+		size_t lifetimes_stack_begin = 0;
 		bool in_loop = false;
 	};
 
@@ -195,6 +197,7 @@ struct codegen_context
 	struct expression_scope_info_t
 	{
 		size_t destructor_calls_size;
+		size_t lifetimes_size;
 	};
 
 	// RAII helpers
@@ -225,7 +228,7 @@ struct codegen_context
 		expr_value value,
 		instruction_ref rvalue_array_elem_ptr
 	);
-	void emit_destruct_operations(size_t start_index);
+	void emit_destruct_operations(size_t destruct_calls_start_index, size_t lifetimes_start_index);
 	void emit_loop_destruct_operations(void);
 	void emit_all_destruct_operations(void);
 
@@ -535,6 +538,8 @@ struct codegen_context
 		type const *elem_type,
 		ast::typespec_view slice_type
 	);
+	void create_start_lifetime(instruction_ref ptr);
+	void create_end_lifetime(instruction_ref ptr);
 };
 
 } // namespace comptime
