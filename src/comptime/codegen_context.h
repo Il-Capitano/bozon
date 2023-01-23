@@ -142,6 +142,7 @@ struct codegen_context
 	type const *pointer_pair_t = nullptr;
 	type const *null_t = nullptr;
 
+	std::unordered_map<ast::decl_variable const *, uint32_t> global_variables{};
 	std::unordered_map<ast::function_body *, std::unique_ptr<function>> functions{};
 
 	bz::vector<ast::function_body *> functions_to_compile{};
@@ -173,7 +174,9 @@ struct codegen_context
 	memory::memory_segment_info_t get_memory_segment_info(void) const;
 
 	void add_variable(ast::decl_variable const *decl, expr_value value);
+	void add_global_variable(ast::decl_variable const *decl, uint32_t global_index);
 	expr_value get_variable(ast::decl_variable const *decl);
+	bz::optional<uint32_t> get_global_variable(ast::decl_variable const *decl);
 	function *get_non_const_function(ast::function_body *body);
 	function const *get_function(ast::function_body *body);
 
@@ -337,7 +340,12 @@ struct codegen_context
 	expr_value create_const_ptr_null(void);
 	void create_string(bz::u8string_view str, expr_value result_address);
 	expr_value create_string(bz::u8string_view str);
-	expr_value create_global_object(type const *object_type, bz::fixed_vector<uint8_t> data);
+	struct global_object_result
+	{
+		expr_value value;
+		uint32_t index;
+	};
+	global_object_result create_global_object(type const *object_type, bz::fixed_vector<uint8_t> data);
 	expr_value create_add_global_array_data(type const *elem_type, expr_value begin_ptr, expr_value end_ptr);
 
 	expr_value create_get_global_object(uint32_t global_index);

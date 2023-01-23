@@ -17,18 +17,36 @@ enum class endianness_kind
 	big,
 };
 
-ast::constant_value constant_value_from_object(
-	type const *object_type,
-	uint8_t const *mem,
-	ast::typespec_view ts,
-	endianness_kind endianness
-);
-
-bz::fixed_vector<uint8_t> object_from_constant_value(
-	ast::constant_value const &value,
-	type const *object_type,
-	endianness_kind endianness
-);
+template<typename Int>
+static Int byteswap(Int value)
+{
+	if constexpr (sizeof (Int) == 1)
+	{
+		return value;
+	}
+	else if constexpr (sizeof (Int) == 2)
+	{
+		value = ((value & uint16_t(0xff00)) >> 8) | ((value & uint16_t(0x00ff)) << 8);
+		return value;
+	}
+	else if constexpr (sizeof (Int) == 4)
+	{
+		value = ((value & uint32_t(0xffff'0000)) >> 16) | ((value & uint32_t(0x0000'ffff)) << 16);
+		value = ((value & uint32_t(0xff00'ff00)) >> 8) | ((value & uint32_t(0x00ff'00ff)) << 8);
+		return value;
+	}
+	else if constexpr (sizeof (Int) == 8)
+	{
+		value = ((value & uint64_t(0xffff'ffff'0000'0000)) >> 32) | ((value & uint64_t(0x0000'0000'ffff'ffff)) << 32);
+		value = ((value & uint64_t(0xffff'0000'ffff'0000)) >> 16) | ((value & uint64_t(0x0000'ffff'0000'ffff)) << 16);
+		value = ((value & uint64_t(0xff00'ff00'ff00'ff00)) >> 8) | ((value & uint64_t(0x00ff'00ff'00ff'00ff)) << 8);
+		return value;
+	}
+	else
+	{
+		static_assert(bz::meta::always_false<Int>);
+	}
+}
 
 struct pointer_arithmetic_result_t
 {
@@ -47,11 +65,12 @@ struct global_object
 	size_t object_size(void) const;
 
 	uint8_t *get_memory(ptr_t address);
+	uint8_t const *get_memory(ptr_t address) const;
 
 	bool check_dereference(ptr_t address, type const *subobject_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const;
-	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);
+	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const;
 };
 
 struct stack_object
@@ -68,11 +87,12 @@ struct stack_object
 	void initialize(void);
 	void deinitialize(void);
 	uint8_t *get_memory(ptr_t address);
+	uint8_t const *get_memory(ptr_t address) const;
 
 	bool check_dereference(ptr_t address, type const *subobject_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const;
-	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);
+	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const;
 };
 
 struct heap_object
@@ -91,11 +111,12 @@ struct heap_object
 	void initialize_region(ptr_t begin, ptr_t end);
 	bool is_region_initialized(ptr_t begin, ptr_t end) const;
 	uint8_t *get_memory(ptr_t address);
+	uint8_t const *get_memory(ptr_t address) const;
 
 	bool check_dereference(ptr_t address, type const *subobject_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const;
-	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);
+	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const;
 };
 
 struct global_memory_manager
@@ -103,20 +124,32 @@ struct global_memory_manager
 	ptr_t head;
 	bz::vector<global_object> objects;
 
+	struct one_past_the_end_pointer_info_t
+	{
+		uint32_t object_index;
+		uint32_t offset;
+		ptr_t address;
+	};
+
+	bz::vector<one_past_the_end_pointer_info_t> one_past_the_end_pointer_infos;
+
 	explicit global_memory_manager(ptr_t global_memory_begin);
 
 	uint32_t add_object(type const *object_type, bz::fixed_vector<uint8_t> data);
+	void add_one_past_the_end_pointer_info(one_past_the_end_pointer_info_t info);
 
 	global_object *get_global_object(ptr_t address);
+	global_object const *get_global_object(ptr_t address) const;
 
-	bool check_dereference(ptr_t address, type const *object_type);
-	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type);
-	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type);
+	bool check_dereference(ptr_t address, type const *object_type) const;
+	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
+	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type) const;
 
-	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type);
-	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);
+	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const;
+	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const;
 
 	uint8_t *get_memory(ptr_t address);
+	uint8_t const *get_memory(ptr_t address) const;
 };
 
 struct stack_frame
@@ -139,16 +172,19 @@ struct stack_manager
 	void pop_stack_frame(void);
 
 	stack_frame *get_stack_frame(ptr_t address);
+	stack_frame const *get_stack_frame(ptr_t address) const;
 	stack_object *get_stack_object(ptr_t address);
+	stack_object const *get_stack_object(ptr_t address) const;
 
-	bool check_dereference(ptr_t address, type const *object_type);
-	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type);
-	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type);
+	bool check_dereference(ptr_t address, type const *object_type) const;
+	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
+	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type) const;
 
-	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type);
-	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);
+	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const;
+	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const;
 
 	uint8_t *get_memory(ptr_t address);
+	uint8_t const *get_memory(ptr_t address) const;
 };
 
 enum class free_result
@@ -191,18 +227,20 @@ struct heap_manager
 	explicit heap_manager(ptr_t heap_begin);
 
 	allocation *get_allocation(ptr_t address);
+	allocation const *get_allocation(ptr_t address) const;
 
 	ptr_t allocate(call_stack_info_t alloc_info, type const *object_type, uint64_t count);
 	free_result free(call_stack_info_t free_info, ptr_t address);
 
-	bool check_dereference(ptr_t address, type const *object_type);
-	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type);
-	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type);
+	bool check_dereference(ptr_t address, type const *object_type) const;
+	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
+	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type) const;
 
-	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type);
-	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);
+	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const;
+	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const;
 
 	uint8_t *get_memory(ptr_t address);
+	uint8_t const *get_memory(ptr_t address) const;
 };
 
 struct stack_object_pointer
@@ -261,14 +299,19 @@ struct memory_manager
 	heap_manager heap;
 	meta_memory_manager meta_memory;
 
-	explicit memory_manager(memory_segment_info_t _segment_info, global_memory_manager *_global_memory);
+	explicit memory_manager(
+		memory_segment_info_t _segment_info,
+		global_memory_manager *_global_memory,
+		bool is_64_bit,
+		bool is_native_endianness
+	);
 
 	[[nodiscard]] bool push_stack_frame(bz::array_view<type const *const> types);
 	void pop_stack_frame(void);
 
-	bool check_dereference(ptr_t address, type const *object_type);
-	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type);
-	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type);
+	bool check_dereference(ptr_t address, type const *object_type) const;
+	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
+	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type) const;
 
 	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs);
 	ptr_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type);
@@ -276,8 +319,33 @@ struct memory_manager
 	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);
 	int64_t do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride);
 
+	bool is_global(ptr_t address) const;
+
 	uint8_t *get_memory(ptr_t address);
+	uint8_t const *get_memory(ptr_t address) const;
 };
+
+ast::constant_value constant_value_from_object(
+	type const *object_type,
+	uint8_t const *mem,
+	ast::typespec_view ts,
+	endianness_kind endianness,
+	memory_manager const &manager
+);
+
+struct object_from_constant_value_result_t
+{
+	bz::fixed_vector<uint8_t> data;
+	bz::vector<global_memory_manager::one_past_the_end_pointer_info_t> one_past_the_end_infos;
+};
+
+object_from_constant_value_result_t object_from_constant_value(
+	ast::constant_value const &value,
+	type const *object_type,
+	endianness_kind endianness,
+	global_memory_manager &manager,
+	type_set_t &type_set
+);
 
 } // namespace comptime::memory
 

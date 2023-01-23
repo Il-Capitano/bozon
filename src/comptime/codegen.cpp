@@ -441,26 +441,20 @@ static expr_value generate_expr_code(
 	bz::optional<expr_value> result_address
 )
 {
-	if (!result_address.has_value())
-	{
-		auto const types = tuple_expr.elems
-			.transform([](auto const &expr) { return expr.get_expr_type(); })
-			.transform([&context](auto const ts) { return get_type(ts, context); })
-			.collect();
-		auto const result_type = context.get_aggregate_type(types);
-		result_address = context.create_alloca(result_type);
-	}
-
-	auto const &result_expr_value = result_address.get();
-	bz_assert(result_expr_value.get_type()->is_aggregate());
-	bz_assert(result_expr_value.get_type()->get_aggregate_types().size() == tuple_expr.elems.size());
 	for (auto const i : bz::iota(0, tuple_expr.elems.size()))
 	{
-		auto const elem_result_address = context.create_struct_gep(result_expr_value, i);
-		generate_expr_code(tuple_expr.elems[i], context, elem_result_address);
+		if (result_address.has_value())
+		{
+			auto const elem_result_address = context.create_struct_gep(result_address.get(), i);
+			generate_expr_code(tuple_expr.elems[i], context, elem_result_address);
+		}
+		else
+		{
+			generate_expr_code(tuple_expr.elems[i], context, {});
+		}
 	}
 
-	return result_expr_value;
+	return result_address.has_value() ? result_address.get() : expr_value::get_none();
 }
 
 static expr_value generate_builtin_unary_address_of(
@@ -489,7 +483,8 @@ static expr_value generate_builtin_unary_address_of(
 	}
 	else
 	{
-		return value_or_result_address(value, result_address, context);
+		auto const value_ptr = expr_value::get_value(value.get_reference(), context.get_pointer_type());
+		return value_or_result_address(value_ptr, result_address, context);
 	}
 }
 
@@ -3434,7 +3429,7 @@ static expr_value generate_expr_code(
 )
 {
 	auto const copied_val = generate_expr_code(trivial_copy_construct.copied_value, context, {});
-	if (copied_val.get_type()->is_aggregate())
+	if (copied_val.get_type()->is_aggregate() || copied_val.get_type()->is_array())
 	{
 		if (!result_address.has_value())
 		{
@@ -5512,7 +5507,7 @@ static expr_value get_constant_value(
 	}
 	else
 	{
-			return get_constant_value_helper(value, type, const_expr, context, result_address);
+		return get_constant_value_helper(value, type, const_expr, context, result_address);
 	}
 }
 
@@ -5556,6 +5551,7 @@ static expr_value generate_expr_code(
 			|| dyn_expr.expr.is<ast::expr_compound>()
 			|| dyn_expr.expr.is<ast::expr_if>()
 			|| dyn_expr.expr.is<ast::expr_switch>()
+			|| dyn_expr.expr.is<ast::expr_tuple>()
 		)
 	)
 	{
@@ -5804,25 +5800,50 @@ static void add_variable_helper(
 
 static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_context &context)
 {
-	if (var_decl.get_type().is_empty())
+	if (var_decl.get_type().is_empty() || var_decl.init_expr.is_error())
 	{
 		context.create_error(var_decl.src_tokens, "failed to resolve variable declaration");
 		context.create_unreachable();
 		return;
 	}
 
-	if (var_decl.get_type().is_typename())
-	{
-		return;
-	}
-	else if (var_decl.get_type().is<ast::ts_consteval>())
+	if (var_decl.is_global_storage())
 	{
 		bz_assert(var_decl.init_expr.is_constant());
-		auto const type = get_type(var_decl.get_type(), context);
-		auto const value = context.create_global_object(
-			type, memory::object_from_constant_value(var_decl.init_expr.get_constant_value(), type, context.get_endianness())
-		);
-		add_variable_helper(var_decl, value, context);
+		bz_assert(var_decl.get_type().is<ast::ts_consteval>());
+
+		if (auto const global_index = context.get_global_variable(&var_decl); global_index.has_value())
+		{
+			auto const value = context.create_get_global_object(global_index.get());
+			add_variable_helper(var_decl, value, context);
+		}
+		else
+		{
+			auto const &init_value = var_decl.init_expr.get_constant_value();
+			auto const type = get_type(var_decl.get_type(), context);
+			auto [data, one_past_the_end_infos] = memory::object_from_constant_value(
+				init_value,
+				type,
+				context.get_endianness(),
+				context.global_memory,
+				context.type_set
+			);
+			auto const [value, index] = context.create_global_object(type, std::move(data));
+			for (auto const &[_, offset, address] : one_past_the_end_infos)
+			{
+				context.global_memory.add_one_past_the_end_pointer_info({
+					.object_index = index,
+					.offset = offset,
+					.address = address,
+				});
+			}
+			context.add_global_variable(&var_decl, index);
+			add_variable_helper(var_decl, value, context);
+		}
+	}
+	else if (var_decl.get_type().is_typename())
+	{
+		return;
 	}
 	else if (var_decl.get_type().is<ast::ts_lvalue_reference>())
 	{
@@ -6267,6 +6288,11 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 		);
 		context.create_store(context.create_const_i1(false), move_destruct_indicator_ref);
 	}
+}
+
+void generate_consteval_variable(ast::decl_variable const &var_decl, codegen_context &context)
+{
+	generate_stmt_code(var_decl, context);
 }
 
 } // namespace comptime

@@ -44,7 +44,12 @@ static ctx::error make_diagnostic(
 }
 
 executor_context::executor_context(codegen_context *_codegen_ctx)
-	: memory(_codegen_ctx->get_memory_segment_info(), &_codegen_ctx->global_memory),
+	: memory(
+		  _codegen_ctx->get_memory_segment_info(),
+		  &_codegen_ctx->global_memory,
+		  _codegen_ctx->is_64_bit(),
+		  _codegen_ctx->is_little_endian() == (std::endian::native == std::endian::little)
+	  ),
 	  codegen_ctx(_codegen_ctx)
 {}
 
@@ -691,7 +696,8 @@ ast::constant_value executor_context::execute_expression(ast::expression const &
 			result_object->object_type,
 			result_object->memory.data(),
 			expr.get_expr_type(),
-			this->codegen_ctx->machine_parameters.endianness
+			this->codegen_ctx->machine_parameters.endianness,
+			this->memory
 		);
 	}
 }

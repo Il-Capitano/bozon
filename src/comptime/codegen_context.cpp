@@ -154,12 +154,40 @@ void codegen_context::add_variable(ast::decl_variable const *decl, expr_value va
 	this->current_function_info.variables.insert({ decl, value });
 }
 
+void codegen_context::add_global_variable(ast::decl_variable const *decl, uint32_t global_index)
+{
+	bz_assert(!this->global_variables.contains(decl));
+	this->global_variables.insert({ decl, global_index });
+}
+
 expr_value codegen_context::get_variable(ast::decl_variable const *decl)
 {
 	auto const it = this->current_function_info.variables.find(decl);
 	if (it == this->current_function_info.variables.end())
 	{
-		return expr_value::get_none();
+		if (decl->is_global_storage() && decl->get_type().is<ast::ts_consteval>())
+		{
+			generate_consteval_variable(*decl, *this);
+			auto const new_it = this->current_function_info.variables.find(decl);
+			return new_it == this->current_function_info.variables.end() ? expr_value::get_none() : new_it->second;
+		}
+		else
+		{
+			return expr_value::get_none();
+		}
+	}
+	else
+	{
+		return it->second;
+	}
+}
+
+bz::optional<uint32_t> codegen_context::get_global_variable(ast::decl_variable const *decl)
+{
+	auto const it = this->global_variables.find(decl);
+	if (it == this->global_variables.end())
+	{
+		return {};
 	}
 	else
 	{
@@ -611,10 +639,10 @@ expr_value codegen_context::create_string(bz::u8string_view str)
 	return result_address;
 }
 
-expr_value codegen_context::create_global_object(type const *object_type, bz::fixed_vector<uint8_t> data)
+codegen_context::global_object_result codegen_context::create_global_object(type const *object_type, bz::fixed_vector<uint8_t> data)
 {
 	auto const index = this->global_memory.add_object(object_type, std::move(data));
-	return this->create_get_global_object(index);
+	return { this->create_get_global_object(index), index };
 }
 
 expr_value codegen_context::create_add_global_array_data(type const *elem_type, expr_value begin_ptr, expr_value end_ptr)

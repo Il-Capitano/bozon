@@ -16,6 +16,7 @@ std::unique_ptr<function> generate_from_symbol(ast::function_body &body, codegen
 function generate_code_for_expression(ast::expression const &expr, codegen_context &context);
 
 void generate_destruct_operation(destruct_operation_info_t const &destruct_op_info, codegen_context &context);
+void generate_consteval_variable(ast::decl_variable const &var_decl, codegen_context &context);
 
 } // namespace comptime
 
