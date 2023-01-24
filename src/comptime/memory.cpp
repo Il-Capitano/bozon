@@ -320,6 +320,155 @@ bz::optional<int64_t> global_object::do_pointer_difference(ptr_t lhs, ptr_t rhs,
 	}
 }
 
+bitset::bitset(size_t size, bool value)
+	: bits(size % 8 == 0 ? (size / 8) : (size / 8 + 1), value ? 0xff : 0x00)
+{}
+
+void bitset::set_range(size_t begin, size_t end, bool value)
+{
+	if (begin >= end)
+	{
+		return;
+	}
+
+	if (begin % 8 == 0 && end % 8 == 0)
+	{
+		auto const begin_ptr = this->bits.data() + begin / 8;
+		auto const size = (end - begin) / 8;
+		if (value)
+		{
+			std::memset(begin_ptr, 0xff, size);
+		}
+		else
+		{
+			std::memset(begin_ptr, 0x00, size);
+		}
+		return;
+	}
+
+	auto const begin_byte = this->bits.begin() + begin / 8;
+	auto const end_byte = this->bits.begin() + (end - 1) / 8;
+
+	if (begin_byte == end_byte)
+	{
+		auto const begin_bit_index = 8 - begin % 8;
+		auto const end_bit_index = 8 - ((end - 1) % 8 + 1);
+		auto const begin_bits = static_cast<uint8_t>((1 << begin_bit_index) - 1);
+		auto const end_bits = static_cast<uint8_t>((1 << end_bit_index) - 1);
+		auto const bits = static_cast<uint8_t>(begin_bits & ~end_bits);
+		if (value)
+		{
+			*begin_byte |= bits;
+		}
+		else
+		{
+			*begin_byte &= ~bits;
+		}
+	}
+	else
+	{
+		auto const begin_bit_index = 8 - begin % 8;
+		auto const end_bit_index = 8 - ((end - 1) % 8 + 1);
+		auto const begin_bits = static_cast<uint8_t>((1 << begin_bit_index) - 1);
+		auto const end_bits = static_cast<uint8_t>((1 << end_bit_index) - 1);
+		if (value)
+		{
+			*begin_byte |= begin_bits;
+			*end_byte |= end_bits;
+			std::memset(&*(begin_byte + 1), 0xff, end_byte - (begin_byte + 1));
+		}
+		else
+		{
+			*begin_byte &= ~begin_bits;
+			*end_byte &= ~end_bits;
+			std::memset(&*(begin_byte + 1), 0x00, end_byte - (begin_byte + 1));
+		}
+	}
+}
+
+bool bitset::is_all(size_t begin, size_t end) const
+{
+	if (begin >= end)
+	{
+		return true;
+	}
+
+	if (begin % 8 == 0 && end % 8 == 0)
+	{
+		return this->bits.slice(begin / 8, end / 8).is_all([](auto const byte) { return byte == 0xff; });
+	}
+
+	auto const begin_byte = this->bits.begin() + begin / 8;
+	auto const end_byte = this->bits.begin() + (end - 1) / 8;
+
+	if (begin_byte == end_byte)
+	{
+		auto const begin_bit_index = 8 - begin % 8;
+		auto const end_bit_index = 8 - ((end - 1) % 8 + 1);
+		auto const begin_bits = static_cast<uint8_t>((1 << begin_bit_index) - 1);
+		auto const end_bits = static_cast<uint8_t>((1 << end_bit_index) - 1);
+		auto const bits = static_cast<uint8_t>(begin_bits & ~end_bits);
+		return (*begin_byte & bits) == bits;
+	}
+	else
+	{
+		auto const begin_bit_index = 8 - begin % 8;
+		auto const end_bit_index = 8 - ((end - 1) % 8 + 1);
+		auto const begin_bits = static_cast<uint8_t>((1 << begin_bit_index) - 1);
+		auto const end_bits = static_cast<uint8_t>((1 << end_bit_index) - 1);
+		if ((*begin_byte & begin_bits) != begin_bits || (*end_byte & end_bits) != end_bits)
+		{
+			return false;
+		}
+
+		return bz::basic_range(begin_byte + 1, end_byte).is_all([](auto const byte) { return byte == 0xff; });
+	}
+}
+
+bool bitset::is_none(size_t begin, size_t end) const
+{
+	if (begin >= end)
+	{
+		return true;
+	}
+
+	if (begin % 8 == 0 && end % 8 == 0)
+	{
+		return this->bits.slice(begin / 8, end / 8).is_all([](auto const byte) { return byte == 0x00; });
+	}
+
+	auto const begin_byte = this->bits.begin() + begin / 8;
+	auto const end_byte = this->bits.begin() + (end - 1) / 8;
+
+	if (begin_byte == end_byte)
+	{
+		auto const begin_bit_index = 8 - begin % 8;
+		auto const end_bit_index = 8 - ((end - 1) % 8 + 1);
+		auto const begin_bits = static_cast<uint8_t>((1 << begin_bit_index) - 1);
+		auto const end_bits = static_cast<uint8_t>((1 << end_bit_index) - 1);
+		auto const bits = static_cast<uint8_t>(begin_bits & ~end_bits);
+		return (*begin_byte & ~bits) == 0;
+	}
+	else
+	{
+		auto const begin_bit_index = 8 - begin % 8;
+		auto const end_bit_index = 8 - ((end - 1) % 8 + 1);
+		auto const begin_bits = static_cast<uint8_t>((1 << begin_bit_index) - 1);
+		auto const end_bits = static_cast<uint8_t>((1 << end_bit_index) - 1);
+		if ((*begin_byte & ~begin_bits) != 0 || (*end_byte & ~end_bits) != 0)
+		{
+			return false;
+		}
+
+		return bz::basic_range(begin_byte + 1, end_byte).is_all([](auto const byte) { return byte == 0x00; });
+	}
+}
+
+void bitset::clear(void)
+{
+	this->bits.clear();
+}
+
 stack_object::stack_object(ptr_t _address, type const *_object_type, bool is_always_initialized)
 	: address(_address),
 	  object_type(_object_type),

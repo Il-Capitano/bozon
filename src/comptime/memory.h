@@ -73,6 +73,20 @@ struct global_object
 	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const;
 };
 
+struct bitset
+{
+	bz::fixed_vector<uint8_t> bits;
+
+	bitset(void) = default;
+	bitset(size_t size, bool value);
+
+	void set_range(size_t begin, size_t end, bool value);
+	bool is_all(size_t begin, size_t end) const;
+	bool is_none(size_t begin, size_t end) const;
+
+	void clear(void);
+};
+
 struct stack_object
 {
 	ptr_t address;
