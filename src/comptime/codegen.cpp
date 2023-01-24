@@ -5770,6 +5770,7 @@ static void generate_stmt_code(ast::stmt_expression const &expr_stmt, codegen_co
 static void add_variable_helper(
 	ast::decl_variable const &var_decl,
 	expr_value value,
+	bool is_global_storage,
 	codegen_context &context
 )
 {
@@ -5777,14 +5778,17 @@ static void add_variable_helper(
 	{
 		bz_assert(!var_decl.get_type().is<ast::ts_lvalue_reference>() && !var_decl.get_type().is<ast::ts_move_reference>());
 		context.add_variable(&var_decl, value);
-		if (var_decl.is_ever_moved_from())
+		if (!is_global_storage)
 		{
-			auto const indicator = context.add_move_destruct_indicator(&var_decl);
-			context.push_variable_destruct_operation(var_decl.destruction, value, indicator);
-		}
-		else
-		{
-			context.push_variable_destruct_operation(var_decl.destruction, value);
+			if (var_decl.is_ever_moved_from())
+			{
+				auto const indicator = context.add_move_destruct_indicator(&var_decl);
+				context.push_variable_destruct_operation(var_decl.destruction, value, indicator);
+			}
+			else
+			{
+				context.push_variable_destruct_operation(var_decl.destruction, value);
+			}
 		}
 	}
 	else
@@ -5793,7 +5797,7 @@ static void add_variable_helper(
 		for (auto const &[decl, i] : var_decl.tuple_decls.enumerate())
 		{
 			auto const elem_value = context.create_struct_gep(value, i);
-			add_variable_helper(decl, elem_value, context);
+			add_variable_helper(decl, elem_value, is_global_storage, context);
 		}
 	}
 }
@@ -5815,7 +5819,7 @@ static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_conte
 		if (auto const global_index = context.get_global_variable(&var_decl); global_index.has_value())
 		{
 			auto const value = context.create_get_global_object(global_index.get());
-			add_variable_helper(var_decl, value, context);
+			add_variable_helper(var_decl, value, true, context);
 		}
 		else
 		{
@@ -5838,7 +5842,7 @@ static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_conte
 				});
 			}
 			context.add_global_variable(&var_decl, index);
-			add_variable_helper(var_decl, value, context);
+			add_variable_helper(var_decl, value, true, context);
 		}
 	}
 	else if (var_decl.get_type().is_typename())
@@ -5861,7 +5865,7 @@ static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_conte
 		}
 		else
 		{
-			add_variable_helper(var_decl, ref_value, context);
+			add_variable_helper(var_decl, ref_value, false, context);
 		}
 	}
 	else
@@ -5874,7 +5878,7 @@ static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_conte
 			generate_expr_code(var_decl.init_expr, context, alloca);
 			context.pop_expression_scope(prev_info);
 		}
-		add_variable_helper(var_decl, alloca, context);
+		add_variable_helper(var_decl, alloca, false, context);
 	}
 }
 
@@ -5984,7 +5988,7 @@ void generate_code(function &func, codegen_context &context)
 			}
 			else
 			{
-				add_variable_helper(param, value, context);
+				add_variable_helper(param, value, false, context);
 			}
 		}
 		else if (auto const type = func.arg_types[i]; type->is_simple_value_type())
@@ -5992,12 +5996,12 @@ void generate_code(function &func, codegen_context &context)
 			auto const alloca = context.create_alloca(type);
 			auto const value = expr_value::get_value(context.create_get_function_arg(i), type);
 			context.create_store(value, alloca);
-			add_variable_helper(param, alloca, context);
+			add_variable_helper(param, alloca, false, context);
 		}
 		else
 		{
 			auto const value = expr_value::get_reference(context.create_get_function_arg(i), type);
-			add_variable_helper(param, value, context);
+			add_variable_helper(param, value, false, context);
 		}
 		++i;
 	}
