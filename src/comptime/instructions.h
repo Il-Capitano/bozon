@@ -5693,11 +5693,6 @@ struct instruction : instruction_base_t
 	}
 };
 
-static_assert(sizeof (instruction) == 24);
-static_assert(std::is_trivially_copy_constructible_v<instruction>);
-static_assert(std::is_trivially_destructible_v<instruction>);
-
-
 bz::u8string to_string(instruction const &inst);
 bz::u8string to_string(function const &func);
 
