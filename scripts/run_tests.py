@@ -42,17 +42,18 @@ file_name_print_length = 3 + max((
 error = False
 
 def run_process(args):
-    while True:
-        process = subprocess.run(args, capture_output=True)
-        stdout = process.stdout.decode('utf-8')
-        stderr = process.stderr.decode('utf-8')
-        if 'LLVM ERROR: IMAGE_REL_AMD64_ADDR32NB relocation requires an ordered section layout' not in stderr:
-            return stdout, stderr, process.returncode
+    process = subprocess.run(args, capture_output=True)
+    stdout = process.stdout.decode('utf-8')
+    stderr = process.stderr.decode('utf-8')
+    return stdout, stderr, process.returncode
+
+total_passed = 0
 
 for test_file in success_test_files:
     print(f'    {test_file:.<{file_name_print_length}}', end='', flush=True)
     stdout, stderr, rc = run_process([ bozon, *flags, test_file ])
     if rc == 0 and stdout == '' and stderr == '':
+        total_passed += 1
         print(f'{bright_green}OK{clear}')
     else:
         error = True
@@ -69,6 +70,7 @@ for test_file in warning_test_files:
     print(f'    {test_file:.<{file_name_print_length}}', end='', flush=True)
     stdout, stderr, rc = run_process([ bozon, *flags, test_file ])
     if rc == 0 and (stdout != '' or stderr != ''):
+        total_passed += 1
         print(f'{bright_green}OK{clear}')
     else:
         error = True
@@ -86,6 +88,7 @@ for test_file in error_test_files:
     stdout, stderr, rc = run_process([ bozon, *flags, test_file ])
     rerun_stdout, rerun_stderr, rerun_rc = run_process([ bozon, *flags, '--return-zero-on-error', test_file ])
     if rc != 0 and rerun_rc == 0:
+        total_passed += 1
         print(f'{bright_green}OK{clear}')
     else:
         error = True
@@ -97,6 +100,14 @@ for test_file in error_test_files:
             print('stderr:')
             print(stderr)
         print(f'exit code: {rc}')
+
+total_test_count = len(success_test_files) + len(warning_test_files) + len(error_test_files)
+passed_percentage = 100 * total_passed / total_test_count
+
+if total_passed == total_test_count:
+    print(f'{bright_green}{total_passed}/{total_test_count}{clear} ({bright_green}{passed_percentage:.2f}%{clear}) tests passed')
+else:
+    print(f'{bright_red}{total_passed}/{total_test_count}{clear} ({bright_red}{passed_percentage:.2f}%{clear}) tests passed')
 
 if error:
     exit(1)
