@@ -365,19 +365,17 @@ void codegen_context::push_destruct_operation(ast::destruct_operation const &des
 
 void codegen_context::push_variable_destruct_operation(
 	ast::destruct_operation const &destruct_op,
+	expr_value value,
 	bz::optional<instruction_ref> move_destruct_indicator
 )
 {
-	if (destruct_op.not_null())
-	{
-		this->current_function_info.destructor_calls.push_back({
-			.destruct_op = &destruct_op,
-			.value = expr_value::get_none(),
-			.condition = move_destruct_indicator,
-			.move_destruct_indicator = {},
-			.rvalue_array_elem_ptr = {},
-		});
-	}
+	this->current_function_info.destructor_calls.push_back({
+		.destruct_op = destruct_op.not_null() ? &destruct_op : nullptr,
+		.value = value,
+		.condition = move_destruct_indicator,
+		.move_destruct_indicator = {},
+		.rvalue_array_elem_ptr = {},
+	});
 }
 
 void codegen_context::push_self_destruct_operation(
@@ -5675,7 +5673,7 @@ void current_function_info_t::finalize_function(void)
 	// finalize memory_access_check_infos
 	func.memory_access_check_infos = bz::fixed_vector(this->memory_access_check_infos.as_array_view());
 
-	// bz::log("{}", to_string(func));
+	bz::log("{}", to_string(func));
 
 	*this = current_function_info_t();
 }

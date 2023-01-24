@@ -214,6 +214,7 @@ struct codegen_context
 	void push_destruct_operation(ast::destruct_operation const &destruct_op);
 	void push_variable_destruct_operation(
 		ast::destruct_operation const &destruct_op,
+		expr_value value,
 		bz::optional<instruction_ref> move_destruct_indicator = {}
 	);
 	void push_self_destruct_operation(

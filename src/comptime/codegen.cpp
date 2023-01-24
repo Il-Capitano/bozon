@@ -5777,14 +5777,14 @@ static void add_variable_helper(
 	{
 		bz_assert(!var_decl.get_type().is<ast::ts_lvalue_reference>() && !var_decl.get_type().is<ast::ts_move_reference>());
 		context.add_variable(&var_decl, value);
-		if (var_decl.is_ever_moved_from() && var_decl.destruction.not_null())
+		if (var_decl.is_ever_moved_from())
 		{
 			auto const indicator = context.add_move_destruct_indicator(&var_decl);
-			context.push_variable_destruct_operation(var_decl.destruction, indicator);
+			context.push_variable_destruct_operation(var_decl.destruction, value, indicator);
 		}
 		else
 		{
-			context.push_variable_destruct_operation(var_decl.destruction);
+			context.push_variable_destruct_operation(var_decl.destruction, value);
 		}
 	}
 	else
@@ -6151,11 +6151,18 @@ static void generate_rvalue_array_destruct(
 
 void generate_destruct_operation(destruct_operation_info_t const &destruct_op_info, codegen_context &context)
 {
+	if (destruct_op_info.destruct_op == nullptr)
+	{
+		context.create_end_lifetime(destruct_op_info.value.get_reference());
+		return;
+	}
+
 	auto const &destruct_op = *destruct_op_info.destruct_op;
 	auto const &condition = destruct_op_info.condition;
 
 	if (destruct_op.is<ast::destruct_variable>())
 	{
+		auto const &value = destruct_op_info.value;
 		bz_assert(destruct_op.get<ast::destruct_variable>().destruct_call->not_null());
 		if (condition.has_value())
 		{
@@ -6169,6 +6176,7 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 			auto const destruct_bb = context.add_basic_block();
 			context.set_current_basic_block(destruct_bb);
 			generate_expr_code(*destruct_op.get<ast::destruct_variable>().destruct_call, context, {});
+			context.create_end_lifetime(value.get_reference());
 
 			auto const end_bb = context.add_basic_block();
 			context.create_jump(end_bb);
@@ -6181,6 +6189,7 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 		else
 		{
 			generate_expr_code(*destruct_op.get<ast::destruct_variable>().destruct_call, context, {});
+			context.create_end_lifetime(value.get_reference());
 		}
 	}
 	else if (destruct_op.is<ast::destruct_self>())
