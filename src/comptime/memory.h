@@ -18,7 +18,7 @@ enum class endianness_kind
 };
 
 template<typename Int>
-static Int byteswap(Int value)
+Int byteswap(Int value)
 {
 	if constexpr (sizeof (Int) == 1)
 	{
