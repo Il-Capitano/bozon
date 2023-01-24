@@ -70,7 +70,7 @@
 			"depends_on": "default",
 			"source_directory": "test",
 			"defines": [],
-			"run_args": [ "-Wall", "--debug-comptime-ir-output", "--no-error-highlight", "--stdlib-dir", "bozon-stdlib" ]
+			"run_args": [ "-Wall", "--no-error-highlight", "--stdlib-dir", "bozon-stdlib" ]
 		},
 		"gcc": {
 			"compiler": "gcc",
@@ -122,7 +122,7 @@
 			"depends_on": "gcc",
 			"source_directory": "test",
 			"defines": [],
-			"run_args": [ "-Wall", "--debug-comptime-ir-output", "--no-error-highlight", "--stdlib-dir", "bozon-stdlib" ],
+			"run_args": [ "-Wall", "--no-error-highlight", "--stdlib-dir", "bozon-stdlib" ],
 			"configs": {
 				"windows-debug": {
 					"optimization": "g"

@@ -6,7 +6,7 @@ success_test_files = glob.glob("tests/success/**/*.bz", recursive=True)
 warning_test_files = glob.glob("tests/warning/**/*.bz", recursive=True)
 error_test_files = glob.glob("tests/error/**/*.bz", recursive=True)
 bozon = 'bin\\windows-debug\\bozon.exe' if os.name == 'nt' else './bin/linux-debug/bozon'
-flags = [ '--stdlib-dir', 'bozon-stdlib', '-Wall', '--emit=null', '-Itests/import', '-Ocomptime-opt-level=3' ]
+flags = [ '--stdlib-dir', 'bozon-stdlib', '-Wall', '--emit=null', '-Itests/import' ]
 
 # enable colors for windows
 if os.name == 'nt':
