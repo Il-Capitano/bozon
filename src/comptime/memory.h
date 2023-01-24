@@ -17,6 +17,45 @@ enum class endianness_kind
 	big,
 };
 
+template<auto segments>
+struct memory_segment_info_t
+{
+	using segment_type = typename decltype(segments)::value_type;
+	static constexpr size_t N = segments.size();
+
+	bz::array<ptr_t, N> segment_begins;
+
+	segment_type get_segment(ptr_t address) const
+	{
+		bz_assert(address >= this->segment_begins[0]);
+		auto const it = std::upper_bound(
+			this->segment_begins.begin(), this->segment_begins.end(),
+			address,
+			[](ptr_t p, ptr_t address_begin) {
+				return p < address_begin;
+			}
+		);
+		auto const index = (it - 1) - this->segment_begins.begin();
+		return segments[index];
+	}
+
+	template<segment_type kind>
+	ptr_t get_segment_begin(void) const
+	{
+		constexpr auto index = []() {
+			auto const it = std::find_if(
+				segments.begin(), segments.end(),
+				[](segment_type segment) {
+					return kind == segment;
+				}
+			);
+			return it - segments.begin();
+		}();
+		static_assert(index >= 0 && index < N);
+		return this->segment_begins[index];
+	}
+};
+
 template<typename Int>
 Int byteswap(Int value)
 {
@@ -52,6 +91,12 @@ struct pointer_arithmetic_result_t
 {
 	ptr_t address;
 	bool is_one_past_the_end;
+};
+
+struct error_reason_t
+{
+	lex::src_tokens src_tokens;
+	bz::u8string message;
 };
 
 struct global_object
@@ -271,20 +316,34 @@ struct one_past_the_end_pointer
 	ptr_t address;
 };
 
+enum class meta_memory_segment
+{
+	stack_object,
+	one_past_the_end,
+};
+
 struct meta_memory_manager
 {
-	ptr_t stack_object_begin_address;
-	ptr_t one_past_the_end_begin_address;
+	using segment_info_t = memory_segment_info_t<bz::array{
+		meta_memory_segment::stack_object,
+		meta_memory_segment::one_past_the_end,
+	}>;
+
+	segment_info_t segment_info;
 
 	bz::vector<stack_object_pointer> stack_object_pointers;
 	bz::vector<one_past_the_end_pointer> one_past_the_end_pointers;
 
 	explicit meta_memory_manager(ptr_t meta_begin);
 
-	ptr_t get_real_address(ptr_t address) const;
-	bool is_valid(ptr_t address, bz::array_view<stack_frame const> current_stack_frames) const;
+	size_t get_stack_object_index(ptr_t address) const;
+	size_t get_one_past_the_end_index(ptr_t address) const;
+	stack_object_pointer const &get_stack_object_pointer(ptr_t address) const;
+	one_past_the_end_pointer const &get_one_past_the_end_pointer(ptr_t address) const;
 
 	ptr_t make_one_past_the_end_address(ptr_t address);
+
+	ptr_t get_real_address(ptr_t address) const;
 };
 
 enum class memory_segment
@@ -296,19 +355,17 @@ enum class memory_segment
 	meta,
 };
 
-struct memory_segment_info_t
-{
-	ptr_t global_begin;
-	ptr_t stack_begin;
-	ptr_t heap_begin;
-	ptr_t meta_begin;
-
-	memory_segment get_segment(ptr_t address) const;
-};
-
 struct memory_manager
 {
-	memory_segment_info_t segment_info;
+	using segment_info_t = memory_segment_info_t<bz::array{
+		memory_segment::invalid,
+		memory_segment::global,
+		memory_segment::stack,
+		memory_segment::heap,
+		memory_segment::meta,
+	}>;
+
+	segment_info_t segment_info;
 
 	global_memory_manager *global_memory;
 	stack_manager stack;
@@ -316,7 +373,7 @@ struct memory_manager
 	meta_memory_manager meta_memory;
 
 	explicit memory_manager(
-		memory_segment_info_t _segment_info,
+		segment_info_t _segment_info,
 		global_memory_manager *_global_memory,
 		bool is_64_bit,
 		bool is_native_endianness

@@ -7,20 +7,22 @@
 namespace comptime
 {
 
-static_assert(sizeof (memory::memory_segment_info_t) == 32);
+static_assert(sizeof (memory::memory_manager::segment_info_t) == 40);
 
-static constexpr memory::memory_segment_info_t segment_info_64_bit = {
-	.global_begin = 0x0000'0000'0001'0000,
-	.stack_begin  = 0x4000'0000'0000'0000,
-	.heap_begin   = 0x8000'0000'0000'0000,
-	.meta_begin   = 0xff00'0000'0000'0000,
+static constexpr memory::memory_manager::segment_info_t segment_info_64_bit = {
+	0,
+	0x0000'0000'0001'0000,
+	0x4000'0000'0000'0000,
+	0x8000'0000'0000'0000,
+	0xff00'0000'0000'0000,
 };
 
-static constexpr memory::memory_segment_info_t segment_info_32_bit = {
-	.global_begin = 0x0001'0000,
-	.stack_begin  = 0x4000'0000,
-	.heap_begin   = 0x8000'0000,
-	.meta_begin   = 0xff00'0000,
+static constexpr memory::memory_manager::segment_info_t segment_info_32_bit = {
+	0,
+	0x0001'0000,
+	0x4000'0000,
+	0x8000'0000,
+	0xff00'0000,
 };
 
 template<typename Inst>
@@ -160,7 +162,11 @@ type const *expr_value::get_type(void) const
 
 codegen_context::codegen_context(machine_parameters_t _machine_parameters)
 	: machine_parameters(_machine_parameters),
-	  global_memory(_machine_parameters.pointer_size == 8 ? segment_info_64_bit.global_begin : segment_info_32_bit.global_begin),
+	  global_memory(
+		  _machine_parameters.pointer_size == 8
+		  ? segment_info_64_bit.get_segment_begin<memory::memory_segment::global>()
+		  : segment_info_32_bit.get_segment_begin<memory::memory_segment::global>()
+	  ),
 	  type_set(_machine_parameters.pointer_size)
 {
 	auto const pointer_type = this->get_pointer_type();
@@ -209,7 +215,7 @@ bool codegen_context::is_32_bit(void) const
 	return this->machine_parameters.pointer_size == 4;
 }
 
-memory::memory_segment_info_t codegen_context::get_memory_segment_info(void) const
+memory::memory_manager::segment_info_t codegen_context::get_memory_segment_info(void) const
 {
 	if (this->is_64_bit())
 	{

@@ -1341,8 +1341,7 @@ uint8_t const *heap_manager::get_memory(ptr_t address) const
 }
 
 meta_memory_manager::meta_memory_manager(ptr_t meta_begin)
-	: stack_object_begin_address(meta_begin),
-	  one_past_the_end_begin_address(meta_begin),
+	: segment_info{ meta_begin, meta_begin },
 	  stack_object_pointers(),
 	  one_past_the_end_pointers()
 {
@@ -1350,98 +1349,65 @@ meta_memory_manager::meta_memory_manager(ptr_t meta_begin)
 		? std::numeric_limits<uint32_t>::max()
 		: std::numeric_limits<uint64_t>::max();
 	auto const meta_address_space_size = max_address - meta_begin + 1;
-	auto const segment_size = meta_address_space_size / 2;
+	auto const segment_size = meta_address_space_size / meta_memory_manager::segment_info_t::N;
 
-	this->one_past_the_end_begin_address += segment_size;
+	static_assert(meta_memory_manager::segment_info_t::N == 2);
+	this->segment_info.segment_begins[1] += segment_size;
 }
 
-ptr_t meta_memory_manager::get_real_address(ptr_t address) const
+size_t meta_memory_manager::get_stack_object_index(ptr_t address) const
 {
-	bz_assert(address >= this->stack_object_begin_address);
-	if (address < this->one_past_the_end_begin_address)
-	{
-		auto const index = address - this->stack_object_begin_address;
-		bz_assert(index < this->stack_object_pointers.size());
-		return this->stack_object_pointers[index].stack_address;
-	}
-	else
-	{
-		auto const index = address - this->one_past_the_end_begin_address;
-		bz_assert(index < this->one_past_the_end_pointers.size());
-		return this->one_past_the_end_pointers[index].address;
-	}
+	return address - this->segment_info.get_segment_begin<meta_memory_segment::stack_object>();
 }
 
-bool meta_memory_manager::is_valid(ptr_t address, bz::array_view<stack_frame const> current_stack_frames) const
+size_t meta_memory_manager::get_one_past_the_end_index(ptr_t address) const
 {
-	if (address < this->stack_object_begin_address)
-	{
-		return false;
-	}
+	return address - this->segment_info.get_segment_begin<meta_memory_segment::one_past_the_end>();
+}
 
-	if (address < this->one_past_the_end_begin_address)
-	{
-		auto const index = address - this->stack_object_begin_address;
-		if (index >= this->stack_object_pointers.size())
-		{
-			return false;
-		}
+stack_object_pointer const &meta_memory_manager::get_stack_object_pointer(ptr_t address) const
+{
+	auto const index = this->get_stack_object_index(address);
+	bz_assert(index < this->stack_object_pointers.size());
+	return this->stack_object_pointers[index];
+}
 
-		auto const &object = this->stack_object_pointers[index];
-		return object.stack_frame_depth < current_stack_frames.size()
-			&& object.stack_frame_id == current_stack_frames[object.stack_frame_depth].id;
-	}
-	else
-	{
-		auto const index = address - this->one_past_the_end_begin_address;
-		return index < this->one_past_the_end_pointers.size();
-	}
+one_past_the_end_pointer const &meta_memory_manager::get_one_past_the_end_pointer(ptr_t address) const
+{
+	auto const index = this->get_one_past_the_end_index(address);
+	bz_assert(index < this->one_past_the_end_pointers.size());
+	return this->one_past_the_end_pointers[index];
 }
 
 ptr_t meta_memory_manager::make_one_past_the_end_address(ptr_t address)
 {
 	auto const result_index = this->one_past_the_end_pointers.size();
 	this->one_past_the_end_pointers.push_back({ address });
-	return this->one_past_the_end_begin_address + result_index;
+	return this->segment_info.get_segment_begin<meta_memory_segment::one_past_the_end>() + result_index;
 }
 
-memory_segment memory_segment_info_t::get_segment(ptr_t address) const
+ptr_t meta_memory_manager::get_real_address(ptr_t address) const
 {
-	struct address_segment_pair
+	switch (this->segment_info.get_segment(address))
 	{
-		ptr_t address_begin;
-		memory_segment segment_kind;
-	};
-
-	bz::array<address_segment_pair, 5> segment_info = {{
-		{ 0, memory_segment::invalid },
-		{ this->global_begin, memory_segment::global },
-		{ this->stack_begin, memory_segment::stack },
-		{ this->heap_begin, memory_segment::heap },
-		{ this->meta_begin, memory_segment::meta },
-	}};
-
-	auto const it = std::upper_bound(
-		segment_info.begin(), segment_info.end(),
-		address,
-		[](ptr_t p, address_segment_pair const &info) {
-			return p < info.address_begin;
-		}
-	);
-	return (it - 1)->segment_kind;
+	case meta_memory_segment::stack_object:
+		return this->get_stack_object_pointer(address).stack_address;
+	case meta_memory_segment::one_past_the_end:
+		return this->get_one_past_the_end_pointer(address).address;
+	}
 }
 
 memory_manager::memory_manager(
-	memory_segment_info_t _segment_info,
+	segment_info_t _segment_info,
 	global_memory_manager *_global_memory,
 	bool is_64_bit,
 	bool is_native_endianness
 )
 	: segment_info(_segment_info),
 	  global_memory(_global_memory),
-	  stack(_segment_info.stack_begin),
-	  heap(_segment_info.heap_begin),
-	  meta_memory(_segment_info.meta_begin)
+	  stack(_segment_info.get_segment_begin<memory_segment::stack>()),
+	  heap(_segment_info.get_segment_begin<memory_segment::heap>()),
+	  meta_memory(_segment_info.get_segment_begin<memory_segment::meta>())
 {
 	for (auto const &info : this->global_memory->one_past_the_end_pointer_infos)
 	{
@@ -1479,7 +1445,7 @@ ptr_t memory_manager::get_non_meta_address(ptr_t address)
 [[nodiscard]] bool memory_manager::push_stack_frame(bz::array_view<alloca const> types)
 {
 	this->stack.push_stack_frame(types);
-	return this->stack.head < this->segment_info.heap_begin;
+	return this->stack.head < this->segment_info.get_segment_begin<memory_segment::heap>();
 }
 
 void memory_manager::pop_stack_frame(void)
@@ -1489,7 +1455,32 @@ void memory_manager::pop_stack_frame(void)
 
 bool memory_manager::check_dereference(ptr_t address, type const *object_type) const
 {
-	auto const segment = this->segment_info.get_segment(address);
+	auto segment = this->segment_info.get_segment(address);
+	while (segment == memory_segment::meta)
+	{
+		switch (this->meta_memory.segment_info.get_segment(address))
+		{
+		case meta_memory_segment::stack_object:
+		{
+			auto const &stack_object = this->meta_memory.get_stack_object_pointer(address);
+			if (
+				stack_object.stack_frame_depth >= this->stack.stack_frames.size()
+				|| this->stack.stack_frames[stack_object.stack_frame_depth].id != stack_object.stack_frame_id
+			)
+			{
+				return false;
+			}
+
+			address = stack_object.stack_address;
+			break;
+		}
+		case meta_memory_segment::one_past_the_end:
+			return false;
+		}
+
+		segment = this->segment_info.get_segment(address);
+	}
+
 	switch (segment)
 	{
 	case memory_segment::invalid:
@@ -1501,9 +1492,7 @@ bool memory_manager::check_dereference(ptr_t address, type const *object_type) c
 	case memory_segment::heap:
 		return this->heap.check_dereference(address, object_type);
 	case memory_segment::meta:
-		// TODO: one-past-the-end pointers shouldn't be valid here
-		return this->meta_memory.is_valid(address, this->stack.stack_frames)
-			&& this->check_dereference(this->meta_memory.get_real_address(address), object_type);
+		bz_unreachable;
 	}
 }
 
@@ -1514,31 +1503,27 @@ bool memory_manager::check_slice_construction(ptr_t begin, ptr_t end, type const
 
 	if (begin_segment == memory_segment::meta && end_segment == memory_segment::meta)
 	{
-		return this->meta_memory.is_valid(begin, this->stack.stack_frames)
-			&& this->meta_memory.is_valid(end, this->stack.stack_frames)
-			&& this->check_slice_construction(
-				this->meta_memory.get_real_address(begin),
-				this->meta_memory.get_real_address(end),
-				elem_type
-			);
+		return this->check_slice_construction(
+			this->meta_memory.get_real_address(begin),
+			this->meta_memory.get_real_address(end),
+			elem_type
+		);
 	}
 	else if (begin_segment == memory_segment::meta)
 	{
-		return this->meta_memory.is_valid(begin, this->stack.stack_frames)
-			&& this->check_slice_construction(
-				this->meta_memory.get_real_address(begin),
-				end,
-				elem_type
-			);
+		return this->check_slice_construction(
+			this->meta_memory.get_real_address(begin),
+			end,
+			elem_type
+		);
 	}
 	else if (end_segment == memory_segment::meta)
 	{
-		return this->meta_memory.is_valid(end, this->stack.stack_frames)
-			&& this->check_slice_construction(
-				begin,
-				this->meta_memory.get_real_address(end),
-				elem_type
-			);
+		return this->check_slice_construction(
+			begin,
+			this->meta_memory.get_real_address(end),
+			elem_type
+		);
 	}
 	else if (begin_segment != end_segment)
 	{
@@ -1574,36 +1559,15 @@ bz::optional<int> memory_manager::compare_pointers(ptr_t lhs, ptr_t rhs)
 
 	if (lhs_segment == memory_segment::meta && rhs_segment == memory_segment::meta)
 	{
-		if (this->meta_memory.is_valid(lhs, this->stack.stack_frames) && this->meta_memory.is_valid(rhs, this->stack.stack_frames))
-		{
-			return this->compare_pointers(this->meta_memory.get_real_address(lhs), this->meta_memory.get_real_address(rhs));
-		}
-		else
-		{
-			return {};
-		}
+		return this->compare_pointers(this->meta_memory.get_real_address(lhs), this->meta_memory.get_real_address(rhs));
 	}
 	else if (lhs_segment == memory_segment::meta)
 	{
-		if (this->meta_memory.is_valid(lhs, this->stack.stack_frames))
-		{
-			return this->compare_pointers(this->meta_memory.get_real_address(lhs), rhs);
-		}
-		else
-		{
-			return {};
-		}
+		return this->compare_pointers(this->meta_memory.get_real_address(lhs), rhs);
 	}
 	else if (rhs_segment == memory_segment::meta)
 	{
-		if (this->meta_memory.is_valid(rhs, this->stack.stack_frames))
-		{
-			return this->compare_pointers(lhs, this->meta_memory.get_real_address(rhs));
-		}
-		else
-		{
-			return {};
-		}
+		return this->compare_pointers(lhs, this->meta_memory.get_real_address(rhs));
 	}
 	else if (lhs_segment != rhs_segment)
 	{
@@ -1670,14 +1634,7 @@ ptr_t memory_manager::do_pointer_arithmetic(ptr_t address, int64_t offset, type 
 		}
 	}
 	case memory_segment::meta:
-		if (this->meta_memory.is_valid(address, this->stack.stack_frames))
-		{
-			return this->do_pointer_arithmetic(this->meta_memory.get_real_address(address), offset, object_type);
-		}
-		else
-		{
-			return 0;
-		}
+		return this->do_pointer_arithmetic(this->meta_memory.get_real_address(address), offset, object_type);
 	}
 }
 
@@ -1714,7 +1671,6 @@ ptr_t memory_manager::do_gep(ptr_t address, type const *object_type, uint64_t in
 		}
 	}
 	case memory_segment::meta:
-		bz_assert(this->meta_memory.is_valid(address, this->stack.stack_frames));
 		return this->do_gep(this->meta_memory.get_real_address(address), object_type, index);
 	}
 }
@@ -1731,40 +1687,19 @@ bz::optional<int64_t> memory_manager::do_pointer_difference(ptr_t lhs, ptr_t rhs
 
 	if (lhs_segment == memory_segment::meta && rhs_segment == memory_segment::meta)
 	{
-		if (this->meta_memory.is_valid(lhs, this->stack.stack_frames) && this->meta_memory.is_valid(rhs, this->stack.stack_frames))
-		{
-			return this->do_pointer_difference(
-				this->meta_memory.get_real_address(lhs),
-				this->meta_memory.get_real_address(rhs),
-				object_type
-			);
-		}
-		else
-		{
-			return {};
-		}
+		return this->do_pointer_difference(
+			this->meta_memory.get_real_address(lhs),
+			this->meta_memory.get_real_address(rhs),
+			object_type
+		);
 	}
 	else if (lhs_segment == memory_segment::meta)
 	{
-		if (this->meta_memory.is_valid(lhs, this->stack.stack_frames))
-		{
-			return this->do_pointer_difference(this->meta_memory.get_real_address(lhs), rhs, object_type);
-		}
-		else
-		{
-			return {};
-		}
+		return this->do_pointer_difference(this->meta_memory.get_real_address(lhs), rhs, object_type);
 	}
 	else if (rhs_segment == memory_segment::meta)
 	{
-		if (this->meta_memory.is_valid(rhs, this->stack.stack_frames))
-		{
-			return this->do_pointer_difference(lhs, this->meta_memory.get_real_address(rhs), object_type);
-		}
-		else
-		{
-			return {};
-		}
+		return this->do_pointer_difference(lhs, this->meta_memory.get_real_address(rhs), object_type);
 	}
 	else if (lhs_segment != rhs_segment)
 	{
@@ -1800,8 +1735,6 @@ int64_t memory_manager::do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, si
 
 	if (lhs_segment == memory_segment::meta && rhs_segment == memory_segment::meta)
 	{
-		bz_assert(this->meta_memory.is_valid(lhs, this->stack.stack_frames));
-		bz_assert(this->meta_memory.is_valid(rhs, this->stack.stack_frames));
 		return this->do_pointer_difference_unchecked(
 			this->meta_memory.get_real_address(lhs),
 			this->meta_memory.get_real_address(rhs),
@@ -1810,12 +1743,10 @@ int64_t memory_manager::do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, si
 	}
 	else if (lhs_segment == memory_segment::meta)
 	{
-		bz_assert(this->meta_memory.is_valid(lhs, this->stack.stack_frames));
 		return this->do_pointer_difference_unchecked(this->meta_memory.get_real_address(lhs), rhs, stride);
 	}
 	else if (rhs_segment == memory_segment::meta)
 	{
-		bz_assert(this->meta_memory.is_valid(rhs, this->stack.stack_frames));
 		return this->do_pointer_difference_unchecked(lhs, this->meta_memory.get_real_address(rhs), stride);
 	}
 	else
@@ -1860,11 +1791,6 @@ bool memory_manager::is_global(ptr_t address) const
 	auto segment = this->segment_info.get_segment(address);
 	while (segment == memory_segment::meta)
 	{
-		if (!this->meta_memory.is_valid(address, this->stack.stack_frames))
-		{
-			return false;
-		}
-
 		address = this->meta_memory.get_real_address(address);
 		segment = this->segment_info.get_segment(address);
 	}
@@ -1886,7 +1812,6 @@ uint8_t *memory_manager::get_memory(ptr_t address)
 	case memory_segment::heap:
 		return this->heap.get_memory(address);
 	case memory_segment::meta:
-		bz_assert(this->meta_memory.is_valid(address, this->stack.stack_frames));
 		return this->get_memory(this->meta_memory.get_real_address(address));
 	}
 }
@@ -1905,7 +1830,6 @@ uint8_t const *memory_manager::get_memory(ptr_t address) const
 	case memory_segment::heap:
 		return this->heap.get_memory(address);
 	case memory_segment::meta:
-		bz_assert(this->meta_memory.is_valid(address, this->stack.stack_frames));
 		return this->get_memory(this->meta_memory.get_real_address(address));
 	}
 }
