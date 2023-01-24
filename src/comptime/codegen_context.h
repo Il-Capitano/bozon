@@ -114,6 +114,7 @@ struct current_function_info_t
 	bz::vector<slice_construction_check_info_t> slice_construction_check_infos;
 	bz::vector<pointer_arithmetic_check_info_t> pointer_arithmetic_check_infos;
 	bz::vector<memory_access_check_info_t> memory_access_check_infos;
+	bz::vector<add_global_array_data_info_t> add_global_array_data_infos;
 	bz::vector<unresolved_instruction> unresolved_instructions;
 	bz::vector<unresolved_jump> unresolved_jumps;
 	bz::vector<unresolved_switch> unresolved_switches;
@@ -234,6 +235,7 @@ struct codegen_context
 	uint32_t add_slice_construction_check_info(slice_construction_check_info_t info);
 	uint32_t add_pointer_arithmetic_check_info(pointer_arithmetic_check_info_t info);
 	uint32_t add_memory_access_check_info(memory_access_check_info_t info);
+	uint32_t add_add_global_array_data_info(add_global_array_data_info_t info);
 
 	expr_value get_dummy_value(type const *t);
 
@@ -251,15 +253,21 @@ struct codegen_context
 	expr_value create_const_f32(float32_t value);
 	expr_value create_const_f64(float64_t value);
 	expr_value create_const_ptr_null(void);
-	void create_string(bz::u8string_view str, expr_value result_address);
-	expr_value create_string(bz::u8string_view str);
+	void create_string(lex::src_tokens const &src_tokens, bz::u8string_view str, expr_value result_address);
+	expr_value create_string(lex::src_tokens const &src_tokens, bz::u8string_view str);
+
 	struct global_object_result
 	{
 		expr_value value;
 		uint32_t index;
 	};
-	global_object_result create_global_object(type const *object_type, bz::fixed_vector<uint8_t> data);
-	expr_value create_add_global_array_data(type const *elem_type, expr_value begin_ptr, expr_value end_ptr);
+
+	global_object_result create_global_object(
+		lex::src_tokens const &src_tokens,
+		type const *object_type,
+		bz::fixed_vector<uint8_t> data
+	);
+	expr_value create_add_global_array_data(lex::src_tokens const &src_tokens, type const *elem_type, expr_value begin_ptr, expr_value end_ptr);
 
 	expr_value create_get_global_object(uint32_t global_index);
 	expr_value create_get_function_return_address(void);
@@ -274,7 +282,7 @@ struct codegen_context
 		ast::typespec_view object_typespec
 	);
 
-	expr_value create_alloca(type const *type);
+	expr_value create_alloca(lex::src_tokens const &src_tokens, type const *type);
 	expr_value create_alloca_without_lifetime(type const *type);
 
 	instruction_ref create_jump(basic_block_ref bb);

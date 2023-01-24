@@ -4252,7 +4252,8 @@ static ptr_t execute_add_global_array_data(instructions::add_global_array_data c
 {
 	auto const begin_ptr = context.get_memory(begin);
 	auto const end_ptr = context.get_memory(end);
-	return context.add_global_array_data(inst.elem_type, bz::array_view(begin_ptr, end_ptr));
+	auto const &info = context.get_add_global_array_data_info(inst.add_global_array_data_info_index);
+	return context.add_global_array_data(info.src_tokens, info.elem_type, bz::array_view(begin_ptr, end_ptr));
 }
 
 static void execute_array_bounds_check_i32(instructions::array_bounds_check_i32 const &inst, uint32_t uindex, uint32_t size, executor_context &context)

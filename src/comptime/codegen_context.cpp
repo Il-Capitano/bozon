@@ -413,7 +413,7 @@ expr_value codegen_context::get_value_reference(size_t index)
 
 instruction_ref codegen_context::add_move_destruct_indicator(ast::decl_variable const *decl)
 {
-	auto const indicator = this->create_alloca(this->get_builtin_type(builtin_type_kind::i1));
+	auto const indicator = this->create_alloca_without_lifetime(this->get_builtin_type(builtin_type_kind::i1));
 	[[maybe_unused]] auto const [it, inserted] = this->current_function_info.move_destruct_indicators.insert({ decl, indicator.get_reference() });
 	bz_assert(inserted);
 	this->create_store(this->create_const_i1(true), indicator);
@@ -577,6 +577,13 @@ uint32_t codegen_context::add_memory_access_check_info(memory_access_check_info_
 	return static_cast<uint32_t>(result);
 }
 
+uint32_t codegen_context::add_add_global_array_data_info(add_global_array_data_info_t info)
+{
+	auto const result = this->current_function_info.add_global_array_data_infos.size();
+	this->current_function_info.add_global_array_data_infos.push_back(info);
+	return static_cast<uint32_t>(result);
+}
+
 expr_value codegen_context::get_dummy_value(type const *t)
 {
 	return expr_value::get_reference(instruction_ref{}, t);
@@ -709,11 +716,11 @@ expr_value codegen_context::create_const_ptr_null(void)
 	return expr_value::get_value(inst_ref, this->get_pointer_type());
 }
 
-void codegen_context::create_string(bz::u8string_view str, expr_value result_address)
+void codegen_context::create_string(lex::src_tokens const &src_tokens, bz::u8string_view str, expr_value result_address)
 {
 	auto const global_object_type = this->get_array_type(this->get_builtin_type(builtin_type_kind::i8), str.size());
 	auto data = bz::fixed_vector<uint8_t>(bz::array_view(str.data(), str.size()));
-	auto const index = this->global_memory.add_object(global_object_type, std::move(data));
+	auto const index = this->global_memory.add_object(src_tokens, global_object_type, std::move(data));
 	auto const str_data = this->create_get_global_object(index);
 	auto const str_end = this->create_struct_gep(str_data, str.size());
 	auto const str_begin_ptr = expr_value::get_value(str_data.get_reference(), this->get_pointer_type());
@@ -725,25 +732,32 @@ void codegen_context::create_string(bz::u8string_view str, expr_value result_add
 	this->create_store(str_end_ptr,   this->create_struct_gep(result_address, 1));
 }
 
-expr_value codegen_context::create_string(bz::u8string_view str)
+expr_value codegen_context::create_string(lex::src_tokens const &src_tokens, bz::u8string_view str)
 {
-	auto const result_address = this->create_alloca(this->get_str_t());
-	this->create_string(str, result_address);
+	auto const result_address = this->create_alloca(src_tokens, this->get_str_t());
+	this->create_string(src_tokens, str, result_address);
 	return result_address;
 }
 
-codegen_context::global_object_result codegen_context::create_global_object(type const *object_type, bz::fixed_vector<uint8_t> data)
+codegen_context::global_object_result codegen_context::create_global_object(
+	lex::src_tokens const &src_tokens,
+	type const *object_type,
+	bz::fixed_vector<uint8_t> data
+)
 {
-	auto const index = this->global_memory.add_object(object_type, std::move(data));
+	auto const index = this->global_memory.add_object(src_tokens, object_type, std::move(data));
 	return { this->create_get_global_object(index), index };
 }
 
-expr_value codegen_context::create_add_global_array_data(type const *elem_type, expr_value begin_ptr, expr_value end_ptr)
+expr_value codegen_context::create_add_global_array_data(lex::src_tokens const &src_tokens, type const *elem_type, expr_value begin_ptr, expr_value end_ptr)
 {
 	auto const begin_ptr_value = begin_ptr.get_value_as_instruction(*this);
 	auto const end_ptr_value = end_ptr.get_value_as_instruction(*this);
+	auto const info_index = this->add_add_global_array_data_info({ .elem_type = elem_type, .src_tokens = src_tokens });
 	return expr_value::get_value(
-		add_instruction(*this, instructions::add_global_array_data{ .elem_type = elem_type }, begin_ptr_value, end_ptr_value),
+		add_instruction(*this, instructions::add_global_array_data{
+			.add_global_array_data_info_index = info_index
+		}, begin_ptr_value, end_ptr_value),
 		this->get_pointer_type()
 	);
 }
@@ -1010,9 +1024,9 @@ void codegen_context::create_memory_access_check(
 	}, ptr_value);
 }
 
-expr_value codegen_context::create_alloca(type const *type)
+expr_value codegen_context::create_alloca(lex::src_tokens const &src_tokens, type const *type)
 {
-	this->current_function_info.allocas.push_back({ type, false });
+	this->current_function_info.allocas.push_back({ type, false, src_tokens });
 	auto const alloca_ref = instruction_ref{
 		.bb_index = instruction_ref::alloca_bb_index,
 		.inst_index = static_cast<uint32_t>(this->current_function_info.allocas.size() - 1),
@@ -1024,7 +1038,7 @@ expr_value codegen_context::create_alloca(type const *type)
 
 expr_value codegen_context::create_alloca_without_lifetime(type const *type)
 {
-	this->current_function_info.allocas.push_back({ type, true });
+	this->current_function_info.allocas.push_back({ type, true, {} });
 	auto const alloca_ref = instruction_ref{
 		.bb_index = instruction_ref::alloca_bb_index,
 		.inst_index = static_cast<uint32_t>(this->current_function_info.allocas.size() - 1),
@@ -5780,6 +5794,9 @@ void current_function_info_t::finalize_function(void)
 
 	// finalize memory_access_check_infos
 	func.memory_access_check_infos = bz::fixed_vector(this->memory_access_check_infos.as_array_view());
+
+	// finalize add_global_array_data_infos
+	func.add_global_array_data_infos = bz::fixed_vector(this->add_global_array_data_infos.as_array_view());
 
 	*this = current_function_info_t();
 }

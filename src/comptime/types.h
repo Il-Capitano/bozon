@@ -2,6 +2,7 @@
 #define COMPTIME_TYPES_H
 
 #include "core.h"
+#include "lex/token.h"
 
 namespace comptime
 {
@@ -157,6 +158,7 @@ struct alloca
 {
 	type const *object_type;
 	bool is_always_initialized;
+	lex::src_tokens src_tokens;
 };
 
 } // namespace comptime

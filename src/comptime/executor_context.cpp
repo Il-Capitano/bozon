@@ -70,12 +70,13 @@ instruction_value executor_context::get_instruction_value(instruction_value_inde
 
 void executor_context::add_call_stack_notes(bz::vector<ctx::source_highlight> &notes) const
 {
-	notes.reserve(notes.size() + this->call_stack.size() + 1);
+	bz::vector<ctx::source_highlight> new_notes = {};
+	new_notes.reserve(this->call_stack.size() + 1 + notes.size());
 	auto call_src_tokens = this->call_src_tokens_index;
 	auto func_body = this->current_function->func_body;
 	for (auto const &info : this->call_stack.reversed())
 	{
-		notes.push_back(make_source_highlight(
+		new_notes.push_back(make_source_highlight(
 			info.func->src_tokens[call_src_tokens],
 			bz::format("in call to '{}'", func_body->get_signature())
 		));
@@ -83,10 +84,13 @@ void executor_context::add_call_stack_notes(bz::vector<ctx::source_highlight> &n
 		func_body = info.func->func_body;
 	}
 	bz_assert(func_body == nullptr);
-	notes.push_back(make_source_highlight(
+	new_notes.push_back(make_source_highlight(
 		this->execution_start_src_tokens,
 		"while evaluating expression at compile time"
 	));
+
+	new_notes.append_move(std::move(notes));
+	notes = std::move(new_notes);
 }
 
 void executor_context::report_error(uint32_t error_index)
@@ -154,12 +158,12 @@ ptr_t executor_context::get_global(uint32_t index)
 	return this->memory.global_memory->objects[index].address;
 }
 
-ptr_t executor_context::add_global_array_data(type const *elem_type, bz::array_view<uint8_t const> data)
+ptr_t executor_context::add_global_array_data(lex::src_tokens const &src_tokens, type const *elem_type, bz::array_view<uint8_t const> data)
 {
 	bz_assert(data.size() % elem_type->size == 0);
 	auto const size = data.size() / elem_type->size;
 	auto const array_type = this->codegen_ctx->get_array_type(elem_type, size);
-	auto const index = this->memory.global_memory->add_object(array_type, data);
+	auto const index = this->memory.global_memory->add_object(src_tokens, array_type, data);
 	return this->get_global(index);
 }
 
@@ -280,6 +284,12 @@ memory_access_check_info_t const &executor_context::get_memory_access_info(uint3
 	return this->current_function->memory_access_check_infos[index];
 }
 
+add_global_array_data_info_t const &executor_context::get_add_global_array_data_info(uint32_t index) const
+{
+	bz_assert(index < this->current_function->add_global_array_data_infos.size());
+	return this->current_function->add_global_array_data_infos[index];
+}
+
 memory::call_stack_info_t executor_context::get_call_stack_info(uint32_t src_tokens_index) const
 {
 	return {
@@ -350,9 +360,15 @@ void executor_context::check_dereference(uint32_t src_tokens_index, ptr_t addres
 	auto const is_good = this->memory.check_dereference(address, object_type);
 	if (!is_good)
 	{
+		auto [src_tokens, message] = this->memory.get_dereference_error_reason(address, object_type);
 		this->report_error(
 			src_tokens_index,
-			bz::format("invalid memory access of an object of type '{}'", object_typespec)
+			bz::format("invalid memory access of an object of type '{}'", object_typespec),
+			{
+				src_tokens.begin == nullptr
+				? this->make_note(src_tokens_index, std::move(message))
+				: make_source_highlight(src_tokens, std::move(message))
+			}
 		);
 	}
 }

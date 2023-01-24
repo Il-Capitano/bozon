@@ -508,6 +508,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_builtin_binary_bool_and(
+	ast::expression const &original_expression,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
@@ -516,7 +517,7 @@ static expr_value generate_builtin_binary_bool_and(
 {
 	if (!result_address.has_value())
 	{
-		result_address = context.create_alloca(context.get_builtin_type(builtin_type_kind::i1));
+		result_address = context.create_alloca(original_expression.src_tokens, context.get_builtin_type(builtin_type_kind::i1));
 	}
 
 	auto const &result_value = result_address.get();
@@ -563,6 +564,7 @@ static expr_value generate_builtin_binary_bool_xor(
 }
 
 static expr_value generate_builtin_binary_bool_or(
+	ast::expression const &original_expression,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
@@ -571,7 +573,7 @@ static expr_value generate_builtin_binary_bool_or(
 {
 	if (!result_address.has_value())
 	{
-		result_address = context.create_alloca(context.get_builtin_type(builtin_type_kind::i1));
+		result_address = context.create_alloca(original_expression.src_tokens, context.get_builtin_type(builtin_type_kind::i1));
 	}
 
 	auto const &result_value = result_address.get();
@@ -604,6 +606,7 @@ static expr_value generate_builtin_binary_bool_or(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_binary_op const &binary_op,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -615,11 +618,11 @@ static expr_value generate_expr_code(
 		generate_expr_code(binary_op.lhs, context, {});
 		return generate_expr_code(binary_op.rhs, context, result_address);
 	case lex::token::bool_and:
-		return generate_builtin_binary_bool_and(binary_op.lhs, binary_op.rhs, context, result_address);
+		return generate_builtin_binary_bool_and(original_expression, binary_op.lhs, binary_op.rhs, context, result_address);
 	case lex::token::bool_xor:
 		return generate_builtin_binary_bool_xor(binary_op.lhs, binary_op.rhs, context, result_address);
 	case lex::token::bool_or:
-		return generate_builtin_binary_bool_or(binary_op.lhs, binary_op.rhs, context, result_address);
+		return generate_builtin_binary_bool_or(original_expression, binary_op.lhs, binary_op.rhs, context, result_address);
 	default:
 		bz_unreachable;
 	}
@@ -1930,7 +1933,7 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(func_call.params.size() == 2);
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca(context.get_str_t());
+			result_address = context.create_alloca(func_call.src_tokens, context.get_str_t());
 		}
 		auto const &result_value = result_address.get();
 
@@ -1965,7 +1968,7 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(func_call.params.size() == 2);
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca(context.get_slice_t());
+			result_address = context.create_alloca(func_call.src_tokens, context.get_slice_t());
 		}
 		auto const &result_value = result_address.get();
 
@@ -1982,7 +1985,7 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(func_call.params.size() == 2);
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca(context.get_slice_t());
+			result_address = context.create_alloca(func_call.src_tokens, context.get_slice_t());
 		}
 		auto const &result_value = result_address.get();
 
@@ -2167,7 +2170,7 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(func_call.params[0].get_expr_type().is<ast::ts_pointer>());
 		auto const elem_type = ast::remove_const_or_consteval(func_call.params[0].get_expr_type().get<ast::ts_pointer>());
 		return value_or_result_address(
-			context.create_add_global_array_data(get_type(elem_type, context), begin_ptr, end_ptr),
+			context.create_add_global_array_data(func_call.src_tokens, get_type(elem_type, context), begin_ptr, end_ptr),
 			result_address,
 			context
 		);
@@ -3011,7 +3014,7 @@ static expr_value generate_expr_code(
 	{
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca(func->return_type);
+			result_address = context.create_alloca(func_call.src_tokens, func->return_type);
 		}
 
 		auto const &result_value = result_address.get();
@@ -3047,6 +3050,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_cast const &cast,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -3111,7 +3115,7 @@ static expr_value generate_expr_code(
 
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca(context.get_slice_t());
+			result_address = context.create_alloca(original_expression.src_tokens, context.get_slice_t());
 		}
 
 		auto const &result_value = result_address.get();
@@ -3128,6 +3132,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_optional_cast const &optional_cast,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -3137,7 +3142,7 @@ static expr_value generate_expr_code(
 	{
 		bz_assert(optional_cast.type.is<ast::ts_optional>());
 		auto const type = get_type(optional_cast.type, context);
-		result_address = context.create_alloca(type);
+		result_address = context.create_alloca(original_expression.src_tokens, type);
 	}
 
 	auto const &result_value = result_address.get();
@@ -3160,6 +3165,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_take_move_reference const &take_move_ref,
 	codegen_context &context
 )
@@ -3171,13 +3177,14 @@ static expr_value generate_expr_code(
 	}
 	else
 	{
-		auto const alloca = context.create_alloca(result.get_type());
+		auto const alloca = context.create_alloca(original_expression.src_tokens, result.get_type());
 		context.create_store(result, alloca);
 		return alloca;
 	}
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_aggregate_init const &aggregate_init,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -3186,7 +3193,7 @@ static expr_value generate_expr_code(
 	if (!result_address.has_value())
 	{
 		auto const type = get_type(aggregate_init.type, context);
-		result_address = context.create_alloca(type);
+		result_address = context.create_alloca(original_expression.src_tokens, type);
 	}
 
 	auto const &result_value = result_address.get();
@@ -3200,6 +3207,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_array_value_init const &array_value_init,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -3211,7 +3219,7 @@ static expr_value generate_expr_code(
 	if (!result_address.has_value())
 	{
 		auto const type = get_type(array_value_init.type, context);
-		result_address = context.create_alloca(type);
+		result_address = context.create_alloca(original_expression.src_tokens, type);
 	}
 
 	auto const &result_value = result_address.get();
@@ -3232,6 +3240,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_aggregate_default_construct const &aggregate_default_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -3240,7 +3249,7 @@ static expr_value generate_expr_code(
 	if (!result_address.has_value())
 	{
 		auto const type = get_type(aggregate_default_construct.type, context);
-		result_address = context.create_alloca(type);
+		result_address = context.create_alloca(original_expression.src_tokens, type);
 	}
 
 	auto const &result_value = result_address.get();
@@ -3254,6 +3263,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_array_default_construct const &array_default_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -3264,7 +3274,7 @@ static expr_value generate_expr_code(
 
 	if (!result_address.has_value())
 	{
-		result_address = context.create_alloca(get_type(array_default_construct.type, context));
+		result_address = context.create_alloca(original_expression.src_tokens, get_type(array_default_construct.type, context));
 	}
 
 	auto const &result_value = result_address.get();
@@ -3280,6 +3290,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_optional_default_construct const &optional_default_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -3300,7 +3311,7 @@ static expr_value generate_expr_code(
 		if (!result_address.has_value())
 		{
 			auto const type = get_type(optional_default_construct.type, context);
-			result_address = context.create_alloca(type);
+			result_address = context.create_alloca(original_expression.src_tokens, type);
 		}
 
 		auto const &result_value = result_address.get();
@@ -3310,6 +3321,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_builtin_default_construct const &builtin_default_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -3319,7 +3331,7 @@ static expr_value generate_expr_code(
 	if (!result_address.has_value())
 	{
 		auto const slice_type = context.get_slice_t();
-		result_address = context.create_alloca(slice_type);
+		result_address = context.create_alloca(original_expression.src_tokens, slice_type);
 	}
 
 	auto const &result_value = result_address.get();
@@ -3331,6 +3343,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_aggregate_copy_construct const &aggregate_copy_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -3341,7 +3354,7 @@ static expr_value generate_expr_code(
 	{
 		auto const type = copied_val.get_type();
 		bz_assert(type->is_aggregate());
-		result_address = context.create_alloca(type);
+		result_address = context.create_alloca(original_expression.src_tokens, type);
 	}
 
 	auto const &result_value = result_address.get();
@@ -3357,6 +3370,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_array_copy_construct const &array_copy_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -3366,7 +3380,7 @@ static expr_value generate_expr_code(
 
 	if (!result_address.has_value())
 	{
-		result_address = context.create_alloca(copied_val.get_type());
+		result_address = context.create_alloca(original_expression.src_tokens, copied_val.get_type());
 	}
 
 	auto const &result_value = result_address.get();
@@ -3386,6 +3400,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_optional_copy_construct const &optional_copy_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -3395,7 +3410,7 @@ static expr_value generate_expr_code(
 
 	if (!result_address.has_value())
 	{
-		result_address = context.create_alloca(copied_val.get_type());
+		result_address = context.create_alloca(original_expression.src_tokens, copied_val.get_type());
 	}
 
 	auto const &result_value = result_address.get();
@@ -3423,6 +3438,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_trivial_copy_construct const &trivial_copy_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -3433,7 +3449,7 @@ static expr_value generate_expr_code(
 	{
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca(copied_val.get_type());
+			result_address = context.create_alloca(original_expression.src_tokens, copied_val.get_type());
 		}
 
 		auto const &result_value = result_address.get();
@@ -3447,6 +3463,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_aggregate_move_construct const &aggregate_move_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -3457,7 +3474,7 @@ static expr_value generate_expr_code(
 	{
 		auto const type = moved_val.get_type();
 		bz_assert(type->is_aggregate());
-		result_address = context.create_alloca(type);
+		result_address = context.create_alloca(original_expression.src_tokens, type);
 	}
 
 	auto const &result_value = result_address.get();
@@ -3475,6 +3492,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_array_move_construct const &array_move_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -3484,7 +3502,7 @@ static expr_value generate_expr_code(
 
 	if (!result_address.has_value())
 	{
-		result_address = context.create_alloca(moved_val.get_type());
+		result_address = context.create_alloca(original_expression.src_tokens, moved_val.get_type());
 	}
 
 	auto const &result_value = result_address.get();
@@ -3504,6 +3522,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_optional_move_construct const &optional_move_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -3513,7 +3532,7 @@ static expr_value generate_expr_code(
 
 	if (!result_address.has_value())
 	{
-		result_address = context.create_alloca(moved_val.get_type());
+		result_address = context.create_alloca(original_expression.src_tokens, moved_val.get_type());
 	}
 
 	auto const &result_value = result_address.get();
@@ -3543,6 +3562,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_trivial_relocate const &trivial_relocate,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -3559,7 +3579,7 @@ static expr_value generate_expr_code(
 	{
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca(type);
+			result_address = context.create_alloca(original_expression.src_tokens, type);
 		}
 
 		auto const &result_value = result_address.get();
@@ -3902,7 +3922,7 @@ static expr_value generate_expr_code(
 
 	bz_assert(lhs.get_type() == rhs.get_type());
 	auto const type = lhs.get_type();
-	auto const temp = context.create_alloca(type);
+	auto const temp = context.create_alloca_without_lifetime(type);
 
 	// temp = move lhs
 	{
@@ -3953,7 +3973,7 @@ static expr_value generate_expr_code(
 	}
 	else
 	{
-		auto const temp = context.create_alloca(type);
+		auto const temp = context.create_alloca_without_lifetime(type);
 
 		generate_value_copy(lhs, temp, context); // temp = lhs
 		generate_value_copy(rhs, lhs, context);  // lhs = rhs
@@ -4717,7 +4737,7 @@ static expr_value generate_expr_code(
 	case ast::expr_t::index<ast::expr_unary_op>:
 		return generate_expr_code(expr.get<ast::expr_unary_op>(), context, result_address);
 	case ast::expr_t::index<ast::expr_binary_op>:
-		return generate_expr_code(expr.get<ast::expr_binary_op>(), context, result_address);
+		return generate_expr_code(original_expression, expr.get<ast::expr_binary_op>(), context, result_address);
 	case ast::expr_t::index<ast::expr_tuple_subscript>:
 		return generate_expr_code(expr.get<ast::expr_tuple_subscript>(), context, result_address);
 	case ast::expr_t::index<ast::expr_rvalue_tuple_subscript>:
@@ -4733,43 +4753,43 @@ static expr_value generate_expr_code(
 	case ast::expr_t::index<ast::expr_indirect_function_call>:
 		return generate_expr_code(original_expression, expr.get<ast::expr_indirect_function_call>(), context, result_address);
 	case ast::expr_t::index<ast::expr_cast>:
-		return generate_expr_code(expr.get<ast::expr_cast>(), context, result_address);
+		return generate_expr_code(original_expression, expr.get<ast::expr_cast>(), context, result_address);
 	case ast::expr_t::index<ast::expr_optional_cast>:
-		return generate_expr_code(expr.get<ast::expr_optional_cast>(), context, result_address);
+		return generate_expr_code(original_expression, expr.get<ast::expr_optional_cast>(), context, result_address);
 	case ast::expr_t::index<ast::expr_take_reference>:
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(expr.get<ast::expr_take_reference>(), context);
 	case ast::expr_t::index<ast::expr_take_move_reference>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(expr.get<ast::expr_take_move_reference>(), context);
+		return generate_expr_code(original_expression, expr.get<ast::expr_take_move_reference>(), context);
 	case ast::expr_t::index<ast::expr_aggregate_init>:
-		return generate_expr_code(expr.get<ast::expr_aggregate_init>(), context, result_address);
+		return generate_expr_code(original_expression, expr.get<ast::expr_aggregate_init>(), context, result_address);
 	case ast::expr_t::index<ast::expr_array_value_init>:
-		return generate_expr_code(expr.get<ast::expr_array_value_init>(), context, result_address);
+		return generate_expr_code(original_expression, expr.get<ast::expr_array_value_init>(), context, result_address);
 	case ast::expr_t::index<ast::expr_aggregate_default_construct>:
-		return generate_expr_code(expr.get<ast::expr_aggregate_default_construct>(), context, result_address);
+		return generate_expr_code(original_expression, expr.get<ast::expr_aggregate_default_construct>(), context, result_address);
 	case ast::expr_t::index<ast::expr_array_default_construct>:
-		return generate_expr_code(expr.get<ast::expr_array_default_construct>(), context, result_address);
+		return generate_expr_code(original_expression, expr.get<ast::expr_array_default_construct>(), context, result_address);
 	case ast::expr_t::index<ast::expr_optional_default_construct>:
-		return generate_expr_code(expr.get<ast::expr_optional_default_construct>(), context, result_address);
+		return generate_expr_code(original_expression, expr.get<ast::expr_optional_default_construct>(), context, result_address);
 	case ast::expr_t::index<ast::expr_builtin_default_construct>:
-		return generate_expr_code(expr.get<ast::expr_builtin_default_construct>(), context, result_address);
+		return generate_expr_code(original_expression, expr.get<ast::expr_builtin_default_construct>(), context, result_address);
 	case ast::expr_t::index<ast::expr_aggregate_copy_construct>:
-		return generate_expr_code(expr.get<ast::expr_aggregate_copy_construct>(), context, result_address);
+		return generate_expr_code(original_expression, expr.get<ast::expr_aggregate_copy_construct>(), context, result_address);
 	case ast::expr_t::index<ast::expr_array_copy_construct>:
-		return generate_expr_code(expr.get<ast::expr_array_copy_construct>(), context, result_address);
+		return generate_expr_code(original_expression, expr.get<ast::expr_array_copy_construct>(), context, result_address);
 	case ast::expr_t::index<ast::expr_optional_copy_construct>:
-		return generate_expr_code(expr.get<ast::expr_optional_copy_construct>(), context, result_address);
+		return generate_expr_code(original_expression, expr.get<ast::expr_optional_copy_construct>(), context, result_address);
 	case ast::expr_t::index<ast::expr_trivial_copy_construct>:
-		return generate_expr_code(expr.get<ast::expr_trivial_copy_construct>(), context, result_address);
+		return generate_expr_code(original_expression, expr.get<ast::expr_trivial_copy_construct>(), context, result_address);
 	case ast::expr_t::index<ast::expr_aggregate_move_construct>:
-		return generate_expr_code(expr.get<ast::expr_aggregate_move_construct>(), context, result_address);
+		return generate_expr_code(original_expression, expr.get<ast::expr_aggregate_move_construct>(), context, result_address);
 	case ast::expr_t::index<ast::expr_array_move_construct>:
-		return generate_expr_code(expr.get<ast::expr_array_move_construct>(), context, result_address);
+		return generate_expr_code(original_expression, expr.get<ast::expr_array_move_construct>(), context, result_address);
 	case ast::expr_t::index<ast::expr_optional_move_construct>:
-		return generate_expr_code(expr.get<ast::expr_optional_move_construct>(), context, result_address);
+		return generate_expr_code(original_expression, expr.get<ast::expr_optional_move_construct>(), context, result_address);
 	case ast::expr_t::index<ast::expr_trivial_relocate>:
-		return generate_expr_code(expr.get<ast::expr_trivial_relocate>(), context, result_address);
+		return generate_expr_code(original_expression, expr.get<ast::expr_trivial_relocate>(), context, result_address);
 	case ast::expr_t::index<ast::expr_aggregate_destruct>:
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(expr.get<ast::expr_aggregate_destruct>(), context);
@@ -4862,6 +4882,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value get_constant_value(
+	lex::src_tokens const &src_tokens,
 	ast::constant_value const &value,
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
@@ -4928,6 +4949,7 @@ static ast::typespec_view flattened_array_elem_type(ast::ts_array const &array_t
 }
 
 static void get_nonzero_constant_array_value(
+	lex::src_tokens const &src_tokens,
 	bz::array_view<ast::constant_value const> values,
 	ast::ts_array const &array_type,
 	codegen_context &context,
@@ -4945,7 +4967,7 @@ static void get_nonzero_constant_array_value(
 			auto const begin_index = i * stride;
 			auto const sub_array = values.slice(begin_index, begin_index + stride);
 			auto const elem_result_address = context.create_struct_gep(result_address, i);
-			get_nonzero_constant_array_value(sub_array, array_type.elem_type.get<ast::ts_array>(), context, elem_result_address);
+			get_nonzero_constant_array_value(src_tokens, sub_array, array_type.elem_type.get<ast::ts_array>(), context, elem_result_address);
 		}
 	}
 	else
@@ -4953,12 +4975,13 @@ static void get_nonzero_constant_array_value(
 		for (auto const i : bz::iota(0, array_type.size))
 		{
 			auto const elem_result_address = context.create_struct_gep(result_address, i);
-			get_constant_value(values[i], array_type.elem_type, nullptr, context, elem_result_address);
+			get_constant_value(src_tokens, values[i], array_type.elem_type, nullptr, context, elem_result_address);
 		}
 	}
 }
 
 static void get_constant_array_value(
+	lex::src_tokens const &src_tokens,
 	bz::array_view<ast::constant_value const> values,
 	ast::ts_array const &array_type,
 	codegen_context &context,
@@ -4971,7 +4994,7 @@ static void get_constant_array_value(
 	}
 	else
 	{
-		get_nonzero_constant_array_value(values, array_type, context, result_address);
+		get_nonzero_constant_array_value(src_tokens, values, array_type, context, result_address);
 	}
 }
 
@@ -5156,6 +5179,7 @@ static type const *get_tuple_type(ast::typespec_view type, ast::constant_express
 }
 
 static expr_value get_constant_value_helper(
+	lex::src_tokens const &src_tokens,
 	ast::constant_value const &value,
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
@@ -5222,7 +5246,7 @@ static expr_value get_constant_value_helper(
 	{
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca(context.get_str_t());
+			result_address = context.create_alloca_without_lifetime(context.get_str_t());
 		}
 
 		auto const &result_value = result_address.get();
@@ -5237,7 +5261,7 @@ static expr_value get_constant_value_helper(
 		}
 		else
 		{
-			context.create_string(str, result_value);
+			context.create_string(src_tokens, str, result_value);
 		}
 		return result_value;
 	}
@@ -5256,7 +5280,7 @@ static expr_value get_constant_value_helper(
 			if (!result_address.has_value())
 			{
 				auto const type = get_type(type_without_const, context);
-				result_address = context.create_alloca(type);
+				result_address = context.create_alloca_without_lifetime(type);
 			}
 
 			auto const &result_value = result_address.get();
@@ -5313,9 +5337,10 @@ static expr_value get_constant_value_helper(
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca(get_type(array_type, context));
+			result_address = context.create_alloca_without_lifetime(get_type(array_type, context));
 		}
 		get_constant_array_value(
+			src_tokens,
 			value.get_array(),
 			array_type.get<ast::ts_array>(),
 			context,
@@ -5329,7 +5354,7 @@ static expr_value get_constant_value_helper(
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca(get_type(array_type, context));
+			result_address = context.create_alloca_without_lifetime(get_type(array_type, context));
 		}
 		get_constant_sint_array_value(
 			value.get_sint_array(),
@@ -5345,7 +5370,7 @@ static expr_value get_constant_value_helper(
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca(get_type(array_type, context));
+			result_address = context.create_alloca_without_lifetime(get_type(array_type, context));
 		}
 		get_constant_uint_array_value(
 			value.get_uint_array(),
@@ -5361,7 +5386,7 @@ static expr_value get_constant_value_helper(
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca(get_type(array_type, context));
+			result_address = context.create_alloca_without_lifetime(get_type(array_type, context));
 		}
 		get_constant_float32_array_value(
 			value.get_float32_array(),
@@ -5377,7 +5402,7 @@ static expr_value get_constant_value_helper(
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca(get_type(array_type, context));
+			result_address = context.create_alloca_without_lifetime(get_type(array_type, context));
 		}
 		get_constant_float64_array_value(
 			value.get_float64_array(),
@@ -5391,7 +5416,7 @@ static expr_value get_constant_value_helper(
 	{
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca(get_tuple_type(type, const_expr, context));
+			result_address = context.create_alloca_without_lifetime(get_tuple_type(type, const_expr, context));
 		}
 
 		auto const &result_value = result_address.get();
@@ -5405,7 +5430,7 @@ static expr_value get_constant_value_helper(
 				bz_assert(tuple.elems[i].is_constant());
 				auto const &const_elem = tuple.elems[i].get_constant();
 				auto const elem_result_address = context.create_struct_gep(result_value, i);
-				get_constant_value(const_elem.value, const_elem.type, &const_elem, context, elem_result_address);
+				get_constant_value(src_tokens, const_elem.value, const_elem.type, &const_elem, context, elem_result_address);
 			}
 		}
 		else
@@ -5420,7 +5445,7 @@ static expr_value get_constant_value_helper(
 			for (auto const i : bz::iota(0, tuple_values.size()))
 			{
 				auto const elem_result_address = context.create_struct_gep(result_value, i);
-				get_constant_value(tuple_values[i], tuple_t.types[i], nullptr, context, elem_result_address);
+				get_constant_value(src_tokens, tuple_values[i], tuple_t.types[i], nullptr, context, elem_result_address);
 			}
 		}
 		return result_value;
@@ -5434,7 +5459,7 @@ static expr_value get_constant_value_helper(
 		auto const info = ast::remove_const_or_consteval(type).get<ast::ts_base_type>().info;
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca(get_type(type, context));
+			result_address = context.create_alloca_without_lifetime(get_type(type, context));
 		}
 
 		auto const &result_value = result_address.get();
@@ -5442,7 +5467,7 @@ static expr_value get_constant_value_helper(
 		for (auto const i : bz::iota(0, aggregate.size()))
 		{
 			auto const member_result_address = context.create_struct_gep(result_value, i);
-			get_constant_value(aggregate[i], info->member_variables[i]->get_type(), nullptr, context, member_result_address);
+			get_constant_value(src_tokens, aggregate[i], info->member_variables[i]->get_type(), nullptr, context, member_result_address);
 		}
 		return result_value;
 	}
@@ -5454,6 +5479,7 @@ static expr_value get_constant_value_helper(
 }
 
 static expr_value get_constant_value(
+	lex::src_tokens const &src_tokens,
 	ast::constant_value const &value,
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
@@ -5472,7 +5498,7 @@ static expr_value get_constant_value(
 		{
 			if (!result_address.has_value())
 			{
-				result_address = context.create_alloca(get_type(type, context));
+				result_address = context.create_alloca_without_lifetime(get_type(type, context));
 			}
 
 			auto const &result_value = result_address.get();
@@ -5484,17 +5510,18 @@ static expr_value get_constant_value(
 	{
 		if (type.is_optional_pointer_like())
 		{
-			return get_constant_value_helper(value, type.get<ast::ts_optional>(), const_expr, context, result_address);
+			return get_constant_value_helper(src_tokens, value, type.get<ast::ts_optional>(), const_expr, context, result_address);
 		}
 		else
 		{
 			if (!result_address.has_value())
 			{
-				result_address = context.create_alloca(get_type(type, context));
+				result_address = context.create_alloca_without_lifetime(get_type(type, context));
 			}
 
 			auto const &result_value = result_address.get();
 			get_constant_value_helper(
+				src_tokens,
 				value,
 				type.get<ast::ts_optional>(),
 				const_expr,
@@ -5507,7 +5534,7 @@ static expr_value get_constant_value(
 	}
 	else
 	{
-		return get_constant_value_helper(value, type, const_expr, context, result_address);
+		return get_constant_value_helper(src_tokens, value, type, const_expr, context, result_address);
 	}
 }
 
@@ -5530,7 +5557,7 @@ static expr_value generate_expr_code(
 
 	auto const result = const_expr.kind == ast::expression_type_kind::lvalue
 		? generate_expr_code(original_expression, const_expr.expr, context, {})
-		: get_constant_value(const_expr.value, const_expr.type, &const_expr, context, result_address);
+		: get_constant_value(original_expression.src_tokens, const_expr.value, const_expr.type, &const_expr, context, result_address);
 
 	bz_assert(!result_address.has_value() || result == result_address.get());
 	return result;
@@ -5555,7 +5582,7 @@ static expr_value generate_expr_code(
 		)
 	)
 	{
-		result_address = context.create_alloca(get_type(dyn_expr.type, context));
+		result_address = context.create_alloca(original_expression.src_tokens, get_type(dyn_expr.type, context));
 	}
 
 	// noreturn expressions (e.g. 'unreachable') can match to any type, but cannot have a result,
@@ -5826,13 +5853,14 @@ static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_conte
 			auto const &init_value = var_decl.init_expr.get_constant_value();
 			auto const type = get_type(var_decl.get_type(), context);
 			auto [data, one_past_the_end_infos] = memory::object_from_constant_value(
+				var_decl.src_tokens,
 				init_value,
 				type,
 				context.get_endianness(),
 				context.global_memory,
 				context.type_set
 			);
-			auto const [value, index] = context.create_global_object(type, std::move(data));
+			auto const [value, index] = context.create_global_object(var_decl.src_tokens, type, std::move(data));
 			for (auto const &[_, offset, address] : one_past_the_end_infos)
 			{
 				context.global_memory.add_one_past_the_end_pointer_info({
@@ -5871,7 +5899,7 @@ static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_conte
 	else
 	{
 		auto const type = get_type(var_decl.get_type(), context);
-		auto const alloca = context.create_alloca(type);
+		auto const alloca = context.create_alloca(var_decl.src_tokens, type);
 		if (var_decl.init_expr.not_null())
 		{
 			auto const prev_info = context.push_expression_scope();
@@ -5993,7 +6021,7 @@ void generate_code(function &func, codegen_context &context)
 		}
 		else if (auto const type = func.arg_types[i]; type->is_simple_value_type())
 		{
-			auto const alloca = context.create_alloca(type);
+			auto const alloca = context.create_alloca(param.src_tokens, type);
 			auto const value = expr_value::get_value(context.create_get_function_arg(i), type);
 			context.create_store(value, alloca);
 			add_variable_helper(param, alloca, false, context);

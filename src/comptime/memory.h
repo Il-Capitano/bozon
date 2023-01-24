@@ -105,7 +105,9 @@ struct global_object
 	type const *object_type;
 	bz::fixed_vector<uint8_t> memory;
 
-	global_object(ptr_t address, type const *object_type, bz::fixed_vector<uint8_t> data);
+	lex::src_tokens object_src_tokens;
+
+	global_object(lex::src_tokens const &object_src_tokens, ptr_t address, type const *object_type, bz::fixed_vector<uint8_t> data);
 
 	size_t object_size(void) const;
 
@@ -113,6 +115,7 @@ struct global_object
 	uint8_t const *get_memory(ptr_t address) const;
 
 	bool check_dereference(ptr_t address, type const *subobject_type) const;
+	bz::u8string get_dereference_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const;
 	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const;
@@ -139,7 +142,9 @@ struct stack_object
 	bz::fixed_vector<uint8_t> memory;
 	bitset is_alive_bitset;
 
-	stack_object(ptr_t address, type const *object_type, bool is_always_initialized);
+	lex::src_tokens object_src_tokens;
+
+	stack_object(lex::src_tokens const &object_src_tokens, ptr_t address, type const *object_type, bool is_always_initialized);
 
 	size_t object_size(void) const;
 
@@ -150,6 +155,7 @@ struct stack_object
 	uint8_t const *get_memory(ptr_t address) const;
 
 	bool check_dereference(ptr_t address, type const *subobject_type) const;
+	bz::u8string get_dereference_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const;
 	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const;
@@ -175,6 +181,7 @@ struct heap_object
 	uint8_t const *get_memory(ptr_t address) const;
 
 	bool check_dereference(ptr_t address, type const *subobject_type) const;
+	bz::u8string get_dereference_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const;
 	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const;
@@ -196,13 +203,14 @@ struct global_memory_manager
 
 	explicit global_memory_manager(ptr_t global_memory_begin);
 
-	uint32_t add_object(type const *object_type, bz::fixed_vector<uint8_t> data);
+	uint32_t add_object(lex::src_tokens const &object_src_tokens, type const *object_type, bz::fixed_vector<uint8_t> data);
 	void add_one_past_the_end_pointer_info(one_past_the_end_pointer_info_t info);
 
 	global_object *get_global_object(ptr_t address);
 	global_object const *get_global_object(ptr_t address) const;
 
 	bool check_dereference(ptr_t address, type const *object_type) const;
+	error_reason_t get_dereference_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
 	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type) const;
 
@@ -238,6 +246,7 @@ struct stack_manager
 	stack_object const *get_stack_object(ptr_t address) const;
 
 	bool check_dereference(ptr_t address, type const *object_type) const;
+	error_reason_t get_dereference_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
 	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type) const;
 
@@ -294,6 +303,7 @@ struct heap_manager
 	free_result free(call_stack_info_t free_info, ptr_t address);
 
 	bool check_dereference(ptr_t address, type const *object_type) const;
+	error_reason_t get_dereference_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
 	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type) const;
 
@@ -309,6 +319,7 @@ struct stack_object_pointer
 	ptr_t stack_address;
 	uint32_t stack_frame_depth;
 	uint32_t stack_frame_id;
+	lex::src_tokens object_src_tokens;
 };
 
 struct one_past_the_end_pointer
@@ -385,6 +396,7 @@ struct memory_manager
 	void pop_stack_frame(void);
 
 	bool check_dereference(ptr_t address, type const *object_type) const;
+	error_reason_t get_dereference_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
 	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type) const;
 
@@ -418,6 +430,7 @@ struct object_from_constant_value_result_t
 };
 
 object_from_constant_value_result_t object_from_constant_value(
+	lex::src_tokens const &src_tokens,
 	ast::constant_value const &value,
 	type const *object_type,
 	endianness_kind endianness,

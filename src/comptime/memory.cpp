@@ -189,10 +189,11 @@ static pointer_arithmetic_check_result check_pointer_arithmetic(
 	}
 }
 
-global_object::global_object(ptr_t _address, type const *_object_type, bz::fixed_vector<uint8_t> data)
+global_object::global_object(lex::src_tokens const &_object_src_tokens, ptr_t _address, type const *_object_type, bz::fixed_vector<uint8_t> data)
 	: address(_address),
 	  object_type(_object_type),
-	  memory(std::move(data))
+	  memory(std::move(data)),
+	  object_src_tokens(_object_src_tokens)
 {}
 
 size_t global_object::object_size(void) const
@@ -223,6 +224,15 @@ bool global_object::check_dereference(ptr_t address, type const *subobject_type)
 
 	auto const offset = address - this->address;
 	return contained_in_object(this->object_type, offset, subobject_type);
+}
+
+bz::u8string global_object::get_dereference_error_reason(ptr_t, type const *) const
+{
+	// this shouldn't ever happen, because the only kind of invalid memory access
+	// into global objects is a one-past-the-end pointer dereference, which is handled
+	// much earlier as a meta pointer
+	bz_unreachable;
+	return {};
 }
 
 bool global_object::check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const
@@ -469,11 +479,12 @@ void bitset::clear(void)
 	this->bits.clear();
 }
 
-stack_object::stack_object(ptr_t _address, type const *_object_type, bool is_always_initialized)
+stack_object::stack_object(lex::src_tokens const &_object_src_tokens, ptr_t _address, type const *_object_type, bool is_always_initialized)
 	: address(_address),
 	  object_type(_object_type),
 	  memory(_object_type->size, 0),
-	  is_alive_bitset(_object_type->size, is_always_initialized)
+	  is_alive_bitset(_object_type->size, is_always_initialized),
+	  object_src_tokens(_object_src_tokens)
 {}
 
 size_t stack_object::object_size(void) const
@@ -525,6 +536,12 @@ bool stack_object::check_dereference(ptr_t address, type const *subobject_type) 
 
 	auto const offset = address - this->address;
 	return contained_in_object(this->object_type, offset, subobject_type);
+}
+
+bz::u8string stack_object::get_dereference_error_reason(ptr_t address, type const *object_type) const
+{
+	bz_assert(!this->is_alive(address, address + object_type->size));
+	return "lifetime of the stack object has already ended";
 }
 
 bool stack_object::check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const
@@ -692,6 +709,12 @@ bool heap_object::check_dereference(ptr_t address, type const *subobject_type) c
 	return contained_in_object(this->elem_type, offset % this->elem_size(), subobject_type);
 }
 
+bz::u8string heap_object::get_dereference_error_reason(ptr_t address, type const *object_type) const
+{
+	bz_assert(!this->is_alive(address, address + object_type->size));
+	return "address points to a heap object outside its lifetime";
+}
+
 bool heap_object::check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const
 {
 	if (begin == end)
@@ -819,10 +842,10 @@ global_memory_manager::global_memory_manager(ptr_t global_memory_begin)
 	  objects()
 {}
 
-uint32_t global_memory_manager::add_object(type const *object_type, bz::fixed_vector<uint8_t> data)
+uint32_t global_memory_manager::add_object(lex::src_tokens const &object_src_tokens, type const *object_type, bz::fixed_vector<uint8_t> data)
 {
 	auto const result = static_cast<uint32_t>(this->objects.size());
-	this->objects.emplace_back(this->head, object_type, std::move(data));
+	this->objects.emplace_back(object_src_tokens, this->head, object_type, std::move(data));
 	this->head += object_type->size;
 	this->head += (max_object_align - this->head % max_object_align);
 	return result;
@@ -885,6 +908,13 @@ bool global_memory_manager::check_dereference(ptr_t address, type const *object_
 {
 	auto const object = this->get_global_object(address);
 	return object != nullptr && object->check_dereference(address, object_type);
+}
+
+error_reason_t global_memory_manager::get_dereference_error_reason(ptr_t address, type const *object_type) const
+{
+	auto const object = this->get_global_object(address);
+	bz_assert(object != nullptr);
+	return { object->object_src_tokens, object->get_dereference_error_reason(address, object_type) };
 }
 
 bool global_memory_manager::check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const
@@ -971,12 +1001,12 @@ void stack_manager::push_stack_frame(bz::array_view<alloca const> allocas)
 	auto object_address = begin_address;
 	new_frame.objects = bz::fixed_vector<stack_object>(
 		allocas.transform([&object_address, begin_address](alloca const &a) {
-			auto const [object_type, is_always_initialized] = a;
+			auto const &[object_type, is_always_initialized, src_tokens] = a;
 			object_address = object_address == begin_address
 				? begin_address
 				: object_address + (object_type->align - object_address % object_type->align);
 			bz_assert(object_address % object_type->align == 0);
-			auto result = stack_object(object_address, object_type, is_always_initialized);
+			auto result = stack_object(src_tokens, object_address, object_type, is_always_initialized);
 			object_address += object_type->size;
 			return result;
 		})
@@ -1089,6 +1119,13 @@ bool stack_manager::check_dereference(ptr_t address, type const *object_type) co
 {
 	auto const object = this->get_stack_object(address);
 	return object != nullptr && object->check_dereference(address, object_type);
+}
+
+error_reason_t stack_manager::get_dereference_error_reason(ptr_t address, type const *object_type) const
+{
+	auto const object = this->get_stack_object(address);
+	bz_assert(object != nullptr);
+	return { object->object_src_tokens, object->get_dereference_error_reason(address, object_type) };
 }
 
 bool stack_manager::check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const
@@ -1262,6 +1299,21 @@ bool heap_manager::check_dereference(ptr_t address, type const *object_type) con
 {
 	auto const allocation = this->get_allocation(address);
 	return allocation != nullptr && !allocation->is_freed &&  allocation->object.check_dereference(address, object_type);
+}
+
+error_reason_t heap_manager::get_dereference_error_reason(ptr_t address, type const *object_type) const
+{
+	auto const allocation = this->get_allocation(address);
+	bz_assert(allocation != nullptr);
+
+	if (allocation->is_freed)
+	{
+		return { allocation->free_info.src_tokens, "address points into an allocation that was freed here" };
+	}
+	else
+	{
+		return { allocation->alloc_info.src_tokens, allocation->object.get_dereference_error_reason(address, object_type) };
+	}
 }
 
 bool heap_manager::check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const
@@ -1493,6 +1545,83 @@ bool memory_manager::check_dereference(ptr_t address, type const *object_type) c
 		return this->heap.check_dereference(address, object_type);
 	case memory_segment::meta:
 		bz_unreachable;
+	}
+}
+
+error_reason_t memory_manager::get_dereference_error_reason(ptr_t address, type const *object_type) const
+{
+	bool is_one_past_the_end = false;
+	auto segment = this->segment_info.get_segment(address);
+	while (segment == memory_segment::meta)
+	{
+		switch (this->meta_memory.segment_info.get_segment(address))
+		{
+		case meta_memory_segment::stack_object:
+		{
+			auto const &stack_object = this->meta_memory.get_stack_object_pointer(address);
+			if (
+				stack_object.stack_frame_depth >= this->stack.stack_frames.size()
+				|| this->stack.stack_frames[stack_object.stack_frame_depth].id != stack_object.stack_frame_id
+			)
+			{
+				return { stack_object.object_src_tokens, "address points to an object from a finished stack frame" };
+			}
+
+			address = stack_object.stack_address;
+			break;
+		}
+		case meta_memory_segment::one_past_the_end:
+			is_one_past_the_end = true;
+			address = this->meta_memory.get_one_past_the_end_pointer(address).address;
+			break;
+		}
+
+		segment = this->segment_info.get_segment(address);
+	}
+
+	if (is_one_past_the_end)
+	{
+		switch (segment)
+		{
+		case memory_segment::invalid:
+			bz_unreachable;
+		case memory_segment::global:
+		{
+			auto const global_object = this->global_memory->get_global_object(address);
+			bz_assert(global_object != nullptr);
+			return { global_object->object_src_tokens, "address is a one-past-the-end pointer into this global object" };
+		}
+		case memory_segment::stack:
+		{
+			auto const stack_object = this->stack.get_stack_object(address);
+			bz_assert(stack_object != nullptr);
+			return { stack_object->object_src_tokens, "address is a one-past-the-end pointer into this stack object" };
+		}
+		case memory_segment::heap:
+		{
+			auto const allocation = this->heap.get_allocation(address);
+			bz_assert(allocation != nullptr);
+			return { allocation->alloc_info.src_tokens, "address is a one-past-the-end pointer into this allocation" };
+		}
+		case memory_segment::meta:
+			bz_unreachable;
+		}
+	}
+	else
+	{
+		switch (segment)
+		{
+		case memory_segment::invalid:
+			bz_unreachable;
+		case memory_segment::global:
+			return this->global_memory->get_dereference_error_reason(address, object_type);
+		case memory_segment::stack:
+			return this->stack.get_dereference_error_reason(address, object_type);
+		case memory_segment::heap:
+			return this->heap.get_dereference_error_reason(address, object_type);
+		case memory_segment::meta:
+			bz_unreachable;
+		}
 	}
 }
 
@@ -2256,6 +2385,7 @@ ast::constant_value constant_value_from_object(
 }
 
 static void object_from_constant_value(
+	lex::src_tokens const &src_tokens,
 	ast::constant_value const &value,
 	type const *object_type,
 	uint8_t *mem,
@@ -2332,6 +2462,7 @@ static void object_from_constant_value(
 
 		auto const char_array_type = type_set.get_array_type(type_set.get_builtin_type(builtin_type_kind::i8), str.size());
 		auto const char_array_index = manager.add_object(
+			src_tokens,
 			char_array_type,
 			bz::fixed_vector<uint8_t>(bz::array_view(str.data(), str.size()))
 		);
@@ -2400,7 +2531,7 @@ static void object_from_constant_value(
 		auto const elem_size = elem_type->size;
 		for (auto const &elem : array)
 		{
-			object_from_constant_value(elem, elem_type, mem, endianness, current_offset, one_past_the_end_infos, manager, type_set);
+			object_from_constant_value(src_tokens, elem, elem_type, mem, endianness, current_offset, one_past_the_end_infos, manager, type_set);
 			mem += elem_size;
 			current_offset += elem_size;
 		}
@@ -2489,6 +2620,7 @@ static void object_from_constant_value(
 		for (auto const i : bz::iota(0, values.size()))
 		{
 			object_from_constant_value(
+				src_tokens,
 				values[i],
 				types[i],
 				mem + offsets[i],
@@ -2516,6 +2648,7 @@ static void object_from_constant_value(
 		for (auto const i : bz::iota(0, values.size()))
 		{
 			object_from_constant_value(
+				src_tokens,
 				values[i],
 				types[i],
 				mem + offsets[i],
@@ -2534,6 +2667,7 @@ static void object_from_constant_value(
 }
 
 object_from_constant_value_result_t object_from_constant_value(
+	lex::src_tokens const &src_tokens,
 	ast::constant_value const &value,
 	type const *object_type,
 	endianness_kind endianness,
@@ -2546,6 +2680,7 @@ object_from_constant_value_result_t object_from_constant_value(
 		.one_past_the_end_infos = {},
 	};
 	object_from_constant_value(
+		src_tokens,
 		value,
 		object_type,
 		result.data.data(),

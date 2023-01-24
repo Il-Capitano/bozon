@@ -2546,7 +2546,7 @@ bz::u8string to_string(instruction const &inst_)
 	case instruction::add_global_array_data:
 	{
 		auto const &inst = inst_.get<instruction::add_global_array_data>();
-		return bz::format("add-global-array-data {} {}, {}", inst.elem_type->to_string(), inst.args[0], inst.args[1]);
+		return bz::format("add-global-array-data {}, {} ({})", inst.args[0], inst.args[1], inst.add_global_array_data_info_index);
 	}
 	case instruction::array_bounds_check_i32:
 	{

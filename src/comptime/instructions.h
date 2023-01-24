@@ -65,6 +65,12 @@ struct memory_access_check_info_t
 	ast::typespec_view object_typespec;
 };
 
+struct add_global_array_data_info_t
+{
+	type const *elem_type;
+	lex::src_tokens src_tokens;
+};
+
 struct function
 {
 	bz::fixed_vector<instruction> instructions;
@@ -79,6 +85,7 @@ struct function
 	bz::fixed_vector<slice_construction_check_info_t> slice_construction_check_infos;
 	bz::fixed_vector<pointer_arithmetic_check_info_t> pointer_arithmetic_check_infos;
 	bz::fixed_vector<memory_access_check_info_t> memory_access_check_infos;
+	bz::fixed_vector<add_global_array_data_info_t> add_global_array_data_infos;
 
 	ast::function_body *func_body = nullptr;
 };
@@ -4528,7 +4535,7 @@ struct add_global_array_data
 	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::ptr;
 
-	type const *elem_type;
+	uint32_t add_global_array_data_info_index;
 
 	bz::array<instruction_value_index, arg_types.size()> args;
 };

@@ -70,7 +70,7 @@ struct executor_context
 	bool is_option_set(bz::u8string_view option);
 
 	ptr_t get_global(uint32_t index);
-	ptr_t add_global_array_data(type const *elem_type, bz::array_view<uint8_t const> data);
+	ptr_t add_global_array_data(lex::src_tokens const &src_tokens, type const *elem_type, bz::array_view<uint8_t const> data);
 	instruction_value get_arg(uint32_t index);
 	void do_jump(instruction_index dest);
 	void do_ret(instruction_value value);
@@ -84,6 +84,7 @@ struct executor_context
 	slice_construction_check_info_t const &get_slice_construction_info(uint32_t index) const;
 	pointer_arithmetic_check_info_t const &get_pointer_arithmetic_info(uint32_t index) const;
 	memory_access_check_info_t const &get_memory_access_info(uint32_t index) const;
+	add_global_array_data_info_t const &get_add_global_array_data_info(uint32_t index) const;
 
 	memory::call_stack_info_t get_call_stack_info(uint32_t src_tokens_index) const;
 
