@@ -2579,12 +2579,12 @@ bz::u8string to_string(instruction const &inst_)
 	case instruction::start_lifetime:
 	{
 		auto const &inst = inst_.get<instruction::start_lifetime>();
-		return bz::format("start-lifetime {}", inst.args[0]);
+		return bz::format("start-lifetime {} {}", inst.size, inst.args[0]);
 	}
 	case instruction::end_lifetime:
 	{
 		auto const &inst = inst_.get<instruction::end_lifetime>();
-		return bz::format("end-lifetime {}", inst.args[0]);
+		return bz::format("end-lifetime {} {}", inst.size, inst.args[0]);
 	}
 	default:
 		bz_unreachable;

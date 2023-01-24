@@ -537,14 +537,14 @@ int64_t executor_context::pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, siz
 	return this->memory.do_pointer_difference_unchecked(lhs, rhs, stride);
 }
 
-void executor_context::start_lifetime(ptr_t address)
+void executor_context::start_lifetime(ptr_t address, size_t size)
 {
-	this->memory.start_lifetime(address);
+	this->memory.start_lifetime(address, size);
 }
 
-void executor_context::end_lifetime(ptr_t address)
+void executor_context::end_lifetime(ptr_t address, size_t size)
 {
-	this->memory.end_lifetime(address);
+	this->memory.end_lifetime(address, size);
 }
 
 void executor_context::advance(void)

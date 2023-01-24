@@ -912,8 +912,9 @@ expr_value codegen_context::create_alloca(type const *type)
 		.bb_index = instruction_ref::alloca_bb_index,
 		.inst_index = static_cast<uint32_t>(this->current_function_info.allocas.size() - 1),
 	};
-	this->create_start_lifetime(alloca_ref);
-	return expr_value::get_reference(alloca_ref, type);
+	auto const result = expr_value::get_reference(alloca_ref, type);
+	this->create_start_lifetime(result);
+	return result;
 }
 
 expr_value codegen_context::create_alloca_without_lifetime(type const *type)
@@ -5496,14 +5497,16 @@ instruction_ref codegen_context::create_slice_construction_check(
 	);
 }
 
-void codegen_context::create_start_lifetime(instruction_ref ptr)
+void codegen_context::create_start_lifetime(expr_value ptr)
 {
-	this->add_instruction(instructions::start_lifetime{}, ptr);
+	bz_assert(ptr.is_reference());
+	this->add_instruction(instructions::start_lifetime{ .size = ptr.get_type()->size }, ptr.get_reference());
 }
 
-void codegen_context::create_end_lifetime(instruction_ref ptr)
+void codegen_context::create_end_lifetime(expr_value ptr)
 {
-	this->add_instruction(instructions::end_lifetime{}, ptr);
+	bz_assert(ptr.is_reference());
+	this->add_instruction(instructions::end_lifetime{ .size = ptr.get_type()->size }, ptr.get_reference());
 }
 
 static void resolve_instruction_args(instruction &inst, bz::array<instruction_ref, 3> const &args, auto get_instruction_value_index)

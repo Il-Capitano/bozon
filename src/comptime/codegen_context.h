@@ -537,8 +537,8 @@ struct codegen_context
 		type const *elem_type,
 		ast::typespec_view slice_type
 	);
-	void create_start_lifetime(instruction_ref ptr);
-	void create_end_lifetime(instruction_ref ptr);
+	void create_start_lifetime(expr_value ptr);
+	void create_end_lifetime(expr_value ptr);
 };
 
 } // namespace comptime

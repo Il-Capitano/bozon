@@ -6153,7 +6153,7 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 {
 	if (destruct_op_info.destruct_op == nullptr)
 	{
-		context.create_end_lifetime(destruct_op_info.value.get_reference());
+		context.create_end_lifetime(destruct_op_info.value);
 		return;
 	}
 
@@ -6176,7 +6176,7 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 			auto const destruct_bb = context.add_basic_block();
 			context.set_current_basic_block(destruct_bb);
 			generate_expr_code(*destruct_op.get<ast::destruct_variable>().destruct_call, context, {});
-			context.create_end_lifetime(value.get_reference());
+			context.create_end_lifetime(value);
 
 			auto const end_bb = context.add_basic_block();
 			context.create_jump(end_bb);
@@ -6189,7 +6189,7 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 		else
 		{
 			generate_expr_code(*destruct_op.get<ast::destruct_variable>().destruct_call, context, {});
-			context.create_end_lifetime(value.get_reference());
+			context.create_end_lifetime(value);
 		}
 	}
 	else if (destruct_op.is<ast::destruct_self>())

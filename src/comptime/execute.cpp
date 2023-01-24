@@ -4334,14 +4334,14 @@ static void execute_slice_construction_check(instructions::slice_construction_ch
 	context.check_slice_construction(inst.src_tokens_index, begin_ptr, end_ptr, info.elem_type, info.slice_type);
 }
 
-static void execute_start_lifetime(instructions::start_lifetime const &, ptr_t address, executor_context &context)
+static void execute_start_lifetime(instructions::start_lifetime const &inst, ptr_t address, executor_context &context)
 {
-	context.start_lifetime(address);
+	context.start_lifetime(address, inst.size);
 }
 
-static void execute_end_lifetime(instructions::end_lifetime const &, ptr_t address, executor_context &context)
+static void execute_end_lifetime(instructions::end_lifetime const &inst, ptr_t address, executor_context &context)
 {
-	context.end_lifetime(address);
+	context.end_lifetime(address, inst.size);
 }
 
 

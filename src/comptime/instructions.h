@@ -4609,6 +4609,8 @@ struct start_lifetime
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
 
+	size_t size;
+
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
@@ -4616,6 +4618,8 @@ struct end_lifetime
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
 	static inline constexpr value_type result_type = value_type::none;
+
+	size_t size;
 
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
