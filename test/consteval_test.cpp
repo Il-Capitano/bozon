@@ -32,7 +32,6 @@ do {                                                                            
     value.emplace<kind>(res_value);                                             \
     assert_eq(res.get<ast::constant_expression>().value, value);                \
     global_ctx.clear_errors_and_warnings();                                     \
-    global_ctx._comptime_executor.functions_to_compile.clear();                 \
 } while (false)
 
 #define x_fail(str)                                                             \
@@ -48,7 +47,6 @@ do {                                                                            
     assert_false(res.is_error());                                               \
     assert_false(res.is<ast::constant_expression>());                           \
     global_ctx.clear_errors_and_warnings();                                     \
-    global_ctx._comptime_executor.functions_to_compile.clear();                 \
 } while (false)
 
 	x("'a'", ast::constant_value::u8char, 'a');
@@ -89,6 +87,8 @@ do {                                                                            
     auto it = tokens.begin();                                                   \
     auto res = parse_expression(it, tokens.end() - 1, parse_ctx, precedence{}); \
     resolve_expression(res, parse_ctx);                                         \
+    auto auto_type = ast::make_auto_typespec(nullptr);                          \
+    resolve::match_expression_to_type(res, auto_type, parse_ctx);               \
     consteval_try(res, parse_ctx);                                              \
     assert_eq(it, tokens.end() - 1);                                            \
     assert_false(res.is_error());                                               \
@@ -97,7 +97,6 @@ do {                                                                            
     value.emplace<kind>(res_value);                                             \
     assert_eq(res.get<ast::constant_expression>().value, value);                \
     global_ctx.clear_errors_and_warnings();                                     \
-    global_ctx._comptime_executor.functions_to_compile.clear();                 \
 } while (false)
 
 #define x_fail(str)                                                             \
@@ -108,12 +107,13 @@ do {                                                                            
     auto it = tokens.begin();                                                   \
     auto res = parse_expression(it, tokens.end() - 1, parse_ctx, precedence{}); \
     resolve_expression(res, parse_ctx);                                         \
+    auto auto_type = ast::make_auto_typespec(nullptr);                          \
+    resolve::match_expression_to_type(res, auto_type, parse_ctx);               \
     consteval_try(res, parse_ctx);                                              \
     assert_eq(it, tokens.end() - 1);                                            \
     assert_true(res.has_consteval_failed());                                    \
     assert_true(global_ctx.has_errors());                                       \
     global_ctx.clear_errors_and_warnings();                                     \
-    global_ctx._comptime_executor.functions_to_compile.clear();                 \
 } while (false)
 
 	x("'a'", ast::constant_value::u8char, 'a');
