@@ -422,6 +422,11 @@ static void emit_destruct_operation(destruct_operation_info_t const &info, codeg
 
 void codegen_context::emit_destruct_operations(size_t destruct_calls_start_index)
 {
+	if (this->has_terminator())
+	{
+		return;
+	}
+
 	for (auto const &info : this->current_function_info.destructor_calls.slice(destruct_calls_start_index).reversed())
 	{
 		emit_destruct_operation(info, *this);
@@ -430,6 +435,11 @@ void codegen_context::emit_destruct_operations(size_t destruct_calls_start_index
 
 void codegen_context::emit_loop_destruct_operations(void)
 {
+	if (this->has_terminator())
+	{
+		return;
+	}
+
 	for (auto const &info : this->current_function_info.destructor_calls.slice(this->loop_info.destructor_stack_begin).reversed())
 	{
 		emit_destruct_operation(info, *this);
@@ -438,6 +448,11 @@ void codegen_context::emit_loop_destruct_operations(void)
 
 void codegen_context::emit_all_destruct_operations(void)
 {
+	if (this->has_terminator())
+	{
+		return;
+	}
+
 	for (auto const &info : this->current_function_info.destructor_calls.reversed())
 	{
 		emit_destruct_operation(info, *this);
