@@ -23,6 +23,90 @@ static constexpr memory::memory_segment_info_t segment_info_32_bit = {
 	.meta_begin   = 0xff00'0000,
 };
 
+template<typename Inst>
+instruction_ref add_instruction(codegen_context &context, Inst inst)
+{
+	if (context.has_terminator())
+	{
+		context.set_current_basic_block(context.add_basic_block());
+	}
+	static_assert(instructions::arg_count<Inst> == 0);
+	instruction new_inst = instruction();
+	new_inst.emplace<Inst>(inst);
+	context.current_function_info.blocks[context.current_bb.bb_index].instructions.push_back(std::move(new_inst));
+	auto const result = instruction_ref{
+		.bb_index   = context.current_bb.bb_index,
+		.inst_index = static_cast<uint32_t>(context.current_function_info.blocks[context.current_bb.bb_index].instructions.size() - 1),
+	};
+	return result;
+}
+
+template<typename Inst>
+instruction_ref add_instruction(codegen_context &context, Inst inst, instruction_ref arg)
+{
+	if (context.has_terminator())
+	{
+		context.set_current_basic_block(context.add_basic_block());
+	}
+	static_assert(instructions::arg_count<Inst> == 1);
+	instruction new_inst = instruction();
+	new_inst.emplace<Inst>(inst);
+	context.current_function_info.blocks[context.current_bb.bb_index].instructions.push_back(std::move(new_inst));
+	auto const result = instruction_ref{
+		.bb_index   = context.current_bb.bb_index,
+		.inst_index = static_cast<uint32_t>(context.current_function_info.blocks[context.current_bb.bb_index].instructions.size() - 1),
+	};
+	context.current_function_info.unresolved_instructions.push_back({
+		.inst = result,
+		.args = { arg, {}, {} },
+	});
+	return result;
+}
+
+template<typename Inst>
+instruction_ref add_instruction(codegen_context &context, Inst inst, instruction_ref arg1, instruction_ref arg2)
+{
+	if (context.has_terminator())
+	{
+		context.set_current_basic_block(context.add_basic_block());
+	}
+	static_assert(instructions::arg_count<Inst> == 2);
+	instruction new_inst = instruction();
+	new_inst.emplace<Inst>(inst);
+	context.current_function_info.blocks[context.current_bb.bb_index].instructions.push_back(std::move(new_inst));
+	auto const result = instruction_ref{
+		.bb_index   = context.current_bb.bb_index,
+		.inst_index = static_cast<uint32_t>(context.current_function_info.blocks[context.current_bb.bb_index].instructions.size() - 1),
+	};
+	context.current_function_info.unresolved_instructions.push_back({
+		.inst = result,
+		.args = { arg1, arg2, {} },
+	});
+	return result;
+}
+
+template<typename Inst>
+instruction_ref add_instruction(codegen_context &context, Inst inst, instruction_ref arg1, instruction_ref arg2, instruction_ref arg3)
+{
+	if (context.has_terminator())
+	{
+		context.set_current_basic_block(context.add_basic_block());
+	}
+	static_assert(instructions::arg_count<Inst> == 3);
+	instruction new_inst = instruction();
+	new_inst.emplace<Inst>(inst);
+	context.current_function_info.blocks[context.current_bb.bb_index].instructions.push_back(std::move(new_inst));
+	auto const result = instruction_ref{
+		.bb_index   = context.current_bb.bb_index,
+		.inst_index = static_cast<uint32_t>(context.current_function_info.blocks[context.current_bb.bb_index].instructions.size() - 1),
+	};
+	context.current_function_info.unresolved_instructions.push_back({
+		.inst = result,
+		.args = { arg1, arg2, arg3 },
+	});
+	return result;
+}
+
 bool expr_value::is_value(void) const
 {
 	return this->kind == expr_value_kind::value;
@@ -549,73 +633,73 @@ expr_value codegen_context::create_const_int(type const *int_type, uint64_t valu
 
 expr_value codegen_context::create_const_i1(bool value)
 {
-	auto const inst_ref = this->add_instruction(instructions::const_i1{ .value = value });
+	auto const inst_ref = add_instruction(*this, instructions::const_i1{ .value = value });
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
 }
 
 expr_value codegen_context::create_const_i8(int8_t value)
 {
-	auto const inst_ref = this->add_instruction(instructions::const_i8{ .value = value });
+	auto const inst_ref = add_instruction(*this, instructions::const_i8{ .value = value });
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i8));
 }
 
 expr_value codegen_context::create_const_i16(int16_t value)
 {
-	auto const inst_ref = this->add_instruction(instructions::const_i16{ .value = value });
+	auto const inst_ref = add_instruction(*this, instructions::const_i16{ .value = value });
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i16));
 }
 
 expr_value codegen_context::create_const_i32(int32_t value)
 {
-	auto const inst_ref = this->add_instruction(instructions::const_i32{ .value = value });
+	auto const inst_ref = add_instruction(*this, instructions::const_i32{ .value = value });
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i32));
 }
 
 expr_value codegen_context::create_const_i64(int64_t value)
 {
-	auto const inst_ref = this->add_instruction(instructions::const_i64{ .value = value });
+	auto const inst_ref = add_instruction(*this, instructions::const_i64{ .value = value });
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i64));
 }
 
 expr_value codegen_context::create_const_u8(uint8_t value)
 {
-	auto const inst_ref = this->add_instruction(instructions::const_u8{ .value = value });
+	auto const inst_ref = add_instruction(*this, instructions::const_u8{ .value = value });
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i8));
 }
 
 expr_value codegen_context::create_const_u16(uint16_t value)
 {
-	auto const inst_ref = this->add_instruction(instructions::const_u16{ .value = value });
+	auto const inst_ref = add_instruction(*this, instructions::const_u16{ .value = value });
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i16));
 }
 
 expr_value codegen_context::create_const_u32(uint32_t value)
 {
-	auto const inst_ref = this->add_instruction(instructions::const_u32{ .value = value });
+	auto const inst_ref = add_instruction(*this, instructions::const_u32{ .value = value });
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i32));
 }
 
 expr_value codegen_context::create_const_u64(uint64_t value)
 {
-	auto const inst_ref = this->add_instruction(instructions::const_u64{ .value = value });
+	auto const inst_ref = add_instruction(*this, instructions::const_u64{ .value = value });
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i64));
 }
 
 expr_value codegen_context::create_const_f32(float32_t value)
 {
-	auto const inst_ref = this->add_instruction(instructions::const_f32{ .value = value });
+	auto const inst_ref = add_instruction(*this, instructions::const_f32{ .value = value });
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::f32));
 }
 
 expr_value codegen_context::create_const_f64(float64_t value)
 {
-	auto const inst_ref = this->add_instruction(instructions::const_f64{ .value = value });
+	auto const inst_ref = add_instruction(*this, instructions::const_f64{ .value = value });
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::f64));
 }
 
 expr_value codegen_context::create_const_ptr_null(void)
 {
-	auto const inst_ref = this->add_instruction(instructions::const_ptr_null{});
+	auto const inst_ref = add_instruction(*this, instructions::const_ptr_null{});
 	return expr_value::get_value(inst_ref, this->get_pointer_type());
 }
 
@@ -653,7 +737,7 @@ expr_value codegen_context::create_add_global_array_data(type const *elem_type, 
 	auto const begin_ptr_value = begin_ptr.get_value_as_instruction(*this);
 	auto const end_ptr_value = end_ptr.get_value_as_instruction(*this);
 	return expr_value::get_value(
-		this->add_instruction(instructions::add_global_array_data{ .elem_type = elem_type }, begin_ptr_value, end_ptr_value),
+		add_instruction(*this, instructions::add_global_array_data{ .elem_type = elem_type }, begin_ptr_value, end_ptr_value),
 		this->get_pointer_type()
 	);
 }
@@ -662,7 +746,7 @@ expr_value codegen_context::create_get_global_object(uint32_t global_index)
 {
 	bz_assert(global_index < this->global_memory.objects.size());
 	return expr_value::get_reference(
-		this->add_instruction(instructions::get_global_address{ .global_index = global_index }),
+		add_instruction(*this, instructions::get_global_address{ .global_index = global_index }),
 		this->global_memory.objects[global_index].object_type
 	);
 }
@@ -672,7 +756,7 @@ expr_value codegen_context::create_get_function_return_address(void)
 	auto const return_type = this->current_function_info.func->return_type;
 	bz_assert(!return_type->is_simple_value_type());
 	return expr_value::get_reference(
-		this->add_instruction(instructions::get_function_arg{ .arg_index = 0 }),
+		add_instruction(*this, instructions::get_function_arg{ .arg_index = 0 }),
 		return_type
 	);
 }
@@ -680,7 +764,7 @@ expr_value codegen_context::create_get_function_return_address(void)
 instruction_ref codegen_context::create_get_function_arg(uint32_t arg_index)
 {
 	auto const needs_return_address = !this->current_function_info.func->return_type->is_simple_value_type();
-	return this->add_instruction(instructions::get_function_arg{ .arg_index = arg_index + (needs_return_address ? 1 : 0) });
+	return add_instruction(*this, instructions::get_function_arg{ .arg_index = arg_index + (needs_return_address ? 1 : 0) });
 }
 
 expr_value codegen_context::create_load(expr_value ptr)
@@ -696,14 +780,14 @@ expr_value codegen_context::create_load(expr_value ptr)
 			if (this->is_64_bit())
 			{
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_ptr64_le{}, ptr_),
+					add_instruction(*this, instructions::load_ptr64_le{}, ptr_),
 					type
 				);
 			}
 			else
 			{
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_ptr32_le{}, ptr_),
+					add_instruction(*this, instructions::load_ptr32_le{}, ptr_),
 					type
 				);
 			}
@@ -713,14 +797,14 @@ expr_value codegen_context::create_load(expr_value ptr)
 			if (this->is_64_bit())
 			{
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_ptr64_be{}, ptr_),
+					add_instruction(*this, instructions::load_ptr64_be{}, ptr_),
 					type
 				);
 			}
 			else
 			{
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_ptr32_be{}, ptr_),
+					add_instruction(*this, instructions::load_ptr32_be{}, ptr_),
 					type
 				);
 			}
@@ -734,37 +818,37 @@ expr_value codegen_context::create_load(expr_value ptr)
 			{
 			case builtin_type_kind::i1:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i1_le{}, ptr_),
+					add_instruction(*this, instructions::load_i1_le{}, ptr_),
 					type
 				);
 			case builtin_type_kind::i8:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i8_le{}, ptr_),
+					add_instruction(*this, instructions::load_i8_le{}, ptr_),
 					type
 				);
 			case builtin_type_kind::i16:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i16_le{}, ptr_),
+					add_instruction(*this, instructions::load_i16_le{}, ptr_),
 					type
 				);
 			case builtin_type_kind::i32:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i32_le{}, ptr_),
+					add_instruction(*this, instructions::load_i32_le{}, ptr_),
 					type
 				);
 			case builtin_type_kind::i64:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i64_le{}, ptr_),
+					add_instruction(*this, instructions::load_i64_le{}, ptr_),
 					type
 				);
 			case builtin_type_kind::f32:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_f32_le{}, ptr_),
+					add_instruction(*this, instructions::load_f32_le{}, ptr_),
 					type
 				);
 			case builtin_type_kind::f64:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_f64_le{}, ptr_),
+					add_instruction(*this, instructions::load_f64_le{}, ptr_),
 					type
 				);
 			case builtin_type_kind::void_:
@@ -777,37 +861,37 @@ expr_value codegen_context::create_load(expr_value ptr)
 			{
 			case builtin_type_kind::i1:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i1_be{}, ptr_),
+					add_instruction(*this, instructions::load_i1_be{}, ptr_),
 					type
 				);
 			case builtin_type_kind::i8:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i8_be{}, ptr_),
+					add_instruction(*this, instructions::load_i8_be{}, ptr_),
 					type
 				);
 			case builtin_type_kind::i16:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i16_be{}, ptr_),
+					add_instruction(*this, instructions::load_i16_be{}, ptr_),
 					type
 				);
 			case builtin_type_kind::i32:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i32_be{}, ptr_),
+					add_instruction(*this, instructions::load_i32_be{}, ptr_),
 					type
 				);
 			case builtin_type_kind::i64:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_i64_be{}, ptr_),
+					add_instruction(*this, instructions::load_i64_be{}, ptr_),
 					type
 				);
 			case builtin_type_kind::f32:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_f32_be{}, ptr_),
+					add_instruction(*this, instructions::load_f32_be{}, ptr_),
 					type
 				);
 			case builtin_type_kind::f64:
 				return expr_value::get_value(
-					this->add_instruction(instructions::load_f64_be{}, ptr_),
+					add_instruction(*this, instructions::load_f64_be{}, ptr_),
 					type
 				);
 			case builtin_type_kind::void_:
@@ -830,22 +914,22 @@ instruction_ref codegen_context::create_store(expr_value value, expr_value ptr)
 		{
 			if (this->is_64_bit())
 			{
-				return this->add_instruction(instructions::store_ptr64_le{}, value_, ptr_);
+				return add_instruction(*this, instructions::store_ptr64_le{}, value_, ptr_);
 			}
 			else
 			{
-				return this->add_instruction(instructions::store_ptr32_le{}, value_, ptr_);
+				return add_instruction(*this, instructions::store_ptr32_le{}, value_, ptr_);
 			}
 		}
 		else
 		{
 			if (this->is_64_bit())
 			{
-				return this->add_instruction(instructions::store_ptr64_be{}, value_, ptr_);
+				return add_instruction(*this, instructions::store_ptr64_be{}, value_, ptr_);
 			}
 			else
 			{
-				return this->add_instruction(instructions::store_ptr32_be{}, value_, ptr_);
+				return add_instruction(*this, instructions::store_ptr32_be{}, value_, ptr_);
 			}
 		}
 	}
@@ -856,19 +940,19 @@ instruction_ref codegen_context::create_store(expr_value value, expr_value ptr)
 			switch (type->get_builtin_kind())
 			{
 			case builtin_type_kind::i1:
-				return this->add_instruction(instructions::store_i1_le{}, value_, ptr_);
+				return add_instruction(*this, instructions::store_i1_le{}, value_, ptr_);
 			case builtin_type_kind::i8:
-				return this->add_instruction(instructions::store_i8_le{}, value_, ptr_);
+				return add_instruction(*this, instructions::store_i8_le{}, value_, ptr_);
 			case builtin_type_kind::i16:
-				return this->add_instruction(instructions::store_i16_le{}, value_, ptr_);
+				return add_instruction(*this, instructions::store_i16_le{}, value_, ptr_);
 			case builtin_type_kind::i32:
-				return this->add_instruction(instructions::store_i32_le{}, value_, ptr_);
+				return add_instruction(*this, instructions::store_i32_le{}, value_, ptr_);
 			case builtin_type_kind::i64:
-				return this->add_instruction(instructions::store_i64_le{}, value_, ptr_);
+				return add_instruction(*this, instructions::store_i64_le{}, value_, ptr_);
 			case builtin_type_kind::f32:
-				return this->add_instruction(instructions::store_f32_le{}, value_, ptr_);
+				return add_instruction(*this, instructions::store_f32_le{}, value_, ptr_);
 			case builtin_type_kind::f64:
-				return this->add_instruction(instructions::store_f64_le{}, value_, ptr_);
+				return add_instruction(*this, instructions::store_f64_le{}, value_, ptr_);
 			case builtin_type_kind::void_:
 				bz_unreachable;
 			}
@@ -878,19 +962,19 @@ instruction_ref codegen_context::create_store(expr_value value, expr_value ptr)
 			switch (type->get_builtin_kind())
 			{
 			case builtin_type_kind::i1:
-				return this->add_instruction(instructions::store_i1_be{}, value_, ptr_);
+				return add_instruction(*this, instructions::store_i1_be{}, value_, ptr_);
 			case builtin_type_kind::i8:
-				return this->add_instruction(instructions::store_i8_be{}, value_, ptr_);
+				return add_instruction(*this, instructions::store_i8_be{}, value_, ptr_);
 			case builtin_type_kind::i16:
-				return this->add_instruction(instructions::store_i16_be{}, value_, ptr_);
+				return add_instruction(*this, instructions::store_i16_be{}, value_, ptr_);
 			case builtin_type_kind::i32:
-				return this->add_instruction(instructions::store_i32_be{}, value_, ptr_);
+				return add_instruction(*this, instructions::store_i32_be{}, value_, ptr_);
 			case builtin_type_kind::i64:
-				return this->add_instruction(instructions::store_i64_be{}, value_, ptr_);
+				return add_instruction(*this, instructions::store_i64_be{}, value_, ptr_);
 			case builtin_type_kind::f32:
-				return this->add_instruction(instructions::store_f32_be{}, value_, ptr_);
+				return add_instruction(*this, instructions::store_f32_be{}, value_, ptr_);
 			case builtin_type_kind::f64:
-				return this->add_instruction(instructions::store_f64_be{}, value_, ptr_);
+				return add_instruction(*this, instructions::store_f64_be{}, value_, ptr_);
 			case builtin_type_kind::void_:
 				bz_unreachable;
 			}
@@ -914,7 +998,7 @@ void codegen_context::create_memory_access_check(
 	});
 	auto const ptr_value = ptr.get_value_as_instruction(*this);
 
-	this->add_instruction(instructions::check_dereference{
+	add_instruction(*this, instructions::check_dereference{
 		.src_tokens_index = src_tokens_index,
 		.memory_access_check_info_index = memory_access_check_info_index,
 	}, ptr_value);
@@ -944,7 +1028,7 @@ expr_value codegen_context::create_alloca_without_lifetime(type const *type)
 
 instruction_ref codegen_context::create_jump(basic_block_ref bb)
 {
-	auto const result = this->add_instruction(instructions::jump{});
+	auto const result = add_instruction(*this, instructions::jump{});
 	this->current_function_info.unresolved_jumps.push_back({ .inst = result, .dests = { bb, {} } });
 	return result;
 }
@@ -955,7 +1039,7 @@ instruction_ref codegen_context::create_conditional_jump(
 	basic_block_ref false_bb
 )
 {
-	auto const result = this->add_instruction(instructions::conditional_jump{}, condition.get_value_as_instruction(*this));
+	auto const result = add_instruction(*this, instructions::conditional_jump{}, condition.get_value_as_instruction(*this));
 	this->current_function_info.unresolved_jumps.push_back({ .inst = result, .dests = { true_bb, false_bb } });
 	return result;
 }
@@ -973,15 +1057,15 @@ instruction_ref codegen_context::create_switch(
 		switch (value.get_type()->get_builtin_kind())
 		{
 		case builtin_type_kind::i1:
-			return this->add_instruction(instructions::switch_i1{ .switch_info_index = switch_info_index }, value_ref);
+			return add_instruction(*this, instructions::switch_i1{ .switch_info_index = switch_info_index }, value_ref);
 		case builtin_type_kind::i8:
-			return this->add_instruction(instructions::switch_i8{ .switch_info_index = switch_info_index }, value_ref);
+			return add_instruction(*this, instructions::switch_i8{ .switch_info_index = switch_info_index }, value_ref);
 		case builtin_type_kind::i16:
-			return this->add_instruction(instructions::switch_i16{ .switch_info_index = switch_info_index }, value_ref);
+			return add_instruction(*this, instructions::switch_i16{ .switch_info_index = switch_info_index }, value_ref);
 		case builtin_type_kind::i32:
-			return this->add_instruction(instructions::switch_i32{ .switch_info_index = switch_info_index }, value_ref);
+			return add_instruction(*this, instructions::switch_i32{ .switch_info_index = switch_info_index }, value_ref);
 		case builtin_type_kind::i64:
-			return this->add_instruction(instructions::switch_i64{ .switch_info_index = switch_info_index }, value_ref);
+			return add_instruction(*this, instructions::switch_i64{ .switch_info_index = switch_info_index }, value_ref);
 		default:
 			bz_unreachable;
 		}
@@ -996,12 +1080,12 @@ instruction_ref codegen_context::create_switch(
 
 instruction_ref codegen_context::create_ret(instruction_ref value)
 {
-	return this->add_instruction(instructions::ret{}, value);
+	return add_instruction(*this, instructions::ret{}, value);
 }
 
 instruction_ref codegen_context::create_ret_void(void)
 {
-	return this->add_instruction(instructions::ret_void{});
+	return add_instruction(*this, instructions::ret_void{});
 }
 
 expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
@@ -1012,7 +1096,7 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 	{
 		bz_assert(index <= type->get_array_size()); // one-past-the-end is allowed
 		bz_assert(index <= std::numeric_limits<uint32_t>::max());
-		auto const result_ptr = this->add_instruction(instructions::const_gep{
+		auto const result_ptr = add_instruction(*this, instructions::const_gep{
 			.object_type = type,
 			.index = static_cast<uint32_t>(index),
 		}, value.get_reference());
@@ -1024,7 +1108,7 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 		auto const types = type->get_aggregate_types();
 		bz_assert(index < types.size());
 		bz_assert(index <= std::numeric_limits<uint32_t>::max());
-		auto const result_ptr = this->add_instruction(instructions::const_gep{
+		auto const result_ptr = add_instruction(*this, instructions::const_gep{
 			.object_type = type,
 			.index = static_cast<uint32_t>(index),
 		}, value.get_reference());
@@ -1047,7 +1131,7 @@ expr_value codegen_context::create_array_gep(expr_value value, expr_value index)
 		[[fallthrough]];
 	case builtin_type_kind::i32:
 	{
-		auto const result_ptr = this->add_instruction(
+		auto const result_ptr = add_instruction(*this,
 			instructions::array_gep_i32{ .elem_type = elem_type },
 			value.get_reference(), index.get_value_as_instruction(*this)
 		);
@@ -1055,7 +1139,7 @@ expr_value codegen_context::create_array_gep(expr_value value, expr_value index)
 	}
 	case builtin_type_kind::i64:
 	{
-		auto const result_ptr = this->add_instruction(
+		auto const result_ptr = add_instruction(*this,
 			instructions::array_gep_i64{ .elem_type = elem_type },
 			value.get_reference(), index.get_value_as_instruction(*this)
 		);
@@ -1079,7 +1163,7 @@ expr_value codegen_context::create_array_slice_gep(expr_value begin_ptr, expr_va
 		[[fallthrough]];
 	case builtin_type_kind::i32:
 	{
-		auto const result_ptr = this->add_instruction(
+		auto const result_ptr = add_instruction(*this,
 			instructions::array_gep_i32{ .elem_type = elem_type },
 			begin_ptr.get_value_as_instruction(*this), index.get_value_as_instruction(*this)
 		);
@@ -1087,7 +1171,7 @@ expr_value codegen_context::create_array_slice_gep(expr_value begin_ptr, expr_va
 	}
 	case builtin_type_kind::i64:
 	{
-		auto const result_ptr = this->add_instruction(
+		auto const result_ptr = add_instruction(*this,
 			instructions::array_gep_i64{ .elem_type = elem_type },
 			begin_ptr.get_value_as_instruction(*this), index.get_value_as_instruction(*this)
 		);
@@ -1103,14 +1187,14 @@ instruction_ref codegen_context::create_const_memcpy(expr_value dest, expr_value
 	bz_assert(dest.is_reference());
 	bz_assert(source.is_reference());
 
-	return this->add_instruction(instructions::const_memcpy{ .size = size }, dest.get_reference(), source.get_reference());
+	return add_instruction(*this, instructions::const_memcpy{ .size = size }, dest.get_reference(), source.get_reference());
 }
 
 instruction_ref codegen_context::create_const_memset_zero(expr_value dest, size_t size)
 {
 	bz_assert(dest.is_reference());
 
-	return this->add_instruction(instructions::const_memset_zero{ .size = size }, dest.get_reference());
+	return add_instruction(*this, instructions::const_memset_zero{ .size = size }, dest.get_reference());
 }
 
 expr_value codegen_context::create_function_call(lex::src_tokens const &src_tokens, function const *func, bz::fixed_vector<instruction_ref> args)
@@ -1119,7 +1203,7 @@ expr_value codegen_context::create_function_call(lex::src_tokens const &src_toke
 	auto const args_index = static_cast<uint32_t>(this->current_function_info.call_args.size());
 	this->current_function_info.call_args.push_back(std::move(args));
 
-	auto const inst_ref = this->add_instruction(
+	auto const inst_ref = add_instruction(*this,
 		instructions::function_call{ .func = func, .args_index = args_index, .src_tokens_index = src_tokens_index }
 	);
 	if (func->return_type->is_simple_value_type())
@@ -1141,7 +1225,7 @@ expr_value codegen_context::create_malloc(lex::src_tokens const &src_tokens, typ
 		.get_value_as_instruction(*this);
 
 	return expr_value::get_value(
-		this->add_instruction(instructions::malloc{ .type = type, .src_tokens_index = src_tokens_index }, count_val),
+		add_instruction(*this, instructions::malloc{ .type = type, .src_tokens_index = src_tokens_index }, count_val),
 		this->get_pointer_type()
 	);
 }
@@ -1153,7 +1237,7 @@ void codegen_context::create_free(lex::src_tokens const &src_tokens, expr_value 
 	bz_assert(ptr.get_type()->is_pointer());
 	auto const ptr_val = ptr.get_value_as_instruction(*this);
 
-	this->add_instruction(instructions::free{ .src_tokens_index = src_tokens_index }, ptr_val);
+	add_instruction(*this, instructions::free{ .src_tokens_index = src_tokens_index }, ptr_val);
 }
 
 expr_value codegen_context::create_int_cast(expr_value value, type const *dest, bool is_value_signed)
@@ -1176,13 +1260,13 @@ expr_value codegen_context::create_int_cast(expr_value value, type const *dest, 
 		{
 		// case builtin_type_kind::i1:
 		case builtin_type_kind::i8:
-			return expr_value::get_value(this->add_instruction(instructions::cast_zext_i1_to_i8{}, value_ref), dest);
+			return expr_value::get_value(add_instruction(*this, instructions::cast_zext_i1_to_i8{}, value_ref), dest);
 		case builtin_type_kind::i16:
-			return expr_value::get_value(this->add_instruction(instructions::cast_zext_i1_to_i16{}, value_ref), dest);
+			return expr_value::get_value(add_instruction(*this, instructions::cast_zext_i1_to_i16{}, value_ref), dest);
 		case builtin_type_kind::i32:
-			return expr_value::get_value(this->add_instruction(instructions::cast_zext_i1_to_i32{}, value_ref), dest);
+			return expr_value::get_value(add_instruction(*this, instructions::cast_zext_i1_to_i32{}, value_ref), dest);
 		case builtin_type_kind::i64:
-			return expr_value::get_value(this->add_instruction(instructions::cast_zext_i1_to_i64{}, value_ref), dest);
+			return expr_value::get_value(add_instruction(*this, instructions::cast_zext_i1_to_i64{}, value_ref), dest);
 		default:
 			bz_unreachable;
 		}
@@ -1193,11 +1277,11 @@ expr_value codegen_context::create_int_cast(expr_value value, type const *dest, 
 			{
 			// case builtin_type_kind::i8:
 			case builtin_type_kind::i16:
-				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i8_to_i16{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_sext_i8_to_i16{}, value_ref), dest);
 			case builtin_type_kind::i32:
-				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i8_to_i32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_sext_i8_to_i32{}, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i8_to_i64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_sext_i8_to_i64{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -1208,11 +1292,11 @@ expr_value codegen_context::create_int_cast(expr_value value, type const *dest, 
 			{
 			// case builtin_type_kind::i8:
 			case builtin_type_kind::i16:
-				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i8_to_i16{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_zext_i8_to_i16{}, value_ref), dest);
 			case builtin_type_kind::i32:
-				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i8_to_i32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_zext_i8_to_i32{}, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i8_to_i64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_zext_i8_to_i64{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -1223,12 +1307,12 @@ expr_value codegen_context::create_int_cast(expr_value value, type const *dest, 
 			switch (dest->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i16_to_i8{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_trunc_i16_to_i8{}, value_ref), dest);
 			// case builtin_type_kind::i16:
 			case builtin_type_kind::i32:
-				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i16_to_i32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_sext_i16_to_i32{}, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i16_to_i64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_sext_i16_to_i64{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -1238,12 +1322,12 @@ expr_value codegen_context::create_int_cast(expr_value value, type const *dest, 
 			switch (dest->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i16_to_i8{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_trunc_i16_to_i8{}, value_ref), dest);
 			// case builtin_type_kind::i16:
 			case builtin_type_kind::i32:
-				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i16_to_i32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_zext_i16_to_i32{}, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i16_to_i64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_zext_i16_to_i64{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -1254,12 +1338,12 @@ expr_value codegen_context::create_int_cast(expr_value value, type const *dest, 
 			switch (dest->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i32_to_i8{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_trunc_i32_to_i8{}, value_ref), dest);
 			case builtin_type_kind::i16:
-				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i32_to_i16{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_trunc_i32_to_i16{}, value_ref), dest);
 			// case builtin_type_kind::i32:
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_sext_i32_to_i64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_sext_i32_to_i64{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -1269,12 +1353,12 @@ expr_value codegen_context::create_int_cast(expr_value value, type const *dest, 
 			switch (dest->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i32_to_i8{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_trunc_i32_to_i8{}, value_ref), dest);
 			case builtin_type_kind::i16:
-				return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i32_to_i16{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_trunc_i32_to_i16{}, value_ref), dest);
 			// case builtin_type_kind::i32:
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_zext_i32_to_i64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_zext_i32_to_i64{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -1283,11 +1367,11 @@ expr_value codegen_context::create_int_cast(expr_value value, type const *dest, 
 		switch (dest->get_builtin_kind())
 		{
 		case builtin_type_kind::i8:
-			return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i64_to_i8{}, value_ref), dest);
+			return expr_value::get_value(add_instruction(*this, instructions::cast_trunc_i64_to_i8{}, value_ref), dest);
 		case builtin_type_kind::i16:
-			return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i64_to_i16{}, value_ref), dest);
+			return expr_value::get_value(add_instruction(*this, instructions::cast_trunc_i64_to_i16{}, value_ref), dest);
 		case builtin_type_kind::i32:
-			return expr_value::get_value(this->add_instruction(instructions::cast_trunc_i64_to_i32{}, value_ref), dest);
+			return expr_value::get_value(add_instruction(*this, instructions::cast_trunc_i64_to_i32{}, value_ref), dest);
 		// case builtin_type_kind::i64:
 		default:
 			bz_unreachable;
@@ -1310,14 +1394,14 @@ expr_value codegen_context::create_float_cast(expr_value value, type const *dest
 	}
 	else if (value_type->get_builtin_kind() == builtin_type_kind::f32)
 	{
-		return expr_value::get_value(this->add_instruction(
+		return expr_value::get_value(add_instruction(*this,
 			instructions::cast_f32_to_f64{},
 			value.get_value_as_instruction(*this)
 		), dest);
 	}
 	else
 	{
-		return expr_value::get_value(this->add_instruction(
+		return expr_value::get_value(add_instruction(*this,
 			instructions::cast_f64_to_f32{},
 			value.get_value_as_instruction(*this)
 		), dest);
@@ -1339,13 +1423,13 @@ expr_value codegen_context::create_float_to_int_cast(expr_value value, type cons
 			switch (dest->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(this->add_instruction(instructions::cast_f32_to_i8{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_i8{}, value_ref), dest);
 			case builtin_type_kind::i16:
-				return expr_value::get_value(this->add_instruction(instructions::cast_f32_to_i16{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_i16{}, value_ref), dest);
 			case builtin_type_kind::i32:
-				return expr_value::get_value(this->add_instruction(instructions::cast_f32_to_i32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_i32{}, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_f32_to_i64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_i64{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -1355,13 +1439,13 @@ expr_value codegen_context::create_float_to_int_cast(expr_value value, type cons
 			switch (dest->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(this->add_instruction(instructions::cast_f32_to_u8{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_u8{}, value_ref), dest);
 			case builtin_type_kind::i16:
-				return expr_value::get_value(this->add_instruction(instructions::cast_f32_to_u16{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_u16{}, value_ref), dest);
 			case builtin_type_kind::i32:
-				return expr_value::get_value(this->add_instruction(instructions::cast_f32_to_u32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_u32{}, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_f32_to_u64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_u64{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -1374,13 +1458,13 @@ expr_value codegen_context::create_float_to_int_cast(expr_value value, type cons
 			switch (dest->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(this->add_instruction(instructions::cast_f64_to_i8{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_i8{}, value_ref), dest);
 			case builtin_type_kind::i16:
-				return expr_value::get_value(this->add_instruction(instructions::cast_f64_to_i16{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_i16{}, value_ref), dest);
 			case builtin_type_kind::i32:
-				return expr_value::get_value(this->add_instruction(instructions::cast_f64_to_i32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_i32{}, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_f64_to_i64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_i64{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -1390,13 +1474,13 @@ expr_value codegen_context::create_float_to_int_cast(expr_value value, type cons
 			switch (dest->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(this->add_instruction(instructions::cast_f64_to_u8{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_u8{}, value_ref), dest);
 			case builtin_type_kind::i16:
-				return expr_value::get_value(this->add_instruction(instructions::cast_f64_to_u16{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_u16{}, value_ref), dest);
 			case builtin_type_kind::i32:
-				return expr_value::get_value(this->add_instruction(instructions::cast_f64_to_u32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_u32{}, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_f64_to_u64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_u64{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -1419,13 +1503,13 @@ expr_value codegen_context::create_int_to_float_cast(expr_value value, type cons
 			switch (value_type->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(this->add_instruction(instructions::cast_i8_to_f32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_i8_to_f32{}, value_ref), dest);
 			case builtin_type_kind::i16:
-				return expr_value::get_value(this->add_instruction(instructions::cast_i16_to_f32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_i16_to_f32{}, value_ref), dest);
 			case builtin_type_kind::i32:
-				return expr_value::get_value(this->add_instruction(instructions::cast_i32_to_f32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_i32_to_f32{}, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_i64_to_f32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_i64_to_f32{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -1435,13 +1519,13 @@ expr_value codegen_context::create_int_to_float_cast(expr_value value, type cons
 			switch (value_type->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(this->add_instruction(instructions::cast_u8_to_f32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_u8_to_f32{}, value_ref), dest);
 			case builtin_type_kind::i16:
-				return expr_value::get_value(this->add_instruction(instructions::cast_u16_to_f32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_u16_to_f32{}, value_ref), dest);
 			case builtin_type_kind::i32:
-				return expr_value::get_value(this->add_instruction(instructions::cast_u32_to_f32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_u32_to_f32{}, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_u64_to_f32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_u64_to_f32{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -1454,13 +1538,13 @@ expr_value codegen_context::create_int_to_float_cast(expr_value value, type cons
 			switch (value_type->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(this->add_instruction(instructions::cast_i8_to_f64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_i8_to_f64{}, value_ref), dest);
 			case builtin_type_kind::i16:
-				return expr_value::get_value(this->add_instruction(instructions::cast_i16_to_f64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_i16_to_f64{}, value_ref), dest);
 			case builtin_type_kind::i32:
-				return expr_value::get_value(this->add_instruction(instructions::cast_i32_to_f64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_i32_to_f64{}, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_i64_to_f64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_i64_to_f64{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -1470,13 +1554,13 @@ expr_value codegen_context::create_int_to_float_cast(expr_value value, type cons
 			switch (value_type->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(this->add_instruction(instructions::cast_u8_to_f64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_u8_to_f64{}, value_ref), dest);
 			case builtin_type_kind::i16:
-				return expr_value::get_value(this->add_instruction(instructions::cast_u16_to_f64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_u16_to_f64{}, value_ref), dest);
 			case builtin_type_kind::i32:
-				return expr_value::get_value(this->add_instruction(instructions::cast_u32_to_f64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_u32_to_f64{}, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(this->add_instruction(instructions::cast_u64_to_f64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_u64_to_f64{}, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -1497,27 +1581,27 @@ expr_value codegen_context::create_int_cmp_eq(expr_value lhs, expr_value rhs)
 	{
 	case builtin_type_kind::i1:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_eq_i1{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_eq_i1{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	case builtin_type_kind::i8:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_eq_i8{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_eq_i8{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	case builtin_type_kind::i16:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_eq_i16{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_eq_i16{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	case builtin_type_kind::i32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_eq_i32{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_eq_i32{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	case builtin_type_kind::i64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_eq_i64{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_eq_i64{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	default:
@@ -1538,27 +1622,27 @@ expr_value codegen_context::create_int_cmp_neq(expr_value lhs, expr_value rhs)
 	{
 	case builtin_type_kind::i1:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_neq_i1{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_neq_i1{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	case builtin_type_kind::i8:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_neq_i8{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_neq_i8{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	case builtin_type_kind::i16:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_neq_i16{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_neq_i16{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	case builtin_type_kind::i32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_neq_i32{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_neq_i32{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	case builtin_type_kind::i64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_neq_i64{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_neq_i64{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	default:
@@ -1581,22 +1665,22 @@ expr_value codegen_context::create_int_cmp_lt(expr_value lhs, expr_value rhs, bo
 		{
 		case builtin_type_kind::i8:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_lt_i8{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_lt_i8{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i16:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_lt_i16{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_lt_i16{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i32:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_lt_i32{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_lt_i32{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i64:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_lt_i64{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_lt_i64{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		default:
@@ -1609,22 +1693,22 @@ expr_value codegen_context::create_int_cmp_lt(expr_value lhs, expr_value rhs, bo
 		{
 		case builtin_type_kind::i8:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_lt_u8{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_lt_u8{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i16:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_lt_u16{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_lt_u16{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i32:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_lt_u32{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_lt_u32{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i64:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_lt_u64{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_lt_u64{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		default:
@@ -1648,22 +1732,22 @@ expr_value codegen_context::create_int_cmp_gt(expr_value lhs, expr_value rhs, bo
 		{
 		case builtin_type_kind::i8:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_gt_i8{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_gt_i8{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i16:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_gt_i16{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_gt_i16{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i32:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_gt_i32{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_gt_i32{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i64:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_gt_i64{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_gt_i64{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		default:
@@ -1676,22 +1760,22 @@ expr_value codegen_context::create_int_cmp_gt(expr_value lhs, expr_value rhs, bo
 		{
 		case builtin_type_kind::i8:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_gt_u8{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_gt_u8{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i16:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_gt_u16{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_gt_u16{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i32:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_gt_u32{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_gt_u32{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i64:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_gt_u64{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_gt_u64{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		default:
@@ -1715,22 +1799,22 @@ expr_value codegen_context::create_int_cmp_lte(expr_value lhs, expr_value rhs, b
 		{
 		case builtin_type_kind::i8:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_lte_i8{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_lte_i8{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i16:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_lte_i16{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_lte_i16{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i32:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_lte_i32{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_lte_i32{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i64:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_lte_i64{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_lte_i64{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		default:
@@ -1743,22 +1827,22 @@ expr_value codegen_context::create_int_cmp_lte(expr_value lhs, expr_value rhs, b
 		{
 		case builtin_type_kind::i8:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_lte_u8{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_lte_u8{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i16:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_lte_u16{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_lte_u16{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i32:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_lte_u32{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_lte_u32{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i64:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_lte_u64{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_lte_u64{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		default:
@@ -1782,22 +1866,22 @@ expr_value codegen_context::create_int_cmp_gte(expr_value lhs, expr_value rhs, b
 		{
 		case builtin_type_kind::i8:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_gte_i8{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_gte_i8{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i16:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_gte_i16{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_gte_i16{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i32:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_gte_i32{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_gte_i32{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i64:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_gte_i64{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_gte_i64{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		default:
@@ -1810,22 +1894,22 @@ expr_value codegen_context::create_int_cmp_gte(expr_value lhs, expr_value rhs, b
 		{
 		case builtin_type_kind::i8:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_gte_u8{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_gte_u8{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i16:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_gte_u16{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_gte_u16{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i32:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_gte_u32{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_gte_u32{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		case builtin_type_kind::i64:
 			return expr_value::get_value(
-				this->add_instruction(instructions::cmp_gte_u64{}, lhs_val, rhs_val),
+				add_instruction(*this, instructions::cmp_gte_u64{}, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i1)
 			);
 		default:
@@ -1851,13 +1935,13 @@ void codegen_context::create_float_cmp_eq_check(lex::src_tokens const &src_token
 	switch (lhs.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(
+		add_instruction(*this,
 			instructions::cmp_eq_f32_check{ .src_tokens_index = src_tokens_index },
 			lhs_val, rhs_val
 		);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(
+		add_instruction(*this,
 			instructions::cmp_eq_f64_check{ .src_tokens_index = src_tokens_index },
 			lhs_val, rhs_val
 		);
@@ -1884,13 +1968,13 @@ void codegen_context::create_float_cmp_neq_check(lex::src_tokens const &src_toke
 	switch (lhs.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(
+		add_instruction(*this,
 			instructions::cmp_neq_f32_check{ .src_tokens_index = src_tokens_index },
 			lhs_val, rhs_val
 		);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(
+		add_instruction(*this,
 			instructions::cmp_neq_f64_check{ .src_tokens_index = src_tokens_index },
 			lhs_val, rhs_val
 		);
@@ -1917,13 +2001,13 @@ void codegen_context::create_float_cmp_lt_check(lex::src_tokens const &src_token
 	switch (lhs.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(
+		add_instruction(*this,
 			instructions::cmp_lt_f32_check{ .src_tokens_index = src_tokens_index },
 			lhs_val, rhs_val
 		);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(
+		add_instruction(*this,
 			instructions::cmp_lt_f64_check{ .src_tokens_index = src_tokens_index },
 			lhs_val, rhs_val
 		);
@@ -1950,13 +2034,13 @@ void codegen_context::create_float_cmp_gt_check(lex::src_tokens const &src_token
 	switch (lhs.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(
+		add_instruction(*this,
 			instructions::cmp_gt_f32_check{ .src_tokens_index = src_tokens_index },
 			lhs_val, rhs_val
 		);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(
+		add_instruction(*this,
 			instructions::cmp_gt_f64_check{ .src_tokens_index = src_tokens_index },
 			lhs_val, rhs_val
 		);
@@ -1983,13 +2067,13 @@ void codegen_context::create_float_cmp_lte_check(lex::src_tokens const &src_toke
 	switch (lhs.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(
+		add_instruction(*this,
 			instructions::cmp_lte_f32_check{ .src_tokens_index = src_tokens_index },
 			lhs_val, rhs_val
 		);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(
+		add_instruction(*this,
 			instructions::cmp_lte_f64_check{ .src_tokens_index = src_tokens_index },
 			lhs_val, rhs_val
 		);
@@ -2016,13 +2100,13 @@ void codegen_context::create_float_cmp_gte_check(lex::src_tokens const &src_toke
 	switch (lhs.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(
+		add_instruction(*this,
 			instructions::cmp_gte_f32_check{ .src_tokens_index = src_tokens_index },
 			lhs_val, rhs_val
 		);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(
+		add_instruction(*this,
 			instructions::cmp_gte_f64_check{ .src_tokens_index = src_tokens_index },
 			lhs_val, rhs_val
 		);
@@ -2045,12 +2129,12 @@ expr_value codegen_context::create_float_cmp_eq(expr_value lhs, expr_value rhs)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_eq_f32{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_eq_f32{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_eq_f64{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_eq_f64{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	default:
@@ -2071,12 +2155,12 @@ expr_value codegen_context::create_float_cmp_neq(expr_value lhs, expr_value rhs)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_neq_f32{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_neq_f32{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_neq_f64{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_neq_f64{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	default:
@@ -2097,12 +2181,12 @@ expr_value codegen_context::create_float_cmp_lt(expr_value lhs, expr_value rhs)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_lt_f32{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_lt_f32{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_lt_f64{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_lt_f64{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	default:
@@ -2123,12 +2207,12 @@ expr_value codegen_context::create_float_cmp_gt(expr_value lhs, expr_value rhs)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_gt_f32{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_gt_f32{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_gt_f64{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_gt_f64{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	default:
@@ -2149,12 +2233,12 @@ expr_value codegen_context::create_float_cmp_lte(expr_value lhs, expr_value rhs)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_lte_f32{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_lte_f32{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_lte_f64{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_lte_f64{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	default:
@@ -2175,12 +2259,12 @@ expr_value codegen_context::create_float_cmp_gte(expr_value lhs, expr_value rhs)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_gte_f32{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_gte_f32{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cmp_gte_f64{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::cmp_gte_f64{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	default:
@@ -2194,7 +2278,7 @@ expr_value codegen_context::create_pointer_cmp_eq(expr_value lhs, expr_value rhs
 	auto const lhs_val = lhs.get_value_as_instruction(*this);
 	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	return expr_value::get_value(
-		this->add_instruction(instructions::cmp_eq_ptr{}, lhs_val, rhs_val),
+		add_instruction(*this, instructions::cmp_eq_ptr{}, lhs_val, rhs_val),
 		this->get_builtin_type(builtin_type_kind::i1)
 	);
 }
@@ -2205,7 +2289,7 @@ expr_value codegen_context::create_pointer_cmp_neq(expr_value lhs, expr_value rh
 	auto const lhs_val = lhs.get_value_as_instruction(*this);
 	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	return expr_value::get_value(
-		this->add_instruction(instructions::cmp_neq_ptr{}, lhs_val, rhs_val),
+		add_instruction(*this, instructions::cmp_neq_ptr{}, lhs_val, rhs_val),
 		this->get_builtin_type(builtin_type_kind::i1)
 	);
 }
@@ -2217,7 +2301,7 @@ expr_value codegen_context::create_pointer_cmp_lt(lex::src_tokens const &src_tok
 	auto const lhs_val = lhs.get_value_as_instruction(*this);
 	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	return expr_value::get_value(
-		this->add_instruction(instructions::cmp_lt_ptr{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+		add_instruction(*this, instructions::cmp_lt_ptr{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 		this->get_builtin_type(builtin_type_kind::i1)
 	);
 }
@@ -2229,7 +2313,7 @@ expr_value codegen_context::create_pointer_cmp_gt(lex::src_tokens const &src_tok
 	auto const lhs_val = lhs.get_value_as_instruction(*this);
 	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	return expr_value::get_value(
-		this->add_instruction(instructions::cmp_gt_ptr{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+		add_instruction(*this, instructions::cmp_gt_ptr{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 		this->get_builtin_type(builtin_type_kind::i1)
 	);
 }
@@ -2241,7 +2325,7 @@ expr_value codegen_context::create_pointer_cmp_lte(lex::src_tokens const &src_to
 	auto const lhs_val = lhs.get_value_as_instruction(*this);
 	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	return expr_value::get_value(
-		this->add_instruction(instructions::cmp_lte_ptr{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+		add_instruction(*this, instructions::cmp_lte_ptr{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 		this->get_builtin_type(builtin_type_kind::i1)
 	);
 }
@@ -2253,7 +2337,7 @@ expr_value codegen_context::create_pointer_cmp_gte(lex::src_tokens const &src_to
 	auto const lhs_val = lhs.get_value_as_instruction(*this);
 	auto const rhs_val = rhs.get_value_as_instruction(*this);
 	return expr_value::get_value(
-		this->add_instruction(instructions::cmp_gte_ptr{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+		add_instruction(*this, instructions::cmp_gte_ptr{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 		this->get_builtin_type(builtin_type_kind::i1)
 	);
 }
@@ -2268,32 +2352,32 @@ expr_value codegen_context::create_neg(expr_value value)
 	{
 	case builtin_type_kind::i8:
 		return expr_value::get_value(
-			this->add_instruction(instructions::neg_i8{}, value_ref),
+			add_instruction(*this, instructions::neg_i8{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i8)
 		);
 	case builtin_type_kind::i16:
 		return expr_value::get_value(
-			this->add_instruction(instructions::neg_i16{}, value_ref),
+			add_instruction(*this, instructions::neg_i16{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i16)
 		);
 	case builtin_type_kind::i32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::neg_i32{}, value_ref),
+			add_instruction(*this, instructions::neg_i32{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i32)
 		);
 	case builtin_type_kind::i64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::neg_i64{}, value_ref),
+			add_instruction(*this, instructions::neg_i64{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i64)
 		);
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::neg_f32{}, value_ref),
+			add_instruction(*this, instructions::neg_f32{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::neg_f64{}, value_ref),
+			add_instruction(*this, instructions::neg_f64{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -2314,16 +2398,16 @@ void codegen_context::create_neg_check(lex::src_tokens const &src_tokens, expr_v
 	switch (value.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::i8:
-		this->add_instruction(instructions::neg_i8_check{ .src_tokens_index = this->add_src_tokens(src_tokens) }, value_ref);
+		add_instruction(*this, instructions::neg_i8_check{ .src_tokens_index = this->add_src_tokens(src_tokens) }, value_ref);
 		break;
 	case builtin_type_kind::i16:
-		this->add_instruction(instructions::neg_i16_check{ .src_tokens_index = this->add_src_tokens(src_tokens) }, value_ref);
+		add_instruction(*this, instructions::neg_i16_check{ .src_tokens_index = this->add_src_tokens(src_tokens) }, value_ref);
 		break;
 	case builtin_type_kind::i32:
-		this->add_instruction(instructions::neg_i32_check{ .src_tokens_index = this->add_src_tokens(src_tokens) }, value_ref);
+		add_instruction(*this, instructions::neg_i32_check{ .src_tokens_index = this->add_src_tokens(src_tokens) }, value_ref);
 		break;
 	case builtin_type_kind::i64:
-		this->add_instruction(instructions::neg_i64_check{ .src_tokens_index = this->add_src_tokens(src_tokens) }, value_ref);
+		add_instruction(*this, instructions::neg_i64_check{ .src_tokens_index = this->add_src_tokens(src_tokens) }, value_ref);
 		break;
 	default:
 		bz_unreachable;
@@ -2343,32 +2427,32 @@ expr_value codegen_context::create_add(expr_value lhs, expr_value rhs)
 	{
 	case builtin_type_kind::i8:
 		return expr_value::get_value(
-			this->add_instruction(instructions::add_i8{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::add_i8{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i8)
 		);
 	case builtin_type_kind::i16:
 		return expr_value::get_value(
-			this->add_instruction(instructions::add_i16{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::add_i16{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i16)
 		);
 	case builtin_type_kind::i32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::add_i32{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::add_i32{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i32)
 		);
 	case builtin_type_kind::i64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::add_i64{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::add_i64{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i64)
 		);
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::add_f32{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::add_f32{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::add_f64{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::add_f64{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -2399,48 +2483,48 @@ void codegen_context::create_add_check(lex::src_tokens const &src_tokens, expr_v
 	case builtin_type_kind::i8:
 		if (is_signed_int)
 		{
-			this->add_instruction(instructions::add_i8_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::add_i8_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		else
 		{
-			this->add_instruction(instructions::add_u8_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::add_u8_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		break;
 	case builtin_type_kind::i16:
 		if (is_signed_int)
 		{
-			this->add_instruction(instructions::add_i16_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::add_i16_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		else
 		{
-			this->add_instruction(instructions::add_u16_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::add_u16_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		break;
 	case builtin_type_kind::i32:
 		if (is_signed_int)
 		{
-			this->add_instruction(instructions::add_i32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::add_i32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		else
 		{
-			this->add_instruction(instructions::add_u32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::add_u32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		break;
 	case builtin_type_kind::i64:
 		if (is_signed_int)
 		{
-			this->add_instruction(instructions::add_i64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::add_i64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		else
 		{
-			this->add_instruction(instructions::add_u64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::add_u64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		break;
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::add_f32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		add_instruction(*this, instructions::add_f32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::add_f64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		add_instruction(*this, instructions::add_f64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		break;
 	default:
 		bz_unreachable;
@@ -2451,7 +2535,7 @@ expr_value codegen_context::create_ptr_add_const_unchecked(expr_value address, i
 {
 	auto const address_val = address.get_value_as_instruction(*this);
 	return expr_value::get_value(
-		this->add_instruction(instructions::add_ptr_const_unchecked{
+		add_instruction(*this, instructions::add_ptr_const_unchecked{
 			.object_type = object_type,
 			.amount = amount,
 		}, address_val),
@@ -2486,7 +2570,7 @@ expr_value codegen_context::create_ptr_add(
 		if (is_offset_signed)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::add_ptr_i64{
+				add_instruction(*this, instructions::add_ptr_i64{
 					.src_tokens_index = src_tokens_index,
 					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
 				}, address_val, offset_val),
@@ -2496,7 +2580,7 @@ expr_value codegen_context::create_ptr_add(
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::add_ptr_u64{
+				add_instruction(*this, instructions::add_ptr_u64{
 					.src_tokens_index = src_tokens_index,
 					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
 				}, address_val, offset_val),
@@ -2511,7 +2595,7 @@ expr_value codegen_context::create_ptr_add(
 		if (is_offset_signed)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::add_ptr_i32{
+				add_instruction(*this, instructions::add_ptr_i32{
 					.src_tokens_index = src_tokens_index,
 					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
 				}, address_val, offset_val),
@@ -2521,7 +2605,7 @@ expr_value codegen_context::create_ptr_add(
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::add_ptr_u32{
+				add_instruction(*this, instructions::add_ptr_u32{
 					.src_tokens_index = src_tokens_index,
 					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
 				}, address_val, offset_val),
@@ -2544,32 +2628,32 @@ expr_value codegen_context::create_sub(expr_value lhs, expr_value rhs)
 	{
 	case builtin_type_kind::i8:
 		return expr_value::get_value(
-			this->add_instruction(instructions::sub_i8{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::sub_i8{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i8)
 		);
 	case builtin_type_kind::i16:
 		return expr_value::get_value(
-			this->add_instruction(instructions::sub_i16{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::sub_i16{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i16)
 		);
 	case builtin_type_kind::i32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::sub_i32{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::sub_i32{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i32)
 		);
 	case builtin_type_kind::i64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::sub_i64{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::sub_i64{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i64)
 		);
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::sub_f32{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::sub_f32{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::sub_f64{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::sub_f64{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -2600,48 +2684,48 @@ void codegen_context::create_sub_check(lex::src_tokens const &src_tokens, expr_v
 	case builtin_type_kind::i8:
 		if (is_signed_int)
 		{
-			this->add_instruction(instructions::sub_i8_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::sub_i8_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		else
 		{
-			this->add_instruction(instructions::sub_u8_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::sub_u8_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		break;
 	case builtin_type_kind::i16:
 		if (is_signed_int)
 		{
-			this->add_instruction(instructions::sub_i16_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::sub_i16_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		else
 		{
-			this->add_instruction(instructions::sub_u16_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::sub_u16_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		break;
 	case builtin_type_kind::i32:
 		if (is_signed_int)
 		{
-			this->add_instruction(instructions::sub_i32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::sub_i32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		else
 		{
-			this->add_instruction(instructions::sub_u32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::sub_u32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		break;
 	case builtin_type_kind::i64:
 		if (is_signed_int)
 		{
-			this->add_instruction(instructions::sub_i64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::sub_i64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		else
 		{
-			this->add_instruction(instructions::sub_u64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::sub_u64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		break;
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::sub_f32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		add_instruction(*this, instructions::sub_f32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::sub_f64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		add_instruction(*this, instructions::sub_f64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		break;
 	default:
 		bz_unreachable;
@@ -2675,7 +2759,7 @@ expr_value codegen_context::create_ptr_sub(
 		if (is_offset_signed)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::sub_ptr_i64{
+				add_instruction(*this, instructions::sub_ptr_i64{
 					.src_tokens_index = src_tokens_index,
 					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
 				}, address_val, offset_val),
@@ -2685,7 +2769,7 @@ expr_value codegen_context::create_ptr_sub(
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::sub_ptr_u64{
+				add_instruction(*this, instructions::sub_ptr_u64{
 					.src_tokens_index = src_tokens_index,
 					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
 				}, address_val, offset_val),
@@ -2700,7 +2784,7 @@ expr_value codegen_context::create_ptr_sub(
 		if (is_offset_signed)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::sub_ptr_i32{
+				add_instruction(*this, instructions::sub_ptr_i32{
 					.src_tokens_index = src_tokens_index,
 					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
 				}, address_val, offset_val),
@@ -2710,7 +2794,7 @@ expr_value codegen_context::create_ptr_sub(
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::sub_ptr_u32{
+				add_instruction(*this, instructions::sub_ptr_u32{
 					.src_tokens_index = src_tokens_index,
 					.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
 				}, address_val, offset_val),
@@ -2743,7 +2827,7 @@ expr_value codegen_context::create_ptrdiff(
 	if (this->is_64_bit())
 	{
 		return expr_value::get_value(
-			this->add_instruction(instructions::ptr64_diff{
+			add_instruction(*this, instructions::ptr64_diff{
 				.src_tokens_index = src_tokens_index,
 				.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
 			}, lhs_val, rhs_val),
@@ -2753,7 +2837,7 @@ expr_value codegen_context::create_ptrdiff(
 	else
 	{
 		return expr_value::get_value(
-			this->add_instruction(instructions::ptr32_diff{
+			add_instruction(*this, instructions::ptr32_diff{
 				.src_tokens_index = src_tokens_index,
 				.pointer_arithmetic_check_info_index = pointer_arithmetic_check_info_index,
 			}, lhs_val, rhs_val),
@@ -2773,14 +2857,14 @@ expr_value codegen_context::create_ptrdiff_unchecked(expr_value lhs, expr_value 
 	if (this->is_64_bit())
 	{
 		return expr_value::get_value(
-			this->add_instruction(instructions::ptr64_diff_unchecked{ .stride = object_type->size }, lhs_val, rhs_val),
+			add_instruction(*this, instructions::ptr64_diff_unchecked{ .stride = object_type->size }, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i64)
 		);
 	}
 	else
 	{
 		return expr_value::get_value(
-			this->add_instruction(instructions::ptr32_diff_unchecked{ .stride = object_type->size }, lhs_val, rhs_val),
+			add_instruction(*this, instructions::ptr32_diff_unchecked{ .stride = object_type->size }, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i32)
 		);
 	}
@@ -2799,32 +2883,32 @@ expr_value codegen_context::create_mul(expr_value lhs, expr_value rhs)
 	{
 	case builtin_type_kind::i8:
 		return expr_value::get_value(
-			this->add_instruction(instructions::mul_i8{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::mul_i8{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i8)
 		);
 	case builtin_type_kind::i16:
 		return expr_value::get_value(
-			this->add_instruction(instructions::mul_i16{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::mul_i16{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i16)
 		);
 	case builtin_type_kind::i32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::mul_i32{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::mul_i32{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i32)
 		);
 	case builtin_type_kind::i64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::mul_i64{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::mul_i64{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i64)
 		);
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::mul_f32{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::mul_f32{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::mul_f64{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::mul_f64{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -2855,48 +2939,48 @@ void codegen_context::create_mul_check(lex::src_tokens const &src_tokens, expr_v
 	case builtin_type_kind::i8:
 		if (is_signed_int)
 		{
-			this->add_instruction(instructions::mul_i8_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::mul_i8_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		else
 		{
-			this->add_instruction(instructions::mul_u8_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::mul_u8_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		break;
 	case builtin_type_kind::i16:
 		if (is_signed_int)
 		{
-			this->add_instruction(instructions::mul_i16_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::mul_i16_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		else
 		{
-			this->add_instruction(instructions::mul_u16_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::mul_u16_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		break;
 	case builtin_type_kind::i32:
 		if (is_signed_int)
 		{
-			this->add_instruction(instructions::mul_i32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::mul_i32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		else
 		{
-			this->add_instruction(instructions::mul_u32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::mul_u32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		break;
 	case builtin_type_kind::i64:
 		if (is_signed_int)
 		{
-			this->add_instruction(instructions::mul_i64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::mul_i64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		else
 		{
-			this->add_instruction(instructions::mul_u64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+			add_instruction(*this, instructions::mul_u64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		}
 		break;
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::mul_f32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		add_instruction(*this, instructions::mul_f32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::mul_f64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		add_instruction(*this, instructions::mul_f64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		break;
 	default:
 		bz_unreachable;
@@ -2918,14 +3002,14 @@ expr_value codegen_context::create_div(lex::src_tokens const &src_tokens, expr_v
 		if (is_signed_int)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::div_i8{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::div_i8{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i8)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::div_u8{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::div_u8{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i8)
 			);
 		}
@@ -2933,14 +3017,14 @@ expr_value codegen_context::create_div(lex::src_tokens const &src_tokens, expr_v
 		if (is_signed_int)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::div_i16{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::div_i16{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i16)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::div_u16{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::div_u16{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i16)
 			);
 		}
@@ -2948,14 +3032,14 @@ expr_value codegen_context::create_div(lex::src_tokens const &src_tokens, expr_v
 		if (is_signed_int)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::div_i32{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::div_i32{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i32)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::div_u32{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::div_u32{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i32)
 			);
 		}
@@ -2963,25 +3047,25 @@ expr_value codegen_context::create_div(lex::src_tokens const &src_tokens, expr_v
 		if (is_signed_int)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::div_i64{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::div_i64{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i64)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::div_u64{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::div_u64{ .src_tokens_index = this->add_src_tokens(src_tokens) }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i64)
 			);
 		}
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::div_f32{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::div_f32{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::div_f64{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::div_f64{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -3010,22 +3094,22 @@ void codegen_context::create_div_check(lex::src_tokens const &src_tokens, expr_v
 	switch (lhs.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::i8:
-		this->add_instruction(instructions::div_i8_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		add_instruction(*this, instructions::div_i8_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		break;
 	case builtin_type_kind::i16:
-		this->add_instruction(instructions::div_i16_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		add_instruction(*this, instructions::div_i16_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		break;
 	case builtin_type_kind::i32:
-		this->add_instruction(instructions::div_i32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		add_instruction(*this, instructions::div_i32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		break;
 	case builtin_type_kind::i64:
-		this->add_instruction(instructions::div_i64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		add_instruction(*this, instructions::div_i64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		break;
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::div_f32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		add_instruction(*this, instructions::div_f32_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::div_f64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
+		add_instruction(*this, instructions::div_f64_check{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val);
 		break;
 	default:
 		bz_unreachable;
@@ -3049,14 +3133,14 @@ expr_value codegen_context::create_rem(lex::src_tokens const &src_tokens, expr_v
 		if (is_signed_int)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::rem_i8{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::rem_i8{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i8)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::rem_u8{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::rem_u8{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i8)
 			);
 		}
@@ -3064,14 +3148,14 @@ expr_value codegen_context::create_rem(lex::src_tokens const &src_tokens, expr_v
 		if (is_signed_int)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::rem_i16{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::rem_i16{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i16)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::rem_u16{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::rem_u16{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i16)
 			);
 		}
@@ -3079,14 +3163,14 @@ expr_value codegen_context::create_rem(lex::src_tokens const &src_tokens, expr_v
 		if (is_signed_int)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::rem_i32{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::rem_i32{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i32)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::rem_u32{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::rem_u32{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i32)
 			);
 		}
@@ -3094,14 +3178,14 @@ expr_value codegen_context::create_rem(lex::src_tokens const &src_tokens, expr_v
 		if (is_signed_int)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::rem_i64{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::rem_i64{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i64)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::rem_u64{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::rem_u64{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i64)
 			);
 		}
@@ -3120,27 +3204,27 @@ expr_value codegen_context::create_not(expr_value value)
 	{
 	case builtin_type_kind::i1:
 		return expr_value::get_value(
-			this->add_instruction(instructions::not_i1{}, value_ref),
+			add_instruction(*this, instructions::not_i1{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	case builtin_type_kind::i8:
 		return expr_value::get_value(
-			this->add_instruction(instructions::not_i8{}, value_ref),
+			add_instruction(*this, instructions::not_i8{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i8)
 		);
 	case builtin_type_kind::i16:
 		return expr_value::get_value(
-			this->add_instruction(instructions::not_i16{}, value_ref),
+			add_instruction(*this, instructions::not_i16{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i16)
 		);
 	case builtin_type_kind::i32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::not_i32{}, value_ref),
+			add_instruction(*this, instructions::not_i32{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i32)
 		);
 	case builtin_type_kind::i64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::not_i64{}, value_ref),
+			add_instruction(*this, instructions::not_i64{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i64)
 		);
 	default:
@@ -3161,27 +3245,27 @@ expr_value codegen_context::create_and(expr_value lhs, expr_value rhs)
 	{
 	case builtin_type_kind::i1:
 		return expr_value::get_value(
-			this->add_instruction(instructions::and_i1{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::and_i1{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	case builtin_type_kind::i8:
 		return expr_value::get_value(
-			this->add_instruction(instructions::and_i8{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::and_i8{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i8)
 		);
 	case builtin_type_kind::i16:
 		return expr_value::get_value(
-			this->add_instruction(instructions::and_i16{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::and_i16{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i16)
 		);
 	case builtin_type_kind::i32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::and_i32{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::and_i32{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i32)
 		);
 	case builtin_type_kind::i64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::and_i64{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::and_i64{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i64)
 		);
 	default:
@@ -3202,27 +3286,27 @@ expr_value codegen_context::create_xor(expr_value lhs, expr_value rhs)
 	{
 	case builtin_type_kind::i1:
 		return expr_value::get_value(
-			this->add_instruction(instructions::xor_i1{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::xor_i1{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	case builtin_type_kind::i8:
 		return expr_value::get_value(
-			this->add_instruction(instructions::xor_i8{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::xor_i8{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i8)
 		);
 	case builtin_type_kind::i16:
 		return expr_value::get_value(
-			this->add_instruction(instructions::xor_i16{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::xor_i16{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i16)
 		);
 	case builtin_type_kind::i32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::xor_i32{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::xor_i32{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i32)
 		);
 	case builtin_type_kind::i64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::xor_i64{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::xor_i64{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i64)
 		);
 	default:
@@ -3243,27 +3327,27 @@ expr_value codegen_context::create_or(expr_value lhs, expr_value rhs)
 	{
 	case builtin_type_kind::i1:
 		return expr_value::get_value(
-			this->add_instruction(instructions::or_i1{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::or_i1{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i1)
 		);
 	case builtin_type_kind::i8:
 		return expr_value::get_value(
-			this->add_instruction(instructions::or_i8{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::or_i8{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i8)
 		);
 	case builtin_type_kind::i16:
 		return expr_value::get_value(
-			this->add_instruction(instructions::or_i16{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::or_i16{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i16)
 		);
 	case builtin_type_kind::i32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::or_i32{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::or_i32{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i32)
 		);
 	case builtin_type_kind::i64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::or_i64{}, lhs_val, rhs_val),
+			add_instruction(*this, instructions::or_i64{}, lhs_val, rhs_val),
 			this->get_builtin_type(builtin_type_kind::i64)
 		);
 	default:
@@ -3288,14 +3372,14 @@ expr_value codegen_context::create_shl(lex::src_tokens const &src_tokens, expr_v
 		if (is_rhs_signed)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::shl_i8_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::shl_i8_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i8)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::shl_i8_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::shl_i8_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i8)
 			);
 		}
@@ -3303,14 +3387,14 @@ expr_value codegen_context::create_shl(lex::src_tokens const &src_tokens, expr_v
 		if (is_rhs_signed)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::shl_i16_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::shl_i16_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i16)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::shl_i16_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::shl_i16_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i16)
 			);
 		}
@@ -3318,14 +3402,14 @@ expr_value codegen_context::create_shl(lex::src_tokens const &src_tokens, expr_v
 		if (is_rhs_signed)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::shl_i32_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::shl_i32_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i32)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::shl_i32_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::shl_i32_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i32)
 			);
 		}
@@ -3333,14 +3417,14 @@ expr_value codegen_context::create_shl(lex::src_tokens const &src_tokens, expr_v
 		if (is_rhs_signed)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::shl_i64_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::shl_i64_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i64)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::shl_i64_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::shl_i64_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i64)
 			);
 		}
@@ -3366,14 +3450,14 @@ expr_value codegen_context::create_shr(lex::src_tokens const &src_tokens, expr_v
 		if (is_rhs_signed)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::shr_i8_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::shr_i8_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i8)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::shr_i8_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::shr_i8_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i8)
 			);
 		}
@@ -3381,14 +3465,14 @@ expr_value codegen_context::create_shr(lex::src_tokens const &src_tokens, expr_v
 		if (is_rhs_signed)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::shr_i16_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::shr_i16_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i16)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::shr_i16_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::shr_i16_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i16)
 			);
 		}
@@ -3396,14 +3480,14 @@ expr_value codegen_context::create_shr(lex::src_tokens const &src_tokens, expr_v
 		if (is_rhs_signed)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::shr_i32_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::shr_i32_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i32)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::shr_i32_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::shr_i32_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i32)
 			);
 		}
@@ -3411,14 +3495,14 @@ expr_value codegen_context::create_shr(lex::src_tokens const &src_tokens, expr_v
 		if (is_rhs_signed)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::shr_i64_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::shr_i64_signed{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i64)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::shr_i64_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
+				add_instruction(*this, instructions::shr_i64_unsigned{ .src_tokens_index = src_tokens_index }, lhs_val, rhs_val),
 				this->get_builtin_type(builtin_type_kind::i64)
 			);
 		}
@@ -3436,32 +3520,32 @@ expr_value codegen_context::create_abs(expr_value value)
 	{
 	case builtin_type_kind::i8:
 		return expr_value::get_value(
-			this->add_instruction(instructions::abs_i8{}, value_ref),
+			add_instruction(*this, instructions::abs_i8{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i8)
 		);
 	case builtin_type_kind::i16:
 		return expr_value::get_value(
-			this->add_instruction(instructions::abs_i16{}, value_ref),
+			add_instruction(*this, instructions::abs_i16{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i16)
 		);
 	case builtin_type_kind::i32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::abs_i32{}, value_ref),
+			add_instruction(*this, instructions::abs_i32{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i32)
 		);
 	case builtin_type_kind::i64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::abs_i64{}, value_ref),
+			add_instruction(*this, instructions::abs_i64{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i64)
 		);
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::abs_f32{}, value_ref),
+			add_instruction(*this, instructions::abs_f32{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::abs_f64{}, value_ref),
+			add_instruction(*this, instructions::abs_f64{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -3486,22 +3570,22 @@ void codegen_context::create_abs_check(lex::src_tokens const &src_tokens, expr_v
 	switch (value.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::i8:
-		this->add_instruction(instructions::abs_i8_check{ .src_tokens_index = src_tokens_index }, value_ref);
+		add_instruction(*this, instructions::abs_i8_check{ .src_tokens_index = src_tokens_index }, value_ref);
 		break;
 	case builtin_type_kind::i16:
-		this->add_instruction(instructions::abs_i16_check{ .src_tokens_index = src_tokens_index }, value_ref);
+		add_instruction(*this, instructions::abs_i16_check{ .src_tokens_index = src_tokens_index }, value_ref);
 		break;
 	case builtin_type_kind::i32:
-		this->add_instruction(instructions::abs_i32_check{ .src_tokens_index = src_tokens_index }, value_ref);
+		add_instruction(*this, instructions::abs_i32_check{ .src_tokens_index = src_tokens_index }, value_ref);
 		break;
 	case builtin_type_kind::i64:
-		this->add_instruction(instructions::abs_i64_check{ .src_tokens_index = src_tokens_index }, value_ref);
+		add_instruction(*this, instructions::abs_i64_check{ .src_tokens_index = src_tokens_index }, value_ref);
 		break;
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::abs_f32_check{ .src_tokens_index = src_tokens_index }, value_ref);
+		add_instruction(*this, instructions::abs_f32_check{ .src_tokens_index = src_tokens_index }, value_ref);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::abs_f64_check{ .src_tokens_index = src_tokens_index }, value_ref);
+		add_instruction(*this, instructions::abs_f64_check{ .src_tokens_index = src_tokens_index }, value_ref);
 		break;
 	default:
 		bz_unreachable;
@@ -3523,14 +3607,14 @@ expr_value codegen_context::create_min(expr_value a, expr_value b, bool is_signe
 		if (is_signed_int)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::min_i8{}, a_val, b_val),
+				add_instruction(*this, instructions::min_i8{}, a_val, b_val),
 				this->get_builtin_type(builtin_type_kind::i8)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::min_u8{}, a_val, b_val),
+				add_instruction(*this, instructions::min_u8{}, a_val, b_val),
 				this->get_builtin_type(builtin_type_kind::i8)
 			);
 		}
@@ -3538,14 +3622,14 @@ expr_value codegen_context::create_min(expr_value a, expr_value b, bool is_signe
 		if (is_signed_int)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::min_i16{}, a_val, b_val),
+				add_instruction(*this, instructions::min_i16{}, a_val, b_val),
 				this->get_builtin_type(builtin_type_kind::i16)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::min_u16{}, a_val, b_val),
+				add_instruction(*this, instructions::min_u16{}, a_val, b_val),
 				this->get_builtin_type(builtin_type_kind::i16)
 			);
 		}
@@ -3553,14 +3637,14 @@ expr_value codegen_context::create_min(expr_value a, expr_value b, bool is_signe
 		if (is_signed_int)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::min_i32{}, a_val, b_val),
+				add_instruction(*this, instructions::min_i32{}, a_val, b_val),
 				this->get_builtin_type(builtin_type_kind::i32)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::min_u32{}, a_val, b_val),
+				add_instruction(*this, instructions::min_u32{}, a_val, b_val),
 				this->get_builtin_type(builtin_type_kind::i32)
 			);
 		}
@@ -3568,25 +3652,25 @@ expr_value codegen_context::create_min(expr_value a, expr_value b, bool is_signe
 		if (is_signed_int)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::min_i64{}, a_val, b_val),
+				add_instruction(*this, instructions::min_i64{}, a_val, b_val),
 				this->get_builtin_type(builtin_type_kind::i64)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::min_u64{}, a_val, b_val),
+				add_instruction(*this, instructions::min_u64{}, a_val, b_val),
 				this->get_builtin_type(builtin_type_kind::i64)
 			);
 		}
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::min_f32{}, a_val, b_val),
+			add_instruction(*this, instructions::min_f32{}, a_val, b_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::min_f64{}, a_val, b_val),
+			add_instruction(*this, instructions::min_f64{}, a_val, b_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -3612,10 +3696,10 @@ void codegen_context::create_min_check(lex::src_tokens const &src_tokens, expr_v
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::min_f32_check{ .src_tokens_index = src_tokens_index }, x_val, y_val);
+		add_instruction(*this, instructions::min_f32_check{ .src_tokens_index = src_tokens_index }, x_val, y_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::min_f64_check{ .src_tokens_index = src_tokens_index }, x_val, y_val);
+		add_instruction(*this, instructions::min_f64_check{ .src_tokens_index = src_tokens_index }, x_val, y_val);
 		break;
 	default:
 		bz_unreachable;
@@ -3637,14 +3721,14 @@ expr_value codegen_context::create_max(expr_value a, expr_value b, bool is_signe
 		if (is_signed_int)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::max_i8{}, a_val, b_val),
+				add_instruction(*this, instructions::max_i8{}, a_val, b_val),
 				this->get_builtin_type(builtin_type_kind::i8)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::max_u8{}, a_val, b_val),
+				add_instruction(*this, instructions::max_u8{}, a_val, b_val),
 				this->get_builtin_type(builtin_type_kind::i8)
 			);
 		}
@@ -3652,14 +3736,14 @@ expr_value codegen_context::create_max(expr_value a, expr_value b, bool is_signe
 		if (is_signed_int)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::max_i16{}, a_val, b_val),
+				add_instruction(*this, instructions::max_i16{}, a_val, b_val),
 				this->get_builtin_type(builtin_type_kind::i16)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::max_u16{}, a_val, b_val),
+				add_instruction(*this, instructions::max_u16{}, a_val, b_val),
 				this->get_builtin_type(builtin_type_kind::i16)
 			);
 		}
@@ -3667,14 +3751,14 @@ expr_value codegen_context::create_max(expr_value a, expr_value b, bool is_signe
 		if (is_signed_int)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::max_i32{}, a_val, b_val),
+				add_instruction(*this, instructions::max_i32{}, a_val, b_val),
 				this->get_builtin_type(builtin_type_kind::i32)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::max_u32{}, a_val, b_val),
+				add_instruction(*this, instructions::max_u32{}, a_val, b_val),
 				this->get_builtin_type(builtin_type_kind::i32)
 			);
 		}
@@ -3682,25 +3766,25 @@ expr_value codegen_context::create_max(expr_value a, expr_value b, bool is_signe
 		if (is_signed_int)
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::max_i64{}, a_val, b_val),
+				add_instruction(*this, instructions::max_i64{}, a_val, b_val),
 				this->get_builtin_type(builtin_type_kind::i64)
 			);
 		}
 		else
 		{
 			return expr_value::get_value(
-				this->add_instruction(instructions::max_u64{}, a_val, b_val),
+				add_instruction(*this, instructions::max_u64{}, a_val, b_val),
 				this->get_builtin_type(builtin_type_kind::i64)
 			);
 		}
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::max_f32{}, a_val, b_val),
+			add_instruction(*this, instructions::max_f32{}, a_val, b_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::max_f64{}, a_val, b_val),
+			add_instruction(*this, instructions::max_f64{}, a_val, b_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -3726,10 +3810,10 @@ void codegen_context::create_max_check(lex::src_tokens const &src_tokens, expr_v
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::max_f32_check{ .src_tokens_index = src_tokens_index }, x_val, y_val);
+		add_instruction(*this, instructions::max_f32_check{ .src_tokens_index = src_tokens_index }, x_val, y_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::max_f64_check{ .src_tokens_index = src_tokens_index }, x_val, y_val);
+		add_instruction(*this, instructions::max_f64_check{ .src_tokens_index = src_tokens_index }, x_val, y_val);
 		break;
 	default:
 		bz_unreachable;
@@ -3746,12 +3830,12 @@ expr_value codegen_context::create_exp(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::exp_f32{}, x_val),
+			add_instruction(*this, instructions::exp_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::exp_f64{}, x_val),
+			add_instruction(*this, instructions::exp_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -3774,10 +3858,10 @@ void codegen_context::create_exp_check(lex::src_tokens const &src_tokens, expr_v
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::exp_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::exp_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::exp_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::exp_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -3794,12 +3878,12 @@ expr_value codegen_context::create_exp2(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::exp2_f32{}, x_val),
+			add_instruction(*this, instructions::exp2_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::exp2_f64{}, x_val),
+			add_instruction(*this, instructions::exp2_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -3822,10 +3906,10 @@ void codegen_context::create_exp2_check(lex::src_tokens const &src_tokens, expr_
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::exp2_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::exp2_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::exp2_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::exp2_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -3842,12 +3926,12 @@ expr_value codegen_context::create_expm1(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::expm1_f32{}, x_val),
+			add_instruction(*this, instructions::expm1_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::expm1_f64{}, x_val),
+			add_instruction(*this, instructions::expm1_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -3870,10 +3954,10 @@ void codegen_context::create_expm1_check(lex::src_tokens const &src_tokens, expr
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::expm1_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::expm1_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::expm1_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::expm1_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -3890,12 +3974,12 @@ expr_value codegen_context::create_log(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::log_f32{}, x_val),
+			add_instruction(*this, instructions::log_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::log_f64{}, x_val),
+			add_instruction(*this, instructions::log_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -3918,10 +4002,10 @@ void codegen_context::create_log_check(lex::src_tokens const &src_tokens, expr_v
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::log_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::log_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::log_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::log_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -3938,12 +4022,12 @@ expr_value codegen_context::create_log10(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::log10_f32{}, x_val),
+			add_instruction(*this, instructions::log10_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::log10_f64{}, x_val),
+			add_instruction(*this, instructions::log10_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -3966,10 +4050,10 @@ void codegen_context::create_log10_check(lex::src_tokens const &src_tokens, expr
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::log10_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::log10_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::log10_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::log10_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -3986,12 +4070,12 @@ expr_value codegen_context::create_log2(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::log2_f32{}, x_val),
+			add_instruction(*this, instructions::log2_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::log2_f64{}, x_val),
+			add_instruction(*this, instructions::log2_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4014,10 +4098,10 @@ void codegen_context::create_log2_check(lex::src_tokens const &src_tokens, expr_
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::log2_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::log2_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::log2_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::log2_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4034,12 +4118,12 @@ expr_value codegen_context::create_log1p(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::log1p_f32{}, x_val),
+			add_instruction(*this, instructions::log1p_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::log1p_f64{}, x_val),
+			add_instruction(*this, instructions::log1p_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4062,10 +4146,10 @@ void codegen_context::create_log1p_check(lex::src_tokens const &src_tokens, expr
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::log1p_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::log1p_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::log1p_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::log1p_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4082,12 +4166,12 @@ expr_value codegen_context::create_sqrt(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::sqrt_f32{}, x_val),
+			add_instruction(*this, instructions::sqrt_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::sqrt_f64{}, x_val),
+			add_instruction(*this, instructions::sqrt_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4110,10 +4194,10 @@ void codegen_context::create_sqrt_check(lex::src_tokens const &src_tokens, expr_
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::sqrt_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::sqrt_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::sqrt_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::sqrt_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4133,12 +4217,12 @@ expr_value codegen_context::create_pow(expr_value x, expr_value y)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::pow_f32{}, x_val, y_val),
+			add_instruction(*this, instructions::pow_f32{}, x_val, y_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::pow_f64{}, x_val, y_val),
+			add_instruction(*this, instructions::pow_f64{}, x_val, y_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4164,10 +4248,10 @@ void codegen_context::create_pow_check(lex::src_tokens const &src_tokens, expr_v
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::pow_f32_check{ .src_tokens_index = src_tokens_index }, x_val, y_val);
+		add_instruction(*this, instructions::pow_f32_check{ .src_tokens_index = src_tokens_index }, x_val, y_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::pow_f64_check{ .src_tokens_index = src_tokens_index }, x_val, y_val);
+		add_instruction(*this, instructions::pow_f64_check{ .src_tokens_index = src_tokens_index }, x_val, y_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4184,12 +4268,12 @@ expr_value codegen_context::create_cbrt(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cbrt_f32{}, x_val),
+			add_instruction(*this, instructions::cbrt_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cbrt_f64{}, x_val),
+			add_instruction(*this, instructions::cbrt_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4212,10 +4296,10 @@ void codegen_context::create_cbrt_check(lex::src_tokens const &src_tokens, expr_
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::cbrt_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::cbrt_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::cbrt_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::cbrt_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4235,12 +4319,12 @@ expr_value codegen_context::create_hypot(expr_value x, expr_value y)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::hypot_f32{}, x_val, y_val),
+			add_instruction(*this, instructions::hypot_f32{}, x_val, y_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::hypot_f64{}, x_val, y_val),
+			add_instruction(*this, instructions::hypot_f64{}, x_val, y_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4266,10 +4350,10 @@ void codegen_context::create_hypot_check(lex::src_tokens const &src_tokens, expr
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::hypot_f32_check{ .src_tokens_index = src_tokens_index }, x_val, y_val);
+		add_instruction(*this, instructions::hypot_f32_check{ .src_tokens_index = src_tokens_index }, x_val, y_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::hypot_f64_check{ .src_tokens_index = src_tokens_index }, x_val, y_val);
+		add_instruction(*this, instructions::hypot_f64_check{ .src_tokens_index = src_tokens_index }, x_val, y_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4286,12 +4370,12 @@ expr_value codegen_context::create_sin(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::sin_f32{}, x_val),
+			add_instruction(*this, instructions::sin_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::sin_f64{}, x_val),
+			add_instruction(*this, instructions::sin_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4314,10 +4398,10 @@ void codegen_context::create_sin_check(lex::src_tokens const &src_tokens, expr_v
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::sin_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::sin_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::sin_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::sin_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4334,12 +4418,12 @@ expr_value codegen_context::create_cos(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cos_f32{}, x_val),
+			add_instruction(*this, instructions::cos_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cos_f64{}, x_val),
+			add_instruction(*this, instructions::cos_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4362,10 +4446,10 @@ void codegen_context::create_cos_check(lex::src_tokens const &src_tokens, expr_v
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::cos_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::cos_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::cos_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::cos_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4382,12 +4466,12 @@ expr_value codegen_context::create_tan(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::tan_f32{}, x_val),
+			add_instruction(*this, instructions::tan_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::tan_f64{}, x_val),
+			add_instruction(*this, instructions::tan_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4410,10 +4494,10 @@ void codegen_context::create_tan_check(lex::src_tokens const &src_tokens, expr_v
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::tan_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::tan_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::tan_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::tan_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4430,12 +4514,12 @@ expr_value codegen_context::create_asin(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::asin_f32{}, x_val),
+			add_instruction(*this, instructions::asin_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::asin_f64{}, x_val),
+			add_instruction(*this, instructions::asin_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4458,10 +4542,10 @@ void codegen_context::create_asin_check(lex::src_tokens const &src_tokens, expr_
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::asin_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::asin_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::asin_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::asin_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4478,12 +4562,12 @@ expr_value codegen_context::create_acos(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::acos_f32{}, x_val),
+			add_instruction(*this, instructions::acos_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::acos_f64{}, x_val),
+			add_instruction(*this, instructions::acos_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4506,10 +4590,10 @@ void codegen_context::create_acos_check(lex::src_tokens const &src_tokens, expr_
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::acos_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::acos_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::acos_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::acos_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4526,12 +4610,12 @@ expr_value codegen_context::create_atan(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::atan_f32{}, x_val),
+			add_instruction(*this, instructions::atan_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::atan_f64{}, x_val),
+			add_instruction(*this, instructions::atan_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4554,10 +4638,10 @@ void codegen_context::create_atan_check(lex::src_tokens const &src_tokens, expr_
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::atan_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::atan_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::atan_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::atan_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4577,12 +4661,12 @@ expr_value codegen_context::create_atan2(expr_value y, expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::atan2_f32{}, y_val, x_val),
+			add_instruction(*this, instructions::atan2_f32{}, y_val, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::atan2_f64{}, y_val, x_val),
+			add_instruction(*this, instructions::atan2_f64{}, y_val, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4608,10 +4692,10 @@ void codegen_context::create_atan2_check(lex::src_tokens const &src_tokens, expr
 	switch (y.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::atan2_f32_check{ .src_tokens_index = src_tokens_index }, y_val, x_val);
+		add_instruction(*this, instructions::atan2_f32_check{ .src_tokens_index = src_tokens_index }, y_val, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::atan2_f64_check{ .src_tokens_index = src_tokens_index }, y_val, x_val);
+		add_instruction(*this, instructions::atan2_f64_check{ .src_tokens_index = src_tokens_index }, y_val, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4628,12 +4712,12 @@ expr_value codegen_context::create_sinh(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::sinh_f32{}, x_val),
+			add_instruction(*this, instructions::sinh_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::sinh_f64{}, x_val),
+			add_instruction(*this, instructions::sinh_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4656,10 +4740,10 @@ void codegen_context::create_sinh_check(lex::src_tokens const &src_tokens, expr_
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::sinh_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::sinh_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::sinh_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::sinh_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4676,12 +4760,12 @@ expr_value codegen_context::create_cosh(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cosh_f32{}, x_val),
+			add_instruction(*this, instructions::cosh_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::cosh_f64{}, x_val),
+			add_instruction(*this, instructions::cosh_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4704,10 +4788,10 @@ void codegen_context::create_cosh_check(lex::src_tokens const &src_tokens, expr_
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::cosh_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::cosh_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::cosh_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::cosh_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4724,12 +4808,12 @@ expr_value codegen_context::create_tanh(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::tanh_f32{}, x_val),
+			add_instruction(*this, instructions::tanh_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::tanh_f64{}, x_val),
+			add_instruction(*this, instructions::tanh_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4752,10 +4836,10 @@ void codegen_context::create_tanh_check(lex::src_tokens const &src_tokens, expr_
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::tanh_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::tanh_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::tanh_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::tanh_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4772,12 +4856,12 @@ expr_value codegen_context::create_asinh(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::asinh_f32{}, x_val),
+			add_instruction(*this, instructions::asinh_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::asinh_f64{}, x_val),
+			add_instruction(*this, instructions::asinh_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4800,10 +4884,10 @@ void codegen_context::create_asinh_check(lex::src_tokens const &src_tokens, expr
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::asinh_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::asinh_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::asinh_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::asinh_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4820,12 +4904,12 @@ expr_value codegen_context::create_acosh(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::acosh_f32{}, x_val),
+			add_instruction(*this, instructions::acosh_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::acosh_f64{}, x_val),
+			add_instruction(*this, instructions::acosh_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4848,10 +4932,10 @@ void codegen_context::create_acosh_check(lex::src_tokens const &src_tokens, expr
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::acosh_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::acosh_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::acosh_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::acosh_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4868,12 +4952,12 @@ expr_value codegen_context::create_atanh(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::atanh_f32{}, x_val),
+			add_instruction(*this, instructions::atanh_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::atanh_f64{}, x_val),
+			add_instruction(*this, instructions::atanh_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4896,10 +4980,10 @@ void codegen_context::create_atanh_check(lex::src_tokens const &src_tokens, expr
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::atanh_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::atanh_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::atanh_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::atanh_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4916,12 +5000,12 @@ expr_value codegen_context::create_erf(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::erf_f32{}, x_val),
+			add_instruction(*this, instructions::erf_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::erf_f64{}, x_val),
+			add_instruction(*this, instructions::erf_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4944,10 +5028,10 @@ void codegen_context::create_erf_check(lex::src_tokens const &src_tokens, expr_v
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::erf_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::erf_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::erf_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::erf_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -4964,12 +5048,12 @@ expr_value codegen_context::create_erfc(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::erfc_f32{}, x_val),
+			add_instruction(*this, instructions::erfc_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::erfc_f64{}, x_val),
+			add_instruction(*this, instructions::erfc_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -4992,10 +5076,10 @@ void codegen_context::create_erfc_check(lex::src_tokens const &src_tokens, expr_
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::erfc_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::erfc_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::erfc_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::erfc_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -5012,12 +5096,12 @@ expr_value codegen_context::create_tgamma(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::tgamma_f32{}, x_val),
+			add_instruction(*this, instructions::tgamma_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::tgamma_f64{}, x_val),
+			add_instruction(*this, instructions::tgamma_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -5040,10 +5124,10 @@ void codegen_context::create_tgamma_check(lex::src_tokens const &src_tokens, exp
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::tgamma_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::tgamma_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::tgamma_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::tgamma_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -5060,12 +5144,12 @@ expr_value codegen_context::create_lgamma(expr_value x)
 	{
 	case builtin_type_kind::f32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::lgamma_f32{}, x_val),
+			add_instruction(*this, instructions::lgamma_f32{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f32)
 		);
 	case builtin_type_kind::f64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::lgamma_f64{}, x_val),
+			add_instruction(*this, instructions::lgamma_f64{}, x_val),
 			this->get_builtin_type(builtin_type_kind::f64)
 		);
 	default:
@@ -5088,10 +5172,10 @@ void codegen_context::create_lgamma_check(lex::src_tokens const &src_tokens, exp
 	switch (x.get_type()->get_builtin_kind())
 	{
 	case builtin_type_kind::f32:
-		this->add_instruction(instructions::lgamma_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::lgamma_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	case builtin_type_kind::f64:
-		this->add_instruction(instructions::lgamma_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		add_instruction(*this, instructions::lgamma_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;
@@ -5108,22 +5192,22 @@ expr_value codegen_context::create_bitreverse(expr_value value)
 	{
 	case builtin_type_kind::i8:
 		return expr_value::get_value(
-			this->add_instruction(instructions::bitreverse_u8{}, value_ref),
+			add_instruction(*this, instructions::bitreverse_u8{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i8)
 		);
 	case builtin_type_kind::i16:
 		return expr_value::get_value(
-			this->add_instruction(instructions::bitreverse_u16{}, value_ref),
+			add_instruction(*this, instructions::bitreverse_u16{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i16)
 		);
 	case builtin_type_kind::i32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::bitreverse_u32{}, value_ref),
+			add_instruction(*this, instructions::bitreverse_u32{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i32)
 		);
 	case builtin_type_kind::i64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::bitreverse_u64{}, value_ref),
+			add_instruction(*this, instructions::bitreverse_u64{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i64)
 		);
 	default:
@@ -5141,22 +5225,22 @@ expr_value codegen_context::create_popcount(expr_value value)
 	{
 	case builtin_type_kind::i8:
 		return expr_value::get_value(
-			this->add_instruction(instructions::popcount_u8{}, value_ref),
+			add_instruction(*this, instructions::popcount_u8{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i8)
 		);
 	case builtin_type_kind::i16:
 		return expr_value::get_value(
-			this->add_instruction(instructions::popcount_u16{}, value_ref),
+			add_instruction(*this, instructions::popcount_u16{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i16)
 		);
 	case builtin_type_kind::i32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::popcount_u32{}, value_ref),
+			add_instruction(*this, instructions::popcount_u32{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i32)
 		);
 	case builtin_type_kind::i64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::popcount_u64{}, value_ref),
+			add_instruction(*this, instructions::popcount_u64{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i64)
 		);
 	default:
@@ -5174,17 +5258,17 @@ expr_value codegen_context::create_byteswap(expr_value value)
 	{
 	case builtin_type_kind::i16:
 		return expr_value::get_value(
-			this->add_instruction(instructions::byteswap_u16{}, value_ref),
+			add_instruction(*this, instructions::byteswap_u16{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i16)
 		);
 	case builtin_type_kind::i32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::byteswap_u32{}, value_ref),
+			add_instruction(*this, instructions::byteswap_u32{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i32)
 		);
 	case builtin_type_kind::i64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::byteswap_u64{}, value_ref),
+			add_instruction(*this, instructions::byteswap_u64{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i64)
 		);
 	default:
@@ -5202,22 +5286,22 @@ expr_value codegen_context::create_clz(expr_value value)
 	{
 	case builtin_type_kind::i8:
 		return expr_value::get_value(
-			this->add_instruction(instructions::clz_u8{}, value_ref),
+			add_instruction(*this, instructions::clz_u8{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i8)
 		);
 	case builtin_type_kind::i16:
 		return expr_value::get_value(
-			this->add_instruction(instructions::clz_u16{}, value_ref),
+			add_instruction(*this, instructions::clz_u16{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i16)
 		);
 	case builtin_type_kind::i32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::clz_u32{}, value_ref),
+			add_instruction(*this, instructions::clz_u32{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i32)
 		);
 	case builtin_type_kind::i64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::clz_u64{}, value_ref),
+			add_instruction(*this, instructions::clz_u64{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i64)
 		);
 	default:
@@ -5235,22 +5319,22 @@ expr_value codegen_context::create_ctz(expr_value value)
 	{
 	case builtin_type_kind::i8:
 		return expr_value::get_value(
-			this->add_instruction(instructions::ctz_u8{}, value_ref),
+			add_instruction(*this, instructions::ctz_u8{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i8)
 		);
 	case builtin_type_kind::i16:
 		return expr_value::get_value(
-			this->add_instruction(instructions::ctz_u16{}, value_ref),
+			add_instruction(*this, instructions::ctz_u16{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i16)
 		);
 	case builtin_type_kind::i32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::ctz_u32{}, value_ref),
+			add_instruction(*this, instructions::ctz_u32{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i32)
 		);
 	case builtin_type_kind::i64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::ctz_u64{}, value_ref),
+			add_instruction(*this, instructions::ctz_u64{}, value_ref),
 			this->get_builtin_type(builtin_type_kind::i64)
 		);
 	default:
@@ -5274,22 +5358,22 @@ expr_value codegen_context::create_fshl(expr_value a, expr_value b, expr_value a
 	{
 	case builtin_type_kind::i8:
 		return expr_value::get_value(
-			this->add_instruction(instructions::fshl_u8{}, a_val, b_val, amount_val),
+			add_instruction(*this, instructions::fshl_u8{}, a_val, b_val, amount_val),
 			this->get_builtin_type(builtin_type_kind::i8)
 		);
 	case builtin_type_kind::i16:
 		return expr_value::get_value(
-			this->add_instruction(instructions::fshl_u16{}, a_val, b_val, amount_val),
+			add_instruction(*this, instructions::fshl_u16{}, a_val, b_val, amount_val),
 			this->get_builtin_type(builtin_type_kind::i16)
 		);
 	case builtin_type_kind::i32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::fshl_u32{}, a_val, b_val, amount_val),
+			add_instruction(*this, instructions::fshl_u32{}, a_val, b_val, amount_val),
 			this->get_builtin_type(builtin_type_kind::i32)
 		);
 	case builtin_type_kind::i64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::fshl_u64{}, a_val, b_val, amount_val),
+			add_instruction(*this, instructions::fshl_u64{}, a_val, b_val, amount_val),
 			this->get_builtin_type(builtin_type_kind::i64)
 		);
 	default:
@@ -5313,22 +5397,22 @@ expr_value codegen_context::create_fshr(expr_value a, expr_value b, expr_value a
 	{
 	case builtin_type_kind::i8:
 		return expr_value::get_value(
-			this->add_instruction(instructions::fshr_u8{}, a_val, b_val, amount_val),
+			add_instruction(*this, instructions::fshr_u8{}, a_val, b_val, amount_val),
 			this->get_builtin_type(builtin_type_kind::i8)
 		);
 	case builtin_type_kind::i16:
 		return expr_value::get_value(
-			this->add_instruction(instructions::fshr_u16{}, a_val, b_val, amount_val),
+			add_instruction(*this, instructions::fshr_u16{}, a_val, b_val, amount_val),
 			this->get_builtin_type(builtin_type_kind::i16)
 		);
 	case builtin_type_kind::i32:
 		return expr_value::get_value(
-			this->add_instruction(instructions::fshr_u32{}, a_val, b_val, amount_val),
+			add_instruction(*this, instructions::fshr_u32{}, a_val, b_val, amount_val),
 			this->get_builtin_type(builtin_type_kind::i32)
 		);
 	case builtin_type_kind::i64:
 		return expr_value::get_value(
-			this->add_instruction(instructions::fshr_u64{}, a_val, b_val, amount_val),
+			add_instruction(*this, instructions::fshr_u64{}, a_val, b_val, amount_val),
 			this->get_builtin_type(builtin_type_kind::i64)
 		);
 	default:
@@ -5339,7 +5423,7 @@ expr_value codegen_context::create_fshr(expr_value a, expr_value b, expr_value a
 
 instruction_ref codegen_context::create_unreachable(void)
 {
-	return this->add_instruction(instructions::unreachable{});
+	return add_instruction(*this, instructions::unreachable{});
 }
 
 instruction_ref codegen_context::create_error(lex::src_tokens const &src_tokens, bz::u8string message)
@@ -5350,7 +5434,7 @@ instruction_ref codegen_context::create_error(lex::src_tokens const &src_tokens,
 		.message = std::move(message),
 	});
 	bz_assert(index <= std::numeric_limits<uint32_t>::max());
-	return this->add_instruction(instructions::error{ .error_index = static_cast<uint32_t>(index) });
+	return add_instruction(*this, instructions::error{ .error_index = static_cast<uint32_t>(index) });
 }
 
 instruction_ref codegen_context::create_error_str(
@@ -5364,7 +5448,7 @@ instruction_ref codegen_context::create_error_str(
 	auto const begin_ptr_value = begin_ptr.get_value_as_instruction(*this);
 	auto const end_ptr_value = end_ptr.get_value_as_instruction(*this);
 
-	return this->add_instruction(
+	return add_instruction(*this,
 		instructions::diagnostic_str{ .src_tokens_index = src_tokens_index, .kind = ctx::warning_kind::_last },
 		begin_ptr_value,
 		end_ptr_value
@@ -5383,7 +5467,7 @@ instruction_ref codegen_context::create_warning_str(
 	auto const begin_ptr_value = begin_ptr.get_value_as_instruction(*this);
 	auto const end_ptr_value = end_ptr.get_value_as_instruction(*this);
 
-	return this->add_instruction(
+	return add_instruction(*this,
 		instructions::diagnostic_str{ .src_tokens_index = src_tokens_index, .kind = kind },
 		begin_ptr_value,
 		end_ptr_value
@@ -5396,7 +5480,7 @@ expr_value codegen_context::create_is_option_set(expr_value begin_ptr, expr_valu
 	auto const end_ptr_value = end_ptr.get_value_as_instruction(*this);
 
 	return expr_value::get_value(
-		this->add_instruction(
+		add_instruction(*this,
 			instructions::is_option_set{},
 			begin_ptr_value,
 			end_ptr_value
@@ -5424,14 +5508,14 @@ instruction_ref codegen_context::create_array_bounds_check(
 	{
 		if (is_index_signed)
 		{
-			return this->add_instruction(
+			return add_instruction(*this,
 				instructions::array_bounds_check_i32{ .src_tokens_index = src_tokens_index },
 				index_val, size_val
 			);
 		}
 		else
 		{
-			return this->add_instruction(
+			return add_instruction(*this,
 				instructions::array_bounds_check_u32{ .src_tokens_index = src_tokens_index },
 				index_val, size_val
 			);
@@ -5441,14 +5525,14 @@ instruction_ref codegen_context::create_array_bounds_check(
 	{
 		if (is_index_signed)
 		{
-			return this->add_instruction(
+			return add_instruction(*this,
 				instructions::array_bounds_check_i64{ .src_tokens_index = src_tokens_index },
 				index_val, size_val
 			);
 		}
 		else
 		{
-			return this->add_instruction(
+			return add_instruction(*this,
 				instructions::array_bounds_check_u64{ .src_tokens_index = src_tokens_index },
 				index_val, size_val
 			);
@@ -5461,7 +5545,7 @@ instruction_ref codegen_context::create_optional_get_value_check(lex::src_tokens
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 
 	auto const has_value_val = has_value.get_value_as_instruction(*this);
-	return this->add_instruction(
+	return add_instruction(*this,
 		instructions::optional_get_value_check{ .src_tokens_index = src_tokens_index },
 		has_value_val
 	);
@@ -5478,7 +5562,7 @@ instruction_ref codegen_context::create_str_construction_check(
 	auto const begin_ptr_value = begin_ptr.get_value_as_instruction(*this);
 	auto const end_ptr_value = end_ptr.get_value_as_instruction(*this);
 
-	return this->add_instruction(
+	return add_instruction(*this,
 		instructions::str_construction_check{ .src_tokens_index = src_tokens_index },
 		begin_ptr_value,
 		end_ptr_value
@@ -5502,7 +5586,7 @@ instruction_ref codegen_context::create_slice_construction_check(
 	auto const begin_ptr_value = begin_ptr.get_value_as_instruction(*this);
 	auto const end_ptr_value = end_ptr.get_value_as_instruction(*this);
 
-	return this->add_instruction(
+	return add_instruction(*this,
 		instructions::slice_construction_check{
 			.src_tokens_index = src_tokens_index,
 			.slice_construction_check_info_index = slice_construction_check_info_index,
@@ -5515,13 +5599,13 @@ instruction_ref codegen_context::create_slice_construction_check(
 void codegen_context::create_start_lifetime(expr_value ptr)
 {
 	bz_assert(ptr.is_reference());
-	this->add_instruction(instructions::start_lifetime{ .size = ptr.get_type()->size }, ptr.get_reference());
+	add_instruction(*this, instructions::start_lifetime{ .size = ptr.get_type()->size }, ptr.get_reference());
 }
 
 void codegen_context::create_end_lifetime(expr_value ptr)
 {
 	bz_assert(ptr.is_reference());
-	this->add_instruction(instructions::end_lifetime{ .size = ptr.get_type()->size }, ptr.get_reference());
+	add_instruction(*this, instructions::end_lifetime{ .size = ptr.get_type()->size }, ptr.get_reference());
 }
 
 static void resolve_instruction_args(instruction &inst, bz::array<instruction_ref, 3> const &args, auto get_instruction_value_index)
