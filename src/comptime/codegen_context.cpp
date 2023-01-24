@@ -272,22 +272,19 @@ bool codegen_context::has_terminator(void)
 {
 	return {
 		.destructor_calls_size = this->current_function_info.destructor_calls.size(),
-		.lifetimes_size = this->current_function_info.lifetimes.size(),
 	};
 }
 
 void codegen_context::pop_expression_scope(expression_scope_info_t prev_info)
 {
-	this->emit_destruct_operations(prev_info.destructor_calls_size, prev_info.lifetimes_size);
+	this->emit_destruct_operations(prev_info.destructor_calls_size);
 	this->current_function_info.destructor_calls.resize(prev_info.destructor_calls_size);
-	this->current_function_info.lifetimes.resize(prev_info.lifetimes_size);
 }
 
 [[nodiscard]] codegen_context::loop_info_t codegen_context::push_loop(basic_block_ref break_bb, basic_block_ref continue_bb)
 {
 	auto const result = this->loop_info;
 	this->loop_info.destructor_stack_begin = this->current_function_info.destructor_calls.size();
-	this->loop_info.lifetimes_stack_begin = this->current_function_info.lifetimes.size();
 	this->loop_info.break_bb = break_bb;
 	this->loop_info.continue_bb = continue_bb;
 	this->loop_info.in_loop = true;
@@ -425,16 +422,11 @@ static void emit_destruct_operation(destruct_operation_info_t const &info, codeg
 	generate_destruct_operation(info, context);
 }
 
-void codegen_context::emit_destruct_operations(size_t destruct_calls_start_index, size_t lifetimes_start_index)
+void codegen_context::emit_destruct_operations(size_t destruct_calls_start_index)
 {
 	for (auto const &info : this->current_function_info.destructor_calls.slice(destruct_calls_start_index).reversed())
 	{
 		emit_destruct_operation(info, *this);
-	}
-
-	for (auto const ptr : this->current_function_info.lifetimes.slice(lifetimes_start_index).reversed())
-	{
-		this->create_end_lifetime(ptr);
 	}
 }
 
@@ -444,11 +436,6 @@ void codegen_context::emit_loop_destruct_operations(void)
 	{
 		emit_destruct_operation(info, *this);
 	}
-
-	for (auto const ptr : this->current_function_info.lifetimes.slice(this->loop_info.lifetimes_stack_begin).reversed())
-	{
-		this->create_end_lifetime(ptr);
-	}
 }
 
 void codegen_context::emit_all_destruct_operations(void)
@@ -456,11 +443,6 @@ void codegen_context::emit_all_destruct_operations(void)
 	for (auto const &info : this->current_function_info.destructor_calls.reversed())
 	{
 		emit_destruct_operation(info, *this);
-	}
-
-	for (auto const ptr : this->current_function_info.lifetimes.reversed())
-	{
-		this->create_end_lifetime(ptr);
 	}
 }
 
@@ -5519,7 +5501,6 @@ instruction_ref codegen_context::create_slice_construction_check(
 void codegen_context::create_start_lifetime(instruction_ref ptr)
 {
 	this->add_instruction(instructions::start_lifetime{}, ptr);
-	this->current_function_info.lifetimes.push_back(ptr);
 }
 
 void codegen_context::create_end_lifetime(instruction_ref ptr)
