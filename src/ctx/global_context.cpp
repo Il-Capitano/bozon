@@ -17,6 +17,7 @@
 #include <llvm/Target/TargetOptions.h>
 #include <llvm/IR/Dominators.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/IR/LegacyPassManager.h>
 
 #include <llvm/Analysis/AliasAnalysis.h>
 #include <llvm/Analysis/AliasAnalysisEvaluator.h>
