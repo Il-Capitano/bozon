@@ -472,26 +472,30 @@ void bitset::clear(void)
 stack_object::stack_object(ptr_t _address, type const *_object_type, bool is_always_initialized)
 	: address(_address),
 	  object_type(_object_type),
-	  memory(),
-	  is_initialized(is_always_initialized)
-{
-	auto const size = this->object_type->size;
-	this->memory = bz::fixed_vector<uint8_t>(size, 0);
-}
+	  memory(_object_type->size, 0),
+	  is_alive_bitset(_object_type->size, is_always_initialized)
+{}
 
 size_t stack_object::object_size(void) const
 {
 	return this->memory.size();
 }
 
-void stack_object::initialize(void)
+void stack_object::start_lifetime(ptr_t begin, ptr_t end)
 {
-	this->is_initialized = true;
+	bz_assert(this->is_alive_bitset.is_none(begin - this->address, end - this->address));
+	this->is_alive_bitset.set_range(begin - this->address, end - this->address, true);
 }
 
-void stack_object::deinitialize(void)
+void stack_object::end_lifetime(ptr_t begin, ptr_t end)
 {
-	this->is_initialized = false;
+	bz_assert(this->is_alive_bitset.is_all(begin - this->address, end - this->address));
+	this->is_alive_bitset.set_range(begin - this->address, end - this->address, false);
+}
+
+bool stack_object::is_alive(ptr_t begin, ptr_t end) const
+{
+	return this->is_alive_bitset.is_all(begin - this->address, end - this->address);
 }
 
 uint8_t *stack_object::get_memory(ptr_t address)
@@ -510,7 +514,7 @@ uint8_t const *stack_object::get_memory(ptr_t address) const
 
 bool stack_object::check_dereference(ptr_t address, type const *subobject_type) const
 {
-	if (!this->is_initialized)
+	if (!this->is_alive(address, address + subobject_type->size))
 	{
 		return false;
 	}
@@ -530,7 +534,7 @@ bool stack_object::check_slice_construction(ptr_t begin, ptr_t end, type const *
 		return true;
 	}
 
-	if (!this->is_initialized)
+	if (!this->is_alive(begin, end))
 	{
 		return false;
 	}
@@ -627,12 +631,11 @@ heap_object::heap_object(ptr_t _address, type const *_elem_type, size_t _count)
 	  elem_type(_elem_type),
 	  count(_count),
 	  memory(),
-	  is_initialized()
+	  is_alive_bitset()
 {
 	auto const size = this->elem_type->size * this->count;
-	auto const rounded_size = size % 8 == 0 ? size : size + (8 - size % 8);
 	this->memory = bz::fixed_vector<uint8_t>(size, 0);
-	this->is_initialized = bz::fixed_vector<uint8_t>(rounded_size / 8, 0xff);
+	this->is_alive_bitset = bitset(size, false);
 }
 
 size_t heap_object::object_size(void) const
@@ -645,106 +648,19 @@ size_t heap_object::elem_size(void) const
 	return this->elem_type->size;
 }
 
-void heap_object::initialize_region(ptr_t begin, ptr_t end)
+void heap_object::start_lifetime(ptr_t begin, ptr_t end)
 {
-	if (begin >= end)
-	{
-		return;
-	}
-
-	bz_assert(begin >= this->address && begin < this->address + this->object_size());
-	bz_assert(end > this->address && end <= this->address + this->object_size());
-
-	auto begin_offset = begin - this->address;
-	auto end_offset = end - this->address;
-
-	if (begin_offset / 8 == end_offset / 8)
-	{
-		auto const begin_rem = begin_offset % 8;
-		auto const end_rem = end_offset % 8;
-
-		uint8_t const begin_bits = begin_rem == 0 ? uint8_t(-1) : uint8_t((1u << begin_rem) - 1);
-		uint8_t const end_bits = uint8_t(-1) << (8 - end_rem);
-		uint8_t const needed_bits = begin_bits & end_bits;
-		this->is_initialized[begin_offset / 8] &= ~needed_bits;
-	}
-	else
-	{
-		if (begin_offset % 8 != 0)
-		{
-			auto const rem = begin_offset % 8;
-			uint8_t const needed_bits = (uint8_t(1) << rem) - 1;
-			this->is_initialized[begin_offset / 8] &= ~needed_bits;
-			begin_offset += 8 - rem;
-		}
-
-		if (end_offset % 8 != 0)
-		{
-			auto const rem = end_offset % 8;
-			uint8_t const needed_bits = uint8_t(-1) << (8 - rem);
-			this->is_initialized[end_offset / 8] &= ~needed_bits;
-			end_offset -= rem;
-		}
-
-		auto const slice = this->is_initialized.slice(begin_offset / 8, end_offset / 8);
-		std::memset(slice.data(), 0, slice.size());
-	}
+	this->is_alive_bitset.set_range(begin - this->address, end - this->address, true);
 }
 
-bool heap_object::is_region_initialized(ptr_t begin, ptr_t end) const
+void heap_object::end_lifetime(ptr_t begin, ptr_t end)
 {
-	if (begin == end)
-	{
-		return true;
-	}
-	else if (begin > end)
-	{
-		return false;
-	}
+	this->is_alive_bitset.set_range(begin - this->address, end - this->address, false);
+}
 
-	bz_assert(begin >= this->address && begin < this->address + this->object_size());
-	bz_assert(end > this->address && end <= this->address + this->object_size());
-
-	auto begin_offset = begin - this->address;
-	auto end_offset = end - this->address;
-
-	if (begin_offset / 8 == end_offset / 8)
-	{
-		auto const begin_rem = begin_offset % 8;
-		auto const end_rem = end_offset % 8;
-
-		uint8_t const begin_bits = begin_rem == 0 ? uint8_t(-1) : uint8_t((1u << begin_rem) - 1);
-		uint8_t const end_bits = uint8_t(-1) << (8 - end_rem);
-		uint8_t const needed_bits = begin_bits & end_bits;
-		return (this->is_initialized[begin_offset / 8] & needed_bits) == 0;
-	}
-	else
-	{
-		if (begin_offset % 8 != 0)
-		{
-			auto const rem = begin_offset % 8;
-			uint8_t const needed_bits = (uint8_t(1) << rem) - 1;
-			if ((this->is_initialized[begin_offset / 8] & needed_bits) != 0)
-			{
-				return false;
-			}
-			begin_offset += 8 - rem;
-		}
-
-		if (end_offset % 8 != 0)
-		{
-			auto const rem = end_offset % 8;
-			uint8_t const needed_bits = uint8_t(-1) << (8 - rem);
-			if ((this->is_initialized[end_offset / 8] & needed_bits) != 0)
-			{
-				return false;
-			}
-			end_offset -= rem;
-		}
-
-		auto const slice = this->is_initialized.slice(begin_offset / 8, end_offset / 8);
-		return slice.is_all([](auto const val) { return val == 0; });
-	}
+bool heap_object::is_alive(ptr_t begin, ptr_t end) const
+{
+	return this->is_alive_bitset.is_all(begin - this->address, end - this->address);
 }
 
 uint8_t *heap_object::get_memory(ptr_t address)
@@ -763,7 +679,7 @@ uint8_t const *heap_object::get_memory(ptr_t address) const
 
 bool heap_object::check_dereference(ptr_t address, type const *subobject_type) const
 {
-	if (!this->is_region_initialized(address, address + subobject_type->size))
+	if (!this->is_alive(address, address + subobject_type->size))
 	{
 		return false;
 	}
@@ -783,7 +699,7 @@ bool heap_object::check_slice_construction(ptr_t begin, ptr_t end, type const *e
 		return true;
 	}
 
-	if (!this->is_region_initialized(begin, end))
+	if (!this->is_alive(begin, end))
 	{
 		return false;
 	}
@@ -1204,10 +1120,6 @@ pointer_arithmetic_result_t stack_manager::do_pointer_arithmetic(ptr_t address, 
 	{
 		return { 0, false };
 	}
-	else if (!object->is_initialized)
-	{
-		return { 0, false };
-	}
 	else
 	{
 		return object->do_pointer_arithmetic(address, offset, object_type);
@@ -1218,10 +1130,6 @@ bz::optional<int64_t> stack_manager::do_pointer_difference(ptr_t lhs, ptr_t rhs,
 {
 	auto const object = this->get_stack_object(lhs);
 	if (object == nullptr)
-	{
-		return {};
-	}
-	else if (!object->is_initialized)
 	{
 		return {};
 	}
@@ -1264,7 +1172,7 @@ free_result allocation::free(call_stack_info_t free_info)
 	}
 
 	this->object.memory.clear();
-	this->object.is_initialized.clear();
+	this->object.is_alive_bitset.clear();
 	this->free_info = std::move(free_info);
 	this->is_freed = true;
 	return free_result::good;
@@ -1926,7 +1834,7 @@ int64_t memory_manager::do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, si
 	}
 }
 
-void memory_manager::start_lifetime(ptr_t address)
+void memory_manager::start_lifetime(ptr_t address, size_t size)
 {
 	address = this->get_non_meta_address(address);
 	bz_assert(this->segment_info.get_segment(address) == memory_segment::stack);
@@ -1934,20 +1842,17 @@ void memory_manager::start_lifetime(ptr_t address)
 	auto const object = this->stack.get_stack_object(address);
 	bz_assert(object != nullptr);
 	bz_assert(address == object->address);
-	bz_assert(!object->is_initialized);
-	object->initialize();
+	object->start_lifetime(address, address + size);
 }
 
-void memory_manager::end_lifetime(ptr_t address)
+void memory_manager::end_lifetime(ptr_t address, size_t size)
 {
 	address = this->get_non_meta_address(address);
 	bz_assert(this->segment_info.get_segment(address) == memory_segment::stack);
 
 	auto const object = this->stack.get_stack_object(address);
 	bz_assert(object != nullptr);
-	bz_assert(address == object->address);
-	bz_assert(object->is_initialized);
-	object->deinitialize();
+	object->end_lifetime(address, address + size);
 }
 
 bool memory_manager::is_global(ptr_t address) const

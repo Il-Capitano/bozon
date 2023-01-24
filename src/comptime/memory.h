@@ -92,14 +92,15 @@ struct stack_object
 	ptr_t address;
 	type const *object_type;
 	bz::fixed_vector<uint8_t> memory;
-	bool is_initialized: 1;
+	bitset is_alive_bitset;
 
 	stack_object(ptr_t address, type const *object_type, bool is_always_initialized);
 
 	size_t object_size(void) const;
 
-	void initialize(void);
-	void deinitialize(void);
+	void start_lifetime(ptr_t begin, ptr_t end);
+	void end_lifetime(ptr_t begin, ptr_t end);
+	bool is_alive(ptr_t begin, ptr_t end) const;
 	uint8_t *get_memory(ptr_t address);
 	uint8_t const *get_memory(ptr_t address) const;
 
@@ -115,15 +116,16 @@ struct heap_object
 	type const *elem_type;
 	size_t count;
 	bz::fixed_vector<uint8_t> memory;
-	bz::fixed_vector<uint8_t> is_initialized;
+	bitset is_alive_bitset;
 
 	heap_object(ptr_t address, type const *elem_type, uint64_t count);
 
 	size_t object_size(void) const;
 	size_t elem_size(void) const;
 
-	void initialize_region(ptr_t begin, ptr_t end);
-	bool is_region_initialized(ptr_t begin, ptr_t end) const;
+	void start_lifetime(ptr_t begin, ptr_t end);
+	void end_lifetime(ptr_t begin, ptr_t end);
+	bool is_alive(ptr_t begin, ptr_t end) const;
 	uint8_t *get_memory(ptr_t address);
 	uint8_t const *get_memory(ptr_t address) const;
 
@@ -335,8 +337,8 @@ struct memory_manager
 	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);
 	int64_t do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride);
 
-	void start_lifetime(ptr_t address);
-	void end_lifetime(ptr_t address);
+	void start_lifetime(ptr_t address, size_t size);
+	void end_lifetime(ptr_t address, size_t size);
 
 	bool is_global(ptr_t address) const;
 
