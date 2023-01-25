@@ -66,9 +66,9 @@
 #include <llvm/MC/MCAsmInfo.h>
 #include <llvm/MC/TargetRegistry.h>
 
-#if LLVM_VERSION_MAJOR < 14
-#error LLVM 14 is required
-#endif // LLVM 14
+#if LLVM_VERSION_MAJOR != 16
+#error LLVM 16 is required
+#endif // LLVM 16
 
 namespace ctx
 {
