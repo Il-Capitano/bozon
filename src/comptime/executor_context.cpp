@@ -357,6 +357,15 @@ void executor_context::free(uint32_t src_tokens_index, ptr_t address)
 
 void executor_context::check_dereference(uint32_t src_tokens_index, ptr_t address, type const *object_type, ast::typespec_view object_typespec)
 {
+	if (address == 0)
+	{
+		this->report_error(
+			src_tokens_index,
+			bz::format("dereferencing a null pointer to an object of type '{}'", object_typespec)
+		);
+		return;
+	}
+
 	auto const is_good = this->memory.check_dereference(address, object_type);
 	if (!is_good)
 	{

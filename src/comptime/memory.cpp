@@ -1550,6 +1550,7 @@ bool memory_manager::check_dereference(ptr_t address, type const *object_type) c
 
 error_reason_t memory_manager::get_dereference_error_reason(ptr_t address, type const *object_type) const
 {
+	bz_assert(address != 0);
 	bool is_one_past_the_end = false;
 	auto segment = this->segment_info.get_segment(address);
 	while (segment == memory_segment::meta)
