@@ -952,7 +952,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	auto const features = "";
 
 	llvm::TargetOptions options;
-	auto rm = llvm::Optional<llvm::Reloc::Model>(llvm::Reloc::Model::PIC_);
+	auto const rm = llvm::Reloc::Model::PIC_;
 	this->_target_machine.reset(this->_target->createTargetMachine(target_triple, cpu, features, options, rm));
 	bz_assert(this->_target_machine);
 	switch (opt_level)
