@@ -118,7 +118,13 @@ struct global_object
 	bz::u8string get_dereference_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const;
-	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const;
+	bz::optional<int64_t> do_pointer_difference(
+		ptr_t lhs,
+		ptr_t rhs,
+		bool lhs_is_one_past_the_end,
+		bool rhs_is_one_past_the_end,
+		type const *object_type
+	) const;
 };
 
 struct bitset
@@ -158,7 +164,13 @@ struct stack_object
 	bz::u8string get_dereference_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const;
-	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const;
+	bz::optional<int64_t> do_pointer_difference(
+		ptr_t lhs,
+		ptr_t rhs,
+		bool lhs_is_one_past_the_end,
+		bool rhs_is_one_past_the_end,
+		type const *object_type
+	) const;
 };
 
 struct heap_object
@@ -184,7 +196,13 @@ struct heap_object
 	bz::u8string get_dereference_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const;
-	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const;
+	bz::optional<int64_t> do_pointer_difference(
+		ptr_t lhs,
+		ptr_t rhs,
+		bool lhs_is_one_past_the_end,
+		bool rhs_is_one_past_the_end,
+		type const *object_type
+	) const;
 };
 
 struct global_memory_manager
@@ -215,7 +233,13 @@ struct global_memory_manager
 	bool check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const;
 
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const;
-	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const;
+	bz::optional<int64_t> do_pointer_difference(
+		ptr_t lhs,
+		ptr_t rhs,
+		bool lhs_is_one_past_the_end,
+		bool rhs_is_one_past_the_end,
+		type const *object_type
+	) const;
 
 	uint8_t *get_memory(ptr_t address);
 	uint8_t const *get_memory(ptr_t address) const;
@@ -251,7 +275,13 @@ struct stack_manager
 	bool check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const;
 
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const;
-	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const;
+	bz::optional<int64_t> do_pointer_difference(
+		ptr_t lhs,
+		ptr_t rhs,
+		bool lhs_is_one_past_the_end,
+		bool rhs_is_one_past_the_end,
+		type const *object_type
+	) const;
 
 	uint8_t *get_memory(ptr_t address);
 	uint8_t const *get_memory(ptr_t address) const;
@@ -308,7 +338,13 @@ struct heap_manager
 	bool check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const;
 
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const;
-	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const;
+	bz::optional<int64_t> do_pointer_difference(
+		ptr_t lhs,
+		ptr_t rhs,
+		bool lhs_is_one_past_the_end,
+		bool rhs_is_one_past_the_end,
+		type const *object_type
+	) const;
 
 	uint8_t *get_memory(ptr_t address);
 	uint8_t const *get_memory(ptr_t address) const;

@@ -286,11 +286,21 @@ pointer_arithmetic_result_t global_object::do_pointer_arithmetic(ptr_t address, 
 	}
 }
 
-bz::optional<int64_t> global_object::do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const
+bz::optional<int64_t> global_object::do_pointer_difference(
+	ptr_t lhs,
+	ptr_t rhs,
+	bool lhs_is_one_past_the_end,
+	bool rhs_is_one_past_the_end,
+	type const *object_type
+) const
 {
-	if (lhs <= rhs)
+	if (lhs == rhs)
 	{
-		auto const slice_check = this->check_slice_construction(lhs, rhs, object_type);
+		return 0;
+	}
+	else if (lhs < rhs)
+	{
+		auto const slice_check = this->check_slice_construction(lhs, rhs, rhs_is_one_past_the_end, object_type);
 		if (slice_check)
 		{
 			return static_cast<int64_t>((lhs - rhs) / object_type->size);
@@ -302,7 +312,7 @@ bz::optional<int64_t> global_object::do_pointer_difference(ptr_t lhs, ptr_t rhs,
 	}
 	else
 	{
-		auto const slice_check = this->check_slice_construction(rhs, lhs, object_type);
+		auto const slice_check = this->check_slice_construction(rhs, lhs, lhs_is_one_past_the_end, object_type);
 		if (slice_check)
 		{
 			return -static_cast<int64_t>((rhs - lhs) / object_type->size);
@@ -592,11 +602,21 @@ pointer_arithmetic_result_t stack_object::do_pointer_arithmetic(ptr_t address, i
 	}
 }
 
-bz::optional<int64_t> stack_object::do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const
+bz::optional<int64_t> stack_object::do_pointer_difference(
+	ptr_t lhs,
+	ptr_t rhs,
+	bool lhs_is_one_past_the_end,
+	bool rhs_is_one_past_the_end,
+	type const *object_type
+) const
 {
-	if (lhs <= rhs)
+	if (lhs == rhs)
 	{
-		auto const slice_check = this->check_slice_construction(lhs, rhs, object_type);
+		return 0;
+	}
+	else if (lhs < rhs)
+	{
+		auto const slice_check = this->check_slice_construction(lhs, rhs, rhs_is_one_past_the_end, object_type);
 		if (slice_check)
 		{
 			return static_cast<int64_t>((lhs - rhs) / object_type->size);
@@ -608,7 +628,7 @@ bz::optional<int64_t> stack_object::do_pointer_difference(ptr_t lhs, ptr_t rhs, 
 	}
 	else
 	{
-		auto const slice_check = this->check_slice_construction(rhs, lhs, object_type);
+		auto const slice_check = this->check_slice_construction(rhs, lhs, lhs_is_one_past_the_end, object_type);
 		if (slice_check)
 		{
 			return -static_cast<int64_t>((rhs - lhs) / object_type->size);
@@ -776,11 +796,21 @@ pointer_arithmetic_result_t heap_object::do_pointer_arithmetic(ptr_t address, in
 	}
 }
 
-bz::optional<int64_t> heap_object::do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const
+bz::optional<int64_t> heap_object::do_pointer_difference(
+	ptr_t lhs,
+	ptr_t rhs,
+	bool lhs_is_one_past_the_end,
+	bool rhs_is_one_past_the_end,
+	type const *object_type
+) const
 {
-	if (lhs <= rhs)
+	if (lhs == rhs)
 	{
-		auto const slice_check = this->check_slice_construction(lhs, rhs, object_type);
+		return 0;
+	}
+	else if (lhs < rhs)
+	{
+		auto const slice_check = this->check_slice_construction(lhs, rhs, rhs_is_one_past_the_end, object_type);
 		if (slice_check)
 		{
 			return static_cast<int64_t>((lhs - rhs) / object_type->size);
@@ -792,7 +822,7 @@ bz::optional<int64_t> heap_object::do_pointer_difference(ptr_t lhs, ptr_t rhs, t
 	}
 	else
 	{
-		auto const slice_check = this->check_slice_construction(rhs, lhs, object_type);
+		auto const slice_check = this->check_slice_construction(rhs, lhs, lhs_is_one_past_the_end, object_type);
 		if (slice_check)
 		{
 			return -static_cast<int64_t>((rhs - lhs) / object_type->size);
@@ -915,7 +945,13 @@ pointer_arithmetic_result_t global_memory_manager::do_pointer_arithmetic(ptr_t a
 	}
 }
 
-bz::optional<int64_t> global_memory_manager::do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const
+bz::optional<int64_t> global_memory_manager::do_pointer_difference(
+	ptr_t lhs,
+	ptr_t rhs,
+	bool lhs_is_one_past_the_end,
+	bool rhs_is_one_past_the_end,
+	type const *object_type
+) const
 {
 	auto const object = this->get_global_object(lhs);
 	if (object == nullptr)
@@ -928,7 +964,7 @@ bz::optional<int64_t> global_memory_manager::do_pointer_difference(ptr_t lhs, pt
 	}
 	else
 	{
-		return object->do_pointer_difference(lhs, rhs, object_type);
+		return object->do_pointer_difference(lhs, rhs, lhs_is_one_past_the_end, rhs_is_one_past_the_end, object_type);
 	}
 }
 
@@ -1126,7 +1162,13 @@ pointer_arithmetic_result_t stack_manager::do_pointer_arithmetic(ptr_t address, 
 	}
 }
 
-bz::optional<int64_t> stack_manager::do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const
+bz::optional<int64_t> stack_manager::do_pointer_difference(
+	ptr_t lhs,
+	ptr_t rhs,
+	bool lhs_is_one_past_the_end,
+	bool rhs_is_one_past_the_end,
+	type const *object_type
+) const
 {
 	auto const object = this->get_stack_object(lhs);
 	if (object == nullptr)
@@ -1139,7 +1181,7 @@ bz::optional<int64_t> stack_manager::do_pointer_difference(ptr_t lhs, ptr_t rhs,
 	}
 	else
 	{
-		return object->do_pointer_difference(lhs, rhs, object_type);
+		return object->do_pointer_difference(lhs, rhs, lhs_is_one_past_the_end, rhs_is_one_past_the_end, object_type);
 	}
 }
 
@@ -1314,7 +1356,13 @@ pointer_arithmetic_result_t heap_manager::do_pointer_arithmetic(ptr_t address, i
 	}
 }
 
-bz::optional<int64_t> heap_manager::do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const
+bz::optional<int64_t> heap_manager::do_pointer_difference(
+	ptr_t lhs,
+	ptr_t rhs,
+	bool lhs_is_one_past_the_end,
+	bool rhs_is_one_past_the_end,
+	type const *object_type
+) const
 {
 	auto const allocation = this->get_allocation(lhs);
 	if (allocation == nullptr)
@@ -1331,7 +1379,7 @@ bz::optional<int64_t> heap_manager::do_pointer_difference(ptr_t lhs, ptr_t rhs, 
 	}
 	else
 	{
-		return allocation->object.do_pointer_difference(lhs, rhs, object_type);
+		return allocation->object.do_pointer_difference(lhs, rhs, lhs_is_one_past_the_end, rhs_is_one_past_the_end, object_type);
 	}
 }
 
@@ -1783,33 +1831,29 @@ ptr_t memory_manager::do_gep(ptr_t address, type const *object_type, uint64_t in
 	}
 }
 
-bz::optional<int64_t> memory_manager::do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type)
+bz::optional<int64_t> memory_manager::do_pointer_difference(ptr_t _lhs, ptr_t _rhs, type const *object_type)
 {
-	if (lhs == 0 && rhs == 0)
-	{
-		return 0;
-	}
+	bz_assert(_lhs != 0 && _rhs != 0);
+	auto const[lhs, lhs_segment, lhs_is_one_past_the_end, lhs_is_finished_stack_frame] = remove_meta(_lhs, *this);
+	auto const[rhs, rhs_segment, rhs_is_one_past_the_end, rhs_is_finished_stack_frame] = remove_meta(_rhs, *this);
 
-	auto const lhs_segment = this->segment_info.get_segment(lhs);
-	auto const rhs_segment = this->segment_info.get_segment(rhs);
-
-	if (lhs_segment == memory_segment::meta && rhs_segment == memory_segment::meta)
+	if (lhs_is_finished_stack_frame || rhs_is_finished_stack_frame)
 	{
-		return this->do_pointer_difference(
-			this->meta_memory.get_real_address(lhs),
-			this->meta_memory.get_real_address(rhs),
-			object_type
-		);
-	}
-	else if (lhs_segment == memory_segment::meta)
-	{
-		return this->do_pointer_difference(this->meta_memory.get_real_address(lhs), rhs, object_type);
-	}
-	else if (rhs_segment == memory_segment::meta)
-	{
-		return this->do_pointer_difference(lhs, this->meta_memory.get_real_address(rhs), object_type);
+		return {};
 	}
 	else if (lhs_segment != rhs_segment)
+	{
+		return {};
+	}
+	else if (lhs == rhs && lhs_is_one_past_the_end != rhs_is_one_past_the_end)
+	{
+		return {};
+	}
+	else if (lhs < rhs && lhs_is_one_past_the_end)
+	{
+		return {};
+	}
+	else if (lhs > rhs && rhs_is_one_past_the_end)
 	{
 		return {};
 	}
@@ -1818,13 +1862,13 @@ bz::optional<int64_t> memory_manager::do_pointer_difference(ptr_t lhs, ptr_t rhs
 		switch (lhs_segment)
 		{
 		case memory_segment::invalid:
-			return {};
+			bz_unreachable;
 		case memory_segment::global:
-			return this->global_memory->do_pointer_difference(lhs, rhs, object_type);
+			return this->global_memory->do_pointer_difference(lhs, rhs, lhs_is_one_past_the_end, rhs_is_one_past_the_end, object_type);
 		case memory_segment::stack:
-			return this->stack.do_pointer_difference(lhs, rhs, object_type);
+			return this->stack.do_pointer_difference(lhs, rhs, lhs_is_one_past_the_end, rhs_is_one_past_the_end, object_type);
 		case memory_segment::heap:
-			return this->heap.do_pointer_difference(lhs, rhs, object_type);
+			return this->heap.do_pointer_difference(lhs, rhs, lhs_is_one_past_the_end, rhs_is_one_past_the_end, object_type);
 		case memory_segment::meta:
 			bz_unreachable;
 		}
