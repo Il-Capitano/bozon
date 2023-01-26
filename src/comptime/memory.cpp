@@ -364,8 +364,8 @@ void bitset::set_range(size_t begin, size_t end, bool value)
 		auto const begin_bit_index = 8 - begin % 8;
 		auto const end_bit_index = 8 - ((end - 1) % 8 + 1);
 		auto const begin_bits = static_cast<uint8_t>((1 << begin_bit_index) - 1);
-		auto const end_bits = static_cast<uint8_t>((1 << end_bit_index) - 1);
-		auto const bits = static_cast<uint8_t>(begin_bits & ~end_bits);
+		auto const end_bits = static_cast<uint8_t>(~((1 << end_bit_index) - 1));
+		auto const bits = static_cast<uint8_t>(begin_bits & end_bits);
 		if (value)
 		{
 			*begin_byte |= bits;
@@ -380,7 +380,7 @@ void bitset::set_range(size_t begin, size_t end, bool value)
 		auto const begin_bit_index = 8 - begin % 8;
 		auto const end_bit_index = 8 - ((end - 1) % 8 + 1);
 		auto const begin_bits = static_cast<uint8_t>((1 << begin_bit_index) - 1);
-		auto const end_bits = static_cast<uint8_t>((1 << end_bit_index) - 1);
+		auto const end_bits = static_cast<uint8_t>(~((1 << end_bit_index) - 1));
 		if (value)
 		{
 			*begin_byte |= begin_bits;
@@ -416,8 +416,8 @@ bool bitset::is_all(size_t begin, size_t end) const
 		auto const begin_bit_index = 8 - begin % 8;
 		auto const end_bit_index = 8 - ((end - 1) % 8 + 1);
 		auto const begin_bits = static_cast<uint8_t>((1 << begin_bit_index) - 1);
-		auto const end_bits = static_cast<uint8_t>((1 << end_bit_index) - 1);
-		auto const bits = static_cast<uint8_t>(begin_bits & ~end_bits);
+		auto const end_bits = static_cast<uint8_t>(~((1 << end_bit_index) - 1));
+		auto const bits = static_cast<uint8_t>(begin_bits & end_bits);
 		return (*begin_byte & bits) == bits;
 	}
 	else
@@ -425,7 +425,7 @@ bool bitset::is_all(size_t begin, size_t end) const
 		auto const begin_bit_index = 8 - begin % 8;
 		auto const end_bit_index = 8 - ((end - 1) % 8 + 1);
 		auto const begin_bits = static_cast<uint8_t>((1 << begin_bit_index) - 1);
-		auto const end_bits = static_cast<uint8_t>((1 << end_bit_index) - 1);
+		auto const end_bits = static_cast<uint8_t>(~((1 << end_bit_index) - 1));
 		if ((*begin_byte & begin_bits) != begin_bits || (*end_byte & end_bits) != end_bits)
 		{
 			return false;
@@ -455,8 +455,8 @@ bool bitset::is_none(size_t begin, size_t end) const
 		auto const begin_bit_index = 8 - begin % 8;
 		auto const end_bit_index = 8 - ((end - 1) % 8 + 1);
 		auto const begin_bits = static_cast<uint8_t>((1 << begin_bit_index) - 1);
-		auto const end_bits = static_cast<uint8_t>((1 << end_bit_index) - 1);
-		auto const bits = static_cast<uint8_t>(begin_bits & ~end_bits);
+		auto const end_bits = static_cast<uint8_t>(~((1 << end_bit_index) - 1));
+		auto const bits = static_cast<uint8_t>(begin_bits & end_bits);
 		return (*begin_byte & ~bits) == 0;
 	}
 	else
@@ -464,7 +464,7 @@ bool bitset::is_none(size_t begin, size_t end) const
 		auto const begin_bit_index = 8 - begin % 8;
 		auto const end_bit_index = 8 - ((end - 1) % 8 + 1);
 		auto const begin_bits = static_cast<uint8_t>((1 << begin_bit_index) - 1);
-		auto const end_bits = static_cast<uint8_t>((1 << end_bit_index) - 1);
+		auto const end_bits = static_cast<uint8_t>(~((1 << end_bit_index) - 1));
 		if ((*begin_byte & ~begin_bits) != 0 || (*end_byte & ~end_bits) != 0)
 		{
 			return false;
