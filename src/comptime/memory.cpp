@@ -1783,18 +1783,6 @@ memory_manager::memory_manager(
 	}
 }
 
-ptr_t memory_manager::get_non_meta_address(ptr_t address)
-{
-	auto segment = this->segment_info.get_segment(address);
-	while (segment == memory_segment::meta)
-	{
-		address = this->meta_memory.get_real_address(address);
-		segment = this->segment_info.get_segment(address);
-	}
-
-	return address;
-}
-
 [[nodiscard]] bool memory_manager::push_stack_frame(bz::array_view<alloca const> types)
 {
 	this->stack.push_stack_frame(types);
@@ -2575,7 +2563,7 @@ int64_t memory_manager::do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, si
 
 void memory_manager::start_lifetime(ptr_t address, size_t size)
 {
-	address = this->get_non_meta_address(address);
+	address = remove_meta(address, *this).address;
 	bz_assert(this->segment_info.get_segment(address) == memory_segment::stack);
 
 	auto const object = this->stack.get_stack_object(address);
@@ -2586,7 +2574,7 @@ void memory_manager::start_lifetime(ptr_t address, size_t size)
 
 void memory_manager::end_lifetime(ptr_t address, size_t size)
 {
-	address = this->get_non_meta_address(address);
+	address = remove_meta(address, *this).address;
 	bz_assert(this->segment_info.get_segment(address) == memory_segment::stack);
 
 	auto const object = this->stack.get_stack_object(address);

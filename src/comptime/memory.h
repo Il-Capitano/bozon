@@ -459,8 +459,6 @@ struct memory_manager
 		bool is_native_endianness
 	);
 
-	ptr_t get_non_meta_address(ptr_t address);
-
 	[[nodiscard]] bool push_stack_frame(bz::array_view<alloca const> types);
 	void pop_stack_frame(void);
 
