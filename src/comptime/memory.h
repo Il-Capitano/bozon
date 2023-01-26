@@ -255,6 +255,7 @@ struct global_memory_manager
 		type const *elem_type
 	) const;
 
+	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const;
 	bz::optional<int64_t> do_pointer_difference(
 		ptr_t lhs,
@@ -302,6 +303,7 @@ struct stack_manager
 		type const *elem_type
 	) const;
 
+	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const;
 	bz::optional<int64_t> do_pointer_difference(
 		ptr_t lhs,
@@ -370,6 +372,7 @@ struct heap_manager
 		type const *elem_type
 	) const;
 
+	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const;
 	bz::optional<int64_t> do_pointer_difference(
 		ptr_t lhs,
@@ -467,7 +470,7 @@ struct memory_manager
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
 	bz::vector<error_reason_t> get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type) const;
 
-	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs);
+	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs) const;
 	ptr_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type);
 	ptr_t do_gep(ptr_t address, type const *object_type, uint64_t index);
 	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);

@@ -1093,6 +1093,23 @@ bz::vector<error_reason_t> global_memory_manager::get_slice_construction_error_r
 	return result;
 }
 
+bz::optional<int> global_memory_manager::compare_pointers(ptr_t lhs, ptr_t rhs) const
+{
+	auto const lhs_global_object = this->get_global_object(lhs);
+	if (lhs_global_object == nullptr)
+	{
+		return {};
+	}
+	else if (rhs < lhs_global_object->address || rhs > lhs_global_object->address + lhs_global_object->object_size())
+	{
+		return {};
+	}
+	else
+	{
+		return lhs == rhs ? 0 : (lhs < rhs ? -1 : 1);
+	}
+}
+
 pointer_arithmetic_result_t global_memory_manager::do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const
 {
 	auto const object = this->get_global_object(address);
@@ -1342,6 +1359,27 @@ bz::vector<error_reason_t> stack_manager::get_slice_construction_error_reason(
 	}
 
 	return result;
+}
+
+bz::optional<int> stack_manager::compare_pointers(ptr_t lhs, ptr_t rhs) const
+{
+	auto const lhs_stack_object = this->get_stack_object(lhs);
+	if (lhs_stack_object == nullptr)
+	{
+		return {};
+	}
+	else if (rhs < lhs_stack_object->address || rhs > lhs_stack_object->address + lhs_stack_object->object_size())
+	{
+		return {};
+	}
+	else if (!lhs_stack_object->is_alive(std::min(lhs, rhs), std::max(lhs, rhs)))
+	{
+		return {};
+	}
+	else
+	{
+		return lhs == rhs ? 0 : (lhs < rhs ? -1 : 1);
+	}
 }
 
 pointer_arithmetic_result_t stack_manager::do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const
@@ -1635,6 +1673,27 @@ bz::vector<error_reason_t> heap_manager::get_slice_construction_error_reason(
 	}
 
 	return result;
+}
+
+bz::optional<int> heap_manager::compare_pointers(ptr_t lhs, ptr_t rhs) const
+{
+	auto const lhs_allocation = this->get_allocation(lhs);
+	if (lhs_allocation == nullptr)
+	{
+		return {};
+	}
+	else if (lhs_allocation->is_freed)
+	{
+		return {};
+	}
+	else if (rhs < lhs_allocation->object.address || rhs > lhs_allocation->object.address + lhs_allocation->object.object_size())
+	{
+		return {};
+	}
+	else
+	{
+		return lhs == rhs ? 0 : (lhs < rhs ? -1 : 1);
+	}
 }
 
 pointer_arithmetic_result_t heap_manager::do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const
@@ -2352,22 +2411,15 @@ bz::vector<error_reason_t> memory_manager::get_slice_construction_error_reason(p
 	}
 }
 
-bz::optional<int> memory_manager::compare_pointers(ptr_t lhs, ptr_t rhs)
+bz::optional<int> memory_manager::compare_pointers(ptr_t _lhs, ptr_t _rhs) const
 {
-	auto const lhs_segment = this->segment_info.get_segment(lhs);
-	auto const rhs_segment = this->segment_info.get_segment(rhs);
+	bz_assert(_lhs != 0 && _rhs != 0);
+	auto const[lhs, lhs_segment, lhs_is_one_past_the_end, lhs_is_finished_stack_frame] = remove_meta(_lhs, *this);
+	auto const[rhs, rhs_segment, rhs_is_one_past_the_end, rhs_is_finished_stack_frame] = remove_meta(_rhs, *this);
 
-	if (lhs_segment == memory_segment::meta && rhs_segment == memory_segment::meta)
+	if (lhs_is_finished_stack_frame || rhs_is_finished_stack_frame)
 	{
-		return this->compare_pointers(this->meta_memory.get_real_address(lhs), this->meta_memory.get_real_address(rhs));
-	}
-	else if (lhs_segment == memory_segment::meta)
-	{
-		return this->compare_pointers(this->meta_memory.get_real_address(lhs), rhs);
-	}
-	else if (rhs_segment == memory_segment::meta)
-	{
-		return this->compare_pointers(lhs, this->meta_memory.get_real_address(rhs));
+		return {};
 	}
 	else if (lhs_segment != rhs_segment)
 	{
@@ -2375,15 +2427,16 @@ bz::optional<int> memory_manager::compare_pointers(ptr_t lhs, ptr_t rhs)
 	}
 	else
 	{
-		// TODO: this should be checked more thoroughly
 		switch (lhs_segment)
 		{
 		case memory_segment::invalid:
-			return {};
+			bz_unreachable;
 		case memory_segment::global:
+			return this->global_memory->compare_pointers(lhs, rhs);
 		case memory_segment::stack:
+			return this->stack.compare_pointers(lhs, rhs);
 		case memory_segment::heap:
-			return lhs == rhs ? 0 : (lhs < rhs ? -1 : 1);
+			return this->heap.compare_pointers(lhs, rhs);
 		case memory_segment::meta:
 			bz_unreachable;
 		}

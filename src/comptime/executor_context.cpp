@@ -469,22 +469,50 @@ void executor_context::check_slice_construction(
 
 int executor_context::compare_pointers(uint32_t src_tokens_index, ptr_t lhs, ptr_t rhs)
 {
-	auto const compare_result = this->memory.compare_pointers(lhs, rhs);
-	if (!compare_result.has_value())
+	if (lhs == 0 && rhs == 0)
 	{
-		this->report_error(src_tokens_index, "comparing unrelated pointers");
-		return lhs < rhs ? -1 : lhs == rhs ? 0 : 1;
+		return 0;
+	}
+	else if (lhs == 0)
+	{
+		this->report_error(src_tokens_index, "comparing a null and a non-null pointer");
+		return 0;
+	}
+	else if (rhs == 0)
+	{
+		this->report_error(src_tokens_index, "comparing a non-null and a null pointer");
+		return 0;
 	}
 	else
 	{
-		return compare_result.get();
+		auto const compare_result = this->memory.compare_pointers(lhs, rhs);
+		if (!compare_result.has_value())
+		{
+			this->report_error(src_tokens_index, "comparing unrelated pointers");
+			return 0;
+		}
+		else
+		{
+			return compare_result.get();
+		}
 	}
 }
 
 bool executor_context::compare_pointers_equal(ptr_t lhs, ptr_t rhs)
 {
-	auto const compare_result = this->memory.compare_pointers(lhs, rhs);
-	return compare_result.has_value() && compare_result.get() == 0;
+	if (lhs == 0 && rhs == 0)
+	{
+		return true;
+	}
+	else if (lhs == 0 || rhs == 0)
+	{
+		return false;
+	}
+	else
+	{
+		auto const compare_result = this->memory.compare_pointers(lhs, rhs);
+		return compare_result.has_value() && compare_result.get() == 0;
+	}
 }
 
 ptr_t executor_context::pointer_add_unchecked(ptr_t address, int32_t offset, type const *object_type)
