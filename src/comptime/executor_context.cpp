@@ -369,29 +369,55 @@ void executor_context::check_dereference(uint32_t src_tokens_index, ptr_t addres
 	auto const is_good = this->memory.check_dereference(address, object_type);
 	if (!is_good)
 	{
-		auto [src_tokens, message] = this->memory.get_dereference_error_reason(address, object_type);
+		auto reasons = this->memory.get_dereference_error_reason(address, object_type);
 		this->report_error(
 			src_tokens_index,
 			bz::format("invalid memory access of an object of type '{}'", object_typespec),
-			{
-				src_tokens.begin == nullptr
-				? this->make_note(src_tokens_index, std::move(message))
-				: make_source_highlight(src_tokens, std::move(message))
-			}
+			reasons.transform([&](auto &reason) {
+				return reason.src_tokens.begin == nullptr
+					? this->make_note(src_tokens_index, std::move(reason.message))
+					: make_source_highlight(reason.src_tokens, std::move(reason.message));
+			}).collect()
 		);
 	}
 }
 
 void executor_context::check_str_construction(uint32_t src_tokens_index, ptr_t begin, ptr_t end)
 {
+	if (begin == 0 && end == 0)
+	{
+		return;
+	}
+	else if (begin == 0)
+	{
+		this->report_error(
+			src_tokens_index,
+			"only begin address is null in construction of an object of type 'str'"
+		);
+		return;
+	}
+	else if (end == 0)
+	{
+		this->report_error(
+			src_tokens_index,
+			"only end address is null in construction of an object of type 'str'"
+		);
+		return;
+	}
+
 	auto const elem_type = this->codegen_ctx->get_builtin_type(builtin_type_kind::i8);
 	auto const is_good = this->memory.check_slice_construction(begin, end, elem_type);
 	if (!is_good)
 	{
+		auto reasons = this->memory.get_slice_construction_error_reason(begin, end, elem_type);
 		this->report_error(
 			src_tokens_index,
-			"invalid memory range for 'str'",
-			{ this->make_note(src_tokens_index, this->memory.get_slice_construction_error_reason(begin, end, elem_type)) }
+			"invalid memory range for an object of type 'str'",
+			reasons.transform([&](auto &reason) {
+				return reason.src_tokens.begin == nullptr
+					? this->make_note(src_tokens_index, std::move(reason.message))
+					: make_source_highlight(reason.src_tokens, std::move(reason.message));
+			}).collect()
 		);
 	}
 }
@@ -404,13 +430,39 @@ void executor_context::check_slice_construction(
 	ast::typespec_view slice_type
 )
 {
-	auto const is_good = this->memory.check_slice_construction(begin, end, elem_type);
-	if (!is_good)
+	if (begin == 0 && end == 0)
+	{
+		return;
+	}
+	else if (begin == 0)
 	{
 		this->report_error(
 			src_tokens_index,
+			bz::format("only begin address is null in construction of a slice of type '{}'", slice_type)
+		);
+		return;
+	}
+	else if (end == 0)
+	{
+		this->report_error(
+			src_tokens_index,
+			bz::format("only end address is null in construction of a slice of type '{}'", slice_type)
+		);
+		return;
+	}
+
+	auto const is_good = this->memory.check_slice_construction(begin, end, elem_type);
+	if (!is_good)
+	{
+		auto reasons = this->memory.get_slice_construction_error_reason(begin, end, elem_type);
+		this->report_error(
+			src_tokens_index,
 			bz::format("invalid memory range for a slice of type '{}'", slice_type),
-			{ this->make_note(src_tokens_index, this->memory.get_slice_construction_error_reason(begin, end, elem_type)) }
+			reasons.transform([&](auto &reason) {
+				return reason.src_tokens.begin == nullptr
+					? this->make_note(src_tokens_index, std::move(reason.message))
+					: make_source_highlight(reason.src_tokens, std::move(reason.message));
+			}).collect()
 		);
 	}
 }

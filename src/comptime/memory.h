@@ -117,6 +117,12 @@ struct global_object
 	bool check_dereference(ptr_t address, type const *subobject_type) const;
 	bz::u8string get_dereference_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const;
+	bz::vector<bz::u8string> get_slice_construction_error_reason(
+		ptr_t begin,
+		ptr_t end,
+		bool end_is_one_past_the_end,
+		type const *elem_type
+	) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const;
 	bz::optional<int64_t> do_pointer_difference(
 		ptr_t lhs,
@@ -163,6 +169,12 @@ struct stack_object
 	bool check_dereference(ptr_t address, type const *subobject_type) const;
 	bz::u8string get_dereference_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const;
+	bz::vector<bz::u8string> get_slice_construction_error_reason(
+		ptr_t begin,
+		ptr_t end,
+		bool end_is_one_past_the_end,
+		type const *elem_type
+	) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const;
 	bz::optional<int64_t> do_pointer_difference(
 		ptr_t lhs,
@@ -195,6 +207,12 @@ struct heap_object
 	bool check_dereference(ptr_t address, type const *subobject_type) const;
 	bz::u8string get_dereference_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const;
+	bz::vector<bz::u8string> get_slice_construction_error_reason(
+		ptr_t begin,
+		ptr_t end,
+		bool end_is_one_past_the_end,
+		type const *elem_type
+	) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const;
 	bz::optional<int64_t> do_pointer_difference(
 		ptr_t lhs,
@@ -228,9 +246,14 @@ struct global_memory_manager
 	global_object const *get_global_object(ptr_t address) const;
 
 	bool check_dereference(ptr_t address, type const *object_type) const;
-	error_reason_t get_dereference_error_reason(ptr_t address, type const *object_type) const;
-	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type) const;
+	bz::vector<error_reason_t> get_dereference_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const;
+	bz::vector<error_reason_t> get_slice_construction_error_reason(
+		ptr_t begin,
+		ptr_t end,
+		bool end_is_one_past_the_end,
+		type const *elem_type
+	) const;
 
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const;
 	bz::optional<int64_t> do_pointer_difference(
@@ -270,9 +293,14 @@ struct stack_manager
 	stack_object const *get_stack_object(ptr_t address) const;
 
 	bool check_dereference(ptr_t address, type const *object_type) const;
-	error_reason_t get_dereference_error_reason(ptr_t address, type const *object_type) const;
-	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type) const;
+	bz::vector<error_reason_t> get_dereference_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const;
+	bz::vector<error_reason_t> get_slice_construction_error_reason(
+		ptr_t begin,
+		ptr_t end,
+		bool end_is_one_past_the_end,
+		type const *elem_type
+	) const;
 
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const;
 	bz::optional<int64_t> do_pointer_difference(
@@ -333,9 +361,14 @@ struct heap_manager
 	free_result free(call_stack_info_t free_info, ptr_t address);
 
 	bool check_dereference(ptr_t address, type const *object_type) const;
-	error_reason_t get_dereference_error_reason(ptr_t address, type const *object_type) const;
-	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type) const;
+	bz::vector<error_reason_t> get_dereference_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const;
+	bz::vector<error_reason_t> get_slice_construction_error_reason(
+		ptr_t begin,
+		ptr_t end,
+		bool end_is_one_past_the_end,
+		type const *elem_type
+	) const;
 
 	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const;
 	bz::optional<int64_t> do_pointer_difference(
@@ -432,9 +465,9 @@ struct memory_manager
 	void pop_stack_frame(void);
 
 	bool check_dereference(ptr_t address, type const *object_type) const;
-	error_reason_t get_dereference_error_reason(ptr_t address, type const *object_type) const;
+	bz::vector<error_reason_t> get_dereference_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
-	bz::u8string get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type) const;
+	bz::vector<error_reason_t> get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type) const;
 
 	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs);
 	ptr_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type);

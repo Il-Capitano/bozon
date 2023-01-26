@@ -249,6 +249,32 @@ bool global_object::check_slice_construction(ptr_t begin, ptr_t end, bool end_is
 	return slice_contained_in_object(this->object_type, offset, elem_type, total_size, end_is_one_past_the_end);
 }
 
+bz::vector<bz::u8string> global_object::get_slice_construction_error_reason(
+	ptr_t begin,
+	ptr_t end,
+	bool end_is_one_past_the_end,
+	type const *
+) const
+{
+	auto const begin_offset = begin - this->address;
+	auto const end_offset = end - this->address;
+
+	bz::vector<bz::u8string> result;
+	result.reserve(3);
+	result.push_back("begin and end addresses point to different subobjects in this global object");
+	bz_assert(begin != end);
+	result.push_back(bz::format("begin address points to a subobject at offset {}", begin_offset % this->object_size()));
+	if (end_is_one_past_the_end)
+	{
+		result.push_back(bz::format("end address points to a subobject at offset {}", end_offset % this->object_size()));
+	}
+	else
+	{
+		result.push_back(bz::format("end address is a one-past-the-end pointer with offset {}", end_offset % this->object_size()));
+	}
+	return result;
+}
+
 pointer_arithmetic_result_t global_object::do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const
 {
 	auto const result_address = address + static_cast<uint64_t>(amount * static_cast<int64_t>(pointer_type->size));
@@ -565,6 +591,51 @@ bool stack_object::check_slice_construction(ptr_t begin, ptr_t end, bool end_is_
 	return slice_contained_in_object(this->object_type, offset, elem_type, total_size, end_is_one_past_the_end);
 }
 
+bz::vector<bz::u8string> stack_object::get_slice_construction_error_reason(
+	ptr_t begin,
+	ptr_t end,
+	bool end_is_one_past_the_end,
+	type const *elem_type
+) const
+{
+	auto const total_size = end - begin;
+	bz_assert(total_size % elem_type->size == 0);
+	auto const begin_offset = begin - this->address;
+	auto const end_offset = end - this->address;
+
+	if (slice_contained_in_object(
+		this->object_type,
+		begin_offset % this->object_size(),
+		elem_type,
+		total_size,
+		end_is_one_past_the_end
+	))
+	{
+		// must be uninitialized
+		bz_assert(!this->is_alive(begin, end));
+		bz::vector<bz::u8string> result;
+		result.push_back("memory range contains objects outside their lifetime in this stack object");
+		return result;
+	}
+	else
+	{
+		bz::vector<bz::u8string> result;
+		result.reserve(3);
+		result.push_back("begin and end addresses point to different subobjects in this stack object");
+		bz_assert(begin != end);
+		result.push_back(bz::format("begin address points to a subobject at offset {}", begin_offset % this->object_size()));
+		if (end_is_one_past_the_end)
+		{
+			result.push_back(bz::format("end address points to a subobject at offset {}", end_offset % this->object_size()));
+		}
+		else
+		{
+			result.push_back(bz::format("end address is a one-past-the-end pointer with offset {}", end_offset % this->object_size()));
+		}
+		return result;
+	}
+}
+
 pointer_arithmetic_result_t stack_object::do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const
 {
 	auto const result_address = address + static_cast<uint64_t>(amount * static_cast<int64_t>(pointer_type->size));
@@ -740,6 +811,59 @@ bool heap_object::check_slice_construction(ptr_t begin, ptr_t end, bool end_is_o
 	}
 }
 
+bz::vector<bz::u8string> heap_object::get_slice_construction_error_reason(
+	ptr_t begin,
+	ptr_t end,
+	bool end_is_one_past_the_end,
+	type const *elem_type
+) const
+{
+	auto const total_size = end - begin;
+	bz_assert(total_size % elem_type->size == 0);
+	auto const begin_offset = begin - this->address;
+	auto const end_offset = end - this->address;
+	auto const begin_object_index = begin_offset / this->elem_size();
+	auto const end_object_index = end_offset / this->elem_size();
+
+	if (elem_type != this->elem_type && begin_object_index != end_object_index)
+	{
+		bz::vector<bz::u8string> result;
+		result.push_back(bz::format(
+			"begin and end addresses point to different elements in this allocations at indices {} and {}",
+			begin_object_index, end_object_index
+		));
+		return result;
+	}
+	else if (
+		elem_type == this->elem_type
+		|| slice_contained_in_object(this->elem_type, begin_offset % this->elem_size(), elem_type, total_size, end_is_one_past_the_end)
+	)
+	{
+		// must be uninitialized
+		bz_assert(!this->is_alive(begin, end));
+		bz::vector<bz::u8string> result;
+		result.push_back("memory range contains objects outside their lifetime in this allocation");
+		return result;
+	}
+	else
+	{
+		bz::vector<bz::u8string> result;
+		result.reserve(3);
+		result.push_back("begin and end addresses point to different subobjects of the same element in this allocation");
+		bz_assert(begin != end);
+		result.push_back(bz::format("begin address points to a subobject at offset {}", begin_offset % this->elem_size()));
+		if (end_is_one_past_the_end)
+		{
+			result.push_back(bz::format("end address points to a subobject at offset {}", end_offset % this->elem_size()));
+		}
+		else
+		{
+			result.push_back(bz::format("end address is a one-past-the-end pointer with offset {}", end_offset % this->elem_size()));
+		}
+		return result;
+	}
+}
+
 pointer_arithmetic_result_t heap_object::do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const
 {
 	auto const result_address = address + static_cast<uint64_t>(amount * static_cast<int64_t>(pointer_type->size));
@@ -907,11 +1031,13 @@ bool global_memory_manager::check_dereference(ptr_t address, type const *object_
 	return object != nullptr && object->check_dereference(address, object_type);
 }
 
-error_reason_t global_memory_manager::get_dereference_error_reason(ptr_t address, type const *object_type) const
+bz::vector<error_reason_t> global_memory_manager::get_dereference_error_reason(ptr_t address, type const *object_type) const
 {
 	auto const object = this->get_global_object(address);
 	bz_assert(object != nullptr);
-	return { object->object_src_tokens, object->get_dereference_error_reason(address, object_type) };
+	bz::vector<error_reason_t> result;
+	result.push_back({ object->object_src_tokens, object->get_dereference_error_reason(address, object_type) });
+	return result;
 }
 
 bool global_memory_manager::check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const
@@ -930,6 +1056,39 @@ bool global_memory_manager::check_slice_construction(ptr_t begin, ptr_t end, boo
 	{
 		return object->check_slice_construction(begin, end, end_is_one_past_the_end, elem_type);
 	}
+}
+
+bz::vector<error_reason_t> global_memory_manager::get_slice_construction_error_reason(
+	ptr_t begin,
+	ptr_t end,
+	bool end_is_one_past_the_end,
+	type const *elem_type
+) const
+{
+	bz_assert(begin <= end);
+	auto const begin_global_object = this->get_global_object(begin);
+	auto const end_global_object   = this->get_global_object(end);
+	bz_assert(begin_global_object != nullptr);
+	bz_assert(end_global_object != nullptr);
+
+	bz::vector<error_reason_t> result;
+	if (begin_global_object == end_global_object)
+	{
+		auto messages = begin_global_object->get_slice_construction_error_reason(begin, end, end_is_one_past_the_end, elem_type);
+		result.reserve(messages.size());
+		result.append(messages.transform([begin_global_object](auto const &message) {
+			return error_reason_t{ begin_global_object->object_src_tokens, message };
+		}));
+	}
+	else
+	{
+		result.reserve(3);
+		result.push_back({ {}, "begin and end addresses point to different global objects" });
+		result.push_back({ begin_global_object->object_src_tokens, "begin address points to this global object" });
+		result.push_back({ end_global_object->object_src_tokens, "end address points to this global object" });
+	}
+
+	return result;
 }
 
 pointer_arithmetic_result_t global_memory_manager::do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const
@@ -1120,11 +1279,13 @@ bool stack_manager::check_dereference(ptr_t address, type const *object_type) co
 	return object != nullptr && object->check_dereference(address, object_type);
 }
 
-error_reason_t stack_manager::get_dereference_error_reason(ptr_t address, type const *object_type) const
+bz::vector<error_reason_t> stack_manager::get_dereference_error_reason(ptr_t address, type const *object_type) const
 {
 	auto const object = this->get_stack_object(address);
 	bz_assert(object != nullptr);
-	return { object->object_src_tokens, object->get_dereference_error_reason(address, object_type) };
+	bz::vector<error_reason_t> result;
+	result.push_back({ object->object_src_tokens, object->get_dereference_error_reason(address, object_type) });
+	return result;
 }
 
 bool stack_manager::check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const
@@ -1147,6 +1308,38 @@ bool stack_manager::check_slice_construction(ptr_t begin, ptr_t end, bool end_is
 	{
 		return object->check_slice_construction(begin, end, end_is_one_past_the_end, elem_type);
 	}
+}
+
+bz::vector<error_reason_t> stack_manager::get_slice_construction_error_reason(
+	ptr_t begin,
+	ptr_t end,
+	bool end_is_one_past_the_end,
+	type const *elem_type
+) const
+{
+	auto const begin_stack_object = this->get_stack_object(begin);
+	auto const end_stack_object   = this->get_stack_object(end);
+	bz_assert(begin_stack_object != nullptr);
+	bz_assert(end_stack_object != nullptr);
+
+	bz::vector<error_reason_t> result;
+	if (begin_stack_object == end_stack_object)
+	{
+		auto messages = begin_stack_object->get_slice_construction_error_reason(begin, end, end_is_one_past_the_end, elem_type);
+		result.reserve(messages.size());
+		result.append(messages.transform([begin_stack_object](auto const &message) {
+			return error_reason_t{ begin_stack_object->object_src_tokens, message };
+		}));
+	}
+	else
+	{
+		result.reserve(3);
+		result.push_back({ {}, "begin and end addresses point to different stack objects" });
+		result.push_back({ begin_stack_object->object_src_tokens, "begin address points to this stack object" });
+		result.push_back({ end_stack_object->object_src_tokens, "end address points to this stack object" });
+	}
+
+	return result;
 }
 
 pointer_arithmetic_result_t stack_manager::do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const
@@ -1306,19 +1499,21 @@ bool heap_manager::check_dereference(ptr_t address, type const *object_type) con
 	return allocation != nullptr && !allocation->is_freed &&  allocation->object.check_dereference(address, object_type);
 }
 
-error_reason_t heap_manager::get_dereference_error_reason(ptr_t address, type const *object_type) const
+bz::vector<error_reason_t> heap_manager::get_dereference_error_reason(ptr_t address, type const *object_type) const
 {
 	auto const allocation = this->get_allocation(address);
 	bz_assert(allocation != nullptr);
 
+	bz::vector<error_reason_t> result;
 	if (allocation->is_freed)
 	{
-		return { allocation->free_info.src_tokens, "address points into an allocation that was freed here" };
+		result.push_back({ allocation->free_info.src_tokens, "address points into an allocation that was freed here" });
 	}
 	else
 	{
-		return { allocation->alloc_info.src_tokens, allocation->object.get_dereference_error_reason(address, object_type) };
+		result.push_back({ allocation->alloc_info.src_tokens, allocation->object.get_dereference_error_reason(address, object_type) });
 	}
+	return result;
 }
 
 bool heap_manager::check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const
@@ -1341,6 +1536,103 @@ bool heap_manager::check_slice_construction(ptr_t begin, ptr_t end, bool end_is_
 	{
 		return allocation->object.check_slice_construction(begin, end, end_is_one_past_the_end, elem_type);
 	}
+}
+
+static void add_allocation_info(bz::vector<error_reason_t> &reasons, call_stack_info_t const &alloc_info)
+{
+	bz_assert(alloc_info.call_stack.not_empty());
+	if (alloc_info.call_stack.back().body != nullptr)
+	{
+		reasons.push_back({
+			alloc_info.call_stack.back().src_tokens,
+			bz::format("allocation was made in call to '{}'", alloc_info.call_stack.back().body->get_signature())
+		});
+	}
+	else
+	{
+		reasons.push_back({
+			alloc_info.call_stack.back().src_tokens,
+			"allocation was made while evaluating expression at compile time"
+		});
+	}
+
+	for (auto const &call : alloc_info.call_stack.slice(0, alloc_info.call_stack.size() - 1).reversed())
+	{
+		if (call.body != nullptr)
+		{
+			reasons.push_back({ call.src_tokens, bz::format("in call to '{}'", call.body->get_signature()) });
+		}
+		else
+		{
+			reasons.push_back({ call.src_tokens, "while evaluating expression at compile time" });
+		}
+	}
+}
+
+static void add_free_info(bz::vector<error_reason_t> &reasons, call_stack_info_t const &free_info)
+{
+	reasons.push_back({ free_info.src_tokens, "allocation was freed here" });
+	for (auto const &call : free_info.call_stack.reversed())
+	{
+		if (call.body != nullptr)
+		{
+			reasons.push_back({ call.src_tokens, bz::format("in call to '{}'", call.body->get_signature()) });
+		}
+		else
+		{
+			reasons.push_back({ call.src_tokens, "while evaluating expression at compile time" });
+		}
+	}
+}
+
+bz::vector<error_reason_t> heap_manager::get_slice_construction_error_reason(
+	ptr_t begin,
+	ptr_t end,
+	bool end_is_one_past_the_end,
+	type const *elem_type
+) const
+{
+	bz_assert(begin <= end);
+	auto const begin_allocation = this->get_allocation(begin);
+	auto const end_allocation = this->get_allocation(end);
+
+	bz_assert(begin_allocation != nullptr);
+	bz_assert(end_allocation != nullptr);
+
+	bz::vector<error_reason_t> result;
+	if (begin_allocation == end_allocation)
+	{
+		if (begin_allocation->is_freed)
+		{
+			result.reserve(1 + begin_allocation->alloc_info.call_stack.size() + begin_allocation->free_info.call_stack.size() + 1);
+			result.push_back({
+				begin_allocation->alloc_info.src_tokens,
+				"begin and end addresses point to objects in this allocation, which was freed"
+			});
+			add_allocation_info(result, begin_allocation->alloc_info);
+			add_free_info(result, begin_allocation->free_info);
+		}
+		else
+		{
+			auto messages = begin_allocation->object.get_slice_construction_error_reason(begin, end, end_is_one_past_the_end, elem_type);
+			result.reserve(messages.size() + begin_allocation->alloc_info.call_stack.size());
+			result.append(messages.transform([begin_allocation](auto const &message) {
+				return error_reason_t{ begin_allocation->alloc_info.src_tokens, message };
+			}));
+			add_allocation_info(result, begin_allocation->alloc_info);
+		}
+	}
+	else
+	{
+		result.reserve(3 + begin_allocation->alloc_info.call_stack.size() + end_allocation->alloc_info.call_stack.size());
+		result.push_back({ {}, "begin and end addresses point to different allocations" });
+		result.push_back({ begin_allocation->alloc_info.src_tokens, "begin address points to an object in this allocation" });
+		add_allocation_info(result, begin_allocation->alloc_info);
+		result.push_back({ end_allocation->alloc_info.src_tokens, "end address points to an object in this allocation" });
+		add_allocation_info(result, end_allocation->alloc_info);
+	}
+
+	return result;
 }
 
 pointer_arithmetic_result_t heap_manager::do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const
@@ -1552,6 +1844,23 @@ static remove_meta_result_t remove_meta(ptr_t address, memory_manager const &man
 	return { address, segment, is_one_past_the_end, false };
 }
 
+static bz::u8string_view get_segment_name(memory_segment segment)
+{
+	switch (segment)
+	{
+	case memory_segment::invalid:
+		return "invalid";
+	case memory_segment::global:
+		return "global";
+	case memory_segment::stack:
+		return "stack";
+	case memory_segment::heap:
+		return "heap";
+	case memory_segment::meta:
+		return "meta";
+	}
+}
+
 bool memory_manager::check_dereference(ptr_t _address, type const *object_type) const
 {
 	bz_assert(_address != 0);
@@ -1577,40 +1886,21 @@ bool memory_manager::check_dereference(ptr_t _address, type const *object_type) 
 	}
 }
 
-error_reason_t memory_manager::get_dereference_error_reason(ptr_t address, type const *object_type) const
+bz::vector<error_reason_t> memory_manager::get_dereference_error_reason(ptr_t _address, type const *object_type) const
 {
-	bz_assert(address != 0);
-	bool is_one_past_the_end = false;
-	auto segment = this->segment_info.get_segment(address);
-	while (segment == memory_segment::meta)
+	bz_assert(_address != 0);
+	auto const[address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+
+	if (is_finished_stack_frame)
 	{
-		switch (this->meta_memory.segment_info.get_segment(address))
-		{
-		case meta_memory_segment::stack_object:
-		{
-			auto const &stack_object = this->meta_memory.get_stack_object_pointer(address);
-			if (
-				stack_object.stack_frame_depth >= this->stack.stack_frames.size()
-				|| this->stack.stack_frames[stack_object.stack_frame_depth].id != stack_object.stack_frame_id
-			)
-			{
-				return { stack_object.object_src_tokens, "address points to an object from a finished stack frame" };
-			}
-
-			address = stack_object.stack_address;
-			break;
-		}
-		case meta_memory_segment::one_past_the_end:
-			is_one_past_the_end = true;
-			address = this->meta_memory.get_one_past_the_end_pointer(address).address;
-			break;
-		}
-
-		segment = this->segment_info.get_segment(address);
+		bz::vector<error_reason_t> result;
+		auto const &stack_object = this->meta_memory.get_stack_object_pointer(address);
+		result.push_back({ stack_object.object_src_tokens, "address points to an object from a finished stack frame" });
+		return result;
 	}
-
-	if (is_one_past_the_end)
+	else if (is_one_past_the_end)
 	{
+		bz::vector<error_reason_t> result;
 		switch (segment)
 		{
 		case memory_segment::invalid:
@@ -1619,23 +1909,27 @@ error_reason_t memory_manager::get_dereference_error_reason(ptr_t address, type 
 		{
 			auto const global_object = this->global_memory->get_global_object(address);
 			bz_assert(global_object != nullptr);
-			return { global_object->object_src_tokens, "address is a one-past-the-end pointer into this global object" };
+			result.push_back({ global_object->object_src_tokens, "address is a one-past-the-end pointer into this global object" });
+			break;
 		}
 		case memory_segment::stack:
 		{
 			auto const stack_object = this->stack.get_stack_object(address);
 			bz_assert(stack_object != nullptr);
-			return { stack_object->object_src_tokens, "address is a one-past-the-end pointer into this stack object" };
+			result.push_back({ stack_object->object_src_tokens, "address is a one-past-the-end pointer into this stack object" });
+			break;
 		}
 		case memory_segment::heap:
 		{
 			auto const allocation = this->heap.get_allocation(address);
 			bz_assert(allocation != nullptr);
-			return { allocation->alloc_info.src_tokens, "address is a one-past-the-end pointer into this allocation" };
+			result.push_back({ allocation->alloc_info.src_tokens, "address is a one-past-the-end pointer into this allocation" });
+			break;
 		}
 		case memory_segment::meta:
 			bz_unreachable;
 		}
+		return result;
 	}
 	else
 	{
@@ -1703,9 +1997,363 @@ bool memory_manager::check_slice_construction(ptr_t _begin, ptr_t _end, type con
 	}
 }
 
-bz::u8string memory_manager::get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type) const
+bz::vector<error_reason_t> memory_manager::get_slice_construction_error_reason(ptr_t _begin, ptr_t _end, type const *elem_type) const
 {
-	bz_unreachable;
+	bz_assert(_begin != 0 && _end != 0);
+	auto const[begin, begin_segment, begin_is_one_past_the_end, begin_is_finished_stack_frame] = remove_meta(_begin, *this);
+	auto const[end, end_segment, end_is_one_past_the_end, end_is_finished_stack_frame] = remove_meta(_end, *this);
+
+	if (begin_is_finished_stack_frame && end_is_finished_stack_frame)
+	{
+		auto const &begin_stack_object = this->meta_memory.get_stack_object_pointer(begin);
+		auto const &end_stack_object = this->meta_memory.get_stack_object_pointer(end);
+		bz::vector<error_reason_t> result;
+		if (
+			begin_stack_object.object_src_tokens.begin == end_stack_object.object_src_tokens.begin
+			&& begin_stack_object.object_src_tokens.pivot == end_stack_object.object_src_tokens.pivot
+			&& begin_stack_object.object_src_tokens.end == end_stack_object.object_src_tokens.end
+		)
+		{
+			result.push_back({
+				begin_stack_object.object_src_tokens,
+				"begin and end addresses point to an object from a finished stack frame"
+			});
+		}
+		else
+		{
+			result.reserve(2);
+			result.push_back({
+				begin_stack_object.object_src_tokens,
+				"begin address points to an object from a finished stack frame"
+			});
+			result.push_back({
+				begin_stack_object.object_src_tokens,
+				"end address points to an object from a finished stack frame"
+			});
+		}
+		return result;
+	}
+	else if (begin_is_finished_stack_frame)
+	{
+		auto const &stack_object = this->meta_memory.get_stack_object_pointer(begin);
+		bz::vector<error_reason_t> result;
+		result.push_back({ stack_object.object_src_tokens, "begin address points to an object from a finished stack frame" });
+		return result;
+	}
+	else if (end_is_finished_stack_frame)
+	{
+		auto const &stack_object = this->meta_memory.get_stack_object_pointer(end);
+		bz::vector<error_reason_t> result;
+		result.push_back({ stack_object.object_src_tokens, "end address points to an object from a finished stack frame" });
+		return result;
+	}
+	else if (begin_segment != end_segment)
+	{
+		bz::vector<error_reason_t> result;
+		result.reserve(3);
+		result.push_back({
+			{},
+			bz::format(
+				"begin and end addresses point to different memory segments",
+				get_segment_name(begin_segment), get_segment_name(end_segment)
+			)
+		});
+
+		switch (begin_segment)
+		{
+		case memory_segment::invalid:
+			bz_unreachable;
+		case memory_segment::global:
+		{
+			auto const global_object = this->global_memory->get_global_object(begin);
+			bz_assert(global_object != nullptr);
+			result.push_back({ global_object->object_src_tokens, "begin address points to this global object" });
+			break;
+		}
+		case memory_segment::stack:
+		{
+			auto const stack_object = this->stack.get_stack_object(begin);
+			bz_assert(stack_object != nullptr);
+			result.push_back({ stack_object->object_src_tokens, "begin address points to this stack object" });
+			break;
+		}
+		case memory_segment::heap:
+		{
+			auto const allocation = this->heap.get_allocation(begin);
+			bz_assert(allocation != nullptr);
+			result.reserve(1 + allocation->alloc_info.call_stack.size());
+			result.push_back({ allocation->alloc_info.src_tokens, "begin address points to an object in this allocation" });
+			add_allocation_info(result, allocation->alloc_info);
+			break;
+		}
+		case memory_segment::meta:
+			bz_unreachable;
+		}
+
+		switch (end_segment)
+		{
+		case memory_segment::invalid:
+			bz_unreachable;
+		case memory_segment::global:
+		{
+			auto const global_object = this->global_memory->get_global_object(end);
+			bz_assert(global_object != nullptr);
+			result.push_back({ global_object->object_src_tokens, "end address points to this global object" });
+			break;
+		}
+		case memory_segment::stack:
+		{
+			auto const stack_object = this->stack.get_stack_object(end);
+			bz_assert(stack_object != nullptr);
+			result.push_back({ stack_object->object_src_tokens, "end address points to this stack object" });
+			break;
+		}
+		case memory_segment::heap:
+		{
+			auto const allocation = this->heap.get_allocation(end);
+			bz_assert(allocation != nullptr);
+			result.reserve(1 + allocation->alloc_info.call_stack.size());
+			result.push_back({ allocation->alloc_info.src_tokens, "end address points to an object in this allocation" });
+			add_allocation_info(result, allocation->alloc_info);
+			break;
+		}
+		case memory_segment::meta:
+			bz_unreachable;
+		}
+
+		return result;
+	}
+	else if (begin > end && this->check_slice_construction(_end, _begin, elem_type))
+	{
+		bz::vector<error_reason_t> result;
+		result.push_back({ {}, "begin address points to an object that is after the end address"} );
+		return result;
+	}
+	else if (
+		begin > end
+		|| (begin_is_one_past_the_end && !end_is_one_past_the_end)
+		|| (begin_is_one_past_the_end && end_is_one_past_the_end && begin != end)
+		|| (begin == end && begin_is_one_past_the_end != end_is_one_past_the_end)
+	)
+	{
+		switch (begin_segment)
+		{
+		case memory_segment::invalid:
+			bz_unreachable;
+		case memory_segment::global:
+		{
+			auto const begin_global_object = this->global_memory->get_global_object(begin);
+			auto const end_global_object   = this->global_memory->get_global_object(end);
+			bz_assert(begin_global_object != nullptr);
+			bz_assert(end_global_object != nullptr);
+
+			bz::vector<error_reason_t> result;
+			result.reserve(3);
+			if (begin_global_object == end_global_object)
+			{
+				result.push_back({
+					begin_global_object->object_src_tokens,
+					"begin and end addresses point to different subobjects in this global object"
+				});
+
+				if (begin_is_one_past_the_end)
+				{
+					result.push_back({
+						begin_global_object->object_src_tokens,
+						bz::format("begin address is a one-past-the-end pointer with offset {}", begin - begin_global_object->address)
+					});
+				}
+				else
+				{
+					result.push_back({
+						begin_global_object->object_src_tokens,
+						bz::format("begin address points to a subobject at offset {}", begin - begin_global_object->address)
+					});
+				}
+
+				if (end_is_one_past_the_end)
+				{
+					result.push_back({
+						end_global_object->object_src_tokens,
+						bz::format("end address is a one-past-the-end pointer with offset {}", end - end_global_object->address)
+					});
+				}
+				else
+				{
+					result.push_back({
+						end_global_object->object_src_tokens,
+						bz::format("end address points to a subobject at offset {}", end - end_global_object->address)
+					});
+				}
+			}
+			else
+			{
+				result.push_back({ {}, "begin and end addresses point to different global objects" });
+				result.push_back({ begin_global_object->object_src_tokens, "begin address points to this global object" });
+				result.push_back({ end_global_object->object_src_tokens, "end address points to this global object" });
+			}
+
+			return result;
+		}
+		case memory_segment::stack:
+		{
+			auto const begin_stack_object = this->stack.get_stack_object(begin);
+			auto const end_stack_object   = this->stack.get_stack_object(end);
+			bz_assert(begin_stack_object != nullptr);
+			bz_assert(end_stack_object != nullptr);
+
+			bz::vector<error_reason_t> result;
+			result.reserve(3);
+			if (begin_stack_object == end_stack_object)
+			{
+				result.push_back({
+					begin_stack_object->object_src_tokens,
+					"begin and end addresses point to different subobjects in this stack object"
+				});
+
+				if (begin_is_one_past_the_end)
+				{
+					result.push_back({
+						begin_stack_object->object_src_tokens,
+						bz::format("begin address is a one-past-the-end pointer with offset {}", begin - begin_stack_object->address)
+					});
+				}
+				else
+				{
+					result.push_back({
+						begin_stack_object->object_src_tokens,
+						bz::format("begin address points to a subobject at offset {}", begin - begin_stack_object->address)
+					});
+				}
+
+				if (end_is_one_past_the_end)
+				{
+					result.push_back({
+						end_stack_object->object_src_tokens,
+						bz::format("end address is a one-past-the-end pointer with offset {}", end - end_stack_object->address)
+					});
+				}
+				else
+				{
+					result.push_back({
+						end_stack_object->object_src_tokens,
+						bz::format("end address points to a subobject at offset {}", end - end_stack_object->address)
+					});
+				}
+			}
+			else
+			{
+				result.push_back({ {}, "begin and end addresses point to different stack objects" });
+				result.push_back({ begin_stack_object->object_src_tokens, "begin address points to this stack object" });
+				result.push_back({ end_stack_object->object_src_tokens, "end address points to this stack object" });
+			}
+
+			return result;
+		}
+		case memory_segment::heap:
+		{
+			auto const begin_allocation = this->heap.get_allocation(begin);
+			auto const end_allocation   = this->heap.get_allocation(end);
+			bz_assert(begin_allocation != nullptr);
+			bz_assert(end_allocation != nullptr);
+
+			bz::vector<error_reason_t> result;
+			if (begin_allocation == end_allocation)
+			{
+				auto const begin_offset = begin - begin_allocation->object.address;
+				auto const end_offset = end - begin_allocation->object.address;
+				bz_assert(elem_type != begin_allocation->object.elem_type);
+				auto const elem_size = begin_allocation->object.elem_size();
+
+				auto const begin_object_index =
+					begin_offset / elem_size - static_cast<size_t>(begin_is_one_past_the_end && begin_offset % elem_size == 0);
+				auto const end_object_index =
+					end_offset / elem_size - static_cast<size_t>(end_is_one_past_the_end && end_offset % elem_size == 0);
+				if (begin_object_index == end_object_index)
+				{
+					result.reserve(3 + begin_allocation->alloc_info.call_stack.size());
+					result.push_back({
+						begin_allocation->alloc_info.src_tokens,
+						"begin and end addresses point to different subobjects of the same element in this allocation"
+					});
+
+					if (begin_is_one_past_the_end)
+					{
+						result.push_back({
+							begin_allocation->alloc_info.src_tokens,
+							bz::format("begin address is a one-past-the-end pointer with offset {}", begin_offset % elem_size)
+						});
+					}
+					else
+					{
+						result.push_back({
+							begin_allocation->alloc_info.src_tokens,
+							bz::format("begin address points to a subobject at offset {}", begin_offset % elem_size)
+						});
+					}
+
+					if (end_is_one_past_the_end)
+					{
+						result.push_back({
+							end_allocation->alloc_info.src_tokens,
+							bz::format("end address is a one-past-the-end pointer with offset {}", end_offset % elem_size)
+						});
+					}
+					else
+					{
+						result.push_back({
+							end_allocation->alloc_info.src_tokens,
+							bz::format("end address points to a subobject at offset {}", end_offset % elem_size)
+						});
+					}
+
+					add_allocation_info(result, begin_allocation->alloc_info);
+				}
+				else
+				{
+					result.reserve(1 + begin_allocation->alloc_info.call_stack.size());
+					result.push_back({
+						begin_allocation->alloc_info.src_tokens,
+						bz::format(
+							"begin and end addresses point to different elements in this allocations at indices {} and {}",
+							begin_object_index, end_object_index
+						)
+					});
+					add_allocation_info(result, begin_allocation->alloc_info);
+				}
+			}
+			else
+			{
+				result.reserve(3 + begin_allocation->alloc_info.call_stack.size() + end_allocation->alloc_info.call_stack.size());
+				result.push_back({ {}, "begin and end addresses point to different allocations" });
+				result.push_back({ begin_allocation->alloc_info.src_tokens, "begin address points to an object in this allocation" });
+				add_allocation_info(result, begin_allocation->alloc_info);
+				result.push_back({ end_allocation->alloc_info.src_tokens, "end address points to an object in this allocation" });
+				add_allocation_info(result, end_allocation->alloc_info);
+			}
+
+			return result;
+		}
+		case memory_segment::meta:
+			bz_unreachable;
+		}
+	}
+	else
+	{
+		switch (begin_segment)
+		{
+		case memory_segment::invalid:
+			bz_unreachable;
+		case memory_segment::global:
+			return this->global_memory->get_slice_construction_error_reason(begin, end, end_is_one_past_the_end, elem_type);
+		case memory_segment::stack:
+			return this->stack.get_slice_construction_error_reason(begin, end, end_is_one_past_the_end, elem_type);
+		case memory_segment::heap:
+			return this->heap.get_slice_construction_error_reason(begin, end, end_is_one_past_the_end, elem_type);
+		case memory_segment::meta:
+			bz_unreachable;
+		}
+	}
 }
 
 bz::optional<int> memory_manager::compare_pointers(ptr_t lhs, ptr_t rhs)
