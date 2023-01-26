@@ -263,14 +263,14 @@ bz::vector<bz::u8string> global_object::get_slice_construction_error_reason(
 	result.reserve(3);
 	result.push_back("begin and end addresses point to different subobjects in this global object");
 	bz_assert(begin != end);
-	result.push_back(bz::format("begin address points to a subobject at offset {}", begin_offset % this->object_size()));
+	result.push_back(bz::format("begin address points to a subobject at offset {}", begin_offset));
 	if (end_is_one_past_the_end)
 	{
-		result.push_back(bz::format("end address points to a subobject at offset {}", end_offset % this->object_size()));
+		result.push_back(bz::format("end address is a one-past-the-end pointer with offset {}", end_offset));
 	}
 	else
 	{
-		result.push_back(bz::format("end address is a one-past-the-end pointer with offset {}", end_offset % this->object_size()));
+		result.push_back(bz::format("end address points to a subobject at offset {}", end_offset));
 	}
 	return result;
 }
@@ -623,14 +623,14 @@ bz::vector<bz::u8string> stack_object::get_slice_construction_error_reason(
 		result.reserve(3);
 		result.push_back("begin and end addresses point to different subobjects in this stack object");
 		bz_assert(begin != end);
-		result.push_back(bz::format("begin address points to a subobject at offset {}", begin_offset % this->object_size()));
+		result.push_back(bz::format("begin address points to a subobject at offset {}", begin_offset));
 		if (end_is_one_past_the_end)
 		{
-			result.push_back(bz::format("end address points to a subobject at offset {}", end_offset % this->object_size()));
+			result.push_back(bz::format("end address is a one-past-the-end pointer with offset {}", end_offset));
 		}
 		else
 		{
-			result.push_back(bz::format("end address is a one-past-the-end pointer with offset {}", end_offset % this->object_size()));
+			result.push_back(bz::format("end address points to a subobject at offset {}", end_offset));
 		}
 		return result;
 	}
@@ -854,11 +854,13 @@ bz::vector<bz::u8string> heap_object::get_slice_construction_error_reason(
 		result.push_back(bz::format("begin address points to a subobject at offset {}", begin_offset % this->elem_size()));
 		if (end_is_one_past_the_end)
 		{
-			result.push_back(bz::format("end address points to a subobject at offset {}", end_offset % this->elem_size()));
+			auto const elem_offset = end_offset % this->elem_size();
+			auto const offset = elem_offset == 0 ? this->elem_size() : elem_offset;
+			result.push_back(bz::format("end address is a one-past-the-end pointer with offset {}", offset));
 		}
 		else
 		{
-			result.push_back(bz::format("end address is a one-past-the-end pointer with offset {}", end_offset % this->elem_size()));
+			result.push_back(bz::format("end address points to a subobject at offset {}", end_offset % this->elem_size()));
 		}
 		return result;
 	}
@@ -1839,6 +1841,8 @@ static remove_meta_result_t remove_meta(ptr_t address, memory_manager const &man
 			address = manager.meta_memory.get_one_past_the_end_pointer(address).address;
 			break;
 		}
+
+		segment = manager.segment_info.get_segment(address);
 	}
 
 	return { address, segment, is_one_past_the_end, false };
@@ -2279,9 +2283,11 @@ bz::vector<error_reason_t> memory_manager::get_slice_construction_error_reason(p
 
 					if (begin_is_one_past_the_end)
 					{
+						auto const elem_offset = begin_offset % elem_size;
+						auto const offset = elem_offset == 0 ? elem_size : elem_offset;
 						result.push_back({
 							begin_allocation->alloc_info.src_tokens,
-							bz::format("begin address is a one-past-the-end pointer with offset {}", begin_offset % elem_size)
+							bz::format("begin address is a one-past-the-end pointer with offset {}", offset)
 						});
 					}
 					else
@@ -2294,9 +2300,11 @@ bz::vector<error_reason_t> memory_manager::get_slice_construction_error_reason(p
 
 					if (end_is_one_past_the_end)
 					{
+						auto const elem_offset = end_offset % elem_size;
+						auto const offset = elem_offset == 0 ? elem_size : elem_offset;
 						result.push_back({
 							end_allocation->alloc_info.src_tokens,
-							bz::format("end address is a one-past-the-end pointer with offset {}", end_offset % elem_size)
+							bz::format("end address is a one-past-the-end pointer with offset {}", offset)
 						});
 					}
 					else

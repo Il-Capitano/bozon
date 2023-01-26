@@ -1972,7 +1972,8 @@ static expr_value generate_intrinsic_function_call_code(
 		}
 		auto const &result_value = result_address.get();
 
-		auto const elem_type = get_type(func_call.func_body->params[0].get_type().get<ast::ts_pointer>(), context);
+		bz_assert(func_call.func_body->return_type.is<ast::ts_array_slice>());
+		auto const elem_type = get_type(func_call.func_body->return_type.get<ast::ts_array_slice>().elem_type, context);
 		auto const begin_ptr = generate_expr_code(func_call.params[0], context, {}).get_value(context);
 		auto const end_ptr   = generate_expr_code(func_call.params[1], context, {}).get_value(context);
 		context.create_slice_construction_check(func_call.src_tokens, begin_ptr, end_ptr, elem_type, func_call.func_body->return_type);
@@ -1989,7 +1990,8 @@ static expr_value generate_intrinsic_function_call_code(
 		}
 		auto const &result_value = result_address.get();
 
-		auto const elem_type = get_type(func_call.func_body->params[0].get_type().get<ast::ts_pointer>(), context);
+		bz_assert(func_call.func_body->return_type.is<ast::ts_array_slice>());
+		auto const elem_type = get_type(func_call.func_body->return_type.get<ast::ts_array_slice>().elem_type, context);
 		auto const begin_ptr = generate_expr_code(func_call.params[0], context, {}).get_value(context);
 		auto const end_ptr   = generate_expr_code(func_call.params[1], context, {}).get_value(context);
 		context.create_slice_construction_check(func_call.src_tokens, begin_ptr, end_ptr, elem_type, func_call.func_body->return_type);
