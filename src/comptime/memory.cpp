@@ -43,18 +43,18 @@ static bool contained_in_object(type const *object_type, size_t offset, type con
 	}
 }
 
-static bool slice_contained_in_object(type const *object_type, size_t offset, type const *elem_type, size_t total_size)
+static bool slice_contained_in_object(type const *object_type, size_t offset, type const *elem_type, size_t total_size, bool end_is_one_past_the_end)
 {
-	bz_assert(total_size / elem_type->size > 1);
+	bz_assert(total_size != 0);
 	static_assert(type::variant_count == 4);
 	if (offset + total_size > object_type->size)
 	{
 		return false;
 	}
-	else if (object_type->is_builtin() || object_type->is_pointer())
+	else if (object_type == elem_type)
 	{
-		// builtin and pointer types cannot contain more than one consecutive elements
-		return false;
+		bz_assert(offset == 0);
+		return end_is_one_past_the_end && total_size == object_type->size;
 	}
 	else if (object_type->is_aggregate())
 	{
@@ -64,7 +64,7 @@ static bool slice_contained_in_object(type const *object_type, size_t offset, ty
 		// upper_bound returns the first offset that is strictly greater than offset,
 		// so we need the previous element
 		auto const member_index = std::upper_bound(offsets.begin() + 1, offsets.end(), offset) - offsets.begin() - 1;
-		return slice_contained_in_object(members[member_index], offset - offsets[member_index], elem_type, total_size);
+		return slice_contained_in_object(members[member_index], offset - offsets[member_index], elem_type, total_size, end_is_one_past_the_end);
 	}
 	else if (object_type->is_array())
 	{
@@ -74,12 +74,12 @@ static bool slice_contained_in_object(type const *object_type, size_t offset, ty
 		{
 			// the slice must be able to fit into this array because of the check `offset + total_size > object_type->size`
 			// at the beginning
-			return offset_in_elem == 0;
+			return offset_in_elem == 0 && (end_is_one_past_the_end || offset + total_size < object_type->size);
 		}
 		else
 		{
 			bz_assert(offset / array_elem_type->size < object_type->get_array_size());
-			return slice_contained_in_object(array_elem_type, offset_in_elem, elem_type, total_size);
+			return slice_contained_in_object(array_elem_type, offset_in_elem, elem_type, total_size, end_is_one_past_the_end);
 		}
 	}
 	else
@@ -235,34 +235,18 @@ bz::u8string global_object::get_dereference_error_reason(ptr_t, type const *) co
 	return {};
 }
 
-bool global_object::check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const
+bool global_object::check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const
 {
 	if (begin == end)
 	{
 		return true;
 	}
 
-	if (
-		this->memory.empty()
-		|| begin < this->address || begin >= this->address + this->object_size()
-		|| end <= this->address || end > this->address + this->object_size()
-	)
-	{
-		return false;
-	}
-
 	auto const total_size = end - begin;
 	bz_assert(total_size % elem_type->size == 0);
 	auto const offset = begin - this->address;
 
-	if (total_size == elem_type->size) // slice of size 1
-	{
-		return contained_in_object(this->object_type, offset, elem_type);
-	}
-	else
-	{
-		return slice_contained_in_object(this->object_type, offset, elem_type, total_size);
-	}
+	return slice_contained_in_object(this->object_type, offset, elem_type, total_size, end_is_one_past_the_end);
 }
 
 pointer_arithmetic_result_t global_object::do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const
@@ -544,7 +528,7 @@ bz::u8string stack_object::get_dereference_error_reason(ptr_t address, type cons
 	return "lifetime of the stack object has already ended";
 }
 
-bool stack_object::check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const
+bool stack_object::check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const
 {
 	if (begin == end)
 	{
@@ -568,14 +552,7 @@ bool stack_object::check_slice_construction(ptr_t begin, ptr_t end, type const *
 	bz_assert(total_size % elem_type->size == 0);
 	auto const offset = begin - this->address;
 
-	if (total_size == elem_type->size) // slice of size 1
-	{
-		return contained_in_object(this->object_type, offset, elem_type);
-	}
-	else
-	{
-		return slice_contained_in_object(this->object_type, offset, elem_type, total_size);
-	}
+	return slice_contained_in_object(this->object_type, offset, elem_type, total_size, end_is_one_past_the_end);
 }
 
 pointer_arithmetic_result_t stack_object::do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const
@@ -715,7 +692,7 @@ bz::u8string heap_object::get_dereference_error_reason(ptr_t address, type const
 	return "address points to a heap object outside its lifetime";
 }
 
-bool heap_object::check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const
+bool heap_object::check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const
 {
 	if (begin == end)
 	{
@@ -726,14 +703,6 @@ bool heap_object::check_slice_construction(ptr_t begin, ptr_t end, type const *e
 	{
 		return false;
 	}
-	if (
-		this->memory.empty()
-		|| begin < this->address || begin >= this->address + this->object_size()
-		|| end <= this->address || end > this->address + this->object_size()
-	)
-	{
-		return false;
-	}
 
 	auto const total_size = end - begin;
 	bz_assert(total_size % elem_type->size == 0);
@@ -741,15 +710,13 @@ bool heap_object::check_slice_construction(ptr_t begin, ptr_t end, type const *e
 
 	if (elem_type == this->elem_type)
 	{
-		return offset % this->elem_size() == 0;
-	}
-	else if (total_size == elem_type->size) // slice of size 1
-	{
-		return contained_in_object(this->elem_type, offset % this->elem_size(), elem_type);
+		bz_assert(offset % this->elem_size() == 0);
+		bz_assert(end_is_one_past_the_end || offset + total_size < this->object_size());
+		return true;
 	}
 	else
 	{
-		return slice_contained_in_object(this->elem_type, offset % this->elem_size(), elem_type, total_size);
+		return slice_contained_in_object(this->elem_type, offset % this->elem_size(), elem_type, total_size, end_is_one_past_the_end);
 	}
 }
 
@@ -917,13 +884,9 @@ error_reason_t global_memory_manager::get_dereference_error_reason(ptr_t address
 	return { object->object_src_tokens, object->get_dereference_error_reason(address, object_type) };
 }
 
-bool global_memory_manager::check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const
+bool global_memory_manager::check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const
 {
-	if (end < begin)
-	{
-		return false;
-	}
-
+	bz_assert(begin <= end);
 	auto const object = this->get_global_object(begin);
 	if (object == nullptr)
 	{
@@ -935,7 +898,7 @@ bool global_memory_manager::check_slice_construction(ptr_t begin, ptr_t end, typ
 	}
 	else
 	{
-		return object->check_slice_construction(begin, end, elem_type);
+		return object->check_slice_construction(begin, end, end_is_one_past_the_end, elem_type);
 	}
 }
 
@@ -1128,7 +1091,7 @@ error_reason_t stack_manager::get_dereference_error_reason(ptr_t address, type c
 	return { object->object_src_tokens, object->get_dereference_error_reason(address, object_type) };
 }
 
-bool stack_manager::check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const
+bool stack_manager::check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const
 {
 	if (end < begin)
 	{
@@ -1146,7 +1109,7 @@ bool stack_manager::check_slice_construction(ptr_t begin, ptr_t end, type const 
 	}
 	else
 	{
-		return object->check_slice_construction(begin, end, elem_type);
+		return object->check_slice_construction(begin, end, end_is_one_past_the_end, elem_type);
 	}
 }
 
@@ -1316,13 +1279,9 @@ error_reason_t heap_manager::get_dereference_error_reason(ptr_t address, type co
 	}
 }
 
-bool heap_manager::check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const
+bool heap_manager::check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const
 {
-	if (end < begin)
-	{
-		return false;
-	}
-
+	bz_assert(begin <= end);
 	auto const allocation = this->get_allocation(begin);
 	if (allocation == nullptr)
 	{
@@ -1332,13 +1291,13 @@ bool heap_manager::check_slice_construction(ptr_t begin, ptr_t end, type const *
 	{
 		return false;
 	}
-	else if (end > allocation->object.address + allocation->object.object_size())
+	else if (end > allocation->object.address + allocation->object.object_size()) // end is in a different allocation
 	{
 		return false;
 	}
 	else
 	{
-		return allocation->object.check_slice_construction(begin, end, elem_type);
+		return allocation->object.check_slice_construction(begin, end, end_is_one_past_the_end, elem_type);
 	}
 }
 
@@ -1505,32 +1464,54 @@ void memory_manager::pop_stack_frame(void)
 	this->stack.pop_stack_frame();
 }
 
-bool memory_manager::check_dereference(ptr_t address, type const *object_type) const
+struct remove_meta_result_t
 {
-	auto segment = this->segment_info.get_segment(address);
+	ptr_t address;
+	memory_segment segment;
+	bool is_one_past_the_end;
+	bool is_finished_stack_frame;
+};
+
+static remove_meta_result_t remove_meta(ptr_t address, memory_manager const &manager)
+{
+	auto segment = manager.segment_info.get_segment(address);
+	bool is_one_past_the_end = false;
 	while (segment == memory_segment::meta)
 	{
-		switch (this->meta_memory.segment_info.get_segment(address))
+		switch (manager.meta_memory.segment_info.get_segment(address))
 		{
 		case meta_memory_segment::stack_object:
 		{
-			auto const &stack_object = this->meta_memory.get_stack_object_pointer(address);
+			auto const &stack_object = manager.meta_memory.get_stack_object_pointer(address);
 			if (
-				stack_object.stack_frame_depth >= this->stack.stack_frames.size()
-				|| this->stack.stack_frames[stack_object.stack_frame_depth].id != stack_object.stack_frame_id
+				stack_object.stack_frame_depth >= manager.stack.stack_frames.size()
+				|| manager.stack.stack_frames[stack_object.stack_frame_depth].id != stack_object.stack_frame_id
 			)
 			{
-				return false;
+				return { address, segment, is_one_past_the_end, true };
 			}
 
 			address = stack_object.stack_address;
 			break;
 		}
 		case meta_memory_segment::one_past_the_end:
-			return false;
+			is_one_past_the_end = true;
+			address = manager.meta_memory.get_one_past_the_end_pointer(address).address;
+			break;
 		}
+	}
 
-		segment = this->segment_info.get_segment(address);
+	return { address, segment, is_one_past_the_end, false };
+}
+
+bool memory_manager::check_dereference(ptr_t _address, type const *object_type) const
+{
+	bz_assert(_address != 0);
+	auto const[address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+
+	if (is_one_past_the_end || is_finished_stack_frame)
+	{
+		return false;
 	}
 
 	switch (segment)
@@ -1626,36 +1607,33 @@ error_reason_t memory_manager::get_dereference_error_reason(ptr_t address, type 
 	}
 }
 
-bool memory_manager::check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const
+bool memory_manager::check_slice_construction(ptr_t _begin, ptr_t _end, type const *elem_type) const
 {
-	auto const begin_segment = this->segment_info.get_segment(begin);
-	auto const end_segment = this->segment_info.get_segment(end);
+	bz_assert(_begin != 0 && _end != 0);
+	auto const[begin, begin_segment, begin_is_one_past_the_end, begin_is_finished_stack_frame] = remove_meta(_begin, *this);
+	auto const[end, end_segment, end_is_one_past_the_end, end_is_finished_stack_frame] = remove_meta(_end, *this);
 
-	if (begin_segment == memory_segment::meta && end_segment == memory_segment::meta)
+	if (begin_is_finished_stack_frame || end_is_finished_stack_frame)
 	{
-		return this->check_slice_construction(
-			this->meta_memory.get_real_address(begin),
-			this->meta_memory.get_real_address(end),
-			elem_type
-		);
-	}
-	else if (begin_segment == memory_segment::meta)
-	{
-		return this->check_slice_construction(
-			this->meta_memory.get_real_address(begin),
-			end,
-			elem_type
-		);
-	}
-	else if (end_segment == memory_segment::meta)
-	{
-		return this->check_slice_construction(
-			begin,
-			this->meta_memory.get_real_address(end),
-			elem_type
-		);
+		return false;
 	}
 	else if (begin_segment != end_segment)
+	{
+		return false;
+	}
+	else if (begin > end)
+	{
+		return false;
+	}
+	else if (begin_is_one_past_the_end && !end_is_one_past_the_end)
+	{
+		return false;
+	}
+	else if (begin_is_one_past_the_end && end_is_one_past_the_end && begin != end)
+	{
+		return false;
+	}
+	else if (begin == end && begin_is_one_past_the_end != end_is_one_past_the_end)
 	{
 		return false;
 	}
@@ -1664,13 +1642,13 @@ bool memory_manager::check_slice_construction(ptr_t begin, ptr_t end, type const
 		switch (begin_segment)
 		{
 		case memory_segment::invalid:
-			return false;
+			bz_unreachable;
 		case memory_segment::global:
-			return this->global_memory->check_slice_construction(begin, end, elem_type);
+			return this->global_memory->check_slice_construction(begin, end, end_is_one_past_the_end, elem_type);
 		case memory_segment::stack:
-			return this->stack.check_slice_construction(begin, end, elem_type);
+			return this->stack.check_slice_construction(begin, end, end_is_one_past_the_end, elem_type);
 		case memory_segment::heap:
-			return this->heap.check_slice_construction(begin, end, elem_type);
+			return this->heap.check_slice_construction(begin, end, end_is_one_past_the_end, elem_type);
 		case memory_segment::meta:
 			bz_unreachable;
 		}
