@@ -214,6 +214,8 @@ struct heap_object
 
 	bool check_dereference(ptr_t address, type const *subobject_type) const;
 	bz::u8string get_dereference_error_reason(ptr_t address, type const *object_type) const;
+	bool check_inplace_construct(ptr_t address, type const *object_type) const;
+	bz::u8string get_inplace_construct_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const;
 	bz::vector<bz::u8string> get_slice_construction_error_reason(
 		ptr_t begin,
@@ -372,6 +374,8 @@ struct heap_manager
 
 	bool check_dereference(ptr_t address, type const *object_type) const;
 	bz::vector<error_reason_t> get_dereference_error_reason(ptr_t address, type const *object_type) const;
+	bool check_inplace_construct(ptr_t address, type const *object_type) const;
+	bz::vector<error_reason_t> get_inplace_construct_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const;
 	bz::vector<error_reason_t> get_slice_construction_error_reason(
 		ptr_t begin,
@@ -475,6 +479,8 @@ struct memory_manager
 
 	bool check_dereference(ptr_t address, type const *object_type) const;
 	bz::vector<error_reason_t> get_dereference_error_reason(ptr_t address, type const *object_type) const;
+	bool check_inplace_construct(ptr_t address, type const *object_type) const;
+	bz::vector<error_reason_t> get_inplace_construct_error_reason(ptr_t address, type const *object_type) const;
 	bool check_slice_construction(ptr_t begin, ptr_t end, type const *elem_type) const;
 	bz::vector<error_reason_t> get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type) const;
 

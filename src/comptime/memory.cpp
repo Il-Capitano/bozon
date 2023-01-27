@@ -189,6 +189,53 @@ static pointer_arithmetic_check_result check_pointer_arithmetic(
 	}
 }
 
+static void add_allocation_info(bz::vector<error_reason_t> &reasons, call_stack_info_t const &alloc_info)
+{
+	bz_assert(alloc_info.call_stack.not_empty());
+	if (alloc_info.call_stack.back().body != nullptr)
+	{
+		reasons.push_back({
+			alloc_info.call_stack.back().src_tokens,
+			bz::format("allocation was made in call to '{}'", alloc_info.call_stack.back().body->get_signature())
+		});
+	}
+	else
+	{
+		reasons.push_back({
+			alloc_info.call_stack.back().src_tokens,
+			"allocation was made while evaluating expression at compile time"
+		});
+	}
+
+	for (auto const &call : alloc_info.call_stack.slice(0, alloc_info.call_stack.size() - 1).reversed())
+	{
+		if (call.body != nullptr)
+		{
+			reasons.push_back({ call.src_tokens, bz::format("in call to '{}'", call.body->get_signature()) });
+		}
+		else
+		{
+			reasons.push_back({ call.src_tokens, "while evaluating expression at compile time" });
+		}
+	}
+}
+
+static void add_free_info(bz::vector<error_reason_t> &reasons, call_stack_info_t const &free_info)
+{
+	reasons.push_back({ free_info.src_tokens, "allocation was freed here" });
+	for (auto const &call : free_info.call_stack.reversed())
+	{
+		if (call.body != nullptr)
+		{
+			reasons.push_back({ call.src_tokens, bz::format("in call to '{}'", call.body->get_signature()) });
+		}
+		else
+		{
+			reasons.push_back({ call.src_tokens, "while evaluating expression at compile time" });
+		}
+	}
+}
+
 global_object::global_object(lex::src_tokens const &_object_src_tokens, ptr_t _address, type const *_object_type, bz::fixed_vector<uint8_t> data)
 	: address(_address),
 	  object_type(_object_type),
@@ -749,7 +796,32 @@ bool heap_object::check_dereference(ptr_t address, type const *subobject_type) c
 bz::u8string heap_object::get_dereference_error_reason(ptr_t address, type const *object_type) const
 {
 	bz_assert(!this->is_alive(address, address + object_type->size));
-	return "address points to a heap object outside its lifetime";
+	return "address points to an object outside its lifetime in this allocation";
+}
+
+bool heap_object::check_inplace_construct(ptr_t address, type const *object_type) const
+{
+	if (object_type != this->elem_type)
+	{
+		return false;
+	}
+	else
+	{
+		auto const begin = address - this->address;
+		return this->properties.is_none(begin, begin + this->elem_size(), memory_properties::is_alive);
+	}
+}
+
+bz::u8string heap_object::get_inplace_construct_error_reason(ptr_t, type const *object_type) const
+{
+	if (object_type != this->elem_type)
+	{
+		return "address points to a subobject of one of the elemnts of this allocation";
+	}
+	else
+	{
+		return "address points to an element in this allocation, that has already been constructed";
+	}
 }
 
 bool heap_object::check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const
@@ -1516,11 +1588,52 @@ bz::vector<error_reason_t> heap_manager::get_dereference_error_reason(ptr_t addr
 	bz::vector<error_reason_t> result;
 	if (allocation->is_freed)
 	{
-		result.push_back({ allocation->free_info.src_tokens, "address points into an allocation that was freed here" });
+		result.reserve(2 + allocation->alloc_info.call_stack.size() + allocation->free_info.call_stack.size());
+		result.push_back({ allocation->alloc_info.src_tokens, "address points to an object in this allocation, which was freed" });
+		add_allocation_info(result, allocation->alloc_info);
+		add_free_info(result, allocation->free_info);
 	}
 	else
 	{
+		result.reserve(1 + allocation->alloc_info.call_stack.size());
 		result.push_back({ allocation->alloc_info.src_tokens, allocation->object.get_dereference_error_reason(address, object_type) });
+		add_allocation_info(result, allocation->alloc_info);
+	}
+	return result;
+}
+
+bool heap_manager::check_inplace_construct(ptr_t address, type const *object_type) const
+{
+	auto const allocation = this->get_allocation(address);
+	bz_assert(allocation != nullptr);
+	if (allocation->is_freed)
+	{
+		return false;
+	}
+	else
+	{
+		return allocation->object.check_inplace_construct(address, object_type);
+	}
+}
+
+bz::vector<error_reason_t> heap_manager::get_inplace_construct_error_reason(ptr_t address, type const *object_type) const
+{
+	auto const allocation = this->get_allocation(address);
+	bz_assert(allocation != nullptr);
+
+	bz::vector<error_reason_t> result;
+	if (allocation->is_freed)
+	{
+		result.reserve(2 + allocation->alloc_info.call_stack.size() + allocation->free_info.call_stack.size());
+		result.push_back({ allocation->alloc_info.src_tokens, "address points to an element in this allocation, which was freed" });
+		add_allocation_info(result, allocation->alloc_info);
+		add_free_info(result, allocation->free_info);
+	}
+	else
+	{
+		result.reserve(1 + allocation->alloc_info.call_stack.size());
+		result.push_back({ allocation->alloc_info.src_tokens, allocation->object.get_inplace_construct_error_reason(address, object_type) });
+		add_allocation_info(result, allocation->alloc_info);
 	}
 	return result;
 }
@@ -1544,53 +1657,6 @@ bool heap_manager::check_slice_construction(ptr_t begin, ptr_t end, bool end_is_
 	else
 	{
 		return allocation->object.check_slice_construction(begin, end, end_is_one_past_the_end, elem_type);
-	}
-}
-
-static void add_allocation_info(bz::vector<error_reason_t> &reasons, call_stack_info_t const &alloc_info)
-{
-	bz_assert(alloc_info.call_stack.not_empty());
-	if (alloc_info.call_stack.back().body != nullptr)
-	{
-		reasons.push_back({
-			alloc_info.call_stack.back().src_tokens,
-			bz::format("allocation was made in call to '{}'", alloc_info.call_stack.back().body->get_signature())
-		});
-	}
-	else
-	{
-		reasons.push_back({
-			alloc_info.call_stack.back().src_tokens,
-			"allocation was made while evaluating expression at compile time"
-		});
-	}
-
-	for (auto const &call : alloc_info.call_stack.slice(0, alloc_info.call_stack.size() - 1).reversed())
-	{
-		if (call.body != nullptr)
-		{
-			reasons.push_back({ call.src_tokens, bz::format("in call to '{}'", call.body->get_signature()) });
-		}
-		else
-		{
-			reasons.push_back({ call.src_tokens, "while evaluating expression at compile time" });
-		}
-	}
-}
-
-static void add_free_info(bz::vector<error_reason_t> &reasons, call_stack_info_t const &free_info)
-{
-	reasons.push_back({ free_info.src_tokens, "allocation was freed here" });
-	for (auto const &call : free_info.call_stack.reversed())
-	{
-		if (call.body != nullptr)
-		{
-			reasons.push_back({ call.src_tokens, bz::format("in call to '{}'", call.body->get_signature()) });
-		}
-		else
-		{
-			reasons.push_back({ call.src_tokens, "while evaluating expression at compile time" });
-		}
 	}
 }
 
@@ -1966,6 +2032,47 @@ bz::vector<error_reason_t> memory_manager::get_dereference_error_reason(ptr_t _a
 		case memory_segment::meta:
 			bz_unreachable;
 		}
+	}
+}
+
+bool memory_manager::check_inplace_construct(ptr_t _address, type const *object_type) const
+{
+	bz_assert(_address != 0);
+	auto const[address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+
+	if (is_finished_stack_frame || is_one_past_the_end || segment != memory_segment::heap)
+	{
+		return false;
+	}
+	else
+	{
+		return this->heap.check_inplace_construct(address, object_type);
+	}
+}
+
+bz::vector<error_reason_t> memory_manager::get_inplace_construct_error_reason(ptr_t _address, type const *object_type) const
+{
+	bz_assert(_address != 0);
+	auto const[address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+
+	if (segment != memory_segment::heap)
+	{
+		bz::vector<error_reason_t> result;
+		result.push_back({ {}, "address points to an object, that is not on the heap" });
+		return result;
+	}
+	else if (is_one_past_the_end)
+	{
+		auto const allocation = this->heap.get_allocation(address);
+		bz::vector<error_reason_t> result;
+		result.reserve(1 + allocation->alloc_info.call_stack.size());
+		result.push_back({ allocation->alloc_info.src_tokens, "address is a one-past-the-end pointer into this allocation" });
+		add_allocation_info(result, allocation->alloc_info);
+		return result;
+	}
+	else
+	{
+		return this->heap.get_inplace_construct_error_reason(address, object_type);
 	}
 }
 

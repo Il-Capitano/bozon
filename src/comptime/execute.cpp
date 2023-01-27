@@ -394,7 +394,11 @@ static void execute_check_dereference(instructions::check_dereference const &ins
 	context.check_dereference(inst.src_tokens_index, address, info.object_type, info.object_typespec);
 }
 
-static void execute_check_inplace_construct(instructions::check_inplace_construct const &inst, ptr_t address, executor_context &context);
+static void execute_check_inplace_construct(instructions::check_inplace_construct const &inst, ptr_t address, executor_context &context)
+{
+	auto const &info = context.get_memory_access_info(inst.memory_access_check_info_index);
+	context.check_inplace_construct(inst.src_tokens_index, address, info.object_type, info.object_typespec);
+}
 
 static uint8_t execute_cast_zext_i1_to_i8(instructions::cast_zext_i1_to_i8 const &, bool value, executor_context &)
 {

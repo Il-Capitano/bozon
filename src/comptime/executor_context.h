@@ -92,6 +92,7 @@ struct executor_context
 	void free(uint32_t src_tokens_index, ptr_t address);
 
 	void check_dereference(uint32_t src_tokens_index, ptr_t address, type const *object_type, ast::typespec_view object_typespec);
+	void check_inplace_construct(uint32_t src_tokens_index, ptr_t address, type const *object_type, ast::typespec_view object_typespec);
 	void check_str_construction(uint32_t src_tokens_index, ptr_t begin, ptr_t end);
 	void check_slice_construction(
 		uint32_t src_tokens_index,
