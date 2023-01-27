@@ -33,6 +33,7 @@ struct aggregate_type
 {
 	bz::vector<type const *> elems;
 	bz::vector<size_t> offsets;
+	bool has_padding;
 };
 
 struct array_type
@@ -126,6 +127,22 @@ struct type : type_base_t
 	bool is_simple_value_type(void) const
 	{
 		return this->is_builtin() || this->is_pointer();
+	}
+
+	bool has_padding(void) const
+	{
+		if (this->is_aggregate())
+		{
+			return this->get<aggregate_type>().has_padding;
+		}
+		else if (this->is_array())
+		{
+			return this->get_array_element_type()->has_padding();
+		}
+		else
+		{
+			return false;
+		}
 	}
 
 	bz::u8string to_string(void) const;

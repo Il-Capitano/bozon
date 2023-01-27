@@ -138,6 +138,7 @@ struct type_size_info
 	bz::vector<size_t> offsets;
 	size_t size;
 	size_t align;
+	bool has_padding;
 };
 
 static type_size_info get_type_size_info(bz::array_view<type const * const> elem_types)
@@ -146,11 +147,15 @@ static type_size_info get_type_size_info(bz::array_view<type const * const> elem
 	offsets.reserve(elem_types.size());
 	size_t size = 0;
 	size_t align = 0;
+	bool has_padding = false;
 
 	for (auto const type : elem_types)
 	{
+		has_padding |= type->has_padding();
 		align = std::max(align, type->align);
-		size = round_up(size, type->align);
+		auto const new_size = round_up(size, type->align);
+		has_padding |= (new_size != size);
+		size = new_size;
 		offsets.push_back(size);
 		size += type->size;
 	}
@@ -161,7 +166,7 @@ static type_size_info get_type_size_info(bz::array_view<type const * const> elem
 		size = 1;
 		align = 1;
 	}
-	return { std::move(offsets), size, align };
+	return { std::move(offsets), size, align, has_padding };
 }
 
 type const *type_set_t::get_aggregate_type(bz::array_view<type const * const> elem_types)
@@ -172,8 +177,8 @@ type const *type_set_t::get_aggregate_type(bz::array_view<type const * const> el
 		return it->second;
 	}
 
-	auto [offsets, size, align] = get_type_size_info(elem_types);
-	auto &new_type = this->aggregate_and_array_types.emplace_back(aggregate_type{ elem_types, std::move(offsets) }, size, align);
+	auto [offsets, size, align, has_padding] = get_type_size_info(elem_types);
+	auto &new_type = this->aggregate_and_array_types.emplace_back(aggregate_type{ elem_types, std::move(offsets), has_padding }, size, align);
 	this->aggregate_map.insert({ new_type.get_aggregate_types(), &new_type });
 	return &new_type;
 }
