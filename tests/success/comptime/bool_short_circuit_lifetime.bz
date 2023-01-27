@@ -8,4 +8,10 @@ function test()
 		let i = 0;
 		i == 0 && i == 1
 	});
+	(consteval {
+		for (let i = 0; i < 2; ++i)
+		{
+			i == 2 || i == 0;
+		}
+	});
 }

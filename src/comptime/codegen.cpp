@@ -521,24 +521,17 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_builtin_binary_bool_and(
-	ast::expression const &original_expression,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 )
 {
-	if (!result_address.has_value())
-	{
-		result_address = context.create_alloca(original_expression.src_tokens, context.get_builtin_type(builtin_type_kind::i1));
-	}
-
-	auto const &result_value = result_address.get();
+	auto const result_value = context.create_alloca_without_lifetime(context.get_builtin_type(builtin_type_kind::i1));
 
 	auto const lhs_prev_info = context.push_expression_scope();
 	auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
 	context.create_store(lhs_value, result_value);
-	context.create_start_lifetime(result_value);
 	context.pop_expression_scope(lhs_prev_info);
 	auto const lhs_bb_end = context.get_current_basic_block();
 
@@ -562,7 +555,7 @@ static expr_value generate_builtin_binary_bool_and(
 
 	context.set_current_basic_block(end_bb);
 
-	return result_value;
+	return value_or_result_address(result_value, result_address, context);
 }
 
 static expr_value generate_builtin_binary_bool_xor(
@@ -580,24 +573,17 @@ static expr_value generate_builtin_binary_bool_xor(
 }
 
 static expr_value generate_builtin_binary_bool_or(
-	ast::expression const &original_expression,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 )
 {
-	if (!result_address.has_value())
-	{
-		result_address = context.create_alloca(original_expression.src_tokens, context.get_builtin_type(builtin_type_kind::i1));
-	}
-
-	auto const &result_value = result_address.get();
+	auto const result_value = context.create_alloca_without_lifetime(context.get_builtin_type(builtin_type_kind::i1));
 
 	auto const lhs_prev_info = context.push_expression_scope();
 	auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
 	context.create_store(lhs_value, result_value);
-	context.create_start_lifetime(result_value);
 	context.pop_expression_scope(lhs_prev_info);
 	auto const lhs_bb_end = context.get_current_basic_block();
 
@@ -621,11 +607,10 @@ static expr_value generate_builtin_binary_bool_or(
 
 	context.set_current_basic_block(end_bb);
 
-	return result_value;
+	return value_or_result_address(result_value, result_address, context);
 }
 
 static expr_value generate_expr_code(
-	ast::expression const &original_expression,
 	ast::expr_binary_op const &binary_op,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
@@ -637,11 +622,11 @@ static expr_value generate_expr_code(
 		generate_expr_code(binary_op.lhs, context, {});
 		return generate_expr_code(binary_op.rhs, context, result_address);
 	case lex::token::bool_and:
-		return generate_builtin_binary_bool_and(original_expression, binary_op.lhs, binary_op.rhs, context, result_address);
+		return generate_builtin_binary_bool_and(binary_op.lhs, binary_op.rhs, context, result_address);
 	case lex::token::bool_xor:
 		return generate_builtin_binary_bool_xor(binary_op.lhs, binary_op.rhs, context, result_address);
 	case lex::token::bool_or:
-		return generate_builtin_binary_bool_or(original_expression, binary_op.lhs, binary_op.rhs, context, result_address);
+		return generate_builtin_binary_bool_or(binary_op.lhs, binary_op.rhs, context, result_address);
 	default:
 		bz_unreachable;
 	}
@@ -4819,7 +4804,7 @@ static expr_value generate_expr_code(
 	case ast::expr_t::index<ast::expr_unary_op>:
 		return generate_expr_code(expr.get<ast::expr_unary_op>(), context, result_address);
 	case ast::expr_t::index<ast::expr_binary_op>:
-		return generate_expr_code(original_expression, expr.get<ast::expr_binary_op>(), context, result_address);
+		return generate_expr_code(expr.get<ast::expr_binary_op>(), context, result_address);
 	case ast::expr_t::index<ast::expr_tuple_subscript>:
 		return generate_expr_code(expr.get<ast::expr_tuple_subscript>(), context, result_address);
 	case ast::expr_t::index<ast::expr_rvalue_tuple_subscript>:
