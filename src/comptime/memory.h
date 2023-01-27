@@ -133,16 +133,24 @@ struct global_object
 	) const;
 };
 
-struct bitset
+struct memory_properties
 {
-	bz::fixed_vector<uint8_t> bits;
+	bz::fixed_vector<uint8_t> data;
 
-	bitset(void) = default;
-	bitset(size_t size, bool value);
+	enum property : uint8_t
+	{
+		is_alive   = 1u << 0,
+		is_padding = 1u << 1,
+	};
 
-	void set_range(size_t begin, size_t end, bool value);
-	bool is_all(size_t begin, size_t end) const;
-	bool is_none(size_t begin, size_t end) const;
+	memory_properties(void) = default;
+	memory_properties(type const *object_type, size_t size, uint8_t bits);
+
+	bool is_all(size_t begin, size_t end, uint8_t bits) const;
+	bool is_none(size_t begin, size_t end, uint8_t bits) const;
+
+	void set_range(size_t begin, size_t end, uint8_t bits);
+	void erase_range(size_t begin, size_t end, uint8_t bits);
 
 	void clear(void);
 };
@@ -152,7 +160,7 @@ struct stack_object
 	ptr_t address;
 	type const *object_type;
 	bz::fixed_vector<uint8_t> memory;
-	bitset is_alive_bitset;
+	memory_properties properties;
 
 	lex::src_tokens object_src_tokens;
 
@@ -191,7 +199,7 @@ struct heap_object
 	type const *elem_type;
 	size_t count;
 	bz::fixed_vector<uint8_t> memory;
-	bitset is_alive_bitset;
+	memory_properties properties;
 
 	heap_object(ptr_t address, type const *elem_type, uint64_t count);
 

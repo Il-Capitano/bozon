@@ -295,7 +295,7 @@ struct codegen_context
 	expr_value create_array_gep(expr_value value, expr_value index);
 	expr_value create_array_slice_gep(expr_value begin_ptr, expr_value index, type const *elem_type);
 	instruction_ref create_const_memcpy(expr_value dest, expr_value source, size_t size);
-	instruction_ref create_const_memset_zero(expr_value dest, size_t size);
+	instruction_ref create_const_memset_zero(expr_value dest);
 
 	expr_value create_function_call(lex::src_tokens const &src_tokens, function const *func, bz::fixed_vector<instruction_ref> args);
 	expr_value create_malloc(lex::src_tokens const &src_tokens, type const *type, expr_value count);

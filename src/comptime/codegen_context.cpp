@@ -742,6 +742,7 @@ void codegen_context::create_string(lex::src_tokens const &src_tokens, bz::u8str
 	bz_assert(result_address.get_type() == this->get_str_t());
 	this->create_store(str_begin_ptr, this->create_struct_gep(result_address, 0));
 	this->create_store(str_end_ptr,   this->create_struct_gep(result_address, 1));
+	this->create_start_lifetime(result_address);
 }
 
 expr_value codegen_context::create_string(lex::src_tokens const &src_tokens, bz::u8string_view str)
@@ -1042,9 +1043,7 @@ expr_value codegen_context::create_alloca(lex::src_tokens const &src_tokens, typ
 		.bb_index = instruction_ref::alloca_bb_index,
 		.inst_index = static_cast<uint32_t>(this->current_function_info.allocas.size() - 1),
 	};
-	auto const result = expr_value::get_reference(alloca_ref, type);
-	this->create_start_lifetime(result);
-	return result;
+	return expr_value::get_reference(alloca_ref, type);
 }
 
 expr_value codegen_context::create_alloca_without_lifetime(type const *type)
@@ -1221,11 +1220,11 @@ instruction_ref codegen_context::create_const_memcpy(expr_value dest, expr_value
 	return add_instruction(*this, instructions::const_memcpy{ .size = size }, dest.get_reference(), source.get_reference());
 }
 
-instruction_ref codegen_context::create_const_memset_zero(expr_value dest, size_t size)
+instruction_ref codegen_context::create_const_memset_zero(expr_value dest)
 {
 	bz_assert(dest.is_reference());
 
-	return add_instruction(*this, instructions::const_memset_zero{ .size = size }, dest.get_reference());
+	return add_instruction(*this, instructions::const_memset_zero{ .size = dest.get_type()->size }, dest.get_reference());
 }
 
 expr_value codegen_context::create_function_call(lex::src_tokens const &src_tokens, function const *func, bz::fixed_vector<instruction_ref> args)

@@ -121,6 +121,7 @@ static expr_value value_or_result_address(expr_value value, bz::optional<expr_va
 	if (result_address.has_value())
 	{
 		context.create_store(value, result_address.get());
+		context.create_start_lifetime(result_address.get());
 		return result_address.get();
 	}
 	else
@@ -260,6 +261,12 @@ static expr_value get_optional_has_value(expr_value opt_value, codegen_context &
 	{
 		return context.create_struct_gep(opt_value, 1);
 	}
+}
+
+static expr_value get_optional_has_value_ref(expr_value opt_value, codegen_context &context)
+{
+	bz_assert(opt_value.get_type()->is_aggregate());
+	return context.create_struct_gep(opt_value, 1);
 }
 
 static void set_optional_has_value(expr_value opt_value, bool has_value, codegen_context &context)
@@ -529,7 +536,9 @@ static expr_value generate_builtin_binary_bool_and(
 	auto const &result_value = result_address.get();
 
 	auto const lhs_prev_info = context.push_expression_scope();
-	auto const lhs_value = generate_expr_code(lhs, context, result_value).get_value(context);
+	auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+	context.create_store(lhs_value, result_value);
+	context.create_start_lifetime(result_value);
 	context.pop_expression_scope(lhs_prev_info);
 	auto const lhs_bb_end = context.get_current_basic_block();
 
@@ -537,7 +546,8 @@ static expr_value generate_builtin_binary_bool_and(
 	context.set_current_basic_block(rhs_bb);
 
 	auto const rhs_prev_info = context.push_expression_scope();
-	generate_expr_code(rhs, context, result_value); // we don't need the value of this
+	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+	context.create_store(rhs_value, result_value);
 	context.pop_expression_scope(rhs_prev_info);
 	auto const rhs_bb_end = context.get_current_basic_block();
 
@@ -585,7 +595,9 @@ static expr_value generate_builtin_binary_bool_or(
 	auto const &result_value = result_address.get();
 
 	auto const lhs_prev_info = context.push_expression_scope();
-	auto const lhs_value = generate_expr_code(lhs, context, result_value).get_value(context);
+	auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
+	context.create_store(lhs_value, result_value);
+	context.create_start_lifetime(result_value);
 	context.pop_expression_scope(lhs_prev_info);
 	auto const lhs_bb_end = context.get_current_basic_block();
 
@@ -593,7 +605,8 @@ static expr_value generate_builtin_binary_bool_or(
 	context.set_current_basic_block(rhs_bb);
 
 	auto const rhs_prev_info = context.push_expression_scope();
-	generate_expr_code(rhs, context, result_value); // we don't need the value of this
+	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
+	context.create_store(rhs_value, result_value);
 	context.pop_expression_scope(rhs_prev_info);
 	auto const rhs_bb_end = context.get_current_basic_block();
 
@@ -3144,6 +3157,7 @@ static expr_value generate_expr_code(
 		auto const end_ptr_value = expr_value::get_value(end_ptr, context.get_pointer_type());
 		context.create_store(begin_ptr_value, context.create_struct_gep(result_value, 0));
 		context.create_store(end_ptr_value, context.create_struct_gep(result_value, 1));
+		context.create_start_lifetime(result_value);
 		return result_value;
 	}
 	else
@@ -3159,20 +3173,29 @@ static expr_value generate_expr_code(
 	bz::optional<expr_value> result_address
 )
 {
-	if (!result_address.has_value())
+	if (optional_cast.type.is_optional_pointer_like())
 	{
-		bz_assert(optional_cast.type.is<ast::ts_optional>());
-		auto const type = get_type(optional_cast.type, context);
-		result_address = context.create_alloca(original_expression.src_tokens, type);
+		return generate_expr_code(optional_cast.expr, context, result_address);
 	}
+	else
+	{
+		if (!result_address.has_value())
+		{
+			bz_assert(optional_cast.type.is<ast::ts_optional>());
+			auto const type = get_type(optional_cast.type, context);
 
-	auto const &result_value = result_address.get();
+			result_address = context.create_alloca(original_expression.src_tokens, type);
+		}
 
-	auto const opt_value = get_optional_value(result_value, context);
-	generate_expr_code(optional_cast.expr, context, opt_value);
-	set_optional_has_value(result_value, true, context);
+		auto const &result_value = result_address.get();
 
-	return result_value;
+		auto const opt_value = get_optional_value(result_value, context);
+		generate_expr_code(optional_cast.expr, context, opt_value);
+		set_optional_has_value(result_value, true, context);
+		context.create_start_lifetime(get_optional_has_value_ref(result_value, context));
+
+		return result_value;
+	}
 }
 
 static expr_value generate_expr_code(
@@ -3203,6 +3226,7 @@ static expr_value generate_expr_code(
 		{
 			auto const alloca = context.create_alloca(original_expression.src_tokens, result.get_type());
 			context.create_store(result, alloca);
+			context.create_start_lifetime(alloca);
 			context.push_end_lifetime(alloca);
 			return alloca;
 		}
@@ -3327,14 +3351,9 @@ static expr_value generate_expr_code(
 )
 {
 	auto const is_ptr = optional_default_construct.type.is_optional_pointer_like();
-	if (is_ptr && !result_address.has_value())
+	if (is_ptr)
 	{
-		return context.create_const_ptr_null();
-	}
-	else if (is_ptr)
-	{
-		context.create_store(context.create_const_ptr_null(), result_address.get());
-		return result_address.get();
+		return value_or_result_address(context.create_const_ptr_null(), result_address, context);
 	}
 	else
 	{
@@ -3346,6 +3365,7 @@ static expr_value generate_expr_code(
 
 		auto const &result_value = result_address.get();
 		set_optional_has_value(result_value, false, context);
+		context.create_start_lifetime(get_optional_has_value_ref(result_value, context));
 		return result_value;
 	}
 }
@@ -3365,10 +3385,8 @@ static expr_value generate_expr_code(
 	}
 
 	auto const &result_value = result_address.get();
-	auto const null_value = context.create_const_ptr_null();
-	context.create_store(null_value, context.create_struct_gep(result_value, 0));
-	context.create_store(null_value, context.create_struct_gep(result_value, 1));
-
+	context.create_const_memset_zero(result_value);
+	context.create_start_lifetime(result_value);
 	return result_value;
 }
 
@@ -3447,6 +3465,7 @@ static expr_value generate_expr_code(
 
 	auto const has_value = get_optional_has_value(copied_val, context);
 	set_optional_has_value(result_value, has_value, context);
+	context.create_start_lifetime(get_optional_has_value_ref(result_value, context));
 	auto const begin_bb = context.get_current_basic_block();
 
 	auto const copy_bb = context.add_basic_block();
@@ -3484,6 +3503,7 @@ static expr_value generate_expr_code(
 
 		auto const &result_value = result_address.get();
 		generate_value_copy(copied_val, result_value, context);
+		context.create_start_lifetime(result_value);
 		return result_value;
 	}
 	else
@@ -3569,6 +3589,7 @@ static expr_value generate_expr_code(
 
 	auto const has_value = get_optional_has_value(moved_val, context);
 	set_optional_has_value(result_value, has_value, context);
+	context.create_start_lifetime(get_optional_has_value_ref(result_value, context));
 	auto const begin_bb = context.get_current_basic_block();
 
 	auto const copy_bb = context.add_basic_block();
@@ -3614,6 +3635,7 @@ static expr_value generate_expr_code(
 
 		auto const &result_value = result_address.get();
 		context.create_const_memcpy(result_value, value, type->size);
+		context.create_start_lifetime(result_value);
 		return result_value;
 	}
 }
@@ -3630,12 +3652,16 @@ static expr_value generate_expr_code(
 
 	for (auto const i : bz::iota(0, aggregate_destruct.elem_destruct_calls.size()).reversed())
 	{
+		auto const elem_value = context.create_struct_gep(value, i);
 		if (aggregate_destruct.elem_destruct_calls[i].not_null())
 		{
-			auto const elem_value = context.create_struct_gep(value, i);
 			auto const prev_value = context.push_value_reference(elem_value);
 			generate_expr_code(aggregate_destruct.elem_destruct_calls[i], context, {});
 			context.pop_value_reference(prev_value);
+		}
+		else
+		{
+			context.create_end_lifetime(elem_value);
 		}
 	}
 
@@ -3686,6 +3712,9 @@ static expr_value generate_expr_code(
 	context.create_conditional_jump(has_value, destruct_bb, end_bb);
 	context.set_current_basic_block(end_bb);
 
+	bz_assert(value.get_type()->is_aggregate());
+	context.create_end_lifetime(get_optional_has_value_ref(value, context));
+
 	return expr_value::get_none();
 }
 
@@ -3708,12 +3737,16 @@ static expr_value generate_expr_code(
 
 	for (auto const i : bz::iota(0, base_type_destruct.member_destruct_calls.size()).reversed())
 	{
+		auto const elem_value = context.create_struct_gep(value, i);
 		if (base_type_destruct.member_destruct_calls[i].not_null())
 		{
-			auto const elem_value = context.create_struct_gep(value, i);
 			auto const prev_value = context.push_value_reference(elem_value);
 			generate_expr_code(base_type_destruct.member_destruct_calls[i], context, {});
 			context.pop_value_reference(prev_value);
+		}
+		else
+		{
+			context.create_end_lifetime(elem_value);
 		}
 	}
 
@@ -3731,6 +3764,10 @@ static expr_value generate_expr_code(
 		auto const prev_value = context.push_value_reference(value);
 		generate_expr_code(destruct_value.destruct_call, context, {});
 		context.pop_value_reference(prev_value);
+	}
+	else
+	{
+		context.create_end_lifetime(value);
 	}
 
 	return expr_value::get_none();
@@ -3942,6 +3979,7 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_base_type_swap const &base_type_swap,
 	codegen_context &context
 )
@@ -3952,7 +3990,7 @@ static expr_value generate_expr_code(
 
 	bz_assert(lhs.get_type() == rhs.get_type());
 	auto const type = lhs.get_type();
-	auto const temp = context.create_alloca_without_lifetime(type);
+	auto const temp = context.create_alloca(original_expression.src_tokens, type);
 
 	// temp = move lhs
 	{
@@ -4125,6 +4163,8 @@ static expr_value generate_expr_code(
 {
 	auto const rhs = generate_expr_code(optional_assign.rhs, context, {});
 	auto const lhs = generate_expr_code(optional_assign.lhs, context, {});
+	bz_assert(!lhs.get_type()->is_pointer());
+
 	auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
 
 	auto const lhs_has_value = get_optional_has_value(lhs, context).get_value(context);
@@ -4186,7 +4226,11 @@ static expr_value generate_expr_code(
 	auto const lhs = generate_expr_code(optional_null_assign.lhs, context, {});
 	bz_assert(lhs.is_reference());
 
-	if (optional_null_assign.value_destruct_expr.not_null())
+	if (lhs.get_type()->is_pointer())
+	{
+		context.create_store(context.create_const_ptr_null(), lhs);
+	}
+	else if (optional_null_assign.value_destruct_expr.not_null())
 	{
 		auto const has_value = get_optional_has_value(lhs, context).get_value(context);
 		auto const begin_bb = context.get_current_basic_block();
@@ -4223,6 +4267,12 @@ static expr_value generate_expr_code(
 {
 	auto const rhs = generate_expr_code(optional_value_assign.rhs, context, {});
 	auto const lhs = generate_expr_code(optional_value_assign.lhs, context, {});
+
+	if (lhs.get_type()->is_pointer())
+	{
+		context.create_store(rhs, lhs);
+		return lhs;
+	}
 
 	auto const has_value = get_optional_has_value(lhs, context).get_value(context);
 	auto const begin_bb = context.get_current_basic_block();
@@ -4846,7 +4896,7 @@ static expr_value generate_expr_code(
 		return generate_expr_code(expr.get<ast::expr_optional_swap>(), context);
 	case ast::expr_t::index<ast::expr_base_type_swap>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(expr.get<ast::expr_base_type_swap>(), context);
+		return generate_expr_code(original_expression, expr.get<ast::expr_base_type_swap>(), context);
 	case ast::expr_t::index<ast::expr_trivial_swap>:
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(expr.get<ast::expr_trivial_swap>(), context);
@@ -5020,7 +5070,8 @@ static void get_constant_array_value(
 {
 	if (values.is_all([](auto const &value) { return is_zero_value(value); }))
 	{
-		context.create_const_memset_zero(result_address, result_address.get_type()->size);
+		context.create_const_memset_zero(result_address);
+		context.create_start_lifetime(result_address);
 	}
 	else
 	{
@@ -5078,7 +5129,8 @@ static void get_constant_sint_array_value(
 {
 	if (values.is_all([](auto const value) { return value == 0; }))
 	{
-		context.create_const_memset_zero(result_address, result_address.get_type()->size);
+		context.create_const_memset_zero(result_address);
+		context.create_start_lifetime(result_address);
 	}
 	else
 	{
@@ -5109,6 +5161,7 @@ static void get_constant_sint_array_value(
 		default:
 			bz_unreachable;
 		}
+		context.create_start_lifetime(result_address);
 	}
 }
 
@@ -5121,7 +5174,8 @@ static void get_constant_uint_array_value(
 {
 	if (values.is_all([](auto const value) { return value == 0; }))
 	{
-		context.create_const_memset_zero(result_address, result_address.get_type()->size);
+		context.create_const_memset_zero(result_address);
+		context.create_start_lifetime(result_address);
 	}
 	else
 	{
@@ -5152,6 +5206,7 @@ static void get_constant_uint_array_value(
 		default:
 			bz_unreachable;
 		}
+		context.create_start_lifetime(result_address);
 	}
 }
 
@@ -5164,13 +5219,15 @@ static void get_constant_float32_array_value(
 {
 	if (values.is_all([](auto const value) { return bit_cast<uint32_t>(value) == 0; }))
 	{
-		context.create_const_memset_zero(result_address, result_address.get_type()->size);
+		context.create_const_memset_zero(result_address);
+		context.create_start_lifetime(result_address);
 	}
 	else
 	{
 		get_nonzero_constant_numeric_array_value<
 			float32_t, &codegen_context::create_const_f32
 		>(values, array_type, context, result_address);
+		context.create_start_lifetime(result_address);
 	}
 }
 
@@ -5183,13 +5240,15 @@ static void get_constant_float64_array_value(
 {
 	if (values.is_all([](auto const value) { return bit_cast<uint64_t>(value) == 0; }))
 	{
-		context.create_const_memset_zero(result_address, result_address.get_type()->size);
+		context.create_const_memset_zero(result_address);
+		context.create_start_lifetime(result_address);
 	}
 	else
 	{
 		get_nonzero_constant_numeric_array_value<
 			float64_t, &codegen_context::create_const_f64
 		>(values, array_type, context, result_address);
+		context.create_start_lifetime(result_address);
 	}
 }
 
@@ -5276,7 +5335,7 @@ static expr_value get_constant_value_helper(
 	{
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca_without_lifetime(context.get_str_t());
+			result_address = context.create_alloca(src_tokens, context.get_str_t());
 		}
 
 		auto const &result_value = result_address.get();
@@ -5287,7 +5346,8 @@ static expr_value get_constant_value_helper(
 		// structs with a default value of "" get to be zero initialized
 		if (str == "")
 		{
-			context.create_const_memset_zero(result_value, result_value.get_type()->size);
+			context.create_const_memset_zero(result_value);
+			context.create_start_lifetime(result_value);
 		}
 		else
 		{
@@ -5303,22 +5363,18 @@ static expr_value get_constant_value_helper(
 			type_without_const.is_optional_pointer_like() && !result_address.has_value()
 		)
 		{
-			return context.create_const_ptr_null();
+			return value_or_result_address(context.create_const_ptr_null(), result_address, context);
 		}
 		else
 		{
 			if (!result_address.has_value())
 			{
-				auto const type = get_type(type_without_const, context);
-				result_address = context.create_alloca_without_lifetime(type);
+				result_address = context.create_alloca(src_tokens, get_type(type_without_const, context));
 			}
 
 			auto const &result_value = result_address.get();
-			// could also be __null_t
-			if (type_without_const.is<ast::ts_optional>())
-			{
-				set_optional_has_value(result_value, false, context);
-			}
+			context.create_const_memset_zero(result_value);
+			context.create_start_lifetime(result_value);
 			return result_value;
 		}
 	case ast::constant_value::void_:
@@ -5367,7 +5423,7 @@ static expr_value get_constant_value_helper(
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca_without_lifetime(get_type(array_type, context));
+			result_address = context.create_alloca(src_tokens, get_type(array_type, context));
 		}
 		get_constant_array_value(
 			src_tokens,
@@ -5384,7 +5440,7 @@ static expr_value get_constant_value_helper(
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca_without_lifetime(get_type(array_type, context));
+			result_address = context.create_alloca(src_tokens, get_type(array_type, context));
 		}
 		get_constant_sint_array_value(
 			value.get_sint_array(),
@@ -5400,7 +5456,7 @@ static expr_value get_constant_value_helper(
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca_without_lifetime(get_type(array_type, context));
+			result_address = context.create_alloca(src_tokens, get_type(array_type, context));
 		}
 		get_constant_uint_array_value(
 			value.get_uint_array(),
@@ -5416,7 +5472,7 @@ static expr_value get_constant_value_helper(
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca_without_lifetime(get_type(array_type, context));
+			result_address = context.create_alloca(src_tokens, get_type(array_type, context));
 		}
 		get_constant_float32_array_value(
 			value.get_float32_array(),
@@ -5432,7 +5488,7 @@ static expr_value get_constant_value_helper(
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca_without_lifetime(get_type(array_type, context));
+			result_address = context.create_alloca(src_tokens, get_type(array_type, context));
 		}
 		get_constant_float64_array_value(
 			value.get_float64_array(),
@@ -5446,7 +5502,7 @@ static expr_value get_constant_value_helper(
 	{
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca_without_lifetime(get_tuple_type(type, const_expr, context));
+			result_address = context.create_alloca(src_tokens, get_tuple_type(type, const_expr, context));
 		}
 
 		auto const &result_value = result_address.get();
@@ -5489,7 +5545,7 @@ static expr_value get_constant_value_helper(
 		auto const info = ast::remove_const_or_consteval(type).get<ast::ts_base_type>().info;
 		if (!result_address.has_value())
 		{
-			result_address = context.create_alloca_without_lifetime(get_type(type, context));
+			result_address = context.create_alloca(src_tokens, get_type(type, context));
 		}
 
 		auto const &result_value = result_address.get();
@@ -5524,15 +5580,20 @@ static expr_value get_constant_value(
 		{
 			return context.create_const_ptr_null();
 		}
+		else if (type.is_optional_pointer_like())
+		{
+			return value_or_result_address(context.create_const_ptr_null(), result_address, context);
+		}
 		else
 		{
 			if (!result_address.has_value())
 			{
-				result_address = context.create_alloca_without_lifetime(get_type(type, context));
+				result_address = context.create_alloca(src_tokens, get_type(type, context));
 			}
 
 			auto const &result_value = result_address.get();
-			set_optional_has_value(result_value, false, context);
+			context.create_const_memset_zero(result_value);
+			context.create_start_lifetime(get_optional_has_value_ref(result_value, context));
 			return result_value;
 		}
 	}
@@ -5546,7 +5607,7 @@ static expr_value get_constant_value(
 		{
 			if (!result_address.has_value())
 			{
-				result_address = context.create_alloca_without_lifetime(get_type(type, context));
+				result_address = context.create_alloca(src_tokens, get_type(type, context));
 			}
 
 			auto const &result_value = result_address.get();
@@ -5559,6 +5620,7 @@ static expr_value get_constant_value(
 				get_optional_value(result_value, context)
 			);
 			set_optional_has_value(result_value, true, context);
+			context.create_start_lifetime(get_optional_has_value_ref(result_value, context));
 			return result_value;
 		}
 	}
@@ -6083,6 +6145,7 @@ void generate_code(function &func, codegen_context &context)
 			auto const alloca = context.create_alloca(param.src_tokens, type);
 			auto const value = expr_value::get_value(context.create_get_function_arg(i), type);
 			context.create_store(value, alloca);
+			context.create_start_lifetime(alloca);
 			add_variable_helper(param, alloca, false, context);
 		}
 		else
@@ -6174,7 +6237,7 @@ function generate_code_for_expression(ast::expression const &expr, codegen_conte
 	{
 		func.return_type = context.get_pointer_type();
 
-		auto const result_address = context.create_alloca_without_lifetime(get_type(expr_type, context));
+		auto const result_address = context.create_alloca(expr.src_tokens, get_type(expr_type, context));
 		auto const prev_info = context.push_expression_scope();
 		generate_expr_code(expr, context, result_address);
 		context.pop_expression_scope(prev_info);
@@ -6253,7 +6316,6 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 
 	if (destruct_op.is<ast::destruct_variable>())
 	{
-		auto const &value = destruct_op_info.value;
 		bz_assert(destruct_op.get<ast::destruct_variable>().destruct_call->not_null());
 		if (condition.has_value())
 		{
@@ -6267,7 +6329,6 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 			auto const destruct_bb = context.add_basic_block();
 			context.set_current_basic_block(destruct_bb);
 			generate_expr_code(*destruct_op.get<ast::destruct_variable>().destruct_call, context, {});
-			context.create_end_lifetime(value);
 
 			auto const end_bb = context.add_basic_block();
 			context.create_jump(end_bb);
@@ -6280,7 +6341,6 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 		else
 		{
 			generate_expr_code(*destruct_op.get<ast::destruct_variable>().destruct_call, context, {});
-			context.create_end_lifetime(value);
 		}
 	}
 	else if (destruct_op.is<ast::destruct_self>())
@@ -6303,7 +6363,6 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 			auto const prev_value = context.push_value_reference(value);
 			generate_expr_code(*destruct_op.get<ast::destruct_self>().destruct_call, context, {});
 			context.pop_value_reference(prev_value);
-			context.create_end_lifetime(value);
 
 			auto const end_bb = context.add_basic_block();
 			context.create_jump(end_bb);
@@ -6318,7 +6377,6 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 			auto const prev_value = context.push_value_reference(value);
 			generate_expr_code(*destruct_op.get<ast::destruct_self>().destruct_call, context, {});
 			context.pop_value_reference(prev_value);
-			context.create_end_lifetime(value);
 		}
 	}
 	else if (destruct_op.is<ast::defer_expression>())

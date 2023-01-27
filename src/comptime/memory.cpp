@@ -350,160 +350,119 @@ bz::optional<int64_t> global_object::do_pointer_difference(
 	}
 }
 
-bitset::bitset(size_t size, bool value)
-	: bits(size % 8 == 0 ? (size / 8) : (size / 8 + 1), value ? 0xff : 0x00)
-{}
+static void fill_padding_array(bz::array_view<uint8_t> data, type const *object_type, size_t size);
 
-void bitset::set_range(size_t begin, size_t end, bool value)
+static void fill_padding_single(bz::array_view<uint8_t> data, type const *object_type)
 {
-	if (begin >= end)
+	bz_assert(data.size() == object_type->size);
+	if (!object_type->has_padding())
 	{
 		return;
 	}
-
-	if (begin % 8 == 0 && end % 8 == 0)
+	else if (object_type->is_aggregate())
 	{
-		auto const begin_ptr = this->bits.data() + begin / 8;
-		auto const size = (end - begin) / 8;
-		if (value)
+		auto const types = object_type->get_aggregate_types();
+		auto const offsets = object_type->get_aggregate_offsets();
+		for (auto const i : bz::iota(0, types.size() - 1))
 		{
-			std::memset(begin_ptr, 0xff, size);
-		}
-		else
-		{
-			std::memset(begin_ptr, 0x00, size);
-		}
-		return;
-	}
-
-	auto const begin_byte = this->bits.begin() + begin / 8;
-	auto const end_byte = this->bits.begin() + (end - 1) / 8;
-
-	if (begin_byte == end_byte)
-	{
-		auto const begin_bit_index = 8 - begin % 8;
-		auto const end_bit_index = 8 - ((end - 1) % 8 + 1);
-		auto const begin_bits = static_cast<uint8_t>((1 << begin_bit_index) - 1);
-		auto const end_bits = static_cast<uint8_t>(~((1 << end_bit_index) - 1));
-		auto const bits = static_cast<uint8_t>(begin_bits & end_bits);
-		if (value)
-		{
-			*begin_byte |= bits;
-		}
-		else
-		{
-			*begin_byte &= ~bits;
+			auto const elem_type = types[i];
+			fill_padding_single(data.slice(0, elem_type->size), elem_type);
+			auto const offset = offsets[i];
+			auto const next_offset = offsets[i + 1];
+			if (offset + elem_type->size != next_offset)
+			{
+				for (auto &value : data.slice(offset + elem_type->size, next_offset))
+				{
+					value |= memory_properties::is_padding;
+				}
+			}
 		}
 	}
-	else
+	else if (object_type->is_array())
 	{
-		auto const begin_bit_index = 8 - begin % 8;
-		auto const end_bit_index = 8 - ((end - 1) % 8 + 1);
-		auto const begin_bits = static_cast<uint8_t>((1 << begin_bit_index) - 1);
-		auto const end_bits = static_cast<uint8_t>(~((1 << end_bit_index) - 1));
-		if (value)
+		fill_padding_array(data, object_type->get_array_element_type(), object_type->get_array_size());
+	}
+}
+
+static void fill_padding_array(bz::array_view<uint8_t> data, type const *object_type, size_t size)
+{
+	bz_assert(object_type->has_padding());
+	auto const object_size = object_type->size;
+	fill_padding_single(data.slice(0, object_size), object_type);
+
+	for (auto const i : bz::iota(object_size, size * object_size))
+	{
+		data[i] |= (data[i - object_size] & memory_properties::is_padding);
+	}
+}
+
+memory_properties::memory_properties(type const *object_type, size_t size, uint8_t bits)
+	: data(size, bits)
+{
+	if (object_type->has_padding())
+	{
+		if (size == object_type->size)
 		{
-			*begin_byte |= begin_bits;
-			*end_byte |= end_bits;
-			std::memset(&*(begin_byte + 1), 0xff, end_byte - (begin_byte + 1));
+			fill_padding_single(data, object_type);
 		}
 		else
 		{
-			*begin_byte &= ~begin_bits;
-			*end_byte &= ~end_bits;
-			std::memset(&*(begin_byte + 1), 0x00, end_byte - (begin_byte + 1));
+			bz_assert(size % object_type->size == 0);
+			fill_padding_array(data, object_type, size / object_type->size);
 		}
 	}
 }
 
-bool bitset::is_all(size_t begin, size_t end) const
+bool memory_properties::is_all(size_t begin, size_t end, uint8_t bits) const
 {
-	if (begin >= end)
+	for (auto const value : this->data.slice(begin, end))
 	{
-		return true;
-	}
-
-	if (begin % 8 == 0 && end % 8 == 0)
-	{
-		return this->bits.slice(begin / 8, end / 8).is_all([](auto const byte) { return byte == 0xff; });
-	}
-
-	auto const begin_byte = this->bits.begin() + begin / 8;
-	auto const end_byte = this->bits.begin() + (end - 1) / 8;
-
-	if (begin_byte == end_byte)
-	{
-		auto const begin_bit_index = 8 - begin % 8;
-		auto const end_bit_index = 8 - ((end - 1) % 8 + 1);
-		auto const begin_bits = static_cast<uint8_t>((1 << begin_bit_index) - 1);
-		auto const end_bits = static_cast<uint8_t>(~((1 << end_bit_index) - 1));
-		auto const bits = static_cast<uint8_t>(begin_bits & end_bits);
-		return (*begin_byte & bits) == bits;
-	}
-	else
-	{
-		auto const begin_bit_index = 8 - begin % 8;
-		auto const end_bit_index = 8 - ((end - 1) % 8 + 1);
-		auto const begin_bits = static_cast<uint8_t>((1 << begin_bit_index) - 1);
-		auto const end_bits = static_cast<uint8_t>(~((1 << end_bit_index) - 1));
-		if ((*begin_byte & begin_bits) != begin_bits || (*end_byte & end_bits) != end_bits)
+		if ((value & bits) == 0)
 		{
 			return false;
 		}
-
-		return bz::basic_range(begin_byte + 1, end_byte).is_all([](auto const byte) { return byte == 0xff; });
 	}
+	return true;
 }
 
-bool bitset::is_none(size_t begin, size_t end) const
+bool memory_properties::is_none(size_t begin, size_t end, uint8_t bits) const
 {
-	if (begin >= end)
+	for (auto const value : this->data.slice(begin, end))
 	{
-		return true;
-	}
-
-	if (begin % 8 == 0 && end % 8 == 0)
-	{
-		return this->bits.slice(begin / 8, end / 8).is_all([](auto const byte) { return byte == 0x00; });
-	}
-
-	auto const begin_byte = this->bits.begin() + begin / 8;
-	auto const end_byte = this->bits.begin() + (end - 1) / 8;
-
-	if (begin_byte == end_byte)
-	{
-		auto const begin_bit_index = 8 - begin % 8;
-		auto const end_bit_index = 8 - ((end - 1) % 8 + 1);
-		auto const begin_bits = static_cast<uint8_t>((1 << begin_bit_index) - 1);
-		auto const end_bits = static_cast<uint8_t>(~((1 << end_bit_index) - 1));
-		auto const bits = static_cast<uint8_t>(begin_bits & end_bits);
-		return (*begin_byte & ~bits) == 0;
-	}
-	else
-	{
-		auto const begin_bit_index = 8 - begin % 8;
-		auto const end_bit_index = 8 - ((end - 1) % 8 + 1);
-		auto const begin_bits = static_cast<uint8_t>((1 << begin_bit_index) - 1);
-		auto const end_bits = static_cast<uint8_t>(~((1 << end_bit_index) - 1));
-		if ((*begin_byte & ~begin_bits) != 0 || (*end_byte & ~end_bits) != 0)
+		if ((value & bits) != 0)
 		{
 			return false;
 		}
+	}
+	return true;
+}
 
-		return bz::basic_range(begin_byte + 1, end_byte).is_all([](auto const byte) { return byte == 0x00; });
+void memory_properties::set_range(size_t begin, size_t end, uint8_t bits)
+{
+	for (auto &value : this->data.slice(begin, end))
+	{
+		value |= bits;
 	}
 }
 
-void bitset::clear(void)
+void memory_properties::erase_range(size_t begin, size_t end, uint8_t bits)
 {
-	this->bits.clear();
+	for (auto &value : this->data.slice(begin, end))
+	{
+		value &= ~bits;
+	}
+}
+
+void memory_properties::clear(void)
+{
+	this->data.clear();
 }
 
 stack_object::stack_object(lex::src_tokens const &_object_src_tokens, ptr_t _address, type const *_object_type, bool is_always_initialized)
 	: address(_address),
 	  object_type(_object_type),
 	  memory(_object_type->size, 0),
-	  is_alive_bitset(_object_type->size, is_always_initialized),
+	  properties(_object_type, _object_type->size, is_always_initialized ? memory_properties::is_alive : 0),
 	  object_src_tokens(_object_src_tokens)
 {}
 
@@ -514,19 +473,23 @@ size_t stack_object::object_size(void) const
 
 void stack_object::start_lifetime(ptr_t begin, ptr_t end)
 {
-	bz_assert(this->is_alive_bitset.is_none(begin - this->address, end - this->address));
-	this->is_alive_bitset.set_range(begin - this->address, end - this->address, true);
+	bz_assert(this->properties.is_none(begin - this->address, end - this->address, memory_properties::is_alive));
+	this->properties.set_range(begin - this->address, end - this->address, memory_properties::is_alive);
 }
 
 void stack_object::end_lifetime(ptr_t begin, ptr_t end)
 {
-	bz_assert(this->is_alive_bitset.is_all(begin - this->address, end - this->address));
-	this->is_alive_bitset.set_range(begin - this->address, end - this->address, false);
+	bz_assert(this->is_alive(begin, end));
+	this->properties.erase_range(begin - this->address, end - this->address, memory_properties::is_alive);
 }
 
 bool stack_object::is_alive(ptr_t begin, ptr_t end) const
 {
-	return this->is_alive_bitset.is_all(begin - this->address, end - this->address);
+	return this->properties.is_all(
+		begin - this->address,
+		end - this->address,
+		memory_properties::is_alive | memory_properties::is_padding
+	);
 }
 
 uint8_t *stack_object::get_memory(ptr_t address)
@@ -716,11 +679,11 @@ heap_object::heap_object(ptr_t _address, type const *_elem_type, size_t _count)
 	  elem_type(_elem_type),
 	  count(_count),
 	  memory(),
-	  is_alive_bitset()
+	  properties()
 {
 	auto const size = this->elem_type->size * this->count;
 	this->memory = bz::fixed_vector<uint8_t>(size, 0);
-	this->is_alive_bitset = bitset(size, false);
+	this->properties = memory_properties(this->elem_type, size, 0);
 }
 
 size_t heap_object::object_size(void) const
@@ -735,17 +698,23 @@ size_t heap_object::elem_size(void) const
 
 void heap_object::start_lifetime(ptr_t begin, ptr_t end)
 {
-	this->is_alive_bitset.set_range(begin - this->address, end - this->address, true);
+	bz_assert(this->properties.is_none(begin - this->address, end - this->address, memory_properties::is_alive));
+	this->properties.set_range(begin - this->address, end - this->address, memory_properties::is_alive);
 }
 
 void heap_object::end_lifetime(ptr_t begin, ptr_t end)
 {
-	this->is_alive_bitset.set_range(begin - this->address, end - this->address, false);
+	bz_assert(this->is_alive(begin, end));
+	this->properties.erase_range(begin - this->address, end - this->address, memory_properties::is_alive);
 }
 
 bool heap_object::is_alive(ptr_t begin, ptr_t end) const
 {
-	return this->is_alive_bitset.is_all(begin - this->address, end - this->address);
+	return this->properties.is_all(
+		begin - this->address,
+		end - this->address,
+		memory_properties::is_alive | memory_properties::is_padding
+	);
 }
 
 uint8_t *heap_object::get_memory(ptr_t address)
@@ -1447,7 +1416,7 @@ free_result allocation::free(call_stack_info_t free_info)
 	}
 
 	this->object.memory.clear();
-	this->object.is_alive_bitset.clear();
+	this->object.properties.clear();
 	this->free_info = std::move(free_info);
 	this->is_freed = true;
 	return free_result::good;
@@ -2614,15 +2583,33 @@ int64_t memory_manager::do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, si
 	}
 }
 
-void memory_manager::start_lifetime(ptr_t address, size_t size)
+void memory_manager::start_lifetime(ptr_t _address, size_t size)
 {
-	address = remove_meta(address, *this).address;
-	bz_assert(this->segment_info.get_segment(address) == memory_segment::stack);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+	bz_assert(!is_finished_stack_frame);
+	bz_assert(!is_one_past_the_end);
 
-	auto const object = this->stack.get_stack_object(address);
-	bz_assert(object != nullptr);
-	bz_assert(address == object->address);
-	object->start_lifetime(address, address + size);
+	switch (segment)
+	{
+	case memory_segment::stack:
+	{
+		auto const object = this->stack.get_stack_object(address);
+		bz_assert(object != nullptr);
+		object->start_lifetime(address, address + size);
+		break;
+	}
+	case memory_segment::heap:
+	{
+		auto const allocation = this->heap.get_allocation(address);
+		bz_assert(allocation != nullptr);
+		bz_assert(!allocation->is_freed);
+		bz_assert(allocation->object.elem_size() == size);
+		allocation->object.start_lifetime(address, address + size);
+		break;
+	}
+	default:
+		bz_unreachable;
+	}
 }
 
 void memory_manager::end_lifetime(ptr_t address, size_t size)
