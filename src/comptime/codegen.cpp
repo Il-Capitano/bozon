@@ -296,6 +296,7 @@ static expr_value generate_expr_code(
 );
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_variable_name const &var_name,
 	codegen_context &context
 )
@@ -312,6 +313,11 @@ static expr_value generate_expr_code(
 		return context.get_dummy_value(type);
 	}
 
+	if (var_name.decl->get_type().is<ast::ts_lvalue_reference>())
+	{
+		auto const object_typespec = var_name.decl->get_type().get<ast::ts_lvalue_reference>();
+		context.create_memory_access_check(original_expression.src_tokens, result, object_typespec);
+	}
 	return result;
 }
 
@@ -747,7 +753,8 @@ static expr_value generate_expr_code(
 		auto const index = generate_expr_code(subscript.index, context, {}).get_value(context);
 		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type()).is<ast::ts_base_type>());
 		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
-		auto const elem_type = get_type(base_type.get<ast::ts_array_slice>().elem_type, context);
+		auto const elem_ts = base_type.get<ast::ts_array_slice>().elem_type;
+		auto const elem_type = get_type(elem_ts, context);
 
 		auto const begin_ptr = context.create_struct_gep(slice, 0).get_value(context);
 		auto const end_ptr   = context.create_struct_gep(slice, 1).get_value(context);
@@ -761,14 +768,18 @@ static expr_value generate_expr_code(
 				? context.create_int_cast(size, index_cast.get_type(), false)
 				: size;
 			context.create_array_bounds_check(src_tokens, index_cast, size_cast, is_index_signed);
-			return context.create_array_slice_gep(begin_ptr, index_cast, elem_type);
+			auto const result = context.create_array_slice_gep(begin_ptr, index_cast, elem_type);
+			context.create_memory_access_check(src_tokens, result, elem_ts);
+			return result;
 		}
 		else
 		{
 			auto const index_cast = context.create_int_cast(index, context.get_builtin_type(builtin_type_kind::i32), is_index_signed);
 			bz_assert(size.get_type() == index_cast.get_type());
 			context.create_array_bounds_check(src_tokens, index_cast, size, is_index_signed);
-			return context.create_array_slice_gep(begin_ptr, index_cast, elem_type);
+			auto const result = context.create_array_slice_gep(begin_ptr, index_cast, elem_type);
+			context.create_memory_access_check(src_tokens, result, elem_ts);
+			return result;
 		}
 	}
 	else
@@ -872,8 +883,9 @@ static expr_value generate_builtin_unary_dereference(
 		? type.get_optional_pointer()
 		: type.get<ast::ts_pointer>();
 	auto const object_type = get_type(object_typespec, context);
-	context.create_memory_access_check(original_expression.src_tokens, ptr_value, object_type, object_typespec);
-	return expr_value::get_reference(ptr_value.get_value_as_instruction(context), object_type);
+	auto const result = expr_value::get_reference(ptr_value.get_value_as_instruction(context), object_type);
+	context.create_memory_access_check(original_expression.src_tokens, result, object_typespec);
+	return result;
 }
 
 static expr_value generate_builtin_unary_bit_not(
@@ -4709,7 +4721,7 @@ static expr_value generate_expr_code(
 	static_assert(ast::expr_t::variant_count == 71);
 	case ast::expr_t::index<ast::expr_variable_name>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(expr.get<ast::expr_variable_name>(), context);
+		return generate_expr_code(original_expression, expr.get<ast::expr_variable_name>(), context);
 	case ast::expr_t::index<ast::expr_function_name>:
 		return generate_expr_code(expr.get<ast::expr_function_name>(), context, result_address);
 	case ast::expr_t::index<ast::expr_function_alias_name>:
@@ -5601,6 +5613,20 @@ static expr_value generate_expr_code(
 		bz_assert(result.kind == expr_value_kind::reference);
 		context.push_self_destruct_operation(dyn_expr.destruct_op, result);
 	}
+
+	if (
+		dyn_expr.kind == ast::expression_type_kind::lvalue_reference
+		&& (
+			dyn_expr.expr.is<ast::expr_compound>()
+			|| dyn_expr.expr.is<ast::expr_function_call>()
+			|| dyn_expr.expr.is<ast::expr_indirect_function_call>()
+		)
+	)
+	{
+		bz_assert(result.is_reference());
+		context.create_memory_access_check(original_expression.src_tokens, result, dyn_expr.type);
+	}
+
 	return result;
 }
 

@@ -278,7 +278,6 @@ struct codegen_context
 	void create_memory_access_check(
 		lex::src_tokens const &src_tokens,
 		expr_value ptr,
-		type const *object_type,
 		ast::typespec_view object_typespec
 	);
 

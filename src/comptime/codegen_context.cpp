@@ -1005,18 +1005,17 @@ instruction_ref codegen_context::create_store(expr_value value, expr_value ptr)
 void codegen_context::create_memory_access_check(
 	lex::src_tokens const &src_tokens,
 	expr_value ptr,
-	type const *object_type,
 	ast::typespec_view object_typespec
 )
 {
-	bz_assert(ptr.get_type()->is_pointer());
+	bz_assert(ptr.is_reference());
 
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 	auto const memory_access_check_info_index = this->add_memory_access_check_info({
-		.object_type = object_type,
+		.object_type = ptr.get_type(),
 		.object_typespec = object_typespec,
 	});
-	auto const ptr_value = ptr.get_value_as_instruction(*this);
+	auto const ptr_value = ptr.get_reference();
 
 	add_instruction(*this, instructions::check_dereference{
 		.src_tokens_index = src_tokens_index,
