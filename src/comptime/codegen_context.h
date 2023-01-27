@@ -227,6 +227,7 @@ struct codegen_context
 		expr_value value,
 		instruction_ref rvalue_array_elem_ptr
 	);
+	void push_end_lifetime(expr_value value);
 	void emit_destruct_operations(size_t destruct_calls_start_index);
 	void emit_loop_destruct_operations(void);
 	void emit_all_destruct_operations(void);

@@ -505,6 +505,18 @@ void codegen_context::push_rvalue_array_destruct_operation(
 	}
 }
 
+void codegen_context::push_end_lifetime(expr_value value)
+{
+	bz_assert(value.is_reference());
+	this->current_function_info.destructor_calls.push_back({
+		.destruct_op = nullptr,
+		.value = value,
+		.condition = {},
+		.move_destruct_indicator = {},
+		.rvalue_array_elem_ptr = {},
+	});
+}
+
 static void emit_destruct_operation(destruct_operation_info_t const &info, codegen_context &context)
 {
 	generate_destruct_operation(info, context);

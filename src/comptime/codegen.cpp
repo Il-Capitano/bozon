@@ -313,9 +313,9 @@ static expr_value generate_expr_code(
 		return context.get_dummy_value(type);
 	}
 
-	if (var_name.decl->get_type().is<ast::ts_lvalue_reference>())
+	if (var_name.decl->get_type().is<ast::ts_lvalue_reference>() || var_name.decl->get_type().is<ast::ts_move_reference>())
 	{
-		auto const object_typespec = var_name.decl->get_type().get<ast::ts_lvalue_reference>();
+		auto const object_typespec = ast::remove_lvalue_or_move_reference(var_name.decl->get_type());
 		context.create_memory_access_check(original_expression.src_tokens, result, object_typespec);
 	}
 	return result;
@@ -3048,8 +3048,15 @@ static expr_value generate_expr_code(
 	else
 	{
 		auto const result_value = context.create_function_call(func_call.src_tokens, func, std::move(arg_refs));
-
-		return value_or_result_address(result_value, result_address, context);
+		if (func_call.func_body->return_type.is<ast::ts_lvalue_reference>())
+		{
+			auto const type = get_type(func_call.func_body->return_type.get<ast::ts_lvalue_reference>(), context);
+			return expr_value::get_reference(result_value.get_value_as_instruction(context), type);
+		}
+		else
+		{
+			return value_or_result_address(result_value, result_address, context);
+		}
 	}
 }
 
@@ -3184,16 +3191,25 @@ static expr_value generate_expr_code(
 	codegen_context &context
 )
 {
-	auto const result = generate_expr_code(take_move_ref.expr, context, {});
-	if (result.is_reference())
+	if (!take_move_ref.expr.is_dynamic() || take_move_ref.expr.get_dynamic().destruct_op.is_null())
 	{
-		return result;
+		auto const result = generate_expr_code(take_move_ref.expr, context, {});
+		if (result.is_reference())
+		{
+			context.push_end_lifetime(result);
+			return result;
+		}
+		else
+		{
+			auto const alloca = context.create_alloca(original_expression.src_tokens, result.get_type());
+			context.create_store(result, alloca);
+			context.push_end_lifetime(alloca);
+			return alloca;
+		}
 	}
 	else
 	{
-		auto const alloca = context.create_alloca(original_expression.src_tokens, result.get_type());
-		context.create_store(result, alloca);
-		return alloca;
+		return generate_expr_code(take_move_ref.expr, context, {});
 	}
 }
 
@@ -5610,7 +5626,7 @@ static expr_value generate_expr_code(
 
 	if (dyn_expr.destruct_op.not_null() || dyn_expr.destruct_op.move_destructed_decl != nullptr)
 	{
-		bz_assert(result.kind == expr_value_kind::reference);
+		bz_assert(result.is_reference());
 		context.push_self_destruct_operation(dyn_expr.destruct_op, result);
 	}
 
@@ -5785,17 +5801,32 @@ static void generate_stmt_code(ast::stmt_foreach const &foreach_stmt, codegen_co
 
 static void generate_stmt_code(ast::stmt_return const &return_stmt, codegen_context &context)
 {
-	if (return_stmt.expr.is_null())
+	if (context.current_function_info.func->func_body == nullptr)
+	{
+		auto const src_tokens = return_stmt.expr.is_null()
+			? lex::src_tokens::from_single_token(return_stmt.return_pos)
+			: lex::src_tokens::from_range({ return_stmt.return_pos, return_stmt.expr.src_tokens.end });
+		context.create_error(src_tokens, "return statement not allowed in top level compile time execution");
+		context.create_unreachable();
+	}
+	else if (return_stmt.expr.is_null())
 	{
 		context.emit_all_destruct_operations();
 		context.create_ret_void();
 	}
-	if (context.current_function_info.return_address.has_value())
+	else if (context.current_function_info.return_address.has_value())
 	{
 		bz_assert(return_stmt.expr.not_null());
 		generate_expr_code(return_stmt.expr, context, context.current_function_info.return_address);
 		context.emit_all_destruct_operations();
 		context.create_ret_void();
+	}
+	else if (context.current_function_info.func->func_body->return_type.is<ast::ts_lvalue_reference>())
+	{
+		auto const result_value = generate_expr_code(return_stmt.expr, context, {});
+		bz_assert(result_value.is_reference());
+		context.emit_all_destruct_operations();
+		context.create_ret(result_value.get_reference());
 	}
 	else
 	{
@@ -6272,6 +6303,7 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 			auto const prev_value = context.push_value_reference(value);
 			generate_expr_code(*destruct_op.get<ast::destruct_self>().destruct_call, context, {});
 			context.pop_value_reference(prev_value);
+			context.create_end_lifetime(value);
 
 			auto const end_bb = context.add_basic_block();
 			context.create_jump(end_bb);
@@ -6286,6 +6318,7 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 			auto const prev_value = context.push_value_reference(value);
 			generate_expr_code(*destruct_op.get<ast::destruct_self>().destruct_call, context, {});
 			context.pop_value_reference(prev_value);
+			context.create_end_lifetime(value);
 		}
 	}
 	else if (destruct_op.is<ast::defer_expression>())
