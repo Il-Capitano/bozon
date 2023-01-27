@@ -15,7 +15,7 @@ bz::u8string to_string(instruction const &inst_)
 {
 	switch (inst_.index())
 	{
-	static_assert(instruction::variant_count == 516);
+	static_assert(instruction::variant_count == 517);
 	case instruction::const_i1:
 	{
 		auto const &inst = inst_.get<instruction::const_i1>();
@@ -268,7 +268,12 @@ bz::u8string to_string(instruction const &inst_)
 	case instruction::check_dereference:
 	{
 		auto const &inst = inst_.get<instruction::check_dereference>();
-		return bz::format("check_dereference {} ({}, {})", inst.args[0], inst.src_tokens_index, inst.memory_access_check_info_index);
+		return bz::format("check-dereference {} ({}, {})", inst.args[0], inst.src_tokens_index, inst.memory_access_check_info_index);
+	}
+	case instruction::check_inplace_construct:
+	{
+		auto const &inst = inst_.get<instruction::check_inplace_construct>();
+		return bz::format("check-inplace-construct {} ({}, {})", inst.args[0], inst.src_tokens_index, inst.memory_access_check_info_index);
 	}
 	case instruction::cast_zext_i1_to_i8:
 	{

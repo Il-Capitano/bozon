@@ -515,6 +515,17 @@ struct check_dereference
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
+struct check_inplace_construct
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+	uint32_t memory_access_check_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
 struct cast_zext_i1_to_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i1 };
@@ -4685,6 +4696,7 @@ using instruction_list = bz::meta::type_pack<
 	instructions::store_ptr32_le,
 	instructions::store_ptr64_le,
 	instructions::check_dereference,
+	instructions::check_inplace_construct,
 	instructions::cast_zext_i1_to_i8,
 	instructions::cast_zext_i1_to_i16,
 	instructions::cast_zext_i1_to_i32,
@@ -5158,7 +5170,7 @@ struct instruction : instruction_base_t
 {
 	using base_t = instruction_base_t;
 
-	static_assert(variant_count == 516);
+	static_assert(variant_count == 517);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -5212,6 +5224,7 @@ struct instruction : instruction_base_t
 		store_ptr32_le           = index_of<instructions::store_ptr32_le>,
 		store_ptr64_le           = index_of<instructions::store_ptr64_le>,
 		check_dereference        = index_of<instructions::check_dereference>,
+		check_inplace_construct  = index_of<instructions::check_inplace_construct>,
 		cast_zext_i1_to_i8       = index_of<instructions::cast_zext_i1_to_i8>,
 		cast_zext_i1_to_i16      = index_of<instructions::cast_zext_i1_to_i16>,
 		cast_zext_i1_to_i32      = index_of<instructions::cast_zext_i1_to_i32>,
