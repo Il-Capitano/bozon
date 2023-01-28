@@ -3,7 +3,7 @@
 
 #include "instructions.h"
 #include "types.h"
-#include "memory.h"
+#include "global_memory.h"
 #include "ast/expression.h"
 #include "ctx/parse_context.h"
 
@@ -169,7 +169,7 @@ struct codegen_context
 	bool is_big_endian(void) const;
 	bool is_64_bit(void) const;
 	bool is_32_bit(void) const;
-	memory::memory_manager::segment_info_t get_memory_segment_info(void) const;
+	memory::global_segment_info_t get_global_segment_info(void) const;
 
 	void add_variable(ast::decl_variable const *decl, expr_value value);
 	void add_global_variable(ast::decl_variable const *decl, uint32_t global_index);

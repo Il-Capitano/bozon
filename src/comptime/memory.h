@@ -2,147 +2,13 @@
 #define COMPTIME_MEMORY_H
 
 #include "core.h"
-#include "types.h"
-#include "values.h"
+#include "memory_common.h"
+#include "global_memory.h"
 #include "lex/token.h"
 #include "ast/statement_forward.h"
-#include "ast/constant_value.h"
 
 namespace comptime::memory
 {
-
-enum class endianness_kind
-{
-	little,
-	big,
-};
-
-template<auto segments>
-struct memory_segment_info_t
-{
-	using segment_type = typename decltype(segments)::value_type;
-	static constexpr size_t N = segments.size();
-
-	bz::array<ptr_t, N> segment_begins;
-
-	segment_type get_segment(ptr_t address) const
-	{
-		bz_assert(address >= this->segment_begins[0]);
-		auto const it = std::upper_bound(
-			this->segment_begins.begin(), this->segment_begins.end(),
-			address,
-			[](ptr_t p, ptr_t address_begin) {
-				return p < address_begin;
-			}
-		);
-		auto const index = (it - 1) - this->segment_begins.begin();
-		return segments[index];
-	}
-
-	template<segment_type kind>
-	ptr_t get_segment_begin(void) const
-	{
-		constexpr auto index = []() {
-			auto const it = std::find_if(
-				segments.begin(), segments.end(),
-				[](segment_type segment) {
-					return kind == segment;
-				}
-			);
-			return it - segments.begin();
-		}();
-		static_assert(index >= 0 && index < N);
-		return this->segment_begins[index];
-	}
-};
-
-template<typename Int>
-Int byteswap(Int value)
-{
-	if constexpr (sizeof (Int) == 1)
-	{
-		return value;
-	}
-	else if constexpr (sizeof (Int) == 2)
-	{
-		value = ((value & uint16_t(0xff00)) >> 8) | ((value & uint16_t(0x00ff)) << 8);
-		return value;
-	}
-	else if constexpr (sizeof (Int) == 4)
-	{
-		value = ((value & uint32_t(0xffff'0000)) >> 16) | ((value & uint32_t(0x0000'ffff)) << 16);
-		value = ((value & uint32_t(0xff00'ff00)) >> 8) | ((value & uint32_t(0x00ff'00ff)) << 8);
-		return value;
-	}
-	else if constexpr (sizeof (Int) == 8)
-	{
-		value = ((value & uint64_t(0xffff'ffff'0000'0000)) >> 32) | ((value & uint64_t(0x0000'0000'ffff'ffff)) << 32);
-		value = ((value & uint64_t(0xffff'0000'ffff'0000)) >> 16) | ((value & uint64_t(0x0000'ffff'0000'ffff)) << 16);
-		value = ((value & uint64_t(0xff00'ff00'ff00'ff00)) >> 8) | ((value & uint64_t(0x00ff'00ff'00ff'00ff)) << 8);
-		return value;
-	}
-	else
-	{
-		static_assert(bz::meta::always_false<Int>);
-	}
-}
-
-struct pointer_arithmetic_result_t
-{
-	ptr_t address;
-	bool is_one_past_the_end;
-};
-
-struct error_reason_t
-{
-	lex::src_tokens src_tokens;
-	bz::u8string message;
-};
-
-struct global_object
-{
-	ptr_t address;
-	type const *object_type;
-	bz::fixed_vector<uint8_t> memory;
-
-	lex::src_tokens object_src_tokens;
-
-	global_object(lex::src_tokens const &object_src_tokens, ptr_t address, type const *object_type, bz::fixed_vector<uint8_t> data);
-
-	size_t object_size(void) const;
-
-	uint8_t *get_memory(ptr_t address);
-	uint8_t const *get_memory(ptr_t address) const;
-
-	bool check_dereference(ptr_t address, type const *subobject_type) const;
-	bz::u8string get_dereference_error_reason(ptr_t address, type const *object_type) const;
-	bool check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const;
-	bz::vector<bz::u8string> get_slice_construction_error_reason(
-		ptr_t begin,
-		ptr_t end,
-		bool end_is_one_past_the_end,
-		type const *elem_type
-	) const;
-	pointer_arithmetic_result_t do_pointer_arithmetic(
-		ptr_t address,
-		bool is_one_past_the_end,
-		int64_t offset,
-		type const *object_type
-	) const;
-	pointer_arithmetic_result_t do_pointer_arithmetic_unchecked(
-		ptr_t address,
-		bool is_one_past_the_end,
-		int64_t offset,
-		type const *object_type
-	) const;
-	bz::optional<int64_t> do_pointer_difference(
-		ptr_t lhs,
-		ptr_t rhs,
-		bool lhs_is_one_past_the_end,
-		bool rhs_is_one_past_the_end,
-		type const *object_type
-	) const;
-};
 
 struct memory_properties
 {
@@ -264,63 +130,6 @@ struct heap_object
 		bool rhs_is_one_past_the_end,
 		type const *object_type
 	) const;
-};
-
-struct global_memory_manager
-{
-	ptr_t head;
-	bz::vector<global_object> objects;
-
-	struct one_past_the_end_pointer_info_t
-	{
-		uint32_t object_index;
-		uint32_t offset;
-		ptr_t address;
-	};
-
-	bz::vector<one_past_the_end_pointer_info_t> one_past_the_end_pointer_infos;
-
-	explicit global_memory_manager(ptr_t global_memory_begin);
-
-	uint32_t add_object(lex::src_tokens const &object_src_tokens, type const *object_type, bz::fixed_vector<uint8_t> data);
-	void add_one_past_the_end_pointer_info(one_past_the_end_pointer_info_t info);
-
-	global_object *get_global_object(ptr_t address);
-	global_object const *get_global_object(ptr_t address) const;
-
-	bool check_dereference(ptr_t address, type const *object_type) const;
-	bz::vector<error_reason_t> get_dereference_error_reason(ptr_t address, type const *object_type) const;
-	bool check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const;
-	bz::vector<error_reason_t> get_slice_construction_error_reason(
-		ptr_t begin,
-		ptr_t end,
-		bool end_is_one_past_the_end,
-		type const *elem_type
-	) const;
-
-	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs) const;
-	pointer_arithmetic_result_t do_pointer_arithmetic(
-		ptr_t address,
-		bool is_one_past_the_end,
-		int64_t offset,
-		type const *object_type
-	) const;
-	pointer_arithmetic_result_t do_pointer_arithmetic_unchecked(
-		ptr_t address,
-		bool is_one_past_the_end,
-		int64_t offset,
-		type const *object_type
-	) const;
-	bz::optional<int64_t> do_pointer_difference(
-		ptr_t lhs,
-		ptr_t rhs,
-		bool lhs_is_one_past_the_end,
-		bool rhs_is_one_past_the_end,
-		type const *object_type
-	) const;
-
-	uint8_t *get_memory(ptr_t address);
-	uint8_t const *get_memory(ptr_t address) const;
 };
 
 struct stack_frame
@@ -507,26 +316,9 @@ struct meta_memory_manager
 	ptr_t get_real_address(ptr_t address) const;
 };
 
-enum class memory_segment
-{
-	invalid,
-	global,
-	stack,
-	heap,
-	meta,
-};
-
 struct memory_manager
 {
-	using segment_info_t = memory_segment_info_t<bz::array{
-		memory_segment::invalid,
-		memory_segment::global,
-		memory_segment::stack,
-		memory_segment::heap,
-		memory_segment::meta,
-	}>;
-
-	segment_info_t segment_info;
+	global_segment_info_t segment_info;
 
 	global_memory_manager *global_memory;
 	stack_manager stack;
@@ -534,7 +326,7 @@ struct memory_manager
 	meta_memory_manager meta_memory;
 
 	explicit memory_manager(
-		segment_info_t _segment_info,
+		global_segment_info_t _segment_info,
 		global_memory_manager *_global_memory,
 		bool is_64_bit,
 		bool is_native_endianness
@@ -572,21 +364,6 @@ ast::constant_value constant_value_from_object(
 	ast::typespec_view ts,
 	endianness_kind endianness,
 	memory_manager const &manager
-);
-
-struct object_from_constant_value_result_t
-{
-	bz::fixed_vector<uint8_t> data;
-	bz::vector<global_memory_manager::one_past_the_end_pointer_info_t> one_past_the_end_infos;
-};
-
-object_from_constant_value_result_t object_from_constant_value(
-	lex::src_tokens const &src_tokens,
-	ast::constant_value const &value,
-	type const *object_type,
-	endianness_kind endianness,
-	global_memory_manager &manager,
-	type_set_t &type_set
 );
 
 } // namespace comptime::memory

@@ -45,7 +45,7 @@ static ctx::error make_diagnostic(
 
 executor_context::executor_context(codegen_context *_codegen_ctx)
 	: memory(
-		  _codegen_ctx->get_memory_segment_info(),
+		  _codegen_ctx->get_global_segment_info(),
 		  &_codegen_ctx->global_memory,
 		  _codegen_ctx->is_64_bit(),
 		  _codegen_ctx->is_little_endian() == (std::endian::native == std::endian::little)

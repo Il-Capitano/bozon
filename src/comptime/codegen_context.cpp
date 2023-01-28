@@ -7,9 +7,9 @@
 namespace comptime
 {
 
-static_assert(sizeof (memory::memory_manager::segment_info_t) == 40);
+static_assert(sizeof (memory::global_segment_info_t) == 40);
 
-static constexpr memory::memory_manager::segment_info_t segment_info_64_bit = {
+static constexpr memory::global_segment_info_t segment_info_64_bit = {
 	0,
 	0x0000'0000'0001'0000,
 	0x4000'0000'0000'0000,
@@ -17,7 +17,7 @@ static constexpr memory::memory_manager::segment_info_t segment_info_64_bit = {
 	0xff00'0000'0000'0000,
 };
 
-static constexpr memory::memory_manager::segment_info_t segment_info_32_bit = {
+static constexpr memory::global_segment_info_t segment_info_32_bit = {
 	0,
 	0x0001'0000,
 	0x4000'0000,
@@ -215,7 +215,7 @@ bool codegen_context::is_32_bit(void) const
 	return this->machine_parameters.pointer_size == 4;
 }
 
-memory::memory_manager::segment_info_t codegen_context::get_memory_segment_info(void) const
+memory::global_segment_info_t codegen_context::get_global_segment_info(void) const
 {
 	if (this->is_64_bit())
 	{
