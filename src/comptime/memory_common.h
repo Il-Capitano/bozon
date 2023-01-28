@@ -20,9 +20,9 @@ template<auto segments>
 struct memory_segment_info_t
 {
 	using segment_type = typename decltype(segments)::value_type;
-	static constexpr size_t N = segments.size();
+	static constexpr size_t segment_count = segments.size();
 
-	bz::array<ptr_t, N> segment_begins;
+	bz::array<ptr_t, segment_count> segment_begins;
 
 	segment_type get_segment(ptr_t address) const
 	{
@@ -50,7 +50,7 @@ struct memory_segment_info_t
 			);
 			return it - segments.begin();
 		}();
-		static_assert(index >= 0 && index < N);
+		static_assert(index >= 0 && index < segment_count);
 		return this->segment_begins[index];
 	}
 };

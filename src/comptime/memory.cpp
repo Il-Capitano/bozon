@@ -1400,7 +1400,7 @@ uint8_t const *heap_manager::get_memory(ptr_t address) const
 }
 
 meta_memory_manager::meta_memory_manager(ptr_t meta_begin)
-	: segment_info{ meta_begin, meta_begin },
+	: segment_info{},
 	  stack_object_pointers(),
 	  one_past_the_end_pointers()
 {
@@ -1408,10 +1408,15 @@ meta_memory_manager::meta_memory_manager(ptr_t meta_begin)
 		? std::numeric_limits<uint32_t>::max()
 		: std::numeric_limits<uint64_t>::max();
 	auto const meta_address_space_size = max_address - meta_begin + 1;
-	auto const segment_size = meta_address_space_size / meta_memory_manager::segment_info_t::N;
 
-	static_assert(meta_memory_manager::segment_info_t::N == 2);
-	this->segment_info.segment_begins[1] += segment_size;
+	constexpr size_t segment_count = meta_memory_manager::segment_info_t::segment_count;
+	constexpr size_t rounded_segment_count = std::bit_ceil(segment_count); // just to make addresses a bit nicer, when we print them
+	auto const segment_size = meta_address_space_size / rounded_segment_count;
+
+	for (size_t i = 0; i < segment_count; ++i)
+	{
+		this->segment_info.segment_begins[i] = meta_begin + i * segment_size;
+	}
 }
 
 size_t meta_memory_manager::get_stack_object_index(ptr_t address) const
