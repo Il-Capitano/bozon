@@ -2233,9 +2233,11 @@ ptr_t memory_manager::do_pointer_arithmetic_unchecked(ptr_t _address, int64_t of
 	}
 }
 
-ptr_t memory_manager::do_gep(ptr_t address, type const *object_type, uint64_t index)
+ptr_t memory_manager::do_gep(ptr_t _address, type const *object_type, uint64_t index)
 {
-	auto const segment = this->segment_info.get_segment(address);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+	bz_assert(!is_finished_stack_frame);
+	bz_assert(!is_one_past_the_end);
 	switch (segment)
 	{
 	case memory_segment::invalid:
@@ -2266,7 +2268,7 @@ ptr_t memory_manager::do_gep(ptr_t address, type const *object_type, uint64_t in
 		}
 	}
 	case memory_segment::meta:
-		return this->do_gep(this->meta_memory.get_real_address(address), object_type, index);
+		bz_unreachable;
 	}
 }
 
