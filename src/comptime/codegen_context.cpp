@@ -5829,6 +5829,13 @@ void current_function_info_t::finalize_function(void)
 	// finalize add_global_array_data_infos
 	func.add_global_array_data_infos = bz::fixed_vector(this->add_global_array_data_infos.as_array_view());
 
+#ifndef NDEBUG
+	if (debug_comptime_print_functions)
+	{
+		bz::log("{}", to_string(func));
+	}
+#endif // !NDEBUG
+
 	*this = current_function_info_t();
 }
 

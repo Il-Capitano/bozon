@@ -86,6 +86,10 @@ inline compilation_phase compile_until = compilation_phase::link;
 
 inline bool do_profile = false;
 inline bool debug_ir_output = false;
+#ifndef NDEBUG
+inline bool debug_comptime_print_functions = false;
+inline bool debug_comptime_print_instructions = false;
+#endif // !NDEBUG
 inline bool do_verbose = false;
 inline bool panic_on_unreachable = true;
 inline bool panic_on_null_dereference = true;

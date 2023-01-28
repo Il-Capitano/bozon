@@ -858,6 +858,16 @@ ast::constant_value executor_context::execute_expression(ast::expression const &
 
 	while (!this->returned && !this->has_error)
 	{
+#ifndef NDEBUG
+		if (debug_comptime_print_instructions)
+		{
+			bz::log(
+				">>> %{} in '{}'\n",
+				this->current_instruction_value - this->instruction_values.data(),
+				this->current_function->func_body != nullptr ? this->current_function->func_body->get_signature() : "anon-function"
+			);
+		}
+#endif // !NDEBUG
 		execute_current_instruction(*this);
 		this->advance();
 	}
