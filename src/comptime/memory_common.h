@@ -57,7 +57,6 @@ struct memory_segment_info_t
 
 enum class memory_segment
 {
-	invalid,
 	global,
 	stack,
 	heap,
@@ -65,7 +64,6 @@ enum class memory_segment
 };
 
 using global_segment_info_t = memory_segment_info_t<bz::array{
-	memory_segment::invalid,
 	memory_segment::global,
 	memory_segment::stack,
 	memory_segment::heap,

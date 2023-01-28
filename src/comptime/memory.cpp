@@ -1546,8 +1546,6 @@ static bz::u8string_view get_segment_name(memory_segment segment)
 {
 	switch (segment)
 	{
-	case memory_segment::invalid:
-		return "invalid";
 	case memory_segment::global:
 		return "global";
 	case memory_segment::stack:
@@ -1571,8 +1569,6 @@ bool memory_manager::check_dereference(ptr_t _address, type const *object_type) 
 
 	switch (segment)
 	{
-	case memory_segment::invalid:
-		return false;
 	case memory_segment::global:
 		return this->global_memory->check_dereference(address, object_type);
 	case memory_segment::stack:
@@ -1601,8 +1597,6 @@ bz::vector<error_reason_t> memory_manager::get_dereference_error_reason(ptr_t _a
 		bz::vector<error_reason_t> result;
 		switch (segment)
 		{
-		case memory_segment::invalid:
-			bz_unreachable;
 		case memory_segment::global:
 		{
 			auto const global_object = this->global_memory->get_global_object(address);
@@ -1633,8 +1627,6 @@ bz::vector<error_reason_t> memory_manager::get_dereference_error_reason(ptr_t _a
 	{
 		switch (segment)
 		{
-		case memory_segment::invalid:
-			bz_unreachable;
 		case memory_segment::global:
 			return this->global_memory->get_dereference_error_reason(address, object_type);
 		case memory_segment::stack:
@@ -1722,8 +1714,6 @@ bool memory_manager::check_slice_construction(ptr_t _begin, ptr_t _end, type con
 	{
 		switch (begin_segment)
 		{
-		case memory_segment::invalid:
-			bz_unreachable;
 		case memory_segment::global:
 			return this->global_memory->check_slice_construction(begin, end, end_is_one_past_the_end, elem_type);
 		case memory_segment::stack:
@@ -1800,8 +1790,6 @@ bz::vector<error_reason_t> memory_manager::get_slice_construction_error_reason(p
 
 		switch (begin_segment)
 		{
-		case memory_segment::invalid:
-			bz_unreachable;
 		case memory_segment::global:
 		{
 			auto const global_object = this->global_memory->get_global_object(begin);
@@ -1831,8 +1819,6 @@ bz::vector<error_reason_t> memory_manager::get_slice_construction_error_reason(p
 
 		switch (end_segment)
 		{
-		case memory_segment::invalid:
-			bz_unreachable;
 		case memory_segment::global:
 		{
 			auto const global_object = this->global_memory->get_global_object(end);
@@ -1877,8 +1863,6 @@ bz::vector<error_reason_t> memory_manager::get_slice_construction_error_reason(p
 	{
 		switch (begin_segment)
 		{
-		case memory_segment::invalid:
-			bz_unreachable;
 		case memory_segment::global:
 		{
 			auto const begin_global_object = this->global_memory->get_global_object(begin);
@@ -2085,8 +2069,6 @@ bz::vector<error_reason_t> memory_manager::get_slice_construction_error_reason(p
 	{
 		switch (begin_segment)
 		{
-		case memory_segment::invalid:
-			bz_unreachable;
 		case memory_segment::global:
 			return this->global_memory->get_slice_construction_error_reason(begin, end, end_is_one_past_the_end, elem_type);
 		case memory_segment::stack:
@@ -2117,8 +2099,6 @@ bz::optional<int> memory_manager::compare_pointers(ptr_t _lhs, ptr_t _rhs) const
 	{
 		switch (lhs_segment)
 		{
-		case memory_segment::invalid:
-			bz_unreachable;
 		case memory_segment::global:
 			return this->global_memory->compare_pointers(lhs, rhs);
 		case memory_segment::stack:
@@ -2154,8 +2134,6 @@ ptr_t memory_manager::do_pointer_arithmetic(ptr_t _address, int64_t offset, type
 		]() {
 			switch (segment)
 			{
-			case memory_segment::invalid:
-				bz_unreachable;
 			case memory_segment::global:
 				return this->global_memory->do_pointer_arithmetic(address, is_one_past_the_end, offset, object_type);
 			case memory_segment::stack:
@@ -2203,8 +2181,6 @@ ptr_t memory_manager::do_pointer_arithmetic_unchecked(ptr_t _address, int64_t of
 	]() {
 		switch (segment)
 		{
-		case memory_segment::invalid:
-			bz_unreachable;
 		case memory_segment::global:
 			return this->global_memory->do_pointer_arithmetic_unchecked(address, is_one_past_the_end, offset, object_type);
 		case memory_segment::stack:
@@ -2240,8 +2216,6 @@ ptr_t memory_manager::do_gep(ptr_t _address, type const *object_type, uint64_t i
 	bz_assert(!is_one_past_the_end);
 	switch (segment)
 	{
-	case memory_segment::invalid:
-		bz_unreachable;
 	case memory_segment::global:
 	case memory_segment::stack:
 	case memory_segment::heap:
@@ -2302,8 +2276,6 @@ bz::optional<int64_t> memory_manager::do_pointer_difference(ptr_t _lhs, ptr_t _r
 	{
 		switch (lhs_segment)
 		{
-		case memory_segment::invalid:
-			bz_unreachable;
 		case memory_segment::global:
 			return this->global_memory->do_pointer_difference(lhs, rhs, lhs_is_one_past_the_end, rhs_is_one_past_the_end, object_type);
 		case memory_segment::stack:
@@ -2387,8 +2359,6 @@ uint8_t *memory_manager::get_memory(ptr_t address)
 	auto const segment = this->segment_info.get_segment(address);
 	switch (segment)
 	{
-	case memory_segment::invalid:
-		bz_unreachable;
 	case memory_segment::global:
 		return this->global_memory->get_memory(address);
 	case memory_segment::stack:
@@ -2405,8 +2375,6 @@ uint8_t const *memory_manager::get_memory(ptr_t address) const
 	auto const segment = this->segment_info.get_segment(address);
 	switch (segment)
 	{
-	case memory_segment::invalid:
-		bz_unreachable;
 	case memory_segment::global:
 		return this->global_memory->get_memory(address);
 	case memory_segment::stack:

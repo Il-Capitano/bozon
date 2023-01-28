@@ -7,10 +7,9 @@
 namespace comptime
 {
 
-static_assert(sizeof (memory::global_segment_info_t) == 40);
+static_assert(sizeof (memory::global_segment_info_t) == 32);
 
 static constexpr memory::global_segment_info_t segment_info_64_bit = {
-	0,
 	0x0000'0000'0001'0000,
 	0x4000'0000'0000'0000,
 	0x8000'0000'0000'0000,
@@ -18,7 +17,6 @@ static constexpr memory::global_segment_info_t segment_info_64_bit = {
 };
 
 static constexpr memory::global_segment_info_t segment_info_32_bit = {
-	0,
 	0x0001'0000,
 	0x4000'0000,
 	0x8000'0000,
