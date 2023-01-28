@@ -544,7 +544,7 @@ bool executor_context::compare_pointers_equal(ptr_t lhs, ptr_t rhs)
 
 ptr_t executor_context::pointer_add_unchecked(ptr_t address, int32_t offset, type const *object_type)
 {
-	auto const result = this->memory.do_pointer_arithmetic(address, offset, object_type);
+	auto const result = this->memory.do_pointer_arithmetic_unchecked(address, offset, object_type);
 	bz_assert(result != 0);
 	return result;
 }
@@ -557,6 +557,15 @@ ptr_t executor_context::pointer_add_signed(
 	ast::typespec_view pointer_type
 )
 {
+	if (address == 0)
+	{
+		this->report_error(
+			src_tokens_index,
+			bz::format("null pointer used in pointer arithmetic operation with type '{}' and offset {}", pointer_type, offset)
+		);
+		return 0;
+	}
+
 	auto const result = this->memory.do_pointer_arithmetic(address, offset, object_type);
 	if (result == 0)
 	{
@@ -576,6 +585,15 @@ ptr_t executor_context::pointer_add_unsigned(
 	ast::typespec_view pointer_type
 )
 {
+	if (address == 0)
+	{
+		this->report_error(
+			src_tokens_index,
+			bz::format("null pointer used in pointer arithmetic operation with type '{}' and offset {}", pointer_type, offset)
+		);
+		return 0;
+	}
+
 	auto const result = offset > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())
 		? 0
 		: this->memory.do_pointer_arithmetic(address, static_cast<int64_t>(offset), object_type);
@@ -597,6 +615,15 @@ ptr_t executor_context::pointer_sub_signed(
 	ast::typespec_view pointer_type
 )
 {
+	if (address == 0)
+	{
+		this->report_error(
+			src_tokens_index,
+			bz::format("null pointer used in pointer arithmetic operation with type '{}' and offset {}", pointer_type, offset)
+		);
+		return 0;
+	}
+
 	auto const result = offset == std::numeric_limits<int64_t>::min()
 		? 0
 		: this->memory.do_pointer_arithmetic(address, -offset, object_type);
@@ -618,6 +645,15 @@ ptr_t executor_context::pointer_sub_unsigned(
 	ast::typespec_view pointer_type
 )
 {
+	if (address == 0)
+	{
+		this->report_error(
+			src_tokens_index,
+			bz::format("null pointer used in pointer arithmetic operation with type '{}' and offset {}", pointer_type, offset)
+		);
+		return 0;
+	}
+
 	constexpr auto max_value = static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1;
 	auto const result = offset > max_value
 		? 0

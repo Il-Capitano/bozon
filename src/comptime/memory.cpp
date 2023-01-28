@@ -99,6 +99,7 @@ static pointer_arithmetic_check_result check_pointer_arithmetic(
 	type const *object_type,
 	size_t offset,
 	size_t result_offset,
+	bool is_one_past_the_end,
 	type const *pointer_type
 )
 {
@@ -133,7 +134,10 @@ static pointer_arithmetic_check_result check_pointer_arithmetic(
 		// get the index of the largest offset that is <= to offset
 		// upper_bound returns the first offset that is strictly greater than offset,
 		// so we need the previous element
-		auto const member_index = std::upper_bound(offsets.begin() + 1, offsets.end(), offset) - offsets.begin() - 1;
+		auto const it = is_one_past_the_end
+			? std::lower_bound(offsets.begin() + 1, offsets.end(), offset)
+			: std::upper_bound(offsets.begin() + 1, offsets.end(), offset);
+		auto const member_index = (it - 1) - offsets.begin();
 		if (result_offset < offsets[member_index])
 		{
 			return pointer_arithmetic_check_result::fail;
@@ -144,6 +148,7 @@ static pointer_arithmetic_check_result check_pointer_arithmetic(
 				members[member_index],
 				offset - offsets[member_index],
 				result_offset - offsets[member_index],
+				is_one_past_the_end,
 				pointer_type
 			);
 		}
@@ -165,7 +170,11 @@ static pointer_arithmetic_check_result check_pointer_arithmetic(
 		}
 		else
 		{
-			auto const elem_offset = offset - offset % array_elem_type->size;
+			auto const offset_in_elem = offset % array_elem_type->size;
+			auto const real_offset_in_elem = is_one_past_the_end && offset_in_elem == array_elem_type->size
+				? array_elem_type->size
+				: offset_in_elem;
+			auto const elem_offset = offset - real_offset_in_elem;
 			if (result_offset < elem_offset)
 			{
 				return pointer_arithmetic_check_result::fail;
@@ -176,6 +185,7 @@ static pointer_arithmetic_check_result check_pointer_arithmetic(
 					array_elem_type,
 					offset - elem_offset,
 					result_offset - elem_offset,
+					is_one_past_the_end,
 					pointer_type
 				);
 			}
@@ -322,7 +332,12 @@ bz::vector<bz::u8string> global_object::get_slice_construction_error_reason(
 	return result;
 }
 
-pointer_arithmetic_result_t global_object::do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const
+pointer_arithmetic_result_t global_object::do_pointer_arithmetic(
+	ptr_t address,
+	bool is_one_past_the_end,
+	int64_t amount,
+	type const *pointer_type
+) const
 {
 	auto const result_address = address + static_cast<uint64_t>(amount * static_cast<int64_t>(pointer_type->size));
 	if (result_address < this->address || result_address > this->address + this->object_size())
@@ -332,11 +347,19 @@ pointer_arithmetic_result_t global_object::do_pointer_arithmetic(ptr_t address, 
 			.is_one_past_the_end = false,
 		};
 	}
+	else if (address == result_address)
+	{
+		return {
+			.address = address,
+			.is_one_past_the_end = is_one_past_the_end,
+		};
+	}
 
 	auto const check_result = check_pointer_arithmetic(
 		this->object_type,
 		address - this->address,
 		result_address - this->address,
+		is_one_past_the_end,
 		pointer_type
 	);
 	switch (check_result)
@@ -357,6 +380,37 @@ pointer_arithmetic_result_t global_object::do_pointer_arithmetic(ptr_t address, 
 			.is_one_past_the_end = true,
 		};
 	}
+}
+
+pointer_arithmetic_result_t global_object::do_pointer_arithmetic_unchecked(
+	ptr_t address,
+	bool is_one_past_the_end,
+	int64_t amount,
+	type const *pointer_type
+) const
+{
+	auto const result_address = address + static_cast<uint64_t>(amount * static_cast<int64_t>(pointer_type->size));
+	bz_assert(result_address >= this->address && result_address <= this->address + this->object_size());
+	if (address == result_address)
+	{
+		return {
+			.address = address,
+			.is_one_past_the_end = is_one_past_the_end,
+		};
+	}
+
+	auto const check_result = check_pointer_arithmetic(
+		this->object_type,
+		address - this->address,
+		result_address - this->address,
+		is_one_past_the_end,
+		pointer_type
+	);
+	bz_assert(check_result != pointer_arithmetic_check_result::fail);
+	return {
+		.address = result_address,
+		.is_one_past_the_end = check_result == pointer_arithmetic_check_result::one_past_the_end,
+	};
 }
 
 bz::optional<int64_t> global_object::do_pointer_difference(
@@ -646,7 +700,12 @@ bz::vector<bz::u8string> stack_object::get_slice_construction_error_reason(
 	}
 }
 
-pointer_arithmetic_result_t stack_object::do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const
+pointer_arithmetic_result_t stack_object::do_pointer_arithmetic(
+	ptr_t address,
+	bool is_one_past_the_end,
+	int64_t amount,
+	type const *pointer_type
+) const
 {
 	auto const result_address = address + static_cast<uint64_t>(amount * static_cast<int64_t>(pointer_type->size));
 	if (result_address < this->address || result_address > this->address + this->object_size())
@@ -656,11 +715,26 @@ pointer_arithmetic_result_t stack_object::do_pointer_arithmetic(ptr_t address, i
 			.is_one_past_the_end = false,
 		};
 	}
+	else if (!this->is_alive(std::min(address, result_address), std::max(address, result_address)))
+	{
+		return {
+			.address = 0,
+			.is_one_past_the_end = false,
+		};
+	}
+	else if (address == result_address)
+	{
+		return {
+			.address = address,
+			.is_one_past_the_end = is_one_past_the_end,
+		};
+	}
 
 	auto const check_result = check_pointer_arithmetic(
 		this->object_type,
 		address - this->address,
 		result_address - this->address,
+		is_one_past_the_end,
 		pointer_type
 	);
 	switch (check_result)
@@ -681,6 +755,37 @@ pointer_arithmetic_result_t stack_object::do_pointer_arithmetic(ptr_t address, i
 			.is_one_past_the_end = true,
 		};
 	}
+}
+
+pointer_arithmetic_result_t stack_object::do_pointer_arithmetic_unchecked(
+	ptr_t address,
+	bool is_one_past_the_end,
+	int64_t amount,
+	type const *pointer_type
+) const
+{
+	auto const result_address = address + static_cast<uint64_t>(amount * static_cast<int64_t>(pointer_type->size));
+	bz_assert(result_address >= this->address && result_address <= this->address + this->object_size());
+	if (address == result_address)
+	{
+		return {
+			.address = address,
+			.is_one_past_the_end = is_one_past_the_end,
+		};
+	}
+
+	auto const check_result = check_pointer_arithmetic(
+		this->object_type,
+		address - this->address,
+		result_address - this->address,
+		is_one_past_the_end,
+		pointer_type
+	);
+	bz_assert(check_result != pointer_arithmetic_check_result::fail);
+	return {
+		.address = result_address,
+		.is_one_past_the_end = check_result == pointer_arithmetic_check_result::one_past_the_end,
+	};
 }
 
 bz::optional<int64_t> stack_object::do_pointer_difference(
@@ -907,7 +1012,12 @@ bz::vector<bz::u8string> heap_object::get_slice_construction_error_reason(
 	}
 }
 
-pointer_arithmetic_result_t heap_object::do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const
+pointer_arithmetic_result_t heap_object::do_pointer_arithmetic(
+	ptr_t address,
+	bool is_one_past_the_end,
+	int64_t amount,
+	type const *pointer_type
+) const
 {
 	auto const result_address = address + static_cast<uint64_t>(amount * static_cast<int64_t>(pointer_type->size));
 	if (result_address < this->address || result_address > this->address + this->object_size())
@@ -924,12 +1034,29 @@ pointer_arithmetic_result_t heap_object::do_pointer_arithmetic(ptr_t address, in
 			.is_one_past_the_end = result_address == this->address + this->object_size(),
 		};
 	}
+	else if (!this->is_alive(std::min(address, result_address), std::max(address, result_address)))
+	{
+		return {
+			.address = 0,
+			.is_one_past_the_end = false,
+		};
+	}
+	else if (address == result_address)
+	{
+		return {
+			.address = address,
+			.is_one_past_the_end = is_one_past_the_end,
+		};
+	}
 
 	auto const offset = address - this->address;
 	auto const result_offset = result_address - this->address;
 
-	auto const elem_offset = offset - offset % this->elem_size();
-	if (result_offset < elem_offset)
+	auto const elem_size = this->elem_size();
+	auto const offset_in_elem = offset % elem_size;
+	auto const real_offset_in_elem = offset_in_elem == 0 && is_one_past_the_end ? elem_size : offset_in_elem;
+	auto const elem_offset = offset - real_offset_in_elem;
+	if (result_offset < elem_offset || result_offset > elem_offset + elem_size)
 	{
 		return {
 			.address = 0,
@@ -941,6 +1068,7 @@ pointer_arithmetic_result_t heap_object::do_pointer_arithmetic(ptr_t address, in
 		this->elem_type,
 		offset - elem_offset,
 		result_offset - elem_offset,
+		is_one_past_the_end,
 		pointer_type
 	);
 	switch (check_result)
@@ -961,6 +1089,53 @@ pointer_arithmetic_result_t heap_object::do_pointer_arithmetic(ptr_t address, in
 			.is_one_past_the_end = true,
 		};
 	}
+}
+
+pointer_arithmetic_result_t heap_object::do_pointer_arithmetic_unchecked(
+	ptr_t address,
+	bool is_one_past_the_end,
+	int64_t amount,
+	type const *pointer_type
+) const
+{
+	auto const result_address = address + static_cast<uint64_t>(amount * static_cast<int64_t>(pointer_type->size));
+	bz_assert(result_address >= this->address && result_address <= this->address + this->object_size());
+	if (pointer_type == this->elem_type)
+	{
+		return {
+			.address = result_address,
+			.is_one_past_the_end = result_address == this->address + this->object_size(),
+		};
+	}
+	else if (address == result_address)
+	{
+		return {
+			.address = address,
+			.is_one_past_the_end = is_one_past_the_end,
+		};
+	}
+
+	auto const offset = address - this->address;
+	auto const result_offset = result_address - this->address;
+
+	auto const elem_size = this->elem_size();
+	auto const offset_in_elem = offset % elem_size;
+	auto const real_offset_in_elem = offset_in_elem == 0 && is_one_past_the_end ? elem_size : offset_in_elem;
+	auto const elem_offset = offset - real_offset_in_elem;
+	bz_assert(result_offset >= elem_offset && result_offset <= elem_offset + elem_size);
+
+	auto const check_result = check_pointer_arithmetic(
+		this->elem_type,
+		offset - elem_offset,
+		result_offset - elem_offset,
+		is_one_past_the_end,
+		pointer_type
+	);
+	bz_assert(check_result != pointer_arithmetic_check_result::fail);
+	return {
+		.address = result_address,
+		.is_one_past_the_end = check_result == pointer_arithmetic_check_result::one_past_the_end,
+	};
 }
 
 bz::optional<int64_t> heap_object::do_pointer_difference(
@@ -1151,7 +1326,12 @@ bz::optional<int> global_memory_manager::compare_pointers(ptr_t lhs, ptr_t rhs) 
 	}
 }
 
-pointer_arithmetic_result_t global_memory_manager::do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const
+pointer_arithmetic_result_t global_memory_manager::do_pointer_arithmetic(
+	ptr_t address,
+	bool is_one_past_the_end,
+	int64_t offset,
+	type const *object_type
+) const
 {
 	auto const object = this->get_global_object(address);
 	if (object == nullptr)
@@ -1160,8 +1340,20 @@ pointer_arithmetic_result_t global_memory_manager::do_pointer_arithmetic(ptr_t a
 	}
 	else
 	{
-		return object->do_pointer_arithmetic(address, offset, object_type);
+		return object->do_pointer_arithmetic(address, is_one_past_the_end, offset, object_type);
 	}
+}
+
+pointer_arithmetic_result_t global_memory_manager::do_pointer_arithmetic_unchecked(
+	ptr_t address,
+	bool is_one_past_the_end,
+	int64_t offset,
+	type const *object_type
+) const
+{
+	auto const object = this->get_global_object(address);
+	bz_assert(object != nullptr);
+	return object->do_pointer_arithmetic_unchecked(address, is_one_past_the_end, offset, object_type);
 }
 
 bz::optional<int64_t> global_memory_manager::do_pointer_difference(
@@ -1423,7 +1615,12 @@ bz::optional<int> stack_manager::compare_pointers(ptr_t lhs, ptr_t rhs) const
 	}
 }
 
-pointer_arithmetic_result_t stack_manager::do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const
+pointer_arithmetic_result_t stack_manager::do_pointer_arithmetic(
+	ptr_t address,
+	bool is_one_past_the_end,
+	int64_t offset,
+	type const *object_type
+) const
 {
 	auto const object = this->get_stack_object(address);
 	if (object == nullptr)
@@ -1432,8 +1629,20 @@ pointer_arithmetic_result_t stack_manager::do_pointer_arithmetic(ptr_t address, 
 	}
 	else
 	{
-		return object->do_pointer_arithmetic(address, offset, object_type);
+		return object->do_pointer_arithmetic(address, is_one_past_the_end, offset, object_type);
 	}
+}
+
+pointer_arithmetic_result_t stack_manager::do_pointer_arithmetic_unchecked(
+	ptr_t address,
+	bool is_one_past_the_end,
+	int64_t offset,
+	type const *object_type
+) const
+{
+	auto const object = this->get_stack_object(address);
+	bz_assert(object != nullptr);
+	return object->do_pointer_arithmetic_unchecked(address, is_one_past_the_end, offset, object_type);
 }
 
 bz::optional<int64_t> stack_manager::do_pointer_difference(
@@ -1731,17 +1940,34 @@ bz::optional<int> heap_manager::compare_pointers(ptr_t lhs, ptr_t rhs) const
 	}
 }
 
-pointer_arithmetic_result_t heap_manager::do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const
+pointer_arithmetic_result_t heap_manager::do_pointer_arithmetic(
+	ptr_t address,
+	bool is_one_past_the_end,
+	int64_t offset,
+	type const *object_type
+) const
 {
 	auto const allocation = this->get_allocation(address);
-	if (allocation == nullptr || allocation->is_freed) // FIXME: should pointer arithmetic with a freed address be an error?
+	if (allocation == nullptr || allocation->is_freed)
 	{
 		return { 0, false };
 	}
 	else
 	{
-		return allocation->object.do_pointer_arithmetic(address, offset, object_type);
+		return allocation->object.do_pointer_arithmetic(address, is_one_past_the_end, offset, object_type);
 	}
+}
+
+pointer_arithmetic_result_t heap_manager::do_pointer_arithmetic_unchecked(
+	ptr_t address,
+	bool is_one_past_the_end,
+	int64_t offset,
+	type const *object_type
+) const
+{
+	auto const allocation = this->get_allocation(address);
+	bz_assert(allocation != nullptr && !allocation->is_freed);
+	return allocation->object.do_pointer_arithmetic_unchecked(address, is_one_past_the_end, offset, object_type);
 }
 
 bz::optional<int64_t> heap_manager::do_pointer_difference(
@@ -2519,17 +2745,52 @@ bz::optional<int> memory_manager::compare_pointers(ptr_t _lhs, ptr_t _rhs) const
 	}
 }
 
-ptr_t memory_manager::do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type)
+ptr_t memory_manager::do_pointer_arithmetic(ptr_t _address, int64_t offset, type const *object_type)
 {
-	auto const segment = this->segment_info.get_segment(address);
-	switch (segment)
+	bz_assert(_address != 0);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+
+	if (is_finished_stack_frame)
 	{
-	case memory_segment::invalid:
 		return 0;
-	case memory_segment::global:
+	}
+	else if (is_one_past_the_end && offset > 0)
 	{
-		auto const [result, is_one_past_the_end] = this->global_memory->do_pointer_arithmetic(address, offset, object_type);
-		if (is_one_past_the_end)
+		return 0;
+	}
+	else
+	{
+		auto const [result, result_is_one_past_the_end] = [
+			&,
+			segment = segment,
+			address = address,
+			is_one_past_the_end = is_one_past_the_end
+		]() {
+			switch (segment)
+			{
+			case memory_segment::invalid:
+				bz_unreachable;
+			case memory_segment::global:
+				return this->global_memory->do_pointer_arithmetic(address, is_one_past_the_end, offset, object_type);
+			case memory_segment::stack:
+				return this->stack.do_pointer_arithmetic(address, is_one_past_the_end, offset, object_type);
+			case memory_segment::heap:
+				return this->heap.do_pointer_arithmetic(address, is_one_past_the_end, offset, object_type);
+			case memory_segment::meta:
+				bz_unreachable;
+			}
+		}();
+
+		if (result == 0)
+		{
+			return 0;
+		}
+		else if (offset == 0 && result_is_one_past_the_end)
+		{
+			bz_assert(is_one_past_the_end);
+			return _address;
+		}
+		else if (result_is_one_past_the_end)
 		{
 			return this->meta_memory.make_one_past_the_end_address(result);
 		}
@@ -2538,32 +2799,51 @@ ptr_t memory_manager::do_pointer_arithmetic(ptr_t address, int64_t offset, type 
 			return result;
 		}
 	}
-	case memory_segment::stack:
+}
+
+ptr_t memory_manager::do_pointer_arithmetic_unchecked(ptr_t _address, int64_t offset, type const *object_type)
+{
+	bz_assert(_address != 0);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+
+	bz_assert(!is_finished_stack_frame);
+	bz_assert(!(is_one_past_the_end && offset > 0));
+
+	auto const [result, result_is_one_past_the_end] = [
+		&,
+		segment = segment,
+		address = address,
+		is_one_past_the_end = is_one_past_the_end
+	]() {
+		switch (segment)
+		{
+		case memory_segment::invalid:
+			bz_unreachable;
+		case memory_segment::global:
+			return this->global_memory->do_pointer_arithmetic_unchecked(address, is_one_past_the_end, offset, object_type);
+		case memory_segment::stack:
+			return this->stack.do_pointer_arithmetic_unchecked(address, is_one_past_the_end, offset, object_type);
+		case memory_segment::heap:
+			return this->heap.do_pointer_arithmetic_unchecked(address, is_one_past_the_end, offset, object_type);
+		case memory_segment::meta:
+			bz_unreachable;
+		}
+	}();
+
+	bz_assert(result != 0);
+
+	if (offset == 0 && result_is_one_past_the_end)
 	{
-		auto const [result, is_one_past_the_end] = this->stack.do_pointer_arithmetic(address, offset, object_type);
-		if (is_one_past_the_end)
-		{
-			return this->meta_memory.make_one_past_the_end_address(result);
-		}
-		else
-		{
-			return result;
-		}
+		bz_assert(is_one_past_the_end);
+		return _address;
 	}
-	case memory_segment::heap:
+	else if (result_is_one_past_the_end)
 	{
-		auto const [result, is_one_past_the_end] = this->heap.do_pointer_arithmetic(address, offset, object_type);
-		if (is_one_past_the_end)
-		{
-			return this->meta_memory.make_one_past_the_end_address(result);
-		}
-		else
-		{
-			return result;
-		}
+		return this->meta_memory.make_one_past_the_end_address(result);
 	}
-	case memory_segment::meta:
-		return this->do_pointer_arithmetic(this->meta_memory.get_real_address(address), offset, object_type);
+	else
+	{
+		return result;
 	}
 }
 
@@ -2655,38 +2935,18 @@ int64_t memory_manager::do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, si
 		return 0;
 	}
 
-	auto const lhs_segment = this->segment_info.get_segment(lhs);
-	auto const rhs_segment = this->segment_info.get_segment(rhs);
+	lhs = remove_meta(lhs, *this).address;
+	rhs = remove_meta(rhs, *this).address;
 
-	if (lhs_segment == memory_segment::meta && rhs_segment == memory_segment::meta)
+	if (lhs >= rhs)
 	{
-		return this->do_pointer_difference_unchecked(
-			this->meta_memory.get_real_address(lhs),
-			this->meta_memory.get_real_address(rhs),
-			stride
-		);
-	}
-	else if (lhs_segment == memory_segment::meta)
-	{
-		return this->do_pointer_difference_unchecked(this->meta_memory.get_real_address(lhs), rhs, stride);
-	}
-	else if (rhs_segment == memory_segment::meta)
-	{
-		return this->do_pointer_difference_unchecked(lhs, this->meta_memory.get_real_address(rhs), stride);
+		bz_assert((lhs - rhs) % stride == 0);
+		return static_cast<int64_t>((lhs - rhs) / stride);
 	}
 	else
 	{
-		bz_assert(lhs_segment == rhs_segment);
-		if (lhs >= rhs)
-		{
-			bz_assert((lhs - rhs) % stride == 0);
-			return static_cast<int64_t>((lhs - rhs) / stride);
-		}
-		else
-		{
-			bz_assert((rhs - lhs) % stride == 0);
-			return -static_cast<int64_t>((rhs - lhs) / stride);
-		}
+		bz_assert((rhs - lhs) % stride == 0);
+		return -static_cast<int64_t>((rhs - lhs) / stride);
 	}
 }
 
@@ -2731,14 +2991,7 @@ void memory_manager::end_lifetime(ptr_t address, size_t size)
 
 bool memory_manager::is_global(ptr_t address) const
 {
-	auto segment = this->segment_info.get_segment(address);
-	while (segment == memory_segment::meta)
-	{
-		address = this->meta_memory.get_real_address(address);
-		segment = this->segment_info.get_segment(address);
-	}
-
-	return segment == memory_segment::global;
+	return address != 0 && remove_meta(address, *this).segment == memory_segment::global;
 }
 
 uint8_t *memory_manager::get_memory(ptr_t address)

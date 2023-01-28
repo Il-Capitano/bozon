@@ -123,7 +123,18 @@ struct global_object
 		bool end_is_one_past_the_end,
 		type const *elem_type
 	) const;
-	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const;
+	pointer_arithmetic_result_t do_pointer_arithmetic(
+		ptr_t address,
+		bool is_one_past_the_end,
+		int64_t offset,
+		type const *object_type
+	) const;
+	pointer_arithmetic_result_t do_pointer_arithmetic_unchecked(
+		ptr_t address,
+		bool is_one_past_the_end,
+		int64_t offset,
+		type const *object_type
+	) const;
 	bz::optional<int64_t> do_pointer_difference(
 		ptr_t lhs,
 		ptr_t rhs,
@@ -183,7 +194,18 @@ struct stack_object
 		bool end_is_one_past_the_end,
 		type const *elem_type
 	) const;
-	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const;
+	pointer_arithmetic_result_t do_pointer_arithmetic(
+		ptr_t address,
+		bool is_one_past_the_end,
+		int64_t offset,
+		type const *object_type
+	) const;
+	pointer_arithmetic_result_t do_pointer_arithmetic_unchecked(
+		ptr_t address,
+		bool is_one_past_the_end,
+		int64_t offset,
+		type const *object_type
+	) const;
 	bz::optional<int64_t> do_pointer_difference(
 		ptr_t lhs,
 		ptr_t rhs,
@@ -223,7 +245,18 @@ struct heap_object
 		bool end_is_one_past_the_end,
 		type const *elem_type
 	) const;
-	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t amount, type const *pointer_type) const;
+	pointer_arithmetic_result_t do_pointer_arithmetic(
+		ptr_t address,
+		bool is_one_past_the_end,
+		int64_t offset,
+		type const *object_type
+	) const;
+	pointer_arithmetic_result_t do_pointer_arithmetic_unchecked(
+		ptr_t address,
+		bool is_one_past_the_end,
+		int64_t offset,
+		type const *object_type
+	) const;
 	bz::optional<int64_t> do_pointer_difference(
 		ptr_t lhs,
 		ptr_t rhs,
@@ -266,7 +299,18 @@ struct global_memory_manager
 	) const;
 
 	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs) const;
-	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const;
+	pointer_arithmetic_result_t do_pointer_arithmetic(
+		ptr_t address,
+		bool is_one_past_the_end,
+		int64_t offset,
+		type const *object_type
+	) const;
+	pointer_arithmetic_result_t do_pointer_arithmetic_unchecked(
+		ptr_t address,
+		bool is_one_past_the_end,
+		int64_t offset,
+		type const *object_type
+	) const;
 	bz::optional<int64_t> do_pointer_difference(
 		ptr_t lhs,
 		ptr_t rhs,
@@ -314,7 +358,18 @@ struct stack_manager
 	) const;
 
 	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs) const;
-	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const;
+	pointer_arithmetic_result_t do_pointer_arithmetic(
+		ptr_t address,
+		bool is_one_past_the_end,
+		int64_t offset,
+		type const *object_type
+	) const;
+	pointer_arithmetic_result_t do_pointer_arithmetic_unchecked(
+		ptr_t address,
+		bool is_one_past_the_end,
+		int64_t offset,
+		type const *object_type
+	) const;
 	bz::optional<int64_t> do_pointer_difference(
 		ptr_t lhs,
 		ptr_t rhs,
@@ -385,7 +440,18 @@ struct heap_manager
 	) const;
 
 	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs) const;
-	pointer_arithmetic_result_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type) const;
+	pointer_arithmetic_result_t do_pointer_arithmetic(
+		ptr_t address,
+		bool is_one_past_the_end,
+		int64_t offset,
+		type const *object_type
+	) const;
+	pointer_arithmetic_result_t do_pointer_arithmetic_unchecked(
+		ptr_t address,
+		bool is_one_past_the_end,
+		int64_t offset,
+		type const *object_type
+	) const;
 	bz::optional<int64_t> do_pointer_difference(
 		ptr_t lhs,
 		ptr_t rhs,
@@ -486,6 +552,7 @@ struct memory_manager
 
 	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs) const;
 	ptr_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type);
+	ptr_t do_pointer_arithmetic_unchecked(ptr_t address, int64_t offset, type const *object_type);
 	ptr_t do_gep(ptr_t address, type const *object_type, uint64_t index);
 	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);
 	int64_t do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride);
