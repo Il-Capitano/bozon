@@ -16,8 +16,8 @@ struct memory_properties
 
 	enum property : uint8_t
 	{
-		is_alive   = 1u << 0,
-		is_padding = 1u << 1,
+		is_alive       = bit_at<0>,
+		is_padding     = bit_at<1>,
 	};
 
 	memory_properties(void) = default;
@@ -292,14 +292,14 @@ enum class meta_memory_segment
 	one_past_the_end,
 };
 
+using meta_segment_info_t = memory_segment_info_t<bz::array{
+	meta_memory_segment::stack_object,
+	meta_memory_segment::one_past_the_end,
+}>;
+
 struct meta_memory_manager
 {
-	using segment_info_t = memory_segment_info_t<bz::array{
-		meta_memory_segment::stack_object,
-		meta_memory_segment::one_past_the_end,
-	}>;
-
-	segment_info_t segment_info;
+	meta_segment_info_t segment_info;
 
 	bz::vector<stack_object_pointer> stack_object_pointers;
 	bz::vector<one_past_the_end_pointer> one_past_the_end_pointers;

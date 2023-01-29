@@ -1409,7 +1409,7 @@ meta_memory_manager::meta_memory_manager(ptr_t meta_begin)
 		: std::numeric_limits<uint64_t>::max();
 	auto const meta_address_space_size = max_address - meta_begin + 1;
 
-	constexpr size_t segment_count = meta_memory_manager::segment_info_t::segment_count;
+	constexpr size_t segment_count = meta_segment_info_t::segment_count;
 	constexpr size_t rounded_segment_count = std::bit_ceil(segment_count); // just to make addresses a bit nicer, when we print them
 	auto const segment_size = meta_address_space_size / rounded_segment_count;
 
