@@ -82,21 +82,21 @@ function append_n_digits(olength: uint32, digits: uint32, result: *uint8)
 		digits /= 10000;
 		const c0 = (c % 100) << 1;
 		const c1 = (c / 100) << 1;
-		memcpy(result + olength - i - 2, DIGIT_TABLE.begin() + c0, 2);
-		memcpy(result + olength - i - 4, DIGIT_TABLE.begin() + c1, 2);
+		trivially_copy_values(result + olength - i - 2, DIGIT_TABLE.begin() + c0, 2);
+		trivially_copy_values(result + olength - i - 4, DIGIT_TABLE.begin() + c1, 2);
 		i += 4;
 	}
 	if (digits >= 100)
 	{
 		const c = (digits % 100) << 1;
 		digits /= 100;
-		memcpy(result + olength - i - 2, DIGIT_TABLE.begin() + c, 2);
+		trivially_copy_values(result + olength - i - 2, DIGIT_TABLE.begin() + c, 2);
 		i += 2;
 	}
 	if (digits >= 10)
 	{
 		const c = digits << 1;
-		memcpy(result + olength - i - 2, DIGIT_TABLE.begin() + c, 2);
+		trivially_copy_values(result + olength - i - 2, DIGIT_TABLE.begin() + c, 2);
 	}
 	else
 	{
@@ -118,15 +118,15 @@ function append_d_digits(olength: uint32, digits: uint32, result: *uint8)
 		digits /= 10000;
 		const c0 = (c % 100) << 1;
 		const c1 = (c / 100) << 1;
-		memcpy(result + olength + 1 - i - 2, DIGIT_TABLE.begin() + c0, 2);
-		memcpy(result + olength + 1 - i - 4, DIGIT_TABLE.begin() + c1, 2);
+		trivially_copy_values(result + olength + 1 - i - 2, DIGIT_TABLE.begin() + c0, 2);
+		trivially_copy_values(result + olength + 1 - i - 4, DIGIT_TABLE.begin() + c1, 2);
 		i += 4;
 	}
 	if (digits >= 100)
 	{
 		const c = (digits % 100) << 1;
 		digits /= 100;
-		memcpy(result + olength + 1 - i - 2, DIGIT_TABLE.begin() + c, 2);
+		trivially_copy_values(result + olength + 1 - i - 2, DIGIT_TABLE.begin() + c, 2);
 		i += 2;
 	}
 	if (digits >= 10)
@@ -153,7 +153,7 @@ function append_c_digits(count: uint32, digits: uint32, result: *uint8)
 	{
 		const c = (digits % 100) << 1;
 		digits /= 100;
-		memcpy(result + count - i - 2, DIGIT_TABLE.begin() + c, 2);
+		trivially_copy_values(result + count - i - 2, DIGIT_TABLE.begin() + c, 2);
 	}
 	// Generate the last digit if count is odd.
 	if (i < count)
@@ -180,8 +180,8 @@ function append_nine_digits(digits: uint32, result: *uint8)
 		digits /= 10000;
 		const c0 = (c % 100) << 1;
 		const c1 = (c / 100) << 1;
-		memcpy(result + 7 - i, DIGIT_TABLE.begin() + c0, 2);
-		memcpy(result + 5 - i, DIGIT_TABLE.begin() + c1, 2);
+		trivially_copy_values(result + 7 - i, DIGIT_TABLE.begin() + c0, 2);
+		trivially_copy_values(result + 5 - i, DIGIT_TABLE.begin() + c1, 2);
 	}
 	*result = ('0' + digits) as uint8;
 }
@@ -206,14 +206,14 @@ function copy_special_str_printf(result: *uint8, sign: bool, mantissa: uint64) -
 {
 	if (mantissa != 0)
 	{
-		memcpy(result, "nan".begin_ptr(), "nan".size());
+		trivially_copy_values(result, "nan".begin_ptr(), "nan".size());
 		return 3;
 	}
 	if (sign)
 	{
 		*result = '-' as uint8;
 	}
-	memcpy(result + sign as uint32, "Infinity".begin_ptr(), "Infinity".size());
+	trivially_copy_values(result + sign as uint32, "Infinity".begin_ptr(), "Infinity".size());
 	return sign as int32 + 8;
 }
 
@@ -484,7 +484,7 @@ export function d2exp_buffered_n(d: float64, precision: uint32, result: *uint8) 
 			memset(result + index, '0' as uint8, precision);
 			index += precision as int32;
 		}
-		memcpy(result + index, "e+00".begin_ptr(), 4);
+		trivially_copy_values(result + index, "e+00".begin_ptr(), 4);
 		index += 4;
 		return index;
 	}
@@ -729,13 +729,13 @@ export function d2exp_buffered_n(d: float64, precision: uint32, result: *uint8) 
 	if (exp >= 100)
 	{
 		const c = exp % 10;
-		memcpy(result + index, DIGIT_TABLE.begin() + 2 * (exp / 10), 2);
+		trivially_copy_values(result + index, DIGIT_TABLE.begin() + 2 * (exp / 10), 2);
 		*(result + index + 2) = ('0' + c) as uint8;
 		index += 3;
 	}
 	else
 	{
-		memcpy(result + index, DIGIT_TABLE.begin() + 2 * exp, 2);
+		trivially_copy_values(result + index, DIGIT_TABLE.begin() + 2 * exp, 2);
 		index += 2;
 	}
 
@@ -1036,11 +1036,11 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 		}
 		if (capital_e)
 		{
-			memcpy(result + index, "E+00".begin_ptr(), 4);
+			trivially_copy_values(result + index, "E+00".begin_ptr(), 4);
 		}
 		else
 		{
-			memcpy(result + index, "e+00".begin_ptr(), 4);
+			trivially_copy_values(result + index, "e+00".begin_ptr(), 4);
 		}
 		index += 4;
 		return result + index;
@@ -1306,13 +1306,13 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 	if (exp >= 100)
 	{
 		const c = exp % 10;
-		memcpy(result + index, DIGIT_TABLE.begin() + 2 * (exp / 10), 2);
+		trivially_copy_values(result + index, DIGIT_TABLE.begin() + 2 * (exp / 10), 2);
 		*(result + index + 2) = ('0' + c) as uint8;
 		index += 3;
 	}
 	else
 	{
-		memcpy(result + index, DIGIT_TABLE.begin() + 2 * exp, 2);
+		trivially_copy_values(result + index, DIGIT_TABLE.begin() + 2 * exp, 2);
 		index += 2;
 	}
 

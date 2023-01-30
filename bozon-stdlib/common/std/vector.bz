@@ -313,7 +313,7 @@ function move_range(begin: ?*auto, end: ?*auto, other_begin: ?*auto)
 	type value_type = (typeof begin).meta::remove_optional().meta::remove_pointer();
 	if consteval (meta::is_trivially_relocatable(value_type))
 	{
-		memcpy(begin, other_begin, (end - begin) as usize * sizeof value_type);
+		trivially_relocate_values(begin, other_begin, (end - begin) as usize);
 	}
 	else
 	{
@@ -329,7 +329,7 @@ function copy_range(begin: ?*auto, end: ?*auto, other_begin: ?*const auto)
 	type value_type = (typeof begin).meta::remove_optional().meta::remove_pointer();
 	if consteval (meta::is_trivially_copy_constructible(value_type))
 	{
-		memcpy(begin, other_begin, (end - begin) as usize * sizeof value_type);
+		trivially_copy_values(begin, other_begin, (end - begin) as usize);
 	}
 	else
 	{
