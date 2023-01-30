@@ -85,6 +85,7 @@ struct executor_context
 	pointer_arithmetic_check_info_t const &get_pointer_arithmetic_info(uint32_t index) const;
 	memory_access_check_info_t const &get_memory_access_info(uint32_t index) const;
 	add_global_array_data_info_t const &get_add_global_array_data_info(uint32_t index) const;
+	copy_values_info_t const &get_copy_values_info(uint32_t index) const;
 
 	memory::call_stack_info_t get_call_stack_info(uint32_t src_tokens_index) const;
 
@@ -142,6 +143,23 @@ struct executor_context
 		ast::typespec_view pointer_type
 	);
 	int64_t pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride);
+
+	void copy_values(
+		uint32_t src_tokens_index,
+		ptr_t dest,
+		ptr_t source,
+		uint64_t count,
+		type const *object_type,
+		bool is_trivially_destructible
+	);
+	void relocate_values(
+		uint32_t src_tokens_index,
+		ptr_t dest,
+		ptr_t source,
+		uint64_t count,
+		type const *object_type,
+		bool is_trivially_destructible
+	);
 
 	void start_lifetime(ptr_t address, size_t size);
 	void end_lifetime(ptr_t address, size_t size);

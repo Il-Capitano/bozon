@@ -285,6 +285,12 @@ add_global_array_data_info_t const &executor_context::get_add_global_array_data_
 	return this->current_function->add_global_array_data_infos[index];
 }
 
+copy_values_info_t const &executor_context::get_copy_values_info(uint32_t index) const
+{
+	bz_assert(index < this->current_function->copy_values_infos.size());
+	return this->current_function->copy_values_infos[index];
+}
+
 memory::call_stack_info_t executor_context::get_call_stack_info(uint32_t src_tokens_index) const
 {
 	return {
@@ -719,6 +725,86 @@ int64_t executor_context::pointer_difference(
 int64_t executor_context::pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride)
 {
 	return this->memory.do_pointer_difference_unchecked(lhs, rhs, stride);
+}
+
+void executor_context::copy_values(
+	uint32_t src_tokens_index,
+	ptr_t dest,
+	ptr_t source,
+	uint64_t count,
+	type const *object_type,
+	bool is_trivially_destructible
+)
+{
+	if (count == 0)
+	{
+		return;
+	}
+	else if (dest == 0)
+	{
+		this->report_error(src_tokens_index, "destination address is null in call to '__builtin_trivially_copy_values'");
+		return;
+	}
+	else if (source == 0)
+	{
+		this->report_error(src_tokens_index, "source address is null in call to '__builtin_trivially_copy_values'");
+		return;
+	}
+
+	auto const is_good = this->memory.copy_values(dest, source, count, object_type, is_trivially_destructible);
+	if (!is_good)
+	{
+		auto reasons = this->memory.get_copy_values_error_reason(dest, source, count, object_type, is_trivially_destructible);
+		this->report_error(
+			src_tokens_index,
+			"invalid call to '__builtin_trivially_copy_values'",
+			reasons.transform([&](auto &reason) {
+				return reason.src_tokens.begin == nullptr
+					? this->make_note(src_tokens_index, std::move(reason.message))
+					: make_source_highlight(reason.src_tokens, std::move(reason.message));
+			}).collect()
+		);
+	}
+}
+
+void executor_context::relocate_values(
+	uint32_t src_tokens_index,
+	ptr_t dest,
+	ptr_t source,
+	uint64_t count,
+	type const *object_type,
+	bool is_trivially_destructible
+)
+{
+	if (count == 0)
+	{
+		return;
+	}
+	else if (dest == 0)
+	{
+		this->report_error(src_tokens_index, "destination address is null in call to '__builtin_trivially_relocate_values'");
+		return;
+	}
+	else if (source == 0)
+	{
+		this->report_error(src_tokens_index, "source address is null in call to '__builtin_trivially_relocate_values'");
+		return;
+	}
+
+	auto const is_good = this->memory.relocate_values(dest, source, count, object_type, is_trivially_destructible);
+	if (!is_good)
+	{
+		auto reasons = this->memory.get_relocate_values_error_reason(dest, source, count, object_type, is_trivially_destructible);
+		this->report_error(
+			src_tokens_index,
+			"invalid call to '__builtin_trivially_relocate_values'",
+			reasons.transform([&](auto &reason) {
+				return reason.src_tokens.begin == nullptr
+					? this->make_note(src_tokens_index, std::move(reason.message))
+					: make_source_highlight(reason.src_tokens, std::move(reason.message));
+			}).collect()
+		);
+	}
 }
 
 void executor_context::start_lifetime(ptr_t address, size_t size)

@@ -15,7 +15,7 @@ bz::u8string to_string(instruction const &inst_)
 {
 	switch (inst_.index())
 	{
-	static_assert(instruction::variant_count == 517);
+	static_assert(instruction::variant_count == 519);
 	case instruction::const_i1:
 	{
 		auto const &inst = inst_.get<instruction::const_i1>();
@@ -2469,6 +2469,16 @@ bz::u8string to_string(instruction const &inst_)
 	{
 		auto const &inst = inst_.get<instruction::const_memset_zero>();
 		return bz::format("const-memset-zero {} {}", inst.size, inst.args[0]);
+	}
+	case instruction::copy_values:
+	{
+		auto const &inst = inst_.get<instruction::copy_values>();
+		return bz::format("copy-values {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.copy_values_info_index);
+	}
+	case instruction::relocate_values:
+	{
+		auto const &inst = inst_.get<instruction::relocate_values>();
+		return bz::format("relocate-values {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.copy_values_info_index);
 	}
 	case instruction::function_call:
 	{

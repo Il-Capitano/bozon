@@ -115,6 +115,7 @@ struct current_function_info_t
 	bz::vector<pointer_arithmetic_check_info_t> pointer_arithmetic_check_infos;
 	bz::vector<memory_access_check_info_t> memory_access_check_infos;
 	bz::vector<add_global_array_data_info_t> add_global_array_data_infos;
+	bz::vector<copy_values_info_t> copy_values_infos;
 	bz::vector<unresolved_instruction> unresolved_instructions;
 	bz::vector<unresolved_jump> unresolved_jumps;
 	bz::vector<unresolved_switch> unresolved_switches;

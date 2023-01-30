@@ -4134,6 +4134,18 @@ static void execute_const_memset_zero(instructions::const_memset_zero const &ins
 	std::memset(dest_mem, 0, inst.size);
 }
 
+static void execute_copy_values(instructions::copy_values const &inst, ptr_t dest, ptr_t source, uint64_t count, executor_context &context)
+{
+	auto const &info = context.get_copy_values_info(inst.copy_values_info_index);
+	context.copy_values(info.src_tokens_index, dest, source, count, info.elem_type, info.is_trivially_destructible);
+}
+
+static void execute_relocate_values(instructions::relocate_values const &inst, ptr_t dest, ptr_t source, uint64_t count, executor_context &context)
+{
+	auto const &info = context.get_copy_values_info(inst.copy_values_info_index);
+	context.relocate_values(info.src_tokens_index, dest, source, count, info.elem_type, info.is_trivially_destructible);
+}
+
 static void execute_function_call(instructions::function_call const &inst, executor_context &context)
 {
 	context.call_function(inst.src_tokens_index, inst.func, inst.args_index);
@@ -4551,7 +4563,7 @@ void execute_current_instruction(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-	static_assert(instruction::variant_count == 517);
+	static_assert(instruction::variant_count == 519);
 	case instruction::const_i1:
 		execute<instructions::const_i1, &execute_const_i1>(context);
 		break;
@@ -6024,6 +6036,12 @@ void execute_current_instruction(executor_context &context)
 		break;
 	case instruction::const_memset_zero:
 		execute<instructions::const_memset_zero, &execute_const_memset_zero>(context);
+		break;
+	case instruction::copy_values:
+		execute<instructions::copy_values, &execute_copy_values>(context);
+		break;
+	case instruction::relocate_values:
+		execute<instructions::relocate_values, &execute_relocate_values>(context);
 		break;
 	case instruction::function_call:
 		execute<instructions::function_call, &execute_function_call>(context);

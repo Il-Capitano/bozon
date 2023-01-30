@@ -344,6 +344,23 @@ struct memory_manager
 	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);
 	int64_t do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride);
 
+	bool copy_values(ptr_t dest, ptr_t source, size_t count, type const *object_type, bool is_trivial);
+	bz::vector<error_reason_t> get_copy_values_error_reason(
+		ptr_t dest,
+		ptr_t source,
+		size_t count,
+		type const *object_type,
+		bool is_trivial
+	);
+	bool relocate_values(ptr_t dest, ptr_t source, size_t count, type const *object_type, bool is_trivial);
+	bz::vector<error_reason_t> get_relocate_values_error_reason(
+		ptr_t dest,
+		ptr_t source,
+		size_t count,
+		type const *object_type,
+		bool is_trivial
+	);
+
 	void start_lifetime(ptr_t address, size_t size);
 	void end_lifetime(ptr_t address, size_t size);
 

@@ -5702,7 +5702,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 517);
+	static_assert(instruction::variant_count == 519);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>();
@@ -5836,6 +5836,9 @@ void current_function_info_t::finalize_function(void)
 
 	// finalize add_global_array_data_infos
 	func.add_global_array_data_infos = bz::fixed_vector(this->add_global_array_data_infos.as_array_view());
+
+	// finalize copy_values_infos
+	func.copy_values_infos = bz::fixed_vector(this->copy_values_infos.as_array_view());
 
 #ifndef NDEBUG
 	if (debug_comptime_print_functions)

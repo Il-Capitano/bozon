@@ -71,6 +71,13 @@ struct add_global_array_data_info_t
 	lex::src_tokens src_tokens;
 };
 
+struct copy_values_info_t
+{
+	type const *elem_type;
+	uint32_t src_tokens_index;
+	bool is_trivially_destructible;
+};
+
 struct function
 {
 	bz::fixed_vector<instruction> instructions;
@@ -86,6 +93,7 @@ struct function
 	bz::fixed_vector<pointer_arithmetic_check_info_t> pointer_arithmetic_check_infos;
 	bz::fixed_vector<memory_access_check_info_t> memory_access_check_infos;
 	bz::fixed_vector<add_global_array_data_info_t> add_global_array_data_infos;
+	bz::fixed_vector<copy_values_info_t> copy_values_infos;
 
 	ast::function_body *func_body = nullptr;
 };
@@ -4394,6 +4402,26 @@ struct const_memset_zero
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
+struct copy_values
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t copy_values_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct relocate_values
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t copy_values_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
 struct function_call
 {
 	static inline constexpr int arg_types = 0;
@@ -5136,6 +5164,8 @@ using instruction_list = bz::meta::type_pack<
 	instructions::array_gep_i64,
 	instructions::const_memcpy,
 	instructions::const_memset_zero,
+	instructions::copy_values,
+	instructions::relocate_values,
 	instructions::function_call,
 	instructions::malloc,
 	instructions::free,
@@ -5170,7 +5200,7 @@ struct instruction : instruction_base_t
 {
 	using base_t = instruction_base_t;
 
-	static_assert(variant_count == 517);
+	static_assert(variant_count == 519);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -5664,6 +5694,8 @@ struct instruction : instruction_base_t
 		array_gep_i64            = index_of<instructions::array_gep_i64>,
 		const_memcpy             = index_of<instructions::const_memcpy>,
 		const_memset_zero        = index_of<instructions::const_memset_zero>,
+		copy_values              = index_of<instructions::copy_values>,
+		relocate_values          = index_of<instructions::relocate_values>,
 		function_call            = index_of<instructions::function_call>,
 		malloc                   = index_of<instructions::malloc>,
 		free                     = index_of<instructions::free>,
