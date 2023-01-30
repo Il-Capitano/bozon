@@ -591,6 +591,13 @@ uint32_t codegen_context::add_add_global_array_data_info(add_global_array_data_i
 	return static_cast<uint32_t>(result);
 }
 
+uint32_t codegen_context::add_typename_result_info(typename_result_info_t info)
+{
+	auto const result = this->typename_result_infos.size();
+	this->typename_result_infos.push_back(info);
+	return static_cast<uint32_t>(result);
+}
+
 expr_value codegen_context::get_dummy_value(type const *t)
 {
 	return expr_value::get_reference(instruction_ref{}, t);
@@ -745,6 +752,12 @@ expr_value codegen_context::create_string(lex::src_tokens const &src_tokens, bz:
 	auto const result_address = this->create_alloca(src_tokens, this->get_str_t());
 	this->create_string(src_tokens, str, result_address);
 	return result_address;
+}
+
+expr_value codegen_context::create_typename(ast::typespec_view type)
+{
+	auto const result = this->add_typename_result_info({ type });
+	return this->create_const_u32(result);
 }
 
 codegen_context::global_object_result codegen_context::create_global_object(

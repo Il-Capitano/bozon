@@ -5579,7 +5579,12 @@ static expr_value get_constant_value_helper(
 		return result_value;
 	}
 	case ast::constant_value::type:
-		bz_unreachable;
+	{
+		bz_assert(result_address.has_value());
+		auto const &result_value = result_address.get();
+		context.create_store(context.create_typename(value.get_type()), result_value);
+		return result_value;
+	}
 	default:
 		bz_unreachable;
 	}
@@ -5659,10 +5664,25 @@ static expr_value generate_expr_code(
 )
 {
 	bz_assert(const_expr.kind != ast::expression_type_kind::noreturn);
-	if (
-		const_expr.kind == ast::expression_type_kind::type_name
-		|| const_expr.kind == ast::expression_type_kind::none
-	)
+	if (const_expr.kind == ast::expression_type_kind::type_name)
+	{
+		if (result_address.has_value())
+		{
+			return get_constant_value(
+				original_expression.src_tokens,
+				const_expr.value,
+				const_expr.type,
+				&const_expr,
+				context,
+				result_address
+			);
+		}
+		else
+		{
+			return expr_value::get_none();
+		}
+	}
+	else if (const_expr.kind == ast::expression_type_kind::none)
 	{
 		bz_assert(!result_address.has_value());
 		return expr_value::get_none();
@@ -6238,7 +6258,7 @@ function generate_code_for_expression(ast::expression const &expr, codegen_conte
 	auto const entry_bb = context.add_basic_block();
 	context.set_current_basic_block(entry_bb);
 
-	if (expr_type.is<ast::ts_void>() || expr_type.is_typename())
+	if (expr_type.is<ast::ts_void>())
 	{
 		func.return_type = context.get_builtin_type(builtin_type_kind::void_);
 		auto const prev_info = context.push_expression_scope();
@@ -6248,6 +6268,20 @@ function generate_code_for_expression(ast::expression const &expr, codegen_conte
 		if (!context.has_terminator())
 		{
 			context.create_ret_void();
+		}
+	}
+	else if (expr_type.is_typename())
+	{
+		func.return_type = context.get_builtin_type(builtin_type_kind::i32);
+
+		auto const result_address = context.create_alloca(expr.src_tokens, func.return_type);
+		auto const prev_info = context.push_expression_scope();
+		generate_expr_code(expr, context, result_address);
+		context.pop_expression_scope(prev_info);
+
+		if (!context.has_terminator())
+		{
+			context.create_ret(result_address.get_value_as_instruction(context));
 		}
 	}
 	else

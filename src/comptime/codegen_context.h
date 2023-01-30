@@ -132,6 +132,11 @@ struct machine_parameters_t
 	memory::endianness_kind endianness;
 };
 
+struct typename_result_info_t
+{
+	ast::typespec_view type;
+};
+
 struct codegen_context
 {
 	basic_block_ref current_bb = {};
@@ -142,6 +147,7 @@ struct codegen_context
 	type_set_t type_set;
 	type const *pointer_pair_t = nullptr;
 	type const *null_t = nullptr;
+	bz::vector<typename_result_info_t> typename_result_infos;
 
 	std::unordered_map<ast::decl_variable const *, uint32_t> global_variables{};
 	std::unordered_map<ast::function_body *, std::unique_ptr<function>> functions{};
@@ -237,6 +243,7 @@ struct codegen_context
 	uint32_t add_pointer_arithmetic_check_info(pointer_arithmetic_check_info_t info);
 	uint32_t add_memory_access_check_info(memory_access_check_info_t info);
 	uint32_t add_add_global_array_data_info(add_global_array_data_info_t info);
+	uint32_t add_typename_result_info(typename_result_info_t info);
 
 	expr_value get_dummy_value(type const *t);
 
@@ -256,6 +263,7 @@ struct codegen_context
 	expr_value create_const_ptr_null(void);
 	void create_string(lex::src_tokens const &src_tokens, bz::u8string_view str, expr_value result_address);
 	expr_value create_string(lex::src_tokens const &src_tokens, bz::u8string_view str);
+	expr_value create_typename(ast::typespec_view type);
 
 	struct global_object_result
 	{

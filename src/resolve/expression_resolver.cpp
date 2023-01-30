@@ -364,11 +364,20 @@ static ast::expression resolve_expr(
 			ast::destruct_operation()
 		);
 	}
-	else if (if_expr.then_block.is_none() || if_expr.else_block.is_none())
+	else if (if_expr.then_block.is_none() || if_expr.else_block.is_null() || if_expr.else_block.is_none())
 	{
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+			std::move(result_node),
+			ast::destruct_operation()
+		);
+	}
+	else if (if_expr.then_block.is_typename() && if_expr.else_block.is_typename())
+	{
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::if_expr, ast::make_typename_typespec(nullptr),
 			std::move(result_node),
 			ast::destruct_operation()
 		);

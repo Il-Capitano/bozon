@@ -888,6 +888,13 @@ ast::constant_value executor_context::execute_expression(ast::expression const &
 			return ast::constant_value::get_void();
 		}
 	}
+	else if (func.return_type->is_integer_type())
+	{
+		bz_assert(func.return_type->get_builtin_kind() == builtin_type_kind::i32);
+		bz_assert(expr.get_expr_type().is_typename());
+		auto const result_index = this->ret_value.i32;
+		return ast::constant_value(this->codegen_ctx->typename_result_infos[result_index].type);
+	}
 	else
 	{
 		bz_assert(func.return_type->is_pointer());
