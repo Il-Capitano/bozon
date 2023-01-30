@@ -4464,7 +4464,13 @@ ast::expression parse_context::make_function_call_expression(
 	{
 		auto const alias_decl = called.get_function_alias_name().decl;
 		auto const possible_funcs = get_possible_funcs_for_alias(alias_decl, src_tokens, args, *this);
-		bz_assert(possible_funcs.not_empty());
+		if (possible_funcs.empty())
+		{
+			return ast::make_error_expression(
+				src_tokens,
+				ast::make_expr_function_call(src_tokens, std::move(args), nullptr, ast::resolve_order::regular)
+			);
+		}
 
 		auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, args, *this);
 		if (best_body == nullptr)
