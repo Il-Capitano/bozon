@@ -472,16 +472,13 @@ void codegen_context::push_self_destruct_operation(
 )
 {
 	auto const move_destruct_indicator = this->get_move_destruct_indicator(destruct_op.move_destructed_decl);
-	if (move_destruct_indicator.has_value() || destruct_op.not_null())
-	{
-		this->current_function_info.destructor_calls.push_back({
-			.destruct_op = &destruct_op,
-			.value = value,
-			.condition = {},
-			.move_destruct_indicator = move_destruct_indicator,
-			.rvalue_array_elem_ptr = {},
-		});
-	}
+	this->current_function_info.destructor_calls.push_back({
+		.destruct_op = destruct_op.not_null() ? &destruct_op : nullptr,
+		.value = value,
+		.condition = {},
+		.move_destruct_indicator = move_destruct_indicator,
+		.rvalue_array_elem_ptr = {},
+	});
 }
 
 void codegen_context::push_rvalue_array_destruct_operation(

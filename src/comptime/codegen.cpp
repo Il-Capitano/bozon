@@ -126,7 +126,7 @@ static expr_value value_or_result_address(expr_value value, bz::optional<expr_va
 	}
 	else
 	{
-		return value;
+		return value.get_value(context);
 	}
 }
 
@@ -1952,6 +1952,7 @@ static expr_value generate_intrinsic_function_call_code(
 		context.create_str_construction_check(func_call.src_tokens, begin_ptr, end_ptr);
 		context.create_store(begin_ptr, context.create_struct_gep(result_value, 0));
 		context.create_store(end_ptr,   context.create_struct_gep(result_value, 1));
+		context.create_start_lifetime(result_value);
 		return result_value;
 	}
 	case ast::function_body::builtin_slice_begin_ptr:
@@ -1989,6 +1990,7 @@ static expr_value generate_intrinsic_function_call_code(
 		context.create_slice_construction_check(func_call.src_tokens, begin_ptr, end_ptr, elem_type, func_call.func_body->return_type);
 		context.create_store(begin_ptr, context.create_struct_gep(result_value, 0));
 		context.create_store(end_ptr,   context.create_struct_gep(result_value, 1));
+		context.create_start_lifetime(result_value);
 		return result_value;
 	}
 	case ast::function_body::builtin_slice_from_const_ptrs:
@@ -2007,6 +2009,7 @@ static expr_value generate_intrinsic_function_call_code(
 		context.create_slice_construction_check(func_call.src_tokens, begin_ptr, end_ptr, elem_type, func_call.func_body->return_type);
 		context.create_store(begin_ptr, context.create_struct_gep(result_value, 0));
 		context.create_store(end_ptr,   context.create_struct_gep(result_value, 1));
+		context.create_start_lifetime(result_value);
 		return result_value;
 	}
 	case ast::function_body::builtin_array_begin_ptr:
@@ -2956,24 +2959,26 @@ static expr_value generate_expr_code(
 			}
 			else
 			{
-				auto const arg_value = generate_expr_code(func_call.params[arg_index], context, {});
+				auto const arg_type = func->arg_types[arg_ref_index - needs_return_address];
 				auto const &param_type = func_call.func_body->params[arg_index].get_type();
 				if (param_type.is<ast::ts_lvalue_reference>() || param_type.is<ast::ts_move_reference>())
 				{
-					bz_assert(func->arg_types[arg_ref_index - needs_return_address]->is_pointer());
+					auto const arg_value = generate_expr_code(func_call.params[arg_index], context, {});
+					bz_assert(arg_type->is_pointer());
 					bz_assert(arg_value.is_reference());
 					arg_refs[arg_ref_index] = arg_value.get_reference();
 				}
-				else if (arg_value.get_type()->is_simple_value_type())
+				else if (arg_type->is_simple_value_type())
 				{
-					bz_assert(arg_value.get_type() == func->arg_types[arg_ref_index - needs_return_address]);
+					auto const arg_value = generate_expr_code(func_call.params[arg_index], context, {});
+					bz_assert(arg_value.get_type() == arg_type);
 					arg_refs[arg_ref_index] = arg_value.get_value_as_instruction(context);
 				}
 				else
 				{
-					bz_assert(arg_value.get_type() == func->arg_types[arg_ref_index - needs_return_address]);
-					bz_assert(arg_value.is_reference());
-					arg_refs[arg_ref_index] = arg_value.get_reference();
+					auto const param_result_address = context.create_alloca(func_call.params[arg_index].src_tokens, arg_type);
+					generate_expr_code(func_call.params[arg_index], context, param_result_address);
+					arg_refs[arg_ref_index] = param_result_address.get_reference();
 				}
 				++arg_ref_index;
 			}
@@ -2998,25 +3003,27 @@ static expr_value generate_expr_code(
 			}
 			else
 			{
-				auto const arg_value = generate_expr_code(func_call.params[arg_index], context, {});
 				--arg_ref_index;
+				auto const arg_type = func->arg_types[arg_ref_index - needs_return_address];
 				auto const &param_type = func_call.func_body->params[arg_index].get_type();
 				if (param_type.is<ast::ts_lvalue_reference>() || param_type.is<ast::ts_move_reference>())
 				{
+					auto const arg_value = generate_expr_code(func_call.params[arg_index], context, {});
 					bz_assert(func->arg_types[arg_ref_index - needs_return_address]->is_pointer());
 					bz_assert(arg_value.is_reference());
 					arg_refs[arg_ref_index] = arg_value.get_reference();
 				}
-				else if (arg_value.get_type()->is_simple_value_type())
+				else if (arg_type->is_simple_value_type())
 				{
-					bz_assert(arg_value.get_type() == func->arg_types[arg_ref_index - needs_return_address]);
+					auto const arg_value = generate_expr_code(func_call.params[arg_index], context, {});
+					bz_assert(arg_value.get_type() == arg_type);
 					arg_refs[arg_ref_index] = arg_value.get_value_as_instruction(context);
 				}
 				else
 				{
-					bz_assert(arg_value.get_type() == func->arg_types[arg_ref_index - needs_return_address]);
-					bz_assert(arg_value.is_reference());
-					arg_refs[arg_ref_index] = arg_value.get_reference();
+					auto const param_result_address = context.create_alloca(func_call.params[arg_index].src_tokens, arg_type);
+					generate_expr_code(func_call.params[arg_index], context, param_result_address);
+					arg_refs[arg_ref_index] = param_result_address.get_reference();
 				}
 			}
 		}
@@ -3206,7 +3213,6 @@ static expr_value generate_expr_code(
 		auto const result = generate_expr_code(take_move_ref.expr, context, {});
 		if (result.is_reference())
 		{
-			context.push_end_lifetime(result);
 			return result;
 		}
 		else
@@ -5649,6 +5655,7 @@ static expr_value generate_expr_code(
 	bz::optional<expr_value> result_address
 )
 {
+	auto const result_address_provided = result_address.has_value();
 	if (
 		!result_address.has_value()
 		&& dyn_expr.kind == ast::expression_type_kind::rvalue
@@ -5673,7 +5680,10 @@ static expr_value generate_expr_code(
 
 	auto const result = generate_expr_code(original_expression, dyn_expr.expr, context, result_address);
 
-	if (dyn_expr.destruct_op.not_null() || dyn_expr.destruct_op.move_destructed_decl != nullptr)
+	auto const should_end_lifetime_manually = !result_address_provided
+		&& dyn_expr.kind == ast::expression_type_kind::rvalue
+		&& result.is_reference();
+	if (should_end_lifetime_manually || dyn_expr.destruct_op.not_null() || dyn_expr.destruct_op.move_destructed_decl != nullptr)
 	{
 		bz_assert(result.is_reference());
 		context.push_self_destruct_operation(dyn_expr.destruct_op, result);
