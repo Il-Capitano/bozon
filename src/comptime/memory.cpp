@@ -2324,7 +2324,6 @@ void memory_manager::start_lifetime(ptr_t _address, size_t size)
 		auto const allocation = this->heap.get_allocation(address);
 		bz_assert(allocation != nullptr);
 		bz_assert(!allocation->is_freed);
-		bz_assert(allocation->object.elem_size() == size);
 		allocation->object.start_lifetime(address, address + size);
 		break;
 	}
