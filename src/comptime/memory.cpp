@@ -1461,38 +1461,13 @@ ptr_t meta_memory_manager::get_real_address(ptr_t address) const
 	}
 }
 
-memory_manager::memory_manager(
-	global_segment_info_t _segment_info,
-	global_memory_manager *_global_memory,
-	bool is_64_bit,
-	bool is_native_endianness
-)
+memory_manager::memory_manager(global_segment_info_t _segment_info, global_memory_manager *_global_memory)
 	: segment_info(_segment_info),
 	  global_memory(_global_memory),
 	  stack(_segment_info.get_segment_begin<memory_segment::stack>()),
 	  heap(_segment_info.get_segment_begin<memory_segment::heap>()),
 	  meta_memory(_segment_info.get_segment_begin<memory_segment::meta>())
-{
-	for (auto const &info : this->global_memory->one_past_the_end_pointer_infos)
-	{
-		auto const ptr = this->meta_memory.make_one_past_the_end_address(info.address);
-		auto &memory = this->global_memory->objects[info.object_index].memory;
-		if (is_64_bit)
-		{
-			auto const ptr64 = is_native_endianness
-				? static_cast<uint64_t>(ptr)
-				: byteswap(static_cast<uint64_t>(ptr));
-			std::memcpy(memory.data() + info.offset, &ptr64, sizeof ptr64);
-		}
-		else
-		{
-			auto const ptr32 = is_native_endianness
-				? static_cast<uint32_t>(ptr)
-				: byteswap(static_cast<uint32_t>(ptr));
-			std::memcpy(memory.data() + info.offset, &ptr32, sizeof ptr32);
-		}
-	}
-}
+{}
 
 [[nodiscard]] bool memory_manager::push_stack_frame(bz::array_view<alloca const> types)
 {
@@ -1542,6 +1517,20 @@ static remove_meta_result_t remove_meta(ptr_t address, memory_manager const &man
 		}
 
 		segment = manager.segment_info.get_segment(address);
+	}
+
+	if (segment == memory_segment::global)
+	{
+		auto const global_segment = manager.global_memory->segment_info.get_segment(address);
+		switch (global_segment)
+		{
+		case global_meta_memory_segment::one_past_the_end:
+			is_one_past_the_end = true;
+			address = manager.global_memory->get_one_past_the_end_pointer(address).address;
+			break;
+		case global_meta_memory_segment::objects:
+			break;
+		}
 	}
 
 	return { address, segment, is_one_past_the_end, false };
@@ -2359,9 +2348,10 @@ bool memory_manager::is_global(ptr_t address) const
 	return address != 0 && remove_meta(address, *this).segment == memory_segment::global;
 }
 
-uint8_t *memory_manager::get_memory(ptr_t address)
+uint8_t *memory_manager::get_memory(ptr_t _address)
 {
-	auto const segment = this->segment_info.get_segment(address);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+	bz_assert(!is_finished_stack_frame);
 	switch (segment)
 	{
 	case memory_segment::global:
@@ -2371,13 +2361,14 @@ uint8_t *memory_manager::get_memory(ptr_t address)
 	case memory_segment::heap:
 		return this->heap.get_memory(address);
 	case memory_segment::meta:
-		return this->get_memory(this->meta_memory.get_real_address(address));
+		bz_unreachable;
 	}
 }
 
-uint8_t const *memory_manager::get_memory(ptr_t address) const
+uint8_t const *memory_manager::get_memory(ptr_t _address) const
 {
-	auto const segment = this->segment_info.get_segment(address);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+	bz_assert(!is_finished_stack_frame);
 	switch (segment)
 	{
 	case memory_segment::global:
@@ -2387,7 +2378,7 @@ uint8_t const *memory_manager::get_memory(ptr_t address) const
 	case memory_segment::heap:
 		return this->heap.get_memory(address);
 	case memory_segment::meta:
-		return this->get_memory(this->meta_memory.get_real_address(address));
+		bz_unreachable;
 	}
 }
 

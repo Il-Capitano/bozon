@@ -209,9 +209,19 @@ bz::optional<int64_t> global_object::do_pointer_difference(
 }
 
 global_memory_manager::global_memory_manager(ptr_t global_memory_begin)
-	: head(global_memory_begin),
+	: segment_info{},
+	  head(0),
+	  one_past_the_end_pointers(),
 	  objects()
-{}
+{
+	constexpr size_t segment_count = global_meta_segment_info_t::segment_count;
+	constexpr size_t segment_size = 1u << 16;
+	for (size_t i = 0; i < segment_count; ++i)
+	{
+		this->segment_info.segment_begins[i] = global_memory_begin + i * segment_size;
+	}
+	this->head = this->segment_info.get_segment_begin<global_meta_memory_segment::objects>();
+}
 
 uint32_t global_memory_manager::add_object(lex::src_tokens const &object_src_tokens, type const *object_type, bz::fixed_vector<uint8_t> data)
 {
@@ -222,9 +232,18 @@ uint32_t global_memory_manager::add_object(lex::src_tokens const &object_src_tok
 	return result;
 }
 
-void global_memory_manager::add_one_past_the_end_pointer_info(one_past_the_end_pointer_info_t info)
+ptr_t global_memory_manager::make_global_one_past_the_end_address(ptr_t address)
 {
-	this->one_past_the_end_pointer_infos.push_back(info);
+	auto const result_index = this->one_past_the_end_pointers.size();
+	this->one_past_the_end_pointers.push_back({ address });
+	return this->segment_info.get_segment_begin<global_meta_memory_segment::one_past_the_end>() + result_index;
+}
+
+global_memory_manager::one_past_the_end_pointer const &global_memory_manager::get_one_past_the_end_pointer(ptr_t address) const
+{
+	auto const index = address - this->segment_info.get_segment_begin<global_meta_memory_segment::one_past_the_end>();
+	bz_assert(index < this->one_past_the_end_pointers.size());
+	return this->one_past_the_end_pointers[index];
 }
 
 global_object *global_memory_manager::get_global_object(ptr_t address)
@@ -482,7 +501,6 @@ static void object_from_constant_value(
 	uint8_t *mem,
 	endianness_kind endianness,
 	size_t current_offset,
-	bz::vector<global_memory_manager::one_past_the_end_pointer_info_t> &one_past_the_end_infos,
 	global_memory_manager &manager,
 	type_set_t &type_set
 )
@@ -558,7 +576,7 @@ static void object_from_constant_value(
 			bz::fixed_vector<uint8_t>(bz::array_view(str.data(), str.size()))
 		);
 		auto const begin_ptr = manager.objects[char_array_index].address;
-		auto const end_ptr = manager.objects[char_array_index].address + str.size();
+		auto const end_ptr = manager.make_global_one_past_the_end_address(manager.objects[char_array_index].address + str.size());
 		bz_assert(object_type->is_aggregate() && object_type->get_aggregate_types().size() == 2);
 		auto const pointer_size = object_type->get_aggregate_types()[0]->size;
 		bz_assert(object_type->size == 2 * pointer_size);
@@ -567,20 +585,23 @@ static void object_from_constant_value(
 			auto const begin_ptr64 = is_native(endianness)
 				? static_cast<uint64_t>(begin_ptr)
 				: memory::byteswap(static_cast<uint64_t>(begin_ptr));
+			auto const end_ptr64 = is_native(endianness)
+				? static_cast<uint64_t>(end_ptr)
+				: memory::byteswap(static_cast<uint64_t>(end_ptr));
 			std::memcpy(mem, &begin_ptr64, sizeof begin_ptr64);
+			std::memcpy(mem + 8, &end_ptr64, sizeof end_ptr64);
 		}
 		else
 		{
 			auto const begin_ptr32 = is_native(endianness)
 				? static_cast<uint32_t>(begin_ptr)
 				: memory::byteswap(static_cast<uint32_t>(begin_ptr));
+			auto const end_ptr32 = is_native(endianness)
+				? static_cast<uint32_t>(end_ptr)
+				: memory::byteswap(static_cast<uint32_t>(end_ptr));
 			std::memcpy(mem, &begin_ptr32, sizeof begin_ptr32);
+			std::memcpy(mem + 4, &end_ptr32, sizeof end_ptr32);
 		}
-		one_past_the_end_infos.push_back({
-			.object_index = 0,
-			.offset = static_cast<uint32_t>(current_offset + pointer_size),
-			.address = end_ptr,
-		});
 		break;
 	}
 	case ast::constant_value::boolean:
@@ -622,7 +643,7 @@ static void object_from_constant_value(
 		auto const elem_size = elem_type->size;
 		for (auto const &elem : array)
 		{
-			object_from_constant_value(src_tokens, elem, elem_type, mem, endianness, current_offset, one_past_the_end_infos, manager, type_set);
+			object_from_constant_value(src_tokens, elem, elem_type, mem, endianness, current_offset, manager, type_set);
 			mem += elem_size;
 			current_offset += elem_size;
 		}
@@ -717,7 +738,6 @@ static void object_from_constant_value(
 				mem + offsets[i],
 				endianness,
 				current_offset + offsets[i],
-				one_past_the_end_infos,
 				manager,
 				type_set
 			);
@@ -745,7 +765,6 @@ static void object_from_constant_value(
 				mem + offsets[i],
 				endianness,
 				current_offset + offsets[i],
-				one_past_the_end_infos,
 				manager,
 				type_set
 			);
@@ -757,7 +776,7 @@ static void object_from_constant_value(
 	}
 }
 
-object_from_constant_value_result_t object_from_constant_value(
+bz::fixed_vector<uint8_t> object_from_constant_value(
 	lex::src_tokens const &src_tokens,
 	ast::constant_value const &value,
 	type const *object_type,
@@ -766,18 +785,14 @@ object_from_constant_value_result_t object_from_constant_value(
 	type_set_t &type_set
 )
 {
-	auto result = object_from_constant_value_result_t{
-		.data = bz::fixed_vector<uint8_t>(object_type->size),
-		.one_past_the_end_infos = {},
-	};
+	auto result = bz::fixed_vector<uint8_t>(object_type->size);
 	object_from_constant_value(
 		src_tokens,
 		value,
 		object_type,
-		result.data.data(),
+		result.data(),
 		endianness,
 		0,
-		result.one_past_the_end_infos,
 		manager,
 		type_set
 	);

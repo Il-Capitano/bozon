@@ -5970,7 +5970,7 @@ static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_conte
 		{
 			auto const &init_value = var_decl.init_expr.get_constant_value();
 			auto const type = get_type(var_decl.get_type(), context);
-			auto [data, one_past_the_end_infos] = memory::object_from_constant_value(
+			auto data = memory::object_from_constant_value(
 				var_decl.src_tokens,
 				init_value,
 				type,
@@ -5979,14 +5979,6 @@ static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_conte
 				context.type_set
 			);
 			auto const [value, index] = context.create_global_object(var_decl.src_tokens, type, std::move(data));
-			for (auto const &[_, offset, address] : one_past_the_end_infos)
-			{
-				context.global_memory.add_one_past_the_end_pointer_info({
-					.object_index = index,
-					.offset = offset,
-					.address = address,
-				});
-			}
 			context.add_global_variable(&var_decl, index);
 			add_variable_helper(var_decl, value, true, context);
 		}

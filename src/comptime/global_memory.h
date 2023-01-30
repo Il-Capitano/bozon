@@ -53,24 +53,35 @@ struct global_object
 	) const;
 };
 
+enum class global_meta_memory_segment
+{
+	one_past_the_end,
+	objects,
+};
+
+using global_meta_segment_info_t = memory_segment_info_t<bz::array{
+	global_meta_memory_segment::one_past_the_end,
+	global_meta_memory_segment::objects,
+}>;
+
 struct global_memory_manager
 {
-	ptr_t head;
-	bz::vector<global_object> objects;
-
-	struct one_past_the_end_pointer_info_t
+	struct one_past_the_end_pointer
 	{
-		uint32_t object_index;
-		uint32_t offset;
 		ptr_t address;
 	};
 
-	bz::vector<one_past_the_end_pointer_info_t> one_past_the_end_pointer_infos;
+	global_meta_segment_info_t segment_info;
+	ptr_t head;
+
+	bz::vector<one_past_the_end_pointer> one_past_the_end_pointers;
+	bz::vector<global_object> objects;
 
 	explicit global_memory_manager(ptr_t global_memory_begin);
 
 	uint32_t add_object(lex::src_tokens const &object_src_tokens, type const *object_type, bz::fixed_vector<uint8_t> data);
-	void add_one_past_the_end_pointer_info(one_past_the_end_pointer_info_t info);
+	ptr_t make_global_one_past_the_end_address(ptr_t address);
+	one_past_the_end_pointer const &get_one_past_the_end_pointer(ptr_t address) const;
 
 	global_object *get_global_object(ptr_t address);
 	global_object const *get_global_object(ptr_t address) const;
@@ -110,13 +121,7 @@ struct global_memory_manager
 	uint8_t const *get_memory(ptr_t address) const;
 };
 
-struct object_from_constant_value_result_t
-{
-	bz::fixed_vector<uint8_t> data;
-	bz::vector<global_memory_manager::one_past_the_end_pointer_info_t> one_past_the_end_infos;
-};
-
-object_from_constant_value_result_t object_from_constant_value(
+bz::fixed_vector<uint8_t> object_from_constant_value(
 	lex::src_tokens const &src_tokens,
 	ast::constant_value const &value,
 	type const *object_type,

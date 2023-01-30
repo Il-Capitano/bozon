@@ -325,12 +325,7 @@ struct memory_manager
 	heap_manager heap;
 	meta_memory_manager meta_memory;
 
-	explicit memory_manager(
-		global_segment_info_t _segment_info,
-		global_memory_manager *_global_memory,
-		bool is_64_bit,
-		bool is_native_endianness
-	);
+	explicit memory_manager(global_segment_info_t _segment_info, global_memory_manager *_global_memory);
 
 	[[nodiscard]] bool push_stack_frame(bz::array_view<alloca const> types);
 	void pop_stack_frame(void);
