@@ -319,6 +319,40 @@ export function __builtin_print_stderr(s: str)
 		)));
 	} else {}, T);
 
+@__builtin export function __builtin_trivially_copy_values(dest: ?*auto, source: ?*const auto, count: usize)
+	-> (if consteval (__builtin_remove_pointer(__builtin_remove_optional(typeof dest)) != __builtin_remove_const(__builtin_remove_pointer(__builtin_remove_optional(typeof source)))) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched pointer types '",
+			__builtin_typename_as_str(typeof dest),
+			"' and '",
+			__builtin_typename_as_str(typeof source),
+			"' in '__builtin_trivially_copy_values'"
+		)));
+	} else if (!__builtin_is_trivially_copy_constructible(__builtin_remove_pointer(__builtin_remove_optional(typeof dest)))) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"value type '",
+			__builtin_typename_as_str(__builtin_remove_pointer(__builtin_remove_optional(typeof dest))),
+			"' is not trivially copy constructible in '__builtin_trivially_copy_values'"
+		)));
+	} else {}, void);
+
+@__builtin export function __builtin_trivially_relocate_values(dest: ?*auto, source: ?*const auto, count: usize)
+	-> (if consteval (__builtin_remove_pointer(__builtin_remove_optional(typeof dest)) != __builtin_remove_const(__builtin_remove_pointer(__builtin_remove_optional(typeof source)))) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched pointer types '",
+			__builtin_typename_as_str(typeof dest),
+			"' and '",
+			__builtin_typename_as_str(typeof source),
+			"' in '__builtin_trivially_relocate_values'"
+		)));
+	} else if (!__builtin_is_trivially_relocatable(__builtin_remove_pointer(__builtin_remove_optional(typeof dest)))) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"value type '",
+			__builtin_typename_as_str(__builtin_remove_pointer(__builtin_remove_optional(typeof dest))),
+			"' is not trivially relocatable in '__builtin_trivially_relocate_values'"
+		)));
+	} else {}, void);
+
 @__builtin @symbol_name("llvm.lifetime.start.p0") function __builtin_lifetime_start(size: uint64, ptr: *void);
 @__builtin @symbol_name("llvm.lifetime.end.p0") function __builtin_lifetime_end(size: uint64, ptr: *void);
 

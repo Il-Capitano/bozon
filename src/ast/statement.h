@@ -572,6 +572,9 @@ struct function_body
 
 		create_initialized_array,
 
+		trivially_copy_values,
+		trivially_relocate_values,
+
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions
 
@@ -1584,7 +1587,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 188);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 190);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1679,6 +1682,9 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::is_trivial,                      "__builtin_is_trivial"                      },
 
 		{ function_body::create_initialized_array, "__builtin_create_initialized_array" },
+
+		{ function_body::trivially_copy_values,     "__builtin_trivially_copy_values"     },
+		{ function_body::trivially_relocate_values, "__builtin_trivially_relocate_values" },
 
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions

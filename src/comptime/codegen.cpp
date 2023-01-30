@@ -1908,7 +1908,7 @@ static expr_value generate_intrinsic_function_call_code(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 188);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 190);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2294,6 +2294,10 @@ static expr_value generate_intrinsic_function_call_code(
 	case ast::function_body::create_initialized_array:
 		// this is handled as a separate expression, not a function call
 		bz_unreachable;
+	case ast::function_body::trivially_copy_values:
+		bz_unreachable; // TODO
+	case ast::function_body::trivially_relocate_values:
+		bz_unreachable; // TODO
 	case ast::function_body::lifetime_start:
 		// this is an LLVM intrinsic
 		bz_unreachable;
@@ -2301,11 +2305,35 @@ static expr_value generate_intrinsic_function_call_code(
 		// this is an LLVM intrinsic
 		bz_unreachable;
 	case ast::function_body::memcpy:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 3);
+		generate_expr_code(func_call.params[0], context, {});
+		generate_expr_code(func_call.params[1], context, {});
+		generate_expr_code(func_call.params[2], context, {});
+		context.create_error(
+			func_call.src_tokens,
+			bz::format("'{}' cannot be used in a constant expression", func_call.func_body->get_signature())
+		);
+		return expr_value::get_none();
 	case ast::function_body::memmove:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 3);
+		generate_expr_code(func_call.params[0], context, {});
+		generate_expr_code(func_call.params[1], context, {});
+		generate_expr_code(func_call.params[2], context, {});
+		context.create_error(
+			func_call.src_tokens,
+			bz::format("'{}' cannot be used in a constant expression", func_call.func_body->get_signature())
+		);
+		return expr_value::get_none();
 	case ast::function_body::memset:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 3);
+		generate_expr_code(func_call.params[0], context, {});
+		generate_expr_code(func_call.params[1], context, {});
+		generate_expr_code(func_call.params[2], context, {});
+		context.create_error(
+			func_call.src_tokens,
+			bz::format("'{}' cannot be used in a constant expression", func_call.func_body->get_signature())
+		);
+		return expr_value::get_none();
 	case ast::function_body::abs_i8:
 	case ast::function_body::abs_i16:
 	case ast::function_body::abs_i32:

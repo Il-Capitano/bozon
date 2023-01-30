@@ -2632,7 +2632,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 188);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 190);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2898,6 +2898,40 @@ static val_ptr emit_bitcode(
 				return val_ptr::get_value(result_val);
 			}
 		}
+
+		case ast::function_body::trivially_copy_values:
+		{
+			bz_assert(func_call.params.size() == 3);
+			auto const dest = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const source = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const count = emit_bitcode<abi>(func_call.params[2], context, nullptr).get_value(context.builder);
+			bz_assert(func_call.params[0].get_expr_type().is_optional_pointer());
+			auto const type = get_llvm_type(func_call.params[0].get_expr_type().get_optional_pointer(), context);
+			auto const type_size = llvm::ConstantInt::get(count->getType(), context.get_size(type));
+			auto const size = context.builder.CreateMul(count, type_size);
+
+			auto const memcpy_fn = context.get_function(context.get_builtin_function(ast::function_body::memcpy));
+			auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+			context.create_call(memcpy_fn, { dest, source, size, false_val });
+			return val_ptr::get_none();
+		}
+		case ast::function_body::trivially_relocate_values:
+		{
+			bz_assert(func_call.params.size() == 3);
+			auto const dest = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const source = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const count = emit_bitcode<abi>(func_call.params[2], context, nullptr).get_value(context.builder);
+			bz_assert(func_call.params[0].get_expr_type().is_optional_pointer());
+			auto const type = get_llvm_type(func_call.params[0].get_expr_type().get_optional_pointer(), context);
+			auto const type_size = llvm::ConstantInt::get(count->getType(), context.get_size(type));
+			auto const size = context.builder.CreateMul(count, type_size);
+
+			auto const memmove_fn = context.get_function(context.get_builtin_function(ast::function_body::memmove));
+			auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+			context.create_call(memmove_fn, { dest, source, size, false_val });
+			return val_ptr::get_none();
+		}
+
 		case ast::function_body::comptime_malloc:
 		case ast::function_body::comptime_free:
 		case ast::function_body::comptime_compile_error:
