@@ -3229,7 +3229,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		else if constexpr (kind == type_match_function_kind::match_expression)
 		{
 			auto const is_good = generic_type_match(change_dest(match_context, dest.get<ast::ts_optional>()));
-			if (is_good)
+			if (is_good && !match_context.dest_container.is_optional_pointer())
 			{
 				expr = match_context.context.make_optional_cast_expression(std::move(expr));
 			}
