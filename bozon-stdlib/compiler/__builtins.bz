@@ -336,8 +336,8 @@ export function __builtin_print_stderr(s: str)
 		)));
 	} else {}, void);
 
-@__builtin export function __builtin_trivially_relocate_values(dest: ?*auto, source: ?*const auto, count: usize)
-	-> (if consteval (__builtin_remove_pointer(__builtin_remove_optional(typeof dest)) != __builtin_remove_const(__builtin_remove_pointer(__builtin_remove_optional(typeof source)))) {
+@__builtin export function __builtin_trivially_relocate_values(dest: ?*auto, source: ?*auto, count: usize)
+	-> (if consteval (typeof dest != typeof source) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"mismatched pointer types '",
 			__builtin_typename_as_str(typeof dest),
