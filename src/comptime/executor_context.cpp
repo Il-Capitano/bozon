@@ -50,6 +50,7 @@ executor_context::executor_context(codegen_context *_codegen_ctx)
 
 uint8_t *executor_context::get_memory(ptr_t address)
 {
+	bz_assert(address != 0);
 	return this->memory.get_memory(address);
 }
 
