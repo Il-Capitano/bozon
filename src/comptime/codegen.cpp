@@ -4095,13 +4095,23 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_aggregate_assign const &aggregate_assign,
 	codegen_context &context
 )
 {
-	auto const rhs = generate_expr_code(aggregate_assign.rhs, context, {});
+	auto const is_rhs_rvalue = aggregate_assign.rhs.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue;
+	auto const rhs = is_rhs_rvalue
+		? generate_expr_code(
+			aggregate_assign.rhs,
+			context,
+			context.create_alloca(original_expression.src_tokens, get_type(aggregate_assign.rhs.get_expr_type(), context))
+		)
+		: generate_expr_code(aggregate_assign.rhs, context, {});
 	auto const lhs = generate_expr_code(aggregate_assign.lhs, context, {});
-	auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
+	auto const pointer_compare_info = is_rhs_rvalue
+		? pointer_compare_info_t{}
+		: create_pointer_compare_begin(lhs, rhs, context);
 
 	for (auto const i : bz::iota(0, aggregate_assign.assign_exprs.size()))
 	{
@@ -4117,18 +4127,31 @@ static expr_value generate_expr_code(
 		context.pop_expression_scope(prev_info);
 	}
 
-	create_pointer_compare_end(pointer_compare_info, context);
+	if (!is_rhs_rvalue)
+	{
+		create_pointer_compare_end(pointer_compare_info, context);
+	}
 	return lhs;
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_array_assign const &array_assign,
 	codegen_context &context
 )
 {
-	auto const rhs = generate_expr_code(array_assign.rhs, context, {});
+	auto const is_rhs_rvalue = array_assign.rhs.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue;
+	auto const rhs = is_rhs_rvalue
+		? generate_expr_code(
+			array_assign.rhs,
+			context,
+			context.create_alloca(original_expression.src_tokens, get_type(array_assign.rhs.get_expr_type(), context))
+		)
+		: generate_expr_code(array_assign.rhs, context, {});
 	auto const lhs = generate_expr_code(array_assign.lhs, context, {});
-	auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
+	auto const pointer_compare_info = is_rhs_rvalue
+		? pointer_compare_info_t{}
+		: create_pointer_compare_begin(lhs, rhs, context);
 
 	bz_assert(array_assign.lhs.get_expr_type().is<ast::ts_array>());
 	auto const size = array_assign.lhs.get_expr_type().get<ast::ts_array>().size;
@@ -4145,7 +4168,10 @@ static expr_value generate_expr_code(
 
 	create_loop_end(loop_info, context);
 
-	create_pointer_compare_end(pointer_compare_info, context);
+	if (!is_rhs_rvalue)
+	{
+		create_pointer_compare_end(pointer_compare_info, context);
+	}
 	return lhs;
 }
 
@@ -4199,15 +4225,25 @@ static basic_block_ref generate_optional_assign_rhs(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_optional_assign const &optional_assign,
 	codegen_context &context
 )
 {
-	auto const rhs = generate_expr_code(optional_assign.rhs, context, {});
+	auto const is_rhs_rvalue = optional_assign.rhs.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue;
+	auto const rhs = is_rhs_rvalue
+		? generate_expr_code(
+			optional_assign.rhs,
+			context,
+			context.create_alloca(original_expression.src_tokens, get_type(optional_assign.rhs.get_expr_type(), context))
+		)
+		: generate_expr_code(optional_assign.rhs, context, {});
 	auto const lhs = generate_expr_code(optional_assign.lhs, context, {});
 	bz_assert(!lhs.get_type()->is_pointer());
 
-	auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
+	auto const pointer_compare_info = is_rhs_rvalue
+		? pointer_compare_info_t{}
+		: create_pointer_compare_begin(lhs, rhs, context);
 
 	auto const lhs_has_value = get_optional_has_value(lhs, context).get_value(context);
 	auto const rhs_has_value = get_optional_has_value(rhs, context).get_value(context);
@@ -4255,7 +4291,10 @@ static expr_value generate_expr_code(
 
 	context.set_current_basic_block(end_bb);
 
-	create_pointer_compare_end(pointer_compare_info, context);
+	if (!is_rhs_rvalue)
+	{
+		create_pointer_compare_end(pointer_compare_info, context);
+	}
 	return lhs;
 }
 
@@ -4303,11 +4342,19 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_optional_value_assign const &optional_value_assign,
 	codegen_context &context
 )
 {
-	auto const rhs = generate_expr_code(optional_value_assign.rhs, context, {});
+	auto const is_rhs_rvalue = optional_value_assign.rhs.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue;
+	auto const rhs = is_rhs_rvalue
+		? generate_expr_code(
+			optional_value_assign.rhs,
+			context,
+			context.create_alloca(original_expression.src_tokens, get_type(optional_value_assign.rhs.get_expr_type(), context))
+		)
+		: generate_expr_code(optional_value_assign.rhs, context, {});
 	auto const lhs = generate_expr_code(optional_value_assign.lhs, context, {});
 
 	if (lhs.get_type()->is_pointer())
@@ -4376,13 +4423,23 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_base_type_assign const &base_type_assign,
 	codegen_context &context
 )
 {
-	auto const rhs = generate_expr_code(base_type_assign.rhs, context, {});
+	auto const is_rhs_rvalue = base_type_assign.rhs.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue;
+	auto const rhs = is_rhs_rvalue
+		? generate_expr_code(
+			base_type_assign.rhs,
+			context,
+			context.create_alloca(original_expression.src_tokens, get_type(base_type_assign.rhs.get_expr_type(), context))
+		)
+		: generate_expr_code(base_type_assign.rhs, context, {});
 	auto const lhs = generate_expr_code(base_type_assign.lhs, context, {});
-	auto const pointer_compare_info = create_pointer_compare_begin(lhs, rhs, context);
+	auto const pointer_compare_info = is_rhs_rvalue
+		? pointer_compare_info_t{}
+		: create_pointer_compare_begin(lhs, rhs, context);
 
 	{
 		auto const prev_info = context.push_expression_scope();
@@ -4400,7 +4457,10 @@ static expr_value generate_expr_code(
 		context.pop_expression_scope(prev_info);
 	}
 
-	create_pointer_compare_end(pointer_compare_info, context);
+	if (!is_rhs_rvalue)
+	{
+		create_pointer_compare_end(pointer_compare_info, context);
+	}
 	return lhs;
 }
 
@@ -4944,25 +5004,25 @@ static expr_value generate_expr_code(
 		return generate_expr_code(expr.get<ast::expr_trivial_swap>(), context);
 	case ast::expr_t::index<ast::expr_aggregate_assign>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(expr.get<ast::expr_aggregate_assign>(), context);
+		return generate_expr_code(original_expression, expr.get<ast::expr_aggregate_assign>(), context);
 	case ast::expr_t::index<ast::expr_array_assign>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(expr.get<ast::expr_array_assign>(), context);
+		return generate_expr_code(original_expression, expr.get<ast::expr_array_assign>(), context);
 	case ast::expr_t::index<ast::expr_optional_assign>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(expr.get<ast::expr_optional_assign>(), context);
+		return generate_expr_code(original_expression, expr.get<ast::expr_optional_assign>(), context);
 	case ast::expr_t::index<ast::expr_optional_null_assign>:
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(expr.get<ast::expr_optional_null_assign>(), context);
 	case ast::expr_t::index<ast::expr_optional_value_assign>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(expr.get<ast::expr_optional_value_assign>(), context);
+		return generate_expr_code(original_expression, expr.get<ast::expr_optional_value_assign>(), context);
 	case ast::expr_t::index<ast::expr_optional_reference_value_assign>:
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(expr.get<ast::expr_optional_reference_value_assign>(), context);
 	case ast::expr_t::index<ast::expr_base_type_assign>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(expr.get<ast::expr_base_type_assign>(), context);
+		return generate_expr_code(original_expression, expr.get<ast::expr_base_type_assign>(), context);
 	case ast::expr_t::index<ast::expr_trivial_assign>:
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(expr.get<ast::expr_trivial_assign>(), context);
@@ -6377,16 +6437,43 @@ static void generate_rvalue_array_destruct(
 
 void generate_destruct_operation(destruct_operation_info_t const &destruct_op_info, codegen_context &context)
 {
-	if (destruct_op_info.destruct_op == nullptr)
-	{
-		context.create_end_lifetime(destruct_op_info.value);
-		return;
-	}
-
-	auto const &destruct_op = *destruct_op_info.destruct_op;
 	auto const &condition = destruct_op_info.condition;
+	if (
+		!destruct_op_info.move_destruct_indicator.has_value()
+		&& (destruct_op_info.destruct_op == nullptr || destruct_op_info.destruct_op->is_null())
+	)
+	{
+		if (condition.has_value())
+		{
+			auto const condition_value = expr_value::get_reference(
+				condition.get(),
+				context.get_builtin_type(builtin_type_kind::i1)
+			).get_value(context);
 
-	if (destruct_op.is<ast::destruct_variable>())
+			auto const begin_bb = context.get_current_basic_block();
+
+			auto const destruct_bb = context.add_basic_block();
+			context.set_current_basic_block(destruct_bb);
+			context.create_end_lifetime(destruct_op_info.value);
+
+			auto const end_bb = context.add_basic_block();
+			context.create_jump(end_bb);
+
+			context.set_current_basic_block(begin_bb);
+			context.create_conditional_jump(condition_value, destruct_bb, end_bb);
+
+			context.set_current_basic_block(end_bb);
+		}
+		else
+		{
+			context.create_end_lifetime(destruct_op_info.value);
+		}
+	}
+	else if (destruct_op_info.destruct_op == nullptr || destruct_op_info.destruct_op->is_null())
+	{
+		// nothing
+	}
+	else if (auto const &destruct_op = *destruct_op_info.destruct_op; destruct_op.is<ast::destruct_variable>())
 	{
 		bz_assert(destruct_op.get<ast::destruct_variable>().destruct_call->not_null());
 		if (condition.has_value())
@@ -6508,7 +6595,6 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 	else
 	{
 		static_assert(ast::destruct_operation::variant_count == 4);
-		bz_assert(destruct_op.is_null());
 		// nothing
 	}
 
