@@ -202,14 +202,6 @@ void stack_object::start_lifetime(ptr_t begin, ptr_t end)
 
 void stack_object::end_lifetime(ptr_t begin, ptr_t end)
 {
-	if (!this->is_alive(begin, end))
-	{
-		for (auto const bits : this->properties.data.slice(begin - this->address, end - this->address))
-		{
-			bz::log("{:02b} ", bits);
-		}
-		bz::log("\n");
-	}
 	bz_assert(this->is_alive(begin, end));
 	this->properties.erase_range(begin - this->address, end - this->address, memory_properties::is_alive);
 }
