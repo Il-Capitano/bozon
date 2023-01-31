@@ -342,6 +342,11 @@ ptr_t executor_context::malloc(uint32_t src_tokens_index, type const *type, uint
 
 void executor_context::free(uint32_t src_tokens_index, ptr_t address)
 {
+	if (address == 0)
+	{
+		return;
+	}
+
 	auto const result = this->memory.heap.free(this->get_call_stack_info(src_tokens_index), address);
 	switch (result)
 	{
