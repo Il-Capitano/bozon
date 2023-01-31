@@ -129,7 +129,7 @@ static size_t round_up(size_t value, size_t align)
 	}
 	else
 	{
-		return value - rem + align;
+		return value + align - rem;
 	}
 }
 
@@ -160,7 +160,9 @@ static type_size_info get_type_size_info(bz::array_view<type const * const> elem
 		size += type->size;
 	}
 
-	size = round_up(size, align);
+	auto const new_size = round_up(size, align);
+	has_padding |= (new_size != size);
+	size = new_size;
 	if (size == 0)
 	{
 		size = 1;

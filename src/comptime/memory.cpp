@@ -70,9 +70,23 @@ static void fill_padding_single(bz::array_view<uint8_t> data, type const *object
 		for (auto const i : bz::iota(0, types.size() - 1))
 		{
 			auto const elem_type = types[i];
-			fill_padding_single(data.slice(0, elem_type->size), elem_type);
 			auto const offset = offsets[i];
+			fill_padding_single(data.slice(offset, offset + elem_type->size), elem_type);
 			auto const next_offset = offsets[i + 1];
+			if (offset + elem_type->size != next_offset)
+			{
+				for (auto &value : data.slice(offset + elem_type->size, next_offset))
+				{
+					value |= memory_properties::is_padding;
+				}
+			}
+		}
+
+		{
+			auto const offset = offsets.back();
+			auto const elem_type = types.back();
+			fill_padding_single(data.slice(offset, offset + elem_type->size), elem_type);
+			auto const next_offset = object_type->size;
 			if (offset + elem_type->size != next_offset)
 			{
 				for (auto &value : data.slice(offset + elem_type->size, next_offset))
