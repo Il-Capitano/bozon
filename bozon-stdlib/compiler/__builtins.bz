@@ -328,7 +328,7 @@ export function __builtin_print_stderr(s: str)
 			__builtin_typename_as_str(typeof source),
 			"' in '__builtin_trivially_copy_values'"
 		)));
-	} else if (!__builtin_is_trivially_copy_constructible(__builtin_remove_pointer(__builtin_remove_optional(typeof dest)))) {
+	} else if consteval (!__builtin_is_trivially_copy_constructible(__builtin_remove_pointer(__builtin_remove_optional(typeof dest)))) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"value type '",
 			__builtin_typename_as_str(__builtin_remove_pointer(__builtin_remove_optional(typeof dest))),
@@ -345,7 +345,7 @@ export function __builtin_print_stderr(s: str)
 			__builtin_typename_as_str(typeof source),
 			"' in '__builtin_trivially_relocate_values'"
 		)));
-	} else if (!__builtin_is_trivially_relocatable(__builtin_remove_pointer(__builtin_remove_optional(typeof dest)))) {
+	} else if consteval (!__builtin_is_trivially_relocatable(__builtin_remove_pointer(__builtin_remove_optional(typeof dest)))) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"value type '",
 			__builtin_typename_as_str(__builtin_remove_pointer(__builtin_remove_optional(typeof dest))),

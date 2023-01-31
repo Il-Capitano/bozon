@@ -36,7 +36,7 @@ export struct string
 		{
 			const data_begin = __builtin_int_to_pointer(*uint8, 1uz | (size << 1));
 			let data_and_alloc_end: [2: ?*uint8];
-			trivially_copy_values(data_and_alloc_end.begin(), s.begin_ptr(), size);
+			memcpy(data_and_alloc_end.begin(), s.begin_ptr(), size);
 			return string[ data_begin, data_and_alloc_end[0], data_and_alloc_end[1] ];
 		}
 		else
