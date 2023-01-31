@@ -5751,7 +5751,15 @@ void codegen_context::create_start_lifetime(expr_value ptr)
 void codegen_context::create_end_lifetime(expr_value ptr)
 {
 	bz_assert(ptr.is_reference());
-	add_instruction(*this, instructions::end_lifetime{ .size = ptr.get_type()->size }, ptr.get_reference());
+	auto const type = ptr.get_type();
+	if (type->is_aggregate() && type->get_aggregate_types().empty())
+	{
+		// do nothing for an empty type
+	}
+	else
+	{
+		add_instruction(*this, instructions::end_lifetime{ .size = ptr.get_type()->size }, ptr.get_reference());
+	}
 }
 
 static void resolve_instruction_args(instruction &inst, bz::array<instruction_ref, 3> const &args, auto get_instruction_value_index)
