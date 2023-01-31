@@ -6054,6 +6054,9 @@ static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_conte
 		bz_assert(var_decl.init_expr.is_constant());
 		bz_assert(var_decl.get_type().is<ast::ts_consteval>());
 
+		auto const current_bb = context.get_current_basic_block();
+		context.set_current_basic_block(context.current_function_info.global_variables_bb);
+
 		if (auto const global_index = context.get_global_variable(&var_decl); global_index.has_value())
 		{
 			auto const value = context.create_get_global_object(global_index.get());
@@ -6075,6 +6078,8 @@ static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_conte
 			context.add_global_variable(&var_decl, index);
 			add_variable_helper(var_decl, value, true, context);
 		}
+
+		context.set_current_basic_block(current_bb);
 	}
 	else if (var_decl.get_type().is_typename())
 	{
@@ -6169,30 +6174,19 @@ void generate_code(function &func, codegen_context &context)
 	bz_assert(func.func_body != nullptr);
 	auto &body = *func.func_body;
 	bz_assert(!body.is_comptime_bitcode_emitted());
-	bz_assert(context.current_function_info.func == nullptr);
 
-	context.current_function_info.func = &func;
-
-	auto const entry_bb = context.add_basic_block();
-	context.set_current_basic_block(entry_bb);
+	context.initialize_function(&func);
 
 	if (body.state == ast::resolve_state::error)
 	{
 		context.create_error(body.src_tokens, bz::format("'{}' could not be resolved", body.get_signature()));
 		context.create_unreachable();
-		context.current_function_info.finalize_function();
+		context.finalize_function();
 		body.flags |= ast::function_body::comptime_bitcode_emitted;
 		return;
 	}
 
 	bz_assert(body.state == ast::resolve_state::all);
-
-	auto const needs_return_address = !func.return_type->is_simple_value_type();
-	bz_assert(!context.current_function_info.return_address.has_value());
-	if (needs_return_address)
-	{
-		context.current_function_info.return_address = context.create_get_function_return_address();
-	}
 
 	auto const prev_info = context.push_expression_scope();
 
@@ -6269,7 +6263,7 @@ void generate_code(function &func, codegen_context &context)
 		}
 	}
 
-	context.current_function_info.finalize_function();
+	context.finalize_function();
 	body.flags |= ast::function_body::comptime_bitcode_emitted;
 }
 
@@ -6294,18 +6288,14 @@ function generate_code_for_expression(ast::expression const &expr, codegen_conte
 {
 	auto func = function();
 
-	bz_assert(context.current_function_info.func == nullptr);
-	context.current_function_info.func = &func;
-
 	auto const expr_type = expr.get_expr_type();
 	bz_assert(!expr_type.is_empty());
-
-	auto const entry_bb = context.add_basic_block();
-	context.set_current_basic_block(entry_bb);
 
 	if (expr_type.is<ast::ts_void>())
 	{
 		func.return_type = context.get_builtin_type(builtin_type_kind::void_);
+		context.initialize_function(&func);
+
 		auto const prev_info = context.push_expression_scope();
 		generate_expr_code(expr, context, {});
 		context.pop_expression_scope(prev_info);
@@ -6318,6 +6308,7 @@ function generate_code_for_expression(ast::expression const &expr, codegen_conte
 	else if (expr_type.is_typename())
 	{
 		func.return_type = context.get_builtin_type(builtin_type_kind::i32);
+		context.initialize_function(&func);
 
 		auto const result_address = context.create_alloca(expr.src_tokens, func.return_type);
 		auto const prev_info = context.push_expression_scope();
@@ -6332,6 +6323,7 @@ function generate_code_for_expression(ast::expression const &expr, codegen_conte
 	else
 	{
 		func.return_type = context.get_pointer_type();
+		context.initialize_function(&func);
 
 		auto const result_address = context.create_alloca(expr.src_tokens, get_type(expr_type, context));
 		auto const prev_info = context.push_expression_scope();
@@ -6344,7 +6336,7 @@ function generate_code_for_expression(ast::expression const &expr, codegen_conte
 		}
 	}
 
-	context.current_function_info.finalize_function();
+	context.finalize_function();
 	return func;
 }
 

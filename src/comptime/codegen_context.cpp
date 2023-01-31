@@ -33,10 +33,10 @@ instruction_ref add_instruction(codegen_context &context, Inst inst)
 	static_assert(instructions::arg_count<Inst> == 0);
 	instruction new_inst = instruction();
 	new_inst.emplace<Inst>(inst);
-	context.current_function_info.blocks[context.current_bb.bb_index].instructions.push_back(std::move(new_inst));
+	context.current_function_info.blocks[context.current_function_info.current_bb.bb_index].instructions.push_back(std::move(new_inst));
 	auto const result = instruction_ref{
-		.bb_index   = context.current_bb.bb_index,
-		.inst_index = static_cast<uint32_t>(context.current_function_info.blocks[context.current_bb.bb_index].instructions.size() - 1),
+		.bb_index   = context.current_function_info.current_bb.bb_index,
+		.inst_index = static_cast<uint32_t>(context.current_function_info.blocks[context.current_function_info.current_bb.bb_index].instructions.size() - 1),
 	};
 	return result;
 }
@@ -51,10 +51,10 @@ instruction_ref add_instruction(codegen_context &context, Inst inst, instruction
 	static_assert(instructions::arg_count<Inst> == 1);
 	instruction new_inst = instruction();
 	new_inst.emplace<Inst>(inst);
-	context.current_function_info.blocks[context.current_bb.bb_index].instructions.push_back(std::move(new_inst));
+	context.current_function_info.blocks[context.get_current_basic_block().bb_index].instructions.push_back(std::move(new_inst));
 	auto const result = instruction_ref{
-		.bb_index   = context.current_bb.bb_index,
-		.inst_index = static_cast<uint32_t>(context.current_function_info.blocks[context.current_bb.bb_index].instructions.size() - 1),
+		.bb_index   = context.get_current_basic_block().bb_index,
+		.inst_index = static_cast<uint32_t>(context.current_function_info.blocks[context.get_current_basic_block().bb_index].instructions.size() - 1),
 	};
 	context.current_function_info.unresolved_instructions.push_back({
 		.inst = result,
@@ -73,10 +73,10 @@ instruction_ref add_instruction(codegen_context &context, Inst inst, instruction
 	static_assert(instructions::arg_count<Inst> == 2);
 	instruction new_inst = instruction();
 	new_inst.emplace<Inst>(inst);
-	context.current_function_info.blocks[context.current_bb.bb_index].instructions.push_back(std::move(new_inst));
+	context.current_function_info.blocks[context.get_current_basic_block().bb_index].instructions.push_back(std::move(new_inst));
 	auto const result = instruction_ref{
-		.bb_index   = context.current_bb.bb_index,
-		.inst_index = static_cast<uint32_t>(context.current_function_info.blocks[context.current_bb.bb_index].instructions.size() - 1),
+		.bb_index   = context.get_current_basic_block().bb_index,
+		.inst_index = static_cast<uint32_t>(context.current_function_info.blocks[context.get_current_basic_block().bb_index].instructions.size() - 1),
 	};
 	context.current_function_info.unresolved_instructions.push_back({
 		.inst = result,
@@ -95,10 +95,10 @@ instruction_ref add_instruction(codegen_context &context, Inst inst, instruction
 	static_assert(instructions::arg_count<Inst> == 3);
 	instruction new_inst = instruction();
 	new_inst.emplace<Inst>(inst);
-	context.current_function_info.blocks[context.current_bb.bb_index].instructions.push_back(std::move(new_inst));
+	context.current_function_info.blocks[context.get_current_basic_block().bb_index].instructions.push_back(std::move(new_inst));
 	auto const result = instruction_ref{
-		.bb_index   = context.current_bb.bb_index,
-		.inst_index = static_cast<uint32_t>(context.current_function_info.blocks[context.current_bb.bb_index].instructions.size() - 1),
+		.bb_index   = context.get_current_basic_block().bb_index,
+		.inst_index = static_cast<uint32_t>(context.current_function_info.blocks[context.get_current_basic_block().bb_index].instructions.size() - 1),
 	};
 	context.current_function_info.unresolved_instructions.push_back({
 		.inst = result,
@@ -225,6 +225,31 @@ memory::global_segment_info_t codegen_context::get_global_segment_info(void) con
 	}
 }
 
+void codegen_context::initialize_function(function *func)
+{
+	bz_assert(this->current_function_info.func == nullptr);
+	this->current_function_info.func = func;
+
+	this->current_function_info.global_variables_bb = this->add_basic_block();
+
+	this->current_function_info.entry_bb = this->add_basic_block();
+	this->set_current_basic_block(this->current_function_info.entry_bb);
+
+	auto const needs_return_address = !func->return_type->is_simple_value_type();
+	bz_assert(!this->current_function_info.return_address.has_value());
+	if (needs_return_address)
+	{
+		this->current_function_info.return_address = this->create_get_function_return_address();
+	}
+}
+
+void codegen_context::finalize_function(void)
+{
+	this->set_current_basic_block(this->current_function_info.global_variables_bb);
+	this->create_jump(this->current_function_info.entry_bb);
+	this->current_function_info.finalize_function();
+}
+
 void codegen_context::add_variable(ast::decl_variable const *decl, expr_value value)
 {
 	bz_assert(!this->current_function_info.variables.contains(decl));
@@ -336,7 +361,7 @@ type const *codegen_context::get_optional_type(type const *value_type)
 
 basic_block_ref codegen_context::get_current_basic_block(void)
 {
-	return this->current_bb;
+	return this->current_function_info.current_bb;
 }
 
 basic_block_ref codegen_context::add_basic_block(void)
@@ -347,13 +372,13 @@ basic_block_ref codegen_context::add_basic_block(void)
 
 void codegen_context::set_current_basic_block(basic_block_ref bb)
 {
-	this->current_bb = bb;
+	this->current_function_info.current_bb = bb;
 }
 
 bool codegen_context::has_terminator(void)
 {
-	auto const &bb = this->current_function_info.blocks[this->current_bb.bb_index];
-	return !bb.instructions.empty() && bb.instructions.back().is_terminator();
+	auto const &bb = this->current_function_info.blocks[this->get_current_basic_block().bb_index];
+	return bb.instructions.not_empty() && bb.instructions.back().is_terminator();
 }
 
 [[nodiscard]] codegen_context::expression_scope_info_t codegen_context::push_expression_scope(void)

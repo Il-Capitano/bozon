@@ -1,0 +1,10 @@
+consteval i = 0;
+
+function test()
+{
+	(consteval if (false) {
+		i
+	} else {
+		i
+	});
+}

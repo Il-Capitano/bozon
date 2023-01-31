@@ -107,6 +107,9 @@ struct current_function_info_t
 
 	bz::optional<expr_value> return_address;
 	bz::vector<alloca> allocas;
+	basic_block_ref global_variables_bb{};
+	basic_block_ref entry_bb{};
+	basic_block_ref current_bb{};
 	bz::vector<basic_block> blocks;
 	bz::vector<error_info_t> errors;
 	bz::vector<lex::src_tokens> src_tokens;
@@ -140,7 +143,6 @@ struct typename_result_info_t
 
 struct codegen_context
 {
-	basic_block_ref current_bb = {};
 	current_function_info_t current_function_info{};
 
 	machine_parameters_t machine_parameters;
@@ -177,6 +179,9 @@ struct codegen_context
 	bool is_64_bit(void) const;
 	bool is_32_bit(void) const;
 	memory::global_segment_info_t get_global_segment_info(void) const;
+
+	void initialize_function(function *func);
+	void finalize_function(void);
 
 	void add_variable(ast::decl_variable const *decl, expr_value value);
 	void add_global_variable(ast::decl_variable const *decl, uint32_t global_index);
