@@ -691,6 +691,7 @@ ptr_t executor_context::pointer_sub_unsigned(
 
 ptr_t executor_context::gep(ptr_t address, type const *object_type, uint64_t index)
 {
+	bz_assert(address != 0);
 	return this->memory.do_gep(address, object_type, index);
 }
 
