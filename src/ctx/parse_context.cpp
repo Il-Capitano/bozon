@@ -7768,6 +7768,7 @@ ast::constant_value parse_context::execute_expression(ast::expression &expr)
 
 	auto executor = comptime::executor_context(&codegen_context);
 	auto result = executor.execute_expression(expr, func);
+	bz_assert(result.not_null() || executor.diagnostics.not_empty());
 
 	for (auto &diagnostic : executor.diagnostics)
 	{

@@ -971,10 +971,12 @@ ast::constant_value executor_context::execute_expression(ast::expression const &
 
 	if (this->has_error)
 	{
+		bz_assert(this->diagnostics.not_empty());
 		return ast::constant_value();
 	}
 	else if (this->check_memory_leaks())
 	{
+		bz_assert(this->diagnostics.not_empty());
 		return ast::constant_value();
 	}
 
