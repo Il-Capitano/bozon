@@ -5745,7 +5745,7 @@ struct instruction : instruction_base_t
 	}
 };
 
-bz::u8string to_string(instruction const &inst);
+bz::u8string to_string(instruction const &inst, function const *func);
 bz::u8string to_string(function const &func);
 
 } // namespace comptime

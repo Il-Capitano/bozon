@@ -11,7 +11,7 @@ static_assert([]<typename ...Ts>(bz::meta::type_pack<Ts...>) {
 	return bz::meta::is_all<std::is_trivial_v<Ts>...>;
 }(instruction_list()));
 
-bz::u8string to_string(instruction const &inst_)
+bz::u8string to_string(instruction const &inst_, function const *func)
 {
 	switch (inst_.index())
 	{
@@ -2483,7 +2483,25 @@ bz::u8string to_string(instruction const &inst_)
 	case instruction::function_call:
 	{
 		auto const &inst = inst_.get<instruction::function_call>();
-		return bz::format("call '{}' ({}) ({})", inst.func->func_body->get_signature(), inst.args_index, inst.src_tokens_index);
+		if (func != nullptr)
+		{
+			bz::u8string result = bz::format("call '{}'(", inst.func->func_body->get_signature());
+			auto const args = func->call_args[inst.args_index].as_array_view();
+			if (args.not_empty())
+			{
+				result += bz::format("{}", args[0]);
+				for (auto const arg : args.slice(1))
+				{
+					result += bz::format(", {}", arg);
+				}
+			}
+			result += bz::format(") ({})", inst.src_tokens_index);
+			return result;
+		}
+		else
+		{
+			return bz::format("call '{}' ({}) ({})", inst.func->func_body->get_signature(), inst.args_index, inst.src_tokens_index);
+		}
 	}
 	case instruction::malloc:
 	{
@@ -2498,12 +2516,31 @@ bz::u8string to_string(instruction const &inst_)
 	case instruction::jump:
 	{
 		auto const &inst = inst_.get<instruction::jump>();
-		return bz::format("jump {}", inst.dest.index);
+		if (func != nullptr)
+		{
+			return bz::format("jump {}", instruction_value_index{ inst.dest.index + static_cast<uint32_t>(func->allocas.size()) });
+		}
+		else
+		{
+			return bz::format("jump {}", inst.dest.index);
+		}
 	}
 	case instruction::conditional_jump:
 	{
 		auto const &inst = inst_.get<instruction::conditional_jump>();
-		return bz::format("jump {}, {}, {}", inst.args[0], inst.true_dest.index, inst.false_dest.index);
+		if (func != nullptr)
+		{
+			return bz::format(
+				"jump {}, {}, {}",
+				inst.args[0],
+				instruction_value_index{ inst.true_dest.index + static_cast<uint32_t>(func->allocas.size()) },
+				instruction_value_index{ inst.false_dest.index + static_cast<uint32_t>(func->allocas.size()) }
+			);
+		}
+		else
+		{
+			return bz::format("jump {}, {}, {}", inst.args[0], inst.true_dest.index, inst.false_dest.index);
+		}
 	}
 	case instruction::switch_i1:
 	{
@@ -2641,28 +2678,8 @@ bz::u8string to_string(function const &func)
 
 	for (auto const &inst : func.instructions)
 	{
-		result += bz::format("  {} = {}\n", instruction_value_index{ .index = i }, to_string(inst));
+		result += bz::format("  {} = {}\n", instruction_value_index{ .index = i }, to_string(inst, &func));
 		++i;
-	}
-
-	result += "call_args:\n";
-	for (auto const i : bz::iota(0, func.call_args.size()))
-	{
-		result += bz::format("  {}: (", i);
-		auto const &args = func.call_args[i];
-		if (args.size() == 0)
-		{
-			result += ")\n";
-		}
-		else
-		{
-			result += bz::format("{}", args[0]);
-			for (auto const arg : args.slice(1))
-			{
-				result += bz::format(", {}", arg);
-			}
-			result += ")\n";
-		}
 	}
 
 	return result;
