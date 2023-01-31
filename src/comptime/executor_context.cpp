@@ -558,7 +558,11 @@ ptr_t executor_context::pointer_add_signed(
 	ast::typespec_view pointer_type
 )
 {
-	if (address == 0)
+	if (address == 0 && offset == 0)
+	{
+		return 0;
+	}
+	else if (address == 0)
 	{
 		this->report_error(
 			src_tokens_index,
@@ -586,7 +590,11 @@ ptr_t executor_context::pointer_add_unsigned(
 	ast::typespec_view pointer_type
 )
 {
-	if (address == 0)
+	if (address == 0 && offset == 0)
+	{
+		return 0;
+	}
+	else if (address == 0)
 	{
 		this->report_error(
 			src_tokens_index,
@@ -616,7 +624,11 @@ ptr_t executor_context::pointer_sub_signed(
 	ast::typespec_view pointer_type
 )
 {
-	if (address == 0)
+	if (address == 0 && offset == 0)
+	{
+		return 0;
+	}
+	else if (address == 0)
 	{
 		this->report_error(
 			src_tokens_index,
@@ -646,7 +658,11 @@ ptr_t executor_context::pointer_sub_unsigned(
 	ast::typespec_view pointer_type
 )
 {
-	if (address == 0)
+	if (address == 0 && offset == 0)
+	{
+		return 0;
+	}
+	else if (address == 0)
 	{
 		this->report_error(
 			src_tokens_index,
