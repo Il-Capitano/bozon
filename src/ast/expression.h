@@ -226,6 +226,9 @@ struct destruct_self
 	destruct_self &operator = (destruct_self &&other) = default;
 };
 
+struct trivial_destruct_self
+{};
+
 struct defer_expression
 {
 	ast_unique_ptr<expression> expr;
@@ -252,9 +255,9 @@ struct destruct_rvalue_array
 	destruct_rvalue_array &operator = (destruct_rvalue_array &&other) = default;
 };
 
-struct destruct_operation : bz::variant<destruct_variable, destruct_self, defer_expression, destruct_rvalue_array>
+struct destruct_operation : bz::variant<destruct_variable, destruct_self, trivial_destruct_self, defer_expression, destruct_rvalue_array>
 {
-	using base_t = bz::variant<destruct_variable, destruct_self, defer_expression, destruct_rvalue_array>;
+	using base_t = bz::variant<destruct_variable, destruct_self, trivial_destruct_self, defer_expression, destruct_rvalue_array>;
 	using base_t::variant;
 	using base_t::operator =;
 

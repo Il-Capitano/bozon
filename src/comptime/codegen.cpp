@@ -4095,20 +4095,13 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	ast::expression const &original_expression,
 	ast::expr_aggregate_assign const &aggregate_assign,
 	codegen_context &context
 )
 {
-	auto const is_rhs_rvalue = aggregate_assign.rhs.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue;
-	auto const rhs = is_rhs_rvalue
-		? generate_expr_code(
-			aggregate_assign.rhs,
-			context,
-			context.create_alloca(original_expression.src_tokens, get_type(aggregate_assign.rhs.get_expr_type(), context))
-		)
-		: generate_expr_code(aggregate_assign.rhs, context, {});
+	auto const rhs = generate_expr_code(aggregate_assign.rhs, context, {});
 	auto const lhs = generate_expr_code(aggregate_assign.lhs, context, {});
+	auto const is_rhs_rvalue = aggregate_assign.rhs.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue;
 	auto const pointer_compare_info = is_rhs_rvalue
 		? pointer_compare_info_t{}
 		: create_pointer_compare_begin(lhs, rhs, context);
@@ -4135,20 +4128,13 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	ast::expression const &original_expression,
 	ast::expr_array_assign const &array_assign,
 	codegen_context &context
 )
 {
-	auto const is_rhs_rvalue = array_assign.rhs.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue;
-	auto const rhs = is_rhs_rvalue
-		? generate_expr_code(
-			array_assign.rhs,
-			context,
-			context.create_alloca(original_expression.src_tokens, get_type(array_assign.rhs.get_expr_type(), context))
-		)
-		: generate_expr_code(array_assign.rhs, context, {});
+	auto const rhs = generate_expr_code(array_assign.rhs, context, {});
 	auto const lhs = generate_expr_code(array_assign.lhs, context, {});
+	auto const is_rhs_rvalue = array_assign.rhs.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue;
 	auto const pointer_compare_info = is_rhs_rvalue
 		? pointer_compare_info_t{}
 		: create_pointer_compare_begin(lhs, rhs, context);
@@ -4225,22 +4211,15 @@ static basic_block_ref generate_optional_assign_rhs(
 }
 
 static expr_value generate_expr_code(
-	ast::expression const &original_expression,
 	ast::expr_optional_assign const &optional_assign,
 	codegen_context &context
 )
 {
-	auto const is_rhs_rvalue = optional_assign.rhs.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue;
-	auto const rhs = is_rhs_rvalue
-		? generate_expr_code(
-			optional_assign.rhs,
-			context,
-			context.create_alloca(original_expression.src_tokens, get_type(optional_assign.rhs.get_expr_type(), context))
-		)
-		: generate_expr_code(optional_assign.rhs, context, {});
+	auto const rhs = generate_expr_code(optional_assign.rhs, context, {});
 	auto const lhs = generate_expr_code(optional_assign.lhs, context, {});
 	bz_assert(!lhs.get_type()->is_pointer());
 
+	auto const is_rhs_rvalue = optional_assign.rhs.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue;
 	auto const pointer_compare_info = is_rhs_rvalue
 		? pointer_compare_info_t{}
 		: create_pointer_compare_begin(lhs, rhs, context);
@@ -4342,19 +4321,11 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	ast::expression const &original_expression,
 	ast::expr_optional_value_assign const &optional_value_assign,
 	codegen_context &context
 )
 {
-	auto const is_rhs_rvalue = optional_value_assign.rhs.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue;
-	auto const rhs = is_rhs_rvalue
-		? generate_expr_code(
-			optional_value_assign.rhs,
-			context,
-			context.create_alloca(original_expression.src_tokens, get_type(optional_value_assign.rhs.get_expr_type(), context))
-		)
-		: generate_expr_code(optional_value_assign.rhs, context, {});
+	auto const rhs = generate_expr_code(optional_value_assign.rhs, context, {});
 	auto const lhs = generate_expr_code(optional_value_assign.lhs, context, {});
 
 	if (lhs.get_type()->is_pointer())
@@ -4423,20 +4394,13 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	ast::expression const &original_expression,
 	ast::expr_base_type_assign const &base_type_assign,
 	codegen_context &context
 )
 {
-	auto const is_rhs_rvalue = base_type_assign.rhs.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue;
-	auto const rhs = is_rhs_rvalue
-		? generate_expr_code(
-			base_type_assign.rhs,
-			context,
-			context.create_alloca(original_expression.src_tokens, get_type(base_type_assign.rhs.get_expr_type(), context))
-		)
-		: generate_expr_code(base_type_assign.rhs, context, {});
+	auto const rhs = generate_expr_code(base_type_assign.rhs, context, {});
 	auto const lhs = generate_expr_code(base_type_assign.lhs, context, {});
+	auto const is_rhs_rvalue = base_type_assign.rhs.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue;
 	auto const pointer_compare_info = is_rhs_rvalue
 		? pointer_compare_info_t{}
 		: create_pointer_compare_begin(lhs, rhs, context);
@@ -5004,25 +4968,25 @@ static expr_value generate_expr_code(
 		return generate_expr_code(expr.get<ast::expr_trivial_swap>(), context);
 	case ast::expr_t::index<ast::expr_aggregate_assign>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(original_expression, expr.get<ast::expr_aggregate_assign>(), context);
+		return generate_expr_code(expr.get<ast::expr_aggregate_assign>(), context);
 	case ast::expr_t::index<ast::expr_array_assign>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(original_expression, expr.get<ast::expr_array_assign>(), context);
+		return generate_expr_code(expr.get<ast::expr_array_assign>(), context);
 	case ast::expr_t::index<ast::expr_optional_assign>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(original_expression, expr.get<ast::expr_optional_assign>(), context);
+		return generate_expr_code(expr.get<ast::expr_optional_assign>(), context);
 	case ast::expr_t::index<ast::expr_optional_null_assign>:
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(expr.get<ast::expr_optional_null_assign>(), context);
 	case ast::expr_t::index<ast::expr_optional_value_assign>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(original_expression, expr.get<ast::expr_optional_value_assign>(), context);
+		return generate_expr_code(expr.get<ast::expr_optional_value_assign>(), context);
 	case ast::expr_t::index<ast::expr_optional_reference_value_assign>:
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(expr.get<ast::expr_optional_reference_value_assign>(), context);
 	case ast::expr_t::index<ast::expr_base_type_assign>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(original_expression, expr.get<ast::expr_base_type_assign>(), context);
+		return generate_expr_code(expr.get<ast::expr_base_type_assign>(), context);
 	case ast::expr_t::index<ast::expr_trivial_assign>:
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(expr.get<ast::expr_trivial_assign>(), context);
@@ -5784,7 +5748,6 @@ static expr_value generate_expr_code(
 	bz::optional<expr_value> result_address
 )
 {
-	auto const result_address_provided = result_address.has_value();
 	if (
 		!result_address.has_value()
 		&& dyn_expr.kind == ast::expression_type_kind::rvalue
@@ -5798,6 +5761,10 @@ static expr_value generate_expr_code(
 	)
 	{
 		result_address = context.create_alloca(original_expression.src_tokens, get_type(dyn_expr.type, context));
+		if (dyn_expr.destruct_op.is_null())
+		{
+			context.push_end_lifetime(result_address.get());
+		}
 	}
 
 	// noreturn expressions (e.g. 'unreachable') can match to any type, but cannot have a result,
@@ -5809,10 +5776,7 @@ static expr_value generate_expr_code(
 
 	auto const result = generate_expr_code(original_expression, dyn_expr.expr, context, result_address);
 
-	auto const should_end_lifetime_manually = !result_address_provided
-		&& dyn_expr.kind == ast::expression_type_kind::rvalue
-		&& result.is_reference();
-	if (should_end_lifetime_manually || dyn_expr.destruct_op.not_null() || dyn_expr.destruct_op.move_destructed_decl != nullptr)
+	if (dyn_expr.destruct_op.not_null() || dyn_expr.destruct_op.move_destructed_decl != nullptr)
 	{
 		bz_assert(result.is_reference());
 		context.push_self_destruct_operation(dyn_expr.destruct_op, result);
@@ -6438,11 +6402,11 @@ static void generate_rvalue_array_destruct(
 void generate_destruct_operation(destruct_operation_info_t const &destruct_op_info, codegen_context &context)
 {
 	auto const &condition = destruct_op_info.condition;
-	if (
-		!destruct_op_info.move_destruct_indicator.has_value()
-		&& (destruct_op_info.destruct_op == nullptr || destruct_op_info.destruct_op->is_null())
-	)
+
+	if (destruct_op_info.destruct_op == nullptr)
 	{
+		auto const &value = destruct_op_info.value;
+		bz_assert(!value.is_none());
 		if (condition.has_value())
 		{
 			auto const condition_value = expr_value::get_reference(
@@ -6454,7 +6418,7 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 
 			auto const destruct_bb = context.add_basic_block();
 			context.set_current_basic_block(destruct_bb);
-			context.create_end_lifetime(destruct_op_info.value);
+			context.create_end_lifetime(value);
 
 			auto const end_bb = context.add_basic_block();
 			context.create_jump(end_bb);
@@ -6466,12 +6430,8 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 		}
 		else
 		{
-			context.create_end_lifetime(destruct_op_info.value);
+			context.create_end_lifetime(value);
 		}
-	}
-	else if (destruct_op_info.destruct_op == nullptr || destruct_op_info.destruct_op->is_null())
-	{
-		// nothing
 	}
 	else if (auto const &destruct_op = *destruct_op_info.destruct_op; destruct_op.is<ast::destruct_variable>())
 	{
@@ -6538,10 +6498,42 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 			context.pop_value_reference(prev_value);
 		}
 	}
+	else if (destruct_op.is<ast::trivial_destruct_self>())
+	{
+		auto const &value = destruct_op_info.value;
+		bz_assert(!value.is_none());
+		if (condition.has_value())
+		{
+			auto const condition_value = expr_value::get_reference(
+				condition.get(),
+				context.get_builtin_type(builtin_type_kind::i1)
+			).get_value(context);
+
+			auto const begin_bb = context.get_current_basic_block();
+
+			auto const destruct_bb = context.add_basic_block();
+			context.set_current_basic_block(destruct_bb);
+			context.create_end_lifetime(value);
+
+			auto const end_bb = context.add_basic_block();
+			context.create_jump(end_bb);
+
+			context.set_current_basic_block(begin_bb);
+			context.create_conditional_jump(condition_value, destruct_bb, end_bb);
+
+			context.set_current_basic_block(end_bb);
+		}
+		else
+		{
+			context.create_end_lifetime(value);
+		}
+	}
 	else if (destruct_op.is<ast::defer_expression>())
 	{
 		bz_assert(!condition.has_value());
+		auto const prev_info = context.push_expression_scope();
 		generate_expr_code(*destruct_op.get<ast::defer_expression>().expr, context, {});
+		context.pop_expression_scope(prev_info);
 	}
 	else if (destruct_op.is<ast::destruct_rvalue_array>())
 	{
@@ -6594,7 +6586,7 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 	}
 	else
 	{
-		static_assert(ast::destruct_operation::variant_count == 4);
+		static_assert(ast::destruct_operation::variant_count == 5);
 		// nothing
 	}
 

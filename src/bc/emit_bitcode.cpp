@@ -7685,10 +7685,16 @@ static void emit_destruct_operation_impl(
 			context.pop_value_reference(prev_value);
 		}
 	}
+	else if (destruct_op.is<ast::trivial_destruct_self>())
+	{
+		// nothing
+	}
 	else if (destruct_op.is<ast::defer_expression>())
 	{
 		bz_assert(condition == nullptr);
+		auto const prev_info = context.push_expression_scope();
 		emit_bitcode<abi>(*destruct_op.get<ast::defer_expression>().expr, context, nullptr);
+		context.pop_expression_scope(prev_info);
 	}
 	else if (destruct_op.is<ast::destruct_rvalue_array>())
 	{
@@ -7724,7 +7730,7 @@ static void emit_destruct_operation_impl(
 	}
 	else
 	{
-		static_assert(ast::destruct_operation::variant_count == 4);
+		static_assert(ast::destruct_operation::variant_count == 5);
 		bz_assert(destruct_op.is_null());
 		// nothing
 	}

@@ -6710,6 +6710,7 @@ ast::expression parse_context::make_default_assignment(lex::src_tokens const &sr
 	if (are_types_equal && this->is_trivial(src_tokens, lhs_type))
 	{
 		ast::typespec result_type = lhs_type;
+		this->add_self_destruction(rhs);
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::lvalue_reference, std::move(result_type),
@@ -7423,20 +7424,25 @@ void parse_context::add_self_destruction(ast::expression &expr)
 	}
 	else if (
 		auto const expr_kind = expr.get_expr_type_and_kind().second;
-		(
-			expr_kind == ast::expression_type_kind::rvalue
-			|| expr_kind == ast::expression_type_kind::rvalue_reference
-		) && !this->is_trivially_destructible(expr.src_tokens, expr.get_expr_type())
+		expr_kind == ast::expression_type_kind::rvalue
+		|| expr_kind == ast::expression_type_kind::rvalue_reference
 	)
 	{
-		auto const type = ast::remove_const_or_consteval(expr.get_expr_type());
-		auto value_ref = ast::make_dynamic_expression(
-			expr.src_tokens,
-			ast::expression_type_kind::lvalue_reference, type,
-			ast::make_expr_bitcode_value_reference(),
-			ast::destruct_operation()
-		);
-		expr.get_dynamic().destruct_op = ast::destruct_self(make_destruct_expression(type, std::move(value_ref), *this));
+		if (this->is_trivially_destructible(expr.src_tokens, expr.get_expr_type()))
+		{
+			expr.get_dynamic().destruct_op = ast::trivial_destruct_self();
+		}
+		else
+		{
+			auto const type = ast::remove_const_or_consteval(expr.get_expr_type());
+			auto value_ref = ast::make_dynamic_expression(
+				expr.src_tokens,
+				ast::expression_type_kind::lvalue_reference, type,
+				ast::make_expr_bitcode_value_reference(),
+				ast::destruct_operation()
+			);
+			expr.get_dynamic().destruct_op = ast::destruct_self(make_destruct_expression(type, std::move(value_ref), *this));
+		}
 	}
 }
 
@@ -7481,6 +7487,10 @@ void parse_context::add_self_move_destruction(ast::expression &expr)
 		auto const decl = expr.get_dynamic().destruct_op.move_destructed_decl;
 		expr.get_dynamic().destruct_op = ast::destruct_self(make_move_destruct_expression(type, std::move(value_ref), *this));
 		bz_assert(decl == expr.get_dynamic().destruct_op.move_destructed_decl);
+	}
+	else
+	{
+		expr.get_dynamic().destruct_op = ast::trivial_destruct_self();
 	}
 }
 
