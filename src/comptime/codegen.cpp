@@ -14,6 +14,7 @@ type const *get_type(ast::typespec_view type, codegen_context &context)
 		case ast::terminator_typespec_node_t::index_of<ast::ts_base_type>:
 		{
 			auto const info = type.get<ast::ts_base_type>().info;
+			bz_assert(info->state >= ast::resolve_state::members);
 			switch (info->kind)
 			{
 			case ast::type_info::int8_:
@@ -2295,9 +2296,29 @@ static expr_value generate_intrinsic_function_call_code(
 		// this is handled as a separate expression, not a function call
 		bz_unreachable;
 	case ast::function_body::trivially_copy_values:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 3);
+		auto const dest = generate_expr_code(func_call.params[0], context, {});
+		auto const source = generate_expr_code(func_call.params[1], context, {});
+		auto const count = generate_expr_code(func_call.params[2], context, {});
+		bz_assert(func_call.func_body->params[0].get_type().is_optional_pointer());
+		auto const elem_typespec = func_call.func_body->params[0].get_type().get_optional_pointer();
+		auto const elem_type = get_type(elem_typespec, context);
+		context.create_copy_values(func_call.src_tokens, dest, source, count, elem_type, elem_typespec);
+		return expr_value::get_none();
+	}
 	case ast::function_body::trivially_relocate_values:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 3);
+		auto const dest = generate_expr_code(func_call.params[0], context, {});
+		auto const source = generate_expr_code(func_call.params[1], context, {});
+		auto const count = generate_expr_code(func_call.params[2], context, {});
+		bz_assert(func_call.func_body->params[0].get_type().is_optional_pointer());
+		auto const elem_typespec = func_call.func_body->params[0].get_type().get_optional_pointer();
+		auto const elem_type = get_type(elem_typespec, context);
+		context.create_relocate_values(func_call.src_tokens, dest, source, count, elem_type, elem_typespec);
+		return expr_value::get_none();
+	}
 	case ast::function_body::lifetime_start:
 		// this is an LLVM intrinsic
 		bz_unreachable;

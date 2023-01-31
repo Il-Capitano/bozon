@@ -120,6 +120,11 @@ enum class pointer_arithmetic_check_result
 	one_past_the_end,
 };
 
+struct copy_values_memory_t
+{
+	bz::array_view<uint8_t> memory;
+};
+
 bool contained_in_object(type const *object_type, size_t offset, type const *subobject_type);
 bool slice_contained_in_object(type const *object_type, size_t offset, type const *elem_type, size_t total_size, bool end_is_one_past_the_end);
 pointer_arithmetic_check_result check_pointer_arithmetic(

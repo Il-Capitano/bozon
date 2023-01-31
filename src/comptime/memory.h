@@ -23,13 +23,19 @@ struct memory_properties
 	memory_properties(void) = default;
 	memory_properties(type const *object_type, size_t size, uint8_t bits);
 
-	bool is_all(size_t begin, size_t end, uint8_t bits) const;
-	bool is_none(size_t begin, size_t end, uint8_t bits) const;
+	bool is_all(size_t begin, size_t end, uint8_t bits, uint8_t exception_bits) const;
+	bool is_none(size_t begin, size_t end, uint8_t bits, uint8_t exception_bits) const;
 
 	void set_range(size_t begin, size_t end, uint8_t bits);
 	void erase_range(size_t begin, size_t end, uint8_t bits);
 
 	void clear(void);
+};
+
+struct copy_values_memory_and_properties_t
+{
+	bz::array_view<uint8_t> memory;
+	bz::array_view<uint8_t> properties;
 };
 
 struct stack_object
@@ -79,6 +85,15 @@ struct stack_object
 		bool rhs_is_one_past_the_end,
 		type const *object_type
 	) const;
+
+	copy_values_memory_t get_dest_memory(ptr_t address, size_t count, type const *elem_type);
+	copy_values_memory_t get_copy_source_memory(ptr_t address, size_t count, type const *elem_type);
+};
+
+struct relocate_overlapping_values_data_t
+{
+	copy_values_memory_and_properties_t dest;
+	copy_values_memory_and_properties_t source;
 };
 
 struct heap_object
@@ -97,6 +112,7 @@ struct heap_object
 	void start_lifetime(ptr_t begin, ptr_t end);
 	void end_lifetime(ptr_t begin, ptr_t end);
 	bool is_alive(ptr_t begin, ptr_t end) const;
+	bool is_none_alive(ptr_t begin, ptr_t end) const;
 	uint8_t *get_memory(ptr_t address);
 	uint8_t const *get_memory(ptr_t address) const;
 
@@ -130,6 +146,11 @@ struct heap_object
 		bool rhs_is_one_past_the_end,
 		type const *object_type
 	) const;
+
+	copy_values_memory_and_properties_t get_dest_memory(ptr_t address, size_t count, type const *elem_type, bool is_trivial);
+	copy_values_memory_t get_copy_source_memory(ptr_t address, size_t count, type const *elem_type);
+	copy_values_memory_and_properties_t get_relocate_source_memory(ptr_t address, size_t count, type const *elem_type);
+	relocate_overlapping_values_data_t get_relocate_overlapping_memory(ptr_t dest, ptr_t source, size_t count, type const *elem_type);
 };
 
 struct stack_frame
@@ -344,20 +365,20 @@ struct memory_manager
 	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);
 	int64_t do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride);
 
-	bool copy_values(ptr_t dest, ptr_t source, size_t count, type const *object_type, bool is_trivial);
+	bool copy_values(ptr_t dest, ptr_t source, size_t count, type const *elem_type, bool is_trivial);
 	bz::vector<error_reason_t> get_copy_values_error_reason(
 		ptr_t dest,
 		ptr_t source,
 		size_t count,
-		type const *object_type,
+		type const *elem_type,
 		bool is_trivial
 	);
-	bool relocate_values(ptr_t dest, ptr_t source, size_t count, type const *object_type, bool is_trivial);
+	bool relocate_values(ptr_t dest, ptr_t source, size_t count, type const *elem_type, bool is_trivial);
 	bz::vector<error_reason_t> get_relocate_values_error_reason(
 		ptr_t dest,
 		ptr_t source,
 		size_t count,
-		type const *object_type,
+		type const *elem_type,
 		bool is_trivial
 	);
 

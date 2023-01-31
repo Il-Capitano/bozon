@@ -117,11 +117,11 @@ memory_properties::memory_properties(type const *object_type, size_t size, uint8
 	}
 }
 
-bool memory_properties::is_all(size_t begin, size_t end, uint8_t bits) const
+bool memory_properties::is_all(size_t begin, size_t end, uint8_t bits, uint8_t exception_bits) const
 {
 	for (auto const value : this->data.slice(begin, end))
 	{
-		if ((value & bits) == 0)
+		if ((value & (bits | exception_bits)) == 0)
 		{
 			return false;
 		}
@@ -129,11 +129,11 @@ bool memory_properties::is_all(size_t begin, size_t end, uint8_t bits) const
 	return true;
 }
 
-bool memory_properties::is_none(size_t begin, size_t end, uint8_t bits) const
+bool memory_properties::is_none(size_t begin, size_t end, uint8_t bits, uint8_t exception_bits) const
 {
 	for (auto const value : this->data.slice(begin, end))
 	{
-		if ((value & bits) != 0)
+		if ((value & (bits | exception_bits)) == bits)
 		{
 			return false;
 		}
@@ -177,12 +177,25 @@ size_t stack_object::object_size(void) const
 
 void stack_object::start_lifetime(ptr_t begin, ptr_t end)
 {
-	bz_assert(this->properties.is_none(begin - this->address, end - this->address, memory_properties::is_alive));
+	bz_assert(this->properties.is_none(
+		begin - this->address,
+		end - this->address,
+		memory_properties::is_alive,
+		memory_properties::is_padding
+	));
 	this->properties.set_range(begin - this->address, end - this->address, memory_properties::is_alive);
 }
 
 void stack_object::end_lifetime(ptr_t begin, ptr_t end)
 {
+	if (!this->is_alive(begin, end))
+	{
+		for (auto const bits : this->properties.data.slice(begin - this->address, end - this->address))
+		{
+			bz::log("{:02b} ", bits);
+		}
+		bz::log("\n");
+	}
 	bz_assert(this->is_alive(begin, end));
 	this->properties.erase_range(begin - this->address, end - this->address, memory_properties::is_alive);
 }
@@ -192,7 +205,8 @@ bool stack_object::is_alive(ptr_t begin, ptr_t end) const
 	return this->properties.is_all(
 		begin - this->address,
 		end - this->address,
-		memory_properties::is_alive | memory_properties::is_padding
+		memory_properties::is_alive,
+		memory_properties::is_padding
 	);
 }
 
@@ -429,6 +443,62 @@ bz::optional<int64_t> stack_object::do_pointer_difference(
 	}
 }
 
+copy_values_memory_t stack_object::get_dest_memory(ptr_t address, size_t count, type const *elem_type)
+{
+	auto const end_address = address + count * elem_type->size;
+	if (end_address > this->address + this->object_size() || !this->is_alive(address, end_address))
+	{
+		return {};
+	}
+
+	auto const begin_offset = address - this->address;
+	auto const end_offset = end_address - this->address;
+	auto const check_result = check_pointer_arithmetic(
+		this->object_type,
+		begin_offset,
+		end_offset,
+		false,
+		elem_type
+	);
+
+	if (check_result == pointer_arithmetic_check_result::fail)
+	{
+		return {};
+	}
+	else
+	{
+		return { this->memory.slice(begin_offset, end_offset) };
+	}
+}
+
+copy_values_memory_t stack_object::get_copy_source_memory(ptr_t address, size_t count, type const *elem_type)
+{
+	auto const end_address = address + count * elem_type->size;
+	if (end_address > this->address + this->object_size() || !this->is_alive(address, end_address))
+	{
+		return {};
+	}
+
+	auto const begin_offset = address - this->address;
+	auto const end_offset = end_address - this->address;
+	auto const check_result = check_pointer_arithmetic(
+		this->object_type,
+		begin_offset,
+		end_offset,
+		false,
+		elem_type
+	);
+
+	if (check_result == pointer_arithmetic_check_result::fail)
+	{
+		return {};
+	}
+	else
+	{
+		return { this->memory.slice(begin_offset, end_offset) };
+	}
+}
+
 heap_object::heap_object(ptr_t _address, type const *_elem_type, size_t _count)
 	: address(_address),
 	  elem_type(_elem_type),
@@ -453,7 +523,7 @@ size_t heap_object::elem_size(void) const
 
 void heap_object::start_lifetime(ptr_t begin, ptr_t end)
 {
-	bz_assert(this->properties.is_none(begin - this->address, end - this->address, memory_properties::is_alive));
+	bz_assert(this->is_none_alive(begin, end));
 	this->properties.set_range(begin - this->address, end - this->address, memory_properties::is_alive);
 }
 
@@ -468,7 +538,18 @@ bool heap_object::is_alive(ptr_t begin, ptr_t end) const
 	return this->properties.is_all(
 		begin - this->address,
 		end - this->address,
-		memory_properties::is_alive | memory_properties::is_padding
+		memory_properties::is_alive,
+		memory_properties::is_padding
+	);
+}
+
+bool heap_object::is_none_alive(ptr_t begin, ptr_t end) const
+{
+	return this->properties.is_none(
+		begin - this->address,
+		end - this->address,
+		memory_properties::is_alive,
+		memory_properties::is_padding
 	);
 }
 
@@ -515,8 +596,7 @@ bool heap_object::check_inplace_construct(ptr_t address, type const *object_type
 	}
 	else
 	{
-		auto const begin = address - this->address;
-		return this->properties.is_none(begin, begin + this->elem_size(), memory_properties::is_alive);
+		return this->is_none_alive(address, address + this->elem_size());
 	}
 }
 
@@ -777,6 +857,120 @@ bz::optional<int64_t> heap_object::do_pointer_difference(
 			return {};
 		}
 	}
+}
+
+copy_values_memory_and_properties_t heap_object::get_dest_memory(ptr_t address, size_t count, type const *elem_type, bool is_trivial)
+{
+	auto const end_address = address + count * elem_type->size;
+	if (end_address > this->address + this->object_size())
+	{
+		return {};
+	}
+	else if (elem_type == this->elem_type)
+	{
+		auto const begin_offset = address - this->address;
+		auto const end_offset = end_address - this->address;
+		if (is_trivial || this->is_none_alive(address, end_address))
+		{
+			return { this->memory.slice(begin_offset, end_offset), this->properties.data.slice(begin_offset, end_offset) };
+		}
+		else
+		{
+			return {};
+		}
+	}
+	else
+	{
+		bz_assert(is_trivial);
+
+		if (!this->is_alive(address, end_address))
+		{
+			return {};
+		}
+
+		auto const elem_begin_offset = (address - this->address) % this->elem_size();
+		auto const elem_end_offset = elem_begin_offset + (end_address - address);
+		auto const check_result = check_pointer_arithmetic(
+			this->elem_type,
+			elem_begin_offset,
+			elem_end_offset,
+			false,
+			elem_type
+		);
+
+		if (check_result == pointer_arithmetic_check_result::fail)
+		{
+			return {};
+		}
+		else
+		{
+			auto const begin_offset = address - this->address;
+			auto const end_offset = end_address - this->address;
+			return { this->memory.slice(begin_offset, end_offset), {} };
+		}
+	}
+}
+
+copy_values_memory_t heap_object::get_copy_source_memory(ptr_t address, size_t count, type const *elem_type)
+{
+	auto const end_address = address + count * elem_type->size;
+	if (end_address > this->address + this->object_size() || !this->is_alive(address, end_address))
+	{
+		return {};
+	}
+	else if (elem_type == this->elem_type)
+	{
+		auto const begin_offset = address - this->address;
+		auto const end_offset = end_address - this->address;
+		return { this->memory.slice(begin_offset, end_offset) };
+	}
+	else
+	{
+		auto const elem_begin_offset = (address - this->address) % this->elem_size();
+		auto const elem_end_offset = elem_begin_offset + (end_address - address);
+		auto const check_result = check_pointer_arithmetic(
+			this->elem_type,
+			elem_begin_offset,
+			elem_end_offset,
+			false,
+			elem_type
+		);
+
+		if (check_result == pointer_arithmetic_check_result::fail)
+		{
+			return {};
+		}
+		else
+		{
+			auto const begin_offset = address - this->address;
+			auto const end_offset = end_address - this->address;
+			return { this->memory.slice(begin_offset, end_offset) };
+		}
+	}
+}
+
+copy_values_memory_and_properties_t heap_object::get_relocate_source_memory(ptr_t address, size_t count, type const *elem_type)
+{
+	auto const end_address = address + count * elem_type->size;
+	if (end_address > this->address + this->object_size() || !this->is_alive(address, end_address))
+	{
+		return {};
+	}
+	else if (elem_type == this->elem_type)
+	{
+		auto const begin_offset = address - this->address;
+		auto const end_offset = end_address - this->address;
+		return { this->memory.slice(begin_offset, end_offset), this->properties.data.slice(begin_offset, end_offset) };
+	}
+	else
+	{
+		return {};
+	}
+}
+
+relocate_overlapping_values_data_t heap_object::get_relocate_overlapping_memory(ptr_t dest, ptr_t source, size_t count, type const *elem_type)
+{
+	bz_unreachable;
 }
 
 stack_manager::stack_manager(ptr_t stack_begin)
@@ -2205,6 +2399,7 @@ ptr_t memory_manager::do_pointer_arithmetic_unchecked(ptr_t _address, int64_t of
 
 ptr_t memory_manager::do_gep(ptr_t _address, type const *object_type, uint64_t index)
 {
+	bz::log("{:x}\n", _address);
 	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
 	bz_assert(!is_finished_stack_frame);
 	bz_assert(!is_one_past_the_end);
@@ -2304,6 +2499,281 @@ int64_t memory_manager::do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, si
 	}
 }
 
+static copy_values_memory_and_properties_t get_dest_memory(
+	ptr_t dest,
+	memory_segment dest_segment,
+	size_t count,
+	type const *elem_type,
+	bool is_trivial,
+	memory_manager &manager
+)
+{
+	switch (dest_segment)
+	{
+	case memory_segment::global:
+		bz_unreachable;
+	case memory_segment::heap:
+	{
+		auto const allocation = manager.heap.get_allocation(dest);
+		if (!is_trivial && allocation->object.elem_type != elem_type)
+		{
+			return {};
+		}
+		else if (allocation->is_freed)
+		{
+			return {};
+		}
+
+		return allocation->object.get_dest_memory(dest, count, elem_type, is_trivial);
+	}
+	case memory_segment::stack:
+	{
+		bz_assert(is_trivial);
+		auto const object = manager.stack.get_stack_object(dest);
+		return { object->get_dest_memory(dest, count, elem_type).memory, {} };
+	}
+	case memory_segment::meta:
+		bz_unreachable;
+	}
+}
+
+static copy_values_memory_t get_copy_source_memory(
+	ptr_t source,
+	memory_segment source_segment,
+	size_t count,
+	type const *elem_type,
+	memory_manager &manager
+)
+{
+	switch (source_segment)
+	{
+	case memory_segment::global:
+	{
+		auto const object = manager.global_memory->get_global_object(source);
+		return object->get_copy_source_memory(source, count, elem_type);
+	}
+	case memory_segment::heap:
+	{
+		auto const allocation = manager.heap.get_allocation(source);
+		if (allocation->is_freed)
+		{
+			return {};
+		}
+
+		return allocation->object.get_copy_source_memory(source, count, elem_type);
+	}
+	case memory_segment::stack:
+	{
+		auto const object = manager.stack.get_stack_object(source);
+		return object->get_copy_source_memory(source, count, elem_type);
+	}
+	case memory_segment::meta:
+		bz_unreachable;
+	}
+}
+
+static copy_values_memory_and_properties_t get_relocate_source_memory(
+	ptr_t source,
+	size_t count,
+	type const *elem_type,
+	memory_manager &manager
+)
+{
+	auto const allocation = manager.heap.get_allocation(source);
+	if (allocation->is_freed)
+	{
+		return {};
+	}
+
+	return allocation->object.get_relocate_source_memory(source, count, elem_type);
+}
+
+bool memory_manager::copy_values(ptr_t _dest, ptr_t _source, size_t count, type const *elem_type, bool is_trivial)
+{
+	bz_assert(count != 0);
+	bz_assert(_dest != 0);
+	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	if (dest_is_finished_stack_frame || dest_is_one_past_the_end)
+	{
+		return false;
+	}
+	bz_assert(_source != 0);
+	auto const [source, source_segment, source_is_one_past_the_end, source_is_finished_stack_frame] = remove_meta(_source, *this);
+	if (source_is_finished_stack_frame || source_is_one_past_the_end)
+	{
+		return false;
+	}
+
+	bz_assert(dest_segment != memory_segment::global);
+	// if is_trivial is false, then dest must point to uninitialized memory, which is only valid for heap allocations
+	if (!is_trivial && dest_segment != memory_segment::heap)
+	{
+		return false;
+	}
+	// check if the ranges are overlapping
+	else if (
+		auto const memory_size = count * elem_type->size;
+		dest_segment == source_segment
+		&& !(
+			source >= dest + memory_size
+			|| source + memory_size <= dest
+		)
+	)
+	{
+		return false;
+	}
+
+	auto const [dest_memory, dest_properties] = get_dest_memory(dest, dest_segment, count, elem_type, is_trivial, *this);
+	if (dest_memory.empty())
+	{
+		return false;
+	}
+	auto const [source_memory] = get_copy_source_memory(source, source_segment, count, elem_type, *this);
+	if (source_memory.empty())
+	{
+		return false;
+	}
+
+	bz_assert(dest_memory.size() == source_memory.size());
+	std::memcpy(dest_memory.data(), source_memory.data(), dest_memory.size());
+
+	// dest_properties may be empty here
+	for (auto const i : bz::iota(0, dest_properties.size()))
+	{
+		dest_properties[i] |= memory_properties::is_alive;
+	}
+
+	return true;
+}
+
+bz::vector<error_reason_t> memory_manager::get_copy_values_error_reason(
+	ptr_t dest,
+	ptr_t source,
+	size_t count,
+	type const *elem_type,
+	bool is_trivial
+)
+{
+	bz_unreachable;
+}
+
+bool memory_manager::relocate_values(ptr_t _dest, ptr_t _source, size_t count, type const *elem_type, bool is_trivial)
+{
+	bz_assert(count != 0);
+	bz_assert(_dest != 0);
+	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	if (dest_is_finished_stack_frame || dest_is_one_past_the_end)
+	{
+		return false;
+	}
+	bz_assert(_source != 0);
+	auto const [source, source_segment, source_is_one_past_the_end, source_is_finished_stack_frame] = remove_meta(_source, *this);
+	if (source_is_finished_stack_frame || source_is_one_past_the_end)
+	{
+		return false;
+	}
+
+	bz_assert(dest_segment != memory_segment::global);
+	// if is_trivial is false, then dest must point to uninitialized memory, which is only valid for heap allocations
+	if (!is_trivial && dest_segment != memory_segment::heap)
+	{
+		return false;
+	}
+	// since source is destructed by this operation it can only be on the heap
+	else if (source_segment != memory_segment::heap)
+	{
+		return false;
+	}
+	// check if the ranges are overlapping
+	else if (
+		auto const memory_size = count * elem_type->size;
+		dest_segment == source_segment
+		&& !(
+			source >= dest + memory_size
+			|| source + memory_size <= dest
+		)
+	)
+	{
+		auto const allocation = this->heap.get_allocation(dest);
+		if (allocation->is_freed)
+		{
+			return false;
+		}
+
+		auto const [dest_memory_data, source_memory_data] = allocation->object.get_relocate_overlapping_memory(dest, source, count, elem_type);
+		if (dest_memory_data.memory.empty())
+		{
+			return false;
+		}
+
+		auto const &[dest_memory, dest_properties] = dest_memory_data;
+		auto const &[source_memory, source_properties] = source_memory_data;
+
+		bz_assert(dest_memory.size() == source_memory.size());
+		bz_assert(dest_properties.size() == source_properties.size());
+		bz_assert(dest_memory.size() == dest_properties.size());
+
+		std::memmove(dest_memory.data(), source_memory.data(), dest_memory.size());
+
+		for (auto const i : bz::iota(0, dest_properties.size()))
+		{
+			// copy is_alive property exactly for now, because padding may interfere with this.
+			// we could probably get away with setting everything to alive, but let's just be safe for now
+			dest_properties[i] |= source_properties[i] & memory_properties::is_alive;
+			source_properties[i] &= ~memory_properties::is_alive;
+		}
+
+		return true;
+	}
+	else
+	{
+		auto const [dest_memory, dest_properties] = get_dest_memory(dest, dest_segment, count, elem_type, is_trivial, *this);
+		if (dest_memory.empty())
+		{
+			return false;
+		}
+		auto const [source_memory, source_properties] = get_relocate_source_memory(source, count, elem_type, *this);
+		if (source_memory.empty())
+		{
+			return false;
+		}
+
+		bz_assert(dest_memory.size() == source_memory.size());
+		std::memcpy(dest_memory.data(), source_memory.data(), dest_memory.size());
+
+		bz_assert(source_properties.size() == source_memory.size());
+		if (dest_properties.not_empty())
+		{
+			bz_assert(dest_properties.size() == source_properties.size());
+			for (auto const i : bz::iota(0, dest_properties.size()))
+			{
+				dest_properties[i] |= memory_properties::is_alive;
+				source_properties[i] &= ~memory_properties::is_alive;
+			}
+		}
+		else
+		{
+			for (auto const i : bz::iota(0, source_properties.size()))
+			{
+				source_properties[i] &= ~memory_properties::is_alive;
+			}
+		}
+
+		return true;
+	}
+}
+
+bz::vector<error_reason_t> memory_manager::get_relocate_values_error_reason(
+	ptr_t dest,
+	ptr_t source,
+	size_t count,
+	type const *elem_type,
+	bool is_trivial
+)
+{
+	bz_unreachable;
+}
+
 void memory_manager::start_lifetime(ptr_t _address, size_t size)
 {
 	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
@@ -2332,14 +2802,32 @@ void memory_manager::start_lifetime(ptr_t _address, size_t size)
 	}
 }
 
-void memory_manager::end_lifetime(ptr_t address, size_t size)
+void memory_manager::end_lifetime(ptr_t _address, size_t size)
 {
-	address = remove_meta(address, *this).address;
-	bz_assert(this->segment_info.get_segment(address) == memory_segment::stack);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+	bz_assert(!is_finished_stack_frame);
+	bz_assert(!is_one_past_the_end);
 
-	auto const object = this->stack.get_stack_object(address);
-	bz_assert(object != nullptr);
-	object->end_lifetime(address, address + size);
+	switch (segment)
+	{
+	case memory_segment::stack:
+	{
+		auto const object = this->stack.get_stack_object(address);
+		bz_assert(object != nullptr);
+		object->end_lifetime(address, address + size);
+		break;
+	}
+	case memory_segment::heap:
+	{
+		auto const allocation = this->heap.get_allocation(address);
+		bz_assert(allocation != nullptr);
+		bz_assert(!allocation->is_freed);
+		allocation->object.end_lifetime(address, address + size);
+		break;
+	}
+	default:
+		bz_unreachable;
+	}
 }
 
 bool memory_manager::is_global(ptr_t address) const
@@ -2574,7 +3062,11 @@ ast::constant_value constant_value_from_object(
 						? load<uint64_t>(mem + pointer_size, endianness)
 						: load<uint32_t>(mem + pointer_size, endianness);
 
-					if (manager.is_global(begin_ptr))
+					if (begin_ptr == 0 && end_ptr == 0)
+					{
+						return ast::constant_value(bz::u8string());
+					}
+					else if (manager.is_global(begin_ptr))
 					{
 						return ast::constant_value(bz::u8string_view(
 							manager.get_memory(begin_ptr),

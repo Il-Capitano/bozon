@@ -591,6 +591,13 @@ uint32_t codegen_context::add_add_global_array_data_info(add_global_array_data_i
 	return static_cast<uint32_t>(result);
 }
 
+uint32_t codegen_context::add_copy_values_info(copy_values_info_t info)
+{
+	auto const result = this->current_function_info.copy_values_infos.size();
+	this->current_function_info.copy_values_infos.push_back(info);
+	return static_cast<uint32_t>(result);
+}
+
 uint32_t codegen_context::add_typename_result_info(typename_result_info_t info)
 {
 	auto const result = this->typename_result_infos.size();
@@ -1254,6 +1261,58 @@ instruction_ref codegen_context::create_const_memset_zero(expr_value dest)
 	bz_assert(dest.is_reference());
 
 	return add_instruction(*this, instructions::const_memset_zero{ .size = dest.get_type()->size }, dest.get_reference());
+}
+
+void codegen_context::create_copy_values(
+	lex::src_tokens const &src_tokens,
+	expr_value dest,
+	expr_value source,
+	expr_value count,
+	type const *elem_type,
+	ast::typespec_view elem_typespec
+)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+	auto const copy_values_info_index = this->add_copy_values_info({
+		.elem_type = elem_type,
+		.src_tokens_index = src_tokens_index,
+		.is_trivially_destructible = this->parse_ctx->is_trivially_destructible(src_tokens, elem_typespec),
+	});
+
+	auto const dest_value = dest.get_value_as_instruction(*this);
+	auto const source_value = source.get_value_as_instruction(*this);
+	auto const count_cast = this->create_int_cast(count, this->get_builtin_type(builtin_type_kind::i64), false);
+	auto const count_value = count_cast.get_value_as_instruction(*this);
+
+	add_instruction(*this, instructions::copy_values{
+		.copy_values_info_index = copy_values_info_index
+	}, dest_value, source_value, count_value);
+}
+
+void codegen_context::create_relocate_values(
+	lex::src_tokens const &src_tokens,
+	expr_value dest,
+	expr_value source,
+	expr_value count,
+	type const *elem_type,
+	ast::typespec_view elem_typespec
+)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+	auto const copy_values_info_index = this->add_copy_values_info({
+		.elem_type = elem_type,
+		.src_tokens_index = src_tokens_index,
+		.is_trivially_destructible = this->parse_ctx->is_trivially_destructible(src_tokens, elem_typespec),
+	});
+
+	auto const dest_value = dest.get_value_as_instruction(*this);
+	auto const source_value = source.get_value_as_instruction(*this);
+	auto const count_cast = this->create_int_cast(count, this->get_builtin_type(builtin_type_kind::i64), false);
+	auto const count_value = count_cast.get_value_as_instruction(*this);
+
+	add_instruction(*this, instructions::relocate_values{
+		.copy_values_info_index = copy_values_info_index
+	}, dest_value, source_value, count_value);
 }
 
 expr_value codegen_context::create_function_call(lex::src_tokens const &src_tokens, function const *func, bz::fixed_vector<instruction_ref> args)

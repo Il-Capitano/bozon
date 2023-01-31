@@ -51,6 +51,8 @@ struct global_object
 		bool rhs_is_one_past_the_end,
 		type const *object_type
 	) const;
+
+	copy_values_memory_t get_copy_source_memory(ptr_t address, size_t count, type const *elem_type);
 };
 
 enum class global_meta_memory_segment

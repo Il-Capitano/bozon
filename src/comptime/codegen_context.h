@@ -244,6 +244,7 @@ struct codegen_context
 	uint32_t add_pointer_arithmetic_check_info(pointer_arithmetic_check_info_t info);
 	uint32_t add_memory_access_check_info(memory_access_check_info_t info);
 	uint32_t add_add_global_array_data_info(add_global_array_data_info_t info);
+	uint32_t add_copy_values_info(copy_values_info_t info);
 	uint32_t add_typename_result_info(typename_result_info_t info);
 
 	expr_value get_dummy_value(type const *t);
@@ -310,6 +311,22 @@ struct codegen_context
 	expr_value create_array_slice_gep(expr_value begin_ptr, expr_value index, type const *elem_type);
 	instruction_ref create_const_memcpy(expr_value dest, expr_value source, size_t size);
 	instruction_ref create_const_memset_zero(expr_value dest);
+	void create_copy_values(
+		lex::src_tokens const &src_tokens,
+		expr_value dest,
+		expr_value source,
+		expr_value count,
+		type const *elem_type,
+		ast::typespec_view elem_typespec
+	);
+	void create_relocate_values(
+		lex::src_tokens const &src_tokens,
+		expr_value dest,
+		expr_value source,
+		expr_value count,
+		type const *elem_type,
+		ast::typespec_view elem_typespec
+	);
 
 	expr_value create_function_call(lex::src_tokens const &src_tokens, function const *func, bz::fixed_vector<instruction_ref> args);
 	expr_value create_malloc(lex::src_tokens const &src_tokens, type const *type, expr_value count);
