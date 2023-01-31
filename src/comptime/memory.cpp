@@ -985,9 +985,60 @@ copy_values_memory_and_properties_t heap_object::get_relocate_source_memory(ptr_
 	}
 }
 
-relocate_overlapping_values_data_t heap_object::get_relocate_overlapping_memory(ptr_t dest, ptr_t source, size_t count, type const *elem_type)
+relocate_overlapping_values_data_t heap_object::get_relocate_overlapping_memory(
+	ptr_t dest,
+	ptr_t source,
+	size_t count,
+	bool is_trivial
+)
 {
-	bz_unreachable;
+	auto const dest_end = dest + count * this->elem_size();
+	auto const source_end = source + count * this->elem_size();
+	if (dest_end > this->address + this->object_size() || source_end > this->address + this->object_size())
+	{
+		return {};
+	}
+
+	if (dest > source)
+	{
+		// we need to check the range [source, dest) if it's alive, and the whole dest range
+		if (!this->is_alive(source, dest))
+		{
+			return {};
+		}
+		else if (!is_trivial && !this->is_none_alive(dest, dest_end))
+		{
+			return {};
+		}
+	}
+	else
+	{
+		// we need to check the whole source range if it's alive, and [dest, source)
+		if (!this->is_alive(source, source_end))
+		{
+			return {};
+		}
+		else if (!is_trivial && !this->is_none_alive(dest, source))
+		{
+			return {};
+		}
+	}
+
+	auto const dest_offset = dest - this->address;
+	auto const dest_end_offset = dest_end - this->address;
+	auto const source_offset = source - this->address;
+	auto const source_end_offset = source_end - this->address;
+
+	return {
+		.dest = {
+			this->memory.slice(dest_offset, dest_end_offset),
+			this->properties.data.slice(dest_offset, dest_end_offset),
+		},
+		.source = {
+			this->memory.slice(source_offset, source_end_offset),
+			this->properties.data.slice(source_offset, source_end_offset),
+		},
+	};
 }
 
 stack_manager::stack_manager(ptr_t stack_begin)
@@ -2621,8 +2672,12 @@ bool memory_manager::copy_values(ptr_t _dest, ptr_t _source, size_t count, type 
 	}
 
 	bz_assert(dest_segment != memory_segment::global);
+	if (dest == source)
+	{
+		return false;
+	}
 	// if is_trivial is false, then dest must point to uninitialized memory, which is only valid for heap allocations
-	if (!is_trivial && dest_segment != memory_segment::heap)
+	else if (!is_trivial && dest_segment != memory_segment::heap)
 	{
 		return false;
 	}
@@ -2690,8 +2745,12 @@ bool memory_manager::relocate_values(ptr_t _dest, ptr_t _source, size_t count, t
 	}
 
 	bz_assert(dest_segment != memory_segment::global);
+	if (dest == source)
+	{
+		return false;
+	}
 	// if is_trivial is false, then dest must point to uninitialized memory, which is only valid for heap allocations
-	if (!is_trivial && dest_segment != memory_segment::heap)
+	else if (!is_trivial && dest_segment != memory_segment::heap)
 	{
 		return false;
 	}
@@ -2711,12 +2770,17 @@ bool memory_manager::relocate_values(ptr_t _dest, ptr_t _source, size_t count, t
 	)
 	{
 		auto const allocation = this->heap.get_allocation(dest);
-		if (allocation->is_freed)
+		if (allocation->is_freed || elem_type != allocation->object.elem_type)
 		{
 			return false;
 		}
 
-		auto const [dest_memory_data, source_memory_data] = allocation->object.get_relocate_overlapping_memory(dest, source, count, elem_type);
+		auto const [dest_memory_data, source_memory_data] = allocation->object.get_relocate_overlapping_memory(
+			dest,
+			source,
+			count,
+			is_trivial
+		);
 		if (dest_memory_data.memory.empty())
 		{
 			return false;
