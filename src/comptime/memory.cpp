@@ -839,12 +839,23 @@ bz::optional<int64_t> heap_object::do_pointer_difference(
 	{
 		return 0;
 	}
+	else if (object_type == this->elem_type)
+	{
+		if (lhs < rhs)
+		{
+			return -static_cast<int64_t>((rhs - lhs) / object_type->size);
+		}
+		else
+		{
+			return static_cast<int64_t>((lhs - rhs) / object_type->size);
+		}
+	}
 	else if (lhs < rhs)
 	{
 		auto const slice_check = this->check_slice_construction(lhs, rhs, rhs_is_one_past_the_end, object_type);
 		if (slice_check)
 		{
-			return static_cast<int64_t>((lhs - rhs) / object_type->size);
+			return -static_cast<int64_t>((rhs - lhs) / object_type->size);
 		}
 		else
 		{
@@ -856,7 +867,7 @@ bz::optional<int64_t> heap_object::do_pointer_difference(
 		auto const slice_check = this->check_slice_construction(rhs, lhs, lhs_is_one_past_the_end, object_type);
 		if (slice_check)
 		{
-			return -static_cast<int64_t>((rhs - lhs) / object_type->size);
+			return static_cast<int64_t>((lhs - rhs) / object_type->size);
 		}
 		else
 		{
