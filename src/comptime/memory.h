@@ -154,12 +154,9 @@ struct heap_object
 	copy_values_memory_t get_copy_source_memory(ptr_t address, size_t count, type const *elem_type);
 	bz::vector<bz::u8string> get_get_copy_source_memory_error_reasons(ptr_t address, size_t count, type const *elem_type);
 	copy_values_memory_and_properties_t get_relocate_source_memory(ptr_t address, size_t count, type const *elem_type);
-	relocate_overlapping_values_data_t get_relocate_overlapping_memory(
-		ptr_t dest,
-		ptr_t source,
-		size_t count,
-		bool is_trivial
-	);
+	bz::vector<bz::u8string> get_get_relocate_source_memory_error_reasons(ptr_t address, size_t count, type const *elem_type);
+	relocate_overlapping_values_data_t get_relocate_overlapping_memory(ptr_t dest, ptr_t source, size_t count, bool is_trivial);
+	bz::vector<bz::u8string> get_get_relocate_overlapping_memory_error_reasons(ptr_t dest, ptr_t source, size_t count, bool is_trivial);
 };
 
 struct stack_frame
