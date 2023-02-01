@@ -477,6 +477,45 @@ copy_values_memory_t stack_object::get_dest_memory(ptr_t address, size_t count, 
 	}
 }
 
+bz::vector<bz::u8string> stack_object::get_get_dest_memory_error_reasons(ptr_t address, size_t count, type const *elem_type)
+{
+	bz::vector<bz::u8string> result;
+	auto const end_address = address + count * elem_type->size;
+	if (end_address > this->address + this->object_size())
+	{
+		result.push_back(bz::format(
+			"destination address points to an invalid memory range in this stack object with offset {} and element count {}",
+			address - this->address, count
+		));
+	}
+	else if (!this->is_alive(address, end_address))
+	{
+		bz::vector<bz::u8string> result;
+		result.push_back("destination address points to this stack object, which is outside its lifetime");
+	}
+	else
+	{
+		auto const begin_offset = address - this->address;
+		auto const end_offset = end_address - this->address;
+		auto const check_result = check_pointer_arithmetic(
+			this->object_type,
+			begin_offset,
+			end_offset,
+			false,
+			elem_type
+		);
+
+		if (check_result == pointer_arithmetic_check_result::fail)
+		{
+			result.push_back(bz::format(
+				"destination address points to an invalid memory range in this stack object with offset {} and element count {}",
+				address - this->address, count
+			));
+		}
+	}
+	return result;
+}
+
 copy_values_memory_t stack_object::get_copy_source_memory(ptr_t address, size_t count, type const *elem_type)
 {
 	auto const end_address = address + count * elem_type->size;
@@ -503,6 +542,38 @@ copy_values_memory_t stack_object::get_copy_source_memory(ptr_t address, size_t 
 	{
 		return { this->memory.slice(begin_offset, end_offset) };
 	}
+}
+
+bz::vector<bz::u8string> stack_object::get_get_copy_source_memory_error_reasons(ptr_t address, size_t count, type const *elem_type)
+{
+	bz::vector<bz::u8string> result;
+
+	auto const end_address = address + count * elem_type->size;
+	if (end_address <= this->address + this->object_size() && !this->is_alive(address, end_address))
+	{
+		result.push_back("source address points to this stack object, which is outside its lifetime");
+		return result;
+	}
+
+	auto const begin_offset = address - this->address;
+	auto const end_offset = end_address - this->address;
+	auto const check_result = check_pointer_arithmetic(
+		this->object_type,
+		begin_offset,
+		end_offset,
+		false,
+		elem_type
+	);
+
+	if (check_result == pointer_arithmetic_check_result::fail)
+	{
+		result.push_back(bz::format(
+			"source address points to an invalid memory range in this stack object with offset {} and element count {}",
+			begin_offset, count
+		));
+	}
+
+	return result;
 }
 
 heap_object::heap_object(ptr_t _address, type const *_elem_type, size_t _count)
@@ -928,6 +999,64 @@ copy_values_memory_and_properties_t heap_object::get_dest_memory(ptr_t address, 
 	}
 }
 
+bz::vector<bz::u8string> heap_object::get_get_dest_memory_error_reasons(ptr_t address, size_t count, type const *elem_type, bool is_trivial)
+{
+	bz::vector<bz::u8string> result;
+	auto const end_address = address + count * elem_type->size;
+	if (end_address > this->address + this->object_size())
+	{
+		if (elem_type == this->elem_type)
+		{
+			result.push_back(bz::format(
+				"destination address points to an invalid memory range in this allocation starting at index {} and with an element count of {}",
+				(address - this->address) / elem_type->size, count
+			));
+		}
+		else
+		{
+			result.push_back(bz::format(
+				"destination address points to an invalid memory range in an element from this allocation with offset {} and element count {}",
+				(address - this->address) % elem_type->size, count
+			));
+		}
+	}
+	else if (elem_type == this->elem_type)
+	{
+		if (!is_trivial && !this->is_none_alive(address, end_address))
+		{
+			result.push_back(bz::format(
+				"destination address points to a memory range containing initialized elements in this allocation starting at index {} and with an element count of {}",
+				(address - this->address) / elem_type->size, count
+			));
+		}
+	}
+	else if (!this->is_alive(address, end_address))
+	{
+		result.push_back("destination address points to an object outside its lifetime");
+	}
+	else
+	{
+		auto const elem_begin_offset = (address - this->address) % this->elem_size();
+		auto const elem_end_offset = elem_begin_offset + (end_address - address);
+		auto const check_result = check_pointer_arithmetic(
+			this->elem_type,
+			elem_begin_offset,
+			elem_end_offset,
+			false,
+			elem_type
+		);
+
+		if (check_result == pointer_arithmetic_check_result::fail)
+		{
+			result.push_back(bz::format(
+				"destination address points to an invalid memory range in an element from this allocation with offset {} and element count {}",
+				(address - this->address) % elem_type->size, count
+			));
+		}
+	}
+	return result;
+}
+
 copy_values_memory_t heap_object::get_copy_source_memory(ptr_t address, size_t count, type const *elem_type)
 {
 	auto const end_address = address + count * elem_type->size;
@@ -964,6 +1093,56 @@ copy_values_memory_t heap_object::get_copy_source_memory(ptr_t address, size_t c
 			return { this->memory.slice(begin_offset, end_offset) };
 		}
 	}
+}
+
+bz::vector<bz::u8string> heap_object::get_get_copy_source_memory_error_reasons(ptr_t address, size_t count, type const *elem_type)
+{
+	bz::vector<bz::u8string> result;
+
+	auto const end_address = address + count * elem_type->size;
+	if (end_address <= this->address + this->object_size() && !this->is_alive(address, end_address))
+	{
+		result.push_back("source address points to objects in this allocation, which are outside their lifetime");
+	}
+	else if (end_address > this->address + this->object_size())
+	{
+		if (elem_type == this->elem_type)
+		{
+			result.push_back(bz::format(
+				"source address points to an invalid memory range in this allocation starting at index {} and with an element count of {}",
+				(address - this->address) / elem_type->size, count
+			));
+		}
+		else
+		{
+			result.push_back(bz::format(
+				"source address points to an invalid memory range in an element from this allocation with offset {} and element count {}",
+				(address - this->address) % elem_type->size, count
+			));
+		}
+	}
+	else if (elem_type != this->elem_type)
+	{
+		auto const elem_begin_offset = (address - this->address) % this->elem_size();
+		auto const elem_end_offset = elem_begin_offset + (end_address - address);
+		auto const check_result = check_pointer_arithmetic(
+			this->elem_type,
+			elem_begin_offset,
+			elem_end_offset,
+			false,
+			elem_type
+		);
+
+		if (check_result == pointer_arithmetic_check_result::fail)
+		{
+			result.push_back(bz::format(
+				"source address points to an invalid memory range in an element from this allocation with offset {} and element count {}",
+				(address - this->address) % elem_type->size, count
+			));
+		}
+	}
+
+	return result;
 }
 
 copy_values_memory_and_properties_t heap_object::get_relocate_source_memory(ptr_t address, size_t count, type const *elem_type)
@@ -1871,7 +2050,9 @@ bz::vector<error_reason_t> memory_manager::get_dereference_error_reason(ptr_t _a
 		{
 			auto const allocation = this->heap.get_allocation(address);
 			bz_assert(allocation != nullptr);
+			result.reserve(1 + allocation->alloc_info.call_stack.size());
 			result.push_back({ allocation->alloc_info.src_tokens, "address is a one-past-the-end pointer into this allocation" });
+			add_allocation_info(result, allocation->alloc_info);
 			break;
 		}
 		case memory_segment::meta:
@@ -2619,6 +2800,11 @@ static copy_values_memory_t get_copy_source_memory(
 		auto const object = manager.global_memory->get_global_object(source);
 		return object->get_copy_source_memory(source, count, elem_type);
 	}
+	case memory_segment::stack:
+	{
+		auto const object = manager.stack.get_stack_object(source);
+		return object->get_copy_source_memory(source, count, elem_type);
+	}
 	case memory_segment::heap:
 	{
 		auto const allocation = manager.heap.get_allocation(source);
@@ -2628,11 +2814,6 @@ static copy_values_memory_t get_copy_source_memory(
 		}
 
 		return allocation->object.get_copy_source_memory(source, count, elem_type);
-	}
-	case memory_segment::stack:
-	{
-		auto const object = manager.stack.get_stack_object(source);
-		return object->get_copy_source_memory(source, count, elem_type);
 	}
 	case memory_segment::meta:
 		bz_unreachable;
@@ -2653,6 +2834,138 @@ static copy_values_memory_and_properties_t get_relocate_source_memory(
 	}
 
 	return allocation->object.get_relocate_source_memory(source, count, elem_type);
+}
+
+static void add_get_dest_memory_error_reasons(
+	bz::vector<error_reason_t> &reasons,
+	ptr_t dest,
+	memory_segment dest_segment,
+	size_t count,
+	type const *elem_type,
+	bool is_trivial,
+	memory_manager &manager
+)
+{
+	switch (dest_segment)
+	{
+	case memory_segment::global:
+		bz_unreachable;
+	case memory_segment::stack:
+	{
+		bz_assert(is_trivial);
+		auto const object = manager.stack.get_stack_object(dest);
+		reasons.append_move(
+			object->get_get_dest_memory_error_reasons(dest, count, elem_type)
+				.transform([&](auto const &message) -> error_reason_t {
+					return { object->object_src_tokens, message };
+				})
+		);
+		break;
+	}
+	case memory_segment::heap:
+	{
+		auto const allocation = manager.heap.get_allocation(dest);
+		if (!is_trivial && allocation->object.elem_type != elem_type)
+		{
+			reasons.reserve(reasons.size() + 1 + allocation->alloc_info.call_stack.size());
+			reasons.push_back({
+				allocation->alloc_info.src_tokens,
+				"destination address must point to uninitialized elements of this allocation if the value type is not trivially destructible"
+			});
+			add_allocation_info(reasons, allocation->alloc_info);
+		}
+		else if (allocation->is_freed)
+		{
+			reasons.reserve(reasons.size() + 2 + allocation->alloc_info.call_stack.size() + allocation->free_info.call_stack.size());
+			reasons.push_back({
+				allocation->alloc_info.src_tokens,
+				"destination address points to this allocation, which was freed"
+			});
+			add_allocation_info(reasons, allocation->alloc_info);
+			add_free_info(reasons, allocation->free_info);
+		}
+		else
+		{
+			auto const messages = allocation->object.get_get_dest_memory_error_reasons(dest, count, elem_type, is_trivial);
+			if (messages.not_empty())
+			{
+				reasons.reserve(reasons.size() + messages.size() + allocation->alloc_info.call_stack.size());
+				reasons.append_move(messages.transform([&](auto const &message) -> error_reason_t {
+					return { allocation->alloc_info.src_tokens, message };
+				}));
+				add_allocation_info(reasons, allocation->alloc_info);
+			}
+		}
+		break;
+	}
+	case memory_segment::meta:
+		bz_unreachable;
+	}
+}
+
+static void add_get_copy_source_memory_error_reasons(
+	bz::vector<error_reason_t> &reasons,
+	ptr_t source,
+	memory_segment source_segment,
+	size_t count,
+	type const *elem_type,
+	memory_manager &manager
+)
+{
+	switch (source_segment)
+	{
+	case memory_segment::global:
+	{
+		auto const object = manager.global_memory->get_global_object(source);
+		reasons.append_move(
+			object->get_get_copy_source_memory_error_reasons(source, count, elem_type)
+				.transform([&](auto const &message) -> error_reason_t {
+					return { object->object_src_tokens, message };
+				})
+		);
+		break;
+	}
+	case memory_segment::stack:
+	{
+		auto const object = manager.stack.get_stack_object(source);
+		reasons.append_move(
+			object->get_get_copy_source_memory_error_reasons(source, count, elem_type)
+				.transform([&](auto const &message) -> error_reason_t {
+					return { object->object_src_tokens, message };
+				})
+		);
+		break;
+	}
+	case memory_segment::heap:
+	{
+		auto const allocation = manager.heap.get_allocation(source);
+		if (allocation->is_freed)
+		{
+			reasons.reserve(reasons.size() + 2 + allocation->alloc_info.call_stack.size() + allocation->free_info.call_stack.size());
+			reasons.push_back({
+				allocation->alloc_info.src_tokens,
+				"source address points to this allocation, which was freed"
+			});
+			add_allocation_info(reasons, allocation->alloc_info);
+			add_free_info(reasons, allocation->free_info);
+		}
+		else
+		{
+			auto const messages = allocation->object.get_get_copy_source_memory_error_reasons(source, count, elem_type);
+			if (messages.not_empty())
+			{
+				reasons.reserve(reasons.size() + messages.size() + allocation->alloc_info.call_stack.size());
+				reasons.append_move(messages.transform([&](auto const &message) -> error_reason_t {
+					return { allocation->alloc_info.src_tokens, message };
+				}));
+				add_allocation_info(reasons, allocation->alloc_info);
+			}
+		}
+		break;
+	}
+	case memory_segment::meta:
+		bz_unreachable;
+	}
 }
 
 bool memory_manager::copy_values(ptr_t _dest, ptr_t _source, size_t count, type const *elem_type, bool is_trivial)
@@ -2718,14 +3031,173 @@ bool memory_manager::copy_values(ptr_t _dest, ptr_t _source, size_t count, type 
 }
 
 bz::vector<error_reason_t> memory_manager::get_copy_values_error_reason(
-	ptr_t dest,
-	ptr_t source,
+	ptr_t _dest,
+	ptr_t _source,
 	size_t count,
 	type const *elem_type,
 	bool is_trivial
 )
 {
-	bz_unreachable;
+	bz::vector<error_reason_t> reasons;
+
+	bz_assert(count != 0);
+	bz_assert(_dest != 0);
+	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	if (dest_is_finished_stack_frame)
+	{
+		auto const &stack_object = this->meta_memory.get_stack_object_pointer(dest);
+		reasons.push_back({ stack_object.object_src_tokens, "destination address points to an object from a finished stack frame" });
+	}
+	else if (dest_is_one_past_the_end)
+	{
+		switch (dest_segment)
+		{
+		case memory_segment::global:
+			bz_unreachable;
+		case memory_segment::stack:
+		{
+			auto const stack_object = this->stack.get_stack_object(dest);
+			bz_assert(stack_object != nullptr);
+			reasons.push_back({
+				stack_object->object_src_tokens,
+				"destination address is a one-past-the-end pointer into this stack object"
+			});
+			break;
+		}
+		case memory_segment::heap:
+		{
+			auto const allocation = this->heap.get_allocation(dest);
+			bz_assert(allocation != nullptr);
+			reasons.reserve(reasons.size() + 1 + allocation->alloc_info.call_stack.size());
+			reasons.push_back({
+				allocation->alloc_info.src_tokens,
+				"destination address is a one-past-the-end pointer into this allocation"
+			});
+			add_allocation_info(reasons, allocation->alloc_info);
+			break;
+		}
+		case memory_segment::meta:
+			bz_unreachable;
+		}
+	}
+	bz_assert(_source != 0);
+	auto const [source, source_segment, source_is_one_past_the_end, source_is_finished_stack_frame] = remove_meta(_source, *this);
+	if (source_is_finished_stack_frame)
+	{
+		auto const &stack_object = this->meta_memory.get_stack_object_pointer(source);
+		reasons.push_back({
+			stack_object.object_src_tokens,
+			"source address points to an object from a finished stack frame"
+		});
+	}
+	else if (source_is_one_past_the_end)
+	{
+		switch (source_segment)
+		{
+		case memory_segment::global:
+			bz_unreachable;
+		case memory_segment::stack:
+		{
+			auto const stack_object = this->stack.get_stack_object(source);
+			bz_assert(stack_object != nullptr);
+			reasons.push_back({
+				stack_object->object_src_tokens,
+				"source address is a one-past-the-end pointer into this stack object"
+			});
+			break;
+		}
+		case memory_segment::heap:
+		{
+			auto const allocation = this->heap.get_allocation(source);
+			bz_assert(allocation != nullptr);
+			reasons.reserve(reasons.size() + 1 + allocation->alloc_info.call_stack.size());
+			reasons.push_back({
+				allocation->alloc_info.src_tokens,
+				"source address is a one-past-the-end pointer into this allocation"
+			});
+			add_allocation_info(reasons, allocation->alloc_info);
+			break;
+		}
+		case memory_segment::meta:
+			bz_unreachable;
+		}
+	}
+
+	if (reasons.not_empty())
+	{
+		return reasons;
+	}
+
+	bz_assert(dest_segment != memory_segment::global);
+	if (!is_trivial && dest_segment != memory_segment::heap)
+	{
+		reasons.push_back({
+			{},
+			"destination address must point to uninitialized elements of an allocation if the value type is not trivially destructible"
+		});
+	}
+	else if (
+		auto const memory_size = count * elem_type->size;
+		dest == source
+		|| (
+			dest_segment == source_segment
+			&& !(
+				source >= dest + memory_size
+				|| source + memory_size <= dest
+			)
+		)
+	)
+	{
+		switch (dest_segment)
+		{
+		case memory_segment::global:
+			bz_unreachable;
+		case memory_segment::stack:
+		{
+			auto const stack_object = this->stack.get_stack_object(dest);
+			bz_assert(stack_object != nullptr);
+			auto const dest_offset = dest - stack_object->address;
+			auto const source_offset = source - stack_object->address;
+			reasons.reserve(2);
+			reasons.push_back({ {}, "destination and source ranges overlap" });
+			reasons.push_back({
+				stack_object->object_src_tokens,
+				bz::format(
+					"destination and source addresses point into this stack object with offsets of {} and {}, and a total range size of {}",
+					dest_offset, source_offset, memory_size
+				),
+			});
+			break;
+		}
+		case memory_segment::heap:
+		{
+			auto const allocation = this->heap.get_allocation(dest);
+			bz_assert(allocation != nullptr);
+			auto const dest_offset = dest - allocation->object.address;
+			auto const source_offset = source - allocation->object.address;
+			reasons.reserve(2 + allocation->alloc_info.call_stack.size());
+			reasons.push_back({ {}, "destination and source ranges overlap" });
+			reasons.push_back({
+				allocation->alloc_info.src_tokens,
+				bz::format(
+					"destination and source addresses point into this allocation with offsets of {} and {}, and a total range size of {}",
+					dest_offset, source_offset, memory_size
+				),
+			});
+			add_allocation_info(reasons, allocation->alloc_info);
+			break;
+		}
+		case memory_segment::meta:
+			bz_unreachable;
+		}
+	}
+	else
+	{
+		add_get_dest_memory_error_reasons(reasons, dest, dest_segment, count, elem_type, is_trivial, *this);
+		add_get_copy_source_memory_error_reasons(reasons, dest, dest_segment, count, elem_type, *this);
+	}
+
+	return reasons;
 }
 
 bool memory_manager::relocate_values(ptr_t _dest, ptr_t _source, size_t count, type const *elem_type, bool is_trivial)

@@ -230,6 +230,31 @@ copy_values_memory_t global_object::get_copy_source_memory(ptr_t address, size_t
 	}
 }
 
+bz::vector<bz::u8string> global_object::get_get_copy_source_memory_error_reasons(ptr_t address, size_t count, type const *elem_type)
+{
+	bz::vector<bz::u8string> result;
+
+	auto const begin_offset = address - this->address;
+	auto const end_offset = begin_offset + count * elem_type->size;
+	auto const check_result = check_pointer_arithmetic(
+		this->object_type,
+		begin_offset,
+		end_offset,
+		false,
+		elem_type
+	);
+
+	if (check_result == pointer_arithmetic_check_result::fail)
+	{
+		result.push_back(bz::format(
+			"source address points to an invalid memory range in this global object with offset {} and element count {}",
+			begin_offset, count
+		));
+	}
+
+	return result;
+}
+
 global_memory_manager::global_memory_manager(ptr_t global_memory_begin)
 	: segment_info{},
 	  head(0),

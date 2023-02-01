@@ -53,6 +53,7 @@ struct global_object
 	) const;
 
 	copy_values_memory_t get_copy_source_memory(ptr_t address, size_t count, type const *elem_type);
+	bz::vector<bz::u8string> get_get_copy_source_memory_error_reasons(ptr_t address, size_t count, type const *elem_type);
 };
 
 enum class global_meta_memory_segment
