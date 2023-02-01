@@ -1042,6 +1042,7 @@ struct type_info
 	scope_t         scope;
 
 	bz::vector<ast::decl_variable *> member_variables;
+	type_prototype const *prototype = nullptr;
 
 	using decl_function_ptr = ast_unique_ptr<decl_function>;
 	using decl_operator_ptr = ast_unique_ptr<decl_operator>;
@@ -1112,7 +1113,7 @@ struct type_info
 	{}
 
 private:
-	type_info(bz::u8string_view name, uint8_t kind)
+	type_info(bz::u8string_view name, uint8_t kind, type_prototype const *prototype)
 		: src_tokens{},
 		  kind(kind),
 		  state(resolve_state::all),
@@ -1132,6 +1133,7 @@ private:
 		  body(bz::vector<statement>{}),
 		  scope(make_global_scope({}, {})),
 		  member_variables{},
+		  prototype(prototype),
 		  default_op_assign(nullptr),
 		  default_op_move_assign(nullptr),
 		  default_default_constructor(nullptr),
@@ -1193,9 +1195,9 @@ public:
 	enclosing_scope_t get_scope(void) noexcept;
 	enclosing_scope_t get_enclosing_scope(void) const noexcept;
 
-	static type_info make_builtin(bz::u8string_view name, uint8_t kind)
+	static type_info make_builtin(bz::u8string_view name, uint8_t kind, type_prototype const *prototype)
 	{
-		return type_info(name, kind);
+		return type_info(name, kind, prototype);
 	}
 
 	static bz::u8string_view decode_symbol_name(bz::u8string_view symbol_name)
@@ -1571,8 +1573,8 @@ struct builtin_operator
 	bz::vector<decl_operator> decls;
 };
 
-bz::vector<type_info>              make_builtin_type_infos(void);
-bz::vector<type_and_name_pair>     make_builtin_types    (bz::array_view<type_info> builtin_type_infos, size_t pointer_size);
+bz::vector<type_info>              make_builtin_type_infos(type_prototype_set_t &type_prototype_set);
+bz::vector<type_and_name_pair>     make_builtin_types(bz::array_view<type_info> builtin_type_infos, size_t pointer_size);
 bz::vector<universal_function_set> make_builtin_universal_functions(void);
 
 scope_t make_builtin_global_scope(

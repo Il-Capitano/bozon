@@ -147,7 +147,7 @@ struct codegen_context
 
 	machine_parameters_t machine_parameters;
 	memory::global_memory_manager global_memory;
-	type_set_t type_set;
+	type_set_t &type_set;
 	type const *pointer_pair_t = nullptr;
 	type const *null_t = nullptr;
 	bz::vector<typename_result_info_t> typename_result_infos;
@@ -169,7 +169,7 @@ struct codegen_context
 
 	ctx::parse_context *parse_ctx = nullptr;
 
-	codegen_context(machine_parameters_t _machine_parameters);
+	codegen_context(type_set_t &_type_set, machine_parameters_t _machine_parameters);
 
 	void resolve_function(lex::src_tokens const &src_tokens, ast::function_body &body);
 
@@ -195,9 +195,7 @@ struct codegen_context
 	type const *get_aggregate_type(bz::array_view<type const * const> elem_types);
 	type const *get_array_type(type const *elem_type, size_t size);
 	type const *get_str_t(void);
-	type const *get_null_t(void);
 	type const *get_slice_t(void);
-	type const *get_optional_type(type const *value_type);
 
 	// control flow structure
 	basic_block_ref get_current_basic_block(void);

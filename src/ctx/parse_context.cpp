@@ -141,6 +141,11 @@ bz::array_view<uint32_t const> parse_context::get_builtin_universal_functions(bz
 	return this->global_ctx.get_builtin_universal_functions(id);
 }
 
+ast::type_prototype_set_t &parse_context::get_type_prototype_set(void)
+{
+	return *this->global_ctx.type_prototype_set;
+}
+
 [[nodiscard]] parse_context::loop_info_t parse_context::push_loop(void) noexcept
 {
 	auto const prev_in_loop = this->in_loop;

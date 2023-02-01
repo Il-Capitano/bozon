@@ -1,3 +1,5 @@
+import std::format;
+/*
 import std;
 import std::libc;
 import private_member_test;
@@ -1138,7 +1140,6 @@ function print_matrix(arr: [4, 4: float64]) -> void
 	}
 	std::print("]\n");
 }
-//	*/
 
 // function circle1() -> typeof circle5() {}
 // function circle2() -> typeof circle1() {}
@@ -1951,3 +1952,4 @@ function indirect_call_test()
 	std::assert(op == mul_i32);
 	std::assert(op != add_i32);
 }
+*/

@@ -5,6 +5,7 @@
 #include "lex/token.h"
 #include "allocator.h"
 #include "statement_forward.h"
+#include "type_prototype.h"
 #include "abi/calling_conventions.h"
 
 namespace ast
@@ -443,6 +444,8 @@ inline void typespec::remove_layer(void)
 	bz_assert(this->modifiers.not_empty());
 	this->modifiers.pop_front();
 }
+
+type_prototype const *get_type_prototype(ast::typespec_view type, type_prototype_set_t &type_prototype_set);
 
 } // namespace ast
 

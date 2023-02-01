@@ -17,6 +17,7 @@
 #include "ast/expression.h"
 #include "ast/statement.h"
 #include "ast/scope.h"
+#include "ast/type_prototype.h"
 #include "src_file.h"
 #include "abi/platform_abi.h"
 #include "resolve/attribute_resolver.h"
@@ -56,6 +57,7 @@ struct global_context
 
 	std::list<src_file> _src_files;
 
+	std::unique_ptr<ast::type_prototype_set_t> type_prototype_set = nullptr;
 	llvm::LLVMContext _llvm_context;
 	llvm::Module      _module;
 	llvm::Target const *_target;

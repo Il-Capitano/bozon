@@ -1,6 +1,6 @@
-#include "types.h"
+#include "type_prototype.h"
 
-namespace comptime
+namespace ast
 {
 
 bool is_integer_kind(builtin_type_kind kind)
@@ -30,7 +30,7 @@ bool is_floating_point_kind(builtin_type_kind kind)
 	}
 }
 
-bz::u8string type::to_string(void) const
+bz::u8string type_prototype::to_string(void) const
 {
 	if (this->is_builtin())
 	{
@@ -86,30 +86,30 @@ bz::u8string type::to_string(void) const
 	}
 }
 
-type_set_t::type_set_t(size_t pointer_size)
+type_prototype_set_t::type_prototype_set_t(size_t pointer_size)
 	: aggregate_map(),
 	  array_map(),
 	  aggregate_and_array_types(),
 	  builtin_types{
-		  type(builtin_type{ builtin_type_kind::i1 }, 1, 1),
-		  type(builtin_type{ builtin_type_kind::i8 }, 1, 1),
-		  type(builtin_type{ builtin_type_kind::i16 }, 2, 2),
-		  type(builtin_type{ builtin_type_kind::i32 }, 4, 4),
-		  type(builtin_type{ builtin_type_kind::i64 }, 8, 8),
-		  type(builtin_type{ builtin_type_kind::f32 }, 4, 4),
-		  type(builtin_type{ builtin_type_kind::f64 }, 8, 8),
-		  type(builtin_type{ builtin_type_kind::void_ }, 0, 0),
+		  type_prototype(builtin_type{ builtin_type_kind::i1 }, 1, 1),
+		  type_prototype(builtin_type{ builtin_type_kind::i8 }, 1, 1),
+		  type_prototype(builtin_type{ builtin_type_kind::i16 }, 2, 2),
+		  type_prototype(builtin_type{ builtin_type_kind::i32 }, 4, 4),
+		  type_prototype(builtin_type{ builtin_type_kind::i64 }, 8, 8),
+		  type_prototype(builtin_type{ builtin_type_kind::f32 }, 4, 4),
+		  type_prototype(builtin_type{ builtin_type_kind::f64 }, 8, 8),
+		  type_prototype(builtin_type{ builtin_type_kind::void_ }, 0, 0),
 	  },
 	  pointer(pointer_type(), pointer_size, pointer_size)
 {}
 
-type const *type_set_t::get_builtin_type(builtin_type_kind kind)
+type_prototype const *type_prototype_set_t::get_builtin_type(builtin_type_kind kind)
 {
 	bz_assert(static_cast<uint8_t>(kind) < this->builtin_types.size());
 	return &this->builtin_types[static_cast<uint8_t>(kind)];
 }
 
-type const *type_set_t::get_pointer_type(void)
+type_prototype const *type_prototype_set_t::get_pointer_type(void)
 {
 	return &this->pointer;
 }
@@ -141,7 +141,7 @@ struct type_size_info
 	bool has_padding;
 };
 
-static type_size_info get_type_size_info(bz::array_view<type const * const> elem_types)
+static type_size_info get_type_size_info(bz::array_view<type_prototype const * const> elem_types)
 {
 	bz::vector<size_t> offsets = {};
 	offsets.reserve(elem_types.size());
@@ -171,7 +171,7 @@ static type_size_info get_type_size_info(bz::array_view<type const * const> elem
 	return { std::move(offsets), size, align, has_padding };
 }
 
-type const *type_set_t::get_aggregate_type(bz::array_view<type const * const> elem_types)
+type_prototype const *type_prototype_set_t::get_aggregate_type(bz::array_view<type_prototype const * const> elem_types)
 {
 	auto const it = this->aggregate_map.find(elem_types);
 	if (it != this->aggregate_map.end())
@@ -185,7 +185,7 @@ type const *type_set_t::get_aggregate_type(bz::array_view<type const * const> el
 	return &new_type;
 }
 
-type const *type_set_t::get_array_type(type const *elem_type, size_t size)
+type_prototype const *type_prototype_set_t::get_array_type(type_prototype const *elem_type, size_t size)
 {
 	auto const array_t = array_type{ elem_type, size };
 	auto const it = this->array_map.find(array_t);
@@ -199,4 +199,4 @@ type const *type_set_t::get_array_type(type const *elem_type, size_t size)
 	return &new_type;
 }
 
-} // namespace comptime
+} // namespace ast

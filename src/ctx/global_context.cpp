@@ -115,7 +115,7 @@ ast::scope_t get_default_decls(ast::scope_t *builtin_global_scope, bz::array_vie
 global_context::global_context(void)
 	: _compile_decls{},
 	  _errors{},
-	  _builtin_type_infos(ast::make_builtin_type_infos()),
+	  _builtin_type_infos{},
 	  _builtin_types{},
 	  _builtin_universal_functions(ast::make_builtin_universal_functions()),
 	  _builtin_functions{},
@@ -907,12 +907,16 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	this->_module.setDataLayout(*this->_data_layout);
 	this->_module.setTargetTriple(target_triple);
 
-	this->comptime_codegen_context = std::make_unique<comptime::codegen_context>(comptime::machine_parameters_t{
+	auto const machine_parameters = comptime::machine_parameters_t{
 		.pointer_size = this->get_data_layout().getPointerSize(),
 		.endianness = this->get_data_layout().isLittleEndian()
 			? comptime::memory::endianness_kind::little
 			: comptime::memory::endianness_kind::big,
-	});
+	};
+
+	this->type_prototype_set = std::make_unique<ast::type_prototype_set_t>(machine_parameters.pointer_size);
+	this->_builtin_type_infos = ast::make_builtin_type_infos(*this->type_prototype_set);
+	this->comptime_codegen_context = std::make_unique<comptime::codegen_context>(*this->type_prototype_set, machine_parameters);
 
 	return true;
 }

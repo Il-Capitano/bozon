@@ -92,6 +92,7 @@ struct parse_context
 	ast::typespec_view get_builtin_type(bz::u8string_view name) const;
 	ast::decl_function *get_builtin_function(uint32_t kind) const;
 	bz::array_view<uint32_t const> get_builtin_universal_functions(bz::u8string_view id);
+	ast::type_prototype_set_t &get_type_prototype_set(void);
 
 	struct loop_info_t
 	{

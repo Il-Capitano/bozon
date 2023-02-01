@@ -158,14 +158,14 @@ type const *expr_value::get_type(void) const
 	return this->value_type;
 }
 
-codegen_context::codegen_context(machine_parameters_t _machine_parameters)
+codegen_context::codegen_context(type_set_t &_type_set, machine_parameters_t _machine_parameters)
 	: machine_parameters(_machine_parameters),
 	  global_memory(
 		  _machine_parameters.pointer_size == 8
 		  ? segment_info_64_bit.get_segment_begin<memory::memory_segment::global>()
 		  : segment_info_32_bit.get_segment_begin<memory::memory_segment::global>()
 	  ),
-	  type_set(_machine_parameters.pointer_size)
+	  type_set(_type_set)
 {
 	auto const pointer_type = this->get_pointer_type();
 	type const *const pointer_pair_types[] = { pointer_type, pointer_type };
@@ -343,20 +343,9 @@ type const *codegen_context::get_str_t(void)
 	return this->pointer_pair_t;
 }
 
-type const *codegen_context::get_null_t(void)
-{
-	return this->null_t;
-}
-
 type const *codegen_context::get_slice_t(void)
 {
 	return this->pointer_pair_t;
-}
-
-type const *codegen_context::get_optional_type(type const *value_type)
-{
-	type const * const types[] = { value_type, this->get_builtin_type(builtin_type_kind::i1) };
-	return this->get_aggregate_type(types);
 }
 
 basic_block_ref codegen_context::get_current_basic_block(void)
