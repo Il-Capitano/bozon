@@ -38,6 +38,7 @@ struct expr_rvalue_array_subscript;
 struct expr_function_call;
 struct expr_indirect_function_call;
 struct expr_cast;
+struct expr_bit_cast;
 struct expr_optional_cast;
 struct expr_take_reference;
 struct expr_take_move_reference;
@@ -130,6 +131,7 @@ using expr_t = node<
 	expr_function_call,
 	expr_indirect_function_call,
 	expr_cast,
+	expr_bit_cast,
 	expr_optional_cast,
 	expr_take_reference,
 	expr_take_move_reference,
@@ -773,6 +775,20 @@ struct expr_cast
 	typespec   type;
 
 	expr_cast(
+		expression _expr,
+		typespec   _type
+	)
+		: expr(std::move(_expr)),
+		  type(std::move(_type))
+	{}
+};
+
+struct expr_bit_cast
+{
+	expression expr;
+	typespec   type;
+
+	expr_bit_cast(
 		expression _expr,
 		typespec   _type
 	)
@@ -1674,6 +1690,7 @@ def_make_fn(expr_t, expr_rvalue_array_subscript)
 def_make_fn(expr_t, expr_function_call)
 def_make_fn(expr_t, expr_indirect_function_call)
 def_make_fn(expr_t, expr_cast)
+def_make_fn(expr_t, expr_bit_cast)
 def_make_fn(expr_t, expr_optional_cast)
 def_make_fn(expr_t, expr_take_reference)
 def_make_fn(expr_t, expr_take_move_reference)

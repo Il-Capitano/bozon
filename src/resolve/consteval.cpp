@@ -1481,7 +1481,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->body.is_null());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 190);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 191);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2688,6 +2688,10 @@ static ast::constant_value guaranteed_evaluate_expr(
 			{
 				return {};
 			}
+		},
+		[&context](ast::expr_bit_cast &bit_cast_expr) -> ast::constant_value {
+			consteval_guaranteed(bit_cast_expr.expr, context);
+			return {};
 		},
 		[&context](ast::expr_optional_cast &optional_cast_expr) -> ast::constant_value {
 			consteval_guaranteed(optional_cast_expr.expr, context);

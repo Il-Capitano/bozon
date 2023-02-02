@@ -3649,6 +3649,14 @@ static ast::expression make_expr_function_call_from_body(
 		auto const &type = args[0].get_typename();
 		return make_array_value_init_expression(src_tokens, type, std::move(args[1]), context);
 	}
+	else if (body->is_intrinsic() && body->intrinsic_kind == ast::function_body::bit_cast)
+	{
+		bz_assert(args.size() == 2);
+		bz_assert(args[0].is_typename());
+		auto &type = args[0].get_typename();
+		bz_assert(body->return_type == type);
+		return context.make_bit_cast_expression(src_tokens, std::move(args[1]), std::move(type));
+	}
 	else if (body->is_default_default_constructor() || (body->is_default_constructor() && body->is_defaulted()))
 	{
 		bz_assert(args.size() == 0);

@@ -1802,7 +1802,7 @@ static expr_value generate_intrinsic_function_call_code(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 190);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 191);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2212,6 +2212,9 @@ static expr_value generate_intrinsic_function_call_code(
 		context.create_relocate_values(func_call.src_tokens, dest, source, count, elem_type, elem_typespec);
 		return expr_value::get_none();
 	}
+	case ast::function_body::bit_cast:
+		// this is handled as a separate expression, not a function call
+		bz_unreachable;
 	case ast::function_body::lifetime_start:
 		// this is an LLVM intrinsic
 		bz_unreachable;
@@ -3100,6 +3103,73 @@ static expr_value generate_expr_code(
 	{
 		bz_unreachable;
 	}
+}
+
+static bool contains_pointer(type const *type)
+{
+	if (type->is_builtin())
+	{
+		return false;
+	}
+	else if (type->is_pointer())
+	{
+		return true;
+	}
+	else if (type->is_aggregate())
+	{
+		return type->get_aggregate_types().is_any([](auto const elem_type) { return contains_pointer(elem_type); });
+	}
+	else if (type->is_array())
+	{
+		return contains_pointer(type->get_array_element_type());
+	}
+	else
+	{
+		return false;
+	}
+}
+
+static expr_value generate_expr_code(
+	ast::expression const &original_expression,
+	ast::expr_bit_cast const &bit_cast,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+)
+{
+	auto const expr_type = get_type(bit_cast.expr.get_expr_type(), context);
+	if (!result_address.has_value())
+	{
+		result_address = context.create_alloca(original_expression.src_tokens, get_type(bit_cast.type, context));
+	}
+
+	auto const &result_value = result_address.get();
+
+	if (contains_pointer(expr_type))
+	{
+		context.create_error(
+			original_expression.src_tokens,
+			bz::format(
+				"value of type '{}' cannot be used in a bit cast in compile time execution because it contains pointers",
+				bit_cast.expr.get_expr_type()
+			)
+		);
+	}
+	else if (contains_pointer(result_value.get_type()))
+	{
+		context.create_error(
+			original_expression.src_tokens,
+			bz::format(
+				"result type '{}' cannot be used in a bit cast in compile time execution because it contains pointers",
+				bit_cast.type
+			)
+		);
+	}
+	else
+	{
+		auto const expr_result_address = expr_value::get_reference(result_value.get_reference(), expr_type);
+		generate_expr_code(bit_cast.expr, context, expr_result_address);
+	}
+	return result_value;
 }
 
 static expr_value generate_expr_code(
@@ -4743,7 +4813,7 @@ static expr_value generate_expr_code(
 {
 	switch (expr.kind())
 	{
-	static_assert(ast::expr_t::variant_count == 71);
+	static_assert(ast::expr_t::variant_count == 72);
 	case ast::expr_t::index<ast::expr_variable_name>:
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(original_expression, expr.get<ast::expr_variable_name>(), context);
@@ -4793,6 +4863,8 @@ static expr_value generate_expr_code(
 		return generate_expr_code(original_expression, expr.get<ast::expr_indirect_function_call>(), context, result_address);
 	case ast::expr_t::index<ast::expr_cast>:
 		return generate_expr_code(original_expression, expr.get<ast::expr_cast>(), context, result_address);
+	case ast::expr_t::index<ast::expr_bit_cast>:
+		return generate_expr_code(original_expression, expr.get<ast::expr_bit_cast>(), context, result_address);
 	case ast::expr_t::index<ast::expr_optional_cast>:
 		return generate_expr_code(original_expression, expr.get<ast::expr_optional_cast>(), context, result_address);
 	case ast::expr_t::index<ast::expr_take_reference>:

@@ -440,6 +440,11 @@ struct parse_context
 		ast::expression expr,
 		ast::typespec type
 	);
+	ast::expression make_bit_cast_expression(
+		lex::src_tokens const &src_tokens,
+		ast::expression expr,
+		ast::typespec type
+	);
 	ast::expression make_optional_cast_expression(ast::expression expr);
 	ast::expression make_member_access_expression(
 		lex::src_tokens const &src_tokens,

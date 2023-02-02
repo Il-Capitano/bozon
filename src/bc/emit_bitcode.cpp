@@ -2632,7 +2632,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 190);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 191);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2931,6 +2931,9 @@ static val_ptr emit_bitcode(
 			context.create_call(memmove_fn, { dest, source, size, false_val });
 			return val_ptr::get_none();
 		}
+		case ast::function_body::bit_cast:
+			// this handled as a separate expression
+			bz_unreachable;
 
 		case ast::function_body::comptime_malloc:
 		case ast::function_body::comptime_free:
@@ -3608,6 +3611,23 @@ static val_ptr emit_bitcode(
 		bz_unreachable;
 		return val_ptr::get_none();
 	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_bit_cast const &bit_cast,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+)
+{
+	auto const dest_t = ast::remove_const_or_consteval(bit_cast.type);
+	if (result_address == nullptr)
+	{
+		result_address = context.create_alloca(get_llvm_type(dest_t, context));
+	}
+
+	return emit_bitcode<abi>(bit_cast.expr, context, result_address);
 }
 
 template<abi::platform_abi abi>

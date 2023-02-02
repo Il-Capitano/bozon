@@ -353,6 +353,8 @@ export function __builtin_print_stderr(s: str)
 		)));
 	} else {}, void);
 
+@__builtin export function __builtin_bit_cast(T: typename, value: auto) -> T;
+
 @__builtin @symbol_name("llvm.lifetime.start.p0") function __builtin_lifetime_start(size: uint64, ptr: *void);
 @__builtin @symbol_name("llvm.lifetime.end.p0") function __builtin_lifetime_end(size: uint64, ptr: *void);
 
