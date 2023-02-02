@@ -5153,6 +5153,177 @@ ast::expression parse_context::make_cast_expression(
 	}
 }
 
+// just an arbitrary number, most types should fit into it
+constexpr size_t bit_cast_small_type_size = 64;
+
+static void fill_small_type_padding_array(
+	bz::array_view<bool> is_padding,
+	ast::type_prototype const *elem_type,
+	size_t size
+);
+
+static void fill_small_type_padding_single(
+	bz::array_view<bool> is_padding,
+	ast::type_prototype const *type
+)
+{
+	bz_assert(is_padding.size() == type->size);
+	if (!type->has_padding())
+	{
+		return;
+	}
+	else if (type->is_aggregate())
+	{
+		auto const elem_types = type->get_aggregate_types();
+		auto const offsets = type->get_aggregate_offsets();
+
+		if (elem_types.empty())
+		{
+			bz_assert(type->size == 1);
+			is_padding[0] = true;
+			return;
+		}
+
+		auto const elem_count = elem_types.size();
+		for (auto const i : bz::iota(0, elem_count))
+		{
+			auto const elem_type = elem_types[i];
+			auto const offset = offsets[i];
+			fill_small_type_padding_single(is_padding.slice(offset, offset + elem_type->size), elem_type);
+			auto const next_offset = i + 1 == elem_count ? type->size : offsets[i + 1];
+			if (offset + elem_type->size != next_offset)
+			{
+				for (auto &value : is_padding.slice(offset + elem_type->size, next_offset))
+				{
+					value = true;
+				}
+			}
+		}
+	}
+	else if (type->is_array())
+	{
+		fill_small_type_padding_array(is_padding, type->get_array_element_type(), type->get_array_size());
+	}
+	else
+	{
+		// nothing
+	}
+}
+
+static void fill_small_type_padding_array(
+	bz::array_view<bool> is_padding,
+	ast::type_prototype const *elem_type,
+	size_t size
+)
+{
+	auto const elem_size = elem_type->size;
+	fill_small_type_padding_single(is_padding.slice(0, elem_size), elem_type);
+
+	for (auto const i : bz::iota(elem_size, size * elem_size))
+	{
+		is_padding[i] = is_padding[i - elem_size];
+	}
+}
+
+static bool check_small_type_bit_cast_paddings(
+	ast::type_prototype const *value_type,
+	ast::type_prototype const *result_type
+)
+{
+	bz::array<bool, bit_cast_small_type_size> value_type_buffer{};
+	bz::array<bool, bit_cast_small_type_size> result_type_buffer{};
+
+	auto const value_type_is_padding = bz::array_view(value_type_buffer.data(), value_type_buffer.size()).slice(0, value_type->size);
+	auto const result_type_is_padding = bz::array_view(result_type_buffer.data(), result_type_buffer.size()).slice(0, result_type->size);
+
+	fill_small_type_padding_single(value_type_is_padding, value_type);
+	fill_small_type_padding_single(result_type_is_padding, result_type);
+
+	for (auto const i : bz::iota(0, value_type_is_padding.size()))
+	{
+		if (value_type_is_padding[i] && !result_type_is_padding[i])
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+static bool check_bit_cast_type_paddings(
+	ast::type_prototype const *value_type,
+	ast::type_prototype const *result_type
+)
+{
+	auto const value_type_has_padding = value_type->has_padding();
+	auto const result_type_has_padding = result_type->has_padding();
+	if (!value_type_has_padding)
+	{
+		return true;
+	}
+	else if (!result_type_has_padding && value_type_has_padding)
+	{
+		return false;
+	}
+	else if (value_type->size <= bit_cast_small_type_size)
+	{
+		return check_small_type_bit_cast_paddings(value_type, result_type);
+	}
+	else
+	{
+		// TODO
+		bz_unreachable;
+	}
+}
+
+ast::expression parse_context::make_bit_cast_expression(
+	lex::src_tokens const &src_tokens,
+	ast::expression expr,
+	ast::typespec result_type
+)
+{
+	auto const expr_type = expr.get_expr_type();
+
+	if (!this->is_trivial(src_tokens, expr_type))
+	{
+		this->report_error(src_tokens, bz::format("value type '{}' is not trivial in bit cast", expr_type));
+		return ast::make_error_expression(src_tokens, ast::make_expr_bit_cast(std::move(expr), std::move(result_type)));
+	}
+	else if (!this->is_trivial(src_tokens, result_type))
+	{
+		this->report_error(src_tokens, bz::format("result type '{}' is not trivial in bit cast", result_type));
+		return ast::make_error_expression(src_tokens, ast::make_expr_bit_cast(std::move(expr), std::move(result_type)));
+	}
+
+	auto const expr_prototype = ast::get_type_prototype(expr_type, this->get_type_prototype_set());
+	auto const dest_prototype = ast::get_type_prototype(result_type, this->get_type_prototype_set());
+
+	if (expr_prototype->size != dest_prototype->size)
+	{
+		this->report_error(
+			src_tokens,
+			bz::format(
+				"value type '{}' and result type '{}' have different sizes {} and {}",
+				expr_type, result_type, expr_prototype->size, dest_prototype->size
+			)
+		);
+		return ast::make_error_expression(src_tokens, ast::make_expr_bit_cast(std::move(expr), std::move(result_type)));
+	}
+	else if (!check_bit_cast_type_paddings(expr_prototype, dest_prototype))
+	{
+		return ast::make_error_expression(src_tokens, ast::make_expr_bit_cast(std::move(expr), std::move(result_type)));
+	}
+	else
+	{
+		auto expr_result_type = result_type;
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue, std::move(expr_result_type),
+			ast::make_expr_bit_cast(std::move(expr), std::move(result_type)),
+			ast::destruct_operation()
+		);
+	}
+}
+
 ast::expression parse_context::make_optional_cast_expression(ast::expression expr)
 {
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();

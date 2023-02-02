@@ -443,7 +443,7 @@ struct parse_context
 	ast::expression make_bit_cast_expression(
 		lex::src_tokens const &src_tokens,
 		ast::expression expr,
-		ast::typespec type
+		ast::typespec result_type
 	);
 	ast::expression make_optional_cast_expression(ast::expression expr);
 	ast::expression make_member_access_expression(
