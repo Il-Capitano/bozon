@@ -2228,7 +2228,7 @@ static expr_value generate_intrinsic_function_call_code(
 		generate_expr_code(func_call.params[2], context, {});
 		context.create_error(
 			func_call.src_tokens,
-			bz::format("'{}' cannot be used in a constant expression", func_call.func_body->get_signature())
+			bz::format("'{}' cannot be used in compile time execution", func_call.func_body->get_signature())
 		);
 		return expr_value::get_none();
 	case ast::function_body::memmove:
@@ -2238,7 +2238,7 @@ static expr_value generate_intrinsic_function_call_code(
 		generate_expr_code(func_call.params[2], context, {});
 		context.create_error(
 			func_call.src_tokens,
-			bz::format("'{}' cannot be used in a constant expression", func_call.func_body->get_signature())
+			bz::format("'{}' cannot be used in compile time execution", func_call.func_body->get_signature())
 		);
 		return expr_value::get_none();
 	case ast::function_body::memset:
@@ -2248,7 +2248,7 @@ static expr_value generate_intrinsic_function_call_code(
 		generate_expr_code(func_call.params[2], context, {});
 		context.create_error(
 			func_call.src_tokens,
-			bz::format("'{}' cannot be used in a constant expression", func_call.func_body->get_signature())
+			bz::format("'{}' cannot be used in compile time execution", func_call.func_body->get_signature())
 		);
 		return expr_value::get_none();
 	case ast::function_body::abs_i8:
@@ -5930,6 +5930,11 @@ static void generate_stmt_code(ast::stmt_return const &return_stmt, codegen_cont
 	{
 		context.emit_all_destruct_operations();
 		context.create_ret_void();
+	}
+	else if (return_stmt.expr.is_error())
+	{
+		generate_expr_code(return_stmt.expr, context, {});
+		context.create_unreachable();
 	}
 	else if (context.current_function_info.return_address.has_value())
 	{
