@@ -5882,19 +5882,13 @@ void current_function_info_t::finalize_function(void)
 	}
 
 	// finalize allocas
-	func.allocas = bz::fixed_vector(this->allocas.as_array_view());
+	func.allocas = this->allocas.release_as_fixed_vector();
 
 	// finalize errors
-	{
-		func.errors = bz::fixed_vector<error_info_t>(this->errors.size());
-		for (auto const i : bz::iota(0, func.errors.size()))
-		{
-			func.errors[i] = std::move(this->errors[i]);
-		}
-	}
+	func.errors = this->errors.release_as_fixed_vector();
 
 	// finalize src_tokens
-	func.src_tokens = bz::fixed_vector(this->src_tokens.as_array_view());
+	func.src_tokens = this->src_tokens.release_as_fixed_vector();
 
 	// finalize call_args
 	{
@@ -5910,19 +5904,19 @@ void current_function_info_t::finalize_function(void)
 	}
 
 	// finalize slice_construction_check_infos
-	func.slice_construction_check_infos = bz::fixed_vector(this->slice_construction_check_infos.as_array_view());
+	func.slice_construction_check_infos = this->slice_construction_check_infos.release_as_fixed_vector();
 
 	// finalize pointer_arithmetic_check_infos
-	func.pointer_arithmetic_check_infos = bz::fixed_vector(this->pointer_arithmetic_check_infos.as_array_view());
+	func.pointer_arithmetic_check_infos = this->pointer_arithmetic_check_infos.release_as_fixed_vector();
 
 	// finalize memory_access_check_infos
-	func.memory_access_check_infos = bz::fixed_vector(this->memory_access_check_infos.as_array_view());
+	func.memory_access_check_infos = this->memory_access_check_infos.release_as_fixed_vector();
 
 	// finalize add_global_array_data_infos
-	func.add_global_array_data_infos = bz::fixed_vector(this->add_global_array_data_infos.as_array_view());
+	func.add_global_array_data_infos = this->add_global_array_data_infos.release_as_fixed_vector();
 
 	// finalize copy_values_infos
-	func.copy_values_infos = bz::fixed_vector(this->copy_values_infos.as_array_view());
+	func.copy_values_infos = this->copy_values_infos.release_as_fixed_vector();
 
 #ifndef NDEBUG
 	if (debug_comptime_print_functions)
