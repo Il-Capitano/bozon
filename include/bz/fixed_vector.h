@@ -11,12 +11,16 @@
 
 bz_begin_namespace
 
+template<typename T, typename Alloc>
+class vector;
+
 template<typename T, typename = allocator<T>>
 class fixed_vector;
 
 template<typename T, typename Alloc>
 class fixed_vector : public collection_base<fixed_vector<T, Alloc>>
 {
+	friend class vector<T, Alloc>;
 	static_assert(
 		!meta::is_reference<T>,
 		"value_type of fixed_vector can't be a reference"

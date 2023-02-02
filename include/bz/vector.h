@@ -8,6 +8,7 @@
 #include "iterator.h"
 #include "array_view.h"
 #include "ranges.h"
+#include "fixed_vector.h"
 
 bz_begin_namespace
 
@@ -830,6 +831,61 @@ public:
 		}
 		trace->~value_type();
 		--this->_data_end;
+	}
+
+	fixed_vector<value_type, allocator_type> release_as_fixed_vector(void) noexcept(
+		nothrow_alloc
+		&& nothrow_dealloc
+		&& nothrow_destruct_value
+		&& (nothrow_move_value || nothrow_copy_value)
+	)
+	{
+		fixed_vector<value_type, allocator_type> result;
+
+		auto const size = this->size();
+		if (size == 0)
+		{
+			return result;
+		}
+
+		auto const data_begin = result.alloc_new(size);
+		auto const data_end = data_begin + size;
+
+		auto it = data_begin;
+		bz_try
+		{
+			auto *self_it = this->data();
+			for (; it != data_end; ++it, ++self_it)
+			{
+				if constexpr (nothrow_move_value)
+				{
+					result.try_emplace(it, std::move(*self_it));
+				}
+				else
+				{
+					result.try_emplace(it, *self_it);
+				}
+				self_it->~value_type();
+			}
+		}
+		bz_catch_all
+		{
+			while (it != data_begin)
+			{
+				--it;
+				it->~value_type();
+			}
+			result._allocator.deallocate(data_begin, size);
+			bz_rethrow;
+		}
+
+		result._data_begin = data_begin;
+		result._data_end = data_end;
+
+		this->_allocator.deallocate(this->_data_begin, this->capacity());
+		this->set_to_null();
+
+		return result;
 	}
 
 private:
