@@ -645,7 +645,7 @@ static expr_value generate_expr_code(
 		auto const index = generate_expr_code(subscript.index, context, {}).get_value(context);
 		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type()).is<ast::ts_base_type>());
 		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
-		auto const elem_ts = base_type.get<ast::ts_array_slice>().elem_type;
+		auto const elem_ts = base_type.get<ast::ts_array_slice>().elem_type.as_typespec_view();
 		auto const elem_type = get_type(elem_ts, context);
 
 		auto const begin_ptr = context.create_struct_gep(slice, 0).get_value(context);
