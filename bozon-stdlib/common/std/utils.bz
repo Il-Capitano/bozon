@@ -7,6 +7,7 @@ export function memcpy  = __builtin_memcpy;
 export function memmove = __builtin_memmove;
 export function memset  = __builtin_memset;
 export function trivially_copy_values  = __builtin_trivially_copy_values;
+export function trivially_copy_overlapping_values  = __builtin_trivially_copy_overlapping_values;
 export function trivially_relocate_values = __builtin_trivially_relocate_values;
 export function swap = __builtin_swap;
 

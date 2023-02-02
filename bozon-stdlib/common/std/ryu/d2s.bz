@@ -623,7 +623,7 @@ function to_chars_fixed(v: floating_decimal_64, out: *uint8) -> *uint8
 
 	if (actual_exponent >= 0)
 	{
-		memmove(out, out + 1, (actual_exponent + 1) as usize);
+		trivially_copy_overlapping_values(out, out + 1, (actual_exponent + 1) as usize);
 		// Print decimal point
 		*(out + actual_exponent + 1) = '.' as uint8;
 	}
