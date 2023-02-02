@@ -152,6 +152,13 @@ struct executor_context
 		type const *object_type,
 		bool is_trivially_destructible
 	);
+	void copy_overlapping_values(
+		uint32_t src_tokens_index,
+		ptr_t dest,
+		ptr_t source,
+		uint64_t count,
+		type const *object_type
+	);
 	void relocate_values(
 		uint32_t src_tokens_index,
 		ptr_t dest,

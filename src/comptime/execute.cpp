@@ -4140,6 +4140,12 @@ static void execute_copy_values(instructions::copy_values const &inst, ptr_t des
 	context.copy_values(info.src_tokens_index, dest, source, count, info.elem_type, info.is_trivially_destructible);
 }
 
+static void execute_copy_overlapping_values(instructions::copy_overlapping_values const &inst, ptr_t dest, ptr_t source, uint64_t count, executor_context &context)
+{
+	auto const &info = context.get_copy_values_info(inst.copy_values_info_index);
+	context.copy_overlapping_values(info.src_tokens_index, dest, source, count, info.elem_type);
+}
+
 static void execute_relocate_values(instructions::relocate_values const &inst, ptr_t dest, ptr_t source, uint64_t count, executor_context &context)
 {
 	auto const &info = context.get_copy_values_info(inst.copy_values_info_index);
@@ -4563,7 +4569,7 @@ void execute_current_instruction(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-	static_assert(instruction::variant_count == 519);
+	static_assert(instruction::variant_count == 520);
 	case instruction::const_i1:
 		execute<instructions::const_i1, &execute_const_i1>(context);
 		break;
@@ -6039,6 +6045,9 @@ void execute_current_instruction(executor_context &context)
 		break;
 	case instruction::copy_values:
 		execute<instructions::copy_values, &execute_copy_values>(context);
+		break;
+	case instruction::copy_overlapping_values:
+		execute<instructions::copy_overlapping_values, &execute_copy_overlapping_values>(context);
 		break;
 	case instruction::relocate_values:
 		execute<instructions::relocate_values, &execute_relocate_values>(context);

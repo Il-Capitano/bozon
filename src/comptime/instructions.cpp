@@ -15,7 +15,7 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 {
 	switch (inst_.index())
 	{
-	static_assert(instruction::variant_count == 519);
+	static_assert(instruction::variant_count == 520);
 	case instruction::const_i1:
 	{
 		auto const &inst = inst_.get<instruction::const_i1>();
@@ -2474,6 +2474,11 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 	{
 		auto const &inst = inst_.get<instruction::copy_values>();
 		return bz::format("copy-values {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.copy_values_info_index);
+	}
+	case instruction::copy_overlapping_values:
+	{
+		auto const &inst = inst_.get<instruction::copy_overlapping_values>();
+		return bz::format("copy-overlapping-values {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.copy_values_info_index);
 	}
 	case instruction::relocate_values:
 	{

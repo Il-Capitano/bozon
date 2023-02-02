@@ -1802,7 +1802,7 @@ static expr_value generate_intrinsic_function_call_code(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 191);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 192);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2198,6 +2198,18 @@ static expr_value generate_intrinsic_function_call_code(
 		auto const elem_typespec = func_call.func_body->params[0].get_type().get_optional_pointer();
 		auto const elem_type = get_type(elem_typespec, context);
 		context.create_copy_values(func_call.src_tokens, dest, source, count, elem_type, elem_typespec);
+		return expr_value::get_none();
+	}
+	case ast::function_body::trivially_copy_overlapping_values:
+	{
+		bz_assert(func_call.params.size() == 3);
+		auto const dest = generate_expr_code(func_call.params[0], context, {});
+		auto const source = generate_expr_code(func_call.params[1], context, {});
+		auto const count = generate_expr_code(func_call.params[2], context, {});
+		bz_assert(func_call.func_body->params[0].get_type().is_optional_pointer());
+		auto const elem_typespec = func_call.func_body->params[0].get_type().get_optional_pointer();
+		auto const elem_type = get_type(elem_typespec, context);
+		context.create_copy_overlapping_values(func_call.src_tokens, dest, source, count, elem_type);
 		return expr_value::get_none();
 	}
 	case ast::function_body::trivially_relocate_values:

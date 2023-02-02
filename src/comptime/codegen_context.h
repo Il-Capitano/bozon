@@ -322,6 +322,13 @@ struct codegen_context
 		type const *elem_type,
 		ast::typespec_view elem_typespec
 	);
+	void create_copy_overlapping_values(
+		lex::src_tokens const &src_tokens,
+		expr_value dest,
+		expr_value source,
+		expr_value count,
+		type const *elem_type
+	);
 	void create_relocate_values(
 		lex::src_tokens const &src_tokens,
 		expr_value dest,
