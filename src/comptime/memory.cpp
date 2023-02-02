@@ -67,26 +67,21 @@ static void fill_padding_single(bz::array_view<uint8_t> data, type const *object
 	{
 		auto const types = object_type->get_aggregate_types();
 		auto const offsets = object_type->get_aggregate_offsets();
-		for (auto const i : bz::iota(0, types.size() - 1))
+
+		if (types.empty())
+		{
+			bz_assert(data.size() == 1);
+			data[0] |= memory_properties::is_padding;
+			return;
+		}
+
+		auto const elem_count = types.size();
+		for (auto const i : bz::iota(0, elem_count))
 		{
 			auto const elem_type = types[i];
 			auto const offset = offsets[i];
 			fill_padding_single(data.slice(offset, offset + elem_type->size), elem_type);
-			auto const next_offset = offsets[i + 1];
-			if (offset + elem_type->size != next_offset)
-			{
-				for (auto &value : data.slice(offset + elem_type->size, next_offset))
-				{
-					value |= memory_properties::is_padding;
-				}
-			}
-		}
-
-		{
-			auto const offset = offsets.back();
-			auto const elem_type = types.back();
-			fill_padding_single(data.slice(offset, offset + elem_type->size), elem_type);
-			auto const next_offset = object_type->size;
+			auto const next_offset = i + 1 == elem_count ? object_type->size : offsets[i + 1];
 			if (offset + elem_type->size != next_offset)
 			{
 				for (auto &value : data.slice(offset + elem_type->size, next_offset))
