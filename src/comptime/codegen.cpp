@@ -6005,7 +6005,7 @@ static void add_variable_helper(
 				auto const indicator = context.add_move_destruct_indicator(&var_decl);
 				context.push_variable_destruct_operation(var_decl.destruction, value, indicator);
 			}
-			else
+			else if (!var_decl.is_tuple_outer_ref())
 			{
 				context.push_variable_destruct_operation(var_decl.destruction, value);
 			}
