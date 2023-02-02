@@ -790,6 +790,45 @@ void executor_context::copy_values(
 	}
 }
 
+void executor_context::copy_overlapping_values(
+	uint32_t src_tokens_index,
+	ptr_t dest,
+	ptr_t source,
+	uint64_t count,
+	type const *object_type
+)
+{
+	if (count == 0)
+	{
+		return;
+	}
+	else if (dest == 0)
+	{
+		this->report_error(src_tokens_index, "destination address is null in call to '__builtin_trivially_copy_values'");
+		return;
+	}
+	else if (source == 0)
+	{
+		this->report_error(src_tokens_index, "source address is null in call to '__builtin_trivially_copy_values'");
+		return;
+	}
+
+	auto const is_good = this->memory.copy_overlapping_values(dest, source, count, object_type);
+	if (!is_good)
+	{
+		auto reasons = this->memory.get_copy_overlapping_values_error_reason(dest, source, count, object_type);
+		this->report_error(
+			src_tokens_index,
+			"invalid call to '__builtin_trivially_copy_overlapping_values'",
+			reasons.transform([&](auto &reason) {
+				return reason.src_tokens.begin == nullptr
+					? this->make_note(src_tokens_index, std::move(reason.message))
+					: make_source_highlight(reason.src_tokens, std::move(reason.message));
+			}).collect()
+		);
+	}
+}
+
 void executor_context::relocate_values(
 	uint32_t src_tokens_index,
 	ptr_t dest,

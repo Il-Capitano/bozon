@@ -571,6 +571,168 @@ bz::vector<bz::u8string> stack_object::get_get_copy_source_memory_error_reasons(
 	return result;
 }
 
+copy_overlapping_values_data_t stack_object::get_copy_overlapping_memory(
+	ptr_t dest,
+	ptr_t source,
+	size_t count,
+	type const *elem_type
+)
+{
+	auto const dest_end = dest + count * elem_type->size;
+	auto const source_end = source + count * elem_type->size;
+	if (dest_end > this->address + this->object_size() || source_end > this->address + this->object_size())
+	{
+		return {};
+	}
+
+	if (dest > source)
+	{
+		// we need to check the range [source, dest) if it's alive, and the whole dest range
+		if (!this->is_alive(source, dest))
+		{
+			return {};
+		}
+	}
+	else
+	{
+		// we need to check the whole source range if it's alive, and [dest, source)
+		if (!this->is_alive(source, source_end))
+		{
+			return {};
+		}
+	}
+
+	auto const dest_offset = dest - this->address;
+	auto const dest_end_offset = dest_end - this->address;
+	auto const source_offset = source - this->address;
+	auto const source_end_offset = source_end - this->address;
+
+	auto const dest_check_result = check_pointer_arithmetic(
+		this->object_type,
+		dest_offset,
+		dest_end_offset,
+		false,
+		elem_type
+	);
+
+	if (dest_check_result == pointer_arithmetic_check_result::fail)
+	{
+		return {};
+	}
+
+	auto const source_check_result = check_pointer_arithmetic(
+		this->object_type,
+		source_offset,
+		source_end_offset,
+		false,
+		elem_type
+	);
+
+	if (source_check_result == pointer_arithmetic_check_result::fail)
+	{
+		return {};
+	}
+
+	return {
+		.dest = {
+			this->memory.slice(dest_offset, dest_end_offset),
+			this->properties.data.slice(dest_offset, dest_end_offset),
+		},
+		.source = {
+			this->memory.slice(source_offset, source_end_offset),
+			this->properties.data.slice(source_offset, source_end_offset),
+		},
+	};
+}
+
+bz::vector<bz::u8string> stack_object::get_get_copy_overlapping_memory_error_reasons(
+	ptr_t dest,
+	ptr_t source,
+	size_t count,
+	type const *elem_type
+)
+{
+	bz::vector<bz::u8string> result;
+
+	auto const dest_end = dest + count * elem_type->size;
+	auto const source_end = source + count * elem_type->size;
+	if (dest_end > this->address + this->object_size())
+	{
+		result.push_back(bz::format(
+			"destination address points to an invalid memory range in this stack object with offset {} and element count {}",
+			(dest - this->address), count
+		));
+	}
+	if (source_end > this->address + this->object_size())
+	{
+		result.push_back(bz::format(
+			"source address points to an invalid memory range in this stack object with offset {} and element count {}",
+			(source - this->address), count
+		));
+	}
+
+	if (result.not_empty())
+	{
+		return result;
+	}
+
+	if (dest > source)
+	{
+		// we need to check the range [source, dest) if it's alive, and the whole dest range
+		if (!this->is_alive(source, dest))
+		{
+			result.push_back("source address points to this stack object, which is outside its lifetime");
+		}
+	}
+	else
+	{
+		// we need to check the whole source range if it's alive, and [dest, source)
+		if (!this->is_alive(source, source_end))
+		{
+			result.push_back("source address points to this stack object, which is outside its lifetime");
+		}
+	}
+
+	auto const dest_offset = dest - this->address;
+	auto const dest_end_offset = dest_end - this->address;
+	auto const source_offset = source - this->address;
+	auto const source_end_offset = source_end - this->address;
+
+	auto const dest_check_result = check_pointer_arithmetic(
+		this->object_type,
+		dest_offset,
+		dest_end_offset,
+		false,
+		elem_type
+	);
+
+	if (dest_check_result == pointer_arithmetic_check_result::fail)
+	{
+		result.push_back(bz::format(
+			"destination address points to an invalid memory range in this stack object with offset {} and element count {}",
+			(dest - this->address), count
+		));
+	}
+
+	auto const source_check_result = check_pointer_arithmetic(
+		this->object_type,
+		source_offset,
+		source_end_offset,
+		false,
+		elem_type
+	);
+
+	if (source_check_result == pointer_arithmetic_check_result::fail)
+	{
+		result.push_back(bz::format(
+			"source address points to an invalid memory range in this stack object with offset {} and element count {}",
+			(source - this->address), count
+		));
+	}
+
+	return result;
+}
+
 heap_object::heap_object(ptr_t _address, type const *_elem_type, size_t _count)
 	: address(_address),
 	  elem_type(_elem_type),
@@ -1140,6 +1302,197 @@ bz::vector<bz::u8string> heap_object::get_get_copy_source_memory_error_reasons(p
 	return result;
 }
 
+copy_overlapping_values_data_t heap_object::get_copy_overlapping_memory(
+	ptr_t dest,
+	ptr_t source,
+	size_t count,
+	type const *elem_type
+)
+{
+	auto const dest_end = dest + count * this->elem_size();
+	auto const source_end = source + count * this->elem_size();
+	if (dest_end > this->address + this->object_size() || source_end > this->address + this->object_size())
+	{
+		return {};
+	}
+
+	if (dest > source)
+	{
+		// we need to check the range [source, dest) if it's alive, and the whole dest range
+		if (!this->is_alive(source, dest))
+		{
+			return {};
+		}
+	}
+	else
+	{
+		// we need to check the whole source range if it's alive, and [dest, source)
+		if (!this->is_alive(source, source_end))
+		{
+			return {};
+		}
+	}
+
+	auto const dest_offset = dest - this->address;
+	auto const dest_end_offset = dest_end - this->address;
+	auto const source_offset = source - this->address;
+	auto const source_end_offset = source_end - this->address;
+
+	if (elem_type != this->elem_type)
+	{
+		auto const dest_elem_offset = dest_offset % this->elem_size();
+		auto const dest_end_elem_offset = dest_elem_offset + (dest_end_offset - dest_offset);
+		auto const source_elem_offset = source_offset % this->elem_size();
+		auto const source_end_elem_offset = source_elem_offset + (source_end_offset - source_offset);
+
+		auto const dest_check_result = check_pointer_arithmetic(
+			this->elem_type,
+			dest_elem_offset,
+			dest_end_elem_offset,
+			false,
+			elem_type
+		);
+
+		if (dest_check_result == pointer_arithmetic_check_result::fail)
+		{
+			return {};
+		}
+
+		auto const source_check_result = check_pointer_arithmetic(
+			this->elem_type,
+			source_elem_offset,
+			source_end_elem_offset,
+			false,
+			elem_type
+		);
+
+		if (source_check_result == pointer_arithmetic_check_result::fail)
+		{
+			return {};
+		}
+	}
+
+	return {
+		.dest = {
+			this->memory.slice(dest_offset, dest_end_offset),
+			this->properties.data.slice(dest_offset, dest_end_offset),
+		},
+		.source = {
+			this->memory.slice(source_offset, source_end_offset),
+			this->properties.data.slice(source_offset, source_end_offset),
+		},
+	};
+}
+
+bz::vector<bz::u8string> heap_object::get_get_copy_overlapping_memory_error_reasons(
+	ptr_t dest,
+	ptr_t source,
+	size_t count,
+	type const *elem_type
+)
+{
+	bz::vector<bz::u8string> result;
+
+	auto const dest_end = dest + count * this->elem_size();
+	auto const source_end = source + count * this->elem_size();
+	if (dest_end > this->address + this->object_size())
+	{
+		if (elem_type == this->elem_type)
+		{
+			result.push_back(bz::format(
+				"destination address points to an invalid memory range in this allocation starting at index {} and with an element count of {}",
+				(dest - this->address) / this->elem_type->size, count
+			));
+		}
+		else
+		{
+			result.push_back(bz::format(
+				"destination address points to an invalid memory range in an element of this allocation with offset {} and element count {}",
+				(dest - this->address) % this->elem_type->size, count
+			));
+		}
+	}
+	if (source_end > this->address + this->object_size())
+	{
+		if (elem_type == this->elem_type)
+		{
+			result.push_back(bz::format(
+				"source address points to an invalid memory range in this allocation starting at index {} and with an element count of {}",
+				(source - this->address) / this->elem_type->size, count
+			));
+		}
+		else
+		{
+			result.push_back(bz::format(
+				"source address points to an invalid memory range in an element of this allocation with offset {} and element count {}",
+				(source - this->address) % this->elem_type->size, count
+			));
+		}
+	}
+
+	if (result.not_empty())
+	{
+		return result;
+	}
+
+	if (dest > source)
+	{
+		if (!this->is_alive(source, dest))
+		{
+			result.push_back("source address points to objects in this allocation, which are outside their lifetime");
+		}
+	}
+	else
+	{
+		if (!this->is_alive(source, source_end))
+		{
+			result.push_back("source address points to objects in this allocation, which are outside their lifetime");
+		}
+	}
+
+	if (elem_type != this->elem_type)
+	{
+		auto const dest_elem_offset = (dest - this->address) % this->elem_size();
+		auto const dest_end_elem_offset = dest_elem_offset + (dest_end - dest);
+		auto const source_elem_offset = (source - this->address) % this->elem_size();
+		auto const source_end_elem_offset = source_elem_offset + (source_end - source);
+
+		auto const dest_check_result = check_pointer_arithmetic(
+			this->elem_type,
+			dest_elem_offset,
+			dest_end_elem_offset,
+			false,
+			elem_type
+		);
+
+		if (dest_check_result == pointer_arithmetic_check_result::fail)
+		{
+			result.push_back(bz::format(
+				"destination address points to an invalid memory range in an element of this allocation with offset {} and element count {}",
+				dest_elem_offset, count
+			));
+		}
+
+		auto const source_check_result = check_pointer_arithmetic(
+			this->elem_type,
+			source_elem_offset,
+			source_end_elem_offset,
+			false,
+			elem_type
+		);
+
+		if (source_check_result == pointer_arithmetic_check_result::fail)
+		{
+			result.push_back(bz::format(
+				"source address points to an invalid memory range in an element of this allocation with offset {} and element count {}",
+				source_elem_offset, count
+			));
+		}
+	}
+
+	return result;
+}
+
 copy_values_memory_and_properties_t heap_object::get_relocate_source_memory(ptr_t address, size_t count, type const *elem_type)
 {
 	auto const end_address = address + count * elem_type->size;
@@ -1189,7 +1542,7 @@ bz::vector<bz::u8string> heap_object::get_get_relocate_source_memory_error_reaso
 	return result;
 }
 
-relocate_overlapping_values_data_t heap_object::get_relocate_overlapping_memory(
+copy_overlapping_values_data_t heap_object::get_relocate_overlapping_memory(
 	ptr_t dest,
 	ptr_t source,
 	size_t count,
@@ -2845,6 +3198,7 @@ static copy_values_memory_and_properties_t get_dest_memory(
 	case memory_segment::heap:
 	{
 		auto const allocation = manager.heap.get_allocation(dest);
+		bz_assert(allocation != nullptr);
 		if (!is_trivial && allocation->object.elem_type != elem_type)
 		{
 			return {};
@@ -2860,6 +3214,7 @@ static copy_values_memory_and_properties_t get_dest_memory(
 	{
 		bz_assert(is_trivial);
 		auto const object = manager.stack.get_stack_object(dest);
+		bz_assert(object != nullptr);
 		return { object->get_dest_memory(dest, count, elem_type).memory, {} };
 	}
 	case memory_segment::meta:
@@ -2880,22 +3235,61 @@ static copy_values_memory_t get_copy_source_memory(
 	case memory_segment::global:
 	{
 		auto const object = manager.global_memory->get_global_object(source);
+		bz_assert(object != nullptr);
 		return object->get_copy_source_memory(source, count, elem_type);
 	}
 	case memory_segment::stack:
 	{
 		auto const object = manager.stack.get_stack_object(source);
+		bz_assert(object != nullptr);
 		return object->get_copy_source_memory(source, count, elem_type);
 	}
 	case memory_segment::heap:
 	{
 		auto const allocation = manager.heap.get_allocation(source);
+		bz_assert(allocation != nullptr);
 		if (allocation->is_freed)
 		{
 			return {};
 		}
 
 		return allocation->object.get_copy_source_memory(source, count, elem_type);
+	}
+	case memory_segment::meta:
+		bz_unreachable;
+	}
+}
+
+static copy_overlapping_values_data_t get_copy_overlapping_memory(
+	ptr_t dest,
+	ptr_t source,
+	memory_segment segment,
+	size_t count,
+	type const *elem_type,
+	memory_manager &manager
+)
+{
+	switch (segment)
+	{
+	case memory_segment::global:
+		bz_unreachable;
+	case memory_segment::stack:
+	{
+		auto const object = manager.stack.get_stack_object(dest);
+		bz_assert(object != nullptr);
+
+		return object->get_copy_overlapping_memory(dest, source, count, elem_type);
+	}
+	case memory_segment::heap:
+	{
+		auto const allocation = manager.heap.get_allocation(dest);
+		bz_assert(allocation != nullptr);
+		if (allocation->is_freed)
+		{
+			return {};
+		}
+
+		return allocation->object.get_copy_overlapping_memory(dest, source, count, elem_type);
 	}
 	case memory_segment::meta:
 		bz_unreachable;
@@ -2910,12 +3304,73 @@ static copy_values_memory_and_properties_t get_relocate_source_memory(
 )
 {
 	auto const allocation = manager.heap.get_allocation(source);
+	bz_assert(allocation != nullptr);
 	if (allocation->is_freed)
 	{
 		return {};
 	}
 
 	return allocation->object.get_relocate_source_memory(source, count, elem_type);
+}
+
+static void add_invalid_pointer_error_reasons(
+	bz::vector<error_reason_t> &reasons,
+	bz::u8string_view address_name,
+	ptr_t address,
+	memory_segment segment,
+	bool is_one_past_the_end,
+	bool is_finished_stack_frame,
+	memory_manager &manager
+)
+{
+	if (is_finished_stack_frame)
+	{
+		auto const &stack_object = manager.meta_memory.get_stack_object_pointer(address);
+		reasons.push_back({
+			stack_object.object_src_tokens,
+			bz::format("{} address points to an object from a finished stack frame", address_name)
+		});
+	}
+	else if (is_one_past_the_end)
+	{
+		switch (segment)
+		{
+		case memory_segment::global:
+		{
+			auto const global_object = manager.global_memory->get_global_object(address);
+			bz_assert(global_object != nullptr);
+			reasons.push_back({
+				global_object->object_src_tokens,
+				bz::format("{} address is a one-past-the-end pointer into this global object", address_name)
+			});
+			break;
+		}
+		case memory_segment::stack:
+		{
+			auto const stack_object = manager.stack.get_stack_object(address);
+			bz_assert(stack_object != nullptr);
+			reasons.push_back({
+				stack_object->object_src_tokens,
+				bz::format("{} address is a one-past-the-end pointer into this stack object", address_name)
+			});
+			break;
+		}
+		case memory_segment::heap:
+		{
+			auto const allocation = manager.heap.get_allocation(address);
+			bz_assert(allocation != nullptr);
+			reasons.reserve(reasons.size() + 1 + allocation->alloc_info.call_stack.size());
+			reasons.push_back({
+				allocation->alloc_info.src_tokens,
+				bz::format("{} address is a one-past-the-end pointer into this allocation", address_name)
+			});
+			add_allocation_info(reasons, allocation->alloc_info);
+			break;
+		}
+		case memory_segment::meta:
+			bz_unreachable;
+		}
+	}
 }
 
 static void add_get_dest_memory_error_reasons(
@@ -3050,6 +3505,65 @@ static void add_get_copy_source_memory_error_reasons(
 	}
 }
 
+static void add_get_copy_overlapping_memory_error_reasons(
+	bz::vector<error_reason_t> &reasons,
+	ptr_t dest,
+	ptr_t source,
+	memory_segment segment,
+	size_t count,
+	type const *elem_type,
+	memory_manager &manager
+)
+{
+	switch (segment)
+	{
+	case memory_segment::global:
+		bz_unreachable;
+	case memory_segment::stack:
+	{
+		auto const object = manager.stack.get_stack_object(dest);
+		bz_assert(object != nullptr);
+
+		auto const messages = object->get_get_copy_overlapping_memory_error_reasons(dest, source, count, elem_type);
+		reasons.reserve(reasons.size() + messages.size());
+		reasons.append_move(messages.transform([&](auto const &message) -> error_reason_t {
+			return { object->object_src_tokens, message };
+		}));
+		break;
+	}
+	case memory_segment::heap:
+	{
+		auto const allocation = manager.heap.get_allocation(dest);
+		bz_assert(allocation != nullptr);
+		if (allocation->is_freed)
+		{
+			reasons.reserve(reasons.size() + 2 + allocation->alloc_info.call_stack.size() + allocation->free_info.call_stack.size());
+			reasons.push_back({
+				allocation->alloc_info.src_tokens,
+				"destination and source addresses point to this allocation, which was freed"
+			});
+			add_allocation_info(reasons, allocation->alloc_info);
+			add_free_info(reasons, allocation->free_info);
+		}
+		else
+		{
+			auto const messages = allocation->object.get_get_copy_overlapping_memory_error_reasons(dest, source, count, elem_type);
+			if (messages.not_empty())
+			{
+				reasons.reserve(reasons.size() + messages.size() + allocation->alloc_info.call_stack.size());
+				reasons.append_move(messages.transform([&](auto const &message) -> error_reason_t {
+					return { allocation->alloc_info.src_tokens, message };
+				}));
+				add_allocation_info(reasons, allocation->alloc_info);
+			}
+		}
+		break;
+	}
+	case memory_segment::meta:
+		bz_unreachable;
+	}
+}
+
 static void add_get_relocate_source_memory_error_reasons(
 	bz::vector<error_reason_t> &reasons,
 	ptr_t source,
@@ -3162,85 +3676,26 @@ bz::vector<error_reason_t> memory_manager::get_copy_values_error_reason(
 	bz_assert(count != 0);
 	bz_assert(_dest != 0);
 	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
-	if (dest_is_finished_stack_frame)
-	{
-		auto const &stack_object = this->meta_memory.get_stack_object_pointer(dest);
-		reasons.push_back({ stack_object.object_src_tokens, "destination address points to an object from a finished stack frame" });
-	}
-	else if (dest_is_one_past_the_end)
-	{
-		switch (dest_segment)
-		{
-		case memory_segment::global:
-			bz_unreachable;
-		case memory_segment::stack:
-		{
-			auto const stack_object = this->stack.get_stack_object(dest);
-			bz_assert(stack_object != nullptr);
-			reasons.push_back({
-				stack_object->object_src_tokens,
-				"destination address is a one-past-the-end pointer into this stack object"
-			});
-			break;
-		}
-		case memory_segment::heap:
-		{
-			auto const allocation = this->heap.get_allocation(dest);
-			bz_assert(allocation != nullptr);
-			reasons.reserve(reasons.size() + 1 + allocation->alloc_info.call_stack.size());
-			reasons.push_back({
-				allocation->alloc_info.src_tokens,
-				"destination address is a one-past-the-end pointer into this allocation"
-			});
-			add_allocation_info(reasons, allocation->alloc_info);
-			break;
-		}
-		case memory_segment::meta:
-			bz_unreachable;
-		}
-	}
+	add_invalid_pointer_error_reasons(
+		reasons,
+		"destination",
+		dest,
+		dest_segment,
+		dest_is_one_past_the_end,
+		dest_is_finished_stack_frame,
+		*this
+	);
 	bz_assert(_source != 0);
 	auto const [source, source_segment, source_is_one_past_the_end, source_is_finished_stack_frame] = remove_meta(_source, *this);
-	if (source_is_finished_stack_frame)
-	{
-		auto const &stack_object = this->meta_memory.get_stack_object_pointer(source);
-		reasons.push_back({
-			stack_object.object_src_tokens,
-			"source address points to an object from a finished stack frame"
-		});
-	}
-	else if (source_is_one_past_the_end)
-	{
-		switch (source_segment)
-		{
-		case memory_segment::global:
-			bz_unreachable;
-		case memory_segment::stack:
-		{
-			auto const stack_object = this->stack.get_stack_object(source);
-			bz_assert(stack_object != nullptr);
-			reasons.push_back({
-				stack_object->object_src_tokens,
-				"source address is a one-past-the-end pointer into this stack object"
-			});
-			break;
-		}
-		case memory_segment::heap:
-		{
-			auto const allocation = this->heap.get_allocation(source);
-			bz_assert(allocation != nullptr);
-			reasons.reserve(reasons.size() + 1 + allocation->alloc_info.call_stack.size());
-			reasons.push_back({
-				allocation->alloc_info.src_tokens,
-				"source address is a one-past-the-end pointer into this allocation"
-			});
-			add_allocation_info(reasons, allocation->alloc_info);
-			break;
-		}
-		case memory_segment::meta:
-			bz_unreachable;
-		}
-	}
+	add_invalid_pointer_error_reasons(
+		reasons,
+		"source",
+		source,
+		source_segment,
+		source_is_one_past_the_end,
+		source_is_finished_stack_frame,
+		*this
+	);
 
 	if (reasons.not_empty())
 	{
@@ -3317,6 +3772,150 @@ bz::vector<error_reason_t> memory_manager::get_copy_values_error_reason(
 	else
 	{
 		add_get_dest_memory_error_reasons(reasons, dest, dest_segment, count, elem_type, is_trivial, *this);
+		add_get_copy_source_memory_error_reasons(reasons, dest, dest_segment, count, elem_type, *this);
+	}
+
+	bz_assert(reasons.not_empty());
+	return reasons;
+}
+
+bool memory_manager::copy_overlapping_values(ptr_t _dest, ptr_t _source, size_t count, type const *elem_type)
+{
+	bz_assert(count != 0);
+	bz_assert(_dest != 0);
+	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	if (dest_is_finished_stack_frame || dest_is_one_past_the_end)
+	{
+		return false;
+	}
+	bz_assert(_source != 0);
+	auto const [source, source_segment, source_is_one_past_the_end, source_is_finished_stack_frame] = remove_meta(_source, *this);
+	if (source_is_finished_stack_frame || source_is_one_past_the_end)
+	{
+		return false;
+	}
+
+	bz_assert(dest_segment != memory_segment::global);
+	if (dest == source)
+	{
+		return false;
+	}
+	// check if the ranges are overlapping
+	else if (
+		auto const memory_size = count * elem_type->size;
+		dest_segment == source_segment
+		&& !(
+			source >= dest + memory_size
+			|| source + memory_size <= dest
+		)
+	)
+	{
+		auto const [dest_memory_data, source_memory_data] = get_copy_overlapping_memory(dest, source, dest_segment, count, elem_type, *this);
+		if (dest_memory_data.memory.empty())
+		{
+			return false;
+		}
+
+		auto const &[dest_memory, dest_properties] = dest_memory_data;
+		auto const &[source_memory, source_properties] = source_memory_data;
+
+		bz_assert(dest_memory.size() == source_memory.size());
+		bz_assert(source_properties.empty());
+		bz_assert(dest_properties.empty() || dest_properties.size() == dest_memory.size());
+
+		std::memmove(dest_memory.data(), source_memory.data(), dest_memory.size());
+
+		// dest_properties may be empty here
+		for (auto const i : bz::iota(0, dest_properties.size()))
+		{
+			dest_properties[i] |= memory_properties::is_alive;
+		}
+
+		return true;
+	}
+	else
+	{
+		auto const [dest_memory, dest_properties] = get_dest_memory(dest, dest_segment, count, elem_type, true, *this);
+		if (dest_memory.empty())
+		{
+			return false;
+		}
+		auto const [source_memory] = get_copy_source_memory(source, source_segment, count, elem_type, *this);
+		if (source_memory.empty())
+		{
+			return false;
+		}
+
+		bz_assert(dest_memory.size() == source_memory.size());
+		std::memcpy(dest_memory.data(), source_memory.data(), dest_memory.size());
+
+		// dest_properties may be empty here
+		for (auto const i : bz::iota(0, dest_properties.size()))
+		{
+			dest_properties[i] |= memory_properties::is_alive;
+		}
+
+		return true;
+	}
+}
+
+bz::vector<error_reason_t> memory_manager::get_copy_overlapping_values_error_reason(
+	ptr_t _dest,
+	ptr_t _source,
+	size_t count,
+	type const *elem_type
+)
+{
+	bz::vector<error_reason_t> reasons;
+
+	bz_assert(count != 0);
+	bz_assert(_dest != 0);
+	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	add_invalid_pointer_error_reasons(
+		reasons,
+		"destination",
+		dest,
+		dest_segment,
+		dest_is_one_past_the_end,
+		dest_is_finished_stack_frame,
+		*this
+	);
+	bz_assert(_source != 0);
+	auto const [source, source_segment, source_is_one_past_the_end, source_is_finished_stack_frame] = remove_meta(_source, *this);
+	add_invalid_pointer_error_reasons(
+		reasons,
+		"source",
+		source,
+		source_segment,
+		source_is_one_past_the_end,
+		source_is_finished_stack_frame,
+		*this
+	);
+
+	if (reasons.not_empty())
+	{
+		return reasons;
+	}
+
+	bz_assert(dest_segment != memory_segment::global);
+	if (dest == source)
+	{
+		reasons.push_back({ {}, "destination and source addresses are equal" });
+	}
+	else if (
+		auto const memory_size = count * elem_type->size;
+		dest_segment == source_segment
+		&& !(
+			source >= dest + memory_size
+			|| source + memory_size <= dest
+		)
+	)
+	{
+		add_get_copy_overlapping_memory_error_reasons(reasons, dest, source, dest_segment, count, elem_type, *this);
+	}
+	else
+	{
+		add_get_dest_memory_error_reasons(reasons, dest, dest_segment, count, elem_type, true, *this);
 		add_get_copy_source_memory_error_reasons(reasons, dest, dest_segment, count, elem_type, *this);
 	}
 
@@ -3450,85 +4049,26 @@ bz::vector<error_reason_t> memory_manager::get_relocate_values_error_reason(
 	bz_assert(count != 0);
 	bz_assert(_dest != 0);
 	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
-	if (dest_is_finished_stack_frame)
-	{
-		auto const &stack_object = this->meta_memory.get_stack_object_pointer(dest);
-		reasons.push_back({ stack_object.object_src_tokens, "destination address points to an object from a finished stack frame" });
-	}
-	else if (dest_is_one_past_the_end)
-	{
-		switch (dest_segment)
-		{
-		case memory_segment::global:
-			bz_unreachable;
-		case memory_segment::stack:
-		{
-			auto const stack_object = this->stack.get_stack_object(dest);
-			bz_assert(stack_object != nullptr);
-			reasons.push_back({
-				stack_object->object_src_tokens,
-				"destination address is a one-past-the-end pointer into this stack object"
-			});
-			break;
-		}
-		case memory_segment::heap:
-		{
-			auto const allocation = this->heap.get_allocation(dest);
-			bz_assert(allocation != nullptr);
-			reasons.reserve(reasons.size() + 1 + allocation->alloc_info.call_stack.size());
-			reasons.push_back({
-				allocation->alloc_info.src_tokens,
-				"destination address is a one-past-the-end pointer into this allocation"
-			});
-			add_allocation_info(reasons, allocation->alloc_info);
-			break;
-		}
-		case memory_segment::meta:
-			bz_unreachable;
-		}
-	}
+	add_invalid_pointer_error_reasons(
+		reasons,
+		"destination",
+		dest,
+		dest_segment,
+		dest_is_one_past_the_end,
+		dest_is_finished_stack_frame,
+		*this
+	);
 	bz_assert(_source != 0);
 	auto const [source, source_segment, source_is_one_past_the_end, source_is_finished_stack_frame] = remove_meta(_source, *this);
-	if (source_is_finished_stack_frame)
-	{
-		auto const &stack_object = this->meta_memory.get_stack_object_pointer(source);
-		reasons.push_back({
-			stack_object.object_src_tokens,
-			"source address points to an object from a finished stack frame"
-		});
-	}
-	else if (source_is_one_past_the_end)
-	{
-		switch (source_segment)
-		{
-		case memory_segment::global:
-			bz_unreachable;
-		case memory_segment::stack:
-		{
-			auto const stack_object = this->stack.get_stack_object(source);
-			bz_assert(stack_object != nullptr);
-			reasons.push_back({
-				stack_object->object_src_tokens,
-				"source address is a one-past-the-end pointer into this stack object"
-			});
-			break;
-		}
-		case memory_segment::heap:
-		{
-			auto const allocation = this->heap.get_allocation(source);
-			bz_assert(allocation != nullptr);
-			reasons.reserve(reasons.size() + 1 + allocation->alloc_info.call_stack.size());
-			reasons.push_back({
-				allocation->alloc_info.src_tokens,
-				"source address is a one-past-the-end pointer into this allocation"
-			});
-			add_allocation_info(reasons, allocation->alloc_info);
-			break;
-		}
-		case memory_segment::meta:
-			bz_unreachable;
-		}
-	}
+	add_invalid_pointer_error_reasons(
+		reasons,
+		"source",
+		source,
+		source_segment,
+		source_is_one_past_the_end,
+		source_is_finished_stack_frame,
+		*this
+	);
 
 	if (reasons.not_empty())
 	{

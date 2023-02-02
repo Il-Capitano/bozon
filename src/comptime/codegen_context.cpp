@@ -1306,6 +1306,31 @@ void codegen_context::create_copy_values(
 	}, dest_value, source_value, count_value);
 }
 
+void codegen_context::create_copy_overlapping_values(
+	lex::src_tokens const &src_tokens,
+	expr_value dest,
+	expr_value source,
+	expr_value count,
+	type const *elem_type
+)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+	auto const copy_values_info_index = this->add_copy_values_info({
+		.elem_type = elem_type,
+		.src_tokens_index = src_tokens_index,
+		.is_trivially_destructible = true,
+	});
+
+	auto const dest_value = dest.get_value_as_instruction(*this);
+	auto const source_value = source.get_value_as_instruction(*this);
+	auto const count_cast = this->create_int_cast(count, this->get_builtin_type(builtin_type_kind::i64), false);
+	auto const count_value = count_cast.get_value_as_instruction(*this);
+
+	add_instruction(*this, instructions::copy_overlapping_values{
+		.copy_values_info_index = copy_values_info_index
+	}, dest_value, source_value, count_value);
+}
+
 void codegen_context::create_relocate_values(
 	lex::src_tokens const &src_tokens,
 	expr_value dest,
