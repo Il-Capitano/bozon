@@ -39,9 +39,7 @@ function max32(a: int32, b: int32) -> int32
 
 function int32Bits2Float(bits: uint32) -> float32
 {
-	let f: float32;
-	memcpy(&f, &bits, sizeof float32);
-	return f;
+	return bit_cast(float32, bits);
 }
 
 export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> parse_result

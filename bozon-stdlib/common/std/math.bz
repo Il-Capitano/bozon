@@ -181,16 +181,12 @@ export consteval f32_min_denorm: float32 = 1e-45f32;
 
 function bits_as_float(n: uint32) -> float32
 {
-	let x: float32;
-	__builtin_memcpy(&x, &n, sizeof float32);
-	return x;
+	return __builtin_bit_cast(float32, n);
 }
 
 function bits_as_float(n: uint64) -> float64
 {
-	let x: float64;
-	__builtin_memcpy(&x, &n, sizeof float64);
-	return x;
+	return __builtin_bit_cast(float64, n);
 }
 
 static_assert(inf_f64 == bits_as_float(0x7ff0'0000'0000'0000u64));

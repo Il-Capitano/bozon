@@ -103,16 +103,12 @@ export function copy_special_str(result: *uint8, sign: bool, exponent: bool, man
 
 export function float_to_bits(f: float32) -> uint32
 {
-	let bits: uint32 = 0;
-	memcpy(&bits, &f, sizeof float32);
-	return bits;
+	return bit_cast(uint32, f);
 }
 
 export function double_to_bits(d: float64) -> uint64
 {
-	let bits: uint64 = 0;
-	memcpy(&bits, &d, sizeof float64);
-	return bits;
+	return bit_cast(uint64, d);
 }
 
 
@@ -148,9 +144,7 @@ export function copy_short_special_str(result: *uint8, sign: bool, exponent: boo
 
 export function bits_to_double(bits: uint64) -> float64
 {
-	let x: float64 = 0.0;
-	memcpy(&x, &bits, sizeof float64);
-	return x;
+	return bit_cast(float64, bits);
 }
 
 export enum parse_result

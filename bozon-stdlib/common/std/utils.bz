@@ -10,6 +10,8 @@ export function trivially_copy_values  = __builtin_trivially_copy_values;
 export function trivially_relocate_values = __builtin_trivially_relocate_values;
 export function swap = __builtin_swap;
 
+export function bit_cast = __builtin_bit_cast;
+
 export function enum_value = __builtin_enum_value;
 export function create_initialized_array = __builtin_create_initialized_array;
 
