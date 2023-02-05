@@ -204,14 +204,14 @@ export function mulShiftAll64(
 	}
 
 	const lo2 = lo + *mul;
-	const mid2 = mid + *(mul + 1) + (lo2 < lo) as uint64;
+	const mid2 = ((mid + *(mul + 1))) + (lo2 < lo) as uint64;
 	const hi2 = hi + (mid2 < mid) as uint64;
 	*vp = shiftright128(mid2, hi2, j - 64 - 1);
 
 	if (mmShift == 1)
 	{
 		const lo3 = lo - *mul;
-		const mid3 = mid - *(mul + 1) - (lo3 > lo) as uint64;
+		const mid3 = ((mid - *(mul + 1))) - (lo3 > lo) as uint64;
 		const hi3 = hi - (mid3 > mid) as uint64;
 		*vm = shiftright128(mid3, hi3, j - 64 - 1);
 	}

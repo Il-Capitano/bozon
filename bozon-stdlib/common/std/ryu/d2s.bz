@@ -240,7 +240,7 @@ function d2d(ieeeMantissa: uint64, ieeeExponent: uint32) -> floating_decimal_64
 		if (vpDiv100 > vmDiv100) // Optimization: remove two digits at a time (~86.2%).
 		{
 			const vrDiv100 = div100(vr);
-			const vrMod100 = vr as uint32 - 100 * vrDiv100 as uint32;
+			const vrMod100 = vr as uint32 - ((100 * vrDiv100 as uint32));
 			roundUp = vrMod100 >= 50;
 			vr = vrDiv100;
 			vp = vpDiv100;
@@ -260,7 +260,7 @@ function d2d(ieeeMantissa: uint64, ieeeExponent: uint32) -> floating_decimal_64
 				break;
 			}
 			const vrDiv10 = div10(vr);
-			const vrMod10 = vr as uint32 - 10 * vrDiv10 as uint32;
+			const vrMod10 = vr as uint32 - ((10 * vrDiv10 as uint32));
 			roundUp = vrMod10 >= 5;
 			vr = vrDiv10;
 			vp = vpDiv10;
@@ -618,7 +618,7 @@ function to_chars_fixed(v: floating_decimal_64, out: *uint8) -> *uint8
 	// print trailing zeros
 	if (v.exponent >= 0)
 	{
-		memset(out + olength + 1, '0' as uint8, v.exponent as usize);
+		trivially_set_values(out + olength + 1, '0' as uint8, v.exponent as usize);
 	}
 
 	if (actual_exponent >= 0)

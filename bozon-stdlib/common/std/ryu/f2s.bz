@@ -417,7 +417,7 @@ function to_chars_fixed(v: floating_decimal_32, out: *uint8) -> *uint8
 	// print trailing zeros
 	if (v.exponent >= 0)
 	{
-		memset(out + olength + 1, '0' as uint8, v.exponent as usize);
+		trivially_set_values(out + olength + 1, '0' as uint8, v.exponent as usize);
 	}
 
 	if (actual_exponent >= 0)
