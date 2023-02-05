@@ -1802,7 +1802,7 @@ static expr_value generate_intrinsic_function_call_code(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 192);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 193);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2224,6 +2224,8 @@ static expr_value generate_intrinsic_function_call_code(
 		context.create_relocate_values(func_call.src_tokens, dest, source, count, elem_type, elem_typespec);
 		return expr_value::get_none();
 	}
+	case ast::function_body::trivially_set_values:
+		bz_unreachable;
 	case ast::function_body::bit_cast:
 		// this is handled as a separate expression, not a function call
 		bz_unreachable;

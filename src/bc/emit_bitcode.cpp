@@ -2632,7 +2632,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 192);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 193);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2946,6 +2946,51 @@ static val_ptr emit_bitcode(
 			auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
 			context.create_call(memmove_fn, { dest, source, size, false_val });
 			return val_ptr::get_none();
+		}
+		case ast::function_body::trivially_set_values:
+		{
+			bz_assert(func_call.params.size() == 3);
+			auto const dest = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const value = emit_bitcode<abi>(func_call.params[1], context, nullptr);
+			auto const count = emit_bitcode<abi>(func_call.params[2], context, nullptr).get_value(context.builder);
+			llvm::Type * const type = value.get_type();
+
+			if (type == context.get_uint8_t())
+			{
+				auto const memset_fn = context.get_function(context.get_builtin_function(ast::function_body::memset));
+				auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+				context.create_call(memset_fn, { dest, value.get_value(context.builder), count, false_val });
+				return val_ptr::get_none();
+			}
+			else
+			{
+				auto const value_to_copy = type->isAggregateType() ? value : val_ptr::get_value(value.get_value(context.builder));
+				auto const end = context.create_array_gep(type, dest, count);
+
+				auto const begin_bb = context.builder.GetInsertBlock();
+
+				auto const condition_check_bb = context.add_basic_block("trivially_set_values_condition_check");
+				context.builder.CreateBr(condition_check_bb);
+				context.builder.SetInsertPoint(condition_check_bb);
+				auto const it = context.builder.CreatePHI(dest->getType(), 2);
+				it->addIncoming(dest, begin_bb);
+
+				auto const should_continue = context.builder.CreateICmpNE(it, end);
+
+				auto const loop_bb = context.add_basic_block("trivially_set_values_loop");
+				auto const end_bb = context.add_basic_block("trivially_set_values_end");
+
+				context.builder.CreateCondBr(should_continue, loop_bb, end_bb);
+
+				context.builder.SetInsertPoint(loop_bb);
+				emit_value_copy(value_to_copy, it, context);
+				auto const next_it = context.builder.CreateConstGEP1_64(type, it, 1);
+				context.builder.CreateBr(condition_check_bb);
+				it->addIncoming(next_it, loop_bb);
+
+				context.builder.SetInsertPoint(end_bb);
+				return val_ptr::get_none();
+			}
 		}
 		case ast::function_body::bit_cast:
 			// this handled as a separate expression
