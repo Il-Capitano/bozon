@@ -3647,6 +3647,7 @@ static ast::expression make_expr_function_call_from_body(
 		bz_assert(args.size() == 2);
 		bz_assert(args[0].is_typename());
 		auto const &type = args[0].get_typename();
+		context.add_self_destruction(args[1]);
 		return make_array_value_init_expression(src_tokens, type, std::move(args[1]), context);
 	}
 	else if (body->is_intrinsic() && body->intrinsic_kind == ast::function_body::bit_cast)
@@ -3655,6 +3656,7 @@ static ast::expression make_expr_function_call_from_body(
 		bz_assert(args[0].is_typename());
 		auto &type = args[0].get_typename();
 		bz_assert(body->return_type == type);
+		context.add_self_destruction(args[1]);
 		return context.make_bit_cast_expression(src_tokens, std::move(args[1]), std::move(type));
 	}
 	else if (body->is_default_default_constructor() || (body->is_default_constructor() && body->is_defaulted()))
@@ -3685,6 +3687,21 @@ static ast::expression make_expr_function_call_from_body(
 	{
 		bz_assert(args.size() == 2);
 		return context.make_default_assignment(src_tokens, std::move(args[0]), std::move(args[1]));
+	}
+	else if (
+		body->has_builtin_implementation()
+		&& !(body->is_intrinsic() && body->intrinsic_kind == ast::function_body::builtin_inplace_construct)
+	)
+	{
+		bz_assert(args.size() == body->params.size());
+		for (auto const i : bz::iota(0, args.size()))
+		{
+			auto const &param_type = body->params[i].get_type();
+			if (!param_type.is<ast::ts_lvalue_reference>() && !param_type.is<ast::ts_move_reference>())
+			{
+				context.add_self_destruction(args[i]);
+			}
+		}
 	}
 
 	auto &ret_t = body->return_type;
@@ -6894,7 +6911,6 @@ ast::expression parse_context::make_default_assignment(lex::src_tokens const &sr
 	if (are_types_equal && this->is_trivial(src_tokens, lhs_type))
 	{
 		ast::typespec result_type = lhs_type;
-		this->add_self_destruction(rhs);
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::lvalue_reference, std::move(result_type),
@@ -7227,10 +7243,6 @@ static ast::expression make_array_value_init_expression(
 )
 {
 	auto const [value_type, value_kind] = value.get_expr_type_and_kind();
-	if (value_kind == ast::expression_type_kind::rvalue)
-	{
-		context.add_self_destruction(value);
-	}
 
 	auto copy_expr = context.make_copy_construction(ast::make_dynamic_expression(
 		src_tokens,
