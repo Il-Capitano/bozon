@@ -1,5 +1,3 @@
-import std::format;
-/*
 import std;
 import std::libc;
 import private_member_test;
@@ -1952,4 +1950,3 @@ function indirect_call_test()
 	std::assert(op == mul_i32);
 	std::assert(op != add_i32);
 }
-*/
