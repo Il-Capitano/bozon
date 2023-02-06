@@ -3682,13 +3682,14 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	auto const dest_t = ast::remove_const_or_consteval(bit_cast.type);
+	auto const dest_type = get_llvm_type(ast::remove_const_or_consteval(bit_cast.type), context);
 	if (result_address == nullptr)
 	{
-		result_address = context.create_alloca(get_llvm_type(dest_t, context));
+		result_address = context.create_alloca(dest_type);
 	}
 
-	return emit_bitcode<abi>(bit_cast.expr, context, result_address);
+	emit_bitcode<abi>(bit_cast.expr, context, result_address);
+	return val_ptr::get_reference(result_address, dest_type);
 }
 
 template<abi::platform_abi abi>
