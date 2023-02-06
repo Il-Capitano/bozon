@@ -5271,11 +5271,121 @@ static bool check_small_type_bit_cast_paddings(
 	return true;
 }
 
+struct offset_padding_size_pair
+{
+	uint32_t offset;
+	uint32_t padding_size;
+};
+
+static void get_type_paddings_helper(bz::vector<offset_padding_size_pair> &result, uint32_t current_offset, ast::type_prototype const *type)
+{
+	if (!type->has_padding())
+	{
+		return;
+	}
+	else if (type->is_aggregate())
+	{
+		auto const elem_types = type->get_aggregate_types();
+		auto const offsets = type->get_aggregate_offsets();
+
+		if (elem_types.empty())
+		{
+			bz_assert(type->size == 1);
+			result.push_back({ .offset = current_offset, .padding_size = 1 });
+			return;
+		}
+
+		auto const elem_count = elem_types.size();
+		for (auto const i : bz::iota(0, elem_count))
+		{
+			auto const elem_type = elem_types[i];
+			auto const offset = offsets[i];
+			get_type_paddings_helper(result, current_offset + offset, elem_type);
+			auto const next_offset = i + 1 == elem_count ? type->size : offsets[i + 1];
+			if (offset + elem_type->size != next_offset)
+			{
+				result.push_back({
+					.offset = current_offset + static_cast<uint32_t>(offset + elem_type->size),
+					.padding_size = static_cast<uint32_t>(next_offset - (offset + elem_type->size)),
+				});
+			}
+		}
+	}
+	else if (type->is_array())
+	{
+		auto const elem_type = type->get_array_element_type();
+		auto const size = type->get_array_size();
+
+		auto const result_start_size = result.size();
+		get_type_paddings_helper(result, current_offset, elem_type);
+		auto const new_paddings_count = result.size() - result_start_size;
+		bz_assert(new_paddings_count != 0);
+		auto const new_result_size = result.size() + (size - 1) * new_paddings_count;
+		result.reserve(new_result_size);
+		for (auto const i : bz::iota(result_start_size, new_result_size - new_paddings_count))
+		{
+			auto const prev_padding = result[i];
+			result.push_back({
+				.offset = prev_padding.offset + static_cast<uint32_t>(elem_type->size),
+				.padding_size = prev_padding.padding_size,
+			});
+		}
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
+static bz::vector<offset_padding_size_pair> get_type_paddings(ast::type_prototype const *type)
+{
+	bz::vector<offset_padding_size_pair> result;
+	get_type_paddings_helper(result, 0, type);
+	return result;
+}
+
+static bool check_large_type_bit_cast_paddings(
+	ast::type_prototype const *value_type,
+	ast::type_prototype const *result_type
+)
+{
+	auto const value_type_paddings = get_type_paddings(value_type);
+	auto const result_type_paddings = get_type_paddings(result_type);
+
+	auto value_it = value_type_paddings.begin();
+	auto const value_end = value_type_paddings.end();
+	auto result_it = result_type_paddings.begin();
+	auto const result_end = value_type_paddings.end();
+
+	while (result_it != result_end && value_it != value_end)
+	{
+		auto has_padding_until = value_it->offset;
+		while (has_padding_until < value_it->offset + value_it->padding_size)
+		{
+			if (result_it == result_end || result_it->offset > has_padding_until)
+			{
+				return false;
+			}
+
+			has_padding_until = std::max(has_padding_until, result_it->offset + result_it->padding_size);
+			++result_it;
+		}
+
+		++value_it;
+	}
+	return value_it == value_end;
+}
+
 static bool check_bit_cast_type_paddings(
 	ast::type_prototype const *value_type,
 	ast::type_prototype const *result_type
 )
 {
+	if (value_type == result_type)
+	{
+		return true;
+	}
+
 	auto const value_type_has_padding = value_type->has_padding();
 	auto const result_type_has_padding = result_type->has_padding();
 	if (!value_type_has_padding)
@@ -5292,8 +5402,7 @@ static bool check_bit_cast_type_paddings(
 	}
 	else
 	{
-		// TODO
-		bz_unreachable;
+		return check_large_type_bit_cast_paddings(value_type, result_type);
 	}
 }
 
