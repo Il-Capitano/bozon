@@ -640,7 +640,7 @@ copy_overlapping_values_data_t stack_object::get_copy_overlapping_memory(
 		},
 		.source = {
 			this->memory.slice(source_offset, source_end_offset),
-			this->properties.data.slice(source_offset, source_end_offset),
+			{},
 		},
 	};
 }
@@ -1379,7 +1379,7 @@ copy_overlapping_values_data_t heap_object::get_copy_overlapping_memory(
 		},
 		.source = {
 			this->memory.slice(source_offset, source_end_offset),
-			this->properties.data.slice(source_offset, source_end_offset),
+			{},
 		},
 	};
 }
