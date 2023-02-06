@@ -2756,12 +2756,23 @@ bz::u8string to_string(function const &func)
 
 	if (func.func_body != nullptr)
 	{
-		result += bz::format("'{}':\n", func.func_body->get_signature());
+		result += bz::format("'{}'(", func.func_body->get_signature());
 	}
 	else
 	{
-		result += "anon-function:\n";
+		result += "anon-function(";
 	}
+
+	if (func.arg_types.not_empty())
+	{
+		result += func.arg_types[0]->to_string();
+		for (auto const type : func.arg_types.slice(1))
+		{
+			result += ", ";
+			result += type->to_string();
+		}
+	}
+	result += bz::format(") -> {}:\n", func.return_type->to_string());
 
 	uint32_t i = 0;
 
