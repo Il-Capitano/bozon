@@ -6605,9 +6605,13 @@ static val_ptr emit_bitcode(
 	auto const result = dyn_expr.expr.visit([&](auto const &expr) {
 		return emit_bitcode<abi>(src_tokens, expr, context, result_address);
 	});
-	if (result.kind == val_ptr::reference && (dyn_expr.destruct_op.not_null() || dyn_expr.destruct_op.move_destructed_decl != nullptr))
+	if ((result.kind == val_ptr::reference && dyn_expr.destruct_op.not_null()) || dyn_expr.destruct_op.move_destructed_decl != nullptr)
 	{
-		context.push_self_destruct_operation(dyn_expr.destruct_op, result.val, result.get_type());
+		context.push_self_destruct_operation(
+			dyn_expr.destruct_op,
+			result.kind == val_ptr::reference ? result.val : nullptr,
+			result.get_type()
+		);
 	}
 	return result;
 }

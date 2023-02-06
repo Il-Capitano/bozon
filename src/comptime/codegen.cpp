@@ -5762,7 +5762,7 @@ static expr_value generate_expr_code(
 
 	auto const result = generate_expr_code(original_expression, dyn_expr.expr, context, result_address);
 
-	if (result.is_reference() && (dyn_expr.destruct_op.not_null() || dyn_expr.destruct_op.move_destructed_decl != nullptr))
+	if ((result.is_reference() && dyn_expr.destruct_op.not_null()) || dyn_expr.destruct_op.move_destructed_decl != nullptr)
 	{
 		context.push_self_destruct_operation(dyn_expr.destruct_op, result);
 	}
@@ -6388,31 +6388,33 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 	if (destruct_op_info.destruct_op == nullptr)
 	{
 		auto const &value = destruct_op_info.value;
-		bz_assert(!value.is_none());
-		if (condition.has_value())
+		if (!value.is_none())
 		{
-			auto const condition_value = expr_value::get_reference(
-				condition.get(),
-				context.get_builtin_type(builtin_type_kind::i1)
-			).get_value(context);
+			if (condition.has_value())
+			{
+				auto const condition_value = expr_value::get_reference(
+					condition.get(),
+					context.get_builtin_type(builtin_type_kind::i1)
+				).get_value(context);
 
-			auto const begin_bb = context.get_current_basic_block();
+				auto const begin_bb = context.get_current_basic_block();
 
-			auto const destruct_bb = context.add_basic_block();
-			context.set_current_basic_block(destruct_bb);
-			context.create_end_lifetime(value);
+				auto const destruct_bb = context.add_basic_block();
+				context.set_current_basic_block(destruct_bb);
+				context.create_end_lifetime(value);
 
-			auto const end_bb = context.add_basic_block();
-			context.create_jump(end_bb);
+				auto const end_bb = context.add_basic_block();
+				context.create_jump(end_bb);
 
-			context.set_current_basic_block(begin_bb);
-			context.create_conditional_jump(condition_value, destruct_bb, end_bb);
+				context.set_current_basic_block(begin_bb);
+				context.create_conditional_jump(condition_value, destruct_bb, end_bb);
 
-			context.set_current_basic_block(end_bb);
-		}
-		else
-		{
-			context.create_end_lifetime(value);
+				context.set_current_basic_block(end_bb);
+			}
+			else
+			{
+				context.create_end_lifetime(value);
+			}
 		}
 	}
 	else if (auto const &destruct_op = *destruct_op_info.destruct_op; destruct_op.is<ast::destruct_variable>())

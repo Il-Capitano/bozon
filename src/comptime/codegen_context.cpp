@@ -488,9 +488,10 @@ void codegen_context::push_self_destruct_operation(
 	auto const move_destruct_indicator = this->get_move_destruct_indicator(destruct_op.move_destructed_decl);
 	if (move_destruct_indicator.has_value() || destruct_op.not_null())
 	{
+		bz_assert(value.is_reference() || move_destruct_indicator.has_value());
 		this->current_function_info.destructor_calls.push_back({
 			.destruct_op = &destruct_op,
-			.value = value,
+			.value = value.is_reference() ? value : expr_value::get_none(),
 			.condition = {},
 			.move_destruct_indicator = move_destruct_indicator,
 			.rvalue_array_elem_ptr = {},
