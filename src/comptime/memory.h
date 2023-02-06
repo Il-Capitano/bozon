@@ -389,6 +389,7 @@ struct memory_manager
 		type const *elem_type,
 		bool is_trivial
 	);
+
 	bool copy_overlapping_values(ptr_t dest, ptr_t source, size_t count, type const *elem_type);
 	bz::vector<error_reason_t> get_copy_overlapping_values_error_reason(
 		ptr_t dest,
@@ -396,6 +397,7 @@ struct memory_manager
 		size_t count,
 		type const *elem_type
 	);
+
 	bool relocate_values(ptr_t dest, ptr_t source, size_t count, type const *elem_type, bool is_trivial);
 	bz::vector<error_reason_t> get_relocate_values_error_reason(
 		ptr_t dest,
@@ -404,6 +406,13 @@ struct memory_manager
 		type const *elem_type,
 		bool is_trivial
 	);
+
+	bool set_values_i8_native(ptr_t dest, uint8_t value, size_t count, type const *elem_type);
+	bool set_values_i16_native(ptr_t dest, uint16_t value, size_t count, type const *elem_type);
+	bool set_values_i32_native(ptr_t dest, uint32_t value, size_t count, type const *elem_type);
+	bool set_values_i64_native(ptr_t dest, uint64_t value, size_t count, type const *elem_type);
+	bool set_values_ref(ptr_t dest, uint8_t const *value_mem, size_t count, type const *elem_type);
+	bz::vector<error_reason_t> get_set_values_error_reason(ptr_t dest, size_t count, type const *elem_type);
 
 	void start_lifetime(ptr_t address, size_t size);
 	void end_lifetime(ptr_t address, size_t size);

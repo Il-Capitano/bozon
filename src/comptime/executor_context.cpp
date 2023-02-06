@@ -869,6 +869,226 @@ void executor_context::relocate_values(
 	}
 }
 
+static void report_set_values_error(
+	uint32_t src_tokens_index,
+	ptr_t dest,
+	uint64_t count,
+	type const *elem_type,
+	executor_context &context
+)
+{
+	auto reasons = context.memory.get_set_values_error_reason(dest, count, elem_type);
+	context.report_error(
+		src_tokens_index,
+		"invalid call to '__builtin_trivially_set_values'",
+		reasons.transform([&](auto &reason) {
+			return reason.src_tokens.begin == nullptr
+				? context.make_note(src_tokens_index, std::move(reason.message))
+				: make_source_highlight(reason.src_tokens, std::move(reason.message));
+		}).collect()
+	);
+}
+
+void executor_context::set_values_i1_native(uint32_t src_tokens_index, ptr_t dest, bool value, uint64_t count)
+{
+	if (count == 0)
+	{
+		return;
+	}
+	else if (dest == 0)
+	{
+		this->report_error(src_tokens_index, "destination address is null in call to '__builtin_trivially_set_values'");
+		return;
+	}
+
+	auto const elem_type = this->codegen_ctx->get_builtin_type(builtin_type_kind::i1);
+	auto const is_good = this->memory.set_values_i8_native(dest, value ? 1 : 0, count, elem_type);
+	if (!is_good)
+	{
+		report_set_values_error(src_tokens_index, dest, count, elem_type, *this);
+	}
+}
+
+void executor_context::set_values_i8_native(uint32_t src_tokens_index, ptr_t dest, uint8_t value, uint64_t count)
+{
+	if (count == 0)
+	{
+		return;
+	}
+	else if (dest == 0)
+	{
+		this->report_error(src_tokens_index, "destination address is null in call to '__builtin_trivially_set_values'");
+		return;
+	}
+
+	auto const elem_type = this->codegen_ctx->get_builtin_type(builtin_type_kind::i8);
+	auto const is_good = this->memory.set_values_i8_native(dest, value, count, elem_type);
+	if (!is_good)
+	{
+		report_set_values_error(src_tokens_index, dest, count, elem_type, *this);
+	}
+}
+
+void executor_context::set_values_i16_native(uint32_t src_tokens_index, ptr_t dest, uint16_t value, uint64_t count)
+{
+	if (count == 0)
+	{
+		return;
+	}
+	else if (dest == 0)
+	{
+		this->report_error(src_tokens_index, "destination address is null in call to '__builtin_trivially_set_values'");
+		return;
+	}
+
+	auto const elem_type = this->codegen_ctx->get_builtin_type(builtin_type_kind::i16);
+	auto const is_good = this->memory.set_values_i16_native(dest, value, count, elem_type);
+	if (!is_good)
+	{
+		report_set_values_error(src_tokens_index, dest, count, elem_type, *this);
+	}
+}
+
+void executor_context::set_values_i32_native(uint32_t src_tokens_index, ptr_t dest, uint32_t value, uint64_t count)
+{
+	if (count == 0)
+	{
+		return;
+	}
+	else if (dest == 0)
+	{
+		this->report_error(src_tokens_index, "destination address is null in call to '__builtin_trivially_set_values'");
+		return;
+	}
+
+	auto const elem_type = this->codegen_ctx->get_builtin_type(builtin_type_kind::i32);
+	auto const is_good = this->memory.set_values_i32_native(dest, value, count, elem_type);
+	if (!is_good)
+	{
+		report_set_values_error(src_tokens_index, dest, count, elem_type, *this);
+	}
+}
+
+void executor_context::set_values_i64_native(uint32_t src_tokens_index, ptr_t dest, uint64_t value, uint64_t count)
+{
+	if (count == 0)
+	{
+		return;
+	}
+	else if (dest == 0)
+	{
+		this->report_error(src_tokens_index, "destination address is null in call to '__builtin_trivially_set_values'");
+		return;
+	}
+
+	auto const elem_type = this->codegen_ctx->get_builtin_type(builtin_type_kind::i64);
+	auto const is_good = this->memory.set_values_i64_native(dest, value, count, elem_type);
+	if (!is_good)
+	{
+		report_set_values_error(src_tokens_index, dest, count, elem_type, *this);
+	}
+}
+
+void executor_context::set_values_f32_native(uint32_t src_tokens_index, ptr_t dest, uint32_t bits, uint64_t count)
+{
+	if (count == 0)
+	{
+		return;
+	}
+	else if (dest == 0)
+	{
+		this->report_error(src_tokens_index, "destination address is null in call to '__builtin_trivially_set_values'");
+		return;
+	}
+
+	auto const elem_type = this->codegen_ctx->get_builtin_type(builtin_type_kind::f32);
+	auto const is_good = this->memory.set_values_i32_native(dest, bits, count, elem_type);
+	if (!is_good)
+	{
+		report_set_values_error(src_tokens_index, dest, count, elem_type, *this);
+	}
+}
+
+void executor_context::set_values_f64_native(uint32_t src_tokens_index, ptr_t dest, uint64_t bits, uint64_t count)
+{
+	if (count == 0)
+	{
+		return;
+	}
+	else if (dest == 0)
+	{
+		this->report_error(src_tokens_index, "destination address is null in call to '__builtin_trivially_set_values'");
+		return;
+	}
+
+	auto const elem_type = this->codegen_ctx->get_builtin_type(builtin_type_kind::f64);
+	auto const is_good = this->memory.set_values_i64_native(dest, bits, count, elem_type);
+	if (!is_good)
+	{
+		report_set_values_error(src_tokens_index, dest, count, elem_type, *this);
+	}
+}
+
+void executor_context::set_values_ptr32_native(uint32_t src_tokens_index, ptr_t dest, uint32_t value, uint64_t count)
+{
+	if (count == 0)
+	{
+		return;
+	}
+	else if (dest == 0)
+	{
+		this->report_error(src_tokens_index, "destination address is null in call to '__builtin_trivially_set_values'");
+		return;
+	}
+
+	auto const elem_type = this->codegen_ctx->get_pointer_type();
+	auto const is_good = this->memory.set_values_i32_native(dest, value, count, elem_type);
+	if (!is_good)
+	{
+		report_set_values_error(src_tokens_index, dest, count, elem_type, *this);
+	}
+}
+
+void executor_context::set_values_ptr64_native(uint32_t src_tokens_index, ptr_t dest, uint64_t value, uint64_t count)
+{
+	if (count == 0)
+	{
+		return;
+	}
+	else if (dest == 0)
+	{
+		this->report_error(src_tokens_index, "destination address is null in call to '__builtin_trivially_set_values'");
+		return;
+	}
+
+	auto const elem_type = this->codegen_ctx->get_pointer_type();
+	auto const is_good = this->memory.set_values_i64_native(dest, value, count, elem_type);
+	if (!is_good)
+	{
+		report_set_values_error(src_tokens_index, dest, count, elem_type, *this);
+	}
+}
+
+void executor_context::set_values_ref(uint32_t src_tokens_index, ptr_t dest, ptr_t value_ref, uint64_t count, type const *elem_type)
+{
+	if (count == 0)
+	{
+		return;
+	}
+	else if (dest == 0)
+	{
+		this->report_error(src_tokens_index, "destination address is null in call to '__builtin_trivially_set_values'");
+		return;
+	}
+
+	auto const value_mem = this->memory.get_memory(value_ref);
+	auto const is_good = this->memory.set_values_ref(dest, value_mem, count, elem_type);
+	if (!is_good)
+	{
+		report_set_values_error(src_tokens_index, dest, count, elem_type, *this);
+	}
+}
+
 void executor_context::start_lifetime(ptr_t address, size_t size)
 {
 	this->memory.start_lifetime(address, size);

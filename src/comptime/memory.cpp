@@ -4149,6 +4149,202 @@ bz::vector<error_reason_t> memory_manager::get_relocate_values_error_reason(
 	return reasons;
 }
 
+bool memory_manager::set_values_i8_native(ptr_t _dest, uint8_t value, size_t count, type const *elem_type)
+{
+	bz_assert(count != 0);
+	bz_assert(_dest != 0);
+	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	if (dest_is_finished_stack_frame || dest_is_one_past_the_end)
+	{
+		return false;
+	}
+
+	bz_assert(elem_type->size == 1);
+	auto const [dest_memory, dest_properties] = get_dest_memory(dest, dest_segment, count, elem_type, true, *this);
+	if (dest_memory.empty())
+	{
+		return false;
+	}
+
+	std::memset(dest_memory.data(), value, dest_memory.size());
+
+	for (auto &property : dest_properties)
+	{
+		property |= memory_properties::is_alive;
+	}
+
+	return true;
+}
+
+bool memory_manager::set_values_i16_native(ptr_t _dest, uint16_t value, size_t count, type const *elem_type)
+{
+	bz_assert(count != 0);
+	bz_assert(_dest != 0);
+	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	if (dest_is_finished_stack_frame || dest_is_one_past_the_end)
+	{
+		return false;
+	}
+
+	bz_assert(elem_type->size == sizeof value);
+	auto const [dest_memory, dest_properties] = get_dest_memory(dest, dest_segment, count, elem_type, true, *this);
+	if (dest_memory.empty())
+	{
+		return false;
+	}
+
+	if (value == 0)
+	{
+		std::memset(dest_memory.data(), 0, dest_memory.size());
+	}
+	else
+	{
+		for (auto const i : bz::iota(0, count))
+		{
+			std::memcpy(dest_memory.data() + sizeof value * i, &value, sizeof value);
+		}
+	}
+
+	for (auto &property : dest_properties)
+	{
+		property |= memory_properties::is_alive;
+	}
+
+	return true;
+}
+
+bool memory_manager::set_values_i32_native(ptr_t _dest, uint32_t value, size_t count, type const *elem_type)
+{
+	bz_assert(count != 0);
+	bz_assert(_dest != 0);
+	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	if (dest_is_finished_stack_frame || dest_is_one_past_the_end)
+	{
+		return false;
+	}
+
+	bz_assert(elem_type->size == sizeof value);
+	auto const [dest_memory, dest_properties] = get_dest_memory(dest, dest_segment, count, elem_type, true, *this);
+	if (dest_memory.empty())
+	{
+		return false;
+	}
+
+	if (value == 0)
+	{
+		std::memset(dest_memory.data(), 0, dest_memory.size());
+	}
+	else
+	{
+		for (auto const i : bz::iota(0, count))
+		{
+			std::memcpy(dest_memory.data() + sizeof value * i, &value, sizeof value);
+		}
+	}
+
+	for (auto &property : dest_properties)
+	{
+		property |= memory_properties::is_alive;
+	}
+
+	return true;
+}
+
+bool memory_manager::set_values_i64_native(ptr_t _dest, uint64_t value, size_t count, type const *elem_type)
+{
+	bz_assert(count != 0);
+	bz_assert(_dest != 0);
+	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	if (dest_is_finished_stack_frame || dest_is_one_past_the_end)
+	{
+		return false;
+	}
+
+	bz_assert(elem_type->size == sizeof value);
+	auto const [dest_memory, dest_properties] = get_dest_memory(dest, dest_segment, count, elem_type, true, *this);
+	if (dest_memory.empty())
+	{
+		return false;
+	}
+
+	if (value == 0)
+	{
+		std::memset(dest_memory.data(), 0, dest_memory.size());
+	}
+	else
+	{
+		for (auto const i : bz::iota(0, count))
+		{
+			std::memcpy(dest_memory.data() + sizeof value * i, &value, sizeof value);
+		}
+	}
+
+	for (auto &property : dest_properties)
+	{
+		property |= memory_properties::is_alive;
+	}
+
+	return true;
+}
+
+bool memory_manager::set_values_ref(ptr_t _dest, uint8_t const *value_mem, size_t count, type const *elem_type)
+{
+	bz_assert(count != 0);
+	bz_assert(_dest != 0);
+	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	if (dest_is_finished_stack_frame || dest_is_one_past_the_end)
+	{
+		return false;
+	}
+
+	auto const [dest_memory, dest_properties] = get_dest_memory(dest, dest_segment, count, elem_type, true, *this);
+	if (dest_memory.empty())
+	{
+		return false;
+	}
+
+	auto const elem_size = elem_type->size;
+	for (auto const i : bz::iota(0, count))
+	{
+		std::memcpy(dest_memory.data() + elem_size * i, value_mem, elem_size);
+	}
+
+	for (auto &property : dest_properties)
+	{
+		property |= memory_properties::is_alive;
+	}
+
+	return true;
+}
+
+bz::vector<error_reason_t> memory_manager::get_set_values_error_reason(ptr_t _dest, size_t count, type const *elem_type)
+{
+	bz::vector<error_reason_t> reasons;
+
+	bz_assert(count != 0);
+	bz_assert(_dest != 0);
+	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	add_invalid_pointer_error_reasons(
+		reasons,
+		"destination",
+		dest,
+		dest_segment,
+		dest_is_one_past_the_end,
+		dest_is_finished_stack_frame,
+		*this
+	);
+
+	if (reasons.not_empty())
+	{
+		return reasons;
+	}
+
+	add_get_dest_memory_error_reasons(reasons, dest, dest_segment, count, elem_type, true, *this);
+
+	bz_assert(reasons.not_empty());
+	return reasons;
+}
+
 void memory_manager::start_lifetime(ptr_t _address, size_t size)
 {
 	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
