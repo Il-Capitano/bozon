@@ -4432,6 +4432,196 @@ struct relocate_values
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
+struct set_values_i1_be
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::i1, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct set_values_i8_be
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::i8, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct set_values_i16_be
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::i16, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct set_values_i32_be
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::i32, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct set_values_i64_be
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct set_values_f32_be
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::f32, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct set_values_f64_be
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::f64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct set_values_ptr32_be
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct set_values_ptr64_be
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct set_values_i1_le
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::i1, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct set_values_i8_le
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::i8, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct set_values_i16_le
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::i16, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct set_values_i32_le
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::i32, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct set_values_i64_le
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct set_values_f32_le
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::f32, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct set_values_f64_le
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::f64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct set_values_ptr32_le
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct set_values_ptr64_le
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct set_values_ref
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t copy_values_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
 struct function_call
 {
 	static inline constexpr int arg_types = 0;
@@ -5177,6 +5367,25 @@ using instruction_list = bz::meta::type_pack<
 	instructions::copy_values,
 	instructions::copy_overlapping_values,
 	instructions::relocate_values,
+	instructions::set_values_i1_be,
+	instructions::set_values_i8_be,
+	instructions::set_values_i16_be,
+	instructions::set_values_i32_be,
+	instructions::set_values_i64_be,
+	instructions::set_values_f32_be,
+	instructions::set_values_f64_be,
+	instructions::set_values_ptr32_be,
+	instructions::set_values_ptr64_be,
+	instructions::set_values_i1_le,
+	instructions::set_values_i8_le,
+	instructions::set_values_i16_le,
+	instructions::set_values_i32_le,
+	instructions::set_values_i64_le,
+	instructions::set_values_f32_le,
+	instructions::set_values_f64_le,
+	instructions::set_values_ptr32_le,
+	instructions::set_values_ptr64_le,
+	instructions::set_values_ref,
 	instructions::function_call,
 	instructions::malloc,
 	instructions::free,
@@ -5211,7 +5420,7 @@ struct instruction : instruction_base_t
 {
 	using base_t = instruction_base_t;
 
-	static_assert(variant_count == 520);
+	static_assert(variant_count == 539);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -5708,6 +5917,25 @@ struct instruction : instruction_base_t
 		copy_values              = index_of<instructions::copy_values>,
 		copy_overlapping_values  = index_of<instructions::copy_overlapping_values>,
 		relocate_values          = index_of<instructions::relocate_values>,
+		set_values_i1_be         = index_of<instructions::set_values_i1_be>,
+		set_values_i8_be         = index_of<instructions::set_values_i8_be>,
+		set_values_i16_be        = index_of<instructions::set_values_i16_be>,
+		set_values_i32_be        = index_of<instructions::set_values_i32_be>,
+		set_values_i64_be        = index_of<instructions::set_values_i64_be>,
+		set_values_f32_be        = index_of<instructions::set_values_f32_be>,
+		set_values_f64_be        = index_of<instructions::set_values_f64_be>,
+		set_values_ptr32_be      = index_of<instructions::set_values_ptr32_be>,
+		set_values_ptr64_be      = index_of<instructions::set_values_ptr64_be>,
+		set_values_i1_le         = index_of<instructions::set_values_i1_le>,
+		set_values_i8_le         = index_of<instructions::set_values_i8_le>,
+		set_values_i16_le        = index_of<instructions::set_values_i16_le>,
+		set_values_i32_le        = index_of<instructions::set_values_i32_le>,
+		set_values_i64_le        = index_of<instructions::set_values_i64_le>,
+		set_values_f32_le        = index_of<instructions::set_values_f32_le>,
+		set_values_f64_le        = index_of<instructions::set_values_f64_le>,
+		set_values_ptr32_le      = index_of<instructions::set_values_ptr32_le>,
+		set_values_ptr64_le      = index_of<instructions::set_values_ptr64_le>,
+		set_values_ref           = index_of<instructions::set_values_ref>,
 		function_call            = index_of<instructions::function_call>,
 		malloc                   = index_of<instructions::malloc>,
 		free                     = index_of<instructions::free>,

@@ -4152,6 +4152,204 @@ static void execute_relocate_values(instructions::relocate_values const &inst, p
 	context.relocate_values(info.src_tokens_index, dest, source, count, info.elem_type, info.is_trivially_destructible);
 }
 
+static void execute_set_values_i1_be(instructions::set_values_i1_be const &inst, ptr_t dest, bool value, uint64_t count, executor_context &context)
+{
+	context.set_values_i1_native(inst.src_tokens_index, dest, value, count);
+}
+
+static void execute_set_values_i8_be(instructions::set_values_i8_be const &inst, ptr_t dest, uint8_t value, uint64_t count, executor_context &context)
+{
+	context.set_values_i8_native(inst.src_tokens_index, dest, value, count);
+}
+
+static void execute_set_values_i16_be(instructions::set_values_i16_be const &inst, ptr_t dest, uint16_t value, uint64_t count, executor_context &context)
+{
+	if constexpr (std::endian::native == std::endian::big)
+	{
+		context.set_values_i16_native(inst.src_tokens_index, dest, value, count);
+	}
+	else
+	{
+		context.set_values_i16_native(inst.src_tokens_index, dest, memory::byteswap(value), count);
+	}
+}
+
+static void execute_set_values_i32_be(instructions::set_values_i32_be const &inst, ptr_t dest, uint32_t value, uint64_t count, executor_context &context)
+{
+	if constexpr (std::endian::native == std::endian::big)
+	{
+		context.set_values_i32_native(inst.src_tokens_index, dest, value, count);
+	}
+	else
+	{
+		context.set_values_i32_native(inst.src_tokens_index, dest, memory::byteswap(value), count);
+	}
+}
+
+static void execute_set_values_i64_be(instructions::set_values_i64_be const &inst, ptr_t dest, uint64_t value, uint64_t count, executor_context &context)
+{
+	if constexpr (std::endian::native == std::endian::big)
+	{
+		context.set_values_i64_native(inst.src_tokens_index, dest, value, count);
+	}
+	else
+	{
+		context.set_values_i64_native(inst.src_tokens_index, dest, memory::byteswap(value), count);
+	}
+}
+
+static void execute_set_values_f32_be(instructions::set_values_f32_be const &inst, ptr_t dest, float32_t value, uint64_t count, executor_context &context)
+{
+	auto const bits = bit_cast<uint32_t>(value);
+	if constexpr (std::endian::native == std::endian::big)
+	{
+		context.set_values_f32_native(inst.src_tokens_index, dest, bits, count);
+	}
+	else
+	{
+		context.set_values_f32_native(inst.src_tokens_index, dest, memory::byteswap(bits), count);
+	}
+}
+
+static void execute_set_values_f64_be(instructions::set_values_f64_be const &inst, ptr_t dest, float64_t value, uint64_t count, executor_context &context)
+{
+	auto const bits = bit_cast<uint64_t>(value);
+	if constexpr (std::endian::native == std::endian::big)
+	{
+		context.set_values_f64_native(inst.src_tokens_index, dest, bits, count);
+	}
+	else
+	{
+		context.set_values_f64_native(inst.src_tokens_index, dest, memory::byteswap(bits), count);
+	}
+}
+
+static void execute_set_values_ptr32_be(instructions::set_values_ptr32_be const &inst, ptr_t dest, ptr_t value, uint64_t count, executor_context &context)
+{
+	if constexpr (std::endian::native == std::endian::big)
+	{
+		context.set_values_ptr32_native(inst.src_tokens_index, dest, static_cast<uint32_t>(value), count);
+	}
+	else
+	{
+		context.set_values_ptr32_native(inst.src_tokens_index, dest, memory::byteswap(static_cast<uint32_t>(value)), count);
+	}
+}
+
+static void execute_set_values_ptr64_be(instructions::set_values_ptr64_be const &inst, ptr_t dest, ptr_t value, uint64_t count, executor_context &context)
+{
+	if constexpr (std::endian::native == std::endian::big)
+	{
+		context.set_values_ptr64_native(inst.src_tokens_index, dest, static_cast<uint64_t>(value), count);
+	}
+	else
+	{
+		context.set_values_ptr64_native(inst.src_tokens_index, dest, memory::byteswap(static_cast<uint64_t>(value)), count);
+	}
+}
+
+static void execute_set_values_i1_le(instructions::set_values_i1_le const &inst, ptr_t dest, bool value, uint64_t count, executor_context &context)
+{
+	context.set_values_i1_native(inst.src_tokens_index, dest, value, count);
+}
+
+static void execute_set_values_i8_le(instructions::set_values_i8_le const &inst, ptr_t dest, uint8_t value, uint64_t count, executor_context &context)
+{
+	context.set_values_i8_native(inst.src_tokens_index, dest, value, count);
+}
+
+static void execute_set_values_i16_le(instructions::set_values_i16_le const &inst, ptr_t dest, uint16_t value, uint64_t count, executor_context &context)
+{
+	if constexpr (std::endian::native == std::endian::little)
+	{
+		context.set_values_i16_native(inst.src_tokens_index, dest, value, count);
+	}
+	else
+	{
+		context.set_values_i16_native(inst.src_tokens_index, dest, memory::byteswap(value), count);
+	}
+}
+
+static void execute_set_values_i32_le(instructions::set_values_i32_le const &inst, ptr_t dest, uint32_t value, uint64_t count, executor_context &context)
+{
+	if constexpr (std::endian::native == std::endian::little)
+	{
+		context.set_values_i32_native(inst.src_tokens_index, dest, value, count);
+	}
+	else
+	{
+		context.set_values_i32_native(inst.src_tokens_index, dest, memory::byteswap(value), count);
+	}
+}
+
+static void execute_set_values_i64_le(instructions::set_values_i64_le const &inst, ptr_t dest, uint64_t value, uint64_t count, executor_context &context)
+{
+	if constexpr (std::endian::native == std::endian::little)
+	{
+		context.set_values_i64_native(inst.src_tokens_index, dest, value, count);
+	}
+	else
+	{
+		context.set_values_i64_native(inst.src_tokens_index, dest, memory::byteswap(value), count);
+	}
+}
+
+static void execute_set_values_f32_le(instructions::set_values_f32_le const &inst, ptr_t dest, float32_t value, uint64_t count, executor_context &context)
+{
+	auto const bits = bit_cast<uint32_t>(value);
+	if constexpr (std::endian::native == std::endian::little)
+	{
+		context.set_values_f32_native(inst.src_tokens_index, dest, bits, count);
+	}
+	else
+	{
+		context.set_values_f32_native(inst.src_tokens_index, dest, memory::byteswap(bits), count);
+	}
+}
+
+static void execute_set_values_f64_le(instructions::set_values_f64_le const &inst, ptr_t dest, float64_t value, uint64_t count, executor_context &context)
+{
+	auto const bits = bit_cast<uint64_t>(value);
+	if constexpr (std::endian::native == std::endian::little)
+	{
+		context.set_values_f64_native(inst.src_tokens_index, dest, bits, count);
+	}
+	else
+	{
+		context.set_values_f64_native(inst.src_tokens_index, dest, memory::byteswap(bits), count);
+	}
+}
+
+static void execute_set_values_ptr32_le(instructions::set_values_ptr32_le const &inst, ptr_t dest, ptr_t value, uint64_t count, executor_context &context)
+{
+	if constexpr (std::endian::native == std::endian::little)
+	{
+		context.set_values_ptr32_native(inst.src_tokens_index, dest, static_cast<uint32_t>(value), count);
+	}
+	else
+	{
+		context.set_values_ptr32_native(inst.src_tokens_index, dest, memory::byteswap(static_cast<uint32_t>(value)), count);
+	}
+}
+
+static void execute_set_values_ptr64_le(instructions::set_values_ptr64_le const &inst, ptr_t dest, ptr_t value, uint64_t count, executor_context &context)
+{
+	if constexpr (std::endian::native == std::endian::little)
+	{
+		context.set_values_ptr64_native(inst.src_tokens_index, dest, static_cast<uint64_t>(value), count);
+	}
+	else
+	{
+		context.set_values_ptr64_native(inst.src_tokens_index, dest, memory::byteswap(static_cast<uint64_t>(value)), count);
+	}
+}
+
+static void execute_set_values_ref(instructions::set_values_ref const &inst, ptr_t dest, ptr_t value_ref, uint64_t count, executor_context &context)
+{
+	auto const &info = context.get_copy_values_info(inst.copy_values_info_index);
+	context.set_values_ref(info.src_tokens_index, dest, value_ref, count, info.elem_type);
+}
+
 static void execute_function_call(instructions::function_call const &inst, executor_context &context)
 {
 	context.call_function(inst.src_tokens_index, inst.func, inst.args_index);
@@ -4569,7 +4767,7 @@ void execute_current_instruction(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-	static_assert(instruction::variant_count == 520);
+	static_assert(instruction::variant_count == 539);
 	case instruction::const_i1:
 		execute<instructions::const_i1, &execute_const_i1>(context);
 		break;
@@ -6051,6 +6249,63 @@ void execute_current_instruction(executor_context &context)
 		break;
 	case instruction::relocate_values:
 		execute<instructions::relocate_values, &execute_relocate_values>(context);
+		break;
+	case instruction::set_values_i1_be:
+		execute<instructions::set_values_i1_be, &execute_set_values_i1_be>(context);
+		break;
+	case instruction::set_values_i8_be:
+		execute<instructions::set_values_i8_be, &execute_set_values_i8_be>(context);
+		break;
+	case instruction::set_values_i16_be:
+		execute<instructions::set_values_i16_be, &execute_set_values_i16_be>(context);
+		break;
+	case instruction::set_values_i32_be:
+		execute<instructions::set_values_i32_be, &execute_set_values_i32_be>(context);
+		break;
+	case instruction::set_values_i64_be:
+		execute<instructions::set_values_i64_be, &execute_set_values_i64_be>(context);
+		break;
+	case instruction::set_values_f32_be:
+		execute<instructions::set_values_f32_be, &execute_set_values_f32_be>(context);
+		break;
+	case instruction::set_values_f64_be:
+		execute<instructions::set_values_f64_be, &execute_set_values_f64_be>(context);
+		break;
+	case instruction::set_values_ptr32_be:
+		execute<instructions::set_values_ptr32_be, &execute_set_values_ptr32_be>(context);
+		break;
+	case instruction::set_values_ptr64_be:
+		execute<instructions::set_values_ptr64_be, &execute_set_values_ptr64_be>(context);
+		break;
+	case instruction::set_values_i1_le:
+		execute<instructions::set_values_i1_le, &execute_set_values_i1_le>(context);
+		break;
+	case instruction::set_values_i8_le:
+		execute<instructions::set_values_i8_le, &execute_set_values_i8_le>(context);
+		break;
+	case instruction::set_values_i16_le:
+		execute<instructions::set_values_i16_le, &execute_set_values_i16_le>(context);
+		break;
+	case instruction::set_values_i32_le:
+		execute<instructions::set_values_i32_le, &execute_set_values_i32_le>(context);
+		break;
+	case instruction::set_values_i64_le:
+		execute<instructions::set_values_i64_le, &execute_set_values_i64_le>(context);
+		break;
+	case instruction::set_values_f32_le:
+		execute<instructions::set_values_f32_le, &execute_set_values_f32_le>(context);
+		break;
+	case instruction::set_values_f64_le:
+		execute<instructions::set_values_f64_le, &execute_set_values_f64_le>(context);
+		break;
+	case instruction::set_values_ptr32_le:
+		execute<instructions::set_values_ptr32_le, &execute_set_values_ptr32_le>(context);
+		break;
+	case instruction::set_values_ptr64_le:
+		execute<instructions::set_values_ptr64_le, &execute_set_values_ptr64_le>(context);
+		break;
+	case instruction::set_values_ref:
+		execute<instructions::set_values_ref, &execute_set_values_ref>(context);
 		break;
 	case instruction::function_call:
 		execute<instructions::function_call, &execute_function_call>(context);

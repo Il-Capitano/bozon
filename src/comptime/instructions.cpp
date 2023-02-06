@@ -15,7 +15,7 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 {
 	switch (inst_.index())
 	{
-	static_assert(instruction::variant_count == 520);
+	static_assert(instruction::variant_count == 539);
 	case instruction::const_i1:
 	{
 		auto const &inst = inst_.get<instruction::const_i1>();
@@ -2484,6 +2484,101 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 	{
 		auto const &inst = inst_.get<instruction::relocate_values>();
 		return bz::format("relocate-values {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.copy_values_info_index);
+	}
+	case instruction::set_values_i1_be:
+	{
+		auto const &inst = inst_.get<instruction::set_values_i1_be>();
+		return bz::format("set-values i1 be {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::set_values_i8_be:
+	{
+		auto const &inst = inst_.get<instruction::set_values_i8_be>();
+		return bz::format("set-values i8 be {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::set_values_i16_be:
+	{
+		auto const &inst = inst_.get<instruction::set_values_i16_be>();
+		return bz::format("set-values i16 be {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::set_values_i32_be:
+	{
+		auto const &inst = inst_.get<instruction::set_values_i32_be>();
+		return bz::format("set-values i32 be {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::set_values_i64_be:
+	{
+		auto const &inst = inst_.get<instruction::set_values_i64_be>();
+		return bz::format("set-values i64 be {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::set_values_f32_be:
+	{
+		auto const &inst = inst_.get<instruction::set_values_f32_be>();
+		return bz::format("set-values f32 be {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::set_values_f64_be:
+	{
+		auto const &inst = inst_.get<instruction::set_values_f64_be>();
+		return bz::format("set-values f64 be {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::set_values_ptr32_be:
+	{
+		auto const &inst = inst_.get<instruction::set_values_ptr32_be>();
+		return bz::format("set-values ptr32 be {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::set_values_ptr64_be:
+	{
+		auto const &inst = inst_.get<instruction::set_values_ptr64_be>();
+		return bz::format("set-values ptr64 be {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::set_values_i1_le:
+	{
+		auto const &inst = inst_.get<instruction::set_values_i1_le>();
+		return bz::format("set-values i1 le {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::set_values_i8_le:
+	{
+		auto const &inst = inst_.get<instruction::set_values_i8_le>();
+		return bz::format("set-values i8 le {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::set_values_i16_le:
+	{
+		auto const &inst = inst_.get<instruction::set_values_i16_le>();
+		return bz::format("set-values i16 le {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::set_values_i32_le:
+	{
+		auto const &inst = inst_.get<instruction::set_values_i32_le>();
+		return bz::format("set-values i32 le {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::set_values_i64_le:
+	{
+		auto const &inst = inst_.get<instruction::set_values_i64_le>();
+		return bz::format("set-values i64 le {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::set_values_f32_le:
+	{
+		auto const &inst = inst_.get<instruction::set_values_f32_le>();
+		return bz::format("set-values f32 le {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::set_values_f64_le:
+	{
+		auto const &inst = inst_.get<instruction::set_values_f64_le>();
+		return bz::format("set-values f64 le {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::set_values_ptr32_le:
+	{
+		auto const &inst = inst_.get<instruction::set_values_ptr32_le>();
+		return bz::format("set-values ptr32 le {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::set_values_ptr64_le:
+	{
+		auto const &inst = inst_.get<instruction::set_values_ptr64_le>();
+		return bz::format("set-values ptr64 le {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::set_values_ref:
+	{
+		auto const &inst = inst_.get<instruction::set_values_ref>();
+		return bz::format("set-values ref {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.copy_values_info_index);
 	}
 	case instruction::function_call:
 	{

@@ -167,6 +167,16 @@ struct executor_context
 		type const *object_type,
 		bool is_trivially_destructible
 	);
+	void set_values_i1_native(uint32_t src_tokens_index, ptr_t dest, bool value, uint64_t count);
+	void set_values_i8_native(uint32_t src_tokens_index, ptr_t dest, uint8_t value, uint64_t count);
+	void set_values_i16_native(uint32_t src_tokens_index, ptr_t dest, uint16_t value, uint64_t count);
+	void set_values_i32_native(uint32_t src_tokens_index, ptr_t dest, uint32_t value, uint64_t count);
+	void set_values_i64_native(uint32_t src_tokens_index, ptr_t dest, uint64_t value, uint64_t count);
+	void set_values_f32_native(uint32_t src_tokens_index, ptr_t dest, uint32_t bits, uint64_t count);
+	void set_values_f64_native(uint32_t src_tokens_index, ptr_t dest, uint64_t bits, uint64_t count);
+	void set_values_ptr32_native(uint32_t src_tokens_index, ptr_t dest, uint32_t value, uint64_t count);
+	void set_values_ptr64_native(uint32_t src_tokens_index, ptr_t dest, uint64_t value, uint64_t count);
+	void set_values_ref(uint32_t src_tokens_index, ptr_t dest, ptr_t value_ref, uint64_t count, type const *object_type);
 
 	void start_lifetime(ptr_t address, size_t size);
 	void end_lifetime(ptr_t address, size_t size);
