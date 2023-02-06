@@ -2798,10 +2798,15 @@ static std::pair<uint64_t, bool> parse_int(bz::u8string_view s)
 				}
 				[[fallthrough]];
 			case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
-			case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
 				if constexpr (Base == 16)
 				{
 					return 10 + (c - 'a');
+				}
+				[[fallthrough]];
+			case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+				if constexpr (Base == 16)
+				{
+					return 10 + (c - 'A');
 				}
 				[[fallthrough]];
 			default:
