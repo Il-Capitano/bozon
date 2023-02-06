@@ -99,12 +99,8 @@ static Int load_big_endian(uint8_t *mem)
 	else
 	{
 		Int result = 0;
-		for (size_t i = 0; i < sizeof (Int); ++i)
-		{
-			result <<= 8;
-			result |= static_cast<Int>(mem[i]);
-		}
-		return result;
+		std::memcpy(&result, mem, sizeof (Int));
+		return memory::byteswap(result);
 	}
 }
 
@@ -178,11 +174,8 @@ static Int load_little_endian(uint8_t *mem)
 	else
 	{
 		Int result = 0;
-		for (size_t i = 0; i < sizeof (Int); ++i)
-		{
-			result |= static_cast<Int>(mem[i]) << (i * 8);
-		}
-		return result;
+		std::memcpy(&result, mem, sizeof (Int));
+		return memory::byteswap(result);
 	}
 }
 
@@ -253,10 +246,8 @@ static void store_big_endian(uint8_t *mem, Int value)
 	}
 	else
 	{
-		for (size_t i = 0; i < sizeof (Int); ++i)
-		{
-			mem[i] = static_cast<uint8_t>(value >> ((sizeof (Int) - i - 1) * 8));
-		}
+		value = memory::byteswap(value);
+		std::memcpy(mem, &value, sizeof (Int));
 	}
 }
 
@@ -327,10 +318,8 @@ static void store_little_endian(uint8_t *mem, Int value)
 	}
 	else
 	{
-		for (size_t i = 0; i < sizeof (Int); ++i)
-		{
-			mem[i] = static_cast<uint8_t>(value >> (i * 8));
-		}
+		value = memory::byteswap(value);
+		std::memcpy(mem, &value, sizeof (Int));
 	}
 }
 
