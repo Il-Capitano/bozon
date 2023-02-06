@@ -1993,7 +1993,7 @@ static expr_value generate_intrinsic_function_call_code(
 	{
 		bz_assert(func_call.params.size() == 2);
 		auto const dest_ptr = generate_expr_code(func_call.params[0], context, {});
-		auto const dest_typespec = func_call.func_body->params[1].get_type();
+		auto const dest_typespec = func_call.func_body->params[1].get_type().as_typespec_view();
 		auto const dest_type = get_type(dest_typespec, context);
 		auto const dest_ref = expr_value::get_reference(dest_ptr.get_value_as_instruction(context), dest_type);
 		context.create_inplace_construct_check(func_call.src_tokens, dest_ref, dest_typespec);
