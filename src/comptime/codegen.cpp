@@ -5738,7 +5738,7 @@ static expr_value generate_expr_code(
 		!result_address.has_value()
 		&& dyn_expr.kind == ast::expression_type_kind::rvalue
 		&& (
-			dyn_expr.destruct_op.not_null()
+			(dyn_expr.destruct_op.not_null() && !dyn_expr.destruct_op.is<ast::trivial_destruct_self>())
 			|| dyn_expr.expr.is<ast::expr_compound>()
 			|| dyn_expr.expr.is<ast::expr_if>()
 			|| dyn_expr.expr.is<ast::expr_switch>()
@@ -5762,9 +5762,8 @@ static expr_value generate_expr_code(
 
 	auto const result = generate_expr_code(original_expression, dyn_expr.expr, context, result_address);
 
-	if (dyn_expr.destruct_op.not_null() || dyn_expr.destruct_op.move_destructed_decl != nullptr)
+	if (result.is_reference() && (dyn_expr.destruct_op.not_null() || dyn_expr.destruct_op.move_destructed_decl != nullptr))
 	{
-		bz_assert(result.is_reference());
 		context.push_self_destruct_operation(dyn_expr.destruct_op, result);
 	}
 

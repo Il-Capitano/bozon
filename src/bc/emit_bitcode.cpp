@@ -6592,7 +6592,7 @@ static val_ptr emit_bitcode(
 		result_address == nullptr
 		&& dyn_expr.kind == ast::expression_type_kind::rvalue
 		&& (
-			dyn_expr.destruct_op.not_null()
+			(dyn_expr.destruct_op.not_null() && !dyn_expr.destruct_op.is<ast::trivial_destruct_self>())
 			|| dyn_expr.expr.is<ast::expr_compound>()
 			|| dyn_expr.expr.is<ast::expr_if>()
 			|| dyn_expr.expr.is<ast::expr_switch>()
@@ -6605,9 +6605,8 @@ static val_ptr emit_bitcode(
 	auto const result = dyn_expr.expr.visit([&](auto const &expr) {
 		return emit_bitcode<abi>(src_tokens, expr, context, result_address);
 	});
-	if (dyn_expr.destruct_op.not_null() || dyn_expr.destruct_op.move_destructed_decl != nullptr)
+	if (result.kind == val_ptr::reference && (dyn_expr.destruct_op.not_null() || dyn_expr.destruct_op.move_destructed_decl != nullptr))
 	{
-		bz_assert(result.kind == val_ptr::reference);
 		context.push_self_destruct_operation(dyn_expr.destruct_op, result.val, result.get_type());
 	}
 	return result;
