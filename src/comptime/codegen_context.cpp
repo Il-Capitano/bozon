@@ -5829,14 +5829,14 @@ instruction_ref codegen_context::create_array_bounds_check(
 		if (is_index_signed)
 		{
 			return add_instruction(*this,
-				instructions::array_bounds_check_i32{ .src_tokens_index = src_tokens_index },
+				instructions::array_bounds_check_i64{ .src_tokens_index = src_tokens_index },
 				index_val, size_val
 			);
 		}
 		else
 		{
 			return add_instruction(*this,
-				instructions::array_bounds_check_u32{ .src_tokens_index = src_tokens_index },
+				instructions::array_bounds_check_u64{ .src_tokens_index = src_tokens_index },
 				index_val, size_val
 			);
 		}
@@ -5846,14 +5846,14 @@ instruction_ref codegen_context::create_array_bounds_check(
 		if (is_index_signed)
 		{
 			return add_instruction(*this,
-				instructions::array_bounds_check_i64{ .src_tokens_index = src_tokens_index },
+				instructions::array_bounds_check_i32{ .src_tokens_index = src_tokens_index },
 				index_val, size_val
 			);
 		}
 		else
 		{
 			return add_instruction(*this,
-				instructions::array_bounds_check_u64{ .src_tokens_index = src_tokens_index },
+				instructions::array_bounds_check_u32{ .src_tokens_index = src_tokens_index },
 				index_val, size_val
 			);
 		}
