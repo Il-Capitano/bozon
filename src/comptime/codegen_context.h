@@ -337,6 +337,12 @@ struct codegen_context
 		type const *elem_type,
 		ast::typespec_view elem_typespec
 	);
+	void create_set_values(
+		lex::src_tokens const &src_tokens,
+		expr_value dest,
+		expr_value value,
+		expr_value count
+	);
 
 	expr_value create_function_call(lex::src_tokens const &src_tokens, function const *func, bz::fixed_vector<instruction_ref> args);
 	expr_value create_malloc(lex::src_tokens const &src_tokens, type const *type, expr_value count);

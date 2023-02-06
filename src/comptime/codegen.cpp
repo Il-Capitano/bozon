@@ -2225,7 +2225,14 @@ static expr_value generate_intrinsic_function_call_code(
 		return expr_value::get_none();
 	}
 	case ast::function_body::trivially_set_values:
-		bz_unreachable;
+	{
+		bz_assert(func_call.params.size() == 3);
+		auto const dest = generate_expr_code(func_call.params[0], context, {});
+		auto const value = generate_expr_code(func_call.params[1], context, {});
+		auto const count = generate_expr_code(func_call.params[2], context, {});
+		context.create_set_values(func_call.src_tokens, dest, value, count);
+		return expr_value::get_none();
+	}
 	case ast::function_body::bit_cast:
 		// this is handled as a separate expression, not a function call
 		bz_unreachable;

@@ -1357,6 +1357,166 @@ void codegen_context::create_relocate_values(
 	}, dest_value, source_value, count_value);
 }
 
+void codegen_context::create_set_values(
+	lex::src_tokens const &src_tokens,
+	expr_value dest,
+	expr_value value,
+	expr_value count
+)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	if (value.get_type()->is_builtin())
+	{
+		auto const dest_value = dest.get_value_as_instruction(*this);
+		auto const value_value = value.get_value_as_instruction(*this);
+		auto const count_cast = this->create_int_cast(count, this->get_builtin_type(builtin_type_kind::i64), false);
+		auto const count_value = count_cast.get_value_as_instruction(*this);
+
+		if (this->is_little_endian())
+		{
+			switch (value.get_type()->get_builtin_kind())
+			{
+			case builtin_type_kind::i1:
+				add_instruction(*this, instructions::set_values_i1_le{
+					.src_tokens_index = src_tokens_index,
+				}, dest_value, value_value, count_value);
+				break;
+			case builtin_type_kind::i8:
+				add_instruction(*this, instructions::set_values_i8_le{
+					.src_tokens_index = src_tokens_index,
+				}, dest_value, value_value, count_value);
+				break;
+			case builtin_type_kind::i16:
+				add_instruction(*this, instructions::set_values_i16_le{
+					.src_tokens_index = src_tokens_index,
+				}, dest_value, value_value, count_value);
+				break;
+			case builtin_type_kind::i32:
+				add_instruction(*this, instructions::set_values_i32_le{
+					.src_tokens_index = src_tokens_index,
+				}, dest_value, value_value, count_value);
+				break;
+			case builtin_type_kind::i64:
+				add_instruction(*this, instructions::set_values_i64_le{
+					.src_tokens_index = src_tokens_index,
+				}, dest_value, value_value, count_value);
+				break;
+			case builtin_type_kind::f32:
+				add_instruction(*this, instructions::set_values_f32_le{
+					.src_tokens_index = src_tokens_index,
+				}, dest_value, value_value, count_value);
+				break;
+			case builtin_type_kind::f64:
+				add_instruction(*this, instructions::set_values_f64_le{
+					.src_tokens_index = src_tokens_index,
+				}, dest_value, value_value, count_value);
+				break;
+			case builtin_type_kind::void_:
+				bz_unreachable;
+			}
+		}
+		else
+		{
+			switch (value.get_type()->get_builtin_kind())
+			{
+			case builtin_type_kind::i1:
+				add_instruction(*this, instructions::set_values_i1_be{
+					.src_tokens_index = src_tokens_index,
+				}, dest_value, value_value, count_value);
+				break;
+			case builtin_type_kind::i8:
+				add_instruction(*this, instructions::set_values_i8_be{
+					.src_tokens_index = src_tokens_index,
+				}, dest_value, value_value, count_value);
+				break;
+			case builtin_type_kind::i16:
+				add_instruction(*this, instructions::set_values_i16_be{
+					.src_tokens_index = src_tokens_index,
+				}, dest_value, value_value, count_value);
+				break;
+			case builtin_type_kind::i32:
+				add_instruction(*this, instructions::set_values_i32_be{
+					.src_tokens_index = src_tokens_index,
+				}, dest_value, value_value, count_value);
+				break;
+			case builtin_type_kind::i64:
+				add_instruction(*this, instructions::set_values_i64_be{
+					.src_tokens_index = src_tokens_index,
+				}, dest_value, value_value, count_value);
+				break;
+			case builtin_type_kind::f32:
+				add_instruction(*this, instructions::set_values_f32_be{
+					.src_tokens_index = src_tokens_index,
+				}, dest_value, value_value, count_value);
+				break;
+			case builtin_type_kind::f64:
+				add_instruction(*this, instructions::set_values_f64_be{
+					.src_tokens_index = src_tokens_index,
+				}, dest_value, value_value, count_value);
+				break;
+			case builtin_type_kind::void_:
+				bz_unreachable;
+			}
+		}
+	}
+	else if (value.get_type()->is_pointer())
+	{
+		auto const dest_value = dest.get_value_as_instruction(*this);
+		auto const value_value = value.get_value_as_instruction(*this);
+		auto const count_cast = this->create_int_cast(count, this->get_builtin_type(builtin_type_kind::i64), false);
+		auto const count_value = count_cast.get_value_as_instruction(*this);
+
+		if (this->is_little_endian())
+		{
+			if (this->is_64_bit())
+			{
+				add_instruction(*this, instructions::set_values_ptr64_le{
+					.src_tokens_index = src_tokens_index,
+				}, dest_value, value_value, count_value);
+			}
+			else
+			{
+				add_instruction(*this, instructions::set_values_ptr32_le{
+					.src_tokens_index = src_tokens_index,
+				}, dest_value, value_value, count_value);
+			}
+		}
+		else
+		{
+			if (this->is_64_bit())
+			{
+				add_instruction(*this, instructions::set_values_ptr64_be{
+					.src_tokens_index = src_tokens_index,
+				}, dest_value, value_value, count_value);
+			}
+			else
+			{
+				add_instruction(*this, instructions::set_values_ptr32_be{
+					.src_tokens_index = src_tokens_index,
+				}, dest_value, value_value, count_value);
+			}
+		}
+	}
+	else
+	{
+		auto const copy_values_info_index = this->add_copy_values_info({
+			.elem_type = value.get_type(),
+			.src_tokens_index = src_tokens_index,
+			.is_trivially_destructible = true,
+		});
+
+		auto const dest_value = dest.get_value_as_instruction(*this);
+		auto const value_ref = value.get_reference();
+		auto const count_cast = this->create_int_cast(count, this->get_builtin_type(builtin_type_kind::i64), false);
+		auto const count_value = count_cast.get_value_as_instruction(*this);
+
+		add_instruction(*this, instructions::set_values_ref{
+			.copy_values_info_index = copy_values_info_index,
+		}, dest_value, value_ref, count_value);
+	}
+}
+
 expr_value codegen_context::create_function_call(lex::src_tokens const &src_tokens, function const *func, bz::fixed_vector<instruction_ref> args)
 {
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
