@@ -4775,7 +4775,7 @@ ast::constant_value constant_value_from_object(
 			auto const mem_end = mem + object_type->size;
 			for (; mem_it != mem_end; mem_it += elem_type->size)
 			{
-				result_array.push_back(constant_value_from_object(elem_type, mem, info.elem_type, endianness, manager));
+				result_array.push_back(constant_value_from_object(elem_type, mem_it, info.elem_type, endianness, manager));
 				if (result_array.back().is_null())
 				{
 					result.clear();
