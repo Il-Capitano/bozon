@@ -1078,7 +1078,7 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 		const len = lengthForIndex(idx) as int32;
 		for (let i = len - 1; i >= 0; --i)
 		{
-			const j = p10bits - e2 as uint32;
+			const j = ((p10bits - e2 as uint32));
 			// Temporary: j is usually around 128, and by shifting a bit, we push it to 128 or above, which is
 			// a slightly faster code path in mulShift_mod1e9. Instead, we can just increase the multipliers.
 			digits = mulShift_mod1e9(m2 << 8, POW10_SPLIT[POW10_OFFSET[idx] as int32 + i].begin(), (j + 8) as int32);

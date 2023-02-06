@@ -106,7 +106,7 @@ export function pow5Factor(value: uint64) -> uint32
 	for (;;)
 	{
 		assert(value != 0);
-		value *= m_inv_5;
+		((value *= m_inv_5));
 		if (value > n_div_5)
 		{
 			break;
@@ -196,32 +196,32 @@ export function mulShiftAll64(
 	let tmp: uint64;
 	const lo = umul128(m, *mul, &tmp);
 	let hi: uint64;
-	const mid = tmp + umul128(m, *(mul + 1), &hi);
+	const mid = ((tmp + umul128(m, *(mul + 1), &hi)));
 	// hi += mid < tmp; // overflow into hi
 	if (mid < tmp)
 	{
 		hi += 1;
 	}
 
-	const lo2 = lo + *mul;
+	const lo2 = ((lo + *mul));
 	const mid2 = ((mid + *(mul + 1))) + (lo2 < lo) as uint64;
 	const hi2 = hi + (mid2 < mid) as uint64;
 	*vp = shiftright128(mid2, hi2, j - 64 - 1);
 
 	if (mmShift == 1)
 	{
-		const lo3 = lo - *mul;
+		const lo3 = ((lo - *mul));
 		const mid3 = ((mid - *(mul + 1))) - (lo3 > lo) as uint64;
 		const hi3 = hi - (mid3 > mid) as uint64;
 		*vm = shiftright128(mid3, hi3, j - 64 - 1);
 	}
 	else
 	{
-		const lo3 = lo + lo;
-		const mid3 = mid + mid + (lo3 < lo) as uint64;
+		const lo3 = ((lo + lo));
+		const mid3 = ((mid + mid)) + (lo3 < lo) as uint64;
 		const hi3 = hi + hi + (mid3 < mid) as uint64;
-		const lo4 = lo3 - *mul;
-		const mid4 = mid3 - *(mul + 1) - (lo4 > lo3) as uint64;
+		const lo4 = ((lo3 - *mul));
+		const mid4 = ((mid3 - *(mul + 1))) - (lo4 > lo3) as uint64;
 		const hi4 = hi3 - (mid4 > mid3) as uint64;
 		*vm = shiftright128(mid4, hi4, j - 64);
 	}
