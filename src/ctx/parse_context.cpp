@@ -6911,6 +6911,7 @@ ast::expression parse_context::make_default_assignment(lex::src_tokens const &sr
 	if (are_types_equal && this->is_trivial(src_tokens, lhs_type))
 	{
 		ast::typespec result_type = lhs_type;
+		this->add_self_destruction(rhs);
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::lvalue_reference, std::move(result_type),
