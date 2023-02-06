@@ -5791,15 +5791,16 @@ static expr_value generate_expr_code(
 {
 	switch (expr.kind())
 	{
-		case ast::expression::index_of<ast::constant_expression>:
-			return generate_expr_code(expr, expr.get_constant(), context, result_address);
-		case ast::expression::index_of<ast::dynamic_expression>:
-			return generate_expr_code(expr, expr.get_dynamic(), context, result_address);
-		case ast::expression::index_of<ast::error_expression>:
-			context.create_error(expr.src_tokens, "failed to resolve expression");
-			return expr_value::get_none();
-		default:
-			bz_unreachable;
+	case ast::expression::index_of<ast::constant_expression>:
+		return generate_expr_code(expr, expr.get_constant(), context, result_address);
+	case ast::expression::index_of<ast::dynamic_expression>:
+		return generate_expr_code(expr, expr.get_dynamic(), context, result_address);
+	case ast::expression::index_of<ast::error_expression>:
+		context.create_error(expr.src_tokens, "failed to resolve expression");
+		return expr_value::get_none();
+	default:
+		context.create_error(expr.src_tokens, "failed to resolve expression");
+		return expr_value::get_none();
 	}
 }
 
