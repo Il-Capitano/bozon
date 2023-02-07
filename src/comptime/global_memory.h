@@ -3,6 +3,7 @@
 
 #include "core.h"
 #include "memory_common.h"
+#include "instructions_forward.h"
 #include "ast/constant_value.h"
 
 namespace comptime::memory
@@ -76,17 +77,27 @@ struct global_memory_manager
 		ptr_t address;
 	};
 
+	struct function_pointer
+	{
+		function *func;
+	};
+
 	global_meta_segment_info_t segment_info;
 	ptr_t head;
 
 	bz::vector<one_past_the_end_pointer> one_past_the_end_pointers;
+	bz::vector<function_pointer> function_pointers;
 	bz::vector<global_object> objects;
 
 	explicit global_memory_manager(ptr_t global_memory_begin);
 
-	uint32_t add_object(lex::src_tokens const &object_src_tokens, type const *object_type, bz::fixed_vector<uint8_t> data);
 	ptr_t make_global_one_past_the_end_address(ptr_t address);
 	one_past_the_end_pointer const &get_one_past_the_end_pointer(ptr_t address) const;
+
+	ptr_t make_unique_function_pointer(function *func);
+	function_pointer const &get_function_pointer(ptr_t address) const;
+
+	uint32_t add_object(lex::src_tokens const &object_src_tokens, type const *object_type, bz::fixed_vector<uint8_t> data);
 
 	global_object *get_global_object(ptr_t address);
 	global_object const *get_global_object(ptr_t address) const;

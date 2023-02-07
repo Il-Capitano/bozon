@@ -270,15 +270,6 @@ global_memory_manager::global_memory_manager(ptr_t global_memory_begin)
 	this->head = this->segment_info.get_segment_begin<global_meta_memory_segment::objects>();
 }
 
-uint32_t global_memory_manager::add_object(lex::src_tokens const &object_src_tokens, type const *object_type, bz::fixed_vector<uint8_t> data)
-{
-	auto const result = static_cast<uint32_t>(this->objects.size());
-	this->objects.emplace_back(object_src_tokens, this->head, object_type, std::move(data));
-	this->head += object_type->size;
-	this->head += (max_object_align - this->head % max_object_align);
-	return result;
-}
-
 ptr_t global_memory_manager::make_global_one_past_the_end_address(ptr_t address)
 {
 	auto const result_index = this->one_past_the_end_pointers.size();
@@ -291,6 +282,30 @@ global_memory_manager::one_past_the_end_pointer const &global_memory_manager::ge
 	auto const index = address - this->segment_info.get_segment_begin<global_meta_memory_segment::one_past_the_end>();
 	bz_assert(index < this->one_past_the_end_pointers.size());
 	return this->one_past_the_end_pointers[index];
+}
+
+ptr_t global_memory_manager::make_unique_function_pointer(function *func)
+{
+	auto const result_index = this->function_pointers.size();
+	bz_assert(this->function_pointers.is_all([func](auto const fp) { return fp.func != func; }));
+	this->function_pointers.push_back({ func });
+	return this->segment_info.get_segment_begin<global_meta_memory_segment::functions>() + result_index;
+}
+
+global_memory_manager::function_pointer const &global_memory_manager::get_function_pointer(ptr_t address) const
+{
+	auto const index = address - this->segment_info.get_segment_begin<global_meta_memory_segment::functions>();
+	bz_assert(index < this->function_pointers.size());
+	return this->function_pointers[index];
+}
+
+uint32_t global_memory_manager::add_object(lex::src_tokens const &object_src_tokens, type const *object_type, bz::fixed_vector<uint8_t> data)
+{
+	auto const result = static_cast<uint32_t>(this->objects.size());
+	this->objects.emplace_back(object_src_tokens, this->head, object_type, std::move(data));
+	this->head += object_type->size;
+	this->head += (max_object_align - this->head % max_object_align);
+	return result;
 }
 
 global_object *global_memory_manager::get_global_object(ptr_t address)

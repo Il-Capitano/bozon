@@ -73,6 +73,11 @@ static ptr_t execute_const_ptr_null(instructions::const_ptr_null const &, execut
 	return 0;
 }
 
+static ptr_t execute_const_func_ptr(instructions::const_func_ptr const &inst, executor_context &)
+{
+	return inst.value;
+}
+
 static ptr_t execute_get_global_address(instructions::get_global_address const &inst, executor_context &context)
 {
 	return context.get_global(inst.global_index);
@@ -4756,7 +4761,7 @@ void execute_current_instruction(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-	static_assert(instruction::variant_count == 539);
+	static_assert(instruction::variant_count == 540);
 	case instruction::const_i1:
 		execute<instructions::const_i1, &execute_const_i1>(context);
 		break;
@@ -4792,6 +4797,9 @@ void execute_current_instruction(executor_context &context)
 		break;
 	case instruction::const_ptr_null:
 		execute<instructions::const_ptr_null, &execute_const_ptr_null>(context);
+		break;
+	case instruction::const_func_ptr:
+		execute<instructions::const_func_ptr, &execute_const_func_ptr>(context);
 		break;
 	case instruction::get_global_address:
 		execute<instructions::get_global_address, &execute_get_global_address>(context);

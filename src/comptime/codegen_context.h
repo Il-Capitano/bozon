@@ -156,6 +156,7 @@ struct codegen_context
 
 	std::unordered_map<ast::decl_variable const *, uint32_t> global_variables{};
 	std::unordered_map<ast::function_body *, std::unique_ptr<function>> functions{};
+	std::unordered_map<function *, ptr_t> function_pointers{};
 
 	struct loop_info_t
 	{
@@ -190,6 +191,7 @@ struct codegen_context
 	expr_value get_variable(ast::decl_variable const *decl);
 	bz::optional<uint32_t> get_global_variable(ast::decl_variable const *decl);
 	function *get_function(ast::function_body *body);
+	ptr_t add_function_pointer(function *func);
 
 	type const *get_builtin_type(builtin_type_kind kind);
 	type const *get_pointer_type(void);
@@ -285,6 +287,7 @@ struct codegen_context
 	expr_value create_add_global_array_data(lex::src_tokens const &src_tokens, type const *elem_type, expr_value begin_ptr, expr_value end_ptr);
 
 	expr_value create_get_global_object(uint32_t global_index);
+	expr_value create_const_function_pointer(function *func);
 	expr_value create_get_function_return_address(void);
 	instruction_ref create_get_function_arg(uint32_t arg_index);
 

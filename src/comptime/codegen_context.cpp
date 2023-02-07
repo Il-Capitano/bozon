@@ -313,6 +313,13 @@ function *codegen_context::get_function(ast::function_body *body)
 	}
 }
 
+ptr_t codegen_context::add_function_pointer(function *func)
+{
+	auto const ptr = this->global_memory.make_unique_function_pointer(func);
+	this->function_pointers.insert({ func, ptr });
+	return ptr;
+}
+
 type const *codegen_context::get_builtin_type(builtin_type_kind kind)
 {
 	return this->type_set.get_builtin_type(kind);
@@ -809,6 +816,19 @@ expr_value codegen_context::create_get_global_object(uint32_t global_index)
 	return expr_value::get_reference(
 		add_instruction(*this, instructions::get_global_address{ .global_index = global_index }),
 		this->global_memory.objects[global_index].object_type
+	);
+}
+
+expr_value codegen_context::create_const_function_pointer(function *func)
+{
+	auto const it = this->function_pointers.find(func);
+	auto const ptr = it == this->function_pointers.end()
+		? this->add_function_pointer(func)
+		: it->second;
+
+	return expr_value::get_value(
+		add_instruction(*this, instructions::const_func_ptr{ .value = ptr }),
+		this->get_pointer_type()
 	);
 }
 
@@ -5967,7 +5987,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 539);
+	static_assert(instruction::variant_count == 540);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>();

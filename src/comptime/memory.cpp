@@ -2422,6 +2422,8 @@ static remove_meta_result_t remove_meta(ptr_t address, memory_manager const &man
 			is_one_past_the_end = true;
 			address = manager.global_memory->get_one_past_the_end_pointer(address).address;
 			break;
+		case global_meta_memory_segment::functions:
+			bz_unreachable;
 		case global_meta_memory_segment::objects:
 			break;
 		}

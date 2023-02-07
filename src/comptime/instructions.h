@@ -209,6 +209,14 @@ struct const_ptr_null
 	static inline constexpr value_type result_type = value_type::ptr;
 };
 
+struct const_func_ptr
+{
+	static inline constexpr int arg_types = 0;
+	static inline constexpr value_type result_type = value_type::ptr;
+
+	ptr_t value;
+};
+
 struct get_global_address
 {
 	static inline constexpr int arg_types = 0;
@@ -4886,6 +4894,7 @@ using instruction_list = bz::meta::type_pack<
 	instructions::const_f32,
 	instructions::const_f64,
 	instructions::const_ptr_null,
+	instructions::const_func_ptr,
 	instructions::get_global_address,
 	instructions::get_function_arg,
 	instructions::load_i1_be,
@@ -5421,7 +5430,7 @@ struct instruction : instruction_base_t
 {
 	using base_t = instruction_base_t;
 
-	static_assert(variant_count == 539);
+	static_assert(variant_count == 540);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -5436,6 +5445,7 @@ struct instruction : instruction_base_t
 		const_f32                = index_of<instructions::const_f32>,
 		const_f64                = index_of<instructions::const_f64>,
 		const_ptr_null           = index_of<instructions::const_ptr_null>,
+		const_func_ptr           = index_of<instructions::const_func_ptr>,
 		get_global_address       = index_of<instructions::get_global_address>,
 		get_function_arg         = index_of<instructions::get_function_arg>,
 		load_i1_be               = index_of<instructions::load_i1_be>,
