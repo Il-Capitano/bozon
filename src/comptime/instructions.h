@@ -2,6 +2,7 @@
 #define COMPTIME_INSTRUCTIONS_H
 
 #include "core.h"
+#include "instructions_forward.h"
 #include "types.h"
 #include "values.h"
 #include "ctx/warnings.h"

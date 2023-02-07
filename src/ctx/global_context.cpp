@@ -4,6 +4,7 @@
 #include "cl_options.h"
 #include "bc/emit_bitcode.h"
 #include "colors.h"
+#include "comptime/codegen_context.h"
 #include "comptime/codegen.h"
 
 #include <cassert>
@@ -128,6 +129,8 @@ global_context::global_context(void)
 	  _data_layout(),
 	  _llvm_builtin_types(get_llvm_builtin_types(this->_llvm_context))
 {}
+
+global_context::~global_context(void) noexcept = default;
 
 ast::type_info *global_context::get_builtin_type_info(uint32_t kind)
 {

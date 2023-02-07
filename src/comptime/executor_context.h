@@ -3,8 +3,9 @@
 
 #include "instructions.h"
 #include "memory.h"
-#include "codegen_context.h"
+#include "codegen_context_forward.h"
 #include "ast/typespec.h"
+#include "ast/expression.h"
 #include "ctx/warnings.h"
 #include "ctx/error.h"
 

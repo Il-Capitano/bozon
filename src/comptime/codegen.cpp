@@ -1,5 +1,5 @@
 #include "codegen.h"
-#include "instructions.h"
+#include "codegen_context.h"
 
 namespace comptime
 {

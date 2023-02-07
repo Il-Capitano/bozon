@@ -21,7 +21,7 @@
 #include "src_file.h"
 #include "abi/platform_abi.h"
 #include "resolve/attribute_resolver.h"
-#include "comptime/codegen_context.h"
+#include "comptime/codegen_context_forward.h"
 
 namespace ctx
 {
@@ -73,6 +73,7 @@ struct global_context
 	global_context(global_context &&)      = delete;
 	global_context &operator = (global_context const &) = delete;
 	global_context &operator = (global_context &&)      = delete;
+	~global_context(void) noexcept;
 
 	ast::type_info *get_builtin_type_info(uint32_t kind);
 	ast::type_info *get_usize_type_info(void) const;

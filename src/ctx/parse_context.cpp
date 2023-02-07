@@ -11,6 +11,7 @@
 #include "resolve/match_expression.h"
 #include "comptime/codegen.h"
 #include "comptime/executor_context.h"
+#include "comptime/codegen_context.h"
 
 namespace ctx
 {

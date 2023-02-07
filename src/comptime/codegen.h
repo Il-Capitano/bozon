@@ -2,7 +2,9 @@
 #define COMPTIME_CODEGEN_H
 
 #include "core.h"
-#include "codegen_context.h"
+#include "codegen_context_forward.h"
+#include "instructions_forward.h"
+#include "types.h"
 #include "ast/statement.h"
 
 namespace comptime

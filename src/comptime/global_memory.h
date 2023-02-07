@@ -59,11 +59,13 @@ struct global_object
 enum class global_meta_memory_segment
 {
 	one_past_the_end,
+	functions,
 	objects,
 };
 
 using global_meta_segment_info_t = memory_segment_info_t<bz::array{
 	global_meta_memory_segment::one_past_the_end,
+	global_meta_memory_segment::functions,
 	global_meta_memory_segment::objects,
 }>;
 

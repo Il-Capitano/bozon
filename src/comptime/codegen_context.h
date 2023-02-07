@@ -1,6 +1,8 @@
 #ifndef COMPTIME_CODEGEN_CONTEXT_H
 #define COMPTIME_CODEGEN_CONTEXT_H
 
+#include "core.h"
+#include "codegen_context_forward.h"
 #include "instructions.h"
 #include "types.h"
 #include "global_memory.h"
