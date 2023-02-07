@@ -1705,6 +1705,10 @@ stack_frame *stack_manager::get_stack_frame(ptr_t address)
 	{
 		return nullptr;
 	}
+	else if (address >= this->stack_frames.back().begin_address)
+	{
+		return &this->stack_frames.back();
+	}
 
 	// find the last element that has an address that is less than or equal to address.
 	// we do this by finding the first element, whose address is greater than address
@@ -1728,6 +1732,10 @@ stack_frame const *stack_manager::get_stack_frame(ptr_t address) const
 	)
 	{
 		return nullptr;
+	}
+	else if (address >= this->stack_frames.back().begin_address)
+	{
+		return &this->stack_frames.back();
 	}
 
 	// find the last element that has an address that is less than or equal to address.
@@ -1980,6 +1988,11 @@ allocation *heap_manager::get_allocation(ptr_t address)
 	{
 		return nullptr;
 	}
+	else if (address >= this->allocations.back().object.address)
+	{
+		return &this->allocations.back();
+	}
+
 	// find the first element that has an address that is less than or equal to address.
 	// we do this by finding the first element, whose address is greater than address
 	// and taking the element before that
@@ -2003,6 +2016,11 @@ allocation const *heap_manager::get_allocation(ptr_t address) const
 	{
 		return nullptr;
 	}
+	else if (address >= this->allocations.back().object.address)
+	{
+		return &this->allocations.back();
+	}
+
 	// find the first element that has an address that is less than or equal to address.
 	// we do this by finding the first element, whose address is greater than address
 	// and taking the element before that
