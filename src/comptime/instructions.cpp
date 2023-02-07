@@ -7,9 +7,9 @@ namespace comptime
 static_assert(sizeof (instruction) == 24);
 static_assert(std::is_trivially_copy_constructible_v<instruction>);
 static_assert(std::is_trivially_destructible_v<instruction>);
-static_assert([]<typename ...Ts>(bz::meta::type_pack<Ts...>) {
+static_assert([]<typename ...Ts>(bz::meta::type_pack<bz::variant<Ts...>>) {
 	return bz::meta::is_all<std::is_trivial_v<Ts>...>;
-}(instruction_list()));
+}(bz::meta::type_pack<instruction_base_t>()));
 
 bz::u8string to_string(instruction const &inst_, function const *func)
 {

@@ -133,26 +133,26 @@ protected:
 	index_t _index = null;
 
 
-	template<size_t N>
-	[[gnu::always_inline]] value_type<N> &no_check_get(void) noexcept
-	{ return *reinterpret_cast<value_type<N> *>(this->_data); }
+	template<typename T>
+	[[gnu::always_inline]] T &no_check_get(void) noexcept
+	{ return *reinterpret_cast<T *>(this->_data); }
 
-	template<size_t N>
-	[[gnu::always_inline]] value_type<N> const &no_check_get(void) const noexcept
-	{ return *reinterpret_cast<const value_type<N> *>(this->_data); }
+	template<typename T>
+	[[gnu::always_inline]] T const &no_check_get(void) const noexcept
+	{ return *reinterpret_cast<T const *>(this->_data); }
 
-	template<size_t N, typename ...Args>
-	void no_clear_emplace(Args &&...args) noexcept(
-		meta::is_nothrow_constructible_v<value_type<N>, Args...>
+	template<size_t N, typename T, typename ...Args>
+	void no_clear_emplace(Args &&...args) bz_noexcept(
+		meta::is_nothrow_constructible_v<T, Args...>
 	)
 	{
-		if constexpr (meta::is_constructible_v<value_type<N>, Args...>)
+		if constexpr (meta::is_constructible_v<T, Args...>)
 		{
-			new(this->_data) value_type<N>(std::forward<Args>(args)...);
+			new(this->_data) T(std::forward<Args>(args)...);
 		}
 		else
 		{
-			new(this->_data) value_type<N>{std::forward<Args>(args)...};
+			new(this->_data) T{std::forward<Args>(args)...};
 		}
 		this->_index = N;
 	}
@@ -202,7 +202,7 @@ private:
 		{
 			[[maybe_unused]] int _dummy[] = {
 				((this->_index == Ns
-				? (void)(this->template no_check_get<Ns>().~Ts())
+				? (void)(this->template no_check_get<Ts>().~Ts())
 				: (void)0 ), 0)...
 			};
 		}(std::make_index_sequence<sizeof... (Ts)>());
@@ -213,7 +213,7 @@ public:
 public:
 	variant_non_trivial_base(void) noexcept = default;
 
-	variant_non_trivial_base(self_t const &other) noexcept(
+	variant_non_trivial_base(self_t const &other) bz_noexcept(
 		is_all({ meta::is_nothrow_copy_constructible_v<Ts>... })
 	)
 		: base_t()
@@ -222,13 +222,13 @@ public:
 		{
 			[[maybe_unused]] int _dummy[] = {
 				((other._index == Ns
-				? (void)(this->template no_clear_emplace<Ns>(other.template no_check_get<Ns>()))
+				? (void)(this->template no_clear_emplace<Ns, Ts>(other.template no_check_get<Ts>()))
 				: (void)0 ), 0)...
 			};
 		}(std::make_index_sequence<sizeof...(Ts)>());
 	}
 
-	variant_non_trivial_base(self_t &&other) noexcept(
+	variant_non_trivial_base(self_t &&other) bz_noexcept(
 		is_all({ meta::is_nothrow_move_constructible_v<Ts>... })
 	)
 		: base_t()
@@ -237,7 +237,7 @@ public:
 		{
 			[[maybe_unused]] int _dummy[] = {
 				((other._index == Ns
-				? (void)(this->template no_clear_emplace<Ns>(std::move(other.template no_check_get<Ns>())))
+				? (void)(this->template no_clear_emplace<Ns, Ts>(std::move(other.template no_check_get<Ts>())))
 				: (void)0 ), 0)...
 			};
 		}(std::make_index_sequence<sizeof...(Ts)>());
@@ -248,7 +248,7 @@ public:
 		this->no_null_clear();
 	}
 
-	self_t &operator = (self_t const &rhs) noexcept(
+	self_t &operator = (self_t const &rhs) bz_noexcept(
 		is_all({ meta::is_nothrow_copy_constructible_v<Ts>... })
 		&& is_all({ meta::is_nothrow_copy_assignable_v<Ts>... })
 	)
@@ -257,7 +257,7 @@ public:
 		return *this;
 	}
 
-	self_t &operator = (self_t &&rhs) noexcept(
+	self_t &operator = (self_t &&rhs) bz_noexcept(
 		is_all({ meta::is_nothrow_move_constructible_v<Ts>... })
 		&& is_all({ meta::is_nothrow_move_assignable_v<Ts>... })
 	)
@@ -276,7 +276,7 @@ public:
 		this->_index = null;
 	}
 
-	void assign(self_t const &other) noexcept(
+	void assign(self_t const &other) bz_noexcept(
 		is_all({ meta::is_nothrow_copy_constructible_v<Ts>... })
 		&& is_all({ meta::is_nothrow_copy_assignable_v<Ts>... })
 	)
@@ -300,12 +300,12 @@ public:
 				{
 					if (this->_index == Ns)
 					{
-						this->template no_check_get<Ns>() = other.template no_check_get<Ns>();
+						this->template no_check_get<Ts>() = other.template no_check_get<Ts>();
 					}
 					else
 					{
 						this->clear();
-						this->template no_clear_emplace<Ns>(other.template no_check_get<Ns>());
+						this->template no_clear_emplace<Ns, Ts>(other.template no_check_get<Ts>());
 					}
 				}()
 				: (void)0 ), 0)...
@@ -313,7 +313,7 @@ public:
 		}(std::make_index_sequence<sizeof... (Ts)>());
 	}
 
-	void assign(self_t &&other) noexcept(
+	void assign(self_t &&other) bz_noexcept(
 		is_all({ meta::is_nothrow_move_constructible_v<Ts>... })
 		&& is_all({ meta::is_nothrow_move_assignable_v<Ts>... })
 	)
@@ -337,12 +337,12 @@ public:
 				{
 					if (this->_index == Ns)
 					{
-						this->template no_check_get<Ns>() = std::move(other.template no_check_get<Ns>());
+						this->template no_check_get<Ts>() = std::move(other.template no_check_get<Ts>());
 					}
 					else
 					{
 						this->clear();
-						this->template no_clear_emplace<Ns>(std::move(other.template no_check_get<Ns>()));
+						this->template no_clear_emplace<Ns, Ts>(std::move(other.template no_check_get<Ts>()));
 					}
 				}()
 				: (void)0 ), 0)...
@@ -432,39 +432,40 @@ private:
 	{};
 
 	template<size_t N, typename ...Args>
-	variant(_index_indicator<N>, Args &&...args) noexcept(
+	variant(_index_indicator<N>, Args &&...args) bz_noexcept(
 		meta::is_nothrow_constructible_v<value_type<N>, Args...>
 	)
 		: variant()
-	{ this->template no_clear_emplace<N>(std::forward<Args>(args)...); }
+	{ this->template no_clear_emplace<N, value_type<N>>(std::forward<Args>(args)...); }
 
 
 public:
 	template<size_t N, typename ...Args>
-	static self_t make(Args &&...args) noexcept(
+	static self_t make(Args &&...args) bz_noexcept(
 		meta::is_nothrow_constructible_v<value_type<N>, Args...>
 	)
 	{ return self_t(_index_indicator<N>(), std::forward<Args>(args)...); }
 
 	template<typename T, typename ...Args>
-	static self_t make(Args &&...args) noexcept(
+	static self_t make(Args &&...args) bz_noexcept(
 		meta::is_nothrow_constructible_v<T, Args...>
 	)
 	{ return make<index_of<T>>(std::forward<Args>(args)...); }
 
 	template<size_t N, typename ...Args>
-	[[gnu::always_inline]] auto &emplace(Args &&...args) noexcept(
+	[[gnu::always_inline]] auto &emplace(Args &&...args) bz_noexcept(
 		internal::is_all({ meta::is_nothrow_destructible_v<Ts>... })
 		&& meta::is_nothrow_constructible_v<value_type<N>, Args...>
 	)
 	{
+		using T = value_type<N>;
 		this->clear();
-		this->template no_clear_emplace<N>(std::forward<Args>(args)...);
-		return this->template no_check_get<N>();
+		this->template no_clear_emplace<N, T>(std::forward<Args>(args)...);
+		return this->template no_check_get<T>();
 	}
 
 	template<typename T, typename ...Args>
-	[[gnu::always_inline]] auto &emplace(Args &&...args) noexcept(
+	[[gnu::always_inline]] auto &emplace(Args &&...args) bz_noexcept(
 		internal::is_all({ meta::is_nothrow_destructible_v<Ts>... })
 		&& meta::is_nothrow_constructible_v<T, Args...>
 	)
@@ -488,10 +489,13 @@ public:
 			&& internal::is_any({ meta::is_constructible_v<Ts, T>... })
 		>
 	>
-	variant(T &&val) noexcept(
+	variant(T &&val) bz_noexcept(
 		meta::is_nothrow_constructible_v<value_type_from<T>, T>
 	)
-	{ this->template no_clear_emplace<index_of<value_type_from<T>>>(std::forward<T>(val)); }
+	{
+		using value_type = value_type_from<T>;
+		this->template no_clear_emplace<index_of<value_type>, value_type>(std::forward<T>(val));
+	}
 
 	template<
 		typename T,
@@ -502,51 +506,54 @@ public:
 			>
 		>
 	>
-	self_t &operator = (T &&val) noexcept(
+	self_t &operator = (T &&val) bz_noexcept(
 		internal::is_all({ meta::is_nothrow_destructible_v<Ts>... })
 		&& meta::is_nothrow_assignable_v<value_type_from<T>, T>
 		&& meta::is_nothrow_constructible_v<value_type_from<T>, T>
 	)
 	{
-		constexpr auto index = index_of<value_type_from<T>>;
+		using value_type = value_type_from<T>;
+		constexpr auto index = index_of<value_type>;
 		if (this->_index == index)
 		{
-			this->template no_check_get<index>() = std::forward<T>(val);
+			this->template no_check_get<value_type>() = std::forward<T>(val);
 		}
 		else
 		{
 			this->clear();
-			this->template no_clear_emplace<index>(std::forward<T>(val));
+			this->template no_clear_emplace<index, value_type>(std::forward<T>(val));
 		}
 		return *this;
 	}
 
 	template<size_t N>
-	[[gnu::always_inline]] value_type<N> &get(void) noexcept
+	[[gnu::always_inline]] auto &get(void) noexcept
 	{
 		bz_assert(this->_index == N);
-		return this->template no_check_get<N>();
+		return this->template no_check_get<value_type<N>>();
 	}
 
 	template<size_t N>
-	[[gnu::always_inline]] value_type<N> const &get(void) const noexcept
+	[[gnu::always_inline]] auto const &get(void) const noexcept
 	{
 		bz_assert(this->_index == N);
-		return this->template no_check_get<N>();
+		return this->template no_check_get<value_type<N>>();
 	}
 
 	template<typename T>
 	[[gnu::always_inline]] T &get(void) noexcept
 	{
 		static_assert(meta::is_in_types<T, Ts...>);
-		return this->get<index_of<T>>();
+		bz_assert(this->_index == index_of<T>);
+		return this->template no_check_get<T>();
 	}
 
 	template<typename T>
 	[[gnu::always_inline]] T const &get(void) const noexcept
 	{
 		static_assert(meta::is_in_types<T, Ts...>);
-		return this->get<index_of<T>>();
+		bz_assert(this->_index == index_of<T>);
+		return this->template no_check_get<T>();
 	}
 
 
@@ -556,7 +563,7 @@ public:
 		bz_assert(this->_index == N);
 		using T = value_type<N>;
 
-		T &value = this->template no_check_get<N>();
+		T &value = this->template no_check_get<T>();
 		T result = std::move(value);
 		value.~T();
 		this->_index = base_t::null;
@@ -567,8 +574,14 @@ public:
 	template<typename T>
 	[[gnu::always_inline]] T get_by_move(void) noexcept
 	{
-		static_assert(meta::is_in_types<T, Ts...>);
-		return this->get_by_move<index_of<T>>();
+		bz_assert(this->_index == index_of<T>);
+
+		T &value = this->template no_check_get<T>();
+		T result = std::move(value);
+		value.~T();
+		this->_index = base_t::null;
+
+		return result;
 	}
 
 
@@ -577,7 +590,7 @@ public:
 	{
 		if (this->_index == N)
 		{
-			return &this->template no_check_get<N>();
+			return &this->template no_check_get<value_type<N>>();
 		}
 		else
 		{
@@ -590,7 +603,7 @@ public:
 	{
 		if (this->_index == N)
 		{
-			return &this->template no_check_get<N>();
+			return &this->template no_check_get<value_type<N>>();
 		}
 		else
 		{
@@ -600,15 +613,33 @@ public:
 
 	template<typename T>
 	[[gnu::always_inline]] T *get_if(void) noexcept
-	{ return this->get_if<index_of<T>>(); }
+	{
+		if (this->_index == index_of<T>)
+		{
+			return &this->template no_check_get<T>();
+		}
+		else
+		{
+			return nullptr;
+		}
+	}
 
 	template<typename T>
 	[[gnu::always_inline]] T const *get_if(void) const noexcept
-	{ return this->get_if<index_of<T>>(); }
+	{
+		if (this->_index == index_of<T>)
+		{
+			return &this->template no_check_get<T>();
+		}
+		else
+		{
+			return nullptr;
+		}
+	}
 
 
 	template<typename Visitor>
-	auto visit(Visitor &&visitor) noexcept(
+	auto visit(Visitor &&visitor) bz_noexcept(
 		internal::is_all({ meta::is_nothrow_invocable_v<Visitor, Ts &>... })
 	) -> decltype(
 		std::forward<decltype(visitor)>(visitor)(
@@ -643,7 +674,7 @@ public:
 	}
 
 	template<typename Visitor>
-	auto visit(Visitor &&visitor) const noexcept(
+	auto visit(Visitor &&visitor) const bz_noexcept(
 		internal::is_all({ meta::is_nothrow_invocable_v<Visitor, Ts const &>... })
 	) -> decltype(
 		std::forward<decltype(visitor)>(visitor)(
@@ -820,7 +851,7 @@ auto get_if(variant<Ts...> const &v) noexcept -> decltype(v.template get_if<T>()
 
 
 template<typename ...Ts>
-void swap(variant<Ts...> &v1, variant<Ts...> &v2) noexcept(std::is_nothrow_invocable_v<
+void swap(variant<Ts...> &v1, variant<Ts...> &v2) bz_noexcept(std::is_nothrow_invocable_v<
 	decltype(&variant<Ts...>::swap), variant<Ts...>, variant<Ts...>
 >)
 { v1.swap(v2); }

@@ -4892,7 +4892,7 @@ struct end_lifetime
 
 } // namespace instructions
 
-using instruction_list = bz::meta::type_pack<
+using instruction_base_t = bz::variant<
 	instructions::const_i1,
 	instructions::const_i8,
 	instructions::const_i16,
@@ -5435,8 +5435,6 @@ using instruction_list = bz::meta::type_pack<
 	instructions::start_lifetime,
 	instructions::end_lifetime
 >;
-
-using instruction_base_t = bz::meta::apply_type_pack<bz::variant, instruction_list>;
 
 struct instruction : instruction_base_t
 {
