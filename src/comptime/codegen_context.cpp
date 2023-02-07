@@ -1578,7 +1578,7 @@ expr_value codegen_context::create_indirect_function_call(
 	}
 }
 
-expr_value codegen_context::create_malloc(lex::src_tokens const &src_tokens, type const *type, expr_value count)
+expr_value codegen_context::create_malloc(lex::src_tokens const &src_tokens, type const *elem_type, expr_value count)
 {
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 
@@ -1587,7 +1587,7 @@ expr_value codegen_context::create_malloc(lex::src_tokens const &src_tokens, typ
 		.get_value_as_instruction(*this);
 
 	return expr_value::get_value(
-		add_instruction(*this, instructions::malloc{ .type = type, .src_tokens_index = src_tokens_index }, count_val),
+		add_instruction(*this, instructions::malloc{ .elem_type = elem_type, .src_tokens_index = src_tokens_index }, count_val),
 		this->get_pointer_type()
 	);
 }

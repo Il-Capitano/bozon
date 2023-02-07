@@ -2634,7 +2634,7 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 	case instruction::malloc:
 	{
 		auto const &inst = inst_.get<instruction::malloc>();
-		return bz::format("malloc {} {} ({})", inst.type->to_string(), inst.args[0], inst.src_tokens_index);
+		return bz::format("malloc {} {} ({})", inst.elem_type->to_string(), inst.args[0], inst.src_tokens_index);
 	}
 	case instruction::free:
 	{

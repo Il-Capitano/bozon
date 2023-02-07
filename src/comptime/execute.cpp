@@ -4357,7 +4357,7 @@ static void execute_indirect_function_call(instructions::indirect_function_call 
 
 static ptr_t execute_malloc(instructions::malloc const &inst, uint64_t count, executor_context &context)
 {
-	return context.malloc(inst.src_tokens_index, inst.type, count);
+	return context.malloc(inst.src_tokens_index, inst.elem_type, count);
 }
 
 static void execute_free(instructions::free const &inst, ptr_t ptr, executor_context &context)

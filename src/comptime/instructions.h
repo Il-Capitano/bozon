@@ -4657,7 +4657,7 @@ struct malloc
 	static inline constexpr bz::array arg_types = { value_type::i64 };
 	static inline constexpr value_type result_type = value_type::ptr;
 
-	type const *type;
+	type const *elem_type;
 	uint32_t src_tokens_index;
 
 	bz::array<instruction_value_index, arg_types.size()> args;
