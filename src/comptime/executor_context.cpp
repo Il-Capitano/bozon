@@ -186,6 +186,11 @@ void executor_context::do_ret_void(void)
 	this->returned = true;
 }
 
+function *executor_context::get_function(ptr_t func_ptr)
+{
+	return this->memory.global_memory->get_function_pointer(func_ptr).func;
+}
+
 static constexpr size_t max_call_depth = 1024;
 
 void executor_context::call_function(uint32_t call_src_tokens_index, function *func, uint32_t args_index)

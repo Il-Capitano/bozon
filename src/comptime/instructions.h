@@ -4641,6 +4641,17 @@ struct function_call
 	uint32_t src_tokens_index;
 };
 
+struct indirect_function_call
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t args_index;
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
 struct malloc
 {
 	static inline constexpr bz::array arg_types = { value_type::i64 };
@@ -5397,6 +5408,7 @@ using instruction_list = bz::meta::type_pack<
 	instructions::set_values_ptr64_le,
 	instructions::set_values_ref,
 	instructions::function_call,
+	instructions::indirect_function_call,
 	instructions::malloc,
 	instructions::free,
 	instructions::jump,
@@ -5430,7 +5442,7 @@ struct instruction : instruction_base_t
 {
 	using base_t = instruction_base_t;
 
-	static_assert(variant_count == 540);
+	static_assert(variant_count == 541);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -5948,6 +5960,7 @@ struct instruction : instruction_base_t
 		set_values_ptr64_le      = index_of<instructions::set_values_ptr64_le>,
 		set_values_ref           = index_of<instructions::set_values_ref>,
 		function_call            = index_of<instructions::function_call>,
+		indirect_function_call   = index_of<instructions::indirect_function_call>,
 		malloc                   = index_of<instructions::malloc>,
 		free                     = index_of<instructions::free>,
 		jump                     = index_of<instructions::jump>,

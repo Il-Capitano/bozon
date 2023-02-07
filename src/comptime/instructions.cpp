@@ -15,7 +15,7 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 {
 	switch (inst_.index())
 	{
-	static_assert(instruction::variant_count == 540);
+	static_assert(instruction::variant_count == 541);
 	case instruction::const_i1:
 	{
 		auto const &inst = inst_.get<instruction::const_i1>();
@@ -2606,6 +2606,29 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 		else
 		{
 			return bz::format("call '{}' ({}) ({})", inst.func->func_body->get_signature(), inst.args_index, inst.src_tokens_index);
+		}
+	}
+	case instruction::indirect_function_call:
+	{
+		auto const &inst = inst_.get<instruction::indirect_function_call>();
+		if (func != nullptr)
+		{
+			bz::u8string result = bz::format("call {}(", inst.args[0]);
+			auto const args = func->call_args[inst.args_index].as_array_view();
+			if (args.not_empty())
+			{
+				result += bz::format("{}", args[0]);
+				for (auto const arg : args.slice(1))
+				{
+					result += bz::format(", {}", arg);
+				}
+			}
+			result += bz::format(") ({})", inst.src_tokens_index);
+			return result;
+		}
+		else
+		{
+			return bz::format("call {} ({}) ({})", inst.args[0], inst.args_index, inst.src_tokens_index);
 		}
 	}
 	case instruction::malloc:

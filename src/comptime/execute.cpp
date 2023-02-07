@@ -4349,6 +4349,12 @@ static void execute_function_call(instructions::function_call const &inst, execu
 	context.call_function(inst.src_tokens_index, inst.func, inst.args_index);
 }
 
+static void execute_indirect_function_call(instructions::indirect_function_call const &inst, ptr_t func_ptr, executor_context &context)
+{
+	auto const func = context.get_function(func_ptr);
+	context.call_function(inst.src_tokens_index, func, inst.args_index);
+}
+
 static ptr_t execute_malloc(instructions::malloc const &inst, uint64_t count, executor_context &context)
 {
 	return context.malloc(inst.src_tokens_index, inst.type, count);
@@ -4761,7 +4767,7 @@ void execute_current_instruction(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-	static_assert(instruction::variant_count == 540);
+	static_assert(instruction::variant_count == 541);
 	case instruction::const_i1:
 		execute<instructions::const_i1, &execute_const_i1>(context);
 		break;
@@ -6306,6 +6312,9 @@ void execute_current_instruction(executor_context &context)
 		break;
 	case instruction::function_call:
 		execute<instructions::function_call, &execute_function_call>(context);
+		break;
+	case instruction::indirect_function_call:
+		execute<instructions::indirect_function_call, &execute_indirect_function_call>(context);
 		break;
 	case instruction::malloc:
 		execute<instructions::malloc, &execute_malloc>(context);
