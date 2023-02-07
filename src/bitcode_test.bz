@@ -1949,4 +1949,13 @@ function indirect_call_test()
 	std::assert(op(2, 3) == 6);
 	std::assert(op == mul_i32);
 	std::assert(op != add_i32);
+
+	(consteval {
+		let op: function(int32, int32) -> int32 = add_i32;
+		std::assert(op(2, 3) == 5);
+		op = mul_i32;
+		std::assert(op(2, 3) == 6);
+		std::assert(op == mul_i32);
+		std::assert(op != add_i32);
+	});
 }
