@@ -3034,13 +3034,91 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
-	ast::expression const &original_expression,
 	ast::expr_indirect_function_call const &func_call,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 )
 {
-	bz_unreachable;
+	auto const func_ptr = generate_expr_code(func_call.called, context, {});
+	bz_assert(ast::remove_const_or_consteval(func_call.called.get_expr_type()).is<ast::ts_function>());
+	auto const &function_typespec = ast::remove_const_or_consteval(func_call.called.get_expr_type()).get<ast::ts_function>();
+	auto const return_type = get_type(function_typespec.return_type, context);
+
+	// along with the arguments, the result address is passed as the first argument if it's not a builtin or pointer type
+	auto const needs_return_address = !return_type->is_simple_value_type();
+	auto arg_refs = bz::fixed_vector<instruction_ref>(function_typespec.param_types.size() + (needs_return_address ? 1 : 0));
+
+	for (auto const arg_index : bz::iota(0, func_call.params.size()))
+	{
+		if (func_call.params[arg_index].is_error())
+		{
+			continue;
+		}
+		else
+		{
+			auto const &param_type = function_typespec.param_types[arg_index];
+			auto const arg_type = get_type(param_type, context);
+			if (param_type.is<ast::ts_lvalue_reference>() || param_type.is<ast::ts_move_reference>())
+			{
+				auto const arg_value = generate_expr_code(func_call.params[arg_index], context, {});
+				bz_assert(arg_type->is_pointer());
+				bz_assert(arg_value.is_reference());
+				arg_refs[arg_index + (needs_return_address ? 1 : 0)] = arg_value.get_reference();
+			}
+			else if (arg_type->is_simple_value_type())
+			{
+				auto const arg_value = generate_expr_code(func_call.params[arg_index], context, {});
+				bz_assert(arg_value.get_type() == arg_type);
+				arg_refs[arg_index + (needs_return_address ? 1 : 0)] = arg_value.get_value_as_instruction(context);
+			}
+			else
+			{
+				auto const param_result_address = context.create_alloca(func_call.params[arg_index].src_tokens, arg_type);
+				generate_expr_code(func_call.params[arg_index], context, param_result_address);
+				arg_refs[arg_index + (needs_return_address ? 1 : 0)] = param_result_address.get_reference();
+			}
+		}
+	}
+
+	if (needs_return_address)
+	{
+		if (!result_address.has_value())
+		{
+			result_address = context.create_alloca(func_call.src_tokens, return_type);
+		}
+
+		auto const &result_value = result_address.get();
+		bz_assert(result_value.get_type() == return_type);
+
+		arg_refs[0] = result_value.get_reference();
+
+		context.create_indirect_function_call(func_call.src_tokens, func_ptr, return_type, std::move(arg_refs));
+
+		return result_value;
+	}
+	else if (return_type->is_void())
+	{
+		context.create_indirect_function_call(func_call.src_tokens, func_ptr, return_type, std::move(arg_refs));
+		return expr_value::get_none();
+	}
+	else
+	{
+		auto const result_value = context.create_indirect_function_call(
+			func_call.src_tokens,
+			func_ptr,
+			return_type,
+			std::move(arg_refs)
+		);
+		if (function_typespec.return_type.is<ast::ts_lvalue_reference>())
+		{
+			auto const type = get_type(function_typespec.return_type.get<ast::ts_lvalue_reference>(), context);
+			return expr_value::get_reference(result_value.get_value_as_instruction(context), type);
+		}
+		else
+		{
+			return value_or_result_address(result_value, result_address, context);
+		}
+	}
 }
 
 static expr_value generate_expr_code(
@@ -4881,7 +4959,7 @@ static expr_value generate_expr_code(
 	case ast::expr_t::index<ast::expr_function_call>:
 		return generate_expr_code(original_expression, expr.get<ast::expr_function_call>(), context, result_address);
 	case ast::expr_t::index<ast::expr_indirect_function_call>:
-		return generate_expr_code(original_expression, expr.get<ast::expr_indirect_function_call>(), context, result_address);
+		return generate_expr_code(expr.get<ast::expr_indirect_function_call>(), context, result_address);
 	case ast::expr_t::index<ast::expr_cast>:
 		return generate_expr_code(original_expression, expr.get<ast::expr_cast>(), context, result_address);
 	case ast::expr_t::index<ast::expr_bit_cast>:
@@ -5589,7 +5667,11 @@ static expr_value get_constant_value_helper(
 		return result_value;
 	}
 	case ast::constant_value::function:
-		bz_unreachable; // TODO
+	{
+		auto const func = context.get_function(value.get_function());
+		auto const func_ptr = context.create_const_function_pointer(func);
+		return value_or_result_address(func_ptr, result_address, context);
+	}
 	case ast::constant_value::aggregate:
 	{
 		auto const aggregate = value.get_aggregate();

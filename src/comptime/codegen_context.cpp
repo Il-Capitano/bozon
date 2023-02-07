@@ -1552,6 +1552,32 @@ expr_value codegen_context::create_function_call(lex::src_tokens const &src_toke
 	}
 }
 
+expr_value codegen_context::create_indirect_function_call(
+	lex::src_tokens const &src_tokens,
+	expr_value func_ptr,
+	type const *return_type,
+	bz::fixed_vector<instruction_ref> args
+)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+	auto const args_index = static_cast<uint32_t>(this->current_function_info.call_args.size());
+	this->current_function_info.call_args.push_back(std::move(args));
+
+	auto const func_ptr_value = func_ptr.get_value_as_instruction(*this);
+	auto const inst_ref = add_instruction(*this, instructions::indirect_function_call{
+		.args_index = args_index, .src_tokens_index = src_tokens_index
+	}, func_ptr_value);
+
+	if (return_type->is_simple_value_type())
+	{
+		return expr_value::get_value(inst_ref, return_type);
+	}
+	else
+	{
+		return expr_value::get_none();
+	}
+}
+
 expr_value codegen_context::create_malloc(lex::src_tokens const &src_tokens, type const *type, expr_value count)
 {
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);

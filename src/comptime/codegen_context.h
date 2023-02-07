@@ -349,6 +349,12 @@ struct codegen_context
 	);
 
 	expr_value create_function_call(lex::src_tokens const &src_tokens, function *func, bz::fixed_vector<instruction_ref> args);
+	expr_value create_indirect_function_call(
+		lex::src_tokens const &src_tokens,
+		expr_value func_ptr,
+		type const *return_type,
+		bz::fixed_vector<instruction_ref> args
+	);
 	expr_value create_malloc(lex::src_tokens const &src_tokens, type const *type, expr_value count);
 	void create_free(lex::src_tokens const &src_tokens, expr_value ptr);
 
