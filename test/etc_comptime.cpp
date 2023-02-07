@@ -6,5 +6,6 @@
 #include "comptime/execute.cpp"
 #include "comptime/executor_context.cpp"
 #include "comptime/instructions.cpp"
+#include "comptime/memory_common.cpp"
+#include "comptime/global_memory.cpp"
 #include "comptime/memory.cpp"
-#include "comptime/types.cpp"
