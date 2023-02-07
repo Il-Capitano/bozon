@@ -424,18 +424,43 @@ bz::vector<error_reason_t> global_memory_manager::get_slice_construction_error_r
 
 bz::optional<int> global_memory_manager::compare_pointers(ptr_t lhs, ptr_t rhs) const
 {
-	auto const lhs_global_object = this->get_global_object(lhs);
-	if (lhs_global_object == nullptr)
+	auto const lhs_segment = this->segment_info.get_segment(lhs);
+	auto const rhs_segment = this->segment_info.get_segment(rhs);
+
+	if (lhs_segment != rhs_segment)
 	{
 		return {};
 	}
-	else if (rhs < lhs_global_object->address || rhs > lhs_global_object->address + lhs_global_object->object_size())
+
+	switch (lhs_segment)
 	{
-		return {};
+	case global_meta_memory_segment::one_past_the_end:
+		bz_unreachable;
+	case global_meta_memory_segment::functions:
+		if (lhs == rhs)
+		{
+			return 0;
+		}
+		else
+		{
+			return {};
+		}
+	case global_meta_memory_segment::objects:
+	{
+		auto const lhs_global_object = this->get_global_object(lhs);
+		if (lhs_global_object == nullptr)
+		{
+			return {};
+		}
+		else if (rhs < lhs_global_object->address || rhs > lhs_global_object->address + lhs_global_object->object_size())
+		{
+			return {};
+		}
+		else
+		{
+			return lhs == rhs ? 0 : (lhs < rhs ? -1 : 1);
+		}
 	}
-	else
-	{
-		return lhs == rhs ? 0 : (lhs < rhs ? -1 : 1);
 	}
 }
 
