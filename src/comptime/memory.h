@@ -348,6 +348,13 @@ struct meta_memory_manager
 	stack_object_pointer const &get_stack_object_pointer(ptr_t address) const;
 	one_past_the_end_pointer const &get_one_past_the_end_pointer(ptr_t address) const;
 
+	ptr_t make_stack_object_address(
+		ptr_t address,
+		uint32_t stack_frame_depth,
+		uint32_t stack_frame_id,
+		lex::src_tokens const &object_src_tokens
+	);
+	ptr_t make_inherited_stack_object_address(ptr_t address, ptr_t inherit_from);
 	ptr_t make_one_past_the_end_address(ptr_t address);
 
 	ptr_t get_real_address(ptr_t address) const;
@@ -366,6 +373,8 @@ struct memory_manager
 
 	[[nodiscard]] bool push_stack_frame(bz::array_view<alloca const> types);
 	void pop_stack_frame(void);
+
+	ptr_t make_current_frame_stack_object_address(stack_object const &object);
 
 	bool check_dereference(ptr_t address, type const *object_type) const;
 	bz::vector<error_reason_t> get_dereference_error_reason(ptr_t address, type const *object_type) const;

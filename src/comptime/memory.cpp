@@ -2337,6 +2337,35 @@ one_past_the_end_pointer const &meta_memory_manager::get_one_past_the_end_pointe
 	return this->one_past_the_end_pointers[index];
 }
 
+ptr_t meta_memory_manager::make_stack_object_address(
+	ptr_t address,
+	uint32_t stack_frame_depth,
+	uint32_t stack_frame_id,
+	lex::src_tokens const &object_src_tokens
+)
+{
+	auto const result_index = this->stack_object_pointers.size();
+	this->stack_object_pointers.push_back({
+		.stack_address = address,
+		.stack_frame_depth = stack_frame_depth,
+		.stack_frame_id = stack_frame_id,
+		.object_src_tokens = object_src_tokens,
+	});
+	return this->segment_info.get_segment_begin<meta_memory_segment::stack_object>() + result_index;
+}
+
+ptr_t meta_memory_manager::make_inherited_stack_object_address(ptr_t address, ptr_t inherit_from)
+{
+	bz_assert(this->segment_info.get_segment(inherit_from) == meta_memory_segment::stack_object);
+	auto const &stack_object = this->get_stack_object_pointer(inherit_from);
+	return this->make_stack_object_address(
+		address,
+		stack_object.stack_frame_depth,
+		stack_object.stack_frame_id,
+		stack_object.object_src_tokens
+	);
+}
+
 ptr_t meta_memory_manager::make_one_past_the_end_address(ptr_t address)
 {
 	auto const result_index = this->one_past_the_end_pointers.size();
@@ -2374,18 +2403,31 @@ void memory_manager::pop_stack_frame(void)
 	this->stack.pop_stack_frame();
 }
 
+ptr_t memory_manager::make_current_frame_stack_object_address(stack_object const &object)
+{
+	auto const &current_frame = this->stack.stack_frames.back();
+	return this->meta_memory.make_stack_object_address(
+		object.address,
+		static_cast<uint32_t>(this->stack.stack_frames.size() - 1),
+		current_frame.id,
+		object.object_src_tokens
+	);
+}
+
 struct remove_meta_result_t
 {
 	ptr_t address;
 	memory_segment segment;
 	bool is_one_past_the_end;
 	bool is_finished_stack_frame;
+	bool is_stack_pointer;
 };
 
 static remove_meta_result_t remove_meta(ptr_t address, memory_manager const &manager)
 {
 	auto segment = manager.segment_info.get_segment(address);
 	bool is_one_past_the_end = false;
+	bool is_stack_object = false;
 	while (segment == memory_segment::meta)
 	{
 		switch (manager.meta_memory.segment_info.get_segment(address))
@@ -2398,9 +2440,10 @@ static remove_meta_result_t remove_meta(ptr_t address, memory_manager const &man
 				|| manager.stack.stack_frames[stack_object.stack_frame_depth].id != stack_object.stack_frame_id
 			)
 			{
-				return { address, segment, is_one_past_the_end, true };
+				return { address, segment, is_one_past_the_end, true, true };
 			}
 
+			is_stack_object =true;
 			address = stack_object.stack_address;
 			break;
 		}
@@ -2429,7 +2472,7 @@ static remove_meta_result_t remove_meta(ptr_t address, memory_manager const &man
 		}
 	}
 
-	return { address, segment, is_one_past_the_end, false };
+	return { address, segment, is_one_past_the_end, false, is_stack_object };
 }
 
 static bz::u8string_view get_segment_name(memory_segment segment)
@@ -2450,7 +2493,7 @@ static bz::u8string_view get_segment_name(memory_segment segment)
 bool memory_manager::check_dereference(ptr_t _address, type const *object_type) const
 {
 	bz_assert(_address != 0);
-	auto const[address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame, is_stack_object] = remove_meta(_address, *this);
 
 	if (is_one_past_the_end || is_finished_stack_frame)
 	{
@@ -2473,7 +2516,7 @@ bool memory_manager::check_dereference(ptr_t _address, type const *object_type) 
 bz::vector<error_reason_t> memory_manager::get_dereference_error_reason(ptr_t _address, type const *object_type) const
 {
 	bz_assert(_address != 0);
-	auto const[address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame, is_stack_object] = remove_meta(_address, *this);
 
 	if (is_finished_stack_frame)
 	{
@@ -2534,7 +2577,7 @@ bz::vector<error_reason_t> memory_manager::get_dereference_error_reason(ptr_t _a
 bool memory_manager::check_inplace_construct(ptr_t _address, type const *object_type) const
 {
 	bz_assert(_address != 0);
-	auto const[address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame, is_stack_object] = remove_meta(_address, *this);
 
 	if (is_finished_stack_frame || is_one_past_the_end || segment != memory_segment::heap)
 	{
@@ -2549,7 +2592,7 @@ bool memory_manager::check_inplace_construct(ptr_t _address, type const *object_
 bz::vector<error_reason_t> memory_manager::get_inplace_construct_error_reason(ptr_t _address, type const *object_type) const
 {
 	bz_assert(_address != 0);
-	auto const[address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame, is_stack_object] = remove_meta(_address, *this);
 
 	if (segment != memory_segment::heap)
 	{
@@ -2575,8 +2618,20 @@ bz::vector<error_reason_t> memory_manager::get_inplace_construct_error_reason(pt
 bool memory_manager::check_slice_construction(ptr_t _begin, ptr_t _end, type const *elem_type) const
 {
 	bz_assert(_begin != 0 && _end != 0);
-	auto const[begin, begin_segment, begin_is_one_past_the_end, begin_is_finished_stack_frame] = remove_meta(_begin, *this);
-	auto const[end, end_segment, end_is_one_past_the_end, end_is_finished_stack_frame] = remove_meta(_end, *this);
+	auto const [
+		begin,
+		begin_segment,
+		begin_is_one_past_the_end,
+		begin_is_finished_stack_frame,
+		begin_is_stack_object
+	] = remove_meta(_begin, *this);
+	auto const [
+		end,
+		end_segment,
+		end_is_one_past_the_end,
+		end_is_finished_stack_frame,
+		end_is_stack_object
+	] = remove_meta(_end, *this);
 
 	if (begin_is_finished_stack_frame || end_is_finished_stack_frame)
 	{
@@ -2621,8 +2676,20 @@ bool memory_manager::check_slice_construction(ptr_t _begin, ptr_t _end, type con
 bz::vector<error_reason_t> memory_manager::get_slice_construction_error_reason(ptr_t _begin, ptr_t _end, type const *elem_type) const
 {
 	bz_assert(_begin != 0 && _end != 0);
-	auto const[begin, begin_segment, begin_is_one_past_the_end, begin_is_finished_stack_frame] = remove_meta(_begin, *this);
-	auto const[end, end_segment, end_is_one_past_the_end, end_is_finished_stack_frame] = remove_meta(_end, *this);
+	auto const [
+		begin,
+		begin_segment,
+		begin_is_one_past_the_end,
+		begin_is_finished_stack_frame,
+		begin_is_stack_object
+	] = remove_meta(_begin, *this);
+	auto const [
+		end,
+		end_segment,
+		end_is_one_past_the_end,
+		end_is_finished_stack_frame,
+		end_is_stack_object
+	] = remove_meta(_end, *this);
 
 	if (begin_is_finished_stack_frame && end_is_finished_stack_frame)
 	{
@@ -2976,8 +3043,20 @@ bz::vector<error_reason_t> memory_manager::get_slice_construction_error_reason(p
 bz::optional<int> memory_manager::compare_pointers(ptr_t _lhs, ptr_t _rhs) const
 {
 	bz_assert(_lhs != 0 && _rhs != 0);
-	auto const[lhs, lhs_segment, lhs_is_one_past_the_end, lhs_is_finished_stack_frame] = remove_meta(_lhs, *this);
-	auto const[rhs, rhs_segment, rhs_is_one_past_the_end, rhs_is_finished_stack_frame] = remove_meta(_rhs, *this);
+	auto const [
+		lhs,
+		lhs_segment,
+		lhs_is_one_past_the_end,
+		lhs_is_finished_stack_frame,
+		lhs_is_stack_object
+	] = remove_meta(_lhs, *this);
+	auto const [
+		rhs,
+		rhs_segment,
+		rhs_is_one_past_the_end,
+		rhs_is_finished_stack_frame,
+		rhs_is_stack_object
+	] = remove_meta(_rhs, *this);
 
 	if (lhs_is_finished_stack_frame || rhs_is_finished_stack_frame)
 	{
@@ -3006,7 +3085,7 @@ bz::optional<int> memory_manager::compare_pointers(ptr_t _lhs, ptr_t _rhs) const
 ptr_t memory_manager::do_pointer_arithmetic(ptr_t _address, int64_t offset, type const *object_type)
 {
 	bz_assert(_address != 0);
-	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame, is_stack_object] = remove_meta(_address, *this);
 
 	if (is_finished_stack_frame)
 	{
@@ -3041,18 +3120,23 @@ ptr_t memory_manager::do_pointer_arithmetic(ptr_t _address, int64_t offset, type
 		{
 			return 0;
 		}
-		else if (offset == 0 && result_is_one_past_the_end)
+		else if (offset == 0)
 		{
-			bz_assert(is_one_past_the_end);
+			bz_assert(result_is_one_past_the_end == is_one_past_the_end);
 			return _address;
 		}
 		else if (result_is_one_past_the_end)
 		{
-			return this->meta_memory.make_one_past_the_end_address(result);
+			auto const one_past_the_end_result = this->meta_memory.make_one_past_the_end_address(result);
+			return is_stack_object
+				? this->meta_memory.make_inherited_stack_object_address(one_past_the_end_result, _address)
+				: one_past_the_end_result;
 		}
 		else
 		{
-			return result;
+			return is_stack_object
+				? this->meta_memory.make_inherited_stack_object_address(result, _address)
+				: result;
 		}
 	}
 }
@@ -3060,7 +3144,7 @@ ptr_t memory_manager::do_pointer_arithmetic(ptr_t _address, int64_t offset, type
 ptr_t memory_manager::do_pointer_arithmetic_unchecked(ptr_t _address, int64_t offset, type const *object_type)
 {
 	bz_assert(_address != 0);
-	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame, is_stack_object] = remove_meta(_address, *this);
 
 	bz_assert(!is_finished_stack_frame);
 	bz_assert(!(is_one_past_the_end && offset > 0));
@@ -3086,24 +3170,29 @@ ptr_t memory_manager::do_pointer_arithmetic_unchecked(ptr_t _address, int64_t of
 
 	bz_assert(result != 0);
 
-	if (offset == 0 && result_is_one_past_the_end)
+	if (offset == 0)
 	{
-		bz_assert(is_one_past_the_end);
+		bz_assert(result_is_one_past_the_end == is_one_past_the_end);
 		return _address;
 	}
 	else if (result_is_one_past_the_end)
 	{
-		return this->meta_memory.make_one_past_the_end_address(result);
+		auto const one_past_the_end_result = this->meta_memory.make_one_past_the_end_address(result);
+		return is_stack_object
+			? this->meta_memory.make_inherited_stack_object_address(one_past_the_end_result, _address)
+			: one_past_the_end_result;
 	}
 	else
 	{
-		return result;
+		return is_stack_object
+			? this->meta_memory.make_inherited_stack_object_address(result, _address)
+			: result;
 	}
 }
 
 ptr_t memory_manager::do_gep(ptr_t _address, type const *object_type, uint64_t index)
 {
-	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame, is_stack_object] = remove_meta(_address, *this);
 	bz_assert(!is_finished_stack_frame);
 	bz_assert(!is_one_past_the_end);
 	switch (segment)
@@ -3118,11 +3207,16 @@ ptr_t memory_manager::do_gep(ptr_t _address, type const *object_type, uint64_t i
 			auto const result = address + object_type->get_array_element_type()->size * index;
 			if (index == size)
 			{
-				return this->meta_memory.make_one_past_the_end_address(result);
+				auto const one_past_the_end_result = this->meta_memory.make_one_past_the_end_address(result);
+				return is_stack_object
+					? this->meta_memory.make_inherited_stack_object_address(one_past_the_end_result, _address)
+					: one_past_the_end_result;
 			}
 			else
 			{
-				return result;
+				return is_stack_object
+					? this->meta_memory.make_inherited_stack_object_address(result, _address)
+					: result;
 			}
 		}
 		else
@@ -3130,7 +3224,9 @@ ptr_t memory_manager::do_gep(ptr_t _address, type const *object_type, uint64_t i
 			bz_assert(object_type->is_aggregate());
 			auto const offsets = object_type->get_aggregate_offsets();
 			bz_assert(index < offsets.size());
-			return address + offsets[index];
+			return is_stack_object
+				? this->meta_memory.make_inherited_stack_object_address(address + offsets[index], _address)
+				: address + offsets[index];
 		}
 	}
 	case memory_segment::meta:
@@ -3141,8 +3237,20 @@ ptr_t memory_manager::do_gep(ptr_t _address, type const *object_type, uint64_t i
 bz::optional<int64_t> memory_manager::do_pointer_difference(ptr_t _lhs, ptr_t _rhs, type const *object_type)
 {
 	bz_assert(_lhs != 0 && _rhs != 0);
-	auto const[lhs, lhs_segment, lhs_is_one_past_the_end, lhs_is_finished_stack_frame] = remove_meta(_lhs, *this);
-	auto const[rhs, rhs_segment, rhs_is_one_past_the_end, rhs_is_finished_stack_frame] = remove_meta(_rhs, *this);
+	auto const [
+		lhs,
+		lhs_segment,
+		lhs_is_one_past_the_end,
+		lhs_is_finished_stack_frame,
+		lhs_is_stack_object
+	] = remove_meta(_lhs, *this);
+	auto const [
+		rhs,
+		rhs_segment,
+		rhs_is_one_past_the_end,
+		rhs_is_finished_stack_frame,
+		rhs_is_stack_object
+	] = remove_meta(_rhs, *this);
 
 	if (lhs_is_finished_stack_frame || rhs_is_finished_stack_frame)
 	{
@@ -3625,13 +3733,25 @@ bool memory_manager::copy_values(ptr_t _dest, ptr_t _source, size_t count, type 
 {
 	bz_assert(count != 0);
 	bz_assert(_dest != 0);
-	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	auto const [
+		dest,
+		dest_segment,
+		dest_is_one_past_the_end,
+		dest_is_finished_stack_frame,
+		dest_is_stack_object
+	] = remove_meta(_dest, *this);
 	if (dest_is_finished_stack_frame || dest_is_one_past_the_end)
 	{
 		return false;
 	}
 	bz_assert(_source != 0);
-	auto const [source, source_segment, source_is_one_past_the_end, source_is_finished_stack_frame] = remove_meta(_source, *this);
+	auto const [
+		source,
+		source_segment,
+		source_is_one_past_the_end,
+		source_is_finished_stack_frame,
+		source_is_stack_object
+	] = remove_meta(_source, *this);
 	if (source_is_finished_stack_frame || source_is_one_past_the_end)
 	{
 		return false;
@@ -3695,7 +3815,13 @@ bz::vector<error_reason_t> memory_manager::get_copy_values_error_reason(
 
 	bz_assert(count != 0);
 	bz_assert(_dest != 0);
-	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	auto const [
+		dest,
+		dest_segment,
+		dest_is_one_past_the_end,
+		dest_is_finished_stack_frame,
+		dest_is_stack_object
+	] = remove_meta(_dest, *this);
 	add_invalid_pointer_error_reasons(
 		reasons,
 		"destination",
@@ -3706,7 +3832,13 @@ bz::vector<error_reason_t> memory_manager::get_copy_values_error_reason(
 		*this
 	);
 	bz_assert(_source != 0);
-	auto const [source, source_segment, source_is_one_past_the_end, source_is_finished_stack_frame] = remove_meta(_source, *this);
+	auto const [
+		source,
+		source_segment,
+		source_is_one_past_the_end,
+		source_is_finished_stack_frame,
+		source_is_stack_object
+	] = remove_meta(_source, *this);
 	add_invalid_pointer_error_reasons(
 		reasons,
 		"source",
@@ -3803,13 +3935,25 @@ bool memory_manager::copy_overlapping_values(ptr_t _dest, ptr_t _source, size_t 
 {
 	bz_assert(count != 0);
 	bz_assert(_dest != 0);
-	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	auto const [
+		dest,
+		dest_segment,
+		dest_is_one_past_the_end,
+		dest_is_finished_stack_frame,
+		dest_is_stack_object
+	] = remove_meta(_dest, *this);
 	if (dest_is_finished_stack_frame || dest_is_one_past_the_end)
 	{
 		return false;
 	}
 	bz_assert(_source != 0);
-	auto const [source, source_segment, source_is_one_past_the_end, source_is_finished_stack_frame] = remove_meta(_source, *this);
+	auto const [
+		source,
+		source_segment,
+		source_is_one_past_the_end,
+		source_is_finished_stack_frame,
+		source_is_stack_object
+	] = remove_meta(_source, *this);
 	if (source_is_finished_stack_frame || source_is_one_past_the_end)
 	{
 		return false;
@@ -3890,7 +4034,13 @@ bz::vector<error_reason_t> memory_manager::get_copy_overlapping_values_error_rea
 
 	bz_assert(count != 0);
 	bz_assert(_dest != 0);
-	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	auto const [
+		dest,
+		dest_segment,
+		dest_is_one_past_the_end,
+		dest_is_finished_stack_frame,
+		dest_is_stack_object
+	] = remove_meta(_dest, *this);
 	add_invalid_pointer_error_reasons(
 		reasons,
 		"destination",
@@ -3901,7 +4051,13 @@ bz::vector<error_reason_t> memory_manager::get_copy_overlapping_values_error_rea
 		*this
 	);
 	bz_assert(_source != 0);
-	auto const [source, source_segment, source_is_one_past_the_end, source_is_finished_stack_frame] = remove_meta(_source, *this);
+	auto const [
+		source,
+		source_segment,
+		source_is_one_past_the_end,
+		source_is_finished_stack_frame,
+		source_is_stack_object
+	] = remove_meta(_source, *this);
 	add_invalid_pointer_error_reasons(
 		reasons,
 		"source",
@@ -3947,13 +4103,25 @@ bool memory_manager::relocate_values(ptr_t _dest, ptr_t _source, size_t count, t
 {
 	bz_assert(count != 0);
 	bz_assert(_dest != 0);
-	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	auto const [
+		dest,
+		dest_segment,
+		dest_is_one_past_the_end,
+		dest_is_finished_stack_frame,
+		dest_is_stack_object
+	] = remove_meta(_dest, *this);
 	if (dest_is_finished_stack_frame || dest_is_one_past_the_end)
 	{
 		return false;
 	}
 	bz_assert(_source != 0);
-	auto const [source, source_segment, source_is_one_past_the_end, source_is_finished_stack_frame] = remove_meta(_source, *this);
+	auto const [
+		source,
+		source_segment,
+		source_is_one_past_the_end,
+		source_is_finished_stack_frame,
+		source_is_stack_object
+	] = remove_meta(_source, *this);
 	if (source_is_finished_stack_frame || source_is_one_past_the_end)
 	{
 		return false;
@@ -4068,7 +4236,13 @@ bz::vector<error_reason_t> memory_manager::get_relocate_values_error_reason(
 
 	bz_assert(count != 0);
 	bz_assert(_dest != 0);
-	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	auto const [
+		dest,
+		dest_segment,
+		dest_is_one_past_the_end,
+		dest_is_finished_stack_frame,
+		dest_is_stack_object
+	] = remove_meta(_dest, *this);
 	add_invalid_pointer_error_reasons(
 		reasons,
 		"destination",
@@ -4079,7 +4253,13 @@ bz::vector<error_reason_t> memory_manager::get_relocate_values_error_reason(
 		*this
 	);
 	bz_assert(_source != 0);
-	auto const [source, source_segment, source_is_one_past_the_end, source_is_finished_stack_frame] = remove_meta(_source, *this);
+	auto const [
+		source,
+		source_segment,
+		source_is_one_past_the_end,
+		source_is_finished_stack_frame,
+		source_is_stack_object
+	] = remove_meta(_source, *this);
 	add_invalid_pointer_error_reasons(
 		reasons,
 		"source",
@@ -4173,7 +4353,13 @@ bool memory_manager::set_values_i8_native(ptr_t _dest, uint8_t value, size_t cou
 {
 	bz_assert(count != 0);
 	bz_assert(_dest != 0);
-	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	auto const [
+		dest,
+		dest_segment,
+		dest_is_one_past_the_end,
+		dest_is_finished_stack_frame,
+		dest_is_stack_object
+	] = remove_meta(_dest, *this);
 	if (dest_is_finished_stack_frame || dest_is_one_past_the_end)
 	{
 		return false;
@@ -4200,7 +4386,13 @@ bool memory_manager::set_values_i16_native(ptr_t _dest, uint16_t value, size_t c
 {
 	bz_assert(count != 0);
 	bz_assert(_dest != 0);
-	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	auto const [
+		dest,
+		dest_segment,
+		dest_is_one_past_the_end,
+		dest_is_finished_stack_frame,
+		dest_is_stack_object
+	] = remove_meta(_dest, *this);
 	if (dest_is_finished_stack_frame || dest_is_one_past_the_end)
 	{
 		return false;
@@ -4237,7 +4429,13 @@ bool memory_manager::set_values_i32_native(ptr_t _dest, uint32_t value, size_t c
 {
 	bz_assert(count != 0);
 	bz_assert(_dest != 0);
-	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	auto const [
+		dest,
+		dest_segment,
+		dest_is_one_past_the_end,
+		dest_is_finished_stack_frame,
+		dest_is_stack_object
+	] = remove_meta(_dest, *this);
 	if (dest_is_finished_stack_frame || dest_is_one_past_the_end)
 	{
 		return false;
@@ -4274,7 +4472,13 @@ bool memory_manager::set_values_i64_native(ptr_t _dest, uint64_t value, size_t c
 {
 	bz_assert(count != 0);
 	bz_assert(_dest != 0);
-	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	auto const [
+		dest,
+		dest_segment,
+		dest_is_one_past_the_end,
+		dest_is_finished_stack_frame,
+		dest_is_stack_object
+	] = remove_meta(_dest, *this);
 	if (dest_is_finished_stack_frame || dest_is_one_past_the_end)
 	{
 		return false;
@@ -4311,7 +4515,13 @@ bool memory_manager::set_values_ref(ptr_t _dest, uint8_t const *value_mem, size_
 {
 	bz_assert(count != 0);
 	bz_assert(_dest != 0);
-	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	auto const [
+		dest,
+		dest_segment,
+		dest_is_one_past_the_end,
+		dest_is_finished_stack_frame,
+		dest_is_stack_object
+	] = remove_meta(_dest, *this);
 	if (dest_is_finished_stack_frame || dest_is_one_past_the_end)
 	{
 		return false;
@@ -4343,7 +4553,13 @@ bz::vector<error_reason_t> memory_manager::get_set_values_error_reason(ptr_t _de
 
 	bz_assert(count != 0);
 	bz_assert(_dest != 0);
-	auto const [dest, dest_segment, dest_is_one_past_the_end, dest_is_finished_stack_frame] = remove_meta(_dest, *this);
+	auto const [
+		dest,
+		dest_segment,
+		dest_is_one_past_the_end,
+		dest_is_finished_stack_frame,
+		dest_is_stack_object
+	] = remove_meta(_dest, *this);
 	add_invalid_pointer_error_reasons(
 		reasons,
 		"destination",
@@ -4367,7 +4583,7 @@ bz::vector<error_reason_t> memory_manager::get_set_values_error_reason(ptr_t _de
 
 void memory_manager::start_lifetime(ptr_t _address, size_t size)
 {
-	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame, is_stack_object] = remove_meta(_address, *this);
 	bz_assert(!is_finished_stack_frame);
 	bz_assert(!is_one_past_the_end);
 
@@ -4395,7 +4611,7 @@ void memory_manager::start_lifetime(ptr_t _address, size_t size)
 
 void memory_manager::end_lifetime(ptr_t _address, size_t size)
 {
-	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame, is_stack_object] = remove_meta(_address, *this);
 	bz_assert(!is_finished_stack_frame);
 	bz_assert(!is_one_past_the_end);
 
@@ -4428,7 +4644,7 @@ bool memory_manager::is_global(ptr_t address) const
 
 uint8_t *memory_manager::get_memory(ptr_t _address)
 {
-	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame, is_stack_object] = remove_meta(_address, *this);
 	bz_assert(!is_finished_stack_frame);
 	switch (segment)
 	{
@@ -4445,7 +4661,7 @@ uint8_t *memory_manager::get_memory(ptr_t _address)
 
 uint8_t const *memory_manager::get_memory(ptr_t _address) const
 {
-	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame] = remove_meta(_address, *this);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame, is_stack_object] = remove_meta(_address, *this);
 	bz_assert(!is_finished_stack_frame);
 	switch (segment)
 	{

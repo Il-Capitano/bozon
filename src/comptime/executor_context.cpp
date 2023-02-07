@@ -245,7 +245,14 @@ void executor_context::call_function(uint32_t call_src_tokens_index, function *f
 	bz_assert(alloca_objects.size() == this->alloca_offset);
 	for (auto const i : bz::iota(0, this->alloca_offset))
 	{
-		this->instruction_values[i].ptr = alloca_objects[i].address;
+		if (func->allocas[i].is_always_initialized)
+		{
+			this->instruction_values[i].ptr = alloca_objects[i].address;
+		}
+		else
+		{
+			this->instruction_values[i].ptr = this->memory.make_current_frame_stack_object_address(alloca_objects[i]);
+		}
 	}
 	this->next_instruction = this->instructions.data();
 }
