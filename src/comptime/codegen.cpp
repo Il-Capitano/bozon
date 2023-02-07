@@ -763,7 +763,6 @@ static expr_value generate_builtin_unary_minus(
 }
 
 static expr_value generate_builtin_unary_dereference(
-	ast::expression const &original_expression,
 	ast::expression const &expr,
 	codegen_context &context
 )
@@ -776,7 +775,6 @@ static expr_value generate_builtin_unary_dereference(
 		: type.get<ast::ts_pointer>();
 	auto const object_type = get_type(object_typespec, context);
 	auto const result = expr_value::get_reference(ptr_value.get_value_as_instruction(context), object_type);
-	context.create_memory_access_check(original_expression.src_tokens, result, object_typespec);
 	return result;
 }
 
@@ -2753,7 +2751,7 @@ static expr_value generate_intrinsic_function_call_code(
 	case ast::function_body::builtin_unary_dereference:
 		bz_assert(func_call.params.size() == 1);
 		bz_assert(!result_address.has_value());
-		return generate_builtin_unary_dereference(original_expression, func_call.params[0], context);
+		return generate_builtin_unary_dereference(func_call.params[0], context);
 	case ast::function_body::builtin_unary_bit_not:
 		bz_assert(func_call.params.size() == 1);
 		return generate_builtin_unary_bit_not(func_call.params[0], context, result_address);
