@@ -188,7 +188,7 @@ void executor_context::do_ret_void(void)
 
 static constexpr size_t max_call_depth = 1024;
 
-void executor_context::call_function(uint32_t call_src_tokens_index, function const *func, uint32_t args_index)
+void executor_context::call_function(uint32_t call_src_tokens_index, function *func, uint32_t args_index)
 {
 	if (this->memory.stack.stack_frames.size() >= max_call_depth)
 	{
@@ -201,7 +201,7 @@ void executor_context::call_function(uint32_t call_src_tokens_index, function co
 		this->codegen_ctx->resolve_function(this->get_src_tokens(call_src_tokens_index), *func->func_body);
 		if (func->instructions.empty())
 		{
-			generate_code(*const_cast<function *>(func), *this->codegen_ctx);
+			generate_code(*func, *this->codegen_ctx);
 		}
 	}
 

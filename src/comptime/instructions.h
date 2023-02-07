@@ -4628,7 +4628,7 @@ struct function_call
 	static inline constexpr int arg_types = 0;
 	static inline constexpr value_type result_type = value_type::none;
 
-	function const *func;
+	function *func;
 	uint32_t args_index;
 	uint32_t src_tokens_index;
 };

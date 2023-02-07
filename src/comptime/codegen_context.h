@@ -189,8 +189,7 @@ struct codegen_context
 	void add_global_variable(ast::decl_variable const *decl, uint32_t global_index);
 	expr_value get_variable(ast::decl_variable const *decl);
 	bz::optional<uint32_t> get_global_variable(ast::decl_variable const *decl);
-	function *get_non_const_function(ast::function_body *body);
-	function const *get_function(ast::function_body *body);
+	function *get_function(ast::function_body *body);
 
 	type const *get_builtin_type(builtin_type_kind kind);
 	type const *get_pointer_type(void);
@@ -346,7 +345,7 @@ struct codegen_context
 		expr_value count
 	);
 
-	expr_value create_function_call(lex::src_tokens const &src_tokens, function const *func, bz::fixed_vector<instruction_ref> args);
+	expr_value create_function_call(lex::src_tokens const &src_tokens, function *func, bz::fixed_vector<instruction_ref> args);
 	expr_value create_malloc(lex::src_tokens const &src_tokens, type const *type, expr_value count);
 	void create_free(lex::src_tokens const &src_tokens, expr_value ptr);
 

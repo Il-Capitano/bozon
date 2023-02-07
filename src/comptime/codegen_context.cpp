@@ -297,7 +297,7 @@ bz::optional<uint32_t> codegen_context::get_global_variable(ast::decl_variable c
 	}
 }
 
-function *codegen_context::get_non_const_function(ast::function_body *body)
+function *codegen_context::get_function(ast::function_body *body)
 {
 	auto const it = this->functions.find(body);
 	if (it == this->functions.end())
@@ -311,11 +311,6 @@ function *codegen_context::get_non_const_function(ast::function_body *body)
 	{
 		return it->second.get();
 	}
-}
-
-function const *codegen_context::get_function(ast::function_body *body)
-{
-	return this->get_non_const_function(body);
 }
 
 type const *codegen_context::get_builtin_type(builtin_type_kind kind)
@@ -1518,7 +1513,7 @@ void codegen_context::create_set_values(
 	}
 }
 
-expr_value codegen_context::create_function_call(lex::src_tokens const &src_tokens, function const *func, bz::fixed_vector<instruction_ref> args)
+expr_value codegen_context::create_function_call(lex::src_tokens const &src_tokens, function *func, bz::fixed_vector<instruction_ref> args)
 {
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 	auto const args_index = static_cast<uint32_t>(this->current_function_info.call_args.size());

@@ -77,7 +77,7 @@ struct executor_context
 	void do_ret(instruction_value value);
 	void do_ret_void(void);
 
-	void call_function(uint32_t call_src_tokens_index, function const *func, uint32_t args_index);
+	void call_function(uint32_t call_src_tokens_index, function *func, uint32_t args_index);
 
 	switch_info_t const &get_switch_info(uint32_t index) const;
 	error_info_t const &get_error_info(uint32_t index) const;
