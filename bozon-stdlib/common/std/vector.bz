@@ -183,7 +183,7 @@ export struct vector<T: typename>
 			for (let it = self._data_end; it != new_end;)
 			{
 				--it;
-				__builtin_call_destructor(*it);
+				__builtin_destruct_value(*it);
 			}
 			self._data_end = new_end;
 		}
@@ -205,7 +205,7 @@ export struct vector<T: typename>
 		for (let it = self._data_end; it != self._data_begin;)
 		{
 			--it;
-			__builtin_call_destructor(*it);
+			__builtin_destruct_value(*it);
 		}
 		self._data_end = self._data_begin;
 	}
@@ -344,7 +344,7 @@ function destruct_range(begin: ?*auto, end: ?*auto)
 {
 	for (let it = begin; it < end; ++it)
 	{
-		__builtin_call_destructor(*it);
+		__builtin_destruct_value(*it);
 	}
 }
 

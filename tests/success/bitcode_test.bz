@@ -1778,7 +1778,7 @@ struct unique_ptr<T: typename>
 
 	destructor(&self)
 	{
-		__builtin_call_destructor(*self._ptr);
+		__builtin_destruct_value(*self._ptr);
 		std::free(self._ptr);
 	}
 

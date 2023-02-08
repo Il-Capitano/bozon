@@ -509,7 +509,7 @@ struct function_body
 		builtin_int_to_pointer,
 		builtin_enum_value,
 
-		builtin_call_destructor,
+		builtin_destruct_value,
 		builtin_inplace_construct,
 		builtin_swap,
 
@@ -1627,7 +1627,7 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_int_to_pointer, "__builtin_int_to_pointer" },
 		{ function_body::builtin_enum_value,     "__builtin_enum_value"     },
 
-		{ function_body::builtin_call_destructor,   "__builtin_call_destructor"   },
+		{ function_body::builtin_destruct_value,    "__builtin_destruct_value"    },
 		{ function_body::builtin_inplace_construct, "__builtin_inplace_construct" },
 		{ function_body::builtin_swap,              "__builtin_swap"              },
 

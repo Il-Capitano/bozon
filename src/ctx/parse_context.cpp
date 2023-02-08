@@ -3614,7 +3614,7 @@ static ast::expression make_expr_function_call_from_body(
 		return ast::make_error_expression(src_tokens, ast::make_expr_function_call(src_tokens, std::move(args), body, resolve_order));
 	}
 
-	if (body->is_intrinsic() && body->intrinsic_kind == ast::function_body::builtin_call_destructor)
+	if (body->is_intrinsic() && body->intrinsic_kind == ast::function_body::builtin_destruct_value)
 	{
 		bz_assert(args.size() == 1);
 		auto const [expr_type, expr_type_kind] = args[0].get_expr_type_and_kind();

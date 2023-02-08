@@ -133,7 +133,7 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 		__builtin_enum_underlying_type(typeof v)
 	});
 
-@__builtin export function __builtin_call_destructor(obj: &auto);
+@__builtin export function __builtin_destruct_value(value: &auto);
 @__builtin export function __builtin_inplace_construct(ptr: *auto, val: auto)
 	-> (if consteval (__builtin_remove_pointer(typeof ptr) != typeof val) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(

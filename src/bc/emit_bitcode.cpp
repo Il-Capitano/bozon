@@ -2871,7 +2871,7 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_enum_value:
 			bz_assert(func_call.params.size() == 1);
 			return emit_bitcode<abi>(func_call.params[0], context, result_address);
-		case ast::function_body::builtin_call_destructor:
+		case ast::function_body::builtin_destruct_value:
 			// this is already handled in src/ctx/parse_context.cpp, in the function make_expr_function_call_from_body
 			bz_unreachable;
 		case ast::function_body::builtin_inplace_construct:

@@ -1984,7 +1984,7 @@ static expr_value generate_intrinsic_function_call_code(
 	case ast::function_body::builtin_enum_value:
 		bz_assert(func_call.params.size() == 1);
 		return generate_expr_code(func_call.params[0], context, result_address);
-	case ast::function_body::builtin_call_destructor:
+	case ast::function_body::builtin_destruct_value:
 		// this is handled as a separate expression, not a function call
 		bz_unreachable;
 	case ast::function_body::builtin_inplace_construct:
