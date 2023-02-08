@@ -37,7 +37,8 @@ bool global_object::check_dereference(ptr_t address, type const *subobject_type)
 	}
 
 	auto const offset = address - this->address;
-	return contained_in_object(this->object_type, offset, subobject_type);
+	bz_assert(contained_in_object(this->object_type, offset, subobject_type));
+	return true;
 }
 
 bz::u8string global_object::get_dereference_error_reason(ptr_t, type const *) const

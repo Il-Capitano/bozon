@@ -227,17 +227,19 @@ uint8_t const *stack_object::get_memory(ptr_t address) const
 
 bool stack_object::check_dereference(ptr_t address, type const *subobject_type) const
 {
-	if (!this->is_alive(address, address + subobject_type->size))
+	if (address < this->address || address >= this->address + this->object_size() || this->memory.empty())
 	{
+		bz_assert(false);
 		return false;
 	}
-	if (address < this->address || address >= this->address + this->object_size() || this->memory.empty())
+	if (!this->is_alive(address, address + subobject_type->size))
 	{
 		return false;
 	}
 
 	auto const offset = address - this->address;
-	return contained_in_object(this->object_type, offset, subobject_type);
+	bz_assert(contained_in_object(this->object_type, offset, subobject_type));
+	return true;
 }
 
 bz::u8string stack_object::get_dereference_error_reason(ptr_t address, type const *object_type) const
@@ -253,15 +255,15 @@ bool stack_object::check_slice_construction(ptr_t begin, ptr_t end, bool end_is_
 		return true;
 	}
 
-	if (!this->is_alive(begin, end))
-	{
-		return false;
-	}
 	if (
 		this->memory.empty()
 		|| begin < this->address || begin >= this->address + this->object_size()
 		|| end <= this->address || end > this->address + this->object_size()
 	)
+	{
+		return false;
+	}
+	if (!this->is_alive(begin, end))
 	{
 		return false;
 	}
@@ -803,17 +805,19 @@ uint8_t const *heap_object::get_memory(ptr_t address) const
 
 bool heap_object::check_dereference(ptr_t address, type const *subobject_type) const
 {
-	if (!this->is_alive(address, address + subobject_type->size))
+	if (address < this->address || address >= this->address + this->object_size() || this->memory.empty())
 	{
+		bz_assert(false);
 		return false;
 	}
-	if (address < this->address || address >= this->address + this->object_size() || this->memory.empty())
+	if (!this->is_alive(address, address + subobject_type->size))
 	{
 		return false;
 	}
 
 	auto const offset = address - this->address;
-	return contained_in_object(this->elem_type, offset % this->elem_size(), subobject_type);
+	bz_assert(contained_in_object(this->elem_type, offset % this->elem_size(), subobject_type));
+	return true;
 }
 
 bz::u8string heap_object::get_dereference_error_reason(ptr_t address, type const *object_type) const
