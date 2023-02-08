@@ -842,7 +842,7 @@ bz::u8string heap_object::get_inplace_construct_error_reason(ptr_t, type const *
 {
 	if (object_type != this->elem_type)
 	{
-		return "address points to a subobject of one of the elemnts of this allocation";
+		return "address points to a subobject of one of the elements of this allocation";
 	}
 	else
 	{
@@ -2598,10 +2598,26 @@ bz::vector<error_reason_t> memory_manager::get_inplace_construct_error_reason(pt
 	bz_assert(_address != 0);
 	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame, is_stack_object] = remove_meta(_address, *this);
 
-	if (segment != memory_segment::heap)
+	if (is_finished_stack_frame)
 	{
 		bz::vector<error_reason_t> result;
-		result.push_back({ {}, "address points to an object, that is not on the heap" });
+
+		auto const &stack_object = this->meta_memory.get_stack_object_pointer(address);
+		result.push_back({ stack_object.object_src_tokens, "address points to a stack object from a finished stack frame" });
+
+		return result;
+	}
+	else if (segment != memory_segment::heap)
+	{
+		bz::vector<error_reason_t> result;
+		result.reserve(2);
+
+		result.push_back({ {}, "address points to an object that is not on the heap" });
+		bz_assert(segment == memory_segment::stack);
+		auto const stack_object = this->stack.get_stack_object(address);
+		bz_assert(stack_object != nullptr);
+		result.push_back({ stack_object->object_src_tokens, "address points to this stack object" });
+
 		return result;
 	}
 	else if (is_one_past_the_end)
