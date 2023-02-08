@@ -1,0 +1,17 @@
+function foo() -> *int32
+{
+	let i = 0;
+	return &i;
+}
+
+function bar(p: *int32)
+{
+	*p;
+}
+
+function test()
+{
+	(consteval {
+		bar(foo());
+	});
+}

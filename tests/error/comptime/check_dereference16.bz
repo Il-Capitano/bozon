@@ -1,10 +1,9 @@
 function test()
 {
 	(consteval {
-		let &i = {
+		let &_ = {
 			let i = 0;
 			i
 		};
-		i;
 	});
 }

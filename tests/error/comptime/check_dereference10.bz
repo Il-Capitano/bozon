@@ -1,6 +1,6 @@
-function foo(val: [int32]) -> *int32
+function foo(t: [int32]) -> *int32
 {
-	return &val[0];
+	return &t[0];
 }
 
 function test()

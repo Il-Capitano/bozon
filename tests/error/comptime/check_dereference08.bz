@@ -1,0 +1,8 @@
+consteval global_arr = [10: int32]();
+
+function test()
+{
+	(consteval {
+		*(&global_arr[0] + 10);
+	});
+}

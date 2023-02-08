@@ -1,0 +1,16 @@
+function foo(p: ?*int32) -> *int32
+{
+	let i = 0;
+	if (p != null)
+	{
+		*p;
+	}
+	return &i;
+}
+
+function test()
+{
+	(consteval {
+		foo(foo(null));
+	});
+}

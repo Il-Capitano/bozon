@@ -1,0 +1,8 @@
+function test()
+{
+	(consteval {
+		let arr: [??: int32] = [ 0, 1, 2 ];
+		let p = &arr[0];
+		*(p + arr.size());
+	});
+}
