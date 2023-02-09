@@ -1105,6 +1105,27 @@ void codegen_context::create_inplace_construct_check(
 	}, ptr_value);
 }
 
+void codegen_context::create_destruct_value_check(
+	lex::src_tokens const &src_tokens,
+	expr_value value,
+	ast::typespec_view object_typespec
+)
+{
+	bz_assert(value.is_reference());
+
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+	auto const memory_access_check_info_index = this->add_memory_access_check_info({
+		.object_type = value.get_type(),
+		.object_typespec = object_typespec,
+	});
+	auto const value_ptr_value = value.get_reference();
+
+	add_instruction(*this, instructions::check_destruct_value{
+		.src_tokens_index = src_tokens_index,
+		.memory_access_check_info_index = memory_access_check_info_index,
+	}, value_ptr_value);
+}
+
 expr_value codegen_context::create_alloca(lex::src_tokens const &src_tokens, type const *type)
 {
 	this->current_function_info.allocas.push_back({ type, false, src_tokens });
@@ -6013,7 +6034,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 541);
+	static_assert(instruction::variant_count == 542);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>();

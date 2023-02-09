@@ -303,6 +303,11 @@ struct codegen_context
 		expr_value ptr,
 		ast::typespec_view object_typespec
 	);
+	void create_destruct_value_check(
+		lex::src_tokens const &src_tokens,
+		expr_value value,
+		ast::typespec_view object_typespec
+	);
 
 	expr_value create_alloca(lex::src_tokens const &src_tokens, type const *type);
 	expr_value create_alloca_without_lifetime(type const *type);

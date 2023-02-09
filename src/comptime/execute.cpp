@@ -394,6 +394,12 @@ static void execute_check_inplace_construct(instructions::check_inplace_construc
 	context.check_inplace_construct(inst.src_tokens_index, address, info.object_type, info.object_typespec);
 }
 
+static void execute_check_destruct_value(instructions::check_destruct_value const &inst, ptr_t address, executor_context &context)
+{
+	auto const &info = context.get_memory_access_info(inst.memory_access_check_info_index);
+	context.check_destruct_value(inst.src_tokens_index, address, info.object_type, info.object_typespec);
+}
+
 static uint8_t execute_cast_zext_i1_to_i8(instructions::cast_zext_i1_to_i8 const &, bool value, executor_context &)
 {
 	return value ? 1 : 0;
@@ -4767,7 +4773,7 @@ void execute_current_instruction(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-	static_assert(instruction::variant_count == 541);
+	static_assert(instruction::variant_count == 542);
 	case instruction::const_i1:
 		execute<instructions::const_i1, &execute_const_i1>(context);
 		break;
@@ -4926,6 +4932,9 @@ void execute_current_instruction(executor_context &context)
 		break;
 	case instruction::check_inplace_construct:
 		execute<instructions::check_inplace_construct, &execute_check_inplace_construct>(context);
+		break;
+	case instruction::check_destruct_value:
+		execute<instructions::check_destruct_value, &execute_check_destruct_value>(context);
 		break;
 	case instruction::cast_zext_i1_to_i8:
 		execute<instructions::cast_zext_i1_to_i8, &execute_cast_zext_i1_to_i8>(context);

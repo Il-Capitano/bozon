@@ -375,7 +375,12 @@ void executor_context::free(uint32_t src_tokens_index, ptr_t address)
 	}
 }
 
-void executor_context::check_dereference(uint32_t src_tokens_index, ptr_t address, type const *object_type, ast::typespec_view object_typespec)
+void executor_context::check_dereference(
+	uint32_t src_tokens_index,
+	ptr_t address,
+	type const *object_type,
+	ast::typespec_view object_typespec
+)
 {
 	if (address == 0)
 	{
@@ -402,17 +407,14 @@ void executor_context::check_dereference(uint32_t src_tokens_index, ptr_t addres
 	}
 }
 
-void executor_context::check_inplace_construct(uint32_t src_tokens_index, ptr_t address, type const *object_type, ast::typespec_view object_typespec)
+void executor_context::check_inplace_construct(
+	uint32_t src_tokens_index,
+	ptr_t address,
+	type const *object_type,
+	ast::typespec_view object_typespec
+)
 {
-	if (address == 0)
-	{
-		this->report_error(
-			src_tokens_index,
-			bz::format("attempting to construct an object of type '{}' at a null address", object_typespec)
-		);
-		return;
-	}
-
+	bz_assert(address != 0);
 	auto const is_good = this->memory.check_inplace_construct(address, object_type);
 	if (!is_good)
 	{
@@ -420,6 +422,30 @@ void executor_context::check_inplace_construct(uint32_t src_tokens_index, ptr_t 
 		this->report_error(
 			src_tokens_index,
 			bz::format("invalid construction of an object of type '{}'", object_typespec),
+			reasons.transform([&](auto &reason) {
+				return reason.src_tokens.begin == nullptr
+					? this->make_note(src_tokens_index, std::move(reason.message))
+					: make_source_highlight(reason.src_tokens, std::move(reason.message));
+			}).collect()
+		);
+	}
+}
+
+void executor_context::check_destruct_value(
+	uint32_t src_tokens_index,
+	ptr_t address,
+	type const *object_type,
+	ast::typespec_view object_typespec
+)
+{
+	bz_assert(address != 0);
+	auto const is_good = this->memory.check_destruct_value(address, object_type);
+	if (!is_good)
+	{
+		auto reasons = this->memory.get_destruct_value_error_reason(address, object_type);
+		this->report_error(
+			src_tokens_index,
+			bz::format("invalid destruction of an object of type '{}'", object_typespec),
 			reasons.transform([&](auto &reason) {
 				return reason.src_tokens.begin == nullptr
 					? this->make_note(src_tokens_index, std::move(reason.message))

@@ -3856,11 +3856,14 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expression const &original_expression,
 	ast::expr_destruct_value const &destruct_value,
 	codegen_context &context
 )
 {
 	auto const value = generate_expr_code(destruct_value.value, context, {});
+	bz_assert(value.is_reference());
+	context.create_destruct_value_check(original_expression.src_tokens, value, destruct_value.value.get_expr_type());
 	if (destruct_value.destruct_call.not_null())
 	{
 		auto const prev_value = context.push_value_reference(value);
@@ -5012,7 +5015,7 @@ static expr_value generate_expr_code(
 		return generate_expr_code(expr.get<ast::expr_base_type_destruct>(), context);
 	case ast::expr_t::index<ast::expr_destruct_value>:
 		bz_assert(!result_address.has_value());
-		return generate_expr_code(expr.get<ast::expr_destruct_value>(), context);
+		return generate_expr_code(original_expression, expr.get<ast::expr_destruct_value>(), context);
 	case ast::expr_t::index<ast::expr_aggregate_swap>:
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(expr.get<ast::expr_aggregate_swap>(), context);

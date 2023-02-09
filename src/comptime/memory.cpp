@@ -842,11 +842,35 @@ bz::u8string heap_object::get_inplace_construct_error_reason(ptr_t, type const *
 {
 	if (object_type != this->elem_type)
 	{
-		return "address points to a subobject of one of the elements of this allocation";
+		return "address points to a subobject of one of the elements in this allocation";
 	}
 	else
 	{
 		return "address points to an element in this allocation, that has already been constructed";
+	}
+}
+
+bool heap_object::check_destruct_value(ptr_t address, type const *object_type) const
+{
+	if (object_type != this->elem_type)
+	{
+		return false;
+	}
+	else
+	{
+		return this->is_alive(address, address + this->elem_size());
+	}
+}
+
+bz::u8string heap_object::get_destruct_value_error_reason(ptr_t, type const *object_type) const
+{
+	if (object_type != this->elem_type)
+	{
+		return "address points to a subobject of one of the elements in this allocation";
+	}
+	else
+	{
+		return "address points to an element outside its lifetime in this allocation";
 	}
 }
 
@@ -2131,6 +2155,42 @@ bz::vector<error_reason_t> heap_manager::get_inplace_construct_error_reason(ptr_
 	return result;
 }
 
+bool heap_manager::check_destruct_value(ptr_t address, type const *object_type) const
+{
+	auto const allocation = this->get_allocation(address);
+	bz_assert(allocation != nullptr);
+	if (allocation->is_freed)
+	{
+		return false;
+	}
+	else
+	{
+		return allocation->object.check_destruct_value(address, object_type);
+	}
+}
+
+bz::vector<error_reason_t> heap_manager::get_destruct_value_error_reason(ptr_t address, type const *object_type) const
+{
+	auto const allocation = this->get_allocation(address);
+	bz_assert(allocation != nullptr);
+
+	bz::vector<error_reason_t> result;
+	if (allocation->is_freed)
+	{
+		result.reserve(2 + allocation->alloc_info.call_stack.size() + allocation->free_info.call_stack.size());
+		result.push_back({ allocation->alloc_info.src_tokens, "address points to an element in this allocation, which was freed" });
+		add_allocation_info(result, allocation->alloc_info);
+		add_free_info(result, allocation->free_info);
+	}
+	else
+	{
+		result.reserve(1 + allocation->alloc_info.call_stack.size());
+		result.push_back({ allocation->alloc_info.src_tokens, allocation->object.get_destruct_value_error_reason(address, object_type) });
+		add_allocation_info(result, allocation->alloc_info);
+	}
+	return result;
+}
+
 bool heap_manager::check_slice_construction(ptr_t begin, ptr_t end, bool end_is_one_past_the_end, type const *elem_type) const
 {
 	bz_assert(begin <= end);
@@ -2583,7 +2643,7 @@ bool memory_manager::check_inplace_construct(ptr_t _address, type const *object_
 	bz_assert(_address != 0);
 	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame, is_stack_object] = remove_meta(_address, *this);
 
-	if (is_finished_stack_frame || is_one_past_the_end || segment != memory_segment::heap)
+	if (is_one_past_the_end || segment != memory_segment::heap)
 	{
 		return false;
 	}
@@ -2632,6 +2692,63 @@ bz::vector<error_reason_t> memory_manager::get_inplace_construct_error_reason(pt
 	else
 	{
 		return this->heap.get_inplace_construct_error_reason(address, object_type);
+	}
+}
+
+bool memory_manager::check_destruct_value(ptr_t _address, type const *object_type) const
+{
+	bz_assert(_address != 0);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame, is_stack_object] = remove_meta(_address, *this);
+
+	if (is_one_past_the_end || segment != memory_segment::heap)
+	{
+		return false;
+	}
+	else
+	{
+		return this->heap.check_destruct_value(address, object_type);
+	}
+}
+
+bz::vector<error_reason_t> memory_manager::get_destruct_value_error_reason(ptr_t _address, type const *object_type) const
+{
+	bz_assert(_address != 0);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame, is_stack_object] = remove_meta(_address, *this);
+
+	if (is_finished_stack_frame)
+	{
+		bz::vector<error_reason_t> result;
+
+		auto const &stack_object = this->meta_memory.get_stack_object_pointer(address);
+		result.push_back({ stack_object.object_src_tokens, "address points to a stack object from a finished stack frame" });
+
+		return result;
+	}
+	else if (segment != memory_segment::heap)
+	{
+		bz::vector<error_reason_t> result;
+		result.reserve(2);
+
+		result.push_back({ {}, "address points to an object that is not on the heap" });
+		bz_assert(segment == memory_segment::stack);
+		auto const stack_object = this->stack.get_stack_object(address);
+		bz_assert(stack_object != nullptr);
+		result.push_back({ stack_object->object_src_tokens, "address points to this stack object" });
+
+		return result;
+	}
+	else if (is_one_past_the_end)
+	{
+		auto const allocation = this->heap.get_allocation(address);
+		bz::vector<error_reason_t> result;
+		result.reserve(1 + allocation->alloc_info.call_stack.size());
+		result.push_back({ allocation->alloc_info.src_tokens, "address is a one-past-the-end pointer into this allocation" });
+		add_allocation_info(result, allocation->alloc_info);
+		return result;
+	}
+	else
+	{
+		return this->heap.get_destruct_value_error_reason(address, object_type);
 	}
 }
 
