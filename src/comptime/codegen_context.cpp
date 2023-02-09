@@ -1198,6 +1198,27 @@ instruction_ref codegen_context::create_switch(
 	return result;
 }
 
+instruction_ref codegen_context::create_string_switch(
+	expr_value begin_ptr,
+	expr_value end_ptr,
+	bz::vector<unresolved_switch_str::value_bb_pair> values,
+	basic_block_ref default_bb
+)
+{
+	auto const begin_ptr_value = begin_ptr.get_value_as_instruction(*this);
+	auto const end_ptr_value = end_ptr.get_value_as_instruction(*this);
+	auto const switch_str_info_index = static_cast<uint32_t>(this->current_function_info.unresolved_string_switches.size());
+	auto const result = add_instruction(*this, instructions::switch_str{
+		.switch_str_info_index = switch_str_info_index
+	}, begin_ptr_value, end_ptr_value);
+	this->current_function_info.unresolved_string_switches.push_back({
+		.inst = result,
+		.values = std::move(values),
+		.default_bb = default_bb,
+	});
+	return result;
+}
+
 instruction_ref codegen_context::create_ret(instruction_ref value)
 {
 	return add_instruction(*this, instructions::ret{}, value);
@@ -6034,7 +6055,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 542);
+	static_assert(instruction::variant_count == 543);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instruction::jump>();
@@ -6112,6 +6133,22 @@ void current_function_info_t::finalize_function(void)
 			info.values[j].dest = get_instruction_index({ .bb_index = values[j].bb.bb_index, .inst_index = 0 });
 		}
 		info.values.sort([](auto const &lhs, auto const &rhs) { return lhs.value < rhs.value; });
+		info.default_dest = get_instruction_index({ .bb_index = default_dest.bb_index, .inst_index = 0 });
+	}
+
+	// finalize switch_str_infos
+	func.switch_str_infos = bz::fixed_vector<switch_str_info_t>(this->unresolved_string_switches.size());
+	for (auto const i : bz::iota(0, func.switch_str_infos.size()))
+	{
+		auto const &[inst_ref, values, default_dest] = this->unresolved_string_switches[i];
+		auto &info = func.switch_str_infos[i];
+		info.values = bz::fixed_vector<switch_str_info_t::value_instruction_index_pair>(values.size());
+		for (auto const j : bz::iota(0, info.values.size()))
+		{
+			info.values[j].value = values[j].value;
+			info.values[j].dest = get_instruction_index({ .bb_index = values[j].bb.bb_index, .inst_index = 0 });
+		}
+		info.values.sort([](auto const &lhs, auto const &rhs) { return switch_str_info_t::compare(lhs.value, rhs.value); });
 		info.default_dest = get_instruction_index({ .bb_index = default_dest.bb_index, .inst_index = 0 });
 	}
 

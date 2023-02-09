@@ -263,6 +263,12 @@ switch_info_t const &executor_context::get_switch_info(uint32_t index) const
 	return this->current_function->switch_infos[index];
 }
 
+switch_str_info_t const &executor_context::get_switch_str_info(uint32_t index) const
+{
+	bz_assert(index < this->current_function->switch_str_infos.size());
+	return this->current_function->switch_str_infos[index];
+}
+
 error_info_t const &executor_context::get_error_info(uint32_t index) const
 {
 	bz_assert(index < this->current_function->errors.size());

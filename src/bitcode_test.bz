@@ -1380,6 +1380,14 @@ function consteval_test(i: if (true) int32 else int64)
 	static_assert(size == 6u);
 	static_assert(len != size);
 
+	consteval val = switch (str) {
+		"Hello" => 0,
+		"Hi" => 1,
+		"Helló" => 2,
+		else => unreachable,
+	};
+	static_assert(val == 2);
+
 	function consteval_param(n: consteval int32) -> int32
 	{
 		static_assert(n > 0);

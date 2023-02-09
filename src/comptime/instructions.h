@@ -42,6 +42,33 @@ struct switch_info_t
 	instruction_index default_dest;
 };
 
+struct switch_str_info_t
+{
+	struct value_instruction_index_pair
+	{
+		bz::u8string_view value;
+		instruction_index dest;
+	};
+
+	bz::fixed_vector<value_instruction_index_pair> values;
+	instruction_index default_dest;
+
+	static constexpr auto compare = [](bz::u8string_view lhs, bz::u8string_view rhs) {
+		auto const lhs_size = lhs.size();
+		auto const rhs_size = rhs.size();
+		if (lhs_size < rhs_size)
+		{
+			return true;
+		}
+		else if (lhs_size > rhs_size)
+		{
+			return false;
+		}
+
+		return std::memcmp(lhs.data(), rhs.data(), lhs_size) < 0;
+	};
+};
+
 struct error_info_t
 {
 	lex::src_tokens src_tokens;
@@ -87,6 +114,7 @@ struct function
 
 	bz::fixed_vector<alloca> allocas;
 	bz::fixed_vector<switch_info_t> switch_infos;
+	bz::fixed_vector<switch_str_info_t> switch_str_infos;
 	bz::fixed_vector<error_info_t> errors;
 	bz::fixed_vector<lex::src_tokens> src_tokens;
 	bz::fixed_vector<bz::fixed_vector<instruction_value_index>> call_args;
@@ -4753,6 +4781,16 @@ struct switch_i64
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
+struct switch_str
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::none;
+
+	uint32_t switch_str_info_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
 struct ret
 {
 	static inline constexpr bz::array arg_types = { value_type::any };
@@ -5430,6 +5468,7 @@ using instruction_base_t = bz::variant<
 	instructions::switch_i16,
 	instructions::switch_i32,
 	instructions::switch_i64,
+	instructions::switch_str,
 	instructions::ret,
 	instructions::ret_void,
 	instructions::unreachable,
@@ -5452,7 +5491,7 @@ struct instruction : instruction_base_t
 {
 	using base_t = instruction_base_t;
 
-	static_assert(variant_count == 542);
+	static_assert(variant_count == 543);
 	enum : base_t::index_t
 	{
 		const_i1                 = index_of<instructions::const_i1>,
@@ -5981,6 +6020,7 @@ struct instruction : instruction_base_t
 		switch_i16               = index_of<instructions::switch_i16>,
 		switch_i32               = index_of<instructions::switch_i32>,
 		switch_i64               = index_of<instructions::switch_i64>,
+		switch_str               = index_of<instructions::switch_str>,
 		ret                      = index_of<instructions::ret>,
 		ret_void                 = index_of<instructions::ret_void>,
 		unreachable              = index_of<instructions::unreachable>,
@@ -6010,6 +6050,7 @@ struct instruction : instruction_base_t
 		case switch_i16:
 		case switch_i32:
 		case switch_i64:
+		case switch_str:
 		case ret:
 		case ret_void:
 		case unreachable:

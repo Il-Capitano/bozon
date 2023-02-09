@@ -4433,6 +4433,24 @@ static void execute_switch_i64(instructions::switch_i64 const &inst, uint64_t va
 	execute_switch(info, value, context);
 }
 
+static void execute_switch_str(instructions::switch_str const &inst, ptr_t begin, ptr_t end, executor_context &context)
+{
+	auto const &info = context.get_switch_str_info(inst.switch_str_info_index);
+	auto const value = begin == 0 ? bz::u8string_view() : bz::u8string_view(context.get_memory(begin), context.get_memory(end));
+
+	auto const it = std::lower_bound(info.values.begin(), info.values.end(), value, [](auto const &lhs, bz::u8string_view rhs) {
+		return switch_str_info_t::compare(lhs.value, rhs);
+	});
+	if (it != info.values.end() && it->value == value)
+	{
+		context.do_jump(it->dest);
+	}
+	else
+	{
+		context.do_jump(info.default_dest);
+	}
+}
+
 static void execute_ret(instructions::ret const &, instruction_value value, executor_context &context)
 {
 	context.do_ret(value);
@@ -4773,7 +4791,7 @@ void execute_current_instruction(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-	static_assert(instruction::variant_count == 542);
+	static_assert(instruction::variant_count == 543);
 	case instruction::const_i1:
 		execute<instructions::const_i1, &execute_const_i1>(context);
 		break;
@@ -6351,6 +6369,9 @@ void execute_current_instruction(executor_context &context)
 		break;
 	case instruction::switch_i64:
 		execute<instructions::switch_i64, &execute_switch_i64>(context);
+		break;
+	case instruction::switch_str:
+		execute<instructions::switch_str, &execute_switch_str>(context);
 		break;
 	case instruction::ret:
 		execute<instructions::ret, &execute_ret>(context);

@@ -81,6 +81,7 @@ struct executor_context
 	void call_function(uint32_t call_src_tokens_index, function *func, uint32_t args_index);
 
 	switch_info_t const &get_switch_info(uint32_t index) const;
+	switch_str_info_t const &get_switch_str_info(uint32_t index) const;
 	error_info_t const &get_error_info(uint32_t index) const;
 	lex::src_tokens const &get_src_tokens(uint32_t index) const;
 	slice_construction_check_info_t const &get_slice_construction_info(uint32_t index) const;

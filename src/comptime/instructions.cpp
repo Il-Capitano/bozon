@@ -15,7 +15,7 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 {
 	switch (inst_.index())
 	{
-	static_assert(instruction::variant_count == 542);
+	static_assert(instruction::variant_count == 543);
 	case instruction::const_i1:
 	{
 		auto const &inst = inst_.get<instruction::const_i1>();
@@ -2699,6 +2699,11 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 	{
 		auto const &inst = inst_.get<instruction::switch_i64>();
 		return bz::format("switch i64 {} ({})", inst.args[0], inst.switch_info_index);
+	}
+	case instruction::switch_str:
+	{
+		auto const &inst = inst_.get<instruction::switch_str>();
+		return bz::format("switch str {}, {} ({})", inst.args[0], inst.args[1], inst.switch_str_info_index);
 	}
 	case instruction::ret:
 	{

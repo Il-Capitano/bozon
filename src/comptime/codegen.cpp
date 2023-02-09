@@ -9,7 +9,6 @@ type const *get_type(ast::typespec_view type, codegen_context &context)
 	return ast::get_type_prototype(type, context.type_set);
 }
 
-
 static expr_value value_or_result_address(expr_value value, bz::optional<expr_value> result_address, codegen_context &context)
 {
 	if (result_address.has_value())
@@ -4730,19 +4729,14 @@ static expr_value generate_expr_code(
 	}
 }
 
-static expr_value generate_expr_code(
+static expr_value generate_integral_switch_code(
 	ast::expression const &original_expression,
 	ast::expr_switch const &switch_expr,
+	expr_value matched_value,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 )
 {
-	auto const matched_value_prev_info = context.push_expression_scope();
-	auto const _matched_value = generate_expr_code(switch_expr.matched_expr, context, {});
-	bz_assert(_matched_value.get_type()->is_integer_type());
-	auto const matched_value = _matched_value.get_value(context);
-	context.pop_expression_scope(matched_value_prev_info);
-
 	auto const default_bb = context.add_basic_block();
 	auto const has_default = switch_expr.default_case.not_null();
 	bz_assert(result_address.has_value() ? switch_expr.is_complete : true);
@@ -4835,6 +4829,118 @@ static expr_value generate_expr_code(
 	else
 	{
 		return expr_value::get_none();
+	}
+}
+
+static expr_value generate_string_switch_code(
+	ast::expression const &original_expression,
+	ast::expr_switch const &switch_expr,
+	expr_value begin_ptr,
+	expr_value end_ptr,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+)
+{
+	auto const default_bb = context.add_basic_block();
+	auto const has_default = switch_expr.default_case.not_null();
+	bz_assert(result_address.has_value() ? switch_expr.is_complete : true);
+	auto const begin_bb = context.get_current_basic_block();
+
+	auto const case_count = switch_expr.cases.transform([](auto const &switch_case) { return switch_case.values.size(); }).sum();
+	auto cases = bz::vector<unresolved_switch_str::value_bb_pair>();
+	cases.reserve(case_count);
+	auto case_bb_ends = bz::vector<basic_block_ref>();
+	case_bb_ends.reserve(case_count + 1);
+
+	if (has_default)
+	{
+		context.set_current_basic_block(default_bb);
+		auto const prev_info = context.push_expression_scope();
+		generate_expr_code(switch_expr.default_case, context, result_address);
+		context.pop_expression_scope(prev_info);
+		if (!context.has_terminator())
+		{
+			case_bb_ends.push_back(context.get_current_basic_block());
+		}
+	}
+	else if (switch_expr.is_complete)
+	{
+		context.set_current_basic_block(default_bb);
+		context.create_error(original_expression.src_tokens, "invalid value used in 'switch'");
+		context.create_unreachable();
+	}
+	else
+	{
+		case_bb_ends.push_back(default_bb);
+	}
+
+	for (auto const &[case_vals, case_expr] : switch_expr.cases)
+	{
+		auto const bb = context.add_basic_block();
+		for (auto const &expr : case_vals)
+		{
+			bz_assert(expr.is_constant());
+			auto const &value = expr.get_constant_value();
+			bz_assert(value.is_string());
+			cases.push_back({ .value = value.get_string(), .bb = bb });
+		}
+
+		context.set_current_basic_block(bb);
+		auto const prev_info = context.push_expression_scope();
+		generate_expr_code(case_expr, context, result_address);
+		context.pop_expression_scope(prev_info);
+
+		if (!context.has_terminator())
+		{
+			case_bb_ends.push_back(context.get_current_basic_block());
+		}
+	}
+
+	auto const end_bb = context.add_basic_block();
+	for (auto const case_end_bb : case_bb_ends)
+	{
+		context.set_current_basic_block(case_end_bb);
+		context.create_jump(end_bb);
+	}
+
+	context.set_current_basic_block(begin_bb);
+	context.create_string_switch(begin_ptr, end_ptr, std::move(cases), default_bb);
+	context.set_current_basic_block(end_bb);
+
+	if (result_address.has_value())
+	{
+		return result_address.get();
+	}
+	else
+	{
+		return expr_value::get_none();
+	}
+}
+
+static expr_value generate_expr_code(
+	ast::expression const &original_expression,
+	ast::expr_switch const &switch_expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+)
+{
+	auto const matched_value_prev_info = context.push_expression_scope();
+	auto const matched_value = generate_expr_code(switch_expr.matched_expr, context, {});
+
+	if (matched_value.get_type()->is_integer_type())
+	{
+		auto const matched_value_value = matched_value.get_value(context);
+		context.pop_expression_scope(matched_value_prev_info);
+
+		return generate_integral_switch_code(original_expression, switch_expr, matched_value_value, context, result_address);
+	}
+	else
+	{
+		auto const begin_ptr = context.create_struct_gep(matched_value, 0).get_value(context);
+		auto const end_ptr   = context.create_struct_gep(matched_value, 1).get_value(context);
+		context.pop_expression_scope(matched_value_prev_info);
+
+		return generate_string_switch_code(original_expression, switch_expr, begin_ptr, end_ptr, context, result_address);
 	}
 }
 

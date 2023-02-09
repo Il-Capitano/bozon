@@ -94,6 +94,19 @@ struct unresolved_switch
 	basic_block_ref default_bb;
 };
 
+struct unresolved_switch_str
+{
+	struct value_bb_pair
+	{
+		bz::u8string_view value;
+		basic_block_ref bb;
+	};
+
+	instruction_ref inst;
+	bz::vector<value_bb_pair> values;
+	basic_block_ref default_bb;
+};
+
 struct destruct_operation_info_t
 {
 	ast::destruct_operation const *destruct_op;
@@ -124,6 +137,7 @@ struct current_function_info_t
 	bz::vector<unresolved_instruction> unresolved_instructions;
 	bz::vector<unresolved_jump> unresolved_jumps;
 	bz::vector<unresolved_switch> unresolved_switches;
+	bz::vector<unresolved_switch_str> unresolved_string_switches;
 
 	bz::vector<destruct_operation_info_t> destructor_calls{};
 	std::unordered_map<ast::decl_variable const *, instruction_ref> move_destruct_indicators{};
@@ -315,6 +329,12 @@ struct codegen_context
 	instruction_ref create_jump(basic_block_ref bb);
 	instruction_ref create_conditional_jump(expr_value condition, basic_block_ref true_bb, basic_block_ref false_bb);
 	instruction_ref create_switch(expr_value value, bz::vector<unresolved_switch::value_bb_pair> values, basic_block_ref default_bb);
+	instruction_ref create_string_switch(
+		expr_value begin_ptr,
+		expr_value end_ptr,
+		bz::vector<unresolved_switch_str::value_bb_pair> values,
+		basic_block_ref default_bb
+	);
 	instruction_ref create_ret(instruction_ref value);
 	instruction_ref create_ret_void(void);
 
