@@ -914,7 +914,7 @@ bz::vector<bz::u8string> heap_object::get_slice_construction_error_reason(
 	auto const begin_offset = begin - this->address;
 	auto const end_offset = end - this->address;
 	auto const begin_object_index = begin_offset / this->elem_size();
-	auto const end_object_index = end_offset / this->elem_size();
+	auto const end_object_index = end_offset / this->elem_size() - (end_is_one_past_the_end && (end_offset % this->elem_size() == 0) ? 1 : 0);
 
 	if (elem_type != this->elem_type && begin_object_index != end_object_index)
 	{
