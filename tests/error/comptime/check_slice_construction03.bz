@@ -1,0 +1,12 @@
+function foo() -> *int32
+{
+	let i = 0;
+	return &i;
+}
+
+function test()
+{
+	(consteval {
+		__builtin_slice_from_ptrs(foo(), foo());
+	});
+}

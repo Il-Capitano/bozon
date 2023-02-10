@@ -1,0 +1,8 @@
+function test()
+{
+	(consteval {
+		consteval i = 0;
+		consteval j = 0;
+		__builtin_slice_from_const_ptrs(&i, &j);
+	});
+}
