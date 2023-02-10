@@ -593,14 +593,14 @@ function set_to_zero(n: &int32) -> void
 
 function foo() -> void
 {
-	let i8 = 0i8;
-	let i16 = 0i16;
-	let i32 = 0i32;
-	let i64 = 0i64;
-	let u8 = 0u8;
-	let u16 = 0u16;
-	let u32 = 0u32;
-	let u64 = 0u64;
+	let i8 = 1i8;
+	let i16 = 1i16;
+	let i32 = 1i32;
+	let i64 = 1i64;
+	let u8 = 1u8;
+	let u16 = 1u16;
+	let u32 = 1u32;
+	let u64 = 1u64;
 
 	i8 == i8;
 	// i8 == u8;
