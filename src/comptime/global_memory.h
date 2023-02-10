@@ -113,6 +113,7 @@ struct global_memory_manager
 	) const;
 
 	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs) const;
+	bz::vector<error_reason_t> get_compare_pointers_error_reason(ptr_t lhs, ptr_t rhs) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(
 		ptr_t address,
 		bool is_one_past_the_end,

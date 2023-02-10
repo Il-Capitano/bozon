@@ -1913,6 +1913,32 @@ bz::optional<int> stack_manager::compare_pointers(ptr_t lhs, ptr_t rhs) const
 	}
 }
 
+bz::vector<error_reason_t> stack_manager::get_compare_pointers_error_reason(ptr_t lhs, ptr_t rhs) const
+{
+	auto const lhs_stack_object = this->get_stack_object(lhs);
+	auto const rhs_stack_object = this->get_stack_object(rhs);
+	bz_assert(lhs_stack_object != nullptr);
+	bz_assert(rhs_stack_object != nullptr);
+
+	bz::vector<error_reason_t> result;
+	if (lhs_stack_object != rhs_stack_object)
+	{
+		result.reserve(3);
+		result.push_back({ {}, "lhs and rhs addresses point to different stack objects" });
+		result.push_back({ lhs_stack_object->object_src_tokens, "lhs address points to this stack object" });
+		result.push_back({ rhs_stack_object->object_src_tokens, "rhs address points to this stack object" });
+	}
+	else if (!lhs_stack_object->is_alive(std::min(lhs, rhs), std::max(lhs, rhs)))
+	{
+		result.push_back({
+			lhs_stack_object->object_src_tokens,
+			"lhs and rhs addresses point to this stack object, which is outside its lifetime"
+		});
+	}
+
+	return result;
+}
+
 pointer_arithmetic_result_t stack_manager::do_pointer_arithmetic(
 	ptr_t address,
 	bool is_one_past_the_end,
@@ -2284,6 +2310,37 @@ bz::optional<int> heap_manager::compare_pointers(ptr_t lhs, ptr_t rhs) const
 	}
 }
 
+bz::vector<error_reason_t> heap_manager::get_compare_pointers_error_reason(ptr_t lhs, ptr_t rhs) const
+{
+	auto const lhs_allocation = this->get_allocation(lhs);
+	auto const rhs_allocation = this->get_allocation(rhs);
+	bz_assert(lhs_allocation != nullptr);
+	bz_assert(rhs_allocation != nullptr);
+
+	bz::vector<error_reason_t> result;
+	if (lhs_allocation != rhs_allocation)
+	{
+		result.reserve(3 + lhs_allocation->alloc_info.call_stack.size() + rhs_allocation->alloc_info.call_stack.size());
+		result.push_back({ {}, "lhs and rhs addresses point to different allocations" });
+		result.push_back({ lhs_allocation->alloc_info.src_tokens, "lhs address points to an object in this allocation" });
+		add_allocation_info(result, lhs_allocation->alloc_info);
+		result.push_back({ rhs_allocation->alloc_info.src_tokens, "rhs address points to an object in this allocation" });
+		add_allocation_info(result, rhs_allocation->alloc_info);
+	}
+	else if (lhs_allocation->is_freed)
+	{
+		result.reserve(1 + lhs_allocation->alloc_info.call_stack.size() + lhs_allocation->free_info.call_stack.size() + 1);
+		result.push_back({
+			lhs_allocation->alloc_info.src_tokens,
+			"lhs and rhs addresses point to objects in this allocation, which was freed"
+		});
+		add_allocation_info(result, lhs_allocation->alloc_info);
+		add_free_info(result, lhs_allocation->free_info);
+	}
+
+	return result;
+}
+
 pointer_arithmetic_result_t heap_manager::do_pointer_arithmetic(
 	ptr_t address,
 	bool is_one_past_the_end,
@@ -2537,21 +2594,6 @@ static remove_meta_result_t remove_meta(ptr_t address, memory_manager const &man
 	}
 
 	return { address, segment, is_one_past_the_end, false, is_stack_object };
-}
-
-static bz::u8string_view get_segment_name(memory_segment segment)
-{
-	switch (segment)
-	{
-	case memory_segment::global:
-		return "global";
-	case memory_segment::stack:
-		return "stack";
-	case memory_segment::heap:
-		return "heap";
-	case memory_segment::meta:
-		return "meta";
-	}
 }
 
 bool memory_manager::check_dereference(ptr_t _address, type const *object_type) const
@@ -2876,13 +2918,7 @@ bz::vector<error_reason_t> memory_manager::get_slice_construction_error_reason(p
 	{
 		bz::vector<error_reason_t> result;
 		result.reserve(3);
-		result.push_back({
-			{},
-			bz::format(
-				"begin and end addresses point to different memory segments",
-				get_segment_name(begin_segment), get_segment_name(end_segment)
-			)
-		});
+		result.push_back({ {}, "begin and end addresses point to different memory segments" });
 
 		switch (begin_segment)
 		{
@@ -3213,6 +3249,150 @@ bz::optional<int> memory_manager::compare_pointers(ptr_t _lhs, ptr_t _rhs) const
 			return this->stack.compare_pointers(lhs, rhs);
 		case memory_segment::heap:
 			return this->heap.compare_pointers(lhs, rhs);
+		case memory_segment::meta:
+			bz_unreachable;
+		}
+	}
+}
+
+bz::vector<error_reason_t> memory_manager::get_compare_pointers_error_reason(ptr_t _lhs, ptr_t _rhs) const
+{
+	bz_assert(_lhs != 0 && _rhs != 0);
+	auto const [
+		lhs,
+		lhs_segment,
+		lhs_is_one_past_the_end,
+		lhs_is_finished_stack_frame,
+		lhs_is_stack_object
+	] = remove_meta(_lhs, *this);
+	auto const [
+		rhs,
+		rhs_segment,
+		rhs_is_one_past_the_end,
+		rhs_is_finished_stack_frame,
+		rhs_is_stack_object
+	] = remove_meta(_rhs, *this);
+
+	if (lhs_is_finished_stack_frame && rhs_is_finished_stack_frame)
+	{
+		bz::vector<error_reason_t> result;
+		auto const &lhs_stack_object = this->meta_memory.get_stack_object_pointer(lhs);
+		auto const &rhs_stack_object = this->meta_memory.get_stack_object_pointer(rhs);
+		if (
+			lhs_stack_object.object_src_tokens.begin == rhs_stack_object.object_src_tokens.begin
+			&& lhs_stack_object.object_src_tokens.pivot == rhs_stack_object.object_src_tokens.pivot
+			&& lhs_stack_object.object_src_tokens.end == rhs_stack_object.object_src_tokens.end
+		)
+		{
+			result.push_back({
+				lhs_stack_object.object_src_tokens,
+				"lhs and rhs addresses point to an object from a finished stack frame"
+			});
+		}
+		else
+		{
+			result.reserve(2);
+			result.push_back({
+				lhs_stack_object.object_src_tokens,
+				"lhs address points to an object from a finished stack frame"
+			});
+			result.push_back({
+				rhs_stack_object.object_src_tokens,
+				"rhs address points to an object from a finished stack frame"
+			});
+		}
+		return result;
+	}
+	else if (lhs_is_finished_stack_frame)
+	{
+		bz::vector<error_reason_t> result;
+		auto const &stack_object = this->meta_memory.get_stack_object_pointer(lhs);
+		result.push_back({ stack_object.object_src_tokens, "lhs address points to an object from a finished stack frame" });
+		return result;
+	}
+	else if (rhs_is_finished_stack_frame)
+	{
+		bz::vector<error_reason_t> result;
+		auto const &stack_object = this->meta_memory.get_stack_object_pointer(rhs);
+		result.push_back({ stack_object.object_src_tokens, "rhs address points to an object from a finished stack frame" });
+		return result;
+	}
+	else if (lhs_segment != rhs_segment)
+	{
+		bz::vector<error_reason_t> result;
+		result.reserve(3);
+		result.push_back({ {}, "begin and end addresses point to different memory segments" });
+
+		switch (lhs_segment)
+		{
+		case memory_segment::global:
+		{
+			auto const global_object = this->global_memory->get_global_object(lhs);
+			bz_assert(global_object != nullptr);
+			result.push_back({ global_object->object_src_tokens, "lhs address points to this global object" });
+			break;
+		}
+		case memory_segment::stack:
+		{
+			auto const stack_object = this->stack.get_stack_object(lhs);
+			bz_assert(stack_object != nullptr);
+			result.push_back({ stack_object->object_src_tokens, "lhs address points to this stack object" });
+			break;
+		}
+		case memory_segment::heap:
+		{
+			auto const allocation = this->heap.get_allocation(lhs);
+			bz_assert(allocation != nullptr);
+			result.reserve(1 + allocation->alloc_info.call_stack.size());
+			result.push_back({ allocation->alloc_info.src_tokens, "lhs address points to an object in this allocation" });
+			add_allocation_info(result, allocation->alloc_info);
+			break;
+		}
+		case memory_segment::meta:
+			bz_unreachable;
+		}
+
+		switch (rhs_segment)
+		{
+		case memory_segment::global:
+		{
+			auto const global_object = this->global_memory->get_global_object(rhs);
+			bz_assert(global_object != nullptr);
+			result.push_back({ global_object->object_src_tokens, "rhs address points to this global object" });
+			break;
+		}
+		case memory_segment::stack:
+		{
+			auto const stack_object = this->stack.get_stack_object(rhs);
+			bz_assert(stack_object != nullptr);
+			result.push_back({ stack_object->object_src_tokens, "rhs address points to this stack object" });
+			break;
+		}
+		case memory_segment::heap:
+		{
+			auto const allocation = this->heap.get_allocation(rhs);
+			bz_assert(allocation != nullptr);
+			result.reserve(1 + allocation->alloc_info.call_stack.size());
+			result.push_back({ allocation->alloc_info.src_tokens, "rhs address points to an object in this allocation" });
+			add_allocation_info(result, allocation->alloc_info);
+			break;
+		}
+		case memory_segment::meta:
+			bz_unreachable;
+		}
+
+		return result;
+	}
+	else
+	{
+		switch (lhs_segment)
+		{
+		case memory_segment::global:
+			return this->global_memory->get_compare_pointers_error_reason(lhs, rhs);
+		case memory_segment::stack:
+			return this->stack.get_compare_pointers_error_reason(lhs, rhs);
+		case memory_segment::heap:
+			return this->heap.get_compare_pointers_error_reason(lhs, rhs);
 		case memory_segment::meta:
 			bz_unreachable;
 		}

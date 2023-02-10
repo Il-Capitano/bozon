@@ -426,12 +426,7 @@ bz::vector<error_reason_t> global_memory_manager::get_slice_construction_error_r
 bz::optional<int> global_memory_manager::compare_pointers(ptr_t lhs, ptr_t rhs) const
 {
 	auto const lhs_segment = this->segment_info.get_segment(lhs);
-	auto const rhs_segment = this->segment_info.get_segment(rhs);
-
-	if (lhs_segment != rhs_segment)
-	{
-		return {};
-	}
+	bz_assert(this->segment_info.get_segment(rhs) == lhs_segment);
 
 	switch (lhs_segment)
 	{
@@ -463,6 +458,26 @@ bz::optional<int> global_memory_manager::compare_pointers(ptr_t lhs, ptr_t rhs) 
 		}
 	}
 	}
+}
+
+bz::vector<error_reason_t> global_memory_manager::get_compare_pointers_error_reason(ptr_t lhs, ptr_t rhs) const
+{
+	auto const lhs_segment = this->segment_info.get_segment(lhs);
+	auto const rhs_segment = this->segment_info.get_segment(rhs);
+
+	bz_assert(lhs_segment == rhs_segment && lhs_segment == global_meta_memory_segment::objects);
+	auto const lhs_global_object = this->get_global_object(lhs);
+	auto const rhs_global_object = this->get_global_object(rhs);
+	bz_assert(lhs_global_object != nullptr);
+	bz_assert(rhs_global_object != nullptr);
+	bz_assert(lhs_global_object != rhs_global_object);
+
+	bz::vector<error_reason_t> result;
+	result.reserve(3);
+	result.push_back({ {}, "lhs and rhs addresses point to different global objects" });
+	result.push_back({ lhs_global_object->object_src_tokens, "lhs address points to this global object" });
+	result.push_back({ rhs_global_object->object_src_tokens, "rhs address points to this global object" });
+	return result;
 }
 
 pointer_arithmetic_result_t global_memory_manager::do_pointer_arithmetic(

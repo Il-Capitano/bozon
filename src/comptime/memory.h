@@ -206,6 +206,7 @@ struct stack_manager
 	) const;
 
 	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs) const;
+	bz::vector<error_reason_t> get_compare_pointers_error_reason(ptr_t lhs, ptr_t rhs) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(
 		ptr_t address,
 		bool is_one_past_the_end,
@@ -290,6 +291,7 @@ struct heap_manager
 	) const;
 
 	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs) const;
+	bz::vector<error_reason_t> get_compare_pointers_error_reason(ptr_t lhs, ptr_t rhs) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(
 		ptr_t address,
 		bool is_one_past_the_end,
@@ -390,6 +392,7 @@ struct memory_manager
 	bz::vector<error_reason_t> get_slice_construction_error_reason(ptr_t begin, ptr_t end, type const *elem_type) const;
 
 	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs) const;
+	bz::vector<error_reason_t> get_compare_pointers_error_reason(ptr_t lhs, ptr_t rhs) const;
 	ptr_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type);
 	ptr_t do_pointer_arithmetic_unchecked(ptr_t address, int64_t offset, type const *object_type);
 	ptr_t do_gep(ptr_t address, type const *object_type, uint64_t index);

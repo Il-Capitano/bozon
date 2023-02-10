@@ -567,7 +567,16 @@ int executor_context::compare_pointers(uint32_t src_tokens_index, ptr_t lhs, ptr
 		auto const compare_result = this->memory.compare_pointers(lhs, rhs);
 		if (!compare_result.has_value())
 		{
-			this->report_error(src_tokens_index, "comparing unrelated pointers");
+			auto reasons = this->memory.get_compare_pointers_error_reason(lhs, rhs);
+			this->report_error(
+				src_tokens_index,
+				"invalid pointer comparison",
+				reasons.transform([&](auto &reason) {
+					return reason.src_tokens.begin == nullptr
+						? this->make_note(src_tokens_index, std::move(reason.message))
+						: make_source_highlight(reason.src_tokens, std::move(reason.message));
+				}).collect()
+			);
 			return 0;
 		}
 		else
