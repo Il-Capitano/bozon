@@ -922,12 +922,16 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	{
 	case 0:
 		this->_target_machine->setOptLevel(llvm::CodeGenOpt::None);
+		break;
 	case 1:
 		this->_target_machine->setOptLevel(llvm::CodeGenOpt::Less);
+		break;
 	case 2:
 		this->_target_machine->setOptLevel(llvm::CodeGenOpt::Default);
+		break;
 	default:
 		this->_target_machine->setOptLevel(llvm::CodeGenOpt::Aggressive);
+		break;
 	}
 	this->_data_layout = this->_target_machine->createDataLayout();
 	this->_module.setDataLayout(*this->_data_layout);
