@@ -139,12 +139,12 @@ void executor_context::report_warning(
 	));
 }
 
-ctx::source_highlight executor_context::make_note(uint32_t src_tokens_index, bz::u8string message)
+ctx::source_highlight executor_context::make_note(uint32_t src_tokens_index, bz::u8string message) const
 {
 	return make_source_highlight(this->get_src_tokens(src_tokens_index), std::move(message));
 }
 
-bool executor_context::is_option_set(bz::u8string_view option)
+bool executor_context::is_option_set(bz::u8string_view option) const
 {
 	return defines.contains(option);
 }
@@ -349,6 +349,19 @@ memory::call_stack_info_t executor_context::get_call_stack_info(uint32_t src_tok
 	};
 }
 
+static bz::vector<ctx::source_highlight> get_notes(
+	bz::vector<memory::error_reason_t> &reasons,
+	uint32_t default_src_tokens_index,
+	executor_context const &context
+)
+{
+	return reasons.transform([&](auto &reason) {
+			return reason.src_tokens.begin == nullptr
+				? context.make_note(default_src_tokens_index, std::move(reason.message))
+				: make_source_highlight(reason.src_tokens, std::move(reason.message));
+		}).collect();
+}
+
 ptr_t executor_context::malloc(uint32_t src_tokens_index, type const *type, uint64_t count)
 {
 	auto const result = this->memory.heap.allocate(this->get_call_stack_info(src_tokens_index), type, count);
@@ -404,11 +417,7 @@ void executor_context::check_dereference(
 		this->report_error(
 			src_tokens_index,
 			bz::format("invalid memory access of an object of type '{}'", object_typespec),
-			reasons.transform([&](auto &reason) {
-				return reason.src_tokens.begin == nullptr
-					? this->make_note(src_tokens_index, std::move(reason.message))
-					: make_source_highlight(reason.src_tokens, std::move(reason.message));
-			}).collect()
+			get_notes(reasons, src_tokens_index, *this)
 		);
 	}
 }
@@ -428,11 +437,7 @@ void executor_context::check_inplace_construct(
 		this->report_error(
 			src_tokens_index,
 			bz::format("invalid construction of an object of type '{}'", object_typespec),
-			reasons.transform([&](auto &reason) {
-				return reason.src_tokens.begin == nullptr
-					? this->make_note(src_tokens_index, std::move(reason.message))
-					: make_source_highlight(reason.src_tokens, std::move(reason.message));
-			}).collect()
+			get_notes(reasons, src_tokens_index, *this)
 		);
 	}
 }
@@ -452,11 +457,7 @@ void executor_context::check_destruct_value(
 		this->report_error(
 			src_tokens_index,
 			bz::format("invalid destruction of an object of type '{}'", object_typespec),
-			reasons.transform([&](auto &reason) {
-				return reason.src_tokens.begin == nullptr
-					? this->make_note(src_tokens_index, std::move(reason.message))
-					: make_source_highlight(reason.src_tokens, std::move(reason.message));
-			}).collect()
+			get_notes(reasons, src_tokens_index, *this)
 		);
 	}
 }
@@ -492,11 +493,7 @@ void executor_context::check_str_construction(uint32_t src_tokens_index, ptr_t b
 		this->report_error(
 			src_tokens_index,
 			"invalid memory range for an object of type 'str'",
-			reasons.transform([&](auto &reason) {
-				return reason.src_tokens.begin == nullptr
-					? this->make_note(src_tokens_index, std::move(reason.message))
-					: make_source_highlight(reason.src_tokens, std::move(reason.message));
-			}).collect()
+			get_notes(reasons, src_tokens_index, *this)
 		);
 	}
 }
@@ -537,11 +534,7 @@ void executor_context::check_slice_construction(
 		this->report_error(
 			src_tokens_index,
 			bz::format("invalid memory range for a slice of type '{}'", slice_type),
-			reasons.transform([&](auto &reason) {
-				return reason.src_tokens.begin == nullptr
-					? this->make_note(src_tokens_index, std::move(reason.message))
-					: make_source_highlight(reason.src_tokens, std::move(reason.message));
-			}).collect()
+			get_notes(reasons, src_tokens_index, *this)
 		);
 	}
 }
@@ -571,11 +564,7 @@ int executor_context::compare_pointers(uint32_t src_tokens_index, ptr_t lhs, ptr
 			this->report_error(
 				src_tokens_index,
 				"invalid pointer comparison",
-				reasons.transform([&](auto &reason) {
-					return reason.src_tokens.begin == nullptr
-						? this->make_note(src_tokens_index, std::move(reason.message))
-						: make_source_highlight(reason.src_tokens, std::move(reason.message));
-				}).collect()
+				get_notes(reasons, src_tokens_index, *this)
 			);
 			return 0;
 		}
@@ -835,11 +824,7 @@ void executor_context::copy_values(
 		this->report_error(
 			src_tokens_index,
 			"invalid call to '__builtin_trivially_copy_values'",
-			reasons.transform([&](auto &reason) {
-				return reason.src_tokens.begin == nullptr
-					? this->make_note(src_tokens_index, std::move(reason.message))
-					: make_source_highlight(reason.src_tokens, std::move(reason.message));
-			}).collect()
+			get_notes(reasons, src_tokens_index, *this)
 		);
 	}
 }
@@ -874,11 +859,7 @@ void executor_context::copy_overlapping_values(
 		this->report_error(
 			src_tokens_index,
 			"invalid call to '__builtin_trivially_copy_overlapping_values'",
-			reasons.transform([&](auto &reason) {
-				return reason.src_tokens.begin == nullptr
-					? this->make_note(src_tokens_index, std::move(reason.message))
-					: make_source_highlight(reason.src_tokens, std::move(reason.message));
-			}).collect()
+			get_notes(reasons, src_tokens_index, *this)
 		);
 	}
 }
@@ -914,11 +895,7 @@ void executor_context::relocate_values(
 		this->report_error(
 			src_tokens_index,
 			"invalid call to '__builtin_trivially_relocate_values'",
-			reasons.transform([&](auto &reason) {
-				return reason.src_tokens.begin == nullptr
-					? this->make_note(src_tokens_index, std::move(reason.message))
-					: make_source_highlight(reason.src_tokens, std::move(reason.message));
-			}).collect()
+			get_notes(reasons, src_tokens_index, *this)
 		);
 	}
 }
@@ -935,11 +912,7 @@ static void report_set_values_error(
 	context.report_error(
 		src_tokens_index,
 		"invalid call to '__builtin_trivially_set_values'",
-		reasons.transform([&](auto &reason) {
-			return reason.src_tokens.begin == nullptr
-				? context.make_note(src_tokens_index, std::move(reason.message))
-				: make_source_highlight(reason.src_tokens, std::move(reason.message));
-		}).collect()
+		get_notes(reasons, src_tokens_index, context)
 	);
 }
 

@@ -67,8 +67,8 @@ struct executor_context
 		bz::u8string message,
 		bz::vector<ctx::source_highlight> notes = {}
 	);
-	ctx::source_highlight make_note(uint32_t src_tokens_index, bz::u8string message);
-	bool is_option_set(bz::u8string_view option);
+	ctx::source_highlight make_note(uint32_t src_tokens_index, bz::u8string message) const;
+	bool is_option_set(bz::u8string_view option) const;
 
 	ptr_t get_global(uint32_t index);
 	ptr_t add_global_array_data(lex::src_tokens const &src_tokens, type const *elem_type, bz::array_view<uint8_t const> data);
