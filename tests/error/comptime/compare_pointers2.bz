@@ -1,0 +1,18 @@
+function foo() -> *int32
+{
+	let i = 0;
+	return &i;
+}
+
+function bar() -> *int32
+{
+	let j = 0;
+	return &j;
+}
+
+function test()
+{
+	(consteval {
+		foo() > bar();
+	});
+}
