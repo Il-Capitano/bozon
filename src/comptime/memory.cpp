@@ -1903,10 +1903,6 @@ bz::optional<int> stack_manager::compare_pointers(ptr_t lhs, ptr_t rhs) const
 	{
 		return {};
 	}
-	else if (!lhs_stack_object->is_alive(std::min(lhs, rhs), std::max(lhs, rhs)))
-	{
-		return {};
-	}
 	else
 	{
 		return lhs == rhs ? 0 : (lhs < rhs ? -1 : 1);
@@ -1921,20 +1917,12 @@ bz::vector<error_reason_t> stack_manager::get_compare_pointers_error_reason(ptr_
 	bz_assert(rhs_stack_object != nullptr);
 
 	bz::vector<error_reason_t> result;
-	if (lhs_stack_object != rhs_stack_object)
-	{
-		result.reserve(3);
-		result.push_back({ {}, "lhs and rhs addresses point to different stack objects" });
-		result.push_back({ lhs_stack_object->object_src_tokens, "lhs address points to this stack object" });
-		result.push_back({ rhs_stack_object->object_src_tokens, "rhs address points to this stack object" });
-	}
-	else if (!lhs_stack_object->is_alive(std::min(lhs, rhs), std::max(lhs, rhs)))
-	{
-		result.push_back({
-			lhs_stack_object->object_src_tokens,
-			"lhs and rhs addresses point to this stack object, which is outside its lifetime"
-		});
-	}
+	bz_assert(lhs_stack_object != rhs_stack_object);
+
+	result.reserve(3);
+	result.push_back({ {}, "lhs and rhs addresses point to different stack objects" });
+	result.push_back({ lhs_stack_object->object_src_tokens, "lhs address points to this stack object" });
+	result.push_back({ rhs_stack_object->object_src_tokens, "rhs address points to this stack object" });
 
 	return result;
 }
@@ -2034,11 +2022,7 @@ heap_manager::heap_manager(ptr_t heap_begin)
 
 allocation *heap_manager::get_allocation(ptr_t address)
 {
-	if (
-		this->allocations.empty()
-		|| address < this->allocations[0].object.address
-		|| address > this->allocations.back().object.address + this->allocations.back().object.object_size()
-	)
+	if (this->allocations.empty() || address < this->allocations[0].object.address)
 	{
 		return nullptr;
 	}
@@ -2062,11 +2046,7 @@ allocation *heap_manager::get_allocation(ptr_t address)
 
 allocation const *heap_manager::get_allocation(ptr_t address) const
 {
-	if (
-		this->allocations.empty()
-		|| address < this->allocations[0].object.address
-		|| address > this->allocations.back().object.address + this->allocations.back().object.object_size()
-	)
+	if (this->allocations.empty() || address < this->allocations[0].object.address)
 	{
 		return nullptr;
 	}
