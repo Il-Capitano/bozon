@@ -2083,13 +2083,9 @@ ptr_t heap_manager::allocate(call_stack_info_t alloc_info, type const *object_ty
 free_result heap_manager::free(call_stack_info_t free_info, ptr_t address)
 {
 	auto const allocation = this->get_allocation(address);
-	if (allocation == nullptr)
+	if (allocation == nullptr || address != allocation->object.address)
 	{
-		return free_result::unknown_address;
-	}
-	else if (address != allocation->object.address)
-	{
-		return free_result::address_inside_object;
+		return free_result::invalid_pointer;
 	}
 	else
 	{
@@ -2574,6 +2570,89 @@ static remove_meta_result_t remove_meta(ptr_t address, memory_manager const &man
 	}
 
 	return { address, segment, is_one_past_the_end, false, is_stack_object };
+}
+
+ptr_t memory_manager::allocate(call_stack_info_t alloc_info, type const *object_type, uint64_t count)
+{
+	return this->heap.allocate(std::move(alloc_info), object_type, count);
+}
+
+free_result memory_manager::free(call_stack_info_t free_info, ptr_t address)
+{
+	auto const segment = this->segment_info.get_segment(address);
+	if (segment != memory_segment::heap)
+	{
+		return free_result::invalid_pointer;
+	}
+	else
+	{
+		return this->heap.free(std::move(free_info), address);
+	}
+}
+
+bz::vector<error_reason_t> memory_manager::get_free_error_reason(ptr_t _address)
+{
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame, is_stack_object] = remove_meta(_address, *this);
+
+	if (is_finished_stack_frame)
+	{
+		bz::vector<error_reason_t> result;
+		auto const &stack_object = this->meta_memory.get_stack_object_pointer(address);
+		result.push_back({ stack_object.object_src_tokens, "address points to an object from a finished stack frame" });
+		return result;
+	}
+
+	switch (segment)
+	{
+	case memory_segment::global:
+		bz_unreachable;
+	case memory_segment::stack:
+	{
+		bz::vector<error_reason_t> result;
+		auto const stack_object = this->stack.get_stack_object(address);
+		result.push_back({ stack_object->object_src_tokens, "address points to this stack object" });
+		return result;
+	}
+	case memory_segment::heap:
+	{
+		auto const allocation = this->heap.get_allocation(address);
+		if (allocation->is_freed && address == allocation->object.address)
+		{
+			bz::vector<error_reason_t> result;
+			result.reserve(2 + allocation->alloc_info.call_stack.size() + allocation->free_info.call_stack.size());
+			result.push_back({ allocation->alloc_info.src_tokens, "address points to this allocation" });
+			add_allocation_info(result, allocation->alloc_info);
+			add_free_info(result, allocation->free_info);
+			return result;
+		}
+		else
+		{
+			bz::vector<error_reason_t> result;
+			auto const offset = (address - allocation->object.address);
+			auto const elem_size = allocation->object.elem_size();
+			auto const elem_index = offset / elem_size - (is_one_past_the_end && offset % elem_size == 0 ? 1 : 0);
+			result.reserve(1 + allocation->alloc_info.call_stack.size());
+			if (is_one_past_the_end)
+			{
+				result.push_back({
+					allocation->alloc_info.src_tokens,
+					bz::format("address is a one-past-the-end pointer to an object in element {} of this allocation", elem_index)
+				});
+			}
+			else
+			{
+				result.push_back({
+					allocation->alloc_info.src_tokens,
+					bz::format("address points to an object in element {} of this allocation", elem_index)
+				});
+			}
+			add_allocation_info(result, allocation->alloc_info);
+			return result;
+		}
+	}
+	case memory_segment::meta:
+		bz_unreachable;
+	}
 }
 
 bool memory_manager::check_dereference(ptr_t _address, type const *object_type) const

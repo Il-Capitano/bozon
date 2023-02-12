@@ -235,8 +235,7 @@ enum class free_result
 {
 	good,
 	double_free,
-	unknown_address,
-	address_inside_object,
+	invalid_pointer,
 };
 
 struct call_stack_info_t
@@ -381,6 +380,10 @@ struct memory_manager
 	void pop_stack_frame(void);
 
 	ptr_t make_current_frame_stack_object_address(stack_object const &object);
+
+	ptr_t allocate(call_stack_info_t alloc_info, type const *object_type, uint64_t count);
+	free_result free(call_stack_info_t free_info, ptr_t address);
+	bz::vector<error_reason_t> get_free_error_reason(ptr_t address);
 
 	bool check_dereference(ptr_t address, type const *object_type) const;
 	bz::vector<error_reason_t> get_dereference_error_reason(ptr_t address, type const *object_type) const;

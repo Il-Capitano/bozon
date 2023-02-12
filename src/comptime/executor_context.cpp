@@ -364,7 +364,7 @@ static bz::vector<ctx::source_highlight> get_notes(
 
 ptr_t executor_context::malloc(uint32_t src_tokens_index, type const *type, uint64_t count)
 {
-	auto const result = this->memory.heap.allocate(this->get_call_stack_info(src_tokens_index), type, count);
+	auto const result = this->memory.allocate(this->get_call_stack_info(src_tokens_index), type, count);
 	if (result == 0)
 	{
 		this->report_error(src_tokens_index, bz::format("unable to allocate a region of size {}", type->size * count));
@@ -379,18 +379,31 @@ void executor_context::free(uint32_t src_tokens_index, ptr_t address)
 		return;
 	}
 
-	auto const result = this->memory.heap.free(this->get_call_stack_info(src_tokens_index), address);
+	auto const result = this->memory.free(this->get_call_stack_info(src_tokens_index), address);
 	switch (result)
 	{
 	case memory::free_result::good:
 		return;
 	case memory::free_result::double_free:
-		this->report_error(src_tokens_index, "double free detected");
+	{
+		auto reasons = this->memory.get_free_error_reason(address);
+		this->report_error(
+			src_tokens_index,
+			"invalid free: allocation has already been freed",
+			get_notes(reasons, src_tokens_index, *this)
+		);
 		break;
-	case memory::free_result::unknown_address:
-	case memory::free_result::address_inside_object:
-		this->report_error(src_tokens_index, "invalid free");
+	}
+	case memory::free_result::invalid_pointer:
+	{
+		auto reasons = this->memory.get_free_error_reason(address);
+		this->report_error(
+			src_tokens_index,
+			"invalid free: address does not point to the result of a previous allocation",
+			get_notes(reasons, src_tokens_index, *this)
+		);
 		break;
+	}
 	}
 }
 
