@@ -1,6 +1,7 @@
 #include "memory.h"
 #include "ast/statement.h"
 #include "resolve/consteval.h"
+#include "overflow_operations.h"
 
 namespace comptime::memory
 {
@@ -2574,6 +2575,12 @@ static remove_meta_result_t remove_meta(ptr_t address, memory_manager const &man
 
 ptr_t memory_manager::allocate(call_stack_info_t alloc_info, type const *object_type, uint64_t count)
 {
+	auto const remaining_size = this->segment_info.get_segment_begin<memory_segment::meta>() - this->heap.head;
+	auto const [total_size, overflowed] = mul_overflow(count, object_type->size);
+	if (overflowed || total_size > remaining_size)
+	{
+		return 0;
+	}
 	return this->heap.allocate(std::move(alloc_info), object_type, count);
 }
 

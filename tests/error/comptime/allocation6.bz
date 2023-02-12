@@ -1,0 +1,6 @@
+function test()
+{
+	(consteval {
+		__builtin_comptime_free(__builtin_comptime_malloc(int32, 1u64 << 63));
+	});
+}

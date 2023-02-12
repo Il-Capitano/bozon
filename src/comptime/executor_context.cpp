@@ -367,7 +367,7 @@ ptr_t executor_context::malloc(uint32_t src_tokens_index, type const *type, uint
 	auto const result = this->memory.allocate(this->get_call_stack_info(src_tokens_index), type, count);
 	if (result == 0)
 	{
-		this->report_error(src_tokens_index, bz::format("unable to allocate a region of size {}", type->size * count));
+		this->report_error(src_tokens_index, bz::format("unable to allocate {} elements of size {}", count, type->size));
 	}
 	return result;
 }
