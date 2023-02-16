@@ -702,10 +702,21 @@ ptr_t executor_context::pointer_sub_signed(
 	}
 	else if (address == 0)
 	{
-		this->report_error(
-			src_tokens_index,
-			bz::format("null pointer used in pointer arithmetic operation with type '{}' and offset {}", pointer_type, offset)
-		);
+		if (offset == std::numeric_limits<int64_t>::min())
+		{
+			auto const real_offset = static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1;
+			this->report_error(
+				src_tokens_index,
+				bz::format("null pointer used in pointer arithmetic operation with type '{}' and offset {}", pointer_type, real_offset)
+			);
+		}
+		else
+		{
+			this->report_error(
+				src_tokens_index,
+				bz::format("null pointer used in pointer arithmetic operation with type '{}' and offset {}", pointer_type, -offset)
+			);
+		}
 		return 0;
 	}
 	else if (offset == std::numeric_limits<int64_t>::min())
@@ -751,7 +762,7 @@ ptr_t executor_context::pointer_sub_unsigned(
 	{
 		this->report_error(
 			src_tokens_index,
-			bz::format("null pointer used in pointer arithmetic operation with type '{}' and offset {}", pointer_type, offset)
+			bz::format("null pointer used in pointer arithmetic operation with type '{}' and offset -{}", pointer_type, offset)
 		);
 		return 0;
 	}

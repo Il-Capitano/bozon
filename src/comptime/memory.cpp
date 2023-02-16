@@ -1164,7 +1164,7 @@ bz::vector<bz::u8string> heap_object::get_pointer_arithmetic_error_reason(
 			));
 			if (do_verbose)
 			{
-				result.push_back(bz::format("the only valid offsets are -{} to {}", -static_cast<int64_t>(index), this->count - index));
+				result.push_back(bz::format("the only valid offsets are {} to {}", -static_cast<int64_t>(index), this->count - index));
 			}
 		}
 		return result;
