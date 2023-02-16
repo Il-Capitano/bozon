@@ -159,7 +159,7 @@ pointer_arithmetic_check_result check_pointer_arithmetic(
 		else
 		{
 			auto const offset_in_elem = offset % array_elem_type->size;
-			auto const real_offset_in_elem = is_one_past_the_end && offset_in_elem == array_elem_type->size
+			auto const real_offset_in_elem = is_one_past_the_end && offset_in_elem == 0
 				? array_elem_type->size
 				: offset_in_elem;
 			auto const elem_offset = offset - real_offset_in_elem;
