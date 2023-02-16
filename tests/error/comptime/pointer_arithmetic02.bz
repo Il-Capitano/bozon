@@ -1,0 +1,7 @@
+function test()
+{
+	(consteval {
+		consteval i = 0;
+		&i - 1;
+	});
+}
