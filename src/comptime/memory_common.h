@@ -120,6 +120,12 @@ enum class pointer_arithmetic_check_result
 	one_past_the_end,
 };
 
+struct subobject_info_t
+{
+	uint32_t index;
+	uint32_t array_size;
+};
+
 struct copy_values_memory_t
 {
 	bz::array_view<uint8_t> memory;
@@ -131,6 +137,12 @@ pointer_arithmetic_check_result check_pointer_arithmetic(
 	type const *object_type,
 	size_t offset,
 	size_t result_offset,
+	bool is_one_past_the_end,
+	type const *pointer_type
+);
+subobject_info_t get_subobject_info(
+	type const *object_type,
+	size_t offset,
 	bool is_one_past_the_end,
 	type const *pointer_type
 );

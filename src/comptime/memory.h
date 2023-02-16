@@ -78,6 +78,12 @@ struct stack_object
 		int64_t offset,
 		type const *object_type
 	) const;
+	bz::vector<bz::u8string> get_pointer_arithmetic_error_reason(
+		ptr_t address,
+		bool is_one_past_the_end,
+		int64_t offset,
+		type const *object_type
+	) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic_unchecked(
 		ptr_t address,
 		bool is_one_past_the_end,
@@ -136,6 +142,12 @@ struct heap_object
 		type const *elem_type
 	) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(
+		ptr_t address,
+		bool is_one_past_the_end,
+		int64_t offset,
+		type const *object_type
+	) const;
+	bz::vector<bz::u8string> get_pointer_arithmetic_error_reason(
 		ptr_t address,
 		bool is_one_past_the_end,
 		int64_t offset,
@@ -208,6 +220,12 @@ struct stack_manager
 	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs) const;
 	bz::vector<error_reason_t> get_compare_pointers_error_reason(ptr_t lhs, ptr_t rhs) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(
+		ptr_t address,
+		bool is_one_past_the_end,
+		int64_t offset,
+		type const *object_type
+	) const;
+	bz::vector<error_reason_t> get_pointer_arithmetic_error_reason(
 		ptr_t address,
 		bool is_one_past_the_end,
 		int64_t offset,
@@ -292,6 +310,12 @@ struct heap_manager
 	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs) const;
 	bz::vector<error_reason_t> get_compare_pointers_error_reason(ptr_t lhs, ptr_t rhs) const;
 	pointer_arithmetic_result_t do_pointer_arithmetic(
+		ptr_t address,
+		bool is_one_past_the_end,
+		int64_t offset,
+		type const *object_type
+	) const;
+	bz::vector<error_reason_t> get_pointer_arithmetic_error_reason(
 		ptr_t address,
 		bool is_one_past_the_end,
 		int64_t offset,
@@ -397,6 +421,7 @@ struct memory_manager
 	bz::optional<int> compare_pointers(ptr_t lhs, ptr_t rhs) const;
 	bz::vector<error_reason_t> get_compare_pointers_error_reason(ptr_t lhs, ptr_t rhs) const;
 	ptr_t do_pointer_arithmetic(ptr_t address, int64_t offset, type const *object_type);
+	bz::vector<error_reason_t> get_pointer_arithmetic_error_reason(ptr_t address, int64_t offset, type const *object_type) const;
 	ptr_t do_pointer_arithmetic_unchecked(ptr_t address, int64_t offset, type const *object_type);
 	ptr_t do_gep(ptr_t address, type const *object_type, uint64_t index);
 	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);

@@ -2,6 +2,7 @@
 #include "ast/statement.h"
 #include "resolve/consteval.h"
 #include "overflow_operations.h"
+#include "global_data.h"
 
 namespace comptime::memory
 {
@@ -376,6 +377,101 @@ pointer_arithmetic_result_t stack_object::do_pointer_arithmetic(
 			.is_one_past_the_end = true,
 		};
 	}
+}
+
+bz::vector<bz::u8string> stack_object::get_pointer_arithmetic_error_reason(
+	ptr_t address,
+	bool is_one_past_the_end,
+	int64_t offset,
+	type const *object_type
+) const
+{
+	auto const result_address = address + static_cast<uint64_t>(offset * static_cast<int64_t>(object_type->size));
+	if (
+		result_address >= this->address
+		&& result_address <= this->address + this->object_size()
+		&& !this->is_alive(std::min(address, result_address), std::max(address, result_address))
+	)
+	{
+		bz::vector<bz::u8string> result;
+		result.push_back("address points to this stack object, which is outside its lifetime");
+		return result;
+	}
+	else if (object_type == this->object_type)
+	{
+		bz::vector<bz::u8string> result;
+		if (is_one_past_the_end)
+		{
+			result.push_back("address is a one-past-the-end pointer to this stack object");
+			if (do_verbose)
+			{
+				result.push_back("the only valid offsets are -1 and 0");
+			}
+		}
+		else
+		{
+			result.push_back("address points to this stack object");
+			if (do_verbose)
+			{
+				result.push_back("the only valid offsets are 0 and 1");
+			}
+		}
+		return result;
+	}
+
+	auto const [index, array_size] = get_subobject_info(
+		this->object_type,
+		address - this->address,
+		is_one_past_the_end,
+		object_type
+	);
+
+	bz::vector<bz::u8string> result;
+	if (array_size != 0)
+	{
+		if (is_one_past_the_end)
+		{
+			result.push_back(bz::format(
+				"address is a one-past-the-end pointer to after the last element in an array of size {} in this stack object",
+				array_size
+			));
+			if (do_verbose)
+			{
+				result.push_back(bz::format("the only valid offsets are -{} to 0", array_size));
+			}
+		}
+		else
+		{
+			result.push_back(bz::format(
+				"address points to an element at index {} in an array of size {} in this stack object",
+				index, array_size
+			));
+			if (do_verbose)
+			{
+				result.push_back(bz::format("the only valid offsets are {} to {}", -static_cast<int64_t>(index), array_size - index));
+			}
+		}
+	}
+	else
+	{
+		if (is_one_past_the_end)
+		{
+			result.push_back("address is a one-past-the-end pointer to a subobject that is not in an array in this stack object");
+			if (do_verbose)
+			{
+				result.push_back("the only valid offsets are -1 and 0");
+			}
+		}
+		else
+		{
+			result.push_back("address points to a subobject that is not in an array in this stack object");
+			if (do_verbose)
+			{
+				result.push_back("the only valid offsets are 0 and 1");
+			}
+		}
+	}
+	return result;
 }
 
 pointer_arithmetic_result_t stack_object::do_pointer_arithmetic_unchecked(
@@ -1034,6 +1130,117 @@ pointer_arithmetic_result_t heap_object::do_pointer_arithmetic(
 			.address = result_address,
 			.is_one_past_the_end = true,
 		};
+	}
+}
+
+bz::vector<bz::u8string> heap_object::get_pointer_arithmetic_error_reason(
+	ptr_t address,
+	bool is_one_past_the_end,
+	int64_t amount,
+	type const *object_type
+) const
+{
+	auto const result_address = address + static_cast<uint64_t>(amount * static_cast<int64_t>(object_type->size));
+	if (object_type == this->elem_type)
+	{
+		bz::vector<bz::u8string> result;
+		if (is_one_past_the_end)
+		{
+			result.push_back(bz::format(
+				"address is a one-past-the-end pointer to after the last element in this allocation of size {}",
+				this->count
+			));
+			if (do_verbose)
+			{
+				result.push_back(bz::format("the only valid offsets are -{} to 0", this->count));
+			}
+		}
+		else
+		{
+			auto const index = (address - this->address) / this->elem_size();
+			result.push_back(bz::format(
+				"address points to the element at index {} in this allocation of size {}",
+				index, this->count
+			));
+			if (do_verbose)
+			{
+				result.push_back(bz::format("the only valid offsets are -{} to {}", -static_cast<int64_t>(index), this->count - index));
+			}
+		}
+		return result;
+	}
+	else if (
+		result_address >= this->address
+		&& result_address <= this->address + this->object_size()
+		&& !this->is_alive(std::min(address, result_address), std::max(address, result_address))
+	)
+	{
+		bz::vector<bz::u8string> result;
+		result.push_back("address points to an element outside its lifetime in this allocation");
+		return result;
+	}
+	else
+	{
+		auto const offset = address - this->address;
+
+		auto const elem_size = this->elem_size();
+		auto const offset_in_elem = offset % elem_size;
+		auto const real_offset_in_elem = offset_in_elem == 0 && is_one_past_the_end ? elem_size : offset_in_elem;
+		auto const elem_offset = offset - real_offset_in_elem;
+
+		auto const [index, array_size] = get_subobject_info(
+			this->elem_type,
+			offset - elem_offset,
+			is_one_past_the_end,
+			object_type
+		);
+
+		bz::vector<bz::u8string> result;
+		if (array_size != 0)
+		{
+			if (is_one_past_the_end)
+			{
+				result.push_back(bz::format(
+					"address is a one-past-the-end pointer to after the last element in an array of size {} in an element of this allocation",
+					array_size
+				));
+				if (do_verbose)
+				{
+					result.push_back(bz::format("the only valid offsets are -{} to 0", array_size));
+				}
+			}
+			else
+			{
+				result.push_back(bz::format(
+					"address points to an element at index {} in an array of size {} in an element of this allocation",
+					index, array_size
+				));
+				if (do_verbose)
+				{
+					result.push_back(bz::format("the only valid offsets are {} to {}", -static_cast<int64_t>(index), array_size - index));
+				}
+			}
+		}
+		else
+		{
+			if (is_one_past_the_end)
+			{
+				result.push_back("address is a one-past-the-end pointer to a subobject that is not in an array in an element of this allocation");
+				if (do_verbose)
+				{
+					result.push_back("the only valid offsets are -1 and 0");
+				}
+			}
+			else
+			{
+				result.push_back("address points to a subobject that is not in an array in an element of this allocation");
+				if (do_verbose)
+				{
+					result.push_back("the only valid offsets are 0 and 1");
+				}
+			}
+		}
+		return result;
 	}
 }
 
@@ -1946,6 +2153,25 @@ pointer_arithmetic_result_t stack_manager::do_pointer_arithmetic(
 	}
 }
 
+bz::vector<error_reason_t> stack_manager::get_pointer_arithmetic_error_reason(
+	ptr_t address,
+	bool is_one_past_the_end,
+	int64_t offset,
+	type const *object_type
+) const
+{
+	auto const object = this->get_stack_object(address);
+	bz_assert(object != nullptr);
+	auto messages = object->get_pointer_arithmetic_error_reason(address, is_one_past_the_end, offset, object_type);
+
+	bz::vector<error_reason_t> result;
+	result.reserve(messages.size());
+	result.append_move(messages.transform([object](auto &message) {
+		return error_reason_t{ object->object_src_tokens, std::move(message) };
+	}));
+	return result;
+}
+
 pointer_arithmetic_result_t stack_manager::do_pointer_arithmetic_unchecked(
 	ptr_t address,
 	bool is_one_past_the_end,
@@ -2333,6 +2559,39 @@ pointer_arithmetic_result_t heap_manager::do_pointer_arithmetic(
 	else
 	{
 		return allocation->object.do_pointer_arithmetic(address, is_one_past_the_end, offset, object_type);
+	}
+}
+
+bz::vector<error_reason_t> heap_manager::get_pointer_arithmetic_error_reason(
+	ptr_t address,
+	bool is_one_past_the_end,
+	int64_t offset,
+	type const *object_type
+) const
+{
+	auto const allocation = this->get_allocation(address);
+	bz_assert(allocation != nullptr);
+
+	if (allocation->is_freed)
+	{
+		bz::vector<error_reason_t> result;
+		result.reserve(2 + allocation->alloc_info.call_stack.size() + allocation->free_info.call_stack.size());
+		result.push_back({ allocation->alloc_info.src_tokens, "address points to an object in this allocation, which was freed" });
+		add_allocation_info(result, allocation->alloc_info);
+		add_free_info(result, allocation->free_info);
+		return result;
+	}
+	else
+	{
+		auto messages = allocation->object.get_pointer_arithmetic_error_reason(address, is_one_past_the_end, offset, object_type);
+
+		bz::vector<error_reason_t> result;
+		result.reserve(messages.size() + allocation->alloc_info.call_stack.size());
+		result.append_move(messages.transform([allocation](auto &message) {
+			return error_reason_t{ allocation->alloc_info.src_tokens, std::move(message) };
+		}));
+		add_allocation_info(result, allocation->alloc_info);
+		return result;
 	}
 }
 
@@ -3520,6 +3779,34 @@ ptr_t memory_manager::do_pointer_arithmetic(ptr_t _address, int64_t offset, type
 			return is_stack_object
 				? this->meta_memory.make_inherited_stack_object_address(result, _address)
 				: result;
+		}
+	}
+}
+
+bz::vector<error_reason_t> memory_manager::get_pointer_arithmetic_error_reason(ptr_t _address, int64_t offset, type const *object_type) const
+{
+	bz_assert(_address != 0);
+	auto const [address, segment, is_one_past_the_end, is_finished_stack_frame, is_stack_object] = remove_meta(_address, *this);
+
+	if (is_finished_stack_frame)
+	{
+		bz::vector<error_reason_t> result;
+		auto const &stack_object = this->meta_memory.get_stack_object_pointer(address);
+		result.push_back({ stack_object.object_src_tokens, "address points to an object from a finished stack frame" });
+		return result;
+	}
+	else
+	{
+		switch (segment)
+		{
+		case memory_segment::global:
+			return this->global_memory->get_pointer_arithmetic_error_reason(address, is_one_past_the_end, offset, object_type);
+		case memory_segment::stack:
+			return this->stack.get_pointer_arithmetic_error_reason(address, is_one_past_the_end, offset, object_type);
+		case memory_segment::heap:
+			return this->heap.get_pointer_arithmetic_error_reason(address, is_one_past_the_end, offset, object_type);
+		case memory_segment::meta:
+			bz_unreachable;
 		}
 	}
 }

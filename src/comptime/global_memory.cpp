@@ -1,4 +1,5 @@
 #include "global_memory.h"
+#include "global_data.h"
 
 namespace comptime::memory
 {
@@ -138,6 +139,90 @@ pointer_arithmetic_result_t global_object::do_pointer_arithmetic(
 			.is_one_past_the_end = true,
 		};
 	}
+}
+
+bz::vector<bz::u8string> global_object::get_pointer_arithmetic_error_reason(
+	ptr_t address,
+	bool is_one_past_the_end,
+	[[maybe_unused]] int64_t offset,
+	type const *object_type
+) const
+{
+	if (object_type == this->object_type)
+	{
+		bz::vector<bz::u8string> result;
+		if (is_one_past_the_end)
+		{
+			result.push_back("address is a one-past-the-end pointer to this global object");
+			if (do_verbose)
+			{
+				result.push_back("the only valid offsets are -1 and 0");
+			}
+		}
+		else
+		{
+			result.push_back("address points to this global object");
+			if (do_verbose)
+			{
+				result.push_back("the only valid offsets are 0 and 1");
+			}
+		}
+		return result;
+	}
+
+	auto const [index, array_size] = get_subobject_info(
+		this->object_type,
+		address - this->address,
+		is_one_past_the_end,
+		object_type
+	);
+
+	bz::vector<bz::u8string> result;
+	if (array_size != 0)
+	{
+		if (is_one_past_the_end)
+		{
+			result.push_back(bz::format(
+				"address is a one-past-the-end pointer to after the last element in an array of size {} in this global object",
+				array_size
+			));
+			if (do_verbose)
+			{
+				result.push_back(bz::format("the only valid offsets are -{} to 0", array_size));
+			}
+		}
+		else
+		{
+			result.push_back(bz::format(
+				"address points to an element at index {} in an array of size {} in this global object",
+				index, array_size
+			));
+			if (do_verbose)
+			{
+				result.push_back(bz::format("the only valid offsets are {} to {}", -static_cast<int64_t>(index), array_size - index));
+			}
+		}
+	}
+	else
+	{
+		if (is_one_past_the_end)
+		{
+			result.push_back("address is a one-past-the-end pointer to a subobject that is not in an array in this global object");
+			if (do_verbose)
+			{
+				result.push_back("the only valid offsets are -1 and 0");
+			}
+		}
+		else
+		{
+			result.push_back("address points to a subobject that is not in an array in this global object");
+			if (do_verbose)
+			{
+				result.push_back("the only valid offsets are 0 and 1");
+			}
+		}
+	}
+	return result;
 }
 
 pointer_arithmetic_result_t global_object::do_pointer_arithmetic_unchecked(
@@ -496,6 +581,25 @@ pointer_arithmetic_result_t global_memory_manager::do_pointer_arithmetic(
 	{
 		return object->do_pointer_arithmetic(address, is_one_past_the_end, offset, object_type);
 	}
+}
+
+bz::vector<error_reason_t> global_memory_manager::get_pointer_arithmetic_error_reason(
+	ptr_t address,
+	bool is_one_past_the_end,
+	int64_t offset,
+	type const *object_type
+) const
+{
+	auto const object = this->get_global_object(address);
+	bz_assert(object != nullptr);
+	auto messages = object->get_pointer_arithmetic_error_reason(address, is_one_past_the_end, offset, object_type);
+
+	bz::vector<error_reason_t> result;
+	result.reserve(messages.size());
+	result.append_move(messages.transform([object](auto &message) {
+		return error_reason_t{ object->object_src_tokens, std::move(message) };
+	}));
+	return result;
 }
 
 pointer_arithmetic_result_t global_memory_manager::do_pointer_arithmetic_unchecked(

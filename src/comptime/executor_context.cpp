@@ -636,9 +636,11 @@ ptr_t executor_context::pointer_add_signed(
 	auto const result = this->memory.do_pointer_arithmetic(address, offset, object_type);
 	if (result == 0)
 	{
+		auto reasons = this->memory.get_pointer_arithmetic_error_reason(address, offset, object_type);
 		this->report_error(
 			src_tokens_index,
-			bz::format("invalid pointer arithmetic operation with type '{}' and offset {}", pointer_type, offset)
+			bz::format("invalid pointer arithmetic operation with type '{}' and offset {}", pointer_type, offset),
+			get_notes(reasons, src_tokens_index, *this)
 		);
 	}
 	return result;
@@ -664,15 +666,23 @@ ptr_t executor_context::pointer_add_unsigned(
 		);
 		return 0;
 	}
-
-	auto const result = offset > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())
-		? 0
-		: this->memory.do_pointer_arithmetic(address, static_cast<int64_t>(offset), object_type);
-	if (result == 0)
+	else if (offset > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()))
 	{
 		this->report_error(
 			src_tokens_index,
 			bz::format("invalid pointer arithmetic operation with type '{}' and offset {}", pointer_type, offset)
+		);
+		return 0;
+	}
+
+	auto const result = this->memory.do_pointer_arithmetic(address, static_cast<int64_t>(offset), object_type);
+	if (result == 0)
+	{
+		auto reasons = this->memory.get_pointer_arithmetic_error_reason(address, offset, object_type);
+		this->report_error(
+			src_tokens_index,
+			bz::format("invalid pointer arithmetic operation with type '{}' and offset {}", pointer_type, offset),
+			get_notes(reasons, src_tokens_index, *this)
 		);
 	}
 	return result;
@@ -698,15 +708,27 @@ ptr_t executor_context::pointer_sub_signed(
 		);
 		return 0;
 	}
-
-	auto const result = offset == std::numeric_limits<int64_t>::min()
-		? 0
-		: this->memory.do_pointer_arithmetic(address, -offset, object_type);
-	if (result == 0)
+	else if (offset == std::numeric_limits<int64_t>::min())
 	{
 		this->report_error(
 			src_tokens_index,
-			bz::format("invalid pointer arithmetic operation with type '{}' and offset {}", pointer_type, offset)
+			bz::format(
+				"invalid pointer arithmetic operation with type '{}' and offset {}",
+				pointer_type, static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1
+			)
+		);
+		return 0;
+	}
+
+	auto const real_offset = -offset;
+	auto const result = this->memory.do_pointer_arithmetic(address, real_offset, object_type);
+	if (result == 0)
+	{
+		auto reasons = this->memory.get_pointer_arithmetic_error_reason(address, real_offset, object_type);
+		this->report_error(
+			src_tokens_index,
+			bz::format("invalid pointer arithmetic operation with type '{}' and offset {}", pointer_type, real_offset),
+			get_notes(reasons, src_tokens_index, *this)
 		);
 	}
 	return result;
@@ -720,6 +742,7 @@ ptr_t executor_context::pointer_sub_unsigned(
 	ast::typespec_view pointer_type
 )
 {
+	constexpr auto max_value = static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1;
 	if (address == 0 && offset == 0)
 	{
 		return 0;
@@ -732,20 +755,24 @@ ptr_t executor_context::pointer_sub_unsigned(
 		);
 		return 0;
 	}
-
-	constexpr auto max_value = static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1;
-	auto const result = offset > max_value
-		? 0
-		: this->memory.do_pointer_arithmetic(
-			address,
-			offset == max_value ? std::numeric_limits<int64_t>::min() : -static_cast<int64_t>(offset),
-			object_type
-		);
-	if (result == 0)
+	else if (offset > max_value)
 	{
 		this->report_error(
 			src_tokens_index,
-			bz::format("invalid pointer arithmetic operation with type '{}' and offset {}", pointer_type, offset)
+			bz::format("invalid pointer arithmetic operation with type '{}' and offset -{}", pointer_type, offset)
+		);
+		return 0;
+	}
+
+	auto const real_offset = offset == max_value ? std::numeric_limits<int64_t>::min() : -static_cast<int64_t>(offset);
+	auto const result = this->memory.do_pointer_arithmetic(address, real_offset, object_type);
+	if (result == 0)
+	{
+		auto reasons = this->memory.get_pointer_arithmetic_error_reason(address, real_offset, object_type);
+		this->report_error(
+			src_tokens_index,
+			bz::format("invalid pointer arithmetic operation with type '{}' and offset {}", pointer_type, real_offset),
+			get_notes(reasons, src_tokens_index, *this)
 		);
 	}
 	return result;

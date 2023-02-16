@@ -185,6 +185,77 @@ pointer_arithmetic_check_result check_pointer_arithmetic(
 	}
 }
 
+subobject_info_t get_subobject_info(
+	type const *object_type,
+	size_t offset,
+	bool is_one_past_the_end,
+	type const *pointer_type
+)
+{
+	static_assert(type::variant_count == 4);
+	if (object_type == pointer_type)
+	{
+		return {
+			.index = is_one_past_the_end ? 1u : 0u,
+			.array_size = 0,
+		};
+	}
+	else if (object_type->is_builtin() || object_type->is_pointer())
+	{
+		bz_unreachable;
+	}
+	else if (object_type->is_aggregate())
+	{
+		auto const members = object_type->get_aggregate_types();
+		auto const offsets = object_type->get_aggregate_offsets();
+		// get the index of the largest offset that is <= to offset
+		// upper_bound returns the first offset that is strictly greater than offset,
+		// so we need the previous element
+		auto const it = is_one_past_the_end
+			? std::lower_bound(offsets.begin() + 1, offsets.end(), offset)
+			: std::upper_bound(offsets.begin() + 1, offsets.end(), offset);
+		auto const member_index = (it - 1) - offsets.begin();
+		return get_subobject_info(
+			members[member_index],
+			offset - offsets[member_index],
+			is_one_past_the_end,
+			pointer_type
+		);
+	}
+	else if (object_type->is_array())
+	{
+		auto const array_elem_type = object_type->get_array_element_type();
+		if (array_elem_type == pointer_type)
+		{
+			auto const index = offset / pointer_type->size;
+			bz_assert(index <= std::numeric_limits<uint32_t>::max());
+			bz_assert(object_type->get_array_size() <= std::numeric_limits<uint32_t>::max());
+			return {
+				.index = static_cast<uint32_t>(index),
+				.array_size = static_cast<uint32_t>(object_type->get_array_size()),
+			};
+		}
+		else
+		{
+			auto const offset_in_elem = offset % array_elem_type->size;
+			auto const real_offset_in_elem = is_one_past_the_end && offset_in_elem == 0
+				? array_elem_type->size
+				: offset_in_elem;
+			auto const elem_offset = offset - real_offset_in_elem;
+			return get_subobject_info(
+				array_elem_type,
+				offset - elem_offset,
+				is_one_past_the_end,
+				pointer_type
+			);
+		}
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
 type const *get_multi_dimensional_array_elem_type(type const *arr_type)
 {
 	while (arr_type->is_array())
