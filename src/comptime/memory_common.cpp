@@ -181,9 +181,7 @@ pointer_arithmetic_check_result check_pointer_arithmetic(
 	}
 	else
 	{
-		// we should never get to here...
-		bz_assert(false); // there's no point in using bz_unreachable here I think, so this branch is only checked in debug mode
-		return pointer_arithmetic_check_result::fail;
+		bz_unreachable;
 	}
 }
 

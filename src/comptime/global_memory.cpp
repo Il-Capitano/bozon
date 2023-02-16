@@ -408,8 +408,8 @@ bz::vector<error_reason_t> global_memory_manager::get_slice_construction_error_r
 	{
 		auto messages = begin_global_object->get_slice_construction_error_reason(begin, end, end_is_one_past_the_end, elem_type);
 		result.reserve(messages.size());
-		result.append(messages.transform([begin_global_object](auto const &message) {
-			return error_reason_t{ begin_global_object->object_src_tokens, message };
+		result.append_move(messages.transform([begin_global_object](auto &message) {
+			return error_reason_t{ begin_global_object->object_src_tokens, std::move(message) };
 		}));
 	}
 	else

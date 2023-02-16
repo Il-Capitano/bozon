@@ -1878,8 +1878,8 @@ bz::vector<error_reason_t> stack_manager::get_slice_construction_error_reason(
 	{
 		auto messages = begin_stack_object->get_slice_construction_error_reason(begin, end, end_is_one_past_the_end, elem_type);
 		result.reserve(messages.size());
-		result.append(messages.transform([begin_stack_object](auto const &message) {
-			return error_reason_t{ begin_stack_object->object_src_tokens, message };
+		result.append_move(messages.transform([begin_stack_object](auto &message) {
+			return error_reason_t{ begin_stack_object->object_src_tokens, std::move(message) };
 		}));
 	}
 	else
@@ -2247,8 +2247,8 @@ bz::vector<error_reason_t> heap_manager::get_slice_construction_error_reason(
 		{
 			auto messages = begin_allocation->object.get_slice_construction_error_reason(begin, end, end_is_one_past_the_end, elem_type);
 			result.reserve(messages.size() + begin_allocation->alloc_info.call_stack.size());
-			result.append(messages.transform([begin_allocation](auto const &message) {
-				return error_reason_t{ begin_allocation->alloc_info.src_tokens, message };
+			result.append_move(messages.transform([begin_allocation](auto &message) {
+				return error_reason_t{ begin_allocation->alloc_info.src_tokens, std::move(message) };
 			}));
 			add_allocation_info(result, begin_allocation->alloc_info);
 		}
@@ -3934,12 +3934,12 @@ static void add_get_dest_memory_error_reasons(
 		}
 		else
 		{
-			auto const messages = allocation->object.get_get_dest_memory_error_reasons(dest, count, elem_type, is_trivial);
+			auto messages = allocation->object.get_get_dest_memory_error_reasons(dest, count, elem_type, is_trivial);
 			if (messages.not_empty())
 			{
 				reasons.reserve(reasons.size() + messages.size() + allocation->alloc_info.call_stack.size());
-				reasons.append_move(messages.transform([&](auto const &message) -> error_reason_t {
-					return { allocation->alloc_info.src_tokens, message };
+				reasons.append_move(messages.transform([&](auto &message) -> error_reason_t {
+					return { allocation->alloc_info.src_tokens, std::move(message) };
 				}));
 				add_allocation_info(reasons, allocation->alloc_info);
 			}
@@ -3999,12 +3999,12 @@ static void add_get_copy_source_memory_error_reasons(
 		}
 		else
 		{
-			auto const messages = allocation->object.get_get_copy_source_memory_error_reasons(source, count, elem_type);
+			auto messages = allocation->object.get_get_copy_source_memory_error_reasons(source, count, elem_type);
 			if (messages.not_empty())
 			{
 				reasons.reserve(reasons.size() + messages.size() + allocation->alloc_info.call_stack.size());
-				reasons.append_move(messages.transform([&](auto const &message) -> error_reason_t {
-					return { allocation->alloc_info.src_tokens, message };
+				reasons.append_move(messages.transform([&](auto &message) -> error_reason_t {
+					return { allocation->alloc_info.src_tokens, std::move(message) };
 				}));
 				add_allocation_info(reasons, allocation->alloc_info);
 			}
@@ -4035,10 +4035,10 @@ static void add_get_copy_overlapping_memory_error_reasons(
 		auto const object = manager.stack.get_stack_object(dest);
 		bz_assert(object != nullptr);
 
-		auto const messages = object->get_get_copy_overlapping_memory_error_reasons(dest, source, count, elem_type);
+		auto messages = object->get_get_copy_overlapping_memory_error_reasons(dest, source, count, elem_type);
 		reasons.reserve(reasons.size() + messages.size());
-		reasons.append_move(messages.transform([&](auto const &message) -> error_reason_t {
-			return { object->object_src_tokens, message };
+		reasons.append_move(messages.transform([&](auto &message) -> error_reason_t {
+			return { object->object_src_tokens, std::move(message) };
 		}));
 		break;
 	}
@@ -4058,12 +4058,12 @@ static void add_get_copy_overlapping_memory_error_reasons(
 		}
 		else
 		{
-			auto const messages = allocation->object.get_get_copy_overlapping_memory_error_reasons(dest, source, count, elem_type);
+			auto messages = allocation->object.get_get_copy_overlapping_memory_error_reasons(dest, source, count, elem_type);
 			if (messages.not_empty())
 			{
 				reasons.reserve(reasons.size() + messages.size() + allocation->alloc_info.call_stack.size());
-				reasons.append_move(messages.transform([&](auto const &message) -> error_reason_t {
-					return { allocation->alloc_info.src_tokens, message };
+				reasons.append_move(messages.transform([&](auto &message) -> error_reason_t {
+					return { allocation->alloc_info.src_tokens, std::move(message) };
 				}));
 				add_allocation_info(reasons, allocation->alloc_info);
 			}
@@ -4100,12 +4100,12 @@ static void add_get_relocate_source_memory_error_reasons(
 	}
 	else
 	{
-		auto const messages = allocation->object.get_get_relocate_source_memory_error_reasons(source, count, elem_type);
+		auto messages = allocation->object.get_get_relocate_source_memory_error_reasons(source, count, elem_type);
 		if (messages.not_empty())
 		{
 			reasons.reserve(messages.size() + allocation->alloc_info.call_stack.size());
-			reasons.append_move(messages.transform([&](auto const &message) -> error_reason_t {
-				return { allocation->alloc_info.src_tokens, message };
+			reasons.append_move(messages.transform([&](auto &message) -> error_reason_t {
+				return { allocation->alloc_info.src_tokens, std::move(message) };
 			}));
 			add_allocation_info(reasons, allocation->alloc_info);
 		}
@@ -4711,12 +4711,12 @@ bz::vector<error_reason_t> memory_manager::get_relocate_values_error_reason(
 		}
 		else
 		{
-			auto const messages = allocation->object.get_get_relocate_overlapping_memory_error_reasons(dest, source, count, is_trivial);
+			auto messages = allocation->object.get_get_relocate_overlapping_memory_error_reasons(dest, source, count, is_trivial);
 			if (messages.not_empty())
 			{
 				reasons.reserve(messages.size() + allocation->alloc_info.call_stack.size());
-				reasons.append_move(messages.transform([&](auto const &message) -> error_reason_t {
-					return { allocation->alloc_info.src_tokens, message };
+				reasons.append_move(messages.transform([&](auto &message) -> error_reason_t {
+					return { allocation->alloc_info.src_tokens, std::move(message) };
 				}));
 				add_allocation_info(reasons, allocation->alloc_info);
 			}
