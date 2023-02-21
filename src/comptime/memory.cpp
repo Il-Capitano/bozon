@@ -543,6 +543,49 @@ bz::optional<int64_t> stack_object::do_pointer_difference(
 	}
 }
 
+bz::vector<bz::u8string> stack_object::get_pointer_difference_error_reason(
+	ptr_t lhs,
+	ptr_t rhs,
+	bool lhs_is_one_past_the_end,
+	bool rhs_is_one_past_the_end,
+	type const *
+) const
+{
+	if (!this->is_alive(std::min(lhs, rhs), std::max(lhs, rhs)))
+	{
+		bz::vector<bz::u8string> result;
+		result.push_back("lhs and rhs addresses point to this stack object, which is outside its lifetime");
+		return result;
+	}
+
+	auto const lhs_offset = lhs - this->address;
+	auto const rhs_offset = rhs - this->address;
+
+	bz::vector<bz::u8string> result;
+	result.reserve(3);
+	result.push_back("lhs and rhs addresses point to different subobjects in this stack object");
+
+	if (lhs_is_one_past_the_end)
+	{
+		result.push_back(bz::format("lhs address is a one-past-the-end pointer with offset {}", lhs_offset));
+	}
+	else
+	{
+		result.push_back(bz::format("lhs address points to a subobject at offset {}", lhs_offset));
+	}
+
+	if (rhs_is_one_past_the_end)
+	{
+		result.push_back(bz::format("rhs address is a one-past-the-end pointer with offset {}", rhs_offset));
+	}
+	else
+	{
+		result.push_back(bz::format("rhs address points to a subobject at offset {}", rhs_offset));
+	}
+
+	return result;
+}
+
 copy_values_memory_t stack_object::get_dest_memory(ptr_t address, size_t count, type const *elem_type)
 {
 	auto const end_address = address + count * elem_type->size;
@@ -1338,6 +1381,65 @@ bz::optional<int64_t> heap_object::do_pointer_difference(
 			return {};
 		}
 	}
+}
+
+bz::vector<bz::u8string> heap_object::get_pointer_difference_error_reason(
+	ptr_t lhs,
+	ptr_t rhs,
+	bool lhs_is_one_past_the_end,
+	bool rhs_is_one_past_the_end,
+	type const *object_type
+) const
+{
+	bz_assert(object_type != this->elem_type);
+
+	auto const lhs_offset = lhs - this->address;
+	auto const rhs_offset = rhs - this->address;
+	auto const lhs_index = lhs_offset / this->elem_size() - (lhs_is_one_past_the_end && lhs_offset % this->elem_size() == 0 ? 1 : 0);
+	auto const rhs_index = rhs_offset / this->elem_size() - (rhs_is_one_past_the_end && rhs_offset % this->elem_size() == 0 ? 1 : 0);
+
+	bz::vector<bz::u8string> result;
+	if (lhs_index != rhs_index)
+	{
+		result.push_back(bz::format(
+			"lhs and rhs addresses point to different elements in this allocations at indices {} and {}",
+			lhs_index, rhs_index
+		));
+	}
+	else if (!this->is_alive(std::min(lhs, rhs), std::max(lhs, rhs)))
+	{
+		result.push_back("lhs and rhs addresses point to an element outside its lifetime in this allocation");
+	}
+	else
+	{
+		result.reserve(3);
+		result.push_back("lhs and rhs addresses point to different subobjects of the same element in this allocation");
+		bz_assert(lhs != rhs);
+
+		if (lhs_is_one_past_the_end)
+		{
+			auto const elem_offset = lhs_offset % this->elem_size();
+			auto const offset = elem_offset == 0 ? this->elem_size() : elem_offset;
+			result.push_back(bz::format("lhs address is a one-past-the-end pointer with offset {}", offset));
+		}
+		else
+		{
+			result.push_back(bz::format("lhs address points to a subobject at offset {}", lhs_offset % this->elem_size()));
+		}
+
+		if (rhs_is_one_past_the_end)
+		{
+			auto const elem_offset = rhs_offset % this->elem_size();
+			auto const offset = elem_offset == 0 ? this->elem_size() : elem_offset;
+			result.push_back(bz::format("rhs address is a one-past-the-end pointer with offset {}", offset));
+		}
+		else
+		{
+			result.push_back(bz::format("rhs address points to a subobject at offset {}", rhs_offset % this->elem_size()));
+		}
+	}
+
+	return result;
 }
 
 copy_values_memory_and_properties_t heap_object::get_dest_memory(ptr_t address, size_t count, type const *elem_type, bool is_trivial)
@@ -2207,6 +2309,45 @@ bz::optional<int64_t> stack_manager::do_pointer_difference(
 	}
 }
 
+bz::vector<error_reason_t> stack_manager::get_pointer_difference_error_reason(
+	ptr_t lhs,
+	ptr_t rhs,
+	bool lhs_is_one_past_the_end,
+	bool rhs_is_one_past_the_end,
+	type const *object_type
+) const
+{
+	auto const lhs_object = this->get_stack_object(lhs);
+	auto const rhs_object = this->get_stack_object(rhs);
+	bz_assert(lhs_object != nullptr);
+	bz_assert(rhs_object != nullptr);
+
+	bz::vector<error_reason_t> result;
+	if (lhs_object != rhs_object)
+	{
+		result.reserve(3);
+		result.push_back({ {}, "lhs and rhs addresses point to different stack objects" });
+		result.push_back({ lhs_object->object_src_tokens, "lhs address points to this stack object" });
+		result.push_back({ rhs_object->object_src_tokens, "rhs address points to this stack object" });
+	}
+	else
+	{
+		auto messages = lhs_object->get_pointer_difference_error_reason(
+			lhs,
+			rhs,
+			lhs_is_one_past_the_end,
+			rhs_is_one_past_the_end,
+			object_type
+		);
+		result.reserve(messages.size());
+		result.append_move(messages.transform([lhs_object](auto &message) {
+			return error_reason_t{ lhs_object->object_src_tokens, std::move(message) };
+		}));
+	}
+
+	return result;
+}
+
 uint8_t *stack_manager::get_memory(ptr_t address)
 {
 	auto const object = this->get_stack_object(address);
@@ -2629,6 +2770,58 @@ bz::optional<int64_t> heap_manager::do_pointer_difference(
 	{
 		return allocation->object.do_pointer_difference(lhs, rhs, lhs_is_one_past_the_end, rhs_is_one_past_the_end, object_type);
 	}
+}
+
+bz::vector<error_reason_t> heap_manager::get_pointer_difference_error_reason(
+	ptr_t lhs,
+	ptr_t rhs,
+	bool lhs_is_one_past_the_end,
+	bool rhs_is_one_past_the_end,
+	type const *object_type
+) const
+{
+	auto const lhs_allocation = this->get_allocation(lhs);
+	auto const rhs_allocation = this->get_allocation(rhs);
+	bz_assert(lhs_allocation != nullptr);
+	bz_assert(rhs_allocation != nullptr);
+
+	bz::vector<error_reason_t> result;
+	if (lhs_allocation != rhs_allocation)
+	{
+		result.reserve(3 + lhs_allocation->alloc_info.call_stack.size() + rhs_allocation->alloc_info.call_stack.size());
+		result.push_back({ {}, "lhs and rhs addresses point to different allocations" });
+		result.push_back({ lhs_allocation->alloc_info.src_tokens, "lhs address points to an object in this allocation" });
+		add_allocation_info(result, lhs_allocation->alloc_info);
+		result.push_back({ rhs_allocation->alloc_info.src_tokens, "rhs address points to an object in this allocation" });
+		add_allocation_info(result, rhs_allocation->alloc_info);
+	}
+	else if (lhs_allocation->is_freed)
+	{
+		result.reserve(1 + lhs_allocation->alloc_info.call_stack.size() + lhs_allocation->free_info.call_stack.size() + 1);
+		result.push_back({
+			lhs_allocation->alloc_info.src_tokens,
+			"lhs and rhs addresses point to objects in this allocation, which was freed"
+		});
+		add_allocation_info(result, lhs_allocation->alloc_info);
+		add_free_info(result, lhs_allocation->free_info);
+	}
+	else
+	{
+		auto messages = lhs_allocation->object.get_pointer_difference_error_reason(
+			lhs,
+			rhs,
+			lhs_is_one_past_the_end,
+			rhs_is_one_past_the_end,
+			object_type
+		);
+		result.reserve(messages.size() + lhs_allocation->alloc_info.call_stack.size());
+		result.append_move(messages.transform([lhs_allocation](auto &message) {
+			return error_reason_t{ lhs_allocation->alloc_info.src_tokens, std::move(message) };
+		}));
+		add_allocation_info(result, lhs_allocation->alloc_info);
+	}
+
+	return result;
 }
 
 uint8_t *heap_manager::get_memory(ptr_t address)
@@ -3949,6 +4142,150 @@ bz::optional<int64_t> memory_manager::do_pointer_difference(ptr_t _lhs, ptr_t _r
 			return this->stack.do_pointer_difference(lhs, rhs, lhs_is_one_past_the_end, rhs_is_one_past_the_end, object_type);
 		case memory_segment::heap:
 			return this->heap.do_pointer_difference(lhs, rhs, lhs_is_one_past_the_end, rhs_is_one_past_the_end, object_type);
+		case memory_segment::meta:
+			bz_unreachable;
+		}
+	}
+}
+
+bz::vector<error_reason_t> memory_manager::get_pointer_difference_error_reason(ptr_t _lhs, ptr_t _rhs, type const *object_type) const
+{
+	bz_assert(_lhs != 0 && _rhs != 0);
+	auto const [
+		lhs,
+		lhs_segment,
+		lhs_is_one_past_the_end,
+		lhs_is_finished_stack_frame,
+		lhs_is_stack_object
+	] = remove_meta(_lhs, *this);
+	auto const [
+		rhs,
+		rhs_segment,
+		rhs_is_one_past_the_end,
+		rhs_is_finished_stack_frame,
+		rhs_is_stack_object
+	] = remove_meta(_rhs, *this);
+
+	if (lhs_is_finished_stack_frame && rhs_is_finished_stack_frame)
+	{
+		bz::vector<error_reason_t> result;
+		auto const &lhs_stack_object = this->meta_memory.get_stack_object_pointer(lhs);
+		auto const &rhs_stack_object = this->meta_memory.get_stack_object_pointer(rhs);
+		if (
+			lhs_stack_object.object_src_tokens.begin == rhs_stack_object.object_src_tokens.begin
+			&& lhs_stack_object.object_src_tokens.pivot == rhs_stack_object.object_src_tokens.pivot
+			&& lhs_stack_object.object_src_tokens.end == rhs_stack_object.object_src_tokens.end
+		)
+		{
+			result.push_back({
+				lhs_stack_object.object_src_tokens,
+				"lhs and rhs addresses point to an object from a finished stack frame"
+			});
+		}
+		else
+		{
+			result.reserve(2);
+			result.push_back({
+				lhs_stack_object.object_src_tokens,
+				"lhs address points to an object from a finished stack frame"
+			});
+			result.push_back({
+				rhs_stack_object.object_src_tokens,
+				"rhs address points to an object from a finished stack frame"
+			});
+		}
+		return result;
+	}
+	else if (lhs_is_finished_stack_frame)
+	{
+		bz::vector<error_reason_t> result;
+		auto const &stack_object = this->meta_memory.get_stack_object_pointer(lhs);
+		result.push_back({ stack_object.object_src_tokens, "lhs address points to an object from a finished stack frame" });
+		return result;
+	}
+	else if (rhs_is_finished_stack_frame)
+	{
+		bz::vector<error_reason_t> result;
+		auto const &stack_object = this->meta_memory.get_stack_object_pointer(rhs);
+		result.push_back({ stack_object.object_src_tokens, "rhs address points to an object from a finished stack frame" });
+		return result;
+	}
+	else if (lhs_segment != rhs_segment)
+	{
+		bz::vector<error_reason_t> result;
+		result.reserve(3);
+		result.push_back({ {}, "lhs and rhs addresses point to different memory segments" });
+
+		switch (lhs_segment)
+		{
+		case memory_segment::global:
+		{
+			auto const global_object = this->global_memory->get_global_object(lhs);
+			bz_assert(global_object != nullptr);
+			result.push_back({ global_object->object_src_tokens, "lhs address points to this global object" });
+			break;
+		}
+		case memory_segment::stack:
+		{
+			auto const stack_object = this->stack.get_stack_object(lhs);
+			bz_assert(stack_object != nullptr);
+			result.push_back({ stack_object->object_src_tokens, "lhs address points to this stack object" });
+			break;
+		}
+		case memory_segment::heap:
+		{
+			auto const allocation = this->heap.get_allocation(lhs);
+			bz_assert(allocation != nullptr);
+			result.reserve(1 + allocation->alloc_info.call_stack.size());
+			result.push_back({ allocation->alloc_info.src_tokens, "lhs address points to an object in this allocation" });
+			add_allocation_info(result, allocation->alloc_info);
+			break;
+		}
+		case memory_segment::meta:
+			bz_unreachable;
+		}
+
+		switch (rhs_segment)
+		{
+		case memory_segment::global:
+		{
+			auto const global_object = this->global_memory->get_global_object(rhs);
+			bz_assert(global_object != nullptr);
+			result.push_back({ global_object->object_src_tokens, "rhs address points to this global object" });
+			break;
+		}
+		case memory_segment::stack:
+		{
+			auto const stack_object = this->stack.get_stack_object(rhs);
+			bz_assert(stack_object != nullptr);
+			result.push_back({ stack_object->object_src_tokens, "rhs address points to this stack object" });
+			break;
+		}
+		case memory_segment::heap:
+		{
+			auto const allocation = this->heap.get_allocation(rhs);
+			bz_assert(allocation != nullptr);
+			result.reserve(1 + allocation->alloc_info.call_stack.size());
+			result.push_back({ allocation->alloc_info.src_tokens, "rhs address points to an object in this allocation" });
+			add_allocation_info(result, allocation->alloc_info);
+			break;
+		}
+		case memory_segment::meta:
+			bz_unreachable;
+		}
+
+		return result;
+	}
+	else
+	{
+		switch (lhs_segment)
+		{
+		case memory_segment::global:
+			return this->global_memory->get_pointer_difference_error_reason(lhs, rhs, lhs_is_one_past_the_end, rhs_is_one_past_the_end, object_type);
+		case memory_segment::stack:
+			return this->stack.get_pointer_difference_error_reason(lhs, rhs, lhs_is_one_past_the_end, rhs_is_one_past_the_end, object_type);
+		case memory_segment::heap:
+			return this->heap.get_pointer_difference_error_reason(lhs, rhs, lhs_is_one_past_the_end, rhs_is_one_past_the_end, object_type);
 		case memory_segment::meta:
 			bz_unreachable;
 		}

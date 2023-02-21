@@ -294,6 +294,42 @@ bz::optional<int64_t> global_object::do_pointer_difference(
 	}
 }
 
+bz::vector<bz::u8string> global_object::get_pointer_difference_error_reason(
+	ptr_t lhs,
+	ptr_t rhs,
+	bool lhs_is_one_past_the_end,
+	bool rhs_is_one_past_the_end,
+	type const *
+) const
+{
+	auto const lhs_offset = lhs - this->address;
+	auto const rhs_offset = rhs - this->address;
+
+	bz::vector<bz::u8string> result;
+	result.reserve(3);
+	result.push_back("lhs and rhs addresses point to different subobjects in this global object");
+
+	if (lhs_is_one_past_the_end)
+	{
+		result.push_back(bz::format("lhs address is a one-past-the-end pointer with offset {}", lhs_offset));
+	}
+	else
+	{
+		result.push_back(bz::format("lhs address points to a subobject at offset {}", lhs_offset));
+	}
+
+	if (rhs_is_one_past_the_end)
+	{
+		result.push_back(bz::format("rhs address is a one-past-the-end pointer with offset {}", rhs_offset));
+	}
+	else
+	{
+		result.push_back(bz::format("rhs address points to a subobject at offset {}", rhs_offset));
+	}
+
+	return result;
+}
+
 copy_values_memory_t global_object::get_copy_source_memory(ptr_t address, size_t count, type const *elem_type)
 {
 	auto const begin_offset = address - this->address;
@@ -635,6 +671,45 @@ bz::optional<int64_t> global_memory_manager::do_pointer_difference(
 	{
 		return object->do_pointer_difference(lhs, rhs, lhs_is_one_past_the_end, rhs_is_one_past_the_end, object_type);
 	}
+}
+
+bz::vector<error_reason_t> global_memory_manager::get_pointer_difference_error_reason(
+	ptr_t lhs,
+	ptr_t rhs,
+	bool lhs_is_one_past_the_end,
+	bool rhs_is_one_past_the_end,
+	type const *object_type
+) const
+{
+	auto const lhs_object = this->get_global_object(lhs);
+	auto const rhs_object = this->get_global_object(rhs);
+	bz_assert(lhs_object != nullptr);
+	bz_assert(rhs_object != nullptr);
+
+	bz::vector<error_reason_t> result;
+	if (lhs_object != rhs_object)
+	{
+		result.reserve(3);
+		result.push_back({ {}, "lhs and rhs addresses point to different global objects" });
+		result.push_back({ lhs_object->object_src_tokens, "lhs address points to this global object" });
+		result.push_back({ rhs_object->object_src_tokens, "rhs address points to this global object" });
+	}
+	else
+	{
+		auto messages = lhs_object->get_pointer_difference_error_reason(
+			lhs,
+			rhs,
+			lhs_is_one_past_the_end,
+			rhs_is_one_past_the_end,
+			object_type
+		);
+		result.reserve(messages.size());
+		result.append_move(messages.transform([lhs_object](auto &message) {
+			return error_reason_t{ lhs_object->object_src_tokens, std::move(message) };
+		}));
+	}
+
+	return result;
 }
 
 uint8_t *global_memory_manager::get_memory(ptr_t address)

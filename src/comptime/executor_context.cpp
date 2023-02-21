@@ -827,9 +827,11 @@ int64_t executor_context::pointer_difference(
 	auto const result = this->memory.do_pointer_difference(lhs, rhs, object_type);
 	if (!result.has_value())
 	{
+		auto reasons = this->memory.get_pointer_difference_error_reason(lhs, rhs, object_type);
 		this->report_error(
 			src_tokens_index,
-			bz::format("invalid pointer difference operation with type '{}'", pointer_type)
+			bz::format("invalid pointer difference operation with type '{}'", pointer_type),
+			get_notes(reasons, src_tokens_index, *this)
 		);
 		return 0;
 	}

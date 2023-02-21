@@ -97,6 +97,13 @@ struct stack_object
 		bool rhs_is_one_past_the_end,
 		type const *object_type
 	) const;
+	bz::vector<bz::u8string> get_pointer_difference_error_reason(
+		ptr_t lhs,
+		ptr_t rhs,
+		bool lhs_is_one_past_the_end,
+		bool rhs_is_one_past_the_end,
+		type const *object_type
+	) const;
 
 	copy_values_memory_t get_dest_memory(ptr_t address, size_t count, type const *elem_type);
 	bz::vector<bz::u8string> get_get_dest_memory_error_reasons(ptr_t address, size_t count, type const *elem_type);
@@ -160,6 +167,13 @@ struct heap_object
 		type const *object_type
 	) const;
 	bz::optional<int64_t> do_pointer_difference(
+		ptr_t lhs,
+		ptr_t rhs,
+		bool lhs_is_one_past_the_end,
+		bool rhs_is_one_past_the_end,
+		type const *object_type
+	) const;
+	bz::vector<bz::u8string> get_pointer_difference_error_reason(
 		ptr_t lhs,
 		ptr_t rhs,
 		bool lhs_is_one_past_the_end,
@@ -238,6 +252,13 @@ struct stack_manager
 		type const *object_type
 	) const;
 	bz::optional<int64_t> do_pointer_difference(
+		ptr_t lhs,
+		ptr_t rhs,
+		bool lhs_is_one_past_the_end,
+		bool rhs_is_one_past_the_end,
+		type const *object_type
+	) const;
+	bz::vector<error_reason_t> get_pointer_difference_error_reason(
 		ptr_t lhs,
 		ptr_t rhs,
 		bool lhs_is_one_past_the_end,
@@ -328,6 +349,13 @@ struct heap_manager
 		type const *object_type
 	) const;
 	bz::optional<int64_t> do_pointer_difference(
+		ptr_t lhs,
+		ptr_t rhs,
+		bool lhs_is_one_past_the_end,
+		bool rhs_is_one_past_the_end,
+		type const *object_type
+	) const;
+	bz::vector<error_reason_t> get_pointer_difference_error_reason(
 		ptr_t lhs,
 		ptr_t rhs,
 		bool lhs_is_one_past_the_end,
@@ -425,6 +453,7 @@ struct memory_manager
 	ptr_t do_pointer_arithmetic_unchecked(ptr_t address, int64_t offset, type const *object_type);
 	ptr_t do_gep(ptr_t address, type const *object_type, uint64_t index);
 	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const;
+	bz::vector<error_reason_t> get_pointer_difference_error_reason(ptr_t lhs, ptr_t rhs, type const *object_type) const;
 	int64_t do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride) const;
 
 	bool copy_values(ptr_t dest, ptr_t source, size_t count, type const *elem_type, bool is_trivial);

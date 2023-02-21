@@ -58,6 +58,13 @@ struct global_object
 		bool rhs_is_one_past_the_end,
 		type const *object_type
 	) const;
+	bz::vector<bz::u8string> get_pointer_difference_error_reason(
+		ptr_t lhs,
+		ptr_t rhs,
+		bool lhs_is_one_past_the_end,
+		bool rhs_is_one_past_the_end,
+		type const *object_type
+	) const;
 
 	copy_values_memory_t get_copy_source_memory(ptr_t address, size_t count, type const *elem_type);
 	bz::vector<bz::u8string> get_get_copy_source_memory_error_reasons(ptr_t address, size_t count, type const *elem_type);
@@ -139,6 +146,13 @@ struct global_memory_manager
 		type const *object_type
 	) const;
 	bz::optional<int64_t> do_pointer_difference(
+		ptr_t lhs,
+		ptr_t rhs,
+		bool lhs_is_one_past_the_end,
+		bool rhs_is_one_past_the_end,
+		type const *object_type
+	) const;
+	bz::vector<error_reason_t> get_pointer_difference_error_reason(
 		ptr_t lhs,
 		ptr_t rhs,
 		bool lhs_is_one_past_the_end,
