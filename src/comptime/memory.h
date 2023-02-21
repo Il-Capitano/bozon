@@ -424,8 +424,8 @@ struct memory_manager
 	bz::vector<error_reason_t> get_pointer_arithmetic_error_reason(ptr_t address, int64_t offset, type const *object_type) const;
 	ptr_t do_pointer_arithmetic_unchecked(ptr_t address, int64_t offset, type const *object_type);
 	ptr_t do_gep(ptr_t address, type const *object_type, uint64_t index);
-	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type);
-	int64_t do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride);
+	bz::optional<int64_t> do_pointer_difference(ptr_t lhs, ptr_t rhs, type const *object_type) const;
+	int64_t do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride) const;
 
 	bool copy_values(ptr_t dest, ptr_t source, size_t count, type const *elem_type, bool is_trivial);
 	bz::vector<error_reason_t> get_copy_values_error_reason(

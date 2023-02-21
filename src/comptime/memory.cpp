@@ -2457,29 +2457,7 @@ bz::vector<error_reason_t> heap_manager::get_slice_construction_error_reason(
 	bz_assert(end_allocation != nullptr);
 
 	bz::vector<error_reason_t> result;
-	if (begin_allocation == end_allocation)
-	{
-		if (begin_allocation->is_freed)
-		{
-			result.reserve(1 + begin_allocation->alloc_info.call_stack.size() + begin_allocation->free_info.call_stack.size() + 1);
-			result.push_back({
-				begin_allocation->alloc_info.src_tokens,
-				"begin and end addresses point to objects in this allocation, which was freed"
-			});
-			add_allocation_info(result, begin_allocation->alloc_info);
-			add_free_info(result, begin_allocation->free_info);
-		}
-		else
-		{
-			auto messages = begin_allocation->object.get_slice_construction_error_reason(begin, end, end_is_one_past_the_end, elem_type);
-			result.reserve(messages.size() + begin_allocation->alloc_info.call_stack.size());
-			result.append_move(messages.transform([begin_allocation](auto &message) {
-				return error_reason_t{ begin_allocation->alloc_info.src_tokens, std::move(message) };
-			}));
-			add_allocation_info(result, begin_allocation->alloc_info);
-		}
-	}
-	else
+	if (begin_allocation != end_allocation)
 	{
 		result.reserve(3 + begin_allocation->alloc_info.call_stack.size() + end_allocation->alloc_info.call_stack.size());
 		result.push_back({ {}, "begin and end addresses point to different allocations" });
@@ -2487,6 +2465,25 @@ bz::vector<error_reason_t> heap_manager::get_slice_construction_error_reason(
 		add_allocation_info(result, begin_allocation->alloc_info);
 		result.push_back({ end_allocation->alloc_info.src_tokens, "end address points to an object in this allocation" });
 		add_allocation_info(result, end_allocation->alloc_info);
+	}
+	else if (begin_allocation->is_freed)
+	{
+		result.reserve(1 + begin_allocation->alloc_info.call_stack.size() + begin_allocation->free_info.call_stack.size() + 1);
+		result.push_back({
+			begin_allocation->alloc_info.src_tokens,
+			"begin and end addresses point to objects in this allocation, which was freed"
+		});
+		add_allocation_info(result, begin_allocation->alloc_info);
+		add_free_info(result, begin_allocation->free_info);
+	}
+	else
+	{
+		auto messages = begin_allocation->object.get_slice_construction_error_reason(begin, end, end_is_one_past_the_end, elem_type);
+		result.reserve(messages.size() + begin_allocation->alloc_info.call_stack.size());
+		result.append_move(messages.transform([begin_allocation](auto &message) {
+			return error_reason_t{ begin_allocation->alloc_info.src_tokens, std::move(message) };
+		}));
+		add_allocation_info(result, begin_allocation->alloc_info);
 	}
 
 	return result;
@@ -3646,7 +3643,7 @@ bz::vector<error_reason_t> memory_manager::get_compare_pointers_error_reason(ptr
 	{
 		bz::vector<error_reason_t> result;
 		result.reserve(3);
-		result.push_back({ {}, "begin and end addresses point to different memory segments" });
+		result.push_back({ {}, "lhs and rhs addresses point to different memory segments" });
 
 		switch (lhs_segment)
 		{
@@ -3904,7 +3901,7 @@ ptr_t memory_manager::do_gep(ptr_t _address, type const *object_type, uint64_t i
 	}
 }
 
-bz::optional<int64_t> memory_manager::do_pointer_difference(ptr_t _lhs, ptr_t _rhs, type const *object_type)
+bz::optional<int64_t> memory_manager::do_pointer_difference(ptr_t _lhs, ptr_t _rhs, type const *object_type) const
 {
 	bz_assert(_lhs != 0 && _rhs != 0);
 	auto const [
@@ -3958,7 +3955,7 @@ bz::optional<int64_t> memory_manager::do_pointer_difference(ptr_t _lhs, ptr_t _r
 	}
 }
 
-int64_t memory_manager::do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride)
+int64_t memory_manager::do_pointer_difference_unchecked(ptr_t lhs, ptr_t rhs, size_t stride) const
 {
 	if (lhs == 0 && rhs == 0)
 	{
