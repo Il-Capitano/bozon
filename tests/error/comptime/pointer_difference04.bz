@@ -1,0 +1,9 @@
+consteval global = 0;
+
+function test()
+{
+	(consteval {
+		let i = 0;
+		&i - &global;
+	});
+}

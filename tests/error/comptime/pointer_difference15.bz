@@ -1,0 +1,13 @@
+function test()
+{
+	(consteval {
+		const p = __builtin_comptime_malloc(int32, 1);
+		defer __builtin_comptime_free(p);
+		__builtin_inplace_construct(p, 0);
+		const q = __builtin_comptime_malloc(int32, 1);
+		defer __builtin_comptime_free(q);
+		__builtin_inplace_construct(q, 0);
+
+		p - q;
+	});
+}

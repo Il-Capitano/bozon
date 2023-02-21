@@ -1,0 +1,13 @@
+function foo() -> *int32
+{
+	let i = 0;
+	return &i;
+}
+
+function test()
+{
+	(consteval {
+		let i = 0;
+		&i - foo();
+	});
+}

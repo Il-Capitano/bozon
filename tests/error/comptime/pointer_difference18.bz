@@ -1,0 +1,10 @@
+function test()
+{
+	(consteval {
+		const p = __builtin_comptime_malloc([int32, int32], 1);
+		defer __builtin_comptime_free(p);
+		__builtin_inplace_construct(p, [int32, int32]());
+
+		(&(*p)[1] + 1) - &(*p)[0];
+	});
+}
