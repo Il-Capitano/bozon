@@ -6064,16 +6064,16 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction::variant_count == 543);
+	static_assert(instruction_list_t::size() == 543);
 	case instruction::jump:
 	{
-		auto &jump_inst = inst.get<instruction::jump>();
+		auto &jump_inst = inst.get<instructions::jump>();
 		jump_inst.dest = get_instruction_index({ .bb_index = dests[0].bb_index, .inst_index = 0 });
 		break;
 	}
 	case instruction::conditional_jump:
 	{
-		auto &jump_inst = inst.get<instruction::conditional_jump>();
+		auto &jump_inst = inst.get<instructions::conditional_jump>();
 		jump_inst.true_dest  = get_instruction_index({ .bb_index = dests[0].bb_index, .inst_index = 0 });
 		jump_inst.false_dest = get_instruction_index({ .bb_index = dests[1].bb_index, .inst_index = 0 });
 		break;
