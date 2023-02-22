@@ -301,6 +301,7 @@ struct codegen_context
 	expr_value create_add_global_array_data(lex::src_tokens const &src_tokens, type const *elem_type, expr_value begin_ptr, expr_value end_ptr);
 
 	expr_value create_get_global_object(uint32_t global_index);
+	ptr_t get_function_pointer_value(function *func);
 	expr_value create_const_function_pointer(function *func);
 	expr_value create_get_function_return_address(void);
 	instruction_ref create_get_function_arg(uint32_t arg_index);

@@ -4,7 +4,7 @@
 #include "core.h"
 #include "memory_common.h"
 #include "instructions_forward.h"
-#include "ast/constant_value.h"
+#include "codegen_context_forward.h"
 
 namespace comptime::memory
 {
@@ -163,15 +163,6 @@ struct global_memory_manager
 	uint8_t *get_memory(ptr_t address);
 	uint8_t const *get_memory(ptr_t address) const;
 };
-
-bz::fixed_vector<uint8_t> object_from_constant_value(
-	lex::src_tokens const &src_tokens,
-	ast::constant_value const &value,
-	type const *object_type,
-	endianness_kind endianness,
-	global_memory_manager &manager,
-	type_set_t &type_set
-);
 
 } // namespace comptime::memory
 

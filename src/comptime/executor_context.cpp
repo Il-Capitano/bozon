@@ -2,6 +2,7 @@
 #include "execute.h"
 #include "codegen_context.h"
 #include "codegen.h"
+#include "memory_value_conversion.h"
 #include "global_data.h"
 #include "ast/statement.h"
 #include "resolve/consteval.h"

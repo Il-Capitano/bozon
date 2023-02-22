@@ -819,13 +819,22 @@ expr_value codegen_context::create_get_global_object(uint32_t global_index)
 	);
 }
 
-expr_value codegen_context::create_const_function_pointer(function *func)
+ptr_t codegen_context::get_function_pointer_value(function *func)
 {
 	auto const it = this->function_pointers.find(func);
-	auto const ptr = it == this->function_pointers.end()
-		? this->add_function_pointer(func)
-		: it->second;
+	if (it != this->function_pointers.end())
+	{
+		return it->second;
+	}
+	else
+	{
+		return this->add_function_pointer(func);
+	}
+}
 
+expr_value codegen_context::create_const_function_pointer(function *func)
+{
+	auto const ptr = this->get_function_pointer_value(func);
 	return expr_value::get_value(
 		add_instruction(*this, instructions::const_func_ptr{ .value = ptr }),
 		this->get_pointer_type()

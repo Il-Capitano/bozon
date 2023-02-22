@@ -1,5 +1,6 @@
 #include "codegen.h"
 #include "codegen_context.h"
+#include "memory_value_conversion.h"
 
 namespace comptime
 {
@@ -6250,9 +6251,7 @@ static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_conte
 				var_decl.src_tokens,
 				init_value,
 				type,
-				context.get_endianness(),
-				context.global_memory,
-				context.type_set
+				context
 			);
 			auto const [value, index] = context.create_global_object(var_decl.src_tokens, type, std::move(data));
 			context.add_global_variable(&var_decl, index);

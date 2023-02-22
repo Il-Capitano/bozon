@@ -498,14 +498,6 @@ struct memory_manager
 	uint8_t const *get_memory(ptr_t address) const;
 };
 
-ast::constant_value constant_value_from_object(
-	type const *object_type,
-	uint8_t const *mem,
-	ast::typespec_view ts,
-	endianness_kind endianness,
-	memory_manager const &manager
-);
-
 } // namespace comptime::memory
 
 #endif // COMPTIME_MEMORY_H
