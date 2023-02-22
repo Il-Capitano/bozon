@@ -9,3 +9,4 @@
 #include "comptime/memory_common.cpp"
 #include "comptime/global_memory.cpp"
 #include "comptime/memory.cpp"
+#include "comptime/memory_value_conversion.cpp"
