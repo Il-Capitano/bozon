@@ -1972,4 +1972,7 @@ function indirect_call_test()
 		std::assert(op == mul_i32);
 		std::assert(op != add_i32);
 	});
+
+	consteval op = add_i32;
+	static_assert(op(2, 3) == 5);
 }
