@@ -5487,6 +5487,21 @@ using instruction_list_t = bz::meta::type_pack<
 	instructions::end_lifetime
 >;
 
+namespace internal
+{
+
+template<typename T, typename Pack = instruction_list_t, typename = void>
+inline constexpr void *index_of = nullptr;
+
+template<typename T, typename ...Ts>
+inline constexpr size_t index_of<
+	T,
+	bz::meta::type_pack<Ts...>,
+	bz::meta::enable_if<bz::meta::is_same<T, void> || bz::meta::is_in_type_pack<T, instruction_list_t>>
+> = bz::meta::type_index<T, void, Ts...>;
+
+} // namespace internal
+
 struct instruction
 {
 private:
@@ -5500,15 +5515,10 @@ private:
 	static_assert(data_align == 8);
 
 public:
-	template<
-		typename T,
-		typename Pack = instruction_list_t,
-		typename = bz::meta::enable_if<bz::meta::is_same<T, void> || bz::meta::is_in_type_pack<T, instruction_list_t>>
-	>
-	static inline constexpr void *index_of = nullptr;
+	template<typename T>
+	static inline constexpr uint64_t index_of = internal::index_of<T>;
 
-	template<typename T, typename ...Ts>
-	static inline constexpr uint64_t index_of<T, bz::meta::type_pack<Ts...>, void> = (bz::meta::type_index<T, void, Ts...>);
+	static_assert(index_of<void> == 0);
 
 private:
 	alignas(data_align) uint8_t _data[data_size]{};
@@ -6085,16 +6095,16 @@ public:
 	template<typename Visitor>
 	void visit(Visitor visitor)
 	{
-		using fn_t = void (*)(void *data, Visitor *visitor);
-
 		[&]<typename ...Ts>(bz::meta::type_pack<Ts...>) {
+			using fn_t = void (*)(instruction *inst, Visitor *visitor);
+
 			static constexpr fn_t fns[] = {
 				nullptr,
-				+[](void *data, Visitor *visitor) {
-					(*visitor)(*std::launder(reinterpret_cast<Ts *>(data)));
+				+[](instruction *inst, Visitor *visitor) {
+					(*visitor)(inst->get<Ts>());
 				}...
 			};
-			fns[this->_index](this->_data, &visitor);
+			fns[this->_index](this, &visitor);
 		}(instruction_list_t());
 	}
 
