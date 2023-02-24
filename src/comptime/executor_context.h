@@ -1,9 +1,11 @@
 #ifndef COMPTIME_EXECUTOR_CONTEXT_H
 #define COMPTIME_EXECUTOR_CONTEXT_H
 
+#include "core.h"
+#include "executor_context_forward.h"
+#include "codegen_context_forward.h"
 #include "instructions.h"
 #include "memory.h"
-#include "codegen_context_forward.h"
 #include "ast/typespec.h"
 #include "ast/expression.h"
 #include "ctx/warnings.h"

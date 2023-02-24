@@ -1,4 +1,5 @@
 #include "memory_value_conversion.h"
+#include "executor_context.h"
 #include "codegen_context.h"
 #include "resolve/consteval.h"
 
@@ -412,12 +413,12 @@ static void load_array(uint8_t const *mem, U *dest, size_t size, endianness_kind
 	}
 }
 
-ast::constant_value constant_value_from_object(
+constant_value_from_object_result_t constant_value_from_object(
 	type const *object_type,
 	uint8_t const *mem,
 	ast::typespec_view ts,
 	endianness_kind endianness,
-	memory_manager const &manager
+	executor_context const &context
 )
 {
 	ts = ast::remove_const_or_consteval(ts);
@@ -429,29 +430,29 @@ ast::constant_value constant_value_from_object(
 			switch (kind)
 			{
 			case ast::type_info::int8_:
-				return ast::constant_value(static_cast<int64_t>(load<int8_t>(mem, endianness)));
+				return { ast::constant_value(static_cast<int64_t>(load<int8_t>(mem, endianness))), {} };
 			case ast::type_info::int16_:
-				return ast::constant_value(static_cast<int64_t>(load<int16_t>(mem, endianness)));
+				return { ast::constant_value(static_cast<int64_t>(load<int16_t>(mem, endianness))), {} };
 			case ast::type_info::int32_:
-				return ast::constant_value(static_cast<int64_t>(load<int32_t>(mem, endianness)));
+				return { ast::constant_value(static_cast<int64_t>(load<int32_t>(mem, endianness))), {} };
 			case ast::type_info::int64_:
-				return ast::constant_value(static_cast<int64_t>(load<int64_t>(mem, endianness)));
+				return { ast::constant_value(static_cast<int64_t>(load<int64_t>(mem, endianness))), {} };
 			case ast::type_info::uint8_:
-				return ast::constant_value(static_cast<uint64_t>(load<uint8_t>(mem, endianness)));
+				return { ast::constant_value(static_cast<uint64_t>(load<uint8_t>(mem, endianness))), {} };
 			case ast::type_info::uint16_:
-				return ast::constant_value(static_cast<uint64_t>(load<uint16_t>(mem, endianness)));
+				return { ast::constant_value(static_cast<uint64_t>(load<uint16_t>(mem, endianness))), {} };
 			case ast::type_info::uint32_:
-				return ast::constant_value(static_cast<uint64_t>(load<uint32_t>(mem, endianness)));
+				return { ast::constant_value(static_cast<uint64_t>(load<uint32_t>(mem, endianness))), {} };
 			case ast::type_info::uint64_:
-				return ast::constant_value(static_cast<uint64_t>(load<uint64_t>(mem, endianness)));
+				return { ast::constant_value(static_cast<uint64_t>(load<uint64_t>(mem, endianness))), {} };
 			case ast::type_info::float32_:
-				return ast::constant_value(load<float32_t>(mem, endianness));
+				return { ast::constant_value(load<float32_t>(mem, endianness)), {} };
 			case ast::type_info::float64_:
-				return ast::constant_value(load<float64_t>(mem, endianness));
+				return { ast::constant_value(load<float64_t>(mem, endianness)), {} };
 			case ast::type_info::char_:
-				return ast::constant_value(load<bz::u8char>(mem, endianness));
+				return { ast::constant_value(load<bz::u8char>(mem, endianness)), {} };
 			case ast::type_info::bool_:
-				return ast::constant_value(load<bool>(mem, endianness));
+				return { ast::constant_value(load<bool>(mem, endianness)), {} };
 			default:
 				bz_unreachable;
 			}
@@ -465,13 +466,13 @@ ast::constant_value constant_value_from_object(
 			switch (object_type->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return ast::constant_value::get_enum(decl, static_cast<uint64_t>(load<uint8_t>(mem, endianness)));
+				return { ast::constant_value::get_enum(decl, static_cast<uint64_t>(load<uint8_t>(mem, endianness))), {} };
 			case builtin_type_kind::i16:
-				return ast::constant_value::get_enum(decl, static_cast<uint64_t>(load<uint16_t>(mem, endianness)));
+				return { ast::constant_value::get_enum(decl, static_cast<uint64_t>(load<uint16_t>(mem, endianness))), {} };
 			case builtin_type_kind::i32:
-				return ast::constant_value::get_enum(decl, static_cast<uint64_t>(load<uint32_t>(mem, endianness)));
+				return { ast::constant_value::get_enum(decl, static_cast<uint64_t>(load<uint32_t>(mem, endianness))), {} };
 			case builtin_type_kind::i64:
-				return ast::constant_value::get_enum(decl, static_cast<uint64_t>(load<uint64_t>(mem, endianness)));
+				return { ast::constant_value::get_enum(decl, static_cast<uint64_t>(load<uint64_t>(mem, endianness))), {} };
 			default:
 				bz_unreachable;
 			}
@@ -485,16 +486,20 @@ ast::constant_value constant_value_from_object(
 		if (address == 0)
 		{
 			bz_assert(ts.is<ast::ts_optional>());
-			return ast::constant_value::get_null();
+			return { ast::constant_value::get_null(), {} };
 		}
 		else if (ts.is<ast::ts_function>() || ts.is_optional_function())
 		{
-			auto const func = manager.global_memory->get_function_pointer(address).func;
-			return ast::constant_value(func->func_body);
+			auto const func = context.memory.global_memory->get_function_pointer(address).func;
+			return { ast::constant_value(func->func_body), {} };
 		}
 		else
 		{
-			return ast::constant_value();
+			auto result = constant_value_from_object_result_t();
+			result.reasons.push_back({
+				{}, bz::format("a pointer of type '{}' is not a constant expression", ts)
+			});
+			return result;
 		}
 	}
 	else if (object_type->is_aggregate())
@@ -506,23 +511,30 @@ ast::constant_value constant_value_from_object(
 			auto const tuple_types = ts.get<ast::ts_tuple>().types.as_array_view();
 			bz_assert(aggregate_types.size() == tuple_types.size());
 
-			auto result = ast::constant_value();
-			auto &result_vec = result.emplace<ast::constant_value::tuple>();
+			auto result = constant_value_from_object_result_t();
+			auto &result_vec = result.value.emplace<ast::constant_value::tuple>();
 			result_vec.reserve(tuple_types.size());
 			for (auto const i : bz::iota(0, tuple_types.size()))
 			{
-				result_vec.push_back(constant_value_from_object(
+				auto [elem_value, elem_error_reasons] = constant_value_from_object(
 					aggregate_types[i],
 					mem + aggregate_offsets[i],
 					tuple_types[i],
 					endianness,
-					manager
-				));
-				if (result_vec.back().is_null())
+					context
+				);
+				if (elem_value.is_null())
 				{
-					result.clear();
+					result.value.clear();
+					result.reasons.reserve(1 + elem_error_reasons.size());
+					result.reasons.push_back({
+						{}, bz::format("invalid value of type '{}' for element {} in tuple of type '{}'", tuple_types[i], i, ts)
+					});
+					result.reasons.append_move(std::move(elem_error_reasons));
 					break;
 				}
+
+				result_vec.push_back(std::move(elem_value));
 			}
 
 			return result;
@@ -536,11 +548,11 @@ ast::constant_value constant_value_from_object(
 			auto const has_value = load<bool>(mem + aggregate_offsets[1], endianness);
 			if (has_value)
 			{
-				return constant_value_from_object(aggregate_types[0], mem, ts.get<ast::ts_optional>(), endianness, manager);
+				return constant_value_from_object(aggregate_types[0], mem, ts.get<ast::ts_optional>(), endianness, context);
 			}
 			else
 			{
-				return ast::constant_value::get_null();
+				return { ast::constant_value::get_null(), {} };
 			}
 		}
 		else if (ts.is<ast::ts_base_type>())
@@ -551,7 +563,7 @@ ast::constant_value constant_value_from_object(
 				// str or __null_t
 				if (info->kind == ast::type_info::null_t_)
 				{
-					return ast::constant_value::get_null();
+					return { ast::constant_value::get_null(), {} };
 				}
 				else
 				{
@@ -568,18 +580,25 @@ ast::constant_value constant_value_from_object(
 
 					if (begin_ptr == 0 && end_ptr == 0)
 					{
-						return ast::constant_value(bz::u8string());
+						return { ast::constant_value(bz::u8string()), {} };
 					}
-					else if (manager.is_global(begin_ptr))
+					else if (context.memory.is_global(begin_ptr))
 					{
-						return ast::constant_value(bz::u8string_view(
-							manager.get_memory(begin_ptr),
-							manager.get_memory(end_ptr)
-						));
+						return {
+							ast::constant_value(bz::u8string_view(
+								context.memory.get_memory(begin_ptr),
+								context.memory.get_memory(end_ptr)
+							)),
+							{}
+						};
 					}
 					else
 					{
-						return ast::constant_value();
+						auto const elem_type = context.codegen_ctx->get_builtin_type(builtin_type_kind::i8);
+						return {
+							ast::constant_value(),
+							context.memory.get_slice_construction_error_reason(begin_ptr, end_ptr, elem_type)
+						};
 					}
 				}
 			}
@@ -589,23 +608,33 @@ ast::constant_value constant_value_from_object(
 			auto const members = info->member_variables.as_array_view();
 			bz_assert(aggregate_types.size() == members.size());
 
-			auto result = ast::constant_value();
-			auto &result_vec = result.emplace<ast::constant_value::aggregate>();
+			auto result = constant_value_from_object_result_t();
+			auto &result_vec = result.value.emplace<ast::constant_value::aggregate>();
 			result_vec.reserve(members.size());
 			for (auto const i : bz::iota(0, members.size()))
 			{
-				result_vec.push_back(constant_value_from_object(
+				auto [elem_value, elem_error_reasons] = constant_value_from_object(
 					aggregate_types[i],
 					mem + aggregate_offsets[i],
 					members[i]->get_type(),
 					endianness,
-					manager
-				));
-				if (result_vec.back().is_null())
+					context
+				);
+				if (elem_value.is_null())
 				{
-					result.clear();
+					result.value.clear();
+					result.reasons.reserve(1 + elem_error_reasons.size());
+					result.reasons.push_back({
+						{}, bz::format(
+							"invalid value of type '{}' for member '{}' in type '{}'",
+							members[i]->get_type(), members[i]->get_id().format_as_unqualified(), ts
+						)
+					});
+					result.reasons.append_move(std::move(elem_error_reasons));
 					break;
 				}
+
+				result_vec.push_back(std::move(elem_value));
 			}
 
 			return result;
@@ -613,7 +642,11 @@ ast::constant_value constant_value_from_object(
 		else
 		{
 			// array slice
-			return ast::constant_value();
+			auto result = constant_value_from_object_result_t();
+			result.reasons.push_back({
+				{}, bz::format("an array slice of type '{}' is not a constant expression", ts)
+			});
+			return result;
 		}
 	}
 	else if (object_type->is_array())
@@ -626,66 +659,66 @@ ast::constant_value constant_value_from_object(
 			bz_assert(get_multi_dimensional_array_elem_type(object_type)->size * info.size == object_type->size);
 			auto const kind = info.elem_type.get<ast::ts_base_type>().info->kind;
 
-			auto result = ast::constant_value();
+			auto result = constant_value_from_object_result_t();
 			switch (kind)
 			{
 			case ast::type_info::int8_:
 			{
-				auto &result_array = result.emplace<ast::constant_value::sint_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value::sint_array>(info.size);
 				load_array<int8_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
 			case ast::type_info::int16_:
 			{
-				auto &result_array = result.emplace<ast::constant_value::sint_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value::sint_array>(info.size);
 				load_array<int16_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
 			case ast::type_info::int32_:
 			{
-				auto &result_array = result.emplace<ast::constant_value::sint_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value::sint_array>(info.size);
 				load_array<int32_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
 			case ast::type_info::int64_:
 			{
-				auto &result_array = result.emplace<ast::constant_value::sint_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value::sint_array>(info.size);
 				load_array<int64_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
 			case ast::type_info::uint8_:
 			{
-				auto &result_array = result.emplace<ast::constant_value::uint_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value::uint_array>(info.size);
 				load_array<uint8_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
 			case ast::type_info::uint16_:
 			{
-				auto &result_array = result.emplace<ast::constant_value::uint_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value::uint_array>(info.size);
 				load_array<uint16_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
 			case ast::type_info::uint32_:
 			{
-				auto &result_array = result.emplace<ast::constant_value::uint_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value::uint_array>(info.size);
 				load_array<uint32_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
 			case ast::type_info::uint64_:
 			{
-				auto &result_array = result.emplace<ast::constant_value::uint_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value::uint_array>(info.size);
 				load_array<uint64_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
 			case ast::type_info::float32_:
 			{
-				auto &result_array = result.emplace<ast::constant_value::float32_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value::float32_array>(info.size);
 				load_array<float32_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
 			case ast::type_info::float64_:
 			{
-				auto &result_array = result.emplace<ast::constant_value::float64_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value::float64_array>(info.size);
 				load_array<float64_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
@@ -700,20 +733,46 @@ ast::constant_value constant_value_from_object(
 			auto const elem_type = get_multi_dimensional_array_elem_type(object_type);
 			bz_assert(elem_type->size * info.size == object_type->size);
 
-			auto result = ast::constant_value();
-			auto &result_array = result.emplace<ast::constant_value::array>();
+			auto result = constant_value_from_object_result_t();
+			auto &result_array = result.value.emplace<ast::constant_value::array>();
 			result_array.reserve(info.size);
 
 			auto mem_it = mem;
 			auto const mem_end = mem + object_type->size;
 			for (; mem_it != mem_end; mem_it += elem_type->size)
 			{
-				result_array.push_back(constant_value_from_object(elem_type, mem_it, info.elem_type, endianness, manager));
-				if (result_array.back().is_null())
+				auto [elem_value, elem_error_reasons] = constant_value_from_object(
+					elem_type,
+					mem_it,
+					info.elem_type,
+					endianness,
+					context
+				);
+				if (elem_value.is_null())
 				{
-					result.clear();
+					result.value.clear();
+					auto index = static_cast<size_t>(mem_it - mem) / elem_type->size;
+					auto total_size = info.size;
+					auto array_ts = ts;
+					do
+					{
+						auto const &[size, elem_type] = array_ts.get<ast::ts_array>();
+						total_size /= size;
+						auto const elem_index = index / total_size;
+						index %= total_size;
+						result.reasons.push_back({
+							{}, bz::format(
+								"invalid value of type '{}' for element {} in array of type '{}'",
+								elem_type, elem_index, array_ts
+							)
+						});
+						array_ts = elem_type;
+					} while (array_ts.is<ast::ts_array>());
+					result.reasons.append_move(std::move(elem_error_reasons));
 					break;
 				}
+
+				result_array.push_back(std::move(elem_value));
 			}
 
 			return result;

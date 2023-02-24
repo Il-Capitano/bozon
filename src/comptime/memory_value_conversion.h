@@ -4,6 +4,7 @@
 #include "types.h"
 #include "memory.h"
 #include "codegen_context_forward.h"
+#include "executor_context_forward.h"
 #include "ast/constant_value.h"
 
 namespace comptime::memory
@@ -16,12 +17,18 @@ bz::fixed_vector<uint8_t> object_from_constant_value(
 	codegen_context &context
 );
 
-ast::constant_value constant_value_from_object(
+struct constant_value_from_object_result_t
+{
+	ast::constant_value value;
+	bz::vector<error_reason_t> reasons;
+};
+
+constant_value_from_object_result_t constant_value_from_object(
 	type const *object_type,
 	uint8_t const *mem,
 	ast::typespec_view ts,
 	endianness_kind endianness,
-	memory_manager const &manager
+	executor_context const &manager
 );
 
 } // namespace comptime::memory

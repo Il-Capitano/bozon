@@ -1353,13 +1353,34 @@ ast::constant_value executor_context::execute_expression(ast::expression const &
 		auto const result_object = this->memory.stack.get_stack_object(result_address);
 		bz_assert(result_object != nullptr);
 
-		return memory::constant_value_from_object(
+		auto [result, error_reasons] = memory::constant_value_from_object(
 			result_object->object_type,
 			result_object->memory.data(),
 			expr.get_expr_type(),
 			this->codegen_ctx->machine_parameters.endianness,
-			this->memory
+			*this
 		);
+
+		if (result.is_null())
+		{
+			this->diagnostics.push_back(make_diagnostic(
+				ctx::warning_kind::_last,
+				this->execution_start_src_tokens,
+				bz::format("invalid value of type '{}' returned from compile time execution", expr.get_expr_type()),
+				error_reasons.transform([&](auto const &reason) -> ctx::source_highlight {
+					if (reason.src_tokens.pivot == nullptr)
+					{
+						return make_source_highlight(this->execution_start_src_tokens, reason.message);
+					}
+					else
+					{
+						return make_source_highlight(reason.src_tokens, reason.message);
+					}
+				}).collect()
+			));
+		}
+
+		return result;
 	}
 }
 
