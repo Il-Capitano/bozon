@@ -1,0 +1,4 @@
+consteval s = {
+	let buffer: [10: uint8];
+	__builtin_str_from_ptrs(buffer.begin(), buffer.end())
+};
