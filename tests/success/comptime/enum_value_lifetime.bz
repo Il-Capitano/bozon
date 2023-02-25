@@ -1,0 +1,13 @@
+enum E
+{
+	foo,
+	bar,
+}
+
+function test()
+{
+	(consteval {
+		let e = E.foo;
+		let _ = __builtin_enum_value(e);
+	});
+}
