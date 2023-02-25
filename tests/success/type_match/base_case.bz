@@ -10,6 +10,11 @@ struct generic_value_t<N: usize>
 	.value: [N: int32];
 }
 
+enum E
+{
+	a, b, c
+}
+
 function test()
 {
 	let i: int32 = 0;
@@ -188,4 +193,9 @@ function test()
 	let _: uint64 = 0u32;
 	let _: ?int32 = null;
 	let _: ?*int32 = null;
+
+	let _: E = .a;
+	let _: E = .b;
+	let _: E = .c;
+	let _: const E = .a;
 }
