@@ -5072,6 +5072,7 @@ ast::expression parse_context::make_cast_expression(
 		return ast::make_error_expression(src_tokens, ast::make_expr_cast(std::move(expr), std::move(type)));
 	}
 
+	type = ast::remove_const_or_consteval(type);
 	if (expr.is_if_expr())
 	{
 		auto &if_expr = expr.get_if_expr();
