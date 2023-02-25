@@ -3696,7 +3696,10 @@ static ast::expression make_expr_function_call_from_body(
 	}
 	else if (
 		body->has_builtin_implementation()
-		&& !(body->is_intrinsic() && body->intrinsic_kind == ast::function_body::builtin_inplace_construct)
+		&& !(body->is_intrinsic() && (
+			body->intrinsic_kind == ast::function_body::builtin_inplace_construct // the second argument is the value to construct at the given position
+			|| body->intrinsic_kind == ast::function_body::builtin_enum_value // the result of the function is the value itself in IR
+		))
 	)
 	{
 		bz_assert(args.size() == body->params.size());
