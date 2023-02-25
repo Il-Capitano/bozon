@@ -38,6 +38,7 @@ struct expr_rvalue_array_subscript;
 struct expr_function_call;
 struct expr_indirect_function_call;
 struct expr_cast;
+struct expr_bit_cast;
 struct expr_optional_cast;
 struct expr_take_reference;
 struct expr_take_move_reference;
@@ -130,6 +131,7 @@ using expr_t = node<
 	expr_function_call,
 	expr_indirect_function_call,
 	expr_cast,
+	expr_bit_cast,
 	expr_optional_cast,
 	expr_take_reference,
 	expr_take_move_reference,
@@ -226,6 +228,9 @@ struct destruct_self
 	destruct_self &operator = (destruct_self &&other) = default;
 };
 
+struct trivial_destruct_self
+{};
+
 struct defer_expression
 {
 	ast_unique_ptr<expression> expr;
@@ -252,9 +257,9 @@ struct destruct_rvalue_array
 	destruct_rvalue_array &operator = (destruct_rvalue_array &&other) = default;
 };
 
-struct destruct_operation : bz::variant<destruct_variable, destruct_self, defer_expression, destruct_rvalue_array>
+struct destruct_operation : bz::variant<destruct_variable, destruct_self, trivial_destruct_self, defer_expression, destruct_rvalue_array>
 {
-	using base_t = bz::variant<destruct_variable, destruct_self, defer_expression, destruct_rvalue_array>;
+	using base_t = bz::variant<destruct_variable, destruct_self, trivial_destruct_self, defer_expression, destruct_rvalue_array>;
 	using base_t::variant;
 	using base_t::operator =;
 
@@ -770,6 +775,20 @@ struct expr_cast
 	typespec   type;
 
 	expr_cast(
+		expression _expr,
+		typespec   _type
+	)
+		: expr(std::move(_expr)),
+		  type(std::move(_type))
+	{}
+};
+
+struct expr_bit_cast
+{
+	expression expr;
+	typespec   type;
+
+	expr_bit_cast(
 		expression _expr,
 		typespec   _type
 	)
@@ -1671,6 +1690,7 @@ def_make_fn(expr_t, expr_rvalue_array_subscript)
 def_make_fn(expr_t, expr_function_call)
 def_make_fn(expr_t, expr_indirect_function_call)
 def_make_fn(expr_t, expr_cast)
+def_make_fn(expr_t, expr_bit_cast)
 def_make_fn(expr_t, expr_optional_cast)
 def_make_fn(expr_t, expr_take_reference)
 def_make_fn(expr_t, expr_take_move_reference)

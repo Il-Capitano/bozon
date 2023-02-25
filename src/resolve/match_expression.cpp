@@ -64,12 +64,18 @@ void match_expression_to_type(ast::expression &expr, ast::typespec &dest_type, c
 	else
 	{
 		match_expression_to_type_impl(expr, dest_type, dest_type, context);
-		if (!dest_type.is_typename() && dest_type.is<ast::ts_consteval>())
+		if (dest_type.not_empty() && !dest_type.is_typename() && !dest_type.is<ast::ts_void>() && !context.is_instantiable(expr.src_tokens, dest_type))
+		{
+			context.report_error(expr.src_tokens, bz::format("expression type '{}' is not instantiable", dest_type));
+			expr.to_error();
+			dest_type.clear();
+		}
+		else if (dest_type.is_typename() || dest_type.is<ast::ts_consteval>())
 		{
 			resolve::consteval_try(expr, context);
 			if (!expr.is_constant())
 			{
-				context.report_error(expr, "expression must be a constant expression", resolve::get_consteval_fail_notes(expr));
+				context.report_error(expr, "expression must be a constant expression");
 				if (!ast::is_complete(dest_type))
 				{
 					dest_type.clear();

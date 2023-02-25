@@ -1,0 +1,4 @@
+consteval p = {
+	let i = 0;
+	&i
+};

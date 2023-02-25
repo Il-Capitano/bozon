@@ -6,14 +6,7 @@
 namespace resolve
 {
 
-struct flattened_array_info_t
-{
-	ast::typespec_view elem_type;
-	size_t size;
-	bool is_multi_dimensional;
-};
-
-static flattened_array_info_t get_flattened_array_type_and_size(ast::typespec_view type)
+flattened_array_info_t get_flattened_array_type_and_size(ast::typespec_view type)
 {
 	size_t size = type.get<ast::ts_array>().size;
 	bool is_multi_dimensional = false;
@@ -25,6 +18,44 @@ static flattened_array_info_t get_flattened_array_type_and_size(ast::typespec_vi
 		is_multi_dimensional = true;
 	}
 	return { type, size, is_multi_dimensional };
+}
+
+bool is_special_array_type(ast::typespec_view type)
+{
+	if (!type.is<ast::ts_array>())
+	{
+		return false;
+	}
+
+	auto elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
+	while (elem_type.is<ast::ts_array>())
+	{
+		elem_type = elem_type.get<ast::ts_array>().elem_type;
+	}
+
+	if (!elem_type.is<ast::ts_base_type>())
+	{
+		return false;
+	}
+
+	auto const type_kind = elem_type.get<ast::ts_base_type>().info->kind;
+
+	switch (type_kind)
+	{
+	case ast::type_info::int8_:
+	case ast::type_info::int16_:
+	case ast::type_info::int32_:
+	case ast::type_info::int64_:
+	case ast::type_info::uint8_:
+	case ast::type_info::uint16_:
+	case ast::type_info::uint32_:
+	case ast::type_info::uint64_:
+	case ast::type_info::float32_:
+	case ast::type_info::float64_:
+		return true;
+	default:
+		return false;
+	}
 }
 
 static ast::constant_value evaluate_binary_plus(
@@ -1409,13 +1440,6 @@ static ast::constant_value evaluate_subscript(
 	}
 }
 
-enum class function_execution_kind
-{
-	guaranteed_evaluate,
-	force_evaluate,
-	force_evaluate_without_error,
-};
-
 template<typename Kind>
 static ast::constant_value is_typespec_kind_helper(ast::expr_function_call &func_call)
 {
@@ -1450,7 +1474,6 @@ static ast::constant_value remove_typespec_kind_helper(ast::expr_function_call &
 static ast::constant_value evaluate_intrinsic_function_call(
 	ast::expression const &original_expr,
 	ast::expr_function_call &func_call,
-	function_execution_kind exec_kind,
 	ctx::parse_context &context
 )
 {
@@ -1474,14 +1497,6 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	case ast::function_body::builtin_enum_value:
 	{
 		bz_assert(func_call.params.size() == 1);
-		if (exec_kind == function_execution_kind::force_evaluate)
-		{
-			consteval_try(func_call.params[0], context);
-		}
-		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
-		{
-			consteval_try_without_error(func_call.params[0], context);
-		}
 		if (!func_call.params[0].has_consteval_succeeded())
 		{
 			return {};
@@ -1502,23 +1517,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		}
 	}
 	case ast::function_body::builtin_is_comptime:
-		if (exec_kind == function_execution_kind::force_evaluate)
-		{
-			if (original_expr.paren_level < 2)
-			{
-				context.report_parenthesis_suppressed_warning(
-					2 - original_expr.paren_level,
-					ctx::warning_kind::is_comptime_always_true,
-					original_expr.src_tokens,
-					"'__builtin_is_comptime()' was forced to evaluate to always be 'true'"
-				);
-			}
-			return ast::constant_value(true);
-		}
-		else
-		{
-			return {};
-		}
+		return {};
 	case ast::function_body::comptime_concatenate_strs:
 	{
 		bz_assert(func_call.params.is_all([](auto const &param) {
@@ -1850,14 +1849,6 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	case ast::function_body::builtin_unary_plus:
 	{
 		bz_assert(func_call.params.size() == 1);
-		if (exec_kind == function_execution_kind::force_evaluate)
-		{
-			consteval_try(func_call.params[0], context);
-		}
-		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
-		{
-			consteval_try_without_error(func_call.params[0], context);
-		}
 		if (!func_call.params[0].has_consteval_succeeded())
 		{
 			return {};
@@ -1870,14 +1861,6 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	case ast::function_body::builtin_unary_minus:
 	{
 		bz_assert(func_call.params.size() == 1);
-		if (exec_kind == function_execution_kind::force_evaluate)
-		{
-			consteval_try(func_call.params[0], context);
-		}
-		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
-		{
-			consteval_try_without_error(func_call.params[0], context);
-		}
 		if (!func_call.params[0].has_consteval_succeeded())
 		{
 			return {};
@@ -1912,14 +1895,6 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	case ast::function_body::builtin_unary_bit_not:
 	{
 		bz_assert(func_call.params.size() == 1);
-		if (exec_kind == function_execution_kind::force_evaluate)
-		{
-			consteval_try(func_call.params[0], context);
-		}
-		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
-		{
-			consteval_try_without_error(func_call.params[0], context);
-		}
 		if (!func_call.params[0].has_consteval_succeeded())
 		{
 			return {};
@@ -1956,14 +1931,6 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	case ast::function_body::builtin_unary_bool_not:
 	{
 		bz_assert(func_call.params.size() == 1);
-		if (exec_kind == function_execution_kind::force_evaluate)
-		{
-			consteval_try(func_call.params[0], context);
-		}
-		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
-		{
-			consteval_try_without_error(func_call.params[0], context);
-		}
 		if (!func_call.params[0].has_consteval_succeeded())
 		{
 			return {};
@@ -2005,16 +1972,6 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	case ast::function_body::builtin_binary_bit_right_shift:
 	case ast::function_body::builtin_binary_bit_right_shift_eq:
 		bz_assert(func_call.params.size() == 2);
-		if (exec_kind == function_execution_kind::force_evaluate)
-		{
-			consteval_try(func_call.params[0], context);
-			consteval_try(func_call.params[1], context);
-		}
-		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
-		{
-			consteval_try_without_error(func_call.params[0], context);
-			consteval_try_without_error(func_call.params[1], context);
-		}
 		if (!func_call.params[0].has_consteval_succeeded() || !func_call.params[1].has_consteval_succeeded())
 		{
 			return {};
@@ -2035,7 +1992,6 @@ static ast::constant_value evaluate_intrinsic_function_call(
 static ast::constant_value get_default_constructed_value(
 	lex::src_tokens const &src_tokens,
 	ast::typespec_view type,
-	function_execution_kind exec_kind,
 	ctx::parse_context &context
 )
 {
@@ -2085,7 +2041,7 @@ static ast::constant_value get_default_constructed_value(
 			break;
 		default:
 		{
-			auto const elem_value = get_default_constructed_value(src_tokens, elem_type, exec_kind, context);
+			auto const elem_value = get_default_constructed_value(src_tokens, elem_type, context);
 			if (elem_value.not_null())
 			{
 				result.emplace<ast::constant_value::array>(size, elem_value);
@@ -2098,7 +2054,7 @@ static ast::constant_value get_default_constructed_value(
 	else
 	{
 		return type.terminator->visit(bz::overload{
-			[exec_kind, &src_tokens, &context](ast::ts_base_type const &base_t) -> ast::constant_value {
+			[&src_tokens, &context](ast::ts_base_type const &base_t) -> ast::constant_value {
 				if (base_t.info->kind != ast::type_info::aggregate)
 				{
 					switch (base_t.info->kind)
@@ -2137,7 +2093,7 @@ static ast::constant_value get_default_constructed_value(
 					elems.reserve(base_t.info->member_variables.size());
 					for (auto const member : base_t.info->member_variables)
 					{
-						elems.push_back(get_default_constructed_value(src_tokens, member->get_type(), exec_kind, context));
+						elems.push_back(get_default_constructed_value(src_tokens, member->get_type(), context));
 						if (elems.back().is_null())
 						{
 							result.clear();
@@ -2148,32 +2104,19 @@ static ast::constant_value get_default_constructed_value(
 				}
 				else
 				{
-					auto const decl = base_t.info->default_constructor;
-					bz_assert(decl != nullptr);
-					if (exec_kind == function_execution_kind::force_evaluate)
-					{
-						bz_unreachable;
-					}
-					else if (exec_kind == function_execution_kind::force_evaluate_without_error)
-					{
-						bz_unreachable;
-					}
-					else
-					{
-						return {};
-					}
+					return {};
 				}
 			},
 			[](ast::ts_array_slice const &) -> ast::constant_value {
 				return {};
 			},
-			[exec_kind, &src_tokens, &context](ast::ts_tuple const &tuple_t) -> ast::constant_value {
+			[&src_tokens, &context](ast::ts_tuple const &tuple_t) -> ast::constant_value {
 				ast::constant_value result;
 				auto &elems = result.emplace<ast::constant_value::tuple>();
 				elems.reserve(tuple_t.types.size());
 				for (auto const &type : tuple_t.types)
 				{
-					elems.push_back(get_default_constructed_value(src_tokens, type, exec_kind, context));
+					elems.push_back(get_default_constructed_value(src_tokens, type, context));
 					if (elems.back().is_null())
 					{
 						result.clear();
@@ -2189,16 +2132,15 @@ static ast::constant_value get_default_constructed_value(
 	}
 }
 
-static ast::constant_value evaluate_function_call(
+static ast::constant_value consteval_guaranteed_function_call(
 	ast::expression const &original_expr,
 	ast::expr_function_call &func_call,
-	function_execution_kind exec_kind,
 	ctx::parse_context &context
 )
 {
 	if (func_call.func_body->is_intrinsic() && func_call.func_body->body.is_null())
 	{
-		auto maybe_result = evaluate_intrinsic_function_call(original_expr, func_call, exec_kind, context);
+		auto maybe_result = evaluate_intrinsic_function_call(original_expr, func_call, context);
 		if (maybe_result.not_null())
 		{
 			return maybe_result;
@@ -2207,15 +2149,7 @@ static ast::constant_value evaluate_function_call(
 
 	if (func_call.func_body->is_default_default_constructor())
 	{
-		return get_default_constructed_value(original_expr.src_tokens, func_call.func_body->return_type, exec_kind, context);
-	}
-	else if (exec_kind == function_execution_kind::force_evaluate)
-	{
-		return context.execute_function(original_expr.src_tokens, func_call);
-	}
-	else if (exec_kind == function_execution_kind::force_evaluate_without_error)
-	{
-		return context.execute_function_without_error(original_expr.src_tokens, func_call);
+		return get_default_constructed_value(original_expr.src_tokens, func_call.func_body->return_type, context);
 	}
 	else
 	{
@@ -2473,44 +2407,6 @@ static ast::constant_value evaluate_cast(
 		bz_unreachable;
 	}
 	return {};
-}
-
-static bool is_special_array_type(ast::typespec_view type)
-{
-	if (!type.is<ast::ts_array>())
-	{
-		return false;
-	}
-
-	auto elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
-	while (elem_type.is<ast::ts_array>())
-	{
-		elem_type = elem_type.get<ast::ts_array>().elem_type;
-	}
-
-	if (!elem_type.is<ast::ts_base_type>())
-	{
-		return false;
-	}
-
-	auto const type_kind = elem_type.get<ast::ts_base_type>().info->kind;
-
-	switch (type_kind)
-	{
-	case ast::type_info::int8_:
-	case ast::type_info::int16_:
-	case ast::type_info::int32_:
-	case ast::type_info::int64_:
-	case ast::type_info::uint8_:
-	case ast::type_info::uint16_:
-	case ast::type_info::uint32_:
-	case ast::type_info::uint64_:
-	case ast::type_info::float32_:
-	case ast::type_info::float64_:
-		return true;
-	default:
-		return false;
-	}
 }
 
 static ast::constant_value get_special_array_value(ast::typespec_view array_type, bz::array_view<ast::expression const> exprs)
@@ -2772,7 +2668,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			{
 				consteval_guaranteed(param, context);
 			}
-			return evaluate_function_call(expr, func_call, function_execution_kind::guaranteed_evaluate, context);
+			return consteval_guaranteed_function_call(expr, func_call, context);
 		},
 		[&context](ast::expr_indirect_function_call &func_call) -> ast::constant_value {
 			consteval_guaranteed(func_call.called, context);
@@ -2792,6 +2688,10 @@ static ast::constant_value guaranteed_evaluate_expr(
 			{
 				return {};
 			}
+		},
+		[&context](ast::expr_bit_cast &bit_cast_expr) -> ast::constant_value {
+			consteval_guaranteed(bit_cast_expr.expr, context);
+			return {};
 		},
 		[&context](ast::expr_optional_cast &optional_cast_expr) -> ast::constant_value {
 			consteval_guaranteed(optional_cast_expr.expr, context);
@@ -2919,7 +2819,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 
 			if (is_special_array_type(type))
 			{
-				return get_default_constructed_value(expr.src_tokens, type, function_execution_kind::force_evaluate, context);
+				return get_default_constructed_value(expr.src_tokens, type, context);
 			}
 			else
 			{
@@ -3131,10 +3031,6 @@ static ast::constant_value guaranteed_evaluate_expr(
 			if (compound_expr.statements.empty() && compound_expr.final_expr.not_null())
 			{
 				consteval_guaranteed(compound_expr.final_expr, context);
-				if (compound_expr.final_expr.has_consteval_succeeded())
-				{
-					return compound_expr.final_expr.get_constant_value();
-				}
 			}
 			return {};
 		},
@@ -3142,40 +3038,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			consteval_guaranteed(if_expr.condition, context);
 			consteval_guaranteed(if_expr.then_block, context);
 			consteval_guaranteed(if_expr.else_block, context);
-			if (if_expr.condition.has_consteval_succeeded())
-			{
-				bz_assert(if_expr.condition.is_constant());
-				bz_assert(if_expr.condition.get_constant_value().is_boolean());
-				auto const condition_value = if_expr.condition
-					.get_constant_value()
-					.get_boolean();
-				if (condition_value)
-				{
-					if (if_expr.then_block.has_consteval_succeeded())
-					{
-						return if_expr.then_block.get_constant_value();
-					}
-					else
-					{
-						return {};
-					}
-				}
-				else
-				{
-					if (if_expr.else_block.has_consteval_succeeded())
-					{
-						return if_expr.else_block.get_constant_value();
-					}
-					else
-					{
-						return {};
-					}
-				}
-			}
-			else
-			{
-				return {};
-			}
+			return {};
 		},
 		[&context](ast::expr_if_consteval &if_expr) -> ast::constant_value {
 			bz_assert(if_expr.condition.is_constant());
@@ -3219,43 +3082,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 				consteval_guaranteed(case_expr, context);
 			}
 			consteval_guaranteed(switch_expr.default_case, context);
-
-			if (!switch_expr.matched_expr.has_consteval_succeeded())
-			{
-				return {};
-			}
-
-			auto const &matched_value = switch_expr.matched_expr.get_constant_value();
-			auto const case_it = std::find_if(
-				switch_expr.cases.begin(), switch_expr.cases.end(),
-				[&](auto const &switch_case) {
-					return switch_case.values
-						.transform([](auto const &expr) -> auto const &{ return expr.get_constant_value(); })
-						.is_any(matched_value);
-				}
-			);
-			if (case_it == switch_expr.cases.end())
-			{
-				if (switch_expr.default_case.has_consteval_succeeded())
-				{
-					return switch_expr.default_case.get_constant_value();
-				}
-				else
-				{
-					return {};
-				}
-			}
-			else
-			{
-				if (case_it->expr.has_consteval_succeeded())
-				{
-					return case_it->expr.get_constant_value();
-				}
-				else
-				{
-					return {};
-				}
-			}
+			return {};
 		},
 		[](ast::expr_break &) -> ast::constant_value {
 			return {};
@@ -3281,836 +3108,7 @@ static ast::constant_value try_evaluate_expr(
 )
 {
 	bz_assert(!expr.has_consteval_succeeded());
-
-	return expr.get_expr().visit(bz::overload{
-		[](ast::expr_variable_name &) -> ast::constant_value {
-			// identifiers are only constant expressions if they are a consteval
-			// variable, which is handled in parse_context::make_identifier_expr (or something similar)
-			return {};
-		},
-		[](ast::expr_function_name &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_function_alias_name &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_function_overload_set &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_struct_name &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_enum_name &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_type_alias_name &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_integer_literal &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_null_literal &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_enum_literal &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_typed_literal &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_placeholder_literal &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_typename_literal &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[&expr, &context](ast::expr_tuple &tuple) -> ast::constant_value {
-			bool is_consteval = true;
-			for (auto &elem : tuple.elems)
-			{
-				consteval_try(elem, context);
-				is_consteval = is_consteval && elem.has_consteval_succeeded();
-			}
-			if (!is_consteval)
-			{
-				return {};
-			}
-
-			auto const expr_type = expr.get_expr_type();
-			if (is_special_array_type(expr_type))
-			{
-				return get_special_array_value(expr_type, tuple.elems);
-			}
-			else if (expr_type.is<ast::ts_array>())
-			{
-				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(expr_type);
-				auto result = ast::constant_value();
-				auto &array = result.emplace<ast::constant_value::array>();
-				array.reserve(size);
-				if (is_multi_dimensional)
-				{
-					for (auto &elem : tuple.elems)
-					{
-						bz_assert(elem.get_constant_value().is_array());
-						array.append(elem.get_constant_value().get_array());
-					}
-				}
-				else
-				{
-					for (auto &elem : tuple.elems)
-					{
-						array.emplace_back(elem.get_constant_value());
-					}
-				}
-				return result;
-			}
-			else
-			{
-				auto result = ast::constant_value();
-				auto &elem_values = result.emplace<ast::constant_value::tuple>();
-				elem_values.reserve(tuple.elems.size());
-				for (auto &elem : tuple.elems)
-				{
-					bz_assert(elem.is_constant());
-					elem_values.emplace_back(elem.get_constant_value());
-				}
-				return result;
-			}
-		},
-		[&context](ast::expr_unary_op &unary_op) -> ast::constant_value {
-			// builtin operators are handled as intrinsic functions
-			consteval_try(unary_op.expr, context);
-			return {};
-		},
-		[&expr, &context](ast::expr_binary_op &binary_op) -> ast::constant_value {
-			consteval_try(binary_op.lhs, context);
-
-			// special case for bool_and and bool_or shortcircuiting
-			if (binary_op.lhs.has_consteval_succeeded())
-			{
-				auto const op = binary_op.op;
-				if (op == lex::token::bool_and)
-				{
-					bz_assert(binary_op.lhs.is_constant());
-					auto const &lhs_value = binary_op.lhs.get_constant_value();
-					bz_assert(lhs_value.is_boolean());
-					auto const lhs_bool_val = lhs_value.get_boolean();
-					if (!lhs_bool_val)
-					{
-						return ast::constant_value(false);
-					}
-				}
-				else if (op == lex::token::bool_or)
-				{
-					bz_assert(binary_op.lhs.is_constant());
-					auto const &lhs_value = binary_op.lhs.get_constant_value();
-					bz_assert(lhs_value.is_boolean());
-					auto const lhs_bool_val = lhs_value.get_boolean();
-					if (lhs_bool_val)
-					{
-						return ast::constant_value(true);
-					}
-				}
-			}
-
-			consteval_try(binary_op.rhs, context);
-
-			if (binary_op.lhs.has_consteval_succeeded() && binary_op.rhs.has_consteval_succeeded())
-			{
-				return evaluate_binary_op(expr, binary_op.op, binary_op.lhs, binary_op.rhs, context);
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&context](ast::expr_tuple_subscript &tuple_subscript_expr) -> ast::constant_value {
-			for (auto &elem : tuple_subscript_expr.base.elems)
-			{
-				consteval_try(elem, context);
-			}
-
-			return evaluate_tuple_subscript(tuple_subscript_expr);
-		},
-		[&context](ast::expr_rvalue_tuple_subscript &rvalue_tuple_subscript_expr) -> ast::constant_value {
-			consteval_try(rvalue_tuple_subscript_expr.base, context);
-
-			if (rvalue_tuple_subscript_expr.base.is_constant())
-			{
-				bz_assert(rvalue_tuple_subscript_expr.index.is_constant());
-				auto const &index_value = rvalue_tuple_subscript_expr.index.get_constant_value();
-				bz_assert(index_value.is_uint() || index_value.is_sint());
-				auto const index = index_value.is_uint()
-					? index_value.get_uint()
-					: static_cast<uint64_t>(index_value.get_sint());
-				return rvalue_tuple_subscript_expr.base.get_constant_value().get_aggregate()[index];
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value {
-			consteval_try(subscript_expr.base, context);
-			consteval_try(subscript_expr.index, context);
-
-			return evaluate_subscript(subscript_expr.base, subscript_expr.index, context);
-		},
-		[&context](ast::expr_rvalue_array_subscript &rvalue_array_subscript_expr) -> ast::constant_value {
-			consteval_try(rvalue_array_subscript_expr.base, context);
-			consteval_try(rvalue_array_subscript_expr.index, context);
-
-			return evaluate_subscript(rvalue_array_subscript_expr.base, rvalue_array_subscript_expr.index, context);
-		},
-		[&expr, &context](ast::expr_function_call &func_call) -> ast::constant_value {
-			for (auto &param : func_call.params)
-			{
-				consteval_guaranteed(param, context);
-			}
-			return evaluate_function_call(expr, func_call, function_execution_kind::force_evaluate, context);
-		},
-		[&context](ast::expr_indirect_function_call &func_call) -> ast::constant_value {
-			consteval_guaranteed(func_call.called, context);
-			for (auto &param : func_call.params)
-			{
-				consteval_guaranteed(param, context);
-			}
-			return {};
-		},
-		[&expr, &context](ast::expr_cast &cast_expr) -> ast::constant_value {
-			consteval_try(cast_expr.expr, context);
-			if (cast_expr.expr.has_consteval_succeeded())
-			{
-				return evaluate_cast(expr, cast_expr, context);
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&context](ast::expr_optional_cast &optional_cast_expr) -> ast::constant_value {
-			consteval_try(optional_cast_expr.expr, context);
-			if (optional_cast_expr.expr.has_consteval_succeeded())
-			{
-				return optional_cast_expr.expr.get_constant_value();
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[](ast::expr_take_reference const &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_take_move_reference const &) -> ast::constant_value {
-			return {};
-		},
-		[&context](ast::expr_aggregate_init &aggregate_init_expr) -> ast::constant_value {
-			bool is_consteval = true;
-			for (auto &expr : aggregate_init_expr.exprs)
-			{
-				consteval_try(expr, context);
-				is_consteval = is_consteval && expr.has_consteval_succeeded();
-			}
-			if (!is_consteval)
-			{
-				return {};
-			}
-
-			if (is_special_array_type(aggregate_init_expr.type))
-			{
-				return get_special_array_value(aggregate_init_expr.type, aggregate_init_expr.exprs);
-			}
-			else if (aggregate_init_expr.type.is<ast::ts_array>())
-			{
-				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(aggregate_init_expr.type);
-				auto result = ast::constant_value();
-				auto &array = result.emplace<ast::constant_value::array>();
-				array.reserve(size);
-				if (is_multi_dimensional)
-				{
-					for (auto const &expr : aggregate_init_expr.exprs)
-					{
-						array.append(expr.get_constant_value().get_array());
-					}
-				}
-				else
-				{
-					for (auto const &expr : aggregate_init_expr.exprs)
-					{
-						array.emplace_back(expr.get_constant_value());
-					}
-				}
-
-				return result;
-			}
-			else
-			{
-				auto result = ast::constant_value();
-				auto &aggregate = result.emplace<ast::constant_value::aggregate>();
-				aggregate.reserve(aggregate_init_expr.exprs.size());
-				for (auto const &expr : aggregate_init_expr.exprs)
-				{
-					aggregate.emplace_back(expr.get_constant_value());
-				}
-				return result;
-			}
-		},
-		[&context](ast::expr_array_value_init &array_value_init_expr) -> ast::constant_value {
-			auto const type = array_value_init_expr.type.as_typespec_view();
-			consteval_try(array_value_init_expr.value, context);
-			if (!array_value_init_expr.value.has_consteval_succeeded())
-			{
-				return {};
-			}
-
-			auto const &value = array_value_init_expr.value.get_constant_value();
-			if (is_special_array_type(type))
-			{
-				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(type);
-				auto result = ast::constant_value();
-				switch (elem_type.get<ast::ts_base_type>().info->kind)
-				{
-				case ast::type_info::int8_:
-				case ast::type_info::int16_:
-				case ast::type_info::int32_:
-				case ast::type_info::int64_:
-					if (is_multi_dimensional)
-					{
-						bz_assert(value.is_sint_array() && value.get_sint_array().not_empty());
-						auto const value_array = value.get_sint_array();
-						auto &result_array = result.emplace<ast::constant_value::sint_array>(size);
-						auto it = result_array.begin();
-						auto const end = result_array.end();
-						while (it != end)
-						{
-							std::copy_n(value_array.begin(), value_array.size(), it);
-							it += value_array.size();
-						}
-					}
-					else
-					{
-						bz_assert(value.is_sint());
-						result.emplace<ast::constant_value::sint_array>(size, value.get_sint());
-					}
-					break;
-				case ast::type_info::uint8_:
-				case ast::type_info::uint16_:
-				case ast::type_info::uint32_:
-				case ast::type_info::uint64_:
-					if (is_multi_dimensional)
-					{
-						bz_assert(value.is_uint_array() && value.get_uint_array().not_empty());
-						auto const value_array = value.get_uint_array();
-						auto &result_array = result.emplace<ast::constant_value::uint_array>(size);
-						auto it = result_array.begin();
-						auto const end = result_array.end();
-						while (it != end)
-						{
-							std::copy_n(value_array.begin(), value_array.size(), it);
-							it += value_array.size();
-						}
-					}
-					else
-					{
-						bz_assert(value.is_uint());
-						result.emplace<ast::constant_value::uint_array>(size, value.get_uint());
-					}
-					break;
-				case ast::type_info::float32_:
-					if (is_multi_dimensional)
-					{
-						bz_assert(value.is_float32_array() && value.get_float32_array().not_empty());
-						auto const value_array = value.get_float32_array();
-						auto &result_array = result.emplace<ast::constant_value::float32_array>(size);
-						auto it = result_array.begin();
-						auto const end = result_array.end();
-						while (it != end)
-						{
-							std::copy_n(value_array.begin(), value_array.size(), it);
-							it += value_array.size();
-						}
-					}
-					else
-					{
-						bz_assert(value.is_float32());
-						result.emplace<ast::constant_value::float32_array>(size, value.get_float32());
-					}
-					break;
-				case ast::type_info::float64_:
-					if (is_multi_dimensional)
-					{
-						bz_assert(value.is_float64_array() && value.get_float64_array().not_empty());
-						auto const value_array = value.get_float64_array();
-						auto &result_array = result.emplace<ast::constant_value::float64_array>(size);
-						auto it = result_array.begin();
-						auto const end = result_array.end();
-						while (it != end)
-						{
-							std::copy_n(value_array.begin(), value_array.size(), it);
-							it += value_array.size();
-						}
-					}
-					else
-					{
-						bz_assert(value.is_float64());
-						result.emplace<ast::constant_value::float64_array>(size, value.get_float64());
-					}
-					break;
-				default:
-					bz_unreachable;
-				}
-				return result;
-			}
-			else
-			{
-				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(type);
-				auto result = ast::constant_value();
-				if (is_multi_dimensional)
-				{
-					bz_assert(value.is_array() && value.get_array().not_empty());
-					auto const value_array = value.get_array();
-					auto &result_array = result.emplace<ast::constant_value::array>(size);
-					auto it = result_array.begin();
-					auto const end = result_array.end();
-					while (it != end)
-					{
-						std::copy_n(value_array.begin(), value_array.size(), it);
-						it += value_array.size();
-					}
-				}
-				else
-				{
-					result.emplace<ast::constant_value::array>(size, value);
-				}
-				return result;
-			}
-		},
-		[&context](ast::expr_aggregate_default_construct &aggregate_default_construct_expr) -> ast::constant_value {
-			bool is_consteval = true;
-			for (auto &expr : aggregate_default_construct_expr.default_construct_exprs)
-			{
-				consteval_try(expr, context);
-				is_consteval = is_consteval && expr.has_consteval_succeeded();
-			}
-			if (!is_consteval)
-			{
-				return {};
-			}
-
-			ast::constant_value result{};
-			auto &aggregate = aggregate_default_construct_expr.type.is<ast::ts_tuple>()
-				? result.emplace<ast::constant_value::tuple>()
-				: result.emplace<ast::constant_value::aggregate>();
-			aggregate.reserve(aggregate_default_construct_expr.default_construct_exprs.size());
-			for (auto const &expr : aggregate_default_construct_expr.default_construct_exprs)
-			{
-				aggregate.emplace_back(expr.get_constant_value());
-			}
-			return result;
-		},
-		[&expr, &context](ast::expr_aggregate_copy_construct &aggregate_copy_construct_expr) -> ast::constant_value {
-			consteval_try(aggregate_copy_construct_expr.copied_value, context);
-			if (!aggregate_copy_construct_expr.copied_value.has_consteval_succeeded())
-			{
-				return {};
-			}
-
-			if (context.is_trivially_copy_constructible(expr.src_tokens, aggregate_copy_construct_expr.copied_value.get_expr_type()))
-			{
-				return aggregate_copy_construct_expr.copied_value.get_constant_value();
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&context](ast::expr_aggregate_move_construct &aggregate_move_construct_expr) -> ast::constant_value {
-			consteval_try(aggregate_move_construct_expr.moved_value, context);
-			return {};
-		},
-		[&expr, &context](ast::expr_array_default_construct &array_default_construct_expr) -> ast::constant_value {
-			auto const type = array_default_construct_expr.type.as_typespec_view();
-			bz_assert(type.is<ast::ts_array>());
-			consteval_try(array_default_construct_expr.default_construct_expr, context);
-			if (!array_default_construct_expr.default_construct_expr.is<ast::constant_expression>())
-			{
-				return {};
-			}
-
-			if (is_special_array_type(type))
-			{
-				return get_default_constructed_value(expr.src_tokens, type, function_execution_kind::force_evaluate, context);
-			}
-			else
-			{
-				auto const &value = array_default_construct_expr.default_construct_expr.get_constant_value();
-				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(type);
-				auto result = ast::constant_value();
-				if (is_multi_dimensional)
-				{
-					bz_assert(value.is_array() && value.get_array().not_empty());
-					result.emplace<ast::constant_value::array>(size, value.get_array()[0]);
-				}
-				else
-				{
-					result.emplace<ast::constant_value::array>(size, value);
-				}
-				return result;
-			}
-		},
-		[&expr, &context](ast::expr_array_copy_construct &array_copy_construct_expr) -> ast::constant_value {
-			consteval_try(array_copy_construct_expr.copied_value, context);
-			if (!array_copy_construct_expr.copied_value.has_consteval_succeeded())
-			{
-				return {};
-			}
-
-			if (context.is_trivially_copy_constructible(expr.src_tokens, array_copy_construct_expr.copied_value.get_expr_type()))
-			{
-				return array_copy_construct_expr.copied_value.get_constant_value();
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&context](ast::expr_array_move_construct &array_move_construct_expr) -> ast::constant_value {
-			consteval_try(array_move_construct_expr.moved_value, context);
-			return {};
-		},
-		[&expr, &context](ast::expr_optional_default_construct &optional_default_construct_expr) -> ast::constant_value {
-			if (context.is_trivially_destructible(expr.src_tokens, optional_default_construct_expr.type))
-			{
-				return ast::constant_value::get_null();
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&expr, &context](ast::expr_optional_copy_construct &optional_copy_construct_expr) -> ast::constant_value {
-			consteval_try(optional_copy_construct_expr.copied_value, context);
-			if (!optional_copy_construct_expr.copied_value.has_consteval_succeeded())
-			{
-				return {};
-			}
-
-			if (context.is_trivially_copy_constructible(expr.src_tokens, optional_copy_construct_expr.copied_value.get_expr_type()))
-			{
-				return optional_copy_construct_expr.copied_value.get_constant_value();
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&expr, &context](ast::expr_optional_move_construct &optional_move_construct_expr) -> ast::constant_value {
-			consteval_try(optional_move_construct_expr.moved_value, context);
-			if (!optional_move_construct_expr.moved_value.has_consteval_succeeded())
-			{
-				return {};
-			}
-
-			if (context.is_trivially_copy_constructible(expr.src_tokens, optional_move_construct_expr.moved_value.get_expr_type()))
-			{
-				return optional_move_construct_expr.moved_value.get_constant_value();
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[](ast::expr_builtin_default_construct &builtin_default_construct_expr) -> ast::constant_value {
-			bz_assert(builtin_default_construct_expr.type.is<ast::ts_array_slice>());
-			return {};
-		},
-		[&context](ast::expr_trivial_copy_construct &trivial_copy_construct_expr) -> ast::constant_value {
-			consteval_try(trivial_copy_construct_expr.copied_value, context);
-			if (!trivial_copy_construct_expr.copied_value.has_consteval_succeeded())
-			{
-				return {};
-			}
-
-			return trivial_copy_construct_expr.copied_value.get_constant_value();
-		},
-		[&context](ast::expr_trivial_relocate &trivial_relocate_expr) -> ast::constant_value {
-			consteval_try(trivial_relocate_expr.value, context);
-			return {};
-		},
-		[](ast::expr_aggregate_destruct &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_array_destruct &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_optional_destruct &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_base_type_destruct &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_destruct_value &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_aggregate_assign &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_array_assign &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_optional_assign &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_optional_null_assign &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_optional_value_assign &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_optional_reference_value_assign &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_base_type_assign &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_trivial_assign &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_aggregate_swap &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_array_swap &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_optional_swap &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_base_type_swap &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_trivial_swap &) -> ast::constant_value {
-			return {};
-		},
-		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
-			consteval_try(member_access_expr.base, context);
-			if (member_access_expr.base.has_consteval_succeeded())
-			{
-				return member_access_expr.base
-					.get_constant_value()
-					.get_aggregate()[member_access_expr.index];
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&context, &expr](ast::expr_optional_extract_value &optional_extract_value) -> ast::constant_value {
-			consteval_try(optional_extract_value.optional_value, context);
-			if (optional_extract_value.optional_value.has_consteval_succeeded())
-			{
-				auto const &value = optional_extract_value.optional_value.get_constant_value();
-				if (value.is_null_constant())
-				{
-					context.report_warning(
-						ctx::warning_kind::get_value_null,
-						expr.src_tokens,
-						"getting value of a null optional"
-					);
-					return {};
-				}
-				else
-				{
-					return value;
-				}
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&context](ast::expr_rvalue_member_access &rvalue_member_access_expr) -> ast::constant_value {
-			consteval_try(rvalue_member_access_expr.base, context);
-			if (rvalue_member_access_expr.base.has_consteval_succeeded())
-			{
-				bz_assert(rvalue_member_access_expr.base.get_constant_value().is_aggregate());
-				return rvalue_member_access_expr.base
-					.get_constant_value()
-					.get_aggregate()[rvalue_member_access_expr.index];
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[](ast::expr_type_member_access &) -> ast::constant_value {
-			// variable constevalness is handled in parse_context::make_member_access_expression
-			return {};
-		},
-		[&expr, &context](ast::expr_compound &compound_expr) -> ast::constant_value {
-			if (compound_expr.statements.empty() && compound_expr.final_expr.not_null())
-			{
-				consteval_try(compound_expr.final_expr, context);
-				if (compound_expr.final_expr.has_consteval_succeeded())
-				{
-					return compound_expr.final_expr.get_constant_value();
-				}
-				else
-				{
-					return {};
-				}
-			}
-			else
-			{
-				return context.execute_compound_expression(expr.src_tokens, compound_expr);
-			}
-		},
-		[&context](ast::expr_if &if_expr) -> ast::constant_value {
-			consteval_try(if_expr.condition, context);
-			consteval_try(if_expr.then_block, context);
-			consteval_try(if_expr.else_block, context);
-			if (if_expr.condition.has_consteval_succeeded())
-			{
-				bz_assert(if_expr.condition.is_constant());
-				bz_assert(if_expr.condition.get_constant_value().is_boolean());
-				auto const condition_value = if_expr.condition
-					.get_constant_value()
-					.get_boolean();
-				if (condition_value)
-				{
-					if (if_expr.then_block.has_consteval_succeeded())
-					{
-						return if_expr.then_block.get_constant_value();
-					}
-					else
-					{
-						return {};
-					}
-				}
-				else
-				{
-					if (if_expr.else_block.has_consteval_succeeded())
-					{
-						return if_expr.else_block.get_constant_value();
-					}
-					else
-					{
-						return {};
-					}
-				}
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&context](ast::expr_if_consteval &if_expr) -> ast::constant_value {
-			bz_assert(if_expr.condition.is_constant());
-			auto const &condition_value = if_expr.condition.get_constant_value();
-			bz_assert(condition_value.is_boolean());
-			if (condition_value.get_boolean())
-			{
-				consteval_try(if_expr.then_block, context);
-				if (if_expr.then_block.has_consteval_succeeded())
-				{
-					bz_assert(if_expr.then_block.is_constant());
-					return if_expr.then_block.get_constant_value();
-				}
-				else
-				{
-					return {};
-				}
-			}
-			else if (if_expr.else_block.not_null())
-			{
-				consteval_try(if_expr.else_block, context);
-				if (if_expr.else_block.has_consteval_succeeded())
-				{
-					bz_assert(if_expr.else_block.is_constant());
-					return if_expr.else_block.get_constant_value();
-				}
-				else
-				{
-					return {};
-				}
-			}
-			else
-			{
-				return ast::constant_value::get_void();
-			}
-		},
-		[&context](ast::expr_switch &switch_expr) -> ast::constant_value {
-			consteval_try(switch_expr.matched_expr, context);
-			for (auto &[_, case_expr] : switch_expr.cases)
-			{
-				consteval_try(case_expr, context);
-			}
-			consteval_try(switch_expr.default_case, context);
-
-			if (!switch_expr.matched_expr.has_consteval_succeeded())
-			{
-				return {};
-			}
-
-			auto const &matched_value = switch_expr.matched_expr.get_constant_value();
-			auto const case_it = std::find_if(
-				switch_expr.cases.begin(), switch_expr.cases.end(),
-				[&](auto const &switch_case) {
-					return switch_case.values
-						.transform([](auto const &expr) -> auto const &{ return expr.get_constant_value(); })
-						.is_any(matched_value);
-				}
-			);
-			if (case_it == switch_expr.cases.end())
-			{
-				if (switch_expr.default_case.has_consteval_succeeded())
-				{
-					return switch_expr.default_case.get_constant_value();
-				}
-				else
-				{
-					return {};
-				}
-			}
-			else
-			{
-				if (case_it->expr.has_consteval_succeeded())
-				{
-					return case_it->expr.get_constant_value();
-				}
-				else
-				{
-					return {};
-				}
-			}
-		},
-		[](ast::expr_break &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_continue &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_unreachable &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_generic_type_instantiation &) -> ast::constant_value {
-			bz_unreachable;
-		},
-		[](ast::expr_bitcode_value_reference &) -> ast::constant_value {
-			return {};
-		},
-	});
+	return context.execute_expression(expr);
 }
 
 static ast::constant_value try_evaluate_expr_without_error(
@@ -4118,834 +3116,8 @@ static ast::constant_value try_evaluate_expr_without_error(
 	ctx::parse_context &context
 )
 {
-	return expr.get_expr().visit(bz::overload{
-		[](ast::expr_variable_name &) -> ast::constant_value {
-			// identifiers are only constant expressions if they are a consteval
-			// variable, which is handled in parse_context::make_identifier_expr (or something similar)
-			return {};
-		},
-		[](ast::expr_function_name &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_function_alias_name &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_function_overload_set &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_struct_name &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_enum_name &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_type_alias_name &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_integer_literal &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_null_literal &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_enum_literal &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_typed_literal &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_placeholder_literal &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_typename_literal &) -> ast::constant_value {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[&expr, &context](ast::expr_tuple &tuple) -> ast::constant_value {
-			bool is_consteval = true;
-			for (auto &elem : tuple.elems)
-			{
-				consteval_try_without_error(elem, context);
-				is_consteval = is_consteval && elem.has_consteval_succeeded();
-			}
-			if (!is_consteval)
-			{
-				return {};
-			}
-
-			auto const expr_type = expr.get_expr_type();
-			if (is_special_array_type(expr_type))
-			{
-				return get_special_array_value(expr_type, tuple.elems);
-			}
-			else if (expr_type.is<ast::ts_array>())
-			{
-				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(expr_type);
-				auto result = ast::constant_value();
-				auto &array = result.emplace<ast::constant_value::array>();
-				array.reserve(size);
-				if (is_multi_dimensional)
-				{
-					for (auto &elem : tuple.elems)
-					{
-						bz_assert(elem.get_constant_value().is_array());
-						array.append(elem.get_constant_value().get_array());
-					}
-				}
-				else
-				{
-					for (auto &elem : tuple.elems)
-					{
-						array.emplace_back(elem.get_constant_value());
-					}
-				}
-				return result;
-			}
-			else
-			{
-				auto result = ast::constant_value();
-				auto &elem_values = result.emplace<ast::constant_value::tuple>();
-				elem_values.reserve(tuple.elems.size());
-				for (auto &elem : tuple.elems)
-				{
-					bz_assert(elem.is_constant());
-					elem_values.emplace_back(elem.get_constant_value());
-				}
-				return result;
-			}
-		},
-		[&context](ast::expr_unary_op &unary_op) -> ast::constant_value {
-			// builtin operators are handled as intrinsic functions
-			consteval_try_without_error(unary_op.expr, context);
-			return {};
-		},
-		[&expr, &context](ast::expr_binary_op &binary_op) -> ast::constant_value {
-			consteval_try_without_error(binary_op.lhs, context);
-			consteval_try_without_error(binary_op.rhs, context);
-
-			// special case for bool_and and bool_or shortcircuiting
-			if (binary_op.lhs.has_consteval_succeeded())
-			{
-				auto const op = binary_op.op;
-				if (op == lex::token::bool_and)
-				{
-					bz_assert(binary_op.lhs.is_constant());
-					auto const &lhs_value = binary_op.lhs.get_constant_value();
-					bz_assert(lhs_value.is_boolean());
-					auto const lhs_bool_val = lhs_value.get_boolean();
-					if (!lhs_bool_val)
-					{
-						return ast::constant_value(false);
-					}
-				}
-				else if (op == lex::token::bool_or)
-				{
-					bz_assert(binary_op.lhs.is_constant());
-					auto const &lhs_value = binary_op.lhs.get_constant_value();
-					bz_assert(lhs_value.is_boolean());
-					auto const lhs_bool_val = lhs_value.get_boolean();
-					if (lhs_bool_val)
-					{
-						return ast::constant_value(true);
-					}
-				}
-			}
-
-			if (binary_op.lhs.has_consteval_succeeded() && binary_op.rhs.has_consteval_succeeded())
-			{
-				return evaluate_binary_op(expr, binary_op.op, binary_op.lhs, binary_op.rhs, context);
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&context](ast::expr_tuple_subscript &tuple_subscript_expr) -> ast::constant_value {
-			for (auto &elem : tuple_subscript_expr.base.elems)
-			{
-				consteval_try_without_error(elem, context);
-			}
-
-			return evaluate_tuple_subscript(tuple_subscript_expr);
-		},
-		[&context](ast::expr_rvalue_tuple_subscript &rvalue_tuple_subscript_expr) -> ast::constant_value {
-			consteval_try_without_error(rvalue_tuple_subscript_expr.base, context);
-
-			if (rvalue_tuple_subscript_expr.base.is_constant())
-			{
-				bz_assert(rvalue_tuple_subscript_expr.index.is_constant());
-				auto const &index_value = rvalue_tuple_subscript_expr.index.get_constant_value();
-				bz_assert(index_value.is_uint() || index_value.is_sint());
-				auto const index = index_value.is_uint()
-					? index_value.get_uint()
-					: static_cast<uint64_t>(index_value.get_sint());
-				return rvalue_tuple_subscript_expr.base.get_constant_value().get_aggregate()[index];
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value {
-			consteval_try_without_error(subscript_expr.base, context);
-			consteval_try_without_error(subscript_expr.index, context);
-
-			return evaluate_subscript(subscript_expr.base, subscript_expr.index, context);
-		},
-		[&context](ast::expr_rvalue_array_subscript &rvalue_array_subscript_expr) -> ast::constant_value {
-			consteval_try_without_error(rvalue_array_subscript_expr.base, context);
-			consteval_try_without_error(rvalue_array_subscript_expr.index, context);
-
-			return evaluate_subscript(rvalue_array_subscript_expr.base, rvalue_array_subscript_expr.index, context);
-		},
-		[&expr, &context](ast::expr_function_call &func_call) -> ast::constant_value {
-			for (auto &param : func_call.params)
-			{
-				consteval_guaranteed(param, context);
-			}
-			return evaluate_function_call(expr, func_call, function_execution_kind::force_evaluate_without_error, context);
-		},
-		[&context](ast::expr_indirect_function_call &func_call) -> ast::constant_value {
-			consteval_guaranteed(func_call.called, context);
-			for (auto &param : func_call.params)
-			{
-				consteval_guaranteed(param, context);
-			}
-			return {};
-		},
-		[&expr, &context](ast::expr_cast &cast_expr) -> ast::constant_value {
-			consteval_try_without_error(cast_expr.expr, context);
-			if (cast_expr.expr.has_consteval_succeeded())
-			{
-				return evaluate_cast(expr, cast_expr, context);
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&context](ast::expr_optional_cast &optional_cast_expr) -> ast::constant_value {
-			consteval_try_without_error(optional_cast_expr.expr, context);
-			if (optional_cast_expr.expr.has_consteval_succeeded())
-			{
-				return optional_cast_expr.expr.get_constant_value();
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[](ast::expr_take_reference const &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_take_move_reference const &) -> ast::constant_value {
-			return {};
-		},
-		[&context](ast::expr_aggregate_init &aggregate_init_expr) -> ast::constant_value {
-			bool is_consteval = true;
-			for (auto &expr : aggregate_init_expr.exprs)
-			{
-				consteval_try_without_error(expr, context);
-				is_consteval = is_consteval && expr.has_consteval_succeeded();
-			}
-			if (!is_consteval)
-			{
-				return {};
-			}
-
-			if (is_special_array_type(aggregate_init_expr.type))
-			{
-				return get_special_array_value(aggregate_init_expr.type, aggregate_init_expr.exprs);
-			}
-			else if (aggregate_init_expr.type.is<ast::ts_array>())
-			{
-				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(aggregate_init_expr.type);
-				auto result = ast::constant_value();
-				auto &array = result.emplace<ast::constant_value::array>();
-				array.reserve(size);
-				if (is_multi_dimensional)
-				{
-					for (auto const &expr : aggregate_init_expr.exprs)
-					{
-						array.append(expr.get_constant_value().get_array());
-					}
-				}
-				else
-				{
-					for (auto const &expr : aggregate_init_expr.exprs)
-					{
-						array.emplace_back(expr.get_constant_value());
-					}
-				}
-
-				return result;
-			}
-			else
-			{
-				auto result = ast::constant_value();
-				auto &aggregate = result.emplace<ast::constant_value::aggregate>();
-				aggregate.reserve(aggregate_init_expr.exprs.size());
-				for (auto const &expr : aggregate_init_expr.exprs)
-				{
-					aggregate.emplace_back(expr.get_constant_value());
-				}
-				return result;
-			}
-		},
-		[&context](ast::expr_array_value_init &array_value_init_expr) -> ast::constant_value {
-			auto const type = array_value_init_expr.type.as_typespec_view();
-			consteval_try_without_error(array_value_init_expr.value, context);
-			if (!array_value_init_expr.value.has_consteval_succeeded())
-			{
-				return {};
-			}
-
-			auto const &value = array_value_init_expr.value.get_constant_value();
-			if (is_special_array_type(type))
-			{
-				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(type);
-				auto result = ast::constant_value();
-				switch (elem_type.get<ast::ts_base_type>().info->kind)
-				{
-				case ast::type_info::int8_:
-				case ast::type_info::int16_:
-				case ast::type_info::int32_:
-				case ast::type_info::int64_:
-					if (is_multi_dimensional)
-					{
-						bz_assert(value.is_sint_array() && value.get_sint_array().not_empty());
-						auto const value_array = value.get_sint_array();
-						auto &result_array = result.emplace<ast::constant_value::sint_array>(size);
-						auto it = result_array.begin();
-						auto const end = result_array.end();
-						while (it != end)
-						{
-							std::copy_n(value_array.begin(), value_array.size(), it);
-							it += value_array.size();
-						}
-					}
-					else
-					{
-						bz_assert(value.is_sint());
-						result.emplace<ast::constant_value::sint_array>(size, value.get_sint());
-					}
-					break;
-				case ast::type_info::uint8_:
-				case ast::type_info::uint16_:
-				case ast::type_info::uint32_:
-				case ast::type_info::uint64_:
-					if (is_multi_dimensional)
-					{
-						bz_assert(value.is_uint_array() && value.get_uint_array().not_empty());
-						auto const value_array = value.get_uint_array();
-						auto &result_array = result.emplace<ast::constant_value::uint_array>(size);
-						auto it = result_array.begin();
-						auto const end = result_array.end();
-						while (it != end)
-						{
-							std::copy_n(value_array.begin(), value_array.size(), it);
-							it += value_array.size();
-						}
-					}
-					else
-					{
-						bz_assert(value.is_uint());
-						result.emplace<ast::constant_value::uint_array>(size, value.get_uint());
-					}
-					break;
-				case ast::type_info::float32_:
-					if (is_multi_dimensional)
-					{
-						bz_assert(value.is_float32_array() && value.get_float32_array().not_empty());
-						auto const value_array = value.get_float32_array();
-						auto &result_array = result.emplace<ast::constant_value::float32_array>(size);
-						auto it = result_array.begin();
-						auto const end = result_array.end();
-						while (it != end)
-						{
-							std::copy_n(value_array.begin(), value_array.size(), it);
-							it += value_array.size();
-						}
-					}
-					else
-					{
-						bz_assert(value.is_float32());
-						result.emplace<ast::constant_value::float32_array>(size, value.get_float32());
-					}
-					break;
-				case ast::type_info::float64_:
-					if (is_multi_dimensional)
-					{
-						bz_assert(value.is_float64_array() && value.get_float64_array().not_empty());
-						auto const value_array = value.get_float64_array();
-						auto &result_array = result.emplace<ast::constant_value::float64_array>(size);
-						auto it = result_array.begin();
-						auto const end = result_array.end();
-						while (it != end)
-						{
-							std::copy_n(value_array.begin(), value_array.size(), it);
-							it += value_array.size();
-						}
-					}
-					else
-					{
-						bz_assert(value.is_float64());
-						result.emplace<ast::constant_value::float64_array>(size, value.get_float64());
-					}
-					break;
-				default:
-					bz_unreachable;
-				}
-				return result;
-			}
-			else
-			{
-				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(type);
-				auto result = ast::constant_value();
-				if (is_multi_dimensional)
-				{
-					bz_assert(value.is_array() && value.get_array().not_empty());
-					auto const value_array = value.get_array();
-					auto &result_array = result.emplace<ast::constant_value::array>(size);
-					auto it = result_array.begin();
-					auto const end = result_array.end();
-					while (it != end)
-					{
-						std::copy_n(value_array.begin(), value_array.size(), it);
-						it += value_array.size();
-					}
-				}
-				else
-				{
-					result.emplace<ast::constant_value::array>(size, value);
-				}
-				return result;
-			}
-		},
-		[&context](ast::expr_aggregate_default_construct &aggregate_default_construct_expr) -> ast::constant_value {
-			bool is_consteval = true;
-			for (auto &expr : aggregate_default_construct_expr.default_construct_exprs)
-			{
-				consteval_try_without_error(expr, context);
-				is_consteval = is_consteval && expr.has_consteval_succeeded();
-			}
-			if (!is_consteval)
-			{
-				return {};
-			}
-
-			ast::constant_value result{};
-			auto &aggregate = aggregate_default_construct_expr.type.is<ast::ts_tuple>()
-				? result.emplace<ast::constant_value::tuple>()
-				: result.emplace<ast::constant_value::aggregate>();
-			aggregate.reserve(aggregate_default_construct_expr.default_construct_exprs.size());
-			for (auto const &expr : aggregate_default_construct_expr.default_construct_exprs)
-			{
-				aggregate.emplace_back(expr.get_constant_value());
-			}
-			return result;
-		},
-		[&expr, &context](ast::expr_aggregate_copy_construct &aggregate_copy_construct_expr) -> ast::constant_value {
-			consteval_try_without_error(aggregate_copy_construct_expr.copied_value, context);
-			if (!aggregate_copy_construct_expr.copied_value.has_consteval_succeeded())
-			{
-				return {};
-			}
-
-			if (context.is_trivially_copy_constructible(expr.src_tokens, aggregate_copy_construct_expr.copied_value.get_expr_type()))
-			{
-				return aggregate_copy_construct_expr.copied_value.get_constant_value();
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&context](ast::expr_aggregate_move_construct &aggregate_move_construct_expr) -> ast::constant_value {
-			consteval_try_without_error(aggregate_move_construct_expr.moved_value, context);
-			return {};
-		},
-		[&expr, &context](ast::expr_array_default_construct &array_default_construct_expr) -> ast::constant_value {
-			auto const type = array_default_construct_expr.type.as_typespec_view();
-			bz_assert(type.is<ast::ts_array>());
-			consteval_try_without_error(array_default_construct_expr.default_construct_expr, context);
-			if (!array_default_construct_expr.default_construct_expr.is<ast::constant_expression>())
-			{
-				return {};
-			}
-
-			if (is_special_array_type(type))
-			{
-				return get_default_constructed_value(expr.src_tokens, type, function_execution_kind::force_evaluate, context);
-			}
-			else
-			{
-				auto const &value = array_default_construct_expr.default_construct_expr.get_constant_value();
-				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(type);
-				auto result = ast::constant_value();
-				if (is_multi_dimensional)
-				{
-					bz_assert(value.is_array() && value.get_array().not_empty());
-					result.emplace<ast::constant_value::array>(size, value.get_array()[0]);
-				}
-				else
-				{
-					result.emplace<ast::constant_value::array>(size, value);
-				}
-				return result;
-			}
-		},
-		[&expr, &context](ast::expr_array_copy_construct &array_copy_construct_expr) -> ast::constant_value {
-			consteval_try_without_error(array_copy_construct_expr.copied_value, context);
-			if (!array_copy_construct_expr.copied_value.has_consteval_succeeded())
-			{
-				return {};
-			}
-
-			if (context.is_trivially_copy_constructible(expr.src_tokens, array_copy_construct_expr.copied_value.get_expr_type()))
-			{
-				return array_copy_construct_expr.copied_value.get_constant_value();
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&context](ast::expr_array_move_construct &array_move_construct_expr) -> ast::constant_value {
-			consteval_try_without_error(array_move_construct_expr.moved_value, context);
-			return {};
-		},
-		[&expr, &context](ast::expr_optional_default_construct &optional_default_construct_expr) -> ast::constant_value {
-			if (context.is_trivially_destructible(expr.src_tokens, optional_default_construct_expr.type))
-			{
-				return ast::constant_value::get_null();
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&expr, &context](ast::expr_optional_copy_construct &optional_copy_construct_expr) -> ast::constant_value {
-			consteval_try_without_error(optional_copy_construct_expr.copied_value, context);
-			if (!optional_copy_construct_expr.copied_value.has_consteval_succeeded())
-			{
-				return {};
-			}
-
-			if (context.is_trivially_copy_constructible(expr.src_tokens, optional_copy_construct_expr.copied_value.get_expr_type()))
-			{
-				return optional_copy_construct_expr.copied_value.get_constant_value();
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&expr, &context](ast::expr_optional_move_construct &optional_move_construct_expr) -> ast::constant_value {
-			consteval_try_without_error(optional_move_construct_expr.moved_value, context);
-			if (!optional_move_construct_expr.moved_value.has_consteval_succeeded())
-			{
-				return {};
-			}
-
-			if (context.is_trivially_copy_constructible(expr.src_tokens, optional_move_construct_expr.moved_value.get_expr_type()))
-			{
-				return optional_move_construct_expr.moved_value.get_constant_value();
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[](ast::expr_builtin_default_construct &builtin_default_construct_expr) -> ast::constant_value {
-			bz_assert(builtin_default_construct_expr.type.is<ast::ts_array_slice>());
-			return {};
-		},
-		[&context](ast::expr_trivial_copy_construct &trivial_copy_construct_expr) -> ast::constant_value {
-			consteval_try_without_error(trivial_copy_construct_expr.copied_value, context);
-			if (!trivial_copy_construct_expr.copied_value.has_consteval_succeeded())
-			{
-				return {};
-			}
-
-			return trivial_copy_construct_expr.copied_value.get_constant_value();
-		},
-		[&context](ast::expr_trivial_relocate &trivial_relocate_expr) -> ast::constant_value {
-			consteval_try_without_error(trivial_relocate_expr.value, context);
-			return {};
-		},
-		[](ast::expr_aggregate_destruct &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_array_destruct &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_optional_destruct &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_base_type_destruct &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_destruct_value &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_aggregate_assign &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_array_assign &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_optional_assign &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_optional_null_assign &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_optional_value_assign &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_optional_reference_value_assign &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_base_type_assign &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_trivial_assign &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_aggregate_swap &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_array_swap &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_optional_swap &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_base_type_swap &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_trivial_swap &) -> ast::constant_value {
-			return {};
-		},
-		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
-			consteval_try_without_error(member_access_expr.base, context);
-			if (member_access_expr.base.has_consteval_succeeded())
-			{
-				return member_access_expr.base
-					.get_constant_value()
-					.get_aggregate()[member_access_expr.index];
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&context, &expr](ast::expr_optional_extract_value &optional_extract_value) -> ast::constant_value {
-			consteval_try_without_error(optional_extract_value.optional_value, context);
-			if (optional_extract_value.optional_value.has_consteval_succeeded())
-			{
-				auto const &value = optional_extract_value.optional_value.get_constant_value();
-				if (value.is_null_constant())
-				{
-					context.report_warning(
-						ctx::warning_kind::get_value_null,
-						expr.src_tokens,
-						"getting value of a null optional"
-					);
-					return {};
-				}
-				else
-				{
-					return value;
-				}
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&context](ast::expr_rvalue_member_access &rvalue_member_access_expr) -> ast::constant_value {
-			consteval_try_without_error(rvalue_member_access_expr.base, context);
-			if (rvalue_member_access_expr.base.has_consteval_succeeded())
-			{
-				bz_assert(rvalue_member_access_expr.base.get_constant_value().is_aggregate());
-				return rvalue_member_access_expr.base
-					.get_constant_value()
-					.get_aggregate()[rvalue_member_access_expr.index];
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[](ast::expr_type_member_access &) -> ast::constant_value {
-			// variable constevalness is handled in parse_context::make_member_access_expression
-			return {};
-		},
-		[&expr, &context](ast::expr_compound &compound_expr) -> ast::constant_value {
-			if (compound_expr.statements.empty() && compound_expr.final_expr.not_null())
-			{
-				consteval_try_without_error(compound_expr.final_expr, context);
-				if (compound_expr.final_expr.has_consteval_succeeded())
-				{
-					return compound_expr.final_expr.get_constant_value();
-				}
-				else
-				{
-					return {};
-				}
-			}
-			else
-			{
-				return context.execute_compound_expression_without_error(expr.src_tokens, compound_expr);
-			}
-		},
-		[&context](ast::expr_if &if_expr) -> ast::constant_value {
-			consteval_try_without_error(if_expr.condition, context);
-			consteval_try_without_error(if_expr.then_block, context);
-			consteval_try_without_error(if_expr.else_block, context);
-			if (if_expr.condition.has_consteval_succeeded())
-			{
-				bz_assert(if_expr.condition.is_constant());
-				bz_assert(if_expr.condition.get_constant_value().is_boolean());
-				auto const condition_value = if_expr.condition
-					.get_constant_value()
-					.get_boolean();
-				if (condition_value)
-				{
-					if (if_expr.then_block.has_consteval_succeeded())
-					{
-						return if_expr.then_block.get_constant_value();
-					}
-					else
-					{
-						return {};
-					}
-				}
-				else
-				{
-					if (if_expr.else_block.has_consteval_succeeded())
-					{
-						return if_expr.else_block.get_constant_value();
-					}
-					else
-					{
-						return {};
-					}
-				}
-			}
-			else
-			{
-				return {};
-			}
-		},
-		[&context](ast::expr_if_consteval &if_expr) -> ast::constant_value {
-			bz_assert(if_expr.condition.is_constant());
-			auto const &condition_value = if_expr.condition.get_constant_value();
-			bz_assert(condition_value.is_boolean());
-			if (condition_value.get_boolean())
-			{
-				consteval_try_without_error(if_expr.then_block, context);
-				if (if_expr.then_block.has_consteval_succeeded())
-				{
-					bz_assert(if_expr.then_block.is_constant());
-					return if_expr.then_block.get_constant_value();
-				}
-				else
-				{
-					return {};
-				}
-			}
-			else if (if_expr.else_block.not_null())
-			{
-				consteval_try_without_error(if_expr.else_block, context);
-				if (if_expr.else_block.has_consteval_succeeded())
-				{
-					bz_assert(if_expr.else_block.is_constant());
-					return if_expr.else_block.get_constant_value();
-				}
-				else
-				{
-					return {};
-				}
-			}
-			else
-			{
-				return ast::constant_value::get_void();
-			}
-		},
-		[&context](ast::expr_switch &switch_expr) -> ast::constant_value {
-			consteval_try_without_error(switch_expr.matched_expr, context);
-			for (auto &[_, case_expr] : switch_expr.cases)
-			{
-				consteval_try_without_error(case_expr, context);
-			}
-			consteval_try_without_error(switch_expr.default_case, context);
-
-			if (!switch_expr.matched_expr.has_consteval_succeeded())
-			{
-				return {};
-			}
-
-			auto const &matched_value = switch_expr.matched_expr.get_constant_value();
-			auto const case_it = std::find_if(
-				switch_expr.cases.begin(), switch_expr.cases.end(),
-				[&](auto const &switch_case) {
-					return switch_case.values
-						.transform([](auto const &expr) -> auto const &{ return expr.get_constant_value(); })
-						.is_any(matched_value);
-				}
-			);
-			if (case_it == switch_expr.cases.end())
-			{
-				if (switch_expr.default_case.has_consteval_succeeded())
-				{
-					return switch_expr.default_case.get_constant_value();
-				}
-				else
-				{
-					return {};
-				}
-			}
-			else
-			{
-				if (case_it->expr.has_consteval_succeeded())
-				{
-					return case_it->expr.get_constant_value();
-				}
-				else
-				{
-					return {};
-				}
-			}
-		},
-		[](ast::expr_break &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_continue &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_unreachable &) -> ast::constant_value {
-			return {};
-		},
-		[](ast::expr_generic_type_instantiation &) -> ast::constant_value {
-			bz_unreachable;
-		},
-		[](ast::expr_bitcode_value_reference &) -> ast::constant_value {
-			return {};
-		},
-	});
+	bz_assert(!expr.has_consteval_succeeded());
+	return context.execute_expression_without_error(expr);
 }
 
 void consteval_guaranteed(ast::expression &expr, ctx::parse_context &context)
@@ -4978,7 +3150,11 @@ void consteval_guaranteed(ast::expression &expr, ctx::parse_context &context)
 	}
 
 	auto const value = guaranteed_evaluate_expr(expr, context);
-	if (value.is_null())
+	if (expr.get_dynamic().type.is_empty())
+	{
+		return;
+	}
+	else if (value.is_null())
 	{
 		expr.consteval_state = ast::expression::consteval_guaranteed_failed;
 		return;
@@ -4999,6 +3175,8 @@ void consteval_guaranteed(ast::expression &expr, ctx::parse_context &context)
 
 void consteval_try(ast::expression &expr, ctx::parse_context &context)
 {
+	consteval_guaranteed(expr, context);
+
 	if (expr.is_constant())
 	{
 		expr.consteval_state = ast::expression::consteval_succeeded;
@@ -5180,600 +3358,6 @@ void consteval_try_without_error_decl(ast::statement &stmt, ctx::parse_context &
 		[](ast::decl_enum &) {},
 		[](ast::decl_import &) {},
 	});
-}
-
-
-static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vector<ctx::source_highlight> &notes)
-{
-	if (expr.is_error())
-	{
-		return;
-	}
-	bz_assert(expr.has_consteval_failed());
-	bz_assert(expr.is_dynamic());
-	expr.get_expr().visit(bz::overload{
-		[&expr, &notes](ast::expr_variable_name const &var_name_expr) {
-			notes.emplace_back(ctx::parse_context::make_note(
-				expr.src_tokens, "subexpression is not a constant expression"
-			));
-			if (var_name_expr.decl != nullptr)
-			{
-				notes.emplace_back(ctx::parse_context::make_note(
-					var_name_expr.decl->src_tokens,
-					bz::format("variable '{}' was declared here", var_name_expr.decl->get_id().format_as_unqualified())
-				));
-			}
-		},
-		[](ast::expr_function_name const &) {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_function_alias_name const &) {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_function_overload_set const &) {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_struct_name const &) {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_enum_name const &) {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_type_alias_name const &) {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_integer_literal const &) {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_null_literal const &) {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_enum_literal const &) {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_typed_literal const &) {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[](ast::expr_placeholder_literal const &) {
-			// nothing
-		},
-		[](ast::expr_typename_literal const &) {
-			// these are always constant expressions
-			bz_unreachable;
-		},
-		[&notes](ast::expr_tuple const &tuple) {
-			bool any_failed = false;
-			for (auto const &elem : tuple.elems)
-			{
-				if (elem.has_consteval_failed())
-				{
-					any_failed = true;
-					get_consteval_fail_notes_helper(elem, notes);
-				}
-			}
-			bz_assert(any_failed);
-		},
-		[&expr, &notes](ast::expr_unary_op const &unary_op) {
-			if (unary_op.expr.has_consteval_succeeded())
-			{
-				notes.emplace_back(ctx::parse_context::make_note(
-					expr.src_tokens,
-					bz::format(
-						"subexpression '{}{}' is not a constant expression",
-						token_info[unary_op.op].token_value,
-						ast::get_value_string(unary_op.expr.get_constant_value())
-					)
-				));
-			}
-			else
-			{
-				get_consteval_fail_notes_helper(unary_op.expr, notes);
-			}
-		},
-		[&expr, &notes](ast::expr_binary_op const &binary_op) {
-			if (
-				binary_op.lhs.has_consteval_succeeded()
-				&& binary_op.rhs.has_consteval_succeeded()
-			)
-			{
-				notes.emplace_back(ctx::parse_context::make_note(
-					expr.src_tokens,
-					bz::format(
-						"subexpression '{} {} {}' is not a constant expression",
-						ast::get_value_string(binary_op.lhs.get_constant_value()),
-						token_info[binary_op.op].token_value,
-						ast::get_value_string(binary_op.rhs.get_constant_value())
-					)
-				));
-			}
-			else
-			{
-				if (binary_op.lhs.has_consteval_failed())
-				{
-					get_consteval_fail_notes_helper(binary_op.lhs, notes);
-				}
-				if (binary_op.rhs.has_consteval_failed())
-				{
-					get_consteval_fail_notes_helper(binary_op.rhs, notes);
-				}
-			}
-		},
-		[&notes](ast::expr_tuple_subscript const &tuple_subscript_expr) {
-			for (auto const &elem : tuple_subscript_expr.base.elems)
-			{
-				if (elem.has_consteval_failed())
-				{
-					get_consteval_fail_notes_helper(elem, notes);
-				}
-			}
-		},
-		[&notes](ast::expr_rvalue_tuple_subscript const &rvalue_tuple_subscript_expr) {
-			get_consteval_fail_notes_helper(rvalue_tuple_subscript_expr.base, notes);
-		},
-		[&expr, &notes](ast::expr_subscript const &subscript_expr) {
-			bool any_failed = false;
-			if (subscript_expr.base.has_consteval_failed())
-			{
-				any_failed = true;
-				get_consteval_fail_notes_helper(subscript_expr.base, notes);
-			}
-			if (subscript_expr.index.has_consteval_failed())
-			{
-				any_failed = true;
-				get_consteval_fail_notes_helper(subscript_expr.index, notes);
-			}
-			if (!any_failed)
-			{
-				notes.emplace_back(ctx::parse_context::make_note(
-					expr.src_tokens, "subexpression is not a constant expression"
-				));
-			}
-		},
-		[&expr, &notes](ast::expr_rvalue_array_subscript const &rvalue_array_subscript_expr) {
-			bool any_failed = false;
-			if (rvalue_array_subscript_expr.base.has_consteval_failed())
-			{
-				any_failed = true;
-				get_consteval_fail_notes_helper(rvalue_array_subscript_expr.base, notes);
-			}
-			if (rvalue_array_subscript_expr.index.has_consteval_failed())
-			{
-				any_failed = true;
-				get_consteval_fail_notes_helper(rvalue_array_subscript_expr.index, notes);
-			}
-			if (!any_failed)
-			{
-				notes.emplace_back(ctx::parse_context::make_note(
-					expr.src_tokens, "subexpression is not a constant expression"
-				));
-			}
-		},
-		[&expr, &notes](ast::expr_function_call const &func_call) {
-			bool any_failed = false;
-			for (auto const &param : func_call.params)
-			{
-				if (param.has_consteval_failed())
-				{
-					any_failed = true;
-					get_consteval_fail_notes_helper(param, notes);
-				}
-			}
-			if (!any_failed)
-			{
-				notes.emplace_back(ctx::parse_context::make_note(
-					expr.src_tokens, "subexpression is not a constant expression"
-				));
-			}
-		},
-		[&expr, &notes](ast::expr_indirect_function_call const &) {
-			notes.emplace_back(ctx::parse_context::make_note(
-				expr.src_tokens, "indirect function call is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_cast const &cast_expr) {
-			if (cast_expr.expr.has_consteval_succeeded())
-			{
-				notes.emplace_back(ctx::parse_context::make_note(
-					expr.src_tokens,
-					bz::format(
-						"subexpression '{} as {}' is not a constant expression",
-						ast::get_value_string(cast_expr.expr.get_constant_value()),
-						cast_expr.type
-					)
-				));
-			}
-			else
-			{
-				get_consteval_fail_notes_helper(cast_expr.expr, notes);
-			}
-		},
-		[&notes](ast::expr_optional_cast const &optional_cast_expr) {
-			get_consteval_fail_notes_helper(optional_cast_expr.expr, notes);
-		},
-		[&expr, &notes](ast::expr_take_reference const &take_ref_expr) {
-			if (take_ref_expr.expr.is_constant())
-			{
-				notes.emplace_back(ctx::parse_context::make_note(
-					expr.src_tokens, "unable to take reference in a constant expression"
-				));
-			}
-			else
-			{
-				get_consteval_fail_notes_helper(take_ref_expr.expr, notes);
-			}
-		},
-		[&expr, &notes](ast::expr_take_move_reference const &) {
-			notes.emplace_back(ctx::parse_context::make_note(
-				expr.src_tokens, "subexpression is not a constant expression"
-			));
-		},
-		[&notes](ast::expr_aggregate_init const &aggregate_init_expr) {
-			for (auto const &expr : aggregate_init_expr.exprs)
-			{
-				if (expr.has_consteval_failed())
-				{
-					get_consteval_fail_notes_helper(expr, notes);
-				}
-			}
-		},
-		[&notes](ast::expr_array_value_init const &array_value_init_expr) {
-			get_consteval_fail_notes_helper(array_value_init_expr.value, notes);
-		},
-		[&notes](ast::expr_aggregate_default_construct const &aggregate_default_construct_expr) {
-			for (auto const &expr : aggregate_default_construct_expr.default_construct_exprs)
-			{
-				if (expr.has_consteval_failed())
-				{
-					auto const type = expr.get_expr_type();
-					notes.emplace_back(ctx::parse_context::make_note(
-						expr.src_tokens, bz::format("default construction of a value of type '{}' is not a constant expression", type)
-					));
-				}
-			}
-		},
-		[&expr, &notes](ast::expr_aggregate_copy_construct const &aggregate_copy_construct_expr) {
-			if (aggregate_copy_construct_expr.copied_value.has_consteval_failed())
-			{
-				get_consteval_fail_notes_helper(aggregate_copy_construct_expr.copied_value, notes);
-			}
-			else
-			{
-				auto const type = ast::remove_const_or_consteval(aggregate_copy_construct_expr.copied_value.get_expr_type());
-				notes.emplace_back(ctx::parse_context::make_note(
-					expr.src_tokens, bz::format("copy construction of a value of type '{}' is not a constant expression", type)
-				));
-			}
-		},
-		[&expr, &notes](ast::expr_aggregate_move_construct const &aggregate_move_construct_expr) {
-			if (aggregate_move_construct_expr.moved_value.has_consteval_failed())
-			{
-				get_consteval_fail_notes_helper(aggregate_move_construct_expr.moved_value, notes);
-			}
-			else
-			{
-				auto const type = ast::remove_const_or_consteval(aggregate_move_construct_expr.moved_value.get_expr_type());
-				notes.emplace_back(ctx::parse_context::make_note(
-					expr.src_tokens, bz::format("move construction of a value of type '{}' is not a constant expression", type)
-				));
-			}
-		},
-		[&expr, &notes](ast::expr_array_default_construct const &array_default_construct_expr) {
-			auto const type = array_default_construct_expr.type.as_typespec_view();
-			notes.emplace_back(ctx::parse_context::make_note(
-				expr.src_tokens, bz::format("subexpression '{}()' is not a constant expression", type)
-			));
-		},
-		[&expr, &notes](ast::expr_array_copy_construct const &array_copy_construct_expr) {
-			if (array_copy_construct_expr.copied_value.has_consteval_failed())
-			{
-				get_consteval_fail_notes_helper(array_copy_construct_expr.copied_value, notes);
-			}
-			else
-			{
-				auto const type = ast::remove_const_or_consteval(array_copy_construct_expr.copied_value.get_expr_type());
-				notes.emplace_back(ctx::parse_context::make_note(
-					expr.src_tokens, bz::format("copy construction of a value of type '{}' is not a constant expression", type)
-				));
-			}
-		},
-		[&expr, &notes](ast::expr_array_move_construct const &array_move_construct_expr) {
-			if (array_move_construct_expr.moved_value.has_consteval_failed())
-			{
-				get_consteval_fail_notes_helper(array_move_construct_expr.moved_value, notes);
-			}
-			else
-			{
-				auto const type = ast::remove_const_or_consteval(array_move_construct_expr.moved_value.get_expr_type());
-				notes.emplace_back(ctx::parse_context::make_note(
-					expr.src_tokens, bz::format("move construction of a value of type '{}' is not a constant expression", type)
-				));
-			}
-		},
-		[&expr, &notes](ast::expr_optional_default_construct const &optional_default_construct_expr) {
-			auto const type = optional_default_construct_expr.type.as_typespec_view();
-			notes.emplace_back(ctx::parse_context::make_note(
-				expr.src_tokens, bz::format("subexpression '({})()' is not a constant expression", type)
-			));
-		},
-		[&expr, &notes](ast::expr_optional_copy_construct const &optional_copy_construct_expr) {
-			if (optional_copy_construct_expr.copied_value.has_consteval_failed())
-			{
-				get_consteval_fail_notes_helper(optional_copy_construct_expr.copied_value, notes);
-			}
-			else
-			{
-				auto const type = ast::remove_const_or_consteval(optional_copy_construct_expr.copied_value.get_expr_type());
-				notes.emplace_back(ctx::parse_context::make_note(
-					expr.src_tokens, bz::format("copy construction of a value of type '{}' is not a constant expression", type)
-				));
-			}
-		},
-		[&expr, &notes](ast::expr_optional_move_construct const &optional_move_construct_expr) {
-			if (optional_move_construct_expr.moved_value.has_consteval_failed())
-			{
-				get_consteval_fail_notes_helper(optional_move_construct_expr.moved_value, notes);
-			}
-			else
-			{
-				auto const type = ast::remove_const_or_consteval(optional_move_construct_expr.moved_value.get_expr_type());
-				notes.emplace_back(ctx::parse_context::make_note(
-					expr.src_tokens, bz::format("move construction of a value of type '{}' is not a constant expression", type)
-				));
-			}
-		},
-		[&expr, &notes](ast::expr_builtin_default_construct const &builtin_default_construct_expr) {
-			auto const type = builtin_default_construct_expr.type.as_typespec_view();
-			notes.emplace_back(ctx::parse_context::make_note(
-				expr.src_tokens, bz::format("subexpression '{}()' is not a constant expression", type)
-			));
-		},
-		[&expr, &notes](ast::expr_trivial_copy_construct const &trivial_copy_construct_expr) {
-			if (trivial_copy_construct_expr.copied_value.has_consteval_failed())
-			{
-				get_consteval_fail_notes_helper(trivial_copy_construct_expr.copied_value, notes);
-			}
-			else
-			{
-				auto const type = ast::remove_const_or_consteval(trivial_copy_construct_expr.copied_value.get_expr_type());
-				notes.emplace_back(ctx::parse_context::make_note(
-					expr.src_tokens, bz::format("copy construction of a value of type '{}' is not a constant expression", type)
-				));
-			}
-		},
-		[&expr, &notes](ast::expr_trivial_relocate const &trivial_relocate_expr) {
-			if (trivial_relocate_expr.value.has_consteval_failed())
-			{
-				get_consteval_fail_notes_helper(trivial_relocate_expr.value, notes);
-			}
-			else
-			{
-				auto const type = ast::remove_const_or_consteval(trivial_relocate_expr.value.get_expr_type());
-				notes.emplace_back(ctx::parse_context::make_note(
-					expr.src_tokens, bz::format("move construction of a value of type '{}' is not a constant expression", type)
-				));
-			}
-		},
-		[&expr, &notes](ast::expr_aggregate_destruct const &) {
-			notes.push_back(ctx::parse_context::make_note(
-				expr.src_tokens, "value destruction is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_array_destruct const &) {
-			notes.push_back(ctx::parse_context::make_note(
-				expr.src_tokens, "value destruction is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_optional_destruct const &) {
-			notes.push_back(ctx::parse_context::make_note(
-				expr.src_tokens, "value destruction is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_base_type_destruct const &) {
-			notes.push_back(ctx::parse_context::make_note(
-				expr.src_tokens, "value destruction is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_destruct_value const &) {
-			notes.push_back(ctx::parse_context::make_note(
-				expr.src_tokens, "value destruction is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_aggregate_assign const &) {
-			notes.push_back(ctx::parse_context::make_note(
-				expr.src_tokens, "assignment is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_array_assign const &) {
-			notes.push_back(ctx::parse_context::make_note(
-				expr.src_tokens, "assignment is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_optional_assign const &) {
-			notes.push_back(ctx::parse_context::make_note(
-				expr.src_tokens, "assignment is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_optional_null_assign const &) {
-			notes.push_back(ctx::parse_context::make_note(
-				expr.src_tokens, "assignment is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_optional_value_assign const &) {
-			notes.push_back(ctx::parse_context::make_note(
-				expr.src_tokens, "assignment is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_optional_reference_value_assign const &) {
-			notes.push_back(ctx::parse_context::make_note(
-				expr.src_tokens, "assignment is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_base_type_assign const &) {
-			notes.push_back(ctx::parse_context::make_note(
-				expr.src_tokens, "assignment is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_trivial_assign const &) {
-			notes.push_back(ctx::parse_context::make_note(
-				expr.src_tokens, "assignment is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_aggregate_swap const &) {
-			notes.push_back(ctx::parse_context::make_note(
-				expr.src_tokens, "swapping is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_array_swap const &) {
-			notes.push_back(ctx::parse_context::make_note(
-				expr.src_tokens, "swapping is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_optional_swap const &) {
-			notes.push_back(ctx::parse_context::make_note(
-				expr.src_tokens, "swapping is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_base_type_swap const &) {
-			notes.push_back(ctx::parse_context::make_note(
-				expr.src_tokens, "swapping is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_trivial_swap const &) {
-			notes.push_back(ctx::parse_context::make_note(
-				expr.src_tokens, "swapping is not a constant expression"
-			));
-		},
-		[&notes](ast::expr_member_access const &member_access_expr) {
-			bz_assert(!member_access_expr.base.has_consteval_succeeded());
-			get_consteval_fail_notes_helper(member_access_expr.base, notes);
-		},
-		[&expr, &notes](ast::expr_optional_extract_value const &optional_extract_value) {
-			if (optional_extract_value.optional_value.has_consteval_failed())
-			{
-				get_consteval_fail_notes_helper(optional_extract_value.optional_value, notes);
-			}
-			else if (optional_extract_value.optional_value.get_constant_value().is_null_constant())
-			{
-				notes.push_back(ctx::parse_context::make_note(
-					expr.src_tokens, "getting value of a null optional is not a constant expression"
-				));
-			}
-			else
-			{
-				notes.push_back(ctx::parse_context::make_note(
-					expr.src_tokens,
-					bz::format(
-						"getting value of an optional of type '{}' is not a constant expression",
-						optional_extract_value.optional_value.get_expr_type()
-					)
-				));
-			}
-		},
-		[&notes](ast::expr_rvalue_member_access const &rvalue_member_access_expr) {
-			bz_assert(!rvalue_member_access_expr.base.has_consteval_succeeded());
-			get_consteval_fail_notes_helper(rvalue_member_access_expr.base, notes);
-		},
-		[&expr, &notes](ast::expr_type_member_access const &) {
-			notes.emplace_back(ctx::parse_context::make_note(
-				expr.src_tokens, "subexpression is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_compound const &) {
-			notes.emplace_back(ctx::parse_context::make_note(
-				expr.src_tokens, "subexpression is not a constant expression"
-			));
-		},
-		[&notes](ast::expr_if const &if_expr) {
-			if (!if_expr.condition.has_consteval_succeeded())
-			{
-				get_consteval_fail_notes_helper(if_expr.condition, notes);
-			}
-			else
-			{
-				bz_assert(if_expr.condition.is_constant());
-				bz_assert(if_expr.condition.get_constant_value().is_boolean());
-				auto const condition_value = if_expr.condition
-					.get_constant_value()
-					.get_boolean();
-				if (condition_value)
-				{
-					bz_assert(!if_expr.then_block.has_consteval_succeeded());
-					get_consteval_fail_notes_helper(if_expr.then_block, notes);
-				}
-				else
-				{
-					bz_assert(!if_expr.else_block.has_consteval_succeeded());
-					get_consteval_fail_notes_helper(if_expr.else_block, notes);
-				}
-			}
-		},
-		[&notes](ast::expr_if_consteval const &if_expr) {
-			bz_assert(if_expr.condition.is_constant());
-			auto const &condition_value = if_expr.condition.get_constant_value();
-			bz_assert(condition_value.is_boolean());
-			if (condition_value.get_boolean())
-			{
-				get_consteval_fail_notes_helper(if_expr.then_block, notes);
-			}
-			else
-			{
-				bz_assert(if_expr.else_block.not_null());
-				get_consteval_fail_notes_helper(if_expr.else_block, notes);
-			}
-		},
-		[&expr, &notes](ast::expr_switch const &) {
-			notes.emplace_back(ctx::parse_context::make_note(
-				expr.src_tokens, "subexpression is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_break const &) {
-			notes.emplace_back(ctx::parse_context::make_note(
-				expr.src_tokens, "'break' is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_continue const &) {
-			notes.emplace_back(ctx::parse_context::make_note(
-				expr.src_tokens, "'continue' is not a constant expression"
-			));
-		},
-		[&expr, &notes](ast::expr_unreachable const &) {
-			notes.emplace_back(ctx::parse_context::make_note(
-				expr.src_tokens, "'unreachable' is not a constant expression"
-			));
-		},
-		[](ast::expr_generic_type_instantiation const &) {
-			bz_unreachable;
-		},
-		[&expr, &notes](ast::expr_bitcode_value_reference const &) {
-			notes.emplace_back(ctx::parse_context::make_note(
-				expr.src_tokens, "subexpression is not a constant expression"
-			));
-		},
-	});
-}
-
-bz::vector<ctx::source_highlight> get_consteval_fail_notes(ast::expression const &expr)
-{
-	bz::vector<ctx::source_highlight> result = {};
-	if (!expr.has_consteval_failed())
-	{
-		return result;
-	}
-	else
-	{
-		get_consteval_fail_notes_helper(expr, result);
-		return result;
-	}
 }
 
 } // namespace resolve

@@ -9,6 +9,6 @@ struct S
 
 	function foo(self: S)
 	{
-		__builtin_call_destructor(*self.t);
+		__builtin_destruct_value(*self.t);
 	}
 }

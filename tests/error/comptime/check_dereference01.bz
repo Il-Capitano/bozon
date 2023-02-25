@@ -1,0 +1,8 @@
+function test()
+{
+	(consteval {
+		let i = 0;
+		let p = &i + 1;
+		*p;
+	});
+}

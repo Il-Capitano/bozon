@@ -1,0 +1,4 @@
+consteval p = {
+	let arr: [10: int32];
+	arr as [: int32]
+};

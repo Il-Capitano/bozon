@@ -855,7 +855,7 @@ static ast::expression get_builtin_unary_consteval(
 	}
 	else
 	{
-		context.report_error(expr.src_tokens, "failed to evaluate expression at compile time", resolve::get_consteval_fail_notes(expr));
+		context.report_error(expr.src_tokens, "failed to evaluate expression at compile time");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 }

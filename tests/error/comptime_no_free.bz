@@ -1,7 +1,0 @@
-function main()
-{
-	(consteval {
-		const _p = __builtin_comptime_malloc_type(int32, 1u);
-		0
-	});
-}

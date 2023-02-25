@@ -836,24 +836,29 @@ decl_enum::decl_operator_ptr decl_enum::make_default_compare_op(
 	return result;
 }
 
-bz::vector<type_info> make_builtin_type_infos(void)
+bz::vector<type_info> make_builtin_type_infos(type_prototype_set_t &type_prototype_set)
 {
+	auto const pointer_type = type_prototype_set.get_pointer_type();
+	type_prototype const *pointer_pair[2] = { pointer_type, pointer_type };
+	auto const str_t = type_prototype_set.get_aggregate_type(pointer_pair);
+	auto const null_t = type_prototype_set.get_aggregate_type({});
+
 	bz::vector<type_info> result;
 	result.reserve(type_info::null_t_ + 1);
-	result.push_back(type_info::make_builtin("int8",     type_info::int8_));
-	result.push_back(type_info::make_builtin("int16",    type_info::int16_));
-	result.push_back(type_info::make_builtin("int32",    type_info::int32_));
-	result.push_back(type_info::make_builtin("int64",    type_info::int64_));
-	result.push_back(type_info::make_builtin("uint8",    type_info::uint8_));
-	result.push_back(type_info::make_builtin("uint16",   type_info::uint16_));
-	result.push_back(type_info::make_builtin("uint32",   type_info::uint32_));
-	result.push_back(type_info::make_builtin("uint64",   type_info::uint64_));
-	result.push_back(type_info::make_builtin("float32",  type_info::float32_));
-	result.push_back(type_info::make_builtin("float64",  type_info::float64_));
-	result.push_back(type_info::make_builtin("char",     type_info::char_));
-	result.push_back(type_info::make_builtin("str",      type_info::str_));
-	result.push_back(type_info::make_builtin("bool",     type_info::bool_));
-	result.push_back(type_info::make_builtin("__null_t", type_info::null_t_));
+	result.push_back(type_info::make_builtin("int8",     type_info::int8_,    type_prototype_set.get_builtin_type(builtin_type_kind::i8)));
+	result.push_back(type_info::make_builtin("int16",    type_info::int16_,   type_prototype_set.get_builtin_type(builtin_type_kind::i16)));
+	result.push_back(type_info::make_builtin("int32",    type_info::int32_,   type_prototype_set.get_builtin_type(builtin_type_kind::i32)));
+	result.push_back(type_info::make_builtin("int64",    type_info::int64_,   type_prototype_set.get_builtin_type(builtin_type_kind::i64)));
+	result.push_back(type_info::make_builtin("uint8",    type_info::uint8_,   type_prototype_set.get_builtin_type(builtin_type_kind::i8)));
+	result.push_back(type_info::make_builtin("uint16",   type_info::uint16_,  type_prototype_set.get_builtin_type(builtin_type_kind::i16)));
+	result.push_back(type_info::make_builtin("uint32",   type_info::uint32_,  type_prototype_set.get_builtin_type(builtin_type_kind::i32)));
+	result.push_back(type_info::make_builtin("uint64",   type_info::uint64_,  type_prototype_set.get_builtin_type(builtin_type_kind::i64)));
+	result.push_back(type_info::make_builtin("float32",  type_info::float32_, type_prototype_set.get_builtin_type(builtin_type_kind::f32)));
+	result.push_back(type_info::make_builtin("float64",  type_info::float64_, type_prototype_set.get_builtin_type(builtin_type_kind::f64)));
+	result.push_back(type_info::make_builtin("char",     type_info::char_,    type_prototype_set.get_builtin_type(builtin_type_kind::i32)));
+	result.push_back(type_info::make_builtin("str",      type_info::str_,     str_t));
+	result.push_back(type_info::make_builtin("bool",     type_info::bool_,    type_prototype_set.get_builtin_type(builtin_type_kind::i1)));
+	result.push_back(type_info::make_builtin("__null_t", type_info::null_t_,  null_t));
 	for (auto &info : result)
 	{
 		info.default_default_constructor = make_builtin_default_constructor(&info);

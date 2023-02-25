@@ -39,7 +39,7 @@ export function write_into(buffer: &format_buffer, c: char, count: usize)
 		let it = buffer._str.data() + size;
 		for (let i = 0uz; i < count; ++i)
 		{
-			memcpy(it, encoded_char.begin(), byte_count);
+			trivially_copy_values(it, encoded_char.begin(), byte_count);
 			it += byte_count;
 		}
 	}
@@ -710,22 +710,22 @@ function print_uint_decimal_to_buffer(n: uint64, out: *uint8) -> *uint8
 		const c0 = (c % 100) * 2;
 		const c1 = (c / 100) * 2;
 		rev_out -= 4;
-		memcpy(rev_out + 2, ryu::DIGIT_TABLE.begin() + c0, 2);
-		memcpy(rev_out,     ryu::DIGIT_TABLE.begin() + c1, 2);
+		trivially_copy_values(rev_out + 2, ryu::DIGIT_TABLE.begin() + c0, 2);
+		trivially_copy_values(rev_out,     ryu::DIGIT_TABLE.begin() + c1, 2);
 	}
 	if (n >= 100)
 	{
 		const c = (n % 100) * 2;
 		n /= 100;
 		rev_out -= 2;
-		memcpy(rev_out, ryu::DIGIT_TABLE.begin() + c, 2);
+		trivially_copy_values(rev_out, ryu::DIGIT_TABLE.begin() + c, 2);
 	}
 	if (n >= 10)
 	{
 		const c = (n % 100) * 2;
 		n /= 100;
 		rev_out -= 2;
-		memcpy(rev_out, ryu::DIGIT_TABLE.begin() + c, 2);
+		trivially_copy_values(rev_out, ryu::DIGIT_TABLE.begin() + c, 2);
 	}
 	else
 	{

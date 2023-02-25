@@ -6,4 +6,5 @@
 #include "ast/expression.cpp"
 #include "ast/statement.cpp"
 #include "ast/typespec.cpp"
+#include "ast/type_prototype.cpp"
 #include "ast/scope.cpp"

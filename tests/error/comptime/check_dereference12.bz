@@ -1,0 +1,17 @@
+struct S
+{
+	.p: ?*int32;
+
+	destructor(&self)
+	{
+		*self.p;
+	}
+}
+
+function test()
+{
+	(consteval {
+		let t = [ S(), 0 ];
+		t[0].p = &t[1];
+	});
+}

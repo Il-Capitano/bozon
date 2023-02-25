@@ -86,9 +86,10 @@ inline compilation_phase compile_until = compilation_phase::link;
 
 inline bool do_profile = false;
 inline bool debug_ir_output = false;
-inline bool debug_comptime_ir_output = false;
-inline bool use_interpreter = false;
-inline bool force_use_jit = false;
+#ifndef NDEBUG
+inline bool debug_comptime_print_functions = false;
+inline bool debug_comptime_print_instructions = false;
+#endif // !NDEBUG
 inline bool do_verbose = false;
 inline bool panic_on_unreachable = true;
 inline bool panic_on_null_dereference = true;
@@ -112,7 +113,6 @@ inline bz::u8string stdlib_dir;
 inline size_t max_opt_iter_count = 1;
 inline uint32_t opt_level = 0;
 inline uint32_t size_opt_level = 0;
-inline uint32_t comptime_opt_level = 0;
 
 bool is_warning_enabled(ctx::warning_kind kind) noexcept;
 bool is_warning_error(ctx::warning_kind kind) noexcept;

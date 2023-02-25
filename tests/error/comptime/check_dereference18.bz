@@ -1,0 +1,12 @@
+function foo(i: move int32) -> &int32
+{
+	return i;
+}
+
+function test()
+{
+	(consteval {
+		let &i = foo(0);
+		i;
+	});
+}

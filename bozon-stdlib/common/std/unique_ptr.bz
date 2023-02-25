@@ -35,7 +35,7 @@ export struct unique_ptr<T: typename, nullable: bool>
 	{
 		if (!self._is_null())
 		{
-			__builtin_call_destructor(*self);
+			__builtin_destruct_value(*self);
 		}
 		free(self._data);
 	}

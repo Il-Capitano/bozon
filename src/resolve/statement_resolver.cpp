@@ -382,11 +382,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 		if (static_assert_stmt.condition.has_consteval_failed())
 		{
 			good = false;
-			context.report_error(
-				static_assert_stmt.condition,
-				"condition for static_assert must be a constant expression",
-				resolve::get_consteval_fail_notes(static_assert_stmt.condition)
-			);
+			context.report_error(static_assert_stmt.condition, "condition for static_assert must be a constant expression");
 		}
 
 		if (args.size() == 2)
@@ -396,11 +392,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 			if (static_assert_stmt.message.has_consteval_failed())
 			{
 				good = false;
-				context.report_error(
-					static_assert_stmt.message,
-					"message in static_assert must be a constant expression",
-					resolve::get_consteval_fail_notes(static_assert_stmt.message)
-				);
+				context.report_error(static_assert_stmt.message, "message in static_assert must be a constant expression");
 			}
 		}
 
@@ -510,12 +502,10 @@ void resolve_typespec(ast::typespec &ts, ctx::parse_context &context, precedence
 	resolve::consteval_try(type, context);
 	if (type.not_error() && !type.has_consteval_succeeded())
 	{
-		auto notes = resolve::get_consteval_fail_notes(type);
-		notes.push_front(context.make_note(type.src_tokens, "type must be a constant expression"));
 		context.report_error(
 			type.src_tokens,
 			"expected a type",
-			std::move(notes)
+			{ context.make_note(type.src_tokens, "type must be a constant expression") }
 		);
 		ts.clear();
 	}
@@ -625,11 +615,7 @@ static void resolve_variable_type(ast::decl_variable &var_decl, ctx::parse_conte
 		resolve::consteval_try(type, context);
 		if (type.not_error() && !type.has_consteval_succeeded())
 		{
-			context.report_error(
-				type.src_tokens,
-				"variable type must be a constant expression",
-				resolve::get_consteval_fail_notes(type)
-			);
+			context.report_error(type.src_tokens, "variable type must be a constant expression");
 			var_decl.clear_type();
 			var_decl.state = ast::resolve_state::error;
 			return;
@@ -980,11 +966,7 @@ static void resolve_type_alias_impl(ast::decl_type_alias &alias_decl, ctx::parse
 
 	if (!alias_decl.alias_expr.has_consteval_succeeded())
 	{
-		context.report_error(
-			alias_decl.alias_expr,
-			"type alias expression must be a constant expression",
-			resolve::get_consteval_fail_notes(alias_decl.alias_expr)
-		);
+		context.report_error(alias_decl.alias_expr, "type alias expression must be a constant expression");
 		alias_decl.state = ast::resolve_state::error;
 		return;
 	}
@@ -1100,11 +1082,7 @@ static void resolve_function_alias_impl(ast::decl_function_alias &alias_decl, ct
 
 	if (!alias_decl.alias_expr.has_consteval_succeeded())
 	{
-		context.report_error(
-			alias_decl.alias_expr,
-			"function alias expression must be a constant expression",
-			resolve::get_consteval_fail_notes(alias_decl.alias_expr)
-		);
+		context.report_error(alias_decl.alias_expr, "function alias expression must be a constant expression");
 		alias_decl.state = ast::resolve_state::error;
 		return;
 	}
@@ -2539,6 +2517,12 @@ static void resolve_type_info_members_impl(ast::type_info &info, ctx::parse_cont
 	add_default_constructors(info, context);
 	add_flags(info, context);
 
+	auto &type_set = context.get_type_prototype_set();
+	auto const member_types = info.member_variables.transform([&](auto const member) {
+		return ast::get_type_prototype(member->get_type(), type_set);
+	}).collect();
+	info.prototype = type_set.get_aggregate_type(member_types);
+
 	info.state = ast::resolve_state::members;
 	context.pop_global_scope(std::move(prev_scope_info));
 }
@@ -2915,11 +2899,7 @@ static void resolve_enum_impl(ast::decl_enum &enum_decl, ctx::parse_context &con
 		consteval_try(it->value_expr, context);
 		if (it->value_expr.has_consteval_failed())
 		{
-			context.report_error(
-				it->value_expr.src_tokens,
-				bz::format("enum value expression must be a constant expression"),
-				get_consteval_fail_notes(it->value_expr)
-			);
+			context.report_error(it->value_expr.src_tokens, "enum value expression must be a constant expression");
 			it = resolve_enum_members(it, end, 0, min_value, max_value, is_signed, context);
 		}
 		else
@@ -2940,11 +2920,7 @@ static void resolve_enum_impl(ast::decl_enum &enum_decl, ctx::parse_context &con
 			consteval_try(value->value_expr, context);
 			if (value->value_expr.has_consteval_failed())
 			{
-				context.report_error(
-					value->value_expr.src_tokens,
-					bz::format("enum value expression must be a constant expression"),
-					get_consteval_fail_notes(value->value_expr)
-				);
+				context.report_error(value->value_expr.src_tokens, "enum value expression must be a constant expression");
 			}
 		}
 	}
@@ -3060,11 +3036,7 @@ void resolve_global_statement(ast::statement &stmt, ctx::parse_context &context)
 				resolve::consteval_try(var_decl.init_expr, context);
 				if (var_decl.init_expr.not_error() && !var_decl.init_expr.has_consteval_succeeded())
 				{
-					context.report_error(
-						var_decl.src_tokens,
-						"a global variable must be initialized by a constant expression",
-						resolve::get_consteval_fail_notes(var_decl.init_expr)
-					);
+					context.report_error(var_decl.src_tokens, "a global variable must be initialized with a constant expression");
 				}
 			}
 		},

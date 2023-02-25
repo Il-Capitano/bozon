@@ -208,15 +208,14 @@ struct decl_variable
 		module_export    = bit_at< 2>,
 		external_linkage = bit_at< 3>,
 		extern_          = bit_at< 4>,
-		no_runtime_emit  = bit_at< 5>,
-		member           = bit_at< 6>,
-		global           = bit_at< 7>,
-		global_storage   = bit_at< 8>,
-		parameter        = bit_at< 9>,
-		variadic         = bit_at<10>,
-		tuple_outer_ref  = bit_at<11>,
-		moved            = bit_at<12>,
-		ever_moved_from  = bit_at<13>,
+		member           = bit_at< 5>,
+		global           = bit_at< 6>,
+		global_storage   = bit_at< 7>,
+		parameter        = bit_at< 8>,
+		variadic         = bit_at< 9>,
+		tuple_outer_ref  = bit_at<10>,
+		moved            = bit_at<11>,
+		ever_moved_from  = bit_at<12>,
 	};
 
 	lex::src_tokens src_tokens;
@@ -358,9 +357,6 @@ struct decl_variable
 	bool is_extern(void) const noexcept
 	{ return (this->flags & extern_) != 0; }
 
-	bool is_no_runtime_emit(void) const noexcept
-	{ return (this->flags & no_runtime_emit) != 0; }
-
 	bool is_member(void) const noexcept
 	{ return (this->flags & member) != 0; }
 
@@ -457,25 +453,24 @@ struct function_body
 		generic_specialization      = bit_at< 5>,
 		default_op_assign           = bit_at< 6>,
 		default_op_move_assign      = bit_at< 7>,
-		no_comptime_checking        = bit_at< 8>,
-		local                       = bit_at< 9>,
-		destructor                  = bit_at<10>,
-		constructor                 = bit_at<11>,
-		default_constructor         = bit_at<12>,
-		copy_constructor            = bit_at<13>,
-		move_constructor            = bit_at<14>,
-		default_default_constructor = bit_at<15>,
-		default_copy_constructor    = bit_at<16>,
-		default_move_constructor    = bit_at<17>,
-		bitcode_emitted             = bit_at<18>,
-		comptime_bitcode_emitted    = bit_at<19>,
-		only_consteval              = bit_at<20>,
-		builtin_operator            = bit_at<21>,
-		builtin_assign              = bit_at<22>,
-		defaulted                   = bit_at<23>,
-		deleted                     = bit_at<24>,
-		copy_assign_op              = bit_at<25>,
-		move_assign_op              = bit_at<26>,
+		local                       = bit_at< 8>,
+		destructor                  = bit_at< 9>,
+		constructor                 = bit_at<10>,
+		default_constructor         = bit_at<11>,
+		copy_constructor            = bit_at<12>,
+		move_constructor            = bit_at<13>,
+		default_default_constructor = bit_at<14>,
+		default_copy_constructor    = bit_at<15>,
+		default_move_constructor    = bit_at<16>,
+		bitcode_emitted             = bit_at<17>,
+		comptime_bitcode_emitted    = bit_at<18>,
+		only_consteval              = bit_at<19>,
+		builtin_operator            = bit_at<20>,
+		builtin_assign              = bit_at<21>,
+		defaulted                   = bit_at<22>,
+		deleted                     = bit_at<23>,
+		copy_assign_op              = bit_at<24>,
+		move_assign_op              = bit_at<25>,
 	};
 
 	enum : uint8_t
@@ -514,12 +509,11 @@ struct function_body
 		builtin_int_to_pointer,
 		builtin_enum_value,
 
-		builtin_call_destructor,
+		builtin_destruct_value,
 		builtin_inplace_construct,
 		builtin_swap,
 
 		builtin_is_comptime,
-		builtin_is_option_set_impl,
 		builtin_is_option_set,
 		builtin_panic,
 
@@ -529,19 +523,15 @@ struct function_body
 		print_stderr,
 
 		comptime_malloc,
-		comptime_malloc_type,
 		comptime_free,
 
 		comptime_compile_error,
 		comptime_compile_warning,
-		comptime_compile_error_src_tokens,
-		comptime_compile_warning_src_tokens,
 
+		comptime_add_global_array_data,
 		comptime_create_global_string,
 
 		comptime_concatenate_strs,
-		comptime_format_float32,
-		comptime_format_float64,
 
 		// type manipulation functions
 
@@ -582,6 +572,12 @@ struct function_body
 
 		create_initialized_array,
 
+		trivially_copy_values,
+		trivially_copy_overlapping_values,
+		trivially_relocate_values,
+		trivially_set_values,
+		bit_cast,
+
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions
 
@@ -593,7 +589,7 @@ struct function_body
 		memset,
 
 		abs_i8, abs_i16, abs_i32, abs_i64,
-		fabs_f32, fabs_f64,
+		abs_f32, abs_f64,
 
 		min_i8, min_i16, min_i32, min_i64,
 		min_u8, min_u16, min_u32, min_u64,
@@ -806,9 +802,6 @@ struct function_body
 
 	bool is_default_op_move_assign(void) const noexcept
 	{ return (this->flags & default_op_move_assign) != 0; }
-
-	bool is_no_comptime_checking(void) const noexcept
-	{ return (this->flags & no_comptime_checking) != 0; }
 
 	bool is_local(void) const noexcept
 	{ return (this->flags & local) != 0; }
@@ -1052,6 +1045,7 @@ struct type_info
 	scope_t         scope;
 
 	bz::vector<ast::decl_variable *> member_variables;
+	type_prototype const *prototype = nullptr;
 
 	using decl_function_ptr = ast_unique_ptr<decl_function>;
 	using decl_operator_ptr = ast_unique_ptr<decl_operator>;
@@ -1122,7 +1116,7 @@ struct type_info
 	{}
 
 private:
-	type_info(bz::u8string_view name, uint8_t kind)
+	type_info(bz::u8string_view name, uint8_t kind, type_prototype const *prototype)
 		: src_tokens{},
 		  kind(kind),
 		  state(resolve_state::all),
@@ -1142,6 +1136,7 @@ private:
 		  body(bz::vector<statement>{}),
 		  scope(make_global_scope({}, {})),
 		  member_variables{},
+		  prototype(prototype),
 		  default_op_assign(nullptr),
 		  default_op_move_assign(nullptr),
 		  default_default_constructor(nullptr),
@@ -1203,9 +1198,9 @@ public:
 	enclosing_scope_t get_scope(void) noexcept;
 	enclosing_scope_t get_enclosing_scope(void) const noexcept;
 
-	static type_info make_builtin(bz::u8string_view name, uint8_t kind)
+	static type_info make_builtin(bz::u8string_view name, uint8_t kind, type_prototype const *prototype)
 	{
-		return type_info(name, kind);
+		return type_info(name, kind, prototype);
 	}
 
 	static bz::u8string_view decode_symbol_name(bz::u8string_view symbol_name)
@@ -1581,8 +1576,8 @@ struct builtin_operator
 	bz::vector<decl_operator> decls;
 };
 
-bz::vector<type_info>              make_builtin_type_infos(void);
-bz::vector<type_and_name_pair>     make_builtin_types    (bz::array_view<type_info> builtin_type_infos, size_t pointer_size);
+bz::vector<type_info>              make_builtin_type_infos(type_prototype_set_t &type_prototype_set);
+bz::vector<type_and_name_pair>     make_builtin_types(bz::array_view<type_info> builtin_type_infos, size_t pointer_size);
 bz::vector<universal_function_set> make_builtin_universal_functions(void);
 
 scope_t make_builtin_global_scope(
@@ -1632,12 +1627,11 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_int_to_pointer, "__builtin_int_to_pointer" },
 		{ function_body::builtin_enum_value,     "__builtin_enum_value"     },
 
-		{ function_body::builtin_call_destructor,   "__builtin_call_destructor"   },
+		{ function_body::builtin_destruct_value,    "__builtin_destruct_value"    },
 		{ function_body::builtin_inplace_construct, "__builtin_inplace_construct" },
 		{ function_body::builtin_swap,              "__builtin_swap"              },
 
 		{ function_body::builtin_is_comptime,        "__builtin_is_comptime"        },
-		{ function_body::builtin_is_option_set_impl, "__builtin_is_option_set_impl" },
 		{ function_body::builtin_is_option_set,      "__builtin_is_option_set"      },
 		{ function_body::builtin_panic,              "__builtin_panic"              },
 
@@ -1646,20 +1640,16 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::print_stdout,   "__builtin_print_stdout"   },
 		{ function_body::print_stderr,   "__builtin_print_stderr"   },
 
-		{ function_body::comptime_malloc,      "__builtin_comptime_malloc"      },
-		{ function_body::comptime_malloc_type, "__builtin_comptime_malloc_type" },
-		{ function_body::comptime_free,        "__builtin_comptime_free"        },
+		{ function_body::comptime_malloc, "__builtin_comptime_malloc" },
+		{ function_body::comptime_free,   "__builtin_comptime_free"   },
 
-		{ function_body::comptime_compile_error,              "__builtin_comptime_compile_error"              },
-		{ function_body::comptime_compile_warning,            "__builtin_comptime_compile_warning"            },
-		{ function_body::comptime_compile_error_src_tokens,   "__builtin_comptime_compile_error_src_tokens"   },
-		{ function_body::comptime_compile_warning_src_tokens, "__builtin_comptime_compile_warning_src_tokens" },
+		{ function_body::comptime_compile_error,   "__builtin_comptime_compile_error"   },
+		{ function_body::comptime_compile_warning, "__builtin_comptime_compile_warning" },
 
-		{ function_body::comptime_create_global_string, "__builtin_comptime_create_global_string" },
+		{ function_body::comptime_add_global_array_data, "__builtin_comptime_add_global_array_data" },
+		{ function_body::comptime_create_global_string,  "__builtin_comptime_create_global_string"  },
 
 		{ function_body::comptime_concatenate_strs, "__builtin_comptime_concatenate_strs" },
-		{ function_body::comptime_format_float32,   "__builtin_comptime_format_float32"   },
-		{ function_body::comptime_format_float64,   "__builtin_comptime_format_float64"   },
 
 		{ function_body::typename_as_str, "__builtin_typename_as_str" },
 
@@ -1698,6 +1688,12 @@ constexpr auto intrinsic_info = []() {
 
 		{ function_body::create_initialized_array, "__builtin_create_initialized_array" },
 
+		{ function_body::trivially_copy_values,             "__builtin_trivially_copy_values"             },
+		{ function_body::trivially_copy_overlapping_values, "__builtin_trivially_copy_overlapping_values" },
+		{ function_body::trivially_relocate_values,         "__builtin_trivially_relocate_values"         },
+		{ function_body::trivially_set_values,              "__builtin_trivially_set_values"              },
+		{ function_body::bit_cast,                          "__builtin_bit_cast"                          },
+
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions
 
@@ -1710,12 +1706,12 @@ constexpr auto intrinsic_info = []() {
 
 		// C standard library math functions
 
-		{ function_body::abs_i8,   "__builtin_abs_i8"   },
-		{ function_body::abs_i16,  "__builtin_abs_i16"  },
-		{ function_body::abs_i32,  "__builtin_abs_i32"  },
-		{ function_body::abs_i64,  "__builtin_abs_i64"  },
-		{ function_body::fabs_f32, "__builtin_fabs_f32" },
-		{ function_body::fabs_f64, "__builtin_fabs_f64" },
+		{ function_body::abs_i8,  "__builtin_abs_i8"  },
+		{ function_body::abs_i16, "__builtin_abs_i16" },
+		{ function_body::abs_i32, "__builtin_abs_i32" },
+		{ function_body::abs_i64, "__builtin_abs_i64" },
+		{ function_body::abs_f32, "__builtin_abs_f32" },
+		{ function_body::abs_f64, "__builtin_abs_f64" },
 
 		{ function_body::min_i8,   "__builtin_min_i8"   },
 		{ function_body::min_i16,  "__builtin_min_i16"  },

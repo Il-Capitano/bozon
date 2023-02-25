@@ -583,6 +583,12 @@ function main(args: [: const str]) -> int32
 		move_func(std::string("Hello!"));
 	});
 
+	(consteval {
+		let arr: [5, 5: int32];
+		let p = &arr[0, 0];
+		p + 5 - 1;
+	});
+
 	return 0;
 }
 
@@ -1138,7 +1144,6 @@ function print_matrix(arr: [4, 4: float64]) -> void
 	}
 	std::print("]\n");
 }
-//	*/
 
 // function circle1() -> typeof circle5() {}
 // function circle2() -> typeof circle1() {}
@@ -1380,6 +1385,14 @@ function consteval_test(i: if (true) int32 else int64)
 	static_assert(len == 5u);
 	static_assert(size == 6u);
 	static_assert(len != size);
+
+	consteval val = switch (str) {
+		"Hello" => 0,
+		"Hi" => 1,
+		"Helló" => 2,
+		else => unreachable,
+	};
+	static_assert(val == 2);
 
 	function consteval_param(n: consteval int32) -> int32
 	{
@@ -1950,4 +1963,16 @@ function indirect_call_test()
 	std::assert(op(2, 3) == 6);
 	std::assert(op == mul_i32);
 	std::assert(op != add_i32);
+
+	(consteval {
+		let op: function(int32, int32) -> int32 = add_i32;
+		std::assert(op(2, 3) == 5);
+		op = mul_i32;
+		std::assert(op(2, 3) == 6);
+		std::assert(op == mul_i32);
+		std::assert(op != add_i32);
+	});
+
+	consteval op = add_i32;
+	static_assert(op(2, 3) == 5);
 }

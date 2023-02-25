@@ -1,0 +1,13 @@
+function test()
+{
+	(consteval {
+		const p = __builtin_comptime_malloc(int32, 5);
+		defer __builtin_comptime_free(p);
+
+		for (let i = 0; i < 5; ++i)
+		{
+			__builtin_inplace_construct(p + i, 0);
+		}
+		__builtin_inplace_construct(p + 3, 0);
+	});
+}

@@ -1,0 +1,11 @@
+function foo(t: [int32]) -> *int32
+{
+	return &t[0];
+}
+
+function test()
+{
+	(consteval {
+		*foo([ 0 ]);
+	});
+}

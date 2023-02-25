@@ -9,6 +9,9 @@
 #include "resolve/statement_resolver.h"
 #include "resolve/match_to_type.h"
 #include "resolve/match_expression.h"
+#include "comptime/codegen.h"
+#include "comptime/executor_context.h"
+#include "comptime/codegen_context.h"
 
 namespace ctx
 {
@@ -137,6 +140,11 @@ ast::decl_function *parse_context::get_builtin_function(uint32_t kind) const
 bz::array_view<uint32_t const> parse_context::get_builtin_universal_functions(bz::u8string_view id)
 {
 	return this->global_ctx.get_builtin_universal_functions(id);
+}
+
+ast::type_prototype_set_t &parse_context::get_type_prototype_set(void)
+{
+	return *this->global_ctx.type_prototype_set;
 }
 
 [[nodiscard]] parse_context::loop_info_t parse_context::push_loop(void) noexcept
@@ -2791,10 +2799,15 @@ static std::pair<uint64_t, bool> parse_int(bz::u8string_view s)
 				}
 				[[fallthrough]];
 			case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
-			case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
 				if constexpr (Base == 16)
 				{
 					return 10 + (c - 'a');
+				}
+				[[fallthrough]];
+			case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+				if constexpr (Base == 16)
+				{
+					return 10 + (c - 'A');
 				}
 				[[fallthrough]];
 			default:
@@ -3601,7 +3614,7 @@ static ast::expression make_expr_function_call_from_body(
 		return ast::make_error_expression(src_tokens, ast::make_expr_function_call(src_tokens, std::move(args), body, resolve_order));
 	}
 
-	if (body->is_intrinsic() && body->intrinsic_kind == ast::function_body::builtin_call_destructor)
+	if (body->is_intrinsic() && body->intrinsic_kind == ast::function_body::builtin_destruct_value)
 	{
 		bz_assert(args.size() == 1);
 		auto const [expr_type, expr_type_kind] = args[0].get_expr_type_and_kind();
@@ -3640,7 +3653,17 @@ static ast::expression make_expr_function_call_from_body(
 		bz_assert(args.size() == 2);
 		bz_assert(args[0].is_typename());
 		auto const &type = args[0].get_typename();
+		context.add_self_destruction(args[1]);
 		return make_array_value_init_expression(src_tokens, type, std::move(args[1]), context);
+	}
+	else if (body->is_intrinsic() && body->intrinsic_kind == ast::function_body::bit_cast)
+	{
+		bz_assert(args.size() == 2);
+		bz_assert(args[0].is_typename());
+		auto &type = args[0].get_typename();
+		bz_assert(body->return_type == type);
+		context.add_self_destruction(args[1]);
+		return context.make_bit_cast_expression(src_tokens, std::move(args[1]), std::move(type));
 	}
 	else if (body->is_default_default_constructor() || (body->is_default_constructor() && body->is_defaulted()))
 	{
@@ -3670,6 +3693,21 @@ static ast::expression make_expr_function_call_from_body(
 	{
 		bz_assert(args.size() == 2);
 		return context.make_default_assignment(src_tokens, std::move(args[0]), std::move(args[1]));
+	}
+	else if (
+		body->has_builtin_implementation()
+		&& !(body->is_intrinsic() && body->intrinsic_kind == ast::function_body::builtin_inplace_construct)
+	)
+	{
+		bz_assert(args.size() == body->params.size());
+		for (auto const i : bz::iota(0, args.size()))
+		{
+			auto const &param_type = body->params[i].get_type();
+			if (!param_type.is<ast::ts_lvalue_reference>() && !param_type.is<ast::ts_move_reference>())
+			{
+				context.add_self_destruction(args[i]);
+			}
+		}
 	}
 
 	auto &ret_t = body->return_type;
@@ -4462,7 +4500,13 @@ ast::expression parse_context::make_function_call_expression(
 	{
 		auto const alias_decl = called.get_function_alias_name().decl;
 		auto const possible_funcs = get_possible_funcs_for_alias(alias_decl, src_tokens, args, *this);
-		bz_assert(possible_funcs.not_empty());
+		if (possible_funcs.empty())
+		{
+			return ast::make_error_expression(
+				src_tokens,
+				ast::make_expr_function_call(src_tokens, std::move(args), nullptr, ast::resolve_order::regular)
+			);
+		}
 
 		auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, args, *this);
 		if (best_body == nullptr)
@@ -5129,6 +5173,286 @@ ast::expression parse_context::make_cast_expression(
 			this->report_error(src_tokens, bz::format("invalid cast to type '{}'", type));
 			return ast::make_error_expression(src_tokens, ast::make_expr_cast(std::move(expr), std::move(type)));
 		}
+	}
+}
+
+// just an arbitrary number, most types should fit into it
+constexpr size_t bit_cast_small_type_size = 64;
+
+static void fill_small_type_padding_array(
+	bz::array_view<bool> is_padding,
+	ast::type_prototype const *elem_type,
+	size_t size
+);
+
+static void fill_small_type_padding_single(
+	bz::array_view<bool> is_padding,
+	ast::type_prototype const *type
+)
+{
+	bz_assert(is_padding.size() == type->size);
+	if (!type->has_padding())
+	{
+		return;
+	}
+	else if (type->is_aggregate())
+	{
+		auto const elem_types = type->get_aggregate_types();
+		auto const offsets = type->get_aggregate_offsets();
+
+		if (elem_types.empty())
+		{
+			bz_assert(type->size == 1);
+			is_padding[0] = true;
+			return;
+		}
+
+		auto const elem_count = elem_types.size();
+		for (auto const i : bz::iota(0, elem_count))
+		{
+			auto const elem_type = elem_types[i];
+			auto const offset = offsets[i];
+			fill_small_type_padding_single(is_padding.slice(offset, offset + elem_type->size), elem_type);
+			auto const next_offset = i + 1 == elem_count ? type->size : offsets[i + 1];
+			if (offset + elem_type->size != next_offset)
+			{
+				for (auto &value : is_padding.slice(offset + elem_type->size, next_offset))
+				{
+					value = true;
+				}
+			}
+		}
+	}
+	else if (type->is_array())
+	{
+		fill_small_type_padding_array(is_padding, type->get_array_element_type(), type->get_array_size());
+	}
+	else
+	{
+		// nothing
+	}
+}
+
+static void fill_small_type_padding_array(
+	bz::array_view<bool> is_padding,
+	ast::type_prototype const *elem_type,
+	size_t size
+)
+{
+	auto const elem_size = elem_type->size;
+	fill_small_type_padding_single(is_padding.slice(0, elem_size), elem_type);
+
+	for (auto const i : bz::iota(elem_size, size * elem_size))
+	{
+		is_padding[i] = is_padding[i - elem_size];
+	}
+}
+
+static bool check_small_type_bit_cast_paddings(
+	ast::type_prototype const *value_type,
+	ast::type_prototype const *result_type
+)
+{
+	bz::array<bool, bit_cast_small_type_size> value_type_buffer{};
+	bz::array<bool, bit_cast_small_type_size> result_type_buffer{};
+
+	auto const value_type_is_padding = bz::array_view(value_type_buffer.data(), value_type_buffer.size()).slice(0, value_type->size);
+	auto const result_type_is_padding = bz::array_view(result_type_buffer.data(), result_type_buffer.size()).slice(0, result_type->size);
+
+	fill_small_type_padding_single(value_type_is_padding, value_type);
+	fill_small_type_padding_single(result_type_is_padding, result_type);
+
+	for (auto const i : bz::iota(0, value_type_is_padding.size()))
+	{
+		if (value_type_is_padding[i] && !result_type_is_padding[i])
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+struct offset_padding_size_pair
+{
+	uint32_t offset;
+	uint32_t padding_size;
+};
+
+static void get_type_paddings_helper(bz::vector<offset_padding_size_pair> &result, uint32_t current_offset, ast::type_prototype const *type)
+{
+	if (!type->has_padding())
+	{
+		return;
+	}
+	else if (type->is_aggregate())
+	{
+		auto const elem_types = type->get_aggregate_types();
+		auto const offsets = type->get_aggregate_offsets();
+
+		if (elem_types.empty())
+		{
+			bz_assert(type->size == 1);
+			result.push_back({ .offset = current_offset, .padding_size = 1 });
+			return;
+		}
+
+		auto const elem_count = elem_types.size();
+		for (auto const i : bz::iota(0, elem_count))
+		{
+			auto const elem_type = elem_types[i];
+			auto const offset = offsets[i];
+			get_type_paddings_helper(result, current_offset + offset, elem_type);
+			auto const next_offset = i + 1 == elem_count ? type->size : offsets[i + 1];
+			if (offset + elem_type->size != next_offset)
+			{
+				result.push_back({
+					.offset = current_offset + static_cast<uint32_t>(offset + elem_type->size),
+					.padding_size = static_cast<uint32_t>(next_offset - (offset + elem_type->size)),
+				});
+			}
+		}
+	}
+	else if (type->is_array())
+	{
+		auto const elem_type = type->get_array_element_type();
+		auto const size = type->get_array_size();
+
+		auto const result_start_size = result.size();
+		get_type_paddings_helper(result, current_offset, elem_type);
+		auto const new_paddings_count = result.size() - result_start_size;
+		bz_assert(new_paddings_count != 0);
+		auto const new_result_size = result.size() + (size - 1) * new_paddings_count;
+		result.reserve(new_result_size);
+		for (auto const i : bz::iota(result_start_size, new_result_size - new_paddings_count))
+		{
+			auto const prev_padding = result[i];
+			result.push_back({
+				.offset = prev_padding.offset + static_cast<uint32_t>(elem_type->size),
+				.padding_size = prev_padding.padding_size,
+			});
+		}
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
+static bz::vector<offset_padding_size_pair> get_type_paddings(ast::type_prototype const *type)
+{
+	bz::vector<offset_padding_size_pair> result;
+	get_type_paddings_helper(result, 0, type);
+	return result;
+}
+
+static bool check_large_type_bit_cast_paddings(
+	ast::type_prototype const *value_type,
+	ast::type_prototype const *result_type
+)
+{
+	auto const value_type_paddings = get_type_paddings(value_type);
+	auto const result_type_paddings = get_type_paddings(result_type);
+
+	auto value_it = value_type_paddings.begin();
+	auto const value_end = value_type_paddings.end();
+	auto result_it = result_type_paddings.begin();
+	auto const result_end = value_type_paddings.end();
+
+	while (result_it != result_end && value_it != value_end)
+	{
+		auto has_padding_until = value_it->offset;
+		while (has_padding_until < value_it->offset + value_it->padding_size)
+		{
+			if (result_it == result_end || result_it->offset > has_padding_until)
+			{
+				return false;
+			}
+
+			has_padding_until = std::max(has_padding_until, result_it->offset + result_it->padding_size);
+			++result_it;
+		}
+
+		++value_it;
+	}
+	return value_it == value_end;
+}
+
+static bool check_bit_cast_type_paddings(
+	ast::type_prototype const *value_type,
+	ast::type_prototype const *result_type
+)
+{
+	if (value_type == result_type)
+	{
+		return true;
+	}
+
+	auto const value_type_has_padding = value_type->has_padding();
+	auto const result_type_has_padding = result_type->has_padding();
+	if (!value_type_has_padding)
+	{
+		return true;
+	}
+	else if (!result_type_has_padding && value_type_has_padding)
+	{
+		return false;
+	}
+	else if (value_type->size <= bit_cast_small_type_size)
+	{
+		return check_small_type_bit_cast_paddings(value_type, result_type);
+	}
+	else
+	{
+		return check_large_type_bit_cast_paddings(value_type, result_type);
+	}
+}
+
+ast::expression parse_context::make_bit_cast_expression(
+	lex::src_tokens const &src_tokens,
+	ast::expression expr,
+	ast::typespec result_type
+)
+{
+	auto const expr_type = expr.get_expr_type();
+
+	if (!this->is_trivial(src_tokens, expr_type))
+	{
+		this->report_error(src_tokens, bz::format("value type '{}' is not trivial in bit cast", expr_type));
+		return ast::make_error_expression(src_tokens, ast::make_expr_bit_cast(std::move(expr), std::move(result_type)));
+	}
+	else if (!this->is_trivial(src_tokens, result_type))
+	{
+		this->report_error(src_tokens, bz::format("result type '{}' is not trivial in bit cast", result_type));
+		return ast::make_error_expression(src_tokens, ast::make_expr_bit_cast(std::move(expr), std::move(result_type)));
+	}
+
+	auto const expr_prototype = ast::get_type_prototype(expr_type, this->get_type_prototype_set());
+	auto const dest_prototype = ast::get_type_prototype(result_type, this->get_type_prototype_set());
+
+	if (expr_prototype->size != dest_prototype->size)
+	{
+		this->report_error(
+			src_tokens,
+			bz::format(
+				"value type '{}' and result type '{}' have different sizes {} and {}",
+				expr_type, result_type, expr_prototype->size, dest_prototype->size
+			)
+		);
+		return ast::make_error_expression(src_tokens, ast::make_expr_bit_cast(std::move(expr), std::move(result_type)));
+	}
+	else if (!check_bit_cast_type_paddings(expr_prototype, dest_prototype))
+	{
+		return ast::make_error_expression(src_tokens, ast::make_expr_bit_cast(std::move(expr), std::move(result_type)));
+	}
+	else
+	{
+		auto expr_result_type = result_type;
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue, std::move(expr_result_type),
+			ast::make_expr_bit_cast(std::move(expr), std::move(result_type)),
+			ast::destruct_operation()
+		);
 	}
 }
 
@@ -6702,6 +7026,7 @@ ast::expression parse_context::make_default_assignment(lex::src_tokens const &sr
 	if (are_types_equal && this->is_trivial(src_tokens, lhs_type))
 	{
 		ast::typespec result_type = lhs_type;
+		this->add_self_destruction(rhs);
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::lvalue_reference, std::move(result_type),
@@ -7034,10 +7359,6 @@ static ast::expression make_array_value_init_expression(
 )
 {
 	auto const [value_type, value_kind] = value.get_expr_type_and_kind();
-	if (value_kind == ast::expression_type_kind::rvalue)
-	{
-		context.add_self_destruction(value);
-	}
 
 	auto copy_expr = context.make_copy_construction(ast::make_dynamic_expression(
 		src_tokens,
@@ -7415,20 +7736,25 @@ void parse_context::add_self_destruction(ast::expression &expr)
 	}
 	else if (
 		auto const expr_kind = expr.get_expr_type_and_kind().second;
-		(
-			expr_kind == ast::expression_type_kind::rvalue
-			|| expr_kind == ast::expression_type_kind::rvalue_reference
-		) && !this->is_trivially_destructible(expr.src_tokens, expr.get_expr_type())
+		expr_kind == ast::expression_type_kind::rvalue
+		|| expr_kind == ast::expression_type_kind::rvalue_reference
 	)
 	{
-		auto const type = ast::remove_const_or_consteval(expr.get_expr_type());
-		auto value_ref = ast::make_dynamic_expression(
-			expr.src_tokens,
-			ast::expression_type_kind::lvalue_reference, type,
-			ast::make_expr_bitcode_value_reference(),
-			ast::destruct_operation()
-		);
-		expr.get_dynamic().destruct_op = ast::destruct_self(make_destruct_expression(type, std::move(value_ref), *this));
+		if (this->is_trivially_destructible(expr.src_tokens, expr.get_expr_type()))
+		{
+			expr.get_dynamic().destruct_op = ast::trivial_destruct_self();
+		}
+		else
+		{
+			auto const type = ast::remove_const_or_consteval(expr.get_expr_type());
+			auto value_ref = ast::make_dynamic_expression(
+				expr.src_tokens,
+				ast::expression_type_kind::lvalue_reference, type,
+				ast::make_expr_bitcode_value_reference(),
+				ast::destruct_operation()
+			);
+			expr.get_dynamic().destruct_op = ast::destruct_self(make_destruct_expression(type, std::move(value_ref), *this));
+		}
 	}
 }
 
@@ -7473,6 +7799,10 @@ void parse_context::add_self_move_destruction(ast::expression &expr)
 		auto const decl = expr.get_dynamic().destruct_op.move_destructed_decl;
 		expr.get_dynamic().destruct_op = ast::destruct_self(make_move_destruct_expression(type, std::move(value_ref), *this));
 		bz_assert(decl == expr.get_dynamic().destruct_op.move_destructed_decl);
+	}
+	else
+	{
+		expr.get_dynamic().destruct_op = ast::trivial_destruct_self();
 	}
 }
 
@@ -7736,14 +8066,7 @@ bool parse_context::is_instantiable(lex::src_tokens const &src_tokens, ast::type
 
 size_t parse_context::get_sizeof(ast::typespec_view ts)
 {
-	// constexpr uint64_t invalid_size = std::numeric_limits<uint64_t>::max();
-	auto const prev_parse_context = this->global_ctx._comptime_executor.current_parse_ctx;
-	this->global_ctx._comptime_executor.current_parse_ctx = this;
-
-	auto const result = this->global_ctx._comptime_executor.get_size(ts);
-
-	this->global_ctx._comptime_executor.current_parse_ctx = prev_parse_context;
-	return result;
+	return this->global_ctx.get_sizeof(ts);
 }
 
 ast::identifier parse_context::make_qualified_identifier(lex::token_pos id)
@@ -7756,73 +8079,37 @@ ast::identifier parse_context::make_qualified_identifier(lex::token_pos id)
 	return result;
 }
 
-ast::constant_value parse_context::execute_function(
-	lex::src_tokens const &src_tokens,
-	ast::expr_function_call &func_call
-)
+ast::constant_value parse_context::execute_expression(ast::expression &expr)
 {
-	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
-	this->global_ctx._comptime_executor.current_parse_ctx = this;
-	auto [result, errors] = this->global_ctx._comptime_executor.execute_function(src_tokens, func_call);
-	// bz_assert(errors.not_empty() || result.not_null() || this->has_errors());
-	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
-	if (!errors.empty())
+	auto &codegen_context = this->global_ctx.get_codegen_context();
+
+	auto const prev_context = codegen_context.parse_ctx;
+	codegen_context.parse_ctx = this;
+
+	auto const func = comptime::generate_code_for_expression(expr, codegen_context);
+
+	auto executor = comptime::executor_context(&codegen_context);
+	auto result = executor.execute_expression(expr, func);
+	bz_assert(result.not_null() || executor.diagnostics.not_empty());
+
+	for (auto &diagnostic : executor.diagnostics)
 	{
-		for (auto &error : errors)
-		{
-			error.notes.push_back(this->make_note(
-				src_tokens,
-				bz::format("while evaluating call to '{}' in a constant expression", func_call.func_body->get_signature())
-			));
-			add_generic_requirement_notes(error.notes, *this);
-			this->global_ctx.report_error_or_warning(std::move(error));
-		}
+		this->global_ctx.report_error_or_warning(std::move(diagnostic));
 	}
+
+	codegen_context.parse_ctx = prev_context;
+
 	return result;
 }
 
-ast::constant_value parse_context::execute_compound_expression(
-	lex::src_tokens const &src_tokens,
-	ast::expr_compound &expr
-)
+ast::constant_value parse_context::execute_expression_without_error(ast::expression &expr)
 {
-	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
-	this->global_ctx._comptime_executor.current_parse_ctx = this;
-	auto [result, errors] = this->global_ctx._comptime_executor.execute_compound_expression(expr);
-	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
-	if (!errors.empty())
-	{
-		for (auto &error : errors)
-		{
-			error.notes.push_back(this->make_note(src_tokens, "while evaluating compound expression in a constant expression"));
-			add_generic_requirement_notes(error.notes, *this);
-			this->global_ctx.report_error_or_warning(std::move(error));
-		}
-	}
-	return result;
-}
+	auto &codegen_context = this->global_ctx.get_codegen_context();
+	auto const func = comptime::generate_code_for_expression(expr, codegen_context);
 
-ast::constant_value parse_context::execute_function_without_error(
-	lex::src_tokens const &src_tokens,
-	ast::expr_function_call &func_call
-)
-{
-	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
-	this->global_ctx._comptime_executor.current_parse_ctx = this;
-	auto [result, errors] = this->global_ctx._comptime_executor.execute_function(src_tokens, func_call);
-	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
-	return result;
-}
+	auto executor = comptime::executor_context(&codegen_context);
+	auto result = executor.execute_expression(expr, func);
 
-ast::constant_value parse_context::execute_compound_expression_without_error(
-	[[maybe_unused]] lex::src_tokens const &src_tokens,
-	ast::expr_compound &expr
-)
-{
-	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
-	this->global_ctx._comptime_executor.current_parse_ctx = this;
-	auto [result, errors] = this->global_ctx._comptime_executor.execute_compound_expression(expr);
-	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
 	return result;
 }
 

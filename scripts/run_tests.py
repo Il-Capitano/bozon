@@ -2,11 +2,46 @@ import subprocess
 import os
 import glob
 
+class ProcessPool:
+    def __init__(self, commands):
+        self.commands = commands
+        self.processes = []
+        self.current_index = 0
+
+    def start_next_process(self):
+        assert self.current_index != len(self.commands)
+        self.processes.append(subprocess.Popen(
+            self.commands[self.current_index],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            encoding='utf-8'
+        ))
+        self.current_index += 1
+
+    def start(self, process_count=None):
+        if process_count is None:
+            process_count = os.cpu_count()
+        process_count = min(process_count, len(self.commands));
+        for _ in range(process_count):
+            self.start_next_process()
+
+    def get_next_result(self):
+        if len(self.processes) == 0:
+            return None
+
+        stdout, stderr = self.processes[0].communicate()
+        returncode = self.processes[0].returncode
+        self.processes.pop(0)
+        if self.current_index != len(self.commands):
+            self.start_next_process()
+
+        return stdout, stderr, returncode
+
 success_test_files = glob.glob("tests/success/**/*.bz", recursive=True)
 warning_test_files = glob.glob("tests/warning/**/*.bz", recursive=True)
 error_test_files = glob.glob("tests/error/**/*.bz", recursive=True)
 bozon = 'bin\\windows-debug\\bozon.exe' if os.name == 'nt' else './bin/linux-debug/bozon'
-flags = [ '--stdlib-dir', 'bozon-stdlib', '-Wall', '--emit=null', '-Itests/import', '-Ocomptime-opt-level=3' ]
+flags = [ '--stdlib-dir', 'bozon-stdlib', '-Wall', '--emit=null', '-Itests/import' ]
 
 # enable colors for windows
 if os.name == 'nt':
@@ -40,19 +75,16 @@ file_name_print_length = 3 + max((
 ))
 
 error = False
+total_passed = 0
 
-def run_process(args):
-    while True:
-        process = subprocess.run(args, capture_output=True)
-        stdout = process.stdout.decode('utf-8')
-        stderr = process.stderr.decode('utf-8')
-        if 'LLVM ERROR: IMAGE_REL_AMD64_ADDR32NB relocation requires an ordered section layout' not in stderr:
-            return stdout, stderr, process.returncode
-
+success_commands = [[ bozon, *flags, test_file ] for test_file in success_test_files]
+success_pool = ProcessPool(success_commands)
+success_pool.start()
 for test_file in success_test_files:
     print(f'    {test_file:.<{file_name_print_length}}', end='', flush=True)
-    stdout, stderr, rc = run_process([ bozon, *flags, test_file ])
+    stdout, stderr, rc = success_pool.get_next_result()
     if rc == 0 and stdout == '' and stderr == '':
+        total_passed += 1
         print(f'{bright_green}OK{clear}')
     else:
         error = True
@@ -65,10 +97,14 @@ for test_file in success_test_files:
             print(stderr)
         print(f'exit code: {rc}')
 
+warning_commands = [[ bozon, *flags, test_file ] for test_file in warning_test_files]
+warning_pool = ProcessPool(warning_commands)
+warning_pool.start()
 for test_file in warning_test_files:
     print(f'    {test_file:.<{file_name_print_length}}', end='', flush=True)
-    stdout, stderr, rc = run_process([ bozon, *flags, test_file ])
+    stdout, stderr, rc = warning_pool.get_next_result()
     if rc == 0 and (stdout != '' or stderr != ''):
+        total_passed += 1
         print(f'{bright_green}OK{clear}')
     else:
         error = True
@@ -81,11 +117,19 @@ for test_file in warning_test_files:
             print(stderr)
         print(f'exit code: {rc}')
 
+error_commands = [
+    [ bozon, *flags, test_file ] if p == 0 else [ bozon, *flags, '--return-zero-on-error', test_file ]
+    for test_file in error_test_files
+    for p in (0, 1)
+]
+error_pool = ProcessPool(error_commands)
+error_pool.start()
 for test_file in error_test_files:
     print(f'    {test_file:.<{file_name_print_length}}', end='', flush=True)
-    stdout, stderr, rc = run_process([ bozon, *flags, test_file ])
-    rerun_stdout, rerun_stderr, rerun_rc = run_process([ bozon, *flags, '--return-zero-on-error', test_file ])
+    stdout, stderr, rc = error_pool.get_next_result()
+    rerun_stdout, rerun_stderr, rerun_rc = error_pool.get_next_result()
     if rc != 0 and rerun_rc == 0:
+        total_passed += 1
         print(f'{bright_green}OK{clear}')
     else:
         error = True
@@ -97,6 +141,14 @@ for test_file in error_test_files:
             print('stderr:')
             print(stderr)
         print(f'exit code: {rc}')
+
+total_test_count = len(success_test_files) + len(warning_test_files) + len(error_test_files)
+passed_percentage = 100 * total_passed / total_test_count
+
+if total_passed == total_test_count:
+    print(f'{bright_green}{total_passed}/{total_test_count}{clear} ({bright_green}{passed_percentage:.2f}%{clear}) tests passed')
+else:
+    print(f'{bright_red}{total_passed}/{total_test_count}{clear} ({bright_red}{passed_percentage:.2f}%{clear}) tests passed')
 
 if error:
     exit(1)

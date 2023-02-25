@@ -1,0 +1,7 @@
+function test()
+{
+	(consteval {
+		let t: [int32, int32];
+		__builtin_slice_from_ptrs(&t[0] + 1, &t[1]);
+	});
+}

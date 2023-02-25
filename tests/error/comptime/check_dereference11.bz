@@ -1,0 +1,10 @@
+function test()
+{
+	(consteval {
+		let p: ?*int32 = null;
+		defer *p;
+
+		let i = 0;
+		p = &i;
+	});
+}

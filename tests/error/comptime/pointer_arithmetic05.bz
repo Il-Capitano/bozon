@@ -1,0 +1,7 @@
+function test()
+{
+	(consteval {
+		let i = 0;
+		&i + 2;
+	});
+}

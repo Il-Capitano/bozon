@@ -1,0 +1,13 @@
+function test()
+{
+	(consteval {
+		let p: ?*int32 = null;
+		let q: ?*int32 = null;
+		{
+			let i = 0;
+			p = &i;
+			q = &i + 1;
+		}
+		__builtin_slice_from_ptrs(p, q);
+	});
+}

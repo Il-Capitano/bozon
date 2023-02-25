@@ -52,7 +52,7 @@ inline constexpr bz::array ctcli::option_group_multiple<warning_group_id> = []()
 
 template<>
 inline constexpr bz::array ctcli::option_group<opt_group_id> = []() {
-	bz::array<ctcli::group_element_t, bc::optimization_infos.size() + 4> result{};
+	bz::array<ctcli::group_element_t, bc::optimization_infos.size() + 3> result{};
 
 	size_t i = 0;
 	for (i = 0; i < bc::optimization_infos.size(); ++i)
@@ -65,7 +65,6 @@ inline constexpr bz::array ctcli::option_group<opt_group_id> = []() {
 	result[i++] = ctcli::create_group_element("max-iter-count=<count>",     "Control the maximum number of pass iterations (default=1)",     ctcli::arg_type::uint64);
 	result[i++] = ctcli::create_group_element("opt-level=<level>",          "Set optimization level (0-3) (default=0)",                      ctcli::arg_type::uint32);
 	result[i++] = ctcli::create_group_element("size-opt-level=<level>",     "Set size optimization level (0-2) (default=0)",                 ctcli::arg_type::uint32);
-	result[i++] = ctcli::create_group_element("comptime-opt-level=<level>", "Set optimization level for compile time execution (default=0)", ctcli::arg_type::uint32);
 
 	bz_assert(i == result.size());
 	return result;
@@ -103,12 +102,12 @@ inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def>
 	ctcli::create_hidden_option("--profile",                      "Measure time for compilation steps"),
 	ctcli::create_hidden_option("--no-error-highlight",           "Disable printing of highlighted source in error messages"),
 	ctcli::create_hidden_option("--error-report-tab-size=<size>", "Set tab size in error reporting (default=4)", ctcli::arg_type::uint64),
-	ctcli::create_hidden_option("--use-interpreter",              "Use the LLVM Interpreter for compile time code execution even when JIT is available"),
-
-	ctcli::create_undocumented_option("--debug-ir-output",              "Emit an LLVM IR file alongside the regular output"),
-	ctcli::create_undocumented_option("--debug-comptime-ir-output",     "Emit an LLVM IR file used in compile time code execution"),
-	ctcli::create_undocumented_option("--force-use-jit",        "Use the LLVM JIT for compile time code execution even if the target may not support it"),
+	ctcli::create_undocumented_option("--debug-ir-output",      "Emit an LLVM IR file alongside the regular output"),
 	ctcli::create_undocumented_option("--return-zero-on-error", "Return 0 exit code even if there were build errors"),
+#ifndef NDEBUG
+	ctcli::create_undocumented_option("--debug-comptime-print-functions", ""),
+	ctcli::create_undocumented_option("--debug-comptime-print-instructions", ""),
+#endif // !NDEBUG
 
 	ctcli::create_group_option("-W, --warn <warning>",     "Enable the specified <warning>",      warning_group_id,  "warnings"),
 	ctcli::create_group_option("-O, --opt <optimization>", "Enable the specified <optimization>", opt_group_id,      "optimizations"),
@@ -132,11 +131,12 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--stdl
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--x86-asm-syntax")>           = &x86_asm_syntax;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--profile")>                  = &do_profile;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-ir-output")>          = &debug_ir_output;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-ir-output")> = &debug_comptime_ir_output;
+#ifndef NDEBUG
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-functions")>    = &debug_comptime_print_functions;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-instructions")> = &debug_comptime_print_instructions;
+#endif // !NDEBUG
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-error-highlight")>       = &no_error_highlight;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--error-report-tab-size")>    = &tab_size;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--use-interpreter")>          = &use_interpreter;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--force-use-jit")>            = &force_use_jit;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--return-zero-on-error")>     = &return_zero_on_error;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--verbose")>                  = &do_verbose;
 
@@ -171,7 +171,6 @@ static_assert(static_cast<size_t>(ctx::warning_kind::_last) == 26);
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt max-iter-count")>     = &max_opt_iter_count;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt opt-level")>          = &opt_level;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt size-opt-level")>     = &size_opt_level;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt comptime-opt-level")> = &comptime_opt_level;
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-unreachable")>             = &panic_on_unreachable;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-null-dereference")>        = &panic_on_null_dereference;

@@ -36,13 +36,13 @@ export struct string
 		{
 			const data_begin = __builtin_int_to_pointer(*uint8, 1uz | (size << 1));
 			let data_and_alloc_end: [2: ?*uint8];
-			memcpy(data_and_alloc_end.begin(), s.begin_ptr(), size);
+			memcpy(&data_and_alloc_end, s.begin_ptr(), size);
 			return string[ data_begin, data_and_alloc_end[0], data_and_alloc_end[1] ];
 		}
 		else
 		{
 			const [data_begin, alloc_size] = rounded_alloc(size);
-			memcpy(data_begin, s.begin_ptr(), size);
+			trivially_copy_values(data_begin, s.begin_ptr(), size);
 			return string[ data_begin, data_begin.get_value() + size, data_begin.get_value() + alloc_size ];
 		}
 	}
@@ -60,7 +60,7 @@ export struct string
 		}
 		const size = other.size();
 		self.reserve(size);
-		memcpy(self.begin_ptr(), other.begin_ptr(), size);
+		trivially_copy_values(self.begin_ptr(), other.begin_ptr(), size);
 		self.set_size_unsafe(size);
 		return self;
 	}
@@ -72,7 +72,7 @@ export struct string
 		const size = rhs.size();
 		if (self.capacity() >= size)
 		{
-			memcpy(self.begin_ptr(), rhs.begin_ptr(), size);
+			trivially_copy_values(self.begin_ptr(), rhs.begin_ptr(), size);
 			self.set_size_unsafe(size);
 		}
 		else
@@ -278,7 +278,7 @@ export function reserve(self: &string, new_capacity: usize)
 	{
 		const [data_begin, alloc_size] = rounded_alloc(new_capacity);
 		const size = self.size();
-		memcpy(data_begin, self.begin_ptr(), size);
+		trivially_copy_values(data_begin, self.begin_ptr(), size);
 		if (!self.is_short_string())
 		{
 			free(self._data_begin);
@@ -298,7 +298,7 @@ export function push_back(self: &string, c: char)
 {
 	const char_and_size = encode_char_utf8(c);
 	self.reserve(self.size() + char_and_size[1]);
-	memcpy(self.end_ptr(), char_and_size[0].begin(), char_and_size[1]);
+	trivially_copy_values(self.end_ptr(), char_and_size[0].begin(), char_and_size[1]);
 	self.set_size_unsafe(self.size() + char_and_size[1]);
 }
 
@@ -314,7 +314,7 @@ export function resize(self: &string, new_size: usize, c: char)
 		const old_end = self.end_ptr();
 		const size_diff = new_size - self.size();
 		self.set_size_unsafe(new_size);
-		memset(old_end, c as uint8, size_diff);
+		trivially_set_values(old_end, c as uint8, size_diff);
 	}
 	else
 	{
@@ -322,7 +322,7 @@ export function resize(self: &string, new_size: usize, c: char)
 		const old_end = self.end_ptr();
 		const size_diff = new_size - self.size();
 		self.set_size_unsafe(new_size);
-		memset(old_end, c as uint8, size_diff);
+		trivially_set_values(old_end, c as uint8, size_diff);
 	}
 }
 
@@ -354,8 +354,8 @@ export operator .. (lhs: #const string, rhs: #const string) -> string
 
 	const [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
-	memcpy(result_alloc, lhs_begin, lhs_size);
-	memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
+	trivially_copy_values(result_alloc, lhs_begin, lhs_size);
+	trivially_copy_values(result_alloc + lhs_size, rhs_begin, rhs_size);
 
 	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
 }
@@ -371,8 +371,8 @@ export operator .. (lhs: #const string, rhs: str) -> string
 
 	const [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
-	memcpy(result_alloc, lhs_begin, lhs_size);
-	memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
+	trivially_copy_values(result_alloc, lhs_begin, lhs_size);
+	trivially_copy_values(result_alloc + lhs_size, rhs_begin, rhs_size);
 
 	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
 }
@@ -388,8 +388,8 @@ export operator .. (lhs: str, rhs: #const string) -> string
 
 	const [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
-	memcpy(result_alloc, lhs_begin, lhs_size);
-	memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
+	trivially_copy_values(result_alloc, lhs_begin, lhs_size);
+	trivially_copy_values(result_alloc + lhs_size, rhs_begin, rhs_size);
 
 	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
 }
@@ -406,8 +406,8 @@ export operator .. (lhs: #const string, rhs: char) -> string
 
 	const [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
-	memcpy(result_alloc, lhs_begin, lhs_size);
-	memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
+	trivially_copy_values(result_alloc, lhs_begin, lhs_size);
+	trivially_copy_values(result_alloc + lhs_size, rhs_begin, rhs_size);
 
 	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
 }
@@ -424,8 +424,8 @@ export operator .. (lhs: char, rhs: #const string) -> string
 
 	const [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
-	memcpy(result_alloc, lhs_begin, lhs_size);
-	memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
+	trivially_copy_values(result_alloc, lhs_begin, lhs_size);
+	trivially_copy_values(result_alloc + lhs_size, rhs_begin, rhs_size);
 
 	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
 }
@@ -438,7 +438,7 @@ export operator ..= (lhs: &string, rhs: #const string) -> &string
 	lhs.reserve(result_size);
 
 	// lhs.reserve could change rhs, if you write something like s ..= s
-	memcpy(lhs.end_ptr(), rhs.begin_ptr(), rhs_size);
+	trivially_copy_values(lhs.end_ptr(), rhs.begin_ptr(), rhs_size);
 	lhs.set_size_unsafe(result_size);
 	return lhs;
 }
@@ -449,7 +449,7 @@ export operator ..= (lhs: &string, rhs: str) -> &string
 	const result_size = lhs.size() + rhs_size;
 	lhs.reserve(result_size);
 
-	memcpy(lhs.end_ptr(), rhs.begin_ptr(), rhs_size);
+	trivially_copy_values(lhs.end_ptr(), rhs.begin_ptr(), rhs_size);
 	lhs.set_size_unsafe(result_size);
 	return lhs;
 }
@@ -462,7 +462,7 @@ export operator ..= (lhs: &string, rhs: char) -> &string
 
 	const result_size = lhs.size() + rhs_size;
 	lhs.reserve(result_size);
-	memcpy(lhs.end_ptr(), rhs_begin, rhs_size);
+	trivially_copy_values(lhs.end_ptr(), rhs_begin, rhs_size);
 	lhs.set_size_unsafe(result_size);
 	return lhs;
 }

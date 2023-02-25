@@ -1,0 +1,7 @@
+function test()
+{
+	(consteval {
+		consteval t = [ 0, "", 0 ];
+		__builtin_slice_from_const_ptrs(&t[0], &t[2]);
+	});
+}

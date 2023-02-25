@@ -87,19 +87,21 @@ inline void register_unreachable_handler(unreachable_handler_t handler)
 
 #if __cpp_exceptions
 
-#define bz_try       try
-#define bz_catch(x)  catch (x)
-#define bz_catch_all catch (...)
-#define bz_throw(x)  throw x
-#define bz_rethrow   throw
+#define bz_try         try
+#define bz_catch(x)    catch (x)
+#define bz_catch_all   catch (...)
+#define bz_throw(x)    throw x
+#define bz_rethrow     throw
+#define bz_noexcept(...) noexcept(__VA_ARGS__)
 
 #else
 
-#define bz_try       if constexpr (true)
-#define bz_catch(x)  if constexpr (false)
-#define bz_catch_all if constexpr (false)
-#define bz_throw(x)  bz_unreachable
-#define bz_rethrow   bz_unreachable
+#define bz_try         if constexpr (true)
+#define bz_catch(x)    if constexpr (false)
+#define bz_catch_all   if constexpr (false)
+#define bz_throw(x)    bz_unreachable
+#define bz_rethrow     bz_unreachable
+#define bz_noexcept(...) noexcept(true)
 
 #endif // __cpp_exceptions
 

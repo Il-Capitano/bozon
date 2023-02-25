@@ -1,0 +1,7 @@
+function test()
+{
+	(consteval {
+		let t: [int32, [2: int32]];
+		 (&t[1, 0] + 1) - (&t[0] + 1);
+	});
+}

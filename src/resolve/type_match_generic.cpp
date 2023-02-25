@@ -3585,7 +3585,19 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 				&& bare_dest != expr.get_expr_type()
 			)
 			{
-				expr.set_type(bare_dest);
+				auto const is_dest_void = bare_dest.terminator_kind() == ast::terminator_typespec_node_t::index_of<ast::ts_void>;
+				auto const is_expr_void = expr.get_expr_type().terminator_kind() == ast::terminator_typespec_node_t::index_of<ast::ts_void>;
+				if (is_dest_void == is_expr_void)
+				{
+					expr.set_type(bare_dest);
+				}
+				else
+				{
+					auto cast_dest_type = expr.get_expr_type();
+					cast_dest_type.terminator->template emplace<ast::ts_void>();
+					expr = match_context.context.make_cast_expression(expr.src_tokens, std::move(expr), std::move(cast_dest_type));
+					expr.set_type(bare_dest);
+				}
 			}
 
 			if (dest.is<ast::ts_lvalue_reference>() && expr_type_kind != ast::expression_type_kind::lvalue_reference)

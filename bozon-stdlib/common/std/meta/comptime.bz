@@ -1,4 +1,4 @@
-export function malloc = __builtin_comptime_malloc_type;
+export function malloc = __builtin_comptime_malloc;
 export function free   = __builtin_comptime_free;
 
 export function compile_error   = __builtin_comptime_compile_error;

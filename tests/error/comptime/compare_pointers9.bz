@@ -1,0 +1,10 @@
+function test()
+{
+	(consteval {
+		const p = __builtin_comptime_malloc(int32, 3);
+		const q = p + 2;
+		__builtin_comptime_free(p);
+
+		p < q;
+	});
+}

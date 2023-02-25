@@ -800,6 +800,87 @@ bool operator == (typespec_view lhs, typespec_view rhs)
 	}
 }
 
+type_prototype const *get_type_prototype(ast::typespec_view type, type_prototype_set_t &type_prototype_set)
+{
+	static_assert(ast::typespec_types::size() == 19);
+	if (type.modifiers.empty())
+	{
+		switch (type.terminator_kind())
+		{
+		case ast::terminator_typespec_node_t::index_of<ast::ts_base_type>:
+		{
+			auto const info = type.get<ast::ts_base_type>().info;
+			bz_assert(info->state >= ast::resolve_state::members);
+			bz_assert(info->prototype != nullptr);
+			return info->prototype;
+		}
+		case ast::terminator_typespec_node_t::index_of<ast::ts_enum>:
+			return get_type_prototype(type.get<ast::ts_enum>().decl->underlying_type, type_prototype_set);
+		case ast::terminator_typespec_node_t::index_of<ast::ts_void>:
+			return type_prototype_set.get_builtin_type(builtin_type_kind::void_);
+		case ast::terminator_typespec_node_t::index_of<ast::ts_function>:
+			return type_prototype_set.get_pointer_type();
+		case ast::terminator_typespec_node_t::index_of<ast::ts_array>:
+		{
+			auto &arr_t = type.get<ast::ts_array>();
+			auto elem_t = get_type_prototype(arr_t.elem_type, type_prototype_set);
+			return type_prototype_set.get_array_type(elem_t, arr_t.size);
+		}
+		case ast::terminator_typespec_node_t::index_of<ast::ts_array_slice>:
+		{
+			auto const pointer_type = type_prototype_set.get_pointer_type();
+			type_prototype const *pointer_pair[2] = { pointer_type, pointer_type };
+			return type_prototype_set.get_aggregate_type(pointer_pair);
+		}
+		case ast::terminator_typespec_node_t::index_of<ast::ts_tuple>:
+		{
+			auto &tuple_t = type.get<ast::ts_tuple>();
+			auto const types = tuple_t.types
+				.transform([&type_prototype_set](auto const &ts) { return get_type_prototype(ts, type_prototype_set); })
+				.template collect<ast::arena_vector>();
+			return type_prototype_set.get_aggregate_type(types);
+		}
+		case ast::terminator_typespec_node_t::index_of<ast::ts_auto>:
+			bz_unreachable;
+		case ast::terminator_typespec_node_t::index_of<ast::ts_unresolved>:
+			bz_unreachable;
+		case ast::terminator_typespec_node_t::index_of<ast::ts_typename>:
+			bz_unreachable;
+		default:
+			bz_unreachable;
+		}
+	}
+	else
+	{
+		switch (type.modifier_kind())
+		{
+		case ast::modifier_typespec_node_t::index_of<ast::ts_const>:
+			return get_type_prototype(type.get<ast::ts_const>(), type_prototype_set);
+		case ast::modifier_typespec_node_t::index_of<ast::ts_consteval>:
+			return get_type_prototype(type.get<ast::ts_consteval>(), type_prototype_set);
+		case ast::modifier_typespec_node_t::index_of<ast::ts_pointer>:
+		case ast::modifier_typespec_node_t::index_of<ast::ts_lvalue_reference>:
+		case ast::modifier_typespec_node_t::index_of<ast::ts_move_reference>:
+			return type_prototype_set.get_pointer_type();
+		case ast::modifier_typespec_node_t::index_of<ast::ts_optional>:
+		{
+			if (type.is_optional_pointer_like())
+			{
+				return type_prototype_set.get_pointer_type();
+			}
+			else
+			{
+				auto const inner_type = get_type_prototype(type.get<ast::ts_optional>(), type_prototype_set);
+				type_prototype const *types[2] = { inner_type, type_prototype_set.get_builtin_type(builtin_type_kind::i1) };
+				return type_prototype_set.get_aggregate_type(types);
+			}
+		}
+		default:
+			bz_unreachable;
+		}
+	}
+}
+
 } // namespace ast
 
 bz::u8string bz::formatter<ast::typespec>::format(ast::typespec const &typespec, bz::u8string_view fmt_str)

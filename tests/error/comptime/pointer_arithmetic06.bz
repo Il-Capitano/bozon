@@ -1,0 +1,11 @@
+function test()
+{
+	(consteval {
+		let p: ?*int32 = null;
+		{
+			let i = 0;
+			p = &i;
+		}
+		p + 1;
+	});
+}

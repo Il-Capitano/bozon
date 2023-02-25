@@ -1,0 +1,6 @@
+function test()
+{
+	(consteval {
+		__builtin_comptime_malloc(int32, 1);
+	});
+}

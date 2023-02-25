@@ -92,6 +92,7 @@ struct parse_context
 	ast::typespec_view get_builtin_type(bz::u8string_view name) const;
 	ast::decl_function *get_builtin_function(uint32_t kind) const;
 	bz::array_view<uint32_t const> get_builtin_universal_functions(bz::u8string_view id);
+	ast::type_prototype_set_t &get_type_prototype_set(void);
 
 	struct loop_info_t
 	{
@@ -439,6 +440,11 @@ struct parse_context
 		ast::expression expr,
 		ast::typespec type
 	);
+	ast::expression make_bit_cast_expression(
+		lex::src_tokens const &src_tokens,
+		ast::expression expr,
+		ast::typespec result_type
+	);
 	ast::expression make_optional_cast_expression(ast::expression expr);
 	ast::expression make_member_access_expression(
 		lex::src_tokens const &src_tokens,
@@ -478,25 +484,8 @@ struct parse_context
 
 	ast::identifier make_qualified_identifier(lex::token_pos id);
 
-	ast::constant_value execute_function(
-		lex::src_tokens const &src_tokens,
-		ast::expr_function_call &func_call
-	);
-
-	ast::constant_value execute_compound_expression(
-		lex::src_tokens const &src_tokens,
-		ast::expr_compound &expr
-	);
-
-	ast::constant_value execute_function_without_error(
-		lex::src_tokens const &src_tokens,
-		ast::expr_function_call &func_call
-	);
-
-	ast::constant_value execute_compound_expression_without_error(
-		lex::src_tokens const &src_tokens,
-		ast::expr_compound &expr
-	);
+	ast::constant_value execute_expression(ast::expression &expr);
+	ast::constant_value execute_expression_without_error(ast::expression &expr);
 
 	// bool is_implicitly_convertible(ast::expression const &from, ast::typespec_view to);
 	// bool is_explicitly_convertible(ast::expression const &from, ast::typespec_view to);

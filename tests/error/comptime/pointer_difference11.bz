@@ -1,0 +1,7 @@
+function test()
+{
+	(consteval {
+		consteval t = [ 0, "", 0 ];
+		&t[0] - &t[2];
+	});
+}

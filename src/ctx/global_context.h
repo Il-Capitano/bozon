@@ -17,11 +17,11 @@
 #include "ast/expression.h"
 #include "ast/statement.h"
 #include "ast/scope.h"
+#include "ast/type_prototype.h"
 #include "src_file.h"
 #include "abi/platform_abi.h"
 #include "resolve/attribute_resolver.h"
-
-#include "comptime_executor.h"
+#include "comptime/codegen_context_forward.h"
 
 namespace ctx
 {
@@ -53,14 +53,11 @@ struct global_context
 
 	ast::scope_t *_builtin_global_scope;
 
-	ast::function_body *_comptime_compile_error_src_tokens_func   = nullptr;
-	ast::function_body *_comptime_compile_warning_src_tokens_func = nullptr;
-	ast::function_body *_comptime_create_global_string_func       = nullptr;
-
 	ast::function_body *_main = nullptr;
 
 	std::list<src_file> _src_files;
 
+	std::unique_ptr<ast::type_prototype_set_t> type_prototype_set = nullptr;
 	llvm::LLVMContext _llvm_context;
 	llvm::Module      _module;
 	llvm::Target const *_target;
@@ -69,13 +66,14 @@ struct global_context
 	bz::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1> _llvm_builtin_types;
 	abi::platform_abi _platform_abi;
 
-	comptime_executor_context _comptime_executor;
+	std::unique_ptr<comptime::codegen_context> comptime_codegen_context;
 
 	global_context(void);
 	global_context(global_context const &) = delete;
 	global_context(global_context &&)      = delete;
 	global_context &operator = (global_context const &) = delete;
 	global_context &operator = (global_context &&)      = delete;
+	~global_context(void) noexcept;
 
 	ast::type_info *get_builtin_type_info(uint32_t kind);
 	ast::type_info *get_usize_type_info(void) const;
@@ -84,6 +82,10 @@ struct global_context
 	ast::decl_function *get_builtin_function(uint32_t kind);
 	bz::array_view<uint32_t const> get_builtin_universal_functions(bz::u8string_view id);
 	resolve::attribute_info_t *get_builtin_attribute(bz::u8string_view name);
+	size_t get_sizeof(ast::typespec_view ts);
+	size_t get_alignof(ast::typespec_view ts);
+
+	comptime::codegen_context &get_codegen_context(void);
 
 	void report_error_or_warning(error &&err);
 
@@ -139,8 +141,6 @@ struct global_context
 	bz::u8string get_file_name(uint32_t file_id);
 	bz::u8string get_location_string(lex::token_pos t);
 
-	bool add_comptime_checking_function(bz::u8string_view kind, ast::function_body *func_body);
-	bool add_comptime_checking_variable(bz::u8string_view kind, ast::decl_variable *var_decl);
 	bool add_builtin_function(ast::decl_function *func_decl);
 	bool add_builtin_operator(ast::decl_operator *op_decl);
 
