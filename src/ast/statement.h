@@ -1561,32 +1561,13 @@ def_make_fn(statement, stmt_static_assert)
 
 #undef def_make_fn
 
-struct type_and_name_pair
-{
-	typespec type;
-	bz::u8string_view name;
-};
-
 struct universal_function_set
 {
 	bz::u8string_view id;
 	bz::vector<uint32_t> func_kinds;
 };
 
-struct builtin_operator
-{
-	uint32_t op;
-	bz::vector<decl_operator> decls;
-};
-
-bz::vector<type_info>              make_builtin_type_infos(type_prototype_set_t &type_prototype_set);
-bz::vector<type_and_name_pair>     make_builtin_types(bz::array_view<type_info> builtin_type_infos, size_t pointer_size);
 bz::vector<universal_function_set> make_builtin_universal_functions(void);
-
-scope_t make_builtin_global_scope(
-	bz::array_view<decl_function *> builtin_functions,
-	bz::array_view<decl_operator *> builtin_operators
-);
 
 struct intrinsic_info_t
 {
