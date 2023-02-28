@@ -31,8 +31,8 @@ import std::libc::string;
 export function __builtin_str_length(s: str) -> usize
 {
 	let continuation_byte_count = 0uz;
-	const begin = __builtin_str_begin_ptr(s);
-	const end   = __builtin_str_end_ptr(s);
+	const begin = s._begin;
+	const end   = s._end;
 	for (let it = begin; it != end; ++it)
 	{
 		const c = *it;
@@ -53,9 +53,9 @@ export function __builtin_str_starts_with(s: str, prefix: str) -> bool
 		return false;
 	}
 
-	let s_it = __builtin_str_begin_ptr(s);
-	let prefix_it = __builtin_str_begin_ptr(prefix);
-	const prefix_end = __builtin_str_end_ptr(prefix);
+	let s_it = s._begin;
+	let prefix_it = prefix._begin;
+	const prefix_end = prefix._end;
 	for (; prefix_it != prefix_end; ++s_it, ++prefix_it)
 	{
 		if (*s_it != *prefix_it)
@@ -74,9 +74,9 @@ export function __builtin_str_ends_with(s: str, postfix: str) -> bool
 		return false;
 	}
 
-	let s_it = __builtin_str_end_ptr(s) - __builtin_str_size(postfix);
-	let postfix_it = __builtin_str_begin_ptr(postfix);
-	const postfix_end = __builtin_str_end_ptr(postfix);
+	let s_it = s._end - __builtin_str_size(postfix);
+	let postfix_it = postfix._begin;
+	const postfix_end = postfix._end;
 	for (; postfix_it != postfix_end; ++s_it, ++postfix_it)
 	{
 		if (*s_it != *postfix_it)
@@ -92,7 +92,7 @@ export function __builtin_str_ends_with(s: str, postfix: str) -> bool
 @__builtin
 export function __builtin_str_size(s: str) -> usize
 {
-	return (__builtin_str_end_ptr(s) - __builtin_str_begin_ptr(s)) as usize;
+	return (s._end - s._begin) as usize;
 }
 @__builtin export function __builtin_str_from_ptrs(begin: ?*const uint8, end: ?*const uint8) -> str;
 
@@ -191,7 +191,7 @@ export function __builtin_panic(message: str)
 	}
 	else
 	{
-		std::libc::fwrite(__builtin_str_begin_ptr(message), 1, __builtin_str_size(message), std::libc::stderr());
+		std::libc::fwrite(message._begin, 1, __builtin_str_size(message), std::libc::stderr());
 		std::libc::abort();
 	}
 }
@@ -255,12 +255,12 @@ function __libc_main(argc_int: std::libc::int, argv: *const *const std::libc::ch
 @__builtin
 export function __builtin_print_stdout(s: str)
 {
-	std::libc::fwrite(__builtin_str_begin_ptr(s), 1, __builtin_str_size(s), std::libc::stdout());
+	std::libc::fwrite(s._begin, 1, __builtin_str_size(s), std::libc::stdout());
 }
 @__builtin
 export function __builtin_print_stderr(s: str)
 {
-	std::libc::fwrite(__builtin_str_begin_ptr(s), 1, __builtin_str_size(s), std::libc::stderr());
+	std::libc::fwrite(s._begin, 1, __builtin_str_size(s), std::libc::stderr());
 }
 
 @__builtin export consteval function __builtin_comptime_malloc(T: typename, count: usize) -> *T;
@@ -288,8 +288,8 @@ export function __builtin_print_stderr(s: str)
 	else
 	{
 		const global_begin = __builtin_comptime_add_global_array_data(
-			__builtin_optional_get_value(__builtin_str_begin_ptr(s)),
-			__builtin_optional_get_value(__builtin_str_end_ptr(s)),
+			__builtin_optional_get_value(s._begin),
+			__builtin_optional_get_value(s._end),
 		);
 		return __builtin_str_from_ptrs(global_begin, global_begin + __builtin_str_size(s));
 	}
@@ -1059,9 +1059,9 @@ export function __builtin_print_stderr(s: str)
 		return false;
 	}
 
-	let lhs_it = __builtin_str_begin_ptr(lhs);
-	let rhs_it = __builtin_str_begin_ptr(rhs);
-	const lhs_end = __builtin_str_end_ptr(lhs);
+	let lhs_it = lhs._begin;
+	let rhs_it = rhs._begin;
+	const lhs_end = lhs._end;
 	if (lhs_it == rhs_it)
 	{
 		return true;
@@ -1138,9 +1138,9 @@ export function __builtin_print_stderr(s: str)
 		return true;
 	}
 
-	let lhs_it = __builtin_str_begin_ptr(lhs);
-	let rhs_it = __builtin_str_begin_ptr(rhs);
-	const lhs_end = __builtin_str_end_ptr(lhs);
+	let lhs_it = lhs._begin;
+	let rhs_it = rhs._begin;
+	const lhs_end = lhs._end;
 	if (lhs_it == rhs_it)
 	{
 		return false;
