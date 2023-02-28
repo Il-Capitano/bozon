@@ -1079,7 +1079,7 @@ struct type_info
 		  flags(0),
 		  type_name(std::move(_type_name)),
 		  symbol_name(),
-		  body(range),
+		  body(range.begin == nullptr ? body_t() : body_t(range)),
 		  scope(make_global_scope(_enclosing_scope, {}))
 	{}
 
@@ -1096,7 +1096,7 @@ struct type_info
 		  flags(generic),
 		  type_name(std::move(_type_name)),
 		  symbol_name(),
-		  body(range),
+		  body(range.begin == nullptr ? body_t() : body_t(range)),
 		  scope(make_global_scope(_enclosing_scope, {})),
 		  generic_parameters(std::move(_generic_parameters))
 	{}
