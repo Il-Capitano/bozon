@@ -930,37 +930,42 @@ static void resolve_type_alias_impl(ast::decl_type_alias &alias_decl, ctx::parse
 {
 	alias_decl.state = ast::resolve_state::resolving_all;
 
-	bz_assert(alias_decl.alias_expr.is<ast::unresolved_expression>());
-	auto const begin = alias_decl.alias_expr.src_tokens.begin;
-	auto const end   = alias_decl.alias_expr.src_tokens.end;
-	auto stream = begin;
-	alias_decl.state = ast::resolve_state::resolving_all;
-	alias_decl.alias_expr = parse::parse_expression(stream, end, context, no_comma);
-	if (stream != end)
+	resolve_attributes(alias_decl, context);
+
+	if (alias_decl.alias_expr.is<ast::unresolved_expression>())
 	{
-		if (stream->kind == lex::token::comma)
+		auto const begin = alias_decl.alias_expr.src_tokens.begin;
+		auto const end   = alias_decl.alias_expr.src_tokens.end;
+		auto stream = begin;
+		alias_decl.state = ast::resolve_state::resolving_all;
+		alias_decl.alias_expr = parse::parse_expression(stream, end, context, no_comma);
+		if (stream != end)
 		{
-			auto const suggestion_end = (end - 1)->kind == lex::token::semi_colon ? end - 1 : end;
-			context.report_error(
-				stream,
-				"'operator ,' is not allowed in type alias expression",
-				{}, { context.make_suggestion_around(
-					begin,          ctx::char_pos(), ctx::char_pos(), "(",
-					suggestion_end, ctx::char_pos(), ctx::char_pos(), ")",
-					"put parenthesis around the expression"
-				) }
-			);
+			if (stream->kind == lex::token::comma)
+			{
+				auto const suggestion_end = (end - 1)->kind == lex::token::semi_colon ? end - 1 : end;
+				context.report_error(
+					stream,
+					"'operator ,' is not allowed in type alias expression",
+					{}, { context.make_suggestion_around(
+						begin,          ctx::char_pos(), ctx::char_pos(), "(",
+						suggestion_end, ctx::char_pos(), ctx::char_pos(), ")",
+						"put parenthesis around the expression"
+					) }
+				);
+			}
+			else
+			{
+				context.assert_token(stream, lex::token::semi_colon);
+			}
 		}
-		else
+		else if (alias_decl.alias_expr.is_error())
 		{
-			context.assert_token(stream, lex::token::semi_colon);
+			alias_decl.state = ast::resolve_state::error;
+			return;
 		}
 	}
-	else if (alias_decl.alias_expr.is_error())
-	{
-		alias_decl.state = ast::resolve_state::error;
-		return;
-	}
+
 	resolve_expression(alias_decl.alias_expr, context);
 	resolve::consteval_try(alias_decl.alias_expr, context);
 
@@ -2053,8 +2058,17 @@ void resolve_type_info_parameters(ast::type_info &info, ctx::parse_context &cont
 	context.pop_enclosing_scope(std::move(prev_scopes));
 }
 
-static void resolve_type_info_symbol_impl(ast::type_info &info, [[maybe_unused]] ctx::parse_context &context)
+static void resolve_type_info_symbol_impl(ast::type_info &info, ctx::parse_context &context)
 {
+	info.state = ast::resolve_state::resolving_symbol;
+
+	resolve_attributes(info, context);
+	// for builtin types
+	if (info.state == ast::resolve_state::all)
+	{
+		return;
+	}
+
 	if (info.type_name.is_qualified)
 	{
 		info.symbol_name = bz::format("struct.{}", info.get_typename_as_string());
@@ -2443,7 +2457,7 @@ static void resolve_type_info_members_impl(ast::type_info &info, ctx::parse_cont
 	{
 		resolve_type_info_symbol_impl(info, context);
 	}
-	if (info.state == ast::resolve_state::error || info.kind == ast::type_info::forward_declaration)
+	if (info.state == ast::resolve_state::error || info.body.is_null())
 	{
 		return;
 	}
@@ -2521,6 +2535,7 @@ static void resolve_type_info_members_impl(ast::type_info &info, ctx::parse_cont
 	auto const member_types = info.member_variables.transform([&](auto const member) {
 		return ast::get_type_prototype(member->get_type(), type_set);
 	}).collect();
+	bz_assert(info.prototype == nullptr);
 	info.prototype = type_set.get_aggregate_type(member_types);
 
 	info.state = ast::resolve_state::members;
@@ -2563,7 +2578,7 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 	{
 		resolve_type_info_members_impl(info, context);
 	}
-	if (info.state == ast::resolve_state::error || info.kind == ast::type_info::forward_declaration)
+	if (info.state == ast::resolve_state::error || info.body.is_null())
 	{
 		return;
 	}
