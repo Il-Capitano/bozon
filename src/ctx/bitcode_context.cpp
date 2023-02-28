@@ -27,11 +27,6 @@ ast::type_info *bitcode_context::get_builtin_type_info(uint32_t kind)
 	return this->global_ctx.get_builtin_type_info(kind);
 }
 
-ast::typespec_view bitcode_context::get_builtin_type(bz::u8string_view name)
-{
-	return this->global_ctx.get_builtin_type(name);
-}
-
 ast::function_body *bitcode_context::get_builtin_function(uint32_t kind)
 {
 	return &this->global_ctx.get_builtin_function(kind)->body;
