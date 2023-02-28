@@ -33,16 +33,32 @@ using apply_to_variable_func_t = bool (*)(
 	ctx::parse_context &context
 );
 
+using apply_to_type_alias_func_t = bool (*)(
+	ast::decl_type_alias &alias_decl,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+);
+
+using apply_to_type_info_func_t = bool (*)(
+	ast::type_info &info,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+);
+
 struct apply_funcs_t
 {
 	apply_to_function_func_t apply_to_func;
 	apply_to_operator_func_t apply_to_op;
 	apply_to_function_body_func_t apply_to_func_body;
 	apply_to_variable_func_t apply_to_var;
+	apply_to_type_alias_func_t apply_to_type_alias;
+	apply_to_type_info_func_t apply_to_type_info;
 
 	bool operator () (ast::decl_function &func_decl, ast::attribute &attribute, ctx::parse_context &context) const;
 	bool operator () (ast::decl_operator &op_decl, ast::attribute &attribute, ctx::parse_context &context) const;
 	bool operator () (ast::decl_variable &var_decl, ast::attribute &attribute, ctx::parse_context &context) const;
+	bool operator () (ast::decl_type_alias &alias_decl, ast::attribute &attribute, ctx::parse_context &context) const;
+	bool operator () (ast::type_info &info, ast::attribute &attribute, ctx::parse_context &context) const;
 };
 
 struct attribute_info_t
@@ -52,7 +68,7 @@ struct attribute_info_t
 	apply_funcs_t apply_funcs;
 };
 
-bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info> builtin_type_infos);
+bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info * const> builtin_type_infos);
 
 void resolve_attributes(
 	ast::decl_function &func_decl,
@@ -64,6 +80,14 @@ void resolve_attributes(
 );
 void resolve_attributes(
 	ast::decl_variable &var_decl,
+	ctx::parse_context &context
+);
+void resolve_attributes(
+	ast::decl_type_alias &alias_decl,
+	ctx::parse_context &context
+);
+void resolve_attributes(
+	ast::type_info &info,
 	ctx::parse_context &context
 );
 

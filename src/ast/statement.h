@@ -964,12 +964,13 @@ struct decl_type_alias
 		global           = bit_at<1>,
 	};
 
-	lex::src_tokens   src_tokens;
-	identifier        id;
-	expression        alias_expr;
-	enclosing_scope_t enclosing_scope;
-	uint8_t           flags = 0;
-	resolve_state     state = resolve_state::none;
+	lex::src_tokens         src_tokens;
+	identifier              id;
+	expression              alias_expr;
+	arena_vector<attribute> attributes;
+	enclosing_scope_t       enclosing_scope;
+	uint8_t                 flags = 0;
+	resolve_state           state = resolve_state::none;
 
 	decl_type_alias(
 		lex::src_tokens const &_src_tokens,
@@ -1043,6 +1044,8 @@ struct type_info
 	bz::u8string    symbol_name;
 	body_t          body;
 	scope_t         scope;
+
+	arena_vector<attribute> attributes;
 
 	bz::vector<ast::decl_variable *> member_variables;
 	type_prototype const *prototype = nullptr;

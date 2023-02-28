@@ -64,6 +64,32 @@ bool apply_funcs_t::operator () (ast::decl_variable &var_decl, ast::attribute &a
 	}
 }
 
+bool apply_funcs_t::operator () (ast::decl_type_alias &alias_decl, ast::attribute &attribute, ctx::parse_context &context) const
+{
+	if (this->apply_to_type_alias != nullptr)
+	{
+		return this->apply_to_type_alias(alias_decl, attribute, context);
+	}
+	else
+	{
+		report_unknown_attribute(attribute, context);
+		return false;
+	}
+}
+
+bool apply_funcs_t::operator () (ast::type_info &info, ast::attribute &attribute, ctx::parse_context &context) const
+{
+	if (this->apply_to_type_info != nullptr)
+	{
+		return this->apply_to_type_info(info, attribute, context);
+	}
+	else
+	{
+		report_unknown_attribute(attribute, context);
+		return false;
+	}
+}
+
 static bool apply_builtin(
 	ast::decl_function &func_decl,
 	ast::attribute &attribute,
