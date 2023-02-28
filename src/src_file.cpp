@@ -310,10 +310,8 @@ src_file::src_file(fs::path file_path, uint32_t file_id, bz::vector<bz::u8string
 	ctx::parse_context context(global_ctx);
 	context.current_global_scope = &this->_global_decls;
 
-	// bz::log("{}\n", &this->_global_decls);
 	for (auto &decl : this->_declarations)
 	{
-		// bz::log("==== {} :: {}\n", &context, context.current_global_scope);
 		resolve::resolve_global_statement(decl, context);
 	}
 	for (std::size_t i = 0; i < context.generic_functions.size(); ++i)
