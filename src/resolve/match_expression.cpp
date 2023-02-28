@@ -68,7 +68,10 @@ void match_expression_to_type(ast::expression &expr, ast::typespec &dest_type, c
 		{
 			context.report_error(expr.src_tokens, bz::format("expression type '{}' is not instantiable", dest_type));
 			expr.to_error();
-			dest_type.clear();
+			if (!ast::is_complete(dest_type))
+			{
+				dest_type.clear();
+			}
 		}
 		else if (dest_type.is_typename() || dest_type.is<ast::ts_consteval>())
 		{
