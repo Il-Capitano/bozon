@@ -2702,13 +2702,13 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 	if (id.values.size() == 1)
 	{
 		auto const id_value = id.values.front();
-		if (auto const builtin_type = this->get_builtin_type(id_value); builtin_type.not_empty())
+		if (id_value == "void")
 		{
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::type_name,
 				ast::make_typename_typespec(nullptr),
-				ast::constant_value(builtin_type),
+				ast::constant_value(ast::make_void_typespec(id.tokens.begin)),
 				ast::make_expr_struct_name(std::move(id), nullptr)
 			);
 		}

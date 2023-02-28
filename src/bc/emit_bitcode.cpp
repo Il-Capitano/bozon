@@ -7540,11 +7540,6 @@ void emit_global_variable(ast::decl_variable const &var_decl, ctx::bitcode_conte
 
 void emit_global_type_symbol(ast::type_info const &info, ctx::bitcode_context &context)
 {
-	if (context.types_.find(&info) != context.types_.end())
-	{
-		return;
-	}
-
 	if (info.is_generic())
 	{
 		for (auto const &instantiation : info.generic_instantiations)
@@ -7556,15 +7551,31 @@ void emit_global_type_symbol(ast::type_info const &info, ctx::bitcode_context &c
 
 	switch (info.kind)
 	{
-	case ast::type_info::forward_declaration:
-	case ast::type_info::aggregate:
+	case ast::type_info::int8_:
+	case ast::type_info::int16_:
+	case ast::type_info::int32_:
+	case ast::type_info::int64_:
+	case ast::type_info::uint8_:
+	case ast::type_info::uint16_:
+	case ast::type_info::uint32_:
+	case ast::type_info::uint64_:
+	case ast::type_info::float32_:
+	case ast::type_info::float64_:
+	case ast::type_info::char_:
+	case ast::type_info::bool_:
+		break;
+
+	default:
 	{
+		if (context.types_.find(&info) != context.types_.end())
+		{
+			return;
+		}
+
 		auto const name = llvm::StringRef(info.symbol_name.data_as_char_ptr(), info.symbol_name.size());
 		context.add_base_type(&info, llvm::StructType::create(context.get_llvm_context(), name));
 		break;
 	}
-	default:
-		bz_unreachable;
 	}
 }
 
@@ -7579,17 +7590,31 @@ void emit_global_type(ast::type_info const &info, ctx::bitcode_context &context)
 		return;
 	}
 
-	auto const type = context.get_base_type(&info);
-	bz_assert(type != nullptr);
-	bz_assert(type->isStructTy());
-	auto const struct_type = static_cast<llvm::StructType *>(type);
 	switch (info.kind)
 	{
+	case ast::type_info::int8_:
+	case ast::type_info::int16_:
+	case ast::type_info::int32_:
+	case ast::type_info::int64_:
+	case ast::type_info::uint8_:
+	case ast::type_info::uint16_:
+	case ast::type_info::uint32_:
+	case ast::type_info::uint64_:
+	case ast::type_info::float32_:
+	case ast::type_info::float64_:
+	case ast::type_info::char_:
+	case ast::type_info::bool_:
+		break;
+
 	case ast::type_info::forward_declaration:
-		// there's nothing to do
-		return;
-	case ast::type_info::aggregate:
+		break;
+
+	default:
 	{
+		auto const type = context.get_base_type(&info);
+		bz_assert(type != nullptr);
+		bz_assert(type->isStructTy());
+		auto const struct_type = static_cast<llvm::StructType *>(type);
 		auto const types = info.member_variables
 			.transform([&](auto const &member) { return get_llvm_type(member->get_type(), context); })
 			.collect<ast::arena_vector>();
@@ -7597,8 +7622,6 @@ void emit_global_type(ast::type_info const &info, ctx::bitcode_context &context)
 		struct_type->setBody(llvm::ArrayRef<llvm::Type *>(types.data(), types.size()));
 		break;
 	}
-	default:
-		bz_unreachable;
 	}
 }
 

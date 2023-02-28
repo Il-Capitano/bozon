@@ -556,37 +556,30 @@ type_info *type_info::add_generic_instantiation(
 
 bz::u8string type_info::get_typename_as_string(void) const
 {
-	switch (this->kind)
+	if (this->is_generic_instantiation())
 	{
-	case aggregate:
-	case forward_declaration:
-		if (this->is_generic_instantiation())
+		auto result = this->type_name.format_as_unqualified();
+		result += '<';
+		bool first = true;
+		for (auto const &param : this->generic_parameters)
 		{
-			auto result = this->type_name.format_as_unqualified();
-			result += '<';
-			bool first = true;
-			for (auto const &param : this->generic_parameters)
+			if (first)
 			{
-				if (first)
-				{
-					first = false;
-				}
-				else
-				{
-					result += ", ";
-				}
-				bz_assert(param.init_expr.is_constant());
-				result += get_value_string(param.init_expr.get_constant_value());
+				first = false;
 			}
-			result += '>';
-			return result;
+			else
+			{
+				result += ", ";
+			}
+			bz_assert(param.init_expr.is_constant());
+			result += get_value_string(param.init_expr.get_constant_value());
 		}
-		else
-		{
-			return this->type_name.format_as_unqualified();
-		}
-	default:
-		return decode_symbol_name(this->symbol_name);
+		result += '>';
+		return result;
+	}
+	else
+	{
+		return this->type_name.format_as_unqualified();
 	}
 }
 
@@ -615,67 +608,6 @@ static_assert(type_info::char_    == 10);
 static_assert(type_info::str_     == 11);
 static_assert(type_info::bool_    == 12);
 static_assert(type_info::null_t_  == 13);
-
-static type_info::decl_function_ptr make_builtin_default_constructor(type_info *info)
-{
-	auto result = make_ast_unique<decl_function>();
-	result->body.return_type = make_base_type_typespec({}, info);
-	switch (info->kind)
-	{
-		case type_info::int8_:
-			result->body.intrinsic_kind = function_body::i8_default_constructor;
-			break;
-		case type_info::int16_:
-			result->body.intrinsic_kind = function_body::i16_default_constructor;
-			break;
-		case type_info::int32_:
-			result->body.intrinsic_kind = function_body::i32_default_constructor;
-			break;
-		case type_info::int64_:
-			result->body.intrinsic_kind = function_body::i64_default_constructor;
-			break;
-		case type_info::uint8_:
-			result->body.intrinsic_kind = function_body::u8_default_constructor;
-			break;
-		case type_info::uint16_:
-			result->body.intrinsic_kind = function_body::u16_default_constructor;
-			break;
-		case type_info::uint32_:
-			result->body.intrinsic_kind = function_body::u32_default_constructor;
-			break;
-		case type_info::uint64_:
-			result->body.intrinsic_kind = function_body::u64_default_constructor;
-			break;
-		case type_info::float32_:
-			result->body.intrinsic_kind = function_body::f32_default_constructor;
-			break;
-		case type_info::float64_:
-			result->body.intrinsic_kind = function_body::f64_default_constructor;
-			break;
-		case type_info::char_:
-			result->body.intrinsic_kind = function_body::char_default_constructor;
-			break;
-		case type_info::str_:
-			result->body.intrinsic_kind = function_body::str_default_constructor;
-			break;
-		case type_info::bool_:
-			result->body.intrinsic_kind = function_body::bool_default_constructor;
-			break;
-		case type_info::null_t_:
-			result->body.intrinsic_kind = function_body::null_t_default_constructor;
-			break;
-		default:
-			bz_unreachable;
-	}
-	result->body.flags = function_body::intrinsic
-		| function_body::constructor
-		| function_body::default_constructor
-		| function_body::default_default_constructor;
-	result->body.constructor_or_destructor_of = info;
-	result->body.state = resolve_state::symbol;
-	result->body.symbol_name = result->body.get_symbol_name();
-	return result;
-}
 
 uint64_t decl_enum::get_unique_values_count(void) const
 {

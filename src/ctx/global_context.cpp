@@ -116,9 +116,8 @@ ast::scope_t get_default_decls(ast::scope_t *builtin_global_scope, bz::array_vie
 global_context::global_context(void)
 	: _compile_decls{},
 	  _errors{},
-	  _builtin_type_infos{},
-	  _builtin_types{},
 	  _builtin_universal_functions(ast::make_builtin_universal_functions()),
+	  _builtin_type_infos{},
 	  _builtin_functions{},
 	  _builtin_operators{},
 	  _builtin_global_scope(),
@@ -132,24 +131,31 @@ global_context::global_context(void)
 
 global_context::~global_context(void) noexcept = default;
 
-ast::type_info *global_context::get_builtin_type_info(uint32_t kind)
+ast::type_info *global_context::get_builtin_type_info(uint32_t kind) const
 {
 	bz_assert(kind <= ast::type_info::null_t_);
-	return &this->_builtin_type_infos[kind];
+	bz_assert(this->_builtin_type_infos[kind] != nullptr);
+	return this->_builtin_type_infos[kind];
 }
 
 ast::type_info *global_context::get_usize_type_info(void) const
 {
-	bz_assert(this->_builtin_types[ast::type_info::null_t_ + 1].name == "usize");
-	bz_assert(this->_builtin_types[ast::type_info::null_t_ + 1].type.is<ast::ts_base_type>());
-	return this->_builtin_types[ast::type_info::null_t_ + 1].type.get<ast::ts_base_type>().info;
+	auto const usize_alias = this->_builtin_usize_type_alias;
+	bz_assert(usize_alias != nullptr);
+	bz_assert(usize_alias->get_type().is<ast::ts_base_type>());
+	auto const info = usize_alias->get_type().get<ast::ts_base_type>().info;
+	bz_assert(ast::is_unsigned_integer_kind(info->kind));
+	return info;
 }
 
 ast::type_info *global_context::get_isize_type_info(void) const
 {
-	bz_assert(this->_builtin_types[ast::type_info::null_t_ + 2].name == "isize");
-	bz_assert(this->_builtin_types[ast::type_info::null_t_ + 2].type.is<ast::ts_base_type>());
-	return this->_builtin_types[ast::type_info::null_t_ + 2].type.get<ast::ts_base_type>().info;
+	auto const isize_alias = this->_builtin_isize_type_alias;
+	bz_assert(isize_alias != nullptr);
+	bz_assert(isize_alias->get_type().is<ast::ts_base_type>());
+	auto const info = isize_alias->get_type().get<ast::ts_base_type>().info;
+	bz_assert(ast::is_signed_integer_kind(info->kind));
+	return info;
 }
 
 ast::decl_function *global_context::get_builtin_function(uint32_t kind)
@@ -699,6 +705,94 @@ bool global_context::add_builtin_operator(ast::decl_operator *op_decl)
 	}
 }
 
+bool global_context::add_builtin_type_alias(ast::decl_type_alias *alias_decl)
+{
+	if (alias_decl->id.values.back() == "isize" && this->_builtin_isize_type_alias == nullptr)
+	{
+		this->_builtin_isize_type_alias = alias_decl;
+		return true;
+	}
+	else if (alias_decl->id.values.back() == "usize" && this->_builtin_usize_type_alias == nullptr)
+	{
+		this->_builtin_usize_type_alias = alias_decl;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+struct builtin_type_info_info_t
+{
+	bz::u8string_view name;
+	uint8_t kind;
+};
+
+static constexpr bz::array builtin_type_info_infos = {
+	builtin_type_info_info_t{ "int8",     ast::type_info::int8_    },
+	builtin_type_info_info_t{ "int16",    ast::type_info::int16_   },
+	builtin_type_info_info_t{ "int32",    ast::type_info::int32_   },
+	builtin_type_info_info_t{ "int64",    ast::type_info::int64_   },
+	builtin_type_info_info_t{ "uint8",    ast::type_info::uint8_   },
+	builtin_type_info_info_t{ "uint16",   ast::type_info::uint16_  },
+	builtin_type_info_info_t{ "uint32",   ast::type_info::uint32_  },
+	builtin_type_info_info_t{ "uint64",   ast::type_info::uint64_  },
+	builtin_type_info_info_t{ "float32",  ast::type_info::float32_ },
+	builtin_type_info_info_t{ "float64",  ast::type_info::float64_ },
+	builtin_type_info_info_t{ "char",     ast::type_info::char_    },
+	builtin_type_info_info_t{ "str",      ast::type_info::str_     },
+	builtin_type_info_info_t{ "bool",     ast::type_info::bool_    },
+	builtin_type_info_info_t{ "__null_t", ast::type_info::null_t_  },
+};
+
+bool global_context::add_builtin_type_info(ast::type_info *info)
+{
+	auto const name = info->type_name.values.back();
+	auto const it = std::find_if(
+		builtin_type_info_infos.begin(), builtin_type_info_infos.end(),
+		[name](auto const &info) {
+			return info.name == name;
+		}
+	);
+
+	if (it == builtin_type_info_infos.end() || this->_builtin_type_infos[it->kind] != nullptr)
+	{
+		return false;
+	}
+
+	info->kind = it->kind;
+	this->_builtin_type_infos[it->kind] = info;
+
+
+	// attributes are initialized after all the builtin types have been resolved, which should be now
+	if (it->kind == ast::type_info::null_t_)
+	{
+		bz_assert(this->_builtin_type_infos.is_all([](auto const info) { return info != nullptr; }));
+		this->_builtin_attributes = resolve::make_attribute_infos(this->_builtin_type_infos);
+	}
+
+	return true;
+}
+
+ast::type_info *global_context::get_usize_type_info_for_builtin_alias(void) const
+{
+	auto const pointer_size = this->_data_layout->getPointerSize();
+	bz_assert(pointer_size == 8 || pointer_size == 4);
+	return pointer_size == 8
+		? this->get_builtin_type_info(ast::type_info::uint64_)
+		: this->get_builtin_type_info(ast::type_info::uint32_);
+}
+
+ast::type_info *global_context::get_isize_type_info_for_builtin_alias(void) const
+{
+	auto const pointer_size = this->_data_layout->getPointerSize();
+	bz_assert(pointer_size == 8 || pointer_size == 4);
+	return pointer_size == 8
+		? this->get_builtin_type_info(ast::type_info::int64_)
+		: this->get_builtin_type_info(ast::type_info::int32_);
+}
+
 bool global_context::is_aggressive_consteval_enabled(void) const
 {
 	auto const &optimizations = ctcli::option_value<ctcli::option("--opt")>;
@@ -903,7 +997,6 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	};
 
 	this->type_prototype_set = std::make_unique<ast::type_prototype_set_t>(machine_parameters.pointer_size);
-	this->_builtin_type_infos = ast::make_builtin_type_infos(*this->type_prototype_set);
 	this->comptime_codegen_context = std::make_unique<comptime::codegen_context>(*this->type_prototype_set, machine_parameters);
 
 	return true;
@@ -911,9 +1004,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 [[nodiscard]] bool global_context::initialize_builtins(void)
 {
-	auto const pointer_size = this->_data_layout->getPointerSize();
-	this->_builtin_types      = ast::make_builtin_types(this->_builtin_type_infos, pointer_size);
-	this->_builtin_attributes = resolve::make_attribute_infos(this->_builtin_type_infos);
+	this->_builtin_type_infos.resize(ast::type_info::null_t_ + 1, nullptr);
 	this->_builtin_functions.resize(ast::function_body::_builtin_last - ast::function_body::_builtin_first, nullptr);
 
 	if (!ctcli::is_option_set<ctcli::option("--stdlib-dir")>())
@@ -938,6 +1029,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	{
 		return false;
 	}
+
 	if (!builtins_file.parse(*this))
 	{
 		return false;

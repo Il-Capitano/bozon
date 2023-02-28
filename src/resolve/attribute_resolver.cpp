@@ -101,11 +101,9 @@ static bool apply_builtin(
 		context.report_error(func_decl.body.src_tokens, bz::format("invalid function for '@{}'", attribute.name->value));
 		return false;
 	}
-	else
-	{
-		func_decl.body.flags |= ast::function_body::intrinsic;
-		return true;
-	}
+
+	func_decl.body.flags |= ast::function_body::intrinsic;
+	return true;
 }
 
 static bool apply_builtin(
@@ -119,12 +117,168 @@ static bool apply_builtin(
 		context.report_error(op_decl.body.src_tokens, bz::format("invalid operator for '@{}'", attribute.name->value));
 		return false;
 	}
-	else
+
+	op_decl.body.flags |= ast::function_body::intrinsic;
+	op_decl.body.flags |= ast::function_body::builtin_operator;
+	return true;
+}
+
+static bool apply_builtin(
+	ast::decl_type_alias &alias_decl,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	if (!context.global_ctx.add_builtin_type_alias(&alias_decl))
 	{
-		op_decl.body.flags |= ast::function_body::intrinsic;
-		op_decl.body.flags |= ast::function_body::builtin_operator;
+		context.report_error(alias_decl.src_tokens, bz::format("invalid type alias for '@{}'", attribute.name->value));
+		return false;
+	}
+	else if (alias_decl.id.values.back() == "isize")
+	{
+		auto const info = context.global_ctx.get_isize_type_info_for_builtin_alias();
+		alias_decl.alias_expr = ast::make_constant_expression(
+			alias_decl.alias_expr.src_tokens,
+			ast::expression_type_kind::type_name, ast::make_typename_typespec(nullptr),
+			ast::constant_value(ast::make_base_type_typespec(alias_decl.alias_expr.src_tokens, info)),
+			ast::expr_t()
+		);
 		return true;
 	}
+	else if (alias_decl.id.values.back() == "usize")
+	{
+		auto const info = context.global_ctx.get_usize_type_info_for_builtin_alias();
+		alias_decl.alias_expr = ast::make_constant_expression(
+			alias_decl.alias_expr.src_tokens,
+			ast::expression_type_kind::type_name, ast::make_typename_typespec(nullptr),
+			ast::constant_value(ast::make_base_type_typespec(alias_decl.alias_expr.src_tokens, info)),
+			ast::expr_t()
+		);
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+static ast::type_info::decl_function_ptr make_builtin_default_constructor(ast::type_info *info)
+{
+	auto result = ast::make_ast_unique<ast::decl_function>();
+	result->body.return_type = make_base_type_typespec({}, info);
+	switch (info->kind)
+	{
+		case ast::type_info::int8_:
+			result->body.intrinsic_kind = ast::function_body::i8_default_constructor;
+			break;
+		case ast::type_info::int16_:
+			result->body.intrinsic_kind = ast::function_body::i16_default_constructor;
+			break;
+		case ast::type_info::int32_:
+			result->body.intrinsic_kind = ast::function_body::i32_default_constructor;
+			break;
+		case ast::type_info::int64_:
+			result->body.intrinsic_kind = ast::function_body::i64_default_constructor;
+			break;
+		case ast::type_info::uint8_:
+			result->body.intrinsic_kind = ast::function_body::u8_default_constructor;
+			break;
+		case ast::type_info::uint16_:
+			result->body.intrinsic_kind = ast::function_body::u16_default_constructor;
+			break;
+		case ast::type_info::uint32_:
+			result->body.intrinsic_kind = ast::function_body::u32_default_constructor;
+			break;
+		case ast::type_info::uint64_:
+			result->body.intrinsic_kind = ast::function_body::u64_default_constructor;
+			break;
+		case ast::type_info::float32_:
+			result->body.intrinsic_kind = ast::function_body::f32_default_constructor;
+			break;
+		case ast::type_info::float64_:
+			result->body.intrinsic_kind = ast::function_body::f64_default_constructor;
+			break;
+		case ast::type_info::char_:
+			result->body.intrinsic_kind = ast::function_body::char_default_constructor;
+			break;
+		case ast::type_info::bool_:
+			result->body.intrinsic_kind = ast::function_body::bool_default_constructor;
+			break;
+		default:
+			bz_unreachable;
+	}
+	result->body.flags = ast::function_body::intrinsic
+		| ast::function_body::constructor
+		| ast::function_body::default_constructor
+		| ast::function_body::default_default_constructor;
+	result->body.constructor_or_destructor_of = info;
+	result->body.state = ast::resolve_state::symbol;
+	result->body.symbol_name = result->body.get_symbol_name();
+	return result;
+}
+
+static bool apply_builtin(
+	ast::type_info &info,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	if (!context.global_ctx.add_builtin_type_info(&info))
+	{
+		context.report_error(info.src_tokens, bz::format("invalid type for '@{}'", attribute.name->value));
+		return false;
+	}
+
+	if (info.body.is_null())
+	{
+		info.state = ast::resolve_state::all;
+		info.flags = ast::type_info::default_constructible
+			| ast::type_info::copy_constructible
+			| ast::type_info::trivially_copy_constructible
+			| ast::type_info::move_constructible
+			| ast::type_info::trivially_move_constructible
+			| ast::type_info::trivially_destructible
+			| ast::type_info::trivially_move_destructible
+			| ast::type_info::trivial
+			| ast::type_info::trivially_relocatable;
+		info.symbol_name = bz::format("builtin.{}", info.type_name.format_as_unqualified());
+		switch (info.kind)
+		{
+		case ast::type_info::int8_:
+		case ast::type_info::uint8_:
+			info.prototype = context.global_ctx.type_prototype_set->get_builtin_type(ast::builtin_type_kind::i8);
+			break;
+		case ast::type_info::int16_:
+		case ast::type_info::uint16_:
+			info.prototype = context.global_ctx.type_prototype_set->get_builtin_type(ast::builtin_type_kind::i16);
+			break;
+		case ast::type_info::int32_:
+		case ast::type_info::uint32_:
+		case ast::type_info::char_:
+			info.prototype = context.global_ctx.type_prototype_set->get_builtin_type(ast::builtin_type_kind::i32);
+			break;
+		case ast::type_info::int64_:
+		case ast::type_info::uint64_:
+			info.prototype = context.global_ctx.type_prototype_set->get_builtin_type(ast::builtin_type_kind::i64);
+			break;
+		case ast::type_info::float32_:
+			info.prototype = context.global_ctx.type_prototype_set->get_builtin_type(ast::builtin_type_kind::f32);
+			break;
+		case ast::type_info::float64_:
+			info.prototype = context.global_ctx.type_prototype_set->get_builtin_type(ast::builtin_type_kind::f64);
+			break;
+		case ast::type_info::bool_:
+			info.prototype = context.global_ctx.type_prototype_set->get_builtin_type(ast::builtin_type_kind::i1);
+			break;
+		default:
+			bz_unreachable;
+		}
+
+		info.default_default_constructor = make_builtin_default_constructor(&info);
+		info.constructors.push_back(info.default_default_constructor.get());
+	}
+
+	return true;
 }
 
 static bool apply_builtin_assign(
@@ -209,33 +363,24 @@ static bool apply_maybe_unused(
 	return true;
 }
 
-bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info> builtin_type_infos){
-	constexpr size_t N = 4;
+bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info * const> builtin_type_infos)
+{
+	constexpr size_t N = 2;
 	bz::vector<attribute_info_t> result;
 	result.reserve(N);
 
-	auto const str_type = ast::make_base_type_typespec({}, &builtin_type_infos[ast::type_info::str_]);
-
-	result.push_back({
-		"__builtin",
-		{},
-		{ &apply_builtin, &apply_builtin, nullptr, nullptr }
-	});
-	result.push_back({
-		"__builtin_assign",
-		{},
-		{ nullptr, &apply_builtin_assign, nullptr, nullptr }
-	});
+	bz_assert(builtin_type_infos[ast::type_info::str_] != nullptr);
+	auto const str_type = ast::make_base_type_typespec({}, builtin_type_infos[ast::type_info::str_]);
 
 	result.push_back({
 		"symbol_name",
 		{ str_type },
-		{ nullptr, nullptr, &apply_symbol_name, &apply_symbol_name }
+		{ nullptr, nullptr, &apply_symbol_name, &apply_symbol_name, nullptr, nullptr }
 	});
 	result.push_back({
 		"maybe_unused",
 		{},
-		{ nullptr, nullptr, nullptr, &apply_maybe_unused }
+		{ nullptr, nullptr, nullptr, &apply_maybe_unused, nullptr, nullptr }
 	});
 
 	bz_assert(result.size() == N);
@@ -292,19 +437,15 @@ static bool resolve_attribute(
 	return good;
 }
 
-void resolve_attributes(
-	ast::decl_function &func_decl,
-	ctx::parse_context &context
-)
+void resolve_attributes(ast::decl_function &func_decl, ctx::parse_context &context)
 {
 	for (auto &attribute : func_decl.attributes)
 	{
-		auto const attribute_info = context.global_ctx.get_builtin_attribute(attribute.name->value);
-		if (attribute_info == nullptr)
+		if (attribute.name->value == "__builtin")
 		{
-			report_unknown_attribute(attribute, context);
+			apply_builtin(func_decl, attribute, context);
 		}
-		else
+		else if (auto const attribute_info = context.global_ctx.get_builtin_attribute(attribute.name->value))
 		{
 			auto const good = resolve_attribute(attribute, *attribute_info, context);
 			if (good)
@@ -312,22 +453,26 @@ void resolve_attributes(
 				attribute_info->apply_funcs(func_decl, attribute, context);
 			}
 		}
-	}
-}
-
-void resolve_attributes(
-	ast::decl_operator &op_decl,
-	ctx::parse_context &context
-)
-{
-	for (auto &attribute : op_decl.attributes)
-	{
-		auto const attribute_info = context.global_ctx.get_builtin_attribute(attribute.name->value);
-		if (attribute_info == nullptr)
+		else
 		{
 			report_unknown_attribute(attribute, context);
 		}
-		else
+	}
+}
+
+void resolve_attributes(ast::decl_operator &op_decl, ctx::parse_context &context)
+{
+	for (auto &attribute : op_decl.attributes)
+	{
+		if (attribute.name->value == "__builtin")
+		{
+			apply_builtin(op_decl, attribute, context);
+		}
+		else if (attribute.name->value == "__builtin_assign")
+		{
+			apply_builtin_assign(op_decl, attribute, context);
+		}
+		else if (auto const attribute_info = context.global_ctx.get_builtin_attribute(attribute.name->value))
 		{
 			auto const good = resolve_attribute(attribute, *attribute_info, context);
 			if (good)
@@ -335,28 +480,74 @@ void resolve_attributes(
 				attribute_info->apply_funcs(op_decl, attribute, context);
 			}
 		}
-	}
-}
-
-void resolve_attributes(
-	ast::decl_variable &var_decl,
-	ctx::parse_context &context
-)
-{
-	for (auto &attribute : var_decl.attributes)
-	{
-		auto const attribute_info = context.global_ctx.get_builtin_attribute(attribute.name->value);
-		if (attribute_info == nullptr)
+		else
 		{
 			report_unknown_attribute(attribute, context);
 		}
-		else
+	}
+}
+
+void resolve_attributes(ast::decl_variable &var_decl, ctx::parse_context &context)
+{
+	for (auto &attribute : var_decl.attributes)
+	{
+		if (auto const attribute_info = context.global_ctx.get_builtin_attribute(attribute.name->value))
 		{
 			auto const good = resolve_attribute(attribute, *attribute_info, context);
 			if (good)
 			{
 				attribute_info->apply_funcs(var_decl, attribute, context);
 			}
+		}
+		else
+		{
+			report_unknown_attribute(attribute, context);
+		}
+	}
+}
+
+void resolve_attributes(ast::decl_type_alias &alias_decl, ctx::parse_context &context)
+{
+	for (auto &attribute : alias_decl.attributes)
+	{
+		if (attribute.name->value == "__builtin")
+		{
+			apply_builtin(alias_decl, attribute, context);
+		}
+		else if (auto const attribute_info = context.global_ctx.get_builtin_attribute(attribute.name->value))
+		{
+			auto const good = resolve_attribute(attribute, *attribute_info, context);
+			if (good)
+			{
+				attribute_info->apply_funcs(alias_decl, attribute, context);
+			}
+		}
+		else
+		{
+			report_unknown_attribute(attribute, context);
+		}
+	}
+}
+
+void resolve_attributes(ast::type_info &info, ctx::parse_context &context)
+{
+	for (auto &attribute : info.attributes)
+	{
+		if (attribute.name->value == "__builtin")
+		{
+			apply_builtin(info, attribute, context);
+		}
+		else if (auto const attribute_info = context.global_ctx.get_builtin_attribute(attribute.name->value))
+		{
+			auto const good = resolve_attribute(attribute, *attribute_info, context);
+			if (good)
+			{
+				attribute_info->apply_funcs(info, attribute, context);
+			}
+		}
+		else
+		{
+			report_unknown_attribute(attribute, context);
 		}
 	}
 }

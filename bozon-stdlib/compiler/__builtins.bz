@@ -3,6 +3,30 @@ import std::libc::stdio;
 import std::libc::stdlib;
 import std::libc::string;
 
+@__builtin export struct int8;
+@__builtin export struct int16;
+@__builtin export struct int32;
+@__builtin export struct int64;
+@__builtin export struct uint8;
+@__builtin export struct uint16;
+@__builtin export struct uint32;
+@__builtin export struct uint64;
+@__builtin export struct float32;
+@__builtin export struct float64;
+@__builtin export struct char;
+
+@__builtin export struct str
+{
+	._begin: ?*const uint8;
+	._end: ?*const uint8;
+}
+
+@__builtin export struct bool;
+@__builtin export struct __null_t {}
+
+@__builtin export type isize = 0;
+@__builtin export type usize = 0;
+
 @__builtin
 export function __builtin_str_length(s: str) -> usize
 {
@@ -630,7 +654,6 @@ export function __builtin_print_stderr(s: str)
 @__builtin_assign export operator = (lhs: &float32, rhs: float32) -> &float32;
 @__builtin_assign export operator = (lhs: &float64, rhs: float64) -> &float64;
 @__builtin_assign export operator = (lhs: &char, rhs: char) -> &char;
-@__builtin_assign export operator = (lhs: &str, rhs: str) -> &str;
 @__builtin_assign export operator = (lhs: &bool, rhs: bool) -> &bool;
 @__builtin_assign export operator = (lhs: &*auto, rhs: *auto)
 	-> (if consteval (__builtin_remove_reference(typeof lhs) != typeof rhs) {

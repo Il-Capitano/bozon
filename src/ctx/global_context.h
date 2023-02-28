@@ -43,11 +43,12 @@ struct global_context
 	decl_list         _compile_decls;
 	bz::vector<error> _errors;
 
-	bz::vector<ast::type_info>              _builtin_type_infos;
-	bz::vector<ast::type_and_name_pair>     _builtin_types;
 	bz::vector<ast::universal_function_set> _builtin_universal_functions;
 	bz::vector<resolve::attribute_info_t>   _builtin_attributes;
 
+	bz::vector<ast::type_info *>     _builtin_type_infos;
+	ast::decl_type_alias           * _builtin_isize_type_alias = nullptr;
+	ast::decl_type_alias           * _builtin_usize_type_alias = nullptr;
 	bz::vector<ast::decl_function *> _builtin_functions;
 	bz::vector<ast::decl_operator *> _builtin_operators;
 
@@ -75,7 +76,7 @@ struct global_context
 	global_context &operator = (global_context &&)      = delete;
 	~global_context(void) noexcept;
 
-	ast::type_info *get_builtin_type_info(uint32_t kind);
+	ast::type_info *get_builtin_type_info(uint32_t kind) const;
 	ast::type_info *get_usize_type_info(void) const;
 	ast::type_info *get_isize_type_info(void) const;
 	ast::decl_function *get_builtin_function(uint32_t kind);
@@ -142,6 +143,10 @@ struct global_context
 
 	bool add_builtin_function(ast::decl_function *func_decl);
 	bool add_builtin_operator(ast::decl_operator *op_decl);
+	bool add_builtin_type_alias(ast::decl_type_alias *alias_decl);
+	bool add_builtin_type_info(ast::type_info *info);
+	ast::type_info *get_usize_type_info_for_builtin_alias(void) const;
+	ast::type_info *get_isize_type_info_for_builtin_alias(void) const;
 
 	bool is_aggressive_consteval_enabled(void) const;
 
