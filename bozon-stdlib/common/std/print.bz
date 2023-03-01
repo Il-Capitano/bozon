@@ -1,2 +1,11 @@
-export function print = __builtin_print_stdout;
-export function log   = __builtin_print_stderr;
+import std::libc::stdio;
+
+export function print_stdout(s: str)
+{
+	libc::fwrite(s.begin_ptr(), 1, s.size(), libc::stdout());
+}
+
+export function print_stderr(s: str)
+{
+	libc::fwrite(s.begin_ptr(), 1, s.size(), libc::stderr());
+}

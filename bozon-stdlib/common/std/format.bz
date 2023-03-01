@@ -632,20 +632,22 @@ export consteval function comptime_format(fmt_str: consteval str, args: ...#cons
 	}
 }
 
-export function printf(fmt_str: consteval str, args: ...#const auto)
+export function print(fmt_str: consteval str, arg0: #const auto, args: ...#const auto)
 {
 	consteval passed_args_count = {
 		let i = 0uz;
 		[...(typeof args, ++i)];
-		i
+		i + 1
 	};
 	if consteval (check_fmt_str(fmt_str, passed_args_count))
 	{
 		let buf = format_buffer[ string() ];
-		buf.format_into(fmt_str, ...args);
-		print(buf._str.as_str());
+		buf.format_into(fmt_str, arg0, ...args);
+		print_stdout(buf._str.as_str());
 	}
 }
+
+export function print = print_stdout;
 
 
 function print_uint_to_reverse_buffer(it: *uint8, val: uint64, base: consteval uint64) -> *uint8
