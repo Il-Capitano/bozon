@@ -85,6 +85,7 @@ inline bz::u8string source_file;
 inline compilation_phase compile_until = compilation_phase::link;
 
 inline bool do_profile = false;
+inline bool no_main = false;
 inline bool debug_ir_output = false;
 #ifndef NDEBUG
 inline bool debug_comptime_print_functions = false;

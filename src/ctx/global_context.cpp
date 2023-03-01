@@ -1020,19 +1020,38 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	import_dirs.push_front(target_str);
 	import_dirs.push_front(common_str);
 
-	auto const builtins_file_path = stdlib_dir_path / "compiler/__builtins.bz";
-	auto &builtins_file = this->_src_files.emplace_back(
-		builtins_file_path, this->_src_files.size(), bz::vector<bz::u8string>(), true
-	);
-	this->_builtin_global_scope = &builtins_file._export_decls;
-	if (!builtins_file.parse_global_symbols(*this))
 	{
-		return false;
+		auto const builtins_file_path = stdlib_dir_path / "compiler/__builtins.bz";
+		auto &builtins_file = this->_src_files.emplace_back(
+			builtins_file_path, this->_src_files.size(), bz::vector<bz::u8string>(), true
+		);
+		this->_builtin_global_scope = &builtins_file._export_decls;
+		if (!builtins_file.parse_global_symbols(*this))
+		{
+			return false;
+		}
+
+		if (!builtins_file.parse(*this))
+		{
+			return false;
+		}
 	}
 
-	if (!builtins_file.parse(*this))
+	if (!no_main)
 	{
-		return false;
+		auto const main_file_path = stdlib_dir_path / target_triple / "__main.bz";
+		auto &main_file = this->_src_files.emplace_back(
+			main_file_path, this->_src_files.size(), bz::vector<bz::u8string>(), true
+		);
+		if (!main_file.parse_global_symbols(*this))
+		{
+			return false;
+		}
+
+		if (!main_file.parse(*this))
+		{
+			return false;
+		}
 	}
 
 	return true;

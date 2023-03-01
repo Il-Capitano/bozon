@@ -100,8 +100,10 @@ inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def>
 	ctcli::create_hidden_option("--stdlib-dir <dir>",             "Specify the standard library directory", ctcli::arg_type::string),
 	ctcli::create_hidden_option("--x86-asm-syntax={att|intel}",   "Assembly syntax used for x86 (default=att)"),
 	ctcli::create_hidden_option("--profile",                      "Measure time for compilation steps"),
+	ctcli::create_hidden_option("--no-main",                      "Don't provide a default 'main' function"),
 	ctcli::create_hidden_option("--no-error-highlight",           "Disable printing of highlighted source in error messages"),
 	ctcli::create_hidden_option("--error-report-tab-size=<size>", "Set tab size in error reporting (default=4)", ctcli::arg_type::uint64),
+
 	ctcli::create_undocumented_option("--debug-ir-output",      "Emit an LLVM IR file alongside the regular output"),
 	ctcli::create_undocumented_option("--return-zero-on-error", "Return 0 exit code even if there were build errors"),
 #ifndef NDEBUG
@@ -130,6 +132,7 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--targ
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--stdlib-dir")>               = &stdlib_dir;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--x86-asm-syntax")>           = &x86_asm_syntax;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--profile")>                  = &do_profile;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-main")>                  = &no_main;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-ir-output")>          = &debug_ir_output;
 #ifndef NDEBUG
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-functions")>    = &debug_comptime_print_functions;
