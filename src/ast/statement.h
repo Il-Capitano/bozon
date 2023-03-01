@@ -519,9 +519,6 @@ struct function_body
 
 		builtin_call_main,
 
-		print_stdout,
-		print_stderr,
-
 		comptime_malloc,
 		comptime_free,
 
@@ -1576,7 +1573,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 193);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 191);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1620,9 +1617,6 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_panic,              "__builtin_panic"              },
 
 		{ function_body::builtin_call_main, "__builtin_call_main" },
-
-		{ function_body::print_stdout,   "__builtin_print_stdout"   },
-		{ function_body::print_stderr,   "__builtin_print_stderr"   },
 
 		{ function_body::comptime_malloc, "__builtin_comptime_malloc" },
 		{ function_body::comptime_free,   "__builtin_comptime_free"   },

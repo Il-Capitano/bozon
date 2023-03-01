@@ -1800,7 +1800,7 @@ static expr_value generate_intrinsic_function_call_code(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 193);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 191);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2029,12 +2029,6 @@ static expr_value generate_intrinsic_function_call_code(
 			result_address,
 			context
 		);
-	case ast::function_body::print_stdout:
-		// implemented in __builtins.bz
-		bz_unreachable;
-	case ast::function_body::print_stderr:
-		// implemented in __builtins.bz
-		bz_unreachable;
 	case ast::function_body::comptime_malloc:
 	{
 		bz_assert(func_call.params.size() == 2);

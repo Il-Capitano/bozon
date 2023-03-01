@@ -252,17 +252,6 @@ function __libc_main(argc_int: std::libc::int, argv: *const *const std::libc::ch
 	}
 }
 
-@__builtin
-export function __builtin_print_stdout(s: str)
-{
-	std::libc::fwrite(s._begin, 1, __builtin_str_size(s), std::libc::stdout());
-}
-@__builtin
-export function __builtin_print_stderr(s: str)
-{
-	std::libc::fwrite(s._begin, 1, __builtin_str_size(s), std::libc::stderr());
-}
-
 @__builtin export consteval function __builtin_comptime_malloc(T: typename, count: usize) -> *T;
 @__builtin export consteval function __builtin_comptime_free(ptr: ?*void);
 
