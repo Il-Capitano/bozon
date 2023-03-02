@@ -11,7 +11,7 @@ static_assert([]<typename ...Ts>(bz::meta::type_pack<Ts...>) {
 	return bz::meta::is_all<std::is_trivial_v<Ts>...>;
 }(instruction_list_t()));
 
-static_assert(instruction_list_t::size() == 543);
+static_assert(instruction_list_t::size() == 544);
 static_assert(instruction::const_i1                 == instruction::index_of<instructions::const_i1>);
 static_assert(instruction::const_i8                 == instruction::index_of<instructions::const_i8>);
 static_assert(instruction::const_i16                == instruction::index_of<instructions::const_i16>);
@@ -544,6 +544,7 @@ static_assert(instruction::ret_void                 == instruction::index_of<ins
 static_assert(instruction::unreachable              == instruction::index_of<instructions::unreachable>);
 static_assert(instruction::error                    == instruction::index_of<instructions::error>);
 static_assert(instruction::diagnostic_str           == instruction::index_of<instructions::diagnostic_str>);
+static_assert(instruction::print                    == instruction::index_of<instructions::print>);
 static_assert(instruction::is_option_set            == instruction::index_of<instructions::is_option_set>);
 static_assert(instruction::add_global_array_data    == instruction::index_of<instructions::add_global_array_data>);
 static_assert(instruction::array_bounds_check_i32   == instruction::index_of<instructions::array_bounds_check_i32>);
@@ -560,7 +561,7 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 {
 	switch (inst_.index())
 	{
-	static_assert(instruction_list_t::size() == 543);
+	static_assert(instruction_list_t::size() == 544);
 	case instruction::const_i1:
 	{
 		auto const &inst = inst_.get<instructions::const_i1>();
@@ -3267,6 +3268,11 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 	{
 		auto const &inst = inst_.get<instructions::error>();
 		return bz::format("error {}", inst.error_index);
+	}
+	case instruction::print:
+	{
+		auto const &inst = inst_.get<instructions::print>();
+		return bz::format("print {}, {}", inst.args[0], inst.args[1]);
 	}
 	case instruction::diagnostic_str:
 	{

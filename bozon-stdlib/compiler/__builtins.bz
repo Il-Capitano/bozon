@@ -197,6 +197,8 @@ export function __builtin_panic(message: str)
 @__builtin export consteval function __builtin_comptime_malloc(T: typename, count: usize) -> *T;
 @__builtin export consteval function __builtin_comptime_free(ptr: ?*void);
 
+@__builtin export consteval function __builtin_comptime_print(s: str);
+
 @__builtin export consteval function __builtin_comptime_compile_error(message: str);
 @__builtin export consteval function __builtin_comptime_compile_warning(message: str);
 

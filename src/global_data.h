@@ -92,6 +92,7 @@ inline bool debug_comptime_print_functions = false;
 inline bool debug_comptime_print_instructions = false;
 #endif // !NDEBUG
 inline bool do_verbose = false;
+inline bool enable_comptime_print = false;
 inline bool panic_on_unreachable = true;
 inline bool panic_on_null_dereference = true;
 inline bool panic_on_null_pointer_arithmetic = true;

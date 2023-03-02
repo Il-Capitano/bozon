@@ -532,6 +532,7 @@ struct codegen_context
 	instruction_ref create_error(lex::src_tokens const &src_tokens, bz::u8string message);
 	instruction_ref create_error_str(lex::src_tokens const &src_tokens, expr_value begin_ptr, expr_value end_ptr);
 	instruction_ref create_warning_str(lex::src_tokens const &src_tokens, ctx::warning_kind kind, expr_value begin_ptr, expr_value end_ptr);
+	instruction_ref create_print(expr_value begin_ptr, expr_value end_ptr);
 	expr_value create_is_option_set(expr_value begin_ptr, expr_value end_ptr);
 	instruction_ref create_array_bounds_check(lex::src_tokens const &src_tokens, expr_value index, expr_value size, bool is_index_signed);
 	instruction_ref create_optional_get_value_check(lex::src_tokens const &src_tokens, expr_value has_value);

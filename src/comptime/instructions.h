@@ -4830,6 +4830,14 @@ struct diagnostic_str
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
+struct print
+{
+	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
+	static inline constexpr value_type result_type = value_type::none;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
 struct is_option_set
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
@@ -5474,6 +5482,7 @@ using instruction_list_t = bz::meta::type_pack<
 	instructions::unreachable,
 	instructions::error,
 	instructions::diagnostic_str,
+	instructions::print,
 	instructions::is_option_set,
 	instructions::add_global_array_data,
 	instructions::array_bounds_check_i32,
@@ -5525,7 +5534,7 @@ private:
 	uint64_t _index = index_of<void>;
 
 public:
-	static_assert(instruction_list_t::size() == 543);
+	static_assert(instruction_list_t::size() == 544);
 	enum : uint64_t
 	{
 		const_i1 = index_of<instructions::const_i1>,
@@ -6060,6 +6069,7 @@ public:
 		unreachable,
 		error,
 		diagnostic_str,
+		print,
 		is_option_set,
 		add_global_array_data,
 		array_bounds_check_i32,

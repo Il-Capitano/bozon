@@ -4486,6 +4486,14 @@ static void execute_diagnostic_str(instructions::diagnostic_str const &inst, ptr
 	}
 }
 
+static void execute_print(instructions::print const &, ptr_t begin, ptr_t end, executor_context &context)
+{
+	auto const begin_ptr = context.get_memory(begin);
+	auto const end_ptr = context.get_memory(end);
+	auto const message = bz::u8string_view(begin_ptr, end_ptr);
+	bz::print(stdout, "{}", message);
+}
+
 static bool execute_is_option_set(instructions::is_option_set const &, ptr_t begin, ptr_t end, executor_context &context)
 {
 	auto const begin_ptr = context.get_memory(begin);
@@ -4791,7 +4799,7 @@ void execute_current_instruction(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-	static_assert(instruction_list_t::size() == 543);
+	static_assert(instruction_list_t::size() == 544);
 	case instruction::const_i1:
 		execute<instructions::const_i1, &execute_const_i1>(context);
 		break;
@@ -6384,6 +6392,9 @@ void execute_current_instruction(executor_context &context)
 		break;
 	case instruction::error:
 		execute<instructions::error, &execute_error>(context);
+		break;
+	case instruction::print:
+		execute<instructions::print, &execute_print>(context);
 		break;
 	case instruction::diagnostic_str:
 		execute<instructions::diagnostic_str, &execute_diagnostic_str>(context);

@@ -5887,6 +5887,15 @@ instruction_ref codegen_context::create_warning_str(
 	);
 }
 
+instruction_ref codegen_context::create_print(expr_value begin_ptr, expr_value end_ptr)
+{
+
+	auto const begin_ptr_value = begin_ptr.get_value_as_instruction(*this);
+	auto const end_ptr_value = end_ptr.get_value_as_instruction(*this);
+
+	return add_instruction(*this, instructions::print{}, begin_ptr_value, end_ptr_value);
+}
+
 expr_value codegen_context::create_is_option_set(expr_value begin_ptr, expr_value end_ptr)
 {
 	auto const begin_ptr_value = begin_ptr.get_value_as_instruction(*this);
@@ -6064,7 +6073,7 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 {
 	switch (inst.index())
 	{
-	static_assert(instruction_list_t::size() == 543);
+	static_assert(instruction_list_t::size() == 544);
 	case instruction::jump:
 	{
 		auto &jump_inst = inst.get<instructions::jump>();

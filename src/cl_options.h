@@ -103,6 +103,7 @@ inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def>
 	ctcli::create_hidden_option("--no-main",                      "Don't provide a default 'main' function"),
 	ctcli::create_hidden_option("--no-error-highlight",           "Disable printing of highlighted source in error messages"),
 	ctcli::create_hidden_option("--error-report-tab-size=<size>", "Set tab size in error reporting (default=4)", ctcli::arg_type::uint64),
+	ctcli::create_hidden_option("--enable-comptime-print",        "Enable the usage of '__builtin_comptime_print'"),
 
 	ctcli::create_undocumented_option("--debug-ir-output",      "Emit an LLVM IR file alongside the regular output"),
 	ctcli::create_undocumented_option("--return-zero-on-error", "Return 0 exit code even if there were build errors"),
@@ -140,6 +141,7 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debu
 #endif // !NDEBUG
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-error-highlight")>       = &no_error_highlight;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--error-report-tab-size")>    = &tab_size;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--enable-comptime-print")>    = &enable_comptime_print;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--return-zero-on-error")>     = &return_zero_on_error;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--verbose")>                  = &do_verbose;
 

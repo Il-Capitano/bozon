@@ -8,3 +8,4 @@ export function create_global_string = __builtin_comptime_create_global_string;
 
 export function is_comptime = __builtin_is_comptime;
 export function is_option_set = __builtin_is_option_set;
+export function comptime_print = __builtin_comptime_print;

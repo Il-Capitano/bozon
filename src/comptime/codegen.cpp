@@ -1,6 +1,7 @@
 #include "codegen.h"
 #include "codegen_context.h"
 #include "memory_value_conversion.h"
+#include "global_data.h"
 
 namespace comptime
 {
@@ -1800,7 +1801,7 @@ static expr_value generate_intrinsic_function_call_code(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 191);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 192);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2042,6 +2043,26 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(func_call.params.size() == 1);
 		auto const ptr = generate_expr_code(func_call.params[0], context, {});
 		context.create_free(func_call.src_tokens, ptr);
+		bz_assert(!result_address.has_value());
+		return expr_value::get_none();
+	}
+	case ast::function_body::comptime_print:
+	{
+		if (enable_comptime_print)
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const message_value = generate_expr_code(func_call.params[0], context, {});
+			auto const begin_ptr = context.create_struct_gep(message_value, 0);
+			auto const end_ptr = context.create_struct_gep(message_value, 1);
+			context.create_print(begin_ptr, end_ptr);
+		}
+		else
+		{
+			context.create_error(
+				func_call.src_tokens,
+				bz::format("'{}' cannot be used in a constant expression", func_call.func_body->get_signature())
+			);
+		}
 		bz_assert(!result_address.has_value());
 		return expr_value::get_none();
 	}

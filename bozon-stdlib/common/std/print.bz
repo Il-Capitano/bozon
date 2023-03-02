@@ -1,11 +1,26 @@
 import std::libc::stdio;
+import meta::comptime;
 
 export function print_stdout(s: str)
 {
-	libc::fwrite(s.begin_ptr(), 1, s.size(), libc::stdout());
+	if (meta::is_comptime())
+	{
+		meta::comptime_print(s);
+	}
+	else
+	{
+		libc::fwrite(s.begin_ptr(), 1, s.size(), libc::stdout());
+	}
 }
 
 export function print_stderr(s: str)
 {
-	libc::fwrite(s.begin_ptr(), 1, s.size(), libc::stderr());
+	if (meta::is_comptime())
+	{
+		meta::comptime_print(s);
+	}
+	else
+	{
+		libc::fwrite(s.begin_ptr(), 1, s.size(), libc::stderr());
+	}
 }
