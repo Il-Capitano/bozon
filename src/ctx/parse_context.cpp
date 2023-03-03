@@ -3444,7 +3444,8 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 {
 	bz_assert(!possible_funcs.empty());
 	auto const max_match_it = std::max_element(possible_funcs.begin(), possible_funcs.end(), [](auto const &lhs, auto const &rhs) {
-		return lhs.match_level < rhs.match_level;
+		auto const compare_result = resolve::match_level_compare(lhs.match_level, rhs.match_level);
+		return compare_result < 0 || (compare_result == 0 && lhs.func_body->overload_priority < rhs.func_body->overload_priority);
 	});
 	bz_assert(max_match_it != possible_funcs.end());
 	if (max_match_it->match_level.not_null())
@@ -3452,7 +3453,15 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 		// search for possible ambiguity
 		auto filtered_funcs = possible_funcs
 			.filter([&](auto const &func) {
-				return &*max_match_it == &func || resolve::match_level_compare(max_match_it->match_level, func.match_level) <= 0;
+				if (&*max_match_it == &func)
+				{
+					return true;
+				}
+
+				auto const compare_result = resolve::match_level_compare(max_match_it->match_level, func.match_level);
+
+				return compare_result < 0
+					|| (compare_result == 0 && max_match_it->func_body->overload_priority <= func.func_body->overload_priority);
 			});
 		if (filtered_funcs.count() == 1)
 		{

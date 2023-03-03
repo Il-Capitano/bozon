@@ -83,7 +83,11 @@ struct match_level_t : public bz::variant<single_match_t, bz::vector<match_level
 	}
 };
 
-// returns -1 if lhs < rhs, 0 if lhs == rhs or they are ambiguous and 1 if lhs > rhs
+// returns -2 if lhs < rhs
+// returns  2 if lhs > rhs
+// returns -1 if lhs < rhs only by implicit literal conversions
+// returns  1 if lhs > rhs only by implicit literal conversions
+// returns  0 otherwise
 int match_level_compare(match_level_t const &lhs, match_level_t const &rhs);
 bool operator < (match_level_t const &lhs, match_level_t const &rhs);
 match_level_t &operator += (match_level_t &lhs, uint16_t rhs);

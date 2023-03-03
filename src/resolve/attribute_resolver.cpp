@@ -363,13 +363,29 @@ static bool apply_maybe_unused(
 	return true;
 }
 
+static bool apply_overload_priority(
+	ast::function_body &func_body,
+	ast::attribute &attribute,
+	ctx::parse_context &
+)
+{
+	auto const priority = attribute.args[0]
+		.get_constant_value()
+		.get_sint();
+
+	func_body.overload_priority = priority;
+	return true;
+}
+
 bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info * const> builtin_type_infos)
 {
-	constexpr size_t N = 2;
+	constexpr size_t N = 3;
 	bz::vector<attribute_info_t> result;
 	result.reserve(N);
 
+	bz_assert(builtin_type_infos[ast::type_info::int64_] != nullptr);
 	bz_assert(builtin_type_infos[ast::type_info::str_] != nullptr);
+	auto const int64_type = ast::make_base_type_typespec({}, builtin_type_infos[ast::type_info::int64_]);
 	auto const str_type = ast::make_base_type_typespec({}, builtin_type_infos[ast::type_info::str_]);
 
 	result.push_back({
@@ -381,6 +397,11 @@ bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info 
 		"maybe_unused",
 		{},
 		{ nullptr, nullptr, nullptr, &apply_maybe_unused, nullptr, nullptr }
+	});
+	result.push_back({
+		"overload_priority",
+		{ int64_type },
+		{ nullptr, nullptr, &apply_overload_priority, nullptr, nullptr, nullptr }
 	});
 
 	bz_assert(result.size() == N);

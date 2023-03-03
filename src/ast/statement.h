@@ -718,6 +718,7 @@ struct function_body
 	resolve_state               state = resolve_state::none;
 	abi::calling_convention     cc = abi::calling_convention::c;
 	uint8_t                     intrinsic_kind = 0;
+	int64_t                     overload_priority = 0;
 
 	type_info *constructor_or_destructor_of;
 
