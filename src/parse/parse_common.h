@@ -499,6 +499,7 @@ constexpr bz::array statement_parsers = {
 	statement_parser{ lex::token::kw_operator,      statement_parser::struct_body, &parse_decl_operator<parse_scope::struct_body>,          },
 	statement_parser{ lex::token::kw_struct,        statement_parser::struct_body, &parse_decl_struct<parse_scope::struct_body>,            },
 	statement_parser{ lex::token::kw_enum,          statement_parser::struct_body, &parse_decl_enum<parse_scope::struct_body>,              },
+	statement_parser{ lex::token::at,               statement_parser::struct_body, &parse_attribute_statement<parse_scope::struct_body>,    },
 
 	statement_parser{ lex::token::kw_let,           statement_parser::local, &parse_decl_variable<parse_scope::local>,          },
 	statement_parser{ lex::token::kw_const,         statement_parser::local, &parse_decl_variable<parse_scope::local>,          },
