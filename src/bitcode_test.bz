@@ -1976,3 +1976,11 @@ function indirect_call_test()
 	consteval op = add_i32;
 	static_assert(op(2, 3) == 5);
 }
+
+@overload_priority(0) function int_overload(i: int64) -> int32 { return 0; }
+@overload_priority(1) function int_overload(i: uint64) -> int32 { return 1; }
+
+function int_overload_test()
+{
+	static_assert(int_overload(3) == 1);
+}
