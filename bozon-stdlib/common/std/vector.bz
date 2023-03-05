@@ -130,15 +130,27 @@ export struct vector<T: typename>
 		return __builtin_slice_from_const_ptrs(self._data_begin, self._data_end);
 	}
 
-	operator [] (self: &_self_t, i: uint64) -> &value_type
+	@overload_priority(1) operator [] (self: &_self_t, i: uint64) -> &value_type
 	{
 		assert(i < self.size());
 		return *(self._data_begin + i);
 	}
 
-	operator [] (self: &const _self_t, i: uint64) -> &const value_type
+	@overload_priority(1) operator [] (self: &const _self_t, i: uint64) -> &const value_type
 	{
 		assert(i < self.size());
+		return *(self._data_begin + i);
+	}
+
+	operator [] (self: &_self_t, i: int64) -> &value_type
+	{
+		assert(i >= 0 && i as uint64 < self.size());
+		return *(self._data_begin + i);
+	}
+
+	operator [] (self: &const _self_t, i: int64) -> &const value_type
+	{
+		assert(i >= 0 && i as uint64 < self.size());
 		return *(self._data_begin + i);
 	}
 
