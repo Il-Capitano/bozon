@@ -1,0 +1,9 @@
+struct generic_t<T: typename>
+{
+	.p: *T;
+}
+
+@symbol_name("get_generic") function get_generic() -> generic_t<int32>
+{
+	unreachable;
+}

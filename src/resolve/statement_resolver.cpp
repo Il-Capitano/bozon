@@ -1926,6 +1926,8 @@ static void resolve_function_impl(
 		return;
 	}
 
+	context.resolve_typespec(func_body.src_tokens, func_body.return_type);
+
 	auto const prev_function = context.push_current_function(&func_body);
 	func_body.state = ast::resolve_state::resolving_all;
 

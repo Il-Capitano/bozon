@@ -7891,6 +7891,35 @@ void parse_context::resolve_type(lex::src_tokens const &src_tokens, ast::decl_en
 	}
 }
 
+void parse_context::resolve_typespec(lex::src_tokens const &src_tokens, ast::typespec_view ts)
+{
+	if (ts.is<ast::ts_base_type>())
+	{
+		auto const info = ts.get<ast::ts_base_type>().info;
+		this->resolve_type(src_tokens, info);
+	}
+	else if (ts.is<ast::ts_enum>())
+	{
+		auto const enum_decl = ts.get<ast::ts_enum>().decl;
+		this->resolve_type(src_tokens, enum_decl);
+	}
+	else if (ts.is<ast::ts_tuple>())
+	{
+		for (auto const &elem_type : ts.get<ast::ts_tuple>().types)
+		{
+			this->resolve_typespec(src_tokens, elem_type);
+		}
+	}
+	else if (ts.is<ast::ts_array>())
+	{
+		this->resolve_typespec(src_tokens, ts.get<ast::ts_array>().elem_type);
+	}
+	else if (ts.is<ast::ts_optional>())
+	{
+		this->resolve_typespec(src_tokens, ts.get<ast::ts_optional>());
+	}
+}
+
 template<
 	bool (ast::type_info::*base_type_property_func)(void) const,
 	bool default_value, typename ...exception_types
