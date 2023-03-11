@@ -7891,12 +7891,12 @@ void parse_context::resolve_type(lex::src_tokens const &src_tokens, ast::decl_en
 	}
 }
 
-void parse_context::resolve_typespec(lex::src_tokens const &src_tokens, ast::typespec_view ts)
+void parse_context::resolve_typespec_members(lex::src_tokens const &src_tokens, ast::typespec_view ts)
 {
 	if (ts.is<ast::ts_base_type>())
 	{
 		auto const info = ts.get<ast::ts_base_type>().info;
-		this->resolve_type(src_tokens, info);
+		this->resolve_type_members(src_tokens, info);
 	}
 	else if (ts.is<ast::ts_enum>())
 	{
@@ -7907,16 +7907,16 @@ void parse_context::resolve_typespec(lex::src_tokens const &src_tokens, ast::typ
 	{
 		for (auto const &elem_type : ts.get<ast::ts_tuple>().types)
 		{
-			this->resolve_typespec(src_tokens, elem_type);
+			this->resolve_typespec_members(src_tokens, elem_type);
 		}
 	}
 	else if (ts.is<ast::ts_array>())
 	{
-		this->resolve_typespec(src_tokens, ts.get<ast::ts_array>().elem_type);
+		this->resolve_typespec_members(src_tokens, ts.get<ast::ts_array>().elem_type);
 	}
 	else if (ts.is<ast::ts_optional>())
 	{
-		this->resolve_typespec(src_tokens, ts.get<ast::ts_optional>());
+		this->resolve_typespec_members(src_tokens, ts.get<ast::ts_optional>());
 	}
 }
 

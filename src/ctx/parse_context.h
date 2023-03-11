@@ -469,7 +469,7 @@ struct parse_context
 	void resolve_type(lex::src_tokens const &src_tokens, ast::type_info *info);
 	void resolve_type_members(lex::src_tokens const &src_tokens, ast::type_info *info);
 	void resolve_type(lex::src_tokens const &src_tokens, ast::decl_enum *decl);
-	void resolve_typespec(lex::src_tokens const &src_tokens, ast::typespec_view ts);
+	void resolve_typespec_members(lex::src_tokens const &src_tokens, ast::typespec_view ts);
 	bool is_default_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
 	bool is_copy_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
 	bool is_trivially_copy_constructible(lex::src_tokens const &src_tokens, ast::typespec_view ts);
