@@ -2107,6 +2107,12 @@ static void add_type_info_members(
 		if (stmt.is<ast::decl_function>())
 		{
 			auto &decl = stmt.get<ast::decl_function>();
+
+			if (info.is_generic() || info.is_generic_instantiation())
+			{
+				decl.body.flags |= ast::function_body::parent_scope_generic;
+			}
+
 			if (decl.body.is_destructor())
 			{
 				decl.body.constructor_or_destructor_of = &info;
@@ -2138,7 +2144,14 @@ static void add_type_info_members(
 		}
 		else if (stmt.is<ast::decl_operator>())
 		{
-			info.scope.get_global().add_operator(stmt.get<ast::decl_operator>());
+			auto &decl = stmt.get<ast::decl_operator>();
+
+			if (info.is_generic() || info.is_generic_instantiation())
+			{
+				decl.body.flags |= ast::function_body::parent_scope_generic;
+			}
+
+			info.scope.get_global().add_operator(decl);
 		}
 		else if (stmt.is<ast::decl_variable>())
 		{

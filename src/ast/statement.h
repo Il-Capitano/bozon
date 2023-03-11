@@ -451,26 +451,27 @@ struct function_body
 		intrinsic                   = bit_at< 3>,
 		generic                     = bit_at< 4>,
 		generic_specialization      = bit_at< 5>,
-		default_op_assign           = bit_at< 6>,
-		default_op_move_assign      = bit_at< 7>,
-		local                       = bit_at< 8>,
-		destructor                  = bit_at< 9>,
-		constructor                 = bit_at<10>,
-		default_constructor         = bit_at<11>,
-		copy_constructor            = bit_at<12>,
-		move_constructor            = bit_at<13>,
-		default_default_constructor = bit_at<14>,
-		default_copy_constructor    = bit_at<15>,
-		default_move_constructor    = bit_at<16>,
-		bitcode_emitted             = bit_at<17>,
-		comptime_bitcode_emitted    = bit_at<18>,
-		only_consteval              = bit_at<19>,
-		builtin_operator            = bit_at<20>,
-		builtin_assign              = bit_at<21>,
-		defaulted                   = bit_at<22>,
-		deleted                     = bit_at<23>,
-		copy_assign_op              = bit_at<24>,
-		move_assign_op              = bit_at<25>,
+		parent_scope_generic        = bit_at< 6>,
+		default_op_assign           = bit_at< 7>,
+		default_op_move_assign      = bit_at< 8>,
+		local                       = bit_at< 9>,
+		destructor                  = bit_at<10>,
+		constructor                 = bit_at<11>,
+		default_constructor         = bit_at<12>,
+		copy_constructor            = bit_at<13>,
+		move_constructor            = bit_at<14>,
+		default_default_constructor = bit_at<15>,
+		default_copy_constructor    = bit_at<16>,
+		default_move_constructor    = bit_at<17>,
+		bitcode_emitted             = bit_at<18>,
+		comptime_bitcode_emitted    = bit_at<19>,
+		only_consteval              = bit_at<20>,
+		builtin_operator            = bit_at<21>,
+		builtin_assign              = bit_at<22>,
+		defaulted                   = bit_at<23>,
+		deleted                     = bit_at<24>,
+		copy_assign_op              = bit_at<25>,
+		move_assign_op              = bit_at<26>,
 	};
 
 	enum : uint8_t
@@ -796,6 +797,9 @@ struct function_body
 
 	bool is_generic_specialization(void) const noexcept
 	{ return (this->flags & generic_specialization) != 0; }
+
+	bool is_parent_scope_generic(void) const noexcept
+	{ return (this->flags & parent_scope_generic) != 0; }
 
 	bool is_default_op_assign(void) const noexcept
 	{ return (this->flags & default_op_assign) != 0; }

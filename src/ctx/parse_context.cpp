@@ -3601,6 +3601,11 @@ static ast::expression make_expr_function_call_from_body(
 		{
 			resolve::match_expression_to_variable(arg, func_body_param, context);
 		}
+
+		if (body->is_parent_scope_generic() && body != context.current_function && !context.generic_functions.contains(body))
+		{
+			context.generic_functions.push_back(body);
+		}
 	}
 	resolve::resolve_function_symbol({}, *body, context);
 	context.pop_resolve_queue();
