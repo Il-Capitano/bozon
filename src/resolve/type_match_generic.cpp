@@ -1474,11 +1474,20 @@ static match_function_result_t<kind> generic_type_match_tuple(match_context_t<ki
 		}
 		else if constexpr (kind == type_match_function_kind::match_expression)
 		{
-			auto matched_elem_type = generic_type_match(match_context_t<type_match_function_kind::matched_type>{
-				.expr = tuple_expr.elems[0],
-				.dest = dest_array_t.elem_type,
-				.context = match_context.context,
-			});
+			bz::optional<ast::typespec> generic_matched_elem_type;
+			auto &dest_array_t = match_context.dest_container.terminator->template get<ast::ts_array>();
+			if (!ast::is_complete(dest_array_t.elem_type))
+			{
+				generic_matched_elem_type = generic_type_match(match_context_t<type_match_function_kind::matched_type>{
+					.expr = tuple_expr.elems[0],
+					.dest = dest_array_t.elem_type,
+					.context = match_context.context,
+				});
+			}
+
+			auto &matched_elem_type = generic_matched_elem_type.has_value()
+				? generic_matched_elem_type.get()
+				: dest_array_t.elem_type;
 
 			if (matched_elem_type.is_empty())
 			{
@@ -1510,8 +1519,11 @@ static match_function_result_t<kind> generic_type_match_tuple(match_context_t<ki
 				return false;
 			}
 
-			auto &dest_array_t = match_context.dest_container.terminator->template get<ast::ts_array>();
-			dest_array_t.elem_type = std::move(matched_elem_type);
+			if (generic_matched_elem_type.has_value())
+			{
+				dest_array_t.elem_type = std::move(generic_matched_elem_type.get());
+				generic_matched_elem_type.clear();
+			}
 			dest_array_t.size = tuple_expr.elems.size();
 
 			ast::typespec_view array_dest = ast::remove_const_or_consteval(ast::remove_any_reference(match_context.dest_container));
