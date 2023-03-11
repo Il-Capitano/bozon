@@ -4765,7 +4765,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 		if (type.is<ast::ts_base_type>())
 		{
 			auto const info = type.get<ast::ts_base_type>().info;
-			context.resolve_type(src_tokens, info);
+			context.resolve_type_members(src_tokens, info);
 			// TODO: don't use info->enclosing_scope here, because that includes non-exported symbols too
 			get_possible_funcs_for_universal_function_call_helper(
 				possible_funcs, src_tokens, id, params, info->get_scope(), context

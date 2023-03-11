@@ -2139,7 +2139,7 @@ static void add_type_info_members(
 			}
 			else
 			{
-				info.scope.get_global().add_function(stmt.get<ast::decl_function>());
+				info.scope.get_global().add_function(decl);
 			}
 		}
 		else if (stmt.is<ast::decl_operator>())
