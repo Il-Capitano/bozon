@@ -379,7 +379,7 @@ static bool type_property_helper(typespec_view ts) noexcept
 	}
 	else if (ts.is<ts_base_type>())
 	{
-		bz_assert(ts.get<ts_base_type>().info->state == ast::resolve_state::all);
+		bz_assert(ts.get<ts_base_type>().info->state >= ast::resolve_state::members);
 		return (ts.get<ts_base_type>().info->*base_type_property_func)();
 	}
 	else if (ts.is<ts_tuple>())
