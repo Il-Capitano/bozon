@@ -6097,6 +6097,20 @@ void current_function_info_t::finalize_function(void)
 	bz_assert(this->func != nullptr);
 	auto &func = *this->func;
 
+	bz_assert(this->blocks.is_all([](auto const &bb) { return bb.instructions.not_empty(); }));
+	bz_assert(this->blocks.is_all([](auto const &bb) { return bb.instructions.back().is_terminator(); }));
+
+	for (auto const &[inst_ref, dests] : this->unresolved_jumps)
+	{
+		auto const &inst = this->blocks[inst_ref.bb_index].instructions[inst_ref.inst_index];
+		// check if the last jump instruction is a jump to the next block, and if so remove it.
+		// this happens quite a lot in code generation, so it should be worth it to filter them when finalizing the function code.
+		if (inst.index() == instruction::jump && dests[0].bb_index == inst_ref.bb_index + 1)
+		{
+			this->blocks[inst_ref.bb_index].instructions.pop_back();
+		}
+	}
+
 	uint32_t instruction_value_offset = this->allocas.size();
 	for (auto &bb : this->blocks)
 	{
@@ -6135,7 +6149,11 @@ void current_function_info_t::finalize_function(void)
 
 	for (auto const &[inst_ref, dests] : this->unresolved_jumps)
 	{
-		resolve_jump_dests(get_instruction(inst_ref), dests, get_instruction_index);
+		// the last jump could have been removed previously, if it's just a jump to the next block
+		if (inst_ref.inst_index < this->blocks[inst_ref.bb_index].instructions.size())
+		{
+			resolve_jump_dests(get_instruction(inst_ref), dests, get_instruction_index);
+		}
 	}
 
 	// finalize switch_infos
@@ -6176,8 +6194,6 @@ void current_function_info_t::finalize_function(void)
 		auto it = func.instructions.begin();
 		for (auto const &bb : this->blocks)
 		{
-			bz_assert(bb.instructions.not_empty());
-			bz_assert(bb.instructions.back().is_terminator());
 			std::copy_n(bb.instructions.begin(), bb.instructions.size(), it);
 			it += bb.instructions.size();
 		}
