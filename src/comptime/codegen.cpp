@@ -6012,9 +6012,9 @@ static expr_value generate_expr_code(
 static void generate_stmt_code(ast::stmt_while const &while_stmt, codegen_context &context)
 {
 	auto const cond_check_bb = context.add_basic_block();
-	auto const end_bb = context.add_basic_block();
+	auto const break_bb = context.add_basic_block();
 
-	auto const prev_loop_info = context.push_loop(end_bb, cond_check_bb);
+	auto const prev_loop_info = context.push_loop(break_bb, cond_check_bb);
 
 	context.create_jump(cond_check_bb);
 	context.set_current_basic_block(cond_check_bb);
@@ -6023,9 +6023,9 @@ static void generate_stmt_code(ast::stmt_while const &while_stmt, codegen_contex
 		? context.get_dummy_value(context.get_builtin_type(builtin_type_kind::i1))
 		: generate_expr_code(while_stmt.condition, context, {}).get_value(context);
 	context.pop_expression_scope(cond_prev_info);
+	auto const cond_check_bb_end = context.get_current_basic_block();
 
 	auto const while_bb = context.add_basic_block();
-	context.create_conditional_jump(condition, while_bb, end_bb);
 	context.set_current_basic_block(while_bb);
 
 	auto const while_prev_info = context.push_expression_scope();
@@ -6033,6 +6033,15 @@ static void generate_stmt_code(ast::stmt_while const &while_stmt, codegen_contex
 	context.pop_expression_scope(while_prev_info);
 
 	context.create_jump(cond_check_bb);
+
+	auto const end_bb = context.add_basic_block();
+
+	context.set_current_basic_block(break_bb);
+	context.create_jump(end_bb);
+
+	context.set_current_basic_block(cond_check_bb_end);
+	context.create_conditional_jump(condition, while_bb, end_bb);
+
 	context.set_current_basic_block(end_bb);
 
 	context.pop_loop(prev_loop_info);
@@ -6048,9 +6057,9 @@ static void generate_stmt_code(ast::stmt_for const &for_stmt, codegen_context &c
 
 	auto const begin_bb = context.get_current_basic_block();
 
+	auto const break_bb = context.add_basic_block();
 	auto const iteration_bb = context.add_basic_block();
-	auto const end_bb = context.add_basic_block();
-	auto const prev_loop_info = context.push_loop(end_bb, iteration_bb);
+	auto const prev_loop_info = context.push_loop(break_bb, iteration_bb);
 
 	context.set_current_basic_block(iteration_bb);
 	if (for_stmt.iteration.not_null())
@@ -6075,8 +6084,23 @@ static void generate_stmt_code(ast::stmt_for const &for_stmt, codegen_context &c
 		condition = generate_expr_code(for_stmt.condition, context, {}).get_value(context);
 		context.pop_expression_scope(prev_info);
 	}
+	auto const cond_check_bb_end = context.get_current_basic_block();
 
 	auto const for_bb = context.add_basic_block();
+	context.set_current_basic_block(for_bb);
+
+	auto const for_prev_info = context.push_expression_scope();
+	generate_expr_code(for_stmt.for_block, context, {});
+	context.pop_expression_scope(for_prev_info);
+
+	context.create_jump(iteration_bb);
+
+	auto const end_bb = context.add_basic_block();
+
+	context.set_current_basic_block(break_bb);
+	context.create_jump(end_bb);
+
+	context.set_current_basic_block(cond_check_bb_end);
 	if (for_stmt.condition.not_null())
 	{
 		context.create_conditional_jump(condition, for_bb, end_bb);
@@ -6085,13 +6109,7 @@ static void generate_stmt_code(ast::stmt_for const &for_stmt, codegen_context &c
 	{
 		context.create_jump(for_bb);
 	}
-	context.set_current_basic_block(for_bb);
 
-	auto const for_prev_info = context.push_expression_scope();
-	generate_expr_code(for_stmt.for_block, context, {});
-	context.pop_expression_scope(for_prev_info);
-
-	context.create_jump(iteration_bb);
 	context.set_current_basic_block(end_bb);
 
 	context.pop_expression_scope(init_prev_info);
