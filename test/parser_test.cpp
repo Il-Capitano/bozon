@@ -336,6 +336,7 @@ static auto parse_expression_alt(
 {
 	auto result = parse_expression(stream, end, context, precedence{});
 	resolve_expression(result, context);
+	consteval_guaranteed(result, context);
 	return result;
 }
 
