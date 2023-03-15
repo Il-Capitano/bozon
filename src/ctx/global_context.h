@@ -56,7 +56,8 @@ struct global_context
 
 	ast::function_body *_main = nullptr;
 
-	std::list<src_file> _src_files;
+	bz::vector<std::unique_ptr<src_file>> _src_files;
+	std::unordered_map<fs::path, src_file *> _src_files_map;
 
 	std::unique_ptr<ast::type_prototype_set_t> type_prototype_set = nullptr;
 	llvm::LLVMContext _llvm_context;
@@ -75,6 +76,31 @@ struct global_context
 	global_context &operator = (global_context const &) = delete;
 	global_context &operator = (global_context &&)      = delete;
 	~global_context(void) noexcept;
+
+	template<typename ...Args>
+	src_file &emplace_src_file(Args &&...args)
+	{
+		auto &file = *this->_src_files.push_back(std::make_unique<src_file>(std::forward<Args>(args)...));
+		fs::path path = fs::canonical(file.get_file_path());
+		path.make_preferred();
+		this->_src_files_map.insert({ std::move(path), &file });
+		return file;
+	}
+
+	src_file *get_src_file(fs::path const &file_path)
+	{
+		fs::path path = fs::canonical(file_path);
+		path.make_preferred();
+		auto const it = this->_src_files_map.find(path);
+		if (it != this->_src_files_map.end())
+		{
+			return it->second;
+		}
+		else
+		{
+			return nullptr;
+		}
+	}
 
 	ast::type_info *get_builtin_type_info(uint32_t kind) const;
 	ast::type_info *get_usize_type_info(void) const;

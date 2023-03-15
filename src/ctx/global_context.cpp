@@ -310,26 +310,16 @@ void global_context::report_warning(warning_kind kind, bz::u8string message)
 
 src_file &global_context::get_src_file(uint32_t file_id) noexcept
 {
-	auto const it = std::find_if(
-		this->_src_files.begin(), this->_src_files.end(),
-		[&](auto const &src_file) {
-			return file_id == src_file._file_id;
-		}
-	);
-	bz_assert(it != this->_src_files.end());
-	return *it;
+	auto &file = *this->_src_files[file_id];
+	bz_assert(file._file_id == file_id);
+	return file;
 }
 
 src_file const &global_context::get_src_file(uint32_t file_id) const noexcept
 {
-	auto const it = std::find_if(
-		this->_src_files.begin(), this->_src_files.end(),
-		[&](auto const &src_file) {
-			return file_id == src_file._file_id;
-		}
-	);
-	bz_assert(it != this->_src_files.end());
-	return *it;
+	auto const &file = *this->_src_files[file_id];
+	bz_assert(file._file_id == file_id);
+	return file;
 }
 
 char_pos global_context::get_file_begin(uint32_t file_id) const noexcept
@@ -478,15 +468,10 @@ static uint32_t add_module_file(
 )
 {
 	auto &file = [&]() -> auto & {
-		auto const file_it = std::find_if(
-			context._src_files.begin(), context._src_files.end(),
-			[&](auto const &src_file) {
-				return fs::equivalent(src_file.get_file_path(), module_path);
-			}
-		);
-		if (file_it == context._src_files.end())
+		auto const file_it = context.get_src_file(module_path);
+		if (file_it == nullptr)
 		{
-			return context._src_files.emplace_back(
+			return context.emplace_src_file(
 				module_path, context._src_files.size(), std::move(scope), is_library_file || current_file._is_library_file
 			);
 		}
@@ -1022,7 +1007,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 	{
 		auto const builtins_file_path = stdlib_dir_path / "compiler/__builtins.bz";
-		auto &builtins_file = this->_src_files.emplace_back(
+		auto &builtins_file = this->emplace_src_file(
 			builtins_file_path, this->_src_files.size(), bz::vector<bz::u8string>(), true
 		);
 		this->_builtin_global_scope = &builtins_file._export_decls;
@@ -1040,7 +1025,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	if (!no_main)
 	{
 		auto const main_file_path = stdlib_dir_path / target_triple / "__main.bz";
-		auto &main_file = this->_src_files.emplace_back(
+		auto &main_file = this->emplace_src_file(
 			main_file_path, this->_src_files.size(), bz::vector<bz::u8string>(), true
 		);
 		if (!main_file.parse_global_symbols(*this))
@@ -1071,7 +1056,9 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	}
 
 	auto const source_file_path = fs::path(std::string_view(source_file.data_as_char_ptr(), source_file.size()));
-	auto &file = this->_src_files.emplace_back(source_file_path, this->_src_files.size(), bz::vector<bz::u8string>(), false);
+	auto &file = this->emplace_src_file(
+		source_file_path, this->_src_files.size(), bz::vector<bz::u8string>(), false
+	);
 	if (!file.parse_global_symbols(*this))
 	{
 		return false;
@@ -1082,9 +1069,9 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 [[nodiscard]] bool global_context::parse(void)
 {
-	for (auto &file : this->_src_files)
+	for (auto const &file : this->_src_files)
 	{
-		if (!file.parse(*this))
+		if (!file->parse(*this))
 		{
 			return false;
 		}
@@ -1257,15 +1244,15 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	bz_assert(this->_compile_decls.var_decls.size() == 0);
 	for (auto const &file : this->_src_files)
 	{
-		emit_struct_symbols_helper(file._declarations, context);
+		emit_struct_symbols_helper(file->_declarations, context);
 	}
 	for (auto const &file : this->_src_files)
 	{
-		emit_structs_helper(file._declarations, context);
+		emit_structs_helper(file->_declarations, context);
 	}
 	for (auto const &file : this->_src_files)
 	{
-		emit_variables_helper(file._declarations, context);
+		emit_variables_helper(file->_declarations, context);
 	}
 	for (auto const func : this->_compile_decls.funcs)
 	{
