@@ -1070,7 +1070,6 @@ void resolve_expression(ast::expression &expr, ctx::parse_context &context)
 		expr.consteval_state = expr_consteval_state;
 		expr.paren_level = expr_paren_level;
 	}
-	consteval_guaranteed(expr, context);
 }
 
 } // namespace resolve

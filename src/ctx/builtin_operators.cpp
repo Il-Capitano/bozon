@@ -1076,6 +1076,107 @@ ast::expression make_builtin_cast(
 	else if (expr_t.is<ast::ts_base_type>())
 	{
 		auto const [expr_kind, dest_kind] = get_base_kinds(expr_t, dest_t);
+		// this is a really common case, where integer literals are converted to a specific integer type
+		// this check covers a wider range, but that should be fine
+		if (expr.is_constant() && ast::is_integer_kind(expr_kind) && ast::is_integer_kind(dest_kind))
+		{
+			auto const &expr_value = expr.get_constant_value();
+			auto const dest_max_value = [dest_kind = dest_kind]() -> uint64_t {
+				switch (dest_kind)
+				{
+				case ast::type_info::int8_:
+					return static_cast<uint64_t>(std::numeric_limits<int8_t>::max());
+				case ast::type_info::int16_:
+					return static_cast<uint64_t>(std::numeric_limits<int16_t>::max());
+				case ast::type_info::int32_:
+					return static_cast<uint64_t>(std::numeric_limits<int32_t>::max());
+				case ast::type_info::int64_:
+					return static_cast<uint64_t>(std::numeric_limits<int64_t>::max());
+				case ast::type_info::uint8_:
+					return static_cast<uint64_t>(std::numeric_limits<uint8_t>::max());
+				case ast::type_info::uint16_:
+					return static_cast<uint64_t>(std::numeric_limits<uint16_t>::max());
+				case ast::type_info::uint32_:
+					return static_cast<uint64_t>(std::numeric_limits<uint32_t>::max());
+				case ast::type_info::uint64_:
+					return static_cast<uint64_t>(std::numeric_limits<uint64_t>::max());
+				default:
+					bz_unreachable;
+				}
+			}();
+
+			if (expr_value.is_sint())
+			{
+				auto const value = expr_value.get_sint();
+				if (
+					ast::is_signed_integer_kind(dest_kind)
+					&& value <= static_cast<int64_t>(dest_max_value)
+					&& value >= (-static_cast<int64_t>(dest_max_value) - 1)
+				)
+				{
+					ast::typespec dest_t_copy = dest_t;
+					ast::constant_value result_value;
+					result_value.emplace<ast::constant_value::sint>(value);
+					return ast::make_constant_expression(
+						src_tokens,
+						ast::expression_type_kind::rvalue,
+						std::move(dest_t_copy),
+						std::move(result_value),
+						ast::make_expr_cast(std::move(expr), std::move(dest_type))
+					);
+				}
+				else if (
+					ast::is_unsigned_integer_kind(dest_kind)
+					&& value >= 0
+					&& static_cast<uint64_t>(value) <= dest_max_value
+				)
+				{
+					ast::typespec dest_t_copy = dest_t;
+					ast::constant_value result_value;
+					result_value.emplace<ast::constant_value::uint>(static_cast<uint64_t>(value));
+					return ast::make_constant_expression(
+						src_tokens,
+						ast::expression_type_kind::rvalue,
+						std::move(dest_t_copy),
+						std::move(result_value),
+						ast::make_expr_cast(std::move(expr), std::move(dest_type))
+					);
+				}
+				else
+				{
+					// fall back to the general case
+				}
+			}
+			else
+			{
+				auto const value = expr_value.get_uint();
+				if (value <= dest_max_value)
+				{
+					ast::typespec dest_t_copy = dest_t;
+					ast::constant_value result_value;
+					if (ast::is_signed_integer_kind(dest_kind))
+					{
+						result_value.emplace<ast::constant_value::sint>(static_cast<int64_t>(value));
+					}
+					else
+					{
+						result_value.emplace<ast::constant_value::uint>(static_cast<uint64_t>(value));
+					}
+					return ast::make_constant_expression(
+						src_tokens,
+						ast::expression_type_kind::rvalue,
+						std::move(dest_t_copy),
+						std::move(result_value),
+						ast::make_expr_cast(std::move(expr), std::move(dest_type))
+					);
+				}
+				else
+				{
+					// fall back to the general case
+				}
+			}
+		}
+
 		if (ast::is_arithmetic_kind(expr_kind) && ast::is_arithmetic_kind(dest_kind))
 		{
 			ast::typespec dest_t_copy = dest_t;

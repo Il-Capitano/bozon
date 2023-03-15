@@ -430,6 +430,7 @@ static void resolve_stmt(ast::stmt_expression &expr_stmt, ctx::parse_context &co
 {
 	resolve_expression(expr_stmt.expr, context);
 	context.add_self_destruction(expr_stmt.expr);
+	consteval_guaranteed(expr_stmt.expr, context);
 }
 
 static void resolve_stmt(ast::decl_variable &var_decl, ctx::parse_context &context)

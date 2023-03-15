@@ -2409,6 +2409,184 @@ static ast::constant_value evaluate_cast(
 	return {};
 }
 
+template<size_t value_kind, size_t value_array_kind, typename T>
+static bool consteval_guaranteed_special_array_value_helper(
+	ast::arena_vector<T> &values,
+	ast::typespec_view expr_type,
+	bz::array_view<ast::expression> exprs,
+	ctx::parse_context &context
+)
+{
+	if (expr_type.is<ast::ts_array>())
+	{
+		auto const elem_type = expr_type.get<ast::ts_array>().elem_type.as_typespec_view();
+		for (auto &expr : exprs)
+		{
+			if (expr.is_constant())
+			{
+				values.append(expr.get_constant_value().get<value_array_kind>());
+			}
+			else if (expr.is_dynamic() && expr.get_dynamic().expr.is<ast::expr_aggregate_init>())
+			{
+				auto const good = consteval_guaranteed_special_array_value_helper<value_kind, value_array_kind>(
+					values,
+					elem_type,
+					expr.get_dynamic().expr.get<ast::expr_aggregate_init>().exprs,
+					context
+				);
+				if (!good)
+				{
+					return false;
+				}
+			}
+			else
+			{
+				consteval_guaranteed(expr, context);
+				if (expr.is_constant())
+				{
+					values.append(expr.get_constant_value().get<value_array_kind>());
+				}
+				else
+				{
+					return false;
+				}
+			}
+		}
+	}
+	else
+	{
+		for (auto &expr : exprs)
+		{
+			if (!expr.is_constant())
+			{
+				consteval_guaranteed(expr, context);
+			}
+
+			if (expr.is_constant())
+			{
+				values.push_back(expr.get_constant_value().get<value_kind>());
+			}
+			else
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+static ast::constant_value consteval_guaranteed_special_array_value(
+	ast::typespec_view array_type,
+	bz::array_view<ast::expression> exprs,
+	ctx::parse_context &context
+)
+{
+	auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(array_type);
+	bz_assert(elem_type.is<ast::ts_base_type>());
+	auto const type_kind = elem_type.get<ast::ts_base_type>().info->kind;
+
+	switch (type_kind)
+	{
+	case ast::type_info::int8_:
+	case ast::type_info::int16_:
+	case ast::type_info::int32_:
+	case ast::type_info::int64_:
+	{
+		auto result = ast::constant_value();
+		auto &sint_array = result.emplace<ast::constant_value::sint_array>();
+		sint_array.reserve(size);
+
+		auto const good = consteval_guaranteed_special_array_value_helper<
+			ast::constant_value::sint,
+			ast::constant_value::sint_array
+		>(
+			sint_array,
+			array_type.get<ast::ts_array>().elem_type,
+			exprs,
+			context
+		);
+
+		if (!good)
+		{
+			result.clear();
+		}
+		return result;
+	}
+	case ast::type_info::uint8_:
+	case ast::type_info::uint16_:
+	case ast::type_info::uint32_:
+	case ast::type_info::uint64_:
+	{
+		auto result = ast::constant_value();
+		auto &uint_array = result.emplace<ast::constant_value::uint_array>();
+		uint_array.reserve(size);
+
+		auto const good = consteval_guaranteed_special_array_value_helper<
+			ast::constant_value::uint,
+			ast::constant_value::uint_array
+		>(
+			uint_array,
+			array_type.get<ast::ts_array>().elem_type,
+			exprs,
+			context
+		);
+
+		if (!good)
+		{
+			result.clear();
+		}
+		return result;
+	}
+	case ast::type_info::float32_:
+	{
+		auto result = ast::constant_value();
+		auto &float32_array = result.emplace<ast::constant_value::float32_array>();
+		float32_array.reserve(size);
+
+		auto const good = consteval_guaranteed_special_array_value_helper<
+			ast::constant_value::float32,
+			ast::constant_value::float32_array
+		>(
+			float32_array,
+			array_type.get<ast::ts_array>().elem_type,
+			exprs,
+			context
+		);
+
+		if (!good)
+		{
+			result.clear();
+		}
+		return result;
+	}
+	case ast::type_info::float64_:
+	{
+		auto result = ast::constant_value();
+		auto &float64_array = result.emplace<ast::constant_value::float64_array>();
+		float64_array.reserve(size);
+
+		auto const good = consteval_guaranteed_special_array_value_helper<
+			ast::constant_value::float64,
+			ast::constant_value::float64_array
+		>(
+			float64_array,
+			array_type.get<ast::ts_array>().elem_type,
+			exprs,
+			context
+		);
+
+		if (!good)
+		{
+			result.clear();
+		}
+		return result;
+	}
+	default:
+		bz_unreachable;
+	}
+}
+
 static ast::constant_value get_special_array_value(ast::typespec_view array_type, bz::array_view<ast::expression const> exprs)
 {
 	auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(array_type);
@@ -2711,6 +2889,15 @@ static ast::constant_value guaranteed_evaluate_expr(
 			return {};
 		},
 		[&context](ast::expr_aggregate_init &aggregate_init_expr) -> ast::constant_value {
+			if (is_special_array_type(aggregate_init_expr.type))
+			{
+				auto result = consteval_guaranteed_special_array_value(aggregate_init_expr.type, aggregate_init_expr.exprs, context);
+				if (result.not_null())
+				{
+					return result;
+				}
+			}
+
 			bool is_consteval = true;
 			for (auto &expr : aggregate_init_expr.exprs)
 			{
