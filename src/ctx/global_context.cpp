@@ -1520,8 +1520,7 @@ bool global_context::emit_llvm_ir(void)
 
 [[nodiscard]] bool global_context::optimize(void)
 {
-	auto const &optimizations = ctcli::option_value<ctcli::option("--opt")>;
-	if ((opt_level == 0 && optimizations.empty()) || max_opt_iter_count == 0)
+	if (max_opt_iter_count == 0)
 	{
 		return true;
 	}
@@ -1537,6 +1536,8 @@ bool global_context::emit_llvm_ir(void)
 		{
 			switch (opt_level)
 			{
+			case 0:
+				return llvm::OptimizationLevel::O0;
 			case 1:
 				return llvm::OptimizationLevel::O1;
 			case 2:
@@ -1567,7 +1568,9 @@ bool global_context::emit_llvm_ir(void)
 			module_analysis_manager
 		);
 
-		auto pass_manager = builder.buildPerModuleDefaultPipeline(llvm_opt_level);
+		auto pass_manager = llvm_opt_level == llvm::OptimizationLevel::O0
+			? builder.buildO0DefaultPipeline(llvm_opt_level)
+			: builder.buildPerModuleDefaultPipeline(llvm_opt_level);
 
 		pass_manager.run(module, module_analysis_manager);
 	}
