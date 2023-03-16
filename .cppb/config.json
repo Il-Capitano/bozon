@@ -101,7 +101,7 @@
 					"libraries": [ "LLVM", "dwarfstack" ]
 				},
 				"linux": {
-					"compiler": "gcc-10",
+					"compiler": "gcc-12",
 					"libraries": [ "LLVM-15", "backtrace" ],
 					"link_flags": [ "-fuse-ld=lld" ],
 					"warnings": [ "no-unused-parameter" ]
