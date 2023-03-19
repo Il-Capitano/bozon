@@ -102,6 +102,23 @@ constexpr auto create_parse_fn() -> decltype(default_parser)
 	using ret_t = bz::meta::fn_return_type<parse_fn_t>;
 	using args_t = bz::meta::fn_param_types<parse_fn_t>;
 	static_assert(bz::meta::is_same<args_t, bz::meta::type_pack<Stream &, Stream, Context &>>);
+
+#ifdef __GNUC__
+	// this reliably compiles into the same code as a switch with clang, or an if-else cascade with GCC
+	// see: https://godbolt.org/z/eGz1rrj49
+	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
+		return +[](Stream &stream, Stream end, Context &context) -> ret_t {
+			std::size_t i = 0;
+			auto const kind = stream->kind;
+			((
+				kind == parsers[Ns].kind
+				? (void)({ return parsers[i].parse_fn(stream, end, context); })
+				: (void)(i += 1)
+			), ...);
+			return default_parser(stream, end, context);
+		};
+	}(bz::meta::make_index_sequence<parsers.size()>{});
+#else
 	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
 		return +[](Stream &stream, Stream end, Context &context) -> ret_t {
 			alignas(ret_t) char buffer[sizeof(ret_t)];
@@ -121,6 +138,7 @@ constexpr auto create_parse_fn() -> decltype(default_parser)
 			return result;
 		};
 	}(bz::meta::make_index_sequence<parsers.size()>{});
+#endif // __GNUC__
 }
 
 #endif // CORE_H

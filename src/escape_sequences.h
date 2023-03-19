@@ -256,13 +256,13 @@ inline void verify_escape_sequence(file_iterator &stream, ctx::char_pos end, ctx
 	auto const c = *stream.it;
 	bool good = false;
 	// the generated code should be the same as with a switch:
-	// https://godbolt.org/z/b6WM5b
+	// https://godbolt.org/z/cGxajbzMG
 	[&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
-		((
+		(void)((
 			c == escape_sequence_parsers[Ns].c
-			? (void)((good = true), escape_sequence_parsers[Ns].verify(stream, end, context))
-			: (void)0
-		), ...);
+			? ((good = true), escape_sequence_parsers[Ns].verify(stream, end, context), true)
+			: false
+		) || ...);
 	}(bz::meta::make_index_sequence<escape_sequence_parsers.size()>{});
 
 	if (!good)
@@ -295,15 +295,15 @@ inline void verify_escape_sequence(file_iterator &stream, ctx::char_pos end, ctx
 inline bz::u8char get_escape_sequence(bz::u8iterator &it)
 {
 	// generated code should be the same as with a switch:
-	// https://godbolt.org/z/b6WM5b
+	// https://godbolt.org/z/cGxajbzMG
 	auto const c = *it;
 	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
 		bz::u8char result = 0;
-		((
+		(void)((
 			c == escape_sequence_parsers[Ns].c
-			? (void)(result = escape_sequence_parsers[Ns].get(it))
-			: (void)0
-		), ...);
+			? (result = escape_sequence_parsers[Ns].get(it), true)
+			: false
+		) || ...);
 		return result;
 	}(bz::meta::make_index_sequence<escape_sequence_parsers.size()>{});
 	// no error reporting needed here

@@ -1696,6 +1696,40 @@ constexpr auto type_op_binary_operators = []() {
 	return result;
 }();
 
+template<auto const &_info, typename ...Rest>
+static ast::expression make_builtin_operation_generic(
+	lex::src_tokens const &src_tokens,
+	uint32_t op_kind,
+	Rest &&...rest
+)
+{
+	static constexpr auto info = _info;
+#ifdef __GNUC__
+	// this reliably compiles into the same code as a switch with clang, or an if-else cascade with GCC
+	// see: https://godbolt.org/z/eGz1rrj49
+	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
+		size_t i = 0;
+		((
+			op_kind == info[Ns].kind
+			? (void)({ return info[i].parse_function(src_tokens, op_kind, std::forward<Rest>(rest)...); })
+			: (void)(i += 1)
+		), ...);
+		return ast::expression();
+	}(bz::meta::make_index_sequence<info.size()>{});
+#else
+	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
+		ast::expression result;
+		bool done = false;
+		((
+			!done && op_kind == info[Ns].kind
+			? (void)(done = true, result = info[Ns].parse_function(src_tokens, op_kind, std::forward<Rest>(rest)...))
+			: (void)0
+		), ...);
+		return result;
+	}(bz::meta::make_index_sequence<info.size()>{});
+#endif // __GNUC__
+}
+
 ast::expression make_builtin_operation(
 	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
@@ -1703,16 +1737,7 @@ ast::expression make_builtin_operation(
 	parse_context &context
 )
 {
-	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
-		ast::expression result;
-		bool done = false;
-		((
-			!done && op_kind == builtin_unary_operators[Ns].kind
-			? (void)(done = true, result = builtin_unary_operators[Ns].parse_function(src_tokens, op_kind, std::move(expr), context))
-			: (void)0
-		), ...);
-		return result;
-	}(bz::meta::make_index_sequence<builtin_unary_operators.size()>{});
+	return make_builtin_operation_generic<builtin_unary_operators>(src_tokens, op_kind, std::move(expr), context);
 }
 
 ast::expression make_builtin_type_operation(
@@ -1722,16 +1747,7 @@ ast::expression make_builtin_type_operation(
 	parse_context &context
 )
 {
-	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
-		ast::expression result;
-		bool done = false;
-		((
-			!done && op_kind == type_op_unary_operators[Ns].kind
-			? (void)(done = true, result = type_op_unary_operators[Ns].parse_function(src_tokens, op_kind, std::move(expr), context))
-			: (void)0
-		), ...);
-		return result;
-	}(bz::meta::make_index_sequence<type_op_unary_operators.size()>{});
+	return make_builtin_operation_generic<type_op_unary_operators>(src_tokens, op_kind, std::move(expr), context);
 }
 
 ast::expression make_builtin_operation(
@@ -1742,16 +1758,7 @@ ast::expression make_builtin_operation(
 	parse_context &context
 )
 {
-	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
-		ast::expression result;
-		bool done = false;
-		((
-			!done && op_kind == builtin_binary_operators[Ns].kind
-			? (void)(done = true, result = builtin_binary_operators[Ns].parse_function(src_tokens, op_kind, std::move(lhs), std::move(rhs), context))
-			: (void)0
-		), ...);
-		return result;
-	}(bz::meta::make_index_sequence<builtin_binary_operators.size()>{});
+	return make_builtin_operation_generic<builtin_binary_operators>(src_tokens, op_kind, std::move(lhs), std::move(rhs), context);
 }
 
 ast::expression make_builtin_type_operation(
@@ -1762,16 +1769,7 @@ ast::expression make_builtin_type_operation(
 	parse_context &context
 )
 {
-	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
-		ast::expression result;
-		bool done = false;
-		((
-			!done && op_kind == type_op_binary_operators[Ns].kind
-			? (void)(done = true, result = type_op_binary_operators[Ns].parse_function(src_tokens, op_kind, std::move(lhs), std::move(rhs), context))
-			: (void)0
-		), ...);
-		return result;
-	}(bz::meta::make_index_sequence<type_op_binary_operators.size()>{});
+	return make_builtin_operation_generic<type_op_binary_operators>(src_tokens, op_kind, std::move(lhs), std::move(rhs), context);
 }
 
 
