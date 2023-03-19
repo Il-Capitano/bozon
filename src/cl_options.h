@@ -76,6 +76,8 @@ inline constexpr bz::array ctcli::option_group_alias<opt_group_id> = {
 	ctcli::create_alias_group_element<opt_group_id>("1", "Enable basic optimizations (same as opt-level=1)",     "opt-level=1"),
 	ctcli::create_alias_group_element<opt_group_id>("2", "Enable more optimizations (same as opt-level=2)",      "opt-level=2"),
 	ctcli::create_alias_group_element<opt_group_id>("3", "Enable even more optimizations (same as opt-level=3)", "opt-level=3"),
+	ctcli::create_alias_group_element<opt_group_id>("s", "Optimize for size (same as size-opt-level=1)",         "size-opt-level=1"),
+	ctcli::create_alias_group_element<opt_group_id>("z", "Optimize more for size (same as size-opt-level=2)",    "size-opt-level=2"),
 };
 
 template<>
