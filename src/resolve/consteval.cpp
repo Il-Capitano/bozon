@@ -2003,14 +2003,8 @@ static ast::constant_value get_default_constructed_value(
 	type = ast::remove_const_or_consteval(type);
 	if (type.modifiers.not_empty())
 	{
-		return type.modifiers[0].visit(bz::overload{
-			[](ast::ts_optional const &) -> ast::constant_value {
-				return ast::constant_value::get_null();
-			},
-			[](auto const &) -> ast::constant_value {
-				bz_unreachable;
-			}
-		});
+		bz_assert(type.is<ast::ts_optional>());
+		return ast::constant_value::get_null();
 	}
 	else if (type.is<ast::ts_array>())
 	{

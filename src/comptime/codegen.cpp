@@ -1868,24 +1868,6 @@ static expr_value generate_intrinsic_function_call_code(
 		// implemented in __builtins.bz
 		bz_unreachable;
 	case ast::function_body::builtin_slice_from_ptrs:
-	{
-		bz_assert(func_call.params.size() == 2);
-		if (!result_address.has_value())
-		{
-			result_address = context.create_alloca(func_call.src_tokens, context.get_slice_t());
-		}
-		auto const &result_value = result_address.get();
-
-		bz_assert(func_call.func_body->return_type.is<ast::ts_array_slice>());
-		auto const elem_type = get_type(func_call.func_body->return_type.get<ast::ts_array_slice>().elem_type, context);
-		auto const begin_ptr = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		auto const end_ptr   = generate_expr_code(func_call.params[1], context, {}).get_value(context);
-		context.create_slice_construction_check(func_call.src_tokens, begin_ptr, end_ptr, elem_type, func_call.func_body->return_type);
-		context.create_store(begin_ptr, context.create_struct_gep(result_value, 0));
-		context.create_store(end_ptr,   context.create_struct_gep(result_value, 1));
-		context.create_start_lifetime(result_value);
-		return result_value;
-	}
 	case ast::function_body::builtin_slice_from_const_ptrs:
 	{
 		bz_assert(func_call.params.size() == 2);
