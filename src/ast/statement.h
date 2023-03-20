@@ -474,7 +474,7 @@ struct function_body
 		move_assign_op              = bit_at<26>,
 	};
 
-	enum : uint8_t
+	enum : uint16_t
 	{
 		_builtin_first,
 
@@ -720,7 +720,7 @@ struct function_body
 	uint32_t                    flags = 0;
 	resolve_state               state = resolve_state::none;
 	abi::calling_convention     cc = abi::calling_convention::c;
-	uint8_t                     intrinsic_kind = 0;
+	uint16_t                    intrinsic_kind = 0;
 	int64_t                     overload_priority = 0;
 
 	type_info *constructor_or_destructor_of;
