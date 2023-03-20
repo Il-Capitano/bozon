@@ -31,6 +31,17 @@
 @__builtin export type isize = 0;
 @__builtin export type usize = 0;
 
+struct __integer_range<T: typename>
+{
+	._begin: T;
+	._end: T;
+}
+
+struct __integer_range_unbounded<T: typename>
+{
+	._begin: T;
+}
+
 @__builtin
 export function __builtin_str_length(s: str) -> usize
 {
@@ -139,6 +150,26 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 @__builtin export function __builtin_array_end_const_ptr(array: &const [??: auto])
 	-> *const __builtin_array_value_type(__builtin_remove_const(__builtin_remove_reference(typeof array)));
 @__builtin export function __builtin_array_size(array: &const [??: auto]) -> usize;
+
+@__builtin export function __builtin_integer_range_i8 (begin: int8,  end: int8)  -> __integer_range<int8>;
+@__builtin export function __builtin_integer_range_i16(begin: int16, end: int16) -> __integer_range<int16>;
+@__builtin export function __builtin_integer_range_i32(begin: int32, end: int32) -> __integer_range<int32>;
+@__builtin export function __builtin_integer_range_i64(begin: int64, end: int64) -> __integer_range<int64>;
+
+@__builtin export function __builtin_integer_range_u8 (begin: uint8,  end: uint8)  -> __integer_range<uint8>;
+@__builtin export function __builtin_integer_range_u16(begin: uint16, end: uint16) -> __integer_range<uint16>;
+@__builtin export function __builtin_integer_range_u32(begin: uint32, end: uint32) -> __integer_range<uint32>;
+@__builtin export function __builtin_integer_range_u64(begin: uint64, end: uint64) -> __integer_range<uint64>;
+
+@__builtin export function __builtin_integer_range_unbounded_i8 (begin: int8)  -> __integer_range_unbounded<int8>;
+@__builtin export function __builtin_integer_range_unbounded_i16(begin: int16) -> __integer_range_unbounded<int16>;
+@__builtin export function __builtin_integer_range_unbounded_i32(begin: int32) -> __integer_range_unbounded<int32>;
+@__builtin export function __builtin_integer_range_unbounded_i64(begin: int64) -> __integer_range_unbounded<int64>;
+
+@__builtin export function __builtin_integer_range_unbounded_u8 (begin: uint8)  -> __integer_range_unbounded<uint8>;
+@__builtin export function __builtin_integer_range_unbounded_u16(begin: uint16) -> __integer_range_unbounded<uint16>;
+@__builtin export function __builtin_integer_range_unbounded_u32(begin: uint32) -> __integer_range_unbounded<uint32>;
+@__builtin export function __builtin_integer_range_unbounded_u64(begin: uint64) -> __integer_range_unbounded<uint64>;
 
 @__builtin export function __builtin_optional_get_value_ref(value: &?auto)
 	-> &__builtin_remove_optional(__builtin_remove_reference(typeof value));

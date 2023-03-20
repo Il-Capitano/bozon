@@ -1801,7 +1801,7 @@ static expr_value generate_intrinsic_function_call_code(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 194);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 210);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -1914,6 +1914,56 @@ static expr_value generate_intrinsic_function_call_code(
 	case ast::function_body::builtin_array_size:
 		// this is guaranteed to be constant evaluated
 		bz_unreachable;
+	case ast::function_body::builtin_integer_range_i8:
+	case ast::function_body::builtin_integer_range_i16:
+	case ast::function_body::builtin_integer_range_i32:
+	case ast::function_body::builtin_integer_range_i64:
+	case ast::function_body::builtin_integer_range_u8:
+	case ast::function_body::builtin_integer_range_u16:
+	case ast::function_body::builtin_integer_range_u32:
+	case ast::function_body::builtin_integer_range_u64:
+	{
+		bz_assert(func_call.params.size() == 2);
+		if (!result_address.has_value())
+		{
+			result_address = context.create_alloca(func_call.src_tokens, get_type(func_call.func_body->return_type, context));
+		}
+		auto const &result_value = result_address.get();
+		bz_assert(result_value.get_type()->is_aggregate());
+		bz_assert(result_value.get_type()->get_aggregate_types().size() == 2);
+
+		auto const begin = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		auto const end   = generate_expr_code(func_call.params[1], context, {}).get_value(context);
+
+		context.create_store(begin, context.create_struct_gep(result_value, 0));
+		context.create_store(end,   context.create_struct_gep(result_value, 1));
+		context.create_start_lifetime(result_value);
+		return result_value;
+	}
+	case ast::function_body::builtin_integer_range_unbounded_i8:
+	case ast::function_body::builtin_integer_range_unbounded_i16:
+	case ast::function_body::builtin_integer_range_unbounded_i32:
+	case ast::function_body::builtin_integer_range_unbounded_i64:
+	case ast::function_body::builtin_integer_range_unbounded_u8:
+	case ast::function_body::builtin_integer_range_unbounded_u16:
+	case ast::function_body::builtin_integer_range_unbounded_u32:
+	case ast::function_body::builtin_integer_range_unbounded_u64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		if (!result_address.has_value())
+		{
+			result_address = context.create_alloca(func_call.src_tokens, get_type(func_call.func_body->return_type, context));
+		}
+		auto const &result_value = result_address.get();
+		bz_assert(result_value.get_type()->is_aggregate());
+		bz_assert(result_value.get_type()->get_aggregate_types().size() == 1);
+
+		auto const begin = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+
+		context.create_store(begin, context.create_struct_gep(result_value, 0));
+		context.create_start_lifetime(result_value);
+		return result_value;
+	}
 	case ast::function_body::builtin_optional_get_value_ref:
 	case ast::function_body::builtin_optional_get_const_value_ref:
 	{
