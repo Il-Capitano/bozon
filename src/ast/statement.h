@@ -724,6 +724,7 @@ struct function_body
 		builtin_binary_bit_left_shift_eq,
 		builtin_binary_bit_right_shift,
 		builtin_binary_bit_right_shift_eq,
+		builtin_binary_subscript,
 
 		_builtin_binary_operator_last,
 	};
@@ -1899,7 +1900,7 @@ constexpr auto builtin_unary_operator_info = []() {
 }();
 
 constexpr auto builtin_binary_operator_info = []() {
-	static_assert(function_body::_builtin_binary_operator_last - function_body::_builtin_binary_operator_first == 27);
+	static_assert(function_body::_builtin_binary_operator_last - function_body::_builtin_binary_operator_first == 28);
 	constexpr size_t size = function_body::_builtin_binary_operator_last - function_body::_builtin_binary_operator_first;
 	return bz::array<builtin_operator_info_t, size>{{
 		{ function_body::builtin_binary_assign,             lex::token::assign             },
@@ -1929,6 +1930,7 @@ constexpr auto builtin_binary_operator_info = []() {
 		{ function_body::builtin_binary_bit_left_shift_eq,  lex::token::bit_left_shift_eq  },
 		{ function_body::builtin_binary_bit_right_shift,    lex::token::bit_right_shift    },
 		{ function_body::builtin_binary_bit_right_shift_eq, lex::token::bit_right_shift_eq },
+		{ function_body::builtin_binary_subscript,          lex::token::square_open        },
 	}};
 }();
 

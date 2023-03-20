@@ -2598,7 +2598,7 @@ static val_ptr emit_bitcode(
 		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 210);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
-		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
+		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 28);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -2782,8 +2782,8 @@ static val_ptr emit_bitcode(
 				result_address = context.create_alloca(result_type);
 			}
 
-			auto const begin = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
-			auto const end   = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const begin = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const end   = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
 
 			auto const result_begin_ref = context.create_struct_gep(result_type, result_address, 0);
 			auto const result_end_ref   = context.create_struct_gep(result_type, result_address, 1);
@@ -2809,7 +2809,7 @@ static val_ptr emit_bitcode(
 				result_address = context.create_alloca(result_type);
 			}
 
-			auto const begin = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const begin = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
 			auto const result_begin_ref = context.create_struct_gep(result_type, result_address, 0);
 			context.builder.CreateStore(begin, result_begin_ref);
 			return val_ptr::get_reference(result_address, result_type);
@@ -3172,6 +3172,9 @@ static val_ptr emit_bitcode(
 			return emit_builtin_binary_right_shift(func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_bit_right_shift_eq:
 			return emit_builtin_binary_right_shift_eq(func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_subscript:
+			// this is handled as separate expressions, because of lifetime complexity
+			bz_unreachable;
 
 		default:
 			break;

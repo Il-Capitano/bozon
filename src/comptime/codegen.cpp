@@ -1804,7 +1804,7 @@ static expr_value generate_intrinsic_function_call_code(
 	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 210);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
-	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
+	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 28);
 	case ast::function_body::builtin_str_length:
 		// implemented in __builtins.bz
 		bz_unreachable;
@@ -2921,6 +2921,9 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(func_call.params.size() == 2);
 		bz_assert(!result_address.has_value());
 		return generate_builtin_binary_bit_right_shift_eq(original_expression, func_call.params[0], func_call.params[1], context);
+	case ast::function_body::builtin_binary_subscript:
+		// this is handled as separate expressions, because of lifetime complexity
+		bz_unreachable;
 	default:
 		bz_unreachable;
 	}

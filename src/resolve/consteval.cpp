@@ -1484,7 +1484,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 210);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
-	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
+	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 28);
 
 	case ast::function_body::builtin_array_size:
 	{

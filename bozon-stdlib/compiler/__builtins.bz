@@ -1207,3 +1207,102 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 @__builtin @overload_priority(1) export operator >>= (lhs: &uint32,  rhs: uint64) -> &uint32;
 @__builtin @overload_priority(0) export operator >>= (lhs: &uint64,  rhs:  int64) -> &uint64;
 @__builtin @overload_priority(1) export operator >>= (lhs: &uint64,  rhs: uint64) -> &uint64;
+
+@__builtin @overload_priority(0) export operator [] (array: ##[: auto], index:  int64);
+@__builtin @overload_priority(1) export operator [] (array: ##[: auto], index: uint64);
+@__builtin @overload_priority(0) export operator [] (array: ##[: const auto], index:  int64);
+@__builtin @overload_priority(1) export operator [] (array: ##[: const auto], index: uint64);
+@__builtin @overload_priority(0) export operator [] (array: ##[??: auto], index:  int64);
+@__builtin @overload_priority(1) export operator [] (array: ##[??: auto], index: uint64);
+@__builtin @overload_priority(0) export operator [] (tuple: ##[...##auto], index: consteval  int64);
+@__builtin @overload_priority(1) export operator [] (tuple: ##[...##auto], index: consteval uint64);
+
+@__builtin export operator [] (array: ##[: auto], index: __integer_range)
+	-> __builtin_remove_const(__builtin_remove_reference(typeof array))
+{
+	return __builtin_slice_from_ptrs(
+		__builtin_slice_begin_ptr(array) + index._begin,
+		__builtin_slice_begin_ptr(array) + index._end,
+	);
+}
+
+@__builtin export operator [] (array: ##[: auto], index:__integer_range_unbounded)
+	-> __builtin_remove_const(__builtin_remove_reference(typeof array))
+{
+	return __builtin_slice_from_ptrs(
+		__builtin_slice_begin_ptr(array) + index._begin,
+		__builtin_slice_end_ptr(array),
+	);
+}
+
+@__builtin export operator [] (array: ##[: const auto], index: __integer_range)
+	-> __builtin_remove_const(__builtin_remove_reference(typeof array))
+{
+	return __builtin_slice_from_const_ptrs(
+		__builtin_slice_begin_const_ptr(array) + index._begin,
+		__builtin_slice_begin_const_ptr(array) + index._end,
+	);
+}
+
+@__builtin export operator [] (array: ##[: const auto], index: __integer_range_unbounded)
+	-> __builtin_remove_const(__builtin_remove_reference(typeof array))
+{
+	return __builtin_slice_from_const_ptrs(
+		__builtin_slice_begin_const_ptr(array) + index._begin,
+		__builtin_slice_end_const_ptr(array),
+	);
+}
+
+@__builtin export operator [] (array: move [??: auto], index: __integer_range)
+	-> [: __builtin_array_value_type(__builtin_remove_move_reference(typeof array))]
+{
+	return __builtin_slice_from_ptrs(
+		__builtin_array_begin_ptr(array) + index._begin,
+		__builtin_array_begin_ptr(array) + index._end,
+	);
+}
+
+@__builtin export operator [] (array: move [??: auto], index: __integer_range_unbounded)
+	-> [: __builtin_array_value_type(__builtin_remove_move_reference(typeof array))]
+{
+	return __builtin_slice_from_ptrs(
+		__builtin_array_begin_ptr(array) + index._begin,
+		__builtin_array_end_ptr(array),
+	);
+}
+
+@__builtin export operator [] (array: &[??: auto], index: __integer_range)
+	-> [: __builtin_array_value_type(__builtin_remove_reference(typeof array))]
+{
+	return __builtin_slice_from_ptrs(
+		__builtin_array_begin_ptr(array) + index._begin,
+		__builtin_array_begin_ptr(array) + index._end,
+	);
+}
+
+@__builtin export operator [] (array: &[??: auto], index: __integer_range_unbounded)
+	-> [: __builtin_array_value_type(__builtin_remove_reference(typeof array))]
+{
+	return __builtin_slice_from_ptrs(
+		__builtin_array_begin_ptr(array) + index._begin,
+		__builtin_array_end_ptr(array),
+	);
+}
+
+@__builtin export operator [] (array: &const [??: auto], index: __integer_range)
+	-> [: const __builtin_array_value_type(__builtin_remove_const(__builtin_remove_reference(typeof array)))]
+{
+	return __builtin_slice_from_const_ptrs(
+		__builtin_array_begin_const_ptr(array) + index._begin,
+		__builtin_array_begin_const_ptr(array) + index._end,
+	);
+}
+
+@__builtin export operator [] (array: &const [??: auto], index: __integer_range_unbounded)
+	-> [: const __builtin_array_value_type(__builtin_remove_const(__builtin_remove_reference(typeof array)))]
+{
+	return __builtin_slice_from_const_ptrs(
+		__builtin_array_begin_const_ptr(array) + index._begin,
+		__builtin_array_end_const_ptr(array),
+	);
+}

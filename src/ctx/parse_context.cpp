@@ -3123,6 +3123,13 @@ static ast::expression make_expr_function_call_from_body(
 		context.add_self_destruction(args[1]);
 		return context.make_bit_cast_expression(src_tokens, std::move(args[1]), std::move(type));
 	}
+	else if (body->is_intrinsic() && body->intrinsic_kind == ast::function_body::builtin_binary_subscript && body->body.is_null())
+	{
+		bz_assert(args.size() == 2);
+		bz_assert(args[1].get_expr_type_and_kind().second == ast::expression_type_kind::rvalue);
+		context.add_self_destruction(args[1]);
+		return make_builtin_subscript_operator(src_tokens, std::move(args[0]), std::move(args[1]), context);
+	}
 	else if (body->is_default_default_constructor() || (body->is_default_constructor() && body->is_defaulted()))
 	{
 		bz_assert(args.size() == 0);
@@ -4585,13 +4592,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 			}
 
 			auto const [type, kind] = called.get_expr_type_and_kind();
-			auto const constless_type = ast::remove_const_or_consteval(type);
-			if (
-				constless_type.is<ast::ts_array>()
-				|| constless_type.is<ast::ts_array_slice>()
-				|| constless_type.is<ast::ts_tuple>()
-				|| called.is_tuple()
-			)
+			if (called.is_tuple()) // TODO: can this be avoided somehow?
 			{
 				called = make_builtin_subscript_operator(src_tokens, std::move(called), std::move(arg), *this);
 			}
