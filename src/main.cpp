@@ -1661,14 +1661,15 @@ int main(int argc, char const **argv)
 			t.get_section_duration("command line parse time")
 			+ t.get_section_duration("initialization time")
 			+ t.get_section_duration("global symbol parse time")
-			+ t.get_section_duration("parse time")
-			+ t.get_section_duration("bitcode emission time");
+			+ t.get_section_duration("parse time");
+		auto const back_end_time = t.get_section_duration("bitcode emission time");
 		auto const llvm_time        =
 			t.get_section_duration("optimization time")
 			+ t.get_section_duration("file emission time");
 
 		bz::print("successful compilation in {:8.3f}ms\n", in_ms(compilation_time));
 		bz::print("front-end time:           {:8.3f}ms\n", in_ms(front_end_time));
+		bz::print("back-end time:            {:8.3f}ms\n", in_ms(back_end_time));
 		bz::print("LLVM time:                {:8.3f}ms\n", in_ms(llvm_time));
 		for (auto const &[name, begin, end] : t.timing_sections)
 		{
