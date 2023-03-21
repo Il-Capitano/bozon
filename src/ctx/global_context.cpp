@@ -131,6 +131,20 @@ global_context::global_context(void)
 
 global_context::~global_context(void) noexcept = default;
 
+src_file *global_context::get_src_file(fs::path const &file_path)
+{
+	bz_assert(fs::canonical(file_path).make_preferred() == file_path);
+	auto const it = this->_src_files_map.find(file_path);
+	if (it != this->_src_files_map.end())
+	{
+		return it->second;
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
 ast::type_info *global_context::get_builtin_type_info(uint32_t kind) const
 {
 	bz_assert(kind <= ast::type_info::null_t_);
@@ -404,7 +418,11 @@ void global_context::add_compile_function(ast::function_body &func_body)
 	this->_compile_decls.funcs.push_back(&func_body);
 }
 
-static std::pair<fs::path, bool> search_for_source_file(ast::identifier const &id, fs::path const &current_path)
+static std::pair<fs::path, bool> search_for_source_file(
+	ast::identifier const &id,
+	fs::path const &current_path,
+	bz::array_view<fs::path const> import_dirs
+)
 {
 	bz::u8string module_file_name;
 	bool allow_library = true;
@@ -428,11 +446,13 @@ static std::pair<fs::path, bool> search_for_source_file(ast::identifier const &i
 	if (!id.is_qualified)
 	{
 		auto same_dir_module = current_path / module_file_name_sv;
+		bz_assert(!fs::exists(same_dir_module) || fs::canonical(same_dir_module).make_preferred() == same_dir_module);
 		if (fs::exists(same_dir_module))
 		{
 			return { std::move(same_dir_module), false };
 		}
 		auto same_dir_module_folder = current_path / module_folder_name_sv;
+		bz_assert(!fs::exists(same_dir_module_folder) || fs::canonical(same_dir_module_folder).make_preferred() == same_dir_module_folder);
 		if (fs::exists(same_dir_module_folder) && fs::is_directory(same_dir_module_folder))
 		{
 			return { std::move(same_dir_module_folder), false };
@@ -443,13 +463,14 @@ static std::pair<fs::path, bool> search_for_source_file(ast::identifier const &i
 	{
 		for (auto const &import_dir : import_dirs)
 		{
-			std::string_view import_dir_sv(import_dir.data_as_char_ptr(), import_dir.size());
-			auto library_module = fs::path(import_dir_sv) / module_file_name_sv;
+			auto library_module = import_dir / module_file_name_sv;
+			bz_assert(!fs::exists(library_module) || fs::canonical(library_module).make_preferred() == library_module);
 			if (fs::exists(library_module))
 			{
 				return { std::move(library_module), true };
 			}
-			auto library_module_folder = fs::path(import_dir_sv) / module_folder_name_sv;
+			auto library_module_folder = import_dir / module_folder_name_sv;
+			bz_assert(!fs::exists(library_module_folder) || fs::canonical(library_module_folder).make_preferred() == library_module_folder);
 			if (fs::exists(library_module_folder) && fs::is_directory(library_module_folder))
 			{
 				return { std::move(library_module_folder), true };
@@ -534,7 +555,9 @@ static bz::vector<uint32_t> add_module_folder(
 		}
 		else if (p.path().filename().generic_string().ends_with(".bz"))
 		{
-			result.push_back(add_module_file(current_file, p.path(), is_library_folder, scope, context));
+			auto path = fs::canonical(p.path());
+			path.make_preferred();
+			result.push_back(add_module_file(current_file, std::move(path), is_library_folder, scope, context));
 		}
 	}
 	return result;
@@ -543,7 +566,11 @@ static bz::vector<uint32_t> add_module_folder(
 bz::vector<uint32_t> global_context::add_module(uint32_t current_file_id, ast::identifier const &id)
 {
 	auto &current_file = this->get_src_file(current_file_id);
-	auto const [module_path, is_library_path] = search_for_source_file(id, current_file.get_file_path().parent_path());
+	auto const [module_path, is_library_path] = search_for_source_file(
+		id,
+		current_file.get_file_path().parent_path(),
+		this->_import_dirs
+	);
 	if (module_path.empty())
 	{
 		this->report_error(error{
@@ -999,11 +1026,35 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	}
 
 	auto const &target_triple = this->_target_machine->getTargetTriple().str();
-	auto const stdlib_dir_path = fs::path(std::string_view(stdlib_dir.data_as_char_ptr(), stdlib_dir.size()));
-	auto const common_str = bz::u8string((stdlib_dir_path / "common").generic_string().c_str());
-	auto const target_str = bz::u8string((stdlib_dir_path / target_triple).generic_string().c_str());
-	import_dirs.push_front(target_str);
-	import_dirs.push_front(common_str);
+	auto stdlib_dir_path_non_canonical = fs::path(std::string_view(stdlib_dir.data_as_char_ptr(), stdlib_dir.size()), fs::path::native_format);
+	if (!fs::exists(stdlib_dir_path_non_canonical))
+	{
+		this->report_error(bz::format("invalid path '{}' specified for '--stdlib-dir'", stdlib_dir));
+		return false;
+	}
+	auto const stdlib_dir_path = fs::canonical(stdlib_dir_path_non_canonical);
+
+	auto common_str = stdlib_dir_path / "common";
+	auto target_str = stdlib_dir_path / target_triple;
+	if (fs::exists(common_str))
+	{
+		this->_import_dirs.push_back(std::move(common_str));
+	}
+	if (fs::exists(target_str))
+	{
+		this->_import_dirs.push_back(std::move(target_str));
+	}
+
+	for (auto const &import_dir : import_dirs)
+	{
+		std::string_view import_dir_sv(import_dir.data_as_char_ptr(), import_dir.size());
+		auto import_dir_path = fs::path(import_dir_sv);
+		if (fs::exists(import_dir_path))
+		{
+			import_dir_path.make_preferred();
+			this->_import_dirs.push_back(fs::canonical(import_dir_path));
+		}
+	}
 
 	{
 		auto const builtins_file_path = stdlib_dir_path / "compiler/__builtins.bz";

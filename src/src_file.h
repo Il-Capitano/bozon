@@ -40,7 +40,7 @@ public:
 	bz::vector<bz::u8string_view> _scope;
 
 public:
-	src_file(fs::path file_path, uint32_t file_id, bz::vector<bz::u8string> scope, bool is_library_file);
+	src_file(fs::path const &file_path, uint32_t file_id, bz::vector<bz::u8string> scope, bool is_library_file);
 
 	src_file(src_file const &other) = delete;
 	src_file(src_file &&other) = default;
