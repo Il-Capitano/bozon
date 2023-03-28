@@ -42,7 +42,7 @@
 				},
 				"linux-release": {},
 				"windows": {
-					"llvm_config_path": "C:/dev/downloads/install/llvm/bin/llvm-config.exe",
+					"llvm_config_path": "C:/dev/install/llvm/bin/llvm-config.exe",
 					"link_dependencies": [ "ryu_format.windows.o" ],
 					"link_flags": [ "-fuse-ld=lld" ],
 					"libraries": [ "LLVM", "dwarfstack" ]
