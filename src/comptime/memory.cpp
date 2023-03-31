@@ -521,7 +521,7 @@ bz::optional<int64_t> stack_object::do_pointer_difference(
 		auto const slice_check = this->check_slice_construction(lhs, rhs, rhs_is_one_past_the_end, object_type);
 		if (slice_check)
 		{
-			return static_cast<int64_t>((lhs - rhs) / object_type->size);
+			return -static_cast<int64_t>((rhs - lhs) / object_type->size);
 		}
 		else
 		{
@@ -533,7 +533,7 @@ bz::optional<int64_t> stack_object::do_pointer_difference(
 		auto const slice_check = this->check_slice_construction(rhs, lhs, lhs_is_one_past_the_end, object_type);
 		if (slice_check)
 		{
-			return -static_cast<int64_t>((rhs - lhs) / object_type->size);
+			return static_cast<int64_t>((lhs - rhs) / object_type->size);
 		}
 		else
 		{
