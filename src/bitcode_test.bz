@@ -391,6 +391,9 @@ function main(args: [: const str]) -> int32
 	std::print("\n==== indirect_call_test ====\n");
 	indirect_call_test();
 
+	std::print("\n==== improved_slices_test ====\n");
+	improved_slices_test();
+
 	std::print("\n==== end main ====\n");
 	std::print("e  = {}\n", std::e);
 	std::print("pi = {}\n", std::pi);
@@ -2000,4 +2003,31 @@ operator + = add_addable;
 function operator_alias()
 {
 	static_assert((addable_t[ 1 ] + addable_t[ 2 ]).value == 3);
+}
+
+
+function improved_slices_test()
+{
+	let arr: [??: int32] = [ 0, 1, 2, 3, 4, 5, 6, 7 ];
+	// const s = arr[2:4];
+	const s = arr[__builtin_integer_range_u32(2, 4)];
+	std::assert(s.size() == 2);
+	std::assert(s[0] == 2);
+	const s = arr[__builtin_integer_range_unbounded_u32(2)];
+	std::assert(s.size() == arr.size() - 2);
+	const s = s[__builtin_integer_range_u32(0, 3)];
+	std::assert(s.size() == 3);
+
+	(consteval {
+		let arr: [??: int32] = [ 0, 1, 2, 3, 4, 5, 6, 7 ];
+		// const s = arr[2:4];
+		const s = arr[__builtin_integer_range_u32(2, 4)];
+		// std::print("{}\n", s.size());
+		std::assert(s.size() == 2);
+		std::assert(s[0] == 2);
+		const s = arr[__builtin_integer_range_unbounded_u32(2)];
+		std::assert(s.size() == arr.size() - 2);
+		const s = s[__builtin_integer_range_u32(0, 3)];
+		std::assert(s.size() == 3);
+	});
 }
