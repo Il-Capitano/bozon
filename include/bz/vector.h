@@ -833,6 +833,11 @@ public:
 		--this->_data_end;
 	}
 
+	self_t release(void) noexcept
+	{
+		return self_t(std::move(*this));
+	}
+
 	fixed_vector<value_type, allocator_type> release_as_fixed_vector(void) noexcept(
 		nothrow_alloc
 		&& nothrow_dealloc
