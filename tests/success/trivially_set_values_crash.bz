@@ -1,0 +1,5 @@
+function main()
+{
+	let arr: [10: int32];
+	__builtin_trivially_set_values(arr.begin(), 0i32, arr.size());
+}

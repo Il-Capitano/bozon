@@ -2965,7 +2965,7 @@ static val_ptr emit_bitcode(
 			else
 			{
 				auto const value_to_copy = type->isAggregateType() ? value : val_ptr::get_value(value.get_value(context.builder));
-				auto const end = context.create_array_gep(type, dest, count);
+				auto const end = context.create_gep(type, dest, count);
 
 				auto const begin_bb = context.builder.GetInsertBlock();
 
