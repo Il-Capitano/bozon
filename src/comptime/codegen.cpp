@@ -1792,6 +1792,190 @@ static expr_value generate_builtin_binary_bit_right_shift_eq(
 	return lhs_ref;
 }
 
+static expr_value generate_builtin_subscript_range(
+	ast::expression const &original_expression,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+)
+{
+	if (!result_address.has_value())
+	{
+		result_address = context.create_alloca(original_expression.src_tokens, context.get_slice_t());
+	}
+	auto const &result_value = result_address.get();
+
+	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_type = rhs.get_expr_type();
+	auto const lhs_value = generate_expr_code(lhs, context, {});
+	auto const rhs_value = generate_expr_code(rhs, context, {});
+
+	bz_assert(rhs_value.get_type()->is_aggregate());
+	bz_assert(rhs_value.get_type()->get_aggregate_types().size() == 1 || rhs_value.get_type()->get_aggregate_types().size() == 2);
+	auto const is_unbounded = rhs_value.get_type()->get_aggregate_types().size() == 1;
+	bz_assert(rhs_type.is<ast::ts_base_type>());
+	bz_assert(rhs_type.get<ast::ts_base_type>().info->is_generic_instantiation());
+	bz_assert(rhs_type.get<ast::ts_base_type>().info->generic_parameters.size() == 1);
+	bz_assert(rhs_type.get<ast::ts_base_type>().info->generic_parameters[0].init_expr.is_typename());
+	auto const &index_type = rhs_type.get<ast::ts_base_type>().info->generic_parameters[0].init_expr.get_typename();
+	bz_assert(index_type.is<ast::ts_base_type>());
+	bz_assert(ast::is_integer_kind(index_type.get<ast::ts_base_type>().info->kind));
+	auto const is_index_signed = ast::is_signed_integer_kind(index_type.get<ast::ts_base_type>().info->kind);
+
+	auto const begin_index = context.create_struct_gep(rhs_value, 0).get_value(context);
+	auto const end_index = is_unbounded ? expr_value::get_none() : context.create_struct_gep(rhs_value, 1).get_value(context);
+
+	struct bounds_check_info_t
+	{
+		expr_value begin_index_cast;
+		expr_value end_index_cast;
+		expr_value size_cast;
+	};
+
+	auto const get_bounds_check_info = [&](expr_value size) -> bounds_check_info_t {
+		if (is_unbounded)
+		{
+			if (context.is_64_bit() || begin_index.get_type()->get_builtin_kind() == builtin_type_kind::i64)
+			{
+				auto const i64_type = context.get_builtin_type(builtin_type_kind::i64);
+				return {
+					.begin_index_cast = context.create_int_cast(begin_index, i64_type, is_index_signed),
+					.end_index_cast = expr_value::get_none(),
+					.size_cast = size.get_type() != i64_type
+						? context.create_int_cast(size, i64_type, false)
+						: size,
+				};
+			}
+			else
+			{
+				auto const i32_type = context.get_builtin_type(builtin_type_kind::i32);
+				bz_assert(size.get_type() == i32_type);
+				return {
+					.begin_index_cast = context.create_int_cast(begin_index, i32_type, is_index_signed),
+					.end_index_cast = expr_value::get_none(),
+					.size_cast = size,
+				};
+			}
+		}
+		else
+		{
+			if (context.is_64_bit() || begin_index.get_type()->get_builtin_kind() == builtin_type_kind::i64)
+			{
+				auto const i64_type = context.get_builtin_type(builtin_type_kind::i64);
+				return {
+					.begin_index_cast = context.create_int_cast(begin_index, i64_type, is_index_signed),
+					.end_index_cast = context.create_int_cast(end_index, i64_type, is_index_signed),
+					.size_cast = size.get_type() != i64_type
+						? context.create_int_cast(size, i64_type, false)
+						: size,
+				};
+			}
+			else
+			{
+				auto const i32_type = context.get_builtin_type(builtin_type_kind::i32);
+				bz_assert(size.get_type() == i32_type);
+				return {
+					.begin_index_cast = context.create_int_cast(begin_index, i32_type, is_index_signed),
+					.end_index_cast = context.create_int_cast(end_index, i32_type, is_index_signed),
+					.size_cast = size,
+				};
+			}
+		}
+	};
+
+	if (lhs_type.is<ast::ts_array_slice>())
+	{
+		auto const elem_type = get_type(lhs_type.get<ast::ts_array_slice>().elem_type, context);
+		auto const lhs_begin_ptr = context.create_struct_gep(lhs_value, 0).get_value(context);
+		auto const lhs_end_ptr   = context.create_struct_gep(lhs_value, 1).get_value(context);
+		auto const size = context.create_ptrdiff_unchecked(lhs_end_ptr, lhs_begin_ptr, elem_type);
+
+		// bounds check
+		auto const [begin_index_cast, end_index_cast, size_cast] = get_bounds_check_info(size);
+		context.create_array_bounds_check(original_expression.src_tokens, begin_index_cast, size_cast, is_index_signed);
+		if (!is_unbounded)
+		{
+			context.create_array_bounds_check(original_expression.src_tokens, end_index_cast, size_cast, is_index_signed);
+		}
+
+		if (is_unbounded)
+		{
+			auto const begin_ptr = context.create_array_slice_gep(lhs_begin_ptr, begin_index, elem_type).get_reference();
+			auto const begin_ptr_value = expr_value::get_value(begin_ptr, context.get_pointer_type());
+
+			context.create_store(begin_ptr_value, context.create_struct_gep(result_value, 0));
+			context.create_store(lhs_end_ptr, context.create_struct_gep(result_value, 1));
+		}
+		else
+		{
+			auto const begin_ptr = context.create_array_slice_gep(lhs_begin_ptr, begin_index, elem_type).get_reference();
+			auto const end_ptr   = context.create_array_slice_gep(lhs_begin_ptr,   end_index, elem_type).get_reference();
+			auto const begin_ptr_value = expr_value::get_value(begin_ptr, context.get_pointer_type());
+			auto const end_ptr_value   = expr_value::get_value(end_ptr,   context.get_pointer_type());
+
+			context.create_store(begin_ptr_value, context.create_struct_gep(result_value, 0));
+			context.create_store(end_ptr_value,   context.create_struct_gep(result_value, 1));
+		}
+	}
+	else if (lhs_type.is<ast::ts_array>())
+	{
+		auto const size = lhs_value.get_type()->get_array_size();
+		auto const size_value = [&]() {
+			if (context.is_64_bit() || begin_index.get_type()->get_builtin_kind() == builtin_type_kind::i64)
+			{
+				bz_assert(size <= static_cast<size_t>(std::numeric_limits<int64_t>::max()));
+				return is_index_signed
+					? context.create_const_i64(static_cast<int64_t>(size))
+					: context.create_const_u64(static_cast<uint64_t>(size));
+			}
+			else
+			{
+				bz_assert(size <= static_cast<size_t>(std::numeric_limits<int32_t>::max()));
+				return is_index_signed
+					? context.create_const_i32(static_cast<int32_t>(size))
+					: context.create_const_u32(static_cast<uint32_t>(size));
+			}
+		}();
+
+		// bounds check
+		auto const [begin_index_cast, end_index_cast, size_cast] = get_bounds_check_info(size_value);
+		context.create_array_bounds_check(original_expression.src_tokens, begin_index_cast, size_cast, is_index_signed);
+		if (!is_unbounded)
+		{
+			context.create_array_bounds_check(original_expression.src_tokens, end_index_cast, size_cast, is_index_signed);
+		}
+
+		if (is_unbounded)
+		{
+			auto const begin_ptr = context.create_array_gep(lhs_value, begin_index).get_reference();
+			auto const end_ptr = context.create_struct_gep(lhs_value, size).get_reference();
+			auto const begin_ptr_value = expr_value::get_value(begin_ptr, context.get_pointer_type());
+			auto const end_ptr_value   = expr_value::get_value(end_ptr,   context.get_pointer_type());
+
+			context.create_store(begin_ptr_value, context.create_struct_gep(result_value, 0));
+			context.create_store(end_ptr_value,   context.create_struct_gep(result_value, 1));
+		}
+		else
+		{
+			auto const begin_ptr = context.create_array_gep(lhs_value, begin_index).get_reference();
+			auto const end_ptr   = context.create_array_gep(lhs_value, end_index).get_reference();
+			auto const begin_ptr_value = expr_value::get_value(begin_ptr, context.get_pointer_type());
+			auto const end_ptr_value   = expr_value::get_value(end_ptr,   context.get_pointer_type());
+
+			context.create_store(begin_ptr_value, context.create_struct_gep(result_value, 0));
+			context.create_store(end_ptr_value,   context.create_struct_gep(result_value, 1));
+		}
+	}
+	else
+	{
+		bz_unreachable;
+	}
+
+	context.create_start_lifetime(result_value);
+	return result_value;
+}
+
 static expr_value generate_intrinsic_function_call_code(
 	ast::expression const &original_expression,
 	ast::expr_function_call const &func_call,
@@ -2923,7 +3107,8 @@ static expr_value generate_intrinsic_function_call_code(
 		return generate_builtin_binary_bit_right_shift_eq(original_expression, func_call.params[0], func_call.params[1], context);
 	case ast::function_body::builtin_binary_subscript:
 		// this is handled as separate expressions, because of lifetime complexity
-		bz_unreachable;
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_subscript_range(original_expression, func_call.params[0], func_call.params[1], context, result_address);
 	default:
 		bz_unreachable;
 	}

@@ -2177,6 +2177,100 @@ static val_ptr emit_builtin_binary_right_shift_eq(
 	}
 }
 
+static val_ptr emit_builtin_subscript_range(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+)
+{
+	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_type = rhs.get_expr_type();
+	auto const lhs_val = emit_bitcode(lhs, context, nullptr);
+	auto const rhs_val = emit_bitcode(rhs, context, nullptr);
+
+	if (result_address == nullptr)
+	{
+		result_address = context.create_alloca(context.get_slice_t());
+	}
+	auto const result_value = val_ptr::get_reference(result_address, context.get_slice_t());
+
+	bz_assert(rhs_val.get_type()->getStructNumElements() == 1 || rhs_val.get_type()->getStructNumElements() == 2);
+	auto const is_unbounded = rhs_val.get_type()->getStructNumElements() == 1;
+	bz_assert(rhs_type.is<ast::ts_base_type>());
+	bz_assert(rhs_type.get<ast::ts_base_type>().info->is_generic_instantiation());
+	bz_assert(rhs_type.get<ast::ts_base_type>().info->generic_parameters.size() == 1);
+	bz_assert(rhs_type.get<ast::ts_base_type>().info->generic_parameters[0].init_expr.is_typename());
+	auto const &index_type = rhs_type.get<ast::ts_base_type>().info->generic_parameters[0].init_expr.get_typename();
+	bz_assert(index_type.is<ast::ts_base_type>());
+	bz_assert(ast::is_integer_kind(index_type.get<ast::ts_base_type>().info->kind));
+	auto const is_unsigned_index = ast::is_unsigned_integer_kind(index_type.get<ast::ts_base_type>().info->kind);
+
+	auto const cast_index = [&](llvm::Value *index) -> llvm::Value * {
+		if (is_unsigned_index)
+		{
+			return context.builder.CreateIntCast(index, context.get_usize_t(), false);
+		}
+		else
+		{
+			return index;
+		}
+	};
+
+	auto const begin_index = cast_index(context.get_struct_element(rhs_val, 0).get_value(context.builder));
+	auto const end_index = is_unbounded ? nullptr : cast_index(context.get_struct_element(rhs_val, 1).get_value(context.builder));
+
+	if (lhs_type.is<ast::ts_array_slice>())
+	{
+		auto const value_type = get_llvm_type(lhs_type.get<ast::ts_array_slice>().elem_type, context);
+		if (is_unbounded)
+		{
+			auto const lhs_begin_ptr = context.get_struct_element(lhs_val, 0).get_value(context.builder);
+			auto const begin_ptr = context.create_gep(value_type, lhs_begin_ptr, begin_index);
+
+			auto const lhs_end_ptr = context.get_struct_element(lhs_val, 1).get_value(context.builder);
+			context.builder.CreateStore(begin_ptr, context.get_struct_element(result_value, 0).val);
+			context.builder.CreateStore(lhs_end_ptr, context.get_struct_element(result_value, 1).val);
+		}
+		else
+		{
+			auto const lhs_begin_ptr = context.get_struct_element(lhs_val, 0).get_value(context.builder);
+			auto const begin_ptr = context.create_gep(value_type, lhs_begin_ptr, begin_index);
+			auto const end_ptr   = context.create_gep(value_type, lhs_begin_ptr, end_index);
+
+			context.builder.CreateStore(begin_ptr, context.get_struct_element(result_value, 0).val);
+			context.builder.CreateStore(end_ptr,   context.get_struct_element(result_value, 1).val);
+		}
+	}
+	else if (lhs_type.is<ast::ts_array>())
+	{
+		bz_assert(lhs_val.kind == val_ptr::reference);
+
+		if (is_unbounded)
+		{
+			auto const begin_ptr = context.create_array_gep(lhs_val.get_type(), lhs_val.val, begin_index);
+			auto const end_ptr   = context.create_gep(lhs_val.get_type(), lhs_val.val, 0, lhs_type.get<ast::ts_array>().size);
+
+			context.builder.CreateStore(begin_ptr, context.get_struct_element(result_value, 0).val);
+			context.builder.CreateStore(end_ptr,   context.get_struct_element(result_value, 1).val);
+		}
+		else
+		{
+			auto const begin_ptr = context.create_array_gep(lhs_val.get_type(), lhs_val.val, begin_index);
+			auto const end_ptr   = context.create_array_gep(lhs_val.get_type(), lhs_val.val, end_index);
+
+			context.builder.CreateStore(begin_ptr, context.get_struct_element(result_value, 0).val);
+			context.builder.CreateStore(end_ptr,   context.get_struct_element(result_value, 1).val);
+		}
+	}
+	else
+	{
+		bz_unreachable;
+	}
+
+	return result_value;
+}
+
 static val_ptr emit_builtin_binary_bool_and(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
@@ -3173,8 +3267,8 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_binary_bit_right_shift_eq:
 			return emit_builtin_binary_right_shift_eq(func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_subscript:
-			// this is handled as separate expressions, because of lifetime complexity
-			bz_unreachable;
+			// integer subscripts are handled as separate expressions, because of lifetime complexity
+			return emit_builtin_subscript_range(func_call.params[0], func_call.params[1], context, result_address);
 
 		default:
 			break;

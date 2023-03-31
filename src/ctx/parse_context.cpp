@@ -3123,7 +3123,13 @@ static ast::expression make_expr_function_call_from_body(
 		context.add_self_destruction(args[1]);
 		return context.make_bit_cast_expression(src_tokens, std::move(args[1]), std::move(type));
 	}
-	else if (body->is_intrinsic() && body->intrinsic_kind == ast::function_body::builtin_binary_subscript && body->body.is_null())
+	else if (
+		body->is_intrinsic()
+		&& body->intrinsic_kind == ast::function_body::builtin_binary_subscript
+		&& body->body.is_null()
+		&& ast::remove_const_or_consteval(body->params[1].get_type()).is<ast::ts_base_type>()
+		&& ast::is_integer_kind(ast::remove_const_or_consteval(body->params[1].get_type()).get<ast::ts_base_type>().info->kind)
+	)
 	{
 		bz_assert(args.size() == 2);
 		bz_assert(args[1].get_expr_type_and_kind().second == ast::expression_type_kind::rvalue);
