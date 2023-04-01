@@ -119,8 +119,6 @@ constexpr bz::array operator_precedences = {
 
 	prec_t{ prec_t::binary, lex::token::kw_as,              {  4, true  } },
 
-	prec_t{ prec_t::binary, lex::token::dot_dot,            {  5, true  } },
-
 	prec_t{ prec_t::binary, lex::token::multiply,           {  6, true  } },
 	prec_t{ prec_t::binary, lex::token::divide,             {  6, true  } },
 	prec_t{ prec_t::binary, lex::token::modulo,             {  6, true  } },
@@ -153,7 +151,6 @@ constexpr bz::array operator_precedences = {
 	prec_t{ prec_t::binary, lex::token::multiply_eq,        { 18, false } },
 	prec_t{ prec_t::binary, lex::token::divide_eq,          { 18, false } },
 	prec_t{ prec_t::binary, lex::token::modulo_eq,          { 18, false } },
-	prec_t{ prec_t::binary, lex::token::dot_dot_eq,         { 18, false } },
 	prec_t{ prec_t::binary, lex::token::bit_left_shift_eq,  { 18, false } },
 	prec_t{ prec_t::binary, lex::token::bit_right_shift_eq, { 18, false } },
 	prec_t{ prec_t::binary, lex::token::bit_and_eq,         { 18, false } },
@@ -257,9 +254,10 @@ constexpr auto token_info = []() {
 	result[lex::token::bool_or]  = { lex::token::bool_or,  "||", "", binary_builtin_flags };
 	result[lex::token::bool_not] = { lex::token::bool_not, "!",  "", unary_builtin_flags  | unary_overloadable_flags  };
 
-	result[lex::token::comma]      = { lex::token::comma,      ",",   "", binary_builtin_flags     };
-	result[lex::token::dot_dot]    = { lex::token::dot_dot,    "..",  "", binary_overloadable_flags };
-	result[lex::token::dot_dot_eq] = { lex::token::dot_dot_eq, "..=", "", binary_overloadable_flags };
+	result[lex::token::comma]      = { lex::token::comma,      ",",   "", binary_builtin_flags };
+
+	result[lex::token::dot_dot]    = { lex::token::dot_dot,    "..",  "", expr_type_flags };
+	result[lex::token::dot_dot_eq] = { lex::token::dot_dot_eq, "..=", "", expr_type_flags };
 
 	result[lex::token::dot]         = { lex::token::dot,         ".",   "", expr_type_flags };
 	result[lex::token::arrow]       = { lex::token::arrow,       "->",  "", expr_type_flags };

@@ -100,21 +100,21 @@ export operator != (lhs: #const path, rhs: #const path) -> bool
 
 export operator /= (lhs: &path, rhs: str) -> &path
 {
-	lhs._str ..= '/';
-	lhs._str ..= rhs;
+	lhs._str += '/';
+	lhs._str += rhs;
 	return lhs;
 }
 
 export operator /= (lhs: &path, rhs: #const string) -> &path
 {
-	lhs._str ..= '/';
-	lhs._str ..= rhs;
+	lhs._str += '/';
+	lhs._str += rhs;
 	return lhs;
 }
 
 export operator /= (lhs: &path, rhs: #const path) -> &path
 {
-	lhs._str ..= '/';
-	lhs._str ..= rhs;
+	lhs._str += '/';
+	lhs._str += rhs;
 	return lhs;
 }

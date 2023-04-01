@@ -1707,8 +1707,8 @@ export function string_test()
 
 	{
 		let world = std::string("World");
-		world ..= '!';
-		std::print(("Hello " .. world .. '\n').as_str());
+		world += '!';
+		std::print(("Hello " + world + '\n').as_str());
 		std::print("Hello {}\n".std::format(world.as_str()).as_str());
 		std::print("---\n");
 		std::print("{}\n", world.empty());
@@ -1723,7 +1723,7 @@ export function string_test()
 
 	consteval n = {
 		let s = std::string("hello");
-		s ..= " world!";
+		s += " world!";
 		s.length()
 	};
 	static_assert(n == 12u);
@@ -2009,7 +2009,7 @@ function operator_alias()
 function improved_slices_test()
 {
 	let arr: [??: int32] = [ 0, 1, 2, 3, 4, 5, 6, 7 ];
-	// const s = arr[2:4];
+	// const s = arr[2..4];
 	const s = arr[__builtin_integer_range_u32(2, 4)];
 	std::assert(s.size() == 2);
 	std::assert(s[0] == 2);
@@ -2022,7 +2022,6 @@ function improved_slices_test()
 		let arr: [??: int32] = [ 0, 1, 2, 3, 4, 5, 6, 7 ];
 		// const s = arr[2:4];
 		const s = arr[__builtin_integer_range_u32(2, 4)];
-		// std::print("{}\n", s.size());
 		std::assert(s.size() == 2);
 		std::assert(s[0] == 2);
 		const s = arr[__builtin_integer_range_unbounded_u32(2)];

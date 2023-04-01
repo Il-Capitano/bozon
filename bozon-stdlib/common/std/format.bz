@@ -17,12 +17,12 @@ export struct format_buffer
 
 export function write_into(buffer: &format_buffer, s: str)
 {
-	buffer._str ..= s;
+	buffer._str += s;
 }
 
 export function write_into(buffer: &format_buffer, c: char)
 {
-	buffer._str ..= c;
+	buffer._str += c;
 }
 
 export function write_into(buffer: &format_buffer, c: char, count: usize)
@@ -424,13 +424,13 @@ consteval function remove_escaped_brackets(s: str) -> str
 		)
 		{
 			// escaped '{' or '}'
-			result ..= __builtin_str_from_ptrs(prev_begin, it + 1);
+			result += __builtin_str_from_ptrs(prev_begin, it + 1);
 			prev_begin = it + 2;
 			// second increment will happen at end of the for loop
 			++it;
 		}
 	}
-	result ..= __builtin_str_from_ptrs(prev_begin, end);
+	result += __builtin_str_from_ptrs(prev_begin, end);
 
 	return result.as_str().meta::create_global_string();
 }
