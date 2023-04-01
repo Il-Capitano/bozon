@@ -584,6 +584,18 @@ static ast::expression parse_primary_expression(
 			return parse_primary_expression(stream, end, context);
 		}
 	}
+	case lex::token::dot_dot:
+	{
+		auto const dot_dot_pos = stream;
+		++stream;
+		if (stream == end)
+		{
+			return context.make_range_unbounded_expression(lex::src_tokens::from_single_token(dot_dot_pos));
+		}
+
+		auto range_end = parse_expression(stream, end, context, no_assign);
+		return context.make_integer_range_to_expression({ dot_dot_pos, dot_dot_pos, stream }, std::move(range_end));
+	}
 
 	case lex::token::kw_unreachable:
 	{

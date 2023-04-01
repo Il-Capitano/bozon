@@ -2850,19 +2850,6 @@ ast::expression parse_context::make_unreachable(lex::token_pos t)
 	);
 }
 
-static bool is_builtin_type(ast::typespec_view ts)
-{
-	ts = ast::remove_const_or_consteval(ts);
-	return ts.is<ast::ts_pointer>()
-		|| ts.is<ast::ts_function>()
-		|| ts.is<ast::ts_tuple>()
-		|| ts.is<ast::ts_array>()
-		|| ts.is<ast::ts_array_slice>()
-		|| ts.is<ast::ts_optional>()
-		|| (ts.is<ast::ts_base_type>() && ts.get<ast::ts_base_type>().info->kind != ast::type_info::aggregate);
-}
-
-
 struct possible_func_t
 {
 	resolve::match_level_t match_level;
@@ -2976,6 +2963,90 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 	}
 	context.report_error(src_tokens, "couldn't match the function call to any of the candidates", std::move(notes));
 	return { {}, nullptr };
+}
+
+ast::expression parse_context::make_integer_range_to_expression(lex::src_tokens const &src_tokens, ast::expression end)
+{
+	auto args = ast::arena_vector<ast::expression>();
+	args.push_back(std::move(end));
+
+	auto const type = ast::remove_const_or_consteval(args[0].get_expr_type());
+
+	if (type.is<ast::ts_base_type>() && ast::is_integer_kind(type.get<ast::ts_base_type>().info->kind))
+	{
+		auto const func = [&]() -> ast::decl_function * {
+			switch (type.get<ast::ts_base_type>().info->kind) {
+			case ast::type_info::int8_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_i8);
+			case ast::type_info::int16_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_i16);
+			case ast::type_info::int32_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_i32);
+			case ast::type_info::int64_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_i64);
+			case ast::type_info::uint8_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_u8);
+			case ast::type_info::uint16_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_u16);
+			case ast::type_info::uint32_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_u32);
+			case ast::type_info::uint64_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_u64);
+			default:
+				return nullptr;
+			}
+		}();
+		if (func != nullptr)
+		{
+			return make_expr_function_call_from_body(src_tokens, &func->body, std::move(args), *this);
+		}
+	}
+
+	auto const funcs = bz::array{
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_i8),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_i16),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_i32),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_i64),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_u8),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_u16),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_u32),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_u64),
+	};
+
+	auto possible_funcs = funcs.transform([&](auto const decl) {
+		return possible_func_t{
+			resolve::get_function_call_match_level(decl, decl->body, args, *this, src_tokens),
+			decl, &decl->body
+		};
+	}).collect<ast::arena_vector>();
+
+	auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, args, *this);
+	if (best_body == nullptr)
+	{
+		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(lex::token::dot_dot, ast::expression(), std::move(args[0])));
+	}
+	else
+	{
+		return make_expr_function_call_from_body(src_tokens, best_body, std::move(args), *this);
+	}
+}
+
+ast::expression parse_context::make_range_unbounded_expression(lex::src_tokens const &src_tokens)
+{
+	auto const func = this->get_builtin_function(ast::function_body::builtin_range_unbounded);
+	return make_expr_function_call_from_body(src_tokens, &func->body, {}, *this);
+}
+
+static bool is_builtin_type(ast::typespec_view ts)
+{
+	ts = ast::remove_const_or_consteval(ts);
+	return ts.is<ast::ts_pointer>()
+		|| ts.is<ast::ts_function>()
+		|| ts.is<ast::ts_tuple>()
+		|| ts.is<ast::ts_array>()
+		|| ts.is<ast::ts_array_slice>()
+		|| ts.is<ast::ts_optional>()
+		|| (ts.is<ast::ts_base_type>() && ts.get<ast::ts_base_type>().info->kind != ast::type_info::aggregate);
 }
 
 static void expand_variadic_params(ast::arena_vector<ast::decl_variable> &params, size_t params_count)
