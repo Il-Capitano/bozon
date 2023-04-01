@@ -1797,6 +1797,7 @@ enum class range_kind
 	regular,
 	from,
 	to,
+	unbounded,
 };
 
 static range_kind range_kind_from_name(bz::u8string_view struct_name)
@@ -1812,6 +1813,10 @@ static range_kind range_kind_from_name(bz::u8string_view struct_name)
 	else if (struct_name == "__integer_range_to")
 	{
 		return range_kind::to;
+	}
+	else if (struct_name == "__range_unbounded")
+	{
+		return range_kind::unbounded;
 	}
 	else
 	{
@@ -1842,14 +1847,21 @@ static expr_value generate_builtin_subscript_range(
 	bz_assert(rhs_type.get<ast::ts_base_type>().info->type_name.values.size() == 1);
 	auto const kind = range_kind_from_name(rhs_type.get<ast::ts_base_type>().info->type_name.values[0]);
 
-	bz_assert(rhs_type.is<ast::ts_base_type>());
-	bz_assert(rhs_type.get<ast::ts_base_type>().info->is_generic_instantiation());
-	bz_assert(rhs_type.get<ast::ts_base_type>().info->generic_parameters.size() == 1);
-	bz_assert(rhs_type.get<ast::ts_base_type>().info->generic_parameters[0].init_expr.is_typename());
-	auto const &index_type = rhs_type.get<ast::ts_base_type>().info->generic_parameters[0].init_expr.get_typename();
-	bz_assert(index_type.is<ast::ts_base_type>());
-	bz_assert(ast::is_integer_kind(index_type.get<ast::ts_base_type>().info->kind));
-	auto const is_index_signed = ast::is_signed_integer_kind(index_type.get<ast::ts_base_type>().info->kind);
+	auto const is_index_signed = [&]() {
+		if (kind == range_kind::unbounded)
+		{
+			return false;
+		}
+
+		bz_assert(rhs_type.is<ast::ts_base_type>());
+		bz_assert(rhs_type.get<ast::ts_base_type>().info->is_generic_instantiation());
+		bz_assert(rhs_type.get<ast::ts_base_type>().info->generic_parameters.size() == 1);
+		bz_assert(rhs_type.get<ast::ts_base_type>().info->generic_parameters[0].init_expr.is_typename());
+		auto const &index_type = rhs_type.get<ast::ts_base_type>().info->generic_parameters[0].init_expr.get_typename();
+		bz_assert(index_type.is<ast::ts_base_type>());
+		bz_assert(ast::is_integer_kind(index_type.get<ast::ts_base_type>().info->kind));
+		return ast::is_signed_integer_kind(index_type.get<ast::ts_base_type>().info->kind);
+	}();
 
 	struct begin_end_pair_t
 	{
@@ -1877,6 +1889,11 @@ static expr_value generate_builtin_subscript_range(
 			return {
 				.begin = expr_value::get_none(),
 				.end   = context.create_struct_gep(rhs_value, 0).get_value(context),
+			};
+		case range_kind::unbounded:
+			return {
+				.begin = expr_value::get_none(),
+				.end   = expr_value::get_none(),
 			};
 		}
 	}();
@@ -1957,6 +1974,12 @@ static expr_value generate_builtin_subscript_range(
 					.size_cast = size,
 				};
 			}
+		case range_kind::unbounded:
+			return {
+				.begin_index_cast = expr_value::get_none(),
+				.end_index_cast = expr_value::get_none(),
+				.size_cast = expr_value::get_none(),
+			};
 		}
 	};
 
@@ -1980,6 +2003,8 @@ static expr_value generate_builtin_subscript_range(
 			break;
 		case range_kind::to:
 			context.create_array_bounds_check(original_expression.src_tokens, end_index_cast, size_cast, is_index_signed);
+			break;
+		case range_kind::unbounded:
 			break;
 		}
 
@@ -2012,6 +2037,11 @@ static expr_value generate_builtin_subscript_range(
 					.end   = expr_value::get_value(end_ptr, pointer_type),
 				};
 			}
+			case range_kind::unbounded:
+				return {
+					.begin = lhs_begin_ptr,
+					.end   = lhs_end_ptr,
+				};
 			}
 		}();
 
@@ -2052,6 +2082,8 @@ static expr_value generate_builtin_subscript_range(
 		case range_kind::to:
 			context.create_array_bounds_check(original_expression.src_tokens, end_index_cast, size_cast, is_index_signed);
 			break;
+		case range_kind::unbounded:
+			break;
 		}
 
 		auto const [begin_ptr, end_ptr] = [&]() -> begin_end_pair_t {
@@ -2085,6 +2117,15 @@ static expr_value generate_builtin_subscript_range(
 					.end   = expr_value::get_value(end_ptr,   pointer_type),
 				};
 			}
+			case range_kind::unbounded:
+			{
+				auto const begin_ptr = context.create_struct_gep(lhs_value, 0).get_reference();
+				auto const end_ptr   = context.create_struct_gep(lhs_value, size).get_reference();
+				return {
+					.begin = expr_value::get_value(begin_ptr, pointer_type),
+					.end   = expr_value::get_value(end_ptr,   pointer_type),
+				};
+			}
 			}
 		}();
 
@@ -2109,7 +2150,7 @@ static expr_value generate_intrinsic_function_call_code(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 218);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 219);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 28);
@@ -2293,6 +2334,18 @@ static expr_value generate_intrinsic_function_call_code(
 		auto const end = generate_expr_code(func_call.params[0], context, {}).get_value(context);
 
 		context.create_store(end, context.create_struct_gep(result_value, 0));
+		context.create_start_lifetime(result_value);
+		return result_value;
+	}
+	case ast::function_body::builtin_range_unbounded:
+	{
+		bz_assert(func_call.params.empty());
+		if (!result_address.has_value())
+		{
+			result_address = context.create_alloca(func_call.src_tokens, get_type(func_call.func_body->return_type, context));
+		}
+		auto const &result_value = result_address.get();
+		context.create_const_memset_zero(result_value);
 		context.create_start_lifetime(result_value);
 		return result_value;
 	}

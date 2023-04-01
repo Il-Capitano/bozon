@@ -2182,6 +2182,7 @@ enum class range_kind
 	regular,
 	from,
 	to,
+	unbounded,
 };
 
 static range_kind range_kind_from_name(bz::u8string_view struct_name)
@@ -2197,6 +2198,10 @@ static range_kind range_kind_from_name(bz::u8string_view struct_name)
 	else if (struct_name == "__integer_range_to")
 	{
 		return range_kind::to;
+	}
+	else if (struct_name == "__range_unbounded")
+	{
+		return range_kind::unbounded;
 	}
 	else
 	{
@@ -2226,14 +2231,21 @@ static val_ptr emit_builtin_subscript_range(
 	bz_assert(rhs_type.get<ast::ts_base_type>().info->type_name.values.size() == 1);
 	auto const kind = range_kind_from_name(rhs_type.get<ast::ts_base_type>().info->type_name.values[0]);
 
-	bz_assert(rhs_type.is<ast::ts_base_type>());
-	bz_assert(rhs_type.get<ast::ts_base_type>().info->is_generic_instantiation());
-	bz_assert(rhs_type.get<ast::ts_base_type>().info->generic_parameters.size() == 1);
-	bz_assert(rhs_type.get<ast::ts_base_type>().info->generic_parameters[0].init_expr.is_typename());
-	auto const &index_type = rhs_type.get<ast::ts_base_type>().info->generic_parameters[0].init_expr.get_typename();
-	bz_assert(index_type.is<ast::ts_base_type>());
-	bz_assert(ast::is_integer_kind(index_type.get<ast::ts_base_type>().info->kind));
-	auto const is_unsigned_index = ast::is_unsigned_integer_kind(index_type.get<ast::ts_base_type>().info->kind);
+	auto const is_unsigned_index = [&]() {
+		if (kind == range_kind::unbounded)
+		{
+			return false;
+		}
+
+		bz_assert(rhs_type.is<ast::ts_base_type>());
+		bz_assert(rhs_type.get<ast::ts_base_type>().info->is_generic_instantiation());
+		bz_assert(rhs_type.get<ast::ts_base_type>().info->generic_parameters.size() == 1);
+		bz_assert(rhs_type.get<ast::ts_base_type>().info->generic_parameters[0].init_expr.is_typename());
+		auto const &index_type = rhs_type.get<ast::ts_base_type>().info->generic_parameters[0].init_expr.get_typename();
+		bz_assert(index_type.is<ast::ts_base_type>());
+		bz_assert(ast::is_integer_kind(index_type.get<ast::ts_base_type>().info->kind));
+		return ast::is_unsigned_integer_kind(index_type.get<ast::ts_base_type>().info->kind);
+	}();
 
 	auto const cast_index = [&](llvm::Value *index) -> llvm::Value * {
 		if (is_unsigned_index)
@@ -2273,6 +2285,11 @@ static val_ptr emit_builtin_subscript_range(
 				.begin = nullptr,
 				.end   = cast_index(context.get_struct_element(rhs_val, 0).get_value(context.builder)),
 			};
+		case range_kind::unbounded:
+			return {
+				.begin = nullptr,
+				.end   = nullptr,
+			};
 		}
 	}();
 
@@ -2307,6 +2324,15 @@ static val_ptr emit_builtin_subscript_range(
 					.end   = context.create_gep(elem_type, lhs_begin_ptr, end_index),
 				};
 			}
+			case range_kind::unbounded:
+			{
+				auto const lhs_begin_ptr = context.get_struct_element(lhs_val, 0).get_value(context.builder);
+				auto const lhs_end_ptr   = context.get_struct_element(lhs_val, 1).get_value(context.builder);
+				return {
+					.begin = lhs_begin_ptr,
+					.end   = lhs_end_ptr,
+				};
+			}
 			}
 		}();
 
@@ -2333,6 +2359,11 @@ static val_ptr emit_builtin_subscript_range(
 				return {
 					.begin = context.create_gep(lhs_val.get_type(), lhs_val.val, 0, 0),
 					.end   = context.create_array_gep(lhs_val.get_type(), lhs_val.val, end_index),
+				};
+			case range_kind::unbounded:
+				return {
+					.begin = context.create_gep(lhs_val.get_type(), lhs_val.val, 0, 0),
+					.end   = context.create_gep(lhs_val.get_type(), lhs_val.val, 0, lhs_type.get<ast::ts_array>().size),
 				};
 			}
 		}();
@@ -2766,7 +2797,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 218);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 219);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 28);
@@ -3006,6 +3037,17 @@ static val_ptr emit_bitcode(
 			auto const end = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
 			auto const result_end_ref = context.create_struct_gep(result_type, result_address, 0);
 			context.builder.CreateStore(end, result_end_ref);
+			return val_ptr::get_reference(result_address, result_type);
+		}
+		case ast::function_body::builtin_range_unbounded:
+		{
+			bz_assert(func_call.params.empty());
+			auto const result_type = get_llvm_type(func_call.func_body->return_type, context);
+			bz_assert(result_type->isStructTy());
+			if (result_address == nullptr)
+			{
+				result_address = context.create_alloca(result_type);
+			}
 			return val_ptr::get_reference(result_address, result_type);
 		}
 		case ast::function_body::builtin_optional_get_value_ref:

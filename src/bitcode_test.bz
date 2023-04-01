@@ -2017,6 +2017,8 @@ function improved_slices_test()
 	std::assert(s.size() == arr.size() - 2);
 	const s = s[__builtin_integer_range_u32(0, 3)];
 	std::assert(s.size() == 3);
+	const s = arr[__builtin_range_unbounded()];
+	std::assert(s.size() == arr.size());
 
 	(consteval {
 		let arr: [??: int32] = [ 0, 1, 2, 3, 4, 5, 6, 7 ];
@@ -2028,6 +2030,8 @@ function improved_slices_test()
 		std::assert(s.size() == arr.size() - 2);
 		const s = s[__builtin_integer_range_u32(0, 3)];
 		std::assert(s.size() == 3);
+		const s = arr[__builtin_range_unbounded()];
+		std::assert(s.size() == arr.size());
 
 		std::assert(arr[__builtin_integer_range_to_i32(5)].size() == 5);
 	});
