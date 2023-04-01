@@ -2177,6 +2177,33 @@ static val_ptr emit_builtin_binary_right_shift_eq(
 	}
 }
 
+enum class range_kind
+{
+	regular,
+	from,
+	to,
+};
+
+static range_kind range_kind_from_name(bz::u8string_view struct_name)
+{
+	if (struct_name == "__integer_range")
+	{
+		return range_kind::regular;
+	}
+	else if (struct_name == "__integer_range_from")
+	{
+		return range_kind::from;
+	}
+	else if (struct_name == "__integer_range_to")
+	{
+		return range_kind::to;
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
 static val_ptr emit_builtin_subscript_range(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
@@ -2195,8 +2222,10 @@ static val_ptr emit_builtin_subscript_range(
 	}
 	auto const result_value = val_ptr::get_reference(result_address, context.get_slice_t());
 
-	bz_assert(rhs_val.get_type()->getStructNumElements() == 1 || rhs_val.get_type()->getStructNumElements() == 2);
-	auto const is_unbounded = rhs_val.get_type()->getStructNumElements() == 1;
+	bz_assert(rhs_type.is<ast::ts_base_type>());
+	bz_assert(rhs_type.get<ast::ts_base_type>().info->type_name.values.size() == 1);
+	auto const kind = range_kind_from_name(rhs_type.get<ast::ts_base_type>().info->type_name.values[0]);
+
 	bz_assert(rhs_type.is<ast::ts_base_type>());
 	bz_assert(rhs_type.get<ast::ts_base_type>().info->is_generic_instantiation());
 	bz_assert(rhs_type.get<ast::ts_base_type>().info->generic_parameters.size() == 1);
@@ -2217,51 +2246,99 @@ static val_ptr emit_builtin_subscript_range(
 		}
 	};
 
-	auto const begin_index = cast_index(context.get_struct_element(rhs_val, 0).get_value(context.builder));
-	auto const end_index = is_unbounded ? nullptr : cast_index(context.get_struct_element(rhs_val, 1).get_value(context.builder));
+	struct begin_end_pair_t
+	{
+		llvm::Value *begin;
+		llvm::Value *end;
+	};
+
+	auto const [begin_index, end_index] = [&]() -> begin_end_pair_t {
+		switch (kind)
+		{
+		case range_kind::regular:
+			bz_assert(rhs_val.get_type()->getStructNumElements() == 2);
+			return {
+				.begin = cast_index(context.get_struct_element(rhs_val, 0).get_value(context.builder)),
+				.end   = cast_index(context.get_struct_element(rhs_val, 1).get_value(context.builder)),
+			};
+		case range_kind::from:
+			bz_assert(rhs_val.get_type()->getStructNumElements() == 1);
+			return {
+				.begin = cast_index(context.get_struct_element(rhs_val, 0).get_value(context.builder)),
+				.end   = nullptr,
+			};
+		case range_kind::to:
+			bz_assert(rhs_val.get_type()->getStructNumElements() == 1);
+			return {
+				.begin = nullptr,
+				.end   = cast_index(context.get_struct_element(rhs_val, 0).get_value(context.builder)),
+			};
+		}
+	}();
 
 	if (lhs_type.is<ast::ts_array_slice>())
 	{
-		auto const value_type = get_llvm_type(lhs_type.get<ast::ts_array_slice>().elem_type, context);
-		if (is_unbounded)
-		{
-			auto const lhs_begin_ptr = context.get_struct_element(lhs_val, 0).get_value(context.builder);
-			auto const begin_ptr = context.create_gep(value_type, lhs_begin_ptr, begin_index);
+		auto const elem_type = get_llvm_type(lhs_type.get<ast::ts_array_slice>().elem_type, context);
+		auto const [begin_ptr, end_ptr] = [&]() -> begin_end_pair_t {
+			switch (kind)
+			{
+			case range_kind::regular:
+			{
+				auto const lhs_begin_ptr = context.get_struct_element(lhs_val, 0).get_value(context.builder);
+				return {
+					.begin = context.create_gep(elem_type, lhs_begin_ptr, begin_index),
+					.end   = context.create_gep(elem_type, lhs_begin_ptr, end_index),
+				};
+			}
+			case range_kind::from:
+			{
+				auto const lhs_begin_ptr = context.get_struct_element(lhs_val, 0).get_value(context.builder);
+				auto const lhs_end_ptr   = context.get_struct_element(lhs_val, 1).get_value(context.builder);
+				return {
+					.begin = context.create_gep(elem_type, lhs_begin_ptr, begin_index),
+					.end   = lhs_end_ptr,
+				};
+			}
+			case range_kind::to:
+			{
+				auto const lhs_begin_ptr = context.get_struct_element(lhs_val, 0).get_value(context.builder);
+				return {
+					.begin = lhs_begin_ptr,
+					.end   = context.create_gep(elem_type, lhs_begin_ptr, end_index),
+				};
+			}
+			}
+		}();
 
-			auto const lhs_end_ptr = context.get_struct_element(lhs_val, 1).get_value(context.builder);
-			context.builder.CreateStore(begin_ptr, context.get_struct_element(result_value, 0).val);
-			context.builder.CreateStore(lhs_end_ptr, context.get_struct_element(result_value, 1).val);
-		}
-		else
-		{
-			auto const lhs_begin_ptr = context.get_struct_element(lhs_val, 0).get_value(context.builder);
-			auto const begin_ptr = context.create_gep(value_type, lhs_begin_ptr, begin_index);
-			auto const end_ptr   = context.create_gep(value_type, lhs_begin_ptr, end_index);
-
-			context.builder.CreateStore(begin_ptr, context.get_struct_element(result_value, 0).val);
-			context.builder.CreateStore(end_ptr,   context.get_struct_element(result_value, 1).val);
-		}
+		context.builder.CreateStore(begin_ptr, context.get_struct_element(result_value, 0).val);
+		context.builder.CreateStore(end_ptr,   context.get_struct_element(result_value, 1).val);
 	}
 	else if (lhs_type.is<ast::ts_array>())
 	{
 		bz_assert(lhs_val.kind == val_ptr::reference);
+		auto const [begin_ptr, end_ptr] = [&]() -> begin_end_pair_t {
+			switch (kind)
+			{
+			case range_kind::regular:
+				return {
+					.begin = context.create_array_gep(lhs_val.get_type(), lhs_val.val, begin_index),
+					.end   = context.create_array_gep(lhs_val.get_type(), lhs_val.val, end_index),
+				};
+			case range_kind::from:
+				return {
+					.begin = context.create_array_gep(lhs_val.get_type(), lhs_val.val, begin_index),
+					.end   = context.create_gep(lhs_val.get_type(), lhs_val.val, 0, lhs_type.get<ast::ts_array>().size),
+				};
+			case range_kind::to:
+				return {
+					.begin = context.create_gep(lhs_val.get_type(), lhs_val.val, 0, 0),
+					.end   = context.create_array_gep(lhs_val.get_type(), lhs_val.val, end_index),
+				};
+			}
+		}();
 
-		if (is_unbounded)
-		{
-			auto const begin_ptr = context.create_array_gep(lhs_val.get_type(), lhs_val.val, begin_index);
-			auto const end_ptr   = context.create_gep(lhs_val.get_type(), lhs_val.val, 0, lhs_type.get<ast::ts_array>().size);
-
-			context.builder.CreateStore(begin_ptr, context.get_struct_element(result_value, 0).val);
-			context.builder.CreateStore(end_ptr,   context.get_struct_element(result_value, 1).val);
-		}
-		else
-		{
-			auto const begin_ptr = context.create_array_gep(lhs_val.get_type(), lhs_val.val, begin_index);
-			auto const end_ptr   = context.create_array_gep(lhs_val.get_type(), lhs_val.val, end_index);
-
-			context.builder.CreateStore(begin_ptr, context.get_struct_element(result_value, 0).val);
-			context.builder.CreateStore(end_ptr,   context.get_struct_element(result_value, 1).val);
-		}
+		context.builder.CreateStore(begin_ptr, context.get_struct_element(result_value, 0).val);
+		context.builder.CreateStore(end_ptr,   context.get_struct_element(result_value, 1).val);
 	}
 	else
 	{
@@ -2926,7 +3003,7 @@ static val_ptr emit_bitcode(
 				result_address = context.create_alloca(result_type);
 			}
 
-			auto const end = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const end = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
 			auto const result_end_ref = context.create_struct_gep(result_type, result_address, 0);
 			context.builder.CreateStore(end, result_end_ref);
 			return val_ptr::get_reference(result_address, result_type);

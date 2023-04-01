@@ -1792,6 +1792,33 @@ static expr_value generate_builtin_binary_bit_right_shift_eq(
 	return lhs_ref;
 }
 
+enum class range_kind
+{
+	regular,
+	from,
+	to,
+};
+
+static range_kind range_kind_from_name(bz::u8string_view struct_name)
+{
+	if (struct_name == "__integer_range")
+	{
+		return range_kind::regular;
+	}
+	else if (struct_name == "__integer_range_from")
+	{
+		return range_kind::from;
+	}
+	else if (struct_name == "__integer_range_to")
+	{
+		return range_kind::to;
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
 static expr_value generate_builtin_subscript_range(
 	ast::expression const &original_expression,
 	ast::expression const &lhs,
@@ -1811,9 +1838,10 @@ static expr_value generate_builtin_subscript_range(
 	auto const lhs_value = generate_expr_code(lhs, context, {});
 	auto const rhs_value = generate_expr_code(rhs, context, {});
 
-	bz_assert(rhs_value.get_type()->is_aggregate());
-	bz_assert(rhs_value.get_type()->get_aggregate_types().size() == 1 || rhs_value.get_type()->get_aggregate_types().size() == 2);
-	auto const is_unbounded = rhs_value.get_type()->get_aggregate_types().size() == 1;
+	bz_assert(rhs_type.is<ast::ts_base_type>());
+	bz_assert(rhs_type.get<ast::ts_base_type>().info->type_name.values.size() == 1);
+	auto const kind = range_kind_from_name(rhs_type.get<ast::ts_base_type>().info->type_name.values[0]);
+
 	bz_assert(rhs_type.is<ast::ts_base_type>());
 	bz_assert(rhs_type.get<ast::ts_base_type>().info->is_generic_instantiation());
 	bz_assert(rhs_type.get<ast::ts_base_type>().info->generic_parameters.size() == 1);
@@ -1823,8 +1851,35 @@ static expr_value generate_builtin_subscript_range(
 	bz_assert(ast::is_integer_kind(index_type.get<ast::ts_base_type>().info->kind));
 	auto const is_index_signed = ast::is_signed_integer_kind(index_type.get<ast::ts_base_type>().info->kind);
 
-	auto const begin_index = context.create_struct_gep(rhs_value, 0).get_value(context);
-	auto const end_index = is_unbounded ? expr_value::get_none() : context.create_struct_gep(rhs_value, 1).get_value(context);
+	struct begin_end_pair_t
+	{
+		expr_value begin;
+		expr_value end;
+	};
+
+	auto const [begin_index, end_index] = [&]() -> begin_end_pair_t {
+		switch (kind)
+		{
+		case range_kind::regular:
+			bz_assert(rhs_value.get_type()->get_aggregate_types().size() == 2);
+			return {
+				.begin = context.create_struct_gep(rhs_value, 0).get_value(context),
+				.end   = context.create_struct_gep(rhs_value, 1).get_value(context),
+			};
+		case range_kind::from:
+			bz_assert(rhs_value.get_type()->get_aggregate_types().size() == 1);
+			return {
+				.begin = context.create_struct_gep(rhs_value, 0).get_value(context),
+				.end   = expr_value::get_none(),
+			};
+		case range_kind::to:
+			bz_assert(rhs_value.get_type()->get_aggregate_types().size() == 1);
+			return {
+				.begin = expr_value::get_none(),
+				.end   = context.create_struct_gep(rhs_value, 0).get_value(context),
+			};
+		}
+	}();
 
 	struct bounds_check_info_t
 	{
@@ -1834,32 +1889,9 @@ static expr_value generate_builtin_subscript_range(
 	};
 
 	auto const get_bounds_check_info = [&](expr_value size) -> bounds_check_info_t {
-		if (is_unbounded)
+		switch (kind)
 		{
-			if (context.is_64_bit() || begin_index.get_type()->get_builtin_kind() == builtin_type_kind::i64)
-			{
-				auto const i64_type = context.get_builtin_type(builtin_type_kind::i64);
-				return {
-					.begin_index_cast = context.create_int_cast(begin_index, i64_type, is_index_signed),
-					.end_index_cast = expr_value::get_none(),
-					.size_cast = size.get_type() != i64_type
-						? context.create_int_cast(size, i64_type, false)
-						: size,
-				};
-			}
-			else
-			{
-				auto const i32_type = context.get_builtin_type(builtin_type_kind::i32);
-				bz_assert(size.get_type() == i32_type);
-				return {
-					.begin_index_cast = context.create_int_cast(begin_index, i32_type, is_index_signed),
-					.end_index_cast = expr_value::get_none(),
-					.size_cast = size,
-				};
-			}
-		}
-		else
-		{
+		case range_kind::regular:
 			if (context.is_64_bit() || begin_index.get_type()->get_builtin_kind() == builtin_type_kind::i64)
 			{
 				auto const i64_type = context.get_builtin_type(builtin_type_kind::i64);
@@ -1881,6 +1913,50 @@ static expr_value generate_builtin_subscript_range(
 					.size_cast = size,
 				};
 			}
+		case range_kind::from:
+			if (context.is_64_bit() || begin_index.get_type()->get_builtin_kind() == builtin_type_kind::i64)
+			{
+				auto const i64_type = context.get_builtin_type(builtin_type_kind::i64);
+				return {
+					.begin_index_cast = context.create_int_cast(begin_index, i64_type, is_index_signed),
+					.end_index_cast = expr_value::get_none(),
+					.size_cast = size.get_type() != i64_type
+						? context.create_int_cast(size, i64_type, false)
+						: size,
+				};
+			}
+			else
+			{
+				auto const i32_type = context.get_builtin_type(builtin_type_kind::i32);
+				bz_assert(size.get_type() == i32_type);
+				return {
+					.begin_index_cast = context.create_int_cast(begin_index, i32_type, is_index_signed),
+					.end_index_cast = expr_value::get_none(),
+					.size_cast = size,
+				};
+			}
+		case range_kind::to:
+			if (context.is_64_bit() || end_index.get_type()->get_builtin_kind() == builtin_type_kind::i64)
+			{
+				auto const i64_type = context.get_builtin_type(builtin_type_kind::i64);
+				return {
+					.begin_index_cast = expr_value::get_none(),
+					.end_index_cast = context.create_int_cast(end_index, i64_type, is_index_signed),
+					.size_cast = size.get_type() != i64_type
+						? context.create_int_cast(size, i64_type, false)
+						: size,
+				};
+			}
+			else
+			{
+				auto const i32_type = context.get_builtin_type(builtin_type_kind::i32);
+				bz_assert(size.get_type() == i32_type);
+				return {
+					.begin_index_cast = expr_value::get_none(),
+					.end_index_cast = context.create_int_cast(end_index, i32_type, is_index_signed),
+					.size_cast = size,
+				};
+			}
 		}
 	};
 
@@ -1893,30 +1969,54 @@ static expr_value generate_builtin_subscript_range(
 
 		// bounds check
 		auto const [begin_index_cast, end_index_cast, size_cast] = get_bounds_check_info(size);
-		context.create_array_bounds_check(original_expression.src_tokens, begin_index_cast, size_cast, is_index_signed);
-		if (!is_unbounded)
+		switch (kind)
 		{
+		case range_kind::regular:
+			context.create_array_bounds_check(original_expression.src_tokens, begin_index_cast, size_cast, is_index_signed);
 			context.create_array_bounds_check(original_expression.src_tokens, end_index_cast, size_cast, is_index_signed);
+			break;
+		case range_kind::from:
+			context.create_array_bounds_check(original_expression.src_tokens, begin_index_cast, size_cast, is_index_signed);
+			break;
+		case range_kind::to:
+			context.create_array_bounds_check(original_expression.src_tokens, end_index_cast, size_cast, is_index_signed);
+			break;
 		}
 
-		if (is_unbounded)
-		{
-			auto const begin_ptr = context.create_array_slice_gep(lhs_begin_ptr, begin_index, elem_type).get_reference();
-			auto const begin_ptr_value = expr_value::get_value(begin_ptr, context.get_pointer_type());
+		auto const [begin_ptr, end_ptr] = [&]() -> begin_end_pair_t {
+			auto const pointer_type = context.get_pointer_type();
+			switch (kind)
+			{
+			case range_kind::regular:
+			{
+				auto const begin_ptr = context.create_array_slice_gep(lhs_begin_ptr, begin_index, elem_type).get_reference();
+				auto const end_ptr   = context.create_array_slice_gep(lhs_begin_ptr,   end_index, elem_type).get_reference();
+				return {
+					.begin = expr_value::get_value(begin_ptr, pointer_type),
+					.end   = expr_value::get_value(end_ptr,   pointer_type),
+				};
+			}
+			case range_kind::from:
+			{
+				auto const begin_ptr = context.create_array_slice_gep(lhs_begin_ptr, begin_index, elem_type).get_reference();
+				return {
+					.begin = expr_value::get_value(begin_ptr, pointer_type),
+					.end   = lhs_end_ptr,
+				};
+			}
+			case range_kind::to:
+			{
+				auto const end_ptr = context.create_array_slice_gep(lhs_begin_ptr, end_index, elem_type).get_reference();
+				return {
+					.begin = lhs_begin_ptr,
+					.end   = expr_value::get_value(end_ptr, pointer_type),
+				};
+			}
+			}
+		}();
 
-			context.create_store(begin_ptr_value, context.create_struct_gep(result_value, 0));
-			context.create_store(lhs_end_ptr, context.create_struct_gep(result_value, 1));
-		}
-		else
-		{
-			auto const begin_ptr = context.create_array_slice_gep(lhs_begin_ptr, begin_index, elem_type).get_reference();
-			auto const end_ptr   = context.create_array_slice_gep(lhs_begin_ptr,   end_index, elem_type).get_reference();
-			auto const begin_ptr_value = expr_value::get_value(begin_ptr, context.get_pointer_type());
-			auto const end_ptr_value   = expr_value::get_value(end_ptr,   context.get_pointer_type());
-
-			context.create_store(begin_ptr_value, context.create_struct_gep(result_value, 0));
-			context.create_store(end_ptr_value,   context.create_struct_gep(result_value, 1));
-		}
+		context.create_store(begin_ptr, context.create_struct_gep(result_value, 0));
+		context.create_store(end_ptr,   context.create_struct_gep(result_value, 1));
 	}
 	else if (lhs_type.is<ast::ts_array>())
 	{
@@ -1940,32 +2040,56 @@ static expr_value generate_builtin_subscript_range(
 
 		// bounds check
 		auto const [begin_index_cast, end_index_cast, size_cast] = get_bounds_check_info(size_value);
-		context.create_array_bounds_check(original_expression.src_tokens, begin_index_cast, size_cast, is_index_signed);
-		if (!is_unbounded)
+		switch (kind)
 		{
+		case range_kind::regular:
+			context.create_array_bounds_check(original_expression.src_tokens, begin_index_cast, size_cast, is_index_signed);
 			context.create_array_bounds_check(original_expression.src_tokens, end_index_cast, size_cast, is_index_signed);
+			break;
+		case range_kind::from:
+			context.create_array_bounds_check(original_expression.src_tokens, begin_index_cast, size_cast, is_index_signed);
+			break;
+		case range_kind::to:
+			context.create_array_bounds_check(original_expression.src_tokens, end_index_cast, size_cast, is_index_signed);
+			break;
 		}
 
-		if (is_unbounded)
-		{
-			auto const begin_ptr = context.create_array_gep(lhs_value, begin_index).get_reference();
-			auto const end_ptr = context.create_struct_gep(lhs_value, size).get_reference();
-			auto const begin_ptr_value = expr_value::get_value(begin_ptr, context.get_pointer_type());
-			auto const end_ptr_value   = expr_value::get_value(end_ptr,   context.get_pointer_type());
+		auto const [begin_ptr, end_ptr] = [&]() -> begin_end_pair_t {
+			auto const pointer_type = context.get_pointer_type();
+			switch (kind)
+			{
+			case range_kind::regular:
+			{
+				auto const begin_ptr = context.create_array_gep(lhs_value, begin_index).get_reference();
+				auto const end_ptr   = context.create_array_gep(lhs_value, end_index).get_reference();
+				return {
+					.begin = expr_value::get_value(begin_ptr, pointer_type),
+					.end   = expr_value::get_value(end_ptr,   pointer_type),
+				};
+			}
+			case range_kind::from:
+			{
+				auto const begin_ptr = context.create_array_gep(lhs_value, begin_index).get_reference();
+				auto const end_ptr   = context.create_struct_gep(lhs_value, size).get_reference();
+				return {
+					.begin = expr_value::get_value(begin_ptr, pointer_type),
+					.end   = expr_value::get_value(end_ptr,   pointer_type),
+				};
+			}
+			case range_kind::to:
+			{
+				auto const begin_ptr = context.create_struct_gep(lhs_value, 0).get_reference();
+				auto const end_ptr   = context.create_array_gep(lhs_value, end_index).get_reference();
+				return {
+					.begin = expr_value::get_value(begin_ptr, pointer_type),
+					.end   = expr_value::get_value(end_ptr,   pointer_type),
+				};
+			}
+			}
+		}();
 
-			context.create_store(begin_ptr_value, context.create_struct_gep(result_value, 0));
-			context.create_store(end_ptr_value,   context.create_struct_gep(result_value, 1));
-		}
-		else
-		{
-			auto const begin_ptr = context.create_array_gep(lhs_value, begin_index).get_reference();
-			auto const end_ptr   = context.create_array_gep(lhs_value, end_index).get_reference();
-			auto const begin_ptr_value = expr_value::get_value(begin_ptr, context.get_pointer_type());
-			auto const end_ptr_value   = expr_value::get_value(end_ptr,   context.get_pointer_type());
-
-			context.create_store(begin_ptr_value, context.create_struct_gep(result_value, 0));
-			context.create_store(end_ptr_value,   context.create_struct_gep(result_value, 1));
-		}
+		context.create_store(begin_ptr, context.create_struct_gep(result_value, 0));
+		context.create_store(end_ptr,   context.create_struct_gep(result_value, 1));
 	}
 	else
 	{
