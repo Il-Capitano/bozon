@@ -510,14 +510,23 @@ struct function_body
 		builtin_integer_range_u32,
 		builtin_integer_range_u64,
 
-		builtin_integer_range_unbounded_i8,
-		builtin_integer_range_unbounded_i16,
-		builtin_integer_range_unbounded_i32,
-		builtin_integer_range_unbounded_i64,
-		builtin_integer_range_unbounded_u8,
-		builtin_integer_range_unbounded_u16,
-		builtin_integer_range_unbounded_u32,
-		builtin_integer_range_unbounded_u64,
+		builtin_integer_range_from_i8,
+		builtin_integer_range_from_i16,
+		builtin_integer_range_from_i32,
+		builtin_integer_range_from_i64,
+		builtin_integer_range_from_u8,
+		builtin_integer_range_from_u16,
+		builtin_integer_range_from_u32,
+		builtin_integer_range_from_u64,
+
+		builtin_integer_range_to_i8,
+		builtin_integer_range_to_i16,
+		builtin_integer_range_to_i32,
+		builtin_integer_range_to_i64,
+		builtin_integer_range_to_u8,
+		builtin_integer_range_to_u16,
+		builtin_integer_range_to_u32,
+		builtin_integer_range_to_u64,
 
 		builtin_optional_get_value_ref,
 		builtin_optional_get_const_value_ref,
@@ -1625,7 +1634,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 210);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 218);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1660,14 +1669,23 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_integer_range_u32, "__builtin_integer_range_u32" },
 		{ function_body::builtin_integer_range_u64, "__builtin_integer_range_u64" },
 
-		{ function_body::builtin_integer_range_unbounded_i8,  "__builtin_integer_range_unbounded_i8"  },
-		{ function_body::builtin_integer_range_unbounded_i16, "__builtin_integer_range_unbounded_i16" },
-		{ function_body::builtin_integer_range_unbounded_i32, "__builtin_integer_range_unbounded_i32" },
-		{ function_body::builtin_integer_range_unbounded_i64, "__builtin_integer_range_unbounded_i64" },
-		{ function_body::builtin_integer_range_unbounded_u8,  "__builtin_integer_range_unbounded_u8"  },
-		{ function_body::builtin_integer_range_unbounded_u16, "__builtin_integer_range_unbounded_u16" },
-		{ function_body::builtin_integer_range_unbounded_u32, "__builtin_integer_range_unbounded_u32" },
-		{ function_body::builtin_integer_range_unbounded_u64, "__builtin_integer_range_unbounded_u64" },
+		{ function_body::builtin_integer_range_from_i8,  "__builtin_integer_range_from_i8"  },
+		{ function_body::builtin_integer_range_from_i16, "__builtin_integer_range_from_i16" },
+		{ function_body::builtin_integer_range_from_i32, "__builtin_integer_range_from_i32" },
+		{ function_body::builtin_integer_range_from_i64, "__builtin_integer_range_from_i64" },
+		{ function_body::builtin_integer_range_from_u8,  "__builtin_integer_range_from_u8"  },
+		{ function_body::builtin_integer_range_from_u16, "__builtin_integer_range_from_u16" },
+		{ function_body::builtin_integer_range_from_u32, "__builtin_integer_range_from_u32" },
+		{ function_body::builtin_integer_range_from_u64, "__builtin_integer_range_from_u64" },
+
+		{ function_body::builtin_integer_range_to_i8,  "__builtin_integer_range_to_i8"  },
+		{ function_body::builtin_integer_range_to_i16, "__builtin_integer_range_to_i16" },
+		{ function_body::builtin_integer_range_to_i32, "__builtin_integer_range_to_i32" },
+		{ function_body::builtin_integer_range_to_i64, "__builtin_integer_range_to_i64" },
+		{ function_body::builtin_integer_range_to_u8,  "__builtin_integer_range_to_u8"  },
+		{ function_body::builtin_integer_range_to_u16, "__builtin_integer_range_to_u16" },
+		{ function_body::builtin_integer_range_to_u32, "__builtin_integer_range_to_u32" },
+		{ function_body::builtin_integer_range_to_u64, "__builtin_integer_range_to_u64" },
 
 		{ function_body::builtin_optional_get_value_ref,       "__builtin_optional_get_value_ref"       },
 		{ function_body::builtin_optional_get_const_value_ref, "__builtin_optional_get_const_value_ref" },

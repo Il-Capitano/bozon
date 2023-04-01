@@ -37,9 +37,14 @@ struct __integer_range<T: typename>
 	._end: T;
 }
 
-struct __integer_range_unbounded<T: typename>
+struct __integer_range_from<T: typename>
 {
 	._begin: T;
+}
+
+struct __integer_range_to<T: typename>
+{
+	._end: T;
 }
 
 @__builtin
@@ -161,15 +166,25 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 @__builtin export function __builtin_integer_range_u32(begin: uint32, end: uint32) -> __integer_range<uint32>;
 @__builtin export function __builtin_integer_range_u64(begin: uint64, end: uint64) -> __integer_range<uint64>;
 
-@__builtin export function __builtin_integer_range_unbounded_i8 (begin: int8)  -> __integer_range_unbounded<int8>;
-@__builtin export function __builtin_integer_range_unbounded_i16(begin: int16) -> __integer_range_unbounded<int16>;
-@__builtin export function __builtin_integer_range_unbounded_i32(begin: int32) -> __integer_range_unbounded<int32>;
-@__builtin export function __builtin_integer_range_unbounded_i64(begin: int64) -> __integer_range_unbounded<int64>;
+@__builtin export function __builtin_integer_range_from_i8 (begin: int8)  -> __integer_range_from<int8>;
+@__builtin export function __builtin_integer_range_from_i16(begin: int16) -> __integer_range_from<int16>;
+@__builtin export function __builtin_integer_range_from_i32(begin: int32) -> __integer_range_from<int32>;
+@__builtin export function __builtin_integer_range_from_i64(begin: int64) -> __integer_range_from<int64>;
 
-@__builtin export function __builtin_integer_range_unbounded_u8 (begin: uint8)  -> __integer_range_unbounded<uint8>;
-@__builtin export function __builtin_integer_range_unbounded_u16(begin: uint16) -> __integer_range_unbounded<uint16>;
-@__builtin export function __builtin_integer_range_unbounded_u32(begin: uint32) -> __integer_range_unbounded<uint32>;
-@__builtin export function __builtin_integer_range_unbounded_u64(begin: uint64) -> __integer_range_unbounded<uint64>;
+@__builtin export function __builtin_integer_range_from_u8 (begin: uint8)  -> __integer_range_from<uint8>;
+@__builtin export function __builtin_integer_range_from_u16(begin: uint16) -> __integer_range_from<uint16>;
+@__builtin export function __builtin_integer_range_from_u32(begin: uint32) -> __integer_range_from<uint32>;
+@__builtin export function __builtin_integer_range_from_u64(begin: uint64) -> __integer_range_from<uint64>;
+
+@__builtin export function __builtin_integer_range_to_i8 (begin: int8)  -> __integer_range_to<int8>;
+@__builtin export function __builtin_integer_range_to_i16(begin: int16) -> __integer_range_to<int16>;
+@__builtin export function __builtin_integer_range_to_i32(begin: int32) -> __integer_range_to<int32>;
+@__builtin export function __builtin_integer_range_to_i64(begin: int64) -> __integer_range_to<int64>;
+
+@__builtin export function __builtin_integer_range_to_u8 (begin: uint8)  -> __integer_range_to<uint8>;
+@__builtin export function __builtin_integer_range_to_u16(begin: uint16) -> __integer_range_to<uint16>;
+@__builtin export function __builtin_integer_range_to_u32(begin: uint32) -> __integer_range_to<uint32>;
+@__builtin export function __builtin_integer_range_to_u64(begin: uint64) -> __integer_range_to<uint64>;
 
 @__builtin export function __builtin_optional_get_value_ref(value: &?auto)
 	-> &__builtin_remove_optional(__builtin_remove_reference(typeof value));
@@ -1219,25 +1234,35 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 
 @__builtin export operator [] (array: ##[: auto], index: __integer_range)
 	-> __builtin_remove_const(__builtin_remove_reference(typeof array));
-@__builtin export operator [] (array: ##[: auto], index:__integer_range_unbounded)
+@__builtin export operator [] (array: ##[: auto], index:__integer_range_from)
+	-> __builtin_remove_const(__builtin_remove_reference(typeof array));
+@__builtin export operator [] (array: ##[: auto], index:__integer_range_to)
 	-> __builtin_remove_const(__builtin_remove_reference(typeof array));
 
 @__builtin export operator [] (array: ##[: const auto], index: __integer_range)
 	-> __builtin_remove_const(__builtin_remove_reference(typeof array));
-@__builtin export operator [] (array: ##[: const auto], index: __integer_range_unbounded)
+@__builtin export operator [] (array: ##[: const auto], index: __integer_range_from)
+	-> __builtin_remove_const(__builtin_remove_reference(typeof array));
+@__builtin export operator [] (array: ##[: const auto], index: __integer_range_to)
 	-> __builtin_remove_const(__builtin_remove_reference(typeof array));
 
 @__builtin export operator [] (array: move [??: auto], index: __integer_range)
 	-> [: __builtin_array_value_type(__builtin_remove_move_reference(typeof array))];
-@__builtin export operator [] (array: move [??: auto], index: __integer_range_unbounded)
+@__builtin export operator [] (array: move [??: auto], index: __integer_range_from)
+	-> [: __builtin_array_value_type(__builtin_remove_move_reference(typeof array))];
+@__builtin export operator [] (array: move [??: auto], index: __integer_range_to)
 	-> [: __builtin_array_value_type(__builtin_remove_move_reference(typeof array))];
 
 @__builtin export operator [] (array: &[??: auto], index: __integer_range)
 	-> [: __builtin_array_value_type(__builtin_remove_reference(typeof array))];
-@__builtin export operator [] (array: &[??: auto], index: __integer_range_unbounded)
+@__builtin export operator [] (array: &[??: auto], index: __integer_range_from)
+	-> [: __builtin_array_value_type(__builtin_remove_reference(typeof array))];
+@__builtin export operator [] (array: &[??: auto], index: __integer_range_to)
 	-> [: __builtin_array_value_type(__builtin_remove_reference(typeof array))];
 
 @__builtin export operator [] (array: &const [??: auto], index: __integer_range)
 	-> [: const __builtin_array_value_type(__builtin_remove_const(__builtin_remove_reference(typeof array)))];
-@__builtin export operator [] (array: &const [??: auto], index: __integer_range_unbounded)
+@__builtin export operator [] (array: &const [??: auto], index: __integer_range_from)
+	-> [: const __builtin_array_value_type(__builtin_remove_const(__builtin_remove_reference(typeof array)))];
+@__builtin export operator [] (array: &const [??: auto], index: __integer_range_to)
 	-> [: const __builtin_array_value_type(__builtin_remove_const(__builtin_remove_reference(typeof array)))];

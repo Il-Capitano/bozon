@@ -2013,7 +2013,7 @@ function improved_slices_test()
 	const s = arr[__builtin_integer_range_u32(2, 4)];
 	std::assert(s.size() == 2);
 	std::assert(s[0] == 2);
-	const s = arr[__builtin_integer_range_unbounded_u32(2)];
+	const s = arr[__builtin_integer_range_from_u32(2)];
 	std::assert(s.size() == arr.size() - 2);
 	const s = s[__builtin_integer_range_u32(0, 3)];
 	std::assert(s.size() == 3);
@@ -2024,9 +2024,11 @@ function improved_slices_test()
 		const s = arr[__builtin_integer_range_u32(2, 4)];
 		std::assert(s.size() == 2);
 		std::assert(s[0] == 2);
-		const s = arr[__builtin_integer_range_unbounded_u32(2)];
+		const s = arr[__builtin_integer_range_from_u32(2)];
 		std::assert(s.size() == arr.size() - 2);
 		const s = s[__builtin_integer_range_u32(0, 3)];
 		std::assert(s.size() == 3);
+
+		std::assert(arr[__builtin_integer_range_to_i32(5)].size() == 5);
 	});
 }
