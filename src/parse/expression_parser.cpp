@@ -972,6 +972,32 @@ static ast::expression parse_expression_helper(
 			break;
 		}
 
+		// range operator
+		case lex::token::dot_dot:
+		{
+			if (stream == end)
+			{
+				auto const src_tokens = lex::src_tokens{ lhs.src_tokens.begin, op, stream };
+				lhs = context.make_integer_range_from_expression(src_tokens, std::move(lhs));
+				break;
+			}
+
+			auto rhs = parse_primary_expression(stream, end, context);
+			precedence rhs_prec;
+
+			while (
+				stream != end
+				&& (rhs_prec = get_binary_or_call_precedence(stream->kind)) < op_prec
+			)
+			{
+				rhs = parse_expression_helper(std::move(rhs), stream, end, context, rhs_prec);
+			}
+
+			auto const src_tokens = lex::src_tokens{ lhs.get_tokens_begin(), op, stream };
+			lhs = context.make_integer_range_expression(src_tokens, std::move(lhs), std::move(rhs));
+			break;
+		}
+
 		// any other operator
 		default:
 		{

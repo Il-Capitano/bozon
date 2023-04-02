@@ -407,6 +407,8 @@ struct parse_context
 	ast::expression make_string_literal(lex::token_pos begin, lex::token_pos end) const;
 	ast::expression make_tuple(lex::src_tokens const &src_tokens, ast::arena_vector<ast::expression> elems) const;
 	ast::expression make_unreachable(lex::token_pos t);
+	ast::expression make_integer_range_expression(lex::src_tokens const &src_tokens, ast::expression begin, ast::expression end);
+	ast::expression make_integer_range_from_expression(lex::src_tokens const &src_tokens, ast::expression begin);
 	ast::expression make_integer_range_to_expression(lex::src_tokens const &src_tokens, ast::expression end);
 	ast::expression make_range_unbounded_expression(lex::src_tokens const &src_tokens);
 

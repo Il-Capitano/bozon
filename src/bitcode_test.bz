@@ -2009,30 +2009,60 @@ function operator_alias()
 function improved_slices_test()
 {
 	let arr: [??: int32] = [ 0, 1, 2, 3, 4, 5, 6, 7 ];
-	// const s = arr[2..4];
-	const s = arr[__builtin_integer_range_u32(2, 4)];
+	const s = arr[__builtin_integer_range_u32(2, 4)]; // [2..4]
 	std::assert(s.size() == 2);
 	std::assert(s[0] == 2);
-	const s = arr[__builtin_integer_range_from_u32(2)];
+	const s = arr[2..4];
+	std::assert(s.size() == 2);
+	std::assert(s[0] == 2);
+
+	const s = arr[__builtin_integer_range_from_u32(2)]; // [2..]
 	std::assert(s.size() == arr.size() - 2);
-	const s = s[__builtin_integer_range_u32(0, 3)];
+	const s = s[__builtin_integer_range_u32(0, 3)]; // [0..3]
 	std::assert(s.size() == 3);
-	const s = arr[__builtin_range_unbounded()];
+	const s = arr[2..];
+	std::assert(s.size() == arr.size() - 2);
+	const s = s[0..3];
+	std::assert(s.size() == 3);
+
+	const s = arr[__builtin_range_unbounded()]; // [..]
 	std::assert(s.size() == arr.size());
+	const s = arr[..];
+	std::assert(s.size() == arr.size());
+
+	const s = arr[__builtin_integer_range_to_i32(5)]; // [..5]
+	std::assert(s.size() == 5);
+	const s = arr[..5];
+	std::assert(s.size() == 5);
 
 	(consteval {
 		let arr: [??: int32] = [ 0, 1, 2, 3, 4, 5, 6, 7 ];
-		// const s = arr[2:4];
-		const s = arr[__builtin_integer_range_u32(2, 4)];
+		const s = arr[__builtin_integer_range_u32(2, 4)]; // [2..4]
 		std::assert(s.size() == 2);
 		std::assert(s[0] == 2);
-		const s = arr[__builtin_integer_range_from_u32(2)];
+		const s = arr[2..4];
+		std::assert(s.size() == 2);
+		std::assert(s[0] == 2);
+
+		const s = arr[__builtin_integer_range_from_u32(2)]; // [2..]
 		std::assert(s.size() == arr.size() - 2);
-		const s = s[__builtin_integer_range_u32(0, 3)];
+		const s = s[__builtin_integer_range_u32(0, 3)]; // [0..3]
 		std::assert(s.size() == 3);
-		const s = arr[__builtin_range_unbounded()];
+		const s = arr[2..];
+		std::assert(s.size() == arr.size() - 2);
+		const s = s[0..3];
+		std::assert(s.size() == 3);
+
+		const s = arr[__builtin_range_unbounded()]; // [..]
+		std::assert(s.size() == arr.size());
+		const s = arr[..];
 		std::assert(s.size() == arr.size());
 
-		std::assert(arr[__builtin_integer_range_to_i32(5)].size() == 5);
+		const s = arr[__builtin_integer_range_to_i32(5)]; // [..5]
+		std::assert(s.size() == 5);
+		const s = arr[..5];
+		std::assert(s.size() == 5);
+		let i = 3;
+		std::assert(arr[..i].size() == 3);
 	});
 }
