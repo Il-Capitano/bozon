@@ -2967,6 +2967,15 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 
 ast::expression parse_context::make_integer_range_to_expression(lex::src_tokens const &src_tokens, ast::expression end)
 {
+	if (end.is_error())
+	{
+		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(lex::token::dot_dot, ast::expression(), std::move(end)));
+	}
+	else if (this->in_unresolved_context || end.is_unresolved())
+	{
+		return ast::make_unresolved_expression(src_tokens, ast::make_unresolved_expr_unresolved_integer_range_to(std::move(end)));
+	}
+
 	auto args = ast::arena_vector<ast::expression>();
 	args.push_back(std::move(end));
 
