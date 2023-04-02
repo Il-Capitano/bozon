@@ -35,6 +35,48 @@ struct __integer_range<T: typename>
 {
 	._begin: T;
 	._end: T;
+
+	struct __iterator
+	{
+		._value: T;
+
+		operator * (self: __iterator) -> T
+		{
+			return self._value;
+		}
+
+		operator == (lhs: __iterator, rhs: __iterator) -> bool
+		{
+			return lhs._value == rhs._value;
+		}
+
+		operator != (lhs: __iterator, rhs: __iterator) -> bool
+		{
+			return lhs._value != rhs._value;
+		}
+
+		operator ++ (self: &__iterator) -> &__iterator
+		{
+			++self._value;
+			return self;
+		}
+
+		operator -- (self: &__iterator) -> &__iterator
+		{
+			--self._value;
+			return self;
+		}
+	}
+
+	function begin(self: __integer_range<T>) -> __iterator
+	{
+		return __iterator[ self._begin ];
+	}
+
+	function end(self: __integer_range<T>) -> __iterator
+	{
+		return __iterator[ self._end ];
+	}
 }
 
 struct __integer_range_from<T: typename>
