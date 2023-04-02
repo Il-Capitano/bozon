@@ -522,7 +522,7 @@ function main(args: [: const str]) -> int32
 	std::print("{:%}\n", 12.345);
 	std::print("{:%}\n", 0.005);
 
-	for (const i in std::iota(0, 20))
+	for (const i in 0..20)
 	{
 		std::print("{} ", i);
 	}
@@ -2035,6 +2035,18 @@ function improved_slices_test()
 	const s = arr[..5];
 	std::assert(s.size() == 5);
 
+	for (const i in 0..10)
+	{
+		std::print("{} ", i);
+	}
+	std::print("\n");
+
+	for (const v in arr[2..])
+	{
+		std::print("{} ", v);
+	}
+	std::print("\n");
+
 	(consteval {
 		let arr: [??: int32] = [ 0, 1, 2, 3, 4, 5, 6, 7 ];
 		const s = arr[__builtin_integer_range_u32(2, 4)]; // [2..4]
@@ -2065,9 +2077,4 @@ function improved_slices_test()
 		let i = 3;
 		std::assert(arr[..i].size() == 3);
 	});
-
-	for (const i in 0..10)
-	{
-		std::print("{}\n", i);
-	}
 }
