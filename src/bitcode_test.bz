@@ -2035,6 +2035,15 @@ function improved_slices_test()
 	const s = arr[..5];
 	std::assert(s.size() == 5);
 
+	std::assert((3..9).begin_value() == 3);
+	std::assert((3..9).end_value() == 9);
+	std::assert((3..).begin_value() == 3);
+	std::assert((..9).end_value() == 9);
+	static_assert((3..9).begin_value() == 3);
+	static_assert((3..9).end_value() == 9);
+	static_assert((3..).begin_value() == 3);
+	static_assert((..9).end_value() == 9);
+
 	for (const i in 0..10)
 	{
 		std::print("{} ", i);
