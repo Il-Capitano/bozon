@@ -771,9 +771,7 @@ decl_enum::decl_operator_ptr decl_enum::make_default_compare_op(
 bz::vector<universal_function_set> make_builtin_universal_functions(void)
 {
 	return {
-		{ "length", { function_body::builtin_str_length } },
 		{ "size", {
-			function_body::builtin_str_size,
 			function_body::builtin_slice_size,
 			function_body::builtin_array_size,
 		}},
@@ -789,10 +787,6 @@ bz::vector<universal_function_set> make_builtin_universal_functions(void)
 			function_body::builtin_array_end_ptr,
 			function_body::builtin_array_end_const_ptr,
 		}},
-		{ "begin_ptr",   { function_body::builtin_str_begin_ptr   } },
-		{ "end_ptr",     { function_body::builtin_str_end_ptr     } },
-		{ "starts_with", { function_body::builtin_str_starts_with } },
-		{ "ends_with",   { function_body::builtin_str_ends_with   } },
 		{ "get_value", {
 			function_body::builtin_optional_get_value_ref,
 			function_body::builtin_optional_get_const_value_ref,
