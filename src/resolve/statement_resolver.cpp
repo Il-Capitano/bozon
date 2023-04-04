@@ -2143,6 +2143,10 @@ static void add_type_info_members(
 				info.scope.get_global().add_function(decl);
 			}
 		}
+		else if (stmt.is<ast::decl_function_alias>())
+		{
+			info.scope.get_global().add_function_alias(stmt.get<ast::decl_function_alias>());
+		}
 		else if (stmt.is<ast::decl_operator>())
 		{
 			auto &decl = stmt.get<ast::decl_operator>();
