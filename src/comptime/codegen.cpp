@@ -2150,7 +2150,7 @@ static expr_value generate_intrinsic_function_call_code(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 219);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 223);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 28);
@@ -2348,6 +2348,34 @@ static expr_value generate_intrinsic_function_call_code(
 		context.create_const_memset_zero(result_value);
 		context.create_start_lifetime(result_value);
 		return result_value;
+	}
+	case ast::function_body::builtin_integer_range_begin_value:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const range_value = generate_expr_code(func_call.params[0], context, {});
+		auto const begin_value = context.create_struct_gep(range_value, 0);
+		return value_or_result_address(begin_value, result_address, context);
+	}
+	case ast::function_body::builtin_integer_range_end_value:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const range_value = generate_expr_code(func_call.params[0], context, {});
+		auto const end_value = context.create_struct_gep(range_value, 1);
+		return value_or_result_address(end_value, result_address, context);
+	}
+	case ast::function_body::builtin_integer_range_from_begin_value:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const range_value = generate_expr_code(func_call.params[0], context, {});
+		auto const begin_value = context.create_struct_gep(range_value, 0);
+		return value_or_result_address(begin_value, result_address, context);
+	}
+	case ast::function_body::builtin_integer_range_to_end_value:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const range_value = generate_expr_code(func_call.params[0], context, {});
+		auto const end_value = context.create_struct_gep(range_value, 0);
+		return value_or_result_address(end_value, result_address, context);
 	}
 	case ast::function_body::builtin_optional_get_value_ref:
 	case ast::function_body::builtin_optional_get_const_value_ref:

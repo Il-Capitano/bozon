@@ -530,6 +530,11 @@ struct function_body
 
 		builtin_range_unbounded,
 
+		builtin_integer_range_begin_value,
+		builtin_integer_range_end_value,
+		builtin_integer_range_from_begin_value,
+		builtin_integer_range_to_end_value,
+
 		builtin_optional_get_value_ref,
 		builtin_optional_get_const_value_ref,
 		builtin_optional_get_value,
@@ -1636,7 +1641,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 219);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 223);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1690,6 +1695,11 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_integer_range_to_u64, "__builtin_integer_range_to_u64" },
 
 		{ function_body::builtin_range_unbounded, "__builtin_range_unbounded" },
+
+		{ function_body::builtin_integer_range_begin_value,      "__builtin_integer_range_begin_value"      },
+		{ function_body::builtin_integer_range_end_value,        "__builtin_integer_range_end_value"        },
+		{ function_body::builtin_integer_range_from_begin_value, "__builtin_integer_range_from_begin_value" },
+		{ function_body::builtin_integer_range_to_end_value,     "__builtin_integer_range_to_end_value"     },
 
 		{ function_body::builtin_optional_get_value_ref,       "__builtin_optional_get_value_ref"       },
 		{ function_body::builtin_optional_get_const_value_ref, "__builtin_optional_get_const_value_ref" },

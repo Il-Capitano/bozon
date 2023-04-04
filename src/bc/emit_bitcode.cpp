@@ -2797,7 +2797,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 219);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 223);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 28);
@@ -3049,6 +3049,74 @@ static val_ptr emit_bitcode(
 				result_address = context.create_alloca(result_type);
 			}
 			return val_ptr::get_reference(result_address, result_type);
+		}
+		case ast::function_body::builtin_integer_range_begin_value:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const range_val = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			auto const begin_value_ptr = context.create_struct_gep(range_val.get_type(), range_val.val, 0);
+			auto const result_type = range_val.get_type()->getStructElementType(0);
+			auto const begin_value = context.builder.CreateLoad(result_type, begin_value_ptr);
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(begin_value, result_address);
+				return val_ptr::get_reference(result_address, result_type);
+			}
+			else
+			{
+				return val_ptr::get_value(begin_value);
+			}
+		}
+		case ast::function_body::builtin_integer_range_end_value:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const range_val = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			auto const end_value_ptr = context.create_struct_gep(range_val.get_type(), range_val.val, 1);
+			auto const result_type = range_val.get_type()->getStructElementType(0);
+			auto const end_value = context.builder.CreateLoad(result_type, end_value_ptr);
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(end_value, result_address);
+				return val_ptr::get_reference(result_address, result_type);
+			}
+			else
+			{
+				return val_ptr::get_value(end_value);
+			}
+		}
+		case ast::function_body::builtin_integer_range_from_begin_value:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const range_val = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			auto const begin_value_ptr = context.create_struct_gep(range_val.get_type(), range_val.val, 0);
+			auto const result_type = range_val.get_type()->getStructElementType(0);
+			auto const begin_value = context.builder.CreateLoad(result_type, begin_value_ptr);
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(begin_value, result_address);
+				return val_ptr::get_reference(result_address, result_type);
+			}
+			else
+			{
+				return val_ptr::get_value(begin_value);
+			}
+		}
+		case ast::function_body::builtin_integer_range_to_end_value:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const range_val = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			auto const end_value_ptr = context.create_struct_gep(range_val.get_type(), range_val.val, 0);
+			auto const result_type = range_val.get_type()->getStructElementType(0);
+			auto const end_value = context.builder.CreateLoad(result_type, end_value_ptr);
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(end_value, result_address);
+				return val_ptr::get_reference(result_address, result_type);
+			}
+			else
+			{
+				return val_ptr::get_value(end_value);
+			}
 		}
 		case ast::function_body::builtin_optional_get_value_ref:
 		case ast::function_body::builtin_optional_get_const_value_ref:
