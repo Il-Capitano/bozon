@@ -1869,682 +1869,87 @@ static ast::expression expression_from_symbol(
 	}
 }
 
-static source_highlight get_ambiguous_note(symbol_t const &symbol)
+static bz::vector<source_highlight> get_ambiguous_notes(
+	ast::global_scope_symbol_list_t const &symbols,
+	bz::array_view<ast::global_scope_symbol_index_t const> ambiguous_ids
+)
 {
-	static_assert(symbol_t::variant_count == 8);
-	switch (symbol.index())
+	auto notes = bz::vector<source_highlight>();
+	notes.reserve(ambiguous_ids.size());
+	for (auto const [kind, index] : ambiguous_ids)
 	{
-	case symbol_t::index_of<ast::decl_variable *>:
-	{
-		auto const var_decl = symbol.get<ast::decl_variable *>();
-		return parse_context::make_note(
-			var_decl->src_tokens,
-			bz::format("it may refer to the variable '{}'", var_decl->get_id().format_as_unqualified())
-		);
-	}
-	case symbol_t::index_of<ast::variadic_var_decl_ref>:
-	{
-		auto const &[var_decl, _] = symbol.get<ast::variadic_var_decl_ref>();
-		return parse_context::make_note(
-			var_decl->src_tokens,
-			bz::format("it may refer to the variable '{}'", var_decl->get_id().format_as_unqualified())
-		);
-	}
-	case symbol_t::index_of<ast::decl_function *>:
-	{
-		auto const func_decl = symbol.get<ast::decl_function *>();
-		return parse_context::make_note(
-			func_decl->body.src_tokens,
-			bz::format("it may refer to '{}'", func_decl->body.get_signature())
-		);
-	}
-	case symbol_t::index_of<ast::decl_function_alias *>:
-	{
-		auto const alias_decl = symbol.get<ast::decl_function_alias *>();
-		return parse_context::make_note(
-			alias_decl->src_tokens,
-			bz::format("it may refer to the alias 'function {}'", alias_decl->id.format_as_unqualified())
-		);
-	}
-	case symbol_t::index_of<function_overload_set_decls>:
-	{
-		auto const &[func_decls, alias_decls] = symbol.get<function_overload_set_decls>();
-		if (func_decls.not_empty())
+		switch (kind)
 		{
-			return parse_context::make_note(
-				func_decls.front()->body.src_tokens,
-				bz::format("it may refer to '{}'", func_decls.front()->body.get_signature())
-			);
-		}
-		else
+		case ast::global_scope_symbol_kind::function_set:
 		{
-			bz_assert(alias_decls.not_empty());
-			return parse_context::make_note(
-				alias_decls.front()->src_tokens,
-				bz::format("it may refer to the alias 'function {}'", alias_decls.front()->id.format_as_unqualified())
-			);
-		}
-	}
-	case symbol_t::index_of<ast::decl_type_alias *>:
-	{
-		auto const alias_decl = symbol.get<ast::decl_type_alias *>();
-		return parse_context::make_note(
-			alias_decl->src_tokens,
-			bz::format("it may refer to the alias 'type {}'", alias_decl->id.format_as_unqualified())
-		);
-	}
-	case symbol_t::index_of<ast::decl_struct *>:
-	{
-		auto const struct_decl = symbol.get<ast::decl_struct *>();
-		return parse_context::make_note(
-			struct_decl->info.src_tokens,
-			bz::format("it may refer to the type 'struct {}'", struct_decl->id.format_as_unqualified())
-		);
-	}
-	case symbol_t::index_of<ast::decl_enum *>:
-	{
-		auto const enum_decl = symbol.get<ast::decl_enum *>();
-		return parse_context::make_note(
-			enum_decl->src_tokens,
-			bz::format("it may refer to the type 'enum {}'", enum_decl->id.format_as_unqualified())
-		);
-	}
-	default:
-		bz_unreachable;
-	}
-}
-
-static ast::function_overload_set *find_function_set_by_qualified_id(
-	bz::array_view<ast::function_overload_set> func_sets,
-	ast::identifier const &id
-)
-{
-	auto const it = std::find_if(
-		func_sets.begin(), func_sets.end(),
-		[&id](auto const &set) {
-			bz_assert(set.id.is_qualified);
-			return set.id == id;
-		}
-	);
-	if (it != func_sets.end())
-	{
-		return &*it;
-	}
-	else
-	{
-		return nullptr;
-	}
-}
-
-static ast::decl_variable *find_variable_by_qualified_id(
-	bz::array_view<ast::decl_variable * const> variables,
-	ast::identifier const &id
-)
-{
-	auto const it = std::find_if(
-		variables.begin(), variables.end(),
-		[&id](auto const decl) {
-			return decl->get_id() == id;
-		}
-	);
-	if (it != variables.end())
-	{
-		return *it;
-	}
-	else
-	{
-		return nullptr;
-	}
-}
-
-static ast::variadic_var_decl_ref find_variadic_variable_by_qualified_id(
-	bz::array_view<ast::variadic_var_decl> variadic_variables,
-	ast::identifier const &id
-)
-{
-	auto const it = std::find_if(
-		variadic_variables.begin(), variadic_variables.end(),
-		[&id](auto const variadic_var) {
-			return variadic_var.original_decl->get_id() == id;
-		}
-	);
-	if (it != variadic_variables.end())
-	{
-		return { it->original_decl, it->variadic_decls };
-	}
-	else
-	{
-		return {};
-	}
-}
-
-static ast::decl_type_alias *find_type_alias_by_qualified_id(
-	bz::array_view<ast::decl_type_alias * const> type_aliases,
-	ast::identifier const &id
-)
-{
-	auto const it = std::find_if(
-		type_aliases.begin(), type_aliases.end(),
-		[&id](auto const alias) {
-			return alias->id == id;
-		}
-	);
-	if (it != type_aliases.end())
-	{
-		return *it;
-	}
-	else
-	{
-		return nullptr;
-	}
-}
-
-static ast::decl_struct *find_struct_by_qualified_id(
-	bz::array_view<ast::decl_struct * const> structs,
-	ast::identifier const &id
-)
-{
-	auto const it = std::find_if(
-		structs.begin(), structs.end(),
-		[&id](auto const decl) {
-			return decl->id == id;
-		}
-	);
-	if (it != structs.end())
-	{
-		return *it;
-	}
-	else
-	{
-		return nullptr;
-	}
-}
-
-static ast::decl_enum *find_enum_by_qualified_id(
-	bz::array_view<ast::decl_enum * const> enums,
-	ast::identifier const &id
-)
-{
-	auto const it = std::find_if(
-		enums.begin(), enums.end(),
-		[&id](auto const decl) {
-			return decl->id == id;
-		}
-	);
-	if (it != enums.end())
-	{
-		return *it;
-	}
-	else
-	{
-		return nullptr;
-	}
-}
-
-static bool unqualified_equals(
-	ast::identifier const &lhs,
-	ast::identifier const &rhs,
-	bz::array_view<bz::u8string_view const> rhs_id_scope
-)
-{
-	bz_assert(!rhs.is_qualified);
-	if (rhs.values.size() > lhs.values.size())
-	{
-		return false;
-	}
-	else if (rhs.values.size() + rhs_id_scope.size() < lhs.values.size())
-	{
-		return false;
-	}
-	else
-	{
-		auto const lhs_size = lhs.values.size();
-		auto const rhs_size = rhs.values.size();
-		return lhs.values.slice(lhs_size - rhs_size, lhs_size) == rhs.values.as_array_view()
-			&& lhs.values.slice(0, lhs_size - rhs_size) == rhs_id_scope.slice(0, lhs_size - rhs_size);
-	}
-}
-
-static auto get_function_set_range_by_unqualified_id(
-	bz::array_view<ast::function_overload_set> func_sets,
-	ast::identifier const &id
-)
-{
-	return func_sets.filter(
-		[&id](auto const &set) {
-			return unqualified_equals(set.id, id, {});
-		}
-	);
-}
-
-static auto get_variable_range_by_unqualified_id(
-	bz::array_view<ast::decl_variable * const> variables,
-	ast::identifier const &id
-)
-{
-	return variables.filter(
-		[&id](auto const decl) {
-			return unqualified_equals(decl->get_id(), id, {});
-		}
-	);
-}
-
-static auto get_variadic_variable_range_by_unqualified_id(
-	bz::array_view<ast::variadic_var_decl> variadic_variables,
-	ast::identifier const &id
-)
-{
-	return variadic_variables.filter(
-		[&id](auto const &variadic_var) {
-			return unqualified_equals(variadic_var.original_decl->get_id(), id, {});
-		}
-	);
-}
-
-static auto get_type_alias_range_by_unqualified_id(
-	bz::array_view<ast::decl_type_alias * const> type_aliases,
-	ast::identifier const &id
-)
-{
-	return type_aliases.filter(
-		[&id](auto const alias) {
-			return unqualified_equals(alias->id, id, {});
-		}
-	);
-}
-
-static auto get_struct_range_by_unqualified_id(
-	bz::array_view<ast::decl_struct * const> structs,
-	ast::identifier const &id
-)
-{
-	return structs.filter(
-		[&id](auto const decl) {
-			return unqualified_equals(decl->id, id, {});
-		}
-	);
-}
-
-static auto get_enum_range_by_unqualified_id(
-	bz::array_view<ast::decl_enum * const> enums,
-	ast::identifier const &id
-)
-{
-	return enums.filter(
-		[&id](auto const decl) {
-			return unqualified_equals(decl->id, id, {});
-		}
-	);
-}
-
-static void try_find_function_set_by_qualified_id(
-	symbol_t &result,
-	bz::array_view<ast::function_overload_set> function_sets,
-	ast::identifier const &id,
-	parse_context &context
-)
-{
-	auto const func_set = find_function_set_by_qualified_id(function_sets, id);
-	if (func_set != nullptr && result.not_null())
-	{
-		context.report_error(
-			lex::src_tokens::from_range(id.tokens),
-			bz::format("identifier '{}' is ambiguous", id.as_string()),
+			auto const &set = symbols.function_sets[index];
+			for (auto const func_decl : set.func_decls)
 			{
-				get_ambiguous_note(result),
-				func_set->func_decls.not_empty()
-				? context.make_note(
-					func_set->func_decls.front()->body.src_tokens,
-					bz::format("it may refer to '{}'", func_set->func_decls.front()->body.get_signature())
-				)
-				: context.make_note(
-					func_set->alias_decls.front()->src_tokens,
-					bz::format("it may refer to the alias 'function {}'", id.format_as_unqualified())
-				)
+				notes.push_back(parse_context::make_note(
+					func_decl->body.src_tokens,
+					bz::format("it may refer to '{}'", func_decl->body.get_signature())
+				));
 			}
-		);
-	}
-	else if (func_set != nullptr)
-	{
-		auto &decls = result.emplace<function_overload_set_decls>();
-		decls.func_decls.append(func_set->func_decls);
-		decls.alias_decls.append(func_set->alias_decls);
-	}
-}
-
-static void try_find_variable_by_qualified_id(
-	symbol_t &result,
-	bz::array_view<ast::decl_variable * const> variables,
-	ast::identifier const &id,
-	parse_context &context
-)
-{
-	auto const var_decl = find_variable_by_qualified_id(variables, id);
-	if (var_decl != nullptr && result.not_null())
-	{
-		context.report_error(
-			lex::src_tokens::from_range(id.tokens),
-			bz::format("identifier '{}' is ambiguous", id.as_string()),
+			for (auto const alias_decl : set.alias_decls)
 			{
-				get_ambiguous_note(result),
-				context.make_note(
-					var_decl->src_tokens,
-					bz::format("it may refer to the variable '{}'", id.format_as_unqualified())
-				)
-			}
-		);
-	}
-	else if (var_decl != nullptr)
-	{
-		result = var_decl;
-	}
-}
-
-static void try_find_variadic_variable_by_qualified_id(
-	symbol_t &result,
-	bz::array_view<ast::variadic_var_decl> variadic_variables,
-	ast::identifier const &id,
-	parse_context &context
-)
-{
-	auto const var_decl = find_variadic_variable_by_qualified_id(variadic_variables, id);
-	if (var_decl.original_decl != nullptr && result.not_null())
-	{
-		context.report_error(
-			lex::src_tokens::from_range(id.tokens),
-			bz::format("identifier '{}' is ambiguous", id.as_string()),
-			{
-				get_ambiguous_note(result),
-				context.make_note(
-					var_decl.original_decl->src_tokens,
-					bz::format("it may refer to the variable '{}'", id.format_as_unqualified())
-				)
-			}
-		);
-	}
-	else if (var_decl.original_decl != nullptr)
-	{
-		result = var_decl;
-	}
-}
-
-static void try_find_type_alias_by_qualified_id(
-	symbol_t &result,
-	bz::array_view<ast::decl_type_alias * const> type_aliases,
-	ast::identifier const &id,
-	parse_context &context
-)
-{
-	auto const alias_decl = find_type_alias_by_qualified_id(type_aliases, id);
-	if (alias_decl != nullptr && result.not_null())
-	{
-		context.report_error(
-			lex::src_tokens::from_range(id.tokens),
-			bz::format("identifier '{}' is ambiguous", id.as_string()),
-			{
-				get_ambiguous_note(result),
-				context.make_note(
+				notes.push_back(parse_context::make_note(
 					alias_decl->src_tokens,
-					bz::format("it may refer to the alias 'type {}'", id.format_as_unqualified())
-				)
+					bz::format("it may refer to the alias 'function {}'", alias_decl->id.format_as_unqualified())
+				));
 			}
-		);
+			break;
+		}
+		case ast::global_scope_symbol_kind::variable:
+		{
+			auto const var_decl = symbols.variables[index];
+			notes.push_back(parse_context::make_note(
+				var_decl->src_tokens,
+				bz::format("it may refer to the variable '{}'", var_decl->get_id().format_as_unqualified())
+			));
+			break;
+		}
+		case ast::global_scope_symbol_kind::variadic_variable:
+		{
+			auto const &[var_decl, _] = symbols.variadic_variables[index];
+			notes.push_back(parse_context::make_note(
+				var_decl->src_tokens,
+				bz::format("it may refer to the variable '{}'", var_decl->get_id().format_as_unqualified())
+			));
+			break;
+		}
+		case ast::global_scope_symbol_kind::type_alias:
+		{
+			auto const alias_decl = symbols.type_aliases[index];
+			notes.push_back(parse_context::make_note(
+				alias_decl->src_tokens,
+				bz::format("it may refer to the alias 'type {}'", alias_decl->id.format_as_unqualified())
+			));
+			break;
+		}
+		case ast::global_scope_symbol_kind::struct_:
+		{
+			auto const struct_decl = symbols.structs[index];
+			notes.push_back(parse_context::make_note(
+				struct_decl->info.src_tokens,
+				bz::format("it may refer to the type 'struct {}'", struct_decl->id.format_as_unqualified())
+			));
+			break;
+		}
+		case ast::global_scope_symbol_kind::enum_:
+		{
+			auto const enum_decl = symbols.enums[index];
+			notes.push_back(parse_context::make_note(
+				enum_decl->src_tokens,
+				bz::format("it may refer to the type 'enum {}'", enum_decl->id.format_as_unqualified())
+			));
+		}
+		case ast::global_scope_symbol_kind::ambiguous:
+		case ast::global_scope_symbol_kind::none:
+			bz_unreachable;
+		}
 	}
-	else if (alias_decl != nullptr)
-	{
-		result = alias_decl;
-	}
-}
 
-static void try_find_struct_by_qualified_id(
-	symbol_t &result,
-	bz::array_view<ast::decl_struct * const> structs,
-	ast::identifier const &id,
-	parse_context &context
-)
-{
-	auto const struct_decl = find_struct_by_qualified_id(structs, id);
-	if (struct_decl != nullptr && result.not_null())
-	{
-		context.report_error(
-			lex::src_tokens::from_range(id.tokens),
-			bz::format("identifier '{}' is ambiguous", id.as_string()),
-			{
-				get_ambiguous_note(result),
-				context.make_note(
-					struct_decl->info.src_tokens,
-					bz::format("it may refer to the type 'struct {}'", id.format_as_unqualified())
-				)
-			}
-		);
-	}
-	else if (struct_decl != nullptr)
-	{
-		result = struct_decl;
-	}
-}
-
-static void try_find_enum_by_qualified_id(
-	symbol_t &result,
-	bz::array_view<ast::decl_enum * const> enums,
-	ast::identifier const &id,
-	parse_context &context
-)
-{
-	auto const enum_decl = find_enum_by_qualified_id(enums, id);
-	if (enum_decl != nullptr && result.not_null())
-	{
-		context.report_error(
-			lex::src_tokens::from_range(id.tokens),
-			bz::format("identifier '{}' is ambiguous", id.as_string()),
-			{
-				get_ambiguous_note(result),
-				context.make_note(
-					enum_decl->src_tokens,
-					bz::format("it may refer to the type 'enum {}'", id.format_as_unqualified())
-				)
-			}
-		);
-	}
-	else if (enum_decl != nullptr)
-	{
-		result = enum_decl;
-	}
-}
-
-static void try_find_function_set_by_unqualified_id(
-	symbol_t &result,
-	bz::array_view<ast::function_overload_set> function_sets,
-	ast::identifier const &id,
-	parse_context &context
-)
-{
-	for (auto &func_set : get_function_set_range_by_unqualified_id(function_sets, id))
-	{
-		if (result.not_null() && !result.is<function_overload_set_decls>())
-		{
-			context.report_error(
-				lex::src_tokens::from_range(id.tokens),
-				bz::format("identifier '{}' is ambiguous", id.as_string()),
-				{
-					get_ambiguous_note(result),
-					func_set.func_decls.not_empty()
-					? context.make_note(
-						func_set.func_decls.front()->body.src_tokens,
-						bz::format("it may refer to '{}'", func_set.func_decls.front()->body.get_signature())
-					)
-					: context.make_note(
-						func_set.alias_decls.front()->src_tokens,
-						bz::format("it may refer to the alias 'function {}'", func_set.id.format_as_unqualified())
-					)
-				}
-			);
-			return;
-		}
-		else
-		{
-			auto &decls = result.is_null()
-				? result.emplace<function_overload_set_decls>()
-				: result.get<function_overload_set_decls>();
-			decls.func_decls.append(func_set.func_decls);
-			decls.alias_decls.append(func_set.alias_decls);
-		}
-	}
-}
-
-static void try_find_variable_by_unqualified_id(
-	symbol_t &result,
-	bz::array_view<ast::decl_variable * const> variables,
-	ast::identifier const &id,
-	parse_context &context
-)
-{
-	for (auto const var_decl : get_variable_range_by_unqualified_id(variables, id))
-	{
-		if (result.not_null())
-		{
-			context.report_error(
-				lex::src_tokens::from_range(id.tokens),
-				bz::format("identifier '{}' is ambiguous", id.as_string()),
-				{
-					get_ambiguous_note(result),
-					context.make_note(
-						var_decl->src_tokens,
-						bz::format("it may refer to the variable '{}'", var_decl->get_id().format_as_unqualified())
-					)
-				}
-			);
-			return;
-		}
-		else
-		{
-			result = var_decl;
-		}
-	}
-}
-
-static void try_find_variadic_variable_by_unqualified_id(
-	symbol_t &result,
-	bz::array_view<ast::variadic_var_decl> variadic_variables,
-	ast::identifier const &id,
-	parse_context &context
-)
-{
-	for (auto const &variadic_var_decl : get_variadic_variable_range_by_unqualified_id(variadic_variables, id))
-	{
-		if (result.not_null())
-		{
-			context.report_error(
-				lex::src_tokens::from_range(id.tokens),
-				bz::format("identifier '{}' is ambiguous", id.as_string()),
-				{
-					get_ambiguous_note(result),
-					context.make_note(
-						variadic_var_decl.original_decl->src_tokens,
-						bz::format("it may refer to the variable '{}'", variadic_var_decl.original_decl->get_id().format_as_unqualified())
-					)
-				}
-			);
-			return;
-		}
-		else
-		{
-			result = ast::variadic_var_decl_ref{ variadic_var_decl.original_decl, variadic_var_decl.variadic_decls };
-		}
-	}
-}
-
-static void try_find_type_alias_by_unqualified_id(
-	symbol_t &result,
-	bz::array_view<ast::decl_type_alias * const> type_aliases,
-	ast::identifier const &id,
-	parse_context &context
-)
-{
-	for (auto const alias_decl : get_type_alias_range_by_unqualified_id(type_aliases, id))
-	{
-		if (result.not_null())
-		{
-			context.report_error(
-				lex::src_tokens::from_range(id.tokens),
-				bz::format("identifier '{}' is ambiguous", id.as_string()),
-				{
-					get_ambiguous_note(result),
-					context.make_note(
-						alias_decl->src_tokens,
-						bz::format("it may refer to the alias 'type {}'", alias_decl->id.format_as_unqualified())
-					)
-				}
-			);
-			return;
-		}
-		else
-		{
-			result = alias_decl;
-		}
-	}
-}
-
-static void try_find_struct_by_unqualified_id(
-	symbol_t &result,
-	bz::array_view<ast::decl_struct * const> structs,
-	ast::identifier const &id,
-	parse_context &context
-)
-{
-	for (auto const struct_decl : get_struct_range_by_unqualified_id(structs, id))
-	{
-		if (result.not_null())
-		{
-			context.report_error(
-				lex::src_tokens::from_range(id.tokens),
-				bz::format("identifier '{}' is ambiguous", id.as_string()),
-				{
-					get_ambiguous_note(result),
-					context.make_note(
-						struct_decl->info.src_tokens,
-						bz::format("it may refer to the type 'struct {}'", struct_decl->id.format_as_unqualified())
-					)
-				}
-			);
-			return;
-		}
-		else
-		{
-			result = struct_decl;
-		}
-	}
-}
-
-static void try_find_enum_by_unqualified_id(
-	symbol_t &result,
-	bz::array_view<ast::decl_enum * const> enums,
-	ast::identifier const &id,
-	parse_context &context
-)
-{
-	for (auto const enum_decl : get_enum_range_by_unqualified_id(enums, id))
-	{
-		if (result.not_null())
-		{
-			context.report_error(
-				lex::src_tokens::from_range(id.tokens),
-				bz::format("identifier '{}' is ambiguous", id.as_string()),
-				{
-					get_ambiguous_note(result),
-					context.make_note(
-						enum_decl->src_tokens,
-						bz::format("it may refer to the type 'enum {}'", enum_decl->id.format_as_unqualified())
-					)
-				}
-			);
-			return;
-		}
-		else
-		{
-			result = enum_decl;
-		}
-	}
+	return notes;
 }
 
 template<bool only_export>
@@ -2557,41 +1962,54 @@ static symbol_t find_id_in_global_scope(ast::global_scope_t &scope, ast::identif
 
 	auto &symbols = only_export ? scope.export_symbols : scope.all_symbols;
 
-	if (id.is_qualified)
+	if (id.is_qualified && scope.parent.scope != nullptr)
 	{
-		if (scope.parent.scope != nullptr)
-		{
-			// in this case the scope must be inside a struct, meaning the symbols can't be accessed with a qualified lookup
-			return {};
-		}
+		// in this case the scope must be inside a struct, meaning the symbols can't be accessed with a qualified lookup
+		return {};
+	}
 
+	static_assert(sizeof (ast::global_scope_t) == 624);
+	static_assert(symbol_t::variant_count == 8);
+	auto const [kind, index] = symbols.get_symbol_index_by_id(id);
+	switch (kind)
+	{
+	case ast::global_scope_symbol_kind::function_set:
+	{
 		symbol_t result;
-
-		static_assert(sizeof (ast::global_scope_t) == 576);
-		static_assert(symbol_t::variant_count == 8);
-		try_find_function_set_by_qualified_id(result, symbols.function_sets, id, context);
-		try_find_variable_by_qualified_id(result, symbols.variables, id, context);
-		try_find_variadic_variable_by_qualified_id(result, symbols.variadic_variables, id, context);
-		try_find_type_alias_by_qualified_id(result, symbols.type_aliases, id, context);
-		try_find_struct_by_qualified_id(result, symbols.structs, id, context);
-		try_find_enum_by_qualified_id(result, symbols.enums, id, context);
-
+		auto const &set = symbols.function_sets[index];
+		auto &decls = result.emplace<function_overload_set_decls>();
+		decls.func_decls.append(set.func_decls);
+		decls.alias_decls.append(set.alias_decls);
 		return result;
 	}
-	else
+	case ast::global_scope_symbol_kind::variable:
+		return symbols.variables[index];
+	case ast::global_scope_symbol_kind::variadic_variable:
 	{
 		symbol_t result;
-
-		static_assert(sizeof (ast::global_scope_t) == 576);
-		static_assert(symbol_t::variant_count == 8);
-		try_find_function_set_by_unqualified_id(result, symbols.function_sets, id, context);
-		try_find_variable_by_unqualified_id(result, symbols.variables, id, context);
-		try_find_variadic_variable_by_unqualified_id(result, symbols.variadic_variables, id, context);
-		try_find_type_alias_by_unqualified_id(result, symbols.type_aliases, id, context);
-		try_find_struct_by_unqualified_id(result, symbols.structs, id, context);
-		try_find_enum_by_unqualified_id(result, symbols.enums, id, context);
-
+		auto const &variadic_var_decl = symbols.variadic_variables[index];
+		auto &decl_ref = result.emplace<ast::variadic_var_decl_ref>();
+		decl_ref.original_decl = variadic_var_decl.original_decl;
+		decl_ref.variadic_decls = variadic_var_decl.variadic_decls;
 		return result;
+	}
+	case ast::global_scope_symbol_kind::type_alias:
+		return symbols.type_aliases[index];
+	case ast::global_scope_symbol_kind::struct_:
+		return symbols.structs[index];
+	case ast::global_scope_symbol_kind::enum_:
+		return symbols.enums[index];
+	case ast::global_scope_symbol_kind::ambiguous:
+	{
+		auto const ambiguous_ids = symbols.get_ambiguous_symbols_by_id(id);
+		context.report_error(
+			lex::src_tokens::from_range(id.tokens),
+			bz::format("identifier '{}' is ambiguous", id.as_string()),
+			get_ambiguous_notes(symbols, ambiguous_ids)
+		);
+	}
+	case ast::global_scope_symbol_kind::none:
+		return {};
 	}
 }
 
@@ -4673,70 +4091,38 @@ static void get_possible_funcs_for_universal_function_call_helper(
 	lex::src_tokens const &src_tokens,
 	ast::identifier const &id,
 	bz::array_view<ast::expression> params,
-	bz::array_view<ast::function_overload_set> function_sets,
+	ast::global_scope_symbol_list_t const &symbols,
 	parse_context &context
 )
 {
-	if (id.is_qualified)
-	{
-		auto const func_set = find_function_set_by_qualified_id(function_sets, id);
-		if (func_set != nullptr)
-		{
-			for (auto const func : func_set->func_decls.filter(
-				[&result](auto const func) {
-					return !result.member<&possible_func_t::func_body>().contains(&func->body);
-				})
-			)
-			{
-				auto match_level = resolve::get_function_call_match_level(func, func->body, params, context, src_tokens);
-				result.push_back({ std::move(match_level), func, &func->body });
-			}
+	auto const [kind, index] = symbols.get_symbol_index_by_id(id);
 
-			for (auto const alias : func_set->alias_decls)
-			{
-				context.add_to_resolve_queue(src_tokens, *alias);
-				resolve::resolve_function_alias(*alias, context);
-				context.pop_resolve_queue();
-				for (auto const decl : alias->aliased_decls.filter(
-					[&result](auto const decl) {
-						return !result.member<&possible_func_t::func_body>().contains(&decl->body);
-					}
-				))
-				{
-					auto match_level = resolve::get_function_call_match_level(decl, decl->body, params, context, src_tokens);
-					result.push_back({ std::move(match_level), alias, &decl->body });
-				}
-			}
+	if (kind == ast::global_scope_symbol_kind::function_set)
+	{
+		auto const &func_set = symbols.function_sets[index];
+		for (auto const func : func_set.func_decls.filter(
+			[&result](auto const func) {
+				return !result.member<&possible_func_t::func_body>().contains(&func->body);
+			})
+		)
+		{
+			auto match_level = resolve::get_function_call_match_level(func, func->body, params, context, src_tokens);
+			result.push_back({ std::move(match_level), func, &func->body });
 		}
-	}
-	else
-	{
-		for (auto const &func_set : get_function_set_range_by_unqualified_id(function_sets, id))
-		{
-			for (auto const func : func_set.func_decls.filter(
-				[&result](auto const func) {
-					return !result.member<&possible_func_t::func_body>().contains(&func->body);
-				})
-			)
-			{
-				auto match_level = resolve::get_function_call_match_level(func, func->body, params, context, src_tokens);
-				result.push_back({ std::move(match_level), func, &func->body });
-			}
 
-			for (auto const alias : func_set.alias_decls)
-			{
-				context.add_to_resolve_queue(src_tokens, *alias);
-				resolve::resolve_function_alias(*alias, context);
-				context.pop_resolve_queue();
-				for (auto const decl : alias->aliased_decls.filter(
-					[&result](auto const decl) {
-						return !result.member<&possible_func_t::func_body>().contains(&decl->body);
-					}
-				))
-				{
-					auto match_level = resolve::get_function_call_match_level(decl, decl->body, params, context, src_tokens);
-					result.push_back({ std::move(match_level), alias, &decl->body });
+		for (auto const alias : func_set.alias_decls)
+		{
+			context.add_to_resolve_queue(src_tokens, *alias);
+			resolve::resolve_function_alias(*alias, context);
+			context.pop_resolve_queue();
+			for (auto const decl : alias->aliased_decls.filter(
+				[&result](auto const decl) {
+					return !result.member<&possible_func_t::func_body>().contains(&decl->body);
 				}
+			))
+			{
+				auto match_level = resolve::get_function_call_match_level(decl, decl->body, params, context, src_tokens);
+				result.push_back({ std::move(match_level), alias, &decl->body });
 			}
 		}
 	}
@@ -4765,15 +4151,11 @@ static void get_possible_funcs_for_universal_function_call_helper(
 		else
 		{
 			bz_assert(scope.scope->is_global());
-			auto &symbols = only_export ? scope.scope->get_global().export_symbols : scope.scope->get_global().all_symbols;
-			get_possible_funcs_for_universal_function_call_helper(
-				result,
-				src_tokens,
-				id,
-				params,
-				symbols.function_sets,
-				context
-			);
+			if (!id.is_qualified || scope.scope->get_global().parent.scope == nullptr)
+			{
+				auto &symbols = only_export ? scope.scope->get_global().export_symbols : scope.scope->get_global().all_symbols;
+				get_possible_funcs_for_universal_function_call_helper(result, src_tokens, id, params, symbols, context);
+			}
 			scope = scope.scope->get_global().parent;
 		}
 	}

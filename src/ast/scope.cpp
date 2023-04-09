@@ -4,6 +4,23 @@
 namespace ast
 {
 
+std::pair<global_scope_symbol_list_t::id_map_t::iterator, bool> global_scope_symbol_list_t::insert(
+	bz::array_view<bz::u8string_view const> id,
+	global_scope_symbol_index_t index
+)
+{
+	auto const it = this->id_map.find(id);
+	if (it != this->id_map.end())
+	{
+		return { it, false };
+	}
+	else
+	{
+		auto const &new_id = this->id_storage.push_back(id);
+		return this->id_map.insert({ new_id, index });
+	}
+}
+
 void global_scope_symbol_list_t::add_variable(bz::array_view<bz::u8string_view const> id, decl_variable &var_decl)
 {
 	auto const index = this->variables.size();
@@ -14,10 +31,11 @@ void global_scope_symbol_list_t::add_variable(bz::array_view<bz::u8string_view c
 		id = var_decl.get_id().values;
 	}
 
-	auto const [it, inserted] = this->id_map.insert({ id, {
+	auto const [it, inserted] = this->insert(id, {
 		.symbol_kind = global_scope_symbol_kind::variable,
 		.index = static_cast<uint32_t>(index)
-	} });
+	});
+	id = it->first;
 
 	if (!inserted)
 	{
@@ -44,10 +62,11 @@ void global_scope_symbol_list_t::add_variable(bz::array_view<bz::u8string_view c
 		id = original_decl.get_id().values;
 	}
 
-	auto const [it, inserted] = this->id_map.insert({ id, {
+	auto const [it, inserted] = this->insert(id, {
 		.symbol_kind = global_scope_symbol_kind::variadic_variable,
 		.index = static_cast<uint32_t>(index)
-	} });
+	});
+	id = it->first;
 
 	if (!inserted)
 	{
@@ -72,15 +91,15 @@ void global_scope_symbol_list_t::add_function(bz::array_view<bz::u8string_view c
 	}
 
 	auto const potential_index = this->function_sets.size();
-	auto const [it, inserted] = this->id_map.insert({ id, {
+	auto const [it, inserted] = this->insert(id, {
 		.symbol_kind = global_scope_symbol_kind::function_set,
 		.index = static_cast<uint32_t>(potential_index)
-	} });
+	});
+	id = it->first;
 
 	if (inserted)
 	{
 		auto &set = this->function_sets.emplace_back();
-		set.id = func_decl.id; // temporary!!
 		set.func_decls.push_back(&func_decl);
 	}
 	else if (it->second.symbol_kind == global_scope_symbol_kind::function_set)
@@ -99,7 +118,6 @@ void global_scope_symbol_list_t::add_function(bz::array_view<bz::u8string_view c
 
 		auto const index = this->function_sets.size();
 		auto &set = this->function_sets.emplace_back();
-		set.id = func_decl.id; // temporary!!
 		set.func_decls.push_back(&func_decl);
 
 		ambiguous_ids.push_back({
@@ -117,15 +135,15 @@ void global_scope_symbol_list_t::add_function_alias(bz::array_view<bz::u8string_
 	}
 
 	auto const potential_index = this->function_sets.size();
-	auto const [it, inserted] = this->id_map.insert({ id, {
+	auto const [it, inserted] = this->insert(id, {
 		.symbol_kind = global_scope_symbol_kind::function_set,
 		.index = static_cast<uint32_t>(potential_index)
-	} });
+	});
+	id = it->first;
 
 	if (inserted)
 	{
 		auto &set = this->function_sets.emplace_back();
-		set.id = alias_decl.id; // temporary!!
 		set.alias_decls.push_back(&alias_decl);
 	}
 	else if (it->second.symbol_kind == global_scope_symbol_kind::function_set)
@@ -140,7 +158,6 @@ void global_scope_symbol_list_t::add_function_alias(bz::array_view<bz::u8string_
 
 		auto const index = this->function_sets.size();
 		auto &set = this->function_sets.emplace_back();
-		set.id = alias_decl.id; // temporary!!
 		set.alias_decls.push_back(&alias_decl);
 
 		ambiguous_ids.push_back({
@@ -180,10 +197,11 @@ void global_scope_symbol_list_t::add_type_alias(bz::array_view<bz::u8string_view
 		id = alias_decl.id.values;
 	}
 
-	auto const [it, inserted] = this->id_map.insert({ id, {
+	auto const [it, inserted] = this->insert(id, {
 		.symbol_kind = global_scope_symbol_kind::type_alias,
 		.index = static_cast<uint32_t>(index)
-	} });
+	});
+	id = it->first;
 
 	if (!inserted)
 	{
@@ -210,10 +228,11 @@ void global_scope_symbol_list_t::add_struct(bz::array_view<bz::u8string_view con
 		id = struct_decl.id.values;
 	}
 
-	auto const [it, inserted] = this->id_map.insert({ id, {
-		.symbol_kind = global_scope_symbol_kind::type_alias,
+	auto const [it, inserted] = this->insert(id, {
+		.symbol_kind = global_scope_symbol_kind::struct_,
 		.index = static_cast<uint32_t>(index)
-	} });
+	});
+	id = it->first;
 
 	if (!inserted)
 	{
@@ -240,10 +259,11 @@ void global_scope_symbol_list_t::add_enum(bz::array_view<bz::u8string_view const
 		id = enum_decl.id.values;
 	}
 
-	auto const [it, inserted] = this->id_map.insert({ id, {
-		.symbol_kind = global_scope_symbol_kind::type_alias,
+	auto const [it, inserted] = this->insert(id, {
+		.symbol_kind = global_scope_symbol_kind::enum_,
 		.index = static_cast<uint32_t>(index)
-	} });
+	});
+	id = it->first;
 
 	if (!inserted)
 	{
@@ -257,6 +277,32 @@ void global_scope_symbol_list_t::add_enum(bz::array_view<bz::u8string_view const
 			.symbol_kind = global_scope_symbol_kind::enum_,
 			.index = static_cast<uint32_t>(index),
 		});
+	}
+}
+
+global_scope_symbol_index_t global_scope_symbol_list_t::get_symbol_index_by_id(identifier const &id) const
+{
+	auto const it = this->id_map.find(id.values);
+	if (it != this->id_map.end())
+	{
+		return it->second;
+	}
+	else
+	{
+		return { global_scope_symbol_kind::none, 0 };
+	}
+}
+
+bz::array_view<global_scope_symbol_index_t const> global_scope_symbol_list_t::get_ambiguous_symbols_by_id(identifier const &id) const
+{
+	auto const it = this->ambiguous_id_map.find(id.values);
+	if (it != this->ambiguous_id_map.end())
+	{
+		return it->second;
+	}
+	else
+	{
+		return {};
 	}
 }
 

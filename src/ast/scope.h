@@ -29,7 +29,6 @@ inline bool operator != (enclosing_scope_t lhs, enclosing_scope_t rhs)
 
 struct function_overload_set
 {
-	identifier id;
 	arena_vector<decl_function *> func_decls;
 	arena_vector<decl_function_alias *> alias_decls;
 };
@@ -61,6 +60,7 @@ enum class global_scope_symbol_kind : uint32_t
 	struct_,
 	enum_,
 	ambiguous,
+	none,
 };
 
 struct global_scope_symbol_index_t
@@ -99,6 +99,9 @@ struct global_scope_symbol_list_t
 
 	id_map_t id_map;
 	ambiguous_id_map_t ambiguous_id_map;
+	bz::vector<bz::vector<bz::u8string_view>> id_storage;
+
+	std::pair<id_map_t::iterator, bool> insert(bz::array_view<bz::u8string_view const> id, global_scope_symbol_index_t index);
 
 	void add_variable(bz::array_view<bz::u8string_view const> id, decl_variable &var_decl);
 	void add_variable(bz::array_view<bz::u8string_view const> id, decl_variable &original_decl, arena_vector<decl_variable *> variadic_decls);
@@ -108,6 +111,9 @@ struct global_scope_symbol_list_t
 	void add_type_alias(bz::array_view<bz::u8string_view const> id, decl_type_alias &alias_decl);
 	void add_struct(bz::array_view<bz::u8string_view const> id, decl_struct &struct_decl);
 	void add_enum(bz::array_view<bz::u8string_view const> id, decl_enum &enum_decl);
+
+	global_scope_symbol_index_t get_symbol_index_by_id(identifier const &id) const;
+	bz::array_view<global_scope_symbol_index_t const> get_ambiguous_symbols_by_id(identifier const &id) const;
 };
 
 struct global_scope_t

@@ -142,7 +142,7 @@ static void add_import_decls(src_file &file, bz::array_view<bz::u8string_view co
 		file._global_scope.get_global().all_symbols.add_enum(get_id(enum_decl->id.values), *enum_decl);
 	}
 
-	static_assert(sizeof (ast::global_scope_t) == 576);
+	static_assert(sizeof (ast::global_scope_t) == 624);
 }
 
 
@@ -251,7 +251,7 @@ src_file::src_file(fs::path const &file_path, uint32_t file_id, bz::vector<bz::u
 
 	for (auto &decl : this->_declarations)
 	{
-		static_assert(sizeof (ast::global_scope_t) == 576);
+		static_assert(sizeof (ast::global_scope_t) == 624);
 		static_assert(ast::statement_types::size() == 16);
 		switch (decl.kind())
 		{
