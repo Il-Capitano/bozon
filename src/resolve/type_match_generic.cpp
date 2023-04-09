@@ -3011,8 +3011,14 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		else if constexpr (kind == type_match_function_kind::match_expression)
 		{
 			bz_assert(
-				match_context.dest_container.modifiers.not_empty()
-				&& match_context.dest_container.modifiers[0].template is<ast::ts_auto_reference>()
+				(
+					match_context.dest_container.modifiers.not_empty()
+					&& match_context.dest_container.modifiers[0].template is<ast::ts_auto_reference>()
+				) || (
+					match_context.dest_container.modifiers.size() >= 2
+					&& match_context.dest_container.modifiers[0].template is<ast::ts_optional>()
+					&& match_context.dest_container.modifiers[1].template is<ast::ts_auto_reference>()
+				)
 			);
 			if (is_lvalue)
 			{
@@ -3029,7 +3035,14 @@ static match_function_result_t<kind> generic_type_match_base_case(
 				);
 				if (good)
 				{
-					match_context.dest_container.modifiers[0].template emplace<ast::ts_lvalue_reference>();
+					if (match_context.dest_container.modifiers[0].template is<ast::ts_optional>())
+					{
+						match_context.dest_container.modifiers[1].template emplace<ast::ts_lvalue_reference>();
+					}
+					else
+					{
+						match_context.dest_container.modifiers[0].template emplace<ast::ts_lvalue_reference>();
+					}
 				}
 				return good;
 			}
@@ -3038,7 +3051,15 @@ static match_function_result_t<kind> generic_type_match_base_case(
 				auto const good = generic_type_match_base_case(change_dest(match_context, inner_dest));
 				if (good)
 				{
-					match_context.dest_container.remove_layer();
+					if (match_context.dest_container.modifiers[0].template is<ast::ts_optional>())
+					{
+						match_context.dest_container.remove_layer();
+						match_context.dest_container.modifiers[0].template emplace<ast::ts_optional>();
+					}
+					else
+					{
+						match_context.dest_container.remove_layer();
+					}
 				}
 				return good;
 			}
@@ -3107,8 +3128,14 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		else if constexpr (kind == type_match_function_kind::match_expression)
 		{
 			bz_assert(
-				match_context.dest_container.modifiers.not_empty()
-				&& match_context.dest_container.modifiers[0].template is<ast::ts_auto_reference_const>()
+				(
+					match_context.dest_container.modifiers.not_empty()
+					&& match_context.dest_container.modifiers[0].template is<ast::ts_auto_reference_const>()
+				) || (
+					match_context.dest_container.modifiers.size() >= 2
+					&& match_context.dest_container.modifiers[0].template is<ast::ts_optional>()
+					&& match_context.dest_container.modifiers[1].template is<ast::ts_auto_reference_const>()
+				)
 			);
 			if (is_lvalue)
 			{
@@ -3127,12 +3154,28 @@ static match_function_result_t<kind> generic_type_match_base_case(
 				{
 					if (expr_is_const)
 					{
-						match_context.dest_container.modifiers[0].template emplace<ast::ts_const>();
-						match_context.dest_container.template add_layer<ast::ts_lvalue_reference>();
+						if (match_context.dest_container.modifiers[0].template is<ast::ts_optional>())
+						{
+							match_context.dest_container.modifiers[1].template emplace<ast::ts_const>();
+							match_context.dest_container.modifiers[0].template emplace<ast::ts_lvalue_reference>();
+							match_context.dest_container.template add_layer<ast::ts_optional>();
+						}
+						else
+						{
+							match_context.dest_container.modifiers[0].template emplace<ast::ts_const>();
+							match_context.dest_container.template add_layer<ast::ts_lvalue_reference>();
+						}
 					}
 					else
 					{
-						match_context.dest_container.modifiers[0].template emplace<ast::ts_lvalue_reference>();
+						if (match_context.dest_container.modifiers[0].template is<ast::ts_optional>())
+						{
+							match_context.dest_container.modifiers[1].template emplace<ast::ts_lvalue_reference>();
+						}
+						else
+						{
+							match_context.dest_container.modifiers[0].template emplace<ast::ts_lvalue_reference>();
+						}
 					}
 				}
 				return good;
