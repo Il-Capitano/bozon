@@ -61,6 +61,9 @@ struct global_context
 	bz::vector<std::unique_ptr<src_file>> _src_files;
 	std::unordered_map<fs::path, src_file *> _src_files_map;
 
+	bz::vector<std::unique_ptr<char[]>> _src_scope_fragments;
+	bz::vector<bz::vector<bz::u8string_view>> _src_scopes_storage;
+
 	std::unique_ptr<ast::type_prototype_set_t> type_prototype_set = nullptr;
 	llvm::LLVMContext _llvm_context;
 	llvm::Module      _module;
@@ -88,6 +91,8 @@ struct global_context
 	}
 
 	src_file *get_src_file(fs::path const &file_path);
+
+	bz::array_view<bz::u8string_view const> get_scope_in_persistent_storage(bz::array_view<bz::u8string const> scope);
 
 	ast::type_info *get_builtin_type_info(uint32_t kind) const;
 	ast::type_info *get_usize_type_info(void) const;

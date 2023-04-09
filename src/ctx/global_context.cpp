@@ -144,6 +144,20 @@ src_file *global_context::get_src_file(fs::path const &file_path)
 	}
 }
 
+bz::array_view<bz::u8string_view const> global_context::get_scope_in_persistent_storage(bz::array_view<bz::u8string const> scope)
+{
+	auto &result = this->_src_scopes_storage.emplace_back();
+
+	for (auto const &fragment : scope)
+	{
+		auto &fragment_storage = this->_src_scope_fragments.push_back(std::make_unique<char[]>(fragment.size()));
+		std::memcpy(fragment_storage.get(), fragment.data_as_char_ptr(), fragment.size());
+		result.push_back(bz::u8string_view(fragment_storage.get(), fragment_storage.get() + fragment.size()));
+	}
+
+	return result;
+}
+
 ast::type_info *global_context::get_builtin_type_info(uint32_t kind) const
 {
 	bz_assert(kind <= ast::type_info::null_t_);
