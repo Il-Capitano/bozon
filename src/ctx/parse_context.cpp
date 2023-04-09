@@ -3575,7 +3575,6 @@ static ast::expression make_expr_function_call_from_body(
 {
 	if (body->is_generic())
 	{
-		bz::log("{}\n", body->get_signature());
 		auto required_from = get_generic_requirements(src_tokens, context);
 		bz_assert(required_from.front().src_tokens.pivot != nullptr);
 		auto generic_params = body->get_params_copy_for_generic_specialization();
