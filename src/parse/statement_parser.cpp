@@ -109,12 +109,13 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 				// e.g. function foo(a, b,, c) is not allowed
 				context.report_error(stream, "expected an identifier or ':'");
 			}
+			auto const src_tokens = lex::src_tokens{ prototype_begin, id == end ? prototype_begin : id, stream };
 			auto result = ast::decl_variable(
-				{ prototype_begin, id == end ? prototype_begin : id, stream },
+				src_tokens,
 				prototype,
 				ast::var_id_and_type(
 					id->kind == lex::token::identifier ? ast::make_identifier(id) : ast::identifier{},
-					ast::type_as_expression(ast::make_auto_typespec(id))
+					ast::type_as_expression(src_tokens, ast::make_auto_typespec(id))
 				),
 				context.get_current_enclosing_scope()
 			);
@@ -138,7 +139,7 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 			prototype,
 			ast::var_id_and_type(
 				id->kind == lex::token::identifier ? ast::make_identifier(id) : ast::identifier{},
-				ast::type_as_expression(ast::make_unresolved_typespec(type))
+				ast::type_as_expression(lex::src_tokens::from_range(type), ast::make_unresolved_typespec(type))
 			),
 			context.get_current_enclosing_scope()
 		);
@@ -1400,7 +1401,7 @@ static ast::statement parse_stmt_foreach_impl(
 	auto range_var_decl_stmt = ast::make_decl_variable(
 		range_expr_src_tokens,
 		lex::token_range{},
-		ast::var_id_and_type(ast::identifier{}, ast::type_as_expression(std::move(range_var_type))),
+		ast::var_id_and_type(ast::identifier{}, ast::type_as_expression(range_expr_src_tokens, std::move(range_var_type))),
 		std::move(range_expr),
 		context.get_current_enclosing_scope()
 	);

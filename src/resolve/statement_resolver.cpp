@@ -101,7 +101,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	foreach_stmt.iter_var_decl = ast::make_decl_variable(
 		range_expr_src_tokens,
 		lex::token_range{},
-		ast::var_id_and_type(ast::identifier{}, ast::type_as_expression(ast::make_auto_typespec(nullptr))),
+		ast::var_id_and_type(ast::identifier{}, ast::type_as_expression(range_expr_src_tokens, ast::make_auto_typespec(nullptr))),
 		std::move(range_begin_expr),
 		context.get_current_enclosing_scope()
 	);
@@ -140,7 +140,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	foreach_stmt.end_var_decl = ast::make_decl_variable(
 		range_expr_src_tokens,
 		lex::token_range{},
-		ast::var_id_and_type(ast::identifier{}, ast::type_as_expression(ast::make_auto_typespec(nullptr))),
+		ast::var_id_and_type(ast::identifier{}, ast::type_as_expression(range_expr_src_tokens, ast::make_auto_typespec(nullptr))),
 		std::move(range_end_expr),
 		context.get_current_enclosing_scope()
 	);
@@ -605,7 +605,7 @@ static void resolve_variable_type(ast::decl_variable &var_decl, ctx::parse_conte
 		if (stream == end)
 		{
 			context.report_error(stream, "expected a variable type");
-			var_decl.id_and_type.var_type = ast::type_as_expression(ast::make_auto_typespec(nullptr));
+			var_decl.id_and_type.var_type = ast::type_as_expression(var_decl.src_tokens, ast::make_auto_typespec(nullptr));
 		}
 		else
 		{

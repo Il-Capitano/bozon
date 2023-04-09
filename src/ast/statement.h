@@ -187,7 +187,7 @@ struct var_id_and_type
 	expression var_type;
 
 	var_id_and_type(void)
-		: id(), var_type(type_as_expression(typespec()))
+		: id(), var_type(type_as_expression(lex::src_tokens(), typespec()))
 	{}
 
 	var_id_and_type(identifier _id, expression _var_type)
@@ -195,7 +195,7 @@ struct var_id_and_type
 	{}
 
 	var_id_and_type(identifier _id)
-		: id(std::move(_id)), var_type(type_as_expression(typespec()))
+		: id(std::move(_id)), var_type(type_as_expression(lex::src_tokens::from_range(this->id.tokens), typespec()))
 	{}
 };
 
@@ -401,7 +401,7 @@ struct decl_variable
 		}
 		else
 		{
-			this->id_and_type.var_type = type_as_expression(typespec());
+			this->id_and_type.var_type = type_as_expression(this->id_and_type.var_type.src_tokens, typespec());
 		}
 		for (auto &decl : this->tuple_decls)
 		{
