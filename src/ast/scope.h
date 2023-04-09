@@ -36,7 +36,6 @@ struct function_overload_set
 
 struct operator_overload_set
 {
-	bz::array_view<bz::u8string_view const> id_scope;
 	uint32_t op;
 	arena_vector<decl_operator *> op_decls;
 };

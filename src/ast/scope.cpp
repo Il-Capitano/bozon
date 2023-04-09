@@ -59,8 +59,7 @@ void scope_symbol_list_t::add_operator(decl_operator &op_decl)
 	auto const it = std::find_if(
 		this->operator_sets.begin(), this->operator_sets.end(),
 		[&op_decl](auto const &set) {
-			return set.op == op_decl.body.function_name_or_operator_kind.get<uint32_t>()
-				&& set.id_scope == op_decl.scope.as_array_view();
+			return set.op == op_decl.body.function_name_or_operator_kind.get<uint32_t>();
 		}
 	);
 	if (it != this->operator_sets.end())
@@ -70,7 +69,6 @@ void scope_symbol_list_t::add_operator(decl_operator &op_decl)
 	else
 	{
 		auto &set = this->operator_sets.emplace_back();
-		set.id_scope = op_decl.scope;
 		set.op = op_decl.body.function_name_or_operator_kind.get<uint32_t>();
 		set.op_decls.push_back(&op_decl);
 	}

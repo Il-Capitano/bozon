@@ -3850,16 +3850,21 @@ static void get_possible_funcs_for_operator_helper(
 	parse_context &context
 )
 {
-	// TODO: this can just be a find, and not a filter
-	for (auto const &op_set : operator_sets.filter([op](auto const &op_set) { return op_set.op == op; }))
+	auto const set_it = std::find_if(
+		operator_sets.begin(), operator_sets.end(),
+		[op](auto const &op_set) { return op_set.op == op; }
+	);
+	if (set_it == operator_sets.end())
 	{
-		for (auto const op : op_set.op_decls)
+		return;
+	}
+
+	for (auto const op : set_it->op_decls)
+	{
+		if (!result.transform([](auto const &possible_func) { return possible_func.func_body; }).contains(&op->body))
 		{
-			if (!result.transform([](auto const &possible_func) { return possible_func.func_body; }).contains(&op->body))
-			{
-				auto match_level = resolve::get_function_call_match_level(op, op->body, expr, context, src_tokens);
-				result.push_back({ std::move(match_level), op, &op->body });
-			}
+			auto match_level = resolve::get_function_call_match_level(op, op->body, expr, context, src_tokens);
+			result.push_back({ std::move(match_level), op, &op->body });
 		}
 	}
 }
@@ -4019,16 +4024,21 @@ static void get_possible_funcs_for_operator_helper(
 	parse_context &context
 )
 {
-	// TODO: this can be just a find, and not a filter
-	for (auto const &op_set : operator_sets.filter([op](auto const &op_set) { return op_set.op == op; }))
+	auto const set_it = std::find_if(
+		operator_sets.begin(), operator_sets.end(),
+		[op](auto const &op_set) { return op_set.op == op; }
+	);
+	if (set_it == operator_sets.end())
 	{
-		for (auto const op_decl : op_set.op_decls)
+		return;
+	}
+
+	for (auto const op_decl : set_it->op_decls)
+	{
+		if (!result.transform([](auto const &possible_func) { return possible_func.func_body; }).contains(&op_decl->body))
 		{
-			if (!result.transform([](auto const &possible_func) { return possible_func.func_body; }).contains(&op_decl->body))
-			{
-				auto match_level = resolve::get_function_call_match_level(op_decl, op_decl->body, lhs, rhs, context, src_tokens);
-				result.push_back({ std::move(match_level), op_decl, &op_decl->body });
-			}
+			auto match_level = resolve::get_function_call_match_level(op_decl, op_decl->body, lhs, rhs, context, src_tokens);
+			result.push_back({ std::move(match_level), op_decl, &op_decl->body });
 		}
 	}
 }
