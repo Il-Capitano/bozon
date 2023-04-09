@@ -153,7 +153,13 @@ struct global_context
 	void add_compile_function(ast::function_body &func_body);
 	void add_compile_struct(ast::decl_struct &struct_decl);
 
-	bz::vector<uint32_t> add_module(uint32_t current_file_id, ast::identifier const &id);
+	struct module_info_t
+	{
+		uint32_t id;
+		bz::array_view<bz::u8string_view const> scope;
+	};
+
+	bz::vector<module_info_t> add_module(uint32_t current_file_id, ast::identifier const &id);
 	ast::scope_t &get_file_global_scope(uint32_t file_id);
 
 	bz::u8string get_file_name(uint32_t file_id);

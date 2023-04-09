@@ -525,7 +525,7 @@ static uint32_t add_module_file(
 	return file._file_id;
 }
 
-static bz::vector<uint32_t> add_module_folder(
+static bz::vector<global_context::module_info_t> add_module_folder(
 	src_file &current_file,
 	fs::path const &module_path,
 	bool is_library_folder,
@@ -533,7 +533,7 @@ static bz::vector<uint32_t> add_module_folder(
 	global_context &context
 )
 {
-	bz::vector<uint32_t> result;
+	bz::vector<global_context::module_info_t> result;
 	bz_assert(fs::is_directory(module_path));
 	for (auto const &p : bz::basic_range(fs::directory_iterator(module_path), fs::directory_iterator()))
 	{
@@ -570,13 +570,17 @@ static bz::vector<uint32_t> add_module_folder(
 		{
 			auto path = fs::canonical(p.path());
 			path.make_preferred();
-			result.push_back(add_module_file(current_file, std::move(path), is_library_folder, scope, context));
+			auto const id = add_module_file(current_file, std::move(path), is_library_folder, scope, context);
+			result.push_back({
+				.id = id,
+				.scope = context.get_scope_in_persistent_storage(scope),
+			});
 		}
 	}
 	return result;
 }
 
-bz::vector<uint32_t> global_context::add_module(uint32_t current_file_id, ast::identifier const &id)
+bz::vector<global_context::module_info_t> global_context::add_module(uint32_t current_file_id, ast::identifier const &id)
 {
 	auto &current_file = this->get_src_file(current_file_id);
 	auto const [module_path, is_library_path] = search_for_source_file(
@@ -596,7 +600,7 @@ bz::vector<uint32_t> global_context::add_module(uint32_t current_file_id, ast::i
 			},
 			{}, {}
 		});
-		return { std::numeric_limits<uint32_t>::max() };
+		return {};
 	}
 
 	if (module_path.filename().generic_string().ends_with(".bz"))
@@ -615,7 +619,15 @@ bz::vector<uint32_t> global_context::add_module(uint32_t current_file_id, ast::i
 				return result;
 			}
 		}();
-		return { add_module_file(current_file, module_path, is_library_path, std::move(scope), *this) };
+		auto const result = add_module_file(current_file, module_path, is_library_path, std::move(scope), *this);
+		if (result == std::numeric_limits<uint32_t>::max())
+		{
+			return {};
+		}
+		else
+		{
+			return { module_info_t{ result, id.values.slice(0, id.values.size() - 1) } };
+		}
 	}
 	else
 	{

@@ -4,53 +4,149 @@
 namespace ast
 {
 
-void global_scope_symbol_list_t::add_variable(decl_variable &var_decl)
+void global_scope_symbol_list_t::add_variable(bz::array_view<bz::u8string_view const> id, decl_variable &var_decl)
 {
+	auto const index = this->variables.size();
 	this->variables.push_back(&var_decl);
-}
 
-void global_scope_symbol_list_t::add_variable(decl_variable &original_decl, arena_vector<decl_variable *> variadic_decls)
-{
-	this->variadic_variables.push_back({ &original_decl, std::move(variadic_decls) });
-}
-
-void global_scope_symbol_list_t::add_function(decl_function &func_decl)
-{
-	auto const it = std::find_if(
-		this->function_sets.begin(), this->function_sets.end(),
-		[&func_decl](auto const &set) {
-			return set.id == func_decl.id;
-		}
-	);
-	if (it != this->function_sets.end())
+	if (id.empty())
 	{
-		it->func_decls.push_back(&func_decl);
+		id = var_decl.get_id().values;
 	}
-	else
+
+	auto const [it, inserted] = this->id_map.insert({ id, {
+		.symbol_kind = global_scope_symbol_kind::variable,
+		.index = static_cast<uint32_t>(index)
+	} });
+
+	if (!inserted)
+	{
+		auto &ambiguous_ids = this->ambiguous_id_map[id];
+		if (it->second.symbol_kind != global_scope_symbol_kind::ambiguous)
+		{
+			ambiguous_ids.push_back(it->second);
+			it->second.symbol_kind = global_scope_symbol_kind::ambiguous;
+		}
+		ambiguous_ids.push_back({
+			.symbol_kind = global_scope_symbol_kind::variable,
+			.index = static_cast<uint32_t>(index),
+		});
+	}
+}
+
+void global_scope_symbol_list_t::add_variable(bz::array_view<bz::u8string_view const> id, decl_variable &original_decl, arena_vector<decl_variable *> variadic_decls)
+{
+	auto const index = this->variadic_variables.size();
+	this->variadic_variables.push_back({ &original_decl, std::move(variadic_decls) });
+
+	if (id.empty())
+	{
+		id = original_decl.get_id().values;
+	}
+
+	auto const [it, inserted] = this->id_map.insert({ id, {
+		.symbol_kind = global_scope_symbol_kind::variadic_variable,
+		.index = static_cast<uint32_t>(index)
+	} });
+
+	if (!inserted)
+	{
+		auto &ambiguous_ids = this->ambiguous_id_map[id];
+		if (it->second.symbol_kind != global_scope_symbol_kind::ambiguous)
+		{
+			ambiguous_ids.push_back(it->second);
+			it->second.symbol_kind = global_scope_symbol_kind::ambiguous;
+		}
+		ambiguous_ids.push_back({
+			.symbol_kind = global_scope_symbol_kind::variadic_variable,
+			.index = static_cast<uint32_t>(index),
+		});
+	}
+}
+
+void global_scope_symbol_list_t::add_function(bz::array_view<bz::u8string_view const> id, decl_function &func_decl)
+{
+	if (id.empty())
+	{
+		id = func_decl.id.values;
+	}
+
+	auto const potential_index = this->function_sets.size();
+	auto const [it, inserted] = this->id_map.insert({ id, {
+		.symbol_kind = global_scope_symbol_kind::function_set,
+		.index = static_cast<uint32_t>(potential_index)
+	} });
+
+	if (inserted)
 	{
 		auto &set = this->function_sets.emplace_back();
-		set.id = func_decl.id;
+		set.id = func_decl.id; // temporary!!
 		set.func_decls.push_back(&func_decl);
 	}
+	else if (it->second.symbol_kind == global_scope_symbol_kind::function_set)
+	{
+		this->function_sets[it->second.index].func_decls.push_back(&func_decl);
+	}
+	// only handle this case if the id is not already ambiguous.
+	// this means that the error messages are not ideal in the case where
+	// the function set would have been added as a third or later ambiguous id,
+	// but that's probably rare, so it's not necessary to handle it
+	else if (it->second.symbol_kind != global_scope_symbol_kind::ambiguous)
+	{
+		auto &ambiguous_ids = this->ambiguous_id_map[id];
+		ambiguous_ids.push_back(it->second);
+		it->second.symbol_kind = global_scope_symbol_kind::ambiguous;
+
+		auto const index = this->function_sets.size();
+		auto &set = this->function_sets.emplace_back();
+		set.id = func_decl.id; // temporary!!
+		set.func_decls.push_back(&func_decl);
+
+		ambiguous_ids.push_back({
+			.symbol_kind = global_scope_symbol_kind::function_set,
+			.index = static_cast<uint32_t>(index),
+		});
+	}
 }
 
-void global_scope_symbol_list_t::add_function_alias(decl_function_alias &alias_decl)
+void global_scope_symbol_list_t::add_function_alias(bz::array_view<bz::u8string_view const> id, decl_function_alias &alias_decl)
 {
-	auto const it = std::find_if(
-		this->function_sets.begin(), this->function_sets.end(),
-		[&alias_decl](auto const &set) {
-			return set.id == alias_decl.id;
-		}
-	);
-	if (it != this->function_sets.end())
+	if (id.empty())
 	{
-		it->alias_decls.push_back(&alias_decl);
+		id = alias_decl.id.values;
 	}
-	else
+
+	auto const potential_index = this->function_sets.size();
+	auto const [it, inserted] = this->id_map.insert({ id, {
+		.symbol_kind = global_scope_symbol_kind::function_set,
+		.index = static_cast<uint32_t>(potential_index)
+	} });
+
+	if (inserted)
 	{
 		auto &set = this->function_sets.emplace_back();
-		set.id = alias_decl.id;
+		set.id = alias_decl.id; // temporary!!
 		set.alias_decls.push_back(&alias_decl);
+	}
+	else if (it->second.symbol_kind == global_scope_symbol_kind::function_set)
+	{
+		this->function_sets[it->second.index].alias_decls.push_back(&alias_decl);
+	}
+	else if (it->second.symbol_kind != global_scope_symbol_kind::ambiguous)
+	{
+		auto &ambiguous_ids = this->ambiguous_id_map[id];
+		ambiguous_ids.push_back(it->second);
+		it->second.symbol_kind = global_scope_symbol_kind::ambiguous;
+
+		auto const index = this->function_sets.size();
+		auto &set = this->function_sets.emplace_back();
+		set.id = alias_decl.id; // temporary!!
+		set.alias_decls.push_back(&alias_decl);
+
+		ambiguous_ids.push_back({
+			.symbol_kind = global_scope_symbol_kind::function_set,
+			.index = static_cast<uint32_t>(index),
+		});
 	}
 }
 
@@ -74,58 +170,133 @@ void global_scope_symbol_list_t::add_operator(decl_operator &op_decl)
 	}
 }
 
-void global_scope_symbol_list_t::add_type_alias(decl_type_alias &alias_decl)
+void global_scope_symbol_list_t::add_type_alias(bz::array_view<bz::u8string_view const> id, decl_type_alias &alias_decl)
 {
+	auto const index = this->type_aliases.size();
 	this->type_aliases.push_back(&alias_decl);
-}
 
-void global_scope_symbol_list_t::add_struct(decl_struct &struct_decl)
-{
-	this->structs.push_back(&struct_decl);
-}
-
-void global_scope_symbol_list_t::add_enum(decl_enum &enum_decl)
-{
-	this->enums.push_back(&enum_decl);
-}
-
-void global_scope_t::add_variable(decl_variable &var_decl)
-{
-	this->all_symbols.add_variable(var_decl);
-	if (var_decl.is_module_export())
+	if (id.empty())
 	{
-		this->export_symbols.add_variable(var_decl);
+		id = alias_decl.id.values;
+	}
+
+	auto const [it, inserted] = this->id_map.insert({ id, {
+		.symbol_kind = global_scope_symbol_kind::type_alias,
+		.index = static_cast<uint32_t>(index)
+	} });
+
+	if (!inserted)
+	{
+		auto &ambiguous_ids = this->ambiguous_id_map[id];
+		if (it->second.symbol_kind != global_scope_symbol_kind::ambiguous)
+		{
+			ambiguous_ids.push_back(it->second);
+			it->second.symbol_kind = global_scope_symbol_kind::ambiguous;
+		}
+		ambiguous_ids.push_back({
+			.symbol_kind = global_scope_symbol_kind::type_alias,
+			.index = static_cast<uint32_t>(index),
+		});
 	}
 }
 
-void global_scope_t::add_variable(decl_variable &original_decl, arena_vector<decl_variable *> variadic_decls)
+void global_scope_symbol_list_t::add_struct(bz::array_view<bz::u8string_view const> id, decl_struct &struct_decl)
+{
+	auto const index = this->structs.size();
+	this->structs.push_back(&struct_decl);
+
+	if (id.empty())
+	{
+		id = struct_decl.id.values;
+	}
+
+	auto const [it, inserted] = this->id_map.insert({ id, {
+		.symbol_kind = global_scope_symbol_kind::type_alias,
+		.index = static_cast<uint32_t>(index)
+	} });
+
+	if (!inserted)
+	{
+		auto &ambiguous_ids = this->ambiguous_id_map[id];
+		if (it->second.symbol_kind != global_scope_symbol_kind::ambiguous)
+		{
+			ambiguous_ids.push_back(it->second);
+			it->second.symbol_kind = global_scope_symbol_kind::ambiguous;
+		}
+		ambiguous_ids.push_back({
+			.symbol_kind = global_scope_symbol_kind::struct_,
+			.index = static_cast<uint32_t>(index),
+		});
+	}
+}
+
+void global_scope_symbol_list_t::add_enum(bz::array_view<bz::u8string_view const> id, decl_enum &enum_decl)
+{
+	auto const index = this->enums.size();
+	this->enums.push_back(&enum_decl);
+
+	if (id.empty())
+	{
+		id = enum_decl.id.values;
+	}
+
+	auto const [it, inserted] = this->id_map.insert({ id, {
+		.symbol_kind = global_scope_symbol_kind::type_alias,
+		.index = static_cast<uint32_t>(index)
+	} });
+
+	if (!inserted)
+	{
+		auto &ambiguous_ids = this->ambiguous_id_map[id];
+		if (it->second.symbol_kind != global_scope_symbol_kind::ambiguous)
+		{
+			ambiguous_ids.push_back(it->second);
+			it->second.symbol_kind = global_scope_symbol_kind::ambiguous;
+		}
+		ambiguous_ids.push_back({
+			.symbol_kind = global_scope_symbol_kind::enum_,
+			.index = static_cast<uint32_t>(index),
+		});
+	}
+}
+
+void global_scope_t::add_variable(bz::array_view<bz::u8string_view const> id, decl_variable &var_decl)
+{
+	this->all_symbols.add_variable(id, var_decl);
+	if (var_decl.is_module_export())
+	{
+		this->export_symbols.add_variable(id, var_decl);
+	}
+}
+
+void global_scope_t::add_variable(bz::array_view<bz::u8string_view const> id, decl_variable &original_decl, arena_vector<decl_variable *> variadic_decls)
 {
 	if (original_decl.is_module_export())
 	{
-		this->all_symbols.add_variable(original_decl, variadic_decls);
-		this->export_symbols.add_variable(original_decl, std::move(variadic_decls));
+		this->all_symbols.add_variable(id, original_decl, variadic_decls);
+		this->export_symbols.add_variable(id, original_decl, std::move(variadic_decls));
 	}
 	else
 	{
-		this->all_symbols.add_variable(original_decl, std::move(variadic_decls));
+		this->all_symbols.add_variable(id, original_decl, std::move(variadic_decls));
 	}
 }
 
-void global_scope_t::add_function(decl_function &func_decl)
+void global_scope_t::add_function(bz::array_view<bz::u8string_view const> id, decl_function &func_decl)
 {
-	this->all_symbols.add_function(func_decl);
+	this->all_symbols.add_function(id, func_decl);
 	if (func_decl.body.is_export())
 	{
-		this->export_symbols.add_function(func_decl);
+		this->export_symbols.add_function(id, func_decl);
 	}
 }
 
-void global_scope_t::add_function_alias(decl_function_alias &alias_decl)
+void global_scope_t::add_function_alias(bz::array_view<bz::u8string_view const> id, decl_function_alias &alias_decl)
 {
-	this->all_symbols.add_function_alias(alias_decl);
+	this->all_symbols.add_function_alias(id, alias_decl);
 	if (alias_decl.is_export)
 	{
-		this->export_symbols.add_function_alias(alias_decl);
+		this->export_symbols.add_function_alias(id, alias_decl);
 	}
 }
 
@@ -138,30 +309,30 @@ void global_scope_t::add_operator(decl_operator &op_decl)
 	}
 }
 
-void global_scope_t::add_type_alias(decl_type_alias &alias_decl)
+void global_scope_t::add_type_alias(bz::array_view<bz::u8string_view const> id, decl_type_alias &alias_decl)
 {
-	this->all_symbols.add_type_alias(alias_decl);
+	this->all_symbols.add_type_alias(id, alias_decl);
 	if (alias_decl.is_module_export())
 	{
-		this->export_symbols.add_type_alias(alias_decl);
+		this->export_symbols.add_type_alias(id, alias_decl);
 	}
 }
 
-void global_scope_t::add_struct(decl_struct &struct_decl)
+void global_scope_t::add_struct(bz::array_view<bz::u8string_view const> id, decl_struct &struct_decl)
 {
-	this->all_symbols.add_struct(struct_decl);
+	this->all_symbols.add_struct(id, struct_decl);
 	if (struct_decl.info.is_module_export())
 	{
-		this->export_symbols.add_struct(struct_decl);
+		this->export_symbols.add_struct(id, struct_decl);
 	}
 }
 
-void global_scope_t::add_enum(decl_enum &enum_decl)
+void global_scope_t::add_enum(bz::array_view<bz::u8string_view const> id, decl_enum &enum_decl)
 {
-	this->all_symbols.add_enum(enum_decl);
+	this->all_symbols.add_enum(id, enum_decl);
 	if (enum_decl.is_module_export())
 	{
-		this->export_symbols.add_enum(enum_decl);
+		this->export_symbols.add_enum(id, enum_decl);
 	}
 }
 

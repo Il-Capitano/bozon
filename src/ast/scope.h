@@ -52,6 +52,38 @@ struct variadic_var_decl_ref
 	bz::array_view<decl_variable * const> variadic_decls;
 };
 
+enum class global_scope_symbol_kind : uint32_t
+{
+	function_set,
+	variable,
+	variadic_variable,
+	type_alias,
+	struct_,
+	enum_,
+	ambiguous,
+};
+
+struct global_scope_symbol_index_t
+{
+	global_scope_symbol_kind symbol_kind;
+	uint32_t index;
+};
+
+struct identifier_hash
+{
+	size_t operator () (bz::array_view<bz::u8string_view const> id) const
+	{
+		auto hasher = std::hash<std::string_view>();
+		size_t result = 0;
+		for (auto const value : id)
+		{
+			// https://stackoverflow.com/questions/35985960/c-why-is-boosthash-combine-the-best-way-to-combine-hash-values
+			result ^= hasher(std::string_view(value.data(), value.size())) + 0x9e3779b9 + (result << 6) + (result >> 2);
+		}
+		return result;
+	}
+};
+
 struct global_scope_symbol_list_t
 {
 	arena_vector<function_overload_set> function_sets;
@@ -62,14 +94,20 @@ struct global_scope_symbol_list_t
 	arena_vector<decl_struct     *> structs;
 	arena_vector<decl_enum       *> enums;
 
-	void add_variable(decl_variable &var_decl);
-	void add_variable(decl_variable &original_decl, arena_vector<decl_variable *> variadic_decls);
-	void add_function(decl_function &func_decl);
-	void add_function_alias(decl_function_alias &alias_decl);
+	using id_map_t = std::unordered_map<bz::array_view<bz::u8string_view const>, global_scope_symbol_index_t, identifier_hash>;
+	using ambiguous_id_map_t = std::unordered_map<bz::array_view<bz::u8string_view const>, bz::vector<global_scope_symbol_index_t>, identifier_hash>;
+
+	id_map_t id_map;
+	ambiguous_id_map_t ambiguous_id_map;
+
+	void add_variable(bz::array_view<bz::u8string_view const> id, decl_variable &var_decl);
+	void add_variable(bz::array_view<bz::u8string_view const> id, decl_variable &original_decl, arena_vector<decl_variable *> variadic_decls);
+	void add_function(bz::array_view<bz::u8string_view const> id, decl_function &func_decl);
+	void add_function_alias(bz::array_view<bz::u8string_view const> id, decl_function_alias &alias_decl);
 	void add_operator(decl_operator &op_decl);
-	void add_type_alias(decl_type_alias &alias_decl);
-	void add_struct(decl_struct &struct_decl);
-	void add_enum(decl_enum &enum_decl);
+	void add_type_alias(bz::array_view<bz::u8string_view const> id, decl_type_alias &alias_decl);
+	void add_struct(bz::array_view<bz::u8string_view const> id, decl_struct &struct_decl);
+	void add_enum(bz::array_view<bz::u8string_view const> id, decl_enum &enum_decl);
 };
 
 struct global_scope_t
@@ -77,14 +115,14 @@ struct global_scope_t
 	global_scope_symbol_list_t all_symbols;
 	global_scope_symbol_list_t export_symbols;
 
-	void add_variable(decl_variable &var_decl);
-	void add_variable(decl_variable &original_decl, arena_vector<decl_variable *> variadic_decls);
-	void add_function(decl_function &func_decl);
-	void add_function_alias(decl_function_alias &alias_decl);
+	void add_variable(bz::array_view<bz::u8string_view const> id, decl_variable &var_decl);
+	void add_variable(bz::array_view<bz::u8string_view const> id, decl_variable &original_decl, arena_vector<decl_variable *> variadic_decls);
+	void add_function(bz::array_view<bz::u8string_view const> id, decl_function &func_decl);
+	void add_function_alias(bz::array_view<bz::u8string_view const> id, decl_function_alias &alias_decl);
 	void add_operator(decl_operator &op_decl);
-	void add_type_alias(decl_type_alias &alias_decl);
-	void add_struct(decl_struct &struct_decl);
-	void add_enum(decl_enum &enum_decl);
+	void add_type_alias(bz::array_view<bz::u8string_view const> id, decl_type_alias &alias_decl);
+	void add_struct(bz::array_view<bz::u8string_view const> id, decl_struct &struct_decl);
+	void add_enum(bz::array_view<bz::u8string_view const> id, decl_enum &enum_decl);
 
 	enclosing_scope_t parent = {};
 };

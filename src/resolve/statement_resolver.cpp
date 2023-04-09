@@ -2140,12 +2140,12 @@ static void add_type_info_members(
 			}
 			else
 			{
-				info.scope.get_global().add_function(decl);
+				info.scope.get_global().add_function({}, decl);
 			}
 		}
 		else if (stmt.is<ast::decl_function_alias>())
 		{
-			info.scope.get_global().add_function_alias(stmt.get<ast::decl_function_alias>());
+			info.scope.get_global().add_function_alias({}, stmt.get<ast::decl_function_alias>());
 		}
 		else if (stmt.is<ast::decl_operator>())
 		{
@@ -2167,20 +2167,20 @@ static void add_type_info_members(
 			}
 			else
 			{
-				info.scope.get_global().add_variable(var_decl);
+				info.scope.get_global().add_variable({}, var_decl);
 			}
 		}
 		else if (stmt.is<ast::decl_type_alias>())
 		{
-			info.scope.get_global().add_type_alias(stmt.get<ast::decl_type_alias>());
+			info.scope.get_global().add_type_alias({}, stmt.get<ast::decl_type_alias>());
 		}
 		else if (stmt.is<ast::decl_struct>())
 		{
-			info.scope.get_global().add_struct(stmt.get<ast::decl_struct>());
+			info.scope.get_global().add_struct({}, stmt.get<ast::decl_struct>());
 		}
 		else if (stmt.is<ast::decl_enum>())
 		{
-			info.scope.get_global().add_enum(stmt.get<ast::decl_enum>());
+			info.scope.get_global().add_enum({}, stmt.get<ast::decl_enum>());
 		}
 		else if (stmt.is<ast::stmt_static_assert>())
 		{
@@ -2494,7 +2494,7 @@ static void resolve_type_info_members_impl(ast::type_info &info, ctx::parse_cont
 	add_type_info_members(info, context);
 	for (auto &param : info.generic_parameters)
 	{
-		info.scope.get_global().add_variable(param);
+		info.scope.get_global().all_symbols.add_variable({}, param);
 	}
 
 	for (auto const ctor_decl : info.constructors)

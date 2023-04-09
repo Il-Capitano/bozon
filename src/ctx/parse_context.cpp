@@ -2567,7 +2567,7 @@ static symbol_t find_id_in_global_scope(ast::global_scope_t &scope, ast::identif
 
 		symbol_t result;
 
-		static_assert(sizeof (ast::global_scope_t) == 352);
+		static_assert(sizeof (ast::global_scope_t) == 576);
 		static_assert(symbol_t::variant_count == 8);
 		try_find_function_set_by_qualified_id(result, symbols.function_sets, id, context);
 		try_find_variable_by_qualified_id(result, symbols.variables, id, context);
@@ -2582,7 +2582,7 @@ static symbol_t find_id_in_global_scope(ast::global_scope_t &scope, ast::identif
 	{
 		symbol_t result;
 
-		static_assert(sizeof (ast::global_scope_t) == 352);
+		static_assert(sizeof (ast::global_scope_t) == 576);
 		static_assert(symbol_t::variant_count == 8);
 		try_find_function_set_by_unqualified_id(result, symbols.function_sets, id, context);
 		try_find_variable_by_unqualified_id(result, symbols.variables, id, context);
