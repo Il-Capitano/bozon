@@ -104,12 +104,11 @@ static llvm::PassBuilder get_pass_builder(llvm::TargetMachine *tm)
 	return llvm::PassBuilder(tm, tuning_options);
 }
 
-ast::scope_t get_default_decls(ast::scope_t *builtin_global_scope, bz::array_view<bz::u8string_view const> id_scope)
+ast::scope_t get_default_decls(ast::scope_t *builtin_global_scope)
 {
 	ast::scope_t result;
 	auto &global_scope = result.emplace<ast::global_scope_t>();
 	global_scope.parent = { builtin_global_scope, 0 };
-	global_scope.id_scope = id_scope;
 	return result;
 }
 

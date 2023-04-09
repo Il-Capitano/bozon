@@ -89,7 +89,7 @@ static void add_import_decls(src_file &file, ast::global_scope_t const &import_s
 		file._global_scope.get_global().all_symbols.add_enum(*enum_decl);
 	}
 
-	static_assert(sizeof (ast::global_scope_t) == 368);
+	static_assert(sizeof (ast::global_scope_t) == 352);
 }
 
 
@@ -182,11 +182,11 @@ src_file::src_file(fs::path const &file_path, uint32_t file_id, bz::vector<bz::u
 
 	if (global_ctx._builtin_global_scope != &this->_global_scope)
 	{
-		this->_global_scope = ctx::get_default_decls(global_ctx._builtin_global_scope, this->_scope);
+		this->_global_scope = ctx::get_default_decls(global_ctx._builtin_global_scope);
 	}
 	else
 	{
-		this->_global_scope = ast::make_global_scope({}, this->_scope);
+		this->_global_scope = ast::make_global_scope({});
 	}
 
 	ctx::parse_context context(global_ctx);
@@ -198,7 +198,7 @@ src_file::src_file(fs::path const &file_path, uint32_t file_id, bz::vector<bz::u
 
 	for (auto &decl : this->_declarations)
 	{
-		static_assert(sizeof (ast::global_scope_t) == 368);
+		static_assert(sizeof (ast::global_scope_t) == 352);
 		static_assert(ast::statement_types::size() == 16);
 		switch (decl.kind())
 		{

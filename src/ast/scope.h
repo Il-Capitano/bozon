@@ -74,7 +74,6 @@ struct scope_symbol_list_t
 
 struct global_scope_t
 {
-	bz::array_view<bz::u8string_view const> id_scope;
 	scope_symbol_list_t all_symbols;
 	scope_symbol_list_t export_symbols;
 
@@ -188,12 +187,11 @@ struct scope_t : bz::variant<global_scope_t, local_scope_t>
 	{ bz_assert(this->is_local()); return this->get<local_scope_t>(); }
 };
 
-inline scope_t make_global_scope(enclosing_scope_t enclosing_scope, bz::array_view<bz::u8string_view const> id_scope)
+inline scope_t make_global_scope(enclosing_scope_t enclosing_scope)
 {
 	scope_t result;
 	auto &global_scope = result.emplace<global_scope_t>();
 	global_scope.parent = enclosing_scope;
-	global_scope.id_scope = id_scope;
 	return result;
 }
 

@@ -683,11 +683,11 @@ ast::statement parse_decl_operator(
 
 	if constexpr (scope == parse_scope::global || scope == parse_scope::struct_body)
 	{
-		return ast::make_decl_operator(context.get_current_enclosing_id_scope(), op, std::move(body));
+		return ast::make_decl_operator(op, std::move(body));
 	}
 	else
 	{
-		auto result = ast::make_decl_operator(context.get_current_enclosing_id_scope(), op, std::move(body));
+		auto result = ast::make_decl_operator(op, std::move(body));
 		bz_assert(result.is<ast::decl_operator>());
 		auto &op_decl = result.get<ast::decl_operator>();
 		op_decl.body.flags |= ast::function_body::local;
