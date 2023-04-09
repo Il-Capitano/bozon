@@ -97,23 +97,23 @@ export struct iota_range<T: typename>
 		comptime_format("invalid type argument '{}' for std::iota_range", __builtin_typename_as_str(T))
 	);
 
-	type value_type = T;
+	export type value_type = T;
 	type _self_t = iota_range<T>;
 
 	._begin: T;
 	._end: T;
 
-	function begin(self: _self_t) -> iota_iterator_t<value_type>
+	export function begin(self: _self_t) -> iota_iterator_t<value_type>
 	{
 		return iota_iterator_t<value_type>[ self._begin ];
 	}
 
-	function end(self: _self_t) -> iota_iterator_t<value_type>
+	export function end(self: _self_t) -> iota_iterator_t<value_type>
 	{
 		return iota_iterator_t<value_type>[ self._end ];
 	}
 
-	function size(self: _self_t) -> usize
+	export function size(self: _self_t) -> usize
 	{
 		return (self._end - self._begin) as usize;
 	}
@@ -126,34 +126,34 @@ export struct iota_iterator_t<T: typename>
 		comptime_format("invalid type argument '{}' for std::iota_iterator_t", __builtin_typename_as_str(T))
 	);
 
-	type value_type = T;
+	export type value_type = T;
 	type _self_t = iota_iterator_t<T>;
 
 	._value: T;
 
-	operator * (self: _self_t) -> value_type
+	export operator * (self: _self_t) -> value_type
 	{
 		return self._value;
 	}
 
-	operator ++ (self: &_self_t) -> &_self_t
+	export operator ++ (self: &_self_t) -> &_self_t
 	{
 		++self._value;
 		return self;
 	}
 
-	operator -- (self: &_self_t) -> &_self_t
+	export operator -- (self: &_self_t) -> &_self_t
 	{
 		--self._value;
 		return self;
 	}
 
-	operator == (lhs: _self_t, rhs: _self_t) -> bool
+	export operator == (lhs: _self_t, rhs: _self_t) -> bool
 	{
 		return lhs._value == rhs._value;
 	}
 
-	operator != (lhs: _self_t, rhs: _self_t) -> bool
+	export operator != (lhs: _self_t, rhs: _self_t) -> bool
 	{
 		return lhs._value != rhs._value;
 	}

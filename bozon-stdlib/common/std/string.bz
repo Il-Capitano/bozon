@@ -52,7 +52,7 @@ export struct string
 		return string(other.as_str());
 	}
 
-	operator = (self: &string, other: &const string) -> &string
+	export operator = (self: &string, other: &const string) -> &string
 	{
 		if (&self == &other)
 		{
@@ -65,9 +65,9 @@ export struct string
 		return self;
 	}
 
-	operator = (self: &string, other: string) = __default__;
+	export operator = (self: &string, other: string) = __default__;
 
-	operator = (self: &string, rhs: str) -> &string
+	export operator = (self: &string, rhs: str) -> &string
 	{
 		const size = rhs.size();
 		if (self.capacity() >= size)

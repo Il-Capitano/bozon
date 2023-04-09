@@ -21,7 +21,7 @@ export struct unique_ptr<T: typename, nullable: bool>
 		comptime_format("unique_ptr value_type can't be a move reference type '{}'", meta::typename_as_str(T))
 	);
 
-	type value_type = T
+	export type value_type = T
 		.meta::remove_reference()
 		.meta::remove_move_reference()
 		.meta::remove_const()
@@ -51,19 +51,19 @@ export struct unique_ptr<T: typename, nullable: bool>
 		};
 	}
 
-	operator * (self: &const _self_t) -> &value_type
+	export operator * (self: &const _self_t) -> &value_type
 	{
 		return *self._data;
 	}
 
-	function create(args: ...##auto) -> _self_t
+	export function create(args: ...##auto) -> _self_t
 	{
 		const data = malloc_raw(value_type, 1);
 		__builtin_inplace_construct(data, value_type(...__forward args));
 		return _self_t[ data ];
 	}
 
-	function get(self: &const _self_t) -> _data_type
+	export function get(self: &const _self_t) -> _data_type
 	{
 		return self._data;
 	}
