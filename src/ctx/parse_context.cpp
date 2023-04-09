@@ -1512,6 +1512,7 @@ static ast::expression make_variable_expression(
 		bz_assert(init_expr.is_constant());
 		ast::typespec result_type = id_type.get<ast::ts_consteval>();
 		result_type.add_layer<ast::ts_const>();
+		bz_assert(ast::is_complete(result_type));
 		return ast::make_constant_expression(
 			src_tokens,
 			id_type_kind, std::move(result_type),
@@ -1523,6 +1524,7 @@ static ast::expression make_variable_expression(
 	{
 		ast::typespec result_type = id_type.get<ast::ts_consteval>();
 		result_type.add_layer<ast::ts_const>();
+		bz_assert(ast::is_complete(result_type));
 		return ast::make_dynamic_expression(
 			src_tokens,
 			id_type_kind, std::move(result_type),
@@ -1543,6 +1545,7 @@ static ast::expression make_variable_expression(
 	}
 	else
 	{
+		bz_assert(ast::is_complete(id_type));
 		return ast::make_dynamic_expression(
 			src_tokens,
 			id_type_kind, id_type,

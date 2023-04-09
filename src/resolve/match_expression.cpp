@@ -164,7 +164,7 @@ void match_expression_to_variable(
 				var_decl.src_tokens,
 				bz::format("invalid type '{}' for tuple decomposition", var_decl.get_type())
 			);
-			var_decl.get_type().clear();
+			var_decl.clear_type();
 			return;
 		}
 
