@@ -1194,6 +1194,7 @@ template ast::statement parse_attribute_statement<parse_scope::local>(
 	ctx::parse_context &context
 );
 
+template<parse_scope scope>
 ast::statement parse_export_statement(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -1204,7 +1205,10 @@ ast::statement parse_export_statement(
 	++stream; // 'export'
 	auto const after_export_token = stream;
 
-	auto result = parse_global_statement(stream, end, context);
+	constexpr auto parser_fn = scope == parse_scope::global ? &parse_global_statement
+		: scope == parse_scope::struct_body ? &parse_struct_body_statement
+		: &parse_local_statement;
+	auto result = parser_fn(stream, end, context);
 	if (result.not_null())
 	{
 		result.visit(bz::overload{
@@ -1236,6 +1240,21 @@ ast::statement parse_export_statement(
 	}
 	return result;
 }
+
+template ast::statement parse_export_statement<parse_scope::global>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template ast::statement parse_export_statement<parse_scope::struct_body>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template ast::statement parse_export_statement<parse_scope::local>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
 
 ast::statement parse_local_export_statement(
 	lex::token_pos &stream, lex::token_pos end,
