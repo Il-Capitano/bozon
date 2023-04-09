@@ -624,9 +624,9 @@ bz::vector<uint32_t> global_context::add_module(uint32_t current_file_id, ast::i
 	}
 }
 
-ast::scope_t *global_context::get_file_export_decls(uint32_t file_id)
+ast::scope_t &global_context::get_file_global_scope(uint32_t file_id)
 {
-	return &this->get_src_file(file_id)._export_decls;
+	return this->get_src_file(file_id)._global_scope;
 }
 
 bz::u8string global_context::get_file_name(uint32_t file_id)
@@ -1061,7 +1061,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		auto &builtins_file = this->emplace_src_file(
 			builtins_file_path, this->_src_files.size(), bz::vector<bz::u8string>(), true
 		);
-		this->_builtin_global_scope = &builtins_file._export_decls;
+		this->_builtin_global_scope = &builtins_file._global_scope;
 		if (!builtins_file.parse_global_symbols(*this))
 		{
 			return false;

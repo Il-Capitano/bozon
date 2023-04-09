@@ -388,6 +388,7 @@ type_info::decl_operator_ptr type_info::make_default_op_assign(lex::src_tokens c
 	result->body.src_tokens = src_tokens;
 	result->body.state = resolve_state::symbol;
 	result->body.flags |= function_body::default_op_assign;
+	result->body.flags |= function_body::module_export;
 	return result;
 }
 
@@ -424,6 +425,7 @@ type_info::decl_operator_ptr type_info::make_default_op_move_assign(lex::src_tok
 	result->body.src_tokens = src_tokens;
 	result->body.state = resolve_state::symbol;
 	result->body.flags |= function_body::default_op_move_assign;
+	result->body.flags |= function_body::module_export;
 	return result;
 }
 
@@ -709,6 +711,7 @@ decl_enum::decl_operator_ptr decl_enum::make_default_op_assign(lex::src_tokens c
 	result->body.src_tokens = src_tokens;
 	result->body.state = resolve_state::symbol;
 	result->body.flags |= function_body::default_op_assign;
+	result->body.flags |= function_body::module_export;
 	return result;
 }
 
@@ -742,6 +745,7 @@ decl_enum::decl_operator_ptr decl_enum::make_default_compare_op(
 	result->body.state = resolve_state::symbol;
 	result->body.flags |= function_body::intrinsic;
 	result->body.flags |= function_body::builtin_operator;
+	result->body.flags |= function_body::module_export;
 	switch (op_kind)
 	{
 	case lex::token::equals:

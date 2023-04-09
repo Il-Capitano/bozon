@@ -149,7 +149,7 @@ struct global_context
 	void add_compile_struct(ast::decl_struct &struct_decl);
 
 	bz::vector<uint32_t> add_module(uint32_t current_file_id, ast::identifier const &id);
-	ast::scope_t *get_file_export_decls(uint32_t file_id);
+	ast::scope_t &get_file_global_scope(uint32_t file_id);
 
 	bz::u8string get_file_name(uint32_t file_id);
 	bz::u8string get_location_string(lex::token_pos t);

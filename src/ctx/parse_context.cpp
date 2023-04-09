@@ -1993,7 +1993,7 @@ static ast::function_overload_set *find_function_set_by_qualified_id(
 }
 
 static ast::decl_variable *find_variable_by_qualified_id(
-	bz::array_view<ast::decl_variable *> variables,
+	bz::array_view<ast::decl_variable * const> variables,
 	ast::identifier const &id
 )
 {
@@ -2035,7 +2035,7 @@ static ast::variadic_var_decl_ref find_variadic_variable_by_qualified_id(
 }
 
 static ast::decl_type_alias *find_type_alias_by_qualified_id(
-	bz::array_view<ast::decl_type_alias *> type_aliases,
+	bz::array_view<ast::decl_type_alias * const> type_aliases,
 	ast::identifier const &id
 )
 {
@@ -2056,7 +2056,7 @@ static ast::decl_type_alias *find_type_alias_by_qualified_id(
 }
 
 static ast::decl_struct *find_struct_by_qualified_id(
-	bz::array_view<ast::decl_struct *> structs,
+	bz::array_view<ast::decl_struct * const> structs,
 	ast::identifier const &id
 )
 {
@@ -2077,7 +2077,7 @@ static ast::decl_struct *find_struct_by_qualified_id(
 }
 
 static ast::decl_enum *find_enum_by_qualified_id(
-	bz::array_view<ast::decl_enum *> enums,
+	bz::array_view<ast::decl_enum * const> enums,
 	ast::identifier const &id
 )
 {
@@ -2135,7 +2135,7 @@ static auto get_function_set_range_by_unqualified_id(
 }
 
 static auto get_variable_range_by_unqualified_id(
-	bz::array_view<ast::decl_variable *> variables,
+	bz::array_view<ast::decl_variable * const> variables,
 	ast::identifier const &id,
 	bz::array_view<bz::u8string_view const> id_scope
 )
@@ -2161,7 +2161,7 @@ static auto get_variadic_variable_range_by_unqualified_id(
 }
 
 static auto get_type_alias_range_by_unqualified_id(
-	bz::array_view<ast::decl_type_alias *> type_aliases,
+	bz::array_view<ast::decl_type_alias * const> type_aliases,
 	ast::identifier const &id,
 	bz::array_view<bz::u8string_view const> id_scope
 )
@@ -2174,7 +2174,7 @@ static auto get_type_alias_range_by_unqualified_id(
 }
 
 static auto get_struct_range_by_unqualified_id(
-	bz::array_view<ast::decl_struct *> structs,
+	bz::array_view<ast::decl_struct * const> structs,
 	ast::identifier const &id,
 	bz::array_view<bz::u8string_view const> id_scope
 )
@@ -2187,7 +2187,7 @@ static auto get_struct_range_by_unqualified_id(
 }
 
 static auto get_enum_range_by_unqualified_id(
-	bz::array_view<ast::decl_enum *> enums,
+	bz::array_view<ast::decl_enum * const> enums,
 	ast::identifier const &id,
 	bz::array_view<bz::u8string_view const> id_scope
 )
@@ -2201,12 +2201,12 @@ static auto get_enum_range_by_unqualified_id(
 
 static void try_find_function_set_by_qualified_id(
 	symbol_t &result,
-	ast::global_scope_t &scope,
+	bz::array_view<ast::function_overload_set> function_sets,
 	ast::identifier const &id,
 	parse_context &context
 )
 {
-	auto const func_set = find_function_set_by_qualified_id(scope.function_sets, id);
+	auto const func_set = find_function_set_by_qualified_id(function_sets, id);
 	if (func_set != nullptr && result.not_null())
 	{
 		context.report_error(
@@ -2236,12 +2236,12 @@ static void try_find_function_set_by_qualified_id(
 
 static void try_find_variable_by_qualified_id(
 	symbol_t &result,
-	ast::global_scope_t &scope,
+	bz::array_view<ast::decl_variable * const> variables,
 	ast::identifier const &id,
 	parse_context &context
 )
 {
-	auto const var_decl = find_variable_by_qualified_id(scope.variables, id);
+	auto const var_decl = find_variable_by_qualified_id(variables, id);
 	if (var_decl != nullptr && result.not_null())
 	{
 		context.report_error(
@@ -2264,12 +2264,12 @@ static void try_find_variable_by_qualified_id(
 
 static void try_find_variadic_variable_by_qualified_id(
 	symbol_t &result,
-	ast::global_scope_t &scope,
+	bz::array_view<ast::variadic_var_decl> variadic_variables,
 	ast::identifier const &id,
 	parse_context &context
 )
 {
-	auto const var_decl = find_variadic_variable_by_qualified_id(scope.variadic_variables, id);
+	auto const var_decl = find_variadic_variable_by_qualified_id(variadic_variables, id);
 	if (var_decl.original_decl != nullptr && result.not_null())
 	{
 		context.report_error(
@@ -2292,12 +2292,12 @@ static void try_find_variadic_variable_by_qualified_id(
 
 static void try_find_type_alias_by_qualified_id(
 	symbol_t &result,
-	ast::global_scope_t &scope,
+	bz::array_view<ast::decl_type_alias * const> type_aliases,
 	ast::identifier const &id,
 	parse_context &context
 )
 {
-	auto const alias_decl = find_type_alias_by_qualified_id(scope.type_aliases, id);
+	auto const alias_decl = find_type_alias_by_qualified_id(type_aliases, id);
 	if (alias_decl != nullptr && result.not_null())
 	{
 		context.report_error(
@@ -2320,12 +2320,12 @@ static void try_find_type_alias_by_qualified_id(
 
 static void try_find_struct_by_qualified_id(
 	symbol_t &result,
-	ast::global_scope_t &scope,
+	bz::array_view<ast::decl_struct * const> structs,
 	ast::identifier const &id,
 	parse_context &context
 )
 {
-	auto const struct_decl = find_struct_by_qualified_id(scope.structs, id);
+	auto const struct_decl = find_struct_by_qualified_id(structs, id);
 	if (struct_decl != nullptr && result.not_null())
 	{
 		context.report_error(
@@ -2348,12 +2348,12 @@ static void try_find_struct_by_qualified_id(
 
 static void try_find_enum_by_qualified_id(
 	symbol_t &result,
-	ast::global_scope_t &scope,
+	bz::array_view<ast::decl_enum * const> enums,
 	ast::identifier const &id,
 	parse_context &context
 )
 {
-	auto const enum_decl = find_enum_by_qualified_id(scope.enums, id);
+	auto const enum_decl = find_enum_by_qualified_id(enums, id);
 	if (enum_decl != nullptr && result.not_null())
 	{
 		context.report_error(
@@ -2376,12 +2376,13 @@ static void try_find_enum_by_qualified_id(
 
 static void try_find_function_set_by_unqualified_id(
 	symbol_t &result,
-	ast::global_scope_t &scope,
+	bz::array_view<ast::function_overload_set> function_sets,
 	ast::identifier const &id,
+	bz::array_view<bz::u8string_view const> id_scope,
 	parse_context &context
 )
 {
-	for (auto &func_set : get_function_set_range_by_unqualified_id(scope.function_sets, id, scope.id_scope))
+	for (auto &func_set : get_function_set_range_by_unqualified_id(function_sets, id, id_scope))
 	{
 		if (result.not_null() && !result.is<function_overload_set_decls>())
 		{
@@ -2416,12 +2417,13 @@ static void try_find_function_set_by_unqualified_id(
 
 static void try_find_variable_by_unqualified_id(
 	symbol_t &result,
-	ast::global_scope_t &scope,
+	bz::array_view<ast::decl_variable * const> variables,
 	ast::identifier const &id,
+	bz::array_view<bz::u8string_view const> id_scope,
 	parse_context &context
 )
 {
-	for (auto const var_decl : get_variable_range_by_unqualified_id(scope.variables, id, scope.id_scope))
+	for (auto const var_decl : get_variable_range_by_unqualified_id(variables, id, id_scope))
 	{
 		if (result.not_null())
 		{
@@ -2447,12 +2449,13 @@ static void try_find_variable_by_unqualified_id(
 
 static void try_find_variadic_variable_by_unqualified_id(
 	symbol_t &result,
-	ast::global_scope_t &scope,
+	bz::array_view<ast::variadic_var_decl> variadic_variables,
 	ast::identifier const &id,
+	bz::array_view<bz::u8string_view const> id_scope,
 	parse_context &context
 )
 {
-	for (auto const &variadic_var_decl : get_variadic_variable_range_by_unqualified_id(scope.variadic_variables, id, scope.id_scope))
+	for (auto const &variadic_var_decl : get_variadic_variable_range_by_unqualified_id(variadic_variables, id, id_scope))
 	{
 		if (result.not_null())
 		{
@@ -2478,12 +2481,13 @@ static void try_find_variadic_variable_by_unqualified_id(
 
 static void try_find_type_alias_by_unqualified_id(
 	symbol_t &result,
-	ast::global_scope_t &scope,
+	bz::array_view<ast::decl_type_alias * const> type_aliases,
 	ast::identifier const &id,
+	bz::array_view<bz::u8string_view const> id_scope,
 	parse_context &context
 )
 {
-	for (auto const alias_decl : get_type_alias_range_by_unqualified_id(scope.type_aliases, id, scope.id_scope))
+	for (auto const alias_decl : get_type_alias_range_by_unqualified_id(type_aliases, id, id_scope))
 	{
 		if (result.not_null())
 		{
@@ -2509,12 +2513,13 @@ static void try_find_type_alias_by_unqualified_id(
 
 static void try_find_struct_by_unqualified_id(
 	symbol_t &result,
-	ast::global_scope_t &scope,
+	bz::array_view<ast::decl_struct * const> structs,
 	ast::identifier const &id,
+	bz::array_view<bz::u8string_view const> id_scope,
 	parse_context &context
 )
 {
-	for (auto const struct_decl : get_struct_range_by_unqualified_id(scope.structs, id, scope.id_scope))
+	for (auto const struct_decl : get_struct_range_by_unqualified_id(structs, id, id_scope))
 	{
 		if (result.not_null())
 		{
@@ -2540,12 +2545,13 @@ static void try_find_struct_by_unqualified_id(
 
 static void try_find_enum_by_unqualified_id(
 	symbol_t &result,
-	ast::global_scope_t &scope,
+	bz::array_view<ast::decl_enum * const> enums,
 	ast::identifier const &id,
+	bz::array_view<bz::u8string_view const> id_scope,
 	parse_context &context
 )
 {
-	for (auto const enum_decl : get_enum_range_by_unqualified_id(scope.enums, id, scope.id_scope))
+	for (auto const enum_decl : get_enum_range_by_unqualified_id(enums, id, id_scope))
 	{
 		if (result.not_null())
 		{
@@ -2569,12 +2575,15 @@ static void try_find_enum_by_unqualified_id(
 	}
 }
 
+template<bool only_export>
 static symbol_t find_id_in_global_scope(ast::global_scope_t &scope, ast::identifier const &id, parse_context &context)
 {
 	if (id.values.empty())
 	{
 		return {};
 	}
+
+	auto &symbols = only_export ? scope.export_symbols : scope.all_symbols;
 
 	if (id.is_qualified)
 	{
@@ -2586,14 +2595,14 @@ static symbol_t find_id_in_global_scope(ast::global_scope_t &scope, ast::identif
 
 		symbol_t result;
 
-		static_assert(sizeof (ast::global_scope_t) == 200);
+		static_assert(sizeof (ast::global_scope_t) == 368);
 		static_assert(symbol_t::variant_count == 8);
-		try_find_function_set_by_qualified_id(result, scope, id, context);
-		try_find_variable_by_qualified_id(result, scope, id, context);
-		try_find_variadic_variable_by_qualified_id(result, scope, id, context);
-		try_find_type_alias_by_qualified_id(result, scope, id, context);
-		try_find_struct_by_qualified_id(result, scope, id, context);
-		try_find_enum_by_qualified_id(result, scope, id, context);
+		try_find_function_set_by_qualified_id(result, symbols.function_sets, id, context);
+		try_find_variable_by_qualified_id(result, symbols.variables, id, context);
+		try_find_variadic_variable_by_qualified_id(result, symbols.variadic_variables, id, context);
+		try_find_type_alias_by_qualified_id(result, symbols.type_aliases, id, context);
+		try_find_struct_by_qualified_id(result, symbols.structs, id, context);
+		try_find_enum_by_qualified_id(result, symbols.enums, id, context);
 
 		return result;
 	}
@@ -2601,14 +2610,14 @@ static symbol_t find_id_in_global_scope(ast::global_scope_t &scope, ast::identif
 	{
 		symbol_t result;
 
-		static_assert(sizeof (ast::global_scope_t) == 200);
+		static_assert(sizeof (ast::global_scope_t) == 368);
 		static_assert(symbol_t::variant_count == 8);
-		try_find_function_set_by_unqualified_id(result, scope, id, context);
-		try_find_variable_by_unqualified_id(result, scope, id, context);
-		try_find_variadic_variable_by_unqualified_id(result, scope, id, context);
-		try_find_type_alias_by_unqualified_id(result, scope, id, context);
-		try_find_struct_by_unqualified_id(result, scope, id, context);
-		try_find_enum_by_unqualified_id(result, scope, id, context);
+		try_find_function_set_by_unqualified_id(result, symbols.function_sets, id, scope.id_scope, context);
+		try_find_variable_by_unqualified_id(result, symbols.variables, id, scope.id_scope, context);
+		try_find_variadic_variable_by_unqualified_id(result, symbols.variadic_variables, id, scope.id_scope, context);
+		try_find_type_alias_by_unqualified_id(result, symbols.type_aliases, id, scope.id_scope, context);
+		try_find_struct_by_unqualified_id(result, symbols.structs, id, scope.id_scope, context);
+		try_find_enum_by_unqualified_id(result, symbols.enums, id, scope.id_scope, context);
 
 		return result;
 	}
@@ -2644,7 +2653,7 @@ static id_search_result_t find_id_in_scope(ast::enclosing_scope_t scope, ast::id
 		else if (scope.scope->is_global())
 		{
 			is_local = false;
-			auto result = find_id_in_global_scope(scope.scope->get_global(), id, context);
+			auto result = find_id_in_global_scope<false>(scope.scope->get_global(), id, context);
 			if (result.not_null())
 			{
 				return { result, loop_boundary_count, is_local };
@@ -3563,6 +3572,7 @@ static ast::expression make_expr_function_call_from_body(
 {
 	if (body->is_generic())
 	{
+		bz::log("{}\n", body->get_signature());
 		auto required_from = get_generic_requirements(src_tokens, context);
 		bz_assert(required_from.front().src_tokens.pivot != nullptr);
 		auto generic_params = body->get_params_copy_for_generic_specialization();
@@ -3834,19 +3844,12 @@ static void get_possible_funcs_for_operator_helper(
 	lex::src_tokens const &src_tokens,
 	uint32_t op,
 	ast::expression &expr,
-	ast::global_scope_t &scope,
+	bz::array_view<ast::operator_overload_set> operator_sets,
 	parse_context &context
 )
 {
-	auto const id_scope = scope.id_scope;
-	for (
-		auto const &op_set :
-		scope.operator_sets.filter([op, id_scope](auto const &op_set) {
-			return op_set.op == op
-				&& op_set.id_scope.size() <= id_scope.size()
-				&& op_set.id_scope == id_scope.slice(0, op_set.id_scope.size());
-		}
-	))
+	// TODO: this can just be a find, and not a filter
+	for (auto const &op_set : operator_sets.filter([op](auto const &op_set) { return op_set.op == op; }))
 	{
 		for (auto const op : op_set.op_decls)
 		{
@@ -3859,6 +3862,7 @@ static void get_possible_funcs_for_operator_helper(
 	}
 }
 
+template<bool only_export>
 static void get_possible_funcs_for_operator_helper(
 	bz::vector<possible_func_t> &result,
 	lex::src_tokens const &src_tokens,
@@ -3879,7 +3883,8 @@ static void get_possible_funcs_for_operator_helper(
 		else
 		{
 			bz_assert(scope.scope->is_global());
-			get_possible_funcs_for_operator_helper(result, src_tokens, op, expr, scope.scope->get_global(), context);
+			auto &symbols = only_export ? scope.scope->get_global().export_symbols : scope.scope->get_global().all_symbols;
+			get_possible_funcs_for_operator_helper(result, src_tokens, op, expr, symbols.operator_sets, context);
 			scope = scope.scope->get_global().parent;
 		}
 	}
@@ -3894,19 +3899,19 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 {
 	bz::vector<possible_func_t> possible_funcs = {};
 
-	get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, expr, context.get_current_enclosing_scope(), context);
+	get_possible_funcs_for_operator_helper<false>(possible_funcs, src_tokens, op, expr, context.get_current_enclosing_scope(), context);
 	auto const expr_type = ast::remove_const_or_consteval(expr.get_expr_type());
 	if (expr_type.is<ast::ts_base_type>())
 	{
 		auto const info = expr_type.get<ast::ts_base_type>().info;
 		context.resolve_type(src_tokens, info);
-		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, expr, info->get_scope(), context);
+		get_possible_funcs_for_operator_helper<true>(possible_funcs, src_tokens, op, expr, info->get_scope(), context);
 	}
 	else if (expr_type.is<ast::ts_enum>())
 	{
 		auto const decl = expr_type.get<ast::ts_enum>().decl;
 		context.resolve_type(src_tokens, decl);
-		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, expr, decl->get_scope(), context);
+		get_possible_funcs_for_operator_helper<true>(possible_funcs, src_tokens, op, expr, decl->get_scope(), context);
 	}
 
 	return possible_funcs;
@@ -3994,19 +3999,12 @@ static void get_possible_funcs_for_operator_helper(
 	uint32_t op,
 	ast::expression &lhs,
 	ast::expression &rhs,
-	ast::global_scope_t &scope,
+	bz::array_view<ast::operator_overload_set> operator_sets,
 	parse_context &context
 )
 {
-	auto const id_scope = scope.id_scope;
-	for (
-		auto const &op_set :
-		scope.operator_sets.filter([op, id_scope](auto const &op_set) {
-			return op_set.op == op
-				&& op_set.id_scope.size() <= id_scope.size()
-				&& op_set.id_scope == id_scope.slice(0, op_set.id_scope.size());
-		}
-	))
+	// TODO: this can be just a find, and not a filter
+	for (auto const &op_set : operator_sets.filter([op](auto const &op_set) { return op_set.op == op; }))
 	{
 		for (auto const op_decl : op_set.op_decls)
 		{
@@ -4019,6 +4017,7 @@ static void get_possible_funcs_for_operator_helper(
 	}
 }
 
+template<bool only_export>
 static void get_possible_funcs_for_operator_helper(
 	bz::vector<possible_func_t> &result,
 	lex::src_tokens const &src_tokens,
@@ -4040,7 +4039,8 @@ static void get_possible_funcs_for_operator_helper(
 		else
 		{
 			bz_assert(scope.scope->is_global());
-			get_possible_funcs_for_operator_helper(result, src_tokens, op, lhs, rhs, scope.scope->get_global(), context);
+			auto &symbols = only_export ? scope.scope->get_global().export_symbols : scope.scope->get_global().all_symbols;
+			get_possible_funcs_for_operator_helper(result, src_tokens, op, lhs, rhs, symbols.operator_sets, context);
 			scope = scope.scope->get_global().parent;
 		}
 	}
@@ -4056,32 +4056,32 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 {
 	bz::vector<possible_func_t> possible_funcs = {};
 
-	get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, context.get_current_enclosing_scope(), context);
+	get_possible_funcs_for_operator_helper<false>(possible_funcs, src_tokens, op, lhs, rhs, context.get_current_enclosing_scope(), context);
 	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type());
 	if (lhs_type.is<ast::ts_base_type>())
 	{
 		auto const info = lhs_type.get<ast::ts_base_type>().info;
 		context.resolve_type(src_tokens, info);
-		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
+		get_possible_funcs_for_operator_helper<true>(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
 	}
 	else if (lhs_type.is<ast::ts_enum>())
 	{
 		auto const decl = lhs_type.get<ast::ts_enum>().decl;
 		context.resolve_type(src_tokens, decl);
-		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, decl->get_scope(), context);
+		get_possible_funcs_for_operator_helper<true>(possible_funcs, src_tokens, op, lhs, rhs, decl->get_scope(), context);
 	}
 	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
 	if (rhs_type.is<ast::ts_base_type>())
 	{
 		auto const info = rhs_type.get<ast::ts_base_type>().info;
 		context.resolve_type(src_tokens, info);
-		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
+		get_possible_funcs_for_operator_helper<true>(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
 	}
 	else if (rhs_type.is<ast::ts_enum>())
 	{
 		auto const decl = rhs_type.get<ast::ts_enum>().decl;
 		context.resolve_type(src_tokens, decl);
-		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, decl->get_scope(), context);
+		get_possible_funcs_for_operator_helper<true>(possible_funcs, src_tokens, op, lhs, rhs, decl->get_scope(), context);
 	}
 
 	return possible_funcs;
@@ -4649,14 +4649,15 @@ static void get_possible_funcs_for_universal_function_call_helper(
 	bz::vector<possible_func_t> &result,
 	lex::src_tokens const &src_tokens,
 	ast::identifier const &id,
+	bz::array_view<bz::u8string_view const> id_scope,
 	bz::array_view<ast::expression> params,
-	ast::global_scope_t &scope,
+	bz::array_view<ast::function_overload_set> function_sets,
 	parse_context &context
 )
 {
 	if (id.is_qualified)
 	{
-		auto const func_set = find_function_set_by_qualified_id(scope.function_sets, id);
+		auto const func_set = find_function_set_by_qualified_id(function_sets, id);
 		if (func_set != nullptr)
 		{
 			for (auto const func : func_set->func_decls.filter(
@@ -4688,7 +4689,7 @@ static void get_possible_funcs_for_universal_function_call_helper(
 	}
 	else
 	{
-		for (auto const &func_set : get_function_set_range_by_unqualified_id(scope.function_sets, id, scope.id_scope))
+		for (auto const &func_set : get_function_set_range_by_unqualified_id(function_sets, id, id_scope))
 		{
 			for (auto const func : func_set.func_decls.filter(
 				[&result](auto const func) {
@@ -4719,6 +4720,7 @@ static void get_possible_funcs_for_universal_function_call_helper(
 	}
 }
 
+template<bool only_export>
 static void get_possible_funcs_for_universal_function_call_helper(
 	bz::vector<possible_func_t> &result,
 	lex::src_tokens const &src_tokens,
@@ -4740,7 +4742,17 @@ static void get_possible_funcs_for_universal_function_call_helper(
 		}
 		else
 		{
-			get_possible_funcs_for_universal_function_call_helper(result, src_tokens, id, params, scope.scope->get_global(), context);
+			bz_assert(scope.scope->is_global());
+			auto &symbols = only_export ? scope.scope->get_global().export_symbols : scope.scope->get_global().all_symbols;
+			get_possible_funcs_for_universal_function_call_helper(
+				result,
+				src_tokens,
+				id,
+				scope.scope->get_global().id_scope,
+				params,
+				symbols.function_sets,
+				context
+			);
 			scope = scope.scope->get_global().parent;
 		}
 	}
@@ -4755,7 +4767,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 {
 	bz::vector<possible_func_t> possible_funcs = {};
 
-	get_possible_funcs_for_universal_function_call_helper(
+	get_possible_funcs_for_universal_function_call_helper<false>(
 		possible_funcs, src_tokens, id, params, context.get_current_enclosing_scope(), context
 	);
 
@@ -4766,8 +4778,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 		{
 			auto const info = type.get<ast::ts_base_type>().info;
 			context.resolve_type_members(src_tokens, info);
-			// TODO: don't use info->enclosing_scope here, because that includes non-exported symbols too
-			get_possible_funcs_for_universal_function_call_helper(
+			get_possible_funcs_for_universal_function_call_helper<true>(
 				possible_funcs, src_tokens, id, params, info->get_scope(), context
 			);
 		}
@@ -4775,8 +4786,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 		{
 			auto const decl = type.get<ast::ts_enum>().decl;
 			context.resolve_type(src_tokens, decl);
-			// TODO: don't use info->enclosing_scope here, because that includes non-exported symbols too
-			get_possible_funcs_for_universal_function_call_helper(
+			get_possible_funcs_for_universal_function_call_helper<true>(
 				possible_funcs, src_tokens, id, params, decl->get_scope(), context
 			);
 		}
@@ -5512,7 +5522,9 @@ ast::expression parse_context::make_member_access_expression(
 			this->resolve_type_members(src_tokens, info);
 			bz_assert(info->scope.is_global());
 			auto id = ast::make_identifier(member);
-			auto const symbol = find_id_in_global_scope(info->scope.get_global(), id, *this);
+			auto const symbol = this->has_common_global_scope(info->get_enclosing_scope())
+				? find_id_in_global_scope<false>(info->scope.get_global(), id, *this)
+				: find_id_in_global_scope<true>(info->scope.get_global(), id, *this);
 
 			if (symbol.is_null())
 			{

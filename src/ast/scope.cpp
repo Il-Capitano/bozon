@@ -4,17 +4,17 @@
 namespace ast
 {
 
-void global_scope_t::add_variable(decl_variable &var_decl)
+void scope_symbol_list_t::add_variable(decl_variable &var_decl)
 {
 	this->variables.push_back(&var_decl);
 }
 
-void global_scope_t::add_variable(decl_variable &original_decl, arena_vector<decl_variable *> variadic_decls)
+void scope_symbol_list_t::add_variable(decl_variable &original_decl, arena_vector<decl_variable *> variadic_decls)
 {
 	this->variadic_variables.push_back({ &original_decl, std::move(variadic_decls) });
 }
 
-void global_scope_t::add_function(decl_function &func_decl)
+void scope_symbol_list_t::add_function(decl_function &func_decl)
 {
 	auto const it = std::find_if(
 		this->function_sets.begin(), this->function_sets.end(),
@@ -34,7 +34,7 @@ void global_scope_t::add_function(decl_function &func_decl)
 	}
 }
 
-void global_scope_t::add_function_alias(decl_function_alias &alias_decl)
+void scope_symbol_list_t::add_function_alias(decl_function_alias &alias_decl)
 {
 	auto const it = std::find_if(
 		this->function_sets.begin(), this->function_sets.end(),
@@ -54,7 +54,7 @@ void global_scope_t::add_function_alias(decl_function_alias &alias_decl)
 	}
 }
 
-void global_scope_t::add_operator(decl_operator &op_decl)
+void scope_symbol_list_t::add_operator(decl_operator &op_decl)
 {
 	auto const it = std::find_if(
 		this->operator_sets.begin(), this->operator_sets.end(),
@@ -76,19 +76,95 @@ void global_scope_t::add_operator(decl_operator &op_decl)
 	}
 }
 
-void global_scope_t::add_type_alias(decl_type_alias &alias_decl)
+void scope_symbol_list_t::add_type_alias(decl_type_alias &alias_decl)
 {
 	this->type_aliases.push_back(&alias_decl);
 }
 
-void global_scope_t::add_struct(decl_struct &struct_decl)
+void scope_symbol_list_t::add_struct(decl_struct &struct_decl)
 {
 	this->structs.push_back(&struct_decl);
 }
 
-void global_scope_t::add_enum(decl_enum &enum_decl)
+void scope_symbol_list_t::add_enum(decl_enum &enum_decl)
 {
 	this->enums.push_back(&enum_decl);
+}
+
+void global_scope_t::add_variable(decl_variable &var_decl)
+{
+	this->all_symbols.add_variable(var_decl);
+	if (var_decl.is_module_export())
+	{
+		this->export_symbols.add_variable(var_decl);
+	}
+}
+
+void global_scope_t::add_variable(decl_variable &original_decl, arena_vector<decl_variable *> variadic_decls)
+{
+	if (original_decl.is_module_export())
+	{
+		this->all_symbols.add_variable(original_decl, variadic_decls);
+		this->export_symbols.add_variable(original_decl, std::move(variadic_decls));
+	}
+	else
+	{
+		this->all_symbols.add_variable(original_decl, std::move(variadic_decls));
+	}
+}
+
+void global_scope_t::add_function(decl_function &func_decl)
+{
+	this->all_symbols.add_function(func_decl);
+	if (func_decl.body.is_export())
+	{
+		this->export_symbols.add_function(func_decl);
+	}
+}
+
+void global_scope_t::add_function_alias(decl_function_alias &alias_decl)
+{
+	this->all_symbols.add_function_alias(alias_decl);
+	if (alias_decl.is_export)
+	{
+		this->export_symbols.add_function_alias(alias_decl);
+	}
+}
+
+void global_scope_t::add_operator(decl_operator &op_decl)
+{
+	this->all_symbols.add_operator(op_decl);
+	if (op_decl.body.is_export())
+	{
+		this->export_symbols.add_operator(op_decl);
+	}
+}
+
+void global_scope_t::add_type_alias(decl_type_alias &alias_decl)
+{
+	this->all_symbols.add_type_alias(alias_decl);
+	if (alias_decl.is_module_export())
+	{
+		this->export_symbols.add_type_alias(alias_decl);
+	}
+}
+
+void global_scope_t::add_struct(decl_struct &struct_decl)
+{
+	this->all_symbols.add_struct(struct_decl);
+	if (struct_decl.info.is_module_export())
+	{
+		this->export_symbols.add_struct(struct_decl);
+	}
+}
+
+void global_scope_t::add_enum(decl_enum &enum_decl)
+{
+	this->all_symbols.add_enum(enum_decl);
+	if (enum_decl.is_module_export())
+	{
+		this->export_symbols.add_enum(enum_decl);
+	}
 }
 
 identifier const &local_symbol_t::get_id(void) const

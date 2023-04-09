@@ -53,9 +53,8 @@ struct variadic_var_decl_ref
 	bz::array_view<decl_variable * const> variadic_decls;
 };
 
-struct global_scope_t
+struct scope_symbol_list_t
 {
-	bz::array_view<bz::u8string_view const> id_scope;
 	arena_vector<function_overload_set> function_sets;
 	arena_vector<operator_overload_set> operator_sets;
 	arena_vector<decl_variable   *> variables;
@@ -63,6 +62,22 @@ struct global_scope_t
 	arena_vector<decl_type_alias *> type_aliases;
 	arena_vector<decl_struct     *> structs;
 	arena_vector<decl_enum       *> enums;
+
+	void add_variable(decl_variable &var_decl);
+	void add_variable(decl_variable &original_decl, arena_vector<decl_variable *> variadic_decls);
+	void add_function(decl_function &func_decl);
+	void add_function_alias(decl_function_alias &alias_decl);
+	void add_operator(decl_operator &op_decl);
+	void add_type_alias(decl_type_alias &alias_decl);
+	void add_struct(decl_struct &struct_decl);
+	void add_enum(decl_enum &enum_decl);
+};
+
+struct global_scope_t
+{
+	bz::array_view<bz::u8string_view const> id_scope;
+	scope_symbol_list_t all_symbols;
+	scope_symbol_list_t export_symbols;
 
 	void add_variable(decl_variable &var_decl);
 	void add_variable(decl_variable &original_decl, arena_vector<decl_variable *> variadic_decls);
