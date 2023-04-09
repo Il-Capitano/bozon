@@ -52,7 +52,7 @@ struct variadic_var_decl_ref
 	bz::array_view<decl_variable * const> variadic_decls;
 };
 
-struct scope_symbol_list_t
+struct global_scope_symbol_list_t
 {
 	arena_vector<function_overload_set> function_sets;
 	arena_vector<operator_overload_set> operator_sets;
@@ -74,8 +74,8 @@ struct scope_symbol_list_t
 
 struct global_scope_t
 {
-	scope_symbol_list_t all_symbols;
-	scope_symbol_list_t export_symbols;
+	global_scope_symbol_list_t all_symbols;
+	global_scope_symbol_list_t export_symbols;
 
 	void add_variable(decl_variable &var_decl);
 	void add_variable(decl_variable &original_decl, arena_vector<decl_variable *> variadic_decls);
