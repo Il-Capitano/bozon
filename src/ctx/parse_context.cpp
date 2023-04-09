@@ -3907,13 +3907,27 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 	{
 		auto const info = expr_type.get<ast::ts_base_type>().info;
 		context.resolve_type(src_tokens, info);
-		get_possible_funcs_for_operator_helper<true>(possible_funcs, src_tokens, op, expr, info->get_scope(), context);
+		if (context.has_common_global_scope(info->get_enclosing_scope()))
+		{
+			get_possible_funcs_for_operator_helper<false>(possible_funcs, src_tokens, op, expr, info->get_scope(), context);
+		}
+		else
+		{
+			get_possible_funcs_for_operator_helper<true>(possible_funcs, src_tokens, op, expr, info->get_scope(), context);
+		}
 	}
 	else if (expr_type.is<ast::ts_enum>())
 	{
 		auto const decl = expr_type.get<ast::ts_enum>().decl;
 		context.resolve_type(src_tokens, decl);
-		get_possible_funcs_for_operator_helper<true>(possible_funcs, src_tokens, op, expr, decl->get_scope(), context);
+		if (context.has_common_global_scope(decl->get_enclosing_scope()))
+		{
+			get_possible_funcs_for_operator_helper<false>(possible_funcs, src_tokens, op, expr, decl->get_scope(), context);
+		}
+		else
+		{
+			get_possible_funcs_for_operator_helper<true>(possible_funcs, src_tokens, op, expr, decl->get_scope(), context);
+		}
 	}
 
 	return possible_funcs;
@@ -4064,26 +4078,54 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 	{
 		auto const info = lhs_type.get<ast::ts_base_type>().info;
 		context.resolve_type(src_tokens, info);
-		get_possible_funcs_for_operator_helper<true>(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
+		if (context.has_common_global_scope(info->get_enclosing_scope()))
+		{
+			get_possible_funcs_for_operator_helper<false>(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
+		}
+		else
+		{
+			get_possible_funcs_for_operator_helper<true>(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
+		}
 	}
 	else if (lhs_type.is<ast::ts_enum>())
 	{
 		auto const decl = lhs_type.get<ast::ts_enum>().decl;
 		context.resolve_type(src_tokens, decl);
-		get_possible_funcs_for_operator_helper<true>(possible_funcs, src_tokens, op, lhs, rhs, decl->get_scope(), context);
+		if (context.has_common_global_scope(decl->get_enclosing_scope()))
+		{
+			get_possible_funcs_for_operator_helper<false>(possible_funcs, src_tokens, op, lhs, rhs, decl->get_scope(), context);
+		}
+		else
+		{
+			get_possible_funcs_for_operator_helper<true>(possible_funcs, src_tokens, op, lhs, rhs, decl->get_scope(), context);
+		}
 	}
 	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
 	if (rhs_type.is<ast::ts_base_type>())
 	{
 		auto const info = rhs_type.get<ast::ts_base_type>().info;
 		context.resolve_type(src_tokens, info);
-		get_possible_funcs_for_operator_helper<true>(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
+		if (context.has_common_global_scope(info->get_enclosing_scope()))
+		{
+			get_possible_funcs_for_operator_helper<false>(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
+		}
+		else
+		{
+			get_possible_funcs_for_operator_helper<true>(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
+		}
 	}
 	else if (rhs_type.is<ast::ts_enum>())
 	{
 		auto const decl = rhs_type.get<ast::ts_enum>().decl;
 		context.resolve_type(src_tokens, decl);
-		get_possible_funcs_for_operator_helper<true>(possible_funcs, src_tokens, op, lhs, rhs, decl->get_scope(), context);
+		if (context.has_common_global_scope(decl->get_enclosing_scope()))
+		{
+			get_possible_funcs_for_operator_helper<false>(possible_funcs, src_tokens, op, lhs, rhs, decl->get_scope(), context);
+		}
+		else
+		{
+			get_possible_funcs_for_operator_helper<true>(possible_funcs, src_tokens, op, lhs, rhs, decl->get_scope(), context);
+		}
 	}
 
 	return possible_funcs;
@@ -4780,17 +4822,35 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 		{
 			auto const info = type.get<ast::ts_base_type>().info;
 			context.resolve_type_members(src_tokens, info);
-			get_possible_funcs_for_universal_function_call_helper<true>(
-				possible_funcs, src_tokens, id, params, info->get_scope(), context
-			);
+			if (context.has_common_global_scope(info->get_enclosing_scope()))
+			{
+				get_possible_funcs_for_universal_function_call_helper<false>(
+					possible_funcs, src_tokens, id, params, info->get_scope(), context
+				);
+			}
+			else
+			{
+				get_possible_funcs_for_universal_function_call_helper<true>(
+					possible_funcs, src_tokens, id, params, info->get_scope(), context
+				);
+			}
 		}
 		else if (type.is<ast::ts_enum>())
 		{
 			auto const decl = type.get<ast::ts_enum>().decl;
 			context.resolve_type(src_tokens, decl);
-			get_possible_funcs_for_universal_function_call_helper<true>(
-				possible_funcs, src_tokens, id, params, decl->get_scope(), context
-			);
+			if (context.has_common_global_scope(decl->get_enclosing_scope()))
+			{
+				get_possible_funcs_for_universal_function_call_helper<false>(
+					possible_funcs, src_tokens, id, params, decl->get_scope(), context
+				);
+			}
+			else
+			{
+				get_possible_funcs_for_universal_function_call_helper<true>(
+					possible_funcs, src_tokens, id, params, decl->get_scope(), context
+				);
+			}
 		}
 	}
 
