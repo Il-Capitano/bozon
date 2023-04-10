@@ -571,10 +571,13 @@ static bz::vector<global_context::module_info_t> add_module_folder(
 			auto path = fs::canonical(p.path());
 			path.make_preferred();
 			auto const id = add_module_file(current_file, std::move(path), is_library_folder, scope, context);
-			result.push_back({
-				.id = id,
-				.scope = context.get_scope_in_persistent_storage(scope),
-			});
+			if (id != std::numeric_limits<uint32_t>::max())
+			{
+				result.push_back({
+					.id = id,
+					.scope = context.get_scope_in_persistent_storage(scope),
+				});
+			}
 		}
 	}
 	return result;
