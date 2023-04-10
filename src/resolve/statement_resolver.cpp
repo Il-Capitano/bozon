@@ -2202,6 +2202,7 @@ static void add_type_info_members(
 	auto &info_body = info.body.get<bz::vector<ast::statement>>();
 	for (auto &stmt : info_body)
 	{
+		static_assert(ast::statement::variant_count == 17);
 		if (stmt.is<ast::decl_function>())
 		{
 			auto &decl = stmt.get<ast::decl_function>();
@@ -2254,6 +2255,10 @@ static void add_type_info_members(
 			}
 
 			info.scope.get_global().add_operator(decl);
+		}
+		else if (stmt.is<ast::decl_operator_alias>())
+		{
+			info.scope.get_global().add_operator_alias(stmt.get<ast::decl_operator_alias>());
 		}
 		else if (stmt.is<ast::decl_variable>())
 		{

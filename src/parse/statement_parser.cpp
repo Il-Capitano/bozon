@@ -1238,6 +1238,7 @@ ast::statement parse_export_statement(
 	auto result = parser_fn(stream, end, context);
 	if (result.not_null())
 	{
+		static_assert(ast::statement::variant_count == 17);
 		result.visit(bz::overload{
 			[](ast::decl_function &func_decl) {
 				func_decl.body.flags |= ast::function_body::module_export;
@@ -1246,6 +1247,9 @@ ast::statement parse_export_statement(
 				op_decl.body.flags |= ast::function_body::module_export;
 			},
 			[](ast::decl_function_alias &alias_decl) {
+				alias_decl.is_export = true;
+			},
+			[](ast::decl_operator_alias &alias_decl) {
 				alias_decl.is_export = true;
 			},
 			[](ast::decl_type_alias &alias_decl) {
