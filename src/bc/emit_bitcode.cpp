@@ -2797,7 +2797,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 223);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 230);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 28);
@@ -3053,7 +3053,7 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_integer_range_begin_value:
 		{
 			bz_assert(func_call.params.size() == 1);
-			auto const range_val = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			auto const range_val = emit_bitcode(func_call.params[0], context, nullptr);
 			auto const begin_value_ptr = context.create_struct_gep(range_val.get_type(), range_val.val, 0);
 			auto const result_type = range_val.get_type()->getStructElementType(0);
 			auto const begin_value = context.builder.CreateLoad(result_type, begin_value_ptr);
@@ -3070,7 +3070,7 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_integer_range_end_value:
 		{
 			bz_assert(func_call.params.size() == 1);
-			auto const range_val = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			auto const range_val = emit_bitcode(func_call.params[0], context, nullptr);
 			auto const end_value_ptr = context.create_struct_gep(range_val.get_type(), range_val.val, 1);
 			auto const result_type = range_val.get_type()->getStructElementType(0);
 			auto const end_value = context.builder.CreateLoad(result_type, end_value_ptr);
@@ -3087,7 +3087,7 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_integer_range_from_begin_value:
 		{
 			bz_assert(func_call.params.size() == 1);
-			auto const range_val = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			auto const range_val = emit_bitcode(func_call.params[0], context, nullptr);
 			auto const begin_value_ptr = context.create_struct_gep(range_val.get_type(), range_val.val, 0);
 			auto const result_type = range_val.get_type()->getStructElementType(0);
 			auto const begin_value = context.builder.CreateLoad(result_type, begin_value_ptr);
@@ -3104,7 +3104,7 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_integer_range_to_end_value:
 		{
 			bz_assert(func_call.params.size() == 1);
-			auto const range_val = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			auto const range_val = emit_bitcode(func_call.params[0], context, nullptr);
 			auto const end_value_ptr = context.create_struct_gep(range_val.get_type(), range_val.val, 0);
 			auto const result_type = range_val.get_type()->getStructElementType(0);
 			auto const end_value = context.builder.CreateLoad(result_type, end_value_ptr);
@@ -3117,6 +3117,115 @@ static val_ptr emit_bitcode(
 			{
 				return val_ptr::get_value(end_value);
 			}
+		}
+		case ast::function_body::builtin_integer_range_begin_iterator:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const result_type = get_llvm_type(func_call.func_body->return_type, context);
+			bz_assert(result_type->isStructTy());
+			bz_assert(result_type->getStructNumElements() == 1);
+			if (result_address == nullptr)
+			{
+				result_address = context.create_alloca(result_type);
+			}
+
+			auto const range_value = emit_bitcode(func_call.params[0], context, nullptr);
+			auto const begin_value = context.get_struct_element(range_value, 0).get_value(context.builder);
+
+			context.builder.CreateStore(begin_value, context.create_struct_gep(result_type, result_address, 0));
+			return val_ptr::get_reference(result_address, result_type);
+		}
+		case ast::function_body::builtin_integer_range_end_iterator:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const result_type = get_llvm_type(func_call.func_body->return_type, context);
+			bz_assert(result_type->isStructTy());
+			bz_assert(result_type->getStructNumElements() == 1);
+			if (result_address == nullptr)
+			{
+				result_address = context.create_alloca(result_type);
+			}
+
+			auto const range_value = emit_bitcode(func_call.params[0], context, nullptr);
+			auto const end_value = context.get_struct_element(range_value, 1).get_value(context.builder);
+
+			context.builder.CreateStore(end_value, context.create_struct_gep(result_type, result_address, 0));
+			return val_ptr::get_reference(result_address, result_type);
+		}
+		case ast::function_body::builtin_integer_range_iterator_dereference:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const it_value = emit_bitcode(func_call.params[0], context, nullptr);
+			auto const integer_value = context.get_struct_element(it_value, 0).get_value(context.builder);
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(integer_value, result_address);
+				return val_ptr::get_reference(result_address, integer_value->getType());
+			}
+			else
+			{
+				return val_ptr::get_value(integer_value);
+			}
+		}
+		case ast::function_body::builtin_integer_range_iterator_equals:
+		{
+			bz_assert(func_call.params.size() == 2);
+			auto const lhs_it_value = emit_bitcode(func_call.params[0], context, nullptr);
+			auto const rhs_it_value = emit_bitcode(func_call.params[1], context, nullptr);
+			auto const lhs_integer_value = context.get_struct_element(lhs_it_value, 0).get_value(context.builder);
+			auto const rhs_integer_value = context.get_struct_element(rhs_it_value, 0).get_value(context.builder);
+			auto const result = context.builder.CreateICmpEQ(lhs_integer_value, rhs_integer_value);
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(result, result_address);
+				return val_ptr::get_reference(result_address, result->getType());
+			}
+			else
+			{
+				return val_ptr::get_value(result);
+			}
+		}
+		case ast::function_body::builtin_integer_range_iterator_not_equals:
+		{
+			bz_assert(func_call.params.size() == 2);
+			auto const lhs_it_value = emit_bitcode(func_call.params[0], context, nullptr);
+			auto const rhs_it_value = emit_bitcode(func_call.params[1], context, nullptr);
+			auto const lhs_integer_value = context.get_struct_element(lhs_it_value, 0).get_value(context.builder);
+			auto const rhs_integer_value = context.get_struct_element(rhs_it_value, 0).get_value(context.builder);
+			auto const result = context.builder.CreateICmpNE(lhs_integer_value, rhs_integer_value);
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(result, result_address);
+				return val_ptr::get_reference(result_address, result->getType());
+			}
+			else
+			{
+				return val_ptr::get_value(result);
+			}
+		}
+		case ast::function_body::builtin_integer_range_iterator_plus_plus:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const it_value = emit_bitcode(func_call.params[0], context, nullptr);
+			bz_assert(it_value.kind == val_ptr::reference);
+			auto const integer_value_ref = context.get_struct_element(it_value, 0);
+			bz_assert(integer_value_ref.kind == val_ptr::reference);
+			auto const one_value = llvm::ConstantInt::get(integer_value_ref.get_type(), 1);
+			auto const new_value = context.builder.CreateAdd(integer_value_ref.get_value(context.builder), one_value);
+			context.builder.CreateStore(new_value, integer_value_ref.val);
+			return it_value;
+		}
+		case ast::function_body::builtin_integer_range_iterator_minus_minus:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const it_value = emit_bitcode(func_call.params[0], context, nullptr);
+			bz_assert(it_value.kind == val_ptr::reference);
+			auto const integer_value_ref = context.get_struct_element(it_value, 0);
+			bz_assert(integer_value_ref.kind == val_ptr::reference);
+			auto const one_value = llvm::ConstantInt::get(integer_value_ref.get_type(), 1);
+			auto const new_value = context.builder.CreateSub(integer_value_ref.get_value(context.builder), one_value);
+			context.builder.CreateStore(new_value, integer_value_ref.val);
+			return it_value;
 		}
 		case ast::function_body::builtin_optional_get_value_ref:
 		case ast::function_body::builtin_optional_get_const_value_ref:

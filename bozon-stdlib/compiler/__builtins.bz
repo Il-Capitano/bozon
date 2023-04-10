@@ -37,51 +37,28 @@ struct __integer_range<T: typename>
 	._end: T;
 
 	type __value_type = T;
+	type __iterator = __integer_range_iterator<T>;
 
 	export function begin_value = __builtin_integer_range_begin_value;
 	export function end_value   = __builtin_integer_range_end_value;
 
-	struct __iterator
-	{
-		._value: T;
+	export function begin = __builtin_integer_range_begin_iterator;
+	export function end   = __builtin_integer_range_end_iterator;
+}
 
-		export operator * (self: __iterator) -> T
-		{
-			return self._value;
-		}
+struct __integer_range_iterator<T: typename>
+{
+	._value: T;
 
-		export operator == (lhs: __iterator, rhs: __iterator) -> bool
-		{
-			return lhs._value == rhs._value;
-		}
+	type __value_type = T;
 
-		export operator != (lhs: __iterator, rhs: __iterator) -> bool
-		{
-			return lhs._value != rhs._value;
-		}
+	export operator * = __builtin_integer_range_iterator_dereference;
 
-		export operator ++ (self: &__iterator) -> &__iterator
-		{
-			++self._value;
-			return self;
-		}
+	export operator == = __builtin_integer_range_iterator_equals;
+	export operator != = __builtin_integer_range_iterator_not_equals;
 
-		export operator -- (self: &__iterator) -> &__iterator
-		{
-			--self._value;
-			return self;
-		}
-	}
-
-	export function begin(self: __integer_range<T>) -> __iterator
-	{
-		return __iterator[ self._begin ];
-	}
-
-	export function end(self: __integer_range<T>) -> __iterator
-	{
-		return __iterator[ self._end ];
-	}
+	export operator ++ = __builtin_integer_range_iterator_plus_plus;
+	export operator -- = __builtin_integer_range_iterator_minus_minus;
 }
 
 struct __integer_range_from<T: typename>
@@ -250,6 +227,32 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 @__builtin export function __builtin_integer_range_end_value(range: __integer_range) -> (typeof range).__value_type;
 @__builtin export function __builtin_integer_range_from_begin_value(range: __integer_range_from) -> (typeof range).__value_type;
 @__builtin export function __builtin_integer_range_to_end_value(range: __integer_range_to) -> (typeof range).__value_type;
+
+@__builtin export function __builtin_integer_range_begin_iterator(range: __integer_range) -> (typeof range).__iterator;
+@__builtin export function __builtin_integer_range_end_iterator(range: __integer_range) -> (typeof range).__iterator;
+@__builtin function __builtin_integer_range_iterator_dereference(it: __integer_range_iterator) -> (typeof it).__value_type;
+@__builtin function __builtin_integer_range_iterator_equals(lhs: __integer_range_iterator, rhs: __integer_range_iterator)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched iterator types '",
+			__builtin_typename_as_str(typeof lhs),
+			"' and '"
+			__builtin_typename_as_str(typeof rhs),
+			"' in 'function __builtin_integer_range_iterator_equals'"
+		)));
+	} else {}, bool);
+@__builtin function __builtin_integer_range_iterator_not_equals(lhs: __integer_range_iterator, rhs: __integer_range_iterator)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched iterator types '",
+			__builtin_typename_as_str(typeof lhs),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in 'function __builtin_integer_range_iterator_not_equals'"
+		)));
+	} else {}, bool);
+@__builtin function __builtin_integer_range_iterator_plus_plus(it: &__integer_range_iterator) -> typeof it;
+@__builtin function __builtin_integer_range_iterator_minus_minus(it: &__integer_range_iterator) -> typeof it;
 
 @__builtin export function __builtin_optional_get_value_ref(value: &?auto)
 	-> &__builtin_remove_optional(__builtin_remove_reference(typeof value));

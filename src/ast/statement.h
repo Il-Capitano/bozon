@@ -535,6 +535,14 @@ struct function_body
 		builtin_integer_range_from_begin_value,
 		builtin_integer_range_to_end_value,
 
+		builtin_integer_range_begin_iterator,
+		builtin_integer_range_end_iterator,
+		builtin_integer_range_iterator_dereference,
+		builtin_integer_range_iterator_equals,
+		builtin_integer_range_iterator_not_equals,
+		builtin_integer_range_iterator_plus_plus,
+		builtin_integer_range_iterator_minus_minus,
+
 		builtin_optional_get_value_ref,
 		builtin_optional_get_const_value_ref,
 		builtin_optional_get_value,
@@ -1641,7 +1649,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 223);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 230);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1693,6 +1701,14 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_integer_range_to_u16, "__builtin_integer_range_to_u16" },
 		{ function_body::builtin_integer_range_to_u32, "__builtin_integer_range_to_u32" },
 		{ function_body::builtin_integer_range_to_u64, "__builtin_integer_range_to_u64" },
+
+		{ function_body::builtin_integer_range_begin_iterator,       "__builtin_integer_range_begin_iterator"       },
+		{ function_body::builtin_integer_range_end_iterator,         "__builtin_integer_range_end_iterator"         },
+		{ function_body::builtin_integer_range_iterator_dereference, "__builtin_integer_range_iterator_dereference" },
+		{ function_body::builtin_integer_range_iterator_equals,      "__builtin_integer_range_iterator_equals"      },
+		{ function_body::builtin_integer_range_iterator_not_equals,  "__builtin_integer_range_iterator_not_equals"  },
+		{ function_body::builtin_integer_range_iterator_plus_plus,   "__builtin_integer_range_iterator_plus_plus"   },
+		{ function_body::builtin_integer_range_iterator_minus_minus, "__builtin_integer_range_iterator_minus_minus" },
 
 		{ function_body::builtin_range_unbounded, "__builtin_range_unbounded" },
 
