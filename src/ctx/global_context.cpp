@@ -1010,21 +1010,29 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	auto const rm = llvm::Reloc::Model::PIC_;
 	this->_target_machine.reset(this->_target->createTargetMachine(target_triple, cpu, features, options, rm));
 	bz_assert(this->_target_machine);
-	switch (opt_level)
-	{
-	case 0:
-		this->_target_machine->setOptLevel(llvm::CodeGenOpt::None);
-		break;
-	case 1:
-		this->_target_machine->setOptLevel(llvm::CodeGenOpt::Less);
-		break;
-	case 2:
-		this->_target_machine->setOptLevel(llvm::CodeGenOpt::Default);
-		break;
-	default:
-		this->_target_machine->setOptLevel(llvm::CodeGenOpt::Aggressive);
-		break;
-	}
+
+	auto const codegen_opt_level = [&]() {
+		if (size_opt_level != 0)
+		{
+			return llvm::CodeGenOpt::Default;
+		}
+		else
+		{
+			switch (opt_level)
+			{
+			case 0:
+				return llvm::CodeGenOpt::None;
+			case 1:
+				return llvm::CodeGenOpt::Less;
+			case 2:
+				return llvm::CodeGenOpt::Default;
+			default:
+				return llvm::CodeGenOpt::Aggressive;
+			}
+		}
+	}();
+	this->_target_machine->setOptLevel(codegen_opt_level);
+
 	this->_data_layout = this->_target_machine->createDataLayout();
 	this->_module.setDataLayout(*this->_data_layout);
 	this->_module.setTargetTriple(target_triple);
@@ -1313,7 +1321,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 		? builder.buildFunctionSimplificationPipeline(llvm_opt_level, llvm::ThinOrFullLTOPhase::None)
 		: llvm::FunctionPassManager();
 
-	if (opt_level != 0 || size_opt_level != 0)
+	if (llvm_opt_level != llvm::OptimizationLevel::O0)
 	{
 		context.function_analysis_manager = &function_analysis_manager;
 		context.function_pass_manager = &function_pass_manager;
