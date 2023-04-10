@@ -25,7 +25,7 @@ export function pow5factor_32(value: uint32) -> uint32
 	let count = 0u32;
 	for (;;)
 	{
-		assert(value != 0);
+		std::assert(value != 0);
 		const q = value / 5;
 		const r = value % 5;
 		if (r != 0)
@@ -55,7 +55,7 @@ export function multipleOfPowerOf2_32(value: uint32, p: uint32) -> bool
 // generated code for uint128_t looks slightly nicer.
 export function mulShift32(m: uint32, factor: uint64, shift: uint32) -> uint32
 {
-	assert(shift > 32);
+	std::assert(shift > 32);
 
 	// The casts here help MSVC to avoid calls to the __allmul library
 	// function.
@@ -66,7 +66,7 @@ export function mulShift32(m: uint32, factor: uint64, shift: uint32) -> uint32
 
 	const sum = (bits0 >> 32) + bits1;
 	const shiftedSum = sum >> (shift - 32);
-	assert(shiftedSum <= (~0u32) as uint64);
+	std::assert(shiftedSum <= (~0u32) as uint64);
 	return shiftedSum as uint32;
 }
 

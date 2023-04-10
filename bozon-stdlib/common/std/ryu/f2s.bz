@@ -236,15 +236,15 @@ function to_chars(v: floating_decimal_32, sign: bool, result: *uint8) -> int32
 		output /= 10000;
 		const c0 = (c % 100) << 1;
 		const c1 = (c / 100) << 1;
-		trivially_copy_values(result + index + olength - i - 1, DIGIT_TABLE.begin() + c0, 2);
-		trivially_copy_values(result + index + olength - i - 3, DIGIT_TABLE.begin() + c1, 2);
+		std::trivially_copy_values(result + index + olength - i - 1, DIGIT_TABLE.begin() + c0, 2);
+		std::trivially_copy_values(result + index + olength - i - 3, DIGIT_TABLE.begin() + c1, 2);
 		i += 4;
 	}
 	if (output >= 100)
 	{
 		const c = (output % 100) << 1;
 		output /= 100;
-		trivially_copy_values(result + index + olength - i - 1, DIGIT_TABLE.begin() + c, 2);
+		std::trivially_copy_values(result + index + olength - i - 1, DIGIT_TABLE.begin() + c, 2);
 		i += 2;
 	}
 	if (output >= 10)
@@ -283,7 +283,7 @@ function to_chars(v: floating_decimal_32, sign: bool, result: *uint8) -> int32
 
 	if (exp >= 10)
 	{
-		trivially_copy_values(result + index, DIGIT_TABLE.begin() + 2 * exp, 2);
+		std::trivially_copy_values(result + index, DIGIT_TABLE.begin() + 2 * exp, 2);
 		index += 2;
 	}
 	else
@@ -325,7 +325,7 @@ export function f2s_buffered(f: float32, result: *uint8)
 
 export function f2s(f: float32) -> ?*uint8
 {
-	const buffer_alloc = libc::malloc(16);
+	const buffer_alloc = std::libc::malloc(16);
 	if (buffer_alloc == null)
 	{
 		return null;
@@ -371,7 +371,7 @@ function to_chars_fixed(v: floating_decimal_32, out: *uint8) -> *uint8
 	if (actual_exponent < 0)
 	{
 		consteval s = "0.000";
-		trivially_copy_values(out, s.begin_ptr(), (-actual_exponent + 1) as usize);
+		std::trivially_copy_values(out, s.begin_ptr(), (-actual_exponent + 1) as usize);
 		out += -actual_exponent;
 	}
 
@@ -390,22 +390,22 @@ function to_chars_fixed(v: floating_decimal_32, out: *uint8) -> *uint8
 		output /= 10000;
 		const c0 = (c % 100) << 1;
 		const c1 = (c / 100) << 1;
-		trivially_copy_values(out + olength - i - 1, DIGIT_TABLE.begin() + c0, 2);
-		trivially_copy_values(out + olength - i - 3, DIGIT_TABLE.begin() + c1, 2);
+		std::trivially_copy_values(out + olength - i - 1, DIGIT_TABLE.begin() + c0, 2);
+		std::trivially_copy_values(out + olength - i - 3, DIGIT_TABLE.begin() + c1, 2);
 		i += 4;
 	}
 	if (output >= 100)
 	{
 		const c = (output % 100) << 1;
 		output /= 100;
-		trivially_copy_values(out + olength - i - 1, DIGIT_TABLE.begin() + c, 2);
+		std::trivially_copy_values(out + olength - i - 1, DIGIT_TABLE.begin() + c, 2);
 		i += 2;
 	}
 	if (output >= 10)
 	{
 		const c = output << 1;
 		// We can't use memcpy here: the decimal dot goes between these two digits.
-		trivially_copy_values(out + 1, DIGIT_TABLE.begin() + c, 2);
+		std::trivially_copy_values(out + 1, DIGIT_TABLE.begin() + c, 2);
 		// *(out + olength - i) = DIGIT_TABLE[c + 1];
 		// *out = DIGIT_TABLE[c];
 	}
@@ -417,12 +417,12 @@ function to_chars_fixed(v: floating_decimal_32, out: *uint8) -> *uint8
 	// print trailing zeros
 	if (v.exponent >= 0)
 	{
-		trivially_set_values(out + olength + 1, '0' as uint8, v.exponent as usize);
+		std::trivially_set_values(out + olength + 1, '0' as uint8, v.exponent as usize);
 	}
 
 	if (actual_exponent >= 0)
 	{
-		trivially_copy_overlapping_values(out, out + 1, (actual_exponent + 1) as usize);
+		std::trivially_copy_overlapping_values(out, out + 1, (actual_exponent + 1) as usize);
 		// Print decimal point
 		*(out + actual_exponent + 1) = '.' as uint8;
 	}
@@ -457,15 +457,15 @@ function to_chars_scientific(v: floating_decimal_32, out: *uint8) -> *uint8
 		output /= 10000;
 		const c0 = (c % 100) << 1;
 		const c1 = (c / 100) << 1;
-		trivially_copy_values(out + olength - i - 1, DIGIT_TABLE.begin() + c0, 2);
-		trivially_copy_values(out + olength - i - 3, DIGIT_TABLE.begin() + c1, 2);
+		std::trivially_copy_values(out + olength - i - 1, DIGIT_TABLE.begin() + c0, 2);
+		std::trivially_copy_values(out + olength - i - 3, DIGIT_TABLE.begin() + c1, 2);
 		i += 4;
 	}
 	if (output >= 100)
 	{
 		const c = (output % 100) << 1;
 		output /= 100;
-		trivially_copy_values(out + olength - i - 1, DIGIT_TABLE.begin() + c, 2);
+		std::trivially_copy_values(out + olength - i - 1, DIGIT_TABLE.begin() + c, 2);
 		i += 2;
 	}
 	if (output >= 10)
@@ -507,7 +507,7 @@ function to_chars_scientific(v: floating_decimal_32, out: *uint8) -> *uint8
 		++out;
 	}
 
-	trivially_copy_values(out, DIGIT_TABLE.begin() + 2 * exp, 2);
+	std::trivially_copy_values(out, DIGIT_TABLE.begin() + 2 * exp, 2);
 	out += 2;
 
 	return out;

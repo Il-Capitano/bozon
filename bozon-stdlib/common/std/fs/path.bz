@@ -1,5 +1,7 @@
 import std::string;
 
+type string = std::string;
+
 export struct path
 {
 	._str: string;

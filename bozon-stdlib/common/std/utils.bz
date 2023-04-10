@@ -24,7 +24,7 @@ export function assert(b: bool)
 
 export function exit(code: int32) -> void
 {
-	libc::exit(code);
+	std::libc::exit(code);
 }
 
 export function malloc_raw(T: typename, n: usize) -> *T
@@ -37,7 +37,7 @@ export function malloc_raw(T: typename, n: usize) -> *T
 	return if (meta::is_comptime()) {
 		meta::malloc(T, n)
 	} else {
-		const malloc_result = libc::malloc(n * sizeof T);
+		const malloc_result = std::libc::malloc(n * sizeof T);
 		if (malloc_result == null)
 		{
 			unreachable;
@@ -56,7 +56,7 @@ export function malloc(T: typename, n: usize) -> *T
 	const result = if (meta::is_comptime()) {
 		meta::malloc(T, n)
 	} else {
-		const malloc_result = libc::malloc(n * sizeof T);
+		const malloc_result = std::libc::malloc(n * sizeof T);
 		if (malloc_result == null)
 		{
 			unreachable;
@@ -80,7 +80,7 @@ export function free(p: ?*void)
 	}
 	else
 	{
-		libc::free(p);
+		std::libc::free(p);
 	}
 }
 
