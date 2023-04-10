@@ -19,6 +19,7 @@ struct decl_variable;
 struct decl_function;
 struct decl_operator;
 struct decl_function_alias;
+struct decl_operator_alias;
 struct decl_type_alias;
 struct decl_struct;
 struct decl_enum;
@@ -41,6 +42,7 @@ using statement_types = bz::meta::type_pack<
 	decl_function,
 	decl_operator,
 	decl_function_alias,
+	decl_operator_alias,
 	decl_type_alias,
 	decl_struct,
 	decl_enum,
@@ -53,6 +55,7 @@ using top_level_statement_types = bz::meta::type_pack<
 	decl_function,
 	decl_operator,
 	decl_function_alias,
+	decl_operator_alias,
 	decl_type_alias,
 	decl_struct,
 	decl_enum,
@@ -64,6 +67,7 @@ using declaration_types = bz::meta::type_pack<
 	decl_function,
 	decl_operator,
 	decl_function_alias,
+	decl_operator_alias,
 	decl_type_alias,
 	decl_struct,
 	decl_enum,

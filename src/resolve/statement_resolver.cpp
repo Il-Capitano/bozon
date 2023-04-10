@@ -455,6 +455,11 @@ static void resolve_stmt(ast::decl_function_alias &func_alias_decl, ctx::parse_c
 	resolve_function_alias(func_alias_decl, context);
 }
 
+static void resolve_stmt(ast::decl_operator_alias &op_alias_decl, ctx::parse_context &context)
+{
+	resolve_operator_alias(op_alias_decl, context);
+}
+
 static void resolve_stmt(ast::decl_type_alias &type_alias_decl, ctx::parse_context &context)
 {
 	resolve_type_alias(type_alias_decl, context);
@@ -1145,6 +1150,98 @@ void resolve_function_alias(ast::decl_function_alias &alias_decl, ctx::parse_con
 
 	auto prev_scopes = context.push_enclosing_scope(alias_decl.enclosing_scope);
 	resolve_function_alias_impl(alias_decl, context);
+	context.pop_enclosing_scope(std::move(prev_scopes));
+}
+
+static void resolve_operator_alias_impl(ast::decl_operator_alias &alias_decl, ctx::parse_context &context)
+{
+	auto const begin = alias_decl.alias_expr.src_tokens.begin;
+	auto const end   = alias_decl.alias_expr.src_tokens.end;
+	auto stream = begin;
+	alias_decl.state = ast::resolve_state::resolving_all;
+	alias_decl.alias_expr = parse::parse_expression(stream, end, context, no_comma);
+	if (stream != end)
+	{
+		if (stream->kind == lex::token::comma)
+		{
+			auto const suggestion_end = (end - 1)->kind == lex::token::semi_colon ? end - 1 : end;
+			context.report_error(
+				stream,
+				"'operator ,' is not allowed in operator alias expression",
+				{}, { context.make_suggestion_around(
+					begin,          ctx::char_pos(), ctx::char_pos(), "(",
+					suggestion_end, ctx::char_pos(), ctx::char_pos(), ")",
+					"put parenthesis around the expression"
+				) }
+			);
+		}
+		else
+		{
+			context.assert_token(stream, lex::token::semi_colon);
+		}
+	}
+	resolve_expression(alias_decl.alias_expr, context);
+	resolve::consteval_try(alias_decl.alias_expr, context);
+
+	if (!alias_decl.alias_expr.has_consteval_succeeded())
+	{
+		context.report_error(alias_decl.alias_expr, "operator alias expression must be a constant expression");
+		alias_decl.state = ast::resolve_state::error;
+		return;
+	}
+
+	if (alias_decl.alias_expr.is_function_name())
+	{
+		auto const decl = alias_decl.alias_expr.get_function_name().decl;
+		bz_assert(alias_decl.aliased_decls.empty());
+		alias_decl.aliased_decls = { decl };
+		alias_decl.state = ast::resolve_state::all;
+	}
+	else if (alias_decl.alias_expr.is_function_alias_name())
+	{
+		auto const decl = alias_decl.alias_expr.get_function_alias_name().decl;
+		bz_assert(alias_decl.aliased_decls.empty());
+		alias_decl.aliased_decls = decl->aliased_decls;
+		alias_decl.state = ast::resolve_state::all;
+	}
+	else if (alias_decl.alias_expr.is_function_overload_set())
+	{
+		auto const &func_set = alias_decl.alias_expr.get_function_overload_set().set;
+		bz_assert(alias_decl.aliased_decls.empty());
+		alias_decl.aliased_decls = get_function_decls_from_set(func_set);
+		if (alias_decl.state != ast::resolve_state::error && !alias_decl.aliased_decls.empty())
+		{
+			alias_decl.state = ast::resolve_state::all;
+		}
+		else
+		{
+			alias_decl.state = ast::resolve_state::error;
+		}
+	}
+	else
+	{
+		context.report_error(alias_decl.alias_expr, "operator alias value must be a function");
+		alias_decl.state = ast::resolve_state::error;
+		return;
+	}
+}
+
+void resolve_operator_alias(ast::decl_operator_alias &alias_decl, ctx::parse_context &context)
+{
+	if (alias_decl.state >= ast::resolve_state::all || alias_decl.state == ast::resolve_state::error)
+	{
+		return;
+	}
+	else if (alias_decl.state != ast::resolve_state::none)
+	{
+		bz_assert(alias_decl.state == ast::resolve_state::resolving_all);
+		context.report_circular_dependency_error(alias_decl);
+		alias_decl.state = ast::resolve_state::error;
+		return;
+	}
+
+	auto prev_scopes = context.push_enclosing_scope(alias_decl.enclosing_scope);
+	resolve_operator_alias_impl(alias_decl, context);
 	context.pop_enclosing_scope(std::move(prev_scopes));
 }
 
@@ -3030,7 +3127,7 @@ void resolve_enum(ast::decl_enum &enum_decl, ctx::parse_context &context)
 
 void resolve_global_statement(ast::statement &stmt, ctx::parse_context &context)
 {
-	static_assert(ast::statement::variant_count == 16);
+	static_assert(ast::statement::variant_count == 17);
 	stmt.visit(bz::overload{
 		[&](ast::decl_function &func_decl) {
 			context.add_to_resolve_queue({}, func_decl.body);
@@ -3045,6 +3142,11 @@ void resolve_global_statement(ast::statement &stmt, ctx::parse_context &context)
 		[&](ast::decl_function_alias &alias_decl) {
 			context.add_to_resolve_queue({}, alias_decl);
 			resolve_function_alias(alias_decl, context);
+			context.pop_resolve_queue();
+		},
+		[&](ast::decl_operator_alias &alias_decl) {
+			context.add_to_resolve_queue({}, alias_decl);
+			resolve_operator_alias(alias_decl, context);
 			context.pop_resolve_queue();
 		},
 		[&](ast::decl_type_alias &alias_decl) {

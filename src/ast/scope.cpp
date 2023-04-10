@@ -21,6 +21,8 @@ std::pair<global_scope_symbol_list_t::id_map_t::iterator, bool> global_scope_sym
 	}
 }
 
+static_assert(statement::variant_count == 17);
+
 void global_scope_symbol_list_t::add_variable(bz::array_view<bz::u8string_view const> id, decl_variable &var_decl)
 {
 	auto const index = this->variables.size();
@@ -184,6 +186,26 @@ void global_scope_symbol_list_t::add_operator(decl_operator &op_decl)
 		auto &set = this->operator_sets.emplace_back();
 		set.op = op_decl.body.function_name_or_operator_kind.get<uint32_t>();
 		set.op_decls.push_back(&op_decl);
+	}
+}
+
+void global_scope_symbol_list_t::add_operator_alias(decl_operator_alias &alias_decl)
+{
+	auto const it = std::find_if(
+		this->operator_sets.begin(), this->operator_sets.end(),
+		[&alias_decl](auto const &set) {
+			return set.op == alias_decl.op;
+		}
+	);
+	if (it != this->operator_sets.end())
+	{
+		it->alias_decls.push_back(&alias_decl);
+	}
+	else
+	{
+		auto &set = this->operator_sets.emplace_back();
+		set.op = alias_decl.op;
+		set.alias_decls.push_back(&alias_decl);
 	}
 }
 
@@ -352,6 +374,15 @@ void global_scope_t::add_operator(decl_operator &op_decl)
 	if (op_decl.body.is_export())
 	{
 		this->export_symbols.add_operator(op_decl);
+	}
+}
+
+void global_scope_t::add_operator_alias(decl_operator_alias &alias_decl)
+{
+	this->all_symbols.add_operator_alias(alias_decl);
+	if (alias_decl.is_export)
+	{
+		this->export_symbols.add_operator_alias(alias_decl);
 	}
 }
 

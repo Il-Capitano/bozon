@@ -252,7 +252,7 @@ src_file::src_file(fs::path const &file_path, uint32_t file_id, bz::vector<bz::u
 	for (auto &decl : this->_declarations)
 	{
 		static_assert(sizeof (ast::global_scope_t) == 624);
-		static_assert(ast::statement_types::size() == 16);
+		static_assert(ast::statement_types::size() == 17);
 		switch (decl.kind())
 		{
 		case ast::statement::index<ast::decl_variable>:
@@ -277,6 +277,12 @@ src_file::src_file(fs::path const &file_path, uint32_t file_id, bz::vector<bz::u
 		{
 			auto &alias_decl = decl.get<ast::decl_function_alias>();
 			this->_global_scope.get_global().add_function_alias({}, alias_decl);
+			break;
+		}
+		case ast::statement::index<ast::decl_operator_alias>:
+		{
+			auto &alias_decl = decl.get<ast::decl_operator_alias>();
+			this->_global_scope.get_global().add_operator_alias(alias_decl);
 			break;
 		}
 		case ast::statement::index<ast::decl_type_alias>:

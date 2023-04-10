@@ -29,14 +29,15 @@ inline bool operator != (enclosing_scope_t lhs, enclosing_scope_t rhs)
 
 struct function_overload_set
 {
-	arena_vector<decl_function *> func_decls;
+	arena_vector<decl_function *>       func_decls;
 	arena_vector<decl_function_alias *> alias_decls;
 };
 
 struct operator_overload_set
 {
 	uint32_t op;
-	arena_vector<decl_operator *> op_decls;
+	arena_vector<decl_operator *>       op_decls;
+	arena_vector<decl_operator_alias *> alias_decls;
 };
 
 struct variadic_var_decl
@@ -108,6 +109,7 @@ struct global_scope_symbol_list_t
 	void add_function(bz::array_view<bz::u8string_view const> id, decl_function &func_decl);
 	void add_function_alias(bz::array_view<bz::u8string_view const> id, decl_function_alias &alias_decl);
 	void add_operator(decl_operator &op_decl);
+	void add_operator_alias(decl_operator_alias &alias_decl);
 	void add_type_alias(bz::array_view<bz::u8string_view const> id, decl_type_alias &alias_decl);
 	void add_struct(bz::array_view<bz::u8string_view const> id, decl_struct &struct_decl);
 	void add_enum(bz::array_view<bz::u8string_view const> id, decl_enum &enum_decl);
@@ -126,6 +128,7 @@ struct global_scope_t
 	void add_function(bz::array_view<bz::u8string_view const> id, decl_function &func_decl);
 	void add_function_alias(bz::array_view<bz::u8string_view const> id, decl_function_alias &alias_decl);
 	void add_operator(decl_operator &op_decl);
+	void add_operator_alias(decl_operator_alias &alias_decl);
 	void add_type_alias(bz::array_view<bz::u8string_view const> id, decl_type_alias &alias_decl);
 	void add_struct(bz::array_view<bz::u8string_view const> id, decl_struct &struct_decl);
 	void add_enum(bz::array_view<bz::u8string_view const> id, decl_enum &enum_decl);

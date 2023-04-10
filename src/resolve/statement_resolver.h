@@ -17,6 +17,7 @@ void resolve_variable(ast::decl_variable &var_decl, ctx::parse_context &context)
 
 void resolve_type_alias(ast::decl_type_alias &alias_decl, ctx::parse_context &context);
 void resolve_function_alias(ast::decl_function_alias &alias_decl, ctx::parse_context &context);
+void resolve_operator_alias(ast::decl_operator_alias &alias_decl, ctx::parse_context &context);
 
 void resolve_function_parameters(
 	ast::statement_view func_stmt,

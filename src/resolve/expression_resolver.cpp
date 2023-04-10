@@ -259,6 +259,9 @@ static bool is_statement_noreturn(ast::statement const &stmt)
 		[](ast::decl_function_alias const &) {
 			return false;
 		},
+		[](ast::decl_operator_alias const &) {
+			return false;
+		},
 		[](ast::decl_type_alias const &) {
 			return false;
 		},

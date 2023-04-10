@@ -3526,6 +3526,7 @@ void consteval_try_without_error_decl(ast::statement &stmt, ctx::parse_context &
 			}
 		},
 		[](ast::decl_function_alias &) {},
+		[](ast::decl_operator_alias &) {},
 		[](ast::decl_type_alias &) {},
 		[&context](ast::decl_struct &struct_decl) {
 			if (struct_decl.info.body.is<bz::vector<ast::statement>>())

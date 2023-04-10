@@ -53,6 +53,22 @@ static ast::expression make_move_destruct_expression(
 	parse_context &context
 );
 
+static bz::u8string_view get_operator_name(uint32_t op)
+{
+	if (op == lex::token::paren_open)
+	{
+		return "()";
+	}
+	else if (op == lex::token::square_open)
+	{
+		return "[]";
+	}
+	else
+	{
+		return token_info[op].token_value;
+	}
+}
+
 static ast::arena_vector<ast::expression> expand_params(ast::arena_vector<ast::expression> params)
 {
 	ast::arena_vector<ast::expression> result;
@@ -753,7 +769,7 @@ static bz::vector<source_highlight> get_circular_notes(T *decl, parse_context co
 	{
 		if (!notes.empty())
 		{
-			static_assert(decltype(parse_context::resolve_queue_t::requested)::variant_count == 6);
+			static_assert(decltype(parse_context::resolve_queue_t::requested)::variant_count == 7);
 			if (dep.requested.is<ast::function_body *>())
 			{
 				auto const func_body = dep.requested.get<ast::function_body *>();
@@ -771,6 +787,13 @@ static bz::vector<source_highlight> get_circular_notes(T *decl, parse_context co
 				notes.back().message = bz::format(
 					"required from instantiation of alias 'function {}'",
 					dep.requested.get<ast::decl_function_alias *>()->id.format_as_unqualified()
+				);
+			}
+			else if (dep.requested.is<ast::decl_operator_alias *>())
+			{
+				notes.back().message = bz::format(
+					"required from instantiation of alias 'operator {}'",
+					get_operator_name(dep.requested.get<ast::decl_operator_alias *>()->op)
 				);
 			}
 			else if (dep.requested.is<ast::decl_type_alias *>())
@@ -843,6 +866,17 @@ void parse_context::report_circular_dependency_error(ast::decl_function_alias &a
 	this->report_error(
 		alias_decl.src_tokens,
 		bz::format("circular dependency encountered while resolving alias 'function {}'", alias_decl.id.format_as_unqualified()),
+		std::move(notes)
+	);
+}
+
+void parse_context::report_circular_dependency_error(ast::decl_operator_alias &alias_decl) const
+{
+	auto notes = get_circular_notes(&alias_decl, *this);
+
+	this->report_error(
+		alias_decl.src_tokens,
+		bz::format("circular dependency encountered while resolving alias 'operator {}'", get_operator_name(alias_decl.op)),
 		std::move(notes)
 	);
 }
@@ -2883,6 +2917,13 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 						alias.src_tokens, bz::format("via alias 'function {}'", alias.id.format_as_unqualified())
 					));
 				}
+				else if (func.stmt.is<ast::decl_operator_alias>())
+				{
+					auto &alias = func.stmt.get<ast::decl_operator_alias>();
+					notes.emplace_back(context.make_note(
+						alias.src_tokens, bz::format("via alias 'operator {}'", get_operator_name(alias.op))
+					));
+				}
 			}
 			context.report_error(src_tokens, "function call is ambiguous", std::move(notes));
 			return { {}, nullptr };
@@ -2906,7 +2947,7 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 			notes.emplace_back(context.make_note(
 				bz::format(
 					"candidate: the builtin 'operator {}'",
-					token_info[func.func_body->function_name_or_operator_kind.get<uint32_t>()].token_value
+					get_operator_name(func.func_body->function_name_or_operator_kind.get<uint32_t>())
 				)
 			));
 		}
@@ -2921,6 +2962,13 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 			auto &alias = func.stmt.get<ast::decl_function_alias>();
 			notes.emplace_back(context.make_note(
 				alias.src_tokens, bz::format("via alias 'function {}'", alias.id.format_as_unqualified())
+			));
+		}
+		else if (func.stmt.is<ast::decl_operator_alias>())
+		{
+			auto &alias = func.stmt.get<ast::decl_operator_alias>();
+			notes.emplace_back(context.make_note(
+				alias.src_tokens, bz::format("via alias 'operator {}'", get_operator_name(alias.op))
 			));
 		}
 	}
@@ -3365,7 +3413,7 @@ ast::expression parse_context::make_unary_operator_expression(
 			src_tokens,
 			bz::format(
 				"no candidate found for unary 'operator {}' with type '{}'",
-				token_info[op_kind].token_value, expr.get_expr_type()
+				get_operator_name(op_kind), expr.get_expr_type()
 			)
 		);
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
@@ -3595,7 +3643,7 @@ ast::expression parse_context::make_binary_operator_expression(
 			src_tokens,
 			bz::format(
 				"no candidate found for binary 'operator {}' with types '{}' and '{}'",
-				token_info[op_kind].token_value, lhs.get_expr_type(), rhs.get_expr_type()
+				get_operator_name(op_kind), lhs.get_expr_type(), rhs.get_expr_type()
 			)
 		);
 		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs)));

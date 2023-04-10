@@ -527,10 +527,12 @@ ast::statement parse_decl_function_or_alias(
 		// e.g. `function "" "c" foo` is invalid even though `"" "c" == "c"`
 		++stream;
 	}
+
 	auto const id = context.assert_token(stream, lex::token::identifier);
 	auto const src_tokens = id->kind == lex::token::identifier
 		? lex::src_tokens{ begin, id, stream }
 		: lex::src_tokens{ begin, begin, stream };
+
 	if (stream->kind == lex::token::assign)
 	{
 		++stream; // '='
@@ -642,7 +644,7 @@ template ast::statement parse_consteval_decl<parse_scope::local>(
 );
 
 template<parse_scope scope>
-ast::statement parse_decl_operator(
+ast::statement parse_decl_operator_or_alias(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 )
@@ -679,38 +681,63 @@ ast::statement parse_decl_operator(
 		? lex::src_tokens{ begin, op, stream }
 		: lex::src_tokens{ begin, begin, begin + 1 };
 
-	auto body = parse_function_body(src_tokens, op->kind, stream, end, context);
-
-	if constexpr (scope == parse_scope::global || scope == parse_scope::struct_body)
+	if (stream->kind == lex::token::assign)
 	{
-		return ast::make_decl_operator(op, std::move(body));
+		++stream; // '='
+		auto const alias_expr = get_expression_tokens<>(stream, end, context);
+		context.assert_token(stream, lex::token::semi_colon);
+		/*
+		if (begin->kind == lex::token::kw_consteval)
+		{
+			context.report_error(begin, "a function alias cannot be declared as 'consteval'");
+		}
+		if (cc_specified)
+		{
+			context.report_error(cc_token, "calling convention cannot be specified for a function alias");
+		}
+		*/
+		return ast::make_decl_operator_alias(
+			src_tokens,
+			op->kind,
+			ast::make_unresolved_expression({ alias_expr.begin, alias_expr.begin, alias_expr.end }),
+			context.get_current_enclosing_scope()
+		);
 	}
 	else
 	{
-		auto result = ast::make_decl_operator(op, std::move(body));
-		bz_assert(result.is<ast::decl_operator>());
-		auto &op_decl = result.get<ast::decl_operator>();
-		op_decl.body.flags |= ast::function_body::local;
-		resolve::resolve_function(result, op_decl.body, context);
-		if (op_decl.body.state != ast::resolve_state::error)
+		auto body = parse_function_body(src_tokens, op->kind, stream, end, context);
+
+		if constexpr (scope == parse_scope::global || scope == parse_scope::struct_body)
 		{
-			context.add_local_operator(op_decl);
+			return ast::make_decl_operator(op, std::move(body));
 		}
-		return result;
+		else
+		{
+			auto result = ast::make_decl_operator(op, std::move(body));
+			bz_assert(result.is<ast::decl_operator>());
+			auto &op_decl = result.get<ast::decl_operator>();
+			op_decl.body.flags |= ast::function_body::local;
+			resolve::resolve_function(result, op_decl.body, context);
+			if (op_decl.body.state != ast::resolve_state::error)
+			{
+				context.add_local_operator(op_decl);
+			}
+			return result;
+		}
 	}
 }
 
-template ast::statement parse_decl_operator<parse_scope::global>(
+template ast::statement parse_decl_operator_or_alias<parse_scope::global>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
 
-template ast::statement parse_decl_operator<parse_scope::struct_body>(
+template ast::statement parse_decl_operator_or_alias<parse_scope::struct_body>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
 
-template ast::statement parse_decl_operator<parse_scope::local>(
+template ast::statement parse_decl_operator_or_alias<parse_scope::local>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );

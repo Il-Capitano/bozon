@@ -6983,7 +6983,7 @@ static void emit_bitcode(
 		return;
 	}
 
-	static_assert(ast::statement::variant_count == 16);
+	static_assert(ast::statement::variant_count == 17);
 	switch (stmt.kind())
 	{
 	case ast::statement::index<ast::stmt_while>:
@@ -7017,6 +7017,8 @@ static void emit_bitcode(
 
 	case ast::statement::index<ast::decl_function>:
 	case ast::statement::index<ast::decl_operator>:
+	case ast::statement::index<ast::decl_function_alias>:
+	case ast::statement::index<ast::decl_operator_alias>:
 	case ast::statement::index<ast::decl_struct>:
 	case ast::statement::index<ast::decl_enum>:
 	case ast::statement::index<ast::decl_import>:

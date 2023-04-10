@@ -954,6 +954,30 @@ struct decl_function_alias
 	{}
 };
 
+struct decl_operator_alias
+{
+	lex::src_tokens               src_tokens;
+	uint32_t                      op;
+	expression                    alias_expr;
+	arena_vector<decl_function *> aliased_decls;
+	enclosing_scope_t             enclosing_scope;
+	bool                          is_export = false;
+	resolve_state                 state = resolve_state::none;
+
+	decl_operator_alias(
+		lex::src_tokens const &_src_tokens,
+		uint32_t               _op,
+		expression             _alias_expr,
+		enclosing_scope_t      _enclosing_scope
+	)
+		: src_tokens(_src_tokens),
+		  op(_op),
+		  alias_expr(std::move(_alias_expr)),
+		  aliased_decls{},
+		  enclosing_scope(_enclosing_scope)
+	{}
+};
+
 struct decl_type_alias
 {
 	enum : uint8_t
@@ -1543,6 +1567,7 @@ def_make_fn(statement, decl_variable)
 def_make_fn(statement, decl_function)
 def_make_fn(statement, decl_operator)
 def_make_fn(statement, decl_function_alias)
+def_make_fn(statement, decl_operator_alias)
 def_make_fn(statement, decl_type_alias)
 def_make_fn(statement, decl_struct)
 def_make_fn(statement, decl_enum)

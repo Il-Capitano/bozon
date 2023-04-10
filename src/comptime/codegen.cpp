@@ -6316,7 +6316,7 @@ static void generate_stmt_code(ast::statement const &stmt, codegen_context &cont
 {
 	switch (stmt.kind())
 	{
-	static_assert(ast::statement::variant_count == 16);
+	static_assert(ast::statement::variant_count == 17);
 	case ast::statement::index<ast::stmt_while>:
 		generate_stmt_code(stmt.get<ast::stmt_while>(), context);
 		break;
@@ -6348,6 +6348,8 @@ static void generate_stmt_code(ast::statement const &stmt, codegen_context &cont
 
 	case ast::statement::index<ast::decl_function>:
 	case ast::statement::index<ast::decl_operator>:
+	case ast::statement::index<ast::decl_function_alias>:
+	case ast::statement::index<ast::decl_operator_alias>:
 	case ast::statement::index<ast::decl_struct>:
 	case ast::statement::index<ast::decl_enum>:
 	case ast::statement::index<ast::decl_import>:
