@@ -78,7 +78,10 @@ do {                                                                            
         lex::token_range{},                                                          \
         ast::var_id_and_type(                                                        \
             ast::make_identifier(id),                                                \
-            ast::type_as_expression(ast::make_unresolved_typespec(type_token_range)) \
+            ast::type_as_expression(                                                 \
+                lex::src_tokens::from_range(type_token_range),                       \
+                ast::make_unresolved_typespec(type_token_range)                      \
+            )                                                                        \
         ),                                                                           \
         std::move(init_expr),                                                        \
         parse_ctx.get_current_enclosing_scope()                                      \
