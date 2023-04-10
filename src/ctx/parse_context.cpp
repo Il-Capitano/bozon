@@ -3294,12 +3294,24 @@ static void get_possible_funcs_for_operator_helper(
 		return;
 	}
 
-	for (auto const op : set_it->op_decls)
+	for (auto const op_decl : set_it->op_decls)
 	{
-		if (!result.transform([](auto const &possible_func) { return possible_func.func_body; }).contains(&op->body))
+		if (!result.transform([](auto const &possible_func) { return possible_func.func_body; }).contains(&op_decl->body))
 		{
-			auto match_level = resolve::get_function_call_match_level(op, op->body, expr, context, src_tokens);
-			result.push_back({ std::move(match_level), op, &op->body });
+			auto match_level = resolve::get_function_call_match_level(op_decl, op_decl->body, expr, context, src_tokens);
+			result.push_back({ std::move(match_level), op_decl, &op_decl->body });
+		}
+	}
+
+	for (auto const op_alias : set_it->alias_decls)
+	{
+		for (auto const decl : op_alias->aliased_decls)
+		{
+			if (!result.transform([](auto const &possible_func) { return possible_func.func_body; }).contains(&decl->body))
+			{
+				auto match_level = resolve::get_function_call_match_level(decl, decl->body, expr, context, src_tokens);
+				result.push_back({ std::move(match_level), op_alias, &decl->body });
+			}
 		}
 	}
 }
@@ -3474,6 +3486,18 @@ static void get_possible_funcs_for_operator_helper(
 		{
 			auto match_level = resolve::get_function_call_match_level(op_decl, op_decl->body, lhs, rhs, context, src_tokens);
 			result.push_back({ std::move(match_level), op_decl, &op_decl->body });
+		}
+	}
+
+	for (auto const op_alias : set_it->alias_decls)
+	{
+		for (auto const decl : op_alias->aliased_decls)
+		{
+			if (!result.transform([](auto const &possible_func) { return possible_func.func_body; }).contains(&decl->body))
+			{
+				auto match_level = resolve::get_function_call_match_level(decl, decl->body, lhs, rhs, context, src_tokens);
+				result.push_back({ std::move(match_level), op_alias, &decl->body });
+			}
 		}
 	}
 }
