@@ -34,7 +34,7 @@ struct decl_list
 	bz::vector<ast::type_info     *> type_infos;
 };
 
-ast::scope_t get_default_decls(ast::scope_t *builtin_global_scope, bz::array_view<bz::u8string_view const> id_scope);
+ast::scope_t get_default_decls(ast::scope_t *builtin_global_scope);
 
 struct global_context
 {
@@ -60,6 +60,9 @@ struct global_context
 	bz::vector<fs::path> _import_dirs;
 	bz::vector<std::unique_ptr<src_file>> _src_files;
 	std::unordered_map<fs::path, src_file *> _src_files_map;
+
+	bz::vector<std::unique_ptr<char[]>> _src_scope_fragments;
+	bz::vector<bz::vector<bz::u8string_view>> _src_scopes_storage;
 
 	std::unique_ptr<ast::type_prototype_set_t> type_prototype_set = nullptr;
 	llvm::LLVMContext _llvm_context;
@@ -88,6 +91,8 @@ struct global_context
 	}
 
 	src_file *get_src_file(fs::path const &file_path);
+
+	bz::array_view<bz::u8string_view const> get_scope_in_persistent_storage(bz::array_view<bz::u8string const> scope);
 
 	ast::type_info *get_builtin_type_info(uint32_t kind) const;
 	ast::type_info *get_usize_type_info(void) const;
@@ -148,8 +153,14 @@ struct global_context
 	void add_compile_function(ast::function_body &func_body);
 	void add_compile_struct(ast::decl_struct &struct_decl);
 
-	bz::vector<uint32_t> add_module(uint32_t current_file_id, ast::identifier const &id);
-	ast::scope_t *get_file_export_decls(uint32_t file_id);
+	struct module_info_t
+	{
+		uint32_t id;
+		bz::array_view<bz::u8string_view const> scope;
+	};
+
+	bz::vector<module_info_t> add_module(uint32_t current_file_id, ast::identifier const &id);
+	ast::scope_t &get_file_global_scope(uint32_t file_id);
 
 	bz::u8string get_file_name(uint32_t file_id);
 	bz::u8string get_location_string(lex::token_pos t);

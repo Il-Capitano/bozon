@@ -104,12 +104,11 @@ static llvm::PassBuilder get_pass_builder(llvm::TargetMachine *tm)
 	return llvm::PassBuilder(tm, tuning_options);
 }
 
-ast::scope_t get_default_decls(ast::scope_t *builtin_global_scope, bz::array_view<bz::u8string_view const> id_scope)
+ast::scope_t get_default_decls(ast::scope_t *builtin_global_scope)
 {
 	ast::scope_t result;
 	auto &global_scope = result.emplace<ast::global_scope_t>();
 	global_scope.parent = { builtin_global_scope, 0 };
-	global_scope.id_scope = id_scope;
 	return result;
 }
 
@@ -143,6 +142,20 @@ src_file *global_context::get_src_file(fs::path const &file_path)
 	{
 		return nullptr;
 	}
+}
+
+bz::array_view<bz::u8string_view const> global_context::get_scope_in_persistent_storage(bz::array_view<bz::u8string const> scope)
+{
+	auto &result = this->_src_scopes_storage.emplace_back();
+
+	for (auto const &fragment : scope)
+	{
+		auto &fragment_storage = this->_src_scope_fragments.push_back(std::make_unique<char[]>(fragment.size()));
+		std::memcpy(fragment_storage.get(), fragment.data_as_char_ptr(), fragment.size());
+		result.push_back(bz::u8string_view(fragment_storage.get(), fragment_storage.get() + fragment.size()));
+	}
+
+	return result;
 }
 
 ast::type_info *global_context::get_builtin_type_info(uint32_t kind) const
@@ -512,7 +525,7 @@ static uint32_t add_module_file(
 	return file._file_id;
 }
 
-static bz::vector<uint32_t> add_module_folder(
+static bz::vector<global_context::module_info_t> add_module_folder(
 	src_file &current_file,
 	fs::path const &module_path,
 	bool is_library_folder,
@@ -520,7 +533,7 @@ static bz::vector<uint32_t> add_module_folder(
 	global_context &context
 )
 {
-	bz::vector<uint32_t> result;
+	bz::vector<global_context::module_info_t> result;
 	bz_assert(fs::is_directory(module_path));
 	for (auto const &p : bz::basic_range(fs::directory_iterator(module_path), fs::directory_iterator()))
 	{
@@ -557,13 +570,17 @@ static bz::vector<uint32_t> add_module_folder(
 		{
 			auto path = fs::canonical(p.path());
 			path.make_preferred();
-			result.push_back(add_module_file(current_file, std::move(path), is_library_folder, scope, context));
+			auto const id = add_module_file(current_file, std::move(path), is_library_folder, scope, context);
+			result.push_back({
+				.id = id,
+				.scope = context.get_scope_in_persistent_storage(scope),
+			});
 		}
 	}
 	return result;
 }
 
-bz::vector<uint32_t> global_context::add_module(uint32_t current_file_id, ast::identifier const &id)
+bz::vector<global_context::module_info_t> global_context::add_module(uint32_t current_file_id, ast::identifier const &id)
 {
 	auto &current_file = this->get_src_file(current_file_id);
 	auto const [module_path, is_library_path] = search_for_source_file(
@@ -583,7 +600,7 @@ bz::vector<uint32_t> global_context::add_module(uint32_t current_file_id, ast::i
 			},
 			{}, {}
 		});
-		return { std::numeric_limits<uint32_t>::max() };
+		return {};
 	}
 
 	if (module_path.filename().generic_string().ends_with(".bz"))
@@ -602,7 +619,15 @@ bz::vector<uint32_t> global_context::add_module(uint32_t current_file_id, ast::i
 				return result;
 			}
 		}();
-		return { add_module_file(current_file, module_path, is_library_path, std::move(scope), *this) };
+		auto const result = add_module_file(current_file, module_path, is_library_path, std::move(scope), *this);
+		if (result == std::numeric_limits<uint32_t>::max())
+		{
+			return {};
+		}
+		else
+		{
+			return { module_info_t{ result, id.values.slice(0, id.values.size() - 1) } };
+		}
 	}
 	else
 	{
@@ -624,9 +649,9 @@ bz::vector<uint32_t> global_context::add_module(uint32_t current_file_id, ast::i
 	}
 }
 
-ast::scope_t *global_context::get_file_export_decls(uint32_t file_id)
+ast::scope_t &global_context::get_file_global_scope(uint32_t file_id)
 {
-	return &this->get_src_file(file_id)._export_decls;
+	return this->get_src_file(file_id)._global_scope;
 }
 
 bz::u8string global_context::get_file_name(uint32_t file_id)
@@ -1061,7 +1086,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		auto &builtins_file = this->emplace_src_file(
 			builtins_file_path, this->_src_files.size(), bz::vector<bz::u8string>(), true
 		);
-		this->_builtin_global_scope = &builtins_file._export_decls;
+		this->_builtin_global_scope = &builtins_file._global_scope;
 		if (!builtins_file.parse_global_symbols(*this))
 		{
 			return false;

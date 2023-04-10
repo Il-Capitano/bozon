@@ -51,8 +51,8 @@ function mulShift_mod1e9(m: uint64, mul: *const uint64, j: int32) -> uint32
 	const s1low = low2 + high1 + c1;             // 128
 	const c2 = (s1low < low2) as uint32; // high1 + c1 can't overflow, so compare against low2
 	const s1high = high2 + c2;                   // 192
-	assert(j >= 128);
-	assert(j <= 180);
+	std::assert(j >= 128);
+	std::assert(j <= 180);
 	if (j < 160) // j: [128, 160)
 	{
 		const r0: uint64 = mod1e9(s1high);
@@ -82,21 +82,21 @@ function append_n_digits(olength: uint32, digits: uint32, result: *uint8)
 		digits /= 10000;
 		const c0 = (c % 100) << 1;
 		const c1 = (c / 100) << 1;
-		trivially_copy_values(result + olength - i - 2, DIGIT_TABLE.begin() + c0, 2);
-		trivially_copy_values(result + olength - i - 4, DIGIT_TABLE.begin() + c1, 2);
+		std::trivially_copy_values(result + olength - i - 2, DIGIT_TABLE.begin() + c0, 2);
+		std::trivially_copy_values(result + olength - i - 4, DIGIT_TABLE.begin() + c1, 2);
 		i += 4;
 	}
 	if (digits >= 100)
 	{
 		const c = (digits % 100) << 1;
 		digits /= 100;
-		trivially_copy_values(result + olength - i - 2, DIGIT_TABLE.begin() + c, 2);
+		std::trivially_copy_values(result + olength - i - 2, DIGIT_TABLE.begin() + c, 2);
 		i += 2;
 	}
 	if (digits >= 10)
 	{
 		const c = digits << 1;
-		trivially_copy_values(result + olength - i - 2, DIGIT_TABLE.begin() + c, 2);
+		std::trivially_copy_values(result + olength - i - 2, DIGIT_TABLE.begin() + c, 2);
 	}
 	else
 	{
@@ -118,15 +118,15 @@ function append_d_digits(olength: uint32, digits: uint32, result: *uint8)
 		digits /= 10000;
 		const c0 = (c % 100) << 1;
 		const c1 = (c / 100) << 1;
-		trivially_copy_values(result + olength + 1 - i - 2, DIGIT_TABLE.begin() + c0, 2);
-		trivially_copy_values(result + olength + 1 - i - 4, DIGIT_TABLE.begin() + c1, 2);
+		std::trivially_copy_values(result + olength + 1 - i - 2, DIGIT_TABLE.begin() + c0, 2);
+		std::trivially_copy_values(result + olength + 1 - i - 4, DIGIT_TABLE.begin() + c1, 2);
 		i += 4;
 	}
 	if (digits >= 100)
 	{
 		const c = (digits % 100) << 1;
 		digits /= 100;
-		trivially_copy_values(result + olength + 1 - i - 2, DIGIT_TABLE.begin() + c, 2);
+		std::trivially_copy_values(result + olength + 1 - i - 2, DIGIT_TABLE.begin() + c, 2);
 		i += 2;
 	}
 	if (digits >= 10)
@@ -153,7 +153,7 @@ function append_c_digits(count: uint32, digits: uint32, result: *uint8)
 	{
 		const c = (digits % 100) << 1;
 		digits /= 100;
-		trivially_copy_values(result + count - i - 2, DIGIT_TABLE.begin() + c, 2);
+		std::trivially_copy_values(result + count - i - 2, DIGIT_TABLE.begin() + c, 2);
 	}
 	// Generate the last digit if count is odd.
 	if (i < count)
@@ -169,7 +169,7 @@ function append_nine_digits(digits: uint32, result: *uint8)
 {
 	if (digits == 0)
 	{
-		trivially_set_values(result, '0' as uint8, 9);
+		std::trivially_set_values(result, '0' as uint8, 9);
 		return;
 	}
 
@@ -180,8 +180,8 @@ function append_nine_digits(digits: uint32, result: *uint8)
 		digits /= 10000;
 		const c0 = (c % 100) << 1;
 		const c1 = (c / 100) << 1;
-		trivially_copy_values(result + 7 - i, DIGIT_TABLE.begin() + c0, 2);
-		trivially_copy_values(result + 5 - i, DIGIT_TABLE.begin() + c1, 2);
+		std::trivially_copy_values(result + 7 - i, DIGIT_TABLE.begin() + c0, 2);
+		std::trivially_copy_values(result + 5 - i, DIGIT_TABLE.begin() + c1, 2);
 	}
 	*result = ('0' + digits) as uint8;
 }
@@ -206,14 +206,14 @@ function copy_special_str_printf(result: *uint8, sign: bool, mantissa: uint64) -
 {
 	if (mantissa != 0)
 	{
-		trivially_copy_values(result, "nan".begin_ptr(), "nan".size());
+		std::trivially_copy_values(result, "nan".begin_ptr(), "nan".size());
 		return 3;
 	}
 	if (sign)
 	{
 		*result = '-' as uint8;
 	}
-	trivially_copy_values(result + sign as uint32, "Infinity".begin_ptr(), "Infinity".size());
+	std::trivially_copy_values(result + sign as uint32, "Infinity".begin_ptr(), "Infinity".size());
 	return sign as int32 + 8;
 }
 
@@ -245,7 +245,7 @@ export function d2fixed_buffered_n(d: float64, precision: uint32, result: *uint8
 		{
 			*(result + index) = '.' as uint8;
 			++index;
-			trivially_set_values(result + index, '0' as uint8, precision);
+			std::trivially_set_values(result + index, '0' as uint8, precision);
 			index += precision as int32;
 		}
 		return index;
@@ -316,13 +316,13 @@ export function d2fixed_buffered_n(d: float64, precision: uint32, result: *uint8
 		if (blocks <= MIN_BLOCK_2[idx])
 		{
 			i = blocks;
-			trivially_set_values(result + index, '0' as uint8, precision);
+			std::trivially_set_values(result + index, '0' as uint8, precision);
 			index += precision as int32;
 		}
 		else if (i < MIN_BLOCK_2[idx])
 		{
 			i = MIN_BLOCK_2[idx];
-			trivially_set_values(result + index, '0' as uint8, 9 * i);
+			std::trivially_set_values(result + index, '0' as uint8, 9 * i);
 			index += 9 * i as int32;
 		}
 		for (; i < blocks; ++i)
@@ -334,7 +334,7 @@ export function d2fixed_buffered_n(d: float64, precision: uint32, result: *uint8
 				// If the remaining digits are all 0, then we might as well use memset.
 				// No rounding required in this case.
 				const fill = precision - 9 * i;
-				trivially_set_values(result + index, '0' as uint8, fill);
+				std::trivially_set_values(result + index, '0' as uint8, fill);
 				index += fill as int32;
 				break;
 			}
@@ -426,7 +426,7 @@ export function d2fixed_buffered_n(d: float64, precision: uint32, result: *uint8
 	}
 	else
 	{
-		trivially_set_values(result + index, '0' as uint8, precision);
+		std::trivially_set_values(result + index, '0' as uint8, precision);
 		index += precision as int32;
 	}
 	return index;
@@ -440,7 +440,7 @@ export function d2fixed_buffered(d: float64, precision: uint32, result: *uint8)
 
 export function d2fixed(d: float64, precision: uint32) -> ?*uint8
 {
-	const buffer_alloc = libc::malloc(2000);
+	const buffer_alloc = std::libc::malloc(2000);
 	if (buffer_alloc == null)
 	{
 		return null;
@@ -481,10 +481,10 @@ export function d2exp_buffered_n(d: float64, precision: uint32, result: *uint8) 
 		{
 			*(result + index) = '.' as uint8;
 			++index;
-			trivially_set_values(result + index, '0' as uint8, precision);
+			std::trivially_set_values(result + index, '0' as uint8, precision);
 			index += precision as int32;
 		}
-		trivially_copy_values(result + index, "e+00".begin_ptr(), 4);
+		std::trivially_copy_values(result + index, "e+00".begin_ptr(), 4);
 		index += 4;
 		return index;
 	}
@@ -657,7 +657,7 @@ export function d2exp_buffered_n(d: float64, precision: uint32, result: *uint8) 
 	{
 		if (digits == 0)
 		{
-			trivially_set_values(result + index, '0' as uint8, maximum);
+			std::trivially_set_values(result + index, '0' as uint8, maximum);
 		}
 		else
 		{
@@ -729,13 +729,13 @@ export function d2exp_buffered_n(d: float64, precision: uint32, result: *uint8) 
 	if (exp >= 100)
 	{
 		const c = exp % 10;
-		trivially_copy_values(result + index, DIGIT_TABLE.begin() + 2 * (exp / 10), 2);
+		std::trivially_copy_values(result + index, DIGIT_TABLE.begin() + 2 * (exp / 10), 2);
 		*(result + index + 2) = ('0' + c) as uint8;
 		index += 3;
 	}
 	else
 	{
-		trivially_copy_values(result + index, DIGIT_TABLE.begin() + 2 * exp, 2);
+		std::trivially_copy_values(result + index, DIGIT_TABLE.begin() + 2 * exp, 2);
 		index += 2;
 	}
 
@@ -750,7 +750,7 @@ export function d2exp_buffered(d: float64, precision: uint32, result: *uint8)
 
 export function d2exp(d: float64, precision: uint32) -> ?*uint8
 {
-	const buffer_alloc = libc::malloc(2000);
+	const buffer_alloc = std::libc::malloc(2000);
 	if (buffer_alloc == null)
 	{
 		return null;
@@ -799,7 +799,7 @@ export function d2fixed_short(d: float64, precision: uint32, result: *uint8, str
 		{
 			*(result + index) = '.' as uint8;
 			++index;
-			trivially_set_values(result + index, '0' as uint8, precision);
+			std::trivially_set_values(result + index, '0' as uint8, precision);
 			index += precision as int32;
 		}
 		return result + index;
@@ -870,13 +870,13 @@ export function d2fixed_short(d: float64, precision: uint32, result: *uint8, str
 		if (blocks <= MIN_BLOCK_2[idx])
 		{
 			i = blocks;
-			trivially_set_values(result + index, '0' as uint8, precision);
+			std::trivially_set_values(result + index, '0' as uint8, precision);
 			index += precision as int32;
 		}
 		else if (i < MIN_BLOCK_2[idx])
 		{
 			i = MIN_BLOCK_2[idx];
-			trivially_set_values(result + index, '0' as uint8, 9 * i);
+			std::trivially_set_values(result + index, '0' as uint8, 9 * i);
 			index += 9 * i as int32;
 		}
 		for (; i < blocks; ++i)
@@ -888,7 +888,7 @@ export function d2fixed_short(d: float64, precision: uint32, result: *uint8, str
 				// If the remaining digits are all 0, then we might as well use memset.
 				// No rounding required in this case.
 				const fill = precision - 9 * i;
-				trivially_set_values(result + index, '0' as uint8, fill);
+				std::trivially_set_values(result + index, '0' as uint8, fill);
 				index += fill as int32;
 				break;
 			}
@@ -980,7 +980,7 @@ export function d2fixed_short(d: float64, precision: uint32, result: *uint8, str
 	}
 	else if (!strip_trailing_zeros)
 	{
-		trivially_set_values(result + index, '0' as uint8, precision);
+		std::trivially_set_values(result + index, '0' as uint8, precision);
 		index += precision as int32;
 	}
 	if (strip_trailing_zeros)
@@ -989,7 +989,7 @@ export function d2fixed_short(d: float64, precision: uint32, result: *uint8, str
 		{
 			--index;
 		}
-		assert(index > 0);
+		std::assert(index > 0);
 		if (*(result + index - 1) == '.' as uint32)
 		{
 			--index;
@@ -1031,16 +1031,16 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 		{
 			*(result + index) = '.' as uint8;
 			++index;
-			trivially_set_values(result + index, '0' as uint8, precision);
+			std::trivially_set_values(result + index, '0' as uint8, precision);
 			index += precision as int32;
 		}
 		if (capital_e)
 		{
-			trivially_copy_values(result + index, "E+00".begin_ptr(), 4);
+			std::trivially_copy_values(result + index, "E+00".begin_ptr(), 4);
 		}
 		else
 		{
-			trivially_copy_values(result + index, "e+00".begin_ptr(), 4);
+			std::trivially_copy_values(result + index, "e+00".begin_ptr(), 4);
 		}
 		index += 4;
 		return result + index;
@@ -1215,7 +1215,7 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 	{
 		if (digits == 0)
 		{
-			trivially_set_values(result + index, '0' as uint8, maximum);
+			std::trivially_set_values(result + index, '0' as uint8, maximum);
 		}
 		else
 		{
@@ -1276,7 +1276,7 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 		{
 			--index;
 		}
-		assert(index > 0);
+		std::assert(index > 0);
 		if (*(result + index - 1) == '.' as uint32)
 		{
 			--index;
@@ -1306,13 +1306,13 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 	if (exp >= 100)
 	{
 		const c = exp % 10;
-		trivially_copy_values(result + index, DIGIT_TABLE.begin() + 2 * (exp / 10), 2);
+		std::trivially_copy_values(result + index, DIGIT_TABLE.begin() + 2 * (exp / 10), 2);
 		*(result + index + 2) = ('0' + c) as uint8;
 		index += 3;
 	}
 	else
 	{
-		trivially_copy_values(result + index, DIGIT_TABLE.begin() + 2 * exp, 2);
+		std::trivially_copy_values(result + index, DIGIT_TABLE.begin() + 2 * exp, 2);
 		index += 2;
 	}
 

@@ -1767,10 +1767,10 @@ def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_function_type)
 #undef def_make_unresolved_fn
 
 
-inline expression type_as_expression(typespec type)
+inline expression type_as_expression(lex::src_tokens const &src_tokens, typespec type)
 {
 	return make_constant_expression(
-		{},
+		src_tokens,
 		expression_type_kind::type_name,
 		make_typename_typespec(nullptr),
 		constant_value(std::move(type)),

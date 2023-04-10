@@ -374,13 +374,13 @@ type_info::decl_operator_ptr type_info::make_default_op_assign(lex::src_tokens c
 	result->body.params.emplace_back(
 		lex::src_tokens{},
 		lex::token_range{},
-		var_id_and_type(identifier{}, type_as_expression(std::move(lhs_t))),
+		var_id_and_type(identifier{}, type_as_expression(src_tokens, std::move(lhs_t))),
 		enclosing_scope_t{}
 	);
 	result->body.params.emplace_back(
 		lex::src_tokens{},
 		lex::token_range{},
-		var_id_and_type(identifier{}, type_as_expression(std::move(rhs_t))),
+		var_id_and_type(identifier{}, type_as_expression(src_tokens, std::move(rhs_t))),
 		enclosing_scope_t{}
 	);
 	result->body.return_type = std::move(ret_t);
@@ -388,6 +388,7 @@ type_info::decl_operator_ptr type_info::make_default_op_assign(lex::src_tokens c
 	result->body.src_tokens = src_tokens;
 	result->body.state = resolve_state::symbol;
 	result->body.flags |= function_body::default_op_assign;
+	result->body.flags |= function_body::module_export;
 	return result;
 }
 
@@ -410,13 +411,13 @@ type_info::decl_operator_ptr type_info::make_default_op_move_assign(lex::src_tok
 	result->body.params.emplace_back(
 		lex::src_tokens{},
 		lex::token_range{},
-		var_id_and_type(identifier{}, type_as_expression(std::move(lhs_t))),
+		var_id_and_type(identifier{}, type_as_expression(src_tokens, std::move(lhs_t))),
 		enclosing_scope_t{}
 	);
 	result->body.params.emplace_back(
 		lex::src_tokens{},
 		lex::token_range{},
-		var_id_and_type(identifier{}, type_as_expression(std::move(rhs_t))),
+		var_id_and_type(identifier{}, type_as_expression(src_tokens, std::move(rhs_t))),
 		enclosing_scope_t{}
 	);
 	result->body.return_type = std::move(ret_t);
@@ -424,6 +425,7 @@ type_info::decl_operator_ptr type_info::make_default_op_move_assign(lex::src_tok
 	result->body.src_tokens = src_tokens;
 	result->body.state = resolve_state::symbol;
 	result->body.flags |= function_body::default_op_move_assign;
+	result->body.flags |= function_body::module_export;
 	return result;
 }
 
@@ -439,7 +441,7 @@ type_info::decl_function_ptr type_info::make_default_copy_constructor(lex::src_t
 	result->body.params.emplace_back(
 		lex::src_tokens{},
 		lex::token_range{},
-		var_id_and_type(identifier{}, type_as_expression(std::move(param_t))),
+		var_id_and_type(identifier{}, type_as_expression(src_tokens, std::move(param_t))),
 		enclosing_scope_t{}
 	);
 	result->body.return_type = std::move(ret_t);
@@ -463,7 +465,7 @@ type_info::decl_function_ptr type_info::make_default_move_constructor(lex::src_t
 	result->body.params.emplace_back(
 		lex::src_tokens{},
 		lex::token_range{},
-		var_id_and_type(identifier{}, type_as_expression(std::move(param_t))),
+		var_id_and_type(identifier{}, type_as_expression(src_tokens, std::move(param_t))),
 		enclosing_scope_t{}
 	);
 	result->body.return_type = std::move(ret_t);
@@ -695,13 +697,13 @@ decl_enum::decl_operator_ptr decl_enum::make_default_op_assign(lex::src_tokens c
 	result->body.params.emplace_back(
 		lex::src_tokens{},
 		lex::token_range{},
-		var_id_and_type(identifier{}, type_as_expression(std::move(lhs_t))),
+		var_id_and_type(identifier{}, type_as_expression(src_tokens, std::move(lhs_t))),
 		enclosing_scope_t{}
 	);
 	result->body.params.emplace_back(
 		lex::src_tokens{},
 		lex::token_range{},
-		var_id_and_type(identifier{}, type_as_expression(std::move(rhs_t))),
+		var_id_and_type(identifier{}, type_as_expression(src_tokens, std::move(rhs_t))),
 		enclosing_scope_t{}
 	);
 	result->body.return_type = std::move(ret_t);
@@ -709,6 +711,7 @@ decl_enum::decl_operator_ptr decl_enum::make_default_op_assign(lex::src_tokens c
 	result->body.src_tokens = src_tokens;
 	result->body.state = resolve_state::symbol;
 	result->body.flags |= function_body::default_op_assign;
+	result->body.flags |= function_body::module_export;
 	return result;
 }
 
@@ -727,13 +730,13 @@ decl_enum::decl_operator_ptr decl_enum::make_default_compare_op(
 	result->body.params.emplace_back(
 		lex::src_tokens{},
 		lex::token_range{},
-		var_id_and_type(identifier{}, type_as_expression(std::move(lhs_t))),
+		var_id_and_type(identifier{}, type_as_expression(src_tokens, std::move(lhs_t))),
 		enclosing_scope_t{}
 	);
 	result->body.params.emplace_back(
 		lex::src_tokens{},
 		lex::token_range{},
-		var_id_and_type(identifier{}, type_as_expression(std::move(rhs_t))),
+		var_id_and_type(identifier{}, type_as_expression(src_tokens, std::move(rhs_t))),
 		enclosing_scope_t{}
 	);
 	result->body.return_type = std::move(result_type);
@@ -742,6 +745,7 @@ decl_enum::decl_operator_ptr decl_enum::make_default_compare_op(
 	result->body.state = resolve_state::symbol;
 	result->body.flags |= function_body::intrinsic;
 	result->body.flags |= function_body::builtin_operator;
+	result->body.flags |= function_body::module_export;
 	switch (op_kind)
 	{
 	case lex::token::equals:

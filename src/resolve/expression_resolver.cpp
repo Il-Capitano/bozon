@@ -11,7 +11,7 @@ namespace resolve
 {
 
 static ast::expression resolve_expr(
-	lex::src_tokens,
+	lex::src_tokens const &,
 	ast::expr_unresolved_identifier id_expr,
 	ctx::parse_context &context
 )
@@ -909,7 +909,7 @@ static ast::expression resolve_expr(
 		}
 		else
 		{
-			return ast::type_as_expression(ast::make_array_slice_typespec(src_tokens, std::move(elem_type)));
+			return ast::type_as_expression(src_tokens, ast::make_array_slice_typespec(src_tokens, std::move(elem_type)));
 		}
 	}
 	else
@@ -989,7 +989,7 @@ static ast::expression resolve_expr(
 			{
 				elem_type = ast::make_array_typespec(src_tokens, size, std::move(elem_type));
 			}
-			return ast::type_as_expression(std::move(elem_type));
+			return ast::type_as_expression(src_tokens, std::move(elem_type));
 		}
 	}
 }

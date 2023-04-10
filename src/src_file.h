@@ -33,8 +33,7 @@ public:
 	bz::vector<lex::token> _tokens;
 
 	bz::vector<ast::statement> _declarations;
-	ast::scope_t               _global_decls;
-	ast::scope_t               _export_decls;
+	ast::scope_t               _global_scope;
 
 	bz::vector<bz::u8string> _scope_container;
 	bz::vector<bz::u8string_view> _scope;

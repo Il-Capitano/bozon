@@ -9,7 +9,7 @@ export function print_stdout(s: str)
 	}
 	else
 	{
-		libc::fwrite(s.begin_ptr(), 1, s.size(), libc::stdout());
+		std::libc::fwrite(s.begin_ptr(), 1, s.size(), std::libc::stdout());
 	}
 }
 
@@ -21,6 +21,6 @@ export function print_stderr(s: str)
 	}
 	else
 	{
-		libc::fwrite(s.begin_ptr(), 1, s.size(), libc::stderr());
+		std::libc::fwrite(s.begin_ptr(), 1, s.size(), std::libc::stderr());
 	}
 }

@@ -453,6 +453,7 @@ ast::statement parse_stmt_expression(
 	ctx::parse_context &context
 );
 
+template<parse_scope scope>
 ast::statement parse_export_statement(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -485,9 +486,8 @@ constexpr bz::array statement_parsers = {
 	statement_parser{ lex::token::kw_operator,      statement_parser::global, &parse_decl_operator<parse_scope::global>,          },
 	statement_parser{ lex::token::kw_struct,        statement_parser::global, &parse_decl_struct<parse_scope::global>,            },
 	statement_parser{ lex::token::kw_enum,          statement_parser::global, &parse_decl_enum<parse_scope::global>,              },
-
 	statement_parser{ lex::token::at,               statement_parser::global, &parse_attribute_statement<parse_scope::global>,    },
-	statement_parser{ lex::token::kw_export,        statement_parser::global, &parse_export_statement,                            },
+	statement_parser{ lex::token::kw_export,        statement_parser::global, &parse_export_statement<parse_scope::global>,       },
 	statement_parser{ lex::token::kw_import,        statement_parser::global, &parse_decl_import,                                 },
 
 	statement_parser{ lex::token::kw_let,           statement_parser::struct_body, &parse_decl_variable<parse_scope::struct_body>,          },
@@ -500,6 +500,7 @@ constexpr bz::array statement_parsers = {
 	statement_parser{ lex::token::kw_struct,        statement_parser::struct_body, &parse_decl_struct<parse_scope::struct_body>,            },
 	statement_parser{ lex::token::kw_enum,          statement_parser::struct_body, &parse_decl_enum<parse_scope::struct_body>,              },
 	statement_parser{ lex::token::at,               statement_parser::struct_body, &parse_attribute_statement<parse_scope::struct_body>,    },
+	statement_parser{ lex::token::kw_export,        statement_parser::struct_body, &parse_export_statement<parse_scope::struct_body>,       },
 
 	statement_parser{ lex::token::kw_let,           statement_parser::local, &parse_decl_variable<parse_scope::local>,          },
 	statement_parser{ lex::token::kw_const,         statement_parser::local, &parse_decl_variable<parse_scope::local>,          },

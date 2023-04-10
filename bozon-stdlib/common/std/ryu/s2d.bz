@@ -38,7 +38,7 @@ function max32(a: int32, b: int32) -> int32
 
 function int64Bits2Double(bits: uint64) -> float64
 {
-	return bit_cast(float64, bits);
+	return std::bit_cast(float64, bits);
 }
 
 export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> parse_result
@@ -167,8 +167,8 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> par
 		// We now compute [m10 * 10^e10 / 2^e2] = [m10 * 5^e10 / 2^(e2-e10)].
 		// To that end, we use the DOUBLE_POW5_SPLIT table.
 		const j = e2 - e10 - ceil_log2pow5(e10 as uint32) as int32 + DOUBLE_POW5_BITCOUNT;
-		assert(j >= 0);
-		assert(e10 < DOUBLE_POW5_TABLE_SIZE as int32);
+		std::assert(j >= 0);
+		std::assert(e10 < DOUBLE_POW5_TABLE_SIZE as int32);
 		m2 = mulShift64(m10, DOUBLE_POW5_SPLIT[e10].begin(), j as uint32);
 		// We also compute if the result is exact, i.e.,
 		//   [m10 * 10^e10 / 2^e2] == m10 * 10^e10 / 2^e2.
@@ -181,7 +181,7 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> par
 	{
 		e2 = floor_log2(m10) as int32 + e10 - ceil_log2pow5(-e10 as uint32) as int32 - (DOUBLE_MANTISSA_BITS + 1);
 		const j = e2 - e10 + ceil_log2pow5(-e10 as uint32) as int32 - 1 + DOUBLE_POW5_INV_BITCOUNT;
-		assert(-e10 < DOUBLE_POW5_INV_TABLE_SIZE as int32);
+		std::assert(-e10 < DOUBLE_POW5_INV_TABLE_SIZE as int32);
 		m2 = mulShift64(m10, DOUBLE_POW5_INV_SPLIT[-e10].begin(), j as uint32);
 		trailingZeros = multipleOfPowerOf5(m10, -e10 as uint32);
 	}
@@ -205,7 +205,7 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> par
 	} else {
 		ieee_e2 as int32 - e2 - DOUBLE_EXPONENT_BIAS - DOUBLE_MANTISSA_BITS
 	};
-	assert(shift >= 0);
+	std::assert(shift >= 0);
 
 	// We need to round up if the exact value is more than 0.5 above the value we computed. That's
 	// equivalent to checking if the last removed bit was 1 and either the value was not just
@@ -217,7 +217,7 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> par
 	const roundUp = (lastRemovedBit != 0) && (!trailingZeros || (((m2 >> shift as uint32) & 1u64) != 0));
 
 	let ieee_m2 = (m2 >> shift as uint32) + roundUp as uint64;
-	assert(ieee_m2 <= (1u64 << (DOUBLE_MANTISSA_BITS + 1)));
+	std::assert(ieee_m2 <= (1u64 << (DOUBLE_MANTISSA_BITS + 1)));
 	ieee_m2 &= (1u64 << DOUBLE_MANTISSA_BITS as uint32) - 1;
 	if (ieee_m2 == 0 && roundUp)
 	{

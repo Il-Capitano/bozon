@@ -101,7 +101,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	foreach_stmt.iter_var_decl = ast::make_decl_variable(
 		range_expr_src_tokens,
 		lex::token_range{},
-		ast::var_id_and_type(ast::identifier{}, ast::type_as_expression(ast::make_auto_typespec(nullptr))),
+		ast::var_id_and_type(ast::identifier{}, ast::type_as_expression(range_expr_src_tokens, ast::make_auto_typespec(nullptr))),
 		std::move(range_begin_expr),
 		context.get_current_enclosing_scope()
 	);
@@ -140,7 +140,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	foreach_stmt.end_var_decl = ast::make_decl_variable(
 		range_expr_src_tokens,
 		lex::token_range{},
-		ast::var_id_and_type(ast::identifier{}, ast::type_as_expression(ast::make_auto_typespec(nullptr))),
+		ast::var_id_and_type(ast::identifier{}, ast::type_as_expression(range_expr_src_tokens, ast::make_auto_typespec(nullptr))),
 		std::move(range_end_expr),
 		context.get_current_enclosing_scope()
 	);
@@ -605,7 +605,7 @@ static void resolve_variable_type(ast::decl_variable &var_decl, ctx::parse_conte
 		if (stream == end)
 		{
 			context.report_error(stream, "expected a variable type");
-			var_decl.id_and_type.var_type = ast::type_as_expression(ast::make_auto_typespec(nullptr));
+			var_decl.id_and_type.var_type = ast::type_as_expression(var_decl.src_tokens, ast::make_auto_typespec(nullptr));
 		}
 		else
 		{
@@ -2140,12 +2140,12 @@ static void add_type_info_members(
 			}
 			else
 			{
-				info.scope.get_global().add_function(decl);
+				info.scope.get_global().add_function({}, decl);
 			}
 		}
 		else if (stmt.is<ast::decl_function_alias>())
 		{
-			info.scope.get_global().add_function_alias(stmt.get<ast::decl_function_alias>());
+			info.scope.get_global().add_function_alias({}, stmt.get<ast::decl_function_alias>());
 		}
 		else if (stmt.is<ast::decl_operator>())
 		{
@@ -2167,20 +2167,20 @@ static void add_type_info_members(
 			}
 			else
 			{
-				info.scope.get_global().add_variable(var_decl);
+				info.scope.get_global().add_variable({}, var_decl);
 			}
 		}
 		else if (stmt.is<ast::decl_type_alias>())
 		{
-			info.scope.get_global().add_type_alias(stmt.get<ast::decl_type_alias>());
+			info.scope.get_global().add_type_alias({}, stmt.get<ast::decl_type_alias>());
 		}
 		else if (stmt.is<ast::decl_struct>())
 		{
-			info.scope.get_global().add_struct(stmt.get<ast::decl_struct>());
+			info.scope.get_global().add_struct({}, stmt.get<ast::decl_struct>());
 		}
 		else if (stmt.is<ast::decl_enum>())
 		{
-			info.scope.get_global().add_enum(stmt.get<ast::decl_enum>());
+			info.scope.get_global().add_enum({}, stmt.get<ast::decl_enum>());
 		}
 		else if (stmt.is<ast::stmt_static_assert>())
 		{
@@ -2494,7 +2494,7 @@ static void resolve_type_info_members_impl(ast::type_info &info, ctx::parse_cont
 	add_type_info_members(info, context);
 	for (auto &param : info.generic_parameters)
 	{
-		info.scope.get_global().add_variable(param);
+		info.scope.get_global().all_symbols.add_variable({}, param);
 	}
 
 	for (auto const ctor_decl : info.constructors)

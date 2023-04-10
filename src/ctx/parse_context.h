@@ -141,7 +141,6 @@ struct parse_context
 	[[nodiscard]] global_local_scope_pair_t push_enclosing_scope(ast::enclosing_scope_t new_scope) noexcept;
 	void pop_enclosing_scope(global_local_scope_pair_t prev_scopes) noexcept;
 
-	bz::array_view<bz::u8string_view const> get_current_enclosing_id_scope(void) const noexcept;
 	ast::enclosing_scope_t get_current_enclosing_scope(void) const noexcept;
 
 	bool has_common_global_scope(ast::enclosing_scope_t scope) const noexcept;

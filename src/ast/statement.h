@@ -187,7 +187,7 @@ struct var_id_and_type
 	expression var_type;
 
 	var_id_and_type(void)
-		: id(), var_type(type_as_expression(typespec()))
+		: id(), var_type(type_as_expression(lex::src_tokens(), typespec()))
 	{}
 
 	var_id_and_type(identifier _id, expression _var_type)
@@ -195,7 +195,7 @@ struct var_id_and_type
 	{}
 
 	var_id_and_type(identifier _id)
-		: id(std::move(_id)), var_type(type_as_expression(typespec()))
+		: id(std::move(_id)), var_type(type_as_expression(lex::src_tokens::from_range(this->id.tokens), typespec()))
 	{}
 };
 
@@ -401,7 +401,7 @@ struct decl_variable
 		}
 		else
 		{
-			this->id_and_type.var_type = type_as_expression(typespec());
+			this->id_and_type.var_type = type_as_expression(this->id_and_type.var_type.src_tokens, typespec());
 		}
 		for (auto &decl : this->tuple_decls)
 		{
@@ -918,20 +918,14 @@ struct decl_function
 
 struct decl_operator
 {
-	bz::vector<bz::u8string_view> scope;
-	lex::token_pos                op;
-	function_body                 body;
-	arena_vector<attribute>       attributes;
+	lex::token_pos          op;
+	function_body           body;
+	arena_vector<attribute> attributes;
 
 	decl_operator(void) = default;
 
-	decl_operator(
-		bz::vector<bz::u8string_view> _scope,
-		lex::token_pos                _op,
-		function_body                 _body
-	)
-		: scope(std::move(_scope)),
-		  op   (_op),
+	decl_operator(lex::token_pos _op, function_body  _body)
+		: op   (_op),
 		  body (std::move(_body))
 	{}
 };
@@ -1087,7 +1081,7 @@ struct type_info
 		  type_name(std::move(_type_name)),
 		  symbol_name(),
 		  body(range.begin == nullptr ? body_t() : body_t(range)),
-		  scope(make_global_scope(_enclosing_scope, {}))
+		  scope(make_global_scope(_enclosing_scope))
 	{}
 
 	type_info(
@@ -1104,7 +1098,7 @@ struct type_info
 		  type_name(std::move(_type_name)),
 		  symbol_name(),
 		  body(range.begin == nullptr ? body_t() : body_t(range)),
-		  scope(make_global_scope(_enclosing_scope, {})),
+		  scope(make_global_scope(_enclosing_scope)),
 		  generic_parameters(std::move(_generic_parameters))
 	{}
 
@@ -1141,7 +1135,7 @@ private:
 		  type_name(),
 		  symbol_name(bz::format("builtin.{}", name)),
 		  body(bz::vector<statement>{}),
-		  scope(make_global_scope({}, {})),
+		  scope(make_global_scope({})),
 		  member_variables{},
 		  prototype(prototype),
 		  default_op_assign(nullptr),
@@ -1491,7 +1485,7 @@ struct decl_enum
 		  id(std::move(_id)),
 		  underlying_type(std::move(_underlying_type)),
 		  values(std::move(_values)),
-		  scope(make_global_scope(_enclosing_scope, {})),
+		  scope(make_global_scope(_enclosing_scope)),
 		  state(resolve_state::none),
 		  flags(0)
 	{}
