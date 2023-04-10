@@ -38,47 +38,47 @@ struct __integer_range<T: typename>
 
 	type __value_type = T;
 
-	function begin_value = __builtin_integer_range_begin_value;
-	function end_value   = __builtin_integer_range_end_value;
+	export function begin_value = __builtin_integer_range_begin_value;
+	export function end_value   = __builtin_integer_range_end_value;
 
 	struct __iterator
 	{
 		._value: T;
 
-		operator * (self: __iterator) -> T
+		export operator * (self: __iterator) -> T
 		{
 			return self._value;
 		}
 
-		operator == (lhs: __iterator, rhs: __iterator) -> bool
+		export operator == (lhs: __iterator, rhs: __iterator) -> bool
 		{
 			return lhs._value == rhs._value;
 		}
 
-		operator != (lhs: __iterator, rhs: __iterator) -> bool
+		export operator != (lhs: __iterator, rhs: __iterator) -> bool
 		{
 			return lhs._value != rhs._value;
 		}
 
-		operator ++ (self: &__iterator) -> &__iterator
+		export operator ++ (self: &__iterator) -> &__iterator
 		{
 			++self._value;
 			return self;
 		}
 
-		operator -- (self: &__iterator) -> &__iterator
+		export operator -- (self: &__iterator) -> &__iterator
 		{
 			--self._value;
 			return self;
 		}
 	}
 
-	function begin(self: __integer_range<T>) -> __iterator
+	export function begin(self: __integer_range<T>) -> __iterator
 	{
 		return __iterator[ self._begin ];
 	}
 
-	function end(self: __integer_range<T>) -> __iterator
+	export function end(self: __integer_range<T>) -> __iterator
 	{
 		return __iterator[ self._end ];
 	}
@@ -90,7 +90,7 @@ struct __integer_range_from<T: typename>
 
 	type __value_type = T;
 
-	function begin_value = __builtin_integer_range_from_begin_value;
+	export function begin_value = __builtin_integer_range_from_begin_value;
 }
 
 struct __integer_range_to<T: typename>
@@ -99,7 +99,7 @@ struct __integer_range_to<T: typename>
 
 	type __value_type = T;
 
-	function end_value   = __builtin_integer_range_to_end_value;
+	export function end_value = __builtin_integer_range_to_end_value;
 }
 
 struct __range_unbounded
