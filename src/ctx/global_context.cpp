@@ -1363,10 +1363,11 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 [[nodiscard]] bool global_context::emit_file(void)
 {
 	// only here for debug purposes, the '--emit' option does not control this
+#ifndef NDEBUG
 	if (debug_ir_output)
 	{
 		std::error_code ec;
-		llvm::raw_fd_ostream file("output.ll", ec, llvm::sys::fs::OF_Text);
+		llvm::raw_fd_ostream file("debug_output.ll", ec, llvm::sys::fs::OF_Text);
 		if (!ec)
 		{
 			this->_module.print(file, nullptr);
@@ -1376,6 +1377,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 			bz::print(stderr, "{}unable to write output.ll{}\n", colors::bright_red, colors::clear);
 		}
 	}
+#endif // !NDEBUG
 
 	switch (emit_file_type)
 	{

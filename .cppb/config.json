@@ -12,7 +12,6 @@
 
 			"run_args": [
 				"-Wall",
-				"--debug-ir-output",
 				"--profile",
 				"--stdlib-dir", "./bozon-stdlib",
 				"-o", "./bitcode_test.o",

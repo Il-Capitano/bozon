@@ -107,9 +107,9 @@ inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def>
 	ctcli::create_hidden_option("--error-report-tab-size=<size>", "Set tab size in error reporting (default=4)", ctcli::arg_type::uint64),
 	ctcli::create_hidden_option("--enable-comptime-print",        "Enable the usage of '__builtin_comptime_print'"),
 
-	ctcli::create_undocumented_option("--debug-ir-output",      "Emit an LLVM IR file alongside the regular output"),
 	ctcli::create_undocumented_option("--return-zero-on-error", "Return 0 exit code even if there were build errors"),
 #ifndef NDEBUG
+	ctcli::create_undocumented_option("--debug-ir-output", "Emit an LLVM IR file alongside the regular output"),
 	ctcli::create_undocumented_option("--debug-comptime-print-functions", ""),
 	ctcli::create_undocumented_option("--debug-comptime-print-instructions", ""),
 #endif // !NDEBUG
@@ -136,8 +136,8 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--stdl
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--x86-asm-syntax")>           = &x86_asm_syntax;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--profile")>                  = &do_profile;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-main")>                  = &no_main;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-ir-output")>          = &debug_ir_output;
 #ifndef NDEBUG
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-ir-output")>          = &debug_ir_output;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-functions")>    = &debug_comptime_print_functions;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-instructions")> = &debug_comptime_print_instructions;
 #endif // !NDEBUG
