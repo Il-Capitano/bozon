@@ -49,32 +49,8 @@ struct bitcode_context
 	size_t get_offset(llvm::Type *t, size_t elem) const;
 	size_t get_register_size(void) const;
 
-	template<abi::platform_abi abi>
-	abi::pass_kind get_pass_kind(ast::typespec_view ts) const
-	{
-		if (bc::is_non_trivial_pass_kind(ts))
-		{
-			return abi::pass_kind::non_trivial;
-		}
-		else
-		{
-			auto const llvm_type = bc::get_llvm_type(ts, *this);
-			return abi::get_pass_kind<abi>(llvm_type, this->get_data_layout(), this->get_llvm_context());
-		}
-	}
-
-	template<abi::platform_abi abi>
-	abi::pass_kind get_pass_kind(ast::typespec_view ts, llvm::Type *llvm_type) const
-	{
-		if (bc::is_non_trivial_pass_kind(ts))
-		{
-			return abi::pass_kind::non_trivial;
-		}
-		else
-		{
-			return abi::get_pass_kind<abi>(llvm_type, this->get_data_layout(), this->get_llvm_context());
-		}
-	}
+	abi::pass_kind get_pass_kind(ast::typespec_view ts) const;
+	abi::pass_kind get_pass_kind(ast::typespec_view ts, llvm::Type *llvm_type) const;
 
 	llvm::BasicBlock *add_basic_block(bz::u8string_view name);
 	llvm::Value *create_alloca(llvm::Type *t);

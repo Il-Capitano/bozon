@@ -134,6 +134,31 @@ size_t bitcode_context::get_register_size(void) const
 	bz_unreachable;
 }
 
+abi::pass_kind bitcode_context::get_pass_kind(ast::typespec_view ts) const
+{
+	if (bc::is_non_trivial_pass_kind(ts))
+	{
+		return abi::pass_kind::non_trivial;
+	}
+	else
+	{
+		auto const llvm_type = bc::get_llvm_type(ts, *this);
+		return abi::get_pass_kind(this->get_platform_abi(), llvm_type, this->get_data_layout(), this->get_llvm_context());
+	}
+}
+
+abi::pass_kind bitcode_context::get_pass_kind(ast::typespec_view ts, llvm::Type *llvm_type) const
+{
+	if (bc::is_non_trivial_pass_kind(ts))
+	{
+		return abi::pass_kind::non_trivial;
+	}
+	else
+	{
+		return abi::get_pass_kind(this->get_platform_abi(), llvm_type, this->get_data_layout(), this->get_llvm_context());
+	}
+}
+
 llvm::BasicBlock *bitcode_context::add_basic_block(bz::u8string_view name)
 {
 	return llvm::BasicBlock::Create(
