@@ -207,11 +207,11 @@ function main(args: [: const str]) -> int32
 	std::print("""hello "raw string"\jasdf \\\""" "\"\"\"" """ <- this was a the end of a "raw string""" "\"\n");
 
 	consteval pointer_size = sizeof *void;
-	static_assert(pointer_size == 8u);
+	static_assert(pointer_size == 8 || pointer_size == 4);
 	consteval tuple_size = sizeof [int32, int64];
 	static_assert(tuple_size == 16u);
-	static_assert(sizeof "" == 16u);
-	static_assert(usize == uint64);
+	static_assert(sizeof "" == 2 * pointer_size);
+	static_assert(usize == uint64 || usize == uint32);
 
 	let arr: [12: int32];
 	@maybe_unused consteval n = arr.size();
