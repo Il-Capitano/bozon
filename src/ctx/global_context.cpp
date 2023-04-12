@@ -1068,17 +1068,23 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		this->report_error(bz::format("invalid path '{}' specified for '--stdlib-dir'", stdlib_dir));
 		return false;
 	}
-	auto const stdlib_dir_path = fs::canonical(stdlib_dir_path_non_canonical);
+	auto stdlib_dir_path = fs::canonical(stdlib_dir_path_non_canonical);
+	stdlib_dir_path.make_preferred();
 
-	auto common_str = stdlib_dir_path / "common";
-	auto target_str = stdlib_dir_path / target_triple;
-	if (fs::exists(common_str))
+	auto common_dir = stdlib_dir_path / "common";
+	auto target_dir = stdlib_dir_path / target_triple;
+	if (fs::exists(common_dir))
 	{
-		this->_import_dirs.push_back(std::move(common_str));
+		this->_import_dirs.push_back(std::move(common_dir));
 	}
-	if (fs::exists(target_str))
+	if (fs::exists(target_dir))
 	{
-		this->_import_dirs.push_back(std::move(target_str));
+		this->_import_dirs.push_back(target_dir);
+	}
+	else if (auto generic_target_dir = stdlib_dir_path / "generic"; fs::exists(generic_target_dir))
+	{
+		target_dir = std::move(generic_target_dir);
+		this->_import_dirs.push_back(target_dir);
 	}
 
 	for (auto const &import_dir : import_dirs)
@@ -1094,35 +1100,41 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 	{
 		auto const builtins_file_path = stdlib_dir_path / "compiler/__builtins.bz";
-		auto &builtins_file = this->emplace_src_file(
-			builtins_file_path, this->_src_files.size(), bz::vector<bz::u8string>(), true
-		);
-		this->_builtin_global_scope = &builtins_file._global_scope;
-		if (!builtins_file.parse_global_symbols(*this))
+		if (fs::exists(builtins_file_path) && fs::is_regular_file(builtins_file_path))
 		{
-			return false;
-		}
+			auto &builtins_file = this->emplace_src_file(
+				builtins_file_path, this->_src_files.size(), bz::vector<bz::u8string>(), true
+			);
+			this->_builtin_global_scope = &builtins_file._global_scope;
+			if (!builtins_file.parse_global_symbols(*this))
+			{
+				return false;
+			}
 
-		if (!builtins_file.parse(*this))
-		{
-			return false;
+			if (!builtins_file.parse(*this))
+			{
+				return false;
+			}
 		}
 	}
 
 	if (!no_main)
 	{
-		auto const main_file_path = stdlib_dir_path / target_triple / "__main.bz";
-		auto &main_file = this->emplace_src_file(
-			main_file_path, this->_src_files.size(), bz::vector<bz::u8string>(), true
-		);
-		if (!main_file.parse_global_symbols(*this))
+		auto const main_file_path = target_dir / "__main.bz";
+		if (fs::exists(main_file_path) && fs::is_regular_file(main_file_path))
 		{
-			return false;
-		}
+			auto &main_file = this->emplace_src_file(
+				main_file_path, this->_src_files.size(), bz::vector<bz::u8string>(), true
+			);
+			if (!main_file.parse_global_symbols(*this))
+			{
+				return false;
+			}
 
-		if (!main_file.parse(*this))
-		{
-			return false;
+			if (!main_file.parse(*this))
+			{
+				return false;
+			}
 		}
 	}
 

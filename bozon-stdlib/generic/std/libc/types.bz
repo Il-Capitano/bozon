@@ -1,0 +1,7 @@
+export type _Bool = ::bool;
+export type bool = ::bool;
+export type char = uint8;
+export type int = int32;
+export type signed_char = int8;
+export type unsigned_char = uint8;
+export type unsigned_int = uint32;

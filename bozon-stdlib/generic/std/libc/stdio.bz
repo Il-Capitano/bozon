@@ -1,0 +1,25 @@
+import types;
+import stddef;
+
+export struct FILE;
+
+@symbol_name("fwrite") export function "c" fwrite(ptr: ?*const void, size: size_t, n: size_t, s: ?*FILE) -> size_t;
+
+export function stderr() -> &?*FILE
+{
+	return __macro_clash_stderr;
+}
+
+export function stdin() -> &?*FILE
+{
+	return __macro_clash_stdin;
+}
+
+export function stdout() -> &?*FILE
+{
+	return __macro_clash_stdout;
+}
+
+@symbol_name("stderr") extern __macro_clash_stderr: ?*FILE;
+@symbol_name("stdin") extern __macro_clash_stdin: ?*FILE;
+@symbol_name("stdout") extern __macro_clash_stdout: ?*FILE;
