@@ -1338,7 +1338,8 @@ static val_ptr emit_builtin_binary_minus(
 			}
 		}
 
-		auto const result_val = context.builder.CreatePtrDiff(elem_type, lhs_val, rhs_val, "ptr_diff_tmp");
+		auto const result_val_i64 = context.builder.CreatePtrDiff(elem_type, lhs_val, rhs_val, "ptr_diff_tmp");
+		auto const result_val = context.builder.CreateIntCast(result_val_i64, context.get_isize_t(), true);
 		if (result_address == nullptr)
 		{
 			return val_ptr::get_value(result_val);
