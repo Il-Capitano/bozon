@@ -1137,7 +1137,6 @@ export function format_to(p: ?*const void, buffer: &format_buffer, fmt_spec: str
 export function format_to(p: ?*const void, buffer: &format_buffer, fmt_spec: format_spec)
 {
 	const val = __builtin_pointer_to_int(p);
-	static_assert(typeof val == const uint64);
 	const [result_buffer, size] = get_uint_hex_as_string(val, fmt_spec.fmt_kind == 'P');
 	const result_str = __builtin_str_from_ptrs(result_buffer.begin(), result_buffer.begin() + size);
 	format_pointer(result_str, buffer, fmt_spec);
