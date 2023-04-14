@@ -230,7 +230,7 @@ void codegen_context::initialize_function(function *func)
 	bz_assert(this->current_function_info.func == nullptr);
 	this->current_function_info.func = func;
 
-	this->current_function_info.global_variables_bb = this->add_basic_block();
+	this->current_function_info.constants_bb = this->add_basic_block();
 
 	this->current_function_info.entry_bb = this->add_basic_block();
 	this->set_current_basic_block(this->current_function_info.entry_bb);
@@ -245,7 +245,7 @@ void codegen_context::initialize_function(function *func)
 
 void codegen_context::finalize_function(void)
 {
-	this->set_current_basic_block(this->current_function_info.global_variables_bb);
+	this->set_current_basic_block(this->current_function_info.constants_bb);
 	this->create_jump(this->current_function_info.entry_bb);
 	this->current_function_info.finalize_function();
 }
@@ -685,58 +685,77 @@ expr_value codegen_context::create_const_int(type const *int_type, uint64_t valu
 	}
 }
 
+template<builtin_type_kind type_kind, bool is_signed, typename InstType, typename T>
+static expr_value find_or_add_constant(T value, codegen_context &context)
+{
+	auto const u64_value = uint64_t(value);
+	for (auto const &[it_value, it_type_kind, it_is_signed, inst] : context.current_function_info.constant_values)
+	{
+		if (it_value == u64_value && it_type_kind == type_kind && it_is_signed == is_signed)
+		{
+			return expr_value::get_value(inst, context.get_builtin_type(type_kind));
+		}
+	}
+
+	auto const current_bb = context.get_current_basic_block();
+	context.set_current_basic_block(context.current_function_info.constants_bb);
+
+	auto const new_const = add_instruction(context, InstType{ .value = value });
+
+	context.set_current_basic_block(current_bb);
+
+	context.current_function_info.constant_values.push_back({
+		.value = u64_value,
+		.type_kind = type_kind,
+		.is_signed = is_signed,
+		.inst = new_const,
+	});
+	return expr_value::get_value(new_const, context.get_builtin_type(type_kind));
+}
+
 expr_value codegen_context::create_const_i1(bool value)
 {
-	auto const inst_ref = add_instruction(*this, instructions::const_i1{ .value = value });
-	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i1));
+	return find_or_add_constant<builtin_type_kind::i1, false, instructions::const_i1>(value, *this);
 }
 
 expr_value codegen_context::create_const_i8(int8_t value)
 {
-	auto const inst_ref = add_instruction(*this, instructions::const_i8{ .value = value });
-	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i8));
+	return find_or_add_constant<builtin_type_kind::i8, true, instructions::const_i8>(value, *this);
 }
 
 expr_value codegen_context::create_const_i16(int16_t value)
 {
-	auto const inst_ref = add_instruction(*this, instructions::const_i16{ .value = value });
-	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i16));
+	return find_or_add_constant<builtin_type_kind::i16, true, instructions::const_i16>(value, *this);
 }
 
 expr_value codegen_context::create_const_i32(int32_t value)
 {
-	auto const inst_ref = add_instruction(*this, instructions::const_i32{ .value = value });
-	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i32));
+	return find_or_add_constant<builtin_type_kind::i32, true, instructions::const_i32>(value, *this);
 }
 
 expr_value codegen_context::create_const_i64(int64_t value)
 {
-	auto const inst_ref = add_instruction(*this, instructions::const_i64{ .value = value });
-	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i64));
+	return find_or_add_constant<builtin_type_kind::i64, true, instructions::const_i64>(value, *this);
 }
 
 expr_value codegen_context::create_const_u8(uint8_t value)
 {
-	auto const inst_ref = add_instruction(*this, instructions::const_u8{ .value = value });
-	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i8));
+	return find_or_add_constant<builtin_type_kind::i8, false, instructions::const_u8>(value, *this);
 }
 
 expr_value codegen_context::create_const_u16(uint16_t value)
 {
-	auto const inst_ref = add_instruction(*this, instructions::const_u16{ .value = value });
-	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i16));
+	return find_or_add_constant<builtin_type_kind::i16, false, instructions::const_u16>(value, *this);
 }
 
 expr_value codegen_context::create_const_u32(uint32_t value)
 {
-	auto const inst_ref = add_instruction(*this, instructions::const_u32{ .value = value });
-	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i32));
+	return find_or_add_constant<builtin_type_kind::i32, false, instructions::const_u32>(value, *this);
 }
 
 expr_value codegen_context::create_const_u64(uint64_t value)
 {
-	auto const inst_ref = add_instruction(*this, instructions::const_u64{ .value = value });
-	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::i64));
+	return find_or_add_constant<builtin_type_kind::i64, false, instructions::const_u64>(value, *this);
 }
 
 expr_value codegen_context::create_const_f32(float32_t value)

@@ -122,7 +122,7 @@ struct current_function_info_t
 
 	bz::optional<expr_value> return_address;
 	bz::vector<alloca> allocas;
-	basic_block_ref global_variables_bb{};
+	basic_block_ref constants_bb{};
 	basic_block_ref entry_bb{};
 	basic_block_ref current_bb{};
 	bz::vector<basic_block> blocks;
@@ -142,6 +142,15 @@ struct current_function_info_t
 	bz::vector<destruct_operation_info_t> destructor_calls{};
 	std::unordered_map<ast::decl_variable const *, instruction_ref> move_destruct_indicators{};
 	std::unordered_map<ast::decl_variable const *, expr_value> variables{};
+
+	struct constant_value_and_instruction_pair_t
+	{
+		uint64_t value;
+		builtin_type_kind type_kind;
+		bool is_signed;
+		instruction_ref inst;
+	};
+	bz::vector<constant_value_and_instruction_pair_t> constant_values;
 
 	void finalize_function(void);
 };

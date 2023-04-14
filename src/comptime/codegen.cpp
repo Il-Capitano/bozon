@@ -6251,7 +6251,7 @@ static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_conte
 		bz_assert(var_decl.get_type().is<ast::ts_consteval>());
 
 		auto const current_bb = context.get_current_basic_block();
-		context.set_current_basic_block(context.current_function_info.global_variables_bb);
+		context.set_current_basic_block(context.current_function_info.constants_bb);
 
 		if (auto const global_index = context.get_global_variable(&var_decl); global_index.has_value())
 		{
