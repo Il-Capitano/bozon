@@ -1246,11 +1246,18 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 	{
 		bz_assert(index <= type->get_array_size()); // one-past-the-end is allowed
 		bz_assert(index <= std::numeric_limits<uint32_t>::max());
-		auto const result_ptr = add_instruction(*this, instructions::const_gep{
-			.object_type = type,
-			.index = static_cast<uint32_t>(index),
-		}, value.get_reference());
-		return expr_value::get_reference(result_ptr, type->get_array_element_type());
+		if (index == 0)
+		{
+			return expr_value::get_reference(value.get_reference(), type->get_array_element_type());
+		}
+		else
+		{
+			auto const result_ptr = add_instruction(*this, instructions::const_gep{
+				.object_type = type,
+				.index = static_cast<uint32_t>(index),
+			}, value.get_reference());
+			return expr_value::get_reference(result_ptr, type->get_array_element_type());
+		}
 	}
 	else
 	{
@@ -1258,11 +1265,18 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 		auto const types = type->get_aggregate_types();
 		bz_assert(index < types.size());
 		bz_assert(index <= std::numeric_limits<uint32_t>::max());
-		auto const result_ptr = add_instruction(*this, instructions::const_gep{
-			.object_type = type,
-			.index = static_cast<uint32_t>(index),
-		}, value.get_reference());
-		return expr_value::get_reference(result_ptr, types[index]);
+		if (type->get_aggregate_offsets()[index] == 0)
+		{
+			return expr_value::get_reference(value.get_reference(), types[index]);
+		}
+		else
+		{
+			auto const result_ptr = add_instruction(*this, instructions::const_gep{
+				.object_type = type,
+				.index = static_cast<uint32_t>(index),
+			}, value.get_reference());
+			return expr_value::get_reference(result_ptr, types[index]);
+		}
 	}
 }
 
