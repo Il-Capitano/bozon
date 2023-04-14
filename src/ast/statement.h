@@ -517,6 +517,7 @@ struct function_body
 		builtin_is_comptime,
 		builtin_is_option_set,
 		builtin_panic,
+		builtin_panic_handler,
 
 		builtin_call_main,
 
@@ -583,6 +584,7 @@ struct function_body
 
 		lifetime_start,
 		lifetime_end,
+		trap,
 
 		memcpy,
 		memmove,
@@ -1599,7 +1601,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 192);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 194);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1641,6 +1643,7 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_is_comptime,        "__builtin_is_comptime"        },
 		{ function_body::builtin_is_option_set,      "__builtin_is_option_set"      },
 		{ function_body::builtin_panic,              "__builtin_panic"              },
+		{ function_body::builtin_panic_handler,      "__builtin_panic_handler"      },
 
 		{ function_body::builtin_call_main, "__builtin_call_main" },
 
@@ -1705,6 +1708,7 @@ constexpr auto intrinsic_info = []() {
 
 		{ function_body::lifetime_start, "__builtin_lifetime_start" },
 		{ function_body::lifetime_end,   "__builtin_lifetime_end"   },
+		{ function_body::trap,           "__builtin_trap"           },
 
 		{ function_body::memcpy,  "__builtin_memcpy"  },
 		{ function_body::memmove, "__builtin_memmove" },

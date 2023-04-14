@@ -1801,7 +1801,7 @@ static expr_value generate_intrinsic_function_call_code(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 192);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 194);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -1998,7 +1998,17 @@ static expr_value generate_intrinsic_function_call_code(
 		return value_or_result_address(result_value, result_address, context);
 	}
 	case ast::function_body::builtin_panic:
-		// implemented in __builtins.bz
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const message_value = generate_expr_code(func_call.params[0], context, {});
+		auto const begin_ptr = context.create_struct_gep(message_value, 0);
+		auto const end_ptr = context.create_struct_gep(message_value, 1);
+		context.create_error_str(func_call.src_tokens, begin_ptr, end_ptr);
+		bz_assert(!result_address.has_value());
+		return expr_value::get_none();
+	}
+	case ast::function_body::builtin_panic_handler:
+		// implemented in <target>/__main.bz
 		bz_unreachable;
 	case ast::function_body::builtin_call_main:
 		bz_assert(func_call.params.size() == 1);
@@ -2237,6 +2247,13 @@ static expr_value generate_intrinsic_function_call_code(
 	case ast::function_body::lifetime_end:
 		// this is an LLVM intrinsic
 		bz_unreachable;
+	case ast::function_body::trap:
+		bz_assert(func_call.params.empty());
+		context.create_error(
+			func_call.src_tokens,
+			bz::format("'{}' called in compile time execution", func_call.func_body->get_signature())
+		);
+		return expr_value::get_none();
 	case ast::function_body::memcpy:
 		bz_assert(func_call.params.size() == 3);
 		generate_expr_code(func_call.params[0], context, {});

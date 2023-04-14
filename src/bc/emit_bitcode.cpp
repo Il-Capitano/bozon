@@ -215,16 +215,33 @@ static void emit_panic_call(
 	ctx::bitcode_context &context
 )
 {
-	auto const panic_func_body = context.get_builtin_function(ast::function_body::builtin_panic);
-	bz_assert(panic_func_body->params.size() == 1);
-	bz_assert(panic_func_body->params[0].get_type().is<ast::ts_base_type>());
-	bz_assert(panic_func_body->params[0].get_type().get<ast::ts_base_type>().info->kind == ast::type_info::str_);
-	auto const panic_fn = context.get_function(panic_func_body);
-	bz_assert(panic_fn != nullptr);
+	auto const panic_handler_func_body = context.get_builtin_function(ast::function_body::builtin_panic_handler);
+	if (panic_handler_func_body == nullptr)
+	{
+		auto const trap_fn = context.get_function(context.get_builtin_function(ast::function_body::trap));
+		context.builder.CreateCall(trap_fn);
 
-	auto const result_type = get_llvm_type(panic_func_body->return_type, context);
+		auto const current_ret_type = context.current_function.second->getReturnType();
+		if (current_ret_type->isVoidTy())
+		{
+			context.builder.CreateRetVoid();
+		}
+		else
+		{
+			context.builder.CreateRet(llvm::UndefValue::get(current_ret_type));
+		}
+		return;
+	}
+
+	bz_assert(panic_handler_func_body->params.size() == 1);
+	bz_assert(panic_handler_func_body->params[0].get_type().is<ast::ts_base_type>());
+	bz_assert(panic_handler_func_body->params[0].get_type().get<ast::ts_base_type>().info->kind == ast::type_info::str_);
+	auto const panic_handler_fn = context.get_function(panic_handler_func_body);
+	bz_assert(panic_handler_fn != nullptr);
+
+	auto const result_type = get_llvm_type(panic_handler_func_body->return_type, context);
 	bz_assert(result_type->isVoidTy());
-	auto const result_kind = context.get_pass_kind(panic_func_body->return_type, result_type);
+	auto const result_kind = context.get_pass_kind(panic_handler_func_body->return_type, result_type);
 	bz_assert(result_kind == abi::pass_kind::value);
 
 	ast::arena_vector<llvm::Value *> params = {};
@@ -234,20 +251,20 @@ static void emit_panic_call(
 
 	auto const param_val = get_value(
 		ast::constant_value(bz::format("panic called from {}: {}", context.global_ctx.get_location_string(src_tokens.pivot), message)),
-		panic_func_body->params[0].get_type(),
+		panic_handler_func_body->params[0].get_type(),
 		nullptr,
 		context
 	);
 	auto const param = val_ptr::get_value(param_val);
-	auto const param_type = panic_func_body->params[0].get_type().as_typespec_view();
+	auto const param_type = panic_handler_func_body->params[0].get_type().as_typespec_view();
 	auto const param_llvm_type = context.get_str_t();
 	add_call_parameter<false>(param_type, param_llvm_type, param, params, params_is_byval, context);
 
-	auto const call = context.create_call(panic_fn, llvm::ArrayRef(params.data(), params.size()));
+	auto const call = context.create_call(panic_handler_fn, llvm::ArrayRef(params.data(), params.size()));
 	auto is_byval_it = params_is_byval.begin();
 	auto const is_byval_end = params_is_byval.end();
 	unsigned i = 0;
-	bz_assert(panic_fn->arg_size() == call->arg_size());
+	bz_assert(panic_handler_fn->arg_size() == call->arg_size());
 	for (; is_byval_it != is_byval_end; ++is_byval_it, ++i)
 	{
 		if (is_byval_it->is_byval)
@@ -255,6 +272,10 @@ static void emit_panic_call(
 			add_byval_attributes(call, is_byval_it->type, i, context);
 		}
 	}
+
+	// just to be sure...
+	auto const trap_fn = context.get_function(context.get_builtin_function(ast::function_body::trap));
+	context.builder.CreateCall(trap_fn);
 
 	auto const current_ret_type = context.current_function.second->getReturnType();
 	if (current_ret_type->isVoidTy())
@@ -2574,7 +2595,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 192);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 194);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2839,6 +2860,43 @@ static val_ptr emit_bitcode(
 			{
 				return val_ptr::get_value(result_val);
 			}
+		}
+		case ast::function_body::builtin_panic:
+		{
+			auto const handler_fn = context.get_builtin_function(ast::function_body::builtin_panic_handler);
+			if (handler_fn == nullptr)
+			{
+				auto const trap_fn = context.get_function(context.get_builtin_function(ast::function_body::trap));
+				context.builder.CreateCall(trap_fn);
+				return val_ptr::get_none();
+			}
+
+			bz_assert(func_call.params.size() == 1);
+			auto const param = emit_bitcode(func_call.params[0], context, nullptr);
+			auto const param_type = func_call.func_body->params[0].get_type().as_typespec_view();
+			auto const param_llvm_type = context.get_str_t();
+
+			ast::arena_vector<llvm::Value *> params = {};
+			params.reserve(2); // on linux str is passed in two registers
+			ast::arena_vector<is_byval_and_type_pair> params_is_byval = {};
+			params.reserve(2);
+			add_call_parameter<false>(param_type, param_llvm_type, param, params, params_is_byval, context);
+			auto const panic_handler = context.get_function(handler_fn);
+			auto const call = context.create_call(panic_handler, llvm::ArrayRef(params.data(), params.size()));
+			bz_assert(panic_handler->arg_size() == call->arg_size());
+			for (auto const &[is_byval, i] : params_is_byval.enumerate())
+			{
+				if (is_byval.is_byval)
+				{
+					add_byval_attributes(call, is_byval.type, i, context);
+				}
+			}
+
+			// just to be sure...
+			auto const trap_fn = context.get_function(context.get_builtin_function(ast::function_body::trap));
+			context.builder.CreateCall(trap_fn);
+
+			return val_ptr::get_none();
 		}
 
 		case ast::function_body::trivially_copy_values:

@@ -1,9 +1,23 @@
 import std::libc::types;
+import std::libc::stdio;
 import std::libc::stdlib;
 import std::libc::string;
 
 @__builtin
-function __builtin_call_main(args: [: const str]) -> int32;
+function __builtin_panic_handler(message: str)
+{
+	if (__builtin_is_comptime())
+	{
+		__builtin_comptime_compile_error(message);
+	}
+	else
+	{
+		std::libc::fwrite(message.begin_ptr(), 1, message.size(), std::libc::stderr());
+		std::libc::abort();
+	}
+}
+
+@__builtin function __builtin_call_main(args: [: const str]) -> int32;
 
 @symbol_name("main")
 function __libc_main(argc_int: std::libc::int, argv: *const *const std::libc::char) -> std::libc::int

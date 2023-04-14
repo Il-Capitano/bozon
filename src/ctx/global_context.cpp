@@ -188,7 +188,7 @@ ast::type_info *global_context::get_isize_type_info(void) const
 ast::decl_function *global_context::get_builtin_function(uint32_t kind)
 {
 	bz_assert(kind < this->_builtin_functions.size());
-	bz_assert(this->_builtin_functions[kind] != nullptr);
+	bz_assert(this->_builtin_functions[kind] != nullptr || kind == ast::function_body::builtin_panic_handler);
 
 	return this->_builtin_functions[kind];
 }

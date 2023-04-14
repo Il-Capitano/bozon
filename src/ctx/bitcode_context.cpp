@@ -29,7 +29,8 @@ ast::type_info *bitcode_context::get_builtin_type_info(uint32_t kind)
 
 ast::function_body *bitcode_context::get_builtin_function(uint32_t kind)
 {
-	return &this->global_ctx.get_builtin_function(kind)->body;
+	auto const decl = this->global_ctx.get_builtin_function(kind);
+	return decl == nullptr ? nullptr : &decl->body;
 }
 
 bc::value_and_type_pair bitcode_context::get_variable(ast::decl_variable const *var_decl) const

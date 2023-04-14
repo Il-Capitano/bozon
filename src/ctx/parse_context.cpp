@@ -2821,7 +2821,7 @@ ast::expression parse_context::make_tuple(lex::src_tokens const &src_tokens, ast
 ast::expression parse_context::make_unreachable(lex::token_pos t)
 {
 	auto const panic_fn_body = &this->get_builtin_function(ast::function_body::builtin_panic)->body;
-	auto message = bz::format("unreachable hit at {}:{}", this->global_ctx.get_file_name(t->src_pos.file_id), t->src_pos.line);
+	auto message = bz::format("unreachable hit at {}:{}\n", this->global_ctx.get_file_name(t->src_pos.file_id), t->src_pos.line);
 	auto const src_tokens = lex::src_tokens::from_single_token(t);
 
 	ast::arena_vector<ast::expression> args = {};
