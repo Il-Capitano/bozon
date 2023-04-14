@@ -1,0 +1,9 @@
+import std::libc::stdio;
+import std::libc::stdlib;
+
+@__builtin
+function __builtin_panic_handler(message: str)
+{
+	std::libc::fwrite(message.begin_ptr(), 1, message.size(), std::libc::stderr());
+	std::libc::abort();
+}
