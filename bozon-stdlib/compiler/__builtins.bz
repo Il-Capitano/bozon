@@ -61,6 +61,43 @@ struct __integer_range_iterator<T: typename>
 	export operator -- = __builtin_integer_range_iterator_minus_minus;
 }
 
+struct __integer_range_inclusive<T: typename>
+{
+	._begin: T;
+	._end: T;
+
+	type __value_type = T;
+	type __begin_iterator = __integer_range_inclusive_iterator<T>;
+	type __end_iterator = __integer_range_inclusive_end_iterator;
+
+	export function begin_value = __builtin_integer_range_inclusive_begin_value;
+	export function end_value   = __builtin_integer_range_inclusive_end_value;
+
+	export function begin = __builtin_integer_range_inclusive_begin_iterator;
+	export function end   = __builtin_integer_range_inclusive_end_iterator;
+}
+
+struct __integer_range_inclusive_iterator<T: typename>
+{
+	._value: T;
+	._end: T;
+	._at_end: bool;
+
+	type __value_type = T;
+
+	export operator * = __builtin_integer_range_inclusive_iterator_dereference;
+
+	export operator == = __builtin_integer_range_inclusive_iterator_left_equals;
+	export operator == = __builtin_integer_range_inclusive_iterator_right_equals;
+	export operator != = __builtin_integer_range_inclusive_iterator_left_not_equals;
+	export operator != = __builtin_integer_range_inclusive_iterator_right_not_equals;
+
+	export operator ++ = __builtin_integer_range_inclusive_iterator_plus_plus;
+}
+
+struct __integer_range_inclusive_end_iterator
+{}
+
 struct __integer_range_from<T: typename>
 {
 	._begin: T;
@@ -77,6 +114,15 @@ struct __integer_range_to<T: typename>
 	type __value_type = T;
 
 	export function end_value = __builtin_integer_range_to_end_value;
+}
+
+struct __integer_range_to_inclusive<T: typename>
+{
+	._end: T;
+
+	type __value_type = T;
+
+	export function end_value = __builtin_integer_range_to_inclusive_end_value;
 }
 
 struct __range_unbounded
@@ -201,6 +247,16 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 @__builtin export function __builtin_integer_range_u32(begin: uint32, end: uint32) -> __integer_range<uint32>;
 @__builtin export function __builtin_integer_range_u64(begin: uint64, end: uint64) -> __integer_range<uint64>;
 
+@__builtin export function __builtin_integer_range_inclusive_i8 (begin: int8,  end: int8)  -> __integer_range_inclusive<int8>;
+@__builtin export function __builtin_integer_range_inclusive_i16(begin: int16, end: int16) -> __integer_range_inclusive<int16>;
+@__builtin export function __builtin_integer_range_inclusive_i32(begin: int32, end: int32) -> __integer_range_inclusive<int32>;
+@__builtin export function __builtin_integer_range_inclusive_i64(begin: int64, end: int64) -> __integer_range_inclusive<int64>;
+
+@__builtin export function __builtin_integer_range_inclusive_u8 (begin: uint8,  end: uint8)  -> __integer_range_inclusive<uint8>;
+@__builtin export function __builtin_integer_range_inclusive_u16(begin: uint16, end: uint16) -> __integer_range_inclusive<uint16>;
+@__builtin export function __builtin_integer_range_inclusive_u32(begin: uint32, end: uint32) -> __integer_range_inclusive<uint32>;
+@__builtin export function __builtin_integer_range_inclusive_u64(begin: uint64, end: uint64) -> __integer_range_inclusive<uint64>;
+
 @__builtin export function __builtin_integer_range_from_i8 (begin: int8)  -> __integer_range_from<int8>;
 @__builtin export function __builtin_integer_range_from_i16(begin: int16) -> __integer_range_from<int16>;
 @__builtin export function __builtin_integer_range_from_i32(begin: int32) -> __integer_range_from<int32>;
@@ -225,8 +281,11 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 
 @__builtin export function __builtin_integer_range_begin_value(range: __integer_range) -> (typeof range).__value_type;
 @__builtin export function __builtin_integer_range_end_value(range: __integer_range) -> (typeof range).__value_type;
+@__builtin export function __builtin_integer_range_inclusive_begin_value(range: __integer_range_inclusive) -> (typeof range).__value_type;
+@__builtin export function __builtin_integer_range_inclusive_end_value(range: __integer_range_inclusive) -> (typeof range).__value_type;
 @__builtin export function __builtin_integer_range_from_begin_value(range: __integer_range_from) -> (typeof range).__value_type;
 @__builtin export function __builtin_integer_range_to_end_value(range: __integer_range_to) -> (typeof range).__value_type;
+@__builtin export function __builtin_integer_range_to_inclusive_end_value(range: __integer_range_to_inclusive) -> (typeof range).__value_type;
 
 @__builtin export function __builtin_integer_range_begin_iterator(range: __integer_range) -> (typeof range).__iterator;
 @__builtin export function __builtin_integer_range_end_iterator(range: __integer_range) -> (typeof range).__iterator;
@@ -253,6 +312,15 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 	} else {}, bool);
 @__builtin function __builtin_integer_range_iterator_plus_plus(it: &__integer_range_iterator) -> typeof it;
 @__builtin function __builtin_integer_range_iterator_minus_minus(it: &__integer_range_iterator) -> typeof it;
+
+@__builtin export function __builtin_integer_range_inclusive_begin_iterator(range: __integer_range_inclusive) -> (typeof range).__begin_iterator;
+@__builtin export function __builtin_integer_range_inclusive_end_iterator(range: __integer_range_inclusive) -> (typeof range).__end_iterator;
+@__builtin function __builtin_integer_range_inclusive_iterator_dereference(it: #const __integer_range_inclusive_iterator) -> (typeof it).__value_type;
+@__builtin function __builtin_integer_range_inclusive_iterator_left_equals(lhs: #const __integer_range_inclusive_iterator, rhs: __integer_range_inclusive_end_iterator) -> bool;
+@__builtin function __builtin_integer_range_inclusive_iterator_right_equals(lhs: __integer_range_inclusive_end_iterator, rhs: #const __integer_range_inclusive_iterator) -> bool;
+@__builtin function __builtin_integer_range_inclusive_iterator_left_not_equals(lhs: #const __integer_range_inclusive_iterator, rhs: __integer_range_inclusive_end_iterator) -> bool;
+@__builtin function __builtin_integer_range_inclusive_iterator_right_not_equals(lhs: __integer_range_inclusive_end_iterator, rhs: #const __integer_range_inclusive_iterator) -> bool;
+@__builtin function __builtin_integer_range_inclusive_iterator_plus_plus(it: &__integer_range_inclusive_iterator) -> typeof it;
 
 @__builtin export function __builtin_optional_get_value_ref(value: &?auto)
 	-> &__builtin_remove_optional(__builtin_remove_reference(typeof value));

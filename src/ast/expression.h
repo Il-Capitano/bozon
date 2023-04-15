@@ -106,8 +106,10 @@ struct expr_unresolved_array_type;
 struct expr_unresolved_generic_type_instantiation;
 struct expr_unresolved_function_type;
 struct expr_unresolved_integer_range;
+struct expr_unresolved_integer_range_inclusive;
 struct expr_unresolved_integer_range_from;
 struct expr_unresolved_integer_range_to;
+struct expr_unresolved_integer_range_to_inclusive;
 
 
 using expr_t = node<
@@ -203,8 +205,10 @@ using unresolved_expr_t = node<
 	expr_unresolved_generic_type_instantiation,
 	expr_unresolved_function_type,
 	expr_unresolved_integer_range,
+	expr_unresolved_integer_range_inclusive,
 	expr_unresolved_integer_range_from,
-	expr_unresolved_integer_range_to
+	expr_unresolved_integer_range_to,
+	expr_unresolved_integer_range_to_inclusive
 >;
 
 
@@ -1657,6 +1661,17 @@ struct expr_unresolved_integer_range
 	{}
 };
 
+struct expr_unresolved_integer_range_inclusive
+{
+	expression begin;
+	expression end;
+
+	expr_unresolved_integer_range_inclusive(expression _begin, expression _end)
+		: begin(std::move(_begin)),
+		  end  (std::move(_end))
+	{}
+};
+
 struct expr_unresolved_integer_range_from
 {
 	expression begin;
@@ -1671,6 +1686,15 @@ struct expr_unresolved_integer_range_to
 	expression end;
 
 	expr_unresolved_integer_range_to(expression _end)
+		: end(std::move(_end))
+	{}
+};
+
+struct expr_unresolved_integer_range_to_inclusive
+{
+	expression end;
+
+	expr_unresolved_integer_range_to_inclusive(expression _end)
 		: end(std::move(_end))
 	{}
 };
@@ -1799,8 +1823,10 @@ def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_array_type)
 def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_generic_type_instantiation)
 def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_function_type)
 def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_integer_range)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_integer_range_inclusive)
 def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_integer_range_from)
 def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_integer_range_to)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_integer_range_to_inclusive)
 
 #undef def_make_unresolved_fn
 

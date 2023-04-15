@@ -509,7 +509,7 @@ constexpr precedence get_binary_or_call_precedence(uint32_t kind)
 	{
 		return dot_prec;
 	}
-	else if (kind == lex::token::dot_dot)
+	else if (kind == lex::token::dot_dot || kind == lex::token::dot_dot_eq)
 	{
 		return dot_dot_prec;
 	}

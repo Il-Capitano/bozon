@@ -596,6 +596,13 @@ static ast::expression parse_primary_expression(
 		auto range_end = parse_expression(stream, end, context, dot_dot_prec);
 		return context.make_integer_range_to_expression({ dot_dot_pos, dot_dot_pos, stream }, std::move(range_end));
 	}
+	case lex::token::dot_dot_eq:
+	{
+		auto const dot_dot_eq_pos = stream;
+		++stream;
+		auto range_end = parse_expression(stream, end, context, dot_dot_prec);
+		return context.make_integer_range_to_inclusive_expression({ dot_dot_eq_pos, dot_dot_eq_pos, stream }, std::move(range_end));
+	}
 
 	case lex::token::kw_unreachable:
 	{
@@ -995,6 +1002,23 @@ static ast::expression parse_expression_helper(
 
 			auto const src_tokens = lex::src_tokens{ lhs.get_tokens_begin(), op, stream };
 			lhs = context.make_integer_range_expression(src_tokens, std::move(lhs), std::move(rhs));
+			break;
+		}
+		case lex::token::dot_dot_eq:
+		{
+			auto rhs = parse_primary_expression(stream, end, context);
+			precedence rhs_prec;
+
+			while (
+				stream != end
+				&& (rhs_prec = get_binary_or_call_precedence(stream->kind)) < op_prec
+			)
+			{
+				rhs = parse_expression_helper(std::move(rhs), stream, end, context, rhs_prec);
+			}
+
+			auto const src_tokens = lex::src_tokens{ lhs.get_tokens_begin(), op, stream };
+			lhs = context.make_integer_range_inclusive_expression(src_tokens, std::move(lhs), std::move(rhs));
 			break;
 		}
 

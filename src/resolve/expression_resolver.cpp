@@ -1074,6 +1074,18 @@ static ast::expression resolve_expr(
 
 static ast::expression resolve_expr(
 	lex::src_tokens const &src_tokens,
+	ast::expr_unresolved_integer_range_inclusive range,
+	ctx::parse_context &context
+)
+{
+	resolve_expression(range.begin, context);
+	resolve_expression(range.end, context);
+
+	return context.make_integer_range_inclusive_expression(src_tokens, std::move(range.begin), std::move(range.end));
+}
+
+static ast::expression resolve_expr(
+	lex::src_tokens const &src_tokens,
 	ast::expr_unresolved_integer_range_from range_from,
 	ctx::parse_context &context
 )
@@ -1092,6 +1104,17 @@ static ast::expression resolve_expr(
 	resolve_expression(range_to.end, context);
 
 	return context.make_integer_range_to_expression(src_tokens, std::move(range_to.end));
+}
+
+static ast::expression resolve_expr(
+	lex::src_tokens const &src_tokens,
+	ast::expr_unresolved_integer_range_to_inclusive range_to,
+	ctx::parse_context &context
+)
+{
+	resolve_expression(range_to.end, context);
+
+	return context.make_integer_range_to_inclusive_expression(src_tokens, std::move(range_to.end));
 }
 
 void resolve_expression(ast::expression &expr, ctx::parse_context &context)
