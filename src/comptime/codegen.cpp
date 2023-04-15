@@ -5780,10 +5780,17 @@ static expr_value get_constant_value_helper(
 				tuple_t.types.size() == tuple_values.size()
 				&& tuple_t.types.size() == result_value.get_type()->get_aggregate_types().size()
 			);
-			for (auto const i : bz::iota(0, tuple_values.size()))
+			if (tuple_values.empty())
 			{
-				auto const elem_result_address = context.create_struct_gep(result_value, i);
-				get_constant_value(src_tokens, tuple_values[i], tuple_t.types[i], nullptr, context, elem_result_address);
+				context.create_start_lifetime(result_value);
+			}
+			else
+			{
+				for (auto const i : bz::iota(0, tuple_values.size()))
+				{
+					auto const elem_result_address = context.create_struct_gep(result_value, i);
+					get_constant_value(src_tokens, tuple_values[i], tuple_t.types[i], nullptr, context, elem_result_address);
+				}
 			}
 		}
 		return result_value;
@@ -6130,7 +6137,9 @@ static void generate_stmt_code(ast::stmt_foreach const &foreach_stmt, codegen_co
 	auto const prev_loop_info = context.push_loop(end_bb, iteration_bb);
 
 	context.set_current_basic_block(iteration_bb);
+	auto const iteration_prev_info = context.push_expression_scope();
 	generate_expr_code(foreach_stmt.iteration, context, {});
+	context.pop_expression_scope(iteration_prev_info);
 
 	auto const condition_check_bb = context.add_basic_block();
 	context.create_jump(condition_check_bb);
@@ -6138,9 +6147,11 @@ static void generate_stmt_code(ast::stmt_foreach const &foreach_stmt, codegen_co
 	context.create_jump(condition_check_bb);
 
 	context.set_current_basic_block(condition_check_bb);
+	auto const condition_prev_info = context.push_expression_scope();
 	auto const condition = foreach_stmt.condition.is_error()
 		? context.get_dummy_value(context.get_builtin_type(builtin_type_kind::i1))
-		: generate_expr_code(foreach_stmt.condition, context, {});
+		: generate_expr_code(foreach_stmt.condition, context, {}).get_value(context);
+	context.pop_expression_scope(condition_prev_info);
 
 	auto const foreach_bb = context.add_basic_block();
 	context.create_conditional_jump(condition, foreach_bb, end_bb);

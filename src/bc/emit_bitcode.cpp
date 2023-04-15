@@ -6681,11 +6681,15 @@ static void emit_bitcode(
 
 	context.builder.CreateBr(condition_check_bb);
 	context.builder.SetInsertPoint(condition_check_bb);
+	auto const condition_prev_info = context.push_expression_scope();
 	auto const condition = emit_bitcode(foreach_stmt.condition, context, nullptr).get_value(context.builder);
+	context.pop_expression_scope(condition_prev_info);
 	auto const condition_check_end = context.builder.GetInsertBlock();
 
 	context.builder.SetInsertPoint(iteration_bb);
+	auto const iteration_prev_info = context.push_expression_scope();
 	emit_bitcode(foreach_stmt.iteration, context, nullptr);
+	context.pop_expression_scope(iteration_prev_info);
 	bz_assert(!context.has_terminator());
 	context.builder.CreateBr(condition_check_bb);
 
