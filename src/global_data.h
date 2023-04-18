@@ -122,4 +122,9 @@ bool is_warning_error(ctx::warning_kind kind) noexcept;
 
 void print_version_info(void);
 
+#ifdef BOZON_PROFILE_COMPTIME
+inline size_t comptime_executed_instructions_count = 0;
+inline size_t comptime_emitted_instructions_count = 0;
+#endif // BOZON_PROFILE_COMPTIME
+
 #endif // GLOBAL_DATA_H

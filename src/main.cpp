@@ -1682,6 +1682,11 @@ int main(int argc, char const **argv)
 		bz::print("total allocation size:    {:8}\n", ast::arena_allocator::get_total_allocation_size());
 		bz_assert(ast::arena_allocator::get_allocation_count() == ast::arena_allocator::get_deallocation_count());
 #endif // BOZON_PROFILE_ALLOCATIONS
+
+#ifdef BOZON_PROFILE_COMPTIME
+		bz::print("emitted instructions:     {:8}\n", comptime_emitted_instructions_count);
+		bz::print("executed instructions:    {:8}\n", comptime_executed_instructions_count);
+#endif // BOZON_PROFILE_COMPTIME
 	}
 
 	return_from_main(0);

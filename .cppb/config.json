@@ -55,7 +55,7 @@
 				},
 				"debug": {
 					"cpp_compiler_flags": [ "-ferror-limit=2" ],
-					"defines": [ "BOZON_NO_ARENA", "BOZON_PROFILE_ALLOCATIONS" ],
+					"defines": [ "BOZON_NO_ARENA", "BOZON_PROFILE_ALLOCATIONS", "BOZON_PROFILE_COMPTIME" ],
 					"optimization": "0"
 				},
 				"release": {

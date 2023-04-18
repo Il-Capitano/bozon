@@ -6225,6 +6225,10 @@ void current_function_info_t::finalize_function(void)
 		bz_assert(it == func.instructions.end());
 	}
 
+#ifdef BOZON_PROFILE_COMPTIME
+		comptime_emitted_instructions_count += func.instructions.size();
+#endif // BOZON_PROFILE_COMPTIME
+
 	// finalize allocas
 	func.allocas = this->allocas.release_as_fixed_vector();
 
