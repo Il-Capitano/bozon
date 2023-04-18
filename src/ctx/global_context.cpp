@@ -1179,6 +1179,17 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	}
 
 	auto const source_file_path = fs::path(std::string_view(source_file.data_as_char_ptr(), source_file.size()));
+	if (!fs::exists(source_file_path))
+	{
+		this->report_error(bz::format("invalid source file '{}': file does not exist", source_file));
+		return false;
+	}
+	else if (!fs::is_regular_file(source_file_path))
+	{
+		this->report_error(bz::format("invalid source file '{}': file is not a regular file", source_file));
+		return false;
+	}
+
 	auto &file = this->emplace_src_file(
 		source_file_path, this->_src_files.size(), bz::vector<bz::u8string>(), false
 	);
