@@ -992,7 +992,7 @@ expr_value codegen_context::create_load(expr_value ptr)
 instruction_ref codegen_context::create_store(expr_value value, expr_value ptr)
 {
 	auto &current_block = get_current_block(*this);
-	current_block.cached_values.clear();
+	current_block.cached_values.clear_without_deallocation();
 
 	bz_assert(value.get_type() == ptr.get_type());
 	auto const type = value.get_type();
@@ -1368,7 +1368,7 @@ expr_value codegen_context::create_array_slice_gep(expr_value begin_ptr, expr_va
 
 instruction_ref codegen_context::create_const_memcpy(expr_value dest, expr_value source, size_t size)
 {
-	get_current_block(*this).cached_values.clear();
+	get_current_block(*this).cached_values.clear_without_deallocation();
 
 	bz_assert(dest.is_reference());
 	bz_assert(source.is_reference());
@@ -1378,7 +1378,7 @@ instruction_ref codegen_context::create_const_memcpy(expr_value dest, expr_value
 
 instruction_ref codegen_context::create_const_memset_zero(expr_value dest)
 {
-	get_current_block(*this).cached_values.clear();
+	get_current_block(*this).cached_values.clear_without_deallocation();
 
 	bz_assert(dest.is_reference());
 
@@ -1394,7 +1394,7 @@ void codegen_context::create_copy_values(
 	ast::typespec_view elem_typespec
 )
 {
-	get_current_block(*this).cached_values.clear();
+	get_current_block(*this).cached_values.clear_without_deallocation();
 
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 	auto const copy_values_info_index = this->add_copy_values_info({
@@ -1421,7 +1421,7 @@ void codegen_context::create_copy_overlapping_values(
 	type const *elem_type
 )
 {
-	get_current_block(*this).cached_values.clear();
+	get_current_block(*this).cached_values.clear_without_deallocation();
 
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 	auto const copy_values_info_index = this->add_copy_values_info({
@@ -1449,7 +1449,7 @@ void codegen_context::create_relocate_values(
 	ast::typespec_view elem_typespec
 )
 {
-	get_current_block(*this).cached_values.clear();
+	get_current_block(*this).cached_values.clear_without_deallocation();
 
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 	auto const copy_values_info_index = this->add_copy_values_info({
@@ -1475,7 +1475,7 @@ void codegen_context::create_set_values(
 	expr_value count
 )
 {
-	get_current_block(*this).cached_values.clear();
+	get_current_block(*this).cached_values.clear_without_deallocation();
 
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 
@@ -1632,7 +1632,7 @@ void codegen_context::create_set_values(
 
 expr_value codegen_context::create_function_call(lex::src_tokens const &src_tokens, function *func, bz::fixed_vector<instruction_ref> args)
 {
-	get_current_block(*this).cached_values.clear();
+	get_current_block(*this).cached_values.clear_without_deallocation();
 
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 	auto const args_index = static_cast<uint32_t>(this->current_function_info.call_args.size());
@@ -1658,7 +1658,7 @@ expr_value codegen_context::create_indirect_function_call(
 	bz::fixed_vector<instruction_ref> args
 )
 {
-	get_current_block(*this).cached_values.clear();
+	get_current_block(*this).cached_values.clear_without_deallocation();
 
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 	auto const args_index = static_cast<uint32_t>(this->current_function_info.call_args.size());
