@@ -6086,6 +6086,18 @@ static void optimize_jumps(current_function_info_t &info)
 	}
 }
 
+static uint32_t resolve_instruction_value_offsets(current_function_info_t &info)
+{
+	uint32_t instruction_value_offset = info.allocas.size();
+	for (auto &bb : info.blocks)
+	{
+		bb.instruction_value_offset = instruction_value_offset;
+		instruction_value_offset += bb.instructions.size();
+	}
+
+	return instruction_value_offset - info.blocks[0].instruction_value_offset;
+}
+
 static void resolve_instruction_args(instruction &inst, bz::array<instruction_ref, 3> const &args, auto get_instruction_value_index)
 {
 	inst.visit([&](auto &inst) {
@@ -6178,15 +6190,7 @@ void current_function_info_t::finalize_function(void)
 	bz_assert(this->blocks.is_all([](auto const &bb) { return bb.instructions.back().is_terminator(); }));
 
 	optimize_jumps(*this);
-
-	uint32_t instruction_value_offset = this->allocas.size();
-	for (auto &bb : this->blocks)
-	{
-		bb.instruction_value_offset = instruction_value_offset;
-		instruction_value_offset += bb.instructions.size();
-	}
-
-	auto const instructions_count = instruction_value_offset - this->blocks[0].instruction_value_offset;
+	auto const instructions_count = resolve_instruction_value_offsets(*this);
 
 	auto const get_instruction_value_index = [this](instruction_ref inst_ref) -> instruction_value_index {
 		if (inst_ref.bb_index == instruction_ref::alloca_bb_index)
