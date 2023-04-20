@@ -177,7 +177,7 @@ export function mulShift64(m: uint64, mul: *const uint64, j: uint32) -> uint64
 	const low1 = umul128(m, *(mul + 1), &high1); // 64
 	let high0: uint64;                           // 64
 	umul128(m, *mul, &high0);                    // 0
-	const sum = high0 + low1;
+	const sum = ((high0 + low1));
 	if (sum < high0)
 	{
 		++high1; // overflow into high1
