@@ -1196,6 +1196,22 @@ instruction_ref codegen_context::create_conditional_jump(
 	basic_block_ref false_bb
 )
 {
+	auto const condition_inst_ref = condition.get_value_as_instruction(*this);
+	if (condition_inst_ref.bb_index != instruction_ref::alloca_bb_index)
+	{
+		auto const &inst = this->current_function_info.blocks[condition_inst_ref.bb_index].instructions[condition_inst_ref.inst_index];
+		if (inst.index() == instruction::const_i1)
+		{
+			if (inst.get<instructions::const_i1>().value)
+			{
+				return this->create_jump(true_bb);
+			}
+			else
+			{
+				return this->create_jump(false_bb);
+			}
+		}
+	}
 	auto const result = add_instruction(*this, instructions::conditional_jump{}, condition.get_value_as_instruction(*this));
 	this->current_function_info.unresolved_jumps.push_back({ .inst = result, .dests = { true_bb, false_bb } });
 	return result;
