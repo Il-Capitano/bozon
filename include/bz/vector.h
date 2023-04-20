@@ -279,6 +279,18 @@ public:
 		this->set_to_null();
 	}
 
+	void clear_without_deallocation(void) noexcept(nothrow_destruct_value)
+	{
+		auto it = this->_data_end;
+		auto const begin = this->_data_begin;
+		while (it != begin)
+		{
+			--it;
+			it->~value_type();
+		}
+		this->_data_end = this->_data_begin;
+	}
+
 	void assign(self_t const &other) noexcept(
 		nothrow_alloc
 		&& nothrow_dealloc
