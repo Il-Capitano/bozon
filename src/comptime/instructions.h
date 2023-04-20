@@ -12,14 +12,6 @@
 namespace comptime
 {
 
-struct instruction;
-
-struct basic_block
-{
-	bz::vector<instruction> instructions;
-	uint32_t instruction_value_offset;
-};
-
 struct instruction_index
 {
 	uint32_t index;

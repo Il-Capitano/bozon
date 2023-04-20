@@ -14,6 +14,12 @@ namespace comptime
 
 struct codegen_context;
 
+struct basic_block
+{
+	bz::vector<instruction> instructions;
+	uint32_t instruction_value_offset;
+};
+
 struct basic_block_ref
 {
 	uint32_t bb_index;
