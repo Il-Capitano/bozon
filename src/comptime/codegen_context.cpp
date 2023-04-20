@@ -6072,6 +6072,20 @@ void codegen_context::create_end_lifetime(expr_value ptr)
 	add_instruction(*this, instructions::end_lifetime{ .size = ptr.get_type()->size }, ptr.get_reference());
 }
 
+static void optimize_jumps(current_function_info_t &info)
+{
+	for (auto const &[inst_ref, dests] : info.unresolved_jumps)
+	{
+		auto const &inst = info.blocks[inst_ref.bb_index].instructions[inst_ref.inst_index];
+		// check if the last jump instruction is a jump to the next block, and if so remove it.
+		// this happens quite a lot in code generation, so it should be worth it to filter them when finalizing the function code.
+		if (inst.index() == instruction::jump && dests[0].bb_index == inst_ref.bb_index + 1)
+		{
+			info.blocks[inst_ref.bb_index].instructions.pop_back();
+		}
+	}
+}
+
 static void resolve_instruction_args(instruction &inst, bz::array<instruction_ref, 3> const &args, auto get_instruction_value_index)
 {
 	inst.visit([&](auto &inst) {
@@ -6163,16 +6177,7 @@ void current_function_info_t::finalize_function(void)
 	bz_assert(this->blocks.is_all([](auto const &bb) { return bb.instructions.not_empty(); }));
 	bz_assert(this->blocks.is_all([](auto const &bb) { return bb.instructions.back().is_terminator(); }));
 
-	for (auto const &[inst_ref, dests] : this->unresolved_jumps)
-	{
-		auto const &inst = this->blocks[inst_ref.bb_index].instructions[inst_ref.inst_index];
-		// check if the last jump instruction is a jump to the next block, and if so remove it.
-		// this happens quite a lot in code generation, so it should be worth it to filter them when finalizing the function code.
-		if (inst.index() == instruction::jump && dests[0].bb_index == inst_ref.bb_index + 1)
-		{
-			this->blocks[inst_ref.bb_index].instructions.pop_back();
-		}
-	}
+	optimize_jumps(*this);
 
 	uint32_t instruction_value_offset = this->allocas.size();
 	for (auto &bb : this->blocks)
