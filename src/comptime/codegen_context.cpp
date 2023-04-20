@@ -23,6 +23,11 @@ static constexpr memory::global_segment_info_t segment_info_32_bit = {
 	0xff00'0000,
 };
 
+static basic_block &get_current_block(codegen_context &context)
+{
+	return context.current_function_info.blocks[context.current_function_info.current_bb.bb_index];
+}
+
 template<typename Inst>
 instruction_ref add_instruction(codegen_context &context, Inst inst)
 {
@@ -885,90 +890,53 @@ instruction_ref codegen_context::create_get_function_arg(uint32_t arg_index)
 	return add_instruction(*this, instructions::get_function_arg{ .arg_index = arg_index + (needs_return_address ? 1 : 0) });
 }
 
-expr_value codegen_context::create_load(expr_value ptr)
+static instruction_ref create_load_inst(codegen_context &context, type const *type, instruction_ref ptr)
 {
-	bz_assert(ptr.is_reference());
-	auto const type = ptr.get_type();
-	bz_assert(type->is_builtin() || type->is_pointer());
-	auto const ptr_ = ptr.get_reference();
 	if (type->is_pointer())
 	{
-		if (this->is_little_endian())
+		if (context.is_little_endian())
 		{
-			if (this->is_64_bit())
+			if (context.is_64_bit())
 			{
-				return expr_value::get_value(
-					add_instruction(*this, instructions::load_ptr64_le{}, ptr_),
-					type
-				);
+				return add_instruction(context, instructions::load_ptr64_le{}, ptr);
 			}
 			else
 			{
-				return expr_value::get_value(
-					add_instruction(*this, instructions::load_ptr32_le{}, ptr_),
-					type
-				);
+				return add_instruction(context, instructions::load_ptr32_le{}, ptr);
 			}
 		}
 		else
 		{
-			if (this->is_64_bit())
+			if (context.is_64_bit())
 			{
-				return expr_value::get_value(
-					add_instruction(*this, instructions::load_ptr64_be{}, ptr_),
-					type
-				);
+				return add_instruction(context, instructions::load_ptr64_be{}, ptr);
 			}
 			else
 			{
-				return expr_value::get_value(
-					add_instruction(*this, instructions::load_ptr32_be{}, ptr_),
-					type
-				);
+				return add_instruction(context, instructions::load_ptr32_be{}, ptr);
 			}
 		}
 	}
 	else
 	{
-		if (this->is_little_endian())
+		if (context.is_little_endian())
 		{
 			switch (type->get_builtin_kind())
 			{
 			case builtin_type_kind::i1:
-				return expr_value::get_value(
-					add_instruction(*this, instructions::load_i1_le{}, ptr_),
-					type
-				);
+				return add_instruction(context, instructions::load_i1_le{}, ptr);
 			case builtin_type_kind::i8:
-				return expr_value::get_value(
-					add_instruction(*this, instructions::load_i8_le{}, ptr_),
-					type
-				);
+				return add_instruction(context, instructions::load_i8_le{}, ptr);
 			case builtin_type_kind::i16:
-				return expr_value::get_value(
-					add_instruction(*this, instructions::load_i16_le{}, ptr_),
-					type
-				);
+				return add_instruction(context, instructions::load_i16_le{}, ptr);
 			case builtin_type_kind::i32:
-				return expr_value::get_value(
-					add_instruction(*this, instructions::load_i32_le{}, ptr_),
-					type
-				);
+				return add_instruction(context, instructions::load_i32_le{}, ptr);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(
-					add_instruction(*this, instructions::load_i64_le{}, ptr_),
-					type
-				);
+				return add_instruction(context, instructions::load_i64_le{}, ptr);
 			case builtin_type_kind::f32:
-				return expr_value::get_value(
-					add_instruction(*this, instructions::load_f32_le{}, ptr_),
-					type
-				);
+				return add_instruction(context, instructions::load_f32_le{}, ptr);
 			case builtin_type_kind::f64:
-				return expr_value::get_value(
-					add_instruction(*this, instructions::load_f64_le{}, ptr_),
-					type
-				);
+				return add_instruction(context, instructions::load_f64_le{}, ptr);
 			case builtin_type_kind::void_:
 				bz_unreachable;
 			}
@@ -978,40 +946,19 @@ expr_value codegen_context::create_load(expr_value ptr)
 			switch (type->get_builtin_kind())
 			{
 			case builtin_type_kind::i1:
-				return expr_value::get_value(
-					add_instruction(*this, instructions::load_i1_be{}, ptr_),
-					type
-				);
+				return add_instruction(context, instructions::load_i1_be{}, ptr);
 			case builtin_type_kind::i8:
-				return expr_value::get_value(
-					add_instruction(*this, instructions::load_i8_be{}, ptr_),
-					type
-				);
+				return add_instruction(context, instructions::load_i8_be{}, ptr);
 			case builtin_type_kind::i16:
-				return expr_value::get_value(
-					add_instruction(*this, instructions::load_i16_be{}, ptr_),
-					type
-				);
+				return add_instruction(context, instructions::load_i16_be{}, ptr);
 			case builtin_type_kind::i32:
-				return expr_value::get_value(
-					add_instruction(*this, instructions::load_i32_be{}, ptr_),
-					type
-				);
+				return add_instruction(context, instructions::load_i32_be{}, ptr);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(
-					add_instruction(*this, instructions::load_i64_be{}, ptr_),
-					type
-				);
+				return add_instruction(context, instructions::load_i64_be{}, ptr);
 			case builtin_type_kind::f32:
-				return expr_value::get_value(
-					add_instruction(*this, instructions::load_f32_be{}, ptr_),
-					type
-				);
+				return add_instruction(context, instructions::load_f32_be{}, ptr);
 			case builtin_type_kind::f64:
-				return expr_value::get_value(
-					add_instruction(*this, instructions::load_f64_be{}, ptr_),
-					type
-				);
+				return add_instruction(context, instructions::load_f64_be{}, ptr);
 			case builtin_type_kind::void_:
 				bz_unreachable;
 			}
@@ -1019,13 +966,42 @@ expr_value codegen_context::create_load(expr_value ptr)
 	}
 }
 
+expr_value codegen_context::create_load(expr_value ptr)
+{
+	bz_assert(ptr.is_reference());
+	auto const type = ptr.get_type();
+	bz_assert(type->is_builtin() || type->is_pointer());
+	auto const ptr_ = ptr.get_reference();
+
+	auto &current_block = get_current_block(*this);
+	auto const it = std::find_if(
+		current_block.cached_values.begin(), current_block.cached_values.end(),
+		[ptr_](auto const &value) { return value.ptr == ptr_; }
+	);
+
+	if (it != current_block.cached_values.end() && type == it->loaded_type)
+	{
+		return expr_value::get_value(it->value, type);
+	}
+
+	auto const value = create_load_inst(*this, type, ptr_);
+	current_block.cached_values.push_back({ .ptr = ptr_, .value = value, .loaded_type = type });
+	return expr_value::get_value(value, type);
+}
+
 instruction_ref codegen_context::create_store(expr_value value, expr_value ptr)
 {
+	auto &current_block = get_current_block(*this);
+	current_block.cached_values.clear();
+
 	bz_assert(value.get_type() == ptr.get_type());
 	auto const type = value.get_type();
 	bz_assert(type->is_builtin() || type->is_pointer());
 	auto const value_ = value.get_value_as_instruction(*this);
 	auto const ptr_ = ptr.get_reference();
+
+	current_block.cached_values.push_back({ .ptr = ptr_, .value = value_, .loaded_type = type });
+
 	if (type->is_pointer())
 	{
 		if (this->is_little_endian())
@@ -1392,6 +1368,8 @@ expr_value codegen_context::create_array_slice_gep(expr_value begin_ptr, expr_va
 
 instruction_ref codegen_context::create_const_memcpy(expr_value dest, expr_value source, size_t size)
 {
+	get_current_block(*this).cached_values.clear();
+
 	bz_assert(dest.is_reference());
 	bz_assert(source.is_reference());
 
@@ -1400,6 +1378,8 @@ instruction_ref codegen_context::create_const_memcpy(expr_value dest, expr_value
 
 instruction_ref codegen_context::create_const_memset_zero(expr_value dest)
 {
+	get_current_block(*this).cached_values.clear();
+
 	bz_assert(dest.is_reference());
 
 	return add_instruction(*this, instructions::const_memset_zero{ .size = dest.get_type()->size }, dest.get_reference());
@@ -1414,6 +1394,8 @@ void codegen_context::create_copy_values(
 	ast::typespec_view elem_typespec
 )
 {
+	get_current_block(*this).cached_values.clear();
+
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 	auto const copy_values_info_index = this->add_copy_values_info({
 		.elem_type = elem_type,
@@ -1439,6 +1421,8 @@ void codegen_context::create_copy_overlapping_values(
 	type const *elem_type
 )
 {
+	get_current_block(*this).cached_values.clear();
+
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 	auto const copy_values_info_index = this->add_copy_values_info({
 		.elem_type = elem_type,
@@ -1465,6 +1449,8 @@ void codegen_context::create_relocate_values(
 	ast::typespec_view elem_typespec
 )
 {
+	get_current_block(*this).cached_values.clear();
+
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 	auto const copy_values_info_index = this->add_copy_values_info({
 		.elem_type = elem_type,
@@ -1489,6 +1475,8 @@ void codegen_context::create_set_values(
 	expr_value count
 )
 {
+	get_current_block(*this).cached_values.clear();
+
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 
 	if (value.get_type()->is_builtin())
@@ -1644,6 +1632,8 @@ void codegen_context::create_set_values(
 
 expr_value codegen_context::create_function_call(lex::src_tokens const &src_tokens, function *func, bz::fixed_vector<instruction_ref> args)
 {
+	get_current_block(*this).cached_values.clear();
+
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 	auto const args_index = static_cast<uint32_t>(this->current_function_info.call_args.size());
 	this->current_function_info.call_args.push_back(std::move(args));
@@ -1668,6 +1658,8 @@ expr_value codegen_context::create_indirect_function_call(
 	bz::fixed_vector<instruction_ref> args
 )
 {
+	get_current_block(*this).cached_values.clear();
+
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 	auto const args_index = static_cast<uint32_t>(this->current_function_info.call_args.size());
 	this->current_function_info.call_args.push_back(std::move(args));

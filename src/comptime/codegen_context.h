@@ -14,12 +14,6 @@ namespace comptime
 
 struct codegen_context;
 
-struct basic_block
-{
-	bz::vector<instruction> instructions;
-	uint32_t instruction_value_offset;
-};
-
 struct basic_block_ref
 {
 	uint32_t bb_index;
@@ -33,6 +27,20 @@ struct instruction_ref
 	bool operator == (instruction_ref const &rhs) const = default;
 
 	static inline constexpr uint32_t alloca_bb_index = std::numeric_limits<uint32_t>::max();
+};
+
+struct basic_block
+{
+	struct cached_value_t
+	{
+		instruction_ref ptr;
+		instruction_ref value;
+		type const *loaded_type;
+	};
+
+	bz::vector<instruction> instructions;
+	bz::vector<cached_value_t> cached_values;
+	uint32_t instruction_value_offset;
 };
 
 enum class expr_value_kind
