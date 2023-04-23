@@ -760,19 +760,28 @@ expr_value codegen_context::create_const_u64(uint64_t value)
 
 expr_value codegen_context::create_const_f32(float32_t value)
 {
+	auto const current_bb = this->get_current_basic_block();
+	this->set_current_basic_block(this->current_function_info.constants_bb);
 	auto const inst_ref = add_instruction(*this, instructions::const_f32{ .value = value });
+	this->set_current_basic_block(current_bb);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::f32));
 }
 
 expr_value codegen_context::create_const_f64(float64_t value)
 {
+	auto const current_bb = this->get_current_basic_block();
+	this->set_current_basic_block(this->current_function_info.constants_bb);
 	auto const inst_ref = add_instruction(*this, instructions::const_f64{ .value = value });
+	this->set_current_basic_block(current_bb);
 	return expr_value::get_value(inst_ref, this->get_builtin_type(builtin_type_kind::f64));
 }
 
 expr_value codegen_context::create_const_ptr_null(void)
 {
+	auto const current_bb = this->get_current_basic_block();
+	this->set_current_basic_block(this->current_function_info.constants_bb);
 	auto const inst_ref = add_instruction(*this, instructions::const_ptr_null{});
+	this->set_current_basic_block(current_bb);
 	return expr_value::get_value(inst_ref, this->get_pointer_type());
 }
 
