@@ -117,6 +117,7 @@ struct function
 	bz::fixed_vector<copy_values_info_t> copy_values_infos;
 
 	ast::function_body *func_body = nullptr;
+	bool can_stack_address_leak = false;
 };
 
 namespace instructions

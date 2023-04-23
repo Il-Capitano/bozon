@@ -6126,6 +6126,35 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 	}
 }
 
+static bool contains_pointer(bz::array_view<type const * const> types);
+
+static bool contains_pointer(type const *type)
+{
+	if (type->is_builtin())
+	{
+		return false;
+	}
+	else if (type->is_pointer())
+	{
+		return true;
+	}
+	else if (type->is_aggregate())
+	{
+		return contains_pointer(type->get_aggregate_types());
+	}
+	else if (type->is_array())
+	{
+		return contains_pointer(type->get_array_element_type());
+	}
+
+	return false;
+}
+
+static bool contains_pointer(bz::array_view<type const * const> types)
+{
+	return types.is_any([](auto const type) { return contains_pointer(type); });
+}
+
 void current_function_info_t::finalize_function(void)
 {
 	bz_assert(this->func != nullptr);
@@ -6274,6 +6303,10 @@ void current_function_info_t::finalize_function(void)
 
 	// finalize copy_values_infos
 	func.copy_values_infos = this->copy_values_infos.release_as_fixed_vector();
+
+	// finalize can_stack_address_leak
+	func.can_stack_address_leak = func.func_body != nullptr
+		&& (contains_pointer(func.return_type) || contains_pointer(func.arg_types));
 
 #ifndef NDEBUG
 	if (debug_comptime_print_functions)

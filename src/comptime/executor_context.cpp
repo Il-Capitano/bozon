@@ -244,9 +244,10 @@ void executor_context::call_function(uint32_t call_src_tokens_index, function *f
 
 	auto const &alloca_objects = this->memory.stack.stack_frames.back().objects;
 	bz_assert(alloca_objects.size() == this->alloca_offset);
+
 	for (auto const i : bz::iota(0, this->alloca_offset))
 	{
-		if (func->allocas[i].is_always_initialized)
+		if (!func->can_stack_address_leak || func->allocas[i].is_always_initialized)
 		{
 			this->instruction_values[i].ptr = alloca_objects[i].address;
 		}
