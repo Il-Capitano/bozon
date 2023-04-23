@@ -6126,9 +6126,9 @@ static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> 
 	}
 }
 
-static bool contains_pointer(bz::array_view<type const * const> types);
+static bool type_contains_pointer(bz::array_view<type const * const> types);
 
-static bool contains_pointer(type const *type)
+static bool type_contains_pointer(type const *type)
 {
 	if (type->is_builtin())
 	{
@@ -6140,19 +6140,19 @@ static bool contains_pointer(type const *type)
 	}
 	else if (type->is_aggregate())
 	{
-		return contains_pointer(type->get_aggregate_types());
+		return type_contains_pointer(type->get_aggregate_types());
 	}
 	else if (type->is_array())
 	{
-		return contains_pointer(type->get_array_element_type());
+		return type_contains_pointer(type->get_array_element_type());
 	}
 
 	return false;
 }
 
-static bool contains_pointer(bz::array_view<type const * const> types)
+static bool type_contains_pointer(bz::array_view<type const * const> types)
 {
-	return types.is_any([](auto const type) { return contains_pointer(type); });
+	return types.is_any([](auto const type) { return type_contains_pointer(type); });
 }
 
 void current_function_info_t::finalize_function(void)
@@ -6306,7 +6306,7 @@ void current_function_info_t::finalize_function(void)
 
 	// finalize can_stack_address_leak
 	func.can_stack_address_leak = func.func_body != nullptr
-		&& (contains_pointer(func.return_type) || contains_pointer(func.arg_types));
+		&& (type_contains_pointer(func.return_type) || type_contains_pointer(func.arg_types));
 
 #ifndef NDEBUG
 	if (debug_comptime_print_functions)
