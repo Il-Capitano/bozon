@@ -42,7 +42,7 @@ static void report_redeclaration_error(lex::src_tokens src_tokens, ctx::symbol_t
 }
 */
 
-static void add_import_decls(src_file &file, bz::array_view<bz::u8string_view const> scope, ast::global_scope_t const &import_scope)
+static void add_import_decls(src_file &file, bz::array_view<bz::u8string_view const> scope, ast::global_scope_symbol_list_t const &import_symbols)
 {
 	ast::arena_vector<bz::u8string_view> id_buffer;
 	bz::array<bz::u8string_view, 8> stack_id_buffer;
@@ -93,7 +93,7 @@ static void add_import_decls(src_file &file, bz::array_view<bz::u8string_view co
 		}
 	};
 
-	for (auto const &func_set : import_scope.export_symbols.function_sets)
+	for (auto const &func_set : import_symbols.function_sets)
 	{
 		for (auto const func_decl : func_set.func_decls)
 		{
@@ -105,7 +105,7 @@ static void add_import_decls(src_file &file, bz::array_view<bz::u8string_view co
 		}
 	}
 
-	for (auto const &op_set : import_scope.export_symbols.operator_sets)
+	for (auto const &op_set : import_symbols.operator_sets)
 	{
 		for (auto const op_decl : op_set.op_decls)
 		{
@@ -113,12 +113,12 @@ static void add_import_decls(src_file &file, bz::array_view<bz::u8string_view co
 		}
 	}
 
-	for (auto const var_decl : import_scope.export_symbols.variables)
+	for (auto const var_decl : import_symbols.variables)
 	{
 		file._global_scope.get_global().all_symbols.add_variable(get_id(var_decl->get_id().values), *var_decl);
 	}
 
-	for (auto const &variadic_var_decl : import_scope.export_symbols.variadic_variables)
+	for (auto const &variadic_var_decl : import_symbols.variadic_variables)
 	{
 		file._global_scope.get_global().all_symbols.add_variable(
 			get_id(variadic_var_decl.original_decl->get_id().values),
@@ -127,17 +127,17 @@ static void add_import_decls(src_file &file, bz::array_view<bz::u8string_view co
 		);
 	}
 
-	for (auto const type_alias_decl : import_scope.export_symbols.type_aliases)
+	for (auto const type_alias_decl : import_symbols.type_aliases)
 	{
 		file._global_scope.get_global().all_symbols.add_type_alias(get_id(type_alias_decl->id.values), *type_alias_decl);
 	}
 
-	for (auto const struct_decl : import_scope.export_symbols.structs)
+	for (auto const struct_decl : import_symbols.structs)
 	{
 		file._global_scope.get_global().all_symbols.add_struct(get_id(struct_decl->id.values), *struct_decl);
 	}
 
-	for (auto const enum_decl : import_scope.export_symbols.enums)
+	for (auto const enum_decl : import_symbols.enums)
 	{
 		file._global_scope.get_global().all_symbols.add_enum(get_id(enum_decl->id.values), *enum_decl);
 	}
@@ -320,7 +320,8 @@ src_file::src_file(fs::path const &file_path, uint32_t file_id, bz::vector<bz::u
 		for (auto const &[id, scope] : import_file_ids)
 		{
 			auto const &import_decls = global_ctx.get_file_global_scope(id);
-			add_import_decls(*this, scope, import_decls.get_global());
+			auto const &import_symbols = import_decls.get_global().export_symbols;
+				add_import_decls(*this, scope, import_symbols);
 		}
 	}
 
