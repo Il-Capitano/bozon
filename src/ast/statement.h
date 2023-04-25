@@ -1548,9 +1548,14 @@ struct decl_enum
 struct decl_import
 {
 	identifier id;
+	bz::optional<identifier> import_namespace;
 
 	decl_import(identifier _id)
-		: id(std::move(_id))
+		: id(std::move(_id)), import_namespace()
+	{}
+
+	decl_import(identifier _id, identifier _import_namespace)
+		: id(std::move(_id)), import_namespace(std::move(_import_namespace))
 	{}
 };
 

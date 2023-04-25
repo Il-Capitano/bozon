@@ -316,12 +316,32 @@ src_file::src_file(fs::path const &file_path, uint32_t file_id, bz::vector<bz::u
 
 	for (auto const import : imports)
 	{
+		bz_assert(import->id.values.not_empty());
+		auto const import_scope_file_size = import->id.values.size() - 1; // e.g. import std::vector;
+		auto const import_scope_folder_size = import->id.values.size(); // e.g. import std;
+
 		auto const import_file_ids = global_ctx.add_module(this->_file_id, import->id);
 		for (auto const &[id, scope] : import_file_ids)
 		{
 			auto const &import_decls = global_ctx.get_file_global_scope(id);
 			auto const &import_symbols = import_decls.get_global().export_symbols;
+			if (!import->import_namespace.has_value())
+			{
 				add_import_decls(*this, scope, import_symbols);
+			}
+			else if (scope.size() == import_scope_file_size)
+			{
+				add_import_decls(*this, import->import_namespace->values, import_symbols);
+			}
+			else
+			{
+				bz_assert(scope.slice(0, import_scope_folder_size) == import->id.values.as_array_view());
+				ast::arena_vector<bz::u8string_view> temp_id_buffer;
+				temp_id_buffer.reserve(import->import_namespace->values.size() + scope.size() - import_scope_folder_size);
+				temp_id_buffer.append(import->import_namespace->values);
+				temp_id_buffer.append(scope.slice(import_scope_folder_size));
+				add_import_decls(*this, temp_id_buffer, import_symbols);
+			}
 		}
 	}
 

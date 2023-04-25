@@ -1,6 +1,6 @@
 import std;
 import std::libc;
-import private_member_test;
+import private_member_test as private::member::test;
 
 function factorial(n: auto) -> typeof n
 {
@@ -1598,7 +1598,7 @@ function type_test(T: typename, n: int32) -> T
 function private_member_test()
 {
 	// const s = some_struct[ 2 ];
-	const s = make_some_struct(0);
+	const s = private::member::test::make_some_struct(0);
 	// std::println(s._i);
 	std::print("{}\n", s.get_i());
 }

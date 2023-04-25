@@ -1122,13 +1122,38 @@ ast::statement parse_decl_import(
 	++stream; // import
 
 	auto id = get_identifier(stream, end, context);
-	context.assert_token(stream, lex::token::semi_colon);
+
 	if (id.values.empty())
 	{
+		context.assert_token(stream, lex::token::semi_colon, lex::token::kw_as);
 		return ast::statement();
+	}
+	else if (stream != end && stream->kind == lex::token::kw_as)
+	{
+		++stream; // as
+
+		if (stream != end && stream->kind == lex::token::star)
+		{
+			++stream; // *
+			context.assert_token(stream, lex::token::semi_colon);
+			return ast::make_decl_import(std::move(id), ast::identifier());
+		}
+
+		auto import_namespace = get_identifier(stream, end, context);
+		context.assert_token(stream, lex::token::semi_colon);
+
+		if (import_namespace.values.empty())
+		{
+			return ast::make_decl_import(std::move(id));
+		}
+		else
+		{
+			return ast::make_decl_import(std::move(id), std::move(import_namespace));
+		}
 	}
 	else
 	{
+		context.assert_token(stream, lex::token::semi_colon, lex::token::kw_as);
 		return ast::make_decl_import(std::move(id));
 	}
 }
