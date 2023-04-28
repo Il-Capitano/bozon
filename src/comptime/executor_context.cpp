@@ -1316,6 +1316,7 @@ ast::constant_value executor_context::execute_expression(ast::expression const &
 
 #ifdef BOZON_PROFILE_COMPTIME
 		comptime_executed_instructions_count += 1;
+		instruction_counts[this->current_instruction->index()] += 1;
 #endif // BOZON_PROFILE_COMPTIME
 
 		execute_current_instruction(*this);

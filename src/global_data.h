@@ -125,6 +125,7 @@ void print_version_info(void);
 #ifdef BOZON_PROFILE_COMPTIME
 inline size_t comptime_executed_instructions_count = 0;
 inline size_t comptime_emitted_instructions_count = 0;
+inline bool debug_comptime_print_instruction_counts = false;
 #endif // BOZON_PROFILE_COMPTIME
 
 #endif // GLOBAL_DATA_H

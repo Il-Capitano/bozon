@@ -6155,6 +6155,11 @@ public:
 bz::u8string to_string(instruction const &inst, function const *func);
 bz::u8string to_string(function const &func);
 
+#ifdef BOZON_PROFILE_COMPTIME
+void print_instruction_counts(void);
+inline bz::array<size_t, instruction_list_t::size() + 1> instruction_counts{};
+#endif // BOZON_PROFILE_COMPTIME
+
 } // namespace comptime
 
 template<>

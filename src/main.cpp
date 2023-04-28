@@ -1534,6 +1534,10 @@ struct foo<...Ts> {} // variadic
 #include "crash_handling.h"
 #include "timer.h"
 
+#ifdef BOZON_PROFILE_COMPTIME
+#include "comptime/instructions_forward.h"
+#endif // BOZON_PROFILE_COMPTIME
+
 #if defined(NDEBUG) || defined(_WIN32)
 // use std::exit instead of returning to avoid LLVM corrupting the heap
 // this happens rarely in debug mode, but is common for release builds
@@ -1686,6 +1690,10 @@ int main(int argc, char const **argv)
 #ifdef BOZON_PROFILE_COMPTIME
 		bz::print("emitted instructions:     {:8}\n", comptime_emitted_instructions_count);
 		bz::print("executed instructions:    {:8}\n", comptime_executed_instructions_count);
+		if (debug_comptime_print_instruction_counts)
+		{
+			comptime::print_instruction_counts();
+		}
 #endif // BOZON_PROFILE_COMPTIME
 	}
 

@@ -114,6 +114,9 @@ inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def>
 	ctcli::create_undocumented_option("--debug-comptime-print-functions", ""),
 	ctcli::create_undocumented_option("--debug-comptime-print-instructions", ""),
 #endif // !NDEBUG
+#ifdef BOZON_PROFILE_COMPTIME
+	ctcli::create_undocumented_option("--debug-comptime-print-instruction-counts", ""),
+#endif // BOZON_PROFILE_COMPTIME
 
 	ctcli::create_group_option("-W, --warn <warning>",     "Enable the specified <warning>",      warning_group_id,  "warnings"),
 	ctcli::create_group_option("-O, --opt <optimization>", "Enable the specified <optimization>", opt_group_id,      "optimizations"),
@@ -142,6 +145,9 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debu
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-functions")>    = &debug_comptime_print_functions;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-instructions")> = &debug_comptime_print_instructions;
 #endif // !NDEBUG
+#ifdef BOZON_PROFILE_COMPTIME
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-instruction-counts")> = &debug_comptime_print_instruction_counts;
+#endif // BOZON_PROFILE_COMPTIME
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-error-highlight")>       = &no_error_highlight;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--error-report-tab-size")>    = &tab_size;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--enable-comptime-print")>    = &enable_comptime_print;

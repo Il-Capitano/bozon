@@ -6264,7 +6264,7 @@ void current_function_info_t::finalize_function(void)
 	}
 
 #ifdef BOZON_PROFILE_COMPTIME
-		comptime_emitted_instructions_count += func.instructions.size();
+	comptime_emitted_instructions_count += func.instructions.size();
 #endif // BOZON_PROFILE_COMPTIME
 
 	// finalize allocas
