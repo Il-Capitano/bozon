@@ -230,8 +230,7 @@ bool stack_object::check_dereference(ptr_t address, type const *subobject_type) 
 {
 	if (address < this->address || address >= this->address + this->object_size() || this->memory.empty())
 	{
-		bz_assert(false);
-		return false;
+		bz_unreachable;
 	}
 	if (!this->is_alive(address, address + subobject_type->size))
 	{
@@ -946,8 +945,7 @@ bool heap_object::check_dereference(ptr_t address, type const *subobject_type) c
 {
 	if (address < this->address || address >= this->address + this->object_size() || this->memory.empty())
 	{
-		bz_assert(false);
-		return false;
+		bz_unreachable;
 	}
 	if (!this->is_alive(address, address + subobject_type->size))
 	{
