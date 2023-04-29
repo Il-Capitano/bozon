@@ -85,6 +85,8 @@ struct basic_block
 	bz::vector<instruction_and_args_pair_t> instructions;
 	unresolved_terminator terminator;
 	uint32_t instruction_value_offset;
+	uint32_t final_bb_index;
+	bool is_reachable;
 };
 
 enum class expr_value_kind

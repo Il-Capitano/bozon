@@ -6098,16 +6098,72 @@ void codegen_context::create_end_lifetime(expr_value ptr)
 
 static void optimize_jumps(current_function_info_t &info)
 {
-	for (auto const &[bb, bb_index] : info.blocks.enumerate())
+	for (auto &bb : info.blocks)
 	{
 		bz_assert(bb.instructions.not_empty() && bb.instructions.back().inst.is_terminator());
 		auto const &inst = bb.instructions.back().inst;
 		// check if the last jump instruction is a jump to the next block, and if so remove it.
 		// this happens quite a lot in code generation, so it should be worth it to filter them when finalizing the function code.
-		if (inst.index() == instruction::jump && bb.terminator.get<unresolved_jump>().dest.bb_index == bb_index + 1)
+		if (
+			inst.index() == instruction::jump
+			&& info.blocks[bb.terminator.get<unresolved_jump>().dest.bb_index].final_bb_index == bb.final_bb_index + 1
+		)
 		{
 			bb.instructions.pop_back();
 			bb.terminator.clear();
+		}
+	}
+}
+
+static void resolve_is_reachable_helper(current_function_info_t &info, basic_block &bb)
+{
+	if (bb.is_reachable)
+	{
+		return;
+	}
+
+	bb.is_reachable = true;
+	if (bb.terminator.is<unresolved_jump>())
+	{
+		resolve_is_reachable_helper(info, info.blocks[bb.terminator.get<unresolved_jump>().dest.bb_index]);
+	}
+	else if (bb.terminator.is<unresolved_conditional_jump>())
+	{
+		resolve_is_reachable_helper(info, info.blocks[bb.terminator.get<unresolved_conditional_jump>().true_dest.bb_index]);
+		resolve_is_reachable_helper(info, info.blocks[bb.terminator.get<unresolved_conditional_jump>().false_dest.bb_index]);
+	}
+	else if (bb.terminator.is<unresolved_switch>())
+	{
+		auto const &[values, default_dest] = bb.terminator.get<unresolved_switch>();
+		for (auto const &[value, dest] : values)
+		{
+			resolve_is_reachable_helper(info, info.blocks[dest.bb_index]);
+		}
+		resolve_is_reachable_helper(info, info.blocks[default_dest.bb_index]);
+	}
+	else if (bb.terminator.is<unresolved_switch_str>())
+	{
+		auto const &[values, default_dest] = bb.terminator.get<unresolved_switch_str>();
+		for (auto const &[value, dest] : values)
+		{
+			resolve_is_reachable_helper(info, info.blocks[dest.bb_index]);
+		}
+		resolve_is_reachable_helper(info, info.blocks[default_dest.bb_index]);
+	}
+}
+
+static void resolve_final_bb_indices(current_function_info_t &info)
+{
+	// resolve is_reachable
+	resolve_is_reachable_helper(info, info.blocks[0]);
+
+	uint32_t bb_index = 0;
+	for (auto &bb : info.blocks)
+	{
+		if (bb.is_reachable)
+		{
+			bb.final_bb_index = bb_index;
+			bb_index += 1;
 		}
 	}
 }
@@ -6117,8 +6173,11 @@ static uint32_t resolve_instruction_value_offsets(current_function_info_t &info)
 	uint32_t instruction_value_offset = info.allocas.size();
 	for (auto &bb : info.blocks)
 	{
-		bb.instruction_value_offset = instruction_value_offset;
-		instruction_value_offset += bb.instructions.size();
+		if (bb.is_reachable)
+		{
+			bb.instruction_value_offset = instruction_value_offset;
+			instruction_value_offset += bb.instructions.size();
+		}
 	}
 
 	return instruction_value_offset - info.blocks[0].instruction_value_offset;
@@ -6244,6 +6303,8 @@ void current_function_info_t::finalize_function(void)
 	bz_assert(this->blocks.is_all([](auto const &bb) { return bb.instructions.back().inst.is_terminator(); }));
 	// bz_assert(check_function(*this));
 
+	resolve_final_bb_indices(*this);
+
 	optimize_jumps(*this);
 	auto const instructions_count = resolve_instruction_value_offsets(*this);
 
@@ -6355,10 +6416,13 @@ void current_function_info_t::finalize_function(void)
 		auto it = func.instructions.begin();
 		for (auto const &bb : this->blocks)
 		{
-			for (auto const &[inst, _] : bb.instructions)
+			if (bb.is_reachable)
 			{
-				*it = inst;
-				++it;
+				for (auto const &[inst, _] : bb.instructions)
+				{
+					*it = inst;
+					++it;
+				}
 			}
 		}
 		bz_assert(it == func.instructions.end());
