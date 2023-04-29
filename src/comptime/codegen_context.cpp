@@ -783,9 +783,15 @@ expr_value codegen_context::create_const_f64(float64_t value)
 
 expr_value codegen_context::create_const_ptr_null(void)
 {
+	if (this->current_function_info.null_pointer_constant.has_value())
+	{
+		return expr_value::get_value(*this->current_function_info.null_pointer_constant, this->get_pointer_type());
+	}
+
 	auto const current_bb = this->get_current_basic_block();
 	this->set_current_basic_block(this->current_function_info.constants_bb);
 	auto const inst_ref = add_instruction(*this, instructions::const_ptr_null{});
+	this->current_function_info.null_pointer_constant = inst_ref;
 	this->set_current_basic_block(current_bb);
 	return expr_value::get_value(inst_ref, this->get_pointer_type());
 }

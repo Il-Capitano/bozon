@@ -165,6 +165,7 @@ struct current_function_info_t
 		instruction_ref inst;
 	};
 	bz::vector<constant_value_and_instruction_pair_t> constant_values;
+	bz::optional<instruction_ref> null_pointer_constant;
 
 	void finalize_function(void);
 };
