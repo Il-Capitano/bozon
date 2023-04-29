@@ -29,7 +29,7 @@ static basic_block &get_current_block(codegen_context &context)
 }
 
 template<typename Inst>
-instruction_ref add_instruction(codegen_context &context, Inst inst)
+static instruction_ref add_instruction(codegen_context &context, Inst inst)
 {
 	if (context.has_terminator())
 	{
@@ -38,16 +38,16 @@ instruction_ref add_instruction(codegen_context &context, Inst inst)
 	static_assert(instructions::arg_count<Inst> == 0);
 	instruction new_inst = instruction();
 	new_inst.emplace<Inst>(inst);
-	context.current_function_info.blocks[context.current_function_info.current_bb.bb_index].instructions.push_back(std::move(new_inst));
-	auto const result = instruction_ref{
+	auto &instructions = context.current_function_info.blocks[context.current_function_info.current_bb.bb_index].instructions;
+	instructions.push_back({ .inst = std::move(new_inst), .args = {} });
+	return instruction_ref{
 		.bb_index   = context.current_function_info.current_bb.bb_index,
-		.inst_index = static_cast<uint32_t>(context.current_function_info.blocks[context.current_function_info.current_bb.bb_index].instructions.size() - 1),
+		.inst_index = static_cast<uint32_t>(instructions.size() - 1),
 	};
-	return result;
 }
 
 template<typename Inst>
-instruction_ref add_instruction(codegen_context &context, Inst inst, instruction_ref arg)
+static instruction_ref add_instruction(codegen_context &context, Inst inst, instruction_ref arg)
 {
 	if (context.has_terminator())
 	{
@@ -56,20 +56,16 @@ instruction_ref add_instruction(codegen_context &context, Inst inst, instruction
 	static_assert(instructions::arg_count<Inst> == 1);
 	instruction new_inst = instruction();
 	new_inst.emplace<Inst>(inst);
-	context.current_function_info.blocks[context.get_current_basic_block().bb_index].instructions.push_back(std::move(new_inst));
-	auto const result = instruction_ref{
-		.bb_index   = context.get_current_basic_block().bb_index,
-		.inst_index = static_cast<uint32_t>(context.current_function_info.blocks[context.get_current_basic_block().bb_index].instructions.size() - 1),
+	auto &instructions = context.current_function_info.blocks[context.current_function_info.current_bb.bb_index].instructions;
+	instructions.push_back({ .inst = std::move(new_inst), .args = { arg, {}, {} } });
+	return instruction_ref{
+		.bb_index   = context.current_function_info.current_bb.bb_index,
+		.inst_index = static_cast<uint32_t>(instructions.size() - 1),
 	};
-	context.current_function_info.unresolved_instructions.push_back({
-		.inst = result,
-		.args = { arg, {}, {} },
-	});
-	return result;
 }
 
 template<typename Inst>
-instruction_ref add_instruction(codegen_context &context, Inst inst, instruction_ref arg1, instruction_ref arg2)
+static instruction_ref add_instruction(codegen_context &context, Inst inst, instruction_ref arg1, instruction_ref arg2)
 {
 	if (context.has_terminator())
 	{
@@ -78,20 +74,16 @@ instruction_ref add_instruction(codegen_context &context, Inst inst, instruction
 	static_assert(instructions::arg_count<Inst> == 2);
 	instruction new_inst = instruction();
 	new_inst.emplace<Inst>(inst);
-	context.current_function_info.blocks[context.get_current_basic_block().bb_index].instructions.push_back(std::move(new_inst));
-	auto const result = instruction_ref{
-		.bb_index   = context.get_current_basic_block().bb_index,
-		.inst_index = static_cast<uint32_t>(context.current_function_info.blocks[context.get_current_basic_block().bb_index].instructions.size() - 1),
+	auto &instructions = context.current_function_info.blocks[context.current_function_info.current_bb.bb_index].instructions;
+	instructions.push_back({ .inst = std::move(new_inst), .args = { arg1, arg2, {} } });
+	return instruction_ref{
+		.bb_index   = context.current_function_info.current_bb.bb_index,
+		.inst_index = static_cast<uint32_t>(instructions.size() - 1),
 	};
-	context.current_function_info.unresolved_instructions.push_back({
-		.inst = result,
-		.args = { arg1, arg2, {} },
-	});
-	return result;
 }
 
 template<typename Inst>
-instruction_ref add_instruction(codegen_context &context, Inst inst, instruction_ref arg1, instruction_ref arg2, instruction_ref arg3)
+static instruction_ref add_instruction(codegen_context &context, Inst inst, instruction_ref arg1, instruction_ref arg2, instruction_ref arg3)
 {
 	if (context.has_terminator())
 	{
@@ -100,16 +92,40 @@ instruction_ref add_instruction(codegen_context &context, Inst inst, instruction
 	static_assert(instructions::arg_count<Inst> == 3);
 	instruction new_inst = instruction();
 	new_inst.emplace<Inst>(inst);
-	context.current_function_info.blocks[context.get_current_basic_block().bb_index].instructions.push_back(std::move(new_inst));
-	auto const result = instruction_ref{
-		.bb_index   = context.get_current_basic_block().bb_index,
-		.inst_index = static_cast<uint32_t>(context.current_function_info.blocks[context.get_current_basic_block().bb_index].instructions.size() - 1),
+	auto &instructions = context.current_function_info.blocks[context.current_function_info.current_bb.bb_index].instructions;
+	instructions.push_back({ .inst = std::move(new_inst), .args = { arg1, arg2, arg3 } });
+	return instruction_ref{
+		.bb_index   = context.current_function_info.current_bb.bb_index,
+		.inst_index = static_cast<uint32_t>(instructions.size() - 1),
 	};
-	context.current_function_info.unresolved_instructions.push_back({
-		.inst = result,
-		.args = { arg1, arg2, arg3 },
-	});
-	return result;
+}
+
+static void add_unresolved_jump(codegen_context &context, unresolved_jump jump_info)
+{
+	auto &bb = context.current_function_info.blocks[context.current_function_info.current_bb.bb_index];
+	bz_assert(bb.terminator.is_null());
+	bb.terminator.emplace<unresolved_jump>(std::move(jump_info));
+}
+
+static void add_unresolved_conditional_jump(codegen_context &context, unresolved_conditional_jump jump_info)
+{
+	auto &bb = context.current_function_info.blocks[context.current_function_info.current_bb.bb_index];
+	bz_assert(bb.terminator.is_null());
+	bb.terminator.emplace<unresolved_conditional_jump>(std::move(jump_info));
+}
+
+static void add_unresolved_switch(codegen_context &context, unresolved_switch switch_info)
+{
+	auto &bb = context.current_function_info.blocks[context.current_function_info.current_bb.bb_index];
+	bz_assert(bb.terminator.is_null());
+	bb.terminator.emplace<unresolved_switch>(std::move(switch_info));
+}
+
+static void add_unresolved_switch_str(codegen_context &context, unresolved_switch_str switch_info)
+{
+	auto &bb = context.current_function_info.blocks[context.current_function_info.current_bb.bb_index];
+	bz_assert(bb.terminator.is_null());
+	bb.terminator.emplace<unresolved_switch_str>(std::move(switch_info));
 }
 
 bool expr_value::is_value(void) const
@@ -374,7 +390,7 @@ void codegen_context::set_current_basic_block(basic_block_ref bb)
 bool codegen_context::has_terminator(void)
 {
 	auto const &bb = this->current_function_info.blocks[this->get_current_basic_block().bb_index];
-	return bb.instructions.not_empty() && bb.instructions.back().is_terminator();
+	return bb.instructions.not_empty() && bb.instructions.back().inst.is_terminator();
 }
 
 [[nodiscard]] codegen_context::expression_scope_info_t codegen_context::push_expression_scope(void)
@@ -1168,7 +1184,7 @@ expr_value codegen_context::create_alloca_without_lifetime(type const *type)
 instruction_ref codegen_context::create_jump(basic_block_ref bb)
 {
 	auto const result = add_instruction(*this, instructions::jump{});
-	this->current_function_info.unresolved_jumps.push_back({ .inst = result, .dests = { bb, {} } });
+	add_unresolved_jump(*this, { bb });
 	return result;
 }
 
@@ -1181,7 +1197,7 @@ instruction_ref codegen_context::create_conditional_jump(
 	auto const condition_inst_ref = condition.get_value_as_instruction(*this);
 	if (condition_inst_ref.bb_index != instruction_ref::alloca_bb_index)
 	{
-		auto const &inst = this->current_function_info.blocks[condition_inst_ref.bb_index].instructions[condition_inst_ref.inst_index];
+		auto const &inst = this->current_function_info.blocks[condition_inst_ref.bb_index].instructions[condition_inst_ref.inst_index].inst;
 		if (inst.index() == instruction::const_i1)
 		{
 			if (inst.get<instructions::const_i1>().value)
@@ -1195,7 +1211,7 @@ instruction_ref codegen_context::create_conditional_jump(
 		}
 	}
 	auto const result = add_instruction(*this, instructions::conditional_jump{}, condition.get_value_as_instruction(*this));
-	this->current_function_info.unresolved_jumps.push_back({ .inst = result, .dests = { true_bb, false_bb } });
+	add_unresolved_conditional_jump(*this, { true_bb, false_bb });
 	return result;
 }
 
@@ -1206,27 +1222,25 @@ instruction_ref codegen_context::create_switch(
 )
 {
 	auto const value_ref = value.get_value_as_instruction(*this);
-	auto const switch_info_index = static_cast<uint32_t>(this->current_function_info.unresolved_switches.size());
 	bz_assert(value.get_type()->is_integer_type());
 	auto const result = [&]() {
 		switch (value.get_type()->get_builtin_kind())
 		{
 		case builtin_type_kind::i1:
-			return add_instruction(*this, instructions::switch_i1{ .switch_info_index = switch_info_index }, value_ref);
+			return add_instruction(*this, instructions::switch_i1{}, value_ref);
 		case builtin_type_kind::i8:
-			return add_instruction(*this, instructions::switch_i8{ .switch_info_index = switch_info_index }, value_ref);
+			return add_instruction(*this, instructions::switch_i8{}, value_ref);
 		case builtin_type_kind::i16:
-			return add_instruction(*this, instructions::switch_i16{ .switch_info_index = switch_info_index }, value_ref);
+			return add_instruction(*this, instructions::switch_i16{}, value_ref);
 		case builtin_type_kind::i32:
-			return add_instruction(*this, instructions::switch_i32{ .switch_info_index = switch_info_index }, value_ref);
+			return add_instruction(*this, instructions::switch_i32{}, value_ref);
 		case builtin_type_kind::i64:
-			return add_instruction(*this, instructions::switch_i64{ .switch_info_index = switch_info_index }, value_ref);
+			return add_instruction(*this, instructions::switch_i64{}, value_ref);
 		default:
 			bz_unreachable;
 		}
 	}();
-	this->current_function_info.unresolved_switches.push_back({
-		.inst = result,
+	add_unresolved_switch(*this, {
 		.values = std::move(values),
 		.default_bb = default_bb,
 	});
@@ -1242,12 +1256,8 @@ instruction_ref codegen_context::create_string_switch(
 {
 	auto const begin_ptr_value = begin_ptr.get_value_as_instruction(*this);
 	auto const end_ptr_value = end_ptr.get_value_as_instruction(*this);
-	auto const switch_str_info_index = static_cast<uint32_t>(this->current_function_info.unresolved_string_switches.size());
-	auto const result = add_instruction(*this, instructions::switch_str{
-		.switch_str_info_index = switch_str_info_index
-	}, begin_ptr_value, end_ptr_value);
-	this->current_function_info.unresolved_string_switches.push_back({
-		.inst = result,
+	auto const result = add_instruction(*this, instructions::switch_str{}, begin_ptr_value, end_ptr_value);
+	add_unresolved_switch_str(*this, {
 		.values = std::move(values),
 		.default_bb = default_bb,
 	});
@@ -6088,14 +6098,16 @@ void codegen_context::create_end_lifetime(expr_value ptr)
 
 static void optimize_jumps(current_function_info_t &info)
 {
-	for (auto const &[inst_ref, dests] : info.unresolved_jumps)
+	for (auto const &[bb, bb_index] : info.blocks.enumerate())
 	{
-		auto const &inst = info.blocks[inst_ref.bb_index].instructions[inst_ref.inst_index];
+		bz_assert(bb.instructions.not_empty() && bb.instructions.back().inst.is_terminator());
+		auto const &inst = bb.instructions.back().inst;
 		// check if the last jump instruction is a jump to the next block, and if so remove it.
 		// this happens quite a lot in code generation, so it should be worth it to filter them when finalizing the function code.
-		if (inst.index() == instruction::jump && dests[0].bb_index == inst_ref.bb_index + 1)
+		if (inst.index() == instruction::jump && bb.terminator.get<unresolved_jump>().dest.bb_index == bb_index + 1)
 		{
-			info.blocks[inst_ref.bb_index].instructions.pop_back();
+			bb.instructions.pop_back();
+			bb.terminator.clear();
 		}
 	}
 }
@@ -6118,8 +6130,7 @@ static void resolve_instruction_args(instruction &inst, bz::array<instruction_re
 		using inst_type = bz::meta::remove_reference<decltype(inst)>;
 		if constexpr (instructions::arg_count<inst_type> == 0)
 		{
-			// such an instruction shouldn't be in unresolved_instructions
-			bz_unreachable;
+			// nothing
 		}
 		else if constexpr (instructions::arg_count<inst_type> == 1)
 		{
@@ -6143,27 +6154,56 @@ static void resolve_instruction_args(instruction &inst, bz::array<instruction_re
 	});
 }
 
-static void resolve_jump_dests(instruction &inst, bz::array<basic_block_ref, 2> const &dests, auto get_instruction_index)
+struct switch_info_count_info_t
 {
-	switch (inst.index())
+	size_t switch_info_count;
+	size_t switch_str_info_count;
+};
+
+static switch_info_count_info_t get_switch_info_counts(current_function_info_t const &info)
+{
+	size_t switch_info_count = 0;
+	size_t switch_str_info_count = 0;
+
+	for (auto const &bb : info.blocks)
 	{
-	static_assert(instruction_list_t::size() == 544);
-	case instruction::jump:
+		switch_info_count += bb.terminator.is<unresolved_switch>();
+		switch_str_info_count += bb.terminator.is<unresolved_switch_str>();
+	}
+
+	return { switch_info_count, switch_str_info_count };
+}
+
+static switch_info_t create_switch_info(unresolved_switch const &info, auto get_basic_block_instruction_index)
+{
+	switch_info_t result;
+
+	result.values = bz::fixed_vector<switch_info_t::value_instruction_index_pair>(info.values.size());
+	for (auto const j : bz::iota(0, info.values.size()))
 	{
-		auto &jump_inst = inst.get<instructions::jump>();
-		jump_inst.dest = get_instruction_index({ .bb_index = dests[0].bb_index, .inst_index = 0 });
-		break;
+		result.values[j].value = info.values[j].value;
+		result.values[j].dest = get_basic_block_instruction_index(info.values[j].bb);
 	}
-	case instruction::conditional_jump:
+	result.values.sort([](auto const &lhs, auto const &rhs) { return lhs.value < rhs.value; });
+	result.default_dest = get_basic_block_instruction_index(info.default_bb);
+
+	return result;
+}
+
+static switch_str_info_t create_switch_str_info(unresolved_switch_str const &info, auto get_basic_block_instruction_index)
+{
+	switch_str_info_t result;
+
+	result.values = bz::fixed_vector<switch_str_info_t::value_instruction_index_pair>(info.values.size());
+	for (auto const j : bz::iota(0, info.values.size()))
 	{
-		auto &jump_inst = inst.get<instructions::conditional_jump>();
-		jump_inst.true_dest  = get_instruction_index({ .bb_index = dests[0].bb_index, .inst_index = 0 });
-		jump_inst.false_dest = get_instruction_index({ .bb_index = dests[1].bb_index, .inst_index = 0 });
-		break;
+		result.values[j].value = info.values[j].value;
+		result.values[j].dest = get_basic_block_instruction_index(info.values[j].bb);
 	}
-	default:
-		bz_unreachable;
-	}
+	result.values.sort([](auto const &lhs, auto const &rhs) { return switch_str_info_t::compare(lhs.value, rhs.value); });
+	result.default_dest = get_basic_block_instruction_index(info.default_bb);
+
+	return result;
 }
 
 static bool type_contains_pointer(bz::array_view<type const * const> types);
@@ -6201,7 +6241,8 @@ void current_function_info_t::finalize_function(void)
 	auto &func = *this->func;
 
 	bz_assert(this->blocks.is_all([](auto const &bb) { return bb.instructions.not_empty(); }));
-	bz_assert(this->blocks.is_all([](auto const &bb) { return bb.instructions.back().is_terminator(); }));
+	bz_assert(this->blocks.is_all([](auto const &bb) { return bb.instructions.back().inst.is_terminator(); }));
+	// bz_assert(check_function(*this));
 
 	optimize_jumps(*this);
 	auto const instructions_count = resolve_instruction_value_offsets(*this);
@@ -6217,61 +6258,95 @@ void current_function_info_t::finalize_function(void)
 		}
 	};
 
-	auto const get_instruction_index = [this](instruction_ref inst_ref) -> instruction_index {
-		bz_assert(inst_ref.bb_index != instruction_ref::alloca_bb_index);
-		auto const bb_offset = this->blocks[inst_ref.bb_index].instruction_value_offset - this->blocks[0].instruction_value_offset;
-		return { .index = bb_offset + inst_ref.inst_index };
+	auto const get_basic_block_instruction_index = [this](basic_block_ref bb) -> instruction_index {
+		bz_assert(bb.bb_index != instruction_ref::alloca_bb_index);
+		auto const bb_offset = this->blocks[bb.bb_index].instruction_value_offset - this->blocks[0].instruction_value_offset;
+		return { .index = bb_offset };
 	};
 
-	auto const get_instruction = [this](instruction_ref inst_ref) -> instruction & {
-		bz_assert(inst_ref.bb_index != instruction_ref::alloca_bb_index);
-		return this->blocks[inst_ref.bb_index].instructions[inst_ref.inst_index];
-	};
+	auto const [switch_info_count, switch_str_info_count] = get_switch_info_counts(*this);
 
-	for (auto const &[inst_ref, args] : this->unresolved_instructions)
-	{
-		resolve_instruction_args(get_instruction(inst_ref), args, get_instruction_value_index);
-	}
+	// allocate switch_infos and switch_str_infos
+	func.switch_infos = bz::fixed_vector<switch_info_t>(switch_info_count);
+	func.switch_str_infos = bz::fixed_vector<switch_str_info_t>(switch_str_info_count);
 
-	for (auto const &[inst_ref, dests] : this->unresolved_jumps)
+	uint32_t switch_info_index = 0;
+	uint32_t switch_str_info_index = 0;
+	for (auto &bb : this->blocks)
 	{
-		// the last jump could have been removed previously, if it's just a jump to the next block
-		if (inst_ref.inst_index < this->blocks[inst_ref.bb_index].instructions.size())
+		// finalize the instructions
+		for (auto &[inst, args] : bb.instructions)
 		{
-			resolve_jump_dests(get_instruction(inst_ref), dests, get_instruction_index);
+			resolve_instruction_args(inst, args, get_instruction_value_index);
 		}
-	}
 
-	// finalize switch_infos
-	func.switch_infos = bz::fixed_vector<switch_info_t>(this->unresolved_switches.size());
-	for (auto const i : bz::iota(0, func.switch_infos.size()))
-	{
-		auto const &[inst_ref, values, default_dest] = this->unresolved_switches[i];
-		auto &info = func.switch_infos[i];
-		info.values = bz::fixed_vector<switch_info_t::value_instruction_index_pair>(values.size());
-		for (auto const j : bz::iota(0, info.values.size()))
+		// finalize the terminator dests
+		static_assert(instruction_list_t::size() == 544);
+		if (bb.instructions.not_empty()) switch (auto &inst = bb.instructions.back().inst; inst.index())
 		{
-			info.values[j].value = values[j].value;
-			info.values[j].dest = get_instruction_index({ .bb_index = values[j].bb.bb_index, .inst_index = 0 });
+		case instruction::jump:
+			inst.get<instructions::jump>().dest = get_basic_block_instruction_index(bb.terminator.get<unresolved_jump>().dest);
+			break;
+		case instruction::conditional_jump:
+			inst.get<instructions::conditional_jump>().true_dest = get_basic_block_instruction_index(
+				bb.terminator.get<unresolved_conditional_jump>().true_dest
+			);
+			inst.get<instructions::conditional_jump>().false_dest = get_basic_block_instruction_index(
+				bb.terminator.get<unresolved_conditional_jump>().false_dest
+			);
+			break;
+		case instruction::switch_i1:
+			inst.get<instructions::switch_i1>().switch_info_index = switch_info_index;
+			func.switch_infos[switch_info_index] = create_switch_info(
+				bb.terminator.get<unresolved_switch>(),
+				get_basic_block_instruction_index
+			);
+			switch_info_index += 1;
+			break;
+		case instruction::switch_i8:
+			inst.get<instructions::switch_i8>().switch_info_index = switch_info_index;
+			func.switch_infos[switch_info_index] = create_switch_info(
+				bb.terminator.get<unresolved_switch>(),
+				get_basic_block_instruction_index
+			);
+			switch_info_index += 1;
+			break;
+		case instruction::switch_i16:
+			inst.get<instructions::switch_i16>().switch_info_index = switch_info_index;
+			func.switch_infos[switch_info_index] = create_switch_info(
+				bb.terminator.get<unresolved_switch>(),
+				get_basic_block_instruction_index
+			);
+			switch_info_index += 1;
+			break;
+		case instruction::switch_i32:
+			inst.get<instructions::switch_i32>().switch_info_index = switch_info_index;
+			func.switch_infos[switch_info_index] = create_switch_info(
+				bb.terminator.get<unresolved_switch>(),
+				get_basic_block_instruction_index
+			);
+			switch_info_index += 1;
+			break;
+		case instruction::switch_i64:
+			inst.get<instructions::switch_i64>().switch_info_index = switch_info_index;
+			func.switch_infos[switch_info_index] = create_switch_info(
+				bb.terminator.get<unresolved_switch>(),
+				get_basic_block_instruction_index
+			);
+			switch_info_index += 1;
+			break;
+		case instruction::switch_str:
+			inst.get<instructions::switch_str>().switch_str_info_index = switch_str_info_index;
+			func.switch_str_infos[switch_str_info_index] = create_switch_str_info(
+				bb.terminator.get<unresolved_switch_str>(),
+				get_basic_block_instruction_index
+			);
+			switch_str_info_index += 1;
+			break;
+		default:
+			// nothing to do
+			break;
 		}
-		info.values.sort([](auto const &lhs, auto const &rhs) { return lhs.value < rhs.value; });
-		info.default_dest = get_instruction_index({ .bb_index = default_dest.bb_index, .inst_index = 0 });
-	}
-
-	// finalize switch_str_infos
-	func.switch_str_infos = bz::fixed_vector<switch_str_info_t>(this->unresolved_string_switches.size());
-	for (auto const i : bz::iota(0, func.switch_str_infos.size()))
-	{
-		auto const &[inst_ref, values, default_dest] = this->unresolved_string_switches[i];
-		auto &info = func.switch_str_infos[i];
-		info.values = bz::fixed_vector<switch_str_info_t::value_instruction_index_pair>(values.size());
-		for (auto const j : bz::iota(0, info.values.size()))
-		{
-			info.values[j].value = values[j].value;
-			info.values[j].dest = get_instruction_index({ .bb_index = values[j].bb.bb_index, .inst_index = 0 });
-		}
-		info.values.sort([](auto const &lhs, auto const &rhs) { return switch_str_info_t::compare(lhs.value, rhs.value); });
-		info.default_dest = get_instruction_index({ .bb_index = default_dest.bb_index, .inst_index = 0 });
 	}
 
 	// finalize instructions
@@ -6280,8 +6355,11 @@ void current_function_info_t::finalize_function(void)
 		auto it = func.instructions.begin();
 		for (auto const &bb : this->blocks)
 		{
-			std::copy_n(bb.instructions.begin(), bb.instructions.size(), it);
-			it += bb.instructions.size();
+			for (auto const &[inst, _] : bb.instructions)
+			{
+				*it = inst;
+				++it;
+			}
 		}
 		bz_assert(it == func.instructions.end());
 	}

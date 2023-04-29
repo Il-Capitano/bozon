@@ -29,6 +29,43 @@ struct instruction_ref
 	static inline constexpr uint32_t alloca_bb_index = std::numeric_limits<uint32_t>::max();
 };
 
+struct unresolved_jump
+{
+	basic_block_ref dest;
+};
+
+struct unresolved_conditional_jump
+{
+	basic_block_ref true_dest;
+	basic_block_ref false_dest;
+};
+
+struct unresolved_switch
+{
+	struct value_bb_pair
+	{
+		uint64_t value;
+		basic_block_ref bb;
+	};
+
+	bz::vector<value_bb_pair> values;
+	basic_block_ref default_bb;
+};
+
+struct unresolved_switch_str
+{
+	struct value_bb_pair
+	{
+		bz::u8string_view value;
+		basic_block_ref bb;
+	};
+
+	bz::vector<value_bb_pair> values;
+	basic_block_ref default_bb;
+};
+
+using unresolved_terminator = bz::variant<unresolved_jump, unresolved_conditional_jump, unresolved_switch, unresolved_switch_str>;
+
 struct basic_block
 {
 	struct cached_value_t
@@ -38,8 +75,15 @@ struct basic_block
 		type const *loaded_type;
 	};
 
-	bz::vector<instruction> instructions;
+	struct instruction_and_args_pair_t
+	{
+		instruction inst;
+		bz::array<instruction_ref, 3> args;
+	};
+
 	bz::vector<cached_value_t> cached_values;
+	bz::vector<instruction_and_args_pair_t> instructions;
+	unresolved_terminator terminator;
 	uint32_t instruction_value_offset;
 };
 
@@ -83,44 +127,6 @@ struct expr_value
 	bool operator == (expr_value const &rhs) const = default;
 };
 
-struct unresolved_instruction
-{
-	instruction_ref inst;
-	bz::array<instruction_ref, 3> args;
-};
-
-struct unresolved_jump
-{
-	instruction_ref inst;
-	bz::array<basic_block_ref, 2> dests;
-};
-
-struct unresolved_switch
-{
-	struct value_bb_pair
-	{
-		uint64_t value;
-		basic_block_ref bb;
-	};
-
-	instruction_ref inst;
-	bz::vector<value_bb_pair> values;
-	basic_block_ref default_bb;
-};
-
-struct unresolved_switch_str
-{
-	struct value_bb_pair
-	{
-		bz::u8string_view value;
-		basic_block_ref bb;
-	};
-
-	instruction_ref inst;
-	bz::vector<value_bb_pair> values;
-	basic_block_ref default_bb;
-};
-
 struct destruct_operation_info_t
 {
 	ast::destruct_operation const *destruct_op;
@@ -148,10 +154,6 @@ struct current_function_info_t
 	bz::vector<memory_access_check_info_t> memory_access_check_infos;
 	bz::vector<add_global_array_data_info_t> add_global_array_data_infos;
 	bz::vector<copy_values_info_t> copy_values_infos;
-	bz::vector<unresolved_instruction> unresolved_instructions;
-	bz::vector<unresolved_jump> unresolved_jumps;
-	bz::vector<unresolved_switch> unresolved_switches;
-	bz::vector<unresolved_switch_str> unresolved_string_switches;
 
 	bz::vector<destruct_operation_info_t> destructor_calls{};
 	std::unordered_map<ast::decl_variable const *, instruction_ref> move_destruct_indicators{};
