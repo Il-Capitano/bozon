@@ -1195,7 +1195,11 @@ instruction_ref codegen_context::create_conditional_jump(
 )
 {
 	auto const condition_inst_ref = condition.get_value_as_instruction(*this);
-	if (condition_inst_ref.bb_index != instruction_ref::alloca_bb_index)
+	if (true_bb.bb_index == false_bb.bb_index)
+	{
+		return this->create_jump(true_bb);
+	}
+	else if (condition_inst_ref.bb_index != instruction_ref::alloca_bb_index)
 	{
 		auto const &inst = this->current_function_info.blocks[condition_inst_ref.bb_index].instructions[condition_inst_ref.inst_index].inst;
 		if (inst.index() == instruction::const_i1)
@@ -6101,14 +6105,14 @@ static void optimize_jumps(current_function_info_t &info)
 	for (auto &bb : info.blocks)
 	{
 		bz_assert(bb.instructions.not_empty() && bb.instructions.back().inst.is_terminator());
-		auto const &inst = bb.instructions.back().inst;
 		// check if the last jump instruction is a jump to the next block, and if so remove it.
 		// this happens quite a lot in code generation, so it should be worth it to filter them when finalizing the function code.
 		if (
-			inst.index() == instruction::jump
+			bb.terminator.is<unresolved_jump>()
 			&& info.blocks[bb.terminator.get<unresolved_jump>().dest.bb_index].final_bb_index == bb.final_bb_index + 1
 		)
 		{
+			bz_assert(bb.instructions.back().inst.index() == instruction::jump);
 			bb.instructions.pop_back();
 			bb.terminator.clear();
 		}
@@ -6301,7 +6305,6 @@ void current_function_info_t::finalize_function(void)
 
 	bz_assert(this->blocks.is_all([](auto const &bb) { return bb.instructions.not_empty(); }));
 	bz_assert(this->blocks.is_all([](auto const &bb) { return bb.instructions.back().inst.is_terminator(); }));
-	// bz_assert(check_function(*this));
 
 	resolve_final_bb_indices(*this);
 
