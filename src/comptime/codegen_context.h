@@ -335,7 +335,7 @@ struct codegen_context
 	instruction_ref create_get_function_arg(uint32_t arg_index);
 
 	expr_value create_load(expr_value ptr);
-	instruction_ref create_store(expr_value value, expr_value ptr);
+	void create_store(expr_value value, expr_value ptr);
 	void create_memory_access_check(
 		lex::src_tokens const &src_tokens,
 		expr_value ptr,
@@ -355,23 +355,23 @@ struct codegen_context
 	expr_value create_alloca(lex::src_tokens const &src_tokens, type const *type);
 	expr_value create_alloca_without_lifetime(type const *type);
 
-	instruction_ref create_jump(basic_block_ref bb);
-	instruction_ref create_conditional_jump(expr_value condition, basic_block_ref true_bb, basic_block_ref false_bb);
-	instruction_ref create_switch(expr_value value, bz::vector<unresolved_switch::value_bb_pair> values, basic_block_ref default_bb);
-	instruction_ref create_string_switch(
+	void create_jump(basic_block_ref bb);
+	void create_conditional_jump(expr_value condition, basic_block_ref true_bb, basic_block_ref false_bb);
+	void create_switch(expr_value value, bz::vector<unresolved_switch::value_bb_pair> values, basic_block_ref default_bb);
+	void create_string_switch(
 		expr_value begin_ptr,
 		expr_value end_ptr,
 		bz::vector<unresolved_switch_str::value_bb_pair> values,
 		basic_block_ref default_bb
 	);
-	instruction_ref create_ret(instruction_ref value);
-	instruction_ref create_ret_void(void);
+	void create_ret(instruction_ref value);
+	void create_ret_void(void);
 
 	expr_value create_struct_gep(expr_value value, size_t index);
 	expr_value create_array_gep(expr_value value, expr_value index);
 	expr_value create_array_slice_gep(expr_value begin_ptr, expr_value index, type const *elem_type);
-	instruction_ref create_const_memcpy(expr_value dest, expr_value source, size_t size);
-	instruction_ref create_const_memset_zero(expr_value dest);
+	void create_const_memcpy(expr_value dest, expr_value source, size_t size);
+	void create_const_memset_zero(expr_value dest);
 	void create_copy_values(
 		lex::src_tokens const &src_tokens,
 		expr_value dest,
@@ -556,16 +556,16 @@ struct codegen_context
 	expr_value create_fshl(expr_value a, expr_value b, expr_value amount);
 	expr_value create_fshr(expr_value a, expr_value b, expr_value amount);
 
-	instruction_ref create_unreachable(void);
-	instruction_ref create_error(lex::src_tokens const &src_tokens, bz::u8string message);
-	instruction_ref create_error_str(lex::src_tokens const &src_tokens, expr_value begin_ptr, expr_value end_ptr);
-	instruction_ref create_warning_str(lex::src_tokens const &src_tokens, ctx::warning_kind kind, expr_value begin_ptr, expr_value end_ptr);
-	instruction_ref create_print(expr_value begin_ptr, expr_value end_ptr);
+	void create_unreachable(void);
+	void create_error(lex::src_tokens const &src_tokens, bz::u8string message);
+	void create_error_str(lex::src_tokens const &src_tokens, expr_value begin_ptr, expr_value end_ptr);
+	void create_warning_str(lex::src_tokens const &src_tokens, ctx::warning_kind kind, expr_value begin_ptr, expr_value end_ptr);
+	void create_print(expr_value begin_ptr, expr_value end_ptr);
 	expr_value create_is_option_set(expr_value begin_ptr, expr_value end_ptr);
-	instruction_ref create_array_bounds_check(lex::src_tokens const &src_tokens, expr_value index, expr_value size, bool is_index_signed);
-	instruction_ref create_optional_get_value_check(lex::src_tokens const &src_tokens, expr_value has_value);
-	instruction_ref create_str_construction_check(lex::src_tokens const &src_tokens, expr_value begin_ptr, expr_value end_ptr);
-	instruction_ref create_slice_construction_check(
+	void create_array_bounds_check(lex::src_tokens const &src_tokens, expr_value index, expr_value size, bool is_index_signed);
+	void create_optional_get_value_check(lex::src_tokens const &src_tokens, expr_value has_value);
+	void create_str_construction_check(lex::src_tokens const &src_tokens, expr_value begin_ptr, expr_value end_ptr);
+	void create_slice_construction_check(
 		lex::src_tokens const &src_tokens,
 		expr_value begin_ptr,
 		expr_value end_ptr,
