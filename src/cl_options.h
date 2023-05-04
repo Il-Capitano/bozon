@@ -52,7 +52,7 @@ inline constexpr bz::array ctcli::option_group_multiple<warning_group_id> = []()
 
 template<>
 inline constexpr bz::array ctcli::option_group<opt_group_id> = []() {
-	bz::array<ctcli::group_element_t, bc::optimization_infos.size() + 3> result{};
+	bz::array<ctcli::group_element_t, bc::optimization_infos.size() + 4> result{};
 
 	size_t i = 0;
 	for (i = 0; i < bc::optimization_infos.size(); ++i)
@@ -62,9 +62,11 @@ inline constexpr bz::array ctcli::option_group<opt_group_id> = []() {
 	}
 
 	static_assert(bz::meta::is_same<size_t, uint64_t>);
-	result[i++] = ctcli::create_group_element("max-iter-count=<count>",     "Control the maximum number of pass iterations (default=1)",     ctcli::arg_type::uint64);
-	result[i++] = ctcli::create_group_element("opt-level=<level>",          "Set optimization level (0-3) (default=0)",                      ctcli::arg_type::uint32);
-	result[i++] = ctcli::create_group_element("size-opt-level=<level>",     "Set size optimization level (0-2) (default=0)",                 ctcli::arg_type::uint32);
+	result[i++] = ctcli::create_group_element("max-iter-count=<count>", "Control the maximum number of pass iterations (default=1)", ctcli::arg_type::uint64);
+	result[i++] = ctcli::create_group_element("opt-level=<level>",      "Set optimization level (0-3) (default=0)",                  ctcli::arg_type::uint32);
+	result[i++] = ctcli::create_group_element("size-opt-level=<level>", "Set size optimization level (0-2) (default=0)",             ctcli::arg_type::uint32);
+
+	result[i++] = ctcli::create_hidden_group_element("machine-code-opt-level=<level>", "Manually set optimization level for machine code generation (0-3)", ctcli::arg_type::uint32);
 
 	bz_assert(i == result.size());
 	return result;
@@ -182,9 +184,10 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element(
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn comptime-warning")>         = &warnings[static_cast<size_t>(ctx::warning_kind::comptime_warning)];
 static_assert(static_cast<size_t>(ctx::warning_kind::_last) == 26);
 
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt max-iter-count")>     = &max_opt_iter_count;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt opt-level")>          = &opt_level;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt size-opt-level")>     = &size_opt_level;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt max-iter-count")>         = &max_opt_iter_count;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt opt-level")>              = &opt_level;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt size-opt-level")>         = &size_opt_level;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt machine-code-opt-level")> = &machine_code_opt_level;
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-unreachable")>             = &panic_on_unreachable;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-null-dereference")>        = &panic_on_null_dereference;

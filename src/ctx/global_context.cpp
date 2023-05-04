@@ -1008,11 +1008,22 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 	llvm::TargetOptions options;
 	auto const rm = llvm::Reloc::Model::PIC_;
-	this->_target_machine.reset(this->_target->createTargetMachine(target_triple, cpu, features, options, rm));
-	bz_assert(this->_target_machine);
-
 	auto const codegen_opt_level = [&]() {
-		if (size_opt_level != 0)
+		if (ctcli::is_option_set<ctcli::group_element("--opt machine-code-opt-level")>())
+		{
+			switch (machine_code_opt_level)
+			{
+			case 0:
+				return llvm::CodeGenOpt::None;
+			case 1:
+				return llvm::CodeGenOpt::Less;
+			case 2:
+				return llvm::CodeGenOpt::Default;
+			default:
+				return llvm::CodeGenOpt::Aggressive;
+			}
+		}
+		else if (size_opt_level != 0)
 		{
 			return llvm::CodeGenOpt::Default;
 		}
@@ -1031,7 +1042,11 @@ void global_context::report_and_clear_errors_and_warnings(void)
 			}
 		}
 	}();
-	this->_target_machine->setOptLevel(codegen_opt_level);
+
+	this->_target_machine.reset(this->_target->createTargetMachine(
+		target_triple, cpu, features, options, rm, std::nullopt, codegen_opt_level
+	));
+	bz_assert(this->_target_machine);
 
 	this->_data_layout = this->_target_machine->createDataLayout();
 	this->_module.setDataLayout(*this->_data_layout);

@@ -116,6 +116,7 @@ inline bz::u8string stdlib_dir;
 inline size_t max_opt_iter_count = 1;
 inline uint32_t opt_level = 0;
 inline uint32_t size_opt_level = 0;
+inline uint32_t machine_code_opt_level = 0;
 
 bool is_warning_enabled(ctx::warning_kind kind) noexcept;
 bool is_warning_error(ctx::warning_kind kind) noexcept;
