@@ -35,6 +35,13 @@ static instruction_ref add_instruction(codegen_context &context, Inst inst)
 	{
 		context.set_current_basic_block(context.add_basic_block());
 	}
+
+	// invalidate load cache, if we need to
+	if constexpr (Inst::invalidates_load_cache)
+	{
+		get_current_block(context).cached_values.clear_without_deallocation();
+	}
+
 	static_assert(instructions::arg_count<Inst> == 0);
 	instruction new_inst = instruction();
 	new_inst.emplace<Inst>(inst);
@@ -53,6 +60,13 @@ static instruction_ref add_instruction(codegen_context &context, Inst inst, inst
 	{
 		context.set_current_basic_block(context.add_basic_block());
 	}
+
+	// invalidate load cache, if we need to
+	if constexpr (Inst::invalidates_load_cache)
+	{
+		get_current_block(context).cached_values.clear_without_deallocation();
+	}
+
 	static_assert(instructions::arg_count<Inst> == 1);
 	instruction new_inst = instruction();
 	new_inst.emplace<Inst>(inst);
@@ -71,6 +85,13 @@ static instruction_ref add_instruction(codegen_context &context, Inst inst, inst
 	{
 		context.set_current_basic_block(context.add_basic_block());
 	}
+
+	// invalidate load cache, if we need to
+	if constexpr (Inst::invalidates_load_cache)
+	{
+		get_current_block(context).cached_values.clear_without_deallocation();
+	}
+
 	static_assert(instructions::arg_count<Inst> == 2);
 	instruction new_inst = instruction();
 	new_inst.emplace<Inst>(inst);
@@ -89,6 +110,13 @@ static instruction_ref add_instruction(codegen_context &context, Inst inst, inst
 	{
 		context.set_current_basic_block(context.add_basic_block());
 	}
+
+	// invalidate load cache, if we need to
+	if constexpr (Inst::invalidates_load_cache)
+	{
+		get_current_block(context).cached_values.clear_without_deallocation();
+	}
+
 	static_assert(instructions::arg_count<Inst> == 3);
 	instruction new_inst = instruction();
 	new_inst.emplace<Inst>(inst);
@@ -1014,7 +1042,6 @@ expr_value codegen_context::create_load(expr_value ptr)
 instruction_ref codegen_context::create_store(expr_value value, expr_value ptr)
 {
 	auto &current_block = get_current_block(*this);
-	current_block.cached_values.clear_without_deallocation();
 
 	bz_assert(value.get_type() == ptr.get_type());
 	auto const type = value.get_type();
@@ -1022,80 +1049,84 @@ instruction_ref codegen_context::create_store(expr_value value, expr_value ptr)
 	auto const value_ = value.get_value_as_instruction(*this);
 	auto const ptr_ = ptr.get_reference();
 
+	auto const result = [&]() {
+		if (type->is_pointer())
+		{
+			if (this->is_little_endian())
+			{
+				if (this->is_64_bit())
+				{
+					return add_instruction(*this, instructions::store_ptr64_le{}, value_, ptr_);
+				}
+				else
+				{
+					return add_instruction(*this, instructions::store_ptr32_le{}, value_, ptr_);
+				}
+			}
+			else
+			{
+				if (this->is_64_bit())
+				{
+					return add_instruction(*this, instructions::store_ptr64_be{}, value_, ptr_);
+				}
+				else
+				{
+					return add_instruction(*this, instructions::store_ptr32_be{}, value_, ptr_);
+				}
+			}
+		}
+		else
+		{
+			if (this->is_little_endian())
+			{
+				switch (type->get_builtin_kind())
+				{
+				case builtin_type_kind::i1:
+					return add_instruction(*this, instructions::store_i1_le{}, value_, ptr_);
+				case builtin_type_kind::i8:
+					return add_instruction(*this, instructions::store_i8_le{}, value_, ptr_);
+				case builtin_type_kind::i16:
+					return add_instruction(*this, instructions::store_i16_le{}, value_, ptr_);
+				case builtin_type_kind::i32:
+					return add_instruction(*this, instructions::store_i32_le{}, value_, ptr_);
+				case builtin_type_kind::i64:
+					return add_instruction(*this, instructions::store_i64_le{}, value_, ptr_);
+				case builtin_type_kind::f32:
+					return add_instruction(*this, instructions::store_f32_le{}, value_, ptr_);
+				case builtin_type_kind::f64:
+					return add_instruction(*this, instructions::store_f64_le{}, value_, ptr_);
+				case builtin_type_kind::void_:
+					bz_unreachable;
+				}
+			}
+			else
+			{
+				switch (type->get_builtin_kind())
+				{
+				case builtin_type_kind::i1:
+					return add_instruction(*this, instructions::store_i1_be{}, value_, ptr_);
+				case builtin_type_kind::i8:
+					return add_instruction(*this, instructions::store_i8_be{}, value_, ptr_);
+				case builtin_type_kind::i16:
+					return add_instruction(*this, instructions::store_i16_be{}, value_, ptr_);
+				case builtin_type_kind::i32:
+					return add_instruction(*this, instructions::store_i32_be{}, value_, ptr_);
+				case builtin_type_kind::i64:
+					return add_instruction(*this, instructions::store_i64_be{}, value_, ptr_);
+				case builtin_type_kind::f32:
+					return add_instruction(*this, instructions::store_f32_be{}, value_, ptr_);
+				case builtin_type_kind::f64:
+					return add_instruction(*this, instructions::store_f64_be{}, value_, ptr_);
+				case builtin_type_kind::void_:
+					bz_unreachable;
+				}
+			}
+		}
+	}();
+
 	current_block.cached_values.push_back({ .ptr = ptr_, .value = value_, .loaded_type = type });
 
-	if (type->is_pointer())
-	{
-		if (this->is_little_endian())
-		{
-			if (this->is_64_bit())
-			{
-				return add_instruction(*this, instructions::store_ptr64_le{}, value_, ptr_);
-			}
-			else
-			{
-				return add_instruction(*this, instructions::store_ptr32_le{}, value_, ptr_);
-			}
-		}
-		else
-		{
-			if (this->is_64_bit())
-			{
-				return add_instruction(*this, instructions::store_ptr64_be{}, value_, ptr_);
-			}
-			else
-			{
-				return add_instruction(*this, instructions::store_ptr32_be{}, value_, ptr_);
-			}
-		}
-	}
-	else
-	{
-		if (this->is_little_endian())
-		{
-			switch (type->get_builtin_kind())
-			{
-			case builtin_type_kind::i1:
-				return add_instruction(*this, instructions::store_i1_le{}, value_, ptr_);
-			case builtin_type_kind::i8:
-				return add_instruction(*this, instructions::store_i8_le{}, value_, ptr_);
-			case builtin_type_kind::i16:
-				return add_instruction(*this, instructions::store_i16_le{}, value_, ptr_);
-			case builtin_type_kind::i32:
-				return add_instruction(*this, instructions::store_i32_le{}, value_, ptr_);
-			case builtin_type_kind::i64:
-				return add_instruction(*this, instructions::store_i64_le{}, value_, ptr_);
-			case builtin_type_kind::f32:
-				return add_instruction(*this, instructions::store_f32_le{}, value_, ptr_);
-			case builtin_type_kind::f64:
-				return add_instruction(*this, instructions::store_f64_le{}, value_, ptr_);
-			case builtin_type_kind::void_:
-				bz_unreachable;
-			}
-		}
-		else
-		{
-			switch (type->get_builtin_kind())
-			{
-			case builtin_type_kind::i1:
-				return add_instruction(*this, instructions::store_i1_be{}, value_, ptr_);
-			case builtin_type_kind::i8:
-				return add_instruction(*this, instructions::store_i8_be{}, value_, ptr_);
-			case builtin_type_kind::i16:
-				return add_instruction(*this, instructions::store_i16_be{}, value_, ptr_);
-			case builtin_type_kind::i32:
-				return add_instruction(*this, instructions::store_i32_be{}, value_, ptr_);
-			case builtin_type_kind::i64:
-				return add_instruction(*this, instructions::store_i64_be{}, value_, ptr_);
-			case builtin_type_kind::f32:
-				return add_instruction(*this, instructions::store_f32_be{}, value_, ptr_);
-			case builtin_type_kind::f64:
-				return add_instruction(*this, instructions::store_f64_be{}, value_, ptr_);
-			case builtin_type_kind::void_:
-				bz_unreachable;
-			}
-		}
-	}
+	return result;
 }
 
 void codegen_context::create_memory_access_check(
@@ -1388,8 +1419,6 @@ expr_value codegen_context::create_array_slice_gep(expr_value begin_ptr, expr_va
 
 instruction_ref codegen_context::create_const_memcpy(expr_value dest, expr_value source, size_t size)
 {
-	get_current_block(*this).cached_values.clear_without_deallocation();
-
 	bz_assert(dest.is_reference());
 	bz_assert(source.is_reference());
 
@@ -1398,8 +1427,6 @@ instruction_ref codegen_context::create_const_memcpy(expr_value dest, expr_value
 
 instruction_ref codegen_context::create_const_memset_zero(expr_value dest)
 {
-	get_current_block(*this).cached_values.clear_without_deallocation();
-
 	bz_assert(dest.is_reference());
 
 	return add_instruction(*this, instructions::const_memset_zero{ .size = dest.get_type()->size }, dest.get_reference());
@@ -1414,8 +1441,6 @@ void codegen_context::create_copy_values(
 	ast::typespec_view elem_typespec
 )
 {
-	get_current_block(*this).cached_values.clear_without_deallocation();
-
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 	auto const copy_values_info_index = this->add_copy_values_info({
 		.elem_type = elem_type,
@@ -1441,8 +1466,6 @@ void codegen_context::create_copy_overlapping_values(
 	type const *elem_type
 )
 {
-	get_current_block(*this).cached_values.clear_without_deallocation();
-
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 	auto const copy_values_info_index = this->add_copy_values_info({
 		.elem_type = elem_type,
@@ -1469,8 +1492,6 @@ void codegen_context::create_relocate_values(
 	ast::typespec_view elem_typespec
 )
 {
-	get_current_block(*this).cached_values.clear_without_deallocation();
-
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 	auto const copy_values_info_index = this->add_copy_values_info({
 		.elem_type = elem_type,
@@ -1495,8 +1516,6 @@ void codegen_context::create_set_values(
 	expr_value count
 )
 {
-	get_current_block(*this).cached_values.clear_without_deallocation();
-
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 
 	if (value.get_type()->is_builtin())
@@ -1652,8 +1671,6 @@ void codegen_context::create_set_values(
 
 expr_value codegen_context::create_function_call(lex::src_tokens const &src_tokens, function *func, bz::fixed_vector<instruction_ref> args)
 {
-	get_current_block(*this).cached_values.clear_without_deallocation();
-
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 	auto const args_index = static_cast<uint32_t>(this->current_function_info.call_args.size());
 	this->current_function_info.call_args.push_back(std::move(args));
@@ -1678,8 +1695,6 @@ expr_value codegen_context::create_indirect_function_call(
 	bz::fixed_vector<instruction_ref> args
 )
 {
-	get_current_block(*this).cached_values.clear_without_deallocation();
-
 	auto const src_tokens_index = this->add_src_tokens(src_tokens);
 	auto const args_index = static_cast<uint32_t>(this->current_function_info.call_args.size());
 	this->current_function_info.call_args.push_back(std::move(args));
