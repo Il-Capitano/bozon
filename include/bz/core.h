@@ -4,6 +4,7 @@
 #include <iostream>
 #include <utility>
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 
 #define bz_begin_namespace namespace bz {
