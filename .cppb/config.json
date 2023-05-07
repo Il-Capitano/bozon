@@ -25,6 +25,7 @@
 			"warnings": [
 				"all",
 				"extra",
+				"implicit-fallthrough",
 				"no-c++20-extensions",
 				"no-defaulted-function-deleted",
 				"no-bitwise-instead-of-logical",
