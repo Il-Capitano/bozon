@@ -1976,6 +1976,7 @@ static bz::vector<source_highlight> get_ambiguous_notes(
 				enum_decl->src_tokens,
 				bz::format("it may refer to the type 'enum {}'", enum_decl->id.format_as_unqualified())
 			));
+			break;
 		}
 		case ast::global_scope_symbol_kind::ambiguous:
 		case ast::global_scope_symbol_kind::none:
@@ -2041,6 +2042,7 @@ static symbol_t find_id_in_global_scope(ast::global_scope_t &scope, ast::identif
 			bz::format("identifier '{}' is ambiguous", id.as_string()),
 			get_ambiguous_notes(symbols, ambiguous_ids)
 		);
+		return {};
 	}
 	case ast::global_scope_symbol_kind::none:
 		return {};
