@@ -2056,6 +2056,34 @@ function improved_slices_test()
 	}
 	std::print("\n");
 
+	arr[2..][3];
+	arr[2.., 3];
+	arr[.., 3];
+
+	for (const i: uint8 in 250..255u8)
+	{
+		std::print("{} ", i);
+	}
+	std::print("\n");
+
+	for (const i: uint8 in 250..=255u8)
+	{
+		std::print("{} ", i);
+	}
+	std::print("\n");
+
+	let count = 0;
+	for (const i in 0..)
+	{
+		std::print("{} ", i);
+		count += 1;
+		if (i == 10)
+		{
+			break;
+		}
+	}
+	std::print("\n");
+
 	(consteval {
 		let arr: [??: int32] = [ 0, 1, 2, 3, 4, 5, 6, 7 ];
 		const s = arr[__builtin_integer_range_u32(2, 4)]; // [2..4]
@@ -2085,5 +2113,21 @@ function improved_slices_test()
 		std::assert(s.size() == 5);
 		let i = 3;
 		std::assert(arr[..i].size() == 3);
+
+		for (const i: uint8 in 250..=255u8)
+		{
+			std::assert(i >= 250);
+		}
+
+		let count = 0;
+		for (const i in (0..))
+		{
+			std::assert(i == count);
+			count += 1;
+			if (count == 1000)
+			{
+				break;
+			}
+		}
 	});
 }
