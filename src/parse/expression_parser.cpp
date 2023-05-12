@@ -588,7 +588,13 @@ static ast::expression parse_primary_expression(
 	{
 		auto const dot_dot_pos = stream;
 		++stream;
-		if (stream == end || (!is_unary_operator(stream->kind) && is_operator(stream->kind)))
+		if (
+			stream == end
+			|| (!is_unary_operator(stream->kind) && is_operator(stream->kind))
+			|| stream->kind == lex::token::paren_close
+			|| stream->kind == lex::token::square_close
+			|| stream->kind == lex::token::curly_close
+		)
 		{
 			return context.make_range_unbounded_expression(lex::src_tokens::from_single_token(dot_dot_pos));
 		}
@@ -982,7 +988,13 @@ static ast::expression parse_expression_helper(
 		// range operator
 		case lex::token::dot_dot:
 		{
-			if (stream == end || (!is_unary_operator(stream->kind) && is_operator(stream->kind)))
+			if (
+				stream == end
+				|| (!is_unary_operator(stream->kind) && is_operator(stream->kind))
+				|| stream->kind == lex::token::paren_close
+				|| stream->kind == lex::token::square_close
+				|| stream->kind == lex::token::curly_close
+			)
 			{
 				auto const src_tokens = lex::src_tokens{ lhs.src_tokens.begin, op, stream };
 				lhs = context.make_integer_range_from_expression(src_tokens, std::move(lhs));
