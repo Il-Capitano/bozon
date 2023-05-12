@@ -103,9 +103,33 @@ struct __integer_range_from<T: typename>
 	._begin: T;
 
 	type __value_type = T;
+	type __begin_iterator = __integer_range_from_iterator<T>;
+	type __end_iterator = __integer_range_from_end_iterator;
 
 	export function begin_value = __builtin_integer_range_from_begin_value;
+
+	export function begin = __builtin_integer_range_from_begin_iterator;
+	export function end   = __builtin_integer_range_from_end_iterator;
 }
+
+struct __integer_range_from_iterator<T: typename>
+{
+	._value: T;
+
+	type __value_type = T;
+
+	export operator * = __builtin_integer_range_from_iterator_dereference;
+
+	export operator == = __builtin_integer_range_from_iterator_left_equals;
+	export operator == = __builtin_integer_range_from_iterator_right_equals;
+	export operator != = __builtin_integer_range_from_iterator_left_not_equals;
+	export operator != = __builtin_integer_range_from_iterator_right_not_equals;
+
+	export operator ++ = __builtin_integer_range_from_iterator_plus_plus;
+}
+
+struct __integer_range_from_end_iterator
+{}
 
 struct __integer_range_to<T: typename>
 {
@@ -321,6 +345,15 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 @__builtin function __builtin_integer_range_inclusive_iterator_left_not_equals(lhs: #const __integer_range_inclusive_iterator, rhs: __integer_range_inclusive_end_iterator) -> bool;
 @__builtin function __builtin_integer_range_inclusive_iterator_right_not_equals(lhs: __integer_range_inclusive_end_iterator, rhs: #const __integer_range_inclusive_iterator) -> bool;
 @__builtin function __builtin_integer_range_inclusive_iterator_plus_plus(it: &__integer_range_inclusive_iterator) -> typeof it;
+
+@__builtin function __builtin_integer_range_from_begin_iterator(range: __integer_range_from) -> (typeof range).__begin_iterator;
+@__builtin function __builtin_integer_range_from_end_iterator(range: __integer_range_from) -> (typeof range).__end_iterator;
+@__builtin function __builtin_integer_range_from_iterator_dereference(it: __integer_range_from_iterator) -> (typeof it).__value_type;
+@__builtin function __builtin_integer_range_from_iterator_left_equals(lhs: __integer_range_from_iterator, rhs: __integer_range_from_end_iterator) -> bool;
+@__builtin function __builtin_integer_range_from_iterator_right_equals(lhs: __integer_range_from_end_iterator, rhs: __integer_range_from_iterator) -> bool;
+@__builtin function __builtin_integer_range_from_iterator_left_not_equals(lhs: __integer_range_from_iterator, rhs: __integer_range_from_end_iterator) -> bool;
+@__builtin function __builtin_integer_range_from_iterator_right_not_equals(lhs: __integer_range_from_end_iterator, rhs: __integer_range_from_iterator) -> bool;
+@__builtin function __builtin_integer_range_from_iterator_plus_plus(it: &__integer_range_from_iterator) -> typeof it;
 
 @__builtin export function __builtin_optional_get_value_ref(value: &?auto)
 	-> &__builtin_remove_optional(__builtin_remove_reference(typeof value));

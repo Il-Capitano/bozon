@@ -573,6 +573,15 @@ struct function_body
 		builtin_integer_range_inclusive_iterator_right_not_equals,
 		builtin_integer_range_inclusive_iterator_plus_plus,
 
+		builtin_integer_range_from_begin_iterator,
+		builtin_integer_range_from_end_iterator,
+		builtin_integer_range_from_iterator_dereference,
+		builtin_integer_range_from_iterator_left_equals,
+		builtin_integer_range_from_iterator_right_equals,
+		builtin_integer_range_from_iterator_left_not_equals,
+		builtin_integer_range_from_iterator_right_not_equals,
+		builtin_integer_range_from_iterator_plus_plus,
+
 		builtin_optional_get_value_ref,
 		builtin_optional_get_const_value_ref,
 		builtin_optional_get_value,
@@ -1679,7 +1688,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 257);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 265);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1768,14 +1777,23 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_integer_range_iterator_plus_plus,   "__builtin_integer_range_iterator_plus_plus"   },
 		{ function_body::builtin_integer_range_iterator_minus_minus, "__builtin_integer_range_iterator_minus_minus" },
 
-		{ function_body::builtin_integer_range_inclusive_begin_iterator,       "__builtin_integer_range_inclusive_begin_iterator"       },
-		{ function_body::builtin_integer_range_inclusive_end_iterator,         "__builtin_integer_range_inclusive_end_iterator"         },
-		{ function_body::builtin_integer_range_inclusive_iterator_dereference, "__builtin_integer_range_inclusive_iterator_dereference" },
+		{ function_body::builtin_integer_range_inclusive_begin_iterator,            "__builtin_integer_range_inclusive_begin_iterator"            },
+		{ function_body::builtin_integer_range_inclusive_end_iterator,              "__builtin_integer_range_inclusive_end_iterator"              },
+		{ function_body::builtin_integer_range_inclusive_iterator_dereference,      "__builtin_integer_range_inclusive_iterator_dereference"      },
 		{ function_body::builtin_integer_range_inclusive_iterator_left_equals,      "__builtin_integer_range_inclusive_iterator_left_equals"      },
-		{ function_body::builtin_integer_range_inclusive_iterator_right_equals,      "__builtin_integer_range_inclusive_iterator_right_equals"      },
+		{ function_body::builtin_integer_range_inclusive_iterator_right_equals,     "__builtin_integer_range_inclusive_iterator_right_equals"     },
 		{ function_body::builtin_integer_range_inclusive_iterator_left_not_equals,  "__builtin_integer_range_inclusive_iterator_left_not_equals"  },
-		{ function_body::builtin_integer_range_inclusive_iterator_right_not_equals,  "__builtin_integer_range_inclusive_iterator_right_not_equals"  },
-		{ function_body::builtin_integer_range_inclusive_iterator_plus_plus,   "__builtin_integer_range_inclusive_iterator_plus_plus"   },
+		{ function_body::builtin_integer_range_inclusive_iterator_right_not_equals, "__builtin_integer_range_inclusive_iterator_right_not_equals" },
+		{ function_body::builtin_integer_range_inclusive_iterator_plus_plus,        "__builtin_integer_range_inclusive_iterator_plus_plus"        },
+
+		{ function_body::builtin_integer_range_from_begin_iterator,            "__builtin_integer_range_from_begin_iterator"            },
+		{ function_body::builtin_integer_range_from_end_iterator,              "__builtin_integer_range_from_end_iterator"              },
+		{ function_body::builtin_integer_range_from_iterator_dereference,      "__builtin_integer_range_from_iterator_dereference"      },
+		{ function_body::builtin_integer_range_from_iterator_left_equals,      "__builtin_integer_range_from_iterator_left_equals"      },
+		{ function_body::builtin_integer_range_from_iterator_right_equals,     "__builtin_integer_range_from_iterator_right_equals"     },
+		{ function_body::builtin_integer_range_from_iterator_left_not_equals,  "__builtin_integer_range_from_iterator_left_not_equals"  },
+		{ function_body::builtin_integer_range_from_iterator_right_not_equals, "__builtin_integer_range_from_iterator_right_not_equals" },
+		{ function_body::builtin_integer_range_from_iterator_plus_plus,        "__builtin_integer_range_from_iterator_plus_plus"        },
 
 		{ function_body::builtin_optional_get_value_ref,       "__builtin_optional_get_value_ref"       },
 		{ function_body::builtin_optional_get_const_value_ref, "__builtin_optional_get_const_value_ref" },
