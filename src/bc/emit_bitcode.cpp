@@ -51,7 +51,7 @@ static void emit_memcpy(llvm::Value *dest, llvm::Value *source, size_t size, ctx
 {
 	auto const memcpy_fn = context.get_function(context.get_builtin_function(ast::function_body::memcpy));
 	auto const size_val = llvm::ConstantInt::get(context.get_usize_t(), size);
-	auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+	auto const false_val = context.builder.getFalse();
 	context.create_call(memcpy_fn, { dest, source, size_val, false_val });
 }
 
@@ -339,7 +339,7 @@ static void optional_set_has_value(val_ptr optional_val, bool has_value, ctx::bi
 	else
 	{
 		auto const has_value_ptr = context.create_struct_gep(optional_val.get_type(), optional_val.val, 1);
-		context.builder.CreateStore(llvm::ConstantInt::getBool(context.get_llvm_context(), has_value), has_value_ptr);
+		context.builder.CreateStore(context.builder.getInt1(has_value), has_value_ptr);
 	}
 }
 
@@ -2647,7 +2647,7 @@ static call_args_info_t emit_function_call_args(
 		)
 	)
 	{
-		args.push_back(llvm::ConstantInt::getFalse(context.get_llvm_context()));
+		args.push_back(context.builder.getFalse());
 		args_is_byval.push_back({ false, nullptr });
 	}
 
@@ -3256,7 +3256,7 @@ static val_ptr emit_bitcode(
 			auto const range_value = emit_bitcode(func_call.params[0], context, nullptr);
 			auto const begin_value = context.get_struct_element(range_value, 0).get_value(context.builder);
 			auto const end_value = context.get_struct_element(range_value, 1).get_value(context.builder);
-			auto const false_value = llvm::ConstantInt::getFalse(context.get_llvm_context());
+			auto const false_value = context.builder.getFalse();
 
 			context.builder.CreateStore(begin_value, context.create_struct_gep(result_type, result_address, 0));
 			context.builder.CreateStore(end_value,   context.create_struct_gep(result_type, result_address, 1));
@@ -3380,7 +3380,7 @@ static val_ptr emit_bitcode(
 			auto const at_end_bb = context.add_basic_block("range_inclusive_plus_plus_at_end");
 			context.builder.SetInsertPoint(at_end_bb);
 			auto const at_end_ref = context.get_struct_element(it_value, 2);
-			context.builder.CreateStore(llvm::ConstantInt::getTrue(context.get_llvm_context()), at_end_ref.val);
+			context.builder.CreateStore(context.builder.getTrue(), at_end_ref.val);
 
 			auto const end_bb = context.add_basic_block("range_inclusive_plus_plus_end");
 			context.builder.SetInsertPoint(begin_bb);
@@ -3569,7 +3569,7 @@ static val_ptr emit_bitcode(
 			bz_unreachable;
 		case ast::function_body::builtin_is_comptime:
 		{
-			auto const result_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+			auto const result_val = context.builder.getFalse();
 			if (result_address != nullptr)
 			{
 				auto const result_type = result_val->getType();
@@ -3631,7 +3631,7 @@ static val_ptr emit_bitcode(
 			auto const size = context.builder.CreateMul(count, type_size);
 
 			auto const memcpy_fn = context.get_function(context.get_builtin_function(ast::function_body::memcpy));
-			auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+			auto const false_val = context.builder.getFalse();
 			context.create_call(memcpy_fn, { dest, source, size, false_val });
 			return val_ptr::get_none();
 		}
@@ -3647,7 +3647,7 @@ static val_ptr emit_bitcode(
 			auto const size = context.builder.CreateMul(count, type_size);
 
 			auto const memmove_fn = context.get_function(context.get_builtin_function(ast::function_body::memmove));
-			auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+			auto const false_val = context.builder.getFalse();
 			context.create_call(memmove_fn, { dest, source, size, false_val });
 			return val_ptr::get_none();
 		}
@@ -3663,7 +3663,7 @@ static val_ptr emit_bitcode(
 			auto const size = context.builder.CreateMul(count, type_size);
 
 			auto const memmove_fn = context.get_function(context.get_builtin_function(ast::function_body::memmove));
-			auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+			auto const false_val = context.builder.getFalse();
 			context.create_call(memmove_fn, { dest, source, size, false_val });
 			return val_ptr::get_none();
 		}
@@ -3678,7 +3678,7 @@ static val_ptr emit_bitcode(
 			if (type == context.get_uint8_t())
 			{
 				auto const memset_fn = context.get_function(context.get_builtin_function(ast::function_body::memset));
-				auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+				auto const false_val = context.builder.getFalse();
 				context.create_call(memset_fn, { dest, value.get_value(context.builder), count, false_val });
 				return val_ptr::get_none();
 			}
@@ -6322,7 +6322,7 @@ static llvm::Value *are_strings_equal(llvm::Value *begin_ptr, bz::u8string_view 
 	auto const lhs_int_ref = context.create_alloca_without_lifetime_start(int_type);
 	auto const rhs_int_ref = context.create_alloca_without_lifetime_start(int_type);
 	auto const zero_val = llvm::ConstantInt::get(int_type, 0);
-	auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+	auto const false_val = context.builder.getFalse();
 	auto const eight_val = llvm::ConstantInt::get(context.get_usize_t(), 8);
 	auto const memcpy_fn = context.get_function(context.get_builtin_function(ast::function_body::memcpy));
 
@@ -6458,7 +6458,7 @@ static val_ptr emit_string_switch(
 			context.builder.CreateStore(llvm::ConstantInt::get(int_type, 0), str_int_ref);
 			auto const memcpy_fn = context.get_function(context.get_builtin_function(ast::function_body::memcpy));
 			auto const str_size_val = llvm::ConstantInt::get(context.get_usize_t(), str_size);
-			auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+			auto const false_val = context.builder.getFalse();
 			context.create_call(memcpy_fn, { str_int_ref, begin_ptr, str_size_val, false_val });
 
 			auto const str_int_val = context.builder.CreateLoad(int_type, str_int_ref);
@@ -6964,10 +6964,7 @@ static llvm::Constant *get_value_helper(
 		return llvm::ConstantStruct::get(str_t, elems);
 	}
 	case ast::constant_value::boolean:
-		return llvm::ConstantInt::get(
-			context.get_bool_t(),
-			static_cast<uint64_t>(value.get_boolean())
-		);
+		return context.builder.getInt1(value.get_boolean());
 	case ast::constant_value::null:
 		if (
 			auto const type_without_const = ast::remove_const_or_consteval(type);
@@ -7139,7 +7136,7 @@ static llvm::Constant *get_value(
 			bz_assert(result_type->isStructTy());
 			return llvm::ConstantStruct::get(
 				llvm::cast<llvm::StructType>(result_type),
-				const_value, llvm::ConstantInt::getTrue(context.get_llvm_context())
+				const_value, context.builder.getTrue()
 			);
 		}
 	}
@@ -7157,8 +7154,8 @@ static void store_constant_at_address(llvm::Constant *const_val, llvm::Value *de
 		auto const size = context.get_size(type);
 		auto const memset_fn = context.get_function(context.get_builtin_function(ast::function_body::memset));
 		auto const size_val = llvm::ConstantInt::get(context.get_usize_t(), size);
-		auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
-		auto const zero_val = llvm::ConstantInt::get(context.get_uint8_t(), 0);
+		auto const false_val = context.builder.getFalse();
+		auto const zero_val = context.builder.getInt8(0);
 		context.create_call(memset_fn, { dest, zero_val, size_val, false_val });
 	}
 	else if (type->isArrayTy())
@@ -7329,7 +7326,7 @@ static void emit_bitcode(
 	}
 
 	context.builder.SetInsertPoint(condition_check_end);
-	context.builder.CreateCondBr(condition == nullptr ? llvm::ConstantInt::getFalse(context.get_llvm_context()) : condition, while_bb, end_bb);
+	context.builder.CreateCondBr(condition == nullptr ? context.builder.getFalse() : condition, while_bb, end_bb);
 	context.builder.SetInsertPoint(end_bb);
 	context.pop_loop(prev_loop_info);
 }
@@ -7354,7 +7351,7 @@ static void emit_bitcode(
 	auto const condition_prev_info = context.push_expression_scope();
 	auto const condition = for_stmt.condition.not_null()
 		? emit_bitcode(for_stmt.condition, context, nullptr).get_value(context.builder)
-		: llvm::ConstantInt::getTrue(context.get_llvm_context());
+		: context.builder.getTrue();
 	context.pop_expression_scope(condition_prev_info);
 	auto const condition_check_end = context.builder.GetInsertBlock();
 
@@ -7381,7 +7378,7 @@ static void emit_bitcode(
 	}
 
 	context.builder.SetInsertPoint(condition_check_end);
-	context.builder.CreateCondBr(condition == nullptr ? llvm::ConstantInt::getFalse(context.get_llvm_context()) : condition, for_bb, end_bb);
+	context.builder.CreateCondBr(condition == nullptr ? context.builder.getFalse() : condition, for_bb, end_bb);
 	context.builder.SetInsertPoint(end_bb);
 	context.pop_loop(prev_loop_info);
 	context.pop_expression_scope(outer_prev_info);
@@ -7445,7 +7442,7 @@ static void emit_bitcode(
 		context.emit_all_end_lifetime_calls();
 		if (context.current_function.first->is_main())
 		{
-			context.builder.CreateRet(llvm::ConstantInt::get(context.get_int32_t(), 0));
+			context.builder.CreateRet(context.builder.getInt32(0));
 		}
 		else
 		{
@@ -7826,7 +7823,7 @@ static llvm::Function *create_function_from_symbol(
 			{
 			case abi::pass_kind::reference:
 			case abi::pass_kind::non_trivial:
-				real_result_t = llvm::Type::getVoidTy(context.get_llvm_context());
+				real_result_t = context.builder.getVoidTy();
 				break;
 			case abi::pass_kind::value:
 				real_result_t = result_t;
@@ -8046,7 +8043,7 @@ void emit_function_bitcode(
 	{
 		if (context.current_function.first->is_main())
 		{
-			context.builder.CreateRet(llvm::ConstantInt::get(context.get_int32_t(), 0));
+			context.builder.CreateRet(context.builder.getInt32(0));
 		}
 		else if (auto const ret_t = context.current_function.second->getReturnType(); ret_t->isVoidTy())
 		{
@@ -8407,7 +8404,7 @@ static void emit_destruct_operation_impl(
 
 	if (move_destruct_indicator != nullptr)
 	{
-		context.builder.CreateStore(llvm::ConstantInt::getFalse(context.get_llvm_context()), move_destruct_indicator);
+		context.builder.CreateStore(context.builder.getFalse(), move_destruct_indicator);
 	}
 }
 
