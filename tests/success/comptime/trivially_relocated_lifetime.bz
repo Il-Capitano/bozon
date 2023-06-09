@@ -1,0 +1,10 @@
+function test()
+{
+	(consteval {
+		for (let i = 0; i < 10; ++i)
+		{
+			let j = 0;
+			let _ = move j;
+		}
+	});
+}

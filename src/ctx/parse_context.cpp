@@ -6106,6 +6106,8 @@ ast::expression parse_context::make_move_construction(ast::expression expr)
 	if (this->is_trivially_relocatable(expr.src_tokens, type))
 	{
 		bz_assert(this->is_trivially_move_destructible(expr.src_tokens, type));
+		bz_assert(expr.is_dynamic());
+		expr.get_dynamic().destruct_op = ast::trivial_destruct_self();
 		auto const src_tokens = expr.src_tokens;
 		ast::typespec result_type = type;
 		return ast::make_dynamic_expression(
