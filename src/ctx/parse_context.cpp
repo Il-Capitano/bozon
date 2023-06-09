@@ -3171,6 +3171,66 @@ static ast::expression make_expr_function_call_from_body(
 		}
 	}
 
+	auto const get_pointer_arithmetic_type = [](ast::function_body *body) -> bz::optional<ast::typespec_view> {
+		if (!body->is_builtin_operator())
+		{
+			return {};
+		}
+
+		switch (body->intrinsic_kind)
+		{
+		case ast::function_body::builtin_unary_plus_plus:
+		case ast::function_body::builtin_unary_minus_minus:
+		case ast::function_body::builtin_binary_plus_eq:
+		case ast::function_body::builtin_binary_minus_eq:
+		{
+			auto const param_type = body->params[0].get_type().get<ast::ts_lvalue_reference>();
+			if (param_type.is<ast::ts_pointer>())
+			{
+				return ast::remove_const_or_consteval(param_type.get<ast::ts_pointer>());
+			}
+			else if (param_type.is_optional_pointer())
+			{
+				return ast::remove_const_or_consteval(param_type.get_optional_pointer());
+			}
+
+			return {};
+		}
+		case ast::function_body::builtin_binary_plus:
+		case ast::function_body::builtin_binary_minus:
+		{
+			auto const lhs_param_type = body->params[0].get_type().as_typespec_view();
+			if (lhs_param_type.is<ast::ts_pointer>())
+			{
+				return ast::remove_const_or_consteval(lhs_param_type.get<ast::ts_pointer>());
+			}
+			else if (lhs_param_type.is_optional_pointer())
+			{
+				return ast::remove_const_or_consteval(lhs_param_type.get_optional_pointer());
+			}
+
+			auto const rhs_param_type = body->params[1].get_type().as_typespec_view();
+			if (rhs_param_type.is<ast::ts_pointer>())
+			{
+				return ast::remove_const_or_consteval(rhs_param_type.get<ast::ts_pointer>());
+			}
+			else if (rhs_param_type.is_optional_pointer())
+			{
+				return ast::remove_const_or_consteval(rhs_param_type.get_optional_pointer());
+			}
+
+			return {};
+		}
+		default:
+			return {};
+		}
+	};
+
+	if (auto const type = get_pointer_arithmetic_type(body); type.has_value())
+	{
+		context.resolve_typespec_members(src_tokens, type.get());
+	}
+
 	auto &ret_t = body->return_type;
 	if (ret_t.is_typename())
 	{
@@ -7405,6 +7465,8 @@ void parse_context::resolve_type(lex::src_tokens const &src_tokens, ast::decl_en
 
 void parse_context::resolve_typespec_members(lex::src_tokens const &src_tokens, ast::typespec_view ts)
 {
+	bz_assert(!ts.is<ast::ts_const>());
+	bz_assert(!ts.is<ast::ts_consteval>());
 	if (ts.is<ast::ts_base_type>())
 	{
 		auto const info = ts.get<ast::ts_base_type>().info;

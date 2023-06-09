@@ -1,0 +1,22 @@
+function test()
+{
+	(consteval {
+		let p: ?*S = null;
+		if (p != null)
+		{
+			++p;
+			--p;
+			p += 1;
+			p -= 1;
+			p + 1;
+			p - 1;
+			1 + p;
+			p - p;
+		}
+	});
+}
+
+struct S
+{
+	.i: int32;
+}

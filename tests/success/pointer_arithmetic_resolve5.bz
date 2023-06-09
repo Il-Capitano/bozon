@@ -1,0 +1,15 @@
+function test()
+{
+	(consteval {
+		let p: ?*S = null;
+		if (p != null)
+		{
+			p + 1;
+		}
+	});
+}
+
+struct S
+{
+	.i: int32;
+}
