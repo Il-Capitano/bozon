@@ -1,3 +1,4 @@
+// error: unable to match rvalue expression of type 'int32' to an lvalue reference '&const auto'
 function test()
 {
 	let _: &const auto = 0i32;

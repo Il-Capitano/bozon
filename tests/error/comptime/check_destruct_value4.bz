@@ -1,3 +1,8 @@
+// error: invalid destruction of an object of type 'int32'
+// note: while evaluating expression at compile time
+// note: address points to a subobject of one of the elements in this allocation
+// note: allocation was made while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

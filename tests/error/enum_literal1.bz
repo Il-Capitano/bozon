@@ -1,3 +1,4 @@
+// error: unable to match type '<error-type>' to 'auto'
 enum E
 {
 	a,

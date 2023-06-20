@@ -1,3 +1,10 @@
+// error: invalid pointer arithmetic operation with type '*int32' and offset 0
+// note: while evaluating expression at compile time
+// note: address points to an object in this allocation, which was freed
+// note: allocation was made while evaluating expression at compile time
+// note: allocation was freed here
+// note: while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

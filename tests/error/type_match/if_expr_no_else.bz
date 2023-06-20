@@ -1,3 +1,6 @@
+// error: expected ';'
+// suggestion: add ';' here:
+// error: variable type 'void' is not instantiable
 function test(b: bool)
 {
 	let _ = if (b) {

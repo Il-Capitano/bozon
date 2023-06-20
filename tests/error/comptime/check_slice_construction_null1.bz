@@ -1,3 +1,6 @@
+// error: only begin address is null in construction of a slice of type '[: int32]'
+// note: while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

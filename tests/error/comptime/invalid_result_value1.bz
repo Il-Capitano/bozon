@@ -1,3 +1,6 @@
+// error: invalid value of type 'str' returned from compile time execution
+// note: memory range contains objects outside their lifetime in this stack object
+// error: expression must be a constant expression
 consteval s = {
 	let buffer: [10: uint8];
 	__builtin_str_from_ptrs(buffer.begin(), buffer.end())

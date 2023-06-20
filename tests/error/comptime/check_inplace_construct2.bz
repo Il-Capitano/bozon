@@ -1,3 +1,8 @@
+// error: invalid construction of an object of type 'int32'
+// note: while evaluating expression at compile time
+// note: address points to an object that is not on the heap
+// note: address points to this stack object
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

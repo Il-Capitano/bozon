@@ -1,3 +1,10 @@
+// error: invalid construction of an object of type 'int32'
+// note: while evaluating expression at compile time
+// note: address points to an element in this allocation, which was freed
+// note: allocation was made while evaluating expression at compile time
+// note: allocation was freed here
+// note: while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

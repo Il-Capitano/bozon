@@ -1,3 +1,4 @@
+// error: unable to match tuple expression to type '&auto'
 function test()
 {
 	let _: &auto = [ 0i32, 0.0f64, "" ];

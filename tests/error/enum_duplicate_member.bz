@@ -1,3 +1,5 @@
+// error: duplicate enum member name 'a'
+// note: member was previously defined here
 enum E
 {
 	a, a

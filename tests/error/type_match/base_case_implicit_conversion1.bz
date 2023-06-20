@@ -1,3 +1,4 @@
+// error: unable to match expression of type 'uint32' to 'uint16'
 function test()
 {
 	let _: uint16 = 0u32;

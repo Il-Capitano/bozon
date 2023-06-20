@@ -1,3 +1,7 @@
+// error: invalid pointer arithmetic operation with type '*int32' and offset -1
+// note: while evaluating expression at compile time
+// note: address points to an element at index 0 in an array of size 5 in this stack object
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

@@ -1,3 +1,6 @@
+// error: unable to allocate 9223372036854775808 elements of size 4
+// note: while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

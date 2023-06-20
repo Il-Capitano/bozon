@@ -1,3 +1,7 @@
+// error: invalid pointer arithmetic operation with type '*const int32' and offset 2
+// note: while evaluating expression at compile time
+// note: address points to this global object
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

@@ -1,3 +1,4 @@
+// error: unable to match expression of type '__null_t' to '?auto'
 function test()
 {
 	let _: ?auto = null;

@@ -1,3 +1,6 @@
+// error: null pointer used in pointer arithmetic operation with type '?*int32' and offset 1
+// note: while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

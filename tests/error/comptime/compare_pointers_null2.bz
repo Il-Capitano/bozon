@@ -1,3 +1,6 @@
+// error: comparing a null and a non-null pointer
+// note: while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

@@ -1,3 +1,7 @@
+// error: invalid memory range for a slice of type '[: int32]'
+// note: while evaluating expression at compile time
+// note: memory range contains objects outside their lifetime in this stack object
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

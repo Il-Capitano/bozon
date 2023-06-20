@@ -1,3 +1,10 @@
+// error: invalid free: allocation has already been freed
+// note: while evaluating expression at compile time
+// note: address points to this allocation
+// note: allocation was made while evaluating expression at compile time
+// note: allocation was freed here
+// note: while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

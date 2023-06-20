@@ -1,3 +1,5 @@
+// warning: switch expression doesn't cover all possible values and doesn't have an else case [-W non-exhaustive-switch]
+// error: variable type 'void' is not instantiable
 function test(val: int32)
 {
 	let _ = switch (val) {

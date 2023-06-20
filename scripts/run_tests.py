@@ -117,6 +117,15 @@ for test_file in warning_test_files:
             print(stderr)
         print(f'exit code: {rc}')
 
+def get_error_messages(test_file):
+    result = []
+    with open(test_file, 'r') as f:
+        for line in f:
+            if not line.startswith('// error:') and not line.startswith('// note:') and not line.startswith('// warning:'):
+                break
+            result.append(line[3:-1])
+    return result
+
 error_commands = [
     [ bozon, *flags, test_file ] if p == 0 else [ bozon, *flags, '--return-zero-on-error', test_file ]
     for test_file in error_test_files
@@ -128,7 +137,19 @@ for test_file in error_test_files:
     print(f'    {test_file:.<{file_name_print_length}}', end='', flush=True)
     stdout, stderr, rc = error_pool.get_next_result()
     rerun_stdout, rerun_stderr, rerun_rc = error_pool.get_next_result()
-    if rc != 0 and rerun_rc == 0:
+    wanted_messages = get_error_messages(test_file)
+
+    wanted_error_fail = len(wanted_messages) == 0
+    if not wanted_error_fail and rc != 0 and rerun_rc == 0:
+        compiler_output = stderr
+        for m in wanted_messages:
+            i = compiler_output.find(m)
+            if i == -1:
+                wanted_error_fail = True
+                break
+            compiler_output = compiler_output[i + len(m):]
+
+    if not wanted_error_fail and rc != 0 and rerun_rc == 0:
         total_passed += 1
         print(f'{bright_green}OK{clear}')
     else:
@@ -141,6 +162,9 @@ for test_file in error_test_files:
             print('stderr:')
             print(stderr)
         print(f'exit code: {rc}')
+        print('wanted error messages:')
+        for m in wanted_messages:
+            print(m)
 
 total_test_count = len(success_test_files) + len(warning_test_files) + len(error_test_files)
 passed_percentage = 100 * total_passed / total_test_count

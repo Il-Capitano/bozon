@@ -1,3 +1,4 @@
+// error: array element type cannot be 'void'
 function test()
 {
 	let arr = [4: int32]();

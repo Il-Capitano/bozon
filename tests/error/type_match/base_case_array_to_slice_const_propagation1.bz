@@ -1,3 +1,4 @@
+// error: unable to match expression of type 'const [32: int32]' to non-const array slice type '[: int32]'
 function test()
 {
 	const arr = [32: int32]();

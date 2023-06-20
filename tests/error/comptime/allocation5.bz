@@ -1,3 +1,7 @@
+// error: invalid free: address does not point to the result of a previous allocation
+// note: while evaluating expression at compile time
+// note: address points to an object from a finished stack frame
+// error: failed to evaluate expression at compile time
 function foo() -> *int32
 {
 	let i = 0;
