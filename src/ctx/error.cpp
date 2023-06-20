@@ -226,9 +226,9 @@ static bz::u8string get_highlighted_text(
 			auto const c = *u8it;
 			if (c == '\t')
 			{
-				auto const tab_size = ::tab_size == 0 ? 4 : ::tab_size;
+				auto const tab_size = ::tab_size == 0 ? 4 : std::min(::tab_size, size_t(1024));
 				auto const chars_to_put = tab_size - column % tab_size;
-				if (chars_to_put < 16)
+				if (chars_to_put <= 16)
 				{
 					char spaces[16];
 					char tildes[16];
