@@ -1,6 +1,11 @@
 import subprocess
 import os
 import glob
+import re
+
+def remove_ansi_colors(s):
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    return ansi_escape.sub('', s)
 
 class ProcessPool:
     def __init__(self, commands):
@@ -35,7 +40,7 @@ class ProcessPool:
         if self.current_index != len(self.commands):
             self.start_next_process()
 
-        return stdout, stderr, returncode
+        return remove_ansi_colors(stdout), remove_ansi_colors(stderr), returncode
 
 success_test_files = glob.glob("tests/success/**/*.bz", recursive=True)
 warning_test_files = glob.glob("tests/warning/**/*.bz", recursive=True)
