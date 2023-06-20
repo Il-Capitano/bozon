@@ -1,4 +1,4 @@
-// error: accessing member 'a' of a value of type 'test_t' is not allowed
+// error: accessing member 'a' of an rvalue of type 'test_t' is not allowed
 // note: type 'test_t' has a non-default destructor defined here
 struct test_t
 {
