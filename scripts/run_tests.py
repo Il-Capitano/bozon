@@ -79,8 +79,21 @@ file_name_print_length = 3 + max((
     max((len(test_file) for test_file in error_test_files)) if len(error_test_files) != 0 else 0,
 ))
 
-error = False
+def print_test_fail_info(stdout, stderr, rc, wanted_messages=None):
+    if stdout != '':
+        print('stdout:')
+        print(stdout)
+    if stderr != '':
+        print('stderr:')
+        print(stderr)
+    print(f'exit code: {rc}')
+    if wanted_messages is not None:
+        print('wanted error messages:')
+        for m in wanted_messages:
+            print(m)
+
 total_passed = 0
+failed_tests_info = []
 
 success_commands = [[ bozon, *flags, test_file ] for test_file in success_test_files]
 success_pool = ProcessPool(success_commands)
@@ -92,15 +105,9 @@ for test_file in success_test_files:
         total_passed += 1
         print(f'{bright_green}OK{clear}')
     else:
-        error = True
         print(f'{bright_red}FAIL{clear}')
-        if stdout != '':
-            print('stdout:')
-            print(stdout)
-        if stderr != '':
-            print('stderr:')
-            print(stderr)
-        print(f'exit code: {rc}')
+        failed_tests_info.append((test_file, stdout, stderr, rc))
+        print_test_fail_info(*failed_tests_info[-1][1:])
 
 warning_commands = [[ bozon, *flags, test_file ] for test_file in warning_test_files]
 warning_pool = ProcessPool(warning_commands)
@@ -112,21 +119,15 @@ for test_file in warning_test_files:
         total_passed += 1
         print(f'{bright_green}OK{clear}')
     else:
-        error = True
         print(f'{bright_red}FAIL{clear}')
-        if stdout != '':
-            print('stdout:')
-            print(stdout)
-        if stderr != '':
-            print('stderr:')
-            print(stderr)
-        print(f'exit code: {rc}')
+        failed_tests_info.append((test_file, stdout, stderr, rc))
+        print_test_fail_info(*failed_tests_info[-1][1:])
 
 def get_error_messages(test_file):
     result = []
     with open(test_file, 'r') as f:
         for line in f:
-            if not line.startswith('// error:') and not line.startswith('// note:') and not line.startswith('// warning:'):
+            if not line.startswith('// error:') and not line.startswith('// note:') and not line.startswith('// warning:') and not line.startswith('// suggestion:'):
                 break
             result.append(line[3:-1])
     return result
@@ -158,18 +159,9 @@ for test_file in error_test_files:
         total_passed += 1
         print(f'{bright_green}OK{clear}')
     else:
-        error = True
         print(f'{bright_red}FAIL{clear}')
-        if stdout != '':
-            print('stdout:')
-            print(stdout)
-        if stderr != '':
-            print('stderr:')
-            print(stderr)
-        print(f'exit code: {rc}')
-        print('wanted error messages:')
-        for m in wanted_messages:
-            print(m)
+        failed_tests_info.append((test_file, stdout, stderr, rc, wanted_messages))
+        print_test_fail_info(*failed_tests_info[-1][1:])
 
 total_test_count = len(success_test_files) + len(warning_test_files) + len(error_test_files)
 passed_percentage = 100 * total_passed / total_test_count
@@ -179,5 +171,10 @@ if total_passed == total_test_count:
 else:
     print(f'{bright_red}{total_passed}/{total_test_count}{clear} ({bright_red}{passed_percentage:.2f}%{clear}) tests passed')
 
-if error:
+for test_file, *info in failed_tests_info:
+    print('')
+    print(f'{bright_red}FAILED:{clear} {test_file}:')
+    print_test_fail_info(*info);
+
+if len(failed_tests_info) != 0:
     exit(1)
