@@ -1,4 +1,5 @@
+// error: invalid conversion from '__null_t' to 'int32'
 function test()
 {
-	let _ = if consteval (true) { [ null as int32 ] };
+	let _ = if consteval (true) { [ null as int32 ] } else { 0 };
 }

@@ -1,3 +1,5 @@
+// error: unable to match type 'int64' to 'int32'
+// note: while matching expression of type '[4: int64]' to '[4: int32]'
 function test()
 {
 	let _: [4: int32] = [4: int64]();

@@ -1,3 +1,6 @@
+// error: dereferencing a null pointer to an object of type 'int32'
+// note: while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

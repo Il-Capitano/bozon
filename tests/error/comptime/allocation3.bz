@@ -1,3 +1,8 @@
+// error: invalid free: address does not point to the result of a previous allocation
+// note: while evaluating expression at compile time
+// note: address is a one-past-the-end pointer to an object in element 0 of this allocation
+// note: allocation was made while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

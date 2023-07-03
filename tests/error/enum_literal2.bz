@@ -1,3 +1,4 @@
+// error: enum literal is not allowed as a top-level expression
 enum E
 {
 	a,

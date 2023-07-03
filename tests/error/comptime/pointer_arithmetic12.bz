@@ -1,3 +1,7 @@
+// error: invalid pointer arithmetic operation with type '*int32' and offset 1
+// note: while evaluating expression at compile time
+// note: address is a one-past-the-end pointer to a subobject that is not in an array in this stack object
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

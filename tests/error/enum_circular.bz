@@ -1,3 +1,6 @@
+// error: circular dependency encountered while trying to resolve value of enum member 'a'
+// note: required by member 'b'
+// note: required by member 'a'
 enum E
 {
 	a = .b,

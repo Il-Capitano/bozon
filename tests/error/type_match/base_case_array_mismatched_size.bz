@@ -1,3 +1,5 @@
+// error: unable to match type '[5: int32]' to '[4: int32]'
+// note: mismatched array sizes: 5 and 4
 function test()
 {
 	let _: [4: int32] = [5: int32]();

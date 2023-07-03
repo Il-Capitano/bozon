@@ -1,3 +1,10 @@
+// error: invalid memory range for a slice of type '[: int32]'
+// note: while evaluating expression at compile time
+// note: begin and end addresses point to different subobjects of the same element in this allocation
+// note: begin address points to a subobject at offset 0
+// note: end address is a one-past-the-end pointer with offset 8
+// note: allocation was made while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

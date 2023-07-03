@@ -1,3 +1,10 @@
+// error: invalid memory range for a slice of type '[: int32]'
+// note: while evaluating expression at compile time
+// note: begin and end addresses point to objects in this allocation, which was freed
+// note: allocation was made while evaluating expression at compile time
+// note: allocation was freed here
+// note: while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

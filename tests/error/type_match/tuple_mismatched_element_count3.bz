@@ -1,3 +1,5 @@
+// error: unable to match tuple expression to tuple type '[int32, int32, ...int32]'
+// note: mismatched tuple element counts: 1 and 3
 function test()
 {
 	let _: [int32, int32, ...int32] = [ 0 ];

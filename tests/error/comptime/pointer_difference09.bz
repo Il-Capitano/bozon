@@ -1,3 +1,9 @@
+// error: invalid pointer difference operation with type '*const int32'
+// note: while evaluating expression at compile time
+// note: lhs and rhs addresses point to different global objects
+// note: lhs address points to this global object
+// note: rhs address points to this global object
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

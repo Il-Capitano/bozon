@@ -1,3 +1,6 @@
+// error: couldn't match the function call to any of the candidates
+// note: function argument types are '<error-type>', '<error-type>'
+// note: candidate: the builtin 'operator =='
 enum E
 {
 	a,

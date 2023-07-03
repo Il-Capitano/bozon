@@ -1,3 +1,6 @@
+// error: invalid value of type 'consteval *int32' returned from compile time execution
+// note: a pointer of type '*int32' is not a constant expression
+// error: expression must be a constant expression
 consteval p = {
 	let i = 0;
 	&i

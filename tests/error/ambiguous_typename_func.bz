@@ -1,3 +1,7 @@
+// error: function call is ambiguous
+// note: function argument types are 'typename', 'typename'
+// note: candidate: 'function foo(T: *typename, U: typename) -> void'
+// note: candidate: 'function foo(T: typename, U: *typename) -> void'
 function foo(T: *typename, U: typename);
 function foo(T: typename, U: *typename);
 

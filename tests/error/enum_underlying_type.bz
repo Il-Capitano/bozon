@@ -1,1 +1,2 @@
+// error: invalid type 'char' for underlying type of enum; it must be an integer type
 enum E: char {}

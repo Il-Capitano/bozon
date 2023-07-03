@@ -1,3 +1,6 @@
+// error: invalid pointer difference of a null and non-null pointer with type '?*const int32'
+// note: while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

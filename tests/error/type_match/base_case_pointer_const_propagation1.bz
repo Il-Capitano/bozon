@@ -1,3 +1,5 @@
+// error: unable to match type '*const int32' to '*int32'
+// note: mismatched const qualification of types 'const int32' and 'int32'
 function test()
 {
 	let i = 0;

@@ -1,3 +1,4 @@
+// error: type '*int32' is not default constructible
 function test()
 {
 	let _ = (*int32)();

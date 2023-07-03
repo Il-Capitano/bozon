@@ -1,3 +1,5 @@
+// error: unable to move non-local variable 'i'
+// note: variable was declared here
 let i = 0;
 
 function test()

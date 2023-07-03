@@ -1,3 +1,5 @@
+// error: variable 'i' has been moved, and is no longer usable
+// note: variable was moved here
 function test()
 {
 	let i = 0;

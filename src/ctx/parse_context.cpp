@@ -5617,7 +5617,7 @@ ast::expression parse_context::make_member_access_expression(
 			auto const dtor = base_t.get<ast::ts_base_type>().info->destructor;
 			this->report_error(
 				src_tokens,
-				bz::format("accessing member '{}' of a value of type '{}' is not allowed", member->value, base_t),
+				bz::format("accessing member '{}' of an rvalue of type '{}' is not allowed", member->value, base_t),
 				{ this->make_note(
 					dtor->body.src_tokens,
 					bz::format("type '{}' has a non-default destructor defined here", base_t)

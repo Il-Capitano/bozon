@@ -1,3 +1,5 @@
+// error: unable to move variable 'i', because it is outside a loop boundary
+// note: variable was declared here
 function test()
 {
 	let i = 0;

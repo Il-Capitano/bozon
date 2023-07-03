@@ -1,3 +1,7 @@
+// error: invalid free: address does not point to the result of a previous allocation
+// note: while evaluating expression at compile time
+// note: address points to this stack object
+// error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {

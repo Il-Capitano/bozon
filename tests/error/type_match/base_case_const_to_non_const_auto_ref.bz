@@ -1,3 +1,4 @@
+// error: unable to match lvalue expression of type 'const int32' to a non-const auto reference '#int32'
 function test()
 {
 	let ci: const int32 = 0;

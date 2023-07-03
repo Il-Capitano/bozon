@@ -1,3 +1,7 @@
+// error: expected identifier
+// error: expected ';'
+// suggestion: add ';' here:
+// error: a variable with an incomplete type 'consteval auto' must be initialized
 function main()
 {
 	consteval {};

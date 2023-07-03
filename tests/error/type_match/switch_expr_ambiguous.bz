@@ -1,3 +1,6 @@
+// error: different types deduced for different cases in switch expression while matching to type 'auto'
+// note: type was first deduced as 'int32'
+// note: type was later deduced as 'int64'
 function test(val: int32)
 {
 	let _ = switch (val) {

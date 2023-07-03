@@ -1,3 +1,7 @@
+// error: invalid value of type '[5: str]' returned from compile time execution
+// note: invalid value of type 'str' for element 3 in array of type '[5: str]'
+// note: memory range contains objects outside their lifetime in this stack object
+// error: expression must be a constant expression
 consteval s = {
 	let buffer: [10: uint8];
 	let result: [5: str];
