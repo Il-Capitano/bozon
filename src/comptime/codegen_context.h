@@ -75,6 +75,14 @@ struct basic_block
 		type const *loaded_type;
 	};
 
+	struct cached_gep_t
+	{
+		instruction_ref value_ptr;
+		type const *value_type;
+		uint32_t index;
+		instruction_ref gep_result;
+	};
+
 	struct instruction_and_args_pair_t
 	{
 		instruction inst;
@@ -82,6 +90,7 @@ struct basic_block
 	};
 
 	bz::vector<cached_value_t> cached_values;
+	bz::vector<cached_gep_t> cached_geps;
 	bz::vector<instruction_and_args_pair_t> instructions;
 	unresolved_terminator terminator;
 	uint32_t instruction_value_offset;
