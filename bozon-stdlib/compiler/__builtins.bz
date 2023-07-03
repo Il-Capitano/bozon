@@ -572,30 +572,24 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 @__builtin @symbol_name("llvm.trap") export function __builtin_trap();
 
 @__builtin @symbol_name(
-	if (sizeof usize == 8) {
-		"llvm.memcpy.p0.p0.i64"
-	} else if (sizeof usize == 4) {
-		"llvm.memcpy.p0.p0.i32"
-	} else {
-		unreachable
+	switch (sizeof usize) {
+		8 => "llvm.memcpy.p0.p0.i64",
+		4 => "llvm.memcpy.p0.p0.i32",
+		else => unreachable,
 	}
 ) export function __builtin_memcpy(dest: ?*void, src: ?*const void, n: usize);
 @__builtin @symbol_name(
-	if (sizeof usize == 8) {
-		"llvm.memmove.p0.p0.i64"
-	} else if (sizeof usize == 4) {
-		"llvm.memmove.p0.p0.i32"
-	} else {
-		unreachable
+	switch (sizeof usize) {
+		8 => "llvm.memmove.p0.p0.i64",
+		4 => "llvm.memmove.p0.p0.i32",
+		else => unreachable,
 	}
 ) export function __builtin_memmove(dest: ?*void, src: ?*const void, n: usize);
 @__builtin @symbol_name(
-	if (sizeof usize == 8) {
-		"llvm.memset.p0.i64"
-	} else if (sizeof usize == 4) {
-		"llvm.memset.p0.i32"
-	} else {
-		unreachable
+	switch (sizeof usize) {
+		8 => "llvm.memset.p0.i64",
+		4 => "llvm.memset.p0.i32",
+		else => unreachable,
 	}
 ) export function __builtin_memset(dest: ?*void, val: uint8, n: usize);
 
