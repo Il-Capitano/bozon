@@ -5384,6 +5384,28 @@ struct add_global_array_data
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
+struct range_bounds_check_i64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct range_bounds_check_u64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::none;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
 struct array_bounds_check_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
@@ -6022,6 +6044,8 @@ using instruction_list_t = bz::meta::type_pack<
 	instructions::print,
 	instructions::is_option_set,
 	instructions::add_global_array_data,
+	instructions::range_bounds_check_i64,
+	instructions::range_bounds_check_u64,
 	instructions::array_bounds_check_i32,
 	instructions::array_bounds_check_u32,
 	instructions::array_bounds_check_i64,
@@ -6071,7 +6095,7 @@ private:
 	uint64_t _index = index_of<void>;
 
 public:
-	static_assert(instruction_list_t::size() == 544);
+	static_assert(instruction_list_t::size() == 546);
 	enum : uint64_t
 	{
 		const_i1 = index_of<instructions::const_i1>,
@@ -6609,6 +6633,8 @@ public:
 		print,
 		is_option_set,
 		add_global_array_data,
+		range_bounds_check_i64,
+		range_bounds_check_u64,
 		array_bounds_check_i32,
 		array_bounds_check_u32,
 		array_bounds_check_i64,

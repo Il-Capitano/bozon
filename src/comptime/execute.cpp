@@ -4510,6 +4510,31 @@ static ptr_t execute_add_global_array_data(instructions::add_global_array_data c
 	return context.add_global_array_data(info.src_tokens, info.elem_type, bz::array_view(begin_ptr, end_ptr));
 }
 
+static void execute_range_bounds_check_i64(instructions::range_bounds_check_i64 const &inst, uint64_t ubegin, uint64_t uend, executor_context &context)
+{
+	auto const begin = static_cast<int64_t>(ubegin);
+	auto const end = static_cast<int64_t>(uend);
+
+	if (begin > end)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("invalid range bounds of {} and {}", begin, end)
+		);
+	}
+}
+
+static void execute_range_bounds_check_u64(instructions::range_bounds_check_u64 const &inst, uint64_t begin, uint64_t end, executor_context &context)
+{
+	if (begin > end)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("invalid range bounds of {} and {}", begin, end)
+		);
+	}
+}
+
 static void execute_array_bounds_check_i32(instructions::array_bounds_check_i32 const &inst, uint32_t uindex, uint32_t size, executor_context &context)
 {
 	auto const index = static_cast<int32_t>(uindex);
@@ -4799,7 +4824,7 @@ void execute_current_instruction(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-	static_assert(instruction_list_t::size() == 544);
+	static_assert(instruction_list_t::size() == 546);
 	case instruction::const_i1:
 		execute<instructions::const_i1, &execute_const_i1>(context);
 		break;
@@ -6404,6 +6429,12 @@ void execute_current_instruction(executor_context &context)
 		break;
 	case instruction::add_global_array_data:
 		execute<instructions::add_global_array_data, &execute_add_global_array_data>(context);
+		break;
+	case instruction::range_bounds_check_i64:
+		execute<instructions::range_bounds_check_i64, &execute_range_bounds_check_i64>(context);
+		break;
+	case instruction::range_bounds_check_u64:
+		execute<instructions::range_bounds_check_u64, &execute_range_bounds_check_u64>(context);
 		break;
 	case instruction::array_bounds_check_i32:
 		execute<instructions::array_bounds_check_i32, &execute_array_bounds_check_i32>(context);
