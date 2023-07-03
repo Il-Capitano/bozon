@@ -1069,6 +1069,33 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 	}
 	return true;
 }
+@__builtin export operator == (lhs: [: const auto], rhs: [: const auto]) -> bool
+{
+	if (__builtin_slice_size(lhs) != __builtin_slice_size(rhs))
+	{
+		return false;
+	}
+
+	let lhs_it = __builtin_slice_begin_const_ptr(lhs);
+	let rhs_it = __builtin_slice_begin_const_ptr(rhs);
+	const lhs_end = __builtin_slice_end_const_ptr(lhs);
+	if consteval (typeof lhs == typeof rhs)
+	{
+		if (lhs_it == rhs_it)
+		{
+			return true;
+		}
+	}
+
+	for (; lhs_it != lhs_end; ++lhs_it, ++rhs_it)
+	{
+		if (!(*lhs_it == *rhs_it))
+		{
+			return false;
+		}
+	}
+	return true;
+}
 @__builtin export operator == (lhs: bool, rhs: bool) -> bool;
 @__builtin export operator == (lhs: *const auto, rhs: *const auto)
 	-> (if consteval (typeof lhs != typeof rhs) {
@@ -1137,6 +1164,33 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 	if (lhs_it == rhs_it)
 	{
 		return false;
+	}
+
+	for (; lhs_it != lhs_end; ++lhs_it, ++rhs_it)
+	{
+		if (*lhs_it != *rhs_it)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+@__builtin export operator != (lhs: [: const auto], rhs: [: const auto]) -> bool
+{
+	if (__builtin_slice_size(lhs) != __builtin_slice_size(rhs))
+	{
+		return true;
+	}
+
+	let lhs_it = __builtin_slice_begin_const_ptr(lhs);
+	let rhs_it = __builtin_slice_begin_const_ptr(rhs);
+	const lhs_end = __builtin_slice_end_const_ptr(lhs);
+	if consteval (typeof lhs == typeof rhs)
+	{
+		if (lhs_it == rhs_it)
+		{
+			return false;
+		}
 	}
 
 	for (; lhs_it != lhs_end; ++lhs_it, ++rhs_it)

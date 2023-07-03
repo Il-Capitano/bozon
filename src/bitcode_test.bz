@@ -2129,5 +2129,12 @@ function improved_slices_test()
 				break;
 			}
 		}
+
+		const a = [10: int32]();
+		std::assert(a == a);
+		std::assert(a[0..3] == a[3..6]);
+		const b = [10: int8]();
+		std::assert(a == b);
+		std::assert(a != b[1..]);
 	});
 }
