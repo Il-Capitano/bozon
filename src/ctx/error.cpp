@@ -3,10 +3,11 @@
 #include "global_context.h"
 #include "global_data.h"
 
-constexpr auto error_color      = colors::bright_red;
-constexpr auto warning_color    = colors::bright_magenta;
-constexpr auto note_color       = colors::bright_black;
-constexpr auto suggestion_color = colors::bright_green;
+static constexpr auto error_color      = colors::bright_red;
+static constexpr auto warning_color    = colors::bright_magenta;
+static constexpr auto note_color       = colors::bright_black;
+static constexpr auto suggestion_color = colors::bright_green;
+static constexpr uint32_t shown_adjacent_lines = 1;
 
 namespace ctx
 {
@@ -367,9 +368,85 @@ static bz::u8string get_highlighted_text(
 
 	bz::u8string result;
 
+	auto const interesting_line_numbers = [&]() {
+		bz::vector<uint32_t> result = {};
+
+		if (do_verbose)
+		{
+			return result;
+		}
+
+		auto line_num = first_line_num;
+		for (auto const it : bz::iota(first_line_begin, last_line_end))
+		{
+			if (
+				it == src_begin
+				|| it == src_pivot
+				|| it == src_end
+				|| it == first_erase_begin
+				|| it == first_erase_end
+				|| it == first_str_pos
+				|| it == second_erase_begin
+				|| it == second_erase_end
+				|| it == second_str_pos
+			)
+			{
+				result.push_back(line_num);
+			}
+
+			if (*it == '\n')
+			{
+				line_num += 1;
+			}
+		}
+
+		result.sort();
+		return result;
+	}();
+
+	auto const should_skip_line = [&interesting_line_numbers](uint32_t line_num) {
+		if (interesting_line_numbers.size() < 2)
+		{
+			return false;
+		}
+
+		auto const lb = std::lower_bound(interesting_line_numbers.begin(), interesting_line_numbers.end(), line_num);
+		bz_assert(lb != interesting_line_numbers.end());
+		bz_assert(*lb - line_num <= shown_adjacent_lines || lb != interesting_line_numbers.begin());
+		if (*lb - line_num <= shown_adjacent_lines || line_num - *(lb - 1) <= shown_adjacent_lines)
+		{
+			return false;
+		}
+		else
+		{
+			// we shouldn't skip a single line, because it wouldn't reduce the error message length
+			return (*lb - line_num != shown_adjacent_lines + 1) || (line_num - *(lb - 1) != shown_adjacent_lines + 1);
+		}
+	};
+
+	bool skipped_lines = false;
 	auto line_num = first_line_num;
 	while (it != last_line_end)
 	{
+		if (!do_verbose && should_skip_line(line_num))
+		{
+			while (*it != '\n')
+			{
+				bz_assert(it != last_line_end);
+				++it;
+			}
+			++it; // skip new line
+			++line_num;
+			skipped_lines = true;
+			continue;
+		}
+
+		if (skipped_lines)
+		{
+			skipped_lines = false;
+			result += "    ...\n";
+		}
+
 		file_line.clear();
 		highlight_line.clear();
 		column = 0;
