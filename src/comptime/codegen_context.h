@@ -562,6 +562,7 @@ struct codegen_context
 	void create_warning_str(lex::src_tokens const &src_tokens, ctx::warning_kind kind, expr_value begin_ptr, expr_value end_ptr);
 	void create_print(expr_value begin_ptr, expr_value end_ptr);
 	expr_value create_is_option_set(expr_value begin_ptr, expr_value end_ptr);
+	void create_range_bounds_check(lex::src_tokens const &src_tokens, expr_value begin, expr_value end, bool is_signed);
 	void create_array_bounds_check(lex::src_tokens const &src_tokens, expr_value index, expr_value size, bool is_index_signed);
 	void create_optional_get_value_check(lex::src_tokens const &src_tokens, expr_value has_value);
 	void create_str_construction_check(lex::src_tokens const &src_tokens, expr_value begin_ptr, expr_value end_ptr);

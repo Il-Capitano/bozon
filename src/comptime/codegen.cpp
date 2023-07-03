@@ -2292,6 +2292,24 @@ static expr_value generate_intrinsic_function_call_code(
 		auto const begin = generate_expr_code(func_call.params[0], context, {}).get_value(context);
 		auto const end   = generate_expr_code(func_call.params[1], context, {}).get_value(context);
 
+		auto const is_signed = [&]() {
+			switch (func_call.func_body->intrinsic_kind)
+			{
+			case ast::function_body::builtin_integer_range_i8:
+			case ast::function_body::builtin_integer_range_i16:
+			case ast::function_body::builtin_integer_range_i32:
+			case ast::function_body::builtin_integer_range_i64:
+			case ast::function_body::builtin_integer_range_inclusive_i8:
+			case ast::function_body::builtin_integer_range_inclusive_i16:
+			case ast::function_body::builtin_integer_range_inclusive_i32:
+			case ast::function_body::builtin_integer_range_inclusive_i64:
+				return true;
+			default:
+				return false;
+			}
+		}();
+		context.create_range_bounds_check(func_call.src_tokens, begin, end, is_signed);
+
 		context.create_store(begin, context.create_struct_gep(result_value, 0));
 		context.create_store(end,   context.create_struct_gep(result_value, 1));
 		context.create_start_lifetime(result_value);

@@ -6005,6 +6005,36 @@ expr_value codegen_context::create_is_option_set(expr_value begin_ptr, expr_valu
 	);
 }
 
+void codegen_context::create_range_bounds_check(lex::src_tokens const &src_tokens, expr_value begin, expr_value end, bool is_signed)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(begin.get_type() == end.get_type());
+	if (begin.get_type() != this->get_builtin_type(builtin_type_kind::i64))
+	{
+		begin = this->create_int_cast(begin, this->get_builtin_type(builtin_type_kind::i64), is_signed);
+		end = this->create_int_cast(end, this->get_builtin_type(builtin_type_kind::i64), is_signed);
+	}
+
+	auto const begin_val = begin.get_value_as_instruction(*this);
+	auto const end_val = end.get_value_as_instruction(*this);
+
+	if (is_signed)
+	{
+		add_instruction(*this,
+			instructions::range_bounds_check_i64{ .src_tokens_index = src_tokens_index },
+			begin_val, end_val
+		);
+	}
+	else
+	{
+		add_instruction(*this,
+			instructions::range_bounds_check_u64{ .src_tokens_index = src_tokens_index },
+			begin_val, end_val
+		);
+	}
+}
+
 void codegen_context::create_array_bounds_check(
 	lex::src_tokens const &src_tokens,
 	expr_value index,

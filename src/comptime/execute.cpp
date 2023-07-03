@@ -4519,7 +4519,7 @@ static void execute_range_bounds_check_i64(instructions::range_bounds_check_i64 
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("invalid range bounds of {} and {}", begin, end)
+			bz::format("the begin value {} in range is greater than the end value {}", begin, end)
 		);
 	}
 }
@@ -4530,7 +4530,7 @@ static void execute_range_bounds_check_u64(instructions::range_bounds_check_u64 
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("invalid range bounds of {} and {}", begin, end)
+			bz::format("the begin value {} in range is greater than the end value {}", begin, end)
 		);
 	}
 }
