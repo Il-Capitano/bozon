@@ -1318,9 +1318,24 @@ void codegen_context::create_ret_void(void)
 	add_instruction(*this, instructions::ret_void{});
 }
 
-expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
+static type const *get_const_gep_type(type const *value_type, size_t index)
 {
-	bz_assert(value.is_reference());
+	if (value_type->is_array())
+	{
+		return value_type->get_array_element_type();
+	}
+	else
+	{
+		bz_assert(value_type->is_aggregate());
+		auto const types = value_type->get_aggregate_types();
+		bz_assert(index < types.size());
+		bz_assert(index <= std::numeric_limits<uint32_t>::max());
+		return types[index];
+	}
+}
+
+static expr_value create_const_gep_inst(codegen_context &context, expr_value value, size_t index)
+{
 	auto const type = value.get_type();
 	if (type->is_array())
 	{
@@ -1332,7 +1347,7 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 		}
 		else
 		{
-			auto const result_ptr = add_instruction(*this, instructions::const_gep{
+			auto const result_ptr = add_instruction(context, instructions::const_gep{
 				.object_type = type,
 				.index = static_cast<uint32_t>(index),
 			}, value.get_reference());
@@ -1351,13 +1366,42 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 		}
 		else
 		{
-			auto const result_ptr = add_instruction(*this, instructions::const_gep{
+			auto const result_ptr = add_instruction(context, instructions::const_gep{
 				.object_type = type,
 				.index = static_cast<uint32_t>(index),
 			}, value.get_reference());
 			return expr_value::get_reference(result_ptr, types[index]);
 		}
 	}
+}
+
+expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
+{
+	bz_assert(value.is_reference());
+	auto const value_ptr = value.get_reference();
+	auto const value_type = value.get_type();
+
+	auto &current_block = get_current_block(*this);
+	auto const it = std::find_if(
+		current_block.cached_geps.begin(), current_block.cached_geps.end(),
+		[value_ptr, value_type, index](auto const &gep) {
+			return gep.value_ptr == value_ptr && gep.value_type == value_type && gep.index == index;
+		}
+	);
+	if (it != current_block.cached_geps.end())
+	{
+		auto const type = get_const_gep_type(value_type, index);
+		return expr_value::get_reference(it->gep_result, type);
+	}
+
+	auto const result = create_const_gep_inst(*this, value, index);
+	current_block.cached_geps.push_back({
+		.value_ptr = value_ptr,
+		.value_type = value_type,
+		.index = static_cast<uint32_t>(index),
+		.gep_result = result.get_reference(),
+	});
+	return result;
 }
 
 expr_value codegen_context::create_array_gep(expr_value value, expr_value index)
