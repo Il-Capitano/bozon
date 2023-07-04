@@ -2534,7 +2534,7 @@ static expr_value generate_intrinsic_function_call_code(
 
 		auto const range_value = generate_expr_code(func_call.params[0], context, {});
 		auto const begin_value = context.create_struct_gep(range_value, 0);
-		auto const end_value = context.create_struct_gep(range_value, 0);
+		auto const end_value = context.create_struct_gep(range_value, 1);
 		auto const false_value = context.create_const_i1(false);
 
 		context.create_store(begin_value, context.create_struct_gep(result_value, 0));
