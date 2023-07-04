@@ -2042,8 +2042,22 @@ static expr_value generate_builtin_subscript_range(
 	else if (lhs_type.is<ast::ts_array>())
 	{
 		auto const size = lhs_value.get_type()->get_array_size();
+		auto const index_type_kind = [&]() {
+			if (!begin_index.is_none())
+			{
+				return begin_index.get_type()->get_builtin_kind();
+			}
+			else if (!end_index.is_none())
+			{
+				return end_index.get_type()->get_builtin_kind();
+			}
+			else
+			{
+				return builtin_type_kind::i32;
+			}
+		}();
 		auto const size_value = [&]() {
-			if (context.is_64_bit() || begin_index.get_type()->get_builtin_kind() == builtin_type_kind::i64)
+			if (context.is_64_bit() || index_type_kind == builtin_type_kind::i64)
 			{
 				bz_assert(size <= std::numeric_limits<uint64_t>::max());
 				return context.create_const_u64(static_cast<uint64_t>(size));
