@@ -614,27 +614,23 @@ static expr_value generate_expr_code(
 		auto const is_index_signed = ast::is_signed_integer_kind(kind);
 		if (context.is_64_bit() || index.get_type()->get_builtin_kind() == builtin_type_kind::i64)
 		{
-			bz_assert(size <= static_cast<size_t>(std::numeric_limits<int64_t>::max()));
+			bz_assert(size <= std::numeric_limits<uint64_t>::max());
 			index = context.create_int_cast(index, context.get_builtin_type(builtin_type_kind::i64), is_index_signed);
 			context.create_array_bounds_check(
 				src_tokens,
 				index,
-				is_index_signed
-					? context.create_const_i64(static_cast<int64_t>(size))
-					: context.create_const_u64(size),
+				context.create_const_u64(size),
 				is_index_signed
 			);
 		}
 		else
 		{
-			bz_assert(size <= static_cast<size_t>(std::numeric_limits<int32_t>::max()));
+			bz_assert(size <= std::numeric_limits<uint32_t>::max());
 			index = context.create_int_cast(index, context.get_builtin_type(builtin_type_kind::i32), is_index_signed);
 			context.create_array_bounds_check(
 				src_tokens,
 				index,
-				is_index_signed
-					? context.create_const_i32(static_cast<int32_t>(size))
-					: context.create_const_u32(static_cast<uint32_t>(size)),
+				context.create_const_u32(static_cast<uint32_t>(size)),
 				is_index_signed
 			);
 		}
@@ -709,27 +705,23 @@ static expr_value generate_expr_code(
 	auto const is_index_signed = ast::is_signed_integer_kind(kind);
 	if (context.is_64_bit() || index.get_type()->get_builtin_kind() == builtin_type_kind::i64)
 	{
-		bz_assert(size <= static_cast<size_t>(std::numeric_limits<int64_t>::max()));
+		bz_assert(size <= std::numeric_limits<uint64_t>::max());
 		index = context.create_int_cast(index, context.get_builtin_type(builtin_type_kind::i64), is_index_signed);
 		context.create_array_bounds_check(
 			src_tokens,
 			index,
-			is_index_signed
-				? context.create_const_i64(static_cast<int64_t>(size))
-				: context.create_const_u64(size),
+			context.create_const_u64(size),
 			is_index_signed
 		);
 	}
 	else
 	{
-		bz_assert(size <= static_cast<size_t>(std::numeric_limits<int32_t>::max()));
+		bz_assert(size <= std::numeric_limits<uint32_t>::max());
 		index = context.create_int_cast(index, context.get_builtin_type(builtin_type_kind::i32), is_index_signed);
 		context.create_array_bounds_check(
 			src_tokens,
 			index,
-			is_index_signed
-				? context.create_const_i32(static_cast<int32_t>(size))
-				: context.create_const_u32(static_cast<uint32_t>(size)),
+			context.create_const_u32(static_cast<uint32_t>(size)),
 			is_index_signed
 		);
 	}
@@ -1995,14 +1987,13 @@ static expr_value generate_builtin_subscript_range(
 		switch (kind)
 		{
 		case range_kind::regular:
-			context.create_array_bounds_check(original_expression.src_tokens, begin_index_cast, size_cast, is_index_signed);
-			context.create_array_bounds_check(original_expression.src_tokens, end_index_cast, size_cast, is_index_signed);
+			context.create_array_range_bounds_check(original_expression.src_tokens, begin_index_cast, end_index_cast, size_cast, is_index_signed);
 			break;
 		case range_kind::from:
-			context.create_array_bounds_check(original_expression.src_tokens, begin_index_cast, size_cast, is_index_signed);
+			context.create_array_range_begin_bounds_check(original_expression.src_tokens, begin_index_cast, size_cast, is_index_signed);
 			break;
 		case range_kind::to:
-			context.create_array_bounds_check(original_expression.src_tokens, end_index_cast, size_cast, is_index_signed);
+			context.create_array_range_end_bounds_check(original_expression.src_tokens, end_index_cast, size_cast, is_index_signed);
 			break;
 		case range_kind::unbounded:
 			break;
@@ -2054,17 +2045,13 @@ static expr_value generate_builtin_subscript_range(
 		auto const size_value = [&]() {
 			if (context.is_64_bit() || begin_index.get_type()->get_builtin_kind() == builtin_type_kind::i64)
 			{
-				bz_assert(size <= static_cast<size_t>(std::numeric_limits<int64_t>::max()));
-				return is_index_signed
-					? context.create_const_i64(static_cast<int64_t>(size))
-					: context.create_const_u64(static_cast<uint64_t>(size));
+				bz_assert(size <= std::numeric_limits<uint64_t>::max());
+				return context.create_const_u64(static_cast<uint64_t>(size));
 			}
 			else
 			{
-				bz_assert(size <= static_cast<size_t>(std::numeric_limits<int32_t>::max()));
-				return is_index_signed
-					? context.create_const_i32(static_cast<int32_t>(size))
-					: context.create_const_u32(static_cast<uint32_t>(size));
+				bz_assert(size <= std::numeric_limits<uint32_t>::max());
+				return context.create_const_u32(static_cast<uint32_t>(size));
 			}
 		}();
 
@@ -2073,14 +2060,13 @@ static expr_value generate_builtin_subscript_range(
 		switch (kind)
 		{
 		case range_kind::regular:
-			context.create_array_bounds_check(original_expression.src_tokens, begin_index_cast, size_cast, is_index_signed);
-			context.create_array_bounds_check(original_expression.src_tokens, end_index_cast, size_cast, is_index_signed);
+			context.create_array_range_bounds_check(original_expression.src_tokens, begin_index_cast, end_index_cast, size_cast, is_index_signed);
 			break;
 		case range_kind::from:
-			context.create_array_bounds_check(original_expression.src_tokens, begin_index_cast, size_cast, is_index_signed);
+			context.create_array_range_begin_bounds_check(original_expression.src_tokens, begin_index_cast, size_cast, is_index_signed);
 			break;
 		case range_kind::to:
-			context.create_array_bounds_check(original_expression.src_tokens, end_index_cast, size_cast, is_index_signed);
+			context.create_array_range_end_bounds_check(original_expression.src_tokens, end_index_cast, size_cast, is_index_signed);
 			break;
 		case range_kind::unbounded:
 			break;
