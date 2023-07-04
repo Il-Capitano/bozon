@@ -19,7 +19,7 @@ bz::array_view<llvm::Attribute::AttrKind const> get_pass_by_reference_attributes
 template<>
 pass_kind get_pass_kind<platform_abi::systemv_amd64>(
 	llvm::Type *t,
-	llvm::DataLayout &data_layout,
+	llvm::DataLayout const &data_layout,
 	llvm::LLVMContext &context
 )
 {
@@ -98,7 +98,7 @@ static bz::vector<llvm::Type *> get_types(llvm::Type *t)
 template<>
 llvm::Type *get_one_register_type<platform_abi::systemv_amd64>(
 	llvm::Type *t,
-	llvm::DataLayout &data_layout,
+	llvm::DataLayout const &data_layout,
 	llvm::LLVMContext &context
 )
 {
@@ -137,7 +137,7 @@ static void get_types_with_offset_helper(
 	llvm::Type *t,
 	bz::vector<std::pair<llvm::Type *, size_t>> &result,
 	size_t current_offset,
-	llvm::DataLayout &data_layout,
+	llvm::DataLayout const &data_layout,
 	llvm::LLVMContext &context
 )
 {
@@ -179,7 +179,7 @@ static void get_types_with_offset_helper(
 
 static bz::vector<std::pair<llvm::Type *, size_t>> get_types_with_offset(
 	llvm::Type *t,
-	llvm::DataLayout &data_layout,
+	llvm::DataLayout const &data_layout,
 	llvm::LLVMContext &context
 )
 {
@@ -191,7 +191,7 @@ static bz::vector<std::pair<llvm::Type *, size_t>> get_types_with_offset(
 template<>
 std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::systemv_amd64>(
 	llvm::Type *t,
-	llvm::DataLayout &data_layout,
+	llvm::DataLayout const &data_layout,
 	llvm::LLVMContext &context
 )
 {
