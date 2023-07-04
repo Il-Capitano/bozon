@@ -4595,6 +4595,240 @@ static void execute_array_bounds_check_u64(instructions::array_bounds_check_u64 
 	}
 }
 
+static void execute_array_range_bounds_check_i32(instructions::array_range_bounds_check_i32 const &inst, uint32_t ubegin, uint32_t uend, uint32_t size, executor_context &context)
+{
+	auto const begin = static_cast<int32_t>(ubegin);
+	auto const end = static_cast<int32_t>(uend);
+
+	if (begin < 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("negative begin index {} in range subscript for an array of size {}", begin, size)
+		);
+	}
+	else if (ubegin > size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("begin index {} is out-of-bounds in range subscript for an array of size {}", begin, size)
+		);
+	}
+
+	if (end < 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("negative end index {} in range subscript for an array of size {}", end, size)
+		);
+	}
+	else if (uend > size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("end index {} is out-of-bounds in range subscript for an array of size {}", end, size)
+		);
+	}
+}
+
+static void execute_array_range_bounds_check_u32(instructions::array_range_bounds_check_u32 const &inst, uint32_t begin, uint32_t end, uint32_t size, executor_context &context)
+{
+	if (begin > size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("begin index {} is out-of-bounds in range subscript for an array of size {}", begin, size)
+		);
+	}
+
+	if (end > size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("end index {} is out-of-bounds in range subscript for an array of size {}", end, size)
+		);
+	}
+}
+
+static void execute_array_range_bounds_check_i64(instructions::array_range_bounds_check_i64 const &inst, uint64_t ubegin, uint64_t uend, uint64_t size, executor_context &context)
+{
+	auto const begin = static_cast<int64_t>(ubegin);
+	auto const end = static_cast<int64_t>(uend);
+
+	if (begin < 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("negative begin index {} in range subscript for an array of size {}", begin, size)
+		);
+	}
+	else if (ubegin > size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("begin index {} is out-of-bounds in range subscript for an array of size {}", begin, size)
+		);
+	}
+
+	if (end < 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("negative end index {} in range subscript for an array of size {}", end, size)
+		);
+	}
+	else if (uend > size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("end index {} is out-of-bounds in range subscript for an array of size {}", end, size)
+		);
+	}
+}
+
+static void execute_array_range_bounds_check_u64(instructions::array_range_bounds_check_u64 const &inst, uint64_t begin, uint64_t end, uint64_t size, executor_context &context)
+{
+	if (begin > size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("begin index {} is out-of-bounds in range subscript for an array of size {}", begin, size)
+		);
+	}
+
+	if (end > size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("end index {} is out-of-bounds in range subscript for an array of size {}", end, size)
+		);
+	}
+}
+
+static void execute_array_range_begin_bounds_check_i32(instructions::array_range_begin_bounds_check_i32 const &inst, uint32_t ubegin, uint32_t size, executor_context &context)
+{
+	auto const begin = static_cast<int32_t>(ubegin);
+
+	if (begin < 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("negative begin index {} in range subscript for an array of size {}", begin, size)
+		);
+	}
+	else if (ubegin > size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("begin index {} is out-of-bounds in range subscript for an array of size {}", begin, size)
+		);
+	}
+}
+
+static void execute_array_range_begin_bounds_check_u32(instructions::array_range_begin_bounds_check_u32 const &inst, uint32_t begin, uint32_t size, executor_context &context)
+{
+	if (begin > size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("begin index {} is out-of-bounds in range subscript for an array of size {}", begin, size)
+		);
+	}
+}
+
+static void execute_array_range_begin_bounds_check_i64(instructions::array_range_begin_bounds_check_i64 const &inst, uint64_t ubegin, uint64_t size, executor_context &context)
+{
+	auto const begin = static_cast<int64_t>(ubegin);
+
+	if (begin < 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("negative begin index {} in range subscript for an array of size {}", begin, size)
+		);
+	}
+	else if (ubegin > size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("begin index {} is out-of-bounds in range subscript for an array of size {}", begin, size)
+		);
+	}
+}
+
+static void execute_array_range_begin_bounds_check_u64(instructions::array_range_begin_bounds_check_u64 const &inst, uint64_t begin, uint64_t size, executor_context &context)
+{
+	if (begin > size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("begin index {} is out-of-bounds in range subscript for an array of size {}", begin, size)
+		);
+	}
+}
+
+static void execute_array_range_end_bounds_check_i32(instructions::array_range_end_bounds_check_i32 const &inst, uint32_t uend, uint32_t size, executor_context &context)
+{
+	auto const end = static_cast<int32_t>(uend);
+
+	if (end < 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("negative end index {} in range subscript for an array of size {}", end, size)
+		);
+	}
+	else if (uend > size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("end index {} is out-of-bounds in range subscript for an array of size {}", end, size)
+		);
+	}
+}
+
+static void execute_array_range_end_bounds_check_u32(instructions::array_range_end_bounds_check_u32 const &inst, uint32_t end, uint32_t size, executor_context &context)
+{
+	if (end > size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("end index {} is out-of-bounds in range subscript for an array of size {}", end, size)
+		);
+	}
+}
+
+static void execute_array_range_end_bounds_check_i64(instructions::array_range_end_bounds_check_i64 const &inst, uint64_t uend, uint64_t size, executor_context &context)
+{
+	auto const end = static_cast<int64_t>(uend);
+
+	if (end < 0)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("negative end index {} in range subscript for an array of size {}", end, size)
+		);
+	}
+	else if (uend > size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("end index {} is out-of-bounds in range subscript for an array of size {}", end, size)
+		);
+	}
+}
+
+static void execute_array_range_end_bounds_check_u64(instructions::array_range_end_bounds_check_u64 const &inst, uint64_t end, uint64_t size, executor_context &context)
+{
+	if (end > size)
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format("end index {} is out-of-bounds in range subscript for an array of size {}", end, size)
+		);
+	}
+}
+
 static void execute_optional_get_value_check(instructions::optional_get_value_check const &inst, bool has_value, executor_context &context)
 {
 	if (!has_value)
@@ -4824,7 +5058,7 @@ void execute_current_instruction(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-	static_assert(instruction_list_t::size() == 546);
+	static_assert(instruction_list_t::size() == 558);
 	case instruction::const_i1:
 		execute<instructions::const_i1, &execute_const_i1>(context);
 		break;
@@ -6447,6 +6681,42 @@ void execute_current_instruction(executor_context &context)
 		break;
 	case instruction::array_bounds_check_u64:
 		execute<instructions::array_bounds_check_u64, &execute_array_bounds_check_u64>(context);
+		break;
+	case instruction::array_range_bounds_check_i32:
+		execute<instructions::array_range_bounds_check_i32, &execute_array_range_bounds_check_i32>(context);
+		break;
+	case instruction::array_range_bounds_check_u32:
+		execute<instructions::array_range_bounds_check_u32, &execute_array_range_bounds_check_u32>(context);
+		break;
+	case instruction::array_range_bounds_check_i64:
+		execute<instructions::array_range_bounds_check_i64, &execute_array_range_bounds_check_i64>(context);
+		break;
+	case instruction::array_range_bounds_check_u64:
+		execute<instructions::array_range_bounds_check_u64, &execute_array_range_bounds_check_u64>(context);
+		break;
+	case instruction::array_range_begin_bounds_check_i32:
+		execute<instructions::array_range_begin_bounds_check_i32, &execute_array_range_begin_bounds_check_i32>(context);
+		break;
+	case instruction::array_range_begin_bounds_check_u32:
+		execute<instructions::array_range_begin_bounds_check_u32, &execute_array_range_begin_bounds_check_u32>(context);
+		break;
+	case instruction::array_range_begin_bounds_check_i64:
+		execute<instructions::array_range_begin_bounds_check_i64, &execute_array_range_begin_bounds_check_i64>(context);
+		break;
+	case instruction::array_range_begin_bounds_check_u64:
+		execute<instructions::array_range_begin_bounds_check_u64, &execute_array_range_begin_bounds_check_u64>(context);
+		break;
+	case instruction::array_range_end_bounds_check_i32:
+		execute<instructions::array_range_end_bounds_check_i32, &execute_array_range_end_bounds_check_i32>(context);
+		break;
+	case instruction::array_range_end_bounds_check_u32:
+		execute<instructions::array_range_end_bounds_check_u32, &execute_array_range_end_bounds_check_u32>(context);
+		break;
+	case instruction::array_range_end_bounds_check_i64:
+		execute<instructions::array_range_end_bounds_check_i64, &execute_array_range_end_bounds_check_i64>(context);
+		break;
+	case instruction::array_range_end_bounds_check_u64:
+		execute<instructions::array_range_end_bounds_check_u64, &execute_array_range_end_bounds_check_u64>(context);
 		break;
 	case instruction::optional_get_value_check:
 		execute<instructions::optional_get_value_check, &execute_optional_get_value_check>(context);

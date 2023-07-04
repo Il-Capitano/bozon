@@ -11,7 +11,7 @@ static_assert([]<typename ...Ts>(bz::meta::type_pack<Ts...>) {
 	return bz::meta::is_all<std::is_trivial_v<Ts>...>;
 }(instruction_list_t()));
 
-static_assert(instruction_list_t::size() == 546);
+static_assert(instruction_list_t::size() == 558);
 static_assert(instruction::const_i1                 == instruction::index_of<instructions::const_i1>);
 static_assert(instruction::const_i8                 == instruction::index_of<instructions::const_i8>);
 static_assert(instruction::const_i16                == instruction::index_of<instructions::const_i16>);
@@ -553,6 +553,18 @@ static_assert(instruction::array_bounds_check_i32   == instruction::index_of<ins
 static_assert(instruction::array_bounds_check_u32   == instruction::index_of<instructions::array_bounds_check_u32>);
 static_assert(instruction::array_bounds_check_i64   == instruction::index_of<instructions::array_bounds_check_i64>);
 static_assert(instruction::array_bounds_check_u64   == instruction::index_of<instructions::array_bounds_check_u64>);
+static_assert(instruction::array_range_bounds_check_i32     == instruction::index_of<instructions::array_range_bounds_check_i32>);
+static_assert(instruction::array_range_bounds_check_u32     == instruction::index_of<instructions::array_range_bounds_check_u32>);
+static_assert(instruction::array_range_bounds_check_i64     == instruction::index_of<instructions::array_range_bounds_check_i64>);
+static_assert(instruction::array_range_bounds_check_u64     == instruction::index_of<instructions::array_range_bounds_check_u64>);
+static_assert(instruction::array_range_begin_bounds_check_i32 == instruction::index_of<instructions::array_range_begin_bounds_check_i32>);
+static_assert(instruction::array_range_begin_bounds_check_u32 == instruction::index_of<instructions::array_range_begin_bounds_check_u32>);
+static_assert(instruction::array_range_begin_bounds_check_i64 == instruction::index_of<instructions::array_range_begin_bounds_check_i64>);
+static_assert(instruction::array_range_begin_bounds_check_u64 == instruction::index_of<instructions::array_range_begin_bounds_check_u64>);
+static_assert(instruction::array_range_end_bounds_check_i32 == instruction::index_of<instructions::array_range_end_bounds_check_i32>);
+static_assert(instruction::array_range_end_bounds_check_u32 == instruction::index_of<instructions::array_range_end_bounds_check_u32>);
+static_assert(instruction::array_range_end_bounds_check_i64 == instruction::index_of<instructions::array_range_end_bounds_check_i64>);
+static_assert(instruction::array_range_end_bounds_check_u64 == instruction::index_of<instructions::array_range_end_bounds_check_u64>);
 static_assert(instruction::optional_get_value_check == instruction::index_of<instructions::optional_get_value_check>);
 static_assert(instruction::str_construction_check   == instruction::index_of<instructions::str_construction_check>);
 static_assert(instruction::slice_construction_check == instruction::index_of<instructions::slice_construction_check>);
@@ -563,7 +575,7 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 {
 	switch (inst_.index())
 	{
-	static_assert(instruction_list_t::size() == 546);
+	static_assert(instruction_list_t::size() == 558);
 	case instruction::const_i1:
 	{
 		auto const &inst = inst_.get<instructions::const_i1>();
@@ -3321,6 +3333,66 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 		auto const &inst = inst_.get<instructions::array_bounds_check_u64>();
 		return bz::format("array-bounds-check u64 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
 	}
+	case instruction::array_range_bounds_check_i32:
+	{
+		auto const &inst = inst_.get<instructions::array_range_bounds_check_i32>();
+		return bz::format("array-range-bounds-check i32 {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::array_range_bounds_check_u32:
+	{
+		auto const &inst = inst_.get<instructions::array_range_bounds_check_u32>();
+		return bz::format("array-range-bounds-check u32 {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::array_range_bounds_check_i64:
+	{
+		auto const &inst = inst_.get<instructions::array_range_bounds_check_i64>();
+		return bz::format("array-range-bounds-check i64 {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::array_range_bounds_check_u64:
+	{
+		auto const &inst = inst_.get<instructions::array_range_bounds_check_u64>();
+		return bz::format("array-range-bounds-check u64 {}, {}, {} ({})", inst.args[0], inst.args[1], inst.args[2], inst.src_tokens_index);
+	}
+	case instruction::array_range_begin_bounds_check_i32:
+	{
+		auto const &inst = inst_.get<instructions::array_range_begin_bounds_check_i32>();
+		return bz::format("array-range-begin-bounds-check i32 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+	}
+	case instruction::array_range_begin_bounds_check_u32:
+	{
+		auto const &inst = inst_.get<instructions::array_range_begin_bounds_check_u32>();
+		return bz::format("array-range-begin-bounds-check u32 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+	}
+	case instruction::array_range_begin_bounds_check_i64:
+	{
+		auto const &inst = inst_.get<instructions::array_range_begin_bounds_check_i64>();
+		return bz::format("array-range-begin-bounds-check i64 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+	}
+	case instruction::array_range_begin_bounds_check_u64:
+	{
+		auto const &inst = inst_.get<instructions::array_range_begin_bounds_check_u64>();
+		return bz::format("array-range-begin-bounds-check u64 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+	}
+	case instruction::array_range_end_bounds_check_i32:
+	{
+		auto const &inst = inst_.get<instructions::array_range_end_bounds_check_i32>();
+		return bz::format("array-range-end-bounds-check i32 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+	}
+	case instruction::array_range_end_bounds_check_u32:
+	{
+		auto const &inst = inst_.get<instructions::array_range_end_bounds_check_u32>();
+		return bz::format("array-range-end-bounds-check u32 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+	}
+	case instruction::array_range_end_bounds_check_i64:
+	{
+		auto const &inst = inst_.get<instructions::array_range_end_bounds_check_i64>();
+		return bz::format("array-range-end-bounds-check i64 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+	}
+	case instruction::array_range_end_bounds_check_u64:
+	{
+		auto const &inst = inst_.get<instructions::array_range_end_bounds_check_u64>();
+		return bz::format("array-range-end-bounds-check u64 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+	}
 	case instruction::optional_get_value_check:
 	{
 		auto const &inst = inst_.get<instructions::optional_get_value_check>();
@@ -3941,6 +4013,18 @@ static bz::array instruction_names = {
 	bz::u8string_view("array_bounds_check_u32"),
 	bz::u8string_view("array_bounds_check_i64"),
 	bz::u8string_view("array_bounds_check_u64"),
+	bz::u8string_view("array_range_bounds_check_i32"),
+	bz::u8string_view("array_range_bounds_check_u32"),
+	bz::u8string_view("array_range_bounds_check_i64"),
+	bz::u8string_view("array_range_bounds_check_u64"),
+	bz::u8string_view("array_range_begin_bounds_check_i32"),
+	bz::u8string_view("array_range_begin_bounds_check_u32"),
+	bz::u8string_view("array_range_begin_bounds_check_i64"),
+	bz::u8string_view("array_range_begin_bounds_check_u64"),
+	bz::u8string_view("array_range_end_bounds_check_i32"),
+	bz::u8string_view("array_range_end_bounds_check_u32"),
+	bz::u8string_view("array_range_end_bounds_check_i64"),
+	bz::u8string_view("array_range_end_bounds_check_u64"),
 	bz::u8string_view("optional_get_value_check"),
 	bz::u8string_view("str_construction_check"),
 	bz::u8string_view("slice_construction_check"),

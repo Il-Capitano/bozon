@@ -6443,7 +6443,7 @@ void current_function_info_t::finalize_function(void)
 		}
 
 		// finalize the terminator dests
-		static_assert(instruction_list_t::size() == 546);
+		static_assert(instruction_list_t::size() == 558);
 		if (bb.instructions.not_empty()) switch (auto &inst = bb.instructions.back().inst; inst.index())
 		{
 		case instruction::jump:
