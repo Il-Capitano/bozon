@@ -40,7 +40,7 @@ struct bitcode_context
 	llvm::Function *get_function(ast::function_body *func_body);
 
 	llvm::LLVMContext &get_llvm_context(void) const noexcept;
-	llvm::DataLayout &get_data_layout(void) const noexcept;
+	llvm::DataLayout const &get_data_layout(void) const noexcept;
 	llvm::Module &get_module(void) const noexcept;
 	abi::platform_abi get_platform_abi(void) const noexcept;
 

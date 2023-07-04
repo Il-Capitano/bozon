@@ -44,16 +44,16 @@ inline bz::array_view<llvm::Attribute::AttrKind const> get_pass_by_reference_att
 
 
 template<platform_abi abi>
-pass_kind get_pass_kind(llvm::Type *t, llvm::DataLayout &data_layout, llvm::LLVMContext &context);
+pass_kind get_pass_kind(llvm::Type *t, llvm::DataLayout const &data_layout, llvm::LLVMContext &context);
 
 template<>
-pass_kind get_pass_kind<platform_abi::generic>(llvm::Type *t, llvm::DataLayout &data_layout, llvm::LLVMContext &context);
+pass_kind get_pass_kind<platform_abi::generic>(llvm::Type *t, llvm::DataLayout const &data_layout, llvm::LLVMContext &context);
 template<>
-pass_kind get_pass_kind<platform_abi::microsoft_x64>(llvm::Type *t, llvm::DataLayout &data_layout, llvm::LLVMContext &context);
+pass_kind get_pass_kind<platform_abi::microsoft_x64>(llvm::Type *t, llvm::DataLayout const &data_layout, llvm::LLVMContext &context);
 template<>
-pass_kind get_pass_kind<platform_abi::systemv_amd64>(llvm::Type *t, llvm::DataLayout &data_layout, llvm::LLVMContext &context);
+pass_kind get_pass_kind<platform_abi::systemv_amd64>(llvm::Type *t, llvm::DataLayout const &data_layout, llvm::LLVMContext &context);
 
-inline pass_kind get_pass_kind(platform_abi abi, llvm::Type *t, llvm::DataLayout &data_layout, llvm::LLVMContext &context)
+inline pass_kind get_pass_kind(platform_abi abi, llvm::Type *t, llvm::DataLayout const &data_layout, llvm::LLVMContext &context)
 {
 	switch (abi)
 	{
@@ -68,16 +68,16 @@ inline pass_kind get_pass_kind(platform_abi abi, llvm::Type *t, llvm::DataLayout
 
 
 template<platform_abi abi>
-llvm::Type *get_one_register_type(llvm::Type *t, llvm::DataLayout &data_layout, llvm::LLVMContext &context);
+llvm::Type *get_one_register_type(llvm::Type *t, llvm::DataLayout const &data_layout, llvm::LLVMContext &context);
 
 template<>
-llvm::Type *get_one_register_type<platform_abi::generic>(llvm::Type *t, llvm::DataLayout &data_layout, llvm::LLVMContext &context);
+llvm::Type *get_one_register_type<platform_abi::generic>(llvm::Type *t, llvm::DataLayout const &data_layout, llvm::LLVMContext &context);
 template<>
-llvm::Type *get_one_register_type<platform_abi::microsoft_x64>(llvm::Type *t, llvm::DataLayout &data_layout, llvm::LLVMContext &context);
+llvm::Type *get_one_register_type<platform_abi::microsoft_x64>(llvm::Type *t, llvm::DataLayout const &data_layout, llvm::LLVMContext &context);
 template<>
-llvm::Type *get_one_register_type<platform_abi::systemv_amd64>(llvm::Type *t, llvm::DataLayout &data_layout, llvm::LLVMContext &context);
+llvm::Type *get_one_register_type<platform_abi::systemv_amd64>(llvm::Type *t, llvm::DataLayout const &data_layout, llvm::LLVMContext &context);
 
-inline llvm::Type *get_one_register_type(platform_abi abi, llvm::Type *t, llvm::DataLayout &data_layout, llvm::LLVMContext &context)
+inline llvm::Type *get_one_register_type(platform_abi abi, llvm::Type *t, llvm::DataLayout const &data_layout, llvm::LLVMContext &context)
 {
 	switch (abi)
 	{
@@ -92,16 +92,16 @@ inline llvm::Type *get_one_register_type(platform_abi abi, llvm::Type *t, llvm::
 
 
 template<platform_abi abi>
-std::pair<llvm::Type *, llvm::Type *> get_two_register_types(llvm::Type *t, llvm::DataLayout &data_layout, llvm::LLVMContext &context);
+std::pair<llvm::Type *, llvm::Type *> get_two_register_types(llvm::Type *t, llvm::DataLayout const &data_layout, llvm::LLVMContext &context);
 
 template<>
-std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::generic>(llvm::Type *t, llvm::DataLayout &data_layout, llvm::LLVMContext &context);
+std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::generic>(llvm::Type *t, llvm::DataLayout const &data_layout, llvm::LLVMContext &context);
 template<>
-std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::microsoft_x64>(llvm::Type *t, llvm::DataLayout &data_layout, llvm::LLVMContext &context);
+std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::microsoft_x64>(llvm::Type *t, llvm::DataLayout const &data_layout, llvm::LLVMContext &context);
 template<>
-std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::systemv_amd64>(llvm::Type *t, llvm::DataLayout &data_layout, llvm::LLVMContext &context);
+std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::systemv_amd64>(llvm::Type *t, llvm::DataLayout const &data_layout, llvm::LLVMContext &context);
 
-inline std::pair<llvm::Type *, llvm::Type *> get_two_register_types(platform_abi abi, llvm::Type *t, llvm::DataLayout &data_layout, llvm::LLVMContext &context)
+inline std::pair<llvm::Type *, llvm::Type *> get_two_register_types(platform_abi abi, llvm::Type *t, llvm::DataLayout const &data_layout, llvm::LLVMContext &context)
 {
 	switch (abi)
 	{
