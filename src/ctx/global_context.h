@@ -3,14 +3,6 @@
 
 #include "core.h"
 
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/Value.h>
-#include <llvm/Transforms/IPO/PassManagerBuilder.h>
-#include <llvm/Target/TargetMachine.h>
-
 #include "global_data.h"
 #include "lex/token.h"
 #include "error.h"
@@ -23,6 +15,7 @@
 #include "abi/platform_abi.h"
 #include "resolve/attribute_resolver.h"
 #include "comptime/codegen_context_forward.h"
+#include "llvm_context.h"
 
 namespace ctx
 {
@@ -65,15 +58,10 @@ struct global_context
 	bz::vector<bz::vector<bz::u8string_view>> _src_scopes_storage;
 
 	std::unique_ptr<ast::type_prototype_set_t> type_prototype_set = nullptr;
-	llvm::LLVMContext _llvm_context;
-	llvm::Module      _module;
-	llvm::Target const *_target;
-	std::unique_ptr<llvm::TargetMachine> _target_machine;
-	bz::optional<llvm::DataLayout>       _data_layout;
-	bz::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1> _llvm_builtin_types;
 	abi::platform_abi _platform_abi;
 
 	std::unique_ptr<comptime::codegen_context> comptime_codegen_context;
+	std::unique_ptr<ctx::llvm_context> llvm_context;
 
 	global_context(void);
 	global_context(global_context const &) = delete;
@@ -173,10 +161,9 @@ struct global_context
 	ast::type_info *get_isize_type_info_for_builtin_alias(void) const;
 
 	bool is_aggressive_consteval_enabled(void) const;
+	bz::optional<uint32_t> get_machine_code_opt_level(void) const;
 
-
-	llvm::DataLayout const &get_data_layout(void) const
-	{ return this->_module.getDataLayout(); }
+	llvm::DataLayout const &get_data_layout(void) const;
 
 	void report_and_clear_errors_and_warnings(void);
 
@@ -188,11 +175,6 @@ struct global_context
 	[[nodiscard]] bool emit_bitcode(void);
 	[[nodiscard]] bool optimize(void);
 	[[nodiscard]] bool emit_file(void);
-
-	bool emit_obj(void);
-	bool emit_asm(void);
-	bool emit_llvm_bc(void);
-	bool emit_llvm_ir(void);
 };
 
 } // namespace ctx
