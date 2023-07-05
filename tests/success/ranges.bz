@@ -1,0 +1,54 @@
+function sum_exclusive1(begin, end) -> typeof begin
+{
+	static_assert(typeof begin == typeof end);
+	let sum: typeof begin = 0;
+	for (const i in begin..end)
+	{
+		sum += i;
+	}
+	return sum;
+}
+
+function sum_inclusive1(begin, end) -> typeof begin
+{
+	static_assert(typeof begin == typeof end);
+	let sum: typeof begin = 0;
+	for (const i in begin..=end)
+	{
+		sum += i;
+	}
+	return sum;
+}
+
+function sum_exclusive2(begin, end) -> typeof begin
+{
+	let sum: typeof begin = 0;
+	for (const i in begin..)
+	{
+		if (i == end) break;
+		sum += i;
+	}
+	return sum;
+}
+
+function sum_inclusive2(begin, end) -> typeof begin
+{
+	let sum: typeof begin = 0;
+	for (const i in begin..)
+	{
+		sum += i;
+		if (i == end) break;
+	}
+	return sum;
+}
+
+function main()
+{
+	(consteval {
+		static_assert(1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 == 45);
+		if (sum_exclusive1(1, 10) != 45) unreachable;
+		if (sum_exclusive2(1, 10) != 45) unreachable;
+		if (sum_inclusive1(1, 10) != 55) unreachable;
+		if (sum_inclusive2(1, 10) != 55) unreachable;
+	});
+}
