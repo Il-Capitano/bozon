@@ -18,7 +18,7 @@ bz::array_view<llvm::Attribute::AttrKind const> get_pass_by_reference_attributes
 template<>
 pass_kind get_pass_kind<platform_abi::microsoft_x64>(
 	llvm::Type *t,
-	llvm::DataLayout &data_layout,
+	llvm::DataLayout const &data_layout,
 	llvm::LLVMContext &context
 )
 {
@@ -47,7 +47,7 @@ pass_kind get_pass_kind<platform_abi::microsoft_x64>(
 template<>
 llvm::Type *get_one_register_type<platform_abi::microsoft_x64>(
 	llvm::Type *t,
-	llvm::DataLayout &data_layout,
+	llvm::DataLayout const &data_layout,
 	llvm::LLVMContext &context
 )
 {
@@ -59,7 +59,7 @@ llvm::Type *get_one_register_type<platform_abi::microsoft_x64>(
 template<>
 std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::microsoft_x64>(
 	[[maybe_unused]] llvm::Type *t,
-	[[maybe_unused]] llvm::DataLayout &data_layout,
+	[[maybe_unused]] llvm::DataLayout const &data_layout,
 	[[maybe_unused]] llvm::LLVMContext &context
 )
 {
