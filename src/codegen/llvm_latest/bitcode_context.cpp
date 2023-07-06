@@ -5,12 +5,12 @@
 namespace codegen::llvm_latest
 {
 
-bitcode_context::bitcode_context(ctx::global_context &_global_ctx, backend_context &_codegen_ctx, llvm::Module *_module)
+bitcode_context::bitcode_context(ctx::global_context &_global_ctx, backend_context &_backend_ctx, llvm::Module *_module)
 	: global_ctx(_global_ctx),
-	  backend_ctx(_codegen_ctx),
+	  backend_ctx(_backend_ctx),
 	  module(_module),
 	  current_value_references{ codegen::llvm_latest::val_ptr::get_none(), codegen::llvm_latest::val_ptr::get_none(), codegen::llvm_latest::val_ptr::get_none(), codegen::llvm_latest::val_ptr::get_none() },
-	  builder(_codegen_ctx._llvm_context)
+	  builder(_backend_ctx._llvm_context)
 {}
 
 ast::type_info *bitcode_context::get_builtin_type_info(uint32_t kind)

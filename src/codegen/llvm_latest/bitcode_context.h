@@ -32,7 +32,7 @@ namespace codegen::llvm_latest
 
 struct bitcode_context
 {
-	bitcode_context(ctx::global_context &_global_ctx, backend_context &_codegen_ctx, llvm::Module *_module);
+	bitcode_context(ctx::global_context &_global_ctx, backend_context &_backend_ctx, llvm::Module *_module);
 
 	ast::type_info *get_builtin_type_info(uint32_t kind);
 	ast::function_body *get_builtin_function(uint32_t kind);
