@@ -5,12 +5,12 @@
 namespace codegen::llvm_latest
 {
 
-bitcode_context::bitcode_context(ctx::global_context &_global_ctx, llvm_context &_codegen_ctx, llvm::Module *_module)
+bitcode_context::bitcode_context(ctx::global_context &_global_ctx, backend_context &_codegen_ctx, llvm::Module *_module)
 	: global_ctx(_global_ctx),
-	  codegen_ctx(_codegen_ctx),
+	  backend_ctx(_codegen_ctx),
 	  module(_module),
 	  current_value_references{ codegen::llvm_latest::val_ptr::get_none(), codegen::llvm_latest::val_ptr::get_none(), codegen::llvm_latest::val_ptr::get_none(), codegen::llvm_latest::val_ptr::get_none() },
-	  builder(_global_ctx.llvm_context->_llvm_context)
+	  builder(_codegen_ctx._llvm_context)
 {}
 
 ast::type_info *bitcode_context::get_builtin_type_info(uint32_t kind)
@@ -70,7 +70,7 @@ llvm::Function *bitcode_context::get_function(ast::function_body *func_body)
 
 llvm::LLVMContext &bitcode_context::get_llvm_context(void) const noexcept
 {
-	return this->global_ctx.llvm_context->_llvm_context;
+	return this->backend_ctx._llvm_context;
 }
 
 llvm::DataLayout const &bitcode_context::get_data_layout(void) const noexcept
@@ -85,7 +85,7 @@ llvm::Module &bitcode_context::get_module(void) const noexcept
 
 abi::platform_abi bitcode_context::get_platform_abi(void) const noexcept
 {
-	return this->codegen_ctx._platform_abi;
+	return this->backend_ctx._platform_abi;
 }
 
 size_t bitcode_context::get_size(llvm::Type *t) const
@@ -109,7 +109,7 @@ size_t bitcode_context::get_offset(llvm::Type *t, size_t elem) const
 
 size_t bitcode_context::get_register_size(void) const
 {
-	switch (this->codegen_ctx._platform_abi)
+	switch (this->backend_ctx._platform_abi)
 	{
 	case abi::platform_abi::generic:
 	{
@@ -387,50 +387,50 @@ codegen::llvm_latest::val_ptr bitcode_context::get_struct_element(codegen::llvm_
 llvm::Type *bitcode_context::get_builtin_type(uint32_t kind) const
 {
 	bz_assert(kind <= ast::type_info::null_t_);
-	return this->global_ctx.llvm_context->_llvm_builtin_types[kind];
+	return this->backend_ctx._llvm_builtin_types[kind];
 }
 
 llvm::Type *bitcode_context::get_int8_t(void) const
-{ return this->global_ctx.llvm_context->_llvm_builtin_types[static_cast<int>(ast::type_info::int8_)]; }
+{ return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::int8_)]; }
 
 llvm::Type *bitcode_context::get_int16_t(void) const
-{ return this->global_ctx.llvm_context->_llvm_builtin_types[static_cast<int>(ast::type_info::int16_)]; }
+{ return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::int16_)]; }
 
 llvm::Type *bitcode_context::get_int32_t(void) const
-{ return this->global_ctx.llvm_context->_llvm_builtin_types[static_cast<int>(ast::type_info::int32_)]; }
+{ return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::int32_)]; }
 
 llvm::Type *bitcode_context::get_int64_t(void) const
-{ return this->global_ctx.llvm_context->_llvm_builtin_types[static_cast<int>(ast::type_info::int64_)]; }
+{ return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::int64_)]; }
 
 llvm::Type *bitcode_context::get_uint8_t(void) const
-{ return this->global_ctx.llvm_context->_llvm_builtin_types[static_cast<int>(ast::type_info::uint8_)]; }
+{ return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::uint8_)]; }
 
 llvm::Type *bitcode_context::get_uint16_t(void) const
-{ return this->global_ctx.llvm_context->_llvm_builtin_types[static_cast<int>(ast::type_info::uint16_)]; }
+{ return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::uint16_)]; }
 
 llvm::Type *bitcode_context::get_uint32_t(void) const
-{ return this->global_ctx.llvm_context->_llvm_builtin_types[static_cast<int>(ast::type_info::uint32_)]; }
+{ return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::uint32_)]; }
 
 llvm::Type *bitcode_context::get_uint64_t(void) const
-{ return this->global_ctx.llvm_context->_llvm_builtin_types[static_cast<int>(ast::type_info::uint64_)]; }
+{ return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::uint64_)]; }
 
 llvm::Type *bitcode_context::get_float32_t(void) const
-{ return this->global_ctx.llvm_context->_llvm_builtin_types[static_cast<int>(ast::type_info::float32_)]; }
+{ return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::float32_)]; }
 
 llvm::Type *bitcode_context::get_float64_t(void) const
-{ return this->global_ctx.llvm_context->_llvm_builtin_types[static_cast<int>(ast::type_info::float64_)]; }
+{ return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::float64_)]; }
 
 llvm::Type *bitcode_context::get_str_t(void) const
-{ return this->global_ctx.llvm_context->_llvm_builtin_types[static_cast<int>(ast::type_info::str_)]; }
+{ return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::str_)]; }
 
 llvm::Type *bitcode_context::get_char_t(void) const
-{ return this->global_ctx.llvm_context->_llvm_builtin_types[static_cast<int>(ast::type_info::char_)]; }
+{ return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::char_)]; }
 
 llvm::Type *bitcode_context::get_bool_t(void) const
-{ return this->global_ctx.llvm_context->_llvm_builtin_types[static_cast<int>(ast::type_info::bool_)]; }
+{ return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::bool_)]; }
 
 llvm::Type *bitcode_context::get_null_t(void) const
-{ return this->global_ctx.llvm_context->_llvm_builtin_types[static_cast<int>(ast::type_info::null_t_)]; }
+{ return this->backend_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::null_t_)]; }
 
 llvm::Type *bitcode_context::get_usize_t(void) const
 {

@@ -17,9 +17,9 @@
 namespace codegen::llvm_latest
 {
 
-struct llvm_context
+struct backend_context
 {
-	llvm_context(ctx::global_context &global_ctx, bool &error);
+	backend_context(ctx::global_context &global_ctx, bool &error);
 
 	llvm::LLVMContext _llvm_context;
 	llvm::Module      _module;

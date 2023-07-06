@@ -1,4 +1,4 @@
-#include "llvm_context.h"
+#include "backend_context.h"
 #include "global_data.h"
 #include "ctx/global_context.h"
 #include "bitcode_context.h"
@@ -48,7 +48,7 @@ get_llvm_builtin_types(llvm::LLVMContext &context)
 	};
 }
 
-llvm_context::llvm_context(ctx::global_context &global_ctx, bool &error)
+backend_context::backend_context(ctx::global_context &global_ctx, bool &error)
 	: _llvm_context(),
 	  _module("test", this->_llvm_context),
 	  _target(nullptr),
@@ -313,7 +313,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	}
 }
 
-[[nodiscard]] bool llvm_context::emit_bitcode(ctx::global_context &global_ctx)
+[[nodiscard]] bool backend_context::emit_bitcode(ctx::global_context &global_ctx)
 {
 	bitcode_context context(global_ctx, *this, &this->_module);
 
@@ -399,7 +399,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	return !global_ctx.has_errors();
 }
 
-[[nodiscard]] bool llvm_context::optimize(void)
+[[nodiscard]] bool backend_context::optimize(void)
 {
 	if (max_opt_iter_count == 0)
 	{
@@ -460,7 +460,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	return true;
 }
 
-[[nodiscard]] bool llvm_context::emit_file(ctx::global_context &global_ctx)
+[[nodiscard]] bool backend_context::emit_file(ctx::global_context &global_ctx)
 {
 	// only here for debug purposes, the '--emit' option does not control this
 #ifndef NDEBUG
@@ -495,7 +495,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	bz_unreachable;
 }
 
-[[nodiscard]] bool llvm_context::emit_obj(ctx::global_context &global_ctx)
+[[nodiscard]] bool backend_context::emit_obj(ctx::global_context &global_ctx)
 {
 	bz::u8string const &output_file = output_file_name != ""
 		? output_file_name
@@ -556,7 +556,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	return true;
 }
 
-[[nodiscard]] bool llvm_context::emit_asm(ctx::global_context &global_ctx)
+[[nodiscard]] bool backend_context::emit_asm(ctx::global_context &global_ctx)
 {
 	bz::u8string const &output_file = output_file_name != ""
 		? output_file_name
@@ -611,7 +611,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	return true;
 }
 
-[[nodiscard]] bool llvm_context::emit_llvm_bc(ctx::global_context &global_ctx)
+[[nodiscard]] bool backend_context::emit_llvm_bc(ctx::global_context &global_ctx)
 {
 	auto &module = this->_module;
 	bz::u8string const &output_file = output_file_name != ""
@@ -663,7 +663,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	return true;
 }
 
-[[nodiscard]] bool llvm_context::emit_llvm_ir(ctx::global_context &global_ctx)
+[[nodiscard]] bool backend_context::emit_llvm_ir(ctx::global_context &global_ctx)
 {
 	auto &module = this->_module;
 	bz::u8string const &output_file = output_file_name != ""

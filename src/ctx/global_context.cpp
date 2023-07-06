@@ -754,7 +754,7 @@ bz::optional<uint32_t> global_context::get_machine_code_opt_level(void) const
 
 llvm::DataLayout const &global_context::get_data_layout(void) const
 {
-	return this->llvm_context->get_data_layout();
+	return this->llvm_backend_context->get_data_layout();
 }
 
 void global_context::report_and_clear_errors_and_warnings(void)
@@ -831,7 +831,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 [[nodiscard]] bool global_context::initialize_llvm(void)
 {
 	bool error = false;
-	this->llvm_context = std::make_unique<codegen::llvm_latest::llvm_context>(*this, error);
+	this->llvm_backend_context = std::make_unique<codegen::llvm_latest::backend_context>(*this, error);
 
 	if (error)
 	{
@@ -863,7 +863,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		return false;
 	}
 
-	auto const &target_triple = this->llvm_context->get_target_triple();
+	auto const &target_triple = this->llvm_backend_context->get_target_triple();
 	auto stdlib_dir_path_non_canonical = fs::path(std::string_view(stdlib_dir.data_as_char_ptr(), stdlib_dir.size()), fs::path::native_format);
 	if (!fs::exists(stdlib_dir_path_non_canonical))
 	{
@@ -1018,17 +1018,17 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 [[nodiscard]] bool global_context::emit_bitcode(void)
 {
-	return this->llvm_context->emit_bitcode(*this);
+	return this->llvm_backend_context->emit_bitcode(*this);
 }
 
 [[nodiscard]] bool global_context::optimize(void)
 {
-	return this->llvm_context->optimize();
+	return this->llvm_backend_context->optimize();
 }
 
 [[nodiscard]] bool global_context::emit_file(void)
 {
-	return this->llvm_context->emit_file(*this);
+	return this->llvm_backend_context->emit_file(*this);
 }
 
 } // namespace ctx
