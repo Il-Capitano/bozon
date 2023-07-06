@@ -6,8 +6,6 @@
 #include "comptime/codegen_context.h"
 #include "comptime/codegen.h"
 
-#include <llvm/Support/Host.h>
-
 namespace ctx
 {
 
