@@ -58,7 +58,6 @@ struct global_context
 	bz::vector<bz::vector<bz::u8string_view>> _src_scopes_storage;
 
 	std::unique_ptr<ast::type_prototype_set_t> type_prototype_set = nullptr;
-	abi::platform_abi _platform_abi;
 
 	std::unique_ptr<comptime::codegen_context> comptime_codegen_context;
 	std::unique_ptr<codegen::llvm_latest::llvm_context> llvm_context;

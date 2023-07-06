@@ -838,38 +838,6 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		return false;
 	}
 
-	auto const is_native_target = target == "" || target == "native";
-	auto const target_triple = is_native_target
-		? llvm::Triple::normalize(llvm::sys::getDefaultTargetTriple())
-		: llvm::Triple::normalize(std::string(target.data_as_char_ptr(), target.size()));
-	auto const triple = llvm::Triple(target_triple);
-	auto const os = triple.getOS();
-	auto const arch = triple.getArch();
-
-	if (os == llvm::Triple::Win32 && arch == llvm::Triple::x86_64)
-	{
-		this->_platform_abi = abi::platform_abi::microsoft_x64;
-	}
-	else if (os == llvm::Triple::Linux && arch == llvm::Triple::x86_64)
-	{
-		this->_platform_abi = abi::platform_abi::systemv_amd64;
-	}
-	else
-	{
-		this->_platform_abi = abi::platform_abi::generic;
-	}
-
-	if (this->_platform_abi == abi::platform_abi::generic)
-	{
-		this->report_warning(
-			warning_kind::unknown_target,
-			bz::format(
-				"target '{}' has limited support right now, external function calls may not work as intended",
-				target_triple.c_str()
-			)
-		);
-	}
-
 	auto const machine_parameters = comptime::machine_parameters_t{
 		.pointer_size = this->get_data_layout().getPointerSize(),
 		.endianness = this->get_data_layout().isLittleEndian()

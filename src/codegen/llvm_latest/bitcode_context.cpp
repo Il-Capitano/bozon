@@ -5,8 +5,9 @@
 namespace codegen::llvm_latest
 {
 
-bitcode_context::bitcode_context(ctx::global_context &_global_ctx, llvm::Module *_module)
+bitcode_context::bitcode_context(ctx::global_context &_global_ctx, llvm_context &_codegen_ctx, llvm::Module *_module)
 	: global_ctx(_global_ctx),
+	  codegen_ctx(_codegen_ctx),
 	  module(_module),
 	  current_value_references{ codegen::llvm_latest::val_ptr::get_none(), codegen::llvm_latest::val_ptr::get_none(), codegen::llvm_latest::val_ptr::get_none(), codegen::llvm_latest::val_ptr::get_none() },
 	  builder(_global_ctx.llvm_context->_llvm_context)
@@ -84,7 +85,7 @@ llvm::Module &bitcode_context::get_module(void) const noexcept
 
 abi::platform_abi bitcode_context::get_platform_abi(void) const noexcept
 {
-	return this->global_ctx._platform_abi;
+	return this->codegen_ctx._platform_abi;
 }
 
 size_t bitcode_context::get_size(llvm::Type *t) const
@@ -108,7 +109,7 @@ size_t bitcode_context::get_offset(llvm::Type *t, size_t elem) const
 
 size_t bitcode_context::get_register_size(void) const
 {
-	switch (this->global_ctx._platform_abi)
+	switch (this->codegen_ctx._platform_abi)
 	{
 	case abi::platform_abi::generic:
 	{

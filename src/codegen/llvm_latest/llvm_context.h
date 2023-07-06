@@ -12,6 +12,7 @@
 #include <llvm/Target/TargetMachine.h>
 
 #include "ast/statement.h"
+#include "abi/platform_abi.h"
 
 namespace codegen::llvm_latest
 {
@@ -26,6 +27,7 @@ struct llvm_context
 	std::unique_ptr<llvm::TargetMachine> _target_machine;
 	bz::optional<llvm::DataLayout>       _data_layout;
 	bz::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1> _llvm_builtin_types;
+	abi::platform_abi _platform_abi;
 
 	llvm::DataLayout const &get_data_layout(void) const
 	{

@@ -10,6 +10,7 @@
 #include "abi/platform_function_call.h"
 #include "val_ptr.h"
 #include "common.h"
+#include "llvm_context.h"
 
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Function.h>
@@ -31,7 +32,7 @@ namespace codegen::llvm_latest
 
 struct bitcode_context
 {
-	bitcode_context(ctx::global_context &_global_ctx, llvm::Module *_module);
+	bitcode_context(ctx::global_context &_global_ctx, llvm_context &_codegen_ctx, llvm::Module *_module);
 
 	ast::type_info *get_builtin_type_info(uint32_t kind);
 	ast::function_body *get_builtin_function(uint32_t kind);
@@ -170,6 +171,7 @@ struct bitcode_context
 
 
 	ctx::global_context &global_ctx;
+	llvm_context &codegen_ctx;
 	llvm::Module *module;
 
 	std::unordered_map<ast::decl_variable const *, llvm::Value *> move_destruct_indicators{};

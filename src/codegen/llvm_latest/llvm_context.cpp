@@ -54,7 +54,8 @@ llvm_context::llvm_context(ctx::global_context &global_ctx, bool &error)
 	  _target(nullptr),
 	  _target_machine(nullptr),
 	  _data_layout(),
-	  _llvm_builtin_types(get_llvm_builtin_types(this->_llvm_context))
+	  _llvm_builtin_types(get_llvm_builtin_types(this->_llvm_context)),
+	  _platform_abi(abi::platform_abi::generic)
 {
 	this->_llvm_context.setDiscardValueNames(discard_llvm_value_names);
 
@@ -168,6 +169,34 @@ llvm_context::llvm_context(ctx::global_context &global_ctx, bool &error)
 	this->_data_layout = this->_target_machine->createDataLayout();
 	this->_module.setDataLayout(*this->_data_layout);
 	this->_module.setTargetTriple(target_triple);
+
+	auto const triple = llvm::Triple(target_triple);
+	auto const os = triple.getOS();
+	auto const arch = triple.getArch();
+
+	if (os == llvm::Triple::Win32 && arch == llvm::Triple::x86_64)
+	{
+		this->_platform_abi = abi::platform_abi::microsoft_x64;
+	}
+	else if (os == llvm::Triple::Linux && arch == llvm::Triple::x86_64)
+	{
+		this->_platform_abi = abi::platform_abi::systemv_amd64;
+	}
+	else
+	{
+		this->_platform_abi = abi::platform_abi::generic;
+	}
+
+	if (this->_platform_abi == abi::platform_abi::generic)
+	{
+		global_ctx.report_warning(
+			ctx::warning_kind::unknown_target,
+			bz::format(
+				"target '{}' has limited support right now, external function calls may not work as intended",
+				target_triple.c_str()
+			)
+		);
+	}
 }
 
 static llvm::PassBuilder get_pass_builder(llvm::TargetMachine *tm)
@@ -286,7 +315,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 
 [[nodiscard]] bool llvm_context::emit_bitcode(ctx::global_context &global_ctx)
 {
-	bitcode_context context(global_ctx, &this->_module);
+	bitcode_context context(global_ctx, *this, &this->_module);
 
 	llvm::LoopAnalysisManager loop_analysis_manager;
 	llvm::FunctionAnalysisManager function_analysis_manager;
