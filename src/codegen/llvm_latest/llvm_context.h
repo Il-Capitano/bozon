@@ -1,5 +1,5 @@
-#ifndef CTX_LLVM_CONTEXT_H
-#define CTX_LLVM_CONTEXT_H
+#ifndef CODEGEN_LLVM_LATEST_LLVM_CONTEXT_H
+#define CODEGEN_LLVM_LATEST_LLVM_CONTEXT_H
 
 #include "core.h"
 
@@ -13,12 +13,12 @@
 
 #include "ast/statement.h"
 
-namespace ctx
+namespace codegen::llvm_latest
 {
 
 struct llvm_context
 {
-	llvm_context(global_context &global_ctx, bool &error);
+	llvm_context(ctx::global_context &global_ctx, bool &error);
 
 	llvm::LLVMContext _llvm_context;
 	llvm::Module      _module;
@@ -39,15 +39,15 @@ struct llvm_context
 		return this->_target_machine->getTargetTriple().str();
 	}
 
-	[[nodiscard]] bool emit_bitcode(global_context &global_ctx);
+	[[nodiscard]] bool emit_bitcode(ctx::global_context &global_ctx);
 	[[nodiscard]] bool optimize(void);
-	[[nodiscard]] bool emit_file(global_context &global_ctx);
-	[[nodiscard]] bool emit_obj(global_context &global_ctx);
-	[[nodiscard]] bool emit_asm(global_context &global_ctx);
-	[[nodiscard]] bool emit_llvm_bc(global_context &global_ctx);
-	[[nodiscard]] bool emit_llvm_ir(global_context &global_ctx);
+	[[nodiscard]] bool emit_file(ctx::global_context &global_ctx);
+	[[nodiscard]] bool emit_obj(ctx::global_context &global_ctx);
+	[[nodiscard]] bool emit_asm(ctx::global_context &global_ctx);
+	[[nodiscard]] bool emit_llvm_bc(ctx::global_context &global_ctx);
+	[[nodiscard]] bool emit_llvm_ir(ctx::global_context &global_ctx);
 };
 
-} // namespace ctx
+} // namespace codegen::llvm_latest
 
-#endif // CTX_LLVM_CONTEXT_H
+#endif // CODEGEN_LLVM_LATEST_LLVM_CONTEXT_H

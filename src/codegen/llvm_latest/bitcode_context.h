@@ -1,5 +1,5 @@
-#ifndef CTX_BITCODE_CONTEXT_H
-#define CTX_BITCODE_CONTEXT_H
+#ifndef CODEGEN_LLVM_LATEST_BITCODE_CONTEXT_H
+#define CODEGEN_LLVM_LATEST_BITCODE_CONTEXT_H
 
 #include "core.h"
 
@@ -8,8 +8,8 @@
 #include "ast/statement.h"
 #include "abi/platform_abi.h"
 #include "abi/platform_function_call.h"
-#include "bc/val_ptr.h"
-#include "bc/common.h"
+#include "val_ptr.h"
+#include "common.h"
 
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Function.h>
@@ -24,14 +24,19 @@ namespace ctx
 
 struct global_context;
 
+}
+
+namespace codegen::llvm_latest
+{
+
 struct bitcode_context
 {
-	bitcode_context(global_context &_global_ctx, llvm::Module *_module);
+	bitcode_context(ctx::global_context &_global_ctx, llvm::Module *_module);
 
 	ast::type_info *get_builtin_type_info(uint32_t kind);
 	ast::function_body *get_builtin_function(uint32_t kind);
 
-	bc::value_and_type_pair get_variable(ast::decl_variable const *var_decl) const;
+	value_and_type_pair get_variable(ast::decl_variable const *var_decl) const;
 	void add_variable(ast::decl_variable const *var_decl, llvm::Value *val, llvm::Type *type);
 
 	llvm::Type *get_base_type(ast::type_info const *info) const;
@@ -61,8 +66,8 @@ struct bitcode_context
 	llvm::Value *create_alloca_without_lifetime_start(llvm::Type *t, size_t align);
 	llvm::Value *create_string(bz::u8string_view str);
 
-	llvm::Value *create_bitcast(bc::val_ptr val, llvm::Type *dest_type);
-	llvm::Value *create_cast_to_int(bc::val_ptr val);
+	llvm::Value *create_bitcast(val_ptr val, llvm::Type *dest_type);
+	llvm::Value *create_cast_to_int(val_ptr val);
 	llvm::Value *create_load(llvm::Type *type, llvm::Value *ptr, bz::u8string_view name = "");
 	llvm::Value *create_gep(llvm::Type *type, llvm::Value *ptr, uint64_t idx, bz::u8string_view name = "");
 	llvm::Value *create_gep(llvm::Type *type, llvm::Value *ptr, uint64_t idx0, uint64_t idx1, bz::u8string_view name = "");
@@ -86,7 +91,7 @@ struct bitcode_context
 		llvm::ArrayRef<llvm::Value *> args = std::nullopt
 	);
 
-	bc::val_ptr get_struct_element(bc::val_ptr value, uint64_t idx);
+	val_ptr get_struct_element(val_ptr value, uint64_t idx);
 
 	llvm::Type *get_builtin_type(uint32_t kind) const;
 	llvm::Type *get_int8_t(void) const;
@@ -138,9 +143,9 @@ struct bitcode_context
 	void emit_loop_end_lifetime_calls(void);
 	void emit_all_end_lifetime_calls(void);
 
-	[[nodiscard]] bc::val_ptr push_value_reference(bc::val_ptr new_value);
-	void pop_value_reference(bc::val_ptr prev_value);
-	bc::val_ptr get_value_reference(size_t index);
+	[[nodiscard]] val_ptr push_value_reference(val_ptr new_value);
+	void pop_value_reference(val_ptr prev_value);
+	val_ptr get_value_reference(size_t index);
 
 	struct loop_info_t
 	{
@@ -157,18 +162,18 @@ struct bitcode_context
 
 	void report_error(
 		lex::src_tokens const &src_tokens, bz::u8string message,
-		bz::vector<source_highlight> notes = {},
-		bz::vector<source_highlight> suggestions = {}
+		bz::vector<ctx::source_highlight> notes = {},
+		bz::vector<ctx::source_highlight> suggestions = {}
 	) const;
-	[[nodiscard]] static source_highlight make_note(lex::src_tokens const &src_tokens, bz::u8string message);
-	[[nodiscard]] static source_highlight make_note(bz::u8string message);
+	[[nodiscard]] static ctx::source_highlight make_note(lex::src_tokens const &src_tokens, bz::u8string message);
+	[[nodiscard]] static ctx::source_highlight make_note(bz::u8string message);
 
 
-	global_context &global_ctx;
+	ctx::global_context &global_ctx;
 	llvm::Module *module;
 
 	std::unordered_map<ast::decl_variable const *, llvm::Value *> move_destruct_indicators{};
-	std::unordered_map<ast::decl_variable const *, bc::value_and_type_pair> vars_{};
+	std::unordered_map<ast::decl_variable const *, value_and_type_pair> vars_{};
 	std::unordered_map<ast::type_info     const *, llvm::Type     *> types_{};
 	std::unordered_map<ast::function_body const *, llvm::Function *> funcs_{};
 
@@ -197,7 +202,7 @@ struct bitcode_context
 	llvm::BasicBlock *alloca_bb = nullptr;
 	llvm::Value *output_pointer = nullptr;
 	loop_info_t loop_info = {};
-	bz::array<bc::val_ptr, 4> current_value_references;
+	bz::array<val_ptr, 4> current_value_references;
 	size_t current_value_reference_stack_size = 0;
 
 	llvm::IRBuilder<> builder;
@@ -206,6 +211,6 @@ struct bitcode_context
 	llvm::FunctionPassManager *function_pass_manager = nullptr;
 };
 
-} // namespace ctx
+} // namespace codegen::llvm_latest
 
-#endif // CTX_BITCODE_CONTEXT_H
+#endif // CODEGEN_LLVM_LATEST_BITCODE_CONTEXT_H

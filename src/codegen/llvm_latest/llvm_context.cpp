@@ -1,8 +1,8 @@
 #include "llvm_context.h"
 #include "global_data.h"
-#include "global_context.h"
+#include "ctx/global_context.h"
 #include "bitcode_context.h"
-#include "bc/emit_bitcode.h"
+#include "emit_bitcode.h"
 #include "colors.h"
 
 #include <llvm/Support/Host.h>
@@ -21,7 +21,7 @@
 #error LLVM 16 is required
 #endif // LLVM 16
 
-namespace ctx
+namespace codegen::llvm_latest
 {
 
 static bz::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1>
@@ -48,7 +48,7 @@ get_llvm_builtin_types(llvm::LLVMContext &context)
 	};
 }
 
-llvm_context::llvm_context(global_context &global_ctx, bool &error)
+llvm_context::llvm_context(ctx::global_context &global_ctx, bool &error)
 	: _llvm_context(),
 	  _module("test", this->_llvm_context),
 	  _target(nullptr),
@@ -86,7 +86,7 @@ llvm_context::llvm_context(global_context &global_ctx, bool &error)
 	if (this->_target == nullptr)
 	{
 		constexpr std::string_view default_start = "No available targets are compatible with triple \"";
-		bz::vector<source_highlight> notes;
+		bz::vector<ctx::source_highlight> notes;
 		if (do_verbose)
 		{
 			bz::u8string message = "available targets are: ";
@@ -195,7 +195,7 @@ static void emit_struct_symbols_helper(bz::array_view<ast::statement const> decl
 {
 	for (auto const &struct_decl : filter_struct_decls(decls))
 	{
-		bc::emit_global_type_symbol(struct_decl.info, context);
+		emit_global_type_symbol(struct_decl.info, context);
 
 		if (struct_decl.info.kind == ast::type_info::aggregate)
 		{
@@ -224,7 +224,7 @@ static void emit_structs_helper(bz::array_view<ast::statement const> decls, bitc
 {
 	for (auto const &struct_decl : filter_struct_decls(decls))
 	{
-		bc::emit_global_type(struct_decl.info, context);
+		emit_global_type(struct_decl.info, context);
 
 		if (struct_decl.info.kind == ast::type_info::aggregate)
 		{
@@ -255,7 +255,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	{
 		if (var_decl.is_global())
 		{
-			bc::emit_global_variable(var_decl, context);
+			emit_global_variable(var_decl, context);
 		}
 	}
 
@@ -284,7 +284,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	}
 }
 
-[[nodiscard]] bool llvm_context::emit_bitcode(global_context &global_ctx)
+[[nodiscard]] bool llvm_context::emit_bitcode(ctx::global_context &global_ctx)
 {
 	bitcode_context context(global_ctx, &this->_module);
 
@@ -365,7 +365,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 		}
 	}
 
-	bc::emit_necessary_functions(context);
+	emit_necessary_functions(context);
 
 	return !global_ctx.has_errors();
 }
@@ -431,7 +431,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	return true;
 }
 
-[[nodiscard]] bool llvm_context::emit_file(global_context &global_ctx)
+[[nodiscard]] bool llvm_context::emit_file(ctx::global_context &global_ctx)
 {
 	// only here for debug purposes, the '--emit' option does not control this
 #ifndef NDEBUG
@@ -466,7 +466,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	bz_unreachable;
 }
 
-[[nodiscard]] bool llvm_context::emit_obj(global_context &global_ctx)
+[[nodiscard]] bool llvm_context::emit_obj(ctx::global_context &global_ctx)
 {
 	bz::u8string const &output_file = output_file_name != ""
 		? output_file_name
@@ -483,7 +483,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	if (output_file != "-" && !output_file.ends_with(".o"))
 	{
 		global_ctx.report_warning(
-			warning_kind::bad_file_extension,
+			ctx::warning_kind::bad_file_extension,
 			bz::format("object output file '{}' doesn't have the file extension '.o'", output_file)
 		);
 	}
@@ -508,7 +508,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	if (output_file == "-")
 	{
 		global_ctx.report_warning(
-			warning_kind::binary_stdout,
+			ctx::warning_kind::binary_stdout,
 			"outputting binary file to stdout"
 		);
 	}
@@ -527,7 +527,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	return true;
 }
 
-[[nodiscard]] bool llvm_context::emit_asm(global_context &global_ctx)
+[[nodiscard]] bool llvm_context::emit_asm(ctx::global_context &global_ctx)
 {
 	bz::u8string const &output_file = output_file_name != ""
 		? output_file_name
@@ -544,7 +544,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	if (output_file != "-" && !output_file.ends_with(".s"))
 	{
 		global_ctx.report_warning(
-			warning_kind::bad_file_extension,
+			ctx::warning_kind::bad_file_extension,
 			bz::format("assembly output file '{}' doesn't have the file extension '.s'", output_file)
 		);
 	}
@@ -582,7 +582,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	return true;
 }
 
-[[nodiscard]] bool llvm_context::emit_llvm_bc(global_context &global_ctx)
+[[nodiscard]] bool llvm_context::emit_llvm_bc(ctx::global_context &global_ctx)
 {
 	auto &module = this->_module;
 	bz::u8string const &output_file = output_file_name != ""
@@ -600,7 +600,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	if (output_file != "-" && !output_file.ends_with(".bc"))
 	{
 		global_ctx.report_warning(
-			warning_kind::bad_file_extension,
+			ctx::warning_kind::bad_file_extension,
 			bz::format("LLVM bitcode output file '{}' doesn't have the file extension '.bc'", output_file)
 		);
 	}
@@ -625,7 +625,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	if (output_file == "-")
 	{
 		global_ctx.report_warning(
-			warning_kind::binary_stdout,
+			ctx::warning_kind::binary_stdout,
 			"outputting binary file to stdout"
 		);
 	}
@@ -634,7 +634,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	return true;
 }
 
-[[nodiscard]] bool llvm_context::emit_llvm_ir(global_context &global_ctx)
+[[nodiscard]] bool llvm_context::emit_llvm_ir(ctx::global_context &global_ctx)
 {
 	auto &module = this->_module;
 	bz::u8string const &output_file = output_file_name != ""
@@ -652,7 +652,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	if (output_file != "-" && !output_file.ends_with(".ll"))
 	{
 		global_ctx.report_warning(
-			warning_kind::bad_file_extension,
+			ctx::warning_kind::bad_file_extension,
 			bz::format("LLVM IR output file '{}' doesn't have the file extension '.ll'", output_file)
 		);
 	}
@@ -678,4 +678,4 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	return true;
 }
 
-} // namespace ctx
+} // namespace codegen::llvm_latest

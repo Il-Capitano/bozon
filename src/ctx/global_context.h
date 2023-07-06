@@ -15,7 +15,7 @@
 #include "abi/platform_abi.h"
 #include "resolve/attribute_resolver.h"
 #include "comptime/codegen_context_forward.h"
-#include "llvm_context.h"
+#include "codegen/llvm_latest/llvm_context.h"
 
 namespace ctx
 {
@@ -61,7 +61,7 @@ struct global_context
 	abi::platform_abi _platform_abi;
 
 	std::unique_ptr<comptime::codegen_context> comptime_codegen_context;
-	std::unique_ptr<ctx::llvm_context> llvm_context;
+	std::unique_ptr<codegen::llvm_latest::llvm_context> llvm_context;
 
 	global_context(void);
 	global_context(global_context const &) = delete;

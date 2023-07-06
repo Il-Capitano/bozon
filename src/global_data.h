@@ -3,7 +3,7 @@
 
 #include "core.h"
 #include "ctx/warnings.h"
-#include "bc/optimizations.h"
+#include "codegen/optimizations.h"
 
 enum class compilation_phase
 {

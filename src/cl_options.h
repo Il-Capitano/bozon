@@ -3,7 +3,7 @@
 
 #include "ctcli/ctcli.h"
 #include "ctx/warnings.h"
-#include "bc/optimizations.h"
+#include "codegen/optimizations.h"
 #include "global_data.h"
 
 constexpr auto Wall_indicies = []() {
@@ -52,13 +52,13 @@ inline constexpr bz::array ctcli::option_group_multiple<warning_group_id> = []()
 
 template<>
 inline constexpr bz::array ctcli::option_group<opt_group_id> = []() {
-	bz::array<ctcli::group_element_t, bc::optimization_infos.size() + 4> result{};
+	bz::array<ctcli::group_element_t, codegen::optimization_infos.size() + 4> result{};
 
 	size_t i = 0;
-	for (i = 0; i < bc::optimization_infos.size(); ++i)
+	for (i = 0; i < codegen::optimization_infos.size(); ++i)
 	{
-		bz_assert(static_cast<size_t>(bc::optimization_infos[i].kind) == i);
-		result[i] = ctcli::create_hidden_group_element(bc::optimization_infos[i].name, bc::optimization_infos[i].description);
+		bz_assert(static_cast<size_t>(codegen::optimization_infos[i].kind) == i);
+		result[i] = ctcli::create_hidden_group_element(codegen::optimization_infos[i].name, codegen::optimization_infos[i].description);
 	}
 
 	static_assert(bz::meta::is_same<size_t, uint64_t>);

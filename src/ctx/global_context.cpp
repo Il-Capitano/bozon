@@ -1,8 +1,7 @@
 #include "global_context.h"
-#include "bitcode_context.h"
 #include "ast/statement.h"
 #include "cl_options.h"
-#include "bc/emit_bitcode.h"
+#include "codegen/llvm_latest/emit_bitcode.h"
 #include "colors.h"
 #include "comptime/codegen_context.h"
 #include "comptime/codegen.h"
@@ -832,7 +831,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 [[nodiscard]] bool global_context::initialize_llvm(void)
 {
 	bool error = false;
-	this->llvm_context = std::make_unique<ctx::llvm_context>(*this, error);
+	this->llvm_context = std::make_unique<codegen::llvm_latest::llvm_context>(*this, error);
 
 	if (error)
 	{

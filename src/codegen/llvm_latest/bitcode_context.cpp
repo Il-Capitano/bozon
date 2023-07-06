@@ -1,14 +1,14 @@
 #include "bitcode_context.h"
-#include "global_context.h"
-#include "bc/emit_bitcode.h"
+#include "ctx/global_context.h"
+#include "emit_bitcode.h"
 
-namespace ctx
+namespace codegen::llvm_latest
 {
 
-bitcode_context::bitcode_context(global_context &_global_ctx, llvm::Module *_module)
+bitcode_context::bitcode_context(ctx::global_context &_global_ctx, llvm::Module *_module)
 	: global_ctx(_global_ctx),
 	  module(_module),
-	  current_value_references{ bc::val_ptr::get_none(), bc::val_ptr::get_none(), bc::val_ptr::get_none(), bc::val_ptr::get_none() },
+	  current_value_references{ codegen::llvm_latest::val_ptr::get_none(), codegen::llvm_latest::val_ptr::get_none(), codegen::llvm_latest::val_ptr::get_none(), codegen::llvm_latest::val_ptr::get_none() },
 	  builder(_global_ctx.llvm_context->_llvm_context)
 {}
 
@@ -23,15 +23,15 @@ ast::function_body *bitcode_context::get_builtin_function(uint32_t kind)
 	return decl == nullptr ? nullptr : &decl->body;
 }
 
-bc::value_and_type_pair bitcode_context::get_variable(ast::decl_variable const *var_decl) const
+codegen::llvm_latest::value_and_type_pair bitcode_context::get_variable(ast::decl_variable const *var_decl) const
 {
 	auto const it = this->vars_.find(var_decl);
-	return it == this->vars_.end() ? bc::value_and_type_pair{ nullptr, nullptr } : it->second;
+	return it == this->vars_.end() ? codegen::llvm_latest::value_and_type_pair{ nullptr, nullptr } : it->second;
 }
 
 void bitcode_context::add_variable(ast::decl_variable const *var_decl, llvm::Value *val, llvm::Type *type)
 {
-	this->vars_.insert_or_assign(var_decl, bc::value_and_type_pair{ val, type });
+	this->vars_.insert_or_assign(var_decl, codegen::llvm_latest::value_and_type_pair{ val, type });
 }
 
 llvm::Type *bitcode_context::get_base_type(ast::type_info const *info) const
@@ -54,7 +54,7 @@ llvm::Function *bitcode_context::get_function(ast::function_body *func_body)
 	auto it = this->funcs_.find(func_body);
 	if (it == this->funcs_.end())
 	{
-		bc::add_function_to_module(func_body, *this);
+		codegen::llvm_latest::add_function_to_module(func_body, *this);
 		this->ensure_function_emission(func_body);
 		it = this->funcs_.find(func_body);
 		bz_assert(it != this->funcs_.end());
@@ -127,20 +127,20 @@ size_t bitcode_context::get_register_size(void) const
 
 abi::pass_kind bitcode_context::get_pass_kind(ast::typespec_view ts) const
 {
-	if (bc::is_non_trivial_pass_kind(ts))
+	if (codegen::llvm_latest::is_non_trivial_pass_kind(ts))
 	{
 		return abi::pass_kind::non_trivial;
 	}
 	else
 	{
-		auto const llvm_type = bc::get_llvm_type(ts, *this);
+		auto const llvm_type = codegen::llvm_latest::get_llvm_type(ts, *this);
 		return abi::get_pass_kind(this->get_platform_abi(), llvm_type, this->get_data_layout(), this->get_llvm_context());
 	}
 }
 
 abi::pass_kind bitcode_context::get_pass_kind(ast::typespec_view ts, llvm::Type *llvm_type) const
 {
-	if (bc::is_non_trivial_pass_kind(ts))
+	if (codegen::llvm_latest::is_non_trivial_pass_kind(ts))
 	{
 		return abi::pass_kind::non_trivial;
 	}
@@ -238,9 +238,9 @@ llvm::Value *bitcode_context::create_string(bz::u8string_view str)
 	return this->builder.CreateGlobalString(str_ref, ".str", 0, &this->get_module());
 }
 
-llvm::Value *bitcode_context::create_bitcast(bc::val_ptr val, llvm::Type *dest_type)
+llvm::Value *bitcode_context::create_bitcast(codegen::llvm_latest::val_ptr val, llvm::Type *dest_type)
 {
-	if (val.kind == bc::val_ptr::reference)
+	if (val.kind == codegen::llvm_latest::val_ptr::reference)
 	{
 		return this->create_load(dest_type, val.val);
 	}
@@ -253,7 +253,7 @@ llvm::Value *bitcode_context::create_bitcast(bc::val_ptr val, llvm::Type *dest_t
 	}
 }
 
-llvm::Value *bitcode_context::create_cast_to_int(bc::val_ptr val)
+llvm::Value *bitcode_context::create_cast_to_int(codegen::llvm_latest::val_ptr val)
 {
 	auto const dest_type = [&]() -> llvm::Type * {
 		auto const val_t = val.get_type();
@@ -365,12 +365,12 @@ llvm::CallInst *bitcode_context::create_call(
 	return call;
 }
 
-bc::val_ptr bitcode_context::get_struct_element(bc::val_ptr value, uint64_t idx)
+codegen::llvm_latest::val_ptr bitcode_context::get_struct_element(codegen::llvm_latest::val_ptr value, uint64_t idx)
 {
 	bz_assert(value.get_type()->isStructTy() || value.get_type()->isArrayTy());
-	if (value.kind == bc::val_ptr::value)
+	if (value.kind == codegen::llvm_latest::val_ptr::value)
 	{
-		return bc::val_ptr::get_value(this->builder.CreateExtractValue(value.get_value(this->builder), idx));
+		return codegen::llvm_latest::val_ptr::get_value(this->builder.CreateExtractValue(value.get_value(this->builder), idx));
 	}
 	else
 	{
@@ -379,7 +379,7 @@ bc::val_ptr bitcode_context::get_struct_element(bc::val_ptr value, uint64_t idx)
 		auto const element_type = type->isStructTy()
 			? type->getStructElementType(idx)
 			: type->getArrayElementType();
-		return bc::val_ptr::get_reference(element_val, element_type);
+		return codegen::llvm_latest::val_ptr::get_reference(element_val, element_type);
 	}
 }
 
@@ -627,9 +627,9 @@ static void emit_destruct_operation(bitcode_context::destruct_operation_info_t c
 {
 	if (info.ptr != nullptr)
 	{
-		bc::emit_destruct_operation(
+		codegen::llvm_latest::emit_destruct_operation(
 			*info.destruct_op,
-			bc::val_ptr::get_reference(info.ptr, info.type),
+			codegen::llvm_latest::val_ptr::get_reference(info.ptr, info.type),
 			info.condition,
 			info.move_destruct_indicator,
 			info.rvalue_array_elem_ptr,
@@ -638,7 +638,7 @@ static void emit_destruct_operation(bitcode_context::destruct_operation_info_t c
 	}
 	else
 	{
-		bc::emit_destruct_operation(
+		codegen::llvm_latest::emit_destruct_operation(
 			*info.destruct_op,
 			info.condition,
 			info.move_destruct_indicator,
@@ -725,7 +725,7 @@ void bitcode_context::emit_all_end_lifetime_calls(void)
 	}
 }
 
-[[nodiscard]] bc::val_ptr bitcode_context::push_value_reference(bc::val_ptr new_value)
+[[nodiscard]] codegen::llvm_latest::val_ptr bitcode_context::push_value_reference(codegen::llvm_latest::val_ptr new_value)
 {
 	auto const index = this->current_value_reference_stack_size % this->current_value_references.size();
 	this->current_value_reference_stack_size += 1;
@@ -734,7 +734,7 @@ void bitcode_context::emit_all_end_lifetime_calls(void)
 	return result;
 }
 
-void bitcode_context::pop_value_reference(bc::val_ptr prev_value)
+void bitcode_context::pop_value_reference(codegen::llvm_latest::val_ptr prev_value)
 {
 	bz_assert(this->current_value_reference_stack_size > 0);
 	this->current_value_reference_stack_size -= 1;
@@ -742,7 +742,7 @@ void bitcode_context::pop_value_reference(bc::val_ptr prev_value)
 	this->current_value_references[index] = prev_value;
 }
 
-bc::val_ptr bitcode_context::get_value_reference(size_t index)
+codegen::llvm_latest::val_ptr bitcode_context::get_value_reference(size_t index)
 {
 	bz_assert(index < this->current_value_reference_stack_size);
 	bz_assert(index < this->current_value_references.size());
@@ -781,25 +781,25 @@ void bitcode_context::ensure_function_emission(ast::function_body *func)
 
 void bitcode_context::report_error(
 	lex::src_tokens const &src_tokens, bz::u8string message,
-	bz::vector<source_highlight> notes,
-	bz::vector<source_highlight> suggestions
+	bz::vector<ctx::source_highlight> notes,
+	bz::vector<ctx::source_highlight> suggestions
 ) const
 {
-	this->global_ctx.report_error(error{
-		warning_kind::_last,
+	this->global_ctx.report_error(ctx::error{
+			ctx::warning_kind::_last,
 		{
 			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
 			src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
-			suggestion_range{}, suggestion_range{},
+			ctx::suggestion_range{}, ctx::suggestion_range{},
 			std::move(message),
 		},
 		std::move(notes), std::move(suggestions)
 	});
 }
 
-[[nodiscard]] source_highlight bitcode_context::make_note(lex::src_tokens const &src_tokens, bz::u8string message)
+[[nodiscard]] ctx::source_highlight bitcode_context::make_note(lex::src_tokens const &src_tokens, bz::u8string message)
 {
-	return source_highlight{
+	return ctx::source_highlight{
 		src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
 		src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
 		{}, {},
@@ -807,14 +807,14 @@ void bitcode_context::report_error(
 	};
 }
 
-[[nodiscard]] source_highlight bitcode_context::make_note(bz::u8string message)
+[[nodiscard]] ctx::source_highlight bitcode_context::make_note(bz::u8string message)
 {
-	return source_highlight{
-		global_context::compiler_file_id, 0,
-		char_pos(), char_pos(), char_pos(),
+	return ctx::source_highlight{
+		ctx::global_context::compiler_file_id, 0,
+		ctx::char_pos(), ctx::char_pos(), ctx::char_pos(),
 		{}, {},
 		std::move(message)
 	};
 }
 
-} // namespace ctx
+} // namespace codegen::llvm_latest
