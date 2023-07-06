@@ -716,7 +716,7 @@ bool global_context::add_builtin_type_info(ast::type_info *info)
 
 ast::type_info *global_context::get_usize_type_info_for_builtin_alias(void) const
 {
-	auto const pointer_size = this->get_data_layout().getPointerSize();
+	auto const pointer_size = this->comptime_codegen_context->machine_parameters.pointer_size;
 	bz_assert(pointer_size == 8 || pointer_size == 4);
 	return pointer_size == 8
 		? this->get_builtin_type_info(ast::type_info::uint64_)
@@ -725,11 +725,16 @@ ast::type_info *global_context::get_usize_type_info_for_builtin_alias(void) cons
 
 ast::type_info *global_context::get_isize_type_info_for_builtin_alias(void) const
 {
-	auto const pointer_size = this->get_data_layout().getPointerSize();
+	auto const pointer_size = this->comptime_codegen_context->machine_parameters.pointer_size;
 	bz_assert(pointer_size == 8 || pointer_size == 4);
 	return pointer_size == 8
 		? this->get_builtin_type_info(ast::type_info::int64_)
 		: this->get_builtin_type_info(ast::type_info::int32_);
+}
+
+size_t global_context::get_pointer_size(void) const
+{
+	return this->comptime_codegen_context->machine_parameters.pointer_size;
 }
 
 bool global_context::is_aggressive_consteval_enabled(void) const
@@ -748,11 +753,6 @@ bz::optional<uint32_t> global_context::get_machine_code_opt_level(void) const
 	{
 		return {};
 	}
-}
-
-llvm::DataLayout const &global_context::get_data_layout(void) const
-{
-	return this->llvm_backend_context->get_data_layout();
 }
 
 void global_context::report_and_clear_errors_and_warnings(void)
@@ -837,8 +837,8 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	}
 
 	auto const machine_parameters = comptime::machine_parameters_t{
-		.pointer_size = this->get_data_layout().getPointerSize(),
-		.endianness = this->get_data_layout().isLittleEndian()
+		.pointer_size = this->llvm_backend_context->get_data_layout().getPointerSize(),
+		.endianness = this->llvm_backend_context->get_data_layout().isLittleEndian()
 			? comptime::memory::endianness_kind::little
 			: comptime::memory::endianness_kind::big,
 	};

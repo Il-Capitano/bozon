@@ -158,11 +158,10 @@ struct global_context
 	bool add_builtin_type_info(ast::type_info *info);
 	ast::type_info *get_usize_type_info_for_builtin_alias(void) const;
 	ast::type_info *get_isize_type_info_for_builtin_alias(void) const;
+	size_t get_pointer_size(void) const;
 
 	bool is_aggressive_consteval_enabled(void) const;
 	bz::optional<uint32_t> get_machine_code_opt_level(void) const;
-
-	llvm::DataLayout const &get_data_layout(void) const;
 
 	void report_and_clear_errors_and_warnings(void);
 

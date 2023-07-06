@@ -75,7 +75,7 @@ llvm::LLVMContext &bitcode_context::get_llvm_context(void) const noexcept
 
 llvm::DataLayout const &bitcode_context::get_data_layout(void) const noexcept
 {
-	return this->global_ctx.get_data_layout();
+	return this->backend_ctx.get_data_layout();
 }
 
 llvm::Module &bitcode_context::get_module(void) const noexcept
@@ -434,7 +434,7 @@ llvm::Type *bitcode_context::get_null_t(void) const
 
 llvm::Type *bitcode_context::get_usize_t(void) const
 {
-	switch (this->global_ctx.get_data_layout().getPointerSize())
+	switch (this->backend_ctx.get_data_layout().getPointerSize())
 	{
 	case 8:
 		return this->get_uint64_t();
@@ -451,7 +451,7 @@ llvm::Type *bitcode_context::get_usize_t(void) const
 
 llvm::Type *bitcode_context::get_isize_t(void) const
 {
-	switch (this->global_ctx.get_data_layout().getPointerSize())
+	switch (this->backend_ctx.get_data_layout().getPointerSize())
 	{
 	case 8:
 		return this->get_int64_t();
