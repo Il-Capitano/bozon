@@ -36,11 +36,12 @@ class ProcessPool:
 
         stdout, stderr = self.processes[0].communicate()
         returncode = self.processes[0].returncode
+        command = self.processes[0].args
         self.processes.pop(0)
         if self.current_index != len(self.commands):
             self.start_next_process()
 
-        return remove_ansi_colors(stdout), remove_ansi_colors(stderr), returncode
+        return command, remove_ansi_colors(stdout), remove_ansi_colors(stderr), returncode
 
 success_test_files = glob.glob("tests/success/**/*.bz", recursive=True)
 warning_test_files = glob.glob("tests/warning/**/*.bz", recursive=True)
@@ -79,7 +80,8 @@ file_name_print_length = 3 + max((
     max((len(test_file) for test_file in error_test_files)) if len(error_test_files) != 0 else 0,
 ))
 
-def print_test_fail_info(stdout, stderr, rc, wanted_messages=None):
+def print_test_fail_info(command, stdout, stderr, rc, wanted_messages=None):
+    print(' '.join(command))
     if stdout != '':
         print('stdout:')
         print(stdout)
@@ -100,13 +102,13 @@ success_pool = ProcessPool(success_commands)
 success_pool.start()
 for test_file in success_test_files:
     print(f'    {test_file:.<{file_name_print_length}}', end='', flush=True)
-    stdout, stderr, rc = success_pool.get_next_result()
+    command, stdout, stderr, rc = success_pool.get_next_result()
     if rc == 0 and stdout == '' and stderr == '':
         total_passed += 1
         print(f'{bright_green}OK{clear}')
     else:
         print(f'{bright_red}FAIL{clear}')
-        failed_tests_info.append((test_file, stdout, stderr, rc))
+        failed_tests_info.append((test_file, command, stdout, stderr, rc))
         print_test_fail_info(*failed_tests_info[-1][1:])
 
 warning_commands = [[ bozon, *flags, test_file ] for test_file in warning_test_files]
@@ -114,13 +116,13 @@ warning_pool = ProcessPool(warning_commands)
 warning_pool.start()
 for test_file in warning_test_files:
     print(f'    {test_file:.<{file_name_print_length}}', end='', flush=True)
-    stdout, stderr, rc = warning_pool.get_next_result()
+    command, stdout, stderr, rc = warning_pool.get_next_result()
     if rc == 0 and (stdout != '' or stderr != ''):
         total_passed += 1
         print(f'{bright_green}OK{clear}')
     else:
         print(f'{bright_red}FAIL{clear}')
-        failed_tests_info.append((test_file, stdout, stderr, rc))
+        failed_tests_info.append((test_file, command, stdout, stderr, rc))
         print_test_fail_info(*failed_tests_info[-1][1:])
 
 def get_error_messages(test_file):
@@ -141,8 +143,8 @@ error_pool = ProcessPool(error_commands)
 error_pool.start()
 for test_file in error_test_files:
     print(f'    {test_file:.<{file_name_print_length}}', end='', flush=True)
-    stdout, stderr, rc = error_pool.get_next_result()
-    rerun_stdout, rerun_stderr, rerun_rc = error_pool.get_next_result()
+    command, stdout, stderr, rc = error_pool.get_next_result()
+    rerun_command, rerun_stdout, rerun_stderr, rerun_rc = error_pool.get_next_result()
     wanted_messages = get_error_messages(test_file)
 
     wanted_error_fail = len(wanted_messages) == 0
@@ -160,7 +162,7 @@ for test_file in error_test_files:
         print(f'{bright_green}OK{clear}')
     else:
         print(f'{bright_red}FAIL{clear}')
-        failed_tests_info.append((test_file, stdout, stderr, rc, wanted_messages))
+        failed_tests_info.append((test_file, command, stdout, stderr, rc, wanted_messages))
         print_test_fail_info(*failed_tests_info[-1][1:])
 
 total_test_count = len(success_test_files) + len(warning_test_files) + len(error_test_files)
