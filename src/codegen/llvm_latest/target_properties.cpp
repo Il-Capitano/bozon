@@ -45,4 +45,11 @@ target_properties get_target_properties(bz::u8string_view triple_str)
 	return result;
 }
 
+bz::u8string get_normalized_target(bz::u8string_view triple)
+{
+	auto const triple_str_ref = llvm::StringRef(triple.data(), triple.size());
+	auto const normalized_triple = llvm::Triple::normalize(triple_str_ref);
+	return bz::u8string_view(normalized_triple.data(), normalized_triple.data() + normalized_triple.size());
+}
+
 } // namespace codegen::llvm_latest

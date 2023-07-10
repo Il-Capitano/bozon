@@ -8,6 +8,7 @@ namespace codegen::llvm_latest
 {
 
 target_properties get_target_properties(bz::u8string_view triple);
+bz::u8string get_normalized_target(bz::u8string_view triple);
 
 } // namespace codegen::llvm_latest
 

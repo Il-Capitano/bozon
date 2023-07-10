@@ -864,8 +864,8 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	)
 	{
 		this->report_error(bz::format(
-			"unable to infer target endianness from triple '{}'; provide the command line option '-C target-endianness={little|big}'",
-			this->target_triple.triple
+			"unable to infer target endianness from triple '{}'; provide the command line option '-C target-endianness={}'",
+			this->target_triple.triple, "{little|big}" // needed here because it contains '{'
 		));
 		error = true;
 	}
@@ -949,7 +949,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		return false;
 	}
 
-	auto const &target_triple = this->llvm_backend_context->get_target_triple();
+	auto const normalized_target_triple = this->target_triple.get_normalized_target();
 	auto stdlib_dir_path_non_canonical = fs::path(std::string_view(stdlib_dir.data_as_char_ptr(), stdlib_dir.size()), fs::path::native_format);
 	if (!fs::exists(stdlib_dir_path_non_canonical))
 	{
@@ -960,7 +960,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	stdlib_dir_path.make_preferred();
 
 	auto common_dir = stdlib_dir_path / "common";
-	auto target_dir = stdlib_dir_path / target_triple;
+	auto target_dir = stdlib_dir_path / std::string_view(normalized_target_triple.data_as_char_ptr(), normalized_target_triple.size());
 	if (fs::exists(common_dir))
 	{
 		this->_import_dirs.push_back(std::move(common_dir));

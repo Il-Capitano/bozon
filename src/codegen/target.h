@@ -54,6 +54,7 @@ struct target_triple
 	static target_triple parse(bz::u8string_view triple);
 
 	target_properties get_target_properties(void) const;
+	bz::u8string get_normalized_target(void) const;
 };
 
 } // namespace codegen

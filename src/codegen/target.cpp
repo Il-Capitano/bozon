@@ -131,4 +131,74 @@ target_properties target_triple::get_target_properties(void) const
 	return result;
 }
 
+static bz::u8string_view get_arch_string(architecture_kind arch)
+{
+	switch (arch)
+	{
+	case architecture_kind::unknown:
+		return "unknown";
+	case architecture_kind::x86_64:
+		return "x86_64";
+	}
+}
+
+static bz::u8string_view get_vendor_string(vendor_kind vendor)
+{
+	switch (vendor)
+	{
+	case vendor_kind::unknown:
+		return "unknown";
+	case vendor_kind::w64:
+		return "w64";
+	case vendor_kind::pc:
+		return "pc";
+	}
+}
+
+static bz::u8string_view get_os_string(os_kind os)
+{
+	switch (os)
+	{
+	case os_kind::unknown:
+		return "unknown";
+	case os_kind::windows:
+		return "windows";
+	case os_kind::linux:
+		return "linux";
+	}
+}
+
+static bz::u8string_view get_environment_string(environment_kind environment)
+{
+	switch (environment)
+	{
+	case environment_kind::unknown:
+		return "unknown";
+	case environment_kind::gnu:
+		return "gnu";
+	}
+}
+
+bz::u8string target_triple::get_normalized_target(void) const
+{
+	// fall back to LLVM target normalization
+	if (
+		this->arch == architecture_kind::unknown
+		|| this->vendor == vendor_kind::unknown
+		|| this->os == os_kind::unknown
+		|| this->environment == environment_kind::unknown
+	)
+	{
+		return llvm_latest::get_normalized_target(this->triple);
+	}
+
+	return bz::format(
+		"{}-{}-{}-{}",
+		get_arch_string(this->arch),
+		get_vendor_string(this->vendor),
+		get_os_string(this->os),
+		get_environment_string(this->environment)
+	);
+}
+
 } // namespace codegen
