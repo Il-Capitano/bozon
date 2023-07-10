@@ -21,7 +21,12 @@ int main(int argc, char const **argv)
 		global_ctx.report_and_clear_errors_and_warnings();
 		bz_unreachable;
 	}
-	if (!global_ctx.initialize_llvm())
+	if (!global_ctx.initialize_target_info())
+	{
+		global_ctx.report_and_clear_errors_and_warnings();
+		bz_unreachable;
+	}
+	if (!global_ctx.initialize_backend())
 	{
 		global_ctx.report_and_clear_errors_and_warnings();
 		bz_unreachable;
