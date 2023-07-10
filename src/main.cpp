@@ -1588,11 +1588,6 @@ int main(int argc, char const **argv)
 			global_ctx.report_and_clear_errors_and_warnings();
 			return_from_main(2);
 		}
-		if (!global_ctx.initialize_llvm())
-		{
-			global_ctx.report_and_clear_errors_and_warnings();
-			return_from_main(2);
-		}
 		if (!global_ctx.initialize_builtins())
 		{
 			global_ctx.report_and_clear_errors_and_warnings();
@@ -1628,11 +1623,19 @@ int main(int argc, char const **argv)
 			return_from_main(0);
 		}
 
+		t.start_section("backend init time");
+		if (!global_ctx.initialize_backend())
+		{
+			global_ctx.report_and_clear_errors_and_warnings();
+			return_from_main(5);
+		}
+		t.end_section();
+
 		t.start_section("bitcode emission time");
 		if (!global_ctx.emit_bitcode())
 		{
 			global_ctx.report_and_clear_errors_and_warnings();
-			return_from_main(5);
+			return_from_main(6);
 		}
 		t.end_section();
 
@@ -1644,7 +1647,7 @@ int main(int argc, char const **argv)
 		if (!global_ctx.optimize())
 		{
 			global_ctx.report_and_clear_errors_and_warnings();
-			return_from_main(6);
+			return_from_main(7);
 		}
 		t.end_section();
 
@@ -1652,7 +1655,7 @@ int main(int argc, char const **argv)
 		if (!global_ctx.emit_file())
 		{
 			global_ctx.report_and_clear_errors_and_warnings();
-			return_from_main(7);
+			return_from_main(8);
 		}
 		t.end_section();
 
@@ -1671,7 +1674,9 @@ int main(int argc, char const **argv)
 			+ t.get_section_duration("initialization time")
 			+ t.get_section_duration("global symbol parse time")
 			+ t.get_section_duration("parse time");
-		auto const back_end_time = t.get_section_duration("bitcode emission time");
+		auto const back_end_time    =
+			t.get_section_duration("backend init time")
+			+ t.get_section_duration("bitcode emission time");
 		auto const llvm_time        =
 			t.get_section_duration("optimization time")
 			+ t.get_section_duration("file emission time");

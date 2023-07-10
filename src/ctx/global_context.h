@@ -169,10 +169,10 @@ struct global_context
 
 	[[nodiscard]] bool parse_command_line(int argc, char const * const*argv);
 	[[nodiscard]] bool initialize_target_info(void);
-	[[nodiscard]] bool initialize_llvm(void);
 	[[nodiscard]] bool initialize_builtins(void);
 	[[nodiscard]] bool parse_global_symbols(void);
 	[[nodiscard]] bool parse(void);
+	[[nodiscard]] bool initialize_backend(void);
 	[[nodiscard]] bool emit_bitcode(void);
 	[[nodiscard]] bool optimize(void);
 	[[nodiscard]] bool emit_file(void);

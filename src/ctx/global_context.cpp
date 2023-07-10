@@ -925,19 +925,6 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	return true;
 }
 
-[[nodiscard]] bool global_context::initialize_llvm(void)
-{
-	bool error = false;
-	this->llvm_backend_context = std::make_unique<codegen::llvm_latest::backend_context>(*this, this->target_triple.triple, error);
-
-	if (error)
-	{
-		return false;
-	}
-
-	return true;
-}
-
 [[nodiscard]] bool global_context::initialize_builtins(void)
 {
 	this->_builtin_type_infos.resize(ast::type_info::null_t_ + 1, nullptr);
@@ -1097,6 +1084,19 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		{
 			return false;
 		}
+	}
+
+	return true;
+}
+
+[[nodiscard]] bool global_context::initialize_backend(void)
+{
+	bool error = false;
+	this->llvm_backend_context = std::make_unique<codegen::llvm_latest::backend_context>(*this, this->target_triple.triple, error);
+
+	if (error)
+	{
+		return false;
 	}
 
 	return true;
