@@ -50,5 +50,18 @@ function main()
 		if (sum_exclusive2(1, 10) != 45) unreachable;
 		if (sum_inclusive1(1, 10) != 55) unreachable;
 		if (sum_inclusive2(1, 10) != 55) unreachable;
+		if (sum_exclusive1(1, 1) != 0) unreachable;
+		if (sum_exclusive2(1, 1) != 0) unreachable;
+		if (sum_inclusive1(1, 1) != 1) unreachable;
+		if (sum_inclusive2(1, 1) != 1) unreachable;
 	});
+
+	if (sum_exclusive1(1, 10) != 45) unreachable;
+	if (sum_exclusive2(1, 10) != 45) unreachable;
+	if (sum_inclusive1(1, 10) != 55) unreachable;
+	if (sum_inclusive2(1, 10) != 55) unreachable;
+	if (sum_exclusive1(1, 1) != 0) unreachable;
+	if (sum_exclusive2(1, 1) != 0) unreachable;
+	if (sum_inclusive1(1, 1) != 1) unreachable;
+	if (sum_inclusive2(1, 1) != 1) unreachable;
 }
