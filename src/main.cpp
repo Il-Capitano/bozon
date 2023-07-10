@@ -1583,6 +1583,11 @@ int main(int argc, char const **argv)
 		}
 
 		t.start_section("initialization time");
+		if (!global_ctx.initialize_target_info())
+		{
+			global_ctx.report_and_clear_errors_and_warnings();
+			return_from_main(2);
+		}
 		if (!global_ctx.initialize_llvm())
 		{
 			global_ctx.report_and_clear_errors_and_warnings();

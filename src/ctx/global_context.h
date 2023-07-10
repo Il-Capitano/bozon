@@ -15,6 +15,7 @@
 #include "abi/platform_abi.h"
 #include "resolve/attribute_resolver.h"
 #include "comptime/codegen_context_forward.h"
+#include "codegen/target.h"
 #include "codegen/llvm_latest/backend_context.h"
 
 namespace ctx
@@ -59,6 +60,7 @@ struct global_context
 
 	std::unique_ptr<ast::type_prototype_set_t> type_prototype_set = nullptr;
 
+	codegen::target_triple target_triple;
 	std::unique_ptr<comptime::codegen_context> comptime_codegen_context;
 	std::unique_ptr<codegen::llvm_latest::backend_context> llvm_backend_context;
 
@@ -166,6 +168,7 @@ struct global_context
 	void report_and_clear_errors_and_warnings(void);
 
 	[[nodiscard]] bool parse_command_line(int argc, char const * const*argv);
+	[[nodiscard]] bool initialize_target_info(void);
 	[[nodiscard]] bool initialize_llvm(void);
 	[[nodiscard]] bool initialize_builtins(void);
 	[[nodiscard]] bool parse_global_symbols(void);

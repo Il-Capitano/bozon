@@ -91,6 +91,8 @@ inline constexpr bz::array ctcli::option_group<code_gen_group_id> = {
 	ctcli::create_group_element("panic-on-invalid-switch",          "Call '__builtin_panic' if an invalid enum value is used in a 'switch' expression (default=true)"),
 	ctcli::create_group_element("discard-llvm-value-names",         "Discard values names for LLVM bitcode (default=true)"),
 	ctcli::create_group_element("freestanding",                     "Generate code with no external dependencies (default=false)"),
+	ctcli::create_group_element("target-pointer-size=<size>",       "Pointer size of the target architecture in bytes", ctcli::arg_type::uint64),
+	ctcli::create_group_element("target-endianness={little|big}",   "Endianness of the target architecture"),
 };
 
 template<>
@@ -196,6 +198,8 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element(
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-invalid-switch")>          = &panic_on_invalid_switch;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen discard-llvm-value-names")>         = &discard_llvm_value_names;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen freestanding")>                     = &freestanding;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-pointer-size")>              = &target_pointer_size;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-endianness")>                = &target_endianness;
 
 template<>
 inline constexpr auto ctcli::argument_parse_function<ctcli::option("--emit")> = [](bz::u8string_view arg) -> std::optional<emit_type> {
@@ -213,6 +217,19 @@ inline constexpr auto ctcli::argument_parse_function<ctcli::option("--emit")> = 
 template<>
 inline constexpr auto ctcli::argument_parse_function<ctcli::option("--x86-asm-syntax")> = [](bz::u8string_view arg) -> std::optional<x86_asm_syntax_kind> {
 	auto const result = parse_x86_asm_syntax(arg);
+	if (result.has_value())
+	{
+		return result.get();
+	}
+	else
+	{
+		return {};
+	}
+};
+
+template<>
+inline constexpr auto ctcli::argument_parse_function<ctcli::group_element("--code-gen target-endianness")> = [](bz::u8string_view arg) -> std::optional<target_endianness_kind> {
+	auto const result = parse_target_endianness(arg);
 	if (result.has_value())
 	{
 		return result.get();

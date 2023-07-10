@@ -74,6 +74,28 @@ inline bz::optional<x86_asm_syntax_kind> parse_x86_asm_syntax(bz::u8string_view 
 	}
 }
 
+enum class target_endianness_kind
+{
+	little,
+	big,
+};
+
+inline bz::optional<target_endianness_kind> parse_target_endianness(bz::u8string_view arg)
+{
+	if (arg == "little")
+	{
+		return target_endianness_kind::little;
+	}
+	else if (arg == "big")
+	{
+		return target_endianness_kind::big;
+	}
+	else
+	{
+		return {};
+	}
+}
+
 inline bool display_version = false;
 
 inline bz::array<bool, ctx::warning_infos.size()> warnings{};
@@ -101,6 +123,8 @@ inline bool panic_on_invalid_switch = true;
 inline bool discard_llvm_value_names = true;
 inline bool return_zero_on_error = false;
 inline bool freestanding = false;
+inline uint64_t target_pointer_size = 0;
+inline target_endianness_kind target_endianness = target_endianness_kind::little;
 
 inline bz::u8string target;
 inline emit_type emit_file_type = emit_type::obj;

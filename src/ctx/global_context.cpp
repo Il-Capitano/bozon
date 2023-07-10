@@ -826,6 +826,105 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	}
 }
 
+[[nodiscard]] bool global_context::initialize_target_info(void)
+{
+	this->target_triple = codegen::target_triple::parse(target);
+
+	auto const target_properties = this->target_triple.get_target_properties();
+
+	bool error = false;
+
+	if (
+		!target_properties.pointer_size.has_value()
+		&& !ctcli::is_option_set<ctcli::group_element("--code-gen target-pointer-size")>()
+	)
+	{
+		this->report_error(bz::format(
+			"unable to infer target pointer size from triple '{}'; provide the command line option '-C pointer-size=<size>'",
+			this->target_triple.triple
+		));
+		error = true;
+	}
+	else if (
+		target_properties.pointer_size.has_value()
+		&& ctcli::is_option_set<ctcli::group_element("--code-gen target-pointer-size")>()
+		&& target_properties.pointer_size.get() != target_pointer_size
+	)
+	{
+		this->report_error(bz::format(
+			"inferred and explicitly provided target pointer sizes are different for triple '{}'",
+			this->target_triple.triple
+		));
+		error = true;
+	}
+
+	if (
+		!target_properties.endianness.has_value()
+		&& !ctcli::is_option_set<ctcli::group_element("--code-gen target-endianness")>()
+	)
+	{
+		this->report_error(bz::format(
+			"unable to infer target endianness from triple '{}'; provide the command line option '-C target-endianness={little|big}'",
+			this->target_triple.triple
+		));
+		error = true;
+	}
+	else if (
+		target_properties.endianness.has_value()
+		&& ctcli::is_option_set<ctcli::group_element("--code-gen target-endianness")>()
+		&& ![&]() {
+			auto const inferred = target_properties.endianness.get();
+			auto const provided = target_endianness;
+			return (inferred == comptime::memory::endianness_kind::little && provided == target_endianness_kind::little)
+				|| (inferred == comptime::memory::endianness_kind::big && provided == target_endianness_kind::big);
+		}()
+	)
+	{
+		this->report_error(bz::format(
+			"inferred and explicitly provided target endianness kinds are different for triple '{}'",
+			this->target_triple.triple
+		));
+		error = true;
+	}
+
+	if (error)
+	{
+		return false;
+	}
+
+	auto const pointer_size = target_properties.pointer_size.has_value() ? target_properties.pointer_size.get() : target_pointer_size;
+	auto const endianness = [&]() {
+		if (target_properties.endianness.has_value())
+		{
+			return target_properties.endianness.get();
+		}
+		else if (target_endianness == target_endianness_kind::little)
+		{
+			return comptime::memory::endianness_kind::little;
+		}
+		else
+		{
+			return comptime::memory::endianness_kind::big;
+		}
+	}();
+
+	if (pointer_size != 8 && pointer_size != 4)
+	{
+		this->report_error(bz::format("target pointer size of {} is not supported", pointer_size));
+		return false;
+	}
+
+	auto const machine_parameters = comptime::machine_parameters_t{
+		.pointer_size = static_cast<size_t>(pointer_size),
+		.endianness = endianness,
+	};
+
+	this->type_prototype_set = std::make_unique<ast::type_prototype_set_t>(machine_parameters.pointer_size);
+	this->comptime_codegen_context = std::make_unique<comptime::codegen_context>(*this->type_prototype_set, machine_parameters);
+
+	return true;
+}
+
 [[nodiscard]] bool global_context::initialize_llvm(void)
 {
 	bool error = false;
@@ -835,17 +934,6 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	{
 		return false;
 	}
-
-	auto const machine_parameters = comptime::machine_parameters_t{
-		.pointer_size = this->llvm_backend_context->get_data_layout().getPointerSize(),
-		.endianness = this->llvm_backend_context->get_data_layout().isLittleEndian()
-			? comptime::memory::endianness_kind::little
-			: comptime::memory::endianness_kind::big,
-	};
-
-	this->type_prototype_set = std::make_unique<ast::type_prototype_set_t>(machine_parameters.pointer_size);
-	this->comptime_codegen_context = std::make_unique<comptime::codegen_context>(*this->type_prototype_set, machine_parameters);
-
 
 	return true;
 }
