@@ -48,7 +48,7 @@ get_llvm_builtin_types(llvm::LLVMContext &context)
 	};
 }
 
-backend_context::backend_context(ctx::global_context &global_ctx, bool &error)
+backend_context::backend_context(ctx::global_context &global_ctx, bz::u8string_view target_triple, bool &error)
 	: _llvm_context(),
 	  _module("test", this->_llvm_context),
 	  _target(nullptr),
@@ -59,10 +59,7 @@ backend_context::backend_context(ctx::global_context &global_ctx, bool &error)
 {
 	this->_llvm_context.setDiscardValueNames(discard_llvm_value_names);
 
-	auto const is_native_target = target == "" || target == "native";
-	auto const target_triple = is_native_target
-		? llvm::Triple::normalize(llvm::sys::getDefaultTargetTriple())
-		: llvm::Triple::normalize(std::string(target.data_as_char_ptr(), target.size()));
+	auto const llvm_target_triple = llvm::Triple::normalize(std::string(target_triple.data(), target_triple.size()));
 	llvm::InitializeAllDisassemblers();
 	llvm::InitializeAllTargetInfos();
 	llvm::InitializeAllTargets();
@@ -83,7 +80,7 @@ backend_context::backend_context(ctx::global_context &global_ctx, bool &error)
 	}
 
 	std::string target_error = "";
-	this->_target = llvm::TargetRegistry::lookupTarget(target_triple, target_error);
+	this->_target = llvm::TargetRegistry::lookupTarget(llvm_target_triple, target_error);
 	if (this->_target == nullptr)
 	{
 		constexpr std::string_view default_start = "No available targets are compatible with triple \"";
@@ -109,7 +106,7 @@ backend_context::backend_context(ctx::global_context &global_ctx, bool &error)
 		if (target_error.substr(0, default_start.length()) == default_start)
 		{
 			global_ctx.report_error(bz::format(
-				"'{}' is not an available target", target_triple.c_str()
+				"'{}' is not an available target", llvm_target_triple.c_str()
 			), std::move(notes));
 		}
 		else
@@ -162,15 +159,15 @@ backend_context::backend_context(ctx::global_context &global_ctx, bool &error)
 	}();
 
 	this->_target_machine.reset(this->_target->createTargetMachine(
-		target_triple, cpu, features, options, rm, std::nullopt, codegen_opt_level
+		llvm_target_triple, cpu, features, options, rm, std::nullopt, codegen_opt_level
 	));
 	bz_assert(this->_target_machine);
 
 	this->_data_layout = this->_target_machine->createDataLayout();
 	this->_module.setDataLayout(*this->_data_layout);
-	this->_module.setTargetTriple(target_triple);
+	this->_module.setTargetTriple(llvm_target_triple);
 
-	auto const triple = llvm::Triple(target_triple);
+	auto const triple = llvm::Triple(llvm_target_triple);
 	auto const os = triple.getOS();
 	auto const arch = triple.getArch();
 
@@ -193,7 +190,7 @@ backend_context::backend_context(ctx::global_context &global_ctx, bool &error)
 			ctx::warning_kind::unknown_target,
 			bz::format(
 				"target '{}' has limited support right now, external function calls may not work as intended",
-				target_triple.c_str()
+				llvm_target_triple.c_str()
 			)
 		);
 	}

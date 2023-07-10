@@ -19,7 +19,7 @@ namespace codegen::llvm_latest
 
 struct backend_context
 {
-	backend_context(ctx::global_context &global_ctx, bool &error);
+	backend_context(ctx::global_context &global_ctx, bz::u8string_view target_triple, bool &error);
 
 	llvm::LLVMContext _llvm_context;
 	llvm::Module      _module;

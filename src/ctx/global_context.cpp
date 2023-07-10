@@ -928,7 +928,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 [[nodiscard]] bool global_context::initialize_llvm(void)
 {
 	bool error = false;
-	this->llvm_backend_context = std::make_unique<codegen::llvm_latest::backend_context>(*this, error);
+	this->llvm_backend_context = std::make_unique<codegen::llvm_latest::backend_context>(*this, this->target_triple.triple, error);
 
 	if (error)
 	{

@@ -1,8 +1,11 @@
 #include "target.h"
 #include "llvm_latest/target_properties.h"
+#include "config.h"
 
 namespace codegen
 {
+
+static bz::u8string_view native_target_triple = BOZON_CONFIG_NATIVE_TARGET;
 
 static bz::vector<bz::u8string_view> split_triple(bz::u8string_view triple)
 {
@@ -81,6 +84,11 @@ static environment_kind parse_environment(bz::u8string_view env)
 target_triple target_triple::parse(bz::u8string_view triple)
 {
 	auto result = target_triple();
+
+	if (triple == "" || triple == "native")
+	{
+		triple = native_target_triple;
+	}
 
 	result.triple = triple;
 	triple = result.triple;
