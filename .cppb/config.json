@@ -69,6 +69,7 @@
 		},
 		"test": {
 			"depends_on": "default",
+			"emit_compile_commands": false,
 			"source_directory": "test",
 			"defines": [],
 			"run_args": [ "-Wall", "--no-error-highlight", "--stdlib-dir", "bozon-stdlib" ]
