@@ -1,8 +1,6 @@
 #include "global_data.h"
-#include <llvm/ADT/StringRef.h>
+#include "config.h"
 #include <llvm/Config/llvm-config.h>
-#include <llvm/Support/Host.h>
-#include <llvm/ADT/Triple.h>
 
 bool is_warning_enabled(ctx::warning_kind kind) noexcept
 {
@@ -23,15 +21,14 @@ void print_version_info(void)
 {
 	if (do_verbose)
 	{
-		auto const default_target = llvm::Triple::normalize(llvm::sys::getDefaultTargetTriple());
-		auto const host_cpu = llvm::sys::getHostCPUName();
+		auto const default_target = BOZON_CONFIG_NATIVE_TARGET;
 		bz::print(
 			"bozon {}\n"
 			"default target: {}\n"
-			"host CPU: {}\n"
 			"LLVM version: {}\n",
-			bozon_version, default_target.c_str(),
-			host_cpu.str().c_str(), llvm_version
+			bozon_version,
+			default_target,
+			llvm_version
 		);
 	}
 	else

@@ -1,8 +1,12 @@
 #include "target_properties.h"
+#include "config.h"
 #include <llvm/TargetParser/Triple.h>
+#include <llvm/Config/llvm-config.h>
 
 namespace codegen::llvm_latest
 {
+
+static_assert(bz::u8string_view(LLVM_DEFAULT_TARGET_TRIPLE) == bz::u8string_view(BOZON_CONFIG_NATIVE_TARGET));
 
 target_properties get_target_properties(bz::u8string_view triple_str)
 {
