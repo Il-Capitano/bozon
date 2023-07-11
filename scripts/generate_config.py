@@ -3,30 +3,24 @@ import os
 
 config = ''
 
-def get_default_target_from_llc(stdout):
-    for line in stdout.splitlines():
-        if line.startswith('  Default target:'):
-            return line[len('  Default target:'):].strip()
-    return ''
-
 if os.name == 'nt':
     llc_process = subprocess.Popen(
-        [ 'llc', '--version' ],
+        [ 'llvm-config', '--host-target' ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         encoding='utf-8'
     )
     stdout, stderr = llc_process.communicate()
-    default_target = get_default_target_from_llc(stdout)
+    default_target = stdout.strip()
 else:
     llc_process = subprocess.Popen(
-        [ 'llc-16', '--version' ],
+        [ 'llvm-config-16', '--host-target' ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         encoding='utf-8'
     )
     stdout, stderr = llc_process.communicate()
-    default_target = get_default_target_from_llc(stdout)
+    default_target = stdout.strip()
 
 config += f'#define BOZON_CONFIG_NATIVE_TARGET "{default_target}"\n'
 
