@@ -343,7 +343,7 @@ export function release(s: &string) -> string
 }
 
 
-export operator .. (lhs: #const string, rhs: #const string) -> string
+export operator + (lhs: #const string, rhs: #const string) -> string
 {
 	const lhs_begin = lhs.begin_ptr();
 	const lhs_size = lhs.size();
@@ -360,7 +360,7 @@ export operator .. (lhs: #const string, rhs: #const string) -> string
 	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
 }
 
-export operator .. (lhs: #const string, rhs: str) -> string
+export operator + (lhs: #const string, rhs: str) -> string
 {
 	const lhs_begin = lhs.begin_ptr();
 	const lhs_size = lhs.size();
@@ -377,7 +377,7 @@ export operator .. (lhs: #const string, rhs: str) -> string
 	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
 }
 
-export operator .. (lhs: str, rhs: #const string) -> string
+export operator + (lhs: str, rhs: #const string) -> string
 {
 	const lhs_begin = lhs.begin_ptr();
 	const lhs_size = lhs.size();
@@ -394,7 +394,7 @@ export operator .. (lhs: str, rhs: #const string) -> string
 	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
 }
 
-export operator .. (lhs: #const string, rhs: char) -> string
+export operator + (lhs: #const string, rhs: char) -> string
 {
 	const lhs_begin = lhs.begin_ptr();
 	const lhs_size = lhs.size();
@@ -412,7 +412,7 @@ export operator .. (lhs: #const string, rhs: char) -> string
 	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
 }
 
-export operator .. (lhs: char, rhs: #const string) -> string
+export operator + (lhs: char, rhs: #const string) -> string
 {
 	const lhs_encoded = encode_char_utf8(lhs);
 	const lhs_begin = lhs_encoded[0].begin();
@@ -431,19 +431,19 @@ export operator .. (lhs: char, rhs: #const string) -> string
 }
 
 
-export operator ..= (lhs: &string, rhs: #const string) -> &string
+export operator += (lhs: &string, rhs: #const string) -> &string
 {
 	const rhs_size = rhs.size();
 	const result_size = lhs.size() + rhs_size;
 	lhs.reserve(result_size);
 
-	// lhs.reserve could change rhs, if you write something like s ..= s
+	// lhs.reserve could change rhs, if you write something like s += s
 	trivially_copy_values(lhs.end_ptr(), rhs.begin_ptr(), rhs_size);
 	lhs.set_size_unsafe(result_size);
 	return lhs;
 }
 
-export operator ..= (lhs: &string, rhs: str) -> &string
+export operator += (lhs: &string, rhs: str) -> &string
 {
 	const rhs_size = rhs.size();
 	const result_size = lhs.size() + rhs_size;
@@ -454,7 +454,7 @@ export operator ..= (lhs: &string, rhs: str) -> &string
 	return lhs;
 }
 
-export operator ..= (lhs: &string, rhs: char) -> &string
+export operator += (lhs: &string, rhs: char) -> &string
 {
 	const rhs_encoded = encode_char_utf8(rhs);
 	const rhs_begin = rhs_encoded[0].begin();

@@ -584,6 +584,31 @@ static ast::expression parse_primary_expression(
 			return parse_primary_expression(stream, end, context);
 		}
 	}
+	case lex::token::dot_dot:
+	{
+		auto const dot_dot_pos = stream;
+		++stream;
+		if (
+			stream == end
+			|| (!is_unary_operator(stream->kind) && is_operator(stream->kind))
+			|| stream->kind == lex::token::paren_close
+			|| stream->kind == lex::token::square_close
+			|| stream->kind == lex::token::curly_close
+		)
+		{
+			return context.make_range_unbounded_expression(lex::src_tokens::from_single_token(dot_dot_pos));
+		}
+
+		auto range_end = parse_expression(stream, end, context, dot_dot_prec);
+		return context.make_integer_range_to_expression({ dot_dot_pos, dot_dot_pos, stream }, std::move(range_end));
+	}
+	case lex::token::dot_dot_eq:
+	{
+		auto const dot_dot_eq_pos = stream;
+		++stream;
+		auto range_end = parse_expression(stream, end, context, dot_dot_prec);
+		return context.make_integer_range_to_inclusive_expression({ dot_dot_eq_pos, dot_dot_eq_pos, stream }, std::move(range_end));
+	}
 
 	case lex::token::kw_unreachable:
 	{
@@ -957,6 +982,55 @@ static ast::expression parse_expression_helper(
 
 			auto const src_tokens = lex::src_tokens{ lhs.get_tokens_begin(), op, stream };
 			lhs = context.make_subscript_operator_expression(src_tokens, std::move(lhs), std::move(args));
+			break;
+		}
+
+		// range operator
+		case lex::token::dot_dot:
+		{
+			if (
+				stream == end
+				|| (!is_unary_operator(stream->kind) && is_operator(stream->kind))
+				|| stream->kind == lex::token::paren_close
+				|| stream->kind == lex::token::square_close
+				|| stream->kind == lex::token::curly_close
+			)
+			{
+				auto const src_tokens = lex::src_tokens{ lhs.src_tokens.begin, op, stream };
+				lhs = context.make_integer_range_from_expression(src_tokens, std::move(lhs));
+				break;
+			}
+
+			auto rhs = parse_primary_expression(stream, end, context);
+			precedence rhs_prec;
+
+			while (
+				stream != end
+				&& (rhs_prec = get_binary_or_call_precedence(stream->kind)) < op_prec
+			)
+			{
+				rhs = parse_expression_helper(std::move(rhs), stream, end, context, rhs_prec);
+			}
+
+			auto const src_tokens = lex::src_tokens{ lhs.get_tokens_begin(), op, stream };
+			lhs = context.make_integer_range_expression(src_tokens, std::move(lhs), std::move(rhs));
+			break;
+		}
+		case lex::token::dot_dot_eq:
+		{
+			auto rhs = parse_primary_expression(stream, end, context);
+			precedence rhs_prec;
+
+			while (
+				stream != end
+				&& (rhs_prec = get_binary_or_call_precedence(stream->kind)) < op_prec
+			)
+			{
+				rhs = parse_expression_helper(std::move(rhs), stream, end, context, rhs_prec);
+			}
+
+			auto const src_tokens = lex::src_tokens{ lhs.get_tokens_begin(), op, stream };
+			lhs = context.make_integer_range_inclusive_expression(src_tokens, std::move(lhs), std::move(rhs));
 			break;
 		}
 

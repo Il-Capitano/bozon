@@ -31,6 +31,127 @@
 @__builtin export type isize = 0;
 @__builtin export type usize = 0;
 
+struct __integer_range<T: typename>
+{
+	._begin: T;
+	._end: T;
+
+	type __value_type = T;
+	type __iterator = __integer_range_iterator<T>;
+
+	export function begin_value = __builtin_integer_range_begin_value;
+	export function end_value   = __builtin_integer_range_end_value;
+
+	export function begin = __builtin_integer_range_begin_iterator;
+	export function end   = __builtin_integer_range_end_iterator;
+}
+
+struct __integer_range_iterator<T: typename>
+{
+	._value: T;
+
+	type __value_type = T;
+
+	export operator * = __builtin_integer_range_iterator_dereference;
+
+	export operator == = __builtin_integer_range_iterator_equals;
+	export operator != = __builtin_integer_range_iterator_not_equals;
+
+	export operator ++ = __builtin_integer_range_iterator_plus_plus;
+	export operator -- = __builtin_integer_range_iterator_minus_minus;
+}
+
+struct __integer_range_inclusive<T: typename>
+{
+	._begin: T;
+	._end: T;
+
+	type __value_type = T;
+	type __begin_iterator = __integer_range_inclusive_iterator<T>;
+	type __end_iterator = __integer_range_inclusive_end_iterator;
+
+	export function begin_value = __builtin_integer_range_inclusive_begin_value;
+	export function end_value   = __builtin_integer_range_inclusive_end_value;
+
+	export function begin = __builtin_integer_range_inclusive_begin_iterator;
+	export function end   = __builtin_integer_range_inclusive_end_iterator;
+}
+
+struct __integer_range_inclusive_iterator<T: typename>
+{
+	._value: T;
+	._end: T;
+	._at_end: bool;
+
+	type __value_type = T;
+
+	export operator * = __builtin_integer_range_inclusive_iterator_dereference;
+
+	export operator == = __builtin_integer_range_inclusive_iterator_left_equals;
+	export operator == = __builtin_integer_range_inclusive_iterator_right_equals;
+	export operator != = __builtin_integer_range_inclusive_iterator_left_not_equals;
+	export operator != = __builtin_integer_range_inclusive_iterator_right_not_equals;
+
+	export operator ++ = __builtin_integer_range_inclusive_iterator_plus_plus;
+}
+
+struct __integer_range_inclusive_end_iterator
+{}
+
+struct __integer_range_from<T: typename>
+{
+	._begin: T;
+
+	type __value_type = T;
+	type __begin_iterator = __integer_range_from_iterator<T>;
+	type __end_iterator = __integer_range_from_end_iterator;
+
+	export function begin_value = __builtin_integer_range_from_begin_value;
+
+	export function begin = __builtin_integer_range_from_begin_iterator;
+	export function end   = __builtin_integer_range_from_end_iterator;
+}
+
+struct __integer_range_from_iterator<T: typename>
+{
+	._value: T;
+
+	type __value_type = T;
+
+	export operator * = __builtin_integer_range_from_iterator_dereference;
+
+	export operator == = __builtin_integer_range_from_iterator_left_equals;
+	export operator == = __builtin_integer_range_from_iterator_right_equals;
+	export operator != = __builtin_integer_range_from_iterator_left_not_equals;
+	export operator != = __builtin_integer_range_from_iterator_right_not_equals;
+
+	export operator ++ = __builtin_integer_range_from_iterator_plus_plus;
+}
+
+struct __integer_range_from_end_iterator
+{}
+
+struct __integer_range_to<T: typename>
+{
+	._end: T;
+
+	type __value_type = T;
+
+	export function end_value = __builtin_integer_range_to_end_value;
+}
+
+struct __integer_range_to_inclusive<T: typename>
+{
+	._end: T;
+
+	type __value_type = T;
+
+	export function end_value = __builtin_integer_range_to_inclusive_end_value;
+}
+
+struct __range_unbounded
+{}
+
 @__builtin
 export function __builtin_str_length(s: str) -> usize
 {
@@ -139,6 +260,100 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 @__builtin export function __builtin_array_end_const_ptr(array: &const [??: auto])
 	-> *const __builtin_array_value_type(__builtin_remove_const(__builtin_remove_reference(typeof array)));
 @__builtin export function __builtin_array_size(array: &const [??: auto]) -> usize;
+
+@__builtin export function __builtin_integer_range_i8 (begin: int8,  end: int8)  -> __integer_range<int8>;
+@__builtin export function __builtin_integer_range_i16(begin: int16, end: int16) -> __integer_range<int16>;
+@__builtin export function __builtin_integer_range_i32(begin: int32, end: int32) -> __integer_range<int32>;
+@__builtin export function __builtin_integer_range_i64(begin: int64, end: int64) -> __integer_range<int64>;
+
+@__builtin export function __builtin_integer_range_u8 (begin: uint8,  end: uint8)  -> __integer_range<uint8>;
+@__builtin export function __builtin_integer_range_u16(begin: uint16, end: uint16) -> __integer_range<uint16>;
+@__builtin export function __builtin_integer_range_u32(begin: uint32, end: uint32) -> __integer_range<uint32>;
+@__builtin export function __builtin_integer_range_u64(begin: uint64, end: uint64) -> __integer_range<uint64>;
+
+@__builtin export function __builtin_integer_range_inclusive_i8 (begin: int8,  end: int8)  -> __integer_range_inclusive<int8>;
+@__builtin export function __builtin_integer_range_inclusive_i16(begin: int16, end: int16) -> __integer_range_inclusive<int16>;
+@__builtin export function __builtin_integer_range_inclusive_i32(begin: int32, end: int32) -> __integer_range_inclusive<int32>;
+@__builtin export function __builtin_integer_range_inclusive_i64(begin: int64, end: int64) -> __integer_range_inclusive<int64>;
+
+@__builtin export function __builtin_integer_range_inclusive_u8 (begin: uint8,  end: uint8)  -> __integer_range_inclusive<uint8>;
+@__builtin export function __builtin_integer_range_inclusive_u16(begin: uint16, end: uint16) -> __integer_range_inclusive<uint16>;
+@__builtin export function __builtin_integer_range_inclusive_u32(begin: uint32, end: uint32) -> __integer_range_inclusive<uint32>;
+@__builtin export function __builtin_integer_range_inclusive_u64(begin: uint64, end: uint64) -> __integer_range_inclusive<uint64>;
+
+@__builtin export function __builtin_integer_range_from_i8 (begin: int8)  -> __integer_range_from<int8>;
+@__builtin export function __builtin_integer_range_from_i16(begin: int16) -> __integer_range_from<int16>;
+@__builtin export function __builtin_integer_range_from_i32(begin: int32) -> __integer_range_from<int32>;
+@__builtin export function __builtin_integer_range_from_i64(begin: int64) -> __integer_range_from<int64>;
+
+@__builtin export function __builtin_integer_range_from_u8 (begin: uint8)  -> __integer_range_from<uint8>;
+@__builtin export function __builtin_integer_range_from_u16(begin: uint16) -> __integer_range_from<uint16>;
+@__builtin export function __builtin_integer_range_from_u32(begin: uint32) -> __integer_range_from<uint32>;
+@__builtin export function __builtin_integer_range_from_u64(begin: uint64) -> __integer_range_from<uint64>;
+
+@__builtin export function __builtin_integer_range_to_i8 (end: int8)  -> __integer_range_to<int8>;
+@__builtin export function __builtin_integer_range_to_i16(end: int16) -> __integer_range_to<int16>;
+@__builtin export function __builtin_integer_range_to_i32(end: int32) -> __integer_range_to<int32>;
+@__builtin export function __builtin_integer_range_to_i64(end: int64) -> __integer_range_to<int64>;
+
+@__builtin export function __builtin_integer_range_to_u8 (end: uint8)  -> __integer_range_to<uint8>;
+@__builtin export function __builtin_integer_range_to_u16(end: uint16) -> __integer_range_to<uint16>;
+@__builtin export function __builtin_integer_range_to_u32(end: uint32) -> __integer_range_to<uint32>;
+@__builtin export function __builtin_integer_range_to_u64(end: uint64) -> __integer_range_to<uint64>;
+
+@__builtin export function __builtin_range_unbounded() -> __range_unbounded;
+
+@__builtin export function __builtin_integer_range_begin_value(range: __integer_range) -> (typeof range).__value_type;
+@__builtin export function __builtin_integer_range_end_value(range: __integer_range) -> (typeof range).__value_type;
+@__builtin export function __builtin_integer_range_inclusive_begin_value(range: __integer_range_inclusive) -> (typeof range).__value_type;
+@__builtin export function __builtin_integer_range_inclusive_end_value(range: __integer_range_inclusive) -> (typeof range).__value_type;
+@__builtin export function __builtin_integer_range_from_begin_value(range: __integer_range_from) -> (typeof range).__value_type;
+@__builtin export function __builtin_integer_range_to_end_value(range: __integer_range_to) -> (typeof range).__value_type;
+@__builtin export function __builtin_integer_range_to_inclusive_end_value(range: __integer_range_to_inclusive) -> (typeof range).__value_type;
+
+@__builtin export function __builtin_integer_range_begin_iterator(range: __integer_range) -> (typeof range).__iterator;
+@__builtin export function __builtin_integer_range_end_iterator(range: __integer_range) -> (typeof range).__iterator;
+@__builtin function __builtin_integer_range_iterator_dereference(it: __integer_range_iterator) -> (typeof it).__value_type;
+@__builtin function __builtin_integer_range_iterator_equals(lhs: __integer_range_iterator, rhs: __integer_range_iterator)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched iterator types '",
+			__builtin_typename_as_str(typeof lhs),
+			"' and '"
+			__builtin_typename_as_str(typeof rhs),
+			"' in 'function __builtin_integer_range_iterator_equals'"
+		)));
+	} else {}, bool);
+@__builtin function __builtin_integer_range_iterator_not_equals(lhs: __integer_range_iterator, rhs: __integer_range_iterator)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched iterator types '",
+			__builtin_typename_as_str(typeof lhs),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in 'function __builtin_integer_range_iterator_not_equals'"
+		)));
+	} else {}, bool);
+@__builtin function __builtin_integer_range_iterator_plus_plus(it: &__integer_range_iterator) -> typeof it;
+@__builtin function __builtin_integer_range_iterator_minus_minus(it: &__integer_range_iterator) -> typeof it;
+
+@__builtin export function __builtin_integer_range_inclusive_begin_iterator(range: __integer_range_inclusive) -> (typeof range).__begin_iterator;
+@__builtin export function __builtin_integer_range_inclusive_end_iterator(range: __integer_range_inclusive) -> (typeof range).__end_iterator;
+@__builtin function __builtin_integer_range_inclusive_iterator_dereference(it: #const __integer_range_inclusive_iterator) -> (typeof it).__value_type;
+@__builtin function __builtin_integer_range_inclusive_iterator_left_equals(lhs: #const __integer_range_inclusive_iterator, rhs: __integer_range_inclusive_end_iterator) -> bool;
+@__builtin function __builtin_integer_range_inclusive_iterator_right_equals(lhs: __integer_range_inclusive_end_iterator, rhs: #const __integer_range_inclusive_iterator) -> bool;
+@__builtin function __builtin_integer_range_inclusive_iterator_left_not_equals(lhs: #const __integer_range_inclusive_iterator, rhs: __integer_range_inclusive_end_iterator) -> bool;
+@__builtin function __builtin_integer_range_inclusive_iterator_right_not_equals(lhs: __integer_range_inclusive_end_iterator, rhs: #const __integer_range_inclusive_iterator) -> bool;
+@__builtin function __builtin_integer_range_inclusive_iterator_plus_plus(it: &__integer_range_inclusive_iterator) -> typeof it;
+
+@__builtin function __builtin_integer_range_from_begin_iterator(range: __integer_range_from) -> (typeof range).__begin_iterator;
+@__builtin function __builtin_integer_range_from_end_iterator(range: __integer_range_from) -> (typeof range).__end_iterator;
+@__builtin function __builtin_integer_range_from_iterator_dereference(it: __integer_range_from_iterator) -> (typeof it).__value_type;
+@__builtin function __builtin_integer_range_from_iterator_left_equals(lhs: __integer_range_from_iterator, rhs: __integer_range_from_end_iterator) -> bool;
+@__builtin function __builtin_integer_range_from_iterator_right_equals(lhs: __integer_range_from_end_iterator, rhs: __integer_range_from_iterator) -> bool;
+@__builtin function __builtin_integer_range_from_iterator_left_not_equals(lhs: __integer_range_from_iterator, rhs: __integer_range_from_end_iterator) -> bool;
+@__builtin function __builtin_integer_range_from_iterator_right_not_equals(lhs: __integer_range_from_end_iterator, rhs: __integer_range_from_iterator) -> bool;
+@__builtin function __builtin_integer_range_from_iterator_plus_plus(it: &__integer_range_from_iterator) -> typeof it;
 
 @__builtin export function __builtin_optional_get_value_ref(value: &?auto)
 	-> &__builtin_remove_optional(__builtin_remove_reference(typeof value));
@@ -357,30 +572,24 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 @__builtin @symbol_name("llvm.trap") export function __builtin_trap();
 
 @__builtin @symbol_name(
-	if (sizeof usize == 8) {
-		"llvm.memcpy.p0.p0.i64"
-	} else if (sizeof usize == 4) {
-		"llvm.memcpy.p0.p0.i32"
-	} else {
-		unreachable
+	switch (sizeof usize) {
+		8 => "llvm.memcpy.p0.p0.i64",
+		4 => "llvm.memcpy.p0.p0.i32",
+		else => unreachable,
 	}
 ) export function __builtin_memcpy(dest: ?*void, src: ?*const void, n: usize);
 @__builtin @symbol_name(
-	if (sizeof usize == 8) {
-		"llvm.memmove.p0.p0.i64"
-	} else if (sizeof usize == 4) {
-		"llvm.memmove.p0.p0.i32"
-	} else {
-		unreachable
+	switch (sizeof usize) {
+		8 => "llvm.memmove.p0.p0.i64",
+		4 => "llvm.memmove.p0.p0.i32",
+		else => unreachable,
 	}
 ) export function __builtin_memmove(dest: ?*void, src: ?*const void, n: usize);
 @__builtin @symbol_name(
-	if (sizeof usize == 8) {
-		"llvm.memset.p0.i64"
-	} else if (sizeof usize == 4) {
-		"llvm.memset.p0.i32"
-	} else {
-		unreachable
+	switch (sizeof usize) {
+		8 => "llvm.memset.p0.i64",
+		4 => "llvm.memset.p0.i32",
+		else => unreachable,
 	}
 ) export function __builtin_memset(dest: ?*void, val: uint8, n: usize);
 
@@ -854,6 +1063,33 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 	}
 	return true;
 }
+@__builtin export operator == (lhs: [: const auto], rhs: [: const auto]) -> bool
+{
+	if (__builtin_slice_size(lhs) != __builtin_slice_size(rhs))
+	{
+		return false;
+	}
+
+	let lhs_it = __builtin_slice_begin_const_ptr(lhs);
+	let rhs_it = __builtin_slice_begin_const_ptr(rhs);
+	const lhs_end = __builtin_slice_end_const_ptr(lhs);
+	if consteval (typeof lhs == typeof rhs)
+	{
+		if (lhs_it == rhs_it)
+		{
+			return true;
+		}
+	}
+
+	for (; lhs_it != lhs_end; ++lhs_it, ++rhs_it)
+	{
+		if (!(*lhs_it == *rhs_it))
+		{
+			return false;
+		}
+	}
+	return true;
+}
 @__builtin export operator == (lhs: bool, rhs: bool) -> bool;
 @__builtin export operator == (lhs: *const auto, rhs: *const auto)
 	-> (if consteval (typeof lhs != typeof rhs) {
@@ -922,6 +1158,33 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 	if (lhs_it == rhs_it)
 	{
 		return false;
+	}
+
+	for (; lhs_it != lhs_end; ++lhs_it, ++rhs_it)
+	{
+		if (*lhs_it != *rhs_it)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+@__builtin export operator != (lhs: [: const auto], rhs: [: const auto]) -> bool
+{
+	if (__builtin_slice_size(lhs) != __builtin_slice_size(rhs))
+	{
+		return true;
+	}
+
+	let lhs_it = __builtin_slice_begin_const_ptr(lhs);
+	let rhs_it = __builtin_slice_begin_const_ptr(rhs);
+	const lhs_end = __builtin_slice_end_const_ptr(lhs);
+	if consteval (typeof lhs == typeof rhs)
+	{
+		if (lhs_it == rhs_it)
+		{
+			return false;
+		}
 	}
 
 	for (; lhs_it != lhs_end; ++lhs_it, ++rhs_it)
@@ -1176,3 +1439,57 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 @__builtin @overload_priority(1) export operator >>= (lhs: &uint32,  rhs: uint64) -> &uint32;
 @__builtin @overload_priority(0) export operator >>= (lhs: &uint64,  rhs:  int64) -> &uint64;
 @__builtin @overload_priority(1) export operator >>= (lhs: &uint64,  rhs: uint64) -> &uint64;
+
+@__builtin @overload_priority(0) export operator [] (array: ##[: auto], index:  int64);
+@__builtin @overload_priority(1) export operator [] (array: ##[: auto], index: uint64);
+@__builtin @overload_priority(0) export operator [] (array: ##[: const auto], index:  int64);
+@__builtin @overload_priority(1) export operator [] (array: ##[: const auto], index: uint64);
+@__builtin @overload_priority(0) export operator [] (array: ##[??: auto], index:  int64);
+@__builtin @overload_priority(1) export operator [] (array: ##[??: auto], index: uint64);
+@__builtin @overload_priority(0) export operator [] (tuple: ##[...##auto], index: consteval  int64);
+@__builtin @overload_priority(1) export operator [] (tuple: ##[...##auto], index: consteval uint64);
+
+@__builtin export operator [] (array: ##[: auto], index: __integer_range)
+	-> __builtin_remove_const(__builtin_remove_reference(typeof array));
+@__builtin export operator [] (array: ##[: auto], index: __integer_range_from)
+	-> __builtin_remove_const(__builtin_remove_reference(typeof array));
+@__builtin export operator [] (array: ##[: auto], index: __integer_range_to)
+	-> __builtin_remove_const(__builtin_remove_reference(typeof array));
+@__builtin export operator [] (array: ##[: auto], index: __range_unbounded)
+	-> __builtin_remove_const(__builtin_remove_reference(typeof array));
+
+@__builtin export operator [] (array: ##[: const auto], index: __integer_range)
+	-> __builtin_remove_const(__builtin_remove_reference(typeof array));
+@__builtin export operator [] (array: ##[: const auto], index: __integer_range_from)
+	-> __builtin_remove_const(__builtin_remove_reference(typeof array));
+@__builtin export operator [] (array: ##[: const auto], index: __integer_range_to)
+	-> __builtin_remove_const(__builtin_remove_reference(typeof array));
+@__builtin export operator [] (array: ##[: const auto], index: __range_unbounded)
+	-> __builtin_remove_const(__builtin_remove_reference(typeof array));
+
+@__builtin export operator [] (array: move [??: auto], index: __integer_range)
+	-> [: __builtin_array_value_type(__builtin_remove_move_reference(typeof array))];
+@__builtin export operator [] (array: move [??: auto], index: __integer_range_from)
+	-> [: __builtin_array_value_type(__builtin_remove_move_reference(typeof array))];
+@__builtin export operator [] (array: move [??: auto], index: __integer_range_to)
+	-> [: __builtin_array_value_type(__builtin_remove_move_reference(typeof array))];
+@__builtin export operator [] (array: move [??: auto], index: __range_unbounded)
+	-> [: __builtin_array_value_type(__builtin_remove_move_reference(typeof array))];
+
+@__builtin export operator [] (array: &[??: auto], index: __integer_range)
+	-> [: __builtin_array_value_type(__builtin_remove_reference(typeof array))];
+@__builtin export operator [] (array: &[??: auto], index: __integer_range_from)
+	-> [: __builtin_array_value_type(__builtin_remove_reference(typeof array))];
+@__builtin export operator [] (array: &[??: auto], index: __integer_range_to)
+	-> [: __builtin_array_value_type(__builtin_remove_reference(typeof array))];
+@__builtin export operator [] (array: &[??: auto], index: __range_unbounded)
+	-> [: __builtin_array_value_type(__builtin_remove_reference(typeof array))];
+
+@__builtin export operator [] (array: &const [??: auto], index: __integer_range)
+	-> [: const __builtin_array_value_type(__builtin_remove_const(__builtin_remove_reference(typeof array)))];
+@__builtin export operator [] (array: &const [??: auto], index: __integer_range_from)
+	-> [: const __builtin_array_value_type(__builtin_remove_const(__builtin_remove_reference(typeof array)))];
+@__builtin export operator [] (array: &const [??: auto], index: __integer_range_to)
+	-> [: const __builtin_array_value_type(__builtin_remove_const(__builtin_remove_reference(typeof array)))];
+@__builtin export operator [] (array: &const [??: auto], index: __range_unbounded)
+	-> [: const __builtin_array_value_type(__builtin_remove_const(__builtin_remove_reference(typeof array)))];

@@ -490,7 +490,7 @@ function main(args: [: const str]) -> int32
 	std::print("{:%}\n", 12.345);
 	std::print("{:%}\n", 0.005);
 
-	for (const i in std::iota(0, 20))
+	for (const i in 0..20)
 	{
 		std::print("{} ", i);
 	}
@@ -1654,8 +1654,8 @@ export function string_test()
 
 	{
 		let world = std::string("World");
-		world ..= '!';
-		std::print(("Hello " .. world .. '\n').as_str());
+		world += '!';
+		std::print(("Hello " + world + '\n').as_str());
 		std::print("Hello {}\n".std::format(world.as_str()).as_str());
 		std::print("---\n");
 		std::print("{}\n", world.empty());
@@ -1670,7 +1670,7 @@ export function string_test()
 
 	consteval n = {
 		let s = std::string("hello");
-		s ..= " world!";
+		s += " world!";
 		s.length()
 	};
 	static_assert(n == 12u);
