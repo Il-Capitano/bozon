@@ -17,9 +17,18 @@
 namespace codegen::llvm_latest
 {
 
+enum class output_code_kind
+{
+	obj,
+	asm_,
+	llvm_bc,
+	llvm_ir,
+	null,
+};
+
 struct backend_context
 {
-	backend_context(ctx::global_context &global_ctx, bz::u8string_view target_triple, bool &error);
+	backend_context(ctx::global_context &global_ctx, bz::u8string_view target_triple, output_code_kind output_code, bool &error);
 
 	llvm::LLVMContext _llvm_context;
 	llvm::Module      _module;
@@ -28,6 +37,7 @@ struct backend_context
 	bz::optional<llvm::DataLayout>       _data_layout;
 	bz::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1> _llvm_builtin_types;
 	abi::platform_abi _platform_abi;
+	output_code_kind _output_code;
 
 	llvm::DataLayout const &get_data_layout(void) const
 	{

@@ -1091,7 +1091,27 @@ void global_context::report_and_clear_errors_and_warnings(void)
 [[nodiscard]] bool global_context::initialize_backend(void)
 {
 	bool error = false;
-	this->llvm_backend_context = std::make_unique<codegen::llvm_latest::backend_context>(*this, this->target_triple.triple, error);
+	auto const output_code = [&]() {
+		switch (emit_file_type)
+		{
+		case emit_type::obj:
+			return codegen::llvm_latest::output_code_kind::obj;
+		case emit_type::asm_:
+			return codegen::llvm_latest::output_code_kind::asm_;
+		case emit_type::llvm_bc:
+			return codegen::llvm_latest::output_code_kind::llvm_bc;
+		case emit_type::llvm_ir:
+			return codegen::llvm_latest::output_code_kind::llvm_ir;
+		case emit_type::null:
+			return codegen::llvm_latest::output_code_kind::null;
+		}
+	}();
+	this->llvm_backend_context = std::make_unique<codegen::llvm_latest::backend_context>(
+		*this,
+		this->target_triple.triple,
+		output_code,
+		error
+	);
 
 	if (error)
 	{

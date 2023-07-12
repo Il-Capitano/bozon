@@ -48,14 +48,15 @@ get_llvm_builtin_types(llvm::LLVMContext &context)
 	};
 }
 
-backend_context::backend_context(ctx::global_context &global_ctx, bz::u8string_view target_triple, bool &error)
+backend_context::backend_context(ctx::global_context &global_ctx, bz::u8string_view target_triple, output_code_kind output_code, bool &error)
 	: _llvm_context(),
 	  _module("test", this->_llvm_context),
 	  _target(nullptr),
 	  _target_machine(nullptr),
 	  _data_layout(),
 	  _llvm_builtin_types(get_llvm_builtin_types(this->_llvm_context)),
-	  _platform_abi(abi::platform_abi::generic)
+	  _platform_abi(abi::platform_abi::generic),
+	  _output_code(output_code)
 {
 	this->_llvm_context.setDiscardValueNames(discard_llvm_value_names);
 
@@ -476,17 +477,17 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	}
 #endif // !NDEBUG
 
-	switch (emit_file_type)
+	switch (this->_output_code)
 	{
-	case emit_type::obj:
+	case output_code_kind::obj:
 		return this->emit_obj(global_ctx);
-	case emit_type::asm_:
+	case output_code_kind::asm_:
 		return this->emit_asm(global_ctx);
-	case emit_type::llvm_bc:
+	case output_code_kind::llvm_bc:
 		return this->emit_llvm_bc(global_ctx);
-	case emit_type::llvm_ir:
+	case output_code_kind::llvm_ir:
 		return this->emit_llvm_ir(global_ctx);
-	case emit_type::null:
+	case output_code_kind::null:
 		return true;
 	}
 	bz_unreachable;
