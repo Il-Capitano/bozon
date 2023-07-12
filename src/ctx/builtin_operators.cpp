@@ -1401,6 +1401,11 @@ ast::expression make_builtin_subscript_operator(
 
 		auto result_type = array_slice_t.elem_type;
 
+		if (called_kind == ast::expression_type_kind::rvalue)
+		{
+			context.add_self_destruction(called);
+		}
+
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::lvalue_reference, std::move(result_type),

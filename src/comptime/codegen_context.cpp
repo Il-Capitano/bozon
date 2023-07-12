@@ -6049,6 +6049,36 @@ expr_value codegen_context::create_is_option_set(expr_value begin_ptr, expr_valu
 	);
 }
 
+void codegen_context::create_range_bounds_check(lex::src_tokens const &src_tokens, expr_value begin, expr_value end, bool is_signed)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(begin.get_type() == end.get_type());
+	if (begin.get_type() != this->get_builtin_type(builtin_type_kind::i64))
+	{
+		begin = this->create_int_cast(begin, this->get_builtin_type(builtin_type_kind::i64), is_signed);
+		end = this->create_int_cast(end, this->get_builtin_type(builtin_type_kind::i64), is_signed);
+	}
+
+	auto const begin_val = begin.get_value_as_instruction(*this);
+	auto const end_val = end.get_value_as_instruction(*this);
+
+	if (is_signed)
+	{
+		add_instruction(*this,
+			instructions::range_bounds_check_i64{ .src_tokens_index = src_tokens_index },
+			begin_val, end_val
+		);
+	}
+	else
+	{
+		add_instruction(*this,
+			instructions::range_bounds_check_u64{ .src_tokens_index = src_tokens_index },
+			begin_val, end_val
+		);
+	}
+}
+
 void codegen_context::create_array_bounds_check(
 	lex::src_tokens const &src_tokens,
 	expr_value index,
@@ -6095,6 +6125,162 @@ void codegen_context::create_array_bounds_check(
 			add_instruction(*this,
 				instructions::array_bounds_check_u32{ .src_tokens_index = src_tokens_index },
 				index_val, size_val
+			);
+		}
+	}
+}
+
+void codegen_context::create_array_range_bounds_check(
+	lex::src_tokens const &src_tokens,
+	expr_value begin,
+	expr_value end,
+	expr_value size,
+	bool is_index_signed
+)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(begin.get_type() == end.get_type());
+	bz_assert(begin.get_type() == size.get_type());
+	bz_assert(begin.get_type()->is_builtin());
+
+	auto const begin_val = begin.get_value_as_instruction(*this);
+	auto const end_val = end.get_value_as_instruction(*this);
+	auto const size_val = size.get_value_as_instruction(*this);
+
+	if (begin.get_type()->get_builtin_kind() == builtin_type_kind::i64)
+	{
+		if (is_index_signed)
+		{
+			add_instruction(*this,
+				instructions::array_range_bounds_check_i64{ .src_tokens_index = src_tokens_index },
+				begin_val, end_val, size_val
+			);
+		}
+		else
+		{
+			add_instruction(*this,
+				instructions::array_range_bounds_check_u64{ .src_tokens_index = src_tokens_index },
+				begin_val, end_val, size_val
+			);
+		}
+	}
+	else
+	{
+		if (is_index_signed)
+		{
+			add_instruction(*this,
+				instructions::array_range_bounds_check_i32{ .src_tokens_index = src_tokens_index },
+				begin_val, end_val, size_val
+			);
+		}
+		else
+		{
+			add_instruction(*this,
+				instructions::array_range_bounds_check_u32{ .src_tokens_index = src_tokens_index },
+				begin_val, end_val, size_val
+			);
+		}
+	}
+}
+
+void codegen_context::create_array_range_begin_bounds_check(
+	lex::src_tokens const &src_tokens,
+	expr_value begin,
+	expr_value size,
+	bool is_index_signed
+)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(begin.get_type() == size.get_type());
+	bz_assert(begin.get_type()->is_builtin());
+
+	auto const begin_val = begin.get_value_as_instruction(*this);
+	auto const size_val = size.get_value_as_instruction(*this);
+
+	if (begin.get_type()->get_builtin_kind() == builtin_type_kind::i64)
+	{
+		if (is_index_signed)
+		{
+			add_instruction(*this,
+				instructions::array_range_begin_bounds_check_i64{ .src_tokens_index = src_tokens_index },
+				begin_val, size_val
+			);
+		}
+		else
+		{
+			add_instruction(*this,
+				instructions::array_range_begin_bounds_check_u64{ .src_tokens_index = src_tokens_index },
+				begin_val, size_val
+			);
+		}
+	}
+	else
+	{
+		if (is_index_signed)
+		{
+			add_instruction(*this,
+				instructions::array_range_begin_bounds_check_i32{ .src_tokens_index = src_tokens_index },
+				begin_val, size_val
+			);
+		}
+		else
+		{
+			add_instruction(*this,
+				instructions::array_range_begin_bounds_check_u32{ .src_tokens_index = src_tokens_index },
+				begin_val, size_val
+			);
+		}
+	}
+}
+
+void codegen_context::create_array_range_end_bounds_check(
+	lex::src_tokens const &src_tokens,
+	expr_value end,
+	expr_value size,
+	bool is_index_signed
+)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(end.get_type() == size.get_type());
+	bz_assert(end.get_type()->is_builtin());
+
+	auto const end_val = end.get_value_as_instruction(*this);
+	auto const size_val = size.get_value_as_instruction(*this);
+
+	if (end.get_type()->get_builtin_kind() == builtin_type_kind::i64)
+	{
+		if (is_index_signed)
+		{
+			add_instruction(*this,
+				instructions::array_range_end_bounds_check_i64{ .src_tokens_index = src_tokens_index },
+				end_val, size_val
+			);
+		}
+		else
+		{
+			add_instruction(*this,
+				instructions::array_range_end_bounds_check_u64{ .src_tokens_index = src_tokens_index },
+				end_val, size_val
+			);
+		}
+	}
+	else
+	{
+		if (is_index_signed)
+		{
+			add_instruction(*this,
+				instructions::array_range_end_bounds_check_i32{ .src_tokens_index = src_tokens_index },
+				end_val, size_val
+			);
+		}
+		else
+		{
+			add_instruction(*this,
+				instructions::array_range_end_bounds_check_u32{ .src_tokens_index = src_tokens_index },
+				end_val, size_val
 			);
 		}
 	}
@@ -6413,7 +6599,7 @@ void current_function_info_t::finalize_function(void)
 		}
 
 		// finalize the terminator dests
-		static_assert(instruction_list_t::size() == 544);
+		static_assert(instruction_list_t::size() == 558);
 		if (bb.instructions.not_empty()) switch (auto &inst = bb.instructions.back().inst; inst.index())
 		{
 		case instruction::jump:

@@ -119,8 +119,6 @@ constexpr bz::array operator_precedences = {
 
 	prec_t{ prec_t::binary, lex::token::kw_as,              {  4, true  } },
 
-	prec_t{ prec_t::binary, lex::token::dot_dot,            {  5, true  } },
-
 	prec_t{ prec_t::binary, lex::token::multiply,           {  6, true  } },
 	prec_t{ prec_t::binary, lex::token::divide,             {  6, true  } },
 	prec_t{ prec_t::binary, lex::token::modulo,             {  6, true  } },
@@ -147,24 +145,24 @@ constexpr bz::array operator_precedences = {
 	prec_t{ prec_t::binary, lex::token::bool_xor,           { 15, true  } },
 	prec_t{ prec_t::binary, lex::token::bool_or,            { 16, true  } },
 
-	prec_t{ prec_t::binary, lex::token::assign,             { 18, false } },
-	prec_t{ prec_t::binary, lex::token::plus_eq,            { 18, false } },
-	prec_t{ prec_t::binary, lex::token::minus_eq,           { 18, false } },
-	prec_t{ prec_t::binary, lex::token::multiply_eq,        { 18, false } },
-	prec_t{ prec_t::binary, lex::token::divide_eq,          { 18, false } },
-	prec_t{ prec_t::binary, lex::token::modulo_eq,          { 18, false } },
-	prec_t{ prec_t::binary, lex::token::dot_dot_eq,         { 18, false } },
-	prec_t{ prec_t::binary, lex::token::bit_left_shift_eq,  { 18, false } },
-	prec_t{ prec_t::binary, lex::token::bit_right_shift_eq, { 18, false } },
-	prec_t{ prec_t::binary, lex::token::bit_and_eq,         { 18, false } },
-	prec_t{ prec_t::binary, lex::token::bit_xor_eq,         { 18, false } },
-	prec_t{ prec_t::binary, lex::token::bit_or_eq,          { 18, false } },
+	prec_t{ prec_t::binary, lex::token::assign,             { 19, false } },
+	prec_t{ prec_t::binary, lex::token::plus_eq,            { 19, false } },
+	prec_t{ prec_t::binary, lex::token::minus_eq,           { 19, false } },
+	prec_t{ prec_t::binary, lex::token::multiply_eq,        { 19, false } },
+	prec_t{ prec_t::binary, lex::token::divide_eq,          { 19, false } },
+	prec_t{ prec_t::binary, lex::token::modulo_eq,          { 19, false } },
+	prec_t{ prec_t::binary, lex::token::bit_left_shift_eq,  { 19, false } },
+	prec_t{ prec_t::binary, lex::token::bit_right_shift_eq, { 19, false } },
+	prec_t{ prec_t::binary, lex::token::bit_and_eq,         { 19, false } },
+	prec_t{ prec_t::binary, lex::token::bit_xor_eq,         { 19, false } },
+	prec_t{ prec_t::binary, lex::token::bit_or_eq,          { 19, false } },
 
-	prec_t{ prec_t::binary, lex::token::comma,              { 20, true  } },
+	prec_t{ prec_t::binary, lex::token::comma,              { 21, true  } },
 };
 
-constexpr precedence no_assign     { 17, true };
-constexpr precedence no_comma      { 19, true };
+constexpr precedence dot_dot_prec  { 17, true };
+constexpr precedence no_assign     { 18, true };
+constexpr precedence no_comma      { 20, true };
 constexpr precedence call_prec     {  2, true };
 constexpr precedence subscript_prec{  2, true };
 constexpr precedence dot_prec      {  2, true };
@@ -257,9 +255,10 @@ constexpr auto token_info = []() {
 	result[lex::token::bool_or]  = { lex::token::bool_or,  "||", "", binary_builtin_flags };
 	result[lex::token::bool_not] = { lex::token::bool_not, "!",  "", unary_builtin_flags  | unary_overloadable_flags  };
 
-	result[lex::token::comma]      = { lex::token::comma,      ",",   "", binary_builtin_flags     };
-	result[lex::token::dot_dot]    = { lex::token::dot_dot,    "..",  "", binary_overloadable_flags };
-	result[lex::token::dot_dot_eq] = { lex::token::dot_dot_eq, "..=", "", binary_overloadable_flags };
+	result[lex::token::comma]      = { lex::token::comma,      ",",   "", binary_builtin_flags };
+
+	result[lex::token::dot_dot]    = { lex::token::dot_dot,    "..",  "", expr_type_flags };
+	result[lex::token::dot_dot_eq] = { lex::token::dot_dot_eq, "..=", "", expr_type_flags };
 
 	result[lex::token::dot]         = { lex::token::dot,         ".",   "", expr_type_flags };
 	result[lex::token::arrow]       = { lex::token::arrow,       "->",  "", expr_type_flags };
@@ -509,6 +508,10 @@ constexpr precedence get_binary_or_call_precedence(uint32_t kind)
 	else if (kind == lex::token::dot || kind == lex::token::arrow)
 	{
 		return dot_prec;
+	}
+	else if (kind == lex::token::dot_dot || kind == lex::token::dot_dot_eq)
+	{
+		return dot_dot_prec;
 	}
 	else
 	{

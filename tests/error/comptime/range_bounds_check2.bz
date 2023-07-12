@@ -1,0 +1,9 @@
+// error: the begin value 1 in a range expression is greater than the end value 0
+// note: while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
+function test()
+{
+	(consteval {
+		1u64..0u64
+	});
+}

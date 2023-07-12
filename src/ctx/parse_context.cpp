@@ -2850,19 +2850,6 @@ ast::expression parse_context::make_unreachable(lex::token_pos t)
 	);
 }
 
-static bool is_builtin_type(ast::typespec_view ts)
-{
-	ts = ast::remove_const_or_consteval(ts);
-	return ts.is<ast::ts_pointer>()
-		|| ts.is<ast::ts_function>()
-		|| ts.is<ast::ts_tuple>()
-		|| ts.is<ast::ts_array>()
-		|| ts.is<ast::ts_array_slice>()
-		|| ts.is<ast::ts_optional>()
-		|| (ts.is<ast::ts_base_type>() && ts.get<ast::ts_base_type>().info->kind != ast::type_info::aggregate);
-}
-
-
 struct possible_func_t
 {
 	resolve::match_level_t match_level;
@@ -2976,6 +2963,419 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 	}
 	context.report_error(src_tokens, "couldn't match the function call to any of the candidates", std::move(notes));
 	return { {}, nullptr };
+}
+
+ast::expression parse_context::make_integer_range_expression(lex::src_tokens const &src_tokens, ast::expression begin, ast::expression end)
+{
+	if (begin.is_error() || end.is_error())
+	{
+		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(lex::token::dot_dot, std::move(begin), std::move(end)));
+	}
+	else if (this->in_unresolved_context || begin.is_unresolved() || end.is_unresolved())
+	{
+		return ast::make_unresolved_expression(
+			src_tokens,
+			ast::make_unresolved_expr_unresolved_integer_range(std::move(begin), std::move(end))
+		);
+	}
+
+	auto args = ast::arena_vector<ast::expression>();
+	args.reserve(2);
+	args.push_back(std::move(begin));
+	args.push_back(std::move(end));
+
+	auto const begin_type = ast::remove_const_or_consteval(args[0].get_expr_type());
+	auto const end_type   = ast::remove_const_or_consteval(args[1].get_expr_type());
+
+	if (
+		begin_type.is<ast::ts_base_type>()
+		&& ast::is_integer_kind(begin_type.get<ast::ts_base_type>().info->kind)
+		&& begin_type == end_type
+	)
+	{
+		auto const func = [&]() -> ast::decl_function * {
+			switch (begin_type.get<ast::ts_base_type>().info->kind) {
+			case ast::type_info::int8_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_i8);
+			case ast::type_info::int16_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_i16);
+			case ast::type_info::int32_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_i32);
+			case ast::type_info::int64_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_i64);
+			case ast::type_info::uint8_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_u8);
+			case ast::type_info::uint16_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_u16);
+			case ast::type_info::uint32_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_u32);
+			case ast::type_info::uint64_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_u64);
+			default:
+				return nullptr;
+			}
+		}();
+		if (func != nullptr)
+		{
+			return make_expr_function_call_from_body(src_tokens, &func->body, std::move(args), *this);
+		}
+	}
+
+	auto const funcs = bz::array{
+		this->get_builtin_function(ast::function_body::builtin_integer_range_i8),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_i16),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_i32),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_i64),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_u8),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_u16),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_u32),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_u64),
+	};
+
+	auto possible_funcs = funcs.transform([&](auto const decl) {
+		return possible_func_t{
+			resolve::get_function_call_match_level(decl, decl->body, args, *this, src_tokens),
+			decl, &decl->body
+		};
+	}).collect<ast::arena_vector>();
+
+	auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, args, *this);
+	if (best_body == nullptr)
+	{
+		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(lex::token::dot_dot, std::move(args[0]), ast::expression()));
+	}
+	else
+	{
+		return make_expr_function_call_from_body(src_tokens, best_body, std::move(args), *this);
+	}
+}
+
+ast::expression parse_context::make_integer_range_inclusive_expression(lex::src_tokens const &src_tokens, ast::expression begin, ast::expression end)
+{
+	if (begin.is_error() || end.is_error())
+	{
+		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(lex::token::dot_dot_eq, std::move(begin), std::move(end)));
+	}
+	else if (this->in_unresolved_context || begin.is_unresolved() || end.is_unresolved())
+	{
+		return ast::make_unresolved_expression(
+			src_tokens,
+			ast::make_unresolved_expr_unresolved_integer_range_inclusive(std::move(begin), std::move(end))
+		);
+	}
+
+	auto args = ast::arena_vector<ast::expression>();
+	args.reserve(2);
+	args.push_back(std::move(begin));
+	args.push_back(std::move(end));
+
+	auto const begin_type = ast::remove_const_or_consteval(args[0].get_expr_type());
+	auto const end_type   = ast::remove_const_or_consteval(args[1].get_expr_type());
+
+	if (
+		begin_type.is<ast::ts_base_type>()
+		&& ast::is_integer_kind(begin_type.get<ast::ts_base_type>().info->kind)
+		&& begin_type == end_type
+	)
+	{
+		auto const func = [&]() -> ast::decl_function * {
+			switch (begin_type.get<ast::ts_base_type>().info->kind) {
+			case ast::type_info::int8_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_i8);
+			case ast::type_info::int16_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_i16);
+			case ast::type_info::int32_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_i32);
+			case ast::type_info::int64_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_i64);
+			case ast::type_info::uint8_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_u8);
+			case ast::type_info::uint16_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_u16);
+			case ast::type_info::uint32_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_u32);
+			case ast::type_info::uint64_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_u64);
+			default:
+				return nullptr;
+			}
+		}();
+		if (func != nullptr)
+		{
+			return make_expr_function_call_from_body(src_tokens, &func->body, std::move(args), *this);
+		}
+	}
+
+	auto const funcs = bz::array{
+		this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_i8),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_i16),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_i32),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_i64),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_u8),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_u16),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_u32),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_u64),
+	};
+
+	auto possible_funcs = funcs.transform([&](auto const decl) {
+		return possible_func_t{
+			resolve::get_function_call_match_level(decl, decl->body, args, *this, src_tokens),
+			decl, &decl->body
+		};
+	}).collect<ast::arena_vector>();
+
+	auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, args, *this);
+	if (best_body == nullptr)
+	{
+		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(lex::token::dot_dot_eq, std::move(args[0]), ast::expression()));
+	}
+	else
+	{
+		return make_expr_function_call_from_body(src_tokens, best_body, std::move(args), *this);
+	}
+}
+
+ast::expression parse_context::make_integer_range_from_expression(lex::src_tokens const &src_tokens, ast::expression begin)
+{
+	if (begin.is_error())
+	{
+		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(lex::token::dot_dot, std::move(begin), ast::expression()));
+	}
+	else if (this->in_unresolved_context || begin.is_unresolved())
+	{
+		return ast::make_unresolved_expression(src_tokens, ast::make_unresolved_expr_unresolved_integer_range_from(std::move(begin)));
+	}
+
+	auto args = ast::arena_vector<ast::expression>();
+	args.push_back(std::move(begin));
+
+	auto const type = ast::remove_const_or_consteval(args[0].get_expr_type());
+
+	if (type.is<ast::ts_base_type>() && ast::is_integer_kind(type.get<ast::ts_base_type>().info->kind))
+	{
+		auto const func = [&]() -> ast::decl_function * {
+			switch (type.get<ast::ts_base_type>().info->kind) {
+			case ast::type_info::int8_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_from_i8);
+			case ast::type_info::int16_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_from_i16);
+			case ast::type_info::int32_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_from_i32);
+			case ast::type_info::int64_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_from_i64);
+			case ast::type_info::uint8_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_from_u8);
+			case ast::type_info::uint16_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_from_u16);
+			case ast::type_info::uint32_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_from_u32);
+			case ast::type_info::uint64_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_from_u64);
+			default:
+				return nullptr;
+			}
+		}();
+		if (func != nullptr)
+		{
+			return make_expr_function_call_from_body(src_tokens, &func->body, std::move(args), *this);
+		}
+	}
+
+	auto const funcs = bz::array{
+		this->get_builtin_function(ast::function_body::builtin_integer_range_from_i8),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_from_i16),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_from_i32),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_from_i64),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_from_u8),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_from_u16),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_from_u32),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_from_u64),
+	};
+
+	auto possible_funcs = funcs.transform([&](auto const decl) {
+		return possible_func_t{
+			resolve::get_function_call_match_level(decl, decl->body, args, *this, src_tokens),
+			decl, &decl->body
+		};
+	}).collect<ast::arena_vector>();
+
+	auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, args, *this);
+	if (best_body == nullptr)
+	{
+		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(lex::token::dot_dot, std::move(args[0]), ast::expression()));
+	}
+	else
+	{
+		return make_expr_function_call_from_body(src_tokens, best_body, std::move(args), *this);
+	}
+}
+
+ast::expression parse_context::make_integer_range_to_expression(lex::src_tokens const &src_tokens, ast::expression end)
+{
+	if (end.is_error())
+	{
+		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(lex::token::dot_dot, ast::expression(), std::move(end)));
+	}
+	else if (this->in_unresolved_context || end.is_unresolved())
+	{
+		return ast::make_unresolved_expression(src_tokens, ast::make_unresolved_expr_unresolved_integer_range_to(std::move(end)));
+	}
+
+	auto args = ast::arena_vector<ast::expression>();
+	args.push_back(std::move(end));
+
+	auto const type = ast::remove_const_or_consteval(args[0].get_expr_type());
+
+	if (type.is<ast::ts_base_type>() && ast::is_integer_kind(type.get<ast::ts_base_type>().info->kind))
+	{
+		auto const func = [&]() -> ast::decl_function * {
+			switch (type.get<ast::ts_base_type>().info->kind) {
+			case ast::type_info::int8_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_i8);
+			case ast::type_info::int16_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_i16);
+			case ast::type_info::int32_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_i32);
+			case ast::type_info::int64_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_i64);
+			case ast::type_info::uint8_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_u8);
+			case ast::type_info::uint16_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_u16);
+			case ast::type_info::uint32_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_u32);
+			case ast::type_info::uint64_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_u64);
+			default:
+				return nullptr;
+			}
+		}();
+		if (func != nullptr)
+		{
+			return make_expr_function_call_from_body(src_tokens, &func->body, std::move(args), *this);
+		}
+	}
+
+	auto const funcs = bz::array{
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_i8),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_i16),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_i32),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_i64),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_u8),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_u16),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_u32),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_u64),
+	};
+
+	auto possible_funcs = funcs.transform([&](auto const decl) {
+		return possible_func_t{
+			resolve::get_function_call_match_level(decl, decl->body, args, *this, src_tokens),
+			decl, &decl->body
+		};
+	}).collect<ast::arena_vector>();
+
+	auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, args, *this);
+	if (best_body == nullptr)
+	{
+		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(lex::token::dot_dot, ast::expression(), std::move(args[0])));
+	}
+	else
+	{
+		return make_expr_function_call_from_body(src_tokens, best_body, std::move(args), *this);
+	}
+}
+
+ast::expression parse_context::make_integer_range_to_inclusive_expression(lex::src_tokens const &src_tokens, ast::expression end)
+{
+	if (end.is_error())
+	{
+		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(lex::token::dot_dot_eq, ast::expression(), std::move(end)));
+	}
+	else if (this->in_unresolved_context || end.is_unresolved())
+	{
+		return ast::make_unresolved_expression(src_tokens, ast::make_unresolved_expr_unresolved_integer_range_to_inclusive(std::move(end)));
+	}
+
+	auto args = ast::arena_vector<ast::expression>();
+	args.push_back(std::move(end));
+
+	auto const type = ast::remove_const_or_consteval(args[0].get_expr_type());
+
+	if (type.is<ast::ts_base_type>() && ast::is_integer_kind(type.get<ast::ts_base_type>().info->kind))
+	{
+		auto const func = [&]() -> ast::decl_function * {
+			switch (type.get<ast::ts_base_type>().info->kind) {
+			case ast::type_info::int8_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_i8);
+			case ast::type_info::int16_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_i16);
+			case ast::type_info::int32_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_i32);
+			case ast::type_info::int64_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_i64);
+			case ast::type_info::uint8_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_u8);
+			case ast::type_info::uint16_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_u16);
+			case ast::type_info::uint32_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_u32);
+			case ast::type_info::uint64_:
+				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_u64);
+			default:
+				return nullptr;
+			}
+		}();
+		if (func != nullptr)
+		{
+			return make_expr_function_call_from_body(src_tokens, &func->body, std::move(args), *this);
+		}
+	}
+
+	auto const funcs = bz::array{
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_i8),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_i16),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_i32),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_i64),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_u8),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_u16),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_u32),
+		this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_u64),
+	};
+
+	auto possible_funcs = funcs.transform([&](auto const decl) {
+		return possible_func_t{
+			resolve::get_function_call_match_level(decl, decl->body, args, *this, src_tokens),
+			decl, &decl->body
+		};
+	}).collect<ast::arena_vector>();
+
+	auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, args, *this);
+	if (best_body == nullptr)
+	{
+		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(lex::token::dot_dot_eq, ast::expression(), std::move(args[0])));
+	}
+	else
+	{
+		return make_expr_function_call_from_body(src_tokens, best_body, std::move(args), *this);
+	}
+}
+
+ast::expression parse_context::make_range_unbounded_expression(lex::src_tokens const &src_tokens)
+{
+	auto const func = this->get_builtin_function(ast::function_body::builtin_range_unbounded);
+	return make_expr_function_call_from_body(src_tokens, &func->body, {}, *this);
+}
+
+static bool is_builtin_type(ast::typespec_view ts)
+{
+	ts = ast::remove_const_or_consteval(ts);
+	return ts.is<ast::ts_pointer>()
+		|| ts.is<ast::ts_function>()
+		|| ts.is<ast::ts_tuple>()
+		|| ts.is<ast::ts_array>()
+		|| ts.is<ast::ts_array_slice>()
+		|| ts.is<ast::ts_optional>()
+		|| (ts.is<ast::ts_base_type>() && ts.get<ast::ts_base_type>().info->kind != ast::type_info::aggregate);
 }
 
 static void expand_variadic_params(ast::arena_vector<ast::decl_variable> &params, size_t params_count)
@@ -3122,6 +3522,19 @@ static ast::expression make_expr_function_call_from_body(
 		bz_assert(body->return_type == type);
 		context.add_self_destruction(args[1]);
 		return context.make_bit_cast_expression(src_tokens, std::move(args[1]), std::move(type));
+	}
+	else if (
+		body->is_intrinsic()
+		&& body->intrinsic_kind == ast::function_body::builtin_binary_subscript
+		&& body->body.is_null()
+		&& ast::remove_const_or_consteval(body->params[1].get_type()).is<ast::ts_base_type>()
+		&& ast::is_integer_kind(ast::remove_const_or_consteval(body->params[1].get_type()).get<ast::ts_base_type>().info->kind)
+	)
+	{
+		bz_assert(args.size() == 2);
+		bz_assert(args[1].get_expr_type_and_kind().second == ast::expression_type_kind::rvalue);
+		context.add_self_destruction(args[1]);
+		return make_builtin_subscript_operator(src_tokens, std::move(args[0]), std::move(args[1]), context);
 	}
 	else if (body->is_default_default_constructor() || (body->is_default_constructor() && body->is_defaulted()))
 	{
@@ -4585,13 +4998,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 			}
 
 			auto const [type, kind] = called.get_expr_type_and_kind();
-			auto const constless_type = ast::remove_const_or_consteval(type);
-			if (
-				constless_type.is<ast::ts_array>()
-				|| constless_type.is<ast::ts_array_slice>()
-				|| constless_type.is<ast::ts_tuple>()
-				|| called.is_tuple()
-			)
+			if (called.is_tuple()) // TODO: can this be avoided somehow?
 			{
 				called = make_builtin_subscript_operator(src_tokens, std::move(called), std::move(arg), *this);
 			}

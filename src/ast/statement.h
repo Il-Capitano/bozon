@@ -474,7 +474,7 @@ struct function_body
 		move_assign_op              = bit_at<26>,
 	};
 
-	enum : uint8_t
+	enum : uint16_t
 	{
 		_builtin_first,
 
@@ -500,6 +500,87 @@ struct function_body
 		builtin_array_end_ptr,
 		builtin_array_end_const_ptr,
 		builtin_array_size,
+
+		builtin_integer_range_i8,
+		builtin_integer_range_i16,
+		builtin_integer_range_i32,
+		builtin_integer_range_i64,
+		builtin_integer_range_u8,
+		builtin_integer_range_u16,
+		builtin_integer_range_u32,
+		builtin_integer_range_u64,
+
+		builtin_integer_range_inclusive_i8,
+		builtin_integer_range_inclusive_i16,
+		builtin_integer_range_inclusive_i32,
+		builtin_integer_range_inclusive_i64,
+		builtin_integer_range_inclusive_u8,
+		builtin_integer_range_inclusive_u16,
+		builtin_integer_range_inclusive_u32,
+		builtin_integer_range_inclusive_u64,
+
+		builtin_integer_range_from_i8,
+		builtin_integer_range_from_i16,
+		builtin_integer_range_from_i32,
+		builtin_integer_range_from_i64,
+		builtin_integer_range_from_u8,
+		builtin_integer_range_from_u16,
+		builtin_integer_range_from_u32,
+		builtin_integer_range_from_u64,
+
+		builtin_integer_range_to_i8,
+		builtin_integer_range_to_i16,
+		builtin_integer_range_to_i32,
+		builtin_integer_range_to_i64,
+		builtin_integer_range_to_u8,
+		builtin_integer_range_to_u16,
+		builtin_integer_range_to_u32,
+		builtin_integer_range_to_u64,
+
+		builtin_integer_range_to_inclusive_i8,
+		builtin_integer_range_to_inclusive_i16,
+		builtin_integer_range_to_inclusive_i32,
+		builtin_integer_range_to_inclusive_i64,
+		builtin_integer_range_to_inclusive_u8,
+		builtin_integer_range_to_inclusive_u16,
+		builtin_integer_range_to_inclusive_u32,
+		builtin_integer_range_to_inclusive_u64,
+
+		builtin_range_unbounded,
+
+		builtin_integer_range_begin_value,
+		builtin_integer_range_end_value,
+		builtin_integer_range_inclusive_begin_value,
+		builtin_integer_range_inclusive_end_value,
+		builtin_integer_range_from_begin_value,
+		builtin_integer_range_to_end_value,
+		builtin_integer_range_to_inclusive_end_value,
+
+		builtin_integer_range_begin_iterator,
+		builtin_integer_range_end_iterator,
+		builtin_integer_range_iterator_dereference,
+		builtin_integer_range_iterator_equals,
+		builtin_integer_range_iterator_not_equals,
+		builtin_integer_range_iterator_plus_plus,
+		builtin_integer_range_iterator_minus_minus,
+
+		builtin_integer_range_inclusive_begin_iterator,
+		builtin_integer_range_inclusive_end_iterator,
+		builtin_integer_range_inclusive_iterator_dereference,
+		builtin_integer_range_inclusive_iterator_left_equals,
+		builtin_integer_range_inclusive_iterator_right_equals,
+		builtin_integer_range_inclusive_iterator_left_not_equals,
+		builtin_integer_range_inclusive_iterator_right_not_equals,
+		builtin_integer_range_inclusive_iterator_plus_plus,
+
+		builtin_integer_range_from_begin_iterator,
+		builtin_integer_range_from_end_iterator,
+		builtin_integer_range_from_iterator_dereference,
+		builtin_integer_range_from_iterator_left_equals,
+		builtin_integer_range_from_iterator_right_equals,
+		builtin_integer_range_from_iterator_left_not_equals,
+		builtin_integer_range_from_iterator_right_not_equals,
+		builtin_integer_range_from_iterator_plus_plus,
 
 		builtin_optional_get_value_ref,
 		builtin_optional_get_const_value_ref,
@@ -706,6 +787,7 @@ struct function_body
 		builtin_binary_bit_left_shift_eq,
 		builtin_binary_bit_right_shift,
 		builtin_binary_bit_right_shift_eq,
+		builtin_binary_subscript,
 
 		_builtin_binary_operator_last,
 	};
@@ -720,7 +802,7 @@ struct function_body
 	uint32_t                    flags = 0;
 	resolve_state               state = resolve_state::none;
 	abi::calling_convention     cc = abi::calling_convention::c;
-	uint8_t                     intrinsic_kind = 0;
+	uint16_t                    intrinsic_kind = 0;
 	int64_t                     overload_priority = 0;
 
 	type_info *constructor_or_destructor_of;
@@ -1606,7 +1688,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 194);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 265);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1631,6 +1713,87 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_array_end_ptr,         "__builtin_array_end_ptr"         },
 		{ function_body::builtin_array_end_const_ptr,   "__builtin_array_end_const_ptr"   },
 		{ function_body::builtin_array_size,            "__builtin_array_size"            },
+
+		{ function_body::builtin_integer_range_i8,  "__builtin_integer_range_i8"  },
+		{ function_body::builtin_integer_range_i16, "__builtin_integer_range_i16" },
+		{ function_body::builtin_integer_range_i32, "__builtin_integer_range_i32" },
+		{ function_body::builtin_integer_range_i64, "__builtin_integer_range_i64" },
+		{ function_body::builtin_integer_range_u8,  "__builtin_integer_range_u8"  },
+		{ function_body::builtin_integer_range_u16, "__builtin_integer_range_u16" },
+		{ function_body::builtin_integer_range_u32, "__builtin_integer_range_u32" },
+		{ function_body::builtin_integer_range_u64, "__builtin_integer_range_u64" },
+
+		{ function_body::builtin_integer_range_inclusive_i8,  "__builtin_integer_range_inclusive_i8"  },
+		{ function_body::builtin_integer_range_inclusive_i16, "__builtin_integer_range_inclusive_i16" },
+		{ function_body::builtin_integer_range_inclusive_i32, "__builtin_integer_range_inclusive_i32" },
+		{ function_body::builtin_integer_range_inclusive_i64, "__builtin_integer_range_inclusive_i64" },
+		{ function_body::builtin_integer_range_inclusive_u8,  "__builtin_integer_range_inclusive_u8"  },
+		{ function_body::builtin_integer_range_inclusive_u16, "__builtin_integer_range_inclusive_u16" },
+		{ function_body::builtin_integer_range_inclusive_u32, "__builtin_integer_range_inclusive_u32" },
+		{ function_body::builtin_integer_range_inclusive_u64, "__builtin_integer_range_inclusive_u64" },
+
+		{ function_body::builtin_integer_range_from_i8,  "__builtin_integer_range_from_i8"  },
+		{ function_body::builtin_integer_range_from_i16, "__builtin_integer_range_from_i16" },
+		{ function_body::builtin_integer_range_from_i32, "__builtin_integer_range_from_i32" },
+		{ function_body::builtin_integer_range_from_i64, "__builtin_integer_range_from_i64" },
+		{ function_body::builtin_integer_range_from_u8,  "__builtin_integer_range_from_u8"  },
+		{ function_body::builtin_integer_range_from_u16, "__builtin_integer_range_from_u16" },
+		{ function_body::builtin_integer_range_from_u32, "__builtin_integer_range_from_u32" },
+		{ function_body::builtin_integer_range_from_u64, "__builtin_integer_range_from_u64" },
+
+		{ function_body::builtin_integer_range_to_i8,  "__builtin_integer_range_to_i8"  },
+		{ function_body::builtin_integer_range_to_i16, "__builtin_integer_range_to_i16" },
+		{ function_body::builtin_integer_range_to_i32, "__builtin_integer_range_to_i32" },
+		{ function_body::builtin_integer_range_to_i64, "__builtin_integer_range_to_i64" },
+		{ function_body::builtin_integer_range_to_u8,  "__builtin_integer_range_to_u8"  },
+		{ function_body::builtin_integer_range_to_u16, "__builtin_integer_range_to_u16" },
+		{ function_body::builtin_integer_range_to_u32, "__builtin_integer_range_to_u32" },
+		{ function_body::builtin_integer_range_to_u64, "__builtin_integer_range_to_u64" },
+
+		{ function_body::builtin_integer_range_to_inclusive_i8,  "__builtin_integer_range_to_inclusive_i8"  },
+		{ function_body::builtin_integer_range_to_inclusive_i16, "__builtin_integer_range_to_inclusive_i16" },
+		{ function_body::builtin_integer_range_to_inclusive_i32, "__builtin_integer_range_to_inclusive_i32" },
+		{ function_body::builtin_integer_range_to_inclusive_i64, "__builtin_integer_range_to_inclusive_i64" },
+		{ function_body::builtin_integer_range_to_inclusive_u8,  "__builtin_integer_range_to_inclusive_u8"  },
+		{ function_body::builtin_integer_range_to_inclusive_u16, "__builtin_integer_range_to_inclusive_u16" },
+		{ function_body::builtin_integer_range_to_inclusive_u32, "__builtin_integer_range_to_inclusive_u32" },
+		{ function_body::builtin_integer_range_to_inclusive_u64, "__builtin_integer_range_to_inclusive_u64" },
+
+		{ function_body::builtin_range_unbounded, "__builtin_range_unbounded" },
+
+		{ function_body::builtin_integer_range_begin_value,            "__builtin_integer_range_begin_value"            },
+		{ function_body::builtin_integer_range_end_value,              "__builtin_integer_range_end_value"              },
+		{ function_body::builtin_integer_range_inclusive_begin_value,  "__builtin_integer_range_inclusive_begin_value"  },
+		{ function_body::builtin_integer_range_inclusive_end_value,    "__builtin_integer_range_inclusive_end_value"    },
+		{ function_body::builtin_integer_range_from_begin_value,       "__builtin_integer_range_from_begin_value"       },
+		{ function_body::builtin_integer_range_to_end_value,           "__builtin_integer_range_to_end_value"           },
+		{ function_body::builtin_integer_range_to_inclusive_end_value, "__builtin_integer_range_to_inclusive_end_value" },
+
+		{ function_body::builtin_integer_range_begin_iterator,       "__builtin_integer_range_begin_iterator"       },
+		{ function_body::builtin_integer_range_end_iterator,         "__builtin_integer_range_end_iterator"         },
+		{ function_body::builtin_integer_range_iterator_dereference, "__builtin_integer_range_iterator_dereference" },
+		{ function_body::builtin_integer_range_iterator_equals,      "__builtin_integer_range_iterator_equals"      },
+		{ function_body::builtin_integer_range_iterator_not_equals,  "__builtin_integer_range_iterator_not_equals"  },
+		{ function_body::builtin_integer_range_iterator_plus_plus,   "__builtin_integer_range_iterator_plus_plus"   },
+		{ function_body::builtin_integer_range_iterator_minus_minus, "__builtin_integer_range_iterator_minus_minus" },
+
+		{ function_body::builtin_integer_range_inclusive_begin_iterator,            "__builtin_integer_range_inclusive_begin_iterator"            },
+		{ function_body::builtin_integer_range_inclusive_end_iterator,              "__builtin_integer_range_inclusive_end_iterator"              },
+		{ function_body::builtin_integer_range_inclusive_iterator_dereference,      "__builtin_integer_range_inclusive_iterator_dereference"      },
+		{ function_body::builtin_integer_range_inclusive_iterator_left_equals,      "__builtin_integer_range_inclusive_iterator_left_equals"      },
+		{ function_body::builtin_integer_range_inclusive_iterator_right_equals,     "__builtin_integer_range_inclusive_iterator_right_equals"     },
+		{ function_body::builtin_integer_range_inclusive_iterator_left_not_equals,  "__builtin_integer_range_inclusive_iterator_left_not_equals"  },
+		{ function_body::builtin_integer_range_inclusive_iterator_right_not_equals, "__builtin_integer_range_inclusive_iterator_right_not_equals" },
+		{ function_body::builtin_integer_range_inclusive_iterator_plus_plus,        "__builtin_integer_range_inclusive_iterator_plus_plus"        },
+
+		{ function_body::builtin_integer_range_from_begin_iterator,            "__builtin_integer_range_from_begin_iterator"            },
+		{ function_body::builtin_integer_range_from_end_iterator,              "__builtin_integer_range_from_end_iterator"              },
+		{ function_body::builtin_integer_range_from_iterator_dereference,      "__builtin_integer_range_from_iterator_dereference"      },
+		{ function_body::builtin_integer_range_from_iterator_left_equals,      "__builtin_integer_range_from_iterator_left_equals"      },
+		{ function_body::builtin_integer_range_from_iterator_right_equals,     "__builtin_integer_range_from_iterator_right_equals"     },
+		{ function_body::builtin_integer_range_from_iterator_left_not_equals,  "__builtin_integer_range_from_iterator_left_not_equals"  },
+		{ function_body::builtin_integer_range_from_iterator_right_not_equals, "__builtin_integer_range_from_iterator_right_not_equals" },
+		{ function_body::builtin_integer_range_from_iterator_plus_plus,        "__builtin_integer_range_from_iterator_plus_plus"        },
 
 		{ function_body::builtin_optional_get_value_ref,       "__builtin_optional_get_value_ref"       },
 		{ function_body::builtin_optional_get_const_value_ref, "__builtin_optional_get_const_value_ref" },
@@ -1863,7 +2026,7 @@ constexpr auto builtin_unary_operator_info = []() {
 }();
 
 constexpr auto builtin_binary_operator_info = []() {
-	static_assert(function_body::_builtin_binary_operator_last - function_body::_builtin_binary_operator_first == 27);
+	static_assert(function_body::_builtin_binary_operator_last - function_body::_builtin_binary_operator_first == 28);
 	constexpr size_t size = function_body::_builtin_binary_operator_last - function_body::_builtin_binary_operator_first;
 	return bz::array<builtin_operator_info_t, size>{{
 		{ function_body::builtin_binary_assign,             lex::token::assign             },
@@ -1893,6 +2056,7 @@ constexpr auto builtin_binary_operator_info = []() {
 		{ function_body::builtin_binary_bit_left_shift_eq,  lex::token::bit_left_shift_eq  },
 		{ function_body::builtin_binary_bit_right_shift,    lex::token::bit_right_shift    },
 		{ function_body::builtin_binary_bit_right_shift_eq, lex::token::bit_right_shift_eq },
+		{ function_body::builtin_binary_subscript,          lex::token::square_open        },
 	}};
 }();
 
