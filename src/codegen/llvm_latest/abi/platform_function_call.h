@@ -6,6 +6,7 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Type.h>
+#include <llvm/IR/Attributes.h>
 
 namespace codegen::llvm_latest::abi
 {

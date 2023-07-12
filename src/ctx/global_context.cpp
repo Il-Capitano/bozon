@@ -1,7 +1,6 @@
 #include "global_context.h"
 #include "ast/statement.h"
 #include "cl_options.h"
-#include "codegen/llvm_latest/emit_bitcode.h"
 #include "colors.h"
 #include "comptime/codegen_context.h"
 #include "comptime/codegen.h"
