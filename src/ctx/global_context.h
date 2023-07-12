@@ -16,7 +16,7 @@
 #include "resolve/attribute_resolver.h"
 #include "comptime/codegen_context_forward.h"
 #include "codegen/target.h"
-#include "codegen/llvm_latest/backend_context.h"
+#include "codegen/backend_context.h"
 
 namespace ctx
 {
@@ -62,7 +62,7 @@ struct global_context
 
 	codegen::target_triple target_triple;
 	std::unique_ptr<comptime::codegen_context> comptime_codegen_context;
-	std::unique_ptr<codegen::llvm_latest::backend_context> llvm_backend_context;
+	std::unique_ptr<codegen::backend_context> backend_context;
 
 	global_context(void);
 	global_context(global_context const &) = delete;
@@ -173,9 +173,7 @@ struct global_context
 	[[nodiscard]] bool parse_global_symbols(void);
 	[[nodiscard]] bool parse(void);
 	[[nodiscard]] bool initialize_backend(void);
-	[[nodiscard]] bool emit_bitcode(void);
-	[[nodiscard]] bool optimize(void);
-	[[nodiscard]] bool emit_file(void);
+	[[nodiscard]] bool generate_and_output_code(void);
 };
 
 } // namespace ctx

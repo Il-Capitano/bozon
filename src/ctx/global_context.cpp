@@ -5,6 +5,8 @@
 #include "comptime/codegen_context.h"
 #include "comptime/codegen.h"
 
+#include "codegen/llvm_latest/backend_context.h"
+
 namespace ctx
 {
 
@@ -1106,7 +1108,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 			return codegen::llvm_latest::output_code_kind::null;
 		}
 	}();
-	this->llvm_backend_context = std::make_unique<codegen::llvm_latest::backend_context>(
+	this->backend_context = std::make_unique<codegen::llvm_latest::backend_context>(
 		*this,
 		this->target_triple.triple,
 		output_code,
@@ -1121,19 +1123,47 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	return true;
 }
 
-[[nodiscard]] bool global_context::emit_bitcode(void)
+[[nodiscard]] bool global_context::generate_and_output_code(void)
 {
-	return this->llvm_backend_context->emit_bitcode(*this);
-}
+	if (emit_file_type == emit_type::null)
+	{
+		return this->backend_context->generate_and_output_code(*this, {});
+	}
+	else if (output_file_name != "")
+	{
+		return this->backend_context->generate_and_output_code(*this, output_file_name);
+	}
+	else
+	{
+		auto const file_extension = [&]() -> bz::u8string_view {
+			switch (emit_file_type)
+			{
+			case emit_type::obj:
+				return ".o";
+			case emit_type::asm_:
+				return ".s";
+			case emit_type::llvm_bc:
+				return ".bc";
+			case emit_type::llvm_ir:
+				return ".ll";
+			case emit_type::null:
+				bz_unreachable;
+			}
+		}();
 
-[[nodiscard]] bool global_context::optimize(void)
-{
-	return this->llvm_backend_context->optimize();
-}
-
-[[nodiscard]] bool global_context::emit_file(void)
-{
-	return this->llvm_backend_context->emit_file(*this);
+		auto const slash_it = source_file.rfind_any("/\\");
+		auto const dot = source_file.rfind('.');
+		bz_assert(dot != bz::u8iterator{});
+		auto const output_path = bz::format(
+			"{}{}",
+			bz::u8string(
+				slash_it == bz::u8iterator{} ? source_file.begin() : slash_it + 1,
+				dot
+			),
+			file_extension
+		);
+		return this->backend_context->generate_and_output_code(*this, output_path);
+	}
 }
 
 } // namespace ctx

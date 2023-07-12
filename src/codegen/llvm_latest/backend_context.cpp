@@ -311,6 +311,32 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	}
 }
 
+[[nodiscard]] bool backend_context::generate_and_output_code(
+	ctx::global_context &global_ctx,
+	bz::optional<bz::u8string_view> output_path
+)
+{
+	if (!this->emit_bitcode(global_ctx))
+	{
+		return false;
+	}
+
+	if (!this->optimize())
+	{
+		return false;
+	}
+
+	if (output_path.has_value())
+	{
+		if (!this->emit_file(global_ctx, output_path.get()))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 [[nodiscard]] bool backend_context::emit_bitcode(ctx::global_context &global_ctx)
 {
 	bitcode_context context(global_ctx, *this, &this->_module);
@@ -458,7 +484,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	return true;
 }
 
-[[nodiscard]] bool backend_context::emit_file(ctx::global_context &global_ctx)
+[[nodiscard]] bool backend_context::emit_file(ctx::global_context &global_ctx, bz::u8string_view output_path)
 {
 	// only here for debug purposes, the '--emit' option does not control this
 #ifndef NDEBUG
@@ -480,38 +506,26 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	switch (this->_output_code)
 	{
 	case output_code_kind::obj:
-		return this->emit_obj(global_ctx);
+		return this->emit_obj(global_ctx, output_path);
 	case output_code_kind::asm_:
-		return this->emit_asm(global_ctx);
+		return this->emit_asm(global_ctx, output_path);
 	case output_code_kind::llvm_bc:
-		return this->emit_llvm_bc(global_ctx);
+		return this->emit_llvm_bc(global_ctx, output_path);
 	case output_code_kind::llvm_ir:
-		return this->emit_llvm_ir(global_ctx);
+		return this->emit_llvm_ir(global_ctx, output_path);
 	case output_code_kind::null:
 		return true;
 	}
 	bz_unreachable;
 }
 
-[[nodiscard]] bool backend_context::emit_obj(ctx::global_context &global_ctx)
+[[nodiscard]] bool backend_context::emit_obj(ctx::global_context &global_ctx, bz::u8string_view output_path)
 {
-	bz::u8string const &output_file = output_file_name != ""
-		? output_file_name
-		: []() {
-			auto const slash_it = source_file.rfind_any("/\\");
-			auto const dot = source_file.rfind('.');
-			bz_assert(dot != bz::u8iterator{});
-			return bz::format("{}.o", bz::u8string(
-				slash_it == bz::u8iterator{} ? source_file.begin() : slash_it + 1,
-				dot
-			));
-		}();
-
-	if (output_file != "-" && !output_file.ends_with(".o"))
+	if (output_path != "-" && !output_path.ends_with(".o"))
 	{
 		global_ctx.report_warning(
 			ctx::warning_kind::bad_file_extension,
-			bz::format("object output file '{}' doesn't have the file extension '.o'", output_file)
+			bz::format("object output file '{}' doesn't have the file extension '.o'", output_path)
 		);
 	}
 
@@ -519,7 +533,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	// http://llvm.org/doxygen/classllvm_1_1raw__fd__ostream.html#af5462bc0fe5a61eccc662708da280e64
 	std::error_code ec;
 	llvm::raw_fd_ostream dest(
-		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+		llvm::StringRef(output_path.data(), output_path.size()),
 		ec, llvm::sys::fs::OF_None
 	);
 
@@ -527,12 +541,12 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	{
 		global_ctx.report_error(bz::format(
 			"unable to open output file '{}', reason: '{}'",
-			output_file, ec.message().c_str()
+			output_path, ec.message().c_str()
 		));
 		return false;
 	}
 
-	if (output_file == "-")
+	if (output_path == "-")
 	{
 		global_ctx.report_warning(
 			ctx::warning_kind::binary_stdout,
@@ -554,25 +568,13 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	return true;
 }
 
-[[nodiscard]] bool backend_context::emit_asm(ctx::global_context &global_ctx)
+[[nodiscard]] bool backend_context::emit_asm(ctx::global_context &global_ctx, bz::u8string_view output_path)
 {
-	bz::u8string const &output_file = output_file_name != ""
-		? output_file_name
-		: []() {
-			auto const slash_it = source_file.rfind('/');
-			auto const dot = source_file.rfind('.');
-			bz_assert(dot != bz::u8iterator{});
-			return bz::format("{}.s", bz::u8string(
-				slash_it == bz::u8iterator{} ? source_file.begin() : slash_it + 1,
-				dot
-			));
-		}();
-
-	if (output_file != "-" && !output_file.ends_with(".s"))
+	if (output_path != "-" && !output_path.ends_with(".s"))
 	{
 		global_ctx.report_warning(
 			ctx::warning_kind::bad_file_extension,
-			bz::format("assembly output file '{}' doesn't have the file extension '.s'", output_file)
+			bz::format("assembly output file '{}' doesn't have the file extension '.s'", output_path)
 		);
 	}
 
@@ -580,7 +582,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	// http://llvm.org/doxygen/classllvm_1_1raw__fd__ostream.html#af5462bc0fe5a61eccc662708da280e64
 	std::error_code ec;
 	llvm::raw_fd_ostream dest(
-		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+		llvm::StringRef(output_path.data(), output_path.size()),
 		ec, llvm::sys::fs::OF_None
 	);
 
@@ -588,7 +590,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	{
 		global_ctx.report_error(bz::format(
 			"unable to open output file '{}', reason: '{}'",
-			output_file, ec.message().c_str()
+			output_path, ec.message().c_str()
 		));
 		return false;
 	}
@@ -609,26 +611,14 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	return true;
 }
 
-[[nodiscard]] bool backend_context::emit_llvm_bc(ctx::global_context &global_ctx)
+[[nodiscard]] bool backend_context::emit_llvm_bc(ctx::global_context &global_ctx, bz::u8string_view output_path)
 {
 	auto &module = this->_module;
-	bz::u8string const &output_file = output_file_name != ""
-		? output_file_name
-		: []() {
-			auto const slash_it = source_file.rfind('/');
-			auto const dot = source_file.rfind('.');
-			bz_assert(dot != bz::u8iterator{});
-			return bz::format("{}.bc", bz::u8string(
-				slash_it == bz::u8iterator{} ? source_file.begin() : slash_it + 1,
-				dot
-			));
-		}();
-
-	if (output_file != "-" && !output_file.ends_with(".bc"))
+	if (output_path != "-" && !output_path.ends_with(".bc"))
 	{
 		global_ctx.report_warning(
 			ctx::warning_kind::bad_file_extension,
-			bz::format("LLVM bitcode output file '{}' doesn't have the file extension '.bc'", output_file)
+			bz::format("LLVM bitcode output file '{}' doesn't have the file extension '.bc'", output_path)
 		);
 	}
 
@@ -636,7 +626,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	// http://llvm.org/doxygen/classllvm_1_1raw__fd__ostream.html#af5462bc0fe5a61eccc662708da280e64
 	std::error_code ec;
 	llvm::raw_fd_ostream dest(
-		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+		llvm::StringRef(output_path.data(), output_path.size()),
 		ec, llvm::sys::fs::OF_None
 	);
 
@@ -644,12 +634,12 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	{
 		global_ctx.report_error(bz::format(
 			"unable to open output file '{}', reason: '{}'",
-			output_file, ec.message().c_str()
+			output_path, ec.message().c_str()
 		));
 		return false;
 	}
 
-	if (output_file == "-")
+	if (output_path == "-")
 	{
 		global_ctx.report_warning(
 			ctx::warning_kind::binary_stdout,
@@ -661,26 +651,14 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	return true;
 }
 
-[[nodiscard]] bool backend_context::emit_llvm_ir(ctx::global_context &global_ctx)
+[[nodiscard]] bool backend_context::emit_llvm_ir(ctx::global_context &global_ctx, bz::u8string_view output_path)
 {
 	auto &module = this->_module;
-	bz::u8string const &output_file = output_file_name != ""
-		? output_file_name
-		: []() {
-			auto const slash_it = source_file.rfind('/');
-			auto const dot = source_file.rfind('.');
-			bz_assert(dot != bz::u8iterator{});
-			return bz::format("{}.ll", bz::u8string(
-				slash_it == bz::u8iterator{} ? source_file.begin() : slash_it + 1,
-				dot
-			));
-		}();
-
-	if (output_file != "-" && !output_file.ends_with(".ll"))
+	if (output_path != "-" && !output_path.ends_with(".ll"))
 	{
 		global_ctx.report_warning(
 			ctx::warning_kind::bad_file_extension,
-			bz::format("LLVM IR output file '{}' doesn't have the file extension '.ll'", output_file)
+			bz::format("LLVM IR output file '{}' doesn't have the file extension '.ll'", output_path)
 		);
 	}
 
@@ -688,7 +666,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	// http://llvm.org/doxygen/classllvm_1_1raw__fd__ostream.html#af5462bc0fe5a61eccc662708da280e64
 	std::error_code ec;
 	llvm::raw_fd_ostream dest(
-		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+		llvm::StringRef(output_path.data(), output_path.size()),
 		ec, llvm::sys::fs::OF_None
 	);
 
@@ -696,7 +674,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	{
 		global_ctx.report_error(bz::format(
 			"unable to open output file '{}', reason: '{}'",
-			output_file, ec.message().c_str()
+			output_path, ec.message().c_str()
 		));
 		return false;
 	}

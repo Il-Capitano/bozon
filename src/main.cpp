@@ -1617,13 +1617,17 @@ int main(int argc, char const **argv)
 		}
 		t.end_section();
 
+		// report all errors and warnings now, so we don't have to wait for optimization
+		// and file emission
+		global_ctx.report_and_clear_errors_and_warnings();
+
 		if (compile_until <= compilation_phase::parse)
 		{
 			global_ctx.report_and_clear_errors_and_warnings();
 			return_from_main(0);
 		}
 
-		t.start_section("backend init time");
+		t.start_section("back-end init time");
 		if (!global_ctx.initialize_backend())
 		{
 			global_ctx.report_and_clear_errors_and_warnings();
@@ -1631,31 +1635,11 @@ int main(int argc, char const **argv)
 		}
 		t.end_section();
 
-		t.start_section("bitcode emission time");
-		if (!global_ctx.emit_bitcode())
+		t.start_section("code generation time");
+		if (!global_ctx.generate_and_output_code())
 		{
 			global_ctx.report_and_clear_errors_and_warnings();
 			return_from_main(6);
-		}
-		t.end_section();
-
-		// report all errors and warnings now, so we don't have to wait for optimization
-		// and file emission
-		global_ctx.report_and_clear_errors_and_warnings();
-
-		t.start_section("optimization time");
-		if (!global_ctx.optimize())
-		{
-			global_ctx.report_and_clear_errors_and_warnings();
-			return_from_main(7);
-		}
-		t.end_section();
-
-		t.start_section("file emission time");
-		if (!global_ctx.emit_file())
-		{
-			global_ctx.report_and_clear_errors_and_warnings();
-			return_from_main(8);
 		}
 		t.end_section();
 
@@ -1675,16 +1659,12 @@ int main(int argc, char const **argv)
 			+ t.get_section_duration("global symbol parse time")
 			+ t.get_section_duration("parse time");
 		auto const back_end_time    =
-			t.get_section_duration("backend init time")
-			+ t.get_section_duration("bitcode emission time");
-		auto const llvm_time        =
-			t.get_section_duration("optimization time")
-			+ t.get_section_duration("file emission time");
+			t.get_section_duration("back-end init time")
+			+ t.get_section_duration("code generation time");
 
 		bz::print("successful compilation in {:8.3f}ms\n", in_ms(compilation_time));
 		bz::print("front-end time:           {:8.3f}ms\n", in_ms(front_end_time));
 		bz::print("back-end time:            {:8.3f}ms\n", in_ms(back_end_time));
-		bz::print("LLVM time:                {:8.3f}ms\n", in_ms(llvm_time));
 		for (auto const &[name, begin, end] : t.timing_sections)
 		{
 			bz::print("{:25} {:8.3f}ms\n", bz::format("{}:", name), in_ms(end - begin));

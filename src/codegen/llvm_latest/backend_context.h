@@ -13,6 +13,7 @@
 
 #include "ast/statement.h"
 #include "abi/platform_abi.h"
+#include "codegen/backend_context.h"
 
 namespace codegen::llvm_latest
 {
@@ -26,7 +27,7 @@ enum class output_code_kind
 	null,
 };
 
-struct backend_context
+struct backend_context : virtual ::codegen::backend_context
 {
 	backend_context(ctx::global_context &global_ctx, bz::u8string_view target_triple, output_code_kind output_code, bool &error);
 
@@ -51,13 +52,18 @@ struct backend_context
 		return this->_target_machine->getTargetTriple().str();
 	}
 
+	[[nodiscard]] virtual bool generate_and_output_code(
+		ctx::global_context &global_ctx,
+		bz::optional<bz::u8string_view> output_path
+	) override;
+
 	[[nodiscard]] bool emit_bitcode(ctx::global_context &global_ctx);
 	[[nodiscard]] bool optimize(void);
-	[[nodiscard]] bool emit_file(ctx::global_context &global_ctx);
-	[[nodiscard]] bool emit_obj(ctx::global_context &global_ctx);
-	[[nodiscard]] bool emit_asm(ctx::global_context &global_ctx);
-	[[nodiscard]] bool emit_llvm_bc(ctx::global_context &global_ctx);
-	[[nodiscard]] bool emit_llvm_ir(ctx::global_context &global_ctx);
+	[[nodiscard]] bool emit_file(ctx::global_context &global_ctx, bz::u8string_view output_path);
+	[[nodiscard]] bool emit_obj(ctx::global_context &global_ctx, bz::u8string_view output_path);
+	[[nodiscard]] bool emit_asm(ctx::global_context &global_ctx, bz::u8string_view output_path);
+	[[nodiscard]] bool emit_llvm_bc(ctx::global_context &global_ctx, bz::u8string_view output_path);
+	[[nodiscard]] bool emit_llvm_ir(ctx::global_context &global_ctx, bz::u8string_view output_path);
 };
 
 } // namespace codegen::llvm_latest
