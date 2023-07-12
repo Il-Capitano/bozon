@@ -1,9 +1,9 @@
-#ifndef ABI_PLATFORM_ABI_H
-#define ABI_PLATFORM_ABI_H
+#ifndef CODEGEN_LLVM_LATEST_ABI_PLATFORM_ABI_H
+#define CODEGEN_LLVM_LATEST_ABI_PLATFORM_ABI_H
 
 #include "core.h"
 
-namespace abi
+namespace codegen::llvm_latest::abi
 {
 
 enum class platform_abi
@@ -15,6 +15,6 @@ enum class platform_abi
 	systemv_amd64,
 };
 
-} // namespace abi
+} // namespace codegen::llvm_latest::abi
 
-#endif // ABI_PLATFORM_ABI_H
+#endif // CODEGEN_LLVM_LATEST_ABI_PLATFORM_ABI_H

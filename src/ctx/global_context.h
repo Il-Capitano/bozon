@@ -12,7 +12,6 @@
 #include "ast/scope.h"
 #include "ast/type_prototype.h"
 #include "src_file.h"
-#include "abi/platform_abi.h"
 #include "resolve/attribute_resolver.h"
 #include "comptime/codegen_context_forward.h"
 #include "codegen/target.h"

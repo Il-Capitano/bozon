@@ -7868,14 +7868,14 @@ static llvm::Function *create_function_from_symbol(
 
 	switch (func_body.cc)
 	{
-	static_assert(static_cast<size_t>(abi::calling_convention::_last) == 3);
-	case abi::calling_convention::c:
+	static_assert(static_cast<size_t>(::abi::calling_convention::_last) == 3);
+	case ::abi::calling_convention::c:
 		fn->setCallingConv(llvm::CallingConv::C);
 		break;
-	case abi::calling_convention::fast:
+	case ::abi::calling_convention::fast:
 		fn->setCallingConv(llvm::CallingConv::Fast);
 		break;
-	case abi::calling_convention::std:
+	case ::abi::calling_convention::std:
 		fn->setCallingConv(llvm::CallingConv::X86_StdCall);
 		break;
 	default:

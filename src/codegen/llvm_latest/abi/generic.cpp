@@ -1,6 +1,6 @@
 #include "platform_function_call.h"
 
-namespace abi
+namespace codegen::llvm_latest::abi
 {
 
 static constexpr bz::array pass_by_reference_attributes_generic = {
@@ -64,4 +64,4 @@ std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::gener
 	bz_unreachable;
 }
 
-} // namespace abi
+} // namespace codegen::llvm_latest::abi
