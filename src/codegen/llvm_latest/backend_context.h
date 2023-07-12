@@ -24,7 +24,6 @@ enum class output_code_kind
 	asm_,
 	llvm_bc,
 	llvm_ir,
-	null,
 };
 
 struct backend_context : virtual ::codegen::backend_context

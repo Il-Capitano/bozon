@@ -112,6 +112,7 @@ inline bool no_main = false;
 inline bool debug_ir_output = false;
 inline bool debug_comptime_print_functions = false;
 inline bool debug_comptime_print_instructions = false;
+inline bool debug_no_emit_file = false;
 #endif // !NDEBUG
 inline bool do_verbose = false;
 inline bool enable_comptime_print = false;

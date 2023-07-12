@@ -117,6 +117,7 @@ inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def>
 	ctcli::create_undocumented_option("--debug-ir-output", "Emit an LLVM IR file alongside the regular output"),
 	ctcli::create_undocumented_option("--debug-comptime-print-functions", ""),
 	ctcli::create_undocumented_option("--debug-comptime-print-instructions", ""),
+	ctcli::create_undocumented_option("--debug-no-emit-file", ""),
 #endif // !NDEBUG
 #ifdef BOZON_PROFILE_COMPTIME
 	ctcli::create_undocumented_option("--debug-comptime-print-instruction-counts", ""),
@@ -145,9 +146,10 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--x86-
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--profile")>                  = &do_profile;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-main")>                  = &no_main;
 #ifndef NDEBUG
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-ir-output")>          = &debug_ir_output;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-ir-output")>                   = &debug_ir_output;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-functions")>    = &debug_comptime_print_functions;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-instructions")> = &debug_comptime_print_instructions;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-no-emit-file")>                = &debug_no_emit_file;
 #endif // !NDEBUG
 #ifdef BOZON_PROFILE_COMPTIME
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-instruction-counts")> = &debug_comptime_print_instruction_counts;

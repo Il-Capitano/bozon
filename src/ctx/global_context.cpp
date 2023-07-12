@@ -5,8 +5,6 @@
 #include "comptime/codegen_context.h"
 #include "comptime/codegen.h"
 
-#include "codegen/llvm_latest/backend_context.h"
-
 namespace ctx
 {
 
@@ -1092,43 +1090,27 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 [[nodiscard]] bool global_context::initialize_backend(void)
 {
-	bool error = false;
-	auto const output_code = [&]() {
-		switch (emit_file_type)
-		{
-		case emit_type::obj:
-			return codegen::llvm_latest::output_code_kind::obj;
-		case emit_type::asm_:
-			return codegen::llvm_latest::output_code_kind::asm_;
-		case emit_type::llvm_bc:
-			return codegen::llvm_latest::output_code_kind::llvm_bc;
-		case emit_type::llvm_ir:
-			return codegen::llvm_latest::output_code_kind::llvm_ir;
-		case emit_type::null:
-			return codegen::llvm_latest::output_code_kind::null;
-		}
-	}();
-	this->backend_context = std::make_unique<codegen::llvm_latest::backend_context>(
-		*this,
-		this->target_triple.triple,
-		output_code,
-		error
-	);
-
-	if (error)
+	if (emit_file_type == emit_type::null)
 	{
-		return false;
+		return true;
 	}
 
-	return true;
+	this->backend_context = codegen::create_backend_context(*this);
+	return this->backend_context != nullptr;
 }
 
 [[nodiscard]] bool global_context::generate_and_output_code(void)
 {
 	if (emit_file_type == emit_type::null)
 	{
+		return true;
+	}
+#ifndef NDEBUG
+	else if (debug_no_emit_file)
+	{
 		return this->backend_context->generate_and_output_code(*this, {});
 	}
+#endif // !NDEBUG
 	else if (output_file_name != "")
 	{
 		return this->backend_context->generate_and_output_code(*this, output_file_name);

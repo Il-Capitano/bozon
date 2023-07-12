@@ -326,6 +326,23 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 		return false;
 	}
 
+	// only here for debug purposes, the '--emit' option does not control this
+#ifndef NDEBUG
+	if (debug_ir_output)
+	{
+		std::error_code ec;
+		llvm::raw_fd_ostream file("debug_output.ll", ec, llvm::sys::fs::OF_Text);
+		if (!ec)
+		{
+			this->_module.print(file, nullptr);
+		}
+		else
+		{
+			bz::print(stderr, "{}unable to write output.ll{}\n", colors::bright_red, colors::clear);
+		}
+	}
+#endif // !NDEBUG
+
 	if (output_path.has_value())
 	{
 		if (!this->emit_file(global_ctx, output_path.get()))
@@ -486,23 +503,6 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 
 [[nodiscard]] bool backend_context::emit_file(ctx::global_context &global_ctx, bz::u8string_view output_path)
 {
-	// only here for debug purposes, the '--emit' option does not control this
-#ifndef NDEBUG
-	if (debug_ir_output)
-	{
-		std::error_code ec;
-		llvm::raw_fd_ostream file("debug_output.ll", ec, llvm::sys::fs::OF_Text);
-		if (!ec)
-		{
-			this->_module.print(file, nullptr);
-		}
-		else
-		{
-			bz::print(stderr, "{}unable to write output.ll{}\n", colors::bright_red, colors::clear);
-		}
-	}
-#endif // !NDEBUG
-
 	switch (this->_output_code)
 	{
 	case output_code_kind::obj:
@@ -513,8 +513,6 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 		return this->emit_llvm_bc(global_ctx, output_path);
 	case output_code_kind::llvm_ir:
 		return this->emit_llvm_ir(global_ctx, output_path);
-	case output_code_kind::null:
-		return true;
 	}
 	bz_unreachable;
 }
