@@ -1,0 +1,12 @@
+// error: begin index 11 is out-of-bounds in range subscript for an array of size 10
+// note: while evaluating expression at compile time
+// error: end index 21 is out-of-bounds in range subscript for an array of size 10
+// note: while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
+function test()
+{
+	(consteval {
+		let a = [10: int32]();
+		a[11i32..21i32];
+	});
+}

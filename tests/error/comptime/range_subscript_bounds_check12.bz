@@ -1,0 +1,10 @@
+// error: negative end index -1 in range subscript for an array of size 10
+// note: while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
+function test()
+{
+	(consteval {
+		let a = [10: int32]();
+		a[..-1i32];
+	});
+}
