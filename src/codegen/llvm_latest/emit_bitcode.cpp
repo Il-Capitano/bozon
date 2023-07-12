@@ -2212,7 +2212,7 @@ static range_kind range_kind_from_name(bz::u8string_view struct_name)
 static val_ptr emit_builtin_subscript_range(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
