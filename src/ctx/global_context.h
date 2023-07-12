@@ -3,6 +3,7 @@
 
 #include "core.h"
 
+#include "context_forward.h"
 #include "global_data.h"
 #include "lex/token.h"
 #include "error.h"

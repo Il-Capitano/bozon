@@ -3,6 +3,7 @@
 
 #include "core.h"
 
+#include "ctx/context_forward.h"
 #include "ast/typespec.h"
 #include "ast/expression.h"
 #include "ast/statement.h"
@@ -19,13 +20,6 @@
 #include <llvm/IR/PassManager.h>
 #include <unordered_map>
 #include <optional>
-
-namespace ctx
-{
-
-struct global_context;
-
-}
 
 namespace codegen::llvm_latest
 {
