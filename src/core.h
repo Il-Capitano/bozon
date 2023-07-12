@@ -89,6 +89,11 @@ constexpr void constexpr_bubble_sort(Array &arr, Cmp cmp, Swap swap)
 	}
 }
 
+constexpr size_t hash_combine(size_t a, size_t b)
+{
+	return a ^ (b + 0x9e3779b9 + (a << 6) + (a >> 2));
+}
+
 template<
 	typename Stream,
 	typename Context,

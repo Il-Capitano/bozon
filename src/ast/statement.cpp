@@ -181,41 +181,9 @@ std::pair<function_body *, bz::u8string> function_body::add_specialized_body(
 		return { nullptr, bz::u8string() };
 	}
 
-	auto const is_equal_params = [](auto const &lhs, auto const &rhs) {
-		if (lhs.size() != rhs.size())
-		{
-			return false;
-		}
-		for (auto const &[lhs_param, rhs_param] : bz::zip(lhs, rhs))
-		{
-			if (lhs_param.get_type() != rhs_param.get_type())
-			{
-				return false;
-			}
-			else if (is_generic_parameter(lhs_param))
-			{
-				bz_assert(lhs_param.init_expr.is_constant());
-				bz_assert(rhs_param.init_expr.is_constant());
-				auto const &lhs_val = lhs_param.init_expr.get_constant_value();
-				auto const &rhs_val = rhs_param.init_expr.get_constant_value();
-				if (lhs_val != rhs_val)
-				{
-					return false;
-				}
-			}
-		}
-		return true;
-	};
-	auto const it = std::find_if(
-		this->generic_specializations.begin(), this->generic_specializations.end(),
-		[&](auto const &specialization) {
-			return is_equal_params(specialization->params, params);
-		}
-	);
-
-	if (it != this->generic_specializations.end())
+	if (auto const it = this->generic_specializations_map.find(params); it != this->generic_specializations_map.end())
 	{
-		return { it->get(), bz::u8string() };
+		return { it->second, bz::u8string() };
 	}
 
 	this->generic_specializations.emplace_back(make_ast_unique<function_body>(*this, generic_copy_t{}));
@@ -223,6 +191,8 @@ std::pair<function_body *, bz::u8string> function_body::add_specialized_body(
 	func_body->params = std::move(params);
 	func_body->generic_parent = this;
 	func_body->generic_required_from.append(std::move(required_from));
+
+	this->generic_specializations_map.insert({ func_body->params, func_body });
 	return { func_body, bz::u8string() };
 }
 

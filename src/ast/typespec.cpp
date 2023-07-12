@@ -265,6 +265,60 @@ void typespec::move_from(typespec_view pos, typespec &&source)
 }
 
 
+size_t typespec_hash::operator () (typespec_view ts) const noexcept
+{
+	size_t result = 0;
+	for (auto const &modifier : ts.modifiers)
+	{
+		result = hash_combine(result, std::hash<size_t>()(modifier.index()));
+	}
+
+	if (ts.terminator != nullptr)
+	{
+		result = hash_combine(result, std::hash<size_t>()(ts.terminator->index()));
+		static_assert(terminator_typespec_types::size() == 10);
+		if (ts.terminator->is<ts_base_type>())
+		{
+			result = hash_combine(result, std::hash<void const *>()(ts.terminator->get<ts_base_type>().info));
+		}
+		else if (ts.terminator->is<ts_enum>())
+		{
+			result = hash_combine(result, std::hash<void const *>()(ts.terminator->get<ts_enum>().decl));
+		}
+		else if (ts.terminator->is<ts_function>())
+		{
+			auto const &function_type = ts.terminator->get<ts_function>();
+			result = hash_combine(result, (*this)(function_type.return_type));
+			for (auto const &param_type : function_type.param_types)
+			{
+				result = hash_combine(result, (*this)(param_type));
+			}
+		}
+		else if (ts.terminator->is<ts_array>())
+		{
+			auto const &array_type = ts.terminator->get<ts_array>();
+			result = hash_combine(result, std::hash<size_t>()(array_type.size));
+			result = hash_combine(result, (*this)(array_type.elem_type));
+		}
+		else if (ts.terminator->is<ts_array_slice>())
+		{
+			auto const &slice_type = ts.terminator->get<ts_array_slice>();
+			result = hash_combine(result, (*this)(slice_type.elem_type));
+		}
+		else if (ts.terminator->is<ts_tuple>())
+		{
+			auto const &tuple_type = ts.terminator->get<ts_tuple>();
+			for (auto const &elem_type : tuple_type.types)
+			{
+				result = hash_combine(result, (*this)(elem_type));
+			}
+		}
+	}
+
+	return result;
+}
+
+
 template<typename ...Kinds>
 static typespec_view remove_kind_helper(typespec_view ts) noexcept
 {

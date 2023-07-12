@@ -792,6 +792,56 @@ struct function_body
 		_builtin_binary_operator_last,
 	};
 
+	struct param_hash
+	{
+		size_t operator () (bz::array_view<decl_variable const> params) const
+		{
+			auto result = std::hash<size_t>()(params.size());
+			for (auto const &param : params)
+			{
+				result = hash_combine(result, typespec_hash()(param.get_type()));
+			}
+			return result;
+		}
+	};
+
+	struct param_equal_to
+	{
+		bool operator () (bz::array_view<decl_variable const> lhs_params, bz::array_view<decl_variable const> rhs_params) const
+		{
+			if (lhs_params.size() != rhs_params.size())
+			{
+				return false;
+			}
+			for (auto const &[lhs_param, rhs_param] : bz::zip(lhs_params, rhs_params))
+			{
+				if (lhs_param.get_type() != rhs_param.get_type())
+				{
+					return false;
+				}
+				else if (is_generic_parameter(lhs_param))
+				{
+					bz_assert(lhs_param.init_expr.is_constant());
+					bz_assert(rhs_param.init_expr.is_constant());
+					auto const &lhs_val = lhs_param.init_expr.get_constant_value();
+					auto const &rhs_val = rhs_param.init_expr.get_constant_value();
+					if (lhs_val != rhs_val)
+					{
+						return false;
+					}
+				}
+			}
+			return true;
+		}
+	};
+
+	using generic_specializations_map_t = std::unordered_map<
+		bz::array_view<decl_variable const>,
+		function_body *,
+		param_hash,
+		param_equal_to
+	>;
+
 	arena_vector<decl_variable> params;
 	typespec                    return_type;
 	body_t                      body;
@@ -808,6 +858,7 @@ struct function_body
 	type_info *constructor_or_destructor_of;
 
 	arena_vector<ast_unique_ptr<function_body>> generic_specializations;
+	generic_specializations_map_t               generic_specializations_map;
 	arena_vector<generic_required_from_t>       generic_required_from;
 	function_body *generic_parent = nullptr;
 

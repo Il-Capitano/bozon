@@ -305,6 +305,12 @@ struct ts_variadic
 {};
 
 
+struct typespec_hash
+{
+	size_t operator () (typespec_view ts) const noexcept;
+};
+
+
 typespec_view remove_lvalue_reference(typespec_view ts) noexcept;
 typespec_view remove_pointer(typespec_view ts) noexcept;
 typespec_view remove_optional(typespec_view ts) noexcept;
