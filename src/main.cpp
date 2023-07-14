@@ -1551,7 +1551,7 @@ struct foo<...Ts> {} // variadic
 // this happens rarely in debug mode, but is common for release builds
 #define return_from_main(val) std::exit(global_data::return_zero_on_error ? 0 : (val))
 #else
-#define return_from_main(val) return (return_zero_on_error ? 0 : (val))
+#define return_from_main(val) return (global_data::return_zero_on_error ? 0 : (val))
 #endif // NDEBUG
 
 int main(int argc, char const **argv)
