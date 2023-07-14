@@ -8,7 +8,7 @@ namespace codegen
 
 static codegen::llvm_latest::output_code_kind output_code_kind_from_emit_type(emit_type type)
 {
-		switch (emit_file_type)
+		switch (type)
 		{
 		case emit_type::obj:
 			return codegen::llvm_latest::output_code_kind::obj;
