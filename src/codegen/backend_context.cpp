@@ -25,7 +25,7 @@ static codegen::llvm_latest::output_code_kind output_code_kind_from_emit_type(em
 
 std::unique_ptr<backend_context> create_backend_context(ctx::global_context &global_ctx)
 {
-	switch (emit_file_type)
+	switch (global_data::emit_file_type)
 	{
 	case emit_type::obj:
 	case emit_type::asm_:
@@ -36,7 +36,7 @@ std::unique_ptr<backend_context> create_backend_context(ctx::global_context &glo
 		auto result = std::make_unique<codegen::llvm_latest::backend_context>(
 			global_ctx,
 			global_ctx.target_triple.triple,
-			output_code_kind_from_emit_type(emit_file_type),
+			output_code_kind_from_emit_type(global_data::emit_file_type),
 			error
 		);
 

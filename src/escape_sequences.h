@@ -271,7 +271,7 @@ inline void verify_escape_sequence(file_iterator &stream, ctx::char_pos end, ctx
 		auto const escape_char = ctx::char_pos(stream.it.data() - 1);
 
 		bz::vector<ctx::source_highlight> notes = {};
-		if (do_verbose)
+		if (global_data::do_verbose)
 		{
 			notes.push_back(context.make_note(
 				stream.file_id, stream.line,

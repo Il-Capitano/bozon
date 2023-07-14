@@ -227,7 +227,7 @@ static bz::u8string get_highlighted_text(
 			auto const c = *u8it;
 			if (c == '\t')
 			{
-				auto const tab_size = ::tab_size == 0 ? 4 : std::min(::tab_size, size_t(1024));
+				auto const tab_size = global_data::tab_size == 0 ? 4 : std::min(global_data::tab_size, size_t(1024));
 				auto const chars_to_put = tab_size - column % tab_size;
 				if (chars_to_put <= 16)
 				{
@@ -371,7 +371,7 @@ static bz::u8string get_highlighted_text(
 	auto const interesting_line_numbers = [&]() {
 		bz::vector<uint32_t> result = {};
 
-		if (do_verbose)
+		if (global_data::do_verbose)
 		{
 			return result;
 		}
@@ -428,7 +428,7 @@ static bz::u8string get_highlighted_text(
 	auto line_num = first_line_num;
 	while (it != last_line_end)
 	{
-		if (!do_verbose && should_skip_line(line_num))
+		if (!global_data::do_verbose && should_skip_line(line_num))
 		{
 			while (*it != '\n')
 			{
@@ -478,7 +478,7 @@ static bz::u8string get_highlighted_text(
 				}
 				else if (*it == '\t')
 				{
-					auto const tab_size = ::tab_size == 0 ? 4 : ::tab_size;
+					auto const tab_size = global_data::tab_size == 0 ? 4 : global_data::tab_size;
 					auto const chars_to_put = tab_size - column % tab_size;
 					auto const spaces = bz::u8string(chars_to_put, ' ');
 					file_line      += spaces;
@@ -498,7 +498,7 @@ static bz::u8string get_highlighted_text(
 			}
 			if (it != last_line_end && *it == '\t')
 			{
-				auto const tab_size = ::tab_size == 0 ? 4 : ::tab_size;
+				auto const tab_size = global_data::tab_size == 0 ? 4 : global_data::tab_size;
 				auto const chars_to_put = tab_size - column % tab_size;
 				auto const spaces = bz::u8string(chars_to_put, ' ');
 				file_line      += spaces;
@@ -579,7 +579,7 @@ void print_error_or_warning(error const &err, global_context &context)
 		}
 	}();
 
-	if (no_error_highlight)
+	if (global_data::no_error_highlight)
 	{
 		bz::print(
 			stderr,
@@ -643,7 +643,7 @@ void print_error_or_warning(error const &err, global_context &context)
 			}
 		}();
 
-		if (no_error_highlight || (!do_verbose && context.is_library_file(n.file_id)))
+		if (global_data::no_error_highlight || (!global_data::do_verbose && context.is_library_file(n.file_id)))
 		{
 			bz::print(
 				stderr,
@@ -674,7 +674,7 @@ void print_error_or_warning(error const &err, global_context &context)
 			? column
 			: column - bz::u8string_view(report_pos_erase_begin, report_pos_erase_end).length();
 
-		if (no_error_highlight)
+		if (global_data::no_error_highlight)
 		{
 			bz::print(
 				stderr,

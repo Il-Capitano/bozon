@@ -6686,7 +6686,7 @@ void current_function_info_t::finalize_function(void)
 	}
 
 #ifdef BOZON_PROFILE_COMPTIME
-	comptime_emitted_instructions_count += func.instructions.size();
+	global_data::comptime_emitted_instructions_count += func.instructions.size();
 #endif // BOZON_PROFILE_COMPTIME
 
 	// finalize allocas
@@ -6731,7 +6731,7 @@ void current_function_info_t::finalize_function(void)
 		&& (type_contains_pointer(func.return_type) || type_contains_pointer(func.arg_types));
 
 #ifndef NDEBUG
-	if (debug_comptime_print_functions)
+	if (global_data::debug_comptime_print_functions)
 	{
 		bz::log("{}", to_string(func));
 	}

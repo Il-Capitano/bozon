@@ -58,7 +58,7 @@ backend_context::backend_context(ctx::global_context &global_ctx, bz::u8string_v
 	  _platform_abi(abi::platform_abi::generic),
 	  _output_code(output_code)
 {
-	this->_llvm_context.setDiscardValueNames(discard_llvm_value_names);
+	this->_llvm_context.setDiscardValueNames(global_data::discard_llvm_value_names);
 
 	auto const llvm_target_triple = llvm::Triple::normalize(std::string(target_triple.data(), target_triple.size()));
 	llvm::InitializeAllDisassemblers();
@@ -72,7 +72,7 @@ backend_context::backend_context(ctx::global_context &global_ctx, bz::u8string_v
 		// set --x86-asm-syntax for LLVM
 		char const *args[] = {
 			"bozon",
-			x86_asm_syntax == x86_asm_syntax_kind::att ? "--x86-asm-syntax=att" : "--x86-asm-syntax=intel"
+			global_data::x86_asm_syntax == x86_asm_syntax_kind::att ? "--x86-asm-syntax=att" : "--x86-asm-syntax=intel"
 		};
 		if (!llvm::cl::ParseCommandLineOptions(std::size(args), args))
 		{
@@ -86,7 +86,7 @@ backend_context::backend_context(ctx::global_context &global_ctx, bz::u8string_v
 	{
 		constexpr std::string_view default_start = "No available targets are compatible with triple \"";
 		bz::vector<ctx::source_highlight> notes;
-		if (do_verbose)
+		if (global_data::do_verbose)
 		{
 			bz::u8string message = "available targets are: ";
 			bool is_first = true;
@@ -139,13 +139,13 @@ backend_context::backend_context(ctx::global_context &global_ctx, bz::u8string_v
 				return llvm::CodeGenOpt::Aggressive;
 			}
 		}
-		else if (size_opt_level != 0)
+		else if (global_data::size_opt_level != 0)
 		{
 			return llvm::CodeGenOpt::Default;
 		}
 		else
 		{
-			switch (opt_level)
+			switch (global_data::opt_level)
 			{
 			case 0:
 				return llvm::CodeGenOpt::None;
@@ -328,7 +328,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 
 	// only here for debug purposes, the '--emit' option does not control this
 #ifndef NDEBUG
-	if (debug_ir_output)
+	if (global_data::debug_ir_output)
 	{
 		std::error_code ec;
 		llvm::raw_fd_ostream file("debug_output.ll", ec, llvm::sys::fs::OF_Text);
@@ -365,7 +365,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 
 	auto builder = get_pass_builder(this->_target_machine.get());
 
-	if (opt_level != 0 || size_opt_level != 0)
+	if (global_data::opt_level != 0 || global_data::size_opt_level != 0)
 	{
 		builder.registerModuleAnalyses(module_analysis_manager);
 		builder.registerCGSCCAnalyses(cgscc_analysis_manager);
@@ -380,15 +380,15 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	}
 
 	auto const llvm_opt_level = [&]() {
-		if (size_opt_level != 0)
+		if (global_data::size_opt_level != 0)
 		{
-			return size_opt_level == 1 ? llvm::OptimizationLevel::Os : llvm::OptimizationLevel::Oz;
+			return global_data::size_opt_level == 1 ? llvm::OptimizationLevel::Os : llvm::OptimizationLevel::Oz;
 		}
-		else if (opt_level != 0)
+		else if (global_data::opt_level != 0)
 		{
 			return
-				opt_level == 1 ? llvm::OptimizationLevel::O1 :
-				opt_level == 2 ? llvm::OptimizationLevel::O2 :
+				global_data::opt_level == 1 ? llvm::OptimizationLevel::O1 :
+				global_data::opt_level == 2 ? llvm::OptimizationLevel::O2 :
 				llvm::OptimizationLevel::O3;
 		}
 		else
@@ -442,7 +442,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 
 [[nodiscard]] bool backend_context::optimize(void)
 {
-	if (max_opt_iter_count == 0)
+	if (global_data::max_opt_iter_count == 0)
 	{
 		return true;
 	}
@@ -450,13 +450,13 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	auto &module = this->_module;
 
 	auto const llvm_opt_level = [&]() {
-		if (size_opt_level != 0)
+		if (global_data::size_opt_level != 0)
 		{
-			return size_opt_level == 1 ? llvm::OptimizationLevel::Os : llvm::OptimizationLevel::Oz;
+			return global_data::size_opt_level == 1 ? llvm::OptimizationLevel::Os : llvm::OptimizationLevel::Oz;
 		}
 		else
 		{
-			switch (opt_level)
+			switch (global_data::opt_level)
 			{
 			case 0:
 				return llvm::OptimizationLevel::O0;
@@ -470,7 +470,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 		}
 	}();
 
-	for ([[maybe_unused]] auto const _ : bz::iota(0, max_opt_iter_count))
+	for ([[maybe_unused]] auto const _ : bz::iota(0, global_data::max_opt_iter_count))
 	{
 		llvm::LoopAnalysisManager loop_analysis_manager;
 		llvm::FunctionAnalysisManager function_analysis_manager;

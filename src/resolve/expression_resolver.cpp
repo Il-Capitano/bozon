@@ -489,7 +489,7 @@ static void check_switch_type(
 	}
 
 	bz::vector<ctx::source_highlight> notes = {};
-	if (do_verbose)
+	if (global_data::do_verbose)
 	{
 		notes.push_back(context.make_note("only integer types, enum types, 'char', 'bool' and 'str' can be used in switch expressions"));
 	}

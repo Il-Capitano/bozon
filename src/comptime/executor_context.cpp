@@ -147,7 +147,7 @@ ctx::source_highlight executor_context::make_note(uint32_t src_tokens_index, bz:
 
 bool executor_context::is_option_set(bz::u8string_view option) const
 {
-	return defines.contains(option);
+	return global_data::defines.contains(option);
 }
 
 ptr_t executor_context::get_global(uint32_t index)
@@ -1304,7 +1304,7 @@ ast::constant_value executor_context::execute_expression(ast::expression const &
 	while (!this->returned && !this->has_error)
 	{
 #ifndef NDEBUG
-		if (debug_comptime_print_instructions)
+		if (global_data::debug_comptime_print_instructions)
 		{
 			bz::log(
 				">>> %{} in '{}'\n",
@@ -1315,7 +1315,7 @@ ast::constant_value executor_context::execute_expression(ast::expression const &
 #endif // !NDEBUG
 
 #ifdef BOZON_PROFILE_COMPTIME
-		comptime_executed_instructions_count += 1;
+		global_data::comptime_executed_instructions_count += 1;
 		instruction_counts[this->current_instruction->index()] += 1;
 #endif // BOZON_PROFILE_COMPTIME
 

@@ -96,6 +96,9 @@ inline bz::optional<target_endianness_kind> parse_target_endianness(bz::u8string
 	}
 }
 
+namespace global_data
+{
+
 inline bool display_version = false;
 
 inline bz::array<bool, ctx::warning_infos.size()> warnings{};
@@ -143,15 +146,17 @@ inline uint32_t opt_level = 0;
 inline uint32_t size_opt_level = 0;
 inline uint32_t machine_code_opt_level = 0;
 
-bool is_warning_enabled(ctx::warning_kind kind) noexcept;
-bool is_warning_error(ctx::warning_kind kind) noexcept;
-
-void print_version_info(void);
-
 #ifdef BOZON_PROFILE_COMPTIME
 inline size_t comptime_executed_instructions_count = 0;
 inline size_t comptime_emitted_instructions_count = 0;
 inline bool debug_comptime_print_instruction_counts = false;
 #endif // BOZON_PROFILE_COMPTIME
+
+} // namespace global_data
+
+bool is_warning_enabled(ctx::warning_kind kind) noexcept;
+bool is_warning_error(ctx::warning_kind kind) noexcept;
+
+void print_version_info(void);
 
 #endif // GLOBAL_DATA_H

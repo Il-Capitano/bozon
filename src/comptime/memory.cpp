@@ -401,7 +401,7 @@ bz::vector<bz::u8string> stack_object::get_pointer_arithmetic_error_reason(
 		if (is_one_past_the_end)
 		{
 			result.push_back("address is a one-past-the-end pointer to this stack object");
-			if (do_verbose)
+			if (global_data::do_verbose)
 			{
 				result.push_back("the only valid offsets are -1 and 0");
 			}
@@ -409,7 +409,7 @@ bz::vector<bz::u8string> stack_object::get_pointer_arithmetic_error_reason(
 		else
 		{
 			result.push_back("address points to this stack object");
-			if (do_verbose)
+			if (global_data::do_verbose)
 			{
 				result.push_back("the only valid offsets are 0 and 1");
 			}
@@ -433,7 +433,7 @@ bz::vector<bz::u8string> stack_object::get_pointer_arithmetic_error_reason(
 				"address is a one-past-the-end pointer to after the last element in an array of size {} in this stack object",
 				array_size
 			));
-			if (do_verbose)
+			if (global_data::do_verbose)
 			{
 				result.push_back(bz::format("the only valid offsets are -{} to 0", array_size));
 			}
@@ -444,7 +444,7 @@ bz::vector<bz::u8string> stack_object::get_pointer_arithmetic_error_reason(
 				"address points to an element at index {} in an array of size {} in this stack object",
 				index, array_size
 			));
-			if (do_verbose)
+			if (global_data::do_verbose)
 			{
 				result.push_back(bz::format("the only valid offsets are {} to {}", -static_cast<int64_t>(index), array_size - index));
 			}
@@ -455,7 +455,7 @@ bz::vector<bz::u8string> stack_object::get_pointer_arithmetic_error_reason(
 		if (is_one_past_the_end)
 		{
 			result.push_back("address is a one-past-the-end pointer to a subobject that is not in an array in this stack object");
-			if (do_verbose)
+			if (global_data::do_verbose)
 			{
 				result.push_back("the only valid offsets are -1 and 0");
 			}
@@ -463,7 +463,7 @@ bz::vector<bz::u8string> stack_object::get_pointer_arithmetic_error_reason(
 		else
 		{
 			result.push_back("address points to a subobject that is not in an array in this stack object");
-			if (do_verbose)
+			if (global_data::do_verbose)
 			{
 				result.push_back("the only valid offsets are 0 and 1");
 			}
@@ -1190,7 +1190,7 @@ bz::vector<bz::u8string> heap_object::get_pointer_arithmetic_error_reason(
 				"address is a one-past-the-end pointer to after the last element in this allocation of size {}",
 				this->count
 			));
-			if (do_verbose)
+			if (global_data::do_verbose)
 			{
 				result.push_back(bz::format("the only valid offsets are -{} to 0", this->count));
 			}
@@ -1202,7 +1202,7 @@ bz::vector<bz::u8string> heap_object::get_pointer_arithmetic_error_reason(
 				"address points to the element at index {} in this allocation of size {}",
 				index, this->count
 			));
-			if (do_verbose)
+			if (global_data::do_verbose)
 			{
 				result.push_back(bz::format("the only valid offsets are {} to {}", -static_cast<int64_t>(index), this->count - index));
 			}
@@ -1244,7 +1244,7 @@ bz::vector<bz::u8string> heap_object::get_pointer_arithmetic_error_reason(
 					"address is a one-past-the-end pointer to after the last element in an array of size {} in an element of this allocation",
 					array_size
 				));
-				if (do_verbose)
+				if (global_data::do_verbose)
 				{
 					result.push_back(bz::format("the only valid offsets are -{} to 0", array_size));
 				}
@@ -1255,7 +1255,7 @@ bz::vector<bz::u8string> heap_object::get_pointer_arithmetic_error_reason(
 					"address points to an element at index {} in an array of size {} in an element of this allocation",
 					index, array_size
 				));
-				if (do_verbose)
+				if (global_data::do_verbose)
 				{
 					result.push_back(bz::format("the only valid offsets are {} to {}", -static_cast<int64_t>(index), array_size - index));
 				}
@@ -1266,7 +1266,7 @@ bz::vector<bz::u8string> heap_object::get_pointer_arithmetic_error_reason(
 			if (is_one_past_the_end)
 			{
 				result.push_back("address is a one-past-the-end pointer to a subobject that is not in an array in an element of this allocation");
-				if (do_verbose)
+				if (global_data::do_verbose)
 				{
 					result.push_back("the only valid offsets are -1 and 0");
 				}
@@ -1274,7 +1274,7 @@ bz::vector<bz::u8string> heap_object::get_pointer_arithmetic_error_reason(
 			else
 			{
 				result.push_back("address points to a subobject that is not in an array in an element of this allocation");
-				if (do_verbose)
+				if (global_data::do_verbose)
 				{
 					result.push_back("the only valid offsets are 0 and 1");
 				}

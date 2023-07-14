@@ -12,7 +12,7 @@ test_result consteval_test(ctx::global_context &global_ctx);
 int main(int argc, char const **argv)
 {
 	register_crash_handlers();
-	import_dirs.push_back("bozon-stdlib");
+	global_data::import_dirs.push_back("bozon-stdlib");
 
 	ctx::global_context global_ctx;
 
@@ -58,7 +58,7 @@ int main(int argc, char const **argv)
 	};
 
 	// enable all warnings
-	for (auto &warning : warnings)
+	for (auto &warning : global_data::warnings)
 	{
 		warning = true;
 	}

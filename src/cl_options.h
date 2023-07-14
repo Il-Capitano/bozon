@@ -135,73 +135,73 @@ template<> inline constexpr bool ctcli::is_array_like<ctcli::option("--define")>
 template<> inline constexpr bool ctcli::is_array_like<ctcli::option("--opt")>        = true;
 template<> inline constexpr bool ctcli::is_array_like<ctcli::group_element("--warn error")> = true;
 
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--version")>                  = &display_version;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--import-dir")>               = &import_dirs;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--output")>                   = &output_file_name;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--define")>                   = &defines;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--emit")>                     = &emit_file_type;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--target")>                   = &target;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--stdlib-dir")>               = &stdlib_dir;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--x86-asm-syntax")>           = &x86_asm_syntax;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--profile")>                  = &do_profile;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-main")>                  = &no_main;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--version")>                  = &global_data::display_version;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--import-dir")>               = &global_data::import_dirs;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--output")>                   = &global_data::output_file_name;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--define")>                   = &global_data::defines;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--emit")>                     = &global_data::emit_file_type;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--target")>                   = &global_data::target;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--stdlib-dir")>               = &global_data::stdlib_dir;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--x86-asm-syntax")>           = &global_data::x86_asm_syntax;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--profile")>                  = &global_data::do_profile;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-main")>                  = &global_data::no_main;
 #ifndef NDEBUG
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-ir-output")>                   = &debug_ir_output;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-functions")>    = &debug_comptime_print_functions;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-instructions")> = &debug_comptime_print_instructions;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-no-emit-file")>                = &debug_no_emit_file;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-ir-output")>                   = &global_data::debug_ir_output;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-functions")>    = &global_data::debug_comptime_print_functions;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-instructions")> = &global_data::debug_comptime_print_instructions;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-no-emit-file")>                = &global_data::debug_no_emit_file;
 #endif // !NDEBUG
 #ifdef BOZON_PROFILE_COMPTIME
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-instruction-counts")> = &debug_comptime_print_instruction_counts;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-instruction-counts")> = &global_data::debug_comptime_print_instruction_counts;
 #endif // BOZON_PROFILE_COMPTIME
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-error-highlight")>       = &no_error_highlight;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--error-report-tab-size")>    = &tab_size;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--enable-comptime-print")>    = &enable_comptime_print;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--return-zero-on-error")>     = &return_zero_on_error;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--verbose")>                  = &do_verbose;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-error-highlight")>       = &global_data::no_error_highlight;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--error-report-tab-size")>    = &global_data::tab_size;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--enable-comptime-print")>    = &global_data::enable_comptime_print;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--return-zero-on-error")>     = &global_data::return_zero_on_error;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--verbose")>                  = &global_data::do_verbose;
 
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn int-overflow")>             = &warnings[static_cast<size_t>(ctx::warning_kind::int_overflow)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn int-divide-by-zero")>       = &warnings[static_cast<size_t>(ctx::warning_kind::int_divide_by_zero)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn float-overflow")>           = &warnings[static_cast<size_t>(ctx::warning_kind::float_overflow)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn float-divide-by-zero")>     = &warnings[static_cast<size_t>(ctx::warning_kind::float_divide_by_zero)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn float-nan-math")>           = &warnings[static_cast<size_t>(ctx::warning_kind::float_nan_math)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unknown-attribute")>        = &warnings[static_cast<size_t>(ctx::warning_kind::unknown_attribute)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn null-pointer-dereference")> = &warnings[static_cast<size_t>(ctx::warning_kind::null_pointer_dereference)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unused-value")>             = &warnings[static_cast<size_t>(ctx::warning_kind::unused_value)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unclosed-comment")>         = &warnings[static_cast<size_t>(ctx::warning_kind::unclosed_comment)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn mismatched-brace-indent")>  = &warnings[static_cast<size_t>(ctx::warning_kind::mismatched_brace_indent)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unused-variable")>          = &warnings[static_cast<size_t>(ctx::warning_kind::unused_variable)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn greek-question-mark")>      = &warnings[static_cast<size_t>(ctx::warning_kind::greek_question_mark)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn bad-file-extension")>       = &warnings[static_cast<size_t>(ctx::warning_kind::bad_file_extension)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unknown-target")>           = &warnings[static_cast<size_t>(ctx::warning_kind::unknown_target)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn invalid-unicode")>          = &warnings[static_cast<size_t>(ctx::warning_kind::invalid_unicode)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn nan-compare")>              = &warnings[static_cast<size_t>(ctx::warning_kind::nan_compare)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn out-of-bounds-index")>      = &warnings[static_cast<size_t>(ctx::warning_kind::out_of_bounds_index)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn math-domain-error")>        = &warnings[static_cast<size_t>(ctx::warning_kind::math_domain_error)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn binary-stdout")>            = &warnings[static_cast<size_t>(ctx::warning_kind::binary_stdout)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn is-comptime-always-true")>  = &warnings[static_cast<size_t>(ctx::warning_kind::is_comptime_always_true)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn non-exhaustive-switch")>    = &warnings[static_cast<size_t>(ctx::warning_kind::non_exhaustive_switch)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unneeded-else")>            = &warnings[static_cast<size_t>(ctx::warning_kind::unneeded_else)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn assign-in-condition")>      = &warnings[static_cast<size_t>(ctx::warning_kind::assign_in_condition)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn get-value-null")>           = &warnings[static_cast<size_t>(ctx::warning_kind::get_value_null)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn enum-value-overflow")>      = &warnings[static_cast<size_t>(ctx::warning_kind::enum_value_overflow)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn comptime-warning")>         = &warnings[static_cast<size_t>(ctx::warning_kind::comptime_warning)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn int-overflow")>             = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::int_overflow)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn int-divide-by-zero")>       = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::int_divide_by_zero)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn float-overflow")>           = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::float_overflow)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn float-divide-by-zero")>     = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::float_divide_by_zero)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn float-nan-math")>           = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::float_nan_math)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unknown-attribute")>        = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::unknown_attribute)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn null-pointer-dereference")> = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::null_pointer_dereference)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unused-value")>             = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::unused_value)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unclosed-comment")>         = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::unclosed_comment)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn mismatched-brace-indent")>  = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::mismatched_brace_indent)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unused-variable")>          = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::unused_variable)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn greek-question-mark")>      = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::greek_question_mark)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn bad-file-extension")>       = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::bad_file_extension)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unknown-target")>           = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::unknown_target)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn invalid-unicode")>          = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::invalid_unicode)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn nan-compare")>              = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::nan_compare)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn out-of-bounds-index")>      = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::out_of_bounds_index)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn math-domain-error")>        = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::math_domain_error)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn binary-stdout")>            = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::binary_stdout)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn is-comptime-always-true")>  = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::is_comptime_always_true)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn non-exhaustive-switch")>    = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::non_exhaustive_switch)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unneeded-else")>            = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::unneeded_else)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn assign-in-condition")>      = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::assign_in_condition)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn get-value-null")>           = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::get_value_null)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn enum-value-overflow")>      = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::enum_value_overflow)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn comptime-warning")>         = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::comptime_warning)];
 static_assert(static_cast<size_t>(ctx::warning_kind::_last) == 26);
 
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt max-iter-count")>         = &max_opt_iter_count;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt opt-level")>              = &opt_level;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt size-opt-level")>         = &size_opt_level;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt machine-code-opt-level")> = &machine_code_opt_level;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt max-iter-count")>         = &global_data::max_opt_iter_count;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt opt-level")>              = &global_data::opt_level;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt size-opt-level")>         = &global_data::size_opt_level;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt machine-code-opt-level")> = &global_data::machine_code_opt_level;
 
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-unreachable")>             = &panic_on_unreachable;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-null-dereference")>        = &panic_on_null_dereference;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-null-pointer-arithmetic")> = &panic_on_null_pointer_arithmetic;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-null-get-value")>          = &panic_on_null_get_value;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-invalid-switch")>          = &panic_on_invalid_switch;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen discard-llvm-value-names")>         = &discard_llvm_value_names;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen freestanding")>                     = &freestanding;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-pointer-size")>              = &target_pointer_size;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-endianness")>                = &target_endianness;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-unreachable")>             = &global_data::panic_on_unreachable;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-null-dereference")>        = &global_data::panic_on_null_dereference;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-null-pointer-arithmetic")> = &global_data::panic_on_null_pointer_arithmetic;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-null-get-value")>          = &global_data::panic_on_null_get_value;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-invalid-switch")>          = &global_data::panic_on_invalid_switch;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen discard-llvm-value-names")>         = &global_data::discard_llvm_value_names;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen freestanding")>                     = &global_data::freestanding;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-pointer-size")>              = &global_data::target_pointer_size;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-endianness")>                = &global_data::target_endianness;
 
 template<>
 inline constexpr auto ctcli::argument_parse_function<ctcli::option("--emit")> = [](bz::u8string_view arg) -> std::optional<emit_type> {
@@ -254,7 +254,7 @@ inline constexpr auto ctcli::argument_parse_function<ctcli::group_element("--war
 	{
 		if (arg == "all")
 		{
-			for (auto &val : error_warnings)
+			for (auto &val : global_data::error_warnings)
 			{
 				val = true;
 			}
@@ -265,7 +265,7 @@ inline constexpr auto ctcli::argument_parse_function<ctcli::group_element("--war
 	else
 	{
 		auto const index = static_cast<size_t>(it - ctx::warning_infos.begin());
-		error_warnings[index] = true;
+		global_data::error_warnings[index] = true;
 		return arg;
 	}
 };

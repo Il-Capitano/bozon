@@ -358,7 +358,7 @@ static void emit_null_optional_get_value_check(
 	bitcode_context &context
 )
 {
-	if (panic_on_null_get_value)
+	if (global_data::panic_on_null_get_value)
 	{
 		auto const has_value = optional_has_value(optional_val, context);
 		auto const begin_bb = context.builder.GetInsertBlock();
@@ -380,7 +380,7 @@ static void emit_null_pointer_arithmetic_check(
 	bitcode_context &context
 )
 {
-	if (panic_on_null_pointer_arithmetic)
+	if (global_data::panic_on_null_pointer_arithmetic)
 	{
 		auto const has_value = optional_has_value(val_ptr::get_value(ptr), context);
 		auto const begin_bb = context.builder.GetInsertBlock();
@@ -736,7 +736,7 @@ static val_ptr emit_builtin_unary_dereference(
 	bz_assert(type.template is<ast::ts_pointer>() || type.is_optional_pointer());
 	if (type.is_optional_pointer())
 	{
-		if (panic_on_null_dereference)
+		if (global_data::panic_on_null_dereference)
 		{
 			auto const has_value = optional_has_value(val_ptr::get_value(val), context);
 			auto const begin_bb = context.builder.GetInsertBlock();
@@ -1330,7 +1330,7 @@ static val_ptr emit_builtin_binary_minus(
 
 		if (lhs_t.is_optional_pointer())
 		{
-			if (panic_on_null_pointer_arithmetic)
+			if (global_data::panic_on_null_pointer_arithmetic)
 			{
 				auto const lhs_has_value = optional_has_value(val_ptr::get_value(lhs_val), context);
 				auto const rhs_has_value = optional_has_value(val_ptr::get_value(rhs_val), context);
@@ -6171,7 +6171,7 @@ static val_ptr emit_integral_switch(
 	else if (switch_expr.is_complete)
 	{
 		context.builder.SetInsertPoint(default_bb);
-		if (panic_on_invalid_switch)
+		if (global_data::panic_on_invalid_switch)
 		{
 			emit_panic_call(src_tokens, "invalid value used in 'switch'", context);
 		}
@@ -6615,7 +6615,7 @@ static val_ptr emit_bitcode(
 	llvm::Value *
 )
 {
-	if (panic_on_unreachable)
+	if (global_data::panic_on_unreachable)
 	{
 		emit_bitcode(unreachable_expr.panic_fn_call, context, nullptr);
 		auto const return_type = context.current_function.second->getReturnType();

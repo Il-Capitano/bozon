@@ -746,7 +746,7 @@ bz::optional<uint32_t> global_context::get_machine_code_opt_level(void) const
 {
 	if (ctcli::is_option_set<ctcli::group_element("--opt machine-code-opt-level")>())
 	{
-		return machine_code_opt_level;
+		return global_data::machine_code_opt_level;
 	}
 	else
 	{
@@ -768,7 +768,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	if (argc == 1)
 	{
 		ctcli::print_options_help<>("bozon", "source-file", 2, 24, 80);
-		compile_until = compilation_phase::parse_command_line;
+		global_data::compile_until = compilation_phase::parse_command_line;
 		return true;
 	}
 
@@ -794,13 +794,13 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 	if (ctcli::print_help_if_needed("bozon", "source-file", 2, 24, 80))
 	{
-		compile_until = compilation_phase::parse_command_line;
+		global_data::compile_until = compilation_phase::parse_command_line;
 		return true;
 	}
-	else if (display_version)
+	else if (global_data::display_version)
 	{
 		print_version_info();
-		compile_until = compilation_phase::parse_command_line;
+		global_data::compile_until = compilation_phase::parse_command_line;
 		return true;
 	}
 
@@ -812,7 +812,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 	if (positional_args.size() == 1)
 	{
-		source_file = positional_args[0];
+		global_data::source_file = positional_args[0];
 	}
 
 	if (this->has_errors())
@@ -827,7 +827,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 [[nodiscard]] bool global_context::initialize_target_info(void)
 {
-	this->target_triple = codegen::target_triple::parse(target);
+	this->target_triple = codegen::target_triple::parse(global_data::target);
 
 	auto const target_properties = this->target_triple.get_target_properties();
 
@@ -847,7 +847,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	else if (
 		target_properties.pointer_size.has_value()
 		&& ctcli::is_option_set<ctcli::group_element("--code-gen target-pointer-size")>()
-		&& target_properties.pointer_size.get() != target_pointer_size
+		&& target_properties.pointer_size.get() != global_data::target_pointer_size
 	)
 	{
 		this->report_error(bz::format(
@@ -873,7 +873,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		&& ctcli::is_option_set<ctcli::group_element("--code-gen target-endianness")>()
 		&& ![&]() {
 			auto const inferred = target_properties.endianness.get();
-			auto const provided = target_endianness;
+			auto const provided = global_data::target_endianness;
 			return (inferred == comptime::memory::endianness_kind::little && provided == target_endianness_kind::little)
 				|| (inferred == comptime::memory::endianness_kind::big && provided == target_endianness_kind::big);
 		}()
@@ -891,13 +891,13 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		return false;
 	}
 
-	auto const pointer_size = target_properties.pointer_size.has_value() ? target_properties.pointer_size.get() : target_pointer_size;
+	auto const pointer_size = target_properties.pointer_size.has_value() ? target_properties.pointer_size.get() : global_data::target_pointer_size;
 	auto const endianness = [&]() {
 		if (target_properties.endianness.has_value())
 		{
 			return target_properties.endianness.get();
 		}
-		else if (target_endianness == target_endianness_kind::little)
+		else if (global_data::target_endianness == target_endianness_kind::little)
 		{
 			return comptime::memory::endianness_kind::little;
 		}
@@ -936,10 +936,10 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	}
 
 	auto const normalized_target_triple = this->target_triple.get_normalized_target();
-	auto stdlib_dir_path_non_canonical = fs::path(std::string_view(stdlib_dir.data_as_char_ptr(), stdlib_dir.size()), fs::path::native_format);
+	auto stdlib_dir_path_non_canonical = fs::path(std::string_view(global_data::stdlib_dir.data_as_char_ptr(), global_data::stdlib_dir.size()), fs::path::native_format);
 	if (!fs::exists(stdlib_dir_path_non_canonical))
 	{
-		this->report_error(bz::format("invalid path '{}' specified for '--stdlib-dir'", stdlib_dir));
+		this->report_error(bz::format("invalid path '{}' specified for '--stdlib-dir'", global_data::stdlib_dir));
 		return false;
 	}
 	auto stdlib_dir_path = fs::canonical(stdlib_dir_path_non_canonical);
@@ -952,7 +952,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		this->_import_dirs.push_back(std::move(common_dir));
 	}
 
-	if (!freestanding)
+	if (!global_data::freestanding)
 	{
 		if (fs::exists(target_dir))
 		{
@@ -965,7 +965,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		}
 	}
 
-	for (auto const &import_dir : import_dirs)
+	for (auto const &import_dir : global_data::import_dirs)
 	{
 		std::string_view import_dir_sv(import_dir.data_as_char_ptr(), import_dir.size());
 		auto import_dir_path = fs::path(import_dir_sv);
@@ -996,7 +996,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		}
 	}
 
-	if (!freestanding)
+	if (!global_data::freestanding)
 	{
 		auto const builtins_file_path = target_dir / "__builtins.bz";
 		if (fs::exists(builtins_file_path) && fs::is_regular_file(builtins_file_path))
@@ -1015,7 +1015,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 			}
 		}
 
-		if (!no_main)
+		if (!global_data::no_main)
 		{
 			auto const main_file_path = target_dir / "__main.bz";
 			if (fs::exists(main_file_path) && fs::is_regular_file(main_file_path))
@@ -1041,26 +1041,26 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 [[nodiscard]] bool global_context::parse_global_symbols(void)
 {
-	if (source_file == "")
+	if (global_data::source_file == "")
 	{
 		this->report_error("no source file was provided");
 		return false;
 	}
-	else if (source_file != "-" && !source_file.ends_with(".bz"))
+	else if (global_data::source_file != "-" && !global_data::source_file.ends_with(".bz"))
 	{
 		this->report_error("source file name must end in '.bz'");
 		return false;
 	}
 
-	auto const source_file_path = fs::path(std::string_view(source_file.data_as_char_ptr(), source_file.size()));
+	auto const source_file_path = fs::path(std::string_view(global_data::source_file.data_as_char_ptr(), global_data::source_file.size()));
 	if (!fs::exists(source_file_path))
 	{
-		this->report_error(bz::format("invalid source file '{}': file does not exist", source_file));
+		this->report_error(bz::format("invalid source file '{}': file does not exist", global_data::source_file));
 		return false;
 	}
 	else if (!fs::is_regular_file(source_file_path))
 	{
-		this->report_error(bz::format("invalid source file '{}': file is not a regular file", source_file));
+		this->report_error(bz::format("invalid source file '{}': file is not a regular file", global_data::source_file));
 		return false;
 	}
 
@@ -1090,7 +1090,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 [[nodiscard]] bool global_context::initialize_backend(void)
 {
-	if (emit_file_type == emit_type::null)
+	if (global_data::emit_file_type == emit_type::null)
 	{
 		return true;
 	}
@@ -1101,24 +1101,24 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 [[nodiscard]] bool global_context::generate_and_output_code(void)
 {
-	if (emit_file_type == emit_type::null)
+	if (global_data::emit_file_type == emit_type::null)
 	{
 		return true;
 	}
 #ifndef NDEBUG
-	else if (debug_no_emit_file)
+	else if (global_data::debug_no_emit_file)
 	{
 		return this->backend_context->generate_and_output_code(*this, {});
 	}
 #endif // !NDEBUG
-	else if (output_file_name != "")
+	else if (global_data::output_file_name != "")
 	{
-		return this->backend_context->generate_and_output_code(*this, output_file_name);
+		return this->backend_context->generate_and_output_code(*this, global_data::output_file_name);
 	}
 	else
 	{
 		auto const file_extension = [&]() -> bz::u8string_view {
-			switch (emit_file_type)
+			switch (global_data::emit_file_type)
 			{
 			case emit_type::obj:
 				return ".o";
@@ -1133,13 +1133,13 @@ void global_context::report_and_clear_errors_and_warnings(void)
 			}
 		}();
 
-		auto const slash_it = source_file.rfind_any("/\\");
-		auto const dot = source_file.rfind('.');
+		auto const slash_it = global_data::source_file.rfind_any("/\\");
+		auto const dot = global_data::source_file.rfind('.');
 		bz_assert(dot != bz::u8iterator{});
 		auto const output_path = bz::format(
 			"{}{}",
 			bz::u8string(
-				slash_it == bz::u8iterator{} ? source_file.begin() : slash_it + 1,
+				slash_it == bz::u8iterator{} ? global_data::source_file.begin() : slash_it + 1,
 				dot
 			),
 			file_extension

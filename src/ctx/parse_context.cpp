@@ -2571,7 +2571,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 			if (!num.has_value())
 			{
 				bz::vector<source_highlight> notes;
-				if (do_verbose)
+				if (global_data::do_verbose)
 				{
 					notes.push_back(make_note("at most 9 significant digits are allowed for 'float32'"));
 				}
@@ -2606,7 +2606,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 			if (!num.has_value())
 			{
 				bz::vector<source_highlight> notes;
-				if (do_verbose)
+				if (global_data::do_verbose)
 				{
 					notes.push_back(make_note("at most 17 significant digits are allowed for 'float64'"));
 				}
@@ -2926,7 +2926,7 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 	bool builtin_operator_found = false;
 	for (auto &func : possible_funcs)
 	{
-		if (!do_verbose && func.func_body->is_builtin_operator())
+		if (!global_data::do_verbose && func.func_body->is_builtin_operator())
 		{
 			if (builtin_operator_found)
 			{
@@ -4904,7 +4904,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 					);
 				})
 				.collect(info->member_variables.size());
-			if (do_verbose)
+			if (global_data::do_verbose)
 			{
 				notes.push_back(this->make_note("members whose names start with '_' are only accessible in the same file"));
 			}
@@ -5579,7 +5579,7 @@ ast::expression parse_context::make_member_access_expression(
 	)
 	{
 		auto notes = [&]() -> bz::vector<source_highlight> {
-			if (do_verbose)
+			if (global_data::do_verbose)
 			{
 				return {
 					this->make_note(member_ptr->src_tokens, "member is declared here"),

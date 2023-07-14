@@ -2854,7 +2854,7 @@ static expr_value generate_intrinsic_function_call_code(
 	}
 	case ast::function_body::comptime_print:
 	{
-		if (enable_comptime_print)
+		if (global_data::enable_comptime_print)
 		{
 			bz_assert(func_call.params.size() == 1);
 			auto const message_value = generate_expr_code(func_call.params[0], context, {});

@@ -1,6 +1,5 @@
 #include "consteval.h"
 #include "safe_operations.h"
-#include "global_data.h"
 #include "resolve/match_expression.h"
 
 namespace resolve

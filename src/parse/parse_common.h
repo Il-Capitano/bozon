@@ -326,7 +326,7 @@ inline abi::calling_convention get_calling_convention(lex::token_pos it, ctx::pa
 	else
 	{
 		auto notes = [&]() -> bz::vector<ctx::source_highlight> {
-			if (do_verbose)
+			if (global_data::do_verbose)
 			{
 				return { context.make_note(
 					it->src_pos.file_id, it->src_pos.line,

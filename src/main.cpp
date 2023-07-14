@@ -1,6 +1,13 @@
 /*
 
 
+TODO:
+	- change default mutable to default const
+		- instead of `T` and `const T` use `mut T` and `T`
+	- reorganize back-ends to not entirely depend on LLVM
+		- C back-end
+
+
 {
 	let v: vector = { 1.0, 2.5, -0.9 };
 	let w = std::move(v);
@@ -1533,6 +1540,7 @@ struct foo<...Ts> {} // variadic
 #include "ctx/global_context.h"
 #include "crash_handling.h"
 #include "timer.h"
+#include "global_data.h"
 
 #ifdef BOZON_PROFILE_COMPTIME
 #include "comptime/instructions_forward.h"
@@ -1541,7 +1549,7 @@ struct foo<...Ts> {} // variadic
 #if defined(NDEBUG) || defined(_WIN32)
 // use std::exit instead of returning to avoid LLVM corrupting the heap
 // this happens rarely in debug mode, but is common for release builds
-#define return_from_main(val) std::exit(return_zero_on_error ? 0 : (val))
+#define return_from_main(val) std::exit(global_data::return_zero_on_error ? 0 : (val))
 #else
 #define return_from_main(val) return (return_zero_on_error ? 0 : (val))
 #endif // NDEBUG
@@ -1576,7 +1584,7 @@ int main(int argc, char const **argv)
 		}
 		t.end_section();
 
-		if (compile_until <= compilation_phase::parse_command_line)
+		if (global_data::compile_until <= compilation_phase::parse_command_line)
 		{
 			global_ctx.report_and_clear_errors_and_warnings();
 			return_from_main(0);
@@ -1603,7 +1611,7 @@ int main(int argc, char const **argv)
 		}
 		t.end_section();
 
-		if (compile_until <= compilation_phase::parse_global_symbols)
+		if (global_data::compile_until <= compilation_phase::parse_global_symbols)
 		{
 			global_ctx.report_and_clear_errors_and_warnings();
 			return_from_main(0);
@@ -1621,7 +1629,7 @@ int main(int argc, char const **argv)
 		// and file emission
 		global_ctx.report_and_clear_errors_and_warnings();
 
-		if (compile_until <= compilation_phase::parse)
+		if (global_data::compile_until <= compilation_phase::parse)
 		{
 			global_ctx.report_and_clear_errors_and_warnings();
 			return_from_main(0);
@@ -1643,14 +1651,14 @@ int main(int argc, char const **argv)
 		}
 		t.end_section();
 
-		if (compile_until <= compilation_phase::emit_bitcode)
+		if (global_data::compile_until <= compilation_phase::emit_bitcode)
 		{
 			global_ctx.report_and_clear_errors_and_warnings();
 			return_from_main(0);
 		}
 	}
 
-	if (do_profile)
+	if (global_data::do_profile)
 	{
 		auto const compilation_time = t.get_total_duration();
 		auto const front_end_time   =
@@ -1678,9 +1686,9 @@ int main(int argc, char const **argv)
 #endif // BOZON_PROFILE_ALLOCATIONS
 
 #ifdef BOZON_PROFILE_COMPTIME
-		bz::print("emitted instructions:     {:8}\n", comptime_emitted_instructions_count);
-		bz::print("executed instructions:    {:8}\n", comptime_executed_instructions_count);
-		if (debug_comptime_print_instruction_counts)
+		bz::print("emitted instructions:     {:8}\n", global_data::comptime_emitted_instructions_count);
+		bz::print("executed instructions:    {:8}\n", global_data::comptime_executed_instructions_count);
+		if (global_data::debug_comptime_print_instruction_counts)
 		{
 			comptime::print_instruction_counts();
 		}
