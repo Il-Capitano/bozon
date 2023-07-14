@@ -1,13 +1,14 @@
-#ifndef ABI_PLATFORM_FUNCTION_CALL_H
-#define ABI_PLATFORM_FUNCTION_CALL_H
+#ifndef CODEGEN_LLVM_LATEST_ABI_PLATFORM_FUNCTION_CALL_H
+#define CODEGEN_LLVM_LATEST_ABI_PLATFORM_FUNCTION_CALL_H
 
 #include "core.h"
 #include "platform_abi.h"
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Type.h>
+#include <llvm/IR/Attributes.h>
 
-namespace abi
+namespace codegen::llvm_latest::abi
 {
 
 enum class pass_kind
@@ -114,6 +115,6 @@ inline std::pair<llvm::Type *, llvm::Type *> get_two_register_types(platform_abi
 	}
 }
 
-} // namespace abi
+} // namespace codegen::llvm_latest::abi
 
-#endif // ABI_PLATFORM_FUNCTION_CALL_H
+#endif // CODEGEN_LLVM_LATEST_ABI_PLATFORM_FUNCTION_CALL_H

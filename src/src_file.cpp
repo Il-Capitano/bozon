@@ -2,7 +2,6 @@
 #include "ctx/global_context.h"
 #include "ctx/lex_context.h"
 #include "ctx/parse_context.h"
-#include "ctx/bitcode_context.h"
 #include "lex/lexer.h"
 #include "parse/statement_parser.h"
 #include "resolve/consteval.h"

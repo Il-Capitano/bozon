@@ -4,6 +4,7 @@
 #include "core.h"
 #include "lex/token.h"
 #include "warnings.h"
+#include "context_forward.h"
 
 namespace ctx
 {
@@ -48,8 +49,6 @@ struct error
 	bool is_warning(void) const noexcept
 	{ return this->kind != warning_kind::_last; }
 };
-
-struct global_context;
 
 void print_error_or_warning(error const &err, global_context &context);
 

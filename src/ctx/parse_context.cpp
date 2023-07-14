@@ -2418,7 +2418,7 @@ static ast::expression get_literal_expr(
 			}
 			else if (postfix == "iz")
 			{
-				switch (context.global_ctx.get_data_layout().getPointerSize())
+				switch (context.global_ctx.get_pointer_size())
 				{
 				case 8:
 					return {
@@ -2450,7 +2450,7 @@ static ast::expression get_literal_expr(
 			}
 			else if (postfix == "uz")
 			{
-				switch (context.global_ctx.get_data_layout().getPointerSize())
+				switch (context.global_ctx.get_pointer_size())
 				{
 				case 8:
 					return {

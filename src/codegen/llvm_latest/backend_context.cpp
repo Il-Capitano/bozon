@@ -1,8 +1,8 @@
-#include "llvm_context.h"
+#include "backend_context.h"
 #include "global_data.h"
-#include "global_context.h"
+#include "ctx/global_context.h"
 #include "bitcode_context.h"
-#include "bc/emit_bitcode.h"
+#include "emit_bitcode.h"
 #include "colors.h"
 
 #include <llvm/Support/Host.h>
@@ -21,7 +21,7 @@
 #error LLVM 16 is required
 #endif // LLVM 16
 
-namespace ctx
+namespace codegen::llvm_latest
 {
 
 static bz::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1>
@@ -48,20 +48,19 @@ get_llvm_builtin_types(llvm::LLVMContext &context)
 	};
 }
 
-llvm_context::llvm_context(global_context &global_ctx, bool &error)
+backend_context::backend_context(ctx::global_context &global_ctx, bz::u8string_view target_triple, output_code_kind output_code, bool &error)
 	: _llvm_context(),
 	  _module("test", this->_llvm_context),
 	  _target(nullptr),
 	  _target_machine(nullptr),
 	  _data_layout(),
-	  _llvm_builtin_types(get_llvm_builtin_types(this->_llvm_context))
+	  _llvm_builtin_types(get_llvm_builtin_types(this->_llvm_context)),
+	  _platform_abi(abi::platform_abi::generic),
+	  _output_code(output_code)
 {
 	this->_llvm_context.setDiscardValueNames(discard_llvm_value_names);
 
-	auto const is_native_target = target == "" || target == "native";
-	auto const target_triple = is_native_target
-		? llvm::Triple::normalize(llvm::sys::getDefaultTargetTriple())
-		: llvm::Triple::normalize(std::string(target.data_as_char_ptr(), target.size()));
+	auto const llvm_target_triple = llvm::Triple::normalize(std::string(target_triple.data(), target_triple.size()));
 	llvm::InitializeAllDisassemblers();
 	llvm::InitializeAllTargetInfos();
 	llvm::InitializeAllTargets();
@@ -82,11 +81,11 @@ llvm_context::llvm_context(global_context &global_ctx, bool &error)
 	}
 
 	std::string target_error = "";
-	this->_target = llvm::TargetRegistry::lookupTarget(target_triple, target_error);
+	this->_target = llvm::TargetRegistry::lookupTarget(llvm_target_triple, target_error);
 	if (this->_target == nullptr)
 	{
 		constexpr std::string_view default_start = "No available targets are compatible with triple \"";
-		bz::vector<source_highlight> notes;
+		bz::vector<ctx::source_highlight> notes;
 		if (do_verbose)
 		{
 			bz::u8string message = "available targets are: ";
@@ -108,7 +107,7 @@ llvm_context::llvm_context(global_context &global_ctx, bool &error)
 		if (target_error.substr(0, default_start.length()) == default_start)
 		{
 			global_ctx.report_error(bz::format(
-				"'{}' is not an available target", target_triple.c_str()
+				"'{}' is not an available target", llvm_target_triple.c_str()
 			), std::move(notes));
 		}
 		else
@@ -161,13 +160,41 @@ llvm_context::llvm_context(global_context &global_ctx, bool &error)
 	}();
 
 	this->_target_machine.reset(this->_target->createTargetMachine(
-		target_triple, cpu, features, options, rm, std::nullopt, codegen_opt_level
+		llvm_target_triple, cpu, features, options, rm, std::nullopt, codegen_opt_level
 	));
 	bz_assert(this->_target_machine);
 
 	this->_data_layout = this->_target_machine->createDataLayout();
 	this->_module.setDataLayout(*this->_data_layout);
-	this->_module.setTargetTriple(target_triple);
+	this->_module.setTargetTriple(llvm_target_triple);
+
+	auto const triple = llvm::Triple(llvm_target_triple);
+	auto const os = triple.getOS();
+	auto const arch = triple.getArch();
+
+	if (os == llvm::Triple::Win32 && arch == llvm::Triple::x86_64)
+	{
+		this->_platform_abi = abi::platform_abi::microsoft_x64;
+	}
+	else if (os == llvm::Triple::Linux && arch == llvm::Triple::x86_64)
+	{
+		this->_platform_abi = abi::platform_abi::systemv_amd64;
+	}
+	else
+	{
+		this->_platform_abi = abi::platform_abi::generic;
+	}
+
+	if (this->_platform_abi == abi::platform_abi::generic)
+	{
+		global_ctx.report_warning(
+			ctx::warning_kind::unknown_target,
+			bz::format(
+				"target '{}' has limited support right now, external function calls may not work as intended",
+				llvm_target_triple.c_str()
+			)
+		);
+	}
 }
 
 static llvm::PassBuilder get_pass_builder(llvm::TargetMachine *tm)
@@ -195,7 +222,7 @@ static void emit_struct_symbols_helper(bz::array_view<ast::statement const> decl
 {
 	for (auto const &struct_decl : filter_struct_decls(decls))
 	{
-		bc::emit_global_type_symbol(struct_decl.info, context);
+		emit_global_type_symbol(struct_decl.info, context);
 
 		if (struct_decl.info.kind == ast::type_info::aggregate)
 		{
@@ -224,7 +251,7 @@ static void emit_structs_helper(bz::array_view<ast::statement const> decls, bitc
 {
 	for (auto const &struct_decl : filter_struct_decls(decls))
 	{
-		bc::emit_global_type(struct_decl.info, context);
+		emit_global_type(struct_decl.info, context);
 
 		if (struct_decl.info.kind == ast::type_info::aggregate)
 		{
@@ -255,7 +282,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	{
 		if (var_decl.is_global())
 		{
-			bc::emit_global_variable(var_decl, context);
+			emit_global_variable(var_decl, context);
 		}
 	}
 
@@ -284,9 +311,52 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	}
 }
 
-[[nodiscard]] bool llvm_context::emit_bitcode(global_context &global_ctx)
+[[nodiscard]] bool backend_context::generate_and_output_code(
+	ctx::global_context &global_ctx,
+	bz::optional<bz::u8string_view> output_path
+)
 {
-	bitcode_context context(global_ctx, &this->_module);
+	if (!this->emit_bitcode(global_ctx))
+	{
+		return false;
+	}
+
+	if (!this->optimize())
+	{
+		return false;
+	}
+
+	// only here for debug purposes, the '--emit' option does not control this
+#ifndef NDEBUG
+	if (debug_ir_output)
+	{
+		std::error_code ec;
+		llvm::raw_fd_ostream file("debug_output.ll", ec, llvm::sys::fs::OF_Text);
+		if (!ec)
+		{
+			this->_module.print(file, nullptr);
+		}
+		else
+		{
+			bz::print(stderr, "{}unable to write output.ll{}\n", colors::bright_red, colors::clear);
+		}
+	}
+#endif // !NDEBUG
+
+	if (output_path.has_value())
+	{
+		if (!this->emit_file(global_ctx, output_path.get()))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+[[nodiscard]] bool backend_context::emit_bitcode(ctx::global_context &global_ctx)
+{
+	bitcode_context context(global_ctx, *this, &this->_module);
 
 	llvm::LoopAnalysisManager loop_analysis_manager;
 	llvm::FunctionAnalysisManager function_analysis_manager;
@@ -365,12 +435,12 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 		}
 	}
 
-	bc::emit_necessary_functions(context);
+	emit_necessary_functions(context);
 
 	return !global_ctx.has_errors();
 }
 
-[[nodiscard]] bool llvm_context::optimize(void)
+[[nodiscard]] bool backend_context::optimize(void)
 {
 	if (max_opt_iter_count == 0)
 	{
@@ -431,60 +501,29 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	return true;
 }
 
-[[nodiscard]] bool llvm_context::emit_file(global_context &global_ctx)
+[[nodiscard]] bool backend_context::emit_file(ctx::global_context &global_ctx, bz::u8string_view output_path)
 {
-	// only here for debug purposes, the '--emit' option does not control this
-#ifndef NDEBUG
-	if (debug_ir_output)
+	switch (this->_output_code)
 	{
-		std::error_code ec;
-		llvm::raw_fd_ostream file("debug_output.ll", ec, llvm::sys::fs::OF_Text);
-		if (!ec)
-		{
-			this->_module.print(file, nullptr);
-		}
-		else
-		{
-			bz::print(stderr, "{}unable to write output.ll{}\n", colors::bright_red, colors::clear);
-		}
-	}
-#endif // !NDEBUG
-
-	switch (emit_file_type)
-	{
-	case emit_type::obj:
-		return this->emit_obj(global_ctx);
-	case emit_type::asm_:
-		return this->emit_asm(global_ctx);
-	case emit_type::llvm_bc:
-		return this->emit_llvm_bc(global_ctx);
-	case emit_type::llvm_ir:
-		return this->emit_llvm_ir(global_ctx);
-	case emit_type::null:
-		return true;
+	case output_code_kind::obj:
+		return this->emit_obj(global_ctx, output_path);
+	case output_code_kind::asm_:
+		return this->emit_asm(global_ctx, output_path);
+	case output_code_kind::llvm_bc:
+		return this->emit_llvm_bc(global_ctx, output_path);
+	case output_code_kind::llvm_ir:
+		return this->emit_llvm_ir(global_ctx, output_path);
 	}
 	bz_unreachable;
 }
 
-[[nodiscard]] bool llvm_context::emit_obj(global_context &global_ctx)
+[[nodiscard]] bool backend_context::emit_obj(ctx::global_context &global_ctx, bz::u8string_view output_path)
 {
-	bz::u8string const &output_file = output_file_name != ""
-		? output_file_name
-		: []() {
-			auto const slash_it = source_file.rfind_any("/\\");
-			auto const dot = source_file.rfind('.');
-			bz_assert(dot != bz::u8iterator{});
-			return bz::format("{}.o", bz::u8string(
-				slash_it == bz::u8iterator{} ? source_file.begin() : slash_it + 1,
-				dot
-			));
-		}();
-
-	if (output_file != "-" && !output_file.ends_with(".o"))
+	if (output_path != "-" && !output_path.ends_with(".o"))
 	{
 		global_ctx.report_warning(
-			warning_kind::bad_file_extension,
-			bz::format("object output file '{}' doesn't have the file extension '.o'", output_file)
+			ctx::warning_kind::bad_file_extension,
+			bz::format("object output file '{}' doesn't have the file extension '.o'", output_path)
 		);
 	}
 
@@ -492,7 +531,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	// http://llvm.org/doxygen/classllvm_1_1raw__fd__ostream.html#af5462bc0fe5a61eccc662708da280e64
 	std::error_code ec;
 	llvm::raw_fd_ostream dest(
-		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+		llvm::StringRef(output_path.data(), output_path.size()),
 		ec, llvm::sys::fs::OF_None
 	);
 
@@ -500,15 +539,15 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	{
 		global_ctx.report_error(bz::format(
 			"unable to open output file '{}', reason: '{}'",
-			output_file, ec.message().c_str()
+			output_path, ec.message().c_str()
 		));
 		return false;
 	}
 
-	if (output_file == "-")
+	if (output_path == "-")
 	{
 		global_ctx.report_warning(
-			warning_kind::binary_stdout,
+			ctx::warning_kind::binary_stdout,
 			"outputting binary file to stdout"
 		);
 	}
@@ -527,25 +566,13 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	return true;
 }
 
-[[nodiscard]] bool llvm_context::emit_asm(global_context &global_ctx)
+[[nodiscard]] bool backend_context::emit_asm(ctx::global_context &global_ctx, bz::u8string_view output_path)
 {
-	bz::u8string const &output_file = output_file_name != ""
-		? output_file_name
-		: []() {
-			auto const slash_it = source_file.rfind('/');
-			auto const dot = source_file.rfind('.');
-			bz_assert(dot != bz::u8iterator{});
-			return bz::format("{}.s", bz::u8string(
-				slash_it == bz::u8iterator{} ? source_file.begin() : slash_it + 1,
-				dot
-			));
-		}();
-
-	if (output_file != "-" && !output_file.ends_with(".s"))
+	if (output_path != "-" && !output_path.ends_with(".s"))
 	{
 		global_ctx.report_warning(
-			warning_kind::bad_file_extension,
-			bz::format("assembly output file '{}' doesn't have the file extension '.s'", output_file)
+			ctx::warning_kind::bad_file_extension,
+			bz::format("assembly output file '{}' doesn't have the file extension '.s'", output_path)
 		);
 	}
 
@@ -553,7 +580,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	// http://llvm.org/doxygen/classllvm_1_1raw__fd__ostream.html#af5462bc0fe5a61eccc662708da280e64
 	std::error_code ec;
 	llvm::raw_fd_ostream dest(
-		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+		llvm::StringRef(output_path.data(), output_path.size()),
 		ec, llvm::sys::fs::OF_None
 	);
 
@@ -561,7 +588,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	{
 		global_ctx.report_error(bz::format(
 			"unable to open output file '{}', reason: '{}'",
-			output_file, ec.message().c_str()
+			output_path, ec.message().c_str()
 		));
 		return false;
 	}
@@ -582,26 +609,14 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	return true;
 }
 
-[[nodiscard]] bool llvm_context::emit_llvm_bc(global_context &global_ctx)
+[[nodiscard]] bool backend_context::emit_llvm_bc(ctx::global_context &global_ctx, bz::u8string_view output_path)
 {
 	auto &module = this->_module;
-	bz::u8string const &output_file = output_file_name != ""
-		? output_file_name
-		: []() {
-			auto const slash_it = source_file.rfind('/');
-			auto const dot = source_file.rfind('.');
-			bz_assert(dot != bz::u8iterator{});
-			return bz::format("{}.bc", bz::u8string(
-				slash_it == bz::u8iterator{} ? source_file.begin() : slash_it + 1,
-				dot
-			));
-		}();
-
-	if (output_file != "-" && !output_file.ends_with(".bc"))
+	if (output_path != "-" && !output_path.ends_with(".bc"))
 	{
 		global_ctx.report_warning(
-			warning_kind::bad_file_extension,
-			bz::format("LLVM bitcode output file '{}' doesn't have the file extension '.bc'", output_file)
+			ctx::warning_kind::bad_file_extension,
+			bz::format("LLVM bitcode output file '{}' doesn't have the file extension '.bc'", output_path)
 		);
 	}
 
@@ -609,7 +624,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	// http://llvm.org/doxygen/classllvm_1_1raw__fd__ostream.html#af5462bc0fe5a61eccc662708da280e64
 	std::error_code ec;
 	llvm::raw_fd_ostream dest(
-		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+		llvm::StringRef(output_path.data(), output_path.size()),
 		ec, llvm::sys::fs::OF_None
 	);
 
@@ -617,15 +632,15 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	{
 		global_ctx.report_error(bz::format(
 			"unable to open output file '{}', reason: '{}'",
-			output_file, ec.message().c_str()
+			output_path, ec.message().c_str()
 		));
 		return false;
 	}
 
-	if (output_file == "-")
+	if (output_path == "-")
 	{
 		global_ctx.report_warning(
-			warning_kind::binary_stdout,
+			ctx::warning_kind::binary_stdout,
 			"outputting binary file to stdout"
 		);
 	}
@@ -634,26 +649,14 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	return true;
 }
 
-[[nodiscard]] bool llvm_context::emit_llvm_ir(global_context &global_ctx)
+[[nodiscard]] bool backend_context::emit_llvm_ir(ctx::global_context &global_ctx, bz::u8string_view output_path)
 {
 	auto &module = this->_module;
-	bz::u8string const &output_file = output_file_name != ""
-		? output_file_name
-		: []() {
-			auto const slash_it = source_file.rfind('/');
-			auto const dot = source_file.rfind('.');
-			bz_assert(dot != bz::u8iterator{});
-			return bz::format("{}.ll", bz::u8string(
-				slash_it == bz::u8iterator{} ? source_file.begin() : slash_it + 1,
-				dot
-			));
-		}();
-
-	if (output_file != "-" && !output_file.ends_with(".ll"))
+	if (output_path != "-" && !output_path.ends_with(".ll"))
 	{
 		global_ctx.report_warning(
-			warning_kind::bad_file_extension,
-			bz::format("LLVM IR output file '{}' doesn't have the file extension '.ll'", output_file)
+			ctx::warning_kind::bad_file_extension,
+			bz::format("LLVM IR output file '{}' doesn't have the file extension '.ll'", output_path)
 		);
 	}
 
@@ -661,7 +664,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	// http://llvm.org/doxygen/classllvm_1_1raw__fd__ostream.html#af5462bc0fe5a61eccc662708da280e64
 	std::error_code ec;
 	llvm::raw_fd_ostream dest(
-		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+		llvm::StringRef(output_path.data(), output_path.size()),
 		ec, llvm::sys::fs::OF_None
 	);
 
@@ -669,7 +672,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	{
 		global_ctx.report_error(bz::format(
 			"unable to open output file '{}', reason: '{}'",
-			output_file, ec.message().c_str()
+			output_path, ec.message().c_str()
 		));
 		return false;
 	}
@@ -678,4 +681,4 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	return true;
 }
 
-} // namespace ctx
+} // namespace codegen::llvm_latest

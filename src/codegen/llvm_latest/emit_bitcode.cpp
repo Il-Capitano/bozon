@@ -5,7 +5,7 @@
 
 #include <llvm/IR/Verifier.h>
 
-namespace bc
+namespace codegen::llvm_latest
 {
 
 constexpr size_t array_loop_threshold = 16;
@@ -14,18 +14,18 @@ static llvm::Constant *get_value(
 	ast::constant_value const &value,
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
-	ctx::bitcode_context &context
+	bitcode_context &context
 );
 
 static val_ptr emit_bitcode(
 	ast::expression const &expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 );
 
 static void emit_bitcode(
 	ast::statement const &stmt,
-	ctx::bitcode_context &context
+	bitcode_context &context
 );
 
 static int get_unique_id(void)
@@ -47,7 +47,7 @@ struct is_byval_and_type_pair
 	llvm::Type *type;
 };
 
-static void emit_memcpy(llvm::Value *dest, llvm::Value *source, size_t size, ctx::bitcode_context &context)
+static void emit_memcpy(llvm::Value *dest, llvm::Value *source, size_t size, bitcode_context &context)
 {
 	auto const memcpy_fn = context.get_function(context.get_builtin_function(ast::function_body::memcpy));
 	auto const size_val = llvm::ConstantInt::get(context.get_usize_t(), size);
@@ -55,7 +55,7 @@ static void emit_memcpy(llvm::Value *dest, llvm::Value *source, size_t size, ctx
 	context.create_call(memcpy_fn, { dest, source, size_val, false_val });
 }
 
-static void emit_value_copy(val_ptr value, llvm::Value *dest_ptr, ctx::bitcode_context &context)
+static void emit_value_copy(val_ptr value, llvm::Value *dest_ptr, bitcode_context &context)
 {
 	if (value.kind == val_ptr::value || !value.get_type()->isAggregateType())
 	{
@@ -74,7 +74,7 @@ static void add_call_parameter(
 	val_ptr param,
 	ast::arena_vector<llvm::Value *> &params,
 	ast::arena_vector<is_byval_and_type_pair> &params_is_byval,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	using params_push_type = llvm::Value *&(ast::arena_vector<llvm::Value *>::*)(llvm::Value * const &);
@@ -171,7 +171,7 @@ static void add_call_parameter(
 	}
 }
 
-static void add_byval_attributes(llvm::CallInst *call, llvm::Type *byval_type, unsigned index, ctx::bitcode_context &context)
+static void add_byval_attributes(llvm::CallInst *call, llvm::Type *byval_type, unsigned index, bitcode_context &context)
 {
 	auto const attributes = abi::get_pass_by_reference_attributes(context.get_platform_abi());
 	for (auto const attribute : attributes)
@@ -190,7 +190,7 @@ static void add_byval_attributes(llvm::CallInst *call, llvm::Type *byval_type, u
 	}
 }
 
-static void add_byval_attributes(llvm::Argument &arg, llvm::Type *byval_type, ctx::bitcode_context &context)
+static void add_byval_attributes(llvm::Argument &arg, llvm::Type *byval_type, bitcode_context &context)
 {
 	auto const attributes = abi::get_pass_by_reference_attributes(context.get_platform_abi());
 	for (auto const attribute : attributes)
@@ -212,7 +212,7 @@ static void add_byval_attributes(llvm::Argument &arg, llvm::Type *byval_type, ct
 static void emit_panic_call(
 	lex::src_tokens const &src_tokens,
 	bz::u8string_view message,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	auto const panic_handler_func_body = context.get_builtin_function(ast::function_body::builtin_panic_handler);
@@ -288,7 +288,7 @@ static void emit_panic_call(
 	}
 }
 
-static llvm::Value *optional_has_value(val_ptr optional_val, ctx::bitcode_context &context)
+static llvm::Value *optional_has_value(val_ptr optional_val, bitcode_context &context)
 {
 	if (optional_val.get_type()->isPointerTy())
 	{
@@ -308,7 +308,7 @@ static llvm::Value *optional_has_value(val_ptr optional_val, ctx::bitcode_contex
 	}
 }
 
-static val_ptr optional_get_value_ptr(val_ptr optional_val, ctx::bitcode_context &context)
+static val_ptr optional_get_value_ptr(val_ptr optional_val, bitcode_context &context)
 {
 	if (optional_val.get_type()->isPointerTy())
 	{
@@ -326,7 +326,7 @@ static val_ptr optional_get_value_ptr(val_ptr optional_val, ctx::bitcode_context
 	}
 }
 
-static void optional_set_has_value(val_ptr optional_val, bool has_value, ctx::bitcode_context &context)
+static void optional_set_has_value(val_ptr optional_val, bool has_value, bitcode_context &context)
 {
 	bz_assert(optional_val.kind == val_ptr::reference);
 	if (optional_val.get_type()->isPointerTy())
@@ -343,7 +343,7 @@ static void optional_set_has_value(val_ptr optional_val, bool has_value, ctx::bi
 	}
 }
 
-static void optional_set_has_value(val_ptr optional_val, llvm::Value *has_value, ctx::bitcode_context &context)
+static void optional_set_has_value(val_ptr optional_val, llvm::Value *has_value, bitcode_context &context)
 {
 	bz_assert(optional_val.kind == val_ptr::reference);
 	bz_assert(!optional_val.get_type()->isPointerTy());
@@ -355,7 +355,7 @@ static void optional_set_has_value(val_ptr optional_val, llvm::Value *has_value,
 static void emit_null_optional_get_value_check(
 	lex::src_tokens const &src_tokens,
 	val_ptr optional_val,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	if (panic_on_null_get_value)
@@ -377,7 +377,7 @@ static void emit_null_optional_get_value_check(
 static void emit_null_pointer_arithmetic_check(
 	lex::src_tokens const &src_tokens,
 	llvm::Value *ptr,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	if (panic_on_null_pointer_arithmetic)
@@ -405,7 +405,7 @@ struct array_init_loop_info_t
 	ExprScopeInfoT prev_info;
 };
 
-static auto create_loop_start(size_t size, ctx::bitcode_context &context)
+static auto create_loop_start(size_t size, bitcode_context &context)
 	-> array_init_loop_info_t<typename bz::meta::remove_cv_reference<decltype(context)>::expression_scope_info_t>
 {
 	// create a loop
@@ -433,7 +433,7 @@ static auto create_loop_start(size_t size, ctx::bitcode_context &context)
 }
 
 template<typename T>
-static void create_loop_end(array_init_loop_info_t<T> loop_info, ctx::bitcode_context &context)
+static void create_loop_end(array_init_loop_info_t<T> loop_info, bitcode_context &context)
 {
 	context.pop_expression_scope(loop_info.prev_info);
 
@@ -456,7 +456,7 @@ struct array_destruct_loop_info_t
 	ExprScopeInfoT prev_info;
 };
 
-static auto create_reversed_loop_start(size_t size, ctx::bitcode_context &context)
+static auto create_reversed_loop_start(size_t size, bitcode_context &context)
 	-> array_destruct_loop_info_t<typename bz::meta::remove_cv_reference<decltype(context)>::expression_scope_info_t>
 {
 	// create a loop
@@ -487,7 +487,7 @@ static auto create_reversed_loop_start(size_t size, ctx::bitcode_context &contex
 }
 
 template<typename T>
-static void create_reversed_loop_end(array_destruct_loop_info_t<T> loop_info, ctx::bitcode_context &context)
+static void create_reversed_loop_end(array_destruct_loop_info_t<T> loop_info, bitcode_context &context)
 {
 	context.pop_expression_scope(loop_info.prev_info);
 
@@ -505,7 +505,7 @@ static void create_reversed_loop_end(array_destruct_loop_info_t<T> loop_info, ct
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_variable_name const &var_name,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -518,7 +518,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_function_name const &,
-	ctx::bitcode_context &,
+	bitcode_context &,
 	llvm::Value *result_address
 )
 {
@@ -529,7 +529,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_function_alias_name const &,
-	ctx::bitcode_context &,
+	bitcode_context &,
 	llvm::Value *result_address
 )
 {
@@ -540,7 +540,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_function_overload_set const &,
-	ctx::bitcode_context &,
+	bitcode_context &,
 	llvm::Value *result_address
 )
 {
@@ -551,7 +551,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_struct_name const &,
-	ctx::bitcode_context &,
+	bitcode_context &,
 	llvm::Value *
 )
 {
@@ -562,7 +562,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_enum_name const &,
-	ctx::bitcode_context &,
+	bitcode_context &,
 	llvm::Value *
 )
 {
@@ -573,7 +573,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_type_alias_name const &,
-	ctx::bitcode_context &,
+	bitcode_context &,
 	llvm::Value *
 )
 {
@@ -584,7 +584,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_integer_literal const &,
-	ctx::bitcode_context &,
+	bitcode_context &,
 	llvm::Value *
 )
 {
@@ -595,7 +595,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_null_literal const &,
-	ctx::bitcode_context &,
+	bitcode_context &,
 	llvm::Value *
 )
 {
@@ -606,7 +606,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_enum_literal const &,
-	ctx::bitcode_context &,
+	bitcode_context &,
 	llvm::Value *
 )
 {
@@ -617,7 +617,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_typed_literal const &,
-	ctx::bitcode_context &,
+	bitcode_context &,
 	llvm::Value *
 )
 {
@@ -628,7 +628,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_placeholder_literal const &,
-	ctx::bitcode_context &,
+	bitcode_context &,
 	llvm::Value *
 )
 {
@@ -639,7 +639,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_typename_literal const &,
-	ctx::bitcode_context &,
+	bitcode_context &,
 	llvm::Value *
 )
 {
@@ -650,7 +650,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_tuple const &tuple_expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -674,7 +674,7 @@ static val_ptr emit_bitcode(
 
 static val_ptr emit_builtin_unary_address_of(
 	ast::expression const &expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -693,7 +693,7 @@ static val_ptr emit_builtin_unary_address_of(
 
 static val_ptr emit_builtin_unary_plus(
 	ast::expression const &expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -702,7 +702,7 @@ static val_ptr emit_builtin_unary_plus(
 
 static val_ptr emit_builtin_unary_minus(
 	ast::expression const &expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -727,7 +727,7 @@ static val_ptr emit_builtin_unary_minus(
 static val_ptr emit_builtin_unary_dereference(
 	lex::src_tokens const &src_tokens,
 	ast::expression const &expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -764,7 +764,7 @@ static val_ptr emit_builtin_unary_dereference(
 
 static val_ptr emit_builtin_unary_bit_not(
 	ast::expression const &expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -783,7 +783,7 @@ static val_ptr emit_builtin_unary_bit_not(
 
 static val_ptr emit_builtin_unary_bool_not(
 	ast::expression const &expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -802,7 +802,7 @@ static val_ptr emit_builtin_unary_bool_not(
 
 static val_ptr emit_builtin_unary_plus_plus(
 	ast::expression const &expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -856,7 +856,7 @@ static val_ptr emit_builtin_unary_plus_plus(
 
 static val_ptr emit_builtin_unary_minus_minus(
 	ast::expression const &expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -911,7 +911,7 @@ static val_ptr emit_builtin_unary_minus_minus(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_unary_op const &unary_op,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -939,7 +939,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_builtin_binary_assign(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -961,7 +961,7 @@ static val_ptr emit_builtin_binary_assign(
 static val_ptr emit_builtin_binary_plus(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -1103,7 +1103,7 @@ static val_ptr emit_builtin_binary_plus(
 static val_ptr emit_builtin_binary_plus_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -1209,7 +1209,7 @@ static val_ptr emit_builtin_binary_plus_eq(
 static val_ptr emit_builtin_binary_minus(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -1377,7 +1377,7 @@ static val_ptr emit_builtin_binary_minus(
 static val_ptr emit_builtin_binary_minus_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -1491,7 +1491,7 @@ static val_ptr emit_builtin_binary_minus_eq(
 static val_ptr emit_builtin_binary_multiply(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -1522,7 +1522,7 @@ static val_ptr emit_builtin_binary_multiply(
 static val_ptr emit_builtin_binary_multiply_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -1556,7 +1556,7 @@ static val_ptr emit_builtin_binary_multiply_eq(
 static val_ptr emit_builtin_binary_divide(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -1588,7 +1588,7 @@ static val_ptr emit_builtin_binary_divide(
 static val_ptr emit_builtin_binary_divide_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -1623,7 +1623,7 @@ static val_ptr emit_builtin_binary_divide_eq(
 static val_ptr emit_builtin_binary_modulo(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -1655,7 +1655,7 @@ static val_ptr emit_builtin_binary_modulo(
 static val_ptr emit_builtin_binary_modulo_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -1691,7 +1691,7 @@ static val_ptr emit_builtin_binary_cmp(
 	uint32_t op,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -1847,7 +1847,7 @@ static val_ptr emit_builtin_binary_cmp(
 static val_ptr emit_builtin_binary_bit_and(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -1880,7 +1880,7 @@ static val_ptr emit_builtin_binary_bit_and(
 static val_ptr emit_builtin_binary_bit_and_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -1916,7 +1916,7 @@ static val_ptr emit_builtin_binary_bit_and_eq(
 static val_ptr emit_builtin_binary_bit_xor(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -1949,7 +1949,7 @@ static val_ptr emit_builtin_binary_bit_xor(
 static val_ptr emit_builtin_binary_bit_xor_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -1985,7 +1985,7 @@ static val_ptr emit_builtin_binary_bit_xor_eq(
 static val_ptr emit_builtin_binary_bit_or(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -2018,7 +2018,7 @@ static val_ptr emit_builtin_binary_bit_or(
 static val_ptr emit_builtin_binary_bit_or_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -2054,7 +2054,7 @@ static val_ptr emit_builtin_binary_bit_or_eq(
 static val_ptr emit_builtin_binary_left_shift(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -2084,7 +2084,7 @@ static val_ptr emit_builtin_binary_left_shift(
 static val_ptr emit_builtin_binary_left_shift_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -2117,7 +2117,7 @@ static val_ptr emit_builtin_binary_left_shift_eq(
 static val_ptr emit_builtin_binary_right_shift(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -2147,7 +2147,7 @@ static val_ptr emit_builtin_binary_right_shift(
 static val_ptr emit_builtin_binary_right_shift_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -2212,7 +2212,7 @@ static range_kind range_kind_from_name(bz::u8string_view struct_name)
 static val_ptr emit_builtin_subscript_range(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -2381,7 +2381,7 @@ static val_ptr emit_builtin_subscript_range(
 
 static val_ptr emit_builtin_binary_bool_and(
 	ast::expr_binary_op const &binary_op,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -2438,7 +2438,7 @@ static val_ptr emit_builtin_binary_bool_and(
 
 static val_ptr emit_builtin_binary_bool_xor(
 	ast::expr_binary_op const &binary_op,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -2468,7 +2468,7 @@ static val_ptr emit_builtin_binary_bool_xor(
 
 static val_ptr emit_builtin_binary_bool_or(
 	ast::expr_binary_op const &binary_op,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -2527,7 +2527,7 @@ static val_ptr emit_builtin_binary_bool_or(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_binary_op const &binary_op,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -2562,7 +2562,7 @@ static call_args_info_t emit_function_call_args(
 	llvm::Type *result_type,
 	abi::pass_kind result_kind,
 	ast::expr_function_call const &func_call,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -2663,7 +2663,7 @@ static val_ptr emit_function_call(
 	llvm::CallingConv::ID calling_convention,
 	bz::array_view<llvm::Value * const> args,
 	bz::array_view<is_byval_and_type_pair const> args_is_byval,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -2748,7 +2748,7 @@ static val_ptr emit_function_call(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
 	ast::expr_function_call const &func_call,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -3891,7 +3891,7 @@ static call_args_info_t emit_function_call_args(
 	abi::pass_kind result_kind,
 	ast::expr_indirect_function_call const &func_call,
 	bz::array_view<ast::typespec const> param_types,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -3946,7 +3946,7 @@ static call_args_info_t emit_function_call_args(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_indirect_function_call const &func_call,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -3996,7 +3996,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_tuple_subscript const &tuple_subscript,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4025,7 +4025,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_rvalue_tuple_subscript const &rvalue_tuple_subscript,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4066,7 +4066,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_subscript const &subscript,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4179,7 +4179,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_rvalue_array_subscript const &subscript,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4215,7 +4215,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_cast const &cast,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4394,7 +4394,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_bit_cast const &bit_cast,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4411,7 +4411,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_optional_cast const &optional_cast,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4436,7 +4436,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_take_reference const &take_ref,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4448,7 +4448,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_take_move_reference const &take_move_ref,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4470,7 +4470,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_aggregate_init const &aggregate_init,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4488,7 +4488,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_array_value_init const &array_value_init,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4532,7 +4532,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_aggregate_default_construct const &aggregate_default_construct,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4550,7 +4550,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_array_default_construct const &array_default_construct,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4587,7 +4587,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_optional_default_construct const &optional_default_construct,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4623,7 +4623,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_builtin_default_construct const &builtin_default_construct,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4657,7 +4657,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_aggregate_copy_construct const &aggregate_copy_construct,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4681,7 +4681,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_array_copy_construct const &array_copy_construct,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4732,7 +4732,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_optional_copy_construct const &optional_copy_construct,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4772,7 +4772,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_trivial_copy_construct const &trivial_copy_construct,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4796,7 +4796,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_aggregate_move_construct const &aggregate_move_construct,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4822,7 +4822,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_array_move_construct const &array_move_construct,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4875,7 +4875,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_optional_move_construct const &optional_move_construct,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4923,7 +4923,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_trivial_relocate const &trivial_relocate,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4953,7 +4953,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_aggregate_destruct const &aggregate_destruct,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -4983,7 +4983,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_array_destruct const &array_destruct,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5025,7 +5025,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_optional_destruct const &optional_destruct,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5059,7 +5059,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_base_type_destruct const &base_type_destruct,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5096,7 +5096,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_destruct_value const &destruct_value,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5115,7 +5115,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_aggregate_assign const &aggregate_assign,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5149,7 +5149,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_array_assign const &array_assign,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5205,7 +5205,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_optional_assign const &optional_assign,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5305,7 +5305,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_optional_null_assign const &optional_null_assign,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5343,7 +5343,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_optional_value_assign const &optional_value_assign,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5402,7 +5402,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_optional_reference_value_assign const &optional_reference_value_assign,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5420,7 +5420,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_base_type_assign const &base_type_assign,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5472,7 +5472,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_trivial_assign const &trivial_assign,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5506,7 +5506,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_aggregate_swap const &aggregate_swap,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5539,7 +5539,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_array_swap const &array_swap,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5591,7 +5591,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_optional_swap const &optional_swap,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5701,7 +5701,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_base_type_swap const &base_type_swap,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5760,7 +5760,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_trivial_swap const &trivial_swap,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5806,7 +5806,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_member_access const &member_access,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5856,7 +5856,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
 	ast::expr_optional_extract_value const &optional_extract_value,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5891,7 +5891,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_rvalue_member_access const &rvalue_member_access,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5948,7 +5948,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_type_member_access const &member_access,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5963,7 +5963,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_compound const &compound_expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -5988,7 +5988,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_if const &if_expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -6117,7 +6117,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_if_consteval const &if_expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -6143,7 +6143,7 @@ static val_ptr emit_integral_switch(
 	lex::src_tokens const &src_tokens,
 	llvm::Value *matched_value,
 	ast::expr_switch const &switch_expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -6288,7 +6288,7 @@ struct string_switch_case_info_t
 	ast::arena_vector<value_bb_pair_t> values;
 };
 
-static llvm::ConstantInt *get_string_int_val(bz::u8string_view str, llvm::Type *int_type, ctx::bitcode_context &context)
+static llvm::ConstantInt *get_string_int_val(bz::u8string_view str, llvm::Type *int_type, bitcode_context &context)
 {
 	bz_assert(str.size() <= 8);
 	uint64_t result = 0;
@@ -6312,7 +6312,7 @@ static llvm::ConstantInt *get_string_int_val(bz::u8string_view str, llvm::Type *
 	return llvm::cast<llvm::ConstantInt>(llvm::ConstantInt::get(int_type, result));
 }
 
-static llvm::Value *are_strings_equal(llvm::Value *begin_ptr, bz::u8string_view str, llvm::BasicBlock *else_bb, ctx::bitcode_context &context)
+static llvm::Value *are_strings_equal(llvm::Value *begin_ptr, bz::u8string_view str, llvm::BasicBlock *else_bb, bitcode_context &context)
 {
 	auto const global_str = context.create_string(str);
 	auto const size = str.size();
@@ -6360,7 +6360,7 @@ static llvm::Value *are_strings_equal(llvm::Value *begin_ptr, bz::u8string_view 
 static val_ptr emit_string_switch(
 	val_ptr matched_value,
 	ast::expr_switch const &switch_expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -6560,7 +6560,7 @@ static val_ptr emit_string_switch(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
 	ast::expr_switch const &switch_expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -6581,7 +6581,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_break const &,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *
 )
 {
@@ -6596,7 +6596,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_continue const &,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *
 )
 {
@@ -6611,7 +6611,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_unreachable const &unreachable_expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *
 )
 {
@@ -6638,7 +6638,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_generic_type_instantiation const &,
-	ctx::bitcode_context &,
+	bitcode_context &,
 	llvm::Value *
 )
 {
@@ -6648,7 +6648,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
 	ast::expr_bitcode_value_reference const &bitcode_value_reference,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -6708,7 +6708,7 @@ static llvm::Constant *get_array_value(
 	bz::array_view<ast::constant_value const> values,
 	ast::ts_array const &array_type,
 	llvm::ArrayType *type,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	if (values.is_all([](auto const &value) { return is_zero_value(value); }))
@@ -6746,7 +6746,7 @@ static llvm::Constant *get_sint_array_value(
 	bz::array_view<int64_t const> values,
 	ast::ts_array const &array_type,
 	llvm::ArrayType *type,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	if (values.is_all([](auto const value) { return value == 0; }))
@@ -6785,7 +6785,7 @@ static llvm::Constant *get_uint_array_value(
 	bz::array_view<uint64_t const> values,
 	ast::ts_array const &array_type,
 	llvm::ArrayType *type,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	if (values.is_all([](auto const value) { return value == 0; }))
@@ -6824,7 +6824,7 @@ static llvm::Constant *get_float32_array_value(
 	bz::array_view<float32_t const> values,
 	ast::ts_array const &array_type,
 	llvm::ArrayType *type,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	if (values.is_all([](auto const value) { return bit_cast<uint32_t>(value) == 0; }))
@@ -6864,7 +6864,7 @@ static llvm::Constant *get_float64_array_value(
 	bz::array_view<float64_t const> values,
 	ast::ts_array const &array_type,
 	llvm::ArrayType *type,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	if (values.is_all([](auto const value) { return bit_cast<uint64_t>(value) == 0; }))
@@ -6904,7 +6904,7 @@ static llvm::Constant *get_value_helper(
 	ast::constant_value const &value,
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	switch (value.kind())
@@ -7107,7 +7107,7 @@ static llvm::Constant *get_value(
 	ast::constant_value const &value,
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	type = ast::remove_const_or_consteval(type);
@@ -7146,7 +7146,7 @@ static llvm::Constant *get_value(
 	}
 }
 
-static void store_constant_at_address(llvm::Constant *const_val, llvm::Value *dest, ctx::bitcode_context &context)
+static void store_constant_at_address(llvm::Constant *const_val, llvm::Value *dest, bitcode_context &context)
 {
 	auto const type = const_val->getType();
 	if (type->isAggregateType() && const_val->isNullValue())
@@ -7187,7 +7187,7 @@ static void store_constant_at_address(llvm::Constant *const_val, llvm::Value *de
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
 	ast::constant_expression const &const_expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -7239,7 +7239,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
 	ast::dynamic_expression const &dyn_expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -7273,7 +7273,7 @@ static val_ptr emit_bitcode(
 
 static val_ptr emit_bitcode(
 	ast::expression const &expr,
-	ctx::bitcode_context &context,
+	bitcode_context &context,
 	llvm::Value *result_address
 )
 {
@@ -7302,7 +7302,7 @@ static val_ptr emit_bitcode(
 
 static void emit_bitcode(
 	ast::stmt_while const &while_stmt,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	auto const condition_check_bb = context.add_basic_block("while_condition_check");
@@ -7333,7 +7333,7 @@ static void emit_bitcode(
 
 static void emit_bitcode(
 	ast::stmt_for const &for_stmt,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	auto const outer_prev_info = context.push_expression_scope();
@@ -7386,7 +7386,7 @@ static void emit_bitcode(
 
 static void emit_bitcode(
 	ast::stmt_foreach const &foreach_stmt,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	auto const outer_prev_info = context.push_expression_scope();
@@ -7433,7 +7433,7 @@ static void emit_bitcode(
 
 static void emit_bitcode(
 	ast::stmt_return const &ret_stmt,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	if (ret_stmt.expr.is_null())
@@ -7503,7 +7503,7 @@ static void emit_bitcode(
 
 static void emit_bitcode(
 	ast::stmt_defer const &defer_stmt,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	context.push_destruct_operation(defer_stmt.deferred_expr);
@@ -7511,7 +7511,7 @@ static void emit_bitcode(
 
 static void emit_bitcode(
 	ast::stmt_no_op const &,
-	ctx::bitcode_context &
+	bitcode_context &
 )
 {
 	// we do nothing
@@ -7520,7 +7520,7 @@ static void emit_bitcode(
 
 static void emit_bitcode(
 	ast::stmt_expression const &expr_stmt,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	auto const prev_info = context.push_expression_scope();
@@ -7532,7 +7532,7 @@ static void add_variable_helper(
 	ast::decl_variable const &var_decl,
 	llvm::Value *ptr,
 	llvm::Type *type,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	if (var_decl.tuple_decls.empty())
@@ -7570,7 +7570,7 @@ static void add_variable_helper(
 
 static void emit_bitcode(
 	ast::decl_variable const &var_decl,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	if (var_decl.is_global_storage())
@@ -7622,7 +7622,7 @@ static void emit_bitcode(
 
 static void emit_bitcode(
 	ast::statement const &stmt,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	if (context.has_terminator())
@@ -7678,7 +7678,7 @@ static void emit_bitcode(
 
 static llvm::Function *create_function_from_symbol(
 	ast::function_body &func_body,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	if (func_body.is_bitcode_emitted())
@@ -7868,14 +7868,14 @@ static llvm::Function *create_function_from_symbol(
 
 	switch (func_body.cc)
 	{
-	static_assert(static_cast<size_t>(abi::calling_convention::_last) == 3);
-	case abi::calling_convention::c:
+	static_assert(static_cast<size_t>(::abi::calling_convention::_last) == 3);
+	case ::abi::calling_convention::c:
 		fn->setCallingConv(llvm::CallingConv::C);
 		break;
-	case abi::calling_convention::fast:
+	case ::abi::calling_convention::fast:
 		fn->setCallingConv(llvm::CallingConv::Fast);
 		break;
-	case abi::calling_convention::std:
+	case ::abi::calling_convention::std:
 		fn->setCallingConv(llvm::CallingConv::X86_StdCall);
 		break;
 	default:
@@ -7907,7 +7907,7 @@ static llvm::Function *create_function_from_symbol(
 
 void add_function_to_module(
 	ast::function_body *func_body,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	auto const fn = create_function_from_symbol(*func_body, context);
@@ -7916,7 +7916,7 @@ void add_function_to_module(
 
 void emit_function_bitcode(
 	ast::function_body &func_body,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	bz_assert(!func_body.is_bitcode_emitted());
@@ -8082,7 +8082,7 @@ void emit_function_bitcode(
 	}
 }
 
-static void emit_global_variable_impl(ast::decl_variable const &var_decl, ctx::bitcode_context &context)
+static void emit_global_variable_impl(ast::decl_variable const &var_decl, bitcode_context &context)
 {
 	bz_assert(var_decl.is_global_storage());
 	auto const name = var_decl.symbol_name != "" ? var_decl.symbol_name : var_decl.get_id().format_for_symbol(get_unique_id());
@@ -8109,7 +8109,7 @@ static void emit_global_variable_impl(ast::decl_variable const &var_decl, ctx::b
 	context.add_variable(&var_decl, global_var, type);
 }
 
-void emit_global_variable(ast::decl_variable const &var_decl, ctx::bitcode_context &context)
+void emit_global_variable(ast::decl_variable const &var_decl, bitcode_context &context)
 {
 	if (context.vars_.contains(&var_decl))
 	{
@@ -8118,7 +8118,7 @@ void emit_global_variable(ast::decl_variable const &var_decl, ctx::bitcode_conte
 	emit_global_variable_impl(var_decl, context);
 }
 
-void emit_global_type_symbol(ast::type_info const &info, ctx::bitcode_context &context)
+void emit_global_type_symbol(ast::type_info const &info, bitcode_context &context)
 {
 	if (info.is_generic())
 	{
@@ -8159,7 +8159,7 @@ void emit_global_type_symbol(ast::type_info const &info, ctx::bitcode_context &c
 	}
 }
 
-void emit_global_type(ast::type_info const &info, ctx::bitcode_context &context)
+void emit_global_type(ast::type_info const &info, bitcode_context &context)
 {
 	if (info.is_generic())
 	{
@@ -8205,7 +8205,7 @@ void emit_global_type(ast::type_info const &info, ctx::bitcode_context &context)
 	}
 }
 
-void emit_necessary_functions(ctx::bitcode_context &context)
+void emit_necessary_functions(bitcode_context &context)
 {
 	for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
 	{
@@ -8222,7 +8222,7 @@ static void emit_rvalue_array_destruct(
 	ast::expression const &elem_destruct_expr,
 	val_ptr array_value,
 	llvm::Value *rvalue_array_elem_ptr,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	auto const array_type = array_value.get_type();
@@ -8300,7 +8300,7 @@ static void emit_destruct_operation_impl(
 	llvm::Value *condition,
 	llvm::Value *move_destruct_indicator,
 	llvm::Value *rvalue_array_elem_ptr,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	if (destruct_op.is<ast::destruct_variable>())
@@ -8412,7 +8412,7 @@ void emit_destruct_operation(
 	ast::destruct_operation const &destruct_op,
 	llvm::Value *condition,
 	llvm::Value *move_destruct_indicator,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	emit_destruct_operation_impl(
@@ -8431,7 +8431,7 @@ void emit_destruct_operation(
 	llvm::Value *condition,
 	llvm::Value *move_destruct_indicator,
 	llvm::Value *rvalue_array_elem_ptr,
-	ctx::bitcode_context &context
+	bitcode_context &context
 )
 {
 	emit_destruct_operation_impl(
@@ -8444,4 +8444,4 @@ void emit_destruct_operation(
 	);
 }
 
-} // namespace bc
+} // namespace codegen::llvm_latest
