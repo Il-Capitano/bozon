@@ -1,12 +1,12 @@
-#ifndef BC_COMMON_H
-#define BC_COMMON_H
+#ifndef CODEGEN_LLVM_LATEST_COMMON_H
+#define CODEGEN_LLVM_LATEST_COMMON_H
 
 #include <llvm/IR/Type.h>
 #include <llvm/IR/DerivedTypes.h>
 #include "ast/typespec.h"
 #include "ast/statement.h"
 
-namespace bc
+namespace codegen::llvm_latest
 {
 
 template<typename Context>
@@ -122,6 +122,6 @@ inline bool is_non_trivial_pass_kind(ast::typespec_view ts)
 		&& !ast::is_trivially_relocatable(ts);
 }
 
-} // namespace bc
+} // namespace codegen::llvm_latest
 
-#endif // BC_COMMON_H
+#endif // CODEGEN_LLVM_LATEST_COMMON_H

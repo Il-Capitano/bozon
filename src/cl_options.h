@@ -3,7 +3,7 @@
 
 #include "ctcli/ctcli.h"
 #include "ctx/warnings.h"
-#include "bc/optimizations.h"
+#include "codegen/optimizations.h"
 #include "global_data.h"
 
 constexpr auto Wall_indicies = []() {
@@ -52,13 +52,13 @@ inline constexpr bz::array ctcli::option_group_multiple<warning_group_id> = []()
 
 template<>
 inline constexpr bz::array ctcli::option_group<opt_group_id> = []() {
-	bz::array<ctcli::group_element_t, bc::optimization_infos.size() + 4> result{};
+	bz::array<ctcli::group_element_t, codegen::optimization_infos.size() + 4> result{};
 
 	size_t i = 0;
-	for (i = 0; i < bc::optimization_infos.size(); ++i)
+	for (i = 0; i < codegen::optimization_infos.size(); ++i)
 	{
-		bz_assert(static_cast<size_t>(bc::optimization_infos[i].kind) == i);
-		result[i] = ctcli::create_hidden_group_element(bc::optimization_infos[i].name, bc::optimization_infos[i].description);
+		bz_assert(static_cast<size_t>(codegen::optimization_infos[i].kind) == i);
+		result[i] = ctcli::create_hidden_group_element(codegen::optimization_infos[i].name, codegen::optimization_infos[i].description);
 	}
 
 	static_assert(bz::meta::is_same<size_t, uint64_t>);
@@ -91,6 +91,8 @@ inline constexpr bz::array ctcli::option_group<code_gen_group_id> = {
 	ctcli::create_group_element("panic-on-invalid-switch",          "Call '__builtin_panic' if an invalid enum value is used in a 'switch' expression (default=true)"),
 	ctcli::create_group_element("discard-llvm-value-names",         "Discard values names for LLVM bitcode (default=true)"),
 	ctcli::create_group_element("freestanding",                     "Generate code with no external dependencies (default=false)"),
+	ctcli::create_group_element("target-pointer-size=<size>",       "Pointer size of the target architecture in bytes", ctcli::arg_type::uint64),
+	ctcli::create_group_element("target-endianness={little|big}",   "Endianness of the target architecture"),
 };
 
 template<>
@@ -115,6 +117,7 @@ inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def>
 	ctcli::create_undocumented_option("--debug-ir-output", "Emit an LLVM IR file alongside the regular output"),
 	ctcli::create_undocumented_option("--debug-comptime-print-functions", ""),
 	ctcli::create_undocumented_option("--debug-comptime-print-instructions", ""),
+	ctcli::create_undocumented_option("--debug-no-emit-file", ""),
 #endif // !NDEBUG
 #ifdef BOZON_PROFILE_COMPTIME
 	ctcli::create_undocumented_option("--debug-comptime-print-instruction-counts", ""),
@@ -143,9 +146,10 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--x86-
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--profile")>                  = &do_profile;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-main")>                  = &no_main;
 #ifndef NDEBUG
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-ir-output")>          = &debug_ir_output;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-ir-output")>                   = &debug_ir_output;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-functions")>    = &debug_comptime_print_functions;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-instructions")> = &debug_comptime_print_instructions;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-no-emit-file")>                = &debug_no_emit_file;
 #endif // !NDEBUG
 #ifdef BOZON_PROFILE_COMPTIME
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-print-instruction-counts")> = &debug_comptime_print_instruction_counts;
@@ -196,6 +200,8 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element(
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-invalid-switch")>          = &panic_on_invalid_switch;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen discard-llvm-value-names")>         = &discard_llvm_value_names;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen freestanding")>                     = &freestanding;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-pointer-size")>              = &target_pointer_size;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-endianness")>                = &target_endianness;
 
 template<>
 inline constexpr auto ctcli::argument_parse_function<ctcli::option("--emit")> = [](bz::u8string_view arg) -> std::optional<emit_type> {
@@ -213,6 +219,19 @@ inline constexpr auto ctcli::argument_parse_function<ctcli::option("--emit")> = 
 template<>
 inline constexpr auto ctcli::argument_parse_function<ctcli::option("--x86-asm-syntax")> = [](bz::u8string_view arg) -> std::optional<x86_asm_syntax_kind> {
 	auto const result = parse_x86_asm_syntax(arg);
+	if (result.has_value())
+	{
+		return result.get();
+	}
+	else
+	{
+		return {};
+	}
+};
+
+template<>
+inline constexpr auto ctcli::argument_parse_function<ctcli::group_element("--code-gen target-endianness")> = [](bz::u8string_view arg) -> std::optional<target_endianness_kind> {
+	auto const result = parse_target_endianness(arg);
 	if (result.has_value())
 	{
 		return result.get();

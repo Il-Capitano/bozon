@@ -32,6 +32,8 @@
 				"no-unused-parameter"
 			],
 
+			"prebuild_rules": [ "generate-config" ],
+
 			"configs": {
 				"windows-debug": {},
 				"windows-release": {},
@@ -162,6 +164,10 @@
 		}
 	},
 	"rules": {
+		"generate-config": {
+			"command": "python3 scripts/generate_config.py",
+			"is_file": false
+		},
 		"ryu_format.windows.o": {
 			"dependencies": [ "ryu_format.windows.bc" ],
 			"command": "llc ryu_format.windows.bc --filetype=obj -o ryu_format.windows.o"

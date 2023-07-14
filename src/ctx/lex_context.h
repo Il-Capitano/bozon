@@ -1,14 +1,14 @@
 #ifndef CTX_LEX_CONTEXT_H
 #define CTX_LEX_CONTEXT_H
 
+#include "core.h"
 #include "error.h"
+#include "context_forward.h"
 #include "lex/file_iterator.h"
 #include "lex/token.h"
 
 namespace ctx
 {
-
-struct global_context;
 
 struct lex_context
 {

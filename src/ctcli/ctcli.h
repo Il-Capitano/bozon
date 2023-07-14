@@ -808,21 +808,21 @@ struct group_element_t
 constexpr group_element_t create_group_element(string_view usage, string_view help, arg_type type = arg_type::none)
 {
 	internal::check_group_elment_syntax(usage);
-	assert((internal::is_bool_flag(usage) || type != arg_type::none) && "please provide a ctcli::arg_type for non bool flags");
+	assert((internal::is_bool_flag(usage) || internal::is_choice_value(usage) || type != arg_type::none) && "please provide a ctcli::arg_type for non bool flags");
 	return group_element_t{ usage, help, type, visibility_kind::visible };
 }
 
 constexpr group_element_t create_hidden_group_element(string_view usage, string_view help, arg_type type = arg_type::none)
 {
 	internal::check_group_elment_syntax(usage);
-	assert((internal::is_bool_flag(usage) || type != arg_type::none) && "please provide a ctcli::arg_type for non bool flags");
+	assert((internal::is_bool_flag(usage) || internal::is_choice_value(usage) || type != arg_type::none) && "please provide a ctcli::arg_type for non bool flags");
 	return group_element_t{ usage, help, type, visibility_kind::hidden };
 }
 
 constexpr group_element_t create_undocumented_group_element(string_view usage, string_view help, arg_type type = arg_type::none)
 {
 	internal::check_group_elment_syntax(usage);
-	assert((internal::is_bool_flag(usage) || type != arg_type::none) && "please provide a ctcli::arg_type for non bool flags");
+	assert((internal::is_bool_flag(usage) || internal::is_choice_value(usage) || type != arg_type::none) && "please provide a ctcli::arg_type for non bool flags");
 	return group_element_t{ usage, help, type, visibility_kind::undocumented };
 }
 
@@ -1120,7 +1120,7 @@ constexpr option_t create_hidden_option(string_view usage, string_view help, arg
 constexpr option_t create_undocumented_option(string_view usage, string_view help, arg_type type = arg_type::none)
 {
 	internal::check_flag_syntax(usage);
-	assert((internal::is_bool_flag(usage) || type != arg_type::none) && "please provide a ctcli::arg_type for non bool flags");
+	assert((internal::is_bool_flag(usage) || internal::is_choice_value(usage) || type != arg_type::none) && "please provide a ctcli::arg_type for non bool flags");
 	return option_t{ usage, help, type, group_id_t::invalid, string_view{}, visibility_kind::undocumented };
 }
 

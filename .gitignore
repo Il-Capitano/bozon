@@ -17,3 +17,4 @@ src/opts_O3.inc
 *.ll
 *.pch
 *.gch
+src/config.h

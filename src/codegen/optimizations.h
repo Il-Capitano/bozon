@@ -1,12 +1,12 @@
-#ifndef BC_OPTIMIZATIONS_H
-#define BC_OPTIMIZATIONS_H
+#ifndef CODEGEN_OPTIMIZATIONS_H
+#define CODEGEN_OPTIMIZATIONS_H
 
 #include "core.h"
 
 #include <array>
 #include <bz/u8string_view.h>
 
-namespace bc
+namespace codegen
 {
 
 enum class optimization_kind
@@ -45,6 +45,6 @@ constexpr bz::array optimization_infos = []() {
 	return result;
 }();
 
-} // namespace bc
+} // namespace codegen
 
-#endif // BC_OPTIMIZATIONS_H
+#endif // CODEGEN_OPTIMIZATIONS_H

@@ -3,8 +3,9 @@
 
 #include "core.h"
 
-#include "lex/token.h"
 #include "error.h"
+#include "context_forward.h"
+#include "lex/token.h"
 #include "ast/typespec.h"
 #include "ast/expression.h"
 #include "ast/statement.h"
@@ -12,8 +13,6 @@
 
 namespace ctx
 {
-
-struct global_context;
 
 struct parse_context
 {

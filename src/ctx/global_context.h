@@ -3,6 +3,7 @@
 
 #include "core.h"
 
+#include "context_forward.h"
 #include "global_data.h"
 #include "lex/token.h"
 #include "error.h"
@@ -12,10 +13,10 @@
 #include "ast/scope.h"
 #include "ast/type_prototype.h"
 #include "src_file.h"
-#include "abi/platform_abi.h"
 #include "resolve/attribute_resolver.h"
 #include "comptime/codegen_context_forward.h"
-#include "llvm_context.h"
+#include "codegen/target.h"
+#include "codegen/backend_context.h"
 
 namespace ctx
 {
@@ -58,10 +59,10 @@ struct global_context
 	bz::vector<bz::vector<bz::u8string_view>> _src_scopes_storage;
 
 	std::unique_ptr<ast::type_prototype_set_t> type_prototype_set = nullptr;
-	abi::platform_abi _platform_abi;
 
+	codegen::target_triple target_triple;
 	std::unique_ptr<comptime::codegen_context> comptime_codegen_context;
-	std::unique_ptr<ctx::llvm_context> llvm_context;
+	std::unique_ptr<codegen::backend_context> backend_context;
 
 	global_context(void);
 	global_context(global_context const &) = delete;
@@ -159,22 +160,20 @@ struct global_context
 	bool add_builtin_type_info(ast::type_info *info);
 	ast::type_info *get_usize_type_info_for_builtin_alias(void) const;
 	ast::type_info *get_isize_type_info_for_builtin_alias(void) const;
+	size_t get_pointer_size(void) const;
 
 	bool is_aggressive_consteval_enabled(void) const;
 	bz::optional<uint32_t> get_machine_code_opt_level(void) const;
 
-	llvm::DataLayout const &get_data_layout(void) const;
-
 	void report_and_clear_errors_and_warnings(void);
 
 	[[nodiscard]] bool parse_command_line(int argc, char const * const*argv);
-	[[nodiscard]] bool initialize_llvm(void);
+	[[nodiscard]] bool initialize_target_info(void);
 	[[nodiscard]] bool initialize_builtins(void);
 	[[nodiscard]] bool parse_global_symbols(void);
 	[[nodiscard]] bool parse(void);
-	[[nodiscard]] bool emit_bitcode(void);
-	[[nodiscard]] bool optimize(void);
-	[[nodiscard]] bool emit_file(void);
+	[[nodiscard]] bool initialize_backend(void);
+	[[nodiscard]] bool generate_and_output_code(void);
 };
 
 } // namespace ctx

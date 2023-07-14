@@ -3,14 +3,10 @@
 
 #include "core.h"
 
+#include "ctx/context_forward.h"
 #include "lex/token.h"
 #include "ast/scope.h"
 #include "ast/statement.h"
-
-namespace ctx
-{
-	struct global_context;
-} // namespace ctx
 
 struct src_file
 {

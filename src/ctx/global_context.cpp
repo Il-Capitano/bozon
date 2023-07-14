@@ -1,13 +1,9 @@
 #include "global_context.h"
-#include "bitcode_context.h"
 #include "ast/statement.h"
 #include "cl_options.h"
-#include "bc/emit_bitcode.h"
 #include "colors.h"
 #include "comptime/codegen_context.h"
 #include "comptime/codegen.h"
-
-#include <llvm/Support/Host.h>
 
 namespace ctx
 {
@@ -719,7 +715,7 @@ bool global_context::add_builtin_type_info(ast::type_info *info)
 
 ast::type_info *global_context::get_usize_type_info_for_builtin_alias(void) const
 {
-	auto const pointer_size = this->get_data_layout().getPointerSize();
+	auto const pointer_size = this->comptime_codegen_context->machine_parameters.pointer_size;
 	bz_assert(pointer_size == 8 || pointer_size == 4);
 	return pointer_size == 8
 		? this->get_builtin_type_info(ast::type_info::uint64_)
@@ -728,11 +724,16 @@ ast::type_info *global_context::get_usize_type_info_for_builtin_alias(void) cons
 
 ast::type_info *global_context::get_isize_type_info_for_builtin_alias(void) const
 {
-	auto const pointer_size = this->get_data_layout().getPointerSize();
+	auto const pointer_size = this->comptime_codegen_context->machine_parameters.pointer_size;
 	bz_assert(pointer_size == 8 || pointer_size == 4);
 	return pointer_size == 8
 		? this->get_builtin_type_info(ast::type_info::int64_)
 		: this->get_builtin_type_info(ast::type_info::int32_);
+}
+
+size_t global_context::get_pointer_size(void) const
+{
+	return this->comptime_codegen_context->machine_parameters.pointer_size;
 }
 
 bool global_context::is_aggressive_consteval_enabled(void) const
@@ -751,11 +752,6 @@ bz::optional<uint32_t> global_context::get_machine_code_opt_level(void) const
 	{
 		return {};
 	}
-}
-
-llvm::DataLayout const &global_context::get_data_layout(void) const
-{
-	return this->llvm_context->get_data_layout();
 }
 
 void global_context::report_and_clear_errors_and_warnings(void)
@@ -829,58 +825,101 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	}
 }
 
-[[nodiscard]] bool global_context::initialize_llvm(void)
+[[nodiscard]] bool global_context::initialize_target_info(void)
 {
+	this->target_triple = codegen::target_triple::parse(target);
+
+	auto const target_properties = this->target_triple.get_target_properties();
+
 	bool error = false;
-	this->llvm_context = std::make_unique<ctx::llvm_context>(*this, error);
+
+	if (
+		!target_properties.pointer_size.has_value()
+		&& !ctcli::is_option_set<ctcli::group_element("--code-gen target-pointer-size")>()
+	)
+	{
+		this->report_error(bz::format(
+			"unable to infer target pointer size from triple '{}'; provide the command line option '-C pointer-size=<size>'",
+			this->target_triple.triple
+		));
+		error = true;
+	}
+	else if (
+		target_properties.pointer_size.has_value()
+		&& ctcli::is_option_set<ctcli::group_element("--code-gen target-pointer-size")>()
+		&& target_properties.pointer_size.get() != target_pointer_size
+	)
+	{
+		this->report_error(bz::format(
+			"inferred and explicitly provided target pointer sizes are different for triple '{}'",
+			this->target_triple.triple
+		));
+		error = true;
+	}
+
+	if (
+		!target_properties.endianness.has_value()
+		&& !ctcli::is_option_set<ctcli::group_element("--code-gen target-endianness")>()
+	)
+	{
+		this->report_error(bz::format(
+			"unable to infer target endianness from triple '{}'; provide the command line option '-C target-endianness={}'",
+			this->target_triple.triple, "{little|big}" // needed here because it contains '{'
+		));
+		error = true;
+	}
+	else if (
+		target_properties.endianness.has_value()
+		&& ctcli::is_option_set<ctcli::group_element("--code-gen target-endianness")>()
+		&& ![&]() {
+			auto const inferred = target_properties.endianness.get();
+			auto const provided = target_endianness;
+			return (inferred == comptime::memory::endianness_kind::little && provided == target_endianness_kind::little)
+				|| (inferred == comptime::memory::endianness_kind::big && provided == target_endianness_kind::big);
+		}()
+	)
+	{
+		this->report_error(bz::format(
+			"inferred and explicitly provided target endianness kinds are different for triple '{}'",
+			this->target_triple.triple
+		));
+		error = true;
+	}
 
 	if (error)
 	{
 		return false;
 	}
 
-	auto const is_native_target = target == "" || target == "native";
-	auto const target_triple = is_native_target
-		? llvm::Triple::normalize(llvm::sys::getDefaultTargetTriple())
-		: llvm::Triple::normalize(std::string(target.data_as_char_ptr(), target.size()));
-	auto const triple = llvm::Triple(target_triple);
-	auto const os = triple.getOS();
-	auto const arch = triple.getArch();
+	auto const pointer_size = target_properties.pointer_size.has_value() ? target_properties.pointer_size.get() : target_pointer_size;
+	auto const endianness = [&]() {
+		if (target_properties.endianness.has_value())
+		{
+			return target_properties.endianness.get();
+		}
+		else if (target_endianness == target_endianness_kind::little)
+		{
+			return comptime::memory::endianness_kind::little;
+		}
+		else
+		{
+			return comptime::memory::endianness_kind::big;
+		}
+	}();
 
-	if (os == llvm::Triple::Win32 && arch == llvm::Triple::x86_64)
+	if (pointer_size != 8 && pointer_size != 4)
 	{
-		this->_platform_abi = abi::platform_abi::microsoft_x64;
-	}
-	else if (os == llvm::Triple::Linux && arch == llvm::Triple::x86_64)
-	{
-		this->_platform_abi = abi::platform_abi::systemv_amd64;
-	}
-	else
-	{
-		this->_platform_abi = abi::platform_abi::generic;
-	}
-
-	if (this->_platform_abi == abi::platform_abi::generic)
-	{
-		this->report_warning(
-			warning_kind::unknown_target,
-			bz::format(
-				"target '{}' has limited support right now, external function calls may not work as intended",
-				target_triple.c_str()
-			)
-		);
+		this->report_error(bz::format("target pointer size of {} is not supported", pointer_size));
+		return false;
 	}
 
 	auto const machine_parameters = comptime::machine_parameters_t{
-		.pointer_size = this->get_data_layout().getPointerSize(),
-		.endianness = this->get_data_layout().isLittleEndian()
-			? comptime::memory::endianness_kind::little
-			: comptime::memory::endianness_kind::big,
+		.pointer_size = static_cast<size_t>(pointer_size),
+		.endianness = endianness,
 	};
 
 	this->type_prototype_set = std::make_unique<ast::type_prototype_set_t>(machine_parameters.pointer_size);
 	this->comptime_codegen_context = std::make_unique<comptime::codegen_context>(*this->type_prototype_set, machine_parameters);
-
 
 	return true;
 }
@@ -896,7 +935,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		return false;
 	}
 
-	auto const &target_triple = this->llvm_context->get_target_triple();
+	auto const normalized_target_triple = this->target_triple.get_normalized_target();
 	auto stdlib_dir_path_non_canonical = fs::path(std::string_view(stdlib_dir.data_as_char_ptr(), stdlib_dir.size()), fs::path::native_format);
 	if (!fs::exists(stdlib_dir_path_non_canonical))
 	{
@@ -907,7 +946,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	stdlib_dir_path.make_preferred();
 
 	auto common_dir = stdlib_dir_path / "common";
-	auto target_dir = stdlib_dir_path / target_triple;
+	auto target_dir = stdlib_dir_path / std::string_view(normalized_target_triple.data_as_char_ptr(), normalized_target_triple.size());
 	if (fs::exists(common_dir))
 	{
 		this->_import_dirs.push_back(std::move(common_dir));
@@ -1049,19 +1088,64 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	return true;
 }
 
-[[nodiscard]] bool global_context::emit_bitcode(void)
+[[nodiscard]] bool global_context::initialize_backend(void)
 {
-	return this->llvm_context->emit_bitcode(*this);
+	if (emit_file_type == emit_type::null)
+	{
+		return true;
+	}
+
+	this->backend_context = codegen::create_backend_context(*this);
+	return this->backend_context != nullptr;
 }
 
-[[nodiscard]] bool global_context::optimize(void)
+[[nodiscard]] bool global_context::generate_and_output_code(void)
 {
-	return this->llvm_context->optimize();
-}
+	if (emit_file_type == emit_type::null)
+	{
+		return true;
+	}
+#ifndef NDEBUG
+	else if (debug_no_emit_file)
+	{
+		return this->backend_context->generate_and_output_code(*this, {});
+	}
+#endif // !NDEBUG
+	else if (output_file_name != "")
+	{
+		return this->backend_context->generate_and_output_code(*this, output_file_name);
+	}
+	else
+	{
+		auto const file_extension = [&]() -> bz::u8string_view {
+			switch (emit_file_type)
+			{
+			case emit_type::obj:
+				return ".o";
+			case emit_type::asm_:
+				return ".s";
+			case emit_type::llvm_bc:
+				return ".bc";
+			case emit_type::llvm_ir:
+				return ".ll";
+			case emit_type::null:
+				bz_unreachable;
+			}
+		}();
 
-[[nodiscard]] bool global_context::emit_file(void)
-{
-	return this->llvm_context->emit_file(*this);
+		auto const slash_it = source_file.rfind_any("/\\");
+		auto const dot = source_file.rfind('.');
+		bz_assert(dot != bz::u8iterator{});
+		auto const output_path = bz::format(
+			"{}{}",
+			bz::u8string(
+				slash_it == bz::u8iterator{} ? source_file.begin() : slash_it + 1,
+				dot
+			),
+			file_extension
+		);
+		return this->backend_context->generate_and_output_code(*this, output_path);
+	}
 }
 
 } // namespace ctx

@@ -1,5 +1,5 @@
-#ifndef BC_VAL_PTR_H
-#define BC_VAL_PTR_H
+#ifndef CODEGEN_LLVM_LATEST_VAL_PTR_H
+#define CODEGEN_LLVM_LATEST_VAL_PTR_H
 
 #include "core.h"
 
@@ -7,7 +7,7 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/Support/Debug.h>
 
-namespace bc
+namespace codegen::llvm_latest
 {
 
 struct value_and_type_pair
@@ -88,6 +88,6 @@ struct val_ptr
 	}
 };
 
-} // namespace bc
+} // namespace codegen::llvm_latest
 
-#endif // BC_VAL_PTR_H
+#endif // CODEGEN_LLVM_LATEST_VAL_PTR_H

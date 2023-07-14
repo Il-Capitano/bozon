@@ -20,13 +20,6 @@
 #include <cstring>
 #include <cassert>
 
-#include <llvm/IR/Value.h>
-#include <llvm/IR/Type.h>
-#include <llvm/IR/DerivedTypes.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/Module.h>
-
 #include <bz/variant.h>
 #include <bz/string.h>
 #include <bz/u8string.h>
