@@ -3752,7 +3752,7 @@ static ast::expression make_expr_function_call_from_body(
 }
 
 static void get_possible_funcs_for_operator_helper(
-	bz::vector<possible_func_t> &result,
+	ast::arena_vector<possible_func_t> &result,
 	lex::src_tokens const &src_tokens,
 	uint32_t op,
 	ast::expression &expr,
@@ -3793,7 +3793,7 @@ static void get_possible_funcs_for_operator_helper(
 
 template<bool only_export>
 static void get_possible_funcs_for_operator_helper(
-	bz::vector<possible_func_t> &result,
+	ast::arena_vector<possible_func_t> &result,
 	lex::src_tokens const &src_tokens,
 	uint32_t op,
 	ast::expression &expr,
@@ -3819,14 +3819,15 @@ static void get_possible_funcs_for_operator_helper(
 	}
 }
 
-static bz::vector<possible_func_t> get_possible_funcs_for_operator(
+static ast::arena_vector<possible_func_t> get_possible_funcs_for_operator(
 	lex::src_tokens const &src_tokens,
 	uint32_t op,
 	ast::expression &expr,
 	parse_context &context
 )
 {
-	bz::vector<possible_func_t> possible_funcs = {};
+	ast::arena_vector<possible_func_t> possible_funcs = {};
+	possible_funcs.reserve(20);
 
 	get_possible_funcs_for_operator_helper<false>(possible_funcs, src_tokens, op, expr, context.get_current_enclosing_scope(), context);
 	auto const expr_type = ast::remove_const_or_consteval(expr.get_expr_type());
@@ -3937,7 +3938,7 @@ ast::expression parse_context::make_unary_operator_expression(
 }
 
 static void get_possible_funcs_for_operator_helper(
-	bz::vector<possible_func_t> &result,
+	ast::arena_vector<possible_func_t> &result,
 	lex::src_tokens const &src_tokens,
 	uint32_t op,
 	ast::expression &lhs,
@@ -3979,7 +3980,7 @@ static void get_possible_funcs_for_operator_helper(
 
 template<bool only_export>
 static void get_possible_funcs_for_operator_helper(
-	bz::vector<possible_func_t> &result,
+	ast::arena_vector<possible_func_t> &result,
 	lex::src_tokens const &src_tokens,
 	uint32_t op,
 	ast::expression &lhs,
@@ -4006,7 +4007,7 @@ static void get_possible_funcs_for_operator_helper(
 	}
 }
 
-static bz::vector<possible_func_t> get_possible_funcs_for_operator(
+static ast::arena_vector<possible_func_t> get_possible_funcs_for_operator(
 	lex::src_tokens const &src_tokens,
 	uint32_t op,
 	ast::expression &lhs,
@@ -4014,7 +4015,8 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 	parse_context &context
 )
 {
-	bz::vector<possible_func_t> possible_funcs = {};
+	ast::arena_vector<possible_func_t> possible_funcs = {};
+	possible_funcs.reserve(20);
 
 	get_possible_funcs_for_operator_helper<false>(possible_funcs, src_tokens, op, lhs, rhs, context.get_current_enclosing_scope(), context);
 	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type());
@@ -4187,14 +4189,15 @@ ast::expression parse_context::make_binary_operator_expression(
 	}
 }
 
-static bz::vector<possible_func_t> get_possible_funcs_for_unqualified_id(
+static ast::arena_vector<possible_func_t> get_possible_funcs_for_unqualified_id(
 	ast::function_set_t const &unqualified_function_set,
 	lex::src_tokens const &src_tokens,
 	bz::array_view<ast::expression> params,
 	parse_context &context
 )
 {
-	bz::vector<possible_func_t> possible_funcs = {};
+	ast::arena_vector<possible_func_t> possible_funcs = {};
+
 	auto const size = unqualified_function_set.stmts
 		.transform([](ast::statement_view const stmt) -> size_t {
 			if (stmt.is<ast::decl_function>())
@@ -4208,6 +4211,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_unqualified_id(
 			}
 		}).sum();
 	possible_funcs.reserve(size);
+
 	for (auto const &stmt : unqualified_function_set.stmts)
 	{
 		if (stmt.is<ast::decl_function>())
@@ -4226,10 +4230,11 @@ static bz::vector<possible_func_t> get_possible_funcs_for_unqualified_id(
 			}
 		}
 	}
+
 	return possible_funcs;
 }
 
-static bz::vector<possible_func_t> get_possible_funcs_for_alias(
+static ast::arena_vector<possible_func_t> get_possible_funcs_for_alias(
 	ast::decl_function_alias *alias_decl,
 	lex::src_tokens const &src_tokens,
 	bz::array_view<ast::expression> params,
@@ -4241,17 +4246,17 @@ static bz::vector<possible_func_t> get_possible_funcs_for_alias(
 			auto match_level = resolve::get_function_call_match_level(decl, decl->body, params, context, src_tokens);
 			return { std::move(match_level), ast::statement_view(alias_decl), &decl->body };
 		})
-		.collect();
+		.collect<ast::arena_vector>();
 }
 
-static bz::vector<possible_func_t> get_possible_funcs_for_qualified_id(
+static ast::arena_vector<possible_func_t> get_possible_funcs_for_qualified_id(
 	ast::function_set_t const &qualified_function_set,
 	lex::src_tokens const &src_tokens,
 	bz::array_view<ast::expression> params,
 	parse_context &context
 )
 {
-	bz::vector<possible_func_t> possible_funcs = {};
+	ast::arena_vector<possible_func_t> possible_funcs = {};
 
 	auto const size = qualified_function_set.stmts
 		.transform([](ast::statement_view const stmt) -> size_t {
@@ -4266,6 +4271,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_qualified_id(
 			}
 		}).sum();
 	possible_funcs.reserve(size);
+
 	for (auto const &stmt : qualified_function_set.stmts)
 	{
 		if (stmt.is<ast::decl_function>())
@@ -4634,7 +4640,7 @@ ast::expression parse_context::make_function_call_expression(
 }
 
 static void get_possible_funcs_for_universal_function_call_helper(
-	bz::vector<possible_func_t> &result,
+	ast::arena_vector<possible_func_t> &result,
 	lex::src_tokens const &src_tokens,
 	ast::identifier const &id,
 	bz::array_view<ast::expression> params,
@@ -4677,7 +4683,7 @@ static void get_possible_funcs_for_universal_function_call_helper(
 
 template<bool only_export>
 static void get_possible_funcs_for_universal_function_call_helper(
-	bz::vector<possible_func_t> &result,
+	ast::arena_vector<possible_func_t> &result,
 	lex::src_tokens const &src_tokens,
 	ast::identifier const &id,
 	bz::array_view<ast::expression> params,
@@ -4708,14 +4714,15 @@ static void get_possible_funcs_for_universal_function_call_helper(
 	}
 }
 
-static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_call(
+static ast::arena_vector<possible_func_t> get_possible_funcs_for_universal_function_call(
 	lex::src_tokens const &src_tokens,
 	ast::identifier const &id,
 	bz::array_view<ast::expression> params,
 	parse_context &context
 )
 {
-	bz::vector<possible_func_t> possible_funcs = {};
+	ast::arena_vector<possible_func_t> possible_funcs = {};
+	possible_funcs.reserve(5);
 
 	get_possible_funcs_for_universal_function_call_helper<false>(
 		possible_funcs, src_tokens, id, params, context.get_current_enclosing_scope(), context
