@@ -123,7 +123,7 @@ struct token
 		kw_auto,             // auto
 		kw_let,              // let
 		kw_extern,           // extern
-		kw_const,            // const
+		kw_mut,              // mut
 		kw_consteval,        // consteval
 		kw_move,             // move
 		kw_unsafe_move,      // __move__

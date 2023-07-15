@@ -258,7 +258,7 @@ bz::u8string function_body::decode_symbol_name(
 	{
 		auto type_begin = bz::u8string_view::const_iterator(it.data() + destructor_.size());
 		auto const type = typespec::decode_symbol_name(type_begin, end);
-		return bz::format("{}::destructor(: &{})", type, type);
+		return bz::format("{}::destructor(: &mut {})", type, type);
 	}
 	else if (symbol_name.starts_with(constructor_))
 	{
@@ -324,17 +324,18 @@ type_info::decl_operator_ptr type_info::make_default_op_assign(lex::src_tokens c
 {
 	auto lhs_t = [&]() {
 		typespec result = make_base_type_typespec({}, &info);
+		result.add_layer<ts_mut>();
 		result.add_layer<ts_lvalue_reference>();
 		return result;
 	}();
 	auto rhs_t = [&]() {
 		typespec result = make_base_type_typespec({}, &info);
-		result.add_layer<ts_const>();
 		result.add_layer<ts_lvalue_reference>();
 		return result;
 	}();
 	auto ret_t = [&]() {
 		typespec result = make_base_type_typespec({}, &info);
+		result.add_layer<ts_mut>();
 		result.add_layer<ts_lvalue_reference>();
 		return result;
 	}();
@@ -366,12 +367,14 @@ type_info::decl_operator_ptr type_info::make_default_op_move_assign(lex::src_tok
 {
 	auto lhs_t = [&]() {
 		typespec result = make_base_type_typespec({}, &info);
+		result.add_layer<ts_mut>();
 		result.add_layer<ts_lvalue_reference>();
 		return result;
 	}();
 	auto rhs_t = make_base_type_typespec({}, &info);
 	auto ret_t = [&]() {
 		typespec result = make_base_type_typespec({}, &info);
+		result.add_layer<ts_mut>();
 		result.add_layer<ts_lvalue_reference>();
 		return result;
 	}();
@@ -402,7 +405,6 @@ type_info::decl_operator_ptr type_info::make_default_op_move_assign(lex::src_tok
 type_info::decl_function_ptr type_info::make_default_copy_constructor(lex::src_tokens const &src_tokens, type_info &info)
 {
 	auto param_t = make_base_type_typespec({}, &info);
-	param_t.add_layer<ts_const>();
 	param_t.add_layer<ts_lvalue_reference>();
 
 	auto ret_t = make_base_type_typespec({}, &info);
@@ -450,10 +452,6 @@ type_info::decl_function_ptr type_info::make_default_move_constructor(lex::src_t
 
 type_info::decl_function_ptr type_info::make_default_default_constructor(lex::src_tokens const &src_tokens, type_info &info)
 {
-	auto param_t = make_base_type_typespec({}, &info);
-	param_t.add_layer<ts_const>();
-	param_t.add_layer<ts_lvalue_reference>();
-
 	auto ret_t = make_base_type_typespec({}, &info);
 
 	auto result = make_ast_unique<decl_function>();

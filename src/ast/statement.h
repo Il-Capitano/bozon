@@ -619,7 +619,7 @@ struct function_body
 
 		typename_as_str,
 
-		is_const,
+		is_mut,
 		is_consteval,
 		is_pointer,
 		is_optional,
@@ -630,7 +630,7 @@ struct function_body
 		is_tuple,
 		is_enum,
 
-		remove_const,
+		remove_mut,
 		remove_consteval,
 		remove_pointer,
 		remove_optional,
@@ -1881,7 +1881,7 @@ constexpr auto intrinsic_info = []() {
 
 		{ function_body::typename_as_str, "__builtin_typename_as_str" },
 
-		{ function_body::is_const,          "__builtin_is_const"          },
+		{ function_body::is_mut,            "__builtin_is_mut"            },
 		{ function_body::is_consteval,      "__builtin_is_consteval"      },
 		{ function_body::is_pointer,        "__builtin_is_pointer"        },
 		{ function_body::is_optional,       "__builtin_is_optional"       },
@@ -1892,7 +1892,7 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::is_tuple,          "__builtin_is_tuple"          },
 		{ function_body::is_enum,           "__builtin_is_enum"           },
 
-		{ function_body::remove_const,          "__builtin_remove_const"          },
+		{ function_body::remove_mut,            "__builtin_remove_mut"            },
 		{ function_body::remove_consteval,      "__builtin_remove_consteval"      },
 		{ function_body::remove_pointer,        "__builtin_remove_pointer"        },
 		{ function_body::remove_optional,       "__builtin_remove_optional"       },

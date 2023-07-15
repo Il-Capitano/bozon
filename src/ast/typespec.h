@@ -23,7 +23,7 @@ struct ts_tuple;
 struct ts_auto;
 struct ts_typename;
 
-struct ts_const;
+struct ts_mut;
 struct ts_consteval;
 struct ts_pointer;
 struct ts_optional;
@@ -44,7 +44,7 @@ using typespec_types = bz::meta::type_pack<
 	ts_tuple,
 	ts_auto,
 	ts_typename,
-	ts_const,
+	ts_mut,
 	ts_consteval,
 	ts_pointer,
 	ts_optional,
@@ -56,7 +56,7 @@ using typespec_types = bz::meta::type_pack<
 >;
 
 using modifier_typespec_types = bz::meta::type_pack<
-	ts_const,
+	ts_mut,
 	ts_consteval,
 	ts_pointer,
 	ts_optional,
@@ -277,7 +277,7 @@ struct ts_auto
 struct ts_typename
 {};
 
-struct ts_const
+struct ts_mut
 {};
 
 struct ts_consteval
@@ -314,7 +314,9 @@ struct typespec_hash
 typespec_view remove_lvalue_reference(typespec_view ts) noexcept;
 typespec_view remove_pointer(typespec_view ts) noexcept;
 typespec_view remove_optional(typespec_view ts) noexcept;
-typespec_view remove_const_or_consteval(typespec_view ts) noexcept;
+typespec_view remove_consteval(typespec_view ts) noexcept;
+typespec_view remove_mut(typespec_view ts) noexcept;
+typespec_view remove_mutability_modifiers(typespec_view ts) noexcept;
 typespec_view remove_lvalue_or_move_reference(typespec_view ts) noexcept;
 typespec_view remove_any_reference(typespec_view ts) noexcept;
 

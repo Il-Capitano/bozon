@@ -161,7 +161,7 @@ ast::statement parse_decl_variable(
 	bz_assert(
 		stream->kind == lex::token::kw_let
 		|| stream->kind == lex::token::kw_extern
-		|| stream->kind == lex::token::kw_const
+		|| stream->kind == lex::token::kw_mut
 		|| stream->kind == lex::token::kw_consteval
 	);
 	auto const begin_token = stream;
@@ -1426,7 +1426,7 @@ static ast::statement parse_stmt_foreach_impl(
 )
 {
 	// 'for' and '(' have already been consumed
-	if (stream->kind != lex::token::kw_let && stream->kind != lex::token::kw_const)
+	if (stream->kind != lex::token::kw_let && stream->kind != lex::token::kw_mut)
 	{
 		context.report_error(stream, "expected a variable declaration");
 	}

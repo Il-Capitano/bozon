@@ -126,7 +126,7 @@ static ast::expression get_type_op_unary_reference(
 	}
 	else if (result_type.is<ast::ts_auto_reference_const>())
 	{
-		context.report_error(src_tokens, "reference to auto reference-const type is not allowed");
+		context.report_error(src_tokens, "reference to auto reference-mut type is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else if (result_type.is<ast::ts_variadic>())
@@ -183,7 +183,7 @@ static ast::expression get_type_op_unary_auto_ref(
 	}
 	else if (result_type.is<ast::ts_auto_reference_const>())
 	{
-		context.report_error(src_tokens, "auto reference to auto reference-const type is not allowed");
+		context.report_error(src_tokens, "auto reference to auto reference-mut type is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else if (result_type.is<ast::ts_variadic>())
@@ -221,13 +221,13 @@ static ast::expression get_type_op_unary_auto_ref_const(
 	result_type.src_tokens = src_tokens;
 	if (result_type.is<ast::ts_consteval>())
 	{
-		context.report_error(src_tokens, "auto reference-const to consteval type is not allowed");
+		context.report_error(src_tokens, "auto reference-mut to consteval type is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
-	else if (result_type.is<ast::ts_const>())
+	else if (result_type.is<ast::ts_mut>())
 	{
 		bz_assert(src_tokens.pivot != nullptr);
-		context.report_error(src_tokens, "auto reference-const to const type is not allowed", {}, {
+		context.report_error(src_tokens, "auto reference-mut to mut type is not allowed", {}, {
 			context.make_suggestion_before(
 				src_tokens.pivot,
 				src_tokens.pivot->src_pos.begin, src_tokens.pivot->src_pos.end, "#",
@@ -238,17 +238,17 @@ static ast::expression get_type_op_unary_auto_ref_const(
 	}
 	else if (result_type.is<ast::ts_lvalue_reference>())
 	{
-		context.report_error(src_tokens, "auto reference-const to reference type is not allowed");
+		context.report_error(src_tokens, "auto reference-mut to reference type is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else if (result_type.is<ast::ts_move_reference>())
 	{
-		context.report_error(src_tokens, "auto reference-const to move reference type is not allowed");
+		context.report_error(src_tokens, "auto reference-mut to move reference type is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else if (result_type.is<ast::ts_auto_reference>())
 	{
-		context.report_error(src_tokens, "auto reference-const to auto reference type is not allowed");
+		context.report_error(src_tokens, "auto reference-mut to auto reference type is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else if (result_type.is<ast::ts_auto_reference_const>())
@@ -257,7 +257,7 @@ static ast::expression get_type_op_unary_auto_ref_const(
 	}
 	else if (result_type.is<ast::ts_variadic>())
 	{
-		context.report_error(src_tokens, "auto reference-const to variadic type is not allowed");
+		context.report_error(src_tokens, "auto reference-mut to variadic type is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else
@@ -305,7 +305,7 @@ static ast::expression get_type_op_unary_pointer(
 	}
 	else if (result_type.is<ast::ts_auto_reference_const>())
 	{
-		context.report_error(src_tokens, "pointer to auto reference-const is not allowed");
+		context.report_error(src_tokens, "pointer to auto reference-mut is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else if (result_type.is<ast::ts_consteval>())
@@ -349,9 +349,9 @@ static ast::expression get_type_op_unary_question_mark(
 		context.report_error(src_tokens, "optional of move reference is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
-	else if (result_type.is<ast::ts_const>())
+	else if (result_type.is<ast::ts_mut>())
 	{
-		context.report_error(src_tokens, "optional of const is not allowed");
+		context.report_error(src_tokens, "optional of mut is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else if (result_type.is<ast::ts_consteval>())
@@ -412,15 +412,15 @@ static ast::expression get_type_op_unary_dot_dot_dot(
 	);
 }
 
-// const (typename) -> (const typename)
-static ast::expression get_type_op_unary_const(
+// mut (typename) -> (mut typename)
+static ast::expression get_type_op_unary_mut(
 	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	bz_assert(op_kind == lex::token::kw_const);
+	bz_assert(op_kind == lex::token::kw_mut);
 	bz_assert(expr.not_error());
 	bz_assert(expr.is_typename());
 
@@ -428,40 +428,41 @@ static ast::expression get_type_op_unary_const(
 	result_type.src_tokens = src_tokens;
 	if (result_type.is<ast::ts_lvalue_reference>())
 	{
-		context.report_error(src_tokens, "a reference type cannot be 'const'");
+		context.report_error(src_tokens, "a reference type cannot be 'mut'");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else if (result_type.is<ast::ts_move_reference>())
 	{
-		context.report_error(src_tokens, "a move reference type cannot be 'const'");
+		context.report_error(src_tokens, "a move reference type cannot be 'mut'");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else if (result_type.is<ast::ts_auto_reference>())
 	{
-		context.report_error(src_tokens, "an auto reference type cannot be 'const'");
+		context.report_error(src_tokens, "an auto reference type cannot be 'mut'");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else if (result_type.is<ast::ts_auto_reference_const>())
 	{
-		context.report_error(src_tokens, "an auto reference-const type cannot be 'const'");
+		context.report_error(src_tokens, "an auto reference-mut type cannot be 'mut'");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
-	else if (result_type.is<ast::ts_const>())
+	else if (result_type.is<ast::ts_mut>())
 	{
 		// nothing
 	}
 	else if (result_type.is<ast::ts_consteval>())
 	{
-		// nothing
+		context.report_error(src_tokens, "a consteval type cannot be 'mut'");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else if (result_type.is<ast::ts_variadic>())
 	{
-		context.report_error(src_tokens, "a variadic type cannot be 'const'");
+		context.report_error(src_tokens, "a variadic type cannot be 'mut'");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else
 	{
-		result_type.add_layer<ast::ts_const>();
+		result_type.add_layer<ast::ts_mut>();
 	}
 
 	return ast::make_constant_expression(
@@ -504,12 +505,13 @@ static ast::expression get_type_op_unary_consteval(
 	}
 	else if (result_type.is<ast::ts_auto_reference_const>())
 	{
-		context.report_error(src_tokens, "an auto reference-const type cannot be 'consteval'");
+		context.report_error(src_tokens, "an auto reference-mut type cannot be 'consteval'");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
-	else if (result_type.is<ast::ts_const>())
+	else if (result_type.is<ast::ts_mut>())
 	{
-		// nothing
+		context.report_error(src_tokens, "a mut type cannot be 'consteval'");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else if (result_type.is<ast::ts_consteval>())
 	{
@@ -569,7 +571,7 @@ static ast::expression get_type_op_unary_move(
 	}
 	else if (result_type.is<ast::ts_auto_reference_const>())
 	{
-		context.report_error(src_tokens, "move reference to auto reference-const type is not allowed");
+		context.report_error(src_tokens, "move reference to auto reference-mut type is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else if (result_type.is<ast::ts_variadic>())
@@ -739,7 +741,7 @@ static ast::expression get_builtin_unary_move(
 		else
 		{
 			context.register_move(src_tokens, var_name_expr.decl);
-			ast::typespec result_type = ast::remove_const_or_consteval(type);
+			ast::typespec result_type = ast::remove_mutability_modifiers(type);
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::moved_lvalue,
@@ -775,7 +777,7 @@ static ast::expression get_builtin_unary_unsafe_move(
 
 	if (
 		kind == ast::expression_type_kind::lvalue
-		|| (kind == ast::expression_type_kind::lvalue_reference && !type.is<ast::ts_const>())
+		|| (kind == ast::expression_type_kind::lvalue_reference && type.is<ast::ts_mut>())
 	)
 	{
 		ast::typespec result_type = type;
@@ -789,7 +791,7 @@ static ast::expression get_builtin_unary_unsafe_move(
 	}
 	else if (kind == ast::expression_type_kind::lvalue_reference)
 	{
-		context.report_error(src_tokens, "operator __move__ cannot be applied to a const lvalue reference");
+		context.report_error(src_tokens, "operator __move__ cannot be applied to an lvalue reference");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else
@@ -895,8 +897,8 @@ static ast::expression get_builtin_binary_bool_and_xor_or(
 
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
-	auto const lhs_t = ast::remove_const_or_consteval(lhs_type);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs_type);
+	auto const lhs_t = ast::remove_mutability_modifiers(lhs_type);
+	auto const rhs_t = ast::remove_mutability_modifiers(rhs_type);
 
 	auto const op_str = [op_kind]() -> bz::u8string_view {
 		switch (op_kind)
@@ -971,8 +973,8 @@ ast::expression make_builtin_cast(
 {
 	bz_assert(expr.not_error());
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
-	auto const expr_t = ast::remove_const_or_consteval(expr_type);
-	auto const dest_t = ast::remove_const_or_consteval(dest_type);
+	auto const expr_t = ast::remove_mutability_modifiers(expr_type);
+	auto const dest_t = ast::remove_mutability_modifiers(dest_type);
 	bz_assert(ast::is_complete(dest_t));
 
 	// case from null to a optional type
@@ -985,7 +987,7 @@ ast::expression make_builtin_cast(
 		|| (
 			expr.is_dynamic()
 			&& [&]() {
-				auto const type = ast::remove_const_or_consteval(expr.get_dynamic().type);
+				auto const type = ast::remove_mutability_modifiers(expr.get_dynamic().type);
 				return type.is<ast::ts_base_type>()
 					&& type.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_;
 			}()
@@ -1008,7 +1010,7 @@ ast::expression make_builtin_cast(
 	{
 		auto inner_dest_t = ast::remove_optional(dest_t).get<ast::ts_pointer>();
 		auto inner_expr_t = ast::remove_optional(expr_t).get<ast::ts_pointer>();
-		if (!inner_dest_t.is<ast::ts_const>() && inner_expr_t.is<ast::ts_const>())
+		if (inner_dest_t.is<ast::ts_mut>() && !inner_expr_t.is<ast::ts_mut>())
 		{
 			context.report_error(
 				src_tokens,
@@ -1016,8 +1018,8 @@ ast::expression make_builtin_cast(
 			);
 			return ast::make_error_expression(src_tokens, ast::make_expr_cast(std::move(expr), std::move(dest_type)));
 		}
-		inner_dest_t = ast::remove_const_or_consteval(inner_dest_t);
-		inner_expr_t = ast::remove_const_or_consteval(inner_expr_t);
+		inner_dest_t = ast::remove_mut(inner_dest_t);
+		inner_expr_t = ast::remove_mut(inner_expr_t);
 		while (
 			inner_dest_t.is_safe_blind_get()
 			&& inner_expr_t.is_safe_blind_get()
@@ -1246,7 +1248,7 @@ ast::expression make_builtin_subscript_operator(
 )
 {
 	auto const [called_type, called_kind] = called.get_expr_type_and_kind();
-	auto const called_t = ast::remove_const_or_consteval(called_type);
+	auto const called_t = ast::remove_mutability_modifiers(called_type);
 
 	if (called_t.is<ast::ts_tuple>() || called.is_tuple())
 	{
@@ -1256,8 +1258,8 @@ ast::expression make_builtin_subscript_operator(
 			return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), std::move(arg)));
 		}
 
-		auto const [arg_type, _] = arg.get_expr_type_and_kind();
-		auto const arg_t = ast::remove_const_or_consteval(arg_type);
+		auto const arg_type = arg.get_expr_type();
+		auto const arg_t = ast::remove_mutability_modifiers(arg_type);
 		if (!arg_t.is<ast::ts_base_type>() || !ast::is_integer_kind(arg_t.get<ast::ts_base_type>().info->kind))
 		{
 			context.report_error(arg, bz::format("invalid type '{}' for tuple subscript", arg_type));
@@ -1317,12 +1319,11 @@ ast::expression make_builtin_subscript_operator(
 			auto &tuple_t = called_t.get<ast::ts_tuple>();
 			ast::typespec result_type = tuple_t.types[index];
 			if (
-				!result_type.is<ast::ts_const>()
-				&& !result_type.is<ast::ts_lvalue_reference>()
-				&& called_type.is<ast::ts_const>()
+				!result_type.is<ast::ts_lvalue_reference>()
+				&& called_type.is<ast::ts_mut>()
 			)
 			{
-				result_type.add_layer<ast::ts_const>();
+				result_type.add_layer<ast::ts_mut>();
 			}
 
 			auto const result_kind = result_type.is<ast::ts_lvalue_reference>()
@@ -1391,8 +1392,8 @@ ast::expression make_builtin_subscript_operator(
 		bz_assert(called_t.is<ast::ts_array_slice>());
 		auto &array_slice_t = called_t.get<ast::ts_array_slice>();
 
-		auto const [arg_type, _] = arg.get_expr_type_and_kind();
-		auto const arg_t = ast::remove_const_or_consteval(arg_type);
+		auto const arg_type = arg.get_expr_type();
+		auto const arg_t = ast::remove_mutability_modifiers(arg_type);
 		if (!arg_t.is<ast::ts_base_type>() || !ast::is_integer_kind(arg_t.get<ast::ts_base_type>().info->kind))
 		{
 			context.report_error(arg, bz::format("invalid type '{}' for array slice subscript", arg_type));
@@ -1418,8 +1419,8 @@ ast::expression make_builtin_subscript_operator(
 		bz_assert(called_t.is<ast::ts_array>());
 		auto &array_t = called_t.get<ast::ts_array>();
 
-		auto const [arg_type, _] = arg.get_expr_type_and_kind();
-		auto const arg_t = ast::remove_const_or_consteval(arg_type);
+		auto const arg_type = arg.get_expr_type();
+		auto const arg_t = ast::remove_mutability_modifiers(arg_type);
 		if (!arg_t.is<ast::ts_base_type>() || !ast::is_integer_kind(arg_t.get<ast::ts_base_type>().info->kind))
 		{
 			context.report_error(arg, bz::format("invalid type '{}' for array subscript", arg_type));
@@ -1445,9 +1446,9 @@ ast::expression make_builtin_subscript_operator(
 				: ast::expression_type_kind::lvalue_reference;
 
 			ast::typespec result_type = array_t.elem_type;
-			if (called_type.is<ast::ts_const>() || called_type.is<ast::ts_consteval>())
+			if (called_type.is<ast::ts_mut>())
 			{
-				result_type.add_layer<ast::ts_const>();
+				result_type.add_layer<ast::ts_mut>();
 			}
 
 			return ast::make_dynamic_expression(
@@ -1576,7 +1577,7 @@ constexpr auto type_op_unary_operators = []() {
 		T{ lex::token::star,           &get_type_op_unary_pointer        }, // *
 		T{ lex::token::question_mark,  &get_type_op_unary_question_mark  }, // ?
 		T{ lex::token::dot_dot_dot,    &get_type_op_unary_dot_dot_dot    }, // ...
-		T{ lex::token::kw_const,       &get_type_op_unary_const          }, // const
+		T{ lex::token::kw_mut,         &get_type_op_unary_mut            }, // mut
 		T{ lex::token::kw_consteval,   &get_type_op_unary_consteval      }, // consteval
 		T{ lex::token::kw_move,        &get_type_op_unary_move           }, // move
 	};
