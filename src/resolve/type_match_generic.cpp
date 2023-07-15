@@ -1493,7 +1493,7 @@ static match_function_result_t<kind> generic_type_match_tuple(match_context_t<ki
 			{
 				// try to match the first element in order to provide a meaningful error
 				auto &dest_array_t = match_context.dest_container.terminator->template get<ast::ts_array>();
-				auto const first_elem_good = generic_type_match(match_context_t<type_match_function_kind::match_expression>{
+				[[maybe_unused]] auto const first_elem_good = generic_type_match(match_context_t<type_match_function_kind::match_expression>{
 					.expr = tuple_expr.elems[0],
 					.dest_container = dest_array_t.elem_type,
 					.dest = dest_array_t.elem_type,

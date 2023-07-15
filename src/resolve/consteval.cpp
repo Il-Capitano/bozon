@@ -1109,7 +1109,7 @@ static ast::constant_value evaluate_binary_bool_and(
 	auto const &rhs_value = rhs_const_expr.value;
 
 	bz_assert(lhs_value.is_boolean());
-	auto const lhs_bool_val = lhs_value.get_boolean();
+	[[maybe_unused]] auto const lhs_bool_val = lhs_value.get_boolean();
 	bz_assert(rhs_value.is_boolean());
 	auto const rhs_bool_val = rhs_value.get_boolean();
 
@@ -1153,7 +1153,7 @@ static ast::constant_value evaluate_binary_bool_or(
 	auto const &rhs_value = rhs_const_expr.value;
 
 	bz_assert(lhs_value.is_boolean());
-	auto const lhs_bool_val = lhs_value.get_boolean();
+	[[maybe_unused]] auto const lhs_bool_val = lhs_value.get_boolean();
 	bz_assert(rhs_value.is_boolean());
 	auto const rhs_bool_val = rhs_value.get_boolean();
 
