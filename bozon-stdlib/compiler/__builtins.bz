@@ -793,7 +793,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 @__builtin_assign export operator = (lhs: &mut char, rhs: char) -> &mut char;
 @__builtin_assign export operator = (lhs: &mut bool, rhs: bool) -> &mut bool;
 @__builtin_assign export operator = (lhs: &mut *auto, rhs: *auto)
-	-> (if consteval (__builtin_remove_reference(typeof lhs) != typeof rhs) {
+	-> (if consteval (__builtin_remove_mut(__builtin_remove_reference(typeof lhs)) != typeof rhs) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"mismatched pointer types '",
 			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),

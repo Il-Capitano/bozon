@@ -96,7 +96,7 @@ export function decode_char_utf8(data: *uint8, end: *uint8) -> [char, *uint8]
 	}
 }
 
-export function decode_char_utf8(data: *uint8, end: *uint8) -> [char, *uint8]
+export function decode_char_utf8(data: *mut uint8, end: *mut uint8) -> [char, *mut uint8]
 {
 	let max_size = end - data;
 	if (max_size == 0)
