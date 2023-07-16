@@ -161,7 +161,7 @@ xx_compiles(                                                                    
 
 	x_err("");
 
-	declare_var("a", "int32", "");
+	declare_var("a", "mut int32", "");
 	x("a");
 	x_err("this_doesnt_exist");
 
@@ -246,15 +246,15 @@ xx_compiles(                                                                    
 	x_warn(test_str);
 	x_const_expr(test_str, ast::type_info::int64_, ast::constant_value::sint, std::numeric_limits<int64_t>::min());
 
-	declare_var("a", "int32", "");
+	declare_var("a", "mut int32", "");
 	x("++a");
-	declare_var("p", "*int32", "&a");
+	declare_var("p", "mut *int32", "&a");
 	x("++p");
-	declare_var("c", "char", "");
+	declare_var("c", "mut char", "");
 	x("++c");
-	declare_var("b", "bool", "");
+	declare_var("b", "mut bool", "");
 	x_err("++b");
-	declare_var("const_a", "const int32", "0");
+	declare_var("const_a", "int32", "0");
 	x_err("++const_a");
 	x_err("++0");
 
@@ -354,29 +354,31 @@ static bz::optional<bz::u8string> parse_expression_test(ctx::global_context &glo
 #define x_warn(str) xx_warn(parse_expression_alt, str, tokens.end() - 1, true)
 #define x_err(str) xx_err(parse_expression_alt, str, tokens.end() - 1, true)
 
-#define x_base_t(str, type_kind)                                                       \
-xx(                                                                                    \
-    parse_expression_alt,                                                              \
-    str,                                                                               \
-    tokens.end() - 1,                                                                  \
-    ([&]() {                                                                           \
-        if (res.is<ast::constant_expression>())                                        \
-        {                                                                              \
-            auto &const_expr = res.get<ast::constant_expression>();                    \
-            return const_expr.type.is<ast::ts_base_type>()                             \
-                && const_expr.type.get<ast::ts_base_type>().info->kind == (type_kind); \
-        }                                                                              \
-        else if (res.is<ast::dynamic_expression>())                                    \
-        {                                                                              \
-            auto &dyn_expr = res.get<ast::dynamic_expression>();                       \
-            return dyn_expr.type.is<ast::ts_base_type>()                               \
-                && dyn_expr.type.get<ast::ts_base_type>().info->kind == (type_kind);   \
-        }                                                                              \
-        else                                                                           \
-        {                                                                              \
-            return false;                                                              \
-        }                                                                              \
-    }())                                                                               \
+#define x_base_t(str, type_kind)                                              \
+xx(                                                                           \
+    parse_expression_alt,                                                     \
+    str,                                                                      \
+    tokens.end() - 1,                                                         \
+    ([&]() {                                                                  \
+        if (res.is<ast::constant_expression>())                               \
+        {                                                                     \
+            auto &const_expr = res.get<ast::constant_expression>();           \
+            auto const type = ast::remove_mut(const_expr.type);               \
+            return type.is<ast::ts_base_type>()                               \
+                && type.get<ast::ts_base_type>().info->kind == (type_kind);   \
+        }                                                                     \
+        else if (res.is<ast::dynamic_expression>())                           \
+        {                                                                     \
+            auto &dyn_expr = res.get<ast::dynamic_expression>();              \
+            auto const type = ast::remove_mut(dyn_expr.type);                 \
+            return type.is<ast::ts_base_type>()                               \
+                && type.get<ast::ts_base_type>().info->kind == (type_kind);   \
+        }                                                                     \
+        else                                                                  \
+        {                                                                     \
+            return false;                                                     \
+        }                                                                     \
+    }())                                                                      \
 )
 
 	using pair_t = std::pair<bz::u8string_view, uint32_t>;
@@ -405,20 +407,20 @@ xx(                                                                             
 	auto local_scope = ast::make_local_scope(parse_ctx.get_current_enclosing_scope(), false);
 	parse_ctx.push_local_scope(&local_scope);
 
-	declare_var("i8",  "int8", "");
-	declare_var("i16", "int16", "");
-	declare_var("i32", "int32", "");
-	declare_var("i64", "int64", "");
-	declare_var("u8",  "uint8", "");
-	declare_var("u16", "uint16", "");
-	declare_var("u32", "uint32", "");
-	declare_var("u64", "uint64", "");
-	declare_var("f32", "float32", "");
-	declare_var("f64", "float64", "");
-	declare_var("c", "char", "");
-	declare_var("s", "str", "");
-	declare_var("p", "*int32", "&i32");
-	declare_var("op", "?*int32", "");
+	declare_var("i8",  "mut int8", "");
+	declare_var("i16", "mut int16", "");
+	declare_var("i32", "mut int32", "");
+	declare_var("i64", "mut int64", "");
+	declare_var("u8",  "mut uint8", "");
+	declare_var("u16", "mut uint16", "");
+	declare_var("u32", "mut uint32", "");
+	declare_var("u64", "mut uint64", "");
+	declare_var("f32", "mut float32", "");
+	declare_var("f64", "mut float64", "");
+	declare_var("c", "mut char", "");
+	declare_var("s", "mut str", "");
+	declare_var("p", "mut *int32", "&i32");
+	declare_var("op", "mut ?*int32", "");
 
 	x_err("");
 
@@ -1082,7 +1084,7 @@ static bz::optional<bz::u8string> parse_typespec_test(ctx::global_context &globa
 
 	x("*int32", tokens.begin() + 2, ast::ts_pointer);
 
-	x("const int32", tokens.begin() + 2, ast::ts_const);
+	x("mut int32", tokens.begin() + 2, ast::ts_mut);
 
 	x("&int32", tokens.begin() + 2, ast::ts_lvalue_reference);
 

@@ -1551,7 +1551,7 @@ constexpr internal::group_element_index_t group_element(string_view flag_name)
 		assert(option_and_group_element.first  != "");
 		assert(option_and_group_element.second != "");
 		return [&]<std::size_t ...Is>(std::index_sequence<Is...>) {
-			bool is_result_set = false;
+			[[maybe_unused]] bool is_result_set = false;
 			internal::group_element_index_t result{};
 			(([&]() {
 				constexpr auto const &option = internal::get_option<internal::create_option_index(ID, static_cast<std::uint32_t>(Is))>();
@@ -1582,7 +1582,7 @@ constexpr internal::group_element_index_t group_element(string_view flag_name)
 		assert(command_and_option_and_group_element.first  != "");
 		assert(command_and_option_and_group_element.second != "");
 		return [&]<std::size_t ...Is>(std::index_sequence<Is...>) {
-			bool is_result_set = false;
+			[[maybe_unused]] bool is_result_set = false;
 			internal::group_element_index_t result{};
 			(([&]() {
 				constexpr auto const &command = internal::get_command<internal::create_command_index(ID, static_cast<std::uint32_t>(Is))>();
@@ -1632,7 +1632,7 @@ constexpr internal::option_index_t option(string_view flag_name)
 		auto const command_and_option = internal::seperate_command_and_option(flag_name);
 		assert(command_and_option.first != "");
 		return [&]<std::size_t ...Is>(std::index_sequence<Is...>) {
-			bool is_result_set = false;
+			[[maybe_unused]] bool is_result_set = false;
 			internal::option_index_t result{};
 			(([&]() {
 				constexpr auto const &command = internal::get_command<internal::create_command_index(ID, static_cast<std::uint32_t>(Is))>();

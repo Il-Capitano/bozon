@@ -3,5 +3,5 @@ import stddef;
 
 @symbol_name("abort") export function "c" abort() -> void;
 @symbol_name("exit") export function "c" exit(status: int) -> void;
-@symbol_name("free") export function "c" free(ptr: ?*void) -> void;
-@symbol_name("malloc") export function "c" malloc(size: size_t) -> ?*void;
+@symbol_name("free") export function "c" free(ptr: ?*mut void) -> void;
+@symbol_name("malloc") export function "c" malloc(size: size_t) -> ?*mut void;

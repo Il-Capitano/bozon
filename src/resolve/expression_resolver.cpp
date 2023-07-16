@@ -868,21 +868,7 @@ static ast::expression resolve_expr(
 		}
 		else if (elem_type.is<ast::ts_consteval>())
 		{
-			auto const consteval_pos = array_type.type.src_tokens.pivot != nullptr
-				&& array_type.type.src_tokens.pivot->kind == lex::token::kw_consteval
-					? array_type.type.src_tokens.pivot
-					: lex::token_pos(nullptr);
-			auto const [consteval_begin, consteval_end] = consteval_pos == nullptr
-				? std::make_pair(ctx::char_pos(), ctx::char_pos())
-				: std::make_pair(consteval_pos->src_pos.begin, consteval_pos->src_pos.end);
-			context.report_error(
-				array_type.type.src_tokens, "array slice element type cannot be 'consteval'",
-				{}, { context.make_suggestion_before(
-					src_tokens.begin, ctx::char_pos(), ctx::char_pos(), "consteval ",
-					consteval_pos, consteval_begin, consteval_end, "const",
-					"make the array slice type 'consteval'"
-				) }
-			);
+			context.report_error(array_type.type.src_tokens, "array slice element type cannot be 'consteval'");
 			return ast::make_error_expression(src_tokens);
 		}
 		else if (elem_type.is<ast::ts_lvalue_reference>())
@@ -900,9 +886,9 @@ static ast::expression resolve_expr(
 			context.report_error(array_type.type.src_tokens, "array element type cannot be an auto reference type");
 			return ast::make_error_expression(src_tokens);
 		}
-		else if (elem_type.is<ast::ts_auto_reference_const>())
+		else if (elem_type.is<ast::ts_auto_reference_mut>())
 		{
-			context.report_error(array_type.type.src_tokens, "array element type cannot be an auto reference-const type");
+			context.report_error(array_type.type.src_tokens, "array element type cannot be an auto reference-mut type");
 			return ast::make_error_expression(src_tokens);
 		}
 		else if (elem_type.is<ast::ts_variadic>())
@@ -923,21 +909,21 @@ static ast::expression resolve_expr(
 			context.report_error(array_type.type.src_tokens, "array element type cannot be 'void'");
 			return ast::make_error_expression(src_tokens);
 		}
-		else if (elem_type.is<ast::ts_const>())
+		else if (elem_type.is<ast::ts_mut>())
 		{
 			good = false;
 			auto const const_pos = array_type.type.src_tokens.pivot != nullptr
-				&& array_type.type.src_tokens.pivot->kind == lex::token::kw_const
+				&& array_type.type.src_tokens.pivot->kind == lex::token::kw_mut
 					? array_type.type.src_tokens.pivot
 					: lex::token_pos(nullptr);
 			auto const [const_begin, const_end] = const_pos == nullptr
 				? std::make_pair(ctx::char_pos(), ctx::char_pos())
 				: std::make_pair(const_pos->src_pos.begin, (const_pos + 1)->src_pos.begin);
 			context.report_error(
-				array_type.type.src_tokens, "array element type cannot be 'const'",
+				array_type.type.src_tokens, "array element type cannot be 'mut'",
 				{}, { context.make_suggestion_before(
 					src_tokens.begin, const_begin, const_end,
-					"const ", "make the array type 'const'"
+					"mut ", "make the array type 'mut'"
 				) }
 			);
 			return ast::make_error_expression(src_tokens);
@@ -976,9 +962,9 @@ static ast::expression resolve_expr(
 			context.report_error(array_type.type.src_tokens, "array element type cannot be an auto reference type");
 			return ast::make_error_expression(src_tokens);
 		}
-		else if (elem_type.is<ast::ts_auto_reference_const>())
+		else if (elem_type.is<ast::ts_auto_reference_mut>())
 		{
-			context.report_error(array_type.type.src_tokens, "array element type cannot be an auto reference-const type");
+			context.report_error(array_type.type.src_tokens, "array element type cannot be an auto reference-mut type");
 			return ast::make_error_expression(src_tokens);
 		}
 		else if (elem_type.is<ast::ts_variadic>())

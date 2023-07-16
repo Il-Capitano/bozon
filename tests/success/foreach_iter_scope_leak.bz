@@ -1,7 +1,7 @@
 function main()
 {
 	let i = 0i32;
-	const arr: [1: uint32] = [ 0 ];
+	let arr: [1: uint32] = [ 0 ];
 	for (let i in arr)
 	{
 		static_assert(typeof i == uint32);

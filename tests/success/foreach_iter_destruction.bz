@@ -3,7 +3,7 @@ import resource;
 function test()
 {
 	(consteval {
-		const arr: [1: complex_resource_t] = [ complex_resource_t() ];
-		for (const _ in arr) {}
+		let arr: [1: complex_resource_t] = [ complex_resource_t() ];
+		for (let _ in arr) {}
 	});
 }

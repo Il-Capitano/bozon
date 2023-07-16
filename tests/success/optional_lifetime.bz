@@ -6,42 +6,42 @@ function test()
 		let _: ?complex_resource_t = null;
 		let _: ?complex_resource_t = complex_resource_t();
 
-		let o: ?complex_resource_t = null;
+		mut o: ?complex_resource_t = null;
 		o = null;
 		o = complex_resource_t();
 		o = complex_resource_t();
 		o = null;
 
-		let o: ?complex_resource_t = null;
-		let o1: ?complex_resource_t = null;
+		mut o: ?complex_resource_t = null;
+		mut o1: ?complex_resource_t = null;
 		o = move o1;
-		let o1: ?complex_resource_t = complex_resource_t();
+		mut o1: ?complex_resource_t = complex_resource_t();
 		o = move o1;
 		o = ([complex_resource_t](), (?complex_resource_t)());
-		let o1: ?complex_resource_t = null;
-		let _ = move o1;
+		mut o1: ?complex_resource_t = null;
+		mut _ = move o1;
 
-		let o: ?complex_resource_t = null;
-		let o1: ?complex_resource_t = complex_resource_t();
+		mut o: ?complex_resource_t = null;
+		mut o1: ?complex_resource_t = complex_resource_t();
 		o = null;
 		o = o1;
 		o = o1;
 		o = null;
 
-		let o1: ?complex_resource_t = null;
-		let o2: ?complex_resource_t = null;
+		mut o1: ?complex_resource_t = null;
+		mut o2: ?complex_resource_t = null;
 		__builtin_swap(o1, o2);
 
-		let o1: ?complex_resource_t = complex_resource_t();
-		let o2: ?complex_resource_t = null;
+		mut o1: ?complex_resource_t = complex_resource_t();
+		mut o2: ?complex_resource_t = null;
 		__builtin_swap(o1, o2);
 
-		let o1: ?complex_resource_t = null;
-		let o2: ?complex_resource_t = complex_resource_t();
+		mut o1: ?complex_resource_t = null;
+		mut o2: ?complex_resource_t = complex_resource_t();
 		__builtin_swap(o1, o2);
 
-		let o1: ?complex_resource_t = complex_resource_t();
-		let o2: ?complex_resource_t = complex_resource_t();
+		mut o1: ?complex_resource_t = complex_resource_t();
+		mut o2: ?complex_resource_t = complex_resource_t();
 		__builtin_swap(o1, o2);
 	});
 }

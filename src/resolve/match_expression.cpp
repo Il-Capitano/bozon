@@ -93,14 +93,14 @@ void match_expression_to_type(ast::expression &expr, ast::typespec &dest_type, c
 	}
 }
 
-static void set_type(ast::decl_variable &var_decl, ast::typespec_view type, bool is_const, bool is_reference)
+static void set_type(ast::decl_variable &var_decl, ast::typespec_view type, bool is_mut, bool is_reference)
 {
 	if (var_decl.tuple_decls.empty())
 	{
 		var_decl.get_type() = type;
-		if (is_const && !var_decl.get_type().is<ast::ts_lvalue_reference>() && !var_decl.get_type().is<ast::ts_const>())
+		if (is_mut && !var_decl.get_type().is<ast::ts_lvalue_reference>() && !var_decl.get_type().is<ast::ts_mut>())
 		{
-			var_decl.get_type().add_layer<ast::ts_const>();
+			var_decl.get_type().add_layer<ast::ts_mut>();
 		}
 		if (is_reference)
 		{
@@ -131,7 +131,7 @@ static void set_type(ast::decl_variable &var_decl, ast::typespec_view type, bool
 			else
 			{
 				bz_assert(inner_types.size() >= var_decl.tuple_decls.size());
-				var_decl.tuple_decls.reserve(inner_types.size());
+				var_decl.tuple_decls.reserve(inner_types.size()); // !!! resize can cause a reallocation, which invalidates .back()
 				var_decl.tuple_decls.resize(inner_types.size(), var_decl.tuple_decls.back());
 			}
 		}
@@ -139,8 +139,8 @@ static void set_type(ast::decl_variable &var_decl, ast::typespec_view type, bool
 		for (auto const &[inner_decl, inner_type] : bz::zip(var_decl.tuple_decls, inner_types))
 		{
 			auto const inner_is_ref = inner_type.is<ast::ts_lvalue_reference>();
-			auto const inner_is_const = ast::remove_lvalue_reference(inner_type).is<ast::ts_const>();
-			set_type(inner_decl, inner_type, is_const || inner_is_const, is_reference || inner_is_ref);
+			auto const inner_is_mut = inner_is_ref && inner_type.get<ast::ts_lvalue_reference>().is<ast::ts_mut>();
+			set_type(inner_decl, inner_type, is_mut || inner_is_mut, is_reference || inner_is_ref);
 		}
 	}
 }
@@ -158,7 +158,7 @@ void match_expression_to_variable(
 	else
 	{
 		match_expression_to_type(expr, var_decl.get_type(), context);
-		if (!ast::remove_const_or_consteval(ast::remove_lvalue_reference(var_decl.get_type())).is<ast::ts_tuple>())
+		if (!ast::remove_mut(ast::remove_lvalue_reference(var_decl.get_type())).is<ast::ts_tuple>())
 		{
 			context.report_error(
 				var_decl.src_tokens,
@@ -170,8 +170,8 @@ void match_expression_to_variable(
 
 		auto const var_type_without_lvalue_ref = ast::remove_lvalue_reference(var_decl.get_type());
 		set_type(
-			var_decl, ast::remove_const_or_consteval(var_type_without_lvalue_ref),
-			var_type_without_lvalue_ref.is<ast::ts_const>() || var_type_without_lvalue_ref.is<ast::ts_consteval>(),
+			var_decl, ast::remove_mutability_modifiers(var_type_without_lvalue_ref),
+			var_type_without_lvalue_ref.is<ast::ts_mut>(),
 			var_decl.get_type().is<ast::ts_lvalue_reference>()
 		);
 	}

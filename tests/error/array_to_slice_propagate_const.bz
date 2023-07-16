@@ -1,9 +1,9 @@
-// error: unable to match type '*int32' to '*const int32'
-// note: mismatched const qualification of types 'int32' and 'const int32'
-// note: while matching expression of type '[3: *int32]' to '[: *const int32]'
+// error: unable to match type '*mut int32' to '*int32'
+// note: mismatched mutability of types 'mut int32' and 'int32'
+// note: while matching expression of type 'mut [3: *mut int32]' to '[: mut *int32]'
 function main()
 {
-	let i = 0;
-	let p_arr: [3: *int32] = [ &i, &i, &i ];
-	let _slice: [: *const int32] = p_arr;
+	mut i = 0;
+	mut p_arr: [3: *mut int32] = [ &i, &i, &i ];
+	let _: [: mut *int32] = p_arr;
 }

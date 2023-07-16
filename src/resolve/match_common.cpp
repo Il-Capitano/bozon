@@ -25,11 +25,11 @@ bool is_implicitly_convertible(
 	[[maybe_unused]] ctx::parse_context &context
 )
 {
-	auto const expr_type_without_const = ast::remove_const_or_consteval(expr_type);
-	if (dest.is<ast::ts_base_type>() && expr_type_without_const.is<ast::ts_base_type>())
+	auto const bare_expr_type = ast::remove_mutability_modifiers(expr_type);
+	if (dest.is<ast::ts_base_type>() && bare_expr_type.is<ast::ts_base_type>())
 	{
 		auto const dest_kind = dest.get<ast::ts_base_type>().info->kind;
-		auto const expr_kind = expr_type_without_const.get<ast::ts_base_type>().info->kind;
+		auto const expr_kind = bare_expr_type.get<ast::ts_base_type>().info->kind;
 		if (
 			(ast::is_signed_integer_kind(dest_kind) && ast::is_signed_integer_kind(expr_kind))
 			|| (ast::is_unsigned_integer_kind(dest_kind) && ast::is_unsigned_integer_kind(expr_kind))
@@ -237,7 +237,7 @@ bool is_implicitly_convertible(
 		return is_enum_literal_implicitly_convertible(dest, expr);
 	}
 
-	bz_assert(!dest.is<ast::ts_const>());
+	bz_assert(!dest.is<ast::ts_mut>());
 	bz_assert(!dest.is<ast::ts_consteval>());
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
 	return is_implicitly_convertible(dest, expr_type, expr_type_kind, context);

@@ -2,25 +2,25 @@ import std::meta::comptime;
 import std::meta::types;
 import std::libc::stdlib;
 
-function malloc(T: typename, n: usize) -> *T
+function malloc(T: typename, n: usize) -> *mut T
 {
 	static_assert(!std::meta::is_reference(T), "type in 'malloc' can't be a reference type");
 	static_assert(!std::meta::is_move_reference(T), "type in 'malloc' can't be a move reference type");
-	static_assert(!std::meta::is_const(T), "type in 'malloc' can't be 'const'");
+	static_assert(!std::meta::is_mut(T), "type in 'malloc' can't be 'mut'");
 	static_assert(!std::meta::is_consteval(T), "type in 'malloc' can't be 'consteval'");
 
-	const result = if (std::meta::is_comptime()) {
+	let result = if (std::meta::is_comptime()) {
 		std::meta::malloc(T, n)
 	} else {
-		const malloc_result = std::libc::malloc(n * sizeof T);
+		let malloc_result = std::libc::malloc(n * sizeof T);
 		if (malloc_result == null)
 		{
 			unreachable;
 		}
-		__builtin_pointer_cast(*T, malloc_result.get_value())
+		__builtin_pointer_cast(*mut T, malloc_result.get_value())
 	};
 
-	for (let [it, const end] = [ result, result + n ]; it != end; ++it)
+	for (let [mut it, end] = [ result, result + n ]; it != end; ++it)
 	{
 		__builtin_inplace_construct(it, T());
 	}
@@ -28,7 +28,7 @@ function malloc(T: typename, n: usize) -> *T
 	return result;
 }
 
-function free(p: ?*void)
+function free(p: ?*mut void)
 {
 	if (std::meta::is_comptime())
 	{
@@ -42,7 +42,7 @@ function free(p: ?*void)
 
 export struct resource_t
 {
-	.p: *int32;
+	.p: *mut int32;
 
 	constructor()
 	{
@@ -54,7 +54,7 @@ export struct resource_t
 		free(self.p);
 	}
 
-	constructor(other: &const resource_t)
+	constructor(other: &resource_t)
 	{
 		return resource_t[ malloc(int32, 1) ];
 	}
@@ -62,8 +62,8 @@ export struct resource_t
 
 export struct complex_resource_t
 {
-	.p: *int32;
-	.instance_p: *int32;
+	.p: *mut int32;
+	.instance_p: *mut int32;
 
 	constructor()
 	{
@@ -73,7 +73,7 @@ export struct complex_resource_t
 		];
 	}
 
-	constructor(other: &const complex_resource_t)
+	constructor(other: &complex_resource_t)
 	{
 		return complex_resource_t[
 			malloc(int32, 1),

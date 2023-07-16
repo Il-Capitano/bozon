@@ -8,7 +8,7 @@ function get_values() -> [1: complex_resource_t]
 function test()
 {
 	(consteval {
-		let arr = [1: complex_resource_t]();
+		mut arr = [1: complex_resource_t]();
 		arr = get_values();
 	});
 }

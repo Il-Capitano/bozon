@@ -5,7 +5,7 @@
 // error: condition for static_assert must be a constant expression
 function foo()
 {
-	const x = do_something();
+	let x = do_something();
 	x & 1u32;
 }
 

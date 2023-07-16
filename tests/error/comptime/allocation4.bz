@@ -5,7 +5,7 @@
 function test()
 {
 	(consteval {
-		let i = 0;
+		mut i = 0;
 		__builtin_comptime_free(&i);
 	});
 }

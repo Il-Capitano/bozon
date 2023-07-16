@@ -5,7 +5,7 @@ struct T
 
 struct S
 {
-	.t: *T;
+	.t: *mut T;
 
 	function foo(self: S)
 	{

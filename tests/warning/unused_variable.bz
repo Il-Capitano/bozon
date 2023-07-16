@@ -1,4 +1,4 @@
 function main()
 {
-	const i = 0;
+	let i = 0;
 }

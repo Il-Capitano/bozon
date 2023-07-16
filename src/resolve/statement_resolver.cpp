@@ -110,6 +110,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	iter_var_decl.id_and_type.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
 	iter_var_decl.id_and_type.id.values = { "" };
 	iter_var_decl.id_and_type.id.is_qualified = false;
+	iter_var_decl.id_and_type.var_type.get_typename().add_layer<ast::ts_mut>();
 	resolve_statement(foreach_stmt.iter_var_decl, context);
 	context.add_local_variable(iter_var_decl);
 	iter_var_decl.flags |= ast::decl_variable::used;
@@ -730,11 +731,11 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 			var_decl.clear_type();
 			var_decl.state = ast::resolve_state::error;
 		}
-		else if (var_decl.get_type().is<ast::ts_const>())
+		else if (!var_decl.get_type().is<ast::ts_mut>())
 		{
 			context.report_error(
 				var_decl.src_tokens,
-				"a variable with a 'const' type must be initialized"
+				"an immutable variable must be initialized"
 			);
 			var_decl.state = ast::resolve_state::error;
 		}
@@ -766,7 +767,7 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 		{
 			context.report_error(
 				var_decl.src_tokens,
-				bz::format("variable type '{}' is not default constructible and must be initialized", var_decl.get_type())
+				bz::format("variable type '{}' is not default constructible and must be initialized", ast::remove_mut(var_decl.get_type()))
 			);
 			var_decl.state = ast::resolve_state::error;
 		}
@@ -863,7 +864,7 @@ void resolve_variable_symbol(ast::decl_variable &var_decl, ctx::parse_context &c
 
 static void resolve_variable_destruction(ast::decl_variable &var_decl, ctx::parse_context &context)
 {
-	auto const type = ast::remove_const_or_consteval(var_decl.get_type());
+	auto const type = ast::remove_mutability_modifiers(var_decl.get_type());
 	if (type.is<ast::ts_base_type>())
 	{
 		auto const info = type.get<ast::ts_base_type>().info;
@@ -1258,8 +1259,9 @@ static bool is_valid_copy_assign_op(ast::function_body &func_body)
 	bz_assert(func_body.params.size() == 2);
 	auto const lhs_type = func_body.params[0].get_type().as_typespec_view();
 	if (
-		lhs_type.modifiers.size() != 1
+		lhs_type.modifiers.size() != 2
 		|| !lhs_type.modifiers[0].is<ast::ts_lvalue_reference>()
+		|| !lhs_type.modifiers[1].is<ast::ts_mut>()
 		|| !lhs_type.terminator->is<ast::ts_base_type>()
 	)
 	{
@@ -1268,9 +1270,8 @@ static bool is_valid_copy_assign_op(ast::function_body &func_body)
 
 	auto const info = lhs_type.terminator->get<ast::ts_base_type>().info;
 	auto const rhs_type = func_body.params[1].get_type().as_typespec_view();
-	return rhs_type.modifiers.size() == 2
+	return rhs_type.modifiers.size() == 1
 		&& rhs_type.modifiers[0].is<ast::ts_lvalue_reference>()
-		&& rhs_type.modifiers[1].is<ast::ts_const>()
 		&& rhs_type.terminator->is<ast::ts_base_type>()
 		&& rhs_type.terminator->get<ast::ts_base_type>().info == info;
 }
@@ -1288,8 +1289,9 @@ static bool is_valid_move_assign_op(ast::function_body &func_body)
 	bz_assert(func_body.params.size() == 2);
 	auto const lhs_type = func_body.params[0].get_type().as_typespec_view();
 	if (
-		lhs_type.modifiers.size() != 1
+		lhs_type.modifiers.size() != 2
 		|| !lhs_type.modifiers[0].is<ast::ts_lvalue_reference>()
+		|| !lhs_type.modifiers[1].is<ast::ts_mut>()
 		|| !lhs_type.terminator->is<ast::ts_base_type>()
 	)
 	{
@@ -1376,15 +1378,14 @@ static bool resolve_function_parameters_helper(
 		{
 			func_body.flags &= ~ast::function_body::generic;
 
-			// if the parameter is generic, then it must be &auto or move auto
+			// if the parameter is generic, then it must be &auto, &mut auto or move auto
 			// either as `destructor(&self)`, `destructor(move self)`, `destructor(self: &auto)` or `destructor(self: move auto)`
-			if (
-				param_type.modifiers.size() != 1
-				|| (!param_type.modifiers[0].is<ast::ts_lvalue_reference>() && !param_type.modifiers[0].is<ast::ts_move_reference>())
-				|| !param_type.terminator->is<ast::ts_auto>()
-			)
+			auto const is_ref = param_type.modifiers.size() == 1 && param_type.modifiers[0].is<ast::ts_lvalue_reference>();
+			auto const is_mut_ref = param_type.modifiers.size() == 2 && param_type.modifiers[0].is<ast::ts_lvalue_reference>() && param_type.modifiers[1].is<ast::ts_mut>();
+			auto const is_move_ref = param_type.modifiers.size() == 1 && param_type.modifiers[0].is<ast::ts_move_reference>();
+			auto const is_mut_move_ref = param_type.modifiers.size() == 2 && param_type.modifiers[0].is<ast::ts_move_reference>() && param_type.modifiers[1].is<ast::ts_mut>();
+			if ((!is_ref && !is_mut_ref && !is_move_ref && !is_mut_move_ref) || !param_type.terminator->is<ast::ts_auto>())
 			{
-				bz_unreachable;
 				auto const destructor_of_type = ast::type_info::decode_symbol_name(func_body.get_destructor_of()->symbol_name);
 				context.report_error(
 					func_body.params[0].src_tokens,
@@ -1392,7 +1393,7 @@ static bool resolve_function_parameters_helper(
 						"invalid parameter type '{}' in destructor of type '{}'",
 						param_type, destructor_of_type
 					),
-					{ context.make_note(bz::format("it must be either '&auto', 'move auto', '&{0}' or 'move {0}'", destructor_of_type)) }
+					{ context.make_note(bz::format("it must be either '&mut auto', 'move mut auto', '&mut {0}' or 'move mut {0}'", destructor_of_type)) }
 				);
 				return false;
 			}
@@ -1401,10 +1402,11 @@ static bool resolve_function_parameters_helper(
 		}
 		else
 		{
-			// if the parameter is non-generic, then it must be &<type>
+			auto const is_ref = (param_type.modifiers.size() == 1 && param_type.modifiers[0].is<ast::ts_lvalue_reference>())
+				|| (param_type.modifiers.size() == 2 && param_type.modifiers[0].is<ast::ts_lvalue_reference>() && param_type.modifiers[1].is<ast::ts_mut>());
+			// if the parameter is non-generic, then it must be &<type> or &mut <type>
 			if (
-				param_type.modifiers.size() != 1
-				|| (!param_type.modifiers[0].is<ast::ts_lvalue_reference>() && !param_type.modifiers[0].is<ast::ts_move_reference>())
+				!is_ref
 				|| !param_type.terminator->is<ast::ts_base_type>()
 				|| param_type.terminator->get<ast::ts_base_type>().info != func_body.get_destructor_of()
 			)
@@ -1487,11 +1489,11 @@ static bool resolve_function_parameters_helper(
 				info->default_constructor = &func_stmt.get<ast::decl_function>();
 			}
 		}
+		// copy constructor has one parameter of type &<type>
 		else if (
 			func_body.params.size() == 1
-			&& func_body.params[0].get_type().modifiers.size() == 2
+			&& func_body.params[0].get_type().modifiers.size() == 1
 			&& func_body.params[0].get_type().modifiers[0].is<ast::ts_lvalue_reference>()
-			&& func_body.params[0].get_type().modifiers[1].is<ast::ts_const>()
 			&& func_body.params[0].get_type().terminator->is<ast::ts_base_type>()
 			&& func_body.params[0].get_type().terminator->get<ast::ts_base_type>().info == func_body.get_constructor_of()
 		)
@@ -1516,10 +1518,14 @@ static bool resolve_function_parameters_helper(
 				info->copy_constructor = &func_stmt.get<ast::decl_function>();
 			}
 		}
+		// move constructor has one parameter of type move <type> or move mut <type>
 		else if (
 			func_body.params.size() == 1
-			&& func_body.params[0].get_type().modifiers.size() == 1
-			&& func_body.params[0].get_type().modifiers[0].is<ast::ts_move_reference>()
+			&& [&]() {
+				auto const &type = func_body.params[0].get_type();
+				return (type.modifiers.size() == 1 && type.modifiers[0].is<ast::ts_move_reference>())
+					|| (type.modifiers.size() == 2 && type.modifiers[0].is<ast::ts_move_reference>() && type.modifiers[1].is<ast::ts_mut>());
+			}()
 			&& func_body.params[0].get_type().terminator->is<ast::ts_base_type>()
 			&& func_body.params[0].get_type().terminator->get<ast::ts_base_type>().info == func_body.get_constructor_of()
 		)
@@ -1729,19 +1735,16 @@ static bool is_valid_main(ast::function_body const &body)
 
 	for (auto const &param : body.params)
 	{
-		auto const param_t = ast::remove_const_or_consteval(param.get_type());
+		auto const param_t = ast::remove_mutability_modifiers(param.get_type());
 		if (!param_t.is<ast::ts_array_slice>())
 		{
 			return false;
 		}
-		auto const slice_t = ast::remove_const_or_consteval(param_t.get<ast::ts_array_slice>().elem_type);
-		if (!(
-			slice_t.is<ast::ts_void>()
-			|| (
-				slice_t.is<ast::ts_base_type>()
-				&& slice_t.get<ast::ts_base_type>().info->kind == ast::type_info::str_
-			)
-		))
+		auto const slice_t = param_t.get<ast::ts_array_slice>().elem_type;
+		if (
+			!slice_t.is<ast::ts_base_type>()
+			|| slice_t.get<ast::ts_base_type>().info->kind != ast::type_info::str_
+		)
 		{
 			return false;
 		}
@@ -1790,33 +1793,32 @@ static void report_invalid_main_error(ast::function_body const &body, ctx::parse
 		return;
 	}
 
-	for (auto const &param : body.params)
+	bz_assert(body.params.size() == 1);
+	auto const &param = body.params[0];
+
+	auto const param_t = ast::remove_mutability_modifiers(param.get_type());
+	if (!param_t.is<ast::ts_array_slice>())
 	{
-		auto const param_t = ast::remove_const_or_consteval(param.get_type());
-		if (!param_t.is<ast::ts_array_slice>())
-		{
-			context.report_error(
-				body.src_tokens, "invalid declaration for main function",
-				{ context.make_note(param.src_tokens, "parameter type must be '[: const str]'") }
-			);
-			return;
-		}
-		auto const slice_t = ast::remove_const_or_consteval(param_t.get<ast::ts_array_slice>().elem_type);
-		if (!(
-			slice_t.is<ast::ts_void>()
-			|| (
-				slice_t.is<ast::ts_base_type>()
-				&& slice_t.get<ast::ts_base_type>().info->kind == ast::type_info::str_
-			)
-		))
-		{
-			context.report_error(
-				body.src_tokens, "invalid declaration for main function",
-				{ context.make_note(param.src_tokens, "parameter type must be '[: const str]'") }
-			);
-			return;
-		}
+		context.report_error(
+			body.src_tokens, "invalid declaration for main function",
+			{ context.make_note(param.src_tokens, "parameter type must be '[: str]'") }
+		);
+		return;
 	}
+
+	auto const slice_t = param_t.get<ast::ts_array_slice>().elem_type;
+	if (
+		!slice_t.is<ast::ts_base_type>()
+		|| slice_t.get<ast::ts_base_type>().info->kind != ast::type_info::str_
+	)
+	{
+		context.report_error(
+			body.src_tokens, "invalid declaration for main function",
+			{ context.make_note(param.src_tokens, "parameter type must be '[: str]'") }
+		);
+		return;
+	}
+
 	bz_unreachable;
 }
 
@@ -2092,8 +2094,28 @@ static void resolve_type_info_parameters_impl(ast::type_info &info, ctx::parse_c
 				{
 					// nothing
 				}
-				else if (type.is<ast::ts_const>())
+				else if (type.is<ast::ts_mut>())
 				{
+					auto suggestions = bz::vector<ctx::source_highlight>();
+					if (type.src_tokens.pivot != nullptr && type.src_tokens.pivot->kind == lex::token::kw_mut)
+					{
+						auto const pivot = type.src_tokens.pivot;
+						auto const erase_begin = pivot->src_pos.begin;
+						auto const erase_end = pivot->src_pos.line == (pivot + 1)->src_pos.line
+							? (pivot + 1)->src_pos.begin
+							: pivot->src_pos.end;
+						suggestions.push_back(context.make_suggestion_before(
+							pivot,
+							erase_begin, erase_end,
+							"",
+							"remove 'mut'"
+						));
+					}
+					context.report_error(
+						p.src_tokens,
+						"type of generic parameter cannot be 'mut'",
+						{}, {}
+					);
 					type.modifiers.front().emplace<ast::ts_consteval>();
 				}
 				else
@@ -2540,7 +2562,7 @@ static void add_flags(ast::type_info &info, ctx::parse_context &context)
 
 static void resolve_member_type_size(lex::src_tokens const &src_tokens, ast::typespec_view member_type, ctx::parse_context &context)
 {
-	member_type = ast::remove_const_or_consteval(member_type);
+	member_type = ast::remove_mutability_modifiers(member_type);
 	if (member_type.is<ast::ts_base_type>())
 	{
 		auto const info = member_type.get<ast::ts_base_type>().info;
@@ -2961,7 +2983,7 @@ static void resolve_enum_impl(ast::decl_enum &enum_decl, ctx::parse_context &con
 		auto const underlying_type_tokens = enum_decl.underlying_type.get<ast::ts_unresolved>().tokens;
 		resolve_typespec(enum_decl.underlying_type, context, precedence{});
 
-		if (enum_decl.underlying_type.is<ast::ts_const>() || enum_decl.underlying_type.is<ast::ts_consteval>())
+		if (enum_decl.underlying_type.is<ast::ts_mut>() || enum_decl.underlying_type.is<ast::ts_consteval>())
 		{
 			enum_decl.underlying_type.remove_layer();
 		}

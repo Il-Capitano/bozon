@@ -1,7 +1,7 @@
 export function find(##range, ##val) -> typeof range.begin()
 {
-	let it = range.begin();
-	const end = range.end();
+	mut it = range.begin();
+	let end = range.end();
 	for (; it != end; ++it)
 	{
 		if (*it == val)
@@ -14,9 +14,9 @@ export function find(##range, ##val) -> typeof range.begin()
 
 export function count(##range, ##val) -> usize
 {
-	let result = 0uz;
-	let it = range.begin();
-	const end = range.end();
+	mut result = 0uz;
+	mut it = range.begin();
+	let end = range.end();
 	for (; it != end; ++it)
 	{
 		if (*it == val)
@@ -27,11 +27,11 @@ export function count(##range, ##val) -> usize
 	return result;
 }
 
-export function fill(&range, ##val) -> typeof range
+export function fill(&mut range, ##val) -> typeof range
 {
 	static_assert(typeof range == &typeof range, "sanity check");
-	let it = range.begin();
-	const end = range.end();
+	mut it = range.begin();
+	let end = range.end();
 	for (; it != end; ++it)
 	{
 		*it = val;

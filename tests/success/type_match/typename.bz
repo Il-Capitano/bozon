@@ -11,30 +11,30 @@ function test9(T: [typename, int32]);
 function test()
 {
 	test1(int32);
-	test1(const int32);
+	test1(mut int32);
 	test1(*int32);
-	test1([: const int32]);
+	test1([: mut int32]);
 	test1(&[10: int32]);
 	test1(move [str, float32, [[3: int8], usize]]);
 
 	test2(**int32);
-	test2(**const *[float32, float64]);
+	test2(**mut *[float32, float64]);
 
 	test3([4: int32]);
 
 	test4([3: *int32]);
 	test4([4: *int32]);
-	test4([2: *const int32]);
-	test4([8: **const int32]);
+	test4([2: *mut int32]);
+	test4([8: **mut int32]);
 
 	test5([: int32]);
-	test5([: const int32]);
+	test5([: mut int32]);
 	test5([: **int32]);
-	test5([: const [4: int32]]);
+	test5([: mut [4: int32]]);
 
 	test6([int32, float32]);
 	test6([str, char]);
-	test6([[: const str], [int8, uint64, *int32]]);
+	test6([[: mut str], [int8, uint64, *int32]]);
 
 	test7([int32]);
 	test7([int32, float32]);

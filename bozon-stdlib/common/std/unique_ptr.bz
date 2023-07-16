@@ -5,8 +5,8 @@ import format;
 export struct unique_ptr<T: typename, nullable: bool>
 {
 	static_assert(
-		!meta::is_const(T),
-		comptime_format("unique_ptr value_type can't be a const type '{}'", meta::typename_as_str(T))
+		!meta::is_mut(T),
+		comptime_format("unique_ptr value_type can't be a mut type '{}'", meta::typename_as_str(T))
 	);
 	static_assert(
 		!meta::is_consteval(T),
@@ -24,14 +24,14 @@ export struct unique_ptr<T: typename, nullable: bool>
 	export type value_type = T
 		.meta::remove_reference()
 		.meta::remove_move_reference()
-		.meta::remove_const()
+		.meta::remove_mut()
 		.meta::remove_consteval();
 	type _self_t = unique_ptr<T, nullable>;
-	type _data_type = if consteval (nullable) { ?*value_type } else { *value_type };
+	type _data_type = if consteval (nullable) { ?*mut value_type } else { *mut value_type };
 
 	._data: _data_type;
 
-	destructor(&self)
+	destructor(&mut self)
 	{
 		if (!self._is_null())
 		{
@@ -40,9 +40,9 @@ export struct unique_ptr<T: typename, nullable: bool>
 		free(self._data);
 	}
 
-	constructor(other: &const _self_t) = __delete__;
+	constructor(other: &_self_t) = __delete__;
 
-	function _is_null(self: &const _self_t) -> bool
+	function _is_null(self: &_self_t) -> bool
 	{
 		return if consteval (nullable) {
 			self._data == null
@@ -51,19 +51,19 @@ export struct unique_ptr<T: typename, nullable: bool>
 		};
 	}
 
-	export operator * (self: &const _self_t) -> &value_type
+	export operator * (self: &_self_t) -> &mut value_type
 	{
 		return *self._data;
 	}
 
 	export function create(args: ...##auto) -> _self_t
 	{
-		const data = malloc_raw(value_type, 1);
+		let data = malloc_raw(value_type, 1);
 		__builtin_inplace_construct(data, value_type(...__forward args));
 		return _self_t[ data ];
 	}
 
-	export function get(self: &const _self_t) -> _data_type
+	export function get(self: &_self_t) -> _data_type
 	{
 		return self._data;
 	}

@@ -37,14 +37,14 @@ export operator + (lhs: complex, rhs: float64) -> complex
 export operator + (lhs: float64, rhs: complex) -> complex
 { return complex[ lhs + rhs.re, rhs.im ]; }
 
-export operator += (lhs: &complex, rhs: complex) -> &complex
+export operator += (lhs: &mut complex, rhs: complex) -> &mut complex
 {
 	lhs.re += rhs.re;
 	lhs.im += rhs.im;
 	return lhs;
 }
 
-export operator += (lhs: &complex, rhs: float64) -> &complex
+export operator += (lhs: &mut complex, rhs: float64) -> &mut complex
 {
 	lhs.re += rhs;
 	return lhs;
@@ -60,14 +60,14 @@ export operator - (lhs: complex, rhs: float64) -> complex
 export operator - (lhs: float64, rhs: complex) -> complex
 { return complex[ lhs - rhs.re, -rhs.im ]; }
 
-export operator -= (lhs: &complex, rhs: complex) -> &complex
+export operator -= (lhs: &mut complex, rhs: complex) -> &mut complex
 {
 	lhs.re -= rhs.re;
 	lhs.im -= rhs.im;
 	return lhs;
 }
 
-export operator -= (lhs: &complex, rhs: float64) -> &complex
+export operator -= (lhs: &mut complex, rhs: float64) -> &mut complex
 {
 	lhs.re -= rhs;
 	return lhs;
@@ -83,13 +83,13 @@ export operator * (lhs: complex, rhs: float64) -> complex
 export operator * (lhs: float64, rhs: complex) -> complex
 { return complex[ lhs * rhs.re, lhs * rhs.im ]; }
 
-export operator *= (lhs: &complex, rhs: complex) -> &complex
+export operator *= (lhs: &mut complex, rhs: complex) -> &mut complex
 {
 	lhs = lhs * rhs;
 	return lhs;
 }
 
-export operator *= (lhs: &complex, rhs: float64) -> &complex
+export operator *= (lhs: &mut complex, rhs: float64) -> &mut complex
 {
 	lhs.re *= rhs;
 	lhs.im *= rhs;
@@ -106,13 +106,13 @@ export operator / (lhs: complex, rhs: float64) -> complex
 export operator / (lhs: float64, rhs: complex) -> complex
 { return complex[ rhs.re, -rhs.im ] * (lhs / abs_square(rhs)); }
 
-export operator /= (lhs: &complex, rhs: complex) -> &complex
+export operator /= (lhs: &mut complex, rhs: complex) -> &mut complex
 {
 	lhs = lhs / rhs;
 	return lhs;
 }
 
-export operator /= (lhs: &complex, rhs: float64) -> &complex
+export operator /= (lhs: &mut complex, rhs: float64) -> &mut complex
 {
 	lhs.re /= rhs;
 	lhs.im /= rhs;
@@ -162,8 +162,8 @@ export function log2(z: complex) -> complex
 // the returned value is such that sqrt(z).re >= 0
 export function sqrt(z: complex) -> complex
 {
-	const phi = z.phi();
-	const abs = z.abs();
+	let phi = z.phi();
+	let abs = z.abs();
 	return sqrt(abs) * complex[ cos(phi / 2.0), sin(phi / 2.0) ];
 }
 

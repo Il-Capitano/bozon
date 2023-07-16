@@ -88,8 +88,8 @@ llvm::Type *get_llvm_type(ast::typespec_view ts, Context &context)
 	{
 		switch (ts.modifier_kind())
 		{
-		case ast::modifier_typespec_node_t::index_of<ast::ts_const>:
-			return get_llvm_type(ts.get<ast::ts_const>(), context);
+		case ast::modifier_typespec_node_t::index_of<ast::ts_mut>:
+			return get_llvm_type(ts.get<ast::ts_mut>(), context);
 		case ast::modifier_typespec_node_t::index_of<ast::ts_consteval>:
 			return get_llvm_type(ts.get<ast::ts_consteval>(), context);
 		case ast::modifier_typespec_node_t::index_of<ast::ts_pointer>:

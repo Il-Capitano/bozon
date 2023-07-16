@@ -3,23 +3,23 @@ import stddef;
 
 export struct FILE;
 
-@symbol_name("fwrite") export function "c" fwrite(ptr: ?*const void, size: size_t, n: size_t, s: ?*FILE) -> size_t;
+@symbol_name("fwrite") export function "c" fwrite(ptr: ?*void, size: size_t, n: size_t, s: ?*mut FILE) -> size_t;
 
-export function stderr() -> &?*FILE
+export function stderr() -> &mut ?*mut FILE
 {
 	return __macro_clash_stderr;
 }
 
-export function stdin() -> &?*FILE
+export function stdin() -> &mut ?*mut FILE
 {
 	return __macro_clash_stdin;
 }
 
-export function stdout() -> &?*FILE
+export function stdout() -> &mut ?*mut FILE
 {
 	return __macro_clash_stdout;
 }
 
-@symbol_name("stderr") extern __macro_clash_stderr: ?*FILE;
-@symbol_name("stdin") extern __macro_clash_stdin: ?*FILE;
-@symbol_name("stdout") extern __macro_clash_stdout: ?*FILE;
+@symbol_name("stderr") extern __macro_clash_stderr: mut ?*mut FILE;
+@symbol_name("stdin") extern __macro_clash_stdin: mut ?*mut FILE;
+@symbol_name("stdout") extern __macro_clash_stdout: mut ?*mut FILE;

@@ -5,7 +5,7 @@
 function test()
 {
 	(consteval {
-		let a: [[5: int32], [5: int32]];
+		let a = [[5: int32], [5: int32]]();
 		&a[0, 0] + 3 + 3;
 	});
 }

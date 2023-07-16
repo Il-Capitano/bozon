@@ -108,7 +108,7 @@ constexpr bz::array operator_precedences = {
 	prec_t{ prec_t::unary,  lex::token::auto_ref_const,     {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::question_mark,      {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::dereference,        {  3, false } },
-	prec_t{ prec_t::unary,  lex::token::kw_const,           {  3, false } },
+	prec_t{ prec_t::unary,  lex::token::kw_mut,             {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::kw_consteval,       {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::kw_sizeof,          {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::kw_typeof,          {  3, false } },
@@ -321,7 +321,7 @@ constexpr auto token_info = []() {
 	result[lex::token::kw_extern]   = { lex::token::kw_extern,   "extern",   "", keyword_flags                   };
 
 	result[lex::token::kw_consteval] = { lex::token::kw_consteval, "consteval", "", keyword_flags | unary_type_op_flags | unary_builtin_flags };
-	result[lex::token::kw_const]     = { lex::token::kw_const,     "const",     "", keyword_flags | unary_type_op_flags                       };
+	result[lex::token::kw_mut]       = { lex::token::kw_mut,       "mut",       "", keyword_flags | unary_type_op_flags                       };
 	// the flags for 'as' are not ideal, as it's hard to express that it takes a non-type lhs and a type rhs
 	result[lex::token::kw_as]        = { lex::token::kw_as,        "as",        "", keyword_flags | overloadable_flags | binary_operator      };
 

@@ -237,8 +237,7 @@ bool stack_object::check_dereference(ptr_t address, type const *subobject_type) 
 		return false;
 	}
 
-	auto const offset = address - this->address;
-	bz_assert(contained_in_object(this->object_type, offset, subobject_type));
+	bz_assert(contained_in_object(this->object_type, address - this->address, subobject_type));
 	return true;
 }
 
@@ -952,8 +951,7 @@ bool heap_object::check_dereference(ptr_t address, type const *subobject_type) c
 		return false;
 	}
 
-	auto const offset = address - this->address;
-	bz_assert(contained_in_object(this->elem_type, offset % this->elem_size(), subobject_type));
+	bz_assert(contained_in_object(this->elem_type, (address - this->address) % this->elem_size(), subobject_type));
 	return true;
 }
 

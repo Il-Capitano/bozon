@@ -1,5 +1,5 @@
 // error: variable type '*int32' is not default constructible and must be initialized
 function test()
 {
-	let _: *int32;
+	mut _: *int32;
 }

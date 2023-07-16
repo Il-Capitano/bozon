@@ -479,7 +479,7 @@ constexpr bz::array statement_parsers = {
 
 	statement_parser{ lex::token::kw_let,           statement_parser::global, &parse_decl_variable<parse_scope::global>,          },
 	statement_parser{ lex::token::kw_extern,        statement_parser::global, &parse_decl_variable<parse_scope::global>,          },
-	statement_parser{ lex::token::kw_const,         statement_parser::global, &parse_decl_variable<parse_scope::global>,          },
+	statement_parser{ lex::token::kw_mut,           statement_parser::global, &parse_decl_variable<parse_scope::global>,          },
 	statement_parser{ lex::token::kw_consteval,     statement_parser::global, &parse_consteval_decl<parse_scope::global>,         },
 	statement_parser{ lex::token::kw_type,          statement_parser::global, &parse_decl_type_alias<parse_scope::global>,        },
 	statement_parser{ lex::token::kw_function,      statement_parser::global, &parse_decl_function_or_alias<parse_scope::global>, },
@@ -492,7 +492,7 @@ constexpr bz::array statement_parsers = {
 
 	statement_parser{ lex::token::kw_let,           statement_parser::struct_body, &parse_decl_variable<parse_scope::struct_body>,          },
 	statement_parser{ lex::token::kw_extern,        statement_parser::struct_body, &parse_decl_variable<parse_scope::struct_body>,          },
-	statement_parser{ lex::token::kw_const,         statement_parser::struct_body, &parse_decl_variable<parse_scope::struct_body>,          },
+	statement_parser{ lex::token::kw_mut,           statement_parser::struct_body, &parse_decl_variable<parse_scope::struct_body>,          },
 	statement_parser{ lex::token::kw_consteval,     statement_parser::struct_body, &parse_consteval_decl<parse_scope::struct_body>,         },
 	statement_parser{ lex::token::kw_type,          statement_parser::struct_body, &parse_decl_type_alias<parse_scope::struct_body>,        },
 	statement_parser{ lex::token::kw_function,      statement_parser::struct_body, &parse_decl_function_or_alias<parse_scope::struct_body>, },
@@ -503,7 +503,7 @@ constexpr bz::array statement_parsers = {
 	statement_parser{ lex::token::kw_export,        statement_parser::struct_body, &parse_export_statement<parse_scope::struct_body>,       },
 
 	statement_parser{ lex::token::kw_let,           statement_parser::local, &parse_decl_variable<parse_scope::local>,          },
-	statement_parser{ lex::token::kw_const,         statement_parser::local, &parse_decl_variable<parse_scope::local>,          },
+	statement_parser{ lex::token::kw_mut,           statement_parser::local, &parse_decl_variable<parse_scope::local>,          },
 	statement_parser{ lex::token::kw_consteval,     statement_parser::local, &parse_consteval_decl<parse_scope::local>,         },
 	statement_parser{ lex::token::kw_type,          statement_parser::local, &parse_decl_type_alias<parse_scope::local>,        },
 	statement_parser{ lex::token::kw_function,      statement_parser::local, &parse_decl_function_or_alias<parse_scope::local>, },

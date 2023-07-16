@@ -259,12 +259,12 @@ assert_eq(t.kind, kw_kind)
 	xx_kw("while", token::kw_while);
 	xx_kw("class", token::kw_class);
 	xx_kw("using", token::kw_using);
-	xx_kw("const", token::kw_const);
 	xx_kw("false", token::kw_false);
 	xx_kw("else", token::kw_else);
 	xx_kw("auto", token::kw_auto);
 	xx_kw("true", token::kw_true);
 	xx_kw("null", token::kw_null);
+	xx_kw("mut", token::kw_mut);
 	xx_kw("for", token::kw_for);
 	xx_kw("let", token::kw_let);
 	xx_kw("if", token::kw_if);

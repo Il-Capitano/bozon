@@ -1,4 +1,4 @@
-export function is_const          = __builtin_is_const;
+export function is_mut            = __builtin_is_mut;
 export function is_consteval      = __builtin_is_consteval;
 export function is_pointer        = __builtin_is_pointer;
 export function is_optional       = __builtin_is_optional;
@@ -9,7 +9,7 @@ export function is_array          = __builtin_is_array;
 export function is_tuple          = __builtin_is_tuple;
 export function is_enum           = __builtin_is_enum;
 
-export function remove_const          = __builtin_remove_const;
+export function remove_mut            = __builtin_remove_mut;
 export function remove_consteval      = __builtin_remove_consteval;
 export function remove_pointer        = __builtin_remove_pointer;
 export function remove_optional       = __builtin_remove_optional;

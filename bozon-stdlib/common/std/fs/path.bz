@@ -14,14 +14,14 @@ export struct path
 
 export struct path_iterator
 {
-	._it: ?*const uint8;
-	._path_end: ?*const uint8;
+	._it: ?*uint8;
+	._path_end: ?*uint8;
 }
 
 export operator * (it: path_iterator) -> str
 {
-	let end = it._it;
-	const path_end = it._path_end;
+	mut end = it._it;
+	let path_end = it._path_end;
 	while (end != path_end && *end != '/' as uint32)
 	{
 		++end;
@@ -29,7 +29,7 @@ export operator * (it: path_iterator) -> str
 	return __builtin_str_from_ptrs(it._it, end);
 }
 
-export operator ++ (it: &path_iterator) -> &path_iterator
+export operator ++ (it: &mut path_iterator) -> &mut path_iterator
 {
 	while (it._it != it._path_end && *it._it != '/' as uint8)
 	{
@@ -52,37 +52,37 @@ export operator != (lhs: path_iterator, rhs: path_iterator) -> bool
 	return lhs._it != rhs._it;
 }
 
-export function begin(p: &const path) -> path_iterator
+export function begin(p: &path) -> path_iterator
 {
 	return path_iterator[ p._str.data(), p._str.data_end() ];
 }
 
-export function end(p: &const path) -> path_iterator
+export function end(p: &path) -> path_iterator
 {
 	return path_iterator[ p._str.data_end(), p._str.data_end() ];
 }
 
-export function print(p: #const path)
+export function print(p: #path)
 {
 	print(p._str);
 }
 
-export function println(p: #const path)
+export function println(p: #path)
 {
 	println(p._str);
 }
 
-export function logln(p: #const path)
+export function logln(p: #path)
 {
 	__builtin_println_stderr(p._str.as_str());
 }
 
-export operator == (lhs: #const path, rhs: #const path) -> bool
+export operator == (lhs: #path, rhs: #path) -> bool
 {
-	let lhs_it = lhs.begin();
-	let rhs_it = rhs.begin();
-	const lhs_end = lhs.end();
-	const rhs_end = rhs.end();
+	mut lhs_it = lhs.begin();
+	mut rhs_it = rhs.begin();
+	let lhs_end = lhs.end();
+	let rhs_end = rhs.end();
 	for (; lhs_it != lhs_end && rhs_it != rhs_end; ++lhs_it, ++rhs_it)
 	{
 		if (*lhs_it != *rhs_it)
@@ -93,26 +93,26 @@ export operator == (lhs: #const path, rhs: #const path) -> bool
 	return lhs_it == lhs_end && rhs_it == rhs_end;
 }
 
-export operator != (lhs: #const path, rhs: #const path) -> bool
+export operator != (lhs: #path, rhs: #path) -> bool
 {
 	return !(lhs == rhs);
 }
 
-export operator /= (lhs: &path, rhs: str) -> &path
+export operator /= (lhs: &mut path, rhs: str) -> &mut path
 {
 	lhs._str += '/';
 	lhs._str += rhs;
 	return lhs;
 }
 
-export operator /= (lhs: &path, rhs: #const string) -> &path
+export operator /= (lhs: &mut path, rhs: #string) -> &mut path
 {
 	lhs._str += '/';
 	lhs._str += rhs;
 	return lhs;
 }
 
-export operator /= (lhs: &path, rhs: #const path) -> &path
+export operator /= (lhs: &mut path, rhs: #path) -> &mut path
 {
 	lhs._str += '/';
 	lhs._str += rhs;

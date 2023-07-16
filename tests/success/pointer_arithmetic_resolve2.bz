@@ -1,7 +1,7 @@
 function test()
 {
 	(consteval {
-		let p: ?*S = null;
+		mut p: ?*S = null;
 		if (p != null)
 		{
 			--p;

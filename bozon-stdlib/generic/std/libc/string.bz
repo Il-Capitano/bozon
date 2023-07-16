@@ -1,4 +1,4 @@
 import types;
 import stddef;
 
-@symbol_name("strlen") export function "c" strlen(s: ?*const char) -> size_t;
+@symbol_name("strlen") export function "c" strlen(s: ?*char) -> size_t;

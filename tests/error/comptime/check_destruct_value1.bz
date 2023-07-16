@@ -6,7 +6,7 @@
 function test()
 {
 	(consteval {
-		let i = 0;
+		mut i = 0;
 		__builtin_destruct_value(i);
 	});
 }

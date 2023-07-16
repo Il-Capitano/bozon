@@ -488,17 +488,17 @@ struct function_body
 		builtin_str_from_ptrs,
 
 		builtin_slice_begin_ptr,
-		builtin_slice_begin_const_ptr,
+		builtin_slice_begin_mut_ptr,
 		builtin_slice_end_ptr,
-		builtin_slice_end_const_ptr,
+		builtin_slice_end_mut_ptr,
 		builtin_slice_size,
 		builtin_slice_from_ptrs,
-		builtin_slice_from_const_ptrs,
+		builtin_slice_from_mut_ptrs,
 
 		builtin_array_begin_ptr,
-		builtin_array_begin_const_ptr,
+		builtin_array_begin_mut_ptr,
 		builtin_array_end_ptr,
-		builtin_array_end_const_ptr,
+		builtin_array_end_mut_ptr,
 		builtin_array_size,
 
 		builtin_integer_range_i8,
@@ -583,7 +583,7 @@ struct function_body
 		builtin_integer_range_from_iterator_plus_plus,
 
 		builtin_optional_get_value_ref,
-		builtin_optional_get_const_value_ref,
+		builtin_optional_get_mut_value_ref,
 		builtin_optional_get_value,
 
 		builtin_pointer_cast,
@@ -619,7 +619,7 @@ struct function_body
 
 		typename_as_str,
 
-		is_const,
+		is_mut,
 		is_consteval,
 		is_pointer,
 		is_optional,
@@ -630,7 +630,7 @@ struct function_body
 		is_tuple,
 		is_enum,
 
-		remove_const,
+		remove_mut,
 		remove_consteval,
 		remove_pointer,
 		remove_optional,
@@ -1751,19 +1751,19 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_str_size,      "__builtin_str_size"      },
 		{ function_body::builtin_str_from_ptrs, "__builtin_str_from_ptrs" },
 
-		{ function_body::builtin_slice_begin_ptr,       "__builtin_slice_begin_ptr"       },
-		{ function_body::builtin_slice_begin_const_ptr, "__builtin_slice_begin_const_ptr" },
-		{ function_body::builtin_slice_end_ptr,         "__builtin_slice_end_ptr"         },
-		{ function_body::builtin_slice_end_const_ptr,   "__builtin_slice_end_const_ptr"   },
-		{ function_body::builtin_slice_size,            "__builtin_slice_size"            },
-		{ function_body::builtin_slice_from_ptrs,       "__builtin_slice_from_ptrs"       },
-		{ function_body::builtin_slice_from_const_ptrs, "__builtin_slice_from_const_ptrs" },
+		{ function_body::builtin_slice_begin_ptr,     "__builtin_slice_begin_ptr"     },
+		{ function_body::builtin_slice_begin_mut_ptr, "__builtin_slice_begin_mut_ptr" },
+		{ function_body::builtin_slice_end_ptr,       "__builtin_slice_end_ptr"       },
+		{ function_body::builtin_slice_end_mut_ptr,   "__builtin_slice_end_mut_ptr"   },
+		{ function_body::builtin_slice_size,          "__builtin_slice_size"          },
+		{ function_body::builtin_slice_from_ptrs,     "__builtin_slice_from_ptrs"     },
+		{ function_body::builtin_slice_from_mut_ptrs, "__builtin_slice_from_mut_ptrs" },
 
-		{ function_body::builtin_array_begin_ptr,       "__builtin_array_begin_ptr"       },
-		{ function_body::builtin_array_begin_const_ptr, "__builtin_array_begin_const_ptr" },
-		{ function_body::builtin_array_end_ptr,         "__builtin_array_end_ptr"         },
-		{ function_body::builtin_array_end_const_ptr,   "__builtin_array_end_const_ptr"   },
-		{ function_body::builtin_array_size,            "__builtin_array_size"            },
+		{ function_body::builtin_array_begin_ptr,     "__builtin_array_begin_ptr"     },
+		{ function_body::builtin_array_begin_mut_ptr, "__builtin_array_begin_mut_ptr" },
+		{ function_body::builtin_array_end_ptr,       "__builtin_array_end_ptr"       },
+		{ function_body::builtin_array_end_mut_ptr,   "__builtin_array_end_mut_ptr"   },
+		{ function_body::builtin_array_size,          "__builtin_array_size"          },
 
 		{ function_body::builtin_integer_range_i8,  "__builtin_integer_range_i8"  },
 		{ function_body::builtin_integer_range_i16, "__builtin_integer_range_i16" },
@@ -1846,9 +1846,9 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_integer_range_from_iterator_right_not_equals, "__builtin_integer_range_from_iterator_right_not_equals" },
 		{ function_body::builtin_integer_range_from_iterator_plus_plus,        "__builtin_integer_range_from_iterator_plus_plus"        },
 
-		{ function_body::builtin_optional_get_value_ref,       "__builtin_optional_get_value_ref"       },
-		{ function_body::builtin_optional_get_const_value_ref, "__builtin_optional_get_const_value_ref" },
-		{ function_body::builtin_optional_get_value,           "__builtin_optional_get_value"           },
+		{ function_body::builtin_optional_get_value_ref,     "__builtin_optional_get_value_ref"     },
+		{ function_body::builtin_optional_get_mut_value_ref, "__builtin_optional_get_mut_value_ref" },
+		{ function_body::builtin_optional_get_value,         "__builtin_optional_get_value"         },
 
 		{ function_body::builtin_pointer_cast,   "__builtin_pointer_cast"   },
 		{ function_body::builtin_pointer_to_int, "__builtin_pointer_to_int" },
@@ -1881,7 +1881,7 @@ constexpr auto intrinsic_info = []() {
 
 		{ function_body::typename_as_str, "__builtin_typename_as_str" },
 
-		{ function_body::is_const,          "__builtin_is_const"          },
+		{ function_body::is_mut,            "__builtin_is_mut"            },
 		{ function_body::is_consteval,      "__builtin_is_consteval"      },
 		{ function_body::is_pointer,        "__builtin_is_pointer"        },
 		{ function_body::is_optional,       "__builtin_is_optional"       },
@@ -1892,7 +1892,7 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::is_tuple,          "__builtin_is_tuple"          },
 		{ function_body::is_enum,           "__builtin_is_enum"           },
 
-		{ function_body::remove_const,          "__builtin_remove_const"          },
+		{ function_body::remove_mut,            "__builtin_remove_mut"            },
 		{ function_body::remove_consteval,      "__builtin_remove_consteval"      },
 		{ function_body::remove_pointer,        "__builtin_remove_pointer"        },
 		{ function_body::remove_optional,       "__builtin_remove_optional"       },

@@ -1,6 +1,6 @@
-// error: unable to match expression of type 'const [32: int32]' to non-const array slice type '[: int32]'
+// error: unable to match expression of type '[32: int32]' to mutable array slice type '[: mut int32]'
 function test()
 {
-	const arr = [32: int32]();
-	let _: [: int32] = arr;
+	let arr = [32: int32]();
+	let _: [: mut int32] = arr;
 }

@@ -5,5 +5,5 @@ struct S
 
 function main()
 {
-	let &const _ = S.arr;
+	let &_ = S.arr;
 }

@@ -5,8 +5,8 @@
 function test()
 {
 	(consteval {
-		let p: ?*int32 = null;
-		let q: ?*int32 = null;
+		mut p: ?*int32 = null;
+		mut q: ?*int32 = null;
 		{
 			let i = 0;
 			p = &i;

@@ -1,4 +1,4 @@
-function foo(#const val) -> int32
+function foo(#val) -> int32
 {
 	return 0;
 }

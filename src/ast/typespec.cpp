@@ -347,9 +347,19 @@ typespec_view remove_optional(typespec_view ts) noexcept
 	return remove_kind_helper<ts_optional>(ts);
 }
 
-typespec_view remove_const_or_consteval(typespec_view ts) noexcept
+typespec_view remove_consteval(typespec_view ts) noexcept
 {
-	return remove_kind_helper<ts_const, ts_consteval>(ts);
+	return remove_kind_helper<ts_consteval>(ts);
+}
+
+typespec_view remove_mut(typespec_view ts) noexcept
+{
+	return remove_kind_helper<ts_mut>(ts);
+}
+
+typespec_view remove_mutability_modifiers(typespec_view ts) noexcept
+{
+	return remove_kind_helper<ts_mut, ts_consteval>(ts);
 }
 
 typespec_view remove_lvalue_or_move_reference(typespec_view ts) noexcept
@@ -359,7 +369,7 @@ typespec_view remove_lvalue_or_move_reference(typespec_view ts) noexcept
 
 typespec_view remove_any_reference(typespec_view ts) noexcept
 {
-	return remove_kind_helper<ts_lvalue_reference, ts_move_reference, ts_auto_reference, ts_auto_reference_const>(ts);
+	return remove_kind_helper<ts_lvalue_reference, ts_move_reference, ts_auto_reference, ts_auto_reference_mut>(ts);
 }
 
 bool is_complete(typespec_view ts) noexcept
@@ -373,7 +383,7 @@ bool is_complete(typespec_view ts) noexcept
 		&& (
 			ts.modifiers[0].is<ts_variadic>()
 			|| ts.modifiers.is_any([](auto const &mod) {
-				return mod.template is_any<ts_auto_reference, ts_auto_reference_const>();
+				return mod.template is_any<ts_auto_reference, ts_auto_reference_mut>();
 			})
 		);
 
@@ -426,7 +436,7 @@ template<
 >
 static bool type_property_helper(typespec_view ts) noexcept
 {
-	ts = remove_const_or_consteval(ts);
+	ts = remove_mutability_modifiers(ts);
 	if ((ts.is<exception_types>() || ...))
 	{
 		return !default_value;
@@ -479,8 +489,8 @@ bz::u8string typespec_view::get_symbol_name(void) const
 	for (auto &modifier : this->modifiers)
 	{
 		modifier.visit(bz::overload{
-			[&](ts_const const &) {
-				result += "const.";
+			[&](ts_mut const &) {
+				result += "mut.";
 			},
 			[&](ts_consteval const &) {
 				result += "consteval.";
@@ -568,7 +578,7 @@ bz::u8string typespec::decode_symbol_name(
 	constexpr bz::u8string_view optional       = "0O.";
 	constexpr bz::u8string_view reference      = "0R.";
 	constexpr bz::u8string_view move_reference = "0M.";
-	constexpr bz::u8string_view const_         = "const.";
+	constexpr bz::u8string_view mut            = "mut.";
 	constexpr bz::u8string_view consteval_     = "consteval.";
 	constexpr bz::u8string_view variadic       = "0V.";
 
@@ -617,10 +627,10 @@ bz::u8string typespec::decode_symbol_name(
 			result += "move ";
 			it = bz::u8string_view::const_iterator(it.data() + move_reference.size());
 		}
-		else if (symbol_name.starts_with(const_))
+		else if (symbol_name.starts_with(mut))
 		{
-			result += "const ";
-			it = bz::u8string_view::const_iterator(it.data() + const_.size());
+			result += "mut ";
+			it = bz::u8string_view::const_iterator(it.data() + mut.size());
 		}
 		else if (symbol_name.starts_with(consteval_))
 		{
@@ -908,8 +918,8 @@ type_prototype const *get_type_prototype(ast::typespec_view type, type_prototype
 	{
 		switch (type.modifier_kind())
 		{
-		case ast::modifier_typespec_node_t::index_of<ast::ts_const>:
-			return get_type_prototype(type.get<ast::ts_const>(), type_prototype_set);
+		case ast::modifier_typespec_node_t::index_of<ast::ts_mut>:
+			return get_type_prototype(type.get<ast::ts_mut>(), type_prototype_set);
 		case ast::modifier_typespec_node_t::index_of<ast::ts_consteval>:
 			return get_type_prototype(type.get<ast::ts_consteval>(), type_prototype_set);
 		case ast::modifier_typespec_node_t::index_of<ast::ts_pointer>:
@@ -954,8 +964,8 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 	for (auto &modifier : typespec.modifiers)
 	{
 		modifier.visit(bz::overload{
-			[&](ast::ts_const const &) {
-				result += "const ";
+			[&](ast::ts_mut const &) {
+				result += "mut ";
 			},
 			[&](ast::ts_consteval const &) {
 				result += "consteval ";
@@ -975,7 +985,7 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 			[&](ast::ts_auto_reference const &) {
 				result += '#';
 			},
-			[&](ast::ts_auto_reference_const const &) {
+			[&](ast::ts_auto_reference_mut const &) {
 				result += "##";
 			},
 			[&](ast::ts_variadic const &) {

@@ -84,7 +84,7 @@ export function log10Pow5(e: uint32) -> uint32
 	return (e * 732923) >> 20;
 }
 
-export function copy_special_str(result: *uint8, sign: bool, exponent: bool, mantissa: bool) -> int32
+export function copy_special_str(result: *mut uint8, sign: bool, exponent: bool, mantissa: bool) -> int32
 {
 	if (mantissa)
 	{
@@ -120,7 +120,7 @@ export function double_to_bits(d: float64) -> uint64
 //
 
 // writes nan, inf or 0.0 to output with sign
-export function copy_short_special_str(result: *uint8, sign: bool, exponent: bool, mantissa: bool) -> *uint8
+export function copy_short_special_str(mut result: *mut uint8, sign: bool, exponent: bool, mantissa: bool) -> *mut uint8
 {
 	if (mantissa)
 	{

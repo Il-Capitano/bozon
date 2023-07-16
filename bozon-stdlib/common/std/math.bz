@@ -87,7 +87,7 @@ export function min(a: *auto, b: *auto) -> typeof a
 	return if (a < b) { a } else { b };
 }
 
-export function min(a: *const auto, b: *const auto) -> typeof a
+export function min(a: *mut auto, b: *mut auto) -> typeof a
 {
 	static_assert(typeof a == typeof b, "mismatched types in 'std::min'");
 	return if (a < b) { a } else { b };
@@ -99,7 +99,7 @@ export function min(a: ?*auto, b: ?*auto) -> typeof a
 	return if (a < b) { a } else { b };
 }
 
-export function min(a: ?*const auto, b: ?*const auto) -> typeof a
+export function min(a: ?*mut auto, b: ?*mut auto) -> typeof a
 {
 	static_assert(typeof a == typeof b, "mismatched types in 'std::min'");
 	return if (a < b) { a } else { b };
@@ -111,7 +111,7 @@ export function max(a: *auto, b: *auto) -> typeof a
 	return if (a > b) { a } else { b };
 }
 
-export function max(a: *const auto, b: *const auto) -> typeof a
+export function max(a: *mut auto, b: *mut auto) -> typeof a
 {
 	static_assert(typeof a == typeof b, "mismatched types in 'std::max'");
 	return if (a > b) { a } else { b };
@@ -123,7 +123,7 @@ export function max(a: ?*auto, b: ?*auto) -> typeof a
 	return if (a > b) { a } else { b };
 }
 
-export function max(a: ?*const auto, b: ?*const auto) -> typeof a
+export function max(a: ?*mut auto, b: ?*mut auto) -> typeof a
 {
 	static_assert(typeof a == typeof b, "mismatched types in 'std::max'");
 	return if (a > b) { a } else { b };

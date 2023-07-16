@@ -1,7 +1,7 @@
-// error: unable to match type '*int32' to '*const int32'
-// note: mismatched const qualification of types 'int32' and 'const int32'
-// note: while matching expression of type '[: *int32]' to '[: *const int32]'
+// error: unable to match type 'mut *mut int32' to 'mut *int32'
+// note: mismatched mutability of types 'mut int32' and 'int32'
+// note: while matching expression of type '[: mut *mut int32]' to '[: mut *int32]'
 function test()
 {
-	let _: [: *const int32] = [: *int32]();
+	let _: [: mut *int32] = [: mut *mut int32]();
 }

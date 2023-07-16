@@ -72,8 +72,8 @@ static ast::constant_value evaluate_binary_plus(
 
 	if (lhs_value.kind() == rhs_value.kind())
 	{
-		bz_assert(ast::remove_const_or_consteval(lhs_const_expr.type).is<ast::ts_base_type>());
-		auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
+		bz_assert(ast::remove_mutability_modifiers(lhs_const_expr.type).is<ast::ts_base_type>());
+		auto const type = ast::remove_mutability_modifiers(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 		switch (lhs_value.kind())
 		{
 		static_assert(ast::constant_value::variant_count == 19);
@@ -183,8 +183,8 @@ static ast::constant_value evaluate_binary_minus(
 
 	if (lhs_value.kind() == rhs_value.kind())
 	{
-		bz_assert(ast::remove_const_or_consteval(lhs_const_expr.type).is<ast::ts_base_type>());
-		auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
+		bz_assert(ast::remove_mutability_modifiers(lhs_const_expr.type).is<ast::ts_base_type>());
+		auto const type = ast::remove_mutability_modifiers(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 		switch (lhs_value.kind())
 		{
 		static_assert(ast::constant_value::variant_count == 19);
@@ -274,8 +274,8 @@ static ast::constant_value evaluate_binary_multiply(
 	auto const &rhs_value = rhs_const_expr.value;
 	bz_assert(lhs_value.kind() == rhs_value.kind());
 
-	bz_assert(ast::remove_const_or_consteval(lhs_const_expr.type).is<ast::ts_base_type>());
-	auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
+	bz_assert(ast::remove_mutability_modifiers(lhs_const_expr.type).is<ast::ts_base_type>());
+	auto const type = ast::remove_mutability_modifiers(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
 	static_assert(ast::constant_value::variant_count == 19);
@@ -334,8 +334,8 @@ static ast::constant_value evaluate_binary_divide(
 	auto const &rhs_value = rhs_const_expr.value;
 	bz_assert(lhs_value.kind() == rhs_value.kind());
 
-	bz_assert(ast::remove_const_or_consteval(lhs_const_expr.type).is<ast::ts_base_type>());
-	auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
+	bz_assert(ast::remove_mutability_modifiers(lhs_const_expr.type).is<ast::ts_base_type>());
+	auto const type = ast::remove_mutability_modifiers(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
 	static_assert(ast::constant_value::variant_count == 19);
@@ -410,8 +410,8 @@ static ast::constant_value evaluate_binary_modulo(
 	auto const &rhs_value = rhs_const_expr.value;
 	bz_assert(lhs_value.kind() == rhs_value.kind());
 
-	bz_assert(ast::remove_const_or_consteval(lhs_const_expr.type).is<ast::ts_base_type>());
-	auto const type = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
+	bz_assert(ast::remove_mutability_modifiers(lhs_const_expr.type).is<ast::ts_base_type>());
+	auto const type = ast::remove_mutability_modifiers(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
 	static_assert(ast::constant_value::variant_count == 19);
@@ -1053,8 +1053,8 @@ static ast::constant_value evaluate_binary_bit_right_shift(
 	bz_assert(lhs_value.is_uint());
 	auto const lhs_int_val = lhs_value.get_uint();
 
-	bz_assert(ast::remove_const_or_consteval(lhs_const_expr.type).is<ast::ts_base_type>());
-	auto const lhs_type_kind = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
+	bz_assert(ast::remove_mutability_modifiers(lhs_const_expr.type).is<ast::ts_base_type>());
+	auto const lhs_type_kind = ast::remove_mutability_modifiers(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 
 	bz_assert(rhs_value.is_uint() || rhs_value.is_sint());
 	if (rhs_value.is_uint())
@@ -1109,7 +1109,7 @@ static ast::constant_value evaluate_binary_bool_and(
 	auto const &rhs_value = rhs_const_expr.value;
 
 	bz_assert(lhs_value.is_boolean());
-	auto const lhs_bool_val = lhs_value.get_boolean();
+	[[maybe_unused]] auto const lhs_bool_val = lhs_value.get_boolean();
 	bz_assert(rhs_value.is_boolean());
 	auto const rhs_bool_val = rhs_value.get_boolean();
 
@@ -1153,7 +1153,7 @@ static ast::constant_value evaluate_binary_bool_or(
 	auto const &rhs_value = rhs_const_expr.value;
 
 	bz_assert(lhs_value.is_boolean());
-	auto const lhs_bool_val = lhs_value.get_boolean();
+	[[maybe_unused]] auto const lhs_bool_val = lhs_value.get_boolean();
 	bz_assert(rhs_value.is_boolean());
 	auto const rhs_bool_val = rhs_value.get_boolean();
 
@@ -1256,7 +1256,7 @@ static ast::constant_value evaluate_subscript(
 )
 {
 	bool is_consteval = true;
-	auto const &base_type = ast::remove_const_or_consteval(base.get_expr_type());
+	auto const &base_type = ast::remove_mutability_modifiers(base.get_expr_type());
 
 	uint64_t index_value = 0;
 
@@ -1488,7 +1488,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	case ast::function_body::builtin_array_size:
 	{
 		bz_assert(func_call.params.size() == 1);
-		auto const type = ast::remove_const_or_consteval(func_call.params[0].get_expr_type());
+		auto const type = ast::remove_mutability_modifiers(func_call.params[0].get_expr_type());
 		bz_assert(type.is<ast::ts_array>());
 		bz_assert(type.get<ast::ts_array>().size != 0);
 		return ast::constant_value(type.get<ast::ts_array>().size);
@@ -1552,8 +1552,8 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		return ast::constant_value(bz::format("{}", type));
 	}
 
-	case ast::function_body::is_const:
-		return is_typespec_kind_helper<ast::ts_const>(func_call);
+	case ast::function_body::is_mut:
+		return is_typespec_kind_helper<ast::ts_mut>(func_call);
 	case ast::function_body::is_consteval:
 		return is_typespec_kind_helper<ast::ts_consteval>(func_call);
 	case ast::function_body::is_pointer:
@@ -1573,8 +1573,8 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	case ast::function_body::is_enum:
 		return is_typespec_kind_helper<ast::ts_enum>(func_call);
 
-	case ast::function_body::remove_const:
-		return remove_typespec_kind_helper<ast::ts_const>(func_call);
+	case ast::function_body::remove_mut:
+		return remove_typespec_kind_helper<ast::ts_mut>(func_call);
 	case ast::function_body::remove_consteval:
 		return remove_typespec_kind_helper<ast::ts_consteval>(func_call);
 	case ast::function_body::remove_pointer:
@@ -1869,8 +1869,8 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		auto const &value = const_expr.value;
 		if (value.is_sint())
 		{
-			bz_assert(ast::remove_const_or_consteval(const_expr.type).is<ast::ts_base_type>());
-			auto const type = ast::remove_const_or_consteval(const_expr.type).get<ast::ts_base_type>().info->kind;
+			bz_assert(ast::remove_mutability_modifiers(const_expr.type).is<ast::ts_base_type>());
+			auto const type = ast::remove_mutability_modifiers(const_expr.type).get<ast::ts_base_type>().info->kind;
 			auto const int_val = value.get_sint();
 			return ast::constant_value(safe_unary_minus(
 				original_expr.src_tokens, original_expr.paren_level,
@@ -1907,7 +1907,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		}
 		else
 		{
-			auto const param_type = ast::remove_const_or_consteval(func_call.params[0].get_constant().type);
+			auto const param_type = ast::remove_mutability_modifiers(func_call.params[0].get_constant().type);
 			bz_assert(param_type.is<ast::ts_base_type>());
 			auto const param_kind = param_type.get<ast::ts_base_type>().info->kind;
 			bz_assert(value.is_uint());
@@ -1999,7 +1999,7 @@ static ast::constant_value get_default_constructed_value(
 		return {};
 	}
 
-	type = ast::remove_const_or_consteval(type);
+	type = ast::remove_mutability_modifiers(type);
 	if (type.modifiers.not_empty())
 	{
 		bz_assert(type.is<ast::ts_optional>());
@@ -2157,7 +2157,7 @@ static ast::constant_value evaluate_cast(
 )
 {
 	bz_assert(subscript_expr.expr.is_constant());
-	auto const dest_type = ast::remove_const_or_consteval(subscript_expr.type);
+	auto const dest_type = ast::remove_mutability_modifiers(subscript_expr.type);
 	if (!dest_type.is<ast::ts_base_type>())
 	{
 		return {};

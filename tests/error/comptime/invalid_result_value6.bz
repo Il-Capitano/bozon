@@ -2,6 +2,6 @@
 // note: an array slice of type '[: int32]' is not a constant expression
 // error: expression must be a constant expression
 consteval p = {
-	let arr: [10: int32];
+	let arr = [10: int32]();
 	arr as [: int32]
 };

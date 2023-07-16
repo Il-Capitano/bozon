@@ -179,6 +179,7 @@ expr_value expr_value::get_value(codegen_context &context) const
 	}
 	else
 	{
+		bz_assert(this->is_reference());
 		return context.create_load(*this);
 	}
 }
@@ -191,6 +192,7 @@ instruction_ref expr_value::get_value_as_instruction(codegen_context &context) c
 	}
 	else
 	{
+		bz_assert(this->is_reference());
 		return context.create_load(*this).value;
 	}
 }

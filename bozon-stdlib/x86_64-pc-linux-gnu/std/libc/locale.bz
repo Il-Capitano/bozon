@@ -2,16 +2,16 @@ import types;
 import stddef;
 export struct lconv
 {
-	.decimal_point: ?*char;
-	.thousands_sep: ?*char;
-	.grouping: ?*char;
-	.int_curr_symbol: ?*char;
-	.currency_symbol: ?*char;
-	.mon_decimal_point: ?*char;
-	.mon_thousands_sep: ?*char;
-	.mon_grouping: ?*char;
-	.positive_sign: ?*char;
-	.negative_sign: ?*char;
+	.decimal_point: ?*mut char;
+	.thousands_sep: ?*mut char;
+	.grouping: ?*mut char;
+	.int_curr_symbol: ?*mut char;
+	.currency_symbol: ?*mut char;
+	.mon_decimal_point: ?*mut char;
+	.mon_thousands_sep: ?*mut char;
+	.mon_grouping: ?*mut char;
+	.positive_sign: ?*mut char;
+	.negative_sign: ?*mut char;
 	.int_frac_digits: char;
 	.frac_digits: char;
 	.p_cs_precedes: char;
@@ -27,8 +27,8 @@ export struct lconv
 	.int_p_sign_posn: char;
 	.int_n_sign_posn: char;
 }
-@symbol_name("localeconv") export function "c" localeconv() -> ?*lconv;
-@symbol_name("setlocale") export function "c" setlocale(category: int, locale: ?*const char) -> ?*char;
+@symbol_name("localeconv") export function "c" localeconv() -> ?*mut lconv;
+@symbol_name("setlocale") export function "c" setlocale(category: int, locale: ?*char) -> ?*mut char;
 export function LC_ALL() -> int
 {
 	return 6;

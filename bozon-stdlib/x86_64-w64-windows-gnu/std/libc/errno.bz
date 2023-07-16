@@ -1,5 +1,5 @@
 import types;
-@symbol_name("_errno") function "c" _errno() -> ?*int;
+@symbol_name("_errno") function "c" _errno() -> ?*mut int;
 export function EDOM() -> int
 {
 	return 33;
@@ -12,7 +12,7 @@ export function ERANGE() -> int
 {
 	return 34;
 }
-export function errno() -> &int
+export function errno() -> &mut int
 {
 	return (*_errno());
 }
