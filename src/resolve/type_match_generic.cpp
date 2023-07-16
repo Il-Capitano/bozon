@@ -1695,14 +1695,6 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			{
 				propagate_const &= !dest_is_mut;
 				modifier_match_level += static_cast<uint16_t>(dest_is_mut == source_is_mut);
-
-				if constexpr (kind == type_match_function_kind::match_level)
-				{
-					if (dest_is_mut != source_is_mut)
-					{
-						match_kind = std::max(match_kind, type_match_kind::implicit_conversion);
-					}
-				}
 			}
 
 			if (dest_is_mut)
@@ -1966,6 +1958,41 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 	}
 	else if (source.not_empty() && dest.is<ast::ts_auto>())
 	{
+		bz_assert(!source.is<ast::ts_move_reference>());
+		if (source.is<ast::ts_lvalue_reference>())
+		{
+			if constexpr (match_context_t<kind>::report_errors)
+			{
+				bz::vector<ctx::source_highlight> notes;
+				if (source.modifiers.size() < match_context.source.modifiers.size() && dest.modifiers.size() < match_context.dest.modifiers.size())
+				{
+					notes.push_back(match_context.context.make_note(
+						match_context.expr.src_tokens,
+						bz::format(
+							"while matching expression of type '{}' to '{}'",
+							match_context.source, match_context.dest
+						)
+					));
+				}
+				if (&match_context.original_dest_container != &match_context.dest_container)
+				{
+					notes.push_back(match_context.context.make_note(
+						match_context.expr.src_tokens,
+						bz::format(
+							"while matching expression of type '{}' to '{}'",
+							match_context.expr.get_expr_type(), match_context.original_dest_container
+						)
+					));
+				}
+				match_context.context.report_error(
+					match_context.expr.src_tokens,
+					bz::format("unable to match lvalue reference type '{}' to '{}'", source, dest),
+					std::move(notes)
+				);
+			}
+			return match_function_result_t<kind>();
+		}
+
 		bz_assert(!source.is<ast::ts_mut>());
 		if constexpr (kind == type_match_function_kind::can_match)
 		{
@@ -3321,7 +3348,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 			{
 				match_context.context.report_error(
 					expr.src_tokens,
-					bz::format("unable to match expression of type '{}' to non-const array slice type '{}'", expr_type, original_dest)
+					bz::format("unable to match expression of type '{}' to mutable array slice type '{}'", expr_type, original_dest)
 				);
 			}
 			return match_function_result_t<kind>();

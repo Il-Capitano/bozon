@@ -7037,6 +7037,7 @@ ast::expression parse_context::make_default_assignment(lex::src_tokens const &sr
 	if (are_types_equal && this->is_trivial(src_tokens, lhs_type))
 	{
 		ast::typespec result_type = lhs_type;
+		result_type.add_layer<ast::ts_mut>();
 		this->add_self_destruction(rhs);
 		return ast::make_dynamic_expression(
 			src_tokens,
@@ -7414,9 +7415,11 @@ static ast::expression make_base_type_destruct_expression(
 
 		auto const body = &info->destructor->body;
 		auto args = ast::arena_vector<ast::expression>();
+		ast::typespec arg_type = type;
+		arg_type.add_layer<ast::ts_mut>();
 		args.push_back(ast::make_dynamic_expression(
 			src_tokens,
-			ast::expression_type_kind::lvalue_reference, type,
+			ast::expression_type_kind::lvalue_reference, std::move(arg_type),
 			ast::make_expr_bitcode_value_reference(),
 			ast::destruct_operation()
 		));

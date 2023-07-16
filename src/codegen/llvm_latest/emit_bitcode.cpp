@@ -811,7 +811,7 @@ static val_ptr emit_builtin_unary_plus_plus(
 	auto const [original_value, type] = val.get_value_and_type(context.builder);
 	if (type->isPointerTy())
 	{
-		auto const expr_type = expr.get_expr_type();
+		auto const expr_type = ast::remove_mut(expr.get_expr_type());
 		bz_assert(expr_type.is<ast::ts_pointer>() || expr_type.is_optional_pointer());
 		auto const inner_type = expr_type.is<ast::ts_pointer>()
 			? get_llvm_type(expr_type.get<ast::ts_pointer>(), context)
@@ -865,7 +865,7 @@ static val_ptr emit_builtin_unary_minus_minus(
 	auto const [original_value, type] = val.get_value_and_type(context.builder);
 	if (type->isPointerTy())
 	{
-		auto const expr_type = expr.get_expr_type();
+		auto const expr_type = ast::remove_mut(expr.get_expr_type());
 		bz_assert(expr_type.is<ast::ts_pointer>() || expr_type.is_optional_pointer());
 		auto const inner_type = expr_type.is<ast::ts_pointer>()
 			? get_llvm_type(expr_type.get<ast::ts_pointer>(), context)

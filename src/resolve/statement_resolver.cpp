@@ -110,6 +110,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	iter_var_decl.id_and_type.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
 	iter_var_decl.id_and_type.id.values = { "" };
 	iter_var_decl.id_and_type.id.is_qualified = false;
+	iter_var_decl.id_and_type.var_type.get_typename().add_layer<ast::ts_mut>();
 	resolve_statement(foreach_stmt.iter_var_decl, context);
 	context.add_local_variable(iter_var_decl);
 	iter_var_decl.flags |= ast::decl_variable::used;
@@ -1377,15 +1378,14 @@ static bool resolve_function_parameters_helper(
 		{
 			func_body.flags &= ~ast::function_body::generic;
 
-			// if the parameter is generic, then it must be &auto or move auto
+			// if the parameter is generic, then it must be &auto, &mut auto or move auto
 			// either as `destructor(&self)`, `destructor(move self)`, `destructor(self: &auto)` or `destructor(self: move auto)`
-			if (
-				param_type.modifiers.size() != 1
-				|| (!param_type.modifiers[0].is<ast::ts_lvalue_reference>() && !param_type.modifiers[0].is<ast::ts_move_reference>())
-				|| !param_type.terminator->is<ast::ts_auto>()
-			)
+			auto const is_ref = param_type.modifiers.size() == 1 && param_type.modifiers[0].is<ast::ts_lvalue_reference>();
+			auto const is_mut_ref = param_type.modifiers.size() == 2 && param_type.modifiers[0].is<ast::ts_lvalue_reference>() && param_type.modifiers[1].is<ast::ts_mut>();
+			auto const is_move_ref = param_type.modifiers.size() == 1 && param_type.modifiers[0].is<ast::ts_move_reference>();
+			auto const is_mut_move_ref = param_type.modifiers.size() == 2 && param_type.modifiers[0].is<ast::ts_move_reference>() && param_type.modifiers[1].is<ast::ts_mut>();
+			if ((!is_ref && !is_mut_ref && !is_move_ref && !is_mut_move_ref) || !param_type.terminator->is<ast::ts_auto>())
 			{
-				bz_unreachable;
 				auto const destructor_of_type = ast::type_info::decode_symbol_name(func_body.get_destructor_of()->symbol_name);
 				context.report_error(
 					func_body.params[0].src_tokens,
@@ -1393,7 +1393,7 @@ static bool resolve_function_parameters_helper(
 						"invalid parameter type '{}' in destructor of type '{}'",
 						param_type, destructor_of_type
 					),
-					{ context.make_note(bz::format("it must be either '&auto', 'move auto', '&{0}' or 'move {0}'", destructor_of_type)) }
+					{ context.make_note(bz::format("it must be either '&mut auto', 'move mut auto', '&mut {0}' or 'move mut {0}'", destructor_of_type)) }
 				);
 				return false;
 			}

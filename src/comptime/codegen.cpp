@@ -803,7 +803,7 @@ static expr_value generate_builtin_unary_plus_plus(
 
 	if (value.get_type()->is_pointer())
 	{
-		auto const expr_type = expr.get_expr_type();
+		auto const expr_type = ast::remove_mut(expr.get_expr_type());
 		bz_assert(expr_type.is<ast::ts_pointer>() || expr_type.is_optional_pointer());
 		auto const object_type = expr_type.is<ast::ts_pointer>()
 			? get_type(expr_type.get<ast::ts_pointer>(), context)
@@ -825,7 +825,7 @@ static expr_value generate_builtin_unary_plus_plus(
 	else
 	{
 		bz_assert(value.get_type()->is_integer_type());
-		auto const expr_type = expr.get_expr_type();
+		auto const expr_type = ast::remove_mut(expr.get_expr_type());
 		bz_assert(expr_type.is<ast::ts_base_type>());
 		auto const expr_kind = expr_type.get<ast::ts_base_type>().info->kind;
 		auto const is_signed = ast::is_signed_integer_kind(expr_kind);
@@ -855,7 +855,7 @@ static expr_value generate_builtin_unary_minus_minus(
 
 	if (value.get_type()->is_pointer())
 	{
-		auto const expr_type = expr.get_expr_type();
+		auto const expr_type = ast::remove_mut(expr.get_expr_type());
 		bz_assert(expr_type.is<ast::ts_pointer>() || expr_type.is_optional_pointer());
 		auto const object_type = expr_type.is<ast::ts_pointer>()
 			? get_type(expr_type.get<ast::ts_pointer>(), context)
@@ -877,7 +877,7 @@ static expr_value generate_builtin_unary_minus_minus(
 	else
 	{
 		bz_assert(value.get_type()->is_integer_type());
-		auto const expr_type = expr.get_expr_type();
+		auto const expr_type = ast::remove_mut(expr.get_expr_type());
 		bz_assert(expr_type.is<ast::ts_base_type>());
 		auto const expr_kind = expr_type.get<ast::ts_base_type>().info->kind;
 		auto const is_signed = ast::is_signed_integer_kind(expr_kind);
@@ -6925,7 +6925,7 @@ static void generate_stmt_code(ast::stmt_for const &for_stmt, codegen_context &c
 	context.create_jump(end_bb);
 
 	context.set_current_basic_block(cond_check_bb_end);
-	if (for_stmt.condition.not_null())
+	if (!condition.is_none())
 	{
 		context.create_conditional_jump(condition, for_bb, end_bb);
 	}
@@ -7084,7 +7084,7 @@ static void add_variable_helper(
 
 static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_context &context)
 {
-	if (var_decl.get_type().is_empty() || var_decl.init_expr.is_error())
+	if (var_decl.get_type().is_empty() || var_decl.init_expr.is_error() || var_decl.state == ast::resolve_state::error)
 	{
 		context.create_error(var_decl.src_tokens, "failed to resolve variable declaration");
 		context.create_unreachable();
