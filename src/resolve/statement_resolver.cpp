@@ -767,7 +767,7 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 		{
 			context.report_error(
 				var_decl.src_tokens,
-				bz::format("variable type '{}' is not default constructible and must be initialized", var_decl.get_type())
+				bz::format("variable type '{}' is not default constructible and must be initialized", ast::remove_mut(var_decl.get_type()))
 			);
 			var_decl.state = ast::resolve_state::error;
 		}
