@@ -496,16 +496,14 @@ bool bitcode_context::has_terminator(llvm::BasicBlock *bb)
 
 void bitcode_context::start_lifetime(llvm::Value *ptr, size_t size)
 {
-	auto const func = this->get_function(this->get_builtin_function(ast::function_body::lifetime_start));
 	auto const size_val = llvm::ConstantInt::get(this->get_uint64_t(), size);
-	this->builder.CreateCall(func, { size_val, ptr });
+	this->builder.CreateLifetimeStart(ptr, llvm::cast<llvm::ConstantInt>(size_val));
 }
 
 void bitcode_context::end_lifetime(llvm::Value *ptr, size_t size)
 {
-	auto const func = this->get_function(this->get_builtin_function(ast::function_body::lifetime_end));
 	auto const size_val = llvm::ConstantInt::get(this->get_uint64_t(), size);
-	this->builder.CreateCall(func, { size_val, ptr });
+	this->builder.CreateLifetimeEnd(ptr, llvm::cast<llvm::ConstantInt>(size_val));
 }
 
 [[nodiscard]] bitcode_context::expression_scope_info_t bitcode_context::push_expression_scope(void)

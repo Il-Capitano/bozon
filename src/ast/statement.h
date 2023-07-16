@@ -663,8 +663,6 @@ struct function_body
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions
 
-		lifetime_start,
-		lifetime_end,
 		trap,
 
 		memcpy,
@@ -1739,7 +1737,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 265);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 263);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1925,8 +1923,6 @@ constexpr auto intrinsic_info = []() {
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions
 
-		{ function_body::lifetime_start, "__builtin_lifetime_start" },
-		{ function_body::lifetime_end,   "__builtin_lifetime_end"   },
 		{ function_body::trap,           "__builtin_trap"           },
 
 		{ function_body::memcpy,  "__builtin_memcpy"  },
