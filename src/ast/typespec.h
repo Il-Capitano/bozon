@@ -30,7 +30,7 @@ struct ts_optional;
 struct ts_lvalue_reference;
 struct ts_move_reference;
 struct ts_auto_reference;
-struct ts_auto_reference_const;
+struct ts_auto_reference_mut;
 struct ts_variadic;
 
 using typespec_types = bz::meta::type_pack<
@@ -51,7 +51,7 @@ using typespec_types = bz::meta::type_pack<
 	ts_lvalue_reference,
 	ts_move_reference,
 	ts_auto_reference,
-	ts_auto_reference_const,
+	ts_auto_reference_mut,
 	ts_variadic
 >;
 
@@ -63,7 +63,7 @@ using modifier_typespec_types = bz::meta::type_pack<
 	ts_lvalue_reference,
 	ts_move_reference,
 	ts_auto_reference,
-	ts_auto_reference_const,
+	ts_auto_reference_mut,
 	ts_variadic
 >;
 
@@ -298,7 +298,7 @@ struct ts_move_reference
 struct ts_auto_reference
 {};
 
-struct ts_auto_reference_const
+struct ts_auto_reference_mut
 {};
 
 struct ts_variadic

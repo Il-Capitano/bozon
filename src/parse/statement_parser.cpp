@@ -1471,7 +1471,7 @@ static ast::statement parse_stmt_foreach_impl(
 	auto const outer_prev_size = context.add_unresolved_scope();
 
 	auto range_var_type = ast::make_auto_typespec(nullptr);
-	range_var_type.add_layer<ast::ts_auto_reference_const>();
+	range_var_type.add_layer<ast::ts_auto_reference_mut>();
 	auto const range_expr_src_tokens = range_expr.src_tokens;
 	auto range_var_decl_stmt = ast::make_decl_variable(
 		range_expr_src_tokens,

@@ -886,7 +886,7 @@ static ast::expression resolve_expr(
 			context.report_error(array_type.type.src_tokens, "array element type cannot be an auto reference type");
 			return ast::make_error_expression(src_tokens);
 		}
-		else if (elem_type.is<ast::ts_auto_reference_const>())
+		else if (elem_type.is<ast::ts_auto_reference_mut>())
 		{
 			context.report_error(array_type.type.src_tokens, "array element type cannot be an auto reference-mut type");
 			return ast::make_error_expression(src_tokens);
@@ -962,7 +962,7 @@ static ast::expression resolve_expr(
 			context.report_error(array_type.type.src_tokens, "array element type cannot be an auto reference type");
 			return ast::make_error_expression(src_tokens);
 		}
-		else if (elem_type.is<ast::ts_auto_reference_const>())
+		else if (elem_type.is<ast::ts_auto_reference_mut>())
 		{
 			context.report_error(array_type.type.src_tokens, "array element type cannot be an auto reference-mut type");
 			return ast::make_error_expression(src_tokens);

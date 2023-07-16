@@ -369,7 +369,7 @@ typespec_view remove_lvalue_or_move_reference(typespec_view ts) noexcept
 
 typespec_view remove_any_reference(typespec_view ts) noexcept
 {
-	return remove_kind_helper<ts_lvalue_reference, ts_move_reference, ts_auto_reference, ts_auto_reference_const>(ts);
+	return remove_kind_helper<ts_lvalue_reference, ts_move_reference, ts_auto_reference, ts_auto_reference_mut>(ts);
 }
 
 bool is_complete(typespec_view ts) noexcept
@@ -383,7 +383,7 @@ bool is_complete(typespec_view ts) noexcept
 		&& (
 			ts.modifiers[0].is<ts_variadic>()
 			|| ts.modifiers.is_any([](auto const &mod) {
-				return mod.template is_any<ts_auto_reference, ts_auto_reference_const>();
+				return mod.template is_any<ts_auto_reference, ts_auto_reference_mut>();
 			})
 		);
 
@@ -985,7 +985,7 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 			[&](ast::ts_auto_reference const &) {
 				result += '#';
 			},
-			[&](ast::ts_auto_reference_const const &) {
+			[&](ast::ts_auto_reference_mut const &) {
 				result += "##";
 			},
 			[&](ast::ts_variadic const &) {

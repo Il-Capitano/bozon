@@ -124,7 +124,7 @@ static ast::expression get_type_op_unary_reference(
 		context.report_error(src_tokens, "reference to auto reference type is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
-	else if (result_type.is<ast::ts_auto_reference_const>())
+	else if (result_type.is<ast::ts_auto_reference_mut>())
 	{
 		context.report_error(src_tokens, "reference to auto reference-mut type is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
@@ -181,7 +181,7 @@ static ast::expression get_type_op_unary_auto_ref(
 	{
 		// nothing
 	}
-	else if (result_type.is<ast::ts_auto_reference_const>())
+	else if (result_type.is<ast::ts_auto_reference_mut>())
 	{
 		context.report_error(src_tokens, "auto reference to auto reference-mut type is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
@@ -251,7 +251,7 @@ static ast::expression get_type_op_unary_auto_ref_const(
 		context.report_error(src_tokens, "auto reference-mut to auto reference type is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
-	else if (result_type.is<ast::ts_auto_reference_const>())
+	else if (result_type.is<ast::ts_auto_reference_mut>())
 	{
 		// nothing
 	}
@@ -262,7 +262,7 @@ static ast::expression get_type_op_unary_auto_ref_const(
 	}
 	else
 	{
-		result_type.add_layer<ast::ts_auto_reference_const>();
+		result_type.add_layer<ast::ts_auto_reference_mut>();
 	}
 
 	return ast::make_constant_expression(
@@ -303,7 +303,7 @@ static ast::expression get_type_op_unary_pointer(
 		context.report_error(src_tokens, "pointer to auto reference is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
-	else if (result_type.is<ast::ts_auto_reference_const>())
+	else if (result_type.is<ast::ts_auto_reference_mut>())
 	{
 		context.report_error(src_tokens, "pointer to auto reference-mut is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
@@ -441,7 +441,7 @@ static ast::expression get_type_op_unary_mut(
 		context.report_error(src_tokens, "an auto reference type cannot be 'mut'");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
-	else if (result_type.is<ast::ts_auto_reference_const>())
+	else if (result_type.is<ast::ts_auto_reference_mut>())
 	{
 		context.report_error(src_tokens, "an auto reference-mut type cannot be 'mut'");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
@@ -503,7 +503,7 @@ static ast::expression get_type_op_unary_consteval(
 		context.report_error(src_tokens, "an auto reference type cannot be 'consteval'");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
-	else if (result_type.is<ast::ts_auto_reference_const>())
+	else if (result_type.is<ast::ts_auto_reference_mut>())
 	{
 		context.report_error(src_tokens, "an auto reference-mut type cannot be 'consteval'");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
@@ -569,7 +569,7 @@ static ast::expression get_type_op_unary_move(
 		context.report_error(src_tokens, "move reference to auto reference type is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
-	else if (result_type.is<ast::ts_auto_reference_const>())
+	else if (result_type.is<ast::ts_auto_reference_mut>())
 	{
 		context.report_error(src_tokens, "move reference to auto reference-mut type is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));

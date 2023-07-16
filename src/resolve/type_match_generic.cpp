@@ -1141,7 +1141,7 @@ static match_function_result_t<kind> generic_type_match_tuple(match_context_t<ki
 	ast::typespec_view dest = match_context.dest;
 
 	auto const original_dest = dest;
-	if (dest.is<ast::ts_auto_reference>() || dest.is<ast::ts_auto_reference_const>() || dest.is<ast::ts_move_reference>())
+	if (dest.is<ast::ts_auto_reference>() || dest.is<ast::ts_auto_reference_mut>() || dest.is<ast::ts_move_reference>())
 	{
 		dest = dest.blind_get();
 	}
@@ -1646,7 +1646,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			source.is<ast::ts_lvalue_reference>()
 			|| dest.is<ast::ts_lvalue_reference>()
 			|| dest.is<ast::ts_auto_reference>()
-			|| dest.is<ast::ts_auto_reference_const>()
+			|| dest.is<ast::ts_auto_reference_mut>()
 		)
 		{
 			break;
@@ -1849,14 +1849,14 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			static_assert(bz::meta::always_false<match_context_t<kind>>);
 		}
 	}
-	else if (dest.is<ast::ts_auto_reference_const>())
+	else if (dest.is<ast::ts_auto_reference_mut>())
 	{
 		if constexpr (kind == type_match_function_kind::can_match)
 		{
 			return generic_type_match_strict_match(
 				change_inner_dest_and_source(
 					match_context,
-					dest.get<ast::ts_auto_reference_const>(),
+					dest.get<ast::ts_auto_reference_mut>(),
 					ast::remove_mutability_modifiers(ast::remove_lvalue_reference(source))
 				),
 				!source.is<ast::ts_lvalue_reference>(),
@@ -1873,7 +1873,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			auto result = generic_type_match_strict_match(
 				change_inner_dest_and_source(
 					match_context,
-					dest.get<ast::ts_auto_reference_const>(),
+					dest.get<ast::ts_auto_reference_mut>(),
 					ast::remove_mutability_modifiers(ast::remove_lvalue_reference(source))
 				),
 				!source.is<ast::ts_lvalue_reference>(),
@@ -1891,7 +1891,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			auto const can_match = generic_type_match_strict_match(
 				strict_match_context_t<type_match_function_kind::can_match>{
 					.source = ast::remove_mutability_modifiers(ast::remove_lvalue_reference(source)),
-					.dest = dest.get<ast::ts_auto_reference_const>(),
+					.dest = dest.get<ast::ts_auto_reference_mut>(),
 					.context = match_context.context,
 				},
 				!source.is<ast::ts_lvalue_reference>(),
@@ -1919,7 +1919,7 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			auto const can_match = generic_type_match_strict_match(
 				strict_match_context_t<type_match_function_kind::can_match>{
 					.source = ast::remove_mutability_modifiers(ast::remove_lvalue_reference(source)),
-					.dest = dest.get<ast::ts_auto_reference_const>(),
+					.dest = dest.get<ast::ts_auto_reference_mut>(),
 					.context = match_context.context,
 				},
 				!source.is<ast::ts_lvalue_reference>(),
@@ -2932,7 +2932,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 
 		auto const reference_kind = inner_dest.is<ast::ts_mut>() == expr_is_mut
 			? reference_match_kind::reference_exact
-			: reference_match_kind::reference_add_const;
+			: reference_match_kind::reference_remove_mut;
 		return generic_type_match_strict_match(
 			make_strict_match_context(
 				match_context,
@@ -2982,7 +2982,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 
 		auto const reference_kind = inner_dest.is<ast::ts_mut>() == expr_is_mut
 			? reference_match_kind::reference_exact
-			: reference_match_kind::reference_add_const;
+			: reference_match_kind::reference_remove_mut;
 		return generic_type_match_strict_match(
 			make_strict_match_context(
 				match_context,
@@ -3017,7 +3017,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		auto inner_dest = dest.get<ast::ts_auto_reference>();
 		auto const reference_kind = inner_dest.is<ast::ts_mut>() == expr_is_mut
 			? reference_match_kind::auto_reference_exact
-			: reference_match_kind::auto_reference_add_const;
+			: reference_match_kind::auto_reference_remove_mut;
 
 		if constexpr (kind == type_match_function_kind::matched_type)
 		{
@@ -3126,11 +3126,11 @@ static match_function_result_t<kind> generic_type_match_base_case(
 			}
 		}
 	}
-	else if (dest.is<ast::ts_auto_reference_const>())
+	else if (dest.is<ast::ts_auto_reference_mut>())
 	{
 		bz_assert(!parent_reference_kind.has_value());
 		auto const is_lvalue = ast::is_lvalue(expr_type_kind);
-		auto inner_dest = dest.get<ast::ts_auto_reference_const>();
+		auto inner_dest = dest.get<ast::ts_auto_reference_mut>();
 
 		if constexpr (kind == type_match_function_kind::matched_type)
 		{
@@ -3167,11 +3167,11 @@ static match_function_result_t<kind> generic_type_match_base_case(
 			bz_assert(
 				(
 					match_context.dest_container.modifiers.not_empty()
-					&& match_context.dest_container.modifiers[0].template is<ast::ts_auto_reference_const>()
+					&& match_context.dest_container.modifiers[0].template is<ast::ts_auto_reference_mut>()
 				) || (
 					match_context.dest_container.modifiers.size() >= 2
 					&& match_context.dest_container.modifiers[0].template is<ast::ts_optional>()
-					&& match_context.dest_container.modifiers[1].template is<ast::ts_auto_reference_const>()
+					&& match_context.dest_container.modifiers[1].template is<ast::ts_auto_reference_mut>()
 				)
 			);
 			if (is_lvalue)
@@ -3608,7 +3608,7 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 
 			if (
 				match_context.dest_container.template is<ast::ts_auto_reference>()
-				|| match_context.dest_container.template is<ast::ts_auto_reference_const>()
+				|| match_context.dest_container.template is<ast::ts_auto_reference_mut>()
 			)
 			{
 				match_context.dest_container.remove_layer();
