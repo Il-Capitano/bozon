@@ -54,8 +54,8 @@ export consteval DIGIT_TABLE: [200: uint8] = [
 ];
 
 static_assert({
-	let good = true;
-	for (let i = 0; i < 100; ++i)
+	mut good = true;
+	for (let i in 0..100)
 	{
 		good &= DIGIT_TABLE[2 * i]     == ('0' + i / 10) as uint32;
 		good &= DIGIT_TABLE[2 * i + 1] == ('0' + i % 10) as uint32;

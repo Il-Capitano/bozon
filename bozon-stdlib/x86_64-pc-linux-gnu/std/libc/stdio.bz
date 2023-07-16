@@ -8,31 +8,31 @@ struct _G_fpos_t
 struct _IO_FILE
 {
 	._flags: int;
-	._IO_read_ptr: ?*char;
-	._IO_read_end: ?*char;
-	._IO_read_base: ?*char;
-	._IO_write_base: ?*char;
-	._IO_write_ptr: ?*char;
-	._IO_write_end: ?*char;
-	._IO_buf_base: ?*char;
-	._IO_buf_end: ?*char;
-	._IO_save_base: ?*char;
-	._IO_backup_base: ?*char;
-	._IO_save_end: ?*char;
-	._markers: ?*_IO_marker;
-	._chain: ?*_IO_FILE;
+	._IO_read_ptr: ?*mut char;
+	._IO_read_end: ?*mut char;
+	._IO_read_base: ?*mut char;
+	._IO_write_base: ?*mut char;
+	._IO_write_ptr: ?*mut char;
+	._IO_write_end: ?*mut char;
+	._IO_buf_base: ?*mut char;
+	._IO_buf_end: ?*mut char;
+	._IO_save_base: ?*mut char;
+	._IO_backup_base: ?*mut char;
+	._IO_save_end: ?*mut char;
+	._markers: ?*mut _IO_marker;
+	._chain: ?*mut _IO_FILE;
 	._fileno: int;
 	._flags2: int;
 	._old_offset: __off_t;
 	._cur_column: unsigned_short;
 	._vtable_offset: signed_char;
 	._shortbuf: [1: char];
-	._lock: ?*_IO_lock_t;
+	._lock: ?*mut _IO_lock_t;
 	._offset: __off64_t;
-	._codecvt: ?*_IO_codecvt;
-	._wide_data: ?*_IO_wide_data;
-	._freeres_list: ?*_IO_FILE;
-	._freeres_buf: ?*void;
+	._codecvt: ?*mut _IO_codecvt;
+	._wide_data: ?*mut _IO_wide_data;
+	._freeres_list: ?*mut _IO_FILE;
+	._freeres_buf: ?*mut void;
 	.__pad5: size_t;
 	._mode: int;
 	._unused2: [20: char];
@@ -51,37 +51,37 @@ type _IO_lock_t = void;
 type __fpos_t = _G_fpos_t;
 type __off64_t = long;
 type __off_t = long;
-@symbol_name("clearerr") export function "c" clearerr(stream: ?*FILE) -> void;
-@symbol_name("fclose") export function "c" fclose(stream: ?*FILE) -> int;
-@symbol_name("feof") export function "c" feof(stream: ?*FILE) -> int;
-@symbol_name("ferror") export function "c" ferror(stream: ?*FILE) -> int;
-@symbol_name("fflush") export function "c" fflush(stream: ?*FILE) -> int;
-@symbol_name("fgetc") export function "c" fgetc(stream: ?*FILE) -> int;
-@symbol_name("fgetpos") export function "c" fgetpos(stream: ?*FILE, pos: ?*fpos_t) -> int;
-@symbol_name("fgets") export function "c" fgets(s: ?*char, n: int, stream: ?*FILE) -> ?*char;
-@symbol_name("fopen") export function "c" fopen(filename: ?*const char, modes: ?*const char) -> ?*FILE;
-@symbol_name("fputc") export function "c" fputc(c: int, stream: ?*FILE) -> int;
-@symbol_name("fputs") export function "c" fputs(s: ?*const char, stream: ?*FILE) -> int;
-@symbol_name("fread") export function "c" fread(ptr: ?*void, size: size_t, n: size_t, stream: ?*FILE) -> unsigned_long;
-@symbol_name("freopen") export function "c" freopen(filename: ?*const char, modes: ?*const char, stream: ?*FILE) -> ?*FILE;
-@symbol_name("fseek") export function "c" fseek(stream: ?*FILE, off: long, whence: int) -> int;
-@symbol_name("fsetpos") export function "c" fsetpos(stream: ?*FILE, pos: ?*const fpos_t) -> int;
-@symbol_name("ftell") export function "c" ftell(stream: ?*FILE) -> long;
-@symbol_name("fwrite") export function "c" fwrite(ptr: ?*const void, size: size_t, n: size_t, s: ?*FILE) -> unsigned_long;
-@symbol_name("getc") export function "c" getc(stream: ?*FILE) -> int;
+@symbol_name("clearerr") export function "c" clearerr(stream: ?*mut FILE) -> void;
+@symbol_name("fclose") export function "c" fclose(stream: ?*mut FILE) -> int;
+@symbol_name("feof") export function "c" feof(stream: ?*mut FILE) -> int;
+@symbol_name("ferror") export function "c" ferror(stream: ?*mut FILE) -> int;
+@symbol_name("fflush") export function "c" fflush(stream: ?*mut FILE) -> int;
+@symbol_name("fgetc") export function "c" fgetc(stream: ?*mut FILE) -> int;
+@symbol_name("fgetpos") export function "c" fgetpos(stream: ?*mut FILE, pos: ?*mut fpos_t) -> int;
+@symbol_name("fgets") export function "c" fgets(s: ?*mut char, n: int, stream: ?*mut FILE) -> ?*mut char;
+@symbol_name("fopen") export function "c" fopen(filename: ?*char, modes: ?*char) -> ?*mut FILE;
+@symbol_name("fputc") export function "c" fputc(c: int, stream: ?*mut FILE) -> int;
+@symbol_name("fputs") export function "c" fputs(s: ?*char, stream: ?*mut FILE) -> int;
+@symbol_name("fread") export function "c" fread(ptr: ?*mut void, size: size_t, n: size_t, stream: ?*mut FILE) -> unsigned_long;
+@symbol_name("freopen") export function "c" freopen(filename: ?*char, modes: ?*char, stream: ?*mut FILE) -> ?*mut FILE;
+@symbol_name("fseek") export function "c" fseek(stream: ?*mut FILE, off: long, whence: int) -> int;
+@symbol_name("fsetpos") export function "c" fsetpos(stream: ?*mut FILE, pos: ?*fpos_t) -> int;
+@symbol_name("ftell") export function "c" ftell(stream: ?*mut FILE) -> long;
+@symbol_name("fwrite") export function "c" fwrite(ptr: ?*void, size: size_t, n: size_t, s: ?*mut FILE) -> unsigned_long;
+@symbol_name("getc") export function "c" getc(stream: ?*mut FILE) -> int;
 @symbol_name("getchar") export function "c" getchar() -> int;
-@symbol_name("perror") export function "c" perror(s: ?*const char) -> void;
-@symbol_name("putc") export function "c" putc(c: int, stream: ?*FILE) -> int;
+@symbol_name("perror") export function "c" perror(s: ?*char) -> void;
+@symbol_name("putc") export function "c" putc(c: int, stream: ?*mut FILE) -> int;
 @symbol_name("putchar") export function "c" putchar(c: int) -> int;
-@symbol_name("puts") export function "c" puts(s: ?*const char) -> int;
-@symbol_name("remove") export function "c" remove(filename: ?*const char) -> int;
-@symbol_name("rename") export function "c" rename(old: ?*const char, new: ?*const char) -> int;
-@symbol_name("rewind") export function "c" rewind(stream: ?*FILE) -> void;
-@symbol_name("setbuf") export function "c" setbuf(stream: ?*FILE, buf: ?*char) -> void;
-@symbol_name("setvbuf") export function "c" setvbuf(stream: ?*FILE, buf: ?*char, modes: int, n: size_t) -> int;
-@symbol_name("tmpfile") export function "c" tmpfile() -> ?*FILE;
-@symbol_name("tmpnam") export function "c" tmpnam(s: ?*char) -> ?*char;
-@symbol_name("ungetc") export function "c" ungetc(c: int, stream: ?*FILE) -> int;
+@symbol_name("puts") export function "c" puts(s: ?*char) -> int;
+@symbol_name("remove") export function "c" remove(filename: ?*char) -> int;
+@symbol_name("rename") export function "c" rename(old: ?*char, new: ?*char) -> int;
+@symbol_name("rewind") export function "c" rewind(stream: ?*mut FILE) -> void;
+@symbol_name("setbuf") export function "c" setbuf(stream: ?*mut FILE, buf: ?*mut char) -> void;
+@symbol_name("setvbuf") export function "c" setvbuf(stream: ?*mut FILE, buf: ?*mut char, modes: int, n: size_t) -> int;
+@symbol_name("tmpfile") export function "c" tmpfile() -> ?*mut FILE;
+@symbol_name("tmpnam") export function "c" tmpnam(: ?*mut char) -> ?*mut char;
+@symbol_name("ungetc") export function "c" ungetc(c: int, stream: ?*mut FILE) -> int;
 export function BUFSIZ() -> int
 {
 	return 8192;
@@ -130,18 +130,18 @@ export function _IONBF() -> int
 {
 	return 2;
 }
-export function stderr() -> &?*FILE
+export function stderr() -> &mut ?*mut FILE
 {
 	return __macro_clash_stderr;
 }
-export function stdin() -> &?*FILE
+export function stdin() -> &mut ?*mut FILE
 {
 	return __macro_clash_stdin;
 }
-export function stdout() -> &?*FILE
+export function stdout() -> &mut ?*mut FILE
 {
 	return __macro_clash_stdout;
 }
-@symbol_name("stderr") extern __macro_clash_stderr: ?*FILE;
-@symbol_name("stdin") extern __macro_clash_stdin: ?*FILE;
-@symbol_name("stdout") extern __macro_clash_stdout: ?*FILE;
+@symbol_name("stderr") extern __macro_clash_stderr: mut ?*mut FILE;
+@symbol_name("stdin") extern __macro_clash_stdin: mut ?*mut FILE;
+@symbol_name("stdout") extern __macro_clash_stdout: mut ?*mut FILE;

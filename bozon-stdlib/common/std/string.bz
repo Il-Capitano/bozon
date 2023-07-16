@@ -8,9 +8,9 @@ consteval short_string_max_size = 2 * sizeof ?*uint8;
 
 export struct string
 {
-	._data_begin: ?*uint8;
-	._data_end:   ?*uint8;
-	._alloc_end:  ?*uint8;
+	._data_begin: ?*mut uint8;
+	._data_end:   ?*mut uint8;
+	._alloc_end:  ?*mut uint8;
 
 	destructor(&self)
 	{
@@ -27,49 +27,49 @@ export struct string
 
 	constructor(s: str)
 	{
-		const size = s.size();
+		let size = s.size();
 		if (size == 0)
 		{
 			return string[ null, null, null ];
 		}
 		else if (!meta::is_comptime() && size <= short_string_max_size)
 		{
-			const data_begin = __builtin_int_to_pointer(*uint8, 1uz | (size << 1));
-			let data_and_alloc_end: [2: ?*uint8];
+			let data_begin = __builtin_int_to_pointer(*mut uint8, 1uz | (size << 1));
+			mut data_and_alloc_end = [2: ?*mut uint8]();
 			memcpy(&data_and_alloc_end, s.begin_ptr(), size);
 			return string[ data_begin, data_and_alloc_end[0], data_and_alloc_end[1] ];
 		}
 		else
 		{
-			const [data_begin, alloc_size] = rounded_alloc(size);
+			let [data_begin, alloc_size] = rounded_alloc(size);
 			trivially_copy_values(data_begin, s.begin_ptr(), size);
 			return string[ data_begin, data_begin.get_value() + size, data_begin.get_value() + alloc_size ];
 		}
 	}
 
-	constructor(other: &const string)
+	constructor(other: &string)
 	{
 		return string(other.as_str());
 	}
 
-	export operator = (self: &string, other: &const string) -> &string
+	export operator = (self: &mut string, other: &string) -> &mut string
 	{
 		if (&self == &other)
 		{
 			return self;
 		}
-		const size = other.size();
+		let size = other.size();
 		self.reserve(size);
 		trivially_copy_values(self.begin_ptr(), other.begin_ptr(), size);
 		self.set_size_unsafe(size);
 		return self;
 	}
 
-	export operator = (self: &string, other: string) = __default__;
+	export operator = (self: &mut string, other: string) = __default__;
 
-	export operator = (self: &string, rhs: str) -> &string
+	export operator = (self: &mut string, rhs: str) -> &mut string
 	{
-		const size = rhs.size();
+		let size = rhs.size();
 		if (self.capacity() >= size)
 		{
 			trivially_copy_values(self.begin_ptr(), rhs.begin_ptr(), size);
@@ -92,7 +92,7 @@ function round_to_next_power_of_two(n: usize) -> usize
 	};
 }
 
-function rounded_alloc(n: usize) -> [?*uint8, usize]
+function rounded_alloc(n: usize) -> [?*mut uint8, usize]
 {
 	if (n == 0)
 	{
@@ -100,12 +100,12 @@ function rounded_alloc(n: usize) -> [?*uint8, usize]
 	}
 	else
 	{
-		const rounded_n = round_to_next_power_of_two(n);
+		let rounded_n = round_to_next_power_of_two(n);
 		return [ malloc_raw(uint8, rounded_n), rounded_n ];
 	}
 }
 
-function is_short_string(s: &const string) -> bool
+function is_short_string(s: &string) -> bool
 {
 	if (meta::is_comptime())
 	{
@@ -113,14 +113,14 @@ function is_short_string(s: &const string) -> bool
 	}
 	else
 	{
-		const data_begin_int = __builtin_pointer_to_int(s._data_begin);
+		let data_begin_int = __builtin_pointer_to_int(s._data_begin);
 		return s._data_begin == null || (data_begin_int & 1uz) != 0;
 	}
 }
 
-function short_string_size(s: &const string) -> usize
+function short_string_size(s: &string) -> usize
 {
-	const data_begin_int = __builtin_pointer_to_int(s._data_begin);
+	let data_begin_int = __builtin_pointer_to_int(s._data_begin);
 	return data_begin_int >> 1;
 }
 
@@ -136,11 +136,11 @@ function begin_ptr(s: &string) -> ?*uint8
 	}
 }
 
-function begin_ptr(s: &const string) -> ?*const uint8
+function begin_ptr(s: &mut string) -> ?*mut uint8
 {
 	if (s.is_short_string())
 	{
-		return __builtin_pointer_cast(*const uint8, &s._data_end);
+		return __builtin_pointer_cast(*mut uint8, &s._data_end);
 	}
 	else
 	{
@@ -152,7 +152,7 @@ function end_ptr(s: &string) -> ?*uint8
 {
 	if (s.is_short_string())
 	{
-		const size = s.short_string_size();
+		let size = s.short_string_size();
 		return __builtin_pointer_cast(*uint8, &s._data_end) + size;
 	}
 	else
@@ -161,12 +161,12 @@ function end_ptr(s: &string) -> ?*uint8
 	}
 }
 
-function end_ptr(s: &const string) -> ?*const uint8
+function end_ptr(s: &mut string) -> ?*mut uint8
 {
 	if (s.is_short_string())
 	{
-		const size = s.short_string_size();
-		return __builtin_pointer_cast(*const uint8, &s._data_end) + size;
+		let size = s.short_string_size();
+		return __builtin_pointer_cast(*mut uint8, &s._data_end) + size;
 	}
 	else
 	{
@@ -174,7 +174,7 @@ function end_ptr(s: &const string) -> ?*const uint8
 	}
 }
 
-function set_short_string_size(s: &string, size: usize)
+function set_short_string_size(s: &mut string, size: usize)
 {
 	if (size == 0)
 	{
@@ -182,11 +182,11 @@ function set_short_string_size(s: &string, size: usize)
 	}
 	else
 	{
-		s._data_begin = __builtin_int_to_pointer(*uint8, (size << 1) | 1uz);
+		s._data_begin = __builtin_int_to_pointer(*mut uint8, (size << 1) | 1uz);
 	}
 }
 
-function set_size_unsafe(s: &string, size: usize)
+function set_size_unsafe(s: &mut string, size: usize)
 {
 	if (s.is_short_string())
 	{
@@ -199,12 +199,12 @@ function set_size_unsafe(s: &string, size: usize)
 }
 
 
-function as_slice(s: &const string) -> [: const uint8]
+function as_slice(s: &string) -> [: uint8]
 {
 	return __builtin_slice_from_const_ptrs(s.begin_ptr(), s.end_ptr());
 }
 
-export function as_str(s: &const string) -> str
+export function as_str(s: &string) -> str
 {
 	return __builtin_str_from_ptrs(s.begin_ptr(), s.end_ptr());
 }
@@ -214,34 +214,34 @@ export function as_str(s: move string) -> str
 	return __builtin_str_from_ptrs(s.begin_ptr(), s.end_ptr());
 }
 
-export function length(s: #const string) -> usize
+export function length(s: #string) -> usize
 {
 	return s.as_str().length();
 }
 
-export function size(s: #const string) -> usize
+export function size(s: #string) -> usize
 {
 	return s.as_str().size();
 }
 
-export function capacity(self: #const string) -> usize
+export function capacity(self: #string) -> usize
 {
 	return if (self.is_short_string()) { short_string_max_size } else { (self._alloc_end - self._data_begin) as usize };
 }
 
-export function empty(self: #const string) -> bool
+export function empty(self: #string) -> bool
 {
 	return self._data_begin == null | self._data_begin == self._data_end;
 }
 
-export function not_empty(self: #const string) -> bool
+export function not_empty(self: #string) -> bool
 {
 	return !self.empty();
 }
 
-export function is_ascii(self: #const string) -> bool
+export function is_ascii(self: #string) -> bool
 {
-	for (const c in self.as_slice())
+	for (let c in self.as_slice())
 	{
 		if ((c & 0b1000'0000u8) != 0)
 		{
@@ -256,7 +256,7 @@ export function data(self: &string) -> ?*uint8
 	return self.begin_ptr();
 }
 
-export function data(self: &const string) -> ?*const uint8
+export function data(self: &mut string) -> ?*mut uint8
 {
 	return self.begin_ptr();
 }
@@ -266,18 +266,18 @@ export function data_end(self: &string) -> ?*uint8
 	return self.end_ptr();
 }
 
-export function data_end(self: &const string) -> ?*const uint8
+export function data_end(self: &mut string) -> ?*mut uint8
 {
 	return self.end_ptr();
 }
 
 
-export function reserve(self: &string, new_capacity: usize)
+export function reserve(self: &mut string, new_capacity: usize)
 {
 	if (new_capacity > self.capacity())
 	{
-		const [data_begin, alloc_size] = rounded_alloc(new_capacity);
-		const size = self.size();
+		let [data_begin, alloc_size] = rounded_alloc(new_capacity);
+		let size = self.size();
 		trivially_copy_values(data_begin, self.begin_ptr(), size);
 		if (!self.is_short_string())
 		{
@@ -289,20 +289,20 @@ export function reserve(self: &string, new_capacity: usize)
 	}
 }
 
-export function clear(self: &string)
+export function clear(self: &mut string)
 {
 	self.set_size_unsafe(0);
 }
 
-export function push_back(self: &string, c: char)
+export function push_back(self: &mut string, c: char)
 {
-	const char_and_size = encode_char_utf8(c);
+	let char_and_size = encode_char_utf8(c);
 	self.reserve(self.size() + char_and_size[1]);
 	trivially_copy_values(self.end_ptr(), char_and_size[0].begin(), char_and_size[1]);
 	self.set_size_unsafe(self.size() + char_and_size[1]);
 }
 
-export function resize(self: &string, new_size: usize, c: char)
+export function resize(self: &mut string, new_size: usize, c: char)
 {
 	assert(c <= '\x7f');
 	if (new_size <= self.size())
@@ -311,31 +311,31 @@ export function resize(self: &string, new_size: usize, c: char)
 	}
 	else if (new_size <= self.capacity())
 	{
-		const old_end = self.end_ptr();
-		const size_diff = new_size - self.size();
+		let old_end = self.end_ptr();
+		let size_diff = new_size - self.size();
 		self.set_size_unsafe(new_size);
 		trivially_set_values(old_end, c as uint8, size_diff);
 	}
 	else
 	{
 		self.reserve(new_size);
-		const old_end = self.end_ptr();
-		const size_diff = new_size - self.size();
+		let old_end = self.end_ptr();
+		let size_diff = new_size - self.size();
 		self.set_size_unsafe(new_size);
 		trivially_set_values(old_end, c as uint8, size_diff);
 	}
 }
 
-export function resize(self: &string, new_size: usize)
+export function resize(self: &mut string, new_size: usize)
 {
 	self.resize(new_size, '\x00');
 }
 
-export function release(s: &string) -> string
+export function release(s: &mut string) -> string
 {
-	const data_begin = s._data_begin;
-	const data_end   = s._data_end;
-	const alloc_end  = s._alloc_end;
+	let data_begin = s._data_begin;
+	let data_end   = s._data_end;
+	let alloc_end  = s._alloc_end;
 	s._data_begin = null;
 	s._data_end   = null;
 	s._alloc_end  = null;
@@ -343,16 +343,16 @@ export function release(s: &string) -> string
 }
 
 
-export operator + (lhs: #const string, rhs: #const string) -> string
+export operator + (lhs: #string, rhs: #string) -> string
 {
-	const lhs_begin = lhs.begin_ptr();
-	const lhs_size = lhs.size();
-	const rhs_begin = rhs.begin_ptr();
-	const rhs_size = rhs.size();
+	let lhs_begin = lhs.begin_ptr();
+	let lhs_size = lhs.size();
+	let rhs_begin = rhs.begin_ptr();
+	let rhs_size = rhs.size();
 
-	const result_size = lhs_size + rhs_size;
+	let result_size = lhs_size + rhs_size;
 
-	const [result_alloc, result_alloc_size] = rounded_alloc(result_size);
+	let [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
 	trivially_copy_values(result_alloc, lhs_begin, lhs_size);
 	trivially_copy_values(result_alloc + lhs_size, rhs_begin, rhs_size);
@@ -360,16 +360,16 @@ export operator + (lhs: #const string, rhs: #const string) -> string
 	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
 }
 
-export operator + (lhs: #const string, rhs: str) -> string
+export operator + (lhs: #string, rhs: str) -> string
 {
-	const lhs_begin = lhs.begin_ptr();
-	const lhs_size = lhs.size();
-	const rhs_begin = rhs.begin_ptr();
-	const rhs_size = rhs.size();
+	let lhs_begin = lhs.begin_ptr();
+	let lhs_size = lhs.size();
+	let rhs_begin = rhs.begin_ptr();
+	let rhs_size = rhs.size();
 
-	const result_size = lhs_size + rhs_size;
+	let result_size = lhs_size + rhs_size;
 
-	const [result_alloc, result_alloc_size] = rounded_alloc(result_size);
+	let [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
 	trivially_copy_values(result_alloc, lhs_begin, lhs_size);
 	trivially_copy_values(result_alloc + lhs_size, rhs_begin, rhs_size);
@@ -377,16 +377,16 @@ export operator + (lhs: #const string, rhs: str) -> string
 	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
 }
 
-export operator + (lhs: str, rhs: #const string) -> string
+export operator + (lhs: str, rhs: #string) -> string
 {
-	const lhs_begin = lhs.begin_ptr();
-	const lhs_size = lhs.size();
-	const rhs_begin = rhs.begin_ptr();
-	const rhs_size = rhs.size();
+	let lhs_begin = lhs.begin_ptr();
+	let lhs_size = lhs.size();
+	let rhs_begin = rhs.begin_ptr();
+	let rhs_size = rhs.size();
 
-	const result_size = lhs_size + rhs_size;
+	let result_size = lhs_size + rhs_size;
 
-	const [result_alloc, result_alloc_size] = rounded_alloc(result_size);
+	let [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
 	trivially_copy_values(result_alloc, lhs_begin, lhs_size);
 	trivially_copy_values(result_alloc + lhs_size, rhs_begin, rhs_size);
@@ -394,17 +394,17 @@ export operator + (lhs: str, rhs: #const string) -> string
 	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
 }
 
-export operator + (lhs: #const string, rhs: char) -> string
+export operator + (lhs: #string, rhs: char) -> string
 {
-	const lhs_begin = lhs.begin_ptr();
-	const lhs_size = lhs.size();
-	const rhs_encoded = encode_char_utf8(rhs);
-	const rhs_begin = rhs_encoded[0].begin();
-	const rhs_size = rhs_encoded[1] as usize;
+	let lhs_begin = lhs.begin_ptr();
+	let lhs_size = lhs.size();
+	let rhs_encoded = encode_char_utf8(rhs);
+	let rhs_begin = rhs_encoded[0].begin();
+	let rhs_size = rhs_encoded[1] as usize;
 
-	const result_size = lhs_size + rhs_size;
+	let result_size = lhs_size + rhs_size;
 
-	const [result_alloc, result_alloc_size] = rounded_alloc(result_size);
+	let [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
 	trivially_copy_values(result_alloc, lhs_begin, lhs_size);
 	trivially_copy_values(result_alloc + lhs_size, rhs_begin, rhs_size);
@@ -412,17 +412,17 @@ export operator + (lhs: #const string, rhs: char) -> string
 	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
 }
 
-export operator + (lhs: char, rhs: #const string) -> string
+export operator + (lhs: char, rhs: #string) -> string
 {
-	const lhs_encoded = encode_char_utf8(lhs);
-	const lhs_begin = lhs_encoded[0].begin();
-	const lhs_size = lhs_encoded[1] as usize;
-	const rhs_begin = rhs.begin_ptr();
-	const rhs_size = rhs.size();
+	let lhs_encoded = encode_char_utf8(lhs);
+	let lhs_begin = lhs_encoded[0].begin();
+	let lhs_size = lhs_encoded[1] as usize;
+	let rhs_begin = rhs.begin_ptr();
+	let rhs_size = rhs.size();
 
-	const result_size = lhs_size + rhs_size;
+	let result_size = lhs_size + rhs_size;
 
-	const [result_alloc, result_alloc_size] = rounded_alloc(result_size);
+	let [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
 	trivially_copy_values(result_alloc, lhs_begin, lhs_size);
 	trivially_copy_values(result_alloc + lhs_size, rhs_begin, rhs_size);
@@ -431,10 +431,10 @@ export operator + (lhs: char, rhs: #const string) -> string
 }
 
 
-export operator += (lhs: &string, rhs: #const string) -> &string
+export operator += (lhs: &mut string, rhs: #string) -> &mut string
 {
-	const rhs_size = rhs.size();
-	const result_size = lhs.size() + rhs_size;
+	let rhs_size = rhs.size();
+	let result_size = lhs.size() + rhs_size;
 	lhs.reserve(result_size);
 
 	// lhs.reserve could change rhs, if you write something like s += s
@@ -443,10 +443,10 @@ export operator += (lhs: &string, rhs: #const string) -> &string
 	return lhs;
 }
 
-export operator += (lhs: &string, rhs: str) -> &string
+export operator += (lhs: &mut string, rhs: str) -> &mut string
 {
-	const rhs_size = rhs.size();
-	const result_size = lhs.size() + rhs_size;
+	let rhs_size = rhs.size();
+	let result_size = lhs.size() + rhs_size;
 	lhs.reserve(result_size);
 
 	trivially_copy_values(lhs.end_ptr(), rhs.begin_ptr(), rhs_size);
@@ -454,13 +454,13 @@ export operator += (lhs: &string, rhs: str) -> &string
 	return lhs;
 }
 
-export operator += (lhs: &string, rhs: char) -> &string
+export operator += (lhs: &mut string, rhs: char) -> &mut string
 {
-	const rhs_encoded = encode_char_utf8(rhs);
-	const rhs_begin = rhs_encoded[0].begin();
-	const rhs_size = rhs_encoded[1] as usize;
+	let rhs_encoded = encode_char_utf8(rhs);
+	let rhs_begin = rhs_encoded[0].begin();
+	let rhs_size = rhs_encoded[1] as usize;
 
-	const result_size = lhs.size() + rhs_size;
+	let result_size = lhs.size() + rhs_size;
 	lhs.reserve(result_size);
 	trivially_copy_values(lhs.end_ptr(), rhs_begin, rhs_size);
 	lhs.set_size_unsafe(result_size);
@@ -468,53 +468,53 @@ export operator += (lhs: &string, rhs: char) -> &string
 }
 
 
-export operator == (lhs: #const string, rhs: #const string) -> bool
+export operator == (lhs: #string, rhs: #string) -> bool
 {
 	return lhs.as_str() == rhs.as_str();
 }
 
-export operator == (lhs: str, rhs: #const string) -> bool
+export operator == (lhs: str, rhs: #string) -> bool
 {
 	return lhs == rhs.as_str();
 }
 
-export operator == (lhs: #const string, rhs: str) -> bool
+export operator == (lhs: #string, rhs: str) -> bool
 {
 	return lhs.as_str() == rhs;
 }
 
-export operator != (lhs: #const string, rhs: #const string) -> bool
+export operator != (lhs: #string, rhs: #string) -> bool
 {
 	return lhs.as_str() != rhs.as_str();
 }
 
-export operator != (lhs: str, rhs: #const string) -> bool
+export operator != (lhs: str, rhs: #string) -> bool
 {
 	return lhs != rhs.as_str();
 }
 
-export operator != (lhs: #const string, rhs: str) -> bool
+export operator != (lhs: #string, rhs: str) -> bool
 {
 	return lhs.as_str() != rhs;
 }
 
 
-export function starts_with(s: #const string, prefix: #const string) -> bool
+export function starts_with(s: #string, prefix: #string) -> bool
 {
 	return s.as_str().starts_with(prefix.as_str());
 }
 
-export function starts_with(s: #const string, prefix: str) -> bool
+export function starts_with(s: #string, prefix: str) -> bool
 {
 	return s.as_str().starts_with(prefix);
 }
 
-export function ends_with(s: #const string, postfix: #const string) -> bool
+export function ends_with(s: #string, postfix: #string) -> bool
 {
 	return s.as_str().ends_with(postfix.as_str());
 }
 
-export function ends_with(s: #const string, postfix: str) -> bool
+export function ends_with(s: #string, postfix: str) -> bool
 {
 	return s.as_str().ends_with(postfix);
 }

@@ -45,21 +45,21 @@ function int32Bits2Float(bits: uint32) -> float32
 	return std::bit_cast(float32, bits);
 }
 
-export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> parse_result
+export function s2f_n(buffer: *uint8, len: int32, result: *mut float32) -> parse_result
 {
 	if (len == 0)
 	{
 		return parse_result.INPUT_TOO_SHORT;
 	}
-	let m10digits = 0;
-	let e10digits = 0;
-	let dotIndex = len;
-	let eIndex = len;
-	let m10 = 0u32;
-	let e10 = 0i32;
-	let signedM = false;
-	let signedE = false;
-	let i = 0;
+	mut m10digits = 0;
+	mut e10digits = 0;
+	mut dotIndex = len;
+	mut eIndex = len;
+	mut m10 = 0u32;
+	mut e10 = 0i32;
+	mut signedM = false;
+	mut signedE = false;
+	mut i = 0;
 	if (*(buffer + i) as char == '-')
 	{
 		signedM = true;
@@ -67,7 +67,7 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> par
 	}
 	for (; i < len; ++i)
 	{
-		const c = *(buffer + i) as char;
+		let c = *(buffer + i) as char;
 		if (c == '.')
 		{
 			if (dotIndex != len)
@@ -102,7 +102,7 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> par
 		}
 		for (; i < len; ++i)
 		{
-			const c = *(buffer + i) as char;
+			let c = *(buffer + i) as char;
 			if ((c < '0') || (c > '9'))
 			{
 				return parse_result.MALFORMED_INPUT;
@@ -138,23 +138,23 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> par
 	if ((e10digits > 3 && signedE) || (m10digits + e10 <= -46) || (m10 == 0))
 	{
 		// Number is less than 1e-46, which should be rounded down to 0; return +/-0.0.
-		const ieee = (signedM as uint32) << (FLOAT_EXPONENT_BITS + FLOAT_MANTISSA_BITS);
+		let ieee = (signedM as uint32) << (FLOAT_EXPONENT_BITS + FLOAT_MANTISSA_BITS);
 		*result = int32Bits2Float(ieee);
 		return parse_result.SUCCESS;
 	}
 	else if (e10digits > 3 || m10digits + e10 >= 40)
 	{
 		// Number is larger than 1e+39, which should be rounded to +/-Infinity.
-		const ieee = ((signedM as uint32) << (FLOAT_EXPONENT_BITS + FLOAT_MANTISSA_BITS)) | (0xffu32 << FLOAT_MANTISSA_BITS);
+		let ieee = ((signedM as uint32) << (FLOAT_EXPONENT_BITS + FLOAT_MANTISSA_BITS)) | (0xffu32 << FLOAT_MANTISSA_BITS);
 		*result = int32Bits2Float(ieee);
 		return parse_result.SUCCESS;
 	}
 
 	// Convert to binary float m2 * 2^e2, while retaining information about whether the conversion
 	// was exact (trailingZeros).
-	let e2: int32;
-	let m2: uint32;
-	let trailingZeros: bool;
+	mut e2: int32;
+	mut m2: uint32;
+	mut trailingZeros: bool;
 	if (e10 >= 0)
 	{
 		// The length of m * 10^e in bits is:
@@ -170,7 +170,7 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> par
 
 		// We now compute [m10 * 10^e10 / 2^e2] = [m10 * 5^e10 / 2^(e2-e10)].
 		// To that end, we use the FLOAT_POW5_SPLIT table.
-		const j = e2 - e10 - ceil_log2pow5(e10 as uint32) as int32 + FLOAT_POW5_BITCOUNT;
+		let j = e2 - e10 - ceil_log2pow5(e10 as uint32) as int32 + FLOAT_POW5_BITCOUNT;
 		std::assert(j >= 0);
 		m2 = mulPow5divPow2(m10, e10 as uint32, j as uint32);
 
@@ -186,7 +186,7 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> par
 		e2 = floor_log2(m10) as int32 + e10 - ceil_log2pow5(-e10 as uint32) as int32 - (FLOAT_MANTISSA_BITS + 1);
 
 		// We now compute [m10 * 10^e10 / 2^e2] = [m10 / (5^(-e10) 2^(e2-e10))].
-		const j = e2 - e10 + ceil_log2pow5(-e10 as uint32) as int32 - 1 + FLOAT_POW5_INV_BITCOUNT;
+		let j = e2 - e10 + ceil_log2pow5(-e10 as uint32) as int32 - 1 + FLOAT_POW5_INV_BITCOUNT;
 		m2 = mulPow5InvDivPow2(m10, -e10 as uint32, j as uint32);
 
 		// We also compute if the result is exact, i.e.,
@@ -203,12 +203,12 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> par
 	}
 
 	// Compute the final IEEE exponent.
-	let ieee_e2 = max32(0, e2 + FLOAT_EXPONENT_BIAS + floor_log2(m2) as int32) as uint32;
+	mut ieee_e2 = max32(0, e2 + FLOAT_EXPONENT_BIAS + floor_log2(m2) as int32) as uint32;
 
 	if (ieee_e2 > 0xfe)
 	{
 		// Final IEEE exponent is larger than the maximum representable; return +/-Infinity.
-		const ieee = ((signedM as uint32) << (FLOAT_EXPONENT_BITS + FLOAT_MANTISSA_BITS)) | (0xffu32 << FLOAT_MANTISSA_BITS);
+		let ieee = ((signedM as uint32) << (FLOAT_EXPONENT_BITS + FLOAT_MANTISSA_BITS)) | (0xffu32 << FLOAT_MANTISSA_BITS);
 		*result = int32Bits2Float(ieee);
 		return parse_result.SUCCESS;
 	}
@@ -229,10 +229,10 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> par
 	//
 	// We need to update trailingZeros given that we have the exact output exponent ieee_e2 now.
 	trailingZeros &= (m2 & ((1u32 << (shift - 1)) - 1)) == 0;
-	const lastRemovedBit = (m2 >> (shift - 1)) & 1u32;
-	const roundUp = (lastRemovedBit != 0) && (!trailingZeros || (((m2 >> shift) & 1u32) != 0));
+	let lastRemovedBit = (m2 >> (shift - 1)) & 1u32;
+	let roundUp = (lastRemovedBit != 0) && (!trailingZeros || (((m2 >> shift) & 1u32) != 0));
 
-	let ieee_m2 = (m2 >> shift) + roundUp as uint32;
+	mut ieee_m2 = (m2 >> shift) + roundUp as uint32;
 	std::assert(ieee_m2 <= (1u32 << (FLOAT_MANTISSA_BITS + 1)));
 	ieee_m2 &= (1u32 << FLOAT_MANTISSA_BITS) - 1;
 	if (ieee_m2 == 0 && roundUp)
@@ -242,14 +242,14 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> par
 		// Due to how the IEEE represents +/-Infinity, we don't need to check for overflow here.
 		++ieee_e2;
 	}
-	const ieee = (((signedM as uint32 << FLOAT_EXPONENT_BITS) | ieee_e2 as uint32) << FLOAT_MANTISSA_BITS) | ieee_m2;
+	let ieee = (((signedM as uint32 << FLOAT_EXPONENT_BITS) | ieee_e2 as uint32) << FLOAT_MANTISSA_BITS) | ieee_m2;
 	*result = int32Bits2Float(ieee);
 	return parse_result.SUCCESS;
 }
 
-function c_strlen(c_str: *const uint8) -> int32
+function c_strlen(mut c_str: *uint8) -> int32
 {
-	let result = 0;
+	mut result = 0;
 	while (*c_str != 0)
 	{
 		++result;
@@ -258,17 +258,17 @@ function c_strlen(c_str: *const uint8) -> int32
 	return result;
 }
 
-export function s2f(buffer: ?*const uint8, result: *float32) -> parse_result
+export function s2f(buffer: ?*uint8, result: *mut float32) -> parse_result
 {
 	if (buffer == null)
 	{
 		return parse_result.INPUT_TOO_SHORT;
 	}
-	const buffer = buffer.get_value();
+	let buffer = buffer.get_value();
 	return s2f_n(buffer, c_strlen(buffer), result);
 }
 
-export function s2f_str(s: str, result: *float32) -> parse_result
+export function s2f_str(s: str, result: *mut float32) -> parse_result
 {
 	if (s.size() == 0)
 	{

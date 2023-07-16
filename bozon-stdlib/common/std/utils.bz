@@ -27,44 +27,44 @@ export function exit(code: int32) -> void
 	std::libc::exit(code);
 }
 
-export function malloc_raw(T: typename, n: usize) -> *T
+export function malloc_raw(T: typename, n: usize) -> *mut T
 {
 	static_assert(!meta::is_reference(T), "type in 'malloc_raw' can't be a reference type");
 	static_assert(!meta::is_move_reference(T), "type in 'malloc_raw' can't be a move reference type");
-	static_assert(!meta::is_const(T), "type in 'malloc_raw' can't be 'const'");
+	static_assert(!meta::is_mut(T), "type in 'malloc_raw' can't be 'mut'");
 	static_assert(!meta::is_consteval(T), "type in 'malloc_raw' can't be 'consteval'");
 
 	return if (meta::is_comptime()) {
 		meta::malloc(T, n)
 	} else {
-		const malloc_result = std::libc::malloc(n * sizeof T);
+		let malloc_result = std::libc::malloc(n * sizeof T);
 		if (malloc_result == null)
 		{
 			unreachable;
 		}
-		__builtin_pointer_cast(*T, malloc_result.get_value())
+		__builtin_pointer_cast(*mut T, malloc_result.get_value())
 	};
 }
 
-export function malloc(T: typename, n: usize) -> *T
+export function malloc(T: typename, n: usize) -> *mut T
 {
 	static_assert(!meta::is_reference(T), "type in 'malloc' can't be a reference type");
 	static_assert(!meta::is_move_reference(T), "type in 'malloc' can't be a move reference type");
-	static_assert(!meta::is_const(T), "type in 'malloc' can't be 'const'");
+	static_assert(!meta::is_mut(T), "type in 'malloc' can't be 'mut'");
 	static_assert(!meta::is_consteval(T), "type in 'malloc' can't be 'consteval'");
 
-	const result = if (meta::is_comptime()) {
+	let result = if (meta::is_comptime()) {
 		meta::malloc(T, n)
 	} else {
-		const malloc_result = std::libc::malloc(n * sizeof T);
+		let malloc_result = std::libc::malloc(n * sizeof T);
 		if (malloc_result == null)
 		{
 			unreachable;
 		}
-		__builtin_pointer_cast(*T, malloc_result.get_value())
+		__builtin_pointer_cast(*mut T, malloc_result.get_value())
 	};
 
-	for (let [it, const end] = [ result, result + n ]; it != end; ++it)
+	for (let [mut it, end] = [ result, result + n ]; it != end; ++it)
 	{
 		__builtin_inplace_construct(it, T());
 	}
@@ -72,7 +72,7 @@ export function malloc(T: typename, n: usize) -> *T
 	return result;
 }
 
-export function free(p: ?*void)
+export function free(p: ?*mut void)
 {
 	if (meta::is_comptime())
 	{

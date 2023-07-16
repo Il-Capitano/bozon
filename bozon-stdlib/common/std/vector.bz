@@ -6,12 +6,12 @@ import format;
 export struct vector<T: typename>
 {
 	static_assert(
-		!meta::is_const(T),
-		comptime_format("vector value_type can't be a const type '{}'", meta::typename_as_str(T))
+		!meta::is_mut(T),
+		comptime_format("vector value_type can't be a 'mut' type '{}'", meta::typename_as_str(T))
 	);
 	static_assert(
 		!meta::is_consteval(T),
-		comptime_format("vector value_type can't be a consteval type '{}'", meta::typename_as_str(T))
+		comptime_format("vector value_type can't be a 'consteval' type '{}'", meta::typename_as_str(T))
 	);
 	static_assert(
 		!meta::is_reference(T),
@@ -25,15 +25,15 @@ export struct vector<T: typename>
 	export type value_type = T
 		.meta::remove_reference()
 		.meta::remove_move_reference()
-		.meta::remove_const()
+		.meta::remove_mut()
 		.meta::remove_consteval();
 	type _self_t = vector<T>;
 
-	._data_begin: ?*value_type;
-	._data_end:   ?*value_type;
-	._alloc_end:  ?*value_type;
+	._data_begin: ?*mut value_type;
+	._data_end:   ?*mut value_type;
+	._alloc_end:  ?*mut value_type;
 
-	destructor(&self)
+	destructor(&mut self)
 	{
 		self.clear();
 		free(self._data_begin);
@@ -44,32 +44,32 @@ export struct vector<T: typename>
 		return _self_t[ null, null, null ];
 	}
 
-	constructor(other: &const _self_t)
+	constructor(other: &_self_t)
 	{
 		return _self_t(other.as_slice());
 	}
 
-	constructor(slice: [: const value_type])
+	constructor(slice: [: value_type])
 	{
-		const size = slice.size();
+		let size = slice.size();
 		if (size == 0)
 		{
 			return _self_t();
 		}
-		const [data_begin, alloc_size] = rounded_alloc(value_type, size);
-		const data_end = data_begin + size;
-		const alloc_end = data_begin + alloc_size;
+		let [data_begin, alloc_size] = rounded_alloc(value_type, size);
+		let data_end = data_begin + size;
+		let alloc_end = data_begin + alloc_size;
 		copy_range(data_begin, data_end, slice.begin());
 		return _self_t[ data_begin, data_end, alloc_end ];
 	}
 
-	export operator = (self: &_self_t, other: &const _self_t) -> &_self_t
+	export operator = (self: &mut _self_t, other: &_self_t) -> &mut _self_t
 	{
 		if (&self == &other)
 		{
 			return self;
 		}
-		const size = other.size();
+		let size = other.size();
 		self.clear();
 		self.reserve(size);
 		self._data_end = self._data_begin + size;
@@ -77,22 +77,22 @@ export struct vector<T: typename>
 		return self;
 	}
 
-	export operator = (self: &_self_t, other: _self_t) = __default__;
+	export operator = (self: &mut _self_t, other: _self_t) = __default__;
 
-	export operator = (self: &_self_t, rhs: [: const value_type]) -> &_self_t
+	export operator = (self: &mut _self_t, rhs: [: value_type]) -> &mut _self_t
 	{
-		const is_in_self_range = rhs.begin() >= self._data_begin && rhs.end() <= self._data_end;
+		let is_in_self_range = rhs.begin() >= self._data_begin && rhs.end() <= self._data_end;
 		if (is_in_self_range)
 		{
-			const self_begin = self._data_begin;
-			const self_end = self._data_end;
+			let self_begin = self._data_begin;
+			let self_end = self._data_end;
 
-			const rhs_begin_offset = rhs.begin() - self_begin;
-			const rhs_end_offset = rhs.end() - self_begin;
-			const rhs_size = rhs.size();
+			let rhs_begin_offset = rhs.begin() - self_begin;
+			let rhs_end_offset = rhs.end() - self_begin;
+			let rhs_size = rhs.size();
 
-			const rhs_begin = self_begin + rhs_begin_offset;
-			const rhs_end = self_begin + rhs_end_offset;
+			let rhs_begin = self_begin + rhs_begin_offset;
+			let rhs_end = self_begin + rhs_end_offset;
 
 			destruct_range(self_begin, rhs_begin);
 			move_range(self_begin, self_begin + rhs_size, rhs_begin);
@@ -101,7 +101,7 @@ export struct vector<T: typename>
 		}
 		else
 		{
-			const size = rhs.size();
+			let size = rhs.size();
 			self.clear();
 			self.reserve(size);
 			self._data_end = self._data_begin + size;
@@ -110,24 +110,24 @@ export struct vector<T: typename>
 		return self;
 	}
 
-	export function size(self: #const _self_t) -> usize
+	export function size(self: #_self_t) -> usize
 	{
 		return (self._data_end - self._data_begin) as usize;
 	}
 
-	export function capacity(self: #const _self_t) -> usize
+	export function capacity(self: #_self_t) -> usize
 	{
 		return (self._alloc_end - self._data_begin) as usize;
 	}
 
 	export function as_slice(self: &_self_t) -> [: value_type]
 	{
-		return __builtin_slice_from_ptrs(self._data_begin, self._data_end);
+		return __builtin_slice_from_const_ptrs(self._data_begin, self._data_end);
 	}
 
-	export function as_slice(self: &const _self_t) -> [: const value_type]
+	export function as_slice(self: &mut _self_t) -> [: mut value_type]
 	{
-		return __builtin_slice_from_const_ptrs(self._data_begin, self._data_end);
+		return __builtin_slice_from_ptrs(self._data_begin, self._data_end);
 	}
 
 	@overload_priority(1) export operator [] (self: &_self_t, i: uint64) -> &value_type
@@ -136,7 +136,7 @@ export struct vector<T: typename>
 		return *(self._data_begin + i);
 	}
 
-	@overload_priority(1) export operator [] (self: &const _self_t, i: uint64) -> &const value_type
+	@overload_priority(1) export operator [] (self: &mut _self_t, i: uint64) -> &mut value_type
 	{
 		assert(i < self.size());
 		return *(self._data_begin + i);
@@ -148,20 +148,20 @@ export struct vector<T: typename>
 		return *(self._data_begin + i);
 	}
 
-	export operator [] (self: &const _self_t, i: int64) -> &const value_type
+	export operator [] (self: &mut _self_t, i: int64) -> &mut value_type
 	{
 		assert(i >= 0 && i as uint64 < self.size());
 		return *(self._data_begin + i);
 	}
 
 
-	export function reserve(self: &_self_t, new_capacity: usize)
+	export function reserve(self: &mut _self_t, new_capacity: usize)
 	{
 		if (new_capacity > self.capacity())
 		{
-			const [new_data_begin, new_alloc_size] = rounded_alloc(value_type, new_capacity);
-			const new_data_end = new_data_begin + self.size();
-			const new_alloc_end = new_data_begin + new_alloc_size;
+			let [new_data_begin, new_alloc_size] = rounded_alloc(value_type, new_capacity);
+			let new_data_end = new_data_begin + self.size();
+			let new_alloc_end = new_data_begin + new_alloc_size;
 			move_range(new_data_begin, new_data_end, self._data_begin);
 			free(self._data_begin);
 			self._data_begin = new_data_begin;
@@ -170,15 +170,15 @@ export struct vector<T: typename>
 		}
 	}
 
-	export function resize(self: &_self_t, new_size: usize)
+	export function resize(self: &mut _self_t, new_size: usize)
 	{
 		if (new_size > self.size())
 		{
 			if consteval (meta::is_default_constructible(value_type))
 			{
 				self.reserve(new_size);
-				const new_end = self._data_begin + new_size;
-				for (let it = self._data_end; it != new_end; ++it)
+				let new_end = self._data_begin + new_size;
+				for (mut it = self._data_end; it != new_end; ++it)
 				{
 					__builtin_inplace_construct(it.get_value(), value_type());
 				}
@@ -191,8 +191,8 @@ export struct vector<T: typename>
 		}
 		else
 		{
-			const new_end = self._data_begin + new_size;
-			for (let it = self._data_end; it != new_end;)
+			let new_end = self._data_begin + new_size;
+			for (mut it = self._data_end; it != new_end;)
 			{
 				--it;
 				__builtin_destruct_value(*it);
@@ -201,20 +201,20 @@ export struct vector<T: typename>
 		}
 	}
 
-	export function release(self: &_self_t) -> _self_t
+	export function release(self: &mut _self_t) -> _self_t
 	{
-		const data_begin = self._data_begin;
-		const data_end   = self._data_end;
-		const alloc_end  = self._alloc_end;
+		let data_begin = self._data_begin;
+		let data_end   = self._data_end;
+		let alloc_end  = self._alloc_end;
 		self._data_begin = null;
 		self._data_end   = null;
 		self._alloc_end  = null;
 		return _self_t[ data_begin, data_end, alloc_end ];
 	}
 
-	export function clear(self: &_self_t)
+	export function clear(self: &mut _self_t)
 	{
-		for (let it = self._data_end; it != self._data_begin;)
+		for (mut it = self._data_end; it != self._data_begin;)
 		{
 			--it;
 			__builtin_destruct_value(*it);
@@ -222,7 +222,7 @@ export struct vector<T: typename>
 		self._data_end = self._data_begin;
 	}
 
-	export function push_back(self: &_self_t, value: ##value_type)
+	export function push_back(self: &mut _self_t, value: ##value_type)
 	{
 		if (self._data_end == self._alloc_end)
 		{
@@ -232,7 +232,7 @@ export struct vector<T: typename>
 		self._data_end += 1;
 	}
 
-	export function emplace_back(self: &_self_t, args: ...##auto) -> &value_type
+	export function emplace_back(self: &mut _self_t, args: ...##auto) -> &value_type
 	{
 		if (self._data_end == self._alloc_end)
 		{
@@ -243,14 +243,14 @@ export struct vector<T: typename>
 		return *(self._data_end - 1);
 	}
 
-	export function push_front(self: &_self_t, value: ##value_type)
+	export function push_front(self: &mut _self_t, value: ##value_type)
 	{
 		if (self._data_end == self._alloc_end)
 		{
-			const new_size = self.size() + 1;
-			const [new_data_begin, new_alloc_size] = rounded_alloc(value_type, new_size);
-			const new_data_end = new_data_begin + new_size;
-			const new_alloc_end = new_data_begin + new_alloc_size;
+			let new_size = self.size() + 1;
+			let [new_data_begin, new_alloc_size] = rounded_alloc(value_type, new_size);
+			let new_data_end = new_data_begin + new_size;
+			let new_alloc_end = new_data_begin + new_alloc_size;
 
 			move_range(new_data_begin + 1, new_data_end, self._data_begin);
 			__builtin_inplace_construct(new_data_begin.get_value(), value_type(__forward value));
@@ -261,7 +261,7 @@ export struct vector<T: typename>
 		}
 		else
 		{
-			for (let it = self._data_end; it != self._data_begin; --it)
+			for (mut it = self._data_end; it != self._data_begin; --it)
 			{
 				__builtin_inplace_construct(it.get_value(), __move__ *(it - 1));
 			}
@@ -270,14 +270,14 @@ export struct vector<T: typename>
 		}
 	}
 
-	export function emplace_front(self: &_self_t, args: ...##auto) -> &value_type
+	export function emplace_front(self: &mut _self_t, args: ...##auto) -> &value_type
 	{
 		if (self._data_end == self._alloc_end)
 		{
-			const new_size = self.size() + 1;
-			const [new_data_begin, new_alloc_size] = rounded_alloc(value_type, new_size);
-			const new_data_end = new_data_begin + new_size;
-			const new_alloc_end = new_data_begin + new_alloc_size;
+			let new_size = self.size() + 1;
+			let [new_data_begin, new_alloc_size] = rounded_alloc(value_type, new_size);
+			let new_data_end = new_data_begin + new_size;
+			let new_alloc_end = new_data_begin + new_alloc_size;
 
 			move_range(new_data_begin.get_value() + 1, new_data_end, self._data_begin);
 			__builtin_inplace_construct(new_data_begin, value_type(...__forward args));
@@ -288,7 +288,7 @@ export struct vector<T: typename>
 		}
 		else
 		{
-			for (let it = self._data_end; it != self._data_begin; --it)
+			for (mut it = self._data_end; it != self._data_begin; --it)
 			{
 				__builtin_inplace_construct(it.get_value(), __move__ *(it - 1));
 			}
@@ -309,18 +309,18 @@ export function end(vec: &vector) -> ?*(typeof vec).value_type
 	return vec._data_end;
 }
 
-export function begin(vec: &const vector) -> ?*const (typeof vec).value_type
+export function begin(vec: &mut vector) -> ?*mut (typeof vec).value_type
 {
 	return vec._data_begin;
 }
 
-export function end(vec: &const vector) -> ?*const (typeof vec).value_type
+export function end(vec: &mut vector) -> ?*mut (typeof vec).value_type
 {
 	return vec._data_end;
 }
 
 
-function move_range(begin: ?*auto, end: ?*auto, other_begin: ?*auto)
+function move_range(begin: ?*mut auto, end: ?*mut auto, other_begin: ?*mut auto)
 {
 	type value_type = (typeof begin).meta::remove_optional().meta::remove_pointer();
 	if consteval (meta::is_trivially_relocatable(value_type))
@@ -329,14 +329,14 @@ function move_range(begin: ?*auto, end: ?*auto, other_begin: ?*auto)
 	}
 	else
 	{
-		for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
+		for (mut [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
 		{
 			__builtin_inplace_construct(it.get_value(), __move__ *other_it);
 		}
 	}
 }
 
-function copy_range(begin: ?*auto, end: ?*auto, other_begin: ?*const auto)
+function copy_range(begin: ?*mut auto, end: ?*mut auto, other_begin: ?*auto)
 {
 	type value_type = (typeof begin).meta::remove_optional().meta::remove_pointer();
 	if consteval (meta::is_trivially_copy_constructible(value_type))
@@ -345,16 +345,16 @@ function copy_range(begin: ?*auto, end: ?*auto, other_begin: ?*const auto)
 	}
 	else
 	{
-		for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
+		for (mut [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
 		{
 			__builtin_inplace_construct(it.get_value(), *other_it);
 		}
 	}
 }
 
-function destruct_range(begin: ?*auto, end: ?*auto)
+function destruct_range(begin: ?*mut auto, end: ?*mut auto)
 {
-	for (let it = begin; it < end; ++it)
+	for (mut it = begin; it < end; ++it)
 	{
 		__builtin_destruct_value(*it);
 	}
@@ -369,7 +369,7 @@ function round_to_next_power_of_two(n: usize) -> usize
 	};
 }
 
-function rounded_alloc(T: typename, n: usize) -> [?*T, usize]
+function rounded_alloc(T: typename, n: usize) -> [?*mut T, usize]
 {
 	if (n == 0)
 	{
@@ -377,7 +377,7 @@ function rounded_alloc(T: typename, n: usize) -> [?*T, usize]
 	}
 	else
 	{
-		const rounded_n = round_to_next_power_of_two(n);
+		let rounded_n = round_to_next_power_of_two(n);
 		return [ malloc_raw(T, rounded_n), rounded_n ];
 	}
 }

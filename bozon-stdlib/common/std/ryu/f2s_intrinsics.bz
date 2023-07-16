@@ -23,14 +23,14 @@ import f2s_full_table;
 
 import std::utils;
 
-export function pow5factor_32(value: uint32) -> uint32
+export function pow5factor_32(mut value: uint32) -> uint32
 {
-	let count = 0u32;
+	mut count = 0u32;
 	for (;;)
 	{
 		std::assert(value != 0);
-		const q = value / 5;
-		const r = value % 5;
+		let q = value / 5;
+		let r = value % 5;
 		if (r != 0)
 		{
 			break;
@@ -62,13 +62,13 @@ export function mulShift32(m: uint32, factor: uint64, shift: uint32) -> uint32
 
 	// The casts here help MSVC to avoid calls to the __allmul library
 	// function.
-	const factorLo = factor as uint32;
-	const factorHi = (factor >> 32) as uint32;
-	const bits0 = m as uint64 * factorLo;
-	const bits1 = m as uint64 * factorHi;
+	let factorLo = factor as uint32;
+	let factorHi = (factor >> 32) as uint32;
+	let bits0 = m as uint64 * factorLo;
+	let bits1 = m as uint64 * factorHi;
 
-	const sum = (bits0 >> 32) + bits1;
-	const shiftedSum = sum >> (shift - 32);
+	let sum = (bits0 >> 32) + bits1;
+	let shiftedSum = sum >> (shift - 32);
 	std::assert(shiftedSum <= (~0u32) as uint64);
 	return shiftedSum as uint32;
 }

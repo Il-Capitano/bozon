@@ -1,5 +1,5 @@
 import types;
-@symbol_name("__errno_location") function "c" __errno_location() -> ?*int;
+@symbol_name("__errno_location") function "c" __errno_location() -> ?*mut int;
 export function EDOM() -> int
 {
 	return 33;
@@ -12,7 +12,7 @@ export function ERANGE() -> int
 {
 	return 34;
 }
-export function errno() -> &int
+export function errno() -> &mut int
 {
 	return (*__errno_location());
 }

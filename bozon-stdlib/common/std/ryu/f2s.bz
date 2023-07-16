@@ -45,8 +45,8 @@ struct floating_decimal_32
 
 function f2d(ieeeMantissa: uint32, ieeeExponent: uint32) -> floating_decimal_32
 {
-	let e2: int32;
-	let m2: uint32;
+	mut e2: int32;
+	mut m2: uint32;
 	if (ieeeExponent == 0)
 	{
 		// We subtract 2 so that the bounds computation has 2 additional bits.
@@ -58,30 +58,30 @@ function f2d(ieeeMantissa: uint32, ieeeExponent: uint32) -> floating_decimal_32
 		e2 = ieeeExponent as int32 - FLOAT_BIAS - FLOAT_MANTISSA_BITS - 2;
 		m2 = (1u32 << FLOAT_MANTISSA_BITS as uint32) | ieeeMantissa;
 	}
-	const even = (m2 & 1u32) == 0;
-	const acceptBounds = even;
+	let even = (m2 & 1u32) == 0;
+	let acceptBounds = even;
 
 	// Step 2: Determine the interval of valid decimal representations.
-	const mv = 4 * m2;
-	const mp = 4 * m2 + 2;
+	let mv = 4 * m2;
+	let mp = 4 * m2 + 2;
 	// Implicit bool -> int conversion. True is 1, false is 0.
-	const mmShift = (ieeeMantissa != 0 || ieeeExponent <= 1) as uint32;
-	const mm = 4 * m2 - 1 - mmShift;
+	let mmShift = (ieeeMantissa != 0 || ieeeExponent <= 1) as uint32;
+	let mm = 4 * m2 - 1 - mmShift;
 
 	// Step 3: Convert to a decimal power base using 64-bit arithmetic.
-	let vr: uint32;
-	let vp: uint32;
-	let vm: uint32;
-	let e10: int32;
-	let vmIsTrailingZeros = false;
-	let vrIsTrailingZeros = false;
-	let lastRemovedDigit = 0u8;
+	mut vr: uint32;
+	mut vp: uint32;
+	mut vm: uint32;
+	mut e10: int32;
+	mut vmIsTrailingZeros = false;
+	mut vrIsTrailingZeros = false;
+	mut lastRemovedDigit = 0u8;
 	if (e2 >= 0)
 	{
-		const q = log10Pow2(e2 as uint32);
+		let q = log10Pow2(e2 as uint32);
 		e10 = q as int32;
-		const k = FLOAT_POW5_INV_BITCOUNT + pow5bits(q) as int32 - 1;
-		const i = -e2 + q as int32 + k;
+		let k = FLOAT_POW5_INV_BITCOUNT + pow5bits(q) as int32 - 1;
+		let i = -e2 + q as int32 + k;
 		vr = mulPow5InvDivPow2(mv, q, i as uint32);
 		vp = mulPow5InvDivPow2(mp, q, i as uint32);
 		vm = mulPow5InvDivPow2(mm, q, i as uint32);
@@ -90,7 +90,7 @@ function f2d(ieeeMantissa: uint32, ieeeExponent: uint32) -> floating_decimal_32
 			// We need to know one removed digit even if we are not going to loop below. We could use
 			// q = X - 1 above, except that would require 33 bits for the result, and we've found that
 			// 32-bit arithmetic is faster even on 64-bit machines.
-			const l = FLOAT_POW5_INV_BITCOUNT + pow5bits(q - 1) as int32 - 1;
+			let l = FLOAT_POW5_INV_BITCOUNT + pow5bits(q - 1) as int32 - 1;
 			lastRemovedDigit = (mulPow5InvDivPow2(mv, q - 1, (-e2 + q as int32 - 1 + l) as uint32) % 10) as uint8;
 		}
 		if (q <= 9)
@@ -113,11 +113,11 @@ function f2d(ieeeMantissa: uint32, ieeeExponent: uint32) -> floating_decimal_32
 	}
 	else
 	{
-		const q = log10Pow5(-e2 as uint32);
+		let q = log10Pow5(-e2 as uint32);
 		e10 = q as int32 + e2;
-		const i = -e2 - q as int32;
-		const k = pow5bits(i as uint32) as int32 - FLOAT_POW5_BITCOUNT;
-		let j = q as int32 - k;
+		let i = -e2 - q as int32;
+		let k = pow5bits(i as uint32) as int32 - FLOAT_POW5_BITCOUNT;
+		mut j = q as int32 - k;
 		vr = mulPow5divPow2(mv, i as uint32, j as uint32);
 		vp = mulPow5divPow2(mp, i as uint32, j as uint32);
 		vm = mulPow5divPow2(mm, i as uint32, j as uint32);
@@ -149,8 +149,8 @@ function f2d(ieeeMantissa: uint32, ieeeExponent: uint32) -> floating_decimal_32
 	}
 
 	// Step 4: Find the shortest decimal representation in the interval of valid representations.
-	let removed = 0i32;
-	let output: uint32;
+	mut removed = 0i32;
+	mut output: uint32;
 	if (vmIsTrailingZeros || vrIsTrailingZeros)
 	{
 		// General case, which happens rarely (~4.0%).
@@ -203,26 +203,26 @@ function f2d(ieeeMantissa: uint32, ieeeExponent: uint32) -> floating_decimal_32
 		// We need to take vr + 1 if vr is outside bounds or we need to round up.
 		output = vr + (vr == vm || lastRemovedDigit >= 5) as uint32;
 	}
-	const exp = e10 + removed;
+	let exp = e10 + removed;
 
-	let fd: floating_decimal_32;
+	mut fd = floating_decimal_32();
 	fd.exponent = exp;
 	fd.mantissa = output;
 	return fd;
 }
 
-function to_chars(v: floating_decimal_32, sign: bool, result: *uint8) -> int32
+function to_chars(v: floating_decimal_32, sign: bool, result: *mut uint8) -> int32
 {
 	// Step 5: Print the decimal representation.
-	let index = 0i32;
+	mut index = 0i32;
 	if (sign)
 	{
 		*(result + index) = '-' as uint8;
 		++index;
 	}
 
-	let output = v.mantissa;
-	const olength = decimalLength9(output);
+	mut output = v.mantissa;
+	let olength = decimalLength9(output);
 
 	// Print the decimal digits.
 	// The following code is equivalent to:
@@ -231,28 +231,28 @@ function to_chars(v: floating_decimal_32, sign: bool, result: *uint8) -> int32
 	//   result[index + olength - i] = (char) ('0' + c);
 	// }
 	// result[index] = '0' + output % 10;
-	let i = 0u32;
+	mut i = 0u32;
 	while (output >= 10000)
 	{
 		// https://bugs.llvm.org/show_bug.cgi?id=38217
-		const c = output - 10000 * (output / 10000);
+		let c = output - 10000 * (output / 10000);
 		output /= 10000;
-		const c0 = (c % 100) << 1;
-		const c1 = (c / 100) << 1;
+		let c0 = (c % 100) << 1;
+		let c1 = (c / 100) << 1;
 		std::trivially_copy_values(result + index + olength - i - 1, DIGIT_TABLE.begin() + c0, 2);
 		std::trivially_copy_values(result + index + olength - i - 3, DIGIT_TABLE.begin() + c1, 2);
 		i += 4;
 	}
 	if (output >= 100)
 	{
-		const c = (output % 100) << 1;
+		let c = (output % 100) << 1;
 		output /= 100;
 		std::trivially_copy_values(result + index + olength - i - 1, DIGIT_TABLE.begin() + c, 2);
 		i += 2;
 	}
 	if (output >= 10)
 	{
-		const c = output << 1;
+		let c = output << 1;
 		// We can't use memcpy here: the decimal dot goes between these two digits.
 		*(result + index + olength - i) = DIGIT_TABLE[c + 1];
 		*(result + index) = DIGIT_TABLE[c];
@@ -276,7 +276,7 @@ function to_chars(v: floating_decimal_32, sign: bool, result: *uint8) -> int32
 	// Print the exponent.
 	*(result + index) = 'E' as uint8;
 	++index;
-	let exp = v.exponent + olength as int32 - 1;
+	mut exp = v.exponent + olength as int32 - 1;
 	if (exp < 0)
 	{
 		*(result + index) = '-' as uint8;
@@ -298,15 +298,15 @@ function to_chars(v: floating_decimal_32, sign: bool, result: *uint8) -> int32
 	return index;
 }
 
-export function f2s_buffered_n(f: float32, result: *uint8) -> int32
+export function f2s_buffered_n(f: float32, result: *mut uint8) -> int32
 {
 	// Step 1: Decode the floating-point number, and unify normalized and subnormal cases.
-	const bits = float_to_bits(f);
+	let bits = float_to_bits(f);
 
 	// Decode bits into sign, mantissa, and exponent.
-	const ieeeSign = ((bits >> (FLOAT_MANTISSA_BITS + FLOAT_EXPONENT_BITS) as uint32) & 1u32) != 0;
-	const ieeeMantissa = bits & ((1u32 << FLOAT_MANTISSA_BITS as uint32) - 1);
-	const ieeeExponent = (bits >> FLOAT_MANTISSA_BITS as uint32) & ((1u32 << FLOAT_EXPONENT_BITS as uint32) - 1);
+	let ieeeSign = ((bits >> (FLOAT_MANTISSA_BITS + FLOAT_EXPONENT_BITS) as uint32) & 1u32) != 0;
+	let ieeeMantissa = bits & ((1u32 << FLOAT_MANTISSA_BITS as uint32) - 1);
+	let ieeeExponent = (bits >> FLOAT_MANTISSA_BITS as uint32) & ((1u32 << FLOAT_EXPONENT_BITS as uint32) - 1);
 
 	// Case distinction; exit early for the easy cases.
 	if (ieeeExponent == ((1u32 << FLOAT_EXPONENT_BITS as uint32) - 1) || (ieeeExponent == 0 && ieeeMantissa == 0))
@@ -314,26 +314,26 @@ export function f2s_buffered_n(f: float32, result: *uint8) -> int32
 		return copy_special_str(result, ieeeSign, ieeeExponent != 0, ieeeMantissa != 0);
 	}
 
-	const v = f2d(ieeeMantissa, ieeeExponent);
+	let v = f2d(ieeeMantissa, ieeeExponent);
 	return to_chars(v, ieeeSign, result);
 }
 
-export function f2s_buffered(f: float32, result: *uint8)
+export function f2s_buffered(f: float32, result: *mut uint8)
 {
-	const index = f2s_buffered_n(f, result);
+	let index = f2s_buffered_n(f, result);
 
 	// Terminate the string.
 	*(result + index) = 0;
 }
 
-export function f2s(f: float32) -> ?*uint8
+export function f2s(f: float32) -> ?*mut uint8
 {
-	const buffer_alloc = std::libc::malloc(16);
+	let buffer_alloc = std::libc::malloc(16);
 	if (buffer_alloc == null)
 	{
 		return null;
 	}
-	const result = __builtin_pointer_cast(*uint8, buffer_alloc.get_value());
+	let result = __builtin_pointer_cast(*mut uint8, buffer_alloc.get_value());
 	f2s_buffered(f, result);
 	return result;
 }
@@ -343,15 +343,15 @@ export function f2s(f: float32) -> ?*uint8
 // addition by me
 //
 
-export function f2s_shortest(f: float32, result: *uint8) -> *uint8
+export function f2s_shortest(f: float32, result: *mut uint8) -> *mut uint8
 {
 	// Step 1: Decode the floating-point number, and unify normalized and subnormal cases.
-	const bits = float_to_bits(f);
+	let bits = float_to_bits(f);
 
 	// Decode bits into sign, mantissa, and exponent.
-	const ieeeSign = ((bits >> (FLOAT_MANTISSA_BITS + FLOAT_EXPONENT_BITS) as uint32) & 1u32) != 0;
-	const ieeeMantissa = bits & ((1u32 << FLOAT_MANTISSA_BITS as uint32) - 1);
-	const ieeeExponent = (bits >> FLOAT_MANTISSA_BITS as uint32) & ((1u32 << FLOAT_EXPONENT_BITS as uint32) - 1);
+	let ieeeSign = ((bits >> (FLOAT_MANTISSA_BITS + FLOAT_EXPONENT_BITS) as uint32) & 1u32) != 0;
+	let ieeeMantissa = bits & ((1u32 << FLOAT_MANTISSA_BITS as uint32) - 1);
+	let ieeeExponent = (bits >> FLOAT_MANTISSA_BITS as uint32) & ((1u32 << FLOAT_EXPONENT_BITS as uint32) - 1);
 
 	// Case distinction; exit early for the easy cases.
 	if (ieeeExponent == ((1u32 << FLOAT_EXPONENT_BITS as uint32) - 1) || (ieeeExponent == 0 && ieeeMantissa == 0))
@@ -359,17 +359,17 @@ export function f2s_shortest(f: float32, result: *uint8) -> *uint8
 		return copy_short_special_str(result, ieeeSign, ieeeExponent != 0, ieeeMantissa != 0);
 	}
 
-	const v = f2d(ieeeMantissa, ieeeExponent);
+	let v = f2d(ieeeMantissa, ieeeExponent);
 	return to_chars_shortest(v, ieeeSign, result);
 }
 
-function to_chars_fixed(v: floating_decimal_32, out: *uint8) -> *uint8
+function to_chars_fixed(v: floating_decimal_32, mut out: *mut uint8) -> *mut uint8
 {
 	// Step 5: Print the decimal representation.
-	let output = v.mantissa;
-	const olength = decimalLength9(output);
+	mut output = v.mantissa;
+	let olength = decimalLength9(output);
 
-	const actual_exponent = olength as int32 - 1 + v.exponent;
+	let actual_exponent = olength as int32 - 1 + v.exponent;
 
 	if (actual_exponent < 0)
 	{
@@ -385,28 +385,28 @@ function to_chars_fixed(v: floating_decimal_32, out: *uint8) -> *uint8
 	//   result[index + olength - i] = (char) ('0' + c);
 	// }
 	// result[index] = '0' + output % 10;
-	let i = 0u32;
+	mut i = 0u32;
 	while (output >= 10000)
 	{
 		// https://bugs.llvm.org/show_bug.cgi?id=38217
-		const c = output - 10000 * (output / 10000);
+		let c = output - 10000 * (output / 10000);
 		output /= 10000;
-		const c0 = (c % 100) << 1;
-		const c1 = (c / 100) << 1;
+		let c0 = (c % 100) << 1;
+		let c1 = (c / 100) << 1;
 		std::trivially_copy_values(out + olength - i - 1, DIGIT_TABLE.begin() + c0, 2);
 		std::trivially_copy_values(out + olength - i - 3, DIGIT_TABLE.begin() + c1, 2);
 		i += 4;
 	}
 	if (output >= 100)
 	{
-		const c = (output % 100) << 1;
+		let c = (output % 100) << 1;
 		output /= 100;
 		std::trivially_copy_values(out + olength - i - 1, DIGIT_TABLE.begin() + c, 2);
 		i += 2;
 	}
 	if (output >= 10)
 	{
-		const c = output << 1;
+		let c = output << 1;
 		// We can't use memcpy here: the decimal dot goes between these two digits.
 		std::trivially_copy_values(out + 1, DIGIT_TABLE.begin() + c, 2);
 		// *(out + olength - i) = DIGIT_TABLE[c + 1];
@@ -439,11 +439,11 @@ function to_chars_fixed(v: floating_decimal_32, out: *uint8) -> *uint8
 	return out;
 }
 
-function to_chars_scientific(v: floating_decimal_32, out: *uint8) -> *uint8
+function to_chars_scientific(v: floating_decimal_32, mut out: *mut uint8) -> *mut uint8
 {
 	// Step 5: Print the decimal representation.
-	let output = v.mantissa;
-	const olength = decimalLength9(output);
+	mut output = v.mantissa;
+	let olength = decimalLength9(output);
 
 	// Print the decimal digits.
 	// The following code is equivalent to:
@@ -452,28 +452,28 @@ function to_chars_scientific(v: floating_decimal_32, out: *uint8) -> *uint8
 	//   result[index + olength - i] = (char) ('0' + c);
 	// }
 	// result[index] = '0' + output % 10;
-	let i = 0u32;
+	mut i = 0u32;
 	while (output >= 10000)
 	{
 		// https://bugs.llvm.org/show_bug.cgi?id=38217
-		const c = output - 10000 * (output / 10000);
+		let c = output - 10000 * (output / 10000);
 		output /= 10000;
-		const c0 = (c % 100) << 1;
-		const c1 = (c / 100) << 1;
+		let c0 = (c % 100) << 1;
+		let c1 = (c / 100) << 1;
 		std::trivially_copy_values(out + olength - i - 1, DIGIT_TABLE.begin() + c0, 2);
 		std::trivially_copy_values(out + olength - i - 3, DIGIT_TABLE.begin() + c1, 2);
 		i += 4;
 	}
 	if (output >= 100)
 	{
-		const c = (output % 100) << 1;
+		let c = (output % 100) << 1;
 		output /= 100;
 		std::trivially_copy_values(out + olength - i - 1, DIGIT_TABLE.begin() + c, 2);
 		i += 2;
 	}
 	if (output >= 10)
 	{
-		const c = output << 1;
+		let c = output << 1;
 		// We can't use memcpy here: the decimal dot goes between these two digits.
 		*(out + olength - i) = DIGIT_TABLE[c + 1];
 		*out = DIGIT_TABLE[c];
@@ -497,7 +497,7 @@ function to_chars_scientific(v: floating_decimal_32, out: *uint8) -> *uint8
 	// Print the exponent.
 	*out = 'e' as uint8;
 	++out;
-	let exp = v.exponent + olength as int32 - 1;
+	mut exp = v.exponent + olength as int32 - 1;
 	if (exp < 0)
 	{
 		*out = '-' as uint8;
@@ -516,7 +516,7 @@ function to_chars_scientific(v: floating_decimal_32, out: *uint8) -> *uint8
 	return out;
 }
 
-function to_chars_shortest(v: floating_decimal_32, sign: bool, out: *uint8) -> *uint8
+function to_chars_shortest(v: floating_decimal_32, sign: bool, mut out: *mut uint8) -> *mut uint8
 {
 	if (sign)
 	{
@@ -524,8 +524,8 @@ function to_chars_shortest(v: floating_decimal_32, sign: bool, out: *uint8) -> *
 		++out;
 	}
 
-	const olength = decimalLength9(v.mantissa) as int32;
-	const actual_exponent = olength - 1 + v.exponent;
+	let olength = decimalLength9(v.mantissa) as int32;
+	let actual_exponent = olength - 1 + v.exponent;
 
 	if (actual_exponent >= -4 && actual_exponent <= 6)
 	{

@@ -2,42 +2,42 @@ import std::libc::types;
 import std::libc::stdlib;
 import std::libc::string;
 
-@__builtin function __builtin_call_main(args: [: const str]) -> int32;
+@__builtin function __builtin_call_main(args: [: str]) -> int32;
 
 @symbol_name("main")
-function __libc_main(argc_int: std::libc::int, argv: *const *const std::libc::char) -> std::libc::int
+function __libc_main(argc_int: std::libc::int, argv: **std::libc::char) -> std::libc::int
 {
-	let args_buffer = [8: str]();
+	mut args_buffer = [8: str]();
 
-	const argc = if (argc_int <= 0) { 0 } else { argc_int as usize };
-	const args_alloc: ?*str = if (argc <= args_buffer.size()) {
+	let argc = if (argc_int <= 0) { 0 } else { argc_int as usize };
+	let args_alloc: ?*mut str = if (argc <= args_buffer.size()) {
 		null
 	} else {
-		const malloc_result = std::libc::malloc(argc * sizeof str);
+		let malloc_result = std::libc::malloc(argc * sizeof str);
 		if (malloc_result == null)
 		{
 			std::libc::abort();
 		}
-		__builtin_pointer_cast(*str, malloc_result.get_value())
+		__builtin_pointer_cast(*mut str, malloc_result.get_value())
 	};
 	defer std::libc::free(args_alloc);
 
-	const args = if (args_alloc == null) {
+	let args = if (args_alloc == null) {
 		__builtin_slice_from_ptrs(args_buffer.begin(), args_buffer.begin() + argc)
 	} else {
 		__builtin_slice_from_ptrs(args_alloc, args_alloc + argc)
 	};
 
-	let argv_it = argv;
-	for (let &arg in args)
+	mut argv_it = argv;
+	for (let &mut arg in args)
 	{
-		const begin_ptr = *argv_it;
-		const end_ptr = begin_ptr + std::libc::strlen(begin_ptr);
+		let begin_ptr = *argv_it;
+		let end_ptr = begin_ptr + std::libc::strlen(begin_ptr);
 		arg = __builtin_str_from_ptrs(begin_ptr, end_ptr);
 		++argv_it;
 	}
 
-	const result = __builtin_call_main(args);
+	let result = __builtin_call_main(args);
 
 	if consteval (std::libc::int == int32)
 	{
@@ -45,7 +45,7 @@ function __libc_main(argc_int: std::libc::int, argv: *const *const std::libc::ch
 	}
 	else
 	{
-		const result_c_int = result as std::libc::int;
+		let result_c_int = result as std::libc::int;
 		if (result != 0 && result_c_int == 0)
 		{
 			return 1;
