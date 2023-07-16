@@ -1,0 +1,15 @@
+// error: undeclared identifier 'bar'
+// error: member 'foo' has incomplete type '<error-type>'
+function test()
+{
+	(consteval {
+		let p = __builtin_comptime_malloc(S, 1);
+		defer __builtin_comptime_free(p);
+		p + 1;
+	});
+}
+
+struct S
+{
+	.foo: bar;
+}

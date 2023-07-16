@@ -874,6 +874,11 @@ type_prototype const *get_type_prototype(ast::typespec_view type, type_prototype
 		case ast::terminator_typespec_node_t::index_of<ast::ts_base_type>:
 		{
 			auto const info = type.get<ast::ts_base_type>().info;
+			if (info->state == ast::resolve_state::error)
+			{
+				return type_prototype_set.get_aggregate_type({});
+			}
+
 			bz_assert(info->state >= ast::resolve_state::members);
 			bz_assert(info->prototype != nullptr);
 			return info->prototype;

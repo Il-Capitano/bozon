@@ -5549,8 +5549,14 @@ ast::expression parse_context::make_member_access_expression(
 	auto const base_t = ast::remove_mutability_modifiers(base_type);
 	if (base_t.is<ast::ts_base_type>())
 	{
-		this->resolve_type_members(src_tokens, base_t.get<ast::ts_base_type>().info);
+		auto const info = base_t.get<ast::ts_base_type>().info;
+		this->resolve_type_members(src_tokens, info);
+		if (info->state == ast::resolve_state::error)
+		{
+			return ast::make_error_expression(src_tokens, ast::make_expr_member_access(std::move(base), 0));
+		}
 	}
+
 	auto const members = [&]() -> bz::array_view<ast::decl_variable *> {
 		if (base_t.is<ast::ts_base_type>())
 		{
