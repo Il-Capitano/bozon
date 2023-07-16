@@ -4695,7 +4695,7 @@ static expr_value generate_expr_code(
 {
 	auto const value = generate_expr_code(destruct_value.value, context, {});
 	bz_assert(value.is_reference());
-	context.create_destruct_value_check(original_expression.src_tokens, value, destruct_value.value.get_expr_type());
+	context.create_destruct_value_check(original_expression.src_tokens, value, ast::remove_mut(destruct_value.value.get_expr_type()));
 	if (destruct_value.destruct_call.not_null())
 	{
 		auto const prev_value = context.push_value_reference(value);
@@ -5034,8 +5034,8 @@ static expr_value generate_expr_code(
 		? pointer_compare_info_t{}
 		: create_pointer_compare_begin(lhs, rhs, context);
 
-	bz_assert(array_assign.lhs.get_expr_type().is<ast::ts_array>());
-	auto const size = array_assign.lhs.get_expr_type().get<ast::ts_array>().size;
+	bz_assert(array_assign.lhs.get_expr_type().is<ast::ts_mut>() && array_assign.lhs.get_expr_type().get<ast::ts_mut>().is<ast::ts_array>());
+	auto const size = array_assign.lhs.get_expr_type().get<ast::ts_mut>().get<ast::ts_array>().size;
 
 	auto const loop_info = create_loop_start(size, context);
 

@@ -5164,8 +5164,8 @@ static val_ptr emit_bitcode(
 	auto const lhs_elem_type = lhs_type->getArrayElementType();
 	auto const rhs_elem_type = rhs_type->getArrayElementType();
 
-	bz_assert(array_assign.lhs.get_expr_type().is<ast::ts_array>());
-	auto const size = array_assign.lhs.get_expr_type().get<ast::ts_array>().size;
+	bz_assert(array_assign.lhs.get_expr_type().is<ast::ts_mut>() && array_assign.lhs.get_expr_type().get<ast::ts_mut>().is<ast::ts_array>());
+	auto const size = array_assign.lhs.get_expr_type().get<ast::ts_mut>().get<ast::ts_array>().size;
 
 	if (size <= array_loop_threshold)
 	{

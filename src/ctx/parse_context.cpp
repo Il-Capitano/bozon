@@ -3599,7 +3599,7 @@ static ast::expression make_expr_function_call_from_body(
 		case ast::function_body::builtin_binary_plus_eq:
 		case ast::function_body::builtin_binary_minus_eq:
 		{
-			auto const param_type = body->params[0].get_type().get<ast::ts_lvalue_reference>();
+			auto const param_type = body->params[0].get_type().get<ast::ts_lvalue_reference>().get<ast::ts_mut>();
 			if (param_type.is<ast::ts_pointer>())
 			{
 				return ast::remove_mutability_modifiers(param_type.get<ast::ts_pointer>());
