@@ -5,7 +5,7 @@
 function test()
 {
 	(consteval {
-		let t: [int32, int32];
+		let t = [int32, int32]();
 		&t[1] - 1;
 	});
 }

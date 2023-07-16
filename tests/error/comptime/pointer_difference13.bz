@@ -1,4 +1,4 @@
-// error: invalid pointer difference operation with type '*const int32'
+// error: invalid pointer difference operation with type '*int32'
 // note: while evaluating expression at compile time
 // note: lhs and rhs addresses point to different subobjects in this stack object
 // note: lhs address points to a subobject at offset 0
@@ -7,7 +7,7 @@
 function test()
 {
 	(consteval {
-		let t: [int32, int32];
+		let t = [int32, int32]();
 		&t[0] - &t[1];
 	});
 }

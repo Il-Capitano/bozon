@@ -130,8 +130,8 @@ do {                                                                            
 		function factorial(n) -> typeof n
 		{
 			type T = typeof n;
-			let result = 1 as T;
-			for (let i = 1 as T; i <= n; ++i)
+			mut result = 1 as T;
+			for (mut i = 1 as T; i <= n; ++i)
 			{
 				result *= i;
 			}
@@ -143,8 +143,8 @@ do {                                                                            
 		function factorial(n) -> typeof n
 		{
 			type T = typeof n;
-			let result = 1 as T;
-			for (let i = 1 as T; i <= n; ++i)
+			mut result = 1 as T;
+			for (mut i = 1 as T; i <= n; ++i)
 			{
 				result *= i;
 			}
@@ -155,8 +155,8 @@ do {                                                                            
 	x(R"({
 		function foo() -> [10: int32]
 		{
-			let result: [10: int32];
-			for (let i = 0; i < 10; ++i)
+			mut result: [10: int32];
+			for (mut i = 0; i < 10; ++i)
 			{
 				result[i] = i;
 			}
@@ -176,26 +176,26 @@ do {                                                                            
 		foo()
 	})asdf");
 	x_fail(R"({
-		let arr: [4: int32] = [ 1, 2, 3, 4 ];
+		mut arr: [4: int32] = [ 1, 2, 3, 4 ];
 		let index = -1;
 		arr[index] = 3;
 		0
 	})");
 	x_fail(R"({
-		let arr: [4: int32] = [ 1, 2, 3, 4 ];
+		mut arr: [4: int32] = [ 1, 2, 3, 4 ];
 		let index = 4;
 		arr[index] = 3;
 		0
 	})");
 	x_fail(R"({
-		let arr: [4: int32] = [ 1, 2, 3, 4 ];
+		mut arr: [4: int32] = [ 1, 2, 3, 4 ];
 		let index = 4u;
 		arr[index] = 3;
 		0
 	})");
 	x_fail(R"({
 		@symbol_name("exp") function my_exp(x: float64) -> float64;
-		const e = my_exp(1.0);
+		let e = my_exp(1.0);
 		0
 	})");
 	x_fail(R"({

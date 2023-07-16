@@ -1,6 +1,6 @@
 function test()
 {
-	const _ = true && switch (0) { else => true };
-	const _ = true ^^ switch (0) { else => true };
-	const _ = true || switch (0) { else => true };
+	let _ = true && switch (0) { else => true };
+	let _ = true ^^ switch (0) { else => true };
+	let _ = true || switch (0) { else => true };
 }

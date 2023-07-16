@@ -1,8 +1,8 @@
-// error: unable to match type '*int32' to '*const int32'
-// note: mismatched const qualification of types 'int32' and 'const int32'
+// error: unable to match type 'mut *mut int32' to 'mut *int32'
+// note: mismatched mutability of types 'mut int32' and 'int32'
 function test()
 {
-	let i = 0;
-	let pi: *int32 = &i;
-	let _: &*const int32 = pi;
+	mut i = 0;
+	mut pi: *mut int32 = &i;
+	let _: &mut *int32 = pi;
 }

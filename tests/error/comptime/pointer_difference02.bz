@@ -1,4 +1,4 @@
-// error: invalid pointer difference operation with type '*const int32'
+// error: invalid pointer difference operation with type '*int32'
 // note: while evaluating expression at compile time
 // note: rhs address points to an object from a finished stack frame
 // error: failed to evaluate expression at compile time

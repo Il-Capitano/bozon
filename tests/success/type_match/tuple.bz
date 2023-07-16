@@ -19,8 +19,8 @@ function test()
 	let _: [int8] = [ -5 ];
 	let _: #[int8] = [ -5 ];
 	static_assert(typeof _ == [int8]);
-	let _: #const [int8] = [ -5 ];
-	static_assert(typeof _ == const [int8]);
+	let _: #mut [int8] = [ -5 ];
+	static_assert(typeof _ == mut [int8]);
 	let _: ##[int8] = [ -5 ];
 	static_assert(typeof _ == [int8]);
 
@@ -35,8 +35,8 @@ function test()
 	static_assert(typeof _ == [3: int8]);
 	let _: #[1: int8] = [ -5 ];
 	static_assert(typeof _ == [1: int8]);
-	let _: #const [1: int8] = [ -5 ];
-	static_assert(typeof _ == const [1: int8]);
+	let _: #mut [1: int8] = [ -5 ];
+	static_assert(typeof _ == mut [1: int8]);
 	let _: ##[1: int8] = [ -5 ];
 	static_assert(typeof _ == [1: int8]);
 
@@ -44,8 +44,8 @@ function test()
 	static_assert(typeof _ == [int32, float64, str]);
 	let _: #auto = [ 1, 2.3, "hello" ];
 	static_assert(typeof _ == [int32, float64, str]);
-	let _: #const auto = [ 1, 2.3, "hello" ];
-	static_assert(typeof _ == const [int32, float64, str]);
+	let _: #mut auto = [ 1, 2.3, "hello" ];
+	static_assert(typeof _ == mut [int32, float64, str]);
 	let _: ##auto = [ 1, 2.3, "hello" ];
 	static_assert(typeof _ == [int32, float64, str]);
 }

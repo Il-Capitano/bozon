@@ -1,4 +1,4 @@
-function foo(: #const auto) -> int32
+function foo(: #auto) -> int32
 {
 	return 0;
 }

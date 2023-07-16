@@ -1,4 +1,4 @@
-// error: invalid pointer difference operation with type '*const int32'
+// error: invalid pointer difference operation with type '*int32'
 // note: while evaluating expression at compile time
 // note: lhs and rhs addresses point to objects in this allocation, which was freed
 // note: allocation was made while evaluating expression at compile time
@@ -8,7 +8,7 @@
 function test()
 {
 	(consteval {
-		const p = __builtin_comptime_malloc(int32, 1);
+		let p = __builtin_comptime_malloc(int32, 1);
 		__builtin_comptime_free(p);
 
 		p - p;

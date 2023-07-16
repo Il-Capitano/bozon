@@ -25,7 +25,7 @@ function main()
 		let _ = resource_t();
 	});
 	(consteval {
-		const _ = resource_t();
+		mut _ = resource_t();
 	});
 	(consteval {
 		(resource_t(), false) && (resource_t(), true);

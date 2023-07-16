@@ -1,4 +1,4 @@
-// error: invalid memory range for a slice of type '[: const int32]'
+// error: invalid memory range for a slice of type '[: int32]'
 // note: while evaluating expression at compile time
 // note: begin and end addresses point to different global objects
 // note: begin address points to this global object
@@ -10,6 +10,6 @@ consteval j = 0;
 function test()
 {
 	(consteval {
-		__builtin_slice_from_const_ptrs(&i, &j);
+		__builtin_slice_from_ptrs(&i, &j);
 	});
 }

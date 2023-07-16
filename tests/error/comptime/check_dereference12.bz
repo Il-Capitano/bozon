@@ -16,7 +16,7 @@ struct S
 function test()
 {
 	(consteval {
-		let t = [ S(), 0 ];
+		mut t = [ S(), 0 ];
 		t[0].p = &t[1];
 	});
 }

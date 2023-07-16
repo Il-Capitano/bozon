@@ -5,9 +5,9 @@
 function test()
 {
 	(consteval {
-		let s: [: int32];
+		mut s = [: int32]();
 		{
-			let arr: [1: int32];
+			let arr = [1: int32]();
 			s = arr;
 		}
 		s[0];

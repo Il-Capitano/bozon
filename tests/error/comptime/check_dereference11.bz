@@ -5,7 +5,7 @@
 function test()
 {
 	(consteval {
-		let p: ?*int32 = null;
+		mut p: ?*int32 = null;
 		defer *p;
 
 		let i = 0;

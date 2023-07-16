@@ -18,67 +18,67 @@ enum E
 function test()
 {
 	let i: int32 = 0;
-	let ci: const int32 = 0;
+	let mi: mut int32 = 0;
 
 	let ri: &int32 = i;
-	let rci: &const int32 = ci;
+	let rmi: &mut int32 = mi;
 
-	let pi: *int32 = &i;
-	let pci: *const int32 = &ci;
-	let ppi: **int32 = &pi;
-	let ppci: **const int32 = &pci;
-	let pcpi: *const *int32 = &pi;
-	let pcpci: *const *const int32 = &pci;
+	mut pi: *int32 = &i;
+	mut pmi: *mut int32 = &mi;
+	mut ppi: **int32 = &pi;
+	mut ppmi: **mut int32 = &pmi;
+	mut pmpi: *mut *int32 = &pi;
+	mut pmpmi: *mut *mut int32 = &pmi;
 
 
 	// lvalue reference
 	let _: &int32 = i;
-	let _: &const int32 = i;
-	let _: &const int32 = ci;
+	let _: &int32 = mi;
+	let _: &mut int32 = mi;
 	let _: &int32 = ri;
-	let _: &const int32 = ri;
-	let _: &const int32 = rci;
-	let _: &*int32 = pi;
-	let _: &const *int32 = pi;
-	let _: &const *const int32 = pi;
+	let _: &int32 = rmi;
+	let _: &mut int32 = rmi;
+	let _: &*int32 = pmi;
+	let _: &*mut int32 = pmi;
+	let _: &mut *mut int32 = pmi;
 
 	// move reference
 	move_func(0i32);
-	let j = 0i32;
+	mut j = 0i32;
 	move_func(move j);
-	const j = 0i32;
+	let j = 0i32;
 	move_func(move j);
 
 	// auto reference
 	let _: #int32 = i;
 	static_assert(typeof _ == &int32);
-	let _: #const int32 = i;
-	static_assert(typeof _ == &const int32);
-	let _: #const int32 = ci;
-	static_assert(typeof _ == &const int32);
+	let _: #int32 = mi;
+	static_assert(typeof _ == &int32);
+	let _: #mut int32 = mi;
+	static_assert(typeof _ == &mut int32);
 
 	let _: #int32 = 0;
 	static_assert(typeof _ == int32);
-	let _: #const int32 = 0;
-	static_assert(typeof _ == const int32);
+	let _: #mut int32 = 0;
+	static_assert(typeof _ == mut int32);
 
 	let _: #int32 = 0i8;
 	static_assert(typeof _ == int32);
-	let _: #const int32 = 0i8;
-	static_assert(typeof _ == const int32);
+	let _: #mut int32 = 0i8;
+	static_assert(typeof _ == mut int32);
 
 	let j = 0;
 	let _: #int32 = move j;
 	static_assert(typeof _ == int32);
 	let j = 0;
-	let _: #const int32 = move j;
-	static_assert(typeof _ == const int32);
+	let _: #mut int32 = move j;
+	static_assert(typeof _ == mut int32);
 
-	// auto reference-const
+	// auto reference-mut
 	let _: ##int32 = i;
 	static_assert(typeof _ == &int32);
-	let _: ##int32 = ci;
-	static_assert(typeof _ == &const int32);
+	let _: ##int32 = mi;
+	static_assert(typeof _ == &mut int32);
 
 	let _: ##int32 = 0;
 	static_assert(typeof _ == int32);
@@ -89,7 +89,7 @@ function test()
 	let j = 0;
 	let _: ##int32 = move j;
 	static_assert(typeof _ == int32);
-	const j = 0;
+	mut j = 0;
 	let _: ##int32 = move j;
 	static_assert(typeof _ == int32);
 
@@ -119,45 +119,45 @@ function test()
 	static_assert(typeof _ == generic_value_t<1000>);
 
 	// pointer
+	let _: *void = pmi;
 	let _: *void = pi;
+	let _: *void = pmpmi;
+	let _: *void = pmpi;
+	let _: *void = ppmi;
 	let _: *void = ppi;
-	let _: *void = ppci;
+	let _: *void = *pmpmi;
+	let _: *void = *pmpi;
+	let _: *void = *ppmi;
 	let _: *void = *ppi;
-	let _: *void = *pcpi;
-	let _: *const void = pi;
-	let _: *const void = pci;
-	let _: *const void = ppi;
-	let _: *const void = ppci;
-	let _: *const void = pcpi;
-	let _: *const void = pcpci;
-	let _: *const void = *ppi;
-	let _: *const void = *ppci;
-	let _: *const void = *pcpi;
-	let _: *const void = *pcpci;
+	let _: *mut void = pmi;
+	let _: *mut void = pmpmi;
+	let _: *mut void = pmpi;
+	let _: *mut void = *pmpmi;
+	let _: *mut void = *ppmi;
+	let _: *int32 = pmi;
 	let _: *int32 = pi;
+	let _: *int32 = *ppmi;
+	let _: *int32 = *pmpmi;
 	let _: *int32 = *ppi;
-	let _: *int32 = *pcpi;
-	let _: *const int32 = pi;
-	let _: *const int32 = pci;
-	let _: *const int32 = *pcpi;
-	let _: *const int32 = *ppi;
-	let _: *const int32 = *pcpci;
-	let _: **const int32 = ppci;
-	let _: *const *int32 = ppi;
-	let _: *const *int32 = pcpi;
-	let _: *const *const int32 = ppi;
-	let _: *const *const int32 = ppci;
-	let _: *const *const int32 = pcpi;
-	let _: *const *const int32 = pcpci;
+	let _: *mut int32 = pmi;
+	let _: *mut int32 = *pmpmi;
+	let _: *mut int32 = *ppmi;
+	let _: *mut *int32 = pmpi;
+	let _: **mut int32 = pmpmi;
+	let _: **mut int32 = ppmi;
+	let _: **int32 = pmpmi;
+	let _: **int32 = pmpi;
+	let _: **int32 = ppmi;
+	let _: **int32 = ppi;
 
 	// slice
 	let _: [: int32] = [: int32]();
-	let _: [: const int32] = [: const int32]();
-	let _: [: const int32] = [: int32]();
-	let _: [: *int32] = [: *int32]();
-	let _: [: *const int32] = [: *const int32]();
-	let _: [: const *const int32] = [: *const int32]();
-	let _: [: const *const int32] = [: *int32]();
+	let _: [: int32] = [: mut int32]();
+	let _: [: mut int32] = [: mut int32]();
+	let _: [: mut *mut int32] = [: mut *mut int32]();
+	let _: [: mut *int32] = [: mut *int32]();
+	let _: [: *int32] = [: mut *int32]();
+	let _: [: *int32] = [: mut *mut int32]();
 
 	// array
 	let _: [4: int32] = [4: int32]();
@@ -171,14 +171,14 @@ function test()
 	let _: [int32, float64, ...str] = [int32, float64, str, str]();
 
 	// array to slice
-	let arr = [4: int32]();
-	const carr = [4: int32]();
-	let parr: [4: *int32] = [ &arr[0], &arr[1], &arr[2], &arr[3] ];
+	mut arr = [4: int32]();
+	let carr = [4: int32]();
+	mut parr: [4: *mut int32] = [ &arr[0], &arr[1], &arr[2], &arr[3] ];
+	let _: [: mut int32] = arr;
 	let _: [: int32] = arr;
-	let _: [: const int32] = arr;
-	let _: [: const int32] = carr;
-	let _: [: const *int32] = parr;
-	let _: [: const *const int32] = parr;
+	let _: [: int32] = carr;
+	let _: [: *mut int32] = parr;
+	let _: [: *int32] = parr;
 
 	// equal types
 	let _: int32 = 0i32;
@@ -197,5 +197,5 @@ function test()
 	let _: E = .a;
 	let _: E = .b;
 	let _: E = .c;
-	let _: const E = .a;
+	let _: mut E = .a;
 }

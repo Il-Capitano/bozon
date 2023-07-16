@@ -3,24 +3,24 @@ import resource;
 function test()
 {
 	(consteval {
-		let v1 = [complex_resource_t]();
-		let v2 = [complex_resource_t]();
-		let b = false;
+		mut v1 = [complex_resource_t]();
+		mut v2 = [complex_resource_t]();
+		mut b = false;
 		(b && (v2 = move v1, true));
 
-		let b = false;
-		let v = [complex_resource_t]();
-		let _ = if (b) { move v } else { [complex_resource_t]() };
-		let b = true;
-		let v = [complex_resource_t]();
-		let _ = if (b) { move v } else { [complex_resource_t]() };
+		mut b = false;
+		mut v = [complex_resource_t]();
+		mut _ = if (b) { move v } else { [complex_resource_t]() };
+		mut b = true;
+		mut v = [complex_resource_t]();
+		mut _ = if (b) { move v } else { [complex_resource_t]() };
 
-		let i = 4;
-		let v = [complex_resource_t]();
-		let _ = switch (i) { 0, 1, 2 => move v, 3, 4, 5 => [complex_resource_t](), else => unreachable };
+		mut i = 4;
+		mut v = [complex_resource_t]();
+		mut _ = switch (i) { 0, 1, 2 => move v, 3, 4, 5 => [complex_resource_t](), else => unreachable };
 
-		let i = 1;
-		let v = [complex_resource_t]();
-		let _ = switch (i) { 0, 1, 2 => move v, 3, 4, 5 => [complex_resource_t](), else => unreachable };
+		mut i = 1;
+		mut v = [complex_resource_t]();
+		mut _ = switch (i) { 0, 1, 2 => move v, 3, 4, 5 => [complex_resource_t](), else => unreachable };
 	});
 }

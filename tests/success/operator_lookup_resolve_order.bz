@@ -1,9 +1,9 @@
-function test(t: &const T)
+function test(t: &T)
 {
 	t[0];
 }
 
 struct T
 {
-	operator [] (self: &const T, : uint64);
+	operator [] (self: &T, : uint64);
 }

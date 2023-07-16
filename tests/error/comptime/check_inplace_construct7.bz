@@ -6,10 +6,10 @@
 function test()
 {
 	(consteval {
-		const p = __builtin_comptime_malloc(int32, 5);
+		let p = __builtin_comptime_malloc(int32, 5);
 		defer __builtin_comptime_free(p);
 
-		for (let i = 0; i < 5; ++i)
+		for (let i in 0..5)
 		{
 			__builtin_inplace_construct(p + i, 0);
 		}

@@ -3,7 +3,7 @@ import resource;
 function main()
 {
 	(consteval {
-		let r = resource_t();
+		mut r = resource_t();
 		r = r;
 	});
 }
