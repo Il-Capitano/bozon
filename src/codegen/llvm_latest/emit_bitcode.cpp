@@ -2858,7 +2858,7 @@ static val_ptr emit_bitcode(
 			}
 		}
 		case ast::function_body::builtin_slice_begin_ptr:
-		case ast::function_body::builtin_slice_begin_const_ptr:
+		case ast::function_body::builtin_slice_begin_mut_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
 			auto const slice = emit_bitcode(func_call.params[0], context, nullptr);
@@ -2875,7 +2875,7 @@ static val_ptr emit_bitcode(
 			}
 		}
 		case ast::function_body::builtin_slice_end_ptr:
-		case ast::function_body::builtin_slice_end_const_ptr:
+		case ast::function_body::builtin_slice_end_mut_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
 			auto const slice = emit_bitcode(func_call.params[0], context, nullptr);
@@ -2892,7 +2892,7 @@ static val_ptr emit_bitcode(
 			}
 		}
 		case ast::function_body::builtin_slice_from_ptrs:
-		case ast::function_body::builtin_slice_from_const_ptrs:
+		case ast::function_body::builtin_slice_from_mut_ptrs:
 		{
 			bz_assert(func_call.params.size() == 2);
 			auto const begin_ptr = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
@@ -2921,7 +2921,7 @@ static val_ptr emit_bitcode(
 			}
 		}
 		case ast::function_body::builtin_array_begin_ptr:
-		case ast::function_body::builtin_array_begin_const_ptr:
+		case ast::function_body::builtin_array_begin_mut_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
 			auto const arr = emit_bitcode(func_call.params[0], context, nullptr);
@@ -2940,7 +2940,7 @@ static val_ptr emit_bitcode(
 			}
 		}
 		case ast::function_body::builtin_array_end_ptr:
-		case ast::function_body::builtin_array_end_const_ptr:
+		case ast::function_body::builtin_array_end_mut_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
 			auto const arr = emit_bitcode(func_call.params[0], context, nullptr);
@@ -3485,7 +3485,7 @@ static val_ptr emit_bitcode(
 			return it_value;
 		}
 		case ast::function_body::builtin_optional_get_value_ref:
-		case ast::function_body::builtin_optional_get_const_value_ref:
+		case ast::function_body::builtin_optional_get_mut_value_ref:
 		{
 			bz_assert(func_call.params.size() == 1);
 			auto const optional_val = emit_bitcode(func_call.params[0], context, nullptr);

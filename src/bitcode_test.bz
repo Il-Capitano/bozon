@@ -1333,7 +1333,7 @@ function str_pointer_test()
 	arr[4] = 'o' as uint32 as uint8;
 	std::assert(arr_s != "hella");
 
-	let arr_slice = __builtin_slice_from_const_ptrs(&arr[0], &arr[5]);
+	let arr_slice = __builtin_slice_from_ptrs(&arr[0], &arr[5]);
 	std::print("{}\n", arr_slice[3] as uint32 as char);
 
 	mut arr: [10: int32];
@@ -1342,7 +1342,7 @@ function str_pointer_test()
 		arr[i] = i;
 	}
 	let arr = arr;
-	let arr_slice: [: auto] = __builtin_slice_from_const_ptrs(&arr[0], &arr[((10))]);
+	let arr_slice: [: auto] = __builtin_slice_from_ptrs(&arr[0], &arr[((10))]);
 	std::print("{}\n", arr_slice[4]);
 }
 

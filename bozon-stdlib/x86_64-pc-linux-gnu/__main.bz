@@ -23,9 +23,9 @@ function __libc_main(argc_int: std::libc::int, argv: **std::libc::char) -> std::
 	defer std::libc::free(args_alloc);
 
 	let args = if (args_alloc == null) {
-		__builtin_slice_from_ptrs(args_buffer.begin(), args_buffer.begin() + argc)
+		__builtin_slice_from_mut_ptrs(args_buffer.begin(), args_buffer.begin() + argc)
 	} else {
-		__builtin_slice_from_ptrs(args_alloc, args_alloc + argc)
+		__builtin_slice_from_mut_ptrs(args_alloc, args_alloc + argc)
 	};
 
 	mut argv_it = argv;

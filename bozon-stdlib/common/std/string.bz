@@ -201,7 +201,7 @@ function set_size_unsafe(s: &mut string, size: usize)
 
 function as_slice(s: &string) -> [: uint8]
 {
-	return __builtin_slice_from_const_ptrs(s.begin_ptr(), s.end_ptr());
+	return __builtin_slice_from_ptrs(s.begin_ptr(), s.end_ptr());
 }
 
 export function as_str(s: &string) -> str

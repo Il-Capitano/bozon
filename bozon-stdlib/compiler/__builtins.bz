@@ -221,16 +221,16 @@ export function __builtin_str_size(s: str) -> usize
 }
 @__builtin export function __builtin_str_from_ptrs(begin: ?*uint8, end: ?*uint8) -> str;
 
-@__builtin export function __builtin_slice_begin_ptr(slice: [: mut auto]) -> ?*__builtin_slice_value_type(typeof slice);
-@__builtin export function __builtin_slice_begin_const_ptr(slice: [: auto]) -> ?*__builtin_slice_value_type(typeof slice);
-@__builtin export function __builtin_slice_end_ptr(slice: [: mut auto]) -> ?*__builtin_slice_value_type(typeof slice);
-@__builtin export function __builtin_slice_end_const_ptr(slice: [: auto]) -> ?*__builtin_slice_value_type(typeof slice);
+@__builtin export function __builtin_slice_begin_ptr(slice: [: auto]) -> ?*__builtin_slice_value_type(typeof slice);
+@__builtin export function __builtin_slice_begin_mut_ptr(slice: [: mut auto]) -> ?*__builtin_slice_value_type(typeof slice);
+@__builtin export function __builtin_slice_end_ptr(slice: [: auto]) -> ?*__builtin_slice_value_type(typeof slice);
+@__builtin export function __builtin_slice_end_mut_ptr(slice: [: mut auto]) -> ?*__builtin_slice_value_type(typeof slice);
 @__builtin
 export function __builtin_slice_size(slice: [: auto]) -> usize
 {
-	return (__builtin_slice_end_const_ptr(slice) - __builtin_slice_begin_const_ptr(slice)) as usize;
+	return (__builtin_slice_end_ptr(slice) - __builtin_slice_begin_ptr(slice)) as usize;
 }
-@__builtin export function __builtin_slice_from_ptrs(begin: ?*mut auto, end: ?*mut auto)
+@__builtin export function __builtin_slice_from_ptrs(begin: ?*auto, end: ?*auto)
 	-> (if consteval (typeof begin != typeof end) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"mismatched pointer types '",
@@ -240,25 +240,25 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 			"' in 'function __builtin_slice_from_ptrs'"
 		)));
 	} else {}, [: __builtin_remove_pointer(__builtin_remove_optional(typeof begin))]);
-@__builtin export function __builtin_slice_from_const_ptrs(begin: ?*auto, end: ?*auto)
+@__builtin export function __builtin_slice_from_mut_ptrs(begin: ?*mut auto, end: ?*mut auto)
 	-> (if consteval (typeof begin != typeof end) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"mismatched pointer types '",
 			__builtin_typename_as_str(__builtin_remove_optional(typeof begin)),
 			"' and '",
 			__builtin_typename_as_str(__builtin_remove_optional(typeof end)),
-			"' in 'function __builtin_slice_from_const_ptrs'"
+			"' in 'function __builtin_slice_from_mut_ptrs'"
 		)));
 	} else {}, [: __builtin_remove_pointer(__builtin_remove_optional(typeof begin))]);
 
-@__builtin export function __builtin_array_begin_ptr(array: &mut [??: auto])
-	-> *mut __builtin_array_value_type(__builtin_remove_mut(__builtin_remove_reference(typeof array)));
-@__builtin export function __builtin_array_begin_const_ptr(array: &[??: auto])
+@__builtin export function __builtin_array_begin_ptr(array: &[??: auto])
 	-> *__builtin_array_value_type(__builtin_remove_reference(typeof array));
-@__builtin export function __builtin_array_end_ptr(array: &mut [??: auto])
+@__builtin export function __builtin_array_begin_mut_ptr(array: &mut [??: auto])
 	-> *mut __builtin_array_value_type(__builtin_remove_mut(__builtin_remove_reference(typeof array)));
-@__builtin export function __builtin_array_end_const_ptr(array: &[??: auto])
+@__builtin export function __builtin_array_end_ptr(array: &[??: auto])
 	-> *__builtin_array_value_type(__builtin_remove_reference(typeof array));
+@__builtin export function __builtin_array_end_mut_ptr(array: &mut [??: auto])
+	-> *mut __builtin_array_value_type(__builtin_remove_mut(__builtin_remove_reference(typeof array)));
 @__builtin export function __builtin_array_size(array: &[??: auto]) -> usize;
 
 @__builtin export function __builtin_integer_range_i8 (begin: int8,  end: int8)  -> __integer_range<int8>;
@@ -355,10 +355,10 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 @__builtin function __builtin_integer_range_from_iterator_right_not_equals(lhs: __integer_range_from_end_iterator, rhs: __integer_range_from_iterator) -> bool;
 @__builtin function __builtin_integer_range_from_iterator_plus_plus(it: &__integer_range_from_iterator) -> typeof it;
 
-@__builtin export function __builtin_optional_get_value_ref(value: &mut ?auto)
-	-> &mut __builtin_remove_optional(__builtin_remove_mut(__builtin_remove_reference(typeof value)));
-@__builtin export function __builtin_optional_get_const_value_ref(value: &?auto)
+@__builtin export function __builtin_optional_get_value_ref(value: &?auto)
 	-> &__builtin_remove_optional(__builtin_remove_reference(typeof value));
+@__builtin export function __builtin_optional_get_mut_value_ref(value: &mut ?auto)
+	-> &mut __builtin_remove_optional(__builtin_remove_mut(__builtin_remove_reference(typeof value)));
 @__builtin export function __builtin_optional_get_value(value: ?##auto)
 	-> __builtin_remove_optional(typeof value);
 
@@ -1070,9 +1070,9 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 		return false;
 	}
 
-	mut lhs_it = __builtin_slice_begin_const_ptr(lhs);
-	mut rhs_it = __builtin_slice_begin_const_ptr(rhs);
-	let lhs_end = __builtin_slice_end_const_ptr(lhs);
+	mut lhs_it = __builtin_slice_begin_ptr(lhs);
+	mut rhs_it = __builtin_slice_begin_ptr(rhs);
+	let lhs_end = __builtin_slice_end_ptr(lhs);
 	if consteval (typeof lhs == typeof rhs)
 	{
 		if (lhs_it == rhs_it)
@@ -1176,9 +1176,9 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 		return true;
 	}
 
-	mut lhs_it = __builtin_slice_begin_const_ptr(lhs);
-	mut rhs_it = __builtin_slice_begin_const_ptr(rhs);
-	let lhs_end = __builtin_slice_end_const_ptr(lhs);
+	mut lhs_it = __builtin_slice_begin_ptr(lhs);
+	mut rhs_it = __builtin_slice_begin_ptr(rhs);
+	let lhs_end = __builtin_slice_end_ptr(lhs);
 	if consteval (typeof lhs == typeof rhs)
 	{
 		if (lhs_it == rhs_it)

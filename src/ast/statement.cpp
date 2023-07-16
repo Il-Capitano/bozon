@@ -749,19 +749,19 @@ bz::vector<universal_function_set> make_builtin_universal_functions(void)
 		}},
 		{ "begin", {
 			function_body::builtin_slice_begin_ptr,
-			function_body::builtin_slice_begin_const_ptr,
+			function_body::builtin_slice_begin_mut_ptr,
 			function_body::builtin_array_begin_ptr,
-			function_body::builtin_array_begin_const_ptr,
+			function_body::builtin_array_begin_mut_ptr,
 		}},
 		{ "end", {
 			function_body::builtin_slice_end_ptr,
-			function_body::builtin_slice_end_const_ptr,
+			function_body::builtin_slice_end_mut_ptr,
 			function_body::builtin_array_end_ptr,
-			function_body::builtin_array_end_const_ptr,
+			function_body::builtin_array_end_mut_ptr,
 		}},
 		{ "get_value", {
 			function_body::builtin_optional_get_value_ref,
-			function_body::builtin_optional_get_const_value_ref,
+			function_body::builtin_optional_get_mut_value_ref,
 			function_body::builtin_optional_get_value,
 		}},
 	};

@@ -2198,7 +2198,7 @@ static expr_value generate_intrinsic_function_call_code(
 		return result_value;
 	}
 	case ast::function_body::builtin_slice_begin_ptr:
-	case ast::function_body::builtin_slice_begin_const_ptr:
+	case ast::function_body::builtin_slice_begin_mut_ptr:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const slice = generate_expr_code(func_call.params[0], context, {});
@@ -2206,7 +2206,7 @@ static expr_value generate_intrinsic_function_call_code(
 		return value_or_result_address(result_value, result_address, context);
 	}
 	case ast::function_body::builtin_slice_end_ptr:
-	case ast::function_body::builtin_slice_end_const_ptr:
+	case ast::function_body::builtin_slice_end_mut_ptr:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const slice = generate_expr_code(func_call.params[0], context, {});
@@ -2217,7 +2217,7 @@ static expr_value generate_intrinsic_function_call_code(
 		// implemented in __builtins.bz
 		bz_unreachable;
 	case ast::function_body::builtin_slice_from_ptrs:
-	case ast::function_body::builtin_slice_from_const_ptrs:
+	case ast::function_body::builtin_slice_from_mut_ptrs:
 	{
 		bz_assert(func_call.params.size() == 2);
 		if (!result_address.has_value())
@@ -2237,7 +2237,7 @@ static expr_value generate_intrinsic_function_call_code(
 		return result_value;
 	}
 	case ast::function_body::builtin_array_begin_ptr:
-	case ast::function_body::builtin_array_begin_const_ptr:
+	case ast::function_body::builtin_array_begin_mut_ptr:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const array = generate_expr_code(func_call.params[0], context, {});
@@ -2249,7 +2249,7 @@ static expr_value generate_intrinsic_function_call_code(
 		return value_or_result_address(result_value, result_address, context);
 	}
 	case ast::function_body::builtin_array_end_ptr:
-	case ast::function_body::builtin_array_end_const_ptr:
+	case ast::function_body::builtin_array_end_mut_ptr:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const array = generate_expr_code(func_call.params[0], context, {});
@@ -2729,7 +2729,7 @@ static expr_value generate_intrinsic_function_call_code(
 		return it_value;
 	}
 	case ast::function_body::builtin_optional_get_value_ref:
-	case ast::function_body::builtin_optional_get_const_value_ref:
+	case ast::function_body::builtin_optional_get_mut_value_ref:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const value = generate_expr_code(func_call.params[0], context, {});

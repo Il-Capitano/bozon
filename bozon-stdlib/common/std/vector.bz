@@ -122,12 +122,12 @@ export struct vector<T: typename>
 
 	export function as_slice(self: &_self_t) -> [: value_type]
 	{
-		return __builtin_slice_from_const_ptrs(self._data_begin, self._data_end);
+		return __builtin_slice_from_ptrs(self._data_begin, self._data_end);
 	}
 
 	export function as_slice(self: &mut _self_t) -> [: mut value_type]
 	{
-		return __builtin_slice_from_ptrs(self._data_begin, self._data_end);
+		return __builtin_slice_from_mut_ptrs(self._data_begin, self._data_end);
 	}
 
 	@overload_priority(1) export operator [] (self: &_self_t, i: uint64) -> &value_type
