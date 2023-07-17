@@ -121,6 +121,17 @@ struct typespec_view
 	bool is_optional_function(void) const noexcept;
 	ts_function const &get_optional_function(void) const noexcept;
 
+	bool is_reference(void) const noexcept;
+	typespec_view get_reference(void) const noexcept;
+	bool is_mut_reference(void) const noexcept;
+	typespec_view get_mut_reference(void) const noexcept;
+
+	typespec_view remove_reference(void) const noexcept;
+	typespec_view remove_mut_reference(void) const noexcept;
+
+	bool is_any_reference(void) const noexcept;
+	typespec_view get_any_reference(void) const noexcept;
+
 	template<typename Fn>
 	decltype(auto) visit(Fn &&fn) const;
 
@@ -201,6 +212,30 @@ struct typespec
 
 	ts_function const &get_optional_function(void) const noexcept
 	{ return this->as_typespec_view().get_optional_function(); }
+
+	bool is_reference(void) const noexcept
+	{ return this->as_typespec_view().is_reference(); }
+
+	typespec_view get_reference(void) const noexcept
+	{ return this->as_typespec_view().get_reference(); }
+
+	bool is_mut_reference(void) const noexcept
+	{ return this->as_typespec_view().is_mut_reference(); }
+
+	typespec_view get_mut_reference(void) const noexcept
+	{ return this->as_typespec_view().get_mut_reference(); }
+
+	typespec_view remove_reference(void) const noexcept
+	{ return this->as_typespec_view().remove_reference(); }
+
+	typespec_view remove_mut_reference(void) const noexcept
+	{ return this->as_typespec_view().remove_mut_reference(); }
+
+	bool is_any_reference(void) const noexcept
+	{ return this->as_typespec_view().is_any_reference(); }
+
+	typespec_view get_any_reference(void) const noexcept
+	{ return this->as_typespec_view().get_any_reference(); }
 
 	template<typename Fn>
 	decltype(auto) visit(Fn &&fn) const

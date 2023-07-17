@@ -25,7 +25,7 @@ bool is_implicitly_convertible(
 	[[maybe_unused]] ctx::parse_context &context
 )
 {
-	auto const bare_expr_type = ast::remove_mutability_modifiers(expr_type);
+	auto const bare_expr_type = expr_type.remove_mut_reference();
 	if (dest.is<ast::ts_base_type>() && bare_expr_type.is<ast::ts_base_type>())
 	{
 		auto const dest_kind = dest.get<ast::ts_base_type>().info->kind;

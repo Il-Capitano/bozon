@@ -9,9 +9,9 @@
 namespace resolve
 {
 
-inline reference_match_kind get_reference_match_kind_from_expr_kind(ast::expression_type_kind kind)
+inline reference_match_kind get_reference_match_kind_from_expr_kind(ast::typespec_view const &type, ast::expression_type_kind kind)
 {
-	return ast::is_rvalue(kind) ? reference_match_kind::rvalue_copy : reference_match_kind::lvalue_copy;
+	return !type.is_reference() && ast::is_rvalue(kind) ? reference_match_kind::rvalue_copy : reference_match_kind::lvalue_copy;
 }
 
 enum class type_match_function_kind

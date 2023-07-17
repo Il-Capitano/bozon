@@ -1642,15 +1642,11 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 	}
 	while (true)
 	{
-		if (
-			source.is<ast::ts_lvalue_reference>()
-			|| dest.is<ast::ts_lvalue_reference>()
-			|| dest.is<ast::ts_auto_reference>()
-			|| dest.is<ast::ts_auto_reference_mut>()
-		)
+		if (dest.is<ast::ts_auto_reference>() || dest.is<ast::ts_auto_reference_mut>())
 		{
 			break;
 		}
+
 		// remove muts and optionals from pointers if there are any
 		{
 			auto const dest_is_mut = dest.is<ast::ts_mut>();
@@ -1663,26 +1659,42 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 			{
 				if constexpr (match_context_t<kind>::report_errors)
 				{
-					bz::vector<ctx::source_highlight> notes;
-					notes.push_back(match_context.context.make_note(
-						match_context.expr.src_tokens,
-						bz::format("mismatched mutability of types '{}' and '{}'", source, dest)
-					));
 					if (&match_context.original_dest_container != &match_context.dest_container)
 					{
-						notes.push_back(match_context.context.make_note(
+						match_context.context.report_error(
+							match_context.expr.src_tokens,
+							bz::format("unable to match type '{}' to '{}'", match_context.source, match_context.dest),
+							{
+								match_context.context.make_note(
+									match_context.expr.src_tokens,
+									bz::format("mismatched mutability of types '{}' and '{}'", source, dest)
+								),
+								match_context.context.make_note(
+									match_context.expr.src_tokens,
+									bz::format(
+										"while matching expression of type '{}' to '{}'",
+										match_context.expr.get_expr_type(), match_context.original_dest_container
+									)
+								)
+							}
+						);
+					}
+					else
+					{
+						match_context.context.report_error(
 							match_context.expr.src_tokens,
 							bz::format(
-								"while matching expression of type '{}' to '{}'",
-								match_context.expr.get_expr_type(), match_context.original_dest_container
-							)
-						));
+								"unable to match value of type '{}' to '{}'",
+								match_context.expr.get_expr_type(), match_context.dest_container
+							),
+							{
+								match_context.context.make_note(
+									match_context.expr.src_tokens,
+									bz::format("mismatched mutability of types '{}' and '{}'", source, dest)
+								),
+							}
+						);
 					}
-					match_context.context.report_error(
-						match_context.expr.src_tokens,
-						bz::format("unable to match type '{}' to '{}'", match_context.source, match_context.dest),
-						std::move(notes)
-					);
 				}
 				return match_function_result_t<kind>();
 			}
@@ -2393,7 +2405,11 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 		else if constexpr (kind == type_match_function_kind::match_expression)
 		{
 			auto const src_tokens = match_context.expr.src_tokens;
-			match_context.expr = match_context.context.make_cast_expression(src_tokens, std::move(match_context.expr), match_context.dest_container);
+			match_context.expr = match_context.context.make_cast_expression(
+				src_tokens,
+				std::move(match_context.expr),
+				match_context.dest_container
+			);
 			return true;
 		}
 		else
@@ -2889,24 +2905,24 @@ static match_function_result_t<kind> generic_type_match_base_case(
 	auto &&expr = match_context.expr;
 	bz_assert(!expr.is_tuple() || !expr.is_constant());
 
-	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
-	auto const expr_is_mut = expr_type.template is<ast::ts_mut>();
-	ast::typespec_view const bare_expr_type = ast::remove_mutability_modifiers(expr_type);
+	auto const [expr_type_temp, expr_type_kind] = expr.get_expr_type_and_kind();
+	ast::typespec_view const expr_type = expr_type_temp;
+	auto const bare_expr_type = expr_type.remove_mut_reference();
 
 	auto const original_dest = match_context.dest;
 	ast::typespec_view dest = ast::remove_mutability_modifiers(original_dest);
 
-	if (dest.is<ast::ts_lvalue_reference>())
+	if (dest.is_reference())
 	{
 		bz_assert(!parent_reference_kind.has_value());
-		if (!ast::is_lvalue(expr_type_kind))
+		if (expr_type_kind != ast::expression_type_kind::lvalue && !expr_type.is_reference())
 		{
 			if constexpr (match_context_t<kind>::report_errors)
 			{
 				match_context.context.report_error(
 					expr.src_tokens,
 					bz::format(
-						"unable to match rvalue expression of type '{}' to an lvalue reference '{}'",
+						"unable to match temporary value of type '{}' to a reference type '{}'",
 						expr_type, original_dest
 					)
 				);
@@ -2914,29 +2930,16 @@ static match_function_result_t<kind> generic_type_match_base_case(
 			return match_function_result_t<kind>();
 		}
 
-		auto const inner_dest = dest.get<ast::ts_lvalue_reference>();
-		if (inner_dest.is<ast::ts_mut>() && !expr_is_mut)
-		{
-			if constexpr (match_context_t<kind>::report_errors)
-			{
-				match_context.context.report_error(
-					expr.src_tokens,
-					bz::format(
-						"unable to match expression of type '{}' to a mutable lvalue reference '{}'",
-						expr_type, original_dest
-					)
-				);
-			}
-			return match_function_result_t<kind>();
-		}
+		auto const inner_dest = dest.get_reference();
+		auto const inner_source = expr_type.is_reference() ? expr_type.get_reference() : expr_type;
 
-		auto const reference_kind = inner_dest.is<ast::ts_mut>() == expr_is_mut
+		auto const reference_kind = inner_dest.is<ast::ts_mut>() == inner_source.is<ast::ts_mut>()
 			? reference_match_kind::reference_exact
 			: reference_match_kind::reference_remove_mut;
 		return generic_type_match_strict_match(
 			make_strict_match_context(
 				match_context,
-				expr_type,
+				inner_source,
 				inner_dest,
 				original_dest,
 				reference_kind,
@@ -2947,86 +2950,94 @@ static match_function_result_t<kind> generic_type_match_base_case(
 	}
 	else if (dest.is<ast::ts_move_reference>())
 	{
+		bz_assert(!expr_type.is<ast::ts_move_reference>());
 		bz_assert(!parent_reference_kind.has_value());
-		if (!ast::is_rvalue(expr_type_kind))
+		if (!ast::is_rvalue(expr_type_kind) || expr_type.is_reference())
 		{
 			if constexpr (match_context_t<kind>::report_errors)
 			{
-				bz_assert(ast::is_lvalue(expr_type_kind));
-				match_context.context.report_error(
-					expr.src_tokens,
-					bz::format(
-						"unable to match lvalue expression of type '{}' to a move reference '{}'",
-						expr_type, original_dest
-					)
-				);
+				if (expr_type.is_reference())
+				{
+					match_context.context.report_error(
+						expr.src_tokens,
+						bz::format(
+							"unable to match value of type '{}' to a move reference '{}'",
+							expr_type, original_dest
+						)
+					);
+				}
+				else
+				{
+					bz_assert(expr_type_kind == ast::expression_type_kind::lvalue);
+					match_context.context.report_error(
+						expr.src_tokens,
+						bz::format(
+							"unable to match lvalue expression of type '{}' to a move reference '{}'",
+							expr_type, original_dest
+						)
+					);
+				}
 			}
 			return match_function_result_t<kind>();
 		}
 
 		auto const inner_dest = dest.get<ast::ts_move_reference>();
-		if (inner_dest.is<ast::ts_mut>() && !expr_is_mut)
-		{
-			if constexpr (match_context_t<kind>::report_errors)
-			{
-				match_context.context.report_error(
-					expr.src_tokens,
-					bz::format(
-						"unable to match expression of type '{}' to a mutable move reference '{}'",
-						expr_type, original_dest
-					)
-				);
-			}
-			return match_function_result_t<kind>();
-		}
+		// we don't care about the mutability here, because it's either a temporary, or a moved lvalue, which cannot be used after
+		bz_assert(bare_expr_type == expr_type);
+		auto const reference_kind = reference_match_kind::reference_exact;
 
-		auto const reference_kind = inner_dest.is<ast::ts_mut>() == expr_is_mut
-			? reference_match_kind::reference_exact
-			: reference_match_kind::reference_remove_mut;
-		return generic_type_match_strict_match(
-			make_strict_match_context(
-				match_context,
-				expr_type,
-				inner_dest,
-				original_dest,
-				reference_kind,
-				type_match_kind::exact_match
-			),
-			false, true, false
-		);
+		// only add mut to expr_type if we have to
+		if (inner_dest.is<ast::ts_mut>())
+		{
+			ast::typespec expr_type_copy = expr_type;
+			expr_type_copy.add_layer<ast::ts_mut>();
+			return generic_type_match_strict_match(
+				make_strict_match_context(
+					match_context,
+					expr_type_copy,
+					inner_dest,
+					original_dest,
+					reference_kind,
+					type_match_kind::exact_match
+				),
+				false, true, false
+			);
+		}
+		else
+		{
+			return generic_type_match_strict_match(
+				make_strict_match_context(
+					match_context,
+					expr_type,
+					inner_dest,
+					original_dest,
+					reference_kind,
+					type_match_kind::exact_match
+				),
+				false, true, false
+			);
+		}
 	}
 	else if (dest.is<ast::ts_auto_reference>())
 	{
 		bz_assert(!parent_reference_kind.has_value());
-		auto const is_lvalue = ast::is_lvalue(expr_type_kind);
-		if (is_lvalue && dest.get<ast::ts_auto_reference>().is<ast::ts_mut>() && !expr_is_mut)
-		{
-			if constexpr (match_context_t<kind>::report_errors)
-			{
-				match_context.context.report_error(
-					expr.src_tokens,
-					bz::format(
-						"unable to match lvalue expression of type '{}' to a mutable auto reference '{}'",
-						expr_type, original_dest
-					)
-				);
-			}
-			return match_function_result_t<kind>();
-		}
+		auto const is_reference_result = expr_type_kind == ast::expression_type_kind::lvalue || expr_type.is_reference();
 
 		auto inner_dest = dest.get<ast::ts_auto_reference>();
-		auto const reference_kind = inner_dest.is<ast::ts_mut>() == expr_is_mut
-			? reference_match_kind::auto_reference_exact
-			: reference_match_kind::auto_reference_remove_mut;
+		auto const inner_source = expr_type.is_reference() ? expr_type.get_reference() : expr_type;
+
+		auto const reference_kind = inner_dest.is<ast::ts_mut>() == inner_source.is<ast::ts_mut>()
+			? reference_match_kind::reference_exact
+			: reference_match_kind::reference_remove_mut;
 
 		if constexpr (kind == type_match_function_kind::matched_type)
 		{
-			if (is_lvalue)
+			if (is_reference_result)
 			{
 				ast::typespec result = generic_type_match_strict_match(
 					make_strict_match_context(
 						match_context,
-						expr_type,
+						inner_source,
 						inner_dest,
 						inner_dest,
 						reference_kind,
@@ -3057,12 +3068,12 @@ static match_function_result_t<kind> generic_type_match_base_case(
 					&& match_context.dest_container.modifiers[1].template is<ast::ts_auto_reference>()
 				)
 			);
-			if (is_lvalue)
+			if (is_reference_result)
 			{
 				auto const good = generic_type_match_strict_match(
 					make_strict_match_context(
 						match_context,
-						expr_type,
+						inner_source,
 						inner_dest,
 						original_dest,
 						reference_kind,
@@ -3088,14 +3099,11 @@ static match_function_result_t<kind> generic_type_match_base_case(
 				auto const good = generic_type_match_base_case(change_dest(match_context, inner_dest));
 				if (good)
 				{
-					if (match_context.dest_container.modifiers[0].template is<ast::ts_optional>())
+					auto const is_optional_ref = match_context.dest_container.modifiers[0].template is<ast::ts_optional>();
+					match_context.dest_container.remove_layer();
+					if (is_optional_ref)
 					{
-						match_context.dest_container.remove_layer();
 						match_context.dest_container.modifiers[0].template emplace<ast::ts_optional>();
-					}
-					else
-					{
-						match_context.dest_container.remove_layer();
 					}
 				}
 				return good;
@@ -3103,12 +3111,12 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		}
 		else
 		{
-			if (is_lvalue)
+			if (is_reference_result)
 			{
 				return generic_type_match_strict_match(
 					make_strict_match_context(
 						match_context,
-						expr_type,
+						inner_source,
 						inner_dest,
 						original_dest,
 						reference_kind,
@@ -3121,7 +3129,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 			{
 				return generic_type_match_base_case(
 					change_dest(match_context, inner_dest),
-					reference_kind
+					reference_kind // needed for match_level
 				);
 			}
 		}
@@ -3129,17 +3137,20 @@ static match_function_result_t<kind> generic_type_match_base_case(
 	else if (dest.is<ast::ts_auto_reference_mut>())
 	{
 		bz_assert(!parent_reference_kind.has_value());
-		auto const is_lvalue = ast::is_lvalue(expr_type_kind);
+		auto const is_reference_result = expr_type_kind == ast::expression_type_kind::lvalue || expr_type.is_reference();
 		auto inner_dest = dest.get<ast::ts_auto_reference_mut>();
+		auto const inner_source = bare_expr_type;
+
+		auto const expr_is_mut = expr_type.is_mut_reference() || expr_type.is<ast::ts_mut>();
 
 		if constexpr (kind == type_match_function_kind::matched_type)
 		{
-			if (is_lvalue)
+			if (is_reference_result)
 			{
 				ast::typespec result = generic_type_match_strict_match(
 					make_strict_match_context(
 						match_context,
-						bare_expr_type,
+						inner_source,
 						inner_dest,
 						inner_dest,
 						reference_match_kind::auto_reference_const,
@@ -3174,12 +3185,12 @@ static match_function_result_t<kind> generic_type_match_base_case(
 					&& match_context.dest_container.modifiers[1].template is<ast::ts_auto_reference_mut>()
 				)
 			);
-			if (is_lvalue)
+			if (is_reference_result)
 			{
 				auto const good = generic_type_match_strict_match(
 					make_strict_match_context(
 						match_context,
-						bare_expr_type,
+						inner_source,
 						inner_dest,
 						original_dest,
 						reference_match_kind::auto_reference_const,
@@ -3229,12 +3240,12 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		}
 		else
 		{
-			if (is_lvalue)
+			if (is_reference_result)
 			{
 				return generic_type_match_strict_match(
 					make_strict_match_context(
 						match_context,
-						bare_expr_type,
+						inner_source,
 						inner_dest,
 						original_dest,
 						reference_match_kind::auto_reference_const,
@@ -3247,7 +3258,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 			{
 				return generic_type_match_base_case(
 					change_dest(match_context, inner_dest),
-					reference_match_kind::auto_reference_const
+					reference_match_kind::auto_reference_const // needed for match_level
 				);
 			}
 		}
@@ -3273,7 +3284,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		auto const accept_void = dest.is<ast::ts_pointer>() || dest.is_optional_pointer();
 		auto const reference_kind = parent_reference_kind.has_value()
 			? parent_reference_kind.get()
-			: get_reference_match_kind_from_expr_kind(expr_type_kind);
+			: get_reference_match_kind_from_expr_kind(expr_type, expr_type_kind);
 		return generic_type_match_strict_match(
 			make_strict_match_context(
 				match_context,
@@ -3336,11 +3347,11 @@ static match_function_result_t<kind> generic_type_match_base_case(
 	{
 		auto const reference_kind = parent_reference_kind.has_value()
 			? parent_reference_kind.get()
-			: get_reference_match_kind_from_expr_kind(expr_type_kind);
+			: get_reference_match_kind_from_expr_kind(expr_type, expr_type_kind);
 		auto const dest_elem_t = dest.get<ast::ts_array_slice>().elem_type.as_typespec_view();
 		auto const expr_elem_t = bare_expr_type.get<ast::ts_array>().elem_type.as_typespec_view();
 		auto const is_mut_dest_elem_t = dest_elem_t.is<ast::ts_mut>();
-		auto const is_mut_expr_elem_t = expr_type.template is<ast::ts_mut>();
+		auto const is_mut_expr_elem_t = expr_type.is<ast::ts_mut>() || expr_type.is_mut_reference();
 
 		if (!is_mut_expr_elem_t && is_mut_dest_elem_t)
 		{
@@ -3456,7 +3467,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		{
 			auto const reference_kind = parent_reference_kind.has_value()
 				? parent_reference_kind.get()
-				: get_reference_match_kind_from_expr_kind(expr_type_kind);
+				: get_reference_match_kind_from_expr_kind(expr_type, expr_type_kind);
 			return single_match_t{
 				.modifier_match_level = 0,
 				.reference_match = reference_kind,
@@ -3486,7 +3497,7 @@ static match_function_result_t<kind> generic_type_match_base_case(
 		{
 			auto const reference_kind = parent_reference_kind.has_value()
 				? parent_reference_kind.get()
-				: get_reference_match_kind_from_expr_kind(expr_type_kind);
+				: get_reference_match_kind_from_expr_kind(expr_type, expr_type_kind);
 			return single_match_t{
 				.modifier_match_level = 0,
 				.reference_match = reference_kind,
@@ -3532,22 +3543,6 @@ static match_function_result_t<kind> generic_type_match_base_case(
 	}
 }
 
-static ast::expression_type_kind type_kind_from_type(ast::typespec_view type)
-{
-	if (type.is<ast::ts_lvalue_reference>())
-	{
-		return ast::expression_type_kind::lvalue_reference;
-	}
-	else if (type.is<ast::ts_move_reference>())
-	{
-		return ast::expression_type_kind::rvalue_reference;
-	}
-	else
-	{
-		return ast::expression_type_kind::rvalue;
-	}
-}
-
 template<type_match_function_kind kind>
 match_function_result_t<kind> generic_type_match(match_context_t<kind> const &match_context)
 {
@@ -3563,9 +3558,8 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 			auto good = generic_type_match_if_expr(match_context);
 			if (good)
 			{
-				auto const type_kind = type_kind_from_type(match_context.dest_container);
-				expr.set_type(ast::remove_lvalue_or_move_reference(ast::remove_mutability_modifiers(match_context.dest_container)));
-				expr.set_type_kind(type_kind);
+				expr.set_type(ast::remove_mutability_modifiers(match_context.dest_container));
+				expr.set_type_kind(ast::expression_type_kind::rvalue);
 			}
 			return good;
 		}
@@ -3581,9 +3575,8 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 			auto const good = generic_type_match_switch_expr(match_context);
 			if (good)
 			{
-				auto const type_kind = type_kind_from_type(match_context.dest_container);
-				expr.set_type(ast::remove_lvalue_or_move_reference(ast::remove_mutability_modifiers(match_context.dest_container)));
-				expr.set_type_kind(type_kind);
+				expr.set_type(ast::remove_mutability_modifiers(match_context.dest_container));
+				expr.set_type_kind(ast::expression_type_kind::rvalue);
 			}
 			return good;
 		}
@@ -3666,7 +3659,7 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 				return false;
 			}
 
-			auto const expr_type_kind = expr.get_expr_type_and_kind().second;
+			auto const [expr_type_temp, expr_type_kind] = expr.get_expr_type_and_kind();
 			ast::typespec_view const dest = match_context.dest_container;
 
 			auto const bare_dest = ast::remove_lvalue_or_move_reference(dest);
@@ -3674,31 +3667,39 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 
 			if (
 				(bare_dest_without_mut.is<ast::ts_pointer>() || bare_dest_without_mut.is_optional_pointer())
-				&& bare_dest != expr.get_expr_type()
+				&& bare_dest != expr_type_temp.remove_mut_reference()
 			)
 			{
 				auto const is_dest_void = bare_dest.terminator_kind() == ast::terminator_typespec_node_t::index_of<ast::ts_void>;
-				auto const is_expr_void = expr.get_expr_type().terminator_kind() == ast::terminator_typespec_node_t::index_of<ast::ts_void>;
+				auto const is_expr_void = expr_type_temp.terminator_kind() == ast::terminator_typespec_node_t::index_of<ast::ts_void>;
 				if (is_dest_void == is_expr_void)
 				{
+					if (expr_type_temp.is_reference() && !dest.is_any_reference())
+					{
+						expr = match_context.context.make_copy_construction(std::move(expr));
+					}
 					expr.set_type(bare_dest);
 				}
 				else
 				{
-					ast::typespec cast_dest_type = expr.get_expr_type();
+					bz_assert(!expr_type_temp.is_empty());
+					ast::typespec cast_dest_type = expr_type_temp;
 					cast_dest_type.terminator->template emplace<ast::ts_void>();
 					expr = match_context.context.make_cast_expression(expr.src_tokens, std::move(expr), std::move(cast_dest_type));
+					bz_assert(!expr.get_expr_type().is_reference());
 					expr.set_type(bare_dest);
 				}
 			}
 
-			if (dest.is<ast::ts_lvalue_reference>() && expr_type_kind != ast::expression_type_kind::lvalue_reference)
+			// expr.set_type(...) invalidates expr_type_temp
+			auto const expr_type = expr.get_expr_type();
+
+			if (dest.is<ast::ts_lvalue_reference>() && !expr_type.is_reference())
 			{
 				auto const src_tokens = expr.src_tokens;
 				expr = ast::make_dynamic_expression(
 					src_tokens,
-					ast::expression_type_kind::lvalue_reference,
-					dest.get<ast::ts_lvalue_reference>(),
+					ast::expression_type_kind::rvalue, dest,
 					ast::make_expr_take_reference(std::move(expr)),
 					ast::destruct_operation()
 				);
@@ -3709,27 +3710,23 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 				auto const src_tokens = expr.src_tokens;
 				expr = ast::make_dynamic_expression(
 					src_tokens,
-					ast::expression_type_kind::rvalue_reference,
-					dest.get<ast::ts_move_reference>(),
+					ast::expression_type_kind::rvalue_reference, dest,
 					ast::make_expr_take_move_reference(std::move(expr)),
 					ast::destruct_operation()
 				);
 			}
-			else if (!dest.is<ast::ts_lvalue_reference>() && !dest.is<ast::ts_move_reference>())
+			else if (!dest.is_any_reference())
 			{
-				switch (expr_type_kind)
+				if (expr_type_kind == ast::expression_type_kind::lvalue || expr_type.is_reference())
 				{
-				case ast::expression_type_kind::lvalue:
-				case ast::expression_type_kind::lvalue_reference:
 					expr = match_context.context.make_copy_construction(std::move(expr));
-					break;
-				case ast::expression_type_kind::rvalue_reference:
-				case ast::expression_type_kind::moved_lvalue:
+				}
+				else if (
+					expr_type_kind == ast::expression_type_kind::rvalue_reference
+					|| expr_type_kind == ast::expression_type_kind::moved_lvalue
+				)
+				{
 					expr = match_context.context.make_move_construction(std::move(expr));
-					break;
-				default:
-					// nothing
-					break;
 				}
 			}
 

@@ -63,9 +63,9 @@ static ast::expression get_builtin_unary_address_of(
 	bz_assert(expr.not_error());
 
 	auto [type, type_kind] = expr.get_expr_type_and_kind();
-	ast::typespec result_type = type;
+	ast::typespec result_type = type.remove_reference();
 	result_type.add_layer<ast::ts_pointer>();
-	if (ast::is_lvalue(type_kind))
+	if (type_kind == ast::expression_type_kind::lvalue || type.is_reference())
 	{
 		return ast::make_dynamic_expression(
 			src_tokens,
@@ -687,10 +687,6 @@ static ast::expression get_builtin_unary_typeof(
 	ast::typespec result_type = type;
 	result_type.src_tokens = src_tokens;
 	bz_assert(type.not_empty());
-	if (kind == ast::expression_type_kind::lvalue_reference)
-	{
-		result_type.add_layer<ast::ts_lvalue_reference>();
-	}
 	return ast::make_constant_expression(
 		src_tokens,
 		ast::expression_type_kind::type_name,
@@ -751,9 +747,9 @@ static ast::expression get_builtin_unary_move(
 			);
 		}
 	}
-	else if (kind == ast::expression_type_kind::lvalue_reference)
+	else if (type.is_reference())
 	{
-		context.report_error(src_tokens, "operator move cannot be applied to an lvalue reference");
+		context.report_error(src_tokens, "operator move cannot be applied to a reference");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else
@@ -775,12 +771,9 @@ static ast::expression get_builtin_unary_unsafe_move(
 	bz_assert(expr.not_error());
 	auto const [type, kind] = expr.get_expr_type_and_kind();
 
-	if (
-		kind == ast::expression_type_kind::lvalue
-		|| (kind == ast::expression_type_kind::lvalue_reference && type.is<ast::ts_mut>())
-	)
+	if (kind == ast::expression_type_kind::lvalue || type.is_mut_reference())
 	{
-		ast::typespec result_type = type;
+		ast::typespec result_type = ast::remove_mut(ast::remove_lvalue_reference(type));
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::moved_lvalue,
@@ -789,9 +782,9 @@ static ast::expression get_builtin_unary_unsafe_move(
 			ast::destruct_operation()
 		);
 	}
-	else if (kind == ast::expression_type_kind::lvalue_reference)
+	else if (type.is_reference())
 	{
-		context.report_error(src_tokens, "operator __move__ cannot be applied to an lvalue reference");
+		context.report_error(src_tokens, "operator __move__ cannot be applied to an immutable reference");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else
@@ -973,7 +966,7 @@ ast::expression make_builtin_cast(
 {
 	bz_assert(expr.not_error());
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
-	auto const expr_t = ast::remove_mutability_modifiers(expr_type);
+	auto const expr_t = expr_type.remove_mut_reference();
 	auto const dest_t = ast::remove_mutability_modifiers(dest_type);
 	bz_assert(ast::is_complete(dest_t));
 
@@ -1248,9 +1241,11 @@ ast::expression make_builtin_subscript_operator(
 )
 {
 	auto const [called_type, called_kind] = called.get_expr_type_and_kind();
-	auto const called_t = ast::remove_mutability_modifiers(called_type);
+	auto const bare_called_type = called_type.remove_mut_reference();
+	bz_assert(ast::is_rvalue_or_literal(arg.get_expr_type_and_kind().second));
+	auto const arg_type = arg.get_expr_type();
 
-	if (called_t.is<ast::ts_tuple>() || called.is_tuple())
+	if (bare_called_type.is<ast::ts_tuple>() || called.is_tuple())
 	{
 		if (!arg.is_constant())
 		{
@@ -1258,16 +1253,14 @@ ast::expression make_builtin_subscript_operator(
 			return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), std::move(arg)));
 		}
 
-		auto const arg_type = arg.get_expr_type();
-		auto const arg_t = ast::remove_mutability_modifiers(arg_type);
-		if (!arg_t.is<ast::ts_base_type>() || !ast::is_integer_kind(arg_t.get<ast::ts_base_type>().info->kind))
+		if (!arg_type.is<ast::ts_base_type>() || !ast::is_integer_kind(arg_type.get<ast::ts_base_type>().info->kind))
 		{
 			context.report_error(arg, bz::format("invalid type '{}' for tuple subscript", arg_type));
 			return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), std::move(arg)));
 		}
 
-		auto const tuple_elem_count = called_t.is<ast::ts_tuple>()
-			? called_t.get<ast::ts_tuple>().types.size()
+		auto const tuple_elem_count = bare_called_type.is<ast::ts_tuple>()
+			? bare_called_type.get<ast::ts_tuple>().types.size()
 			: called.get_expr().get<ast::expr_tuple>().elems.size();
 		auto &const_arg = arg.get_constant();
 		size_t index = 0;
@@ -1316,26 +1309,28 @@ ast::expression make_builtin_subscript_operator(
 		}
 		else
 		{
-			auto &tuple_t = called_t.get<ast::ts_tuple>();
+			auto &tuple_t = bare_called_type.get<ast::ts_tuple>();
 			ast::typespec result_type = tuple_t.types[index];
-			if (
-				!result_type.is<ast::ts_lvalue_reference>()
-				&& called_type.is<ast::ts_mut>()
-			)
+			if (!result_type.is_reference())
 			{
-				result_type.add_layer<ast::ts_mut>();
+				bz_assert(!result_type.is<ast::ts_mut>());
+				auto const is_lvalue = called_kind == ast::expression_type_kind::lvalue || called_type.is_reference();
+				if (is_lvalue && called_type.remove_reference().is<ast::ts_mut>())
+				{
+					result_type.add_layer<ast::ts_mut>();
+					result_type.add_layer<ast::ts_lvalue_reference>();
+				}
+				else if (is_lvalue)
+				{
+					result_type.add_layer<ast::ts_lvalue_reference>();
+				}
 			}
 
-			auto const result_kind = result_type.is<ast::ts_lvalue_reference>()
-				? ast::expression_type_kind::lvalue_reference
+			auto const result_kind = result_type.is_reference()
+				? ast::expression_type_kind::rvalue
 				: called_kind;
 
-			if (result_type.is<ast::ts_lvalue_reference>())
-			{
-				result_type.remove_layer();
-			}
-
-			if (result_kind == ast::expression_type_kind::rvalue)
+			if (called_kind == ast::expression_type_kind::rvalue && !called_type.is_reference())
 			{
 				auto const elem_refs = bz::iota(0, tuple_t.types.size())
 					.transform([&](size_t const i) {
@@ -1387,49 +1382,48 @@ ast::expression make_builtin_subscript_operator(
 			}
 		}
 	}
-	else if (called_t.is<ast::ts_array_slice>())
+	else if (bare_called_type.is<ast::ts_array_slice>())
 	{
-		bz_assert(called_t.is<ast::ts_array_slice>());
-		auto &array_slice_t = called_t.get<ast::ts_array_slice>();
+		auto &array_slice_t = bare_called_type.get<ast::ts_array_slice>();
 
-		auto const arg_type = arg.get_expr_type();
-		auto const arg_t = ast::remove_mutability_modifiers(arg_type);
-		if (!arg_t.is<ast::ts_base_type>() || !ast::is_integer_kind(arg_t.get<ast::ts_base_type>().info->kind))
+		if (!arg_type.is<ast::ts_base_type>() || !ast::is_integer_kind(arg_type.get<ast::ts_base_type>().info->kind))
 		{
 			context.report_error(arg, bz::format("invalid type '{}' for array slice subscript", arg_type));
 			return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), std::move(arg)));
 		}
 
-		auto result_type = array_slice_t.elem_type;
+		ast::typespec result_type = array_slice_t.elem_type;
+		result_type.add_layer<ast::ts_lvalue_reference>();
 
+		bz_assert(context.is_trivially_destructible(src_tokens, called_type));
+		/*
 		if (called_kind == ast::expression_type_kind::rvalue)
 		{
 			context.add_self_destruction(called);
 		}
+		*/
 
 		return ast::make_dynamic_expression(
 			src_tokens,
-			ast::expression_type_kind::lvalue_reference, std::move(result_type),
+			ast::expression_type_kind::rvalue, std::move(result_type),
 			ast::make_expr_subscript(std::move(called), std::move(arg)),
 			ast::destruct_operation()
 		);
 	}
-	else // if (called_t.is<ast::ts_array>())
+	else // if (bare_called_type.is<ast::ts_array>())
 	{
-		bz_assert(called_t.is<ast::ts_array>());
-		auto &array_t = called_t.get<ast::ts_array>();
+		bz_assert(bare_called_type.is<ast::ts_array>());
+		auto &array_t = bare_called_type.get<ast::ts_array>();
 
-		auto const arg_type = arg.get_expr_type();
-		auto const arg_t = ast::remove_mutability_modifiers(arg_type);
-		if (!arg_t.is<ast::ts_base_type>() || !ast::is_integer_kind(arg_t.get<ast::ts_base_type>().info->kind))
+		if (!arg_type.is<ast::ts_base_type>() || !ast::is_integer_kind(arg_type.get<ast::ts_base_type>().info->kind))
 		{
 			context.report_error(arg, bz::format("invalid type '{}' for array subscript", arg_type));
 			return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), std::move(arg)));
 		}
 
-		if (called_kind == ast::expression_type_kind::rvalue)
+		if (ast::is_rvalue(called_kind) && !called_type.is_reference())
 		{
-			auto const elem_destruct_op = context.make_rvalue_array_destruction(src_tokens, called_t);
+			auto const elem_destruct_op = context.make_rvalue_array_destruction(src_tokens, called_type);
 
 			ast::typespec result_type = array_t.elem_type;
 			return ast::make_dynamic_expression(
@@ -1441,19 +1435,17 @@ ast::expression make_builtin_subscript_operator(
 		}
 		else
 		{
-			auto const result_kind = called_kind == ast::expression_type_kind::rvalue_reference
-				? ast::expression_type_kind::rvalue_reference
-				: ast::expression_type_kind::lvalue_reference;
-
 			ast::typespec result_type = array_t.elem_type;
-			if (called_type.is<ast::ts_mut>())
+			bz_assert(!result_type.is_reference());
+			if (called_type.is<ast::ts_mut>() || called_type.is_mut_reference())
 			{
 				result_type.add_layer<ast::ts_mut>();
 			}
+			result_type.add_layer<ast::ts_lvalue_reference>();
 
 			return ast::make_dynamic_expression(
 				src_tokens,
-				result_kind, std::move(result_type),
+				ast::expression_type_kind::rvalue, std::move(result_type),
 				ast::make_expr_subscript(std::move(called), std::move(arg)),
 				ast::destruct_operation()
 			);

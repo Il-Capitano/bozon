@@ -111,6 +111,51 @@ ts_function const &typespec_view::get_optional_function(void) const noexcept
 	return this->get<ts_optional>().get<ts_function>();
 }
 
+bool typespec_view::is_reference(void) const noexcept
+{
+	return this->is<ast::ts_lvalue_reference>();
+}
+
+typespec_view typespec_view::get_reference(void) const noexcept
+{
+	bz_assert(this->is_reference());
+	return this->get<ast::ts_lvalue_reference>();
+}
+
+bool typespec_view::is_mut_reference(void) const noexcept
+{
+	return this->modifiers.size() >= 2
+		&& this->modifiers[0].is<ts_lvalue_reference>()
+		&& this->modifiers[1].is<ts_mut>();
+}
+
+typespec_view typespec_view::get_mut_reference(void) const noexcept
+{
+	bz_assert(this->is_mut_reference());
+	return this->get<ast::ts_lvalue_reference>().get<ast::ts_mut>();
+}
+
+typespec_view typespec_view::remove_reference(void) const noexcept
+{
+	return remove_lvalue_reference(*this);
+}
+
+typespec_view typespec_view::remove_mut_reference(void) const noexcept
+{
+	return remove_mut(remove_lvalue_reference(*this));
+}
+
+bool typespec_view::is_any_reference(void) const noexcept
+{
+	return this->is<ast::ts_lvalue_reference>() || this->is<ast::ts_move_reference>();
+}
+
+typespec_view typespec_view::get_any_reference(void) const noexcept
+{
+	bz_assert(this->is_any_reference());
+	return this->blind_get();
+}
+
 typespec::typespec(
 	lex::src_tokens const &_src_tokens,
 	arena_vector<modifier_typespec_node_t> _modifiers,
