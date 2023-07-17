@@ -280,7 +280,6 @@ struct destruct_operation : bz::variant<destruct_variable, destruct_self, trivia
 enum class expression_type_kind
 {
 	lvalue,
-	lvalue_reference,
 	rvalue,
 	moved_lvalue,
 	rvalue_reference,
@@ -309,8 +308,7 @@ enum class literal_kind
 
 constexpr bool is_lvalue(expression_type_kind kind)
 {
-	return kind == expression_type_kind::lvalue
-		|| kind == expression_type_kind::lvalue_reference;
+	return kind == expression_type_kind::lvalue;
 }
 
 constexpr bool is_rvalue(expression_type_kind kind)

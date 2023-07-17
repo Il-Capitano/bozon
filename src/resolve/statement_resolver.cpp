@@ -81,10 +81,10 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		{
 			return ast::make_error_expression(range_expr_src_tokens);
 		}
-		auto const type_kind = range_var_decl.get_type().is<ast::ts_lvalue_reference>()
-			? ast::expression_type_kind::lvalue_reference
+		auto const &type = range_var_decl.get_type();
+		auto const type_kind = type.is<ast::ts_lvalue_reference>()
+			? ast::expression_type_kind::rvalue
 			: ast::expression_type_kind::lvalue;
-		auto const type = ast::remove_lvalue_reference(range_var_decl.get_type());
 
 		auto range_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
@@ -120,10 +120,10 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		{
 			return ast::make_error_expression(range_expr_src_tokens);
 		}
-		auto const type_kind = range_var_decl.get_type().is<ast::ts_lvalue_reference>()
-			? ast::expression_type_kind::lvalue_reference
+		auto const &type = range_var_decl.get_type();
+		auto const type_kind = type.is<ast::ts_lvalue_reference>()
+			? ast::expression_type_kind::rvalue
 			: ast::expression_type_kind::lvalue;
-		auto const type = ast::remove_lvalue_reference(range_var_decl.get_type());
 
 		auto range_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,

@@ -1256,7 +1256,7 @@ static ast::constant_value evaluate_subscript(
 )
 {
 	bool is_consteval = true;
-	auto const &base_type = ast::remove_mutability_modifiers(base.get_expr_type());
+	auto const &base_type = base.get_expr_type().remove_mut_reference();
 
 	uint64_t index_value = 0;
 
@@ -1488,7 +1488,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	case ast::function_body::builtin_array_size:
 	{
 		bz_assert(func_call.params.size() == 1);
-		auto const type = ast::remove_mutability_modifiers(func_call.params[0].get_expr_type());
+		auto const type = func_call.params[0].get_expr_type().remove_mut_reference();
 		bz_assert(type.is<ast::ts_array>());
 		bz_assert(type.get<ast::ts_array>().size != 0);
 		return ast::constant_value(type.get<ast::ts_array>().size);
