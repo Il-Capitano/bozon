@@ -4304,7 +4304,6 @@ static ast::expression make_base_type_constructor_call_expression(
 )
 {
 	auto const info = called_type.get<ast::ts_base_type>().info;
-	context.resolve_type_members(src_tokens, info);
 
 	if (info->is_generic())
 	{
@@ -4312,6 +4311,15 @@ static ast::expression make_base_type_constructor_call_expression(
 			src_tokens,
 			bz::format("cannot call constructor of generic type '{}'", called_type)
 		);
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_function_call(src_tokens, std::move(args), nullptr, ast::resolve_order::regular)
+		);
+	}
+
+	context.resolve_type_members(src_tokens, info);
+	if (info->state == ast::resolve_state::error)
+	{
 		return ast::make_error_expression(
 			src_tokens,
 			ast::make_expr_function_call(src_tokens, std::move(args), nullptr, ast::resolve_order::regular)
