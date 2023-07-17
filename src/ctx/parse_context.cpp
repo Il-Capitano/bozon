@@ -4347,6 +4347,20 @@ static ast::expression make_base_type_constructor_call_expression(
 				ast::make_expr_function_call(src_tokens, std::move(args), nullptr, ast::resolve_order::regular)
 			);
 		}
+		// in case of a non-default copy constructor, we end up calling `make_expr_function_call_from_body` anyways
+		else if (best_body->is_default_copy_constructor() || (best_body->is_copy_constructor() && best_body->is_defaulted()))
+		{
+			args[0].src_tokens = src_tokens;
+			return context.make_copy_construction(std::move(args[0]));
+		}
+		// Move constructors need to be handled separately here, to make sure variable move operations
+		// are properly registered.  A non-default move constructor would not register it if we simply
+		// call `make_expr_function_call_from_body`
+		else if (best_body->is_move_constructor())
+		{
+			args[0].src_tokens = src_tokens;
+			return context.make_move_construction(std::move(args[0]));
+		}
 		else
 		{
 			return make_expr_function_call_from_body(src_tokens, best_body, std::move(args), context);
@@ -4404,6 +4418,11 @@ static ast::expression make_constructor_call_expression(
 			{
 				args[0].src_tokens = src_tokens;
 				return context.make_copy_construction(std::move(args[0]));
+			}
+			else if (!ast::is_rvalue_or_literal(kind))
+			{
+				args[0].src_tokens = src_tokens;
+				return context.make_move_construction(std::move(args[0]));
 			}
 			else
 			{

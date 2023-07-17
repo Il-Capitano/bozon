@@ -1,0 +1,9 @@
+import resource;
+
+function test()
+{
+	(consteval {
+		let a = complex_resource_t();
+		complex_resource_t(move a);
+	});
+}
