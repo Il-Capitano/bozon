@@ -1919,7 +1919,7 @@ static_assert(__builtin_enum_value(animal_kind.dog) == 1);
 
 function enum_test()
 {
-	let v: animal_kind = animal_kind.mouse;
+	mut v: animal_kind = animal_kind.mouse;
 	let _ = v;
 	v = .fish;
 

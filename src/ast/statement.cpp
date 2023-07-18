@@ -654,6 +654,7 @@ decl_enum::decl_operator_ptr decl_enum::make_default_op_assign(lex::src_tokens c
 {
 	auto lhs_t = [&]() {
 		typespec result = make_enum_typespec({}, &decl);
+		result.add_layer<ts_mut>();
 		result.add_layer<ts_lvalue_reference>();
 		return result;
 	}();

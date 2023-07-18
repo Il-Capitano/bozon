@@ -334,8 +334,8 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 			"' in 'function __builtin_integer_range_iterator_not_equals'"
 		)));
 	} else {}, bool);
-@__builtin function __builtin_integer_range_iterator_plus_plus(it: &__integer_range_iterator) -> typeof it;
-@__builtin function __builtin_integer_range_iterator_minus_minus(it: &__integer_range_iterator) -> typeof it;
+@__builtin function __builtin_integer_range_iterator_plus_plus(it: &mut __integer_range_iterator) -> typeof it;
+@__builtin function __builtin_integer_range_iterator_minus_minus(it: &mut __integer_range_iterator) -> typeof it;
 
 @__builtin export function __builtin_integer_range_inclusive_begin_iterator(range: __integer_range_inclusive) -> (typeof range).__begin_iterator;
 @__builtin export function __builtin_integer_range_inclusive_end_iterator(range: __integer_range_inclusive) -> (typeof range).__end_iterator;
@@ -344,7 +344,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 @__builtin function __builtin_integer_range_inclusive_iterator_right_equals(lhs: __integer_range_inclusive_end_iterator, rhs: #__integer_range_inclusive_iterator) -> bool;
 @__builtin function __builtin_integer_range_inclusive_iterator_left_not_equals(lhs: #__integer_range_inclusive_iterator, rhs: __integer_range_inclusive_end_iterator) -> bool;
 @__builtin function __builtin_integer_range_inclusive_iterator_right_not_equals(lhs: __integer_range_inclusive_end_iterator, rhs: #__integer_range_inclusive_iterator) -> bool;
-@__builtin function __builtin_integer_range_inclusive_iterator_plus_plus(it: &__integer_range_inclusive_iterator) -> typeof it;
+@__builtin function __builtin_integer_range_inclusive_iterator_plus_plus(it: &mut __integer_range_inclusive_iterator) -> typeof it;
 
 @__builtin function __builtin_integer_range_from_begin_iterator(range: __integer_range_from) -> (typeof range).__begin_iterator;
 @__builtin function __builtin_integer_range_from_end_iterator(range: __integer_range_from) -> (typeof range).__end_iterator;
@@ -353,7 +353,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 @__builtin function __builtin_integer_range_from_iterator_right_equals(lhs: __integer_range_from_end_iterator, rhs: __integer_range_from_iterator) -> bool;
 @__builtin function __builtin_integer_range_from_iterator_left_not_equals(lhs: __integer_range_from_iterator, rhs: __integer_range_from_end_iterator) -> bool;
 @__builtin function __builtin_integer_range_from_iterator_right_not_equals(lhs: __integer_range_from_end_iterator, rhs: __integer_range_from_iterator) -> bool;
-@__builtin function __builtin_integer_range_from_iterator_plus_plus(it: &__integer_range_from_iterator) -> typeof it;
+@__builtin function __builtin_integer_range_from_iterator_plus_plus(it: &mut __integer_range_from_iterator) -> typeof it;
 
 @__builtin export function __builtin_optional_get_value_ref(value: &?auto)
 	-> &__builtin_remove_optional(__builtin_remove_reference(typeof value));
@@ -1438,10 +1438,10 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 @__builtin @overload_priority(0) export operator >>= (lhs: &mut uint64,  rhs:  int64) -> &mut uint64;
 @__builtin @overload_priority(1) export operator >>= (lhs: &mut uint64,  rhs: uint64) -> &mut uint64;
 
-@__builtin @overload_priority(0) export operator [] (array: ##[: auto], index:  int64);
-@__builtin @overload_priority(1) export operator [] (array: ##[: auto], index: uint64);
-@__builtin @overload_priority(0) export operator [] (array: ##[: mut auto], index:  int64);
-@__builtin @overload_priority(1) export operator [] (array: ##[: mut auto], index: uint64);
+@__builtin @overload_priority(0) export operator [] (array: #[: auto], index:  int64);
+@__builtin @overload_priority(1) export operator [] (array: #[: auto], index: uint64);
+@__builtin @overload_priority(0) export operator [] (array: #[: mut auto], index:  int64);
+@__builtin @overload_priority(1) export operator [] (array: #[: mut auto], index: uint64);
 @__builtin @overload_priority(0) export operator [] (array: ##[??: auto], index:  int64);
 @__builtin @overload_priority(1) export operator [] (array: ##[??: auto], index: uint64);
 @__builtin @overload_priority(0) export operator [] (tuple: ##[...##auto], index: consteval  int64);

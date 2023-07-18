@@ -2483,8 +2483,8 @@ static expr_value generate_intrinsic_function_call_code(
 		auto const it_value = generate_expr_code(func_call.params[0], context, {});
 		bz_assert(it_value.is_reference());
 		auto const integer_value_ref = context.create_struct_gep(it_value, 0);
-		bz_assert(func_call.params[0].get_expr_type().is<ast::ts_base_type>());
-		auto const it_type_info = func_call.params[0].get_expr_type().get<ast::ts_base_type>().info;
+		bz_assert(func_call.params[0].get_expr_type().get<ast::ts_mut>().is<ast::ts_base_type>());
+		auto const it_type_info = func_call.params[0].get_expr_type().get<ast::ts_mut>().get<ast::ts_base_type>().info;
 		bz_assert(it_type_info->generic_parameters.size() == 1);
 		bz_assert(it_type_info->generic_parameters[0].init_expr.is_typename());
 		auto const &it_integer_type = it_type_info->generic_parameters[0].init_expr.get_typename();
@@ -2505,8 +2505,8 @@ static expr_value generate_intrinsic_function_call_code(
 		auto const it_value = generate_expr_code(func_call.params[0], context, {});
 		bz_assert(it_value.is_reference());
 		auto const integer_value_ref = context.create_struct_gep(it_value, 0);
-		bz_assert(func_call.params[0].get_expr_type().is<ast::ts_base_type>());
-		auto const it_type_info = func_call.params[0].get_expr_type().get<ast::ts_base_type>().info;
+		bz_assert(func_call.params[0].get_expr_type().get<ast::ts_mut>().is<ast::ts_base_type>());
+		auto const it_type_info = func_call.params[0].get_expr_type().get<ast::ts_mut>().get<ast::ts_base_type>().info;
 		bz_assert(it_type_info->generic_parameters.size() == 1);
 		bz_assert(it_type_info->generic_parameters[0].init_expr.is_typename());
 		auto const &it_integer_type = it_type_info->generic_parameters[0].init_expr.get_typename();
@@ -2616,8 +2616,8 @@ static expr_value generate_intrinsic_function_call_code(
 		auto const increment_bb = context.add_basic_block();
 		context.set_current_basic_block(increment_bb);
 
-		bz_assert(func_call.params[0].get_expr_type().is<ast::ts_base_type>());
-		auto const it_type_info = func_call.params[0].get_expr_type().get<ast::ts_base_type>().info;
+		bz_assert(func_call.params[0].get_expr_type().get<ast::ts_mut>().is<ast::ts_base_type>());
+		auto const it_type_info = func_call.params[0].get_expr_type().get<ast::ts_mut>().get<ast::ts_base_type>().info;
 		bz_assert(it_type_info->generic_parameters.size() == 1);
 		bz_assert(it_type_info->generic_parameters[0].init_expr.is_typename());
 		auto const &it_integer_type = it_type_info->generic_parameters[0].init_expr.get_typename();
@@ -2712,8 +2712,8 @@ static expr_value generate_intrinsic_function_call_code(
 		auto const it_value = generate_expr_code(func_call.params[0], context, {});
 		bz_assert(it_value.is_reference());
 		auto const integer_value_ref = context.create_struct_gep(it_value, 0);
-		bz_assert(func_call.params[0].get_expr_type().is<ast::ts_base_type>());
-		auto const it_type_info = func_call.params[0].get_expr_type().get<ast::ts_base_type>().info;
+		bz_assert(func_call.params[0].get_expr_type().get<ast::ts_mut>().is<ast::ts_base_type>());
+		auto const it_type_info = func_call.params[0].get_expr_type().get<ast::ts_mut>().get<ast::ts_base_type>().info;
 		bz_assert(it_type_info->generic_parameters.size() == 1);
 		bz_assert(it_type_info->generic_parameters[0].init_expr.is_typename());
 		auto const &it_integer_type = it_type_info->generic_parameters[0].init_expr.get_typename();
