@@ -1,5 +1,5 @@
-// error: unable to match rvalue expression of type 'int32' to an lvalue reference '&auto'
-// error: unable to match rvalue expression of type 'int32' to an lvalue reference '&auto'
+// error: unable to match temporary value of type 'int32' to a reference type '&auto'
+// error: unable to match temporary value of type 'int32' to a reference type '&auto'
 function test(val: int32)
 {
 	let i = 0;
