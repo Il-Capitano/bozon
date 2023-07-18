@@ -363,14 +363,14 @@ xx(                                                                           \
         if (res.is<ast::constant_expression>())                               \
         {                                                                     \
             auto &const_expr = res.get<ast::constant_expression>();           \
-            auto const type = ast::remove_mut(const_expr.type);               \
+            auto const type = const_expr.type.remove_mut_reference();         \
             return type.is<ast::ts_base_type>()                               \
                 && type.get<ast::ts_base_type>().info->kind == (type_kind);   \
         }                                                                     \
         else if (res.is<ast::dynamic_expression>())                           \
         {                                                                     \
             auto &dyn_expr = res.get<ast::dynamic_expression>();              \
-            auto const type = ast::remove_mut(dyn_expr.type);                 \
+            auto const type = dyn_expr.type.remove_mut_reference();           \
             return type.is<ast::ts_base_type>()                               \
                 && type.get<ast::ts_base_type>().info->kind == (type_kind);   \
         }                                                                     \
