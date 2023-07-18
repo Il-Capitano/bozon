@@ -1,4 +1,4 @@
-// error: operator move cannot be applied to an lvalue reference
+// error: operator move cannot be applied to a reference
 function test(i: move int32)
 {
 	move i;

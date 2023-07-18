@@ -1,4 +1,4 @@
-// error: unable to match type '*int32' to '*mut int32'
+// error: unable to match value of type 'mut *int32' to '*mut int32'
 // note: mismatched mutability of types 'int32' and 'mut int32'
 function test()
 {
