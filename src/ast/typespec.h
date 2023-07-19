@@ -92,7 +92,7 @@ struct typespec_view
 {
 	lex::src_tokens src_tokens = {};
 	bz::array_view<const modifier_typespec_node_t> modifiers = {};
-	terminator_typespec_node_t *terminator = nullptr;
+	terminator_typespec_node_t const *terminator = nullptr;
 
 	uint64_t modifier_kind(void) const noexcept;
 	uint64_t terminator_kind(void) const noexcept;
