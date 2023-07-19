@@ -351,7 +351,16 @@ static expr_value generate_expr_code(
 {
 	for (auto const i : bz::iota(0, tuple_expr.elems.size()))
 	{
-		if (result_address.has_value())
+		if (result_address.has_value() && tuple_expr.elems[i].get_expr_type().is_reference())
+		{
+			auto const elem_result_address = context.create_struct_gep(result_address.get(), i);
+			auto const ref_ref = generate_expr_code(tuple_expr.elems[i], context, {});
+			auto const ref_value = expr_value::get_value(ref_ref.get_reference(), context.get_pointer_type());
+			bz_assert(elem_result_address.get_type()->is_pointer());
+			context.create_store(ref_value, elem_result_address);
+			context.create_start_lifetime(elem_result_address);
+		}
+		else if (result_address.has_value())
 		{
 			auto const elem_result_address = context.create_struct_gep(result_address.get(), i);
 			generate_expr_code(tuple_expr.elems[i], context, elem_result_address);
@@ -561,8 +570,8 @@ static expr_value generate_expr_code(
 	bz::optional<expr_value> result_address
 )
 {
-	bz_assert(rvalue_tuple_subscript.index.is<ast::constant_expression>());
-	auto const &index_value = rvalue_tuple_subscript.index.get<ast::constant_expression>().value;
+	bz_assert(rvalue_tuple_subscript.index.is_constant());
+	auto const &index_value = rvalue_tuple_subscript.index.get_constant_value();
 	bz_assert(index_value.is_uint() || index_value.is_sint());
 	auto const index_int_value = index_value.is_uint()
 		? index_value.get_uint()
@@ -572,6 +581,8 @@ static expr_value generate_expr_code(
 	bz_assert(base_val.is_reference());
 	bz_assert(base_val.get_type()->is_aggregate());
 
+	auto const is_reference_result = rvalue_tuple_subscript.elem_refs[index_int_value].get_expr_type().is_reference();
+	bz_assert(!result_address.has_value() || !is_reference_result);
 	expr_value result = expr_value::get_none();
 	for (auto const i : bz::iota(0, rvalue_tuple_subscript.elem_refs.size()))
 	{
@@ -580,11 +591,29 @@ static expr_value generate_expr_code(
 			continue;
 		}
 
-		auto const elem_ptr = context.create_struct_gep(base_val, i);
+		auto const elem_ptr = [&]() {
+			if (i == index_int_value && is_reference_result)
+			{
+				auto const ref_ref = context.create_struct_gep(base_val, i);
+				bz_assert(ref_ref.get_type()->is_pointer());
+				auto const ref_value = context.create_load(ref_ref);
+				auto const accessed_type = rvalue_tuple_subscript.elem_refs[index_int_value].get_expr_type();
+				return expr_value::get_reference(
+					ref_value.get_value_as_instruction(context),
+					get_type(accessed_type.remove_reference(), context)
+				);
+			}
+			else
+			{
+				return context.create_struct_gep(base_val, i);
+			}
+		}();
 		auto const prev_value = context.push_value_reference(elem_ptr);
 		if (i == index_int_value)
 		{
+			auto const prev_info = context.push_expression_scope();
 			result = generate_expr_code(rvalue_tuple_subscript.elem_refs[i], context, result_address);
+			context.pop_expression_scope(prev_info);
 		}
 		else
 		{
@@ -673,7 +702,7 @@ static expr_value generate_expr_code(
 	}
 	else
 	{
-		bz_assert(base_type.is<ast::ts_tuple>() || subscript.base.is_tuple());
+		bz_assert(base_type.is<ast::ts_tuple>());
 		auto const tuple = generate_expr_code(subscript.base, context, {});
 		bz_assert(subscript.index.is_constant());
 		auto const &index_value = subscript.index.get_constant_value();
@@ -683,7 +712,18 @@ static expr_value generate_expr_code(
 			: static_cast<uint64_t>(index_value.get_sint());
 
 		bz_assert(tuple.get_type()->is_aggregate());
-		return context.create_struct_gep(tuple, index_int_value);
+
+		auto const &types = base_type.get<ast::ts_tuple>().types;
+		if (types[index_int_value].is_reference())
+		{
+			auto const ref_value = context.create_struct_gep(tuple, index_int_value).get_value_as_instruction(context);
+			auto const type = get_type(types[index_int_value].remove_mut_reference(), context);
+			return expr_value::get_reference(ref_value, type);
+		}
+		else
+		{
+			return context.create_struct_gep(tuple, index_int_value);
+		}
 	}
 }
 

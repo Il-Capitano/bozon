@@ -1,0 +1,37 @@
+type T = [ &mut int32 ];
+
+function make_T(i: &mut int32) -> T
+{
+	return [ i ];
+}
+
+function test()
+{
+	mut i = 0;
+
+	let t: T = [ i ];
+	if (i != 0) unreachable;
+	t[0] = 1;
+	if (i != 1) unreachable;
+
+	mut t: T = [ i ];
+	t[0] = 2;
+	if (i != 2) unreachable;
+
+	let &mut t = t;
+	t[0] = 3;
+	if (i != 3) unreachable;
+
+	let &t = t;
+	t[0] = 4;
+	if (i != 4) unreachable;
+
+	make_T(i)[0] = 5;
+	if (i != 5) unreachable;
+}
+
+function main()
+{
+	(consteval test());
+	test();
+}

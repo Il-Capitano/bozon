@@ -1300,9 +1300,10 @@ ast::expression make_builtin_subscript_operator(
 				}
 			}
 
+			ast::typespec result_type_copy = result_type;
 			return ast::make_dynamic_expression(
 				src_tokens,
-				result_kind, std::move(result_type),
+				result_kind, std::move(result_type_copy),
 				ast::make_expr_tuple_subscript(std::move(tuple), std::move(arg)),
 				ast::destruct_operation()
 			);
@@ -1336,9 +1337,12 @@ ast::expression make_builtin_subscript_operator(
 					.transform([&](size_t const i) {
 						if (i == index)
 						{
+							auto const type_kind = result_type.is_reference()
+								? ast::expression_type_kind::rvalue
+								: ast::expression_type_kind::rvalue_reference;
 							return ast::make_dynamic_expression(
 								src_tokens,
-								ast::expression_type_kind::rvalue_reference, result_type,
+								type_kind, result_type,
 								ast::make_expr_bitcode_value_reference(),
 								ast::destruct_operation()
 							);
