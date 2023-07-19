@@ -4048,6 +4048,7 @@ static val_ptr emit_bitcode(
 
 	auto const base_val = emit_bitcode(rvalue_tuple_subscript.base, context, nullptr);
 	bz_assert(base_val.kind == val_ptr::reference);
+	auto const is_reference_result = rvalue_tuple_subscript.elem_refs[index_int_value].get_expr_type().is_reference();
 
 	val_ptr result = val_ptr::get_none();
 	for (auto const i : bz::iota(0, rvalue_tuple_subscript.elem_refs.size()))
@@ -4057,9 +4058,31 @@ static val_ptr emit_bitcode(
 			continue;
 		}
 
-		auto const elem_ptr = context.create_struct_gep(base_val.get_type(), base_val.val, i);
-		auto const elem_type = base_val.get_type()->getStructElementType(i);
-		auto const prev_value = context.push_value_reference(val_ptr::get_reference(elem_ptr, elem_type));
+		auto const elem_ptr = [&]() {
+			if (is_reference_result)
+			{
+				auto const ref_ptr = base_val.kind == val_ptr::value
+					? context.builder.CreateExtractValue(base_val.get_value(context.builder), index_int_value)
+					: context.builder.CreateLoad(
+						context.get_opaque_pointer_t(),
+						context.create_struct_gep(base_val.get_type(), base_val.val, index_int_value)
+					);
+				auto const elem_ts = rvalue_tuple_subscript.elem_refs[index_int_value].get_expr_type();
+				auto const elem_type = get_llvm_type(elem_ts.get_reference(), context);
+				return val_ptr::get_reference(ref_ptr, elem_type);
+			}
+			else if (base_val.kind == val_ptr::value)
+			{
+				return val_ptr::get_value(context.builder.CreateExtractValue(base_val.get_value(context.builder), index_int_value));
+			}
+			else
+			{
+				auto const elem_type = base_val.get_type()->getStructElementType(i);
+				auto const elem_ptr = context.create_struct_gep(base_val.get_type(), base_val.val, i);
+				return val_ptr::get_reference(elem_ptr, elem_type);
+			}
+		}();
+		auto const prev_value = context.push_value_reference(elem_ptr);
 		if (i == index_int_value)
 		{
 			result = emit_bitcode(rvalue_tuple_subscript.elem_refs[i], context, result_address);
@@ -4135,7 +4158,7 @@ static val_ptr emit_bitcode(
 	}
 	else
 	{
-		bz_assert(base_type.is<ast::ts_tuple>() || subscript.base.is_tuple());
+		bz_assert(base_type.is<ast::ts_tuple>());
 		auto const tuple = emit_bitcode(subscript.base, context, nullptr);
 		bz_assert(subscript.index.is_constant());
 		auto const &index_value = subscript.index.get_constant_value();
