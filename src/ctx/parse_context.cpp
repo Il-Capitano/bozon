@@ -5656,12 +5656,24 @@ ast::expression parse_context::make_member_access_expression(
 			.transform([&](size_t const i) {
 				if (i == index)
 				{
-					return ast::make_dynamic_expression(
-						src_tokens,
-						ast::expression_type_kind::rvalue_reference, result_type,
-						ast::make_expr_bitcode_value_reference(),
-						ast::destruct_operation()
-					);
+					if (result_type.is_reference())
+					{
+						return ast::make_dynamic_expression(
+							src_tokens,
+							ast::expression_type_kind::rvalue, result_type,
+							ast::make_expr_bitcode_value_reference(),
+							ast::destruct_operation()
+						);
+					}
+					else
+					{
+						return ast::make_dynamic_expression(
+							src_tokens,
+							ast::expression_type_kind::rvalue_reference, result_type,
+							ast::make_expr_bitcode_value_reference(),
+							ast::destruct_operation()
+						);
+					}
 				}
 
 				auto const elem_t = members[i]->get_type().as_typespec_view();

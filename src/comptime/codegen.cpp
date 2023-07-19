@@ -4183,7 +4183,17 @@ static expr_value generate_expr_code(
 	for (auto const i : bz::iota(0, aggregate_init.exprs.size()))
 	{
 		auto const member_ptr = context.create_struct_gep(result_value, i);
-		generate_expr_code(aggregate_init.exprs[i], context, member_ptr);
+		if (aggregate_init.exprs[i].get_expr_type().is_reference())
+		{
+			auto const ref = generate_expr_code(aggregate_init.exprs[i], context, {});
+			bz_assert(member_ptr.get_type()->is_pointer());
+			context.create_store(expr_value::get_value(ref.get_reference(), context.get_pointer_type()), member_ptr);
+			context.create_start_lifetime(member_ptr);
+		}
+		else
+		{
+			generate_expr_code(aggregate_init.exprs[i], context, member_ptr);
+		}
 	}
 	return result_value;
 }
@@ -5354,7 +5364,24 @@ static expr_value generate_expr_code(
 	auto const base = generate_expr_code(member_access.base, context, {});
 	bz_assert(base.is_reference());
 	bz_assert(base.get_type()->is_aggregate());
-	return context.create_struct_gep(base, member_access.index);
+
+	bz_assert(member_access.base.get_expr_type().remove_mut_reference().is<ast::ts_base_type>());
+	auto const info = member_access.base.get_expr_type().remove_mut_reference().get<ast::ts_base_type>().info;
+	auto const &accessed_type = info->member_variables[member_access.index]->get_type();
+	if (accessed_type.is_reference())
+	{
+		auto const ref_ref = context.create_struct_gep(base, member_access.index);
+		bz_assert(ref_ref.get_type()->is_pointer());
+		auto const ref_value = context.create_load(ref_ref);
+		return expr_value::get_reference(
+			ref_value.get_value_as_instruction(context),
+			get_type(accessed_type.remove_reference(), context)
+		);
+	}
+	else
+	{
+		return context.create_struct_gep(base, member_access.index);
+	}
 }
 
 static expr_value generate_expr_code(
@@ -5396,6 +5423,11 @@ static expr_value generate_expr_code(
 {
 	auto const base = generate_expr_code(rvalue_member_access.base, context, {});
 
+	bz_assert(rvalue_member_access.base.get_expr_type().remove_mut_reference().is<ast::ts_base_type>());
+	auto const info = rvalue_member_access.base.get_expr_type().remove_mut_reference().get<ast::ts_base_type>().info;
+	auto const &accessed_type = info->member_variables[rvalue_member_access.index]->get_type();
+	bz_assert(!result_address.has_value() || !accessed_type.is_reference());
+
 	auto const prev_info = context.push_expression_scope();
 	expr_value result = expr_value::get_none();
 	for (auto const i : bz::iota(0, rvalue_member_access.member_refs.size()))
@@ -5405,7 +5437,22 @@ static expr_value generate_expr_code(
 			continue;
 		}
 
-		auto const member_value = context.create_struct_gep(base, i);
+		auto const member_value = [&]() {
+			if (i == rvalue_member_access.index && accessed_type.is_reference())
+			{
+				auto const ref_ref = context.create_struct_gep(base, i);
+				bz_assert(ref_ref.get_type()->is_pointer());
+				auto const ref_value = context.create_load(ref_ref);
+				return expr_value::get_reference(
+					ref_value.get_value_as_instruction(context),
+					get_type(accessed_type.remove_reference(), context)
+				);
+			}
+			else
+			{
+				return context.create_struct_gep(base, i);
+			}
+		}();
 
 		auto const prev_value = context.push_value_reference(member_value);
 		if (i == rvalue_member_access.index)

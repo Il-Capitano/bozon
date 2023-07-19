@@ -4490,7 +4490,16 @@ static val_ptr emit_bitcode(
 	for (auto const i : bz::iota(0, aggregate_init.exprs.size()))
 	{
 		auto const member_ptr = context.create_struct_gep(type, result_ptr, i);
-		emit_bitcode(aggregate_init.exprs[i], context, member_ptr);
+		if (aggregate_init.exprs[i].get_expr_type().is_reference())
+		{
+			auto const ref = emit_bitcode(aggregate_init.exprs[i], context, nullptr);
+			bz_assert(ref.kind == val_ptr::reference);
+			context.builder.CreateStore(ref.val, member_ptr);
+		}
+		else
+		{
+			emit_bitcode(aggregate_init.exprs[i], context, member_ptr);
+		}
 	}
 	return val_ptr::get_reference(result_ptr, type);
 }
