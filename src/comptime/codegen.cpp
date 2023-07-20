@@ -217,7 +217,7 @@ static expr_value generate_expr_code(
 
 	if (var_name.decl->get_type().is<ast::ts_lvalue_reference>() || var_name.decl->get_type().is<ast::ts_move_reference>())
 	{
-		auto const object_typespec = ast::remove_lvalue_or_move_reference(var_name.decl->get_type());
+		auto const object_typespec = var_name.decl->get_type().remove_any_reference();
 		context.create_memory_access_check(original_expression.src_tokens, result, object_typespec);
 	}
 	return result;
@@ -351,7 +351,16 @@ static expr_value generate_expr_code(
 {
 	for (auto const i : bz::iota(0, tuple_expr.elems.size()))
 	{
-		if (result_address.has_value())
+		if (result_address.has_value() && tuple_expr.elems[i].get_expr_type().is_reference())
+		{
+			auto const elem_result_address = context.create_struct_gep(result_address.get(), i);
+			auto const ref_ref = generate_expr_code(tuple_expr.elems[i], context, {});
+			auto const ref_value = expr_value::get_value(ref_ref.get_reference(), context.get_pointer_type());
+			bz_assert(elem_result_address.get_type()->is_pointer());
+			context.create_store(ref_value, elem_result_address);
+			context.create_start_lifetime(elem_result_address);
+		}
+		else if (result_address.has_value())
 		{
 			auto const elem_result_address = context.create_struct_gep(result_address.get(), i);
 			generate_expr_code(tuple_expr.elems[i], context, elem_result_address);
@@ -561,8 +570,8 @@ static expr_value generate_expr_code(
 	bz::optional<expr_value> result_address
 )
 {
-	bz_assert(rvalue_tuple_subscript.index.is<ast::constant_expression>());
-	auto const &index_value = rvalue_tuple_subscript.index.get<ast::constant_expression>().value;
+	bz_assert(rvalue_tuple_subscript.index.is_constant());
+	auto const &index_value = rvalue_tuple_subscript.index.get_constant_value();
 	bz_assert(index_value.is_uint() || index_value.is_sint());
 	auto const index_int_value = index_value.is_uint()
 		? index_value.get_uint()
@@ -572,6 +581,8 @@ static expr_value generate_expr_code(
 	bz_assert(base_val.is_reference());
 	bz_assert(base_val.get_type()->is_aggregate());
 
+	auto const is_reference_result = rvalue_tuple_subscript.elem_refs[index_int_value].get_expr_type().is_reference();
+	bz_assert(!result_address.has_value() || !is_reference_result);
 	expr_value result = expr_value::get_none();
 	for (auto const i : bz::iota(0, rvalue_tuple_subscript.elem_refs.size()))
 	{
@@ -580,11 +591,29 @@ static expr_value generate_expr_code(
 			continue;
 		}
 
-		auto const elem_ptr = context.create_struct_gep(base_val, i);
+		auto const elem_ptr = [&]() {
+			if (i == index_int_value && is_reference_result)
+			{
+				auto const ref_ref = context.create_struct_gep(base_val, i);
+				bz_assert(ref_ref.get_type()->is_pointer());
+				auto const ref_value = context.create_load(ref_ref);
+				auto const accessed_type = rvalue_tuple_subscript.elem_refs[index_int_value].get_expr_type();
+				return expr_value::get_reference(
+					ref_value.get_value_as_instruction(context),
+					get_type(accessed_type.remove_reference(), context)
+				);
+			}
+			else
+			{
+				return context.create_struct_gep(base_val, i);
+			}
+		}();
 		auto const prev_value = context.push_value_reference(elem_ptr);
 		if (i == index_int_value)
 		{
+			auto const prev_info = context.push_expression_scope();
 			result = generate_expr_code(rvalue_tuple_subscript.elem_refs[i], context, result_address);
+			context.pop_expression_scope(prev_info);
 		}
 		else
 		{
@@ -601,13 +630,13 @@ static expr_value generate_expr_code(
 	codegen_context &context
 )
 {
-	auto const base_type = ast::remove_mutability_modifiers(subscript.base.get_expr_type());
+	auto const base_type = subscript.base.get_expr_type().remove_mut_reference();
 	if (base_type.is<ast::ts_array>())
 	{
 		auto const array = generate_expr_code(subscript.base, context, {});
 		auto index = generate_expr_code(subscript.index, context, {}).get_value(context);
-		bz_assert(ast::remove_mutability_modifiers(subscript.index.get_expr_type()).is<ast::ts_base_type>());
-		auto const kind = ast::remove_mutability_modifiers(subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
+		bz_assert(subscript.index.get_expr_type().remove_any_mut().is<ast::ts_base_type>());
+		auto const kind = subscript.index.get_expr_type().remove_any_mut().get<ast::ts_base_type>().info->kind;
 
 		bz_assert(index.get_type()->is_builtin());
 		auto const size = base_type.get<ast::ts_array>().size;
@@ -640,8 +669,8 @@ static expr_value generate_expr_code(
 	{
 		auto const slice = generate_expr_code(subscript.base, context, {});
 		auto const index = generate_expr_code(subscript.index, context, {}).get_value(context);
-		bz_assert(ast::remove_mutability_modifiers(subscript.index.get_expr_type()).is<ast::ts_base_type>());
-		auto const kind = ast::remove_mutability_modifiers(subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
+		bz_assert(subscript.index.get_expr_type().remove_any_mut().is<ast::ts_base_type>());
+		auto const kind = subscript.index.get_expr_type().remove_any_mut().get<ast::ts_base_type>().info->kind;
 		auto const elem_ts = base_type.get<ast::ts_array_slice>().elem_type.as_typespec_view();
 		auto const elem_type = get_type(elem_ts, context);
 
@@ -673,7 +702,7 @@ static expr_value generate_expr_code(
 	}
 	else
 	{
-		bz_assert(base_type.is<ast::ts_tuple>() || subscript.base.is_tuple());
+		bz_assert(base_type.is<ast::ts_tuple>());
 		auto const tuple = generate_expr_code(subscript.base, context, {});
 		bz_assert(subscript.index.is_constant());
 		auto const &index_value = subscript.index.get_constant_value();
@@ -683,7 +712,18 @@ static expr_value generate_expr_code(
 			: static_cast<uint64_t>(index_value.get_sint());
 
 		bz_assert(tuple.get_type()->is_aggregate());
-		return context.create_struct_gep(tuple, index_int_value);
+
+		auto const &types = base_type.get<ast::ts_tuple>().types;
+		if (types[index_int_value].is_reference())
+		{
+			auto const ref_value = context.create_struct_gep(tuple, index_int_value).get_value_as_instruction(context);
+			auto const type = get_type(types[index_int_value].remove_mut_reference(), context);
+			return expr_value::get_reference(ref_value, type);
+		}
+		else
+		{
+			return context.create_struct_gep(tuple, index_int_value);
+		}
 	}
 }
 
@@ -697,8 +737,8 @@ static expr_value generate_expr_code(
 	auto const &array_t = rvalue_array_subscript.base.get_expr_type().get<ast::ts_array>();
 	auto const array = generate_expr_code(rvalue_array_subscript.base, context, {});
 	auto index = generate_expr_code(rvalue_array_subscript.index, context, {}).get_value(context);
-	bz_assert(ast::remove_mutability_modifiers(rvalue_array_subscript.index.get_expr_type()).is<ast::ts_base_type>());
-	auto const kind = ast::remove_mutability_modifiers(rvalue_array_subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
+	bz_assert(rvalue_array_subscript.index.get_expr_type().remove_any_mut().is<ast::ts_base_type>());
+	auto const kind = rvalue_array_subscript.index.get_expr_type().remove_any_mut().get<ast::ts_base_type>().info->kind;
 
 	bz_assert(index.get_type()->is_builtin());
 	auto const size = array_t.size;
@@ -761,7 +801,7 @@ static expr_value generate_builtin_unary_dereference(
 )
 {
 	auto const ptr_value = generate_expr_code(expr, context, {}).get_value(context);
-	auto const type = ast::remove_mutability_modifiers(expr.get_expr_type());
+	auto const type = expr.get_expr_type();
 	bz_assert(type.is_optional_pointer() || type.is<ast::ts_pointer>());
 	auto const object_typespec = type.is_optional_pointer()
 		? type.get_optional_pointer()
@@ -803,7 +843,7 @@ static expr_value generate_builtin_unary_plus_plus(
 
 	if (value.get_type()->is_pointer())
 	{
-		auto const expr_type = ast::remove_mut(expr.get_expr_type());
+		auto const expr_type = expr.get_expr_type().get_mut_reference();
 		bz_assert(expr_type.is<ast::ts_pointer>() || expr_type.is_optional_pointer());
 		auto const object_type = expr_type.is<ast::ts_pointer>()
 			? get_type(expr_type.get<ast::ts_pointer>(), context)
@@ -825,7 +865,7 @@ static expr_value generate_builtin_unary_plus_plus(
 	else
 	{
 		bz_assert(value.get_type()->is_integer_type());
-		auto const expr_type = ast::remove_mut(expr.get_expr_type());
+		auto const expr_type = expr.get_expr_type().get_mut_reference();
 		bz_assert(expr_type.is<ast::ts_base_type>());
 		auto const expr_kind = expr_type.get<ast::ts_base_type>().info->kind;
 		auto const is_signed = ast::is_signed_integer_kind(expr_kind);
@@ -855,7 +895,7 @@ static expr_value generate_builtin_unary_minus_minus(
 
 	if (value.get_type()->is_pointer())
 	{
-		auto const expr_type = ast::remove_mut(expr.get_expr_type());
+		auto const expr_type = expr.get_expr_type().get_mut_reference();
 		bz_assert(expr_type.is<ast::ts_pointer>() || expr_type.is_optional_pointer());
 		auto const object_type = expr_type.is<ast::ts_pointer>()
 			? get_type(expr_type.get<ast::ts_pointer>(), context)
@@ -877,7 +917,7 @@ static expr_value generate_builtin_unary_minus_minus(
 	else
 	{
 		bz_assert(value.get_type()->is_integer_type());
-		auto const expr_type = ast::remove_mut(expr.get_expr_type());
+		auto const expr_type = expr.get_expr_type().get_mut_reference();
 		bz_assert(expr_type.is<ast::ts_base_type>());
 		auto const expr_kind = expr_type.get<ast::ts_base_type>().info->kind;
 		auto const is_signed = ast::is_signed_integer_kind(expr_kind);
@@ -906,8 +946,8 @@ static expr_value generate_builtin_binary_plus(
 	auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
 	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
 
-	auto const lhs_type = ast::remove_mutability_modifiers(lhs.get_expr_type());
-	auto const rhs_type = ast::remove_mutability_modifiers(rhs.get_expr_type());
+	auto const lhs_type = lhs.get_expr_type();
+	auto const rhs_type = rhs.get_expr_type();
 	if (lhs_value.get_type()->is_pointer())
 	{
 		bz_assert(lhs_type.is<ast::ts_pointer>() || lhs_type.is_optional_pointer());
@@ -991,8 +1031,8 @@ static expr_value generate_builtin_binary_plus_eq(
 	bz_assert(lhs_ref.is_reference());
 	auto const lhs_value = lhs_ref.get_value(context);
 
-	auto const lhs_type = ast::remove_mutability_modifiers(lhs.get_expr_type());
-	auto const rhs_type = ast::remove_mutability_modifiers(rhs.get_expr_type());
+	auto const lhs_type = lhs.get_expr_type().get_mut_reference();
+	auto const rhs_type = rhs.get_expr_type();
 	if (lhs_value.get_type()->is_pointer())
 	{
 		bz_assert(lhs_type.is<ast::ts_pointer>() || lhs_type.is_optional_pointer());
@@ -1052,8 +1092,8 @@ static expr_value generate_builtin_binary_minus(
 	auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
 	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
 
-	auto const lhs_type = ast::remove_mutability_modifiers(lhs.get_expr_type());
-	auto const rhs_type = ast::remove_mutability_modifiers(rhs.get_expr_type());
+	auto const lhs_type = lhs.get_expr_type();
+	auto const rhs_type = rhs.get_expr_type();
 	if (lhs_value.get_type()->is_pointer() && rhs_value.get_type()->is_pointer())
 	{
 		bz_assert(lhs_type == rhs_type);
@@ -1134,8 +1174,8 @@ static expr_value generate_builtin_binary_minus_eq(
 	bz_assert(lhs_ref.is_reference());
 	auto const lhs_value = lhs_ref.get_value(context);
 
-	auto const lhs_type = ast::remove_mutability_modifiers(lhs.get_expr_type());
-	auto const rhs_type = ast::remove_mutability_modifiers(rhs.get_expr_type());
+	auto const lhs_type = lhs.get_expr_type().get_mut_reference();
+	auto const rhs_type = rhs.get_expr_type();
 	if (lhs_value.get_type()->is_pointer())
 	{
 		bz_assert(lhs_type.is<ast::ts_pointer>() || lhs_type.is_optional_pointer());
@@ -1198,8 +1238,8 @@ static expr_value generate_builtin_binary_multiply(
 
 	if (original_expression.paren_level < 2)
 	{
-		bz_assert(ast::remove_mutability_modifiers(lhs.get_expr_type()).is<ast::ts_base_type>());
-		auto const type_kind = ast::remove_mutability_modifiers(lhs.get_expr_type()).get<ast::ts_base_type>().info->kind;
+		bz_assert(lhs.get_expr_type().is<ast::ts_base_type>());
+		auto const type_kind = lhs.get_expr_type().get<ast::ts_base_type>().info->kind;
 		context.create_mul_check(original_expression.src_tokens, lhs_value, rhs_value, ast::is_signed_integer_kind(type_kind));
 	}
 
@@ -1221,8 +1261,8 @@ static expr_value generate_builtin_binary_multiply_eq(
 
 	if (original_expression.paren_level < 2)
 	{
-		bz_assert(ast::remove_mutability_modifiers(lhs.get_expr_type()).is<ast::ts_base_type>());
-		auto const type_kind = ast::remove_mutability_modifiers(lhs.get_expr_type()).get<ast::ts_base_type>().info->kind;
+		bz_assert(rhs.get_expr_type().is<ast::ts_base_type>());
+		auto const type_kind = rhs.get_expr_type().get<ast::ts_base_type>().info->kind;
 		context.create_mul_check(original_expression.src_tokens, lhs_value, rhs_value, ast::is_signed_integer_kind(type_kind));
 	}
 
@@ -1242,8 +1282,8 @@ static expr_value generate_builtin_binary_divide(
 	auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
 	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
 
-	bz_assert(ast::remove_mutability_modifiers(lhs.get_expr_type()).is<ast::ts_base_type>());
-	auto const type_kind = ast::remove_mutability_modifiers(lhs.get_expr_type()).get<ast::ts_base_type>().info->kind;
+	bz_assert(lhs.get_expr_type().is<ast::ts_base_type>());
+	auto const type_kind = lhs.get_expr_type().get<ast::ts_base_type>().info->kind;
 	if (original_expression.paren_level < 2)
 	{
 		context.create_div_check(original_expression.src_tokens, lhs_value, rhs_value, ast::is_signed_integer_kind(type_kind));
@@ -1265,8 +1305,8 @@ static expr_value generate_builtin_binary_divide_eq(
 	bz_assert(lhs_ref.is_reference());
 	auto const lhs_value = lhs_ref.get_value(context);
 
-	bz_assert(ast::remove_mutability_modifiers(lhs.get_expr_type()).is<ast::ts_base_type>());
-	auto const type_kind = ast::remove_mutability_modifiers(lhs.get_expr_type()).get<ast::ts_base_type>().info->kind;
+	bz_assert(rhs.get_expr_type().is<ast::ts_base_type>());
+	auto const type_kind = rhs.get_expr_type().get<ast::ts_base_type>().info->kind;
 	if (original_expression.paren_level < 2)
 	{
 		context.create_div_check(original_expression.src_tokens, lhs_value, rhs_value, ast::is_signed_integer_kind(type_kind));
@@ -1288,8 +1328,8 @@ static expr_value generate_builtin_binary_modulo(
 	auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
 	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
 
-	bz_assert(ast::remove_mutability_modifiers(lhs.get_expr_type()).is<ast::ts_base_type>());
-	auto const type_kind = ast::remove_mutability_modifiers(lhs.get_expr_type()).get<ast::ts_base_type>().info->kind;
+	bz_assert(lhs.get_expr_type().is<ast::ts_base_type>());
+	auto const type_kind = lhs.get_expr_type().get<ast::ts_base_type>().info->kind;
 
 	auto const result_value = context.create_rem(original_expression.src_tokens, lhs_value, rhs_value, ast::is_signed_integer_kind(type_kind));
 	return value_or_result_address(result_value, result_address, context);
@@ -1307,8 +1347,8 @@ static expr_value generate_builtin_binary_modulo_eq(
 	bz_assert(lhs_ref.is_reference());
 	auto const lhs_value = lhs_ref.get_value(context);
 
-	bz_assert(ast::remove_mutability_modifiers(lhs.get_expr_type()).is<ast::ts_base_type>());
-	auto const type_kind = ast::remove_mutability_modifiers(lhs.get_expr_type()).get<ast::ts_base_type>().info->kind;
+	bz_assert(rhs.get_expr_type().is<ast::ts_base_type>());
+	auto const type_kind = rhs.get_expr_type().get<ast::ts_base_type>().info->kind;
 
 	auto const result_value = context.create_rem(original_expression.src_tokens, lhs_value, rhs_value, ast::is_signed_integer_kind(type_kind));
 	context.create_store(result_value, lhs_ref);
@@ -1323,8 +1363,8 @@ static expr_value generate_builtin_binary_equals(
 	bz::optional<expr_value> result_address
 )
 {
-	auto const lhs_t = ast::remove_mutability_modifiers(lhs.get_expr_type());
-	auto const rhs_t = ast::remove_mutability_modifiers(rhs.get_expr_type());
+	auto const lhs_t = lhs.get_expr_type().remove_reference();
+	auto const rhs_t = rhs.get_expr_type().remove_reference();
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -1383,8 +1423,8 @@ static expr_value generate_builtin_binary_not_equals(
 	bz::optional<expr_value> result_address
 )
 {
-	auto const lhs_t = ast::remove_mutability_modifiers(lhs.get_expr_type());
-	auto const rhs_t = ast::remove_mutability_modifiers(rhs.get_expr_type());
+	auto const lhs_t = lhs.get_expr_type().remove_reference();
+	auto const rhs_t = rhs.get_expr_type().remove_reference();
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -1442,8 +1482,8 @@ static expr_value generate_builtin_binary_less_than(
 	bz::optional<expr_value> result_address
 )
 {
-	auto const lhs_t = ast::remove_mutability_modifiers(lhs.get_expr_type());
-	auto const rhs_t = ast::remove_mutability_modifiers(rhs.get_expr_type());
+	auto const lhs_t = lhs.get_expr_type();
+	auto const rhs_t = rhs.get_expr_type();
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -1483,8 +1523,8 @@ static expr_value generate_builtin_binary_less_than_eq(
 	bz::optional<expr_value> result_address
 )
 {
-	auto const lhs_t = ast::remove_mutability_modifiers(lhs.get_expr_type());
-	auto const rhs_t = ast::remove_mutability_modifiers(rhs.get_expr_type());
+	auto const lhs_t = lhs.get_expr_type();
+	auto const rhs_t = rhs.get_expr_type();
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -1524,8 +1564,8 @@ static expr_value generate_builtin_binary_greater_than(
 	bz::optional<expr_value> result_address
 )
 {
-	auto const lhs_t = ast::remove_mutability_modifiers(lhs.get_expr_type());
-	auto const rhs_t = ast::remove_mutability_modifiers(rhs.get_expr_type());
+	auto const lhs_t = lhs.get_expr_type();
+	auto const rhs_t = rhs.get_expr_type();
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -1565,8 +1605,8 @@ static expr_value generate_builtin_binary_greater_than_eq(
 	bz::optional<expr_value> result_address
 )
 {
-	auto const lhs_t = ast::remove_mutability_modifiers(lhs.get_expr_type());
-	auto const rhs_t = ast::remove_mutability_modifiers(rhs.get_expr_type());
+	auto const lhs_t = lhs.get_expr_type();
+	auto const rhs_t = rhs.get_expr_type();
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -1699,8 +1739,8 @@ static expr_value generate_builtin_binary_bit_left_shift(
 	auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
 	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
 
-	bz_assert(ast::remove_mutability_modifiers(rhs.get_expr_type()).is<ast::ts_base_type>());
-	auto const rhs_kind = ast::remove_mutability_modifiers(rhs.get_expr_type()).get<ast::ts_base_type>().info->kind;
+	bz_assert(rhs.get_expr_type().is<ast::ts_base_type>());
+	auto const rhs_kind = rhs.get_expr_type().get<ast::ts_base_type>().info->kind;
 
 	auto const result_value = context.create_shl(
 		original_expression.src_tokens,
@@ -1723,8 +1763,8 @@ static expr_value generate_builtin_binary_bit_left_shift_eq(
 	bz_assert(lhs_ref.is_reference());
 	auto const lhs_value = lhs_ref.get_value(context);
 
-	bz_assert(ast::remove_mutability_modifiers(rhs.get_expr_type()).is<ast::ts_base_type>());
-	auto const rhs_kind = ast::remove_mutability_modifiers(rhs.get_expr_type()).get<ast::ts_base_type>().info->kind;
+	bz_assert(rhs.get_expr_type().is<ast::ts_base_type>());
+	auto const rhs_kind = rhs.get_expr_type().get<ast::ts_base_type>().info->kind;
 
 	auto const result_value = context.create_shl(
 		original_expression.src_tokens,
@@ -1747,8 +1787,8 @@ static expr_value generate_builtin_binary_bit_right_shift(
 	auto const lhs_value = generate_expr_code(lhs, context, {}).get_value(context);
 	auto const rhs_value = generate_expr_code(rhs, context, {}).get_value(context);
 
-	bz_assert(ast::remove_mutability_modifiers(rhs.get_expr_type()).is<ast::ts_base_type>());
-	auto const rhs_kind = ast::remove_mutability_modifiers(rhs.get_expr_type()).get<ast::ts_base_type>().info->kind;
+	bz_assert(rhs.get_expr_type().is<ast::ts_base_type>());
+	auto const rhs_kind = rhs.get_expr_type().get<ast::ts_base_type>().info->kind;
 
 	auto const result_value = context.create_shr(
 		original_expression.src_tokens,
@@ -1771,8 +1811,8 @@ static expr_value generate_builtin_binary_bit_right_shift_eq(
 	bz_assert(lhs_ref.is_reference());
 	auto const lhs_value = lhs_ref.get_value(context);
 
-	bz_assert(ast::remove_mutability_modifiers(rhs.get_expr_type()).is<ast::ts_base_type>());
-	auto const rhs_kind = ast::remove_mutability_modifiers(rhs.get_expr_type()).get<ast::ts_base_type>().info->kind;
+	bz_assert(rhs.get_expr_type().is<ast::ts_base_type>());
+	auto const rhs_kind = rhs.get_expr_type().get<ast::ts_base_type>().info->kind;
 
 	auto const result_value = context.create_shr(
 		original_expression.src_tokens,
@@ -1830,8 +1870,8 @@ static expr_value generate_builtin_subscript_range(
 	}
 	auto const &result_value = result_address.get();
 
-	auto const lhs_type = ast::remove_mutability_modifiers(lhs.get_expr_type());
-	auto const rhs_type = ast::remove_mutability_modifiers(rhs.get_expr_type());
+	auto const lhs_type = lhs.get_expr_type().remove_mut_reference();
+	auto const rhs_type = rhs.get_expr_type();
 	auto const lhs_value = generate_expr_code(lhs, context, {});
 	auto const rhs_value = generate_expr_code(rhs, context, {});
 
@@ -2483,8 +2523,8 @@ static expr_value generate_intrinsic_function_call_code(
 		auto const it_value = generate_expr_code(func_call.params[0], context, {});
 		bz_assert(it_value.is_reference());
 		auto const integer_value_ref = context.create_struct_gep(it_value, 0);
-		bz_assert(func_call.params[0].get_expr_type().get<ast::ts_mut>().is<ast::ts_base_type>());
-		auto const it_type_info = func_call.params[0].get_expr_type().get<ast::ts_mut>().get<ast::ts_base_type>().info;
+		bz_assert(func_call.params[0].get_expr_type().get_mut_reference().is<ast::ts_base_type>());
+		auto const it_type_info = func_call.params[0].get_expr_type().remove_mut_reference().get<ast::ts_base_type>().info;
 		bz_assert(it_type_info->generic_parameters.size() == 1);
 		bz_assert(it_type_info->generic_parameters[0].init_expr.is_typename());
 		auto const &it_integer_type = it_type_info->generic_parameters[0].init_expr.get_typename();
@@ -2505,8 +2545,8 @@ static expr_value generate_intrinsic_function_call_code(
 		auto const it_value = generate_expr_code(func_call.params[0], context, {});
 		bz_assert(it_value.is_reference());
 		auto const integer_value_ref = context.create_struct_gep(it_value, 0);
-		bz_assert(func_call.params[0].get_expr_type().get<ast::ts_mut>().is<ast::ts_base_type>());
-		auto const it_type_info = func_call.params[0].get_expr_type().get<ast::ts_mut>().get<ast::ts_base_type>().info;
+		bz_assert(func_call.params[0].get_expr_type().get_mut_reference().is<ast::ts_base_type>());
+		auto const it_type_info = func_call.params[0].get_expr_type().get_mut_reference().get<ast::ts_base_type>().info;
 		bz_assert(it_type_info->generic_parameters.size() == 1);
 		bz_assert(it_type_info->generic_parameters[0].init_expr.is_typename());
 		auto const &it_integer_type = it_type_info->generic_parameters[0].init_expr.get_typename();
@@ -2616,8 +2656,8 @@ static expr_value generate_intrinsic_function_call_code(
 		auto const increment_bb = context.add_basic_block();
 		context.set_current_basic_block(increment_bb);
 
-		bz_assert(func_call.params[0].get_expr_type().get<ast::ts_mut>().is<ast::ts_base_type>());
-		auto const it_type_info = func_call.params[0].get_expr_type().get<ast::ts_mut>().get<ast::ts_base_type>().info;
+		bz_assert(func_call.params[0].get_expr_type().get_mut_reference().is<ast::ts_base_type>());
+		auto const it_type_info = func_call.params[0].get_expr_type().get_mut_reference().get<ast::ts_base_type>().info;
 		bz_assert(it_type_info->generic_parameters.size() == 1);
 		bz_assert(it_type_info->generic_parameters[0].init_expr.is_typename());
 		auto const &it_integer_type = it_type_info->generic_parameters[0].init_expr.get_typename();
@@ -2712,8 +2752,8 @@ static expr_value generate_intrinsic_function_call_code(
 		auto const it_value = generate_expr_code(func_call.params[0], context, {});
 		bz_assert(it_value.is_reference());
 		auto const integer_value_ref = context.create_struct_gep(it_value, 0);
-		bz_assert(func_call.params[0].get_expr_type().get<ast::ts_mut>().is<ast::ts_base_type>());
-		auto const it_type_info = func_call.params[0].get_expr_type().get<ast::ts_mut>().get<ast::ts_base_type>().info;
+		bz_assert(func_call.params[0].get_expr_type().get_mut_reference().is<ast::ts_base_type>());
+		auto const it_type_info = func_call.params[0].get_expr_type().get_mut_reference().get<ast::ts_base_type>().info;
 		bz_assert(it_type_info->generic_parameters.size() == 1);
 		bz_assert(it_type_info->generic_parameters[0].init_expr.is_typename());
 		auto const &it_integer_type = it_type_info->generic_parameters[0].init_expr.get_typename();
@@ -2898,7 +2938,7 @@ static expr_value generate_intrinsic_function_call_code(
 		auto const begin_ptr = generate_expr_code(func_call.params[0], context, {});
 		auto const end_ptr = generate_expr_code(func_call.params[1], context, {});
 		bz_assert(func_call.params[0].get_expr_type().is<ast::ts_pointer>());
-		auto const elem_type = ast::remove_mutability_modifiers(func_call.params[0].get_expr_type().get<ast::ts_pointer>());
+		auto const elem_type = func_call.params[0].get_expr_type().get<ast::ts_pointer>().remove_any_mut();
 		return value_or_result_address(
 			context.create_add_global_array_data(func_call.src_tokens, get_type(elem_type, context), begin_ptr, end_ptr),
 			result_address,
@@ -3864,8 +3904,8 @@ static expr_value generate_expr_code(
 )
 {
 	auto const func_ptr = generate_expr_code(func_call.called, context, {});
-	bz_assert(ast::remove_mutability_modifiers(func_call.called.get_expr_type()).is<ast::ts_function>());
-	auto const &function_typespec = ast::remove_mutability_modifiers(func_call.called.get_expr_type()).get<ast::ts_function>();
+	bz_assert(func_call.called.get_expr_type().remove_mut_reference().is<ast::ts_function>());
+	auto const &function_typespec = func_call.called.get_expr_type().remove_mut_reference().get<ast::ts_function>();
 	auto const return_type = get_type(function_typespec.return_type, context);
 
 	// along with the arguments, the result address is passed as the first argument if it's not a builtin or pointer type
@@ -3952,8 +3992,8 @@ static expr_value generate_expr_code(
 	bz::optional<expr_value> result_address
 )
 {
-	auto const expr_t = ast::remove_mutability_modifiers(cast.expr.get_expr_type());
-	auto const dest_t = ast::remove_mutability_modifiers(cast.type);
+	auto const expr_t = cast.expr.get_expr_type().remove_mut_reference();
+	auto const dest_t = cast.type.remove_any_mut();
 
 	if (expr_t.is<ast::ts_base_type>() && dest_t.is<ast::ts_base_type>())
 	{
@@ -4183,7 +4223,17 @@ static expr_value generate_expr_code(
 	for (auto const i : bz::iota(0, aggregate_init.exprs.size()))
 	{
 		auto const member_ptr = context.create_struct_gep(result_value, i);
-		generate_expr_code(aggregate_init.exprs[i], context, member_ptr);
+		if (aggregate_init.exprs[i].get_expr_type().is_reference())
+		{
+			auto const ref = generate_expr_code(aggregate_init.exprs[i], context, {});
+			bz_assert(member_ptr.get_type()->is_pointer());
+			context.create_store(expr_value::get_value(ref.get_reference(), context.get_pointer_type()), member_ptr);
+			context.create_start_lifetime(member_ptr);
+		}
+		else
+		{
+			generate_expr_code(aggregate_init.exprs[i], context, member_ptr);
+		}
 	}
 	return result_value;
 }
@@ -4689,7 +4739,11 @@ static expr_value generate_expr_code(
 {
 	auto const value = generate_expr_code(destruct_value.value, context, {});
 	bz_assert(value.is_reference());
-	context.create_destruct_value_check(original_expression.src_tokens, value, ast::remove_mut(destruct_value.value.get_expr_type()));
+	context.create_destruct_value_check(
+		original_expression.src_tokens,
+		value,
+		destruct_value.value.get_expr_type().remove_mut_reference()
+	);
 	if (destruct_value.destruct_call.not_null())
 	{
 		auto const prev_value = context.push_value_reference(value);
@@ -4990,7 +5044,7 @@ static expr_value generate_expr_code(
 {
 	auto const rhs = generate_expr_code(aggregate_assign.rhs, context, {});
 	auto const lhs = generate_expr_code(aggregate_assign.lhs, context, {});
-	auto const is_rhs_rvalue = aggregate_assign.rhs.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue;
+	auto const is_rhs_rvalue = !aggregate_assign.rhs.get_expr_type().is_reference();
 	auto const pointer_compare_info = is_rhs_rvalue
 		? pointer_compare_info_t{}
 		: create_pointer_compare_begin(lhs, rhs, context);
@@ -5023,13 +5077,13 @@ static expr_value generate_expr_code(
 {
 	auto const rhs = generate_expr_code(array_assign.rhs, context, {});
 	auto const lhs = generate_expr_code(array_assign.lhs, context, {});
-	auto const is_rhs_rvalue = array_assign.rhs.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue;
+	auto const is_rhs_rvalue = !array_assign.rhs.get_expr_type().is_reference();
 	auto const pointer_compare_info = is_rhs_rvalue
 		? pointer_compare_info_t{}
 		: create_pointer_compare_begin(lhs, rhs, context);
 
-	bz_assert(array_assign.lhs.get_expr_type().is<ast::ts_mut>() && array_assign.lhs.get_expr_type().get<ast::ts_mut>().is<ast::ts_array>());
-	auto const size = array_assign.lhs.get_expr_type().get<ast::ts_mut>().get<ast::ts_array>().size;
+	bz_assert(lhs.get_type()->is_array());
+	auto const size = lhs.get_type()->get_array_size();
 
 	auto const loop_info = create_loop_start(size, context);
 
@@ -5108,7 +5162,7 @@ static expr_value generate_expr_code(
 	auto const lhs = generate_expr_code(optional_assign.lhs, context, {});
 	bz_assert(!lhs.get_type()->is_pointer());
 
-	auto const is_rhs_rvalue = optional_assign.rhs.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue;
+	auto const is_rhs_rvalue = !optional_assign.rhs.get_expr_type().is_reference();
 	auto const pointer_compare_info = is_rhs_rvalue
 		? pointer_compare_info_t{}
 		: create_pointer_compare_begin(lhs, rhs, context);
@@ -5289,7 +5343,7 @@ static expr_value generate_expr_code(
 {
 	auto const rhs = generate_expr_code(base_type_assign.rhs, context, {});
 	auto const lhs = generate_expr_code(base_type_assign.lhs, context, {});
-	auto const is_rhs_rvalue = base_type_assign.rhs.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue;
+	auto const is_rhs_rvalue = !base_type_assign.rhs.get_expr_type().is_reference();
 	auto const pointer_compare_info = is_rhs_rvalue
 		? pointer_compare_info_t{}
 		: create_pointer_compare_begin(lhs, rhs, context);
@@ -5350,7 +5404,24 @@ static expr_value generate_expr_code(
 	auto const base = generate_expr_code(member_access.base, context, {});
 	bz_assert(base.is_reference());
 	bz_assert(base.get_type()->is_aggregate());
-	return context.create_struct_gep(base, member_access.index);
+
+	bz_assert(member_access.base.get_expr_type().remove_mut_reference().is<ast::ts_base_type>());
+	auto const info = member_access.base.get_expr_type().remove_mut_reference().get<ast::ts_base_type>().info;
+	auto const &accessed_type = info->member_variables[member_access.index]->get_type();
+	if (accessed_type.is_reference())
+	{
+		auto const ref_ref = context.create_struct_gep(base, member_access.index);
+		bz_assert(ref_ref.get_type()->is_pointer());
+		auto const ref_value = context.create_load(ref_ref);
+		return expr_value::get_reference(
+			ref_value.get_value_as_instruction(context),
+			get_type(accessed_type.remove_reference(), context)
+		);
+	}
+	else
+	{
+		return context.create_struct_gep(base, member_access.index);
+	}
 }
 
 static expr_value generate_expr_code(
@@ -5363,7 +5434,7 @@ static expr_value generate_expr_code(
 	auto const optional_value = generate_expr_code(optional_extract_value.optional_value, context, {});
 	context.create_optional_get_value_check(src_tokens, get_optional_has_value(optional_value, context));
 
-	auto const optional_value_type = ast::remove_mutability_modifiers(optional_extract_value.optional_value.get_expr_type());
+	auto const optional_value_type = optional_extract_value.optional_value.get_expr_type().remove_any_mut();
 	if (optional_value_type.is_optional_reference())
 	{
 		bz_assert(optional_value.get_type()->is_pointer());
@@ -5392,6 +5463,11 @@ static expr_value generate_expr_code(
 {
 	auto const base = generate_expr_code(rvalue_member_access.base, context, {});
 
+	bz_assert(rvalue_member_access.base.get_expr_type().remove_mut_reference().is<ast::ts_base_type>());
+	auto const info = rvalue_member_access.base.get_expr_type().remove_mut_reference().get<ast::ts_base_type>().info;
+	auto const &accessed_type = info->member_variables[rvalue_member_access.index]->get_type();
+	bz_assert(!result_address.has_value() || !accessed_type.is_reference());
+
 	auto const prev_info = context.push_expression_scope();
 	expr_value result = expr_value::get_none();
 	for (auto const i : bz::iota(0, rvalue_member_access.member_refs.size()))
@@ -5401,7 +5477,22 @@ static expr_value generate_expr_code(
 			continue;
 		}
 
-		auto const member_value = context.create_struct_gep(base, i);
+		auto const member_value = [&]() {
+			if (i == rvalue_member_access.index && accessed_type.is_reference())
+			{
+				auto const ref_ref = context.create_struct_gep(base, i);
+				bz_assert(ref_ref.get_type()->is_pointer());
+				auto const ref_value = context.create_load(ref_ref);
+				return expr_value::get_reference(
+					ref_value.get_value_as_instruction(context),
+					get_type(accessed_type.remove_reference(), context)
+				);
+			}
+			else
+			{
+				return context.create_struct_gep(base, i);
+			}
+		}();
 
 		auto const prev_value = context.push_value_reference(member_value);
 		if (i == rvalue_member_access.index)
@@ -6423,7 +6514,7 @@ static expr_value get_constant_value_helper(
 		return value_or_result_address(context.create_const_i1(value.get_boolean()), result_address, context);
 	case ast::constant_value::null:
 		if (
-			auto const bare_type = ast::remove_mutability_modifiers(type);
+			auto const bare_type = type.remove_any_mut();
 			bare_type.is_optional_pointer_like() && !result_address.has_value()
 		)
 		{
@@ -6483,7 +6574,7 @@ static expr_value get_constant_value_helper(
 	}
 	case ast::constant_value::array:
 	{
-		auto const array_type = ast::remove_mutability_modifiers(type);
+		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
@@ -6500,7 +6591,7 @@ static expr_value get_constant_value_helper(
 	}
 	case ast::constant_value::sint_array:
 	{
-		auto const array_type = ast::remove_mutability_modifiers(type);
+		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
@@ -6516,7 +6607,7 @@ static expr_value get_constant_value_helper(
 	}
 	case ast::constant_value::uint_array:
 	{
-		auto const array_type = ast::remove_mutability_modifiers(type);
+		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
@@ -6532,7 +6623,7 @@ static expr_value get_constant_value_helper(
 	}
 	case ast::constant_value::float32_array:
 	{
-		auto const array_type = ast::remove_mutability_modifiers(type);
+		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
@@ -6548,7 +6639,7 @@ static expr_value get_constant_value_helper(
 	}
 	case ast::constant_value::float64_array:
 	{
-		auto const array_type = ast::remove_mutability_modifiers(type);
+		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
@@ -6586,8 +6677,8 @@ static expr_value get_constant_value_helper(
 		else
 		{
 			auto const tuple_values = value.get_tuple();
-			bz_assert(ast::remove_mutability_modifiers(type).is<ast::ts_tuple>());
-			auto const &tuple_t = ast::remove_mutability_modifiers(type).get<ast::ts_tuple>();
+			bz_assert(type.remove_any_mut().is<ast::ts_tuple>());
+			auto const &tuple_t = type.remove_any_mut().get<ast::ts_tuple>();
 			bz_assert(
 				tuple_t.types.size() == tuple_values.size()
 				&& tuple_t.types.size() == result_value.get_type()->get_aggregate_types().size()
@@ -6616,8 +6707,8 @@ static expr_value get_constant_value_helper(
 	case ast::constant_value::aggregate:
 	{
 		auto const aggregate = value.get_aggregate();
-		bz_assert(ast::remove_mutability_modifiers(type).is<ast::ts_base_type>());
-		auto const info = ast::remove_mutability_modifiers(type).get<ast::ts_base_type>().info;
+		bz_assert(type.remove_any_mut().is<ast::ts_base_type>());
+		auto const info = type.remove_any_mut().get<ast::ts_base_type>().info;
 		if (!result_address.has_value())
 		{
 			result_address = context.create_alloca(src_tokens, get_type(type, context));
@@ -6653,7 +6744,7 @@ static expr_value get_constant_value(
 	bz::optional<expr_value> result_address
 )
 {
-	type = ast::remove_mutability_modifiers(type);
+	type = type.remove_any_mut();
 	if (type.is<ast::ts_optional>() && value.is_null_constant())
 	{
 		if (type.is_optional_pointer_like() && !result_address.has_value())
@@ -6760,6 +6851,7 @@ static expr_value generate_expr_code(
 	if (
 		!result_address.has_value()
 		&& dyn_expr.kind == ast::expression_type_kind::rvalue
+		&& !dyn_expr.type.is_any_reference()
 		&& (
 			(dyn_expr.destruct_op.not_null() && !dyn_expr.destruct_op.is<ast::trivial_destruct_self>())
 			|| dyn_expr.expr.is<ast::expr_compound>()
@@ -6791,7 +6883,7 @@ static expr_value generate_expr_code(
 	}
 
 	if (
-		dyn_expr.kind == ast::expression_type_kind::lvalue_reference
+		dyn_expr.type.is<ast::ts_lvalue_reference>()
 		&& (
 			dyn_expr.expr.is<ast::expr_compound>()
 			|| dyn_expr.expr.is<ast::expr_function_call>()
@@ -6800,7 +6892,7 @@ static expr_value generate_expr_code(
 	)
 	{
 		bz_assert(result.is_reference());
-		context.create_memory_access_check(original_expression.src_tokens, result, dyn_expr.type);
+		context.create_memory_access_check(original_expression.src_tokens, result, dyn_expr.type.remove_reference());
 	}
 
 	return result;
@@ -7119,7 +7211,7 @@ static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_conte
 	{
 		return;
 	}
-	else if (var_decl.get_type().is<ast::ts_lvalue_reference>())
+	else if (var_decl.get_type().is_any_reference())
 	{
 		bz_assert(var_decl.init_expr.not_null());
 		auto const prev_info = context.push_expression_scope();
@@ -7235,11 +7327,9 @@ void generate_code(function &func, codegen_context &context)
 			continue;
 		}
 
-		if (param.get_type().is<ast::ts_lvalue_reference>() || param.get_type().is<ast::ts_move_reference>())
+		if (param.get_type().is_any_reference())
 		{
-			auto const inner_type = param.get_type().is<ast::ts_lvalue_reference>()
-				? param.get_type().get<ast::ts_lvalue_reference>()
-				: param.get_type().get<ast::ts_move_reference>();
+			auto const inner_type = param.get_type().get_any_reference();
 			auto const type = get_type(inner_type, context);
 			auto const value = expr_value::get_reference(context.create_get_function_arg(i), type);
 			if (param.tuple_decls.empty())

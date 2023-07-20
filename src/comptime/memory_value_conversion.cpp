@@ -421,7 +421,7 @@ constant_value_from_object_result_t constant_value_from_object(
 	executor_context const &context
 )
 {
-	ts = ast::remove_mutability_modifiers(ts);
+	ts = ts.remove_any_mut();
 	if (object_type->is_builtin())
 	{
 		if (ts.is<ast::ts_base_type>())

@@ -1,4 +1,5 @@
-// error: unable to match lvalue expression of type 'int32' to a mutable auto reference '#mut int32'
+// error: unable to match value of type 'int32' to '#mut int32'
+// note: mismatched mutability of types 'int32' and 'mut int32'
 function test()
 {
 	let ci: int32 = 0;
