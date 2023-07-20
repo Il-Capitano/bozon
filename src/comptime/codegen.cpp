@@ -217,7 +217,7 @@ static expr_value generate_expr_code(
 
 	if (var_name.decl->get_type().is<ast::ts_lvalue_reference>() || var_name.decl->get_type().is<ast::ts_move_reference>())
 	{
-		auto const object_typespec = ast::remove_lvalue_or_move_reference(var_name.decl->get_type());
+		auto const object_typespec = var_name.decl->get_type().remove_any_reference();
 		context.create_memory_access_check(original_expression.src_tokens, result, object_typespec);
 	}
 	return result;
@@ -635,8 +635,8 @@ static expr_value generate_expr_code(
 	{
 		auto const array = generate_expr_code(subscript.base, context, {});
 		auto index = generate_expr_code(subscript.index, context, {}).get_value(context);
-		bz_assert(ast::remove_mutability_modifiers(subscript.index.get_expr_type()).is<ast::ts_base_type>());
-		auto const kind = ast::remove_mutability_modifiers(subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
+		bz_assert(subscript.index.get_expr_type().remove_any_mut().is<ast::ts_base_type>());
+		auto const kind = subscript.index.get_expr_type().remove_any_mut().get<ast::ts_base_type>().info->kind;
 
 		bz_assert(index.get_type()->is_builtin());
 		auto const size = base_type.get<ast::ts_array>().size;
@@ -669,8 +669,8 @@ static expr_value generate_expr_code(
 	{
 		auto const slice = generate_expr_code(subscript.base, context, {});
 		auto const index = generate_expr_code(subscript.index, context, {}).get_value(context);
-		bz_assert(ast::remove_mutability_modifiers(subscript.index.get_expr_type()).is<ast::ts_base_type>());
-		auto const kind = ast::remove_mutability_modifiers(subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
+		bz_assert(subscript.index.get_expr_type().remove_any_mut().is<ast::ts_base_type>());
+		auto const kind = subscript.index.get_expr_type().remove_any_mut().get<ast::ts_base_type>().info->kind;
 		auto const elem_ts = base_type.get<ast::ts_array_slice>().elem_type.as_typespec_view();
 		auto const elem_type = get_type(elem_ts, context);
 
@@ -737,8 +737,8 @@ static expr_value generate_expr_code(
 	auto const &array_t = rvalue_array_subscript.base.get_expr_type().get<ast::ts_array>();
 	auto const array = generate_expr_code(rvalue_array_subscript.base, context, {});
 	auto index = generate_expr_code(rvalue_array_subscript.index, context, {}).get_value(context);
-	bz_assert(ast::remove_mutability_modifiers(rvalue_array_subscript.index.get_expr_type()).is<ast::ts_base_type>());
-	auto const kind = ast::remove_mutability_modifiers(rvalue_array_subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
+	bz_assert(rvalue_array_subscript.index.get_expr_type().remove_any_mut().is<ast::ts_base_type>());
+	auto const kind = rvalue_array_subscript.index.get_expr_type().remove_any_mut().get<ast::ts_base_type>().info->kind;
 
 	bz_assert(index.get_type()->is_builtin());
 	auto const size = array_t.size;
@@ -2938,7 +2938,7 @@ static expr_value generate_intrinsic_function_call_code(
 		auto const begin_ptr = generate_expr_code(func_call.params[0], context, {});
 		auto const end_ptr = generate_expr_code(func_call.params[1], context, {});
 		bz_assert(func_call.params[0].get_expr_type().is<ast::ts_pointer>());
-		auto const elem_type = ast::remove_mutability_modifiers(func_call.params[0].get_expr_type().get<ast::ts_pointer>());
+		auto const elem_type = func_call.params[0].get_expr_type().get<ast::ts_pointer>().remove_any_mut();
 		return value_or_result_address(
 			context.create_add_global_array_data(func_call.src_tokens, get_type(elem_type, context), begin_ptr, end_ptr),
 			result_address,
@@ -3993,7 +3993,7 @@ static expr_value generate_expr_code(
 )
 {
 	auto const expr_t = cast.expr.get_expr_type().remove_mut_reference();
-	auto const dest_t = ast::remove_mutability_modifiers(cast.type);
+	auto const dest_t = cast.type.remove_any_mut();
 
 	if (expr_t.is<ast::ts_base_type>() && dest_t.is<ast::ts_base_type>())
 	{
@@ -5434,7 +5434,7 @@ static expr_value generate_expr_code(
 	auto const optional_value = generate_expr_code(optional_extract_value.optional_value, context, {});
 	context.create_optional_get_value_check(src_tokens, get_optional_has_value(optional_value, context));
 
-	auto const optional_value_type = ast::remove_mutability_modifiers(optional_extract_value.optional_value.get_expr_type());
+	auto const optional_value_type = optional_extract_value.optional_value.get_expr_type().remove_any_mut();
 	if (optional_value_type.is_optional_reference())
 	{
 		bz_assert(optional_value.get_type()->is_pointer());
@@ -6514,7 +6514,7 @@ static expr_value get_constant_value_helper(
 		return value_or_result_address(context.create_const_i1(value.get_boolean()), result_address, context);
 	case ast::constant_value::null:
 		if (
-			auto const bare_type = ast::remove_mutability_modifiers(type);
+			auto const bare_type = type.remove_any_mut();
 			bare_type.is_optional_pointer_like() && !result_address.has_value()
 		)
 		{
@@ -6574,7 +6574,7 @@ static expr_value get_constant_value_helper(
 	}
 	case ast::constant_value::array:
 	{
-		auto const array_type = ast::remove_mutability_modifiers(type);
+		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
@@ -6591,7 +6591,7 @@ static expr_value get_constant_value_helper(
 	}
 	case ast::constant_value::sint_array:
 	{
-		auto const array_type = ast::remove_mutability_modifiers(type);
+		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
@@ -6607,7 +6607,7 @@ static expr_value get_constant_value_helper(
 	}
 	case ast::constant_value::uint_array:
 	{
-		auto const array_type = ast::remove_mutability_modifiers(type);
+		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
@@ -6623,7 +6623,7 @@ static expr_value get_constant_value_helper(
 	}
 	case ast::constant_value::float32_array:
 	{
-		auto const array_type = ast::remove_mutability_modifiers(type);
+		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
@@ -6639,7 +6639,7 @@ static expr_value get_constant_value_helper(
 	}
 	case ast::constant_value::float64_array:
 	{
-		auto const array_type = ast::remove_mutability_modifiers(type);
+		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
 		if (!result_address.has_value())
 		{
@@ -6677,8 +6677,8 @@ static expr_value get_constant_value_helper(
 		else
 		{
 			auto const tuple_values = value.get_tuple();
-			bz_assert(ast::remove_mutability_modifiers(type).is<ast::ts_tuple>());
-			auto const &tuple_t = ast::remove_mutability_modifiers(type).get<ast::ts_tuple>();
+			bz_assert(type.remove_any_mut().is<ast::ts_tuple>());
+			auto const &tuple_t = type.remove_any_mut().get<ast::ts_tuple>();
 			bz_assert(
 				tuple_t.types.size() == tuple_values.size()
 				&& tuple_t.types.size() == result_value.get_type()->get_aggregate_types().size()
@@ -6707,8 +6707,8 @@ static expr_value get_constant_value_helper(
 	case ast::constant_value::aggregate:
 	{
 		auto const aggregate = value.get_aggregate();
-		bz_assert(ast::remove_mutability_modifiers(type).is<ast::ts_base_type>());
-		auto const info = ast::remove_mutability_modifiers(type).get<ast::ts_base_type>().info;
+		bz_assert(type.remove_any_mut().is<ast::ts_base_type>());
+		auto const info = type.remove_any_mut().get<ast::ts_base_type>().info;
 		if (!result_address.has_value())
 		{
 			result_address = context.create_alloca(src_tokens, get_type(type, context));
@@ -6744,7 +6744,7 @@ static expr_value get_constant_value(
 	bz::optional<expr_value> result_address
 )
 {
-	type = ast::remove_mutability_modifiers(type);
+	type = type.remove_any_mut();
 	if (type.is<ast::ts_optional>() && value.is_null_constant())
 	{
 		if (type.is_optional_pointer_like() && !result_address.has_value())

@@ -92,7 +92,7 @@ static void add_call_parameter(
 		(params_is_byval.*byval_push)({ false, nullptr });
 	}
 	// special case for *void and *mut void
-	else if (ast::remove_mut(ast::remove_pointer(param_type)).is<ast::ts_void>())
+	else if (param_type.remove_mut_pointer().is<ast::ts_void>())
 	{
 		auto const void_ptr_val = param.get_value(context.builder);
 		bz_assert(void_ptr_val->getType()->isPointerTy());
@@ -4108,8 +4108,8 @@ static val_ptr emit_bitcode(
 	{
 		auto const array = emit_bitcode(subscript.base, context, nullptr);
 		auto index_val = emit_bitcode(subscript.index, context, nullptr).get_value(context.builder);
-		bz_assert(ast::remove_mutability_modifiers(subscript.index.get_expr_type()).is<ast::ts_base_type>());
-		auto const kind = ast::remove_mutability_modifiers(subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
+		bz_assert(subscript.index.get_expr_type().remove_any_mut().is<ast::ts_base_type>());
+		auto const kind = subscript.index.get_expr_type().remove_any_mut().get<ast::ts_base_type>().info->kind;
 		if (ast::is_unsigned_integer_kind(kind))
 		{
 			index_val = context.builder.CreateIntCast(index_val, context.get_usize_t(), false);
@@ -4140,8 +4140,8 @@ static val_ptr emit_bitcode(
 		auto const array = emit_bitcode(subscript.base, context, nullptr);
 		auto const array_val = array.get_value(context.builder);
 		auto const begin_ptr = context.builder.CreateExtractValue(array_val, 0);
-		bz_assert(ast::remove_mutability_modifiers(subscript.index.get_expr_type()).is<ast::ts_base_type>());
-		auto const kind = ast::remove_mutability_modifiers(subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
+		bz_assert(subscript.index.get_expr_type().remove_any_mut().is<ast::ts_base_type>());
+		auto const kind = subscript.index.get_expr_type().remove_any_mut().get<ast::ts_base_type>().info->kind;
 		auto index_val = emit_bitcode(subscript.index, context, nullptr).get_value(context.builder);
 		if (ast::is_unsigned_integer_kind(kind))
 		{
@@ -4189,7 +4189,7 @@ static val_ptr emit_bitcode(
 					return context.create_struct_gep(tuple.get_type(), tuple.val, index_int_value);
 				}
 			}();
-			auto const result_type = get_llvm_type(ast::remove_lvalue_reference(accessed_type), context);
+			auto const result_type = get_llvm_type(accessed_type.remove_reference(), context);
 			bz_assert(result_address == nullptr);
 			return val_ptr::get_reference(result_ptr, result_type);
 		}
@@ -4218,8 +4218,8 @@ static val_ptr emit_bitcode(
 {
 	auto const array = emit_bitcode(subscript.base, context, nullptr);
 	auto index_val = emit_bitcode(subscript.index, context, nullptr).get_value(context.builder);
-	bz_assert(ast::remove_mutability_modifiers(subscript.index.get_expr_type()).is<ast::ts_base_type>());
-	auto const kind = ast::remove_mutability_modifiers(subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
+	bz_assert(subscript.index.get_expr_type().remove_any_mut().is<ast::ts_base_type>());
+	auto const kind = subscript.index.get_expr_type().remove_any_mut().get<ast::ts_base_type>().info->kind;
 	if (ast::is_unsigned_integer_kind(kind))
 	{
 		index_val = context.builder.CreateIntCast(index_val, context.get_usize_t(), false);
@@ -4253,7 +4253,7 @@ static val_ptr emit_bitcode(
 )
 {
 	auto const expr_t = cast.expr.get_expr_type().remove_mut_reference();
-	auto const dest_t = ast::remove_mutability_modifiers(cast.type);
+	auto const dest_t = cast.type.remove_any_mut();
 
 	if (expr_t.is<ast::ts_base_type>() && dest_t.is<ast::ts_base_type>())
 	{
@@ -4442,7 +4442,7 @@ static val_ptr emit_bitcode(
 }
 
 static val_ptr emit_bitcode(
-	lex::src_tokens const &,
+	lex::src_tokens const &src_tokens,
 	ast::expr_optional_cast const &optional_cast,
 	bitcode_context &context,
 	llvm::Value *result_address
@@ -4455,6 +4455,8 @@ static val_ptr emit_bitcode(
 	}
 	else
 	{
+		llvm::dbgs() << *result_type << '\n';
+		bz::log("{} {}\n", context.global_ctx.get_location_string(src_tokens.pivot), optional_cast.type);
 		bz_assert(result_address != nullptr);
 		auto const result_val = val_ptr::get_reference(result_address, result_type);
 		auto const value_ptr = optional_get_value_ptr(result_val, context);
@@ -5869,7 +5871,7 @@ static val_ptr emit_bitcode(
 				return context.create_struct_gep(base.get_type(), base.val, member_access.index);
 			}
 		}();
-		auto const result_type = get_llvm_type(ast::remove_lvalue_reference(accessed_type), context);
+		auto const result_type = get_llvm_type(accessed_type.remove_reference(), context);
 		bz_assert(result_address == nullptr);
 		return val_ptr::get_reference(result_ptr, result_type);
 	}
@@ -5900,15 +5902,14 @@ static val_ptr emit_bitcode(
 	auto const optional_val = emit_bitcode(optional_extract_value.optional_value, context, nullptr);
 	emit_null_optional_get_value_check(src_tokens, optional_val, context);
 
-	if (ast::remove_mutability_modifiers(optional_extract_value.optional_value.get_expr_type()).is_optional_reference())
+	if (optional_extract_value.optional_value.get_expr_type().remove_any_mut().is_optional_reference())
 	{
 		bz_assert(optional_val.get_type()->isPointerTy());
 		auto const value_ref = optional_val.get_value(context.builder);
 
 		bz_assert(result_address == nullptr);
 		auto const type = get_llvm_type(
-			ast::remove_mutability_modifiers(optional_extract_value.optional_value.get_expr_type())
-				.get_optional_reference(),
+			optional_extract_value.optional_value.get_expr_type().remove_any_mut().get_optional_reference(),
 			context
 		);
 		return val_ptr::get_reference(value_ref, type);
@@ -7004,7 +7005,7 @@ static llvm::Constant *get_value_helper(
 		return context.builder.getInt1(value.get_boolean());
 	case ast::constant_value::null:
 		if (
-			auto const type_without_const = ast::remove_mutability_modifiers(type);
+			auto const type_without_const = type.remove_any_mut();
 			type_without_const.is_optional_pointer_like()
 		)
 		{
@@ -7030,7 +7031,7 @@ static llvm::Constant *get_value_helper(
 	}
 	case ast::constant_value::array:
 	{
-		auto const array_type = ast::remove_mutability_modifiers(type);
+		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
 		return get_array_value(
 			value.get_array(),
@@ -7041,7 +7042,7 @@ static llvm::Constant *get_value_helper(
 	}
 	case ast::constant_value::sint_array:
 	{
-		auto const array_type = ast::remove_mutability_modifiers(type);
+		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
 		return get_sint_array_value(
 			value.get_sint_array(),
@@ -7052,7 +7053,7 @@ static llvm::Constant *get_value_helper(
 	}
 	case ast::constant_value::uint_array:
 	{
-		auto const array_type = ast::remove_mutability_modifiers(type);
+		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
 		return get_uint_array_value(
 			value.get_uint_array(),
@@ -7063,7 +7064,7 @@ static llvm::Constant *get_value_helper(
 	}
 	case ast::constant_value::float32_array:
 	{
-		auto const array_type = ast::remove_mutability_modifiers(type);
+		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
 		return get_float32_array_value(
 			value.get_float32_array(),
@@ -7074,7 +7075,7 @@ static llvm::Constant *get_value_helper(
 	}
 	case ast::constant_value::float64_array:
 	{
-		auto const array_type = ast::remove_mutability_modifiers(type);
+		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
 		return get_float64_array_value(
 			value.get_float64_array(),
@@ -7103,8 +7104,8 @@ static llvm::Constant *get_value_helper(
 		}
 		else
 		{
-			bz_assert(ast::remove_mutability_modifiers(type).is<ast::ts_tuple>());
-			auto const &tuple_t = ast::remove_mutability_modifiers(type).get<ast::ts_tuple>();
+			bz_assert(type.remove_any_mut().is<ast::ts_tuple>());
+			auto const &tuple_t = type.remove_any_mut().get<ast::ts_tuple>();
 			for (auto const &[val, t] : bz::zip(tuple_values, tuple_t.types))
 			{
 				elems.push_back(get_value(val, t, nullptr, context));
@@ -7121,8 +7122,8 @@ static llvm::Constant *get_value_helper(
 	case ast::constant_value::aggregate:
 	{
 		auto const aggregate = value.get_aggregate();
-		bz_assert(ast::remove_mutability_modifiers(type).is<ast::ts_base_type>());
-		auto const info = ast::remove_mutability_modifiers(type).get<ast::ts_base_type>().info;
+		bz_assert(type.remove_any_mut().is<ast::ts_base_type>());
+		auto const info = type.remove_any_mut().get<ast::ts_base_type>().info;
 		auto const val_type = get_llvm_type(type, context);
 		bz_assert(val_type->isStructTy());
 		auto const val_struct_type = static_cast<llvm::StructType *>(val_type);
@@ -7147,7 +7148,7 @@ static llvm::Constant *get_value(
 	bitcode_context &context
 )
 {
-	type = ast::remove_mutability_modifiers(type);
+	type = type.remove_any_mut();
 	if (type.is<ast::ts_optional>() && value.is_null_constant())
 	{
 		auto const result_type = get_llvm_type(type, context);
@@ -8013,13 +8014,13 @@ void emit_function_bitcode(
 				bz_assert(fn_it->getType()->isPointerTy());
 				if (p.tuple_decls.empty())
 				{
-					auto const type = ast::remove_lvalue_or_move_reference(p.get_type());
+					auto const type = p.get_type().remove_any_reference();
 					context.add_variable(&p, fn_it, get_llvm_type(type, context));
 					bz_assert(p.destruction.is_null());
 				}
 				else
 				{
-					auto const type = ast::remove_lvalue_or_move_reference(p.get_type());
+					auto const type = p.get_type().remove_any_reference();
 					add_variable_helper(p, fn_it, get_llvm_type(type, context), context);
 				}
 			}

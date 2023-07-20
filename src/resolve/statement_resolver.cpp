@@ -767,7 +767,7 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 		{
 			context.report_error(
 				var_decl.src_tokens,
-				bz::format("variable type '{}' is not default constructible and must be initialized", ast::remove_mut(var_decl.get_type()))
+				bz::format("variable type '{}' is not default constructible and must be initialized", var_decl.get_type().remove_mut())
 			);
 			var_decl.state = ast::resolve_state::error;
 		}
@@ -864,7 +864,7 @@ void resolve_variable_symbol(ast::decl_variable &var_decl, ctx::parse_context &c
 
 static void resolve_variable_destruction(ast::decl_variable &var_decl, ctx::parse_context &context)
 {
-	auto const type = ast::remove_mutability_modifiers(var_decl.get_type());
+	auto const type = var_decl.get_type().remove_any_mut();
 	if (type.is<ast::ts_base_type>())
 	{
 		auto const info = type.get<ast::ts_base_type>().info;
@@ -1735,7 +1735,7 @@ static bool is_valid_main(ast::function_body const &body)
 
 	for (auto const &param : body.params)
 	{
-		auto const param_t = ast::remove_mutability_modifiers(param.get_type());
+		auto const param_t = param.get_type().remove_any_mut();
 		if (!param_t.is<ast::ts_array_slice>())
 		{
 			return false;
@@ -1796,7 +1796,7 @@ static void report_invalid_main_error(ast::function_body const &body, ctx::parse
 	bz_assert(body.params.size() == 1);
 	auto const &param = body.params[0];
 
-	auto const param_t = ast::remove_mutability_modifiers(param.get_type());
+	auto const param_t = param.get_type().remove_any_mut();
 	if (!param_t.is<ast::ts_array_slice>())
 	{
 		context.report_error(
@@ -2562,7 +2562,7 @@ static void add_flags(ast::type_info &info, ctx::parse_context &context)
 
 static void resolve_member_type_size(lex::src_tokens const &src_tokens, ast::typespec_view member_type, ctx::parse_context &context)
 {
-	member_type = ast::remove_mutability_modifiers(member_type);
+	member_type = member_type.remove_any_mut();
 	if (member_type.is<ast::ts_base_type>())
 	{
 		auto const info = member_type.get<ast::ts_base_type>().info;

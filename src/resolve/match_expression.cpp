@@ -158,7 +158,7 @@ void match_expression_to_variable(
 	else
 	{
 		match_expression_to_type(expr, var_decl.get_type(), context);
-		if (!ast::remove_mut(ast::remove_lvalue_reference(var_decl.get_type())).is<ast::ts_tuple>())
+		if (!var_decl.get_type().remove_mut_reference().is<ast::ts_tuple>())
 		{
 			context.report_error(
 				var_decl.src_tokens,
@@ -168,9 +168,9 @@ void match_expression_to_variable(
 			return;
 		}
 
-		auto const var_type_without_lvalue_ref = ast::remove_lvalue_reference(var_decl.get_type());
+		auto const var_type_without_lvalue_ref = var_decl.get_type().remove_reference();
 		set_type(
-			var_decl, ast::remove_mutability_modifiers(var_type_without_lvalue_ref),
+			var_decl, var_type_without_lvalue_ref.remove_any_mut(),
 			var_type_without_lvalue_ref.is<ast::ts_mut>(),
 			var_decl.get_type().is<ast::ts_lvalue_reference>()
 		);

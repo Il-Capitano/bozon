@@ -72,8 +72,8 @@ static ast::constant_value evaluate_binary_plus(
 
 	if (lhs_value.kind() == rhs_value.kind())
 	{
-		bz_assert(ast::remove_mutability_modifiers(lhs_const_expr.type).is<ast::ts_base_type>());
-		auto const type = ast::remove_mutability_modifiers(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
+		bz_assert(lhs_const_expr.type.remove_any_mut().is<ast::ts_base_type>());
+		auto const type = lhs_const_expr.type.remove_any_mut().get<ast::ts_base_type>().info->kind;
 		switch (lhs_value.kind())
 		{
 		static_assert(ast::constant_value::variant_count == 19);
@@ -183,8 +183,8 @@ static ast::constant_value evaluate_binary_minus(
 
 	if (lhs_value.kind() == rhs_value.kind())
 	{
-		bz_assert(ast::remove_mutability_modifiers(lhs_const_expr.type).is<ast::ts_base_type>());
-		auto const type = ast::remove_mutability_modifiers(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
+		bz_assert(lhs_const_expr.type.remove_any_mut().is<ast::ts_base_type>());
+		auto const type = lhs_const_expr.type.remove_any_mut().get<ast::ts_base_type>().info->kind;
 		switch (lhs_value.kind())
 		{
 		static_assert(ast::constant_value::variant_count == 19);
@@ -274,8 +274,8 @@ static ast::constant_value evaluate_binary_multiply(
 	auto const &rhs_value = rhs_const_expr.value;
 	bz_assert(lhs_value.kind() == rhs_value.kind());
 
-	bz_assert(ast::remove_mutability_modifiers(lhs_const_expr.type).is<ast::ts_base_type>());
-	auto const type = ast::remove_mutability_modifiers(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
+	bz_assert(lhs_const_expr.type.remove_any_mut().is<ast::ts_base_type>());
+	auto const type = lhs_const_expr.type.remove_any_mut().get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
 	static_assert(ast::constant_value::variant_count == 19);
@@ -334,8 +334,8 @@ static ast::constant_value evaluate_binary_divide(
 	auto const &rhs_value = rhs_const_expr.value;
 	bz_assert(lhs_value.kind() == rhs_value.kind());
 
-	bz_assert(ast::remove_mutability_modifiers(lhs_const_expr.type).is<ast::ts_base_type>());
-	auto const type = ast::remove_mutability_modifiers(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
+	bz_assert(lhs_const_expr.type.remove_any_mut().is<ast::ts_base_type>());
+	auto const type = lhs_const_expr.type.remove_any_mut().get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
 	static_assert(ast::constant_value::variant_count == 19);
@@ -410,8 +410,8 @@ static ast::constant_value evaluate_binary_modulo(
 	auto const &rhs_value = rhs_const_expr.value;
 	bz_assert(lhs_value.kind() == rhs_value.kind());
 
-	bz_assert(ast::remove_mutability_modifiers(lhs_const_expr.type).is<ast::ts_base_type>());
-	auto const type = ast::remove_mutability_modifiers(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
+	bz_assert(lhs_const_expr.type.remove_any_mut().is<ast::ts_base_type>());
+	auto const type = lhs_const_expr.type.remove_any_mut().get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
 	static_assert(ast::constant_value::variant_count == 19);
@@ -1053,8 +1053,8 @@ static ast::constant_value evaluate_binary_bit_right_shift(
 	bz_assert(lhs_value.is_uint());
 	auto const lhs_int_val = lhs_value.get_uint();
 
-	bz_assert(ast::remove_mutability_modifiers(lhs_const_expr.type).is<ast::ts_base_type>());
-	auto const lhs_type_kind = ast::remove_mutability_modifiers(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
+	bz_assert(lhs_const_expr.type.remove_any_mut().is<ast::ts_base_type>());
+	auto const lhs_type_kind = lhs_const_expr.type.remove_any_mut().get<ast::ts_base_type>().info->kind;
 
 	bz_assert(rhs_value.is_uint() || rhs_value.is_sint());
 	if (rhs_value.is_uint())
@@ -1869,8 +1869,8 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		auto const &value = const_expr.value;
 		if (value.is_sint())
 		{
-			bz_assert(ast::remove_mutability_modifiers(const_expr.type).is<ast::ts_base_type>());
-			auto const type = ast::remove_mutability_modifiers(const_expr.type).get<ast::ts_base_type>().info->kind;
+			bz_assert(const_expr.type.remove_any_mut().is<ast::ts_base_type>());
+			auto const type = const_expr.type.remove_any_mut().get<ast::ts_base_type>().info->kind;
 			auto const int_val = value.get_sint();
 			return ast::constant_value(safe_unary_minus(
 				original_expr.src_tokens, original_expr.paren_level,
@@ -1907,7 +1907,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		}
 		else
 		{
-			auto const param_type = ast::remove_mutability_modifiers(func_call.params[0].get_constant().type);
+			auto const param_type = func_call.params[0].get_constant().type.remove_any_mut();
 			bz_assert(param_type.is<ast::ts_base_type>());
 			auto const param_kind = param_type.get<ast::ts_base_type>().info->kind;
 			bz_assert(value.is_uint());
@@ -1999,7 +1999,7 @@ static ast::constant_value get_default_constructed_value(
 		return {};
 	}
 
-	type = ast::remove_mutability_modifiers(type);
+	type = type.remove_any_mut();
 	if (type.modifiers.not_empty())
 	{
 		bz_assert(type.is<ast::ts_optional>());
@@ -2157,7 +2157,7 @@ static ast::constant_value evaluate_cast(
 )
 {
 	bz_assert(subscript_expr.expr.is_constant());
-	auto const dest_type = ast::remove_mutability_modifiers(subscript_expr.type);
+	auto const dest_type = subscript_expr.type.remove_any_mut();
 	if (!dest_type.is<ast::ts_base_type>())
 	{
 		return {};

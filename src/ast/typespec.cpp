@@ -55,11 +55,31 @@ bool typespec_view::is_typename(void) const noexcept
 	});
 }
 
+template<typename ...Kinds>
+static bool is_kind_helper(typespec_view const &ts)
+{
+	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
+		return ts.modifiers.size() >= (sizeof ...(Kinds)) && (... && ts.modifiers[Ns].is<Kinds>());
+	}(bz::meta::make_index_sequence<sizeof... (Kinds)>{});
+}
+
+template<typename ...Kinds>
+static typespec_view remove_kind_helper(typespec_view const &ts)
+{
+	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
+		auto begin = ts.modifiers.begin();
+		auto const end = ts.modifiers.end();
+		// this is ugly...
+		(... || (begin != end && begin->is<Kinds>() && (++begin, false)));
+		return typespec_view{ ts.src_tokens, { begin, end }, ts.terminator };
+	}(bz::meta::make_index_sequence<sizeof... (Kinds)>{});
+}
+
 bool typespec_view::is_optional_pointer_like(void) const noexcept
 {
 	if (this->modifiers.size() >= 2
 		&& this->modifiers[0].is<ts_optional>()
-		&& (this->modifiers[1].is<ts_pointer>() || this->modifiers[1].is<ast::ts_lvalue_reference>())
+		&& (this->modifiers[1].is<ts_pointer>() || this->modifiers[1].is<ts_lvalue_reference>())
 	)
 	{
 		return true;
@@ -67,16 +87,14 @@ bool typespec_view::is_optional_pointer_like(void) const noexcept
 	else
 	{
 		return this->modifiers.size() == 1
-			&& this->modifiers[0].is<ast::ts_optional>()
-			&& this->terminator->is<ast::ts_function>();
+			&& this->modifiers[0].is<ts_optional>()
+			&& this->terminator->is<ts_function>();
 	}
 }
 
 bool typespec_view::is_optional_pointer(void) const noexcept
 {
-	return this->modifiers.size() >= 2
-		&& this->modifiers[0].is<ts_optional>()
-		&& this->modifiers[1].is<ts_pointer>();
+	return is_kind_helper<ts_optional, ts_pointer>(*this);
 }
 
 typespec_view typespec_view::get_optional_pointer(void) const noexcept
@@ -85,17 +103,25 @@ typespec_view typespec_view::get_optional_pointer(void) const noexcept
 	return this->get<ts_optional>().get<ts_pointer>();
 }
 
+typespec_view typespec_view::remove_optional_pointer(void) const noexcept
+{
+	return remove_kind_helper<ts_optional, ts_pointer>(*this);
+}
+
 bool typespec_view::is_optional_reference(void) const noexcept
 {
-	return this->modifiers.size() >= 2
-		&& this->modifiers[0].is<ts_optional>()
-		&& this->modifiers[1].is<ts_lvalue_reference>();
+	return is_kind_helper<ts_optional, ts_lvalue_reference>(*this);
 }
 
 typespec_view typespec_view::get_optional_reference(void) const noexcept
 {
 	bz_assert(this->is_optional_reference());
 	return this->get<ts_optional>().get<ts_lvalue_reference>();
+}
+
+typespec_view typespec_view::remove_optional_reference(void) const noexcept
+{
+	return remove_kind_helper<ts_optional, ts_pointer>(*this);
 }
 
 bool typespec_view::is_optional_function(void) const noexcept
@@ -111,49 +137,136 @@ ts_function const &typespec_view::get_optional_function(void) const noexcept
 	return this->get<ts_optional>().get<ts_function>();
 }
 
+bool typespec_view::is_optional(void) const noexcept
+{
+	return is_kind_helper<ts_optional>(*this);
+}
+
+typespec_view typespec_view::get_optional(void) const noexcept
+{
+	bz_assert(this->is_optional());
+	return this->get<ts_optional>();
+}
+
+typespec_view typespec_view::remove_optional(void) const noexcept
+{
+	return remove_kind_helper<ts_optional>(*this);
+}
+
+bool typespec_view::is_mut(void) const noexcept
+{
+	return this->is<ts_mut>();
+}
+
+typespec_view typespec_view::get_mut(void) const noexcept
+{
+	bz_assert(this->is_mut());
+	return this->get<ts_mut>();
+}
+
+typespec_view typespec_view::remove_mut(void) const noexcept
+{
+	return remove_kind_helper<ts_mut>(*this);
+}
+
+typespec_view typespec_view::remove_any_mut(void) const noexcept
+{
+	return remove_kind_helper<ts_mut, ts_consteval>(*this);
+}
+
+bool typespec_view::is_pointer(void) const noexcept
+{
+	return is_kind_helper<ts_pointer>(*this);
+}
+
+typespec_view typespec_view::get_pointer(void) const noexcept
+{
+	bz_assert(this->is_pointer());
+	return this->get<ts_pointer>();
+}
+
+typespec_view typespec_view::remove_pointer(void) const noexcept
+{
+	return remove_kind_helper<ts_pointer>(*this);
+}
+
+bool typespec_view::is_mut_pointer(void) const noexcept
+{
+	return is_kind_helper<ts_pointer, ts_mut>(*this);
+}
+
+typespec_view typespec_view::get_mut_pointer(void) const noexcept
+{
+	bz_assert(this->is_mut_pointer());
+	return this->get<ts_pointer>().get<ts_mut>();
+}
+
+typespec_view typespec_view::remove_mut_pointer(void) const noexcept
+{
+	return remove_kind_helper<ts_pointer, ts_mut>(*this);
+}
+
 bool typespec_view::is_reference(void) const noexcept
 {
-	return this->is<ast::ts_lvalue_reference>();
+	return is_kind_helper<ts_lvalue_reference>(*this);
 }
 
 typespec_view typespec_view::get_reference(void) const noexcept
 {
 	bz_assert(this->is_reference());
-	return this->get<ast::ts_lvalue_reference>();
+	return this->get<ts_lvalue_reference>();
+}
+
+typespec_view typespec_view::remove_reference(void) const noexcept
+{
+	return remove_kind_helper<ts_lvalue_reference>(*this);
 }
 
 bool typespec_view::is_mut_reference(void) const noexcept
 {
-	return this->modifiers.size() >= 2
-		&& this->modifiers[0].is<ts_lvalue_reference>()
-		&& this->modifiers[1].is<ts_mut>();
+	return is_kind_helper<ts_lvalue_reference, ts_mut>(*this);
 }
 
 typespec_view typespec_view::get_mut_reference(void) const noexcept
 {
 	bz_assert(this->is_mut_reference());
-	return this->get<ast::ts_lvalue_reference>().get<ast::ts_mut>();
-}
-
-typespec_view typespec_view::remove_reference(void) const noexcept
-{
-	return remove_lvalue_reference(*this);
+	return this->get<ts_lvalue_reference>().get<ts_mut>();
 }
 
 typespec_view typespec_view::remove_mut_reference(void) const noexcept
 {
-	return remove_mut(remove_lvalue_reference(*this));
+	return remove_kind_helper<ts_lvalue_reference, ts_mut>(*this);
 }
 
 bool typespec_view::is_any_reference(void) const noexcept
 {
-	return this->is<ast::ts_lvalue_reference>() || this->is<ast::ts_move_reference>();
+	return this->is<ts_lvalue_reference>()
+		|| this->is<ts_move_reference>()
+		|| this->is<ts_auto_reference>()
+		|| this->is<ts_auto_reference_mut>();
 }
 
 typespec_view typespec_view::get_any_reference(void) const noexcept
 {
 	bz_assert(this->is_any_reference());
 	return this->blind_get();
+}
+
+typespec_view typespec_view::remove_any_reference(void) const noexcept
+{
+	return remove_kind_helper<ts_lvalue_reference, ts_move_reference, ts_auto_reference, ts_auto_reference_mut>(*this);
+}
+
+typespec_view typespec_view::remove_any_mut_reference(void) const noexcept
+{
+	return remove_kind_helper<
+		ts_lvalue_reference,
+		ts_move_reference,
+		ts_auto_reference,
+		ts_auto_reference_mut,
+		ts_mut,
+		ts_consteval
+	>(*this);
 }
 
 typespec::typespec(
@@ -364,59 +477,6 @@ size_t typespec_hash::operator () (typespec_view ts) const noexcept
 }
 
 
-template<typename ...Kinds>
-static typespec_view remove_kind_helper(typespec_view ts) noexcept
-{
-	if (ts.modifiers.not_empty() && (ts.modifiers[0].is<Kinds>() || ...))
-	{
-		return typespec_view{ ts.src_tokens, { ts.modifiers.begin() + 1, ts.modifiers.end() }, ts.terminator };
-	}
-	else
-	{
-		return ts;
-	}
-}
-
-typespec_view remove_lvalue_reference(typespec_view ts) noexcept
-{
-	return remove_kind_helper<ts_lvalue_reference>(ts);
-}
-
-typespec_view remove_pointer(typespec_view ts) noexcept
-{
-	return remove_kind_helper<ts_pointer>(ts);
-}
-
-typespec_view remove_optional(typespec_view ts) noexcept
-{
-	return remove_kind_helper<ts_optional>(ts);
-}
-
-typespec_view remove_consteval(typespec_view ts) noexcept
-{
-	return remove_kind_helper<ts_consteval>(ts);
-}
-
-typespec_view remove_mut(typespec_view ts) noexcept
-{
-	return remove_kind_helper<ts_mut>(ts);
-}
-
-typespec_view remove_mutability_modifiers(typespec_view ts) noexcept
-{
-	return remove_kind_helper<ts_mut, ts_consteval>(ts);
-}
-
-typespec_view remove_lvalue_or_move_reference(typespec_view ts) noexcept
-{
-	return remove_kind_helper<ts_lvalue_reference, ts_move_reference>(ts);
-}
-
-typespec_view remove_any_reference(typespec_view ts) noexcept
-{
-	return remove_kind_helper<ts_lvalue_reference, ts_move_reference, ts_auto_reference, ts_auto_reference_mut>(ts);
-}
-
 bool is_complete(typespec_view ts) noexcept
 {
 	if (ts.is_empty())
@@ -481,14 +541,14 @@ template<
 >
 static bool type_property_helper(typespec_view ts) noexcept
 {
-	ts = remove_mutability_modifiers(ts);
+	ts = ts.remove_any_mut();
 	if ((ts.is<exception_types>() || ...))
 	{
 		return !default_value;
 	}
 	else if (ts.is<ts_base_type>())
 	{
-		bz_assert(ts.get<ts_base_type>().info->state >= ast::resolve_state::members);
+		bz_assert(ts.get<ts_base_type>().info->state >= resolve_state::members);
 		return (ts.get<ts_base_type>().info->*base_type_property_func)();
 	}
 	else if (ts.is<ts_tuple>())
@@ -505,7 +565,7 @@ static bool type_property_helper(typespec_view ts) noexcept
 	{
 		if (ts.is_optional_pointer_like() || ts.is_optional_reference())
 		{
-			return bz::meta::is_in_types<ast::ts_pointer, exception_types...> ? !default_value : default_value;
+			return bz::meta::is_in_types<ts_pointer, exception_types...> ? !default_value : default_value;
 		}
 		else
 		{
@@ -909,56 +969,56 @@ bool operator == (typespec_view lhs, typespec_view rhs)
 	}
 }
 
-type_prototype const *get_type_prototype(ast::typespec_view type, type_prototype_set_t &type_prototype_set)
+type_prototype const *get_type_prototype(typespec_view type, type_prototype_set_t &type_prototype_set)
 {
-	static_assert(ast::typespec_types::size() == 19);
+	static_assert(typespec_types::size() == 19);
 	if (type.modifiers.empty())
 	{
 		switch (type.terminator_kind())
 		{
-		case ast::terminator_typespec_node_t::index_of<ast::ts_base_type>:
+		case terminator_typespec_node_t::index_of<ts_base_type>:
 		{
-			auto const info = type.get<ast::ts_base_type>().info;
-			if (info->state == ast::resolve_state::error)
+			auto const info = type.get<ts_base_type>().info;
+			if (info->state == resolve_state::error)
 			{
 				return type_prototype_set.get_aggregate_type({});
 			}
 
-			bz_assert(info->state >= ast::resolve_state::members);
+			bz_assert(info->state >= resolve_state::members);
 			bz_assert(info->prototype != nullptr);
 			return info->prototype;
 		}
-		case ast::terminator_typespec_node_t::index_of<ast::ts_enum>:
-			return get_type_prototype(type.get<ast::ts_enum>().decl->underlying_type, type_prototype_set);
-		case ast::terminator_typespec_node_t::index_of<ast::ts_void>:
+		case terminator_typespec_node_t::index_of<ts_enum>:
+			return get_type_prototype(type.get<ts_enum>().decl->underlying_type, type_prototype_set);
+		case terminator_typespec_node_t::index_of<ts_void>:
 			return type_prototype_set.get_builtin_type(builtin_type_kind::void_);
-		case ast::terminator_typespec_node_t::index_of<ast::ts_function>:
+		case terminator_typespec_node_t::index_of<ts_function>:
 			return type_prototype_set.get_pointer_type();
-		case ast::terminator_typespec_node_t::index_of<ast::ts_array>:
+		case terminator_typespec_node_t::index_of<ts_array>:
 		{
-			auto &arr_t = type.get<ast::ts_array>();
+			auto &arr_t = type.get<ts_array>();
 			auto elem_t = get_type_prototype(arr_t.elem_type, type_prototype_set);
 			return type_prototype_set.get_array_type(elem_t, arr_t.size);
 		}
-		case ast::terminator_typespec_node_t::index_of<ast::ts_array_slice>:
+		case terminator_typespec_node_t::index_of<ts_array_slice>:
 		{
 			auto const pointer_type = type_prototype_set.get_pointer_type();
 			type_prototype const *pointer_pair[2] = { pointer_type, pointer_type };
 			return type_prototype_set.get_aggregate_type(pointer_pair);
 		}
-		case ast::terminator_typespec_node_t::index_of<ast::ts_tuple>:
+		case terminator_typespec_node_t::index_of<ts_tuple>:
 		{
-			auto &tuple_t = type.get<ast::ts_tuple>();
+			auto &tuple_t = type.get<ts_tuple>();
 			auto const types = tuple_t.types
 				.transform([&type_prototype_set](auto const &ts) { return get_type_prototype(ts, type_prototype_set); })
-				.template collect<ast::arena_vector>();
+				.template collect<arena_vector>();
 			return type_prototype_set.get_aggregate_type(types);
 		}
-		case ast::terminator_typespec_node_t::index_of<ast::ts_auto>:
+		case terminator_typespec_node_t::index_of<ts_auto>:
 			bz_unreachable;
-		case ast::terminator_typespec_node_t::index_of<ast::ts_unresolved>:
+		case terminator_typespec_node_t::index_of<ts_unresolved>:
 			bz_unreachable;
-		case ast::terminator_typespec_node_t::index_of<ast::ts_typename>:
+		case terminator_typespec_node_t::index_of<ts_typename>:
 			bz_unreachable;
 		default:
 			bz_unreachable;
@@ -968,15 +1028,15 @@ type_prototype const *get_type_prototype(ast::typespec_view type, type_prototype
 	{
 		switch (type.modifier_kind())
 		{
-		case ast::modifier_typespec_node_t::index_of<ast::ts_mut>:
-			return get_type_prototype(type.get<ast::ts_mut>(), type_prototype_set);
-		case ast::modifier_typespec_node_t::index_of<ast::ts_consteval>:
-			return get_type_prototype(type.get<ast::ts_consteval>(), type_prototype_set);
-		case ast::modifier_typespec_node_t::index_of<ast::ts_pointer>:
-		case ast::modifier_typespec_node_t::index_of<ast::ts_lvalue_reference>:
-		case ast::modifier_typespec_node_t::index_of<ast::ts_move_reference>:
+		case modifier_typespec_node_t::index_of<ts_mut>:
+			return get_type_prototype(type.get<ts_mut>(), type_prototype_set);
+		case modifier_typespec_node_t::index_of<ts_consteval>:
+			return get_type_prototype(type.get<ts_consteval>(), type_prototype_set);
+		case modifier_typespec_node_t::index_of<ts_pointer>:
+		case modifier_typespec_node_t::index_of<ts_lvalue_reference>:
+		case modifier_typespec_node_t::index_of<ts_move_reference>:
 			return type_prototype_set.get_pointer_type();
-		case ast::modifier_typespec_node_t::index_of<ast::ts_optional>:
+		case modifier_typespec_node_t::index_of<ts_optional>:
 		{
 			if (type.is_optional_pointer_like())
 			{
@@ -984,7 +1044,7 @@ type_prototype const *get_type_prototype(ast::typespec_view type, type_prototype
 			}
 			else
 			{
-				auto const inner_type = get_type_prototype(type.get<ast::ts_optional>(), type_prototype_set);
+				auto const inner_type = get_type_prototype(type.get<ts_optional>(), type_prototype_set);
 				type_prototype const *types[2] = { inner_type, type_prototype_set.get_builtin_type(builtin_type_kind::i1) };
 				return type_prototype_set.get_aggregate_type(types);
 			}

@@ -737,7 +737,7 @@ static ast::expression get_builtin_unary_move(
 		else
 		{
 			context.register_move(src_tokens, var_name_expr.decl);
-			ast::typespec result_type = ast::remove_mutability_modifiers(type);
+			ast::typespec result_type = type.remove_any_mut();
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::moved_lvalue,
@@ -773,7 +773,7 @@ static ast::expression get_builtin_unary_unsafe_move(
 
 	if (kind == ast::expression_type_kind::lvalue || type.is_mut_reference())
 	{
-		ast::typespec result_type = ast::remove_mut(ast::remove_lvalue_reference(type));
+		ast::typespec result_type = type.remove_mut_reference();
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::moved_lvalue,
@@ -890,8 +890,8 @@ static ast::expression get_builtin_binary_bool_and_xor_or(
 
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
-	auto const lhs_t = ast::remove_mutability_modifiers(lhs_type);
-	auto const rhs_t = ast::remove_mutability_modifiers(rhs_type);
+	auto const lhs_t = lhs_type.remove_any_mut().remove_any_mut();
+	auto const rhs_t = rhs_type.remove_any_mut();
 
 	auto const op_str = [op_kind]() -> bz::u8string_view {
 		switch (op_kind)
@@ -967,7 +967,7 @@ ast::expression make_builtin_cast(
 	bz_assert(expr.not_error());
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
 	auto const expr_t = expr_type.remove_mut_reference();
-	auto const dest_t = ast::remove_mutability_modifiers(dest_type);
+	auto const dest_t = dest_type.remove_any_mut();
 	bz_assert(ast::is_complete(dest_t));
 
 	// case from null to a optional type
@@ -980,7 +980,7 @@ ast::expression make_builtin_cast(
 		|| (
 			expr.is_dynamic()
 			&& [&]() {
-				auto const type = ast::remove_mutability_modifiers(expr.get_dynamic().type);
+				auto const type = expr.get_dynamic().type.remove_any_mut();
 				return type.is<ast::ts_base_type>()
 					&& type.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_;
 			}()
@@ -1001,8 +1001,8 @@ ast::expression make_builtin_cast(
 		&& (expr_t.is<ast::ts_pointer>() || expr_t.is_optional_pointer())
 	)
 	{
-		auto inner_dest_t = ast::remove_optional(dest_t).get<ast::ts_pointer>();
-		auto inner_expr_t = ast::remove_optional(expr_t).get<ast::ts_pointer>();
+		auto inner_dest_t = dest_t.remove_optional_pointer();
+		auto inner_expr_t = expr_t.remove_optional_pointer();
 		if (inner_dest_t.is<ast::ts_mut>() && !inner_expr_t.is<ast::ts_mut>())
 		{
 			context.report_error(
@@ -1011,8 +1011,8 @@ ast::expression make_builtin_cast(
 			);
 			return ast::make_error_expression(src_tokens, ast::make_expr_cast(std::move(expr), std::move(dest_type)));
 		}
-		inner_dest_t = ast::remove_mut(inner_dest_t);
-		inner_expr_t = ast::remove_mut(inner_expr_t);
+		inner_dest_t = inner_dest_t.remove_mut();
+		inner_expr_t = inner_expr_t.remove_mut();
 		while (
 			inner_dest_t.is_safe_blind_get()
 			&& inner_expr_t.is_safe_blind_get()
