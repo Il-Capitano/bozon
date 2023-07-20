@@ -136,6 +136,76 @@
 				}
 			}
 		},
+		"no-llvm": {
+			"compiler": "clang",
+			"c_standard": "c11",
+			"cpp_standard": "c++20",
+
+			"cpp_precompiled_header": "src/core.h",
+
+			"c_compiler_flags": [],
+			"emit_compile_commands": true,
+
+			"run_args": [
+				"-Wall",
+				"--profile",
+				"--stdlib-dir", "./bozon-stdlib",
+				"-o", "./bitcode_test.o",
+				"./src/bitcode_test.bz"
+			],
+
+			"source_directory": "src",
+			"excluded_sources": [ "src/codegen/llvm_latest" ],
+			"include_paths": [ "src", "include" ],
+
+			"defines": [],
+			"warnings": [
+				"all",
+				"extra",
+				"implicit-fallthrough",
+				"no-c++20-extensions",
+				"no-defaulted-function-deleted",
+				"no-bitwise-instead-of-logical",
+				"no-unused-parameter"
+			],
+
+			"prebuild_rules": [ "generate-config-no-llvm" ],
+
+			"configs": {
+				"windows-debug": {},
+				"windows-release": {},
+				"linux-debug": {
+					"optimization": "1",
+					"cpp_compiler_flags": [ "-fno-omit-frame-pointer", "-fsanitize=address,undefined" ],
+					"link_flags": [ "-fsanitize=address,undefined" ]
+				},
+				"linux-release": {},
+				"windows": {
+					"link_dependencies": [ "ryu_format.windows.o" ],
+					"link_flags": [ "-fuse-ld=lld" ],
+					"libraries": [ "dwarfstack" ]
+				},
+				"linux": {
+					"link_dependencies": [ "ryu_format.linux.o" ],
+					"compiler": "clang-16",
+					"libraries": [ "backtrace" ],
+					"link_flags": [ "-fuse-ld=lld-16" ],
+					"warnings": [ "no-unused-parameter", "error=deprecated-declarations" ],
+					"emit_compile_commands": false
+				},
+				"debug": {
+					"cpp_compiler_flags": [ "-ferror-limit=2" ],
+					"defines": [ "BOZON_NO_ARENA", "BOZON_PROFILE_ALLOCATIONS", "BOZON_PROFILE_COMPTIME" ],
+					"optimization": "0"
+				},
+				"release": {
+					"cpp_compiler_flags": [ "-march=native", "-mtune=native", "-ferror-limit=2", "-flto" ],
+					"defines": [ "NDEBUG" ],
+					"optimization": "3",
+					"link_flags": [ "-flto" ]
+				}
+			}
+		},
 		"no-sanitize": {
 			"depends_on": "default",
 			"emit_compile_commands": false,
@@ -166,6 +236,10 @@
 	"rules": {
 		"generate-config": {
 			"command": "python3 scripts/generate_config.py",
+			"is_file": false
+		},
+		"generate-config-no-llvm": {
+			"command": "python3 scripts/generate_config.py --backends=",
 			"is_file": false
 		},
 		"ryu_format.windows.o": {

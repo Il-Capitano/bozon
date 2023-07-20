@@ -345,10 +345,7 @@ public:
 		  _allocator (std::move(other._allocator))
 	{ other.set_to_null(); }
 
-	~vector(void) noexcept(
-		nothrow_dealloc
-		&& nothrow_destruct_value
-	)
+	~vector(void) noexcept
 	{ this->no_null_clear(); }
 
 	self_t &operator = (self_t const &other) noexcept(
