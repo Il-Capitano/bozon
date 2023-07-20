@@ -2,7 +2,9 @@
 #define CODEGEN_LLVM_LATEST_LLVM_CONTEXT_H
 
 #include "core.h"
+#include "config.h"
 
+#ifdef BOZON_CONFIG_BACKEND_LLVM
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
@@ -10,6 +12,7 @@
 #include <llvm/IR/Value.h>
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/Target/TargetMachine.h>
+#endif // BOZON_CONFIG_BACKEND_LLVM
 
 #include "ast/statement.h"
 #include "abi/platform_abi.h"
@@ -25,6 +28,8 @@ enum class output_code_kind
 	llvm_bc,
 	llvm_ir,
 };
+
+#ifdef BOZON_CONFIG_BACKEND_LLVM
 
 struct backend_context : virtual ::codegen::backend_context
 {
@@ -64,6 +69,24 @@ struct backend_context : virtual ::codegen::backend_context
 	[[nodiscard]] bool emit_llvm_bc(ctx::global_context &global_ctx, bz::u8string_view output_path);
 	[[nodiscard]] bool emit_llvm_ir(ctx::global_context &global_ctx, bz::u8string_view output_path);
 };
+
+#else
+
+struct backend_context : virtual ::codegen::backend_context
+{
+	backend_context(ctx::global_context &global_ctx, bz::u8string_view target_triple, output_code_kind output_code, bool &error)
+	{}
+
+	[[nodiscard]] virtual bool generate_and_output_code(
+		ctx::global_context &global_ctx,
+		bz::optional<bz::u8string_view> output_path
+	) override
+	{
+		return false;
+	}
+};
+
+#endif // BOZON_CONFIG_BACKEND_LLVM
 
 } // namespace codegen::llvm_latest
 

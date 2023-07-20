@@ -24,33 +24,7 @@ enum class emit_type
 	null,
 };
 
-inline bz::optional<emit_type> parse_emit_type(bz::u8string_view arg)
-{
-	if (arg == "obj")
-	{
-		return emit_type::obj;
-	}
-	else if (arg == "asm")
-	{
-		return emit_type::asm_;
-	}
-	else if (arg == "llvm-bc")
-	{
-		return emit_type::llvm_bc;
-	}
-	else if (arg == "llvm-ir")
-	{
-		return emit_type::llvm_ir;
-	}
-	else if (arg == "null")
-	{
-		return emit_type::null;
-	}
-	else
-	{
-		return {};
-	}
-}
+bz::optional<emit_type> parse_emit_type(bz::u8string_view arg);
 
 enum class x86_asm_syntax_kind
 {
@@ -131,7 +105,7 @@ inline uint64_t target_pointer_size = 0;
 inline target_endianness_kind target_endianness = target_endianness_kind::little;
 
 inline bz::u8string target;
-inline emit_type emit_file_type = emit_type::obj;
+extern emit_type emit_file_type;
 inline x86_asm_syntax_kind x86_asm_syntax = x86_asm_syntax_kind::att;
 
 inline size_t tab_size = 4;
