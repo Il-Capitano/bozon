@@ -42,7 +42,10 @@ using vector = bz::vector<T>;
 
 class invalid_syntax_error final : public std::runtime_error
 {
-	using std::runtime_error::runtime_error;
+public:
+	invalid_syntax_error(bz::u8string_view s)
+		: std::runtime_error(std::string(s.data(), s.size()))
+	{}
 };
 
 namespace internal

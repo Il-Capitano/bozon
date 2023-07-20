@@ -5,6 +5,7 @@
 #include "ctx/warnings.h"
 #include "codegen/optimizations.h"
 #include "global_data.h"
+#include "config.h"
 
 constexpr auto Wall_indicies = []() {
 	using result_t = std::array<size_t, ctx::warning_infos.size()>;
@@ -95,14 +96,99 @@ inline constexpr bz::array ctcli::option_group<code_gen_group_id> = {
 	ctcli::create_group_element("target-endianness={little|big}",   "Endianness of the target architecture"),
 };
 
+namespace internal
+{
+
+struct static_string_maker
+{
+	template<auto array>
+	struct storage_t
+	{
+		static inline constexpr auto storage = array;
+	};
+
+	template<size_t N>
+	struct string_writer
+	{
+		bz::array<char, N + 1> data;
+		size_t index;
+
+		constexpr void write(bz::u8string_view s)
+		{
+			for (size_t i = 0; i < s.size(); ++i)
+			{
+				bz_assert(this->index < N);
+				this->data[this->index] = *(s.data() + i);
+				this->index += 1;
+			}
+		}
+
+		constexpr bz::array<char, N + 1> finalize(void)
+		{
+			bz_assert(this->index == N);
+			this->data[N] = '\0';
+			return this->data;
+		}
+	};
+
+	struct dummy_string_writer
+	{
+		size_t size;
+
+		constexpr void write(bz::u8string_view s)
+		{
+			this->size += s.size();
+		}
+	};
+
+	template<auto func>
+	static inline constexpr bz::u8string_view make = []() {
+		using T = storage_t<[]() {
+			constexpr size_t size = []() {
+				auto writer = dummy_string_writer{};
+				func(writer);
+				return writer.size;
+			}();
+			auto writer = string_writer<size>{};
+			func(writer);
+			return writer.finalize();
+		}()>;
+		return bz::u8string_view(T::storage.data(), T::storage.data() + (T::storage.size() - 1));
+	}();
+};
+
+} // namespace internal
+
+inline constexpr bz::u8string_view emit_usage = internal::static_string_maker::make<[](auto &writer) {
+	writer.write("--emit={");
+	if (config::backend_llvm)
+	{
+		writer.write("obj|asm|llvm-bc|llvm-ir|");
+	}
+	writer.write("null}");
+}>;
+
+inline constexpr bz::u8string_view emit_help = internal::static_string_maker::make<[](auto &writer) {
+	writer.write("Emit the specified code type or nothing (default=");
+	if (config::backend_llvm)
+	{
+		writer.write("obj");
+	}
+	else
+	{
+		writer.write("null");
+	}
+	writer.write(")");
+}>;
+
 template<>
 inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def> = {
-	ctcli::create_option("-V, --version",                         "Print compiler version"),
-	ctcli::create_option("-I, --import-dir <dir>",                "Add <dir> as an import directory", ctcli::arg_type::string),
-	ctcli::create_option("-o, --output <file>",                   "Write output to <file>", ctcli::arg_type::string),
-	ctcli::create_option("-D, --define <option>",                 "Set <option> for compilation", ctcli::arg_type::string),
-	ctcli::create_option("--emit={obj|asm|llvm-bc|llvm-ir|null}", "Emit the specified code type or nothing (default=obj)"),
-	ctcli::create_option("--target=<target-triple>",              "Set compilation target to <target-triple>", ctcli::arg_type::string),
+	ctcli::create_option("-V, --version",            "Print compiler version"),
+	ctcli::create_option("-I, --import-dir <dir>",   "Add <dir> as an import directory", ctcli::arg_type::string),
+	ctcli::create_option("-o, --output <file>",      "Write output to <file>", ctcli::arg_type::string),
+	ctcli::create_option("-D, --define <option>",    "Set <option> for compilation", ctcli::arg_type::string),
+	ctcli::create_option(emit_usage,                 emit_help),
+	ctcli::create_option("--target=<target-triple>", "Set compilation target to <target-triple>", ctcli::arg_type::string),
 
 	ctcli::create_hidden_option("--stdlib-dir <dir>",             "Specify the standard library directory", ctcli::arg_type::string),
 	ctcli::create_hidden_option("--x86-asm-syntax={att|intel}",   "Assembly syntax used for x86 (default=att)"),

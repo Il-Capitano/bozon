@@ -1,6 +1,6 @@
 #include "target.h"
-#include "llvm_latest/target_properties.h"
 #include "config.h"
+#include "llvm_latest/target_properties.h"
 
 namespace codegen
 {
@@ -132,7 +132,10 @@ target_properties target_triple::get_target_properties(void) const
 		break;
 	default:
 		// fall back to LLVM
-		result = llvm_latest::get_target_properties(this->triple);
+		if constexpr (config::backend_llvm)
+		{
+			result = llvm_latest::get_target_properties(this->triple);
+		}
 		break;
 	}
 
@@ -190,14 +193,17 @@ static bz::u8string_view get_environment_string(environment_kind environment)
 bz::u8string target_triple::get_normalized_target(void) const
 {
 	// fall back to LLVM target normalization
-	if (
-		this->arch == architecture_kind::unknown
-		|| this->vendor == vendor_kind::unknown
-		|| this->os == os_kind::unknown
-		|| this->environment == environment_kind::unknown
-	)
+	if constexpr (config::backend_llvm)
 	{
-		return llvm_latest::get_normalized_target(this->triple);
+		if (
+			this->arch == architecture_kind::unknown
+			|| this->vendor == vendor_kind::unknown
+			|| this->os == os_kind::unknown
+			|| this->environment == environment_kind::unknown
+		)
+		{
+			return llvm_latest::get_normalized_target(this->triple);
+		}
 	}
 
 	return bz::format(
