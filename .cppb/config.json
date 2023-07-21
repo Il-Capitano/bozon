@@ -242,7 +242,7 @@
 			"is_file": false
 		},
 		"generate-config-no-llvm": {
-			"command": "python3 scripts/generate_config.py --backends=",
+			"command": "python3 scripts/generate_config.py --backends=c",
 			"is_file": false
 		},
 		"generate-config-none": {

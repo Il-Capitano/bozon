@@ -18,6 +18,11 @@ def get_llvm_info():
     except:
         return None
 
+def config_variable_name(s):
+    return f'backend_{s.lower()}'
+def config_macro_name(s):
+    return f'BOZON_CONFIG_BACKEND_{s.upper()}'
+
 native_target_triple_detection = '''#ifndef BOZON_CONFIG_NATIVE_TARGET
 #if defined(__x86_64__) || defined(_M_X64)
 #define BOZON_CONFIG_NATIVE_TARGET_ARCH "x86_64"
@@ -37,17 +42,16 @@ native_target_triple_detection = '''#ifndef BOZON_CONFIG_NATIVE_TARGET
 #endif
 '''
 
-backend_infos = [ ('LLVM', 'backend_llvm') ]
-available_backends = [ info[0] for info in backend_infos ]
+available_backends = [ 'llvm', 'c' ]
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--target', help='Default target triple')
-available_backends_help = ' '.join(available_backends)
+available_backends_help = ' '.join((backend.upper() for backend in available_backends))
 parser.add_argument('--backends', help=f'Comma separated list of enabled backends; leave empty to enable all backends (available backends: {available_backends_help})')
 
 args = parser.parse_args()
 
-enabled_backends = args.backends.split(',') if args.backends is not None else available_backends
+enabled_backends = list(map(lambda s: s.lower(), args.backends.split(','))) if args.backends is not None else available_backends
 
 config = ''
 
@@ -55,17 +59,16 @@ config += 'namespace config\n{\n\n'
 
 llvm_info = get_llvm_info()
 
-assert backend_infos[0][0] == 'LLVM'
 if 'LLVM' in enabled_backends and llvm_info is None:
     print('error: unable to find \'llvm-config\'')
     exit(1)
 
-for backend_name, config_var_name in backend_infos:
-    if backend_name in enabled_backends:
-        config += f'inline constexpr bool {config_var_name} = true;\n'
-        config += f'#define BOZON_CONFIG_BACKEND_{backend_name}\n'
+for backend in available_backends:
+    if backend in enabled_backends:
+        config += f'inline constexpr bool {config_variable_name(backend)} = true;\n'
+        config += f'#define {config_macro_name(backend)}\n'
     else:
-        config += f'inline constexpr bool {config_var_name} = false;\n'
+        config += f'inline constexpr bool {config_variable_name(backend)} = false;\n'
 
 if args.target is not None:
     config += f'#define BOZON_CONFIG_NATIVE_TARGET "{args.target}"\n'
