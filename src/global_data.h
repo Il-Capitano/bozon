@@ -21,6 +21,7 @@ enum class emit_type
 	asm_,
 	llvm_bc,
 	llvm_ir,
+	c,
 	null,
 };
 

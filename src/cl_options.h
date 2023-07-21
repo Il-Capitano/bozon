@@ -165,6 +165,10 @@ inline constexpr bz::u8string_view emit_usage = internal::static_string_maker::m
 	{
 		writer.write("obj|asm|llvm-bc|llvm-ir|");
 	}
+	if (config::backend_c)
+	{
+		writer.write("c|");
+	}
 	writer.write("null}");
 }>;
 
@@ -173,6 +177,10 @@ inline constexpr bz::u8string_view emit_help = internal::static_string_maker::ma
 	if (config::backend_llvm)
 	{
 		writer.write("obj");
+	}
+	else if (config::backend_c)
+	{
+		writer.write("c");
 	}
 	else
 	{
