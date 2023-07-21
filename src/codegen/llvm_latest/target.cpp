@@ -1,4 +1,4 @@
-#include "target_properties.h"
+#include "target.h"
 #include "config.h"
 #include <llvm/TargetParser/Triple.h>
 #include <llvm/Config/llvm-config.h>

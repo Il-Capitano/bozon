@@ -1,5 +1,5 @@
-#ifndef CODEGEN_LLVM_LATEST_TARGET_PROPERTIES_H
-#define CODEGEN_LLVM_LATEST_TARGET_PROPERTIES_H
+#ifndef CODEGEN_LLVM_LATEST_TARGET_H
+#define CODEGEN_LLVM_LATEST_TARGET_H
 
 #include "core.h"
 #include "codegen/target.h"
@@ -12,4 +12,4 @@ bz::u8string get_normalized_target(bz::u8string_view triple);
 
 } // namespace codegen::llvm_latest
 
-#endif // CODEGEN_LLVM_LATEST_TARGET_PROPERTIES_H
+#endif // CODEGEN_LLVM_LATEST_TARGET_H

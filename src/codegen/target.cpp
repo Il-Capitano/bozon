@@ -1,6 +1,6 @@
 #include "target.h"
 #include "config.h"
-#include "llvm_latest/target_properties.h"
+#include "llvm_latest/target.h"
 
 namespace codegen
 {
