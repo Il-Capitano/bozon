@@ -1112,7 +1112,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 [[nodiscard]] bool global_context::generate_and_output_code(void)
 {
-	if (global_data::emit_file_type == emit_type::null)
+	if (global_data::emit_file_type == emit_type::null || this->backend_context == nullptr)
 	{
 		return true;
 	}
@@ -1139,6 +1139,8 @@ void global_context::report_and_clear_errors_and_warnings(void)
 				return ".bc";
 			case emit_type::llvm_ir:
 				return ".ll";
+			case emit_type::c:
+				return ".c";
 			case emit_type::null:
 				bz_unreachable;
 			}

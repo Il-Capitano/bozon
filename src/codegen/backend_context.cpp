@@ -3,6 +3,7 @@
 #include "ctx/global_context.h"
 #include "config.h"
 #include "llvm_latest/backend_context.h"
+#include "c/backend_context.h"
 
 namespace codegen
 {
@@ -19,7 +20,7 @@ namespace codegen
 		return llvm_latest::output_code_kind::llvm_bc;
 	case emit_type::llvm_ir:
 		return llvm_latest::output_code_kind::llvm_ir;
-	case emit_type::null:
+	default:
 		bz_unreachable;
 	}
 };
@@ -35,7 +36,6 @@ std::unique_ptr<backend_context> create_backend_context(ctx::global_context &glo
 	{
 		if constexpr (config::backend_llvm)
 		{
-
 			bool error = false;
 			auto result = std::make_unique<codegen::llvm_latest::backend_context>(
 				global_ctx,
@@ -50,6 +50,17 @@ std::unique_ptr<backend_context> create_backend_context(ctx::global_context &glo
 			}
 
 			return result;
+		}
+		else
+		{
+			return nullptr;
+		}
+	}
+	case emit_type::c:
+	{
+		if constexpr (config::backend_c)
+		{
+			return std::make_unique<codegen::c::backend_context>(global_ctx);
 		}
 		else
 		{
