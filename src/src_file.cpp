@@ -145,17 +145,18 @@ static void add_import_decls(src_file &file, bz::array_view<bz::u8string_view co
 }
 
 
-src_file::src_file(fs::path const &file_path, uint32_t file_id, bz::vector<bz::u8string> scope, bool is_library_file)
+src_file::src_file(fs::path file_path, uint32_t file_id, bz::vector<bz::u8string> scope, bool is_library_file)
 	: _stage(constructed),
 	  _is_library_file(is_library_file),
 	  _file_id(file_id),
-	  _file_path(fs::canonical(file_path)),
+	  _file_path(std::move(file_path)),
 	  _file(), _tokens(),
 	  _declarations{},
 	  _global_scope{},
 	  _scope_container(std::move(scope)),
 	  _scope()
 {
+	bz_assert(fs::canonical(this->_file_path) == this->_file_path);
 	this->_file_path.make_preferred();
 	this->_scope = this->_scope_container.transform([](auto const &s) { return s.as_string_view(); }).collect();
 }

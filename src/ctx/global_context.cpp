@@ -393,7 +393,7 @@ static std::pair<fs::path, bool> search_for_source_file(
 
 static uint32_t add_module_file(
 	src_file &current_file,
-	fs::path const &module_path,
+	fs::path module_path,
 	bool is_library_file,
 	bz::vector<bz::u8string> scope,
 	global_context &context
@@ -404,7 +404,7 @@ static uint32_t add_module_file(
 		if (file_it == nullptr)
 		{
 			return context.emplace_src_file(
-				module_path, context._src_files.size(), std::move(scope), is_library_file || current_file._is_library_file
+				std::move(module_path), context._src_files.size(), std::move(scope), is_library_file || current_file._is_library_file
 			);
 		}
 		else
@@ -425,7 +425,7 @@ static uint32_t add_module_file(
 
 static bz::vector<global_context::module_info_t> add_module_folder(
 	src_file &current_file,
-	fs::path const &module_path,
+	fs::path module_path,
 	bool is_library_folder,
 	bz::vector<bz::u8string> &scope,
 	global_context &context
@@ -435,15 +435,17 @@ static bz::vector<global_context::module_info_t> add_module_folder(
 	bz_assert(fs::is_directory(module_path));
 	for (auto const &p : bz::basic_range(fs::directory_iterator(module_path), fs::directory_iterator()))
 	{
-		if (is_library_folder && p.path().filename().generic_string().starts_with('_'))
+		auto const filename = p.path().filename().generic_string();
+		if (is_library_folder && filename.starts_with('_'))
 		{
 			continue;
 		}
 
 		if (p.is_directory())
 		{
-			auto const folder_name_s = p.path().filename().generic_string();
+			auto const &folder_name_s = filename;
 			auto const folder_name = bz::u8string_view(folder_name_s.data(), folder_name_s.data() + folder_name_s.size());
+			bz_assert(folder_name.size() != 0);
 			auto const is_identifier = [&]() {
 				auto const first_char = *folder_name.begin();
 				auto const is_valid_first_char =
@@ -464,9 +466,9 @@ static bz::vector<global_context::module_info_t> add_module_folder(
 				scope.pop_back();
 			}
 		}
-		else if (p.path().filename().generic_string().ends_with(".bz"))
+		else if (filename.ends_with(".bz"))
 		{
-			auto path = fs::canonical(p.path());
+			auto path = p.path();
 			path.make_preferred();
 			auto const id = add_module_file(current_file, std::move(path), is_library_folder, scope, context);
 			if (id != std::numeric_limits<uint32_t>::max())
@@ -484,7 +486,7 @@ static bz::vector<global_context::module_info_t> add_module_folder(
 bz::vector<global_context::module_info_t> global_context::add_module(uint32_t current_file_id, ast::identifier const &id)
 {
 	auto &current_file = this->get_src_file(current_file_id);
-	auto const [module_path, is_library_path] = search_for_source_file(
+	auto [module_path, is_library_path] = search_for_source_file(
 		id,
 		current_file.get_file_path().parent_path(),
 		this->_import_dirs
@@ -520,7 +522,7 @@ bz::vector<global_context::module_info_t> global_context::add_module(uint32_t cu
 				return result;
 			}
 		}();
-		auto const result = add_module_file(current_file, module_path, is_library_path, std::move(scope), *this);
+		auto const result = add_module_file(current_file, std::move(module_path), is_library_path, std::move(scope), *this);
 		if (result == std::numeric_limits<uint32_t>::max())
 		{
 			return {};
@@ -546,7 +548,7 @@ bz::vector<global_context::module_info_t> global_context::add_module(uint32_t cu
 				return result;
 			}
 		}();
-		return add_module_folder(current_file, module_path, is_library_path, scope, *this);
+		return add_module_folder(current_file, std::move(module_path), is_library_path, scope, *this);
 	}
 }
 
@@ -936,14 +938,20 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	}
 
 	auto const normalized_target_triple = this->target_triple.get_normalized_target();
-	auto stdlib_dir_path_non_canonical = fs::path(std::string_view(global_data::stdlib_dir.data_as_char_ptr(), global_data::stdlib_dir.size()), fs::path::native_format);
-	if (!fs::exists(stdlib_dir_path_non_canonical))
+	std::error_code ec;
+	auto stdlib_dir_path = fs::canonical(
+		fs::path(std::string_view(
+			global_data::stdlib_dir.data_as_char_ptr(),
+			global_data::stdlib_dir.size()
+		), fs::path::native_format),
+		ec
+	);
+	stdlib_dir_path.make_preferred();
+	if (ec || !fs::exists(stdlib_dir_path))
 	{
 		this->report_error(bz::format("invalid path '{}' specified for '--stdlib-dir'", global_data::stdlib_dir));
 		return false;
 	}
-	auto stdlib_dir_path = fs::canonical(stdlib_dir_path_non_canonical);
-	stdlib_dir_path.make_preferred();
 
 	auto common_dir = stdlib_dir_path / "common";
 	auto target_dir = stdlib_dir_path / std::string_view(normalized_target_triple.data_as_char_ptr(), normalized_target_triple.size());
@@ -968,11 +976,13 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	for (auto const &import_dir : global_data::import_dirs)
 	{
 		std::string_view import_dir_sv(import_dir.data_as_char_ptr(), import_dir.size());
-		auto import_dir_path = fs::path(import_dir_sv);
-		if (fs::exists(import_dir_path))
+		// avoid throws
+		std::error_code ec;
+		auto import_dir_path = fs::canonical(fs::path(import_dir_sv), ec);
+		import_dir_path.make_preferred();
+		if (!ec && fs::exists(import_dir_path))
 		{
-			import_dir_path.make_preferred();
-			this->_import_dirs.push_back(fs::canonical(import_dir_path));
+			this->_import_dirs.push_back(std::move(import_dir_path));
 		}
 	}
 
@@ -1052,7 +1062,8 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		return false;
 	}
 
-	auto const source_file_path = fs::path(std::string_view(global_data::source_file.data_as_char_ptr(), global_data::source_file.size()));
+	auto source_file_path = fs::canonical(fs::path(std::string_view(global_data::source_file.data_as_char_ptr(), global_data::source_file.size())));
+	source_file_path.make_preferred();
 	if (!fs::exists(source_file_path))
 	{
 		this->report_error(bz::format("invalid source file '{}': file does not exist", global_data::source_file));
@@ -1065,7 +1076,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	}
 
 	auto &file = this->emplace_src_file(
-		source_file_path, this->_src_files.size(), bz::vector<bz::u8string>(), false
+		std::move(source_file_path), this->_src_files.size(), bz::vector<bz::u8string>(), false
 	);
 	if (!file.parse_global_symbols(*this))
 	{
