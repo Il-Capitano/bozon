@@ -2632,9 +2632,8 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 	{
 		auto const char_string = literal->value;
 		auto it = char_string.begin();
-		auto const end = char_string.end();
 		auto const value = get_character(it);
-		bz_assert(it == end);
+		bz_assert(it == char_string.end());
 
 		if (!bz::is_valid_unicode_value(value))
 		{
@@ -6298,8 +6297,10 @@ ast::expression parse_context::make_copy_construction(ast::expression expr)
 	}
 	else if (type.is<ast::ts_base_type>())
 	{
-		auto const info = type.get<ast::ts_base_type>().info;
-		bz_assert(info->kind == ast::type_info::aggregate || info->kind == ast::type_info::forward_declaration);
+		bz_assert(
+			type.get<ast::ts_base_type>().info->kind == ast::type_info::aggregate
+			|| type.get<ast::ts_base_type>().info->kind == ast::type_info::forward_declaration
+		);
 		return make_struct_copy_construction(type, std::move(expr), *this);
 	}
 	else
@@ -6579,9 +6580,11 @@ ast::expression parse_context::make_move_construction(ast::expression expr)
 	}
 	else if (type.is<ast::ts_base_type>())
 	{
-		auto const info = type.get<ast::ts_base_type>().info;
-		bz_assert(!info->is_trivially_relocatable());
-		bz_assert(info->kind == ast::type_info::aggregate || info->kind == ast::type_info::forward_declaration);
+		bz_assert(!type.get<ast::ts_base_type>().info->is_trivially_relocatable());
+		bz_assert(
+			type.get<ast::ts_base_type>().info->kind == ast::type_info::aggregate
+			|| type.get<ast::ts_base_type>().info->kind == ast::type_info::forward_declaration
+		);
 		return make_struct_move_construction(type, std::move(expr), *this);
 	}
 	else
@@ -7967,7 +7970,7 @@ void parse_context::add_self_move_destruction(ast::expression &expr)
 			ast::make_expr_bitcode_value_reference(),
 			ast::destruct_operation()
 		);
-		auto const decl = expr.get_dynamic().destruct_op.move_destructed_decl;
+		[[maybe_unused]] auto const decl = expr.get_dynamic().destruct_op.move_destructed_decl;
 		expr.get_dynamic().destruct_op = ast::destruct_self(
 			make_move_destruct_expression(expr_type.remove_mut_reference(), std::move(value_ref), *this)
 		);

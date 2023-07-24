@@ -4625,8 +4625,10 @@ static expr_value generate_expr_code(
 {
 	auto const value = generate_expr_code(aggregate_destruct.value, context, {});
 	bz_assert(value.is_reference());
-	auto const type = value.get_type();
-	bz_assert(type->is_aggregate() && aggregate_destruct.elem_destruct_calls.size() == type->get_aggregate_types().size());
+	bz_assert(
+		value.get_type()->is_aggregate()
+		&& aggregate_destruct.elem_destruct_calls.size() == value.get_type()->get_aggregate_types().size()
+	);
 
 	for (auto const i : bz::iota(0, aggregate_destruct.elem_destruct_calls.size()).reversed())
 	{
@@ -4703,8 +4705,10 @@ static expr_value generate_expr_code(
 {
 	auto const value = generate_expr_code(base_type_destruct.value, context, {});
 	bz_assert(value.is_reference());
-	auto const type = value.get_type();
-	bz_assert(type->is_aggregate() && base_type_destruct.member_destruct_calls.size() == type->get_aggregate_types().size());
+	bz_assert(
+		value.get_type()->is_aggregate()
+		&& base_type_destruct.member_destruct_calls.size() == value.get_type()->get_aggregate_types().size()
+	);
 
 	if (base_type_destruct.destruct_call.not_null())
 	{

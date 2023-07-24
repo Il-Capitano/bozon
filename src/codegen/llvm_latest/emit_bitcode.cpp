@@ -239,10 +239,11 @@ static void emit_panic_call(
 	auto const panic_handler_fn = context.get_function(panic_handler_func_body);
 	bz_assert(panic_handler_fn != nullptr);
 
-	auto const result_type = get_llvm_type(panic_handler_func_body->return_type, context);
-	bz_assert(result_type->isVoidTy());
-	auto const result_kind = context.get_pass_kind(panic_handler_func_body->return_type, result_type);
-	bz_assert(result_kind == abi::pass_kind::value);
+	bz_assert(get_llvm_type(panic_handler_func_body->return_type, context)->isVoidTy());
+	bz_assert(context.get_pass_kind(
+		panic_handler_func_body->return_type,
+		llvm::Type::getVoidTy(context.get_llvm_context())
+	) == abi::pass_kind::value);
 
 	ast::arena_vector<llvm::Value *> params = {};
 	params.reserve(2); // on linux str is passed in two registers
@@ -1506,12 +1507,11 @@ static val_ptr emit_builtin_binary_multiply(
 )
 {
 	auto const lhs_t = lhs.get_expr_type();
-	auto const rhs_t = rhs.get_expr_type();
 
-	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	bz_assert(lhs_t == rhs.get_expr_type());
+	bz_assert(lhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ast::is_arithmetic_kind(lhs_kind) && ast::is_arithmetic_kind(rhs_kind));
+	bz_assert(ast::is_arithmetic_kind(lhs_kind));
 	auto const lhs_val = emit_bitcode(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 	auto const result_val = ast::is_floating_point_kind(lhs_kind)
@@ -1537,12 +1537,11 @@ static val_ptr emit_builtin_binary_multiply_eq(
 )
 {
 	auto const lhs_t = lhs.get_expr_type().get_mut_reference();
-	auto const rhs_t = rhs.get_expr_type();
 
-	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	bz_assert(lhs_t == rhs.get_expr_type());
+	bz_assert(lhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ast::is_arithmetic_kind(lhs_kind) && ast::is_arithmetic_kind(rhs_kind));
+	bz_assert(ast::is_arithmetic_kind(lhs_kind));
 	// we calculate the right hand side first
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 	auto const lhs_val_ref = emit_bitcode(lhs, context, nullptr);
@@ -1571,11 +1570,10 @@ static val_ptr emit_builtin_binary_divide(
 )
 {
 	auto const lhs_t = lhs.get_expr_type();
-	auto const rhs_t = rhs.get_expr_type();
 
-	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	bz_assert(lhs_t == rhs.get_expr_type());
+	bz_assert(lhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(lhs_kind == rhs_t.get<ast::ts_base_type>().info->kind);
 	bz_assert(ast::is_arithmetic_kind(lhs_kind));
 	auto const lhs_val = emit_bitcode(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
@@ -1603,12 +1601,11 @@ static val_ptr emit_builtin_binary_divide_eq(
 )
 {
 	auto const lhs_t = lhs.get_expr_type().get_mut_reference();
-	auto const rhs_t = rhs.get_expr_type();
 
-	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	bz_assert(lhs_t == rhs.get_expr_type());
+	bz_assert(lhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ast::is_arithmetic_kind(lhs_kind) && ast::is_arithmetic_kind(rhs_kind));
+	bz_assert(ast::is_arithmetic_kind(lhs_kind));
 	// we calculate the right hand side first
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 	auto const lhs_val_ref = emit_bitcode(lhs, context, nullptr);
@@ -1638,12 +1635,11 @@ static val_ptr emit_builtin_binary_modulo(
 )
 {
 	auto const lhs_t = lhs.get_expr_type();
-	auto const rhs_t = rhs.get_expr_type();
 
-	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	bz_assert(lhs_t == rhs.get_expr_type());
+	bz_assert(lhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ast::is_integer_kind(lhs_kind) && ast::is_integer_kind(rhs_kind));
+	bz_assert(ast::is_integer_kind(lhs_kind));
 	auto const lhs_val = emit_bitcode(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 
@@ -1670,12 +1666,11 @@ static val_ptr emit_builtin_binary_modulo_eq(
 )
 {
 	auto const lhs_t = lhs.get_expr_type().get_mut_reference();
-	auto const rhs_t = rhs.get_expr_type();
 
-	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	bz_assert(lhs_t == rhs.get_expr_type());
+	bz_assert(lhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ast::is_integer_kind(lhs_kind) && ast::is_integer_kind(rhs_kind));
+	bz_assert(ast::is_integer_kind(lhs_kind));
 	// we calculate the right hand side first
 	auto rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 	auto const lhs_val_ref = emit_bitcode(lhs, context, nullptr);
@@ -1861,16 +1856,11 @@ static val_ptr emit_builtin_binary_bit_and(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = lhs.get_expr_type();
-	auto const rhs_t = rhs.get_expr_type();
-
-	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
-	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
+	bz_assert(lhs.get_expr_type() == rhs.get_expr_type());
+	bz_assert(lhs.get_expr_type().is<ast::ts_base_type>());
 	bz_assert(
-		(ast::is_unsigned_integer_kind(lhs_kind)
-		|| lhs_kind == ast::type_info::bool_)
-		&& lhs_kind == rhs_kind
+		ast::is_unsigned_integer_kind(lhs.get_expr_type().get<ast::ts_base_type>().info->kind)
+		|| lhs.get_expr_type().get<ast::ts_base_type>().info->kind == ast::type_info::bool_
 	);
 	auto const lhs_val = emit_bitcode(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
@@ -1894,16 +1884,11 @@ static val_ptr emit_builtin_binary_bit_and_eq(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = lhs.get_expr_type().get_mut_reference();
-	auto const rhs_t = rhs.get_expr_type();
-
-	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
-	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
+	bz_assert(lhs.get_expr_type().get_mut_reference() == rhs.get_expr_type());
+	bz_assert(lhs.get_expr_type().get_mut_reference().is<ast::ts_base_type>());
 	bz_assert(
-		(ast::is_unsigned_integer_kind(lhs_kind)
-		|| lhs_kind == ast::type_info::bool_)
-		&& lhs_kind == rhs_kind
+		ast::is_unsigned_integer_kind(lhs.get_expr_type().get_mut_reference().get<ast::ts_base_type>().info->kind)
+		|| lhs.get_expr_type().get_mut_reference().get<ast::ts_base_type>().info->kind == ast::type_info::bool_
 	);
 	// we calculate the right hand side first
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
@@ -1930,16 +1915,11 @@ static val_ptr emit_builtin_binary_bit_xor(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = lhs.get_expr_type();
-	auto const rhs_t = rhs.get_expr_type();
-
-	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
-	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
+	bz_assert(lhs.get_expr_type() == rhs.get_expr_type());
+	bz_assert(lhs.get_expr_type().is<ast::ts_base_type>());
 	bz_assert(
-		(ast::is_unsigned_integer_kind(lhs_kind)
-		|| lhs_kind == ast::type_info::bool_)
-		&& lhs_kind == rhs_kind
+		ast::is_unsigned_integer_kind(lhs.get_expr_type().get<ast::ts_base_type>().info->kind)
+		|| lhs.get_expr_type().get<ast::ts_base_type>().info->kind == ast::type_info::bool_
 	);
 	auto const lhs_val = emit_bitcode(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
@@ -1963,16 +1943,11 @@ static val_ptr emit_builtin_binary_bit_xor_eq(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = lhs.get_expr_type().get_mut_reference();
-	auto const rhs_t = rhs.get_expr_type();
-
-	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
-	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
+	bz_assert(lhs.get_expr_type().get_mut_reference() == rhs.get_expr_type());
+	bz_assert(lhs.get_expr_type().get_mut_reference().is<ast::ts_base_type>());
 	bz_assert(
-		(ast::is_unsigned_integer_kind(lhs_kind)
-		|| lhs_kind == ast::type_info::bool_)
-		&& lhs_kind == rhs_kind
+		ast::is_unsigned_integer_kind(lhs.get_expr_type().get_mut_reference().get<ast::ts_base_type>().info->kind)
+		|| lhs.get_expr_type().get_mut_reference().get<ast::ts_base_type>().info->kind == ast::type_info::bool_
 	);
 	// we calculate the right hand side first
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
@@ -1999,16 +1974,11 @@ static val_ptr emit_builtin_binary_bit_or(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = lhs.get_expr_type();
-	auto const rhs_t = rhs.get_expr_type();
-
-	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
-	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
+	bz_assert(lhs.get_expr_type() == rhs.get_expr_type());
+	bz_assert(lhs.get_expr_type().is<ast::ts_base_type>());
 	bz_assert(
-		(ast::is_unsigned_integer_kind(lhs_kind)
-		|| lhs_kind == ast::type_info::bool_)
-		&& lhs_kind == rhs_kind
+		ast::is_unsigned_integer_kind(lhs.get_expr_type().get<ast::ts_base_type>().info->kind)
+		|| lhs.get_expr_type().get<ast::ts_base_type>().info->kind == ast::type_info::bool_
 	);
 	auto const lhs_val = emit_bitcode(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
@@ -2032,16 +2002,11 @@ static val_ptr emit_builtin_binary_bit_or_eq(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = lhs.get_expr_type().get_mut_reference();
-	auto const rhs_t = rhs.get_expr_type();
-
-	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
-	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
+	bz_assert(lhs.get_expr_type().get_mut_reference() == rhs.get_expr_type());
+	bz_assert(lhs.get_expr_type().get_mut_reference().is<ast::ts_base_type>());
 	bz_assert(
-		(ast::is_unsigned_integer_kind(lhs_kind)
-		|| lhs_kind == ast::type_info::bool_)
-		&& lhs_kind == rhs_kind
+		ast::is_unsigned_integer_kind(lhs.get_expr_type().get_mut_reference().get<ast::ts_base_type>().info->kind)
+		|| lhs.get_expr_type().get_mut_reference().get<ast::ts_base_type>().info->kind == ast::type_info::bool_
 	);
 	// we calculate the right hand side first
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
@@ -2069,12 +2034,11 @@ static val_ptr emit_builtin_binary_left_shift(
 )
 {
 	auto const lhs_t = lhs.get_expr_type();
-	auto const rhs_t = rhs.get_expr_type();
 
-	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs.get_expr_type().is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ast::is_unsigned_integer_kind(lhs_kind) && ast::is_integer_kind(rhs_kind));
+	bz_assert(ast::is_unsigned_integer_kind(lhs_kind));
+	bz_assert(ast::is_integer_kind(rhs.get_expr_type().get<ast::ts_base_type>().info->kind));
 	auto const lhs_val = emit_bitcode(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_builtin_type(lhs_kind), false);
@@ -2099,12 +2063,11 @@ static val_ptr emit_builtin_binary_left_shift_eq(
 )
 {
 	auto const lhs_t = lhs.get_expr_type().get_mut_reference();
-	auto const rhs_t = rhs.get_expr_type();
 
-	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs.get_expr_type().is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ast::is_unsigned_integer_kind(lhs_kind) && ast::is_integer_kind(rhs_kind));
+	bz_assert(ast::is_unsigned_integer_kind(lhs_kind));
+	bz_assert(ast::is_integer_kind(rhs.get_expr_type().get<ast::ts_base_type>().info->kind));
 	// we calculate the right hand side first
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_builtin_type(lhs_kind), false);
@@ -2132,12 +2095,11 @@ static val_ptr emit_builtin_binary_right_shift(
 )
 {
 	auto const lhs_t = lhs.get_expr_type();
-	auto const rhs_t = rhs.get_expr_type();
 
-	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs.get_expr_type().is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ast::is_unsigned_integer_kind(lhs_kind) && ast::is_integer_kind(rhs_kind));
+	bz_assert(ast::is_unsigned_integer_kind(lhs_kind));
+	bz_assert(ast::is_integer_kind(rhs.get_expr_type().get<ast::ts_base_type>().info->kind));
 	auto const lhs_val = emit_bitcode(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_builtin_type(lhs_kind), false);
@@ -2162,12 +2124,11 @@ static val_ptr emit_builtin_binary_right_shift_eq(
 )
 {
 	auto const lhs_t = lhs.get_expr_type().get_mut_reference();
-	auto const rhs_t = rhs.get_expr_type();
 
-	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs.get_expr_type().is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ast::is_unsigned_integer_kind(lhs_kind) && ast::is_integer_kind(rhs_kind));
+	bz_assert(ast::is_unsigned_integer_kind(lhs_kind));
+	bz_assert(ast::is_integer_kind(rhs.get_expr_type().get<ast::ts_base_type>().info->kind));
 	// we calculate the right hand side first
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_builtin_type(lhs_kind), false);
@@ -2397,12 +2358,10 @@ static val_ptr emit_builtin_binary_bool_and(
 {
 	auto &lhs = binary_op.lhs;
 	auto &rhs = binary_op.rhs;
-	auto const lhs_t = lhs.get_expr_type();
-	auto const rhs_t = rhs.get_expr_type();
 
-	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
-	bz_assert(lhs_t.get<ast::ts_base_type>().info->kind == ast::type_info::bool_);
-	bz_assert(rhs_t.get<ast::ts_base_type>().info->kind == ast::type_info::bool_);
+	bz_assert(lhs.get_expr_type() == rhs.get_expr_type());
+	bz_assert(lhs.get_expr_type().is<ast::ts_base_type>());
+	bz_assert(lhs.get_expr_type().get<ast::ts_base_type>().info->kind == ast::type_info::bool_);
 
 	// generate computation of lhs
 	auto const lhs_prev_info = context.push_expression_scope();
@@ -2454,13 +2413,10 @@ static val_ptr emit_builtin_binary_bool_xor(
 {
 	auto &lhs = binary_op.lhs;
 	auto &rhs = binary_op.rhs;
-	auto const lhs_t = lhs.get_expr_type();
-	auto const rhs_t = rhs.get_expr_type();
 
-	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
-	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(lhs_kind == ast::type_info::bool_ && rhs_kind == ast::type_info::bool_);
+	bz_assert(lhs.get_expr_type() == rhs.get_expr_type());
+	bz_assert(lhs.get_expr_type().is<ast::ts_base_type>());
+	bz_assert(lhs.get_expr_type().get<ast::ts_base_type>().info->kind == ast::type_info::bool_);
 	auto const lhs_val = emit_bitcode(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 	auto const result_val = context.builder.CreateXor(lhs_val, rhs_val, "bool_xor_tmp");
@@ -2484,12 +2440,10 @@ static val_ptr emit_builtin_binary_bool_or(
 {
 	auto &lhs = binary_op.lhs;
 	auto &rhs = binary_op.rhs;
-	auto const lhs_t = lhs.get_expr_type();
-	auto const rhs_t = rhs.get_expr_type();
 
-	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
-	bz_assert(lhs_t.get<ast::ts_base_type>().info->kind == ast::type_info::bool_);
-	bz_assert(rhs_t.get<ast::ts_base_type>().info->kind == ast::type_info::bool_);
+	bz_assert(lhs.get_expr_type() == rhs.get_expr_type());
+	bz_assert(lhs.get_expr_type().is<ast::ts_base_type>());
+	bz_assert(lhs.get_expr_type().get<ast::ts_base_type>().info->kind == ast::type_info::bool_);
 
 	// generate computation of lhs
 	auto const lhs_prev_info = context.push_expression_scope();
@@ -5253,10 +5207,8 @@ static val_ptr emit_bitcode(
 	bz_assert(lhs.kind == val_ptr::reference);
 	bz_assert(rhs.kind == val_ptr::reference);
 
-	auto const lhs_type = lhs.get_type();
-	auto const rhs_type = lhs.get_type();
-	bz_assert(lhs_type->isStructTy());
-	bz_assert(rhs_type->isStructTy());
+	bz_assert(lhs.get_type()->isStructTy());
+	bz_assert(rhs.get_type()->isStructTy());
 
 	auto const assign_begin_bb = context.builder.GetInsertBlock();
 
@@ -5640,8 +5592,7 @@ static val_ptr emit_bitcode(
 	bz_assert(rhs.kind == val_ptr::reference);
 	bz_assert(lhs.get_type() == rhs.get_type());
 
-	auto const type = lhs.get_type();
-	bz_assert(type->isStructTy());
+	bz_assert(lhs.get_type()->isStructTy());
 
 	auto const begin_bb = context.builder.GetInsertBlock();
 	auto const are_pointers_equal = context.builder.CreateICmpEQ(lhs.val, rhs.val);
