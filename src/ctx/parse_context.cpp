@@ -69,6 +69,13 @@ static bz::u8string_view get_operator_name(uint32_t op)
 	}
 }
 
+static bool needs_to_expand_params(bz::array_view<ast::expression const> params)
+{
+	return params.is_any([](auto const &param) {
+		return param.template is<ast::expanded_variadic_expression>();
+	});
+}
+
 static ast::arena_vector<ast::expression> expand_params(ast::arena_vector<ast::expression> params)
 {
 	ast::arena_vector<ast::expression> result;
@@ -2773,7 +2780,10 @@ ast::expression parse_context::make_tuple(lex::src_tokens const &src_tokens, ast
 		return ast::make_unresolved_expression(src_tokens, ast::make_unresolved_expr_tuple(std::move(elems)));
 	}
 
-	elems = expand_params(std::move(elems));
+	if (needs_to_expand_params(elems))
+	{
+		elems = expand_params(std::move(elems));
+	}
 
 	if (elems.is_any([](auto &expr) { return expr.is_error(); }))
 	{
@@ -3765,7 +3775,7 @@ static void get_possible_funcs_for_operator_helper(
 
 	for (auto const op_decl : set_it->op_decls)
 	{
-		if (!result.transform([](auto const &possible_func) { return possible_func.func_body; }).contains(&op_decl->body))
+		if (!result.member<&possible_func_t::func_body>().contains(&op_decl->body))
 		{
 			auto match_level = resolve::get_function_call_match_level(op_decl, op_decl->body, expr, context, src_tokens);
 			result.push_back({ std::move(match_level), op_decl, &op_decl->body });
@@ -3776,7 +3786,7 @@ static void get_possible_funcs_for_operator_helper(
 	{
 		for (auto const decl : op_alias->aliased_decls)
 		{
-			if (!result.transform([](auto const &possible_func) { return possible_func.func_body; }).contains(&decl->body))
+			if (!result.member<&possible_func_t::func_body>().contains(&decl->body))
 			{
 				auto match_level = resolve::get_function_call_match_level(decl, decl->body, expr, context, src_tokens);
 				result.push_back({ std::move(match_level), op_alias, &decl->body });
@@ -3952,7 +3962,7 @@ static void get_possible_funcs_for_operator_helper(
 
 	for (auto const op_decl : set_it->op_decls)
 	{
-		if (!result.transform([](auto const &possible_func) { return possible_func.func_body; }).contains(&op_decl->body))
+		if (!result.member<&possible_func_t::func_body>().contains(&op_decl->body))
 		{
 			auto match_level = resolve::get_function_call_match_level(op_decl, op_decl->body, lhs, rhs, context, src_tokens);
 			result.push_back({ std::move(match_level), op_decl, &op_decl->body });
@@ -3963,7 +3973,7 @@ static void get_possible_funcs_for_operator_helper(
 	{
 		for (auto const decl : op_alias->aliased_decls)
 		{
-			if (!result.transform([](auto const &possible_func) { return possible_func.func_body; }).contains(&decl->body))
+			if (!result.member<&possible_func_t::func_body>().contains(&decl->body))
 			{
 				auto match_level = resolve::get_function_call_match_level(decl, decl->body, lhs, rhs, context, src_tokens);
 				result.push_back({ std::move(match_level), op_alias, &decl->body });
@@ -4473,7 +4483,11 @@ ast::expression parse_context::make_function_call_expression(
 	ast::arena_vector<ast::expression> args
 )
 {
-	args = expand_params(std::move(args));
+	if (needs_to_expand_params(args))
+	{
+		args = expand_params(std::move(args));
+	}
+
 	if (called.is_error() || args.is_any([](auto const &arg) { return arg.is_error(); }))
 	{
 		bz_assert(this->has_errors());
@@ -4798,7 +4812,11 @@ ast::expression parse_context::make_universal_function_call_expression(
 		);
 	}
 
-	args = expand_params(args);
+	if (needs_to_expand_params(args))
+	{
+		args = expand_params(args);
+	}
+
 	if (base.is_error())
 	{
 		bz_assert(this->has_errors());
@@ -5725,7 +5743,11 @@ ast::expression parse_context::make_generic_type_instantiation_expression(
 	ast::arena_vector<ast::expression> args
 )
 {
-	args = expand_params(std::move(args));
+	if (needs_to_expand_params(args))
+	{
+		args = expand_params(std::move(args));
+	}
+
 	if (base.is_error() || args.is_any([](auto const &arg) { return arg.is_error(); }))
 	{
 		return ast::make_error_expression(src_tokens);
