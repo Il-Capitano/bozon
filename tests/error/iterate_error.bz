@@ -6,6 +6,6 @@ consteval arr: [??: auto] = [
 ];
 
 static_assert({
-	for (const v in arr) {}
+	for (let _ in arr) {}
 	true
 });

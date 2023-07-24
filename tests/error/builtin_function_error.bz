@@ -3,6 +3,12 @@
 // error: failed to evaluate expression at compile time
 // note: in generic instantiation of 'function __builtin_slice_from_ptrs(begin: ?*int32, end: ?*uint32) -> <unresolved>'
 // note: required from here
+// error: failed to resolve expression
+// note: while evaluating expression at compile time
+// error: expected a type
+// note: type must be a constant expression
+// note: in generic instantiation of 'function __builtin_slice_from_ptrs(begin: ?*int32, end: ?*uint32) -> <unresolved>'
+// note: required from here
 function main()
 {
 	let i = 0;

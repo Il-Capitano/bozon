@@ -1,6 +1,6 @@
 // error: array element type cannot be 'void'
 function test()
 {
-	let arr = [4: int32]();
-	let _: [: void] = arr;
+	let _arr = [4: int32]();
+	let _: [: void] = _arr;
 }
