@@ -4,32 +4,71 @@
 #include "ctx/global_context.h"
 #include "ctx/lex_context.h"
 
-using namespace lex;
+using token_name_kind_pair = std::pair<bz::u8string_view, uint32_t>;
 
-// multi_char_tokens and keywords arrays are sorted in terms of token length
-template<typename T>
-constexpr bool is_reverse_sorted(T const &arr)
-{
-	if (arr.size() == 0)
-	{
-		return true;
-	}
-	auto it = arr.begin();
-	auto trail = it;
-	++it;
-	auto const end = arr.end();
-	for (; it != end; ++it, ++trail)
-	{
-		if (it->first.length() > trail->first.length())
+constexpr auto multi_char_tokens = []() {
+	constexpr auto get_count = []() {
+		size_t count = 0;
+		for (auto &ti : token_info)
 		{
-			return false;
+			if ((ti.flags & token_info_flags::keyword) == 0 && ti.token_value.length() >= 2)
+			{
+				++count;
+			}
+		}
+		return count;
+	};
+	using result_t = bz::array<token_name_kind_pair, get_count()>;
+
+	result_t result;
+
+	size_t i = 0;
+	for (auto &ti : token_info)
+	{
+		if ((ti.flags & token_info_flags::keyword) == 0 && ti.token_value.length() >= 2)
+		{
+			result[i].first  = ti.token_value;
+			result[i].second = ti.kind;
+			++i;
 		}
 	}
-	return true;
-}
+	bz_assert(i == result.size());
 
-static_assert(is_reverse_sorted(multi_char_tokens), "multi_char_tokens is not sorted");
-static_assert(is_reverse_sorted(keywords), "keywords is not sorted");
+	return result;
+}();
+
+constexpr auto keywords = []() {
+	constexpr auto get_count = []() {
+		size_t count = 0;
+		for (auto &ti : token_info)
+		{
+			if (ti.kind != lex::token::_last && (ti.flags & token_info_flags::keyword) != 0)
+			{
+				++count;
+			}
+		}
+		return count;
+	};
+	using result_t = bz::array<token_name_kind_pair, get_count()>;
+
+	result_t result;
+
+	size_t i = 0;
+	for (auto &ti : token_info)
+	{
+		if (ti.kind != lex::token::_last && (ti.flags & token_info_flags::keyword) != 0)
+		{
+			result[i].first  = ti.token_value;
+			result[i].second = ti.kind;
+			++i;
+		}
+	}
+	bz_assert(i == result.size());
+
+	return result;
+}();
+
+using namespace lex;
 
 static bz::optional<bz::u8string> file_iterator_test(void)
 {
@@ -61,11 +100,6 @@ static bz::optional<bz::u8string> get_token_value_test(void)
 	{
 		assert_eq(kw.first, get_token_value(kw.second));
 	}
-
-//	for (unsigned char c = ' '; c != 128; ++c)
-//	{
-//		assert_eq(bz::u8string(1, c), get_token_value(c));
-//	}
 
 	assert_eq(get_token_value(token::identifier), "identifier");
 	assert_eq(get_token_value(token::integer_literal), "integer literal");
