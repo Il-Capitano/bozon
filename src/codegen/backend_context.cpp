@@ -60,7 +60,7 @@ std::unique_ptr<backend_context> create_backend_context(ctx::global_context &glo
 	{
 		if constexpr (config::backend_c)
 		{
-			return std::make_unique<codegen::c::backend_context>(global_ctx);
+			return std::make_unique<codegen::c::backend_context>();
 		}
 		else
 		{

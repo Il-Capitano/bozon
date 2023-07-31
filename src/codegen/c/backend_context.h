@@ -12,14 +12,17 @@ namespace codegen::c
 
 struct backend_context : virtual ::codegen::backend_context
 {
-	backend_context(ctx::global_context &global_ctx);
+	bz::u8string code_string;
 
-	ctx::global_context &global_ctx;
+	backend_context(void);
 
 	[[nodiscard]] virtual bool generate_and_output_code(
 		ctx::global_context &global_ctx,
 		bz::optional<bz::u8string_view> output_path
 	) override;
+
+	bool generate_code(ctx::global_context &global_ctx);
+	bool emit_file(ctx::global_context &global_ctx, bz::u8string_view output_path);
 };
 
 #else
