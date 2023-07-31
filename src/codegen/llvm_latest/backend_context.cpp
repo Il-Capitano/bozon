@@ -358,27 +358,6 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 {
 	bitcode_context context(global_ctx, *this, &this->_module);
 
-	llvm::LoopAnalysisManager loop_analysis_manager;
-	llvm::FunctionAnalysisManager function_analysis_manager;
-	llvm::CGSCCAnalysisManager cgscc_analysis_manager;
-	llvm::ModuleAnalysisManager module_analysis_manager;
-
-	auto builder = get_pass_builder(this->_target_machine.get());
-
-	if (global_data::opt_level != 0 || global_data::size_opt_level != 0)
-	{
-		builder.registerModuleAnalyses(module_analysis_manager);
-		builder.registerCGSCCAnalyses(cgscc_analysis_manager);
-		builder.registerFunctionAnalyses(function_analysis_manager);
-		builder.registerLoopAnalyses(loop_analysis_manager);
-		builder.crossRegisterProxies(
-			loop_analysis_manager,
-			function_analysis_manager,
-			cgscc_analysis_manager,
-			module_analysis_manager
-		);
-	}
-
 	auto const llvm_opt_level = [&]() {
 		if (global_data::size_opt_level != 0)
 		{
@@ -396,6 +375,27 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 			return llvm::OptimizationLevel::O0;
 		}
 	}();
+
+	llvm::LoopAnalysisManager loop_analysis_manager;
+	llvm::FunctionAnalysisManager function_analysis_manager;
+	llvm::CGSCCAnalysisManager cgscc_analysis_manager;
+	llvm::ModuleAnalysisManager module_analysis_manager;
+
+	auto builder = get_pass_builder(this->_target_machine.get());
+
+	if (llvm_opt_level != llvm::OptimizationLevel::O0)
+	{
+		builder.registerModuleAnalyses(module_analysis_manager);
+		builder.registerCGSCCAnalyses(cgscc_analysis_manager);
+		builder.registerFunctionAnalyses(function_analysis_manager);
+		builder.registerLoopAnalyses(loop_analysis_manager);
+		builder.crossRegisterProxies(
+			loop_analysis_manager,
+			function_analysis_manager,
+			cgscc_analysis_manager,
+			module_analysis_manager
+		);
+	}
 
 	auto function_pass_manager = llvm_opt_level != llvm::OptimizationLevel::O0
 		? builder.buildFunctionSimplificationPipeline(llvm_opt_level, llvm::ThinOrFullLTOPhase::None)
