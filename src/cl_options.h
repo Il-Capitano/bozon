@@ -94,6 +94,10 @@ inline constexpr bz::array ctcli::option_group<code_gen_group_id> = {
 	ctcli::create_group_element("freestanding",                     "Generate code with no external dependencies (default=false)"),
 	ctcli::create_group_element("target-pointer-size=<size>",       "Pointer size of the target architecture in bytes", ctcli::arg_type::uint64),
 	ctcli::create_group_element("target-endianness={little|big}",   "Endianness of the target architecture"),
+	ctcli::create_group_element("target-c-short-size=<size>",       "Size of 'short' in bytes on the target architecture", ctcli::arg_type::uint32),
+	ctcli::create_group_element("target-c-int-size=<size>",         "Size of 'int' in bytes on the target architecture", ctcli::arg_type::uint32),
+	ctcli::create_group_element("target-c-long-size=<size>",        "Size of 'long' in bytes on the target architecture", ctcli::arg_type::uint32),
+	ctcli::create_group_element("target-c-long-long-size=<size>",   "Size of 'long long' in bytes on the target architecture", ctcli::arg_type::uint32),
 };
 
 namespace internal
@@ -296,6 +300,10 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element(
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen freestanding")>                     = &global_data::freestanding;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-pointer-size")>              = &global_data::target_pointer_size;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-endianness")>                = &global_data::target_endianness;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-c-short-size")>              = &global_data::target_c_short_size;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-c-int-size")>                = &global_data::target_c_int_size;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-c-long-size")>               = &global_data::target_c_long_size;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-c-long-long-size")>          = &global_data::target_c_long_long_size;
 
 template<>
 inline constexpr auto ctcli::argument_parse_function<ctcli::option("--emit")> = [](bz::u8string_view arg) -> std::optional<emit_type> {
