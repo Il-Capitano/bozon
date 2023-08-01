@@ -1,5 +1,5 @@
 import types;
-export struct fenv_t
+@__libcstruct("fenv.h", "fenv_t") export struct fenv_t
 {
 	.__control_word: unsigned_short;
 	.__unused0: unsigned_short;

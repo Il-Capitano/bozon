@@ -35,15 +35,42 @@ bz::u8string codegen_context::make_type_name(void)
 	return bz::format("t_{:x}", this->get_unique_number());
 }
 
-bz::u8string codegen_context::make_type_name(ast::identifier const &id)
+static ast::attribute const &get_libcstruct_attribute(ast::type_info const &info)
 {
-	bz_assert(id.values.not_empty());
-	return bz::format("t_{}_{:x}", id.values.back(), this->get_unique_number());
+	bz_assert(info.is_libcstruct());
+	return info.attributes.filter([](ast::attribute const &attr) {
+		return attr.name->value == "__libcstruct";
+	}).front();
+}
+
+bz::u8string codegen_context::make_type_name(ast::type_info const &info)
+{
+	if (info.is_libcstruct())
+	{
+		auto const &attribute = get_libcstruct_attribute(info);
+		bz_assert(attribute.args.size() == 2);
+		auto const header = attribute.args[0].get_constant_value().get_string();
+		this->add_libc_header(header);
+		return attribute.args[1].get_constant_value().get_string();
+	}
+	else
+	{
+		bz_assert(info.type_name.values.not_empty());
+		return bz::format("t_{}_{:x}", info.type_name.values.back(), this->get_unique_number());
+	}
 }
 
 bz::u8string codegen_context::get_member_name(size_t index)
 {
 	return bz::format("m_{:x}", index);
+}
+
+void codegen_context::add_libc_header(bz::u8string_view header)
+{
+	if (!this->included_headers.contains(header))
+	{
+		this->included_headers.push_back(header);
+	}
 }
 
 type codegen_context::get_struct(ast::type_info const &info, bool resolve)
@@ -55,7 +82,7 @@ type codegen_context::get_struct(ast::type_info const &info, bool resolve)
 			: type(it->second.struct_ref);
 	}
 
-	if (resolve)
+	if (resolve || info.kind == ast::type_info::forward_declaration)
 	{
 		return generate_struct(info, *this);
 	}
@@ -184,34 +211,10 @@ std::pair<bool, codegen_context::struct_infos_iterator> codegen_context::should_
 	return { it == this->struct_infos.end() || it->second.is_unresolved, it };
 }
 
-type::struct_reference codegen_context::add_struct(ast::type_info const &info, struct_infos_iterator it, struct_type_t struct_type)
+void codegen_context::generate_struct_body(type::struct_reference struct_ref)
 {
-	bz_assert(it != this->struct_infos.end() || !this->struct_infos.contains(&info));
-	auto const ref = [&]() {
-		if (it == this->struct_infos.end())
-		{
-			auto const ref = this->type_set.add_unique_struct(std::move(struct_type));
-			this->type_set.add_struct_type_name(ref, this->make_type_name(info.type_name));
-			this->struct_infos.insert({
-				&info,
-				struct_info_t{
-					.struct_ref = ref,
-					.typedef_ref = type::typedef_reference::invalid(),
-					.is_unresolved = false,
-				},
-			});
-			return ref;
-		}
-		else
-		{
-			auto const ref = it->second.struct_ref;
-			this->type_set.modify_struct(ref, std::move(struct_type));
-			return ref;
-		}
-	}();
-
-	auto const &inserted_struct = this->type_set.get_struct_type(ref);
-	auto const struct_name = this->type_set.get_struct_type_name(ref);
+	auto const &inserted_struct = this->type_set.get_struct_type(struct_ref);
+	auto const struct_name = this->type_set.get_struct_type_name(struct_ref);
 
 	this->struct_forward_declarations_string += bz::format("typedef struct {0} {0};\n", struct_name);
 
@@ -233,6 +236,49 @@ type::struct_reference codegen_context::add_struct(ast::type_info const &info, s
 		}
 	}
 	this->struct_bodies_string += "};\n";
+}
+
+void codegen_context::generate_struct_forward_declaration(type::struct_reference struct_ref)
+{
+	auto const struct_name = this->type_set.get_struct_type_name(struct_ref);
+
+	this->struct_forward_declarations_string += bz::format("typedef struct {0} {0};\n", struct_name);
+}
+
+type::struct_reference codegen_context::add_struct(ast::type_info const &info, struct_infos_iterator it, struct_type_t struct_type)
+{
+	if (it == this->struct_infos.end())
+	{
+		it = this->struct_infos.find(&info);
+	}
+	bz_assert(it != this->struct_infos.end() || !this->struct_infos.contains(&info));
+	auto const ref = [&]() {
+		if (it == this->struct_infos.end())
+		{
+			auto const ref = this->type_set.add_unique_struct(std::move(struct_type));
+			this->type_set.add_struct_type_name(ref, this->make_type_name(info));
+			this->struct_infos.insert({
+				&info,
+				struct_info_t{
+					.struct_ref = ref,
+					.typedef_ref = type::typedef_reference::invalid(),
+					.is_unresolved = false,
+				},
+			});
+			return ref;
+		}
+		else
+		{
+			auto const ref = it->second.struct_ref;
+			this->type_set.modify_struct(ref, std::move(struct_type));
+			return ref;
+		}
+	}();
+
+	if (!info.is_libcstruct())
+	{
+		this->generate_struct_body(ref);
+	}
 
 	return ref;
 }
@@ -241,7 +287,7 @@ type::struct_reference codegen_context::add_unresolved_struct(ast::type_info con
 {
 	bz_assert(!this->struct_infos.contains(&info));
 	auto const ref = this->type_set.add_unique_struct({});
-	this->type_set.add_struct_type_name(ref, this->make_type_name(info.type_name));
+	this->type_set.add_struct_type_name(ref, this->make_type_name(info));
 	this->struct_infos.insert({
 		&info,
 		struct_info_t{
@@ -256,9 +302,12 @@ type::struct_reference codegen_context::add_unresolved_struct(ast::type_info con
 
 type::struct_reference codegen_context::add_struct_forward_declaration(ast::type_info const &info)
 {
-	bz_assert(!this->struct_infos.contains(&info));
+	if (auto const it = this->struct_infos.find(&info); it != this->struct_infos.end())
+	{
+		return it->second.struct_ref;
+	}
 	auto const ref = this->type_set.add_unique_struct({});
-	this->type_set.add_struct_type_name(ref, this->make_type_name(info.type_name));
+	this->type_set.add_struct_type_name(ref, this->make_type_name(info));
 	this->struct_infos.insert({
 		&info,
 		struct_info_t{
@@ -268,9 +317,10 @@ type::struct_reference codegen_context::add_struct_forward_declaration(ast::type
 		},
 	});
 
-	auto const struct_name = this->type_set.get_struct_type_name(ref);
-
-	this->struct_forward_declarations_string += bz::format("typedef struct {0} {0};\n", struct_name);
+	if (!info.is_libcstruct())
+	{
+		this->generate_struct_forward_declaration(ref);
+	}
 
 	return ref;
 }
@@ -480,9 +530,16 @@ bz::u8string codegen_context::to_string(type t) const
 bz::u8string codegen_context::get_code_string(void) const
 {
 	bz::u8string result = "";
+
+	for (auto const &header : this->included_headers)
+	{
+		result += bz::format("#include <{}>\n", header);
+	}
+
 	result += this->struct_forward_declarations_string;
 	result += this->typedefs_string;
 	result += this->struct_bodies_string;
+
 	return result;
 }
 

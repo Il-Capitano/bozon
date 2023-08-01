@@ -50,6 +50,8 @@ struct codegen_context
 	bz::u8string typedefs_string;
 	bz::u8string struct_bodies_string;
 
+	bz::vector<bz::u8string> included_headers;
+
 	uint32_t short_size;
 	uint32_t int_size;
 	uint32_t long_size;
@@ -57,8 +59,9 @@ struct codegen_context
 
 	size_t get_unique_number(void);
 	bz::u8string make_type_name(void);
-	bz::u8string make_type_name(ast::identifier const &id);
+	bz::u8string make_type_name(ast::type_info const &info);
 	bz::u8string get_member_name(size_t index);
+	void add_libc_header(bz::u8string_view header);
 
 	type get_struct(ast::type_info const &info, bool resolve = true);
 
@@ -84,6 +87,9 @@ struct codegen_context
 
 	using struct_infos_iterator = std::unordered_map<ast::type_info const *, struct_info_t>::iterator;
 	std::pair<bool, struct_infos_iterator> should_resolve_struct(ast::type_info const &info);
+
+	void generate_struct_body(type::struct_reference struct_ref);
+	void generate_struct_forward_declaration(type::struct_reference struct_ref);
 
 	type::struct_reference add_struct(ast::type_info const &info, struct_infos_iterator it, struct_type_t struct_type);
 	type::struct_reference add_unresolved_struct(ast::type_info const &info);

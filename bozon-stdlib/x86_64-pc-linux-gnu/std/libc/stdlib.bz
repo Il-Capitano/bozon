@@ -1,16 +1,16 @@
 import types;
 import stddef;
-export struct div_t
+@__libcstruct("stdlib.h", "div_t") export struct div_t
 {
 	.quot: int;
 	.rem: int;
 }
-export struct ldiv_t
+@__libcstruct("stdlib.h", "ldiv_t") export struct ldiv_t
 {
 	.quot: long;
 	.rem: long;
 }
-export struct lldiv_t
+@__libcstruct("stdlib.h", "lldiv_t") export struct lldiv_t
 {
 	.quot: long_long;
 	.rem: long_long;

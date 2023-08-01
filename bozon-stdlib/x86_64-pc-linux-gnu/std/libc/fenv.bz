@@ -1,5 +1,5 @@
 import types;
-export struct fenv_t
+@__libcstruct("fenv.h", "fenv_t") export struct fenv_t
 {
 	._: [8: int32]; // struct contains bit fields
 }

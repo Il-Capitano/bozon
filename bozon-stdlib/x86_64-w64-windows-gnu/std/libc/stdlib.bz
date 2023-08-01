@@ -1,19 +1,19 @@
 import types;
 import stddef;
-export struct lldiv_t
-{
-	.quot: long_long;
-	.rem: long_long;
-}
-struct _div_t
+@__libcstruct("stdlib.h", "div_t") struct _div_t
 {
 	.quot: int;
 	.rem: int;
 }
-struct _ldiv_t
+@__libcstruct("stdlib.h", "ldiv_t") struct _ldiv_t
 {
 	.quot: long;
 	.rem: long;
+}
+@__libcstruct("stdlib.h", "lldiv_t") export struct lldiv_t
+{
+	.quot: long_long;
+	.rem: long_long;
 }
 export type div_t = _div_t;
 export type ldiv_t = _ldiv_t;
