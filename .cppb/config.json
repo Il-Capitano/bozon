@@ -150,7 +150,6 @@
 				"-Wall",
 				"--profile",
 				"--stdlib-dir", "./bozon-stdlib",
-				"-o", "./bitcode_test.o",
 				"./src/bitcode_test.bz"
 			],
 

@@ -1656,6 +1656,8 @@ int main(int argc, char const **argv)
 			global_ctx.report_and_clear_errors_and_warnings();
 			return_from_main(0);
 		}
+
+		global_ctx.report_and_clear_errors_and_warnings();
 	}
 
 	if (global_data::do_profile)
