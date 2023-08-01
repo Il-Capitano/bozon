@@ -74,6 +74,7 @@
 			"emit_compile_commands": false,
 			"source_directory": "test",
 			"defines": [],
+			"prebuild_rules": [ "generate-config-none" ],
 			"run_args": [ "-Wall", "--no-error-highlight", "--stdlib-dir", "bozon-stdlib" ]
 		},
 		"gcc": {
@@ -126,6 +127,7 @@
 			"depends_on": "gcc",
 			"source_directory": "test",
 			"defines": [],
+			"prebuild_rules": [ "generate-config-none" ],
 			"run_args": [ "-Wall", "--no-error-highlight", "--stdlib-dir", "bozon-stdlib" ],
 			"configs": {
 				"windows-debug": {
@@ -238,6 +240,10 @@
 			"is_file": false
 		},
 		"generate-config-no-llvm": {
+			"command": "python3 scripts/generate_config.py --backends=",
+			"is_file": false
+		},
+		"generate-config-none": {
 			"command": "python3 scripts/generate_config.py --backends=",
 			"is_file": false
 		},
