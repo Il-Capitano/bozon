@@ -149,4 +149,12 @@ type::typedef_reference type_set_t::add_unique_typedef(typedef_type_t typedef_ty
 	return result;
 }
 
+void type_set_t::modify_struct(type::struct_reference struct_ref, struct_type_t struct_type)
+{
+	bz_assert(struct_ref.index < this->struct_types.size());
+	auto &old_struct_type = this->struct_types[struct_ref.index];
+	bz_assert(old_struct_type.members.empty());
+	old_struct_type = std::move(struct_type);
+}
+
 } // namespace codegen::c

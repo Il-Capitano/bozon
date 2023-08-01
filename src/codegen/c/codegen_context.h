@@ -19,6 +19,7 @@ struct codegen_context
 	{
 		type::struct_reference struct_ref;
 		type::typedef_reference typedef_ref;
+		bool is_unresolved;
 	};
 
 	struct builtin_types_t
@@ -56,6 +57,7 @@ struct codegen_context
 
 	size_t get_unique_number(void);
 	bz::u8string make_type_name(void);
+	bz::u8string make_type_name(ast::identifier const &id);
 	bz::u8string get_member_name(size_t index);
 
 	type get_struct(ast::type_info const &info, bool resolve = true);
@@ -80,7 +82,11 @@ struct codegen_context
 	bool is_pointer(type t) const;
 	type remove_pointer(type t) const;
 
-	type::struct_reference add_struct(ast::type_info const &info, struct_type_t struct_type);
+	using struct_infos_iterator = std::unordered_map<ast::type_info const *, struct_info_t>::iterator;
+	std::pair<bool, struct_infos_iterator> should_resolve_struct(ast::type_info const &info);
+
+	type::struct_reference add_struct(ast::type_info const &info, struct_infos_iterator it, struct_type_t struct_type);
+	type::struct_reference add_unresolved_struct(ast::type_info const &info);
 	type::struct_reference add_struct_forward_declaration(ast::type_info const &info);
 	type::struct_reference add_struct(struct_type_t struct_type);
 	type::typedef_reference add_typedef(typedef_type_t typedef_type);

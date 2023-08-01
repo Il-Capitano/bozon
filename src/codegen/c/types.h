@@ -379,6 +379,8 @@ struct type_set_t
 
 	type::struct_reference add_unique_struct(struct_type_t struct_type);
 	type::typedef_reference add_unique_typedef(typedef_type_t typedef_type);
+
+	void modify_struct(type::struct_reference struct_ref, struct_type_t struct_type);
 };
 
 } // namespace codegen::c

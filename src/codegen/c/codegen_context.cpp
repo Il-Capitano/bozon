@@ -35,6 +35,12 @@ bz::u8string codegen_context::make_type_name(void)
 	return bz::format("t_{:x}", this->get_unique_number());
 }
 
+bz::u8string codegen_context::make_type_name(ast::identifier const &id)
+{
+	bz_assert(id.values.not_empty());
+	return bz::format("t_{}_{:x}", id.values.back(), this->get_unique_number());
+}
+
 bz::u8string codegen_context::get_member_name(size_t index)
 {
 	return bz::format("m_{:x}", index);
@@ -55,7 +61,7 @@ type codegen_context::get_struct(ast::type_info const &info, bool resolve)
 	}
 	else
 	{
-		bz_unreachable;
+		return type(this->add_unresolved_struct(info));
 	}
 }
 
@@ -172,16 +178,37 @@ type codegen_context::remove_pointer(type t) const
 	}
 }
 
-type::struct_reference codegen_context::add_struct(ast::type_info const &info, struct_type_t struct_type)
+std::pair<bool, codegen_context::struct_infos_iterator> codegen_context::should_resolve_struct(ast::type_info const &info)
 {
-	auto const [ref, inserted] = this->type_set.add_struct_type(std::move(struct_type));
-	if (!inserted)
-	{
-		return ref;
-	}
+	auto const it = this->struct_infos.find(&info);
+	return { it == this->struct_infos.end() || it->second.is_unresolved, it };
+}
 
-	this->type_set.add_struct_type_name(ref, this->make_type_name());
-	this->struct_infos.insert({ &info, struct_info_t{ .struct_ref = ref, .typedef_ref = type::typedef_reference::invalid() } });
+type::struct_reference codegen_context::add_struct(ast::type_info const &info, struct_infos_iterator it, struct_type_t struct_type)
+{
+	bz_assert(it != this->struct_infos.end() || !this->struct_infos.contains(&info));
+	auto const ref = [&]() {
+		if (it == this->struct_infos.end())
+		{
+			auto const ref = this->type_set.add_unique_struct(std::move(struct_type));
+			this->type_set.add_struct_type_name(ref, this->make_type_name(info.type_name));
+			this->struct_infos.insert({
+				&info,
+				struct_info_t{
+					.struct_ref = ref,
+					.typedef_ref = type::typedef_reference::invalid(),
+					.is_unresolved = false,
+				},
+			});
+			return ref;
+		}
+		else
+		{
+			auto const ref = it->second.struct_ref;
+			this->type_set.modify_struct(ref, std::move(struct_type));
+			return ref;
+		}
+	}();
 
 	auto const &inserted_struct = this->type_set.get_struct_type(ref);
 	auto const struct_name = this->type_set.get_struct_type_name(ref);
@@ -190,21 +217,56 @@ type::struct_reference codegen_context::add_struct(ast::type_info const &info, s
 
 	this->struct_bodies_string += bz::format("struct {}\n", struct_name);
 	this->struct_bodies_string += "{\n";
-	for (auto const i : bz::iota(0, inserted_struct.members.size()))
+
+	// empty struct is a GNU extension for C, so it's better to avoid it if we can
+	if (inserted_struct.members.empty())
 	{
 		this->struct_bodies_string += this->indentation;
-		this->struct_bodies_string += bz::format("{} {};\n", this->to_string(inserted_struct.members[i]), this->get_member_name(i));
+		this->struct_bodies_string += bz::format("{} a;\n", this->to_string(this->get_uint8()));
+	}
+	else
+	{
+		for (auto const i : bz::iota(0, inserted_struct.members.size()))
+		{
+			this->struct_bodies_string += this->indentation;
+			this->struct_bodies_string += bz::format("{} {};\n", this->to_string(inserted_struct.members[i]), this->get_member_name(i));
+		}
 	}
 	this->struct_bodies_string += "};\n";
 
 	return ref;
 }
 
+type::struct_reference codegen_context::add_unresolved_struct(ast::type_info const &info)
+{
+	bz_assert(!this->struct_infos.contains(&info));
+	auto const ref = this->type_set.add_unique_struct({});
+	this->type_set.add_struct_type_name(ref, this->make_type_name(info.type_name));
+	this->struct_infos.insert({
+		&info,
+		struct_info_t{
+			.struct_ref = ref,
+			.typedef_ref = type::typedef_reference::invalid(),
+			.is_unresolved = true,
+		},
+	});
+
+	return ref;
+}
+
 type::struct_reference codegen_context::add_struct_forward_declaration(ast::type_info const &info)
 {
-	this->type_set.add_struct_type_name(ref, this->make_type_name());
-	this->struct_infos.insert({ &info, struct_info_t{ .struct_ref = ref, .typedef_ref = type::typedef_reference::invalid() } });
+	bz_assert(!this->struct_infos.contains(&info));
 	auto const ref = this->type_set.add_unique_struct({});
+	this->type_set.add_struct_type_name(ref, this->make_type_name(info.type_name));
+	this->struct_infos.insert({
+		&info,
+		struct_info_t{
+			.struct_ref = ref,
+			.typedef_ref = type::typedef_reference::invalid(),
+			.is_unresolved = false,
+		},
+	});
 
 	auto const struct_name = this->type_set.get_struct_type_name(ref);
 
@@ -338,7 +400,14 @@ type::typedef_reference codegen_context::add_builtin_type(
 	auto const struct_ref = this->type_set.add_unique_struct({});
 	this->type_set.add_struct_type_name(struct_ref, aliased_type_name);
 	auto const typedef_ref = this->add_builtin_typedef(typedef_type_name, { .aliased_type = type(struct_ref) });
-	this->struct_infos.insert({ &info, struct_info_t{ struct_ref, typedef_ref } });
+	this->struct_infos.insert({
+		&info,
+		struct_info_t{
+			.struct_ref = struct_ref,
+			.typedef_ref = typedef_ref,
+			.is_unresolved = false,
+		},
+	});
 
 	this->typedefs_string += bz::format("typedef {} {};\n", aliased_type_name, typedef_type_name);
 
@@ -352,7 +421,14 @@ type::typedef_reference codegen_context::add_char_typedef(ast::type_info const &
 
 	auto const ref = this->type_set.add_unique_typedef({ .aliased_type = this->get_uint32() });
 	this->type_set.add_typedef_type_name(ref, typedef_type_name);
-	this->struct_infos.insert({ &info, struct_info_t{ .struct_ref = type::struct_reference::invalid(), .typedef_ref = ref } });
+	this->struct_infos.insert({
+		&info,
+		struct_info_t{
+			.struct_ref = type::struct_reference::invalid(),
+			.typedef_ref = ref,
+			.is_unresolved = false,
+		},
+	});
 
 	this->typedefs_string += bz::format("typedef {} {};\n", uint32_name, typedef_type_name);
 

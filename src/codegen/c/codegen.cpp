@@ -18,8 +18,8 @@ static type get_type(ast::typespec_view ts, codegen_context &context, bool resol
 		{
 			auto const &info = *ts.get<ast::ts_base_type>().info;
 
-			bz_assert(info.state >= ast::resolve_state::members);
-			bz_assert(info.prototype != nullptr);
+			bz_assert(!resolve_structs || info.state >= ast::resolve_state::members);
+			bz_assert(!resolve_structs || info.prototype != nullptr);
 			return context.get_struct(info, resolve_structs);
 		}
 		case ast::terminator_typespec_node_t::index_of<ast::ts_enum>:
@@ -188,10 +188,20 @@ type generate_struct(ast::type_info const &info, codegen_context &context)
 	case ast::type_info::null_t_:
 	case ast::type_info::aggregate:
 	{
+		if (info.state == ast::resolve_state::none)
+		{
+			return type();
+		}
+		auto const [should_resolve, it] = context.should_resolve_struct(info);
+		if (!should_resolve)
+		{
+			return type(it->second.struct_ref);
+		}
+
 		auto members = info.member_variables.transform([&context](auto const &member) {
 			return get_type(member->get_type(), context);
 		}).collect<ast::arena_vector>();
-		auto const struct_ref = context.add_struct(info, { .members = std::move(members) });
+		auto const struct_ref = context.add_struct(info, it, { .members = std::move(members) });
 		return type(struct_ref);
 	}
 
