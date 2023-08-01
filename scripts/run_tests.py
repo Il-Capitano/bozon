@@ -134,6 +134,18 @@ def get_error_messages(test_file):
             result.append(line[3:-1])
     return result
 
+def get_error_messages_from_compiler_output(output):
+    result = []
+    while True:
+        indices = [output.find(m) for m in ('error:', 'note:', 'warning:', 'suggestion:') if output.find(m) != -1]
+        i = min(indices) if len(indices) != 0 else -1
+        if i == -1:
+            break
+        line_end = output.find('\n', i);
+        result.append(output[i:line_end])
+        output = output[line_end:]
+    return result
+
 error_commands = [
     [ bozon, *flags, test_file ] if p == 0 else [ bozon, *flags, '--return-zero-on-error', test_file ]
     for test_file in error_test_files
@@ -146,16 +158,9 @@ for test_file in error_test_files:
     command, stdout, stderr, rc = error_pool.get_next_result()
     rerun_command, rerun_stdout, rerun_stderr, rerun_rc = error_pool.get_next_result()
     wanted_messages = get_error_messages(test_file)
+    compiler_messages = get_error_messages_from_compiler_output(stderr)
 
-    wanted_error_fail = len(wanted_messages) == 0
-    if not wanted_error_fail and rc != 0 and rerun_rc == 0:
-        compiler_output = stderr
-        for m in wanted_messages:
-            i = compiler_output.find(m)
-            if i == -1:
-                wanted_error_fail = True
-                break
-            compiler_output = compiler_output[i + len(m):]
+    wanted_error_fail = len(wanted_messages) == 0 or wanted_messages != compiler_messages
 
     if not wanted_error_fail and rc != 0 and rerun_rc == 0:
         total_passed += 1

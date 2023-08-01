@@ -69,6 +69,13 @@ static bz::u8string_view get_operator_name(uint32_t op)
 	}
 }
 
+static bool needs_to_expand_params(bz::array_view<ast::expression const> params)
+{
+	return params.is_any([](auto const &param) {
+		return param.template is<ast::expanded_variadic_expression>();
+	});
+}
+
 static ast::arena_vector<ast::expression> expand_params(ast::arena_vector<ast::expression> params)
 {
 	ast::arena_vector<ast::expression> result;
@@ -2632,9 +2639,8 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 	{
 		auto const char_string = literal->value;
 		auto it = char_string.begin();
-		auto const end = char_string.end();
 		auto const value = get_character(it);
-		bz_assert(it == end);
+		bz_assert(it == char_string.end());
 
 		if (!bz::is_valid_unicode_value(value))
 		{
@@ -2774,7 +2780,10 @@ ast::expression parse_context::make_tuple(lex::src_tokens const &src_tokens, ast
 		return ast::make_unresolved_expression(src_tokens, ast::make_unresolved_expr_tuple(std::move(elems)));
 	}
 
-	elems = expand_params(std::move(elems));
+	if (needs_to_expand_params(elems))
+	{
+		elems = expand_params(std::move(elems));
+	}
 
 	if (elems.is_any([](auto &expr) { return expr.is_error(); }))
 	{
@@ -3766,7 +3775,7 @@ static void get_possible_funcs_for_operator_helper(
 
 	for (auto const op_decl : set_it->op_decls)
 	{
-		if (!result.transform([](auto const &possible_func) { return possible_func.func_body; }).contains(&op_decl->body))
+		if (!result.member<&possible_func_t::func_body>().contains(&op_decl->body))
 		{
 			auto match_level = resolve::get_function_call_match_level(op_decl, op_decl->body, expr, context, src_tokens);
 			result.push_back({ std::move(match_level), op_decl, &op_decl->body });
@@ -3777,7 +3786,7 @@ static void get_possible_funcs_for_operator_helper(
 	{
 		for (auto const decl : op_alias->aliased_decls)
 		{
-			if (!result.transform([](auto const &possible_func) { return possible_func.func_body; }).contains(&decl->body))
+			if (!result.member<&possible_func_t::func_body>().contains(&decl->body))
 			{
 				auto match_level = resolve::get_function_call_match_level(decl, decl->body, expr, context, src_tokens);
 				result.push_back({ std::move(match_level), op_alias, &decl->body });
@@ -3953,7 +3962,7 @@ static void get_possible_funcs_for_operator_helper(
 
 	for (auto const op_decl : set_it->op_decls)
 	{
-		if (!result.transform([](auto const &possible_func) { return possible_func.func_body; }).contains(&op_decl->body))
+		if (!result.member<&possible_func_t::func_body>().contains(&op_decl->body))
 		{
 			auto match_level = resolve::get_function_call_match_level(op_decl, op_decl->body, lhs, rhs, context, src_tokens);
 			result.push_back({ std::move(match_level), op_decl, &op_decl->body });
@@ -3964,7 +3973,7 @@ static void get_possible_funcs_for_operator_helper(
 	{
 		for (auto const decl : op_alias->aliased_decls)
 		{
-			if (!result.transform([](auto const &possible_func) { return possible_func.func_body; }).contains(&decl->body))
+			if (!result.member<&possible_func_t::func_body>().contains(&decl->body))
 			{
 				auto match_level = resolve::get_function_call_match_level(decl, decl->body, lhs, rhs, context, src_tokens);
 				result.push_back({ std::move(match_level), op_alias, &decl->body });
@@ -4474,7 +4483,11 @@ ast::expression parse_context::make_function_call_expression(
 	ast::arena_vector<ast::expression> args
 )
 {
-	args = expand_params(std::move(args));
+	if (needs_to_expand_params(args))
+	{
+		args = expand_params(std::move(args));
+	}
+
 	if (called.is_error() || args.is_any([](auto const &arg) { return arg.is_error(); }))
 	{
 		bz_assert(this->has_errors());
@@ -4799,7 +4812,11 @@ ast::expression parse_context::make_universal_function_call_expression(
 		);
 	}
 
-	args = expand_params(args);
+	if (needs_to_expand_params(args))
+	{
+		args = expand_params(args);
+	}
+
 	if (base.is_error())
 	{
 		bz_assert(this->has_errors());
@@ -5726,7 +5743,11 @@ ast::expression parse_context::make_generic_type_instantiation_expression(
 	ast::arena_vector<ast::expression> args
 )
 {
-	args = expand_params(std::move(args));
+	if (needs_to_expand_params(args))
+	{
+		args = expand_params(std::move(args));
+	}
+
 	if (base.is_error() || args.is_any([](auto const &arg) { return arg.is_error(); }))
 	{
 		return ast::make_error_expression(src_tokens);
@@ -6298,8 +6319,10 @@ ast::expression parse_context::make_copy_construction(ast::expression expr)
 	}
 	else if (type.is<ast::ts_base_type>())
 	{
-		auto const info = type.get<ast::ts_base_type>().info;
-		bz_assert(info->kind == ast::type_info::aggregate || info->kind == ast::type_info::forward_declaration);
+		bz_assert(
+			type.get<ast::ts_base_type>().info->kind == ast::type_info::aggregate
+			|| type.get<ast::ts_base_type>().info->kind == ast::type_info::forward_declaration
+		);
 		return make_struct_copy_construction(type, std::move(expr), *this);
 	}
 	else
@@ -6579,9 +6602,11 @@ ast::expression parse_context::make_move_construction(ast::expression expr)
 	}
 	else if (type.is<ast::ts_base_type>())
 	{
-		auto const info = type.get<ast::ts_base_type>().info;
-		bz_assert(!info->is_trivially_relocatable());
-		bz_assert(info->kind == ast::type_info::aggregate || info->kind == ast::type_info::forward_declaration);
+		bz_assert(!type.get<ast::ts_base_type>().info->is_trivially_relocatable());
+		bz_assert(
+			type.get<ast::ts_base_type>().info->kind == ast::type_info::aggregate
+			|| type.get<ast::ts_base_type>().info->kind == ast::type_info::forward_declaration
+		);
 		return make_struct_move_construction(type, std::move(expr), *this);
 	}
 	else
@@ -7967,7 +7992,7 @@ void parse_context::add_self_move_destruction(ast::expression &expr)
 			ast::make_expr_bitcode_value_reference(),
 			ast::destruct_operation()
 		);
-		auto const decl = expr.get_dynamic().destruct_op.move_destructed_decl;
+		[[maybe_unused]] auto const decl = expr.get_dynamic().destruct_op.move_destructed_decl;
 		expr.get_dynamic().destruct_op = ast::destruct_self(
 			make_move_destruct_expression(expr_type.remove_mut_reference(), std::move(value_ref), *this)
 		);

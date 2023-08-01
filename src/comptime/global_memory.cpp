@@ -37,8 +37,7 @@ bool global_object::check_dereference(ptr_t address, type const *subobject_type)
 		return false;
 	}
 
-	auto const offset = address - this->address;
-	bz_assert(contained_in_object(this->object_type, offset, subobject_type));
+	bz_assert(contained_in_object(this->object_type, address - this->address, subobject_type));
 	return true;
 }
 
@@ -583,10 +582,6 @@ bz::optional<int> global_memory_manager::compare_pointers(ptr_t lhs, ptr_t rhs) 
 
 bz::vector<error_reason_t> global_memory_manager::get_compare_pointers_error_reason(ptr_t lhs, ptr_t rhs) const
 {
-	auto const lhs_segment = this->segment_info.get_segment(lhs);
-	auto const rhs_segment = this->segment_info.get_segment(rhs);
-
-	bz_assert(lhs_segment == rhs_segment && lhs_segment == global_meta_memory_segment::objects);
 	auto const lhs_global_object = this->get_global_object(lhs);
 	auto const rhs_global_object = this->get_global_object(rhs);
 	bz_assert(lhs_global_object != nullptr);

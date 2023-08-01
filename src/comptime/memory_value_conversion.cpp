@@ -256,20 +256,24 @@ static void object_from_constant_value(
 	case ast::constant_value::float32_array:
 	{
 		bz_assert(object_type->is_array());
-		auto const elem_type = get_multi_dimensional_array_elem_type(object_type);
 		auto const array = value.get_float32_array();
-		bz_assert(array.size() == object_type->size / elem_type->size);
-		bz_assert(elem_type->is_floating_point_type() && elem_type->get_builtin_kind() == builtin_type_kind::f32);
+		bz_assert([&]() {
+			auto const elem_type = get_multi_dimensional_array_elem_type(object_type);
+			bz_assert(elem_type->is_floating_point_type() && elem_type->get_builtin_kind() == builtin_type_kind::f32);
+			return array.size() == object_type->size / elem_type->size;
+		}());
 		store_array<float32_t>(array, mem, endianness);
 		break;
 	}
 	case ast::constant_value::float64_array:
 	{
 		bz_assert(object_type->is_array());
-		auto const elem_type = get_multi_dimensional_array_elem_type(object_type);
 		auto const array = value.get_float64_array();
-		bz_assert(array.size() == object_type->size / elem_type->size);
-		bz_assert(elem_type->is_floating_point_type() && elem_type->get_builtin_kind() == builtin_type_kind::f64);
+		bz_assert([&]() {
+			auto const elem_type = get_multi_dimensional_array_elem_type(object_type);
+			bz_assert(elem_type->is_floating_point_type() && elem_type->get_builtin_kind() == builtin_type_kind::f64);
+			return array.size() == object_type->size / elem_type->size;
+		}());
 		store_array<float64_t>(array, mem, endianness);
 		break;
 	}

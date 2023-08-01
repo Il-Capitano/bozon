@@ -542,22 +542,19 @@ public:
 	{
 		if (c <= internal::max_one_byte_char)
 		{
+			// https://quick-bench.com/q/yOAf74DxIjUdfiBMWtg45E00E54
 			auto [it, end] = this->_begin_end_pair();
 			auto trail = it;
-			while (true)
+			while (it != end)
 			{
-				while (it != end && *it == c)
+				if (*it == c)
 				{
 					++it;
 				}
-				while (it != end && *it != c)
+				else
 				{
 					*trail = *it;
 					++it, ++trail;
-				}
-				if (it == end)
-				{
-					break;
 				}
 			}
 
@@ -613,20 +610,16 @@ public:
 
 			auto [it, end] = this->_begin_end_pair();
 			auto trail = it;
-			while (true)
+			while (it != end)
 			{
-				while (it != end && is_char(it))
+				if (is_char(it))
 				{
-					++it;
+					it += char_size;
 				}
-				while (it != end && !is_char(it))
+				else
 				{
 					*trail = *it;
 					++it, ++trail;
-				}
-				if (it == end)
-				{
-					break;
 				}
 			}
 

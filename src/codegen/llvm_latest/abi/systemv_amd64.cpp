@@ -3,6 +3,8 @@
 namespace codegen::llvm_latest::abi
 {
 
+static constexpr size_t register_size = 8;
+
 static constexpr bz::array pass_by_reference_attributes_systemv_amd64 = {
 	llvm::Attribute::ByVal,
 	llvm::Attribute::NoAlias,
@@ -23,8 +25,7 @@ pass_kind get_pass_kind<platform_abi::systemv_amd64>(
 	llvm::LLVMContext &context
 )
 {
-	size_t const register_size = 8;
-	bz_assert(data_layout.getTypeAllocSize(data_layout.getIntPtrType(context)) == register_size);
+	bz_assert(data_layout.getPointerSize() == register_size);
 	switch (t->getTypeID())
 	{
 	case llvm::Type::TypeID::IntegerTyID:
@@ -102,6 +103,7 @@ llvm::Type *get_one_register_type<platform_abi::systemv_amd64>(
 	llvm::LLVMContext &context
 )
 {
+	bz_assert(data_layout.getPointerSize() == register_size);
 	switch (t->getTypeID())
 	{
 	case llvm::Type::ArrayTyID:
@@ -141,8 +143,6 @@ static void get_types_with_offset_helper(
 	llvm::LLVMContext &context
 )
 {
-	size_t const register_size = 8;
-	bz_assert(data_layout.getTypeAllocSize(data_layout.getIntPtrType(context)) == register_size);
 	switch (t->getTypeID())
 	{
 	case llvm::Type::TypeID::ArrayTyID:
@@ -195,15 +195,14 @@ std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::syste
 	llvm::LLVMContext &context
 )
 {
-	size_t const register_size = 8;
-	bz_assert(data_layout.getTypeAllocSize(data_layout.getIntPtrType(context)) == register_size);
+	bz_assert(data_layout.getPointerSize() == register_size);
 	std::pair<llvm::Type *, llvm::Type *> result{};
 
 	auto const contained_types = get_types_with_offset(t, data_layout, context);
 
 	auto const first_type_in_second_register_it = std::find_if(
 		contained_types.begin(), contained_types.end(),
-		[register_size](auto const &pair) { return pair.second == register_size; }
+		[](auto const &pair) { return pair.second == register_size; }
 	);
 	bz_assert(first_type_in_second_register_it != contained_types.end());
 	auto const first_register_types  = bz::array_view(contained_types.begin(), first_type_in_second_register_it);
