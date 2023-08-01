@@ -135,14 +135,14 @@ void type_set_t::add_function_type_name(type::function_reference function_ref, b
 	this->function_type_names.push_back(std::move(function_type_name));
 }
 
-type::struct_reference type_set_t::add_builtin_struct(struct_type_t struct_type)
+type::struct_reference type_set_t::add_unique_struct(struct_type_t struct_type)
 {
 	auto const result = type::struct_reference{ .index = static_cast<uint32_t>(this->struct_types.size()) };
 	this->struct_types.push_back(std::move(struct_type));
 	return result;
 }
 
-type::typedef_reference type_set_t::add_builtin_typedef(typedef_type_t typedef_type)
+type::typedef_reference type_set_t::add_unique_typedef(typedef_type_t typedef_type)
 {
 	auto const result = type::typedef_reference{ .index = static_cast<uint32_t>(this->typedef_types.size()) };
 	this->typedef_types.push_back(std::move(typedef_type));

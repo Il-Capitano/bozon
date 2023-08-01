@@ -17,7 +17,7 @@ codegen_context::codegen_context(target_properties props)
 	this->long_size = props.c_long_size.get();
 	this->long_long_size = props.c_long_long_size.get();
 
-	this->builtin_types.void_ = this->type_set.add_builtin_typedef({
+	this->builtin_types.void_ = this->type_set.add_unique_typedef({
 		.aliased_type = {},
 	});
 	this->type_set.add_typedef_type_name(this->builtin_types.void_, "void");
@@ -202,9 +202,9 @@ type::struct_reference codegen_context::add_struct(ast::type_info const &info, s
 
 type::struct_reference codegen_context::add_struct_forward_declaration(ast::type_info const &info)
 {
-	auto const ref = this->type_set.add_builtin_struct({});
 	this->type_set.add_struct_type_name(ref, this->make_type_name());
 	this->struct_infos.insert({ &info, struct_info_t{ .struct_ref = ref, .typedef_ref = type::typedef_reference::invalid() } });
+	auto const ref = this->type_set.add_unique_struct({});
 
 	auto const struct_name = this->type_set.get_struct_type_name(ref);
 
@@ -335,7 +335,7 @@ type::typedef_reference codegen_context::add_builtin_type(
 	bz::u8string_view aliased_type_name
 )
 {
-	auto const struct_ref = this->type_set.add_builtin_struct({});
+	auto const struct_ref = this->type_set.add_unique_struct({});
 	this->type_set.add_struct_type_name(struct_ref, aliased_type_name);
 	auto const typedef_ref = this->add_builtin_typedef(typedef_type_name, { .aliased_type = type(struct_ref) });
 	this->struct_infos.insert({ &info, struct_info_t{ struct_ref, typedef_ref } });
@@ -350,7 +350,7 @@ type::typedef_reference codegen_context::add_char_typedef(ast::type_info const &
 	bz_assert(this->builtin_types.uint32_ != type::typedef_reference::invalid());
 	auto const uint32_name = this->type_set.get_typedef_type_name(this->builtin_types.uint32_);
 
-	auto const ref = this->type_set.add_builtin_typedef({ .aliased_type = this->get_uint32() });
+	auto const ref = this->type_set.add_unique_typedef({ .aliased_type = this->get_uint32() });
 	this->type_set.add_typedef_type_name(ref, typedef_type_name);
 	this->struct_infos.insert({ &info, struct_info_t{ .struct_ref = type::struct_reference::invalid(), .typedef_ref = ref } });
 
@@ -361,7 +361,7 @@ type::typedef_reference codegen_context::add_char_typedef(ast::type_info const &
 
 type::typedef_reference codegen_context::add_builtin_typedef(bz::u8string typedef_type_name, typedef_type_t typedef_type)
 {
-	auto const ref = this->type_set.add_builtin_typedef(std::move(typedef_type));
+	auto const ref = this->type_set.add_unique_typedef(std::move(typedef_type));
 	this->type_set.add_typedef_type_name(ref, std::move(typedef_type_name));
 	return ref;
 }

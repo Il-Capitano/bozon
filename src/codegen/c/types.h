@@ -377,8 +377,8 @@ struct type_set_t
 	void add_array_type_name(type::array_reference array_ref, bz::u8string array_type_name);
 	void add_function_type_name(type::function_reference function_ref, bz::u8string function_type_name);
 
-	type::struct_reference add_builtin_struct(struct_type_t struct_type);
-	type::typedef_reference add_builtin_typedef(typedef_type_t typedef_type);
+	type::struct_reference add_unique_struct(struct_type_t struct_type);
+	type::typedef_reference add_unique_typedef(typedef_type_t typedef_type);
 };
 
 } // namespace codegen::c
