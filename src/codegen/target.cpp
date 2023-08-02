@@ -101,7 +101,7 @@ target_triple target_triple::parse(bz::u8string_view triple)
 		// we don't care about more components
 		[[fallthrough]];
 	case 4:
-		result.environment = parse_environment(components[2]);
+		result.environment = parse_environment(components[3]);
 		[[fallthrough]];
 	case 3:
 		result.os = parse_os(components[2]);
