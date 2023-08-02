@@ -39,16 +39,24 @@ struct codegen_context
 		type::typedef_reference bool_ = type::typedef_reference::invalid();
 	};
 
+	struct global_variable_t
+	{
+		bz::u8string name;
+		type var_type;
+	};
+
 	size_t counter = 0;
 
 	type_set_t type_set;
 	std::unordered_map<ast::type_info const *, struct_info_t> struct_infos;
 	builtin_types_t builtin_types;
+	std::unordered_map<ast::decl_variable const *, global_variable_t> global_variables;
 
 	bz::u8string_view indentation;
 	bz::u8string struct_forward_declarations_string;
 	bz::u8string typedefs_string;
 	bz::u8string struct_bodies_string;
+	bz::u8string variables_string;
 
 	bz::vector<bz::u8string> included_headers;
 
@@ -61,6 +69,8 @@ struct codegen_context
 	bz::u8string make_type_name(void);
 	bz::u8string make_type_name(ast::type_info const &info);
 	bz::u8string get_member_name(size_t index);
+	bz::u8string make_global_variable_name(void);
+	bz::u8string make_global_variable_name(ast::decl_variable const &var_decl);
 	void add_libc_header(bz::u8string_view header);
 
 	type get_struct(ast::type_info const &info, bool resolve = true);
@@ -113,6 +123,9 @@ struct codegen_context
 	type::typedef_reference add_builtin_typedef(bz::u8string typedef_type_name, typedef_type_t typedef_type);
 
 	bz::u8string to_string(type t) const;
+
+	bz::u8string create_cstring(bz::u8string_view s);
+	void add_global_variable(ast::decl_variable const &var_decl, type var_type, bz::u8string_view initializer);
 
 	bz::u8string get_code_string(void) const;
 };

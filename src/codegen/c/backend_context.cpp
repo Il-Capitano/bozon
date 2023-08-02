@@ -38,7 +38,14 @@ static auto filter_struct_decls(bz::array_view<ast::statement const> decls)
 		.transform([](auto const &stmt) -> ast::decl_struct const & { return stmt.template get<ast::decl_struct>(); });
 }
 
-static void emit_structs_helper(bz::array_view<ast::statement const> decls, codegen_context &context)
+static auto filter_var_decls(bz::array_view<ast::statement const> decls)
+{
+	return decls
+		.filter([](auto const &stmt) { return stmt.template is<ast::decl_variable>(); })
+		.transform([](auto const &stmt) -> ast::decl_variable const & { return stmt.template get<ast::decl_variable>(); });
+}
+
+static void generate_structs_helper(bz::array_view<ast::statement const> decls, codegen_context &context)
 {
 	for (auto const &struct_decl : filter_struct_decls(decls))
 	{
@@ -49,7 +56,7 @@ static void emit_structs_helper(bz::array_view<ast::statement const> decls, code
 				generate_struct(*instantiation_info, context);
 				if (instantiation_info->kind == ast::type_info::aggregate && instantiation_info->state == ast::resolve_state::all)
 				{
-					emit_structs_helper(instantiation_info->body.get<bz::vector<ast::statement>>(), context);
+					generate_structs_helper(instantiation_info->body.get<bz::vector<ast::statement>>(), context);
 				}
 			}
 		}
@@ -58,8 +65,37 @@ static void emit_structs_helper(bz::array_view<ast::statement const> decls, code
 			generate_struct(struct_decl.info, context);
 			if (struct_decl.info.kind == ast::type_info::aggregate && struct_decl.info.state == ast::resolve_state::all)
 			{
-				emit_structs_helper(struct_decl.info.body.get<bz::vector<ast::statement>>(), context);
+				generate_structs_helper(struct_decl.info.body.get<bz::vector<ast::statement>>(), context);
 			}
+		}
+	}
+}
+
+static void generate_variables_helper(bz::array_view<ast::statement const> decls, codegen_context &context)
+{
+	for (auto const &var_decl : filter_var_decls(decls))
+	{
+		if (var_decl.is_global())
+		{
+			generate_global_variable(var_decl, context);
+		}
+	}
+
+	for (auto const &struct_decl : filter_struct_decls(decls))
+	{
+		if (struct_decl.info.is_generic())
+		{
+			for (auto const &instantiation_info : struct_decl.info.generic_instantiations)
+			{
+				if (instantiation_info->kind == ast::type_info::aggregate && instantiation_info->state == ast::resolve_state::all)
+				{
+					generate_variables_helper(instantiation_info->body.get<bz::vector<ast::statement>>(), context);
+				}
+			}
+		}
+		else if (struct_decl.info.kind == ast::type_info::aggregate && struct_decl.info.state == ast::resolve_state::all)
+		{
+			generate_variables_helper(struct_decl.info.body.get<bz::vector<ast::statement>>(), context);
 		}
 	}
 }
@@ -71,7 +107,11 @@ bool backend_context::generate_code(ctx::global_context &global_ctx)
 	bz_assert(global_ctx._compile_decls.var_decls.size() == 0);
 	for (auto const &file : global_ctx._src_files)
 	{
-		emit_structs_helper(file->_declarations, context);
+		generate_structs_helper(file->_declarations, context);
+	}
+	for (auto const &file : global_ctx._src_files)
+	{
+		generate_variables_helper(file->_declarations, context);
 	}
 
 	this->code_string = context.get_code_string();

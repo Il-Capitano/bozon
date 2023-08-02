@@ -65,6 +65,38 @@ bz::u8string codegen_context::get_member_name(size_t index)
 	return bz::format("m_{:x}", index);
 }
 
+bz::u8string codegen_context::make_global_variable_name(void)
+{
+	return bz::format("gv_{:x}", this->get_unique_number());
+}
+
+bz::u8string codegen_context::make_global_variable_name(ast::decl_variable const &var_decl)
+{
+	if (var_decl.is_external_linkage())
+	{
+		if (var_decl.symbol_name == "")
+		{
+			bz::u8string result = "";
+			for (auto const &value : var_decl.get_id().values)
+			{
+				result += value;
+				result += '_';
+			}
+			result += bz::format("{:x}", this->get_unique_number());
+			return result;
+		}
+		else
+		{
+			return var_decl.symbol_name;
+		}
+	}
+	else
+	{
+		bz_assert(var_decl.get_id().values.not_empty());
+		return bz::format("gv_{}_{:x}", var_decl.get_id().values.back(), this->get_unique_number());
+	}
+}
+
 void codegen_context::add_libc_header(bz::u8string_view header)
 {
 	if (!this->included_headers.contains(header))
@@ -527,6 +559,100 @@ bz::u8string codegen_context::to_string(type t) const
 	return result;
 }
 
+bz::u8string codegen_context::create_cstring(bz::u8string_view s)
+{
+	auto name = this->make_global_variable_name();
+	auto const uint8_name = this->type_set.get_typedef_type_name(this->builtin_types.uint8_);
+
+	this->variables_string += bz::format("static {} const * const {} = ({0} const *)\"", uint8_name, name);
+
+	auto it = s.begin();
+	auto const end = s.end();
+	auto begin = it;
+	for (; it != end; ++it)
+	{
+		auto const c = *it;
+		// https://en.cppreference.com/w/c/language/escape
+		if (c < ' ' || c == '\x7f' || c == '\'' || c == '\"' || c == '\\')
+		{
+			this->variables_string += bz::u8string_view(begin, it);
+			switch (c)
+			{
+			case '\'':
+				this->variables_string += "\\\'";
+				break;
+			case '\"':
+				this->variables_string += "\\\"";
+				break;
+			case '\\':
+				this->variables_string += "\\\\";
+				break;
+			case '\a':
+				this->variables_string += "\\a";
+				break;
+			case '\b':
+				this->variables_string += "\\b";
+				break;
+			case '\f':
+				this->variables_string += "\\f";
+				break;
+			case '\n':
+				this->variables_string += "\\n";
+				break;
+			case '\r':
+				this->variables_string += "\\r";
+				break;
+			case '\t':
+				this->variables_string += "\\t";
+				break;
+			case '\v':
+				this->variables_string += "\\v";
+				break;
+			default:
+				this->variables_string += bz::format("\\x{:02x}", c);
+				break;
+			}
+			begin = it + 1;
+		}
+		else if (c > '\x7f' && c <= 0xffff)
+		{
+			this->variables_string += bz::u8string_view(begin, it);
+			this-> variables_string += bz::format("\\u{:04x}", c);
+			begin = it + 1;
+		}
+		else if (c > 0xffff)
+		{
+			this->variables_string += bz::u8string_view(begin, it);
+			this-> variables_string += bz::format("\\U{:08x}", c);
+			begin = it + 1;
+		}
+	}
+	this->variables_string += bz::u8string_view(begin, it);
+
+	this->variables_string += "\";\n";
+
+	return name;
+}
+
+void codegen_context::add_global_variable(ast::decl_variable const &var_decl, type var_type, bz::u8string_view initializer)
+{
+	bz_assert(!this->global_variables.contains(&var_decl));
+	auto name = this->make_global_variable_name(var_decl);
+	auto const visibility = var_decl.is_extern() ? "extern "
+		: var_decl.is_external_linkage() ? ""
+		: "static ";
+	auto const mutability = var_decl.get_type().is_mut() ? "" : " const";
+	this->variables_string += bz::format("{}{}{} {}", visibility, this->to_string(var_type), mutability, name);
+	if (initializer != "")
+	{
+		this->variables_string += " = ";
+		this->variables_string += initializer;
+	}
+	this->variables_string += ";\n";
+
+	this->global_variables.insert({ &var_decl, global_variable_t{ std::move(name), var_type } });
+}
+
 bz::u8string codegen_context::get_code_string(void) const
 {
 	bz::u8string result = "";
@@ -539,6 +665,7 @@ bz::u8string codegen_context::get_code_string(void) const
 	result += this->struct_forward_declarations_string;
 	result += this->typedefs_string;
 	result += this->struct_bodies_string;
+	result += this->variables_string;
 
 	return result;
 }
