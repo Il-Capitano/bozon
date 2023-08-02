@@ -70,9 +70,25 @@ bz::u8string codegen_context::make_global_variable_name(void)
 	return bz::format("gv_{:x}", this->get_unique_number());
 }
 
+static ast::attribute const &get_libc_variable_attribute(ast::decl_variable const &var_decl)
+{
+	bz_assert(var_decl.is_libc_variable());
+	return var_decl.attributes.filter([](ast::attribute const &attr) {
+		return attr.name->value == "__libc_variable";
+	}).front();
+}
+
 bz::u8string codegen_context::make_global_variable_name(ast::decl_variable const &var_decl)
 {
-	if (var_decl.is_external_linkage())
+	if (var_decl.is_libc_variable())
+	{
+		auto const &attribute = get_libc_variable_attribute(var_decl);
+		bz_assert(attribute.args.size() == 2);
+		auto const header = attribute.args[0].get_constant_value().get_string();
+		this->add_libc_header(header);
+		return attribute.args[1].get_constant_value().get_string();
+	}
+	else if (var_decl.is_external_linkage())
 	{
 		if (var_decl.symbol_name == "")
 		{
@@ -638,17 +654,21 @@ void codegen_context::add_global_variable(ast::decl_variable const &var_decl, ty
 {
 	bz_assert(!this->global_variables.contains(&var_decl));
 	auto name = this->make_global_variable_name(var_decl);
-	auto const visibility = var_decl.is_extern() ? "extern "
-		: var_decl.is_external_linkage() ? ""
-		: "static ";
-	auto const mutability = var_decl.get_type().is_mut() ? "" : " const";
-	this->variables_string += bz::format("{}{}{} {}", visibility, this->to_string(var_type), mutability, name);
-	if (initializer != "")
+
+	if (!var_decl.is_libc_variable())
 	{
-		this->variables_string += " = ";
-		this->variables_string += initializer;
+		auto const visibility = var_decl.is_extern() ? "extern "
+			: var_decl.is_external_linkage() ? ""
+			: "static ";
+		auto const mutability = var_decl.get_type().is_mut() ? "" : " const";
+		this->variables_string += bz::format("{}{}{} {}", visibility, this->to_string(var_type), mutability, name);
+		if (initializer != "")
+		{
+			this->variables_string += " = ";
+			this->variables_string += initializer;
+		}
+		this->variables_string += ";\n";
 	}
-	this->variables_string += ";\n";
 
 	this->global_variables.insert({ &var_decl, global_variable_t{ std::move(name), var_type } });
 }

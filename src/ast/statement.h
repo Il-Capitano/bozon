@@ -216,6 +216,7 @@ struct decl_variable
 		tuple_outer_ref  = bit_at<10>,
 		moved            = bit_at<11>,
 		ever_moved_from  = bit_at<12>,
+		libc_variable    = bit_at<13>,
 	};
 
 	lex::src_tokens src_tokens;
@@ -380,6 +381,9 @@ struct decl_variable
 
 	bool is_ever_moved_from(void) const noexcept
 	{ return (this->flags & ever_moved_from) != 0; }
+
+	bool is_libc_variable(void) const noexcept
+	{ return (this->flags & libc_variable) != 0; }
 
 	typespec &get_type(void)
 	{

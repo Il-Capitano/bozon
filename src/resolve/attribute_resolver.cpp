@@ -313,6 +313,30 @@ static bool apply_libc_struct(
 	return true;
 }
 
+static bool apply_libc_variable(
+	ast::decl_variable &var_decl,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	var_decl.flags |= ast::decl_variable::libc_variable;
+	if (!var_decl.is_global())
+	{
+		context.report_error(attribute.name, bz::format("'@{}' cannot be applied to local variables", attribute.name->value));
+		return false;
+	}
+	else
+	{
+		auto const symbol_name = attribute.args[1]
+			.get_constant_value()
+			.get_string();
+
+		var_decl.symbol_name = symbol_name;
+		var_decl.flags |= ast::decl_variable::external_linkage;
+		return true;
+	}
+}
+
 static bool apply_symbol_name(
 	ast::function_body &func_body,
 	ast::attribute &attribute,
@@ -389,7 +413,7 @@ static bool apply_overload_priority(
 
 bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info * const> builtin_type_infos)
 {
-	constexpr size_t N = 4;
+	constexpr size_t N = 5;
 	bz::vector<attribute_info_t> result;
 	result.reserve(N);
 
@@ -402,6 +426,11 @@ bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info 
 		"__libc_struct",
 		{ str_type, str_type },
 		{ nullptr, nullptr, nullptr, nullptr, nullptr, &apply_libc_struct }
+	});
+	result.push_back({
+		"__libc_variable",
+		{ str_type, str_type },
+		{ nullptr, nullptr, nullptr, &apply_libc_variable, nullptr, nullptr }
 	});
 	result.push_back({
 		"symbol_name",
