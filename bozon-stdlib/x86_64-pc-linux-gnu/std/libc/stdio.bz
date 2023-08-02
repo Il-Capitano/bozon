@@ -1,6 +1,19 @@
 import types;
 import stddef;
-@__libcstruct("stdio.h", "FILE") struct _IO_FILE
+@__libc_internal struct _G_fpos_t
+{
+	.__pos: __off_t;
+	.__state: __mbstate_t;
+}
+@__libc_internal struct _IO_codecvt;
+@__libc_internal struct _IO_marker;
+@__libc_internal struct _IO_wide_data;
+@__libc_internal struct __mbstate_t
+{
+	.__count: int;
+	.__value: /* union type */[1: int32];
+}
+@__libc_struct("stdio.h", "FILE") struct _IO_FILE
 {
 	._flags: int;
 	._IO_read_ptr: ?*mut char;
@@ -31,19 +44,6 @@ import stddef;
 	.__pad5: size_t;
 	._mode: int;
 	._unused2: [20: char];
-}
-struct _G_fpos_t
-{
-	.__pos: __off_t;
-	.__state: __mbstate_t;
-}
-struct _IO_codecvt;
-struct _IO_marker;
-struct _IO_wide_data;
-struct __mbstate_t
-{
-	.__count: int;
-	.__value: /* union type */[1: int32];
 }
 export type FILE = _IO_FILE;
 export type fpos_t = __fpos_t;
@@ -142,6 +142,6 @@ export function stdout() -> &mut ?*mut FILE
 {
 	return __macro_clash_stdout;
 }
-@symbol_name("stderr") extern __macro_clash_stderr: mut ?*mut FILE;
-@symbol_name("stdin") extern __macro_clash_stdin: mut ?*mut FILE;
-@symbol_name("stdout") extern __macro_clash_stdout: mut ?*mut FILE;
+@__libc_internal @symbol_name("stderr") extern __macro_clash_stderr: mut ?*mut FILE;
+@__libc_internal @symbol_name("stdin") extern __macro_clash_stdin: mut ?*mut FILE;
+@__libc_internal @symbol_name("stdout") extern __macro_clash_stdout: mut ?*mut FILE;

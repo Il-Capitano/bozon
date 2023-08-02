@@ -1,6 +1,6 @@
 import types;
 import stddef;
-@__libcstruct("stdio.h", "FILE") struct _iobuf
+@__libc_struct("stdio.h", "FILE") struct _iobuf
 {
 	._ptr: ?*mut char;
 	._cnt: int;

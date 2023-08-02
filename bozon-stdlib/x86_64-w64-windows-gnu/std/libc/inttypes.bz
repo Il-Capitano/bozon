@@ -1,7 +1,7 @@
 import types;
 import stdint;
 import stddef;
-@__libcstruct("inttypes.h", "imaxdiv_t") export struct imaxdiv_t
+@__libc_struct("inttypes.h", "imaxdiv_t") export struct imaxdiv_t
 {
 	.quot: intmax_t;
 	.rem: intmax_t;

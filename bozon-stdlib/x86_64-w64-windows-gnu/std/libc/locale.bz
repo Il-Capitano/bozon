@@ -1,6 +1,6 @@
 import types;
 import stddef;
-@__libcstruct("locale.h", "lconv") export struct lconv
+@__libc_struct("locale.h", "lconv") export struct lconv
 {
 	.decimal_point: ?*mut char;
 	.thousands_sep: ?*mut char;
