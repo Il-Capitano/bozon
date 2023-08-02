@@ -240,6 +240,66 @@ static void write_sint(bz::u8string &buffer, int64_t value)
 	}
 }
 
+static void write_float32(bz::u8string &buffer, float32_t value)
+{
+	if (std::isnan(value))
+	{
+		if (std::signbit(value))
+		{
+			buffer += "(-0.0f / 0.0f)";
+		}
+		else
+		{
+			buffer += "(0.0f / 0.0f)";
+		}
+	}
+	else if (std::isinf(value))
+	{
+		if (std::signbit(value))
+		{
+			buffer += "(-1.0f / 0.0f)";
+		}
+		else
+		{
+			buffer += "(1.0f / 0.0f)";
+		}
+	}
+	else
+	{
+		buffer += bz::format("{}f", value);
+	}
+}
+
+static void write_float64(bz::u8string &buffer, float64_t value)
+{
+	if (std::isnan(value))
+	{
+		if (std::signbit(value))
+		{
+			buffer += "(-0.0 / 0.0)";
+		}
+		else
+		{
+			buffer += "(0.0 / 0.0)";
+		}
+	}
+	else if (std::isinf(value))
+	{
+		if (std::signbit(value))
+		{
+			buffer += "(-1.0 / 0.0)";
+		}
+		else
+		{
+			buffer += "(1.0 / 0.0)";
+		}
+	}
+	else
+	{
+		buffer += bz::format("{}", value);
+	}
+}
+
 static bool is_zero_value(ast::constant_value const &value)
 {
 	switch (value.kind())
@@ -369,6 +429,7 @@ static void generate_nonzero_constant_numeric_array_value(
 			if constexpr (bz::meta::is_same<T, int64_t>)
 			{
 				write_sint(buffer, value);
+				buffer += ", ";
 			}
 			else if constexpr (bz::meta::is_same<T, uint64_t>)
 			{
@@ -376,11 +437,13 @@ static void generate_nonzero_constant_numeric_array_value(
 			}
 			else if constexpr (bz::meta::is_same<T, float32_t>)
 			{
-				buffer += bz::format("{}f, ", value);
+				write_float32(buffer, value);
+				buffer += ", ";
 			}
 			else if constexpr (bz::meta::is_same<T, float64_t>)
 			{
-				buffer += bz::format("{}, ", value);
+				write_float64(buffer, value);
+				buffer += ", ";
 			}
 			else
 			{
@@ -480,10 +543,10 @@ static void generate_constant_value(
 		buffer += bz::format("{}u", value.get_uint());
 		break;
 	case ast::constant_value::float32:
-		buffer += bz::format("{}f", value.get_float32());
+		write_float32(buffer, value.get_float32());
 		break;
 	case ast::constant_value::float64:
-		buffer += bz::format("{}", value.get_float64());
+		write_float64(buffer, value.get_float64());
 		break;
 	case ast::constant_value::u8char:
 	{
