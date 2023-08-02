@@ -105,12 +105,46 @@ target_triple target_triple::parse(bz::u8string_view triple)
 		[[fallthrough]];
 	case 3:
 		result.os = parse_os(components[2]);
+		if (result.os == os_kind::unknown && components[2] != "unknown")
+		{
+			if (result.environment == environment_kind::unknown)
+			{
+				result.environment = parse_environment(components[2]);
+			}
+		}
 		[[fallthrough]];
 	case 2:
 		result.vendor = parse_vendor(components[1]);
+		// try to parse other parts
+		if (result.vendor == vendor_kind::unknown && components[1] != "unknown")
+		{
+			if (result.os == os_kind::unknown)
+			{
+				result.os = parse_os(components[1]);
+			}
+			if (result.os == os_kind::unknown && result.environment == environment_kind::unknown)
+			{
+				result.environment = parse_environment(components[1]);
+			}
+		}
 		[[fallthrough]];
 	case 1:
 		result.arch = parse_arch(components[0]);
+		if (result.arch == architecture_kind::unknown && components[0] != "unknown")
+		{
+			if (result.vendor == vendor_kind::unknown)
+			{
+				result.vendor = parse_vendor(components[0]);
+			}
+			if (result.vendor == vendor_kind::unknown && result.os == os_kind::unknown)
+			{
+				result.os = parse_os(components[0]);
+			}
+			if (result.vendor == vendor_kind::unknown && result.os == os_kind::unknown && result.environment == environment_kind::unknown)
+			{
+				result.environment = parse_environment(components[0]);
+			}
+		}
 		[[fallthrough]];
 	case 0:
 		// nothing to parse
