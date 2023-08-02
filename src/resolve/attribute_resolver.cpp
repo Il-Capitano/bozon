@@ -303,13 +303,13 @@ static bool apply_builtin_assign(
 	}
 }
 
-static bool apply_libcstruct(
+static bool apply_libc_struct(
 	ast::type_info &info,
 	ast::attribute &attribute,
 	ctx::parse_context &context
 )
 {
-	info.flags |= ast::type_info::libcstruct;
+	info.flags |= ast::type_info::libc_struct;
 	return true;
 }
 
@@ -399,9 +399,9 @@ bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info 
 	auto const str_type = ast::make_base_type_typespec({}, builtin_type_infos[ast::type_info::str_]);
 
 	result.push_back({
-		"__libcstruct",
+		"__libc_struct",
 		{ str_type, str_type },
-		{ nullptr, nullptr, nullptr, nullptr, nullptr, &apply_libcstruct }
+		{ nullptr, nullptr, nullptr, nullptr, nullptr, &apply_libc_struct }
 	});
 	result.push_back({
 		"symbol_name",

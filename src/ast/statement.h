@@ -1177,7 +1177,7 @@ struct type_info
 		trivially_relocatable           = bit_at< 9>,
 		trivial                         = bit_at<10>,
 		module_export                   = bit_at<11>,
-		libcstruct                      = bit_at<12>,
+		libc_struct                     = bit_at<12>,
 	};
 
 	enum : uint8_t
@@ -1340,8 +1340,8 @@ public:
 	bool is_module_export(void) const noexcept
 	{ return (this->flags & module_export) != 0; }
 
-	bool is_libcstruct(void) const noexcept
-	{ return (this->flags & libcstruct) != 0; }
+	bool is_libc_struct(void) const noexcept
+	{ return (this->flags & libc_struct) != 0; }
 
 	static decl_operator_ptr make_default_op_assign(lex::src_tokens const &src_tokens, type_info &info);
 	static decl_operator_ptr make_default_op_move_assign(lex::src_tokens const &src_tokens, type_info &info);

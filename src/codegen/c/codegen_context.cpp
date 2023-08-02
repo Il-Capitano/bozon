@@ -35,19 +35,19 @@ bz::u8string codegen_context::make_type_name(void)
 	return bz::format("t_{:x}", this->get_unique_number());
 }
 
-static ast::attribute const &get_libcstruct_attribute(ast::type_info const &info)
+static ast::attribute const &get_libc_struct_attribute(ast::type_info const &info)
 {
-	bz_assert(info.is_libcstruct());
+	bz_assert(info.is_libc_struct());
 	return info.attributes.filter([](ast::attribute const &attr) {
-		return attr.name->value == "__libcstruct";
+		return attr.name->value == "__libc_struct";
 	}).front();
 }
 
 bz::u8string codegen_context::make_type_name(ast::type_info const &info)
 {
-	if (info.is_libcstruct())
+	if (info.is_libc_struct())
 	{
-		auto const &attribute = get_libcstruct_attribute(info);
+		auto const &attribute = get_libc_struct_attribute(info);
 		bz_assert(attribute.args.size() == 2);
 		auto const header = attribute.args[0].get_constant_value().get_string();
 		this->add_libc_header(header);
@@ -307,7 +307,7 @@ type::struct_reference codegen_context::add_struct(ast::type_info const &info, s
 		}
 	}();
 
-	if (!info.is_libcstruct())
+	if (!info.is_libc_struct())
 	{
 		this->generate_struct_body(ref);
 	}
@@ -349,7 +349,7 @@ type::struct_reference codegen_context::add_struct_forward_declaration(ast::type
 		},
 	});
 
-	if (!info.is_libcstruct())
+	if (!info.is_libc_struct())
 	{
 		this->generate_struct_forward_declaration(ref);
 	}
