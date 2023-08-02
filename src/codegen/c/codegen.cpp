@@ -133,6 +133,11 @@ static type::typedef_reference add_int_type(ast::type_info const &info, bz::u8st
 
 type generate_struct(ast::type_info const &info, codegen_context &context)
 {
+	if (info.is_libc_internal())
+	{
+		return type();
+	}
+
 	switch (info.kind)
 	{
 	case ast::type_info::int8_:
@@ -654,6 +659,11 @@ static bz::u8string generate_constant_value(ast::constant_value const &value, as
 
 void generate_global_variable(ast::decl_variable const &var_decl, codegen_context &context)
 {
+	if (var_decl.is_libc_internal())
+	{
+		return;
+	}
+
 	auto const var_type = get_type(var_decl.get_type(), context);
 	if (var_decl.init_expr.is_constant())
 	{

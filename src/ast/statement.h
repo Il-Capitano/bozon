@@ -217,6 +217,7 @@ struct decl_variable
 		moved            = bit_at<11>,
 		ever_moved_from  = bit_at<12>,
 		libc_variable    = bit_at<13>,
+		libc_internal    = bit_at<14>,
 	};
 
 	lex::src_tokens src_tokens;
@@ -384,6 +385,9 @@ struct decl_variable
 
 	bool is_libc_variable(void) const noexcept
 	{ return (this->flags & libc_variable) != 0; }
+
+	bool is_libc_internal(void) const noexcept
+	{ return (this->flags & libc_internal) != 0; }
 
 	typespec &get_type(void)
 	{
@@ -1182,6 +1186,7 @@ struct type_info
 		trivial                         = bit_at<10>,
 		module_export                   = bit_at<11>,
 		libc_struct                     = bit_at<12>,
+		libc_internal                   = bit_at<13>,
 	};
 
 	enum : uint8_t
@@ -1346,6 +1351,9 @@ public:
 
 	bool is_libc_struct(void) const noexcept
 	{ return (this->flags & libc_struct) != 0; }
+
+	bool is_libc_internal(void) const noexcept
+	{ return (this->flags & libc_internal) != 0; }
 
 	static decl_operator_ptr make_default_op_assign(lex::src_tokens const &src_tokens, type_info &info);
 	static decl_operator_ptr make_default_op_move_assign(lex::src_tokens const &src_tokens, type_info &info);

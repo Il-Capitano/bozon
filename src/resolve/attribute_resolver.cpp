@@ -303,6 +303,26 @@ static bool apply_builtin_assign(
 	}
 }
 
+static bool apply_libc_internal(
+	ast::decl_variable &var_decl,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	var_decl.flags |= ast::decl_variable::libc_internal;
+	return true;
+}
+
+static bool apply_libc_internal(
+	ast::type_info &info,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	info.flags |= ast::type_info::libc_internal;
+	return true;
+}
+
 static bool apply_libc_struct(
 	ast::type_info &info,
 	ast::attribute &attribute,
@@ -413,7 +433,7 @@ static bool apply_overload_priority(
 
 bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info * const> builtin_type_infos)
 {
-	constexpr size_t N = 5;
+	constexpr size_t N = 6;
 	bz::vector<attribute_info_t> result;
 	result.reserve(N);
 
@@ -422,6 +442,11 @@ bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info 
 	auto const int64_type = ast::make_base_type_typespec({}, builtin_type_infos[ast::type_info::int64_]);
 	auto const str_type = ast::make_base_type_typespec({}, builtin_type_infos[ast::type_info::str_]);
 
+	result.push_back({
+		"__libc_internal",
+		{},
+		{ nullptr, nullptr, nullptr, &apply_libc_internal, nullptr, &apply_libc_internal }
+	});
 	result.push_back({
 		"__libc_struct",
 		{ str_type, str_type },
