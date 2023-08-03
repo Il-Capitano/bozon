@@ -184,33 +184,7 @@ static token get_identifier_or_keyword_token(
 
 	auto const id_value = bz::u8string_view(begin_it, end_it);
 
-	auto it = std::find_if(
-		keywords.begin(),
-		keywords.end(),
-		[id_value](auto const &kw)
-		{
-			return kw.first == id_value;
-		}
-	);
-
-	// identifier
-	if (it == keywords.end())
-	{
-		return token(
-			token::identifier,
-			id_value,
-			stream.file_id, line, begin_it, end_it
-		);
-	}
-	// keyword
-	else
-	{
-		return token(
-			it->second,
-			id_value,
-			stream.file_id, line, begin_it, end_it
-		);
-	}
+#include "keywords.inc"
 }
 
 static void match_character(
@@ -683,6 +657,23 @@ static token get_number_token(
 	);
 }
 
+static token make_regular_token(
+	uint32_t kind,
+	ctx::char_pos begin_it,
+	ctx::char_pos end_it,
+	uint32_t file_id,
+	uint32_t line,
+	ctx::lex_context &context
+)
+{
+	bz_assert(*begin_it <= 127);
+	return token(
+		kind,
+		bz::u8string_view(begin_it, end_it),
+		file_id, line, begin_it, end_it
+	);
+}
+
 static token get_single_char_token(
 	file_iterator &stream,
 	ctx::char_pos const end,
@@ -723,20 +714,6 @@ static token get_single_char_token(
 			stream.file_id, line, begin_it, end_it
 		);
 	}
-}
-
-static bool is_str(bz::u8string_view str, file_iterator &stream, ctx::char_pos const end)
-{
-	auto str_it = str.begin();
-	auto const str_end = str.end();
-	auto it = stream.it;
-
-	while (it != end && str_it != str_end && *it == *str_it)
-	{
-		++it, ++str_it;
-	}
-
-	return str_it == str_end;
 }
 
 static token get_next_token(
@@ -788,29 +765,10 @@ static token get_next_token(
 	case '5': case '6': case '7': case '8': case '9':
 		return get_number_token(stream, end, context);
 
+#include "regular_tokens.inc"
+
 	default:
 		break;
-	}
-
-	for (auto &t : multi_char_tokens)
-	{
-		if (is_str(t.first, stream, end))
-		{
-			auto const begin_it = stream.it;
-			auto const line     = stream.line;
-
-			for (size_t i = 0; i < t.first.length(); ++i)
-			{
-				++stream;
-			}
-
-			auto const end_it = stream.it;
-			return token(
-				t.second,
-				bz::u8string_view(begin_it, end_it),
-				stream.file_id, line, begin_it, end_it
-			);
-		}
 	}
 
 	return get_single_char_token(stream, end, context);
