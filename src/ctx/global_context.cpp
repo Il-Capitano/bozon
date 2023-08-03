@@ -392,7 +392,7 @@ static std::pair<fs::path, bool> search_for_source_file(
 }
 
 static uint32_t add_module_file(
-	src_file &current_file,
+	src_file const &current_file,
 	fs::path module_path,
 	bool is_library_file,
 	bz::vector<bz::u8string> scope,
@@ -424,7 +424,7 @@ static uint32_t add_module_file(
 }
 
 static bz::vector<global_context::module_info_t> add_module_folder(
-	src_file &current_file,
+	src_file const &current_file,
 	fs::path module_path,
 	bool is_library_folder,
 	bz::vector<bz::u8string> &scope,
