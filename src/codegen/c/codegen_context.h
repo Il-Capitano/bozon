@@ -3,6 +3,7 @@
 
 #include "core.h"
 #include "types.h"
+#include "expr_value.h"
 #include "codegen/target.h"
 #include "ast/statement_forward.h"
 #include "ast/identifier.h"
@@ -45,18 +46,26 @@ struct codegen_context
 		type var_type;
 	};
 
+	struct function_info_t
+	{
+		bz::u8string name;
+	};
+
 	size_t counter = 0;
 
 	type_set_t type_set;
 	std::unordered_map<ast::type_info const *, struct_info_t> struct_infos;
 	builtin_types_t builtin_types;
 	std::unordered_map<ast::decl_variable const *, global_variable_t> global_variables;
+	std::unordered_map<ast::function_body const *, function_info_t> functions;
 
 	bz::u8string_view indentation;
 	bz::u8string struct_forward_declarations_string;
 	bz::u8string typedefs_string;
 	bz::u8string struct_bodies_string;
+	bz::u8string function_declarations_string;
 	bz::u8string variables_string;
+	bz::u8string function_bodies_string;
 
 	bz::vector<bz::u8string> included_headers;
 

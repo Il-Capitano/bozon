@@ -685,7 +685,9 @@ bz::u8string codegen_context::get_code_string(void) const
 	result += this->struct_forward_declarations_string;
 	result += this->typedefs_string;
 	result += this->struct_bodies_string;
+	result += this->function_declarations_string;
 	result += this->variables_string;
+	result += this->function_bodies_string;
 
 	return result;
 }

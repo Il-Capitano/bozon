@@ -722,6 +722,7 @@ static bz::u8string generate_constant_value(ast::constant_value const &value, as
 
 void generate_global_variable(ast::decl_variable const &var_decl, codegen_context &context)
 {
+	bz_assert(var_decl.is_global_storage());
 	if (var_decl.is_libc_internal())
 	{
 		return;
