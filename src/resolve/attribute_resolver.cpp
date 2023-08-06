@@ -551,7 +551,7 @@ static bool resolve_attribute(
 
 void resolve_attributes(ast::decl_function &func_decl, ctx::parse_context &context)
 {
-	for (auto &attribute : func_decl.attributes)
+	for (auto &attribute : func_decl.body.attributes)
 	{
 		if (attribute.name->value == "__builtin")
 		{
@@ -574,7 +574,7 @@ void resolve_attributes(ast::decl_function &func_decl, ctx::parse_context &conte
 
 void resolve_attributes(ast::decl_operator &op_decl, ctx::parse_context &context)
 {
-	for (auto &attribute : op_decl.attributes)
+	for (auto &attribute : op_decl.body.attributes)
 	{
 		if (attribute.name->value == "__builtin")
 		{

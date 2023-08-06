@@ -861,6 +861,7 @@ struct function_body
 	abi::calling_convention     cc = abi::calling_convention::c;
 	uint16_t                    intrinsic_kind = 0;
 	int64_t                     overload_priority = 0;
+	arena_vector<attribute>     attributes;
 
 	type_info *constructor_or_destructor_of;
 
@@ -886,6 +887,7 @@ struct function_body
 		  state          (other.state),
 		  cc             (other.cc),
 		  intrinsic_kind (other.intrinsic_kind),
+		  attributes     (other.attributes),
 		  constructor_or_destructor_of(nullptr),
 		  generic_specializations(),
 		  generic_required_from(other.generic_required_from),
@@ -1046,9 +1048,8 @@ struct function_body
 
 struct decl_function
 {
-	identifier              id;
-	function_body           body;
-	arena_vector<attribute> attributes;
+	identifier    id;
+	function_body body;
 
 	decl_function(void) = default;
 
@@ -1063,9 +1064,8 @@ struct decl_function
 
 struct decl_operator
 {
-	lex::token_pos          op;
-	function_body           body;
-	arena_vector<attribute> attributes;
+	lex::token_pos op;
+	function_body  body;
 
 	decl_operator(void) = default;
 

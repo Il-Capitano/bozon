@@ -1204,10 +1204,10 @@ ast::statement parse_attribute_statement(
 		statement.get<ast::decl_variable>().attributes = std::move(attributes);
 		break;
 	case ast::statement::index<ast::decl_function>:
-		statement.get<ast::decl_function>().attributes = std::move(attributes);
+		statement.get<ast::decl_function>().body.attributes = std::move(attributes);
 		break;
 	case ast::statement::index<ast::decl_operator>:
-		statement.get<ast::decl_operator>().attributes = std::move(attributes);
+		statement.get<ast::decl_operator>().body.attributes = std::move(attributes);
 		break;
 	case ast::statement::index<ast::decl_type_alias>:
 		statement.get<ast::decl_type_alias>().attributes = std::move(attributes);
