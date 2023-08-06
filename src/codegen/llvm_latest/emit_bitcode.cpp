@@ -7960,7 +7960,7 @@ void emit_function_bitcode(
 				++p_it;
 				continue;
 			}
-			if (p.get_type().is<ast::ts_lvalue_reference>() || p.get_type().is<ast::ts_move_reference>())
+			if (p.get_type().is_any_reference())
 			{
 				bz_assert(fn_it->getType()->isPointerTy());
 				if (p.tuple_decls.empty())
