@@ -566,7 +566,6 @@ ast::statement parse_decl_function_or_alias(
 		if (scope == parse_scope::global && id->value == "main")
 		{
 			body.flags |= ast::function_body::main;
-			body.flags |= ast::function_body::external_linkage;
 		}
 		if (begin->kind == lex::token::kw_consteval)
 		{
