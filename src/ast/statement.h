@@ -480,6 +480,7 @@ struct function_body
 		deleted                     = bit_at<24>,
 		copy_assign_op              = bit_at<25>,
 		move_assign_op              = bit_at<26>,
+		libc_function               = bit_at<27>,
 	};
 
 	enum : uint16_t
@@ -1001,6 +1002,9 @@ struct function_body
 
 	bool is_move_assign_op(void) const noexcept
 	{ return (this->flags & move_assign_op) != 0; }
+
+	bool is_libc_function(void) const noexcept
+	{ return (this->flags & libc_function) != 0; }
 
 	bool has_builtin_implementation(void) const noexcept
 	{

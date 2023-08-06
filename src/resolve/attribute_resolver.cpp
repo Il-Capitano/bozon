@@ -357,6 +357,23 @@ static bool apply_libc_variable(
 	}
 }
 
+static bool apply_libc_function(
+	ast::function_body &func_body,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	func_body.flags |= ast::function_body::libc_function;
+	func_body.flags |= ast::function_body::external_linkage;
+
+	auto const symbol_name = attribute.args[1]
+		.get_constant_value()
+		.get_string();
+
+	func_body.symbol_name = symbol_name;
+	return true;
+}
+
 static bool apply_symbol_name(
 	ast::function_body &func_body,
 	ast::attribute &attribute,
@@ -433,7 +450,7 @@ static bool apply_overload_priority(
 
 bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info * const> builtin_type_infos)
 {
-	constexpr size_t N = 6;
+	constexpr size_t N = 7;
 	bz::vector<attribute_info_t> result;
 	result.reserve(N);
 
@@ -456,6 +473,11 @@ bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info 
 		"__libc_variable",
 		{ str_type, str_type },
 		{ nullptr, nullptr, nullptr, &apply_libc_variable, nullptr, nullptr }
+	});
+	result.push_back({
+		"__libc_function",
+		{ str_type, str_type },
+		{ nullptr, nullptr, &apply_libc_function, nullptr, nullptr, nullptr }
 	});
 	result.push_back({
 		"symbol_name",
