@@ -10,7 +10,7 @@ namespace codegen::c
 
 type generate_struct(ast::type_info const &info, codegen_context &context);
 void generate_global_variable(ast::decl_variable const &var_decl, codegen_context &context);
-void generate_function(ast::function_body const &body, codegen_context &context);
+void generate_necessary_functions(codegen_context &context);
 
 } // namespace codegen::c
 

@@ -688,8 +688,12 @@ static void generate_constant_value(
 		break;
 	}
 	case ast::constant_value::function:
-		// TODO
-		bz_unreachable;
+	{
+		auto const &name = context.get_function(*value.get_function()).name;
+		buffer += '&';
+		buffer += name;
+		break;
+	}
 	case ast::constant_value::type:
 		bz_unreachable;
 	case ast::constant_value::aggregate:
@@ -737,6 +741,128 @@ void generate_global_variable(ast::decl_variable const &var_decl, codegen_contex
 	else
 	{
 		context.add_global_variable(var_decl, var_type, "");
+	}
+}
+
+static void generate_function(ast::function_body &func_body, codegen_context &context)
+{
+	bz_assert(!func_body.is_bitcode_emitted());
+	context.reset_current_function(func_body);
+
+	auto const &func_name = context.get_function(func_body).name;
+	if (func_body.is_libc_function())
+	{
+		return;
+	}
+
+	auto const return_by_pointer = !func_body.return_type.is<ast::ts_void>() && !ast::is_trivially_relocatable(func_body.return_type);
+	auto const static_prefix = func_body.is_external_linkage() ? "" : "static ";
+
+	auto const return_type = return_by_pointer ? context.get_void() : get_type(func_body.return_type, context);
+	auto &bodies_string = context.function_bodies_string;
+	auto &decls_string = context.function_declarations_string;
+	auto const return_type_string = context.to_string(return_type);
+	bodies_string += bz::format("{}{} {}(", static_prefix, return_type_string, func_name);
+	decls_string += bz::format("{}{} {}(", static_prefix, return_type_string, func_name);
+
+	context.current_function_info.indent_level = 1;
+
+	if (return_by_pointer)
+	{
+		auto const [name, index] = context.make_local_name();
+		auto const return_value_type = get_type(func_body.return_type, context);
+		auto const type_string = context.to_string(context.add_pointer(return_value_type));
+		bodies_string += bz::format("{} {}", type_string, name);
+		decls_string += type_string;
+		context.current_function_info.return_value = context.make_reference_expression(index, return_value_type);
+	}
+
+	bool first = !return_by_pointer;
+	for (auto const &param : func_body.params)
+	{
+		if (param.is_global_storage())
+		{
+			bz_assert(param.get_type().is<ast::ts_consteval>());
+			generate_global_variable(param, context);
+			continue;
+		}
+		else if (ast::is_generic_parameter(param))
+		{
+			continue;
+		}
+		// second parameter of main would be generated as 'unsigned char const * const *', which is invalid
+		else if (func_body.symbol_name == "main" && !first)
+		{
+			auto const [name, index] = context.make_local_name();
+			auto const param_type = get_type(param.get_type(), context);
+			bodies_string += ", char const * const * ";
+			bodies_string += name;
+			decls_string += ", char const * const *";
+			auto const cast_expr = bz::format("({}){}", context.to_string(param_type), name);
+			auto const var_value = context.add_value_expression(cast_expr, param_type);
+			context.add_local_variable(param, var_value);
+			continue;
+		}
+
+		auto const [name, index] = context.make_local_name();
+		auto const param_type = get_type(param.get_type(), context);
+
+		if (first)
+		{
+			first = false;
+		}
+		else
+		{
+			bodies_string += ", ";
+			decls_string += ", ";
+		}
+
+		if (ast::is_trivially_relocatable(param.get_type()))
+		{
+			auto const param_type_string = context.to_string(param_type);
+			bodies_string += bz::format("{} {}", param_type_string, name);
+			decls_string += param_type_string;
+			auto const var_value = context.make_value_expression(index, param_type);
+			context.add_local_variable(param, var_value);
+		}
+		else
+		{
+			auto const param_type_string = context.to_string(context.add_pointer(param_type));
+			bodies_string += bz::format("{} {}", param_type_string, name);
+			decls_string += param_type_string;
+			auto const var_value = context.make_reference_expression(index, param_type);
+			context.add_local_variable(param, var_value);
+		}
+	}
+
+	// if no parameters were emitted, we need to add 'void'
+	if (first)
+	{
+		bodies_string += "void";
+		decls_string += "void";
+	}
+
+	bodies_string += ")\n";
+	bodies_string += "{\n";
+	decls_string += ");\n";
+
+	// ... generate expressions
+
+	bodies_string += context.current_function_info.body_string;
+	bodies_string += "}\n";
+	// bz_unreachable;
+}
+
+void generate_necessary_functions(codegen_context &context)
+{
+	for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
+	{
+		auto const func_body = context.functions_to_compile[i];
+		if (func_body->is_bitcode_emitted())
+		{
+			continue;
+		}
+		generate_function(*func_body, context);
 	}
 }
 

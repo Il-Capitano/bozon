@@ -51,6 +51,18 @@ struct codegen_context
 		bz::u8string name;
 	};
 
+	struct current_function_info_t
+	{
+		ast::function_body *func_body = nullptr;
+		bz::u8string body_string = "";
+		bz::u8string decl_string = "";
+		uint32_t counter = 0;
+		uint32_t indent_level = 0;
+		expr_value return_value;
+
+		std::unordered_map<ast::decl_variable const *, expr_value> local_variables;
+	};
+
 	size_t counter = 0;
 
 	type_set_t type_set;
@@ -58,6 +70,9 @@ struct codegen_context
 	builtin_types_t builtin_types;
 	std::unordered_map<ast::decl_variable const *, global_variable_t> global_variables;
 	std::unordered_map<ast::function_body const *, function_info_t> functions;
+
+	bz::vector<ast::function_body *> functions_to_compile;
+	current_function_info_t current_function_info;
 
 	bz::u8string_view indentation;
 	bz::u8string struct_forward_declarations_string;
@@ -74,12 +89,21 @@ struct codegen_context
 	uint32_t long_size;
 	uint32_t long_long_size;
 
+	struct local_name_and_index_pair
+	{
+		bz::u8string name;
+		uint32_t index;
+	};
+
 	size_t get_unique_number(void);
 	bz::u8string make_type_name(void);
 	bz::u8string make_type_name(ast::type_info const &info);
-	bz::u8string get_member_name(size_t index);
+	bz::u8string get_member_name(size_t index) const;
 	bz::u8string make_global_variable_name(void);
 	bz::u8string make_global_variable_name(ast::decl_variable const &var_decl);
+	bz::u8string make_function_name(ast::function_body const &func_body);
+	local_name_and_index_pair make_local_name(void);
+	bz::u8string make_local_name(uint32_t index) const;
 	void add_libc_header(bz::u8string_view header);
 
 	type get_struct(ast::type_info const &info, bool resolve = true);
@@ -135,6 +159,18 @@ struct codegen_context
 
 	bz::u8string create_cstring(bz::u8string_view s);
 	void add_global_variable(ast::decl_variable const &var_decl, type var_type, bz::u8string_view initializer);
+	global_variable_t const &get_global_variable(ast::decl_variable const &var_decl) const;
+
+	void ensure_function_generation(ast::function_body *func_body);
+	void reset_current_function(ast::function_body &func_body);
+	function_info_t const &get_function(ast::function_body &func_body);
+
+	void add_indentation(void);
+	expr_value add_value_expression(bz::u8string_view expr_string, type expr_type);
+	expr_value add_reference_expression(bz::u8string_view expr_string, type expr_type);
+	expr_value make_value_expression(uint32_t value_index, type value_type) const;
+	expr_value make_reference_expression(uint32_t value_index, type value_type) const;
+	void add_local_variable(ast::decl_variable const &var_decl, expr_value value);
 
 	bz::u8string get_code_string(void) const;
 };

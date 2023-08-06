@@ -60,7 +60,7 @@ bz::u8string codegen_context::make_type_name(ast::type_info const &info)
 	}
 }
 
-bz::u8string codegen_context::get_member_name(size_t index)
+bz::u8string codegen_context::get_member_name(size_t index) const
 {
 	return bz::format("m_{:x}", index);
 }
@@ -111,6 +111,53 @@ bz::u8string codegen_context::make_global_variable_name(ast::decl_variable const
 		bz_assert(var_decl.get_id().values.not_empty());
 		return bz::format("gv_{}_{:x}", var_decl.get_id().values.back(), this->get_unique_number());
 	}
+}
+
+static ast::attribute const &get_libc_function_attribute(ast::function_body const &func_body)
+{
+	bz_assert(func_body.is_libc_function());
+	return func_body.attributes.filter([](ast::attribute const &attr) {
+		return attr.name->value == "__libc_function";
+	}).front();
+}
+
+bz::u8string codegen_context::make_function_name(ast::function_body const &func_body)
+{
+	if (func_body.is_libc_function())
+	{
+		auto const &attribute = get_libc_function_attribute(func_body);
+		bz_assert(attribute.args.size() == 2);
+		auto const header = attribute.args[0].get_constant_value().get_string();
+		this->add_libc_header(header);
+		return attribute.args[1].get_constant_value().get_string();
+	}
+	else if (func_body.is_external_linkage() && func_body.symbol_name != "")
+	{
+		return func_body.symbol_name;
+	}
+	else if (func_body.function_name_or_operator_kind.is<ast::identifier>())
+	{
+		auto const &id = func_body.function_name_or_operator_kind.get<ast::identifier>();
+		bz_assert(id.values.not_empty());
+		return bz::format("f_{}_{:x}", id.values.back(), this->get_unique_number());
+	}
+	else
+	{
+		auto const op_kind = func_body.function_name_or_operator_kind.get<uint32_t>();
+		return bz::format("o_{}_{:x}", op_kind, this->get_unique_number());
+	}
+}
+
+codegen_context::local_name_and_index_pair codegen_context::make_local_name(void)
+{
+	auto const index = this->current_function_info.counter;
+	this->current_function_info.counter += 1;
+	return { bz::format("v_{:x}", index), index };
+}
+
+bz::u8string codegen_context::make_local_name(uint32_t index) const
+{
+	return bz::format("v_{:x}", index);
 }
 
 void codegen_context::add_libc_header(bz::u8string_view header)
@@ -671,6 +718,108 @@ void codegen_context::add_global_variable(ast::decl_variable const &var_decl, ty
 	}
 
 	this->global_variables.insert({ &var_decl, global_variable_t{ std::move(name), var_type } });
+}
+
+codegen_context::global_variable_t const &codegen_context::get_global_variable(ast::decl_variable const &var_decl) const
+{
+	bz_assert(this->global_variables.contains(&var_decl));
+	return this->global_variables.at(&var_decl);
+}
+
+void codegen_context::ensure_function_generation(ast::function_body *func_body)
+{
+	// no need to emit functions with no definition
+	if (func_body->body.is_null())
+	{
+		return;
+	}
+
+	if (!func_body->is_bitcode_emitted())
+	{
+		this->functions_to_compile.push_back(func_body);
+	}
+}
+
+void codegen_context::reset_current_function(ast::function_body &func_body)
+{
+	this->current_function_info = current_function_info_t();
+	this->current_function_info.func_body = &func_body;
+}
+
+codegen_context::function_info_t const &codegen_context::get_function(ast::function_body &func_body)
+{
+	if (auto const it = this->functions.find(&func_body); it != this->functions.end())
+	{
+		return it->second;
+	}
+
+	auto const [it, inserted] = this->functions.insert({
+		&func_body,
+		function_info_t{
+			.name = this->make_function_name(func_body),
+		}
+	});
+	return it->second;
+}
+
+void codegen_context::add_indentation(void)
+{
+	for ([[maybe_unused]] auto const _ : bz::iota(0, this->current_function_info.indent_level))
+	{
+		this->current_function_info.body_string += this->indentation;
+	}
+}
+
+expr_value codegen_context::add_value_expression(bz::u8string_view expr_string, type expr_type)
+{
+	auto const [name, index] = this->make_local_name();
+	this->add_indentation();
+	auto const type_string = this->to_string(expr_type);
+	this->current_function_info.body_string += bz::format(
+		"{} {} = {};\n",
+		type_string, name, expr_string
+	);
+
+	return this->make_value_expression(index, expr_type);
+}
+
+expr_value codegen_context::add_reference_expression(bz::u8string_view expr_string, type expr_type)
+{
+	auto const [name, index] = this->make_local_name();
+	this->add_indentation();
+	auto const type_string = this->to_string(this->add_pointer(expr_type));
+	this->current_function_info.body_string += bz::format(
+		"{} {} = {};\n",
+		type_string, name, expr_string
+	);
+
+	return this->make_reference_expression(index, expr_type);
+}
+
+expr_value codegen_context::make_value_expression(uint32_t value_index, type value_type) const
+{
+	return expr_value{
+		.value_index = value_index,
+		.needs_dereference = false,
+		.prec = precedence::identifier,
+		.value_type = value_type,
+	};
+}
+
+expr_value codegen_context::make_reference_expression(uint32_t value_index, type value_type) const
+{
+	return expr_value{
+		.value_index = value_index,
+		.needs_dereference = true,
+		.prec = precedence::identifier,
+		.value_type = value_type,
+	};
+}
+
+void codegen_context::add_local_variable(ast::decl_variable const &var_decl, expr_value value)
+{
+	bz_assert(!this->current_function_info.local_variables.contains(&var_decl));
+	this->current_function_info.local_variables.insert({ &var_decl, value });
 }
 
 bz::u8string codegen_context::get_code_string(void) const

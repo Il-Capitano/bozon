@@ -113,6 +113,21 @@ bool backend_context::generate_code(ctx::global_context &global_ctx)
 	{
 		generate_variables_helper(file->_declarations, context);
 	}
+	for (auto const func : global_ctx._compile_decls.funcs)
+	{
+		if (
+			func->is_external_linkage()
+			&& !(
+				global_ctx._main == nullptr
+				&& func->symbol_name == "main"
+			)
+		)
+		{
+			context.ensure_function_generation(func);
+		}
+	}
+
+	generate_necessary_functions(context);
 
 	this->code_string = context.get_code_string();
 	return true;
