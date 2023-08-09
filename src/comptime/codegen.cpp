@@ -7517,6 +7517,8 @@ static void generate_rvalue_array_destruct(
 void generate_destruct_operation(destruct_operation_info_t const &destruct_op_info, codegen_context &context)
 {
 	auto const &condition = destruct_op_info.condition;
+	// pop_expression_scope() can invalidate the reference to destruct_op_info
+	auto const move_destruct_indicator = destruct_op_info.move_destruct_indicator;
 
 	if (destruct_op_info.destruct_op == nullptr)
 	{
@@ -7707,10 +7709,10 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 		// nothing
 	}
 
-	if (destruct_op_info.move_destruct_indicator.has_value())
+	if (move_destruct_indicator.has_value())
 	{
 		auto const move_destruct_indicator_ref = expr_value::get_reference(
-			destruct_op_info.move_destruct_indicator.get(),
+			move_destruct_indicator.get(),
 			context.get_builtin_type(builtin_type_kind::i1)
 		);
 		context.create_store(context.create_const_i1(false), move_destruct_indicator_ref);
