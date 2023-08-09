@@ -7527,23 +7527,15 @@ static void add_variable_helper(
 {
 	if (var_decl.tuple_decls.empty())
 	{
-		if (var_decl.get_type().is<ast::ts_lvalue_reference>())
+		context.add_variable(&var_decl, ptr, type);
+		if (var_decl.is_ever_moved_from() && var_decl.destruction.not_null())
 		{
-			context.add_variable(&var_decl, context.create_load(context.get_opaque_pointer_t(), ptr), type);
-			bz_assert(var_decl.destruction.is_null());
+			auto const indicator = context.add_move_destruct_indicator(&var_decl);
+			context.push_variable_destruct_operation(var_decl.destruction, indicator);
 		}
-		else
+		else if (var_decl.destruction.not_null())
 		{
-			context.add_variable(&var_decl, ptr, type);
-			if (var_decl.is_ever_moved_from() && var_decl.destruction.not_null())
-			{
-				auto const indicator = context.add_move_destruct_indicator(&var_decl);
-				context.push_variable_destruct_operation(var_decl.destruction, indicator);
-			}
-			else
-			{
-				context.push_variable_destruct_operation(var_decl.destruction);
-			}
+			context.push_variable_destruct_operation(var_decl.destruction);
 		}
 	}
 	else
@@ -7551,9 +7543,19 @@ static void add_variable_helper(
 		bz_assert(type->isStructTy());
 		for (auto const &[decl, i] : var_decl.tuple_decls.enumerate())
 		{
-			auto const gep_ptr = context.create_struct_gep(type, ptr, i);
-			auto const elem_type = type->getStructElementType(i);
-			add_variable_helper(decl, gep_ptr, elem_type, context);
+			if (decl.get_type().is_any_reference())
+			{
+				auto const gep_ptr = context.create_struct_gep(type, ptr, i);
+				auto const elem_ptr = context.create_load(context.get_opaque_pointer_t(), gep_ptr);
+				auto const elem_type = get_llvm_type(decl.get_type().get_any_reference(), context);
+				add_variable_helper(decl, elem_ptr, elem_type, context);
+			}
+			else
+			{
+				auto const elem_ptr = context.create_struct_gep(type, ptr, i);
+				auto const elem_type = type->getStructElementType(i);
+				add_variable_helper(decl, elem_ptr, elem_type, context);
+			}
 		}
 	}
 }
@@ -7585,15 +7587,7 @@ static void emit_bitcode(
 			}
 		}();
 		bz_assert(init_val.kind == val_ptr::reference);
-		if (var_decl.tuple_decls.empty())
-		{
-			context.add_variable(&var_decl, init_val.val, init_val.get_type());
-			bz_assert(var_decl.destruction.is_null());
-		}
-		else
-		{
-			add_variable_helper(var_decl, init_val.val, init_val.get_type(), context);
-		}
+		add_variable_helper(var_decl, init_val.val, init_val.get_type(), context);
 	}
 	else
 	{
@@ -7963,17 +7957,8 @@ void emit_function_bitcode(
 			if (p.get_type().is_any_reference())
 			{
 				bz_assert(fn_it->getType()->isPointerTy());
-				if (p.tuple_decls.empty())
-				{
-					auto const type = p.get_type().remove_any_reference();
-					context.add_variable(&p, fn_it, get_llvm_type(type, context));
-					bz_assert(p.destruction.is_null());
-				}
-				else
-				{
-					auto const type = p.get_type().remove_any_reference();
-					add_variable_helper(p, fn_it, get_llvm_type(type, context), context);
-				}
+				auto const type = p.get_type().get_any_reference();
+				add_variable_helper(p, fn_it, get_llvm_type(type, context), context);
 			}
 			else
 			{

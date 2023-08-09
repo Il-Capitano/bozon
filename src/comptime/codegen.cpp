@@ -7146,7 +7146,6 @@ static void add_variable_helper(
 {
 	if (var_decl.tuple_decls.empty())
 	{
-		bz_assert(!var_decl.get_type().is<ast::ts_lvalue_reference>() && !var_decl.get_type().is<ast::ts_move_reference>());
 		context.add_variable(&var_decl, value);
 		if (!is_global_storage)
 		{
@@ -7155,7 +7154,7 @@ static void add_variable_helper(
 				auto const indicator = context.add_move_destruct_indicator(&var_decl);
 				context.push_variable_destruct_operation(var_decl.destruction, value, indicator);
 			}
-			else if (!var_decl.is_tuple_outer_ref())
+			else if (!var_decl.get_type().is_any_reference() && !var_decl.is_tuple_outer_ref())
 			{
 				context.push_variable_destruct_operation(var_decl.destruction, value);
 			}
@@ -7166,8 +7165,18 @@ static void add_variable_helper(
 		bz_assert(value.get_type()->is_aggregate());
 		for (auto const &[decl, i] : var_decl.tuple_decls.enumerate())
 		{
-			auto const elem_value = context.create_struct_gep(value, i);
-			add_variable_helper(decl, elem_value, is_global_storage, context);
+			if (decl.get_type().is_any_reference())
+			{
+				auto const elem_ptr = context.create_struct_gep(value, i).get_value_as_instruction(context);
+				auto const elem_type = get_type(decl.get_type().get_any_reference(), context);
+				auto const elem_value = expr_value::get_reference(elem_ptr, elem_type);
+				add_variable_helper(decl, elem_value, is_global_storage, context);
+			}
+			else
+			{
+				auto const elem_value = context.create_struct_gep(value, i);
+				add_variable_helper(decl, elem_value, is_global_storage, context);
+			}
 		}
 	}
 }
@@ -7224,15 +7233,7 @@ static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_conte
 		auto const ref_value = init_val.is_none()
 			? expr_value::get_reference(instruction_ref{}, get_type(var_decl.get_type().get<ast::ts_lvalue_reference>(), context))
 			: init_val;
-		if (var_decl.tuple_decls.empty())
-		{
-			context.add_variable(&var_decl, ref_value);
-			bz_assert(var_decl.destruction.is_null());
-		}
-		else
-		{
-			add_variable_helper(var_decl, ref_value, false, context);
-		}
+		add_variable_helper(var_decl, ref_value, false, context);
 	}
 	else
 	{
@@ -7336,15 +7337,7 @@ void generate_code(function &func, codegen_context &context)
 			auto const inner_type = param.get_type().get_any_reference();
 			auto const type = get_type(inner_type, context);
 			auto const value = expr_value::get_reference(context.create_get_function_arg(i), type);
-			if (param.tuple_decls.empty())
-			{
-				context.add_variable(&param, value);
-				bz_assert(param.destruction.is_null());
-			}
-			else
-			{
-				add_variable_helper(param, value, false, context);
-			}
+			add_variable_helper(param, value, false, context);
 		}
 		else if (auto const type = func.arg_types[i]; type->is_simple_value_type())
 		{
