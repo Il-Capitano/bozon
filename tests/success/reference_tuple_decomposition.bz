@@ -1,0 +1,24 @@
+function test()
+{
+	let i = 0;
+	let [&inner] = [ i ];
+	if (inner != i) unreachable;
+	if (&inner != &i) unreachable;
+
+	let t: [&int32] = [ i ];
+	let &[&inner] = t;
+	if (inner != i) unreachable;
+	if (&inner != &i) unreachable;
+
+	let t1: [int32, float64] = [ 0, 0.0 ];
+	let t2: [&[int32, float64]] = [ t1 ];
+	let &[&[inner_i32, inner_f64]] = t2;
+	if (&inner_i32 != &t1[0]) unreachable;
+	if (&inner_f64 != &t1[1]) unreachable;
+}
+
+function main()
+{
+	test();
+	(consteval test());
+}
