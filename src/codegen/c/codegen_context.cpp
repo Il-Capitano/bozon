@@ -825,6 +825,19 @@ void codegen_context::add_indentation(void)
 	}
 }
 
+bz::u8string codegen_context::to_string(expr_value const &value) const
+{
+	bz::u8string result = "";
+	if (value.needs_dereference)
+	{
+		result += '*';
+	}
+
+	result += this->make_local_name(value.value_index);
+
+	return result;
+}
+
 bz::u8string codegen_context::to_string_lhs(expr_value const &value, precedence prec) const
 {
 	bz::u8string result = "";
@@ -974,6 +987,11 @@ void codegen_context::add_local_variable(ast::decl_variable const &var_decl, exp
 	this->current_function_info.local_variables.insert({ &var_decl, value });
 }
 
+expr_value codegen_context::get_void_value(void) const
+{
+	return this->make_value_expression(0, this->get_void());
+}
+
 expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 {
 	auto const type = value.get_type();
@@ -1083,10 +1101,79 @@ expr_value codegen_context::create_dereference(expr_value value)
 	}
 }
 
+void codegen_context::push_destruct_operation(ast::destruct_operation const &destruct_op)
+{
+	auto const move_destruct_indicator = this->get_move_destruct_indicator(destruct_op.move_destructed_decl);
+	if (move_destruct_indicator.has_value() || destruct_op.not_null())
+	{
+		this->current_function_info.destructor_calls.push_back({
+			.destruct_op = &destruct_op,
+			.value = this->get_void_value(),
+			.condition = {},
+			.move_destruct_indicator = move_destruct_indicator,
+			.rvalue_array_elem_ptr = {},
+		});
+	}
+}
+
+void codegen_context::push_variable_destruct_operation(
+	ast::destruct_operation const &destruct_op,
+	expr_value value,
+	bz::optional<expr_value> move_destruct_indicator
+)
+{
+	this->current_function_info.destructor_calls.push_back({
+		.destruct_op = &destruct_op,
+		.value = value,
+		.condition = move_destruct_indicator,
+		.move_destruct_indicator = {},
+		.rvalue_array_elem_ptr = {},
+	});
+}
+
+expr_value codegen_context::add_move_destruct_indicator(ast::decl_variable const &decl)
+{
+	auto const result = this->add_value_expression("1", this->get_bool());
+	this->current_function_info.move_destruct_indicators.insert({ &decl, result });
+	return result;
+}
+
+bz::optional<expr_value> codegen_context::get_move_destruct_indicator(ast::decl_variable const *decl) const
+{
+	if (decl == nullptr)
+	{
+		return {};
+	}
+
+	auto const it = this->current_function_info.move_destruct_indicators.find(decl);
+	if (it == this->current_function_info.move_destruct_indicators.end())
+	{
+		return {};
+	}
+	else
+	{
+		return it->second;
+	}
+}
+
+bz::optional<expr_value> codegen_context::get_move_destruct_indicator(ast::decl_variable const &decl) const
+{
+	auto const it = this->current_function_info.move_destruct_indicators.find(&decl);
+	if (it == this->current_function_info.move_destruct_indicators.end())
+	{
+		return {};
+	}
+	else
+	{
+		return it->second;
+	}
+}
+
 void codegen_context::generate_destruct_operations(size_t destruct_calls_start_index)
 {
-	for (auto const &info : this->current_function_info.destructor_calls.slice(destruct_calls_start_index).reversed())
+	for (auto const index : bz::iota(destruct_calls_start_index, this->current_function_info.destructor_calls.size()).reversed())
 	{
+		auto const &info = this->current_function_info.destructor_calls[index];
 		generate_destruct_operation(info, *this);
 	}
 }

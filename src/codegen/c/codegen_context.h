@@ -71,6 +71,7 @@ struct codegen_context
 		expr_value return_value;
 
 		std::unordered_map<ast::decl_variable const *, expr_value> local_variables;
+		std::unordered_map<ast::decl_variable const *, expr_value> move_destruct_indicators;
 		bz::vector<destruct_operation_info_t> destructor_calls;
 	};
 
@@ -182,6 +183,7 @@ struct codegen_context
 	function_info_t const &get_function(ast::function_body &func_body);
 
 	void add_indentation(void);
+	bz::u8string to_string(expr_value const &value) const;
 	bz::u8string to_string_lhs(expr_value const &value, precedence prec) const;
 	bz::u8string to_string_rhs(expr_value const &value, precedence prec) const;
 	bz::u8string to_string_unary(expr_value const &value, precedence prec) const;
@@ -191,18 +193,41 @@ struct codegen_context
 	expr_value add_reference_expression(bz::u8string_view expr_string, type expr_type, bool is_const);
 	expr_value make_value_expression(uint32_t value_index, type value_type) const;
 	expr_value make_reference_expression(uint32_t value_index, type value_type, bool is_const) const;
+
+	void begin_if(expr_value condition);
+	void begin_if_not(expr_value condition);
+	void begin_if(bz::u8string_view condition);
+	void end_if(void);
+
+	void begin_while(expr_value condition);
+	void begin_while(bz::u8string_view condition);
+	void end_while(void);
+
 	void add_local_variable(ast::decl_variable const &var_decl, expr_value value);
 
+	expr_value get_void_value(void) const;
 	expr_value create_struct_gep(expr_value value, size_t index);
 	expr_value create_struct_gep_value(expr_value value, size_t index);
 	expr_value create_dereference(expr_value value);
+
+	void push_destruct_operation(ast::destruct_operation const &destruct_op);
+	void push_variable_destruct_operation(
+		ast::destruct_operation const &destruct_op,
+		expr_value value,
+		bz::optional<expr_value> move_destruct_indicator = {}
+	);
+
+	expr_value add_move_destruct_indicator(ast::decl_variable const &decl);
+	bz::optional<expr_value> get_move_destruct_indicator(ast::decl_variable const *decl) const;
+	bz::optional<expr_value> get_move_destruct_indicator(ast::decl_variable const &decl) const;
+
+	void generate_destruct_operations(size_t destruct_calls_start_index);
 
 	struct expression_scope_info_t
 	{
 		size_t destructor_calls_size;
 	};
 
-	void generate_destruct_operations(size_t destruct_calls_start_index);
 
 	[[nodiscard]] expression_scope_info_t push_expression_scope(void);
 	void pop_expression_scope(expression_scope_info_t prev_info);
