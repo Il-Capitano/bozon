@@ -198,12 +198,12 @@ struct type
 		return this->modifier_info.not_empty();
 	}
 
-	type get_pointer(void) const
+	std::pair<type, type_modifier> get_pointer(void) const
 	{
 		bz_assert(this->is_pointer());
 		auto result = *this;
-		result.modifier_info.pop();
-		return result;
+		auto const modifier = result.modifier_info.pop();
+		return { result, modifier };
 	}
 
 	bool is_typedef(void) const
@@ -215,6 +215,28 @@ struct type
 	{
 		bz_assert(this->is_typedef());
 		return this->terminator.get<typedef_reference>();
+	}
+
+	bool is_struct(void) const
+	{
+		return this->modifier_info.empty() && this->terminator.is<struct_reference>();
+	}
+
+	struct_reference get_struct(void) const
+	{
+		bz_assert(this->is_struct());
+		return this->terminator.get<struct_reference>();
+	}
+
+	bool is_array(void) const
+	{
+		return this->modifier_info.empty() && this->terminator.is<array_reference>();
+	}
+
+	array_reference get_array(void) const
+	{
+		bz_assert(this->is_array());
+		return this->terminator.get<array_reference>();
 	}
 
 	bool operator == (type const &rhs) const = default;

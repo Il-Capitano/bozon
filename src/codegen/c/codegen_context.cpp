@@ -285,18 +285,73 @@ bool codegen_context::is_pointer(type t) const
 		|| (t.is_typedef() && this->is_pointer(this->get_typedef(t.get_typedef()).aliased_type));
 }
 
-type codegen_context::remove_pointer(type t) const
+std::pair<type, type_modifier> codegen_context::remove_pointer(type t) const
 {
-	if (t.is_pointer())
+	while (t.is_typedef())
 	{
-		return t.get_pointer();
+		auto const &typedef_type = this->get_typedef(t.get_typedef());
+		t = typedef_type.aliased_type;
+	}
+
+	bz_assert(t.is_pointer());
+	return t.get_pointer();
+}
+
+bool codegen_context::is_struct(type t) const
+{
+	while (t.is_typedef())
+	{
+		auto const &typedef_type = this->get_typedef(t.get_typedef());
+		t = typedef_type.aliased_type;
+	}
+
+	return t.is_struct();
+}
+
+struct_type_t const *codegen_context::maybe_get_struct(type t) const
+{
+	while (t.is_typedef())
+	{
+		auto const &typedef_type = this->get_typedef(t.get_typedef());
+		t = typedef_type.aliased_type;
+	}
+
+	if (t.is_struct())
+	{
+		return &this->get_struct(t.get_struct());
 	}
 	else
 	{
-		bz_assert(t.is_typedef());
+		return nullptr;
+	}
+}
+
+bool codegen_context::is_array(type t) const
+{
+	while (t.is_typedef())
+	{
 		auto const &typedef_type = this->get_typedef(t.get_typedef());
-		bz_assert(typedef_type.aliased_type.is_pointer());
-		return typedef_type.aliased_type.get_pointer();
+		t = typedef_type.aliased_type;
+	}
+
+	return t.is_array();
+}
+
+array_type_t const *codegen_context::maybe_get_array(type t) const
+{
+	while (t.is_typedef())
+	{
+		auto const &typedef_type = this->get_typedef(t.get_typedef());
+		t = typedef_type.aliased_type;
+	}
+
+	if (t.is_array())
+	{
+		return &this->get_array(t.get_array());
+	}
+	else
+	{
+		return nullptr;
 	}
 }
 
@@ -770,6 +825,101 @@ void codegen_context::add_indentation(void)
 	}
 }
 
+bz::u8string codegen_context::to_string_lhs(expr_value const &value, precedence prec) const
+{
+	bz::u8string result = "";
+
+	auto const needs_parens = needs_parenthesis_binary_lhs(value, prec);
+	if (needs_parens)
+	{
+		result += '(';
+	}
+
+	if (value.needs_dereference)
+	{
+		result += '*';
+	}
+
+	result += this->make_local_name(value.value_index);
+
+	if (needs_parens)
+	{
+		result += ')';
+	}
+
+	return result;
+}
+
+bz::u8string codegen_context::to_string_rhs(expr_value const &value, precedence prec) const
+{
+	bz::u8string result = "";
+
+	auto const needs_parens = needs_parenthesis_binary_rhs(value, prec);
+	if (needs_parens)
+	{
+		result += '(';
+	}
+
+	if (value.needs_dereference)
+	{
+		result += '*';
+	}
+
+	result += this->make_local_name(value.value_index);
+
+	if (needs_parens)
+	{
+		result += ')';
+	}
+
+	return result;
+}
+
+bz::u8string codegen_context::to_string_unary(expr_value const &value, precedence prec) const
+{
+	bz::u8string result = "";
+
+	auto const needs_parens = needs_parenthesis_unary(value, prec);
+	if (needs_parens)
+	{
+		result += '(';
+	}
+
+	if (value.needs_dereference)
+	{
+		result += '*';
+	}
+
+	result += this->make_local_name(value.value_index);
+
+	if (needs_parens)
+	{
+		result += ')';
+	}
+
+	return result;
+}
+
+void codegen_context::add_expression(bz::u8string_view expr_string)
+{
+	this->add_indentation();
+	this->current_function_info.body_string += expr_string;
+	this->current_function_info.body_string += ";\n";
+}
+
+expr_value codegen_context::add_uninitialized_value(type expr_type)
+{
+	auto const [name, index] = this->make_local_name();
+	this->add_indentation();
+	auto const type_string = this->to_string(expr_type);
+	this->current_function_info.body_string += bz::format(
+		"{} {};\n",
+		type_string, name
+	);
+
+	return this->make_value_expression(index, expr_type);
+}
+
 expr_value codegen_context::add_value_expression(bz::u8string_view expr_string, type expr_type)
 {
 	auto const [name, index] = this->make_local_name();
@@ -783,17 +933,17 @@ expr_value codegen_context::add_value_expression(bz::u8string_view expr_string, 
 	return this->make_value_expression(index, expr_type);
 }
 
-expr_value codegen_context::add_reference_expression(bz::u8string_view expr_string, type expr_type)
+expr_value codegen_context::add_reference_expression(bz::u8string_view expr_string, type expr_type, bool is_const)
 {
 	auto const [name, index] = this->make_local_name();
 	this->add_indentation();
-	auto const type_string = this->to_string(this->add_pointer(expr_type));
+	auto const type_string = this->to_string(is_const ? this->add_const_pointer(expr_type) : this->add_pointer(expr_type));
 	this->current_function_info.body_string += bz::format(
 		"{} {} = {};\n",
 		type_string, name, expr_string
 	);
 
-	return this->make_reference_expression(index, expr_type);
+	return this->make_reference_expression(index, expr_type, is_const);
 }
 
 expr_value codegen_context::make_value_expression(uint32_t value_index, type value_type) const
@@ -801,16 +951,18 @@ expr_value codegen_context::make_value_expression(uint32_t value_index, type val
 	return expr_value{
 		.value_index = value_index,
 		.needs_dereference = false,
+		.is_const = false,
 		.prec = precedence::identifier,
 		.value_type = value_type,
 	};
 }
 
-expr_value codegen_context::make_reference_expression(uint32_t value_index, type value_type) const
+expr_value codegen_context::make_reference_expression(uint32_t value_index, type value_type, bool is_const) const
 {
 	return expr_value{
 		.value_index = value_index,
 		.needs_dereference = true,
+		.is_const = is_const,
 		.prec = precedence::identifier,
 		.value_type = value_type,
 	};
@@ -820,6 +972,136 @@ void codegen_context::add_local_variable(ast::decl_variable const &var_decl, exp
 {
 	bz_assert(!this->current_function_info.local_variables.contains(&var_decl));
 	this->current_function_info.local_variables.insert({ &var_decl, value });
+}
+
+expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
+{
+	auto const type = value.get_type();
+	if (auto const struct_type = this->maybe_get_struct(type))
+	{
+		bz_assert(index < struct_type->members.size());
+		auto const result_type = struct_type->members[index];
+		auto const use_arrow = value.needs_dereference;
+		value.needs_dereference = false;
+
+		// address of has a lower precedence than suffix, so this is fine
+		bz::u8string member_access_string = "&";
+		member_access_string += this->to_string_unary(value, precedence::suffix);
+		if (use_arrow)
+		{
+			member_access_string += "->";
+		}
+		else
+		{
+			member_access_string += '.';
+		}
+		member_access_string += this->get_member_name(index);
+		return this->add_reference_expression(member_access_string, result_type, value.is_const);
+	}
+	else if (auto const array_type = this->maybe_get_array(type))
+	{
+		bz_assert(index <= array_type->size);
+		auto const result_type = array_type->elem_type;
+		auto const use_arrow = value.needs_dereference;
+		value.needs_dereference = false;
+
+		bz::u8string member_access_string = this->to_string_unary(value, precedence::suffix);
+		if (use_arrow)
+		{
+			member_access_string += bz::format("->a + {}", index);
+		}
+		else
+		{
+			member_access_string += bz::format(".a + {}", index);
+		}
+		return this->add_reference_expression(member_access_string, result_type, value.is_const);
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_struct_gep_value(expr_value value, size_t index)
+{
+	auto const type = value.get_type();
+	if (auto const struct_type = this->maybe_get_struct(type))
+	{
+		bz_assert(index < struct_type->members.size());
+		auto const result_type = struct_type->members[index];
+		auto const use_arrow = value.needs_dereference;
+		value.needs_dereference = false;
+
+		// address of has a lower precedence than suffix, so this is fine
+		bz::u8string member_access_string = this->to_string_unary(value, precedence::suffix);
+		if (use_arrow)
+		{
+			member_access_string += "->";
+		}
+		else
+		{
+			member_access_string += '.';
+		}
+		member_access_string += this->get_member_name(index);
+		return this->add_value_expression(member_access_string, result_type);
+	}
+	else if (auto const array_type = this->maybe_get_array(type))
+	{
+		bz_assert(index < array_type->size);
+		auto const result_type = array_type->elem_type;
+		auto const use_arrow = value.needs_dereference;
+		value.needs_dereference = false;
+
+		bz::u8string member_access_string = this->to_string_unary(value, precedence::suffix);
+		if (use_arrow)
+		{
+			member_access_string += bz::format("->a[{}]", index);
+		}
+		else
+		{
+			member_access_string += bz::format(".a[{}]", index);
+		}
+		return this->add_value_expression(member_access_string, result_type);
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_dereference(expr_value value)
+{
+	bz_assert(this->is_pointer(value.get_type()));
+	auto const [result_type, modifier] = this->remove_pointer(value.get_type());
+	if (!value.needs_dereference)
+	{
+		return this->make_reference_expression(value.value_index, result_type, modifier == type_modifier::const_pointer);
+	}
+	else
+	{
+		return this->add_reference_expression(this->to_string_rhs(value, precedence::assignment), result_type, modifier == type_modifier::const_pointer);
+	}
+}
+
+void codegen_context::generate_destruct_operations(size_t destruct_calls_start_index)
+{
+	for (auto const &info : this->current_function_info.destructor_calls.slice(destruct_calls_start_index).reversed())
+	{
+		generate_destruct_operation(info, *this);
+	}
+}
+
+[[nodiscard]] codegen_context::expression_scope_info_t codegen_context::push_expression_scope(void)
+{
+	return {
+		.destructor_calls_size = this->current_function_info.destructor_calls.size()
+	};
+}
+
+void codegen_context::pop_expression_scope(expression_scope_info_t prev_info)
+{
+	this->generate_destruct_operations(prev_info.destructor_calls_size);
+	this->current_function_info.destructor_calls.resize(prev_info.destructor_calls_size);
 }
 
 bz::u8string codegen_context::get_code_string(void) const

@@ -6,11 +6,21 @@
 #include "expr_value.h"
 #include "codegen/target.h"
 #include "ast/statement_forward.h"
+#include "ast/expression.h"
 #include "ast/identifier.h"
 #include "ctx/context_forward.h"
 
 namespace codegen::c
 {
+
+struct destruct_operation_info_t
+{
+	ast::destruct_operation const *destruct_op;
+	expr_value value;
+	bz::optional<expr_value> condition;
+	bz::optional<expr_value> move_destruct_indicator;
+	bz::optional<expr_value> rvalue_array_elem_ptr;
+};
 
 struct codegen_context
 {
@@ -61,6 +71,7 @@ struct codegen_context
 		expr_value return_value;
 
 		std::unordered_map<ast::decl_variable const *, expr_value> local_variables;
+		bz::vector<destruct_operation_info_t> destructor_calls;
 	};
 
 	size_t counter = 0;
@@ -126,7 +137,12 @@ struct codegen_context
 	type add_pointer(type t);
 	type add_const_pointer(type t);
 	bool is_pointer(type t) const;
-	type remove_pointer(type t) const;
+	std::pair<type, type_modifier> remove_pointer(type t) const;
+
+	bool is_struct(type t) const;
+	struct_type_t const *maybe_get_struct(type t) const;
+	bool is_array(type t) const;
+	array_type_t const *maybe_get_array(type t) const;
 
 	using struct_infos_iterator = std::unordered_map<ast::type_info const *, struct_info_t>::iterator;
 	std::pair<bool, struct_infos_iterator> should_resolve_struct(ast::type_info const &info);
@@ -166,11 +182,30 @@ struct codegen_context
 	function_info_t const &get_function(ast::function_body &func_body);
 
 	void add_indentation(void);
+	bz::u8string to_string_lhs(expr_value const &value, precedence prec) const;
+	bz::u8string to_string_rhs(expr_value const &value, precedence prec) const;
+	bz::u8string to_string_unary(expr_value const &value, precedence prec) const;
+	void add_expression(bz::u8string_view expr_string);
+	expr_value add_uninitialized_value(type expr_type);
 	expr_value add_value_expression(bz::u8string_view expr_string, type expr_type);
-	expr_value add_reference_expression(bz::u8string_view expr_string, type expr_type);
+	expr_value add_reference_expression(bz::u8string_view expr_string, type expr_type, bool is_const);
 	expr_value make_value_expression(uint32_t value_index, type value_type) const;
-	expr_value make_reference_expression(uint32_t value_index, type value_type) const;
+	expr_value make_reference_expression(uint32_t value_index, type value_type, bool is_const) const;
 	void add_local_variable(ast::decl_variable const &var_decl, expr_value value);
+
+	expr_value create_struct_gep(expr_value value, size_t index);
+	expr_value create_struct_gep_value(expr_value value, size_t index);
+	expr_value create_dereference(expr_value value);
+
+	struct expression_scope_info_t
+	{
+		size_t destructor_calls_size;
+	};
+
+	void generate_destruct_operations(size_t destruct_calls_start_index);
+
+	[[nodiscard]] expression_scope_info_t push_expression_scope(void);
+	void pop_expression_scope(expression_scope_info_t prev_info);
 
 	bz::u8string get_code_string(void) const;
 };

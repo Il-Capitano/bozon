@@ -744,6 +744,213 @@ void generate_global_variable(ast::decl_variable const &var_decl, codegen_contex
 	}
 }
 
+static expr_value generate_expression(
+	ast::expression const &expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expression const &original_expr,
+	ast::constant_expression const &const_expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	auto const value_string = generate_constant_value(const_expr.value, const_expr.type, context);
+
+	if (result_dest.has_value())
+	{
+		auto const &result_value = result_dest.get();
+		context.add_expression(bz::format(
+			"{} = {}",
+			context.to_string_lhs(result_value, precedence::assignment),
+			value_string
+		));
+		return result_value;
+	}
+	else
+	{
+		auto const expr_type = get_type(const_expr.type, context);
+		return context.add_value_expression(value_string, expr_type);
+	}
+}
+
+static expr_value generate_expression(
+	ast::expression const &original_expr,
+	ast::dynamic_expression const &dyn_expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	bz_unreachable;
+}
+
+static expr_value generate_expression(
+	ast::expression const &expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	switch (expr.kind())
+	{
+	case ast::expression::index_of<ast::constant_expression>:
+		return generate_expression(expr, expr.get_constant(), context, result_dest);
+	case ast::expression::index_of<ast::dynamic_expression>:
+		return generate_expression(expr, expr.get_dynamic(), context, result_dest);
+	case ast::expression::index_of<ast::error_expression>:
+		bz_unreachable;
+	default:
+		bz_unreachable;
+	}
+}
+
+static void generate_statement(ast::stmt_while const &while_stmt, codegen_context &context)
+{
+	// TODO
+	bz_unreachable;
+}
+
+static void generate_statement(ast::stmt_for const &, codegen_context &context)
+{
+	// TODO
+	bz_unreachable;
+}
+
+static void generate_statement(ast::stmt_foreach const &, codegen_context &context)
+{
+	// TODO
+	bz_unreachable;
+}
+
+static void generate_statement(ast::stmt_return const &, codegen_context &context)
+{
+	// TODO
+	bz_unreachable;
+}
+
+static void generate_statement(ast::stmt_defer const &, codegen_context &context)
+{
+	// TODO
+	bz_unreachable;
+}
+
+static void generate_statement(ast::stmt_no_op const &, codegen_context &)
+{
+	// nothing
+}
+
+static void generate_statement(ast::stmt_expression const &expr_stmt, codegen_context &context)
+{
+	auto const prev_info = context.push_expression_scope();
+	generate_expression(expr_stmt.expr, context, {});
+	context.pop_expression_scope(prev_info);
+}
+
+static void add_variable_helper(
+	ast::decl_variable const &var_decl,
+	expr_value value,
+	codegen_context &context
+)
+{
+	if (var_decl.tuple_decls.empty())
+	{
+		context.add_local_variable(var_decl, value);
+		// TODO: destruction
+	}
+	else
+	{
+		if (var_decl.get_type().is_any_reference())
+		{
+			value = context.create_dereference(value);
+		}
+		for (auto const &[elem_decl, i] : var_decl.tuple_decls.enumerate())
+		{
+			auto const elem_value = elem_decl.get_type().is_any_reference()
+				? context.create_struct_gep_value(value, i)
+				: context.create_struct_gep(value, i);
+			add_variable_helper(elem_decl, elem_value, context);
+		}
+	}
+}
+
+static void generate_statement(ast::decl_variable const &var_decl, codegen_context &context)
+{
+	if (var_decl.is_global_storage())
+	{
+		bz_assert(var_decl.init_expr.is_constant());
+		bz_assert(var_decl.get_type().is<ast::ts_consteval>());
+		generate_global_variable(var_decl, context);
+		auto const &info = context.get_global_variable(var_decl);
+		auto value = context.add_reference_expression(bz::format("&{}", info.name), info.var_type, true);
+		add_variable_helper(var_decl, value, context);
+	}
+	else if (var_decl.get_type().is_typename())
+	{
+		return;
+	}
+	else
+	{
+		auto const type = get_type(var_decl.get_type(), context);
+		auto const alloca = context.add_uninitialized_value(type);
+		if (var_decl.init_expr.not_null())
+		{
+			auto const prev_info = context.push_expression_scope();
+			generate_expression(var_decl.init_expr, context, alloca);
+			context.pop_expression_scope(prev_info);
+		}
+		add_variable_helper(var_decl, alloca, context);
+	}
+}
+
+static void generate_statement(ast::statement const &stmt, codegen_context &context)
+{
+	switch (stmt.kind())
+	{
+	static_assert(ast::statement::variant_count == 17);
+	case ast::statement::index<ast::stmt_while>:
+		generate_statement(stmt.get<ast::stmt_while>(), context);
+		break;
+	case ast::statement::index<ast::stmt_for>:
+		generate_statement(stmt.get<ast::stmt_for>(), context);
+		break;
+	case ast::statement::index<ast::stmt_foreach>:
+		generate_statement(stmt.get<ast::stmt_foreach>(), context);
+		break;
+	case ast::statement::index<ast::stmt_return>:
+		generate_statement(stmt.get<ast::stmt_return>(), context);
+		break;
+	case ast::statement::index<ast::stmt_defer>:
+		generate_statement(stmt.get<ast::stmt_defer>(), context);
+		break;
+	case ast::statement::index<ast::stmt_no_op>:
+		generate_statement(stmt.get<ast::stmt_no_op>(), context);
+		break;
+	case ast::statement::index<ast::stmt_expression>:
+		generate_statement(stmt.get<ast::stmt_expression>(), context);
+		break;
+	case ast::statement::index<ast::stmt_static_assert>:
+		// nothing
+		break;
+
+	case ast::statement::index<ast::decl_variable>:
+		generate_statement(stmt.get<ast::decl_variable>(), context);
+		break;
+
+	case ast::statement::index<ast::decl_function>:
+	case ast::statement::index<ast::decl_operator>:
+	case ast::statement::index<ast::decl_function_alias>:
+	case ast::statement::index<ast::decl_operator_alias>:
+	case ast::statement::index<ast::decl_struct>:
+	case ast::statement::index<ast::decl_enum>:
+	case ast::statement::index<ast::decl_import>:
+	case ast::statement::index<ast::decl_type_alias>:
+		break;
+	default:
+		bz_unreachable;
+	}
+}
+
 static void generate_function(ast::function_body &func_body, codegen_context &context)
 {
 	bz_assert(!func_body.is_bitcode_emitted());
@@ -767,6 +974,8 @@ static void generate_function(ast::function_body &func_body, codegen_context &co
 
 	context.current_function_info.indent_level = 1;
 
+	auto const prev_info = context.push_expression_scope();
+
 	if (return_by_pointer)
 	{
 		auto const [name, index] = context.make_local_name();
@@ -774,24 +983,18 @@ static void generate_function(ast::function_body &func_body, codegen_context &co
 		auto const type_string = context.to_string(context.add_pointer(return_value_type));
 		bodies_string += bz::format("{} {}", type_string, name);
 		decls_string += type_string;
-		context.current_function_info.return_value = context.make_reference_expression(index, return_value_type);
+		context.current_function_info.return_value = context.make_reference_expression(index, return_value_type, false);
 	}
 
 	bool first = !return_by_pointer;
 	for (auto const &param : func_body.params)
 	{
-		if (param.is_global_storage())
+		if (ast::is_generic_parameter(param))
 		{
-			bz_assert(param.get_type().is<ast::ts_consteval>());
-			generate_global_variable(param, context);
-			continue;
-		}
-		else if (ast::is_generic_parameter(param))
-		{
-			continue;
+			generate_statement(param, context);
 		}
 		// second parameter of main would be generated as 'unsigned char const * const *', which is invalid
-		else if (func_body.symbol_name == "main" && !first)
+		else if (func_body.is_external_linkage() && func_body.symbol_name == "main" && !first)
 		{
 			auto const [name, index] = context.make_local_name();
 			auto const param_type = get_type(param.get_type(), context);
@@ -817,21 +1020,21 @@ static void generate_function(ast::function_body &func_body, codegen_context &co
 			decls_string += ", ";
 		}
 
-		if (ast::is_trivially_relocatable(param.get_type()))
+		if (param.get_type().is_any_reference() || ast::is_trivially_relocatable(param.get_type()))
 		{
 			auto const param_type_string = context.to_string(param_type);
 			bodies_string += bz::format("{} {}", param_type_string, name);
 			decls_string += param_type_string;
 			auto const var_value = context.make_value_expression(index, param_type);
-			context.add_local_variable(param, var_value);
+			add_variable_helper(param, var_value, context);
 		}
 		else
 		{
 			auto const param_type_string = context.to_string(context.add_pointer(param_type));
 			bodies_string += bz::format("{} {}", param_type_string, name);
 			decls_string += param_type_string;
-			auto const var_value = context.make_reference_expression(index, param_type);
-			context.add_local_variable(param, var_value);
+			auto const var_value = context.make_reference_expression(index, param_type, false);
+			add_variable_helper(param, var_value, context);
 		}
 	}
 
@@ -846,11 +1049,15 @@ static void generate_function(ast::function_body &func_body, codegen_context &co
 	bodies_string += "{\n";
 	decls_string += ");\n";
 
-	// ... generate expressions
+	for (auto const &stmt : func_body.get_statements())
+	{
+		generate_statement(stmt, context);
+	}
+
+	context.pop_expression_scope(prev_info);
 
 	bodies_string += context.current_function_info.body_string;
 	bodies_string += "}\n";
-	// bz_unreachable;
 }
 
 void generate_necessary_functions(codegen_context &context)
@@ -864,6 +1071,12 @@ void generate_necessary_functions(codegen_context &context)
 		}
 		generate_function(*func_body, context);
 	}
+}
+
+void generate_destruct_operation(destruct_operation_info_t const &destruct_op_info, codegen_context &context)
+{
+	// TODO
+	bz_unreachable;
 }
 
 } // namespace codegen::c
