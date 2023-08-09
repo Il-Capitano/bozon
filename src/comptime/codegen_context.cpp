@@ -583,11 +583,6 @@ void codegen_context::push_end_lifetime(expr_value value)
 	});
 }
 
-static void emit_destruct_operation(destruct_operation_info_t const &info, codegen_context &context)
-{
-	generate_destruct_operation(info, context);
-}
-
 void codegen_context::emit_destruct_operations(size_t destruct_calls_start_index)
 {
 	if (this->has_terminator())
@@ -595,9 +590,13 @@ void codegen_context::emit_destruct_operations(size_t destruct_calls_start_index
 		return;
 	}
 
-	for (auto const &info : this->current_function_info.destructor_calls.slice(destruct_calls_start_index).reversed())
+	for (auto const index : bz::iota(
+		destruct_calls_start_index,
+		this->current_function_info.destructor_calls.size()
+	).reversed())
 	{
-		emit_destruct_operation(info, *this);
+		auto const &info = this->current_function_info.destructor_calls[index];
+		generate_destruct_operation(info, *this);
 	}
 }
 
@@ -608,9 +607,13 @@ void codegen_context::emit_loop_destruct_operations(void)
 		return;
 	}
 
-	for (auto const &info : this->current_function_info.destructor_calls.slice(this->loop_info.destructor_stack_begin).reversed())
+	for (auto const index : bz::iota(
+		this->loop_info.destructor_stack_begin,
+		this->current_function_info.destructor_calls.size()
+	).reversed())
 	{
-		emit_destruct_operation(info, *this);
+		auto const &info = this->current_function_info.destructor_calls[index];
+		generate_destruct_operation(info, *this);
 	}
 }
 
@@ -621,9 +624,10 @@ void codegen_context::emit_all_destruct_operations(void)
 		return;
 	}
 
-	for (auto const &info : this->current_function_info.destructor_calls.reversed())
+	for (auto const index : bz::iota(0, this->current_function_info.destructor_calls.size()).reversed())
 	{
-		emit_destruct_operation(info, *this);
+		auto const &info = this->current_function_info.destructor_calls[index];
+		generate_destruct_operation(info, *this);
 	}
 }
 
