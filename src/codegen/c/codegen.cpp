@@ -856,7 +856,15 @@ static void add_variable_helper(
 	if (var_decl.tuple_decls.empty())
 	{
 		context.add_local_variable(var_decl, value);
-		// TODO: destruction
+		if (var_decl.is_ever_moved_from())
+		{
+			auto const indicator = context.add_move_destruct_indicator(var_decl);
+			context.push_variable_destruct_operation(var_decl.destruction, value, indicator);
+		}
+		else if (!var_decl.get_type().is_any_reference() && !var_decl.is_tuple_outer_ref())
+		{
+			context.push_variable_destruct_operation(var_decl.destruction, value);
+		}
 	}
 	else
 	{
@@ -1075,8 +1083,79 @@ void generate_necessary_functions(codegen_context &context)
 
 void generate_destruct_operation(destruct_operation_info_t const &destruct_op_info, codegen_context &context)
 {
-	// TODO
-	bz_unreachable;
+	auto const &condition = destruct_op_info.condition;
+	auto const move_destruct_indicator = destruct_op_info.move_destruct_indicator;
+
+	if (
+		destruct_op_info.destruct_op == nullptr
+		|| destruct_op_info.destruct_op->is_null()
+		|| destruct_op_info.destruct_op->is<ast::trivial_destruct_self>()
+	)
+	{
+		// nothing
+	}
+	else if (auto const &destruct_op = *destruct_op_info.destruct_op; destruct_op.is<ast::destruct_variable>())
+	{
+		bz_assert(destruct_op.get<ast::destruct_variable>().destruct_call->not_null());
+		if (condition.has_value())
+		{
+			context.begin_if(condition.get());
+
+			auto const prev_info = context.push_expression_scope();
+			generate_expression(*destruct_op.get<ast::destruct_variable>().destruct_call, context, {});
+			context.pop_expression_scope(prev_info);
+
+			context.end_if();
+		}
+		else
+		{
+			auto const prev_info = context.push_expression_scope();
+			generate_expression(*destruct_op.get<ast::destruct_variable>().destruct_call, context, {});
+			context.pop_expression_scope(prev_info);
+		}
+	}
+	else if (destruct_op.is<ast::destruct_self>())
+	{
+		if (condition.has_value())
+		{
+			context.begin_if(condition.get());
+
+			auto const prev_info = context.push_expression_scope();
+			generate_expression(*destruct_op.get<ast::destruct_self>().destruct_call, context, {});
+			context.pop_expression_scope(prev_info);
+
+			context.end_if();
+		}
+		else
+		{
+			auto const prev_info = context.push_expression_scope();
+			generate_expression(*destruct_op.get<ast::destruct_self>().destruct_call, context, {});
+			context.pop_expression_scope(prev_info);
+		}
+	}
+	else if (destruct_op.is<ast::defer_expression>())
+	{
+		bz_assert(!condition.has_value());
+		auto const prev_info = context.push_expression_scope();
+		generate_expression(*destruct_op.get<ast::defer_expression>().expr, context, {});
+		context.pop_expression_scope(prev_info);
+	}
+	else if (destruct_op.is<ast::destruct_rvalue_array>())
+	{
+		// TODO
+		bz_unreachable;
+	}
+	else
+	{
+		static_assert(ast::destruct_operation::variant_count == 5);
+	}
+
+	if (move_destruct_indicator.has_value())
+	{
+		auto assign_string = context.to_string_lhs(move_destruct_indicator.get(), precedence::assignment);
+		assign_string += " = 0";
+		context.add_expression(assign_string);
+	}
 }
 
 } // namespace codegen::c

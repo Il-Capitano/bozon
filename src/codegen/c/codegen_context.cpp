@@ -981,6 +981,59 @@ expr_value codegen_context::make_reference_expression(uint32_t value_index, type
 	};
 }
 
+void codegen_context::begin_if(expr_value condition)
+{
+	return this->begin_if(this->to_string(condition));
+}
+
+void codegen_context::begin_if_not(expr_value condition)
+{
+	bz::u8string condition_string = "!";
+	condition_string += this->to_string_unary(condition, precedence::prefix);
+	return this->begin_if(condition_string);
+}
+
+void codegen_context::begin_if(bz::u8string_view condition)
+{
+	this->add_indentation();
+	this->current_function_info.body_string += "if (";
+	this->current_function_info.body_string += condition;
+	this->current_function_info.body_string += ")\n";
+	this->add_indentation();
+	this->current_function_info.body_string += "{\n";
+	this->current_function_info.indent_level += 1;
+}
+
+void codegen_context::end_if(void)
+{
+	this->current_function_info.indent_level -= 1;
+	this->add_indentation();
+	this->current_function_info.body_string += "}\n";
+}
+
+void codegen_context::begin_while(expr_value condition)
+{
+	return this->begin_while(this->to_string(condition));
+}
+
+void codegen_context::begin_while(bz::u8string_view condition)
+{
+	this->add_indentation();
+	this->current_function_info.body_string += "while (";
+	this->current_function_info.body_string += condition;
+	this->current_function_info.body_string += ")\n";
+	this->add_indentation();
+	this->current_function_info.body_string += "{\n";
+	this->current_function_info.indent_level += 1;
+}
+
+void codegen_context::end_while(void)
+{
+	this->current_function_info.indent_level -= 1;
+	this->add_indentation();
+	this->current_function_info.body_string += "}\n";
+}
+
 void codegen_context::add_local_variable(ast::decl_variable const &var_decl, expr_value value)
 {
 	bz_assert(!this->current_function_info.local_variables.contains(&var_decl));
