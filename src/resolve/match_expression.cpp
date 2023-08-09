@@ -95,9 +95,16 @@ void match_expression_to_type(ast::expression &expr, ast::typespec &dest_type, c
 
 static void set_type(ast::decl_variable &var_decl, ast::typespec_view type, bool is_mut, bool is_reference)
 {
-	if (var_decl.tuple_decls.empty())
+	if (type.is_empty())
 	{
-		var_decl.get_type() = type;
+		for (auto &inner_decl : var_decl.tuple_decls)
+		{
+			inner_decl.get_type() = type;
+			set_type(inner_decl, type, false, false);
+		}
+	}
+	else if (var_decl.tuple_decls.empty())
+	{
 		if (is_mut && !var_decl.get_type().is<ast::ts_lvalue_reference>() && !var_decl.get_type().is<ast::ts_mut>())
 		{
 			var_decl.get_type().add_layer<ast::ts_mut>();
@@ -107,17 +114,10 @@ static void set_type(ast::decl_variable &var_decl, ast::typespec_view type, bool
 			var_decl.flags |= ast::decl_variable::tuple_outer_ref;
 		}
 	}
-	else if (type.is_empty())
-	{
-		for (auto &inner_decl : var_decl.tuple_decls)
-		{
-			set_type(inner_decl, type, false, false);
-		}
-	}
 	else
 	{
-		bz_assert(type.is<ast::ts_tuple>());
-		auto const &inner_types = type.get<ast::ts_tuple>().types;
+		bz_assert(type.remove_any_reference().is<ast::ts_tuple>());
+		auto const &inner_types = type.remove_any_reference().get<ast::ts_tuple>().types;
 		if (var_decl.tuple_decls.back().get_type().is<ast::ts_variadic>())
 		{
 			var_decl.tuple_decls.back().flags |= ast::decl_variable::variadic;
@@ -138,6 +138,7 @@ static void set_type(ast::decl_variable &var_decl, ast::typespec_view type, bool
 		bz_assert(inner_types.size() == var_decl.tuple_decls.size());
 		for (auto const &[inner_decl, inner_type] : bz::zip(var_decl.tuple_decls, inner_types))
 		{
+			inner_decl.get_type() = inner_type;
 			auto const inner_is_ref = inner_type.is<ast::ts_lvalue_reference>();
 			auto const inner_is_mut = inner_is_ref && inner_type.get<ast::ts_lvalue_reference>().is<ast::ts_mut>();
 			set_type(inner_decl, inner_type, is_mut || inner_is_mut, is_reference || inner_is_ref);
