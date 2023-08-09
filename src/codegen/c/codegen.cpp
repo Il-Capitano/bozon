@@ -750,6 +750,8 @@ static expr_value generate_expression(
 	bz::optional<expr_value> result_dest
 );
 
+static void generate_statement(ast::statement const &stmt, codegen_context &context);
+
 static expr_value generate_expression(
 	ast::expression const &original_expr,
 	ast::constant_expression const &const_expr,
@@ -783,6 +785,7 @@ static expr_value generate_expression(
 	bz::optional<expr_value> result_dest
 )
 {
+	// TODO
 	bz_unreachable;
 }
 
@@ -807,32 +810,125 @@ static expr_value generate_expression(
 
 static void generate_statement(ast::stmt_while const &while_stmt, codegen_context &context)
 {
-	// TODO
-	bz_unreachable;
+	auto const prev_loop_info = context.push_loop();
+	context.begin_while("1");
+
+	// condition
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const condition = generate_expression(while_stmt.condition, context, {});
+		context.pop_expression_scope(prev_info);
+
+		context.begin_if_not(condition);
+		context.add_expression("break");
+		context.end_if();
+	}
+
+	// body
+	{
+		auto const prev_info = context.push_expression_scope();
+		generate_expression(while_stmt.while_block, context, {});
+		context.pop_expression_scope(prev_info);
+	}
+
+	context.end_while();
+	context.pop_loop(prev_loop_info);
 }
 
-static void generate_statement(ast::stmt_for const &, codegen_context &context)
+static void generate_statement(ast::stmt_for const &for_stmt, codegen_context &context)
+{
+	auto const init_prev_info = context.push_expression_scope();
+	if (for_stmt.init.not_null())
+	{
+		generate_statement(for_stmt.init, context);
+	}
+
+	auto const prev_loop_info = context.push_loop();
+	context.begin_while("1");
+
+	// condition
+	if (for_stmt.condition.not_null())
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const condition = generate_expression(for_stmt.condition, context, {});
+		context.pop_expression_scope(prev_info);
+
+		context.begin_if_not(condition);
+		context.add_expression("break");
+		context.end_if();
+	}
+
+	// body
+	{
+		auto const prev_info = context.push_expression_scope();
+		generate_expression(for_stmt.for_block, context, {});
+		context.pop_expression_scope(prev_info);
+	}
+
+	// iteration
+	if (for_stmt.iteration.not_null())
+	{
+		auto const prev_info = context.push_expression_scope();
+		generate_expression(for_stmt.iteration, context, {});
+		context.pop_expression_scope(prev_info);
+	}
+
+	context.end_while();
+	context.pop_loop(prev_loop_info);
+	context.pop_expression_scope(init_prev_info);
+}
+
+static void generate_statement(ast::stmt_foreach const &foreach_stmt, codegen_context &context)
+{
+	auto const outer_prev_info = context.push_expression_scope();
+
+	generate_statement(foreach_stmt.range_var_decl, context);
+	generate_statement(foreach_stmt.iter_var_decl, context);
+	generate_statement(foreach_stmt.end_var_decl, context);
+
+	auto const prev_loop_info = context.push_loop();
+	context.begin_while("1");
+
+	// condition
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const condition = generate_expression(foreach_stmt.condition, context, {});
+		context.pop_expression_scope(prev_info);
+
+		context.begin_if_not(condition);
+		context.add_expression("break");
+		context.end_if();
+	}
+
+	// body
+	{
+		auto const iter_prev_info = context.push_expression_scope();
+		generate_statement(foreach_stmt.iter_deref_var_decl, context);
+		generate_expression(foreach_stmt.for_block, context, {});
+		context.pop_expression_scope(iter_prev_info);
+	}
+
+	// iteration
+	{
+		auto const prev_info = context.push_expression_scope();
+		generate_expression(foreach_stmt.iteration, context, {});
+		context.pop_expression_scope(prev_info);
+	}
+
+	context.end_while();
+	context.pop_loop(prev_loop_info);
+	context.pop_expression_scope(outer_prev_info);
+}
+
+static void generate_statement(ast::stmt_return const &return_stmt, codegen_context &context)
 {
 	// TODO
 	bz_unreachable;
 }
 
-static void generate_statement(ast::stmt_foreach const &, codegen_context &context)
+static void generate_statement(ast::stmt_defer const &defer_stmt, codegen_context &context)
 {
-	// TODO
-	bz_unreachable;
-}
-
-static void generate_statement(ast::stmt_return const &, codegen_context &context)
-{
-	// TODO
-	bz_unreachable;
-}
-
-static void generate_statement(ast::stmt_defer const &, codegen_context &context)
-{
-	// TODO
-	bz_unreachable;
+	context.push_destruct_operation(defer_stmt.deferred_expr);
 }
 
 static void generate_statement(ast::stmt_no_op const &, codegen_context &)

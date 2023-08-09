@@ -1244,6 +1244,18 @@ void codegen_context::pop_expression_scope(expression_scope_info_t prev_info)
 	this->current_function_info.destructor_calls.resize(prev_info.destructor_calls_size);
 }
 
+[[nodiscard]] codegen_context::loop_info_t codegen_context::push_loop(void)
+{
+	return {
+		.destructor_stack_begin = this->current_function_info.destructor_calls.size()
+	};
+}
+
+void codegen_context::pop_loop(loop_info_t prev_info)
+{
+	// nothing
+}
+
 bz::u8string codegen_context::get_code_string(void) const
 {
 	bz::u8string result = "";

@@ -228,9 +228,15 @@ struct codegen_context
 		size_t destructor_calls_size;
 	};
 
+	struct loop_info_t
+	{
+		size_t destructor_stack_begin;
+	};
 
 	[[nodiscard]] expression_scope_info_t push_expression_scope(void);
 	void pop_expression_scope(expression_scope_info_t prev_info);
+	[[nodiscard]] loop_info_t push_loop(void);
+	void pop_loop(loop_info_t prev_info);
 
 	bz::u8string get_code_string(void) const;
 };
