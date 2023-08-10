@@ -1034,6 +1034,21 @@ void codegen_context::end_while(void)
 	this->current_function_info.body_string += "}\n";
 }
 
+void codegen_context::add_return(void)
+{
+	this->add_expression("return");
+}
+
+void codegen_context::add_return(expr_value value)
+{
+	return this->add_return(this->to_string(value));
+}
+
+void codegen_context::add_return(bz::u8string_view value)
+{
+	this->add_expression(bz::format("return {}", value));
+}
+
 void codegen_context::add_local_variable(ast::decl_variable const &var_decl, expr_value value)
 {
 	bz_assert(!this->current_function_info.local_variables.contains(&var_decl));
@@ -1224,7 +1239,31 @@ bz::optional<expr_value> codegen_context::get_move_destruct_indicator(ast::decl_
 
 void codegen_context::generate_destruct_operations(size_t destruct_calls_start_index)
 {
-	for (auto const index : bz::iota(destruct_calls_start_index, this->current_function_info.destructor_calls.size()).reversed())
+	for (auto const index : bz::iota(
+		destruct_calls_start_index,
+		this->current_function_info.destructor_calls.size()
+	).reversed())
+	{
+		auto const &info = this->current_function_info.destructor_calls[index];
+		generate_destruct_operation(info, *this);
+	}
+}
+
+void codegen_context::generate_loop_destruct_operations(void)
+{
+	for (auto const index : bz::iota(
+		this->current_function_info.loop_info.destructor_stack_begin,
+		this->current_function_info.destructor_calls.size()
+	).reversed())
+	{
+		auto const &info = this->current_function_info.destructor_calls[index];
+		generate_destruct_operation(info, *this);
+	}
+}
+
+void codegen_context::generate_all_destruct_operations(void)
+{
+	for (auto const index : bz::iota(0, this->current_function_info.destructor_calls.size()).reversed())
 	{
 		auto const &info = this->current_function_info.destructor_calls[index];
 		generate_destruct_operation(info, *this);
@@ -1246,14 +1285,16 @@ void codegen_context::pop_expression_scope(expression_scope_info_t prev_info)
 
 [[nodiscard]] codegen_context::loop_info_t codegen_context::push_loop(void)
 {
-	return {
+	auto const prev_info = this->current_function_info.loop_info;
+	this->current_function_info.loop_info = {
 		.destructor_stack_begin = this->current_function_info.destructor_calls.size()
 	};
+	return prev_info;
 }
 
 void codegen_context::pop_loop(loop_info_t prev_info)
 {
-	// nothing
+	this->current_function_info.loop_info = prev_info;
 }
 
 bz::u8string codegen_context::get_code_string(void) const

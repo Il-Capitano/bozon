@@ -61,6 +61,11 @@ struct codegen_context
 		bz::u8string name;
 	};
 
+	struct loop_info_t
+	{
+		size_t destructor_stack_begin;
+	};
+
 	struct current_function_info_t
 	{
 		ast::function_body *func_body = nullptr;
@@ -68,11 +73,12 @@ struct codegen_context
 		bz::u8string decl_string = "";
 		uint32_t counter = 0;
 		uint32_t indent_level = 0;
-		expr_value return_value;
+		bz::optional<expr_value> return_value = {};
 
 		std::unordered_map<ast::decl_variable const *, expr_value> local_variables;
 		std::unordered_map<ast::decl_variable const *, expr_value> move_destruct_indicators;
 		bz::vector<destruct_operation_info_t> destructor_calls;
+		loop_info_t loop_info;
 	};
 
 	size_t counter = 0;
@@ -203,6 +209,10 @@ struct codegen_context
 	void begin_while(bz::u8string_view condition);
 	void end_while(void);
 
+	void add_return(void);
+	void add_return(expr_value value);
+	void add_return(bz::u8string_view value);
+
 	void add_local_variable(ast::decl_variable const &var_decl, expr_value value);
 
 	expr_value get_void_value(void) const;
@@ -222,15 +232,12 @@ struct codegen_context
 	bz::optional<expr_value> get_move_destruct_indicator(ast::decl_variable const &decl) const;
 
 	void generate_destruct_operations(size_t destruct_calls_start_index);
+	void generate_loop_destruct_operations(void);
+	void generate_all_destruct_operations(void);
 
 	struct expression_scope_info_t
 	{
 		size_t destructor_calls_size;
-	};
-
-	struct loop_info_t
-	{
-		size_t destructor_stack_begin;
 	};
 
 	[[nodiscard]] expression_scope_info_t push_expression_scope(void);

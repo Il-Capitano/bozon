@@ -922,8 +922,27 @@ static void generate_statement(ast::stmt_foreach const &foreach_stmt, codegen_co
 
 static void generate_statement(ast::stmt_return const &return_stmt, codegen_context &context)
 {
-	// TODO
-	bz_unreachable;
+	if (return_stmt.expr.is_null())
+	{
+		context.generate_all_destruct_operations();
+		context.add_return();
+	}
+	else if (context.current_function_info.return_value.has_value())
+	{
+		auto const prev_info = context.push_expression_scope();
+		generate_expression(return_stmt.expr, context, context.current_function_info.return_value);
+		context.pop_expression_scope(prev_info);
+		context.generate_all_destruct_operations();
+		context.add_return();
+	}
+	else
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const return_value = generate_expression(return_stmt.expr, context, context.current_function_info.return_value);
+		context.pop_expression_scope(prev_info);
+		context.generate_all_destruct_operations();
+		context.add_return(return_value);
+	}
 }
 
 static void generate_statement(ast::stmt_defer const &defer_stmt, codegen_context &context)
