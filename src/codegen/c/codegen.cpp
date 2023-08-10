@@ -753,6 +753,655 @@ static expr_value generate_expression(
 static void generate_statement(ast::statement const &stmt, codegen_context &context);
 
 static expr_value generate_expression(
+	ast::expr_variable_name const &var_name,
+	codegen_context &context
+)
+{
+	return context.get_variable(*var_name.decl);
+}
+
+static expr_value generate_expression(
+	ast::expr_function_name const &,
+	codegen_context &context
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+static expr_value generate_expression(
+	ast::expr_function_alias_name const &,
+	codegen_context &context
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+static expr_value generate_expression(
+	ast::expr_function_overload_set const &,
+	codegen_context &context
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+static expr_value generate_expression(
+	ast::expr_struct_name const &,
+	codegen_context &context
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+static expr_value generate_expression(
+	ast::expr_enum_name const &,
+	codegen_context &context
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+static expr_value generate_expression(
+	ast::expr_type_alias_name const &,
+	codegen_context &context
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+static expr_value generate_expression(
+	ast::expr_integer_literal const &,
+	codegen_context &context
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+static expr_value generate_expression(
+	ast::expr_null_literal const &,
+	codegen_context &context
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+static expr_value generate_expression(
+	ast::expr_enum_literal const &,
+	codegen_context &context
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+static expr_value generate_expression(
+	ast::expr_typed_literal const &,
+	codegen_context &context
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+static expr_value generate_expression(
+	ast::expr_placeholder_literal const &,
+	codegen_context &context
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+static expr_value generate_expression(
+	ast::expr_typename_literal const &,
+	codegen_context &context
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
+static expr_value generate_expression(
+	ast::expr_tuple const &tuple_expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	for (auto const i : bz::iota(0, tuple_expr.elems.size()))
+	{
+		if (result_dest.has_value())
+		{
+			auto const elem_result_address = context.create_struct_gep(result_dest.get(), i);
+			generate_expression(tuple_expr.elems[i], context, elem_result_address);
+		}
+		else
+		{
+			generate_expression(tuple_expr.elems[i], context, {});
+		}
+	}
+
+	return result_dest.has_value() ? result_dest.get() : context.get_void_value();
+}
+
+static expr_value generate_expression(
+	ast::expr_unary_op const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_binary_op const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_tuple_subscript const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_rvalue_tuple_subscript const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_subscript const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_rvalue_array_subscript const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_function_call const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_indirect_function_call const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_cast const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_bit_cast const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_optional_cast const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_take_reference const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_take_move_reference const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_aggregate_init const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_array_value_init const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_aggregate_default_construct const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_array_default_construct const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_optional_default_construct const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_builtin_default_construct const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_aggregate_copy_construct const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_array_copy_construct const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_optional_copy_construct const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_trivial_copy_construct const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_aggregate_move_construct const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_array_move_construct const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_optional_move_construct const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_trivial_relocate const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_aggregate_destruct const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_array_destruct const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_optional_destruct const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_base_type_destruct const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_destruct_value const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_aggregate_swap const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_array_swap const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_optional_swap const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_base_type_swap const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_trivial_swap const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_aggregate_assign const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_array_assign const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_optional_assign const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_optional_null_assign const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_optional_value_assign const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_optional_reference_value_assign const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_base_type_assign const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_trivial_assign const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_member_access const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_optional_extract_value const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_rvalue_member_access const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_type_member_access const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_compound const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_if const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_if_consteval const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_switch const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_break const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_continue const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_unreachable const &,
+	codegen_context &context
+);
+
+static expr_value generate_expression(
+	ast::expr_generic_type_instantiation const &,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
+static expr_value generate_expression(
+	ast::expr_bitcode_value_reference const &bitcode_value_reference,
+	codegen_context &context
+)
+{
+	return context.get_value_reference(bitcode_value_reference.index);
+}
+
+static expr_value generate_expression(
+	ast::expression const &original_expr,
+	ast::expr_t const &expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	switch (expr.kind())
+	{
+	static_assert(ast::expr_t::variant_count == 72);
+	case ast::expr_t::index<ast::expr_variable_name>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_variable_name>(), context);
+	case ast::expr_t::index<ast::expr_function_name>:
+		return generate_expression(expr.get<ast::expr_function_name>(), context);
+	case ast::expr_t::index<ast::expr_function_alias_name>:
+		return generate_expression(expr.get<ast::expr_function_alias_name>(), context);
+	case ast::expr_t::index<ast::expr_function_overload_set>:
+		return generate_expression(expr.get<ast::expr_function_overload_set>(), context);
+	case ast::expr_t::index<ast::expr_struct_name>:
+		return generate_expression(expr.get<ast::expr_struct_name>(), context);
+	case ast::expr_t::index<ast::expr_enum_name>:
+		return generate_expression(expr.get<ast::expr_enum_name>(), context);
+	case ast::expr_t::index<ast::expr_type_alias_name>:
+		return generate_expression(expr.get<ast::expr_type_alias_name>(), context);
+	case ast::expr_t::index<ast::expr_integer_literal>:
+		return generate_expression(expr.get<ast::expr_integer_literal>(), context);
+	case ast::expr_t::index<ast::expr_null_literal>:
+		return generate_expression(expr.get<ast::expr_null_literal>(), context);
+	case ast::expr_t::index<ast::expr_enum_literal>:
+		return generate_expression(expr.get<ast::expr_enum_literal>(), context);
+	case ast::expr_t::index<ast::expr_typed_literal>:
+		return generate_expression(expr.get<ast::expr_typed_literal>(), context);
+	case ast::expr_t::index<ast::expr_placeholder_literal>:
+		return generate_expression(expr.get<ast::expr_placeholder_literal>(), context);
+	case ast::expr_t::index<ast::expr_typename_literal>:
+		return generate_expression(expr.get<ast::expr_typename_literal>(), context);
+	case ast::expr_t::index<ast::expr_tuple>:
+		return generate_expression(expr.get<ast::expr_tuple>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_unary_op>:
+		return generate_expression(expr.get<ast::expr_unary_op>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_binary_op>:
+		return generate_expression(expr.get<ast::expr_binary_op>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_tuple_subscript>:
+		return generate_expression(expr.get<ast::expr_tuple_subscript>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_rvalue_tuple_subscript>:
+		return generate_expression(expr.get<ast::expr_rvalue_tuple_subscript>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_subscript>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_subscript>(), context);
+	case ast::expr_t::index<ast::expr_rvalue_array_subscript>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_rvalue_array_subscript>(), context);
+	case ast::expr_t::index<ast::expr_function_call>:
+		return generate_expression(expr.get<ast::expr_function_call>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_indirect_function_call>:
+		return generate_expression(expr.get<ast::expr_indirect_function_call>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_cast>:
+		return generate_expression(expr.get<ast::expr_cast>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_bit_cast>:
+		return generate_expression(expr.get<ast::expr_bit_cast>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_optional_cast>:
+		return generate_expression(expr.get<ast::expr_optional_cast>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_take_reference>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_take_reference>(), context);
+	case ast::expr_t::index<ast::expr_take_move_reference>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_take_move_reference>(), context);
+	case ast::expr_t::index<ast::expr_aggregate_init>:
+		return generate_expression(expr.get<ast::expr_aggregate_init>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_array_value_init>:
+		return generate_expression(expr.get<ast::expr_array_value_init>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_aggregate_default_construct>:
+		return generate_expression(expr.get<ast::expr_aggregate_default_construct>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_array_default_construct>:
+		return generate_expression(expr.get<ast::expr_array_default_construct>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_optional_default_construct>:
+		return generate_expression(expr.get<ast::expr_optional_default_construct>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_builtin_default_construct>:
+		return generate_expression(expr.get<ast::expr_builtin_default_construct>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_aggregate_copy_construct>:
+		return generate_expression(expr.get<ast::expr_aggregate_copy_construct>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_array_copy_construct>:
+		return generate_expression(expr.get<ast::expr_array_copy_construct>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_optional_copy_construct>:
+		return generate_expression(expr.get<ast::expr_optional_copy_construct>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_trivial_copy_construct>:
+		return generate_expression(expr.get<ast::expr_trivial_copy_construct>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_aggregate_move_construct>:
+		return generate_expression(expr.get<ast::expr_aggregate_move_construct>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_array_move_construct>:
+		return generate_expression(expr.get<ast::expr_array_move_construct>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_optional_move_construct>:
+		return generate_expression(expr.get<ast::expr_optional_move_construct>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_trivial_relocate>:
+		return generate_expression(expr.get<ast::expr_trivial_relocate>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_aggregate_destruct>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_aggregate_destruct>(), context);
+	case ast::expr_t::index<ast::expr_array_destruct>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_array_destruct>(), context);
+	case ast::expr_t::index<ast::expr_optional_destruct>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_optional_destruct>(), context);
+	case ast::expr_t::index<ast::expr_base_type_destruct>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_base_type_destruct>(), context);
+	case ast::expr_t::index<ast::expr_destruct_value>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_destruct_value>(), context);
+	case ast::expr_t::index<ast::expr_aggregate_swap>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_aggregate_swap>(), context);
+	case ast::expr_t::index<ast::expr_array_swap>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_array_swap>(), context);
+	case ast::expr_t::index<ast::expr_optional_swap>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_optional_swap>(), context);
+	case ast::expr_t::index<ast::expr_base_type_swap>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_base_type_swap>(), context);
+	case ast::expr_t::index<ast::expr_trivial_swap>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_trivial_swap>(), context);
+	case ast::expr_t::index<ast::expr_aggregate_assign>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_aggregate_assign>(), context);
+	case ast::expr_t::index<ast::expr_array_assign>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_array_assign>(), context);
+	case ast::expr_t::index<ast::expr_optional_assign>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_optional_assign>(), context);
+	case ast::expr_t::index<ast::expr_optional_null_assign>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_optional_null_assign>(), context);
+	case ast::expr_t::index<ast::expr_optional_value_assign>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_optional_value_assign>(), context);
+	case ast::expr_t::index<ast::expr_optional_reference_value_assign>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_optional_reference_value_assign>(), context);
+	case ast::expr_t::index<ast::expr_base_type_assign>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_base_type_assign>(), context);
+	case ast::expr_t::index<ast::expr_trivial_assign>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_trivial_assign>(), context);
+	case ast::expr_t::index<ast::expr_member_access>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_member_access>(), context);
+	case ast::expr_t::index<ast::expr_optional_extract_value>:
+		return generate_expression(expr.get<ast::expr_optional_extract_value>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_rvalue_member_access>:
+		return generate_expression(expr.get<ast::expr_rvalue_member_access>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_type_member_access>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_type_member_access>(), context);
+	case ast::expr_t::index<ast::expr_compound>:
+		return generate_expression(expr.get<ast::expr_compound>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_if>:
+		return generate_expression(expr.get<ast::expr_if>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_if_consteval>:
+		return generate_expression(expr.get<ast::expr_if_consteval>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_switch>:
+		return generate_expression(expr.get<ast::expr_switch>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_break>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_break>(), context);
+	case ast::expr_t::index<ast::expr_continue>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_continue>(), context);
+	case ast::expr_t::index<ast::expr_unreachable>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_unreachable>(), context);
+	case ast::expr_t::index<ast::expr_generic_type_instantiation>:
+		return generate_expression(expr.get<ast::expr_generic_type_instantiation>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_bitcode_value_reference>:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_bitcode_value_reference>(), context);
+	default:
+		bz_unreachable;
+	}
+}
+
+static expr_value generate_expression(
 	ast::expression const &original_expr,
 	ast::constant_expression const &const_expr,
 	codegen_context &context,
@@ -785,8 +1434,28 @@ static expr_value generate_expression(
 	bz::optional<expr_value> result_dest
 )
 {
-	// TODO
-	bz_unreachable;
+	if (
+		!result_dest.has_value()
+		&& dyn_expr.kind == ast::expression_type_kind::rvalue
+		&& (
+			(dyn_expr.destruct_op.not_null() && !dyn_expr.destruct_op.is<ast::trivial_destruct_self>())
+			|| dyn_expr.expr.is<ast::expr_compound>()
+			|| dyn_expr.expr.is<ast::expr_if>()
+			|| dyn_expr.expr.is<ast::expr_switch>()
+			|| dyn_expr.expr.is<ast::expr_tuple>()
+		)
+	)
+	{
+		result_dest = context.add_uninitialized_value(get_type(dyn_expr.type, context));
+	}
+
+	auto const result = generate_expression(original_expr, dyn_expr.expr, context, result_dest);
+	if (dyn_expr.destruct_op.not_null() || dyn_expr.destruct_op.move_destructed_decl != nullptr)
+	{
+		context.push_self_destruct_operation(dyn_expr.destruct_op, result);
+	}
+
+	return result;
 }
 
 static expr_value generate_expression(

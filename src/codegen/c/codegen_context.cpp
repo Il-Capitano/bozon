@@ -1191,6 +1191,21 @@ void codegen_context::push_destruct_operation(ast::destruct_operation const &des
 	}
 }
 
+void codegen_context::push_self_destruct_operation(ast::destruct_operation const &destruct_op, expr_value value)
+{
+	auto const move_destruct_indicator = this->get_move_destruct_indicator(destruct_op.move_destructed_decl);
+	if (move_destruct_indicator.has_value() || destruct_op.not_null())
+	{
+		this->current_function_info.destructor_calls.push_back({
+			.destruct_op = &destruct_op,
+			.value = value,
+			.condition = {},
+			.move_destruct_indicator = move_destruct_indicator,
+			.rvalue_array_elem_ptr = {},
+		});
+	}
+}
+
 void codegen_context::push_variable_destruct_operation(
 	ast::destruct_operation const &destruct_op,
 	expr_value value,
@@ -1291,6 +1306,31 @@ void codegen_context::pop_expression_scope(expression_scope_info_t prev_info)
 void codegen_context::pop_loop(loop_info_t prev_info)
 {
 	this->current_function_info.loop_info = prev_info;
+}
+
+[[nodiscard]] expr_value codegen_context::push_value_reference(expr_value new_value)
+{
+	auto const index = this->current_function_info.value_reference_stack_size % this->current_function_info.value_references.size();
+	this->current_function_info.value_reference_stack_size += 1;
+	auto const result = this->current_function_info.value_references[index];
+	this->current_function_info.value_references[index] = new_value;
+	return result;
+}
+
+void codegen_context::pop_value_reference(expr_value prev_value)
+{
+	bz_assert(this->current_function_info.value_reference_stack_size > 0);
+	this->current_function_info.value_reference_stack_size -= 1;
+	auto const index = this->current_function_info.value_reference_stack_size % this->current_function_info.value_references.size();
+	this->current_function_info.value_references[index] = prev_value;
+}
+
+expr_value codegen_context::get_value_reference(size_t index)
+{
+	bz_assert(index < this->current_function_info.value_reference_stack_size);
+	bz_assert(index < this->current_function_info.value_references.size());
+	auto const stack_index = (this->current_function_info.value_reference_stack_size - index - 1) % this->current_function_info.value_references.size();
+	return this->current_function_info.value_references[stack_index];
 }
 
 bz::u8string codegen_context::get_code_string(void) const

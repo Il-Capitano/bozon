@@ -75,6 +75,9 @@ struct codegen_context
 		uint32_t indent_level = 0;
 		bz::optional<expr_value> return_value = {};
 
+		size_t value_reference_stack_size = 0;
+		bz::array<expr_value, 4> value_references = {};
+
 		std::unordered_map<ast::decl_variable const *, expr_value> local_variables;
 		std::unordered_map<ast::decl_variable const *, expr_value> move_destruct_indicators;
 		bz::vector<destruct_operation_info_t> destructor_calls;
@@ -214,6 +217,7 @@ struct codegen_context
 	void add_return(bz::u8string_view value);
 
 	void add_local_variable(ast::decl_variable const &var_decl, expr_value value);
+	expr_value get_variable(ast::decl_variable const &var_decl);
 
 	expr_value get_void_value(void) const;
 	expr_value create_struct_gep(expr_value value, size_t index);
@@ -221,6 +225,7 @@ struct codegen_context
 	expr_value create_dereference(expr_value value);
 
 	void push_destruct_operation(ast::destruct_operation const &destruct_op);
+	void push_self_destruct_operation(ast::destruct_operation const &destruct_op, expr_value value);
 	void push_variable_destruct_operation(
 		ast::destruct_operation const &destruct_op,
 		expr_value value,
@@ -244,6 +249,10 @@ struct codegen_context
 	void pop_expression_scope(expression_scope_info_t prev_info);
 	[[nodiscard]] loop_info_t push_loop(void);
 	void pop_loop(loop_info_t prev_info);
+
+	[[nodiscard]] expr_value push_value_reference(expr_value new_value);
+	void pop_value_reference(expr_value prev_value);
+	expr_value get_value_reference(size_t index);
 
 	bz::u8string get_code_string(void) const;
 };
