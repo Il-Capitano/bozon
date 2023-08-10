@@ -1060,6 +1060,13 @@ expr_value codegen_context::get_void_value(void) const
 	return this->make_value_expression(0, this->get_void());
 }
 
+static void remove_needs_dereference(expr_value &value, codegen_context &context)
+{
+	value.needs_dereference = false;
+	value.value_type = context.add_pointer(value.value_type, value.is_const ? type_modifier::const_pointer : type_modifier::pointer);
+	value.is_const = false;
+}
+
 expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 {
 	auto const type = value.get_type();
@@ -1068,7 +1075,7 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 		bz_assert(index < struct_type->members.size());
 		auto const result_type = struct_type->members[index];
 		auto const use_arrow = value.needs_dereference;
-		value.needs_dereference = false;
+		remove_needs_dereference(value, *this);
 
 		// address of has a lower precedence than suffix, so this is fine
 		bz::u8string member_access_string = "&";
@@ -1089,7 +1096,7 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 		bz_assert(index <= array_type->size);
 		auto const result_type = array_type->elem_type;
 		auto const use_arrow = value.needs_dereference;
-		value.needs_dereference = false;
+		remove_needs_dereference(value, *this);
 
 		bz::u8string member_access_string = this->to_string_unary(value, precedence::suffix);
 		if (use_arrow)
@@ -1116,7 +1123,7 @@ expr_value codegen_context::create_struct_gep_value(expr_value value, size_t ind
 		bz_assert(index < struct_type->members.size());
 		auto const result_type = struct_type->members[index];
 		auto const use_arrow = value.needs_dereference;
-		value.needs_dereference = false;
+		remove_needs_dereference(value, *this);
 
 		// address of has a lower precedence than suffix, so this is fine
 		bz::u8string member_access_string = this->to_string_unary(value, precedence::suffix);
@@ -1136,7 +1143,7 @@ expr_value codegen_context::create_struct_gep_value(expr_value value, size_t ind
 		bz_assert(index < array_type->size);
 		auto const result_type = array_type->elem_type;
 		auto const use_arrow = value.needs_dereference;
-		value.needs_dereference = false;
+		remove_needs_dereference(value, *this);
 
 		bz::u8string member_access_string = this->to_string_unary(value, precedence::suffix);
 		if (use_arrow)
@@ -1251,23 +1258,12 @@ void codegen_context::generate_destruct_operations(size_t destruct_calls_start_i
 
 void codegen_context::generate_loop_destruct_operations(void)
 {
-	for (auto const index : bz::iota(
-		this->current_function_info.loop_info.destructor_stack_begin,
-		this->current_function_info.destructor_calls.size()
-	).reversed())
-	{
-		auto const &info = this->current_function_info.destructor_calls[index];
-		generate_destruct_operation(info, *this);
-	}
+	this->generate_destruct_operations(this->current_function_info.loop_info.destructor_stack_begin);
 }
 
 void codegen_context::generate_all_destruct_operations(void)
 {
-	for (auto const index : bz::iota(0, this->current_function_info.destructor_calls.size()).reversed())
-	{
-		auto const &info = this->current_function_info.destructor_calls[index];
-		generate_destruct_operation(info, *this);
-	}
+	this->generate_destruct_operations(0);
 }
 
 [[nodiscard]] codegen_context::expression_scope_info_t codegen_context::push_expression_scope(void)
