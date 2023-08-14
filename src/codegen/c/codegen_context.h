@@ -187,9 +187,10 @@ struct codegen_context
 	void add_global_variable(ast::decl_variable const &var_decl, type var_type, bz::u8string_view initializer);
 	global_variable_t const &get_global_variable(ast::decl_variable const &var_decl) const;
 
-	void ensure_function_generation(ast::function_body *func_body);
+	void ensure_function_generation(ast::function_body &func_body);
 	void reset_current_function(ast::function_body &func_body);
 	function_info_t const &get_function(ast::function_body &func_body);
+	bz::u8string_view get_libc_macro_name(ast::function_body &func_body);
 
 	void add_indentation(void);
 	bz::u8string to_string(expr_value const &value) const;
@@ -200,6 +201,8 @@ struct codegen_context
 	bz::u8string to_string_binary(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op, precedence prec) const;
 	bz::u8string to_string_unary_prefix(expr_value const &value, bz::u8string_view op) const;
 	bz::u8string to_string_unary_suffix(expr_value const &value, bz::u8string_view op) const;
+
+	bz::u8string to_string_arg(expr_value const &value) const;
 
 	void add_expression(bz::u8string_view expr_string);
 	expr_value add_uninitialized_value(type expr_type);
@@ -232,6 +235,12 @@ struct codegen_context
 	expr_value create_struct_gep_value(expr_value value, size_t index);
 	expr_value create_dereference(expr_value value);
 	expr_value create_address_of(expr_value value);
+
+	expr_value create_prefix_unary_operation(
+		expr_value const &value,
+		bz::u8string_view op,
+		type result_type
+	);
 
 	expr_value create_binary_operation(
 		expr_value const &lhs,

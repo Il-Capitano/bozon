@@ -781,17 +781,11 @@ codegen_context::global_variable_t const &codegen_context::get_global_variable(a
 	return this->global_variables.at(&var_decl);
 }
 
-void codegen_context::ensure_function_generation(ast::function_body *func_body)
+void codegen_context::ensure_function_generation(ast::function_body &func_body)
 {
-	// no need to emit functions with no definition
-	if (func_body->body.is_null())
+	if (!func_body.is_bitcode_emitted())
 	{
-		return;
-	}
-
-	if (!func_body->is_bitcode_emitted())
-	{
-		this->functions_to_compile.push_back(func_body);
+		this->functions_to_compile.push_back(&func_body);
 	}
 }
 
@@ -814,7 +808,25 @@ codegen_context::function_info_t const &codegen_context::get_function(ast::funct
 			.name = this->make_function_name(func_body),
 		}
 	});
+	this->ensure_function_generation(func_body);
 	return it->second;
+}
+
+static ast::attribute const &get_libc_macro_attribute(ast::function_body const &func_body)
+{
+	bz_assert(func_body.is_libc_macro());
+	return func_body.attributes.filter([](ast::attribute const &attr) {
+		return attr.name->value == "__libc_macro";
+	}).front();
+}
+
+bz::u8string_view codegen_context::get_libc_macro_name(ast::function_body &func_body)
+{
+	auto const &attribute = get_libc_macro_attribute(func_body);
+	bz_assert(attribute.args.size() == 2);
+	auto const header = attribute.args[0].get_constant_value().get_string();
+	this->add_libc_header(header);
+	return attribute.args[1].get_constant_value().get_string();
 }
 
 void codegen_context::add_indentation(void)
@@ -1018,6 +1030,11 @@ bz::u8string codegen_context::to_string_unary_suffix(expr_value const &value, bz
 	return result;
 }
 
+bz::u8string codegen_context::to_string_arg(expr_value const &value) const
+{
+	return this->to_string_lhs(value, precedence::comma);
+}
+
 void codegen_context::add_expression(bz::u8string_view expr_string)
 {
 	this->add_indentation();
@@ -1195,6 +1212,20 @@ void codegen_context::add_local_variable(ast::decl_variable const &var_decl, exp
 	this->current_function_info.local_variables.insert({ &var_decl, value });
 }
 
+expr_value codegen_context::get_variable(ast::decl_variable const &var_decl)
+{
+	auto const local_it = this->current_function_info.local_variables.find(&var_decl);
+	if (local_it != this->current_function_info.local_variables.end())
+	{
+		return local_it->second;
+	}
+
+	auto const global_it = this->global_variables.find(&var_decl);
+	bz_assert(global_it != this->global_variables.end());
+	auto const &[name, type] = global_it->second;
+	return this->add_reference_expression(bz::format("&{}", name), type, !var_decl.get_type().is_mut());
+}
+
 expr_value codegen_context::get_void_value(void) const
 {
 	return this->make_value_expression(0, this->get_void());
@@ -1327,6 +1358,15 @@ expr_value codegen_context::create_address_of(expr_value value)
 	{
 		return this->add_value_expression(this->to_string_unary_prefix(value, "&"), result_type);
 	}
+}
+
+expr_value codegen_context::create_prefix_unary_operation(
+	expr_value const &value,
+	bz::u8string_view op,
+	type result_type
+)
+{
+	return this->add_value_expression(this->to_string_unary_prefix(value, op), result_type);
 }
 
 expr_value codegen_context::create_binary_operation(

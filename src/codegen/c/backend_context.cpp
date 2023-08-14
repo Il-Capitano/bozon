@@ -123,7 +123,7 @@ bool backend_context::generate_code(ctx::global_context &global_ctx)
 			)
 		)
 		{
-			context.ensure_function_generation(func);
+			context.ensure_function_generation(*func);
 		}
 	}
 
