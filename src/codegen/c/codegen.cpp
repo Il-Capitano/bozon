@@ -220,7 +220,7 @@ type generate_struct(ast::type_info const &info, codegen_context &context)
 	}
 }
 
-static void generate_constant_value(
+static void generate_constant_value_string(
 	bz::u8string &buffer,
 	ast::constant_value const &value,
 	ast::typespec_view type,
@@ -374,7 +374,7 @@ static void generate_nonzero_constant_array_value(
 	{
 		for (auto const i : bz::iota(0, array_type.size))
 		{
-			generate_constant_value(buffer, values[i], array_type.elem_type, context);
+			generate_constant_value_string(buffer, values[i], array_type.elem_type, context);
 			buffer += ", ";
 		}
 	}
@@ -526,7 +526,7 @@ static void generate_constant_float64_array_value(
 	}
 }
 
-static void generate_constant_value(
+static void generate_constant_value_string(
 	bz::u8string &buffer,
 	ast::constant_value const &value,
 	ast::typespec_view type,
@@ -681,7 +681,7 @@ static void generate_constant_value(
 		buffer += "{ ";
 		for (auto const i : bz::iota(0, tuple_elems.size()))
 		{
-			generate_constant_value(buffer, tuple_elems[i], tuple_type.types[i], context);
+			generate_constant_value_string(buffer, tuple_elems[i], tuple_type.types[i], context);
 			buffer += ", ";
 		}
 		buffer += '}';
@@ -706,7 +706,7 @@ static void generate_constant_value(
 		buffer += "{ ";
 		for (auto const i : bz::iota(0, aggregate.size()))
 		{
-			generate_constant_value(buffer, aggregate[i], info->member_variables[i]->get_type(), context);
+			generate_constant_value_string(buffer, aggregate[i], info->member_variables[i]->get_type(), context);
 			buffer += ", ";
 		}
 		buffer += '}';
@@ -717,10 +717,10 @@ static void generate_constant_value(
 	}
 }
 
-static bz::u8string generate_constant_value(ast::constant_value const &value, ast::typespec_view type, codegen_context &context)
+static bz::u8string generate_constant_value_string(ast::constant_value const &value, ast::typespec_view type, codegen_context &context)
 {
 	bz::u8string result = "";
-	generate_constant_value(result, value, type, context);
+	generate_constant_value_string(result, value, type, context);
 	return result;
 }
 
@@ -735,7 +735,7 @@ void generate_global_variable(ast::decl_variable const &var_decl, codegen_contex
 	auto const var_type = get_type(var_decl.get_type(), context);
 	if (var_decl.init_expr.is_constant())
 	{
-		auto const initializer = generate_constant_value(var_decl.init_expr.get_constant_value(), var_decl.get_type(), context);
+		auto const initializer = generate_constant_value_string(var_decl.init_expr.get_constant_value(), var_decl.get_type(), context);
 		context.add_global_variable(var_decl, var_type, initializer);
 	}
 	else
@@ -879,7 +879,20 @@ static expr_value generate_expression(
 		if (result_dest.has_value())
 		{
 			auto const elem_result_address = context.create_struct_gep(result_dest.get(), i);
-			generate_expression(tuple_expr.elems[i], context, elem_result_address);
+			if (tuple_expr.elems[i].get_expr_type().is_any_reference())
+			{
+				auto const ref_value = generate_expression(tuple_expr.elems[i], context, {});
+				context.create_binary_operation(
+					context.create_dereference(elem_result_address),
+					context.create_address_of(ref_value),
+					"=",
+					precedence::assignment
+				);
+			}
+			else
+			{
+				generate_expression(tuple_expr.elems[i], context, context.create_dereference(elem_result_address));
+			}
 		}
 		else
 		{
@@ -989,16 +1002,49 @@ static expr_value generate_expression(
 );
 
 static expr_value generate_expression(
-	ast::expr_optional_default_construct const &,
+	ast::expr_optional_default_construct const &optional_default_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
-);
+)
+{
+	auto const type = get_type(optional_default_construct.type, context);
+	auto const init_expr = optional_default_construct.type.is_optional_pointer_like()
+		? "0"
+		: bz::format("({}){}", context.to_string(type), "{0}");
+
+	if (result_dest.has_value())
+	{
+		auto const &result_value = result_dest.get();
+		context.add_expression(bz::format("{} = {}", context.to_string_lhs(result_value, precedence::assignment), init_expr));
+		return result_value;
+	}
+	else
+	{
+		return context.add_value_expression(init_expr, type);
+	}
+}
 
 static expr_value generate_expression(
-	ast::expr_builtin_default_construct const &,
+	ast::expr_builtin_default_construct const &builtin_default_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
-);
+)
+{
+	bz_assert(builtin_default_construct.type.is<ast::ts_array_slice>());
+	auto const type = get_type(builtin_default_construct.type, context);
+	auto const init_expr = bz::format("({}){}", context.to_string(type), "{0}");
+
+	if (result_dest.has_value())
+	{
+		auto const &result_value = result_dest.get();
+		context.add_expression(bz::format("{} = {}", context.to_string_lhs(result_value, precedence::assignment), init_expr));
+		return result_value;
+	}
+	else
+	{
+		return context.add_value_expression(init_expr, type);
+	}
+}
 
 static expr_value generate_expression(
 	ast::expr_aggregate_copy_construct const &,
@@ -1019,10 +1065,26 @@ static expr_value generate_expression(
 );
 
 static expr_value generate_expression(
-	ast::expr_trivial_copy_construct const &,
+	ast::expr_trivial_copy_construct const &trivial_copy_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
-);
+)
+{
+	auto const copied_value_ref = generate_expression(trivial_copy_construct.copied_value, context, {});
+	auto const copied_value = trivial_copy_construct.copied_value.get_expr_type().is_reference()
+		? context.create_dereference(copied_value_ref)
+		: copied_value_ref;
+	if (result_dest.has_value())
+	{
+		auto const &result_value = result_dest.get();
+		context.create_binary_operation(result_value, copied_value, "=", precedence::assignment);
+		return result_value;
+	}
+	else
+	{
+		return context.add_value_expression(context.to_string_rhs(copied_value, precedence::assignment), copied_value.get_type());
+	}
+}
 
 static expr_value generate_expression(
 	ast::expr_aggregate_move_construct const &,
@@ -1043,10 +1105,24 @@ static expr_value generate_expression(
 );
 
 static expr_value generate_expression(
-	ast::expr_trivial_relocate const &,
+	ast::expr_trivial_relocate const &trivial_relocate,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
-);
+)
+{
+	bz_assert(!trivial_relocate.value.get_expr_type().is_reference());
+	auto const value = generate_expression(trivial_relocate.value, context, {});
+	if (result_dest.has_value())
+	{
+		auto const &result_value = result_dest.get();
+		context.create_binary_operation(result_value, value, "=", precedence::assignment);
+		return result_value;
+	}
+	else
+	{
+		return context.add_value_expression(context.to_string_rhs(value, precedence::assignment), value.get_type());
+	}
+}
 
 static expr_value generate_expression(
 	ast::expr_aggregate_destruct const &,
@@ -1173,10 +1249,28 @@ static expr_value generate_expression(
 );
 
 static expr_value generate_expression(
-	ast::expr_if_consteval const &,
+	ast::expr_if_consteval const &if_consteval_expr,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
-);
+)
+{
+	bz_assert(if_consteval_expr.condition.is_constant());
+	bz_assert(if_consteval_expr.condition.get_constant_value().is_boolean());
+	auto const condition = if_consteval_expr.condition.get_constant_value().get_boolean();
+	if (condition)
+	{
+		return generate_expression(if_consteval_expr.then_block, context, result_dest);
+	}
+	else if (if_consteval_expr.else_block.not_null())
+	{
+		return generate_expression(if_consteval_expr.else_block, context, result_dest);
+	}
+	else
+	{
+		bz_assert(!result_dest.has_value());
+		return context.get_void_value();
+	}
+}
 
 static expr_value generate_expression(
 	ast::expr_switch const &,
@@ -1187,12 +1281,22 @@ static expr_value generate_expression(
 static expr_value generate_expression(
 	ast::expr_break const &,
 	codegen_context &context
-);
+)
+{
+	context.generate_loop_destruct_operations();
+	context.add_expression("break");
+	return context.get_void_value();
+}
 
 static expr_value generate_expression(
 	ast::expr_continue const &,
 	codegen_context &context
-);
+)
+{
+	context.generate_loop_destruct_operations();
+	context.add_expression("continue");
+	return context.get_void_value();
+}
 
 static expr_value generate_expression(
 	ast::expr_unreachable const &,
@@ -1201,9 +1305,12 @@ static expr_value generate_expression(
 
 static expr_value generate_expression(
 	ast::expr_generic_type_instantiation const &,
-	codegen_context &context,
-	bz::optional<expr_value> result_dest
-);
+	codegen_context &context
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
 
 static expr_value generate_expression(
 	ast::expr_bitcode_value_reference const &bitcode_value_reference,
@@ -1227,28 +1334,40 @@ static expr_value generate_expression(
 		bz_assert(!result_dest.has_value());
 		return generate_expression(expr.get<ast::expr_variable_name>(), context);
 	case ast::expr_t::index<ast::expr_function_name>:
+		bz_assert(!result_dest.has_value());
 		return generate_expression(expr.get<ast::expr_function_name>(), context);
 	case ast::expr_t::index<ast::expr_function_alias_name>:
+		bz_assert(!result_dest.has_value());
 		return generate_expression(expr.get<ast::expr_function_alias_name>(), context);
 	case ast::expr_t::index<ast::expr_function_overload_set>:
+		bz_assert(!result_dest.has_value());
 		return generate_expression(expr.get<ast::expr_function_overload_set>(), context);
 	case ast::expr_t::index<ast::expr_struct_name>:
+		bz_assert(!result_dest.has_value());
 		return generate_expression(expr.get<ast::expr_struct_name>(), context);
 	case ast::expr_t::index<ast::expr_enum_name>:
+		bz_assert(!result_dest.has_value());
 		return generate_expression(expr.get<ast::expr_enum_name>(), context);
 	case ast::expr_t::index<ast::expr_type_alias_name>:
+		bz_assert(!result_dest.has_value());
 		return generate_expression(expr.get<ast::expr_type_alias_name>(), context);
 	case ast::expr_t::index<ast::expr_integer_literal>:
+		bz_assert(!result_dest.has_value());
 		return generate_expression(expr.get<ast::expr_integer_literal>(), context);
 	case ast::expr_t::index<ast::expr_null_literal>:
+		bz_assert(!result_dest.has_value());
 		return generate_expression(expr.get<ast::expr_null_literal>(), context);
 	case ast::expr_t::index<ast::expr_enum_literal>:
+		bz_assert(!result_dest.has_value());
 		return generate_expression(expr.get<ast::expr_enum_literal>(), context);
 	case ast::expr_t::index<ast::expr_typed_literal>:
+		bz_assert(!result_dest.has_value());
 		return generate_expression(expr.get<ast::expr_typed_literal>(), context);
 	case ast::expr_t::index<ast::expr_placeholder_literal>:
+		bz_assert(!result_dest.has_value());
 		return generate_expression(expr.get<ast::expr_placeholder_literal>(), context);
 	case ast::expr_t::index<ast::expr_typename_literal>:
+		bz_assert(!result_dest.has_value());
 		return generate_expression(expr.get<ast::expr_typename_literal>(), context);
 	case ast::expr_t::index<ast::expr_tuple>:
 		return generate_expression(expr.get<ast::expr_tuple>(), context, result_dest);
@@ -1392,7 +1511,8 @@ static expr_value generate_expression(
 		bz_assert(!result_dest.has_value());
 		return generate_expression(expr.get<ast::expr_unreachable>(), context);
 	case ast::expr_t::index<ast::expr_generic_type_instantiation>:
-		return generate_expression(expr.get<ast::expr_generic_type_instantiation>(), context, result_dest);
+		bz_assert(!result_dest.has_value());
+		return generate_expression(expr.get<ast::expr_generic_type_instantiation>(), context);
 	case ast::expr_t::index<ast::expr_bitcode_value_reference>:
 		bz_assert(!result_dest.has_value());
 		return generate_expression(expr.get<ast::expr_bitcode_value_reference>(), context);
@@ -1408,7 +1528,7 @@ static expr_value generate_expression(
 	bz::optional<expr_value> result_dest
 )
 {
-	auto const value_string = generate_constant_value(const_expr.value, const_expr.type, context);
+	auto const value_string = generate_constant_value_string(const_expr.value, const_expr.type, context);
 
 	if (result_dest.has_value())
 	{
@@ -1604,6 +1724,15 @@ static void generate_statement(ast::stmt_return const &return_stmt, codegen_cont
 		context.generate_all_destruct_operations();
 		context.add_return();
 	}
+	else if (context.current_function_info.func_body->return_type.is_any_reference())
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const return_value_ref = generate_expression(return_stmt.expr, context, context.current_function_info.return_value);
+		auto const return_value = context.create_address_of(return_value_ref);
+		context.pop_expression_scope(prev_info);
+		context.generate_all_destruct_operations();
+		context.add_return(return_value);
+	}
 	else
 	{
 		auto const prev_info = context.push_expression_scope();
@@ -1652,16 +1781,12 @@ static void add_variable_helper(
 	}
 	else
 	{
-		if (var_decl.get_type().is_any_reference())
-		{
-			value = context.create_dereference(value);
-		}
 		for (auto const &[elem_decl, i] : var_decl.tuple_decls.enumerate())
 		{
-			auto const elem_value = elem_decl.get_type().is_any_reference()
+			auto const elem_ref = elem_decl.get_type().is_any_reference()
 				? context.create_struct_gep_value(value, i)
 				: context.create_struct_gep(value, i);
-			add_variable_helper(elem_decl, elem_value, context);
+			add_variable_helper(elem_decl, context.create_dereference(elem_ref), context);
 		}
 	}
 }
@@ -1685,13 +1810,25 @@ static void generate_statement(ast::decl_variable const &var_decl, codegen_conte
 	{
 		auto const type = get_type(var_decl.get_type(), context);
 		auto const alloca = context.add_uninitialized_value(type);
-		if (var_decl.init_expr.not_null())
+		if (var_decl.get_type().is_any_reference())
 		{
 			auto const prev_info = context.push_expression_scope();
-			generate_expression(var_decl.init_expr, context, alloca);
+			auto const ref_value = generate_expression(var_decl.init_expr, context, {});
+			auto const init_value = context.create_address_of(ref_value);
+			context.create_binary_operation(alloca, init_value, "=", precedence::assignment);
 			context.pop_expression_scope(prev_info);
+			add_variable_helper(var_decl, context.create_dereference(alloca), context);
 		}
-		add_variable_helper(var_decl, alloca, context);
+		else
+		{
+			if (var_decl.init_expr.not_null())
+			{
+				auto const prev_info = context.push_expression_scope();
+				generate_expression(var_decl.init_expr, context, alloca);
+				context.pop_expression_scope(prev_info);
+			}
+			add_variable_helper(var_decl, alloca, context);
+		}
 	}
 }
 
@@ -1812,7 +1949,16 @@ static void generate_function(ast::function_body &func_body, codegen_context &co
 			decls_string += ", ";
 		}
 
-		if (param.get_type().is_any_reference() || ast::is_trivially_relocatable(param.get_type()))
+		if (param.get_type().is_any_reference())
+		{
+			auto const param_type_string = context.to_string(param_type);
+			bodies_string += bz::format("{} {}", param_type_string, name);
+			decls_string += param_type_string;
+			auto const [ref_type, modifier] = context.remove_pointer(param_type);
+			auto const var_value = context.make_reference_expression(index, ref_type, modifier == type_modifier::const_pointer);
+			add_variable_helper(param, var_value, context);
+		}
+		else if (ast::is_trivially_relocatable(param.get_type()))
 		{
 			auto const param_type_string = context.to_string(param_type);
 			bodies_string += bz::format("{} {}", param_type_string, name);

@@ -913,6 +913,111 @@ bz::u8string codegen_context::to_string_unary(expr_value const &value, precedenc
 	return result;
 }
 
+bz::u8string codegen_context::to_string_binary(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op, precedence prec) const
+{
+	bz::u8string result = "";
+
+	auto const [lhs_needs_parens, rhs_needs_parens] = needs_parenthesis_binary(lhs, rhs, prec);
+
+	// lhs
+	{
+		if (lhs_needs_parens)
+		{
+			result += '(';
+		}
+
+		if (lhs.needs_dereference)
+		{
+			result += '*';
+		}
+
+		result += this->make_local_name(lhs.value_index);
+
+		if (lhs_needs_parens)
+		{
+			result += ')';
+		}
+	}
+
+	result += ' ';
+	result += op;
+	result += ' ';
+
+	// rhs
+	{
+		if (rhs_needs_parens)
+		{
+			result += '(';
+		}
+
+		if (rhs.needs_dereference)
+		{
+			result += '*';
+		}
+
+		result += this->make_local_name(rhs.value_index);
+
+		if (rhs_needs_parens)
+		{
+			result += ')';
+		}
+	}
+
+	return result;
+}
+
+bz::u8string codegen_context::to_string_unary_prefix(expr_value const &value, bz::u8string_view op) const
+{
+	bz::u8string result = op;
+
+	auto const needs_parens = needs_parenthesis_unary(value, precedence::prefix);
+	if (needs_parens)
+	{
+		result += '(';
+	}
+
+	if (value.needs_dereference)
+	{
+		result += '*';
+	}
+
+	result += this->make_local_name(value.value_index);
+
+	if (needs_parens)
+	{
+		result += ')';
+	}
+
+	return result;
+}
+
+bz::u8string codegen_context::to_string_unary_suffix(expr_value const &value, bz::u8string_view op) const
+{
+	bz::u8string result = "";
+
+	auto const needs_parens = needs_parenthesis_unary(value, precedence::suffix);
+	if (needs_parens)
+	{
+		result += '(';
+	}
+
+	if (value.needs_dereference)
+	{
+		result += '*';
+	}
+
+	result += this->make_local_name(value.value_index);
+
+	if (needs_parens)
+	{
+		result += ')';
+	}
+
+	result += op;
+
+	return result;
+}
+
 void codegen_context::add_expression(bz::u8string_view expr_string)
 {
 	this->add_indentation();
@@ -1174,6 +1279,24 @@ expr_value codegen_context::create_dereference(expr_value value)
 	{
 		return this->add_reference_expression(this->to_string_rhs(value, precedence::assignment), result_type, modifier == type_modifier::const_pointer);
 	}
+}
+
+expr_value codegen_context::create_address_of(expr_value value)
+{
+	auto const result_type = value.is_const ? this->add_const_pointer(value.get_type()) : this->add_pointer(value.get_type());
+	if (value.needs_dereference)
+	{
+		return this->make_value_expression(value.value_index, result_type);
+	}
+	else
+	{
+		return this->add_value_expression(this->to_string_unary_prefix(value, "&"), result_type);
+	}
+}
+
+void codegen_context::create_binary_operation(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op, precedence prec)
+{
+	this->add_expression(this->to_string_binary(lhs, rhs, op, prec));
 }
 
 void codegen_context::push_destruct_operation(ast::destruct_operation const &destruct_op)

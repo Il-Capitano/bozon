@@ -196,6 +196,11 @@ struct codegen_context
 	bz::u8string to_string_lhs(expr_value const &value, precedence prec) const;
 	bz::u8string to_string_rhs(expr_value const &value, precedence prec) const;
 	bz::u8string to_string_unary(expr_value const &value, precedence prec) const;
+
+	bz::u8string to_string_binary(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op, precedence prec) const;
+	bz::u8string to_string_unary_prefix(expr_value const &value, bz::u8string_view op) const;
+	bz::u8string to_string_unary_suffix(expr_value const &value, bz::u8string_view op) const;
+
 	void add_expression(bz::u8string_view expr_string);
 	expr_value add_uninitialized_value(type expr_type);
 	expr_value add_value_expression(bz::u8string_view expr_string, type expr_type);
@@ -223,6 +228,9 @@ struct codegen_context
 	expr_value create_struct_gep(expr_value value, size_t index);
 	expr_value create_struct_gep_value(expr_value value, size_t index);
 	expr_value create_dereference(expr_value value);
+	expr_value create_address_of(expr_value value);
+
+	void create_binary_operation(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op, precedence prec);
 
 	void push_destruct_operation(ast::destruct_operation const &destruct_op);
 	void push_self_destruct_operation(ast::destruct_operation const &destruct_op, expr_value value);
