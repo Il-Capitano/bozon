@@ -481,6 +481,7 @@ struct function_body
 		copy_assign_op              = bit_at<25>,
 		move_assign_op              = bit_at<26>,
 		libc_function               = bit_at<27>,
+		libc_macro                  = bit_at<28>,
 	};
 
 	enum : uint16_t
@@ -1007,6 +1008,9 @@ struct function_body
 
 	bool is_libc_function(void) const noexcept
 	{ return (this->flags & libc_function) != 0; }
+
+	bool is_libc_macro(void) const noexcept
+	{ return (this->flags & libc_macro) != 0; }
 
 	bool has_builtin_implementation(void) const noexcept
 	{
