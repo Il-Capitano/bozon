@@ -211,6 +211,9 @@ struct codegen_context
 	void begin_if(expr_value condition);
 	void begin_if_not(expr_value condition);
 	void begin_if(bz::u8string_view condition);
+	void begin_else(void);
+	void begin_else_if(expr_value condition);
+	void begin_else_if(bz::u8string_view condition);
 	void end_if(void);
 
 	void begin_while(expr_value condition);
@@ -230,7 +233,26 @@ struct codegen_context
 	expr_value create_dereference(expr_value value);
 	expr_value create_address_of(expr_value value);
 
+	expr_value create_binary_operation(
+		expr_value const &lhs,
+		expr_value const &rhs,
+		bz::u8string_view op,
+		precedence prec,
+		type result_type
+	);
+	expr_value create_binary_operation(
+		expr_value const &lhs,
+		bz::u8string_view rhs_string,
+		bz::u8string_view op,
+		precedence prec,
+		type result_type
+	);
 	void create_binary_operation(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op, precedence prec);
+	void create_binary_operation(expr_value const &lhs, bz::u8string_view rhs_string, bz::u8string_view op, precedence prec);
+	void create_assignment(expr_value const &lhs, expr_value const &rhs);
+	void create_assignment(expr_value const &lhs, bz::u8string_view rhs_string);
+
+	expr_value create_trivial_copy(expr_value const &value);
 
 	void push_destruct_operation(ast::destruct_operation const &destruct_op);
 	void push_self_destruct_operation(ast::destruct_operation const &destruct_op, expr_value value);

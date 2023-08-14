@@ -1109,6 +1109,41 @@ void codegen_context::begin_if(bz::u8string_view condition)
 	this->current_function_info.indent_level += 1;
 }
 
+void codegen_context::begin_else(void)
+{
+	this->current_function_info.indent_level -= 1;
+
+	this->add_indentation();
+	this->current_function_info.body_string += "}\n";
+	this->add_indentation();
+	this->current_function_info.body_string += "else\n";
+	this->add_indentation();
+	this->current_function_info.body_string += "{\n";
+
+	this->current_function_info.indent_level += 1;
+}
+
+void codegen_context::begin_else_if(expr_value condition)
+{
+	return this->begin_else_if(this->to_string(condition));
+}
+
+void codegen_context::begin_else_if(bz::u8string_view condition)
+{
+	this->current_function_info.indent_level -= 1;
+
+	this->add_indentation();
+	this->current_function_info.body_string += "}\n";
+	this->add_indentation();
+	this->current_function_info.body_string += "else if (";
+	this->current_function_info.body_string += condition;
+	this->current_function_info.body_string += ")\n";
+	this->add_indentation();
+	this->current_function_info.body_string += "{\n";
+
+	this->current_function_info.indent_level += 1;
+}
+
 void codegen_context::end_if(void)
 {
 	this->current_function_info.indent_level -= 1;
@@ -1294,9 +1329,53 @@ expr_value codegen_context::create_address_of(expr_value value)
 	}
 }
 
+expr_value codegen_context::create_binary_operation(
+	expr_value const &lhs,
+	expr_value const &rhs,
+	bz::u8string_view op,
+	precedence prec,
+	type result_type
+)
+{
+	return this->add_value_expression(this->to_string_binary(lhs, rhs, op, prec), result_type);
+}
+
+expr_value codegen_context::create_binary_operation(
+	expr_value const &lhs,
+	bz::u8string_view rhs_string,
+	bz::u8string_view op,
+	precedence prec,
+	type result_type
+)
+{
+	auto const expr_string = bz::format("({} {} {})", this->to_string_lhs(lhs, prec), op, rhs_string);
+	return this->add_value_expression(expr_string, result_type);
+}
+
 void codegen_context::create_binary_operation(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op, precedence prec)
 {
 	this->add_expression(this->to_string_binary(lhs, rhs, op, prec));
+}
+
+void codegen_context::create_binary_operation(expr_value const &lhs, bz::u8string_view rhs_string, bz::u8string_view op, precedence prec)
+{
+	auto const expr_string = bz::format("{} {} {}", this->to_string_lhs(lhs, prec), op, rhs_string);
+	this->add_expression(expr_string);
+}
+
+void codegen_context::create_assignment(expr_value const &lhs, expr_value const &rhs)
+{
+	return this->create_binary_operation(lhs, rhs, "=", precedence::assignment);
+}
+
+void codegen_context::create_assignment(expr_value const &lhs, bz::u8string_view rhs_string)
+{
+	return this->create_binary_operation(lhs, rhs_string, "=", precedence::assignment);
+}
+
+expr_value codegen_context::create_trivial_copy(expr_value const &value)
+{
+	return this->add_value_expression(this->to_string_rhs(value, precedence::assignment), value.get_type());
 }
 
 void codegen_context::push_destruct_operation(ast::destruct_operation const &destruct_op)
