@@ -1,77 +1,77 @@
 import types;
-export function CHAR_BIT() -> int
+@__libc_macro("limits.h", "CHAR_BIT") export function CHAR_BIT() -> int
 {
 	return 8;
 }
-export function CHAR_MAX() -> int
+@__libc_macro("limits.h", "CHAR_MAX") export function CHAR_MAX() -> int
 {
 	return 127;
 }
-export function CHAR_MIN() -> int
+@__libc_macro("limits.h", "CHAR_MIN") export function CHAR_MIN() -> int
 {
 	return -128;
 }
-export function INT_MAX() -> int
+@__libc_macro("limits.h", "INT_MAX") export function INT_MAX() -> int
 {
 	return 2147483647;
 }
-export function INT_MIN() -> int
+@__libc_macro("limits.h", "INT_MIN") export function INT_MIN() -> int
 {
 	return -2147483648;
 }
-export function LLONG_MAX() -> long_long
+@__libc_macro("limits.h", "LLONG_MAX") export function LLONG_MAX() -> long_long
 {
 	return 9223372036854775807;
 }
-export function LLONG_MIN() -> long_long
+@__libc_macro("limits.h", "LLONG_MIN") export function LLONG_MIN() -> long_long
 {
 	return (-9223372036854775807 - 1);
 }
-export function LONG_MAX() -> long
+@__libc_macro("limits.h", "LONG_MAX") export function LONG_MAX() -> long
 {
 	return 9223372036854775807;
 }
-export function LONG_MIN() -> long
+@__libc_macro("limits.h", "LONG_MIN") export function LONG_MIN() -> long
 {
 	return (-9223372036854775807 - 1);
 }
-export function MB_LEN_MAX() -> int
+@__libc_macro("limits.h", "MB_LEN_MAX") export function MB_LEN_MAX() -> int
 {
 	return 16;
 }
-export function SCHAR_MAX() -> int
+@__libc_macro("limits.h", "SCHAR_MAX") export function SCHAR_MAX() -> int
 {
 	return 127;
 }
-export function SCHAR_MIN() -> int
+@__libc_macro("limits.h", "SCHAR_MIN") export function SCHAR_MIN() -> int
 {
 	return -128;
 }
-export function SHRT_MAX() -> int
+@__libc_macro("limits.h", "SHRT_MAX") export function SHRT_MAX() -> int
 {
 	return 32767;
 }
-export function SHRT_MIN() -> int
+@__libc_macro("limits.h", "SHRT_MIN") export function SHRT_MIN() -> int
 {
 	return -32768;
 }
-export function UCHAR_MAX() -> int
+@__libc_macro("limits.h", "UCHAR_MAX") export function UCHAR_MAX() -> int
 {
 	return 255;
 }
-export function UINT_MAX() -> unsigned_int
+@__libc_macro("limits.h", "UINT_MAX") export function UINT_MAX() -> unsigned_int
 {
 	return 4294967295;
 }
-export function ULLONG_MAX() -> unsigned_long_long
+@__libc_macro("limits.h", "ULLONG_MAX") export function ULLONG_MAX() -> unsigned_long_long
 {
 	return 18446744073709551615;
 }
-export function ULONG_MAX() -> unsigned_long
+@__libc_macro("limits.h", "ULONG_MAX") export function ULONG_MAX() -> unsigned_long
 {
 	return 18446744073709551615;
 }
-export function USHRT_MAX() -> int
+@__libc_macro("limits.h", "USHRT_MAX") export function USHRT_MAX() -> int
 {
 	return 65535;
 }

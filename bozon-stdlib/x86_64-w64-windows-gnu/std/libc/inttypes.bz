@@ -6,9 +6,9 @@ import stddef;
 	.quot: intmax_t;
 	.rem: intmax_t;
 }
-@symbol_name("imaxabs") export function "c" imaxabs(j: intmax_t) -> intmax_t;
-@symbol_name("imaxdiv") export function "c" imaxdiv(numer: intmax_t, denom: intmax_t) -> imaxdiv_t;
-@symbol_name("strtoimax") export function "c" strtoimax(nptr: ?*char, endptr: ?*mut ?*mut char, base: int) -> intmax_t;
-@symbol_name("strtoumax") export function "c" strtoumax(nptr: ?*char, endptr: ?*mut ?*mut char, base: int) -> uintmax_t;
-@symbol_name("wcstoimax") export function "c" wcstoimax(nptr: ?*wchar_t, endptr: ?*mut ?*mut wchar_t, base: int) -> intmax_t;
-@symbol_name("wcstoumax") export function "c" wcstoumax(nptr: ?*wchar_t, endptr: ?*mut ?*mut wchar_t, base: int) -> uintmax_t;
+@__libc_function("inttypes.h", "imaxabs") export function "c" imaxabs(j: intmax_t) -> intmax_t;
+@__libc_function("inttypes.h", "imaxdiv") export function "c" imaxdiv(numer: intmax_t, denom: intmax_t) -> imaxdiv_t;
+@__libc_function("inttypes.h", "strtoimax") export function "c" strtoimax(nptr: ?*char, endptr: ?*mut ?*mut char, base: int) -> intmax_t;
+@__libc_function("inttypes.h", "strtoumax") export function "c" strtoumax(nptr: ?*char, endptr: ?*mut ?*mut char, base: int) -> uintmax_t;
+@__libc_function("inttypes.h", "wcstoimax") export function "c" wcstoimax(nptr: ?*wchar_t, endptr: ?*mut ?*mut wchar_t, base: int) -> intmax_t;
+@__libc_function("inttypes.h", "wcstoumax") export function "c" wcstoumax(nptr: ?*wchar_t, endptr: ?*mut ?*mut wchar_t, base: int) -> uintmax_t;
