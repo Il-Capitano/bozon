@@ -24,7 +24,7 @@ struct destruct_operation_info_t
 
 struct codegen_context
 {
-	codegen_context(target_properties props);
+	codegen_context(ctx::global_context &global_ctx, target_properties props);
 
 	struct struct_info_t
 	{
@@ -110,12 +110,16 @@ struct codegen_context
 	uint32_t long_size;
 	uint32_t long_long_size;
 	uint32_t pointer_size;
+	ctx::global_context &global_ctx;
 
 	struct local_name_and_index_pair
 	{
 		bz::u8string name;
 		uint32_t index;
 	};
+
+	ast::function_body *get_builtin_function(uint32_t kind) const;
+	bz::u8string get_location_string(lex::src_tokens const &src_tokens) const;
 
 	size_t get_unique_number(void);
 	bz::u8string make_type_name(void);
@@ -193,6 +197,7 @@ struct codegen_context
 	void ensure_function_generation(ast::function_body &func_body);
 	void reset_current_function(ast::function_body &func_body);
 	function_info_t const &get_function(ast::function_body &func_body);
+	ast::function_body &get_main_func_body(void) const;
 	bz::u8string_view get_libc_macro_name(ast::function_body &func_body);
 
 	void add_indentation(void);
@@ -202,6 +207,7 @@ struct codegen_context
 	bz::u8string to_string_unary(expr_value const &value, precedence prec) const;
 
 	bz::u8string to_string_binary(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op, precedence prec) const;
+	bz::u8string to_string_binary(expr_value const &lhs, bz::u8string_view rhs, bz::u8string_view op, precedence prec) const;
 	bz::u8string to_string_unary_prefix(expr_value const &value, bz::u8string_view op) const;
 	bz::u8string to_string_unary_suffix(expr_value const &value, bz::u8string_view op) const;
 
@@ -244,6 +250,10 @@ struct codegen_context
 		bz::u8string_view op,
 		type result_type
 	);
+	void create_prefix_unary_operation(
+		expr_value const &value,
+		bz::u8string_view op
+	);
 
 	expr_value create_binary_operation(
 		expr_value const &lhs,
@@ -265,6 +275,9 @@ struct codegen_context
 	void create_assignment(expr_value const &lhs, bz::u8string_view rhs_string);
 
 	expr_value create_trivial_copy(expr_value const &value);
+
+	void create_unreachable(void);
+	void create_trap(void);
 
 	void push_destruct_operation(ast::destruct_operation const &destruct_op);
 	void push_self_destruct_operation(ast::destruct_operation const &destruct_op, expr_value value);

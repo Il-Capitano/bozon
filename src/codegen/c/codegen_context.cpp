@@ -1,12 +1,14 @@
 #include "codegen_context.h"
 #include "codegen.h"
 #include "ast/statement.h"
+#include "ctx/global_context.h"
 
 namespace codegen::c
 {
 
-codegen_context::codegen_context(target_properties props)
-	: indentation("\t")
+codegen_context::codegen_context(ctx::global_context &global_ctx, target_properties props)
+	: indentation("\t"),
+	  global_ctx(global_ctx)
 {
 	bz_assert(props.c_short_size.has_value());
 	bz_assert(props.c_int_size.has_value());
@@ -23,6 +25,17 @@ codegen_context::codegen_context(target_properties props)
 		.aliased_type = {},
 	});
 	this->type_set.add_typedef_type_name(this->builtin_types.void_, "void");
+}
+
+ast::function_body *codegen_context::get_builtin_function(uint32_t kind) const
+{
+	auto const decl = this->global_ctx.get_builtin_function(kind);
+	return decl == nullptr ? nullptr : &decl->body;
+}
+
+bz::u8string codegen_context::get_location_string(lex::src_tokens const &src_tokens) const
+{
+	return this->global_ctx.get_location_string(src_tokens.pivot);
 }
 
 size_t codegen_context::get_unique_number(void)
@@ -143,10 +156,14 @@ bz::u8string codegen_context::make_function_name(ast::function_body const &func_
 		bz_assert(id.values.not_empty());
 		return bz::format("f_{}_{:x}", id.values.back(), this->get_unique_number());
 	}
-	else
+	else if (func_body.function_name_or_operator_kind.is<uint32_t>())
 	{
 		auto const op_kind = func_body.function_name_or_operator_kind.get<uint32_t>();
 		return bz::format("o_{}_{:x}", op_kind, this->get_unique_number());
+	}
+	else
+	{
+		return bz::format("f_{:x}", this->get_unique_number());
 	}
 }
 
@@ -831,8 +848,11 @@ void codegen_context::reset_current_function(ast::function_body &func_body)
 	this->current_function_info.func_body = &func_body;
 }
 
-codegen_context::function_info_t const &codegen_context::get_function(ast::function_body &func_body)
+codegen_context::function_info_t const &codegen_context::get_function(ast::function_body &func_body_)
 {
+	auto &func_body = func_body_.is_intrinsic() && func_body_.intrinsic_kind == ast::function_body::builtin_call_main
+		? (bz_assert(this->global_ctx._main != nullptr), *this->global_ctx._main)
+		: func_body_;
 	if (auto const it = this->functions.find(&func_body); it != this->functions.end())
 	{
 		return it->second;
@@ -846,6 +866,12 @@ codegen_context::function_info_t const &codegen_context::get_function(ast::funct
 	});
 	this->ensure_function_generation(func_body);
 	return it->second;
+}
+
+ast::function_body &codegen_context::get_main_func_body(void) const
+{
+	bz_assert(this->global_ctx._main != nullptr);
+	return *this->global_ctx._main;
 }
 
 static ast::attribute const &get_libc_macro_attribute(ast::function_body const &func_body)
@@ -1010,6 +1036,42 @@ bz::u8string codegen_context::to_string_binary(expr_value const &lhs, expr_value
 			result += ')';
 		}
 	}
+
+	return result;
+}
+
+bz::u8string codegen_context::to_string_binary(expr_value const &lhs, bz::u8string_view rhs, bz::u8string_view op, precedence prec) const
+{
+	bz::u8string result = "";
+
+	auto const lhs_needs_parens = needs_parenthesis_binary_lhs(lhs, prec);
+
+	// lhs
+	{
+		if (lhs_needs_parens)
+		{
+			result += '(';
+		}
+
+		if (lhs.needs_dereference)
+		{
+			result += '*';
+		}
+
+		result += this->make_local_name(lhs.value_index);
+
+		if (lhs_needs_parens)
+		{
+			result += ')';
+		}
+	}
+
+	result += ' ';
+	result += op;
+	result += ' ';
+
+	// rhs
+	result += rhs;
 
 	return result;
 }
@@ -1405,6 +1467,14 @@ expr_value codegen_context::create_prefix_unary_operation(
 	return this->add_value_expression(this->to_string_unary_prefix(value, op), result_type);
 }
 
+void codegen_context::create_prefix_unary_operation(
+	expr_value const &value,
+	bz::u8string_view op
+)
+{
+	this->add_expression(this->to_string_unary_prefix(value, op));
+}
+
 expr_value codegen_context::create_binary_operation(
 	expr_value const &lhs,
 	expr_value const &rhs,
@@ -1452,6 +1522,16 @@ void codegen_context::create_assignment(expr_value const &lhs, bz::u8string_view
 expr_value codegen_context::create_trivial_copy(expr_value const &value)
 {
 	return this->add_value_expression(this->to_string_rhs(value, precedence::assignment), value.get_type());
+}
+
+void codegen_context::create_unreachable(void)
+{
+	this->add_expression("bozon_unreachable()");
+}
+
+void codegen_context::create_trap(void)
+{
+	this->add_expression("bozon_trap()");
 }
 
 void codegen_context::push_destruct_operation(ast::destruct_operation const &destruct_op)
@@ -1611,6 +1691,31 @@ expr_value codegen_context::get_value_reference(size_t index)
 	return this->current_function_info.value_references[stack_index];
 }
 
+// https://en.cppreference.com/w/c/program/unreachable
+static constexpr bz::u8string_view builtin_definitions = R"(
+#if defined(__has_builtin)
+	#define BOZON_HAS_BUILTIN(x) __has_builtin(x)
+#else
+	#define BOZON_HAS_BUILTIN(x) 0
+#endif
+#if BOZON_HAS_BUILTIN(__builtin_unreachable)
+	#define bozon_unreachable() (__builtin_unreachable())
+#elif defined(_MSC_VER)
+	#define bozon_unreachable() (__assume(0))
+#endif
+#if BOZON_HAS_BUILTIN(__builtin_trap)
+	#define bozon_trap() (__builtin_trap())
+#endif
+#undef BOZON_HAS_BUILTIN
+#if !defined(bozon_unreachable)
+	#define bozon_unreachable() ((void)0)
+#endif
+#if !defined(bozon_trap)
+	#include <stdlib.h>
+	#define bozon_trap() (abort())
+#endif
+)";
+
 bz::u8string codegen_context::get_code_string(void) const
 {
 	bz::u8string result = "";
@@ -1619,6 +1724,8 @@ bz::u8string codegen_context::get_code_string(void) const
 	{
 		result += bz::format("#include <{}>\n", header);
 	}
+
+	result += builtin_definitions;
 
 	result += this->struct_forward_declarations_string;
 	result += this->typedefs_string;

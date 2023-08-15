@@ -1,5 +1,6 @@
 #include "codegen.h"
 #include "ast/statement.h"
+#include "global_data.h"
 
 namespace codegen::c
 {
@@ -752,6 +753,14 @@ static expr_value generate_expression(
 
 static void generate_statement(ast::statement const &stmt, codegen_context &context);
 
+static expr_value generate_function_call(
+	bz::u8string_view func_string,
+	bz::array_view<expr_value const> args,
+	ast::typespec_view return_type,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
+
 static expr_value value_or_result_dest(expr_value value, bz::optional<expr_value> result_dest, codegen_context &context)
 {
 	if (result_dest.has_value())
@@ -783,6 +792,43 @@ static expr_value value_or_result_dest(
 	{
 		return context.add_value_expression(value_string, value_type);
 	}
+}
+
+static void generate_panic_call(
+	lex::src_tokens const &src_tokens,
+	bz::u8string_view message,
+	codegen_context &context
+)
+{
+	auto const panic_handler_func_body = context.get_builtin_function(ast::function_body::builtin_panic_handler);
+	if (panic_handler_func_body == nullptr)
+	{
+		context.create_trap();
+		return;
+	}
+
+	bz_assert(panic_handler_func_body->params.size() == 1);
+	bz_assert(panic_handler_func_body->params[0].get_type().is<ast::ts_base_type>());
+	bz_assert(panic_handler_func_body->params[0].get_type().get<ast::ts_base_type>().info->kind == ast::type_info::str_);
+	auto const &panic_handler_func = context.get_function(*panic_handler_func_body);
+
+	auto const arg_string = generate_constant_value_string(
+		ast::constant_value(bz::format("panic called from {}: {}", context.get_location_string(src_tokens), message)),
+		panic_handler_func_body->params[0].get_type(),
+		context
+	);
+	auto const arg_type = get_type(panic_handler_func_body->params[0].get_type(), context);
+	auto const arg = context.add_value_expression(arg_string, arg_type);
+
+	generate_function_call(
+		panic_handler_func.name,
+		arg,
+		panic_handler_func_body->return_type,
+		context,
+		{}
+	);
+	// just to be sure...
+	context.create_trap();
 }
 
 static expr_value get_optional_value(expr_value const &opt_value, codegen_context &context)
@@ -834,6 +880,17 @@ static void set_optional_has_value(expr_value const &opt_value, expr_value const
 {
 	bz_assert(!context.is_pointer(opt_value.get_type()));
 	context.create_assignment(context.create_struct_gep_value(opt_value, 1), has_value);
+}
+
+static void generate_optional_get_value_check(lex::src_tokens const &src_tokens, expr_value const &opt_value, codegen_context &context)
+{
+	if (global_data::panic_on_null_get_value)
+	{
+		auto const has_value = get_optional_has_value(opt_value, context);
+		context.begin_if_not(has_value);
+		generate_panic_call(src_tokens, "'get_value' called on a null optional", context);
+		context.end_if();
+	}
 }
 
 static expr_value generate_expression(
@@ -1038,6 +1095,86 @@ static expr_value generate_expression(
 {
 	// TODO
 	bz_unreachable;
+}
+
+static expr_value generate_builtin_unary_plus(
+	ast::expression const &expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	auto const value = generate_expression(expr, context, {});
+	auto const expr_string = context.to_string_unary_prefix(value, "+");
+	return value_or_result_dest(expr_string, value.get_type(), result_dest, context);
+}
+
+static expr_value generate_builtin_unary_minus(
+	ast::expression const &expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	auto const value = generate_expression(expr, context, {});
+	auto const expr_string = context.to_string_unary_prefix(value, "-");
+	return value_or_result_dest(expr_string, value.get_type(), result_dest, context);
+}
+
+static expr_value generate_builtin_unary_dereference(
+	lex::src_tokens const &src_tokens,
+	ast::expression const &expr,
+	codegen_context &context
+)
+{
+	auto const value = generate_expression(expr, context, {});
+	if (global_data::panic_on_null_dereference && expr.get_expr_type().is_optional_pointer())
+	{
+		context.begin_if_not(get_optional_has_value(value, context));
+		generate_panic_call(src_tokens, "", context);
+		context.end_if();
+	}
+	return context.create_dereference(value);
+}
+
+static expr_value generate_builtin_unary_bit_not(
+	ast::expression const &expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	auto const value = generate_expression(expr, context, {});
+	auto const expr_string = context.to_string_unary_prefix(value, "~");
+	return value_or_result_dest(expr_string, value.get_type(), result_dest, context);
+}
+
+static expr_value generate_builtin_unary_bool_not(
+	ast::expression const &expr,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	auto const value = generate_expression(expr, context, {});
+	auto const expr_string = context.to_string_unary_prefix(value, "!");
+	return value_or_result_dest(expr_string, value.get_type(), result_dest, context);
+}
+
+static expr_value generate_builtin_unary_plus_plus(
+	ast::expression const &expr,
+	codegen_context &context
+)
+{
+	auto const value = generate_expression(expr, context, {});
+	context.create_prefix_unary_operation(value, "++");
+	return value;
+}
+
+static expr_value generate_builtin_unary_minus_minus(
+	ast::expression const &expr,
+	codegen_context &context
+)
+{
+	auto const value = generate_expression(expr, context, {});
+	context.create_prefix_unary_operation(value, "--");
+	return value;
 }
 
 static expr_value generate_builtin_binary_plus(
@@ -1248,6 +1385,52 @@ static expr_value generate_builtin_binary_modulo_eq(
 	return lhs_value;
 }
 
+static expr_value generate_builtin_binary_equality(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	bz::u8string_view op,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	auto const lhs_value = generate_expression(lhs, context, {});
+	auto const rhs_value = generate_expression(rhs, context, {});
+
+	auto const lhs_t = lhs.get_expr_type().remove_reference();
+	auto const rhs_t = rhs.get_expr_type().remove_reference();
+
+	if (
+		(lhs_t.is<ast::ts_optional>() && rhs_t.is<ast::ts_base_type>())
+		|| (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_optional>())
+	)
+	{
+		auto const &optional_value = lhs_t.is_optional() ? lhs_value : rhs_value;
+		auto const &optional_type = lhs_t.is_optional() ? lhs_t : rhs_t;
+		if (optional_type.is_optional_pointer_like())
+		{
+			auto const expr_string = context.to_string_binary(optional_value, "0", op, precedence::equality);
+			return value_or_result_dest(expr_string, context.get_bool(), result_dest, context);
+		}
+		else if (op == "!=")
+		{
+			auto const has_value = get_optional_has_value(optional_value, context);
+			return value_or_result_dest(has_value, result_dest, context);
+		}
+		else
+		{
+			bz_assert(op == "==");
+			auto const has_value = get_optional_has_value(optional_value, context);
+			auto const expr_string = context.to_string_unary_prefix(has_value, "!");
+			return value_or_result_dest(expr_string, context.get_bool(), result_dest, context);
+		}
+	}
+	else
+	{
+		auto const expr_string = context.to_string_binary(lhs_value, rhs_value, op, precedence::equality);
+		return value_or_result_dest(expr_string, context.get_bool(), result_dest, context);
+	}
+}
+
 static expr_value generate_builtin_binary_compare(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
@@ -1327,7 +1510,7 @@ static expr_value generate_builtin_binary_bitshift_eq(
 	return lhs_value;
 }
 
-static expr_value generate_intrinsic_function_call(
+static bz::optional<expr_value> generate_intrinsic_function_call(
 	ast::expr_function_call const &func_call,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
@@ -1366,25 +1549,67 @@ static expr_value generate_intrinsic_function_call(
 		// implemented in __builtins.bz
 		bz_unreachable;
 	case ast::function_body::builtin_str_from_ptrs:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 2);
+		if (!result_dest.has_value())
+		{
+			result_dest = context.add_uninitialized_value(get_type(func_call.func_body->return_type, context));
+		}
+		auto const &result_value = result_dest.get();
+		generate_expression(func_call.params[0], context, context.create_struct_gep(result_value, 0));
+		generate_expression(func_call.params[1], context, context.create_struct_gep(result_value, 1));
+		return result_value;
+	}
 	case ast::function_body::builtin_slice_begin_ptr:
 	case ast::function_body::builtin_slice_begin_mut_ptr:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const slice = generate_expression(func_call.params[0], context, {});
+		auto const result_value = context.create_struct_gep(slice, 0);
+		return value_or_result_dest(result_value, result_dest, context);
+	}
 	case ast::function_body::builtin_slice_end_ptr:
 	case ast::function_body::builtin_slice_end_mut_ptr:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const slice = generate_expression(func_call.params[0], context, {});
+		auto const result_value = context.create_struct_gep(slice, 1);
+		return value_or_result_dest(result_value, result_dest, context);
+	}
 	case ast::function_body::builtin_slice_size:
 		// implemented in __builtins.bz
 		bz_unreachable;
 	case ast::function_body::builtin_slice_from_ptrs:
 	case ast::function_body::builtin_slice_from_mut_ptrs:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 2);
+		if (!result_dest.has_value())
+		{
+			result_dest = context.add_uninitialized_value(get_type(func_call.func_body->return_type, context));
+		}
+		auto const &result_value = result_dest.get();
+		generate_expression(func_call.params[0], context, context.create_struct_gep(result_value, 0));
+		generate_expression(func_call.params[1], context, context.create_struct_gep(result_value, 1));
+		return result_value;
+	}
 	case ast::function_body::builtin_array_begin_ptr:
 	case ast::function_body::builtin_array_begin_mut_ptr:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const array = generate_expression(func_call.params[0], context, {});
+		auto const result_value = context.create_address_of(context.create_struct_gep(array, 0));
+		return value_or_result_dest(result_value, result_dest, context);
+	}
 	case ast::function_body::builtin_array_end_ptr:
 	case ast::function_body::builtin_array_end_mut_ptr:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const array = generate_expression(func_call.params[0], context, {});
+		bz_assert(context.is_array(array.get_type()));
+		auto const size = context.maybe_get_array(array.get_type())->size;
+		auto const result_value = context.create_address_of(context.create_struct_gep(array, size));
+		return value_or_result_dest(result_value, result_dest, context);
+	}
 	case ast::function_body::builtin_array_size:
 		// this is guaranteed to be constant evaluated
 		bz_unreachable;
@@ -1495,7 +1720,14 @@ static expr_value generate_intrinsic_function_call(
 		// this is handled as a separate expression, not a function call
 		bz_unreachable;
 	case ast::function_body::builtin_pointer_cast:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(func_call.params[0].is_typename());
+		auto const pointer_value = generate_expression(func_call.params[1], context, {});
+		auto const result_type = get_type(func_call.params[0].get_typename(), context);
+		auto const cast_string = context.to_string_unary_prefix(pointer_value, bz::format("({})", context.to_string(result_type)));
+		return value_or_result_dest(cast_string, result_type, result_dest, context);
+	}
 	case ast::function_body::builtin_pointer_to_int:
 		bz_unreachable; // TODO
 	case ast::function_body::builtin_int_to_pointer:
@@ -1515,12 +1747,38 @@ static expr_value generate_intrinsic_function_call(
 	case ast::function_body::builtin_is_option_set:
 		bz_unreachable; // TODO
 	case ast::function_body::builtin_panic:
-		bz_unreachable; // TODO
+	{
+		auto const panic_handler_func_body = context.get_builtin_function(ast::function_body::builtin_panic_handler);
+		if (panic_handler_func_body == nullptr)
+		{
+			context.create_trap();
+			return context.get_void_value();
+		}
+
+		bz_assert(panic_handler_func_body->params.size() == 1);
+		bz_assert(panic_handler_func_body->params[0].get_type().is<ast::ts_base_type>());
+		bz_assert(panic_handler_func_body->params[0].get_type().get<ast::ts_base_type>().info->kind == ast::type_info::str_);
+		auto const &panic_handler_func = context.get_function(*panic_handler_func_body);
+
+		bz_assert(func_call.params.size() == 1);
+		auto const arg = generate_expression(func_call.params[0], context, {});
+
+		generate_function_call(
+			panic_handler_func.name,
+			arg,
+			panic_handler_func_body->return_type,
+			context,
+			{}
+		);
+		// just to be sure...
+		context.create_trap();
+		return context.get_void_value();
+	}
 	case ast::function_body::builtin_panic_handler:
 		// implemented in <target>/__main.bz
 		bz_unreachable;
 	case ast::function_body::builtin_call_main:
-		bz_unreachable; // TODO
+		return {};
 	case ast::function_body::comptime_malloc:
 		bz_unreachable; // TODO
 	case ast::function_body::comptime_free:
@@ -1647,7 +1905,8 @@ static expr_value generate_intrinsic_function_call(
 		// this is handled as a separate expression, not a function call
 		bz_unreachable;
 	case ast::function_body::trap:
-		bz_unreachable; // TODO
+		context.create_trap();
+		return context.get_void_value();
 	case ast::function_body::memcpy:
 		bz_unreachable; // TODO
 	case ast::function_body::memmove:
@@ -1822,19 +2081,29 @@ static expr_value generate_intrinsic_function_call(
 		// these are guaranteed to be constant evaluated
 		bz_unreachable;
 	case ast::function_body::builtin_unary_plus:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 1);
+		return generate_builtin_unary_plus(func_call.params[0], context, result_dest);
 	case ast::function_body::builtin_unary_minus:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 1);
+		return generate_builtin_unary_minus(func_call.params[0], context, result_dest);
 	case ast::function_body::builtin_unary_dereference:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(!result_dest.has_value());
+		return generate_builtin_unary_dereference(func_call.src_tokens, func_call.params[0], context);
 	case ast::function_body::builtin_unary_bit_not:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 1);
+		return generate_builtin_unary_bit_not(func_call.params[0], context, result_dest);
 	case ast::function_body::builtin_unary_bool_not:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 1);
+		return generate_builtin_unary_bool_not(func_call.params[0], context, result_dest);
 	case ast::function_body::builtin_unary_plus_plus:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(!result_dest.has_value());
+		return generate_builtin_unary_plus_plus(func_call.params[0], context);
 	case ast::function_body::builtin_unary_minus_minus:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(!result_dest.has_value());
+		return generate_builtin_unary_minus_minus(func_call.params[0], context);
 	case ast::function_body::builtin_binary_assign:
 		// assignment is handled as a separate expression
 		bz_unreachable;
@@ -1875,21 +2144,19 @@ static expr_value generate_intrinsic_function_call(
 		return generate_builtin_binary_modulo_eq(func_call.params[0], func_call.params[1], context);
 	case ast::function_body::builtin_binary_equals:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_compare(
+		return generate_builtin_binary_equality(
 			func_call.params[0],
 			func_call.params[1],
 			"==",
-			precedence::equality,
 			context,
 			result_dest
 		);
 	case ast::function_body::builtin_binary_not_equals:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_compare(
+		return generate_builtin_binary_equality(
 			func_call.params[0],
 			func_call.params[1],
 			"!=",
-			precedence::equality,
 			context,
 			result_dest
 		);
@@ -2091,7 +2358,7 @@ static expr_value generate_function_call(
 	}
 	else
 	{
-		return context.add_value_expression(call_string, get_type(return_type, context));
+		return value_or_result_dest(call_string, get_type(return_type, context), result_dest, context);
 	}
 }
 
@@ -2103,7 +2370,11 @@ static expr_value generate_expression(
 {
 	if (func_call.func_body->is_intrinsic() && func_call.func_body->body.is_null())
 	{
-		return generate_intrinsic_function_call(func_call, context, result_dest);
+		auto const maybe_result = generate_intrinsic_function_call(func_call, context, result_dest);
+		if (maybe_result.has_value())
+		{
+			return maybe_result.get();
+		}
 	}
 	else if (func_call.func_body->is_libc_macro())
 	{
@@ -2178,6 +2449,14 @@ static expr_value generate_expression(
 				arg_values.push_front(context.create_address_of(arg_value));
 			}
 		}
+	}
+
+	if (func_call.func_body->is_intrinsic() && func_call.func_body->intrinsic_kind == ast::function_body::builtin_call_main)
+	{
+		auto const &main_func = context.get_main_func_body();
+		bz_assert(arg_values.size() == func_call.params.size());
+		bz_assert(main_func.params.size() <= arg_values.size());
+		arg_values.resize(main_func.params.size());
 	}
 
 	auto const &func = context.get_function(*func_call.func_body);
@@ -2265,7 +2544,8 @@ static expr_value generate_expression(
 		auto const expr_value = generate_expression(cast.expr, context, {});
 		auto const result_type = get_type(dest_t, context);
 		auto const cast_operator = bz::format("({})", context.to_string(result_type));
-		return context.create_prefix_unary_operation(expr_value, cast_operator, result_type);
+		auto const cast_string = context.to_string_unary_prefix(expr_value, cast_operator);
+		return value_or_result_dest(cast_string, result_type, result_dest, context);
 	}
 }
 
@@ -2679,7 +2959,12 @@ static expr_value generate_expression(
 
 static void create_pointer_compare_begin(expr_value const &lhs, expr_value const &rhs, codegen_context &context)
 {
-	context.begin_if(context.to_string_binary(lhs, rhs, "!=", precedence::equality));
+	context.begin_if(context.to_string_binary(
+		context.create_address_of(lhs),
+		context.create_address_of(rhs),
+		"!=",
+		precedence::equality
+	));
 }
 
 static void create_pointer_compare_end(codegen_context &context)
@@ -3055,13 +3340,32 @@ static expr_value generate_expression(
 }
 
 static expr_value generate_expression(
-	ast::expr_optional_extract_value const &,
+	lex::src_tokens const &src_tokens,
+	ast::expr_optional_extract_value const &optional_extract_value,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
 )
 {
-	// TODO
-	bz_unreachable;
+	auto const optional_value = generate_expression(optional_extract_value.optional_value, context, {});
+	generate_optional_get_value_check(src_tokens, optional_value, context);
+
+	auto const optional_value_type = optional_extract_value.optional_value.get_expr_type().remove_any_mut();
+	if (optional_value_type.is_optional_reference())
+	{
+		auto const pointer_value = get_optional_value(optional_value, context);
+		bz_assert(!result_dest.has_value());
+		return context.create_dereference(pointer_value);
+	}
+	else
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const prev_value = context.push_value_reference(get_optional_value(optional_value, context));
+		auto const result_value = generate_expression(optional_extract_value.value_move_expr, context, result_dest);
+		context.pop_value_reference(prev_value);
+		context.pop_expression_scope(prev_info);
+
+		return result_value;
+	}
 }
 
 static expr_value generate_expression(
@@ -3200,12 +3504,19 @@ static expr_value generate_expression(
 }
 
 static expr_value generate_expression(
-	ast::expr_unreachable const &,
+	ast::expr_unreachable const &unreachable,
 	codegen_context &context
 )
 {
-	// TODO
-	bz_unreachable;
+	if (global_data::panic_on_unreachable)
+	{
+		generate_expression(unreachable.panic_fn_call, context, {});
+	}
+	else
+	{
+		context.create_unreachable();
+	}
+	return context.get_void_value();
 }
 
 static expr_value generate_expression(
@@ -3392,7 +3703,7 @@ static expr_value generate_expression(
 		bz_assert(!result_dest.has_value());
 		return generate_expression(expr.get<ast::expr_member_access>(), context);
 	case ast::expr_t::index<ast::expr_optional_extract_value>:
-		return generate_expression(expr.get<ast::expr_optional_extract_value>(), context, result_dest);
+		return generate_expression(original_expr.src_tokens, expr.get<ast::expr_optional_extract_value>(), context, result_dest);
 	case ast::expr_t::index<ast::expr_rvalue_member_access>:
 		return generate_expression(expr.get<ast::expr_rvalue_member_access>(), context, result_dest);
 	case ast::expr_t::index<ast::expr_type_member_access>:
@@ -3468,6 +3779,11 @@ static expr_value generate_expression(
 	)
 	{
 		result_dest = context.add_uninitialized_value(get_type(dyn_expr.type, context));
+	}
+
+	if (dyn_expr.kind == ast::expression_type_kind::noreturn)
+	{
+		result_dest.clear();
 	}
 
 	auto const result = generate_expression(original_expr, dyn_expr.expr, context, result_dest);
@@ -3787,12 +4103,12 @@ static void generate_function_declaration(ast::function_body &func_body, codegen
 	bz_assert(!func_body.is_bitcode_emitted());
 	func_body.flags |= ast::function_body::bitcode_emitted;
 
-	auto const &func_name = context.get_function(func_body).name;
 	if (func_body.is_libc_function() || func_body.is_intrinsic())
 	{
 		return;
 	}
 
+	auto const &func_name = context.get_function(func_body).name;
 	auto const return_by_pointer = !func_body.return_type.is<ast::ts_void>() && !ast::is_trivially_relocatable(func_body.return_type);
 	auto const static_prefix = func_body.is_external_linkage() ? "" : "static ";
 
@@ -4036,12 +4352,15 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 	}
 	else if (destruct_op.is<ast::destruct_self>())
 	{
+		auto const &value = destruct_op_info.value;
 		if (condition.has_value())
 		{
 			context.begin_if(condition.get());
 
 			auto const prev_info = context.push_expression_scope();
+			auto const prev_value = context.push_value_reference(value);
 			generate_expression(*destruct_op.get<ast::destruct_self>().destruct_call, context, {});
+			context.pop_value_reference(prev_value);
 			context.pop_expression_scope(prev_info);
 
 			context.end_if();
@@ -4049,7 +4368,9 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 		else
 		{
 			auto const prev_info = context.push_expression_scope();
+			auto const prev_value = context.push_value_reference(value);
 			generate_expression(*destruct_op.get<ast::destruct_self>().destruct_call, context, {});
+			context.pop_value_reference(prev_value);
 			context.pop_expression_scope(prev_info);
 		}
 	}

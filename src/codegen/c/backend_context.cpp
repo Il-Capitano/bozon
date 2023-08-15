@@ -102,7 +102,7 @@ static void generate_variables_helper(bz::array_view<ast::statement const> decls
 
 bool backend_context::generate_code(ctx::global_context &global_ctx)
 {
-	auto context = codegen_context(global_ctx.target_triple.get_target_properties());
+	auto context = codegen_context(global_ctx, global_ctx.target_triple.get_target_properties());
 
 	bz_assert(global_ctx._compile_decls.var_decls.size() == 0);
 	for (auto const &file : global_ctx._src_files)
