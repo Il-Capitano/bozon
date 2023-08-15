@@ -1040,6 +1040,214 @@ static expr_value generate_expression(
 	bz_unreachable;
 }
 
+static expr_value generate_builtin_binary_plus(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	auto const lhs_value = generate_expression(lhs, context, {});
+	auto const rhs_value = generate_expression(rhs, context, {});
+	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "+", precedence::addition);
+
+	auto const result_type = [&]() {
+		if (context.is_pointer(lhs_value.get_type()))
+		{
+			return lhs_value.get_type();
+		}
+		else if (context.is_pointer(rhs_value.get_type()))
+		{
+			return rhs_value.get_type();
+		}
+		else
+		{
+			auto const lhs_type = lhs.get_expr_type();
+			auto const rhs_type = rhs.get_expr_type();
+			bz_assert(lhs_type.is<ast::ts_base_type>() && rhs_type.is<ast::ts_base_type>());
+			auto const lhs_kind = lhs_type.get<ast::ts_base_type>().info->kind;
+			auto const rhs_kind = rhs_type.get<ast::ts_base_type>().info->kind;
+
+			if (lhs_kind == ast::type_info::char_)
+			{
+				return lhs_value.get_type();
+			}
+			else if (rhs_kind == ast::type_info::char_)
+			{
+				return rhs_value.get_type();
+			}
+			else
+			{
+				bz_assert(lhs_value.get_type() == rhs_value.get_type());
+				return lhs_value.get_type();
+			}
+		}
+	}();
+
+	return value_or_result_dest(expr_string, result_type, result_dest, context);
+}
+
+static expr_value generate_builtin_binary_plus_eq(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context
+)
+{
+	auto const rhs_value = generate_expression(rhs, context, {});
+	auto const lhs_value = generate_expression(lhs, context, {});
+	context.create_binary_operation(lhs_value, rhs_value, "+=", precedence::assignment);
+
+	return lhs_value;
+}
+
+static expr_value generate_builtin_binary_minus(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	auto const lhs_value = generate_expression(lhs, context, {});
+	auto const rhs_value = generate_expression(rhs, context, {});
+	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "-", precedence::subtraction);
+
+	auto const result_type = [&]() {
+		auto const lhs_is_pointer = context.is_pointer(lhs_value.get_type());
+		if (lhs_is_pointer && context.is_pointer(rhs_value.get_type()))
+		{
+			return context.get_isize();
+		}
+		else if (lhs_is_pointer)
+		{
+			return lhs_value.get_type();
+		}
+		else
+		{
+			auto const lhs_type = lhs.get_expr_type();
+			auto const rhs_type = rhs.get_expr_type();
+			bz_assert(lhs_type.is<ast::ts_base_type>() && rhs_type.is<ast::ts_base_type>());
+			auto const lhs_kind = lhs_type.get<ast::ts_base_type>().info->kind;
+			auto const rhs_kind = rhs_type.get<ast::ts_base_type>().info->kind;
+
+			if (lhs_kind == ast::type_info::char_ && rhs_kind == ast::type_info::char_)
+			{
+				return context.get_int32();
+			}
+			else if (lhs_kind == ast::type_info::char_)
+			{
+				return lhs_value.get_type();
+			}
+			else
+			{
+				bz_assert(lhs_value.get_type() == rhs_value.get_type());
+				return lhs_value.get_type();
+			}
+		}
+	}();
+
+	return value_or_result_dest(expr_string, result_type, result_dest, context);
+}
+
+static expr_value generate_builtin_binary_minus_eq(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context
+)
+{
+	auto const rhs_value = generate_expression(rhs, context, {});
+	auto const lhs_value = generate_expression(lhs, context, {});
+	context.create_binary_operation(lhs_value, rhs_value, "-=", precedence::assignment);
+
+	return lhs_value;
+}
+
+static expr_value generate_builtin_binary_multiply(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	auto const lhs_value = generate_expression(lhs, context, {});
+	auto const rhs_value = generate_expression(rhs, context, {});
+	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "*", precedence::multiply);
+	bz_assert(lhs_value.get_type() == rhs_value.get_type());
+	auto const result_type = lhs_value.get_type();
+
+	return value_or_result_dest(expr_string, result_type, result_dest, context);
+}
+
+static expr_value generate_builtin_binary_multiply_eq(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context
+)
+{
+	auto const rhs_value = generate_expression(rhs, context, {});
+	auto const lhs_value = generate_expression(lhs, context, {});
+	context.create_binary_operation(lhs_value, rhs_value, "*=", precedence::assignment);
+
+	return lhs_value;
+}
+
+static expr_value generate_builtin_binary_divide(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	auto const lhs_value = generate_expression(lhs, context, {});
+	auto const rhs_value = generate_expression(rhs, context, {});
+	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "/", precedence::divide);
+	bz_assert(lhs_value.get_type() == rhs_value.get_type());
+	auto const result_type = lhs_value.get_type();
+
+	return value_or_result_dest(expr_string, result_type, result_dest, context);
+}
+
+static expr_value generate_builtin_binary_divide_eq(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context
+)
+{
+	auto const rhs_value = generate_expression(rhs, context, {});
+	auto const lhs_value = generate_expression(lhs, context, {});
+	context.create_binary_operation(lhs_value, rhs_value, "/=", precedence::assignment);
+
+	return lhs_value;
+}
+
+static expr_value generate_builtin_binary_modulo(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	auto const lhs_value = generate_expression(lhs, context, {});
+	auto const rhs_value = generate_expression(rhs, context, {});
+	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "%", precedence::remainder);
+	bz_assert(lhs_value.get_type() == rhs_value.get_type());
+	auto const result_type = lhs_value.get_type();
+
+	return value_or_result_dest(expr_string, result_type, result_dest, context);
+}
+
+static expr_value generate_builtin_binary_modulo_eq(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context
+)
+{
+	auto const rhs_value = generate_expression(rhs, context, {});
+	auto const lhs_value = generate_expression(lhs, context, {});
+	context.create_binary_operation(lhs_value, rhs_value, "%=", precedence::assignment);
+
+	return lhs_value;
+}
+
 static expr_value generate_builtin_binary_compare(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
@@ -1051,9 +1259,72 @@ static expr_value generate_builtin_binary_compare(
 {
 	auto const lhs_value = generate_expression(lhs, context, {});
 	auto const rhs_value = generate_expression(rhs, context, {});
+	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, op, prec);
 
-	auto const compare_result = context.create_binary_operation(lhs_value, rhs_value, op, prec, context.get_bool());
-	return value_or_result_dest(compare_result, result_dest, context);
+	return value_or_result_dest(expr_string, context.get_bool(), result_dest, context);
+}
+
+static expr_value generate_builtin_binary_bit_op(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	bz::u8string_view op,
+	precedence prec,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	auto const lhs_value = generate_expression(lhs, context, {});
+	auto const rhs_value = generate_expression(rhs, context, {});
+	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, op, prec);
+	bz_assert(lhs_value.get_type() == rhs_value.get_type());
+	auto const result_type = lhs_value.get_type();
+
+	return value_or_result_dest(expr_string, result_type, result_dest, context);
+}
+
+static expr_value generate_builtin_binary_bit_eq_op(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	bz::u8string_view op,
+	codegen_context &context
+)
+{
+	auto const rhs_value = generate_expression(rhs, context, {});
+	auto const lhs_value = generate_expression(lhs, context, {});
+	context.create_binary_operation(lhs_value, rhs_value, op, precedence::assignment);
+
+	return lhs_value;
+}
+
+static expr_value generate_builtin_binary_bitshift(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	bz::u8string_view op,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	auto const lhs_value = generate_expression(lhs, context, {});
+	auto const rhs_value = generate_expression(rhs, context, {});
+	auto const result_type = lhs_value.get_type();
+	// store result_value in an intermediate variable, to make sure it has the right integer type
+	auto const result_value = context.create_binary_operation(lhs_value, rhs_value, op, precedence::bitshift, result_type);
+
+	return value_or_result_dest(result_value, result_dest, context);
+}
+
+static expr_value generate_builtin_binary_bitshift_eq(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	bz::u8string_view op,
+	codegen_context &context
+)
+{
+	auto const rhs_value = generate_expression(rhs, context, {});
+	auto const lhs_value = generate_expression(lhs, context, {});
+	context.create_binary_operation(lhs_value, rhs_value, op, precedence::assignment);
+
+	return lhs_value;
 }
 
 static expr_value generate_intrinsic_function_call(
@@ -1568,25 +1839,40 @@ static expr_value generate_intrinsic_function_call(
 		// assignment is handled as a separate expression
 		bz_unreachable;
 	case ast::function_body::builtin_binary_plus:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_plus(func_call.params[0], func_call.params[1], context, result_dest);
 	case ast::function_body::builtin_binary_plus_eq:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(!result_dest.has_value());
+		return generate_builtin_binary_plus_eq(func_call.params[0], func_call.params[1], context);
 	case ast::function_body::builtin_binary_minus:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_minus(func_call.params[0], func_call.params[1], context, result_dest);
 	case ast::function_body::builtin_binary_minus_eq:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(!result_dest.has_value());
+		return generate_builtin_binary_minus_eq(func_call.params[0], func_call.params[1], context);
 	case ast::function_body::builtin_binary_multiply:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_multiply(func_call.params[0], func_call.params[1], context, result_dest);
 	case ast::function_body::builtin_binary_multiply_eq:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(!result_dest.has_value());
+		return generate_builtin_binary_multiply_eq(func_call.params[0], func_call.params[1], context);
 	case ast::function_body::builtin_binary_divide:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_divide(func_call.params[0], func_call.params[1], context, result_dest);
 	case ast::function_body::builtin_binary_divide_eq:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(!result_dest.has_value());
+		return generate_builtin_binary_divide_eq(func_call.params[0], func_call.params[1], context);
 	case ast::function_body::builtin_binary_modulo:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_modulo(func_call.params[0], func_call.params[1], context, result_dest);
 	case ast::function_body::builtin_binary_modulo_eq:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(!result_dest.has_value());
+		return generate_builtin_binary_modulo_eq(func_call.params[0], func_call.params[1], context);
 	case ast::function_body::builtin_binary_equals:
 		bz_assert(func_call.params.size() == 2);
 		return generate_builtin_binary_compare(
@@ -1648,25 +1934,98 @@ static expr_value generate_intrinsic_function_call(
 			result_dest
 		);
 	case ast::function_body::builtin_binary_bit_and:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_bit_op(
+			func_call.params[0],
+			func_call.params[1],
+			"&",
+			precedence::bitwise_and,
+			context,
+			result_dest
+		);
 	case ast::function_body::builtin_binary_bit_and_eq:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(!result_dest.has_value());
+		return generate_builtin_binary_bit_eq_op(
+			func_call.params[0],
+			func_call.params[1],
+			"&=",
+			context
+		);
 	case ast::function_body::builtin_binary_bit_xor:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_bit_op(
+			func_call.params[0],
+			func_call.params[1],
+			"^",
+			precedence::bitwise_xor,
+			context,
+			result_dest
+		);
 	case ast::function_body::builtin_binary_bit_xor_eq:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(!result_dest.has_value());
+		return generate_builtin_binary_bit_eq_op(
+			func_call.params[0],
+			func_call.params[1],
+			"^=",
+			context
+		);
 	case ast::function_body::builtin_binary_bit_or:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_bit_op(
+			func_call.params[0],
+			func_call.params[1],
+			"|",
+			precedence::bitwise_or,
+			context,
+			result_dest
+		);
 	case ast::function_body::builtin_binary_bit_or_eq:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(!result_dest.has_value());
+		return generate_builtin_binary_bit_eq_op(
+			func_call.params[0],
+			func_call.params[1],
+			"|=",
+			context
+		);
 	case ast::function_body::builtin_binary_bit_left_shift:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_bitshift(
+			func_call.params[0],
+			func_call.params[1],
+			"<<",
+			context,
+			result_dest
+		);
 	case ast::function_body::builtin_binary_bit_left_shift_eq:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(!result_dest.has_value());
+		return generate_builtin_binary_bitshift_eq(
+			func_call.params[0],
+			func_call.params[1],
+			"<<=",
+			context
+		);
 	case ast::function_body::builtin_binary_bit_right_shift:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_binary_bitshift(
+			func_call.params[0],
+			func_call.params[1],
+			">>",
+			context,
+			result_dest
+		);
 	case ast::function_body::builtin_binary_bit_right_shift_eq:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(!result_dest.has_value());
+		return generate_builtin_binary_bitshift_eq(
+			func_call.params[0],
+			func_call.params[1],
+			">>=",
+			context
+		);
 	case ast::function_body::builtin_binary_subscript:
 		bz_unreachable; // TODO
 	default:
@@ -1714,10 +2073,15 @@ static expr_value generate_function_call(
 
 	call_string += ')';
 
-	if (needs_result_address || return_type.is<ast::ts_void>())
+	if (needs_result_address)
 	{
 		context.add_expression(call_string);
 		return result_dest.get();
+	}
+	else if (return_type.is<ast::ts_void>())
+	{
+		context.add_expression(call_string);
+		return context.get_void_value();
 	}
 	else if (return_type.is_any_reference())
 	{

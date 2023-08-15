@@ -109,6 +109,7 @@ struct codegen_context
 	uint32_t int_size;
 	uint32_t long_size;
 	uint32_t long_long_size;
+	uint32_t pointer_size;
 
 	struct local_name_and_index_pair
 	{
@@ -134,10 +135,12 @@ struct codegen_context
 	type get_int16(void) const;
 	type get_int32(void) const;
 	type get_int64(void) const;
+	type get_isize(void) const;
 	type get_uint8(void) const;
 	type get_uint16(void) const;
 	type get_uint32(void) const;
 	type get_uint64(void) const;
+	type get_usize(void) const;
 	type get_float32(void) const;
 	type get_float64(void) const;
 	type get_char(void) const;

@@ -12,10 +12,12 @@ codegen_context::codegen_context(target_properties props)
 	bz_assert(props.c_int_size.has_value());
 	bz_assert(props.c_long_size.has_value());
 	bz_assert(props.c_long_long_size.has_value());
+	bz_assert(props.pointer_size.has_value());
 	this->short_size = props.c_short_size.get();
 	this->int_size = props.c_int_size.get();
 	this->long_size = props.c_long_size.get();
 	this->long_long_size = props.c_long_long_size.get();
+	this->pointer_size = props.pointer_size.get();
 
 	this->builtin_types.void_ = this->type_set.add_unique_typedef({
 		.aliased_type = {},
@@ -212,6 +214,23 @@ type codegen_context::get_int64(void) const
 	return type(this->builtin_types.int64_);
 }
 
+type codegen_context::get_isize(void) const
+{
+	switch (this->pointer_size)
+	{
+	case 1:
+		return this->get_int8();
+	case 2:
+		return this->get_int16();
+	case 4:
+		return this->get_int32();
+	case 8:
+		return this->get_int64();
+	default:
+		bz_unreachable;
+	}
+}
+
 type codegen_context::get_uint8(void) const
 {
 	return type(this->builtin_types.uint8_);
@@ -230,6 +249,23 @@ type codegen_context::get_uint32(void) const
 type codegen_context::get_uint64(void) const
 {
 	return type(this->builtin_types.uint64_);
+}
+
+type codegen_context::get_usize(void) const
+{
+	switch (this->pointer_size)
+	{
+	case 1:
+		return this->get_uint8();
+	case 2:
+		return this->get_uint16();
+	case 4:
+		return this->get_uint32();
+	case 8:
+		return this->get_uint64();
+	default:
+		bz_unreachable;
+	}
 }
 
 type codegen_context::get_float32(void) const
