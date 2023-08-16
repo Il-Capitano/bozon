@@ -1714,6 +1714,207 @@ static expr_value generate_builtin_binary_bitshift_eq(
 	return lhs_value;
 }
 
+enum class range_kind
+{
+	regular,
+	from,
+	to,
+	unbounded,
+};
+
+static range_kind range_kind_from_name(bz::u8string_view struct_name)
+{
+	if (struct_name == "__integer_range")
+	{
+		return range_kind::regular;
+	}
+	else if (struct_name == "__integer_range_from")
+	{
+		return range_kind::from;
+	}
+	else if (struct_name == "__integer_range_to")
+	{
+		return range_kind::to;
+	}
+	else if (struct_name == "__range_unbounded")
+	{
+		return range_kind::unbounded;
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
+static expr_value generate_builtin_subscript_range(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	auto const lhs_type = lhs.get_expr_type().remove_mut_reference();
+	auto const rhs_type = rhs.get_expr_type();
+	auto const lhs_value = generate_expression(lhs, context, {});
+	auto const rhs_value = generate_expression(rhs, context, {});
+
+	bz_assert(rhs_type.is<ast::ts_base_type>());
+	bz_assert(rhs_type.get<ast::ts_base_type>().info->type_name.values.size() == 1);
+	auto const kind = range_kind_from_name(rhs_type.get<ast::ts_base_type>().info->type_name.values[0]);
+
+	struct begin_end_pair_t
+	{
+		expr_value begin;
+		expr_value end;
+	};
+
+	auto const [begin_index, end_index] = [&]() -> begin_end_pair_t {
+		switch (kind)
+		{
+		case range_kind::regular:
+			return {
+				.begin = context.create_struct_gep(rhs_value, 0),
+				.end   = context.create_struct_gep(rhs_value, 1),
+			};
+		case range_kind::from:
+			return {
+				.begin = context.create_struct_gep(rhs_value, 0),
+				.end   = context.get_void_value(),
+			};
+		case range_kind::to:
+			return {
+				.begin = context.get_void_value(),
+				.end   = context.create_struct_gep(rhs_value, 0),
+			};
+		case range_kind::unbounded:
+			return {
+				.begin = context.get_void_value(),
+				.end   = context.get_void_value(),
+			};
+		}
+	}();
+
+	if (lhs_type.is<ast::ts_array_slice>())
+	{
+		auto const lhs_begin_ptr = context.create_struct_gep(lhs_value, 0);
+		auto const lhs_end_ptr   = context.create_struct_gep(lhs_value, 1);
+
+		auto const [begin_ptr, end_ptr] = [&]() -> begin_end_pair_t {
+			switch (kind)
+			{
+			case range_kind::regular:
+			{
+				auto const begin_ptr = context.create_array_slice_gep(lhs_begin_ptr, begin_index);
+				auto const end_ptr   = context.create_array_slice_gep(lhs_begin_ptr,   end_index);
+				return {
+					.begin = begin_ptr,
+					.end   = end_ptr,
+				};
+			}
+			case range_kind::from:
+			{
+				auto const begin_ptr = context.create_array_slice_gep(lhs_begin_ptr, begin_index);
+				return {
+					.begin = begin_ptr,
+					.end   = lhs_end_ptr,
+				};
+			}
+			case range_kind::to:
+			{
+				auto const end_ptr = context.create_array_slice_gep(lhs_begin_ptr, end_index);
+				return {
+					.begin = lhs_begin_ptr,
+					.end   = end_ptr,
+				};
+			}
+			case range_kind::unbounded:
+				return {
+					.begin = lhs_begin_ptr,
+					.end   = lhs_end_ptr,
+				};
+			}
+		}();
+
+		if (result_dest.has_value())
+		{
+			auto const &result_value = result_dest.get();
+			auto const slice_literal = context.to_string_struct_literal(result_value.get_type(), { begin_ptr, end_ptr });
+			context.create_assignment(result_value, slice_literal);
+			return result_value;
+		}
+		else
+		{
+			auto const slice_type = get_type(lhs_type, context);
+			auto const slice_literal = context.to_string_struct_literal(slice_type, { begin_ptr, end_ptr });
+			return context.add_value_expression(slice_literal, slice_type);
+		}
+	}
+	else if (lhs_type.is<ast::ts_array>())
+	{
+		auto const size = lhs_type.get<ast::ts_array>().size;
+
+		auto const [begin_ptr, end_ptr] = [&]() -> begin_end_pair_t {
+			switch (kind)
+			{
+			case range_kind::regular:
+			{
+				auto const begin_ptr = context.create_array_gep(lhs_value, begin_index);
+				auto const end_ptr   = context.create_array_gep(lhs_value, end_index);
+				return {
+					.begin = begin_ptr,
+					.end   = end_ptr,
+				};
+			}
+			case range_kind::from:
+			{
+				auto const begin_ptr = context.create_array_gep(lhs_value, begin_index);
+				auto const end_ptr   = context.create_struct_gep(lhs_value, size);
+				return {
+					.begin = begin_ptr,
+					.end   = end_ptr,
+				};
+			}
+			case range_kind::to:
+			{
+				auto const begin_ptr = context.create_struct_gep(lhs_value, 0);
+				auto const end_ptr   = context.create_array_gep(lhs_value, end_index);
+				return {
+					.begin = begin_ptr,
+					.end   = end_ptr,
+				};
+			}
+			case range_kind::unbounded:
+			{
+				auto const begin_ptr = context.create_struct_gep(lhs_value, 0);
+				auto const end_ptr   = context.create_struct_gep(lhs_value, size);
+				return {
+					.begin = begin_ptr,
+					.end   = end_ptr,
+				};
+			}
+			}
+		}();
+
+		if (result_dest.has_value())
+		{
+			auto const &result_value = result_dest.get();
+			auto const slice_literal = context.to_string_struct_literal(result_value.get_type(), { begin_ptr, end_ptr });
+			context.create_assignment(result_value, slice_literal);
+			return result_value;
+		}
+		else
+		{
+			auto const slice_type = get_type(lhs_type, context);
+			auto const slice_literal = context.to_string_struct_literal(slice_type, { begin_ptr, end_ptr });
+			return context.add_value_expression(slice_literal, slice_type);
+		}
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
 static expr_value generate_libc_math_function_call(
 	bz::u8string_view func_name,
 	ast::expr_function_call const &func_call,
@@ -2264,11 +2465,31 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		return value_or_result_dest(cast_string, result_type, result_dest, context);
 	}
 	case ast::function_body::builtin_pointer_to_int:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const pointer_value = generate_expression(func_call.params[0], context, {});
+		auto const int_type = context.get_usize();
+		auto const cast_string = context.to_string_unary_prefix(
+			pointer_value,
+			bz::format("({})", context.to_string(int_type))
+		);
+		return value_or_result_dest(cast_string, int_type, result_dest, context);
+	}
 	case ast::function_body::builtin_int_to_pointer:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(func_call.params[0].is_typename());
+		auto const pointer_value = generate_expression(func_call.params[1], context, {});
+		auto const result_type = get_type(func_call.params[0].get_typename(), context);
+		auto const cast_string = context.to_string_unary_prefix(
+			pointer_value,
+			bz::format("({})", context.to_string(result_type))
+		);
+		return value_or_result_dest(cast_string, result_type, result_dest, context);
+	}
 	case ast::function_body::builtin_enum_value:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 1);
+		return generate_expression(func_call.params[0], context, result_dest);
 	case ast::function_body::builtin_destruct_value:
 		// this is handled as a separate expression, not a function call
 		bz_unreachable;
@@ -3002,7 +3223,8 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 			context
 		);
 	case ast::function_body::builtin_binary_subscript:
-		bz_unreachable; // TODO
+		bz_assert(func_call.params.size() == 2);
+		return generate_builtin_subscript_range(func_call.params[0], func_call.params[1], context, result_dest);
 	default:
 		bz_unreachable;
 	}
