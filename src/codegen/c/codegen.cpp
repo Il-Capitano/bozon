@@ -1333,7 +1333,7 @@ static expr_value generate_builtin_unary_dereference(
 	if (global_data::panic_on_null_dereference && expr.get_expr_type().is_optional_pointer())
 	{
 		context.begin_if_not(get_optional_has_value(value, context));
-		generate_panic_call(src_tokens, "", context);
+		generate_panic_call(src_tokens, "null pointer dereferenced", context);
 		context.end_if();
 	}
 	return context.create_dereference(value);
