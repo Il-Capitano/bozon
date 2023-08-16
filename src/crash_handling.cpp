@@ -93,7 +93,7 @@ static void stderr_print(
 
 static void print_stacktrace(void)
 {
-	int count = -5;
+	int count = -6;
 	dwstOfLocation(&stderr_print, &count);
 }
 

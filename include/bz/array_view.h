@@ -63,6 +63,11 @@ public:
 
 	constexpr array_view(T &&val) noexcept = delete;
 
+	template<typename U = T, meta::enable_if<meta::is_const<U>, int> = 0>
+	constexpr array_view(std::initializer_list<meta::remove_cv<T>> init_list)
+		: _data_begin(init_list.begin()), _data_end(init_list.end())
+	{}
+
 
 	value_type &operator [] (size_type index) const noexcept
 	{ return this->_data_begin[index]; }
