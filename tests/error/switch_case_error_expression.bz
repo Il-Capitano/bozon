@@ -1,0 +1,11 @@
+// error: couldn't match the function call to any of the candidates
+// note: function argument types are 'int32'
+// note: candidate: the builtin 'operator --'
+function test()
+{
+	let i = 0;
+	switch (i)
+	{
+		else => --i,
+	}
+}

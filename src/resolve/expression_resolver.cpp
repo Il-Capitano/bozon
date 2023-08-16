@@ -705,6 +705,10 @@ static ast::expression resolve_expr(
 	result_node->is_complete = true;
 
 	auto const get_expr_kind = [](auto const &expr) {
+		if (expr.is_error())
+		{
+			return ast::expression_type_kind::switch_expr;
+		}
 		bz_assert(expr.is_constant_or_dynamic());
 		auto const kind = expr.get_expr_type_and_kind().second;
 		switch (kind)
