@@ -243,6 +243,7 @@ struct codegen_context
 	expr_value create_struct_gep(expr_value value, size_t index);
 	expr_value create_struct_gep_value(expr_value value, size_t index);
 	expr_value create_array_gep(expr_value value, expr_value index);
+	expr_value create_array_slice_gep(expr_value begin_ptr, expr_value index);
 	expr_value create_dereference(expr_value value);
 	expr_value create_address_of(expr_value value);
 

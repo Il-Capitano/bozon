@@ -1344,6 +1344,7 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 		bz_assert(index < struct_type->members.size());
 		auto const result_type = struct_type->members[index];
 		auto const use_arrow = value.needs_dereference;
+		auto const is_const = value.is_const;
 		remove_needs_dereference(value, *this);
 
 		// address of has a lower precedence than suffix, so this is fine
@@ -1358,13 +1359,14 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 			member_access_string += '.';
 		}
 		member_access_string += this->get_member_name(index);
-		return this->add_reference_expression(member_access_string, result_type, value.is_const);
+		return this->add_reference_expression(member_access_string, result_type, is_const);
 	}
 	else if (auto const array_type = this->maybe_get_array(type))
 	{
 		bz_assert(index <= array_type->size);
 		auto const result_type = array_type->elem_type;
 		auto const use_arrow = value.needs_dereference;
+		auto const is_const = value.is_const;
 		remove_needs_dereference(value, *this);
 
 		bz::u8string member_access_string = this->to_string_unary(value, precedence::suffix);
@@ -1376,7 +1378,7 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 		{
 			member_access_string += bz::format(".a + {}", index);
 		}
-		return this->add_reference_expression(member_access_string, result_type, value.is_const);
+		return this->add_reference_expression(member_access_string, result_type, is_const);
 	}
 	else
 	{
@@ -1437,6 +1439,7 @@ expr_value codegen_context::create_array_gep(expr_value value, expr_value index)
 	auto const array_type = this->maybe_get_array(value.get_type());
 	auto const result_type = array_type->elem_type;
 	auto const use_arrow = value.needs_dereference;
+	auto const is_const = value.is_const;
 	remove_needs_dereference(value, *this);
 
 	bz::u8string member_access_string = this->to_string_unary(value, precedence::suffix);
@@ -1449,7 +1452,15 @@ expr_value codegen_context::create_array_gep(expr_value value, expr_value index)
 		member_access_string += ".a + ";
 	}
 	member_access_string += this->to_string_rhs(index, precedence::addition);
-	return this->add_reference_expression(member_access_string, result_type, value.is_const);
+	return this->add_reference_expression(member_access_string, result_type, is_const);
+}
+
+expr_value codegen_context::create_array_slice_gep(expr_value begin_ptr, expr_value index)
+{
+	bz_assert(this->is_pointer(begin_ptr.get_type()));
+	auto const [result_type, result_modifier] = this->remove_pointer(begin_ptr.get_type());
+	auto const result_ptr = this->to_string_binary(begin_ptr, index, "+", precedence::addition);
+	return this->add_reference_expression(result_ptr, result_type, result_modifier == type_modifier::const_pointer);
 }
 
 expr_value codegen_context::create_dereference(expr_value value)

@@ -1089,43 +1089,207 @@ static expr_value generate_expression(
 	}
 }
 
-static expr_value generate_expression(
-	ast::expr_binary_op const &,
+static expr_value generate_builtin_binary_bool_and(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
 )
 {
-	// TODO
-	bz_unreachable;
+	if (!result_dest.has_value())
+	{
+		result_dest = context.add_uninitialized_value(context.get_bool());
+	}
+	auto const &result_value = result_dest.get();
+
+	generate_expression(lhs, context, result_value);
+
+	context.begin_if(result_value);
+	generate_expression(rhs, context, result_value);
+	context.end_if();
+
+	return result_value;
 }
 
-static expr_value generate_expression(
-	ast::expr_tuple_subscript const &,
+static expr_value generate_builtin_binary_bool_xor(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
 )
 {
-	// TODO
-	bz_unreachable;
+	auto const lhs_value = generate_expression(lhs, context, {});
+	auto const rhs_value = generate_expression(rhs, context, {});
+	auto const result_value = context.to_string_binary(lhs_value, rhs_value, "!=", precedence::equality);
+	return value_or_result_dest(result_value, context.get_bool(), result_dest, context);
 }
 
-static expr_value generate_expression(
-	ast::expr_rvalue_tuple_subscript const &,
+static expr_value generate_builtin_binary_bool_or(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
 )
 {
-	// TODO
-	bz_unreachable;
+	if (!result_dest.has_value())
+	{
+		result_dest = context.add_uninitialized_value(context.get_bool());
+	}
+	auto const &result_value = result_dest.get();
+
+	generate_expression(lhs, context, result_value);
+
+	context.begin_if_not(result_value);
+	generate_expression(rhs, context, result_value);
+	context.end_if();
+
+	return result_value;
 }
 
 static expr_value generate_expression(
-	ast::expr_subscript const &,
+	ast::expr_binary_op const &binary_op,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	switch (binary_op.op)
+	{
+	case lex::token::comma:
+		generate_expression(binary_op.lhs, context, {});
+		return generate_expression(binary_op.rhs, context, result_dest);
+	case lex::token::bool_and:
+		return generate_builtin_binary_bool_and(binary_op.lhs, binary_op.rhs, context, result_dest);
+	case lex::token::bool_xor:
+		return generate_builtin_binary_bool_xor(binary_op.lhs, binary_op.rhs, context, result_dest);
+	case lex::token::bool_or:
+		return generate_builtin_binary_bool_or(binary_op.lhs, binary_op.rhs, context, result_dest);
+	default:
+		bz_unreachable;
+	}
+}
+
+static expr_value generate_expression(
+	ast::expr_tuple_subscript const &tuple_subscript,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	bz_assert(tuple_subscript.index.is<ast::constant_expression>());
+	auto const &index_value = tuple_subscript.index.get<ast::constant_expression>().value;
+	bz_assert(index_value.is_uint() || index_value.is_sint());
+	auto const index_int_value = index_value.is_uint()
+		? index_value.get_uint()
+		: static_cast<uint64_t>(index_value.get_sint());
+
+	expr_value result = {};
+	for (auto const i : bz::iota(0, tuple_subscript.base.elems.size()))
+	{
+		if (i == index_int_value)
+		{
+			result = generate_expression(tuple_subscript.base.elems[i], context, result_dest);
+		}
+		else
+		{
+			generate_expression(tuple_subscript.base.elems[i], context, {});
+		}
+	}
+	return result;
+}
+
+static expr_value generate_expression(
+	ast::expr_rvalue_tuple_subscript const &rvalue_tuple_subscript,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	bz_assert(rvalue_tuple_subscript.index.is_constant());
+	auto const &index_value = rvalue_tuple_subscript.index.get_constant_value();
+	bz_assert(index_value.is_uint() || index_value.is_sint());
+	auto const index_int_value = index_value.is_uint()
+		? index_value.get_uint()
+		: static_cast<uint64_t>(index_value.get_sint());
+
+	auto const base_value = generate_expression(rvalue_tuple_subscript.base, context, {});
+
+	auto const is_reference_result = rvalue_tuple_subscript.elem_refs[index_int_value].get_expr_type().is_reference();
+	bz_assert(!result_dest.has_value() || !is_reference_result);
+	expr_value result = {};
+	for (auto const i : bz::iota(0, rvalue_tuple_subscript.elem_refs.size()))
+	{
+		if (rvalue_tuple_subscript.elem_refs[i].is_null())
+		{
+			continue;
+		}
+
+		auto const elem_ptr = [&]() {
+			if (i == index_int_value && is_reference_result)
+			{
+				auto const ref_ref = context.create_struct_gep(base_value, i);
+				return context.create_dereference(ref_ref);
+			}
+			else
+			{
+				return context.create_struct_gep(base_value, i);
+			}
+		}();
+		auto const prev_value = context.push_value_reference(elem_ptr);
+		if (i == index_int_value)
+		{
+			auto const prev_info = context.push_expression_scope();
+			result = generate_expression(rvalue_tuple_subscript.elem_refs[i], context, result_dest);
+			context.pop_expression_scope(prev_info);
+		}
+		else
+		{
+			generate_expression(rvalue_tuple_subscript.elem_refs[i], context, {});
+		}
+		context.pop_value_reference(prev_value);
+	}
+	return result;
+}
+
+static expr_value generate_expression(
+	ast::expr_subscript const &subscript,
 	codegen_context &context
 )
 {
-	// TODO
-	bz_unreachable;
+	auto const base_type = subscript.base.get_expr_type().remove_mut_reference();
+	if (base_type.is<ast::ts_array>())
+	{
+		auto const array = generate_expression(subscript.base, context, {});
+		auto index = generate_expression(subscript.index, context, {});
+		return context.create_array_gep(array, index);
+	}
+	else if (base_type.is<ast::ts_array_slice>())
+	{
+		auto const slice = generate_expression(subscript.base, context, {});
+		auto const index = generate_expression(subscript.index, context, {});
+
+		auto const begin_ptr = context.create_struct_gep(slice, 0);
+		return context.create_array_slice_gep(begin_ptr, index);
+	}
+	else
+	{
+		bz_assert(base_type.is<ast::ts_tuple>());
+		auto const tuple = generate_expression(subscript.base, context, {});
+		bz_assert(subscript.index.is_constant());
+		auto const &index_value = subscript.index.get_constant_value();
+		bz_assert(index_value.is_uint() || index_value.is_sint());
+		auto const index_int_value = index_value.is_uint()
+			? index_value.get_uint()
+			: static_cast<uint64_t>(index_value.get_sint());
+
+		auto const &types = base_type.get<ast::ts_tuple>().types;
+		if (types[index_int_value].is_reference())
+		{
+			auto const ref_value = context.create_struct_gep(tuple, index_int_value);
+			return context.create_dereference(ref_value);
+		}
+		else
+		{
+			return context.create_struct_gep(tuple, index_int_value);
+		}
+	}
 }
 
 static expr_value generate_expression(
@@ -1778,14 +1942,20 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		// this is handled as a separate expression, not a function call
 		bz_unreachable;
 	case ast::function_body::builtin_inplace_construct:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 2);
+		auto const dest_ptr = generate_expression(func_call.params[0], context, {});
+		generate_expression(func_call.params[1], context, context.create_dereference(dest_ptr));
+		bz_assert(!result_dest.has_value());
+		return context.get_void_value();
+	}
 	case ast::function_body::builtin_swap:
 		// this is handled as a separate expression, not a function call
 		bz_unreachable;
 	case ast::function_body::builtin_is_comptime:
-		bz_unreachable; // TODO
+		return value_or_result_dest("0", context.get_bool(), result_dest, context);
 	case ast::function_body::builtin_is_option_set:
-		bz_unreachable; // TODO
+		return {};
 	case ast::function_body::builtin_panic:
 	{
 		auto const panic_handler_func_body = context.get_builtin_function(ast::function_body::builtin_panic_handler);
@@ -1820,17 +1990,17 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	case ast::function_body::builtin_call_main:
 		return {};
 	case ast::function_body::comptime_malloc:
-		bz_unreachable; // TODO
+		return {};
 	case ast::function_body::comptime_free:
-		bz_unreachable; // TODO
+		return {};
 	case ast::function_body::comptime_print:
-		bz_unreachable; // TODO
+		return {};
 	case ast::function_body::comptime_compile_error:
-		bz_unreachable; // TODO
+		return {};
 	case ast::function_body::comptime_compile_warning:
-		bz_unreachable; // TODO
+		return {};
 	case ast::function_body::comptime_add_global_array_data:
-		bz_unreachable; // TODO
+		return {};
 	case ast::function_body::comptime_create_global_string:
 		// implemented in __builtins.bz
 		bz_unreachable;
@@ -1934,13 +2104,86 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		// this is handled as a separate expression, not a function call
 		bz_unreachable;
 	case ast::function_body::trivially_copy_values:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 3);
+		auto const dest = generate_expression(func_call.params[0], context, {});
+		auto const source = generate_expression(func_call.params[1], context, {});
+		auto const count = generate_expression(func_call.params[2], context, {});
+		bz_assert(context.is_pointer(dest.get_type()));
+		auto const [type, _] = context.remove_pointer(dest.get_type());
+		auto const type_size = bz::format("sizeof ({})", context.to_string(type));
+		auto const size = context.create_binary_operation(count, type_size, "*", precedence::multiply, count.get_type());
+
+		expr_value const args[3] = { dest, source, size };
+		context.add_libc_header("string.h");
+		generate_function_call("memcpy", args, func_call.func_body->return_type, context, {});
+		bz_assert(!result_dest.has_value());
+		return context.get_void_value();
+	}
 	case ast::function_body::trivially_copy_overlapping_values:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 3);
+		auto const dest = generate_expression(func_call.params[0], context, {});
+		auto const source = generate_expression(func_call.params[1], context, {});
+		auto const count = generate_expression(func_call.params[2], context, {});
+		bz_assert(context.is_pointer(dest.get_type()));
+		auto const [type, _] = context.remove_pointer(dest.get_type());
+		auto const type_size = bz::format("sizeof ({})", context.to_string(type));
+		auto const size = context.create_binary_operation(count, type_size, "*", precedence::multiply, count.get_type());
+
+		expr_value const args[3] = { dest, source, size };
+		context.add_libc_header("string.h");
+		generate_function_call("memmove", args, func_call.func_body->return_type, context, {});
+		bz_assert(!result_dest.has_value());
+		return context.get_void_value();
+	}
 	case ast::function_body::trivially_relocate_values:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 3);
+		auto const dest = generate_expression(func_call.params[0], context, {});
+		auto const source = generate_expression(func_call.params[1], context, {});
+		auto const count = generate_expression(func_call.params[2], context, {});
+		bz_assert(context.is_pointer(dest.get_type()));
+		auto const [type, _] = context.remove_pointer(dest.get_type());
+		auto const type_size = bz::format("sizeof ({})", context.to_string(type));
+		auto const size = context.create_binary_operation(count, type_size, "*", precedence::multiply, count.get_type());
+
+		expr_value const args[3] = { dest, source, size };
+		context.add_libc_header("string.h");
+		generate_function_call("memmove", args, func_call.func_body->return_type, context, {});
+		bz_assert(!result_dest.has_value());
+		return context.get_void_value();
+	}
 	case ast::function_body::trivially_set_values:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 3);
+		auto const dest = generate_expression(func_call.params[0], context, {});
+		auto const value = generate_expression(func_call.params[1], context, {});
+		auto const count = generate_expression(func_call.params[2], context, {});
+		auto const type = value.get_type();
+
+		if (type == context.get_uint8())
+		{
+			expr_value const args[3] = { dest, value, count };
+			context.add_libc_header("string.h");
+			generate_function_call("memset", args, func_call.func_body->return_type, context, {});
+		}
+		else
+		{
+			auto const it = context.create_trivial_copy(dest);
+			auto const end = context.create_binary_operation(it, count, "+", precedence::addition, dest.get_type());
+			auto const condition = context.to_string_binary(it, end, "!=", precedence::equality);
+			context.begin_while(condition);
+
+			context.create_assignment(context.create_dereference(it), value);
+
+			context.create_prefix_unary_operation(it, "++");
+			context.end_while();
+		}
+
+		bz_assert(!result_dest.has_value());
+		return context.get_void_value();
+	}
 	case ast::function_body::bit_cast:
 		// this is handled as a separate expression, not a function call
 		bz_unreachable;
@@ -2434,6 +2677,26 @@ static expr_value generate_expression(
 		else
 		{
 			return context.add_value_expression(macro_name, get_type(return_type, context));
+		}
+	}
+
+	if (func_call.func_body->is_only_consteval())
+	{
+		context.create_trap();
+		if (result_dest.has_value())
+		{
+			return result_dest.get();
+		}
+		else if (func_call.func_body->return_type.is_any_reference())
+		{
+			auto const pointer_type = get_type(func_call.func_body->return_type, context);
+			auto const pointer_value = context.add_uninitialized_value(pointer_type);
+			return context.create_dereference(pointer_value);
+		}
+		else
+		{
+			auto const result_type = get_type(func_call.func_body->return_type, context);
+			return context.add_uninitialized_value(result_type);
 		}
 	}
 
@@ -3593,13 +3856,56 @@ static expr_value generate_expression(
 }
 
 static expr_value generate_expression(
-	ast::expr_rvalue_member_access const &,
+	ast::expr_rvalue_member_access const &rvalue_member_access,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
 )
 {
-	// TODO
-	bz_unreachable;
+	auto const base = generate_expression(rvalue_member_access.base, context, {});
+
+	bz_assert(rvalue_member_access.base.get_expr_type().remove_mut_reference().is<ast::ts_base_type>());
+	auto const info = rvalue_member_access.base.get_expr_type().remove_mut_reference().get<ast::ts_base_type>().info;
+	auto const &accessed_type = info->member_variables[rvalue_member_access.index]->get_type();
+	bz_assert(!result_dest.has_value() || !accessed_type.is_reference());
+
+	auto const prev_info = context.push_expression_scope();
+	expr_value result = {};
+	for (auto const i : bz::iota(0, rvalue_member_access.member_refs.size()))
+	{
+		if (rvalue_member_access.member_refs[i].is_null())
+		{
+			continue;
+		}
+
+		auto const member_value = [&]() {
+			if (i == rvalue_member_access.index && accessed_type.is_reference())
+			{
+				auto const ref_ref = context.create_struct_gep(base, i);
+				bz_assert(context.is_pointer(ref_ref.get_type()));
+				return context.create_dereference(ref_ref);
+			}
+			else
+			{
+				return context.create_struct_gep(base, i);
+			}
+		}();
+
+		auto const prev_value = context.push_value_reference(member_value);
+		if (i == rvalue_member_access.index)
+		{
+			auto const prev_info = context.push_expression_scope();
+			result = generate_expression(rvalue_member_access.member_refs[i], context, result_dest);
+			context.pop_expression_scope(prev_info);
+		}
+		else
+		{
+			generate_expression(rvalue_member_access.member_refs[i], context, {});
+		}
+		context.pop_value_reference(prev_value);
+	}
+	context.pop_expression_scope(prev_info);
+
+	return result;
 }
 
 static expr_value generate_expression(
@@ -3975,6 +4281,11 @@ static expr_value generate_expression(
 		auto const &result_value = result_dest.get();
 		context.create_assignment(result_value, value_string);
 		return result_value;
+	}
+	else if (const_expr.kind == ast::expression_type_kind::none)
+	{
+		context.add_expression(value_string);
+		return context.get_void_value();
 	}
 	else
 	{
@@ -4417,7 +4728,9 @@ static void generate_function(ast::function_body &func_body, codegen_context &co
 	auto const return_by_pointer = !func_body.return_type.is<ast::ts_void>() && !ast::is_trivially_relocatable(func_body.return_type);
 	auto const static_prefix = func_body.is_external_linkage() ? "" : "static ";
 
-	auto const return_type = return_by_pointer ? context.get_void() : get_type(func_body.return_type, context);
+	auto const return_type = return_by_pointer ? context.get_void()
+		: func_body.is_main() ? context.get_int32()
+		: get_type(func_body.return_type, context);
 	auto &bodies_string = context.function_bodies_string;
 	auto &decls_string = context.function_declarations_string;
 	auto const return_type_string = context.to_string(return_type);
@@ -4444,6 +4757,7 @@ static void generate_function(ast::function_body &func_body, codegen_context &co
 		if (ast::is_generic_parameter(param))
 		{
 			generate_statement(param, context);
+			continue;
 		}
 		// second parameter of main would be generated as 'unsigned char const * const *', which is invalid
 		else if (func_body.is_external_linkage() && func_body.symbol_name == "main" && !first)
@@ -4516,6 +4830,11 @@ static void generate_function(ast::function_body &func_body, codegen_context &co
 	}
 
 	context.pop_expression_scope(prev_info);
+
+	if (func_body.is_main())
+	{
+		context.add_expression("return 0");
+	}
 
 	bodies_string += context.current_function_info.body_string;
 	bodies_string += "}\n";
