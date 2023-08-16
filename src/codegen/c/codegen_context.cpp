@@ -1632,6 +1632,25 @@ void codegen_context::push_variable_destruct_operation(
 	});
 }
 
+void codegen_context::push_rvalue_array_destruct_operation(
+	ast::destruct_operation const &destruct_op,
+	expr_value value,
+	expr_value rvalue_array_elem_ptr
+)
+{
+	auto const move_destruct_indicator = this->get_move_destruct_indicator(destruct_op.move_destructed_decl);
+	if (move_destruct_indicator.has_value() || destruct_op.not_null())
+	{
+		this->current_function_info.destructor_calls.push_back({
+			.destruct_op = &destruct_op,
+			.value = value,
+			.condition = {},
+			.move_destruct_indicator = move_destruct_indicator,
+			.rvalue_array_elem_ptr = rvalue_array_elem_ptr,
+		});
+	}
+}
+
 expr_value codegen_context::add_move_destruct_indicator(ast::decl_variable const &decl)
 {
 	auto const result = this->add_value_expression("1", this->get_bool());

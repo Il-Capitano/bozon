@@ -289,6 +289,11 @@ struct codegen_context
 		expr_value value,
 		bz::optional<expr_value> move_destruct_indicator = {}
 	);
+	void push_rvalue_array_destruct_operation(
+		ast::destruct_operation const &destruct_op,
+		expr_value value,
+		expr_value rvalue_array_elem_ptr
+	);
 
 	expr_value add_move_destruct_indicator(ast::decl_variable const &decl);
 	bz::optional<expr_value> get_move_destruct_indicator(ast::decl_variable const *decl) const;

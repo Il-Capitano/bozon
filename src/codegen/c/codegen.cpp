@@ -1293,12 +1293,22 @@ static expr_value generate_expression(
 }
 
 static expr_value generate_expression(
-	ast::expr_rvalue_array_subscript const &,
+	ast::expr_rvalue_array_subscript const &rvalue_array_subscript,
 	codegen_context &context
 )
 {
-	// TODO
-	bz_unreachable;
+	bz_assert(rvalue_array_subscript.base.get_expr_type().is<ast::ts_array>());
+	auto const array = generate_expression(rvalue_array_subscript.base, context, {});
+	auto index = generate_expression(rvalue_array_subscript.index, context, {});
+	bz_assert(rvalue_array_subscript.index.get_expr_type().remove_any_mut().is<ast::ts_base_type>());
+
+	auto const result_value = context.create_array_gep(array, index);
+	context.push_rvalue_array_destruct_operation(
+		rvalue_array_subscript.elem_destruct_op,
+		array,
+		context.create_address_of(result_value)
+	);
+	return result_value;
 }
 
 static expr_value generate_builtin_unary_plus(
@@ -5511,6 +5521,39 @@ void generate_necessary_functions(codegen_context &context)
 	}
 }
 
+static void generate_rvalue_array_destruct(
+	ast::expression const &elem_destruct_expr,
+	expr_value array_value,
+	expr_value rvalue_array_elem_ptr_value,
+	codegen_context &context
+)
+{
+	bz_assert(context.is_array(array_value.get_type()));
+	auto const array_type = context.maybe_get_array(array_value.get_type());
+	auto const size = array_type->size;
+
+	auto const begin_elem_ptr = context.create_address_of(context.create_struct_gep(array_value, 0));
+	auto const end_elem_ptr = context.create_address_of(context.create_struct_gep(array_value, size));
+
+	auto const it_value = context.create_trivial_copy(end_elem_ptr);
+	auto const condition = context.to_string_binary(it_value, begin_elem_ptr, "!=", precedence::equality);
+	context.begin_while(condition);
+
+	context.create_prefix_unary_operation(it_value, "--");
+
+	auto const skip_elem = context.to_string_binary(it_value, rvalue_array_elem_ptr_value, "==", precedence::equality);
+	context.begin_if(skip_elem);
+	context.add_expression("continue");
+	context.end_if();
+
+	auto const elem_value = context.create_dereference(it_value);
+	auto const prev_value = context.push_value_reference(elem_value);
+	generate_expression(elem_destruct_expr, context, {});
+	context.pop_value_reference(prev_value);
+
+	context.end_while();
+}
+
 void generate_destruct_operation(destruct_operation_info_t const &destruct_op_info, codegen_context &context)
 {
 	auto const &condition = destruct_op_info.condition;
@@ -5530,42 +5573,34 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 		if (condition.has_value())
 		{
 			context.begin_if(condition.get());
-
-			auto const prev_info = context.push_expression_scope();
-			generate_expression(*destruct_op.get<ast::destruct_variable>().destruct_call, context, {});
-			context.pop_expression_scope(prev_info);
-
-			context.end_if();
 		}
-		else
+
+		auto const prev_info = context.push_expression_scope();
+		generate_expression(*destruct_op.get<ast::destruct_variable>().destruct_call, context, {});
+		context.pop_expression_scope(prev_info);
+
+		if (condition.has_value())
 		{
-			auto const prev_info = context.push_expression_scope();
-			generate_expression(*destruct_op.get<ast::destruct_variable>().destruct_call, context, {});
-			context.pop_expression_scope(prev_info);
+			context.end_if();
 		}
 	}
 	else if (destruct_op.is<ast::destruct_self>())
 	{
-		auto const &value = destruct_op_info.value;
 		if (condition.has_value())
 		{
 			context.begin_if(condition.get());
-
-			auto const prev_info = context.push_expression_scope();
-			auto const prev_value = context.push_value_reference(value);
-			generate_expression(*destruct_op.get<ast::destruct_self>().destruct_call, context, {});
-			context.pop_value_reference(prev_value);
-			context.pop_expression_scope(prev_info);
-
-			context.end_if();
 		}
-		else
+
+		auto const &value = destruct_op_info.value;
+		auto const prev_info = context.push_expression_scope();
+		auto const prev_value = context.push_value_reference(value);
+		generate_expression(*destruct_op.get<ast::destruct_self>().destruct_call, context, {});
+		context.pop_value_reference(prev_value);
+		context.pop_expression_scope(prev_info);
+
+		if (condition.has_value())
 		{
-			auto const prev_info = context.push_expression_scope();
-			auto const prev_value = context.push_value_reference(value);
-			generate_expression(*destruct_op.get<ast::destruct_self>().destruct_call, context, {});
-			context.pop_value_reference(prev_value);
-			context.pop_expression_scope(prev_info);
+			context.end_if();
 		}
 	}
 	else if (destruct_op.is<ast::defer_expression>())
@@ -5577,8 +5612,23 @@ void generate_destruct_operation(destruct_operation_info_t const &destruct_op_in
 	}
 	else if (destruct_op.is<ast::destruct_rvalue_array>())
 	{
-		// TODO
-		bz_unreachable;
+		if (condition.has_value())
+		{
+			context.begin_if(condition.get());
+		}
+
+		bz_assert(destruct_op_info.rvalue_array_elem_ptr.has_value());
+		generate_rvalue_array_destruct(
+			*destruct_op.get<ast::destruct_rvalue_array>().elem_destruct_call,
+			destruct_op_info.value,
+			destruct_op_info.rvalue_array_elem_ptr.get(),
+			context
+		);
+
+		if (condition.has_value())
+		{
+			context.end_if();
+		}
 	}
 	else
 	{
