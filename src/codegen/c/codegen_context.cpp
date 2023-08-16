@@ -179,6 +179,11 @@ bz::u8string codegen_context::make_local_name(uint32_t index) const
 	return bz::format("v_{:x}", index);
 }
 
+bz::u8string codegen_context::make_goto_label(size_t index) const
+{
+	return bz::format("l_{:x}", index);
+}
+
 void codegen_context::add_libc_header(bz::u8string_view header)
 {
 	if (!this->included_headers.contains(header))
@@ -1222,19 +1227,19 @@ expr_value codegen_context::make_reference_expression(uint32_t value_index, type
 	};
 }
 
-void codegen_context::begin_if(expr_value condition)
+[[nodiscard]] codegen_context::if_info_t codegen_context::begin_if(expr_value condition)
 {
 	return this->begin_if(this->to_string(condition));
 }
 
-void codegen_context::begin_if_not(expr_value condition)
+[[nodiscard]] codegen_context::if_info_t codegen_context::begin_if_not(expr_value condition)
 {
 	bz::u8string condition_string = "!";
 	condition_string += this->to_string_unary(condition, precedence::prefix);
 	return this->begin_if(condition_string);
 }
 
-void codegen_context::begin_if(bz::u8string_view condition)
+[[nodiscard]] codegen_context::if_info_t codegen_context::begin_if(bz::u8string_view condition)
 {
 	this->add_indentation();
 	this->current_function_info.body_string += "if (";
@@ -1243,10 +1248,15 @@ void codegen_context::begin_if(bz::u8string_view condition)
 	this->add_indentation();
 	this->current_function_info.body_string += "{\n";
 	this->current_function_info.indent_level += 1;
+
+	auto const result = this->current_function_info.if_info;
+	this->current_function_info.if_info = { .in_if = true };
+	return result;
 }
 
 void codegen_context::begin_else(void)
 {
+	bz_assert(this->current_function_info.if_info.in_if);
 	this->current_function_info.indent_level -= 1;
 
 	this->add_indentation();
@@ -1261,11 +1271,13 @@ void codegen_context::begin_else(void)
 
 void codegen_context::begin_else_if(expr_value condition)
 {
+	bz_assert(this->current_function_info.if_info.in_if);
 	return this->begin_else_if(this->to_string(condition));
 }
 
 void codegen_context::begin_else_if(bz::u8string_view condition)
 {
+	bz_assert(this->current_function_info.if_info.in_if);
 	this->current_function_info.indent_level -= 1;
 
 	this->add_indentation();
@@ -1280,19 +1292,22 @@ void codegen_context::begin_else_if(bz::u8string_view condition)
 	this->current_function_info.indent_level += 1;
 }
 
-void codegen_context::end_if(void)
+void codegen_context::end_if(if_info_t prev_if_info)
 {
+	bz_assert(this->current_function_info.if_info.in_if);
+	this->current_function_info.if_info = prev_if_info;
+
 	this->current_function_info.indent_level -= 1;
 	this->add_indentation();
 	this->current_function_info.body_string += "}\n";
 }
 
-void codegen_context::begin_while(expr_value condition)
+[[nodiscard]] codegen_context::while_info_t codegen_context::begin_while(expr_value condition)
 {
 	return this->begin_while(this->to_string(condition));
 }
 
-void codegen_context::begin_while(bz::u8string_view condition)
+[[nodiscard]] codegen_context::while_info_t codegen_context::begin_while(bz::u8string_view condition)
 {
 	this->add_indentation();
 	this->current_function_info.body_string += "while (";
@@ -1301,13 +1316,118 @@ void codegen_context::begin_while(bz::u8string_view condition)
 	this->add_indentation();
 	this->current_function_info.body_string += "{\n";
 	this->current_function_info.indent_level += 1;
+
+	auto const result = this->current_function_info.while_info;
+	this->current_function_info.loop_level += 1;
+	this->current_function_info.while_info = { .needs_goto = false, .goto_index = 0 };
+	return result;
 }
 
-void codegen_context::end_while(void)
+void codegen_context::end_while(while_info_t prev_while_info)
 {
 	this->current_function_info.indent_level -= 1;
 	this->add_indentation();
 	this->current_function_info.body_string += "}\n";
+
+	if (this->current_function_info.while_info.needs_goto)
+	{
+		this->add_indentation();
+		this->current_function_info.body_string += this->make_goto_label(this->current_function_info.while_info.goto_index);
+		this->current_function_info.body_string += ":;\n";
+	}
+
+	bz_assert(this->current_function_info.loop_level != 0);
+	this->current_function_info.loop_level -= 1;
+	this->current_function_info.while_info = prev_while_info;
+}
+
+[[nodiscard]] codegen_context::switch_info_t codegen_context::begin_switch(expr_value value)
+{
+	return this->begin_switch(this->to_string(value));
+}
+
+[[nodiscard]] codegen_context::switch_info_t codegen_context::begin_switch(bz::u8string_view value)
+{
+	this->add_indentation();
+	this->current_function_info.body_string += "switch (";
+	this->current_function_info.body_string += value;
+	this->current_function_info.body_string += ")\n";
+	this->add_indentation();
+	this->current_function_info.body_string += "{\n";
+
+	auto const result = this->current_function_info.switch_info;
+	this->current_function_info.switch_info = { .in_switch = true, .loop_level = this->current_function_info.loop_level };
+	return result;
+}
+
+void codegen_context::add_case_label(bz::u8string_view value)
+{
+	bz_assert(this->current_function_info.switch_info.in_switch);
+	this->add_indentation();
+	this->current_function_info.body_string += "case ";
+	this->current_function_info.body_string += value;
+	this->current_function_info.body_string += ":\n";
+}
+
+void codegen_context::begin_case(void)
+{
+	bz_assert(this->current_function_info.switch_info.in_switch);
+	this->add_indentation();
+	this->current_function_info.body_string += "{\n";
+	this->current_function_info.indent_level += 1;
+}
+
+void codegen_context::begin_default_case(void)
+{
+	bz_assert(this->current_function_info.switch_info.in_switch);
+	this->add_indentation();
+	this->current_function_info.body_string += "default:\n";
+	this->add_indentation();
+	this->current_function_info.body_string += "{\n";
+	this->current_function_info.indent_level += 1;
+}
+
+void codegen_context::end_case(void)
+{
+	bz_assert(this->current_function_info.switch_info.in_switch);
+	this->add_indentation();
+	this->current_function_info.body_string += "break;\n";
+	this->current_function_info.indent_level -= 1;
+	this->add_indentation();
+	this->current_function_info.body_string += "}\n";
+}
+
+void codegen_context::end_switch(switch_info_t prev_switch_info)
+{
+	bz_assert(this->current_function_info.switch_info.in_switch);
+	this->current_function_info.switch_info = prev_switch_info;
+
+	this->add_indentation();
+	this->current_function_info.body_string += "}\n";
+}
+
+bz::optional<size_t> codegen_context::get_break_goto_index(void)
+{
+	if (
+		this->current_function_info.switch_info.in_switch
+		&& this->current_function_info.switch_info.loop_level == this->current_function_info.loop_level
+	)
+	{
+		if (this->current_function_info.while_info.needs_goto)
+		{
+			return this->current_function_info.while_info.goto_index;
+		}
+		else
+		{
+			this->current_function_info.while_info.needs_goto = true;
+			this->current_function_info.while_info.goto_index = this->get_unique_number();
+			return this->current_function_info.while_info.goto_index;
+		}
+	}
+	else
+	{
+		return {};
+	}
 }
 
 void codegen_context::add_return(void)

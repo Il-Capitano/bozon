@@ -66,6 +66,23 @@ struct codegen_context
 		size_t destructor_stack_begin;
 	};
 
+	struct if_info_t
+	{
+		bool in_if;
+	};
+
+	struct while_info_t
+	{
+		bool needs_goto;
+		size_t goto_index;
+	};
+
+	struct switch_info_t
+	{
+		bool in_switch;
+		uint32_t loop_level;
+	};
+
 	struct current_function_info_t
 	{
 		ast::function_body *func_body = nullptr;
@@ -81,7 +98,12 @@ struct codegen_context
 		std::unordered_map<ast::decl_variable const *, expr_value> local_variables;
 		std::unordered_map<ast::decl_variable const *, expr_value> move_destruct_indicators;
 		bz::vector<destruct_operation_info_t> destructor_calls;
-		loop_info_t loop_info;
+		loop_info_t loop_info = { .destructor_stack_begin = 0 };
+
+		if_info_t if_info = { .in_if = false };
+		uint32_t loop_level = 0;
+		while_info_t while_info = { .needs_goto = false, .goto_index = 0 };
+		switch_info_t switch_info = { .in_switch = false, .loop_level = 0 };
 	};
 
 	size_t counter = 0;
@@ -130,6 +152,7 @@ struct codegen_context
 	bz::u8string make_function_name(ast::function_body const &func_body);
 	local_name_and_index_pair make_local_name(void);
 	bz::u8string make_local_name(uint32_t index) const;
+	bz::u8string make_goto_label(size_t index) const;
 	void add_libc_header(bz::u8string_view header);
 
 	type get_struct(ast::type_info const &info, bool resolve = true);
@@ -221,17 +244,27 @@ struct codegen_context
 	expr_value make_value_expression(uint32_t value_index, type value_type) const;
 	expr_value make_reference_expression(uint32_t value_index, type value_type, bool is_const) const;
 
-	void begin_if(expr_value condition);
-	void begin_if_not(expr_value condition);
-	void begin_if(bz::u8string_view condition);
+	[[nodiscard]] if_info_t begin_if(expr_value condition);
+	[[nodiscard]] if_info_t begin_if_not(expr_value condition);
+	[[nodiscard]] if_info_t begin_if(bz::u8string_view condition);
 	void begin_else(void);
 	void begin_else_if(expr_value condition);
 	void begin_else_if(bz::u8string_view condition);
-	void end_if(void);
+	void end_if(if_info_t prev_if_info);
 
-	void begin_while(expr_value condition);
-	void begin_while(bz::u8string_view condition);
-	void end_while(void);
+	[[nodiscard]] while_info_t begin_while(expr_value condition);
+	[[nodiscard]] while_info_t begin_while(bz::u8string_view condition);
+	void end_while(while_info_t prev_while_info);
+
+	[[nodiscard]] switch_info_t begin_switch(expr_value value);
+	[[nodiscard]] switch_info_t begin_switch(bz::u8string_view value);
+	void add_case_label(bz::u8string_view value);
+	void begin_case(void);
+	void begin_default_case(void);
+	void end_case(void);
+	void end_switch(switch_info_t prev_switch_info);
+
+	bz::optional<size_t> get_break_goto_index(void);
 
 	void add_return(void);
 	void add_return(expr_value value);
