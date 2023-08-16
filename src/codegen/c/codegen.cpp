@@ -1714,6 +1714,32 @@ static expr_value generate_builtin_binary_bitshift_eq(
 	return lhs_value;
 }
 
+static expr_value generate_libc_math_function_call(
+	bz::u8string_view func_name,
+	ast::expr_function_call const &func_call,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	context.add_libc_header("math.h");
+	bz_assert(func_call.params.size() == 1 || func_call.params.size() == 2);
+	if (func_call.params.size() == 1)
+	{
+		auto const arg_value = generate_expression(func_call.params[0], context, {});
+		return generate_function_call(func_name, arg_value, func_call.func_body->return_type, context, result_dest);
+	}
+	else if (func_call.params.size() == 2)
+	{
+		auto const arg1_value = generate_expression(func_call.params[0], context, {});
+		auto const arg2_value = generate_expression(func_call.params[1], context, {});
+		return generate_function_call(func_name, { arg1_value, arg2_value }, func_call.func_body->return_type, context, result_dest);
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
 static bz::optional<expr_value> generate_intrinsic_function_call(
 	ast::expr_function_call const &func_call,
 	codegen_context &context,
@@ -2419,9 +2445,9 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const type_size = bz::format("sizeof ({})", context.to_string(type));
 		auto const size = context.create_binary_operation(count, type_size, "*", precedence::multiply, count.get_type());
 
-		expr_value const args[3] = { dest, source, size };
 		context.add_libc_header("string.h");
-		generate_function_call("memcpy", args, func_call.func_body->return_type, context, {});
+		generate_function_call("memcpy", { dest, source, size }, func_call.func_body->return_type, context, {});
+
 		bz_assert(!result_dest.has_value());
 		return context.get_void_value();
 	}
@@ -2436,9 +2462,9 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const type_size = bz::format("sizeof ({})", context.to_string(type));
 		auto const size = context.create_binary_operation(count, type_size, "*", precedence::multiply, count.get_type());
 
-		expr_value const args[3] = { dest, source, size };
 		context.add_libc_header("string.h");
-		generate_function_call("memmove", args, func_call.func_body->return_type, context, {});
+		generate_function_call("memmove", { dest, source, size }, func_call.func_body->return_type, context, {});
+
 		bz_assert(!result_dest.has_value());
 		return context.get_void_value();
 	}
@@ -2453,9 +2479,9 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const type_size = bz::format("sizeof ({})", context.to_string(type));
 		auto const size = context.create_binary_operation(count, type_size, "*", precedence::multiply, count.get_type());
 
-		expr_value const args[3] = { dest, source, size };
 		context.add_libc_header("string.h");
-		generate_function_call("memmove", args, func_call.func_body->return_type, context, {});
+		generate_function_call("memmove", { dest, source, size }, func_call.func_body->return_type, context, {});
+
 		bz_assert(!result_dest.has_value());
 		return context.get_void_value();
 	}
@@ -2469,9 +2495,8 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 
 		if (type == context.get_uint8())
 		{
-			expr_value const args[3] = { dest, value, count };
 			context.add_libc_header("string.h");
-			generate_function_call("memset", args, func_call.func_body->return_type, context, {});
+			generate_function_call("memset", { dest, value, count }, func_call.func_body->return_type, context, {});
 		}
 		else
 		{
@@ -2496,128 +2521,223 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		context.create_trap();
 		return context.get_void_value();
 	case ast::function_body::memcpy:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 3);
+		auto const dest = generate_expression(func_call.params[0], context, {});
+		auto const source = generate_expression(func_call.params[1], context, {});
+		auto const size = generate_expression(func_call.params[2], context, {});
+
+		context.add_libc_header("string.h");
+		generate_function_call("memcpy", { dest, source, size }, func_call.func_body->return_type, context, {});
+
+		bz_assert(!result_dest.has_value());
+		return context.get_void_value();
+	}
 	case ast::function_body::memmove:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 3);
+		auto const dest = generate_expression(func_call.params[0], context, {});
+		auto const source = generate_expression(func_call.params[1], context, {});
+		auto const size = generate_expression(func_call.params[2], context, {});
+
+		context.add_libc_header("string.h");
+		generate_function_call("memmove", { dest, source, size }, func_call.func_body->return_type, context, {});
+
+		bz_assert(!result_dest.has_value());
+		return context.get_void_value();
+	}
 	case ast::function_body::memset:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 3);
+		auto const dest = generate_expression(func_call.params[0], context, {});
+		auto const value = generate_expression(func_call.params[1], context, {});
+		auto const size = generate_expression(func_call.params[2], context, {});
+
+		context.add_libc_header("string.h");
+		generate_function_call("memset", { dest, value, size }, func_call.func_body->return_type, context, {});
+
+		bz_assert(!result_dest.has_value());
+		return context.get_void_value();
+	}
 	case ast::function_body::abs_i8:
 	case ast::function_body::abs_i16:
 	case ast::function_body::abs_i32:
 	case ast::function_body::abs_i64:
-	case ast::function_body::abs_f32:
-	case ast::function_body::abs_f64:
 		bz_unreachable; // TODO
+	case ast::function_body::abs_f32:
+		return generate_libc_math_function_call("fabsf", func_call, context, result_dest);
+	case ast::function_body::abs_f64:
+		return generate_libc_math_function_call("fabs", func_call, context, result_dest);
 	case ast::function_body::min_i8:
 	case ast::function_body::min_i16:
 	case ast::function_body::min_i32:
 	case ast::function_body::min_i64:
-		bz_unreachable; // TODO
 	case ast::function_body::min_u8:
 	case ast::function_body::min_u16:
 	case ast::function_body::min_u32:
 	case ast::function_body::min_u64:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 2);
+		auto const a = generate_expression(func_call.params[0], context, {});
+		auto const b = generate_expression(func_call.params[1], context, {});
+		if (!result_dest.has_value())
+		{
+			result_dest = context.add_uninitialized_value(a.get_type());
+		}
+		auto const &result_value = result_dest.get();
+
+		context.begin_if(context.to_string_binary(a, b, "<", precedence::relational));
+		context.create_assignment(result_value, a);
+		context.begin_else();
+		context.create_assignment(result_value, b);
+		context.end_if();
+		return result_value;
+	}
 	case ast::function_body::fmin_f32:
+		return generate_libc_math_function_call("fminf", func_call, context, result_dest);
 	case ast::function_body::fmin_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("fmin", func_call, context, result_dest);
 	case ast::function_body::max_i8:
 	case ast::function_body::max_i16:
 	case ast::function_body::max_i32:
 	case ast::function_body::max_i64:
-		bz_unreachable; // TODO
 	case ast::function_body::max_u8:
 	case ast::function_body::max_u16:
 	case ast::function_body::max_u32:
 	case ast::function_body::max_u64:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 2);
+		auto const a = generate_expression(func_call.params[0], context, {});
+		auto const b = generate_expression(func_call.params[1], context, {});
+		if (!result_dest.has_value())
+		{
+			result_dest = context.add_uninitialized_value(a.get_type());
+		}
+		auto const &result_value = result_dest.get();
+
+		context.begin_if(context.to_string_binary(a, b, ">", precedence::relational));
+		context.create_assignment(result_value, a);
+		context.begin_else();
+		context.create_assignment(result_value, b);
+		context.end_if();
+		return result_value;
+	}
 	case ast::function_body::fmax_f32:
+		return generate_libc_math_function_call("fmaxf", func_call, context, result_dest);
 	case ast::function_body::fmax_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("fmax", func_call, context, result_dest);
 	case ast::function_body::exp_f32:
+		return generate_libc_math_function_call("expf", func_call, context, result_dest);
 	case ast::function_body::exp_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("exp", func_call, context, result_dest);
 	case ast::function_body::exp2_f32:
+		return generate_libc_math_function_call("exp2f", func_call, context, result_dest);
 	case ast::function_body::exp2_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("exp2", func_call, context, result_dest);
 	case ast::function_body::expm1_f32:
+		return generate_libc_math_function_call("expm1f", func_call, context, result_dest);
 	case ast::function_body::expm1_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("expm1", func_call, context, result_dest);
 	case ast::function_body::log_f32:
+		return generate_libc_math_function_call("logf", func_call, context, result_dest);
 	case ast::function_body::log_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("log", func_call, context, result_dest);
 	case ast::function_body::log10_f32:
+		return generate_libc_math_function_call("log10f", func_call, context, result_dest);
 	case ast::function_body::log10_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("log10", func_call, context, result_dest);
 	case ast::function_body::log2_f32:
+		return generate_libc_math_function_call("log2f", func_call, context, result_dest);
 	case ast::function_body::log2_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("log2", func_call, context, result_dest);
 	case ast::function_body::log1p_f32:
+		return generate_libc_math_function_call("log1pf", func_call, context, result_dest);
 	case ast::function_body::log1p_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("log1p", func_call, context, result_dest);
 	case ast::function_body::sqrt_f32:
+		return generate_libc_math_function_call("sqrtf", func_call, context, result_dest);
 	case ast::function_body::sqrt_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("sqrt", func_call, context, result_dest);
 	case ast::function_body::pow_f32:
+		return generate_libc_math_function_call("powf", func_call, context, result_dest);
 	case ast::function_body::pow_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("pow", func_call, context, result_dest);
 	case ast::function_body::cbrt_f32:
+		return generate_libc_math_function_call("cbrtf", func_call, context, result_dest);
 	case ast::function_body::cbrt_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("cbrt", func_call, context, result_dest);
 	case ast::function_body::hypot_f32:
+		return generate_libc_math_function_call("hypotf", func_call, context, result_dest);
 	case ast::function_body::hypot_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("hypot", func_call, context, result_dest);
 	case ast::function_body::sin_f32:
+		return generate_libc_math_function_call("sinf", func_call, context, result_dest);
 	case ast::function_body::sin_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("sin", func_call, context, result_dest);
 	case ast::function_body::cos_f32:
+		return generate_libc_math_function_call("cosf", func_call, context, result_dest);
 	case ast::function_body::cos_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("cos", func_call, context, result_dest);
 	case ast::function_body::tan_f32:
+		return generate_libc_math_function_call("tanf", func_call, context, result_dest);
 	case ast::function_body::tan_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("tan", func_call, context, result_dest);
 	case ast::function_body::asin_f32:
+		return generate_libc_math_function_call("asinf", func_call, context, result_dest);
 	case ast::function_body::asin_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("asin", func_call, context, result_dest);
 	case ast::function_body::acos_f32:
+		return generate_libc_math_function_call("acosf", func_call, context, result_dest);
 	case ast::function_body::acos_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("acos", func_call, context, result_dest);
 	case ast::function_body::atan_f32:
+		return generate_libc_math_function_call("atanf", func_call, context, result_dest);
 	case ast::function_body::atan_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("atan", func_call, context, result_dest);
 	case ast::function_body::atan2_f32:
+		return generate_libc_math_function_call("atan2f", func_call, context, result_dest);
 	case ast::function_body::atan2_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("atan2", func_call, context, result_dest);
 	case ast::function_body::sinh_f32:
+		return generate_libc_math_function_call("sinhf", func_call, context, result_dest);
 	case ast::function_body::sinh_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("sinh", func_call, context, result_dest);
 	case ast::function_body::cosh_f32:
+		return generate_libc_math_function_call("coshf", func_call, context, result_dest);
 	case ast::function_body::cosh_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("cosh", func_call, context, result_dest);
 	case ast::function_body::tanh_f32:
+		return generate_libc_math_function_call("tanhf", func_call, context, result_dest);
 	case ast::function_body::tanh_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("tanh", func_call, context, result_dest);
 	case ast::function_body::asinh_f32:
+		return generate_libc_math_function_call("asinhf", func_call, context, result_dest);
 	case ast::function_body::asinh_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("asinh", func_call, context, result_dest);
 	case ast::function_body::acosh_f32:
+		return generate_libc_math_function_call("acoshf", func_call, context, result_dest);
 	case ast::function_body::acosh_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("acosh", func_call, context, result_dest);
 	case ast::function_body::atanh_f32:
+		return generate_libc_math_function_call("atanhf", func_call, context, result_dest);
 	case ast::function_body::atanh_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("atanh", func_call, context, result_dest);
 	case ast::function_body::erf_f32:
+		return generate_libc_math_function_call("erff", func_call, context, result_dest);
 	case ast::function_body::erf_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("erf", func_call, context, result_dest);
 	case ast::function_body::erfc_f32:
+		return generate_libc_math_function_call("erfcf", func_call, context, result_dest);
 	case ast::function_body::erfc_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("erfc", func_call, context, result_dest);
 	case ast::function_body::tgamma_f32:
+		return generate_libc_math_function_call("tgammaf", func_call, context, result_dest);
 	case ast::function_body::tgamma_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("tgamma", func_call, context, result_dest);
 	case ast::function_body::lgamma_f32:
+		return generate_libc_math_function_call("lgammaf", func_call, context, result_dest);
 	case ast::function_body::lgamma_f64:
-		bz_unreachable; // TODO
+		return generate_libc_math_function_call("lgamma", func_call, context, result_dest);
 	case ast::function_body::bitreverse_u8:
 	case ast::function_body::bitreverse_u16:
 	case ast::function_body::bitreverse_u32:
@@ -2997,6 +3117,10 @@ static expr_value generate_expression(
 			auto const pointer_type = get_type(func_call.func_body->return_type, context);
 			auto const pointer_value = context.add_uninitialized_value(pointer_type);
 			return context.create_dereference(pointer_value);
+		}
+		else if (func_call.func_body->return_type.is<ast::ts_void>())
+		{
+			return context.get_void_value();
 		}
 		else
 		{
