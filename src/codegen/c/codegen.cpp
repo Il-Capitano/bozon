@@ -2614,13 +2614,29 @@ static expr_value generate_expression(
 }
 
 static expr_value generate_expression(
-	ast::expr_optional_cast const &,
+	ast::expr_optional_cast const &optional_cast,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
 )
 {
-	// TODO
-	bz_unreachable;
+	if (optional_cast.type.is_optional_pointer_like())
+	{
+		return generate_expression(optional_cast.expr, context, result_dest);
+	}
+	else
+	{
+		if (!result_dest.has_value())
+		{
+			result_dest = context.add_uninitialized_value(get_type(optional_cast.type, context));
+		}
+		auto const &result_value = result_dest.get();
+
+		auto const value_result_dest = get_optional_value(result_value, context);
+		generate_expression(optional_cast.expr, context, value_result_dest);
+		set_optional_has_value(result_value, true, context);
+
+		return result_value;
+	}
 }
 
 static expr_value generate_expression(
@@ -3328,12 +3344,61 @@ static expr_value generate_expression(
 }
 
 static expr_value generate_expression(
-	ast::expr_optional_assign const &,
+	ast::expr_optional_assign const &optional_assign,
 	codegen_context &context
 )
 {
-	// TODO
-	bz_unreachable;
+	auto const rhs = generate_expression(optional_assign.rhs, context, {});
+	auto const lhs = generate_expression(optional_assign.lhs, context, {});
+	create_pointer_compare_begin(lhs, rhs, context);
+
+	auto const lhs_has_value = get_optional_has_value(lhs, context);
+	auto const rhs_has_value = get_optional_has_value(rhs, context);
+	auto const both_has_value = context.create_binary_operation(
+		lhs_has_value,
+		rhs_has_value,
+		"&&",
+		precedence::logical_and,
+		context.get_bool()
+	);
+
+	context.begin_if(both_has_value);
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const lhs_prev_value = context.push_value_reference(get_optional_value(lhs, context));
+		auto const rhs_prev_value = context.push_value_reference(get_optional_value(rhs, context));
+		generate_expression(optional_assign.value_assign_expr, context, {});
+		context.pop_value_reference(rhs_prev_value);
+		context.pop_value_reference(lhs_prev_value);
+		context.pop_expression_scope(prev_info);
+	}
+
+	context.begin_else_if(lhs_has_value);
+	{
+		auto const prev_value = context.push_value_reference(get_optional_value(lhs, context));
+		generate_expression(optional_assign.value_destruct_expr, context, {});
+		context.pop_value_reference(prev_value);
+
+		set_optional_has_value(lhs, false, context);
+	}
+
+	context.begin_else_if(rhs_has_value);
+	{
+		auto const prev_info = context.push_expression_scope();
+		auto const lhs_value = get_optional_value(lhs, context);
+		auto const prev_value = context.push_value_reference(get_optional_value(rhs, context));
+		generate_expression(optional_assign.value_construct_expr, context, lhs_value);
+		context.pop_value_reference(prev_value);
+
+		set_optional_has_value(lhs, true, context);
+		context.pop_expression_scope(prev_info);
+	}
+
+	context.end_if();
+
+	create_pointer_compare_end(context);
+
+	return context.get_void_value();
 }
 
 static expr_value generate_expression(
