@@ -3720,7 +3720,6 @@ static expr_value generate_intrinsic_function_call_code(
 		bz_assert(!result_address.has_value());
 		return generate_builtin_binary_bit_right_shift_eq(original_expression, func_call.params[0], func_call.params[1], context);
 	case ast::function_body::builtin_binary_subscript:
-		// this is handled as separate expressions, because of lifetime complexity
 		bz_assert(func_call.params.size() == 2);
 		return generate_builtin_subscript_range(original_expression, func_call.params[0], func_call.params[1], context, result_address);
 	default:
@@ -3791,7 +3790,7 @@ static expr_value generate_expr_code(
 			{
 				auto const arg_type = func->arg_types[arg_ref_index - needs_return_address];
 				auto const &param_type = func_call.func_body->params[arg_index].get_type();
-				if (param_type.is<ast::ts_lvalue_reference>() || param_type.is<ast::ts_move_reference>())
+				if (param_type.is_any_reference())
 				{
 					auto const arg_value = generate_expr_code(func_call.params[arg_index], context, {});
 					bz_assert(arg_type->is_pointer());
@@ -4288,6 +4287,7 @@ static expr_value generate_expr_code(
 	bz_assert(result_value.get_type()->is_aggregate() || result_value.get_type()->is_array());
 	for (auto const i : bz::iota(0, aggregate_default_construct.default_construct_exprs.size()))
 	{
+		bz_assert(!aggregate_default_construct.default_construct_exprs[i].get_expr_type().is_any_reference());
 		auto const member_ptr = context.create_struct_gep(result_value, i);
 		generate_expr_code(aggregate_default_construct.default_construct_exprs[i], context, member_ptr);
 	}
