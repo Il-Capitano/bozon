@@ -1133,6 +1133,27 @@ bz::u8string codegen_context::to_string_arg(expr_value const &value) const
 	return this->to_string_lhs(value, precedence::comma);
 }
 
+bz::u8string codegen_context::to_string_struct_literal(type aggregate_type, bz::array_view<expr_value const> values) const
+{
+	bz::u8string result = "(";
+	result += this->to_string(aggregate_type);
+	if (values.empty())
+	{
+		result += "){0}";
+	}
+	else
+	{
+		result += "){ ";
+		for (auto const &value : values)
+		{
+			result += this->to_string_arg(value);
+			result += ", ";
+		}
+		result += '}';
+	}
+	return result;
+}
+
 void codegen_context::add_expression(bz::u8string_view expr_string)
 {
 	this->add_indentation();

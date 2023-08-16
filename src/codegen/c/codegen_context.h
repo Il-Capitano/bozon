@@ -212,6 +212,7 @@ struct codegen_context
 	bz::u8string to_string_unary_suffix(expr_value const &value, bz::u8string_view op) const;
 
 	bz::u8string to_string_arg(expr_value const &value) const;
+	bz::u8string to_string_struct_literal(type aggregate_type, bz::array_view<expr_value const> values) const;
 
 	void add_expression(bz::u8string_view expr_string);
 	expr_value add_uninitialized_value(type expr_type);

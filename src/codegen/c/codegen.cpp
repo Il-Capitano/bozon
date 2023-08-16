@@ -1833,7 +1833,25 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	case ast::function_body::builtin_integer_range_inclusive_u16:
 	case ast::function_body::builtin_integer_range_inclusive_u32:
 	case ast::function_body::builtin_integer_range_inclusive_u64:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 2);
+		auto const begin_value = generate_expression(func_call.params[0], context, {});
+		auto const end_value   = generate_expression(func_call.params[1], context, {});
+
+		if (result_dest.has_value())
+		{
+			auto const &result_value = result_dest.get();
+			auto const init_string = context.to_string_struct_literal(result_value.get_type(), { begin_value, end_value });
+			context.create_assignment(result_dest.get(), init_string);
+			return result_dest.get();
+		}
+		else
+		{
+			auto const result_type = get_type(func_call.func_body->return_type, context);
+			auto const init_string = context.to_string_struct_literal(result_type, { begin_value, end_value });
+			return context.add_value_expression(init_string, result_type);
+		}
+	}
 	case ast::function_body::builtin_integer_range_from_i8:
 	case ast::function_body::builtin_integer_range_from_i16:
 	case ast::function_body::builtin_integer_range_from_i32:
@@ -1842,7 +1860,24 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	case ast::function_body::builtin_integer_range_from_u16:
 	case ast::function_body::builtin_integer_range_from_u32:
 	case ast::function_body::builtin_integer_range_from_u64:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const begin_value = generate_expression(func_call.params[0], context, {});
+
+		if (result_dest.has_value())
+		{
+			auto const &result_value = result_dest.get();
+			auto const init_string = context.to_string_struct_literal(result_value.get_type(), begin_value);
+			context.create_assignment(result_dest.get(), init_string);
+			return result_dest.get();
+		}
+		else
+		{
+			auto const result_type = get_type(func_call.func_body->return_type, context);
+			auto const init_string = context.to_string_struct_literal(result_type, begin_value);
+			return context.add_value_expression(init_string, result_type);
+		}
+	}
 	case ast::function_body::builtin_integer_range_to_i8:
 	case ast::function_body::builtin_integer_range_to_i16:
 	case ast::function_body::builtin_integer_range_to_i32:
@@ -1859,67 +1894,337 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	case ast::function_body::builtin_integer_range_to_inclusive_u16:
 	case ast::function_body::builtin_integer_range_to_inclusive_u32:
 	case ast::function_body::builtin_integer_range_to_inclusive_u64:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const end_value = generate_expression(func_call.params[0], context, {});
+
+		if (result_dest.has_value())
+		{
+			auto const &result_value = result_dest.get();
+			auto const init_string = context.to_string_struct_literal(result_value.get_type(), end_value);
+			context.create_assignment(result_dest.get(), init_string);
+			return result_dest.get();
+		}
+		else
+		{
+			auto const result_type = get_type(func_call.func_body->return_type, context);
+			auto const init_string = context.to_string_struct_literal(result_type, end_value);
+			return context.add_value_expression(init_string, result_type);
+		}
+	}
 	case ast::function_body::builtin_range_unbounded:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 0);
+		if (result_dest.has_value())
+		{
+			auto const &result_value = result_dest.get();
+			auto const type = result_value.get_type();
+			auto const init_string = context.to_string_struct_literal(type, {});
+			context.create_assignment(result_value, init_string);
+			return result_value;
+		}
+		else
+		{
+			auto const type = get_type(func_call.func_body->return_type, context);
+			auto const init_string = context.to_string_struct_literal(type, {});
+			return context.add_value_expression(init_string, type);
+		}
+	}
 	case ast::function_body::builtin_integer_range_begin_value:
 	case ast::function_body::builtin_integer_range_inclusive_begin_value:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const range_value = generate_expression(func_call.params[0], context, {});
+		auto const begin_value = context.create_struct_gep(range_value, 0);
+		return value_or_result_dest(begin_value, result_dest, context);
+	}
 	case ast::function_body::builtin_integer_range_end_value:
 	case ast::function_body::builtin_integer_range_inclusive_end_value:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const range_value = generate_expression(func_call.params[0], context, {});
+		auto const end_value = context.create_struct_gep(range_value, 1);
+		return value_or_result_dest(end_value, result_dest, context);
+	}
 	case ast::function_body::builtin_integer_range_from_begin_value:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const range_value = generate_expression(func_call.params[0], context, {});
+		auto const begin_value = context.create_struct_gep(range_value, 0);
+		return value_or_result_dest(begin_value, result_dest, context);
+	}
 	case ast::function_body::builtin_integer_range_to_end_value:
 	case ast::function_body::builtin_integer_range_to_inclusive_end_value:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const range_value = generate_expression(func_call.params[0], context, {});
+		auto const end_value = context.create_struct_gep(range_value, 0);
+		return value_or_result_dest(end_value, result_dest, context);
+	}
 	case ast::function_body::builtin_integer_range_begin_iterator:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const range_value = generate_expression(func_call.params[0], context, {});
+		auto const begin_value = context.create_struct_gep(range_value, 0);
+
+		if (result_dest.has_value())
+		{
+			auto const &result_value = result_dest.get();
+			auto const init_string = context.to_string_struct_literal(result_value.get_type(), begin_value);
+			context.create_assignment(result_value, init_string);
+			return result_value;
+		}
+		else
+		{
+			auto const result_type = get_type(func_call.func_body->return_type, context);
+			auto const init_string = context.to_string_struct_literal(result_type, begin_value);
+			return context.add_value_expression(init_string, result_type);
+		}
+	}
 	case ast::function_body::builtin_integer_range_end_iterator:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const range_value = generate_expression(func_call.params[0], context, {});
+		auto const end_value = context.create_struct_gep(range_value, 1);
+
+		if (result_dest.has_value())
+		{
+			auto const &result_value = result_dest.get();
+			auto const init_string = context.to_string_struct_literal(result_value.get_type(), end_value);
+			context.create_assignment(result_value, init_string);
+			return result_value;
+		}
+		else
+		{
+			auto const result_type = get_type(func_call.func_body->return_type, context);
+			auto const init_string = context.to_string_struct_literal(result_type, end_value);
+			return context.add_value_expression(init_string, result_type);
+		}
+	}
 	case ast::function_body::builtin_integer_range_iterator_dereference:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const it_value = generate_expression(func_call.params[0], context, {});
+		auto const integer_value = context.create_struct_gep(it_value, 0);
+		return value_or_result_dest(integer_value, result_dest, context);
+	}
 	case ast::function_body::builtin_integer_range_iterator_equals:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 2);
+		auto const lhs_it_value = generate_expression(func_call.params[0], context, {});
+		auto const rhs_it_value = generate_expression(func_call.params[1], context, {});
+		auto const lhs_integer_value = context.create_struct_gep(lhs_it_value, 0);
+		auto const rhs_integer_value = context.create_struct_gep(rhs_it_value, 0);
+		auto const result_string = context.to_string_binary(lhs_integer_value, rhs_integer_value, "==", precedence::equality);
+		return value_or_result_dest(result_string, context.get_bool(), result_dest, context);
+	}
 	case ast::function_body::builtin_integer_range_iterator_not_equals:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 2);
+		auto const lhs_it_value = generate_expression(func_call.params[0], context, {});
+		auto const rhs_it_value = generate_expression(func_call.params[1], context, {});
+		auto const lhs_integer_value = context.create_struct_gep(lhs_it_value, 0);
+		auto const rhs_integer_value = context.create_struct_gep(rhs_it_value, 0);
+		auto const result_string = context.to_string_binary(lhs_integer_value, rhs_integer_value, "!=", precedence::equality);
+		return value_or_result_dest(result_string, context.get_bool(), result_dest, context);
+	}
 	case ast::function_body::builtin_integer_range_iterator_plus_plus:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const it_value = generate_expression(func_call.params[0], context, {});
+		auto const integer_value_ref = context.create_struct_gep(it_value, 0);
+		context.create_prefix_unary_operation(integer_value_ref, "++");
+		return it_value;
+	}
 	case ast::function_body::builtin_integer_range_iterator_minus_minus:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const it_value = generate_expression(func_call.params[0], context, {});
+		auto const integer_value_ref = context.create_struct_gep(it_value, 0);
+		context.create_prefix_unary_operation(integer_value_ref, "--");
+		return it_value;
+	}
 	case ast::function_body::builtin_integer_range_inclusive_begin_iterator:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const range_value = generate_expression(func_call.params[0], context, {});
+		auto const begin_value = context.create_struct_gep(range_value, 0);
+		auto const end_value = context.create_struct_gep(range_value, 1);
+		auto const false_value = context.add_value_expression("0", context.get_bool());
+
+		if (result_dest.has_value())
+		{
+			auto const &result_value = result_dest.get();
+			auto const init_string = context.to_string_struct_literal(result_value.get_type(), { begin_value, end_value, false_value });
+			context.create_assignment(result_value, init_string);
+			return result_value;
+		}
+		else
+		{
+			auto const result_type = get_type(func_call.func_body->return_type, context);
+			auto const init_string = context.to_string_struct_literal(result_type, { begin_value, end_value, false_value });
+			return context.add_value_expression(init_string, result_type);
+		}
+	}
 	case ast::function_body::builtin_integer_range_inclusive_end_iterator:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		generate_expression(func_call.params[0], context, {});
+
+		if (result_dest.has_value())
+		{
+			auto const &result_value = result_dest.get();
+			auto const init_string = context.to_string_struct_literal(result_value.get_type(), {});
+			context.create_assignment(result_value, init_string);
+			return result_value;
+		}
+		else
+		{
+			auto const result_type = get_type(func_call.func_body->return_type, context);
+			auto const init_string = context.to_string_struct_literal(result_type, {});
+			return context.add_value_expression(init_string, result_type);
+		}
+	}
 	case ast::function_body::builtin_integer_range_inclusive_iterator_dereference:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const it_value = generate_expression(func_call.params[0], context, {});
+		auto const integer_value = context.create_struct_gep(it_value, 0);
+		return value_or_result_dest(integer_value, result_dest, context);
+	}
 	case ast::function_body::builtin_integer_range_inclusive_iterator_left_equals:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 2);
+		auto const it_value = generate_expression(func_call.params[0], context, {});
+		generate_expression(func_call.params[1], context, {});
+		auto const at_end = context.create_struct_gep(it_value, 2);
+		return value_or_result_dest(at_end, result_dest, context);
+	}
 	case ast::function_body::builtin_integer_range_inclusive_iterator_right_equals:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 2);
+		generate_expression(func_call.params[0], context, {});
+		auto const it_value = generate_expression(func_call.params[1], context, {});
+		auto const at_end = context.create_struct_gep(it_value, 2);
+		return value_or_result_dest(at_end, result_dest, context);
+	}
 	case ast::function_body::builtin_integer_range_inclusive_iterator_left_not_equals:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 2);
+		auto const it_value = generate_expression(func_call.params[0], context, {});
+		generate_expression(func_call.params[1], context, {});
+		auto const at_end = context.create_struct_gep(it_value, 2);
+		auto const result = context.create_prefix_unary_operation(at_end, "!", context.get_bool());
+		return value_or_result_dest(result, result_dest, context);
+	}
 	case ast::function_body::builtin_integer_range_inclusive_iterator_right_not_equals:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 2);
+		generate_expression(func_call.params[0], context, {});
+		auto const it_value = generate_expression(func_call.params[1], context, {});
+		auto const at_end = context.create_struct_gep(it_value, 2);
+		auto const result = context.create_prefix_unary_operation(at_end, "!", context.get_bool());
+		return value_or_result_dest(result, result_dest, context);
+	}
 	case ast::function_body::builtin_integer_range_inclusive_iterator_plus_plus:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const it_value = generate_expression(func_call.params[0], context, {});
+		auto const integer_value_ref = context.create_struct_gep(it_value, 0);
+		auto const end_value = context.create_struct_gep(it_value, 1);
+
+		auto const is_at_end = context.to_string_binary(integer_value_ref, end_value, "==", precedence::equality);
+		context.begin_if(is_at_end);
+
+		context.create_assignment(context.create_struct_gep(it_value, 2), "1");
+
+		context.begin_else();
+
+		context.create_prefix_unary_operation(integer_value_ref, "++");
+
+		context.end_if();
+
+		return it_value;
+	}
 	case ast::function_body::builtin_integer_range_from_begin_iterator:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const range_value = generate_expression(func_call.params[0], context, {});
+		auto const begin_value = context.create_struct_gep(range_value, 0);
+
+		if (result_dest.has_value())
+		{
+			auto const &result_value = result_dest.get();
+			auto const init_string = context.to_string_struct_literal(result_value.get_type(), begin_value);
+			context.create_assignment(result_value, init_string);
+			return result_value;
+		}
+		else
+		{
+			auto const result_type = get_type(func_call.func_body->return_type, context);
+			auto const init_string = context.to_string_struct_literal(result_type, begin_value);
+			return context.add_value_expression(init_string, result_type);
+		}
+	}
 	case ast::function_body::builtin_integer_range_from_end_iterator:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		generate_expression(func_call.params[0], context, {});
+
+		if (result_dest.has_value())
+		{
+			auto const &result_value = result_dest.get();
+			auto const init_string = context.to_string_struct_literal(result_value.get_type(), {});
+			context.create_assignment(result_value, init_string);
+			return result_value;
+		}
+		else
+		{
+			auto const result_type = get_type(func_call.func_body->return_type, context);
+			auto const init_string = context.to_string_struct_literal(result_type, {});
+			return context.add_value_expression(init_string, result_type);
+		}
+	}
 	case ast::function_body::builtin_integer_range_from_iterator_dereference:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const it_value = generate_expression(func_call.params[0], context, {});
+		auto const integer_value = context.create_struct_gep(it_value, 0);
+		return value_or_result_dest(integer_value, result_dest, context);
+	}
 	case ast::function_body::builtin_integer_range_from_iterator_left_equals:
 	case ast::function_body::builtin_integer_range_from_iterator_right_equals:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 2);
+		generate_expression(func_call.params[0], context, {});
+		generate_expression(func_call.params[1], context, {});
+		return value_or_result_dest("0", context.get_bool(), result_dest, context);
+	}
 	case ast::function_body::builtin_integer_range_from_iterator_left_not_equals:
 	case ast::function_body::builtin_integer_range_from_iterator_right_not_equals:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 2);
+		generate_expression(func_call.params[0], context, {});
+		generate_expression(func_call.params[1], context, {});
+		return value_or_result_dest("1", context.get_bool(), result_dest, context);
+	}
 	case ast::function_body::builtin_integer_range_from_iterator_plus_plus:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const it_value = generate_expression(func_call.params[0], context, {});
+		auto const integer_value_ref = context.create_struct_gep(it_value, 0);
+		context.create_prefix_unary_operation(integer_value_ref, "++");
+		return it_value;
+	}
 	case ast::function_body::builtin_optional_get_value_ref:
 	case ast::function_body::builtin_optional_get_mut_value_ref:
-		bz_unreachable; // TODO
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const value = generate_expression(func_call.params[0], context, {});
+		generate_optional_get_value_check(func_call.src_tokens, value, context);
+		bz_assert(!result_dest.has_value());
+		return get_optional_value(value, context);
+	}
 	case ast::function_body::builtin_optional_get_value:
 		// this is handled as a separate expression, not a function call
 		bz_unreachable;
