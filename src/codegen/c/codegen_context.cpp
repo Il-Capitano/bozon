@@ -1431,6 +1431,27 @@ expr_value codegen_context::create_struct_gep_value(expr_value value, size_t ind
 	}
 }
 
+expr_value codegen_context::create_array_gep(expr_value value, expr_value index)
+{
+	bz_assert(this->is_array(value.get_type()));
+	auto const array_type = this->maybe_get_array(value.get_type());
+	auto const result_type = array_type->elem_type;
+	auto const use_arrow = value.needs_dereference;
+	remove_needs_dereference(value, *this);
+
+	bz::u8string member_access_string = this->to_string_unary(value, precedence::suffix);
+	if (use_arrow)
+	{
+		member_access_string += "->a + ";
+	}
+	else
+	{
+		member_access_string += ".a + ";
+	}
+	member_access_string += this->to_string_rhs(index, precedence::addition);
+	return this->add_reference_expression(member_access_string, result_type, value.is_const);
+}
+
 expr_value codegen_context::create_dereference(expr_value value)
 {
 	bz_assert(this->is_pointer(value.get_type()));

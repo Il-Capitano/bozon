@@ -893,6 +893,26 @@ static void generate_optional_get_value_check(lex::src_tokens const &src_tokens,
 	}
 }
 
+struct loop_info_t
+{
+	expr_value index;
+};
+
+static loop_info_t create_loop_start(size_t size, codegen_context &context)
+{
+	auto const index = context.add_value_expression("0", context.get_usize());
+	auto const condition  = context.to_string_binary(index, bz::format("{}u", size), "<", precedence::relational);
+	context.begin_while(condition);
+
+	return { index };
+}
+
+static void create_loop_end(loop_info_t loop_info, codegen_context &context)
+{
+	context.create_prefix_unary_operation(loop_info.index, "++");
+	context.end_while();
+}
+
 static expr_value generate_expression(
 	ast::expr_variable_name const &var_name,
 	codegen_context &context
@@ -1039,14 +1059,34 @@ static expr_value generate_expression(
 	return result_dest.has_value() ? result_dest.get() : context.get_void_value();
 }
 
-static expr_value generate_expression(
-	ast::expr_unary_op const &,
+static expr_value generate_builtin_unary_address_of(
+	ast::expression const &expr,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
 )
 {
-	// TODO
-	bz_unreachable;
+	auto const value = generate_expression(expr, context, {});
+	auto const value_ptr = context.create_address_of(value);
+	return value_or_result_dest(value_ptr, result_dest, context);
+}
+
+static expr_value generate_expression(
+	ast::expr_unary_op const &unary_op,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	switch (unary_op.op)
+	{
+	case lex::token::address_of:
+		return generate_builtin_unary_address_of(unary_op.expr, context, result_dest);
+	case lex::token::kw_move:
+	case lex::token::kw_unsafe_move:
+		bz_assert(!result_dest.has_value());
+		return generate_expression(unary_op.expr, context, {});
+	default:
+		bz_unreachable;
+	}
 }
 
 static expr_value generate_expression(
@@ -2628,13 +2668,33 @@ static expr_value generate_expression(
 }
 
 static expr_value generate_expression(
-	ast::expr_array_value_init const &,
+	ast::expr_array_value_init const &array_value_init,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
 )
 {
-	// TODO
-	bz_unreachable;
+	bz_assert(array_value_init.type.is<ast::ts_array>());
+	auto const size = array_value_init.type.get<ast::ts_array>().size;
+
+	if (!result_dest.has_value())
+	{
+		result_dest = context.add_uninitialized_value(get_type(array_value_init.type, context));
+	}
+	auto const &result_value = result_dest.get();
+
+	auto const value = generate_expression(array_value_init.value, context, {});
+	auto const prev_value = context.push_value_reference(value);
+
+	auto const loop_info = create_loop_start(size, context);
+
+	auto const elem_result_dest = context.create_array_gep(result_value, loop_info.index);
+	generate_expression(array_value_init.copy_expr, context, elem_result_dest);
+
+	create_loop_end(loop_info, context);
+
+	context.pop_value_reference(prev_value);
+
+	return result_value;
 }
 
 static expr_value generate_expression(
@@ -2659,13 +2719,28 @@ static expr_value generate_expression(
 }
 
 static expr_value generate_expression(
-	ast::expr_array_default_construct const &,
+	ast::expr_array_default_construct const &array_default_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
 )
 {
-	// TODO
-	bz_unreachable;
+	bz_assert(array_default_construct.type.is<ast::ts_array>());
+	auto const size = array_default_construct.type.get<ast::ts_array>().size;
+
+	if (!result_dest.has_value())
+	{
+		result_dest = context.add_uninitialized_value(get_type(array_default_construct.type, context));
+	}
+	auto const &result_value = result_dest.get();
+
+	auto const loop_info = create_loop_start(size, context);
+
+	auto const elem_result_dest = context.create_array_gep(result_value, loop_info.index);
+	generate_expression(array_default_construct.default_construct_expr, context, elem_result_dest);
+
+	create_loop_end(loop_info, context);
+
+	return result_value;
 }
 
 static expr_value generate_expression(
@@ -2720,13 +2795,32 @@ static expr_value generate_expression(
 }
 
 static expr_value generate_expression(
-	ast::expr_array_copy_construct const &,
+	ast::expr_array_copy_construct const &array_copy_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
 )
 {
-	// TODO
-	bz_unreachable;
+	auto const copied_value = generate_expression(array_copy_construct.copied_value, context, {});
+
+	if (!result_dest.has_value())
+	{
+		result_dest = context.add_uninitialized_value(copied_value.get_type());
+	}
+	auto const &result_value = result_dest.get();
+
+	bz_assert(context.is_array(copied_value.get_type()));
+	auto const size = context.maybe_get_array(copied_value.get_type())->size;
+	auto const loop_info = create_loop_start(size, context);
+
+	auto const elem_result_dest = context.create_array_gep(result_value, loop_info.index);
+	auto const copied_elem = context.create_array_gep(copied_value, loop_info.index);
+	auto const prev_value = context.push_value_reference(copied_elem);
+	generate_expression(array_copy_construct.copy_expr, context, elem_result_dest);
+	context.pop_value_reference(prev_value);
+
+	create_loop_end(loop_info, context);
+
+	return result_value;
 }
 
 static expr_value generate_expression(
@@ -2741,7 +2835,6 @@ static expr_value generate_expression(
 	{
 		result_dest = context.add_uninitialized_value(copied_value.get_type());
 	}
-
 	auto const &result_value = result_dest.get();
 
 	auto const has_value = get_optional_has_value(copied_value, context);
@@ -2805,13 +2898,32 @@ static expr_value generate_expression(
 }
 
 static expr_value generate_expression(
-	ast::expr_array_move_construct const &,
+	ast::expr_array_move_construct const &array_move_construct,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
 )
 {
-	// TODO
-	bz_unreachable;
+	auto const moved_value = generate_expression(array_move_construct.moved_value, context, {});
+
+	if (!result_dest.has_value())
+	{
+		result_dest = context.add_uninitialized_value(moved_value.get_type());
+	}
+	auto const &result_value = result_dest.get();
+
+	bz_assert(context.is_array(moved_value.get_type()));
+	auto const size = context.maybe_get_array(moved_value.get_type())->size;
+	auto const loop_info = create_loop_start(size, context);
+
+	auto const elem_result_dest = context.create_array_gep(result_value, loop_info.index);
+	auto const moved_elem = context.create_array_gep(moved_value, loop_info.index);
+	auto const prev_value = context.push_value_reference(moved_elem);
+	generate_expression(array_move_construct.move_expr, context, elem_result_dest);
+	context.pop_value_reference(prev_value);
+
+	create_loop_end(loop_info, context);
+
+	return result_value;
 }
 
 static expr_value generate_expression(
@@ -2826,7 +2938,6 @@ static expr_value generate_expression(
 	{
 		result_dest = context.add_uninitialized_value(moved_value.get_type());
 	}
-
 	auto const &result_value = result_dest.get();
 
 	auto const has_value = get_optional_has_value(moved_value, context);
@@ -2886,12 +2997,24 @@ static expr_value generate_expression(
 }
 
 static expr_value generate_expression(
-	ast::expr_array_destruct const &,
+	ast::expr_array_destruct const &array_destruct,
 	codegen_context &context
 )
 {
-	// TODO
-	bz_unreachable;
+	auto const value = generate_expression(array_destruct.value, context, {});
+
+	bz_assert(context.is_array(value.get_type()));
+	auto const size = context.maybe_get_array(value.get_type())->size;
+	auto const loop_info = create_loop_start(size, context);
+
+	auto const elem_value = context.create_array_gep(value, loop_info.index);
+	auto const prev_value = context.push_value_reference(elem_value);
+	generate_expression(array_destruct.elem_destruct_call, context, {});
+	context.pop_value_reference(prev_value);
+
+	create_loop_end(loop_info, context);
+
+	return context.get_void_value();
 }
 
 static expr_value generate_expression(
@@ -2999,12 +3122,30 @@ static expr_value generate_expression(
 }
 
 static expr_value generate_expression(
-	ast::expr_array_swap const &,
+	ast::expr_array_swap const &array_swap,
 	codegen_context &context
 )
 {
-	// TODO
-	bz_unreachable;
+	auto const lhs = generate_expression(array_swap.lhs, context, {});
+	auto const rhs = generate_expression(array_swap.rhs, context, {});
+	create_pointer_compare_begin(lhs, rhs, context);
+
+	bz_assert(context.is_array(lhs.get_type()));
+	auto const size = context.maybe_get_array(lhs.get_type())->size;
+	auto const loop_info = create_loop_start(size, context);
+
+	auto const lhs_element = context.create_array_gep(lhs, loop_info.index);
+	auto const rhs_element = context.create_array_gep(rhs, loop_info.index);
+	auto const lhs_prev_value = context.push_value_reference(lhs_element);
+	auto const rhs_prev_value = context.push_value_reference(rhs_element);
+	generate_expression(array_swap.swap_expr, context, {});
+	context.pop_value_reference(rhs_prev_value);
+	context.pop_value_reference(lhs_prev_value);
+
+	create_loop_end(loop_info, context);
+
+	create_pointer_compare_end(context);
+	return context.get_void_value();
 }
 
 static expr_value generate_expression(
@@ -3160,12 +3301,30 @@ static expr_value generate_expression(
 }
 
 static expr_value generate_expression(
-	ast::expr_array_assign const &,
+	ast::expr_array_assign const &array_assign,
 	codegen_context &context
 )
 {
-	// TODO
-	bz_unreachable;
+	auto const rhs = generate_expression(array_assign.rhs, context, {});
+	auto const lhs = generate_expression(array_assign.lhs, context, {});
+	create_pointer_compare_begin(lhs, rhs, context);
+
+	bz_assert(context.is_array(lhs.get_type()));
+	auto const size = context.maybe_get_array(lhs.get_type())->size;
+	auto const loop_info = create_loop_start(size, context);
+
+	auto const lhs_element = context.create_array_gep(lhs, loop_info.index);
+	auto const rhs_element = context.create_array_gep(rhs, loop_info.index);
+	auto const lhs_prev_value = context.push_value_reference(lhs_element);
+	auto const rhs_prev_value = context.push_value_reference(rhs_element);
+	generate_expression(array_assign.assign_expr, context, {});
+	context.pop_value_reference(rhs_prev_value);
+	context.pop_value_reference(lhs_prev_value);
+
+	create_loop_end(loop_info, context);
+
+	create_pointer_compare_end(context);
+	return context.get_void_value();
 }
 
 static expr_value generate_expression(
