@@ -73,8 +73,11 @@ struct codegen_context
 
 	struct while_info_t
 	{
-		bool needs_goto;
-		size_t goto_index;
+		bool needs_break_goto;
+		bool may_need_continue_goto;
+		bool needs_continue_goto;
+		size_t break_goto_index;
+		size_t continue_goto_index;
 	};
 
 	struct switch_info_t
@@ -102,7 +105,13 @@ struct codegen_context
 
 		if_info_t if_info = { .in_if = false };
 		uint32_t loop_level = 0;
-		while_info_t while_info = { .needs_goto = false, .goto_index = 0 };
+		while_info_t while_info = {
+			.needs_break_goto = false,
+			.may_need_continue_goto = false,
+			.needs_continue_goto = false,
+			.break_goto_index = 0,
+			.continue_goto_index = 0,
+		};
 		switch_info_t switch_info = { .in_switch = false, .loop_level = 0 };
 	};
 
@@ -183,6 +192,10 @@ struct codegen_context
 	struct_type_t const *maybe_get_struct(type t) const;
 	bool is_array(type t) const;
 	array_type_t const *maybe_get_array(type t) const;
+	bool is_function(type t) const;
+	function_type_t const *maybe_get_function(type t) const;
+
+	bool is_pointer_or_function(type t) const;
 
 	using struct_infos_iterator = std::unordered_map<ast::type_info const *, struct_info_t>::iterator;
 	std::pair<bool, struct_infos_iterator> should_resolve_struct(ast::type_info const &info);
@@ -252,8 +265,8 @@ struct codegen_context
 	void begin_else_if(bz::u8string_view condition);
 	void end_if(if_info_t prev_if_info);
 
-	[[nodiscard]] while_info_t begin_while(expr_value condition);
-	[[nodiscard]] while_info_t begin_while(bz::u8string_view condition);
+	[[nodiscard]] while_info_t begin_while(expr_value condition, bool may_need_continue_goto = false);
+	[[nodiscard]] while_info_t begin_while(bz::u8string_view condition, bool may_need_continue_goto = false);
 	void end_while(while_info_t prev_while_info);
 
 	[[nodiscard]] switch_info_t begin_switch(expr_value value);
@@ -265,6 +278,7 @@ struct codegen_context
 	void end_switch(switch_info_t prev_switch_info);
 
 	bz::optional<size_t> get_break_goto_index(void);
+	bz::optional<size_t> get_continue_goto_index(void);
 
 	void add_return(void);
 	void add_return(expr_value value);
@@ -275,9 +289,12 @@ struct codegen_context
 
 	expr_value get_void_value(void) const;
 	expr_value create_struct_gep(expr_value value, size_t index);
+	expr_value create_struct_gep_pointer(expr_value value, size_t index);
 	expr_value create_struct_gep_value(expr_value value, size_t index);
 	expr_value create_array_gep(expr_value value, expr_value index);
+	expr_value create_array_gep_pointer(expr_value value, expr_value index);
 	expr_value create_array_slice_gep(expr_value begin_ptr, expr_value index);
+	expr_value create_array_slice_gep_pointer(expr_value begin_ptr, expr_value index);
 	expr_value create_dereference(expr_value value);
 	expr_value create_address_of(expr_value value);
 

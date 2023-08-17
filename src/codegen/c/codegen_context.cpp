@@ -413,6 +413,46 @@ array_type_t const *codegen_context::maybe_get_array(type t) const
 	}
 }
 
+bool codegen_context::is_function(type t) const
+{
+	while (t.is_typedef())
+	{
+		auto const &typedef_type = this->get_typedef(t.get_typedef());
+		t = typedef_type.aliased_type;
+	}
+
+	return t.is_function();
+}
+
+function_type_t const *codegen_context::maybe_get_function(type t) const
+{
+	while (t.is_typedef())
+	{
+		auto const &typedef_type = this->get_typedef(t.get_typedef());
+		t = typedef_type.aliased_type;
+	}
+
+	if (t.is_function())
+	{
+		return &this->get_function(t.get_function());
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
+bool codegen_context::is_pointer_or_function(type t) const
+{
+	while (t.is_typedef())
+	{
+		auto const &typedef_type = this->get_typedef(t.get_typedef());
+		t = typedef_type.aliased_type;
+	}
+
+	return t.is_pointer() || t.is_function();
+}
+
 std::pair<bool, codegen_context::struct_infos_iterator> codegen_context::should_resolve_struct(ast::type_info const &info)
 {
 	auto const it = this->struct_infos.find(&info);
@@ -623,6 +663,10 @@ type::function_reference codegen_context::add_function(function_type_t function_
 			this->typedefs_string += ", ";
 			this->typedefs_string += this->to_string(param_type);
 		}
+	}
+	else
+	{
+		this->typedefs_string += "void";
 	}
 	this->typedefs_string += ");\n";
 
@@ -855,8 +899,9 @@ void codegen_context::reset_current_function(ast::function_body &func_body)
 
 codegen_context::function_info_t const &codegen_context::get_function(ast::function_body &func_body_)
 {
+	bz_assert(!func_body_.is_intrinsic() || func_body_.intrinsic_kind != ast::function_body::builtin_call_main || this->global_ctx._main != nullptr);
 	auto &func_body = func_body_.is_intrinsic() && func_body_.intrinsic_kind == ast::function_body::builtin_call_main
-		? (bz_assert(this->global_ctx._main != nullptr), *this->global_ctx._main)
+		? *this->global_ctx._main
 		: func_body_;
 	if (auto const it = this->functions.find(&func_body); it != this->functions.end())
 	{
@@ -1302,12 +1347,12 @@ void codegen_context::end_if(if_info_t prev_if_info)
 	this->current_function_info.body_string += "}\n";
 }
 
-[[nodiscard]] codegen_context::while_info_t codegen_context::begin_while(expr_value condition)
+[[nodiscard]] codegen_context::while_info_t codegen_context::begin_while(expr_value condition, bool may_need_continue_goto)
 {
 	return this->begin_while(this->to_string(condition));
 }
 
-[[nodiscard]] codegen_context::while_info_t codegen_context::begin_while(bz::u8string_view condition)
+[[nodiscard]] codegen_context::while_info_t codegen_context::begin_while(bz::u8string_view condition, bool may_need_continue_goto)
 {
 	this->add_indentation();
 	this->current_function_info.body_string += "while (";
@@ -1319,7 +1364,13 @@ void codegen_context::end_if(if_info_t prev_if_info)
 
 	auto const result = this->current_function_info.while_info;
 	this->current_function_info.loop_level += 1;
-	this->current_function_info.while_info = { .needs_goto = false, .goto_index = 0 };
+	this->current_function_info.while_info = {
+		.needs_break_goto = false,
+		.may_need_continue_goto = may_need_continue_goto,
+		.needs_continue_goto = false,
+		.break_goto_index = 0,
+		.continue_goto_index = 0,
+	};
 	return result;
 }
 
@@ -1329,10 +1380,10 @@ void codegen_context::end_while(while_info_t prev_while_info)
 	this->add_indentation();
 	this->current_function_info.body_string += "}\n";
 
-	if (this->current_function_info.while_info.needs_goto)
+	if (this->current_function_info.while_info.needs_break_goto)
 	{
 		this->add_indentation();
-		this->current_function_info.body_string += this->make_goto_label(this->current_function_info.while_info.goto_index);
+		this->current_function_info.body_string += this->make_goto_label(this->current_function_info.while_info.needs_break_goto);
 		this->current_function_info.body_string += ":;\n";
 	}
 
@@ -1413,16 +1464,34 @@ bz::optional<size_t> codegen_context::get_break_goto_index(void)
 		&& this->current_function_info.switch_info.loop_level == this->current_function_info.loop_level
 	)
 	{
-		if (this->current_function_info.while_info.needs_goto)
+		if (this->current_function_info.while_info.needs_break_goto)
 		{
-			return this->current_function_info.while_info.goto_index;
+			return this->current_function_info.while_info.break_goto_index;
 		}
 		else
 		{
-			this->current_function_info.while_info.needs_goto = true;
-			this->current_function_info.while_info.goto_index = this->get_unique_number();
-			return this->current_function_info.while_info.goto_index;
+			this->current_function_info.while_info.needs_break_goto = true;
+			this->current_function_info.while_info.break_goto_index = this->get_unique_number();
+			return this->current_function_info.while_info.break_goto_index;
 		}
+	}
+	else
+	{
+		return {};
+	}
+}
+
+bz::optional<size_t> codegen_context::get_continue_goto_index(void)
+{
+	if (this->current_function_info.while_info.needs_continue_goto)
+	{
+		return this->current_function_info.while_info.continue_goto_index;
+	}
+	else if (this->current_function_info.while_info.may_need_continue_goto)
+	{
+		this->current_function_info.while_info.needs_continue_goto = true;
+		this->current_function_info.while_info.continue_goto_index = this->get_unique_number();
+		return this->current_function_info.while_info.continue_goto_index;
 	}
 	else
 	{
@@ -1527,6 +1596,58 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 	}
 }
 
+expr_value codegen_context::create_struct_gep_pointer(expr_value value, size_t index)
+{
+	auto const type = value.get_type();
+	if (auto const struct_type = this->maybe_get_struct(type))
+	{
+		bz_assert(index < struct_type->members.size());
+		auto const member_type = struct_type->members[index];
+		auto const use_arrow = value.needs_dereference;
+		auto const is_const = value.is_const;
+		remove_needs_dereference(value, *this);
+
+		// address of has a lower precedence than suffix, so this is fine
+		bz::u8string member_access_string = "&";
+		member_access_string += this->to_string_unary(value, precedence::suffix);
+		if (use_arrow)
+		{
+			member_access_string += "->";
+		}
+		else
+		{
+			member_access_string += '.';
+		}
+		member_access_string += this->get_member_name(index);
+		auto const result_type = is_const ? this->add_const_pointer(member_type) : this->add_pointer(member_type);
+		return this->add_value_expression(member_access_string, result_type);
+	}
+	else if (auto const array_type = this->maybe_get_array(type))
+	{
+		bz_assert(index <= array_type->size);
+		auto const elem_type = array_type->elem_type;
+		auto const use_arrow = value.needs_dereference;
+		auto const is_const = value.is_const;
+		remove_needs_dereference(value, *this);
+
+		bz::u8string member_access_string = this->to_string_unary(value, precedence::suffix);
+		if (use_arrow)
+		{
+			member_access_string += bz::format("->a + {}", index);
+		}
+		else
+		{
+			member_access_string += bz::format(".a + {}", index);
+		}
+		auto const result_type = is_const ? this->add_const_pointer(elem_type) : this->add_pointer(elem_type);
+		return this->add_value_expression(member_access_string, result_type);
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
 expr_value codegen_context::create_struct_gep_value(expr_value value, size_t index)
 {
 	auto const type = value.get_type();
@@ -1596,12 +1717,42 @@ expr_value codegen_context::create_array_gep(expr_value value, expr_value index)
 	return this->add_reference_expression(member_access_string, result_type, is_const);
 }
 
+expr_value codegen_context::create_array_gep_pointer(expr_value value, expr_value index)
+{
+	bz_assert(this->is_array(value.get_type()));
+	auto const array_type = this->maybe_get_array(value.get_type());
+	auto const elem_type = array_type->elem_type;
+	auto const use_arrow = value.needs_dereference;
+	auto const is_const = value.is_const;
+	remove_needs_dereference(value, *this);
+
+	bz::u8string member_access_string = this->to_string_unary(value, precedence::suffix);
+	if (use_arrow)
+	{
+		member_access_string += "->a + ";
+	}
+	else
+	{
+		member_access_string += ".a + ";
+	}
+	member_access_string += this->to_string_rhs(index, precedence::addition);
+	auto const result_type = is_const ? this->add_const_pointer(elem_type) : this->add_pointer(elem_type);
+	return this->add_value_expression(member_access_string, result_type);
+}
+
 expr_value codegen_context::create_array_slice_gep(expr_value begin_ptr, expr_value index)
 {
 	bz_assert(this->is_pointer(begin_ptr.get_type()));
 	auto const [result_type, result_modifier] = this->remove_pointer(begin_ptr.get_type());
 	auto const result_ptr = this->to_string_binary(begin_ptr, index, "+", precedence::addition);
 	return this->add_reference_expression(result_ptr, result_type, result_modifier == type_modifier::const_pointer);
+}
+
+expr_value codegen_context::create_array_slice_gep_pointer(expr_value begin_ptr, expr_value index)
+{
+	bz_assert(this->is_pointer(begin_ptr.get_type()));
+	auto const result_ptr = this->to_string_binary(begin_ptr, index, "+", precedence::addition);
+	return this->add_value_expression(result_ptr, begin_ptr.get_type());
 }
 
 expr_value codegen_context::create_dereference(expr_value value)
@@ -2070,19 +2221,19 @@ static t_uint8 bozon_popcount_u8(t_uint8 n)
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_popcount)
-		return __builtin_popcount(n) - 8 * (sizeof (unsigned int) - int_size);
+		return (t_uint8)__builtin_popcount(n);
 #endif
 	}
 	else if (int_size <= sizeof (unsigned long))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_popcountl)
-		return __builtin_popcountl(n) - 8 * (sizeof (unsigned long) - int_size);
+		return (t_uint8)__builtin_popcountl(n);
 #endif
 	}
 	else
 	{
 #if BOZON_HAS_BUILTIN(__builtin_popcountll)
-		return __builtin_popcountll(n) - 8 * (sizeof (unsigned long long) - int_size);
+		return (t_uint8)__builtin_popcountll(n);
 #endif
 	}
 	t_uint8 c = 0;
@@ -2098,19 +2249,19 @@ static t_uint16 bozon_popcount_u16(t_uint16 n)
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_popcount)
-		return __builtin_popcount(n) - 8 * (sizeof (unsigned int) - int_size);
+		return (t_uint16)__builtin_popcount(n);
 #endif
 	}
 	else if (int_size <= sizeof (unsigned long))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_popcountl)
-		return __builtin_popcountl(n) - 8 * (sizeof (unsigned long) - int_size);
+		return (t_uint16)__builtin_popcountl(n);
 #endif
 	}
 	else
 	{
 #if BOZON_HAS_BUILTIN(__builtin_popcountll)
-		return __builtin_popcountll(n) - 8 * (sizeof (unsigned long long) - int_size);
+		return (t_uint16)__builtin_popcountll(n);
 #endif
 	}
 	t_uint16 c = 0;
@@ -2126,19 +2277,19 @@ static t_uint32 bozon_popcount_u32(t_uint32 n)
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_popcount)
-		return __builtin_popcount(n) - 8 * (sizeof (unsigned int) - int_size);
+		return (t_uint32)__builtin_popcount(n);
 #endif
 	}
 	else if (int_size <= sizeof (unsigned long))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_popcountl)
-		return __builtin_popcountl(n) - 8 * (sizeof (unsigned long) - int_size);
+		return (t_uint32)__builtin_popcountl(n);
 #endif
 	}
 	else
 	{
 #if BOZON_HAS_BUILTIN(__builtin_popcountll)
-		return __builtin_popcountll(n) - 8 * (sizeof (unsigned long long) - int_size);
+		return (t_uint32)__builtin_popcountll(n);
 #endif
 	}
 	t_uint32 c = 0;
@@ -2154,19 +2305,19 @@ static t_uint64 bozon_popcount_u64(t_uint64 n)
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_popcount)
-		return __builtin_popcount(n) - 8 * (sizeof (unsigned int) - int_size);
+		return (t_uint64)__builtin_popcount(n);
 #endif
 	}
 	else if (int_size <= sizeof (unsigned long))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_popcountl)
-		return __builtin_popcountl(n) - 8 * (sizeof (unsigned long) - int_size);
+		return (t_uint64)__builtin_popcountl(n);
 #endif
 	}
 	else
 	{
 #if BOZON_HAS_BUILTIN(__builtin_popcountll)
-		return __builtin_popcountll(n) - 8 * (sizeof (unsigned long long) - int_size);
+		return (t_uint64)__builtin_popcountll(n);
 #endif
 	}
 	t_uint64 c = 0;
@@ -2212,19 +2363,19 @@ static t_uint8 bozon_clz_u8(t_uint8 n)
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clz)
-		return __builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size);
+		return (t_uint8)(__builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size));
 #endif
 	}
 	else if (int_size <= sizeof (unsigned long))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clzl)
-		return __builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size);
+		return (t_uint8)(__builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size));
 #endif
 	}
 	else
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clzll)
-		return __builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size);
+		return (t_uint8)(__builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size));
 #endif
 	}
 	t_uint8 c = 8 * int_size - 1;
@@ -2245,19 +2396,19 @@ static t_uint16 bozon_clz_u16(t_uint16 n)
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clz)
-		return __builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size);
+		return (t_uint16)(__builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size));
 #endif
 	}
 	else if (int_size <= sizeof (unsigned long))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clzl)
-		return __builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size);
+		return (t_uint16)(__builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size));
 #endif
 	}
 	else
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clzll)
-		return __builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size);
+		return (t_uint16)(__builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size));
 #endif
 	}
 	t_uint16 c = 8 * int_size - 1;
@@ -2278,19 +2429,19 @@ static t_uint32 bozon_clz_u32(t_uint32 n)
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clz)
-		return __builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size);
+		return (t_uint32)(__builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size));
 #endif
 	}
 	else if (int_size <= sizeof (unsigned long))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clzl)
-		return __builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size);
+		return (t_uint32)(__builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size));
 #endif
 	}
 	else
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clzll)
-		return __builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size);
+		return (t_uint32)(__builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size));
 #endif
 	}
 	t_uint32 c = 8 * int_size - 1;
@@ -2311,19 +2462,19 @@ static t_uint64 bozon_clz_u64(t_uint64 n)
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clz)
-		return __builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size);
+		return (t_uint64)(__builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size));
 #endif
 	}
 	else if (int_size <= sizeof (unsigned long))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clzl)
-		return __builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size);
+		return (t_uint64)(__builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size));
 #endif
 	}
 	else
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clzll)
-		return __builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size);
+		return (t_uint64)(__builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size));
 #endif
 	}
 	t_uint64 c = 8 * int_size - 1;
@@ -2344,19 +2495,19 @@ static t_uint8 bozon_ctz_u8(t_uint8 n)
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_ctz)
-		return __builtin_ctz(n);
+		return (t_uint8)__builtin_ctz(n);
 #endif
 	}
 	else if (int_size <= sizeof (unsigned long))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_ctzl)
-		return __builtin_ctzl(n);
+		return (t_uint8)__builtin_ctzl(n);
 #endif
 	}
 	else
 	{
 #if BOZON_HAS_BUILTIN(__builtin_ctzll)
-		return __builtin_ctzll(n);
+		return (t_uint8)__builtin_ctzll(n);
 #endif
 	}
 	t_uint8 c = 0;
@@ -2375,19 +2526,19 @@ static t_uint16 bozon_ctz_u16(t_uint16 n)
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_ctz)
-		return __builtin_ctz(n);
+		return (t_uint16)__builtin_ctz(n);
 #endif
 	}
 	else if (int_size <= sizeof (unsigned long))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_ctzl)
-		return __builtin_ctzl(n);
+		return (t_uint16)__builtin_ctzl(n);
 #endif
 	}
 	else
 	{
 #if BOZON_HAS_BUILTIN(__builtin_ctzll)
-		return __builtin_ctzll(n);
+		return (t_uint16)__builtin_ctzll(n);
 #endif
 	}
 	t_uint16 c = 0;
@@ -2406,19 +2557,19 @@ static t_uint32 bozon_ctz_u32(t_uint32 n)
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_ctz)
-		return __builtin_ctz(n);
+		return (t_uint32)__builtin_ctz(n);
 #endif
 	}
 	else if (int_size <= sizeof (unsigned long))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_ctzl)
-		return __builtin_ctzl(n);
+		return (t_uint32)__builtin_ctzl(n);
 #endif
 	}
 	else
 	{
 #if BOZON_HAS_BUILTIN(__builtin_ctzll)
-		return __builtin_ctzll(n);
+		return (t_uint32)__builtin_ctzll(n);
 #endif
 	}
 	t_uint32 c = 0;
@@ -2437,19 +2588,19 @@ static t_uint64 bozon_ctz_u64(t_uint64 n)
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_ctz)
-		return __builtin_ctz(n);
+		return (t_uint64)__builtin_ctz(n);
 #endif
 	}
 	else if (int_size <= sizeof (unsigned long))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_ctzl)
-		return __builtin_ctzl(n);
+		return (t_uint64)__builtin_ctzl(n);
 #endif
 	}
 	else
 	{
 #if BOZON_HAS_BUILTIN(__builtin_ctzll)
-		return __builtin_ctzll(n);
+		return (t_uint64)__builtin_ctzll(n);
 #endif
 	}
 	t_uint64 c = 0;
@@ -2465,12 +2616,12 @@ static t_uint64 bozon_ctz_u64(t_uint64 n)
 static t_uint8 bozon_fshl_u8(t_uint8 a, t_uint8 b, t_uint8 amount)
 {
 	amount %= 8;
-	return amount == 0 ? a : ((a << amount) | (b >> (8 - amount)));
+	return amount == 0 ? a : (t_uint8)((a << amount) | (b >> (8 - amount)));
 }
 static t_uint16 bozon_fshl_u16(t_uint16 a, t_uint16 b, t_uint16 amount)
 {
 	amount %= 16;
-	return amount == 0 ? a : ((a << amount) | (b >> (16 - amount)));
+	return amount == 0 ? a : (t_uint16)((a << amount) | (b >> (16 - amount)));
 }
 static t_uint32 bozon_fshl_u32(t_uint32 a, t_uint32 b, t_uint32 amount)
 {
@@ -2485,12 +2636,12 @@ static t_uint64 bozon_fshl_u64(t_uint64 a, t_uint64 b, t_uint64 amount)
 static t_uint8 bozon_fshr_u8(t_uint8 a, t_uint8 b, t_uint8 amount)
 {
 	amount %= 8;
-	return amount == 0 ? b : ((b >> amount) | (a << (8 - amount)));
+	return amount == 0 ? b : (t_uint8)((b >> amount) | (a << (8 - amount)));
 }
 static t_uint16 bozon_fshr_u16(t_uint16 a, t_uint16 b, t_uint16 amount)
 {
 	amount %= 16;
-	return amount == 0 ? b : ((b >> amount) | (a << (16 - amount)));
+	return amount == 0 ? b : (t_uint16)((b >> amount) | (a << (16 - amount)));
 }
 static t_uint32 bozon_fshr_u32(t_uint32 a, t_uint32 b, t_uint32 amount)
 {

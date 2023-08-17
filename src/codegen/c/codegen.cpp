@@ -364,7 +364,7 @@ static void generate_nonzero_constant_array_value(
 	{
 		bz_assert(values.size() % array_type.size == 0);
 		auto const stride = values.size() / array_type.size;
-		for (size_t i = 0; i < array_type.size; i += stride)
+		for (size_t i = 0; i < values.size(); i += stride)
 		{
 			auto const sub_array = values.slice(i, i + stride);
 			generate_nonzero_constant_array_value(buffer, sub_array, array_type.elem_type, context);
@@ -416,7 +416,7 @@ static void generate_nonzero_constant_numeric_array_value(
 	{
 		bz_assert(values.size() % array_type.size == 0);
 		auto const stride = values.size() / array_type.size;
-		for (size_t i = 0; i < array_type.size; i += stride)
+		for (size_t i = 0; i < values.size(); i += stride)
 		{
 			auto const sub_array = values.slice(i, i + stride);
 			generate_nonzero_constant_numeric_array_value<T>(buffer, sub_array, array_type.elem_type, context);
@@ -840,19 +840,19 @@ static void generate_panic_call(
 
 static expr_value get_optional_value(expr_value const &opt_value, codegen_context &context)
 {
-	if (context.is_pointer(opt_value.get_type()))
+	if (context.is_pointer_or_function(opt_value.get_type()))
 	{
 		return opt_value;
 	}
 	else
 	{
-		return context.create_struct_gep_value(opt_value, 0);
+		return context.create_struct_gep(opt_value, 0);
 	}
 }
 
 static expr_value get_optional_has_value(expr_value const &opt_value, codegen_context &context)
 {
-	if (context.is_pointer(opt_value.get_type()))
+	if (context.is_pointer_or_function(opt_value.get_type()))
 	{
 		return context.create_binary_operation(
 			opt_value,
@@ -870,7 +870,7 @@ static expr_value get_optional_has_value(expr_value const &opt_value, codegen_co
 
 static void set_optional_has_value(expr_value const &opt_value, bool has_value, codegen_context &context)
 {
-	if (context.is_pointer(opt_value.get_type()))
+	if (context.is_pointer_or_function(opt_value.get_type()))
 	{
 		if (!has_value)
 		{
@@ -879,14 +879,14 @@ static void set_optional_has_value(expr_value const &opt_value, bool has_value, 
 	}
 	else
 	{
-		context.create_assignment(context.create_struct_gep_value(opt_value, 1), has_value ? "1" : "0");
+		context.create_assignment(context.create_struct_gep(opt_value, 1), has_value ? "1" : "0");
 	}
 }
 
 static void set_optional_has_value(expr_value const &opt_value, expr_value const &has_value, codegen_context &context)
 {
-	bz_assert(!context.is_pointer(opt_value.get_type()));
-	context.create_assignment(context.create_struct_gep_value(opt_value, 1), has_value);
+	bz_assert(!context.is_pointer_or_function(opt_value.get_type()));
+	context.create_assignment(context.create_struct_gep(opt_value, 1), has_value);
 }
 
 static void generate_optional_get_value_check(lex::src_tokens const &src_tokens, expr_value const &opt_value, codegen_context &context)
@@ -1290,7 +1290,7 @@ static expr_value generate_expression(
 		auto const &types = base_type.get<ast::ts_tuple>().types;
 		if (types[index_int_value].is_reference())
 		{
-			auto const ref_value = context.create_struct_gep(tuple, index_int_value);
+			auto const ref_value = context.create_struct_gep_value(tuple, index_int_value);
 			return context.create_dereference(ref_value);
 		}
 		else
@@ -1519,10 +1519,15 @@ static expr_value generate_builtin_binary_plus(
 	auto const lhs_value = generate_expression(lhs, context, {});
 	auto const rhs_value = generate_expression(rhs, context, {});
 
+	auto const lhs_type = lhs.get_expr_type();
 	auto const rhs_type = rhs.get_expr_type();
-	if (rhs_type.is<ast::ts_base_type>() && ast::is_signed_integer_kind(rhs_type.get<ast::ts_base_type>().info->kind))
+	if (
+		lhs_type.is<ast::ts_base_type>()
+		&& rhs_type.is<ast::ts_base_type>()
+		&& ast::is_signed_integer_kind(lhs_type.get<ast::ts_base_type>().info->kind)
+	)
 	{
-		auto const kind = rhs_type.get<ast::ts_base_type>().info->kind;
+		auto const kind = lhs_type.get<ast::ts_base_type>().info->kind;
 		auto const unsigned_type = [&]() {
 			switch (kind)
 			{
@@ -1592,10 +1597,15 @@ static expr_value generate_builtin_binary_plus_eq(
 	auto const rhs_value = generate_expression(rhs, context, {});
 	auto const lhs_value = generate_expression(lhs, context, {});
 
+	auto const lhs_type = lhs.get_expr_type().remove_mut_reference();
 	auto const rhs_type = rhs.get_expr_type();
-	if (rhs_type.is<ast::ts_base_type>() && ast::is_signed_integer_kind(rhs_type.get<ast::ts_base_type>().info->kind))
+	if (
+		lhs_type.is<ast::ts_base_type>()
+		&& rhs_type.is<ast::ts_base_type>()
+		&& ast::is_signed_integer_kind(lhs_type.get<ast::ts_base_type>().info->kind)
+	)
 	{
-		auto const kind = rhs_type.get<ast::ts_base_type>().info->kind;
+		auto const kind = lhs_type.get<ast::ts_base_type>().info->kind;
 		auto const unsigned_type = [&]() {
 			switch (kind)
 			{
@@ -1635,10 +1645,15 @@ static expr_value generate_builtin_binary_minus(
 	auto const lhs_value = generate_expression(lhs, context, {});
 	auto const rhs_value = generate_expression(rhs, context, {});
 
+	auto const lhs_type = lhs.get_expr_type();
 	auto const rhs_type = rhs.get_expr_type();
-	if (rhs_type.is<ast::ts_base_type>() && ast::is_signed_integer_kind(rhs_type.get<ast::ts_base_type>().info->kind))
+	if (
+		lhs_type.is<ast::ts_base_type>()
+		&& rhs_type.is<ast::ts_base_type>()
+		&& ast::is_signed_integer_kind(lhs_type.get<ast::ts_base_type>().info->kind)
+	)
 	{
-		auto const kind = rhs_type.get<ast::ts_base_type>().info->kind;
+		auto const kind = lhs_type.get<ast::ts_base_type>().info->kind;
 		auto const unsigned_type = [&]() {
 			switch (kind)
 			{
@@ -1709,10 +1724,15 @@ static expr_value generate_builtin_binary_minus_eq(
 	auto const rhs_value = generate_expression(rhs, context, {});
 	auto const lhs_value = generate_expression(lhs, context, {});
 
+	auto const lhs_type = lhs.get_expr_type().remove_mut_reference();
 	auto const rhs_type = rhs.get_expr_type();
-	if (rhs_type.is<ast::ts_base_type>() && ast::is_signed_integer_kind(rhs_type.get<ast::ts_base_type>().info->kind))
+	if (
+		lhs_type.is<ast::ts_base_type>()
+		&& rhs_type.is<ast::ts_base_type>()
+		&& ast::is_signed_integer_kind(lhs_type.get<ast::ts_base_type>().info->kind)
+	)
 	{
-		auto const kind = rhs_type.get<ast::ts_base_type>().info->kind;
+		auto const kind = lhs_type.get<ast::ts_base_type>().info->kind;
 		auto const unsigned_type = [&]() {
 			switch (kind)
 			{
@@ -2096,6 +2116,7 @@ static range_kind range_kind_from_name(bz::u8string_view struct_name)
 static expr_value generate_builtin_subscript_range(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
+	ast::typespec_view result_type,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
 )
@@ -2151,8 +2172,8 @@ static expr_value generate_builtin_subscript_range(
 			{
 			case range_kind::regular:
 			{
-				auto const begin_ptr = context.create_array_slice_gep(lhs_begin_ptr, begin_index);
-				auto const end_ptr   = context.create_array_slice_gep(lhs_begin_ptr,   end_index);
+				auto const begin_ptr = context.create_array_slice_gep_pointer(lhs_begin_ptr, begin_index);
+				auto const end_ptr   = context.create_array_slice_gep_pointer(lhs_begin_ptr,   end_index);
 				return {
 					.begin = begin_ptr,
 					.end   = end_ptr,
@@ -2160,7 +2181,7 @@ static expr_value generate_builtin_subscript_range(
 			}
 			case range_kind::from:
 			{
-				auto const begin_ptr = context.create_array_slice_gep(lhs_begin_ptr, begin_index);
+				auto const begin_ptr = context.create_array_slice_gep_pointer(lhs_begin_ptr, begin_index);
 				return {
 					.begin = begin_ptr,
 					.end   = lhs_end_ptr,
@@ -2168,7 +2189,7 @@ static expr_value generate_builtin_subscript_range(
 			}
 			case range_kind::to:
 			{
-				auto const end_ptr = context.create_array_slice_gep(lhs_begin_ptr, end_index);
+				auto const end_ptr = context.create_array_slice_gep_pointer(lhs_begin_ptr, end_index);
 				return {
 					.begin = lhs_begin_ptr,
 					.end   = end_ptr,
@@ -2205,8 +2226,8 @@ static expr_value generate_builtin_subscript_range(
 			{
 			case range_kind::regular:
 			{
-				auto const begin_ptr = context.create_array_gep(lhs_value, begin_index);
-				auto const end_ptr   = context.create_array_gep(lhs_value, end_index);
+				auto const begin_ptr = context.create_array_gep_pointer(lhs_value, begin_index);
+				auto const end_ptr   = context.create_array_gep_pointer(lhs_value, end_index);
 				return {
 					.begin = begin_ptr,
 					.end   = end_ptr,
@@ -2214,8 +2235,8 @@ static expr_value generate_builtin_subscript_range(
 			}
 			case range_kind::from:
 			{
-				auto const begin_ptr = context.create_array_gep(lhs_value, begin_index);
-				auto const end_ptr   = context.create_struct_gep(lhs_value, size);
+				auto const begin_ptr = context.create_array_gep_pointer(lhs_value, begin_index);
+				auto const end_ptr   = context.create_struct_gep_pointer(lhs_value, size);
 				return {
 					.begin = begin_ptr,
 					.end   = end_ptr,
@@ -2223,8 +2244,8 @@ static expr_value generate_builtin_subscript_range(
 			}
 			case range_kind::to:
 			{
-				auto const begin_ptr = context.create_struct_gep(lhs_value, 0);
-				auto const end_ptr   = context.create_array_gep(lhs_value, end_index);
+				auto const begin_ptr = context.create_struct_gep_pointer(lhs_value, 0);
+				auto const end_ptr   = context.create_array_gep_pointer(lhs_value, end_index);
 				return {
 					.begin = begin_ptr,
 					.end   = end_ptr,
@@ -2232,8 +2253,8 @@ static expr_value generate_builtin_subscript_range(
 			}
 			case range_kind::unbounded:
 			{
-				auto const begin_ptr = context.create_struct_gep(lhs_value, 0);
-				auto const end_ptr   = context.create_struct_gep(lhs_value, size);
+				auto const begin_ptr = context.create_struct_gep_pointer(lhs_value, 0);
+				auto const end_ptr   = context.create_struct_gep_pointer(lhs_value, size);
 				return {
 					.begin = begin_ptr,
 					.end   = end_ptr,
@@ -2251,7 +2272,7 @@ static expr_value generate_builtin_subscript_range(
 		}
 		else
 		{
-			auto const slice_type = get_type(lhs_type, context);
+			auto const slice_type = get_type(result_type, context);
 			auto const slice_literal = context.to_string_struct_literal(slice_type, { begin_ptr, end_ptr });
 			return context.add_value_expression(slice_literal, slice_type);
 		}
@@ -2375,7 +2396,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const array = generate_expression(func_call.params[0], context, {});
-		auto const result_value = context.create_address_of(context.create_struct_gep(array, 0));
+		auto const result_value = context.create_struct_gep_pointer(array, 0);
 		return value_or_result_dest(result_value, result_dest, context);
 	}
 	case ast::function_body::builtin_array_end_ptr:
@@ -2385,7 +2406,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const array = generate_expression(func_call.params[0], context, {});
 		bz_assert(context.is_array(array.get_type()));
 		auto const size = context.maybe_get_array(array.get_type())->size;
-		auto const result_value = context.create_address_of(context.create_struct_gep(array, size));
+		auto const result_value = context.create_struct_gep_pointer(array, size);
 		return value_or_result_dest(result_value, result_dest, context);
 	}
 	case ast::function_body::builtin_array_size:
@@ -3594,7 +3615,13 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		);
 	case ast::function_body::builtin_binary_subscript:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_subscript_range(func_call.params[0], func_call.params[1], context, result_dest);
+		return generate_builtin_subscript_range(
+			func_call.params[0],
+			func_call.params[1],
+			func_call.func_body->return_type,
+			context,
+			result_dest
+		);
 	default:
 		bz_unreachable;
 	}
@@ -3649,7 +3676,9 @@ static expr_value generate_function_call(
 	bz::optional<expr_value> result_dest
 )
 {
-	auto const needs_result_address = !return_type.is<ast::ts_void>() && !ast::is_trivially_relocatable(return_type);
+	auto const needs_result_address = !return_type.is<ast::ts_void>()
+		&& !return_type.is_any_reference()
+		&& !ast::is_trivially_relocatable(return_type);
 
 	if (needs_result_address && !result_dest.has_value())
 	{
@@ -3840,10 +3869,11 @@ static expr_value generate_expression(
 	bz::optional<expr_value> result_dest
 )
 {
-	bz_assert(indirect_function_call.called.get_expr_type().is<ast::ts_function>() || indirect_function_call.called.get_expr_type().is_optional_function());
-	auto const &fn_type = indirect_function_call.called.get_expr_type().is<ast::ts_function>()
-		? indirect_function_call.called.get_expr_type().get<ast::ts_function>()
-		: indirect_function_call.called.get_expr_type().get_optional_function();
+	auto const called_type = indirect_function_call.called.get_expr_type().remove_any_mut();
+	bz_assert(called_type.is<ast::ts_function>() || called_type.is_optional_function());
+	auto const &fn_type = called_type.is<ast::ts_function>()
+		? called_type.get<ast::ts_function>()
+		: called_type.get_optional_function();
 	auto const func_value = generate_expression(indirect_function_call.called, context, {});
 	auto const func_string = context.to_string_unary(func_value, precedence::suffix);
 
@@ -3891,8 +3921,8 @@ static expr_value generate_expression(
 		auto const expr_value = generate_expression(cast.expr, context, {});
 		bz_assert(context.is_array(expr_value.get_type()));
 		auto const array_size = context.maybe_get_array(expr_value.get_type())->size;
-		auto const begin_ptr = context.create_address_of(context.create_struct_gep(expr_value, 0));
-		auto const end_ptr   = context.create_address_of(context.create_struct_gep(expr_value, array_size));
+		auto const begin_ptr = context.create_struct_gep_pointer(expr_value, 0);
+		auto const end_ptr   = context.create_struct_gep_pointer(expr_value, array_size);
 
 		if (!result_dest.has_value())
 		{
@@ -4421,23 +4451,40 @@ static expr_value generate_expression(
 	return context.get_void_value();
 }
 
-[[nodiscard]] static codegen_context::if_info_t create_pointer_compare_begin(
+struct pointer_compare_info_t
+{
+	codegen_context::if_info_t prev_if_info;
+	bool compare_needed;
+};
+
+[[nodiscard]] static pointer_compare_info_t create_pointer_compare_begin(
 	expr_value const &lhs,
 	expr_value const &rhs,
 	codegen_context &context
 )
 {
-	return context.begin_if(context.to_string_binary(
-		context.create_address_of(lhs),
-		context.create_address_of(rhs),
-		"!=",
-		precedence::equality
-	));
+	if (lhs.get_type() == rhs.get_type())
+	{
+		auto const prev_if_info = context.begin_if(context.to_string_binary(
+			context.create_address_of(lhs),
+			context.create_address_of(rhs),
+			"!=",
+			precedence::equality
+		));
+		return { prev_if_info, true };
+	}
+	else
+	{
+		return { .prev_if_info = {}, .compare_needed = false };
+	}
 }
 
-static void create_pointer_compare_end(codegen_context::if_info_t prev_if_info, codegen_context &context)
+static void create_pointer_compare_end(pointer_compare_info_t pointer_compare_info, codegen_context &context)
 {
-	context.end_if(prev_if_info);
+	if (pointer_compare_info.compare_needed)
+	{
+		context.end_if(pointer_compare_info.prev_if_info);
+	}
 }
 
 static expr_value generate_expression(
@@ -4738,7 +4785,7 @@ static expr_value generate_expression(
 	generate_expression(optional_null_assign.rhs, context, {});
 	auto const lhs = generate_expression(optional_null_assign.lhs, context, {});
 
-	if (context.is_pointer(lhs.get_type()))
+	if (context.is_pointer_or_function(lhs.get_type()))
 	{
 		context.create_assignment(lhs, "0");
 	}
@@ -4772,7 +4819,7 @@ static expr_value generate_expression(
 	auto const rhs = generate_expression(optional_value_assign.rhs, context, {});
 	auto const lhs = generate_expression(optional_value_assign.lhs, context, {});
 
-	if (context.is_pointer(lhs.get_type()))
+	if (context.is_pointer_or_function(lhs.get_type()))
 	{
 		context.create_assignment(lhs, rhs);
 		return lhs;
@@ -4946,7 +4993,7 @@ static expr_value generate_expression(
 		auto const member_value = [&]() {
 			if (i == rvalue_member_access.index && accessed_type.is_reference())
 			{
-				auto const ref_ref = context.create_struct_gep(base, i);
+				auto const ref_ref = context.create_struct_gep_value(base, i);
 				bz_assert(context.is_pointer(ref_ref.get_type()));
 				return context.create_dereference(ref_ref);
 			}
@@ -5258,7 +5305,14 @@ static expr_value generate_expression(
 )
 {
 	context.generate_loop_destruct_operations();
-	context.add_expression("continue");
+	if (auto const goto_index = context.get_continue_goto_index(); goto_index.has_value())
+	{
+		context.add_expression(bz::format("goto {}", context.make_goto_label(goto_index.get())));
+	}
+	else
+	{
+		context.add_expression("continue");
+	}
 	return context.get_void_value();
 }
 
@@ -5503,18 +5557,32 @@ static expr_value generate_expression(
 	bz::optional<expr_value> result_dest
 )
 {
+	if (const_expr.kind == ast::expression_type_kind::lvalue)
+	{
+		return generate_expression(original_expr, const_expr.expr, context, result_dest);
+	}
+	else if (const_expr.kind == ast::expression_type_kind::none)
+	{
+		return context.get_void_value();
+	}
+
 	auto const value_string = generate_constant_value_string(const_expr.value, const_expr.type, context);
 
-	if (result_dest.has_value())
+	if (const_expr.type.is_optional() && !const_expr.value.is_null_constant())
+	{
+		if (!result_dest.has_value())
+		{
+			result_dest = context.add_uninitialized_value(get_type(const_expr.type, context));
+		}
+		auto const &result_value = result_dest.get();
+		context.create_assignment(get_optional_value(result_value, context), value_string);
+		return result_value;
+	}
+	else if (result_dest.has_value())
 	{
 		auto const &result_value = result_dest.get();
 		context.create_assignment(result_value, value_string);
 		return result_value;
-	}
-	else if (const_expr.kind == ast::expression_type_kind::none)
-	{
-		context.add_expression(value_string);
-		return context.get_void_value();
 	}
 	else
 	{
@@ -5615,7 +5683,7 @@ static void generate_statement(ast::stmt_for const &for_stmt, codegen_context &c
 	}
 
 	auto const prev_loop_info = context.push_loop();
-	auto const prev_while_info = context.begin_while("1");
+	auto const prev_while_info = context.begin_while("1", true);
 
 	// condition
 	if (for_stmt.condition.not_null())
@@ -5634,6 +5702,12 @@ static void generate_statement(ast::stmt_for const &for_stmt, codegen_context &c
 		auto const prev_info = context.push_expression_scope();
 		generate_expression(for_stmt.for_block, context, {});
 		context.pop_expression_scope(prev_info);
+	}
+
+	if (context.current_function_info.while_info.needs_continue_goto)
+	{
+		auto const index = context.current_function_info.while_info.continue_goto_index;
+		context.add_expression(bz::format("{}:", context.make_goto_label(index)));
 	}
 
 	// iteration
@@ -5658,7 +5732,7 @@ static void generate_statement(ast::stmt_foreach const &foreach_stmt, codegen_co
 	generate_statement(foreach_stmt.end_var_decl, context);
 
 	auto const prev_loop_info = context.push_loop();
-	auto const prev_while_info = context.begin_while("1");
+	auto const prev_while_info = context.begin_while("1", true);
 
 	// condition
 	{
@@ -5677,6 +5751,12 @@ static void generate_statement(ast::stmt_foreach const &foreach_stmt, codegen_co
 		generate_statement(foreach_stmt.iter_deref_var_decl, context);
 		generate_expression(foreach_stmt.for_block, context, {});
 		context.pop_expression_scope(iter_prev_info);
+	}
+
+	if (context.current_function_info.while_info.needs_continue_goto)
+	{
+		auto const index = context.current_function_info.while_info.continue_goto_index;
+		context.add_expression(bz::format("{}:", context.make_goto_label(index)));
 	}
 
 	// iteration
@@ -5874,7 +5954,9 @@ static void generate_function_declaration(ast::function_body &func_body, codegen
 	}
 
 	auto const &func_name = context.get_function(func_body).name;
-	auto const return_by_pointer = !func_body.return_type.is<ast::ts_void>() && !ast::is_trivially_relocatable(func_body.return_type);
+	auto const return_by_pointer = !func_body.return_type.is<ast::ts_void>()
+		&& !func_body.return_type.is_any_reference()
+		&& !ast::is_trivially_relocatable(func_body.return_type);
 	auto const static_prefix = func_body.is_external_linkage() ? "" : "static ";
 
 	auto const return_type = return_by_pointer ? context.get_void() : get_type(func_body.return_type, context);
@@ -6103,8 +6185,8 @@ static void generate_rvalue_array_destruct(
 	auto const array_type = context.maybe_get_array(array_value.get_type());
 	auto const size = array_type->size;
 
-	auto const begin_elem_ptr = context.create_address_of(context.create_struct_gep(array_value, 0));
-	auto const end_elem_ptr = context.create_address_of(context.create_struct_gep(array_value, size));
+	auto const begin_elem_ptr = context.create_struct_gep_pointer(array_value, 0);
+	auto const end_elem_ptr = context.create_struct_gep_pointer(array_value, size);
 
 	auto const it_value = context.create_trivial_copy(end_elem_ptr);
 	auto const condition = context.to_string_binary(it_value, begin_elem_ptr, "!=", precedence::equality);

@@ -239,6 +239,17 @@ struct type
 		return this->terminator.get<array_reference>();
 	}
 
+	bool is_function(void) const
+	{
+		return this->modifier_info.empty() && this->terminator.is<function_reference>();
+	}
+
+	function_reference get_function(void) const
+	{
+		bz_assert(this->is_function());
+		return this->terminator.get<function_reference>();
+	}
+
 	bool operator == (type const &rhs) const = default;
 
 	size_t hash(void) const
