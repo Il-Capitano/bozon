@@ -753,6 +753,13 @@ static expr_value generate_expression(
 
 static void generate_statement(ast::statement const &stmt, codegen_context &context);
 
+static expr_value generate_trivial_function_call(
+	bz::u8string_view func_string,
+	bz::array_view<expr_value const> args,
+	type return_type,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+);
 static expr_value generate_function_call(
 	bz::u8string_view func_string,
 	bz::array_view<expr_value const> args,
@@ -820,10 +827,10 @@ static void generate_panic_call(
 	auto const arg_type = get_type(panic_handler_func_body->params[0].get_type(), context);
 	auto const arg = context.add_value_expression(arg_string, arg_type);
 
-	generate_function_call(
+	generate_trivial_function_call(
 		panic_handler_func.name,
 		arg,
-		panic_handler_func_body->return_type,
+		context.get_void(),
 		context,
 		{}
 	);
@@ -1399,6 +1406,7 @@ static expr_value generate_builtin_binary_plus(
 	bz::optional<expr_value> result_dest
 )
 {
+	// TODO: signed overflow
 	auto const lhs_value = generate_expression(lhs, context, {});
 	auto const rhs_value = generate_expression(rhs, context, {});
 	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "+", precedence::addition);
@@ -1445,6 +1453,7 @@ static expr_value generate_builtin_binary_plus_eq(
 	codegen_context &context
 )
 {
+	// TODO: signed overflow
 	auto const rhs_value = generate_expression(rhs, context, {});
 	auto const lhs_value = generate_expression(lhs, context, {});
 	context.create_binary_operation(lhs_value, rhs_value, "+=", precedence::assignment);
@@ -1459,6 +1468,7 @@ static expr_value generate_builtin_binary_minus(
 	bz::optional<expr_value> result_dest
 )
 {
+	// TODO: signed overflow
 	auto const lhs_value = generate_expression(lhs, context, {});
 	auto const rhs_value = generate_expression(rhs, context, {});
 	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "-", precedence::subtraction);
@@ -1506,6 +1516,7 @@ static expr_value generate_builtin_binary_minus_eq(
 	codegen_context &context
 )
 {
+	// TODO: signed overflow
 	auto const rhs_value = generate_expression(rhs, context, {});
 	auto const lhs_value = generate_expression(lhs, context, {});
 	context.create_binary_operation(lhs_value, rhs_value, "-=", precedence::assignment);
@@ -1520,6 +1531,7 @@ static expr_value generate_builtin_binary_multiply(
 	bz::optional<expr_value> result_dest
 )
 {
+	// TODO: signed overflow
 	auto const lhs_value = generate_expression(lhs, context, {});
 	auto const rhs_value = generate_expression(rhs, context, {});
 	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "*", precedence::multiply);
@@ -1535,6 +1547,7 @@ static expr_value generate_builtin_binary_multiply_eq(
 	codegen_context &context
 )
 {
+	// TODO: signed overflow
 	auto const rhs_value = generate_expression(rhs, context, {});
 	auto const lhs_value = generate_expression(lhs, context, {});
 	context.create_binary_operation(lhs_value, rhs_value, "*=", precedence::assignment);
@@ -1549,6 +1562,7 @@ static expr_value generate_builtin_binary_divide(
 	bz::optional<expr_value> result_dest
 )
 {
+	// TODO: signed overflow
 	auto const lhs_value = generate_expression(lhs, context, {});
 	auto const rhs_value = generate_expression(rhs, context, {});
 	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "/", precedence::divide);
@@ -1564,6 +1578,7 @@ static expr_value generate_builtin_binary_divide_eq(
 	codegen_context &context
 )
 {
+	// TODO: signed overflow
 	auto const rhs_value = generate_expression(rhs, context, {});
 	auto const lhs_value = generate_expression(lhs, context, {});
 	context.create_binary_operation(lhs_value, rhs_value, "/=", precedence::assignment);
@@ -1926,6 +1941,30 @@ static expr_value generate_builtin_subscript_range(
 	}
 }
 
+static expr_value generate_builtin_function_call(
+	bz::u8string_view func_name,
+	ast::expr_function_call const &func_call,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	if (func_call.params.size() == 1)
+	{
+		auto const arg_value = generate_expression(func_call.params[0], context, {});
+		return generate_trivial_function_call(func_name, arg_value, arg_value.get_type(), context, result_dest);
+	}
+	else if (func_call.params.size() == 2)
+	{
+		auto const arg1_value = generate_expression(func_call.params[0], context, {});
+		auto const arg2_value = generate_expression(func_call.params[1], context, {});
+		return generate_trivial_function_call(func_name, { arg1_value, arg2_value }, arg1_value.get_type(), context, result_dest);
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
 static expr_value generate_libc_math_function_call(
 	bz::u8string_view func_name,
 	ast::expr_function_call const &func_call,
@@ -1938,13 +1977,13 @@ static expr_value generate_libc_math_function_call(
 	if (func_call.params.size() == 1)
 	{
 		auto const arg_value = generate_expression(func_call.params[0], context, {});
-		return generate_function_call(func_name, arg_value, func_call.func_body->return_type, context, result_dest);
+		return generate_trivial_function_call(func_name, arg_value, arg_value.get_type(), context, result_dest);
 	}
 	else if (func_call.params.size() == 2)
 	{
 		auto const arg1_value = generate_expression(func_call.params[0], context, {});
 		auto const arg2_value = generate_expression(func_call.params[1], context, {});
-		return generate_function_call(func_name, { arg1_value, arg2_value }, func_call.func_body->return_type, context, result_dest);
+		return generate_trivial_function_call(func_name, { arg1_value, arg2_value }, arg1_value.get_type(), context, result_dest);
 	}
 	else
 	{
@@ -2536,10 +2575,10 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		bz_assert(func_call.params.size() == 1);
 		auto const arg = generate_expression(func_call.params[0], context, {});
 
-		generate_function_call(
+		generate_trivial_function_call(
 			panic_handler_func.name,
 			arg,
-			panic_handler_func_body->return_type,
+			context.get_void(),
 			context,
 			{}
 		);
@@ -2678,7 +2717,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const size = context.create_binary_operation(count, type_size, "*", precedence::multiply, count.get_type());
 
 		context.add_libc_header("string.h");
-		generate_function_call("memcpy", { dest, source, size }, func_call.func_body->return_type, context, {});
+		generate_trivial_function_call("memcpy", { dest, source, size }, context.get_void(), context, {});
 
 		bz_assert(!result_dest.has_value());
 		return context.get_void_value();
@@ -2695,7 +2734,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const size = context.create_binary_operation(count, type_size, "*", precedence::multiply, count.get_type());
 
 		context.add_libc_header("string.h");
-		generate_function_call("memmove", { dest, source, size }, func_call.func_body->return_type, context, {});
+		generate_trivial_function_call("memmove", { dest, source, size }, context.get_void(), context, {});
 
 		bz_assert(!result_dest.has_value());
 		return context.get_void_value();
@@ -2712,7 +2751,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const size = context.create_binary_operation(count, type_size, "*", precedence::multiply, count.get_type());
 
 		context.add_libc_header("string.h");
-		generate_function_call("memmove", { dest, source, size }, func_call.func_body->return_type, context, {});
+		generate_trivial_function_call("memmove", { dest, source, size }, context.get_void(), context, {});
 
 		bz_assert(!result_dest.has_value());
 		return context.get_void_value();
@@ -2728,7 +2767,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		if (type == context.get_uint8())
 		{
 			context.add_libc_header("string.h");
-			generate_function_call("memset", { dest, value, count }, func_call.func_body->return_type, context, {});
+			generate_trivial_function_call("memset", { dest, value, count }, context.get_void(), context, {});
 		}
 		else
 		{
@@ -2760,7 +2799,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const size = generate_expression(func_call.params[2], context, {});
 
 		context.add_libc_header("string.h");
-		generate_function_call("memcpy", { dest, source, size }, func_call.func_body->return_type, context, {});
+		generate_trivial_function_call("memcpy", { dest, source, size }, context.get_void(), context, {});
 
 		bz_assert(!result_dest.has_value());
 		return context.get_void_value();
@@ -2773,7 +2812,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const size = generate_expression(func_call.params[2], context, {});
 
 		context.add_libc_header("string.h");
-		generate_function_call("memmove", { dest, source, size }, func_call.func_body->return_type, context, {});
+		generate_trivial_function_call("memmove", { dest, source, size }, context.get_void(), context, {});
 
 		bz_assert(!result_dest.has_value());
 		return context.get_void_value();
@@ -2786,16 +2825,19 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const size = generate_expression(func_call.params[2], context, {});
 
 		context.add_libc_header("string.h");
-		generate_function_call("memset", { dest, value, size }, func_call.func_body->return_type, context, {});
+		generate_trivial_function_call("memset", { dest, value, size }, context.get_void(), context, {});
 
 		bz_assert(!result_dest.has_value());
 		return context.get_void_value();
 	}
 	case ast::function_body::abs_i8:
+		return generate_builtin_function_call("bozon_abs_i8", func_call, context, result_dest);
 	case ast::function_body::abs_i16:
+		return generate_builtin_function_call("bozon_abs_i16", func_call, context, result_dest);
 	case ast::function_body::abs_i32:
+		return generate_builtin_function_call("bozon_abs_i32", func_call, context, result_dest);
 	case ast::function_body::abs_i64:
-		bz_unreachable; // TODO
+		return generate_builtin_function_call("bozon_abs_i64", func_call, context, result_dest);
 	case ast::function_body::abs_f32:
 		return generate_libc_math_function_call("fabsf", func_call, context, result_dest);
 	case ast::function_body::abs_f64:
@@ -2971,39 +3013,59 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	case ast::function_body::lgamma_f64:
 		return generate_libc_math_function_call("lgamma", func_call, context, result_dest);
 	case ast::function_body::bitreverse_u8:
+		return generate_builtin_function_call("bozon_bitreverse_u8", func_call, context, result_dest);
 	case ast::function_body::bitreverse_u16:
+		return generate_builtin_function_call("bozon_bitreverse_u16", func_call, context, result_dest);
 	case ast::function_body::bitreverse_u32:
+		return generate_builtin_function_call("bozon_bitreverse_u32", func_call, context, result_dest);
 	case ast::function_body::bitreverse_u64:
-		bz_unreachable; // TODO
+		return generate_builtin_function_call("bozon_bitreverse_u64", func_call, context, result_dest);
 	case ast::function_body::popcount_u8:
+		return generate_builtin_function_call("bozon_popcount_u8", func_call, context, result_dest);
 	case ast::function_body::popcount_u16:
+		return generate_builtin_function_call("bozon_popcount_u16", func_call, context, result_dest);
 	case ast::function_body::popcount_u32:
+		return generate_builtin_function_call("bozon_popcount_u32", func_call, context, result_dest);
 	case ast::function_body::popcount_u64:
-		bz_unreachable; // TODO
+		return generate_builtin_function_call("bozon_popcount_u64", func_call, context, result_dest);
 	case ast::function_body::byteswap_u16:
+		return generate_builtin_function_call("bozon_byteswap_u16", func_call, context, result_dest);
 	case ast::function_body::byteswap_u32:
+		return generate_builtin_function_call("bozon_byteswap_u32", func_call, context, result_dest);
 	case ast::function_body::byteswap_u64:
-		bz_unreachable; // TODO
+		return generate_builtin_function_call("bozon_byteswap_u64", func_call, context, result_dest);
 	case ast::function_body::clz_u8:
+		return generate_builtin_function_call("bozon_clz_u8", func_call, context, result_dest);
 	case ast::function_body::clz_u16:
+		return generate_builtin_function_call("bozon_clz_u16", func_call, context, result_dest);
 	case ast::function_body::clz_u32:
+		return generate_builtin_function_call("bozon_clz_u32", func_call, context, result_dest);
 	case ast::function_body::clz_u64:
-		bz_unreachable; // TODO
+		return generate_builtin_function_call("bozon_clz_u64", func_call, context, result_dest);
 	case ast::function_body::ctz_u8:
+		return generate_builtin_function_call("bozon_ctz_u8", func_call, context, result_dest);
 	case ast::function_body::ctz_u16:
+		return generate_builtin_function_call("bozon_ctz_u16", func_call, context, result_dest);
 	case ast::function_body::ctz_u32:
+		return generate_builtin_function_call("bozon_ctz_u32", func_call, context, result_dest);
 	case ast::function_body::ctz_u64:
-		bz_unreachable; // TODO
+		return generate_builtin_function_call("bozon_ctz_u64", func_call, context, result_dest);
 	case ast::function_body::fshl_u8:
+		return generate_builtin_function_call("bozon_fshl_u8", func_call, context, result_dest);
 	case ast::function_body::fshl_u16:
+		return generate_builtin_function_call("bozon_fshl_u16", func_call, context, result_dest);
 	case ast::function_body::fshl_u32:
+		return generate_builtin_function_call("bozon_fshl_u32", func_call, context, result_dest);
 	case ast::function_body::fshl_u64:
-		bz_unreachable; // TODO
+		return generate_builtin_function_call("bozon_fshl_u64", func_call, context, result_dest);
 	case ast::function_body::fshr_u8:
+		return generate_builtin_function_call("bozon_fshr_u8", func_call, context, result_dest);
 	case ast::function_body::fshr_u16:
+		return generate_builtin_function_call("bozon_fshr_u16", func_call, context, result_dest);
 	case ast::function_body::fshr_u32:
+		return generate_builtin_function_call("bozon_fshr_u32", func_call, context, result_dest);
 	case ast::function_body::fshr_u64:
-		bz_unreachable; // TODO
+		return generate_builtin_function_call("bozon_fshr_u64", func_call, context, result_dest);
 	case ast::function_body::i8_default_constructor:
 	case ast::function_body::i16_default_constructor:
 	case ast::function_body::i32_default_constructor:
@@ -3238,6 +3300,47 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		return generate_builtin_subscript_range(func_call.params[0], func_call.params[1], context, result_dest);
 	default:
 		bz_unreachable;
+	}
+}
+
+static expr_value generate_trivial_function_call(
+	bz::u8string_view func_string,
+	bz::array_view<expr_value const> args,
+	type return_type,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	bz::u8string call_string = func_string;
+	call_string += '(';
+
+	bool first = true;
+
+	for (auto const &arg : args)
+	{
+		if (first)
+		{
+			first = false;
+		}
+		else
+		{
+			call_string += ", ";
+		}
+
+		call_string += context.to_string_arg(arg);
+	}
+
+	call_string += ')';
+
+	if (return_type == context.get_void())
+	{
+		context.add_expression(call_string);
+		bz_assert(!result_dest.has_value());
+		return context.get_void_value();
+	}
+	else
+	{
+		return value_or_result_dest(call_string, return_type, result_dest, context);
 	}
 }
 
@@ -4819,6 +4922,7 @@ static expr_value generate_expression(
 
 	if (is_string)
 	{
+		// TODO
 		bz_unreachable;
 		// auto const begin_ptr = context.create_struct_gep(matched_value, 0);
 		// auto const end_ptr   = context.create_struct_gep(matched_value, 1);

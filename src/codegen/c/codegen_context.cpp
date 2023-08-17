@@ -1883,9 +1883,7 @@ expr_value codegen_context::get_value_reference(size_t index)
 	return this->current_function_info.value_references[stack_index];
 }
 
-// https://en.cppreference.com/w/c/program/unreachable
-static constexpr bz::u8string_view builtin_definitions = R"(
-#if defined(__has_builtin)
+static constexpr bz::u8string_view builtin_defines = R"(#if defined(__has_builtin)
 	#define BOZON_HAS_BUILTIN(x) __has_builtin(x)
 #else
 	#define BOZON_HAS_BUILTIN(x) 0
@@ -1898,7 +1896,6 @@ static constexpr bz::u8string_view builtin_definitions = R"(
 #if BOZON_HAS_BUILTIN(__builtin_trap)
 	#define bozon_trap() (__builtin_trap())
 #endif
-#undef BOZON_HAS_BUILTIN
 #if !defined(bozon_unreachable)
 	#define bozon_unreachable() ((void)0)
 #endif
@@ -1906,6 +1903,573 @@ static constexpr bz::u8string_view builtin_definitions = R"(
 	#include <stdlib.h>
 	#define bozon_trap() (abort())
 #endif
+)";
+static constexpr bz::u8string_view builtin_functions = R"(static t_int8 bozon_abs_i8(t_int8 n)
+{
+	if (n == (t_int8)(1ull << 7))
+	{
+		return n;
+	}
+	else if (n < 0)
+	{
+		return -n;
+	}
+	else
+	{
+		return n;
+	}
+}
+static t_int16 bozon_abs_i16(t_int16 n)
+{
+	if (n == (t_int16)(1ull << 15))
+	{
+		return n;
+	}
+	else if (n < 0)
+	{
+		return -n;
+	}
+	else
+	{
+		return n;
+	}
+}
+static t_int32 bozon_abs_i32(t_int32 n)
+{
+	if (n == (t_int32)(1ull << 31))
+	{
+		return n;
+	}
+	else if (n < 0)
+	{
+		return -n;
+	}
+	else
+	{
+		return n;
+	}
+}
+static t_int64 bozon_abs_i64(t_int64 n)
+{
+	if (n == (t_int64)(1ull << 63))
+	{
+		return n;
+	}
+	else if (n < 0)
+	{
+		return -n;
+	}
+	else
+	{
+		return n;
+	}
+}
+static t_uint8 bozon_bitreverse_u8(t_uint8 n)
+{
+#if BOZON_HAS_BUILTIN(__builtin_bitreverse8)
+	return __builtin_bitreverse8(n);
+#else
+	n = (t_uint8)((t_uint8)(n & (t_uint8)0xf0) >> 4) | (t_uint8)((t_uint8)(n & (t_uint8)0x0f) << 4);
+	n = (t_uint8)((t_uint8)(n & (t_uint8)0xcc) >> 2) | (t_uint8)((t_uint8)(n & (t_uint8)0x33) << 2);
+	n = (t_uint8)((t_uint8)(n & (t_uint8)0xaa) >> 1) | (t_uint8)((t_uint8)(n & (t_uint8)0x55) << 1);
+	return n;
+#endif
+}
+static t_uint16 bozon_bitreverse_u16(t_uint16 n)
+{
+#if BOZON_HAS_BUILTIN(__builtin_bitreverse16)
+	return __builtin_bitreverse16(n);
+#elif BOZON_HAS_BUILTIN(__builtin_bswap16)
+	n = __builtin_bswap16(n);
+	n = (t_uint16)((t_uint16)(n & (t_uint16)0xf0f0) >> 4) | (t_uint16)((t_uint16)(n & (t_uint16)0x0f0f) << 4);
+	n = (t_uint16)((t_uint16)(n & (t_uint16)0xcccc) >> 2) | (t_uint16)((t_uint16)(n & (t_uint16)0x3333) << 2);
+	n = (t_uint16)((t_uint16)(n & (t_uint16)0xaaaa) >> 1) | (t_uint16)((t_uint16)(n & (t_uint16)0x5555) << 1);
+	return n;
+#else
+	n = (t_uint16)((t_uint16)(n & (t_uint16)0xff00) >> 8) | (t_uint16)((t_uint16)(n & (t_uint16)0x00ff) << 8);
+	n = (t_uint16)((t_uint16)(n & (t_uint16)0xf0f0) >> 4) | (t_uint16)((t_uint16)(n & (t_uint16)0x0f0f) << 4);
+	n = (t_uint16)((t_uint16)(n & (t_uint16)0xcccc) >> 2) | (t_uint16)((t_uint16)(n & (t_uint16)0x3333) << 2);
+	n = (t_uint16)((t_uint16)(n & (t_uint16)0xaaaa) >> 1) | (t_uint16)((t_uint16)(n & (t_uint16)0x5555) << 1);
+	return n;
+#endif
+}
+static t_uint32 bozon_bitreverse_u32(t_uint32 n)
+{
+#if BOZON_HAS_BUILTIN(__builtin_bitreverse32)
+	return __builtin_bitreverse32(n);
+#elif BOZON_HAS_BUILTIN(__builtin_bswap32)
+	n = __builtin_bswap32(n);
+	n = ((n & (t_uint32)0xf0f0f0f0) >>  4) | ((n & (t_uint32)0x0f0f0f0f) <<  4);
+	n = ((n & (t_uint32)0xcccccccc) >>  2) | ((n & (t_uint32)0x33333333) <<  2);
+	n = ((n & (t_uint32)0xaaaaaaaa) >>  1) | ((n & (t_uint32)0x55555555) <<  1);
+	return n;
+#else
+	n = ((n & (t_uint32)0xffff0000) >> 16) | ((n & (t_uint32)0x0000ffff) << 16);
+	n = ((n & (t_uint32)0xff00ff00) >>  8) | ((n & (t_uint32)0x00ff00ff) <<  8);
+	n = ((n & (t_uint32)0xf0f0f0f0) >>  4) | ((n & (t_uint32)0x0f0f0f0f) <<  4);
+	n = ((n & (t_uint32)0xcccccccc) >>  2) | ((n & (t_uint32)0x33333333) <<  2);
+	n = ((n & (t_uint32)0xaaaaaaaa) >>  1) | ((n & (t_uint32)0x55555555) <<  1);
+	return n;
+#endif
+}
+static t_uint64 bozon_bitreverse_u64(t_uint64 n)
+{
+#if BOZON_HAS_BUILTIN(__builtin_bitreverse64)
+	return __builtin_bitreverse64(n);
+#elif BOZON_HAS_BUILTIN(__builtin_bswap64)
+	n = __builtin_bswap64(n);
+	n = ((n & (t_uint64)0xf0f0f0f0f0f0f0f0) >>  4) | ((n & (t_uint64)0x0f0f0f0f0f0f0f0f) <<  4);
+	n = ((n & (t_uint64)0xcccccccccccccccc) >>  2) | ((n & (t_uint64)0x3333333333333333) <<  2);
+	n = ((n & (t_uint64)0xaaaaaaaaaaaaaaaa) >>  1) | ((n & (t_uint64)0x5555555555555555) <<  1);
+	return n;
+#else
+	n = ((n & (t_uint64)0xffffffff00000000) >> 32) | ((n & (t_uint64)0x00000000ffffffff) << 32);
+	n = ((n & (t_uint64)0xffff0000ffff0000) >> 16) | ((n & (t_uint64)0x0000ffff0000ffff) << 16);
+	n = ((n & (t_uint64)0xff00ff00ff00ff00) >>  8) | ((n & (t_uint64)0x00ff00ff00ff00ff) <<  8);
+	n = ((n & (t_uint64)0xf0f0f0f0f0f0f0f0) >>  4) | ((n & (t_uint64)0x0f0f0f0f0f0f0f0f) <<  4);
+	n = ((n & (t_uint64)0xcccccccccccccccc) >>  2) | ((n & (t_uint64)0x3333333333333333) <<  2);
+	n = ((n & (t_uint64)0xaaaaaaaaaaaaaaaa) >>  1) | ((n & (t_uint64)0x5555555555555555) <<  1);
+	return n;
+#endif
+}
+static t_uint8 bozon_popcount_u8(t_uint8 n)
+{
+	t_uint8 const int_size = 1;
+	if (int_size <= sizeof (unsigned int))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_popcount)
+		return __builtin_popcount(n) - 8 * (sizeof (unsigned int) - int_size);
+#endif
+	}
+	else if (int_size <= sizeof (unsigned long))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_popcountl)
+		return __builtin_popcountl(n) - 8 * (sizeof (unsigned long) - int_size);
+#endif
+	}
+	else
+	{
+#if BOZON_HAS_BUILTIN(__builtin_popcountll)
+		return __builtin_popcountll(n) - 8 * (sizeof (unsigned long long) - int_size);
+#endif
+	}
+	t_uint8 c = 0;
+	for (; n; ++c)
+	{
+		n &= n - 1;
+	}
+	return c;
+}
+static t_uint16 bozon_popcount_u16(t_uint16 n)
+{
+	t_uint16 const int_size = 2;
+	if (int_size <= sizeof (unsigned int))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_popcount)
+		return __builtin_popcount(n) - 8 * (sizeof (unsigned int) - int_size);
+#endif
+	}
+	else if (int_size <= sizeof (unsigned long))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_popcountl)
+		return __builtin_popcountl(n) - 8 * (sizeof (unsigned long) - int_size);
+#endif
+	}
+	else
+	{
+#if BOZON_HAS_BUILTIN(__builtin_popcountll)
+		return __builtin_popcountll(n) - 8 * (sizeof (unsigned long long) - int_size);
+#endif
+	}
+	t_uint16 c = 0;
+	for (; n; ++c)
+	{
+		n &= n - 1;
+	}
+	return c;
+}
+static t_uint32 bozon_popcount_u32(t_uint32 n)
+{
+	t_uint16 const int_size = 4;
+	if (int_size <= sizeof (unsigned int))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_popcount)
+		return __builtin_popcount(n) - 8 * (sizeof (unsigned int) - int_size);
+#endif
+	}
+	else if (int_size <= sizeof (unsigned long))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_popcountl)
+		return __builtin_popcountl(n) - 8 * (sizeof (unsigned long) - int_size);
+#endif
+	}
+	else
+	{
+#if BOZON_HAS_BUILTIN(__builtin_popcountll)
+		return __builtin_popcountll(n) - 8 * (sizeof (unsigned long long) - int_size);
+#endif
+	}
+	t_uint32 c = 0;
+	for (; n; ++c)
+	{
+		n &= n - 1;
+	}
+	return c;
+}
+static t_uint64 bozon_popcount_u64(t_uint64 n)
+{
+	t_uint16 const int_size = 8;
+	if (int_size <= sizeof (unsigned int))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_popcount)
+		return __builtin_popcount(n) - 8 * (sizeof (unsigned int) - int_size);
+#endif
+	}
+	else if (int_size <= sizeof (unsigned long))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_popcountl)
+		return __builtin_popcountl(n) - 8 * (sizeof (unsigned long) - int_size);
+#endif
+	}
+	else
+	{
+#if BOZON_HAS_BUILTIN(__builtin_popcountll)
+		return __builtin_popcountll(n) - 8 * (sizeof (unsigned long long) - int_size);
+#endif
+	}
+	t_uint64 c = 0;
+	for (; n; ++c)
+	{
+		n &= n - 1;
+	}
+	return c;
+}
+static t_uint16 bozon_byteswap_u16(t_uint16 n)
+{
+#if BOZON_HAS_BUILTIN(__builtin_bswap16)
+	return __builtin_bswap16(n);
+#else
+	n = (t_uint16)((t_uint16)(n & (t_uint16)0xff00) >> 8) | (t_uint16)((t_uint16)(n & (t_uint16)0x00ff) << 8);
+	return n;
+#endif
+}
+static t_uint32 bozon_byteswap_u32(t_uint32 n)
+{
+#if BOZON_HAS_BUILTIN(__builtin_bswap32)
+	return __builtin_bswap32(n);
+#else
+	n = ((n & (t_uint32)0xffff0000) >> 16) | ((n & (t_uint32)0x0000ffff) << 16);
+	n = ((n & (t_uint32)0xff00ff00) >>  8) | ((n & (t_uint32)0x00ff00ff) <<  8);
+	return n;
+#endif
+}
+static t_uint64 bozon_byteswap_u64(t_uint64 n)
+{
+#if BOZON_HAS_BUILTIN(__builtin_bswap64)
+	return __builtin_bswap64(n);
+#else
+	n = ((n & (t_uint64)0xffffffff00000000) >> 32) | ((n & (t_uint64)0x00000000ffffffff) << 32);
+	n = ((n & (t_uint64)0xffff0000ffff0000) >> 16) | ((n & (t_uint64)0x0000ffff0000ffff) << 16);
+	n = ((n & (t_uint64)0xff00ff00ff00ff00) >>  8) | ((n & (t_uint64)0x00ff00ff00ff00ff) <<  8);
+	return n;
+#endif
+}
+static t_uint8 bozon_clz_u8(t_uint8 n)
+{
+	t_uint8 const int_size = 1;
+	if (int_size <= sizeof (unsigned int))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_clz)
+		return __builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size);
+#endif
+	}
+	else if (int_size <= sizeof (unsigned long))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_clzl)
+		return __builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size);
+#endif
+	}
+	else
+	{
+#if BOZON_HAS_BUILTIN(__builtin_clzll)
+		return __builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size);
+#endif
+	}
+	t_uint8 c = 8 * int_size - 1;
+	t_uint8 i = 4 * int_size;
+	for (; i != 0; i /= 2)
+	{
+		if (n >= (t_uint8)((t_uint8)1 << i))
+		{
+			n >>= i;
+			c -= i;
+		}
+	}
+	return c;
+}
+static t_uint16 bozon_clz_u16(t_uint16 n)
+{
+	t_uint16 const int_size = 2;
+	if (int_size <= sizeof (unsigned int))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_clz)
+		return __builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size);
+#endif
+	}
+	else if (int_size <= sizeof (unsigned long))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_clzl)
+		return __builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size);
+#endif
+	}
+	else
+	{
+#if BOZON_HAS_BUILTIN(__builtin_clzll)
+		return __builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size);
+#endif
+	}
+	t_uint16 c = 8 * int_size - 1;
+	t_uint16 i = 4 * int_size;
+	for (; i != 0; i /= 2)
+	{
+		if (n >= (t_uint16)((t_uint16)1 << i))
+		{
+			n >>= i;
+			c -= i;
+		}
+	}
+	return c;
+}
+static t_uint32 bozon_clz_u32(t_uint32 n)
+{
+	t_uint32 const int_size = 4;
+	if (int_size <= sizeof (unsigned int))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_clz)
+		return __builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size);
+#endif
+	}
+	else if (int_size <= sizeof (unsigned long))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_clzl)
+		return __builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size);
+#endif
+	}
+	else
+	{
+#if BOZON_HAS_BUILTIN(__builtin_clzll)
+		return __builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size);
+#endif
+	}
+	t_uint32 c = 8 * int_size - 1;
+	t_uint32 i = 4 * int_size;
+	for (; i != 0; i /= 2)
+	{
+		if (n >= ((t_uint32)1 << i))
+		{
+			n >>= i;
+			c -= i;
+		}
+	}
+	return c;
+}
+static t_uint64 bozon_clz_u64(t_uint64 n)
+{
+	t_uint64 const int_size = 8;
+	if (int_size <= sizeof (unsigned int))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_clz)
+		return __builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size);
+#endif
+	}
+	else if (int_size <= sizeof (unsigned long))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_clzl)
+		return __builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size);
+#endif
+	}
+	else
+	{
+#if BOZON_HAS_BUILTIN(__builtin_clzll)
+		return __builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size);
+#endif
+	}
+	t_uint64 c = 8 * int_size - 1;
+	t_uint64 i = 4 * int_size;
+	for (; i != 0; i /= 2)
+	{
+		if (n >= ((t_uint64)1 << i))
+		{
+			n >>= i;
+			c -= i;
+		}
+	}
+	return c;
+}
+static t_uint8 bozon_ctz_u8(t_uint8 n)
+{
+	t_uint8 const int_size = 1;
+	if (int_size <= sizeof (unsigned int))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_ctz)
+		return __builtin_ctz(n);
+#endif
+	}
+	else if (int_size <= sizeof (unsigned long))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_ctzl)
+		return __builtin_ctzl(n);
+#endif
+	}
+	else
+	{
+#if BOZON_HAS_BUILTIN(__builtin_ctzll)
+		return __builtin_ctzll(n);
+#endif
+	}
+	t_uint8 c = 0;
+	for (; c < 8 * int_size; ++c)
+	{
+		if ((n & (t_uint8)((t_uint8)1 << c)) != 0)
+		{
+			return c;
+		}
+	}
+	return 8 * int_size;
+}
+static t_uint16 bozon_ctz_u16(t_uint16 n)
+{
+	t_uint16 const int_size = 2;
+	if (int_size <= sizeof (unsigned int))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_ctz)
+		return __builtin_ctz(n);
+#endif
+	}
+	else if (int_size <= sizeof (unsigned long))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_ctzl)
+		return __builtin_ctzl(n);
+#endif
+	}
+	else
+	{
+#if BOZON_HAS_BUILTIN(__builtin_ctzll)
+		return __builtin_ctzll(n);
+#endif
+	}
+	t_uint16 c = 0;
+	for (; c < 8 * int_size; ++c)
+	{
+		if ((n & (t_uint16)((t_uint16)1 << c)) != 0)
+		{
+			return c;
+		}
+	}
+	return 8 * int_size;
+}
+static t_uint32 bozon_ctz_u32(t_uint32 n)
+{
+	t_uint32 const int_size = 4;
+	if (int_size <= sizeof (unsigned int))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_ctz)
+		return __builtin_ctz(n);
+#endif
+	}
+	else if (int_size <= sizeof (unsigned long))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_ctzl)
+		return __builtin_ctzl(n);
+#endif
+	}
+	else
+	{
+#if BOZON_HAS_BUILTIN(__builtin_ctzll)
+		return __builtin_ctzll(n);
+#endif
+	}
+	t_uint32 c = 0;
+	for (; c < 8 * int_size; ++c)
+	{
+		if ((n & ((t_uint32)1 << c)) != 0)
+		{
+			return c;
+		}
+	}
+	return 8 * int_size;
+}
+static t_uint64 bozon_ctz_u64(t_uint64 n)
+{
+	t_uint64 const int_size = 8;
+	if (int_size <= sizeof (unsigned int))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_ctz)
+		return __builtin_ctz(n);
+#endif
+	}
+	else if (int_size <= sizeof (unsigned long))
+	{
+#if BOZON_HAS_BUILTIN(__builtin_ctzl)
+		return __builtin_ctzl(n);
+#endif
+	}
+	else
+	{
+#if BOZON_HAS_BUILTIN(__builtin_ctzll)
+		return __builtin_ctzll(n);
+#endif
+	}
+	t_uint64 c = 0;
+	for (; c < 8 * int_size; ++c)
+	{
+		if ((n & ((t_uint64)1 << c)) != 0)
+		{
+			return c;
+		}
+	}
+	return 8 * int_size;
+}
+static t_uint8 bozon_fshl_u8(t_uint8 a, t_uint8 b, t_uint8 amount)
+{
+	amount %= 8;
+	return amount == 0 ? a : ((a << amount) | (b >> (8 - amount)));
+}
+static t_uint16 bozon_fshl_u16(t_uint16 a, t_uint16 b, t_uint16 amount)
+{
+	amount %= 16;
+	return amount == 0 ? a : ((a << amount) | (b >> (16 - amount)));
+}
+static t_uint32 bozon_fshl_u32(t_uint32 a, t_uint32 b, t_uint32 amount)
+{
+	amount %= 32;
+	return amount == 0 ? a : ((a << amount) | (b >> (32 - amount)));
+}
+static t_uint64 bozon_fshl_u64(t_uint64 a, t_uint64 b, t_uint64 amount)
+{
+	amount %= 64;
+	return amount == 0 ? a : ((a << amount) | (b >> (64 - amount)));
+}
+static t_uint8 bozon_fshr_u8(t_uint8 a, t_uint8 b, t_uint8 amount)
+{
+	amount %= 8;
+	return amount == 0 ? b : ((b >> amount) | (a << (8 - amount)));
+}
+static t_uint16 bozon_fshr_u16(t_uint16 a, t_uint16 b, t_uint16 amount)
+{
+	amount %= 16;
+	return amount == 0 ? b : ((b >> amount) | (a << (16 - amount)));
+}
+static t_uint32 bozon_fshr_u32(t_uint32 a, t_uint32 b, t_uint32 amount)
+{
+	amount %= 32;
+	return amount == 0 ? b : ((b >> amount) | (a << (32 - amount)));
+}
+static t_uint64 bozon_fshr_u64(t_uint64 a, t_uint64 b, t_uint64 amount)
+{
+	amount %= 64;
+	return amount == 0 ? b : ((b >> amount) | (a << (64 - amount)));
+}
 )";
 
 bz::u8string codegen_context::get_code_string(void) const
@@ -1917,13 +2481,16 @@ bz::u8string codegen_context::get_code_string(void) const
 		result += bz::format("#include <{}>\n", header);
 	}
 
-	result += builtin_definitions;
+	result += builtin_defines;
 
 	result += this->struct_forward_declarations_string;
 	result += this->typedefs_string;
 	result += this->struct_bodies_string;
 	result += this->function_declarations_string;
 	result += this->variables_string;
+
+	result += builtin_functions;
+
 	result += this->function_bodies_string;
 
 	return result;
