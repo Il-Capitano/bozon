@@ -1319,6 +1319,37 @@ static expr_value generate_expression(
 	return result_value;
 }
 
+static expr_value generate_builtin_function_call(
+	bz::u8string_view func_name,
+	ast::expr_function_call const &func_call,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	if (func_call.params.size() == 1)
+	{
+		auto const arg_value = generate_expression(func_call.params[0], context, {});
+		return generate_trivial_function_call(func_name, arg_value, arg_value.get_type(), context, result_dest);
+	}
+	else if (func_call.params.size() == 2)
+	{
+		auto const arg1_value = generate_expression(func_call.params[0], context, {});
+		auto const arg2_value = generate_expression(func_call.params[1], context, {});
+		return generate_trivial_function_call(func_name, { arg1_value, arg2_value }, arg1_value.get_type(), context, result_dest);
+	}
+	else if (func_call.params.size() == 3)
+	{
+		auto const arg1_value = generate_expression(func_call.params[0], context, {});
+		auto const arg2_value = generate_expression(func_call.params[1], context, {});
+		auto const arg3_value = generate_expression(func_call.params[1], context, {});
+		return generate_trivial_function_call(func_name, { arg1_value, arg2_value, arg3_value }, arg1_value.get_type(), context, result_dest);
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
 static expr_value generate_builtin_unary_plus(
 	ast::expression const &expr,
 	codegen_context &context,
@@ -1336,9 +1367,34 @@ static expr_value generate_builtin_unary_minus(
 	bz::optional<expr_value> result_dest
 )
 {
+	bz_assert(expr.get_expr_type().is<ast::ts_base_type>());
+	auto const kind = expr.get_expr_type().get<ast::ts_base_type>().info->kind;
+	auto const is_int = ast::is_signed_integer_kind(kind);
 	auto const value = generate_expression(expr, context, {});
-	auto const expr_string = context.to_string_unary_prefix(value, "-");
-	return value_or_result_dest(expr_string, value.get_type(), result_dest, context);
+	if (is_int)
+	{
+		auto const func_name = [&]() -> bz::u8string_view {
+			switch (kind)
+			{
+			case ast::type_info::int8_:
+				return "bozon_neg_i8";
+			case ast::type_info::int16_:
+				return "bozon_neg_i16";
+			case ast::type_info::int32_:
+				return "bozon_neg_i32";
+			case ast::type_info::int64_:
+				return "bozon_neg_i64";
+			default:
+				bz_unreachable;
+			}
+		}();
+		return generate_trivial_function_call(func_name, value, value.get_type(), context, result_dest);
+	}
+	else
+	{
+		auto const expr_string = context.to_string_unary_prefix(value, "-");
+		return value_or_result_dest(expr_string, value.get_type(), result_dest, context);
+	}
 }
 
 static expr_value generate_builtin_unary_dereference(
@@ -1385,8 +1441,35 @@ static expr_value generate_builtin_unary_plus_plus(
 )
 {
 	auto const value = generate_expression(expr, context, {});
-	context.create_prefix_unary_operation(value, "++");
-	return value;
+	auto const expr_type = expr.get_expr_type().remove_any_mut_reference();
+	if (expr_type.is<ast::ts_base_type>() && ast::is_signed_integer_kind(expr_type.get<ast::ts_base_type>().info->kind))
+	{
+		auto const kind = expr_type.get<ast::ts_base_type>().info->kind;
+		auto const unsigned_type = [&]() {
+			switch (kind)
+			{
+			case ast::type_info::int8_:
+				return context.get_uint8();
+			case ast::type_info::int16_:
+				return context.get_uint16();
+			case ast::type_info::int32_:
+				return context.get_uint32();
+			case ast::type_info::int64_:
+				return context.get_uint64();
+			default:
+				bz_unreachable;
+			}
+		}();
+		auto const cast_string = context.to_string_unary_prefix(value, bz::format("({})", context.to_string(unsigned_type)));
+		auto const result_string = bz::format("({})({} + 1)", context.to_string(value.get_type()), cast_string);
+		context.create_assignment(value, result_string);
+		return value;
+	}
+	else
+	{
+		context.create_prefix_unary_operation(value, "++");
+		return value;
+	}
 }
 
 static expr_value generate_builtin_unary_minus_minus(
@@ -1395,8 +1478,35 @@ static expr_value generate_builtin_unary_minus_minus(
 )
 {
 	auto const value = generate_expression(expr, context, {});
-	context.create_prefix_unary_operation(value, "--");
-	return value;
+	auto const expr_type = expr.get_expr_type().remove_any_mut_reference();
+	if (expr_type.is<ast::ts_base_type>() && ast::is_signed_integer_kind(expr_type.get<ast::ts_base_type>().info->kind))
+	{
+		auto const kind = expr_type.get<ast::ts_base_type>().info->kind;
+		auto const unsigned_type = [&]() {
+			switch (kind)
+			{
+			case ast::type_info::int8_:
+				return context.get_uint8();
+			case ast::type_info::int16_:
+				return context.get_uint16();
+			case ast::type_info::int32_:
+				return context.get_uint32();
+			case ast::type_info::int64_:
+				return context.get_uint64();
+			default:
+				bz_unreachable;
+			}
+		}();
+		auto const cast_string = context.to_string_unary_prefix(value, bz::format("({})", context.to_string(unsigned_type)));
+		auto const result_string = bz::format("({})({} - 1)", context.to_string(value.get_type()), cast_string);
+		context.create_assignment(value, result_string);
+		return value;
+	}
+	else
+	{
+		context.create_prefix_unary_operation(value, "--");
+		return value;
+	}
 }
 
 static expr_value generate_builtin_binary_plus(
@@ -1406,9 +1516,35 @@ static expr_value generate_builtin_binary_plus(
 	bz::optional<expr_value> result_dest
 )
 {
-	// TODO: signed overflow
 	auto const lhs_value = generate_expression(lhs, context, {});
 	auto const rhs_value = generate_expression(rhs, context, {});
+
+	auto const rhs_type = rhs.get_expr_type();
+	if (rhs_type.is<ast::ts_base_type>() && ast::is_signed_integer_kind(rhs_type.get<ast::ts_base_type>().info->kind))
+	{
+		auto const kind = rhs_type.get<ast::ts_base_type>().info->kind;
+		auto const unsigned_type = [&]() {
+			switch (kind)
+			{
+			case ast::type_info::int8_:
+				return context.get_uint8();
+			case ast::type_info::int16_:
+				return context.get_uint16();
+			case ast::type_info::int32_:
+				return context.get_uint32();
+			case ast::type_info::int64_:
+				return context.get_uint64();
+			default:
+				bz_unreachable;
+			}
+		}();
+		auto const cast_op = bz::format("({})", context.to_string(unsigned_type));
+		auto const lhs_cast = context.to_string_unary_prefix(lhs_value, cast_op);
+		auto const rhs_cast = context.to_string_unary_prefix(rhs_value, cast_op);
+		auto const result_string = bz::format("({})({} + {})", context.to_string(lhs_value.get_type()), lhs_cast, rhs_cast);
+		return value_or_result_dest(result_string, lhs_value.get_type(), result_dest, context);
+	}
+
 	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "+", precedence::addition);
 
 	auto const result_type = [&]() {
@@ -1453,12 +1589,40 @@ static expr_value generate_builtin_binary_plus_eq(
 	codegen_context &context
 )
 {
-	// TODO: signed overflow
 	auto const rhs_value = generate_expression(rhs, context, {});
 	auto const lhs_value = generate_expression(lhs, context, {});
-	context.create_binary_operation(lhs_value, rhs_value, "+=", precedence::assignment);
 
-	return lhs_value;
+	auto const rhs_type = rhs.get_expr_type();
+	if (rhs_type.is<ast::ts_base_type>() && ast::is_signed_integer_kind(rhs_type.get<ast::ts_base_type>().info->kind))
+	{
+		auto const kind = rhs_type.get<ast::ts_base_type>().info->kind;
+		auto const unsigned_type = [&]() {
+			switch (kind)
+			{
+			case ast::type_info::int8_:
+				return context.get_uint8();
+			case ast::type_info::int16_:
+				return context.get_uint16();
+			case ast::type_info::int32_:
+				return context.get_uint32();
+			case ast::type_info::int64_:
+				return context.get_uint64();
+			default:
+				bz_unreachable;
+			}
+		}();
+		auto const cast_op = bz::format("({})", context.to_string(unsigned_type));
+		auto const lhs_cast = context.to_string_unary_prefix(lhs_value, cast_op);
+		auto const rhs_cast = context.to_string_unary_prefix(rhs_value, cast_op);
+		auto const result_string = bz::format("({})({} + {})", context.to_string(lhs_value.get_type()), lhs_cast, rhs_cast);
+		context.create_assignment(lhs_value, result_string);
+		return lhs_value;
+	}
+	else
+	{
+		context.create_binary_operation(lhs_value, rhs_value, "+=", precedence::assignment);
+		return lhs_value;
+	}
 }
 
 static expr_value generate_builtin_binary_minus(
@@ -1468,9 +1632,35 @@ static expr_value generate_builtin_binary_minus(
 	bz::optional<expr_value> result_dest
 )
 {
-	// TODO: signed overflow
 	auto const lhs_value = generate_expression(lhs, context, {});
 	auto const rhs_value = generate_expression(rhs, context, {});
+
+	auto const rhs_type = rhs.get_expr_type();
+	if (rhs_type.is<ast::ts_base_type>() && ast::is_signed_integer_kind(rhs_type.get<ast::ts_base_type>().info->kind))
+	{
+		auto const kind = rhs_type.get<ast::ts_base_type>().info->kind;
+		auto const unsigned_type = [&]() {
+			switch (kind)
+			{
+			case ast::type_info::int8_:
+				return context.get_uint8();
+			case ast::type_info::int16_:
+				return context.get_uint16();
+			case ast::type_info::int32_:
+				return context.get_uint32();
+			case ast::type_info::int64_:
+				return context.get_uint64();
+			default:
+				bz_unreachable;
+			}
+		}();
+		auto const cast_op = bz::format("({})", context.to_string(unsigned_type));
+		auto const lhs_cast = context.to_string_unary_prefix(lhs_value, cast_op);
+		auto const rhs_cast = context.to_string_unary_prefix(rhs_value, cast_op);
+		auto const result_string = bz::format("({})({} - {})", context.to_string(lhs_value.get_type()), lhs_cast, rhs_cast);
+		return value_or_result_dest(result_string, lhs_value.get_type(), result_dest, context);
+	}
+
 	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "-", precedence::subtraction);
 
 	auto const result_type = [&]() {
@@ -1516,12 +1706,40 @@ static expr_value generate_builtin_binary_minus_eq(
 	codegen_context &context
 )
 {
-	// TODO: signed overflow
 	auto const rhs_value = generate_expression(rhs, context, {});
 	auto const lhs_value = generate_expression(lhs, context, {});
-	context.create_binary_operation(lhs_value, rhs_value, "-=", precedence::assignment);
 
-	return lhs_value;
+	auto const rhs_type = rhs.get_expr_type();
+	if (rhs_type.is<ast::ts_base_type>() && ast::is_signed_integer_kind(rhs_type.get<ast::ts_base_type>().info->kind))
+	{
+		auto const kind = rhs_type.get<ast::ts_base_type>().info->kind;
+		auto const unsigned_type = [&]() {
+			switch (kind)
+			{
+			case ast::type_info::int8_:
+				return context.get_uint8();
+			case ast::type_info::int16_:
+				return context.get_uint16();
+			case ast::type_info::int32_:
+				return context.get_uint32();
+			case ast::type_info::int64_:
+				return context.get_uint64();
+			default:
+				bz_unreachable;
+			}
+		}();
+		auto const cast_op = bz::format("({})", context.to_string(unsigned_type));
+		auto const lhs_cast = context.to_string_unary_prefix(lhs_value, cast_op);
+		auto const rhs_cast = context.to_string_unary_prefix(rhs_value, cast_op);
+		auto const result_string = bz::format("({})({} - {})", context.to_string(lhs_value.get_type()), lhs_cast, rhs_cast);
+		context.create_assignment(lhs_value, result_string);
+		return lhs_value;
+	}
+	else
+	{
+		context.create_binary_operation(lhs_value, rhs_value, "-=", precedence::assignment);
+		return lhs_value;
+	}
 }
 
 static expr_value generate_builtin_binary_multiply(
@@ -1531,14 +1749,42 @@ static expr_value generate_builtin_binary_multiply(
 	bz::optional<expr_value> result_dest
 )
 {
-	// TODO: signed overflow
 	auto const lhs_value = generate_expression(lhs, context, {});
 	auto const rhs_value = generate_expression(rhs, context, {});
-	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "*", precedence::multiply);
-	bz_assert(lhs_value.get_type() == rhs_value.get_type());
-	auto const result_type = lhs_value.get_type();
 
-	return value_or_result_dest(expr_string, result_type, result_dest, context);
+	bz_assert(rhs.get_expr_type().is<ast::ts_base_type>());
+	auto const kind = rhs.get_expr_type().get<ast::ts_base_type>().info->kind;
+	if (ast::is_signed_integer_kind(kind))
+	{
+		auto const unsigned_type = [&]() {
+			switch (kind)
+			{
+			case ast::type_info::int8_:
+				return context.get_uint8();
+			case ast::type_info::int16_:
+				return context.get_uint16();
+			case ast::type_info::int32_:
+				return context.get_uint32();
+			case ast::type_info::int64_:
+				return context.get_uint64();
+			default:
+				bz_unreachable;
+			}
+		}();
+		auto const cast_op = bz::format("({})", context.to_string(unsigned_type));
+		auto const lhs_cast = context.to_string_unary_prefix(lhs_value, cast_op);
+		auto const rhs_cast = context.to_string_unary_prefix(rhs_value, cast_op);
+		auto const result_string = bz::format("({})({} * {})", context.to_string(lhs_value.get_type()), lhs_cast, rhs_cast);
+		return value_or_result_dest(result_string, lhs_value.get_type(), result_dest, context);
+	}
+	else
+	{
+		auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "*", precedence::multiply);
+		bz_assert(lhs_value.get_type() == rhs_value.get_type());
+		auto const result_type = lhs_value.get_type();
+
+		return value_or_result_dest(expr_string, result_type, result_dest, context);
+	}
 }
 
 static expr_value generate_builtin_binary_multiply_eq(
@@ -1547,12 +1793,40 @@ static expr_value generate_builtin_binary_multiply_eq(
 	codegen_context &context
 )
 {
-	// TODO: signed overflow
 	auto const rhs_value = generate_expression(rhs, context, {});
 	auto const lhs_value = generate_expression(lhs, context, {});
-	context.create_binary_operation(lhs_value, rhs_value, "*=", precedence::assignment);
 
-	return lhs_value;
+	bz_assert(rhs.get_expr_type().is<ast::ts_base_type>());
+	auto const kind = rhs.get_expr_type().get<ast::ts_base_type>().info->kind;
+	if (ast::is_signed_integer_kind(kind))
+	{
+		auto const unsigned_type = [&]() {
+			switch (kind)
+			{
+			case ast::type_info::int8_:
+				return context.get_uint8();
+			case ast::type_info::int16_:
+				return context.get_uint16();
+			case ast::type_info::int32_:
+				return context.get_uint32();
+			case ast::type_info::int64_:
+				return context.get_uint64();
+			default:
+				bz_unreachable;
+			}
+		}();
+		auto const cast_op = bz::format("({})", context.to_string(unsigned_type));
+		auto const lhs_cast = context.to_string_unary_prefix(lhs_value, cast_op);
+		auto const rhs_cast = context.to_string_unary_prefix(rhs_value, cast_op);
+		auto const result_string = bz::format("({})({} * {})", context.to_string(lhs_value.get_type()), lhs_cast, rhs_cast);
+		context.create_assignment(lhs_value, result_string);
+		return lhs_value;
+	}
+	else
+	{
+		context.create_binary_operation(lhs_value, rhs_value, "*=", precedence::assignment);
+		return lhs_value;
+	}
 }
 
 static expr_value generate_builtin_binary_divide(
@@ -1562,14 +1836,38 @@ static expr_value generate_builtin_binary_divide(
 	bz::optional<expr_value> result_dest
 )
 {
-	// TODO: signed overflow
 	auto const lhs_value = generate_expression(lhs, context, {});
 	auto const rhs_value = generate_expression(rhs, context, {});
-	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "/", precedence::divide);
-	bz_assert(lhs_value.get_type() == rhs_value.get_type());
-	auto const result_type = lhs_value.get_type();
 
-	return value_or_result_dest(expr_string, result_type, result_dest, context);
+	bz_assert(rhs.get_expr_type().is<ast::ts_base_type>());
+	auto const kind = rhs.get_expr_type().get<ast::ts_base_type>().info->kind;
+	if (ast::is_signed_integer_kind(kind))
+	{
+		auto const func_name = [&]() -> bz::u8string_view {
+			switch (kind)
+			{
+			case ast::type_info::int8_:
+				return "bozon_div_i8";
+			case ast::type_info::int16_:
+				return "bozon_div_i16";
+			case ast::type_info::int32_:
+				return "bozon_div_i32";
+			case ast::type_info::int64_:
+				return "bozon_div_i64";
+			default:
+				bz_unreachable;
+			}
+		}();
+		return generate_trivial_function_call(func_name, { lhs_value, rhs_value }, lhs_value.get_type(), context, result_dest);
+	}
+	else
+	{
+		auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "/", precedence::divide);
+		bz_assert(lhs_value.get_type() == rhs_value.get_type());
+		auto const result_type = lhs_value.get_type();
+
+		return value_or_result_dest(expr_string, result_type, result_dest, context);
+	}
 }
 
 static expr_value generate_builtin_binary_divide_eq(
@@ -1578,12 +1876,35 @@ static expr_value generate_builtin_binary_divide_eq(
 	codegen_context &context
 )
 {
-	// TODO: signed overflow
 	auto const rhs_value = generate_expression(rhs, context, {});
 	auto const lhs_value = generate_expression(lhs, context, {});
-	context.create_binary_operation(lhs_value, rhs_value, "/=", precedence::assignment);
 
-	return lhs_value;
+	bz_assert(rhs.get_expr_type().is<ast::ts_base_type>());
+	auto const kind = rhs.get_expr_type().get<ast::ts_base_type>().info->kind;
+	if (ast::is_signed_integer_kind(kind))
+	{
+		auto const func_name = [&]() -> bz::u8string_view {
+			switch (kind)
+			{
+			case ast::type_info::int8_:
+				return "bozon_div_i8";
+			case ast::type_info::int16_:
+				return "bozon_div_i16";
+			case ast::type_info::int32_:
+				return "bozon_div_i32";
+			case ast::type_info::int64_:
+				return "bozon_div_i64";
+			default:
+				bz_unreachable;
+			}
+		}();
+		return generate_trivial_function_call(func_name, { lhs_value, rhs_value }, lhs_value.get_type(), context, lhs_value);
+	}
+	else
+	{
+		context.create_binary_operation(lhs_value, rhs_value, "/=", precedence::assignment);
+		return lhs_value;
+	}
 }
 
 static expr_value generate_builtin_binary_modulo(
@@ -1934,30 +2255,6 @@ static expr_value generate_builtin_subscript_range(
 			auto const slice_literal = context.to_string_struct_literal(slice_type, { begin_ptr, end_ptr });
 			return context.add_value_expression(slice_literal, slice_type);
 		}
-	}
-	else
-	{
-		bz_unreachable;
-	}
-}
-
-static expr_value generate_builtin_function_call(
-	bz::u8string_view func_name,
-	ast::expr_function_call const &func_call,
-	codegen_context &context,
-	bz::optional<expr_value> result_dest
-)
-{
-	if (func_call.params.size() == 1)
-	{
-		auto const arg_value = generate_expression(func_call.params[0], context, {});
-		return generate_trivial_function_call(func_name, arg_value, arg_value.get_type(), context, result_dest);
-	}
-	else if (func_call.params.size() == 2)
-	{
-		auto const arg1_value = generate_expression(func_call.params[0], context, {});
-		auto const arg2_value = generate_expression(func_call.params[1], context, {});
-		return generate_trivial_function_call(func_name, { arg1_value, arg2_value }, arg1_value.get_type(), context, result_dest);
 	}
 	else
 	{

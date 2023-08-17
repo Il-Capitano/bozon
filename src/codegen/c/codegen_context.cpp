@@ -1904,7 +1904,39 @@ static constexpr bz::u8string_view builtin_defines = R"(#if defined(__has_builti
 	#define bozon_trap() (abort())
 #endif
 )";
-static constexpr bz::u8string_view builtin_functions = R"(static t_int8 bozon_abs_i8(t_int8 n)
+static constexpr bz::u8string_view builtin_functions = R"(static t_int8 bozon_neg_i8(t_int8 n)
+{
+	return n == (t_int8)((t_uint8)1 << 7) ? n : -n;
+}
+static t_int16 bozon_neg_i16(t_int16 n)
+{
+	return n == (t_int16)((t_uint16)1 << 15) ? n : -n;
+}
+static t_int32 bozon_neg_i32(t_int32 n)
+{
+	return n == (t_int32)((t_uint32)1 << 31) ? n : -n;
+}
+static t_int64 bozon_neg_i64(t_int64 n)
+{
+	return n == (t_int64)((t_uint64)1 << 63) ? n : -n;
+}
+static t_int8 bozon_div_i8(t_int8 lhs, t_int8 rhs)
+{
+	return lhs == (t_int8)((t_uint8)1 << 7) && rhs == -1 ? lhs : lhs / rhs;
+}
+static t_int16 bozon_div_i16(t_int16 lhs, t_int16 rhs)
+{
+	return lhs == (t_int16)((t_uint16)1 << 15) && rhs == -1 ? lhs : lhs / rhs;
+}
+static t_int32 bozon_div_i32(t_int32 lhs, t_int32 rhs)
+{
+	return lhs == (t_int32)((t_uint32)1 << 31) && rhs == -1 ? lhs : lhs / rhs;
+}
+static t_int64 bozon_div_i64(t_int64 lhs, t_int64 rhs)
+{
+	return lhs == (t_int64)((t_uint64)1 << 63) && rhs == -1 ? lhs : lhs / rhs;
+}
+static t_int8 bozon_abs_i8(t_int8 n)
 {
 	if (n == (t_int8)(1ull << 7))
 	{
