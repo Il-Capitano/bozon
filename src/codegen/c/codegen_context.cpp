@@ -1448,7 +1448,7 @@ void codegen_context::end_while(while_info_t prev_while_info)
 	if (this->current_function_info.while_info.needs_break_goto)
 	{
 		this->add_indentation();
-		this->current_function_info.body_string += this->make_goto_label(this->current_function_info.while_info.needs_break_goto);
+		this->current_function_info.body_string += this->make_goto_label(this->current_function_info.while_info.break_goto_index);
 		this->current_function_info.body_string += ":;\n";
 	}
 
