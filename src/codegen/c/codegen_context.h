@@ -141,6 +141,7 @@ struct codegen_context
 	uint32_t long_size;
 	uint32_t long_long_size;
 	uint32_t pointer_size;
+	comptime::memory::endianness_kind endianness;
 	ctx::global_context &global_ctx;
 
 	struct local_name_and_index_pair
@@ -151,6 +152,9 @@ struct codegen_context
 
 	ast::function_body *get_builtin_function(uint32_t kind) const;
 	bz::u8string get_location_string(lex::src_tokens const &src_tokens) const;
+
+	bool is_little_endian(void) const;
+	bool is_big_endian(void) const;
 
 	size_t get_unique_number(void);
 	bz::u8string make_type_name(void);

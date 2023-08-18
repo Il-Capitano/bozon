@@ -5253,6 +5253,220 @@ static expr_value generate_integral_switch(
 	}
 }
 
+struct string_switch_case_info_t
+{
+	bz::u8string_view string_value;
+	size_t case_index;
+};
+
+static uint64_t get_string_int_value(bz::u8string_view str, codegen_context &context)
+{
+	bz_assert(str.size() <= 8);
+	uint64_t result = 0;
+	if (context.is_little_endian())
+	{
+		for (auto const i : bz::iota(0, str.size()))
+		{
+			auto const c = static_cast<uint64_t>(static_cast<uint8_t>(*(str.data() + i)));
+			result |= c << (i * 8);
+		}
+	}
+	else
+	{
+		for (auto const i : bz::iota(0, str.size()))
+		{
+			auto const c = static_cast<uint64_t>(static_cast<uint8_t>(*(str.data() + i)));
+			result |= c << ((7 - i) * 8);
+		}
+	}
+
+	return result;
+}
+
+static expr_value are_strings_equal(expr_value begin_ptr, bz::u8string_view str, codegen_context &context)
+{
+	if (str.size() == 0)
+	{
+		return context.add_value_expression("1", context.get_bool());
+	}
+
+	auto const &lhs = begin_ptr;
+	auto const rhs_type = context.add_const_pointer(context.get_uint8());
+	auto const rhs = context.add_value_expression(context.create_cstring(str), rhs_type);
+	auto const size = context.add_value_expression(bz::format("{}u", str.size()), context.get_usize());
+	auto const memcmp_result = generate_trivial_function_call("memcmp", { lhs, rhs, size }, context.get_int32(), context, {});
+	return context.create_binary_operation(memcmp_result, "0", "==", precedence::equality, context.get_bool());
+}
+
+static expr_value generate_string_switch(
+	ast::expr_switch const &switch_expr,
+	expr_value begin_ptr,
+	expr_value end_ptr,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	bz::optional<expr_value> reference_result = {};
+	for (auto const &[case_vals, case_expr] : switch_expr.cases)
+	{
+		if (case_expr.get_expr_type().is_any_reference())
+		{
+			bz_assert(!result_dest.has_value());
+			reference_result = context.add_uninitialized_value(get_type(case_expr.get_expr_type(), context));
+			break;
+		}
+	}
+	if (!reference_result.has_value() && switch_expr.default_case.get_expr_type().is_any_reference())
+	{
+		bz_assert(!result_dest.has_value());
+		reference_result = context.add_uninitialized_value(get_type(switch_expr.default_case.get_expr_type(), context));
+	}
+
+	// switching on strings is done in two main steps:
+	//   1. do a switch on the size of the string to narrow it down
+	//   2. for each unique size in the cases determine the matching case
+
+	auto const case_count = switch_expr.cases.transform([](auto const &case_val) {
+		return case_val.values.size();
+	}).sum();
+	auto case_infos = ast::arena_vector<string_switch_case_info_t>();
+	case_infos.reserve(case_count);
+	for (auto const case_index : bz::iota(0, switch_expr.cases.size()))
+	{
+		for (auto const &value : switch_expr.cases[case_index].values)
+		{
+			bz_assert(value.is_constant() && value.get_constant_value().is_string());
+			auto const string_value = value.get_constant_value().get_string();
+			case_infos.push_back({ string_value, case_index });
+		}
+	}
+	auto const default_case_index = switch_expr.cases.size();
+
+	// sort in terms of string size
+	case_infos.sort([](auto const &lhs, auto const &rhs) {
+		return lhs.string_value.size() < rhs.string_value.size();
+	});
+	auto const size = context.to_string_binary(end_ptr, begin_ptr, "-", precedence::subtraction);
+
+	// store the case index in this variable
+	auto const case_index_value = context.add_uninitialized_value(context.get_usize());
+	if (case_infos.not_empty())
+	{
+		context.add_libc_header("string.h"); // memcpy, memcmp
+		auto const size_prev_switch_info = context.begin_switch(size);
+
+		size_t value_index = 0;
+		while (value_index < case_infos.size())
+		{
+			auto const current_size = case_infos[value_index].string_value.size();
+			context.add_case_label(bz::format("{}u", current_size));
+			context.begin_case();
+
+			// if the string is less than 8 bytes we copy them into an integer and do a switch on that,
+			// otherwise we do an if-else chain (if chain with breaks in each case)
+			if (current_size <= 8)
+			{
+				auto const string_int_value = context.add_value_expression("0u", context.get_uint64());
+				auto const size_value = context.add_value_expression(bz::format("{}u", current_size), context.get_usize());
+				generate_trivial_function_call(
+					"memcpy",
+					{ context.create_address_of(string_int_value), begin_ptr, size_value },
+					context.get_void(),
+					context,
+					{}
+				);
+
+				auto const value_prev_switch_info = context.begin_switch(string_int_value);
+
+				// this will do at least one iteration, so the outside loop will terminate
+				for (; case_infos[value_index].string_value.size() == current_size; ++value_index)
+				{
+					auto const &[string_value, case_index] = case_infos[value_index];
+					auto const case_string_int_value = get_string_int_value(string_value, context);
+					context.add_case_label(bz::format("{}u", case_string_int_value));
+					context.begin_case();
+					context.create_assignment(case_index_value, bz::format("{}u", case_index));
+					context.end_case();
+				}
+
+				// default case
+				context.begin_default_case();
+				context.create_assignment(case_index_value, bz::format("{}u", default_case_index));
+				context.end_case();
+
+				context.end_switch(value_prev_switch_info);
+			}
+			else
+			{
+				// this will do at least one iteration, so the outside loop will terminate
+				for (; case_infos[value_index].string_value.size() == current_size; ++value_index)
+				{
+					auto const &[string_value, case_index] = case_infos[value_index];
+					auto const prev_if_info = context.begin_if(are_strings_equal(begin_ptr, string_value, context));
+					context.create_assignment(case_index_value, bz::format("{}u", case_index));
+					context.add_expression("break");
+					context.end_if(prev_if_info);
+				}
+
+				context.create_assignment(case_index_value, bz::format("{}u", default_case_index));
+			}
+
+			context.end_case();
+		}
+
+		context.end_switch(size_prev_switch_info);
+	}
+	else
+	{
+		context.create_assignment(case_index_value, bz::format("{}u", default_case_index));
+	}
+
+
+	auto const prev_switch_info = context.begin_switch(case_index_value);
+	for (auto const case_index : bz::iota(0, switch_expr.cases.size()))
+	{
+		auto const &case_expr = switch_expr.cases[case_index].expr;
+		context.add_case_label(bz::format("{}u", case_index));
+
+		context.begin_case();
+		auto const prev_info = context.push_expression_scope();
+		auto const value = generate_expression(case_expr, context, result_dest);
+		if (reference_result.has_value() && !case_expr.is_noreturn())
+		{
+			context.create_assignment(reference_result.get(), context.create_address_of(value));
+		}
+		context.pop_expression_scope(prev_info);
+		context.end_case();
+	}
+
+	if (switch_expr.default_case.not_null())
+	{
+		context.begin_default_case();
+		auto const prev_info = context.push_expression_scope();
+		auto const value = generate_expression(switch_expr.default_case, context, result_dest);
+		if (reference_result.has_value() && !switch_expr.default_case.is_noreturn())
+		{
+			context.create_assignment(reference_result.get(), context.create_address_of(value));
+		}
+		context.pop_expression_scope(prev_info);
+		context.end_case();
+	}
+	context.end_switch(prev_switch_info);
+
+	if (result_dest.has_value())
+	{
+		return result_dest.get();
+	}
+	else if (reference_result.has_value())
+	{
+		return context.create_dereference(reference_result.get());
+	}
+	else
+	{
+		return context.get_void_value();
+	}
+}
+
 static expr_value generate_expression(
 	ast::expr_switch const &switch_expr,
 	codegen_context &context,
@@ -5266,13 +5480,11 @@ static expr_value generate_expression(
 
 	if (is_string)
 	{
-		// TODO
-		bz_unreachable;
-		// auto const begin_ptr = context.create_struct_gep(matched_value, 0);
-		// auto const end_ptr   = context.create_struct_gep(matched_value, 1);
-		// context.pop_expression_scope(matched_value_prev_info);
+		auto const begin_ptr = context.create_struct_gep(matched_value, 0);
+		auto const end_ptr   = context.create_struct_gep(matched_value, 1);
+		context.pop_expression_scope(matched_value_prev_info);
 
-		// return generate_string_switch(switch_expr, begin_ptr, end_ptr, context, result_address);
+		return generate_string_switch(switch_expr, begin_ptr, end_ptr, context, result_dest);
 	}
 	else
 	{

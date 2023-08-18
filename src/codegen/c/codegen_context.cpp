@@ -15,11 +15,13 @@ codegen_context::codegen_context(ctx::global_context &global_ctx, target_propert
 	bz_assert(props.c_long_size.has_value());
 	bz_assert(props.c_long_long_size.has_value());
 	bz_assert(props.pointer_size.has_value());
+	bz_assert(props.endianness.has_value());
 	this->short_size = props.c_short_size.get();
 	this->int_size = props.c_int_size.get();
 	this->long_size = props.c_long_size.get();
 	this->long_long_size = props.c_long_long_size.get();
 	this->pointer_size = props.pointer_size.get();
+	this->endianness = props.endianness.get();
 
 	this->builtin_types.void_ = this->type_set.add_unique_typedef({
 		.aliased_type = {},
@@ -36,6 +38,16 @@ ast::function_body *codegen_context::get_builtin_function(uint32_t kind) const
 bz::u8string codegen_context::get_location_string(lex::src_tokens const &src_tokens) const
 {
 	return this->global_ctx.get_location_string(src_tokens.pivot);
+}
+
+bool codegen_context::is_little_endian(void) const
+{
+	return this->endianness == comptime::memory::endianness_kind::little;
+}
+
+bool codegen_context::is_big_endian(void) const
+{
+	return this->endianness == comptime::memory::endianness_kind::big;
 }
 
 size_t codegen_context::get_unique_number(void)
