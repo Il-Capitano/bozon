@@ -2455,19 +2455,19 @@ static t_uint8 bozon_clz_u8(t_uint8 n)
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clz)
-		return (t_uint8)(__builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size));
+		return (t_uint8)((t_uint8)__builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size));
 #endif
 	}
 	else if (int_size <= sizeof (unsigned long))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clzl)
-		return (t_uint8)(__builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size));
+		return (t_uint8)((t_uint8)__builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size));
 #endif
 	}
 	else
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clzll)
-		return (t_uint8)(__builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size));
+		return (t_uint8)((t_uint8)__builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size));
 #endif
 	}
 	t_uint8 c = 8 * int_size - 1;
@@ -2488,19 +2488,19 @@ static t_uint16 bozon_clz_u16(t_uint16 n)
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clz)
-		return (t_uint16)(__builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size));
+		return (t_uint16)((t_uint16)__builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size));
 #endif
 	}
 	else if (int_size <= sizeof (unsigned long))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clzl)
-		return (t_uint16)(__builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size));
+		return (t_uint16)((t_uint16)__builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size));
 #endif
 	}
 	else
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clzll)
-		return (t_uint16)(__builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size));
+		return (t_uint16)((t_uint16)__builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size));
 #endif
 	}
 	t_uint16 c = 8 * int_size - 1;
@@ -2521,19 +2521,19 @@ static t_uint32 bozon_clz_u32(t_uint32 n)
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clz)
-		return (t_uint32)(__builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size));
+		return (t_uint32)((t_uint32)__builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size));
 #endif
 	}
 	else if (int_size <= sizeof (unsigned long))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clzl)
-		return (t_uint32)(__builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size));
+		return (t_uint32)((t_uint32)__builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size));
 #endif
 	}
 	else
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clzll)
-		return (t_uint32)(__builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size));
+		return (t_uint32)((t_uint32)__builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size));
 #endif
 	}
 	t_uint32 c = 8 * int_size - 1;
@@ -2554,19 +2554,19 @@ static t_uint64 bozon_clz_u64(t_uint64 n)
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clz)
-		return (t_uint64)(__builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size));
+		return (t_uint64)((t_uint64)__builtin_clz(n) - 8 * (sizeof (unsigned int) - int_size));
 #endif
 	}
 	else if (int_size <= sizeof (unsigned long))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clzl)
-		return (t_uint64)(__builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size));
+		return (t_uint64)((t_uint64)__builtin_clzl(n) - 8 * (sizeof (unsigned long) - int_size));
 #endif
 	}
 	else
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clzll)
-		return (t_uint64)(__builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size));
+		return (t_uint64)((t_uint64)__builtin_clzll(n) - 8 * (sizeof (unsigned long long) - int_size));
 #endif
 	}
 	t_uint64 c = 8 * int_size - 1;

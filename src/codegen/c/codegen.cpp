@@ -1548,8 +1548,7 @@ static expr_value generate_builtin_binary_plus(
 		return value_or_result_dest(result_string, lhs_value.get_type(), result_dest, context);
 	}
 
-	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "+", precedence::addition);
-
+	bool needs_cast = false;
 	auto const result_type = [&]() {
 		if (context.is_pointer(lhs_value.get_type()))
 		{
@@ -1569,10 +1568,12 @@ static expr_value generate_builtin_binary_plus(
 
 			if (lhs_kind == ast::type_info::char_)
 			{
+				needs_cast = rhs_kind == ast::type_info::uint64_ || rhs_kind == ast::type_info::int64_;
 				return lhs_value.get_type();
 			}
 			else if (rhs_kind == ast::type_info::char_)
 			{
+				needs_cast = rhs_kind == ast::type_info::uint64_ || rhs_kind == ast::type_info::int64_;
 				return rhs_value.get_type();
 			}
 			else
@@ -1583,7 +1584,18 @@ static expr_value generate_builtin_binary_plus(
 		}
 	}();
 
-	return value_or_result_dest(expr_string, result_type, result_dest, context);
+	if (needs_cast)
+	{
+		bz::u8string expr_string = bz::format("({})(", context.to_string(result_type));
+		expr_string += context.to_string_binary(lhs_value, rhs_value, "+", precedence::addition);
+		expr_string += ')';
+		return value_or_result_dest(expr_string, result_type, result_dest, context);
+	}
+	else
+	{
+		auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "+", precedence::addition);
+		return value_or_result_dest(expr_string, result_type, result_dest, context);
+	}
 }
 
 static expr_value generate_builtin_binary_plus_eq(
@@ -1674,8 +1686,7 @@ static expr_value generate_builtin_binary_minus(
 		return value_or_result_dest(result_string, lhs_value.get_type(), result_dest, context);
 	}
 
-	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "-", precedence::subtraction);
-
+	bool needs_cast = false;
 	auto const result_type = [&]() {
 		auto const lhs_is_pointer = context.is_pointer(lhs_value.get_type());
 		if (lhs_is_pointer && context.is_pointer(rhs_value.get_type()))
@@ -1696,10 +1707,12 @@ static expr_value generate_builtin_binary_minus(
 
 			if (lhs_kind == ast::type_info::char_ && rhs_kind == ast::type_info::char_)
 			{
+				needs_cast = true;
 				return context.get_int32();
 			}
 			else if (lhs_kind == ast::type_info::char_)
 			{
+				needs_cast = rhs_kind == ast::type_info::uint64_ || rhs_kind == ast::type_info::int64_;
 				return lhs_value.get_type();
 			}
 			else
@@ -1710,7 +1723,18 @@ static expr_value generate_builtin_binary_minus(
 		}
 	}();
 
-	return value_or_result_dest(expr_string, result_type, result_dest, context);
+	if (needs_cast)
+	{
+		bz::u8string expr_string = bz::format("({})(", context.to_string(result_type));
+		expr_string += context.to_string_binary(lhs_value, rhs_value, "-", precedence::subtraction);
+		expr_string += ')';
+		return value_or_result_dest(expr_string, result_type, result_dest, context);
+	}
+	else
+	{
+		auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "-", precedence::subtraction);
+		return value_or_result_dest(expr_string, result_type, result_dest, context);
+	}
 }
 
 static expr_value generate_builtin_binary_minus_eq(
