@@ -97,19 +97,27 @@ def print_test_fail_info(command, stdout, stderr, rc, wanted_messages=None):
 total_passed = 0
 failed_tests_info = []
 
-success_commands = [[ bozon, *flags, test_file ] for test_file in success_test_files]
+emit_kinds = [ 'obj', 'c' ]
+success_commands = [[ bozon, *flags, f'--emit={emit_kind}', test_file ] for test_file in success_test_files for emit_kind in emit_kinds]
 success_pool = ProcessPool(success_commands)
 success_pool.start()
 for test_file in success_test_files:
     print(f'    {test_file:.<{file_name_print_length}}', end='', flush=True)
-    command, stdout, stderr, rc = success_pool.get_next_result()
-    if rc == 0 and stdout == '' and stderr == '':
-        total_passed += 1
+    failed = False
+    test_fail_print_infos = []
+    for emit_kind in emit_kinds:
+        command, stdout, stderr, rc = success_pool.get_next_result()
+        if rc != 0 or stdout != '' or stderr != '':
+            failed = True
+            failed_tests_info.append((test_file, command, stdout, stderr, rc))
+            test_fail_print_infos.append(failed_tests_info[-1][1:])
+    if not failed:
         print(f'{bright_green}OK{clear}')
+        total_passed += 1
     else:
         print(f'{bright_red}FAIL{clear}')
-        failed_tests_info.append((test_file, command, stdout, stderr, rc))
-        print_test_fail_info(*failed_tests_info[-1][1:])
+        for info in test_fail_print_infos:
+            print_test_fail_info(*info)
 
 warning_commands = [[ bozon, *flags, test_file ] for test_file in warning_test_files]
 warning_pool = ProcessPool(warning_commands)
