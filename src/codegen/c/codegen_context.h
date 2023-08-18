@@ -48,6 +48,7 @@ struct codegen_context
 		type::typedef_reference float64_ = type::typedef_reference::invalid();
 		type::typedef_reference char_ = type::typedef_reference::invalid();
 		type::typedef_reference bool_ = type::typedef_reference::invalid();
+		type::struct_reference slice = type::struct_reference::invalid();
 	};
 
 	struct global_variable_t
@@ -185,6 +186,7 @@ struct codegen_context
 	type get_float64(void) const;
 	type get_char(void) const;
 	type get_bool(void) const;
+	type get_slice(void) const;
 
 	type add_pointer(type t, type_modifier modifier_kind);
 	type add_pointer(type t);
@@ -196,6 +198,8 @@ struct codegen_context
 	struct_type_t const *maybe_get_struct(type t) const;
 	bool is_array(type t) const;
 	array_type_t const *maybe_get_array(type t) const;
+	bool is_slice(type t) const;
+	slice_type_t const *maybe_get_slice(type t) const;
 	bool is_function(type t) const;
 	function_type_t const *maybe_get_function(type t) const;
 
@@ -213,11 +217,13 @@ struct codegen_context
 	type::struct_reference add_struct(struct_type_t struct_type);
 	type::typedef_reference add_typedef(typedef_type_t typedef_type);
 	type::array_reference add_array(array_type_t array_type);
+	type::slice_reference add_slice(slice_type_t slice_type);
 	type::function_reference add_function(function_type_t function_type);
 
 	struct_type_t const &get_struct(type::struct_reference struct_ref) const;
 	typedef_type_t const &get_typedef(type::typedef_reference typedef_ref) const;
 	array_type_t const &get_array(type::array_reference array_ref) const;
+	slice_type_t const &get_slice(type::slice_reference slice_ref) const;
 	function_type_t const &get_function(type::function_reference function_ref) const;
 
 	type::typedef_reference add_builtin_type(

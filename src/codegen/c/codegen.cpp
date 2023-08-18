@@ -51,10 +51,8 @@ static type get_type(ast::typespec_view ts, codegen_context &context, bool resol
 		{
 			auto const &slice_type = ts.get<ast::ts_array_slice>();
 			auto const elem_type = get_type(slice_type.elem_type, context, false);
-			auto const elem_pointer_type = slice_type.elem_type.is_mut()
-				? context.add_pointer(elem_type)
-				: context.add_const_pointer(elem_type);
-			return type(context.add_struct({ .members = { elem_pointer_type, elem_pointer_type } }));
+			auto const is_const = !slice_type.elem_type.is_mut();
+			return type(context.add_slice({ .elem_type = elem_type, .is_const = is_const }));
 		}
 		case ast::terminator_typespec_node_t::index_of<ast::ts_tuple>:
 		{
@@ -1273,7 +1271,7 @@ static expr_value generate_expression(
 		auto const slice = generate_expression(subscript.base, context, {});
 		auto const index = generate_expression(subscript.index, context, {});
 
-		auto const begin_ptr = context.create_struct_gep(slice, 0);
+		auto const begin_ptr = context.create_struct_gep_value(slice, 0);
 		return context.create_array_slice_gep(begin_ptr, index);
 	}
 	else
@@ -2164,8 +2162,8 @@ static expr_value generate_builtin_subscript_range(
 
 	if (lhs_type.is<ast::ts_array_slice>())
 	{
-		auto const lhs_begin_ptr = context.create_struct_gep(lhs_value, 0);
-		auto const lhs_end_ptr   = context.create_struct_gep(lhs_value, 1);
+		auto const lhs_begin_ptr = context.create_struct_gep_value(lhs_value, 0);
+		auto const lhs_end_ptr   = context.create_struct_gep_value(lhs_value, 1);
 
 		auto const [begin_ptr, end_ptr] = [&]() -> begin_end_pair_t {
 			switch (kind)
@@ -2334,14 +2332,14 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const s = generate_expression(func_call.params[0], context, {});
-		auto const result_value = context.create_struct_gep(s, 0);
+		auto const result_value = context.create_struct_gep_value(s, 0);
 		return value_or_result_dest(result_value, result_dest, context);
 	}
 	case ast::function_body::builtin_str_end_ptr:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const s = generate_expression(func_call.params[0], context, {});
-		auto const result_value = context.create_struct_gep(s, 1);
+		auto const result_value = context.create_struct_gep_value(s, 1);
 		return value_or_result_dest(result_value, result_dest, context);
 	}
 	case ast::function_body::builtin_str_size:
@@ -2350,21 +2348,28 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	case ast::function_body::builtin_str_from_ptrs:
 	{
 		bz_assert(func_call.params.size() == 2);
-		if (!result_dest.has_value())
+		auto const begin_ptr = generate_expression(func_call.params[0], context, {});
+		auto const end_ptr   = generate_expression(func_call.params[1], context, {});
+		if (result_dest.has_value())
 		{
-			result_dest = context.add_uninitialized_value(get_type(func_call.func_body->return_type, context));
+			auto const &result_value = result_dest.get();
+			auto const struct_literal = context.to_string_struct_literal(result_value.get_type(), { begin_ptr, end_ptr });
+			context.create_assignment(result_value, struct_literal);
+			return result_value;
 		}
-		auto const &result_value = result_dest.get();
-		generate_expression(func_call.params[0], context, context.create_struct_gep(result_value, 0));
-		generate_expression(func_call.params[1], context, context.create_struct_gep(result_value, 1));
-		return result_value;
+		else
+		{
+			auto const result_type = get_type(func_call.func_body->return_type, context);
+			auto const struct_literal = context.to_string_struct_literal(result_type, { begin_ptr, end_ptr });
+			return context.add_value_expression(struct_literal, result_type);
+		}
 	}
 	case ast::function_body::builtin_slice_begin_ptr:
 	case ast::function_body::builtin_slice_begin_mut_ptr:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const slice = generate_expression(func_call.params[0], context, {});
-		auto const result_value = context.create_struct_gep(slice, 0);
+		auto const result_value = context.create_struct_gep_value(slice, 0);
 		return value_or_result_dest(result_value, result_dest, context);
 	}
 	case ast::function_body::builtin_slice_end_ptr:
@@ -2372,7 +2377,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const slice = generate_expression(func_call.params[0], context, {});
-		auto const result_value = context.create_struct_gep(slice, 1);
+		auto const result_value = context.create_struct_gep_value(slice, 1);
 		return value_or_result_dest(result_value, result_dest, context);
 	}
 	case ast::function_body::builtin_slice_size:
@@ -2382,14 +2387,21 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	case ast::function_body::builtin_slice_from_mut_ptrs:
 	{
 		bz_assert(func_call.params.size() == 2);
-		if (!result_dest.has_value())
+		auto const begin_ptr = generate_expression(func_call.params[0], context, {});
+		auto const end_ptr   = generate_expression(func_call.params[1], context, {});
+		if (result_dest.has_value())
 		{
-			result_dest = context.add_uninitialized_value(get_type(func_call.func_body->return_type, context));
+			auto const &result_value = result_dest.get();
+			auto const slice_literal = context.to_string_struct_literal(result_value.get_type(), { begin_ptr, end_ptr });
+			context.create_assignment(result_value, slice_literal);
+			return result_value;
 		}
-		auto const &result_value = result_dest.get();
-		generate_expression(func_call.params[0], context, context.create_struct_gep(result_value, 0));
-		generate_expression(func_call.params[1], context, context.create_struct_gep(result_value, 1));
-		return result_value;
+		else
+		{
+			auto const result_type = get_type(func_call.func_body->return_type, context);
+			auto const slice_literal = context.to_string_struct_literal(result_type, { begin_ptr, end_ptr });
+			return context.add_value_expression(slice_literal, result_type);
+		}
 	}
 	case ast::function_body::builtin_array_begin_ptr:
 	case ast::function_body::builtin_array_begin_mut_ptr:
@@ -2530,7 +2542,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const range_value = generate_expression(func_call.params[0], context, {});
-		auto const begin_value = context.create_struct_gep(range_value, 0);
+		auto const begin_value = context.create_struct_gep_value(range_value, 0);
 		return value_or_result_dest(begin_value, result_dest, context);
 	}
 	case ast::function_body::builtin_integer_range_end_value:
@@ -2538,14 +2550,14 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const range_value = generate_expression(func_call.params[0], context, {});
-		auto const end_value = context.create_struct_gep(range_value, 1);
+		auto const end_value = context.create_struct_gep_value(range_value, 1);
 		return value_or_result_dest(end_value, result_dest, context);
 	}
 	case ast::function_body::builtin_integer_range_from_begin_value:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const range_value = generate_expression(func_call.params[0], context, {});
-		auto const begin_value = context.create_struct_gep(range_value, 0);
+		auto const begin_value = context.create_struct_gep_value(range_value, 0);
 		return value_or_result_dest(begin_value, result_dest, context);
 	}
 	case ast::function_body::builtin_integer_range_to_end_value:
@@ -2553,14 +2565,14 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const range_value = generate_expression(func_call.params[0], context, {});
-		auto const end_value = context.create_struct_gep(range_value, 0);
+		auto const end_value = context.create_struct_gep_value(range_value, 0);
 		return value_or_result_dest(end_value, result_dest, context);
 	}
 	case ast::function_body::builtin_integer_range_begin_iterator:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const range_value = generate_expression(func_call.params[0], context, {});
-		auto const begin_value = context.create_struct_gep(range_value, 0);
+		auto const begin_value = context.create_struct_gep_value(range_value, 0);
 
 		if (result_dest.has_value())
 		{
@@ -2580,7 +2592,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const range_value = generate_expression(func_call.params[0], context, {});
-		auto const end_value = context.create_struct_gep(range_value, 1);
+		auto const end_value = context.create_struct_gep_value(range_value, 1);
 
 		if (result_dest.has_value())
 		{
@@ -2600,7 +2612,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const it_value = generate_expression(func_call.params[0], context, {});
-		auto const integer_value = context.create_struct_gep(it_value, 0);
+		auto const integer_value = context.create_struct_gep_value(it_value, 0);
 		return value_or_result_dest(integer_value, result_dest, context);
 	}
 	case ast::function_body::builtin_integer_range_iterator_equals:
@@ -2608,8 +2620,8 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		bz_assert(func_call.params.size() == 2);
 		auto const lhs_it_value = generate_expression(func_call.params[0], context, {});
 		auto const rhs_it_value = generate_expression(func_call.params[1], context, {});
-		auto const lhs_integer_value = context.create_struct_gep(lhs_it_value, 0);
-		auto const rhs_integer_value = context.create_struct_gep(rhs_it_value, 0);
+		auto const lhs_integer_value = context.create_struct_gep_value(lhs_it_value, 0);
+		auto const rhs_integer_value = context.create_struct_gep_value(rhs_it_value, 0);
 		auto const result_string = context.to_string_binary(lhs_integer_value, rhs_integer_value, "==", precedence::equality);
 		return value_or_result_dest(result_string, context.get_bool(), result_dest, context);
 	}
@@ -2618,8 +2630,8 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		bz_assert(func_call.params.size() == 2);
 		auto const lhs_it_value = generate_expression(func_call.params[0], context, {});
 		auto const rhs_it_value = generate_expression(func_call.params[1], context, {});
-		auto const lhs_integer_value = context.create_struct_gep(lhs_it_value, 0);
-		auto const rhs_integer_value = context.create_struct_gep(rhs_it_value, 0);
+		auto const lhs_integer_value = context.create_struct_gep_value(lhs_it_value, 0);
+		auto const rhs_integer_value = context.create_struct_gep_value(rhs_it_value, 0);
 		auto const result_string = context.to_string_binary(lhs_integer_value, rhs_integer_value, "!=", precedence::equality);
 		return value_or_result_dest(result_string, context.get_bool(), result_dest, context);
 	}
@@ -2643,8 +2655,8 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const range_value = generate_expression(func_call.params[0], context, {});
-		auto const begin_value = context.create_struct_gep(range_value, 0);
-		auto const end_value = context.create_struct_gep(range_value, 1);
+		auto const begin_value = context.create_struct_gep_value(range_value, 0);
+		auto const end_value = context.create_struct_gep_value(range_value, 1);
 		auto const false_value = context.add_value_expression("0", context.get_bool());
 
 		if (result_dest.has_value())
@@ -2684,7 +2696,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const it_value = generate_expression(func_call.params[0], context, {});
-		auto const integer_value = context.create_struct_gep(it_value, 0);
+		auto const integer_value = context.create_struct_gep_value(it_value, 0);
 		return value_or_result_dest(integer_value, result_dest, context);
 	}
 	case ast::function_body::builtin_integer_range_inclusive_iterator_left_equals:
@@ -2692,7 +2704,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		bz_assert(func_call.params.size() == 2);
 		auto const it_value = generate_expression(func_call.params[0], context, {});
 		generate_expression(func_call.params[1], context, {});
-		auto const at_end = context.create_struct_gep(it_value, 2);
+		auto const at_end = context.create_struct_gep_value(it_value, 2);
 		return value_or_result_dest(at_end, result_dest, context);
 	}
 	case ast::function_body::builtin_integer_range_inclusive_iterator_right_equals:
@@ -2700,7 +2712,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		bz_assert(func_call.params.size() == 2);
 		generate_expression(func_call.params[0], context, {});
 		auto const it_value = generate_expression(func_call.params[1], context, {});
-		auto const at_end = context.create_struct_gep(it_value, 2);
+		auto const at_end = context.create_struct_gep_value(it_value, 2);
 		return value_or_result_dest(at_end, result_dest, context);
 	}
 	case ast::function_body::builtin_integer_range_inclusive_iterator_left_not_equals:
@@ -2708,7 +2720,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		bz_assert(func_call.params.size() == 2);
 		auto const it_value = generate_expression(func_call.params[0], context, {});
 		generate_expression(func_call.params[1], context, {});
-		auto const at_end = context.create_struct_gep(it_value, 2);
+		auto const at_end = context.create_struct_gep_value(it_value, 2);
 		auto const result = context.create_prefix_unary_operation(at_end, "!", context.get_bool());
 		return value_or_result_dest(result, result_dest, context);
 	}
@@ -2717,7 +2729,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		bz_assert(func_call.params.size() == 2);
 		generate_expression(func_call.params[0], context, {});
 		auto const it_value = generate_expression(func_call.params[1], context, {});
-		auto const at_end = context.create_struct_gep(it_value, 2);
+		auto const at_end = context.create_struct_gep_value(it_value, 2);
 		auto const result = context.create_prefix_unary_operation(at_end, "!", context.get_bool());
 		return value_or_result_dest(result, result_dest, context);
 	}
@@ -2726,7 +2738,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		bz_assert(func_call.params.size() == 1);
 		auto const it_value = generate_expression(func_call.params[0], context, {});
 		auto const integer_value_ref = context.create_struct_gep(it_value, 0);
-		auto const end_value = context.create_struct_gep(it_value, 1);
+		auto const end_value = context.create_struct_gep_value(it_value, 1);
 
 		auto const is_at_end = context.to_string_binary(integer_value_ref, end_value, "==", precedence::equality);
 		auto const prev_if_info = context.begin_if(is_at_end);
@@ -2745,7 +2757,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const range_value = generate_expression(func_call.params[0], context, {});
-		auto const begin_value = context.create_struct_gep(range_value, 0);
+		auto const begin_value = context.create_struct_gep_value(range_value, 0);
 
 		if (result_dest.has_value())
 		{
@@ -2784,7 +2796,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const it_value = generate_expression(func_call.params[0], context, {});
-		auto const integer_value = context.create_struct_gep(it_value, 0);
+		auto const integer_value = context.create_struct_gep_value(it_value, 0);
 		return value_or_result_dest(integer_value, result_dest, context);
 	}
 	case ast::function_body::builtin_integer_range_from_iterator_left_equals:
@@ -3924,15 +3936,19 @@ static expr_value generate_expression(
 		auto const begin_ptr = context.create_struct_gep_pointer(expr_value, 0);
 		auto const end_ptr   = context.create_struct_gep_pointer(expr_value, array_size);
 
-		if (!result_dest.has_value())
+		if (result_dest.has_value())
 		{
-			result_dest = context.add_uninitialized_value(get_type(dest_t, context));
+			auto const &result_value = result_dest.get();
+			auto const slice_literal = context.to_string_struct_literal(result_value.get_type(), { begin_ptr, end_ptr });
+			context.create_assignment(result_value, slice_literal);
+			return result_value;
 		}
-
-		auto const &result_value = result_dest.get();
-		context.create_assignment(context.create_struct_gep(result_value, 0), begin_ptr);
-		context.create_assignment(context.create_struct_gep(result_value, 1), end_ptr);
-		return result_value;
+		else
+		{
+			auto const result_type = get_type(dest_t, context);
+			auto const slice_literal = context.to_string_struct_literal(result_type, { begin_ptr, end_ptr });
+			return context.add_value_expression(slice_literal, result_type);
+		}
 	}
 	else
 	{
@@ -4500,6 +4516,7 @@ static expr_value generate_expression(
 	{
 		auto const lhs_member = context.create_struct_gep(lhs, i);
 		auto const rhs_member = context.create_struct_gep(rhs, i);
+
 		auto const prev_info = context.push_expression_scope();
 		auto const lhs_prev_value = context.push_value_reference(lhs_member);
 		auto const rhs_prev_value = context.push_value_reference(rhs_member);
@@ -5480,8 +5497,8 @@ static expr_value generate_expression(
 
 	if (is_string)
 	{
-		auto const begin_ptr = context.create_struct_gep(matched_value, 0);
-		auto const end_ptr   = context.create_struct_gep(matched_value, 1);
+		auto const begin_ptr = context.create_struct_gep_value(matched_value, 0);
+		auto const end_ptr   = context.create_struct_gep_value(matched_value, 1);
 		context.pop_expression_scope(matched_value_prev_info);
 
 		return generate_string_switch(switch_expr, begin_ptr, end_ptr, context, result_dest);
@@ -5774,6 +5791,10 @@ static expr_value generate_expression(
 		return generate_expression(original_expr, const_expr.expr, context, result_dest);
 	}
 	else if (const_expr.kind == ast::expression_type_kind::none)
+	{
+		return context.get_void_value();
+	}
+	else if (const_expr.kind == ast::expression_type_kind::type_name)
 	{
 		return context.get_void_value();
 	}

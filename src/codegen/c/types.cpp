@@ -21,6 +21,12 @@ array_type_t const &type_set_t::get_array_type(type::array_reference array_ref) 
 	return this->array_types[array_ref.index];
 }
 
+slice_type_t const &type_set_t::get_slice_type(type::slice_reference slice_ref) const
+{
+	bz_assert(slice_ref.index < this->slice_types.size());
+	return this->slice_types[slice_ref.index];
+}
+
 function_type_t const &type_set_t::get_function_type(type::function_reference function_ref) const
 {
 	bz_assert(function_ref.index < this->function_types.size());
@@ -93,6 +99,21 @@ std::pair<type::array_reference, bool> type_set_t::add_array_type(array_type_t a
 	this->array_types.push_back(std::move(array_type));
 	auto const &new_type = this->array_types.back();
 	this->array_types_map.insert({ array_type_view_t{ new_type.elem_type, new_type.size }, result });
+	return { result, true };
+}
+
+std::pair<type::slice_reference, bool> type_set_t::add_slice_type(slice_type_t slice_type)
+{
+	auto const view = slice_type_view_t{ slice_type.elem_type, slice_type.is_const };
+	if (auto const it = this->slice_types_map.find(view); it != this->slice_types_map.end())
+	{
+		return { it->second, false };
+	}
+
+	auto const result = type::slice_reference{ .index = static_cast<uint32_t>(this->slice_types.size()) };
+	this->slice_types.push_back(std::move(slice_type));
+	auto const &new_type = this->slice_types.back();
+	this->slice_types_map.insert({ slice_type_view_t{ new_type.elem_type, new_type.is_const }, result });
 	return { result, true };
 }
 

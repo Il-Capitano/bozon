@@ -27,6 +27,11 @@ codegen_context::codegen_context(ctx::global_context &global_ctx, target_propert
 		.aliased_type = {},
 	});
 	this->type_set.add_typedef_type_name(this->builtin_types.void_, "void");
+
+	auto const void_pointer = this->add_const_pointer(type(this->builtin_types.void_));
+	this->builtin_types.slice = this->add_struct({
+		.members = { void_pointer, void_pointer },
+	});
 }
 
 ast::function_body *codegen_context::get_builtin_function(uint32_t kind) const
@@ -322,6 +327,11 @@ type codegen_context::get_bool(void) const
 	return type(this->builtin_types.bool_);
 }
 
+type codegen_context::get_slice(void) const
+{
+	return type(this->builtin_types.slice);
+}
+
 type codegen_context::add_pointer(type t, type_modifier modifier_kind)
 {
 	if (t.modifier_info.push(modifier_kind))
@@ -418,6 +428,35 @@ array_type_t const *codegen_context::maybe_get_array(type t) const
 	if (t.is_array())
 	{
 		return &this->get_array(t.get_array());
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
+bool codegen_context::is_slice(type t) const
+{
+	while (t.is_typedef())
+	{
+		auto const &typedef_type = this->get_typedef(t.get_typedef());
+		t = typedef_type.aliased_type;
+	}
+
+	return t.is_slice();
+}
+
+slice_type_t const *codegen_context::maybe_get_slice(type t) const
+{
+	while (t.is_typedef())
+	{
+		auto const &typedef_type = this->get_typedef(t.get_typedef());
+		t = typedef_type.aliased_type;
+	}
+
+	if (t.is_slice())
+	{
+		return &this->get_slice(t.get_slice());
 	}
 	else
 	{
@@ -653,6 +692,12 @@ type::array_reference codegen_context::add_array(array_type_t array_type)
 	return ref;
 }
 
+type::slice_reference codegen_context::add_slice(slice_type_t slice_type)
+{
+	auto const [ref, inserted] = this->type_set.add_slice_type(std::move(slice_type));
+	return ref;
+}
+
 type::function_reference codegen_context::add_function(function_type_t function_type)
 {
 	auto const [ref, inserted] = this->type_set.add_function_type(std::move(function_type));
@@ -698,6 +743,11 @@ typedef_type_t const &codegen_context::get_typedef(type::typedef_reference typed
 array_type_t const &codegen_context::get_array(type::array_reference array_ref) const
 {
 	return this->type_set.get_array_type(array_ref);
+}
+
+slice_type_t const &codegen_context::get_slice(type::slice_reference slice_ref) const
+{
+	return this->type_set.get_slice_type(slice_ref);
 }
 
 function_type_t const &codegen_context::get_function(type::function_reference function_ref) const
@@ -761,7 +811,7 @@ bz::u8string codegen_context::to_string(type t) const
 	bz::u8string result = "";
 	switch (t.terminator.index())
 	{
-	static_assert(type::type_terminator_t::variant_count == 4);
+	static_assert(type::type_terminator_t::variant_count == 5);
 	case type::type_terminator_t::index_of<type::struct_reference>:
 		result += this->type_set.get_struct_type_name(t.terminator.get<type::struct_reference>());
 		break;
@@ -770,6 +820,9 @@ bz::u8string codegen_context::to_string(type t) const
 		break;
 	case type::type_terminator_t::index_of<type::array_reference>:
 		result += this->type_set.get_array_type_name(t.terminator.get<type::array_reference>());
+		break;
+	case type::type_terminator_t::index_of<type::slice_reference>:
+		result += this->type_set.get_struct_type_name(this->builtin_types.slice);
 		break;
 	case type::type_terminator_t::index_of<type::function_reference>:
 		result += this->type_set.get_function_type_name(t.terminator.get<type::function_reference>());
@@ -1560,6 +1613,7 @@ static void remove_needs_dereference(expr_value &value, codegen_context &context
 
 expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 {
+	bz_assert(!this->is_slice(value.get_type()));
 	auto const type = value.get_type();
 	if (auto const struct_type = this->maybe_get_struct(type))
 	{
@@ -1610,6 +1664,7 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 
 expr_value codegen_context::create_struct_gep_pointer(expr_value value, size_t index)
 {
+	bz_assert(!this->is_slice(value.get_type()));
 	auto const type = value.get_type();
 	if (auto const struct_type = this->maybe_get_struct(type))
 	{
@@ -1699,6 +1754,31 @@ expr_value codegen_context::create_struct_gep_value(expr_value value, size_t ind
 		{
 			member_access_string += bz::format(".a[{}]", index);
 		}
+		return this->add_value_expression(member_access_string, result_type);
+	}
+	else if (auto const slice_type = this->maybe_get_slice(type))
+	{
+		bz_assert(index < 2);
+		auto const result_type = this->add_pointer(
+			slice_type->elem_type,
+			slice_type->is_const ? type_modifier::const_pointer : type_modifier::pointer
+		);
+		auto const use_arrow = value.needs_dereference;
+		remove_needs_dereference(value, *this);
+
+		bz::u8string member_access_string = "(";
+		member_access_string += this->to_string(result_type);
+		member_access_string += ')';
+		member_access_string += this->to_string_unary(value, precedence::suffix);
+		if (use_arrow)
+		{
+			member_access_string += "->";
+		}
+		else
+		{
+			member_access_string += '.';
+		}
+		member_access_string += this->get_member_name(index);
 		return this->add_value_expression(member_access_string, result_type);
 	}
 	else

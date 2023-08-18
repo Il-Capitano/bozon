@@ -169,6 +169,18 @@ struct type
 		}
 	};
 
+	struct slice_reference
+	{
+		uint32_t index;
+
+		bool operator == (slice_reference const &rhs) const = default;
+
+		static constexpr slice_reference invalid(void)
+		{
+			return { invalid_index };
+		}
+	};
+
 	struct function_reference
 	{
 		uint32_t index;
@@ -181,7 +193,7 @@ struct type
 		}
 	};
 
-	using type_terminator_t = bz::variant<struct_reference, typedef_reference, array_reference, function_reference>;
+	using type_terminator_t = bz::variant<struct_reference, typedef_reference, array_reference, slice_reference, function_reference>;
 
 	pointer_modifier_info_t modifier_info;
 	type_terminator_t terminator;
@@ -239,6 +251,17 @@ struct type
 		return this->terminator.get<array_reference>();
 	}
 
+	bool is_slice(void) const
+	{
+		return this->modifier_info.empty() && this->terminator.is<slice_reference>();
+	}
+
+	slice_reference get_slice(void) const
+	{
+		bz_assert(this->is_slice());
+		return this->terminator.get<slice_reference>();
+	}
+
 	bool is_function(void) const
 	{
 		return this->modifier_info.empty() && this->terminator.is<function_reference>();
@@ -258,7 +281,7 @@ struct type
 		result = hash_combine(result, std::hash<size_t>()(this->terminator.index()));
 		switch (this->terminator.index())
 		{
-		static_assert(type_terminator_t::variant_count == 4);
+		static_assert(type_terminator_t::variant_count == 5);
 		case type_terminator_t::index_of<struct_reference>:
 			result = hash_combine(result, std::hash<uint32_t>()(this->terminator.get<struct_reference>().index));
 			break;
@@ -267,6 +290,9 @@ struct type
 			break;
 		case type_terminator_t::index_of<array_reference>:
 			result = hash_combine(result, std::hash<uint32_t>()(this->terminator.get<array_reference>().index));
+			break;
+		case type_terminator_t::index_of<slice_reference>:
+			result = hash_combine(result, std::hash<uint32_t>()(this->terminator.get<slice_reference>().index));
 			break;
 		case type_terminator_t::index_of<function_reference>:
 			result = hash_combine(result, std::hash<uint32_t>()(this->terminator.get<function_reference>().index));
@@ -293,6 +319,12 @@ struct array_type_t
 {
 	type elem_type;
 	size_t size;
+};
+
+struct slice_type_t
+{
+	type elem_type;
+	bool is_const;
 };
 
 struct function_type_t
@@ -354,6 +386,22 @@ struct type_set_t
 		};
 	};
 
+	struct slice_type_view_t
+	{
+		type elem_type;
+		bool is_const;
+
+		bool operator == (slice_type_view_t const &rhs) const = default;
+
+		struct hash
+		{
+			size_t operator () (slice_type_view_t const &slice_type) const
+			{
+				return hash_combine(slice_type.elem_type.hash(), std::hash<bool>()(slice_type.is_const));
+			}
+		};
+	};
+
 	struct function_type_view_t
 	{
 		type return_type;
@@ -378,11 +426,13 @@ struct type_set_t
 	std::unordered_map<struct_type_view_t, type::struct_reference, struct_type_view_t::hash> struct_types_map;
 	std::unordered_map<typedef_type_view_t, type::typedef_reference, typedef_type_view_t::hash> typedef_types_map;
 	std::unordered_map<array_type_view_t, type::array_reference, array_type_view_t::hash> array_types_map;
+	std::unordered_map<slice_type_view_t, type::slice_reference, slice_type_view_t::hash> slice_types_map;
 	std::unordered_map<function_type_view_t, type::function_reference, function_type_view_t::hash> function_types_map;
 
 	bz::vector<struct_type_t> struct_types;
 	bz::vector<typedef_type_t> typedef_types;
 	bz::vector<array_type_t> array_types;
+	bz::vector<slice_type_t> slice_types;
 	bz::vector<function_type_t> function_types;
 
 	bz::vector<bz::u8string> struct_type_names;
@@ -393,6 +443,7 @@ struct type_set_t
 	struct_type_t const &get_struct_type(type::struct_reference struct_ref) const;
 	typedef_type_t const &get_typedef_type(type::typedef_reference typedef_ref) const;
 	array_type_t const &get_array_type(type::array_reference array_ref) const;
+	slice_type_t const &get_slice_type(type::slice_reference slice_ref) const;
 	function_type_t const &get_function_type(type::function_reference function_ref) const;
 
 	bz::u8string_view get_struct_type_name(type::struct_reference struct_ref) const;
@@ -403,6 +454,7 @@ struct type_set_t
 	std::pair<type::struct_reference, bool> add_struct_type(struct_type_t struct_type);
 	std::pair<type::typedef_reference, bool> add_typedef_type(typedef_type_t typedef_type);
 	std::pair<type::array_reference, bool> add_array_type(array_type_t array_type);
+	std::pair<type::slice_reference, bool> add_slice_type(slice_type_t slice_type);
 	std::pair<type::function_reference, bool> add_function_type(function_type_t function_type);
 
 	void add_struct_type_name(type::struct_reference struct_ref, bz::u8string struct_type_name);
