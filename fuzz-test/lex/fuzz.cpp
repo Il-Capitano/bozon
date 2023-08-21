@@ -18,7 +18,6 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const *data, size_t size)
 
 #include "lex/lexer.cpp"
 #include "ctx/global_context.cpp"
-#include "ctx/comptime_executor.cpp"
 #include "ctx/lex_context.cpp"
 #include "ast/statement.cpp"
 #include "ast/expression.cpp"
