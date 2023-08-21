@@ -391,7 +391,14 @@ public:
 		auto const current_size = this->size();
 		if (current_size >= new_size)
 		{
-			this->_data_end -= current_size - new_size;
+			if (this->_is_short_string())
+			{
+				this->_set_short_string_size(new_size);
+			}
+			else
+			{
+				this->_data_end -= current_size - new_size;
+			}
 		}
 		else
 		{
@@ -735,8 +742,14 @@ public:
 	bool starts_with(u8string_view str) const noexcept
 	{ return this->as_string_view().starts_with(str); }
 
+	bool starts_with(u8string_view::char_type c) const noexcept
+	{ return this->as_string_view().starts_with(c); }
+
 	bool ends_with(u8string_view str) const noexcept
 	{ return this->as_string_view().ends_with(str); }
+
+	bool ends_with(u8string_view::char_type c) const noexcept
+	{ return this->as_string_view().ends_with(c); }
 };
 
 bz_end_namespace
