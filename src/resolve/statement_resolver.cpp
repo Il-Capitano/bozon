@@ -3032,7 +3032,8 @@ static void resolve_enum_impl(ast::decl_enum &enum_decl, ctx::parse_context &con
 			bz_unreachable;
 		}
 	}();
-	auto const min_value = is_signed ? (max_value + 1) : 0; // max_value + 1 will give the 2's complement representation of min_value
+	// ~max_value will give the 2's complement representation of min_value, while respecting the upper bits for smaller integer sizes
+	auto const min_value = is_signed ? ~max_value : 0;
 
 	auto it = enum_decl.values.begin();
 	auto const end = enum_decl.values.end();
