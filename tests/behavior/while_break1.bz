@@ -1,0 +1,9 @@
+function main() -> int32
+{
+	while (true)
+	{
+		break;
+		return 1;
+	}
+	return 0;
+}

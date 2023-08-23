@@ -1,0 +1,14 @@
+function main() -> int32
+{
+	let i = 1;
+	while (true)
+	{
+		switch (i)
+		{
+			0 => {},
+			else => break,
+		}
+		return 1;
+	}
+	return 0;
+}
