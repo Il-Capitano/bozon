@@ -741,6 +741,20 @@ static test_run_result_t run_error_tests(bz::u8string_view bozon, bz::vector<bz:
 	return { passed_count, files.size() };
 }
 
+struct test_result_and_name_t
+{
+	test_run_result_t test_result;
+	bz::u8string_view name;
+};
+
+struct tests_to_run_t
+{
+	bool behavior;
+	bool success;
+	bool warning;
+	bool error;
+};
+
 int main(int argc, char const * const *argv)
 {
 	auto const args = bz::basic_range(argv + 1, argv + std::max(argc, 1))
@@ -749,6 +763,12 @@ int main(int argc, char const * const *argv)
 
 	bz::u8string_view bozon = "";
 	bz::u8string_view clang = "";
+	tests_to_run_t tests_to_run = {
+		.behavior = true,
+		.success = true,
+		.warning = true,
+		.error = true,
+	};
 	for (auto const arg : args)
 	{
 		if (arg.starts_with("--bozon="))
@@ -759,6 +779,45 @@ int main(int argc, char const * const *argv)
 		{
 			clang = arg.substring(bz::u8string_view("--clang=").length());
 		}
+		else if (arg.starts_with("--tests="))
+		{
+			tests_to_run = {
+				.behavior = false,
+				.success = false,
+				.warning = false,
+				.error = false,
+			};
+			auto const tests_to_run_string = arg.substring(bz::u8string_view("--tests=").length());
+			auto it = tests_to_run_string.begin();
+			while (it != tests_to_run_string.end())
+			{
+				auto const comma_it = tests_to_run_string.find(it, ',');
+				auto const test_kind = bz::u8string_view(it, comma_it);
+
+				if (test_kind == "behavior")
+				{
+					tests_to_run.behavior = true;
+				}
+				else if (test_kind == "success")
+				{
+					tests_to_run.success = true;
+				}
+				else if (test_kind == "warning")
+				{
+					tests_to_run.warning = true;
+				}
+				else if (test_kind == "error")
+				{
+					tests_to_run.error = true;
+				}
+
+				if (comma_it == tests_to_run_string.end())
+				{
+					break;
+				}
+				it = comma_it + 1;
+			}
+		}
 	}
 	if (bozon == "")
 	{
@@ -767,6 +826,10 @@ int main(int argc, char const * const *argv)
 	if (clang == "")
 	{
 		clang = clang_default;
+	}
+	if (!tests_to_run.behavior && !tests_to_run.success && !tests_to_run.warning && !tests_to_run.error)
+	{
+		return 0;
 	}
 
 	auto const common_flags = bz::vector<bz::u8string>{
@@ -778,45 +841,72 @@ int main(int argc, char const * const *argv)
 
 	auto pool = thread_pool(std::thread::hardware_concurrency());
 
-	auto const behavior_result = run_behavior_tests(bozon, common_flags, clang, pool);
-	auto const success_result = run_success_tests(bozon, common_flags, pool);
-	auto const warning_result = run_warning_tests(bozon, common_flags, pool);
-	auto const error_result = run_error_tests(bozon, common_flags, pool);
+	auto test_results = bz::vector<test_result_and_name_t>();
 
-	auto const print_section_info = [](test_run_result_t const &result, bz::u8string_view section_name) {
-		auto const color = result.passed_count == result.total_count ? colors::bright_green : colors::bright_red;
-		auto const passed_percentage = static_cast<double>(100 * result.passed_count) / static_cast<double>(result.total_count);
+	if (tests_to_run.behavior)
+	{
+		test_results.push_back({
+			.test_result = run_behavior_tests(bozon, common_flags, clang, pool),
+			.name = "tests/behavior",
+		});
+	}
+	if (tests_to_run.success)
+	{
+		test_results.push_back({
+			.test_result = run_success_tests(bozon, common_flags, pool),
+			.name = "tests/success",
+		});
+	}
+	if (tests_to_run.warning)
+	{
+		test_results.push_back({
+			.test_result = run_warning_tests(bozon, common_flags, pool),
+			.name = "tests/warning",
+		});
+	}
+	if (tests_to_run.error)
+	{
+		test_results.push_back({
+			.test_result = run_error_tests(bozon, common_flags, pool),
+			.name = "tests/error",
+		});
+	}
+
+	auto const passed_count = test_results.transform([](auto const &result) { return result.test_result.passed_count; }).sum();
+	auto const total_count = test_results.transform([](auto const &result) { return result.test_result.total_count; }).sum();
+
+	if (total_count != 0)
+	{
+		auto const print_section_info = [](test_run_result_t const &result, bz::u8string_view section_name) {
+			if (result.total_count == 0)
+			{
+				return;
+			}
+			auto const color = result.passed_count == result.total_count ? colors::bright_green : colors::bright_red;
+			auto const passed_percentage = static_cast<double>(100 * result.passed_count) / static_cast<double>(result.total_count);
+			bz::print(
+				"    {}{}/{}{} ({}{:.2f}%{}) tests passed in {}\n",
+				color, result.passed_count, result.total_count, colors::clear,
+				color, passed_percentage, colors::clear,
+				section_name
+			);
+		};
+
+		bz::print("\nsummary:\n");
+
+		for (auto const &result : test_results)
+		{
+			print_section_info(result.test_result, result.name);
+		}
+
+		auto const passed_percentage = static_cast<double>(100 * passed_count) / static_cast<double>(total_count);
+		auto const color = passed_count == total_count ? colors::bright_green : colors::bright_red;
 		bz::print(
-			"    {}{}/{}{} ({}{:.2f}%{}) tests passed in {}\n",
-			color, result.passed_count, result.total_count, colors::clear,
-			color, passed_percentage, colors::clear,
-			section_name
+			"{}{}/{}{} ({}{:.2f}%{}) tests passed\n",
+			color, passed_count, total_count, colors::clear,
+			color, passed_percentage, colors::clear
 		);
-	};
-
-	bz::print("\nsummary:\n");
-
-	print_section_info(behavior_result, "tests/behavior");
-	print_section_info(success_result, "tests/success");
-	print_section_info(warning_result, "tests/warning");
-	print_section_info(error_result, "tests/error");
-
-	auto const passed_count = behavior_result.passed_count
-		+ success_result.passed_count
-		+ warning_result.passed_count
-		+ error_result.passed_count;
-	auto const total_count = behavior_result.total_count
-		+ success_result.total_count
-		+ warning_result.total_count
-		+ error_result.total_count;
-
-	auto const passed_percentage = static_cast<double>(100 * passed_count) / static_cast<double>(total_count);
-	auto const color = passed_count == total_count ? colors::bright_green : colors::bright_red;
-	bz::print(
-		"{}{}/{}{} ({}{:.2f}%{}) tests passed\n",
-		color, passed_count, total_count, colors::clear,
-		color, passed_percentage, colors::clear
-	);
+	}
 
 	return 0;
 }
