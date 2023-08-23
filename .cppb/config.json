@@ -235,17 +235,49 @@
 		}
 	},
 	"rules": {
+		"generate_config.exe": {
+			"dependencies": [ "scripts/generate_config.cpp" ],
+			"command": "clang++ -std=c++20 -Isrc -Iinclude scripts/generate_config.cpp -o generate_config.exe"
+		},
+		"generate_config.out": {
+			"dependencies": [ "scripts/generate_config.cpp" ],
+			"command": "clang++-16 -std=c++20 -Isrc -Iinclude scripts/generate_config.cpp -o generate_config.out"
+		},
 		"generate-config": {
-			"command": "python3 scripts/generate_config.py",
-			"is_file": false
+			"windows": {
+				"dependencies": [ "generate_config.exe" ],
+				"command": "./generate_config.exe",
+				"is_file": false
+			},
+			"linux": {
+				"dependencies": [ "generate_config.out" ],
+				"command": "./generate_config.out",
+				"is_file": false
+			}
 		},
 		"generate-config-no-llvm": {
-			"command": "python3 scripts/generate_config.py --backends=c",
-			"is_file": false
+			"windows": {
+				"dependencies": [ "generate_config.exe" ],
+				"command": "./generate_config.exe --backends=c",
+				"is_file": false
+			},
+			"linux": {
+				"dependencies": [ "generate_config.out" ],
+				"command": "./generate_config.out --backends=c",
+				"is_file": false
+			}
 		},
 		"generate-config-none": {
-			"command": "python3 scripts/generate_config.py --backends=",
-			"is_file": false
+			"windows": {
+				"dependencies": [ "generate_config.exe" ],
+				"command": "./generate_config.exe --backends=",
+				"is_file": false
+			},
+			"linux": {
+				"dependencies": [ "generate_config.out" ],
+				"command": "./generate_config.out --backends=",
+				"is_file": false
+			}
 		},
 		"generate_lexer.exe": {
 			"dependencies": [ "scripts/generate_lexer.cpp", "src/token_info.h" ],
