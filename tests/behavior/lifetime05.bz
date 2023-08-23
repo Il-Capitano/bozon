@@ -1,0 +1,17 @@
+import counting_resource;
+
+function make_resource() -> counting_resource_t
+{
+	return counting_resource_t();
+}
+
+function test()
+{
+	make_resource();
+}
+
+function main() -> int32
+{
+	test();
+	return if (counting_resource_is_valid()) { 0 } else { 1 };
+}

@@ -1,0 +1,42 @@
+export struct counting_resource_t
+{
+	constructor()
+	{
+		default_constructions += 1;
+		return counting_resource_t[];
+	}
+
+	constructor(other: &counting_resource_t)
+	{
+		copy_constructions += 1;
+		return counting_resource_t[];
+	}
+
+	constructor(other: move counting_resource_t)
+	{
+		move_constructions += 1;
+		return counting_resource_t[];
+	}
+
+	destructor(&self)
+	{
+		destructions += 1;
+	}
+
+	destructor(move self)
+	{
+		move_destructions += 1;
+	}
+}
+
+mut default_constructions = 0uz;
+mut copy_constructions = 0uz;
+mut move_constructions = 0uz;
+mut destructions = 0uz;
+mut move_destructions = 0uz;
+
+export function counting_resource_is_valid() -> bool
+{
+	return move_constructions == move_destructions
+		&& default_constructions + copy_constructions == destructions;
+}

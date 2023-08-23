@@ -1,0 +1,17 @@
+import counting_resource;
+
+function test(b: bool)
+{
+	let a = counting_resource_t();
+	if (b)
+	{
+		let _ = move a;
+	}
+}
+
+function main() -> int32
+{
+	test(false);
+	test(true);
+	return if (counting_resource_is_valid()) { 0 } else { 1 };
+}
