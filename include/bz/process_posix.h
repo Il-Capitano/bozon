@@ -96,13 +96,12 @@ inline process_result_t run_process(const char* command, char * const *argv)
 
 		// run child process image
 		// replace this with any exec* function find easier to use ("man exec")
-		char *envp[] = { nullptr };
-		auto const execve_result = execve(command, argv, envp);
+		auto const execv_result = execv(command, argv);
 
-		perror("execve");
+		perror("execv");
 		// if we get here at all, an error occurred, but we are in the child
 		// process, so just exit
-		exit(execve_result);
+		exit(execv_result);
 	}
 	else if (id > 0)
 	{
