@@ -1,0 +1,20 @@
+// 6
+// 120
+// 1
+import std::format;
+
+function factorial(n: int32) -> int32
+{
+	return if (n <= 1) {
+		1
+	} else {
+		n * factorial(n - 1)
+	};
+}
+
+function main()
+{
+	std::print("{}\n", factorial(3));
+	std::print("{}\n", factorial(5));
+	std::print("{}\n", factorial(-10));
+}
