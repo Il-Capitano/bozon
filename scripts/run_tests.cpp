@@ -36,10 +36,10 @@ private:
 struct thread_pool
 {
 	thread_pool(size_t thread_count)
-		: _threads(),
-		  _tasks(),
+		: _task_wait_semaphore(1),
 		  _tasks_mutex(),
-		  _task_wait_semaphore(1)
+		  _threads(),
+		  _tasks()
 	{
 		// acquire, because we don't have any tasks yet
 		this->_task_wait_semaphore.acquire();
@@ -130,10 +130,10 @@ struct thread_pool
 	}
 
 private:
+	std::binary_semaphore _task_wait_semaphore;
+	std::mutex _tasks_mutex;
 	bz::vector<std::jthread> _threads;
 	bz::vector<std::function<void()>> _tasks;
-	std::mutex _tasks_mutex;
-	std::binary_semaphore _task_wait_semaphore;
 };
 
 static void remove_ansi_escape_sequences(bz::u8string &s)
