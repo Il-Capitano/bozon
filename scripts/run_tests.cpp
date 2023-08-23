@@ -494,7 +494,7 @@ static test_run_result_t run_behavior_tests(bz::u8string_view bozon, bz::vector<
 
 	bz::vector<test_fail_info_t> test_fail_infos;
 
-	bz::print("running tests in tests/success:\n");
+	bz::print("running tests in tests/behavior:\n");
 
 	auto futures = files.transform([&](auto const &file) {
 		auto file_string = bz::u8string(file.generic_string().c_str());
