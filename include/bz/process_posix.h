@@ -3,6 +3,7 @@
 
 #include <unistd.h>
 #include <sys/wait.h>
+#include <thread>
 
 #include "array.h"
 #include "vector.h"
@@ -95,13 +96,12 @@ inline process_result_t run_process(const char* command, char * const *argv)
 
 		// run child process image
 		// replace this with any exec* function find easier to use ("man exec")
-		char *envp[] = { nullptr };
-		auto const execve_result = execve(command, argv, envp);
+		auto const execv_result = execv(command, argv);
 
-		perror("execve");
+		perror("execv");
 		// if we get here at all, an error occurred, but we are in the child
 		// process, so just exit
-		exit(execve_result);
+		exit(execv_result);
 	}
 	else if (id > 0)
 	{
@@ -122,27 +122,32 @@ inline process_result_t run_process(const char* command, char * const *argv)
 			result.return_code = status;
 		}
 
-		array<char, 1024> buffer = {};
-		while (true)
 		{
-			// read stdout
-			auto const stdout_read_size = read(stdout_pipe[PIPE_READ], buffer.data(), buffer.size());
-			if (stdout_read_size != 0)
-			{
-				result.stdout_string += u8string_view(buffer.data(), buffer.data() + stdout_read_size);
-			}
-
-			// read stderr
-			auto const stderr_read_size = read(stderr_pipe[PIPE_READ], buffer.data(), buffer.size());
-			if (stderr_read_size != 0)
-			{
-				result.stderr_string += u8string_view(buffer.data(), buffer.data() + stderr_read_size);
-			}
-
-			if (stdout_read_size == 0 && stderr_read_size == 0)
-			{
-				break;
-			}
+			// stdout and stderr need to be read simultaneously, otherwise the buffer fills up, and blocks reads
+			auto stdout_reader_thread = std::jthread([&result, stdout_read_pipe = stdout_pipe[PIPE_READ]]() {
+				array<char, 1024> buffer = {};
+				while (true)
+				{
+					auto const read_size = read(stdout_read_pipe, buffer.data(), buffer.size());
+					if (read_size == 0)
+					{
+						break;
+					}
+					result.stdout_string += u8string_view(buffer.data(), buffer.data() + read_size);
+				}
+			});
+			auto stderr_reader_thread = std::jthread([&result, stderr_read_pipe = stderr_pipe[PIPE_READ]]() {
+				array<char, 1024> buffer = {};
+				while (true)
+				{
+					auto const read_size = read(stderr_read_pipe, buffer.data(), buffer.size());
+					if (read_size == 0)
+					{
+						break;
+					}
+					result.stderr_string += u8string_view(buffer.data(), buffer.data() + read_size);
+				}
+			});
 		}
 	}
 	else

@@ -132,16 +132,8 @@ inline process_result_t run_process(u8string_view command_line, u8string_view co
 		result.return_code = -1;
 		return result;
 	}
-
 	auto stdout_reader_closer = handle_closer(stdout_reader);
 	auto stdout_writer_closer = handle_closer(stdout_writer);
-
-	if (!SetHandleInformation(stdout_reader, HANDLE_FLAG_INHERIT, 0))
-	{
-		result.error_kind = process_error_kind::stdout_pipe_create_failed;
-		result.return_code = -1;
-		return result;
-	}
 
 	HANDLE stderr_reader = INVALID_HANDLE_VALUE;
 	HANDLE stderr_writer = INVALID_HANDLE_VALUE;
@@ -151,16 +143,8 @@ inline process_result_t run_process(u8string_view command_line, u8string_view co
 		result.return_code = -1;
 		return result;
 	}
-
 	auto stderr_reader_closer = handle_closer(stderr_reader);
 	auto stderr_writer_closer = handle_closer(stderr_writer);
-
-	if (!SetHandleInformation(stderr_reader, HANDLE_FLAG_INHERIT, 0))
-	{
-		result.error_kind = process_error_kind::stderr_pipe_create_failed;
-		result.return_code = -1;
-		return result;
-	}
 
 	// Make a copy because CreateProcess needs to modify string buffer
 	auto command_line_str = fixed_vector<char>(command_line.size() + 1, 0);
@@ -248,47 +232,46 @@ inline process_result_t run_process(u8string_view command_line, u8string_view co
 
 	thread_closer.reset();
 
-	if (stdout_reader || stderr_reader)
 	{
-		array<char, 1024> buffer = {};
-		WINBOOL stdout_success = TRUE;
-		WINBOOL stderr_success = TRUE;
-		while (stdout_success || stderr_success)
-		{
-			if (stdout_reader)
+		// stdout and stderr need to be read simultaneously, otherwise the buffer fills up, and blocks reads
+		auto stdout_reader_thread = std::jthread([&result, stdout_reader]() {
+			array<char, 1024> buffer = {};
+			while (true)
 			{
 				DWORD read_size = 0;
-				stdout_success = ReadFile(
+				auto stdout_success = ReadFile(
 					stdout_reader,
 					buffer.data(),
-					(DWORD)buffer.size(),
+					static_cast<DWORD>(buffer.size()),
 					&read_size,
 					nullptr
 				);
-				stdout_success = stdout_success && read_size != 0;
-				if (stdout_success)
+				if (!stdout_success || read_size == 0)
 				{
-					result.stdout_string += u8string_view(buffer.data(), buffer.data() + read_size);
+					break;
 				}
+				result.stdout_string += u8string_view(buffer.data(), buffer.data() + read_size);
 			}
-
-			if (stderr_reader)
+		});
+		auto stderr_reader_thread = std::jthread([&result, stderr_reader]() {
+			array<char, 1024> buffer = {};
+			while (true)
 			{
 				DWORD read_size = 0;
-				stderr_success = ReadFile(
+				auto stdout_success = ReadFile(
 					stderr_reader,
 					buffer.data(),
-					(DWORD)buffer.size(),
+					static_cast<DWORD>(buffer.size()),
 					&read_size,
 					nullptr
 				);
-				stderr_success = stderr_success && read_size != 0;
-				if (stderr_success)
+				if (!stdout_success || read_size == 0)
 				{
-					result.stderr_string += u8string_view(buffer.data(), buffer.data() + read_size);
+					break;
 				}
+				result.stderr_string += u8string_view(buffer.data(), buffer.data() + read_size);
 			}
-		}
+		});
 	}
 
 	WaitForSingleObject(process_info.hProcess, INFINITE);
