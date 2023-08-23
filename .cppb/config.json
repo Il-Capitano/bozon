@@ -299,7 +299,6 @@
 				"is_file": false
 			}
 		},
-		},
 		"ryu_format.windows.o": {
 			"dependencies": [ "ryu_format.windows.bc" ],
 			"command": "llc ryu_format.windows.bc --filetype=obj -o ryu_format.windows.o"
