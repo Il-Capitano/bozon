@@ -299,6 +299,25 @@
 				"is_file": false
 			}
 		},
+		"run_tests.exe": {
+			"dependencies": [ "scripts/run_tests.cpp", "ryu_format.windows.o" ],
+			"command": "clang++ -std=c++20 -Isrc -Iinclude scripts/run_tests.cpp ryu_format.windows.o -o run_tests.exe"
+		},
+		"run_tests.out": {
+			"dependencies": [ "scripts/run_tests.cpp", "ryu_format.linux.o" ],
+			"command": "clang++-16 -std=c++20 -Isrc -Iinclude scripts/run_tests.cpp ryu_format.linux.o -o run_tests.out"
+		},
+		"run-tests": {
+			"windows": {
+				"dependencies": [ "run_tests.exe" ],
+				"command": "./run_tests.exe",
+				"is_file": false
+			},
+			"linux": {
+				"dependencies": [ "run_tests.out" ],
+				"command": "./run_tests.out",
+				"is_file": false
+			}
 		},
 		"ryu_format.windows.o": {
 			"dependencies": [ "ryu_format.windows.bc" ],
@@ -339,10 +358,6 @@
 		"a.out": {
 			"dependencies": [ "bitcode_test.o" ],
 			"command": "clang-16 bitcode_test.o -lm -o a.out -fuse-ld=lld-16"
-		},
-		"run-tests": {
-			"command": "python3 scripts/run_tests.py",
-			"is_file": false
 		},
 		"fuzz-test/lex/fuzz.o": {
 			"dependencies": [ "fuzz-test/lex/fuzz.cpp" ],
