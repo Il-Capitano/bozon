@@ -32,7 +32,7 @@
 				"no-unused-parameter"
 			],
 
-			"prebuild_rules": [ "generate-config" ],
+			"prebuild_rules": [ "generate-config", "generate-lexer" ],
 
 			"configs": {
 				"windows-debug": {},
@@ -44,13 +44,11 @@
 				},
 				"linux-release": {},
 				"windows": {
-					"prebuild_rules": [ "generate-lexer-windows" ],
 					"link_dependencies": [ "ryu_format.windows.o" ],
 					"link_flags": [ "-fuse-ld=lld" ],
 					"libraries": [ "LLVM", "dwarfstack" ]
 				},
 				"linux": {
-					"prebuild_rules": [ "generate-lexer-linux" ],
 					"link_dependencies": [ "ryu_format.linux.o" ],
 					"compiler": "clang-16",
 					"libraries": [ "LLVM-16", "backtrace" ],
@@ -253,17 +251,22 @@
 			"dependencies": [ "scripts/generate_lexer.cpp", "src/token_info.h" ],
 			"command": "clang++ -std=c++20 -Isrc -Iinclude scripts/generate_lexer.cpp -o generate_lexer.exe"
 		},
-		"generate-lexer-windows": {
-			"dependencies": [ "generate_lexer.exe" ],
-			"command": "./generate_lexer.exe"
-		},
 		"generate_lexer.out": {
 			"dependencies": [ "scripts/generate_lexer.cpp", "src/token_info.h" ],
 			"command": "clang++-16 -std=c++20 -Isrc -Iinclude scripts/generate_lexer.cpp -o generate_lexer.out"
 		},
-		"generate-lexer-linux": {
-			"dependencies": [ "generate_lexer.out" ],
-			"command": "./generate_lexer.out"
+		"generate-lexer": {
+			"windows": {
+				"dependencies": [ "generate_lexer.exe" ],
+				"command": "./generate_lexer.exe",
+				"is_file": false
+			},
+			"linux": {
+				"dependencies": [ "generate_lexer.out" ],
+				"command": "./generate_lexer.out",
+				"is_file": false
+			}
+		},
 		},
 		"ryu_format.windows.o": {
 			"dependencies": [ "ryu_format.windows.bc" ],
