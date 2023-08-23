@@ -382,7 +382,7 @@ static bz::optional<test_fail_info_t> run_error_test_file(bz::u8string_view bozo
 	return {};
 }
 
-static test_run_result_t run_success_tests(bz::u8string_view bozon, bz::vector<bz::u8string> common_flags)
+static test_run_result_t run_success_tests(bz::u8string_view bozon, bz::vector<bz::u8string> common_flags, thread_pool &pool)
 {
 	auto const files = get_files_in_folder("tests/success");
 	if (files.empty())
@@ -395,8 +395,6 @@ static test_run_result_t run_success_tests(bz::u8string_view bozon, bz::vector<b
 
 	common_flags.push_back("--debug-no-emit-file");
 	bz::print("running tests in tests/success:\n");
-
-	auto pool = thread_pool(std::thread::hardware_concurrency());
 
 	auto futures = files.transform([&](auto const &file) {
 		auto file_string = bz::u8string(file.generic_string().c_str());
@@ -448,7 +446,7 @@ static test_run_result_t run_success_tests(bz::u8string_view bozon, bz::vector<b
 	return { passed_count, files.size() };
 }
 
-static test_run_result_t run_warning_tests(bz::u8string_view bozon, bz::vector<bz::u8string> common_flags)
+static test_run_result_t run_warning_tests(bz::u8string_view bozon, bz::vector<bz::u8string> common_flags, thread_pool &pool)
 {
 	auto const files = get_files_in_folder("tests/warning");
 	auto const max_filename_length = files.transform([](auto const &file) { return file.generic_string().length() + 3; }).max(60);
@@ -457,8 +455,6 @@ static test_run_result_t run_warning_tests(bz::u8string_view bozon, bz::vector<b
 
 	common_flags.push_back("--debug-no-emit-file");
 	bz::print("running tests in tests/warning:\n");
-
-	auto pool = thread_pool(std::thread::hardware_concurrency());
 
 	auto futures = files.transform([&](auto const &file) {
 		auto file_string = bz::u8string(file.generic_string().c_str());
@@ -510,7 +506,7 @@ static test_run_result_t run_warning_tests(bz::u8string_view bozon, bz::vector<b
 	return { passed_count, files.size() };
 }
 
-static test_run_result_t run_error_tests(bz::u8string_view bozon, bz::vector<bz::u8string> common_flags)
+static test_run_result_t run_error_tests(bz::u8string_view bozon, bz::vector<bz::u8string> common_flags, thread_pool &pool)
 {
 	auto const files = get_files_in_folder("tests/error");
 	auto const max_filename_length = files.transform([](auto const &file) { return file.generic_string().length() + 3; }).max(60);
@@ -519,8 +515,6 @@ static test_run_result_t run_error_tests(bz::u8string_view bozon, bz::vector<bz:
 
 	common_flags.push_back("--emit=null");
 	bz::print("running tests in tests/error:\n");
-
-	auto pool = thread_pool(std::thread::hardware_concurrency());
 
 	auto futures = files.transform([&](auto const &file) {
 		auto file_string = bz::u8string(file.generic_string().c_str());
@@ -598,9 +592,11 @@ int main(int argc, char const * const *argv)
 		"-Itests/import",
 	};
 
-	auto const success_result = run_success_tests(bozon, common_flags);
-	auto const warning_result = run_warning_tests(bozon, common_flags);
-	auto const error_result = run_error_tests(bozon, common_flags);
+	auto pool = thread_pool(std::thread::hardware_concurrency());
+
+	auto const success_result = run_success_tests(bozon, common_flags, pool);
+	auto const warning_result = run_warning_tests(bozon, common_flags, pool);
+	auto const error_result = run_error_tests(bozon, common_flags, pool);
 
 	auto const print_section_info = [](test_run_result_t const &result, bz::u8string_view section_name) {
 		auto const color = result.passed_count == result.total_count ? colors::bright_green : colors::bright_red;
