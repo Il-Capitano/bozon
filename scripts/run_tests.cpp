@@ -1,12 +1,10 @@
 #include <bz/process.h>
 #include <bz/format.h>
 #include <bz/u8string.h>
+#include <bz/thread_pool.h>
 #include <filesystem>
 #include <fstream>
 #include <string>
-#include <future>
-#include <thread>
-#include <semaphore>
 #include "colors.h"
 
 namespace fs = std::filesystem;
@@ -20,109 +18,6 @@ constexpr bz::u8string_view bozon_default = "bin/linux-debug/bozon";
 constexpr bz::u8string_view clang_default = "clang-16";
 constexpr bz::u8string_view os_exe_extension = ".out";
 #endif
-
-struct thread_pool
-{
-	thread_pool(size_t thread_count)
-		: _task_wait_semaphore(1),
-		  _tasks_mutex(),
-		  _threads(),
-		  _tasks()
-	{
-		// acquire, because we don't have any tasks yet
-		this->_task_wait_semaphore.acquire();
-
-		this->_threads.reserve(thread_count);
-		for ([[maybe_unused]] auto const _ : bz::iota(0, thread_count))
-		{
-			this->_threads.push_back(std::jthread([this]() {
-				while (true)
-				{
-					auto task = this->get_next_task();
-					if (!task.has_value())
-					{
-						return;
-					}
-
-					(*task)();
-				}
-			}));
-		}
-	}
-
-	~thread_pool(void)
-	{
-		auto const tasks_guard = std::lock_guard(this->_tasks_mutex);
-		if (this->_tasks.empty())
-		{
-			// all queued tasks have finished, so we need to notify the worker threads to shut down
-			this->_task_wait_semaphore.release();
-		}
-		else
-		{
-			// some tasks haven't finished yet, so we just discard them
-			this->_tasks.clear();
-			// the semaphore doesn't need to be released here
-		}
-		// the threads should clean themselves up here
-	}
-
-	// called from main thread
-	auto push_task(auto callable) -> std::future<decltype(callable())>
-	{
-		using R = decltype(callable());
-		auto const tasks_guard = std::lock_guard(this->_tasks_mutex);
-		auto promise = std::make_shared<std::promise<R>>();
-		auto result = promise->get_future();
-		this->_tasks.push_back([promise = std::move(promise), callable = std::move(callable)]() {
-			promise->set_value(callable());
-		});
-
-		// release if a new task is pushed into an empty queue
-		if (this->_tasks.size() == 1)
-		{
-			this->_task_wait_semaphore.release();
-		}
-
-		return result;
-	}
-
-	// called from worker threads
-	bz::optional<std::function<void()>> get_next_task()
-	{
-		// try to acquire the semaphore
-		// blocks until there is at least one task in the queue, or the thread_pool is destructed
-		this->_task_wait_semaphore.acquire();
-		auto const tasks_guard = std::lock_guard(this->_tasks_mutex);
-
-		if (this->_tasks.empty())
-		{
-			this->_task_wait_semaphore.release();
-			return {};
-		}
-		else if (this->_tasks.size() == 1)
-		{
-			// don't release, as we don't have any more tasks
-			auto result = std::move(this->_tasks[0]);
-			this->_tasks.pop_front();
-			return result;
-		}
-		else
-		{
-			auto result = std::move(this->_tasks[0]);
-			this->_tasks.pop_front();
-			// release the semaphore, as there are more tasks left in the queue
-			this->_task_wait_semaphore.release();
-			return result;
-		}
-	}
-
-private:
-	std::binary_semaphore _task_wait_semaphore;
-	std::mutex _tasks_mutex;
-	bz::vector<std::jthread> _threads;
-	bz::vector<std::function<void()>> _tasks;
-};
 
 static void remove_ansi_escape_sequences(bz::u8string &s)
 {
@@ -392,7 +287,11 @@ static bz::optional<test_fail_info_t> run_behavior_test_file(
 	return {};
 }
 
-static bz::optional<test_fail_info_t> run_success_test_file(bz::u8string_view bozon, bz::vector<bz::u8string> flags, bz::u8string_view file)
+static bz::optional<test_fail_info_t> run_success_test_file(
+	bz::u8string_view bozon,
+	bz::vector<bz::u8string> flags,
+	bz::u8string_view file
+)
 {
 	flags.push_back(file);
 	for (auto const emit_kind : { "obj", "c" })
@@ -415,7 +314,11 @@ static bz::optional<test_fail_info_t> run_success_test_file(bz::u8string_view bo
 	return {};
 }
 
-static bz::optional<test_fail_info_t> run_warning_test_file(bz::u8string_view bozon, bz::vector<bz::u8string> flags, bz::u8string_view file)
+static bz::optional<test_fail_info_t> run_warning_test_file(
+	bz::u8string_view bozon,
+	bz::vector<bz::u8string> flags,
+	bz::u8string_view file
+)
 {
 	flags.push_back(file);
 	for (auto const emit_kind : { "obj", "c" })
@@ -444,7 +347,11 @@ static bz::optional<test_fail_info_t> run_warning_test_file(bz::u8string_view bo
 	return {};
 }
 
-static bz::optional<test_fail_info_t> run_error_test_file(bz::u8string_view bozon, bz::vector<bz::u8string> flags, bz::u8string_view file)
+static bz::optional<test_fail_info_t> run_error_test_file(
+	bz::u8string_view bozon,
+	bz::vector<bz::u8string> flags,
+	bz::u8string_view file
+)
 {
 	flags.push_back(file);
 
@@ -480,7 +387,12 @@ static bz::optional<test_fail_info_t> run_error_test_file(bz::u8string_view bozo
 	return {};
 }
 
-static test_run_result_t run_behavior_tests(bz::u8string_view bozon, bz::vector<bz::u8string> common_flags, bz::u8string_view clang, thread_pool &pool)
+static test_run_result_t run_behavior_tests(
+	bz::u8string_view bozon,
+	bz::vector<bz::u8string> common_flags,
+	bz::u8string_view clang,
+	bz::thread_pool &pool
+)
 {
 	auto const files = get_files_in_folder("tests/behavior");
 	if (files.empty())
@@ -557,7 +469,11 @@ static test_run_result_t run_behavior_tests(bz::u8string_view bozon, bz::vector<
 	return { passed_count, files.size() };
 }
 
-static test_run_result_t run_success_tests(bz::u8string_view bozon, bz::vector<bz::u8string> common_flags, thread_pool &pool)
+static test_run_result_t run_success_tests(
+	bz::u8string_view bozon,
+	bz::vector<bz::u8string> common_flags,
+	bz::thread_pool &pool
+)
 {
 	auto const files = get_files_in_folder("tests/success");
 	if (files.empty())
@@ -621,7 +537,11 @@ static test_run_result_t run_success_tests(bz::u8string_view bozon, bz::vector<b
 	return { passed_count, files.size() };
 }
 
-static test_run_result_t run_warning_tests(bz::u8string_view bozon, bz::vector<bz::u8string> common_flags, thread_pool &pool)
+static test_run_result_t run_warning_tests(
+	bz::u8string_view bozon,
+	bz::vector<bz::u8string> common_flags,
+	bz::thread_pool &pool
+)
 {
 	auto const files = get_files_in_folder("tests/warning");
 	auto const max_filename_length = files.transform([](auto const &file) { return file.generic_string().length() + 3; }).max(60);
@@ -681,7 +601,11 @@ static test_run_result_t run_warning_tests(bz::u8string_view bozon, bz::vector<b
 	return { passed_count, files.size() };
 }
 
-static test_run_result_t run_error_tests(bz::u8string_view bozon, bz::vector<bz::u8string> common_flags, thread_pool &pool)
+static test_run_result_t run_error_tests(
+	bz::u8string_view bozon,
+	bz::vector<bz::u8string> common_flags,
+	bz::thread_pool &pool
+)
 {
 	auto const files = get_files_in_folder("tests/error");
 	auto const max_filename_length = files.transform([](auto const &file) { return file.generic_string().length() + 3; }).max(60);
@@ -839,7 +763,7 @@ int main(int argc, char const * const *argv)
 		"-Itests/import",
 	};
 
-	auto pool = thread_pool(std::thread::hardware_concurrency());
+	auto pool = bz::thread_pool(std::thread::hardware_concurrency());
 
 	auto test_results = bz::vector<test_result_and_name_t>();
 
