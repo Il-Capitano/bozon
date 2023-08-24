@@ -107,13 +107,17 @@ static type::typedef_reference add_int_type(ast::type_info const &info, bz::u8st
 		{
 			return is_signed ? "signed char" : "unsigned char";
 		}
-		else if (context.short_size == size)
-		{
-			return is_signed ? "short" : "unsigned short";
-		}
+		// make sure we test for 'int' first, because of arithmetic type promotion rules
+		// on some systems it can happen, that 'short' is the same size as 'int', but
+		// it has a lower conversion rank, therefore 'unsigned short' would be implicitly
+		// cast to 'int' in arithmetic operations, which would be bad
 		else if (context.int_size == size)
 		{
 			return is_signed ? "int" : "unsigned int";
+		}
+		else if (context.short_size == size)
+		{
+			return is_signed ? "short" : "unsigned short";
 		}
 		else if (context.long_size == size)
 		{
@@ -1349,6 +1353,97 @@ static expr_value generate_builtin_function_call(
 	}
 }
 
+static bool needs_cast_for_overflow(uint32_t int_kind, codegen_context &context)
+{
+	if (ast::is_signed_integer_kind(int_kind))
+	{
+		return true;
+	}
+
+	// types smaller than 'int' are casted up to 'int' for arithmetic operations,
+	// so we need to cast every type to at least 'unsigned int'
+
+	auto const operand_size = [&]() -> uint32_t {
+		switch (int_kind)
+		{
+		case ast::type_info::uint8_:
+			return 1;
+		case ast::type_info::uint16_:
+			return 2;
+		case ast::type_info::uint32_:
+			return 4;
+		case ast::type_info::uint64_:
+			return 8;
+		default:
+			return 8;
+		}
+	}();
+	return operand_size < context.int_size;
+}
+
+static type get_unsigned_type_for_overflow(uint32_t int_kind, codegen_context &context)
+{
+	auto const get_unsigned_int_type = [&]() {
+		switch (context.int_size)
+		{
+		case 1:
+			return context.get_uint8();
+		case 2:
+			return context.get_uint16();
+		case 4:
+			return context.get_uint32();
+		case 8:
+			return context.get_uint64();
+		default:
+			return context.get_uint64();
+		}
+	};
+	switch (int_kind)
+	{
+	case ast::type_info::int8_:
+	case ast::type_info::uint8_:
+		if (1 < context.int_size)
+		{
+			return get_unsigned_int_type();
+		}
+		else
+		{
+			return context.get_uint8();
+		}
+	case ast::type_info::int16_:
+	case ast::type_info::uint16_:
+		if (2 < context.int_size)
+		{
+			return get_unsigned_int_type();
+		}
+		else
+		{
+			return context.get_uint16();
+		}
+	case ast::type_info::int32_:
+	case ast::type_info::uint32_:
+		if (4 < context.int_size)
+		{
+			return get_unsigned_int_type();
+		}
+		else
+		{
+			return context.get_uint32();
+		}
+	case ast::type_info::int64_:
+	case ast::type_info::uint64_:
+	default:
+		if (8 < context.int_size)
+		{
+			return get_unsigned_int_type();
+		}
+		else
+		{
+			return context.get_uint64();
+		}
+	}
+}
+
 static expr_value generate_builtin_unary_plus(
 	ast::expression const &expr,
 	codegen_context &context,
@@ -1441,24 +1536,10 @@ static expr_value generate_builtin_unary_plus_plus(
 {
 	auto const value = generate_expression(expr, context, {});
 	auto const expr_type = expr.get_expr_type().remove_any_mut_reference();
-	if (expr_type.is<ast::ts_base_type>() && ast::is_signed_integer_kind(expr_type.get<ast::ts_base_type>().info->kind))
+	if (expr_type.is<ast::ts_base_type>() && needs_cast_for_overflow(expr_type.get<ast::ts_base_type>().info->kind, context))
 	{
 		auto const kind = expr_type.get<ast::ts_base_type>().info->kind;
-		auto const unsigned_type = [&]() {
-			switch (kind)
-			{
-			case ast::type_info::int8_:
-				return context.get_uint8();
-			case ast::type_info::int16_:
-				return context.get_uint16();
-			case ast::type_info::int32_:
-				return context.get_uint32();
-			case ast::type_info::int64_:
-				return context.get_uint64();
-			default:
-				bz_unreachable;
-			}
-		}();
+		auto const unsigned_type = get_unsigned_type_for_overflow(kind, context);
 		auto const cast_string = context.to_string_unary_prefix(value, bz::format("({})", context.to_string(unsigned_type)));
 		auto const result_string = bz::format("({})({} + 1)", context.to_string(value.get_type()), cast_string);
 		context.create_assignment(value, result_string);
@@ -1478,24 +1559,10 @@ static expr_value generate_builtin_unary_minus_minus(
 {
 	auto const value = generate_expression(expr, context, {});
 	auto const expr_type = expr.get_expr_type().remove_any_mut_reference();
-	if (expr_type.is<ast::ts_base_type>() && ast::is_signed_integer_kind(expr_type.get<ast::ts_base_type>().info->kind))
+	if (expr_type.is<ast::ts_base_type>() && needs_cast_for_overflow(expr_type.get<ast::ts_base_type>().info->kind, context))
 	{
 		auto const kind = expr_type.get<ast::ts_base_type>().info->kind;
-		auto const unsigned_type = [&]() {
-			switch (kind)
-			{
-			case ast::type_info::int8_:
-				return context.get_uint8();
-			case ast::type_info::int16_:
-				return context.get_uint16();
-			case ast::type_info::int32_:
-				return context.get_uint32();
-			case ast::type_info::int64_:
-				return context.get_uint64();
-			default:
-				bz_unreachable;
-			}
-		}();
+		auto const unsigned_type = get_unsigned_type_for_overflow(kind, context);
 		auto const cast_string = context.to_string_unary_prefix(value, bz::format("({})", context.to_string(unsigned_type)));
 		auto const result_string = bz::format("({})({} - 1)", context.to_string(value.get_type()), cast_string);
 		context.create_assignment(value, result_string);
@@ -1523,25 +1590,11 @@ static expr_value generate_builtin_binary_plus(
 	if (
 		lhs_type.is<ast::ts_base_type>()
 		&& rhs_type.is<ast::ts_base_type>()
-		&& ast::is_signed_integer_kind(lhs_type.get<ast::ts_base_type>().info->kind)
+		&& needs_cast_for_overflow(lhs_type.get<ast::ts_base_type>().info->kind, context)
 	)
 	{
 		auto const kind = lhs_type.get<ast::ts_base_type>().info->kind;
-		auto const unsigned_type = [&]() {
-			switch (kind)
-			{
-			case ast::type_info::int8_:
-				return context.get_uint8();
-			case ast::type_info::int16_:
-				return context.get_uint16();
-			case ast::type_info::int32_:
-				return context.get_uint32();
-			case ast::type_info::int64_:
-				return context.get_uint64();
-			default:
-				bz_unreachable;
-			}
-		}();
+		auto const unsigned_type = get_unsigned_type_for_overflow(kind, context);
 		auto const cast_op = bz::format("({})", context.to_string(unsigned_type));
 		auto const lhs_cast = context.to_string_unary_prefix(lhs_value, cast_op);
 		auto const rhs_cast = context.to_string_unary_prefix(rhs_value, cast_op);
@@ -1613,25 +1666,11 @@ static expr_value generate_builtin_binary_plus_eq(
 	if (
 		lhs_type.is<ast::ts_base_type>()
 		&& rhs_type.is<ast::ts_base_type>()
-		&& ast::is_signed_integer_kind(lhs_type.get<ast::ts_base_type>().info->kind)
+		&& needs_cast_for_overflow(lhs_type.get<ast::ts_base_type>().info->kind, context)
 	)
 	{
 		auto const kind = lhs_type.get<ast::ts_base_type>().info->kind;
-		auto const unsigned_type = [&]() {
-			switch (kind)
-			{
-			case ast::type_info::int8_:
-				return context.get_uint8();
-			case ast::type_info::int16_:
-				return context.get_uint16();
-			case ast::type_info::int32_:
-				return context.get_uint32();
-			case ast::type_info::int64_:
-				return context.get_uint64();
-			default:
-				bz_unreachable;
-			}
-		}();
+		auto const unsigned_type = get_unsigned_type_for_overflow(kind, context);
 		auto const cast_op = bz::format("({})", context.to_string(unsigned_type));
 		auto const lhs_cast = context.to_string_unary_prefix(lhs_value, cast_op);
 		auto const rhs_cast = context.to_string_unary_prefix(rhs_value, cast_op);
@@ -1661,25 +1700,11 @@ static expr_value generate_builtin_binary_minus(
 	if (
 		lhs_type.is<ast::ts_base_type>()
 		&& rhs_type.is<ast::ts_base_type>()
-		&& ast::is_signed_integer_kind(lhs_type.get<ast::ts_base_type>().info->kind)
+		&& needs_cast_for_overflow(lhs_type.get<ast::ts_base_type>().info->kind, context)
 	)
 	{
 		auto const kind = lhs_type.get<ast::ts_base_type>().info->kind;
-		auto const unsigned_type = [&]() {
-			switch (kind)
-			{
-			case ast::type_info::int8_:
-				return context.get_uint8();
-			case ast::type_info::int16_:
-				return context.get_uint16();
-			case ast::type_info::int32_:
-				return context.get_uint32();
-			case ast::type_info::int64_:
-				return context.get_uint64();
-			default:
-				bz_unreachable;
-			}
-		}();
+		auto const unsigned_type = get_unsigned_type_for_overflow(kind, context);
 		auto const cast_op = bz::format("({})", context.to_string(unsigned_type));
 		auto const lhs_cast = context.to_string_unary_prefix(lhs_value, cast_op);
 		auto const rhs_cast = context.to_string_unary_prefix(rhs_value, cast_op);
@@ -1752,25 +1777,11 @@ static expr_value generate_builtin_binary_minus_eq(
 	if (
 		lhs_type.is<ast::ts_base_type>()
 		&& rhs_type.is<ast::ts_base_type>()
-		&& ast::is_signed_integer_kind(lhs_type.get<ast::ts_base_type>().info->kind)
+		&& needs_cast_for_overflow(lhs_type.get<ast::ts_base_type>().info->kind, context)
 	)
 	{
 		auto const kind = lhs_type.get<ast::ts_base_type>().info->kind;
-		auto const unsigned_type = [&]() {
-			switch (kind)
-			{
-			case ast::type_info::int8_:
-				return context.get_uint8();
-			case ast::type_info::int16_:
-				return context.get_uint16();
-			case ast::type_info::int32_:
-				return context.get_uint32();
-			case ast::type_info::int64_:
-				return context.get_uint64();
-			default:
-				bz_unreachable;
-			}
-		}();
+		auto const unsigned_type = get_unsigned_type_for_overflow(kind, context);
 		auto const cast_op = bz::format("({})", context.to_string(unsigned_type));
 		auto const lhs_cast = context.to_string_unary_prefix(lhs_value, cast_op);
 		auto const rhs_cast = context.to_string_unary_prefix(rhs_value, cast_op);
@@ -1797,23 +1808,9 @@ static expr_value generate_builtin_binary_multiply(
 
 	bz_assert(rhs.get_expr_type().is<ast::ts_base_type>());
 	auto const kind = rhs.get_expr_type().get<ast::ts_base_type>().info->kind;
-	if (ast::is_signed_integer_kind(kind))
+	if (needs_cast_for_overflow(kind, context))
 	{
-		auto const unsigned_type = [&]() {
-			switch (kind)
-			{
-			case ast::type_info::int8_:
-				return context.get_uint8();
-			case ast::type_info::int16_:
-				return context.get_uint16();
-			case ast::type_info::int32_:
-				return context.get_uint32();
-			case ast::type_info::int64_:
-				return context.get_uint64();
-			default:
-				bz_unreachable;
-			}
-		}();
+		auto const unsigned_type = get_unsigned_type_for_overflow(kind, context);
 		auto const cast_op = bz::format("({})", context.to_string(unsigned_type));
 		auto const lhs_cast = context.to_string_unary_prefix(lhs_value, cast_op);
 		auto const rhs_cast = context.to_string_unary_prefix(rhs_value, cast_op);
@@ -1841,23 +1838,9 @@ static expr_value generate_builtin_binary_multiply_eq(
 
 	bz_assert(rhs.get_expr_type().is<ast::ts_base_type>());
 	auto const kind = rhs.get_expr_type().get<ast::ts_base_type>().info->kind;
-	if (ast::is_signed_integer_kind(kind))
+	if (needs_cast_for_overflow(kind, context))
 	{
-		auto const unsigned_type = [&]() {
-			switch (kind)
-			{
-			case ast::type_info::int8_:
-				return context.get_uint8();
-			case ast::type_info::int16_:
-				return context.get_uint16();
-			case ast::type_info::int32_:
-				return context.get_uint32();
-			case ast::type_info::int64_:
-				return context.get_uint64();
-			default:
-				bz_unreachable;
-			}
-		}();
+		auto const unsigned_type = get_unsigned_type_for_overflow(kind, context);
 		auto const cast_op = bz::format("({})", context.to_string(unsigned_type));
 		auto const lhs_cast = context.to_string_unary_prefix(lhs_value, cast_op);
 		auto const rhs_cast = context.to_string_unary_prefix(rhs_value, cast_op);
