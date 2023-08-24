@@ -12,6 +12,14 @@ function test(b: bool)
 function main() -> int32
 {
 	test(false);
+	if (!counting_resource_is_valid())
+	{
+		return 1;
+	}
 	test(true);
-	return if (counting_resource_is_valid()) { 0 } else { 1 };
+	if (!counting_resource_is_valid())
+	{
+		return 1;
+	}
+	return 0;
 }
