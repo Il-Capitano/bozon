@@ -34,7 +34,8 @@ static type get_type(ast::typespec_view ts, codegen_context &context, bool resol
 		}
 		case ast::terminator_typespec_node_t::index_of<ast::ts_function>:
 		{
-			auto const &func_type = ts.get<ast::ts_function>();
+			// can be optional function as well
+			auto const &func_type = ts.terminator->get<ast::ts_function>();
 			auto const return_type = get_type(func_type.return_type, context, false);
 			auto param_types = func_type.param_types.transform([&context](auto const &param_type) {
 				return get_type(param_type, context, false);
