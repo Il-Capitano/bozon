@@ -5167,6 +5167,7 @@ static expr_value generate_expression(
 }
 
 static expr_value generate_integral_switch(
+	lex::src_tokens const &src_tokens,
 	ast::expr_switch const &switch_expr,
 	expr_value matched_value,
 	codegen_context &context,
@@ -5259,6 +5260,19 @@ static expr_value generate_integral_switch(
 			context.create_assignment(reference_result.get(), context.create_address_of(value));
 		}
 		context.pop_expression_scope(prev_info);
+		context.end_case();
+	}
+	else if (switch_expr.is_complete)
+	{
+		context.begin_default_case();
+		if (global_data::panic_on_invalid_switch)
+		{
+			generate_panic_call(src_tokens, "invalid value used in 'switch'", context);
+		}
+		else
+		{
+			context.create_unreachable();
+		}
 		context.end_case();
 	}
 
@@ -5493,6 +5507,7 @@ static expr_value generate_string_switch(
 }
 
 static expr_value generate_expression(
+	lex::src_tokens const &src_tokens,
 	ast::expr_switch const &switch_expr,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
@@ -5515,7 +5530,7 @@ static expr_value generate_expression(
 	{
 		context.pop_expression_scope(matched_value_prev_info);
 
-		return generate_integral_switch(switch_expr, matched_value, context, result_dest);
+		return generate_integral_switch(src_tokens, switch_expr, matched_value, context, result_dest);
 	}
 }
 
@@ -5766,7 +5781,7 @@ static expr_value generate_expression(
 	case ast::expr_t::index<ast::expr_if_consteval>:
 		return generate_expression(expr.get<ast::expr_if_consteval>(), context, result_dest);
 	case ast::expr_t::index<ast::expr_switch>:
-		return generate_expression(expr.get<ast::expr_switch>(), context, result_dest);
+		return generate_expression(original_expr.src_tokens, expr.get<ast::expr_switch>(), context, result_dest);
 	case ast::expr_t::index<ast::expr_break>:
 		bz_assert(!result_dest.has_value());
 		return generate_expression(expr.get<ast::expr_break>(), context);
