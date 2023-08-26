@@ -6306,6 +6306,7 @@ static void generate_function_declaration(ast::function_body &func_body, codegen
 		auto const return_value_type = get_type(func_body.return_type, context);
 		auto const type_string = context.to_string(context.add_pointer(return_value_type));
 		decls_string += type_string;
+		decls_string += " restrict";
 	}
 
 	bool first = !return_by_pointer;
@@ -6397,8 +6398,9 @@ static void generate_function(ast::function_body &func_body, codegen_context &co
 		auto const [name, index] = context.make_local_name();
 		auto const return_value_type = get_type(func_body.return_type, context);
 		auto const type_string = context.to_string(context.add_pointer(return_value_type));
-		bodies_string += bz::format("{} {}", type_string, name);
+		bodies_string += bz::format("{} restrict {}", type_string, name);
 		decls_string += type_string;
+		decls_string += " restrict";
 		context.current_function_info.return_value = context.make_reference_expression(index, return_value_type, false);
 	}
 
