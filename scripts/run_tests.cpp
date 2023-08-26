@@ -363,7 +363,11 @@ static bz::optional<test_fail_info_t> run_behavior_error_test_file(
 		}
 
 		fs::remove(std::string_view(out_file_with_extension.data_as_char_ptr(), out_file_with_extension.size()));
+#ifndef _WIN32
+		// this can cause issues on windows, because it seems that windows hangs on to crashing executables after
+		// the process already exited
 		fs::remove(std::string_view(out_exe.data(), out_exe.size()));
+#endif
 		flags.resize(flags_size);
 	}
 	return {};
@@ -583,7 +587,7 @@ static test_run_info_t add_warning_tests(
 	return {
 		.files = std::move(files),
 		.futures = std::move(futures),
-		.folder_name = "tests/success",
+		.folder_name = "tests/warning",
 	};
 }
 
@@ -607,7 +611,7 @@ static test_run_info_t add_error_tests(
 	return {
 		.files = std::move(files),
 		.futures = std::move(futures),
-		.folder_name = "tests/success",
+		.folder_name = "tests/error",
 	};
 }
 
