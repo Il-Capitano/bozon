@@ -1,0 +1,12 @@
+function test(...args)
+{
+	static_assert(sizeof ...args == 2);
+}
+
+function main()
+{
+	let t = [int32, float32, str]();
+	let &[...v] = t;
+	static_assert(sizeof ...v == 3);
+	test(0, 1);
+}
