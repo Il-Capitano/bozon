@@ -1,0 +1,7 @@
+function main()
+{
+	let i = 0;
+	let p1: ?*int32 = null;
+	let p2: ?*int32 = &i;
+	p1 - p2;
+}

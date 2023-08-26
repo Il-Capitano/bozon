@@ -892,13 +892,58 @@ static void set_optional_has_value(expr_value const &opt_value, expr_value const
 	context.create_assignment(context.create_struct_gep(opt_value, 1), has_value);
 }
 
-static void generate_optional_get_value_check(lex::src_tokens const &src_tokens, expr_value const &opt_value, codegen_context &context)
+static void generate_optional_get_value_check(
+	lex::src_tokens const &src_tokens,
+	expr_value const &opt_value,
+	codegen_context &context
+)
 {
 	if (global_data::panic_on_null_get_value)
 	{
 		auto const has_value = get_optional_has_value(opt_value, context);
 		auto const prev_if_info = context.begin_if_not(has_value);
 		generate_panic_call(src_tokens, "'get_value' called on a null optional", context);
+		context.end_if(prev_if_info);
+	}
+}
+
+static void generate_null_pointer_arithmetic_check(
+	lex::src_tokens const &src_tokens,
+	expr_value const &pointer_value,
+	codegen_context &context
+)
+{
+	if (global_data::panic_on_null_pointer_arithmetic)
+	{
+		auto const has_value = get_optional_has_value(pointer_value, context);
+		auto const prev_if_info = context.begin_if_not(has_value);
+		generate_panic_call(src_tokens, "null value used in pointer arithmetic", context);
+		context.end_if(prev_if_info);
+	}
+}
+
+static void generate_null_pointer_arithmetic_check(
+	lex::src_tokens const &lhs_src_tokens,
+	lex::src_tokens const &rhs_src_tokens,
+	expr_value const &lhs_value,
+	expr_value const &rhs_value,
+	codegen_context &context
+)
+{
+	if (global_data::panic_on_null_pointer_arithmetic)
+	{
+		auto const lhs_has_value = get_optional_has_value(lhs_value, context);
+		auto const rhs_has_value = get_optional_has_value(rhs_value, context);
+		auto const lhs_is_null_string = context.to_string_unary_prefix(lhs_has_value, "!");
+		auto const rhs_is_null_string = context.to_string_unary_prefix(rhs_has_value, "!");
+
+		auto const only_lhs_is_null_string = context.to_string_binary(rhs_has_value, lhs_is_null_string, "&&", precedence::logical_and);
+		auto const only_rhs_is_null_string = context.to_string_binary(lhs_has_value, rhs_is_null_string, "&&", precedence::logical_and);
+
+		auto const prev_if_info = context.begin_if(only_lhs_is_null_string);
+		generate_panic_call(lhs_src_tokens, "null value used in pointer arithmetic", context);
+		context.begin_else_if(only_rhs_is_null_string);
+		generate_panic_call(rhs_src_tokens, "null value used in pointer arithmetic", context);
 		context.end_if(prev_if_info);
 	}
 }
@@ -1547,6 +1592,10 @@ static expr_value generate_builtin_unary_plus_plus(
 	}
 	else
 	{
+		if (expr_type.is_optional_pointer())
+		{
+			generate_null_pointer_arithmetic_check(expr.src_tokens, value, context);
+		}
 		context.create_prefix_unary_operation(value, "++");
 		return value;
 	}
@@ -1570,6 +1619,10 @@ static expr_value generate_builtin_unary_minus_minus(
 	}
 	else
 	{
+		if (expr_type.is_optional_pointer())
+		{
+			generate_null_pointer_arithmetic_check(expr.src_tokens, value, context);
+		}
 		context.create_prefix_unary_operation(value, "--");
 		return value;
 	}
@@ -1647,6 +1700,14 @@ static expr_value generate_builtin_binary_plus(
 	}
 	else
 	{
+		if (lhs_type.is_optional_pointer())
+		{
+			generate_null_pointer_arithmetic_check(lhs.src_tokens, lhs_value, context);
+		}
+		else if (rhs_type.is_optional_pointer())
+		{
+			generate_null_pointer_arithmetic_check(rhs.src_tokens, rhs_value, context);
+		}
 		auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "+", precedence::addition);
 		return value_or_result_dest(expr_string, result_type, result_dest, context);
 	}
@@ -1680,6 +1741,10 @@ static expr_value generate_builtin_binary_plus_eq(
 	}
 	else
 	{
+		if (lhs_type.is_optional_pointer())
+		{
+			generate_null_pointer_arithmetic_check(lhs.src_tokens, lhs_value, context);
+		}
 		context.create_binary_operation(lhs_value, rhs_value, "+=", precedence::assignment);
 		return lhs_value;
 	}
@@ -1758,6 +1823,18 @@ static expr_value generate_builtin_binary_minus(
 	}
 	else
 	{
+		if (lhs_type.is_optional_pointer() && rhs_type.is_optional_pointer())
+		{
+			generate_null_pointer_arithmetic_check(lhs.src_tokens, rhs.src_tokens, lhs_value, rhs_value, context);
+		}
+		else if (lhs_type.is_optional_pointer())
+		{
+			generate_null_pointer_arithmetic_check(lhs.src_tokens, lhs_value, context);
+		}
+		else if (rhs_type.is_optional_pointer())
+		{
+			generate_null_pointer_arithmetic_check(rhs.src_tokens, rhs_value, context);
+		}
 		auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "-", precedence::subtraction);
 		return value_or_result_dest(expr_string, result_type, result_dest, context);
 	}
@@ -1791,6 +1868,10 @@ static expr_value generate_builtin_binary_minus_eq(
 	}
 	else
 	{
+		if (lhs_type.is_optional_pointer())
+		{
+			generate_null_pointer_arithmetic_check(lhs.src_tokens, lhs_value, context);
+		}
 		context.create_binary_operation(lhs_value, rhs_value, "-=", precedence::assignment);
 		return lhs_value;
 	}
