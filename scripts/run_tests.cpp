@@ -400,23 +400,21 @@ static bz::optional<test_fail_info_t> run_success_test_file(
 )
 {
 	flags.push_back(file);
-	for (auto const emit_kind : { "obj", "c" })
+
+	auto compilation_result = bz::run_process(bozon, flags);
+	remove_ansi_escape_sequences(compilation_result.stdout_string);
+	remove_ansi_escape_sequences(compilation_result.stderr_string);
+
+	if (compilation_result.return_code != 0 || compilation_result.stdout_string != "" || compilation_result.stderr_string != "")
 	{
-		flags.push_back(bz::format("--emit={}", emit_kind));
-		auto compilation_result = bz::run_process(bozon, flags);
-		remove_ansi_escape_sequences(compilation_result.stdout_string);
-		remove_ansi_escape_sequences(compilation_result.stderr_string);
-		if (compilation_result.return_code != 0 || compilation_result.stdout_string != "" || compilation_result.stderr_string != "")
-		{
-			return test_fail_info_t{
-				.commands = { bz::make_command_string(bozon, flags) },
-				.test_file = file,
-				.process_result = std::move(compilation_result),
-				.wanted_diagnostics = {},
-			};
-		}
-		flags.pop_back();
+		return test_fail_info_t{
+			.commands = { bz::make_command_string(bozon, flags) },
+			.test_file = file,
+			.process_result = std::move(compilation_result),
+			.wanted_diagnostics = {},
+		};
 	}
+
 	return {};
 }
 
@@ -427,29 +425,27 @@ static bz::optional<test_fail_info_t> run_warning_test_file(
 )
 {
 	flags.push_back(file);
-	for (auto const emit_kind : { "obj", "c" })
+
+	auto compilation_result = bz::run_process(bozon, flags);
+	remove_ansi_escape_sequences(compilation_result.stdout_string);
+	remove_ansi_escape_sequences(compilation_result.stderr_string);
+
+	auto const diagnostics = get_diagnostics_from_output(compilation_result.stderr_string);
+	auto wanted_diagnostics = get_diagnostics_from_file(file);
+	if (
+		compilation_result.return_code != 0
+		|| compilation_result.stdout_string != ""
+		|| diagnostics != wanted_diagnostics
+	)
 	{
-		flags.push_back(bz::format("--emit={}", emit_kind));
-		auto compilation_result = bz::run_process(bozon, flags);
-		remove_ansi_escape_sequences(compilation_result.stdout_string);
-		remove_ansi_escape_sequences(compilation_result.stderr_string);
-		auto const diagnostics = get_diagnostics_from_output(compilation_result.stderr_string);
-		auto wanted_diagnostics = get_diagnostics_from_file(file);
-		if (
-			compilation_result.return_code != 0
-			|| compilation_result.stdout_string != ""
-			|| diagnostics != wanted_diagnostics
-		)
-		{
-			return test_fail_info_t{
-				.commands = { bz::make_command_string(bozon, flags) },
-				.test_file = file,
-				.process_result = std::move(compilation_result),
-				.wanted_diagnostics = std::move(wanted_diagnostics),
-			};
-		}
-		flags.pop_back();
+		return test_fail_info_t{
+			.commands = { bz::make_command_string(bozon, flags) },
+			.test_file = file,
+			.process_result = std::move(compilation_result),
+			.wanted_diagnostics = std::move(wanted_diagnostics),
+		};
 	}
+
 	return {};
 }
 
@@ -555,12 +551,6 @@ static test_run_info_t add_behavior_tests(
 		.futures = std::move(futures),
 		.folder_name = "tests/behavior",
 	};
-
-/*
-	auto const total_count = success_files.size() + error_files.size();
-
-	return { passed_count, total_count };
-*/
 }
 
 static test_run_info_t add_success_tests(
@@ -571,7 +561,7 @@ static test_run_info_t add_success_tests(
 {
 	auto const files = get_files_in_folder("tests/success");
 
-	common_flags.push_back("--debug-no-emit-file");
+	common_flags.push_back("--emit=null");
 
 	auto futures = files.transform([&](auto const &file) {
 		auto file_string = bz::u8string(file.generic_string().c_str());
@@ -595,7 +585,7 @@ static test_run_info_t add_warning_tests(
 {
 	auto const files = get_files_in_folder("tests/warning");
 
-	common_flags.push_back("--debug-no-emit-file");
+	common_flags.push_back("--emit=null");
 
 	auto futures = files.transform([&](auto const &file) {
 		auto file_string = bz::u8string(file.generic_string().c_str());
