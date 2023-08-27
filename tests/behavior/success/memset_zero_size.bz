@@ -1,0 +1,5 @@
+function main()
+{
+	__builtin_trivially_set_values(null as ?*mut uint8, 0u8, 0);
+	__builtin_memset(null, 0, 0);
+}

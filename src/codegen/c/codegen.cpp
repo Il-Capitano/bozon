@@ -3130,6 +3130,13 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const dest = generate_expression(func_call.params[0], context, {});
 		auto const source = generate_expression(func_call.params[1], context, {});
 		auto const count = generate_expression(func_call.params[2], context, {});
+
+		// the behaviour of memcpy is undefined if either dest or source is invalid, even if size is zero.
+		// this is different from the llvm.memcpy.* intrinsic, which is a no-op if size is zero.
+		// we follow the semantics of llvm.memcpy.*
+		auto const count_is_not_zero = context.to_string_binary(count, "0", "!=", precedence::equality);
+		auto const prev_if_info = context.begin_if(count_is_not_zero);
+
 		bz_assert(context.is_pointer(dest.get_type()));
 		auto const [type, _] = context.remove_pointer(dest.get_type());
 		auto const type_size = bz::format("sizeof ({})", context.to_string(type));
@@ -3137,6 +3144,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 
 		context.add_libc_header("string.h");
 		generate_trivial_function_call("memcpy", { dest, source, size }, context.get_void(), context, {});
+		context.end_if(prev_if_info);
 
 		bz_assert(!result_dest.has_value());
 		return context.get_void_value();
@@ -3147,6 +3155,13 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const dest = generate_expression(func_call.params[0], context, {});
 		auto const source = generate_expression(func_call.params[1], context, {});
 		auto const count = generate_expression(func_call.params[2], context, {});
+
+		// the behaviour of memmove is undefined if either dest or source is invalid, even if size is zero.
+		// this is different from the llvm.memmove.* intrinsic, which is a no-op if size is zero.
+		// we follow the semantics of llvm.memmove.*
+		auto const count_is_not_zero = context.to_string_binary(count, "0", "!=", precedence::equality);
+		auto const prev_if_info = context.begin_if(count_is_not_zero);
+
 		bz_assert(context.is_pointer(dest.get_type()));
 		auto const [type, _] = context.remove_pointer(dest.get_type());
 		auto const type_size = bz::format("sizeof ({})", context.to_string(type));
@@ -3154,6 +3169,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 
 		context.add_libc_header("string.h");
 		generate_trivial_function_call("memmove", { dest, source, size }, context.get_void(), context, {});
+		context.end_if(prev_if_info);
 
 		bz_assert(!result_dest.has_value());
 		return context.get_void_value();
@@ -3164,6 +3180,13 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const dest = generate_expression(func_call.params[0], context, {});
 		auto const source = generate_expression(func_call.params[1], context, {});
 		auto const count = generate_expression(func_call.params[2], context, {});
+
+		// the behaviour of memmove is undefined if either dest or source is invalid, even if size is zero.
+		// this is different from the llvm.memmove.* intrinsic, which is a no-op if size is zero.
+		// we follow the semantics of llvm.memmove.*
+		auto const count_is_not_zero = context.to_string_binary(count, "0", "!=", precedence::equality);
+		auto const prev_if_info = context.begin_if(count_is_not_zero);
+
 		bz_assert(context.is_pointer(dest.get_type()));
 		auto const [type, _] = context.remove_pointer(dest.get_type());
 		auto const type_size = bz::format("sizeof ({})", context.to_string(type));
@@ -3171,6 +3194,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 
 		context.add_libc_header("string.h");
 		generate_trivial_function_call("memmove", { dest, source, size }, context.get_void(), context, {});
+		context.end_if(prev_if_info);
 
 		bz_assert(!result_dest.has_value());
 		return context.get_void_value();
@@ -3185,8 +3209,15 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 
 		if (type == context.get_uint8())
 		{
+			// the behaviour of memset is undefined if dest is invalid, even if size is zero.
+			// this is different from the llvm.memset.* intrinsic, which is a no-op if size is zero.
+			// we follow the semantics of llvm.memset.*
+			auto const count_is_not_zero = context.to_string_binary(count, "0", "!=", precedence::equality);
+			auto const prev_if_info = context.begin_if(count_is_not_zero);
+
 			context.add_libc_header("string.h");
 			generate_trivial_function_call("memset", { dest, value, count }, context.get_void(), context, {});
+			context.end_if(prev_if_info);
 		}
 		else
 		{
@@ -3217,8 +3248,15 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const source = generate_expression(func_call.params[1], context, {});
 		auto const size = generate_expression(func_call.params[2], context, {});
 
+		// the behaviour of memcpy is undefined if either dest or source is invalid, even if size is zero.
+		// this is different from the llvm.memcpy.* intrinsic, which is a no-op if size is zero.
+		// we follow the semantics of llvm.memcpy.*
+		auto const size_is_not_zero = context.to_string_binary(size, "0", "!=", precedence::equality);
+		auto const prev_if_info = context.begin_if(size_is_not_zero);
+
 		context.add_libc_header("string.h");
 		generate_trivial_function_call("memcpy", { dest, source, size }, context.get_void(), context, {});
+		context.end_if(prev_if_info);
 
 		bz_assert(!result_dest.has_value());
 		return context.get_void_value();
@@ -3230,8 +3268,15 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const source = generate_expression(func_call.params[1], context, {});
 		auto const size = generate_expression(func_call.params[2], context, {});
 
+		// the behaviour of memmove is undefined if either dest or source is invalid, even if size is zero.
+		// this is different from the llvm.memmove.* intrinsic, which is a no-op if size is zero.
+		// we follow the semantics of llvm.memmove.*
+		auto const size_is_not_zero = context.to_string_binary(size, "0", "!=", precedence::equality);
+		auto const prev_if_info = context.begin_if(size_is_not_zero);
+
 		context.add_libc_header("string.h");
 		generate_trivial_function_call("memmove", { dest, source, size }, context.get_void(), context, {});
+		context.end_if(prev_if_info);
 
 		bz_assert(!result_dest.has_value());
 		return context.get_void_value();
@@ -3243,8 +3288,15 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const value = generate_expression(func_call.params[1], context, {});
 		auto const size = generate_expression(func_call.params[2], context, {});
 
+		// the behaviour of memset is undefined if dest is invalid, even if size is zero.
+		// this is different from the llvm.memset.* intrinsic, which is a no-op if size is zero.
+		// we follow the semantics of llvm.memset.*
+		auto const size_is_not_zero = context.to_string_binary(size, "0", "!=", precedence::equality);
+		auto const prev_if_info = context.begin_if(size_is_not_zero);
+
 		context.add_libc_header("string.h");
 		generate_trivial_function_call("memset", { dest, value, size }, context.get_void(), context, {});
+		context.end_if(prev_if_info);
 
 		bz_assert(!result_dest.has_value());
 		return context.get_void_value();
@@ -5414,6 +5466,8 @@ static expr_value are_strings_equal(expr_value begin_ptr, bz::u8string_view str,
 	auto const rhs_type = context.add_const_pointer(context.get_uint8());
 	auto const rhs = context.add_value_expression(context.create_cstring(str), rhs_type);
 	auto const size = context.add_value_expression(bz::format("{}u", str.size()), context.get_usize());
+	// size is never zero here, otherwise memcmp has undefined behaviour
+	bz_assert(str.size() != 0);
 	auto const memcmp_result = generate_trivial_function_call("memcmp", { lhs, rhs, size }, context.get_int32(), context, {});
 	return context.create_binary_operation(memcmp_result, "0", "==", precedence::equality, context.get_bool());
 }
@@ -5484,7 +5538,16 @@ static expr_value generate_string_switch(
 
 			// if the string is less than 8 bytes we copy them into an integer and do a switch on that,
 			// otherwise we do an if-else chain (if chain with breaks in each case)
-			if (current_size <= 8)
+
+			// special case for size 0, because otherwise the source pointer in memcpy may be invalid, which is undefined behaviour
+			if (current_size == 0)
+			{
+				bz_assert(value_index + 1 == case_infos.size() || case_infos[value_index + 1].string_value.size() != current_size);
+				auto const case_index = case_infos[value_index].case_index;
+				context.create_assignment(case_index_value, bz::format("{}u", case_index));
+				++value_index;
+			}
+			else if (current_size <= 8)
 			{
 				auto const string_int_value = context.add_value_expression("0u", context.get_uint64());
 				auto const size_value = context.add_value_expression(bz::format("{}u", current_size), context.get_usize());

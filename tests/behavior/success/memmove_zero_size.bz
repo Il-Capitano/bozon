@@ -1,0 +1,6 @@
+function main()
+{
+	__builtin_trivially_copy_overlapping_values(null as ?*mut int32, null as ?*int32, 0);
+	__builtin_trivially_relocate_values(null as ?*mut int32, null as ?*mut int32, 0);
+	__builtin_memmove(null, null, 0);
+}
