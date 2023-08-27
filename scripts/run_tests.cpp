@@ -251,11 +251,21 @@ static bz::optional<test_fail_info_t> run_behavior_success_test_file(
 			};
 		}
 
+#ifndef _WIN32
+		auto const link_args = bz::array<bz::u8string_view, 5>{
+			out_file_with_extension,
+			"-g",
+			"-fsanitize=address,undefined",
+			"-o",
+			out_exe
+		};
+#else
 		auto const link_args = bz::array<bz::u8string_view, 3>{
 			out_file_with_extension,
 			"-o",
 			out_exe
 		};
+#endif
 		auto link_result = bz::run_process(clang, link_args);
 		if (link_result.return_code != 0)
 		{
@@ -330,11 +340,21 @@ static bz::optional<test_fail_info_t> run_behavior_error_test_file(
 			};
 		}
 
+#ifndef _WIN32
+		auto const link_args = bz::array<bz::u8string_view, 5>{
+			out_file_with_extension,
+			"-g",
+			"-fsanitize=address,undefined",
+			"-o",
+			out_exe
+		};
+#else
 		auto const link_args = bz::array<bz::u8string_view, 3>{
 			out_file_with_extension,
 			"-o",
 			out_exe
 		};
+#endif
 		auto link_result = bz::run_process(clang, link_args);
 		if (link_result.return_code != 0)
 		{
