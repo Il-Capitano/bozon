@@ -11,11 +11,11 @@ namespace fs = std::filesystem;
 
 #ifdef _WIN32
 constexpr bz::u8string_view bozon_default = "bin/windows-debug/bozon.exe";
-constexpr bz::u8string_view clang_default = "clang";
+constexpr bz::u8string_view cc_default = "clang";
 constexpr bz::u8string_view os_exe_extension = ".exe";
 #else
 constexpr bz::u8string_view bozon_default = "bin/linux-debug/bozon";
-constexpr bz::u8string_view clang_default = "clang-16";
+constexpr bz::u8string_view cc_default = "clang-16";
 constexpr bz::u8string_view os_exe_extension = ".out";
 #endif
 
@@ -217,7 +217,8 @@ static bz::optional<test_fail_info_t> run_behavior_success_test_file(
 	bz::vector<bz::u8string> flags,
 	bz::u8string_view file,
 	bz::u8string_view out_file,
-	bz::u8string_view clang,
+	bz::u8string_view cc,
+	bz::u8string_view ld,
 	bz::u8string_view out_exe
 )
 {
@@ -266,11 +267,11 @@ static bz::optional<test_fail_info_t> run_behavior_success_test_file(
 			out_exe
 		};
 #endif
-		auto link_result = bz::run_process(clang, link_args);
+		auto link_result = bz::run_process(emit_kind == "c" ? cc : ld, link_args);
 		if (link_result.return_code != 0)
 		{
 			return test_fail_info_t{
-				.commands = { bz::make_command_string(bozon, flags), bz::make_command_string(clang, link_args) },
+				.commands = { bz::make_command_string(bozon, flags), bz::make_command_string(cc, link_args) },
 				.test_file = file,
 				.process_result = std::move(link_result),
 				.wanted_diagnostics = {},
@@ -285,7 +286,7 @@ static bz::optional<test_fail_info_t> run_behavior_success_test_file(
 			return test_fail_info_t{
 				.commands = {
 					bz::make_command_string(bozon, flags),
-					bz::make_command_string(clang, link_args),
+					bz::make_command_string(cc, link_args),
 					bz::make_command_string(out_exe, bz::array_view<bz::u8string_view const>{})
 				},
 				.test_file = file,
@@ -306,7 +307,8 @@ static bz::optional<test_fail_info_t> run_behavior_error_test_file(
 	bz::vector<bz::u8string> flags,
 	bz::u8string_view file,
 	bz::u8string_view out_file,
-	bz::u8string_view clang,
+	bz::u8string_view cc,
+	bz::u8string_view ld,
 	bz::u8string_view out_exe
 )
 {
@@ -355,11 +357,11 @@ static bz::optional<test_fail_info_t> run_behavior_error_test_file(
 			out_exe
 		};
 #endif
-		auto link_result = bz::run_process(clang, link_args);
+		auto link_result = bz::run_process(emit_kind == "c" ? cc : ld, link_args);
 		if (link_result.return_code != 0)
 		{
 			return test_fail_info_t{
-				.commands = { bz::make_command_string(bozon, flags), bz::make_command_string(clang, link_args) },
+				.commands = { bz::make_command_string(bozon, flags), bz::make_command_string(cc, link_args) },
 				.test_file = file,
 				.process_result = std::move(link_result),
 				.wanted_diagnostics = {},
@@ -373,7 +375,7 @@ static bz::optional<test_fail_info_t> run_behavior_error_test_file(
 			return test_fail_info_t{
 				.commands = {
 					bz::make_command_string(bozon, flags),
-					bz::make_command_string(clang, link_args),
+					bz::make_command_string(cc, link_args),
 					bz::make_command_string(out_exe, bz::array_view<bz::u8string_view const>{})
 				},
 				.test_file = file,
@@ -500,7 +502,8 @@ struct test_run_info_t
 static test_run_info_t add_behavior_tests(
 	bz::u8string_view bozon,
 	bz::vector<bz::u8string> common_flags,
-	bz::u8string_view clang,
+	bz::u8string_view cc,
+	bz::u8string_view ld,
 	bz::thread_pool &pool
 )
 {
@@ -519,13 +522,14 @@ static test_run_info_t add_behavior_tests(
 		auto out_exe_string = bz::u8string(out_file.generic_string().c_str());
 		return pool.push_task([
 			bozon,
-			clang,
+			cc,
+			ld,
 			common_flags = common_flags,
 			file_string = std::move(file_string),
 			out_file_string = std::move(out_file_string),
 			out_exe_string = std::move(out_exe_string)
 		]() {
-			return run_behavior_success_test_file(bozon, common_flags, file_string, out_file_string, clang, out_exe_string);
+			return run_behavior_success_test_file(bozon, common_flags, file_string, out_file_string, cc, ld, out_exe_string);
 		});
 	}).collect();
 	futures.append(files.slice(success_count).transform([&](auto const &file) {
@@ -536,13 +540,14 @@ static test_run_info_t add_behavior_tests(
 		auto out_exe_string = bz::u8string(out_file.generic_string().c_str());
 		return pool.push_task([
 			bozon,
-			clang,
+			cc,
+			ld,
 			common_flags = common_flags,
 			file_string = std::move(file_string),
 			out_file_string = std::move(out_file_string),
 			out_exe_string = std::move(out_exe_string)
 		]() {
-			return run_behavior_error_test_file(bozon, common_flags, file_string, out_file_string, clang, out_exe_string);
+			return run_behavior_error_test_file(bozon, common_flags, file_string, out_file_string, cc, ld, out_exe_string);
 		});
 	}));
 
@@ -640,7 +645,8 @@ int main(int argc, char const * const *argv)
 		.collect();
 
 	bz::u8string_view bozon = "";
-	bz::u8string_view clang = "";
+	bz::u8string_view cc = "";
+	bz::u8string_view ld = "";
 	tests_to_run_t tests_to_run = {
 		.behavior = true,
 		.success = true,
@@ -653,9 +659,13 @@ int main(int argc, char const * const *argv)
 		{
 			bozon = arg.substring(bz::u8string_view("--bozon=").length());
 		}
-		else if (arg.starts_with("--clang="))
+		else if (arg.starts_with("--cc="))
 		{
-			clang = arg.substring(bz::u8string_view("--clang=").length());
+			cc = arg.substring(bz::u8string_view("--cc=").length());
+		}
+		else if (arg.starts_with("--ld="))
+		{
+			ld = arg.substring(bz::u8string_view("--ld=").length());
 		}
 		else if (arg.starts_with("--tests="))
 		{
@@ -701,9 +711,13 @@ int main(int argc, char const * const *argv)
 	{
 		bozon = bozon_default;
 	}
-	if (clang == "")
+	if (cc == "")
 	{
-		clang = clang_default;
+		cc = cc_default;
+	}
+	if (ld == "")
+	{
+		ld = cc;
 	}
 	if (!tests_to_run.behavior && !tests_to_run.success && !tests_to_run.warning && !tests_to_run.error)
 	{
@@ -723,7 +737,7 @@ int main(int argc, char const * const *argv)
 
 	if (tests_to_run.behavior)
 	{
-		test_infos.push_back(add_behavior_tests(bozon, common_flags, clang, pool));
+		test_infos.push_back(add_behavior_tests(bozon, common_flags, cc, ld, pool));
 	}
 	if (tests_to_run.success)
 	{
