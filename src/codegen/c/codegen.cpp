@@ -1158,10 +1158,14 @@ static expr_value generate_builtin_binary_bool_and(
 	}
 	auto const &result_value = result_dest.get();
 
+	auto const lhs_prev_info = context.push_expression_scope();
 	generate_expression(lhs, context, result_value);
+	context.pop_expression_scope(lhs_prev_info);
 
 	auto const prev_if_info = context.begin_if(result_value);
+	auto const rhs_prev_info = context.push_expression_scope();
 	generate_expression(rhs, context, result_value);
+	context.pop_expression_scope(rhs_prev_info);
 	context.end_if(prev_if_info);
 
 	return result_value;
@@ -1193,10 +1197,14 @@ static expr_value generate_builtin_binary_bool_or(
 	}
 	auto const &result_value = result_dest.get();
 
+	auto const lhs_prev_info = context.push_expression_scope();
 	generate_expression(lhs, context, result_value);
+	context.pop_expression_scope(lhs_prev_info);
 
 	auto const prev_if_info = context.begin_if_not(result_value);
+	auto const rhs_prev_info = context.push_expression_scope();
 	generate_expression(rhs, context, result_value);
+	context.pop_expression_scope(rhs_prev_info);
 	context.end_if(prev_if_info);
 
 	return result_value;
