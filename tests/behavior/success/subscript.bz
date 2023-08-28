@@ -1,0 +1,58 @@
+import counting_resource;
+
+function main()
+{
+	{
+		mut arr = [10: int32]();
+		for (let i in 0..arr.size())
+		{
+			if (arr[i] != 0) unreachable;
+		}
+
+		arr[3] = 10;
+		if (&arr[3] != &arr[0] + 3) unreachable;
+		if (arr[3] != 10) unreachable;
+		for (let i in 0..arr.size())
+		{
+			if (i != 3 && arr[i] != 0) unreachable;
+		}
+	}
+
+	{
+		mut arr = [10: int32]();
+		let arr: [: mut int32] = arr;
+		for (let i in 0..arr.size())
+		{
+			if (arr[i] != 0) unreachable;
+		}
+
+		arr[3] = 10;
+		if (&arr[3] != &arr[0] + 3) unreachable;
+		if (arr[3] != 10) unreachable;
+		for (let i in 0..arr.size())
+		{
+			if (i != 3 && arr[i] != 0) unreachable;
+		}
+	}
+
+	{
+		mut i = 10;
+		mut t: [int32, &mut int32, float64, str] = [ 0, i, 0.0, "" ];
+		if (&t[1] != &i) unreachable;
+		if (t[0] != 0 || i != 10 || t[1] != 10 || t[2] != 0.0 || t[3] != "") unreachable;
+
+		t[0] = 99;
+		if (t[0] != 99 || i != 10 || t[1] != 10 || t[2] != 0.0 || t[3] != "") unreachable;
+
+		t[1] = 42;
+		if (t[0] != 99 || i != 42 || t[1] != 42 || t[2] != 0.0 || t[3] != "") unreachable;
+
+		t[2] = 1.0;
+		if (t[0] != 99 || i != 42 || t[1] != 42 || t[2] != 1.0 || t[3] != "") unreachable;
+
+		t[3] = "hello";
+		if (t[0] != 99 || i != 42 || t[1] != 42 || t[2] != 1.0 || t[3] != "hello") unreachable;
+	}
+
+	if (!counting_resource_is_valid()) unreachable;
+}
