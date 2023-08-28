@@ -724,21 +724,10 @@ copy_overlapping_values_data_t stack_object::get_copy_overlapping_memory(
 		return {};
 	}
 
-	if (dest > source)
+	// we need to check the range [source, dest) if it's alive
+	if (!this->is_alive(source, source_end))
 	{
-		// we need to check the range [source, dest) if it's alive, and the whole dest range
-		if (!this->is_alive(source, dest))
-		{
-			return {};
-		}
-	}
-	else
-	{
-		// we need to check the whole source range if it's alive, and [dest, source)
-		if (!this->is_alive(source, source_end))
-		{
-			return {};
-		}
+		return {};
 	}
 
 	auto const dest_offset = dest - this->address;
@@ -1649,21 +1638,10 @@ copy_overlapping_values_data_t heap_object::get_copy_overlapping_memory(
 		return {};
 	}
 
-	if (dest > source)
+	// we need to check the range [source, dest) if it's alive
+	if (!this->is_alive(source, source_end))
 	{
-		// we need to check the range [source, dest) if it's alive, and the whole dest range
-		if (!this->is_alive(source, dest))
-		{
-			return {};
-		}
-	}
-	else
-	{
-		// we need to check the whole source range if it's alive, and [dest, source)
-		if (!this->is_alive(source, source_end))
-		{
-			return {};
-		}
+		return {};
 	}
 
 	auto const dest_offset = dest - this->address;
@@ -1768,19 +1746,9 @@ bz::vector<bz::u8string> heap_object::get_get_copy_overlapping_memory_error_reas
 		return result;
 	}
 
-	if (dest > source)
+	if (!this->is_alive(source, source_end))
 	{
-		if (!this->is_alive(source, dest))
-		{
-			result.push_back("source address points to objects in this allocation, which are outside their lifetime");
-		}
-	}
-	else
-	{
-		if (!this->is_alive(source, source_end))
-		{
-			result.push_back("source address points to objects in this allocation, which are outside their lifetime");
-		}
+		result.push_back("source address points to objects in this allocation, which are outside their lifetime");
 	}
 
 	if (elem_type != this->elem_type)
@@ -1891,19 +1859,19 @@ copy_overlapping_values_data_t heap_object::get_relocate_overlapping_memory(
 
 	if (dest > source)
 	{
-		// we need to check the range [source, dest) if it's alive, and the whole dest range
-		if (!this->is_alive(source, dest))
+		// we need to check the range [source, source_end) if it's alive, and [source_end, dest_end) if it's not alive
+		if (!this->is_alive(source, source_end))
 		{
 			return {};
 		}
-		else if (!is_trivial && !this->is_none_alive(dest, dest_end))
+		else if (!is_trivial && !this->is_none_alive(source_end, dest_end))
 		{
 			return {};
 		}
 	}
 	else
 	{
-		// we need to check the whole source range if it's alive, and [dest, source)
+		// we need to check the range [source, source_end) if it's alive, and [dest, source) if it's not alive
 		if (!this->is_alive(source, source_end))
 		{
 			return {};
@@ -1964,11 +1932,11 @@ bz::vector<bz::u8string> heap_object::get_get_relocate_overlapping_memory_error_
 
 	if (dest > source)
 	{
-		if (!this->is_alive(source, dest))
+		if (!this->is_alive(source, source_end))
 		{
 			result.push_back("source address points to objects in this allocation, which are outside their lifetime");
 		}
-		else if (!is_trivial && !this->is_none_alive(dest, dest_end))
+		else if (!is_trivial && !this->is_none_alive(source_end, dest_end))
 		{
 			result.push_back("destination address must point to uninitialized elements of this allocation if the value type is not trivially destructible");
 		}
@@ -5177,10 +5145,33 @@ bool memory_manager::relocate_values(ptr_t _dest, ptr_t _source, size_t count, t
 
 		std::memmove(dest_memory.data(), source_memory.data(), dest_memory.size());
 
-		for (auto const i : bz::iota(0, dest_properties.size()))
+		if (source < dest)
 		{
-			dest_properties[i] |= memory_properties::is_alive;
-			source_properties[i] &= ~memory_properties::is_alive;
+			auto const non_overlap_size = dest - source;
+			auto const overlap_size = dest_properties.size() - non_overlap_size;
+
+			for (auto &source_property : source_properties.slice(0, non_overlap_size))
+			{
+				source_property &= ~memory_properties::is_alive;
+			}
+			for (auto &dest_property : dest_properties.slice(overlap_size))
+			{
+				dest_property |= memory_properties::is_alive;
+			}
+		}
+		else
+		{
+			auto const non_overlap_size = source - dest;
+			auto const overlap_size = dest_properties.size() - non_overlap_size;
+
+			for (auto &dest_property : dest_properties.slice(0, non_overlap_size))
+			{
+				dest_property |= memory_properties::is_alive;
+			}
+			for (auto &source_property : source_properties.slice(overlap_size))
+			{
+				source_property &= ~memory_properties::is_alive;
+			}
 		}
 
 		return true;
