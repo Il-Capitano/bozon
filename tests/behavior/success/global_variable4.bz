@@ -1,0 +1,18 @@
+struct S
+{
+	mut v = 42;
+}
+
+function set_v()
+{
+	S.v = 20;
+}
+
+function main()
+{
+	if (S.v != 42) unreachable;
+	S.v = 10;
+	if (S.v != 10) unreachable;
+	set_v();
+	if (S.v != 20) unreachable;
+}
