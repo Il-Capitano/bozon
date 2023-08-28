@@ -4024,7 +4024,7 @@ static val_ptr emit_bitcode(
 		}
 
 		auto const elem_ptr = [&]() {
-			if (is_reference_result)
+			if (i == index_int_value && is_reference_result)
 			{
 				auto const ref_ptr = base_val.kind == val_ptr::value
 					? context.builder.CreateExtractValue(base_val.get_value(context.builder), index_int_value)
@@ -4420,8 +4420,6 @@ static val_ptr emit_bitcode(
 	}
 	else
 	{
-		llvm::dbgs() << *result_type << '\n';
-		bz::log("{} {}\n", context.global_ctx.get_location_string(src_tokens.pivot), optional_cast.type);
 		bz_assert(result_address != nullptr);
 		auto const result_val = val_ptr::get_reference(result_address, result_type);
 		auto const value_ptr = optional_get_value_ptr(result_val, context);
@@ -4968,7 +4966,10 @@ static val_ptr emit_bitcode(
 	bz_assert(val.kind == val_ptr::reference);
 	auto const type = val.get_type();
 	bz_assert(type->isStructTy());
-	bz_assert(type->getStructNumElements() == aggregate_destruct.elem_destruct_calls.size());
+	bz_assert(
+		aggregate_destruct.elem_destruct_calls.empty()
+		|| type->getStructNumElements() == aggregate_destruct.elem_destruct_calls.size()
+	);
 
 	for (auto const i : bz::iota(0, aggregate_destruct.elem_destruct_calls.size()).reversed())
 	{
@@ -5073,7 +5074,10 @@ static val_ptr emit_bitcode(
 	bz_assert(val.kind == val_ptr::reference);
 	auto const type = val.get_type();
 	bz_assert(type->isStructTy());
-	bz_assert(type->getStructNumElements() == base_type_destruct.member_destruct_calls.size());
+	bz_assert(
+		base_type_destruct.member_destruct_calls.empty()
+		|| type->getStructNumElements() == base_type_destruct.member_destruct_calls.size()
+	);
 
 	if (base_type_destruct.destruct_call.not_null())
 	{
@@ -8191,11 +8195,19 @@ void emit_global_type(ast::type_info const &info, bitcode_context &context)
 		bz_assert(type != nullptr);
 		bz_assert(type->isStructTy());
 		auto const struct_type = static_cast<llvm::StructType *>(type);
-		auto const types = info.member_variables
-			.transform([&](auto const &member) { return get_llvm_type(member->get_type(), context); })
-			.collect<ast::arena_vector>();
-		bz_assert(struct_type->isOpaque());
-		struct_type->setBody(llvm::ArrayRef<llvm::Type *>(types.data(), types.size()));
+		if (info.member_variables.not_empty())
+		{
+			auto const types = info.member_variables
+				.transform([&](auto const &member) { return get_llvm_type(member->get_type(), context); })
+				.collect<ast::arena_vector>();
+			bz_assert(struct_type->isOpaque());
+			struct_type->setBody(llvm::ArrayRef<llvm::Type *>(types.data(), types.size()));
+		}
+		else
+		{
+			bz_assert(struct_type->isOpaque());
+			struct_type->setBody(context.get_uint8_t());
+		}
 		break;
 	}
 	}
