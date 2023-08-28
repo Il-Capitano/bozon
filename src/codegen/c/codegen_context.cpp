@@ -844,12 +844,19 @@ bz::u8string codegen_context::to_string(type t) const
 	return result;
 }
 
-bz::u8string codegen_context::create_cstring(bz::u8string_view s)
+bz::u8string_view codegen_context::create_cstring(bz::u8string_view s)
 {
-	auto name = this->make_global_variable_name();
+	auto const [literals_it, inserted] = this->string_literals.insert({ s, {} });
+	if (!inserted)
+	{
+		return literals_it->second;
+	}
+
+	literals_it->second = this->make_global_variable_name();
+	auto const &name = literals_it->second;
 	auto const uint8_name = this->type_set.get_typedef_type_name(this->builtin_types.uint8_);
 
-	this->variables_string += bz::format("static {} const * const {} = ({0} const *)\"", uint8_name, name);
+	this->variables_string += bz::format("static {} const {}[] = \"", uint8_name, name);
 
 	auto it = s.begin();
 	auto const end = s.end();

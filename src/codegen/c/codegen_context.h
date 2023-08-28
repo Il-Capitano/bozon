@@ -116,6 +116,14 @@ struct codegen_context
 		switch_info_t switch_info = { .in_switch = false, .loop_level = 0 };
 	};
 
+	struct u8string_hash
+	{
+		size_t operator () (bz::u8string_view s) const
+		{
+			return std::hash<std::string_view>()(std::string_view(s.data(), s.size()));
+		}
+	};
+
 	size_t counter = 0;
 
 	type_set_t type_set;
@@ -123,6 +131,7 @@ struct codegen_context
 	builtin_types_t builtin_types;
 	std::unordered_map<ast::decl_variable const *, global_variable_t> global_variables;
 	std::unordered_map<ast::function_body const *, function_info_t> functions;
+	std::unordered_map<bz::u8string_view, bz::u8string, u8string_hash> string_literals;
 
 	bz::vector<ast::function_body *> functions_to_compile;
 	current_function_info_t current_function_info;
@@ -236,7 +245,7 @@ struct codegen_context
 
 	bz::u8string to_string(type t) const;
 
-	bz::u8string create_cstring(bz::u8string_view s);
+	bz::u8string_view create_cstring(bz::u8string_view s);
 	void add_global_variable(ast::decl_variable const &var_decl, type var_type, bz::u8string_view initializer);
 	global_variable_t const &get_global_variable(ast::decl_variable const &var_decl) const;
 
