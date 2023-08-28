@@ -1288,7 +1288,7 @@ static expr_value generate_expression(
 		auto const elem_ptr = [&]() {
 			if (i == index_int_value && is_reference_result)
 			{
-				auto const ref_ref = context.create_struct_gep(base_value, i);
+				auto const ref_ref = context.create_struct_gep_value(base_value, i);
 				return context.create_dereference(ref_ref);
 			}
 			else
@@ -1363,7 +1363,7 @@ static expr_value generate_expression(
 {
 	bz_assert(rvalue_array_subscript.base.get_expr_type().is<ast::ts_array>());
 	auto const array = generate_expression(rvalue_array_subscript.base, context, {});
-	auto index = generate_expression(rvalue_array_subscript.index, context, {});
+	auto const index = generate_expression(rvalue_array_subscript.index, context, {});
 	bz_assert(rvalue_array_subscript.index.get_expr_type().remove_any_mut().is<ast::ts_base_type>());
 
 	auto const result_value = context.create_array_gep(array, index);
