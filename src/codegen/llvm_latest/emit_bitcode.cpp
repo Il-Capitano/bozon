@@ -655,32 +655,43 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	auto const types = tuple_expr.elems
-		.transform([](auto const &expr) { return expr.get_expr_type(); })
-		.transform([&context](auto const ts) { return get_llvm_type(ts, context); })
-		.template collect<ast::arena_vector>();
-	auto const result_type = context.get_tuple_t(types);
-	if (result_address == nullptr)
-	{
-		result_address = context.create_alloca(result_type);
-	}
+	auto const result_type = [&]() -> llvm::Type * {
+		if (result_address == nullptr)
+		{
+			return nullptr;
+		}
+
+		auto const types = tuple_expr.elems
+			.transform([](auto const &expr) { return expr.get_expr_type(); })
+			.transform([&context](auto const ts) { return get_llvm_type(ts, context); })
+			.template collect<ast::arena_vector>();
+		return context.get_tuple_t(types);
+	}();
 
 	for (unsigned i = 0; i < tuple_expr.elems.size(); ++i)
 	{
-		if (tuple_expr.elems[i].get_expr_type().is_reference())
+		if (result_address != nullptr)
 		{
-			auto const elem_result_address = context.create_struct_gep(result_type, result_address, i);
-			auto const result = emit_bitcode(tuple_expr.elems[i], context, nullptr);
-			bz_assert(result.kind == val_ptr::reference);
-			context.builder.CreateStore(result.val, elem_result_address);
+			if (tuple_expr.elems[i].get_expr_type().is_reference())
+			{
+				auto const elem_result_address = context.create_struct_gep(result_type, result_address, i);
+				auto const result = emit_bitcode(tuple_expr.elems[i], context, nullptr);
+				bz_assert(result.kind == val_ptr::reference);
+				context.builder.CreateStore(result.val, elem_result_address);
+			}
+			else
+			{
+				auto const elem_result_address = context.create_struct_gep(result_type, result_address, i);
+				emit_bitcode(tuple_expr.elems[i], context, elem_result_address);
+			}
 		}
 		else
 		{
-			auto const elem_result_address = context.create_struct_gep(result_type, result_address, i);
-			emit_bitcode(tuple_expr.elems[i], context, elem_result_address);
+			emit_bitcode(tuple_expr.elems[i], context, nullptr);
 		}
 	}
-	return val_ptr::get_reference(result_address, result_type);
+
+	return result_address == nullptr ? val_ptr::get_none() : val_ptr::get_reference(result_address, result_type);
 }
 
 static val_ptr emit_builtin_unary_address_of(
@@ -7241,6 +7252,7 @@ static val_ptr emit_bitcode(
 			|| dyn_expr.expr.is<ast::expr_compound>()
 			|| dyn_expr.expr.is<ast::expr_if>()
 			|| dyn_expr.expr.is<ast::expr_switch>()
+			|| dyn_expr.expr.is<ast::expr_tuple>()
 		)
 	)
 	{
