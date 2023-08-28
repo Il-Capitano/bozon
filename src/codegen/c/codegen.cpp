@@ -228,6 +228,7 @@ static void generate_constant_value_string(
 	bz::u8string &buffer,
 	ast::constant_value const &value,
 	ast::typespec_view type,
+	bool use_struct_literals,
 	codegen_context &context
 );
 
@@ -356,13 +357,17 @@ static void generate_nonzero_constant_array_value(
 	bz::u8string &buffer,
 	bz::array_view<ast::constant_value const> values,
 	ast::typespec_view array_type_,
+	bool use_struct_literals,
 	codegen_context &context
 )
 {
 	bz_assert(array_type_.is<ast::ts_array>());
 	auto const &array_type = array_type_.get<ast::ts_array>();
-	buffer += bz::format("({})", context.to_string(get_type(array_type_, context)));
-	buffer += "{ ";
+	if (use_struct_literals)
+	{
+		buffer += bz::format("({})", context.to_string(get_type(array_type_, context)));
+	}
+	buffer += "{{ ";
 	if (array_type.elem_type.is<ast::ts_array>())
 	{
 		bz_assert(values.size() % array_type.size == 0);
@@ -370,7 +375,7 @@ static void generate_nonzero_constant_array_value(
 		for (size_t i = 0; i < values.size(); i += stride)
 		{
 			auto const sub_array = values.slice(i, i + stride);
-			generate_nonzero_constant_array_value(buffer, sub_array, array_type.elem_type, context);
+			generate_nonzero_constant_array_value(buffer, sub_array, array_type.elem_type, use_struct_literals, context);
 			buffer += ", ";
 		}
 	}
@@ -378,28 +383,32 @@ static void generate_nonzero_constant_array_value(
 	{
 		for (auto const i : bz::iota(0, array_type.size))
 		{
-			generate_constant_value_string(buffer, values[i], array_type.elem_type, context);
+			generate_constant_value_string(buffer, values[i], array_type.elem_type, use_struct_literals, context);
 			buffer += ", ";
 		}
 	}
-	buffer += '}';
+	buffer += "}}";
 }
 
 static void generate_constant_array_value(
 	bz::u8string &buffer,
 	bz::array_view<ast::constant_value const> values,
 	ast::typespec_view array_type,
+	bool use_struct_literals,
 	codegen_context &context
 )
 {
 	if (values.is_all([](auto const &value) { return is_zero_value(value); }))
 	{
-		buffer += bz::format("({})", context.to_string(get_type(array_type, context)));
+		if (use_struct_literals)
+		{
+			buffer += bz::format("({})", context.to_string(get_type(array_type, context)));
+		}
 		buffer += "{0}";
 	}
 	else
 	{
-		generate_nonzero_constant_array_value(buffer, values, array_type, context);
+		generate_nonzero_constant_array_value(buffer, values, array_type, use_struct_literals, context);
 	}
 }
 
@@ -408,13 +417,17 @@ static void generate_nonzero_constant_numeric_array_value(
 	bz::u8string &buffer,
 	bz::array_view<T const> values,
 	ast::typespec_view array_type_,
+	bool use_struct_literals,
 	codegen_context &context
 )
 {
 	bz_assert(array_type_.is<ast::ts_array>());
 	auto const &array_type = array_type_.get<ast::ts_array>();
-	buffer += bz::format("({})", context.to_string(get_type(array_type_, context)));
-	buffer += "{ ";
+	if (use_struct_literals)
+	{
+		buffer += bz::format("({})", context.to_string(get_type(array_type_, context)));
+	}
+	buffer += "{{ ";
 	if (array_type.elem_type.is<ast::ts_array>())
 	{
 		bz_assert(values.size() % array_type.size == 0);
@@ -422,7 +435,7 @@ static void generate_nonzero_constant_numeric_array_value(
 		for (size_t i = 0; i < values.size(); i += stride)
 		{
 			auto const sub_array = values.slice(i, i + stride);
-			generate_nonzero_constant_numeric_array_value<T>(buffer, sub_array, array_type.elem_type, context);
+			generate_nonzero_constant_numeric_array_value<T>(buffer, sub_array, array_type.elem_type, use_struct_literals, context);
 			buffer += ", ";
 		}
 	}
@@ -455,24 +468,28 @@ static void generate_nonzero_constant_numeric_array_value(
 			}
 		}
 	}
-	buffer += '}';
+	buffer += "}}";
 }
 
 static void generate_constant_sint_array_value(
 	bz::u8string &buffer,
 	bz::array_view<int64_t const> values,
 	ast::typespec_view array_type,
+	bool use_struct_literals,
 	codegen_context &context
 )
 {
 	if (values.is_all([](auto const value) { return value == 0; }))
 	{
-		buffer += bz::format("({})", context.to_string(get_type(array_type, context)));
+		if (use_struct_literals)
+		{
+			buffer += bz::format("({})", context.to_string(get_type(array_type, context)));
+		}
 		buffer += "{0}";
 	}
 	else
 	{
-		generate_nonzero_constant_numeric_array_value(buffer, values, array_type, context);
+		generate_nonzero_constant_numeric_array_value(buffer, values, array_type, use_struct_literals, context);
 	}
 }
 
@@ -480,17 +497,21 @@ static void generate_constant_uint_array_value(
 	bz::u8string &buffer,
 	bz::array_view<uint64_t const> values,
 	ast::typespec_view array_type,
+	bool use_struct_literals,
 	codegen_context &context
 )
 {
 	if (values.is_all([](auto const value) { return value == 0; }))
 	{
-		buffer += bz::format("({})", context.to_string(get_type(array_type, context)));
+		if (use_struct_literals)
+		{
+			buffer += bz::format("({})", context.to_string(get_type(array_type, context)));
+		}
 		buffer += "{0}";
 	}
 	else
 	{
-		generate_nonzero_constant_numeric_array_value(buffer, values, array_type, context);
+		generate_nonzero_constant_numeric_array_value(buffer, values, array_type, use_struct_literals, context);
 	}
 }
 
@@ -498,17 +519,21 @@ static void generate_constant_float32_array_value(
 	bz::u8string &buffer,
 	bz::array_view<float32_t const> values,
 	ast::typespec_view array_type,
+	bool use_struct_literals,
 	codegen_context &context
 )
 {
 	if (values.is_all([](auto const value) { return bit_cast<uint32_t>(value) == 0; }))
 	{
-		buffer += bz::format("({})", context.to_string(get_type(array_type, context)));
+		if (use_struct_literals)
+		{
+			buffer += bz::format("({})", context.to_string(get_type(array_type, context)));
+		}
 		buffer += "{0}";
 	}
 	else
 	{
-		generate_nonzero_constant_numeric_array_value(buffer, values, array_type, context);
+		generate_nonzero_constant_numeric_array_value(buffer, values, array_type, use_struct_literals, context);
 	}
 }
 
@@ -516,17 +541,21 @@ static void generate_constant_float64_array_value(
 	bz::u8string &buffer,
 	bz::array_view<float64_t const> values,
 	ast::typespec_view array_type,
+	bool use_struct_literals,
 	codegen_context &context
 )
 {
 	if (values.is_all([](auto const value) { return bit_cast<uint64_t>(value) == 0; }))
 	{
-		buffer += bz::format("({})", context.to_string(get_type(array_type, context)));
+		if (use_struct_literals)
+		{
+			buffer += bz::format("({})", context.to_string(get_type(array_type, context)));
+		}
 		buffer += "{0}";
 	}
 	else
 	{
-		generate_nonzero_constant_numeric_array_value(buffer, values, array_type, context);
+		generate_nonzero_constant_numeric_array_value(buffer, values, array_type, use_struct_literals, context);
 	}
 }
 
@@ -534,6 +563,7 @@ static void generate_constant_value_string(
 	bz::u8string &buffer,
 	ast::constant_value const &value,
 	ast::typespec_view type,
+	bool use_struct_literals,
 	codegen_context &context
 )
 {
@@ -613,9 +643,12 @@ static void generate_constant_value_string(
 	{
 		auto const s = value.get_string();
 		auto const cstr = context.create_cstring(s);
-		buffer += bz::format("({})", context.to_string(get_type(type, context)));
+		if (use_struct_literals)
+		{
+			buffer += bz::format("({})", context.to_string(get_type(type, context)));
+		}
 		buffer += '{';
-		buffer += bz::format(" {0}, {0} + {}", cstr, s.size());
+		buffer += bz::format(" {0}, {0} + {} ", cstr, s.size());
 		buffer += '}';
 		break;
 	}
@@ -637,7 +670,10 @@ static void generate_constant_value_string(
 		else
 		{
 			// empty braces is a GNU extension
-			buffer += bz::format("({})", context.to_string(get_type(type, context)));
+			if (use_struct_literals)
+			{
+				buffer += bz::format("({})", context.to_string(get_type(type, context)));
+			}
 			buffer += "{0}";
 		}
 		break;
@@ -661,19 +697,19 @@ static void generate_constant_value_string(
 		break;
 	}
 	case ast::constant_value::array:
-		generate_constant_array_value(buffer, value.get_array(), type, context);
+		generate_constant_array_value(buffer, value.get_array(), type, use_struct_literals, context);
 		break;
 	case ast::constant_value::sint_array:
-		generate_constant_sint_array_value(buffer, value.get_sint_array(), type, context);
+		generate_constant_sint_array_value(buffer, value.get_sint_array(), type, use_struct_literals, context);
 		break;
 	case ast::constant_value::uint_array:
-		generate_constant_uint_array_value(buffer, value.get_uint_array(), type, context);
+		generate_constant_uint_array_value(buffer, value.get_uint_array(), type, use_struct_literals, context);
 		break;
 	case ast::constant_value::float32_array:
-		generate_constant_float32_array_value(buffer, value.get_float32_array(), type, context);
+		generate_constant_float32_array_value(buffer, value.get_float32_array(), type, use_struct_literals, context);
 		break;
 	case ast::constant_value::float64_array:
-		generate_constant_float64_array_value(buffer, value.get_float64_array(), type, context);
+		generate_constant_float64_array_value(buffer, value.get_float64_array(), type, use_struct_literals, context);
 		break;
 	case ast::constant_value::tuple:
 	{
@@ -681,11 +717,14 @@ static void generate_constant_value_string(
 		bz_assert(type.is<ast::ts_tuple>());
 		auto const &tuple_type = type.get<ast::ts_tuple>();
 		bz_assert(tuple_elems.size() == tuple_type.types.size());
-		buffer += bz::format("({})", context.to_string(get_type(type, context)));
+		if (use_struct_literals)
+		{
+			buffer += bz::format("({})", context.to_string(get_type(type, context)));
+		}
 		buffer += "{ ";
 		for (auto const i : bz::iota(0, tuple_elems.size()))
 		{
-			generate_constant_value_string(buffer, tuple_elems[i], tuple_type.types[i], context);
+			generate_constant_value_string(buffer, tuple_elems[i], tuple_type.types[i], use_struct_literals, context);
 			buffer += ", ";
 		}
 		buffer += '}';
@@ -706,11 +745,14 @@ static void generate_constant_value_string(
 		bz_assert(type.is<ast::ts_base_type>());
 		auto const info = type.get<ast::ts_base_type>().info;
 		bz_assert(aggregate.size() == info->member_variables.size());
-		buffer += bz::format("({})", context.to_string(get_type(type, context)));
+		if (use_struct_literals)
+		{
+			buffer += bz::format("({})", context.to_string(get_type(type, context)));
+		}
 		buffer += "{ ";
 		for (auto const i : bz::iota(0, aggregate.size()))
 		{
-			generate_constant_value_string(buffer, aggregate[i], info->member_variables[i]->get_type(), context);
+			generate_constant_value_string(buffer, aggregate[i], info->member_variables[i]->get_type(), use_struct_literals, context);
 			buffer += ", ";
 		}
 		buffer += '}';
@@ -721,10 +763,15 @@ static void generate_constant_value_string(
 	}
 }
 
-static bz::u8string generate_constant_value_string(ast::constant_value const &value, ast::typespec_view type, codegen_context &context)
+static bz::u8string generate_constant_value_string(
+	ast::constant_value const &value,
+	ast::typespec_view type,
+	codegen_context &context,
+	bool use_struct_literals = true
+)
 {
 	bz::u8string result = "";
-	generate_constant_value_string(result, value, type, context);
+	generate_constant_value_string(result, value, type, use_struct_literals, context);
 	return result;
 }
 
@@ -739,7 +786,12 @@ void generate_global_variable(ast::decl_variable const &var_decl, codegen_contex
 	auto const var_type = get_type(var_decl.get_type(), context);
 	if (var_decl.init_expr.is_constant())
 	{
-		auto const initializer = generate_constant_value_string(var_decl.init_expr.get_constant_value(), var_decl.get_type(), context);
+		auto const initializer = generate_constant_value_string(
+			var_decl.init_expr.get_constant_value(),
+			var_decl.get_type(),
+			context,
+			false
+		);
 		context.add_global_variable(var_decl, var_type, initializer);
 	}
 	else
