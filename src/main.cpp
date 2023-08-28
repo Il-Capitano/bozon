@@ -2,8 +2,6 @@
 
 
 TODO:
-	- change default mutable to default const
-		- instead of `T` and `const T` use `mut T` and `T`
 	- reorganize back-ends to not entirely depend on LLVM
 		- C back-end
 
@@ -1546,13 +1544,7 @@ struct foo<...Ts> {} // variadic
 #include "comptime/instructions_forward.h"
 #endif // BOZON_PROFILE_COMPTIME
 
-#if defined(NDEBUG) || defined(_WIN32)
-// use std::exit instead of returning to avoid LLVM corrupting the heap
-// this happens rarely in debug mode, but is common for release builds
-#define return_from_main(val) std::exit(global_data::return_zero_on_error ? 0 : (val))
-#else
 #define return_from_main(val) return (global_data::return_zero_on_error ? 0 : (val))
-#endif // NDEBUG
 
 int main(int argc, char const **argv)
 {

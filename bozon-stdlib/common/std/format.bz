@@ -567,11 +567,7 @@ function format_into_impl(
 
 export function format_into(buffer: &mut format_buffer, fmt_str: consteval str, args: ...#auto)
 {
-	consteval input_args_count = {
-		mut i = 0uz;
-		[ ...(typeof args, i += 1, 0) ];
-		i
-	};
+	consteval input_args_count = sizeof ...args;
 	@maybe_unused let arg_ptrs = if consteval (input_args_count == 0) {
 		[]()
 	} else {
@@ -599,11 +595,7 @@ function format_unchecked_fmt(fmt_str: consteval str, args: ...#auto) -> string
 
 export function format(fmt_str: consteval str, args: ...#auto) -> string
 {
-	consteval passed_args_count = {
-		mut i = 0uz;
-		[...(typeof args, ++i)];
-		i
-	};
+	consteval passed_args_count = sizeof ...args;
 	if consteval (check_fmt_str(fmt_str, passed_args_count))
 	{
 		return format_unchecked_fmt(fmt_str, ...args);
@@ -616,11 +608,7 @@ export function format(fmt_str: consteval str, args: ...#auto) -> string
 
 export consteval function comptime_format(fmt_str: consteval str, args: ...#auto) -> str
 {
-	consteval passed_args_count = {
-		mut i = 0uz;
-		[...(typeof args, ++i)];
-		i
-	};
+	consteval passed_args_count = sizeof ...args;
 	if consteval (check_fmt_str(fmt_str, passed_args_count))
 	{
 		let s = format_unchecked_fmt(fmt_str, ...args);
@@ -634,11 +622,7 @@ export consteval function comptime_format(fmt_str: consteval str, args: ...#auto
 
 export function print(fmt_str: consteval str, arg0: #auto, args: ...#auto)
 {
-	consteval passed_args_count = {
-		mut i = 0uz;
-		[...(typeof args, ++i)];
-		i + 1
-	};
+	consteval passed_args_count = 1 + sizeof ...args;
 	if consteval (check_fmt_str(fmt_str, passed_args_count))
 	{
 		mut buf = format_buffer[ string() ];

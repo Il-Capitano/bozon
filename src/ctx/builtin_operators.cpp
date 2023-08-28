@@ -625,6 +625,17 @@ static ast::expression get_builtin_unary_sizeof(
 			ast::make_expr_unary_op(op_kind, std::move(expr))
 		);
 	}
+	else if (expr.is<ast::expanded_variadic_expression>())
+	{
+		auto const size = expr.get<ast::expanded_variadic_expression>().exprs.size();
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			ast::make_base_type_typespec({}, context.get_usize_type_info()),
+			ast::constant_value(size),
+			ast::make_expr_unary_op(op_kind, std::move(expr))
+		);
+	}
 	else
 	{
 		auto const type = expr.get_expr_type();

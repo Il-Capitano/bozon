@@ -7538,9 +7538,8 @@ static void add_variable_helper(
 			context.push_variable_destruct_operation(var_decl.destruction);
 		}
 	}
-	else
+	else if (type->isStructTy())
 	{
-		bz_assert(type->isStructTy());
 		for (auto const &[decl, i] : var_decl.tuple_decls.enumerate())
 		{
 			if (decl.get_type().is_any_reference())
@@ -7556,6 +7555,16 @@ static void add_variable_helper(
 				auto const elem_type = type->getStructElementType(i);
 				add_variable_helper(decl, elem_ptr, elem_type, context);
 			}
+		}
+	}
+	else
+	{
+		bz_assert(type->isArrayTy());
+		auto const elem_type = type->getArrayElementType();
+		for (auto const &[decl, i] : var_decl.tuple_decls.enumerate())
+		{
+			auto const elem_ptr = context.create_struct_gep(type, ptr, i);
+			add_variable_helper(decl, elem_ptr, elem_type, context);
 		}
 	}
 }
