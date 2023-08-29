@@ -874,13 +874,17 @@ static void generate_panic_call(
 	bz_assert(panic_handler_func_body->params[0].get_type().get<ast::ts_base_type>().info->kind == ast::type_info::str_);
 	auto const &panic_handler_func = context.get_function(*panic_handler_func_body);
 
-	auto const arg_string = generate_constant_value_string(
-		ast::constant_value(bz::format("panic called from {}: {}", context.get_location_string(src_tokens), message)),
-		panic_handler_func_body->params[0].get_type(),
-		context
-	);
-	auto const arg_type = get_type(panic_handler_func_body->params[0].get_type(), context);
-	auto const arg = context.add_value_expression(arg_string, arg_type);
+	auto const panic_message = context.add_panic_string(bz::format(
+		"panic called from {}: {}",
+		context.get_location_string(src_tokens), message
+	));
+	auto const cstring_name = context.create_cstring(panic_message);
+	auto const str_type = get_type(panic_handler_func_body->params[0].get_type(), context);
+	bz::u8string arg_string = bz::format("({})", context.to_string(str_type));
+	arg_string += '{';
+	arg_string += bz::format(" {}, {} + {} ", cstring_name, cstring_name, panic_message.size());
+	arg_string += '}';
+	auto const arg = context.add_value_expression(arg_string, str_type);
 
 	generate_trivial_function_call(
 		panic_handler_func.name,

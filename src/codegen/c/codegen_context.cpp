@@ -844,9 +844,14 @@ bz::u8string codegen_context::to_string(type t) const
 	return result;
 }
 
+bz::u8string_view codegen_context::add_panic_string(bz::u8string s)
+{
+	return this->panic_strings_storage.push_back(std::move(s));
+}
+
 bz::u8string_view codegen_context::create_cstring(bz::u8string_view s)
 {
-	auto const [literals_it, inserted] = this->string_literals.insert({ s, {} });
+	auto const [literals_it, inserted] = this->string_literals.insert({ s, bz::u8string() });
 	if (!inserted)
 	{
 		return literals_it->second;

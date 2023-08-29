@@ -131,6 +131,7 @@ struct codegen_context
 	builtin_types_t builtin_types;
 	std::unordered_map<ast::decl_variable const *, global_variable_t> global_variables;
 	std::unordered_map<ast::function_body const *, function_info_t> functions;
+	bz::vector<bz::u8string> panic_strings_storage;
 	std::unordered_map<bz::u8string_view, bz::u8string, u8string_hash> string_literals;
 
 	bz::vector<ast::function_body *> functions_to_compile;
@@ -245,6 +246,7 @@ struct codegen_context
 
 	bz::u8string to_string(type t) const;
 
+	bz::u8string_view add_panic_string(bz::u8string s);
 	bz::u8string_view create_cstring(bz::u8string_view s);
 	void add_global_variable(ast::decl_variable const &var_decl, type var_type, bz::u8string_view initializer);
 	global_variable_t const &get_global_variable(ast::decl_variable const &var_decl) const;
