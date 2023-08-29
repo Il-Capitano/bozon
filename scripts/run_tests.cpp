@@ -253,11 +253,12 @@ static bz::optional<test_fail_info_t> run_behavior_success_test_file(
 		}
 
 #ifndef _WIN32
-		auto const link_args = bz::array<bz::u8string_view, 6>{
+		auto const link_args = bz::array<bz::u8string_view, 7>{
 			out_file_with_extension,
 			"-g",
 			"-fuse-ld=lld-16",
 			"-fsanitize=address,undefined",
+			"-lm",
 			"-o",
 			out_exe
 		};
