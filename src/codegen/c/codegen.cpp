@@ -1623,7 +1623,8 @@ static expr_value generate_builtin_unary_bit_not(
 )
 {
 	auto const value = generate_expression(expr, context, {});
-	auto const expr_string = context.to_string_unary_prefix(value, "~");
+	auto const op = value.get_type() == context.get_bool() ? "!" : "~";
+	auto const expr_string = context.to_string_unary_prefix(value, op);
 	return value_or_result_dest(expr_string, value.get_type(), result_dest, context);
 }
 
