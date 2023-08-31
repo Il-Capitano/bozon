@@ -1,0 +1,17 @@
+function test()
+{
+	(consteval {
+		function mul_test(consteval a, consteval b)
+		{
+			consteval result = ((a * b));
+			let dyn_a = a;
+			let dyn_b = b;
+			if (((dyn_a * dyn_b)) != result) unreachable;
+		}
+
+		mul_test(~0u8,  ~0u8);
+		mul_test(~0u16, ~0u16);
+		mul_test(~0u32, ~0u32);
+		mul_test(~0u64, ~0u64);
+	});
+}
