@@ -2002,6 +2002,7 @@ static expr_value generate_builtin_binary_multiply_eq(
 }
 
 static expr_value generate_builtin_binary_divide(
+	lex::src_tokens const &src_tokens,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
@@ -2013,6 +2014,17 @@ static expr_value generate_builtin_binary_divide(
 
 	bz_assert(rhs.get_expr_type().is<ast::ts_base_type>());
 	auto const kind = rhs.get_expr_type().get<ast::ts_base_type>().info->kind;
+
+	if (global_data::panic_on_int_divide_by_zero && ast::is_integer_kind(kind))
+	{
+		auto const is_rhs_zero = context.to_string_binary(rhs_value, "0", "==", precedence::equality);
+		auto const prev_if_info = context.begin_if(is_rhs_zero);
+
+		generate_panic_call(src_tokens, "integer division by zero", context);
+
+		context.end_if(prev_if_info);
+	}
+
 	if (ast::is_signed_integer_kind(kind))
 	{
 		auto const func_name = [&]() -> bz::u8string_view {
@@ -2043,6 +2055,7 @@ static expr_value generate_builtin_binary_divide(
 }
 
 static expr_value generate_builtin_binary_divide_eq(
+	lex::src_tokens const &src_tokens,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context
@@ -2053,6 +2066,17 @@ static expr_value generate_builtin_binary_divide_eq(
 
 	bz_assert(rhs.get_expr_type().is<ast::ts_base_type>());
 	auto const kind = rhs.get_expr_type().get<ast::ts_base_type>().info->kind;
+
+	if (global_data::panic_on_int_divide_by_zero && ast::is_integer_kind(kind))
+	{
+		auto const is_rhs_zero = context.to_string_binary(rhs_value, "0", "==", precedence::equality);
+		auto const prev_if_info = context.begin_if(is_rhs_zero);
+
+		generate_panic_call(src_tokens, "integer division by zero", context);
+
+		context.end_if(prev_if_info);
+	}
+
 	if (ast::is_signed_integer_kind(kind))
 	{
 		auto const func_name = [&]() -> bz::u8string_view {
@@ -2080,6 +2104,7 @@ static expr_value generate_builtin_binary_divide_eq(
 }
 
 static expr_value generate_builtin_binary_modulo(
+	lex::src_tokens const &src_tokens,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context,
@@ -2088,6 +2113,17 @@ static expr_value generate_builtin_binary_modulo(
 {
 	auto const lhs_value = generate_expression(lhs, context, {});
 	auto const rhs_value = generate_expression(rhs, context, {});
+
+	if (global_data::panic_on_int_divide_by_zero)
+	{
+		auto const is_rhs_zero = context.to_string_binary(rhs_value, "0", "==", precedence::equality);
+		auto const prev_if_info = context.begin_if(is_rhs_zero);
+
+		generate_panic_call(src_tokens, "integer division by zero", context);
+
+		context.end_if(prev_if_info);
+	}
+
 	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "%", precedence::remainder);
 	bz_assert(lhs_value.get_type() == rhs_value.get_type());
 	auto const result_type = lhs_value.get_type();
@@ -2096,6 +2132,7 @@ static expr_value generate_builtin_binary_modulo(
 }
 
 static expr_value generate_builtin_binary_modulo_eq(
+	lex::src_tokens const &src_tokens,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	codegen_context &context
@@ -2103,6 +2140,17 @@ static expr_value generate_builtin_binary_modulo_eq(
 {
 	auto const rhs_value = generate_expression(rhs, context, {});
 	auto const lhs_value = generate_expression(lhs, context, {});
+
+	if (global_data::panic_on_int_divide_by_zero)
+	{
+		auto const is_rhs_zero = context.to_string_binary(rhs_value, "0", "==", precedence::equality);
+		auto const prev_if_info = context.begin_if(is_rhs_zero);
+
+		generate_panic_call(src_tokens, "integer division by zero", context);
+
+		context.end_if(prev_if_info);
+	}
+
 	context.create_binary_operation(lhs_value, rhs_value, "%=", precedence::assignment);
 
 	return lhs_value;
@@ -3668,18 +3716,18 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		return generate_builtin_binary_multiply_eq(func_call.params[0], func_call.params[1], context);
 	case ast::function_body::builtin_binary_divide:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_divide(func_call.params[0], func_call.params[1], context, result_dest);
+		return generate_builtin_binary_divide(func_call.src_tokens, func_call.params[0], func_call.params[1], context, result_dest);
 	case ast::function_body::builtin_binary_divide_eq:
 		bz_assert(func_call.params.size() == 2);
 		bz_assert(!result_dest.has_value());
-		return generate_builtin_binary_divide_eq(func_call.params[0], func_call.params[1], context);
+		return generate_builtin_binary_divide_eq(func_call.src_tokens, func_call.params[0], func_call.params[1], context);
 	case ast::function_body::builtin_binary_modulo:
 		bz_assert(func_call.params.size() == 2);
-		return generate_builtin_binary_modulo(func_call.params[0], func_call.params[1], context, result_dest);
+		return generate_builtin_binary_modulo(func_call.src_tokens, func_call.params[0], func_call.params[1], context, result_dest);
 	case ast::function_body::builtin_binary_modulo_eq:
 		bz_assert(func_call.params.size() == 2);
 		bz_assert(!result_dest.has_value());
-		return generate_builtin_binary_modulo_eq(func_call.params[0], func_call.params[1], context);
+		return generate_builtin_binary_modulo_eq(func_call.src_tokens, func_call.params[0], func_call.params[1], context);
 	case ast::function_body::builtin_binary_equals:
 		bz_assert(func_call.params.size() == 2);
 		return generate_builtin_binary_equality(

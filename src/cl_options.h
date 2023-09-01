@@ -90,6 +90,7 @@ inline constexpr bz::array ctcli::option_group<code_gen_group_id> = {
 	ctcli::create_group_element("panic-on-null-pointer-arithmetic", "Call '__builtin_panic' if null is used in pointer arithmetic (default=true)"),
 	ctcli::create_group_element("panic-on-null-get-value",          "Call '__builtin_panic' if 'get_value' is called with a null value (default=true)"),
 	ctcli::create_group_element("panic-on-invalid-switch",          "Call '__builtin_panic' if an invalid enum value is used in a 'switch' expression (default=true)"),
+	ctcli::create_group_element("panic-on-int-divide-by-zero",      "Call '__builtin_panic' on integer division by zero (default=true)"),
 	ctcli::create_group_element("discard-llvm-value-names",         "Discard values names for LLVM bitcode (default=true)"),
 	ctcli::create_group_element("freestanding",                     "Generate code with no external dependencies (default=false)"),
 	ctcli::create_group_element("target-pointer-size=<size>",       "Pointer size of the target architecture in bytes", ctcli::arg_type::uint64),
@@ -296,6 +297,7 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element(
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-null-pointer-arithmetic")> = &global_data::panic_on_null_pointer_arithmetic;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-null-get-value")>          = &global_data::panic_on_null_get_value;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-invalid-switch")>          = &global_data::panic_on_invalid_switch;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-int-divide-by-zero")>      = &global_data::panic_on_int_divide_by_zero;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen discard-llvm-value-names")>         = &global_data::discard_llvm_value_names;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen freestanding")>                     = &global_data::freestanding;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-pointer-size")>              = &global_data::target_pointer_size;
