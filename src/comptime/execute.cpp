@@ -1753,24 +1753,37 @@ static uint64_t execute_ptr64_diff_unchecked(instructions::ptr64_diff_unchecked 
 	return static_cast<uint64_t>(result);
 }
 
+template<typename Uint>
+static Uint execute_mul(Uint lhs, Uint rhs)
+{
+	if constexpr (sizeof (unsigned int) >= sizeof (Uint))
+	{
+		return static_cast<Uint>(static_cast<unsigned int>(lhs) * static_cast<unsigned int>(rhs));
+	}
+	else
+	{
+		return lhs * rhs;
+	}
+}
+
 static uint8_t execute_mul_i8(instructions::mul_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
-	return lhs * rhs;
+	return execute_mul<uint8_t>(lhs, rhs);
 }
 
 static uint16_t execute_mul_i16(instructions::mul_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
 {
-	return lhs * rhs;
+	return execute_mul<uint16_t>(lhs, rhs);
 }
 
 static uint32_t execute_mul_i32(instructions::mul_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
 {
-	return lhs * rhs;
+	return execute_mul<uint32_t>(lhs, rhs);
 }
 
 static uint64_t execute_mul_i64(instructions::mul_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
 {
-	return lhs * rhs;
+	return execute_mul<uint64_t>(lhs, rhs);
 }
 
 static float32_t execute_mul_f32(instructions::mul_f32 const &, float32_t lhs, float32_t rhs, executor_context &)
