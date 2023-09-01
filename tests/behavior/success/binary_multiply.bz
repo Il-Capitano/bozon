@@ -1,0 +1,84 @@
+function multiply_test(consteval a, consteval b)
+{
+	let dyn_a = a;
+	let dyn_b = b;
+	consteval result = ((a * b));
+	if (dyn_a * dyn_b != result) unreachable;
+
+	mut dyn_a = a;
+	let dyn_b = b;
+	dyn_a *= dyn_b;
+	if (dyn_a != result) unreachable;
+}
+
+function multiply_signed_overflow(intN: typename)
+{
+	consteval size_in_bits = 8 * sizeof intN;
+	consteval max = ((1u64 << (size_in_bits - 1)) - 1) as intN;
+	consteval min = (((1u64 << (size_in_bits - 1)) as intN));
+
+	multiply_test(max, 2 as intN);
+	multiply_test(2 as intN, max);
+	multiply_test(max, max);
+
+	multiply_test(min, -1 as intN);
+	multiply_test(-1 as intN, min);
+	multiply_test(min, 2 as intN);
+	multiply_test(2 as intN, min);
+	multiply_test(min, min);
+
+	multiply_test(min, max);
+	multiply_test(max, min);
+}
+
+function multiply_unsigned_overflow(uintN: typename)
+{
+	consteval max = ~uintN(0);
+
+	multiply_test(max, 2 as uintN);
+	multiply_test(2 as uintN, max);
+	multiply_test(max, max);
+}
+
+function main()
+{
+	multiply_test(3u8, 10u8);
+	multiply_test(3u16, 10u16);
+	multiply_test(3u32, 10u32);
+	multiply_test(3u64, 10u64);
+	multiply_test(3i8, 10i8);
+	multiply_test(3i16, 10i16);
+	multiply_test(3i32, 10i32);
+	multiply_test(3i64, 10i64);
+	multiply_test(-3i8, 10i8);
+	multiply_test(-3i16, 10i16);
+	multiply_test(-3i32, 10i32);
+	multiply_test(-3i64, 10i64);
+	multiply_test(0.1f32, 0.2f32);
+	multiply_test(0.1f64, 0.2f64);
+
+	consteval inf_f32 = ((1.0f32 / 0.0f32));
+	consteval inf_f64 = ((1.0f64 / 0.0f64));
+	multiply_test(inf_f32, -3.235f32);
+	multiply_test(inf_f64, -3.235f64);
+	multiply_test(-3.235f32, inf_f32);
+	multiply_test(-3.235f64, inf_f64);
+	multiply_test(inf_f32, inf_f32);
+	multiply_test(inf_f64, inf_f64);
+	multiply_test(-inf_f32, inf_f32);
+	multiply_test(-inf_f64, inf_f64);
+	multiply_test(inf_f32, -inf_f32);
+	multiply_test(inf_f64, -inf_f64);
+	multiply_test(-inf_f32, -inf_f32);
+	multiply_test(-inf_f64, -inf_f64);
+
+	multiply_signed_overflow(int8);
+	multiply_signed_overflow(int16);
+	multiply_signed_overflow(int32);
+	multiply_signed_overflow(int64);
+
+	multiply_unsigned_overflow(uint8);
+	multiply_unsigned_overflow(uint16);
+	multiply_unsigned_overflow(uint32);
+	multiply_unsigned_overflow(uint64);
+}

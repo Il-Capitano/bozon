@@ -1,0 +1,50 @@
+function divide_test(consteval a, consteval b)
+{
+	let dyn_a = a;
+	let dyn_b = b;
+	consteval result = ((a / b));
+	if (dyn_a / dyn_b != result) unreachable;
+
+	mut dyn_a = a;
+	let dyn_b = b;
+	dyn_a /= dyn_b;
+	if (dyn_a != result) unreachable;
+}
+
+function divide_signed_overflow(intN: typename)
+{
+	consteval size_in_bits = 8 * sizeof intN;
+	consteval min = (((1u64 << (size_in_bits - 1)) as intN));
+
+	divide_test(min, -1 as intN);
+}
+
+function main()
+{
+	divide_test(10u8, 3u8);
+	divide_test(10u16, 3u16);
+	divide_test(10u32, 3u32);
+	divide_test(10u64, 3u64);
+	divide_test(10i8, 3i8);
+	divide_test(10i16, 3i16);
+	divide_test(10i32, 3i32);
+	divide_test(10i64, 3i64);
+	divide_test(10i8, -3i8);
+	divide_test(10i16, -3i16);
+	divide_test(10i32, -3i32);
+	divide_test(10i64, -3i64);
+	divide_test(0.1f32, 0.2f32);
+	divide_test(0.1f64, 0.2f64);
+
+	consteval inf_f32 = ((1.0f32 / 0.0f32));
+	consteval inf_f64 = ((1.0f64 / 0.0f64));
+	divide_test(inf_f32, -3.235f32);
+	divide_test(inf_f64, -3.235f64);
+	divide_test(-3.235f32, inf_f32);
+	divide_test(-3.235f64, inf_f64);
+
+	divide_signed_overflow(int8);
+	divide_signed_overflow(int16);
+	divide_signed_overflow(int32);
+	divide_signed_overflow(int64);
+}
