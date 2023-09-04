@@ -1,0 +1,106 @@
+function left_shift_test(consteval a, consteval b)
+{
+	consteval result = a << b;
+	let dyn_a = a;
+	let dyn_b = b;
+	if ((dyn_a << dyn_b) != result) unreachable;
+
+	mut dyn_a = a;
+	dyn_a <<= b;
+	if (dyn_a != result) unreachable;
+}
+
+function right_shift_test(consteval a, consteval b)
+{
+	consteval result = a >> b;
+	let dyn_a = a;
+	let dyn_b = b;
+	if ((dyn_a >> dyn_b) != result) unreachable;
+
+	mut dyn_a = a;
+	dyn_a >>= b;
+	if (dyn_a != result) unreachable;
+}
+
+function main()
+{
+	left_shift_test(1u8, 7);
+	left_shift_test(1u8, 3);
+	left_shift_test(1u8, 0);
+	left_shift_test(0b1010u8, 7);
+	left_shift_test(0b1010u8, 3);
+	left_shift_test(0b1010u8, 0);
+	left_shift_test(~0u8, 7);
+	left_shift_test(~0u8, 3);
+	left_shift_test(~0u8, 0);
+
+	left_shift_test(1u16, 15);
+	left_shift_test(1u16, 8);
+	left_shift_test(1u16, 0);
+	left_shift_test(0b1010u16, 15);
+	left_shift_test(0b1010u16, 8);
+	left_shift_test(0b1010u16, 0);
+	left_shift_test(~0u16, 15);
+	left_shift_test(~0u16, 8);
+	left_shift_test(~0u16, 0);
+
+	left_shift_test(1u32, 31);
+	left_shift_test(1u32, 12);
+	left_shift_test(1u32, 0);
+	left_shift_test(0b1010u32, 31);
+	left_shift_test(0b1010u32, 12);
+	left_shift_test(0b1010u32, 0);
+	left_shift_test(~0u32, 31);
+	left_shift_test(~0u32, 12);
+	left_shift_test(~0u32, 0);
+
+	left_shift_test(1u64, 63);
+	left_shift_test(1u64, 33);
+	left_shift_test(1u64, 0);
+	left_shift_test(0b1010u64, 63);
+	left_shift_test(0b1010u64, 33);
+	left_shift_test(0b1010u64, 0);
+	left_shift_test(~0u64, 63);
+	left_shift_test(~0u64, 33);
+	left_shift_test(~0u64, 0);
+
+	right_shift_test(1u8, 7);
+	right_shift_test(1u8, 3);
+	right_shift_test(1u8, 0);
+	right_shift_test(0b1010u8, 7);
+	right_shift_test(0b1010u8, 3);
+	right_shift_test(0b1010u8, 0);
+	right_shift_test(~0u8, 7);
+	right_shift_test(~0u8, 3);
+	right_shift_test(~0u8, 0);
+
+	right_shift_test(1u16, 15);
+	right_shift_test(1u16, 8);
+	right_shift_test(1u16, 0);
+	right_shift_test(0b1010u16, 15);
+	right_shift_test(0b1010u16, 8);
+	right_shift_test(0b1010u16, 0);
+	right_shift_test(~0u16, 15);
+	right_shift_test(~0u16, 8);
+	right_shift_test(~0u16, 0);
+
+	right_shift_test(1u32, 31);
+	right_shift_test(1u32, 12);
+	right_shift_test(1u32, 0);
+	right_shift_test(0b1010u32, 31);
+	right_shift_test(0b1010u32, 12);
+	right_shift_test(0b1010u32, 0);
+	right_shift_test(~0u32, 31);
+	right_shift_test(~0u32, 12);
+	right_shift_test(~0u32, 0);
+
+	right_shift_test(1u64, 63);
+	right_shift_test(1u64, 33);
+	right_shift_test(1u64, 0);
+	right_shift_test(0b1010u64, 63);
+	right_shift_test(0b1010u64, 33);
+	right_shift_test(0b1010u64, 0);
+	right_shift_test(~0u64, 63);
+	right_shift_test(~0u64, 33);
+	right_shift_test(~0u64, 0);
+}
