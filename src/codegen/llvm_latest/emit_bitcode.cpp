@@ -1837,7 +1837,7 @@ static val_ptr emit_builtin_binary_cmp(
 			},
 			{
 				llvm::CmpInst::FCMP_OEQ,
-				llvm::CmpInst::FCMP_ONE,
+				llvm::CmpInst::FCMP_UNE,
 				llvm::CmpInst::FCMP_OLT,
 				llvm::CmpInst::FCMP_OLE,
 				llvm::CmpInst::FCMP_OGT,
