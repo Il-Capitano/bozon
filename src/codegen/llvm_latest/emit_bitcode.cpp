@@ -397,6 +397,32 @@ static void emit_null_pointer_arithmetic_check(
 	}
 }
 
+static void emit_null_pointer_arithmetic_check(
+	lex::src_tokens const &src_tokens,
+	llvm::Value *ptr,
+	llvm::Value *offset,
+	bitcode_context &context
+)
+{
+	if (global_data::panic_on_null_pointer_arithmetic)
+	{
+		auto const has_value = optional_has_value(val_ptr::get_value(ptr), context);
+		auto const is_offset_zero = context.builder.CreateICmpEQ(offset, llvm::ConstantInt::get(offset->getType(), 0));
+
+		auto const is_valid = context.builder.CreateOr(has_value, is_offset_zero);
+		auto const begin_bb = context.builder.GetInsertBlock();
+		auto const error_bb = context.add_basic_block("arithmetic_null_check_error");
+		context.builder.SetInsertPoint(error_bb);
+		emit_panic_call(src_tokens, "null value used in pointer arithmetic", context);
+		bz_assert(context.has_terminator());
+
+		auto const continue_bb = context.add_basic_block("arithmetic_null_check_continue");
+		context.builder.SetInsertPoint(begin_bb);
+		context.builder.CreateCondBr(is_valid, continue_bb, error_bb);
+		context.builder.SetInsertPoint(continue_bb);
+	}
+}
+
 template<typename ExprScopeInfoT>
 struct array_init_loop_info_t
 {
@@ -1073,7 +1099,7 @@ static val_ptr emit_builtin_binary_plus(
 
 		if (lhs_t.is_optional_pointer())
 		{
-			emit_null_pointer_arithmetic_check(lhs.src_tokens, lhs_val, context);
+			emit_null_pointer_arithmetic_check(lhs.src_tokens, lhs_val, rhs_val, context);
 		}
 
 		auto const result_val = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_add_tmp");
@@ -1105,7 +1131,7 @@ static val_ptr emit_builtin_binary_plus(
 
 		if (rhs_t.is_optional_pointer())
 		{
-			emit_null_pointer_arithmetic_check(rhs.src_tokens, rhs_val, context);
+			emit_null_pointer_arithmetic_check(rhs.src_tokens, rhs_val, lhs_val, context);
 		}
 
 		auto const result_val = context.create_gep(rhs_inner_type, rhs_val, lhs_val, "ptr_add_tmp");
@@ -1211,7 +1237,7 @@ static val_ptr emit_builtin_binary_plus_eq(
 
 		if (lhs_t.is_optional_pointer())
 		{
-			emit_null_pointer_arithmetic_check(lhs.src_tokens, lhs_val, context);
+			emit_null_pointer_arithmetic_check(lhs.src_tokens, lhs_val, rhs_val, context);
 		}
 
 		auto const res = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_add_tmp");
@@ -1324,7 +1350,7 @@ static val_ptr emit_builtin_binary_minus(
 
 		if (lhs_t.is_optional_pointer())
 		{
-			emit_null_pointer_arithmetic_check(lhs.src_tokens, lhs_val, context);
+			emit_null_pointer_arithmetic_check(lhs.src_tokens, lhs_val, rhs_val, context);
 		}
 
 		auto const result_val = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_sub_tmp");
@@ -1493,7 +1519,7 @@ static val_ptr emit_builtin_binary_minus_eq(
 
 		if (lhs_t.is_optional_pointer())
 		{
-			emit_null_pointer_arithmetic_check(lhs.src_tokens, lhs_val, context);
+			emit_null_pointer_arithmetic_check(lhs.src_tokens, lhs_val, rhs_val, context);
 		}
 
 		auto const res = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_sub_tmp");
