@@ -1,0 +1,28 @@
+function main()
+{
+	let s = "hello";
+	if (!__builtin_str_starts_with(s, "hello")) unreachable;
+	if (!__builtin_str_starts_with(s, "he")) unreachable;
+	if (!__builtin_str_starts_with(s, "")) unreachable;
+	if (__builtin_str_starts_with(s, "a")) unreachable;
+	if (__builtin_str_starts_with(s, "hello ")) unreachable;
+	if (__builtin_str_starts_with(s, "hella")) unreachable;
+
+	let s = "";
+	if (!__builtin_str_starts_with(s, "")) unreachable;
+	if (__builtin_str_starts_with(s, "a")) unreachable;
+	if (__builtin_str_starts_with(s, " ")) unreachable;
+	if (__builtin_str_starts_with(s, "hello")) unreachable;
+
+	let s = __builtin_str_from_ptrs(null, null);
+	if (!__builtin_str_starts_with(s, "")) unreachable;
+	if (__builtin_str_starts_with(s, "a")) unreachable;
+	if (__builtin_str_starts_with(s, " ")) unreachable;
+	if (__builtin_str_starts_with(s, "hello")) unreachable;
+
+	let s = "úňíčőđě";
+	if (!__builtin_str_starts_with(s, s)) unreachable;
+	if (!__builtin_str_starts_with(s, "úňí")) unreachable;
+	if (__builtin_str_starts_with(s, "u")) unreachable;
+	if (__builtin_str_starts_with(s, "ű")) unreachable;
+}
