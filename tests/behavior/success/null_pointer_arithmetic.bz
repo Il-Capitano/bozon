@@ -1,0 +1,14 @@
+function main()
+{
+	mut p: ?*int32 = null;
+
+	if (p + 0 != null) unreachable;
+	if (0 + p != null) unreachable;
+	p += 0;
+	if (p != null) unreachable;
+	if (p - 0 != null) unreachable;
+	p -= 0;
+	if (p != null) unreachable;
+	if (p - (null as ?*int32) != 0) unreachable;
+	if ((null as ?*int32) - p != 0) unreachable;
+}

@@ -1,7 +1,0 @@
-function main() -> int32
-{
-	let p1: ?*int32 = null;
-	let p2: ?*int32 = null;
-	let diff = p1 - p2;
-	return if (diff == 0) { 0 } else { 1 };
-}
