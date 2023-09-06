@@ -913,18 +913,17 @@ static expr_value get_optional_has_value(expr_value const &opt_value, codegen_co
 {
 	if (context.is_pointer_or_function(opt_value.get_type()))
 	{
-		return context.create_binary_operation(
-			opt_value,
-			"0",
-			"!=",
-			precedence::equality,
-			context.get_bool()
-		);
+		return context.create_not_equals(opt_value, context.get_null_pointer_value());
 	}
 	else
 	{
 		return context.create_struct_gep_value(opt_value, 1);
 	}
+}
+
+static expr_value get_pointer_is_null(expr_value const &pointer_value, codegen_context &context)
+{
+	return context.create_equals(pointer_value, context.get_null_pointer_value());
 }
 
 static void set_optional_has_value(expr_value const &opt_value, bool has_value, codegen_context &context)
@@ -971,13 +970,7 @@ static void generate_null_pointer_arithmetic_check(
 {
 	if (global_data::panic_on_null_pointer_arithmetic)
 	{
-		auto const is_null = context.create_binary_operation(
-			pointer_value,
-			"0",
-			"==",
-			precedence::equality,
-			context.get_bool()
-		);
+		auto const is_null = get_pointer_is_null(pointer_value, context);
 		auto const prev_if_info = context.begin_if(is_null);
 		generate_panic_call(src_tokens, "null value used in pointer arithmetic", context);
 		context.end_if(prev_if_info);
@@ -993,15 +986,9 @@ static void generate_null_pointer_arithmetic_check(
 {
 	if (global_data::panic_on_null_pointer_arithmetic)
 	{
-		auto const is_null = context.create_binary_operation(
-			pointer_value,
-			"0",
-			"==",
-			precedence::equality,
-			context.get_bool()
-		);
-		auto const offset_is_not_zero = context.to_string_binary(offset, "0", "!=", precedence::equality);
-		auto const is_error = context.to_string_binary(is_null, offset_is_not_zero, "&&", precedence::logical_and);
+		auto const is_null = get_pointer_is_null(pointer_value, context);
+		auto const offset_is_not_zero = context.create_not_equals(offset, context.get_zero_value(offset.get_type()));
+		auto const is_error = context.create_logical_and(is_null, offset_is_not_zero);
 		auto const prev_if_info = context.begin_if(is_error);
 		generate_panic_call(src_tokens, "null value used in pointer arithmetic", context);
 		context.end_if(prev_if_info);
@@ -1020,15 +1007,15 @@ static void generate_null_pointer_arithmetic_check(
 	{
 		auto const lhs_has_value = get_optional_has_value(lhs_value, context);
 		auto const rhs_has_value = get_optional_has_value(rhs_value, context);
-		auto const lhs_is_null_string = context.to_string_unary_prefix(lhs_has_value, "!");
-		auto const rhs_is_null_string = context.to_string_unary_prefix(rhs_has_value, "!");
+		auto const lhs_is_null = get_pointer_is_null(lhs_value, context);
+		auto const rhs_is_null = get_pointer_is_null(rhs_value, context);
 
-		auto const only_lhs_is_null_string = context.to_string_binary(rhs_has_value, lhs_is_null_string, "&&", precedence::logical_and);
-		auto const only_rhs_is_null_string = context.to_string_binary(lhs_has_value, rhs_is_null_string, "&&", precedence::logical_and);
+		auto const only_lhs_is_null = context.create_logical_and(lhs_is_null, rhs_has_value);
+		auto const only_rhs_is_null = context.create_logical_and(lhs_has_value, rhs_is_null);
 
-		auto const prev_if_info = context.begin_if(only_lhs_is_null_string);
+		auto const prev_if_info = context.begin_if(only_lhs_is_null);
 		generate_panic_call(lhs_src_tokens, "null value used in pointer arithmetic", context);
-		context.begin_else_if(only_rhs_is_null_string);
+		context.begin_else_if(only_rhs_is_null);
 		generate_panic_call(rhs_src_tokens, "null value used in pointer arithmetic", context);
 		context.end_if(prev_if_info);
 	}
@@ -1043,7 +1030,7 @@ struct loop_info_t
 static loop_info_t create_loop_start(size_t size, codegen_context &context)
 {
 	auto const index = context.add_value_expression("0", context.get_usize());
-	auto const condition  = context.to_string_binary(index, bz::format("{}u", size), "<", precedence::relational);
+	auto const condition = context.create_relational(index, context.get_unsigned_value(size, index.get_type()), "<");
 	auto const prev_while_info = context.begin_while(condition);
 
 	return { index, prev_while_info };
@@ -1266,8 +1253,8 @@ static expr_value generate_builtin_binary_bool_xor(
 {
 	auto const lhs_value = generate_expression(lhs, context, {});
 	auto const rhs_value = generate_expression(rhs, context, {});
-	auto const result_value = context.to_string_binary(lhs_value, rhs_value, "!=", precedence::equality);
-	return value_or_result_dest(result_value, context.get_bool(), result_dest, context);
+	auto const result_value = context.create_not_equals(lhs_value, rhs_value);
+	return value_or_result_dest(result_value, result_dest, context);
 }
 
 static expr_value generate_builtin_binary_bool_or(
@@ -1639,7 +1626,7 @@ static expr_value generate_builtin_unary_dereference(
 	auto const value = generate_expression(expr, context, {});
 	if (global_data::panic_on_null_dereference && expr.get_expr_type().is_optional_pointer())
 	{
-		auto const prev_if_info = context.begin_if_not(get_optional_has_value(value, context));
+		auto const prev_if_info = context.begin_if(get_pointer_is_null(value, context));
 		generate_panic_call(src_tokens, "null pointer dereferenced", context);
 		context.end_if(prev_if_info);
 	}
@@ -1652,10 +1639,13 @@ static expr_value generate_builtin_unary_bit_not(
 	bz::optional<expr_value> result_dest
 )
 {
+	bz_assert(expr.get_expr_type().is<ast::ts_base_type>());
+	auto const kind = expr.get_expr_type().get<ast::ts_base_type>().info->kind;
 	auto const value = generate_expression(expr, context, {});
-	auto const op = value.get_type() == context.get_bool() ? "!" : "~";
-	auto const expr_string = context.to_string_unary_prefix(value, op);
-	return value_or_result_dest(expr_string, value.get_type(), result_dest, context);
+	auto const result_value = needs_cast_for_overflow(kind, context)
+		? context.create_cast(context.create_bit_not(value), value.get_type())
+		: context.create_bit_not(value);
+	return value_or_result_dest(result_value, result_dest, context);
 }
 
 static expr_value generate_builtin_unary_bool_not(
@@ -1665,8 +1655,8 @@ static expr_value generate_builtin_unary_bool_not(
 )
 {
 	auto const value = generate_expression(expr, context, {});
-	auto const expr_string = context.to_string_unary_prefix(value, "!");
-	return value_or_result_dest(expr_string, value.get_type(), result_dest, context);
+	auto const result_value = context.create_bool_not(value);
+	return value_or_result_dest(result_value, result_dest, context);
 }
 
 static expr_value generate_builtin_unary_plus_plus(
@@ -1680,9 +1670,10 @@ static expr_value generate_builtin_unary_plus_plus(
 	{
 		auto const kind = expr_type.get<ast::ts_base_type>().info->kind;
 		auto const unsigned_type = get_unsigned_type_for_overflow(kind, context);
-		auto const cast_string = context.to_string_unary_prefix(value, bz::format("({})", context.to_string(unsigned_type)));
-		auto const result_string = bz::format("({})({} + 1)", context.to_string(value.get_type()), cast_string);
-		context.create_assignment(value, result_string);
+		auto const cast_value = context.create_cast(value, unsigned_type);
+		auto const plus_value = context.create_plus(cast_value, context.get_unsigned_one_value(unsigned_type));
+		auto const result_value = context.create_cast(plus_value, value.get_type());
+		context.create_assignment(value, result_value);
 		return value;
 	}
 	else
@@ -1707,9 +1698,10 @@ static expr_value generate_builtin_unary_minus_minus(
 	{
 		auto const kind = expr_type.get<ast::ts_base_type>().info->kind;
 		auto const unsigned_type = get_unsigned_type_for_overflow(kind, context);
-		auto const cast_string = context.to_string_unary_prefix(value, bz::format("({})", context.to_string(unsigned_type)));
-		auto const result_string = bz::format("({})({} - 1)", context.to_string(value.get_type()), cast_string);
-		context.create_assignment(value, result_string);
+		auto const cast_value = context.create_cast(value, unsigned_type);
+		auto const minus_value = context.create_minus(cast_value, context.get_unsigned_one_value(unsigned_type));
+		auto const result_value = context.create_cast(minus_value, value.get_type());
+		context.create_assignment(value, result_value);
 		return value;
 	}
 	else
@@ -1743,11 +1735,11 @@ static expr_value generate_builtin_binary_plus(
 	{
 		auto const kind = lhs_type.get<ast::ts_base_type>().info->kind;
 		auto const unsigned_type = get_unsigned_type_for_overflow(kind, context);
-		auto const cast_op = bz::format("({})", context.to_string(unsigned_type));
-		auto const lhs_cast = context.to_string_unary_prefix(lhs_value, cast_op);
-		auto const rhs_cast = context.to_string_unary_prefix(rhs_value, cast_op);
-		auto const result_string = bz::format("({})({} + {})", context.to_string(lhs_value.get_type()), lhs_cast, rhs_cast);
-		return value_or_result_dest(result_string, lhs_value.get_type(), result_dest, context);
+		auto const lhs_cast = context.create_cast(lhs_value, unsigned_type);
+		auto const rhs_cast = context.create_cast(rhs_value, unsigned_type);
+		auto const plus_value = context.create_plus(lhs_cast, rhs_cast);
+		auto const result_value = context.create_cast(plus_value, lhs_value.get_type());
+		return value_or_result_dest(result_value, result_dest, context);
 	}
 
 	bool needs_cast = false;
@@ -1788,10 +1780,9 @@ static expr_value generate_builtin_binary_plus(
 
 	if (needs_cast)
 	{
-		bz::u8string expr_string = bz::format("({})(", context.to_string(result_type));
-		expr_string += context.to_string_binary(lhs_value, rhs_value, "+", precedence::addition);
-		expr_string += ')';
-		return value_or_result_dest(expr_string, result_type, result_dest, context);
+		auto const plus_value = context.create_plus(lhs_value, rhs_value);
+		auto const result_value = context.create_cast(plus_value, result_type);
+		return value_or_result_dest(result_value, result_dest, context);
 	}
 	else
 	{
@@ -1803,8 +1794,8 @@ static expr_value generate_builtin_binary_plus(
 		{
 			generate_null_pointer_arithmetic_check(rhs.src_tokens, rhs_value, lhs_value, context);
 		}
-		auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "+", precedence::addition);
-		return value_or_result_dest(expr_string, result_type, result_dest, context);
+		auto const result_value = context.create_plus(lhs_value, rhs_value, result_type);
+		return value_or_result_dest(result_value, result_dest, context);
 	}
 }
 
@@ -1827,11 +1818,11 @@ static expr_value generate_builtin_binary_plus_eq(
 	{
 		auto const kind = lhs_type.get<ast::ts_base_type>().info->kind;
 		auto const unsigned_type = get_unsigned_type_for_overflow(kind, context);
-		auto const cast_op = bz::format("({})", context.to_string(unsigned_type));
-		auto const lhs_cast = context.to_string_unary_prefix(lhs_value, cast_op);
-		auto const rhs_cast = context.to_string_unary_prefix(rhs_value, cast_op);
-		auto const result_string = bz::format("({})({} + {})", context.to_string(lhs_value.get_type()), lhs_cast, rhs_cast);
-		context.create_assignment(lhs_value, result_string);
+		auto const lhs_cast = context.create_cast(lhs_value, unsigned_type);
+		auto const rhs_cast = context.create_cast(rhs_value, unsigned_type);
+		auto const plus_value = context.create_plus(lhs_cast, rhs_cast);
+		auto const result_value = context.create_cast(plus_value, lhs_value.get_type());
+		context.create_assignment(lhs_value, result_value);
 		return lhs_value;
 	}
 	else
@@ -1840,7 +1831,7 @@ static expr_value generate_builtin_binary_plus_eq(
 		{
 			generate_null_pointer_arithmetic_check(lhs.src_tokens, lhs_value, rhs_value, context);
 		}
-		context.create_binary_operation(lhs_value, rhs_value, "+=", precedence::assignment);
+		context.create_plus_eq(lhs_value, rhs_value);
 		return lhs_value;
 	}
 }
@@ -1865,11 +1856,11 @@ static expr_value generate_builtin_binary_minus(
 	{
 		auto const kind = lhs_type.get<ast::ts_base_type>().info->kind;
 		auto const unsigned_type = get_unsigned_type_for_overflow(kind, context);
-		auto const cast_op = bz::format("({})", context.to_string(unsigned_type));
-		auto const lhs_cast = context.to_string_unary_prefix(lhs_value, cast_op);
-		auto const rhs_cast = context.to_string_unary_prefix(rhs_value, cast_op);
-		auto const result_string = bz::format("({})({} - {})", context.to_string(lhs_value.get_type()), lhs_cast, rhs_cast);
-		return value_or_result_dest(result_string, lhs_value.get_type(), result_dest, context);
+		auto const lhs_cast = context.create_cast(lhs_value, unsigned_type);
+		auto const rhs_cast = context.create_cast(rhs_value, unsigned_type);
+		auto const minus_value = context.create_minus(lhs_cast, rhs_cast);
+		auto const result_value = context.create_cast(minus_value, lhs_value.get_type());
+		return value_or_result_dest(result_value, result_dest, context);
 	}
 
 	bool needs_cast = false;
@@ -1911,10 +1902,9 @@ static expr_value generate_builtin_binary_minus(
 
 	if (needs_cast)
 	{
-		bz::u8string expr_string = bz::format("({})(", context.to_string(result_type));
-		expr_string += context.to_string_binary(lhs_value, rhs_value, "-", precedence::subtraction);
-		expr_string += ')';
-		return value_or_result_dest(expr_string, result_type, result_dest, context);
+		auto const minus_value = context.create_minus(lhs_value, rhs_value);
+		auto const result_value = context.create_cast(minus_value, result_type);
+		return value_or_result_dest(result_value, result_dest, context);
 	}
 	else
 	{
@@ -1926,8 +1916,8 @@ static expr_value generate_builtin_binary_minus(
 		{
 			generate_null_pointer_arithmetic_check(lhs.src_tokens, lhs_value, rhs_value, context);
 		}
-		auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "-", precedence::subtraction);
-		return value_or_result_dest(expr_string, result_type, result_dest, context);
+		auto const result_value = context.create_minus(lhs_value, rhs_value, result_type);
+		return value_or_result_dest(result_value, result_dest, context);
 	}
 }
 
@@ -1950,11 +1940,11 @@ static expr_value generate_builtin_binary_minus_eq(
 	{
 		auto const kind = lhs_type.get<ast::ts_base_type>().info->kind;
 		auto const unsigned_type = get_unsigned_type_for_overflow(kind, context);
-		auto const cast_op = bz::format("({})", context.to_string(unsigned_type));
-		auto const lhs_cast = context.to_string_unary_prefix(lhs_value, cast_op);
-		auto const rhs_cast = context.to_string_unary_prefix(rhs_value, cast_op);
-		auto const result_string = bz::format("({})({} - {})", context.to_string(lhs_value.get_type()), lhs_cast, rhs_cast);
-		context.create_assignment(lhs_value, result_string);
+		auto const lhs_cast = context.create_cast(lhs_value, unsigned_type);
+		auto const rhs_cast = context.create_cast(rhs_value, unsigned_type);
+		auto const minus_value = context.create_minus(lhs_cast, rhs_cast);
+		auto const result_value = context.create_cast(minus_value, lhs_value.get_type());
+		context.create_assignment(lhs_value, result_value);
 		return lhs_value;
 	}
 	else
@@ -1963,7 +1953,7 @@ static expr_value generate_builtin_binary_minus_eq(
 		{
 			generate_null_pointer_arithmetic_check(lhs.src_tokens, lhs_value, rhs_value, context);
 		}
-		context.create_binary_operation(lhs_value, rhs_value, "-=", precedence::assignment);
+		context.create_minus_eq(lhs_value, rhs_value);
 		return lhs_value;
 	}
 }
@@ -1983,19 +1973,16 @@ static expr_value generate_builtin_binary_multiply(
 	if (needs_cast_for_overflow(kind, context))
 	{
 		auto const unsigned_type = get_unsigned_type_for_overflow(kind, context);
-		auto const cast_op = bz::format("({})", context.to_string(unsigned_type));
-		auto const lhs_cast = context.to_string_unary_prefix(lhs_value, cast_op);
-		auto const rhs_cast = context.to_string_unary_prefix(rhs_value, cast_op);
-		auto const result_string = bz::format("({})({} * {})", context.to_string(lhs_value.get_type()), lhs_cast, rhs_cast);
-		return value_or_result_dest(result_string, lhs_value.get_type(), result_dest, context);
+		auto const lhs_cast = context.create_cast(lhs_value, unsigned_type);
+		auto const rhs_cast = context.create_cast(rhs_value, unsigned_type);
+		auto const multiply_value = context.create_multiply(lhs_cast, rhs_cast);
+		auto const result_value = context.create_cast(multiply_value, lhs_value.get_type());
+		return value_or_result_dest(result_value, result_dest, context);
 	}
 	else
 	{
-		auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "*", precedence::multiply);
-		bz_assert(lhs_value.get_type() == rhs_value.get_type());
-		auto const result_type = lhs_value.get_type();
-
-		return value_or_result_dest(expr_string, result_type, result_dest, context);
+		auto const result_value = context.create_multiply(lhs_value, rhs_value);
+		return value_or_result_dest(result_value, result_dest, context);
 	}
 }
 
@@ -2013,16 +2000,16 @@ static expr_value generate_builtin_binary_multiply_eq(
 	if (needs_cast_for_overflow(kind, context))
 	{
 		auto const unsigned_type = get_unsigned_type_for_overflow(kind, context);
-		auto const cast_op = bz::format("({})", context.to_string(unsigned_type));
-		auto const lhs_cast = context.to_string_unary_prefix(lhs_value, cast_op);
-		auto const rhs_cast = context.to_string_unary_prefix(rhs_value, cast_op);
-		auto const result_string = bz::format("({})({} * {})", context.to_string(lhs_value.get_type()), lhs_cast, rhs_cast);
-		context.create_assignment(lhs_value, result_string);
+		auto const lhs_cast = context.create_cast(lhs_value, unsigned_type);
+		auto const rhs_cast = context.create_cast(rhs_value, unsigned_type);
+		auto const multiply_value = context.create_multiply(lhs_cast, rhs_cast);
+		auto const result_value = context.create_cast(multiply_value, lhs_value.get_type());
+		context.create_assignment(lhs_value, result_value);
 		return lhs_value;
 	}
 	else
 	{
-		context.create_binary_operation(lhs_value, rhs_value, "*=", precedence::assignment);
+		context.create_multiply_eq(lhs_value, rhs_value);
 		return lhs_value;
 	}
 }
@@ -2043,7 +2030,7 @@ static expr_value generate_builtin_binary_divide(
 
 	if (global_data::panic_on_int_divide_by_zero && ast::is_integer_kind(kind))
 	{
-		auto const is_rhs_zero = context.to_string_binary(rhs_value, "0", "==", precedence::equality);
+		auto const is_rhs_zero = context.create_equals(rhs_value, context.get_zero_value(lhs_value.get_type()));
 		auto const prev_if_info = context.begin_if(is_rhs_zero);
 
 		generate_panic_call(src_tokens, "integer division by zero", context);
@@ -2072,11 +2059,8 @@ static expr_value generate_builtin_binary_divide(
 	}
 	else
 	{
-		auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "/", precedence::divide);
-		bz_assert(lhs_value.get_type() == rhs_value.get_type());
-		auto const result_type = lhs_value.get_type();
-
-		return value_or_result_dest(expr_string, result_type, result_dest, context);
+		auto const result_value = context.create_divide(lhs_value, rhs_value);
+		return value_or_result_dest(result_value, result_dest, context);
 	}
 }
 
@@ -2095,7 +2079,7 @@ static expr_value generate_builtin_binary_divide_eq(
 
 	if (global_data::panic_on_int_divide_by_zero && ast::is_integer_kind(kind))
 	{
-		auto const is_rhs_zero = context.to_string_binary(rhs_value, "0", "==", precedence::equality);
+		auto const is_rhs_zero = context.create_equals(rhs_value, context.get_zero_value(lhs_value.get_type()));
 		auto const prev_if_info = context.begin_if(is_rhs_zero);
 
 		generate_panic_call(src_tokens, "integer division by zero", context);
@@ -2124,7 +2108,7 @@ static expr_value generate_builtin_binary_divide_eq(
 	}
 	else
 	{
-		context.create_binary_operation(lhs_value, rhs_value, "/=", precedence::assignment);
+		context.create_divide_eq(lhs_value, rhs_value);
 		return lhs_value;
 	}
 }
@@ -2142,7 +2126,7 @@ static expr_value generate_builtin_binary_modulo(
 
 	if (global_data::panic_on_int_divide_by_zero)
 	{
-		auto const is_rhs_zero = context.to_string_binary(rhs_value, "0", "==", precedence::equality);
+		auto const is_rhs_zero = context.create_equals(rhs_value, context.get_zero_value(rhs_value.get_type()));
 		auto const prev_if_info = context.begin_if(is_rhs_zero);
 
 		generate_panic_call(src_tokens, "integer division by zero", context);
@@ -2150,11 +2134,8 @@ static expr_value generate_builtin_binary_modulo(
 		context.end_if(prev_if_info);
 	}
 
-	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, "%", precedence::remainder);
-	bz_assert(lhs_value.get_type() == rhs_value.get_type());
-	auto const result_type = lhs_value.get_type();
-
-	return value_or_result_dest(expr_string, result_type, result_dest, context);
+	auto const result_value = context.create_modulo(lhs_value, rhs_value);
+	return value_or_result_dest(result_value, result_dest, context);
 }
 
 static expr_value generate_builtin_binary_modulo_eq(
@@ -2169,7 +2150,7 @@ static expr_value generate_builtin_binary_modulo_eq(
 
 	if (global_data::panic_on_int_divide_by_zero)
 	{
-		auto const is_rhs_zero = context.to_string_binary(rhs_value, "0", "==", precedence::equality);
+		auto const is_rhs_zero = context.create_equals(rhs_value, context.get_zero_value(rhs_value.get_type()));
 		auto const prev_if_info = context.begin_if(is_rhs_zero);
 
 		generate_panic_call(src_tokens, "integer division by zero", context);
@@ -2177,8 +2158,7 @@ static expr_value generate_builtin_binary_modulo_eq(
 		context.end_if(prev_if_info);
 	}
 
-	context.create_binary_operation(lhs_value, rhs_value, "%=", precedence::assignment);
-
+	context.create_modulo_eq(lhs_value, rhs_value);
 	return lhs_value;
 }
 
@@ -2205,8 +2185,8 @@ static expr_value generate_builtin_binary_equality(
 		auto const &optional_type = lhs_t.is_optional() ? lhs_t : rhs_t;
 		if (optional_type.is_optional_pointer_like())
 		{
-			auto const expr_string = context.to_string_binary(optional_value, "0", op, precedence::equality);
-			return value_or_result_dest(expr_string, context.get_bool(), result_dest, context);
+			auto const result_value = context.create_equality(optional_value, context.get_null_pointer_value(), op);
+			return value_or_result_dest(result_value, result_dest, context);
 		}
 		else if (op == "!=")
 		{
@@ -2217,14 +2197,14 @@ static expr_value generate_builtin_binary_equality(
 		{
 			bz_assert(op == "==");
 			auto const has_value = get_optional_has_value(optional_value, context);
-			auto const expr_string = context.to_string_unary_prefix(has_value, "!");
-			return value_or_result_dest(expr_string, context.get_bool(), result_dest, context);
+			auto const result_value = context.create_bool_not(has_value);
+			return value_or_result_dest(result_value, result_dest, context);
 		}
 	}
 	else
 	{
-		auto const expr_string = context.to_string_binary(lhs_value, rhs_value, op, precedence::equality);
-		return value_or_result_dest(expr_string, context.get_bool(), result_dest, context);
+		auto const result_value = context.create_equality(lhs_value, rhs_value, op);
+		return value_or_result_dest(result_value, result_dest, context);
 	}
 }
 
@@ -2232,16 +2212,14 @@ static expr_value generate_builtin_binary_compare(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	bz::u8string_view op,
-	precedence prec,
 	codegen_context &context,
 	bz::optional<expr_value> result_dest
 )
 {
 	auto const lhs_value = generate_expression(lhs, context, {});
 	auto const rhs_value = generate_expression(rhs, context, {});
-	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, op, prec);
-
-	return value_or_result_dest(expr_string, context.get_bool(), result_dest, context);
+	auto const result_value = context.create_relational(lhs_value, rhs_value, op);
+	return value_or_result_dest(result_value, result_dest, context);
 }
 
 static expr_value generate_builtin_binary_bit_op(
@@ -2255,11 +2233,8 @@ static expr_value generate_builtin_binary_bit_op(
 {
 	auto const lhs_value = generate_expression(lhs, context, {});
 	auto const rhs_value = generate_expression(rhs, context, {});
-	auto const expr_string = context.to_string_binary(lhs_value, rhs_value, op, prec);
-	bz_assert(lhs_value.get_type() == rhs_value.get_type());
-	auto const result_type = lhs_value.get_type();
-
-	return value_or_result_dest(expr_string, result_type, result_dest, context);
+	auto const result_value = context.create_bit_op(lhs_value, rhs_value, op, prec);
+	return value_or_result_dest(result_value, result_dest, context);
 }
 
 static expr_value generate_builtin_binary_bit_eq_op(
@@ -2271,8 +2246,7 @@ static expr_value generate_builtin_binary_bit_eq_op(
 {
 	auto const rhs_value = generate_expression(rhs, context, {});
 	auto const lhs_value = generate_expression(lhs, context, {});
-	context.create_binary_operation(lhs_value, rhs_value, op, precedence::assignment);
-
+	context.create_bit_op_eq(lhs_value, rhs_value, op);
 	return lhs_value;
 }
 
@@ -2284,12 +2258,14 @@ static expr_value generate_builtin_binary_bitshift(
 	bz::optional<expr_value> result_dest
 )
 {
+	bz_assert(lhs.get_expr_type().is<ast::ts_base_type>());
+	auto const kind = lhs.get_expr_type().get<ast::ts_base_type>().info->kind;
 	auto const lhs_value = generate_expression(lhs, context, {});
 	auto const rhs_value = generate_expression(rhs, context, {});
-	auto const result_type = lhs_value.get_type();
-	// store result_value in an intermediate variable, to make sure it has the right integer type
-	auto const result_value = context.create_binary_operation(lhs_value, rhs_value, op, precedence::bitshift, result_type);
 
+	auto const result_value = needs_cast_for_overflow(kind, context)
+		? context.create_cast(context.create_bitshift(lhs_value, rhs_value, op), lhs_value.get_type())
+		: context.create_bitshift(lhs_value, rhs_value, op);
 	return value_or_result_dest(result_value, result_dest, context);
 }
 
@@ -2302,8 +2278,7 @@ static expr_value generate_builtin_binary_bitshift_eq(
 {
 	auto const rhs_value = generate_expression(rhs, context, {});
 	auto const lhs_value = generate_expression(lhs, context, {});
-	context.create_binary_operation(lhs_value, rhs_value, op, precedence::assignment);
-
+	context.create_bitshift_eq(lhs_value, rhs_value, op);
 	return lhs_value;
 }
 
@@ -3778,7 +3753,6 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 			func_call.params[0],
 			func_call.params[1],
 			"<",
-			precedence::relational,
 			context,
 			result_dest
 		);
@@ -3788,7 +3762,6 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 			func_call.params[0],
 			func_call.params[1],
 			"<=",
-			precedence::relational,
 			context,
 			result_dest
 		);
@@ -3798,7 +3771,6 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 			func_call.params[0],
 			func_call.params[1],
 			">",
-			precedence::relational,
 			context,
 			result_dest
 		);
@@ -3808,7 +3780,6 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 			func_call.params[0],
 			func_call.params[1],
 			">=",
-			precedence::relational,
 			context,
 			result_dest
 		);
@@ -4759,7 +4730,8 @@ struct pointer_compare_info_t
 	codegen_context &context
 )
 {
-	if (lhs.get_type() == rhs.get_type())
+	// !!! TODO: temporary expressions can be lvalues as well !!!
+	if (lhs.get_type() == rhs.get_type() && !lhs.is_temporary_expression && !rhs.is_temporary_expression)
 	{
 		auto const prev_if_info = context.begin_if(context.to_string_binary(
 			context.create_address_of(lhs),
@@ -6105,7 +6077,7 @@ static expr_value generate_expression(
 		return context.get_void_value();
 	}
 
-	auto const value_string = generate_constant_value_string(const_expr.value, const_expr.type, context);
+	auto value_string = generate_constant_value_string(const_expr.value, const_expr.type, context);
 
 	if (const_expr.type.is_optional() && !const_expr.value.is_null_constant())
 	{
@@ -6115,6 +6087,7 @@ static expr_value generate_expression(
 		}
 		auto const &result_value = result_dest.get();
 		context.create_assignment(get_optional_value(result_value, context), value_string);
+		set_optional_has_value(result_value, true, context);
 		return result_value;
 	}
 	else if (result_dest.has_value())
@@ -6123,10 +6096,19 @@ static expr_value generate_expression(
 		context.create_assignment(result_value, value_string);
 		return result_value;
 	}
+	else if (const_expr.type.is_optional_pointer_like() && const_expr.value.is_null_constant())
+	{
+		auto const expr_type = get_type(const_expr.type, context);
+		bz_assert(value_string == "0");
+		value_string = bz::format("({})0", context.to_string(expr_type));
+		// this value is either a numeric literal or a compound literal, so we use the lower precedence from the two
+		return context.add_temporary_expression(std::move(value_string), expr_type, false, precedence::prefix);
+	}
 	else
 	{
 		auto const expr_type = get_type(const_expr.type, context);
-		return context.add_value_expression(value_string, expr_type);
+		// this value is either a numeric literal or a compound literal, so we use the lower precedence from the two
+		return context.add_temporary_expression(std::move(value_string), expr_type, false, precedence::prefix);
 	}
 }
 

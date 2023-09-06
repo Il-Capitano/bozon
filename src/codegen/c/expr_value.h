@@ -36,6 +36,7 @@ struct expr_value
 	uint32_t value_index;
 	bool needs_dereference;
 	bool is_const;
+	bool is_temporary_expression;
 	precedence prec;
 	type value_type;
 

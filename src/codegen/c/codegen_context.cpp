@@ -972,6 +972,20 @@ void codegen_context::reset_current_function(ast::function_body &func_body)
 {
 	this->current_function_info = current_function_info_t();
 	this->current_function_info.func_body = &func_body;
+
+	this->current_function_info.temp_void_value = this->add_temporary_expression("(void)0", this->get_void(), false, precedence::prefix);
+	this->current_function_info.temp_false_value = this->add_temporary_expression("0", this->get_bool(), false, precedence::literal);
+	this->current_function_info.temp_true_value = this->add_temporary_expression("1", this->get_bool(), false, precedence::literal);
+
+	this->current_function_info.temp_signed_zero_value_index = this->current_function_info.temp_false_value.value_index;
+	this->current_function_info.temp_signed_one_value_index = this->current_function_info.temp_true_value.value_index;
+
+	this->current_function_info.temp_unsigned_zero_value_index
+		= static_cast<uint32_t>(this->current_function_info.temporary_expressions.size());
+	this->current_function_info.temporary_expressions.push_back("0u");
+	this->current_function_info.temp_unsigned_one_value_index
+		= static_cast<uint32_t>(this->current_function_info.temporary_expressions.size());
+	this->current_function_info.temporary_expressions.push_back("1u");
 }
 
 codegen_context::function_info_t const &codegen_context::get_function(ast::function_body &func_body_)
@@ -1028,12 +1042,17 @@ void codegen_context::add_indentation(void)
 
 bz::u8string codegen_context::to_string(expr_value const &value) const
 {
+	if (value.is_temporary_expression)
+	{
+		bz_assert(value.value_index < this->current_function_info.temporary_expressions.size());
+		return this->current_function_info.temporary_expressions[value.value_index];
+	}
+
 	bz::u8string result = "";
 	if (value.needs_dereference)
 	{
 		result += '*';
 	}
-
 	result += this->make_local_name(value.value_index);
 
 	return result;
@@ -1049,12 +1068,19 @@ bz::u8string codegen_context::to_string_lhs(expr_value const &value, precedence 
 		result += '(';
 	}
 
-	if (value.needs_dereference)
+	if (value.is_temporary_expression)
 	{
-		result += '*';
+		bz_assert(value.value_index < this->current_function_info.temporary_expressions.size());
+		result += this->current_function_info.temporary_expressions[value.value_index];
 	}
-
-	result += this->make_local_name(value.value_index);
+	else
+	{
+		if (value.needs_dereference)
+		{
+			result += '*';
+		}
+		result += this->make_local_name(value.value_index);
+	}
 
 	if (needs_parens)
 	{
@@ -1074,12 +1100,19 @@ bz::u8string codegen_context::to_string_rhs(expr_value const &value, precedence 
 		result += '(';
 	}
 
-	if (value.needs_dereference)
+	if (value.is_temporary_expression)
 	{
-		result += '*';
+		bz_assert(value.value_index < this->current_function_info.temporary_expressions.size());
+		result += this->current_function_info.temporary_expressions[value.value_index];
 	}
-
-	result += this->make_local_name(value.value_index);
+	else
+	{
+		if (value.needs_dereference)
+		{
+			result += '*';
+		}
+		result += this->make_local_name(value.value_index);
+	}
 
 	if (needs_parens)
 	{
@@ -1099,12 +1132,19 @@ bz::u8string codegen_context::to_string_unary(expr_value const &value, precedenc
 		result += '(';
 	}
 
-	if (value.needs_dereference)
+	if (value.is_temporary_expression)
 	{
-		result += '*';
+		bz_assert(value.value_index < this->current_function_info.temporary_expressions.size());
+		result += this->current_function_info.temporary_expressions[value.value_index];
 	}
-
-	result += this->make_local_name(value.value_index);
+	else
+	{
+		if (value.needs_dereference)
+		{
+			result += '*';
+		}
+		result += this->make_local_name(value.value_index);
+	}
 
 	if (needs_parens)
 	{
@@ -1127,12 +1167,19 @@ bz::u8string codegen_context::to_string_binary(expr_value const &lhs, expr_value
 			result += '(';
 		}
 
-		if (lhs.needs_dereference)
+		if (lhs.is_temporary_expression)
 		{
-			result += '*';
+			bz_assert(lhs.value_index < this->current_function_info.temporary_expressions.size());
+			result += this->current_function_info.temporary_expressions[lhs.value_index];
 		}
-
-		result += this->make_local_name(lhs.value_index);
+		else
+		{
+			if (lhs.needs_dereference)
+			{
+				result += '*';
+			}
+			result += this->make_local_name(lhs.value_index);
+		}
 
 		if (lhs_needs_parens)
 		{
@@ -1151,12 +1198,19 @@ bz::u8string codegen_context::to_string_binary(expr_value const &lhs, expr_value
 			result += '(';
 		}
 
-		if (rhs.needs_dereference)
+		if (rhs.is_temporary_expression)
 		{
-			result += '*';
+			bz_assert(rhs.value_index < this->current_function_info.temporary_expressions.size());
+			result += this->current_function_info.temporary_expressions[rhs.value_index];
 		}
-
-		result += this->make_local_name(rhs.value_index);
+		else
+		{
+			if (rhs.needs_dereference)
+			{
+				result += '*';
+			}
+			result += this->make_local_name(rhs.value_index);
+		}
 
 		if (rhs_needs_parens)
 		{
@@ -1180,12 +1234,19 @@ bz::u8string codegen_context::to_string_binary(expr_value const &lhs, bz::u8stri
 			result += '(';
 		}
 
-		if (lhs.needs_dereference)
+		if (lhs.is_temporary_expression)
 		{
-			result += '*';
+			bz_assert(lhs.value_index < this->current_function_info.temporary_expressions.size());
+			result += this->current_function_info.temporary_expressions[lhs.value_index];
 		}
-
-		result += this->make_local_name(lhs.value_index);
+		else
+		{
+			if (lhs.needs_dereference)
+			{
+				result += '*';
+			}
+			result += this->make_local_name(lhs.value_index);
+		}
 
 		if (lhs_needs_parens)
 		{
@@ -1213,12 +1274,19 @@ bz::u8string codegen_context::to_string_unary_prefix(expr_value const &value, bz
 		result += '(';
 	}
 
-	if (value.needs_dereference)
+	if (value.is_temporary_expression)
 	{
-		result += '*';
+		bz_assert(value.value_index < this->current_function_info.temporary_expressions.size());
+		result += this->current_function_info.temporary_expressions[value.value_index];
 	}
-
-	result += this->make_local_name(value.value_index);
+	else
+	{
+		if (value.needs_dereference)
+		{
+			result += '*';
+		}
+		result += this->make_local_name(value.value_index);
+	}
 
 	if (needs_parens)
 	{
@@ -1238,12 +1306,19 @@ bz::u8string codegen_context::to_string_unary_suffix(expr_value const &value, bz
 		result += '(';
 	}
 
-	if (value.needs_dereference)
+	if (value.is_temporary_expression)
 	{
-		result += '*';
+		bz_assert(value.value_index < this->current_function_info.temporary_expressions.size());
+		result += this->current_function_info.temporary_expressions[value.value_index];
 	}
-
-	result += this->make_local_name(value.value_index);
+	else
+	{
+		if (value.needs_dereference)
+		{
+			result += '*';
+		}
+		result += this->make_local_name(value.value_index);
+	}
 
 	if (needs_parens)
 	{
@@ -1327,12 +1402,21 @@ expr_value codegen_context::add_reference_expression(bz::u8string_view expr_stri
 	return this->make_reference_expression(index, expr_type, is_const);
 }
 
+expr_value codegen_context::add_temporary_expression(bz::u8string expr_string, type expr_type, bool is_const, precedence prec)
+{
+	auto const value_index = static_cast<uint32_t>(this->current_function_info.temporary_expressions.size());
+	this->current_function_info.temporary_expressions.push_back(std::move(expr_string));
+
+	return this->make_temporary_expression(value_index, expr_type, is_const, prec);
+}
+
 expr_value codegen_context::make_value_expression(uint32_t value_index, type value_type) const
 {
 	return expr_value{
 		.value_index = value_index,
 		.needs_dereference = false,
 		.is_const = false,
+		.is_temporary_expression = false,
 		.prec = precedence::identifier,
 		.value_type = value_type,
 	};
@@ -1344,7 +1428,20 @@ expr_value codegen_context::make_reference_expression(uint32_t value_index, type
 		.value_index = value_index,
 		.needs_dereference = true,
 		.is_const = is_const,
+		.is_temporary_expression = false,
 		.prec = precedence::identifier,
+		.value_type = value_type,
+	};
+}
+
+expr_value codegen_context::make_temporary_expression(uint32_t value_index, type value_type, bool is_const, precedence prec) const
+{
+	return expr_value{
+		.value_index = value_index,
+		.needs_dereference = false,
+		.is_const = is_const,
+		.is_temporary_expression = true,
+		.prec = prec,
 		.value_type = value_type,
 	};
 }
@@ -1613,7 +1710,152 @@ expr_value codegen_context::get_variable(ast::decl_variable const &var_decl)
 
 expr_value codegen_context::get_void_value(void) const
 {
-	return this->make_value_expression(0, this->get_void());
+	return this->current_function_info.temp_void_value;
+}
+
+expr_value codegen_context::get_false_value(void) const
+{
+	return this->current_function_info.temp_false_value;
+}
+
+expr_value codegen_context::get_true_value(void) const
+{
+	return this->current_function_info.temp_true_value;
+}
+
+expr_value codegen_context::get_zero_value(type int_type) const
+{
+	bz_assert(int_type.modifier_info.empty());
+	bz_assert(int_type.is_typedef());
+	auto const typedef_index = int_type.get_typedef().index;
+	auto const is_signed = typedef_index == this->builtin_types.int8_.index
+		|| typedef_index == this->builtin_types.int16_.index
+		|| typedef_index == this->builtin_types.int32_.index
+		|| typedef_index == this->builtin_types.int64_.index;
+	bz_assert(
+		is_signed
+		|| typedef_index == this->builtin_types.uint8_.index
+		|| typedef_index == this->builtin_types.uint16_.index
+		|| typedef_index == this->builtin_types.uint32_.index
+		|| typedef_index == this->builtin_types.uint64_.index
+	);
+	auto const value_index = is_signed
+		? this->current_function_info.temp_signed_zero_value_index
+		: this->current_function_info.temp_unsigned_zero_value_index;
+
+	return this->make_temporary_expression(value_index, int_type, false, precedence::literal);
+}
+
+expr_value codegen_context::get_signed_zero_value(type int_type) const
+{
+	return this->make_temporary_expression(
+		this->current_function_info.temp_signed_zero_value_index,
+		int_type,
+		false,
+		precedence::literal
+	);
+}
+
+expr_value codegen_context::get_unsigned_zero_value(type int_type) const
+{
+	return this->make_temporary_expression(
+		this->current_function_info.temp_unsigned_zero_value_index,
+		int_type,
+		false,
+		precedence::literal
+	);
+}
+
+expr_value codegen_context::get_one_value(type int_type) const
+{
+	bz_assert(int_type.modifier_info.empty());
+	bz_assert(int_type.is_typedef());
+	auto const typedef_index = int_type.get_typedef().index;
+	auto const is_signed = typedef_index == this->builtin_types.int8_.index
+		|| typedef_index == this->builtin_types.int16_.index
+		|| typedef_index == this->builtin_types.int32_.index
+		|| typedef_index == this->builtin_types.int64_.index;
+	bz_assert(
+		is_signed
+		|| typedef_index == this->builtin_types.uint8_.index
+		|| typedef_index == this->builtin_types.uint16_.index
+		|| typedef_index == this->builtin_types.uint32_.index
+		|| typedef_index == this->builtin_types.uint64_.index
+	);
+	auto const value_index = is_signed
+		? this->current_function_info.temp_signed_one_value_index
+		: this->current_function_info.temp_unsigned_one_value_index;
+
+	return this->make_temporary_expression(value_index, int_type, false, precedence::literal);
+}
+
+expr_value codegen_context::get_signed_one_value(type int_type) const
+{
+	return this->make_temporary_expression(
+		this->current_function_info.temp_signed_one_value_index,
+		int_type,
+		false,
+		precedence::literal
+	);
+}
+
+expr_value codegen_context::get_unsigned_one_value(type int_type) const
+{
+	return this->make_temporary_expression(
+		this->current_function_info.temp_unsigned_one_value_index,
+		int_type,
+		false,
+		precedence::literal
+	);
+}
+
+expr_value codegen_context::get_signed_value(int64_t value, type int_type)
+{
+	if (value == 0)
+	{
+		return this->get_signed_zero_value(int_type);
+	}
+	else if (value == 1)
+	{
+		return this->get_signed_one_value(int_type);
+	}
+	else if (value == std::numeric_limits<int64_t>::min())
+	{
+		return this->add_temporary_expression(
+			bz::format("({} - 1)", value + 1),
+			int_type,
+			false,
+			precedence::literal
+		);
+	}
+	else
+	{
+		return this->add_temporary_expression(bz::format("{}", value), int_type, false, precedence::literal);
+	}
+}
+
+expr_value codegen_context::get_unsigned_value(uint64_t value, type int_type)
+{
+	if (value == 0)
+	{
+		return this->get_unsigned_zero_value(int_type);
+	}
+	else if (value == 1)
+	{
+		return this->get_unsigned_one_value(int_type);
+	}
+
+	return this->add_temporary_expression(bz::format("{}u", value), int_type, false, precedence::literal);
+}
+
+expr_value codegen_context::get_null_pointer_value(void) const
+{
+	return this->make_temporary_expression(
+		this->current_function_info.temp_signed_zero_value_index,
+		this->get_void(),
+		false,
+		precedence::literal
+	);
 }
 
 static void remove_needs_dereference(expr_value &value, codegen_context &context)
@@ -1859,31 +2101,154 @@ expr_value codegen_context::create_array_slice_gep_pointer(expr_value begin_ptr,
 	return this->add_value_expression(result_ptr, begin_ptr.get_type());
 }
 
-expr_value codegen_context::create_dereference(expr_value value)
+expr_value codegen_context::create_dereference(expr_value const &value)
 {
 	bz_assert(this->is_pointer(value.get_type()));
 	auto const [result_type, modifier] = this->remove_pointer(value.get_type());
-	if (!value.needs_dereference)
+	return this->create_temporary_prefix_unary_operation(value, "*", result_type, modifier == type_modifier::const_pointer);
+}
+
+expr_value codegen_context::create_address_of(expr_value const &value)
+{
+	// TODO: use temporary expression
+	if (value.needs_dereference)
 	{
-		return this->make_reference_expression(value.value_index, result_type, modifier == type_modifier::const_pointer);
+		auto result_value = value;
+		remove_needs_dereference(result_value, *this);
+		return result_value;
 	}
 	else
 	{
-		return this->add_reference_expression(this->to_string_rhs(value, precedence::assignment), result_type, modifier == type_modifier::const_pointer);
+		auto const result_type = value.is_const ? this->add_const_pointer(value.get_type()) : this->add_pointer(value.get_type());
+		return this->add_value_expression(this->to_string_unary_prefix(value, "&"), result_type);
 	}
 }
 
-expr_value codegen_context::create_address_of(expr_value value)
+expr_value codegen_context::create_cast(expr_value const &value, type dest_type)
 {
-	auto const result_type = value.is_const ? this->add_const_pointer(value.get_type()) : this->add_pointer(value.get_type());
-	if (value.needs_dereference)
-	{
-		return this->make_value_expression(value.value_index, result_type);
-	}
-	else
-	{
-		return this->add_value_expression(this->to_string_unary_prefix(value, "&"), result_type);
-	}
+	return this->create_temporary_prefix_unary_operation(value, bz::format("({})", this->to_string(dest_type)), dest_type);
+}
+
+expr_value codegen_context::create_bool_not(expr_value const &value)
+{
+	bz_assert(value.get_type() == this->get_bool());
+	return this->create_temporary_prefix_unary_operation(value, "!", value.get_type());
+}
+
+expr_value codegen_context::create_bit_not(expr_value const &value)
+{
+	auto const op = value.get_type() == this->get_bool() ? "!" : "~";
+	return this->create_temporary_prefix_unary_operation(value, op, value.get_type());
+}
+
+expr_value codegen_context::create_equals(expr_value const &lhs, expr_value const &rhs)
+{
+	return this->create_temporary_binary_operation(lhs, rhs, "==", precedence::equality, this->get_bool());
+}
+
+expr_value codegen_context::create_not_equals(expr_value const &lhs, expr_value const &rhs)
+{
+	return this->create_temporary_binary_operation(lhs, rhs, "!=", precedence::equality, this->get_bool());
+}
+
+expr_value codegen_context::create_equality(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op)
+{
+	return this->create_temporary_binary_operation(lhs, rhs, op, precedence::equality, this->get_bool());
+}
+
+expr_value codegen_context::create_relational(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op)
+{
+	return this->create_temporary_binary_operation(lhs, rhs, op, precedence::relational, this->get_bool());
+}
+
+expr_value codegen_context::create_logical_and(expr_value const &lhs, expr_value const &rhs)
+{
+	return this->create_temporary_binary_operation(lhs, rhs, "&&", precedence::logical_and, this->get_bool());
+}
+
+expr_value codegen_context::create_logical_or(expr_value const &lhs, expr_value const &rhs)
+{
+	return this->create_temporary_binary_operation(lhs, rhs, "||", precedence::logical_or, this->get_bool());
+}
+
+expr_value codegen_context::create_plus(expr_value const &lhs, expr_value const &rhs)
+{
+	return this->create_temporary_binary_operation(lhs, rhs, "+", precedence::addition, lhs.get_type());
+}
+
+expr_value codegen_context::create_plus(expr_value const &lhs, expr_value const &rhs, type result_type)
+{
+	return this->create_temporary_binary_operation(lhs, rhs, "+", precedence::addition, result_type);
+}
+
+void codegen_context::create_plus_eq(expr_value const &lhs, expr_value const &rhs)
+{
+	return this->create_binary_operation(lhs, rhs, "+=", precedence::assignment);
+}
+
+expr_value codegen_context::create_minus(expr_value const &lhs, expr_value const &rhs)
+{
+	return this->create_temporary_binary_operation(lhs, rhs, "-", precedence::subtraction, lhs.get_type());
+}
+
+expr_value codegen_context::create_minus(expr_value const &lhs, expr_value const &rhs, type result_type)
+{
+	return this->create_temporary_binary_operation(lhs, rhs, "-", precedence::subtraction, result_type);
+}
+
+void codegen_context::create_minus_eq(expr_value const &lhs, expr_value const &rhs)
+{
+	return this->create_binary_operation(lhs, rhs, "-=", precedence::assignment);
+}
+
+expr_value codegen_context::create_multiply(expr_value const &lhs, expr_value const &rhs)
+{
+	return this->create_temporary_binary_operation(lhs, rhs, "*", precedence::multiply, lhs.get_type());
+}
+
+void codegen_context::create_multiply_eq(expr_value const &lhs, expr_value const &rhs)
+{
+	return this->create_binary_operation(lhs, rhs, "*=", precedence::assignment);
+}
+
+expr_value codegen_context::create_divide(expr_value const &lhs, expr_value const &rhs)
+{
+	return this->create_temporary_binary_operation(lhs, rhs, "/", precedence::divide, lhs.get_type());
+}
+
+void codegen_context::create_divide_eq(expr_value const &lhs, expr_value const &rhs)
+{
+	return this->create_binary_operation(lhs, rhs, "/=", precedence::assignment);
+}
+
+expr_value codegen_context::create_modulo(expr_value const &lhs, expr_value const &rhs)
+{
+	return this->create_temporary_binary_operation(lhs, rhs, "%", precedence::remainder, lhs.get_type());
+}
+
+void codegen_context::create_modulo_eq(expr_value const &lhs, expr_value const &rhs)
+{
+	return this->create_binary_operation(lhs, rhs, "%=", precedence::assignment);
+}
+
+expr_value codegen_context::create_bit_op(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op, precedence prec)
+{
+	return this->create_temporary_binary_operation(lhs, rhs, op, prec, lhs.get_type());
+}
+
+void codegen_context::create_bit_op_eq(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op)
+{
+	return this->create_binary_operation(lhs, rhs, op, precedence::assignment);
+}
+
+expr_value codegen_context::create_bitshift(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op)
+{
+	return this->create_temporary_binary_operation(lhs, rhs, op, precedence::bitshift, lhs.get_type());
+}
+
+void codegen_context::create_bitshift_eq(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op)
+{
+	return this->create_binary_operation(lhs, rhs, op, precedence::assignment);
 }
 
 expr_value codegen_context::create_prefix_unary_operation(
@@ -1893,6 +2258,16 @@ expr_value codegen_context::create_prefix_unary_operation(
 )
 {
 	return this->add_value_expression(this->to_string_unary_prefix(value, op), result_type);
+}
+
+expr_value codegen_context::create_temporary_prefix_unary_operation(
+	expr_value const &value,
+	bz::u8string_view op,
+	type result_type,
+	bool is_const
+)
+{
+	return this->add_temporary_expression(this->to_string_unary_prefix(value, op), result_type, is_const, precedence::prefix);
 }
 
 void codegen_context::create_prefix_unary_operation(
@@ -1912,6 +2287,17 @@ expr_value codegen_context::create_binary_operation(
 )
 {
 	return this->add_value_expression(this->to_string_binary(lhs, rhs, op, prec), result_type);
+}
+
+expr_value codegen_context::create_temporary_binary_operation(
+	expr_value const &lhs,
+	expr_value const &rhs,
+	bz::u8string_view op,
+	precedence prec,
+	type result_type
+)
+{
+	return this->add_temporary_expression(this->to_string_binary(lhs, rhs, op, prec), result_type, false, prec);
 }
 
 expr_value codegen_context::create_binary_operation(

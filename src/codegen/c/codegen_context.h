@@ -95,6 +95,14 @@ struct codegen_context
 		uint32_t counter = 0;
 		uint32_t indent_level = 0;
 		bz::optional<expr_value> return_value = {};
+		bz::vector<bz::u8string> temporary_expressions;
+		expr_value temp_void_value = {};
+		expr_value temp_false_value = {};
+		expr_value temp_true_value = {};
+		uint32_t temp_signed_zero_value_index = 0;
+		uint32_t temp_signed_one_value_index = 0;
+		uint32_t temp_unsigned_zero_value_index = 0;
+		uint32_t temp_unsigned_one_value_index = 0;
 
 		size_t value_reference_stack_size = 0;
 		bz::array<expr_value, 4> value_references = {};
@@ -275,8 +283,10 @@ struct codegen_context
 	expr_value add_uninitialized_value(type expr_type);
 	expr_value add_value_expression(bz::u8string_view expr_string, type expr_type);
 	expr_value add_reference_expression(bz::u8string_view expr_string, type expr_type, bool is_const);
+	expr_value add_temporary_expression(bz::u8string expr_string, type expr_type, bool is_const, precedence prec);
 	expr_value make_value_expression(uint32_t value_index, type value_type) const;
 	expr_value make_reference_expression(uint32_t value_index, type value_type, bool is_const) const;
+	expr_value make_temporary_expression(uint32_t value_index, type value_type, bool is_const, precedence prec) const;
 
 	[[nodiscard]] if_info_t begin_if(expr_value condition);
 	[[nodiscard]] if_info_t begin_if_not(expr_value condition);
@@ -309,6 +319,18 @@ struct codegen_context
 	expr_value get_variable(ast::decl_variable const &var_decl);
 
 	expr_value get_void_value(void) const;
+	expr_value get_false_value(void) const;
+	expr_value get_true_value(void) const;
+	expr_value get_zero_value(type int_type) const;
+	expr_value get_signed_zero_value(type int_type) const;
+	expr_value get_unsigned_zero_value(type int_type) const;
+	expr_value get_one_value(type int_type) const;
+	expr_value get_signed_one_value(type int_type) const;
+	expr_value get_unsigned_one_value(type int_type) const;
+	expr_value get_signed_value(int64_t value, type int_type);
+	expr_value get_unsigned_value(uint64_t value, type int_type);
+	expr_value get_null_pointer_value(void) const;
+
 	expr_value create_struct_gep(expr_value value, size_t index);
 	expr_value create_struct_gep_pointer(expr_value value, size_t index);
 	expr_value create_struct_gep_value(expr_value value, size_t index);
@@ -316,13 +338,46 @@ struct codegen_context
 	expr_value create_array_gep_pointer(expr_value value, expr_value index);
 	expr_value create_array_slice_gep(expr_value begin_ptr, expr_value index);
 	expr_value create_array_slice_gep_pointer(expr_value begin_ptr, expr_value index);
-	expr_value create_dereference(expr_value value);
-	expr_value create_address_of(expr_value value);
+
+	expr_value create_dereference(expr_value const &value);
+	expr_value create_address_of(expr_value const &value);
+	expr_value create_cast(expr_value const &value, type dest_type);
+	expr_value create_bool_not(expr_value const &value);
+	expr_value create_bit_not(expr_value const &value);
+
+	expr_value create_equals(expr_value const &lhs, expr_value const &rhs);
+	expr_value create_not_equals(expr_value const &lhs, expr_value const &rhs);
+	expr_value create_equality(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op);
+	expr_value create_relational(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op);
+	expr_value create_logical_and(expr_value const &lhs, expr_value const &rhs);
+	expr_value create_logical_or(expr_value const &lhs, expr_value const &rhs);
+	expr_value create_plus(expr_value const &lhs, expr_value const &rhs);
+	expr_value create_plus(expr_value const &lhs, expr_value const &rhs, type result_type);
+	void create_plus_eq(expr_value const &lhs, expr_value const &rhs);
+	expr_value create_minus(expr_value const &lhs, expr_value const &rhs);
+	expr_value create_minus(expr_value const &lhs, expr_value const &rhs, type result_type);
+	void create_minus_eq(expr_value const &lhs, expr_value const &rhs);
+	expr_value create_multiply(expr_value const &lhs, expr_value const &rhs);
+	void create_multiply_eq(expr_value const &lhs, expr_value const &rhs);
+	expr_value create_divide(expr_value const &lhs, expr_value const &rhs);
+	void create_divide_eq(expr_value const &lhs, expr_value const &rhs);
+	expr_value create_modulo(expr_value const &lhs, expr_value const &rhs);
+	void create_modulo_eq(expr_value const &lhs, expr_value const &rhs);
+	expr_value create_bit_op(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op, precedence prec);
+	void create_bit_op_eq(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op);
+	expr_value create_bitshift(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op);
+	void create_bitshift_eq(expr_value const &lhs, expr_value const &rhs, bz::u8string_view op);
 
 	expr_value create_prefix_unary_operation(
 		expr_value const &value,
 		bz::u8string_view op,
 		type result_type
+	);
+	expr_value create_temporary_prefix_unary_operation(
+		expr_value const &value,
+		bz::u8string_view op,
+		type result_type,
+		bool is_const = false
 	);
 	void create_prefix_unary_operation(
 		expr_value const &value,
@@ -330,6 +385,13 @@ struct codegen_context
 	);
 
 	expr_value create_binary_operation(
+		expr_value const &lhs,
+		expr_value const &rhs,
+		bz::u8string_view op,
+		precedence prec,
+		type result_type
+	);
+	expr_value create_temporary_binary_operation(
 		expr_value const &lhs,
 		expr_value const &rhs,
 		bz::u8string_view op,
