@@ -816,7 +816,7 @@ function scope_test() -> void
 	@maybe_unused let n = 0 - -2147483648;
 
 	let n = 1u64;
-	((n << 99u));
+	((n << 63u));
 	let num = 65;
 	std::print("{}\n", num as char);
 	std::print("{}\n", 'A' as int32);
