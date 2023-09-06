@@ -1,0 +1,28 @@
+function size_test(s: [: auto], expected_size: usize)
+{
+	if (__builtin_slice_size(s) != expected_size) unreachable;
+}
+
+function main()
+{
+	size_test([: int8](), 0);
+	size_test([: int16](), 0);
+	size_test([: int32](), 0);
+	size_test([: int64](), 0);
+	let a = [5: int8]();
+	size_test(a, 5);
+	let a = [5: int16]();
+	size_test(a, 5);
+	let a = [5: int32]();
+	size_test(a, 5);
+	let a = [5: int64]();
+	size_test(a, 5);
+	let a = [5, 2, 10, 9: int64]();
+	size_test(a, 5);
+
+	let a = [5, 2, 10, 9: int64]();
+	let s: [: auto] = a;
+	size_test(s, a.size());
+	let size = __builtin_slice_end_ptr(s) - __builtin_slice_begin_ptr(s);
+	size_test(s, size as usize);
+}
