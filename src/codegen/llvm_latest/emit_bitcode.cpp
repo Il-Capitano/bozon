@@ -6872,7 +6872,7 @@ static bool is_zero_value(ast::constant_value const &value)
 	case ast::constant_value::sint_array:
 		return value.get_sint_array().is_all([](auto const value) { return value == 0; });
 	case ast::constant_value::uint_array:
-		return value.get_sint_array().is_all([](auto const value) { return value == 0; });
+		return value.get_uint_array().is_all([](auto const value) { return value == 0; });
 	case ast::constant_value::float32_array:
 		return value.get_float32_array().is_all([](auto const value) { return bit_cast<uint32_t>(value) == 0; });
 	case ast::constant_value::float64_array:
