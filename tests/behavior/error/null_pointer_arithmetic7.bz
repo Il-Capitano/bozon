@@ -3,5 +3,5 @@ function main()
 	let i = 0;
 	let p1: ?*int32 = &i;
 	let p2: ?*int32 = null;
-	p1 - p2;
+	let _ = p1 - p2;
 }

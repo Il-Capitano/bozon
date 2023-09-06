@@ -1,5 +1,5 @@
 function main()
 {
 	let p: ?*int32 = null;
-	1 + p;
+	let _ = 1 + p;
 }

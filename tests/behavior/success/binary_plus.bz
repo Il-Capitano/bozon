@@ -9,6 +9,7 @@ function plus_test(consteval a, consteval b)
 	let dyn_b = b;
 	dyn_a += dyn_b;
 	if (dyn_a != result) unreachable;
+	if (&(dyn_a += dyn_b) != &dyn_a) unreachable;
 }
 
 function plus_signed_overflow(intN: typename)

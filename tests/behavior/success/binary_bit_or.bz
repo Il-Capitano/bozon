@@ -7,6 +7,7 @@ function bit_or_test(consteval a, consteval b, consteval result)
 	mut dyn_a = a;
 	dyn_a |= b;
 	if (dyn_a != result) unreachable;
+	if (&(dyn_a |= b) != &dyn_a) unreachable;
 }
 
 function main()

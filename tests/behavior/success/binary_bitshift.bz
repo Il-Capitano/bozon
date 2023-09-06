@@ -8,6 +8,7 @@ function left_shift_test(consteval a, consteval b)
 	mut dyn_a = a;
 	dyn_a <<= b;
 	if (dyn_a != result) unreachable;
+	if (&(dyn_a <<= b) != &dyn_a) unreachable;
 }
 
 function right_shift_test(consteval a, consteval b)

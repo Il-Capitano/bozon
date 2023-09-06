@@ -7,7 +7,7 @@ function get_array(size: consteval usize, T: typename) -> [size: T]
 
 function test(size: consteval usize, T: typename)
 {
-	get_array(40, counting_resource_t)[40 / 3];
+	get_array(size, counting_resource_t)[size / 3];
 	let _ = get_array(size, T)[size / 3];
 }
 
