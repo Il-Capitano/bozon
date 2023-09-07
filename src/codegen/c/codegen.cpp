@@ -1577,8 +1577,8 @@ static expr_value generate_builtin_unary_plus(
 )
 {
 	auto const value = generate_expression(expr, context, {});
-	auto const expr_string = context.to_string_unary_prefix(value, "+");
-	return value_or_result_dest(expr_string, value.get_type(), result_dest, context);
+	auto const result_value = context.create_plus(value);
+	return value_or_result_dest(result_value, result_dest, context);
 }
 
 static expr_value generate_builtin_unary_minus(
@@ -1612,8 +1612,8 @@ static expr_value generate_builtin_unary_minus(
 	}
 	else
 	{
-		auto const expr_string = context.to_string_unary_prefix(value, "-");
-		return value_or_result_dest(expr_string, value.get_type(), result_dest, context);
+		auto const result_value = context.create_minus(value);
+		return value_or_result_dest(result_value, result_dest, context);
 	}
 }
 
@@ -2407,15 +2407,14 @@ static expr_value generate_builtin_subscript_range(
 		if (result_dest.has_value())
 		{
 			auto const &result_value = result_dest.get();
-			auto const slice_literal = context.to_string_struct_literal(result_value.get_type(), { begin_ptr, end_ptr });
+			auto const slice_literal = context.create_struct_literal(result_value.get_type(), { begin_ptr, end_ptr });
 			context.create_assignment(result_value, slice_literal);
 			return result_value;
 		}
 		else
 		{
 			auto const slice_type = get_type(lhs_type, context);
-			auto const slice_literal = context.to_string_struct_literal(slice_type, { begin_ptr, end_ptr });
-			return context.add_value_expression(slice_literal, slice_type);
+			return context.create_struct_literal(slice_type, { begin_ptr, end_ptr });
 		}
 	}
 	else if (lhs_type.is<ast::ts_array>())
@@ -2474,8 +2473,7 @@ static expr_value generate_builtin_subscript_range(
 		else
 		{
 			auto const slice_type = get_type(result_type, context);
-			auto const slice_literal = context.to_string_struct_literal(slice_type, { begin_ptr, end_ptr });
-			return context.add_value_expression(slice_literal, slice_type);
+			return context.create_struct_literal(slice_type, { begin_ptr, end_ptr });
 		}
 	}
 	else
@@ -2563,8 +2561,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		else
 		{
 			auto const result_type = get_type(func_call.func_body->return_type, context);
-			auto const struct_literal = context.to_string_struct_literal(result_type, { begin_ptr, end_ptr });
-			return context.add_value_expression(struct_literal, result_type);
+			return context.create_struct_literal(result_type, { begin_ptr, end_ptr });
 		}
 	}
 	case ast::function_body::builtin_slice_begin_ptr:
@@ -2602,8 +2599,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		else
 		{
 			auto const result_type = get_type(func_call.func_body->return_type, context);
-			auto const slice_literal = context.to_string_struct_literal(result_type, { begin_ptr, end_ptr });
-			return context.add_value_expression(slice_literal, result_type);
+			return context.create_struct_literal(result_type, { begin_ptr, end_ptr });
 		}
 	}
 	case ast::function_body::builtin_array_begin_ptr:
@@ -2658,8 +2654,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		else
 		{
 			auto const result_type = get_type(func_call.func_body->return_type, context);
-			auto const init_string = context.to_string_struct_literal(result_type, { begin_value, end_value });
-			return context.add_value_expression(init_string, result_type);
+			return context.create_struct_literal(result_type, { begin_value, end_value });
 		}
 	}
 	case ast::function_body::builtin_integer_range_from_i8:
@@ -2684,8 +2679,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		else
 		{
 			auto const result_type = get_type(func_call.func_body->return_type, context);
-			auto const init_string = context.to_string_struct_literal(result_type, begin_value);
-			return context.add_value_expression(init_string, result_type);
+			return context.create_struct_literal(result_type, begin_value);
 		}
 	}
 	case ast::function_body::builtin_integer_range_to_i8:
@@ -2718,8 +2712,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		else
 		{
 			auto const result_type = get_type(func_call.func_body->return_type, context);
-			auto const init_string = context.to_string_struct_literal(result_type, end_value);
-			return context.add_value_expression(init_string, result_type);
+			return context.create_struct_literal(result_type, end_value);
 		}
 	}
 	case ast::function_body::builtin_range_unbounded:
@@ -2736,8 +2729,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		else
 		{
 			auto const type = get_type(func_call.func_body->return_type, context);
-			auto const init_string = context.to_string_struct_literal(type, {});
-			return context.add_value_expression(init_string, type);
+			return context.create_struct_literal(type, {});
 		}
 	}
 	case ast::function_body::builtin_integer_range_begin_value:
@@ -2787,8 +2779,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		else
 		{
 			auto const result_type = get_type(func_call.func_body->return_type, context);
-			auto const init_string = context.to_string_struct_literal(result_type, begin_value);
-			return context.add_value_expression(init_string, result_type);
+			return context.create_struct_literal(result_type, begin_value);
 		}
 	}
 	case ast::function_body::builtin_integer_range_end_iterator:
@@ -2807,8 +2798,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		else
 		{
 			auto const result_type = get_type(func_call.func_body->return_type, context);
-			auto const init_string = context.to_string_struct_literal(result_type, end_value);
-			return context.add_value_expression(init_string, result_type);
+			return context.create_struct_literal(result_type, end_value);
 		}
 	}
 	case ast::function_body::builtin_integer_range_iterator_dereference:
@@ -2825,8 +2815,8 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const rhs_it_value = generate_expression(func_call.params[1], context, {});
 		auto const lhs_integer_value = context.create_struct_gep_value(lhs_it_value, 0);
 		auto const rhs_integer_value = context.create_struct_gep_value(rhs_it_value, 0);
-		auto const result_string = context.to_string_binary(lhs_integer_value, rhs_integer_value, "==", precedence::equality);
-		return value_or_result_dest(result_string, context.get_bool(), result_dest, context);
+		auto const result_value = context.create_equals(lhs_integer_value, rhs_integer_value);
+		return value_or_result_dest(result_value, result_dest, context);
 	}
 	case ast::function_body::builtin_integer_range_iterator_not_equals:
 	{
@@ -2835,8 +2825,8 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const rhs_it_value = generate_expression(func_call.params[1], context, {});
 		auto const lhs_integer_value = context.create_struct_gep_value(lhs_it_value, 0);
 		auto const rhs_integer_value = context.create_struct_gep_value(rhs_it_value, 0);
-		auto const result_string = context.to_string_binary(lhs_integer_value, rhs_integer_value, "!=", precedence::equality);
-		return value_or_result_dest(result_string, context.get_bool(), result_dest, context);
+		auto const result_value = context.create_not_equals(lhs_integer_value, rhs_integer_value);
+		return value_or_result_dest(result_value, result_dest, context);
 	}
 	case ast::function_body::builtin_integer_range_iterator_plus_plus:
 	{
@@ -2860,7 +2850,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const range_value = generate_expression(func_call.params[0], context, {});
 		auto const begin_value = context.create_struct_gep_value(range_value, 0);
 		auto const end_value = context.create_struct_gep_value(range_value, 1);
-		auto const false_value = context.add_value_expression("0", context.get_bool());
+		auto const false_value = context.get_false_value();
 
 		if (result_dest.has_value())
 		{
@@ -2872,8 +2862,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		else
 		{
 			auto const result_type = get_type(func_call.func_body->return_type, context);
-			auto const init_string = context.to_string_struct_literal(result_type, { begin_value, end_value, false_value });
-			return context.add_value_expression(init_string, result_type);
+			return context.create_struct_literal(result_type, { begin_value, end_value, false_value });
 		}
 	}
 	case ast::function_body::builtin_integer_range_inclusive_end_iterator:
@@ -2891,8 +2880,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		else
 		{
 			auto const result_type = get_type(func_call.func_body->return_type, context);
-			auto const init_string = context.to_string_struct_literal(result_type, {});
-			return context.add_value_expression(init_string, result_type);
+			return context.create_struct_literal(result_type, {});
 		}
 	}
 	case ast::function_body::builtin_integer_range_inclusive_iterator_dereference:
@@ -2943,7 +2931,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const integer_value_ref = context.create_struct_gep(it_value, 0);
 		auto const end_value = context.create_struct_gep_value(it_value, 1);
 
-		auto const is_at_end = context.to_string_binary(integer_value_ref, end_value, "==", precedence::equality);
+		auto const is_at_end = context.create_equals(integer_value_ref, end_value);
 		auto const prev_if_info = context.begin_if(is_at_end);
 
 		context.create_assignment(context.create_struct_gep(it_value, 2), "1");
@@ -2972,8 +2960,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		else
 		{
 			auto const result_type = get_type(func_call.func_body->return_type, context);
-			auto const init_string = context.to_string_struct_literal(result_type, begin_value);
-			return context.add_value_expression(init_string, result_type);
+			return context.create_struct_literal(result_type, begin_value);
 		}
 	}
 	case ast::function_body::builtin_integer_range_from_end_iterator:
@@ -2991,8 +2978,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		else
 		{
 			auto const result_type = get_type(func_call.func_body->return_type, context);
-			auto const init_string = context.to_string_struct_literal(result_type, {});
-			return context.add_value_expression(init_string, result_type);
+			return context.create_struct_literal(result_type, {});
 		}
 	}
 	case ast::function_body::builtin_integer_range_from_iterator_dereference:
@@ -3044,31 +3030,24 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		bz_assert(func_call.params[0].is_typename());
 		auto const pointer_value = generate_expression(func_call.params[1], context, {});
 		auto const result_type = get_type(func_call.params[0].get_typename(), context);
-		auto const cast_string = context.to_string_unary_prefix(pointer_value, bz::format("({})", context.to_string(result_type)));
-		return value_or_result_dest(cast_string, result_type, result_dest, context);
+		auto const result_value = context.create_cast(pointer_value, result_type);
+		return value_or_result_dest(result_value, result_dest, context);
 	}
 	case ast::function_body::builtin_pointer_to_int:
 	{
 		bz_assert(func_call.params.size() == 1);
 		auto const pointer_value = generate_expression(func_call.params[0], context, {});
-		auto const int_type = context.get_usize();
-		auto const cast_string = context.to_string_unary_prefix(
-			pointer_value,
-			bz::format("({})", context.to_string(int_type))
-		);
-		return value_or_result_dest(cast_string, int_type, result_dest, context);
+		auto const result_value = context.create_cast(pointer_value, context.get_usize());
+		return value_or_result_dest(result_value, result_dest, context);
 	}
 	case ast::function_body::builtin_int_to_pointer:
 	{
 		bz_assert(func_call.params.size() == 2);
 		bz_assert(func_call.params[0].is_typename());
-		auto const pointer_value = generate_expression(func_call.params[1], context, {});
+		auto const int_value = generate_expression(func_call.params[1], context, {});
 		auto const result_type = get_type(func_call.params[0].get_typename(), context);
-		auto const cast_string = context.to_string_unary_prefix(
-			pointer_value,
-			bz::format("({})", context.to_string(result_type))
-		);
-		return value_or_result_dest(cast_string, result_type, result_dest, context);
+		auto const result_value = context.create_cast(int_value, result_type);
+		return value_or_result_dest(result_value, result_dest, context);
 	}
 	case ast::function_body::builtin_enum_value:
 		bz_assert(func_call.params.size() == 1);
@@ -3248,13 +3227,13 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		// the behaviour of memcpy is undefined if either dest or source is invalid, even if size is zero.
 		// this is different from the llvm.memcpy.* intrinsic, which is a no-op if size is zero.
 		// we follow the semantics of llvm.memcpy.*
-		auto const count_is_not_zero = context.to_string_binary(count, "0", "!=", precedence::equality);
+		auto const count_is_not_zero = context.create_not_equals(count, context.get_unsigned_zero_value(count.get_type()));
 		auto const prev_if_info = context.begin_if(count_is_not_zero);
 
 		bz_assert(context.is_pointer(dest.get_type()));
 		auto const [type, _] = context.remove_pointer(dest.get_type());
-		auto const type_size = bz::format("sizeof ({})", context.to_string(type));
-		auto const size = context.create_binary_operation(count, type_size, "*", precedence::multiply, count.get_type());
+		auto const type_size = context.create_sizeof(type);
+		auto const size = context.create_multiply(count, type_size);
 
 		context.add_libc_header("string.h");
 		generate_trivial_function_call("memcpy", { dest, source, size }, context.get_void(), context, {});
@@ -3273,13 +3252,13 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		// the behaviour of memmove is undefined if either dest or source is invalid, even if size is zero.
 		// this is different from the llvm.memmove.* intrinsic, which is a no-op if size is zero.
 		// we follow the semantics of llvm.memmove.*
-		auto const count_is_not_zero = context.to_string_binary(count, "0", "!=", precedence::equality);
+		auto const count_is_not_zero = context.create_not_equals(count, context.get_unsigned_zero_value(count.get_type()));
 		auto const prev_if_info = context.begin_if(count_is_not_zero);
 
 		bz_assert(context.is_pointer(dest.get_type()));
 		auto const [type, _] = context.remove_pointer(dest.get_type());
-		auto const type_size = bz::format("sizeof ({})", context.to_string(type));
-		auto const size = context.create_binary_operation(count, type_size, "*", precedence::multiply, count.get_type());
+		auto const type_size = context.create_sizeof(type);
+		auto const size = context.create_multiply(count, type_size);
 
 		context.add_libc_header("string.h");
 		generate_trivial_function_call("memmove", { dest, source, size }, context.get_void(), context, {});
@@ -3298,13 +3277,13 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		// the behaviour of memmove is undefined if either dest or source is invalid, even if size is zero.
 		// this is different from the llvm.memmove.* intrinsic, which is a no-op if size is zero.
 		// we follow the semantics of llvm.memmove.*
-		auto const count_is_not_zero = context.to_string_binary(count, "0", "!=", precedence::equality);
+		auto const count_is_not_zero = context.create_not_equals(count, context.get_unsigned_zero_value(count.get_type()));
 		auto const prev_if_info = context.begin_if(count_is_not_zero);
 
 		bz_assert(context.is_pointer(dest.get_type()));
 		auto const [type, _] = context.remove_pointer(dest.get_type());
-		auto const type_size = bz::format("sizeof ({})", context.to_string(type));
-		auto const size = context.create_binary_operation(count, type_size, "*", precedence::multiply, count.get_type());
+		auto const type_size = context.create_sizeof(type);
+		auto const size = context.create_multiply(count, type_size);
 
 		context.add_libc_header("string.h");
 		generate_trivial_function_call("memmove", { dest, source, size }, context.get_void(), context, {});
@@ -3326,7 +3305,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 			// the behaviour of memset is undefined if dest is invalid, even if size is zero.
 			// this is different from the llvm.memset.* intrinsic, which is a no-op if size is zero.
 			// we follow the semantics of llvm.memset.*
-			auto const count_is_not_zero = context.to_string_binary(count, "0", "!=", precedence::equality);
+			auto const count_is_not_zero = context.create_not_equals(count, context.get_unsigned_zero_value(count.get_type()));
 			auto const prev_if_info = context.begin_if(count_is_not_zero);
 
 			context.add_libc_header("string.h");
@@ -3336,8 +3315,9 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		else
 		{
 			auto const it = context.create_trivial_copy(dest);
-			auto const end = context.create_binary_operation(it, count, "+", precedence::addition, dest.get_type());
-			auto const condition = context.to_string_binary(it, end, "!=", precedence::equality);
+			auto const end = context.create_plus(it, count, dest.get_type());
+
+			auto const condition = context.create_not_equals(it, end);
 			auto const prev_while_info = context.begin_while(condition);
 
 			context.create_assignment(context.create_dereference(it), value);
@@ -3365,7 +3345,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		// the behaviour of memcpy is undefined if either dest or source is invalid, even if size is zero.
 		// this is different from the llvm.memcpy.* intrinsic, which is a no-op if size is zero.
 		// we follow the semantics of llvm.memcpy.*
-		auto const size_is_not_zero = context.to_string_binary(size, "0", "!=", precedence::equality);
+		auto const size_is_not_zero = context.create_not_equals(size, context.get_unsigned_zero_value(size.get_type()));
 		auto const prev_if_info = context.begin_if(size_is_not_zero);
 
 		context.add_libc_header("string.h");
@@ -3385,7 +3365,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		// the behaviour of memmove is undefined if either dest or source is invalid, even if size is zero.
 		// this is different from the llvm.memmove.* intrinsic, which is a no-op if size is zero.
 		// we follow the semantics of llvm.memmove.*
-		auto const size_is_not_zero = context.to_string_binary(size, "0", "!=", precedence::equality);
+		auto const size_is_not_zero = context.create_not_equals(size, context.get_unsigned_zero_value(size.get_type()));
 		auto const prev_if_info = context.begin_if(size_is_not_zero);
 
 		context.add_libc_header("string.h");
@@ -3405,7 +3385,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		// the behaviour of memset is undefined if dest is invalid, even if size is zero.
 		// this is different from the llvm.memset.* intrinsic, which is a no-op if size is zero.
 		// we follow the semantics of llvm.memset.*
-		auto const size_is_not_zero = context.to_string_binary(size, "0", "!=", precedence::equality);
+		auto const size_is_not_zero = context.create_not_equals(size, context.get_unsigned_zero_value(size.get_type()));
 		auto const prev_if_info = context.begin_if(size_is_not_zero);
 
 		context.add_libc_header("string.h");
@@ -3445,7 +3425,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		}
 		auto const &result_value = result_dest.get();
 
-		auto const prev_if_info = context.begin_if(context.to_string_binary(a, b, "<", precedence::relational));
+		auto const prev_if_info = context.begin_if(context.create_relational(a, b, "<"));
 		context.create_assignment(result_value, a);
 		context.begin_else();
 		context.create_assignment(result_value, b);
@@ -3474,7 +3454,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		}
 		auto const &result_value = result_dest.get();
 
-		auto const prev_if_info = context.begin_if(context.to_string_binary(a, b, ">", precedence::relational));
+		auto const prev_if_info = context.begin_if(context.create_relational(a, b, ">"));
 		context.create_assignment(result_value, a);
 		context.begin_else();
 		context.create_assignment(result_value, b);
@@ -4015,6 +3995,7 @@ static expr_value generate_expression(
 		auto const macro_name = context.get_libc_macro_name(*func_call.func_body);
 		if (return_type.is_any_reference())
 		{
+			// TODO: use temporary
 			auto const value_string = bz::format("&{}", macro_name);
 			auto const pointer_value = context.add_value_expression(value_string, get_type(return_type, context));
 			return context.create_dereference(pointer_value);
@@ -4197,17 +4178,15 @@ static expr_value generate_expression(
 		else
 		{
 			auto const result_type = get_type(dest_t, context);
-			auto const slice_literal = context.to_string_struct_literal(result_type, { begin_ptr, end_ptr });
-			return context.add_value_expression(slice_literal, result_type);
+			return context.create_struct_literal(result_type, { begin_ptr, end_ptr });
 		}
 	}
 	else
 	{
 		auto const expr_value = generate_expression(cast.expr, context, {});
 		auto const result_type = get_type(dest_t, context);
-		auto const cast_operator = bz::format("({})", context.to_string(result_type));
-		auto const cast_string = context.to_string_unary_prefix(expr_value, cast_operator);
-		return value_or_result_dest(cast_string, result_type, result_dest, context);
+		auto const result_value = context.create_cast(expr_value, result_type);
+		return value_or_result_dest(result_value, result_dest, context);
 	}
 }
 
@@ -4225,12 +4204,12 @@ static expr_value generate_expression(
 	auto const &result_value = result_dest.get();
 	auto const value = generate_expression(bit_cast.expr, context, {});
 
-	auto const dest = context.to_string_unary_prefix(result_value, "&");
-	auto const src = context.to_string_unary_prefix(value, "&");
-	auto const size = bz::format("sizeof ({})", context.to_string(result_value.get_type()));
+	auto const dest = context.create_address_of(result_value);
+	auto const src = context.create_address_of(value);
+	auto const size = context.create_sizeof(result_value.get_type());
 
 	context.add_libc_header("string.h");
-	context.add_expression(bz::format("memcpy({}, {}, {})", dest, src, size));
+	generate_trivial_function_call("memcpy", { dest, src, size }, context.get_void(), context, {});
 
 	return result_value;
 }
@@ -4730,14 +4709,11 @@ struct pointer_compare_info_t
 	codegen_context &context
 )
 {
-	// !!! TODO: temporary expressions can be lvalues as well !!!
-	if (lhs.get_type() == rhs.get_type() && !lhs.is_temporary_expression && !rhs.is_temporary_expression)
+	if (lhs.get_type() == rhs.get_type() && !lhs.is_rvalue && !rhs.is_rvalue)
 	{
-		auto const prev_if_info = context.begin_if(context.to_string_binary(
+		auto const prev_if_info = context.begin_if(context.create_not_equals(
 			context.create_address_of(lhs),
-			context.create_address_of(rhs),
-			"!=",
-			precedence::equality
+			context.create_address_of(rhs)
 		));
 		return { prev_if_info, true };
 	}
@@ -4820,13 +4796,7 @@ static expr_value generate_expression(
 
 	auto const lhs_has_value = get_optional_has_value(lhs, context);
 	auto const rhs_has_value = get_optional_has_value(rhs, context);
-	auto const both_has_value = context.create_binary_operation(
-		lhs_has_value,
-		rhs_has_value,
-		"&&",
-		precedence::logical_and,
-		context.get_bool()
-	);
+	auto const both_has_value = context.create_logical_and(lhs_has_value, rhs_has_value);
 
 	auto const prev_if_info = context.begin_if(both_has_value);
 	{
@@ -4999,13 +4969,7 @@ static expr_value generate_expression(
 
 	auto const lhs_has_value = get_optional_has_value(lhs, context);
 	auto const rhs_has_value = get_optional_has_value(rhs, context);
-	auto const both_has_value = context.create_binary_operation(
-		lhs_has_value,
-		rhs_has_value,
-		"&&",
-		precedence::logical_and,
-		context.get_bool()
-	);
+	auto const both_has_value = context.create_logical_and(lhs_has_value, rhs_has_value);
 
 	auto const prev_if_info = context.begin_if(both_has_value);
 	{
@@ -5179,11 +5143,7 @@ static expr_value generate_expression(
 	auto const rhs = generate_expression(trivial_assign.rhs, context, {});
 	auto const lhs = generate_expression(trivial_assign.lhs, context, {});
 
-	auto const compare_info = create_pointer_compare_begin(lhs, rhs, context);
-
 	context.create_assignment(lhs, rhs);
-
-	create_pointer_compare_end(compare_info, context);
 
 	return lhs;
 }
@@ -5570,17 +5530,24 @@ static expr_value are_strings_equal(expr_value begin_ptr, bz::u8string_view str,
 {
 	if (str.size() == 0)
 	{
-		return context.add_value_expression("1", context.get_bool());
+		return context.get_true_value();
 	}
 
 	auto const &lhs = begin_ptr;
 	auto const rhs_type = context.add_const_pointer(context.get_uint8());
-	auto const rhs = context.add_value_expression(context.create_cstring(str), rhs_type);
-	auto const size = context.add_value_expression(bz::format("{}u", str.size()), context.get_usize());
+	auto const rhs = context.add_temporary_expression(
+		context.create_cstring(str),
+		rhs_type,
+		false,
+		false,
+		true,
+		precedence::identifier
+	);
+	auto const size = context.get_unsigned_value(str.size(), context.get_usize());
 	// size is never zero here, otherwise memcmp has undefined behaviour
 	bz_assert(str.size() != 0);
-	auto const memcmp_result = generate_trivial_function_call("memcmp", { lhs, rhs, size }, context.get_int32(), context, {});
-	return context.create_binary_operation(memcmp_result, "0", "==", precedence::equality, context.get_bool());
+	auto const memcmp_result = generate_trivial_function_call("memcmp", { lhs, rhs, size }, context.get_c_int(), context, {});
+	return context.create_equals(memcmp_result, context.get_signed_zero_value(memcmp_result.get_type()));
 }
 
 static expr_value generate_string_switch(
@@ -5631,7 +5598,7 @@ static expr_value generate_string_switch(
 	case_infos.sort([](auto const &lhs, auto const &rhs) {
 		return lhs.string_value.size() < rhs.string_value.size();
 	});
-	auto const size = context.to_string_binary(end_ptr, begin_ptr, "-", precedence::subtraction);
+	auto const size = context.create_minus(end_ptr, begin_ptr, context.get_isize());
 
 	// store the case index in this variable
 	auto const case_index_value = context.add_uninitialized_value(context.get_usize());
@@ -5661,7 +5628,7 @@ static expr_value generate_string_switch(
 			else if (current_size <= 8)
 			{
 				auto const string_int_value = context.add_value_expression("0u", context.get_uint64());
-				auto const size_value = context.add_value_expression(bz::format("{}u", current_size), context.get_usize());
+				auto const size_value = context.get_unsigned_value(current_size, context.get_usize());
 				generate_trivial_function_call(
 					"memcpy",
 					{ context.create_address_of(string_int_value), begin_ptr, size_value },
@@ -6102,13 +6069,13 @@ static expr_value generate_expression(
 		bz_assert(value_string == "0");
 		value_string = bz::format("({})0", context.to_string(expr_type));
 		// this value is either a numeric literal or a compound literal, so we use the lower precedence from the two
-		return context.add_temporary_expression(std::move(value_string), expr_type, false, precedence::prefix);
+		return context.add_temporary_expression(std::move(value_string), expr_type, false, false, true, precedence::prefix);
 	}
 	else
 	{
 		auto const expr_type = get_type(const_expr.type, context);
 		// this value is either a numeric literal or a compound literal, so we use the lower precedence from the two
-		return context.add_temporary_expression(std::move(value_string), expr_type, false, precedence::prefix);
+		return context.add_temporary_expression(std::move(value_string), expr_type, false, false, true, precedence::prefix);
 	}
 }
 
@@ -6712,12 +6679,12 @@ static void generate_rvalue_array_destruct(
 	auto const end_elem_ptr = context.create_struct_gep_pointer(array_value, size);
 
 	auto const it_value = context.create_trivial_copy(end_elem_ptr);
-	auto const condition = context.to_string_binary(it_value, begin_elem_ptr, "!=", precedence::equality);
+	auto const condition = context.create_not_equals(it_value, begin_elem_ptr);
 	auto const prev_while_info = context.begin_while(condition);
 
 	context.create_prefix_unary_operation(it_value, "--");
 
-	auto const skip_elem = context.to_string_binary(it_value, rvalue_array_elem_ptr_value, "==", precedence::equality);
+	auto const skip_elem = context.create_equals(it_value, rvalue_array_elem_ptr_value);
 	auto const prev_if_info = context.begin_if(skip_elem);
 	context.add_expression("continue");
 	context.end_if(prev_if_info);

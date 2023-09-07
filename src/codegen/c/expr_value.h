@@ -34,9 +34,11 @@ enum class precedence : uint8_t
 struct expr_value
 {
 	uint32_t value_index;
-	bool needs_dereference;
-	bool is_const;
-	bool is_temporary_expression;
+	bool needs_dereference: 1;
+	bool is_const: 1;
+	bool is_temporary: 1;
+	bool is_variable: 1;
+	bool is_rvalue: 1;
 	precedence prec;
 	type value_type;
 

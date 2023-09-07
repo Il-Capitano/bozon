@@ -332,6 +332,40 @@ type codegen_context::get_slice(void) const
 	return type(this->builtin_types.slice);
 }
 
+type codegen_context::get_c_int(void) const
+{
+	switch (this->int_size)
+	{
+	case 1:
+		return this->get_int8();
+	case 2:
+		return this->get_int16();
+	case 4:
+		return this->get_int32();
+	case 8:
+		return this->get_int64();
+	default:
+		bz_unreachable;
+	}
+}
+
+type codegen_context::get_c_unsigned_int(void) const
+{
+	switch (this->int_size)
+	{
+	case 1:
+		return this->get_uint8();
+	case 2:
+		return this->get_uint16();
+	case 4:
+		return this->get_uint32();
+	case 8:
+		return this->get_uint64();
+	default:
+		bz_unreachable;
+	}
+}
+
 type codegen_context::add_pointer(type t, type_modifier modifier_kind)
 {
 	if (t.modifier_info.push(modifier_kind))
@@ -973,9 +1007,14 @@ void codegen_context::reset_current_function(ast::function_body &func_body)
 	this->current_function_info = current_function_info_t();
 	this->current_function_info.func_body = &func_body;
 
-	this->current_function_info.temp_void_value = this->add_temporary_expression("(void)0", this->get_void(), false, precedence::prefix);
-	this->current_function_info.temp_false_value = this->add_temporary_expression("0", this->get_bool(), false, precedence::literal);
-	this->current_function_info.temp_true_value = this->add_temporary_expression("1", this->get_bool(), false, precedence::literal);
+	this->current_function_info.temp_void_value
+		= this->add_temporary_expression("(void)0", this->get_void(), false, false, true, precedence::prefix);
+
+	this->current_function_info.temp_false_value
+		= this->add_temporary_expression("0", this->get_bool(), false, false, true, precedence::literal);
+
+	this->current_function_info.temp_true_value
+		= this->add_temporary_expression("1", this->get_bool(), false, false, true, precedence::literal);
 
 	this->current_function_info.temp_signed_zero_value_index = this->current_function_info.temp_false_value.value_index;
 	this->current_function_info.temp_signed_one_value_index = this->current_function_info.temp_true_value.value_index;
@@ -983,6 +1022,7 @@ void codegen_context::reset_current_function(ast::function_body &func_body)
 	this->current_function_info.temp_unsigned_zero_value_index
 		= static_cast<uint32_t>(this->current_function_info.temporary_expressions.size());
 	this->current_function_info.temporary_expressions.push_back("0u");
+
 	this->current_function_info.temp_unsigned_one_value_index
 		= static_cast<uint32_t>(this->current_function_info.temporary_expressions.size());
 	this->current_function_info.temporary_expressions.push_back("1u");
@@ -1042,7 +1082,7 @@ void codegen_context::add_indentation(void)
 
 bz::u8string codegen_context::to_string(expr_value const &value) const
 {
-	if (value.is_temporary_expression)
+	if (value.is_temporary)
 	{
 		bz_assert(value.value_index < this->current_function_info.temporary_expressions.size());
 		return this->current_function_info.temporary_expressions[value.value_index];
@@ -1068,7 +1108,7 @@ bz::u8string codegen_context::to_string_lhs(expr_value const &value, precedence 
 		result += '(';
 	}
 
-	if (value.is_temporary_expression)
+	if (value.is_temporary)
 	{
 		bz_assert(value.value_index < this->current_function_info.temporary_expressions.size());
 		result += this->current_function_info.temporary_expressions[value.value_index];
@@ -1100,7 +1140,7 @@ bz::u8string codegen_context::to_string_rhs(expr_value const &value, precedence 
 		result += '(';
 	}
 
-	if (value.is_temporary_expression)
+	if (value.is_temporary)
 	{
 		bz_assert(value.value_index < this->current_function_info.temporary_expressions.size());
 		result += this->current_function_info.temporary_expressions[value.value_index];
@@ -1132,7 +1172,7 @@ bz::u8string codegen_context::to_string_unary(expr_value const &value, precedenc
 		result += '(';
 	}
 
-	if (value.is_temporary_expression)
+	if (value.is_temporary)
 	{
 		bz_assert(value.value_index < this->current_function_info.temporary_expressions.size());
 		result += this->current_function_info.temporary_expressions[value.value_index];
@@ -1167,7 +1207,7 @@ bz::u8string codegen_context::to_string_binary(expr_value const &lhs, expr_value
 			result += '(';
 		}
 
-		if (lhs.is_temporary_expression)
+		if (lhs.is_temporary)
 		{
 			bz_assert(lhs.value_index < this->current_function_info.temporary_expressions.size());
 			result += this->current_function_info.temporary_expressions[lhs.value_index];
@@ -1198,7 +1238,7 @@ bz::u8string codegen_context::to_string_binary(expr_value const &lhs, expr_value
 			result += '(';
 		}
 
-		if (rhs.is_temporary_expression)
+		if (rhs.is_temporary)
 		{
 			bz_assert(rhs.value_index < this->current_function_info.temporary_expressions.size());
 			result += this->current_function_info.temporary_expressions[rhs.value_index];
@@ -1234,7 +1274,7 @@ bz::u8string codegen_context::to_string_binary(expr_value const &lhs, bz::u8stri
 			result += '(';
 		}
 
-		if (lhs.is_temporary_expression)
+		if (lhs.is_temporary)
 		{
 			bz_assert(lhs.value_index < this->current_function_info.temporary_expressions.size());
 			result += this->current_function_info.temporary_expressions[lhs.value_index];
@@ -1274,7 +1314,7 @@ bz::u8string codegen_context::to_string_unary_prefix(expr_value const &value, bz
 		result += '(';
 	}
 
-	if (value.is_temporary_expression)
+	if (value.is_temporary)
 	{
 		bz_assert(value.value_index < this->current_function_info.temporary_expressions.size());
 		result += this->current_function_info.temporary_expressions[value.value_index];
@@ -1306,7 +1346,7 @@ bz::u8string codegen_context::to_string_unary_suffix(expr_value const &value, bz
 		result += '(';
 	}
 
-	if (value.is_temporary_expression)
+	if (value.is_temporary)
 	{
 		bz_assert(value.value_index < this->current_function_info.temporary_expressions.size());
 		result += this->current_function_info.temporary_expressions[value.value_index];
@@ -1402,12 +1442,19 @@ expr_value codegen_context::add_reference_expression(bz::u8string_view expr_stri
 	return this->make_reference_expression(index, expr_type, is_const);
 }
 
-expr_value codegen_context::add_temporary_expression(bz::u8string expr_string, type expr_type, bool is_const, precedence prec)
+expr_value codegen_context::add_temporary_expression(
+	bz::u8string expr_string,
+	type expr_type,
+	bool is_const,
+	bool is_variable,
+	bool is_rvalue,
+	precedence prec
+)
 {
 	auto const value_index = static_cast<uint32_t>(this->current_function_info.temporary_expressions.size());
 	this->current_function_info.temporary_expressions.push_back(std::move(expr_string));
 
-	return this->make_temporary_expression(value_index, expr_type, is_const, prec);
+	return this->make_temporary_expression(value_index, expr_type, is_const, is_variable, is_rvalue, prec);
 }
 
 expr_value codegen_context::make_value_expression(uint32_t value_index, type value_type) const
@@ -1416,7 +1463,9 @@ expr_value codegen_context::make_value_expression(uint32_t value_index, type val
 		.value_index = value_index,
 		.needs_dereference = false,
 		.is_const = false,
-		.is_temporary_expression = false,
+		.is_temporary = false,
+		.is_variable = true,
+		.is_rvalue = false,
 		.prec = precedence::identifier,
 		.value_type = value_type,
 	};
@@ -1428,19 +1477,30 @@ expr_value codegen_context::make_reference_expression(uint32_t value_index, type
 		.value_index = value_index,
 		.needs_dereference = true,
 		.is_const = is_const,
-		.is_temporary_expression = false,
+		.is_temporary = false,
+		.is_variable = true,
+		.is_rvalue = false,
 		.prec = precedence::identifier,
 		.value_type = value_type,
 	};
 }
 
-expr_value codegen_context::make_temporary_expression(uint32_t value_index, type value_type, bool is_const, precedence prec) const
+expr_value codegen_context::make_temporary_expression(
+	uint32_t value_index,
+	type value_type,
+	bool is_const,
+	bool is_variable,
+	bool is_rvalue,
+	precedence prec
+) const
 {
 	return expr_value{
 		.value_index = value_index,
 		.needs_dereference = false,
 		.is_const = is_const,
-		.is_temporary_expression = true,
+		.is_temporary = true,
+		.is_variable = is_variable,
+		.is_rvalue = is_rvalue,
 		.prec = prec,
 		.value_type = value_type,
 	};
@@ -1743,7 +1803,7 @@ expr_value codegen_context::get_zero_value(type int_type) const
 		? this->current_function_info.temp_signed_zero_value_index
 		: this->current_function_info.temp_unsigned_zero_value_index;
 
-	return this->make_temporary_expression(value_index, int_type, false, precedence::literal);
+	return this->make_temporary_expression(value_index, int_type, false, false, true, precedence::literal);
 }
 
 expr_value codegen_context::get_signed_zero_value(type int_type) const
@@ -1752,6 +1812,8 @@ expr_value codegen_context::get_signed_zero_value(type int_type) const
 		this->current_function_info.temp_signed_zero_value_index,
 		int_type,
 		false,
+		false,
+		true,
 		precedence::literal
 	);
 }
@@ -1762,6 +1824,8 @@ expr_value codegen_context::get_unsigned_zero_value(type int_type) const
 		this->current_function_info.temp_unsigned_zero_value_index,
 		int_type,
 		false,
+		false,
+		true,
 		precedence::literal
 	);
 }
@@ -1786,7 +1850,7 @@ expr_value codegen_context::get_one_value(type int_type) const
 		? this->current_function_info.temp_signed_one_value_index
 		: this->current_function_info.temp_unsigned_one_value_index;
 
-	return this->make_temporary_expression(value_index, int_type, false, precedence::literal);
+	return this->make_temporary_expression(value_index, int_type, false, false, true, precedence::literal);
 }
 
 expr_value codegen_context::get_signed_one_value(type int_type) const
@@ -1795,6 +1859,8 @@ expr_value codegen_context::get_signed_one_value(type int_type) const
 		this->current_function_info.temp_signed_one_value_index,
 		int_type,
 		false,
+		false,
+		true,
 		precedence::literal
 	);
 }
@@ -1805,6 +1871,8 @@ expr_value codegen_context::get_unsigned_one_value(type int_type) const
 		this->current_function_info.temp_unsigned_one_value_index,
 		int_type,
 		false,
+		false,
+		true,
 		precedence::literal
 	);
 }
@@ -1825,12 +1893,15 @@ expr_value codegen_context::get_signed_value(int64_t value, type int_type)
 			bz::format("({} - 1)", value + 1),
 			int_type,
 			false,
+			false,
+			true,
 			precedence::literal
 		);
 	}
 	else
 	{
-		return this->add_temporary_expression(bz::format("{}", value), int_type, false, precedence::literal);
+		auto const prec = value < 0 ? precedence::prefix : precedence::literal;
+		return this->add_temporary_expression(bz::format("{}", value), int_type, false, false, true, prec);
 	}
 }
 
@@ -1845,7 +1916,7 @@ expr_value codegen_context::get_unsigned_value(uint64_t value, type int_type)
 		return this->get_unsigned_one_value(int_type);
 	}
 
-	return this->add_temporary_expression(bz::format("{}u", value), int_type, false, precedence::literal);
+	return this->add_temporary_expression(bz::format("{}u", value), int_type, false, false, true, precedence::literal);
 }
 
 expr_value codegen_context::get_null_pointer_value(void) const
@@ -1854,6 +1925,8 @@ expr_value codegen_context::get_null_pointer_value(void) const
 		this->current_function_info.temp_signed_zero_value_index,
 		this->get_void(),
 		false,
+		false,
+		true,
 		precedence::literal
 	);
 }
@@ -1869,6 +1942,15 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 {
 	bz_assert(!this->is_slice(value.get_type()));
 	auto const type = value.get_type();
+
+	if (!value.is_variable && !value.is_rvalue)
+	{
+		auto const address = this->create_address_of(value);
+		auto const copy = this->create_trivial_copy(address);
+		bz_assert(!copy.is_temporary);
+		value = this->make_reference_expression(copy.value_index, value.value_type, value.is_const);
+	}
+
 	if (auto const struct_type = this->maybe_get_struct(type))
 	{
 		bz_assert(index < struct_type->members.size());
@@ -1878,8 +1960,7 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 		remove_needs_dereference(value, *this);
 
 		// address of has a lower precedence than suffix, so this is fine
-		bz::u8string member_access_string = "&";
-		member_access_string += this->to_string_unary(value, precedence::suffix);
+		bz::u8string member_access_string = this->to_string_unary(value, precedence::suffix);
 		if (use_arrow)
 		{
 			member_access_string += "->";
@@ -1889,11 +1970,18 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 			member_access_string += '.';
 		}
 		member_access_string += this->get_member_name(index);
-		return this->add_reference_expression(member_access_string, result_type, is_const);
+		return this->add_temporary_expression(
+			std::move(member_access_string),
+			result_type,
+			is_const,
+			true,
+			false,
+			precedence::suffix
+		);
 	}
 	else if (auto const array_type = this->maybe_get_array(type))
 	{
-		bz_assert(index <= array_type->size);
+		bz_assert(index < array_type->size);
 		auto const result_type = array_type->elem_type;
 		auto const use_arrow = value.needs_dereference;
 		auto const is_const = value.is_const;
@@ -1902,13 +1990,20 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 		bz::u8string member_access_string = this->to_string_unary(value, precedence::suffix);
 		if (use_arrow)
 		{
-			member_access_string += bz::format("->a + {}", index);
+			member_access_string += bz::format("->a[{}]", index);
 		}
 		else
 		{
-			member_access_string += bz::format(".a + {}", index);
+			member_access_string += bz::format(".a[{}]", index);
 		}
-		return this->add_reference_expression(member_access_string, result_type, is_const);
+		return this->add_temporary_expression(
+			std::move(member_access_string),
+			result_type,
+			is_const,
+			true,
+			false,
+			precedence::suffix
+		);
 	}
 	else
 	{
@@ -1941,7 +2036,7 @@ expr_value codegen_context::create_struct_gep_pointer(expr_value value, size_t i
 		}
 		member_access_string += this->get_member_name(index);
 		auto const result_type = is_const ? this->add_const_pointer(member_type) : this->add_pointer(member_type);
-		return this->add_value_expression(member_access_string, result_type);
+		return this->add_temporary_expression(member_access_string, result_type, false, false, true, precedence::prefix);
 	}
 	else if (auto const array_type = this->maybe_get_array(type))
 	{
@@ -1961,7 +2056,7 @@ expr_value codegen_context::create_struct_gep_pointer(expr_value value, size_t i
 			member_access_string += bz::format(".a + {}", index);
 		}
 		auto const result_type = is_const ? this->add_const_pointer(elem_type) : this->add_pointer(elem_type);
-		return this->add_value_expression(member_access_string, result_type);
+		return this->add_temporary_expression(member_access_string, result_type, false, false, true, precedence::addition);
 	}
 	else
 	{
@@ -2097,20 +2192,47 @@ expr_value codegen_context::create_array_slice_gep(expr_value begin_ptr, expr_va
 expr_value codegen_context::create_array_slice_gep_pointer(expr_value begin_ptr, expr_value index)
 {
 	bz_assert(this->is_pointer(begin_ptr.get_type()));
-	auto const result_ptr = this->to_string_binary(begin_ptr, index, "+", precedence::addition);
-	return this->add_value_expression(result_ptr, begin_ptr.get_type());
+	return this->create_plus(begin_ptr, index, begin_ptr.get_type());
+}
+
+expr_value codegen_context::create_struct_literal(type aggregate_type, bz::array_view<expr_value const> values)
+{
+	return this->add_temporary_expression(
+		this->to_string_struct_literal(aggregate_type, values),
+		aggregate_type,
+		false,
+		false,
+		true,
+		precedence::prefix
+	);
+}
+
+expr_value codegen_context::create_plus(expr_value const &value)
+{
+	return this->create_temporary_prefix_unary_operation(value, "+", value.get_type(), false, false, true);
+}
+
+expr_value codegen_context::create_minus(expr_value const &value)
+{
+	return this->create_temporary_prefix_unary_operation(value, "-", value.get_type(), false, false, true);
 }
 
 expr_value codegen_context::create_dereference(expr_value const &value)
 {
 	bz_assert(this->is_pointer(value.get_type()));
 	auto const [result_type, modifier] = this->remove_pointer(value.get_type());
-	return this->create_temporary_prefix_unary_operation(value, "*", result_type, modifier == type_modifier::const_pointer);
+	return this->create_temporary_prefix_unary_operation(
+		value,
+		"*",
+		result_type,
+		modifier == type_modifier::const_pointer,
+		false,
+		false
+	);
 }
 
 expr_value codegen_context::create_address_of(expr_value const &value)
 {
-	// TODO: use temporary expression
 	if (value.needs_dereference)
 	{
 		auto result_value = value;
@@ -2120,25 +2242,44 @@ expr_value codegen_context::create_address_of(expr_value const &value)
 	else
 	{
 		auto const result_type = value.is_const ? this->add_const_pointer(value.get_type()) : this->add_pointer(value.get_type());
-		return this->add_value_expression(this->to_string_unary_prefix(value, "&"), result_type);
+		return this->create_temporary_prefix_unary_operation(value, "&", result_type, false, false, true);
 	}
 }
 
 expr_value codegen_context::create_cast(expr_value const &value, type dest_type)
 {
-	return this->create_temporary_prefix_unary_operation(value, bz::format("({})", this->to_string(dest_type)), dest_type);
+	return this->create_temporary_prefix_unary_operation(
+		value,
+		bz::format("({})", this->to_string(dest_type)),
+		dest_type,
+		false,
+		false,
+		true
+	);
 }
 
 expr_value codegen_context::create_bool_not(expr_value const &value)
 {
 	bz_assert(value.get_type() == this->get_bool());
-	return this->create_temporary_prefix_unary_operation(value, "!", value.get_type());
+	return this->create_temporary_prefix_unary_operation(value, "!", value.get_type(), false, false, true);
 }
 
 expr_value codegen_context::create_bit_not(expr_value const &value)
 {
 	auto const op = value.get_type() == this->get_bool() ? "!" : "~";
-	return this->create_temporary_prefix_unary_operation(value, op, value.get_type());
+	return this->create_temporary_prefix_unary_operation(value, op, value.get_type(), false, false, true);
+}
+
+expr_value codegen_context::create_sizeof(type t)
+{
+	return this->add_temporary_expression(
+		bz::format("sizeof ({})", this->to_string(t)),
+		this->get_usize(),
+		false,
+		false,
+		true,
+		precedence::prefix
+	);
 }
 
 expr_value codegen_context::create_equals(expr_value const &lhs, expr_value const &rhs)
@@ -2264,10 +2405,19 @@ expr_value codegen_context::create_temporary_prefix_unary_operation(
 	expr_value const &value,
 	bz::u8string_view op,
 	type result_type,
-	bool is_const
+	bool is_const,
+	bool is_variable,
+	bool is_rvalue
 )
 {
-	return this->add_temporary_expression(this->to_string_unary_prefix(value, op), result_type, is_const, precedence::prefix);
+	return this->add_temporary_expression(
+		this->to_string_unary_prefix(value, op),
+		result_type,
+		is_const,
+		is_variable,
+		is_rvalue,
+		precedence::prefix
+	);
 }
 
 void codegen_context::create_prefix_unary_operation(
@@ -2297,7 +2447,7 @@ expr_value codegen_context::create_temporary_binary_operation(
 	type result_type
 )
 {
-	return this->add_temporary_expression(this->to_string_binary(lhs, rhs, op, prec), result_type, false, prec);
+	return this->add_temporary_expression(this->to_string_binary(lhs, rhs, op, prec), result_type, false, false, true, prec);
 }
 
 expr_value codegen_context::create_binary_operation(
