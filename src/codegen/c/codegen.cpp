@@ -2912,7 +2912,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const it_value = generate_expression(func_call.params[0], context, {});
 		generate_expression(func_call.params[1], context, {});
 		auto const at_end = context.create_struct_gep_value(it_value, 2);
-		auto const result = context.create_prefix_unary_operation(at_end, "!", context.get_bool());
+		auto const result = context.create_bool_not(at_end);
 		return value_or_result_dest(result, result_dest, context);
 	}
 	case ast::function_body::builtin_integer_range_inclusive_iterator_right_not_equals:
@@ -2921,7 +2921,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		generate_expression(func_call.params[0], context, {});
 		auto const it_value = generate_expression(func_call.params[1], context, {});
 		auto const at_end = context.create_struct_gep_value(it_value, 2);
-		auto const result = context.create_prefix_unary_operation(at_end, "!", context.get_bool());
+		auto const result = context.create_bool_not(at_end);
 		return value_or_result_dest(result, result_dest, context);
 	}
 	case ast::function_body::builtin_integer_range_inclusive_iterator_plus_plus:
