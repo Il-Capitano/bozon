@@ -263,8 +263,9 @@ static bz::optional<test_fail_info_t> run_behavior_success_test_file(
 			out_exe
 		};
 #else
-		auto const link_args = bz::array<bz::u8string_view, 3>{
+		auto const link_args = bz::array<bz::u8string_view, 4>{
 			out_file_with_extension,
+			"-fuse-ld=lld",
 			"-o",
 			out_exe
 		};
