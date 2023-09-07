@@ -2813,7 +2813,8 @@ static ast::constant_value guaranteed_evaluate_expr(
 				auto const index = index_value.is_uint()
 					? index_value.get_uint()
 					: static_cast<uint64_t>(index_value.get_sint());
-				return rvalue_tuple_subscript_expr.base.get_constant_value().get_aggregate()[index];
+				bz_assert(rvalue_tuple_subscript_expr.base.get_constant_value().is_tuple());
+				return rvalue_tuple_subscript_expr.base.get_constant_value().get_tuple()[index];
 			}
 			else
 			{
