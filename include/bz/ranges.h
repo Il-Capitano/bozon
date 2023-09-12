@@ -262,9 +262,9 @@ struct collection_base_reduce
 template<typename Collection>
 struct collection_base_sort
 {
-	void sort(void) noexcept;
+	constexpr void sort(void) noexcept;
 	template<typename Cmp>
-	void sort(Cmp &&cmp) noexcept;
+	constexpr void sort(Cmp &&cmp) noexcept;
 };
 
 template<typename Collection>
@@ -1247,7 +1247,7 @@ constexpr auto collection_base_reduce<Collection>::reduce(T &&val, BinOp bin_op)
 { return static_cast<Collection const *>(this)->as_range().reduce(std::forward<T>(val), std::move(bin_op)); }
 
 template<typename Collection>
-void collection_base_sort<Collection>::sort(void) noexcept
+constexpr void collection_base_sort<Collection>::sort(void) noexcept
 {
 	auto const self = static_cast<Collection *>(this);
 	std::sort(self->begin(), self->end());
@@ -1255,7 +1255,7 @@ void collection_base_sort<Collection>::sort(void) noexcept
 
 template<typename Collection>
 template<typename Cmp>
-void collection_base_sort<Collection>::sort(Cmp &&cmp) noexcept
+constexpr void collection_base_sort<Collection>::sort(Cmp &&cmp) noexcept
 {
 	auto const self = static_cast<Collection *>(this);
 	std::sort(self->begin(), self->end(), std::forward<Cmp>(cmp));
