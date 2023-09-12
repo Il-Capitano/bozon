@@ -229,9 +229,8 @@ static bool apply_builtin(
 		return false;
 	}
 
-	if (info.body.is_null())
+	if (info.kind != ast::type_info::str_ && info.kind != ast::type_info::null_t_)
 	{
-		info.state = ast::resolve_state::all;
 		info.flags = ast::type_info::default_constructible
 			| ast::type_info::copy_constructible
 			| ast::type_info::trivially_copy_constructible

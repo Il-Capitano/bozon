@@ -2667,15 +2667,21 @@ static void resolve_type_info_members_impl(ast::type_info &info, ctx::parse_cont
 		return;
 	}
 
-	add_default_constructors(info, context);
-	add_flags(info, context);
+	if (info.prototype == nullptr)
+	{
+		add_default_constructors(info, context);
+		add_flags(info, context);
 
-	auto &type_set = context.get_type_prototype_set();
-	auto const member_types = info.member_variables.transform([&](auto const member) {
-		return ast::get_type_prototype(member->get_type(), type_set);
-	}).collect();
-	bz_assert(info.prototype == nullptr);
-	info.prototype = type_set.get_aggregate_type(member_types);
+		auto &type_set = context.get_type_prototype_set();
+		auto const member_types = info.member_variables.transform([&](auto const member) {
+			return ast::get_type_prototype(member->get_type(), type_set);
+		}).collect();
+		info.prototype = type_set.get_aggregate_type(member_types);
+	}
+	else
+	{
+		bz_assert(info.prototype->is_builtin());
+	}
 
 	info.state = ast::resolve_state::members;
 	context.pop_global_scope(std::move(prev_scope_info));

@@ -999,7 +999,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 				return false;
 			}
 
-			if (!builtins_file.parse(*this))
+			if (!builtins_file.parse_builtins(*this))
 			{
 				return false;
 			}
