@@ -90,6 +90,8 @@ struct parse_context
 	ast::type_info *get_usize_type_info(void) const;
 	ast::type_info *get_isize_type_info(void) const;
 	ast::decl_function *get_builtin_function(uint32_t kind) const;
+	ast::decl_operator *get_builtin_operator(uint32_t op_kind, uint8_t expr_type_kind) const;
+	ast::decl_operator *get_builtin_operator(uint32_t op_kind, uint8_t lhs_type_kind, uint8_t rhs_type_kind) const;
 	bz::array_view<uint32_t const> get_builtin_universal_functions(bz::u8string_view id);
 	ast::type_prototype_set_t &get_type_prototype_set(void);
 
