@@ -127,6 +127,121 @@ resolve::attribute_info_t *global_context::get_builtin_attribute(bz::u8string_vi
 	}
 }
 
+ast::decl_operator *global_context::get_builtin_operator(uint32_t op_kind_, uint8_t expr_type_kind_)
+{
+	using op_enum_t = builtin_type_arithmetic_operator_table_t::unary_array_t::index_type;
+	using kind_enum_t = arithmetic_operator_table_t::index_type;
+
+	auto const op_kind = static_cast<op_enum_t>(op_kind_);
+	auto const expr_type_kind = static_cast<kind_enum_t>(expr_type_kind_);
+
+	if (
+		this->_arithmetic_operators.is_valid_index(expr_type_kind)
+		&& this->_arithmetic_operators[expr_type_kind].unary_ops.is_valid_index(op_kind)
+	)
+	{
+		return this->_arithmetic_operators[expr_type_kind].unary_ops[op_kind];
+	}
+	else if (
+		this->_bitwise_operators.is_valid_index(expr_type_kind)
+		&& this->_bitwise_operators[expr_type_kind].unary_ops.is_valid_index(op_kind)
+	)
+	{
+		return this->_bitwise_operators[expr_type_kind].unary_ops[op_kind];
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
+ast::decl_operator *global_context::get_builtin_operator(uint32_t op_kind_, uint8_t lhs_type_kind_, uint8_t rhs_type_kind_)
+{
+	using op_enum_t = builtin_type_basic_operator_table_t::binary_array_t::index_type;
+	using kind_enum_t = basic_operator_table_t::index_type;
+
+	auto const op_kind = static_cast<op_enum_t>(op_kind_);
+	auto const lhs_type_kind = static_cast<kind_enum_t>(lhs_type_kind_);
+	auto const rhs_type_kind = static_cast<kind_enum_t>(rhs_type_kind_);
+
+	if (op_kind == lex::token::bit_left_shift)
+	{
+		bz_assert(this->_bitwise_operators.is_valid_index(lhs_type_kind));
+		if (ast::is_signed_integer_kind(rhs_type_kind))
+		{
+			return this->_bitwise_operators[lhs_type_kind].signed_bit_left_shift;
+		}
+		else
+		{
+			return this->_bitwise_operators[lhs_type_kind].unsigned_bit_left_shift;
+		}
+	}
+	else if (op_kind == lex::token::bit_left_shift_eq)
+	{
+		bz_assert(this->_bitwise_operators.is_valid_index(lhs_type_kind));
+		if (ast::is_signed_integer_kind(rhs_type_kind))
+		{
+			return this->_bitwise_operators[lhs_type_kind].signed_bit_left_shift_eq;
+		}
+		else
+		{
+			return this->_bitwise_operators[lhs_type_kind].unsigned_bit_left_shift_eq;
+		}
+	}
+	else if (op_kind == lex::token::bit_right_shift)
+	{
+		bz_assert(this->_bitwise_operators.is_valid_index(lhs_type_kind));
+		if (ast::is_signed_integer_kind(rhs_type_kind))
+		{
+			return this->_bitwise_operators[lhs_type_kind].signed_bit_right_shift;
+		}
+		else
+		{
+			return this->_bitwise_operators[lhs_type_kind].unsigned_bit_right_shift;
+		}
+	}
+	else if (op_kind == lex::token::bit_right_shift_eq)
+	{
+		bz_assert(this->_bitwise_operators.is_valid_index(lhs_type_kind));
+		if (ast::is_signed_integer_kind(rhs_type_kind))
+		{
+			return this->_bitwise_operators[lhs_type_kind].signed_bit_right_shift_eq;
+		}
+		else
+		{
+			return this->_bitwise_operators[lhs_type_kind].unsigned_bit_right_shift_eq;
+		}
+	}
+	else if (
+		lhs_type_kind == rhs_type_kind
+		&& this->_basic_operators.is_valid_index(lhs_type_kind)
+		&& this->_basic_operators[lhs_type_kind].binary_ops.is_valid_index(op_kind)
+	)
+	{
+		return this->_basic_operators[lhs_type_kind].binary_ops[op_kind];
+	}
+	else if (
+		lhs_type_kind == rhs_type_kind
+		&& this->_arithmetic_operators.is_valid_index(lhs_type_kind)
+		&& this->_arithmetic_operators[lhs_type_kind].binary_ops.is_valid_index(op_kind)
+	)
+	{
+		return this->_arithmetic_operators[lhs_type_kind].binary_ops[op_kind];
+	}
+	else if (
+		lhs_type_kind == rhs_type_kind
+		&& this->_bitwise_operators.is_valid_index(lhs_type_kind)
+		&& this->_bitwise_operators[lhs_type_kind].binary_ops.is_valid_index(op_kind)
+	)
+	{
+		return this->_bitwise_operators[lhs_type_kind].binary_ops[op_kind];
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
 size_t global_context::get_sizeof(ast::typespec_view ts)
 {
 	bz_assert(this->comptime_codegen_context != nullptr);
@@ -620,6 +735,38 @@ bool global_context::add_builtin_operator(ast::decl_operator *op_decl)
 
 		op_decl->body.intrinsic_kind = it->kind;
 		this->_builtin_operators.push_back(op_decl);
+
+		if (op_decl->body.params[0].get_type().remove_mut_reference().is<ast::ts_base_type>())
+		{
+			using kind_enum_t = arithmetic_operator_table_t::index_type;
+			using op_enum_t = builtin_type_arithmetic_operator_table_t::unary_array_t::index_type;
+
+			auto const kind = static_cast<kind_enum_t>(
+				op_decl->body.params[0]
+					.get_type()
+					.remove_mut_reference()
+					.get<ast::ts_base_type>().info->kind
+			);
+			auto const op_kind = static_cast<op_enum_t>(op);
+
+			if (
+				this->_arithmetic_operators.is_valid_index(kind)
+				&& this->_arithmetic_operators[kind].unary_ops.is_valid_index(op_kind)
+			)
+			{
+				bz_assert(this->_arithmetic_operators[kind].unary_ops[op_kind] == nullptr);
+				this->_arithmetic_operators[kind].unary_ops[op_kind] = op_decl;
+			}
+			else if (
+				this->_bitwise_operators.is_valid_index(kind)
+				&& this->_bitwise_operators[kind].unary_ops.is_valid_index(op_kind)
+			)
+			{
+				bz_assert(this->_bitwise_operators[kind].unary_ops[op_kind] == nullptr);
+				this->_bitwise_operators[kind].unary_ops[op_kind] = op_decl;
+			}
+		}
+
 		return true;
 	}
 	else if (op_decl->body.params.size() == 2)
@@ -637,6 +784,113 @@ bool global_context::add_builtin_operator(ast::decl_operator *op_decl)
 
 		op_decl->body.intrinsic_kind = it->kind;
 		this->_builtin_operators.push_back(op_decl);
+
+		if (
+			op_decl->body.params[0].get_type().remove_mut_reference().is<ast::ts_base_type>()
+			&& op_decl->body.params[1].get_type().is<ast::ts_base_type>()
+		)
+		{
+			using kind_enum_t = basic_operator_table_t::index_type;
+			using op_enum_t = builtin_type_basic_operator_table_t::binary_array_t::index_type;
+
+			auto const lhs_kind = static_cast<kind_enum_t>(
+				op_decl->body.params[0]
+					.get_type()
+					.remove_mut_reference()
+					.get<ast::ts_base_type>().info->kind
+			);
+			auto const rhs_kind = static_cast<kind_enum_t>(
+				op_decl->body.params[1]
+					.get_type()
+					.get<ast::ts_base_type>().info->kind
+			);
+			auto const op_kind = static_cast<op_enum_t>(op);
+
+			if (op_kind == lex::token::bit_left_shift)
+			{
+				bz_assert(this->_bitwise_operators.is_valid_index(lhs_kind));
+				if (ast::is_signed_integer_kind(rhs_kind))
+				{
+					bz_assert(this->_bitwise_operators[lhs_kind].signed_bit_left_shift == nullptr);
+					this->_bitwise_operators[lhs_kind].signed_bit_left_shift = op_decl;
+				}
+				else
+				{
+					bz_assert(this->_bitwise_operators[lhs_kind].unsigned_bit_left_shift == nullptr);
+					this->_bitwise_operators[lhs_kind].unsigned_bit_left_shift = op_decl;
+				}
+			}
+			else if (op_kind == lex::token::bit_left_shift_eq)
+			{
+				bz_assert(this->_bitwise_operators.is_valid_index(lhs_kind));
+				if (ast::is_signed_integer_kind(rhs_kind))
+				{
+					bz_assert(this->_bitwise_operators[lhs_kind].signed_bit_left_shift_eq == nullptr);
+					this->_bitwise_operators[lhs_kind].signed_bit_left_shift_eq = op_decl;
+				}
+				else
+				{
+					bz_assert(this->_bitwise_operators[lhs_kind].unsigned_bit_left_shift_eq == nullptr);
+					this->_bitwise_operators[lhs_kind].unsigned_bit_left_shift_eq = op_decl;
+				}
+			}
+			else if (op_kind == lex::token::bit_right_shift)
+			{
+				bz_assert(this->_bitwise_operators.is_valid_index(lhs_kind));
+				if (ast::is_signed_integer_kind(rhs_kind))
+				{
+					bz_assert(this->_bitwise_operators[lhs_kind].signed_bit_right_shift == nullptr);
+					this->_bitwise_operators[lhs_kind].signed_bit_right_shift = op_decl;
+				}
+				else
+				{
+					bz_assert(this->_bitwise_operators[lhs_kind].unsigned_bit_right_shift == nullptr);
+					this->_bitwise_operators[lhs_kind].unsigned_bit_right_shift = op_decl;
+				}
+			}
+			else if (op_kind == lex::token::bit_right_shift_eq)
+			{
+				bz_assert(this->_bitwise_operators.is_valid_index(lhs_kind));
+				if (ast::is_signed_integer_kind(rhs_kind))
+				{
+					bz_assert(this->_bitwise_operators[lhs_kind].signed_bit_right_shift_eq == nullptr);
+					this->_bitwise_operators[lhs_kind].signed_bit_right_shift_eq = op_decl;
+				}
+				else
+				{
+					bz_assert(this->_bitwise_operators[lhs_kind].unsigned_bit_right_shift_eq == nullptr);
+					this->_bitwise_operators[lhs_kind].unsigned_bit_right_shift_eq = op_decl;
+				}
+			}
+			else if (
+				lhs_kind == rhs_kind
+				&& this->_basic_operators.is_valid_index(lhs_kind)
+				&& this->_basic_operators[lhs_kind].binary_ops.is_valid_index(op_kind)
+			)
+			{
+				bz_assert(this->_basic_operators[lhs_kind].binary_ops[op_kind] == nullptr);
+				this->_basic_operators[lhs_kind].binary_ops[op_kind] = op_decl;
+			}
+			else if (
+				lhs_kind == rhs_kind
+				&& this->_arithmetic_operators.is_valid_index(lhs_kind)
+				&& this->_arithmetic_operators[lhs_kind].binary_ops.is_valid_index(op_kind)
+			)
+			{
+				bz_assert(this->_arithmetic_operators[lhs_kind].binary_ops[op_kind] == nullptr);
+				this->_arithmetic_operators[lhs_kind].binary_ops[op_kind] = op_decl;
+			}
+			else if (
+				lhs_kind == rhs_kind
+				&& this->_bitwise_operators.is_valid_index(lhs_kind)
+				&& this->_bitwise_operators[lhs_kind].binary_ops.is_valid_index(op_kind)
+			)
+			{
+				bz_assert(this->_bitwise_operators[lhs_kind].binary_ops[op_kind] == nullptr);
+				this->_bitwise_operators[lhs_kind].binary_ops[op_kind] = op_decl;
+			}
+		}
+
 		return true;
 	}
 	else
@@ -1099,7 +1353,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 				return false;
 			}
 
-			if (!builtins_file.parse(*this))
+			if (!builtins_file.parse_builtins(*this))
 			{
 				return false;
 			}

@@ -1,30 +1,58 @@
-#ifndef _bz_array_h__
-#define _bz_array_h__
+#ifndef _bz_enum_array_h__
+#define _bz_enum_array_h__
 
 #include "core.h"
 
 #include "meta.h"
+#include "array.h"
 #include "iterator.h"
-#include "array_view.h"
-#include "ranges.h"
 
 bz_begin_namespace
 
-template<typename T, std::size_t N>
-struct array
+template<typename T, auto ...values_variadic>
+struct enum_array
 {
-	static_assert(N != 0, "size of array must be bigger than 0");
-	static_assert(
-		!meta::is_reference<T>,
-		"value_type of array can't be a reference"
-	);
-	static_assert(
-		!meta::is_void<T>,
-		"value_type of array can't be void"
-	);
+private:
+	static_assert(meta::is_same<decltype(values_variadic)...>, "provided enum values must be of the same type");
+	using enum_t = decltype((values_variadic, ...));
+	static_assert(std::is_enum_v<enum_t>, "type of values is not an enum type");
 
+	static constexpr size_t N = sizeof ...(values_variadic);
+	static_assert(N > 0, "at least one value must be provided");
+	static constexpr array<enum_t, N> values = []() {
+		array<enum_t, N> result = { values_variadic... };
+		result.sort();
+		return result;
+	}();
+
+	static_assert([]() {
+		for (size_t i = 1; i < N; ++i)
+		{
+			if (values[i - 1] == values[i])
+			{
+				return false;
+			}
+		}
+		return true;
+	}(), "the provided values are not all unique");
+
+	constexpr static size_t index_from_value(enum_t e)
+	{
+		for (size_t i = 0; i < N; ++i)
+		{
+			if (e == values[i])
+			{
+				return i;
+			}
+		}
+		bz_unreachable;
+		return size_t(-1);
+	}
+
+public:
 	using value_type = T;
 	using size_type = std::size_t;
+	using index_type = enum_t;
 
 	using       iterator = ::bz::random_access_iterator<      value_type>;
 	using const_iterator = ::bz::random_access_iterator<const value_type>;
@@ -35,29 +63,22 @@ struct array
 	T _arr[N];
 
 
+	static constexpr bool is_valid_index(index_type n)
+	{
+		return values.contains(n);
+	}
+
 	// ==== size queries ====
 	static constexpr auto size(void) noexcept
 	{ return N; }
 
 
 	// ==== member access ====
-	constexpr auto &operator [] (size_type n) noexcept
-	{ return this->_arr[n]; }
+	constexpr auto &operator [] (index_type n) noexcept
+	{ return this->_arr[index_from_value(n)]; }
 
-	constexpr auto const &operator [] (size_type n) const noexcept
-	{ return this->_arr[n]; }
-
-	constexpr auto &front(void) noexcept
-	{ return this->_arr[0]; }
-
-	constexpr auto const &front(void) const noexcept
-	{ return this->_arr[0]; }
-
-	constexpr auto &back(void) noexcept
-	{ return this->_arr[N - 1]; }
-
-	constexpr auto const &back(void) const noexcept
-	{ return this->_arr[N - 1]; }
+	constexpr auto const &operator [] (index_type n) const noexcept
+	{ return this->_arr[index_from_value(n)]; }
 
 	constexpr auto *data(void) noexcept
 	{ return this->_arr; }
@@ -152,18 +173,8 @@ struct array
 	template<typename Val>
 	constexpr auto min(Val &&val) const noexcept
 	{ return static_cast<array_view<value_type const>>(*this).min(std::forward<Val>(val)); }
-
-	constexpr auto sort(void) noexcept
-	{ return static_cast<array_view<value_type>>(*this).sort(); }
-
-	template<typename Cmp>
-	constexpr auto sort(Cmp &&cmp) noexcept
-	{ return static_cast<array_view<value_type>>(*this).sort(std::forward<Cmp>(cmp)); }
 };
-
-template<typename T, typename ...U>
-array(T, U ...) -> array<T, 1 + sizeof... (U)>;
 
 bz_end_namespace
 
-#endif // _bz_array_h__
+#endif // _bz_enum_array_h__

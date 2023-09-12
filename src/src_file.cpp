@@ -348,6 +348,43 @@ src_file::src_file(fs::path file_path, uint32_t file_id, bz::vector<bz::u8string
 	return !global_ctx.has_errors();
 }
 
+// the __builtins.bz file needs to be parsed a bit differently:
+//   - struct declarations must be resolved by first calling resolve_symbol,
+//     otherwise attributes cannot be used in their body
+[[nodiscard]] bool src_file::parse_builtins(ctx::global_context &global_ctx)
+{
+	if (this->_stage > parsed_global_symbols)
+	{
+		return true;
+	}
+	bz_assert(this->_stage == parsed_global_symbols);
+
+	ctx::parse_context context(global_ctx);
+	context.current_global_scope = &this->_global_scope;
+
+	for (auto &decl : this->_declarations)
+	{
+		if (decl.is<ast::decl_struct>())
+		{
+			resolve::resolve_type_info_members(decl.get<ast::decl_struct>().info, context);
+		}
+	}
+
+	for (auto &decl : this->_declarations)
+	{
+		resolve::resolve_global_statement(decl, context);
+	}
+	for (std::size_t i = 0; i < context.generic_functions.size(); ++i)
+	{
+		context.add_to_resolve_queue({}, *context.generic_functions[i]);
+		resolve::resolve_function({}, *context.generic_functions[i], context);
+		context.pop_resolve_queue();
+	}
+
+	this->_stage = parsed;
+	return !global_ctx.has_errors();
+}
+
 [[nodiscard]] bool src_file::parse(ctx::global_context &global_ctx)
 {
 	if (this->_stage > parsed_global_symbols)

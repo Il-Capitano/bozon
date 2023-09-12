@@ -155,6 +155,16 @@ ast::decl_function *parse_context::get_builtin_function(uint32_t kind) const
 	return this->global_ctx.get_builtin_function(kind);
 }
 
+ast::decl_operator *parse_context::get_builtin_operator(uint32_t op_kind, uint8_t expr_type_kind) const
+{
+	return this->global_ctx.get_builtin_operator(op_kind, expr_type_kind);
+}
+
+ast::decl_operator *parse_context::get_builtin_operator(uint32_t op_kind, uint8_t lhs_type_kind, uint8_t rhs_type_kind) const
+{
+	return this->global_ctx.get_builtin_operator(op_kind, lhs_type_kind, rhs_type_kind);
+}
+
 bz::array_view<uint32_t const> parse_context::get_builtin_universal_functions(bz::u8string_view id)
 {
 	return this->global_ctx.get_builtin_universal_functions(id);
@@ -3897,6 +3907,26 @@ ast::expression parse_context::make_unary_operator_expression(
 	{
 		return make_builtin_operation(src_tokens, op_kind, std::move(expr), *this);
 	}
+	else if (
+		auto const op_decl = ::ctx::get_builtin_operator(op_kind, expr, *this);
+		op_decl != nullptr
+		&& resolve::get_function_call_match_level(op_decl, op_decl->body, expr, *this, src_tokens).not_null()
+	)
+	{
+		if (op_decl->body.is_builtin_operator() && expr.is_constant() && expr.is_integer_literal())
+		{
+			auto result = make_unary_literal_operation(src_tokens, op_kind, expr, *this);
+
+			if (result.not_null())
+			{
+				return result;
+			}
+		}
+
+		ast::arena_vector<ast::expression> args;
+		args.emplace_back(std::move(expr));
+		return make_expr_function_call_from_body(src_tokens, &op_decl->body, std::move(args), *this);
+	}
 
 	auto const possible_funcs = get_possible_funcs_for_operator(src_tokens, op_kind, expr, *this);
 	if (possible_funcs.empty())
@@ -3921,12 +3951,7 @@ ast::expression parse_context::make_unary_operator_expression(
 		{
 			if (best_body->is_builtin_operator() && expr.is_constant() && expr.is_integer_literal())
 			{
-				auto result = make_unary_literal_operation(
-					src_tokens,
-					best_body->function_name_or_operator_kind.get<uint32_t>(),
-					expr,
-					*this
-				);
+				auto result = make_unary_literal_operation(src_tokens, op_kind, expr, *this);
 
 				if (result.not_null())
 				{
@@ -4138,6 +4163,35 @@ ast::expression parse_context::make_binary_operator_expression(
 	if (!is_binary_overloadable_operator(op_kind))
 	{
 		return make_builtin_operation(src_tokens, op_kind, std::move(lhs), std::move(rhs), *this);
+	}
+	else if (
+		auto const op_decl = ::ctx::get_builtin_operator(op_kind, lhs, rhs, *this);
+		op_decl != nullptr
+		&& resolve::get_function_call_match_level(op_decl, op_decl->body, lhs, rhs, *this, src_tokens).not_null()
+	)
+	{
+			if (
+				op_decl->body.is_builtin_operator()
+				&& lhs.is_constant() && rhs.is_constant()
+				&& lhs.is_integer_literal() && rhs.is_integer_literal()
+			)
+			{
+				auto result = make_binary_literal_operation(src_tokens, op_kind, lhs, rhs, *this);
+
+				if (result.not_null())
+				{
+					return result;
+				}
+			}
+
+			auto const resolve_order = get_binary_precedence(op_kind).is_left_associative
+				? ast::resolve_order::regular
+				: ast::resolve_order::reversed;
+			ast::arena_vector<ast::expression> args;
+			args.reserve(2);
+			args.emplace_back(std::move(lhs));
+			args.emplace_back(std::move(rhs));
+			return make_expr_function_call_from_body(src_tokens, &op_decl->body, std::move(args), *this, resolve_order);
 	}
 
 	auto const possible_funcs = get_possible_funcs_for_operator(src_tokens, op_kind, lhs, rhs, *this);
