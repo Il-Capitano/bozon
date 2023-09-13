@@ -1,18 +1,12 @@
 function main()
 {
 	let s = [: mut int32]();
-	mut ps: [2: ?*int32] = [ null, null ];
-	static_assert(sizeof ps <= sizeof s);
-	__builtin_memcpy(&ps, &s, sizeof ps);
-	if (ps[1] != __builtin_slice_end_ptr(s)) unreachable;
-	if (ps[1] != __builtin_slice_end_mut_ptr(s)) unreachable;
+	if (__builtin_bit_cast([2: ?*int32], s)[1] != __builtin_slice_end_ptr(s)) unreachable;
+	if (__builtin_bit_cast([2: ?*int32], s)[1] != __builtin_slice_end_mut_ptr(s)) unreachable;
 
 	consteval a = [10: int32]();
 	let s: [: int32] = a;
-	mut ps: [2: ?*int32] = [ null, null ];
-	static_assert(sizeof ps <= sizeof s);
-	__builtin_memcpy(&ps, &s, sizeof ps);
-	if (ps[1] != __builtin_slice_end_ptr(s)) unreachable;
+	if (__builtin_bit_cast([2: ?*int32], s)[1] != __builtin_slice_end_ptr(s)) unreachable;
 
 	mut a = [10: uint8]();
 	let s: [: mut uint8] = a;
