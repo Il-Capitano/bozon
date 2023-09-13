@@ -688,6 +688,16 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 @__builtin export function __builtin_integer_range_to_u32(end: uint32) -> __integer_range_to<uint32>;
 @__builtin export function __builtin_integer_range_to_u64(end: uint64) -> __integer_range_to<uint64>;
 
+@__builtin export function __builtin_integer_range_to_inclusive_i8 (end: int8)  -> __integer_range_to_inclusive<int8>;
+@__builtin export function __builtin_integer_range_to_inclusive_i16(end: int16) -> __integer_range_to_inclusive<int16>;
+@__builtin export function __builtin_integer_range_to_inclusive_i32(end: int32) -> __integer_range_to_inclusive<int32>;
+@__builtin export function __builtin_integer_range_to_inclusive_i64(end: int64) -> __integer_range_to_inclusive<int64>;
+
+@__builtin export function __builtin_integer_range_to_inclusive_u8 (end: uint8)  -> __integer_range_to_inclusive<uint8>;
+@__builtin export function __builtin_integer_range_to_inclusive_u16(end: uint16) -> __integer_range_to_inclusive<uint16>;
+@__builtin export function __builtin_integer_range_to_inclusive_u32(end: uint32) -> __integer_range_to_inclusive<uint32>;
+@__builtin export function __builtin_integer_range_to_inclusive_u64(end: uint64) -> __integer_range_to_inclusive<uint64>;
+
 @__builtin export function __builtin_range_unbounded() -> __range_unbounded;
 
 @__builtin export function __builtin_integer_range_begin_value(range: __integer_range) -> (typeof range).__value_type;
