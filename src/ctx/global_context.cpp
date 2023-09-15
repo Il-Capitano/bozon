@@ -992,13 +992,14 @@ size_t global_context::get_pointer_size(void) const
 	return this->comptime_codegen_context->machine_parameters.pointer_size;
 }
 
-ast::constant_value global_context::add_constant_string(bz::u8string str)
+ast::constant_value global_context::add_constant_string(bz::u8string_view str)
 {
-	auto const &s = this->constant_string_storage.push_back(std::move(str));
-	return ast::constant_value(s.as_string_view());
+	auto const &storage = this->constant_string_storage.push_back(bz::array_view<char const>(str.data(), str.data() + str.size()));
+	auto const s = bz::u8string_view(storage.data(), storage.data_end());
+	return ast::constant_value(s);
 }
 
-ast::constant_value global_context::add_constant_array(ast::arena_vector<ast::constant_value_storage> elems)
+ast::constant_value global_context::add_constant_array(ast::arena_vector<ast::constant_value> elems)
 {
 	auto const &arr = this->constant_aggregate_storage.push_back(std::move(elems));
 	ast::constant_value result;
@@ -1006,7 +1007,7 @@ ast::constant_value global_context::add_constant_array(ast::arena_vector<ast::co
 	return result;
 }
 
-ast::constant_value global_context::add_constant_tuple(ast::arena_vector<ast::constant_value_storage> elems)
+ast::constant_value global_context::add_constant_tuple(ast::arena_vector<ast::constant_value> elems)
 {
 	auto const &arr = this->constant_aggregate_storage.push_back(std::move(elems));
 	ast::constant_value result;
@@ -1014,7 +1015,7 @@ ast::constant_value global_context::add_constant_tuple(ast::arena_vector<ast::co
 	return result;
 }
 
-ast::constant_value global_context::add_constant_aggregate(ast::arena_vector<ast::constant_value_storage> elems)
+ast::constant_value global_context::add_constant_aggregate(ast::arena_vector<ast::constant_value> elems)
 {
 	auto const &arr = this->constant_aggregate_storage.push_back(std::move(elems));
 	ast::constant_value result;
@@ -1244,6 +1245,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 {
 	this->_builtin_type_infos.resize(ast::type_info::null_t_ + 1, nullptr);
 	this->_builtin_functions.resize(ast::function_body::_builtin_last - ast::function_body::_builtin_first, nullptr);
+	this->cached_auto_type = this->constant_type_storage.push_back(ast::make_auto_typespec(nullptr));
 
 	if (!ctcli::is_option_set<ctcli::option("--stdlib-dir")>())
 	{

@@ -7,36 +7,7 @@ namespace ast
 
 static_assert(std::is_trivially_copy_constructible_v<constant_value_base_t>);
 
-static_assert(constant_value_storage_base_t::variant_count == 19);
-static_assert(static_cast<uint64_t>(constant_value_kind::sint) == constant_value_storage_base_t::index_of<int64_t>);
-static_assert(static_cast<uint64_t>(constant_value_kind::uint) == constant_value_storage_base_t::index_of<uint64_t>);
-static_assert(static_cast<uint64_t>(constant_value_kind::float32) == constant_value_storage_base_t::index_of<float32_t>);
-static_assert(static_cast<uint64_t>(constant_value_kind::float64) == constant_value_storage_base_t::index_of<float64_t>);
-static_assert(static_cast<uint64_t>(constant_value_kind::u8char) == constant_value_storage_base_t::index_of<bz::u8char>);
-static_assert(static_cast<uint64_t>(constant_value_kind::string) == constant_value_storage_base_t::index_of<bz::u8string>);
-static_assert(static_cast<uint64_t>(constant_value_kind::boolean) == constant_value_storage_base_t::index_of<bool>);
-static_assert(static_cast<uint64_t>(constant_value_kind::null) == constant_value_storage_base_t::index_of<internal::null_t>);
-static_assert(static_cast<uint64_t>(constant_value_kind::void_) == constant_value_storage_base_t::index_of<internal::void_t>);
-static_assert(static_cast<uint64_t>(constant_value_kind::enum_) == constant_value_storage_base_t::index_of<internal::enum_t>);
-// static_assert(static_cast<uint64_t>(constant_value_kind::array) == constant_value_storage_base_t::index_of<arena_vector<constant_value_storage>>);
-static_assert(static_cast<uint64_t>(constant_value_kind::sint_array) == constant_value_storage_base_t::index_of<arena_vector<int64_t>>);
-static_assert(static_cast<uint64_t>(constant_value_kind::uint_array) == constant_value_storage_base_t::index_of<arena_vector<uint64_t>>);
-static_assert(static_cast<uint64_t>(constant_value_kind::float32_array) == constant_value_storage_base_t::index_of<arena_vector<float32_t>>);
-static_assert(static_cast<uint64_t>(constant_value_kind::float64_array) == constant_value_storage_base_t::index_of<arena_vector<float64_t>>);
-// static_assert(static_cast<uint64_t>(constant_value_kind::tuple) == constant_value_storage_base_t::index_of<arena_vector<constant_value_storage>>);
-static_assert(static_cast<uint64_t>(constant_value_kind::function) == constant_value_storage_base_t::index_of<function_body *>);
-static_assert(static_cast<uint64_t>(constant_value_kind::type) == constant_value_storage_base_t::index_of<typespec>);
-// static_assert(static_cast<uint64_t>(constant_value_kind::aggregate) == constant_value_storage_base_t::index_of<arena_vector<constant_value_storage>>);
-static_assert(bz::meta::is_same<constant_value_storage_base_t::value_type<static_cast<uint64_t>(constant_value_kind::array)>, arena_vector<constant_value_storage>>);
-static_assert(bz::meta::is_same<constant_value_storage_base_t::value_type<static_cast<uint64_t>(constant_value_kind::tuple)>, arena_vector<constant_value_storage>>);
-static_assert(bz::meta::is_same<constant_value_storage_base_t::value_type<static_cast<uint64_t>(constant_value_kind::aggregate)>, arena_vector<constant_value_storage>>);
-static_assert(
-	constant_value_kind::array != constant_value_kind::tuple
-	&& constant_value_kind::array != constant_value_kind::aggregate
-	&& constant_value_kind::tuple != constant_value_kind::aggregate
-);
-
-static_assert(constant_value_base_t::variant_count == 19);
+static_assert(constant_value::variant_count == 19);
 static_assert(static_cast<uint64_t>(constant_value_kind::sint) == constant_value_base_t::index_of<int64_t>);
 static_assert(static_cast<uint64_t>(constant_value_kind::uint) == constant_value_base_t::index_of<uint64_t>);
 static_assert(static_cast<uint64_t>(constant_value_kind::float32) == constant_value_base_t::index_of<float32_t>);
@@ -47,73 +18,25 @@ static_assert(static_cast<uint64_t>(constant_value_kind::boolean) == constant_va
 static_assert(static_cast<uint64_t>(constant_value_kind::null) == constant_value_base_t::index_of<internal::null_t>);
 static_assert(static_cast<uint64_t>(constant_value_kind::void_) == constant_value_base_t::index_of<internal::void_t>);
 static_assert(static_cast<uint64_t>(constant_value_kind::enum_) == constant_value_base_t::index_of<internal::enum_t>);
-// static_assert(static_cast<uint64_t>(constant_value_kind::array) == constant_value_base_t::index_of<bz::array_view<constant_value_storage const>>);
+// static_assert(static_cast<uint64_t>(constant_value_kind::array) == constant_value_base_t::index_of<bz::array_view<constant_value const>>);
 static_assert(static_cast<uint64_t>(constant_value_kind::sint_array) == constant_value_base_t::index_of<bz::array_view<int64_t const>>);
 static_assert(static_cast<uint64_t>(constant_value_kind::uint_array) == constant_value_base_t::index_of<bz::array_view<uint64_t const>>);
 static_assert(static_cast<uint64_t>(constant_value_kind::float32_array) == constant_value_base_t::index_of<bz::array_view<float32_t const>>);
 static_assert(static_cast<uint64_t>(constant_value_kind::float64_array) == constant_value_base_t::index_of<bz::array_view<float64_t const>>);
-// static_assert(static_cast<uint64_t>(constant_value_kind::tuple) == constant_value_base_t::index_of<bz::array_view<constant_value_storage const>>);
+// static_assert(static_cast<uint64_t>(constant_value_kind::tuple) == constant_value_base_t::index_of<bz::array_view<constant_value const>>);
 static_assert(static_cast<uint64_t>(constant_value_kind::function) == constant_value_base_t::index_of<function_body *>);
 static_assert(static_cast<uint64_t>(constant_value_kind::type) == constant_value_base_t::index_of<typespec_view>);
-// static_assert(static_cast<uint64_t>(constant_value_kind::aggregate) == constant_value_base_t::index_of<bz::array_view<constant_value_storage const>>);
-static_assert(bz::meta::is_same<constant_value_base_t::value_type<static_cast<uint64_t>(constant_value_kind::array)>, bz::array_view<constant_value_storage const>>);
-static_assert(bz::meta::is_same<constant_value_base_t::value_type<static_cast<uint64_t>(constant_value_kind::tuple)>, bz::array_view<constant_value_storage const>>);
-static_assert(bz::meta::is_same<constant_value_base_t::value_type<static_cast<uint64_t>(constant_value_kind::aggregate)>, bz::array_view<constant_value_storage const>>);
+// static_assert(static_cast<uint64_t>(constant_value_kind::aggregate) == constant_value_base_t::index_of<bz::array_view<constant_value const>>);
+static_assert(bz::meta::is_same<constant_value_base_t::value_type<static_cast<uint64_t>(constant_value_kind::array)>, bz::array_view<constant_value const>>);
+static_assert(bz::meta::is_same<constant_value_base_t::value_type<static_cast<uint64_t>(constant_value_kind::tuple)>, bz::array_view<constant_value const>>);
+static_assert(bz::meta::is_same<constant_value_base_t::value_type<static_cast<uint64_t>(constant_value_kind::aggregate)>, bz::array_view<constant_value const>>);
 static_assert(
 	constant_value_kind::array != constant_value_kind::tuple
 	&& constant_value_kind::array != constant_value_kind::aggregate
 	&& constant_value_kind::tuple != constant_value_kind::aggregate
 );
 
-constant_value constant_value_storage::as_constant_value(void) const
-{
-	switch (this->kind())
-	{
-	static_assert(constant_value_storage_base_t::variant_count == 19);
-	case constant_value_kind::sint:
-		return constant_value(this->get_sint());
-	case constant_value_kind::uint:
-		return constant_value(this->get_uint());
-	case constant_value_kind::float32:
-		return constant_value(this->get_float32());
-	case constant_value_kind::float64:
-		return constant_value(this->get_float64());
-	case constant_value_kind::u8char:
-		return constant_value(this->get_u8char());
-	case constant_value_kind::string:
-		return constant_value(this->get_string());
-	case constant_value_kind::boolean:
-		return constant_value(this->get_boolean());
-	case constant_value_kind::null:
-		return constant_value::get_null();
-	case constant_value_kind::void_:
-		return constant_value::get_void();
-	case constant_value_kind::enum_:
-		return constant_value(this->get_enum());
-	case constant_value_kind::array:
-		return constant_value(this->get_array());
-	case constant_value_kind::sint_array:
-		return constant_value(this->get_sint_array());
-	case constant_value_kind::uint_array:
-		return constant_value(this->get_uint_array());
-	case constant_value_kind::float32_array:
-		return constant_value(this->get_float32_array());
-	case constant_value_kind::float64_array:
-		return constant_value(this->get_float64_array());
-	case constant_value_kind::tuple:
-		return constant_value(this->get_tuple());
-	case constant_value_kind::function:
-		return constant_value(this->get_function());
-	case constant_value_kind::type:
-		return constant_value(this->get_type());
-	case constant_value_kind::aggregate:
-		return constant_value(this->get_aggregate());
-	default:
-		return constant_value();
-	}
-}
-
-static bz::u8string get_aggregate_like_value_string(bz::array_view<constant_value_storage const> values)
+static bz::u8string get_aggregate_like_value_string(bz::array_view<constant_value const> values)
 {
 	if (values.empty())
 	{
@@ -166,11 +89,11 @@ static bz::u8string get_aggregate_like_value_string(bz::array_view<T const> valu
 	return result;
 }
 
-bz::u8string get_value_string(constant_value_storage const &value)
+bz::u8string get_value_string(constant_value const &value)
 {
 	switch (value.kind())
 	{
-	static_assert(constant_value_storage::variant_count == 19);
+	static_assert(constant_value::variant_count == 19);
 	case constant_value_kind::sint:
 		return bz::format("{}", value.get_sint());
 	case constant_value_kind::uint:
@@ -234,13 +157,13 @@ bz::u8string get_value_string(constant_value_storage const &value)
 	}
 }
 
-static void encode_array_like(bz::u8string &out, bz::array_view<constant_value_storage const> values)
+static void encode_array_like(bz::u8string &out, bz::array_view<constant_value const> values)
 {
 	out += bz::format("{}", values.size());
 	for (auto const &value : values)
 	{
 		out += '.';
-		constant_value_storage::encode_for_symbol_name(out, value);
+		constant_value::encode_for_symbol_name(out, value);
 	}
 }
 
@@ -284,11 +207,11 @@ static void encode_array_like(bz::u8string &out, bz::array_view<float64_t const>
 	}
 }
 
-void constant_value_storage::encode_for_symbol_name(bz::u8string &out, constant_value_storage const &value)
+void constant_value::encode_for_symbol_name(bz::u8string &out, constant_value const &value)
 {
 	switch (value.kind())
 	{
-	static_assert(constant_value_storage::variant_count == 19);
+	static_assert(constant_value::variant_count == 19);
 	case constant_value_kind::sint:
 		out += 'i';
 		out += bz::format("{}", bit_cast<uint64_t>(value.get_sint()));
@@ -462,7 +385,7 @@ static void decode_array_like(
 		}
 		bz_assert(*it == '.');
 		++it;
-		out += constant_value_storage::decode_from_symbol_name(it, end);
+		out += constant_value::decode_from_symbol_name(it, end);
 	}
 	out += " ]";
 }
@@ -551,9 +474,9 @@ static void decode_float64_array(
 	out += " ]";
 }
 
-bz::u8string constant_value_storage::decode_from_symbol_name(bz::u8string_view::const_iterator &it, bz::u8string_view::const_iterator end)
+bz::u8string constant_value::decode_from_symbol_name(bz::u8string_view::const_iterator &it, bz::u8string_view::const_iterator end)
 {
-	static_assert(constant_value_storage::variant_count == 19);
+	static_assert(constant_value::variant_count == 19);
 	switch (*it)
 	{
 	case 'i':
@@ -706,7 +629,7 @@ bool operator == (constant_value const &lhs, constant_value const &rhs) noexcept
 	}
 	switch (lhs.kind())
 	{
-	static_assert(constant_value_storage::variant_count == 19);
+	static_assert(constant_value::variant_count == 19);
 	case constant_value_kind::sint:
 		return lhs.get_sint() == rhs.get_sint();
 	case constant_value_kind::uint:
@@ -757,16 +680,6 @@ bool operator == (constant_value const &lhs, constant_value const &rhs) noexcept
 bool operator != (constant_value const &lhs, constant_value const &rhs) noexcept
 {
 	return !(lhs == rhs);
-}
-
-bool operator == (constant_value_storage const &lhs, constant_value_storage const &rhs) noexcept
-{
-	return lhs.kind() == rhs.kind() && lhs.as_constant_value() == rhs.as_constant_value();
-}
-
-bool operator != (constant_value_storage const &lhs, constant_value_storage const &rhs) noexcept
-{
-	return lhs.kind() != rhs.kind() || lhs.as_constant_value() != rhs.as_constant_value();
 }
 
 } // namespace ast

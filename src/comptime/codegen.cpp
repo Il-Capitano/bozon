@@ -5701,7 +5701,7 @@ static expr_value generate_integral_switch_code(
 			auto const &value = expr.get_constant_value();
 			switch (value.kind())
 			{
-			static_assert(ast::constant_value_storage::variant_count == 19);
+			static_assert(ast::constant_value::variant_count == 19);
 			case ast::constant_value_kind::sint:
 				cases.push_back({ .value = static_cast<uint64_t>(value.get_sint()), .bb = bb, });
 				break;
@@ -6122,18 +6122,18 @@ static expr_value generate_expr_code(
 
 static expr_value get_constant_value(
 	lex::src_tokens const &src_tokens,
-	ast::constant_value_storage const &value,
+	ast::constant_value const &value,
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 );
 
-static bool is_zero_value(ast::constant_value_storage const &value)
+static bool is_zero_value(ast::constant_value const &value)
 {
 	switch (value.kind())
 	{
-	static_assert(ast::constant_value_storage::variant_count == 19);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value_kind::sint:
 		return value.get_sint() == 0;
 	case ast::constant_value_kind::uint:
@@ -6189,7 +6189,7 @@ static ast::typespec_view flattened_array_elem_type(ast::ts_array const &array_t
 
 static void get_nonzero_constant_array_value(
 	lex::src_tokens const &src_tokens,
-	bz::array_view<ast::constant_value_storage const> values,
+	bz::array_view<ast::constant_value const> values,
 	ast::ts_array const &array_type,
 	codegen_context &context,
 	expr_value result_address
@@ -6221,7 +6221,7 @@ static void get_nonzero_constant_array_value(
 
 static void get_constant_array_value(
 	lex::src_tokens const &src_tokens,
-	bz::array_view<ast::constant_value_storage const> values,
+	bz::array_view<ast::constant_value const> values,
 	ast::ts_array const &array_type,
 	codegen_context &context,
 	expr_value result_address
@@ -6428,7 +6428,7 @@ static type const *get_tuple_type(ast::typespec_view type, ast::constant_express
 
 static expr_value get_constant_value_helper(
 	lex::src_tokens const &src_tokens,
-	ast::constant_value_storage const &value,
+	ast::constant_value const &value,
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
 	codegen_context &context,
@@ -6437,7 +6437,7 @@ static expr_value get_constant_value_helper(
 {
 	switch (value.kind())
 	{
-	static_assert(ast::constant_value_storage::variant_count == 19);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value_kind::sint:
 	{
 		auto int_value = expr_value::get_none();
@@ -6741,7 +6741,7 @@ static expr_value get_constant_value_helper(
 
 static expr_value get_constant_value(
 	lex::src_tokens const &src_tokens,
-	ast::constant_value_storage const &value,
+	ast::constant_value const &value,
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
 	codegen_context &context,

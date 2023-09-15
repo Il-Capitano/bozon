@@ -176,13 +176,14 @@ struct global_context
 	bz::vector<std::unique_ptr<char[]>> _src_scope_fragments;
 	bz::vector<bz::vector<bz::u8string_view>> _src_scopes_storage;
 
-	bz::vector<bz::u8string>                                   constant_string_storage;
-	bz::vector<ast::arena_vector<ast::constant_value_storage>> constant_aggregate_storage;
-	bz::vector<ast::arena_vector<int64_t>>                     constant_sint_array_storage;
-	bz::vector<ast::arena_vector<uint64_t>>                    constant_uint_array_storage;
-	bz::vector<ast::arena_vector<float32_t>>                   constant_float32_array_storage;
-	bz::vector<ast::arena_vector<float64_t>>                   constant_float64_array_storage;
-	bz::vector<ast::typespec>                                  constant_type_storage;
+	bz::vector<bz::fixed_vector<char>>                 constant_string_storage;
+	bz::vector<ast::arena_vector<ast::constant_value>> constant_aggregate_storage;
+	bz::vector<ast::arena_vector<int64_t>>             constant_sint_array_storage;
+	bz::vector<ast::arena_vector<uint64_t>>            constant_uint_array_storage;
+	bz::vector<ast::arena_vector<float32_t>>           constant_float32_array_storage;
+	bz::vector<ast::arena_vector<float64_t>>           constant_float64_array_storage;
+	bz::vector<ast::typespec>                          constant_type_storage;
+	ast::typespec_view cached_auto_type;
 
 	std::unique_ptr<ast::type_prototype_set_t> type_prototype_set = nullptr;
 
@@ -290,10 +291,10 @@ struct global_context
 	ast::type_info *get_isize_type_info_for_builtin_alias(void) const;
 	size_t get_pointer_size(void) const;
 
-	ast::constant_value add_constant_string(bz::u8string str);
-	ast::constant_value add_constant_array(ast::arena_vector<ast::constant_value_storage> elems);
-	ast::constant_value add_constant_tuple(ast::arena_vector<ast::constant_value_storage> elems);
-	ast::constant_value add_constant_aggregate(ast::arena_vector<ast::constant_value_storage> elems);
+	ast::constant_value add_constant_string(bz::u8string_view str);
+	ast::constant_value add_constant_array(ast::arena_vector<ast::constant_value> elems);
+	ast::constant_value add_constant_tuple(ast::arena_vector<ast::constant_value> elems);
+	ast::constant_value add_constant_aggregate(ast::arena_vector<ast::constant_value> elems);
 	ast::constant_value add_constant_sint_array(ast::arena_vector<int64_t> elems);
 	ast::constant_value add_constant_uint_array(ast::arena_vector<uint64_t> elems);
 	ast::constant_value add_constant_float32_array(ast::arena_vector<float32_t> elems);

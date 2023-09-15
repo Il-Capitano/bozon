@@ -340,16 +340,10 @@ bool expression::is_typename(void) const noexcept
 		&& (const_expr->kind == expression_type_kind::type_name || const_expr->value.is_type());
 }
 
-typespec &expression::get_typename(void) noexcept
+typespec_view expression::get_typename(void) const noexcept
 {
 	bz_assert(this->is_typename());
-	return this->get_constant_value().get<constant_value_kind::type>();
-}
-
-typespec const &expression::get_typename(void) const noexcept
-{
-	bz_assert(this->is_typename());
-	return this->get_constant_value().get<constant_value_kind::type>();
+	return this->get_constant_value().get_type();
 }
 
 bool expression::is_tuple(void) const noexcept
@@ -408,7 +402,7 @@ bool expression::is_integer_literal(void) const noexcept
 	return is_expr_kind_helper(*this, expression_type_kind::integer_literal);
 }
 
-constant_value_storage &expression::get_integer_literal_value(void) noexcept
+constant_value &expression::get_integer_literal_value(void) noexcept
 {
 	bz_assert(this->is_integer_literal());
 	auto &literal_expr = get_expr_kind<expr_integer_literal, false>(*this);
@@ -416,7 +410,7 @@ constant_value_storage &expression::get_integer_literal_value(void) noexcept
 	return literal_expr.get_constant_value();
 }
 
-constant_value_storage const &expression::get_integer_literal_value(void) const noexcept
+constant_value const &expression::get_integer_literal_value(void) const noexcept
 {
 	bz_assert(this->is_integer_literal());
 	auto const &literal_expr = get_expr_kind<expr_integer_literal, false>(*this);
@@ -424,7 +418,7 @@ constant_value_storage const &expression::get_integer_literal_value(void) const 
 	return literal_expr.get_constant_value();
 }
 
-std::pair<literal_kind, constant_value_storage const &> expression::get_integer_literal_kind_and_value(void) const noexcept
+std::pair<literal_kind, constant_value const &> expression::get_integer_literal_kind_and_value(void) const noexcept
 {
 	bz_assert(this->is_integer_literal());
 	auto const &literal_expr = get_expr_kind<expr_integer_literal, false>(*this);
@@ -481,7 +475,7 @@ bool expression::is_generic_type(void) const noexcept
 		return false;
 	}
 
-	auto const type = this->get_typename().as_typespec_view();
+	auto const type = this->get_typename();
 	return type.is<ts_base_type>() && type.get<ts_base_type>().info->is_generic();
 }
 
@@ -570,13 +564,13 @@ constant_expression const &expression::get_constant(void) const noexcept
 	return this->get<constant_expression>();
 }
 
-constant_value_storage &expression::get_constant_value(void) noexcept
+constant_value &expression::get_constant_value(void) noexcept
 {
 	bz_assert(this->is_constant());
 	return this->get<constant_expression>().value;
 }
 
-constant_value_storage const &expression::get_constant_value(void) const noexcept
+constant_value const &expression::get_constant_value(void) const noexcept
 {
 	bz_assert(this->is_constant());
 	return this->get<constant_expression>().value;

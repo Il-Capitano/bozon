@@ -338,7 +338,7 @@ struct constant_expression
 {
 	expression_type_kind kind;
 	typespec             type;
-	constant_value_storage       value;
+	constant_value       value;
 	expr_t               expr;
 };
 
@@ -441,8 +441,7 @@ struct expression : bz::variant<
 	expr_function_overload_set const &get_function_overload_set(void) const noexcept;
 
 	bool is_typename(void) const noexcept;
-	typespec &get_typename(void) noexcept;
-	typespec const &get_typename(void) const noexcept;
+	typespec_view get_typename(void) const noexcept;
 
 	bool is_tuple(void) const noexcept;
 	expr_tuple &get_tuple(void) noexcept;
@@ -457,9 +456,9 @@ struct expression : bz::variant<
 	expr_switch const &get_switch_expr(void) const noexcept;
 
 	bool is_integer_literal(void) const noexcept;
-	constant_value_storage &get_integer_literal_value(void) noexcept;
-	constant_value_storage const &get_integer_literal_value(void) const noexcept;
-	std::pair<literal_kind, constant_value_storage const &> get_integer_literal_kind_and_value(void) const noexcept;
+	constant_value &get_integer_literal_value(void) noexcept;
+	constant_value const &get_integer_literal_value(void) const noexcept;
+	std::pair<literal_kind, constant_value const &> get_integer_literal_kind_and_value(void) const noexcept;
 
 	bool is_enum_literal(void) const noexcept;
 	expr_enum_literal &get_enum_literal(void) noexcept;
@@ -482,8 +481,8 @@ struct expression : bz::variant<
 	bool is_constant(void) const noexcept;
 	constant_expression &get_constant(void) noexcept;
 	constant_expression const &get_constant(void) const noexcept;
-	constant_value_storage &get_constant_value(void) noexcept;
-	constant_value_storage const &get_constant_value(void) const noexcept;
+	constant_value &get_constant_value(void) noexcept;
+	constant_value const &get_constant_value(void) const noexcept;
 
 	bool is_dynamic(void) const noexcept;
 	dynamic_expression &get_dynamic(void) noexcept;
@@ -1827,18 +1826,6 @@ def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_integer_range_to)
 def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_integer_range_to_inclusive)
 
 #undef def_make_unresolved_fn
-
-
-inline expression type_as_expression(lex::src_tokens const &src_tokens, typespec type)
-{
-	return make_constant_expression(
-		src_tokens,
-		expression_type_kind::type_name,
-		make_typename_typespec(nullptr),
-		constant_value_storage(std::move(type)),
-		expr_t{}
-	);
-}
 
 } // namespace ast
 

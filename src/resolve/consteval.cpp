@@ -57,7 +57,7 @@ bool is_special_array_type(ast::typespec_view type)
 	}
 }
 
-static ast::constant_value_storage evaluate_binary_plus(
+static ast::constant_value evaluate_binary_plus(
 	ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
 	ctx::parse_context &context
@@ -76,12 +76,12 @@ static ast::constant_value_storage evaluate_binary_plus(
 		auto const type = lhs_const_expr.type.remove_any_mut().get<ast::ts_base_type>().info->kind;
 		switch (lhs_value.kind())
 		{
-		static_assert(ast::constant_value_storage::variant_count == 19);
+		static_assert(ast::constant_value::variant_count == 19);
 		case ast::constant_value_kind::sint:
 		{
 			auto const lhs_int_val = lhs_value.get_sint();
 			auto const rhs_int_val = rhs_value.get_sint();
-			return ast::constant_value_storage(safe_binary_plus(
+			return ast::constant_value(safe_binary_plus(
 				original_expr.src_tokens, original_expr.paren_level,
 				lhs_int_val, rhs_int_val, type, context
 			));
@@ -90,7 +90,7 @@ static ast::constant_value_storage evaluate_binary_plus(
 		{
 			auto const lhs_int_val = lhs_value.get_uint();
 			auto const rhs_int_val = rhs_value.get_uint();
-			return ast::constant_value_storage(safe_binary_plus(
+			return ast::constant_value(safe_binary_plus(
 				original_expr.src_tokens, original_expr.paren_level,
 				lhs_int_val, rhs_int_val, type, context
 			));
@@ -99,7 +99,7 @@ static ast::constant_value_storage evaluate_binary_plus(
 		{
 			auto const lhs_float_val = lhs_value.get_float32();
 			auto const rhs_float_val = rhs_value.get_float32();
-			return ast::constant_value_storage(safe_binary_plus(
+			return ast::constant_value(safe_binary_plus(
 				original_expr.src_tokens, original_expr.paren_level,
 				lhs_float_val, rhs_float_val, context
 			));
@@ -108,7 +108,7 @@ static ast::constant_value_storage evaluate_binary_plus(
 		{
 			auto const lhs_float_val = lhs_value.get_float64();
 			auto const rhs_float_val = rhs_value.get_float64();
-			return ast::constant_value_storage(safe_binary_plus(
+			return ast::constant_value(safe_binary_plus(
 				original_expr.src_tokens, original_expr.paren_level,
 				lhs_float_val, rhs_float_val, context
 			));
@@ -134,7 +134,7 @@ static ast::constant_value_storage evaluate_binary_plus(
 			);
 		if (result.has_value())
 		{
-			return ast::constant_value_storage(result.get());
+			return ast::constant_value(result.get());
 		}
 		else
 		{
@@ -159,7 +159,7 @@ static ast::constant_value_storage evaluate_binary_plus(
 			);
 		if (result.has_value())
 		{
-			return ast::constant_value_storage(result.get());
+			return ast::constant_value(result.get());
 		}
 		else
 		{
@@ -168,7 +168,7 @@ static ast::constant_value_storage evaluate_binary_plus(
 	}
 }
 
-static ast::constant_value_storage evaluate_binary_minus(
+static ast::constant_value evaluate_binary_minus(
 	ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
 	ctx::parse_context &context
@@ -187,12 +187,12 @@ static ast::constant_value_storage evaluate_binary_minus(
 		auto const type = lhs_const_expr.type.remove_any_mut().get<ast::ts_base_type>().info->kind;
 		switch (lhs_value.kind())
 		{
-		static_assert(ast::constant_value_storage::variant_count == 19);
+		static_assert(ast::constant_value::variant_count == 19);
 		case ast::constant_value_kind::sint:
 		{
 			auto const lhs_int_val = lhs_value.get_sint();
 			auto const rhs_int_val = rhs_value.get_sint();
-			return ast::constant_value_storage(safe_binary_minus(
+			return ast::constant_value(safe_binary_minus(
 				original_expr.src_tokens, original_expr.paren_level,
 				lhs_int_val, rhs_int_val, type, context
 			));
@@ -201,7 +201,7 @@ static ast::constant_value_storage evaluate_binary_minus(
 		{
 			auto const lhs_int_val = lhs_value.get_uint();
 			auto const rhs_int_val = rhs_value.get_uint();
-			return ast::constant_value_storage(safe_binary_minus(
+			return ast::constant_value(safe_binary_minus(
 				original_expr.src_tokens, original_expr.paren_level,
 				lhs_int_val, rhs_int_val, type, context
 			));
@@ -210,7 +210,7 @@ static ast::constant_value_storage evaluate_binary_minus(
 		{
 			auto const lhs_float_val = lhs_value.get_float32();
 			auto const rhs_float_val = rhs_value.get_float32();
-			return ast::constant_value_storage(safe_binary_minus(
+			return ast::constant_value(safe_binary_minus(
 				original_expr.src_tokens, original_expr.paren_level,
 				lhs_float_val, rhs_float_val, context
 			));
@@ -219,13 +219,13 @@ static ast::constant_value_storage evaluate_binary_minus(
 		{
 			auto const lhs_float_val = lhs_value.get_float64();
 			auto const rhs_float_val = rhs_value.get_float64();
-			return ast::constant_value_storage(safe_binary_minus(
+			return ast::constant_value(safe_binary_minus(
 				original_expr.src_tokens, original_expr.paren_level,
 				lhs_float_val, rhs_float_val, context
 			));
 		}
 		case ast::constant_value_kind::u8char:
-			return ast::constant_value_storage(
+			return ast::constant_value(
 				static_cast<int64_t>(lhs_value.get_u8char())
 				- static_cast<int64_t>(rhs_value.get_u8char())
 			);
@@ -251,7 +251,7 @@ static ast::constant_value_storage evaluate_binary_minus(
 			);
 		if (result.has_value())
 		{
-			return ast::constant_value_storage(result.get());
+			return ast::constant_value(result.get());
 		}
 		else
 		{
@@ -260,7 +260,7 @@ static ast::constant_value_storage evaluate_binary_minus(
 	}
 }
 
-static ast::constant_value_storage evaluate_binary_multiply(
+static ast::constant_value evaluate_binary_multiply(
 	ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
 	ctx::parse_context &context
@@ -278,12 +278,12 @@ static ast::constant_value_storage evaluate_binary_multiply(
 	auto const type = lhs_const_expr.type.remove_any_mut().get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value_storage::variant_count == 19);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value_kind::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
 		auto const rhs_int_val = rhs_value.get_sint();
-		return ast::constant_value_storage(safe_binary_multiply(
+		return ast::constant_value(safe_binary_multiply(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_int_val, rhs_int_val, type, context
 		));
@@ -292,7 +292,7 @@ static ast::constant_value_storage evaluate_binary_multiply(
 	{
 		auto const lhs_int_val = lhs_value.get_uint();
 		auto const rhs_int_val = rhs_value.get_uint();
-		return ast::constant_value_storage(safe_binary_multiply(
+		return ast::constant_value(safe_binary_multiply(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_int_val, rhs_int_val, type, context
 		));
@@ -301,7 +301,7 @@ static ast::constant_value_storage evaluate_binary_multiply(
 	{
 		auto const lhs_float_val = lhs_value.get_float32();
 		auto const rhs_float_val = rhs_value.get_float32();
-		return ast::constant_value_storage(safe_binary_multiply(
+		return ast::constant_value(safe_binary_multiply(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_float_val, rhs_float_val, context
 		));
@@ -310,7 +310,7 @@ static ast::constant_value_storage evaluate_binary_multiply(
 	{
 		auto const lhs_float_val = lhs_value.get_float64();
 		auto const rhs_float_val = rhs_value.get_float64();
-		return ast::constant_value_storage(safe_binary_multiply(
+		return ast::constant_value(safe_binary_multiply(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_float_val, rhs_float_val, context
 		));
@@ -320,7 +320,7 @@ static ast::constant_value_storage evaluate_binary_multiply(
 	}
 }
 
-static ast::constant_value_storage evaluate_binary_divide(
+static ast::constant_value evaluate_binary_divide(
 	ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
 	ctx::parse_context &context
@@ -338,7 +338,7 @@ static ast::constant_value_storage evaluate_binary_divide(
 	auto const type = lhs_const_expr.type.remove_any_mut().get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value_storage::variant_count == 19);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value_kind::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -349,7 +349,7 @@ static ast::constant_value_storage evaluate_binary_divide(
 		);
 		if (result.has_value())
 		{
-			return ast::constant_value_storage(result.get());
+			return ast::constant_value(result.get());
 		}
 		else
 		{
@@ -366,7 +366,7 @@ static ast::constant_value_storage evaluate_binary_divide(
 		);
 		if (result.has_value())
 		{
-			return ast::constant_value_storage(result.get());
+			return ast::constant_value(result.get());
 		}
 		else
 		{
@@ -377,7 +377,7 @@ static ast::constant_value_storage evaluate_binary_divide(
 	{
 		auto const lhs_float_val = lhs_value.get_float32();
 		auto const rhs_float_val = rhs_value.get_float32();
-		return ast::constant_value_storage(safe_binary_divide(
+		return ast::constant_value(safe_binary_divide(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_float_val, rhs_float_val, context
 		));
@@ -386,7 +386,7 @@ static ast::constant_value_storage evaluate_binary_divide(
 	{
 		auto const lhs_float_val = lhs_value.get_float64();
 		auto const rhs_float_val = rhs_value.get_float64();
-		return ast::constant_value_storage(safe_binary_divide(
+		return ast::constant_value(safe_binary_divide(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_float_val, rhs_float_val, context
 		));
@@ -396,7 +396,7 @@ static ast::constant_value_storage evaluate_binary_divide(
 	}
 }
 
-static ast::constant_value_storage evaluate_binary_modulo(
+static ast::constant_value evaluate_binary_modulo(
 	ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
 	ctx::parse_context &context
@@ -414,7 +414,7 @@ static ast::constant_value_storage evaluate_binary_modulo(
 	auto const type = lhs_const_expr.type.remove_any_mut().get<ast::ts_base_type>().info->kind;
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value_storage::variant_count == 19);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value_kind::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
@@ -425,7 +425,7 @@ static ast::constant_value_storage evaluate_binary_modulo(
 		);
 		if (result.has_value())
 		{
-			return ast::constant_value_storage(result.get());
+			return ast::constant_value(result.get());
 		}
 		else
 		{
@@ -442,7 +442,7 @@ static ast::constant_value_storage evaluate_binary_modulo(
 		);
 		if (result.has_value())
 		{
-			return ast::constant_value_storage(result.get());
+			return ast::constant_value(result.get());
 		}
 		else
 		{
@@ -454,7 +454,7 @@ static ast::constant_value_storage evaluate_binary_modulo(
 	}
 }
 
-static ast::constant_value_storage evaluate_binary_equals(
+static ast::constant_value evaluate_binary_equals(
 	[[maybe_unused]] ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
 	[[maybe_unused]] ctx::parse_context &context
@@ -471,24 +471,24 @@ static ast::constant_value_storage evaluate_binary_equals(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value_storage::variant_count == 19);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value_kind::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
 		auto const rhs_int_val = rhs_value.get_sint();
-		return ast::constant_value_storage(lhs_int_val == rhs_int_val);
+		return ast::constant_value(lhs_int_val == rhs_int_val);
 	}
 	case ast::constant_value_kind::uint:
 	{
 		auto const lhs_int_val = lhs_value.get_uint();
 		auto const rhs_int_val = rhs_value.get_uint();
-		return ast::constant_value_storage(lhs_int_val == rhs_int_val);
+		return ast::constant_value(lhs_int_val == rhs_int_val);
 	}
 	case ast::constant_value_kind::float32:
 	{
 		auto const lhs_float_val = lhs_value.get_float32();
 		auto const rhs_float_val = rhs_value.get_float32();
-		return ast::constant_value_storage(safe_binary_equals(
+		return ast::constant_value(safe_binary_equals(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_float_val, rhs_float_val, context
 		));
@@ -497,7 +497,7 @@ static ast::constant_value_storage evaluate_binary_equals(
 	{
 		auto const lhs_float_val = lhs_value.get_float64();
 		auto const rhs_float_val = rhs_value.get_float64();
-		return ast::constant_value_storage(safe_binary_equals(
+		return ast::constant_value(safe_binary_equals(
 			original_expr.src_tokens, original_expr.paren_level,
 			lhs_float_val, rhs_float_val, context
 		));
@@ -506,36 +506,36 @@ static ast::constant_value_storage evaluate_binary_equals(
 	{
 		auto const lhs_char_val = lhs_value.get_u8char();
 		auto const rhs_char_val = rhs_value.get_u8char();
-		return ast::constant_value_storage(lhs_char_val == rhs_char_val);
+		return ast::constant_value(lhs_char_val == rhs_char_val);
 	}
 	case ast::constant_value_kind::boolean:
 	{
 		auto const lhs_bool_val = lhs_value.get_boolean();
 		auto const rhs_bool_val = rhs_value.get_boolean();
-		return ast::constant_value_storage(lhs_bool_val == rhs_bool_val);
+		return ast::constant_value(lhs_bool_val == rhs_bool_val);
 	}
 	case ast::constant_value_kind::string:
 	{
 		auto const lhs_str_val = lhs_value.get_string();
 		auto const rhs_str_val = rhs_value.get_string();
-		return ast::constant_value_storage(lhs_str_val == rhs_str_val);
+		return ast::constant_value(lhs_str_val == rhs_str_val);
 	}
 	case ast::constant_value_kind::null:
 	{
-		return ast::constant_value_storage(true);
+		return ast::constant_value(true);
 	}
 	case ast::constant_value_kind::enum_:
 	{
 		auto const lhs_enum_value = lhs_value.get_enum().value;
 		auto const rhs_enum_value = rhs_value.get_enum().value;
-		return ast::constant_value_storage(lhs_enum_value == rhs_enum_value);
+		return ast::constant_value(lhs_enum_value == rhs_enum_value);
 	}
 	default:
 		bz_unreachable;
 	}
 }
 
-static ast::constant_value_storage evaluate_binary_not_equals(
+static ast::constant_value evaluate_binary_not_equals(
 	[[maybe_unused]] ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
 	[[maybe_unused]] ctx::parse_context &context
@@ -552,65 +552,65 @@ static ast::constant_value_storage evaluate_binary_not_equals(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value_storage::variant_count == 19);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value_kind::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
 		auto const rhs_int_val = rhs_value.get_sint();
-		return ast::constant_value_storage(lhs_int_val != rhs_int_val);
+		return ast::constant_value(lhs_int_val != rhs_int_val);
 	}
 	case ast::constant_value_kind::uint:
 	{
 		auto const lhs_int_val = lhs_value.get_uint();
 		auto const rhs_int_val = rhs_value.get_uint();
-		return ast::constant_value_storage(lhs_int_val != rhs_int_val);
+		return ast::constant_value(lhs_int_val != rhs_int_val);
 	}
 	case ast::constant_value_kind::float32:
 	{
 		auto const lhs_float_val = lhs_value.get_float32();
 		auto const rhs_float_val = rhs_value.get_float32();
-		return ast::constant_value_storage(lhs_float_val != rhs_float_val);
+		return ast::constant_value(lhs_float_val != rhs_float_val);
 	}
 	case ast::constant_value_kind::float64:
 	{
 		auto const lhs_float_val = lhs_value.get_float64();
 		auto const rhs_float_val = rhs_value.get_float64();
-		return ast::constant_value_storage(lhs_float_val != rhs_float_val);
+		return ast::constant_value(lhs_float_val != rhs_float_val);
 	}
 	case ast::constant_value_kind::u8char:
 	{
 		auto const lhs_char_val = lhs_value.get_u8char();
 		auto const rhs_char_val = rhs_value.get_u8char();
-		return ast::constant_value_storage(lhs_char_val != rhs_char_val);
+		return ast::constant_value(lhs_char_val != rhs_char_val);
 	}
 	case ast::constant_value_kind::boolean:
 	{
 		auto const lhs_bool_val = lhs_value.get_boolean();
 		auto const rhs_bool_val = rhs_value.get_boolean();
-		return ast::constant_value_storage(lhs_bool_val != rhs_bool_val);
+		return ast::constant_value(lhs_bool_val != rhs_bool_val);
 	}
 	case ast::constant_value_kind::string:
 	{
 		auto const lhs_str_val = lhs_value.get_string();
 		auto const rhs_str_val = rhs_value.get_string();
-		return ast::constant_value_storage(lhs_str_val != rhs_str_val);
+		return ast::constant_value(lhs_str_val != rhs_str_val);
 	}
 	case ast::constant_value_kind::null:
 	{
-		return ast::constant_value_storage(false);
+		return ast::constant_value(false);
 	}
 	case ast::constant_value_kind::enum_:
 	{
 		auto const lhs_enum_value = lhs_value.get_enum().value;
 		auto const rhs_enum_value = rhs_value.get_enum().value;
-		return ast::constant_value_storage(lhs_enum_value != rhs_enum_value);
+		return ast::constant_value(lhs_enum_value != rhs_enum_value);
 	}
 	default:
 		bz_unreachable;
 	}
 }
 
-static ast::constant_value_storage evaluate_binary_less_than(
+static ast::constant_value evaluate_binary_less_than(
 	[[maybe_unused]] ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
 	[[maybe_unused]] ctx::parse_context &context
@@ -627,40 +627,40 @@ static ast::constant_value_storage evaluate_binary_less_than(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value_storage::variant_count == 19);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value_kind::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
 		auto const rhs_int_val = rhs_value.get_sint();
-		return ast::constant_value_storage(lhs_int_val < rhs_int_val);
+		return ast::constant_value(lhs_int_val < rhs_int_val);
 	}
 	case ast::constant_value_kind::uint:
 	{
 		auto const lhs_int_val = lhs_value.get_uint();
 		auto const rhs_int_val = rhs_value.get_uint();
-		return ast::constant_value_storage(lhs_int_val < rhs_int_val);
+		return ast::constant_value(lhs_int_val < rhs_int_val);
 	}
 	case ast::constant_value_kind::float32:
 	{
 		auto const lhs_float_val = lhs_value.get_float32();
 		auto const rhs_float_val = rhs_value.get_float32();
-		return ast::constant_value_storage(lhs_float_val < rhs_float_val);
+		return ast::constant_value(lhs_float_val < rhs_float_val);
 	}
 	case ast::constant_value_kind::float64:
 	{
 		auto const lhs_float_val = lhs_value.get_float64();
 		auto const rhs_float_val = rhs_value.get_float64();
-		return ast::constant_value_storage(lhs_float_val < rhs_float_val);
+		return ast::constant_value(lhs_float_val < rhs_float_val);
 	}
 	case ast::constant_value_kind::u8char:
 	{
 		auto const lhs_char_val = lhs_value.get_u8char();
 		auto const rhs_char_val = rhs_value.get_u8char();
-		return ast::constant_value_storage(lhs_char_val < rhs_char_val);
+		return ast::constant_value(lhs_char_val < rhs_char_val);
 	}
 	case ast::constant_value_kind::null:
 	{
-		return ast::constant_value_storage(false);
+		return ast::constant_value(false);
 	}
 	case ast::constant_value_kind::enum_:
 	{
@@ -668,15 +668,15 @@ static ast::constant_value_storage evaluate_binary_less_than(
 		auto const rhs_enum_value = rhs_value.get_enum().value;
 		auto const is_signed = ast::is_signed_integer_kind(decl->underlying_type.get<ast::ts_base_type>().info->kind);
 		return is_signed
-			? ast::constant_value_storage(bit_cast<int64_t>(lhs_enum_value) < bit_cast<int64_t>(rhs_enum_value))
-			: ast::constant_value_storage(lhs_enum_value < rhs_enum_value);
+			? ast::constant_value(bit_cast<int64_t>(lhs_enum_value) < bit_cast<int64_t>(rhs_enum_value))
+			: ast::constant_value(lhs_enum_value < rhs_enum_value);
 	}
 	default:
 		bz_unreachable;
 	}
 }
 
-static ast::constant_value_storage evaluate_binary_less_than_eq(
+static ast::constant_value evaluate_binary_less_than_eq(
 	[[maybe_unused]] ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
 	[[maybe_unused]] ctx::parse_context &context
@@ -693,40 +693,40 @@ static ast::constant_value_storage evaluate_binary_less_than_eq(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value_storage::variant_count == 19);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value_kind::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
 		auto const rhs_int_val = rhs_value.get_sint();
-		return ast::constant_value_storage(lhs_int_val <= rhs_int_val);
+		return ast::constant_value(lhs_int_val <= rhs_int_val);
 	}
 	case ast::constant_value_kind::uint:
 	{
 		auto const lhs_int_val = lhs_value.get_uint();
 		auto const rhs_int_val = rhs_value.get_uint();
-		return ast::constant_value_storage(lhs_int_val <= rhs_int_val);
+		return ast::constant_value(lhs_int_val <= rhs_int_val);
 	}
 	case ast::constant_value_kind::float32:
 	{
 		auto const lhs_float_val = lhs_value.get_float32();
 		auto const rhs_float_val = rhs_value.get_float32();
-		return ast::constant_value_storage(lhs_float_val <= rhs_float_val);
+		return ast::constant_value(lhs_float_val <= rhs_float_val);
 	}
 	case ast::constant_value_kind::float64:
 	{
 		auto const lhs_float_val = lhs_value.get_float64();
 		auto const rhs_float_val = rhs_value.get_float64();
-		return ast::constant_value_storage(lhs_float_val <= rhs_float_val);
+		return ast::constant_value(lhs_float_val <= rhs_float_val);
 	}
 	case ast::constant_value_kind::u8char:
 	{
 		auto const lhs_char_val = lhs_value.get_u8char();
 		auto const rhs_char_val = rhs_value.get_u8char();
-		return ast::constant_value_storage(lhs_char_val <= rhs_char_val);
+		return ast::constant_value(lhs_char_val <= rhs_char_val);
 	}
 	case ast::constant_value_kind::null:
 	{
-		return ast::constant_value_storage(true);
+		return ast::constant_value(true);
 	}
 	case ast::constant_value_kind::enum_:
 	{
@@ -734,15 +734,15 @@ static ast::constant_value_storage evaluate_binary_less_than_eq(
 		auto const rhs_enum_value = rhs_value.get_enum().value;
 		auto const is_signed = ast::is_signed_integer_kind(decl->underlying_type.get<ast::ts_base_type>().info->kind);
 		return is_signed
-			? ast::constant_value_storage(bit_cast<int64_t>(lhs_enum_value) <= bit_cast<int64_t>(rhs_enum_value))
-			: ast::constant_value_storage(lhs_enum_value <= rhs_enum_value);
+			? ast::constant_value(bit_cast<int64_t>(lhs_enum_value) <= bit_cast<int64_t>(rhs_enum_value))
+			: ast::constant_value(lhs_enum_value <= rhs_enum_value);
 	}
 	default:
 		bz_unreachable;
 	}
 }
 
-static ast::constant_value_storage evaluate_binary_greater_than(
+static ast::constant_value evaluate_binary_greater_than(
 	[[maybe_unused]] ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
 	[[maybe_unused]] ctx::parse_context &context
@@ -759,40 +759,40 @@ static ast::constant_value_storage evaluate_binary_greater_than(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value_storage::variant_count == 19);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value_kind::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
 		auto const rhs_int_val = rhs_value.get_sint();
-		return ast::constant_value_storage(lhs_int_val > rhs_int_val);
+		return ast::constant_value(lhs_int_val > rhs_int_val);
 	}
 	case ast::constant_value_kind::uint:
 	{
 		auto const lhs_int_val = lhs_value.get_uint();
 		auto const rhs_int_val = rhs_value.get_uint();
-		return ast::constant_value_storage(lhs_int_val > rhs_int_val);
+		return ast::constant_value(lhs_int_val > rhs_int_val);
 	}
 	case ast::constant_value_kind::float32:
 	{
 		auto const lhs_float_val = lhs_value.get_float32();
 		auto const rhs_float_val = rhs_value.get_float32();
-		return ast::constant_value_storage(lhs_float_val > rhs_float_val);
+		return ast::constant_value(lhs_float_val > rhs_float_val);
 	}
 	case ast::constant_value_kind::float64:
 	{
 		auto const lhs_float_val = lhs_value.get_float64();
 		auto const rhs_float_val = rhs_value.get_float64();
-		return ast::constant_value_storage(lhs_float_val > rhs_float_val);
+		return ast::constant_value(lhs_float_val > rhs_float_val);
 	}
 	case ast::constant_value_kind::u8char:
 	{
 		auto const lhs_char_val = lhs_value.get_u8char();
 		auto const rhs_char_val = rhs_value.get_u8char();
-		return ast::constant_value_storage(lhs_char_val > rhs_char_val);
+		return ast::constant_value(lhs_char_val > rhs_char_val);
 	}
 	case ast::constant_value_kind::null:
 	{
-		return ast::constant_value_storage(false);
+		return ast::constant_value(false);
 	}
 	case ast::constant_value_kind::enum_:
 	{
@@ -800,15 +800,15 @@ static ast::constant_value_storage evaluate_binary_greater_than(
 		auto const rhs_enum_value = rhs_value.get_enum().value;
 		auto const is_signed = ast::is_signed_integer_kind(decl->underlying_type.get<ast::ts_base_type>().info->kind);
 		return is_signed
-			? ast::constant_value_storage(bit_cast<int64_t>(lhs_enum_value) > bit_cast<int64_t>(rhs_enum_value))
-			: ast::constant_value_storage(lhs_enum_value > rhs_enum_value);
+			? ast::constant_value(bit_cast<int64_t>(lhs_enum_value) > bit_cast<int64_t>(rhs_enum_value))
+			: ast::constant_value(lhs_enum_value > rhs_enum_value);
 	}
 	default:
 		bz_unreachable;
 	}
 }
 
-static ast::constant_value_storage evaluate_binary_greater_than_eq(
+static ast::constant_value evaluate_binary_greater_than_eq(
 	[[maybe_unused]] ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
 	[[maybe_unused]] ctx::parse_context &context
@@ -825,40 +825,40 @@ static ast::constant_value_storage evaluate_binary_greater_than_eq(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value_storage::variant_count == 19);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value_kind::sint:
 	{
 		auto const lhs_int_val = lhs_value.get_sint();
 		auto const rhs_int_val = rhs_value.get_sint();
-		return ast::constant_value_storage(lhs_int_val >= rhs_int_val);
+		return ast::constant_value(lhs_int_val >= rhs_int_val);
 	}
 	case ast::constant_value_kind::uint:
 	{
 		auto const lhs_int_val = lhs_value.get_uint();
 		auto const rhs_int_val = rhs_value.get_uint();
-		return ast::constant_value_storage(lhs_int_val >= rhs_int_val);
+		return ast::constant_value(lhs_int_val >= rhs_int_val);
 	}
 	case ast::constant_value_kind::float32:
 	{
 		auto const lhs_float_val = lhs_value.get_float32();
 		auto const rhs_float_val = rhs_value.get_float32();
-		return ast::constant_value_storage(lhs_float_val >= rhs_float_val);
+		return ast::constant_value(lhs_float_val >= rhs_float_val);
 	}
 	case ast::constant_value_kind::float64:
 	{
 		auto const lhs_float_val = lhs_value.get_float64();
 		auto const rhs_float_val = rhs_value.get_float64();
-		return ast::constant_value_storage(lhs_float_val >= rhs_float_val);
+		return ast::constant_value(lhs_float_val >= rhs_float_val);
 	}
 	case ast::constant_value_kind::u8char:
 	{
 		auto const lhs_char_val = lhs_value.get_u8char();
 		auto const rhs_char_val = rhs_value.get_u8char();
-		return ast::constant_value_storage(lhs_char_val >= rhs_char_val);
+		return ast::constant_value(lhs_char_val >= rhs_char_val);
 	}
 	case ast::constant_value_kind::null:
 	{
-		return ast::constant_value_storage(true);
+		return ast::constant_value(true);
 	}
 	case ast::constant_value_kind::enum_:
 	{
@@ -866,15 +866,15 @@ static ast::constant_value_storage evaluate_binary_greater_than_eq(
 		auto const rhs_enum_value = rhs_value.get_enum().value;
 		auto const is_signed = ast::is_signed_integer_kind(decl->underlying_type.get<ast::ts_base_type>().info->kind);
 		return is_signed
-			? ast::constant_value_storage(bit_cast<int64_t>(lhs_enum_value) >= bit_cast<int64_t>(rhs_enum_value))
-			: ast::constant_value_storage(lhs_enum_value >= rhs_enum_value);
+			? ast::constant_value(bit_cast<int64_t>(lhs_enum_value) >= bit_cast<int64_t>(rhs_enum_value))
+			: ast::constant_value(lhs_enum_value >= rhs_enum_value);
 	}
 	default:
 		bz_unreachable;
 	}
 }
 
-static ast::constant_value_storage evaluate_binary_bit_and(
+static ast::constant_value evaluate_binary_bit_and(
 	[[maybe_unused]] ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
 	[[maybe_unused]] ctx::parse_context &context
@@ -891,25 +891,25 @@ static ast::constant_value_storage evaluate_binary_bit_and(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value_storage::variant_count == 19);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value_kind::uint:
 	{
 		auto const lhs_int_val = lhs_value.get_uint();
 		auto const rhs_int_val = rhs_value.get_uint();
-		return ast::constant_value_storage(lhs_int_val & rhs_int_val);
+		return ast::constant_value(lhs_int_val & rhs_int_val);
 	}
 	case ast::constant_value_kind::boolean:
 	{
 		auto const lhs_bool_val = lhs_value.get_boolean();
 		auto const rhs_bool_val = rhs_value.get_boolean();
-		return ast::constant_value_storage(lhs_bool_val && rhs_bool_val);
+		return ast::constant_value(lhs_bool_val && rhs_bool_val);
 	}
 	default:
 		bz_unreachable;
 	}
 }
 
-static ast::constant_value_storage evaluate_binary_bit_xor(
+static ast::constant_value evaluate_binary_bit_xor(
 	[[maybe_unused]] ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
 	[[maybe_unused]] ctx::parse_context &context
@@ -926,25 +926,25 @@ static ast::constant_value_storage evaluate_binary_bit_xor(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value_storage::variant_count == 19);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value_kind::uint:
 	{
 		auto const lhs_int_val = lhs_value.get_uint();
 		auto const rhs_int_val = rhs_value.get_uint();
-		return ast::constant_value_storage(lhs_int_val ^ rhs_int_val);
+		return ast::constant_value(lhs_int_val ^ rhs_int_val);
 	}
 	case ast::constant_value_kind::boolean:
 	{
 		auto const lhs_bool_val = lhs_value.get_boolean();
 		auto const rhs_bool_val = rhs_value.get_boolean();
-		return ast::constant_value_storage(lhs_bool_val != rhs_bool_val);
+		return ast::constant_value(lhs_bool_val != rhs_bool_val);
 	}
 	default:
 		bz_unreachable;
 	}
 }
 
-static ast::constant_value_storage evaluate_binary_bit_or(
+static ast::constant_value evaluate_binary_bit_or(
 	[[maybe_unused]] ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
 	[[maybe_unused]] ctx::parse_context &context
@@ -961,25 +961,25 @@ static ast::constant_value_storage evaluate_binary_bit_or(
 
 	switch (lhs_value.kind())
 	{
-	static_assert(ast::constant_value_storage::variant_count == 19);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value_kind::uint:
 	{
 		auto const lhs_int_val = lhs_value.get_uint();
 		auto const rhs_int_val = rhs_value.get_uint();
-		return ast::constant_value_storage(lhs_int_val | rhs_int_val);
+		return ast::constant_value(lhs_int_val | rhs_int_val);
 	}
 	case ast::constant_value_kind::boolean:
 	{
 		auto const lhs_bool_val = lhs_value.get_boolean();
 		auto const rhs_bool_val = rhs_value.get_boolean();
-		return ast::constant_value_storage(lhs_bool_val || rhs_bool_val);
+		return ast::constant_value(lhs_bool_val || rhs_bool_val);
 	}
 	default:
 		bz_unreachable;
 	}
 }
 
-static ast::constant_value_storage evaluate_binary_bit_left_shift(
+static ast::constant_value evaluate_binary_bit_left_shift(
 	ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
 	ctx::parse_context &context
@@ -1010,7 +1010,7 @@ static ast::constant_value_storage evaluate_binary_bit_left_shift(
 		);
 		if (result.has_value())
 		{
-			return ast::constant_value_storage(result.get());
+			return ast::constant_value(result.get());
 		}
 		else
 		{
@@ -1028,7 +1028,7 @@ static ast::constant_value_storage evaluate_binary_bit_left_shift(
 		);
 		if (result.has_value())
 		{
-			return ast::constant_value_storage(result.get());
+			return ast::constant_value(result.get());
 		}
 		else
 		{
@@ -1037,7 +1037,7 @@ static ast::constant_value_storage evaluate_binary_bit_left_shift(
 	}
 }
 
-static ast::constant_value_storage evaluate_binary_bit_right_shift(
+static ast::constant_value evaluate_binary_bit_right_shift(
 	ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
 	ctx::parse_context &context
@@ -1068,7 +1068,7 @@ static ast::constant_value_storage evaluate_binary_bit_right_shift(
 		);
 		if (result.has_value())
 		{
-			return ast::constant_value_storage(result.get());
+			return ast::constant_value(result.get());
 		}
 		else
 		{
@@ -1086,7 +1086,7 @@ static ast::constant_value_storage evaluate_binary_bit_right_shift(
 		);
 		if (result.has_value())
 		{
-			return ast::constant_value_storage(result.get());
+			return ast::constant_value(result.get());
 		}
 		else
 		{
@@ -1095,7 +1095,7 @@ static ast::constant_value_storage evaluate_binary_bit_right_shift(
 	}
 }
 
-static ast::constant_value_storage evaluate_binary_bool_and(
+static ast::constant_value evaluate_binary_bool_and(
 	[[maybe_unused]] ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
 	[[maybe_unused]] ctx::parse_context &context
@@ -1115,10 +1115,10 @@ static ast::constant_value_storage evaluate_binary_bool_and(
 
 	// short-circuiting is handled elsewhere
 	bz_assert(lhs_bool_val);
-	return ast::constant_value_storage(rhs_bool_val);
+	return ast::constant_value(rhs_bool_val);
 }
 
-static ast::constant_value_storage evaluate_binary_bool_xor(
+static ast::constant_value evaluate_binary_bool_xor(
 	[[maybe_unused]] ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
 	[[maybe_unused]] ctx::parse_context &context
@@ -1136,10 +1136,10 @@ static ast::constant_value_storage evaluate_binary_bool_xor(
 	bz_assert(rhs_value.is_boolean());
 	auto const rhs_bool_val = rhs_value.get_boolean();
 
-	return ast::constant_value_storage(lhs_bool_val != rhs_bool_val);
+	return ast::constant_value(lhs_bool_val != rhs_bool_val);
 }
 
-static ast::constant_value_storage evaluate_binary_bool_or(
+static ast::constant_value evaluate_binary_bool_or(
 	[[maybe_unused]] ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
 	[[maybe_unused]] ctx::parse_context &context
@@ -1159,10 +1159,10 @@ static ast::constant_value_storage evaluate_binary_bool_or(
 
 	// short-circuiting is handled elsewhere
 	bz_assert(!lhs_bool_val);
-	return ast::constant_value_storage(rhs_bool_val);
+	return ast::constant_value(rhs_bool_val);
 }
 
-static ast::constant_value_storage evaluate_binary_comma(
+static ast::constant_value evaluate_binary_comma(
 	[[maybe_unused]] ast::expression const &original_expr,
 	[[maybe_unused]] ast::expression const &lhs, ast::expression const &rhs,
 	[[maybe_unused]] ctx::parse_context &context
@@ -1173,7 +1173,7 @@ static ast::constant_value_storage evaluate_binary_comma(
 }
 
 
-static ast::constant_value_storage evaluate_binary_op(
+static ast::constant_value evaluate_binary_op(
 	ast::expression const &original_expr,
 	uint32_t op, ast::expression const &lhs, ast::expression const &rhs,
 	ctx::parse_context &context
@@ -1226,7 +1226,7 @@ static ast::constant_value_storage evaluate_binary_op(
 	}
 }
 
-static ast::constant_value_storage evaluate_tuple_subscript(ast::expr_tuple_subscript const &tuple_subscript_expr)
+static ast::constant_value evaluate_tuple_subscript(ast::expr_tuple_subscript const &tuple_subscript_expr)
 {
 	bz_assert(tuple_subscript_expr.index.is<ast::constant_expression>());
 	auto const is_consteval = tuple_subscript_expr.base.elems
@@ -1249,7 +1249,7 @@ static ast::constant_value_storage evaluate_tuple_subscript(ast::expr_tuple_subs
 	return tuple_subscript_expr.base.elems[index_int_value].get_constant_value();
 }
 
-static ast::constant_value_storage evaluate_subscript(
+static ast::constant_value evaluate_subscript(
 	ast::expression const &base,
 	ast::expression const &index,
 	ctx::parse_context &context
@@ -1344,12 +1344,12 @@ static ast::constant_value_storage evaluate_subscript(
 			auto const end_index = begin_index + inner_size;
 			switch (value.kind())
 			{
-			static_assert(ast::constant_value_storage::variant_count == 19);
+			static_assert(ast::constant_value::variant_count == 19);
 			case ast::constant_value_kind::array:
 			{
 				auto const &array_value = value.get_array();
 				bz_assert(end_index <= array_value.size());
-				auto result = ast::constant_value_storage();
+				auto result = ast::constant_value();
 				result.emplace<ast::constant_value_kind::array>(array_value.slice(begin_index, end_index));
 				return result;
 			}
@@ -1357,7 +1357,7 @@ static ast::constant_value_storage evaluate_subscript(
 			{
 				auto const &array_value = value.get_sint_array();
 				bz_assert(end_index <= array_value.size());
-				auto result = ast::constant_value_storage();
+				auto result = ast::constant_value();
 				result.emplace<ast::constant_value_kind::sint_array>(array_value.slice(begin_index, end_index));
 				return result;
 			}
@@ -1365,7 +1365,7 @@ static ast::constant_value_storage evaluate_subscript(
 			{
 				auto const &array_value = value.get_uint_array();
 				bz_assert(end_index <= array_value.size());
-				auto result = ast::constant_value_storage();
+				auto result = ast::constant_value();
 				result.emplace<ast::constant_value_kind::uint_array>(array_value.slice(begin_index, end_index));
 				return result;
 			}
@@ -1373,7 +1373,7 @@ static ast::constant_value_storage evaluate_subscript(
 			{
 				auto const &array_value = value.get_float32_array();
 				bz_assert(end_index <= array_value.size());
-				auto result = ast::constant_value_storage();
+				auto result = ast::constant_value();
 				result.emplace<ast::constant_value_kind::float32_array>(array_value.slice(begin_index, end_index));
 				return result;
 			}
@@ -1381,7 +1381,7 @@ static ast::constant_value_storage evaluate_subscript(
 			{
 				auto const &array_value = value.get_float64_array();
 				bz_assert(end_index <= array_value.size());
-				auto result = ast::constant_value_storage();
+				auto result = ast::constant_value();
 				result.emplace<ast::constant_value_kind::float64_array>(array_value.slice(begin_index, end_index));
 				return result;
 			}
@@ -1393,7 +1393,7 @@ static ast::constant_value_storage evaluate_subscript(
 		{
 			switch (value.kind())
 			{
-			static_assert(ast::constant_value_storage::variant_count == 19);
+			static_assert(ast::constant_value::variant_count == 19);
 			case ast::constant_value_kind::array:
 			{
 				auto const &array_value = value.get_array();
@@ -1404,25 +1404,25 @@ static ast::constant_value_storage evaluate_subscript(
 			{
 				auto const &array_value = value.get_sint_array();
 				bz_assert(index_value < array_value.size());
-				return ast::constant_value_storage(array_value[index_value]);
+				return ast::constant_value(array_value[index_value]);
 			}
 			case ast::constant_value_kind::uint_array:
 			{
 				auto const &array_value = value.get_uint_array();
 				bz_assert(index_value < array_value.size());
-				return ast::constant_value_storage(array_value[index_value]);
+				return ast::constant_value(array_value[index_value]);
 			}
 			case ast::constant_value_kind::float32_array:
 			{
 				auto const &array_value = value.get_float32_array();
 				bz_assert(index_value < array_value.size());
-				return ast::constant_value_storage(array_value[index_value]);
+				return ast::constant_value(array_value[index_value]);
 			}
 			case ast::constant_value_kind::float64_array:
 			{
 				auto const &array_value = value.get_float64_array();
 				bz_assert(index_value < array_value.size());
-				return ast::constant_value_storage(array_value[index_value]);
+				return ast::constant_value(array_value[index_value]);
 			}
 			default:
 				bz_unreachable;
@@ -1440,7 +1440,7 @@ static ast::constant_value_storage evaluate_subscript(
 }
 
 template<typename Kind>
-static ast::constant_value_storage is_typespec_kind_helper(ast::expr_function_call &func_call)
+static ast::constant_value is_typespec_kind_helper(ast::expr_function_call &func_call)
 {
 	bz_assert(func_call.params.size() == 1);
 	bz_assert(func_call.params[0].is_constant());
@@ -1448,11 +1448,11 @@ static ast::constant_value_storage is_typespec_kind_helper(ast::expr_function_ca
 	auto const type = func_call.params[0]
 		.get_constant_value()
 		.get_type();
-	return ast::constant_value_storage(type.is<Kind>());
+	return ast::constant_value(type.is<Kind>());
 }
 
 template<typename Kind>
-static ast::constant_value_storage remove_typespec_kind_helper(ast::expr_function_call &func_call)
+static ast::constant_value remove_typespec_kind_helper(ast::expr_function_call &func_call, ctx::parse_context &context)
 {
 	bz_assert(func_call.params.size() == 1);
 	bz_assert(func_call.params[0].is_constant());
@@ -1462,15 +1462,15 @@ static ast::constant_value_storage remove_typespec_kind_helper(ast::expr_functio
 		.get_type();
 	if (type.is<Kind>())
 	{
-		return ast::constant_value_storage(type.get<Kind>());
+		return context.add_constant_type(type.get<Kind>());
 	}
 	else
 	{
-		return ast::constant_value_storage(type);
+		return context.add_constant_type(type);
 	}
 }
 
-static ast::constant_value_storage evaluate_intrinsic_function_call(
+static ast::constant_value evaluate_intrinsic_function_call(
 	ast::expression const &original_expr,
 	ast::expr_function_call &func_call,
 	ctx::parse_context &context
@@ -1491,7 +1491,7 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0].get_expr_type().remove_mut_reference();
 		bz_assert(type.is<ast::ts_array>());
 		bz_assert(type.get<ast::ts_array>().size != 0);
-		return ast::constant_value_storage(type.get<ast::ts_array>().size);
+		return ast::constant_value(type.get<ast::ts_array>().size);
 	}
 	case ast::function_body::builtin_enum_value:
 	{
@@ -1508,11 +1508,11 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 		auto const is_signed = ast::is_signed_integer_kind(decl->underlying_type.get<ast::ts_base_type>().info->kind);
 		if (is_signed)
 		{
-			return ast::constant_value_storage(bit_cast<int64_t>(enum_value));
+			return ast::constant_value(bit_cast<int64_t>(enum_value));
 		}
 		else
 		{
-			return ast::constant_value_storage(enum_value);
+			return ast::constant_value(enum_value);
 		}
 	}
 	case ast::function_body::builtin_is_comptime:
@@ -1538,7 +1538,7 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 				lhs += rhs;
 				return lhs;
 			});
-		return ast::constant_value_storage(std::move(result));
+		return context.add_constant_string(std::move(result));
 	}
 
 	case ast::function_body::typename_as_str:
@@ -1549,7 +1549,7 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
-		return ast::constant_value_storage(bz::format("{}", type));
+		return context.add_constant_string(bz::format("{}", type));
 	}
 
 	case ast::function_body::is_mut:
@@ -1574,17 +1574,17 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 		return is_typespec_kind_helper<ast::ts_enum>(func_call);
 
 	case ast::function_body::remove_mut:
-		return remove_typespec_kind_helper<ast::ts_mut>(func_call);
+		return remove_typespec_kind_helper<ast::ts_mut>(func_call, context);
 	case ast::function_body::remove_consteval:
-		return remove_typespec_kind_helper<ast::ts_consteval>(func_call);
+		return remove_typespec_kind_helper<ast::ts_consteval>(func_call, context);
 	case ast::function_body::remove_pointer:
-		return remove_typespec_kind_helper<ast::ts_pointer>(func_call);
+		return remove_typespec_kind_helper<ast::ts_pointer>(func_call, context);
 	case ast::function_body::remove_optional:
-		return remove_typespec_kind_helper<ast::ts_optional>(func_call);
+		return remove_typespec_kind_helper<ast::ts_optional>(func_call, context);
 	case ast::function_body::remove_reference:
-		return remove_typespec_kind_helper<ast::ts_lvalue_reference>(func_call);
+		return remove_typespec_kind_helper<ast::ts_lvalue_reference>(func_call, context);
 	case ast::function_body::remove_move_reference:
-		return remove_typespec_kind_helper<ast::ts_move_reference>(func_call);
+		return remove_typespec_kind_helper<ast::ts_move_reference>(func_call, context);
 	case ast::function_body::slice_value_type:
 	{
 		bz_assert(func_call.params.size() == 1);
@@ -1599,11 +1599,11 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 				original_expr.src_tokens,
 				bz::format("'__builtin_slice_value_type' called on non-slice type '{}'", type)
 			);
-			return ast::constant_value_storage(type);
+			return context.add_constant_type(type);
 		}
 		else
 		{
-			return ast::constant_value_storage(type.get<ast::ts_array_slice>().elem_type);
+			return context.add_constant_type(type.get<ast::ts_array_slice>().elem_type);
 		}
 	}
 	case ast::function_body::array_value_type:
@@ -1620,11 +1620,11 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 				original_expr.src_tokens,
 				bz::format("'__builtin_array_value_type' called on non-array type '{}'", type)
 			);
-			return ast::constant_value_storage(type);
+			return context.add_constant_type(type);
 		}
 		else
 		{
-			return ast::constant_value_storage(type.get<ast::ts_array>().elem_type);
+			return context.add_constant_type(type.get<ast::ts_array>().elem_type);
 		}
 	}
 	case ast::function_body::tuple_value_type:
@@ -1646,7 +1646,7 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 				original_expr.src_tokens,
 				bz::format("'__builtin_tuple_value_type' called on non-tuple type '{}'", type)
 			);
-			return ast::constant_value_storage(type);
+			return context.add_constant_type(type);
 		}
 		else if (index >= type.get<ast::ts_tuple>().types.size())
 		{
@@ -1654,11 +1654,18 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 				original_expr.src_tokens,
 				bz::format("index {} is out of range in '__builtin_tuple_value_type' with tuple type '{}'", index, type)
 			);
-			return ast::constant_value_storage(type.get<ast::ts_tuple>().types.back());
+			if (type.get<ast::ts_tuple>().types.empty())
+			{
+				return context.add_constant_type(ast::make_void_typespec(nullptr));
+			}
+			else
+			{
+				return context.add_constant_type(type.get<ast::ts_tuple>().types.back());
+			}
 		}
 		else
 		{
-			return ast::constant_value_storage(type.get<ast::ts_tuple>().types[index]);
+			return context.add_constant_type(type.get<ast::ts_tuple>().types[index]);
 		}
 	}
 	case ast::function_body::concat_tuple_types:
@@ -1690,13 +1697,11 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 					bz::format("'__builtin_concat_tuple_types' called with non-tuple type '{}' as rhs", rhs_type)
 				);
 			}
-			return ast::constant_value_storage(lhs_type);
+			return context.add_constant_type(lhs_type);
 		}
 		else
 		{
-			auto result = ast::constant_value_storage();
-			auto &result_type = result.emplace<ast::constant_value_kind::type>();
-			result_type = ast::make_tuple_typespec(original_expr.src_tokens, {});
+			auto result_type = ast::make_tuple_typespec(original_expr.src_tokens, {});
 			auto const &lhs_tuple_types = lhs_type.get<ast::ts_tuple>().types;
 			auto const &rhs_tuple_types = rhs_type.get<ast::ts_tuple>().types;
 
@@ -1705,7 +1710,7 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 			result_tuple_types.append(lhs_tuple_types);
 			result_tuple_types.append(rhs_tuple_types);
 
-			return result;
+			return context.add_constant_type(std::move(result_type));
 		}
 	}
 	case ast::function_body::enum_underlying_type:
@@ -1722,12 +1727,12 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 				original_expr.src_tokens,
 				bz::format("'__builtin_enum_underlying_type' called on non-enum type '{}'", type)
 			);
-			return ast::constant_value_storage(type);
+			return context.add_constant_type(type);
 		}
 		else
 		{
 			context.resolve_type(original_expr.src_tokens, type.get<ast::ts_enum>().decl);
-			return ast::constant_value_storage(type.get<ast::ts_enum>().decl->underlying_type);
+			return context.add_constant_type(type.get<ast::ts_enum>().decl->underlying_type);
 		}
 	}
 
@@ -1739,7 +1744,7 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
-		return ast::constant_value_storage(context.is_default_constructible(original_expr.src_tokens, type));
+		return ast::constant_value(context.is_default_constructible(original_expr.src_tokens, type));
 	}
 	case ast::function_body::is_copy_constructible:
 	{
@@ -1749,7 +1754,7 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
-		return ast::constant_value_storage(context.is_copy_constructible(original_expr.src_tokens, type));
+		return ast::constant_value(context.is_copy_constructible(original_expr.src_tokens, type));
 	}
 	case ast::function_body::is_trivially_copy_constructible:
 	{
@@ -1759,7 +1764,7 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
-		return ast::constant_value_storage(context.is_trivially_copy_constructible(original_expr.src_tokens, type));
+		return ast::constant_value(context.is_trivially_copy_constructible(original_expr.src_tokens, type));
 	}
 	case ast::function_body::is_move_constructible:
 	{
@@ -1769,7 +1774,7 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
-		return ast::constant_value_storage(context.is_move_constructible(original_expr.src_tokens, type));
+		return ast::constant_value(context.is_move_constructible(original_expr.src_tokens, type));
 	}
 	case ast::function_body::is_trivially_move_constructible:
 	{
@@ -1779,7 +1784,7 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
-		return ast::constant_value_storage(context.is_trivially_move_constructible(original_expr.src_tokens, type));
+		return ast::constant_value(context.is_trivially_move_constructible(original_expr.src_tokens, type));
 	}
 	case ast::function_body::is_trivially_destructible:
 	{
@@ -1789,7 +1794,7 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
-		return ast::constant_value_storage(context.is_trivially_destructible(original_expr.src_tokens, type));
+		return ast::constant_value(context.is_trivially_destructible(original_expr.src_tokens, type));
 	}
 	case ast::function_body::is_trivially_move_destructible:
 	{
@@ -1799,7 +1804,7 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
-		return ast::constant_value_storage(context.is_trivially_move_destructible(original_expr.src_tokens, type));
+		return ast::constant_value(context.is_trivially_move_destructible(original_expr.src_tokens, type));
 	}
 	case ast::function_body::is_trivially_relocatable:
 	{
@@ -1809,7 +1814,7 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
-		return ast::constant_value_storage(context.is_trivially_relocatable(original_expr.src_tokens, type));
+		return ast::constant_value(context.is_trivially_relocatable(original_expr.src_tokens, type));
 	}
 	case ast::function_body::is_trivial:
 	{
@@ -1819,31 +1824,31 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 		auto const type = func_call.params[0]
 			.get_constant_value()
 			.get_type();
-		return ast::constant_value_storage(context.is_trivial(original_expr.src_tokens, type));
+		return ast::constant_value(context.is_trivial(original_expr.src_tokens, type));
 	}
 
 	case ast::function_body::i8_default_constructor:
 	case ast::function_body::i16_default_constructor:
 	case ast::function_body::i32_default_constructor:
 	case ast::function_body::i64_default_constructor:
-		return ast::constant_value_storage(int64_t());
+		return ast::constant_value(int64_t());
 	case ast::function_body::u8_default_constructor:
 	case ast::function_body::u16_default_constructor:
 	case ast::function_body::u32_default_constructor:
 	case ast::function_body::u64_default_constructor:
-		return ast::constant_value_storage(uint64_t());
+		return ast::constant_value(uint64_t());
 	case ast::function_body::f32_default_constructor:
-		return ast::constant_value_storage(float32_t());
+		return ast::constant_value(float32_t());
 	case ast::function_body::f64_default_constructor:
-		return ast::constant_value_storage(float64_t());
+		return ast::constant_value(float64_t());
 	case ast::function_body::char_default_constructor:
-		return ast::constant_value_storage(bz::u8char());
+		return ast::constant_value(bz::u8char());
 	case ast::function_body::str_default_constructor:
-		return ast::constant_value_storage(bz::u8string());
+		return ast::constant_value(bz::u8string_view());
 	case ast::function_body::bool_default_constructor:
-		return ast::constant_value_storage(bool());
+		return ast::constant_value(bool());
 	case ast::function_body::null_t_default_constructor:
-		return ast::constant_value_storage::get_null();
+		return ast::constant_value::get_null();
 
 	case ast::function_body::builtin_unary_plus:
 	{
@@ -1872,7 +1877,7 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 			bz_assert(const_expr.type.remove_any_mut().is<ast::ts_base_type>());
 			auto const type = const_expr.type.remove_any_mut().get<ast::ts_base_type>().info->kind;
 			auto const int_val = value.get_sint();
-			return ast::constant_value_storage(safe_unary_minus(
+			return ast::constant_value(safe_unary_minus(
 				original_expr.src_tokens, original_expr.paren_level,
 				int_val, type, context
 			));
@@ -1880,13 +1885,13 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 		else if (value.is_float32())
 		{
 			auto const float_val = value.get_float32();
-			return ast::constant_value_storage(-float_val);
+			return ast::constant_value(-float_val);
 		}
 		else
 		{
 			bz_assert(value.is_float64());
 			auto const float_val = value.get_float64();
-			return ast::constant_value_storage(-float_val);
+			return ast::constant_value(-float_val);
 		}
 	}
 	case ast::function_body::builtin_unary_dereference:
@@ -1903,7 +1908,7 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 		if (value.is_boolean())
 		{
 			auto const bool_val = value.get_boolean();
-			return ast::constant_value_storage(!bool_val);
+			return ast::constant_value(!bool_val);
 		}
 		else
 		{
@@ -1915,13 +1920,13 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 			switch (param_kind)
 			{
 			case ast::type_info::uint8_:
-				return ast::constant_value_storage(uint64_t(uint8_t(~uint_val)));
+				return ast::constant_value(uint64_t(uint8_t(~uint_val)));
 			case ast::type_info::uint16_:
-				return ast::constant_value_storage(uint64_t(uint16_t(~uint_val)));
+				return ast::constant_value(uint64_t(uint16_t(~uint_val)));
 			case ast::type_info::uint32_:
-				return ast::constant_value_storage(uint64_t(uint32_t(~uint_val)));
+				return ast::constant_value(uint64_t(uint32_t(~uint_val)));
 			case ast::type_info::uint64_:
-				return ast::constant_value_storage(~uint_val);
+				return ast::constant_value(~uint_val);
 			default:
 				bz_unreachable;
 			}
@@ -1937,7 +1942,7 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 		bz_assert(func_call.params[0].is_constant());
 		bz_assert(func_call.params[0].get_constant_value().is_boolean());
 		auto const bool_val = func_call.params[0].get_constant_value().get_boolean();
-		return ast::constant_value_storage(!bool_val);
+		return ast::constant_value(!bool_val);
 	}
 	case ast::function_body::builtin_unary_plus_plus:
 	case ast::function_body::builtin_unary_minus_minus:
@@ -1988,7 +1993,7 @@ static ast::constant_value_storage evaluate_intrinsic_function_call(
 	}
 }
 
-static ast::constant_value_storage get_default_constructed_value(
+static ast::constant_value get_default_constructed_value(
 	lex::src_tokens const &src_tokens,
 	ast::typespec_view type,
 	ctx::parse_context &context
@@ -2003,12 +2008,11 @@ static ast::constant_value_storage get_default_constructed_value(
 	if (type.modifiers.not_empty())
 	{
 		bz_assert(type.is<ast::ts_optional>());
-		return ast::constant_value_storage::get_null();
+		return ast::constant_value::get_null();
 	}
 	else if (type.is<ast::ts_array>())
 	{
 		auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(type);
-		ast::constant_value_storage result;
 		auto const elem_builtin_kind = elem_type.is<ast::ts_base_type>()
 			? elem_type.get<ast::ts_base_type>().info->kind
 			: ast::type_info::aggregate;
@@ -2018,36 +2022,34 @@ static ast::constant_value_storage get_default_constructed_value(
 		case ast::type_info::int16_:
 		case ast::type_info::int32_:
 		case ast::type_info::int64_:
-			result.emplace<ast::constant_value_kind::sint_array>(size, 0);
-			break;
+			return context.add_constant_sint_array(ast::arena_vector<int64_t>(size, 0));
 		case ast::type_info::uint8_:
 		case ast::type_info::uint16_:
 		case ast::type_info::uint32_:
 		case ast::type_info::uint64_:
-			result.emplace<ast::constant_value_kind::uint_array>(size, 0);
-			break;
+			return context.add_constant_uint_array(ast::arena_vector<uint64_t>(size, 0));
 		case ast::type_info::float32_:
-			result.emplace<ast::constant_value_kind::float32_array>(size, 0.0f);
-			break;
+			return context.add_constant_float32_array(ast::arena_vector<float32_t>(size, 0.0f));
 		case ast::type_info::float64_:
-			result.emplace<ast::constant_value_kind::float64_array>(size, 0.0);
-			break;
+			return context.add_constant_float64_array(ast::arena_vector<float64_t>(size, 0.0));
 		default:
 		{
 			auto const elem_value = get_default_constructed_value(src_tokens, elem_type, context);
 			if (elem_value.not_null())
 			{
-				result.emplace<ast::constant_value_kind::array>(size, elem_value);
+				return context.add_constant_array(ast::arena_vector<ast::constant_value>(size, elem_value));
 			}
-			break;
+			else
+			{
+				return ast::constant_value();
+			}
 		}
 		}
-		return result;
 	}
 	else
 	{
 		return type.terminator->visit(bz::overload{
-			[&src_tokens, &context](ast::ts_base_type const &base_t) -> ast::constant_value_storage {
+			[&src_tokens, &context](ast::ts_base_type const &base_t) -> ast::constant_value {
 				if (base_t.info->kind != ast::type_info::aggregate)
 				{
 					switch (base_t.info->kind)
@@ -2056,24 +2058,24 @@ static ast::constant_value_storage get_default_constructed_value(
 					case ast::type_info::int16_:
 					case ast::type_info::int32_:
 					case ast::type_info::int64_:
-						return ast::constant_value_storage(int64_t());
+						return ast::constant_value(int64_t());
 					case ast::type_info::uint8_:
 					case ast::type_info::uint16_:
 					case ast::type_info::uint32_:
 					case ast::type_info::uint64_:
-						return ast::constant_value_storage(uint64_t());
+						return ast::constant_value(uint64_t());
 					case ast::type_info::float32_:
-						return ast::constant_value_storage(float32_t());
+						return ast::constant_value(float32_t());
 					case ast::type_info::float64_:
-						return ast::constant_value_storage(float64_t());
+						return ast::constant_value(float64_t());
 					case ast::type_info::char_:
-						return ast::constant_value_storage(bz::u8char());
+						return ast::constant_value(bz::u8char());
 					case ast::type_info::str_:
-						return ast::constant_value_storage(bz::u8string());
+						return ast::constant_value(bz::u8string_view());
 					case ast::type_info::bool_:
-						return ast::constant_value_storage(bool());
+						return ast::constant_value(bool());
 					case ast::type_info::null_t_:
-						return ast::constant_value_storage::get_null();
+						return ast::constant_value::get_null();
 
 					default:
 						bz_unreachable;
@@ -2081,51 +2083,47 @@ static ast::constant_value_storage get_default_constructed_value(
 				}
 				else if (base_t.info->kind == ast::type_info::aggregate && base_t.info->default_constructor == nullptr)
 				{
-					ast::constant_value_storage result;
-					auto &elems = result.emplace<ast::constant_value_kind::aggregate>();
+					auto elems = ast::arena_vector<ast::constant_value>();
 					elems.reserve(base_t.info->member_variables.size());
 					for (auto const member : base_t.info->member_variables)
 					{
 						elems.push_back(get_default_constructed_value(src_tokens, member->get_type(), context));
 						if (elems.back().is_null())
 						{
-							result.clear();
-							return result;
+							return ast::constant_value();
 						}
 					}
-					return result;
+					return context.add_constant_aggregate(std::move(elems));
 				}
 				else
 				{
-					return {};
+					return ast::constant_value();
 				}
 			},
-			[](ast::ts_array_slice const &) -> ast::constant_value_storage {
-				return {};
+			[](ast::ts_array_slice const &) -> ast::constant_value {
+				return ast::constant_value();
 			},
-			[&src_tokens, &context](ast::ts_tuple const &tuple_t) -> ast::constant_value_storage {
-				ast::constant_value_storage result;
-				auto &elems = result.emplace<ast::constant_value_kind::tuple>();
+			[&src_tokens, &context](ast::ts_tuple const &tuple_t) -> ast::constant_value {
+				auto elems = ast::arena_vector<ast::constant_value>();
 				elems.reserve(tuple_t.types.size());
 				for (auto const &type : tuple_t.types)
 				{
 					elems.push_back(get_default_constructed_value(src_tokens, type, context));
 					if (elems.back().is_null())
 					{
-						result.clear();
-						return result;
+						return ast::constant_value();
 					}
 				}
-				return result;
+				return context.add_constant_tuple(std::move(elems));
 			},
-			[](auto const &) -> ast::constant_value_storage {
+			[](auto const &) -> ast::constant_value {
 				bz_unreachable;
 			}
 		});
 	}
 }
 
-static ast::constant_value_storage consteval_guaranteed_function_call(
+static ast::constant_value consteval_guaranteed_function_call(
 	ast::expression const &original_expr,
 	ast::expr_function_call &func_call,
 	ctx::parse_context &context
@@ -2150,7 +2148,7 @@ static ast::constant_value_storage consteval_guaranteed_function_call(
 	}
 }
 
-static ast::constant_value_storage evaluate_cast(
+static ast::constant_value evaluate_cast(
 	ast::expression const &original_expr,
 	ast::expr_cast const &subscript_expr,
 	ctx::parse_context &context
@@ -2177,7 +2175,7 @@ static ast::constant_value_storage evaluate_cast(
 	{
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value_storage::variant_count == 19);
+		static_assert(ast::constant_value::variant_count == 19);
 		case ast::constant_value_kind::sint:
 		{
 			using T = std::tuple<bz::u8string_view, int64_t, int64_t, int64_t>;
@@ -2195,7 +2193,7 @@ static ast::constant_value_storage evaluate_cast(
 					bz::format("overflow in constant expression '{} as {}' results in {}", int_val, type_name, result)
 				);
 			}
-			return ast::constant_value_storage(result);
+			return ast::constant_value(result);
 		}
 		case ast::constant_value_kind::uint:
 		{
@@ -2214,7 +2212,7 @@ static ast::constant_value_storage evaluate_cast(
 					bz::format("overflow in constant expression '{} as {}' results in {}", int_val, type_name, result)
 				);
 			}
-			return ast::constant_value_storage(result);
+			return ast::constant_value(result);
 		}
 		case ast::constant_value_kind::float32:
 		{
@@ -2224,7 +2222,7 @@ static ast::constant_value_storage evaluate_cast(
 				dest_kind == ast::type_info::int16_ ? static_cast<int16_t>(float_val) :
 				dest_kind == ast::type_info::int32_ ? static_cast<int32_t>(float_val) :
 				static_cast<int64_t>(float_val);
-			return ast::constant_value_storage(result);
+			return ast::constant_value(result);
 		}
 		case ast::constant_value_kind::float64:
 		{
@@ -2234,13 +2232,13 @@ static ast::constant_value_storage evaluate_cast(
 				dest_kind == ast::type_info::int16_ ? static_cast<int16_t>(float_val) :
 				dest_kind == ast::type_info::int32_ ? static_cast<int32_t>(float_val) :
 				static_cast<int64_t>(float_val);
-			return ast::constant_value_storage(result);
+			return ast::constant_value(result);
 		}
 		case ast::constant_value_kind::u8char:
 			// no overflow possible in constant expressions
-			return ast::constant_value_storage(static_cast<int64_t>(value.get_u8char()));
+			return ast::constant_value(static_cast<int64_t>(value.get_u8char()));
 		case ast::constant_value_kind::boolean:
-			return ast::constant_value_storage(static_cast<int64_t>(value.get_boolean()));
+			return ast::constant_value(static_cast<int64_t>(value.get_boolean()));
 		default:
 			bz_unreachable;
 		}
@@ -2253,7 +2251,7 @@ static ast::constant_value_storage evaluate_cast(
 	{
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value_storage::variant_count == 19);
+		static_assert(ast::constant_value::variant_count == 19);
 		case ast::constant_value_kind::sint:
 		{
 			using T = std::tuple<bz::u8string_view, uint64_t, uint64_t>;
@@ -2271,7 +2269,7 @@ static ast::constant_value_storage evaluate_cast(
 					bz::format("overflow in constant expression '{} as {}' results in {}", int_val, type_name, result)
 				);
 			}
-			return ast::constant_value_storage(result);
+			return ast::constant_value(result);
 		}
 		case ast::constant_value_kind::uint:
 		{
@@ -2290,7 +2288,7 @@ static ast::constant_value_storage evaluate_cast(
 					bz::format("overflow in constant expression '{} as {}' results in {}", int_val, type_name, result)
 				);
 			}
-			return ast::constant_value_storage(result);
+			return ast::constant_value(result);
 		}
 		case ast::constant_value_kind::float32:
 		{
@@ -2300,7 +2298,7 @@ static ast::constant_value_storage evaluate_cast(
 				dest_kind == ast::type_info::uint16_ ? static_cast<uint16_t>(float_val) :
 				dest_kind == ast::type_info::uint32_ ? static_cast<uint32_t>(float_val) :
 				static_cast<uint64_t>(float_val);
-			return ast::constant_value_storage(result);
+			return ast::constant_value(result);
 		}
 		case ast::constant_value_kind::float64:
 		{
@@ -2310,13 +2308,13 @@ static ast::constant_value_storage evaluate_cast(
 				dest_kind == ast::type_info::uint16_ ? static_cast<uint16_t>(float_val) :
 				dest_kind == ast::type_info::uint32_ ? static_cast<uint32_t>(float_val) :
 				static_cast<uint64_t>(float_val);
-			return ast::constant_value_storage(result);
+			return ast::constant_value(result);
 		}
 		case ast::constant_value_kind::u8char:
 			// no overflow possible in constant expressions
-			return ast::constant_value_storage(static_cast<uint64_t>(value.get_u8char()));
+			return ast::constant_value(static_cast<uint64_t>(value.get_u8char()));
 		case ast::constant_value_kind::boolean:
-			return ast::constant_value_storage(static_cast<uint64_t>(value.get_boolean()));
+			return ast::constant_value(static_cast<uint64_t>(value.get_boolean()));
 		default:
 			bz_unreachable;
 		}
@@ -2325,37 +2323,37 @@ static ast::constant_value_storage evaluate_cast(
 	case ast::type_info::float32_:
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value_storage::variant_count == 19);
+		static_assert(ast::constant_value::variant_count == 19);
 		case ast::constant_value_kind::sint:
-			return ast::constant_value_storage(static_cast<float32_t>(value.get_sint()));
+			return ast::constant_value(static_cast<float32_t>(value.get_sint()));
 		case ast::constant_value_kind::uint:
-			return ast::constant_value_storage(static_cast<float32_t>(value.get_uint()));
+			return ast::constant_value(static_cast<float32_t>(value.get_uint()));
 		case ast::constant_value_kind::float32:
-			return ast::constant_value_storage(static_cast<float32_t>(value.get_float32()));
+			return ast::constant_value(static_cast<float32_t>(value.get_float32()));
 		case ast::constant_value_kind::float64:
-			return ast::constant_value_storage(static_cast<float32_t>(value.get_float64()));
+			return ast::constant_value(static_cast<float32_t>(value.get_float64()));
 		default:
 			bz_unreachable;
 		}
 	case ast::type_info::float64_:
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value_storage::variant_count == 19);
+		static_assert(ast::constant_value::variant_count == 19);
 		case ast::constant_value_kind::sint:
-			return ast::constant_value_storage(static_cast<float64_t>(value.get_sint()));
+			return ast::constant_value(static_cast<float64_t>(value.get_sint()));
 		case ast::constant_value_kind::uint:
-			return ast::constant_value_storage(static_cast<float64_t>(value.get_uint()));
+			return ast::constant_value(static_cast<float64_t>(value.get_uint()));
 		case ast::constant_value_kind::float32:
-			return ast::constant_value_storage(static_cast<float64_t>(value.get_float32()));
+			return ast::constant_value(static_cast<float64_t>(value.get_float32()));
 		case ast::constant_value_kind::float64:
-			return ast::constant_value_storage(static_cast<float64_t>(value.get_float64()));
+			return ast::constant_value(static_cast<float64_t>(value.get_float64()));
 		default:
 			bz_unreachable;
 		}
 	case ast::type_info::char_:
 		switch (value.kind())
 		{
-		static_assert(ast::constant_value_storage::variant_count == 19);
+		static_assert(ast::constant_value::variant_count == 19);
 		case ast::constant_value_kind::sint:
 		{
 			auto const result = static_cast<bz::u8char>(value.get_sint());
@@ -2371,7 +2369,7 @@ static ast::constant_value_storage evaluate_cast(
 				}
 				return {};
 			}
-			return ast::constant_value_storage(result);
+			return ast::constant_value(result);
 		}
 		case ast::constant_value_kind::uint:
 		{
@@ -2388,7 +2386,7 @@ static ast::constant_value_storage evaluate_cast(
 				}
 				return {};
 			}
-			return ast::constant_value_storage(result);
+			return ast::constant_value(result);
 		}
 		default:
 			bz_unreachable;
@@ -2469,7 +2467,7 @@ static bool consteval_guaranteed_special_array_value_helper(
 	return true;
 }
 
-static ast::constant_value_storage consteval_guaranteed_special_array_value(
+static ast::constant_value consteval_guaranteed_special_array_value(
 	ast::typespec_view array_type,
 	bz::array_view<ast::expression> exprs,
 	ctx::parse_context &context
@@ -2486,8 +2484,7 @@ static ast::constant_value_storage consteval_guaranteed_special_array_value(
 	case ast::type_info::int32_:
 	case ast::type_info::int64_:
 	{
-		auto result = ast::constant_value_storage();
-		auto &sint_array = result.emplace<ast::constant_value_kind::sint_array>();
+		auto sint_array = ast::arena_vector<int64_t>();
 		sint_array.reserve(size);
 
 		auto const good = consteval_guaranteed_special_array_value_helper<
@@ -2500,19 +2497,21 @@ static ast::constant_value_storage consteval_guaranteed_special_array_value(
 			context
 		);
 
-		if (!good)
+		if (good)
 		{
-			result.clear();
+			return context.add_constant_sint_array(std::move(sint_array));
 		}
-		return result;
+		else
+		{
+			return ast::constant_value();
+		}
 	}
 	case ast::type_info::uint8_:
 	case ast::type_info::uint16_:
 	case ast::type_info::uint32_:
 	case ast::type_info::uint64_:
 	{
-		auto result = ast::constant_value_storage();
-		auto &uint_array = result.emplace<ast::constant_value_kind::uint_array>();
+		auto uint_array = ast::arena_vector<uint64_t>();
 		uint_array.reserve(size);
 
 		auto const good = consteval_guaranteed_special_array_value_helper<
@@ -2525,16 +2524,18 @@ static ast::constant_value_storage consteval_guaranteed_special_array_value(
 			context
 		);
 
-		if (!good)
+		if (good)
 		{
-			result.clear();
+			return context.add_constant_uint_array(std::move(uint_array));
 		}
-		return result;
+		else
+		{
+			return ast::constant_value();
+		}
 	}
 	case ast::type_info::float32_:
 	{
-		auto result = ast::constant_value_storage();
-		auto &float32_array = result.emplace<ast::constant_value_kind::float32_array>();
+		auto float32_array = ast::arena_vector<float32_t>();
 		float32_array.reserve(size);
 
 		auto const good = consteval_guaranteed_special_array_value_helper<
@@ -2547,16 +2548,18 @@ static ast::constant_value_storage consteval_guaranteed_special_array_value(
 			context
 		);
 
-		if (!good)
+		if (good)
 		{
-			result.clear();
+			return context.add_constant_float32_array(std::move(float32_array));
 		}
-		return result;
+		else
+		{
+			return ast::constant_value();
+		}
 	}
 	case ast::type_info::float64_:
 	{
-		auto result = ast::constant_value_storage();
-		auto &float64_array = result.emplace<ast::constant_value_kind::float64_array>();
+		auto float64_array = ast::arena_vector<float64_t>();
 		float64_array.reserve(size);
 
 		auto const good = consteval_guaranteed_special_array_value_helper<
@@ -2569,18 +2572,25 @@ static ast::constant_value_storage consteval_guaranteed_special_array_value(
 			context
 		);
 
-		if (!good)
+		if (good)
 		{
-			result.clear();
+			return context.add_constant_float64_array(std::move(float64_array));
 		}
-		return result;
+		else
+		{
+			return ast::constant_value();
+		}
 	}
 	default:
 		bz_unreachable;
 	}
 }
 
-static ast::constant_value_storage get_special_array_value(ast::typespec_view array_type, bz::array_view<ast::expression const> exprs)
+static ast::constant_value get_special_array_value(
+	ast::typespec_view array_type,
+	bz::array_view<ast::expression const> exprs,
+	ctx::parse_context &context
+)
 {
 	auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(array_type);
 	bz_assert(elem_type.is<ast::ts_base_type>());
@@ -2593,8 +2603,7 @@ static ast::constant_value_storage get_special_array_value(ast::typespec_view ar
 	case ast::type_info::int32_:
 	case ast::type_info::int64_:
 	{
-		auto result = ast::constant_value_storage();
-		auto &sint_array = result.emplace<ast::constant_value_kind::sint_array>();
+		auto sint_array = ast::arena_vector<int64_t>();
 		sint_array.reserve(size);
 		if (is_multi_dimensional)
 		{
@@ -2610,15 +2619,14 @@ static ast::constant_value_storage get_special_array_value(ast::typespec_view ar
 				sint_array.push_back(expr.get_constant_value().get_sint());
 			}
 		}
-		return result;
+		return context.add_constant_sint_array(std::move(sint_array));
 	}
 	case ast::type_info::uint8_:
 	case ast::type_info::uint16_:
 	case ast::type_info::uint32_:
 	case ast::type_info::uint64_:
 	{
-		auto result = ast::constant_value_storage();
-		auto &uint_array = result.emplace<ast::constant_value_kind::uint_array>();
+		auto uint_array = ast::arena_vector<uint64_t>();
 		uint_array.reserve(size);
 		if (is_multi_dimensional)
 		{
@@ -2634,12 +2642,11 @@ static ast::constant_value_storage get_special_array_value(ast::typespec_view ar
 				uint_array.push_back(expr.get_constant_value().get_uint());
 			}
 		}
-		return result;
+		return context.add_constant_uint_array(std::move(uint_array));
 	}
 	case ast::type_info::float32_:
 	{
-		auto result = ast::constant_value_storage();
-		auto &float32_array = result.emplace<ast::constant_value_kind::float32_array>();
+		auto float32_array = ast::arena_vector<float32_t>();
 		float32_array.reserve(size);
 		if (is_multi_dimensional)
 		{
@@ -2655,12 +2662,11 @@ static ast::constant_value_storage get_special_array_value(ast::typespec_view ar
 				float32_array.push_back(expr.get_constant_value().get_float32());
 			}
 		}
-		return result;
+		return context.add_constant_float32_array(std::move(float32_array));
 	}
 	case ast::type_info::float64_:
 	{
-		auto result = ast::constant_value_storage();
-		auto &float64_array = result.emplace<ast::constant_value_kind::float64_array>();
+		auto float64_array = ast::arena_vector<float64_t>();
 		float64_array.reserve(size);
 		if (is_multi_dimensional)
 		{
@@ -2676,84 +2682,84 @@ static ast::constant_value_storage get_special_array_value(ast::typespec_view ar
 				float64_array.push_back(expr.get_constant_value().get_float64());
 			}
 		}
-		return result;
+		return context.add_constant_float64_array(std::move(float64_array));
 	}
 	default:
 		bz_unreachable;
 	}
 }
 
-static ast::constant_value_storage guaranteed_evaluate_expr(
+static ast::constant_value guaranteed_evaluate_expr(
 	ast::expression &expr,
 	ctx::parse_context &context
 )
 {
 	return expr.get_expr().visit(bz::overload{
-		[](ast::expr_variable_name &) -> ast::constant_value_storage {
+		[](ast::expr_variable_name &) -> ast::constant_value {
 			// identifiers are only constant expressions if they are a consteval
 			// variable, which is handled in parse_context::make_identifier_expr (or something similar)
 			return {};
 		},
-		[](ast::expr_function_name &) -> ast::constant_value_storage {
+		[](ast::expr_function_name &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
 		},
-		[](ast::expr_function_alias_name &) -> ast::constant_value_storage {
+		[](ast::expr_function_alias_name &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
 		},
-		[](ast::expr_function_overload_set &) -> ast::constant_value_storage {
+		[](ast::expr_function_overload_set &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
 		},
-		[](ast::expr_struct_name &) -> ast::constant_value_storage {
+		[](ast::expr_struct_name &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
 		},
-		[](ast::expr_enum_name &) -> ast::constant_value_storage {
+		[](ast::expr_enum_name &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
 		},
-		[](ast::expr_type_alias_name &) -> ast::constant_value_storage {
+		[](ast::expr_type_alias_name &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
 		},
-		[](ast::expr_integer_literal &) -> ast::constant_value_storage {
+		[](ast::expr_integer_literal &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
 		},
-		[](ast::expr_null_literal &) -> ast::constant_value_storage {
+		[](ast::expr_null_literal &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
 		},
-		[](ast::expr_enum_literal &) -> ast::constant_value_storage {
+		[](ast::expr_enum_literal &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
 		},
-		[](ast::expr_typed_literal &) -> ast::constant_value_storage {
+		[](ast::expr_typed_literal &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
 		},
-		[](ast::expr_placeholder_literal &) -> ast::constant_value_storage {
+		[](ast::expr_placeholder_literal &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_typename_literal &) -> ast::constant_value_storage {
+		[](ast::expr_typename_literal &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
 		},
-		[&context](ast::expr_tuple &tuple) -> ast::constant_value_storage {
+		[&context](ast::expr_tuple &tuple) -> ast::constant_value {
 			for (auto &elem : tuple.elems)
 			{
 				consteval_guaranteed(elem, context);
 			}
 			return {};
 		},
-		[&context](ast::expr_unary_op &unary_op) -> ast::constant_value_storage {
+		[&context](ast::expr_unary_op &unary_op) -> ast::constant_value {
 			// builtin operators are handled as intrinsic functions
 			consteval_guaranteed(unary_op.expr, context);
 			return {};
 		},
-		[&expr, &context](ast::expr_binary_op &binary_op) -> ast::constant_value_storage {
+		[&expr, &context](ast::expr_binary_op &binary_op) -> ast::constant_value {
 			consteval_guaranteed(binary_op.lhs, context);
 			consteval_guaranteed(binary_op.rhs, context);
 
@@ -2769,7 +2775,7 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 					auto const lhs_bool_val = lhs_value.get_boolean();
 					if (!lhs_bool_val)
 					{
-						return ast::constant_value_storage(false);
+						return ast::constant_value(false);
 					}
 				}
 				else if (op == lex::token::bool_or)
@@ -2780,7 +2786,7 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 					auto const lhs_bool_val = lhs_value.get_boolean();
 					if (lhs_bool_val)
 					{
-						return ast::constant_value_storage(true);
+						return ast::constant_value(true);
 					}
 				}
 			}
@@ -2794,7 +2800,7 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 				return {};
 			}
 		},
-		[&context](ast::expr_tuple_subscript &tuple_subscript_expr) -> ast::constant_value_storage {
+		[&context](ast::expr_tuple_subscript &tuple_subscript_expr) -> ast::constant_value {
 			for (auto &elem : tuple_subscript_expr.base.elems)
 			{
 				consteval_guaranteed(elem, context);
@@ -2802,7 +2808,7 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 
 			return evaluate_tuple_subscript(tuple_subscript_expr);
 		},
-		[&context](ast::expr_rvalue_tuple_subscript &rvalue_tuple_subscript_expr) -> ast::constant_value_storage {
+		[&context](ast::expr_rvalue_tuple_subscript &rvalue_tuple_subscript_expr) -> ast::constant_value {
 			consteval_guaranteed(rvalue_tuple_subscript_expr.base, context);
 
 			if (rvalue_tuple_subscript_expr.base.is_constant())
@@ -2821,7 +2827,7 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 				return {};
 			}
 		},
-		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value_storage {
+		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value {
 			consteval_guaranteed(subscript_expr.base, context);
 			consteval_guaranteed(subscript_expr.index, context);
 
@@ -2829,20 +2835,20 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 			// lvalue reference to an rvalue
 			return {};
 		},
-		[&context](ast::expr_rvalue_array_subscript &rvalue_array_subscript_expr) -> ast::constant_value_storage {
+		[&context](ast::expr_rvalue_array_subscript &rvalue_array_subscript_expr) -> ast::constant_value {
 			consteval_guaranteed(rvalue_array_subscript_expr.base, context);
 			consteval_guaranteed(rvalue_array_subscript_expr.index, context);
 
 			return evaluate_subscript(rvalue_array_subscript_expr.base, rvalue_array_subscript_expr.index, context);
 		},
-		[&expr, &context](ast::expr_function_call &func_call) -> ast::constant_value_storage {
+		[&expr, &context](ast::expr_function_call &func_call) -> ast::constant_value {
 			for (auto &param : func_call.params)
 			{
 				consteval_guaranteed(param, context);
 			}
 			return consteval_guaranteed_function_call(expr, func_call, context);
 		},
-		[&context](ast::expr_indirect_function_call &func_call) -> ast::constant_value_storage {
+		[&context](ast::expr_indirect_function_call &func_call) -> ast::constant_value {
 			consteval_guaranteed(func_call.called, context);
 			for (auto &param : func_call.params)
 			{
@@ -2850,7 +2856,7 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 			}
 			return {};
 		},
-		[&expr, &context](ast::expr_cast &cast_expr) -> ast::constant_value_storage {
+		[&expr, &context](ast::expr_cast &cast_expr) -> ast::constant_value {
 			consteval_guaranteed(cast_expr.expr, context);
 			if (cast_expr.expr.has_consteval_succeeded())
 			{
@@ -2861,11 +2867,11 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 				return {};
 			}
 		},
-		[&context](ast::expr_bit_cast &bit_cast_expr) -> ast::constant_value_storage {
+		[&context](ast::expr_bit_cast &bit_cast_expr) -> ast::constant_value {
 			consteval_guaranteed(bit_cast_expr.expr, context);
 			return {};
 		},
-		[&context](ast::expr_optional_cast &optional_cast_expr) -> ast::constant_value_storage {
+		[&context](ast::expr_optional_cast &optional_cast_expr) -> ast::constant_value {
 			consteval_guaranteed(optional_cast_expr.expr, context);
 			if (optional_cast_expr.expr.has_consteval_succeeded())
 			{
@@ -2876,13 +2882,13 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 				return {};
 			}
 		},
-		[](ast::expr_take_reference const &) -> ast::constant_value_storage {
+		[](ast::expr_take_reference const &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_take_move_reference const &) -> ast::constant_value_storage {
+		[](ast::expr_take_move_reference const &) -> ast::constant_value {
 			return {};
 		},
-		[&context](ast::expr_aggregate_init &aggregate_init_expr) -> ast::constant_value_storage {
+		[&context](ast::expr_aggregate_init &aggregate_init_expr) -> ast::constant_value {
 			if (is_special_array_type(aggregate_init_expr.type))
 			{
 				auto result = consteval_guaranteed_special_array_value(aggregate_init_expr.type, aggregate_init_expr.exprs, context);
@@ -2905,13 +2911,12 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 
 			if (is_special_array_type(aggregate_init_expr.type))
 			{
-				return get_special_array_value(aggregate_init_expr.type, aggregate_init_expr.exprs);
+				return get_special_array_value(aggregate_init_expr.type, aggregate_init_expr.exprs, context);
 			}
 			else if (aggregate_init_expr.type.is<ast::ts_array>())
 			{
 				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(aggregate_init_expr.type);
-				auto result = ast::constant_value_storage();
-				auto &array = result.emplace<ast::constant_value_kind::array>();
+				auto array = ast::arena_vector<ast::constant_value>();
 				array.reserve(size);
 				if (is_multi_dimensional)
 				{
@@ -2928,25 +2933,24 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 					}
 				}
 
-				return result;
+				return context.add_constant_array(std::move(array));
 			}
 			else
 			{
-				auto result = ast::constant_value_storage();
-				auto &aggregate = result.emplace<ast::constant_value_kind::aggregate>();
+				auto aggregate = ast::arena_vector<ast::constant_value>();
 				aggregate.reserve(aggregate_init_expr.exprs.size());
 				for (auto const &expr : aggregate_init_expr.exprs)
 				{
 					aggregate.emplace_back(expr.get_constant_value());
 				}
-				return result;
+				return context.add_constant_aggregate(std::move(aggregate));
 			}
 		},
-		[&context](ast::expr_array_value_init &array_value_init_expr) -> ast::constant_value_storage {
+		[&context](ast::expr_array_value_init &array_value_init_expr) -> ast::constant_value {
 			consteval_guaranteed(array_value_init_expr.value, context);
 			return {};
 		},
-		[&context](ast::expr_aggregate_default_construct &aggregate_default_construct_expr) -> ast::constant_value_storage {
+		[&context](ast::expr_aggregate_default_construct &aggregate_default_construct_expr) -> ast::constant_value {
 			bool is_consteval = true;
 			for (auto &expr : aggregate_default_construct_expr.default_construct_exprs)
 			{
@@ -2958,18 +2962,22 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 				return {};
 			}
 
-			ast::constant_value_storage result{};
-			auto &aggregate = aggregate_default_construct_expr.type.is<ast::ts_tuple>()
-				? result.emplace<ast::constant_value_kind::tuple>()
-				: result.emplace<ast::constant_value_kind::aggregate>();
+			auto aggregate = ast::arena_vector<ast::constant_value>();
 			aggregate.reserve(aggregate_default_construct_expr.default_construct_exprs.size());
 			for (auto const &expr : aggregate_default_construct_expr.default_construct_exprs)
 			{
 				aggregate.emplace_back(expr.get_constant_value());
 			}
-			return result;
+			if (aggregate_default_construct_expr.type.is<ast::ts_tuple>())
+			{
+				return context.add_constant_tuple(std::move(aggregate));
+			}
+			else
+			{
+				return context.add_constant_aggregate(std::move(aggregate));
+			}
 		},
-		[&expr, &context](ast::expr_aggregate_copy_construct &aggregate_copy_construct_expr) -> ast::constant_value_storage {
+		[&expr, &context](ast::expr_aggregate_copy_construct &aggregate_copy_construct_expr) -> ast::constant_value {
 			consteval_guaranteed(aggregate_copy_construct_expr.copied_value, context);
 			if (!aggregate_copy_construct_expr.copied_value.has_consteval_succeeded())
 			{
@@ -2985,11 +2993,11 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 				return {};
 			}
 		},
-		[&context](ast::expr_aggregate_move_construct &aggregate_move_construct_expr) -> ast::constant_value_storage {
+		[&context](ast::expr_aggregate_move_construct &aggregate_move_construct_expr) -> ast::constant_value {
 			consteval_guaranteed(aggregate_move_construct_expr.moved_value, context);
 			return {};
 		},
-		[&expr, &context](ast::expr_array_default_construct &array_default_construct_expr) -> ast::constant_value_storage {
+		[&expr, &context](ast::expr_array_default_construct &array_default_construct_expr) -> ast::constant_value {
 			auto const type = array_default_construct_expr.type.as_typespec_view();
 			bz_assert(type.is<ast::ts_array>());
 			consteval_guaranteed(array_default_construct_expr.default_construct_expr, context);
@@ -3006,20 +3014,17 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 			{
 				auto const &value = array_default_construct_expr.default_construct_expr.get_constant_value();
 				auto const [elem_type, size, is_multi_dimensional] = get_flattened_array_type_and_size(type);
-				auto result = ast::constant_value_storage();
 				if (is_multi_dimensional)
 				{
-					bz_assert(value.is_array() && value.get_array().not_empty());
-					result.emplace<ast::constant_value_kind::array>(size, value.get_array()[0]);
+					return context.add_constant_array(ast::arena_vector<ast::constant_value>(size, value.get_array()[0]));
 				}
 				else
 				{
-					result.emplace<ast::constant_value_kind::array>(size, value);
+					return context.add_constant_array(ast::arena_vector<ast::constant_value>(size, value));
 				}
-				return result;
 			}
 		},
-		[&expr, &context](ast::expr_array_copy_construct &array_copy_construct_expr) -> ast::constant_value_storage {
+		[&expr, &context](ast::expr_array_copy_construct &array_copy_construct_expr) -> ast::constant_value {
 			consteval_guaranteed(array_copy_construct_expr.copied_value, context);
 			if (!array_copy_construct_expr.copied_value.has_consteval_succeeded())
 			{
@@ -3035,21 +3040,21 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 				return {};
 			}
 		},
-		[&context](ast::expr_array_move_construct &array_move_construct_expr) -> ast::constant_value_storage {
+		[&context](ast::expr_array_move_construct &array_move_construct_expr) -> ast::constant_value {
 			consteval_guaranteed(array_move_construct_expr.moved_value, context);
 			return {};
 		},
-		[&expr, &context](ast::expr_optional_default_construct &optional_default_construct_expr) -> ast::constant_value_storage {
+		[&expr, &context](ast::expr_optional_default_construct &optional_default_construct_expr) -> ast::constant_value {
 			if (context.is_trivially_destructible(expr.src_tokens, optional_default_construct_expr.type))
 			{
-				return ast::constant_value_storage::get_null();
+				return ast::constant_value::get_null();
 			}
 			else
 			{
 				return {};
 			}
 		},
-		[&expr, &context](ast::expr_optional_copy_construct &optional_copy_construct_expr) -> ast::constant_value_storage {
+		[&expr, &context](ast::expr_optional_copy_construct &optional_copy_construct_expr) -> ast::constant_value {
 			consteval_guaranteed(optional_copy_construct_expr.copied_value, context);
 			if (!optional_copy_construct_expr.copied_value.has_consteval_succeeded())
 			{
@@ -3065,7 +3070,7 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 				return {};
 			}
 		},
-		[&expr, &context](ast::expr_optional_move_construct &optional_move_construct_expr) -> ast::constant_value_storage {
+		[&expr, &context](ast::expr_optional_move_construct &optional_move_construct_expr) -> ast::constant_value {
 			consteval_guaranteed(optional_move_construct_expr.moved_value, context);
 			if (!optional_move_construct_expr.moved_value.has_consteval_succeeded())
 			{
@@ -3081,11 +3086,11 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 				return {};
 			}
 		},
-		[](ast::expr_builtin_default_construct &builtin_default_construct_expr) -> ast::constant_value_storage {
+		[](ast::expr_builtin_default_construct &builtin_default_construct_expr) -> ast::constant_value {
 			bz_assert(builtin_default_construct_expr.type.is<ast::ts_array_slice>());
 			return {};
 		},
-		[&context](ast::expr_trivial_copy_construct &trivial_copy_construct_expr) -> ast::constant_value_storage {
+		[&context](ast::expr_trivial_copy_construct &trivial_copy_construct_expr) -> ast::constant_value {
 			consteval_guaranteed(trivial_copy_construct_expr.copied_value, context);
 			if (!trivial_copy_construct_expr.copied_value.has_consteval_succeeded())
 			{
@@ -3094,65 +3099,65 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 
 			return trivial_copy_construct_expr.copied_value.get_constant_value();
 		},
-		[&context](ast::expr_trivial_relocate &trivial_relocate_expr) -> ast::constant_value_storage {
+		[&context](ast::expr_trivial_relocate &trivial_relocate_expr) -> ast::constant_value {
 			consteval_guaranteed(trivial_relocate_expr.value, context);
 			return {};
 		},
-		[](ast::expr_aggregate_destruct &) -> ast::constant_value_storage {
+		[](ast::expr_aggregate_destruct &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_array_destruct &) -> ast::constant_value_storage {
+		[](ast::expr_array_destruct &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_optional_destruct &) -> ast::constant_value_storage {
+		[](ast::expr_optional_destruct &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_base_type_destruct &) -> ast::constant_value_storage {
+		[](ast::expr_base_type_destruct &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_destruct_value &) -> ast::constant_value_storage {
+		[](ast::expr_destruct_value &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_aggregate_assign &) -> ast::constant_value_storage {
+		[](ast::expr_aggregate_assign &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_array_assign &) -> ast::constant_value_storage {
+		[](ast::expr_array_assign &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_optional_assign &) -> ast::constant_value_storage {
+		[](ast::expr_optional_assign &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_optional_null_assign &) -> ast::constant_value_storage {
+		[](ast::expr_optional_null_assign &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_optional_value_assign &) -> ast::constant_value_storage {
+		[](ast::expr_optional_value_assign &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_optional_reference_value_assign &) -> ast::constant_value_storage {
+		[](ast::expr_optional_reference_value_assign &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_base_type_assign &) -> ast::constant_value_storage {
+		[](ast::expr_base_type_assign &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_trivial_assign &) -> ast::constant_value_storage {
+		[](ast::expr_trivial_assign &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_aggregate_swap &) -> ast::constant_value_storage {
+		[](ast::expr_aggregate_swap &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_array_swap &) -> ast::constant_value_storage {
+		[](ast::expr_array_swap &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_optional_swap &) -> ast::constant_value_storage {
+		[](ast::expr_optional_swap &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_base_type_swap &) -> ast::constant_value_storage {
+		[](ast::expr_base_type_swap &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_trivial_swap &) -> ast::constant_value_storage {
+		[](ast::expr_trivial_swap &) -> ast::constant_value {
 			return {};
 		},
-		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value_storage {
+		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
 			consteval_guaranteed(member_access_expr.base, context);
 			if (member_access_expr.base.has_consteval_succeeded())
 			{
@@ -3166,7 +3171,7 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 				return {};
 			}
 		},
-		[&context, &expr](ast::expr_optional_extract_value &optional_extract_value) -> ast::constant_value_storage {
+		[&context, &expr](ast::expr_optional_extract_value &optional_extract_value) -> ast::constant_value {
 			consteval_guaranteed(optional_extract_value.optional_value, context);
 			if (optional_extract_value.optional_value.has_consteval_succeeded())
 			{
@@ -3190,7 +3195,7 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 				return {};
 			}
 		},
-		[&context](ast::expr_rvalue_member_access &rvalue_member_access_expr) -> ast::constant_value_storage {
+		[&context](ast::expr_rvalue_member_access &rvalue_member_access_expr) -> ast::constant_value {
 			consteval_guaranteed(rvalue_member_access_expr.base, context);
 			if (rvalue_member_access_expr.base.has_consteval_succeeded())
 			{
@@ -3204,24 +3209,24 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 				return {};
 			}
 		},
-		[](ast::expr_type_member_access &) -> ast::constant_value_storage {
+		[](ast::expr_type_member_access &) -> ast::constant_value {
 			// variable constevalness is handled in parse_context::make_member_access_expression
 			return {};
 		},
-		[&context](ast::expr_compound &compound_expr) -> ast::constant_value_storage {
+		[&context](ast::expr_compound &compound_expr) -> ast::constant_value {
 			if (compound_expr.statements.empty() && compound_expr.final_expr.not_null())
 			{
 				consteval_guaranteed(compound_expr.final_expr, context);
 			}
 			return {};
 		},
-		[&context](ast::expr_if &if_expr) -> ast::constant_value_storage {
+		[&context](ast::expr_if &if_expr) -> ast::constant_value {
 			consteval_guaranteed(if_expr.condition, context);
 			consteval_guaranteed(if_expr.then_block, context);
 			consteval_guaranteed(if_expr.else_block, context);
 			return {};
 		},
-		[&context](ast::expr_if_consteval &if_expr) -> ast::constant_value_storage {
+		[&context](ast::expr_if_consteval &if_expr) -> ast::constant_value {
 			bz_assert(if_expr.condition.is_constant());
 			auto const &condition_value = if_expr.condition.get_constant_value();
 			bz_assert(condition_value.is_boolean());
@@ -3253,10 +3258,10 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 			}
 			else
 			{
-				return ast::constant_value_storage::get_void();
+				return ast::constant_value::get_void();
 			}
 		},
-		[&context](ast::expr_switch &switch_expr) -> ast::constant_value_storage {
+		[&context](ast::expr_switch &switch_expr) -> ast::constant_value {
 			consteval_guaranteed(switch_expr.matched_expr, context);
 			for (auto &[_, case_expr] : switch_expr.cases)
 			{
@@ -3265,25 +3270,25 @@ static ast::constant_value_storage guaranteed_evaluate_expr(
 			consteval_guaranteed(switch_expr.default_case, context);
 			return {};
 		},
-		[](ast::expr_break &) -> ast::constant_value_storage {
+		[](ast::expr_break &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_continue &) -> ast::constant_value_storage {
+		[](ast::expr_continue &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_unreachable &) -> ast::constant_value_storage {
+		[](ast::expr_unreachable &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_generic_type_instantiation &) -> ast::constant_value_storage {
+		[](ast::expr_generic_type_instantiation &) -> ast::constant_value {
 			bz_unreachable;
 		},
-		[](ast::expr_bitcode_value_reference &) -> ast::constant_value_storage {
+		[](ast::expr_bitcode_value_reference &) -> ast::constant_value {
 			return {};
 		},
 	});
 }
 
-static ast::constant_value_storage try_evaluate_expr(
+static ast::constant_value try_evaluate_expr(
 	ast::expression &expr,
 	ctx::parse_context &context
 )
@@ -3292,7 +3297,7 @@ static ast::constant_value_storage try_evaluate_expr(
 	return context.execute_expression(expr);
 }
 
-static ast::constant_value_storage try_evaluate_expr_without_error(
+static ast::constant_value try_evaluate_expr_without_error(
 	ast::expression &expr,
 	ctx::parse_context &context
 )

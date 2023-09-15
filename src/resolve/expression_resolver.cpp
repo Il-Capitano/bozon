@@ -202,7 +202,7 @@ static ast::expression resolve_expr(
 	resolve_expression(cast_expr.type, context);
 	if (cast_expr.type.is_typename())
 	{
-		return context.make_cast_expression(src_tokens, std::move(cast_expr.expr), std::move(cast_expr.type.get_typename()));
+		return context.make_cast_expression(src_tokens, std::move(cast_expr.expr), cast_expr.type.get_typename());
 	}
 	else
 	{
@@ -450,7 +450,7 @@ static ast::expression resolve_expr(
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::none, ast::typespec(),
-			ast::constant_value_storage::get_void(),
+			ast::constant_value::get_void(),
 			std::move(result_node)
 		);
 	}
@@ -576,7 +576,7 @@ static ast::expression resolve_expr(
 				{
 					switch (rhs_value.kind())
 					{
-					static_assert(ast::constant_value_storage::variant_count == 19);
+					static_assert(ast::constant_value::variant_count == 19);
 					case ast::constant_value_kind::sint:
 						context.report_error(
 							rhs.src_tokens,
@@ -810,10 +810,10 @@ static ast::expression resolve_expr(
 			}
 			else
 			{
-				ast::constant_value_storage const &size_value = size.get_constant_value();
+				ast::constant_value const &size_value = size.get_constant_value();
 				switch (size_value.kind())
 				{
-				static_assert(ast::constant_value_storage::variant_count == 19);
+				static_assert(ast::constant_value::variant_count == 19);
 				case ast::constant_value_kind::sint:
 				{
 					auto const value = size_value.get_sint();
@@ -864,7 +864,7 @@ static ast::expression resolve_expr(
 	}
 	else if (array_type.sizes.empty())
 	{
-		auto &elem_type = array_type.type.get_typename();
+		auto const elem_type = array_type.type.get_typename();
 		if (elem_type.is<ast::ts_void>())
 		{
 			context.report_error(array_type.type.src_tokens, "array element type cannot be 'void'");
@@ -902,12 +902,12 @@ static ast::expression resolve_expr(
 		}
 		else
 		{
-			return ast::type_as_expression(src_tokens, ast::make_array_slice_typespec(src_tokens, std::move(elem_type)));
+			return context.type_as_expression(src_tokens, ast::make_array_slice_typespec(src_tokens, elem_type));
 		}
 	}
 	else
 	{
-		auto &elem_type = array_type.type.get_typename();
+		auto const elem_type = array_type.type.get_typename();
 		if (elem_type.is<ast::ts_void>())
 		{
 			context.report_error(array_type.type.src_tokens, "array element type cannot be 'void'");
@@ -978,11 +978,12 @@ static ast::expression resolve_expr(
 		}
 		else
 		{
+			ast::typespec elem_typespec = elem_type;
 			for (auto const size : sizes.reversed())
 			{
-				elem_type = ast::make_array_typespec(src_tokens, size, std::move(elem_type));
+				elem_typespec = ast::make_array_typespec(src_tokens, size, std::move(elem_typespec));
 			}
-			return ast::type_as_expression(src_tokens, std::move(elem_type));
+			return context.type_as_expression(src_tokens, std::move(elem_typespec));
 		}
 	}
 }
@@ -1035,17 +1036,17 @@ static ast::expression resolve_expr(
 
 	auto fn_type = ast::make_function_typespec(
 		src_tokens,
-		function_type.param_types.transform([](auto &param_type) {
-			return std::move(param_type.get_typename());
+		function_type.param_types.transform([](auto &param_type) -> ast::typespec {
+			return param_type.get_typename();
 		}).collect<ast::arena_vector>(),
-		std::move(function_type.return_type.get_typename()),
+		function_type.return_type.get_typename(),
 		function_type.cc
 	);
 	return ast::make_constant_expression(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value_storage(std::move(fn_type)),
+		context.add_constant_type(std::move(fn_type)),
 		ast::make_expr_typename_literal()
 	);
 }

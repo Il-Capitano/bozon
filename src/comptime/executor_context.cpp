@@ -1280,7 +1280,7 @@ bool executor_context::check_memory_leaks(void)
 	return result;
 }
 
-ast::constant_value_storage executor_context::execute_expression(ast::expression const &expr, function const &func)
+ast::constant_value executor_context::execute_expression(ast::expression const &expr, function const &func)
 {
 	this->current_function = &func;
 
@@ -1326,12 +1326,12 @@ ast::constant_value_storage executor_context::execute_expression(ast::expression
 	if (this->has_error)
 	{
 		bz_assert(this->diagnostics.not_empty());
-		return ast::constant_value_storage();
+		return ast::constant_value();
 	}
 	else if (this->check_memory_leaks())
 	{
 		bz_assert(this->diagnostics.not_empty());
-		return ast::constant_value_storage();
+		return ast::constant_value();
 	}
 
 	if (func.return_type->is_void())
@@ -1339,11 +1339,11 @@ ast::constant_value_storage executor_context::execute_expression(ast::expression
 		if (expr.get_expr_type().is_typename())
 		{
 			bz_assert(expr.is_typename());
-			return ast::constant_value_storage(expr.get_typename());
+			return this->codegen_ctx->parse_ctx->add_constant_type(expr.get_typename());
 		}
 		else
 		{
-			return ast::constant_value_storage::get_void();
+			return ast::constant_value::get_void();
 		}
 	}
 	else if (func.return_type->is_integer_type())
@@ -1351,7 +1351,7 @@ ast::constant_value_storage executor_context::execute_expression(ast::expression
 		bz_assert(func.return_type->get_builtin_kind() == builtin_type_kind::i32);
 		bz_assert(expr.get_expr_type().is_typename());
 		auto const result_index = this->ret_value.i32;
-		return ast::constant_value_storage(this->codegen_ctx->typename_result_infos[result_index].type);
+		return this->codegen_ctx->parse_ctx->add_constant_type(this->codegen_ctx->typename_result_infos[result_index].type);
 	}
 	else
 	{

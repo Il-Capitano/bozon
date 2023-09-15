@@ -11,7 +11,7 @@ namespace codegen::llvm_latest
 constexpr size_t array_loop_threshold = 16;
 
 static llvm::Constant *get_value(
-	ast::constant_value_storage const &value,
+	ast::constant_value const &value,
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
 	bitcode_context &context
@@ -250,8 +250,12 @@ static void emit_panic_call(
 	ast::arena_vector<is_byval_and_type_pair> params_is_byval = {};
 	params.reserve(2);
 
+	auto const panic_string = bz::format(
+		"panic called from {}: {}",
+		context.global_ctx.get_location_string(src_tokens.pivot), message
+	);
 	auto const param_val = get_value(
-		ast::constant_value_storage(bz::format("panic called from {}: {}", context.global_ctx.get_location_string(src_tokens.pivot), message)),
+		ast::constant_value(panic_string.as_string_view()),
 		panic_handler_func_body->params[0].get_type(),
 		nullptr,
 		context
@@ -6778,11 +6782,11 @@ static val_ptr emit_bitcode(
 	return context.get_value_reference(bitcode_value_reference.index);
 }
 
-static bool is_zero_value(ast::constant_value_storage const &value)
+static bool is_zero_value(ast::constant_value const &value)
 {
 	switch (value.kind())
 	{
-	static_assert(ast::constant_value_storage::variant_count == 19);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value_kind::sint:
 		return value.get_sint() == 0;
 	case ast::constant_value_kind::uint:
@@ -6827,7 +6831,7 @@ static bool is_zero_value(ast::constant_value_storage const &value)
 }
 
 static llvm::Constant *get_array_value(
-	bz::array_view<ast::constant_value_storage const> values,
+	bz::array_view<ast::constant_value const> values,
 	ast::ts_array const &array_type,
 	llvm::ArrayType *type,
 	bitcode_context &context
@@ -7023,7 +7027,7 @@ static llvm::Constant *get_float64_array_value(
 }
 
 static llvm::Constant *get_value_helper(
-	ast::constant_value_storage const &value,
+	ast::constant_value const &value,
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
 	bitcode_context &context
@@ -7031,7 +7035,7 @@ static llvm::Constant *get_value_helper(
 {
 	switch (value.kind())
 	{
-	static_assert(ast::constant_value_storage::variant_count == 19);
+	static_assert(ast::constant_value::variant_count == 19);
 	case ast::constant_value_kind::sint:
 		bz_assert(!type.is_empty());
 		return llvm::ConstantInt::get(
@@ -7226,7 +7230,7 @@ static llvm::Constant *get_value_helper(
 }
 
 static llvm::Constant *get_value(
-	ast::constant_value_storage const &value,
+	ast::constant_value const &value,
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
 	bitcode_context &context

@@ -95,15 +95,15 @@ struct parse_context
 	bz::array_view<uint32_t const> get_builtin_universal_functions(bz::u8string_view id);
 	ast::type_prototype_set_t &get_type_prototype_set(void);
 
-	ast::constant_value add_constant_string(bz::u8string str);
-	ast::constant_value add_constant_array(ast::arena_vector<ast::constant_value_storage> elems);
-	ast::constant_value add_constant_tuple(ast::arena_vector<ast::constant_value_storage> elems);
-	ast::constant_value add_constant_aggregate(ast::arena_vector<ast::constant_value_storage> elems);
-	ast::constant_value add_constant_sint_array(ast::arena_vector<int64_t> elems);
-	ast::constant_value add_constant_uint_array(ast::arena_vector<uint64_t> elems);
-	ast::constant_value add_constant_float32_array(ast::arena_vector<float32_t> elems);
-	ast::constant_value add_constant_float64_array(ast::arena_vector<float64_t> elems);
-	ast::constant_value add_constant_type(ast::typespec type);
+	ast::constant_value add_constant_string(bz::u8string_view str) const;
+	ast::constant_value add_constant_array(ast::arena_vector<ast::constant_value> elems) const;
+	ast::constant_value add_constant_tuple(ast::arena_vector<ast::constant_value> elems) const;
+	ast::constant_value add_constant_aggregate(ast::arena_vector<ast::constant_value> elems) const;
+	ast::constant_value add_constant_sint_array(ast::arena_vector<int64_t> elems) const;
+	ast::constant_value add_constant_uint_array(ast::arena_vector<uint64_t> elems) const;
+	ast::constant_value add_constant_float32_array(ast::arena_vector<float32_t> elems) const;
+	ast::constant_value add_constant_float64_array(ast::arena_vector<float64_t> elems) const;
+	ast::constant_value add_constant_type(ast::typespec type) const;
 
 	struct loop_info_t
 	{
@@ -413,6 +413,8 @@ struct parse_context
 
 	void add_function_for_compilation(ast::function_body &func_body) const;
 
+	ast::expression auto_type_as_expression(lex::src_tokens const &src_tokens) const;
+	ast::expression type_as_expression(lex::src_tokens const &src_tokens, ast::typespec type) const;
 	ast::expression make_identifier_expression(ast::identifier id);
 	ast::expression make_literal(lex::token_pos literal) const;
 	ast::expression make_string_literal(lex::token_pos begin, lex::token_pos end) const;
@@ -502,8 +504,8 @@ struct parse_context
 
 	ast::identifier make_qualified_identifier(lex::token_pos id);
 
-	ast::constant_value_storage execute_expression(ast::expression &expr);
-	ast::constant_value_storage execute_expression_without_error(ast::expression &expr);
+	ast::constant_value execute_expression(ast::expression &expr);
+	ast::constant_value execute_expression_without_error(ast::expression &expr);
 
 	// bool is_implicitly_convertible(ast::expression const &from, ast::typespec_view to);
 	// bool is_explicitly_convertible(ast::expression const &from, ast::typespec_view to);
