@@ -405,7 +405,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 	}
 
 	auto &cond_const_expr = static_assert_stmt.condition.get_constant();
-	bz_assert(cond_const_expr.value.kind() == ast::constant_value::boolean);
+	bz_assert(cond_const_expr.value.is_boolean());
 	auto const cond = cond_const_expr.value.get_boolean();
 
 	if (!cond)
@@ -419,7 +419,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 		if (static_assert_stmt.message.not_null() && static_assert_stmt.message.not_error())
 		{
 			auto &message_const_expr = static_assert_stmt.message.get_constant();
-			bz_assert(message_const_expr.value.kind() == ast::constant_value::string);
+			bz_assert(message_const_expr.value.is_string());
 			auto const message = message_const_expr.value.get_string();
 			error_message += bz::format(", message: '{}'", message);
 		}
@@ -2886,8 +2886,8 @@ static void resolve_literal_init_enum_members_helper(
 		const_literal_expr.kind = ast::expression_type_kind::rvalue;
 		const_literal_expr.type = ast::make_enum_typespec({}, &enum_decl);
 		const_literal_expr.value = it->value.is<int64_t>()
-			? ast::constant_value::get_enum(&enum_decl, it->value.get<int64_t>())
-			: ast::constant_value::get_enum(&enum_decl, it->value.get<uint64_t>());
+			? ast::constant_value_storage::get_enum(&enum_decl, it->value.get<int64_t>())
+			: ast::constant_value_storage::get_enum(&enum_decl, it->value.get<uint64_t>());
 	}
 	else if (
 		auto const already_resolving_it = std::find(resolve_stack.begin(), resolve_stack.end() - 1, current_it);
@@ -2916,8 +2916,8 @@ static void resolve_literal_init_enum_members_helper(
 		const_literal_expr.kind = ast::expression_type_kind::rvalue;
 		const_literal_expr.type = ast::make_enum_typespec({}, &enum_decl);
 		const_literal_expr.value = current_it->value.is<int64_t>()
-			? ast::constant_value::get_enum(&enum_decl, current_it->value.get<int64_t>())
-			: ast::constant_value::get_enum(&enum_decl, current_it->value.get<uint64_t>());
+			? ast::constant_value_storage::get_enum(&enum_decl, current_it->value.get<int64_t>())
+			: ast::constant_value_storage::get_enum(&enum_decl, current_it->value.get<uint64_t>());
 	}
 	else
 	{
@@ -2934,8 +2934,8 @@ static void resolve_literal_init_enum_members_helper(
 		const_literal_expr.kind = ast::expression_type_kind::rvalue;
 		const_literal_expr.type = ast::make_enum_typespec({}, &enum_decl);
 		const_literal_expr.value = it->value.is<int64_t>()
-			? ast::constant_value::get_enum(&enum_decl, it->value.get<int64_t>())
-			: ast::constant_value::get_enum(&enum_decl, it->value.get<uint64_t>());
+			? ast::constant_value_storage::get_enum(&enum_decl, it->value.get<int64_t>())
+			: ast::constant_value_storage::get_enum(&enum_decl, it->value.get<uint64_t>());
 	}
 }
 

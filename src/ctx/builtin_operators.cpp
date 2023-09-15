@@ -28,7 +28,7 @@ static auto get_constant_expression_values(
 	ast::expression const &rhs
 )
 {
-	static_assert(kind != ast::constant_value::aggregate);
+	static_assert(kind != ast::constant_value_storage::aggregate);
 	bz_assert(lhs.is_constant());
 	bz_assert(rhs.is_constant());
 	auto const &lhs_value = lhs.get_constant_value();
@@ -36,7 +36,7 @@ static auto get_constant_expression_values(
 	bz_assert(lhs_value.kind() == kind);
 	bz_assert(rhs_value.kind() == kind);
 
-	if constexpr (kind == ast::constant_value::string)
+	if constexpr (kind == ast::constant_value_storage::string)
 	{
 		return std::make_pair(
 			lhs_value.get_string(),
@@ -143,7 +143,7 @@ static ast::expression get_type_op_unary_reference(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		ast::constant_value_storage(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -200,7 +200,7 @@ static ast::expression get_type_op_unary_auto_ref(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		ast::constant_value_storage(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -269,7 +269,7 @@ static ast::expression get_type_op_unary_auto_ref_const(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		ast::constant_value_storage(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -325,7 +325,7 @@ static ast::expression get_type_op_unary_pointer(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		ast::constant_value_storage(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -376,7 +376,7 @@ static ast::expression get_type_op_unary_question_mark(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		ast::constant_value_storage(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -407,7 +407,7 @@ static ast::expression get_type_op_unary_dot_dot_dot(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		ast::constant_value_storage(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -469,7 +469,7 @@ static ast::expression get_type_op_unary_mut(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		ast::constant_value_storage(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -531,7 +531,7 @@ static ast::expression get_type_op_unary_consteval(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		ast::constant_value_storage(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -588,7 +588,7 @@ static ast::expression get_type_op_unary_move(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		ast::constant_value_storage(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -621,7 +621,7 @@ static ast::expression get_builtin_unary_sizeof(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 			ast::make_base_type_typespec({}, context.get_usize_type_info()),
-			ast::constant_value(size),
+			ast::constant_value_storage(size),
 			ast::make_expr_unary_op(op_kind, std::move(expr))
 		);
 	}
@@ -632,7 +632,7 @@ static ast::expression get_builtin_unary_sizeof(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 			ast::make_base_type_typespec({}, context.get_usize_type_info()),
-			ast::constant_value(size),
+			ast::constant_value_storage(size),
 			ast::make_expr_unary_op(op_kind, std::move(expr))
 		);
 	}
@@ -655,7 +655,7 @@ static ast::expression get_builtin_unary_sizeof(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 			ast::make_base_type_typespec({}, context.get_usize_type_info()),
-			ast::constant_value(size),
+			ast::constant_value_storage(size),
 			ast::make_expr_unary_op(op_kind, std::move(expr))
 		);
 	}
@@ -702,7 +702,7 @@ static ast::expression get_builtin_unary_typeof(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		ast::constant_value_storage(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -1003,7 +1003,7 @@ ast::expression make_builtin_cast(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 			std::move(dest_t_copy),
-			ast::constant_value::get_null(),
+			ast::constant_value_storage::get_null(),
 			ast::make_expr_cast(std::move(expr), std::move(dest_type))
 		);
 	}
@@ -1121,8 +1121,8 @@ ast::expression make_builtin_cast(
 				)
 				{
 					ast::typespec dest_t_copy = dest_t;
-					ast::constant_value result_value;
-					result_value.emplace<ast::constant_value::sint>(value);
+					ast::constant_value_storage result_value;
+					result_value.emplace<ast::constant_value_storage::sint>(value);
 					return ast::make_constant_expression(
 						src_tokens,
 						ast::expression_type_kind::rvalue,
@@ -1138,8 +1138,8 @@ ast::expression make_builtin_cast(
 				)
 				{
 					ast::typespec dest_t_copy = dest_t;
-					ast::constant_value result_value;
-					result_value.emplace<ast::constant_value::uint>(static_cast<uint64_t>(value));
+					ast::constant_value_storage result_value;
+					result_value.emplace<ast::constant_value_storage::uint>(static_cast<uint64_t>(value));
 					return ast::make_constant_expression(
 						src_tokens,
 						ast::expression_type_kind::rvalue,
@@ -1159,14 +1159,14 @@ ast::expression make_builtin_cast(
 				if (value <= dest_max_value)
 				{
 					ast::typespec dest_t_copy = dest_t;
-					ast::constant_value result_value;
+					ast::constant_value_storage result_value;
 					if (ast::is_signed_integer_kind(dest_kind))
 					{
-						result_value.emplace<ast::constant_value::sint>(static_cast<int64_t>(value));
+						result_value.emplace<ast::constant_value_storage::sint>(static_cast<int64_t>(value));
 					}
 					else
 					{
-						result_value.emplace<ast::constant_value::uint>(static_cast<uint64_t>(value));
+						result_value.emplace<ast::constant_value_storage::uint>(static_cast<uint64_t>(value));
 					}
 					return ast::make_constant_expression(
 						src_tokens,
@@ -1516,7 +1516,7 @@ static ast::expression get_type_op_binary_equals_not_equals(
 		src_tokens,
 		ast::expression_type_kind::rvalue,
 		ast::make_base_type_typespec(src_tokens, context.get_builtin_type_info(ast::type_info::bool_)),
-		ast::constant_value(result),
+		ast::constant_value_storage(result),
 		ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 	);
 }
@@ -2281,7 +2281,7 @@ static ast::typespec get_literal_integer_type(
 static ast::expression make_unary_plus_literal_operation(
 	lex::src_tokens const &src_tokens,
 	ast::literal_kind kind,
-	ast::constant_value const &value,
+	ast::constant_value_storage const &value,
 	parse_context &context
 )
 {
@@ -2300,7 +2300,7 @@ static ast::expression make_unary_plus_literal_operation(
 static ast::expression make_unary_minus_literal_operation(
 	lex::src_tokens const &src_tokens,
 	ast::literal_kind kind,
-	ast::constant_value const &value,
+	ast::constant_value_storage const &value,
 	parse_context &context
 )
 {
@@ -2313,7 +2313,7 @@ static ast::expression make_unary_minus_literal_operation(
 			src_tokens,
 			ast::expression_type_kind::integer_literal,
 			ast::make_base_type_typespec(src_tokens, context.get_builtin_type_info(ast::type_info::uint64_)),
-			ast::constant_value(static_cast<uint64_t>(int64_max) + 1),
+			ast::constant_value_storage(static_cast<uint64_t>(int64_max) + 1),
 			ast::make_expr_integer_literal(kind)
 		);
 	}
@@ -2323,7 +2323,7 @@ static ast::expression make_unary_minus_literal_operation(
 			src_tokens,
 			ast::expression_type_kind::integer_literal,
 			get_literal_integer_type(src_tokens, kind, -int_value, context),
-			ast::constant_value(-int_value),
+			ast::constant_value_storage(-int_value),
 			ast::make_expr_integer_literal(kind)
 		);
 	}
@@ -2353,8 +2353,8 @@ static ast::expression make_binary_plus_literal_operation(
 	lex::src_tokens const &src_tokens,
 	ast::literal_kind lhs_kind,
 	ast::literal_kind rhs_kind,
-	ast::constant_value const &lhs_value,
-	ast::constant_value const &rhs_value,
+	ast::constant_value_storage const &lhs_value,
+	ast::constant_value_storage const &rhs_value,
 	parse_context &context
 )
 {
@@ -2380,7 +2380,7 @@ static ast::expression make_binary_plus_literal_operation(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
 				get_literal_integer_type(src_tokens, kind, result_value, context),
-				ast::constant_value(result_value),
+				ast::constant_value_storage(result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
@@ -2401,7 +2401,7 @@ static ast::expression make_binary_plus_literal_operation(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
 				get_literal_integer_type(src_tokens, kind, signed_result_value, context),
-				ast::constant_value(signed_result_value),
+				ast::constant_value_storage(signed_result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
@@ -2418,7 +2418,7 @@ static ast::expression make_binary_plus_literal_operation(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
 				get_literal_integer_type(src_tokens, kind, unsigned_result_value, context),
-				ast::constant_value(unsigned_result_value),
+				ast::constant_value_storage(unsigned_result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
@@ -2431,8 +2431,8 @@ static ast::expression make_binary_minus_literal_operation(
 	lex::src_tokens const &src_tokens,
 	ast::literal_kind lhs_kind,
 	ast::literal_kind rhs_kind,
-	ast::constant_value const &lhs_value,
-	ast::constant_value const &rhs_value,
+	ast::constant_value_storage const &lhs_value,
+	ast::constant_value_storage const &rhs_value,
 	parse_context &context
 )
 {
@@ -2458,7 +2458,7 @@ static ast::expression make_binary_minus_literal_operation(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
 				get_literal_integer_type(src_tokens, kind, unsigned_result_value, context),
-				ast::constant_value(unsigned_result_value),
+				ast::constant_value_storage(unsigned_result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
@@ -2474,7 +2474,7 @@ static ast::expression make_binary_minus_literal_operation(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
 				get_literal_integer_type(src_tokens, kind, signed_result_value, context),
-				ast::constant_value(signed_result_value),
+				ast::constant_value_storage(signed_result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
@@ -2495,7 +2495,7 @@ static ast::expression make_binary_minus_literal_operation(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
 				get_literal_integer_type(src_tokens, kind, signed_result_value, context),
-				ast::constant_value(signed_result_value),
+				ast::constant_value_storage(signed_result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
@@ -2511,7 +2511,7 @@ static ast::expression make_binary_minus_literal_operation(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
 				get_literal_integer_type(src_tokens, kind, unsigned_result_value, context),
-				ast::constant_value(unsigned_result_value),
+				ast::constant_value_storage(unsigned_result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
@@ -2524,8 +2524,8 @@ static ast::expression make_binary_multiply_literal_operation(
 	lex::src_tokens const &src_tokens,
 	ast::literal_kind lhs_kind,
 	ast::literal_kind rhs_kind,
-	ast::constant_value const &lhs_value,
-	ast::constant_value const &rhs_value,
+	ast::constant_value_storage const &lhs_value,
+	ast::constant_value_storage const &rhs_value,
 	parse_context &context
 )
 {
@@ -2551,7 +2551,7 @@ static ast::expression make_binary_multiply_literal_operation(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
 				get_literal_integer_type(src_tokens, kind, result_value, context),
-				ast::constant_value(result_value),
+				ast::constant_value_storage(result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
@@ -2572,7 +2572,7 @@ static ast::expression make_binary_multiply_literal_operation(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
 				get_literal_integer_type(src_tokens, kind, signed_result_value, context),
-				ast::constant_value(signed_result_value),
+				ast::constant_value_storage(signed_result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
@@ -2588,7 +2588,7 @@ static ast::expression make_binary_multiply_literal_operation(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
 				get_literal_integer_type(src_tokens, kind, unsigned_result_value, context),
-				ast::constant_value(unsigned_result_value),
+				ast::constant_value_storage(unsigned_result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
@@ -2601,8 +2601,8 @@ static ast::expression make_binary_divide_literal_operation(
 	lex::src_tokens const &src_tokens,
 	ast::literal_kind lhs_kind,
 	ast::literal_kind rhs_kind,
-	ast::constant_value const &lhs_value,
-	ast::constant_value const &rhs_value,
+	ast::constant_value_storage const &lhs_value,
+	ast::constant_value_storage const &rhs_value,
 	parse_context &context
 )
 {
@@ -2628,7 +2628,7 @@ static ast::expression make_binary_divide_literal_operation(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
 				get_literal_integer_type(src_tokens, kind, result_value, context),
-				ast::constant_value(result_value),
+				ast::constant_value_storage(result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
@@ -2649,7 +2649,7 @@ static ast::expression make_binary_divide_literal_operation(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
 				get_literal_integer_type(src_tokens, kind, signed_result_value, context),
-				ast::constant_value(signed_result_value),
+				ast::constant_value_storage(signed_result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
@@ -2665,7 +2665,7 @@ static ast::expression make_binary_divide_literal_operation(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
 				get_literal_integer_type(src_tokens, kind, unsigned_result_value, context),
-				ast::constant_value(unsigned_result_value),
+				ast::constant_value_storage(unsigned_result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
@@ -2678,8 +2678,8 @@ static ast::expression make_binary_modulo_literal_operation(
 	lex::src_tokens const &src_tokens,
 	ast::literal_kind lhs_kind,
 	ast::literal_kind rhs_kind,
-	ast::constant_value const &lhs_value,
-	ast::constant_value const &rhs_value,
+	ast::constant_value_storage const &lhs_value,
+	ast::constant_value_storage const &rhs_value,
 	parse_context &context
 )
 {
@@ -2710,7 +2710,7 @@ static ast::expression make_binary_modulo_literal_operation(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
 				get_literal_integer_type(src_tokens, kind, result_value, context),
-				ast::constant_value(result_value),
+				ast::constant_value_storage(result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
@@ -2734,7 +2734,7 @@ static ast::expression make_binary_modulo_literal_operation(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
 				get_literal_integer_type(src_tokens, kind, result_value, context),
-				ast::constant_value(result_value),
+				ast::constant_value_storage(result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}

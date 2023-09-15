@@ -343,13 +343,13 @@ bool expression::is_typename(void) const noexcept
 typespec &expression::get_typename(void) noexcept
 {
 	bz_assert(this->is_typename());
-	return this->get_constant_value().get<constant_value::type>();
+	return this->get_constant_value().get<constant_value_storage::type>();
 }
 
 typespec const &expression::get_typename(void) const noexcept
 {
 	bz_assert(this->is_typename());
-	return this->get_constant_value().get<constant_value::type>();
+	return this->get_constant_value().get<constant_value_storage::type>();
 }
 
 bool expression::is_tuple(void) const noexcept
@@ -408,7 +408,7 @@ bool expression::is_integer_literal(void) const noexcept
 	return is_expr_kind_helper(*this, expression_type_kind::integer_literal);
 }
 
-constant_value &expression::get_integer_literal_value(void) noexcept
+constant_value_storage &expression::get_integer_literal_value(void) noexcept
 {
 	bz_assert(this->is_integer_literal());
 	auto &literal_expr = get_expr_kind<expr_integer_literal, false>(*this);
@@ -416,7 +416,7 @@ constant_value &expression::get_integer_literal_value(void) noexcept
 	return literal_expr.get_constant_value();
 }
 
-constant_value const &expression::get_integer_literal_value(void) const noexcept
+constant_value_storage const &expression::get_integer_literal_value(void) const noexcept
 {
 	bz_assert(this->is_integer_literal());
 	auto const &literal_expr = get_expr_kind<expr_integer_literal, false>(*this);
@@ -424,7 +424,7 @@ constant_value const &expression::get_integer_literal_value(void) const noexcept
 	return literal_expr.get_constant_value();
 }
 
-std::pair<literal_kind, constant_value const &> expression::get_integer_literal_kind_and_value(void) const noexcept
+std::pair<literal_kind, constant_value_storage const &> expression::get_integer_literal_kind_and_value(void) const noexcept
 {
 	bz_assert(this->is_integer_literal());
 	auto const &literal_expr = get_expr_kind<expr_integer_literal, false>(*this);
@@ -570,13 +570,13 @@ constant_expression const &expression::get_constant(void) const noexcept
 	return this->get<constant_expression>();
 }
 
-constant_value &expression::get_constant_value(void) noexcept
+constant_value_storage &expression::get_constant_value(void) noexcept
 {
 	bz_assert(this->is_constant());
 	return this->get<constant_expression>().value;
 }
 
-constant_value const &expression::get_constant_value(void) const noexcept
+constant_value_storage const &expression::get_constant_value(void) const noexcept
 {
 	bz_assert(this->is_constant());
 	return this->get<constant_expression>().value;

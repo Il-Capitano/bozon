@@ -492,8 +492,8 @@ struct parse_context
 
 	ast::identifier make_qualified_identifier(lex::token_pos id);
 
-	ast::constant_value execute_expression(ast::expression &expr);
-	ast::constant_value execute_expression_without_error(ast::expression &expr);
+	ast::constant_value_storage execute_expression(ast::expression &expr);
+	ast::constant_value_storage execute_expression_without_error(ast::expression &expr);
 
 	// bool is_implicitly_convertible(ast::expression const &from, ast::typespec_view to);
 	// bool is_explicitly_convertible(ast::expression const &from, ast::typespec_view to);

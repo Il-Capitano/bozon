@@ -215,7 +215,7 @@ ast::expression parse_compound_expression(
 		return ast::make_constant_expression(
 			{ begin, begin, stream },
 			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
-			ast::constant_value::get_void(),
+			ast::constant_value_storage::get_void(),
 			ast::make_expr_compound(decltype(statements)(), ast::expression())
 		);
 	}
@@ -574,7 +574,7 @@ static ast::expression parse_primary_expression(
 				lex::src_tokens::from_range({ dot_pos, stream }),
 				ast::expression_type_kind::enum_literal,
 				ast::typespec(),
-				ast::constant_value(),
+				ast::constant_value_storage(),
 				ast::make_expr_enum_literal(id)
 			);
 		}
@@ -680,7 +680,7 @@ static ast::expression parse_primary_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
-			ast::constant_value(ast::make_auto_typespec(auto_pos)),
+			ast::constant_value_storage(ast::make_auto_typespec(auto_pos)),
 			ast::make_expr_typename_literal()
 		);
 	}
@@ -694,7 +694,7 @@ static ast::expression parse_primary_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
-			ast::constant_value(ast::make_typename_typespec(typename_pos)),
+			ast::constant_value_storage(ast::make_typename_typespec(typename_pos)),
 			ast::make_expr_typename_literal()
 		);
 	}
@@ -739,7 +739,7 @@ static ast::expression parse_primary_expression(
 				src_tokens,
 				ast::expression_type_kind::type_name,
 				ast::make_typename_typespec(nullptr),
-				ast::constant_value(ast::make_void_typespec(nullptr)),
+				ast::constant_value_storage(ast::make_void_typespec(nullptr)),
 				ast::make_expr_typename_literal()
 			);
 			return ast::make_unresolved_expression(

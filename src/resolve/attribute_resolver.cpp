@@ -140,7 +140,7 @@ static bool apply_builtin(
 		alias_decl.alias_expr = ast::make_constant_expression(
 			alias_decl.alias_expr.src_tokens,
 			ast::expression_type_kind::type_name, ast::make_typename_typespec(nullptr),
-			ast::constant_value(ast::make_base_type_typespec(alias_decl.alias_expr.src_tokens, info)),
+			ast::constant_value_storage(ast::make_base_type_typespec(alias_decl.alias_expr.src_tokens, info)),
 			ast::expr_t()
 		);
 		return true;
@@ -151,7 +151,7 @@ static bool apply_builtin(
 		alias_decl.alias_expr = ast::make_constant_expression(
 			alias_decl.alias_expr.src_tokens,
 			ast::expression_type_kind::type_name, ast::make_typename_typespec(nullptr),
-			ast::constant_value(ast::make_base_type_typespec(alias_decl.alias_expr.src_tokens, info)),
+			ast::constant_value_storage(ast::make_base_type_typespec(alias_decl.alias_expr.src_tokens, info)),
 			ast::expr_t()
 		);
 		return true;

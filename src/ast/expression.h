@@ -338,7 +338,7 @@ struct constant_expression
 {
 	expression_type_kind kind;
 	typespec             type;
-	constant_value       value;
+	constant_value_storage       value;
 	expr_t               expr;
 };
 
@@ -457,9 +457,9 @@ struct expression : bz::variant<
 	expr_switch const &get_switch_expr(void) const noexcept;
 
 	bool is_integer_literal(void) const noexcept;
-	constant_value &get_integer_literal_value(void) noexcept;
-	constant_value const &get_integer_literal_value(void) const noexcept;
-	std::pair<literal_kind, constant_value const &> get_integer_literal_kind_and_value(void) const noexcept;
+	constant_value_storage &get_integer_literal_value(void) noexcept;
+	constant_value_storage const &get_integer_literal_value(void) const noexcept;
+	std::pair<literal_kind, constant_value_storage const &> get_integer_literal_kind_and_value(void) const noexcept;
 
 	bool is_enum_literal(void) const noexcept;
 	expr_enum_literal &get_enum_literal(void) noexcept;
@@ -482,8 +482,8 @@ struct expression : bz::variant<
 	bool is_constant(void) const noexcept;
 	constant_expression &get_constant(void) noexcept;
 	constant_expression const &get_constant(void) const noexcept;
-	constant_value &get_constant_value(void) noexcept;
-	constant_value const &get_constant_value(void) const noexcept;
+	constant_value_storage &get_constant_value(void) noexcept;
+	constant_value_storage const &get_constant_value(void) const noexcept;
 
 	bool is_dynamic(void) const noexcept;
 	dynamic_expression &get_dynamic(void) noexcept;
@@ -1835,7 +1835,7 @@ inline expression type_as_expression(lex::src_tokens const &src_tokens, typespec
 		src_tokens,
 		expression_type_kind::type_name,
 		make_typename_typespec(nullptr),
-		constant_value(std::move(type)),
+		constant_value_storage(std::move(type)),
 		expr_t{}
 	);
 }

@@ -11,7 +11,7 @@ namespace ast
 
 struct statement_view;
 
-struct constant_value;
+struct constant_value_storage;
 namespace internal
 {
 
@@ -26,7 +26,7 @@ struct enum_t
 
 } // namespace internal
 
-using constant_value_base_t = bz::variant<
+using constant_value_storage_base_t = bz::variant<
 	int64_t, uint64_t,
 	float32_t, float64_t,
 	bz::u8char, bz::u8string,
@@ -35,25 +35,25 @@ using constant_value_base_t = bz::variant<
 	internal::enum_t,
 
 	// arrays
-	arena_vector<constant_value>,
+	arena_vector<constant_value_storage>,
 	arena_vector<int64_t>,
 	arena_vector<uint64_t>,
 	arena_vector<float32_t>,
 	arena_vector<float64_t>,
 	// tuples
-	arena_vector<constant_value>,
+	arena_vector<constant_value_storage>,
 
 	function_body *,
 
 	typespec,
 
 	// structs
-	arena_vector<constant_value>
+	arena_vector<constant_value_storage>
 >;
 
-struct constant_value : constant_value_base_t
+struct constant_value_storage : constant_value_storage_base_t
 {
-	using base_t = constant_value_base_t;
+	using base_t = constant_value_storage_base_t;
 
 	enum : size_t
 	{
@@ -78,9 +78,9 @@ struct constant_value : constant_value_base_t
 		aggregate,
 	};
 
-	static_assert(bz::meta::is_same<base_t::value_type<array>, arena_vector<constant_value>>);
-	static_assert(bz::meta::is_same<base_t::value_type<tuple>, arena_vector<constant_value>>);
-	static_assert(bz::meta::is_same<base_t::value_type<aggregate>, arena_vector<constant_value>>);
+	static_assert(bz::meta::is_same<base_t::value_type<array>, arena_vector<constant_value_storage>>);
+	static_assert(bz::meta::is_same<base_t::value_type<tuple>, arena_vector<constant_value_storage>>);
+	static_assert(bz::meta::is_same<base_t::value_type<aggregate>, arena_vector<constant_value_storage>>);
 	static_assert(array != tuple && array != aggregate && tuple != aggregate);
 
 	using base_t::operator =;
@@ -171,7 +171,7 @@ struct constant_value : constant_value_base_t
 	internal::enum_t get_enum(void) const noexcept
 	{ return this->get<enum_>(); }
 
-	bz::array_view<constant_value const> get_array(void) const noexcept
+	bz::array_view<constant_value_storage const> get_array(void) const noexcept
 	{ return this->get<array>(); }
 
 	bz::array_view<int64_t const> get_sint_array(void) const noexcept
@@ -186,7 +186,7 @@ struct constant_value : constant_value_base_t
 	bz::array_view<float64_t const> get_float64_array(void) const noexcept
 	{ return this->get<float64_array>(); }
 
-	bz::array_view<constant_value const> get_tuple(void) const noexcept
+	bz::array_view<constant_value_storage const> get_tuple(void) const noexcept
 	{ return this->get<tuple>(); }
 
 	function_body *get_function(void) const noexcept
@@ -195,30 +195,30 @@ struct constant_value : constant_value_base_t
 	typespec_view get_type(void) const noexcept
 	{ return this->get<type>(); }
 
-	bz::array_view<constant_value const> get_aggregate(void) const noexcept
+	bz::array_view<constant_value_storage const> get_aggregate(void) const noexcept
 	{ return this->get<aggregate>(); }
 
 
-	constant_value(void) = default;
+	constant_value_storage(void) = default;
 
-	template<typename T, bz::meta::enable_if<!bz::meta::is_same<bz::meta::remove_cv_reference<T>, constant_value>, int> = 0>
-	explicit constant_value(T &&t)
+	template<typename T, bz::meta::enable_if<!bz::meta::is_same<bz::meta::remove_cv_reference<T>, constant_value_storage>, int> = 0>
+	explicit constant_value_storage(T &&t)
 		: base_t(std::forward<T>(t))
 	{}
 
-	static constant_value get_void(void)
-	{ return constant_value(internal::void_t{}); }
+	static constant_value_storage get_void(void)
+	{ return constant_value_storage(internal::void_t{}); }
 
-	static constant_value get_null(void)
-	{ return constant_value(internal::null_t{}); }
+	static constant_value_storage get_null(void)
+	{ return constant_value_storage(internal::null_t{}); }
 
-	static constant_value get_enum(decl_enum *decl, int64_t value)
-	{ return constant_value(internal::enum_t{ decl, bit_cast<uint64_t>(value) }); }
+	static constant_value_storage get_enum(decl_enum *decl, int64_t value)
+	{ return constant_value_storage(internal::enum_t{ decl, bit_cast<uint64_t>(value) }); }
 
-	static constant_value get_enum(decl_enum *decl, uint64_t value)
-	{ return constant_value(internal::enum_t{ decl, value }); }
+	static constant_value_storage get_enum(decl_enum *decl, uint64_t value)
+	{ return constant_value_storage(internal::enum_t{ decl, value }); }
 
-	static void encode_for_symbol_name(bz::u8string &out, constant_value const &value);
+	static void encode_for_symbol_name(bz::u8string &out, constant_value_storage const &value);
 	static bz::u8string decode_from_symbol_name(bz::u8string_view::const_iterator &it, bz::u8string_view::const_iterator end);
 	static bz::u8string decode_from_symbol_name(bz::u8string_view str)
 	{
@@ -228,10 +228,10 @@ struct constant_value : constant_value_base_t
 	}
 };
 
-bz::u8string get_value_string(constant_value const &value);
+bz::u8string get_value_string(constant_value_storage const &value);
 
-bool operator == (constant_value const &lhs, constant_value const &rhs) noexcept;
-bool operator != (constant_value const &lhs, constant_value const &rhs) noexcept;
+bool operator == (constant_value_storage const &lhs, constant_value_storage const &rhs) noexcept;
+bool operator != (constant_value_storage const &lhs, constant_value_storage const &rhs) noexcept;
 
 } // namespace ast
 

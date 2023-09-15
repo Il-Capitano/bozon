@@ -450,7 +450,7 @@ static ast::expression resolve_expr(
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::none, ast::typespec(),
-			ast::constant_value::get_void(),
+			ast::constant_value_storage::get_void(),
 			std::move(result_node)
 		);
 	}
@@ -576,22 +576,22 @@ static ast::expression resolve_expr(
 				{
 					switch (rhs_value.kind())
 					{
-					static_assert(ast::constant_value::variant_count == 19);
-					case ast::constant_value::sint:
+					static_assert(ast::constant_value_storage::variant_count == 19);
+					case ast::constant_value_storage::sint:
 						context.report_error(
 							rhs.src_tokens,
 							bz::format("duplicate value {} in switch expression", lhs_value.get_sint()),
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
 						break;
-					case ast::constant_value::uint:
+					case ast::constant_value_storage::uint:
 						context.report_error(
 							rhs.src_tokens,
 							bz::format("duplicate value {} in switch expression", lhs_value.get_uint()),
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
 						break;
-					case ast::constant_value::u8char:
+					case ast::constant_value_storage::u8char:
 						context.report_error(
 							rhs.src_tokens,
 							bz::format(
@@ -601,21 +601,21 @@ static ast::expression resolve_expr(
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
 						break;
-					case ast::constant_value::boolean:
+					case ast::constant_value_storage::boolean:
 						context.report_error(
 							rhs.src_tokens,
 							bz::format("duplicate value '{}' in switch expression", lhs_value.get_boolean()),
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
 						break;
-					case ast::constant_value::enum_:
+					case ast::constant_value_storage::enum_:
 						context.report_error(
 							rhs.src_tokens,
 							bz::format("duplicate value '{}' in switch expression", get_value_string(lhs_value)),
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
 						break;
-					case ast::constant_value::string:
+					case ast::constant_value_storage::string:
 						context.report_error(
 							rhs.src_tokens,
 							bz::format("duplicate value {} in switch expression", get_value_string(lhs_value)),
@@ -810,11 +810,11 @@ static ast::expression resolve_expr(
 			}
 			else
 			{
-				ast::constant_value const &size_value = size.get_constant_value();
+				ast::constant_value_storage const &size_value = size.get_constant_value();
 				switch (size_value.kind())
 				{
-				static_assert(ast::constant_value::variant_count == 19);
-				case ast::constant_value::sint:
+				static_assert(ast::constant_value_storage::variant_count == 19);
+				case ast::constant_value_storage::sint:
 				{
 					auto const value = size_value.get_sint();
 					if (value <= 0)
@@ -827,7 +827,7 @@ static ast::expression resolve_expr(
 					}
 					return static_cast<uint64_t>(value);
 				}
-				case ast::constant_value::uint:
+				case ast::constant_value_storage::uint:
 				{
 					auto const value = size_value.get_uint();
 					if (value == 0)
@@ -1045,7 +1045,7 @@ static ast::expression resolve_expr(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(fn_type)),
+		ast::constant_value_storage(std::move(fn_type)),
 		ast::make_expr_typename_literal()
 	);
 }

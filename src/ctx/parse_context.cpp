@@ -1554,7 +1554,7 @@ static ast::expression make_variable_expression(
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name, ast::make_typename_typespec(nullptr),
-			ast::constant_value(init_expr.get_typename()),
+			ast::constant_value_storage(init_expr.get_typename()),
 			std::move(result_expr)
 		);
 	}
@@ -1618,7 +1618,7 @@ static ast::expression make_function_name_expression(
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::function_name, ast::typespec(),
-			ast::constant_value(),
+			ast::constant_value_storage(),
 			ast::make_expr_function_name(std::move(id), func_decl)
 		);
 	}
@@ -1627,7 +1627,7 @@ static ast::expression make_function_name_expression(
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::function_name, get_function_type(func_decl->body),
-			ast::constant_value(&func_decl->body),
+			ast::constant_value_storage(&func_decl->body),
 			ast::make_expr_function_name(std::move(id), func_decl)
 		);
 	}
@@ -1645,7 +1645,7 @@ static ast::expression make_function_name_expression(
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::function_alias_name, get_function_type(decl->body),
-			ast::constant_value(&decl->body),
+			ast::constant_value_storage(&decl->body),
 			ast::make_expr_function_alias_name(std::move(id), alias_decl)
 		);
 	}
@@ -1654,7 +1654,7 @@ static ast::expression make_function_name_expression(
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::function_alias_name, ast::typespec(),
-			ast::constant_value(),
+			ast::constant_value_storage(),
 			ast::make_expr_function_alias_name(std::move(id), alias_decl)
 		);
 	}
@@ -1689,7 +1689,7 @@ static ast::expression make_function_name_expression(
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::function_overload_set, ast::typespec(),
-			ast::constant_value(),
+			ast::constant_value_storage(),
 			ast::make_expr_function_overload_set(std::move(id), std::move(set))
 		);
 	}
@@ -1715,7 +1715,7 @@ static ast::expression make_type_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
-			ast::constant_value(ast::make_base_type_typespec(src_tokens, &info)),
+			ast::constant_value_storage(ast::make_base_type_typespec(src_tokens, &info)),
 			ast::make_expr_struct_name(std::move(id), type)
 		);
 	}
@@ -1737,7 +1737,7 @@ static ast::expression make_enum_type_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
-			ast::constant_value(ast::make_enum_typespec(src_tokens, decl)),
+			ast::constant_value_storage(ast::make_enum_typespec(src_tokens, decl)),
 			ast::make_expr_enum_name(std::move(id), decl)
 		);
 	}
@@ -1760,7 +1760,7 @@ static ast::expression make_type_alias_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
-			ast::constant_value(type),
+			ast::constant_value_storage(type),
 			ast::make_expr_type_alias_name(std::move(id), type_alias)
 		);
 	}
@@ -2157,7 +2157,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 				src_tokens,
 				ast::expression_type_kind::type_name,
 				ast::make_typename_typespec(nullptr),
-				ast::constant_value(ast::make_void_typespec(id.tokens.begin)),
+				ast::constant_value_storage(ast::make_void_typespec(id.tokens.begin)),
 				ast::make_expr_struct_name(std::move(id), nullptr)
 			);
 		}
@@ -2175,7 +2175,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 						src_tokens,
 						ast::expression_type_kind::function_name,
 						get_function_type(func_decl->body),
-						ast::constant_value(&func_decl->body),
+						ast::constant_value_storage(&func_decl->body),
 						ast::make_expr_function_name(std::move(id), func_decl)
 					);
 				}
@@ -2327,8 +2327,8 @@ static ast::expression get_literal_expr(
 				ast::expression_type_kind::integer_literal,
 				ast::make_base_type_typespec(src_tokens, default_type_info),
 				ast::is_signed_integer_kind(default_type_info->kind)
-					? ast::constant_value(static_cast<int64_t>(value))
-					: ast::constant_value(value),
+					? ast::constant_value_storage(static_cast<int64_t>(value))
+					: ast::constant_value_storage(value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
@@ -2339,8 +2339,8 @@ static ast::expression get_literal_expr(
 				ast::expression_type_kind::integer_literal,
 				ast::make_base_type_typespec(src_tokens, wide_default_type_info),
 				ast::is_signed_integer_kind(wide_default_type_info->kind)
-					? ast::constant_value(static_cast<int64_t>(value))
-					: ast::constant_value(value),
+					? ast::constant_value_storage(static_cast<int64_t>(value))
+					: ast::constant_value_storage(value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
@@ -2351,7 +2351,7 @@ static ast::expression get_literal_expr(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
 				ast::make_base_type_typespec(src_tokens, info),
-				ast::constant_value(value),
+				ast::constant_value_storage(value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
@@ -2516,8 +2516,8 @@ static ast::expression get_literal_expr(
 			ast::expression_type_kind::rvalue,
 			ast::make_base_type_typespec(src_tokens, info),
 			ast::is_signed_integer_kind(info->kind)
-				? ast::constant_value(static_cast<int64_t>(value))
-				: ast::constant_value(value),
+				? ast::constant_value_storage(static_cast<int64_t>(value))
+				: ast::constant_value_storage(value),
 			ast::make_expr_typed_literal(src_tokens.pivot)
 		);
 	}
@@ -2605,7 +2605,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::make_base_type_typespec(src_tokens, info),
-				ast::constant_value(value),
+				ast::constant_value_storage(value),
 				ast::make_expr_typed_literal(literal)
 			);
 		}
@@ -2640,7 +2640,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::make_base_type_typespec(src_tokens, info),
-				ast::constant_value(value),
+				ast::constant_value_storage(value),
 				ast::make_expr_typed_literal(literal)
 			);
 		}
@@ -2685,7 +2685,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 			ast::make_base_type_typespec(src_tokens, this->get_builtin_type_info(ast::type_info::char_)),
-			ast::constant_value(value),
+			ast::constant_value_storage(value),
 			ast::make_expr_typed_literal(literal)
 		);
 	}
@@ -2694,7 +2694,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 			ast::make_base_type_typespec(src_tokens, this->get_builtin_type_info(ast::type_info::bool_)),
-			ast::constant_value(true),
+			ast::constant_value_storage(true),
 			ast::make_expr_typed_literal(literal)
 		);
 	case lex::token::kw_false:
@@ -2702,7 +2702,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 			ast::make_base_type_typespec(src_tokens, this->get_builtin_type_info(ast::type_info::bool_)),
-			ast::constant_value(false),
+			ast::constant_value_storage(false),
 			ast::make_expr_typed_literal(literal)
 		);
 	case lex::token::kw_null:
@@ -2710,7 +2710,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 			src_tokens,
 			ast::expression_type_kind::null_literal,
 			ast::make_base_type_typespec(src_tokens, this->get_builtin_type_info(ast::type_info::null_t_)),
-			ast::constant_value::get_null(),
+			ast::constant_value_storage::get_null(),
 			ast::make_expr_null_literal()
 		);
 	case lex::token::placeholder_literal:
@@ -2718,7 +2718,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 			src_tokens,
 			ast::expression_type_kind::placeholder_literal,
 			ast::make_void_typespec(src_tokens.pivot),
-			ast::constant_value(),
+			ast::constant_value_storage(),
 			ast::make_expr_placeholder_literal()
 		);
 	default:
@@ -2774,7 +2774,7 @@ ast::expression parse_context::make_string_literal(lex::token_pos const begin, l
 		{ begin, begin, end },
 		ast::expression_type_kind::rvalue,
 		ast::make_base_type_typespec({ begin, begin, end }, this->get_builtin_type_info(ast::type_info::str_)),
-		ast::constant_value(result),
+		ast::constant_value_storage(result),
 		ast::make_expr_typed_literal(lex::token_range{ begin, end })
 	);
 }
@@ -2820,7 +2820,7 @@ ast::expression parse_context::make_tuple(lex::src_tokens const &src_tokens, ast
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::typespec(),
-			ast::constant_value(ast::make_tuple_typespec(src_tokens, std::move(types))),
+			ast::constant_value_storage(ast::make_tuple_typespec(src_tokens, std::move(types))),
 			ast::make_expr_tuple(std::move(elems))
 		);
 	}
@@ -2847,7 +2847,7 @@ ast::expression parse_context::make_unreachable(lex::token_pos t)
 		src_tokens,
 		ast::expression_type_kind::rvalue,
 		ast::make_base_type_typespec(src_tokens, this->get_builtin_type_info(ast::type_info::str_)),
-		ast::constant_value(std::move(message)),
+		ast::constant_value_storage(std::move(message)),
 		ast::make_expr_typed_literal(lex::token_range{ t, t + 1 })
 	));
 	auto panic_fn_call_expr = ast::make_dynamic_expression(
@@ -3692,7 +3692,7 @@ static ast::expression make_expr_function_call_from_body(
 	lex::src_tokens const &src_tokens,
 	ast::function_body *body,
 	ast::arena_vector<ast::expression> args,
-	ast::constant_value value,
+	ast::constant_value_storage value,
 	parse_context &context,
 	ast::resolve_order resolve_order = ast::resolve_order::regular
 )
@@ -4921,8 +4921,8 @@ ast::expression parse_context::make_universal_function_call_expression(
 		)
 		{
 			auto const &array_t = args.front().get_expr_type().remove_any_mut().get<ast::ts_array>();
-			ast::constant_value size;
-			size.emplace<ast::constant_value::uint>(array_t.size);
+			ast::constant_value_storage size;
+			size.emplace<ast::constant_value_storage::uint>(array_t.size);
 			return make_expr_function_call_from_body(src_tokens, best_body, std::move(args), std::move(size), *this);
 		}
 		else
@@ -5206,8 +5206,8 @@ ast::expression parse_context::make_cast_expression(
 			inner_expr.src_tokens,
 			ast::expression_type_kind::rvalue, type,
 			value.value.is<int64_t>()
-				? ast::constant_value::get_enum(decl, value.value.get<int64_t>())
-				: ast::constant_value::get_enum(decl, value.value.get<uint64_t>()),
+				? ast::constant_value_storage::get_enum(decl, value.value.get<int64_t>())
+				: ast::constant_value_storage::get_enum(decl, value.value.get<uint64_t>()),
 			ast::make_expr_enum_literal(id)
 		);
 		return expr;
@@ -5603,8 +5603,8 @@ ast::expression parse_context::make_member_access_expression(
 			{
 				bz_assert(result_it->value.not_null());
 				auto value = result_it->value.is<int64_t>()
-					? ast::constant_value::get_enum(decl, result_it->value.get<int64_t>())
-					: ast::constant_value::get_enum(decl, result_it->value.get<uint64_t>());
+					? ast::constant_value_storage::get_enum(decl, result_it->value.get<int64_t>())
+					: ast::constant_value_storage::get_enum(decl, result_it->value.get<uint64_t>());
 				return ast::make_constant_expression(
 					src_tokens,
 					ast::expression_type_kind::rvalue, type,
@@ -5867,7 +5867,7 @@ ast::expression parse_context::make_generic_type_instantiation_expression(
 	return ast::make_constant_expression(
 		src_tokens,
 		ast::expression_type_kind::type_name, ast::make_typename_typespec(nullptr),
-		ast::constant_value(ast::make_base_type_typespec(src_tokens, info)),
+		ast::constant_value_storage(ast::make_base_type_typespec(src_tokens, info)),
 		ast::make_expr_generic_type_instantiation(info)
 	);
 }
@@ -5998,24 +5998,24 @@ static ast::expression make_builtin_default_construction(
 			case ast::type_info::int16_:
 			case ast::type_info::int32_:
 			case ast::type_info::int64_:
-				return ast::constant_value(int64_t());
+				return ast::constant_value_storage(int64_t());
 			case ast::type_info::uint8_:
 			case ast::type_info::uint16_:
 			case ast::type_info::uint32_:
 			case ast::type_info::uint64_:
-				return ast::constant_value(uint64_t());
+				return ast::constant_value_storage(uint64_t());
 			case ast::type_info::float32_:
-				return ast::constant_value(float32_t());
+				return ast::constant_value_storage(float32_t());
 			case ast::type_info::float64_:
-				return ast::constant_value(float64_t());
+				return ast::constant_value_storage(float64_t());
 			case ast::type_info::char_:
-				return ast::constant_value(bz::u8char());
+				return ast::constant_value_storage(bz::u8char());
 			case ast::type_info::str_:
-				return ast::constant_value(bz::u8string());
+				return ast::constant_value_storage(bz::u8string());
 			case ast::type_info::bool_:
-				return ast::constant_value(bool());
+				return ast::constant_value_storage(bool());
 			case ast::type_info::null_t_:
-				return ast::constant_value::get_null();
+				return ast::constant_value_storage::get_null();
 			default:
 				bz_unreachable;
 			}
@@ -8367,7 +8367,7 @@ ast::identifier parse_context::make_qualified_identifier(lex::token_pos id)
 	return result;
 }
 
-ast::constant_value parse_context::execute_expression(ast::expression &expr)
+ast::constant_value_storage parse_context::execute_expression(ast::expression &expr)
 {
 	auto &codegen_context = this->global_ctx.get_codegen_context();
 
@@ -8390,7 +8390,7 @@ ast::constant_value parse_context::execute_expression(ast::expression &expr)
 	return result;
 }
 
-ast::constant_value parse_context::execute_expression_without_error(ast::expression &expr)
+ast::constant_value_storage parse_context::execute_expression_without_error(ast::expression &expr)
 {
 	auto &codegen_context = this->global_ctx.get_codegen_context();
 	auto const func = comptime::generate_code_for_expression(expr, codegen_context);

@@ -5,7 +5,7 @@
 namespace ast
 {
 
-static bz::u8string get_aggregate_like_value_string(bz::array_view<constant_value const> values)
+static bz::u8string get_aggregate_like_value_string(bz::array_view<constant_value_storage const> values)
 {
 	if (values.empty())
 	{
@@ -58,30 +58,30 @@ static bz::u8string get_aggregate_like_value_string(bz::array_view<T const> valu
 	return result;
 }
 
-bz::u8string get_value_string(constant_value const &value)
+bz::u8string get_value_string(constant_value_storage const &value)
 {
 	switch (value.kind())
 	{
-	static_assert(constant_value::variant_count == 19);
-	case constant_value::sint:
+	static_assert(constant_value_storage::variant_count == 19);
+	case constant_value_storage::sint:
 		return bz::format("{}", value.get_sint());
-	case constant_value::uint:
+	case constant_value_storage::uint:
 		return bz::format("{}", value.get_uint());
-	case constant_value::float32:
+	case constant_value_storage::float32:
 		return bz::format("{}", value.get_float32());
-	case constant_value::float64:
+	case constant_value_storage::float64:
 		return bz::format("{}", value.get_float64());
-	case constant_value::u8char:
+	case constant_value_storage::u8char:
 		return bz::format("'{}'", add_escape_sequences(value.get_u8char()));
-	case constant_value::string:
+	case constant_value_storage::string:
 		return bz::format("\"{}\"", add_escape_sequences(value.get_string()));
-	case constant_value::boolean:
+	case constant_value_storage::boolean:
 		return bz::format("{}", value.get_boolean());
-	case constant_value::null:
+	case constant_value_storage::null:
 		return "null";
-	case constant_value::void_:
+	case constant_value_storage::void_:
 		return "void()";
-	case constant_value::enum_:
+	case constant_value_storage::enum_:
 	{
 		auto const [decl, enum_value] = value.get_enum();
 		auto const value_name = decl->get_value_name(enum_value);
@@ -103,36 +103,36 @@ bz::u8string get_value_string(constant_value const &value)
 			}
 		}
 	}
-	case constant_value::array:
+	case constant_value_storage::array:
 		return get_aggregate_like_value_string(value.get_array());
-	case constant_value::sint_array:
+	case constant_value_storage::sint_array:
 		return get_aggregate_like_value_string(value.get_sint_array());
-	case constant_value::uint_array:
+	case constant_value_storage::uint_array:
 		return get_aggregate_like_value_string(value.get_uint_array());
-	case constant_value::float32_array:
+	case constant_value_storage::float32_array:
 		return get_aggregate_like_value_string(value.get_float32_array());
-	case constant_value::float64_array:
+	case constant_value_storage::float64_array:
 		return get_aggregate_like_value_string(value.get_float64_array());
-	case constant_value::tuple:
+	case constant_value_storage::tuple:
 		return get_aggregate_like_value_string(value.get_tuple());
-	case constant_value::function:
+	case constant_value_storage::function:
 		return "";
-	case constant_value::type:
+	case constant_value_storage::type:
 		return bz::format("{}", value.get_type());
-	case constant_value::aggregate:
+	case constant_value_storage::aggregate:
 		return get_aggregate_like_value_string(value.get_aggregate());
 	default:
 		return "";
 	}
 }
 
-static void encode_array_like(bz::u8string &out, bz::array_view<constant_value const> values)
+static void encode_array_like(bz::u8string &out, bz::array_view<constant_value_storage const> values)
 {
 	out += bz::format("{}", values.size());
 	for (auto const &value : values)
 	{
 		out += '.';
-		constant_value::encode_for_symbol_name(out, value);
+		constant_value_storage::encode_for_symbol_name(out, value);
 	}
 }
 
@@ -176,11 +176,11 @@ static void encode_array_like(bz::u8string &out, bz::array_view<float64_t const>
 	}
 }
 
-void constant_value::encode_for_symbol_name(bz::u8string &out, constant_value const &value)
+void constant_value_storage::encode_for_symbol_name(bz::u8string &out, constant_value_storage const &value)
 {
 	switch (value.kind())
 	{
-	static_assert(constant_value::variant_count == 19);
+	static_assert(constant_value_storage::variant_count == 19);
 	case sint:
 		out += 'i';
 		out += bz::format("{}", bit_cast<uint64_t>(value.get_sint()));
@@ -354,7 +354,7 @@ static void decode_array_like(
 		}
 		bz_assert(*it == '.');
 		++it;
-		out += constant_value::decode_from_symbol_name(it, end);
+		out += constant_value_storage::decode_from_symbol_name(it, end);
 	}
 	out += " ]";
 }
@@ -443,9 +443,9 @@ static void decode_float64_array(
 	out += " ]";
 }
 
-bz::u8string constant_value::decode_from_symbol_name(bz::u8string_view::const_iterator &it, bz::u8string_view::const_iterator end)
+bz::u8string constant_value_storage::decode_from_symbol_name(bz::u8string_view::const_iterator &it, bz::u8string_view::const_iterator end)
 {
-	static_assert(constant_value::variant_count == 19);
+	static_assert(constant_value_storage::variant_count == 19);
 	switch (*it)
 	{
 	case 'i':
@@ -590,7 +590,7 @@ bz::u8string constant_value::decode_from_symbol_name(bz::u8string_view::const_it
 	}
 }
 
-bool operator == (constant_value const &lhs, constant_value const &rhs) noexcept
+bool operator == (constant_value_storage const &lhs, constant_value_storage const &rhs) noexcept
 {
 	if (lhs.kind() != rhs.kind())
 	{
@@ -598,55 +598,55 @@ bool operator == (constant_value const &lhs, constant_value const &rhs) noexcept
 	}
 	switch (lhs.kind())
 	{
-	static_assert(constant_value::variant_count == 19);
-	case constant_value::sint:
+	static_assert(constant_value_storage::variant_count == 19);
+	case constant_value_storage::sint:
 		return lhs.get_sint() == rhs.get_sint();
-	case constant_value::uint:
+	case constant_value_storage::uint:
 		return lhs.get_uint() == rhs.get_uint();
-	case constant_value::float32:
+	case constant_value_storage::float32:
 		return lhs.get_float32() == rhs.get_float32();
-	case constant_value::float64:
+	case constant_value_storage::float64:
 		return lhs.get_float64() == rhs.get_float64();
-	case constant_value::u8char:
+	case constant_value_storage::u8char:
 		return lhs.get_u8char() == rhs.get_u8char();
-	case constant_value::string:
+	case constant_value_storage::string:
 		return lhs.get_string() == rhs.get_string();
-	case constant_value::boolean:
+	case constant_value_storage::boolean:
 		return lhs.get_boolean() == rhs.get_boolean();
-	case constant_value::null:
+	case constant_value_storage::null:
 		return true;
-	case constant_value::void_:
+	case constant_value_storage::void_:
 		return true;
-	case constant_value::enum_:
+	case constant_value_storage::enum_:
 	{
 		auto const [lhs_decl, lhs_value] = lhs.get_enum();
 		auto const [rhs_decl, rhs_value] = rhs.get_enum();
 		return lhs_decl == rhs_decl && lhs_value == rhs_value;
 	}
-	case constant_value::array:
+	case constant_value_storage::array:
 		return lhs.get_array() == rhs.get_array();
-	case constant_value::sint_array:
+	case constant_value_storage::sint_array:
 		return lhs.get_sint_array() == rhs.get_sint_array();
-	case constant_value::uint_array:
+	case constant_value_storage::uint_array:
 		return lhs.get_uint_array() == rhs.get_uint_array();
-	case constant_value::float32_array:
+	case constant_value_storage::float32_array:
 		return lhs.get_float32_array() == rhs.get_float32_array();
-	case constant_value::float64_array:
+	case constant_value_storage::float64_array:
 		return lhs.get_float64_array() == rhs.get_float64_array();
-	case constant_value::tuple:
+	case constant_value_storage::tuple:
 		return lhs.get_tuple() == rhs.get_tuple();
-	case constant_value::function:
+	case constant_value_storage::function:
 		return lhs.get_function() == rhs.get_function();
-	case constant_value::type:
+	case constant_value_storage::type:
 		return lhs.get_type() == rhs.get_type();
-	case constant_value::aggregate:
+	case constant_value_storage::aggregate:
 		return lhs.get_aggregate() == rhs.get_aggregate();
 	default:
 		return false;
 	}
 }
 
-bool operator != (constant_value const &lhs, constant_value const &rhs) noexcept
+bool operator != (constant_value_storage const &lhs, constant_value_storage const &rhs) noexcept
 {
 	return !(lhs == rhs);
 }

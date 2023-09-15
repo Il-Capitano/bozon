@@ -106,7 +106,7 @@ bz::u8string function_body::get_symbol_name(void) const
 			{
 				bz_assert(p.init_expr.is_constant());
 				symbol_name += '.';
-				constant_value::encode_for_symbol_name(symbol_name, p.init_expr.get_constant_value());
+				constant_value_storage::encode_for_symbol_name(symbol_name, p.init_expr.get_constant_value());
 			}
 		}
 		return symbol_name;
@@ -127,7 +127,7 @@ bz::u8string function_body::get_symbol_name(void) const
 			{
 				bz_assert(p.init_expr.is_constant());
 				symbol_name += '.';
-				constant_value::encode_for_symbol_name(symbol_name, p.init_expr.get_constant_value());
+				constant_value_storage::encode_for_symbol_name(symbol_name, p.init_expr.get_constant_value());
 			}
 		}
 		symbol_name += '.';
@@ -300,7 +300,7 @@ bz::u8string function_body::decode_symbol_name(
 			bz_assert(*it == '.');
 			++it;
 			result += " = ";
-			result += constant_value::decode_from_symbol_name(it, end);
+			result += constant_value_storage::decode_from_symbol_name(it, end);
 		}
 	}
 

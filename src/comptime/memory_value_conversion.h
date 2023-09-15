@@ -12,14 +12,14 @@ namespace comptime::memory
 
 bz::fixed_vector<uint8_t> object_from_constant_value(
 	lex::src_tokens const &src_tokens,
-	ast::constant_value const &value,
+	ast::constant_value_storage const &value,
 	type const *object_type,
 	codegen_context &context
 );
 
 struct constant_value_from_object_result_t
 {
-	ast::constant_value value;
+	ast::constant_value_storage value;
 	bz::vector<error_reason_t> reasons;
 };
 

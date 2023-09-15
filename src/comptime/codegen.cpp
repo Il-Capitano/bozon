@@ -5701,20 +5701,20 @@ static expr_value generate_integral_switch_code(
 			auto const &value = expr.get_constant_value();
 			switch (value.kind())
 			{
-			static_assert(ast::constant_value::variant_count == 19);
-			case ast::constant_value::sint:
+			static_assert(ast::constant_value_storage::variant_count == 19);
+			case ast::constant_value_storage::sint:
 				cases.push_back({ .value = static_cast<uint64_t>(value.get_sint()), .bb = bb, });
 				break;
-			case ast::constant_value::uint:
+			case ast::constant_value_storage::uint:
 				cases.push_back({ .value = value.get_uint(), .bb = bb, });
 				break;
-			case ast::constant_value::u8char:
+			case ast::constant_value_storage::u8char:
 				cases.push_back({ .value = static_cast<uint64_t>(value.get_u8char()), .bb = bb, });
 				break;
-			case ast::constant_value::boolean:
+			case ast::constant_value_storage::boolean:
 				cases.push_back({ .value = static_cast<uint64_t>(value.get_boolean()), .bb = bb, });
 				break;
-			case ast::constant_value::enum_:
+			case ast::constant_value_storage::enum_:
 				cases.push_back({ .value = value.get_enum().value, .bb = bb, });
 				break;
 			default:
@@ -6122,55 +6122,55 @@ static expr_value generate_expr_code(
 
 static expr_value get_constant_value(
 	lex::src_tokens const &src_tokens,
-	ast::constant_value const &value,
+	ast::constant_value_storage const &value,
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
 	codegen_context &context,
 	bz::optional<expr_value> result_address
 );
 
-static bool is_zero_value(ast::constant_value const &value)
+static bool is_zero_value(ast::constant_value_storage const &value)
 {
 	switch (value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 19);
-	case ast::constant_value::sint:
+	static_assert(ast::constant_value_storage::variant_count == 19);
+	case ast::constant_value_storage::sint:
 		return value.get_sint() == 0;
-	case ast::constant_value::uint:
+	case ast::constant_value_storage::uint:
 		return value.get_uint() == 0;
-	case ast::constant_value::float32:
+	case ast::constant_value_storage::float32:
 		return bit_cast<uint32_t>(value.get_float32()) == 0;
-	case ast::constant_value::float64:
+	case ast::constant_value_storage::float64:
 		return bit_cast<uint64_t>(value.get_float64()) == 0;
-	case ast::constant_value::u8char:
+	case ast::constant_value_storage::u8char:
 		return value.get_u8char() == 0;
-	case ast::constant_value::string:
+	case ast::constant_value_storage::string:
 		return value.get_string() == "";
-	case ast::constant_value::boolean:
+	case ast::constant_value_storage::boolean:
 		return value.get_boolean() == false;
-	case ast::constant_value::null:
+	case ast::constant_value_storage::null:
 		return true;
-	case ast::constant_value::void_:
+	case ast::constant_value_storage::void_:
 		return true;
-	case ast::constant_value::enum_:
+	case ast::constant_value_storage::enum_:
 		return value.get_enum().value == 0;
-	case ast::constant_value::array:
+	case ast::constant_value_storage::array:
 		return value.get_array().is_all([](auto const &value) { return is_zero_value(value); });
-	case ast::constant_value::sint_array:
+	case ast::constant_value_storage::sint_array:
 		return value.get_sint_array().is_all([](auto const value) { return value == 0; });
-	case ast::constant_value::uint_array:
+	case ast::constant_value_storage::uint_array:
 		return value.get_sint_array().is_all([](auto const value) { return value == 0; });
-	case ast::constant_value::float32_array:
+	case ast::constant_value_storage::float32_array:
 		return value.get_float32_array().is_all([](auto const value) { return bit_cast<uint32_t>(value) == 0; });
-	case ast::constant_value::float64_array:
+	case ast::constant_value_storage::float64_array:
 		return value.get_float64_array().is_all([](auto const value) { return bit_cast<uint64_t>(value) == 0; });
-	case ast::constant_value::tuple:
+	case ast::constant_value_storage::tuple:
 		return value.get_tuple().is_all([](auto const &value) { return is_zero_value(value); });
-	case ast::constant_value::function:
+	case ast::constant_value_storage::function:
 		return false;
-	case ast::constant_value::aggregate:
+	case ast::constant_value_storage::aggregate:
 		return value.get_aggregate().is_all([](auto const &value) { return is_zero_value(value); });
-	case ast::constant_value::type:
+	case ast::constant_value_storage::type:
 		bz_unreachable;
 	default:
 		bz_unreachable;
@@ -6189,7 +6189,7 @@ static ast::typespec_view flattened_array_elem_type(ast::ts_array const &array_t
 
 static void get_nonzero_constant_array_value(
 	lex::src_tokens const &src_tokens,
-	bz::array_view<ast::constant_value const> values,
+	bz::array_view<ast::constant_value_storage const> values,
 	ast::ts_array const &array_type,
 	codegen_context &context,
 	expr_value result_address
@@ -6221,7 +6221,7 @@ static void get_nonzero_constant_array_value(
 
 static void get_constant_array_value(
 	lex::src_tokens const &src_tokens,
-	bz::array_view<ast::constant_value const> values,
+	bz::array_view<ast::constant_value_storage const> values,
 	ast::ts_array const &array_type,
 	codegen_context &context,
 	expr_value result_address
@@ -6428,7 +6428,7 @@ static type const *get_tuple_type(ast::typespec_view type, ast::constant_express
 
 static expr_value get_constant_value_helper(
 	lex::src_tokens const &src_tokens,
-	ast::constant_value const &value,
+	ast::constant_value_storage const &value,
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
 	codegen_context &context,
@@ -6437,8 +6437,8 @@ static expr_value get_constant_value_helper(
 {
 	switch (value.kind())
 	{
-	static_assert(ast::constant_value::variant_count == 19);
-	case ast::constant_value::sint:
+	static_assert(ast::constant_value_storage::variant_count == 19);
+	case ast::constant_value_storage::sint:
 	{
 		auto int_value = expr_value::get_none();
 		bz_assert(type.is<ast::ts_base_type>());
@@ -6461,7 +6461,7 @@ static expr_value get_constant_value_helper(
 		}
 		return value_or_result_address(int_value, result_address, context);
 	}
-	case ast::constant_value::uint:
+	case ast::constant_value_storage::uint:
 	{
 		auto int_value = expr_value::get_none();
 		bz_assert(type.is<ast::ts_base_type>());
@@ -6484,13 +6484,13 @@ static expr_value get_constant_value_helper(
 		}
 		return value_or_result_address(int_value, result_address, context);
 	}
-	case ast::constant_value::float32:
+	case ast::constant_value_storage::float32:
 		return value_or_result_address(context.create_const_f32(value.get_float32()), result_address, context);
-	case ast::constant_value::float64:
+	case ast::constant_value_storage::float64:
 		return value_or_result_address(context.create_const_f64(value.get_float64()), result_address, context);
-	case ast::constant_value::u8char:
+	case ast::constant_value_storage::u8char:
 		return value_or_result_address(context.create_const_u32(value.get_u8char()), result_address, context);
-	case ast::constant_value::string:
+	case ast::constant_value_storage::string:
 	{
 		if (!result_address.has_value())
 		{
@@ -6514,9 +6514,9 @@ static expr_value get_constant_value_helper(
 		}
 		return result_value;
 	}
-	case ast::constant_value::boolean:
+	case ast::constant_value_storage::boolean:
 		return value_or_result_address(context.create_const_i1(value.get_boolean()), result_address, context);
-	case ast::constant_value::null:
+	case ast::constant_value_storage::null:
 		if (
 			auto const bare_type = type.remove_any_mut();
 			bare_type.is_optional_pointer_like() && !result_address.has_value()
@@ -6536,9 +6536,9 @@ static expr_value get_constant_value_helper(
 			context.create_start_lifetime(result_value);
 			return result_value;
 		}
-	case ast::constant_value::void_:
+	case ast::constant_value_storage::void_:
 		bz_unreachable;
-	case ast::constant_value::enum_:
+	case ast::constant_value_storage::enum_:
 	{
 		auto const [decl, enum_value] = value.get_enum();
 		auto const signed_enum_value = bit_cast<int64_t>(enum_value);
@@ -6576,7 +6576,7 @@ static expr_value get_constant_value_helper(
 
 		return value_or_result_address(enum_int_value, result_address, context);
 	}
-	case ast::constant_value::array:
+	case ast::constant_value_storage::array:
 	{
 		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
@@ -6593,7 +6593,7 @@ static expr_value get_constant_value_helper(
 		);
 		return result_address.get();
 	}
-	case ast::constant_value::sint_array:
+	case ast::constant_value_storage::sint_array:
 	{
 		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
@@ -6609,7 +6609,7 @@ static expr_value get_constant_value_helper(
 		);
 		return result_address.get();
 	}
-	case ast::constant_value::uint_array:
+	case ast::constant_value_storage::uint_array:
 	{
 		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
@@ -6625,7 +6625,7 @@ static expr_value get_constant_value_helper(
 		);
 		return result_address.get();
 	}
-	case ast::constant_value::float32_array:
+	case ast::constant_value_storage::float32_array:
 	{
 		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
@@ -6641,7 +6641,7 @@ static expr_value get_constant_value_helper(
 		);
 		return result_address.get();
 	}
-	case ast::constant_value::float64_array:
+	case ast::constant_value_storage::float64_array:
 	{
 		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
@@ -6657,7 +6657,7 @@ static expr_value get_constant_value_helper(
 		);
 		return result_address.get();
 	}
-	case ast::constant_value::tuple:
+	case ast::constant_value_storage::tuple:
 	{
 		if (!result_address.has_value())
 		{
@@ -6702,13 +6702,13 @@ static expr_value get_constant_value_helper(
 		}
 		return result_value;
 	}
-	case ast::constant_value::function:
+	case ast::constant_value_storage::function:
 	{
 		auto const func = context.get_function(value.get_function());
 		auto const func_ptr = context.create_const_function_pointer(func);
 		return value_or_result_address(func_ptr, result_address, context);
 	}
-	case ast::constant_value::aggregate:
+	case ast::constant_value_storage::aggregate:
 	{
 		auto const aggregate = value.get_aggregate();
 		bz_assert(type.remove_any_mut().is<ast::ts_base_type>());
@@ -6727,7 +6727,7 @@ static expr_value get_constant_value_helper(
 		}
 		return result_value;
 	}
-	case ast::constant_value::type:
+	case ast::constant_value_storage::type:
 	{
 		bz_assert(result_address.has_value());
 		auto const &result_value = result_address.get();
@@ -6741,7 +6741,7 @@ static expr_value get_constant_value_helper(
 
 static expr_value get_constant_value(
 	lex::src_tokens const &src_tokens,
-	ast::constant_value const &value,
+	ast::constant_value_storage const &value,
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
 	codegen_context &context,
