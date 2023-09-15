@@ -399,10 +399,13 @@ struct constant_value_storage : constant_value_storage_base_t
 
 	constant_value as_constant_value(void) const;
 
-	operator constant_value (void) const
+	operator constant_value (void) const &
 	{
 		return this->as_constant_value();
 	}
+
+	operator constant_value (void) && = delete;
+	operator constant_value (void) const && = delete;
 
 	static constant_value_storage get_void(void)
 	{ return constant_value_storage(internal::void_t{}); }
