@@ -351,13 +351,20 @@ public:
 	}
 };
 
+template<typename T>
+constexpr bool is_trivial_variant = std::is_trivially_destructible_v<T>
+	&& std::is_trivially_copy_constructible_v<T>
+	&& std::is_trivially_copy_assignable_v<T>
+	&& std::is_trivially_move_constructible_v<T>
+	&& std::is_trivially_move_assignable_v<T>;
+
 } // namespace internal
 
 
 template<typename ...Ts>
 class variant :
 	public meta::conditional<
-		internal::is_all({ meta::is_trivial_v<Ts>... }),
+		internal::is_all({ internal::is_trivial_variant<Ts>... }),
 		internal::variant_trivial_base<Ts...>,
 		internal::variant_non_trivial_base<Ts...>
 	>
@@ -373,7 +380,7 @@ class variant :
 private:
 	using self_t = variant<Ts...>;
 	using base_t = meta::conditional<
-		internal::is_all({ meta::is_trivial_v<Ts>... }),
+		internal::is_all({ internal::is_trivial_variant<Ts>... }),
 		internal::variant_trivial_base<Ts...>,
 		internal::variant_non_trivial_base<Ts...>
 	>;
