@@ -577,21 +577,21 @@ static ast::expression resolve_expr(
 					switch (rhs_value.kind())
 					{
 					static_assert(ast::constant_value_storage::variant_count == 19);
-					case ast::constant_value_storage::sint:
+					case ast::constant_value_kind::sint:
 						context.report_error(
 							rhs.src_tokens,
 							bz::format("duplicate value {} in switch expression", lhs_value.get_sint()),
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
 						break;
-					case ast::constant_value_storage::uint:
+					case ast::constant_value_kind::uint:
 						context.report_error(
 							rhs.src_tokens,
 							bz::format("duplicate value {} in switch expression", lhs_value.get_uint()),
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
 						break;
-					case ast::constant_value_storage::u8char:
+					case ast::constant_value_kind::u8char:
 						context.report_error(
 							rhs.src_tokens,
 							bz::format(
@@ -601,21 +601,21 @@ static ast::expression resolve_expr(
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
 						break;
-					case ast::constant_value_storage::boolean:
+					case ast::constant_value_kind::boolean:
 						context.report_error(
 							rhs.src_tokens,
 							bz::format("duplicate value '{}' in switch expression", lhs_value.get_boolean()),
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
 						break;
-					case ast::constant_value_storage::enum_:
+					case ast::constant_value_kind::enum_:
 						context.report_error(
 							rhs.src_tokens,
 							bz::format("duplicate value '{}' in switch expression", get_value_string(lhs_value)),
 							{ context.make_note(lhs.src_tokens, "value previously used here") }
 						);
 						break;
-					case ast::constant_value_storage::string:
+					case ast::constant_value_kind::string:
 						context.report_error(
 							rhs.src_tokens,
 							bz::format("duplicate value {} in switch expression", get_value_string(lhs_value)),
@@ -814,7 +814,7 @@ static ast::expression resolve_expr(
 				switch (size_value.kind())
 				{
 				static_assert(ast::constant_value_storage::variant_count == 19);
-				case ast::constant_value_storage::sint:
+				case ast::constant_value_kind::sint:
 				{
 					auto const value = size_value.get_sint();
 					if (value <= 0)
@@ -827,7 +827,7 @@ static ast::expression resolve_expr(
 					}
 					return static_cast<uint64_t>(value);
 				}
-				case ast::constant_value_storage::uint:
+				case ast::constant_value_kind::uint:
 				{
 					auto const value = size_value.get_uint();
 					if (value == 0)

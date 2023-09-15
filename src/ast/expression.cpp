@@ -343,13 +343,13 @@ bool expression::is_typename(void) const noexcept
 typespec &expression::get_typename(void) noexcept
 {
 	bz_assert(this->is_typename());
-	return this->get_constant_value().get<constant_value_storage::type>();
+	return this->get_constant_value().get<constant_value_kind::type>();
 }
 
 typespec const &expression::get_typename(void) const noexcept
 {
 	bz_assert(this->is_typename());
-	return this->get_constant_value().get<constant_value_storage::type>();
+	return this->get_constant_value().get<constant_value_kind::type>();
 }
 
 bool expression::is_tuple(void) const noexcept

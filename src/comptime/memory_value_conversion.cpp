@@ -68,7 +68,7 @@ static void object_from_constant_value(
 	auto const endianness = context.get_endianness();
 	switch (value.kind())
 	{
-	case ast::constant_value_storage::sint:
+	case ast::constant_value_kind::sint:
 		bz_assert(object_type->is_integer_type());
 		switch (object_type->get_builtin_kind())
 		{
@@ -88,7 +88,7 @@ static void object_from_constant_value(
 			bz_unreachable;
 		}
 		break;
-	case ast::constant_value_storage::uint:
+	case ast::constant_value_kind::uint:
 		bz_assert(object_type->is_integer_type());
 		switch (object_type->get_builtin_kind())
 		{
@@ -108,20 +108,20 @@ static void object_from_constant_value(
 			bz_unreachable;
 		}
 		break;
-	case ast::constant_value_storage::float32:
+	case ast::constant_value_kind::float32:
 		bz_assert(object_type->is_floating_point_type() && object_type->get_builtin_kind() == builtin_type_kind::f32);
 		store<float32_t>(value.get_float32(), mem, endianness);
 		break;
-	case ast::constant_value_storage::float64:
+	case ast::constant_value_kind::float64:
 		bz_assert(object_type->is_floating_point_type() && object_type->get_builtin_kind() == builtin_type_kind::f64);
 		store<float64_t>(value.get_float64(), mem, endianness);
 		break;
-	case ast::constant_value_storage::u8char:
+	case ast::constant_value_kind::u8char:
 		bz_assert(object_type->is_integer_type() && object_type->get_builtin_kind() == builtin_type_kind::i32);
 		static_assert(sizeof (bz::u8char) == 4);
 		store<bz::u8char>(value.get_u8char(), mem, endianness);
 		break;
-	case ast::constant_value_storage::string:
+	case ast::constant_value_kind::string:
 	{
 		auto const str = value.get_string();
 		if (str.size() == 0)
@@ -156,17 +156,17 @@ static void object_from_constant_value(
 		}
 		break;
 	}
-	case ast::constant_value_storage::boolean:
+	case ast::constant_value_kind::boolean:
 		bz_assert(object_type->is_integer_type() && object_type->get_builtin_kind() == builtin_type_kind::i1);
 		store<bool>(value.get_boolean(), mem, endianness);
 		break;
-	case ast::constant_value_storage::null:
+	case ast::constant_value_kind::null:
 		// pointers are set to null, optionals are set to not having a value
 		std::memset(mem, 0, object_type->size);
 		break;
-	case ast::constant_value_storage::void_:
+	case ast::constant_value_kind::void_:
 		bz_unreachable;
-	case ast::constant_value_storage::enum_:
+	case ast::constant_value_kind::enum_:
 		bz_assert(object_type->is_integer_type());
 		switch (object_type->get_builtin_kind())
 		{
@@ -186,7 +186,7 @@ static void object_from_constant_value(
 			bz_unreachable;
 		}
 		break;
-	case ast::constant_value_storage::array:
+	case ast::constant_value_kind::array:
 	{
 		bz_assert(object_type->is_array());
 		auto const elem_type = get_multi_dimensional_array_elem_type(object_type);
@@ -201,7 +201,7 @@ static void object_from_constant_value(
 		}
 		break;
 	}
-	case ast::constant_value_storage::sint_array:
+	case ast::constant_value_kind::sint_array:
 	{
 		bz_assert(object_type->is_array());
 		auto const elem_type = get_multi_dimensional_array_elem_type(object_type);
@@ -227,7 +227,7 @@ static void object_from_constant_value(
 		}
 		break;
 	}
-	case ast::constant_value_storage::uint_array:
+	case ast::constant_value_kind::uint_array:
 	{
 		bz_assert(object_type->is_array());
 		auto const elem_type = get_multi_dimensional_array_elem_type(object_type);
@@ -253,7 +253,7 @@ static void object_from_constant_value(
 		}
 		break;
 	}
-	case ast::constant_value_storage::float32_array:
+	case ast::constant_value_kind::float32_array:
 	{
 		bz_assert(object_type->is_array());
 		auto const array = value.get_float32_array();
@@ -265,7 +265,7 @@ static void object_from_constant_value(
 		store_array<float32_t>(array, mem, endianness);
 		break;
 	}
-	case ast::constant_value_storage::float64_array:
+	case ast::constant_value_kind::float64_array:
 	{
 		bz_assert(object_type->is_array());
 		auto const array = value.get_float64_array();
@@ -277,7 +277,7 @@ static void object_from_constant_value(
 		store_array<float64_t>(array, mem, endianness);
 		break;
 	}
-	case ast::constant_value_storage::tuple:
+	case ast::constant_value_kind::tuple:
 	{
 		auto const values = value.get_tuple();
 		bz_assert(object_type->is_aggregate());
@@ -298,7 +298,7 @@ static void object_from_constant_value(
 		}
 		break;
 	}
-	case ast::constant_value_storage::function:
+	case ast::constant_value_kind::function:
 	{
 		auto const func_body = value.get_function();
 		auto const func = context.get_function(func_body);
@@ -315,9 +315,9 @@ static void object_from_constant_value(
 		}
 		break;
 	}
-	case ast::constant_value_storage::type:
+	case ast::constant_value_kind::type:
 		bz_unreachable;
-	case ast::constant_value_storage::aggregate:
+	case ast::constant_value_kind::aggregate:
 	{
 		auto const values = value.get_aggregate();
 		bz_assert(object_type->is_aggregate());
@@ -516,7 +516,7 @@ constant_value_from_object_result_t constant_value_from_object(
 			bz_assert(aggregate_types.size() == tuple_types.size());
 
 			auto result = constant_value_from_object_result_t();
-			auto &result_vec = result.value.emplace<ast::constant_value_storage::tuple>();
+			auto &result_vec = result.value.emplace<ast::constant_value_kind::tuple>();
 			result_vec.reserve(tuple_types.size());
 			for (auto const i : bz::iota(0, tuple_types.size()))
 			{
@@ -613,7 +613,7 @@ constant_value_from_object_result_t constant_value_from_object(
 			bz_assert(aggregate_types.size() == members.size());
 
 			auto result = constant_value_from_object_result_t();
-			auto &result_vec = result.value.emplace<ast::constant_value_storage::aggregate>();
+			auto &result_vec = result.value.emplace<ast::constant_value_kind::aggregate>();
 			result_vec.reserve(members.size());
 			for (auto const i : bz::iota(0, members.size()))
 			{
@@ -668,61 +668,61 @@ constant_value_from_object_result_t constant_value_from_object(
 			{
 			case ast::type_info::int8_:
 			{
-				auto &result_array = result.value.emplace<ast::constant_value_storage::sint_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value_kind::sint_array>(info.size);
 				load_array<int8_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
 			case ast::type_info::int16_:
 			{
-				auto &result_array = result.value.emplace<ast::constant_value_storage::sint_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value_kind::sint_array>(info.size);
 				load_array<int16_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
 			case ast::type_info::int32_:
 			{
-				auto &result_array = result.value.emplace<ast::constant_value_storage::sint_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value_kind::sint_array>(info.size);
 				load_array<int32_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
 			case ast::type_info::int64_:
 			{
-				auto &result_array = result.value.emplace<ast::constant_value_storage::sint_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value_kind::sint_array>(info.size);
 				load_array<int64_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
 			case ast::type_info::uint8_:
 			{
-				auto &result_array = result.value.emplace<ast::constant_value_storage::uint_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value_kind::uint_array>(info.size);
 				load_array<uint8_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
 			case ast::type_info::uint16_:
 			{
-				auto &result_array = result.value.emplace<ast::constant_value_storage::uint_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value_kind::uint_array>(info.size);
 				load_array<uint16_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
 			case ast::type_info::uint32_:
 			{
-				auto &result_array = result.value.emplace<ast::constant_value_storage::uint_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value_kind::uint_array>(info.size);
 				load_array<uint32_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
 			case ast::type_info::uint64_:
 			{
-				auto &result_array = result.value.emplace<ast::constant_value_storage::uint_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value_kind::uint_array>(info.size);
 				load_array<uint64_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
 			case ast::type_info::float32_:
 			{
-				auto &result_array = result.value.emplace<ast::constant_value_storage::float32_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value_kind::float32_array>(info.size);
 				load_array<float32_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
 			case ast::type_info::float64_:
 			{
-				auto &result_array = result.value.emplace<ast::constant_value_storage::float64_array>(info.size);
+				auto &result_array = result.value.emplace<ast::constant_value_kind::float64_array>(info.size);
 				load_array<float64_t>(mem, result_array.data(), info.size, endianness);
 				break;
 			}
@@ -738,7 +738,7 @@ constant_value_from_object_result_t constant_value_from_object(
 			bz_assert(elem_type->size * info.size == object_type->size);
 
 			auto result = constant_value_from_object_result_t();
-			auto &result_array = result.value.emplace<ast::constant_value_storage::array>();
+			auto &result_array = result.value.emplace<ast::constant_value_kind::array>();
 			result_array.reserve(info.size);
 
 			auto mem_it = mem;

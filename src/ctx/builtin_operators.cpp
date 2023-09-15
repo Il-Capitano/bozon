@@ -22,13 +22,13 @@ static auto get_base_kinds(
 	};
 };
 
-template<size_t kind>
+template<ast::constant_value_kind kind>
 static auto get_constant_expression_values(
 	ast::expression const &lhs,
 	ast::expression const &rhs
 )
 {
-	static_assert(kind != ast::constant_value_storage::aggregate);
+	static_assert(kind != ast::constant_value_kind::aggregate);
 	bz_assert(lhs.is_constant());
 	bz_assert(rhs.is_constant());
 	auto const &lhs_value = lhs.get_constant_value();
@@ -36,7 +36,7 @@ static auto get_constant_expression_values(
 	bz_assert(lhs_value.kind() == kind);
 	bz_assert(rhs_value.kind() == kind);
 
-	if constexpr (kind == ast::constant_value_storage::string)
+	if constexpr (kind == ast::constant_value_kind::string)
 	{
 		return std::make_pair(
 			lhs_value.get_string(),
@@ -1122,7 +1122,7 @@ ast::expression make_builtin_cast(
 				{
 					ast::typespec dest_t_copy = dest_t;
 					ast::constant_value_storage result_value;
-					result_value.emplace<ast::constant_value_storage::sint>(value);
+					result_value.emplace<ast::constant_value_kind::sint>(value);
 					return ast::make_constant_expression(
 						src_tokens,
 						ast::expression_type_kind::rvalue,
@@ -1139,7 +1139,7 @@ ast::expression make_builtin_cast(
 				{
 					ast::typespec dest_t_copy = dest_t;
 					ast::constant_value_storage result_value;
-					result_value.emplace<ast::constant_value_storage::uint>(static_cast<uint64_t>(value));
+					result_value.emplace<ast::constant_value_kind::uint>(static_cast<uint64_t>(value));
 					return ast::make_constant_expression(
 						src_tokens,
 						ast::expression_type_kind::rvalue,
@@ -1162,11 +1162,11 @@ ast::expression make_builtin_cast(
 					ast::constant_value_storage result_value;
 					if (ast::is_signed_integer_kind(dest_kind))
 					{
-						result_value.emplace<ast::constant_value_storage::sint>(static_cast<int64_t>(value));
+						result_value.emplace<ast::constant_value_kind::sint>(static_cast<int64_t>(value));
 					}
 					else
 					{
-						result_value.emplace<ast::constant_value_storage::uint>(static_cast<uint64_t>(value));
+						result_value.emplace<ast::constant_value_kind::uint>(static_cast<uint64_t>(value));
 					}
 					return ast::make_constant_expression(
 						src_tokens,

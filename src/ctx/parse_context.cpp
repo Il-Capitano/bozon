@@ -4922,7 +4922,7 @@ ast::expression parse_context::make_universal_function_call_expression(
 		{
 			auto const &array_t = args.front().get_expr_type().remove_any_mut().get<ast::ts_array>();
 			ast::constant_value_storage size;
-			size.emplace<ast::constant_value_storage::uint>(array_t.size);
+			size.emplace<ast::constant_value_kind::uint>(array_t.size);
 			return make_expr_function_call_from_body(src_tokens, best_body, std::move(args), std::move(size), *this);
 		}
 		else
