@@ -95,6 +95,16 @@ struct parse_context
 	bz::array_view<uint32_t const> get_builtin_universal_functions(bz::u8string_view id);
 	ast::type_prototype_set_t &get_type_prototype_set(void);
 
+	ast::constant_value add_constant_string(bz::u8string str);
+	ast::constant_value add_constant_array(ast::arena_vector<ast::constant_value_storage> elems);
+	ast::constant_value add_constant_tuple(ast::arena_vector<ast::constant_value_storage> elems);
+	ast::constant_value add_constant_aggregate(ast::arena_vector<ast::constant_value_storage> elems);
+	ast::constant_value add_constant_sint_array(ast::arena_vector<int64_t> elems);
+	ast::constant_value add_constant_uint_array(ast::arena_vector<uint64_t> elems);
+	ast::constant_value add_constant_float32_array(ast::arena_vector<float32_t> elems);
+	ast::constant_value add_constant_float64_array(ast::arena_vector<float64_t> elems);
+	ast::constant_value add_constant_type(ast::typespec type);
+
 	struct loop_info_t
 	{
 		bool in_loop;

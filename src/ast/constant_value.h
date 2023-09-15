@@ -104,118 +104,142 @@ struct constant_value : constant_value_base_t
 	using base_t = constant_value_base_t;
 	using base_t::operator =;
 
+	template<constant_value_kind kind>
+	decltype(auto) get(void)
+	{
+		return this->base_t::get<static_cast<uint64_t>(kind)>();
+	}
+
+	template<constant_value_kind kind>
+	decltype(auto) get(void) const
+	{
+		return this->base_t::get<static_cast<uint64_t>(kind)>();
+	}
+
+	template<constant_value_kind kind>
+	bool is(void) const
+	{
+		return this->base_t::is<static_cast<uint64_t>(kind)>();
+	}
+
+	template<constant_value_kind kind, typename ...Args>
+	decltype(auto) emplace(Args &&...args)
+	{
+		return this->base_t::emplace<static_cast<uint64_t>(kind)>(std::forward<Args>(args)...);
+	}
+
 	constant_value_kind kind(void) const noexcept
 	{ return static_cast<constant_value_kind>(this->base_t::index()); }
 
 
 	bool is_sint(void) const noexcept
-	{ return this->is<static_cast<uint64_t>(constant_value_kind::sint)>(); }
+	{ return this->is<constant_value_kind::sint>(); }
 
 	bool is_uint(void) const noexcept
-	{ return this->is<static_cast<uint64_t>(constant_value_kind::uint)>(); }
+	{ return this->is<constant_value_kind::uint>(); }
 
 	bool is_float32(void) const noexcept
-	{ return this->is<static_cast<uint64_t>(constant_value_kind::float32)>(); }
+	{ return this->is<constant_value_kind::float32>(); }
 
 	bool is_float64(void) const noexcept
-	{ return this->is<static_cast<uint64_t>(constant_value_kind::float64)>(); }
+	{ return this->is<constant_value_kind::float64>(); }
 
 	bool is_u8char(void) const noexcept
-	{ return this->is<static_cast<uint64_t>(constant_value_kind::u8char)>(); }
+	{ return this->is<constant_value_kind::u8char>(); }
 
 	bool is_string(void) const noexcept
-	{ return this->is<static_cast<uint64_t>(constant_value_kind::string)>(); }
+	{ return this->is<constant_value_kind::string>(); }
 
 	bool is_boolean(void) const noexcept
-	{ return this->is<static_cast<uint64_t>(constant_value_kind::boolean)>(); }
+	{ return this->is<constant_value_kind::boolean>(); }
 
 	bool is_null_constant(void) const noexcept
-	{ return this->is<static_cast<uint64_t>(constant_value_kind::null)>(); }
+	{ return this->is<constant_value_kind::null>(); }
 
 	bool is_void(void) const noexcept
-	{ return this->is<static_cast<uint64_t>(constant_value_kind::void_)>(); }
+	{ return this->is<constant_value_kind::void_>(); }
 
 	bool is_enum(void) const noexcept
-	{ return this->is<static_cast<uint64_t>(constant_value_kind::enum_)>(); }
+	{ return this->is<constant_value_kind::enum_>(); }
 
 	bool is_array(void) const noexcept
-	{ return this->is<static_cast<uint64_t>(constant_value_kind::array)>(); }
+	{ return this->is<constant_value_kind::array>(); }
 
 	bool is_sint_array(void) const noexcept
-	{ return this->is<static_cast<uint64_t>(constant_value_kind::sint_array)>(); }
+	{ return this->is<constant_value_kind::sint_array>(); }
 
 	bool is_uint_array(void) const noexcept
-	{ return this->is<static_cast<uint64_t>(constant_value_kind::uint_array)>(); }
+	{ return this->is<constant_value_kind::uint_array>(); }
 
 	bool is_float32_array(void) const noexcept
-	{ return this->is<static_cast<uint64_t>(constant_value_kind::float32_array)>(); }
+	{ return this->is<constant_value_kind::float32_array>(); }
 
 	bool is_float64_array(void) const noexcept
-	{ return this->is<static_cast<uint64_t>(constant_value_kind::float64_array)>(); }
+	{ return this->is<constant_value_kind::float64_array>(); }
 
 	bool is_tuple(void) const noexcept
-	{ return this->is<static_cast<uint64_t>(constant_value_kind::tuple)>(); }
+	{ return this->is<constant_value_kind::tuple>(); }
 
 	bool is_function(void) const noexcept
-	{ return this->is<static_cast<uint64_t>(constant_value_kind::function)>(); }
+	{ return this->is<constant_value_kind::function>(); }
 
 	bool is_type(void) const noexcept
-	{ return this->is<static_cast<uint64_t>(constant_value_kind::type)>(); }
+	{ return this->is<constant_value_kind::type>(); }
 
 	bool is_aggregate(void) const noexcept
-	{ return this->is<static_cast<uint64_t>(constant_value_kind::aggregate)>(); }
+	{ return this->is<constant_value_kind::aggregate>(); }
 
 
 	int64_t get_sint(void) const noexcept
-	{ return this->get<static_cast<uint64_t>(constant_value_kind::sint)>(); }
+	{ return this->get<constant_value_kind::sint>(); }
 
 	uint64_t get_uint(void) const noexcept
-	{ return this->get<static_cast<uint64_t>(constant_value_kind::uint)>(); }
+	{ return this->get<constant_value_kind::uint>(); }
 
 	float32_t get_float32(void) const noexcept
-	{ return this->get<static_cast<uint64_t>(constant_value_kind::float32)>(); }
+	{ return this->get<constant_value_kind::float32>(); }
 
 	float64_t get_float64(void) const noexcept
-	{ return this->get<static_cast<uint64_t>(constant_value_kind::float64)>(); }
+	{ return this->get<constant_value_kind::float64>(); }
 
 	bz::u8char get_u8char(void) const noexcept
-	{ return this->get<static_cast<uint64_t>(constant_value_kind::u8char)>(); }
+	{ return this->get<constant_value_kind::u8char>(); }
 
 	bz::u8string_view get_string(void) const noexcept
-	{ return this->get<static_cast<uint64_t>(constant_value_kind::string)>(); }
+	{ return this->get<constant_value_kind::string>(); }
 
 	bool get_boolean(void) const noexcept
-	{ return this->get<static_cast<uint64_t>(constant_value_kind::boolean)>(); }
+	{ return this->get<constant_value_kind::boolean>(); }
 
 	internal::enum_t get_enum(void) const noexcept
-	{ return this->get<static_cast<uint64_t>(constant_value_kind::enum_)>(); }
+	{ return this->get<constant_value_kind::enum_>(); }
 
 	bz::array_view<constant_value_storage const> get_array(void) const noexcept
-	{ return this->get<static_cast<uint64_t>(constant_value_kind::array)>(); }
+	{ return this->get<constant_value_kind::array>(); }
 
 	bz::array_view<int64_t const> get_sint_array(void) const noexcept
-	{ return this->get<static_cast<uint64_t>(constant_value_kind::sint_array)>(); }
+	{ return this->get<constant_value_kind::sint_array>(); }
 
 	bz::array_view<uint64_t const> get_uint_array(void) const noexcept
-	{ return this->get<static_cast<uint64_t>(constant_value_kind::uint_array)>(); }
+	{ return this->get<constant_value_kind::uint_array>(); }
 
 	bz::array_view<float32_t const> get_float32_array(void) const noexcept
-	{ return this->get<static_cast<uint64_t>(constant_value_kind::float32_array)>(); }
+	{ return this->get<constant_value_kind::float32_array>(); }
 
 	bz::array_view<float64_t const> get_float64_array(void) const noexcept
-	{ return this->get<static_cast<uint64_t>(constant_value_kind::float64_array)>(); }
+	{ return this->get<constant_value_kind::float64_array>(); }
 
 	bz::array_view<constant_value_storage const> get_tuple(void) const noexcept
-	{ return this->get<static_cast<uint64_t>(constant_value_kind::tuple)>(); }
+	{ return this->get<constant_value_kind::tuple>(); }
 
 	function_body *get_function(void) const noexcept
-	{ return this->get<static_cast<uint64_t>(constant_value_kind::function)>(); }
+	{ return this->get<constant_value_kind::function>(); }
 
 	typespec_view get_type(void) const noexcept
-	{ return this->get<static_cast<uint64_t>(constant_value_kind::type)>(); }
+	{ return this->get<constant_value_kind::type>(); }
 
 	bz::array_view<constant_value_storage const> get_aggregate(void) const noexcept
-	{ return this->get<static_cast<uint64_t>(constant_value_kind::aggregate)>(); }
+	{ return this->get<constant_value_kind::aggregate>(); }
 
 
 	constant_value(void) = default;

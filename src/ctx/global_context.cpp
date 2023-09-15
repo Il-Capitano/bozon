@@ -992,6 +992,66 @@ size_t global_context::get_pointer_size(void) const
 	return this->comptime_codegen_context->machine_parameters.pointer_size;
 }
 
+ast::constant_value global_context::add_constant_string(bz::u8string str)
+{
+	auto const &s = this->constant_string_storage.push_back(std::move(str));
+	return ast::constant_value(s.as_string_view());
+}
+
+ast::constant_value global_context::add_constant_array(ast::arena_vector<ast::constant_value_storage> elems)
+{
+	auto const &arr = this->constant_aggregate_storage.push_back(std::move(elems));
+	ast::constant_value result;
+	result.emplace<ast::constant_value_kind::array>(arr.as_array_view());
+	return result;
+}
+
+ast::constant_value global_context::add_constant_tuple(ast::arena_vector<ast::constant_value_storage> elems)
+{
+	auto const &arr = this->constant_aggregate_storage.push_back(std::move(elems));
+	ast::constant_value result;
+	result.emplace<ast::constant_value_kind::tuple>(arr.as_array_view());
+	return result;
+}
+
+ast::constant_value global_context::add_constant_aggregate(ast::arena_vector<ast::constant_value_storage> elems)
+{
+	auto const &arr = this->constant_aggregate_storage.push_back(std::move(elems));
+	ast::constant_value result;
+	result.emplace<ast::constant_value_kind::aggregate>(arr.as_array_view());
+	return result;
+}
+
+ast::constant_value global_context::add_constant_sint_array(ast::arena_vector<int64_t> elems)
+{
+	auto const &arr = this->constant_sint_array_storage.push_back(std::move(elems));
+	return ast::constant_value(arr.as_array_view());
+}
+
+ast::constant_value global_context::add_constant_uint_array(ast::arena_vector<uint64_t> elems)
+{
+	auto const &arr = this->constant_uint_array_storage.push_back(std::move(elems));
+	return ast::constant_value(arr.as_array_view());
+}
+
+ast::constant_value global_context::add_constant_float32_array(ast::arena_vector<float32_t> elems)
+{
+	auto const &arr = this->constant_float32_array_storage.push_back(std::move(elems));
+	return ast::constant_value(arr.as_array_view());
+}
+
+ast::constant_value global_context::add_constant_float64_array(ast::arena_vector<float64_t> elems)
+{
+	auto const &arr = this->constant_float64_array_storage.push_back(std::move(elems));
+	return ast::constant_value(arr.as_array_view());
+}
+
+ast::constant_value global_context::add_constant_type(ast::typespec type)
+{
+	auto const &t = this->constant_type_storage.push_back(std::move(type));
+	return ast::constant_value(t.as_typespec_view());
+}
+
 bool global_context::is_aggressive_consteval_enabled(void) const
 {
 	auto const &optimizations = ctcli::option_value<ctcli::option("--opt")>;

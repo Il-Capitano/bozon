@@ -175,6 +175,51 @@ ast::type_prototype_set_t &parse_context::get_type_prototype_set(void)
 	return *this->global_ctx.type_prototype_set;
 }
 
+ast::constant_value parse_context::add_constant_string(bz::u8string str)
+{
+	return this->global_ctx.add_constant_string(std::move(str));
+}
+
+ast::constant_value parse_context::add_constant_array(ast::arena_vector<ast::constant_value_storage> elems)
+{
+	return this->global_ctx.add_constant_array(std::move(elems));
+}
+
+ast::constant_value parse_context::add_constant_tuple(ast::arena_vector<ast::constant_value_storage> elems)
+{
+	return this->global_ctx.add_constant_tuple(std::move(elems));
+}
+
+ast::constant_value parse_context::add_constant_aggregate(ast::arena_vector<ast::constant_value_storage> elems)
+{
+	return this->global_ctx.add_constant_aggregate(std::move(elems));
+}
+
+ast::constant_value parse_context::add_constant_sint_array(ast::arena_vector<int64_t> elems)
+{
+	return this->global_ctx.add_constant_sint_array(std::move(elems));
+}
+
+ast::constant_value parse_context::add_constant_uint_array(ast::arena_vector<uint64_t> elems)
+{
+	return this->global_ctx.add_constant_uint_array(std::move(elems));
+}
+
+ast::constant_value parse_context::add_constant_float32_array(ast::arena_vector<float32_t> elems)
+{
+	return this->global_ctx.add_constant_float32_array(std::move(elems));
+}
+
+ast::constant_value parse_context::add_constant_float64_array(ast::arena_vector<float64_t> elems)
+{
+	return this->global_ctx.add_constant_float64_array(std::move(elems));
+}
+
+ast::constant_value parse_context::add_constant_type(ast::typespec type)
+{
+	return this->global_ctx.add_constant_type(std::move(type));
+}
+
 [[nodiscard]] parse_context::loop_info_t parse_context::push_loop(void) noexcept
 {
 	auto const prev_in_loop = this->in_loop;
