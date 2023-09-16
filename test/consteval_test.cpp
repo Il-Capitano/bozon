@@ -49,21 +49,21 @@ do {                                                                            
     global_ctx.clear_errors_and_warnings();                                     \
 } while (false)
 
-	x("'a'", ast::constant_value::u8char, 'a');
-	x("123", ast::constant_value::sint, 123);
-	x("123u8", ast::constant_value::uint, 123);
-	x("\"hello\"", ast::constant_value::string, "hello");
+	x("'a'", ast::constant_value_kind::u8char, 'a');
+	x("123", ast::constant_value_kind::sint, 123);
+	x("123u8", ast::constant_value_kind::uint, 123);
+	x("\"hello\"", ast::constant_value_kind::string, "hello");
 
-	// x("__builtin_exp_f64(1.5)", ast::constant_value::float64, std::exp(1.5));
-	// x("__builtin_exp_f32(1.5f32)", ast::constant_value::float32, std::exp(1.5f));
-	// x("__builtin_sinh_f32(1.6f32)", ast::constant_value::float32, std::sinh(1.6f));
+	// x("__builtin_exp_f64(1.5)", ast::constant_value_kind::float64, std::exp(1.5));
+	// x("__builtin_exp_f32(1.5f32)", ast::constant_value_kind::float32, std::exp(1.5f));
+	// x("__builtin_sinh_f32(1.6f32)", ast::constant_value_kind::float32, std::sinh(1.6f));
 
 	x_fail("{ 0; __builtin_exp_f64(1.5) }");
 	x_fail("{ 0; __builtin_exp_f32(1.5f32) }");
 	x_fail("{ 0; __builtin_sinh_f32(1.6f32) }");
 
-	x("3 + 4", ast::constant_value::sint, 7);
-	x("3 / 4", ast::constant_value::sint, 0);
+	x("3 + 4", ast::constant_value_kind::sint, 7);
+	x("3 / 4", ast::constant_value_kind::sint, 0);
 	x_fail("3 / 0");
 	x_fail("3u32 << 32");
 
@@ -116,16 +116,16 @@ do {                                                                            
     global_ctx.clear_errors_and_warnings();                                     \
 } while (false)
 
-	x("'a'", ast::constant_value::u8char, 'a');
-	x("123", ast::constant_value::sint, 123);
-	x("123u8", ast::constant_value::uint, 123);
-	x("\"hello\"", ast::constant_value::string, "hello");
-	x("__builtin_exp_f64(1.5)",        ast::constant_value::float64, std::exp(1.5));
-	x("{ 0; __builtin_exp_f64(1.5) }", ast::constant_value::float64, std::exp(1.5));
-	x("__builtin_exp_f32(1.5f32)",        ast::constant_value::float32, std::exp(1.5f));
-	x("{ 0; __builtin_exp_f32(1.5f32) }", ast::constant_value::float32, std::exp(1.5f));
-	x("__builtin_sinh_f32(1.6f32)",        ast::constant_value::float32, std::sinh(1.6f));
-	x("{ 0; __builtin_sinh_f32(1.6f32) }", ast::constant_value::float32, std::sinh(1.6f));
+	x("'a'", ast::constant_value_kind::u8char, 'a');
+	x("123", ast::constant_value_kind::sint, 123);
+	x("123u8", ast::constant_value_kind::uint, 123);
+	x("\"hello\"", ast::constant_value_kind::string, "hello");
+	x("__builtin_exp_f64(1.5)",        ast::constant_value_kind::float64, std::exp(1.5));
+	x("{ 0; __builtin_exp_f64(1.5) }", ast::constant_value_kind::float64, std::exp(1.5));
+	x("__builtin_exp_f32(1.5f32)",        ast::constant_value_kind::float32, std::exp(1.5f));
+	x("{ 0; __builtin_exp_f32(1.5f32) }", ast::constant_value_kind::float32, std::exp(1.5f));
+	x("__builtin_sinh_f32(1.6f32)",        ast::constant_value_kind::float32, std::sinh(1.6f));
+	x("{ 0; __builtin_sinh_f32(1.6f32) }", ast::constant_value_kind::float32, std::sinh(1.6f));
 	x(R"({
 		function factorial(n) -> typeof n
 		{
@@ -138,7 +138,7 @@ do {                                                                            
 			return result;
 		}
 		factorial(10)
-	})", ast::constant_value::sint, 3628800);
+	})", ast::constant_value_kind::sint, 3628800);
 	x(R"({
 		function factorial(n) -> typeof n
 		{
@@ -151,7 +151,7 @@ do {                                                                            
 			return result;
 		}
 		factorial(10u)
-	})", ast::constant_value::uint, 3628800);
+	})", ast::constant_value_kind::uint, 3628800);
 	x(R"({
 		function foo() -> [10: int32]
 		{
@@ -164,7 +164,7 @@ do {                                                                            
 		}
 		consteval vals = foo();
 		vals[3]
-	})", ast::constant_value::sint, 3);
+	})", ast::constant_value_kind::sint, 3);
 
 	x_fail(R"({ if (x) { 0 } else { 1 } })");
 	x_fail(R"asdf({
