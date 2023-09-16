@@ -441,8 +441,7 @@ struct expression : bz::variant<
 	expr_function_overload_set const &get_function_overload_set(void) const noexcept;
 
 	bool is_typename(void) const noexcept;
-	typespec &get_typename(void) noexcept;
-	typespec const &get_typename(void) const noexcept;
+	typespec_view get_typename(void) const noexcept;
 
 	bool is_tuple(void) const noexcept;
 	expr_tuple &get_tuple(void) noexcept;
@@ -1827,18 +1826,6 @@ def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_integer_range_to)
 def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_integer_range_to_inclusive)
 
 #undef def_make_unresolved_fn
-
-
-inline expression type_as_expression(lex::src_tokens const &src_tokens, typespec type)
-{
-	return make_constant_expression(
-		src_tokens,
-		expression_type_kind::type_name,
-		make_typename_typespec(nullptr),
-		constant_value(std::move(type)),
-		expr_t{}
-	);
-}
 
 } // namespace ast
 

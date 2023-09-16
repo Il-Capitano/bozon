@@ -250,8 +250,12 @@ static void emit_panic_call(
 	ast::arena_vector<is_byval_and_type_pair> params_is_byval = {};
 	params.reserve(2);
 
+	auto const panic_string = bz::format(
+		"panic called from {}: {}",
+		context.global_ctx.get_location_string(src_tokens.pivot), message
+	);
 	auto const param_val = get_value(
-		ast::constant_value(bz::format("panic called from {}: {}", context.global_ctx.get_location_string(src_tokens.pivot), message)),
+		ast::constant_value(panic_string.as_string_view()),
 		panic_handler_func_body->params[0].get_type(),
 		nullptr,
 		context
@@ -6783,43 +6787,43 @@ static bool is_zero_value(ast::constant_value const &value)
 	switch (value.kind())
 	{
 	static_assert(ast::constant_value::variant_count == 19);
-	case ast::constant_value::sint:
+	case ast::constant_value_kind::sint:
 		return value.get_sint() == 0;
-	case ast::constant_value::uint:
+	case ast::constant_value_kind::uint:
 		return value.get_uint() == 0;
-	case ast::constant_value::float32:
+	case ast::constant_value_kind::float32:
 		return bit_cast<uint32_t>(value.get_float32()) == 0;
-	case ast::constant_value::float64:
+	case ast::constant_value_kind::float64:
 		return bit_cast<uint64_t>(value.get_float64()) == 0;
-	case ast::constant_value::u8char:
+	case ast::constant_value_kind::u8char:
 		return value.get_u8char() == 0;
-	case ast::constant_value::string:
+	case ast::constant_value_kind::string:
 		return value.get_string() == "";
-	case ast::constant_value::boolean:
+	case ast::constant_value_kind::boolean:
 		return value.get_boolean() == false;
-	case ast::constant_value::null:
+	case ast::constant_value_kind::null:
 		return true;
-	case ast::constant_value::void_:
+	case ast::constant_value_kind::void_:
 		return true;
-	case ast::constant_value::enum_:
+	case ast::constant_value_kind::enum_:
 		return value.get_enum().value == 0;
-	case ast::constant_value::array:
+	case ast::constant_value_kind::array:
 		return value.get_array().is_all([](auto const &value) { return is_zero_value(value); });
-	case ast::constant_value::sint_array:
+	case ast::constant_value_kind::sint_array:
 		return value.get_sint_array().is_all([](auto const value) { return value == 0; });
-	case ast::constant_value::uint_array:
+	case ast::constant_value_kind::uint_array:
 		return value.get_uint_array().is_all([](auto const value) { return value == 0; });
-	case ast::constant_value::float32_array:
+	case ast::constant_value_kind::float32_array:
 		return value.get_float32_array().is_all([](auto const value) { return bit_cast<uint32_t>(value) == 0; });
-	case ast::constant_value::float64_array:
+	case ast::constant_value_kind::float64_array:
 		return value.get_float64_array().is_all([](auto const value) { return bit_cast<uint64_t>(value) == 0; });
-	case ast::constant_value::tuple:
+	case ast::constant_value_kind::tuple:
 		return value.get_tuple().is_all([](auto const &value) { return is_zero_value(value); });
-	case ast::constant_value::function:
+	case ast::constant_value_kind::function:
 		return false;
-	case ast::constant_value::aggregate:
+	case ast::constant_value_kind::aggregate:
 		return value.get_aggregate().is_all([](auto const &value) { return is_zero_value(value); });
-	case ast::constant_value::type:
+	case ast::constant_value_kind::type:
 		bz_unreachable;
 	default:
 		bz_unreachable;
@@ -7032,36 +7036,36 @@ static llvm::Constant *get_value_helper(
 	switch (value.kind())
 	{
 	static_assert(ast::constant_value::variant_count == 19);
-	case ast::constant_value::sint:
+	case ast::constant_value_kind::sint:
 		bz_assert(!type.is_empty());
 		return llvm::ConstantInt::get(
 			get_llvm_type(type, context),
 			bit_cast<uint64_t>(value.get_sint()),
 			true
 		);
-	case ast::constant_value::uint:
+	case ast::constant_value_kind::uint:
 		bz_assert(!type.is_empty());
 		return llvm::ConstantInt::get(
 			get_llvm_type(type, context),
 			value.get_uint(),
 			false
 		);
-	case ast::constant_value::float32:
+	case ast::constant_value_kind::float32:
 		return llvm::ConstantFP::get(
 			context.get_float32_t(),
 			static_cast<double>(value.get_float32())
 		);
-	case ast::constant_value::float64:
+	case ast::constant_value_kind::float64:
 		return llvm::ConstantFP::get(
 			context.get_float64_t(),
 			value.get_float64()
 		);
-	case ast::constant_value::u8char:
+	case ast::constant_value_kind::u8char:
 		return llvm::ConstantInt::get(
 			context.get_char_t(),
 			value.get_u8char()
 		);
-	case ast::constant_value::string:
+	case ast::constant_value_kind::string:
 	{
 		auto const str = value.get_string();
 		auto const str_t = llvm::cast<llvm::StructType>(context.get_str_t());
@@ -7085,9 +7089,9 @@ static llvm::Constant *get_value_helper(
 
 		return llvm::ConstantStruct::get(str_t, elems);
 	}
-	case ast::constant_value::boolean:
+	case ast::constant_value_kind::boolean:
 		return context.builder.getInt1(value.get_boolean());
-	case ast::constant_value::null:
+	case ast::constant_value_kind::null:
 		if (
 			auto const type_without_const = type.remove_any_mut();
 			type_without_const.is_optional_pointer_like()
@@ -7101,9 +7105,9 @@ static llvm::Constant *get_value_helper(
 			bz_assert(llvm_type->isStructTy());
 			return llvm::ConstantAggregateZero::get(llvm::cast<llvm::StructType>(llvm_type));
 		}
-	case ast::constant_value::void_:
+	case ast::constant_value_kind::void_:
 		return nullptr;
-	case ast::constant_value::enum_:
+	case ast::constant_value_kind::enum_:
 	{
 		auto const [decl, enum_value] = value.get_enum();
 		auto const is_signed = ast::is_signed_integer_kind(decl->underlying_type.get<ast::ts_base_type>().info->kind);
@@ -7113,7 +7117,7 @@ static llvm::Constant *get_value_helper(
 			is_signed
 		);
 	}
-	case ast::constant_value::array:
+	case ast::constant_value_kind::array:
 	{
 		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
@@ -7124,7 +7128,7 @@ static llvm::Constant *get_value_helper(
 			context
 		);
 	}
-	case ast::constant_value::sint_array:
+	case ast::constant_value_kind::sint_array:
 	{
 		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
@@ -7135,7 +7139,7 @@ static llvm::Constant *get_value_helper(
 			context
 		);
 	}
-	case ast::constant_value::uint_array:
+	case ast::constant_value_kind::uint_array:
 	{
 		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
@@ -7146,7 +7150,7 @@ static llvm::Constant *get_value_helper(
 			context
 		);
 	}
-	case ast::constant_value::float32_array:
+	case ast::constant_value_kind::float32_array:
 	{
 		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
@@ -7157,7 +7161,7 @@ static llvm::Constant *get_value_helper(
 			context
 		);
 	}
-	case ast::constant_value::float64_array:
+	case ast::constant_value_kind::float64_array:
 	{
 		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
@@ -7168,7 +7172,7 @@ static llvm::Constant *get_value_helper(
 			context
 		);
 	}
-	case ast::constant_value::tuple:
+	case ast::constant_value_kind::tuple:
 	{
 		auto const tuple_values = value.get_tuple();
 		ast::arena_vector<llvm::Type     *> types = {};
@@ -7199,11 +7203,11 @@ static llvm::Constant *get_value_helper(
 		auto const tuple_type = context.get_tuple_t(types);
 		return llvm::ConstantStruct::get(tuple_type, llvm::ArrayRef(elems.data(), elems.size()));
 	}
-	case ast::constant_value::function:
+	case ast::constant_value_kind::function:
 	{
 		return context.get_function(value.get_function());
 	}
-	case ast::constant_value::aggregate:
+	case ast::constant_value_kind::aggregate:
 	{
 		auto const aggregate = value.get_aggregate();
 		bz_assert(type.remove_any_mut().is<ast::ts_base_type>());
@@ -7218,7 +7222,7 @@ static llvm::Constant *get_value_helper(
 			.collect();
 		return llvm::ConstantStruct::get(val_struct_type, llvm::ArrayRef(members.data(), members.size()));
 	}
-	case ast::constant_value::type:
+	case ast::constant_value_kind::type:
 		bz_unreachable;
 	default:
 		bz_unreachable;

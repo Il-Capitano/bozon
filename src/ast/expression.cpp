@@ -340,16 +340,10 @@ bool expression::is_typename(void) const noexcept
 		&& (const_expr->kind == expression_type_kind::type_name || const_expr->value.is_type());
 }
 
-typespec &expression::get_typename(void) noexcept
+typespec_view expression::get_typename(void) const noexcept
 {
 	bz_assert(this->is_typename());
-	return this->get_constant_value().get<constant_value::type>();
-}
-
-typespec const &expression::get_typename(void) const noexcept
-{
-	bz_assert(this->is_typename());
-	return this->get_constant_value().get<constant_value::type>();
+	return this->get_constant_value().get_type();
 }
 
 bool expression::is_tuple(void) const noexcept
@@ -481,7 +475,7 @@ bool expression::is_generic_type(void) const noexcept
 		return false;
 	}
 
-	auto const type = this->get_typename().as_typespec_view();
+	auto const type = this->get_typename();
 	return type.is<ts_base_type>() && type.get<ts_base_type>().info->is_generic();
 }
 

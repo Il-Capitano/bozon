@@ -35,46 +35,46 @@ inline std::ostream &operator << (std::ostream &os, ast::constant_value const &v
 {
 	switch (value.kind())
 	{
-	case ast::constant_value::sint:
+	case ast::constant_value_kind::sint:
 		os << "sint: " << value.get_sint();
 		break;
-	case ast::constant_value::uint:
+	case ast::constant_value_kind::uint:
 		os << "uint: " << value.get_uint();
 		break;
-	case ast::constant_value::float32:
+	case ast::constant_value_kind::float32:
 		os << "float32: " << value.get_float32();
 		break;
-	case ast::constant_value::float64:
+	case ast::constant_value_kind::float64:
 		os << "float64: " << value.get_float64();
 		break;
-	case ast::constant_value::u8char:
+	case ast::constant_value_kind::u8char:
 		os << "u8char: " << value.get_u8char();
 		break;
-	case ast::constant_value::string:
+	case ast::constant_value_kind::string:
 		os << "string: " << value.get_string();
 		break;
-	case ast::constant_value::boolean:
+	case ast::constant_value_kind::boolean:
 		os << "boolean: " << value.get_boolean();
 		break;
-	case ast::constant_value::null:
+	case ast::constant_value_kind::null:
 		os << "null: []";
 		break;
-	case ast::constant_value::void_:
+	case ast::constant_value_kind::void_:
 		os << "void: []";
 		break;
-	case ast::constant_value::array:
+	case ast::constant_value_kind::array:
 		os << "array: [...]";
 		break;
-	case ast::constant_value::tuple:
+	case ast::constant_value_kind::tuple:
 		os << "tuple: [...]";
 		break;
-	case ast::constant_value::function:
+	case ast::constant_value_kind::function:
 		os << "function: " << value.get_function()->get_signature();
 		break;
-	case ast::constant_value::type:
+	case ast::constant_value_kind::type:
 		os << "type: " << bz::format("{}", value.get_type());
 		break;
-	case ast::constant_value::aggregate:
+	case ast::constant_value_kind::aggregate:
 		os << "aggreate: [...]";
 		break;
 	default:
