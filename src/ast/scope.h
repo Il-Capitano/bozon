@@ -251,6 +251,8 @@ inline scope_t make_local_scope(enclosing_scope_t enclosing_scope, bool is_loop_
 	return result;
 }
 
+void add_global_variable(ast::global_scope_t &scope, ast::decl_variable &var_decl);
+
 } // namespace ast
 
 #endif // AST_SCOPE_H

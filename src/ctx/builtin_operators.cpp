@@ -22,13 +22,13 @@ static auto get_base_kinds(
 	};
 };
 
-template<size_t kind>
+template<ast::constant_value_kind kind>
 static auto get_constant_expression_values(
 	ast::expression const &lhs,
 	ast::expression const &rhs
 )
 {
-	static_assert(kind != ast::constant_value::aggregate);
+	static_assert(kind != ast::constant_value_kind::aggregate);
 	bz_assert(lhs.is_constant());
 	bz_assert(rhs.is_constant());
 	auto const &lhs_value = lhs.get_constant_value();
@@ -36,7 +36,7 @@ static auto get_constant_expression_values(
 	bz_assert(lhs_value.kind() == kind);
 	bz_assert(rhs_value.kind() == kind);
 
-	if constexpr (kind == ast::constant_value::string)
+	if constexpr (kind == ast::constant_value_kind::string)
 	{
 		return std::make_pair(
 			lhs_value.get_string(),
@@ -143,7 +143,7 @@ static ast::expression get_type_op_unary_reference(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -200,7 +200,7 @@ static ast::expression get_type_op_unary_auto_ref(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -269,7 +269,7 @@ static ast::expression get_type_op_unary_auto_ref_const(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -325,7 +325,7 @@ static ast::expression get_type_op_unary_pointer(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -376,7 +376,7 @@ static ast::expression get_type_op_unary_question_mark(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -407,7 +407,7 @@ static ast::expression get_type_op_unary_dot_dot_dot(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -469,7 +469,7 @@ static ast::expression get_type_op_unary_mut(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -531,7 +531,7 @@ static ast::expression get_type_op_unary_consteval(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -588,7 +588,7 @@ static ast::expression get_type_op_unary_move(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -605,7 +605,7 @@ static ast::expression get_builtin_unary_sizeof(
 
 	if (expr.is_typename())
 	{
-		auto const type = expr.get_typename().as_typespec_view();
+		auto const type = expr.get_typename();
 		if (!ast::is_complete(type))
 		{
 			context.report_error(src_tokens, bz::format("cannot take 'sizeof' of an incomplete type '{}'", type));
@@ -627,7 +627,7 @@ static ast::expression get_builtin_unary_sizeof(
 	}
 	else if (expr.is<ast::expanded_variadic_expression>())
 	{
-		auto const size = expr.get<ast::expanded_variadic_expression>().exprs.size();
+		uint64_t const size = expr.get<ast::expanded_variadic_expression>().exprs.size();
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
@@ -650,7 +650,7 @@ static ast::expression get_builtin_unary_sizeof(
 			context.report_error(src_tokens, bz::format("cannot take 'sizeof' of an expression with non-instantiable type '{}'", type));
 			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 		}
-		auto const size = context.get_sizeof(type);
+		uint64_t const size = context.get_sizeof(type);
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
@@ -702,7 +702,7 @@ static ast::expression get_builtin_unary_typeof(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -1121,13 +1121,11 @@ ast::expression make_builtin_cast(
 				)
 				{
 					ast::typespec dest_t_copy = dest_t;
-					ast::constant_value result_value;
-					result_value.emplace<ast::constant_value::sint>(value);
 					return ast::make_constant_expression(
 						src_tokens,
 						ast::expression_type_kind::rvalue,
 						std::move(dest_t_copy),
-						std::move(result_value),
+						ast::constant_value(value),
 						ast::make_expr_cast(std::move(expr), std::move(dest_type))
 					);
 				}
@@ -1138,13 +1136,11 @@ ast::expression make_builtin_cast(
 				)
 				{
 					ast::typespec dest_t_copy = dest_t;
-					ast::constant_value result_value;
-					result_value.emplace<ast::constant_value::uint>(static_cast<uint64_t>(value));
 					return ast::make_constant_expression(
 						src_tokens,
 						ast::expression_type_kind::rvalue,
 						std::move(dest_t_copy),
-						std::move(result_value),
+						ast::constant_value(static_cast<uint64_t>(value)),
 						ast::make_expr_cast(std::move(expr), std::move(dest_type))
 					);
 				}
@@ -1162,11 +1158,11 @@ ast::expression make_builtin_cast(
 					ast::constant_value result_value;
 					if (ast::is_signed_integer_kind(dest_kind))
 					{
-						result_value.emplace<ast::constant_value::sint>(static_cast<int64_t>(value));
+						result_value.emplace<ast::constant_value_kind::sint>(static_cast<int64_t>(value));
 					}
 					else
 					{
-						result_value.emplace<ast::constant_value::uint>(static_cast<uint64_t>(value));
+						result_value.emplace<ast::constant_value_kind::uint>(static_cast<uint64_t>(value));
 					}
 					return ast::make_constant_expression(
 						src_tokens,
@@ -1484,8 +1480,8 @@ static ast::expression get_type_op_binary_equals_not_equals(
 
 	auto const op_str = token_info[op_kind].token_value;
 
-	auto &lhs_type = lhs.get_typename();
-	auto &rhs_type = rhs.get_typename();
+	auto const lhs_type = lhs.get_typename();
+	auto const rhs_type = rhs.get_typename();
 
 	bool good = true;
 	if (!ast::is_complete(lhs_type))

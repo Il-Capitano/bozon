@@ -101,7 +101,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	foreach_stmt.iter_var_decl = ast::make_decl_variable(
 		range_expr_src_tokens,
 		lex::token_range{},
-		ast::var_id_and_type(ast::identifier{}, ast::type_as_expression(range_expr_src_tokens, ast::make_auto_typespec(nullptr))),
+		ast::var_id_and_type(ast::identifier{}, ast::make_auto_typespec(nullptr)),
 		std::move(range_begin_expr),
 		context.get_current_enclosing_scope()
 	);
@@ -110,7 +110,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	iter_var_decl.id_and_type.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
 	iter_var_decl.id_and_type.id.values = { "" };
 	iter_var_decl.id_and_type.id.is_qualified = false;
-	iter_var_decl.id_and_type.var_type.get_typename().add_layer<ast::ts_mut>();
+	iter_var_decl.id_and_type.var_type.add_layer<ast::ts_mut>();
 	resolve_statement(foreach_stmt.iter_var_decl, context);
 	context.add_local_variable(iter_var_decl);
 	iter_var_decl.flags |= ast::decl_variable::used;
@@ -141,7 +141,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	foreach_stmt.end_var_decl = ast::make_decl_variable(
 		range_expr_src_tokens,
 		lex::token_range{},
-		ast::var_id_and_type(ast::identifier{}, ast::type_as_expression(range_expr_src_tokens, ast::make_auto_typespec(nullptr))),
+		ast::var_id_and_type(ast::identifier{}, ast::make_auto_typespec(nullptr)),
 		std::move(range_end_expr),
 		context.get_current_enclosing_scope()
 	);
@@ -405,7 +405,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 	}
 
 	auto &cond_const_expr = static_assert_stmt.condition.get_constant();
-	bz_assert(cond_const_expr.value.kind() == ast::constant_value::boolean);
+	bz_assert(cond_const_expr.value.is_boolean());
 	auto const cond = cond_const_expr.value.get_boolean();
 
 	if (!cond)
@@ -419,7 +419,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 		if (static_assert_stmt.message.not_null() && static_assert_stmt.message.not_error())
 		{
 			auto &message_const_expr = static_assert_stmt.message.get_constant();
-			bz_assert(message_const_expr.value.kind() == ast::constant_value::string);
+			bz_assert(message_const_expr.value.is_string());
 			auto const message = message_const_expr.value.get_string();
 			error_message += bz::format(", message: '{}'", message);
 		}
@@ -523,7 +523,7 @@ void resolve_typespec(ast::typespec &ts, ctx::parse_context &context, precedence
 	}
 	else if (type.is_typename())
 	{
-		ts = std::move(type.get_typename());
+		ts = type.get_typename();
 	}
 	else
 	{
@@ -544,18 +544,61 @@ static void apply_prototype(
 	ctx::parse_context &context
 )
 {
-	auto &type = var_decl.id_and_type.var_type;
+	auto &type_expr = var_decl.id_and_type.var_type_expr;
+	if (type_expr.is_null())
+	{
+		bz_assert(prototype.begin == prototype.end);
+		return;
+	}
+
 	for (auto op = prototype.end; op != prototype.begin;)
 	{
 		--op;
 		auto const src_tokens = lex::src_tokens{ op, op, var_decl.src_tokens.end };
-		type = context.make_unary_operator_expression(src_tokens, op->kind, std::move(type));
+		type_expr = context.make_unary_operator_expression(src_tokens, op->kind, std::move(type_expr));
 	}
-	if (!type.is_typename())
+
+	if (!type_expr.is_typename())
 	{
 		var_decl.clear_type();
 		var_decl.state = ast::resolve_state::error;
 	}
+	else
+	{
+		var_decl.id_and_type.var_type = var_decl.id_and_type.var_type_expr.get_typename();
+	}
+}
+
+static void apply_inherited_flags(ast::decl_variable &var_decl, uint16_t flags, ast::decl_variable *parent_decl)
+{
+	var_decl.flags |= flags;
+	if (&var_decl != parent_decl)
+	{
+		bz_assert(var_decl.global_tuple_decl_parent == nullptr);
+		var_decl.global_tuple_decl_parent = parent_decl;
+	}
+	for (auto &tuple_decl : var_decl.tuple_decls)
+	{
+		apply_inherited_flags(tuple_decl, flags, parent_decl);
+	}
+}
+
+static void apply_inherited_flags(ast::decl_variable &var_decl)
+{
+	constexpr uint16_t inherited_flags_mask =
+		ast::decl_variable::maybe_unused
+		| ast::decl_variable::module_export
+		| ast::decl_variable::global
+		| ast::decl_variable::global_storage
+		| ast::decl_variable::parameter;
+
+	auto const flags_to_inherit = var_decl.flags & inherited_flags_mask;
+	if (flags_to_inherit == 0)
+	{
+		return;
+	}
+
+	apply_inherited_flags(var_decl, flags_to_inherit, var_decl.is_global_storage() ? &var_decl : nullptr);
 }
 
 static void resolve_variable_type(ast::decl_variable &var_decl, ctx::parse_context &context)
@@ -589,14 +632,15 @@ static void resolve_variable_type(ast::decl_variable &var_decl, ctx::parse_conte
 		}
 		if (var_decl.state != ast::resolve_state::error)
 		{
-			var_decl.get_type() = ast::make_auto_typespec(var_decl.src_tokens.pivot);
+			var_decl.id_and_type.var_type_expr = context.auto_type_as_expression(var_decl.src_tokens);
 			apply_prototype(var_decl.get_prototype_range(), var_decl, context);
 		}
 
-		if (var_decl.get_type().is<ast::ts_consteval>())
+		if (var_decl.is_global_storage() || var_decl.get_type().is<ast::ts_consteval>())
 		{
 			var_decl.flags |= ast::decl_variable::global_storage;
 		}
+		apply_inherited_flags(var_decl);
 		return;
 	}
 
@@ -606,23 +650,23 @@ static void resolve_variable_type(ast::decl_variable &var_decl, ctx::parse_conte
 		if (stream == end)
 		{
 			context.report_error(stream, "expected a variable type");
-			var_decl.id_and_type.var_type = ast::type_as_expression(var_decl.src_tokens, ast::make_auto_typespec(nullptr));
+			var_decl.id_and_type.var_type_expr = context.auto_type_as_expression(var_decl.src_tokens);
 		}
 		else
 		{
-			var_decl.id_and_type.var_type = parse::parse_expression(stream, end, context, no_assign);
-			resolve_expression(var_decl.id_and_type.var_type, context);
+			var_decl.id_and_type.var_type_expr = parse::parse_expression(stream, end, context, no_assign);
+			resolve_expression(var_decl.id_and_type.var_type_expr, context);
 		}
-		auto &type = var_decl.id_and_type.var_type;
-		resolve::consteval_try(type, context);
-		if (type.not_error() && !type.has_consteval_succeeded())
+		auto &type_expr = var_decl.id_and_type.var_type_expr;
+		resolve::consteval_try(type_expr, context);
+		if (type_expr.not_error() && !type_expr.has_consteval_succeeded())
 		{
-			context.report_error(type.src_tokens, "variable type must be a constant expression");
+			context.report_error(type_expr.src_tokens, "variable type must be a constant expression");
 			var_decl.clear_type();
 			var_decl.state = ast::resolve_state::error;
 			return;
 		}
-		else if (type.not_error() && !type.is_typename())
+		else if (type_expr.not_error() && !type_expr.is_typename())
 		{
 			if (stream != end && is_binary_operator(stream->kind))
 			{
@@ -641,12 +685,12 @@ static void resolve_variable_type(ast::decl_variable &var_decl, ctx::parse_conte
 				context.report_error({ stream, stream, end });
 			}
 
-			context.report_error(type.src_tokens, "expected a type");
+			context.report_error(type_expr.src_tokens, "expected a type");
 			var_decl.clear_type();
 			var_decl.state = ast::resolve_state::error;
 			return;
 		}
-		else if (!type.is_typename())
+		else if (!type_expr.is_typename())
 		{
 			var_decl.clear_type();
 			var_decl.state = ast::resolve_state::error;
@@ -2286,7 +2330,7 @@ static void add_type_info_members(
 			}
 			else
 			{
-				info.scope.get_global().add_variable({}, var_decl);
+				ast::add_global_variable(info.scope.get_global(), var_decl);
 			}
 		}
 		else if (stmt.is<ast::decl_type_alias>())
@@ -2613,7 +2657,7 @@ static void resolve_type_info_members_impl(ast::type_info &info, ctx::parse_cont
 	add_type_info_members(info, context);
 	for (auto &param : info.generic_parameters)
 	{
-		info.scope.get_global().all_symbols.add_variable({}, param);
+		ast::add_global_variable(info.scope.get_global(), param);
 	}
 
 	for (auto const ctor_decl : info.constructors)

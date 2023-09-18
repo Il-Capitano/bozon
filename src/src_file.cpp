@@ -258,7 +258,7 @@ src_file::src_file(fs::path file_path, uint32_t file_id, bz::vector<bz::u8string
 		case ast::statement::index<ast::decl_variable>:
 		{
 			auto &var_decl = decl.get<ast::decl_variable>();
-			this->_global_scope.get_global().add_variable({}, var_decl);
+			ast::add_global_variable(this->_global_scope.get_global(), var_decl);
 			break;
 		}
 		case ast::statement::index<ast::decl_function>:

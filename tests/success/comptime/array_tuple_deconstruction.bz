@@ -1,0 +1,6 @@
+function test()
+{
+	(consteval {
+		let [..._] = [10: int32]();
+	});
+}

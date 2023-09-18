@@ -1,0 +1,38 @@
+function test(_: typename)
+{
+	consteval t = [ 3, 1.0, "hello" ];
+	consteval [i, f, s] = t;
+	static_assert(i == 3);
+	static_assert(f == 1.0);
+	static_assert(s == "hello");
+	consteval [...elems] = t;
+	static_assert([ ...elems ][1] == 1.0);
+
+	consteval [...elems] = [10: str]();
+	static_assert([ ...elems ][0] == "");
+	consteval [...elems] = [10: int32]();
+	static_assert([ ...elems ][0] == 0);
+	consteval [...elems] = [10: uint32]();
+	static_assert([ ...elems ][0] == 0);
+	consteval [...elems] = [10: float32]();
+	static_assert([ ...elems ][0] == 0.0f32);
+	consteval [...elems] = [10: float64]();
+	static_assert([ ...elems ][0] == 0.0);
+
+	consteval [...elems] = [10, 20: str]();
+	static_assert([ ...elems ][0, 0] == "");
+	consteval [...elems] = [10, 20: int32]();
+	static_assert([ ...elems ][0, 0] == 0);
+	consteval [...elems] = [10, 20: uint32]();
+	static_assert([ ...elems ][0, 0] == 0);
+	consteval [...elems] = [10, 20: float32]();
+	static_assert([ ...elems ][0, 0] == 0.0f32);
+	consteval [...elems] = [10, 20: float64]();
+	static_assert([ ...elems ][0, 0] == 0.0);
+}
+
+function test2()
+{
+	test(int32);
+	test(char);
+}

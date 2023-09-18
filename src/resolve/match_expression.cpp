@@ -173,6 +173,155 @@ static void set_type(ast::decl_variable &var_decl, ast::typespec_view type, bool
 	}
 }
 
+static void set_constant_value(ast::decl_variable &var_decl, ast::constant_value const &value);
+
+static void set_constant_value_array(ast::decl_variable &var_decl, ast::typespec_view var_type, ast::constant_value const &value)
+{
+	auto const &array_type = var_type.get<ast::ts_array>();
+	bz_assert(var_decl.tuple_decls.size() == array_type.size);
+
+	if (array_type.elem_type.is<ast::ts_array>())
+	{
+		if (value.is_array())
+		{
+			auto const array = value.get_array();
+			auto const stride = array.size() / array_type.size;
+			for (auto const i : bz::iota(0, array_type.size))
+			{
+				auto const begin_index = i * stride;
+				set_constant_value(var_decl.tuple_decls[i], ast::constant_value(array.slice(begin_index, begin_index + stride)));
+			}
+		}
+		else if (value.is_sint_array())
+		{
+			auto const array = value.get_sint_array();
+			auto const stride = array.size() / array_type.size;
+			for (auto const i : bz::iota(0, array_type.size))
+			{
+				auto const begin_index = i * stride;
+				set_constant_value(var_decl.tuple_decls[i], ast::constant_value(array.slice(begin_index, begin_index + stride)));
+			}
+		}
+		else if (value.is_uint_array())
+		{
+			auto const array = value.get_uint_array();
+			auto const stride = array.size() / array_type.size;
+			for (auto const i : bz::iota(0, array_type.size))
+			{
+				auto const begin_index = i * stride;
+				set_constant_value(var_decl.tuple_decls[i], ast::constant_value(array.slice(begin_index, begin_index + stride)));
+			}
+		}
+		else if (value.is_float32_array())
+		{
+			auto const array = value.get_float32_array();
+			auto const stride = array.size() / array_type.size;
+			for (auto const i : bz::iota(0, array_type.size))
+			{
+				auto const begin_index = i * stride;
+				set_constant_value(var_decl.tuple_decls[i], ast::constant_value(array.slice(begin_index, begin_index + stride)));
+			}
+		}
+		else if (value.is_float64_array())
+		{
+			auto const array = value.get_float64_array();
+			auto const stride = array.size() / array_type.size;
+			for (auto const i : bz::iota(0, array_type.size))
+			{
+				auto const begin_index = i * stride;
+				set_constant_value(var_decl.tuple_decls[i], ast::constant_value(array.slice(begin_index, begin_index + stride)));
+			}
+		}
+		else
+		{
+			bz_unreachable;
+		}
+	}
+	else
+	{
+		if (value.is_array())
+		{
+			auto const array = value.get_array();
+			for (auto const i : bz::iota(0, array_type.size))
+			{
+				set_constant_value(var_decl.tuple_decls[i], array[i]);
+			}
+		}
+		else if (value.is_sint_array())
+		{
+			auto const array = value.get_sint_array();
+			for (auto const i : bz::iota(0, array_type.size))
+			{
+				set_constant_value(var_decl.tuple_decls[i], ast::constant_value(array[i]));
+			}
+		}
+		else if (value.is_uint_array())
+		{
+			auto const array = value.get_uint_array();
+			for (auto const i : bz::iota(0, array_type.size))
+			{
+				set_constant_value(var_decl.tuple_decls[i], ast::constant_value(array[i]));
+			}
+		}
+		else if (value.is_float32_array())
+		{
+			auto const array = value.get_float32_array();
+			for (auto const i : bz::iota(0, array_type.size))
+			{
+				set_constant_value(var_decl.tuple_decls[i], ast::constant_value(array[i]));
+			}
+		}
+		else if (value.is_float64_array())
+		{
+			auto const array = value.get_float64_array();
+			for (auto const i : bz::iota(0, array_type.size))
+			{
+				set_constant_value(var_decl.tuple_decls[i], ast::constant_value(array[i]));
+			}
+		}
+		else
+		{
+			bz_unreachable;
+		}
+	}
+}
+
+static void set_constant_value(ast::decl_variable &var_decl, ast::constant_value const &value)
+{
+	auto &var_type = var_decl.get_type();
+	if (var_decl.tuple_decls.empty())
+	{
+		bz_assert(!var_type.is_any_reference() && !var_type.is_mut());
+		if (!var_type.is<ast::ts_consteval>())
+		{
+			var_type.add_layer<ast::ts_consteval>();
+		}
+
+		bz_assert(var_decl.init_expr.is_null());
+		var_decl.init_expr = ast::make_constant_expression(
+			var_decl.src_tokens,
+			ast::expression_type_kind::rvalue, var_type.remove_any_mut(),
+			value,
+			ast::expr_t()
+		);
+	}
+	else if (auto const bare_var_type = var_type.remove_any_mut(); bare_var_type.is<ast::ts_tuple>())
+	{
+		bz_assert(value.is_tuple());
+		auto const tuple_values = value.get_tuple();
+		bz_assert(tuple_values.size() == var_decl.tuple_decls.size());
+		for (auto const i : bz::iota(0, tuple_values.size()))
+		{
+			set_constant_value(var_decl.tuple_decls[i], tuple_values[i]);
+		}
+	}
+	else
+	{
+		bz_assert(bare_var_type.is<ast::ts_array>());
+		set_constant_value_array(var_decl, bare_var_type, value);
+	}
+}
+
 static void set_default_types_for_tuple_decomposition(ast::decl_variable &var_decl, bool is_outer_variadic)
 {
 	bz_assert(var_decl.tuple_decls.not_empty());
@@ -381,15 +530,21 @@ void match_expression_to_variable(
 		}
 
 		match_expression_to_type(expr, var_decl.get_type(), context);
-		auto const decl_type = var_decl.get_type().remove_mut_reference();
+		auto const &original_decl_type = var_decl.get_type();
+		auto const decl_type = original_decl_type.remove_any_mut_reference();
 		if (decl_type.is<ast::ts_tuple>() || decl_type.is<ast::ts_array>())
 		{
-			auto const var_type_without_lvalue_ref = var_decl.get_type().remove_reference();
+			auto const var_type_without_lvalue_ref = original_decl_type.remove_reference();
 			set_type(
 				var_decl, var_type_without_lvalue_ref.remove_any_mut(),
-				var_type_without_lvalue_ref.is<ast::ts_mut>(),
-				var_decl.get_type().is<ast::ts_lvalue_reference>()
+				var_type_without_lvalue_ref.is_mut(),
+				original_decl_type.is_any_reference()
 			);
+
+			if (original_decl_type.is<ast::ts_consteval>() && expr.is_constant())
+			{
+				set_constant_value(var_decl, expr.get_constant_value());
+			}
 		}
 		else
 		{

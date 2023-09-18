@@ -680,7 +680,7 @@ static ast::expression parse_primary_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
-			ast::constant_value(ast::make_auto_typespec(auto_pos)),
+			context.add_constant_type(ast::make_auto_typespec(auto_pos)),
 			ast::make_expr_typename_literal()
 		);
 	}
@@ -694,7 +694,7 @@ static ast::expression parse_primary_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
-			ast::constant_value(ast::make_typename_typespec(typename_pos)),
+			context.add_constant_type(ast::make_typename_typespec(typename_pos)),
 			ast::make_expr_typename_literal()
 		);
 	}
@@ -739,7 +739,7 @@ static ast::expression parse_primary_expression(
 				src_tokens,
 				ast::expression_type_kind::type_name,
 				ast::make_typename_typespec(nullptr),
-				ast::constant_value(ast::make_void_typespec(nullptr)),
+				context.add_constant_type(ast::make_void_typespec(nullptr)),
 				ast::make_expr_typename_literal()
 			);
 			return ast::make_unresolved_expression(

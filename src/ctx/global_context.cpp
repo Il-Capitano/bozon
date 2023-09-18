@@ -992,6 +992,67 @@ size_t global_context::get_pointer_size(void) const
 	return this->comptime_codegen_context->machine_parameters.pointer_size;
 }
 
+ast::constant_value global_context::add_constant_string(bz::u8string_view str)
+{
+	auto const &storage = this->constant_string_storage.push_back(bz::array_view<char const>(str.data(), str.data() + str.size()));
+	auto const s = bz::u8string_view(storage.data(), storage.data_end());
+	return ast::constant_value(s);
+}
+
+ast::constant_value global_context::add_constant_array(ast::arena_vector<ast::constant_value> elems)
+{
+	auto const &arr = this->constant_aggregate_storage.push_back(std::move(elems));
+	ast::constant_value result;
+	result.emplace<ast::constant_value_kind::array>(arr.as_array_view());
+	return result;
+}
+
+ast::constant_value global_context::add_constant_tuple(ast::arena_vector<ast::constant_value> elems)
+{
+	auto const &arr = this->constant_aggregate_storage.push_back(std::move(elems));
+	ast::constant_value result;
+	result.emplace<ast::constant_value_kind::tuple>(arr.as_array_view());
+	return result;
+}
+
+ast::constant_value global_context::add_constant_aggregate(ast::arena_vector<ast::constant_value> elems)
+{
+	auto const &arr = this->constant_aggregate_storage.push_back(std::move(elems));
+	ast::constant_value result;
+	result.emplace<ast::constant_value_kind::aggregate>(arr.as_array_view());
+	return result;
+}
+
+ast::constant_value global_context::add_constant_sint_array(ast::arena_vector<int64_t> elems)
+{
+	auto const &arr = this->constant_sint_array_storage.push_back(std::move(elems));
+	return ast::constant_value(arr.as_array_view());
+}
+
+ast::constant_value global_context::add_constant_uint_array(ast::arena_vector<uint64_t> elems)
+{
+	auto const &arr = this->constant_uint_array_storage.push_back(std::move(elems));
+	return ast::constant_value(arr.as_array_view());
+}
+
+ast::constant_value global_context::add_constant_float32_array(ast::arena_vector<float32_t> elems)
+{
+	auto const &arr = this->constant_float32_array_storage.push_back(std::move(elems));
+	return ast::constant_value(arr.as_array_view());
+}
+
+ast::constant_value global_context::add_constant_float64_array(ast::arena_vector<float64_t> elems)
+{
+	auto const &arr = this->constant_float64_array_storage.push_back(std::move(elems));
+	return ast::constant_value(arr.as_array_view());
+}
+
+ast::constant_value global_context::add_constant_type(ast::typespec type)
+{
+	auto const &t = this->constant_type_storage.push_back(std::move(type));
+	return ast::constant_value(t.as_typespec_view());
+}
+
 bool global_context::is_aggressive_consteval_enabled(void) const
 {
 	auto const &optimizations = ctcli::option_value<ctcli::option("--opt")>;
@@ -1284,6 +1345,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 {
 	this->_builtin_type_infos.resize(ast::type_info::null_t_ + 1, nullptr);
 	this->_builtin_functions.resize(ast::function_body::_builtin_last - ast::function_body::_builtin_first, nullptr);
+	this->cached_auto_type = this->constant_type_storage.push_back(ast::make_auto_typespec(nullptr));
 
 	if (!ctcli::is_option_set<ctcli::option("--stdlib-dir")>())
 	{
