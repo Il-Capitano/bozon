@@ -8204,6 +8204,29 @@ void emit_function_bitcode(
 	}
 }
 
+static void add_global_variable_helper(
+	ast::decl_variable const &var_decl,
+	llvm::Constant *value,
+	llvm::Type *type,
+	bitcode_context &context
+)
+{
+	if (var_decl.tuple_decls.empty())
+	{
+		context.add_variable(&var_decl, value, type);
+	}
+	else
+	{
+		for (auto const &[inner_decl, i] : var_decl.tuple_decls.enumerate())
+		{
+			auto const value_gep = context.create_struct_gep(type, value, i);
+			bz_assert(llvm::isa<llvm::Constant>(value_gep));
+			auto const inner_type = type->isArrayTy() ? type->getArrayElementType() : type->getStructElementType(i);
+			add_global_variable_helper(inner_decl, llvm::cast<llvm::Constant>(value_gep), inner_type, context);
+		}
+	}
+}
+
 static void emit_global_variable_impl(ast::decl_variable const &var_decl, bitcode_context &context)
 {
 	bz_assert(var_decl.is_global_storage());
@@ -8228,7 +8251,8 @@ static void emit_global_variable_impl(ast::decl_variable const &var_decl, bitcod
 		bz_assert(!global_var->hasInitializer());
 		global_var->setInitializer(init_val);
 	}
-	context.add_variable(&var_decl, global_var, type);
+
+	add_global_variable_helper(var_decl, global_var, type, context);
 }
 
 void emit_global_variable(ast::decl_variable const &var_decl, bitcode_context &context)
@@ -8237,6 +8261,7 @@ void emit_global_variable(ast::decl_variable const &var_decl, bitcode_context &c
 	{
 		return;
 	}
+	bz_assert(var_decl.global_tuple_decl_parent == nullptr);
 	emit_global_variable_impl(var_decl, context);
 }
 

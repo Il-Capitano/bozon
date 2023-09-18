@@ -569,6 +569,38 @@ static void apply_prototype(
 	}
 }
 
+static void apply_inherited_flags(ast::decl_variable &var_decl, uint16_t flags, ast::decl_variable *parent_decl)
+{
+	var_decl.flags |= flags;
+	if (&var_decl != parent_decl)
+	{
+		bz_assert(var_decl.global_tuple_decl_parent == nullptr);
+		var_decl.global_tuple_decl_parent = parent_decl;
+	}
+	for (auto &tuple_decl : var_decl.tuple_decls)
+	{
+		apply_inherited_flags(tuple_decl, flags, parent_decl);
+	}
+}
+
+static void apply_inherited_flags(ast::decl_variable &var_decl)
+{
+	constexpr uint16_t inherited_flags_mask =
+		ast::decl_variable::maybe_unused
+		| ast::decl_variable::module_export
+		| ast::decl_variable::global
+		| ast::decl_variable::global_storage
+		| ast::decl_variable::parameter;
+
+	auto const flags_to_inherit = var_decl.flags & inherited_flags_mask;
+	if (flags_to_inherit == 0)
+	{
+		return;
+	}
+
+	apply_inherited_flags(var_decl, flags_to_inherit, var_decl.is_global_storage() ? &var_decl : nullptr);
+}
+
 static void resolve_variable_type(ast::decl_variable &var_decl, ctx::parse_context &context)
 {
 	bz_assert(var_decl.state == ast::resolve_state::resolving_symbol);
@@ -604,10 +636,11 @@ static void resolve_variable_type(ast::decl_variable &var_decl, ctx::parse_conte
 			apply_prototype(var_decl.get_prototype_range(), var_decl, context);
 		}
 
-		if (var_decl.get_type().is<ast::ts_consteval>())
+		if (var_decl.is_global_storage() || var_decl.get_type().is<ast::ts_consteval>())
 		{
 			var_decl.flags |= ast::decl_variable::global_storage;
 		}
+		apply_inherited_flags(var_decl);
 		return;
 	}
 

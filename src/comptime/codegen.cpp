@@ -7162,7 +7162,7 @@ static void add_variable_helper(
 	}
 	else
 	{
-		bz_assert(value.get_type()->is_aggregate());
+		bz_assert(value.get_type()->is_aggregate() || value.get_type()->is_array());
 		for (auto const &[decl, i] : var_decl.tuple_decls.enumerate())
 		{
 			if (decl.get_type().is_any_reference())
@@ -7192,6 +7192,12 @@ static void generate_stmt_code(ast::decl_variable const &var_decl, codegen_conte
 
 	if (var_decl.is_global_storage())
 	{
+		if (var_decl.global_tuple_decl_parent != nullptr)
+		{
+			generate_stmt_code(*var_decl.global_tuple_decl_parent, context);
+			return;
+		}
+
 		bz_assert(var_decl.init_expr.is_constant());
 		bz_assert(var_decl.get_type().is<ast::ts_consteval>());
 

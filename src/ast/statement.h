@@ -231,6 +231,7 @@ struct decl_variable
 	expression init_expr; // is null if there's no initializer
 	destruct_operation destruction;
 	ast_unique_ptr<decl_variable> original_tuple_variadic_decl; // non-null only if tuple_decls has an empty variadic declaration at the end
+	decl_variable *global_tuple_decl_parent = nullptr;
 	lex::src_tokens move_position = {};
 
 	arena_vector<attribute> attributes;
