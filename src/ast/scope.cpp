@@ -505,4 +505,62 @@ void local_scope_t::add_type_alias(decl_type_alias &alias_decl)
 	this->symbols.emplace_back(&alias_decl);
 }
 
+static void add_global_variable(
+	global_scope_t &scope,
+	decl_variable &original_decl,
+	arena_vector<decl_variable *> variadic_decls
+)
+{
+	if (original_decl.tuple_decls.empty())
+	{
+		scope.add_variable({}, original_decl, std::move(variadic_decls));
+	}
+	else
+	{
+		for (size_t i = 0; i < original_decl.tuple_decls.size(); ++i)
+		{
+			add_global_variable(
+				scope,
+				original_decl.tuple_decls[i],
+				variadic_decls.transform([i](auto const decl) {
+					bz_assert(!decl->tuple_decls.empty());
+					return &decl->tuple_decls[i];
+				}).collect<arena_vector>()
+			);
+		}
+	}
+}
+
+void add_global_variable(global_scope_t &scope, decl_variable &var_decl)
+{
+	if (var_decl.tuple_decls.empty())
+	{
+		scope.add_variable({}, var_decl);
+	}
+	else
+	{
+		auto it = var_decl.tuple_decls.begin();
+		auto const end = var_decl.tuple_decls.end();
+		for (; it != end; ++it)
+		{
+			if (it->is_variadic())
+			{
+				break;
+			}
+			add_global_variable(scope, *it);
+		}
+		if (it != end && it->is_variadic())
+		{
+			auto const variadic_decls = bz::basic_range{ it, end }
+				.transform([](auto &decl) { return &decl; })
+				.collect<arena_vector>();
+			add_global_variable(scope, *it, std::move(variadic_decls));
+		}
+		else if (var_decl.original_tuple_variadic_decl != nullptr)
+		{
+			add_global_variable(scope, *var_decl.original_tuple_variadic_decl, {});
+		}
+	}
+}
+
 } // namespace ast

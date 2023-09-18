@@ -2297,7 +2297,7 @@ static void add_type_info_members(
 			}
 			else
 			{
-				info.scope.get_global().add_variable({}, var_decl);
+				ast::add_global_variable(info.scope.get_global(), var_decl);
 			}
 		}
 		else if (stmt.is<ast::decl_type_alias>())
@@ -2624,7 +2624,7 @@ static void resolve_type_info_members_impl(ast::type_info &info, ctx::parse_cont
 	add_type_info_members(info, context);
 	for (auto &param : info.generic_parameters)
 	{
-		info.scope.get_global().all_symbols.add_variable({}, param);
+		ast::add_global_variable(info.scope.get_global(), param);
 	}
 
 	for (auto const ctor_decl : info.constructors)
