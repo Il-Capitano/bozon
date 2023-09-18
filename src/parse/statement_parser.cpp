@@ -1575,18 +1575,6 @@ ast::statement parse_stmt_expression(
 )
 {
 	auto expr = parse_top_level_expression(stream, end, context);
-	if (expr.is<ast::expanded_variadic_expression>())
-	{
-		context.report_error(expr.src_tokens, "expanded variadic expression is not allowed as a top-level expression");
-	}
-	else if (expr.is_placeholder_literal())
-	{
-		context.report_error(expr.src_tokens, "placeholder literal is not allowed as a top-level expression");
-	}
-	else if (expr.is_enum_literal())
-	{
-		context.report_error(expr.src_tokens, "enum literal is not allowed as a top-level expression");
-	}
 	return ast::make_stmt_expression(std::move(expr));
 }
 

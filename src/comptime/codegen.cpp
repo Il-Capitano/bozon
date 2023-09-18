@@ -7132,9 +7132,21 @@ static void generate_stmt_code(ast::stmt_no_op const &, codegen_context &)
 
 static void generate_stmt_code(ast::stmt_expression const &expr_stmt, codegen_context &context)
 {
-	auto const prev_info = context.push_expression_scope();
-	generate_expr_code(expr_stmt.expr, context, {});
-	context.pop_expression_scope(prev_info);
+	if (expr_stmt.expr.is<ast::expanded_variadic_expression>())
+	{
+		for (auto const &expr : expr_stmt.expr.get<ast::expanded_variadic_expression>().exprs)
+		{
+			auto const prev_info = context.push_expression_scope();
+			generate_expr_code(expr, context, {});
+			context.pop_expression_scope(prev_info);
+		}
+	}
+	else
+	{
+		auto const prev_info = context.push_expression_scope();
+		generate_expr_code(expr_stmt.expr, context, {});
+		context.pop_expression_scope(prev_info);
+	}
 }
 
 static void add_variable_helper(
