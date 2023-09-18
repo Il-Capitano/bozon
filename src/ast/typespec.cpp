@@ -269,6 +269,22 @@ typespec_view typespec_view::remove_any_mut_reference(void) const noexcept
 	>(*this);
 }
 
+bool typespec_view::is_variadic(void) const noexcept
+{
+	return is_kind_helper<ts_variadic>(*this);
+}
+
+typespec_view typespec_view::get_variadic(void) const noexcept
+{
+	bz_assert(this->is_variadic());
+	return this->get<ts_variadic>();
+}
+
+typespec_view typespec_view::remove_variadic(void) const noexcept
+{
+	return remove_kind_helper<ts_variadic>(*this);
+}
+
 typespec::typespec(
 	lex::src_tokens const &_src_tokens,
 	arena_vector<modifier_typespec_node_t> _modifiers,
