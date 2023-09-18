@@ -266,13 +266,13 @@ static ast::typespec get_type_for_tuple_decomposition(
 		auto const first_decl_type = [&]() -> ast::typespec_view {
 			if (var_decl.tuple_decls[0].tuple_decls.empty())
 			{
-				return var_decl.tuple_decls[0].get_type();
+				return var_decl.tuple_decls[0].get_type().remove_variadic();
 			}
 			else
 			{
 				first_decl_type_container = get_type_for_tuple_decomposition(
 					var_decl.tuple_decls[0],
-					is_outer_variadic || var_decl.tuple_decls[0].get_type().is<ast::ts_variadic>(),
+					is_outer_variadic || var_decl.tuple_decls[0].get_type().is_variadic(),
 					nullptr,
 					array_type.elem_type
 				);
@@ -288,9 +288,7 @@ static ast::typespec get_type_for_tuple_decomposition(
 		{
 			if (inner_decl.tuple_decls.empty())
 			{
-				auto const inner_type = inner_decl.get_type().is<ast::ts_variadic>()
-					? inner_decl.get_type().get<ast::ts_variadic>()
-					: inner_decl.get_type().as_typespec_view();
+				auto const inner_type = inner_decl.get_type().remove_variadic();
 				if (first_decl_type != inner_type)
 				{
 					return ast::typespec();
@@ -300,7 +298,7 @@ static ast::typespec get_type_for_tuple_decomposition(
 			{
 				auto const inner_type = get_type_for_tuple_decomposition(
 					inner_decl,
-					is_outer_variadic || inner_decl.get_type().is<ast::ts_variadic>(),
+					is_outer_variadic || inner_decl.get_type().is_variadic(),
 					nullptr,
 					array_type.elem_type
 				);
