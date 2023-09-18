@@ -430,8 +430,28 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 static void resolve_stmt(ast::stmt_expression &expr_stmt, ctx::parse_context &context)
 {
 	resolve_expression(expr_stmt.expr, context);
-	context.add_self_destruction(expr_stmt.expr);
-	consteval_guaranteed(expr_stmt.expr, context);
+	if (expr_stmt.expr.is_placeholder_literal())
+	{
+		context.report_error(expr_stmt.expr.src_tokens, "placeholder literal is not allowed as a top-level expression");
+	}
+	else if (expr_stmt.expr.is_enum_literal())
+	{
+		context.report_error(expr_stmt.expr.src_tokens, "enum literal is not allowed as a top-level expression");
+	}
+	else if (expr_stmt.expr.is<ast::expanded_variadic_expression>())
+	{
+		for (auto &expr : expr_stmt.expr.get<ast::expanded_variadic_expression>().exprs)
+		{
+			context.add_self_destruction(expr);
+			consteval_guaranteed(expr, context);
+		}
+	}
+	else
+	{
+		context.add_self_destruction(expr_stmt.expr);
+		consteval_guaranteed(expr_stmt.expr, context);
+	}
+
 }
 
 static void resolve_stmt(ast::decl_variable &var_decl, ctx::parse_context &context)

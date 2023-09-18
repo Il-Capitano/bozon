@@ -7715,9 +7715,21 @@ static void emit_bitcode(
 	bitcode_context &context
 )
 {
-	auto const prev_info = context.push_expression_scope();
-	emit_bitcode(expr_stmt.expr, context, nullptr);
-	context.pop_expression_scope(prev_info);
+	if (expr_stmt.expr.is<ast::expanded_variadic_expression>())
+	{
+		for (auto &expr : expr_stmt.expr.get<ast::expanded_variadic_expression>().exprs)
+		{
+			auto const prev_info = context.push_expression_scope();
+			emit_bitcode(expr, context, nullptr);
+			context.pop_expression_scope(prev_info);
+		}
+	}
+	else
+	{
+		auto const prev_info = context.push_expression_scope();
+		emit_bitcode(expr_stmt.expr, context, nullptr);
+		context.pop_expression_scope(prev_info);
+	}
 }
 
 static void add_variable_helper(
