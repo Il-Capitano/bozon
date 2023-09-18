@@ -844,6 +844,11 @@ int main(int argc, char const * const *argv)
 			color, passed_count, total_count, colors::clear,
 			color, passed_percentage, colors::clear
 		);
+
+		if (passed_count != total_count)
+		{
+			return 1;
+		}
 	}
 
 	return 0;
