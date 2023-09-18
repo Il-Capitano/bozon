@@ -2372,9 +2372,35 @@ expr_value codegen_context::create_plus(expr_value const &lhs, expr_value const 
 	return this->create_temporary_binary_operation(lhs, rhs, "+", precedence::addition, result_type);
 }
 
+expr_value codegen_context::create_pointer_plus(expr_value const &pointer, expr_value const &offset)
+{
+	// pointer arithmetic with null pointers is UB C, even if the offset is zero, but not in bozon,
+	// therefore we need to check for this case.
+	//
+	// we only check for a zero offset, because that reliably optimized to the same code as a simple addition with clang,
+	// while checking for both a null pointer and zero offset doesn't: https://godbolt.org/z/E9aoE9vsz
+	bz::u8string result_string = "(";
+	result_string += this->to_string_binary(offset, "0", "==", precedence::equality);
+	result_string += " ? ";
+	result_string += this->to_string(pointer);
+	result_string += " : ";
+	result_string += this->to_string_binary(pointer, offset, "+", precedence::addition);
+	result_string += ')';
+	return this->add_temporary_expression(std::move(result_string), pointer.get_type(), false, false, true, precedence::literal);
+}
+
 void codegen_context::create_plus_eq(expr_value const &lhs, expr_value const &rhs)
 {
 	return this->create_binary_operation(lhs, rhs, "+=", precedence::assignment);
+}
+
+void codegen_context::create_pointer_plus_eq(expr_value const &pointer, expr_value const &offset)
+{
+	// this is needed for the same reason as 'create_pointer_plus'; see the comment there for an explanation
+	bz::u8string result_string = this->to_string_binary(pointer, "0", "!=", precedence::equality);
+	auto const prev_if_info = this->begin_if(result_string);
+	this->create_plus_eq(pointer, offset);
+	this->end_if(prev_if_info);
 }
 
 expr_value codegen_context::create_minus(expr_value const &lhs, expr_value const &rhs)
@@ -2387,9 +2413,31 @@ expr_value codegen_context::create_minus(expr_value const &lhs, expr_value const
 	return this->create_temporary_binary_operation(lhs, rhs, "-", precedence::subtraction, result_type);
 }
 
+expr_value codegen_context::create_pointer_minus(expr_value const &pointer, expr_value const &offset)
+{
+	// this is needed for the same reason as 'create_pointer_plus'; see the comment there for an explanation
+	bz::u8string result_string = "(";
+	result_string += this->to_string_binary(offset, "0", "==", precedence::equality);
+	result_string += " ? ";
+	result_string += this->to_string(pointer);
+	result_string += " : ";
+	result_string += this->to_string_binary(pointer, offset, "-", precedence::addition);
+	result_string += ')';
+	return this->add_temporary_expression(std::move(result_string), pointer.get_type(), false, false, true, precedence::literal);
+}
+
 void codegen_context::create_minus_eq(expr_value const &lhs, expr_value const &rhs)
 {
 	return this->create_binary_operation(lhs, rhs, "-=", precedence::assignment);
+}
+
+void codegen_context::create_pointer_minus_eq(expr_value const &pointer, expr_value const &offset)
+{
+	// this is needed for the same reason as 'create_pointer_plus'; see the comment there for an explanation
+	bz::u8string result_string = this->to_string_binary(pointer, "0", "!=", precedence::equality);
+	auto const prev_if_info = this->begin_if(result_string);
+	this->create_minus_eq(pointer, offset);
+	this->end_if(prev_if_info);
 }
 
 expr_value codegen_context::create_multiply(expr_value const &lhs, expr_value const &rhs)

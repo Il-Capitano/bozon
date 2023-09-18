@@ -374,10 +374,14 @@ struct codegen_context
 	expr_value create_logical_or(expr_value const &lhs, expr_value const &rhs);
 	expr_value create_plus(expr_value const &lhs, expr_value const &rhs);
 	expr_value create_plus(expr_value const &lhs, expr_value const &rhs, type result_type);
+	expr_value create_pointer_plus(expr_value const &pointer, expr_value const &offset);
 	void create_plus_eq(expr_value const &lhs, expr_value const &rhs);
+	void create_pointer_plus_eq(expr_value const &pointer, expr_value const &offset);
 	expr_value create_minus(expr_value const &lhs, expr_value const &rhs);
 	expr_value create_minus(expr_value const &lhs, expr_value const &rhs, type result_type);
+	expr_value create_pointer_minus(expr_value const &pointer, expr_value const &offset);
 	void create_minus_eq(expr_value const &lhs, expr_value const &rhs);
+	void create_pointer_minus_eq(expr_value const &pointer, expr_value const &offset);
 	expr_value create_multiply(expr_value const &lhs, expr_value const &rhs);
 	void create_multiply_eq(expr_value const &lhs, expr_value const &rhs);
 	expr_value create_divide(expr_value const &lhs, expr_value const &rhs);

@@ -1790,15 +1790,21 @@ static expr_value generate_builtin_binary_plus(
 	}
 	else
 	{
+		expr_value result_value;
 		if (lhs_type.is_optional_pointer())
 		{
 			generate_null_pointer_arithmetic_check(lhs.src_tokens, lhs_value, rhs_value, context);
+			result_value = context.create_pointer_plus(lhs_value, rhs_value);
 		}
 		else if (rhs_type.is_optional_pointer())
 		{
 			generate_null_pointer_arithmetic_check(rhs.src_tokens, rhs_value, lhs_value, context);
+			result_value = context.create_pointer_plus(rhs_value, lhs_value);
 		}
-		auto const result_value = context.create_plus(lhs_value, rhs_value, result_type);
+		else
+		{
+			result_value = context.create_plus(lhs_value, rhs_value, result_type);
+		}
 		return value_or_result_dest(result_value, result_dest, context);
 	}
 }
@@ -1834,8 +1840,12 @@ static expr_value generate_builtin_binary_plus_eq(
 		if (lhs_type.is_optional_pointer())
 		{
 			generate_null_pointer_arithmetic_check(lhs.src_tokens, lhs_value, rhs_value, context);
+			context.create_pointer_plus_eq(lhs_value, rhs_value);
 		}
-		context.create_plus_eq(lhs_value, rhs_value);
+		else
+		{
+			context.create_plus_eq(lhs_value, rhs_value);
+		}
 		return lhs_value;
 	}
 }
@@ -1912,15 +1922,21 @@ static expr_value generate_builtin_binary_minus(
 	}
 	else
 	{
+		expr_value result_value;
 		if (lhs_type.is_optional_pointer() && rhs_type.is_optional_pointer())
 		{
 			generate_null_pointer_arithmetic_check(lhs.src_tokens, rhs.src_tokens, lhs_value, rhs_value, context);
+			result_value = context.create_minus(lhs_value, rhs_value, result_type);
 		}
 		else if (lhs_type.is_optional_pointer())
 		{
 			generate_null_pointer_arithmetic_check(lhs.src_tokens, lhs_value, rhs_value, context);
+			result_value = context.create_pointer_minus(lhs_value, rhs_value);
 		}
-		auto const result_value = context.create_minus(lhs_value, rhs_value, result_type);
+		else
+		{
+			result_value = context.create_minus(lhs_value, rhs_value, result_type);
+		}
 		return value_or_result_dest(result_value, result_dest, context);
 	}
 }
@@ -1956,8 +1972,12 @@ static expr_value generate_builtin_binary_minus_eq(
 		if (lhs_type.is_optional_pointer())
 		{
 			generate_null_pointer_arithmetic_check(lhs.src_tokens, lhs_value, rhs_value, context);
+			context.create_pointer_minus_eq(lhs_value, rhs_value);
 		}
-		context.create_minus_eq(lhs_value, rhs_value);
+		else
+		{
+			context.create_minus_eq(lhs_value, rhs_value);
+		}
 		return lhs_value;
 	}
 }
