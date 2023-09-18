@@ -535,34 +535,18 @@ consteval function get_global_indices(start: consteval usize, stop: consteval us
 
 function format_into_impl(
 	buffer: &mut format_buffer,
-	global_index: consteval [1: usize],
+	consteval [...global_indices],
 	indices: consteval auto,
 	slices: [: str],
 	fmt_specs: [: str],
 	arg_ptrs: &[...*auto]
 )
 {
-	consteval global_index = global_index[0];
-	consteval index = indices[global_index];
-	buffer.write_into(slices[global_index]);
-	arg_ptrs[index]->format_to(buffer, fmt_specs[index]);
-}
-
-function format_into_impl(
-	buffer: &mut format_buffer,
-	global_indices: consteval auto,
-	indices: consteval auto,
-	slices: [: str],
-	fmt_specs: [: str],
-	arg_ptrs: &[...*auto]
-)
-{
-	consteval global_index = global_indices[0];
-	consteval index = indices[global_index];
-	buffer.write_into(slices[global_index]);
-	arg_ptrs[index]->format_to(buffer, fmt_specs[index]);
-	consteval rest_global_indices = get_global_indices(global_indices[1], global_indices[global_indices.size() - 1] + 1);
-	buffer.format_into_impl(rest_global_indices, indices, slices, fmt_specs, arg_ptrs);
+	...{
+		consteval index = indices[global_indices];
+		buffer.write_into(slices[global_indices]);
+		arg_ptrs[index]->format_to(buffer, fmt_specs[index]);
+	};
 }
 
 export function format_into(buffer: &mut format_buffer, fmt_str: consteval str, args: ...#auto)
