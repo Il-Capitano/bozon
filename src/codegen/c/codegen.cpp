@@ -310,43 +310,43 @@ static bool is_zero_value(ast::constant_value const &value)
 	switch (value.kind())
 	{
 	static_assert(ast::constant_value::variant_count == 19);
-	case ast::constant_value::sint:
+	case ast::constant_value_kind::sint:
 		return value.get_sint() == 0;
-	case ast::constant_value::uint:
+	case ast::constant_value_kind::uint:
 		return value.get_uint() == 0;
-	case ast::constant_value::float32:
+	case ast::constant_value_kind::float32:
 		return bit_cast<uint32_t>(value.get_float32()) == 0;
-	case ast::constant_value::float64:
+	case ast::constant_value_kind::float64:
 		return bit_cast<uint64_t>(value.get_float64()) == 0;
-	case ast::constant_value::u8char:
+	case ast::constant_value_kind::u8char:
 		return value.get_u8char() == 0;
-	case ast::constant_value::string:
+	case ast::constant_value_kind::string:
 		return value.get_string() == "";
-	case ast::constant_value::boolean:
+	case ast::constant_value_kind::boolean:
 		return value.get_boolean() == false;
-	case ast::constant_value::null:
+	case ast::constant_value_kind::null:
 		return true;
-	case ast::constant_value::void_:
+	case ast::constant_value_kind::void_:
 		return true;
-	case ast::constant_value::enum_:
+	case ast::constant_value_kind::enum_:
 		return value.get_enum().value == 0;
-	case ast::constant_value::array:
+	case ast::constant_value_kind::array:
 		return value.get_array().is_all([](auto const &value) { return is_zero_value(value); });
-	case ast::constant_value::sint_array:
+	case ast::constant_value_kind::sint_array:
 		return value.get_sint_array().is_all([](auto const value) { return value == 0; });
-	case ast::constant_value::uint_array:
+	case ast::constant_value_kind::uint_array:
 		return value.get_uint_array().is_all([](auto const value) { return value == 0; });
-	case ast::constant_value::float32_array:
+	case ast::constant_value_kind::float32_array:
 		return value.get_float32_array().is_all([](auto const value) { return bit_cast<uint32_t>(value) == 0; });
-	case ast::constant_value::float64_array:
+	case ast::constant_value_kind::float64_array:
 		return value.get_float64_array().is_all([](auto const value) { return bit_cast<uint64_t>(value) == 0; });
-	case ast::constant_value::tuple:
+	case ast::constant_value_kind::tuple:
 		return value.get_tuple().is_all([](auto const &value) { return is_zero_value(value); });
-	case ast::constant_value::function:
+	case ast::constant_value_kind::function:
 		return false;
-	case ast::constant_value::aggregate:
+	case ast::constant_value_kind::aggregate:
 		return value.get_aggregate().is_all([](auto const &value) { return is_zero_value(value); });
-	case ast::constant_value::type:
+	case ast::constant_value_kind::type:
 		bz_unreachable;
 	default:
 		bz_unreachable;
@@ -570,19 +570,19 @@ static void generate_constant_value_string(
 	type = type.remove_any_mut();
 	switch (value.kind())
 	{
-	case ast::constant_value::sint:
+	case ast::constant_value_kind::sint:
 		write_sint(buffer, value.get_sint());
 		break;
-	case ast::constant_value::uint:
+	case ast::constant_value_kind::uint:
 		buffer += bz::format("{}u", value.get_uint());
 		break;
-	case ast::constant_value::float32:
+	case ast::constant_value_kind::float32:
 		write_float32(buffer, value.get_float32());
 		break;
-	case ast::constant_value::float64:
+	case ast::constant_value_kind::float64:
 		write_float64(buffer, value.get_float64());
 		break;
-	case ast::constant_value::u8char:
+	case ast::constant_value_kind::u8char:
 	{
 		auto const c = value.get_u8char();
 		// ascii character
@@ -639,7 +639,7 @@ static void generate_constant_value_string(
 		}
 		break;
 	}
-	case ast::constant_value::string:
+	case ast::constant_value_kind::string:
 	{
 		auto const s = value.get_string();
 		auto const cstr = context.create_cstring(s);
@@ -652,7 +652,7 @@ static void generate_constant_value_string(
 		buffer += '}';
 		break;
 	}
-	case ast::constant_value::boolean:
+	case ast::constant_value_kind::boolean:
 		if (value.get_boolean())
 		{
 			buffer += '1';
@@ -662,7 +662,7 @@ static void generate_constant_value_string(
 			buffer += '0';
 		}
 		break;
-	case ast::constant_value::null:
+	case ast::constant_value_kind::null:
 		if (type.is_optional_pointer_like())
 		{
 			buffer += '0';
@@ -677,10 +677,10 @@ static void generate_constant_value_string(
 			buffer += "{0}";
 		}
 		break;
-	case ast::constant_value::void_:
+	case ast::constant_value_kind::void_:
 		buffer += "(void)0";
 		break;
-	case ast::constant_value::enum_:
+	case ast::constant_value_kind::enum_:
 	{
 		auto const &enum_val = value.get_enum();
 		bz_assert(enum_val.decl->underlying_type.is<ast::ts_base_type>());
@@ -696,22 +696,22 @@ static void generate_constant_value_string(
 		}
 		break;
 	}
-	case ast::constant_value::array:
+	case ast::constant_value_kind::array:
 		generate_constant_array_value(buffer, value.get_array(), type, use_struct_literals, context);
 		break;
-	case ast::constant_value::sint_array:
+	case ast::constant_value_kind::sint_array:
 		generate_constant_sint_array_value(buffer, value.get_sint_array(), type, use_struct_literals, context);
 		break;
-	case ast::constant_value::uint_array:
+	case ast::constant_value_kind::uint_array:
 		generate_constant_uint_array_value(buffer, value.get_uint_array(), type, use_struct_literals, context);
 		break;
-	case ast::constant_value::float32_array:
+	case ast::constant_value_kind::float32_array:
 		generate_constant_float32_array_value(buffer, value.get_float32_array(), type, use_struct_literals, context);
 		break;
-	case ast::constant_value::float64_array:
+	case ast::constant_value_kind::float64_array:
 		generate_constant_float64_array_value(buffer, value.get_float64_array(), type, use_struct_literals, context);
 		break;
-	case ast::constant_value::tuple:
+	case ast::constant_value_kind::tuple:
 	{
 		auto const tuple_elems = value.get_tuple();
 		bz_assert(type.is<ast::ts_tuple>());
@@ -730,16 +730,16 @@ static void generate_constant_value_string(
 		buffer += '}';
 		break;
 	}
-	case ast::constant_value::function:
+	case ast::constant_value_kind::function:
 	{
 		auto const &name = context.get_function(*value.get_function()).name;
 		buffer += '&';
 		buffer += name;
 		break;
 	}
-	case ast::constant_value::type:
+	case ast::constant_value_kind::type:
 		bz_unreachable;
-	case ast::constant_value::aggregate:
+	case ast::constant_value_kind::aggregate:
 	{
 		auto const aggregate = value.get_aggregate();
 		bz_assert(type.is<ast::ts_base_type>());
@@ -781,6 +781,10 @@ void generate_global_variable(ast::decl_variable const &var_decl, codegen_contex
 	if (var_decl.is_libc_internal())
 	{
 		return;
+	}
+	else if (var_decl.global_tuple_decl_parent != nullptr)
+	{
+		return generate_global_variable(*var_decl.global_tuple_decl_parent, context);
 	}
 
 	auto const var_type = get_type(var_decl.get_type(), context);
@@ -5405,23 +5409,23 @@ static expr_value generate_integral_switch(
 			switch (value.kind())
 			{
 			static_assert(ast::constant_value::variant_count == 19);
-			case ast::constant_value::sint:
+			case ast::constant_value_kind::sint:
 			{
 				bz::u8string buffer = "";
 				write_sint(buffer, value.get_sint());
 				context.add_case_label(buffer);
 				break;
 			}
-			case ast::constant_value::uint:
+			case ast::constant_value_kind::uint:
 				context.add_case_label(bz::format("{}u", value.get_uint()));
 				break;
-			case ast::constant_value::u8char:
+			case ast::constant_value_kind::u8char:
 				context.add_case_label(bz::format("{}u", value.get_u8char()));
 				break;
-			case ast::constant_value::boolean:
+			case ast::constant_value_kind::boolean:
 				context.add_case_label(value.get_boolean() ? "1" : "0");
 				break;
-			case ast::constant_value::enum_:
+			case ast::constant_value_kind::enum_:
 			{
 				auto const enum_value = value.get_enum();
 				bz_assert(enum_value.decl->underlying_type.is<ast::ts_base_type>());
@@ -6348,8 +6352,21 @@ static void generate_statement(ast::decl_variable const &var_decl, codegen_conte
 		bz_assert(var_decl.init_expr.is_constant());
 		bz_assert(var_decl.get_type().is<ast::ts_consteval>());
 		generate_global_variable(var_decl, context);
+
+		if (var_decl.tuple_decls.not_empty())
+		{
+			return;
+		}
+
 		auto const &info = context.get_global_variable(var_decl);
-		auto value = context.add_reference_expression(bz::format("&{}", info.name), info.var_type, true);
+		auto value = context.add_temporary_expression(
+			info.expr_string,
+			info.var_type,
+			!var_decl.get_type().is_mut(),
+			true,
+			false,
+			precedence::suffix // info.expr_string is either an identifier, member access or subscript
+		);
 		add_variable_helper(var_decl, value, context);
 	}
 	else if (var_decl.get_type().is_typename())

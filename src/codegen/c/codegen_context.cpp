@@ -138,10 +138,14 @@ bz::u8string codegen_context::make_global_variable_name(ast::decl_variable const
 			return var_decl.symbol_name;
 		}
 	}
-	else
+	else if (var_decl.get_id().values.not_empty())
 	{
 		bz_assert(var_decl.get_id().values.not_empty());
 		return bz::format("gv_{}_{:x}", var_decl.get_id().values.back(), this->get_unique_number());
+	}
+	else
+	{
+		return bz::format("gv_{:x}", this->get_unique_number());
 	}
 }
 
@@ -965,6 +969,48 @@ bz::u8string_view codegen_context::create_cstring(bz::u8string_view s)
 	return name;
 }
 
+static void add_global_variable_helper(
+	ast::decl_variable const &var_decl,
+	bz::u8string expr_string,
+	type var_type,
+	codegen_context &context
+)
+{
+	if (var_decl.tuple_decls.empty())
+	{
+		context.global_variables.insert({ &var_decl, codegen_context::global_variable_t{ std::move(expr_string), var_type } });
+	}
+	else if (var_type.is_struct())
+	{
+		auto const &member_types = context.get_struct(var_type.get_struct()).members;
+		for (auto const i : bz::iota(0, var_decl.tuple_decls.size()))
+		{
+			auto const member_type = member_types[i];
+			add_global_variable_helper(
+				var_decl.tuple_decls[i],
+				bz::format("{}.{}", expr_string, context.get_member_name(i)),
+				member_type,
+				context
+			);
+		}
+	}
+	else
+	{
+		bz_assert(var_type.is_array());
+		bz_assert(context.get_array(var_type.get_array()).size == var_decl.tuple_decls.size());
+		auto const elem_type = context.get_array(var_type.get_array()).elem_type;
+		for (auto const i : bz::iota(0, var_decl.tuple_decls.size()))
+		{
+			add_global_variable_helper(
+				var_decl.tuple_decls[i],
+				bz::format("{}.a[{}]", expr_string, i),
+				elem_type,
+				context
+			);
+		}
+	}
+}
+
 void codegen_context::add_global_variable(ast::decl_variable const &var_decl, type var_type, bz::u8string_view initializer)
 {
 	bz_assert(!this->global_variables.contains(&var_decl));
@@ -985,7 +1031,11 @@ void codegen_context::add_global_variable(ast::decl_variable const &var_decl, ty
 		this->variables_string += ";\n";
 	}
 
-	this->global_variables.insert({ &var_decl, global_variable_t{ std::move(name), var_type } });
+	while (var_type.is_typedef())
+	{
+		var_type = this->get_typedef(var_type.get_typedef()).aliased_type;
+	}
+	add_global_variable_helper(var_decl, std::move(name), var_type, *this);
 }
 
 codegen_context::global_variable_t const &codegen_context::get_global_variable(ast::decl_variable const &var_decl) const

@@ -53,7 +53,7 @@ struct codegen_context
 
 	struct global_variable_t
 	{
-		bz::u8string name;
+		bz::u8string expr_string;
 		type var_type;
 	};
 
