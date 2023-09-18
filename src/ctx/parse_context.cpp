@@ -1564,7 +1564,6 @@ static ast::expression make_variable_expression(
 	ast::typespec result_type = var_decl->get_type();
 	if (result_type.is_empty())
 	{
-		bz::log("{}\n", context.global_ctx.get_location_string(var_decl->src_tokens.pivot));
 		bz_assert(context.has_errors());
 		return ast::make_error_expression(src_tokens, std::move(result_expr));
 	}
