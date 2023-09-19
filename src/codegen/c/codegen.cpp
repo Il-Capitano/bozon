@@ -5470,7 +5470,7 @@ static expr_value generate_integral_switch(
 		context.begin_case();
 		auto const prev_info = context.push_expression_scope();
 		auto const value = generate_expression(case_expr, context, result_dest);
-		if (reference_result.has_value() && !case_expr.is_noreturn())
+		if (reference_result.has_value() && case_expr.get_expr_type().is_any_reference())
 		{
 			context.create_assignment(reference_result.get(), context.create_address_of(value));
 		}
@@ -5483,7 +5483,7 @@ static expr_value generate_integral_switch(
 		context.begin_default_case();
 		auto const prev_info = context.push_expression_scope();
 		auto const value = generate_expression(switch_expr.default_case, context, result_dest);
-		if (reference_result.has_value() && !switch_expr.default_case.is_noreturn())
+		if (reference_result.has_value() && switch_expr.default_case.get_expr_type().is_any_reference())
 		{
 			context.create_assignment(reference_result.get(), context.create_address_of(value));
 		}
@@ -5716,7 +5716,7 @@ static expr_value generate_string_switch(
 		context.begin_case();
 		auto const prev_info = context.push_expression_scope();
 		auto const value = generate_expression(case_expr, context, result_dest);
-		if (reference_result.has_value() && !case_expr.is_noreturn())
+		if (reference_result.has_value() && case_expr.get_expr_type().is_any_reference())
 		{
 			context.create_assignment(reference_result.get(), context.create_address_of(value));
 		}
@@ -5729,7 +5729,7 @@ static expr_value generate_string_switch(
 		context.begin_default_case();
 		auto const prev_info = context.push_expression_scope();
 		auto const value = generate_expression(switch_expr.default_case, context, result_dest);
-		if (reference_result.has_value() && !switch_expr.default_case.is_noreturn())
+		if (reference_result.has_value() && switch_expr.default_case.get_expr_type().is_any_reference())
 		{
 			context.create_assignment(reference_result.get(), context.create_address_of(value));
 		}
