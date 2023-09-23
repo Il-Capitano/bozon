@@ -31,6 +31,7 @@
 				"no-defaulted-function-deleted",
 				"no-bitwise-instead-of-logical",
 				"no-unused-parameter",
+				"no-missing-field-initializers",
 				"error=deprecated-declarations"
 			],
 
