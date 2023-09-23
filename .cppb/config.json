@@ -307,7 +307,7 @@
 		},
 		"run_tests.exe": {
 			"dependencies": [ "scripts/run_tests.cpp", "ryu_format.windows.o" ],
-			"command": "clang++ -std=c++20 -Isrc -Iinclude scripts/run_tests.cpp ryu_format.windows.o -o run_tests.exe -stdlib=libstdc++ -pthread"
+			"command": "g++ -std=c++20 -Isrc -Iinclude scripts/run_tests.cpp ryu_format.windows.o -o run_tests.exe"
 		},
 		"run_tests.out": {
 			"dependencies": [ "scripts/run_tests.cpp", "ryu_format.linux.o" ],

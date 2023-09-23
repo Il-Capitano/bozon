@@ -45,8 +45,6 @@ jobs:
       run: |
         cppb/bin/cppb run -v --build-config test-no-sanitize
         cppb/bin/cppb run-rule run-tests-no-sanitize
-    - name: Compile ryu_format.bz
-      run: cppb/bin/cppb run-rule ryu_format.windows.bc -f
   windows-gcc:
     runs-on: windows-latest
     defaults:
@@ -88,8 +86,6 @@ jobs:
       run: cppb/bin/cppb build -v --build-config test-gcc
     - name: Run tests
       run: cppb/bin/cppb run -v --build-config test-gcc
-    - name: Compile ryu_format.bz
-      run: cppb/bin/cppb run-rule ryu_format.windows.gcc.bc -f
   linux-clang:
     runs-on: ubuntu-latest
     steps:
@@ -128,8 +124,6 @@ jobs:
       run: |
         cppb/bin/cppb run -v --build-config test
         cppb/bin/cppb run-rule run-tests
-    - name: Compile ryu_format.bz
-      run: cppb/bin/cppb run-rule ryu_format.linux.bc -f
   linux-gcc:
     runs-on: ubuntu-latest
     steps:
@@ -166,5 +160,3 @@ jobs:
       run: cppb/bin/cppb build -v --build-config test-gcc
     - name: Run tests
       run: cppb/bin/cppb run -v --build-config test-gcc
-    - name: Compile ryu_format.bz
-      run: cppb/bin/cppb run-rule ryu_format.linux.gcc.bc -f
