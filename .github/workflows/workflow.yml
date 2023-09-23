@@ -44,7 +44,7 @@ jobs:
     - name: Run tests
       run: |
         cppb/bin/cppb run -v --build-config test-no-sanitize
-        cppb/bin/cppb run-rule run-tests-not-sanitize
+        cppb/bin/cppb run-rule run-tests-no-sanitize
     - name: Compile ryu_format.bz
       run: cppb/bin/cppb run-rule ryu_format.windows.bc -f
   windows-gcc:
