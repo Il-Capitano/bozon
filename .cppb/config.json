@@ -316,24 +316,24 @@
 		"run-tests": {
 			"windows": {
 				"dependencies": [ "run_tests.exe" ],
-				"command": "./run_tests.exe",
+				"command": "./run_tests.exe -- -g -fsanitize=address,undefined -fuse-ld=lld",
 				"is_file": false
 			},
 			"linux": {
 				"dependencies": [ "run_tests.out" ],
-				"command": "./run_tests.out",
+				"command": "./run_tests.out -- -g -fsanitize=address,undefined -fuse-ld=lld-16 -lm",
 				"is_file": false
 			}
 		},
 		"run-tests-no-sanitize": {
 			"windows": {
 				"dependencies": [ "run_tests.exe" ],
-				"command": "./run_tests.exe --bozon=bin/windows-debug/no-sanitize-bozon.exe",
+				"command": "./run_tests.exe --bozon=bin/windows-debug/no-sanitize-bozon.exe -- -fuse-ld=lld",
 				"is_file": false
 			},
 			"linux": {
 				"dependencies": [ "run_tests.out" ],
-				"command": "./run_tests.out --bozon=bin/linux-debug/no-sanitize-bozon",
+				"command": "./run_tests.out --bozon=bin/linux-debug/no-sanitize-bozon -- -fuse-ld=lld-16 -lm",
 				"is_file": false
 			}
 		},

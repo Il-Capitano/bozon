@@ -218,6 +218,7 @@ static bz::optional<test_fail_info_t> run_behavior_success_test_file(
 	bz::u8string_view file,
 	bz::u8string_view out_file,
 	bz::u8string_view cc,
+	bz::array_view<bz::u8string_view const> cflags,
 	bz::u8string_view ld,
 	bz::u8string_view out_exe
 )
@@ -252,24 +253,12 @@ static bz::optional<test_fail_info_t> run_behavior_success_test_file(
 			};
 		}
 
-#ifndef _WIN32
-		auto const link_args = bz::array<bz::u8string_view, 7>{
-			out_file_with_extension,
-			"-g",
-			"-fuse-ld=lld-16",
-			"-fsanitize=address,undefined",
-			"-lm",
-			"-o",
-			out_exe
-		};
-#else
-		auto const link_args = bz::array<bz::u8string_view, 4>{
-			out_file_with_extension,
-			"-fuse-ld=lld",
-			"-o",
-			out_exe
-		};
-#endif
+
+		bz::vector<bz::u8string_view> link_args = cflags;
+		link_args.push_back("-o");
+		link_args.push_back(out_exe);
+		link_args.push_back(out_file_with_extension);
+
 		auto link_result = bz::run_process(emit_kind == "c" ? cc : ld, link_args);
 		if (link_result.return_code != 0)
 		{
@@ -311,6 +300,7 @@ static bz::optional<test_fail_info_t> run_behavior_error_test_file(
 	bz::u8string_view file,
 	bz::u8string_view out_file,
 	bz::u8string_view cc,
+	bz::array_view<bz::u8string_view const> cflags,
 	bz::u8string_view ld,
 	bz::u8string_view out_exe
 )
@@ -345,21 +335,11 @@ static bz::optional<test_fail_info_t> run_behavior_error_test_file(
 			};
 		}
 
-#ifndef _WIN32
-		auto const link_args = bz::array<bz::u8string_view, 5>{
-			out_file_with_extension,
-			"-g",
-			"-fsanitize=address,undefined",
-			"-o",
-			out_exe
-		};
-#else
-		auto const link_args = bz::array<bz::u8string_view, 3>{
-			out_file_with_extension,
-			"-o",
-			out_exe
-		};
-#endif
+		bz::vector<bz::u8string_view> link_args = cflags;
+		link_args.push_back("-o");
+		link_args.push_back(out_exe);
+		link_args.push_back(out_file_with_extension);
+
 		auto link_result = bz::run_process(emit_kind == "c" ? cc : ld, link_args);
 		if (link_result.return_code != 0)
 		{
@@ -506,6 +486,7 @@ static test_run_info_t add_behavior_tests(
 	bz::u8string_view bozon,
 	bz::vector<bz::u8string> common_flags,
 	bz::u8string_view cc,
+	bz::array_view<bz::u8string_view const> cflags,
 	bz::u8string_view ld,
 	bz::thread_pool &pool
 )
@@ -526,13 +507,14 @@ static test_run_info_t add_behavior_tests(
 		return pool.push_task([
 			bozon,
 			cc,
+			cflags,
 			ld,
 			common_flags = common_flags,
 			file_string = std::move(file_string),
 			out_file_string = std::move(out_file_string),
 			out_exe_string = std::move(out_exe_string)
 		]() {
-			return run_behavior_success_test_file(bozon, common_flags, file_string, out_file_string, cc, ld, out_exe_string);
+			return run_behavior_success_test_file(bozon, common_flags, file_string, out_file_string, cc, cflags, ld, out_exe_string);
 		});
 	}).collect();
 	futures.append(files.slice(success_count).transform([&](auto const &file) {
@@ -544,13 +526,14 @@ static test_run_info_t add_behavior_tests(
 		return pool.push_task([
 			bozon,
 			cc,
+			cflags,
 			ld,
 			common_flags = common_flags,
 			file_string = std::move(file_string),
 			out_file_string = std::move(out_file_string),
 			out_exe_string = std::move(out_exe_string)
 		]() {
-			return run_behavior_error_test_file(bozon, common_flags, file_string, out_file_string, cc, ld, out_exe_string);
+			return run_behavior_error_test_file(bozon, common_flags, file_string, out_file_string, cc, cflags, ld, out_exe_string);
 		});
 	}));
 
@@ -656,7 +639,8 @@ int main(int argc, char const * const *argv)
 		.warning = true,
 		.error = true,
 	};
-	for (auto const arg : args)
+	bz::array_view<bz::u8string_view const> cflags;
+	for (auto const &[arg, i] : args.enumerate())
 	{
 		if (arg.starts_with("--bozon="))
 		{
@@ -709,6 +693,11 @@ int main(int argc, char const * const *argv)
 				it = comma_it + 1;
 			}
 		}
+		else if (arg == "--")
+		{
+			cflags = args.slice(i + 1);
+			break;
+		}
 	}
 	if (bozon == "")
 	{
@@ -740,7 +729,7 @@ int main(int argc, char const * const *argv)
 
 	if (tests_to_run.behavior)
 	{
-		test_infos.push_back(add_behavior_tests(bozon, common_flags, cc, ld, pool));
+		test_infos.push_back(add_behavior_tests(bozon, common_flags, cc, cflags, ld, pool));
 	}
 	if (tests_to_run.success)
 	{
