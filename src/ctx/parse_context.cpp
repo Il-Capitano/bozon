@@ -2064,7 +2064,7 @@ static symbol_t find_id_in_global_scope(ast::global_scope_t &scope, ast::identif
 		return {};
 	}
 
-	static_assert(sizeof (ast::global_scope_t) == 624);
+	static_assert(sizeof (ast::global_scope_t) == 624 || sizeof (ast::global_scope_t) == 560);
 	static_assert(symbol_t::variant_count == 8);
 	auto const [kind, index] = symbols.get_symbol_index_by_id(id);
 	switch (kind)

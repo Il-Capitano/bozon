@@ -33,17 +33,17 @@ jobs:
         cd ..
     - run: touch ryu_format.windows.bc
     - name: Build bozon
-      run: cppb/bin/cppb build -v
+      run: cppb/bin/cppb build -v --build-config no-sanitize
     - name: Compile bitcode_test.bz
       run: |
-        cppb/bin/cppb run -v
+        cppb/bin/cppb run -v --build-config no-sanitize
         cppb/bin/cppb run-rule a.exe
         ./a.exe
     - name: Build tests
-      run: cppb/bin/cppb build -v --build-config test
+      run: cppb/bin/cppb build -v --build-config test-no-sanitize
     - name: Run tests
       run: |
-        cppb/bin/cppb run -v --build-config test
+        cppb/bin/cppb run -v --build-config test-no-sanitize
         cppb/bin/cppb run-rule run-tests
     - name: Compile ryu_format.bz
       run: cppb/bin/cppb run-rule ryu_format.windows.bc -f

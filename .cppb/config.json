@@ -8,6 +8,7 @@
 			"cpp_precompiled_header": "src/core.h",
 
 			"c_compiler_flags": [],
+			"cpp_compiler_flags": [ "-ferror-limit=2" ],
 			"emit_compile_commands": true,
 
 			"run_args": [
@@ -29,7 +30,8 @@
 				"no-c++20-extensions",
 				"no-defaulted-function-deleted",
 				"no-bitwise-instead-of-logical",
-				"no-unused-parameter"
+				"no-unused-parameter",
+				"error=deprecated-declarations"
 			],
 
 			"prebuild_rules": [ "generate-config", "generate-lexer" ],
@@ -37,11 +39,7 @@
 			"configs": {
 				"windows-debug": {},
 				"windows-release": {},
-				"linux-debug": {
-					"optimization": "1",
-					"cpp_compiler_flags": [ "-fno-omit-frame-pointer", "-fsanitize=address,undefined" ],
-					"link_flags": [ "-fsanitize=address,undefined" ]
-				},
+				"linux-debug": {},
 				"linux-release": {},
 				"windows": {
 					"link_dependencies": [ "ryu_format.windows.o" ],
@@ -53,16 +51,16 @@
 					"compiler": "clang-16",
 					"libraries": [ "LLVM-16", "backtrace" ],
 					"link_flags": [ "-fuse-ld=lld-16" ],
-					"warnings": [ "no-unused-parameter", "error=deprecated-declarations" ],
 					"emit_compile_commands": false
 				},
 				"debug": {
-					"cpp_compiler_flags": [ "-ferror-limit=2" ],
+					"cpp_compiler_flags": [ "-fno-omit-frame-pointer", "-fsanitize=address,undefined" ],
+					"link_flags": [ "-fsanitize=address,undefined" ],
 					"defines": [ "BOZON_NO_ARENA", "BOZON_PROFILE_ALLOCATIONS", "BOZON_PROFILE_COMPTIME" ],
-					"optimization": "0"
+					"optimization": "1"
 				},
 				"release": {
-					"cpp_compiler_flags": [ "-march=native", "-mtune=native", "-ferror-limit=2", "-flto" ],
+					"cpp_compiler_flags": [ "-march=native", "-mtune=native", "-flto" ],
 					"defines": [ "NDEBUG" ],
 					"optimization": "3",
 					"link_flags": [ "-flto" ]
@@ -167,7 +165,8 @@
 				"no-c++20-extensions",
 				"no-defaulted-function-deleted",
 				"no-bitwise-instead-of-logical",
-				"no-unused-parameter"
+				"no-unused-parameter",
+				"error=deprecated-declarations"
 			],
 
 			"prebuild_rules": [ "generate-config-no-llvm" ],
@@ -191,7 +190,6 @@
 					"compiler": "clang-16",
 					"libraries": [ "backtrace" ],
 					"link_flags": [ "-fuse-ld=lld-16" ],
-					"warnings": [ "no-unused-parameter", "error=deprecated-declarations" ],
 					"emit_compile_commands": false
 				},
 				"debug": {
@@ -210,6 +208,7 @@
 		"no-sanitize": {
 			"depends_on": "default",
 			"emit_compile_commands": false,
+			"cpp_compiler_flags": [ "-ferror-limit=2" ],
 
 			"warnings": [
 				"all",
@@ -220,13 +219,20 @@
 			],
 
 			"configs": {
-				"linux-debug": {
+				"debug": {
 					"optimization": "0",
 					"cpp_compiler_flags": [],
-					"link_flags": [ "-fuse-ld=lld-16" ],
-					"warnings": [ "no-unused-parameter", "error=deprecated-declarations" ]
+					"link_flags": []
 				}
 			}
+		},
+		"test-no-sanitize": {
+			"depends_on": "no-sanitize",
+			"emit_compile_commands": false,
+			"source_directory": "test",
+			"defines": [],
+			"prebuild_rules": [ "generate-config-none" ],
+			"run_args": [ "-Wall", "--no-error-highlight", "--stdlib-dir", "bozon-stdlib" ]
 		},
 		"analyze": {
 			"depends_on": "default",

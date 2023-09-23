@@ -22,7 +22,7 @@ template<>
 pass_kind get_pass_kind<platform_abi::systemv_amd64>(
 	llvm::Type *t,
 	llvm::DataLayout const &data_layout,
-	llvm::LLVMContext &context
+	llvm::LLVMContext &
 )
 {
 	bz_assert(data_layout.getPointerSize() == register_size);

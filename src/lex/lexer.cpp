@@ -663,7 +663,7 @@ static token make_regular_token(
 	ctx::char_pos end_it,
 	uint32_t file_id,
 	uint32_t line,
-	ctx::lex_context &context
+	ctx::lex_context &
 )
 {
 	bz_assert(*begin_it <= 127);
