@@ -1824,9 +1824,52 @@ static val_ptr emit_builtin_binary_modulo(
 		context.builder.SetInsertPoint(end_bb);
 	}
 
-	auto const result_val = ast::is_signed_integer_kind(lhs_kind)
-		? context.builder.CreateSRem(lhs_val, rhs_val, "mod_tmp")
-		: context.builder.CreateURem(lhs_val, rhs_val, "mod_tmp");
+	auto const result_val = [&]() -> llvm::Value * {
+		if (ast::is_signed_integer_kind(lhs_kind))
+		{
+			auto const result_type = lhs_val->getType();
+			auto const min_value = [&]() {
+				switch (lhs_kind)
+				{
+				case ast::type_info::int8_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int8_t>::min());
+				case ast::type_info::int16_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int16_t>::min());
+				case ast::type_info::int32_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int32_t>::min());
+				case ast::type_info::int64_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int64_t>::min());
+				default:
+					bz_unreachable;
+				}
+			}();
+			auto const lhs_is_overflow = context.builder.CreateICmpEQ(lhs_val, min_value);
+			auto const rhs_is_overflow = context.builder.CreateICmpEQ(rhs_val, llvm::ConstantInt::getSigned(result_type, -1));
+			auto const is_overflow = context.builder.CreateAnd(lhs_is_overflow, rhs_is_overflow);
+
+			auto const begin_bb = context.builder.GetInsertBlock();
+			auto const non_overflow_bb = context.add_basic_block("mod_overflow_check");
+			auto const end_bb = context.add_basic_block("mod_overflow_check_end");
+
+			context.builder.CreateCondBr(is_overflow, end_bb, non_overflow_bb);
+			context.builder.SetInsertPoint(non_overflow_bb);
+			auto const non_overflow_result = context.builder.CreateSRem(lhs_val, rhs_val, "mod_tmp");
+			context.builder.CreateBr(end_bb);
+
+			context.builder.SetInsertPoint(end_bb);
+			auto const result = context.builder.CreatePHI(result_type, 2, "mod_tmp");
+			result->addIncoming(non_overflow_result, non_overflow_bb);
+			result->addIncoming(llvm::ConstantInt::getSigned(result_type, 0), begin_bb);
+
+			return result;
+		}
+		else
+		{
+			bz_assert(ast::is_unsigned_integer_kind(lhs_kind));
+			return context.builder.CreateURem(lhs_val, rhs_val, "mod_tmp");
+		}
+	}();
+
 	if (result_address == nullptr)
 	{
 		return val_ptr::get_value(result_val);
@@ -1874,9 +1917,51 @@ static val_ptr emit_builtin_binary_modulo_eq(
 		context.builder.SetInsertPoint(end_bb);
 	}
 
-	auto const res = ast::is_signed_integer_kind(lhs_kind)
-		? context.builder.CreateSRem(lhs_val, rhs_val, "mod_tmp")
-		: context.builder.CreateURem(lhs_val, rhs_val, "mod_tmp");
+	auto const res = [&]() -> llvm::Value * {
+		if (ast::is_signed_integer_kind(lhs_kind))
+		{
+			auto const result_type = lhs_val->getType();
+			auto const min_value = [&]() {
+				switch (lhs_kind)
+				{
+				case ast::type_info::int8_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int8_t>::min());
+				case ast::type_info::int16_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int16_t>::min());
+				case ast::type_info::int32_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int32_t>::min());
+				case ast::type_info::int64_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int64_t>::min());
+				default:
+					bz_unreachable;
+				}
+			}();
+			auto const lhs_is_overflow = context.builder.CreateICmpEQ(lhs_val, min_value);
+			auto const rhs_is_overflow = context.builder.CreateICmpEQ(rhs_val, llvm::ConstantInt::getSigned(result_type, -1));
+			auto const is_overflow = context.builder.CreateAnd(lhs_is_overflow, rhs_is_overflow);
+
+			auto const begin_bb = context.builder.GetInsertBlock();
+			auto const non_overflow_bb = context.add_basic_block("mod_overflow_check");
+			auto const end_bb = context.add_basic_block("mod_overflow_check_end");
+
+			context.builder.CreateCondBr(is_overflow, end_bb, non_overflow_bb);
+			context.builder.SetInsertPoint(non_overflow_bb);
+			auto const non_overflow_result = context.builder.CreateSRem(lhs_val, rhs_val, "mod_tmp");
+			context.builder.CreateBr(end_bb);
+
+			context.builder.SetInsertPoint(end_bb);
+			auto const result = context.builder.CreatePHI(result_type, 2, "mod_tmp");
+			result->addIncoming(non_overflow_result, non_overflow_bb);
+			result->addIncoming(llvm::ConstantInt::getSigned(result_type, 0), begin_bb);
+
+			return result;
+		}
+		else
+		{
+			bz_assert(ast::is_unsigned_integer_kind(lhs_kind));
+			return context.builder.CreateURem(lhs_val, rhs_val, "mod_tmp");
+		}
+	}();
 	context.builder.CreateStore(res, lhs_val_ref.val);
 	if (result_address == nullptr)
 	{

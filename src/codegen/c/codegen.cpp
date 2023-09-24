@@ -2148,6 +2148,9 @@ static expr_value generate_builtin_binary_modulo(
 	auto const lhs_value = generate_expression(lhs, context, {});
 	auto const rhs_value = generate_expression(rhs, context, {});
 
+	bz_assert(rhs.get_expr_type().is<ast::ts_base_type>());
+	auto const kind = rhs.get_expr_type().get<ast::ts_base_type>().info->kind;
+
 	if (global_data::panic_on_int_divide_by_zero)
 	{
 		auto const is_rhs_zero = context.create_equals(rhs_value, context.get_zero_value(rhs_value.get_type()));
@@ -2158,8 +2161,30 @@ static expr_value generate_builtin_binary_modulo(
 		context.end_if(prev_if_info);
 	}
 
-	auto const result_value = context.create_modulo(lhs_value, rhs_value);
-	return value_or_result_dest(result_value, result_dest, context);
+	if (ast::is_signed_integer_kind(kind))
+	{
+		auto const func_name = [&]() -> bz::u8string_view {
+			switch (kind)
+			{
+			case ast::type_info::int8_:
+				return "bozon_rem_i8";
+			case ast::type_info::int16_:
+				return "bozon_rem_i16";
+			case ast::type_info::int32_:
+				return "bozon_rem_i32";
+			case ast::type_info::int64_:
+				return "bozon_rem_i64";
+			default:
+				bz_unreachable;
+			}
+		}();
+		return generate_trivial_function_call(func_name, { lhs_value, rhs_value }, lhs_value.get_type(), context, result_dest);
+	}
+	else
+	{
+		auto const result_value = context.create_modulo(lhs_value, rhs_value);
+		return value_or_result_dest(result_value, result_dest, context);
+	}
 }
 
 static expr_value generate_builtin_binary_modulo_eq(
@@ -2172,6 +2197,9 @@ static expr_value generate_builtin_binary_modulo_eq(
 	auto const rhs_value = generate_expression(rhs, context, {});
 	auto const lhs_value = generate_expression(lhs, context, {});
 
+	bz_assert(rhs.get_expr_type().is<ast::ts_base_type>());
+	auto const kind = rhs.get_expr_type().get<ast::ts_base_type>().info->kind;
+
 	if (global_data::panic_on_int_divide_by_zero)
 	{
 		auto const is_rhs_zero = context.create_equals(rhs_value, context.get_zero_value(rhs_value.get_type()));
@@ -2182,8 +2210,30 @@ static expr_value generate_builtin_binary_modulo_eq(
 		context.end_if(prev_if_info);
 	}
 
-	context.create_modulo_eq(lhs_value, rhs_value);
-	return lhs_value;
+	if (ast::is_signed_integer_kind(kind))
+	{
+		auto const func_name = [&]() -> bz::u8string_view {
+			switch (kind)
+			{
+			case ast::type_info::int8_:
+				return "bozon_rem_i8";
+			case ast::type_info::int16_:
+				return "bozon_rem_i16";
+			case ast::type_info::int32_:
+				return "bozon_rem_i32";
+			case ast::type_info::int64_:
+				return "bozon_rem_i64";
+			default:
+				bz_unreachable;
+			}
+		}();
+		return generate_trivial_function_call(func_name, { lhs_value, rhs_value }, lhs_value.get_type(), context, lhs_value);
+	}
+	else
+	{
+		context.create_modulo_eq(lhs_value, rhs_value);
+		return lhs_value;
+	}
 }
 
 static expr_value generate_builtin_binary_equality(

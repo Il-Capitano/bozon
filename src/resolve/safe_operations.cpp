@@ -688,11 +688,12 @@ bz::optional<int64_t> safe_binary_modulo(
 	ctx::parse_context &context
 )
 {
-	bz::u8string_view const type_name =
-		type_kind == ast::type_info::int8_  ? "int8"  :
-		type_kind == ast::type_info::int16_ ? "int16" :
-		type_kind == ast::type_info::int32_ ? "int32" :
-		"int64";
+	using T = std::pair<bz::u8string_view, int64_t>;
+	auto const [type_name, min_value] =
+		type_kind == ast::type_info::int8_  ? T{ "int8",  std::numeric_limits<int8_t> ::min() } :
+		type_kind == ast::type_info::int16_ ? T{ "int16", std::numeric_limits<int16_t>::min() } :
+		type_kind == ast::type_info::int32_ ? T{ "int32", std::numeric_limits<int32_t>::min() } :
+		T{ "int64", std::numeric_limits<int64_t>::min() };
 
 	if (rhs == 0)
 	{
@@ -705,6 +706,10 @@ bz::optional<int64_t> safe_binary_modulo(
 			);
 		}
 		return {};
+	}
+	else if (lhs == min_value && rhs == -1)
+	{
+		return 0;
 	}
 	else
 	{

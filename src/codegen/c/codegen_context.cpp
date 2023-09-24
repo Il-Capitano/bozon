@@ -2825,6 +2825,22 @@ static t_int64 bozon_div_i64(t_int64 lhs, t_int64 rhs)
 {
 	return lhs == (t_int64)((t_uint64)1 << 63) && rhs == -1 ? lhs : lhs / rhs;
 }
+static t_int8 bozon_rem_i8(t_int8 lhs, t_int8 rhs)
+{
+	return lhs == (t_int8)((t_uint8)1 << 7) && rhs == -1 ? 0 : lhs % rhs;
+}
+static t_int16 bozon_rem_i16(t_int16 lhs, t_int16 rhs)
+{
+	return lhs == (t_int16)((t_uint16)1 << 15) && rhs == -1 ? 0 : lhs % rhs;
+}
+static t_int32 bozon_rem_i32(t_int32 lhs, t_int32 rhs)
+{
+	return lhs == (t_int32)((t_uint32)1 << 31) && rhs == -1 ? 0 : lhs % rhs;
+}
+static t_int64 bozon_rem_i64(t_int64 lhs, t_int64 rhs)
+{
+	return lhs == (t_int64)((t_uint64)1 << 63) && rhs == -1 ? 0 : lhs % rhs;
+}
 static t_int8 bozon_abs_i8(t_int8 n)
 {
 	if (n == (t_int8)(1ull << 7))
