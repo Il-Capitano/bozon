@@ -92,10 +92,10 @@ jobs:
     - uses: actions/checkout@v3
     - name: Install packages
       run: |
-        printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-16 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-16.list
+        printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-17 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-17.list
         wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
         sudo apt update
-        sudo apt install gcc gcc-12 g++-12 llvm-16 lld-16 clang-16 libfmt-dev rapidjson-dev libssl-dev
+        sudo apt install gcc gcc-12 g++-12 llvm-17 lld-17 clang-17 libfmt-dev rapidjson-dev libssl-dev
     - name: Install libbacktrace
       run: |
         git clone https://github.com/ianlancetaylor/libbacktrace.git
@@ -108,7 +108,7 @@ jobs:
         git clone https://github.com/Il-Capitano/cppb.git
         cd cppb
         mkdir bin
-        make CXX=clang++-16 LD=lld-16
+        make CXX=clang++-17 LD=lld-17
         cd ..
     - run: touch ryu_format.linux.bc
     - name: Build bozon
@@ -130,10 +130,10 @@ jobs:
     - uses: actions/checkout@v3
     - name: Install packages
       run: |
-        printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-16 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-16.list
+        printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-17 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-17.list
         wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
         sudo apt update
-        sudo apt install gcc lld gcc-12 g++-12 llvm-16 lld-16 clang-16 libfmt-dev rapidjson-dev libssl-dev
+        sudo apt install gcc lld gcc-12 g++-12 llvm-17 lld-17 clang-17 libfmt-dev rapidjson-dev libssl-dev
     - name: Install libbacktrace
       run: |
         git clone https://github.com/ianlancetaylor/libbacktrace.git
@@ -146,7 +146,7 @@ jobs:
         git clone https://github.com/Il-Capitano/cppb.git
         cd cppb
         mkdir bin
-        make CXX=clang++-16 LD=lld-16
+        make CXX=clang++-17 LD=lld-17
         cd ..
     - run: touch ryu_format.linux.bc
     - name: Build bozon

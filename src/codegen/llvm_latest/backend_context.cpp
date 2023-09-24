@@ -5,7 +5,7 @@
 #include "emit_bitcode.h"
 #include "colors.h"
 
-#include <llvm/Support/Host.h>
+#include <llvm/TargetParser/Host.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/FileSystem.h>
@@ -17,9 +17,9 @@
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
 
-#if LLVM_VERSION_MAJOR != 16
-#error LLVM 16 is required
-#endif // LLVM 16
+#if LLVM_VERSION_MAJOR != 17
+#error LLVM 17 is required
+#endif // LLVM 17
 
 namespace codegen::llvm_latest
 {

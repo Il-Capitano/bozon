@@ -10,7 +10,6 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Value.h>
-#include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/Target/TargetMachine.h>
 #endif // BOZON_CONFIG_BACKEND_LLVM
 
