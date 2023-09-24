@@ -1,0 +1,83 @@
+function check(r)
+{
+	mut it = __builtin_integer_range_from_begin_iterator(r);
+	let end = __builtin_integer_range_from_end_iterator(r);
+
+	if (!(end != it)) unreachable;
+	for (let _ in 0..100)
+	{
+		++it;
+		if (!(end != it)) unreachable;
+	}
+}
+
+function main()
+{
+	let begin = 3i8;
+	let r = __builtin_integer_range_from_i8(begin);
+	check(r);
+	let begin = -33i8;
+	let r = __builtin_integer_range_from_i8(begin);
+	check(r);
+	let begin = 0i8;
+	let r = __builtin_integer_range_from_i8(begin);
+	check(r);
+
+	let begin = 3i16;
+	let r = __builtin_integer_range_from_i16(begin);
+	check(r);
+	let begin = -33i16;
+	let r = __builtin_integer_range_from_i16(begin);
+	check(r);
+	let begin = 0i16;
+	let r = __builtin_integer_range_from_i16(begin);
+	check(r);
+
+	let begin = 3i32;
+	let r = __builtin_integer_range_from_i32(begin);
+	check(r);
+	let begin = -33i32;
+	let r = __builtin_integer_range_from_i32(begin);
+	check(r);
+	let begin = 0i32;
+	let r = __builtin_integer_range_from_i32(begin);
+	check(r);
+
+	let begin = 3i64;
+	let r = __builtin_integer_range_from_i64(begin);
+	check(r);
+	let begin = -33i64;
+	let r = __builtin_integer_range_from_i64(begin);
+	check(r);
+	let begin = 0i64;
+	let r = __builtin_integer_range_from_i64(begin);
+	check(r);
+
+	let begin = 3u8;
+	let r = __builtin_integer_range_from_u8(begin);
+	check(r);
+	let begin = 0u8;
+	let r = __builtin_integer_range_from_u8(begin);
+	check(r);
+
+	let begin = 3u16;
+	let r = __builtin_integer_range_from_u16(begin);
+	check(r);
+	let begin = 0u16;
+	let r = __builtin_integer_range_from_u16(begin);
+	check(r);
+
+	let begin = 3u32;
+	let r = __builtin_integer_range_from_u32(begin);
+	check(r);
+	let begin = 0u32;
+	let r = __builtin_integer_range_from_u32(begin);
+	check(r);
+
+	let begin = 3u64;
+	let r = __builtin_integer_range_from_u64(begin);
+	check(r);
+	let begin = 0u64;
+	let r = __builtin_integer_range_from_u64(begin);
+	check(r);
+}

@@ -1,0 +1,99 @@
+function check(intN: typename, r)
+{
+	let it = __builtin_integer_range_inclusive_begin_iterator(r);
+	let it_components = __builtin_bit_cast([intN, intN, bool], it);
+	if (__builtin_integer_range_inclusive_begin_value(r) != it_components[0]) unreachable;
+	if (__builtin_integer_range_inclusive_end_value(r) != it_components[1]) unreachable;
+	if (it_components[2] != false) unreachable;
+}
+
+function main()
+{
+	let begin = 3i8;
+	let end = 122i8;
+	let r = __builtin_integer_range_inclusive_i8(begin, end);
+	check(int8, r);
+	let begin = -33i8;
+	let end = 72i8;
+	let r = __builtin_integer_range_inclusive_i8(begin, end);
+	check(int8, r);
+	let begin = 0i8;
+	let end = 0i8;
+	let r = __builtin_integer_range_inclusive_i8(begin, end);
+	check(int8, r);
+
+	let begin = 3i16;
+	let end = 122i16;
+	let r = __builtin_integer_range_inclusive_i16(begin, end);
+	check(int16, r);
+	let begin = -33i16;
+	let end = 72i16;
+	let r = __builtin_integer_range_inclusive_i16(begin, end);
+	check(int16, r);
+	let begin = 0i16;
+	let end = 0i16;
+	let r = __builtin_integer_range_inclusive_i16(begin, end);
+	check(int16, r);
+
+	let begin = 3i32;
+	let end = 122i32;
+	let r = __builtin_integer_range_inclusive_i32(begin, end);
+	check(int32, r);
+	let begin = -33i32;
+	let end = 72i32;
+	let r = __builtin_integer_range_inclusive_i32(begin, end);
+	check(int32, r);
+	let begin = 0i32;
+	let end = 0i32;
+	let r = __builtin_integer_range_inclusive_i32(begin, end);
+	check(int32, r);
+
+	let begin = 3i64;
+	let end = 122i64;
+	let r = __builtin_integer_range_inclusive_i64(begin, end);
+	check(int64, r);
+	let begin = -33i64;
+	let end = 72i64;
+	let r = __builtin_integer_range_inclusive_i64(begin, end);
+	check(int64, r);
+	let begin = 0i64;
+	let end = 0i64;
+	let r = __builtin_integer_range_inclusive_i64(begin, end);
+	check(int64, r);
+
+	let begin = 3u8;
+	let end = 122u8;
+	let r = __builtin_integer_range_inclusive_u8(begin, end);
+	check(uint8, r);
+	let begin = 0u8;
+	let end = 0u8;
+	let r = __builtin_integer_range_inclusive_u8(begin, end);
+	check(uint8, r);
+
+	let begin = 3u16;
+	let end = 122u16;
+	let r = __builtin_integer_range_inclusive_u16(begin, end);
+	check(uint16, r);
+	let begin = 0u16;
+	let end = 0u16;
+	let r = __builtin_integer_range_inclusive_u16(begin, end);
+	check(uint16, r);
+
+	let begin = 3u32;
+	let end = 122u32;
+	let r = __builtin_integer_range_inclusive_u32(begin, end);
+	check(uint32, r);
+	let begin = 0u32;
+	let end = 0u32;
+	let r = __builtin_integer_range_inclusive_u32(begin, end);
+	check(uint32, r);
+
+	let begin = 3u64;
+	let end = 122u64;
+	let r = __builtin_integer_range_inclusive_u64(begin, end);
+	check(uint64, r);
+	let begin = 0u64;
+	let end = 0u64;
+	let r = __builtin_integer_range_inclusive_u64(begin, end);
+	check(uint64, r);
+}
