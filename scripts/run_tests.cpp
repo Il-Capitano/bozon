@@ -240,6 +240,7 @@ static bz::optional<test_fail_info_t> run_behavior_success_test_file(
 		}
 		flags.push_back("-o");
 		flags.push_back(out_file_with_extension);
+
 		auto compilation_result = bz::run_process(bozon, flags);
 		remove_ansi_escape_sequences(compilation_result.stdout_string);
 		remove_ansi_escape_sequences(compilation_result.stderr_string);
@@ -252,7 +253,6 @@ static bz::optional<test_fail_info_t> run_behavior_success_test_file(
 				.wanted_diagnostics = {},
 			};
 		}
-
 
 		bz::vector<bz::u8string_view> link_args = cflags;
 		link_args.push_back("-o");
@@ -322,6 +322,7 @@ static bz::optional<test_fail_info_t> run_behavior_error_test_file(
 		}
 		flags.push_back("-o");
 		flags.push_back(out_file_with_extension);
+
 		auto compilation_result = bz::run_process(bozon, flags);
 		remove_ansi_escape_sequences(compilation_result.stdout_string);
 		remove_ansi_escape_sequences(compilation_result.stderr_string);
