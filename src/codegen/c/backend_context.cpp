@@ -54,7 +54,7 @@ static void generate_structs_helper(bz::array_view<ast::statement const> decls, 
 			for (auto const &instantiation_info : struct_decl.info.generic_instantiations)
 			{
 				generate_struct(*instantiation_info, context);
-				if (instantiation_info->kind == ast::type_info::aggregate && instantiation_info->state == ast::resolve_state::all)
+				if (instantiation_info->body.is<bz::vector<ast::statement>>() && instantiation_info->state == ast::resolve_state::all)
 				{
 					generate_structs_helper(instantiation_info->body.get<bz::vector<ast::statement>>(), context);
 				}
@@ -63,7 +63,7 @@ static void generate_structs_helper(bz::array_view<ast::statement const> decls, 
 		else
 		{
 			generate_struct(struct_decl.info, context);
-			if (struct_decl.info.kind == ast::type_info::aggregate && struct_decl.info.state == ast::resolve_state::all)
+			if (struct_decl.info.body.is<bz::vector<ast::statement>>() && struct_decl.info.state == ast::resolve_state::all)
 			{
 				generate_structs_helper(struct_decl.info.body.get<bz::vector<ast::statement>>(), context);
 			}
@@ -87,13 +87,13 @@ static void generate_variables_helper(bz::array_view<ast::statement const> decls
 		{
 			for (auto const &instantiation_info : struct_decl.info.generic_instantiations)
 			{
-				if (instantiation_info->kind == ast::type_info::aggregate && instantiation_info->state == ast::resolve_state::all)
+				if (instantiation_info->body.is<bz::vector<ast::statement>>() && instantiation_info->state == ast::resolve_state::all)
 				{
 					generate_variables_helper(instantiation_info->body.get<bz::vector<ast::statement>>(), context);
 				}
 			}
 		}
-		else if (struct_decl.info.kind == ast::type_info::aggregate && struct_decl.info.state == ast::resolve_state::all)
+		else if (struct_decl.info.body.is<bz::vector<ast::statement>>() && struct_decl.info.state == ast::resolve_state::all)
 		{
 			generate_variables_helper(struct_decl.info.body.get<bz::vector<ast::statement>>(), context);
 		}
