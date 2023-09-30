@@ -22,6 +22,9 @@
 	@__builtin export operator <= (lhs: int8,  rhs: int8)  -> bool;
 	@__builtin export operator > (lhs: int8,  rhs: int8)  -> bool;
 	@__builtin export operator >= (lhs: int8,  rhs: int8)  -> bool;
+
+	export consteval min: int8 = ((0x80u8 as int8));
+	export consteval max: int8 = ((0x7fu8 as int8));
 }
 
 @__builtin export struct int16
@@ -48,6 +51,9 @@
 	@__builtin export operator <= (lhs: int16, rhs: int16) -> bool;
 	@__builtin export operator > (lhs: int16, rhs: int16) -> bool;
 	@__builtin export operator >= (lhs: int16, rhs: int16) -> bool;
+
+	export consteval min: int16 = ((0x8000u16 as int16));
+	export consteval max: int16 = ((0x7fffu16 as int16));
 }
 
 @__builtin export struct int32
@@ -74,6 +80,9 @@
 	@__builtin export operator <= (lhs: int32, rhs: int32) -> bool;
 	@__builtin export operator > (lhs: int32, rhs: int32) -> bool;
 	@__builtin export operator >= (lhs: int32, rhs: int32) -> bool;
+
+	export consteval min: int32 = ((0x8000'0000u32 as int32));
+	export consteval max: int32 = ((0x7fff'ffffu32 as int32));
 }
 
 @__builtin export struct int64
@@ -100,6 +109,9 @@
 	@__builtin export operator <= (lhs: int64, rhs: int64) -> bool;
 	@__builtin export operator > (lhs: int64, rhs: int64) -> bool;
 	@__builtin export operator >= (lhs: int64, rhs: int64) -> bool;
+
+	export consteval min: int64 = ((0x8000'0000'0000'0000u64 as int64));
+	export consteval max: int64 = ((0x7fff'ffff'ffff'ffffu64 as int64));
 }
 
 @__builtin export struct uint8
@@ -140,6 +152,9 @@
 	@__builtin @overload_priority(1) export operator >> (lhs: uint8,  rhs: uint64) -> uint8;
 	@__builtin @overload_priority(0) export operator >>= (lhs: &mut uint8,  rhs:  int64) -> &mut uint8;
 	@__builtin @overload_priority(1) export operator >>= (lhs: &mut uint8,  rhs: uint64) -> &mut uint8;
+
+	export consteval min: uint8 = 0u8;
+	export consteval max: uint8 = 0xffu8;
 }
 
 @__builtin export struct uint16
@@ -180,6 +195,9 @@
 	@__builtin @overload_priority(1) export operator >> (lhs: uint16,  rhs: uint64) -> uint16;
 	@__builtin @overload_priority(0) export operator >>= (lhs: &mut uint16,  rhs:  int64) -> &mut uint16;
 	@__builtin @overload_priority(1) export operator >>= (lhs: &mut uint16,  rhs: uint64) -> &mut uint16;
+
+	export consteval min: uint16 = 0u16;
+	export consteval max: uint16 = 0xffffu16;
 }
 
 @__builtin export struct uint32
@@ -220,6 +238,9 @@
 	@__builtin @overload_priority(1) export operator >> (lhs: uint32,  rhs: uint64) -> uint32;
 	@__builtin @overload_priority(0) export operator >>= (lhs: &mut uint32,  rhs:  int64) -> &mut uint32;
 	@__builtin @overload_priority(1) export operator >>= (lhs: &mut uint32,  rhs: uint64) -> &mut uint32;
+
+	export consteval min: uint32 = 0u32;
+	export consteval max: uint32 = 0xffff'ffffu32;
 }
 
 @__builtin export struct uint64
@@ -260,6 +281,9 @@
 	@__builtin @overload_priority(1) export operator >> (lhs: uint64,  rhs: uint64) -> uint64;
 	@__builtin @overload_priority(0) export operator >>= (lhs: &mut uint64,  rhs:  int64) -> &mut uint64;
 	@__builtin @overload_priority(1) export operator >>= (lhs: &mut uint64,  rhs: uint64) -> &mut uint64;
+
+	export consteval min: uint64 = 0u64;
+	export consteval max: uint64 = 0xffff'ffff'ffff'ffffu64;
 }
 
 @__builtin export struct float32
@@ -282,6 +306,9 @@
 	@__builtin export operator <= (lhs: float32, rhs: float32) -> bool;
 	@__builtin export operator > (lhs: float32, rhs: float32) -> bool;
 	@__builtin export operator >= (lhs: float32, rhs: float32) -> bool;
+
+	export consteval inf: float32 = ((1.0f32 / 0.0f32));
+	export consteval nan: float32 = ((__builtin_abs_f32(((0.0f32 / 0.0f32)))));
 }
 
 @__builtin export struct float64
@@ -304,6 +331,9 @@
 	@__builtin export operator <= (lhs: float64, rhs: float64) -> bool;
 	@__builtin export operator > (lhs: float64, rhs: float64) -> bool;
 	@__builtin export operator >= (lhs: float64, rhs: float64) -> bool;
+
+	export consteval inf: float64 = ((1.0f64 / 0.0f64));
+	export consteval nan: float64 = ((__builtin_abs_f64(((0.0f64 / 0.0f64)))));
 }
 
 @__builtin export struct char
