@@ -1303,6 +1303,9 @@ enum class option_index_t : std::uint64_t
 enum class command_index_t : std::uint64_t
 {};
 
+template<typename T>
+concept index_type = std::same_as<T, group_element_index_t> || std::same_as<T, option_index_t> || std::same_as<T, command_index_t>;
+
 
 constexpr group_element_index_t create_group_element_index(group_id_t id, std::uint32_t index) noexcept
 {
@@ -1356,13 +1359,16 @@ constexpr commands_id_t get_commands_id_t(command_index_t index) noexcept
 }
 
 template<group_id_t ID>
-constexpr auto help_group_element_index = (std::enable_if_t<add_help_to_group<ID>, int>{}, create_group_element_index(ID, option_group<ID>.size()));
+	requires add_help_to_group<ID>
+constexpr auto help_group_element_index = create_group_element_index(ID, option_group<ID>.size());
 
 template<options_id_t ID>
-constexpr auto help_option_index = (std::enable_if_t<add_help_option<ID>, int>{}, create_option_index(ID, command_line_options<ID>.size()));
+	requires add_help_option<ID>
+constexpr auto help_option_index = create_option_index(ID, command_line_options<ID>.size());
 
 template<options_id_t ID>
-constexpr auto verbose_option_index = (std::enable_if_t<add_verbose_option<ID>, int>{}, create_option_index(ID, command_line_options<ID>.size() + (add_help_option<ID> ? 1 : 0)));
+	requires add_verbose_option<ID>
+constexpr auto verbose_option_index = create_option_index(ID, command_line_options<ID>.size() + (add_help_option<ID> ? 1 : 0));
 
 template<commands_id_t ID>
 constexpr auto help_command_index = create_command_index(ID, command_line_commands<ID>.size());
@@ -1697,21 +1703,13 @@ constexpr internal::command_index_t command(string_view command_name)
 
 /// Specialize this variable to use a custom argument parser function.
 /// This is required for choice arguments ({val1|val2|val3}), and is forbidden for bool flags.
-template<auto Index, std::enable_if_t<
-	std::is_same_v<decltype(Index), internal::group_element_index_t>
-	|| std::is_same_v<decltype(Index), internal::option_index_t>
-	|| std::is_same_v<decltype(Index), internal::command_index_t>,
-	int
-> = 0>
+template<internal::index_type auto Index>
 inline constexpr char argument_parse_function = 0;
 
 /// Specialize this variable to make the option array-like, meaning it can appear multiple
 /// times on the command line.  These arguments must not be simple bool flags.
-template<auto Index, std::enable_if_t<
-	std::is_same_v<decltype(Index), internal::group_element_index_t>
-	|| std::is_same_v<decltype(Index), internal::option_index_t>,
-	int
-> = 0>
+template<internal::index_type auto Index>
+	requires (!std::same_as<decltype(Index), internal::command_index_t>)
 inline constexpr bool is_array_like = false;
 
 namespace internal
@@ -1881,12 +1879,7 @@ struct command_value_type
 };
 
 
-template<auto Index, std::enable_if_t<
-	std::is_same_v<decltype(Index), group_element_index_t>
-	|| std::is_same_v<decltype(Index), option_index_t>
-	|| std::is_same_v<decltype(Index), command_index_t>,
-	int
-> = 0>
+template<index_type auto Index>
 struct value_type
 {
 	static auto test(void) noexcept
@@ -2118,12 +2111,7 @@ inline auto command_infos = get_default_command_infos<
 	+ (add_help_command<ID> ? 1 : 0)
 >();
 
-template<auto Index, std::enable_if_t<
-	std::is_same_v<decltype(Index), group_element_index_t>
-	|| std::is_same_v<decltype(Index), option_index_t>
-	|| std::is_same_v<decltype(Index), command_index_t>,
-	int
-> = 0>
+template<index_type auto Index>
 inline typename value_type<Index>::type value_storage = get_default_value<Index>();
 
 /// Accessor for the group infos values by index.
@@ -2144,12 +2132,7 @@ static constexpr auto *command_info_ptr =
 } // namespace internal
 
 
-template<auto Index, std::enable_if_t<
-	std::is_same_v<decltype(Index), internal::group_element_index_t>
-	|| std::is_same_v<decltype(Index), internal::option_index_t>
-	|| std::is_same_v<decltype(Index), internal::command_index_t>,
-	int
-> = 0>
+template<internal::index_type auto Index>
 inline constexpr typename internal::value_type<Index>::type *value_storage_ptr = &internal::value_storage<Index>;
 
 

@@ -54,25 +54,20 @@ public:
 	{ return this->_data; }
 
 
-	template<typename Int, meta::enable_if<std::is_integral_v<Int>, int> = 0>
-	constexpr self_t &operator += (Int n) noexcept
+	constexpr self_t &operator += (std::integral auto n) noexcept
 	{ this->_data += n; return *this; }
 
-	template<typename Int, meta::enable_if<std::is_integral_v<Int>, int> = 0>
-	constexpr self_t &operator -= (Int n) noexcept
+	constexpr self_t &operator -= (std::integral auto n) noexcept
 	{ this->_data -= n; return *this; }
 
 
-	template<typename Int, meta::enable_if<std::is_integral_v<Int>, int> = 0>
-	constexpr friend self_t operator + (self_t lhs, Int rhs) noexcept
+	constexpr friend self_t operator + (self_t lhs, std::integral auto rhs) noexcept
 	{ return lhs._data + rhs; }
 
-	template<typename Int, meta::enable_if<std::is_integral_v<Int>, int> = 0>
-	constexpr friend self_t operator + (Int lhs, self_t rhs) noexcept
+	constexpr friend self_t operator + (std::integral auto lhs, self_t rhs) noexcept
 	{ return lhs + rhs._data; }
 
-	template<typename Int, meta::enable_if<std::is_integral_v<Int>, int> = 0>
-	constexpr friend self_t operator - (self_t lhs, Int rhs) noexcept
+	constexpr friend self_t operator - (self_t lhs, std::integral auto rhs) noexcept
 	{ return lhs._data - rhs; }
 
 

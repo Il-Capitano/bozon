@@ -6204,14 +6204,14 @@ using instruction_list_t = bz::meta::type_pack<
 namespace internal
 {
 
-template<typename T, typename Pack = instruction_list_t, typename = void>
+template<typename T, typename Pack = instruction_list_t>
 inline constexpr void *index_of = nullptr;
 
 template<typename T, typename ...Ts>
+	requires std::same_as<T, void> || bz::meta::is_in_type_pack<T, instruction_list_t>
 inline constexpr size_t index_of<
 	T,
-	bz::meta::type_pack<Ts...>,
-	bz::meta::enable_if<bz::meta::is_same<T, void> || bz::meta::is_in_type_pack<T, instruction_list_t>>
+	bz::meta::type_pack<Ts...>
 > = bz::meta::type_index<T, void, Ts...>;
 
 } // namespace internal
