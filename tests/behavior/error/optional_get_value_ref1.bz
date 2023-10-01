@@ -1,0 +1,6 @@
+function main()
+{
+	let i: ?int32 = null;
+
+	__builtin_optional_get_value_ref(i);
+}

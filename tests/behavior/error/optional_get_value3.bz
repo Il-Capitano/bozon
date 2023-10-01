@@ -1,0 +1,9 @@
+function get_optional() -> ?*int32
+{
+	return null;
+}
+
+function main()
+{
+	__builtin_optional_get_value(get_optional());
+}
