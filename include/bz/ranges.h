@@ -15,41 +15,15 @@ struct universal_end_sentinel {};
 namespace internal
 {
 
-struct has_difference_impl
-{
-	using yes = int;
-	using no = char;
-
-	template<typename T, typename U>
-	static auto test(int) -> decltype(static_cast<std::size_t>(std::declval<U const &>() - std::declval<T const &>()), yes{});
-
-	template<typename T, typename U>
-	static auto test(...) -> no;
-
-	template<typename T, typename U>
-	static constexpr bool value = meta::is_same<decltype(test<T, U>(0)), yes>;
-};
-
 template<typename T, typename U>
-constexpr bool has_difference = has_difference_impl::value<T, U>;
-
-struct has_size_impl
-{
-	using yes = int;
-	using no = char;
-
-	template<typename T>
-	static auto test(int) -> decltype(static_cast<std::size_t>(std::declval<T const &>().size()), yes{});
-
-	template<typename T>
-	static auto test(...) -> no;
-
-	template<typename T>
-	static constexpr bool value = meta::is_same<decltype(test<T>(0)), yes>;
+concept has_difference = requires (T const t, U const u) {
+	{ u - t } -> std::convertible_to<std::size_t>;
 };
 
 template<typename T>
-constexpr bool has_size = has_size_impl::value<T>;
+concept has_size = requires (T const &t) {
+	{ t.size() } -> std::convertible_to<std::size_t>;
+};
 
 
 template<typename Range>
@@ -380,7 +354,8 @@ public:
 		return *this;
 	}
 
-	template<typename T = ItType, typename U = EndType, meta::enable_if<internal::has_difference<T, U>, int> = 0>
+	template<typename T = ItType, typename U = EndType>
+		requires internal::has_difference<T, U>
 	constexpr std::size_t size(void) const noexcept
 	{
 		static_assert(meta::is_same<T, ItType>);
@@ -445,10 +420,8 @@ public:
 		return *this;
 	}
 
-	template<typename U = T, meta::enable_if<internal::has_difference<U, U>, int> = 0>
-	constexpr std::size_t size(void) const noexcept
+	constexpr std::size_t size(void) const noexcept requires internal::has_difference<T, T>
 	{
-		static_assert(meta::is_same<U, T>);
 		return static_cast<std::size_t>(this->_it - this->_end);
 	}
 
@@ -506,10 +479,8 @@ public:
 		return *this;
 	}
 
-	template<typename U = T, meta::enable_if<internal::has_difference<U, U>, int> = 0>
-	constexpr std::size_t size(void) const noexcept
+	constexpr std::size_t size(void) const noexcept requires internal::has_difference<T, T>
 	{
-		static_assert(meta::is_same<U, T>);
 		return static_cast<std::size_t>(this->_end - this->_it);
 	}
 
@@ -630,10 +601,8 @@ public:
 		return *this;
 	}
 
-	template<typename T = ItType, meta::enable_if<internal::has_size<T>, int> = 0>
-	constexpr std::size_t size(void) const noexcept
+	constexpr std::size_t size(void) const noexcept requires internal::has_size<ItType>
 	{
-		static_assert(meta::is_same<T, ItType>);
 		return static_cast<std::size_t>(this->_it.size());
 	}
 
@@ -701,15 +670,8 @@ public:
 		>{ *this->_first_it, *this->_second_it };
 	}
 
-	template<
-		typename T = FirstItType,
-		typename U = SecondItType,
-		meta::enable_if<internal::has_size<T> && internal::has_size<U>, int> = 0
-	>
-	constexpr std::size_t size(void) const noexcept
+	constexpr std::size_t size(void) const noexcept requires internal::has_size<FirstItType> && internal::has_size<SecondItType>
 	{
-		static_assert(meta::is_same<T, FirstItType>);
-		static_assert(meta::is_same<U, SecondItType>);
 		return std::min(static_cast<std::size_t>(this->_first_it.size()), static_cast<std::size_t>(this->_second_it.size()));
 	}
 
@@ -761,10 +723,8 @@ public:
 		return *this;
 	}
 
-	template<typename T = ItType, meta::enable_if<internal::has_size<T>, int> = 0>
-	constexpr std::size_t size(void) const noexcept
+	constexpr std::size_t size(void) const noexcept requires internal::has_size<ItType>
 	{
-		static_assert(meta::is_same<T, ItType>);
 		return static_cast<std::size_t>(this->_it.size());
 	}
 
