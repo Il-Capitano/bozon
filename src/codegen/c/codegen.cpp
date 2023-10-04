@@ -4294,7 +4294,11 @@ static expr_value generate_expression(
 	bz::optional<expr_value> result_dest
 )
 {
-	if (optional_cast.type.is_optional_pointer_like())
+	if (optional_cast.type.is_optional_reference())
+	{
+		return context.create_address_of(generate_expression(optional_cast.expr, context, result_dest));
+	}
+	else if (optional_cast.type.is_optional_pointer_like())
 	{
 		return generate_expression(optional_cast.expr, context, result_dest);
 	}
