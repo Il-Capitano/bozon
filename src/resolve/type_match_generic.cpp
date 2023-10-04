@@ -3653,6 +3653,7 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 	{
 		if constexpr (kind == type_match_function_kind::match_expression)
 		{
+			auto const dest_is_optional = match_context.dest.is_optional();
 			auto const good = generic_type_match_base_case(match_context);
 			if (!good)
 			{
@@ -3694,12 +3695,15 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 			// expr.set_type(...) invalidates expr_type_temp
 			auto const expr_type = expr.get_expr_type();
 
-			if (dest.is<ast::ts_lvalue_reference>() && !expr_type.is_reference())
+			if (
+				(dest.is<ast::ts_lvalue_reference>() || (!dest_is_optional && dest.is_optional_reference()))
+				&& !expr_type.is_reference()
+			)
 			{
 				auto const src_tokens = expr.src_tokens;
 				expr = ast::make_dynamic_expression(
 					src_tokens,
-					ast::expression_type_kind::rvalue, dest,
+					ast::expression_type_kind::rvalue, dest.remove_optional(),
 					ast::make_expr_take_reference(std::move(expr)),
 					ast::destruct_operation()
 				);
