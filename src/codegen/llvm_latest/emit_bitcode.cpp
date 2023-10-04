@@ -4535,8 +4535,21 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	auto const result_type = get_llvm_type(optional_cast.type, context);
-	if (result_type->isPointerTy())
+	if (optional_cast.type.is_optional_reference())
+	{
+		auto const result = emit_bitcode(optional_cast.expr, context, nullptr);
+		bz_assert(result.kind == val_ptr::reference);
+		if (result_address != nullptr)
+		{
+			context.builder.CreateStore(result.val, result_address);
+			return val_ptr::get_reference(result_address, context.get_opaque_pointer_t());
+		}
+		else
+		{
+			return val_ptr::get_value(result.val);
+		}
+	}
+	else if (auto const result_type = get_llvm_type(optional_cast.type, context); result_type->isPointerTy())
 	{
 		return emit_bitcode(optional_cast.expr, context, result_address);
 	}
