@@ -228,7 +228,7 @@ consteval function check_format_spec_str(
 			let fmt_str_end = __builtin_str_from_ptrs(open_bracket_it + 1, fmt_str.end_ptr());
 			format_unchecked_fmt(
 				"invalid format string '{}'; explicit index {} is out of range for {} argument(s) at position {} ('{}')",
-				fmt_str, current_index, passed_args_count, position, fmt_str_end
+				fmt_str, current_index, passed_args_count, position + 1, fmt_str_end
 			)
 		} else {
 			let fmt_str_end = __builtin_str_from_ptrs(open_bracket_it, fmt_str.end_ptr());
