@@ -1753,24 +1753,37 @@ static uint64_t execute_ptr64_diff_unchecked(instructions::ptr64_diff_unchecked 
 	return static_cast<uint64_t>(result);
 }
 
+template<typename Uint>
+static Uint execute_mul(Uint lhs, Uint rhs)
+{
+	if constexpr (sizeof (unsigned int) >= sizeof (Uint))
+	{
+		return static_cast<Uint>(static_cast<unsigned int>(lhs) * static_cast<unsigned int>(rhs));
+	}
+	else
+	{
+		return lhs * rhs;
+	}
+}
+
 static uint8_t execute_mul_i8(instructions::mul_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
 {
-	return lhs * rhs;
+	return execute_mul<uint8_t>(lhs, rhs);
 }
 
 static uint16_t execute_mul_i16(instructions::mul_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
 {
-	return lhs * rhs;
+	return execute_mul<uint16_t>(lhs, rhs);
 }
 
 static uint32_t execute_mul_i32(instructions::mul_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
 {
-	return lhs * rhs;
+	return execute_mul<uint32_t>(lhs, rhs);
 }
 
 static uint64_t execute_mul_i64(instructions::mul_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
 {
-	return lhs * rhs;
+	return execute_mul<uint64_t>(lhs, rhs);
 }
 
 static float32_t execute_mul_f32(instructions::mul_f32 const &, float32_t lhs, float32_t rhs, executor_context &)
@@ -2851,42 +2864,42 @@ static void execute_min_f64_check(instructions::min_f64_check const &inst, float
 
 static uint8_t execute_max_i8(instructions::max_i8 const &, uint8_t a, uint8_t b, executor_context &)
 {
-	return static_cast<int8_t>(a) < static_cast<int8_t>(b) ? a : b;
+	return static_cast<int8_t>(a) > static_cast<int8_t>(b) ? a : b;
 }
 
 static uint16_t execute_max_i16(instructions::max_i16 const &, uint16_t a, uint16_t b, executor_context &)
 {
-	return static_cast<int16_t>(a) < static_cast<int16_t>(b) ? a : b;
+	return static_cast<int16_t>(a) > static_cast<int16_t>(b) ? a : b;
 }
 
 static uint32_t execute_max_i32(instructions::max_i32 const &, uint32_t a, uint32_t b, executor_context &)
 {
-	return static_cast<int32_t>(a) < static_cast<int32_t>(b) ? a : b;
+	return static_cast<int32_t>(a) > static_cast<int32_t>(b) ? a : b;
 }
 
 static uint64_t execute_max_i64(instructions::max_i64 const &, uint64_t a, uint64_t b, executor_context &)
 {
-	return static_cast<int64_t>(a) < static_cast<int64_t>(b) ? a : b;
+	return static_cast<int64_t>(a) > static_cast<int64_t>(b) ? a : b;
 }
 
 static uint8_t execute_max_u8(instructions::max_u8 const &, uint8_t a, uint8_t b, executor_context &)
 {
-	return a < b ? a : b;
+	return a > b ? a : b;
 }
 
 static uint16_t execute_max_u16(instructions::max_u16 const &, uint16_t a, uint16_t b, executor_context &)
 {
-	return a < b ? a : b;
+	return a > b ? a : b;
 }
 
 static uint32_t execute_max_u32(instructions::max_u32 const &, uint32_t a, uint32_t b, executor_context &)
 {
-	return a < b ? a : b;
+	return a > b ? a : b;
 }
 
 static uint64_t execute_max_u64(instructions::max_u64 const &, uint64_t a, uint64_t b, executor_context &)
 {
-	return a < b ? a : b;
+	return a > b ? a : b;
 }
 
 static float32_t execute_max_f32(instructions::max_f32 const &, float32_t x, float32_t y, executor_context &)

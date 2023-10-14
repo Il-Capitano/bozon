@@ -22,13 +22,13 @@ static auto get_base_kinds(
 	};
 };
 
-template<size_t kind>
+template<ast::constant_value_kind kind>
 static auto get_constant_expression_values(
 	ast::expression const &lhs,
 	ast::expression const &rhs
 )
 {
-	static_assert(kind != ast::constant_value::aggregate);
+	static_assert(kind != ast::constant_value_kind::aggregate);
 	bz_assert(lhs.is_constant());
 	bz_assert(rhs.is_constant());
 	auto const &lhs_value = lhs.get_constant_value();
@@ -36,7 +36,7 @@ static auto get_constant_expression_values(
 	bz_assert(lhs_value.kind() == kind);
 	bz_assert(rhs_value.kind() == kind);
 
-	if constexpr (kind == ast::constant_value::string)
+	if constexpr (kind == ast::constant_value_kind::string)
 	{
 		return std::make_pair(
 			lhs_value.get_string(),
@@ -143,7 +143,7 @@ static ast::expression get_type_op_unary_reference(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -200,7 +200,7 @@ static ast::expression get_type_op_unary_auto_ref(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -269,7 +269,7 @@ static ast::expression get_type_op_unary_auto_ref_const(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -325,7 +325,7 @@ static ast::expression get_type_op_unary_pointer(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -376,7 +376,7 @@ static ast::expression get_type_op_unary_question_mark(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -407,7 +407,7 @@ static ast::expression get_type_op_unary_dot_dot_dot(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -469,7 +469,7 @@ static ast::expression get_type_op_unary_mut(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -531,7 +531,7 @@ static ast::expression get_type_op_unary_consteval(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -588,7 +588,7 @@ static ast::expression get_type_op_unary_move(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -605,7 +605,7 @@ static ast::expression get_builtin_unary_sizeof(
 
 	if (expr.is_typename())
 	{
-		auto const type = expr.get_typename().as_typespec_view();
+		auto const type = expr.get_typename();
 		if (!ast::is_complete(type))
 		{
 			context.report_error(src_tokens, bz::format("cannot take 'sizeof' of an incomplete type '{}'", type));
@@ -617,6 +617,17 @@ static ast::expression get_builtin_unary_sizeof(
 			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 		}
 		auto const size = context.get_sizeof(type);
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			ast::make_base_type_typespec({}, context.get_usize_type_info()),
+			ast::constant_value(size),
+			ast::make_expr_unary_op(op_kind, std::move(expr))
+		);
+	}
+	else if (expr.is<ast::expanded_variadic_expression>())
+	{
+		uint64_t const size = expr.get<ast::expanded_variadic_expression>().exprs.size();
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
@@ -639,7 +650,7 @@ static ast::expression get_builtin_unary_sizeof(
 			context.report_error(src_tokens, bz::format("cannot take 'sizeof' of an expression with non-instantiable type '{}'", type));
 			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 		}
-		auto const size = context.get_sizeof(type);
+		uint64_t const size = context.get_sizeof(type);
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
@@ -691,7 +702,7 @@ static ast::expression get_builtin_unary_typeof(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
+		context.add_constant_type(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -1110,13 +1121,11 @@ ast::expression make_builtin_cast(
 				)
 				{
 					ast::typespec dest_t_copy = dest_t;
-					ast::constant_value result_value;
-					result_value.emplace<ast::constant_value::sint>(value);
 					return ast::make_constant_expression(
 						src_tokens,
 						ast::expression_type_kind::rvalue,
 						std::move(dest_t_copy),
-						std::move(result_value),
+						ast::constant_value(value),
 						ast::make_expr_cast(std::move(expr), std::move(dest_type))
 					);
 				}
@@ -1127,13 +1136,11 @@ ast::expression make_builtin_cast(
 				)
 				{
 					ast::typespec dest_t_copy = dest_t;
-					ast::constant_value result_value;
-					result_value.emplace<ast::constant_value::uint>(static_cast<uint64_t>(value));
 					return ast::make_constant_expression(
 						src_tokens,
 						ast::expression_type_kind::rvalue,
 						std::move(dest_t_copy),
-						std::move(result_value),
+						ast::constant_value(static_cast<uint64_t>(value)),
 						ast::make_expr_cast(std::move(expr), std::move(dest_type))
 					);
 				}
@@ -1151,11 +1158,11 @@ ast::expression make_builtin_cast(
 					ast::constant_value result_value;
 					if (ast::is_signed_integer_kind(dest_kind))
 					{
-						result_value.emplace<ast::constant_value::sint>(static_cast<int64_t>(value));
+						result_value.emplace<ast::constant_value_kind::sint>(static_cast<int64_t>(value));
 					}
 					else
 					{
-						result_value.emplace<ast::constant_value::uint>(static_cast<uint64_t>(value));
+						result_value.emplace<ast::constant_value_kind::uint>(static_cast<uint64_t>(value));
 					}
 					return ast::make_constant_expression(
 						src_tokens,
@@ -1473,8 +1480,8 @@ static ast::expression get_type_op_binary_equals_not_equals(
 
 	auto const op_str = token_info[op_kind].token_value;
 
-	auto &lhs_type = lhs.get_typename();
-	auto &rhs_type = rhs.get_typename();
+	auto const lhs_type = lhs.get_typename();
+	auto const rhs_type = rhs.get_typename();
 
 	bool good = true;
 	if (!ast::is_complete(lhs_type))
@@ -1752,6 +1759,22 @@ ast::expression make_builtin_type_operation(
 	return make_builtin_operation_generic<type_op_unary_operators>(src_tokens, op_kind, std::move(expr), context);
 }
 
+ast::decl_operator *get_builtin_operator(
+	uint32_t op_kind,
+	ast::expression const &expr,
+	parse_context &context
+)
+{
+	auto const expr_type = expr.get_expr_type().remove_mut_reference();
+	if (!expr_type.is<ast::ts_base_type>())
+	{
+		return nullptr;
+	}
+
+	auto const expr_type_kind = expr_type.get<ast::ts_base_type>().info->kind;
+	return context.get_builtin_operator(op_kind, expr_type_kind);
+}
+
 ast::expression make_builtin_operation(
 	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
@@ -1772,6 +1795,402 @@ ast::expression make_builtin_type_operation(
 )
 {
 	return make_builtin_operation_generic<type_op_binary_operators>(src_tokens, op_kind, std::move(lhs), std::move(rhs), context);
+}
+
+static bool is_integer_literal_compatible(ast::expression const &literal, uint8_t type_kind)
+{
+	if (!literal.is_integer_literal())
+	{
+		return false;
+	}
+
+	auto const &[kind, value] = literal.get_integer_literal_kind_and_value();
+	switch (kind)
+	{
+	case ast::literal_kind::integer:
+		switch (type_kind)
+		{
+		case ast::type_info::int8_:
+		{
+			constexpr int8_t min = std::numeric_limits<int8_t>::min();
+			constexpr int8_t max = std::numeric_limits<int8_t>::max();
+			if (value.is_sint())
+			{
+				return value.get_sint() >= min && value.get_sint() <= max;
+			}
+			else
+			{
+				bz_assert(value.is_uint());
+				return value.get_uint() <= static_cast<uint64_t>(max);
+			}
+		}
+		case ast::type_info::int16_:
+		{
+			constexpr int16_t min = std::numeric_limits<int16_t>::min();
+			constexpr int16_t max = std::numeric_limits<int16_t>::max();
+			if (value.is_sint())
+			{
+				return value.get_sint() >= min && value.get_sint() <= max;
+			}
+			else
+			{
+				bz_assert(value.is_uint());
+				return value.get_uint() <= static_cast<uint64_t>(max);
+			}
+		}
+		case ast::type_info::int32_:
+		{
+			constexpr int32_t min = std::numeric_limits<int32_t>::min();
+			constexpr int32_t max = std::numeric_limits<int32_t>::max();
+			if (value.is_sint())
+			{
+				return value.get_sint() >= min && value.get_sint() <= max;
+			}
+			else
+			{
+				bz_assert(value.is_uint());
+				return value.get_uint() <= static_cast<uint64_t>(max);
+			}
+		}
+		case ast::type_info::int64_:
+		{
+			constexpr int64_t min = std::numeric_limits<int64_t>::min();
+			constexpr int64_t max = std::numeric_limits<int64_t>::max();
+			if (value.is_sint())
+			{
+				return value.get_sint() >= min && value.get_sint() <= max;
+			}
+			else
+			{
+				bz_assert(value.is_uint());
+				return value.get_uint() <= static_cast<uint64_t>(max);
+			}
+		}
+
+		case ast::type_info::uint8_:
+		{
+			constexpr uint8_t max = std::numeric_limits<uint8_t>::max();
+			if (value.is_sint())
+			{
+				return value.get_sint() >= 0 && static_cast<uint64_t>(value.get_sint()) <= max;
+			}
+			else
+			{
+				bz_assert(value.is_uint());
+				return value.get_uint() <= max;
+			}
+		}
+		case ast::type_info::uint16_:
+		{
+			constexpr uint16_t max = std::numeric_limits<uint16_t>::max();
+			if (value.is_sint())
+			{
+				return value.get_sint() >= 0 && static_cast<uint64_t>(value.get_sint()) <= max;
+			}
+			else
+			{
+				bz_assert(value.is_uint());
+				return value.get_uint() <= max;
+			}
+		}
+		case ast::type_info::uint32_:
+		{
+			constexpr uint32_t max = std::numeric_limits<uint32_t>::max();
+			if (value.is_sint())
+			{
+				return value.get_sint() >= 0 && static_cast<uint64_t>(value.get_sint()) <= max;
+			}
+			else
+			{
+				bz_assert(value.is_uint());
+				return value.get_uint() <= max;
+			}
+		}
+		case ast::type_info::uint64_:
+		{
+			constexpr uint64_t max = std::numeric_limits<uint64_t>::max();
+			if (value.is_sint())
+			{
+				return value.get_sint() >= 0 && static_cast<uint64_t>(value.get_sint()) <= max;
+			}
+			else
+			{
+				bz_assert(value.is_uint());
+				return value.get_uint() <= max;
+			}
+		}
+
+		default:
+			return false;
+		}
+
+	case ast::literal_kind::signed_integer:
+		switch (type_kind)
+		{
+		case ast::type_info::int8_:
+		{
+			constexpr int8_t min = std::numeric_limits<int8_t>::min();
+			constexpr int8_t max = std::numeric_limits<int8_t>::max();
+			bz_assert(value.is_sint());
+			return value.get_sint() >= min && value.get_sint() <= max;
+		}
+		case ast::type_info::int16_:
+		{
+			constexpr int16_t min = std::numeric_limits<int16_t>::min();
+			constexpr int16_t max = std::numeric_limits<int16_t>::max();
+			bz_assert(value.is_sint());
+			return value.get_sint() >= min && value.get_sint() <= max;
+		}
+		case ast::type_info::int32_:
+		{
+			constexpr int32_t min = std::numeric_limits<int32_t>::min();
+			constexpr int32_t max = std::numeric_limits<int32_t>::max();
+			bz_assert(value.is_sint());
+			return value.get_sint() >= min && value.get_sint() <= max;
+		}
+		case ast::type_info::int64_:
+		{
+			constexpr int64_t min = std::numeric_limits<int64_t>::min();
+			constexpr int64_t max = std::numeric_limits<int64_t>::max();
+			bz_assert(value.is_sint());
+			return value.get_sint() >= min && value.get_sint() <= max;
+		}
+		default:
+			return false;
+		}
+
+	case ast::literal_kind::unsigned_integer:
+		switch (type_kind)
+		{
+		case ast::type_info::uint8_:
+		{
+			constexpr uint8_t max = std::numeric_limits<uint8_t>::max();
+			bz_assert(value.is_uint());
+			return value.get_uint() <= max;
+		}
+		case ast::type_info::uint16_:
+		{
+			constexpr uint16_t max = std::numeric_limits<uint16_t>::max();
+			bz_assert(value.is_uint());
+			return value.get_uint() <= max;
+		}
+		case ast::type_info::uint32_:
+		{
+			constexpr uint32_t max = std::numeric_limits<uint32_t>::max();
+			bz_assert(value.is_uint());
+			return value.get_uint() <= max;
+		}
+		case ast::type_info::uint64_:
+		{
+			constexpr uint64_t max = std::numeric_limits<uint64_t>::max();
+			bz_assert(value.is_uint());
+			return value.get_uint() <= max;
+		}
+		default:
+			return false;
+		}
+	}
+}
+
+static bool is_compatible_with_lhs(uint8_t lhs_kind, ast::expression const &rhs, uint8_t rhs_kind)
+{
+	if (ast::is_signed_integer_kind(lhs_kind))
+	{
+		return (ast::is_signed_integer_kind(rhs_kind) && rhs_kind <= lhs_kind)
+			|| is_integer_literal_compatible(rhs, lhs_kind);
+	}
+	else if (ast::is_unsigned_integer_kind(lhs_kind))
+	{
+		return (ast::is_unsigned_integer_kind(rhs_kind) && rhs_kind <= lhs_kind)
+			|| is_integer_literal_compatible(rhs, lhs_kind);
+	}
+	else
+	{
+		return lhs_kind == rhs_kind;
+	}
+}
+
+static bz::optional<uint8_t> get_common_type_kind(ast::expression const &lhs, uint8_t lhs_kind, ast::expression const &rhs, uint8_t rhs_kind)
+{
+	if (lhs.is_integer_literal() && rhs.is_integer_literal())
+	{
+		return {};
+	}
+	else if (lhs.is_integer_literal())
+	{
+		if (ast::is_signed_integer_kind(rhs_kind))
+		{
+			if (rhs_kind < ast::type_info::int32_ && is_integer_literal_compatible(lhs, rhs_kind))
+			{
+				return rhs_kind;
+			}
+
+			for (auto kind = std::max(rhs_kind, static_cast<uint8_t>(ast::type_info::int32_)); kind <= ast::type_info::int64_; ++kind)
+			{
+				if (is_integer_literal_compatible(lhs, kind))
+				{
+					return kind;
+				}
+			}
+		}
+		else if (ast::is_unsigned_integer_kind(rhs_kind))
+		{
+			if (rhs_kind < ast::type_info::uint32_ && is_integer_literal_compatible(lhs, rhs_kind))
+			{
+				return rhs_kind;
+			}
+
+			for (auto kind = std::max(rhs_kind, static_cast<uint8_t>(ast::type_info::uint32_)); kind <= ast::type_info::uint64_; ++kind)
+			{
+				if (is_integer_literal_compatible(lhs, kind))
+				{
+					return kind;
+				}
+			}
+		}
+
+		return {};
+	}
+	else if (rhs.is_integer_literal())
+	{
+		if (ast::is_signed_integer_kind(lhs_kind))
+		{
+			if (lhs_kind < ast::type_info::int32_ && is_integer_literal_compatible(rhs, lhs_kind))
+			{
+				return lhs_kind;
+			}
+
+			for (auto kind = std::max(lhs_kind, static_cast<uint8_t>(ast::type_info::int32_)); kind <= ast::type_info::int64_; ++kind)
+			{
+				if (is_integer_literal_compatible(rhs, kind))
+				{
+					return kind;
+				}
+			}
+		}
+		else if (ast::is_unsigned_integer_kind(lhs_kind))
+		{
+			if (lhs_kind < ast::type_info::uint32_ && is_integer_literal_compatible(rhs, lhs_kind))
+			{
+				return lhs_kind;
+			}
+
+			for (auto kind = std::max(lhs_kind, static_cast<uint8_t>(ast::type_info::uint32_)); kind <= ast::type_info::uint64_; ++kind)
+			{
+				if (is_integer_literal_compatible(rhs, kind))
+				{
+					return kind;
+				}
+			}
+		}
+
+		return {};
+	}
+	else if (ast::is_signed_integer_kind(lhs_kind))
+	{
+		if (ast::is_signed_integer_kind(rhs_kind))
+		{
+			return std::max(lhs_kind, rhs_kind);
+		}
+		else
+		{
+			return {};
+		}
+	}
+	else if (ast::is_unsigned_integer_kind(lhs_kind))
+	{
+		if (ast::is_unsigned_integer_kind(rhs_kind))
+		{
+			return std::max(lhs_kind, rhs_kind);
+		}
+		else
+		{
+			return {};
+		}
+	}
+	else if (lhs_kind == rhs_kind)
+	{
+		return lhs_kind;
+	}
+	else
+	{
+		return {};
+	}
+}
+
+ast::decl_operator *get_builtin_operator(
+	uint32_t op_kind,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	parse_context &context
+)
+{
+	auto const lhs_type = lhs.get_expr_type().remove_mut_reference();
+	auto const rhs_type = rhs.get_expr_type();
+	if (!lhs_type.is<ast::ts_base_type>() || !rhs_type.is<ast::ts_base_type>())
+	{
+		return nullptr;
+	}
+
+	auto const lhs_type_kind = lhs_type.get<ast::ts_base_type>().info->kind;
+	auto const rhs_type_kind = rhs_type.get<ast::ts_base_type>().info->kind;
+	switch (op_kind)
+	{
+	// basic
+	case lex::token::assign:
+	// arithmetic
+	case lex::token::plus_eq:
+	case lex::token::minus_eq:
+	case lex::token::multiply_eq:
+	case lex::token::divide_eq:
+	case lex::token::modulo_eq:
+	// bitwise
+	case lex::token::bit_and_eq:
+	case lex::token::bit_xor_eq:
+	case lex::token::bit_or_eq:
+		if (is_compatible_with_lhs(lhs_type_kind, rhs, rhs_type_kind))
+		{
+			return context.get_builtin_operator(op_kind, lhs_type_kind, lhs_type_kind);
+		}
+		else
+		{
+			return nullptr;
+		}
+
+	// basic
+	case lex::token::equals:
+	case lex::token::not_equals:
+	case lex::token::less_than:
+	case lex::token::less_than_eq:
+	case lex::token::greater_than:
+	case lex::token::greater_than_eq:
+	// arithmetic
+	case lex::token::plus:
+	case lex::token::minus:
+	case lex::token::multiply:
+	case lex::token::divide:
+	case lex::token::modulo:
+	// bitwise
+	case lex::token::bit_and:
+	case lex::token::bit_xor:
+	case lex::token::bit_or:
+		if (auto const common_type_kind = get_common_type_kind(lhs, lhs_type_kind, rhs, rhs_type_kind); common_type_kind.has_value())
+		{
+			return context.get_builtin_operator(op_kind, common_type_kind.get(), common_type_kind.get());
+		}
+		else
+		{
+			return nullptr;
+		}
+
+	case lex::token::bit_left_shift:
+	case lex::token::bit_left_shift_eq:
+	case lex::token::bit_right_shift:
+	case lex::token::bit_right_shift_eq:
+		// works with conversions as well, so we don't have to deal with that
+		return context.get_builtin_operator(op_kind, lhs_type_kind, rhs_type_kind);
+	}
+	return context.get_builtin_operator(op_kind, lhs_type_kind, rhs_type_kind);
 }
 
 

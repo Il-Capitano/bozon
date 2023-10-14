@@ -250,8 +250,12 @@ static void emit_panic_call(
 	ast::arena_vector<is_byval_and_type_pair> params_is_byval = {};
 	params.reserve(2);
 
+	auto const panic_string = bz::format(
+		"panic called from {}: {}",
+		context.global_ctx.get_location_string(src_tokens.pivot), message
+	);
 	auto const param_val = get_value(
-		ast::constant_value(bz::format("panic called from {}: {}", context.global_ctx.get_location_string(src_tokens.pivot), message)),
+		ast::constant_value(panic_string.as_string_view()),
 		panic_handler_func_body->params[0].get_type(),
 		nullptr,
 		context
@@ -393,6 +397,32 @@ static void emit_null_pointer_arithmetic_check(
 		auto const continue_bb = context.add_basic_block("arithmetic_null_check_continue");
 		context.builder.SetInsertPoint(begin_bb);
 		context.builder.CreateCondBr(has_value, continue_bb, error_bb);
+		context.builder.SetInsertPoint(continue_bb);
+	}
+}
+
+static void emit_null_pointer_arithmetic_check(
+	lex::src_tokens const &src_tokens,
+	llvm::Value *ptr,
+	llvm::Value *offset,
+	bitcode_context &context
+)
+{
+	if (global_data::panic_on_null_pointer_arithmetic)
+	{
+		auto const has_value = optional_has_value(val_ptr::get_value(ptr), context);
+		auto const is_offset_zero = context.builder.CreateICmpEQ(offset, llvm::ConstantInt::get(offset->getType(), 0));
+
+		auto const is_valid = context.builder.CreateOr(has_value, is_offset_zero);
+		auto const begin_bb = context.builder.GetInsertBlock();
+		auto const error_bb = context.add_basic_block("arithmetic_null_check_error");
+		context.builder.SetInsertPoint(error_bb);
+		emit_panic_call(src_tokens, "null value used in pointer arithmetic", context);
+		bz_assert(context.has_terminator());
+
+		auto const continue_bb = context.add_basic_block("arithmetic_null_check_continue");
+		context.builder.SetInsertPoint(begin_bb);
+		context.builder.CreateCondBr(is_valid, continue_bb, error_bb);
 		context.builder.SetInsertPoint(continue_bb);
 	}
 }
@@ -655,32 +685,43 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	auto const types = tuple_expr.elems
-		.transform([](auto const &expr) { return expr.get_expr_type(); })
-		.transform([&context](auto const ts) { return get_llvm_type(ts, context); })
-		.template collect<ast::arena_vector>();
-	auto const result_type = context.get_tuple_t(types);
-	if (result_address == nullptr)
-	{
-		result_address = context.create_alloca(result_type);
-	}
+	auto const result_type = [&]() -> llvm::Type * {
+		if (result_address == nullptr)
+		{
+			return nullptr;
+		}
+
+		auto const types = tuple_expr.elems
+			.transform([](auto const &expr) { return expr.get_expr_type(); })
+			.transform([&context](auto const ts) { return get_llvm_type(ts, context); })
+			.template collect<ast::arena_vector>();
+		return context.get_tuple_t(types);
+	}();
 
 	for (unsigned i = 0; i < tuple_expr.elems.size(); ++i)
 	{
-		if (tuple_expr.elems[i].get_expr_type().is_reference())
+		if (result_address != nullptr)
 		{
-			auto const elem_result_address = context.create_struct_gep(result_type, result_address, i);
-			auto const result = emit_bitcode(tuple_expr.elems[i], context, nullptr);
-			bz_assert(result.kind == val_ptr::reference);
-			context.builder.CreateStore(result.val, elem_result_address);
+			if (tuple_expr.elems[i].get_expr_type().is_reference())
+			{
+				auto const elem_result_address = context.create_struct_gep(result_type, result_address, i);
+				auto const result = emit_bitcode(tuple_expr.elems[i], context, nullptr);
+				bz_assert(result.kind == val_ptr::reference);
+				context.builder.CreateStore(result.val, elem_result_address);
+			}
+			else
+			{
+				auto const elem_result_address = context.create_struct_gep(result_type, result_address, i);
+				emit_bitcode(tuple_expr.elems[i], context, elem_result_address);
+			}
 		}
 		else
 		{
-			auto const elem_result_address = context.create_struct_gep(result_type, result_address, i);
-			emit_bitcode(tuple_expr.elems[i], context, elem_result_address);
+			emit_bitcode(tuple_expr.elems[i], context, nullptr);
 		}
 	}
-	return val_ptr::get_reference(result_address, result_type);
+
+	return result_address == nullptr ? val_ptr::get_none() : val_ptr::get_reference(result_address, result_type);
 }
 
 static val_ptr emit_builtin_unary_address_of(
@@ -1062,7 +1103,7 @@ static val_ptr emit_builtin_binary_plus(
 
 		if (lhs_t.is_optional_pointer())
 		{
-			emit_null_pointer_arithmetic_check(lhs.src_tokens, lhs_val, context);
+			emit_null_pointer_arithmetic_check(lhs.src_tokens, lhs_val, rhs_val, context);
 		}
 
 		auto const result_val = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_add_tmp");
@@ -1094,7 +1135,7 @@ static val_ptr emit_builtin_binary_plus(
 
 		if (rhs_t.is_optional_pointer())
 		{
-			emit_null_pointer_arithmetic_check(rhs.src_tokens, rhs_val, context);
+			emit_null_pointer_arithmetic_check(rhs.src_tokens, rhs_val, lhs_val, context);
 		}
 
 		auto const result_val = context.create_gep(rhs_inner_type, rhs_val, lhs_val, "ptr_add_tmp");
@@ -1200,7 +1241,7 @@ static val_ptr emit_builtin_binary_plus_eq(
 
 		if (lhs_t.is_optional_pointer())
 		{
-			emit_null_pointer_arithmetic_check(lhs.src_tokens, lhs_val, context);
+			emit_null_pointer_arithmetic_check(lhs.src_tokens, lhs_val, rhs_val, context);
 		}
 
 		auto const res = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_add_tmp");
@@ -1313,7 +1354,7 @@ static val_ptr emit_builtin_binary_minus(
 
 		if (lhs_t.is_optional_pointer())
 		{
-			emit_null_pointer_arithmetic_check(lhs.src_tokens, lhs_val, context);
+			emit_null_pointer_arithmetic_check(lhs.src_tokens, lhs_val, rhs_val, context);
 		}
 
 		auto const result_val = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_sub_tmp");
@@ -1482,7 +1523,7 @@ static val_ptr emit_builtin_binary_minus_eq(
 
 		if (lhs_t.is_optional_pointer())
 		{
-			emit_null_pointer_arithmetic_check(lhs.src_tokens, lhs_val, context);
+			emit_null_pointer_arithmetic_check(lhs.src_tokens, lhs_val, rhs_val, context);
 		}
 
 		auto const res = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_sub_tmp");
@@ -1578,9 +1619,55 @@ static val_ptr emit_builtin_binary_divide(
 	auto const lhs_val = emit_bitcode(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 
-	auto const result_val = ast::is_signed_integer_kind(lhs_kind) ? context.builder.CreateSDiv(lhs_val, rhs_val, "div_tmp")
-		: ast::is_unsigned_integer_kind(lhs_kind) ? context.builder.CreateUDiv(lhs_val, rhs_val, "div_tmp")
-		: context.builder.CreateFDiv(lhs_val, rhs_val, "div_tmp");
+	auto const result_val = [&]() -> llvm::Value * {
+		if (ast::is_signed_integer_kind(lhs_kind))
+		{
+			auto const result_type = lhs_val->getType();
+			auto const min_value = [&]() {
+				switch (lhs_kind)
+				{
+				case ast::type_info::int8_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int8_t>::min());
+				case ast::type_info::int16_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int16_t>::min());
+				case ast::type_info::int32_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int32_t>::min());
+				case ast::type_info::int64_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int64_t>::min());
+				default:
+					bz_unreachable;
+				}
+			}();
+			auto const lhs_is_overflow = context.builder.CreateICmpEQ(lhs_val, min_value);
+			auto const rhs_is_overflow = context.builder.CreateICmpEQ(rhs_val, llvm::ConstantInt::getSigned(result_type, -1));
+			auto const is_overflow = context.builder.CreateAnd(lhs_is_overflow, rhs_is_overflow);
+
+			auto const begin_bb = context.builder.GetInsertBlock();
+			auto const non_overflow_bb = context.add_basic_block("div_overflow_check");
+			auto const end_bb = context.add_basic_block("div_overflow_check_end");
+
+			context.builder.CreateCondBr(is_overflow, end_bb, non_overflow_bb);
+			context.builder.SetInsertPoint(non_overflow_bb);
+			auto const non_overflow_result = context.builder.CreateSDiv(lhs_val, rhs_val, "div_tmp");
+			context.builder.CreateBr(end_bb);
+
+			context.builder.SetInsertPoint(end_bb);
+			auto const result = context.builder.CreatePHI(result_type, 2, "div_tmp");
+			result->addIncoming(non_overflow_result, non_overflow_bb);
+			result->addIncoming(min_value, begin_bb);
+
+			return result;
+		}
+		else if (ast::is_unsigned_integer_kind(lhs_kind))
+		{
+			return context.builder.CreateUDiv(lhs_val, rhs_val, "div_tmp");
+		}
+		else
+		{
+			return context.builder.CreateFDiv(lhs_val, rhs_val, "div_tmp");
+		}
+	}();
+
 	if (result_address == nullptr)
 	{
 		return val_ptr::get_value(result_val);
@@ -1612,9 +1699,55 @@ static val_ptr emit_builtin_binary_divide_eq(
 	bz_assert(lhs_val_ref.kind == val_ptr::reference);
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
 
-	auto const res = ast::is_signed_integer_kind(lhs_kind) ? context.builder.CreateSDiv(lhs_val, rhs_val, "div_tmp")
-		: ast::is_unsigned_integer_kind(lhs_kind) ? context.builder.CreateUDiv(lhs_val, rhs_val, "div_tmp")
-		: context.builder.CreateFDiv(lhs_val, rhs_val, "div_tmp");
+	auto const res = [&]() -> llvm::Value * {
+		if (ast::is_signed_integer_kind(lhs_kind))
+		{
+			auto const result_type = lhs_val->getType();
+			auto const min_value = [&]() {
+				switch (lhs_kind)
+				{
+				case ast::type_info::int8_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int8_t>::min());
+				case ast::type_info::int16_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int16_t>::min());
+				case ast::type_info::int32_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int32_t>::min());
+				case ast::type_info::int64_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int64_t>::min());
+				default:
+					bz_unreachable;
+				}
+			}();
+			auto const lhs_is_overflow = context.builder.CreateICmpEQ(lhs_val, min_value);
+			auto const rhs_is_overflow = context.builder.CreateICmpEQ(rhs_val, llvm::ConstantInt::getSigned(result_type, -1));
+			auto const is_overflow = context.builder.CreateAnd(lhs_is_overflow, rhs_is_overflow);
+
+			auto const begin_bb = context.builder.GetInsertBlock();
+			auto const non_overflow_bb = context.add_basic_block("div_overflow_check");
+			auto const end_bb = context.add_basic_block("div_overflow_check_end");
+
+			context.builder.CreateCondBr(is_overflow, end_bb, non_overflow_bb);
+			context.builder.SetInsertPoint(non_overflow_bb);
+			auto const non_overflow_result = context.builder.CreateSDiv(lhs_val, rhs_val, "div_tmp");
+			context.builder.CreateBr(end_bb);
+
+			context.builder.SetInsertPoint(end_bb);
+			auto const result = context.builder.CreatePHI(result_type, 2, "div_tmp");
+			result->addIncoming(non_overflow_result, non_overflow_bb);
+			result->addIncoming(min_value, begin_bb);
+
+			return result;
+		}
+		else if (ast::is_unsigned_integer_kind(lhs_kind))
+		{
+			return context.builder.CreateUDiv(lhs_val, rhs_val, "div_tmp");
+		}
+		else
+		{
+			return context.builder.CreateFDiv(lhs_val, rhs_val, "div_tmp");
+		}
+	}();
+
 	context.builder.CreateStore(res, lhs_val_ref.val);
 	if (result_address == nullptr)
 	{
@@ -1734,7 +1867,7 @@ static val_ptr emit_builtin_binary_cmp(
 			},
 			{
 				llvm::CmpInst::FCMP_OEQ,
-				llvm::CmpInst::FCMP_ONE,
+				llvm::CmpInst::FCMP_UNE,
 				llvm::CmpInst::FCMP_OLT,
 				llvm::CmpInst::FCMP_OLE,
 				llvm::CmpInst::FCMP_OGT,
@@ -4013,7 +4146,7 @@ static val_ptr emit_bitcode(
 		}
 
 		auto const elem_ptr = [&]() {
-			if (is_reference_result)
+			if (i == index_int_value && is_reference_result)
 			{
 				auto const ref_ptr = base_val.kind == val_ptr::value
 					? context.builder.CreateExtractValue(base_val.get_value(context.builder), index_int_value)
@@ -4402,15 +4535,26 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	auto const result_type = get_llvm_type(optional_cast.type, context);
-	if (result_type->isPointerTy())
+	if (optional_cast.type.is_optional_reference())
+	{
+		auto const result = emit_bitcode(optional_cast.expr, context, nullptr);
+		bz_assert(result.kind == val_ptr::reference);
+		if (result_address != nullptr)
+		{
+			context.builder.CreateStore(result.val, result_address);
+			return val_ptr::get_reference(result_address, context.get_opaque_pointer_t());
+		}
+		else
+		{
+			return val_ptr::get_value(result.val);
+		}
+	}
+	else if (auto const result_type = get_llvm_type(optional_cast.type, context); result_type->isPointerTy())
 	{
 		return emit_bitcode(optional_cast.expr, context, result_address);
 	}
 	else
 	{
-		llvm::dbgs() << *result_type << '\n';
-		bz::log("{} {}\n", context.global_ctx.get_location_string(src_tokens.pivot), optional_cast.type);
 		bz_assert(result_address != nullptr);
 		auto const result_val = val_ptr::get_reference(result_address, result_type);
 		auto const value_ptr = optional_get_value_ptr(result_val, context);
@@ -4957,7 +5101,10 @@ static val_ptr emit_bitcode(
 	bz_assert(val.kind == val_ptr::reference);
 	auto const type = val.get_type();
 	bz_assert(type->isStructTy());
-	bz_assert(type->getStructNumElements() == aggregate_destruct.elem_destruct_calls.size());
+	bz_assert(
+		aggregate_destruct.elem_destruct_calls.empty()
+		|| type->getStructNumElements() == aggregate_destruct.elem_destruct_calls.size()
+	);
 
 	for (auto const i : bz::iota(0, aggregate_destruct.elem_destruct_calls.size()).reversed())
 	{
@@ -5062,7 +5209,10 @@ static val_ptr emit_bitcode(
 	bz_assert(val.kind == val_ptr::reference);
 	auto const type = val.get_type();
 	bz_assert(type->isStructTy());
-	bz_assert(type->getStructNumElements() == base_type_destruct.member_destruct_calls.size());
+	bz_assert(
+		base_type_destruct.member_destruct_calls.empty()
+		|| type->getStructNumElements() == base_type_destruct.member_destruct_calls.size()
+	);
 
 	if (base_type_destruct.destruct_call.not_null())
 	{
@@ -6650,43 +6800,43 @@ static bool is_zero_value(ast::constant_value const &value)
 	switch (value.kind())
 	{
 	static_assert(ast::constant_value::variant_count == 19);
-	case ast::constant_value::sint:
+	case ast::constant_value_kind::sint:
 		return value.get_sint() == 0;
-	case ast::constant_value::uint:
+	case ast::constant_value_kind::uint:
 		return value.get_uint() == 0;
-	case ast::constant_value::float32:
+	case ast::constant_value_kind::float32:
 		return bit_cast<uint32_t>(value.get_float32()) == 0;
-	case ast::constant_value::float64:
+	case ast::constant_value_kind::float64:
 		return bit_cast<uint64_t>(value.get_float64()) == 0;
-	case ast::constant_value::u8char:
+	case ast::constant_value_kind::u8char:
 		return value.get_u8char() == 0;
-	case ast::constant_value::string:
+	case ast::constant_value_kind::string:
 		return value.get_string() == "";
-	case ast::constant_value::boolean:
+	case ast::constant_value_kind::boolean:
 		return value.get_boolean() == false;
-	case ast::constant_value::null:
+	case ast::constant_value_kind::null:
 		return true;
-	case ast::constant_value::void_:
+	case ast::constant_value_kind::void_:
 		return true;
-	case ast::constant_value::enum_:
+	case ast::constant_value_kind::enum_:
 		return value.get_enum().value == 0;
-	case ast::constant_value::array:
+	case ast::constant_value_kind::array:
 		return value.get_array().is_all([](auto const &value) { return is_zero_value(value); });
-	case ast::constant_value::sint_array:
+	case ast::constant_value_kind::sint_array:
 		return value.get_sint_array().is_all([](auto const value) { return value == 0; });
-	case ast::constant_value::uint_array:
-		return value.get_sint_array().is_all([](auto const value) { return value == 0; });
-	case ast::constant_value::float32_array:
+	case ast::constant_value_kind::uint_array:
+		return value.get_uint_array().is_all([](auto const value) { return value == 0; });
+	case ast::constant_value_kind::float32_array:
 		return value.get_float32_array().is_all([](auto const value) { return bit_cast<uint32_t>(value) == 0; });
-	case ast::constant_value::float64_array:
+	case ast::constant_value_kind::float64_array:
 		return value.get_float64_array().is_all([](auto const value) { return bit_cast<uint64_t>(value) == 0; });
-	case ast::constant_value::tuple:
+	case ast::constant_value_kind::tuple:
 		return value.get_tuple().is_all([](auto const &value) { return is_zero_value(value); });
-	case ast::constant_value::function:
+	case ast::constant_value_kind::function:
 		return false;
-	case ast::constant_value::aggregate:
+	case ast::constant_value_kind::aggregate:
 		return value.get_aggregate().is_all([](auto const &value) { return is_zero_value(value); });
-	case ast::constant_value::type:
+	case ast::constant_value_kind::type:
 		bz_unreachable;
 	default:
 		bz_unreachable;
@@ -6899,36 +7049,36 @@ static llvm::Constant *get_value_helper(
 	switch (value.kind())
 	{
 	static_assert(ast::constant_value::variant_count == 19);
-	case ast::constant_value::sint:
+	case ast::constant_value_kind::sint:
 		bz_assert(!type.is_empty());
 		return llvm::ConstantInt::get(
 			get_llvm_type(type, context),
 			bit_cast<uint64_t>(value.get_sint()),
 			true
 		);
-	case ast::constant_value::uint:
+	case ast::constant_value_kind::uint:
 		bz_assert(!type.is_empty());
 		return llvm::ConstantInt::get(
 			get_llvm_type(type, context),
 			value.get_uint(),
 			false
 		);
-	case ast::constant_value::float32:
+	case ast::constant_value_kind::float32:
 		return llvm::ConstantFP::get(
 			context.get_float32_t(),
 			static_cast<double>(value.get_float32())
 		);
-	case ast::constant_value::float64:
+	case ast::constant_value_kind::float64:
 		return llvm::ConstantFP::get(
 			context.get_float64_t(),
 			value.get_float64()
 		);
-	case ast::constant_value::u8char:
+	case ast::constant_value_kind::u8char:
 		return llvm::ConstantInt::get(
 			context.get_char_t(),
 			value.get_u8char()
 		);
-	case ast::constant_value::string:
+	case ast::constant_value_kind::string:
 	{
 		auto const str = value.get_string();
 		auto const str_t = llvm::cast<llvm::StructType>(context.get_str_t());
@@ -6952,9 +7102,9 @@ static llvm::Constant *get_value_helper(
 
 		return llvm::ConstantStruct::get(str_t, elems);
 	}
-	case ast::constant_value::boolean:
+	case ast::constant_value_kind::boolean:
 		return context.builder.getInt1(value.get_boolean());
-	case ast::constant_value::null:
+	case ast::constant_value_kind::null:
 		if (
 			auto const type_without_const = type.remove_any_mut();
 			type_without_const.is_optional_pointer_like()
@@ -6968,9 +7118,9 @@ static llvm::Constant *get_value_helper(
 			bz_assert(llvm_type->isStructTy());
 			return llvm::ConstantAggregateZero::get(llvm::cast<llvm::StructType>(llvm_type));
 		}
-	case ast::constant_value::void_:
+	case ast::constant_value_kind::void_:
 		return nullptr;
-	case ast::constant_value::enum_:
+	case ast::constant_value_kind::enum_:
 	{
 		auto const [decl, enum_value] = value.get_enum();
 		auto const is_signed = ast::is_signed_integer_kind(decl->underlying_type.get<ast::ts_base_type>().info->kind);
@@ -6980,7 +7130,7 @@ static llvm::Constant *get_value_helper(
 			is_signed
 		);
 	}
-	case ast::constant_value::array:
+	case ast::constant_value_kind::array:
 	{
 		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
@@ -6991,7 +7141,7 @@ static llvm::Constant *get_value_helper(
 			context
 		);
 	}
-	case ast::constant_value::sint_array:
+	case ast::constant_value_kind::sint_array:
 	{
 		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
@@ -7002,7 +7152,7 @@ static llvm::Constant *get_value_helper(
 			context
 		);
 	}
-	case ast::constant_value::uint_array:
+	case ast::constant_value_kind::uint_array:
 	{
 		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
@@ -7013,7 +7163,7 @@ static llvm::Constant *get_value_helper(
 			context
 		);
 	}
-	case ast::constant_value::float32_array:
+	case ast::constant_value_kind::float32_array:
 	{
 		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
@@ -7024,7 +7174,7 @@ static llvm::Constant *get_value_helper(
 			context
 		);
 	}
-	case ast::constant_value::float64_array:
+	case ast::constant_value_kind::float64_array:
 	{
 		auto const array_type = type.remove_any_mut();
 		bz_assert(array_type.is<ast::ts_array>());
@@ -7035,7 +7185,7 @@ static llvm::Constant *get_value_helper(
 			context
 		);
 	}
-	case ast::constant_value::tuple:
+	case ast::constant_value_kind::tuple:
 	{
 		auto const tuple_values = value.get_tuple();
 		ast::arena_vector<llvm::Type     *> types = {};
@@ -7066,11 +7216,11 @@ static llvm::Constant *get_value_helper(
 		auto const tuple_type = context.get_tuple_t(types);
 		return llvm::ConstantStruct::get(tuple_type, llvm::ArrayRef(elems.data(), elems.size()));
 	}
-	case ast::constant_value::function:
+	case ast::constant_value_kind::function:
 	{
 		return context.get_function(value.get_function());
 	}
-	case ast::constant_value::aggregate:
+	case ast::constant_value_kind::aggregate:
 	{
 		auto const aggregate = value.get_aggregate();
 		bz_assert(type.remove_any_mut().is<ast::ts_base_type>());
@@ -7085,7 +7235,7 @@ static llvm::Constant *get_value_helper(
 			.collect();
 		return llvm::ConstantStruct::get(val_struct_type, llvm::ArrayRef(members.data(), members.size()));
 	}
-	case ast::constant_value::type:
+	case ast::constant_value_kind::type:
 		bz_unreachable;
 	default:
 		bz_unreachable;
@@ -7241,6 +7391,7 @@ static val_ptr emit_bitcode(
 			|| dyn_expr.expr.is<ast::expr_compound>()
 			|| dyn_expr.expr.is<ast::expr_if>()
 			|| dyn_expr.expr.is<ast::expr_switch>()
+			|| dyn_expr.expr.is<ast::expr_tuple>()
 		)
 	)
 	{
@@ -7513,9 +7664,21 @@ static void emit_bitcode(
 	bitcode_context &context
 )
 {
-	auto const prev_info = context.push_expression_scope();
-	emit_bitcode(expr_stmt.expr, context, nullptr);
-	context.pop_expression_scope(prev_info);
+	if (expr_stmt.expr.is<ast::expanded_variadic_expression>())
+	{
+		for (auto &expr : expr_stmt.expr.get<ast::expanded_variadic_expression>().exprs)
+		{
+			auto const prev_info = context.push_expression_scope();
+			emit_bitcode(expr, context, nullptr);
+			context.pop_expression_scope(prev_info);
+		}
+	}
+	else
+	{
+		auto const prev_info = context.push_expression_scope();
+		emit_bitcode(expr_stmt.expr, context, nullptr);
+		context.pop_expression_scope(prev_info);
+	}
 }
 
 static void add_variable_helper(
@@ -7538,9 +7701,8 @@ static void add_variable_helper(
 			context.push_variable_destruct_operation(var_decl.destruction);
 		}
 	}
-	else
+	else if (type->isStructTy())
 	{
-		bz_assert(type->isStructTy());
 		for (auto const &[decl, i] : var_decl.tuple_decls.enumerate())
 		{
 			if (decl.get_type().is_any_reference())
@@ -7556,6 +7718,16 @@ static void add_variable_helper(
 				auto const elem_type = type->getStructElementType(i);
 				add_variable_helper(decl, elem_ptr, elem_type, context);
 			}
+		}
+	}
+	else
+	{
+		bz_assert(type->isArrayTy());
+		auto const elem_type = type->getArrayElementType();
+		for (auto const &[decl, i] : var_decl.tuple_decls.enumerate())
+		{
+			auto const elem_ptr = context.create_struct_gep(type, ptr, i);
+			add_variable_helper(decl, elem_ptr, elem_type, context);
 		}
 	}
 }
@@ -8057,6 +8229,29 @@ void emit_function_bitcode(
 	}
 }
 
+static void add_global_variable_helper(
+	ast::decl_variable const &var_decl,
+	llvm::Constant *value,
+	llvm::Type *type,
+	bitcode_context &context
+)
+{
+	if (var_decl.tuple_decls.empty())
+	{
+		context.add_variable(&var_decl, value, type);
+	}
+	else
+	{
+		for (auto const &[inner_decl, i] : var_decl.tuple_decls.enumerate())
+		{
+			auto const value_gep = context.create_struct_gep(type, value, i);
+			bz_assert(llvm::isa<llvm::Constant>(value_gep));
+			auto const inner_type = type->isArrayTy() ? type->getArrayElementType() : type->getStructElementType(i);
+			add_global_variable_helper(inner_decl, llvm::cast<llvm::Constant>(value_gep), inner_type, context);
+		}
+	}
+}
+
 static void emit_global_variable_impl(ast::decl_variable const &var_decl, bitcode_context &context)
 {
 	bz_assert(var_decl.is_global_storage());
@@ -8081,7 +8276,8 @@ static void emit_global_variable_impl(ast::decl_variable const &var_decl, bitcod
 		bz_assert(!global_var->hasInitializer());
 		global_var->setInitializer(init_val);
 	}
-	context.add_variable(&var_decl, global_var, type);
+
+	add_global_variable_helper(var_decl, global_var, type, context);
 }
 
 void emit_global_variable(ast::decl_variable const &var_decl, bitcode_context &context)
@@ -8090,6 +8286,7 @@ void emit_global_variable(ast::decl_variable const &var_decl, bitcode_context &c
 	{
 		return;
 	}
+	bz_assert(var_decl.global_tuple_decl_parent == nullptr);
 	emit_global_variable_impl(var_decl, context);
 }
 
@@ -8170,11 +8367,19 @@ void emit_global_type(ast::type_info const &info, bitcode_context &context)
 		bz_assert(type != nullptr);
 		bz_assert(type->isStructTy());
 		auto const struct_type = static_cast<llvm::StructType *>(type);
-		auto const types = info.member_variables
-			.transform([&](auto const &member) { return get_llvm_type(member->get_type(), context); })
-			.collect<ast::arena_vector>();
-		bz_assert(struct_type->isOpaque());
-		struct_type->setBody(llvm::ArrayRef<llvm::Type *>(types.data(), types.size()));
+		if (info.member_variables.not_empty())
+		{
+			auto const types = info.member_variables
+				.transform([&](auto const &member) { return get_llvm_type(member->get_type(), context); })
+				.collect<ast::arena_vector>();
+			bz_assert(struct_type->isOpaque());
+			struct_type->setBody(llvm::ArrayRef<llvm::Type *>(types.data(), types.size()));
+		}
+		else
+		{
+			bz_assert(struct_type->isOpaque());
+			struct_type->setBody(context.get_uint8_t());
+		}
 		break;
 	}
 	}

@@ -19,7 +19,7 @@ template<>
 pass_kind get_pass_kind<platform_abi::generic>(
 	llvm::Type *t,
 	llvm::DataLayout const &data_layout,
-	llvm::LLVMContext &context
+	llvm::LLVMContext &
 )
 {
 	if (t->isVoidTy())
@@ -28,7 +28,7 @@ pass_kind get_pass_kind<platform_abi::generic>(
 	}
 
 	auto const size = data_layout.getTypeAllocSize(t);
-	auto const register_size = data_layout.getTypeAllocSize(data_layout.getIntPtrType(context));
+	auto const register_size = data_layout.getPointerSize();
 	if (t->isIntegerTy() || t->isFloatingPointTy() || t->isPointerTy())
 	{
 		return pass_kind::value;

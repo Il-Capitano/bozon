@@ -141,7 +141,7 @@ static void add_import_decls(src_file &file, bz::array_view<bz::u8string_view co
 		file._global_scope.get_global().all_symbols.add_enum(get_id(enum_decl->id.values), *enum_decl);
 	}
 
-	static_assert(sizeof (ast::global_scope_t) == 624);
+	static_assert(sizeof (ast::global_scope_t) == 624 || sizeof (ast::global_scope_t) == 560);
 }
 
 
@@ -251,14 +251,14 @@ src_file::src_file(fs::path file_path, uint32_t file_id, bz::vector<bz::u8string
 
 	for (auto &decl : this->_declarations)
 	{
-		static_assert(sizeof (ast::global_scope_t) == 624);
+		static_assert(sizeof (ast::global_scope_t) == 624 || sizeof (ast::global_scope_t) == 560);
 		static_assert(ast::statement_types::size() == 17);
 		switch (decl.kind())
 		{
 		case ast::statement::index<ast::decl_variable>:
 		{
 			auto &var_decl = decl.get<ast::decl_variable>();
-			this->_global_scope.get_global().add_variable({}, var_decl);
+			ast::add_global_variable(this->_global_scope.get_global(), var_decl);
 			break;
 		}
 		case ast::statement::index<ast::decl_function>:
@@ -345,6 +345,43 @@ src_file::src_file(fs::path file_path, uint32_t file_id, bz::vector<bz::u8string
 		}
 	}
 
+	return !global_ctx.has_errors();
+}
+
+// the __builtins.bz file needs to be parsed a bit differently:
+//   - struct declarations must be resolved by first calling resolve_symbol,
+//     otherwise attributes cannot be used in their body
+[[nodiscard]] bool src_file::parse_builtins(ctx::global_context &global_ctx)
+{
+	if (this->_stage > parsed_global_symbols)
+	{
+		return true;
+	}
+	bz_assert(this->_stage == parsed_global_symbols);
+
+	ctx::parse_context context(global_ctx);
+	context.current_global_scope = &this->_global_scope;
+
+	for (auto &decl : this->_declarations)
+	{
+		if (decl.is<ast::decl_struct>())
+		{
+			resolve::resolve_type_info_members(decl.get<ast::decl_struct>().info, context);
+		}
+	}
+
+	for (auto &decl : this->_declarations)
+	{
+		resolve::resolve_global_statement(decl, context);
+	}
+	for (std::size_t i = 0; i < context.generic_functions.size(); ++i)
+	{
+		context.add_to_resolve_queue({}, *context.generic_functions[i]);
+		resolve::resolve_function({}, *context.generic_functions[i], context);
+		context.pop_resolve_queue();
+	}
+
+	this->_stage = parsed;
 	return !global_ctx.has_errors();
 }
 

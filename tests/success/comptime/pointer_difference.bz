@@ -4,6 +4,7 @@ function assert(b: bool)
 }
 
 consteval global_arr = [10: int32]();
+consteval [first, second] = [2: int32]();
 
 function test()
 {
@@ -13,6 +14,9 @@ function test()
 		assert(&arr[0] - &arr[2] == -2);
 		assert(&global_arr[2] - &global_arr[0] == 2);
 		assert(&global_arr[0] - &global_arr[2] == -2);
+
+		assert(&second - &first == 1);
+		assert(&first - &second == -1);
 
 		let p = __builtin_comptime_malloc(int32, 10);
 		defer __builtin_comptime_free(p);

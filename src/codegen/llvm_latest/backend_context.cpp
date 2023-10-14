@@ -5,7 +5,7 @@
 #include "emit_bitcode.h"
 #include "colors.h"
 
-#include <llvm/Support/Host.h>
+#include <llvm/TargetParser/Host.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/FileSystem.h>
@@ -17,9 +17,9 @@
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
 
-#if LLVM_VERSION_MAJOR != 16
-#error LLVM 16 is required
-#endif // LLVM 16
+#if LLVM_VERSION_MAJOR != 17
+#error LLVM 17 is required
+#endif // LLVM 17
 
 namespace codegen::llvm_latest
 {
@@ -224,25 +224,19 @@ static void emit_struct_symbols_helper(bz::array_view<ast::statement const> decl
 	{
 		emit_global_type_symbol(struct_decl.info, context);
 
-		if (struct_decl.info.kind == ast::type_info::aggregate)
+		if (struct_decl.info.is_generic())
 		{
-			if (struct_decl.info.is_generic())
+			for (auto const &instantiation_decl : struct_decl.info.generic_instantiations)
 			{
-				for (auto const &instantiation_decl : struct_decl.info.generic_instantiations)
+				if (instantiation_decl->body.is<bz::vector<ast::statement>>() && instantiation_decl->state == ast::resolve_state::all)
 				{
-					if (instantiation_decl->state == ast::resolve_state::all)
-					{
-						emit_struct_symbols_helper(instantiation_decl->body.get<bz::vector<ast::statement>>(), context);
-					}
+					emit_struct_symbols_helper(instantiation_decl->body.get<bz::vector<ast::statement>>(), context);
 				}
 			}
-			else
-			{
-				if (struct_decl.info.state == ast::resolve_state::all)
-				{
-					emit_struct_symbols_helper(struct_decl.info.body.get<bz::vector<ast::statement>>(), context);
-				}
-			}
+		}
+		else if (struct_decl.info.body.is<bz::vector<ast::statement>>() && struct_decl.info.state == ast::resolve_state::all)
+		{
+			emit_struct_symbols_helper(struct_decl.info.body.get<bz::vector<ast::statement>>(), context);
 		}
 	}
 }
@@ -253,24 +247,21 @@ static void emit_structs_helper(bz::array_view<ast::statement const> decls, bitc
 	{
 		emit_global_type(struct_decl.info, context);
 
-		if (struct_decl.info.kind == ast::type_info::aggregate)
+		if (struct_decl.info.is_generic())
 		{
-			if (struct_decl.info.is_generic())
+			for (auto const &instantiation_decl : struct_decl.info.generic_instantiations)
 			{
-				for (auto const &instantiation_decl : struct_decl.info.generic_instantiations)
+				if (instantiation_decl->state == ast::resolve_state::all)
 				{
-					if (instantiation_decl->state == ast::resolve_state::all)
-					{
-						emit_structs_helper(instantiation_decl->body.get<bz::vector<ast::statement>>(), context);
-					}
+					emit_structs_helper(instantiation_decl->body.get<bz::vector<ast::statement>>(), context);
 				}
 			}
-			else
+		}
+		else
+		{
+			if (struct_decl.info.body.is<bz::vector<ast::statement>>() && struct_decl.info.state == ast::resolve_state::all)
 			{
-				if (struct_decl.info.state == ast::resolve_state::all)
-				{
-					emit_structs_helper(struct_decl.info.body.get<bz::vector<ast::statement>>(), context);
-				}
+				emit_structs_helper(struct_decl.info.body.get<bz::vector<ast::statement>>(), context);
 			}
 		}
 	}
@@ -288,24 +279,21 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 
 	for (auto const &struct_decl : filter_struct_decls(decls))
 	{
-		if (struct_decl.info.kind == ast::type_info::aggregate)
+		if (struct_decl.info.is_generic())
 		{
-			if (struct_decl.info.is_generic())
+			for (auto const &instantiation_decl : struct_decl.info.generic_instantiations)
 			{
-				for (auto const &instantiation_decl : struct_decl.info.generic_instantiations)
+				if (instantiation_decl->body.is<bz::vector<ast::statement>>() && instantiation_decl->state == ast::resolve_state::all)
 				{
-					if (instantiation_decl->state == ast::resolve_state::all)
-					{
-						emit_variables_helper(instantiation_decl->body.get<bz::vector<ast::statement>>(), context);
-					}
+					emit_variables_helper(instantiation_decl->body.get<bz::vector<ast::statement>>(), context);
 				}
 			}
-			else
+		}
+		else
+		{
+			if (struct_decl.info.body.is<bz::vector<ast::statement>>() && struct_decl.info.state == ast::resolve_state::all)
 			{
-				if (struct_decl.info.state == ast::resolve_state::all)
-				{
-					emit_variables_helper(struct_decl.info.body.get<bz::vector<ast::statement>>(), context);
-				}
+				emit_variables_helper(struct_decl.info.body.get<bz::vector<ast::statement>>(), context);
 			}
 		}
 	}

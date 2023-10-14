@@ -16,7 +16,7 @@ Bozon is a general-purpose compiled programming language that aims to provide hi
 The only tested platforms at the moment are Windows with [MSYS2](https://www.msys2.org/) and Ubuntu 22.04+.
 
 Required libraries:
-* LLVM 16.x
+* LLVM 17.x
 * dwarfstack (Windows only)
 * [libbacktrace](https://github.com/ianlancetaylor/libbacktrace) (Linux only)
 

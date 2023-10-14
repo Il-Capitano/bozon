@@ -46,7 +46,7 @@ class ProcessPool:
 success_test_files = glob.glob("tests/success/**/*.bz", recursive=True)
 warning_test_files = glob.glob("tests/warning/**/*.bz", recursive=True)
 error_test_files = glob.glob("tests/error/**/*.bz", recursive=True)
-bozon = 'bin\\windows-debug\\bozon.exe' if os.name == 'nt' else './bin/linux-debug/bozon'
+bozon = 'bin\\windows-debug\\no-sanitize-bozon.exe' if os.name == 'nt' else './bin/linux-debug/bozon'
 flags = [ '--stdlib-dir', 'bozon-stdlib', '-Wall', '--debug-no-emit-file', '-Itests/import' ]
 
 # enable colors for windows

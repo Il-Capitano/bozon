@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <utility>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>

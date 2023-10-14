@@ -351,13 +351,20 @@ public:
 	}
 };
 
+template<typename T>
+constexpr bool is_trivial_variant = std::is_trivially_destructible_v<T>
+	&& std::is_trivially_copy_constructible_v<T>
+	&& std::is_trivially_copy_assignable_v<T>
+	&& std::is_trivially_move_constructible_v<T>
+	&& std::is_trivially_move_assignable_v<T>;
+
 } // namespace internal
 
 
 template<typename ...Ts>
 class variant :
 	public meta::conditional<
-		internal::is_all({ meta::is_trivial_v<Ts>... }),
+		internal::is_all({ internal::is_trivial_variant<Ts>... }),
 		internal::variant_trivial_base<Ts...>,
 		internal::variant_non_trivial_base<Ts...>
 	>
@@ -373,7 +380,7 @@ class variant :
 private:
 	using self_t = variant<Ts...>;
 	using base_t = meta::conditional<
-		internal::is_all({ meta::is_trivial_v<Ts>... }),
+		internal::is_all({ internal::is_trivial_variant<Ts>... }),
 		internal::variant_trivial_base<Ts...>,
 		internal::variant_non_trivial_base<Ts...>
 	>;
@@ -479,16 +486,8 @@ public:
 	self_t &operator = (self_t const &other) = default;
 	self_t &operator = (self_t &&other) = default;
 
-	template<
-		typename T,
-		typename = meta::enable_if<
-			!meta::is_same<
-				meta::remove_cv_reference<T>,
-				self_t
-			>
-			&& internal::is_any({ meta::is_constructible_v<Ts, T>... })
-		>
-	>
+	template<typename T>
+		requires (!std::same_as<self_t, meta::remove_cv_reference<T>>) && (internal::is_any({ meta::is_constructible_v<Ts, T>... }))
 	variant(T &&val) bz_noexcept(
 		meta::is_nothrow_constructible_v<value_type_from<T>, T>
 	)
@@ -497,15 +496,8 @@ public:
 		this->template no_clear_emplace<index_of<value_type>, value_type>(std::forward<T>(val));
 	}
 
-	template<
-		typename T,
-		typename = meta::enable_if<
-			!meta::is_same<
-				meta::remove_cv_reference<T>,
-				self_t
-			>
-		>
-	>
+	template<typename T>
+		requires (!std::same_as<self_t, meta::remove_cv_reference<T>>)
 	self_t &operator = (T &&val) bz_noexcept(
 		internal::is_all({ meta::is_nothrow_destructible_v<Ts>... })
 		&& meta::is_nothrow_assignable_v<value_type_from<T>, T>
@@ -763,13 +755,15 @@ bool operator == (variant<Ts...> const &lhs, variant<Ts...> const &rhs)
 	}(std::make_index_sequence<sizeof... (Ts)>());
 }
 
-template<typename ...Ts, typename Rhs, meta::enable_if<meta::is_in_types<Rhs, Ts...>, int> = 0>
+template<typename ...Ts, typename Rhs>
+	requires meta::is_in_types<Rhs, Ts...>
 bool operator == (variant<Ts...> const &lhs, Rhs const &rhs)
 {
 	return lhs.template is<Rhs>() && lhs.template get<Rhs>() == rhs;
 }
 
-template<typename Lhs, typename ...Ts, meta::enable_if<meta::is_in_types<Lhs, Ts...>, int> = 0>
+template<typename Lhs, typename ...Ts>
+	requires meta::is_in_types<Lhs, Ts...>
 bool operator == (Lhs const &lhs, variant<Ts...> const &rhs)
 {
 	return rhs.template is<Lhs>() && lhs == rhs.template get<Lhs>();
@@ -803,13 +797,15 @@ bool operator != (variant<Ts...> const &lhs, variant<Ts...> const &rhs)
 	}(std::make_index_sequence<sizeof... (Ts)>());
 }
 
-template<typename ...Ts, typename Rhs, meta::enable_if<meta::is_in_types<Rhs, Ts...>, int> = 0>
+template<typename ...Ts, typename Rhs>
+	requires meta::is_in_types<Rhs, Ts...>
 bool operator != (variant<Ts...> const &lhs, Rhs const &rhs)
 {
 	return !(lhs == rhs);
 }
 
-template<typename Lhs, typename ...Ts, meta::enable_if<meta::is_in_types<Lhs, Ts...>, int> = 0>
+template<typename Lhs, typename ...Ts>
+	requires meta::is_in_types<Lhs, Ts...>
 bool operator != (Lhs const &lhs, variant<Ts...> const &rhs)
 {
 	return !(lhs == rhs);

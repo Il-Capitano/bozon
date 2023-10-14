@@ -21,6 +21,12 @@ ast::expression make_builtin_type_operation(
 	parse_context &context
 );
 
+ast::decl_operator *get_builtin_operator(
+	uint32_t op_kind,
+	ast::expression const &expr,
+	parse_context &context
+);
+
 ast::expression make_builtin_operation(
 	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
@@ -34,6 +40,13 @@ ast::expression make_builtin_type_operation(
 	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
+	parse_context &context
+);
+
+ast::decl_operator *get_builtin_operator(
+	uint32_t op_kind,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	parse_context &context
 );
 

@@ -115,7 +115,7 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 				prototype,
 				ast::var_id_and_type(
 					id->kind == lex::token::identifier ? ast::make_identifier(id) : ast::identifier{},
-					ast::type_as_expression(src_tokens, ast::make_auto_typespec(id))
+					context.auto_type_as_expression(src_tokens)
 				),
 				context.get_current_enclosing_scope()
 			);
@@ -139,7 +139,7 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 			prototype,
 			ast::var_id_and_type(
 				id->kind == lex::token::identifier ? ast::make_identifier(id) : ast::identifier{},
-				ast::type_as_expression(lex::src_tokens::from_range(type), ast::make_unresolved_typespec(type))
+				context.type_as_expression(lex::src_tokens::from_range(type), ast::make_unresolved_typespec(type))
 			),
 			context.get_current_enclosing_scope()
 		);
@@ -1469,13 +1469,11 @@ static ast::statement parse_stmt_foreach_impl(
 
 	auto const outer_prev_size = context.add_unresolved_scope();
 
-	auto range_var_type = ast::make_auto_typespec(nullptr);
-	range_var_type.add_layer<ast::ts_auto_reference_mut>();
 	auto const range_expr_src_tokens = range_expr.src_tokens;
 	auto range_var_decl_stmt = ast::make_decl_variable(
 		range_expr_src_tokens,
 		lex::token_range{},
-		ast::var_id_and_type(ast::identifier{}, ast::type_as_expression(range_expr_src_tokens, std::move(range_var_type))),
+		ast::var_id_and_type(ast::identifier{}, ast::make_auto_typespec(nullptr)),
 		std::move(range_expr),
 		context.get_current_enclosing_scope()
 	);
@@ -1484,6 +1482,7 @@ static ast::statement parse_stmt_foreach_impl(
 	range_var_decl.id_and_type.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
 	range_var_decl.id_and_type.id.values = { "" };
 	range_var_decl.id_and_type.id.is_qualified = false;
+	range_var_decl.id_and_type.var_type.add_layer<ast::ts_auto_reference_mut>();
 
 	auto const prev_in_loop = context.push_loop();
 	auto const inner_prev_size = context.add_unresolved_scope();
@@ -1576,18 +1575,6 @@ ast::statement parse_stmt_expression(
 )
 {
 	auto expr = parse_top_level_expression(stream, end, context);
-	if (expr.is<ast::expanded_variadic_expression>())
-	{
-		context.report_error(expr.src_tokens, "expanded variadic expression is not allowed as a top-level expression");
-	}
-	else if (expr.is_placeholder_literal())
-	{
-		context.report_error(expr.src_tokens, "placeholder literal is not allowed as a top-level expression");
-	}
-	else if (expr.is_enum_literal())
-	{
-		context.report_error(expr.src_tokens, "enum literal is not allowed as a top-level expression");
-	}
 	return ast::make_stmt_expression(std::move(expr));
 }
 

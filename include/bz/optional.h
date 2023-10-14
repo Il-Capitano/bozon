@@ -6,36 +6,9 @@
 
 bz_begin_namespace
 
-namespace internal
-{
-
-struct optional_trivial
-{};
-
-template<typename Optional, typename Element>
-struct optional_destructor_base
-{
-	~optional_destructor_base(void) noexcept
-	{
-		auto &This = *static_cast<Optional *>(this);
-		if (This._has_value)
-		{
-			This.destruct();
-		}
-	}
-};
-
-} // namespace internal
-
 template<typename T>
-class optional :
-	public meta::conditional<
-		meta::is_trivially_destructible_v<T>,
-		internal::optional_trivial,
-		internal::optional_destructor_base<optional<T>, T>
-	>
+class optional
 {
-	friend struct internal::optional_destructor_base<optional<T>, T>;
 	static_assert(!meta::is_void<T>,      "bz::optional element type must not be void");
 	static_assert(!meta::is_reference<T>, "bz::optional element type must not be a reference");
 private:
@@ -117,6 +90,8 @@ public:
 		: _has_value(false)
 	{}
 
+	optional(self_t const &other) noexcept requires std::is_trivially_copy_constructible_v<element_type> = default;
+
 	optional(self_t const &other) noexcept(
 		meta::is_nothrow_copy_constructible_v<element_type>
 	)
@@ -131,6 +106,8 @@ public:
 		}
 	}
 
+	optional(self_t &&other) noexcept requires std::is_trivially_move_constructible_v<element_type> = default;
+
 	optional(self_t &&other) noexcept(
 		meta::is_nothrow_move_constructible_v<element_type>
 	)
@@ -144,6 +121,20 @@ public:
 			this->_has_value = false;
 		}
 	}
+
+	~optional(void) noexcept requires std::is_trivially_destructible_v<element_type> = default;
+
+	~optional(void) noexcept
+	{
+		if (this->_has_value)
+		{
+			this->destruct();
+		}
+	}
+
+	self_t &operator = (self_t const &other) noexcept
+		requires std::is_trivially_copy_constructible_v<element_type> && std::is_trivially_copy_assignable_v<element_type>
+		= default;
 
 	self_t &operator = (self_t const &other) noexcept(
 		meta::is_nothrow_copy_constructible_v<element_type>
@@ -170,6 +161,10 @@ public:
 		return *this;
 	}
 
+	self_t &operator = (self_t &&other) noexcept
+		requires std::is_trivially_move_constructible_v<element_type> && std::is_trivially_move_assignable_v<element_type>
+		= default;
+
 	self_t &operator = (self_t &&other) noexcept(
 		meta::is_nothrow_move_constructible_v<element_type>
 		&& meta::is_nothrow_move_assignable_v<element_type>
@@ -195,16 +190,8 @@ public:
 		return *this;
 	}
 
-	template<
-		typename ...Args,
-		typename = meta::enable_if<
-			sizeof...(Args) != 1
-			|| (!meta::is_same<
-				meta::remove_cv_reference<Args>,
-				self_t
-			> && ...)
-		>
-	>
+	template<typename ...Args>
+		requires (sizeof ...(Args) != 1) || (... && !std::same_as<meta::remove_cv_reference<Args>, self_t>)
 	optional(Args &&...args) noexcept(
 		meta::is_nothrow_constructible_v<element_type, Args...>
 	)

@@ -3,6 +3,8 @@
 
 #include "core.h"
 
+#include <bz/enum_array.h>
+
 #include "context_forward.h"
 #include "lex/token.h"
 #include "error.h"
@@ -27,6 +29,119 @@ struct decl_list
 	bz::vector<ast::type_info     *> type_infos;
 };
 
+struct builtin_type_basic_operator_table_t
+{
+	using binary_array_t = bz::enum_array<
+		ast::decl_operator *,
+		lex::token::assign,
+		lex::token::equals,
+		lex::token::not_equals,
+		lex::token::less_than,
+		lex::token::less_than_eq,
+		lex::token::greater_than,
+		lex::token::greater_than_eq
+	>;
+
+	binary_array_t binary_ops;
+};
+
+using basic_operator_table_t = bz::enum_array<
+	builtin_type_basic_operator_table_t,
+	ast::type_info::int8_,
+	ast::type_info::int16_,
+	ast::type_info::int32_,
+	ast::type_info::int64_,
+	ast::type_info::uint8_,
+	ast::type_info::uint16_,
+	ast::type_info::uint32_,
+	ast::type_info::uint64_,
+	ast::type_info::float32_,
+	ast::type_info::float64_,
+	ast::type_info::char_,
+	ast::type_info::bool_
+>;
+
+struct builtin_type_arithmetic_operator_table_t
+{
+	using unary_array_t = bz::enum_array<
+		ast::decl_operator *,
+		lex::token::plus,
+		lex::token::minus,
+		lex::token::plus_plus,
+		lex::token::minus_minus
+	>;
+
+	using binary_array_t = bz::enum_array<
+		ast::decl_operator *,
+		lex::token::plus,
+		lex::token::plus_eq,
+		lex::token::minus,
+		lex::token::minus_eq,
+		lex::token::multiply,
+		lex::token::multiply_eq,
+		lex::token::divide,
+		lex::token::divide_eq,
+		lex::token::modulo,
+		lex::token::modulo_eq
+	>;
+
+	unary_array_t unary_ops;
+	binary_array_t binary_ops;
+};
+
+using arithmetic_operator_table_t = bz::enum_array<
+	builtin_type_arithmetic_operator_table_t,
+	ast::type_info::int8_,
+	ast::type_info::int16_,
+	ast::type_info::int32_,
+	ast::type_info::int64_,
+	ast::type_info::uint8_,
+	ast::type_info::uint16_,
+	ast::type_info::uint32_,
+	ast::type_info::uint64_,
+	ast::type_info::float32_,
+	ast::type_info::float64_
+>;
+
+struct builtin_type_bitwise_operator_table_t
+{
+	using unary_array_t = bz::enum_array<
+		ast::decl_operator *,
+		lex::token::bit_not,
+		lex::token::bool_not
+	>;
+
+	using binary_array_t = bz::enum_array<
+		ast::decl_operator *,
+		lex::token::bit_and,
+		lex::token::bit_and_eq,
+		lex::token::bit_xor,
+		lex::token::bit_xor_eq,
+		lex::token::bit_or,
+		lex::token::bit_or_eq
+	>;
+
+	unary_array_t unary_ops;
+	binary_array_t binary_ops;
+	ast::decl_operator *signed_bit_left_shift;
+	ast::decl_operator *signed_bit_left_shift_eq;
+	ast::decl_operator *signed_bit_right_shift;
+	ast::decl_operator *signed_bit_right_shift_eq;
+	ast::decl_operator *unsigned_bit_left_shift;
+	ast::decl_operator *unsigned_bit_left_shift_eq;
+	ast::decl_operator *unsigned_bit_right_shift;
+	ast::decl_operator *unsigned_bit_right_shift_eq;
+};
+
+using bitwise_operator_table_t = bz::enum_array<
+	builtin_type_bitwise_operator_table_t,
+	ast::type_info::uint8_,
+	ast::type_info::uint16_,
+	ast::type_info::uint32_,
+	ast::type_info::uint64_,
+	ast::type_info::bool_
+>;
+
 ast::scope_t get_default_decls(ast::scope_t *builtin_global_scope);
 
 struct global_context
@@ -46,6 +161,10 @@ struct global_context
 	bz::vector<ast::decl_function *> _builtin_functions;
 	bz::vector<ast::decl_operator *> _builtin_operators;
 
+	basic_operator_table_t _basic_operators{};
+	arithmetic_operator_table_t _arithmetic_operators{};
+	bitwise_operator_table_t _bitwise_operators{};
+
 	ast::scope_t *_builtin_global_scope;
 
 	ast::function_body *_main = nullptr;
@@ -56,6 +175,15 @@ struct global_context
 
 	bz::vector<std::unique_ptr<char[]>> _src_scope_fragments;
 	bz::vector<bz::vector<bz::u8string_view>> _src_scopes_storage;
+
+	bz::vector<bz::fixed_vector<char>>                 constant_string_storage;
+	bz::vector<ast::arena_vector<ast::constant_value>> constant_aggregate_storage;
+	bz::vector<ast::arena_vector<int64_t>>             constant_sint_array_storage;
+	bz::vector<ast::arena_vector<uint64_t>>            constant_uint_array_storage;
+	bz::vector<ast::arena_vector<float32_t>>           constant_float32_array_storage;
+	bz::vector<ast::arena_vector<float64_t>>           constant_float64_array_storage;
+	bz::vector<ast::typespec>                          constant_type_storage;
+	ast::typespec_view cached_auto_type;
 
 	std::unique_ptr<ast::type_prototype_set_t> type_prototype_set = nullptr;
 
@@ -88,6 +216,8 @@ struct global_context
 	ast::decl_function *get_builtin_function(uint32_t kind);
 	bz::array_view<uint32_t const> get_builtin_universal_functions(bz::u8string_view id);
 	resolve::attribute_info_t *get_builtin_attribute(bz::u8string_view name);
+	ast::decl_operator *get_builtin_operator(uint32_t op_kind, uint8_t expr_type_kind);
+	ast::decl_operator *get_builtin_operator(uint32_t op_kind, uint8_t lhs_type_kind, uint8_t rhs_type_kind);
 	size_t get_sizeof(ast::typespec_view ts);
 	size_t get_alignof(ast::typespec_view ts);
 
@@ -160,6 +290,16 @@ struct global_context
 	ast::type_info *get_usize_type_info_for_builtin_alias(void) const;
 	ast::type_info *get_isize_type_info_for_builtin_alias(void) const;
 	size_t get_pointer_size(void) const;
+
+	ast::constant_value add_constant_string(bz::u8string_view str);
+	ast::constant_value add_constant_array(ast::arena_vector<ast::constant_value> elems);
+	ast::constant_value add_constant_tuple(ast::arena_vector<ast::constant_value> elems);
+	ast::constant_value add_constant_aggregate(ast::arena_vector<ast::constant_value> elems);
+	ast::constant_value add_constant_sint_array(ast::arena_vector<int64_t> elems);
+	ast::constant_value add_constant_uint_array(ast::arena_vector<uint64_t> elems);
+	ast::constant_value add_constant_float32_array(ast::arena_vector<float32_t> elems);
+	ast::constant_value add_constant_float64_array(ast::arena_vector<float64_t> elems);
+	ast::constant_value add_constant_type(ast::typespec type);
 
 	bool is_aggressive_consteval_enabled(void) const;
 	bz::optional<uint32_t> get_machine_code_opt_level(void) const;

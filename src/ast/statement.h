@@ -184,18 +184,22 @@ struct stmt_static_assert
 struct var_id_and_type
 {
 	identifier id;
-	expression var_type;
+	expression var_type_expr;
+	typespec var_type;
 
-	var_id_and_type(void)
-		: id(), var_type(type_as_expression(lex::src_tokens(), typespec()))
-	{}
+	var_id_and_type(void) = default;
 
-	var_id_and_type(identifier _id, expression _var_type)
+	var_id_and_type(identifier _id, expression _var_type_expr)
+		: id(std::move(_id)), var_type_expr(std::move(_var_type_expr))
+	{
+		if (this->var_type_expr.is_typename())
+		{
+			this->var_type = this->var_type_expr.get_typename();
+		}
+	}
+
+	var_id_and_type(identifier _id, typespec _var_type)
 		: id(std::move(_id)), var_type(std::move(_var_type))
-	{}
-
-	var_id_and_type(identifier _id)
-		: id(std::move(_id)), var_type(type_as_expression(lex::src_tokens::from_range(this->id.tokens), typespec()))
 	{}
 };
 
@@ -227,6 +231,7 @@ struct decl_variable
 	expression init_expr; // is null if there's no initializer
 	destruct_operation destruction;
 	ast_unique_ptr<decl_variable> original_tuple_variadic_decl; // non-null only if tuple_decls has an empty variadic declaration at the end
+	decl_variable *global_tuple_decl_parent = nullptr;
 	lex::src_tokens move_position = {};
 
 	arena_vector<attribute> attributes;
@@ -383,26 +388,17 @@ struct decl_variable
 
 	typespec &get_type(void)
 	{
-		bz_assert(this->id_and_type.var_type.is_typename());
-		return this->id_and_type.var_type.get_typename();
+		return this->id_and_type.var_type;
 	}
 
 	typespec const &get_type(void) const
 	{
-		bz_assert(this->id_and_type.var_type.is_typename());
-		return this->id_and_type.var_type.get_typename();
+		return this->id_and_type.var_type;
 	}
 
 	void clear_type(void)
 	{
-		if (this->id_and_type.var_type.is_typename())
-		{
-			this->id_and_type.var_type.get_typename().clear();
-		}
-		else
-		{
-			this->id_and_type.var_type = type_as_expression(this->id_and_type.var_type.src_tokens, typespec());
-		}
+		this->id_and_type.var_type.clear();
 		for (auto &decl : this->tuple_decls)
 		{
 			decl.clear_type();

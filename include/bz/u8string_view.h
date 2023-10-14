@@ -379,7 +379,7 @@ public:
 	constexpr u8string_view substring(size_t begin_index) const noexcept
 	{
 		auto it = this->begin();
-		auto const end =this->end();
+		auto const end = this->end();
 		for (size_t i = 0; i != begin_index && it != end; ++i)
 		{
 			++it;
@@ -738,6 +738,10 @@ public:
 		if (this->_data_begin == this->_data_end)
 		{
 			return false;
+		}
+		else if (c <= internal::max_one_byte_char)
+		{
+			return *(this->_data_end - 1) == (char)c;
 		}
 
 		char encoded_char[4] = {};

@@ -93,7 +93,7 @@ static void stderr_print(
 
 static void print_stacktrace(void)
 {
-	int count = -5;
+	int count = -6;
 	dwstOfLocation(&stderr_print, &count);
 }
 
@@ -151,7 +151,16 @@ void register_crash_handlers(void)
 {
 	bz::register_assert_fail_handler(&handle_assert_fail);
 	bz::register_unreachable_handler(&handle_unreachable);
+
+#ifndef __has_feature
+#define HAS_FEATURE(x) 0
+#else
+#define HAS_FEATURE(x) __has_feature(x)
+#endif // __has_feature
+
+#if !HAS_FEATURE(address_sanitizer)
 	std::signal(SIGSEGV, &handle_segv);
 	std::signal(SIGINT,  &handle_int);
 	std::signal(SIGILL,  &handle_ill);
+#endif // HAS_FEATURE
 }

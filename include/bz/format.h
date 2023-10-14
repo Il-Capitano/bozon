@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <charconv>
 #ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #undef min
 #undef max
@@ -366,10 +367,8 @@ constexpr uint64_t lg_uint(uint64_t val)
 	return val < 10'000'000'000'000'000'000ull ? 19 : 20;
 }
 
-template<size_t base, typename Uint, typename = std::enable_if_t<
-	std::is_same_v<Uint, uint32_t>
-	|| std::is_same_v<Uint, uint64_t>
->>
+template<size_t base, typename Uint>
+	requires std::same_as<Uint, uint32_t> || std::same_as<Uint, uint64_t>
 constexpr Uint log_uint(Uint val)
 {
 	if constexpr (base == 10)
@@ -694,10 +693,8 @@ inline u8string format_char(u8char c, format_spec spec)
 constexpr uint8_t digits_x[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 constexpr uint8_t digits_X[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
-template<size_t base, typename Uint, typename = std::enable_if_t<
-	std::is_same_v<Uint, uint32_t>
-	|| std::is_same_v<Uint, uint64_t>
->>
+template<size_t base, typename Uint>
+	requires std::same_as<Uint, uint32_t> || std::same_as<Uint, uint64_t>
 u8string uint_to_string_base(Uint val, format_spec spec)
 {
 	// uints are always positive, so a - sign can't add any chars
@@ -835,10 +832,8 @@ u8string uint_to_string_base(Uint val, format_spec spec)
 }
 
 // converts an unsigned integer to a string
-template<typename Uint, typename = std::enable_if_t<
-	std::is_same_v<Uint, uint32_t>
-	|| std::is_same_v<Uint, uint64_t>
->>
+template<typename Uint>
+	requires std::same_as<Uint, uint32_t> || std::same_as<Uint, uint64_t>
 u8string uint_to_string(Uint val, format_spec spec)
 {
 	if constexpr (std::is_same_v<Uint, uint32_t>)
@@ -910,10 +905,8 @@ u8string uint_to_string(Uint val, format_spec spec)
 }
 
 // converts an signed integer to a string
-template<typename Int, typename = std::enable_if_t<
-	std::is_same_v<Int, int32_t>
-	|| std::is_same_v<Int, int64_t>
->>
+template<typename Int>
+	requires std::same_as<Int, int32_t> || std::same_as<Int, int64_t>
 u8string int_to_string(Int val, format_spec spec)
 {
 	using Uint = std::conditional_t<std::is_same_v<Int, int32_t>, uint32_t, uint64_t>;

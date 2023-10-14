@@ -1,9 +1,9 @@
 #ifndef _bz_array_h__
 #define _bz_array_h__
 
-#include "bz/meta.h"
 #include "core.h"
 
+#include "meta.h"
 #include "iterator.h"
 #include "array_view.h"
 #include "ranges.h"
@@ -157,7 +157,7 @@ struct array
 	{ return static_cast<array_view<value_type>>(*this).sort(); }
 
 	template<typename Cmp>
-	auto sort(Cmp &&cmp) noexcept
+	constexpr auto sort(Cmp &&cmp) noexcept
 	{ return static_cast<array_view<value_type>>(*this).sort(std::forward<Cmp>(cmp)); }
 };
 

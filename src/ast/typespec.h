@@ -153,6 +153,10 @@ struct typespec_view
 	typespec_view remove_any_reference(void) const noexcept;
 	typespec_view remove_any_mut_reference(void) const noexcept;
 
+	bool is_variadic(void) const noexcept;
+	typespec_view get_variadic(void) const noexcept;
+	typespec_view remove_variadic(void) const noexcept;
+
 	template<typename Fn>
 	decltype(auto) visit(Fn &&fn) const;
 
@@ -302,6 +306,15 @@ struct typespec
 
 	typespec_view remove_any_mut_reference(void) const noexcept
 	{ return this->as_typespec_view().remove_any_mut_reference(); }
+
+	bool is_variadic(void) const noexcept
+	{ return this->as_typespec_view().is_variadic(); }
+
+	typespec_view get_variadic(void) const noexcept
+	{ return this->as_typespec_view().get_variadic(); }
+
+	typespec_view remove_variadic(void) const noexcept
+	{ return this->as_typespec_view().remove_variadic(); }
 
 	template<typename Fn>
 	decltype(auto) visit(Fn &&fn) const

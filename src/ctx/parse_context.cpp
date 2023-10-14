@@ -155,6 +155,16 @@ ast::decl_function *parse_context::get_builtin_function(uint32_t kind) const
 	return this->global_ctx.get_builtin_function(kind);
 }
 
+ast::decl_operator *parse_context::get_builtin_operator(uint32_t op_kind, uint8_t expr_type_kind) const
+{
+	return this->global_ctx.get_builtin_operator(op_kind, expr_type_kind);
+}
+
+ast::decl_operator *parse_context::get_builtin_operator(uint32_t op_kind, uint8_t lhs_type_kind, uint8_t rhs_type_kind) const
+{
+	return this->global_ctx.get_builtin_operator(op_kind, lhs_type_kind, rhs_type_kind);
+}
+
 bz::array_view<uint32_t const> parse_context::get_builtin_universal_functions(bz::u8string_view id)
 {
 	return this->global_ctx.get_builtin_universal_functions(id);
@@ -163,6 +173,51 @@ bz::array_view<uint32_t const> parse_context::get_builtin_universal_functions(bz
 ast::type_prototype_set_t &parse_context::get_type_prototype_set(void)
 {
 	return *this->global_ctx.type_prototype_set;
+}
+
+ast::constant_value parse_context::add_constant_string(bz::u8string_view str) const
+{
+	return this->global_ctx.add_constant_string(str);
+}
+
+ast::constant_value parse_context::add_constant_array(ast::arena_vector<ast::constant_value> elems) const
+{
+	return this->global_ctx.add_constant_array(std::move(elems));
+}
+
+ast::constant_value parse_context::add_constant_tuple(ast::arena_vector<ast::constant_value> elems) const
+{
+	return this->global_ctx.add_constant_tuple(std::move(elems));
+}
+
+ast::constant_value parse_context::add_constant_aggregate(ast::arena_vector<ast::constant_value> elems) const
+{
+	return this->global_ctx.add_constant_aggregate(std::move(elems));
+}
+
+ast::constant_value parse_context::add_constant_sint_array(ast::arena_vector<int64_t> elems) const
+{
+	return this->global_ctx.add_constant_sint_array(std::move(elems));
+}
+
+ast::constant_value parse_context::add_constant_uint_array(ast::arena_vector<uint64_t> elems) const
+{
+	return this->global_ctx.add_constant_uint_array(std::move(elems));
+}
+
+ast::constant_value parse_context::add_constant_float32_array(ast::arena_vector<float32_t> elems) const
+{
+	return this->global_ctx.add_constant_float32_array(std::move(elems));
+}
+
+ast::constant_value parse_context::add_constant_float64_array(ast::arena_vector<float64_t> elems) const
+{
+	return this->global_ctx.add_constant_float64_array(std::move(elems));
+}
+
+ast::constant_value parse_context::add_constant_type(ast::typespec type) const
+{
+	return this->global_ctx.add_constant_type(std::move(type));
 }
 
 [[nodiscard]] parse_context::loop_info_t parse_context::push_loop(void) noexcept
@@ -1544,7 +1599,7 @@ static ast::expression make_variable_expression(
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name, ast::make_typename_typespec(nullptr),
-			ast::constant_value(init_expr.get_typename()),
+			init_expr.get_constant_value(),
 			std::move(result_expr)
 		);
 	}
@@ -1705,7 +1760,7 @@ static ast::expression make_type_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
-			ast::constant_value(ast::make_base_type_typespec(src_tokens, &info)),
+			context.add_constant_type(ast::make_base_type_typespec(src_tokens, &info)),
 			ast::make_expr_struct_name(std::move(id), type)
 		);
 	}
@@ -1718,7 +1773,8 @@ static ast::expression make_type_expression(
 static ast::expression make_enum_type_expression(
 	lex::src_tokens const &src_tokens,
 	ast::identifier id,
-	ast::decl_enum *decl
+	ast::decl_enum *decl,
+	parse_context &context
 )
 {
 	if (decl->state != ast::resolve_state::error)
@@ -1727,7 +1783,7 @@ static ast::expression make_enum_type_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
-			ast::constant_value(ast::make_enum_typespec(src_tokens, decl)),
+			context.add_constant_type(ast::make_enum_typespec(src_tokens, decl)),
 			ast::make_expr_enum_name(std::move(id), decl)
 		);
 	}
@@ -1740,7 +1796,8 @@ static ast::expression make_enum_type_expression(
 static ast::expression make_type_alias_expression(
 	lex::src_tokens const &src_tokens,
 	ast::identifier id,
-	ast::decl_type_alias *type_alias
+	ast::decl_type_alias *type_alias,
+	parse_context &context
 )
 {
 	auto const type = type_alias->get_type();
@@ -1750,7 +1807,7 @@ static ast::expression make_type_alias_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
-			ast::constant_value(type),
+			context.add_constant_type(type),
 			ast::make_expr_type_alias_name(std::move(id), type_alias)
 		);
 	}
@@ -1896,12 +1953,12 @@ static ast::expression expression_from_symbol(
 			resolve::resolve_type_alias(*alias_decl, context);
 			context.pop_resolve_queue();
 		}
-		return make_type_alias_expression(src_tokens, std::move(id), symbol.get<ast::decl_type_alias *>());
+		return make_type_alias_expression(src_tokens, std::move(id), symbol.get<ast::decl_type_alias *>(), context);
 	}
 	case symbol_t::index_of<ast::decl_struct *>:
 		return make_type_expression(src_tokens, std::move(id), symbol.get<ast::decl_struct *>(), context);
 	case symbol_t::index_of<ast::decl_enum *>:
-		return make_enum_type_expression(src_tokens, std::move(id), symbol.get<ast::decl_enum *>());
+		return make_enum_type_expression(src_tokens, std::move(id), symbol.get<ast::decl_enum *>(), context);
 	default:
 		bz_unreachable;
 	}
@@ -2007,7 +2064,7 @@ static symbol_t find_id_in_global_scope(ast::global_scope_t &scope, ast::identif
 		return {};
 	}
 
-	static_assert(sizeof (ast::global_scope_t) == 624);
+	static_assert(sizeof (ast::global_scope_t) == 624 || sizeof (ast::global_scope_t) == 560);
 	static_assert(symbol_t::variant_count == 8);
 	auto const [kind, index] = symbols.get_symbol_index_by_id(id);
 	switch (kind)
@@ -2099,6 +2156,35 @@ static id_search_result_t find_id_in_scope(ast::enclosing_scope_t scope, ast::id
 	return {};
 }
 
+ast::expression parse_context::auto_type_as_expression(lex::src_tokens const &src_tokens) const
+{
+	return ast::make_constant_expression(
+		src_tokens,
+		ast::expression_type_kind::type_name,
+		ast::make_typename_typespec(nullptr),
+		ast::constant_value(this->global_ctx.cached_auto_type),
+		ast::expr_t()
+	);
+}
+
+ast::expression parse_context::type_as_expression(lex::src_tokens const &src_tokens, ast::typespec type) const
+{
+	if (type.is<ast::ts_auto>() && type.src_tokens.pivot == nullptr)
+	{
+		return this->auto_type_as_expression(src_tokens);
+	}
+	else
+	{
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::type_name,
+			ast::make_typename_typespec(nullptr),
+			this->add_constant_type(std::move(type)),
+			ast::expr_t()
+		);
+	}
+}
+
 ast::expression parse_context::make_identifier_expression(ast::identifier id)
 {
 	// ==== local decls ====
@@ -2147,7 +2233,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 				src_tokens,
 				ast::expression_type_kind::type_name,
 				ast::make_typename_typespec(nullptr),
-				ast::constant_value(ast::make_void_typespec(id.tokens.begin)),
+				this->add_constant_type(ast::make_void_typespec(id.tokens.begin)),
 				ast::make_expr_struct_name(std::move(id), nullptr)
 			);
 		}
@@ -2589,7 +2675,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 				);
 			}
 
-			auto const value = num.has_value() ? num.get() : 0.0f;
+			float32_t const value = num.has_value() ? num.get() : 0.0f;
 			auto const info = this->get_builtin_type_info(ast::type_info::float32_);
 			return ast::make_constant_expression(
 				src_tokens,
@@ -2764,7 +2850,7 @@ ast::expression parse_context::make_string_literal(lex::token_pos const begin, l
 		{ begin, begin, end },
 		ast::expression_type_kind::rvalue,
 		ast::make_base_type_typespec({ begin, begin, end }, this->get_builtin_type_info(ast::type_info::str_)),
-		ast::constant_value(result),
+		this->add_constant_string(std::move(result)),
 		ast::make_expr_typed_literal(lex::token_range{ begin, end })
 	);
 }
@@ -2810,7 +2896,7 @@ ast::expression parse_context::make_tuple(lex::src_tokens const &src_tokens, ast
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::typespec(),
-			ast::constant_value(ast::make_tuple_typespec(src_tokens, std::move(types))),
+			this->add_constant_type(ast::make_tuple_typespec(src_tokens, std::move(types))),
 			ast::make_expr_tuple(std::move(elems))
 		);
 	}
@@ -2837,7 +2923,7 @@ ast::expression parse_context::make_unreachable(lex::token_pos t)
 		src_tokens,
 		ast::expression_type_kind::rvalue,
 		ast::make_base_type_typespec(src_tokens, this->get_builtin_type_info(ast::type_info::str_)),
-		ast::constant_value(std::move(message)),
+		this->add_constant_string(std::move(message)),
 		ast::make_expr_typed_literal(lex::token_range{ t, t + 1 })
 	));
 	auto panic_fn_call_expr = ast::make_dynamic_expression(
@@ -3520,7 +3606,7 @@ static ast::expression make_expr_function_call_from_body(
 	{
 		bz_assert(args.size() == 2);
 		bz_assert(args[0].is_typename());
-		auto const &type = args[0].get_typename();
+		auto const type = args[0].get_typename();
 		context.add_self_destruction(args[1]);
 		return make_array_value_init_expression(src_tokens, type, std::move(args[1]), context);
 	}
@@ -3528,10 +3614,10 @@ static ast::expression make_expr_function_call_from_body(
 	{
 		bz_assert(args.size() == 2);
 		bz_assert(args[0].is_typename());
-		auto &type = args[0].get_typename();
+		auto const type = args[0].get_typename();
 		bz_assert(body->return_type == type);
 		context.add_self_destruction(args[1]);
-		return context.make_bit_cast_expression(src_tokens, std::move(args[1]), std::move(type));
+		return context.make_bit_cast_expression(src_tokens, std::move(args[1]), type);
 	}
 	else if (
 		body->is_intrinsic()
@@ -3897,6 +3983,26 @@ ast::expression parse_context::make_unary_operator_expression(
 	{
 		return make_builtin_operation(src_tokens, op_kind, std::move(expr), *this);
 	}
+	else if (
+		auto const op_decl = ::ctx::get_builtin_operator(op_kind, expr, *this);
+		op_decl != nullptr
+		&& resolve::get_function_call_match_level(op_decl, op_decl->body, expr, *this, src_tokens).not_null()
+	)
+	{
+		if (op_decl->body.is_builtin_operator() && expr.is_constant() && expr.is_integer_literal())
+		{
+			auto result = make_unary_literal_operation(src_tokens, op_kind, expr, *this);
+
+			if (result.not_null())
+			{
+				return result;
+			}
+		}
+
+		ast::arena_vector<ast::expression> args;
+		args.emplace_back(std::move(expr));
+		return make_expr_function_call_from_body(src_tokens, &op_decl->body, std::move(args), *this);
+	}
 
 	auto const possible_funcs = get_possible_funcs_for_operator(src_tokens, op_kind, expr, *this);
 	if (possible_funcs.empty())
@@ -3921,12 +4027,7 @@ ast::expression parse_context::make_unary_operator_expression(
 		{
 			if (best_body->is_builtin_operator() && expr.is_constant() && expr.is_integer_literal())
 			{
-				auto result = make_unary_literal_operation(
-					src_tokens,
-					best_body->function_name_or_operator_kind.get<uint32_t>(),
-					expr,
-					*this
-				);
+				auto result = make_unary_literal_operation(src_tokens, op_kind, expr, *this);
 
 				if (result.not_null())
 				{
@@ -4119,7 +4220,7 @@ ast::expression parse_context::make_binary_operator_expression(
 			return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs)));
 		}
 
-		return this->make_cast_expression(src_tokens, std::move(lhs), std::move(rhs.get_typename()));
+		return this->make_cast_expression(src_tokens, std::move(lhs), rhs.get_typename());
 	}
 
 	if (is_binary_type_op(op_kind) && lhs.is_typename() && rhs.is_typename())
@@ -4138,6 +4239,35 @@ ast::expression parse_context::make_binary_operator_expression(
 	if (!is_binary_overloadable_operator(op_kind))
 	{
 		return make_builtin_operation(src_tokens, op_kind, std::move(lhs), std::move(rhs), *this);
+	}
+	else if (
+		auto const op_decl = ::ctx::get_builtin_operator(op_kind, lhs, rhs, *this);
+		op_decl != nullptr
+		&& resolve::get_function_call_match_level(op_decl, op_decl->body, lhs, rhs, *this, src_tokens).not_null()
+	)
+	{
+			if (
+				op_decl->body.is_builtin_operator()
+				&& lhs.is_constant() && rhs.is_constant()
+				&& lhs.is_integer_literal() && rhs.is_integer_literal()
+			)
+			{
+				auto result = make_binary_literal_operation(src_tokens, op_kind, lhs, rhs, *this);
+
+				if (result.not_null())
+				{
+					return result;
+				}
+			}
+
+			auto const resolve_order = get_binary_precedence(op_kind).is_left_associative
+				? ast::resolve_order::regular
+				: ast::resolve_order::reversed;
+			ast::arena_vector<ast::expression> args;
+			args.reserve(2);
+			args.emplace_back(std::move(lhs));
+			args.emplace_back(std::move(rhs));
+			return make_expr_function_call_from_body(src_tokens, &op_decl->body, std::move(args), *this, resolve_order);
 	}
 
 	auto const possible_funcs = get_possible_funcs_for_operator(src_tokens, op_kind, lhs, rhs, *this);
@@ -4396,7 +4526,7 @@ static ast::expression make_constructor_call_expression(
 	parse_context &context
 )
 {
-	auto const called_type = called.get_typename().as_typespec_view();
+	auto const called_type = called.get_typename();
 	if (called_type.is<ast::ts_base_type>())
 	{
 		return make_base_type_constructor_call_expression(src_tokens, called_type, std::move(args), context);
@@ -4868,7 +4998,7 @@ ast::expression parse_context::make_universal_function_call_expression(
 		{
 			auto const &array_t = args.front().get_expr_type().remove_any_mut().get<ast::ts_array>();
 			ast::constant_value size;
-			size.emplace<ast::constant_value::uint>(array_t.size);
+			size.emplace<ast::constant_value_kind::uint>(array_t.size);
 			return make_expr_function_call_from_body(src_tokens, best_body, std::move(args), std::move(size), *this);
 		}
 		else
@@ -4903,7 +5033,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 
 	if (called.is_typename())
 	{
-		ast::typespec_view const type = called.get_typename();
+		auto const type = called.get_typename();
 		auto const bare_type = type.remove_any_mut();
 		if (!bare_type.is<ast::ts_base_type>())
 		{
@@ -5163,7 +5293,13 @@ ast::expression parse_context::make_cast_expression(
 		auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
 		auto const bare_expr_type = expr_type.remove_mut_reference();
 
-		if (bare_expr_type == type)
+		if (is_builtin_type(bare_expr_type))
+		{
+			auto result = make_builtin_cast(src_tokens, std::move(expr), std::move(type), *this);
+			result.src_tokens = src_tokens;
+			return result;
+		}
+		else if (bare_expr_type == type)
 		{
 			if (expr_type_kind == ast::expression_type_kind::lvalue || expr_type.is_reference())
 			{
@@ -5175,12 +5311,6 @@ ast::expression parse_context::make_cast_expression(
 				expr.src_tokens = src_tokens;
 				return expr;
 			}
-		}
-		else if (is_builtin_type(bare_expr_type))
-		{
-			auto result = make_builtin_cast(src_tokens, std::move(expr), std::move(type), *this);
-			result.src_tokens = src_tokens;
-			return result;
 		}
 		else
 		{
@@ -5813,7 +5943,7 @@ ast::expression parse_context::make_generic_type_instantiation_expression(
 	return ast::make_constant_expression(
 		src_tokens,
 		ast::expression_type_kind::type_name, ast::make_typename_typespec(nullptr),
-		ast::constant_value(ast::make_base_type_typespec(src_tokens, info)),
+		this->add_constant_type(ast::make_base_type_typespec(src_tokens, info)),
 		ast::make_expr_generic_type_instantiation(info)
 	);
 }
@@ -5957,7 +6087,7 @@ static ast::expression make_builtin_default_construction(
 			case ast::type_info::char_:
 				return ast::constant_value(bz::u8char());
 			case ast::type_info::str_:
-				return ast::constant_value(bz::u8string());
+				return ast::constant_value(bz::u8string_view());
 			case ast::type_info::bool_:
 				return ast::constant_value(bool());
 			case ast::type_info::null_t_:

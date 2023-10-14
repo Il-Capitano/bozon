@@ -19,7 +19,7 @@ template<>
 pass_kind get_pass_kind<platform_abi::microsoft_x64>(
 	llvm::Type *t,
 	llvm::DataLayout const &data_layout,
-	llvm::LLVMContext &context
+	llvm::LLVMContext &
 )
 {
 	if (t->isVoidTy())
@@ -29,7 +29,7 @@ pass_kind get_pass_kind<platform_abi::microsoft_x64>(
 
 	auto const size = data_layout.getTypeAllocSize(t);
 	size_t const register_size = 8;
-	bz_assert(data_layout.getTypeAllocSize(data_layout.getIntPtrType(context)) == register_size);
+	bz_assert(data_layout.getPointerSize() == register_size);
 	if (size > register_size || (size != 1 && size != 2 && size != 4 && size != 8))
 	{
 		return pass_kind::reference;

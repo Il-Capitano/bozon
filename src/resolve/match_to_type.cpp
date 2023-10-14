@@ -151,6 +151,216 @@ match_level_t get_type_match_level(
 	});
 }
 
+// the logic is duplicated in 'match_expression.cpp' and needs to be in sync
+static ast::typespec get_type_for_tuple_decomposition(
+	ast::decl_variable const &var_decl,
+	bool is_outer_variadic,
+	ast::expression const *expr,
+	ast::typespec_view expr_type
+)
+{
+	bz_assert(var_decl.tuple_decls.not_empty());
+	if (is_outer_variadic && var_decl.tuple_decls.back().get_type().is<ast::ts_variadic>())
+	{
+		return ast::typespec();
+	}
+
+	if (expr != nullptr && expr->is_tuple())
+	{
+		auto const &tuple_expr = expr->get_tuple();
+		if (
+			var_decl.tuple_decls.size() != tuple_expr.elems.size()
+			&& !(
+				var_decl.tuple_decls.back().get_type().is<ast::ts_variadic>()
+				&& var_decl.tuple_decls.size() - 1 <= tuple_expr.elems.size()
+			)
+		)
+		{
+			return ast::typespec();
+		}
+
+		ast::arena_vector<ast::typespec> result_types;
+		result_types.reserve(var_decl.tuple_decls.size());
+		for (auto const i : bz::iota(0, var_decl.tuple_decls.size()))
+		{
+			if (var_decl.tuple_decls[i].tuple_decls.not_empty())
+			{
+				result_types.push_back(get_type_for_tuple_decomposition(
+					var_decl.tuple_decls[i],
+					is_outer_variadic || var_decl.tuple_decls[i].get_type().is<ast::ts_variadic>(),
+					&tuple_expr.elems[i],
+					tuple_expr.elems[i].get_expr_type().remove_any_mut_reference()
+				));
+				if (result_types.back().is_empty())
+				{
+					return ast::typespec();
+				}
+			}
+			else
+			{
+				result_types.push_back(var_decl.tuple_decls[i].get_type());
+			}
+		}
+
+		ast::typespec result = var_decl.get_type();
+		result.terminator->emplace<ast::ts_tuple>(std::move(result_types));
+		return result;
+	}
+	else if (expr_type.is<ast::ts_tuple>())
+	{
+		auto const &tuple_type = expr_type.get<ast::ts_tuple>();
+		if (
+			var_decl.tuple_decls.size() != tuple_type.types.size()
+			&& !(
+				var_decl.tuple_decls.back().get_type().is<ast::ts_variadic>()
+				&& var_decl.tuple_decls.size() - 1 <= tuple_type.types.size()
+			)
+		)
+		{
+			return ast::typespec();
+		}
+
+		ast::arena_vector<ast::typespec> result_types;
+		result_types.reserve(var_decl.tuple_decls.size());
+		for (auto const i : bz::iota(0, var_decl.tuple_decls.size()))
+		{
+			if (var_decl.tuple_decls[i].tuple_decls.not_empty())
+			{
+				result_types.push_back(get_type_for_tuple_decomposition(
+					var_decl.tuple_decls[i],
+					is_outer_variadic || var_decl.tuple_decls[i].get_type().is<ast::ts_variadic>(),
+					nullptr,
+					tuple_type.types[i]
+				));
+				if (result_types.back().is_empty())
+				{
+					return ast::typespec();
+				}
+			}
+			else
+			{
+				result_types.push_back(var_decl.tuple_decls[i].get_type());
+			}
+		}
+
+		ast::typespec result = var_decl.get_type();
+		result.terminator->emplace<ast::ts_tuple>(std::move(result_types));
+		return result;
+	}
+	else if (expr_type.is<ast::ts_array>())
+	{
+		auto const &array_type = expr_type.get<ast::ts_array>();
+		if (
+			var_decl.tuple_decls.size() != array_type.size
+			&& !(
+				var_decl.tuple_decls.back().get_type().is<ast::ts_variadic>()
+				&& var_decl.tuple_decls.size() - 1 <= array_type.size
+			)
+		)
+		{
+			return ast::typespec();
+		}
+
+		ast::typespec first_decl_type_container;
+
+		auto const first_decl_type = [&]() -> ast::typespec_view {
+			if (var_decl.tuple_decls[0].tuple_decls.empty())
+			{
+				return var_decl.tuple_decls[0].get_type().remove_variadic();
+			}
+			else
+			{
+				first_decl_type_container = get_type_for_tuple_decomposition(
+					var_decl.tuple_decls[0],
+					is_outer_variadic || var_decl.tuple_decls[0].get_type().is_variadic(),
+					nullptr,
+					array_type.elem_type
+				);
+				return first_decl_type_container;
+			}
+		}();
+		if (first_decl_type.is_empty())
+		{
+			return ast::typespec();
+		}
+
+		for (auto const &inner_decl : var_decl.tuple_decls.slice(1))
+		{
+			if (inner_decl.tuple_decls.empty())
+			{
+				auto const inner_type = inner_decl.get_type().remove_variadic();
+				if (first_decl_type != inner_type)
+				{
+					return ast::typespec();
+				}
+			}
+			else
+			{
+				auto const inner_type = get_type_for_tuple_decomposition(
+					inner_decl,
+					is_outer_variadic || inner_decl.get_type().is_variadic(),
+					nullptr,
+					array_type.elem_type
+				);
+				if (first_decl_type != inner_type)
+				{
+					return ast::typespec();
+				}
+			}
+		}
+
+		ast::typespec result = var_decl.get_type();
+		if (first_decl_type_container.not_empty())
+		{
+			result.terminator->emplace<ast::ts_array>(array_type.size, std::move(first_decl_type_container));
+		}
+		else
+		{
+			result.terminator->emplace<ast::ts_array>(array_type.size, first_decl_type);
+		}
+		return result;
+	}
+	else
+	{
+		return ast::typespec();
+	}
+}
+
+match_level_t get_type_match_level(
+	ast::decl_variable const &var_decl,
+	ast::expression const &expr,
+	ctx::parse_context &context
+)
+{
+	if (var_decl.tuple_decls.empty())
+	{
+		if (var_decl.get_type().is<ast::ts_variadic>())
+		{
+			return get_type_match_level(var_decl.get_type().get<ast::ts_variadic>(), expr, context);
+		}
+		else
+		{
+			return get_type_match_level(var_decl.get_type(), expr, context);
+		}
+	}
+
+	auto const match_type = get_type_for_tuple_decomposition(
+		var_decl,
+		var_decl.get_type().is<ast::ts_variadic>(),
+		&expr, expr.get_expr_type().remove_any_mut_reference()
+	);
+	if (match_type.is_empty())
+	{
+		return {};
+	}
+
+	return get_type_match_level(
+		match_type,
+		expr,
+		context
+	);
+}
+
 match_level_t get_function_call_match_level(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
@@ -202,17 +412,16 @@ match_level_t get_function_call_match_level(
 		{
 			break;
 		}
-		add_to_result(get_type_match_level(params_it->get_type(), *call_it, context));
+		add_to_result(get_type_match_level(*params_it, *call_it, context));
 	}
 	if (params_it != params_end)
 	{
 		bz_assert(params_it + 1 == params_end);
 		bz_assert(params_it->get_type().is<ast::ts_variadic>());
-		auto const param_type = params_it->get_type().get<ast::ts_variadic>();
 		auto const call_end = params.end();
 		for (; call_it != call_end; ++call_it)
 		{
-			add_to_result(get_type_match_level(param_type, *call_it, context));
+			add_to_result(get_type_match_level(*params_it, *call_it, context));
 		}
 	}
 
@@ -249,7 +458,7 @@ match_level_t get_function_call_match_level(
 		return match_level_t{};
 	}
 
-	return get_type_match_level(func_body.params[0].get_type(), expr, context);
+	return get_type_match_level(func_body.params[0], expr, context);
 }
 
 match_level_t get_function_call_match_level(
@@ -281,8 +490,8 @@ match_level_t get_function_call_match_level(
 
 	match_level_t result = bz::vector<match_level_t>{};
 	auto &result_vec = result.get_multi();
-	result_vec.push_back(get_type_match_level(func_body.params[0].get_type(), lhs, context));
-	result_vec.push_back(get_type_match_level(func_body.params[1].get_type(), rhs, context));
+	result_vec.push_back(get_type_match_level(func_body.params[0], lhs, context));
+	result_vec.push_back(get_type_match_level(func_body.params[1], rhs, context));
 	if (result_vec[0].is_null() || result_vec[1].is_null())
 	{
 		result.clear();

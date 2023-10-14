@@ -8,6 +8,7 @@
 			"cpp_precompiled_header": "src/core.h",
 
 			"c_compiler_flags": [],
+			"cpp_compiler_flags": [ "-ferror-limit=2" ],
 			"emit_compile_commands": true,
 
 			"run_args": [
@@ -29,42 +30,38 @@
 				"no-c++20-extensions",
 				"no-defaulted-function-deleted",
 				"no-bitwise-instead-of-logical",
-				"no-unused-parameter"
+				"no-unused-parameter",
+				"no-missing-field-initializers",
+				"error=deprecated-declarations"
 			],
 
-			"prebuild_rules": [ "generate-config" ],
+			"prebuild_rules": [ "generate-config", "generate-lexer" ],
 
 			"configs": {
 				"windows-debug": {},
 				"windows-release": {},
-				"linux-debug": {
-					"optimization": "1",
-					"cpp_compiler_flags": [ "-fno-omit-frame-pointer", "-fsanitize=address,undefined" ],
-					"link_flags": [ "-fsanitize=address,undefined" ]
-				},
+				"linux-debug": {},
 				"linux-release": {},
 				"windows": {
-					"prebuild_rules": [ "generate-lexer-windows" ],
 					"link_dependencies": [ "ryu_format.windows.o" ],
 					"link_flags": [ "-fuse-ld=lld" ],
 					"libraries": [ "LLVM", "dwarfstack" ]
 				},
 				"linux": {
-					"prebuild_rules": [ "generate-lexer-linux" ],
 					"link_dependencies": [ "ryu_format.linux.o" ],
-					"compiler": "clang-16",
-					"libraries": [ "LLVM-16", "backtrace" ],
-					"link_flags": [ "-fuse-ld=lld-16" ],
-					"warnings": [ "no-unused-parameter", "error=deprecated-declarations" ],
+					"compiler": "clang-17",
+					"libraries": [ "LLVM-17", "backtrace" ],
+					"link_flags": [ "-fuse-ld=lld-17" ],
 					"emit_compile_commands": false
 				},
 				"debug": {
-					"cpp_compiler_flags": [ "-ferror-limit=2" ],
+					"cpp_compiler_flags": [ "-fno-omit-frame-pointer", "-fsanitize=address,undefined" ],
+					"link_flags": [ "-fsanitize=address,undefined" ],
 					"defines": [ "BOZON_NO_ARENA", "BOZON_PROFILE_ALLOCATIONS", "BOZON_PROFILE_COMPTIME" ],
-					"optimization": "0"
+					"optimization": "1"
 				},
 				"release": {
-					"cpp_compiler_flags": [ "-march=native", "-mtune=native", "-ferror-limit=2", "-flto" ],
+					"cpp_compiler_flags": [ "-march=native", "-mtune=native", "-flto" ],
 					"defines": [ "NDEBUG" ],
 					"optimization": "3",
 					"link_flags": [ "-flto" ]
@@ -109,7 +106,7 @@
 				},
 				"linux": {
 					"compiler": "gcc-12",
-					"libraries": [ "LLVM-16", "backtrace" ],
+					"libraries": [ "LLVM-17", "backtrace" ],
 					"link_flags": [ "-fuse-ld=lld" ],
 					"warnings": [ "no-unused-parameter" ]
 				},
@@ -169,7 +166,8 @@
 				"no-c++20-extensions",
 				"no-defaulted-function-deleted",
 				"no-bitwise-instead-of-logical",
-				"no-unused-parameter"
+				"no-unused-parameter",
+				"error=deprecated-declarations"
 			],
 
 			"prebuild_rules": [ "generate-config-no-llvm" ],
@@ -190,10 +188,9 @@
 				},
 				"linux": {
 					"link_dependencies": [ "ryu_format.linux.o" ],
-					"compiler": "clang-16",
+					"compiler": "clang-17",
 					"libraries": [ "backtrace" ],
-					"link_flags": [ "-fuse-ld=lld-16" ],
-					"warnings": [ "no-unused-parameter", "error=deprecated-declarations" ],
+					"link_flags": [ "-fuse-ld=lld-17" ],
 					"emit_compile_commands": false
 				},
 				"debug": {
@@ -212,21 +209,36 @@
 		"no-sanitize": {
 			"depends_on": "default",
 			"emit_compile_commands": false,
-
-			"warnings": [
-				"all",
-				"extra",
-				"no-c++20-extensions",
-				"no-defaulted-function-deleted",
-				"no-bitwise-instead-of-logical"
-			],
+			"cpp_compiler_flags": [ "-ferror-limit=2", "-fno-exceptions" ],
 
 			"configs": {
-				"linux-debug": {
+				"windows": {
+					"link_flags": [ "-fuse-ld=lld" ]
+				},
+				"linux": {
+					"link_flags": [ "-fuse-ld=lld-17" ]
+				},
+				"debug": {
 					"optimization": "0",
 					"cpp_compiler_flags": [],
-					"link_flags": [ "-fuse-ld=lld-16" ],
-					"warnings": [ "no-unused-parameter", "error=deprecated-declarations" ]
+					"link_flags": []
+				}
+			}
+		},
+		"test-no-sanitize": {
+			"depends_on": "no-sanitize",
+			"emit_compile_commands": false,
+			"source_directory": "test",
+			"defines": [],
+			"prebuild_rules": [ "generate-config-none" ],
+			"run_args": [ "-Wall", "--no-error-highlight", "--stdlib-dir", "bozon-stdlib" ],
+
+			"configs": {
+				"windows": {
+					"libraries": [ "dwarfstack" ]
+				},
+				"linux": {
+					"libraries": [ "backtrace" ]
 				}
 			}
 		},
@@ -237,33 +249,69 @@
 		}
 	},
 	"rules": {
+		"generate_config.exe": {
+			"dependencies": [ "scripts/generate_config.cpp" ],
+			"command": "clang++ -std=c++20 -Isrc -Iinclude scripts/generate_config.cpp -o generate_config.exe"
+		},
+		"generate_config.out": {
+			"dependencies": [ "scripts/generate_config.cpp" ],
+			"command": "clang++-17 -std=c++20 -Isrc -Iinclude scripts/generate_config.cpp -o generate_config.out"
+		},
 		"generate-config": {
-			"command": "python3 scripts/generate_config.py",
-			"is_file": false
+			"windows": {
+				"dependencies": [ "generate_config.exe" ],
+				"command": "./generate_config.exe",
+				"is_file": false
+			},
+			"linux": {
+				"dependencies": [ "generate_config.out" ],
+				"command": "./generate_config.out",
+				"is_file": false
+			}
 		},
 		"generate-config-no-llvm": {
-			"command": "python3 scripts/generate_config.py --backends=",
-			"is_file": false
+			"windows": {
+				"dependencies": [ "generate_config.exe" ],
+				"command": "./generate_config.exe --backends=c",
+				"is_file": false
+			},
+			"linux": {
+				"dependencies": [ "generate_config.out" ],
+				"command": "./generate_config.out --backends=c",
+				"is_file": false
+			}
 		},
 		"generate-config-none": {
-			"command": "python3 scripts/generate_config.py --backends=",
-			"is_file": false
+			"windows": {
+				"dependencies": [ "generate_config.exe" ],
+				"command": "./generate_config.exe --backends=",
+				"is_file": false
+			},
+			"linux": {
+				"dependencies": [ "generate_config.out" ],
+				"command": "./generate_config.out --backends=",
+				"is_file": false
+			}
 		},
 		"generate_lexer.exe": {
 			"dependencies": [ "scripts/generate_lexer.cpp", "src/token_info.h" ],
 			"command": "clang++ -std=c++20 -Isrc -Iinclude scripts/generate_lexer.cpp -o generate_lexer.exe"
 		},
-		"generate-lexer-windows": {
-			"dependencies": [ "generate_lexer.exe" ],
-			"command": "./generate_lexer.exe"
-		},
 		"generate_lexer.out": {
 			"dependencies": [ "scripts/generate_lexer.cpp", "src/token_info.h" ],
-			"command": "clang++-16 -std=c++20 -Isrc -Iinclude scripts/generate_lexer.cpp -o generate_lexer.out"
+			"command": "clang++-17 -std=c++20 -Isrc -Iinclude scripts/generate_lexer.cpp -o generate_lexer.out"
 		},
-		"generate-lexer-linux": {
-			"dependencies": [ "generate_lexer.out" ],
-			"command": "./generate_lexer.out"
+		"generate-lexer": {
+			"windows": {
+				"dependencies": [ "generate_lexer.exe" ],
+				"command": "./generate_lexer.exe",
+				"is_file": false
+			},
+			"linux": {
+				"dependencies": [ "generate_lexer.out" ],
+				"command": "./generate_lexer.out",
+				"is_file": false
+			}
 		},
 		"ryu_format.windows.o": {
 			"dependencies": [ "ryu_format.windows.bc" ],
@@ -271,7 +319,7 @@
 		},
 		"ryu_format.linux.o": {
 			"dependencies": [ "ryu_format.linux.bc" ],
-			"command": "llc-16 ryu_format.linux.bc --filetype=obj --relocation-model=pic -o ryu_format.linux.o"
+			"command": "llc-17 ryu_format.linux.bc --filetype=obj --relocation-model=pic -o ryu_format.linux.o"
 		},
 		"ryu_format.windows.bc": {
 			"dependencies": [ "ryu_format.bz" ],
@@ -303,7 +351,7 @@
 		},
 		"a.out": {
 			"dependencies": [ "bitcode_test.o" ],
-			"command": "clang-16 bitcode_test.o -lm -o a.out -fuse-ld=lld-16"
+			"command": "clang-17 bitcode_test.o -lm -o a.out -fuse-ld=lld-17"
 		},
 		"run-tests": {
 			"command": "python3 scripts/run_tests.py",
@@ -311,11 +359,11 @@
 		},
 		"fuzz-test/lex/fuzz.o": {
 			"dependencies": [ "fuzz-test/lex/fuzz.cpp" ],
-			"command": "clang++-16 -c -g `llvm-config-16 --cxxflags` -std=c++17 -fno-omit-frame-pointer -fsanitize=fuzzer,address -Isrc -Iinclude -DBOZON_NO_ARENA -Wall -Wextra -Wno-unused-parameter -Wno-c++20-extensions -Wno-defaulted-function-deleted -O1 -o fuzz-test/lex/fuzz.o fuzz-test/lex/fuzz.cpp"
+			"command": "clang++-17 -c -g `llvm-config-17 --cxxflags` -std=c++20 -fno-omit-frame-pointer -fsanitize=fuzzer,address -Isrc -Iinclude -DBOZON_NO_ARENA -Wall -Wextra -Wno-unused-parameter -Wno-c++20-extensions -Wno-defaulted-function-deleted -O1 -o fuzz-test/lex/fuzz.o fuzz-test/lex/fuzz.cpp"
 		},
 		"fuzz-test/lex/fuzz.out": {
 			"dependencies": [ "fuzz-test/lex/fuzz.o" ],
-			"command": "clang++-16 -o fuzz-test/lex/fuzz.out fuzz-test/lex/fuzz.o `llvm-config-16 --ldflags --libs --system-libs` -fsanitize=fuzzer,address -fuse-ld=lld -Wl,--unresolved-symbols=ignore-in-object-files"
+			"command": "clang++-17 -o fuzz-test/lex/fuzz.out fuzz-test/lex/fuzz.o `llvm-config-17 --ldflags --libs --system-libs` -fsanitize=fuzzer,address -fuse-ld=lld -Wl,--unresolved-symbols=ignore-in-object-files"
 		},
 		"run-lex-fuzzer": {
 			"dependencies": [ "fuzz-test/lex/fuzz.out" ],

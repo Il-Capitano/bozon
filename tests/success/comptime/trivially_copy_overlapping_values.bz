@@ -1,0 +1,50 @@
+import std::meta::comptime;
+
+function test()
+{
+	(consteval {
+		let vals = std::meta::malloc(int32, 10);
+		defer std::meta::free(vals);
+
+		for (let i in 0..8)
+		{
+			__builtin_inplace_construct(vals + i, i);
+		}
+
+		__builtin_trivially_copy_overlapping_values(vals + 2, vals, 8);
+
+		for (let i in 0..2)
+		{
+			if (*(vals + i) != i) unreachable;
+			__builtin_destruct_value(*(vals + i));
+		}
+		for (let i in 2..10)
+		{
+			if (*(vals + i) != i - 2) unreachable;
+			__builtin_destruct_value(*(vals + i));
+		}
+	});
+
+	(consteval {
+		let vals = std::meta::malloc(int32, 10);
+		defer std::meta::free(vals);
+
+		for (let i in 2..10)
+		{
+			__builtin_inplace_construct(vals + i, i);
+		}
+
+		__builtin_trivially_copy_overlapping_values(vals, vals + 2, 8);
+
+		for (let i in 0..8)
+		{
+			if (*(vals + i) != i + 2) unreachable;
+			__builtin_destruct_value(*(vals + i));
+		}
+		for (let i in 8..10)
+		{
+			if (*(vals + i) != i) unreachable;
+			__builtin_destruct_value(*(vals + i));
+		}
+	});
+}
