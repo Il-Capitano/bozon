@@ -3173,7 +3173,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		return context.get_void_value();
 	}
 	case ast::function_body::builtin_panic_handler:
-		// implemented in <target>/__main.bz
+		// implemented in <target>/__builtins.bz
 		bz_unreachable;
 	case ast::function_body::builtin_call_main:
 		return {};
@@ -3190,8 +3190,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	case ast::function_body::comptime_add_global_array_data:
 		return {};
 	case ast::function_body::comptime_create_global_string:
-		// implemented in __builtins.bz
-		bz_unreachable;
+		return {};
 	case ast::function_body::comptime_concatenate_strs:
 		// this is guaranteed to be constant evaluated
 		bz_unreachable;
