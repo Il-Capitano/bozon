@@ -1,0 +1,19 @@
+function test(value)
+{
+	type T = typeof value;
+	mut buffer = [(sizeof value + 7) / 8: uint64]();
+
+	let p = __builtin_pointer_cast(*mut T, &buffer);
+	__builtin_inplace_construct(p, value);
+	if (*p != value) unreachable;
+}
+
+function main()
+{
+	test(1.354f64);
+	test(1.354f32);
+	test("hello");
+	test(null as ?*int32);
+	let i = 0;
+	test(&i);
+}
