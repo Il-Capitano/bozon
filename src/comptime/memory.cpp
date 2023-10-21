@@ -4927,9 +4927,10 @@ bool memory_manager::copy_overlapping_values(ptr_t _dest, ptr_t _source, size_t 
 	}
 
 	bz_assert(dest_segment != memory_segment::global);
+	// if dest and source are equal, this is a no-op
 	if (dest == source)
 	{
-		return false;
+		return true;
 	}
 	// check if the ranges are overlapping
 	else if (
@@ -5041,11 +5042,7 @@ bz::vector<error_reason_t> memory_manager::get_copy_overlapping_values_error_rea
 	}
 
 	bz_assert(dest_segment != memory_segment::global);
-	if (dest == source)
-	{
-		reasons.push_back({ {}, "destination and source addresses are equal" });
-	}
-	else if (
+	if (
 		auto const memory_size = count * elem_type->size;
 		dest_segment == source_segment
 		&& !(
@@ -5095,9 +5092,10 @@ bool memory_manager::relocate_values(ptr_t _dest, ptr_t _source, size_t count, t
 	}
 
 	bz_assert(dest_segment != memory_segment::global);
+	// if dest and source are equal, this is a no-op
 	if (dest == source)
 	{
-		return false;
+		return true;
 	}
 	// if is_trivial is false, then dest must point to uninitialized memory, which is only valid for heap allocations
 	else if (!is_trivial && dest_segment != memory_segment::heap)
@@ -5283,10 +5281,6 @@ bz::vector<error_reason_t> memory_manager::get_relocate_values_error_reason(
 		bz_assert(dest_segment == memory_segment::stack);
 		auto const stack_object = this->stack.get_stack_object(dest);
 		reasons.push_back({ stack_object->object_src_tokens, "destination address points to this stack object" });
-	}
-	else if (dest == source)
-	{
-		reasons.push_back({ {}, "destination and source addresses are equal" });
 	}
 	else if (
 		auto const memory_size = count * elem_type->size;
