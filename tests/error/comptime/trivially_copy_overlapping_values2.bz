@@ -1,0 +1,11 @@
+// error: source address is null in call to '__builtin_trivially_copy_values'
+// note: while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
+function test()
+{
+	(consteval {
+		mut i = 0;
+
+		__builtin_trivially_copy_overlapping_values(&i, null as ?*int32, 1);
+	});
+}
