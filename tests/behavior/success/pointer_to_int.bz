@@ -1,0 +1,16 @@
+function main()
+{
+	mut i = 0i32;
+	let p: *int32 = &i;
+	let mp: *mut int32 = &i;
+
+	static_assert(sizeof __builtin_pointer_to_int(p) == sizeof *void);
+
+	if (__builtin_pointer_to_int(null) != 0) unreachable;
+
+	if (__builtin_pointer_to_int(p + 1) - __builtin_pointer_to_int(p) != sizeof i) unreachable;
+	if (__builtin_pointer_to_int(mp + 1) - __builtin_pointer_to_int(mp) != sizeof i) unreachable;
+
+	if (__builtin_int_to_pointer(typeof p, __builtin_pointer_to_int(p)) != p) unreachable;
+	if (__builtin_int_to_pointer(typeof mp, __builtin_pointer_to_int(mp)) != mp) unreachable;
+}
