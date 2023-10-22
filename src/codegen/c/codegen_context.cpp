@@ -2097,16 +2097,20 @@ expr_value codegen_context::create_struct_gep_pointer(expr_value value, size_t i
 		remove_needs_dereference(value, *this);
 
 		bz::u8string member_access_string = this->to_string_unary(value, precedence::suffix);
-		if (use_arrow)
+		auto const access_token = use_arrow ? "->" : ".";
+		if (index == 0)
 		{
-			member_access_string += bz::format("->a + {}", index);
+			member_access_string += access_token;
+			member_access_string += 'a';
+			auto const result_type = is_const ? this->add_const_pointer(elem_type) : this->add_pointer(elem_type);
+			return this->add_temporary_expression(member_access_string, result_type, false, false, true, precedence::suffix);
 		}
 		else
 		{
-			member_access_string += bz::format(".a + {}", index);
+			member_access_string += bz::format("{}a + {}", access_token, index);
+			auto const result_type = is_const ? this->add_const_pointer(elem_type) : this->add_pointer(elem_type);
+			return this->add_temporary_expression(member_access_string, result_type, false, false, true, precedence::addition);
 		}
-		auto const result_type = is_const ? this->add_const_pointer(elem_type) : this->add_pointer(elem_type);
-		return this->add_temporary_expression(member_access_string, result_type, false, false, true, precedence::addition);
 	}
 	else
 	{
