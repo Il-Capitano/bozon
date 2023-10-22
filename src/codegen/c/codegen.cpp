@@ -3383,12 +3383,19 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 
 			context.add_libc_header("string.h");
 			generate_trivial_function_call("memset", { dest, value, count }, context.get_void(), context, {});
+
 			context.end_if(prev_if_info);
 		}
 		else
 		{
+			// we create a loop using pointers as iterators.
+			// in this case, if the dest pointer is null and count is zero, we would apply a 0 offset to a null pointer,
+			// which is undefined behaviour. therefore we check for a zero count beforehand.
+			auto const count_is_not_zero = context.create_not_equals(count, context.get_unsigned_zero_value(count.get_type()));
+			auto const prev_if_info = context.begin_if(count_is_not_zero);
+
 			auto const it = context.create_trivial_copy(dest);
-			auto const end = context.create_plus(it, count, dest.get_type());
+			auto const end = context.create_plus(dest, count, dest.get_type());
 
 			auto const condition = context.create_not_equals(it, end);
 			auto const prev_while_info = context.begin_while(condition);
@@ -3397,6 +3404,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 
 			context.create_prefix_unary_operation(it, "++");
 			context.end_while(prev_while_info);
+			context.end_if(prev_if_info);
 		}
 
 		bz_assert(!result_dest.has_value());
