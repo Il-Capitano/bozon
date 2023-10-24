@@ -87,8 +87,8 @@ export function max = __builtin_max_u8;
 export function max = __builtin_max_u16;
 export function max = __builtin_max_u32;
 export function max = __builtin_max_u64;
-export function max = __builtin_fmax_f32;
-export function max = __builtin_fmax_f64;
+export function max = __builtin_max_f32;
+export function max = __builtin_max_f64;
 
 export function min(a: *auto, b: *auto) -> typeof a
 {

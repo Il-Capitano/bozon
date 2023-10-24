@@ -3220,8 +3220,8 @@ static expr_value generate_intrinsic_function_call_code(
 		auto const b = generate_expr_code(func_call.params[1], context, {}).get_value(context);
 		return value_or_result_address(context.create_max(a, b, false), result_address, context);
 	}
-	case ast::function_body::fmax_f32:
-	case ast::function_body::fmax_f64:
+	case ast::function_body::max_f32:
+	case ast::function_body::max_f64:
 	{
 		bz_assert(func_call.params.size() == 2);
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);

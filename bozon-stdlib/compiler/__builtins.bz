@@ -1051,8 +1051,8 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 @__builtin @symbol_name("llvm.umax.i16") export function __builtin_max_u16(a: uint16, b: uint16) -> uint16;
 @__builtin @symbol_name("llvm.umax.i32") export function __builtin_max_u32(a: uint32, b: uint32) -> uint32;
 @__builtin @symbol_name("llvm.umax.i64") export function __builtin_max_u64(a: uint64, b: uint64) -> uint64;
-@__builtin @symbol_name("llvm.maxnum.f32") export function __builtin_fmax_f32(a: float32, b: float32) -> float32;
-@__builtin @symbol_name("llvm.maxnum.f64") export function __builtin_fmax_f64(a: float64, b: float64) -> float64;
+@__builtin @symbol_name("llvm.maxnum.f32") export function __builtin_max_f32(a: float32, b: float32) -> float32;
+@__builtin @symbol_name("llvm.maxnum.f64") export function __builtin_max_f64(a: float64, b: float64) -> float64;
 
 @__builtin @symbol_name("llvm.exp.f32") export function __builtin_exp_f32(x: float32) -> float32;
 @__builtin @symbol_name("llvm.exp.f64") export function __builtin_exp_f64(x: float64) -> float64;
