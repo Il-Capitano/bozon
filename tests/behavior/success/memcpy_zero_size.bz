@@ -1,5 +1,0 @@
-function main()
-{
-	__builtin_trivially_copy_values(null as ?*mut int32, null as ?*int32, 0);
-	__builtin_memcpy(null, null, 0);
-}
