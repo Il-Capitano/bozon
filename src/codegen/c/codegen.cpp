@@ -3542,9 +3542,9 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		context.end_if(prev_if_info);
 		return result_value;
 	}
-	case ast::function_body::fmax_f32:
+	case ast::function_body::max_f32:
 		return generate_libc_math_function_call("fmaxf", func_call, context, result_dest);
-	case ast::function_body::fmax_f64:
+	case ast::function_body::max_f64:
 		return generate_libc_math_function_call("fmax", func_call, context, result_dest);
 	case ast::function_body::exp_f32:
 		return generate_libc_math_function_call("expf", func_call, context, result_dest);
