@@ -76,8 +76,8 @@ export function min = __builtin_min_u8;
 export function min = __builtin_min_u16;
 export function min = __builtin_min_u32;
 export function min = __builtin_min_u64;
-export function min = __builtin_fmin_f32;
-export function min = __builtin_fmin_f64;
+export function min = __builtin_min_f32;
+export function min = __builtin_min_f64;
 
 export function max = __builtin_max_i8;
 export function max = __builtin_max_i16;
