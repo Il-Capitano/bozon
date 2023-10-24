@@ -639,18 +639,39 @@ static ast::expression get_builtin_unary_sizeof(
 	else
 	{
 		auto const type = expr.get_expr_type();
-		if (!ast::is_complete(type))
+		auto const type_wihtout_ref = type.remove_any_mut_reference();
+
+		if (type.is_any_reference())
+		{
+			context.report_warning(
+				warning_kind::sizeof_reference_expression,
+				src_tokens,
+				bz::format(
+					"taking 'sizeof' of an expression with reference type '{}' results in the size of type '{}'",
+					type, type_wihtout_ref
+				)
+			);
+		}
+
+		if (!ast::is_complete(type_wihtout_ref))
 		{
 			// this is in case type is empty; I don't see how we could get here otherwise
-			context.report_error(src_tokens, bz::format("cannot take 'sizeof' of an exprssion with incomplete type '{}'", type));
+			context.report_error(
+				src_tokens,
+				bz::format("cannot take 'sizeof' of an expression with incomplete type '{}'", type_wihtout_ref)
+			);
 			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 		}
-		else if (!context.is_instantiable(src_tokens, type))
+		else if (!context.is_instantiable(src_tokens, type_wihtout_ref))
 		{
-			context.report_error(src_tokens, bz::format("cannot take 'sizeof' of an expression with non-instantiable type '{}'", type));
+			context.report_error(
+				src_tokens,
+				bz::format("cannot take 'sizeof' of an expression with non-instantiable type '{}'", type_wihtout_ref)
+			);
 			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 		}
-		uint64_t const size = context.get_sizeof(type);
+
+		uint64_t const size = context.get_sizeof(type.remove_any_mut_reference());
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
