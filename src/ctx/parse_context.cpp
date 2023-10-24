@@ -8431,6 +8431,7 @@ bool parse_context::is_instantiable(lex::src_tokens const &src_tokens, ast::type
 
 size_t parse_context::get_sizeof(ast::typespec_view ts)
 {
+	bz_assert(!ts.is_any_reference());
 	return this->global_ctx.get_sizeof(ts);
 }
 

@@ -245,6 +245,7 @@ ast::decl_operator *global_context::get_builtin_operator(uint32_t op_kind_, uint
 size_t global_context::get_sizeof(ast::typespec_view ts)
 {
 	bz_assert(this->comptime_codegen_context != nullptr);
+	bz_assert(!ts.is_any_reference());
 	return comptime::get_type(ts, *this->comptime_codegen_context)->size;
 }
 

@@ -606,14 +606,19 @@ static ast::expression get_builtin_unary_sizeof(
 	if (expr.is_typename())
 	{
 		auto const type = expr.get_typename();
-		if (!ast::is_complete(type))
+		if (type.is_any_reference())
 		{
-			context.report_error(src_tokens, bz::format("cannot take 'sizeof' of an incomplete type '{}'", type));
+			context.report_error(src_tokens, bz::format("taking 'sizeof' of reference type '{}'", type));
+			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+		}
+		else if (!ast::is_complete(type))
+		{
+			context.report_error(src_tokens, bz::format("cannot take 'sizeof' of incomplete type '{}'", type));
 			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 		}
 		else if (!context.is_instantiable(src_tokens, type))
 		{
-			context.report_error(src_tokens, bz::format("cannot take 'sizeof' of a non-instantiable type '{}'", type));
+			context.report_error(src_tokens, bz::format("cannot take 'sizeof' of non-instantiable type '{}'", type));
 			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 		}
 		auto const size = context.get_sizeof(type);
