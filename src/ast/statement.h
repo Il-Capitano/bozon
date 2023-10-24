@@ -680,7 +680,7 @@ struct function_body
 
 		min_i8, min_i16, min_i32, min_i64,
 		min_u8, min_u16, min_u32, min_u64,
-		fmin_f32, fmin_f64,
+		min_f32, min_f64,
 
 		max_i8, max_i16, max_i32, max_i64,
 		max_u8, max_u16, max_u32, max_u64,
@@ -1958,16 +1958,6 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::abs_f32, "__builtin_abs_f32" },
 		{ function_body::abs_f64, "__builtin_abs_f64" },
 
-		{ function_body::min_i8,   "__builtin_min_i8"   },
-		{ function_body::min_i16,  "__builtin_min_i16"  },
-		{ function_body::min_i32,  "__builtin_min_i32"  },
-		{ function_body::min_i64,  "__builtin_min_i64"  },
-		{ function_body::min_u8,   "__builtin_min_u8"   },
-		{ function_body::min_u16,  "__builtin_min_u16"  },
-		{ function_body::min_u32,  "__builtin_min_u32"  },
-		{ function_body::min_u64,  "__builtin_min_u64"  },
-		{ function_body::fmin_f32, "__builtin_fmin_f32" },
-		{ function_body::fmin_f64, "__builtin_fmin_f64" },
 
 		{ function_body::max_i8,   "__builtin_max_i8"   },
 		{ function_body::max_i16,  "__builtin_max_i16"  },
@@ -1979,6 +1969,16 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::max_u64,  "__builtin_max_u64"  },
 		{ function_body::fmax_f32, "__builtin_fmax_f32" },
 		{ function_body::fmax_f64, "__builtin_fmax_f64" },
+		{ function_body::min_i8,  "__builtin_min_i8"  },
+		{ function_body::min_i16, "__builtin_min_i16" },
+		{ function_body::min_i32, "__builtin_min_i32" },
+		{ function_body::min_i64, "__builtin_min_i64" },
+		{ function_body::min_u8,  "__builtin_min_u8"  },
+		{ function_body::min_u16, "__builtin_min_u16" },
+		{ function_body::min_u32, "__builtin_min_u32" },
+		{ function_body::min_u64, "__builtin_min_u64" },
+		{ function_body::min_f32, "__builtin_min_f32" },
+		{ function_body::min_f64, "__builtin_min_f64" },
 
 		{ function_body::exp_f32,   "__builtin_exp_f32"   },
 		{ function_body::exp_f64,   "__builtin_exp_f64"   },

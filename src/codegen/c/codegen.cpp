@@ -3513,9 +3513,9 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		context.end_if(prev_if_info);
 		return result_value;
 	}
-	case ast::function_body::fmin_f32:
+	case ast::function_body::min_f32:
 		return generate_libc_math_function_call("fminf", func_call, context, result_dest);
-	case ast::function_body::fmin_f64:
+	case ast::function_body::min_f64:
 		return generate_libc_math_function_call("fmin", func_call, context, result_dest);
 	case ast::function_body::max_i8:
 	case ast::function_body::max_i16:
