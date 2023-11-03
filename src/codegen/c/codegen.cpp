@@ -2587,6 +2587,33 @@ static expr_value generate_libc_math_function_call(
 	}
 }
 
+static expr_value generate_libc_math_function_call(
+	bz::u8string_view func_name,
+	ast::expr_function_call const &func_call,
+	type return_type,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	context.add_libc_header("math.h");
+	bz_assert(func_call.params.size() == 1 || func_call.params.size() == 2);
+	if (func_call.params.size() == 1)
+	{
+		auto const arg_value = generate_expression(func_call.params[0], context, {});
+		return generate_trivial_function_call(func_name, arg_value, return_type, context, result_dest);
+	}
+	else if (func_call.params.size() == 2)
+	{
+		auto const arg1_value = generate_expression(func_call.params[0], context, {});
+		auto const arg2_value = generate_expression(func_call.params[1], context, {});
+		return generate_trivial_function_call(func_name, { arg1_value, arg2_value }, return_type, context, result_dest);
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
 static bz::optional<expr_value> generate_intrinsic_function_call(
 	ast::expr_function_call const &func_call,
 	codegen_context &context,
@@ -3483,13 +3510,22 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	}
 	case ast::function_body::isnan_f32:
 	case ast::function_body::isnan_f64:
-		return int_to_bool(generate_libc_math_function_call("isnan", func_call, context, result_dest), context);
+		return int_to_bool(
+			generate_libc_math_function_call("isnan", func_call, context.get_c_int(), context, result_dest),
+			context
+		);
 	case ast::function_body::isinf_f32:
 	case ast::function_body::isinf_f64:
-		return int_to_bool(generate_libc_math_function_call("isinf", func_call, context, result_dest), context);
+		return int_to_bool(
+			generate_libc_math_function_call("isinf", func_call, context.get_c_int(), context, result_dest),
+			context
+		);
 	case ast::function_body::isfinite_f32:
 	case ast::function_body::isfinite_f64:
-		return int_to_bool(generate_libc_math_function_call("isfinite", func_call, context, result_dest), context);
+		return int_to_bool(
+			generate_libc_math_function_call("isfinite", func_call, context.get_c_int(), context, result_dest),
+			context
+		);
 	case ast::function_body::abs_i8:
 		return generate_builtin_function_call("bozon_abs_i8", func_call, context, result_dest);
 	case ast::function_body::abs_i16:
