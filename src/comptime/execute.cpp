@@ -2662,6 +2662,36 @@ static uint64_t execute_shr_i64_unsigned(instructions::shr_i64_unsigned const &i
 	return lhs >> uint64_t(rhs);
 }
 
+static bool execute_isnan_f32(instructions::isnan_f32 const &, float32_t value, executor_context &)
+{
+	return std::isnan(value);
+}
+
+static bool execute_isnan_f64(instructions::isnan_f64 const &, float64_t value, executor_context &)
+{
+	return std::isnan(value);
+}
+
+static bool execute_isinf_f32(instructions::isinf_f32 const &, float32_t value, executor_context &)
+{
+	return std::isinf(value);
+}
+
+static bool execute_isinf_f64(instructions::isinf_f64 const &, float64_t value, executor_context &)
+{
+	return std::isinf(value);
+}
+
+static bool execute_isfinite_f32(instructions::isfinite_f32 const &, float32_t value, executor_context &)
+{
+	return std::isfinite(value);
+}
+
+static bool execute_isfinite_f64(instructions::isfinite_f64 const &, float64_t value, executor_context &)
+{
+	return std::isfinite(value);
+}
+
 static uint8_t execute_abs_i8(instructions::abs_i8 const &, uint8_t uvalue, executor_context &)
 {
 	auto const value = static_cast<int8_t>(uvalue);
@@ -5071,7 +5101,7 @@ void execute_current_instruction(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-	static_assert(instruction_list_t::size() == 558);
+	static_assert(instruction_list_t::size() == 564);
 	case instruction::const_i1:
 		execute<instructions::const_i1, &execute_const_i1>(context);
 		break;
@@ -6010,6 +6040,24 @@ void execute_current_instruction(executor_context &context)
 		break;
 	case instruction::shr_i64_unsigned:
 		execute<instructions::shr_i64_unsigned, &execute_shr_i64_unsigned>(context);
+		break;
+	case instruction::isnan_f32:
+		execute<instructions::isnan_f32, &execute_isnan_f32>(context);
+		break;
+	case instruction::isnan_f64:
+		execute<instructions::isnan_f64, &execute_isnan_f64>(context);
+		break;
+	case instruction::isinf_f32:
+		execute<instructions::isinf_f32, &execute_isinf_f32>(context);
+		break;
+	case instruction::isinf_f64:
+		execute<instructions::isinf_f64, &execute_isinf_f64>(context);
+		break;
+	case instruction::isfinite_f32:
+		execute<instructions::isfinite_f32, &execute_isfinite_f32>(context);
+		break;
+	case instruction::isfinite_f64:
+		execute<instructions::isfinite_f64, &execute_isfinite_f64>(context);
 		break;
 	case instruction::abs_i8:
 		execute<instructions::abs_i8, &execute_abs_i8>(context);

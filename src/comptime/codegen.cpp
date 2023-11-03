@@ -2190,7 +2190,7 @@ static expr_value generate_intrinsic_function_call_code(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 263);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 269);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 28);
@@ -3132,6 +3132,27 @@ static expr_value generate_intrinsic_function_call_code(
 			bz::format("'{}' cannot be used in compile time execution", func_call.func_body->get_signature())
 		);
 		return expr_value::get_none();
+	case ast::function_body::isnan_f32:
+	case ast::function_body::isnan_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		return value_or_result_address(context.create_isnan(x), result_address, context);
+	}
+	case ast::function_body::isinf_f32:
+	case ast::function_body::isinf_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		return value_or_result_address(context.create_isinf(x), result_address, context);
+	}
+	case ast::function_body::isfinite_f32:
+	case ast::function_body::isfinite_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		return value_or_result_address(context.create_isfinite(x), result_address, context);
+	}
 	case ast::function_body::abs_i8:
 	case ast::function_body::abs_i16:
 	case ast::function_body::abs_i32:

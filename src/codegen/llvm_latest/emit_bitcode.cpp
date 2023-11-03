@@ -2890,7 +2890,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 263);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 269);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 28);
@@ -3812,6 +3812,72 @@ static val_ptr emit_bitcode(
 		case ast::function_body::bit_cast:
 			// this handled as a separate expression
 			bz_unreachable;
+
+		// https://llvm.org/docs/LangRef.html#llvm-is-fpclass-intrinsic
+		case ast::function_body::isnan_f32:
+		case ast::function_body::isnan_f64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const x = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			unsigned const test =
+				(1u << 0) // signaling nan
+				| (1u << 1); // quiet nan
+			auto const result = context.builder.createIsFPClass(x, test);
+			if (result_address != nullptr)
+			{
+				auto const result_type = result->getType();
+				context.builder.CreateStore(result, result_address);
+				return val_ptr::get_reference(result_address, result_type);
+			}
+			else
+			{
+				return val_ptr::get_value(result);
+			}
+		}
+		case ast::function_body::isinf_f32:
+		case ast::function_body::isinf_f64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const x = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			unsigned const test =
+				(1u << 2) // negative infinity
+				| (1u << 9); // positive infinity
+			auto const result = context.builder.createIsFPClass(x, test);
+			if (result_address != nullptr)
+			{
+				auto const result_type = result->getType();
+				context.builder.CreateStore(result, result_address);
+				return val_ptr::get_reference(result_address, result_type);
+			}
+			else
+			{
+				return val_ptr::get_value(result);
+			}
+		}
+		case ast::function_body::isfinite_f32:
+		case ast::function_body::isfinite_f64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const x = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			unsigned const test =
+				(1u << 3) // negative normal
+				| (1u << 4) // negative subnormal
+				| (1u << 5) // negative zero
+				| (1u << 6) // positive zero
+				| (1u << 7) // positive subnormal
+				| (1u << 8); // positive normal
+			auto const result = context.builder.createIsFPClass(x, test);
+			if (result_address != nullptr)
+			{
+				auto const result_type = result->getType();
+				context.builder.CreateStore(result, result_address);
+				return val_ptr::get_reference(result_address, result_type);
+			}
+			else
+			{
+				return val_ptr::get_value(result);
+			}
+		}
 
 		case ast::function_body::comptime_malloc:
 		case ast::function_body::comptime_free:

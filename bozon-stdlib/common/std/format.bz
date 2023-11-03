@@ -1108,49 +1108,6 @@ export function format_to(b: bool, buffer: &mut format_buffer, fmt_spec: format_
 	}
 }
 
-function isfinite(x: float32) -> bool
-{
-	let bits = ryu::float_to_bits(x);
-	consteval exponent_mask = 0x7f80'0000u32;
-	static_assert(popcount(exponent_mask) == 8);
-	return (bits & exponent_mask) != exponent_mask;
-}
-
-function isfinite(x: float64) -> bool
-{
-	let bits = ryu::double_to_bits(x);
-	consteval exponent_mask = 0x7ff0'0000'0000'0000u64;
-	static_assert(popcount(exponent_mask) == 11);
-	return (bits & exponent_mask) != exponent_mask;
-}
-
-function isnan(x: float32) -> bool
-{
-	let bits = ryu::float_to_bits(x);
-	consteval exponent_mask = 0x7f80'0000u32;
-	consteval mantissa_mask = 0x007f'ffffu32;
-	static_assert(popcount(exponent_mask) == 8);
-	static_assert(popcount(mantissa_mask) == 23);
-	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) != 0;
-}
-
-function isnan(x: float64) -> bool
-{
-	let bits = ryu::double_to_bits(x);
-	consteval exponent_mask = 0x7ff0'0000'0000'0000u64;
-	consteval mantissa_mask = 0x000f'ffff'ffff'ffffu64;
-	static_assert(popcount(exponent_mask) == 11);
-	static_assert(popcount(mantissa_mask) == 52);
-	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) != 0;
-}
-
-static_assert(isfinite(1.0));
-static_assert(!isfinite(((1.0 / 0.0))));
-static_assert(!isfinite(((0.0 / 0.0))));
-static_assert(!isnan(1.0));
-static_assert(!isnan(((1.0 / 0.0))));
-static_assert(isnan(((0.0 / 0.0))));
-
 export function format_to(x: float32, buffer: &mut format_buffer, fmt_spec: str)
 {
 	x.format_to(buffer, get_default_format_spec(fmt_spec));

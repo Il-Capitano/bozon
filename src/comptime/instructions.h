@@ -3173,6 +3173,60 @@ struct shr_i64_unsigned
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
+struct isnan_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct isnan_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct isinf_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct isinf_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct isfinite_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct isfinite_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
 struct abs_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
@@ -5954,6 +6008,12 @@ using instruction_list_t = bz::meta::type_pack<
 	instructions::shr_i16_unsigned,
 	instructions::shr_i32_unsigned,
 	instructions::shr_i64_unsigned,
+	instructions::isnan_f32,
+	instructions::isnan_f64,
+	instructions::isinf_f32,
+	instructions::isinf_f64,
+	instructions::isfinite_f32,
+	instructions::isfinite_f64,
 	instructions::abs_i8,
 	instructions::abs_i16,
 	instructions::abs_i32,
@@ -6239,7 +6299,7 @@ private:
 	uint64_t _index = index_of<void>;
 
 public:
-	static_assert(instruction_list_t::size() == 558);
+	static_assert(instruction_list_t::size() == 564);
 	enum : uint64_t
 	{
 		const_i1 = index_of<instructions::const_i1>,
@@ -6555,6 +6615,12 @@ public:
 		shr_i16_unsigned,
 		shr_i32_unsigned,
 		shr_i64_unsigned,
+		isnan_f32,
+		isnan_f64,
+		isinf_f32,
+		isinf_f64,
+		isfinite_f32,
+		isfinite_f64,
 		abs_i8,
 		abs_i16,
 		abs_i32,

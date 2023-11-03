@@ -11,7 +11,7 @@ static_assert([]<typename ...Ts>(bz::meta::type_pack<Ts...>) {
 	return bz::meta::is_all<std::is_trivial_v<Ts>...>;
 }(instruction_list_t()));
 
-static_assert(instruction_list_t::size() == 558);
+static_assert(instruction_list_t::size() == 564);
 static_assert(instruction::const_i1                 == instruction::index_of<instructions::const_i1>);
 static_assert(instruction::const_i8                 == instruction::index_of<instructions::const_i8>);
 static_assert(instruction::const_i16                == instruction::index_of<instructions::const_i16>);
@@ -325,6 +325,12 @@ static_assert(instruction::shr_i8_unsigned          == instruction::index_of<ins
 static_assert(instruction::shr_i16_unsigned         == instruction::index_of<instructions::shr_i16_unsigned>);
 static_assert(instruction::shr_i32_unsigned         == instruction::index_of<instructions::shr_i32_unsigned>);
 static_assert(instruction::shr_i64_unsigned         == instruction::index_of<instructions::shr_i64_unsigned>);
+static_assert(instruction::isnan_f32                == instruction::index_of<instructions::isnan_f32>);
+static_assert(instruction::isnan_f64                == instruction::index_of<instructions::isnan_f64>);
+static_assert(instruction::isinf_f32                == instruction::index_of<instructions::isinf_f32>);
+static_assert(instruction::isinf_f64                == instruction::index_of<instructions::isinf_f64>);
+static_assert(instruction::isfinite_f32             == instruction::index_of<instructions::isfinite_f32>);
+static_assert(instruction::isfinite_f64             == instruction::index_of<instructions::isfinite_f64>);
 static_assert(instruction::abs_i8                   == instruction::index_of<instructions::abs_i8>);
 static_assert(instruction::abs_i16                  == instruction::index_of<instructions::abs_i16>);
 static_assert(instruction::abs_i32                  == instruction::index_of<instructions::abs_i32>);
@@ -575,7 +581,7 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 {
 	switch (inst_.index())
 	{
-	static_assert(instruction_list_t::size() == 558);
+	static_assert(instruction_list_t::size() == 564);
 	case instruction::const_i1:
 	{
 		auto const &inst = inst_.get<instructions::const_i1>();
@@ -2139,6 +2145,36 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 	{
 		auto const &inst = inst_.get<instructions::shr_i64_unsigned>();
 		return bz::format("shr i64 unsigned {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+	}
+	case instruction::isnan_f32:
+	{
+		auto const &inst = inst_.get<instructions::isnan_f32>();
+		return bz::format("isnan f32 {}", inst.args[0]);
+	}
+	case instruction::isnan_f64:
+	{
+		auto const &inst = inst_.get<instructions::isnan_f64>();
+		return bz::format("isnan f64 {}", inst.args[0]);
+	}
+	case instruction::isinf_f32:
+	{
+		auto const &inst = inst_.get<instructions::isinf_f32>();
+		return bz::format("isinf f32 {}", inst.args[0]);
+	}
+	case instruction::isinf_f64:
+	{
+		auto const &inst = inst_.get<instructions::isinf_f64>();
+		return bz::format("isinf f64 {}", inst.args[0]);
+	}
+	case instruction::isfinite_f32:
+	{
+		auto const &inst = inst_.get<instructions::isfinite_f32>();
+		return bz::format("isfinite f32 {}", inst.args[0]);
+	}
+	case instruction::isfinite_f64:
+	{
+		auto const &inst = inst_.get<instructions::isfinite_f64>();
+		return bz::format("isfinite f64 {}", inst.args[0]);
 	}
 	case instruction::abs_i8:
 	{
@@ -3785,6 +3821,12 @@ static bz::array instruction_names = {
 	bz::u8string_view("shr_i16_unsigned"),
 	bz::u8string_view("shr_i32_unsigned"),
 	bz::u8string_view("shr_i64_unsigned"),
+	bz::u8string_view("isnan_f32"),
+	bz::u8string_view("isnan_f64"),
+	bz::u8string_view("isinf_f32"),
+	bz::u8string_view("isinf_f64"),
+	bz::u8string_view("isfinite_f32"),
+	bz::u8string_view("isfinite_f64"),
 	bz::u8string_view("abs_i8"),
 	bz::u8string_view("abs_i16"),
 	bz::u8string_view("abs_i32"),

@@ -665,6 +665,10 @@ struct function_body
 		memmove,
 		memset,
 
+		isnan_f32, isnan_f64,
+		isinf_f32, isinf_f64,
+		isfinite_f32, isfinite_f64,
+
 		abs_i8, abs_i16, abs_i32, abs_i64,
 		abs_f32, abs_f64,
 
@@ -1733,7 +1737,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 263);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 269);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1919,13 +1923,20 @@ constexpr auto intrinsic_info = []() {
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions
 
-		{ function_body::trap,           "__builtin_trap"           },
+		{ function_body::trap, "__builtin_trap" },
 
 		{ function_body::memcpy,  "__builtin_memcpy"  },
 		{ function_body::memmove, "__builtin_memmove" },
 		{ function_body::memset,  "__builtin_memset"  },
 
 		// C standard library math functions
+
+		{ function_body::isnan_f32,    "__builtin_isnan_f32"    },
+		{ function_body::isnan_f64,    "__builtin_isnan_f64"    },
+		{ function_body::isinf_f32,    "__builtin_isinf_f32"    },
+		{ function_body::isinf_f64,    "__builtin_isinf_f64"    },
+		{ function_body::isfinite_f32, "__builtin_isfinite_f32" },
+		{ function_body::isfinite_f64, "__builtin_isfinite_f64" },
 
 		{ function_body::abs_i8,  "__builtin_abs_i8"  },
 		{ function_body::abs_i16, "__builtin_abs_i16" },

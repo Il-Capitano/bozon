@@ -4068,6 +4068,75 @@ expr_value codegen_context::create_shr(lex::src_tokens const &src_tokens, expr_v
 	}
 }
 
+expr_value codegen_context::create_isnan(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			add_instruction(*this, instructions::isnan_f32{}, x_val),
+			this->get_builtin_type(builtin_type_kind::i1)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			add_instruction(*this, instructions::isnan_f64{}, x_val),
+			this->get_builtin_type(builtin_type_kind::i1)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_isinf(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			add_instruction(*this, instructions::isinf_f32{}, x_val),
+			this->get_builtin_type(builtin_type_kind::i1)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			add_instruction(*this, instructions::isinf_f64{}, x_val),
+			this->get_builtin_type(builtin_type_kind::i1)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_isfinite(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			add_instruction(*this, instructions::isfinite_f32{}, x_val),
+			this->get_builtin_type(builtin_type_kind::i1)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			add_instruction(*this, instructions::isfinite_f64{}, x_val),
+			this->get_builtin_type(builtin_type_kind::i1)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
 expr_value codegen_context::create_abs(expr_value value)
 {
 	auto const value_ref = value.get_value_as_instruction(*this);
@@ -6605,7 +6674,7 @@ void current_function_info_t::finalize_function(void)
 		}
 
 		// finalize the terminator dests
-		static_assert(instruction_list_t::size() == 558);
+		static_assert(instruction_list_t::size() == 564);
 		if (bb.instructions.not_empty()) switch (auto &inst = bb.instructions.back().inst; inst.index())
 		{
 		case instruction::jump:

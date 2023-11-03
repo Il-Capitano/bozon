@@ -495,6 +495,9 @@ struct codegen_context
 	expr_value create_shl(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_rhs_signed);
 	expr_value create_shr(lex::src_tokens const &src_tokens, expr_value lhs, expr_value rhs, bool is_rhs_signed);
 
+	expr_value create_isnan(expr_value x);
+	expr_value create_isinf(expr_value x);
+	expr_value create_isfinite(expr_value x);
 	expr_value create_abs(expr_value value);
 	void create_abs_check(lex::src_tokens const &src_tokens, expr_value value);
 	expr_value create_min(expr_value a, expr_value b, bool is_signed_int);
