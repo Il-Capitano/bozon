@@ -4297,7 +4297,11 @@ static expr_value generate_expression(
 	}
 
 	auto const &result_value = result_dest.get();
-	auto const value = generate_expression(bit_cast.expr, context, {});
+	auto value = generate_expression(bit_cast.expr, context, {});
+	if (value.is_rvalue)
+	{
+		value = context.create_trivial_copy(value);
+	}
 
 	auto const dest = context.create_address_of(result_value);
 	auto const src = context.create_address_of(value);
