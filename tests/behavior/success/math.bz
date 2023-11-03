@@ -1,0 +1,460 @@
+function isnan = __builtin_isnan_f32;
+function isnan = __builtin_isnan_f64;
+
+function isinf = __builtin_isinf_f32;
+function isinf = __builtin_isinf_f64;
+
+function isfinite = __builtin_isfinite_f32;
+function isfinite = __builtin_isfinite_f64;
+
+function abs_int = __builtin_abs_i8;
+function abs_int = __builtin_abs_i16;
+function abs_int = __builtin_abs_i32;
+function abs_int = __builtin_abs_i64;
+function abs_float = __builtin_abs_f32;
+function abs_float = __builtin_abs_f64;
+
+function min_int = __builtin_min_i8;
+function min_int = __builtin_min_i16;
+function min_int = __builtin_min_i32;
+function min_int = __builtin_min_i64;
+function min_int = __builtin_min_u8;
+function min_int = __builtin_min_u16;
+function min_int = __builtin_min_u32;
+function min_int = __builtin_min_u64;
+function min_float = __builtin_min_f32;
+function min_float = __builtin_min_f64;
+
+function max_int = __builtin_max_i8;
+function max_int = __builtin_max_i16;
+function max_int = __builtin_max_i32;
+function max_int = __builtin_max_i64;
+function max_int = __builtin_max_u8;
+function max_int = __builtin_max_u16;
+function max_int = __builtin_max_u32;
+function max_int = __builtin_max_u64;
+function max_float = __builtin_max_f32;
+function max_float = __builtin_max_f64;
+
+function isnan_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let zero = 0.0 as T;
+	let inf = T.inf;
+	let nan = T.nan;
+
+	if (isnan(min)) unreachable;
+	if (isnan(-min)) unreachable;
+	if (isnan(denorm_min)) unreachable;
+	if (isnan(-denorm_min)) unreachable;
+	if (isnan(zero)) unreachable;
+	if (isnan(-zero)) unreachable;
+	if (isnan(inf)) unreachable;
+	if (isnan(-inf)) unreachable;
+	if (!isnan(nan)) unreachable;
+	if (!isnan(-nan)) unreachable;
+}
+
+function isinf_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let zero = 0.0 as T;
+	let inf = T.inf;
+	let nan = T.nan;
+
+	if (isinf(min)) unreachable;
+	if (isinf(-min)) unreachable;
+	if (isinf(denorm_min)) unreachable;
+	if (isinf(-denorm_min)) unreachable;
+	if (isinf(zero)) unreachable;
+	if (isinf(-zero)) unreachable;
+	if (!isinf(inf)) unreachable;
+	if (!isinf(-inf)) unreachable;
+	if (isinf(nan)) unreachable;
+	if (isinf(-nan)) unreachable;
+}
+
+function isfinite_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let zero = 0.0 as T;
+	let inf = T.inf;
+	let nan = T.nan;
+
+	if (!isfinite(min)) unreachable;
+	if (!isfinite(-min)) unreachable;
+	if (!isfinite(denorm_min)) unreachable;
+	if (!isfinite(-denorm_min)) unreachable;
+	if (!isfinite(zero)) unreachable;
+	if (!isfinite(-zero)) unreachable;
+	if (isfinite(inf)) unreachable;
+	if (isfinite(-inf)) unreachable;
+	if (isfinite(nan)) unreachable;
+	if (isfinite(-nan)) unreachable;
+}
+
+function abs_test_int(T: typename)
+{
+	let min = T.min;
+	let max = T.max;
+
+	let n = 0 as T;
+	if (abs_int(n) != 0) unreachable;
+	let n = 123 as T;
+	if (abs_int(n) != 123) unreachable;
+	let n = -123 as T;
+	if (abs_int(n) != 123) unreachable;
+
+	if (abs_int(max) != max) unreachable;
+	if (abs_int(min) != min) unreachable; // overflow
+}
+
+function abs_test_float(T: typename)
+{
+	type uint = if consteval (T == float32) { uint32 } else { uint64 };
+
+	let denorm_min = T.denorm_min;
+	let inf = T.inf;
+	let nan = T.nan;
+
+	let zero_bits = __builtin_bit_cast(uint, 0.0 as T);
+	let inf_bits = __builtin_bit_cast(uint, inf);
+	let nan_bits = __builtin_bit_cast(uint, nan);
+
+	let x = 0.0 as T;
+	if (abs_float(x) != 0.0 as T) unreachable;
+	if (__builtin_bit_cast(uint, abs_float(x)) != zero_bits) unreachable;
+	let x = -0.0 as T;
+	if (abs_float(x) != 0.0 as T) unreachable;
+	if (__builtin_bit_cast(uint, abs_float(x)) != zero_bits) unreachable;
+
+	let x = 1.2345 as T;
+	if (abs_float(x) != 1.2345 as T) unreachable;
+	let x = -1.2345 as T;
+	if (abs_float(x) != 1.2345 as T) unreachable;
+
+	let x = 1.2345e20 as T;
+	if (abs_float(x) != 1.2345e20 as T) unreachable;
+	let x = -1.2345e20 as T;
+	if (abs_float(x) != 1.2345e20 as T) unreachable;
+
+	if (abs_float(denorm_min) != denorm_min) unreachable;
+	if (abs_float(-denorm_min) != denorm_min) unreachable;
+
+	if (abs_float(inf) != inf) unreachable;
+	if (abs_float(-inf) != inf) unreachable;
+	if (__builtin_bit_cast(uint, abs_float(inf)) != inf_bits) unreachable;
+	if (__builtin_bit_cast(uint, abs_float(-inf)) != inf_bits) unreachable;
+	if (__builtin_bit_cast(uint, abs_float(nan)) != nan_bits) unreachable;
+	if (__builtin_bit_cast(uint, abs_float(-nan)) != nan_bits) unreachable;
+}
+
+function min_test_int(T: typename)
+{
+	consteval is_signed = T.min < 0;
+
+	let min = T.min;
+	let max = T.max;
+
+	let a = 0 as T;
+	let b = 0 as T;
+	if (min_int(a, b) != 0) unreachable;
+	let a = 0 as T;
+	let b = 123 as T;
+	if (min_int(a, b) != 0) unreachable;
+	let a = 123 as T;
+	let b = 0 as T;
+	if (min_int(a, b) != 0) unreachable;
+	let a = 33 as T;
+	let b = 123 as T;
+	if (min_int(a, b) != 33) unreachable;
+	let a = 123 as T;
+	let b = 33 as T;
+	if (min_int(a, b) != 33) unreachable;
+	let a = 123 as T;
+	let b = 123 as T;
+	if (min_int(a, b) != 123) unreachable;
+	let a = 33 as T;
+	let b = 33 as T;
+	if (min_int(a, b) != 33) unreachable;
+
+	if consteval (is_signed)
+	{
+		let a = -1 as T;
+		let b = 0 as T;
+		if (min_int(a, b) != -1) unreachable;
+		let a = 0 as T;
+		let b = -1 as T;
+		if (min_int(a, b) != -1) unreachable;
+		let a = 123 as T;
+		let b = -123 as T;
+		if (min_int(a, b) != -123) unreachable;
+		let a = -123 as T;
+		let b = 123 as T;
+		if (min_int(a, b) != -123) unreachable;
+		let a = -33;
+		let b = -123;
+		if (min_int(a, b) != -123) unreachable;
+		let a = -123;
+		let b = -33;
+		if (min_int(a, b) != -123) unreachable;
+	}
+
+	if (min_int(min, max) != min) unreachable;
+	if (min_int(max, min) != min) unreachable;
+	if (min_int(min, min) != min) unreachable;
+	if (min_int(max, max) != max) unreachable;
+}
+
+function min_test_float(T: typename)
+{
+	type uint = if consteval (T == float32) { uint32 } else { uint64 };
+
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let inf = T.inf;
+	let nan = T.nan;
+
+	let zero_bits = __builtin_bit_cast(uint, 0.0 as T);
+	let negative_zero_bits = __builtin_bit_cast(uint, -0.0 as T);
+
+	let x = 0.0 as T;
+	let y = 0.0 as T;
+	if (min_float(x, y) != 0.0 as T) unreachable;
+	if (__builtin_bit_cast(uint, min_float(x, y)) != zero_bits) unreachable;
+	let x = -0.0 as T;
+	let y = -0.0 as T;
+	if (min_float(x, y) != 0.0 as T) unreachable;
+	if (__builtin_bit_cast(uint, min_float(x, y)) != negative_zero_bits) unreachable;
+	let x = 0.0 as T;
+	let y = -0.0 as T;
+	if (min_float(x, y) != 0.0 as T) unreachable;
+	if (min_float(y, x) != 0.0 as T) unreachable;
+
+	let x = 1.234 as T;
+	let y = 34.325e-35 as T;
+	if (min_float(x, y) != y) unreachable;
+	let x = -1.234 as T;
+	let y = 34.325e-35 as T;
+	if (min_float(x, y) != x) unreachable;
+	let x = 1.234 as T;
+	let y = -34.325e-35 as T;
+	if (min_float(x, y) != y) unreachable;
+	let x = -1.234 as T;
+	let y = -34.325e-35 as T;
+	if (min_float(x, y) != x) unreachable;
+
+	let x = denorm_min;
+	let y = 0.0 as T;
+	if (min_float(x, y) != y) unreachable;
+	if (min_float(-x, y) != -x) unreachable;
+
+	let x = denorm_min;
+	let y = min;
+	if (min_float(x, y) != x) unreachable;
+	if (min_float(-x, y) != -x) unreachable;
+	if (min_float(x, -y) != -y) unreachable;
+	if (min_float(-x, -y) != -y) unreachable;
+
+	let x = 1.234 as T;
+	if (min_float(x, inf) != x) unreachable;
+	if (min_float(inf, x) != x) unreachable;
+	if (min_float(x, -inf) != -inf) unreachable;
+	if (min_float(-inf, x) != -inf) unreachable;
+	if (min_float(x, nan) != x) unreachable;
+	if (min_float(nan, x) != x) unreachable;
+	if (min_float(x, -nan) != x) unreachable;
+	if (min_float(-nan, x) != x) unreachable;
+
+	if (min_float(inf, inf) != inf) unreachable;
+	if (min_float(-inf, inf) != -inf) unreachable;
+	if (min_float(inf, -inf) != -inf) unreachable;
+	if (min_float(-inf, -inf) != -inf) unreachable;
+
+	if (min_float(inf, nan) != inf) unreachable;
+	if (min_float(nan, inf) != inf) unreachable;
+	if (min_float(-inf, nan) != -inf) unreachable;
+	if (min_float(nan, -inf) != -inf) unreachable;
+
+	if (!isnan(min_float(nan, nan))) unreachable;
+	if (!isnan(min_float(-nan, nan))) unreachable;
+	if (!isnan(min_float(nan, -nan))) unreachable;
+	if (!isnan(min_float(-nan, -nan))) unreachable;
+}
+
+function max_test_int(T: typename)
+{
+	consteval is_signed = T.min < 0;
+
+	let min = T.min;
+	let max = T.max;
+
+	let a = 0 as T;
+	let b = 0 as T;
+	if (max_int(a, b) != 0) unreachable;
+	let a = 0 as T;
+	let b = 123 as T;
+	if (max_int(a, b) != 123) unreachable;
+	let a = 123 as T;
+	let b = 0 as T;
+	if (max_int(a, b) != 123) unreachable;
+	let a = 33 as T;
+	let b = 123 as T;
+	if (max_int(a, b) != 123) unreachable;
+	let a = 123 as T;
+	let b = 33 as T;
+	if (max_int(a, b) != 123) unreachable;
+	let a = 123 as T;
+	let b = 123 as T;
+	if (max_int(a, b) != 123) unreachable;
+	let a = 33 as T;
+	let b = 33 as T;
+	if (max_int(a, b) != 33) unreachable;
+
+	if consteval (is_signed)
+	{
+		let a = -1 as T;
+		let b = 0 as T;
+		if (max_int(a, b) != 0) unreachable;
+		let a = 0 as T;
+		let b = -1 as T;
+		if (max_int(a, b) != 0) unreachable;
+		let a = 123 as T;
+		let b = -123 as T;
+		if (max_int(a, b) != 123) unreachable;
+		let a = -123 as T;
+		let b = 123 as T;
+		if (max_int(a, b) != 123) unreachable;
+		let a = -33;
+		let b = -123;
+		if (max_int(a, b) != -33) unreachable;
+		let a = -123;
+		let b = -33;
+		if (max_int(a, b) != -33) unreachable;
+	}
+
+	if (max_int(min, max) != max) unreachable;
+	if (max_int(max, min) != max) unreachable;
+	if (max_int(min, min) != min) unreachable;
+	if (max_int(max, max) != max) unreachable;
+}
+
+function max_test_float(T: typename)
+{
+	type uint = if consteval (T == float32) { uint32 } else { uint64 };
+
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let inf = T.inf;
+	let nan = T.nan;
+
+	let zero_bits = __builtin_bit_cast(uint, 0.0 as T);
+	let negative_zero_bits = __builtin_bit_cast(uint, -0.0 as T);
+
+	let x = 0.0 as T;
+	let y = 0.0 as T;
+	if (max_float(x, y) != 0.0 as T) unreachable;
+	if (__builtin_bit_cast(uint, max_float(x, y)) != zero_bits) unreachable;
+	let x = -0.0 as T;
+	let y = -0.0 as T;
+	if (max_float(x, y) != 0.0 as T) unreachable;
+	if (__builtin_bit_cast(uint, max_float(x, y)) != negative_zero_bits) unreachable;
+	let x = 0.0 as T;
+	let y = -0.0 as T;
+	if (max_float(x, y) != 0.0 as T) unreachable;
+	if (max_float(y, x) != 0.0 as T) unreachable;
+
+	let x = 1.234 as T;
+	let y = 34.325e-35 as T;
+	if (max_float(x, y) != x) unreachable;
+	let x = -1.234 as T;
+	let y = 34.325e-35 as T;
+	if (max_float(x, y) != y) unreachable;
+	let x = 1.234 as T;
+	let y = -34.325e-35 as T;
+	if (max_float(x, y) != x) unreachable;
+	let x = -1.234 as T;
+	let y = -34.325e-35 as T;
+	if (max_float(x, y) != y) unreachable;
+
+	let x = denorm_min;
+	let y = 0.0 as T;
+	if (max_float(x, y) != x) unreachable;
+	if (max_float(-x, y) != y) unreachable;
+
+	let x = denorm_min;
+	let y = min;
+	if (max_float(x, y) != y) unreachable;
+	if (max_float(-x, y) != y) unreachable;
+	if (max_float(x, -y) != x) unreachable;
+	if (max_float(-x, -y) != -x) unreachable;
+
+	let x = 1.234 as T;
+	if (max_float(x, inf) != inf) unreachable;
+	if (max_float(inf, x) != inf) unreachable;
+	if (max_float(x, -inf) != x) unreachable;
+	if (max_float(-inf, x) != x) unreachable;
+	if (max_float(x, nan) != x) unreachable;
+	if (max_float(nan, x) != x) unreachable;
+	if (max_float(x, -nan) != x) unreachable;
+	if (max_float(-nan, x) != x) unreachable;
+
+	if (max_float(inf, inf) != inf) unreachable;
+	if (max_float(-inf, inf) != inf) unreachable;
+	if (max_float(inf, -inf) != inf) unreachable;
+	if (max_float(-inf, -inf) != -inf) unreachable;
+
+	if (max_float(inf, nan) != inf) unreachable;
+	if (max_float(nan, inf) != inf) unreachable;
+	if (max_float(-inf, nan) != -inf) unreachable;
+	if (max_float(nan, -inf) != -inf) unreachable;
+
+	if (!isnan(max_float(nan, nan))) unreachable;
+	if (!isnan(max_float(-nan, nan))) unreachable;
+	if (!isnan(max_float(nan, -nan))) unreachable;
+	if (!isnan(max_float(-nan, -nan))) unreachable;
+}
+
+function main()
+{
+	isnan_test(float32);
+	isnan_test(float64);
+
+	isinf_test(float32);
+	isinf_test(float64);
+
+	isfinite_test(float32);
+	isfinite_test(float64);
+
+	abs_test_int(int8);
+	abs_test_int(int16);
+	abs_test_int(int32);
+	abs_test_int(int64);
+	abs_test_float(float32);
+	abs_test_float(float64);
+
+	min_test_int(int8);
+	min_test_int(int16);
+	min_test_int(int32);
+	min_test_int(int64);
+	min_test_int(uint8);
+	min_test_int(uint16);
+	min_test_int(uint32);
+	min_test_int(uint64);
+	min_test_float(float32);
+	min_test_float(float64);
+
+	max_test_int(int8);
+	max_test_int(int16);
+	max_test_int(int32);
+	max_test_int(int64);
+	max_test_int(uint8);
+	max_test_int(uint16);
+	max_test_int(uint32);
+	max_test_int(uint64);
+	max_test_float(float32);
+	max_test_float(float64);
+}
