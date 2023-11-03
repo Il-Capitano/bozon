@@ -1025,6 +1025,11 @@ static void generate_null_pointer_arithmetic_check(
 	}
 }
 
+static expr_value int_to_bool(expr_value const &int_value, codegen_context &context)
+{
+	return context.create_not_equals(int_value, context.get_zero_value(int_value.get_type()));
+}
+
 struct loop_info_t
 {
 	expr_value index;
@@ -2590,7 +2595,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 263);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 269);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 28);
@@ -3476,6 +3481,15 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		bz_assert(!result_dest.has_value());
 		return context.get_void_value();
 	}
+	case ast::function_body::isnan_f32:
+	case ast::function_body::isnan_f64:
+		return int_to_bool(generate_libc_math_function_call("isnan", func_call, context, result_dest), context);
+	case ast::function_body::isinf_f32:
+	case ast::function_body::isinf_f64:
+		return int_to_bool(generate_libc_math_function_call("isinf", func_call, context, result_dest), context);
+	case ast::function_body::isfinite_f32:
+	case ast::function_body::isfinite_f64:
+		return int_to_bool(generate_libc_math_function_call("isfinite", func_call, context, result_dest), context);
 	case ast::function_body::abs_i8:
 		return generate_builtin_function_call("bozon_abs_i8", func_call, context, result_dest);
 	case ast::function_body::abs_i16:

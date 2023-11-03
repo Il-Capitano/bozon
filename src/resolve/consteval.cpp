@@ -1,6 +1,5 @@
 #include "consteval.h"
 #include "safe_operations.h"
-#include "resolve/match_expression.h"
 
 namespace resolve
 {
@@ -1480,7 +1479,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->body.is_null());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 263);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 269);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 28);

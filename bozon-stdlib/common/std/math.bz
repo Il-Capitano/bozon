@@ -1,3 +1,12 @@
+export function isnan = __builtin_isnan_f32;
+export function isnan = __builtin_isnan_f64;
+
+export function isinf = __builtin_isinf_f32;
+export function isinf = __builtin_isinf_f64;
+
+export function isfinite = __builtin_isfinite_f32;
+export function isfinite = __builtin_isfinite_f64;
+
 export function exp   = __builtin_exp_f32;
 export function exp   = __builtin_exp_f64;
 export function exp2  = __builtin_exp2_f32;

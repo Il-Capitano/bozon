@@ -1018,6 +1018,13 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 	}
 ) export function __builtin_memset(dest: ?*mut void, val: uint8, n: usize);
 
+@__builtin export function __builtin_isnan_f32(x: float32) -> bool;
+@__builtin export function __builtin_isnan_f64(x: float64) -> bool;
+@__builtin export function __builtin_isinf_f32(x: float32) -> bool;
+@__builtin export function __builtin_isinf_f64(x: float64) -> bool;
+@__builtin export function __builtin_isfinite_f32(x: float32) -> bool;
+@__builtin export function __builtin_isfinite_f64(x: float64) -> bool;
+
 @__builtin @symbol_name("llvm.abs.i8")  export function __builtin_abs_i8(n: int8)   -> int8;
 @__builtin @symbol_name("llvm.abs.i16") export function __builtin_abs_i16(n: int16) -> int16;
 @__builtin @symbol_name("llvm.abs.i32") export function __builtin_abs_i32(n: int32) -> int32;
