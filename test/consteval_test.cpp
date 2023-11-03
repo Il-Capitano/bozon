@@ -6,6 +6,7 @@
 #include "ctx/parse_context.h"
 #include "parse/expression_parser.h"
 #include "resolve/expression_resolver.h"
+#include "resolve/match_expression.h"
 
 using namespace parse;
 using namespace resolve;
