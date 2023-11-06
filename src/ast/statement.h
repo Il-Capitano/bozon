@@ -49,6 +49,12 @@ struct statement : statement_node_t
 	using base_t::get;
 	using base_t::kind;
 	using base_t::emplace;
+
+	[[gnu::always_inline]] static void relocate(statement *dest, statement *source)
+	{
+		static_assert(sizeof (statement) == sizeof (base_t));
+		return base_t::relocate(dest, source);
+	}
 };
 
 struct statement_view : statement_node_view_t

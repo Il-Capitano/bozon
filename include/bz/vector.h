@@ -9,6 +9,7 @@
 #include "array_view.h"
 #include "ranges.h"
 #include "fixed_vector.h"
+#include "relocate.h"
 
 bz_begin_namespace
 
@@ -213,8 +214,7 @@ private:
 			// this may help the compiler in optimizing trivially relocatable type moving
 			for (; old_it != old_end; ++new_it, ++old_it)
 			{
-				new(new_it) value_type(std::move(*old_it));
-				old_it->~value_type();
+				relocate(new_it, old_it);
 			}
 
 			this->_allocator.deallocate(this->_data_begin, this->capacity());

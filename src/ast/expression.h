@@ -274,6 +274,13 @@ struct destruct_operation : bz::variant<destruct_variable, destruct_self, trivia
 	using base_t::operator =;
 
 	ast::decl_variable const *move_destructed_decl = nullptr;
+
+	[[gnu::always_inline]] static void relocate(destruct_operation *dest, destruct_operation *source)
+	{
+		static_assert(sizeof (destruct_operation) == sizeof (base_t) + 8);
+		base_t::relocate(dest, source);
+		bz::relocate(&dest->move_destructed_decl, &source->move_destructed_decl);
+	}
 };
 
 
@@ -332,6 +339,12 @@ constexpr bool is_rvalue_or_literal(expression_type_kind kind)
 struct unresolved_expression
 {
 	unresolved_expr_t expr;
+
+	[[gnu::always_inline]] static void relocate(unresolved_expression *dest, unresolved_expression *source)
+	{
+		static_assert(sizeof (unresolved_expression) == 16);
+		bz::relocate(&dest->expr, &source->expr);
+	}
 };
 
 struct constant_expression
@@ -340,6 +353,15 @@ struct constant_expression
 	typespec             type;
 	constant_value       value;
 	expr_t               expr;
+
+	[[gnu::always_inline]] static void relocate(constant_expression *dest, constant_expression *source)
+	{
+		static_assert(sizeof (constant_expression) == 136);
+		bz::relocate(&dest->kind, &source->kind);
+		bz::relocate(&dest->type, &source->type);
+		bz::relocate(&dest->value, &source->value);
+		bz::relocate(&dest->expr, &source->expr);
+	}
 };
 
 struct dynamic_expression
@@ -348,6 +370,15 @@ struct dynamic_expression
 	typespec             type;
 	expr_t               expr;
 	destruct_operation   destruct_op;
+
+	[[gnu::always_inline]] static void relocate(dynamic_expression *dest, dynamic_expression *source)
+	{
+		static_assert(sizeof (dynamic_expression) == 104);
+		bz::relocate(&dest->kind, &source->kind);
+		bz::relocate(&dest->type, &source->type);
+		bz::relocate(&dest->expr, &source->expr);
+		bz::relocate(&dest->destruct_op, &source->destruct_op);
+	}
 };
 
 struct expanded_variadic_expression
@@ -358,6 +389,12 @@ struct expanded_variadic_expression
 struct error_expression
 {
 	expr_t expr;
+
+	[[gnu::always_inline]] static void relocate(error_expression *dest, error_expression *source)
+	{
+		static_assert(sizeof (error_expression) == 16);
+		bz::relocate(&dest->expr, &source->expr);
+	}
 };
 
 
@@ -504,6 +541,15 @@ struct expression : bz::variant<
 	unresolved_expr_t const &get_unresolved_expr(void) const;
 
 	bool is_special_top_level(void) const noexcept;
+
+	static void relocate(expression *dest, expression *source)
+	{
+		static_assert(sizeof (expression) == sizeof (base_t) + 32);
+		base_t::relocate(dest, source);
+		bz::relocate(&dest->src_tokens, &source->src_tokens);
+		bz::relocate(&dest->consteval_state, &source->consteval_state);
+		bz::relocate(&dest->paren_level, &source->paren_level);
+	}
 };
 
 
