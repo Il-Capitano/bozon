@@ -4,6 +4,7 @@
 #include "core.h"
 
 #include "meta.h"
+#include "relocate.h"
 
 bz_begin_namespace
 
@@ -142,7 +143,7 @@ protected:
 	{ return *reinterpret_cast<T const *>(this->_data); }
 
 	template<size_t N, typename T, typename ...Args>
-	void no_clear_emplace(Args &&...args) bz_noexcept(
+	[[gnu::always_inline]] void no_clear_emplace(Args &&...args) bz_noexcept(
 		meta::is_nothrow_constructible_v<T, Args...>
 	)
 	{
@@ -228,7 +229,7 @@ public:
 		}(std::make_index_sequence<sizeof...(Ts)>());
 	}
 
-	variant_non_trivial_base(self_t &&other) bz_noexcept(
+	[[gnu::always_inline]] variant_non_trivial_base(self_t &&other) bz_noexcept(
 		is_all({ meta::is_nothrow_move_constructible_v<Ts>... })
 	)
 		: base_t()
@@ -725,6 +726,24 @@ public:
 	template<size_t ...Ns>
 	bool is_any(void) const noexcept
 	{ return (this->is<Ns>() || ...); }
+
+
+	[[gnu::always_inline]] static void relocate(self_t *dest, self_t *source)
+	{
+		[dest, source]<size_t ...Ns>(std::index_sequence<Ns...>)
+		{
+			auto const source_index = source->_index;
+			new(dest) self_t();
+			std::memcpy(dest->_data, source->_data, sizeof dest->_data);
+			[[maybe_unused]] int _dummy[] = {
+				((source_index == Ns
+				? (void)(
+					dest->_index = Ns,
+					::bz::relocate(&dest->template no_check_get<Ts>(), &source->template no_check_get<Ts>())
+				) : (void)0 ), 0)...
+			};
+		}(std::make_index_sequence<sizeof...(Ts)>());
+	}
 };
 
 template<typename ...Ts>

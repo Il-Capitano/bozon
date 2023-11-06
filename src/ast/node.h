@@ -161,6 +161,11 @@ struct node : public bz::variant<ast_unique_ptr<Ts>...>
 			return std::forward<Fn>(fn)(*node.get());
 		});
 	}
+
+	[[gnu::always_inline]] static void relocate(self_t *dest, self_t *source)
+	{
+		return base_t::relocate(dest, source);
+	}
 };
 
 template<typename ...Ts>
