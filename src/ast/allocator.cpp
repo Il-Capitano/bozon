@@ -75,11 +75,6 @@ void *arena_allocator::sized_allocate(size_t size)
 {
 	size = round_up_to_alignment(size);
 
-#ifdef BOZON_PROFILE_ALLOCATIONS
-	allocation_count += 1;
-	total_allocation_size += size;
-#endif // BOZON_PROFILE_ALLOCATIONS
-
 	if (size > default_node_capacity)
 	{
 		auto const new_node_memory = std::malloc(sizeof (node_t) + size);
@@ -151,34 +146,6 @@ void *arena_allocator::sized_allocate(size_t size)
 		arena.last_node = new_node;
 		return new_node->data;
 	}
-}
-
-void arena_allocator::sized_free(void *p, size_t size)
-{
-#ifdef BOZON_PROFILE_ALLOCATIONS
-	if (p != nullptr)
-	{
-		deallocation_count += 1;
-	}
-#endif // BOZON_PROFILE_ALLOCATIONS
-
-	size = round_up_to_alignment(size);
-	if (arena.last_node->data + arena.last_node->size - size == p)
-	{
-		arena.last_node->size -= size;
-	}
-}
-
-void arena_allocator::unsized_free([[maybe_unused]] void *p)
-{
-#ifdef BOZON_PROFILE_ALLOCATIONS
-	if (p != nullptr)
-	{
-		deallocation_count += 1;
-	}
-#endif // BOZON_PROFILE_ALLOCATIONS
-
-	// nothing
 }
 
 #else

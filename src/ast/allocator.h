@@ -9,8 +9,17 @@ namespace ast
 struct arena_allocator
 {
 	static void *sized_allocate(size_t size);
+
+#ifndef BOZON_NO_ARENA
+	static void sized_free(void *p, size_t size)
+	{}
+
+	static void unsized_free(void *p)
+	{}
+#else
 	static void sized_free(void *p, size_t size);
 	static void unsized_free(void *p);
+#endif
 
 	template<typename T, typename ...Ts>
 	static T *allocate_and_construct(Ts &&...ts)
