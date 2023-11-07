@@ -201,8 +201,9 @@ private:
 	{
 		[&]<size_t ...Ns>(std::index_sequence<Ns...>)
 		{
+			auto const index = this->_index;
 			[[maybe_unused]] int _dummy[] = {
-				((this->_index == Ns
+				((index == Ns
 				? (void)(this->template no_check_get<Ts>().~Ts())
 				: (void)0 ), 0)...
 			};
@@ -221,8 +222,9 @@ public:
 	{
 		[&other, this]<size_t ...Ns>(std::index_sequence<Ns...>)
 		{
+			auto const other_index = other._index;
 			[[maybe_unused]] int _dummy[] = {
-				((other._index == Ns
+				((other_index == Ns
 				? (void)(this->template no_clear_emplace<Ns, Ts>(other.template no_check_get<Ts>()))
 				: (void)0 ), 0)...
 			};
@@ -236,8 +238,9 @@ public:
 	{
 		[&other, this]<size_t ...Ns>(std::index_sequence<Ns...>)
 		{
+			auto const other_index = other._index;
 			[[maybe_unused]] int _dummy[] = {
-				((other._index == Ns
+				((other_index == Ns
 				? (void)(this->template no_clear_emplace<Ns, Ts>(std::move(other.template no_check_get<Ts>())))
 				: (void)0 ), 0)...
 			};
@@ -295,11 +298,13 @@ public:
 
 		[&other, this]<size_t ...Ns>(std::index_sequence<Ns...>)
 		{
+			auto const other_index = other._index;
+			auto const this_index = this->_index;
 			[[maybe_unused]] int _dummy[] = {
-				((other._index == Ns
-				? (void)[&other, this]()
+				((other_index == Ns
+				? (void)[&other, this, this_index]()
 				{
-					if (this->_index == Ns)
+					if (this_index == Ns)
 					{
 						this->template no_check_get<Ts>() = other.template no_check_get<Ts>();
 					}
@@ -332,11 +337,13 @@ public:
 
 		[&other, this]<size_t ...Ns>(std::index_sequence<Ns...>)
 		{
+			auto const other_index = other._index;
+			auto const this_index = this->_index;
 			[[maybe_unused]] int _dummy[] = {
-				((other._index == Ns
-				? (void)[&other, this]()
+				((other_index == Ns
+				? (void)[&other, this, this_index]()
 				{
-					if (this->_index == Ns)
+					if (this_index == Ns)
 					{
 						this->template no_check_get<Ts>() = std::move(other.template no_check_get<Ts>());
 					}
@@ -734,14 +741,19 @@ public:
 		{
 			auto const source_index = source->_index;
 			new(dest) self_t();
-			std::memcpy(dest->_data, source->_data, sizeof dest->_data);
+			bool done = false;
 			[[maybe_unused]] int _dummy[] = {
-				((source_index == Ns
+				(done || ((source_index == Ns
 				? (void)(
+					done = true,
 					dest->_index = Ns,
 					::bz::relocate(&dest->template no_check_get<Ts>(), &source->template no_check_get<Ts>())
-				) : (void)0 ), 0)...
+				) : (void)0 ), 0))...
 			};
+			if (!done)
+			{
+				std::memcpy(dest->_data, source->_data, base_t::data_size);
+			}
 		}(std::make_index_sequence<sizeof...(Ts)>());
 	}
 };
