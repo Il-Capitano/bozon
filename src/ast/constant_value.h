@@ -253,6 +253,12 @@ struct constant_value : constant_value_base_t
 		auto const end = str.end();
 		return decode_from_symbol_name(it, end);
 	}
+
+	static void relocate(constant_value *dest, constant_value *source)
+	{
+		static_assert(sizeof (constant_value) == sizeof (base_t));
+		base_t::relocate(dest, source);
+	}
 };
 
 bz::u8string get_value_string(constant_value const &value);
