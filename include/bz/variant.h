@@ -739,21 +739,20 @@ public:
 	{
 		[dest, source]<size_t ...Ns>(std::index_sequence<Ns...>)
 		{
-			auto const source_index = source->_index;
 			new(dest) self_t();
 			bool done = false;
+			auto const source_index = source->_index;
+			std::memcpy(dest->_data, source->_data, base_t::data_size);
+			dest->_index = source->_index;
 			[[maybe_unused]] int _dummy[] = {
 				(done || ((source_index == Ns
 				? (void)(
 					done = true,
-					dest->_index = Ns,
 					::bz::relocate(&dest->template no_check_get<Ts>(), &source->template no_check_get<Ts>())
 				) : (void)0 ), 0))...
 			};
-			if (!done)
-			{
-				std::memcpy(dest->_data, source->_data, base_t::data_size);
-			}
+			std::memset(source->_data, 0, base_t::data_size);
+			source->_index = base_t::null;
 		}(std::make_index_sequence<sizeof...(Ts)>());
 	}
 };
