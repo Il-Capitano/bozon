@@ -3612,14 +3612,14 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		return generate_libc_math_function_call("logf", func_call, context, result_dest);
 	case ast::function_body::log_f64:
 		return generate_libc_math_function_call("log", func_call, context, result_dest);
-	case ast::function_body::log10_f32:
-		return generate_libc_math_function_call("log10f", func_call, context, result_dest);
-	case ast::function_body::log10_f64:
-		return generate_libc_math_function_call("log10", func_call, context, result_dest);
 	case ast::function_body::log2_f32:
 		return generate_libc_math_function_call("log2f", func_call, context, result_dest);
 	case ast::function_body::log2_f64:
 		return generate_libc_math_function_call("log2", func_call, context, result_dest);
+	case ast::function_body::log10_f32:
+		return generate_libc_math_function_call("log10f", func_call, context, result_dest);
+	case ast::function_body::log10_f64:
+		return generate_libc_math_function_call("log10", func_call, context, result_dest);
 	case ast::function_body::log1p_f32:
 		return generate_libc_math_function_call("log1pf", func_call, context, result_dest);
 	case ast::function_body::log1p_f64:

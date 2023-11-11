@@ -383,14 +383,14 @@ static_assert(instruction::log_f32                  == instruction::index_of<ins
 static_assert(instruction::log_f64                  == instruction::index_of<instructions::log_f64>);
 static_assert(instruction::log_f32_check            == instruction::index_of<instructions::log_f32_check>);
 static_assert(instruction::log_f64_check            == instruction::index_of<instructions::log_f64_check>);
-static_assert(instruction::log10_f32                == instruction::index_of<instructions::log10_f32>);
-static_assert(instruction::log10_f64                == instruction::index_of<instructions::log10_f64>);
-static_assert(instruction::log10_f32_check          == instruction::index_of<instructions::log10_f32_check>);
-static_assert(instruction::log10_f64_check          == instruction::index_of<instructions::log10_f64_check>);
 static_assert(instruction::log2_f32                 == instruction::index_of<instructions::log2_f32>);
 static_assert(instruction::log2_f64                 == instruction::index_of<instructions::log2_f64>);
 static_assert(instruction::log2_f32_check           == instruction::index_of<instructions::log2_f32_check>);
 static_assert(instruction::log2_f64_check           == instruction::index_of<instructions::log2_f64_check>);
+static_assert(instruction::log10_f32                == instruction::index_of<instructions::log10_f32>);
+static_assert(instruction::log10_f64                == instruction::index_of<instructions::log10_f64>);
+static_assert(instruction::log10_f32_check          == instruction::index_of<instructions::log10_f32_check>);
+static_assert(instruction::log10_f64_check          == instruction::index_of<instructions::log10_f64_check>);
 static_assert(instruction::log1p_f32                == instruction::index_of<instructions::log1p_f32>);
 static_assert(instruction::log1p_f64                == instruction::index_of<instructions::log1p_f64>);
 static_assert(instruction::log1p_f32_check          == instruction::index_of<instructions::log1p_f32_check>);
@@ -2436,26 +2436,6 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 		auto const &inst = inst_.get<instructions::log_f64_check>();
 		return bz::format("log f64 check {} ({})", inst.args[0], inst.src_tokens_index);
 	}
-	case instruction::log10_f32:
-	{
-		auto const &inst = inst_.get<instructions::log10_f32>();
-		return bz::format("log10 f32 {}", inst.args[0]);
-	}
-	case instruction::log10_f64:
-	{
-		auto const &inst = inst_.get<instructions::log10_f64>();
-		return bz::format("log10 f64 {}", inst.args[0]);
-	}
-	case instruction::log10_f32_check:
-	{
-		auto const &inst = inst_.get<instructions::log10_f32_check>();
-		return bz::format("log10 f32 check {} ({})", inst.args[0], inst.src_tokens_index);
-	}
-	case instruction::log10_f64_check:
-	{
-		auto const &inst = inst_.get<instructions::log10_f64_check>();
-		return bz::format("log10 f64 check {} ({})", inst.args[0], inst.src_tokens_index);
-	}
 	case instruction::log2_f32:
 	{
 		auto const &inst = inst_.get<instructions::log2_f32>();
@@ -2475,6 +2455,26 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 	{
 		auto const &inst = inst_.get<instructions::log2_f64_check>();
 		return bz::format("log2 f64 check {} ({})", inst.args[0], inst.src_tokens_index);
+	}
+	case instruction::log10_f32:
+	{
+		auto const &inst = inst_.get<instructions::log10_f32>();
+		return bz::format("log10 f32 {}", inst.args[0]);
+	}
+	case instruction::log10_f64:
+	{
+		auto const &inst = inst_.get<instructions::log10_f64>();
+		return bz::format("log10 f64 {}", inst.args[0]);
+	}
+	case instruction::log10_f32_check:
+	{
+		auto const &inst = inst_.get<instructions::log10_f32_check>();
+		return bz::format("log10 f32 check {} ({})", inst.args[0], inst.src_tokens_index);
+	}
+	case instruction::log10_f64_check:
+	{
+		auto const &inst = inst_.get<instructions::log10_f64_check>();
+		return bz::format("log10 f64 check {} ({})", inst.args[0], inst.src_tokens_index);
 	}
 	case instruction::log1p_f32:
 	{
@@ -3879,14 +3879,14 @@ static bz::array instruction_names = {
 	bz::u8string_view("log_f64"),
 	bz::u8string_view("log_f32_check"),
 	bz::u8string_view("log_f64_check"),
-	bz::u8string_view("log10_f32"),
-	bz::u8string_view("log10_f64"),
-	bz::u8string_view("log10_f32_check"),
-	bz::u8string_view("log10_f64_check"),
 	bz::u8string_view("log2_f32"),
 	bz::u8string_view("log2_f64"),
 	bz::u8string_view("log2_f32_check"),
 	bz::u8string_view("log2_f64_check"),
+	bz::u8string_view("log10_f32"),
+	bz::u8string_view("log10_f64"),
+	bz::u8string_view("log10_f32_check"),
+	bz::u8string_view("log10_f64_check"),
 	bz::u8string_view("log1p_f32"),
 	bz::u8string_view("log1p_f64"),
 	bz::u8string_view("log1p_f32_check"),

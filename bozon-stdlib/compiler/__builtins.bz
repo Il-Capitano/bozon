@@ -1070,10 +1070,10 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 @__builtin @symbol_name("expm1")  export function __builtin_expm1_f64(x: float64) -> float64;
 @__builtin @symbol_name("llvm.log.f32") export function __builtin_log_f32(x: float32) -> float32;
 @__builtin @symbol_name("llvm.log.f64") export function __builtin_log_f64(x: float64) -> float64;
-@__builtin @symbol_name("llvm.log10.f32") export function __builtin_log10_f32(x: float32) -> float32;
-@__builtin @symbol_name("llvm.log10.f64") export function __builtin_log10_f64(x: float64) -> float64;
 @__builtin @symbol_name("llvm.log2.f32") export function __builtin_log2_f32(x: float32) -> float32;
 @__builtin @symbol_name("llvm.log2.f64") export function __builtin_log2_f64(x: float64) -> float64;
+@__builtin @symbol_name("llvm.log10.f32") export function __builtin_log10_f32(x: float32) -> float32;
+@__builtin @symbol_name("llvm.log10.f64") export function __builtin_log10_f64(x: float64) -> float64;
 @__builtin @symbol_name("log1pf") export function __builtin_log1p_f32(x: float32) -> float32;
 @__builtin @symbol_name("log1p")  export function __builtin_log1p_f64(x: float64) -> float64;
 

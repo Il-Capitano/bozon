@@ -702,8 +702,8 @@ struct function_body
 		exp2_f32,  exp2_f64,
 		expm1_f32, expm1_f64,
 		log_f32,   log_f64,
-		log10_f32, log10_f64,
 		log2_f32,  log2_f64,
+		log10_f32, log10_f64,
 		log1p_f32, log1p_f64,
 
 		sqrt_f32,  sqrt_f64,
@@ -2005,10 +2005,10 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::expm1_f64, "__builtin_expm1_f64" },
 		{ function_body::log_f32,   "__builtin_log_f32"   },
 		{ function_body::log_f64,   "__builtin_log_f64"   },
-		{ function_body::log10_f32, "__builtin_log10_f32" },
-		{ function_body::log10_f64, "__builtin_log10_f64" },
 		{ function_body::log2_f32,  "__builtin_log2_f32"  },
 		{ function_body::log2_f64,  "__builtin_log2_f64"  },
+		{ function_body::log10_f32, "__builtin_log10_f32" },
+		{ function_body::log10_f64, "__builtin_log10_f64" },
 		{ function_body::log1p_f32, "__builtin_log1p_f32" },
 		{ function_body::log1p_f64, "__builtin_log1p_f64" },
 

@@ -3288,44 +3288,6 @@ static void execute_log_f64_check(instructions::log_f64_check const &inst, float
 	check_for_negative("log", inst.src_tokens_index, x, result, context);
 }
 
-static float32_t execute_log10_f32(instructions::log10_f32 const &, float32_t x, executor_context &)
-{
-	return std::log10(x);
-}
-
-static float64_t execute_log10_f64(instructions::log10_f64 const &, float64_t x, executor_context &)
-{
-	return std::log10(x);
-}
-
-static void execute_log10_f32_check(instructions::log10_f32_check const &inst, float32_t x, executor_context &context)
-{
-	auto const result = std::log10(x);
-	if (std::isnan(x) || x == 0.0f)
-	{
-		context.report_warning(
-			ctx::warning_kind::math_domain_error,
-			inst.src_tokens_index,
-			bz::format("calling 'log10' with {} results in {}", x, result)
-		);
-	}
-	check_for_negative("log10", inst.src_tokens_index, x, result, context);
-}
-
-static void execute_log10_f64_check(instructions::log10_f64_check const &inst, float64_t x, executor_context &context)
-{
-	auto const result = std::log10(x);
-	if (std::isnan(x) || x == 0.0)
-	{
-		context.report_warning(
-			ctx::warning_kind::math_domain_error,
-			inst.src_tokens_index,
-			bz::format("calling 'log10' with {} results in {}", x, result)
-		);
-	}
-	check_for_negative("log10", inst.src_tokens_index, x, result, context);
-}
-
 static float32_t execute_log2_f32(instructions::log2_f32 const &, float32_t x, executor_context &)
 {
 	return std::log2(x);
@@ -3362,6 +3324,44 @@ static void execute_log2_f64_check(instructions::log2_f64_check const &inst, flo
 		);
 	}
 	check_for_negative("log2", inst.src_tokens_index, x, result, context);
+}
+
+static float32_t execute_log10_f32(instructions::log10_f32 const &, float32_t x, executor_context &)
+{
+	return std::log10(x);
+}
+
+static float64_t execute_log10_f64(instructions::log10_f64 const &, float64_t x, executor_context &)
+{
+	return std::log10(x);
+}
+
+static void execute_log10_f32_check(instructions::log10_f32_check const &inst, float32_t x, executor_context &context)
+{
+	auto const result = std::log10(x);
+	if (std::isnan(x) || x == 0.0f)
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'log10' with {} results in {}", x, result)
+		);
+	}
+	check_for_negative("log10", inst.src_tokens_index, x, result, context);
+}
+
+static void execute_log10_f64_check(instructions::log10_f64_check const &inst, float64_t x, executor_context &context)
+{
+	auto const result = std::log10(x);
+	if (std::isnan(x) || x == 0.0)
+	{
+		context.report_warning(
+			ctx::warning_kind::math_domain_error,
+			inst.src_tokens_index,
+			bz::format("calling 'log10' with {} results in {}", x, result)
+		);
+	}
+	check_for_negative("log10", inst.src_tokens_index, x, result, context);
 }
 
 static float32_t execute_log1p_f32(instructions::log1p_f32 const &, float32_t x, executor_context &)
@@ -6215,18 +6215,6 @@ void execute_current_instruction(executor_context &context)
 	case instruction::log_f64_check:
 		execute<instructions::log_f64_check, &execute_log_f64_check>(context);
 		break;
-	case instruction::log10_f32:
-		execute<instructions::log10_f32, &execute_log10_f32>(context);
-		break;
-	case instruction::log10_f64:
-		execute<instructions::log10_f64, &execute_log10_f64>(context);
-		break;
-	case instruction::log10_f32_check:
-		execute<instructions::log10_f32_check, &execute_log10_f32_check>(context);
-		break;
-	case instruction::log10_f64_check:
-		execute<instructions::log10_f64_check, &execute_log10_f64_check>(context);
-		break;
 	case instruction::log2_f32:
 		execute<instructions::log2_f32, &execute_log2_f32>(context);
 		break;
@@ -6238,6 +6226,18 @@ void execute_current_instruction(executor_context &context)
 		break;
 	case instruction::log2_f64_check:
 		execute<instructions::log2_f64_check, &execute_log2_f64_check>(context);
+		break;
+	case instruction::log10_f32:
+		execute<instructions::log10_f32, &execute_log10_f32>(context);
+		break;
+	case instruction::log10_f64:
+		execute<instructions::log10_f64, &execute_log10_f64>(context);
+		break;
+	case instruction::log10_f32_check:
+		execute<instructions::log10_f32_check, &execute_log10_f32_check>(context);
+		break;
+	case instruction::log10_f64_check:
+		execute<instructions::log10_f64_check, &execute_log10_f64_check>(context);
 		break;
 	case instruction::log1p_f32:
 		execute<instructions::log1p_f32, &execute_log1p_f32>(context);

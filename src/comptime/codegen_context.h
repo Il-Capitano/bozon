@@ -512,10 +512,10 @@ struct codegen_context
 	void create_expm1_check(lex::src_tokens const &src_tokens, expr_value x);
 	expr_value create_log(expr_value x);
 	void create_log_check(lex::src_tokens const &src_tokens, expr_value x);
-	expr_value create_log10(expr_value x);
-	void create_log10_check(lex::src_tokens const &src_tokens, expr_value x);
 	expr_value create_log2(expr_value x);
 	void create_log2_check(lex::src_tokens const &src_tokens, expr_value x);
+	expr_value create_log10(expr_value x);
+	void create_log10_check(lex::src_tokens const &src_tokens, expr_value x);
 	expr_value create_log1p(expr_value x);
 	void create_log1p_check(lex::src_tokens const &src_tokens, expr_value x);
 	expr_value create_sqrt(expr_value x);

@@ -4638,54 +4638,6 @@ void codegen_context::create_log_check(lex::src_tokens const &src_tokens, expr_v
 	}
 }
 
-expr_value codegen_context::create_log10(expr_value x)
-{
-	bz_assert(x.get_type()->is_builtin());
-
-	auto const x_val = x.get_value_as_instruction(*this);
-
-	switch (x.get_type()->get_builtin_kind())
-	{
-	case builtin_type_kind::f32:
-		return expr_value::get_value(
-			add_instruction(*this, instructions::log10_f32{}, x_val),
-			this->get_builtin_type(builtin_type_kind::f32)
-		);
-	case builtin_type_kind::f64:
-		return expr_value::get_value(
-			add_instruction(*this, instructions::log10_f64{}, x_val),
-			this->get_builtin_type(builtin_type_kind::f64)
-		);
-	default:
-		bz_unreachable;
-	}
-}
-
-void codegen_context::create_log10_check(lex::src_tokens const &src_tokens, expr_value x)
-{
-	if (!is_warning_enabled(ctx::warning_kind::math_domain_error))
-	{
-		return;
-	}
-	auto const src_tokens_index = this->add_src_tokens(src_tokens);
-
-	bz_assert(x.get_type()->is_builtin());
-
-	auto const x_val = x.get_value_as_instruction(*this);
-
-	switch (x.get_type()->get_builtin_kind())
-	{
-	case builtin_type_kind::f32:
-		add_instruction(*this, instructions::log10_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
-		break;
-	case builtin_type_kind::f64:
-		add_instruction(*this, instructions::log10_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
-		break;
-	default:
-		bz_unreachable;
-	}
-}
-
 expr_value codegen_context::create_log2(expr_value x)
 {
 	bz_assert(x.get_type()->is_builtin());
@@ -4728,6 +4680,54 @@ void codegen_context::create_log2_check(lex::src_tokens const &src_tokens, expr_
 		break;
 	case builtin_type_kind::f64:
 		add_instruction(*this, instructions::log2_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
+		break;
+	default:
+		bz_unreachable;
+	}
+}
+
+expr_value codegen_context::create_log10(expr_value x)
+{
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			add_instruction(*this, instructions::log10_f32{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f32)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			add_instruction(*this, instructions::log10_f64{}, x_val),
+			this->get_builtin_type(builtin_type_kind::f64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
+void codegen_context::create_log10_check(lex::src_tokens const &src_tokens, expr_value x)
+{
+	if (!is_warning_enabled(ctx::warning_kind::math_domain_error))
+	{
+		return;
+	}
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(x.get_type()->is_builtin());
+
+	auto const x_val = x.get_value_as_instruction(*this);
+
+	switch (x.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		add_instruction(*this, instructions::log10_f32_check{ .src_tokens_index = src_tokens_index }, x_val);
+		break;
+	case builtin_type_kind::f64:
+		add_instruction(*this, instructions::log10_f64_check{ .src_tokens_index = src_tokens_index }, x_val);
 		break;
 	default:
 		bz_unreachable;

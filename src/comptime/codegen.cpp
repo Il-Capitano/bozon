@@ -3276,17 +3276,6 @@ static expr_value generate_intrinsic_function_call_code(
 		}
 		return value_or_result_address(context.create_log(x), result_address, context);
 	}
-	case ast::function_body::log10_f32:
-	case ast::function_body::log10_f64:
-	{
-		bz_assert(func_call.params.size() == 1);
-		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level < 2)
-		{
-			context.create_log10_check(original_expression.src_tokens, x);
-		}
-		return value_or_result_address(context.create_log10(x), result_address, context);
-	}
 	case ast::function_body::log2_f32:
 	case ast::function_body::log2_f64:
 	{
@@ -3297,6 +3286,17 @@ static expr_value generate_intrinsic_function_call_code(
 			context.create_log2_check(original_expression.src_tokens, x);
 		}
 		return value_or_result_address(context.create_log2(x), result_address, context);
+	}
+	case ast::function_body::log10_f32:
+	case ast::function_body::log10_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level < 2)
+		{
+			context.create_log10_check(original_expression.src_tokens, x);
+		}
+		return value_or_result_address(context.create_log10(x), result_address, context);
 	}
 	case ast::function_body::log1p_f32:
 	case ast::function_body::log1p_f64:
