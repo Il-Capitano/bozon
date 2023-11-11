@@ -3424,6 +3424,26 @@ static void execute_sqrt_f64_check(instructions::sqrt_f64_check const &inst, flo
 	check_for_negative("sqrt", inst.src_tokens_index, x, result, context);
 }
 
+static float32_t execute_cbrt_f32(instructions::cbrt_f32 const &, float32_t x, executor_context &)
+{
+	return std::cbrt(x);
+}
+
+static float64_t execute_cbrt_f64(instructions::cbrt_f64 const &, float64_t x, executor_context &)
+{
+	return std::cbrt(x);
+}
+
+static void execute_cbrt_f32_check(instructions::cbrt_f32_check const &inst, float32_t x, executor_context &context)
+{
+	check_for_nan("cbrt", inst.src_tokens_index, x, context);
+}
+
+static void execute_cbrt_f64_check(instructions::cbrt_f64_check const &inst, float64_t x, executor_context &context)
+{
+	check_for_nan("cbrt", inst.src_tokens_index, x, context);
+}
+
 static float32_t execute_pow_f32(instructions::pow_f32 const &, float32_t x, float32_t y, executor_context &)
 {
 	return std::pow(x, y);
@@ -3490,26 +3510,6 @@ static void execute_pow_f64_check(instructions::pow_f64_check const &inst, float
 			bz::format("calling 'pow' with base {} and exponent {} results in {}", x, y, result)
 		);
 	}
-}
-
-static float32_t execute_cbrt_f32(instructions::cbrt_f32 const &, float32_t x, executor_context &)
-{
-	return std::cbrt(x);
-}
-
-static float64_t execute_cbrt_f64(instructions::cbrt_f64 const &, float64_t x, executor_context &)
-{
-	return std::cbrt(x);
-}
-
-static void execute_cbrt_f32_check(instructions::cbrt_f32_check const &inst, float32_t x, executor_context &context)
-{
-	check_for_nan("cbrt", inst.src_tokens_index, x, context);
-}
-
-static void execute_cbrt_f64_check(instructions::cbrt_f64_check const &inst, float64_t x, executor_context &context)
-{
-	check_for_nan("cbrt", inst.src_tokens_index, x, context);
 }
 
 static float32_t execute_hypot_f32(instructions::hypot_f32 const &, float32_t x, float32_t y, executor_context &)
@@ -6263,18 +6263,6 @@ void execute_current_instruction(executor_context &context)
 	case instruction::sqrt_f64_check:
 		execute<instructions::sqrt_f64_check, &execute_sqrt_f64_check>(context);
 		break;
-	case instruction::pow_f32:
-		execute<instructions::pow_f32, &execute_pow_f32>(context);
-		break;
-	case instruction::pow_f64:
-		execute<instructions::pow_f64, &execute_pow_f64>(context);
-		break;
-	case instruction::pow_f32_check:
-		execute<instructions::pow_f32_check, &execute_pow_f32_check>(context);
-		break;
-	case instruction::pow_f64_check:
-		execute<instructions::pow_f64_check, &execute_pow_f64_check>(context);
-		break;
 	case instruction::cbrt_f32:
 		execute<instructions::cbrt_f32, &execute_cbrt_f32>(context);
 		break;
@@ -6286,6 +6274,18 @@ void execute_current_instruction(executor_context &context)
 		break;
 	case instruction::cbrt_f64_check:
 		execute<instructions::cbrt_f64_check, &execute_cbrt_f64_check>(context);
+		break;
+	case instruction::pow_f32:
+		execute<instructions::pow_f32, &execute_pow_f32>(context);
+		break;
+	case instruction::pow_f64:
+		execute<instructions::pow_f64, &execute_pow_f64>(context);
+		break;
+	case instruction::pow_f32_check:
+		execute<instructions::pow_f32_check, &execute_pow_f32_check>(context);
+		break;
+	case instruction::pow_f64_check:
+		execute<instructions::pow_f64_check, &execute_pow_f64_check>(context);
 		break;
 	case instruction::hypot_f32:
 		execute<instructions::hypot_f32, &execute_hypot_f32>(context);

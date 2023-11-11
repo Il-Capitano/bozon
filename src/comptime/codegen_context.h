@@ -520,10 +520,10 @@ struct codegen_context
 	void create_log1p_check(lex::src_tokens const &src_tokens, expr_value x);
 	expr_value create_sqrt(expr_value x);
 	void create_sqrt_check(lex::src_tokens const &src_tokens, expr_value x);
-	expr_value create_pow(expr_value x, expr_value y);
-	void create_pow_check(lex::src_tokens const &src_tokens, expr_value x, expr_value y);
 	expr_value create_cbrt(expr_value x);
 	void create_cbrt_check(lex::src_tokens const &src_tokens, expr_value x);
+	expr_value create_pow(expr_value x, expr_value y);
+	void create_pow_check(lex::src_tokens const &src_tokens, expr_value x, expr_value y);
 	expr_value create_hypot(expr_value x, expr_value y);
 	void create_hypot_check(lex::src_tokens const &src_tokens, expr_value x, expr_value y);
 	expr_value create_sin(expr_value x);

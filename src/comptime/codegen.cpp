@@ -3320,6 +3320,17 @@ static expr_value generate_intrinsic_function_call_code(
 		}
 		return value_or_result_address(context.create_sqrt(x), result_address, context);
 	}
+	case ast::function_body::cbrt_f32:
+	case ast::function_body::cbrt_f64:
+	{
+		bz_assert(func_call.params.size() == 1);
+		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		if (original_expression.paren_level < 2)
+		{
+			context.create_cbrt_check(original_expression.src_tokens, x);
+		}
+		return value_or_result_address(context.create_cbrt(x), result_address, context);
+	}
 	case ast::function_body::pow_f32:
 	case ast::function_body::pow_f64:
 	{
@@ -3331,17 +3342,6 @@ static expr_value generate_intrinsic_function_call_code(
 			context.create_pow_check(original_expression.src_tokens, x, y);
 		}
 		return value_or_result_address(context.create_pow(x, y), result_address, context);
-	}
-	case ast::function_body::cbrt_f32:
-	case ast::function_body::cbrt_f64:
-	{
-		bz_assert(func_call.params.size() == 1);
-		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
-		if (original_expression.paren_level < 2)
-		{
-			context.create_cbrt_check(original_expression.src_tokens, x);
-		}
-		return value_or_result_address(context.create_cbrt(x), result_address, context);
 	}
 	case ast::function_body::hypot_f32:
 	case ast::function_body::hypot_f64:

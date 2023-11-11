@@ -3671,14 +3671,14 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		return generate_libc_math_function_call("sqrtf", func_call, context, result_dest);
 	case ast::function_body::sqrt_f64:
 		return generate_libc_math_function_call("sqrt", func_call, context, result_dest);
-	case ast::function_body::pow_f32:
-		return generate_libc_math_function_call("powf", func_call, context, result_dest);
-	case ast::function_body::pow_f64:
-		return generate_libc_math_function_call("pow", func_call, context, result_dest);
 	case ast::function_body::cbrt_f32:
 		return generate_libc_math_function_call("cbrtf", func_call, context, result_dest);
 	case ast::function_body::cbrt_f64:
 		return generate_libc_math_function_call("cbrt", func_call, context, result_dest);
+	case ast::function_body::pow_f32:
+		return generate_libc_math_function_call("powf", func_call, context, result_dest);
+	case ast::function_body::pow_f64:
+		return generate_libc_math_function_call("pow", func_call, context, result_dest);
 	case ast::function_body::hypot_f32:
 		return generate_libc_math_function_call("hypotf", func_call, context, result_dest);
 	case ast::function_body::hypot_f64:

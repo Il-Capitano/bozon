@@ -707,8 +707,8 @@ struct function_body
 		log1p_f32, log1p_f64,
 
 		sqrt_f32,  sqrt_f64,
-		pow_f32,   pow_f64,
 		cbrt_f32,  cbrt_f64,
+		pow_f32,   pow_f64,
 		hypot_f32, hypot_f64,
 
 		sin_f32,   sin_f64,
@@ -2014,10 +2014,10 @@ constexpr auto intrinsic_info = []() {
 
 		{ function_body::sqrt_f32,  "__builtin_sqrt_f32"  },
 		{ function_body::sqrt_f64,  "__builtin_sqrt_f64"  },
-		{ function_body::pow_f32,   "__builtin_pow_f32"   },
-		{ function_body::pow_f64,   "__builtin_pow_f64"   },
 		{ function_body::cbrt_f32,  "__builtin_cbrt_f32"  },
 		{ function_body::cbrt_f64,  "__builtin_cbrt_f64"  },
+		{ function_body::pow_f32,   "__builtin_pow_f32"   },
+		{ function_body::pow_f64,   "__builtin_pow_f64"   },
 		{ function_body::hypot_f32, "__builtin_hypot_f32" },
 		{ function_body::hypot_f64, "__builtin_hypot_f64" },
 

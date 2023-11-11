@@ -399,14 +399,14 @@ static_assert(instruction::sqrt_f32                 == instruction::index_of<ins
 static_assert(instruction::sqrt_f64                 == instruction::index_of<instructions::sqrt_f64>);
 static_assert(instruction::sqrt_f32_check           == instruction::index_of<instructions::sqrt_f32_check>);
 static_assert(instruction::sqrt_f64_check           == instruction::index_of<instructions::sqrt_f64_check>);
-static_assert(instruction::pow_f32                  == instruction::index_of<instructions::pow_f32>);
-static_assert(instruction::pow_f64                  == instruction::index_of<instructions::pow_f64>);
-static_assert(instruction::pow_f32_check            == instruction::index_of<instructions::pow_f32_check>);
-static_assert(instruction::pow_f64_check            == instruction::index_of<instructions::pow_f64_check>);
 static_assert(instruction::cbrt_f32                 == instruction::index_of<instructions::cbrt_f32>);
 static_assert(instruction::cbrt_f64                 == instruction::index_of<instructions::cbrt_f64>);
 static_assert(instruction::cbrt_f32_check           == instruction::index_of<instructions::cbrt_f32_check>);
 static_assert(instruction::cbrt_f64_check           == instruction::index_of<instructions::cbrt_f64_check>);
+static_assert(instruction::pow_f32                  == instruction::index_of<instructions::pow_f32>);
+static_assert(instruction::pow_f64                  == instruction::index_of<instructions::pow_f64>);
+static_assert(instruction::pow_f32_check            == instruction::index_of<instructions::pow_f32_check>);
+static_assert(instruction::pow_f64_check            == instruction::index_of<instructions::pow_f64_check>);
 static_assert(instruction::hypot_f32                == instruction::index_of<instructions::hypot_f32>);
 static_assert(instruction::hypot_f64                == instruction::index_of<instructions::hypot_f64>);
 static_assert(instruction::hypot_f32_check          == instruction::index_of<instructions::hypot_f32_check>);
@@ -2516,26 +2516,6 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 		auto const &inst = inst_.get<instructions::sqrt_f64_check>();
 		return bz::format("sqrt f64 check {} ({})", inst.args[0], inst.src_tokens_index);
 	}
-	case instruction::pow_f32:
-	{
-		auto const &inst = inst_.get<instructions::pow_f32>();
-		return bz::format("pow f32 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::pow_f64:
-	{
-		auto const &inst = inst_.get<instructions::pow_f64>();
-		return bz::format("pow f64 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::pow_f32_check:
-	{
-		auto const &inst = inst_.get<instructions::pow_f32_check>();
-		return bz::format("pow f32 check {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
-	}
-	case instruction::pow_f64_check:
-	{
-		auto const &inst = inst_.get<instructions::pow_f64_check>();
-		return bz::format("pow f64 check {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
-	}
 	case instruction::cbrt_f32:
 	{
 		auto const &inst = inst_.get<instructions::cbrt_f32>();
@@ -2555,6 +2535,26 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 	{
 		auto const &inst = inst_.get<instructions::cbrt_f64_check>();
 		return bz::format("cbrt f64 check {} ({})", inst.args[0], inst.src_tokens_index);
+	}
+	case instruction::pow_f32:
+	{
+		auto const &inst = inst_.get<instructions::pow_f32>();
+		return bz::format("pow f32 {}, {}", inst.args[0], inst.args[1]);
+	}
+	case instruction::pow_f64:
+	{
+		auto const &inst = inst_.get<instructions::pow_f64>();
+		return bz::format("pow f64 {}, {}", inst.args[0], inst.args[1]);
+	}
+	case instruction::pow_f32_check:
+	{
+		auto const &inst = inst_.get<instructions::pow_f32_check>();
+		return bz::format("pow f32 check {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+	}
+	case instruction::pow_f64_check:
+	{
+		auto const &inst = inst_.get<instructions::pow_f64_check>();
+		return bz::format("pow f64 check {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
 	}
 	case instruction::hypot_f32:
 	{
@@ -3895,14 +3895,14 @@ static bz::array instruction_names = {
 	bz::u8string_view("sqrt_f64"),
 	bz::u8string_view("sqrt_f32_check"),
 	bz::u8string_view("sqrt_f64_check"),
-	bz::u8string_view("pow_f32"),
-	bz::u8string_view("pow_f64"),
-	bz::u8string_view("pow_f32_check"),
-	bz::u8string_view("pow_f64_check"),
 	bz::u8string_view("cbrt_f32"),
 	bz::u8string_view("cbrt_f64"),
 	bz::u8string_view("cbrt_f32_check"),
 	bz::u8string_view("cbrt_f64_check"),
+	bz::u8string_view("pow_f32"),
+	bz::u8string_view("pow_f64"),
+	bz::u8string_view("pow_f32_check"),
+	bz::u8string_view("pow_f64_check"),
 	bz::u8string_view("hypot_f32"),
 	bz::u8string_view("hypot_f64"),
 	bz::u8string_view("hypot_f32_check"),
