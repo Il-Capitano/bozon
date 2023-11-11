@@ -61,6 +61,13 @@ function pow = __builtin_pow_f64;
 function hypot = __builtin_hypot_f32;
 function hypot = __builtin_hypot_f64;
 
+function sin = __builtin_sin_f32;
+function sin = __builtin_sin_f64;
+function cos = __builtin_cos_f32;
+function cos = __builtin_cos_f64;
+function tan = __builtin_tan_f32;
+function tan = __builtin_tan_f64;
+
 function bits(x: float32) -> uint32
 {
 	return __builtin_bit_cast(uint32, x);
@@ -1083,6 +1090,115 @@ function hypot_test(T: typename)
 	if (!isnan(hypot(nan, zero))) unreachable;
 }
 
+function sin_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = if consteval (T == float32) { 3.1415927f32 } else { 3.141592653589793f64 };
+	let expected = if consteval (T == float32) { -8.742278e-08f32 } else { 1.2246467991473532e-16f64 };
+	if (sin(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { -3.1415927f32 } else { -3.141592653589793f64 };
+	let expected = if consteval (T == float32) { 8.742278e-08f32 } else { -1.2246467991473532e-16f64 };
+	if (sin(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+	let expected = 1.0 as T;
+	if (sin(x) != expected) unreachable;
+
+	let x = 1.0 as T;
+	let expected = if consteval (T == float32) { 0.84147096f32 } else { 0.8414709848078965f64 };
+	if (sin(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == float32) { -0.56537485f32 } else { -0.5653739196973395f64 };
+	if (sin(x) != expected) unreachable;
+
+	if (sin(zero).bits() != zero_bits) unreachable;
+	if (sin(-zero).bits() != negative_zero_bits) unreachable;
+	if (!isnan(sin(inf))) unreachable;
+	if (!isnan(sin(-inf))) unreachable;
+	if (!isnan(sin(nan))) unreachable;
+}
+
+function cos_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let x = if consteval (T == float32) { 3.1415927f32 } else { 3.141592653589793f64 };
+	let expected = -1.0 as T;
+	if (cos(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { -3.1415927f32 } else { -3.141592653589793f64 };
+	let expected = -1.0 as T;
+	if (cos(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+	let expected = if consteval (T == float32) { -4.371139e-08f32 } else { 6.123233995736766e-17f64 };
+	if (cos(x) != expected) unreachable;
+
+	let x = 1.0 as T;
+	let expected = if consteval (T == float32) { 0.5403023f32 } else { 0.5403023058681398f64 };
+	if (cos(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == float32) { -0.8248341f32 } else { -0.8248347294616457f64 };
+	if (cos(x) != expected) unreachable;
+
+	if (cos(zero) != 1.0 as T) unreachable;
+	if (cos(-zero) != 1.0 as T) unreachable;
+	if (!isnan(cos(inf))) unreachable;
+	if (!isnan(cos(-inf))) unreachable;
+	if (!isnan(cos(nan))) unreachable;
+}
+
+function tan_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = if consteval (T == float32) { 3.1415927f32 } else { 3.141592653589793f64 };
+	let expected = if consteval (T == float32) { 8.742278e-08f32 } else { -1.2246467991473532e-16f64 };
+	if (tan(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { -3.1415927f32 } else { -3.141592653589793f64 };
+	let expected = if consteval (T == float32) { -8.742278e-08f32 } else { 1.2246467991473532e-16f64 };
+	if (tan(x) != expected) unreachable;
+
+	// FIXME: tanf on windows doesn't produce the same values as glibc on linux
+	if (T != float32)
+	{
+		let x = if consteval (T == float32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+		let expected = if consteval (T == float32) { -2.2877334e+07f32 } else { 1.633123935319537e+16f64 };
+		if (tan(x) != expected) unreachable;
+	}
+
+	let x = 1.0 as T;
+	let expected = if consteval (T == float32) { 1.5574077f32 } else { 1.5574077246549023f64 };
+	if (tan(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == float32) { 0.68544066f32 } else { 0.6854390334247306f64 };
+	if (tan(x) != expected) unreachable;
+
+	if (tan(zero).bits() != zero_bits) unreachable;
+	if (tan(-zero).bits() != negative_zero_bits) unreachable;
+	if (!isnan(tan(inf))) unreachable;
+	if (!isnan(tan(-inf))) unreachable;
+	if (!isnan(tan(nan))) unreachable;
+}
+
 function main()
 {
 	isnan_test(float32);
@@ -1147,4 +1263,11 @@ function main()
 	pow_test(float64);
 	hypot_test(float32);
 	hypot_test(float64);
+
+	sin_test(float32);
+	sin_test(float64);
+	cos_test(float32);
+	cos_test(float64);
+	tan_test(float32);
+	tan_test(float64);
 }
