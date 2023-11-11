@@ -45,6 +45,18 @@ function exp2 = __builtin_exp2_f64;
 function expm1 = __builtin_expm1_f32;
 function expm1 = __builtin_expm1_f64;
 
+function log = __builtin_log_f32;
+function log = __builtin_log_f64;
+
+function log2 = __builtin_log2_f32;
+function log2 = __builtin_log2_f64;
+
+function log10 = __builtin_log10_f32;
+function log10 = __builtin_log10_f64;
+
+function log1p = __builtin_log1p_f32;
+function log1p = __builtin_log1p_f64;
+
 function bits(x: float32) -> uint32
 {
 	return __builtin_bit_cast(uint32, x);
@@ -139,8 +151,6 @@ function abs_test_int(T: typename)
 
 function abs_test_float(T: typename)
 {
-	type uint = if consteval (T == float32) { uint32 } else { uint64 };
-
 	let denorm_min = T.denorm_min;
 	let inf = T.inf;
 	let nan = T.nan;
@@ -236,8 +246,6 @@ function min_test_int(T: typename)
 
 function min_test_float(T: typename)
 {
-	type uint = if consteval (T == float32) { uint32 } else { uint64 };
-
 	let min = T.min;
 	let denorm_min = T.denorm_min;
 	let inf = T.inf;
@@ -369,8 +377,6 @@ function max_test_int(T: typename)
 
 function max_test_float(T: typename)
 {
-	type uint = if consteval (T == float32) { uint32 } else { uint64 };
-
 	let min = T.min;
 	let denorm_min = T.denorm_min;
 	let inf = T.inf;
@@ -445,8 +451,6 @@ function max_test_float(T: typename)
 
 function exp_test(T: typename)
 {
-	type uint = if consteval (T == float32) { uint32 } else { uint64 };
-
 	let inf = T.inf;
 	let nan = T.nan;
 	let zero = 0.0 as T;
@@ -479,8 +483,6 @@ function exp_test(T: typename)
 
 function exp2_test(T: typename)
 {
-	type uint = if consteval (T == float32) { uint32 } else { uint64 };
-
 	let inf = T.inf;
 	let nan = T.nan;
 	let zero = 0.0 as T;
@@ -518,8 +520,6 @@ function exp2_test(T: typename)
 
 function expm1_test(T: typename)
 {
-	type uint = if consteval (T == float32) { uint32 } else { uint64 };
-
 	let inf = T.inf;
 	let nan = T.nan;
 	let zero = 0.0 as T;
@@ -550,6 +550,167 @@ function expm1_test(T: typename)
 	if (expm1(-inf) != -1.0 as T) unreachable;
 	if (expm1(inf) != inf) unreachable;
 	if (!isnan(expm1(nan))) unreachable;
+}
+
+function log_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+
+	let x = exp(1.0 as T);
+	let expected = if consteval (T == float32) { 0.99999994f32 } else { 1.0f64 };
+	if (log(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == float32) { 1.2325603f32 } else { 1.2325602611778486f64 };
+	if (log(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == float32) { -1.2325603f32 } else { -1.2325602611778488f64 };
+	if (log(x) != expected) unreachable;
+
+	if (log(zero) != -inf) unreachable;
+	if (log(-zero) != -inf) unreachable;
+	if (log(one) != 0.0 as T) unreachable;
+	if (log(one).bits() != zero_bits) unreachable;
+	if (log(inf) != inf) unreachable;
+	if (!isnan(log(nan))) unreachable;
+
+	let x = -1.0 as T;
+	if (!isnan(log(x))) unreachable;
+	let x = -min;
+	if (!isnan(log(x))) unreachable;
+	let x = -denorm_min;
+	if (!isnan(log(x))) unreachable;
+	let x = -inf;
+	if (!isnan(log(x))) unreachable;
+}
+
+function log2_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+
+	let x = 2.0 as T;
+	if (log2(x) != 1.0 as T) unreachable;
+
+	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == float32) { 1.7782086f32 } else { 1.7782085763980877f64 };
+	if (log2(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == float32) { -1.7782086f32 } else { -1.778208576398088f64 };
+	if (log2(x) != expected) unreachable;
+
+	if (log2(zero) != -inf) unreachable;
+	if (log2(-zero) != -inf) unreachable;
+	if (log2(one) != 0.0 as T) unreachable;
+	if (log2(one).bits() != zero_bits) unreachable;
+	if (log2(inf) != inf) unreachable;
+	if (!isnan(log2(nan))) unreachable;
+
+	let x = -1.0 as T;
+	if (!isnan(log2(x))) unreachable;
+	let x = -min;
+	if (!isnan(log2(x))) unreachable;
+	let x = -denorm_min;
+	if (!isnan(log2(x))) unreachable;
+	let x = -inf;
+	if (!isnan(log2(x))) unreachable;
+}
+
+function log10_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+
+	let x = 10.0 as T;
+	if (log10(x) != 1.0 as T) unreachable;
+
+	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == float32) { 0.5352941f32 } else { 0.5352941200427705f64 };
+	if (log10(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == float32) { -0.5352941f32 } else { -0.5352941200427705f64 };
+	if (log10(x) != expected) unreachable;
+
+	if (log10(zero) != -inf) unreachable;
+	if (log10(-zero) != -inf) unreachable;
+	if (log10(one) != 0.0 as T) unreachable;
+	if (log10(one).bits() != zero_bits) unreachable;
+	if (log10(inf) != inf) unreachable;
+	if (!isnan(log10(nan))) unreachable;
+
+	let x = -1.0 as T;
+	if (!isnan(log10(x))) unreachable;
+	let x = -min;
+	if (!isnan(log10(x))) unreachable;
+	let x = -denorm_min;
+	if (!isnan(log10(x))) unreachable;
+	let x = -inf;
+	if (!isnan(log10(x))) unreachable;
+}
+
+function log1p_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	// FIXME: log1pf on windows doesn't produce the same values as glibc on linux
+	if (T != float32)
+	{
+		let x = expm1(1.0 as T);
+		if (log1p(x) != 1.0 as T) unreachable;
+	}
+
+	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == float32) { 1.4883996f32 } else { 1.4883995840570443f64 };
+	if (log1p(x) != expected) unreachable;
+
+	// FIXME: log1p on windows doesn't produce the same values as glibc on linux
+	if (T != float64)
+	{
+		let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+		let expected = if consteval (T == float32) { 0.25583932f32 } else { 0.2558393228791957f64 };
+		if (log1p(x) != expected) unreachable;
+	}
+
+	if (log1p(zero) != 0.0 as T) unreachable;
+	if (log1p(zero).bits() != zero_bits) unreachable;
+	if (log1p(-zero) != 0.0 as T) unreachable;
+	if (log1p(-zero).bits() != negative_zero_bits) unreachable;
+	if (log1p(-one) != -inf) unreachable;
+	if (log1p(inf) != inf) unreachable;
+	if (!isnan(log1p(nan))) unreachable;
+
+	let x = -2.0 as T;
+	if (!isnan(log1p(x))) unreachable;
+	let x = -inf;
+	if (!isnan(log1p(x))) unreachable;
 }
 
 function main()
@@ -600,4 +761,16 @@ function main()
 
 	expm1_test(float32);
 	expm1_test(float64);
+
+	log_test(float32);
+	log_test(float64);
+
+	log2_test(float32);
+	log2_test(float64);
+
+	log10_test(float32);
+	log10_test(float64);
+
+	log1p_test(float32);
+	log1p_test(float64);
 }
