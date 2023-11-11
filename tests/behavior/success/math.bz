@@ -67,6 +67,14 @@ function cos = __builtin_cos_f32;
 function cos = __builtin_cos_f64;
 function tan = __builtin_tan_f32;
 function tan = __builtin_tan_f64;
+function asin = __builtin_asin_f32;
+function asin = __builtin_asin_f64;
+function acos = __builtin_acos_f32;
+function acos = __builtin_acos_f64;
+function atan = __builtin_atan_f32;
+function atan = __builtin_atan_f64;
+function atan2 = __builtin_atan2_f32;
+function atan2 = __builtin_atan2_f64;
 
 function bits(x: float32) -> uint32
 {
@@ -1199,6 +1207,241 @@ function tan_test(T: typename)
 	if (!isnan(tan(nan))) unreachable;
 }
 
+function asin_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+	let epsilon = T.epsilon;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = 1.0 as T;
+	let expected = if consteval (T == float32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+	if (asin(x) != expected) unreachable;
+
+	let x = -1.0 as T;
+	let expected = if consteval (T == float32) { -1.5707964f32 } else { -1.5707963267948966f64 };
+	if (asin(x) != expected) unreachable;
+
+	let x = 0.5 as T;
+	let expected = if consteval (T == float32) { 0.5235988f32 } else { 0.5235987755982989f64 };
+	if (asin(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == float32) { 0.2958418f32 } else { 0.2958418067382629f64 };
+	if (asin(x) != expected) unreachable;
+
+	if (asin(zero).bits() != zero_bits) unreachable;
+	if (asin(-zero).bits() != negative_zero_bits) unreachable;
+	if (!isnan(asin(one + epsilon))) unreachable;
+	if (!isnan(asin(-one - epsilon))) unreachable;
+	let x = 123.123 as T;
+	if (!isnan(asin(x))) unreachable;
+	if (!isnan(asin(-x))) unreachable;
+	if (!isnan(asin(inf))) unreachable;
+	if (!isnan(asin(-inf))) unreachable;
+	if (!isnan(asin(nan))) unreachable;
+}
+
+function acos_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let one = 1.0 as T;
+	let epsilon = T.epsilon;
+
+	let zero_bits = (0.0 as T).bits();
+
+	let x = -1.0 as T;
+	let expected = if consteval (T == float32) { 3.1415927f32 } else { 3.141592653589793f64 };
+	if (acos(x) != expected) unreachable;
+
+	let x = 0.5 as T;
+	let expected = if consteval (T == float32) { 1.0471976f32 } else { 1.0471975511965979f64 };
+	if (acos(x) != expected) unreachable;
+
+	let x = -0.5 as T;
+	let expected = if consteval (T == float32) { 2.0943952f32 } else { 2.0943951023931957f64 };
+	if (acos(x) != expected) unreachable;
+
+	let x = 0.0 as T;
+	let expected = if consteval (T == float32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+	if (acos(x) != expected) unreachable;
+	if (acos(-x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == float32) { 1.2749546f32 } else { 1.2749545200566337f64 };
+	if (acos(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { -1.0f32 / 3.43f32 } else { -1.0f64 / 3.43f64 };
+	let expected = if consteval (T == float32) { 1.8666382f32 } else { 1.8666381335331594f64 };
+	if (acos(x) != expected) unreachable;
+
+	if (acos(one).bits() != zero_bits) unreachable;
+	if (!isnan(acos(one + epsilon))) unreachable;
+	if (!isnan(acos(-one - epsilon))) unreachable;
+	let x = 123.123 as T;
+	if (!isnan(acos(x))) unreachable;
+	if (!isnan(acos(-x))) unreachable;
+	if (!isnan(acos(inf))) unreachable;
+	if (!isnan(acos(-inf))) unreachable;
+	if (!isnan(acos(nan))) unreachable;
+}
+
+function atan_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = 1.0 as T;
+	let expected = if consteval (T == float32) { 0.7853982f32 } else { 0.7853981633974483f64 };
+	if (atan(x) != expected) unreachable;
+
+	let x = -1.0 as T;
+	let expected = if consteval (T == float32) { -0.7853982f32 } else { -0.7853981633974483f64 };
+	if (atan(x) != expected) unreachable;
+
+	let x = 0.5 as T;
+	let expected = if consteval (T == float32) { 0.4636476f32 } else { 0.4636476090008061f64 };
+	if (atan(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == float32) { 1.5626745f32 } else { 1.5626745460380187f64 };
+	if (atan(x) != expected) unreachable;
+
+	let x = inf;
+	let expected = if consteval (T == float32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+	if (atan(x) != expected) unreachable;
+
+	let x = -inf;
+	let expected = if consteval (T == float32) { -1.5707964f32 } else { -1.5707963267948966f64 };
+	if (atan(x) != expected) unreachable;
+
+	if (atan(zero).bits() != zero_bits) unreachable;
+	if (atan(-zero).bits() != negative_zero_bits) unreachable;
+	if (!isnan(atan(nan))) unreachable;
+}
+
+function atan2_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let pi = if consteval (T == float32) { 3.1415927f32 } else { 3.141592653589793f64 };
+	let pi_half = if consteval (T == float32) { 1.5707964f32 } else { 1.5707963267948966f64 };
+	let pi_quarter = if consteval (T == float32) { 0.7853982f32 } else { 0.7853981633974483f64 };
+	let pi_three_quarters = if consteval (T == float32) { 2.3561945f32 } else { 2.356194490192345f64 };
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
+	let y = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == float32) { 0.027851118f32 } else { 0.027851117077518864f64 };
+	if (atan2(y, x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
+	let y = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == float32) { 1.5429453f32 } else { 1.5429452097173777f64 };
+	if (atan2(y, x) != expected) unreachable;
+
+	// https://en.cppreference.com/w/c/numeric/math/atan2
+	// If y is ±0 and x is negative or -0, ±π is returned;
+	if (atan2(zero, -zero) != pi) unreachable;
+	if (atan2(-zero, -zero) != -pi) unreachable;
+	if (atan2(zero, -denorm_min) != pi) unreachable;
+	if (atan2(-zero, -denorm_min) != -pi) unreachable;
+	if (atan2(zero, -min) != pi) unreachable;
+	if (atan2(-zero, -min) != -pi) unreachable;
+	if (atan2(zero, -1.0 as T) != pi) unreachable;
+	if (atan2(-zero, -1.0 as T) != -pi) unreachable;
+	if (atan2(zero, -inf) != pi) unreachable;
+	if (atan2(-zero, -inf) != -pi) unreachable;
+	// If y is ±0 and x is positive or +0, ±0 is returned;
+	if (atan2(zero, zero).bits() != zero_bits) unreachable;
+	if (atan2(-zero, zero).bits() != negative_zero_bits) unreachable;
+	if (atan2(zero, denorm_min).bits() != zero_bits) unreachable;
+	if (atan2(-zero, denorm_min).bits() != negative_zero_bits) unreachable;
+	if (atan2(zero, min).bits() != zero_bits) unreachable;
+	if (atan2(-zero, min).bits() != negative_zero_bits) unreachable;
+	if (atan2(zero, 1.0 as T).bits() != zero_bits) unreachable;
+	if (atan2(-zero, 1.0 as T).bits() != negative_zero_bits) unreachable;
+	if (atan2(zero, inf).bits() != zero_bits) unreachable;
+	if (atan2(-zero, inf).bits() != negative_zero_bits) unreachable;
+	// If y is ±∞ and x is finite, ±π/2 is returned;
+	if (atan2(inf, zero) != pi_half) unreachable;
+	if (atan2(-inf, zero) != -pi_half) unreachable;
+	if (atan2(inf, -zero) != pi_half) unreachable;
+	if (atan2(-inf, -zero) != -pi_half) unreachable;
+	if (atan2(inf, 1.0 as T) != pi_half) unreachable;
+	if (atan2(-inf, 1.0 as T) != -pi_half) unreachable;
+	if (atan2(inf, -1.0 as T) != pi_half) unreachable;
+	if (atan2(-inf, -1.0 as T) != -pi_half) unreachable;
+	if (atan2(inf, 123.123 as T) != pi_half) unreachable;
+	if (atan2(-inf, 123.123 as T) != -pi_half) unreachable;
+	if (atan2(inf, -123.123 as T) != pi_half) unreachable;
+	if (atan2(-inf, -123.123 as T) != -pi_half) unreachable;
+	// If y is ±∞ and x is -∞, ±3π/4 is returned;
+	if (atan2(inf, -inf) != pi_three_quarters) unreachable;
+	if (atan2(-inf, -inf) != -pi_three_quarters) unreachable;
+	// If y is ±∞ and x is +∞, ±π/4 is returned;
+	if (atan2(inf, inf) != pi_quarter) unreachable;
+	if (atan2(-inf, inf) != -pi_quarter) unreachable;
+	// If x is ±0 and y is negative, -π/2 is returned;
+	if (atan2(-denorm_min, zero) != -pi_half) unreachable;
+	if (atan2(-denorm_min, -zero) != -pi_half) unreachable;
+	if (atan2(-min, zero) != -pi_half) unreachable;
+	if (atan2(-min, -zero) != -pi_half) unreachable;
+	if (atan2(-1.0 as T, zero) != -pi_half) unreachable;
+	if (atan2(-1.0 as T, -zero) != -pi_half) unreachable;
+	if (atan2(-123.123 as T, zero) != -pi_half) unreachable;
+	if (atan2(-123.123 as T, -zero) != -pi_half) unreachable;
+	// If x is ±0 and y is positive, +π/2 is returned;
+	if (atan2(denorm_min, zero) != pi_half) unreachable;
+	if (atan2(denorm_min, -zero) != pi_half) unreachable;
+	if (atan2(min, zero) != pi_half) unreachable;
+	if (atan2(min, -zero) != pi_half) unreachable;
+	if (atan2(1.0 as T, zero) != pi_half) unreachable;
+	if (atan2(1.0 as T, -zero) != pi_half) unreachable;
+	if (atan2(123.123 as T, zero) != pi_half) unreachable;
+	if (atan2(123.123 as T, -zero) != pi_half) unreachable;
+	// If x is -∞ and y is finite and positive, +π is returned;
+	if (atan2(denorm_min, -inf) != pi) unreachable;
+	if (atan2(min, -inf) != pi) unreachable;
+	if (atan2(1.0 as T, -inf) != pi) unreachable;
+	if (atan2(123.123 as T, -inf) != pi) unreachable;
+	// If x is -∞ and y is finite and negative, -π is returned;
+	if (atan2(-denorm_min, -inf) != -pi) unreachable;
+	if (atan2(-min, -inf) != -pi) unreachable;
+	if (atan2(-1.0 as T, -inf) != -pi) unreachable;
+	if (atan2(-123.123 as T, -inf) != -pi) unreachable;
+	// If x is +∞ and y is finite and positive, +0 is returned;
+	if (atan2(denorm_min, inf).bits() != zero_bits) unreachable;
+	if (atan2(min, inf).bits() != zero_bits) unreachable;
+	if (atan2(1.0 as T, inf).bits() != zero_bits) unreachable;
+	if (atan2(123.123 as T, inf).bits() != zero_bits) unreachable;
+	// If x is +∞ and y is finite and negative, -0 is returned;
+	if (atan2(-denorm_min, inf).bits() != negative_zero_bits) unreachable;
+	if (atan2(-min, inf).bits() != negative_zero_bits) unreachable;
+	if (atan2(-1.0 as T, inf).bits() != negative_zero_bits) unreachable;
+	if (atan2(-123.123 as T, inf).bits() != negative_zero_bits) unreachable;
+	// If either x is NaN or y is NaN, NaN is returned.
+	if (!isnan(atan2(nan, nan))) unreachable;
+	if (!isnan(atan2(nan, zero))) unreachable;
+	if (!isnan(atan2(zero, nan))) unreachable;
+	if (!isnan(atan2(nan, inf))) unreachable;
+	if (!isnan(atan2(inf, nan))) unreachable;
+}
+
 function main()
 {
 	isnan_test(float32);
@@ -1270,4 +1513,12 @@ function main()
 	cos_test(float64);
 	tan_test(float32);
 	tan_test(float64);
+	asin_test(float32);
+	asin_test(float64);
+	acos_test(float32);
+	acos_test(float64);
+	atan_test(float32);
+	atan_test(float64);
+	atan2_test(float32);
+	atan2_test(float64);
 }
