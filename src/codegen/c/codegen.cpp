@@ -245,6 +245,41 @@ static void write_sint(bz::u8string &buffer, int64_t value)
 	}
 }
 
+static void write_uint(bz::u8string &buffer, uint64_t value, ast::typespec_view type, codegen_context &context)
+{
+	bz_assert(type.is<ast::ts_base_type>());
+	auto const int_kind = type.get<ast::ts_base_type>().info->kind;
+	auto const int_size = [&]() -> uint32_t {
+		switch (int_kind)
+		{
+		case ast::type_info::uint8_:
+			return 1;
+		case ast::type_info::uint16_:
+			return 2;
+		case ast::type_info::uint32_:
+			return 4;
+		case ast::type_info::uint64_:
+			return 8;
+		default:
+			bz_unreachable;
+		}
+	}();
+
+	if (int_size <= context.int_size)
+	{
+		buffer += bz::format("{}u", value);
+	}
+	else if (int_size == context.long_size)
+	{
+		buffer += bz::format("{}ul", value);
+	}
+	else
+	{
+		bz_assert(int_size == context.long_long_size);
+		buffer += bz::format("{}ull", value);
+	}
+}
+
 static void write_float32(bz::u8string &buffer, float32_t value)
 {
 	if (std::isnan(value))
@@ -574,7 +609,7 @@ static void generate_constant_value_string(
 		write_sint(buffer, value.get_sint());
 		break;
 	case ast::constant_value_kind::uint:
-		buffer += bz::format("{}u", value.get_uint());
+		write_uint(buffer, value.get_uint(), type, context);
 		break;
 	case ast::constant_value_kind::float32:
 		write_float32(buffer, value.get_float32());
@@ -691,8 +726,7 @@ static void generate_constant_value_string(
 		}
 		else
 		{
-			auto const int_val = enum_val.value;
-			buffer += bz::format("{}u", int_val);
+			write_uint(buffer, enum_val.value, enum_val.decl->underlying_type, context);
 		}
 		break;
 	}
