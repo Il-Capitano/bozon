@@ -36,6 +36,25 @@ function max_int = __builtin_max_u64;
 function max_float = __builtin_max_f32;
 function max_float = __builtin_max_f64;
 
+function exp = __builtin_exp_f32;
+function exp = __builtin_exp_f64;
+
+function exp2 = __builtin_exp2_f32;
+function exp2 = __builtin_exp2_f64;
+
+function expm1 = __builtin_expm1_f32;
+function expm1 = __builtin_expm1_f64;
+
+function bits(x: float32) -> uint32
+{
+	return __builtin_bit_cast(uint32, x);
+}
+
+function bits(x: float64) -> uint64
+{
+	return __builtin_bit_cast(uint64, x);
+}
+
 function isnan_test(T: typename)
 {
 	let min = T.min;
@@ -126,16 +145,16 @@ function abs_test_float(T: typename)
 	let inf = T.inf;
 	let nan = T.nan;
 
-	let zero_bits = __builtin_bit_cast(uint, 0.0 as T);
-	let inf_bits = __builtin_bit_cast(uint, inf);
-	let nan_bits = __builtin_bit_cast(uint, nan);
+	let zero_bits = (0.0 as  T).bits();
+	let inf_bits = inf.bits();
+	let nan_bits = nan.bits();
 
 	let x = 0.0 as T;
 	if (abs_float(x) != 0.0 as T) unreachable;
-	if (__builtin_bit_cast(uint, abs_float(x)) != zero_bits) unreachable;
+	if (abs_float(x).bits() != zero_bits) unreachable;
 	let x = -0.0 as T;
 	if (abs_float(x) != 0.0 as T) unreachable;
-	if (__builtin_bit_cast(uint, abs_float(x)) != zero_bits) unreachable;
+	if (abs_float(x).bits() != zero_bits) unreachable;
 
 	let x = 1.2345 as T;
 	if (abs_float(x) != 1.2345 as T) unreachable;
@@ -152,10 +171,10 @@ function abs_test_float(T: typename)
 
 	if (abs_float(inf) != inf) unreachable;
 	if (abs_float(-inf) != inf) unreachable;
-	if (__builtin_bit_cast(uint, abs_float(inf)) != inf_bits) unreachable;
-	if (__builtin_bit_cast(uint, abs_float(-inf)) != inf_bits) unreachable;
-	if (__builtin_bit_cast(uint, abs_float(nan)) != nan_bits) unreachable;
-	if (__builtin_bit_cast(uint, abs_float(-nan)) != nan_bits) unreachable;
+	if (abs_float(inf).bits() != inf_bits) unreachable;
+	if (abs_float(-inf).bits() != inf_bits) unreachable;
+	if (abs_float(nan).bits() != nan_bits) unreachable;
+	if (abs_float(-nan).bits() != nan_bits) unreachable;
 }
 
 function min_test_int(T: typename)
@@ -224,17 +243,17 @@ function min_test_float(T: typename)
 	let inf = T.inf;
 	let nan = T.nan;
 
-	let zero_bits = __builtin_bit_cast(uint, 0.0 as T);
-	let negative_zero_bits = __builtin_bit_cast(uint, -0.0 as T);
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
 
 	let x = 0.0 as T;
 	let y = 0.0 as T;
 	if (min_float(x, y) != 0.0 as T) unreachable;
-	if (__builtin_bit_cast(uint, min_float(x, y)) != zero_bits) unreachable;
+	if (min_float(x, y).bits() != zero_bits) unreachable;
 	let x = -0.0 as T;
 	let y = -0.0 as T;
 	if (min_float(x, y) != 0.0 as T) unreachable;
-	if (__builtin_bit_cast(uint, min_float(x, y)) != negative_zero_bits) unreachable;
+	if (min_float(x, y).bits() != negative_zero_bits) unreachable;
 	let x = 0.0 as T;
 	let y = -0.0 as T;
 	if (min_float(x, y) != 0.0 as T) unreachable;
@@ -357,17 +376,17 @@ function max_test_float(T: typename)
 	let inf = T.inf;
 	let nan = T.nan;
 
-	let zero_bits = __builtin_bit_cast(uint, 0.0 as T);
-	let negative_zero_bits = __builtin_bit_cast(uint, -0.0 as T);
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
 
 	let x = 0.0 as T;
 	let y = 0.0 as T;
 	if (max_float(x, y) != 0.0 as T) unreachable;
-	if (__builtin_bit_cast(uint, max_float(x, y)) != zero_bits) unreachable;
+	if (max_float(x, y).bits() != zero_bits) unreachable;
 	let x = -0.0 as T;
 	let y = -0.0 as T;
 	if (max_float(x, y) != 0.0 as T) unreachable;
-	if (__builtin_bit_cast(uint, max_float(x, y)) != negative_zero_bits) unreachable;
+	if (max_float(x, y).bits() != negative_zero_bits) unreachable;
 	let x = 0.0 as T;
 	let y = -0.0 as T;
 	if (max_float(x, y) != 0.0 as T) unreachable;
@@ -424,6 +443,115 @@ function max_test_float(T: typename)
 	if (!isnan(max_float(-nan, -nan))) unreachable;
 }
 
+function exp_test(T: typename)
+{
+	type uint = if consteval (T == float32) { uint32 } else { uint64 };
+
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+
+	let x = 1.0 as T;
+	let expected = if consteval (T == float32) { 2.7182817f32 } else { 2.718281828459045f64 };
+	if (exp(x) != expected) unreachable;
+
+	let x = -1.0 as T;
+	let expected = if consteval (T == float32) { 0.36787945f32 } else { 0.36787944117144233f64 };
+	if (exp(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == float32) { 30.876644f32 } else { 30.876642749677046f64 };
+	if (exp(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { -3.43f32 } else { -3.43f64 };
+	let expected = if consteval (T == float32) { 0.03238694f32 } else { 0.03238694077290704f64 };
+	if (exp(x) != expected) unreachable;
+
+	if (exp(zero) != 1.0 as T) unreachable;
+	if (exp(-zero) != 1.0 as T) unreachable;
+	if (exp(-inf) != 0.0 as T) unreachable;
+	if (exp(-inf).bits() != zero_bits) unreachable;
+	if (exp(inf) != inf) unreachable;
+	if (!isnan(exp(nan))) unreachable;
+}
+
+function exp2_test(T: typename)
+{
+	type uint = if consteval (T == float32) { uint32 } else { uint64 };
+
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+
+	let x = 1.0 as T;
+	let expected = if consteval (T == float32) { 2.0f32 } else { 2.0f64 };
+	if (exp2(x) != expected) unreachable;
+
+	let x = -1.0 as T;
+	let expected = if consteval (T == float32) { 0.5f32 } else { 0.5f64 };
+	if (exp2(x) != expected) unreachable;
+
+	// FIXME: exp2f on windows doesn't produce the same values as glibc on linux
+	// this could potentially be fixed by using LLVM libc's implementation of math functions everywhere
+	if (T != float32)
+	{
+		let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
+		let expected = if consteval (T == float32) { 10.777869f32 } else { 10.777868614925524f64 };
+		if (exp2(x) != expected) unreachable;
+
+		let x = if consteval (T == float32) { -3.43f32 } else { -3.43f64 };
+		let expected = if consteval (T == float32) { 0.09278272f32 } else { 0.09278272316431556f64 };
+		if (exp2(x) != expected) unreachable;
+	}
+
+	if (exp2(zero) != 1.0 as T) unreachable;
+	if (exp2(-zero) != 1.0 as T) unreachable;
+	if (exp2(-inf) != 0.0 as T) unreachable;
+	if (exp2(-inf).bits() != zero_bits) unreachable;
+	if (exp2(inf) != inf) unreachable;
+	if (!isnan(exp2(nan))) unreachable;
+}
+
+function expm1_test(T: typename)
+{
+	type uint = if consteval (T == float32) { uint32 } else { uint64 };
+
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = 1.0 as T;
+	let expected = if consteval (T == float32) { 1.7182817f32 } else { 1.718281828459045f64 };
+	if (expm1(x) != expected) unreachable;
+
+	let x = -1.0 as T;
+	let expected = if consteval (T == float32) { -0.63212055f32 } else { -0.6321205588285577f64 };
+	if (expm1(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == float32) { 29.876644f32 } else { 29.876642749677046f64 };
+	if (expm1(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { -3.43f32 } else { -3.43f64 };
+	let expected = if consteval (T == float32) { -0.96761304f32 } else { -0.967613059227093f64 };
+	if (expm1(x) != expected) unreachable;
+
+	if (expm1(zero) != 0.0 as T) unreachable;
+	if (expm1(zero).bits() != zero_bits) unreachable;
+	if (expm1(-zero) != 0.0 as T) unreachable;
+	if (expm1(-zero).bits() != negative_zero_bits) unreachable;
+	if (expm1(-inf) != -1.0 as T) unreachable;
+	if (expm1(inf) != inf) unreachable;
+	if (!isnan(expm1(nan))) unreachable;
+}
+
 function main()
 {
 	isnan_test(float32);
@@ -463,4 +591,13 @@ function main()
 	max_test_int(uint64);
 	max_test_float(float32);
 	max_test_float(float64);
+
+	exp_test(float32);
+	exp_test(float64);
+
+	exp2_test(float32);
+	exp2_test(float64);
+
+	expm1_test(float32);
+	expm1_test(float64);
 }
