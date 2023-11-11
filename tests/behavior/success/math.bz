@@ -38,34 +38,26 @@ function max_float = __builtin_max_f64;
 
 function exp = __builtin_exp_f32;
 function exp = __builtin_exp_f64;
-
 function exp2 = __builtin_exp2_f32;
 function exp2 = __builtin_exp2_f64;
-
 function expm1 = __builtin_expm1_f32;
 function expm1 = __builtin_expm1_f64;
 
 function log = __builtin_log_f32;
 function log = __builtin_log_f64;
-
 function log2 = __builtin_log2_f32;
 function log2 = __builtin_log2_f64;
-
 function log10 = __builtin_log10_f32;
 function log10 = __builtin_log10_f64;
-
 function log1p = __builtin_log1p_f32;
 function log1p = __builtin_log1p_f64;
 
 function sqrt = __builtin_sqrt_f32;
 function sqrt = __builtin_sqrt_f64;
-
 function cbrt = __builtin_cbrt_f32;
 function cbrt = __builtin_cbrt_f64;
-
 function pow = __builtin_pow_f32;
 function pow = __builtin_pow_f64;
-
 function hypot = __builtin_hypot_f32;
 function hypot = __builtin_hypot_f64;
 
@@ -1133,34 +1125,26 @@ function main()
 
 	exp_test(float32);
 	exp_test(float64);
-
 	exp2_test(float32);
 	exp2_test(float64);
-
 	expm1_test(float32);
 	expm1_test(float64);
 
 	log_test(float32);
 	log_test(float64);
-
 	log2_test(float32);
 	log2_test(float64);
-
 	log10_test(float32);
 	log10_test(float64);
-
 	log1p_test(float32);
 	log1p_test(float64);
 
 	sqrt_test(float32);
 	sqrt_test(float64);
-
 	cbrt_test(float32);
 	cbrt_test(float64);
-
 	pow_test(float32);
 	pow_test(float64);
-
 	hypot_test(float32);
 	hypot_test(float64);
 }
