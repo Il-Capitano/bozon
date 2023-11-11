@@ -3510,22 +3510,31 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 	}
 	case ast::function_body::isnan_f32:
 	case ast::function_body::isnan_f64:
-		return int_to_bool(
-			generate_libc_math_function_call("isnan", func_call, context.get_c_int(), context, result_dest),
+	{
+		auto const result = int_to_bool(
+			generate_libc_math_function_call("isnan", func_call, context.get_c_int(), context, {}),
 			context
 		);
+		return value_or_result_dest(result, result_dest, context);
+	}
 	case ast::function_body::isinf_f32:
 	case ast::function_body::isinf_f64:
-		return int_to_bool(
-			generate_libc_math_function_call("isinf", func_call, context.get_c_int(), context, result_dest),
+	{
+		auto const result = int_to_bool(
+			generate_libc_math_function_call("isinf", func_call, context.get_c_int(), context, {}),
 			context
 		);
+		return value_or_result_dest(result, result_dest, context);
+	}
 	case ast::function_body::isfinite_f32:
 	case ast::function_body::isfinite_f64:
-		return int_to_bool(
-			generate_libc_math_function_call("isfinite", func_call, context.get_c_int(), context, result_dest),
+	{
+		auto const result = int_to_bool(
+			generate_libc_math_function_call("isfinite", func_call, context.get_c_int(), context, {}),
 			context
 		);
+		return value_or_result_dest(result, result_dest, context);
+	}
 	case ast::function_body::abs_i8:
 		return generate_builtin_function_call("bozon_abs_i8", func_call, context, result_dest);
 	case ast::function_body::abs_i16:

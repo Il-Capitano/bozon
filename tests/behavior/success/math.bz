@@ -54,6 +54,8 @@ function isnan_test(T: typename)
 	if (isnan(-inf)) unreachable;
 	if (!isnan(nan)) unreachable;
 	if (!isnan(-nan)) unreachable;
+
+	let _ = isnan(zero);
 }
 
 function isinf_test(T: typename)
@@ -74,6 +76,8 @@ function isinf_test(T: typename)
 	if (!isinf(-inf)) unreachable;
 	if (isinf(nan)) unreachable;
 	if (isinf(-nan)) unreachable;
+
+	let _ = isinf(zero);
 }
 
 function isfinite_test(T: typename)
@@ -94,6 +98,8 @@ function isfinite_test(T: typename)
 	if (isfinite(-inf)) unreachable;
 	if (isfinite(nan)) unreachable;
 	if (isfinite(-nan)) unreachable;
+
+	let _ = isfinite(zero);
 }
 
 function abs_test_int(T: typename)
