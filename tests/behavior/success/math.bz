@@ -89,6 +89,11 @@ function acosh = __builtin_acosh_f64;
 function atanh = __builtin_atanh_f32;
 function atanh = __builtin_atanh_f64;
 
+function erf = __builtin_erf_f32;
+function erf = __builtin_erf_f64;
+function erfc = __builtin_erfc_f32;
+function erfc = __builtin_erfc_f64;
+
 function bits(x: float32) -> uint32
 {
 	return __builtin_bit_cast(uint32, x);
@@ -1655,6 +1660,77 @@ function atanh_test(T: typename)
 	if (!isnan(atanh(nan))) unreachable;
 }
 
+function erf_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
+	let expected = 1.0 as T;
+	if (erf(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == float32) { 0.99999875f32 } else { 0.9999987700606605f64 };
+	if (erf(x) != expected) unreachable;
+	if (erf(-x) != -expected) unreachable;
+
+	let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == float32) { 0.3198857f32 } else { 0.31988569945795137f64 };
+	if (erf(x) != expected) unreachable;
+	if (erf(-x) != -expected) unreachable;
+
+	if (erf(zero).bits() != zero_bits) unreachable;
+	if (erf(-zero).bits() != negative_zero_bits) unreachable;
+	if (erf(inf) != 1.0 as T) unreachable;
+	if (erf(-inf) != -1.0 as T) unreachable;
+	if (!isnan(erf(nan))) unreachable;
+}
+
+function erfc_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+
+	let zero_bits = (0.0 as T).bits();
+
+	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
+	let expected = 0.0 as T;
+	if (erfc(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { -123.123f32 } else { -123.123f64 };
+	let expected = 2.0 as T;
+	if (erfc(x) != expected) unreachable;
+
+	// FIXME: erfcf and erfc on windows don't produce the same values as glibc on linux
+	// let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
+	// let expected = if consteval (T == float32) { 1.2299388e-06f32 } else { 1.22993933946727e-06f64 };
+	// if (erfc(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { -3.43f32 } else { -3.43f64 };
+	let expected = if consteval (T == float32) { 1.9999988f32 } else { 1.9999987700606605f64 };
+	if (erfc(x) != expected) unreachable;
+
+	// FIXME: erfcf on windows doesn't produce the same values as glibc on linux
+	if (T != float32)
+	{
+		let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+		let expected = if consteval (T == float32) { 0.6801143f32 } else { 0.6801143005420487f64 };
+		if (erfc(x) != expected) unreachable;
+	}
+
+	let x = if consteval (T == float32) { -1.0f32 / 3.43f32 } else { -1.0f64 / 3.43f64 };
+	let expected = if consteval (T == float32) { 1.3198857f32 } else { 1.3198856994579513f64 };
+	if (erfc(x) != expected) unreachable;
+
+	if (erfc(inf).bits() != zero_bits) unreachable;
+	if (erfc(-inf) != 2.0 as T) unreachable;
+	if (!isnan(erfc(nan))) unreachable;
+}
+
 function main()
 {
 	isnan_test(float32);
@@ -1747,4 +1823,9 @@ function main()
 	acosh_test(float64);
 	atanh_test(float32);
 	atanh_test(float64);
+
+	erf_test(float32);
+	erf_test(float64);
+	erfc_test(float32);
+	erfc_test(float64);
 }
