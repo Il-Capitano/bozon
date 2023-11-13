@@ -82,6 +82,12 @@ function cosh = __builtin_cosh_f32;
 function cosh = __builtin_cosh_f64;
 function tanh = __builtin_tanh_f32;
 function tanh = __builtin_tanh_f64;
+function asinh = __builtin_asinh_f32;
+function asinh = __builtin_asinh_f64;
+function acosh = __builtin_acosh_f32;
+function acosh = __builtin_acosh_f64;
+function atanh = __builtin_atanh_f32;
+function atanh = __builtin_atanh_f64;
 
 function bits(x: float32) -> uint32
 {
@@ -1540,6 +1546,115 @@ function tanh_test(T: typename)
 	if (!isnan(tanh(nan))) unreachable;
 }
 
+function asinh_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == float32) { 5.5063477f32 } else { 5.50634752741339f64 };
+	if (asinh(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == float32) { 1.94631f32 } else { 1.9463100722741329f64 };
+	if (asinh(x) != expected) unreachable;
+	if (asinh(-x) != -expected) unreachable;
+
+	let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+	let expected = if consteval (T == float32) { 0.28756544f32 } else { 0.28756545247221277f64 };
+	if (asinh(x) != expected) unreachable;
+	if (asinh(-x) != -expected) unreachable;
+
+	if (asinh(zero).bits() != zero_bits) unreachable;
+	if (asinh(-zero).bits() != negative_zero_bits) unreachable;
+	if (asinh(inf) != inf) unreachable;
+	if (asinh(-inf) != -inf) unreachable;
+	if (!isnan(asinh(nan))) unreachable;
+}
+
+function acosh_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+	let epsilon = T.epsilon;
+
+	let zero_bits = (0.0 as T).bits();
+
+	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == float32) { 5.5063148f32 } else { 5.506314544301588f64 };
+	if (acosh(x) != expected) unreachable;
+
+	// FIXME: acosh on windows doesn't produce the same values as glibc on linux
+	if (T != float64)
+	{
+		let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
+		let expected = if consteval (T == float32) { 1.9037466f32 } else { 1.9037465859926774f64 };
+		if (acosh(x) != expected) unreachable;
+	}
+
+	let x = one + epsilon;
+	let expected = if consteval (T == float32) { 0.00048828122f32 } else { 2.1073424255447017e-08f64 };
+	if (acosh(x) != expected) unreachable;
+
+	if (acosh(one).bits() != zero_bits) unreachable;
+	if (acosh(inf) != inf) unreachable;
+	if (!isnan(acosh(one - epsilon / 2.0 as T))) unreachable;
+	if (!isnan(acosh(zero))) unreachable;
+	if (!isnan(acosh(-zero))) unreachable;
+	if (!isnan(acosh(-one))) unreachable;
+	if (!isnan(acosh(-inf))) unreachable;
+	if (!isnan(acosh(nan))) unreachable;
+}
+
+function atanh_test(T: typename)
+{
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+	let epsilon = T.epsilon;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	// FIXME: atanhf on windows doesn't produce the same values as glibc on linux
+	if (T != float32)
+	{
+		let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+		let expected = if consteval (T == float32) { 0.30025417f32 } else { 0.30025416335229355f64 };
+		if (atanh(x) != expected) unreachable;
+		if (atanh(-x) != -expected) unreachable;
+
+		let x = if consteval (T == float32) { 0.321123f32 } else { 0.321123f64 };
+		let expected = if consteval (T == float32) { 0.33289874f32 } else { 0.3328987245329761f64 };
+		if (atanh(x) != expected) unreachable;
+		if (atanh(-x) != -expected) unreachable;
+	}
+
+	let x = one - epsilon / 2.0 as T;
+	let expected = if consteval (T == float32) { 8.66434f32 } else { 18.714973875118524f64 };
+	if (atanh(x) != expected) unreachable;
+	if (atanh(-x) != -expected) unreachable;
+
+	if (atanh(zero).bits() != zero_bits) unreachable;
+	if (atanh(-zero).bits() != negative_zero_bits) unreachable;
+	if (atanh(one) != inf) unreachable;
+	if (atanh(-one) != -inf) unreachable;
+	if (!isnan(atanh(one + epsilon))) unreachable;
+	if (!isnan(atanh(-one - epsilon))) unreachable;
+	if (!isnan(atanh(1.234 as T))) unreachable;
+	if (!isnan(atanh(-1.234 as T))) unreachable;
+	if (!isnan(atanh(inf))) unreachable;
+	if (!isnan(atanh(-inf))) unreachable;
+	if (!isnan(atanh(nan))) unreachable;
+}
+
 function main()
 {
 	isnan_test(float32);
@@ -1626,4 +1741,10 @@ function main()
 	cosh_test(float64);
 	tanh_test(float32);
 	tanh_test(float64);
+	asinh_test(float32);
+	asinh_test(float64);
+	acosh_test(float32);
+	acosh_test(float64);
+	atanh_test(float32);
+	atanh_test(float64);
 }
