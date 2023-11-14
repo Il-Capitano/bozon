@@ -12,17 +12,18 @@ jobs:
     - uses: msys2/setup-msys2@v2
       with:
         update: true
+        msystem: ucrt64
         install: >-
           make
           git
-          mingw-w64-x86_64-pkgconf
-          mingw-w64-x86_64-fmt
-          mingw-w64-x86_64-rapidjson
-          mingw-w64-x86_64-llvm
-          mingw-w64-x86_64-lld
-          mingw-w64-x86_64-clang
-          mingw-w64-x86_64-dwarfstack
-          mingw-w64-x86_64-openssl
+          mingw-w64-ucrt-x86_64-pkgconf
+          mingw-w64-ucrt-x86_64-fmt
+          mingw-w64-ucrt-x86_64-rapidjson
+          mingw-w64-ucrt-x86_64-llvm
+          mingw-w64-ucrt-x86_64-lld
+          mingw-w64-ucrt-x86_64-clang
+          mingw-w64-ucrt-x86_64-dwarfstack
+          mingw-w64-ucrt-x86_64-openssl
     - uses: actions/checkout@v3
     - run: git clone https://github.com/Il-Capitano/cppb.git
     - name: Build cppb
@@ -54,18 +55,19 @@ jobs:
     - uses: msys2/setup-msys2@v2
       with:
         update: true
+        msystem: ucrt64
         install: >-
           make
           git
-          mingw-w64-x86_64-pkgconf
-          mingw-w64-x86_64-fmt
-          mingw-w64-x86_64-rapidjson
-          mingw-w64-x86_64-llvm
-          mingw-w64-x86_64-lld
-          mingw-w64-x86_64-clang
-          mingw-w64-x86_64-gcc
-          mingw-w64-x86_64-dwarfstack
-          mingw-w64-x86_64-openssl
+          mingw-w64-ucrt-x86_64-pkgconf
+          mingw-w64-ucrt-x86_64-fmt
+          mingw-w64-ucrt-x86_64-rapidjson
+          mingw-w64-ucrt-x86_64-llvm
+          mingw-w64-ucrt-x86_64-lld
+          mingw-w64-ucrt-x86_64-clang
+          mingw-w64-ucrt-x86_64-gcc
+          mingw-w64-ucrt-x86_64-dwarfstack
+          mingw-w64-ucrt-x86_64-openssl
     - uses: actions/checkout@v3
     - name: Build cppb
       run: |
