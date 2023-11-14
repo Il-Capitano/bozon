@@ -94,6 +94,11 @@ function erf = __builtin_erf_f64;
 function erfc = __builtin_erfc_f32;
 function erfc = __builtin_erfc_f64;
 
+function tgamma = __builtin_tgamma_f32;
+function tgamma = __builtin_tgamma_f64;
+function lgamma = __builtin_lgamma_f32;
+function lgamma = __builtin_lgamma_f64;
+
 function bits(x: float32) -> uint32
 {
 	return __builtin_bit_cast(uint32, x);
@@ -1731,6 +1736,185 @@ function erfc_test(T: typename)
 	if (!isnan(erfc(nan))) unreachable;
 }
 
+function tgamma_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let epsilon = T.epsilon;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+
+	let x = min;
+	let expected = if consteval (T == float32) { 8.507059e+37f32 } else { 4.49423283715579e+307f64 };
+	if (tgamma(x) != expected) unreachable;
+
+	let x = denorm_min;
+	let expected = inf;
+	if (tgamma(x) != expected) unreachable;
+
+	let x = -one - epsilon;
+	let expected = if consteval (T == float32) { 8388607.5f32 } else { 4503599627370495.5f64 };
+	if (tgamma(x) != expected) unreachable;
+
+	let x = -one + epsilon / 2.0 as T;
+	let expected = if consteval (T == float32) { -16777218.0f32 } else { -9007199254740994.0f64 };
+	if (tgamma(x) != expected) unreachable;
+
+	// FIXME: tgammaf on windows doesn't produce the same values as glibc on linux
+	if (T != float32)
+	{
+		let x = 0.5 as T;
+		let expected = if consteval (T == float32) { 1.7724538f32 } else { 1.772453850905516f64 };
+		if (tgamma(x) != expected) unreachable;
+	}
+
+	// FIXME: tgammaf and tgamma on windows don't produce the same values as glibc on linux
+	// let x = 10.0 as T;
+	// let expected = if consteval (T == float32) { 362880.03f32 } else { 362879.99999999994f64 };
+	// if (tgamma(x) != expected) unreachable;
+
+	// FIXME: tgammaf and tgamma on windows don't produce the same values as glibc on linux
+	// let x = 25.0 as T;
+	// let expected = if consteval (T == float32) { 6.204484e+23f32 } else { 6.204484017332395e+23f64 };
+	// if (tgamma(x) != expected) unreachable;
+
+	// FIXME: tgammaf on windows doesn't produce the same values as glibc on linux
+	if (T != float64)
+	{
+		let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
+		let expected = if consteval (T == float32) { inf } else { 1.78404886066154e+203f64 };
+		if (tgamma(x) != expected) unreachable;
+
+		let x = if consteval (T == float32) { -123.123f32 } else { -123.123f64 };
+		let expected = if consteval (T == float32) { 0.0f32 } else { 3.794994993510893e-205f64 };
+		if (tgamma(x) != expected) unreachable;
+	}
+
+	// FIXME: tgammaf on windows doesn't produce the same values as glibc on linux
+	if (T != float32)
+	{
+		let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
+		let expected = if consteval (T == float32) { 3.0788875f32 } else { 3.078887316908918f64 };
+		if (tgamma(x) != expected) unreachable;
+
+		let x = if consteval (T == float32) { -3.43f32 } else { -3.43f64 };
+		let expected = if consteval (T == float32) { 0.304824f32 } else { 0.30482401613041793f64 };
+		if (tgamma(x) != expected) unreachable;
+
+		let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+		let expected = if consteval (T == float32) { 3.0828564f32 } else { 3.0828564628345165f64 };
+		if (tgamma(x) != expected) unreachable;
+	}
+
+	// FIXME: tgammaf and tgamma on windows don't produce the same values as glibc on linux
+	// let x = if consteval (T == float32) { -1.0f32 / 3.43f32 } else { -1.0f64 / 3.43f64 };
+	// let expected = if consteval (T == float32) { -4.407084f32 } else { -4.407083317294696f64 };
+	// if (tgamma(x) != expected) unreachable;
+
+	if (tgamma(zero) != inf) unreachable;
+	if (tgamma(-zero) != -inf) unreachable;
+	if (!isnan(tgamma(-1.0 as T))) unreachable;
+	if (!isnan(tgamma(-2.0 as T))) unreachable;
+	if (!isnan(tgamma(-3.0 as T))) unreachable;
+	if (!isnan(tgamma(-122.0 as T))) unreachable;
+	if (!isnan(tgamma(-9828.0 as T))) unreachable;
+	if (!isnan(tgamma(-inf))) unreachable;
+	if (tgamma(inf) != inf) unreachable;
+	if (!isnan(tgamma(nan))) unreachable;
+}
+
+function lgamma_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let epsilon = T.epsilon;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+
+	let x = min;
+	let expected = if consteval (T == float32) { 87.33655f32 } else { 708.3964185322641f64 };
+	if (lgamma(x) != expected) unreachable;
+
+	// FIXME: lgamma on windows doesn't produce the same values as glibc on linux
+	if (T != float64)
+	{
+		let x = denorm_min;
+		let expected = if consteval (T == float32) { 103.27893f32 } else { 744.4400719213812f64 };
+		if (lgamma(x) != expected) unreachable;
+
+		let x = -one - epsilon;
+		let expected = if consteval (T == float32) { 15.942385f32 } else { 36.04365338911715f64 };
+		if (lgamma(x) != expected) unreachable;
+	}
+
+	let x = -one + epsilon / 2.0 as T;
+	let expected = if consteval (T == float32) { 16.635532f32 } else { 36.7368005696771f64 };
+	if (lgamma(x) != expected) unreachable;
+
+	// FIXME: lgamma on windows doesn't produce the same values as glibc on linux
+	if (T != float64)
+	{
+		let x = 0.5 as T;
+		let expected = if consteval (T == float32) { 0.5723649f32 } else { 0.5723649429247001f64 };
+		if (lgamma(x) != expected) unreachable;
+
+		let x = 10.0 as T;
+		let expected = if consteval (T == float32) { 12.801827f32 } else { 12.80182748008147f64 };
+		if (lgamma(x) != expected) unreachable;
+
+		let x = 25.0 as T;
+		let expected = if consteval (T == float32) { 54.78473f32 } else { 54.78472939811231f64 };
+		if (lgamma(x) != expected) unreachable;
+	}
+
+	let x = if consteval (T == float32) { 123.123f32 } else { 123.123f64 };
+	let expected = if consteval (T == float32) { 468.00366f32 } else { 468.0036592998372f64 };
+	if (lgamma(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { -123.123f32 } else { -123.123f64 };
+	let expected = if consteval (T == float32) { -470.69626f32 } else { -470.69626097216553f64 };
+	if (lgamma(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { 3.43f32 } else { 3.43f64 };
+	let expected = if consteval (T == float32) { 1.1245683f32 } else { 1.1245682709712426f64 };
+	if (lgamma(x) != expected) unreachable;
+
+	let x = if consteval (T == float32) { -3.43f32 } else { -3.43f64 };
+	let expected = if consteval (T == float32) { -1.1880208f32 } else { -1.1880206651948586f64 };
+	if (lgamma(x) != expected) unreachable;
+
+	// FIXME: lgamma on windows doesn't produce the same values as glibc on linux
+	if (T != float64)
+	{
+		let x = if consteval (T == float32) { 1.0f32 / 3.43f32 } else { 1.0f64 / 3.43f64 };
+		let expected = if consteval (T == float32) { 1.1258566f32 } else { 1.1258565901927058f64 };
+		if (lgamma(x) != expected) unreachable;
+
+		let x = if consteval (T == float32) { -1.0f32 / 3.43f32 } else { -1.0f64 / 3.43f64 };
+		let expected = if consteval (T == float32) { 1.4832132f32 } else { 1.4832130913527293f64 };
+		if (lgamma(x) != expected) unreachable;
+	}
+
+	if (lgamma(one).bits() != zero_bits) unreachable;
+	if (lgamma(2.0 as T * one).bits() != zero_bits) unreachable;
+	if (lgamma(zero) != inf) unreachable;
+	if (lgamma(-zero) != inf) unreachable;
+	if (lgamma(-1.0 as T) != inf) unreachable;
+	if (lgamma(-2.0 as T) != inf) unreachable;
+	if (lgamma(-3.0 as T) != inf) unreachable;
+	if (lgamma(-122.0 as T) != inf) unreachable;
+	if (lgamma(-9828.0 as T) != inf) unreachable;
+	if (lgamma(inf) != inf) unreachable;
+	if (lgamma(-inf) != inf) unreachable;
+	if (!isnan(lgamma(nan))) unreachable;
+}
+
 function main()
 {
 	isnan_test(float32);
@@ -1828,4 +2012,9 @@ function main()
 	erf_test(float64);
 	erfc_test(float32);
 	erfc_test(float64);
+
+	tgamma_test(float32);
+	tgamma_test(float64);
+	lgamma_test(float32);
+	lgamma_test(float64);
 }
