@@ -1,0 +1,43 @@
+function bitreverse_test()
+{
+	let n = 0x00u8;
+	if (__builtin_bitreverse_u8(n) != 0x00) unreachable;
+
+	let n = 0xffu8;
+	if (__builtin_bitreverse_u8(n) != 0xff) unreachable;
+
+	let n = 0b1010'0011u8;
+	if (__builtin_bitreverse_u8(n) != 0b1100'0101) unreachable;
+
+	let n = 0x0000u16;
+	if (__builtin_bitreverse_u16(n) != 0x0000) unreachable;
+
+	let n = 0xffffu16;
+	if (__builtin_bitreverse_u16(n) != 0xffff) unreachable;
+
+	let n = 0b0100'1110'1010'0011u16;
+	if (__builtin_bitreverse_u16(n) != 0b1100'0101'0111'0010) unreachable;
+
+	let n = 0x0000'0000u32;
+	if (__builtin_bitreverse_u32(n) != 0x0000'0000) unreachable;
+
+	let n = 0xffff'ffffu32;
+	if (__builtin_bitreverse_u32(n) != 0xffff'ffff) unreachable;
+
+	let n = 0b0110'0010'0110'0101'1111'0111'0011'1001u32;
+	if (__builtin_bitreverse_u32(n) != 0b1001'1100'1110'1111'1010'0110'0100'0110) unreachable;
+
+	let n = 0x0000'0000'0000'0000u64;
+	if (__builtin_bitreverse_u64(n) != 0x0000'0000'0000'0000) unreachable;
+
+	let n = 0xffff'ffff'ffff'ffffu64;
+	if (__builtin_bitreverse_u64(n) != 0xffff'ffff'ffff'ffff) unreachable;
+
+	let n = 0b1101'1011'0110'0110'1010'0011'0011'1111'1100'0011'0000'0111'0011'1110'1110'0110u64;
+	if (__builtin_bitreverse_u64(n) != 0b0110'0111'0111'1100'1110'0000'1100'0011'1111'1100'1100'0101'0110'0110'1101'1011) unreachable;
+}
+
+function main()
+{
+	bitreverse_test();
+}
