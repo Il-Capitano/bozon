@@ -135,6 +135,31 @@ function clz_test(T: typename)
 	if (clz(n) != bit_count) unreachable;
 }
 
+function ctz = __builtin_ctz_u8;
+function ctz = __builtin_ctz_u16;
+function ctz = __builtin_ctz_u32;
+function ctz = __builtin_ctz_u64;
+
+function ctz_test(T: typename)
+{
+	consteval bit_count = 8 * sizeof T;
+
+	let n = 1 as T;
+	for (let i in 0..bit_count)
+	{
+		if (ctz(n << i) != i) unreachable;
+	}
+
+	let n = ~(0 as T);
+	for (let i in 0..bit_count)
+	{
+		if (ctz(n << i) != i) unreachable;
+	}
+
+	let n = 0 as T;
+	if (ctz(n) != bit_count) unreachable;
+}
+
 function main()
 {
 	bitreverse_test();
@@ -144,4 +169,8 @@ function main()
 	clz_test(uint16);
 	clz_test(uint32);
 	clz_test(uint64);
+	ctz_test(uint8);
+	ctz_test(uint16);
+	ctz_test(uint32);
+	ctz_test(uint64);
 }
