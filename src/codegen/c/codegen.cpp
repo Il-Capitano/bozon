@@ -4169,10 +4169,15 @@ static expr_value generate_expression(
 		auto const macro_name = context.get_libc_macro_name(*func_call.func_body);
 		if (return_type.is_any_reference())
 		{
-			// TODO: use temporary
-			auto const value_string = bz::format("&{}", macro_name);
-			auto const pointer_value = context.add_value_expression(value_string, get_type(return_type, context));
-			return context.create_dereference(pointer_value);
+			bz_assert(!result_dest.has_value());
+			return context.add_temporary_expression(
+				macro_name,
+				get_type(return_type.get_any_reference(), context),
+				!return_type.get_any_reference().is_mut(),
+				false,
+				false,
+				precedence::identifier
+			);
 		}
 		else if (result_dest.has_value())
 		{
