@@ -1513,7 +1513,7 @@ static expr_value generate_builtin_function_call(
 	{
 		auto const arg1_value = generate_expression(func_call.params[0], context, {});
 		auto const arg2_value = generate_expression(func_call.params[1], context, {});
-		auto const arg3_value = generate_expression(func_call.params[1], context, {});
+		auto const arg3_value = generate_expression(func_call.params[2], context, {});
 		return generate_trivial_function_call(func_name, { arg1_value, arg2_value, arg3_value }, arg1_value.get_type(), context, result_dest);
 	}
 	else
