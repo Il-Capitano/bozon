@@ -80,8 +80,39 @@ function popcount_test()
 	if (__builtin_popcount_u64(n) != 37) unreachable;
 }
 
+function byteswap_test()
+{
+	let n = 0x0000u16;
+	if (__builtin_byteswap_u16(n) != 0x0000) unreachable;
+
+	let n = 0xffffu16;
+	if (__builtin_byteswap_u16(n) != 0xffff) unreachable;
+
+	let n = 0x4ea3u16;
+	if (__builtin_byteswap_u16(n) != 0xa34e) unreachable;
+
+	let n = 0x0000'0000u32;
+	if (__builtin_byteswap_u32(n) != 0x0000'0000) unreachable;
+
+	let n = 0xffff'ffffu32;
+	if (__builtin_byteswap_u32(n) != 0xffff'ffff) unreachable;
+
+	let n = 0x6265'f739u32;
+	if (__builtin_byteswap_u32(n) != 0x39f7'6562) unreachable;
+
+	let n = 0x0000'0000'0000'0000u64;
+	if (__builtin_byteswap_u64(n) != 0x0000'0000'0000'0000) unreachable;
+
+	let n = 0xffff'ffff'ffff'ffffu64;
+	if (__builtin_byteswap_u64(n) != 0xffff'ffff'ffff'ffff) unreachable;
+
+	let n = 0xdb66'a33f'c307'3ee6u64;
+	if (__builtin_byteswap_u64(n) != 0xe63e'07c3'3fa3'66db) unreachable;
+}
+
 function main()
 {
 	bitreverse_test();
 	popcount_test();
+	byteswap_test();
 }
