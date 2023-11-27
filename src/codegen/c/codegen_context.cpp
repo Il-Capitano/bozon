@@ -3118,6 +3118,10 @@ static t_uint64 bozon_byteswap_u64(t_uint64 n)
 static t_uint8 bozon_clz_u8(t_uint8 n)
 {
 	t_uint8 const int_size = 1;
+	if (n == 0)
+	{
+		return 8 * int_size;
+	}
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clz)
@@ -3151,6 +3155,10 @@ static t_uint8 bozon_clz_u8(t_uint8 n)
 static t_uint16 bozon_clz_u16(t_uint16 n)
 {
 	t_uint16 const int_size = 2;
+	if (n == 0)
+	{
+		return 8 * int_size;
+	}
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clz)
@@ -3184,6 +3192,10 @@ static t_uint16 bozon_clz_u16(t_uint16 n)
 static t_uint32 bozon_clz_u32(t_uint32 n)
 {
 	t_uint32 const int_size = 4;
+	if (n == 0)
+	{
+		return 8 * int_size;
+	}
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clz)
@@ -3217,6 +3229,10 @@ static t_uint32 bozon_clz_u32(t_uint32 n)
 static t_uint64 bozon_clz_u64(t_uint64 n)
 {
 	t_uint64 const int_size = 8;
+	if (n == 0)
+	{
+		return 8 * int_size;
+	}
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_clz)
@@ -3250,6 +3266,10 @@ static t_uint64 bozon_clz_u64(t_uint64 n)
 static t_uint8 bozon_ctz_u8(t_uint8 n)
 {
 	t_uint8 const int_size = 1;
+	if (n == 0)
+	{
+		return 8 * int_size;
+	}
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_ctz)
@@ -3281,6 +3301,10 @@ static t_uint8 bozon_ctz_u8(t_uint8 n)
 static t_uint16 bozon_ctz_u16(t_uint16 n)
 {
 	t_uint16 const int_size = 2;
+	if (n == 0)
+	{
+		return 8 * int_size;
+	}
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_ctz)
@@ -3312,6 +3336,10 @@ static t_uint16 bozon_ctz_u16(t_uint16 n)
 static t_uint32 bozon_ctz_u32(t_uint32 n)
 {
 	t_uint32 const int_size = 4;
+	if (n == 0)
+	{
+		return 8 * int_size;
+	}
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_ctz)
@@ -3343,6 +3371,10 @@ static t_uint32 bozon_ctz_u32(t_uint32 n)
 static t_uint64 bozon_ctz_u64(t_uint64 n)
 {
 	t_uint64 const int_size = 8;
+	if (n == 0)
+	{
+		return 8 * int_size;
+	}
 	if (int_size <= sizeof (unsigned int))
 	{
 #if BOZON_HAS_BUILTIN(__builtin_ctz)
