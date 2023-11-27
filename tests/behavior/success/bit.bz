@@ -110,9 +110,38 @@ function byteswap_test()
 	if (__builtin_byteswap_u64(n) != 0xe63e'07c3'3fa3'66db) unreachable;
 }
 
+function clz = __builtin_clz_u8;
+function clz = __builtin_clz_u16;
+function clz = __builtin_clz_u32;
+function clz = __builtin_clz_u64;
+
+function clz_test(T: typename)
+{
+	consteval bit_count = 8 * sizeof T;
+
+	let n = (1 as T) << (bit_count - 1);
+	for (let i in 0..bit_count)
+	{
+		if (clz(n >> i) != i) unreachable;
+	}
+
+	let n = ~(0 as T);
+	for (let i in 0..bit_count)
+	{
+		if (clz(n >> i) != i) unreachable;
+	}
+
+	let n = 0 as T;
+	if (clz(n) != bit_count) unreachable;
+}
+
 function main()
 {
 	bitreverse_test();
 	popcount_test();
 	byteswap_test();
+	clz_test(uint8);
+	clz_test(uint16);
+	clz_test(uint32);
+	clz_test(uint64);
 }
