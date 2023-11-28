@@ -1993,14 +1993,6 @@ expr_value codegen_context::create_struct_gep(expr_value value, size_t index)
 	bz_assert(!this->is_slice(value.get_type()));
 	auto const type = value.get_type();
 
-	if (!value.is_variable && !value.is_rvalue)
-	{
-		auto const address = this->create_address_of(value);
-		auto const copy = this->create_trivial_copy(address);
-		bz_assert(!copy.is_temporary);
-		value = this->make_reference_expression(copy.value_index, value.value_type, value.is_const);
-	}
-
 	if (auto const struct_type = this->maybe_get_struct(type))
 	{
 		bz_assert(index < struct_type->members.size());
