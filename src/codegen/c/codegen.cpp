@@ -4197,15 +4197,15 @@ static expr_value generate_expression(
 		{
 			return result_dest.get();
 		}
+		else if (func_call.func_body->return_type.is<ast::ts_void>())
+		{
+			return context.get_void_value();
+		}
 		else if (func_call.func_body->return_type.is_any_reference())
 		{
 			auto const pointer_type = get_type(func_call.func_body->return_type, context);
 			auto const pointer_value = context.add_uninitialized_value(pointer_type);
 			return context.create_dereference(pointer_value);
-		}
-		else if (func_call.func_body->return_type.is<ast::ts_void>())
-		{
-			return context.get_void_value();
 		}
 		else
 		{
@@ -4217,6 +4217,23 @@ static expr_value generate_expression(
 	bz::vector<expr_value> arg_values;
 	arg_values.reserve(func_call.params.size());
 
+	auto const create_arg = [&](auto const arg_index) -> expr_value {
+		auto const &param_type = func_call.func_body->params[arg_index].get_type();
+		auto const arg_value = generate_expression(func_call.params[arg_index], context, {});
+		if (param_type.is_any_reference())
+		{
+			return context.create_address_of(arg_value);
+		}
+		else if (ast::is_trivially_relocatable(param_type))
+		{
+			return arg_value;
+		}
+		else
+		{
+			return context.create_address_of(arg_value);
+		}
+	};
+
 	if (func_call.param_resolve_order == ast::resolve_order::regular)
 	{
 		for (auto const arg_index : bz::iota(0, func_call.params.size()))
@@ -4225,21 +4242,7 @@ static expr_value generate_expression(
 			{
 				continue;
 			}
-
-			auto const &param_type = func_call.func_body->params[arg_index].get_type();
-			auto const arg_value = generate_expression(func_call.params[arg_index], context, {});
-			if (param_type.is_any_reference())
-			{
-				arg_values.push_back(context.create_address_of(arg_value));
-			}
-			else if (ast::is_trivially_relocatable(param_type))
-			{
-				arg_values.push_back(arg_value);
-			}
-			else
-			{
-				arg_values.push_back(context.create_address_of(arg_value));
-			}
+			arg_values.push_back(create_arg(arg_index));
 		}
 	}
 	else
@@ -4250,21 +4253,7 @@ static expr_value generate_expression(
 			{
 				continue;
 			}
-
-			auto const &param_type = func_call.func_body->params[arg_index].get_type();
-			auto const arg_value = generate_expression(func_call.params[arg_index], context, {});
-			if (param_type.is_any_reference())
-			{
-				arg_values.push_front(context.create_address_of(arg_value));
-			}
-			else if (ast::is_trivially_relocatable(param_type))
-			{
-				arg_values.push_front(arg_value);
-			}
-			else
-			{
-				arg_values.push_front(context.create_address_of(arg_value));
-			}
+			arg_values.push_front(create_arg(arg_index));
 		}
 	}
 
