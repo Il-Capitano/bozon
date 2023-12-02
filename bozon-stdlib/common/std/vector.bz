@@ -232,7 +232,7 @@ export struct vector<T: typename>
 		self._data_end += 1;
 	}
 
-	export function emplace_back(self: &mut _self_t, args: ...##auto) -> &value_type
+	export function emplace_back(self: &mut _self_t, args: ...##auto) -> &mut value_type
 	{
 		if (self._data_end == self._alloc_end)
 		{
@@ -270,7 +270,7 @@ export struct vector<T: typename>
 		}
 	}
 
-	export function emplace_front(self: &mut _self_t, args: ...##auto) -> &value_type
+	export function emplace_front(self: &mut _self_t, args: ...##auto) -> &mut value_type
 	{
 		if (self._data_end == self._alloc_end)
 		{
