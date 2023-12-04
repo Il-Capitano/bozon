@@ -1777,7 +1777,10 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 		}
 		else if constexpr (kind == type_match_function_kind::match_level)
 		{
-			modifier_match_level += 1;
+			if (source.is_reference())
+			{
+				modifier_match_level += 1;
+			}
 			auto result = generic_type_match_strict_match(
 				change_inner_dest_and_source(
 					match_context,
@@ -1881,7 +1884,10 @@ static match_function_result_t<kind> generic_type_match_strict_match(
 		}
 		else if constexpr (kind == type_match_function_kind::match_level)
 		{
-			modifier_match_level += 1;
+			if (source.is_reference())
+			{
+				modifier_match_level += 1;
+			}
 			auto result = generic_type_match_strict_match(
 				change_inner_dest_and_source(
 					match_context,

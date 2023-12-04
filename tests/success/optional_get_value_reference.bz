@@ -1,0 +1,7 @@
+function test()
+{
+	let oi: ?int32 = 3;
+	static_assert(typeof oi.get_value() == &int32);
+	mut oi: ?int32 = 3;
+	static_assert(typeof oi.get_value() == &mut int32);
+}
