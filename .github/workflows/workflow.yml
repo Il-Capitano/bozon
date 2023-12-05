@@ -18,7 +18,7 @@ jobs:
           git
           mingw-w64-ucrt-x86_64-pkgconf
           mingw-w64-ucrt-x86_64-fmt
-          mingw-w64-ucrt-x86_64-rapidjson
+          mingw-w64-ucrt-x86_64-nlohmann-json
           mingw-w64-ucrt-x86_64-llvm
           mingw-w64-ucrt-x86_64-lld
           mingw-w64-ucrt-x86_64-clang
@@ -62,7 +62,7 @@ jobs:
           git
           mingw-w64-ucrt-x86_64-pkgconf
           mingw-w64-ucrt-x86_64-fmt
-          mingw-w64-ucrt-x86_64-rapidjson
+          mingw-w64-ucrt-x86_64-nlohmann-json
           mingw-w64-ucrt-x86_64-llvm
           mingw-w64-ucrt-x86_64-lld
           mingw-w64-ucrt-x86_64-clang
@@ -99,7 +99,7 @@ jobs:
         printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-17 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-17.list
         wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
         sudo apt update
-        sudo apt install gcc gcc-12 g++-12 llvm-17 lld-17 clang-17 libfmt-dev rapidjson-dev libssl-dev python3
+        sudo apt install gcc gcc-12 g++-12 llvm-17 lld-17 clang-17 libfmt-dev nlohmann-json3-dev libssl-dev python3
     - name: Install libbacktrace
       run: |
         git clone https://github.com/ianlancetaylor/libbacktrace.git
@@ -139,7 +139,7 @@ jobs:
         printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-17 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-17.list
         wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
         sudo apt update
-        sudo apt install gcc lld gcc-12 g++-12 llvm-17 lld-17 clang-17 libfmt-dev rapidjson-dev libssl-dev python3
+        sudo apt install gcc lld gcc-12 g++-12 llvm-17 lld-17 clang-17 libfmt-dev nlohmann-json3-dev libssl-dev python3
     - name: Install libbacktrace
       run: |
         git clone https://github.com/ianlancetaylor/libbacktrace.git
