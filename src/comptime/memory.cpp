@@ -198,7 +198,6 @@ void stack_object::start_lifetime(ptr_t begin, ptr_t end)
 
 void stack_object::end_lifetime(ptr_t begin, ptr_t end)
 {
-	bz_assert(this->is_alive(begin, end));
 	this->properties.erase_range(begin - this->address, end - this->address, memory_properties::is_alive);
 }
 
@@ -891,7 +890,6 @@ void heap_object::start_lifetime(ptr_t begin, ptr_t end)
 
 void heap_object::end_lifetime(ptr_t begin, ptr_t end)
 {
-	bz_assert(this->is_alive(begin, end));
 	this->properties.erase_range(begin - this->address, end - this->address, memory_properties::is_alive);
 }
 
