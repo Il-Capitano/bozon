@@ -6858,12 +6858,29 @@ static expr_value generate_expr_code(
 		return expr_value::get_none();
 	}
 
-	auto const result = const_expr.kind == ast::expression_type_kind::lvalue
-		? generate_expr_code(original_expression, const_expr.expr, context, {})
-		: get_constant_value(original_expression.src_tokens, const_expr.value, const_expr.type, &const_expr, context, result_address);
+	if (const_expr.kind == ast::expression_type_kind::lvalue)
+	{
+		bz_assert(!result_address.has_value());
+		return generate_expr_code(original_expression, const_expr.expr, context, {});
+	}
+	else
+	{
+		auto const result = get_constant_value(
+			original_expression.src_tokens,
+			const_expr.value,
+			const_expr.type,
+			&const_expr,
+			context,
+			result_address
+		);
+		if (!result_address.has_value() && result.is_reference())
+		{
+			context.push_end_lifetime(result);
+		}
 
-	bz_assert(!result_address.has_value() || result == result_address.get());
-	return result;
+		bz_assert(!result_address.has_value() || result == result_address.get());
+		return result;
+	}
 }
 
 static expr_value generate_expr_code(
