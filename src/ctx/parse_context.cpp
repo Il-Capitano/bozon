@@ -5293,13 +5293,7 @@ ast::expression parse_context::make_cast_expression(
 		auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
 		auto const bare_expr_type = expr_type.remove_mut_reference();
 
-		if (is_builtin_type(bare_expr_type))
-		{
-			auto result = make_builtin_cast(src_tokens, std::move(expr), std::move(type), *this);
-			result.src_tokens = src_tokens;
-			return result;
-		}
-		else if (bare_expr_type == type)
+		if (bare_expr_type == type)
 		{
 			if (expr_type_kind == ast::expression_type_kind::lvalue || expr_type.is_reference())
 			{
@@ -5311,6 +5305,12 @@ ast::expression parse_context::make_cast_expression(
 				expr.src_tokens = src_tokens;
 				return expr;
 			}
+		}
+		else if (is_builtin_type(bare_expr_type))
+		{
+			auto result = make_builtin_cast(src_tokens, std::move(expr), std::move(type), *this);
+			result.src_tokens = src_tokens;
+			return result;
 		}
 		else
 		{

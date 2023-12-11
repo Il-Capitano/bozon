@@ -1,0 +1,6 @@
+function test()
+{
+	let b = false;
+	let _ = bool(b);
+	let _ = b as bool;
+}
