@@ -4250,14 +4250,7 @@ static expr_value generate_expression(
 		auto const arg_value = generate_expression(func_call.params[arg_index], context, {});
 		if (param_type.is_any_reference())
 		{
-			if (arg_value.is_rvalue)
-			{
-				return context.create_address_of(context.create_trivial_copy(arg_value));
-			}
-			else
-			{
-				return context.create_address_of(arg_value);
-			}
+			return context.create_address_of(arg_value);
 		}
 		else if (ast::is_trivially_relocatable(param_type))
 		{
@@ -4333,14 +4326,7 @@ static expr_value generate_expression(
 		auto const arg_value = generate_expression(indirect_function_call.params[arg_index], context, {});
 		if (param_type.is_any_reference())
 		{
-			if (arg_value.is_rvalue)
-			{
-				arg_values.push_back(context.create_address_of(context.create_trivial_copy(arg_value)));
-			}
-			else
-			{
-				arg_values.push_back(context.create_address_of(arg_value));
-			}
+			arg_values.push_back(context.create_address_of(arg_value));
 		}
 		else if (ast::is_trivially_relocatable(param_type))
 		{
@@ -4480,7 +4466,15 @@ static expr_value generate_expression(
 	codegen_context &context
 )
 {
-	return generate_expression(take_move_reference.expr, context, {});
+	auto const result = generate_expression(take_move_reference.expr, context, {});
+	if (result.is_rvalue)
+	{
+		return context.create_trivial_copy(result);
+	}
+	else
+	{
+		return result;
+	}
 }
 
 static expr_value generate_expression(
