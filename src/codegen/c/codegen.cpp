@@ -4305,7 +4305,14 @@ static expr_value generate_expression(
 		auto const arg_value = generate_expression(indirect_function_call.params[arg_index], context, {});
 		if (param_type.is_any_reference())
 		{
-			arg_values.push_back(context.create_address_of(arg_value));
+			if (arg_value.is_rvalue)
+			{
+				arg_values.push_back(context.create_address_of(context.create_trivial_copy(arg_value)));
+			}
+			else
+			{
+				arg_values.push_back(context.create_address_of(arg_value));
+			}
 		}
 		else if (ast::is_trivially_relocatable(param_type))
 		{
