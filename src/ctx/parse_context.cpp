@@ -5295,22 +5295,40 @@ ast::expression parse_context::make_cast_expression(
 
 		if (bare_expr_type == type)
 		{
-			if (expr_type_kind == ast::expression_type_kind::lvalue || expr_type.is_reference())
+			if (
+				expr_type_kind == ast::expression_type_kind::moved_lvalue
+				|| expr_type_kind == ast::expression_type_kind::rvalue_reference
+			)
 			{
-				expr.src_tokens = src_tokens;
-				return this->make_copy_construction(std::move(expr));
+				return this->make_move_construction(ast::make_dynamic_expression(
+					src_tokens,
+					expr_type_kind, expr_type,
+					ast::make_expr_noop_forward(std::move(expr)),
+					ast::destruct_operation()
+				));
+			}
+			else if (expr_type_kind == ast::expression_type_kind::lvalue || expr_type.is_reference())
+			{
+				return this->make_copy_construction(ast::make_dynamic_expression(
+					src_tokens,
+					expr_type_kind, expr_type,
+					ast::make_expr_noop_forward(std::move(expr)),
+					ast::destruct_operation()
+				));
 			}
 			else
 			{
-				expr.src_tokens = src_tokens;
-				return expr;
+				return ast::make_dynamic_expression(
+					src_tokens,
+					expr_type_kind, expr_type,
+					ast::make_expr_noop_forward(std::move(expr)),
+					ast::destruct_operation()
+				);
 			}
 		}
 		else if (is_builtin_type(bare_expr_type))
 		{
-			auto result = make_builtin_cast(src_tokens, std::move(expr), std::move(type), *this);
-			result.src_tokens = src_tokens;
-			return result;
+			return make_builtin_cast(src_tokens, std::move(expr), std::move(type), *this);
 		}
 		else
 		{
@@ -6692,12 +6710,13 @@ ast::expression parse_context::make_move_construction(ast::expression expr)
 	if (expr_type_kind == ast::expression_type_kind::moved_lvalue && !this->in_unevaluated_context)
 	{
 		bz_assert(expr.get_expr().is<ast::expr_unary_op>());
-		auto const op = expr.get_expr().get<ast::expr_unary_op>().op;
+		auto &unary_op = expr.get_expr().get<ast::expr_unary_op>();
+		auto const op = unary_op.op;
 		bz_assert(op == lex::token::kw_move || op == lex::token::kw_unsafe_move);
 		if (op == lex::token::kw_move)
 		{
-			bz_assert(expr.get_expr().get<ast::expr_unary_op>().expr.get_expr().is<ast::expr_variable_name>());
-			auto const decl = expr.get_expr().get<ast::expr_unary_op>().expr.get_expr().get<ast::expr_variable_name>().decl;
+			bz_assert(unary_op.expr.get_expr().is<ast::expr_variable_name>());
+			auto const decl = unary_op.expr.get_expr().get<ast::expr_variable_name>().decl;
 			this->register_move_construction(decl);
 			bz_assert(expr.is_dynamic());
 			expr.get_dynamic().destruct_op.move_destructed_decl = decl;

@@ -2693,7 +2693,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 	ctx::parse_context &context
 )
 {
-	return expr.get_expr().visit(bz::overload{
+	return expr.get_self_expr().visit(bz::overload{
 		[](ast::expr_variable_name &) -> ast::constant_value {
 			// identifiers are only constant expressions if they are a consteval
 			// variable, which is handled in parse_context::make_identifier_expr (or something similar)
@@ -2875,6 +2875,17 @@ static ast::constant_value guaranteed_evaluate_expr(
 			if (optional_cast_expr.expr.has_consteval_succeeded())
 			{
 				return optional_cast_expr.expr.get_constant_value();
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&context](ast::expr_noop_forward &noop_forward) -> ast::constant_value {
+			consteval_guaranteed(noop_forward.expr, context);
+			if (noop_forward.expr.has_consteval_succeeded())
+			{
+				return noop_forward.expr.get_constant_value();
 			}
 			else
 			{

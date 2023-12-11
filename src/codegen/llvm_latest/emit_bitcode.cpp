@@ -4634,6 +4634,16 @@ static val_ptr emit_bitcode(
 
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
+	ast::expr_noop_forward const &noop_forward,
+	bitcode_context &context,
+	llvm::Value *result_address
+)
+{
+	return emit_bitcode(noop_forward.expr, context, result_address);
+}
+
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
 	ast::expr_take_reference const &take_ref,
 	bitcode_context &context,
 	llvm::Value *result_address

@@ -129,7 +129,7 @@ bool expression::not_error(void) const
 template<typename expr_t, bool get_inner = true>
 static bz::meta::conditional<get_inner, expr_t, expression> &get_expr_kind(expression &expr_)
 {
-	auto &expr = expr_.get_expr();
+	auto &expr = expr_.get_self_expr();
 	if constexpr (bz::meta::is_same<expr_t, constant_expression>)
 	{
 		if (expr_.is_constant())
@@ -194,6 +194,10 @@ static bz::meta::conditional<get_inner, expr_t, expression> &get_expr_kind(expre
 		{
 			return get_expr_kind<expr_t, get_inner>(if_consteval.else_block);
 		}
+	}
+	else if (expr.is<expr_noop_forward>())
+	{
+		return get_expr_kind<expr_t, get_inner>(expr.get<expr_noop_forward>().expr);
 	}
 	else
 	{
@@ -204,7 +208,7 @@ static bz::meta::conditional<get_inner, expr_t, expression> &get_expr_kind(expre
 template<typename expr_t, bool get_inner = true>
 static bz::meta::conditional<get_inner, expr_t, expression> const &get_expr_kind(expression const &expr_)
 {
-	auto &expr = expr_.get_expr();
+	auto &expr = expr_.get_self_expr();
 	if constexpr (bz::meta::is_same<expr_t, constant_expression>)
 	{
 		if (expr_.is_constant())
@@ -269,6 +273,10 @@ static bz::meta::conditional<get_inner, expr_t, expression> const &get_expr_kind
 		{
 			return get_expr_kind<expr_t, get_inner>(if_consteval.else_block);
 		}
+	}
+	else if (expr.is<expr_noop_forward>())
+	{
+		return get_expr_kind<expr_t, get_inner>(expr.get<expr_noop_forward>().expr);
 	}
 	else
 	{
@@ -458,6 +466,26 @@ expression const &expression::get_enum_literal_expr(void) const noexcept
 	return get_expr_kind<expr_enum_literal, false>(*this);
 }
 
+expression &expression::remove_noop_forward(void) noexcept
+{
+	expression *it = this;
+	while (it->is_constant_or_dynamic() && it->get_self_expr().is<expr_noop_forward>())
+	{
+		it = &it->get_self_expr().get<expr_noop_forward>().expr;
+	}
+	return *it;
+}
+
+expression const &expression::remove_noop_forward(void) const noexcept
+{
+	expression const *it = this;
+	while (it->is_constant_or_dynamic() && it->get_self_expr().is<expr_noop_forward>())
+	{
+		it = &it->get_self_expr().get<expr_noop_forward>().expr;
+	}
+	return *it;
+}
+
 bool expression::is_null_literal(void) const noexcept
 {
 	return is_expr_kind_helper(*this, expression_type_kind::null_literal);
@@ -625,7 +653,7 @@ bool expression::has_consteval_failed(void) const noexcept
 	return this->consteval_state == consteval_failed;
 }
 
-expr_t &expression::get_expr(void)
+expr_t &expression::get_self_expr(void)
 {
 	bz_assert(this->is_constant_or_dynamic());
 	if (this->is_constant())
@@ -638,7 +666,7 @@ expr_t &expression::get_expr(void)
 	}
 }
 
-expr_t const &expression::get_expr(void) const
+expr_t const &expression::get_self_expr(void) const
 {
 	bz_assert(this->is_constant_or_dynamic());
 	if (this->is_constant())
@@ -649,6 +677,16 @@ expr_t const &expression::get_expr(void) const
 	{
 		return this->get_dynamic().expr;
 	}
+}
+
+expr_t &expression::get_expr(void)
+{
+	return this->remove_noop_forward().get_self_expr();
+}
+
+expr_t const &expression::get_expr(void) const
+{
+	return this->remove_noop_forward().get_self_expr();
 }
 
 unresolved_expr_t &expression::get_unresolved_expr(void)
@@ -667,7 +705,7 @@ bool expression::is_special_top_level(void) const noexcept
 {
 	if (this->is_constant_or_dynamic())
 	{
-		auto &expr = this->get_expr();
+		auto &expr = this->get_self_expr();
 		return (expr.is<expr_compound>() && this->paren_level == 0)
 			|| (expr.is<expr_if>()       && this->paren_level == 0)
 			|| (expr.is<expr_switch>()   && this->paren_level == 0);

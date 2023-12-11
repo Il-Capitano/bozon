@@ -40,6 +40,7 @@ struct expr_indirect_function_call;
 struct expr_cast;
 struct expr_bit_cast;
 struct expr_optional_cast;
+struct expr_noop_forward;
 struct expr_take_reference;
 struct expr_take_move_reference;
 struct expr_aggregate_init;
@@ -138,6 +139,7 @@ using expr_t = node<
 	expr_cast,
 	expr_bit_cast,
 	expr_optional_cast,
+	expr_noop_forward,
 	expr_take_reference,
 	expr_take_move_reference,
 	expr_aggregate_init,
@@ -503,6 +505,9 @@ struct expression : bz::variant<
 	expression &get_enum_literal_expr(void) noexcept;
 	expression const &get_enum_literal_expr(void) const noexcept;
 
+	expression &remove_noop_forward(void) noexcept;
+	expression const &remove_noop_forward(void) const noexcept;
+
 	bool is_null_literal(void) const noexcept;
 	bool is_placeholder_literal(void) const noexcept;
 
@@ -533,6 +538,9 @@ struct expression : bz::variant<
 
 	bool has_consteval_succeeded(void) const noexcept;
 	bool has_consteval_failed(void) const noexcept;
+
+	expr_t &get_self_expr(void);
+	expr_t const &get_self_expr(void) const;
 
 	expr_t &get_expr(void);
 	expr_t const &get_expr(void) const;
@@ -861,6 +869,15 @@ struct expr_optional_cast
 	)
 		: expr(std::move(_expr)),
 		  type(std::move(_type))
+	{}
+};
+
+struct expr_noop_forward
+{
+	expression expr;
+
+	expr_noop_forward(expression _expr)
+		: expr(std::move(_expr))
 	{}
 };
 
@@ -1794,6 +1811,7 @@ def_make_fn(expr_t, expr_indirect_function_call)
 def_make_fn(expr_t, expr_cast)
 def_make_fn(expr_t, expr_bit_cast)
 def_make_fn(expr_t, expr_optional_cast)
+def_make_fn(expr_t, expr_noop_forward)
 def_make_fn(expr_t, expr_take_reference)
 def_make_fn(expr_t, expr_take_move_reference)
 def_make_fn(expr_t, expr_aggregate_init)
