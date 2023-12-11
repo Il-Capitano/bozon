@@ -29,6 +29,38 @@
 // 0
 // 42
 // 123
+// ================
+// value_arg
+// 0
+// 42
+// 123
+// 123
+// 0
+// 42
+// 123
+// 123
+// 0
+// 42
+// 123
+// 123
+// reference_arg
+// 123
+// 123
+// 123
+// mut_reference_arg
+// 123
+// 123
+// 123
+// move_reference_arg
+// 0
+// 42
+// 123
+// 0
+// 42
+// 123
+// 0
+// 42
+// 123
 import std::format;
 import counting_resource;
 
@@ -149,6 +181,77 @@ function main()
 		move_reference_arg3(counting_resource_t(42));
 		let res = counting_resource_t(123);
 		move_reference_arg3(move res);
+	}
+
+	std::print("================\n");
+
+	{
+		std::print("value_arg\n");
+		let f: function(int32) = value_arg1;
+		f(0);
+		f(42);
+		let n = 123;
+		f(n);
+		f(move n);
+
+		let f: function(relocatable_counting_resource_t) = value_arg2;
+		f(relocatable_counting_resource_t());
+		f(relocatable_counting_resource_t(42));
+		let res = relocatable_counting_resource_t(123);
+		f(res);
+		f(move res);
+
+		let f: function(counting_resource_t) = value_arg3;
+		f(counting_resource_t());
+		f(counting_resource_t(42));
+		let res = counting_resource_t(123);
+		f(res);
+		f(move res);
+
+		std::print("reference_arg\n");
+		let f: function(&int32) = reference_arg1;
+		let n = 123;
+		f(n);
+
+		let f: function(&relocatable_counting_resource_t) = reference_arg2;
+		let res = relocatable_counting_resource_t(123);
+		f(res);
+
+		let f: function(&counting_resource_t) = reference_arg3;
+		let res = counting_resource_t(123);
+		f(res);
+
+		std::print("mut_reference_arg\n");
+		let f: function(&mut int32) = mut_reference_arg1;
+		mut n = 123;
+		f(n);
+
+		let f: function(&mut relocatable_counting_resource_t) = mut_reference_arg2;
+		mut res = relocatable_counting_resource_t(123);
+		f(res);
+
+		let f: function(&mut counting_resource_t) = mut_reference_arg3;
+		mut res = counting_resource_t(123);
+		f(res);
+
+		std::print("move_reference_arg\n");
+		let f: function(move int32) = move_reference_arg1;
+		f(0);
+		f(42);
+		let n = 123;
+		f(move n);
+
+		let f: function(move relocatable_counting_resource_t) = move_reference_arg2;
+		f(relocatable_counting_resource_t());
+		f(relocatable_counting_resource_t(42));
+		let res = relocatable_counting_resource_t(123);
+		f(move res);
+
+		let f: function(move counting_resource_t) = move_reference_arg3;
+		f(counting_resource_t());
+		f(counting_resource_t(42));
+		let res = counting_resource_t(123);
+		f(move res);
 	}
 
 	if (!relocatable_counting_resource_is_valid()) unreachable;
