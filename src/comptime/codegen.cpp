@@ -4188,6 +4188,15 @@ static expr_value generate_expr_code(
 }
 
 static expr_value generate_expr_code(
+	ast::expr_noop_forward const &noop_forward,
+	codegen_context &context,
+	bz::optional<expr_value> result_address
+)
+{
+	return generate_expr_code(noop_forward.expr, context, result_address);
+}
+
+static expr_value generate_expr_code(
 	ast::expr_take_reference const &take_ref,
 	codegen_context &context
 )
@@ -5962,7 +5971,7 @@ static expr_value generate_expr_code(
 {
 	switch (expr.kind())
 	{
-	static_assert(ast::expr_t::variant_count == 72);
+	static_assert(ast::expr_t::variant_count == 73);
 	case ast::expr_t::index<ast::expr_variable_name>:
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(original_expression, expr.get<ast::expr_variable_name>(), context);
@@ -6016,6 +6025,8 @@ static expr_value generate_expr_code(
 		return generate_expr_code(original_expression, expr.get<ast::expr_bit_cast>(), context, result_address);
 	case ast::expr_t::index<ast::expr_optional_cast>:
 		return generate_expr_code(original_expression, expr.get<ast::expr_optional_cast>(), context, result_address);
+	case ast::expr_t::index<ast::expr_noop_forward>:
+		return generate_expr_code(expr.get<ast::expr_noop_forward>(), context, result_address);
 	case ast::expr_t::index<ast::expr_take_reference>:
 		bz_assert(!result_address.has_value());
 		return generate_expr_code(expr.get<ast::expr_take_reference>(), context);

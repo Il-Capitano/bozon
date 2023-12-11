@@ -37,7 +37,7 @@ void consume_semi_colon_at_end_of_expression(
 {
 	if (expr.is_constant_or_dynamic())
 	{
-		expr.get_expr().visit(bz::overload{
+		expr.get_self_expr().visit(bz::overload{
 			[&](ast::expr_compound const &compound_expr) {
 				if (expr.paren_level == 0)
 				{

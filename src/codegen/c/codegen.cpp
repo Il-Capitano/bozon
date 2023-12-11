@@ -4424,6 +4424,15 @@ static expr_value generate_expression(
 }
 
 static expr_value generate_expression(
+	ast::expr_noop_forward const &noop_forward,
+	codegen_context &context,
+	bz::optional<expr_value> result_dest
+)
+{
+	return generate_expression(noop_forward.expr, context, result_dest);
+}
+
+static expr_value generate_expression(
 	ast::expr_take_reference const &take_reference,
 	codegen_context &context
 )
@@ -6015,7 +6024,7 @@ static expr_value generate_expression(
 {
 	switch (expr.kind())
 	{
-	static_assert(ast::expr_t::variant_count == 72);
+	static_assert(ast::expr_t::variant_count == 73);
 	case ast::expr_t::index<ast::expr_variable_name>:
 		bz_assert(!result_dest.has_value());
 		return generate_expression(expr.get<ast::expr_variable_name>(), context);
@@ -6081,6 +6090,8 @@ static expr_value generate_expression(
 		return generate_expression(expr.get<ast::expr_bit_cast>(), context, result_dest);
 	case ast::expr_t::index<ast::expr_optional_cast>:
 		return generate_expression(expr.get<ast::expr_optional_cast>(), context, result_dest);
+	case ast::expr_t::index<ast::expr_noop_forward>:
+		return generate_expression(expr.get<ast::expr_noop_forward>(), context, result_dest);
 	case ast::expr_t::index<ast::expr_take_reference>:
 		bz_assert(!result_dest.has_value());
 		return generate_expression(expr.get<ast::expr_take_reference>(), context);
