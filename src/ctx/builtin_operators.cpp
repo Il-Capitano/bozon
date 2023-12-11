@@ -1179,7 +1179,11 @@ ast::expression make_builtin_cast(
 			}
 		}
 
-		if (ast::is_arithmetic_kind(expr_kind) && ast::is_arithmetic_kind(dest_kind))
+		if (expr_kind == dest_kind)
+		{
+			return context.make_copy_construction(std::move(expr));
+		}
+		else if (ast::is_arithmetic_kind(expr_kind) && ast::is_arithmetic_kind(dest_kind))
 		{
 			ast::typespec dest_t_copy = dest_t;
 			return ast::make_dynamic_expression(
