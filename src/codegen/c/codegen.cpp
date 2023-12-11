@@ -36,10 +36,38 @@ static type get_type(ast::typespec_view ts, codegen_context &context, bool resol
 		{
 			// can be optional function as well
 			auto const &func_type = ts.terminator->get<ast::ts_function>();
-			auto const return_type = get_type(func_type.return_type, context, false);
-			auto param_types = func_type.param_types.transform([&context](auto const &param_type) {
-				return get_type(param_type, context, false);
-			}).collect<ast::arena_vector>();
+			auto const return_by_pointer = !func_type.return_type.is<ast::ts_void>()
+				&& !func_type.return_type.is_any_reference()
+				&& !ast::is_trivially_relocatable(func_type.return_type);
+
+			ast::arena_vector<type> param_types;
+			param_types.reserve(func_type.param_types.size() + (return_by_pointer ? 1 : 0));
+			auto const return_type = [&]() {
+				auto const return_type = get_type(func_type.return_type, context, false);
+				if (return_by_pointer)
+				{
+					param_types.push_back(context.add_pointer(return_type));
+					return context.get_void();
+				}
+				else
+				{
+					return return_type;
+				}
+			}();
+
+			for (auto const &param_type : func_type.param_types)
+			{
+				auto const pass_by_pointer = !param_type.is_any_reference() && !ast::is_trivially_relocatable(param_type);
+				auto const c_param_type = get_type(param_type, context, false);
+				if (pass_by_pointer)
+				{
+					param_types.push_back(context.add_pointer(c_param_type));
+				}
+				else
+				{
+					param_types.push_back(c_param_type);
+				}
+			}
 			return type(context.add_function({ return_type, std::move(param_types) }));
 		}
 		case ast::terminator_typespec_node_t::index_of<ast::ts_array>:
