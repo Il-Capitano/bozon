@@ -47,12 +47,23 @@ struct is_byval_and_type_pair
 	llvm::Type *type;
 };
 
+static val_ptr value_or_result_address(llvm::Value *value, llvm::Value *result_address, bitcode_context &context)
+{
+	if (result_address != nullptr)
+	{
+		auto const result_type = value->getType();
+		context.builder.CreateStore(value, result_address);
+		return val_ptr::get_reference(result_address, result_type);
+	}
+	else
+	{
+		return val_ptr::get_value(value);
+	}
+}
+
 static void emit_memcpy(llvm::Value *dest, llvm::Value *source, size_t size, bitcode_context &context)
 {
-	auto const memcpy_fn = context.get_function(context.get_builtin_function(ast::function_body::memcpy));
-	auto const size_val = llvm::ConstantInt::get(context.get_usize_t(), size);
-	auto const false_val = context.builder.getFalse();
-	context.create_call(memcpy_fn, { dest, source, size_val, false_val });
+	context.builder.CreateMemCpy(dest, std::nullopt, source, std::nullopt, size);
 }
 
 static void emit_value_copy(val_ptr value, llvm::Value *dest_ptr, bitcode_context &context)
@@ -218,8 +229,7 @@ static void emit_panic_call(
 	auto const panic_handler_func_body = context.get_builtin_function(ast::function_body::builtin_panic_handler);
 	if (panic_handler_func_body == nullptr)
 	{
-		auto const trap_fn = context.get_function(context.get_builtin_function(ast::function_body::trap));
-		context.builder.CreateCall(trap_fn);
+		context.builder.CreateIntrinsic(llvm::Intrinsic::trap, {}, {});
 
 		auto const current_ret_type = context.current_function.second->getReturnType();
 		if (current_ret_type->isVoidTy())
@@ -279,8 +289,7 @@ static void emit_panic_call(
 	}
 
 	// just to be sure...
-	auto const trap_fn = context.get_function(context.get_builtin_function(ast::function_body::trap));
-	context.builder.CreateCall(trap_fn);
+	context.builder.CreateIntrinsic(llvm::Intrinsic::trap, {}, {});
 
 	auto const current_ret_type = context.current_function.second->getReturnType();
 	if (current_ret_type->isVoidTy())
@@ -2872,31 +2881,6 @@ static call_args_info_t emit_function_call_args(
 		args_is_byval.push_front({ false, nullptr });
 	}
 
-	if (
-		func_call.func_body->is_intrinsic()
-		&& (
-			func_call.func_body->intrinsic_kind == ast::function_body::memcpy
-			|| func_call.func_body->intrinsic_kind == ast::function_body::memmove
-			|| func_call.func_body->intrinsic_kind == ast::function_body::memset
-			|| func_call.func_body->intrinsic_kind == ast::function_body::clz_u8
-			|| func_call.func_body->intrinsic_kind == ast::function_body::clz_u16
-			|| func_call.func_body->intrinsic_kind == ast::function_body::clz_u32
-			|| func_call.func_body->intrinsic_kind == ast::function_body::clz_u64
-			|| func_call.func_body->intrinsic_kind == ast::function_body::ctz_u8
-			|| func_call.func_body->intrinsic_kind == ast::function_body::ctz_u16
-			|| func_call.func_body->intrinsic_kind == ast::function_body::ctz_u32
-			|| func_call.func_body->intrinsic_kind == ast::function_body::ctz_u64
-			|| func_call.func_body->intrinsic_kind == ast::function_body::abs_i8
-			|| func_call.func_body->intrinsic_kind == ast::function_body::abs_i16
-			|| func_call.func_body->intrinsic_kind == ast::function_body::abs_i32
-			|| func_call.func_body->intrinsic_kind == ast::function_body::abs_i64
-		)
-	)
-	{
-		args.push_back(context.builder.getFalse());
-		args_is_byval.push_back({ false, nullptr });
-	}
-
 	return { std::move(args), std::move(args_is_byval) };
 }
 
@@ -3048,32 +3032,14 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 1);
 			auto const arg = emit_bitcode(func_call.params[0], context, nullptr);
 			auto const begin_ptr = context.get_struct_element(arg, 0).get_value(context.builder);
-			if (result_address != nullptr)
-			{
-				auto const result_type = begin_ptr->getType();
-				context.builder.CreateStore(begin_ptr, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(begin_ptr);
-			}
+			return value_or_result_address(begin_ptr, result_address, context);
 		}
 		case ast::function_body::builtin_str_end_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
 			auto const arg = emit_bitcode(func_call.params[0], context, nullptr);
 			auto const end_ptr = context.get_struct_element(arg, 1).get_value(context.builder);
-			if (result_address != nullptr)
-			{
-				auto const result_type = end_ptr->getType();
-				context.builder.CreateStore(end_ptr, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(end_ptr);
-			}
+			return value_or_result_address(end_ptr, result_address, context);
 		}
 		case ast::function_body::builtin_str_from_ptrs:
 		{
@@ -3094,10 +3060,8 @@ static val_ptr emit_bitcode(
 				bz_assert(context.get_str_t()->isStructTy());
 				auto const str_t = static_cast<llvm::StructType *>(context.get_str_t());
 				auto const str_member_t = str_t->getElementType(0);
-				llvm::Value *result = llvm::ConstantStruct::get(
-					str_t,
-					{ llvm::UndefValue::get(str_member_t), llvm::UndefValue::get(str_member_t) }
-				);
+				auto const undef_value = llvm::UndefValue::get(str_member_t);
+				llvm::Value *result = llvm::ConstantStruct::get(str_t, undef_value, undef_value);
 				result = context.builder.CreateInsertValue(result, begin_ptr, 0);
 				result = context.builder.CreateInsertValue(result, end_ptr,   1);
 				return val_ptr::get_value(result);
@@ -3109,16 +3073,7 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 1);
 			auto const slice = emit_bitcode(func_call.params[0], context, nullptr);
 			auto const begin_ptr = context.get_struct_element(slice, 0).get_value(context.builder);
-			if (result_address != nullptr)
-			{
-				auto const result_type = begin_ptr->getType();
-				context.builder.CreateStore(begin_ptr, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(begin_ptr);
-			}
+			return value_or_result_address(begin_ptr, result_address, context);
 		}
 		case ast::function_body::builtin_slice_end_ptr:
 		case ast::function_body::builtin_slice_end_mut_ptr:
@@ -3126,16 +3081,7 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 1);
 			auto const slice = emit_bitcode(func_call.params[0], context, nullptr);
 			auto const end_ptr = context.get_struct_element(slice, 1).get_value(context.builder);
-			if (result_address != nullptr)
-			{
-				auto const result_type = end_ptr->getType();
-				context.builder.CreateStore(end_ptr, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(end_ptr);
-			}
+			return value_or_result_address(end_ptr, result_address, context);
 		}
 		case ast::function_body::builtin_slice_from_ptrs:
 		case ast::function_body::builtin_slice_from_mut_ptrs:
@@ -3143,7 +3089,7 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 2);
 			auto const begin_ptr = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
 			auto const end_ptr   = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
-			auto const slice_t = get_llvm_type(func_call.func_body->return_type, context);
+			auto const slice_t = context.get_slice_t();
 			if (result_address != nullptr)
 			{
 				auto const result_begin_ptr = context.create_struct_gep(slice_t, result_address, 0);
@@ -3157,10 +3103,8 @@ static val_ptr emit_bitcode(
 				bz_assert(begin_ptr->getType()->isPointerTy());
 				bz_assert(slice_t->isStructTy());
 				auto const slice_member_t = slice_t->getStructElementType(0);
-				llvm::Value *result = llvm::ConstantStruct::get(
-					static_cast<llvm::StructType *>(slice_t),
-					{ llvm::UndefValue::get(slice_member_t), llvm::UndefValue::get(slice_member_t) }
-				);
+				auto const undef_value = llvm::UndefValue::get(slice_member_t);
+				llvm::Value *result = llvm::ConstantStruct::get(slice_t, undef_value, undef_value);
 				result = context.builder.CreateInsertValue(result, begin_ptr, 0);
 				result = context.builder.CreateInsertValue(result, end_ptr,   1);
 				return val_ptr::get_value(result);
@@ -3174,16 +3118,7 @@ static val_ptr emit_bitcode(
 			bz_assert(arr.kind == val_ptr::reference);
 			bz_assert(arr.get_type()->isArrayTy());
 			auto const begin_ptr = context.get_struct_element(arr, 0).val;
-			if (result_address != nullptr)
-			{
-				auto const result_type = begin_ptr->getType();
-				context.builder.CreateStore(begin_ptr, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(begin_ptr);
-			}
+			return value_or_result_address(begin_ptr, result_address, context);
 		}
 		case ast::function_body::builtin_array_end_ptr:
 		case ast::function_body::builtin_array_end_mut_ptr:
@@ -3194,16 +3129,7 @@ static val_ptr emit_bitcode(
 			bz_assert(arr.get_type()->isArrayTy());
 			auto const size = arr.get_type()->getArrayNumElements();
 			auto const end_ptr = context.get_struct_element(arr, size).val;
-			if (result_address != nullptr)
-			{
-				auto const result_type = end_ptr->getType();
-				context.builder.CreateStore(end_ptr, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(end_ptr);
-			}
+			return value_or_result_address(end_ptr, result_address, context);
 		}
 		case ast::function_body::builtin_array_size:
 			// this is guaranteed to be constant evaluated
@@ -3316,15 +3242,7 @@ static val_ptr emit_bitcode(
 			auto const begin_value_ptr = context.create_struct_gep(range_val.get_type(), range_val.val, 0);
 			auto const result_type = range_val.get_type()->getStructElementType(0);
 			auto const begin_value = context.builder.CreateLoad(result_type, begin_value_ptr);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(begin_value, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(begin_value);
-			}
+			return value_or_result_address(begin_value, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_end_value:
 		case ast::function_body::builtin_integer_range_inclusive_end_value:
@@ -3334,15 +3252,7 @@ static val_ptr emit_bitcode(
 			auto const end_value_ptr = context.create_struct_gep(range_val.get_type(), range_val.val, 1);
 			auto const result_type = range_val.get_type()->getStructElementType(0);
 			auto const end_value = context.builder.CreateLoad(result_type, end_value_ptr);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(end_value, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(end_value);
-			}
+			return value_or_result_address(end_value, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_from_begin_value:
 		{
@@ -3351,15 +3261,7 @@ static val_ptr emit_bitcode(
 			auto const begin_value_ptr = context.create_struct_gep(range_val.get_type(), range_val.val, 0);
 			auto const result_type = range_val.get_type()->getStructElementType(0);
 			auto const begin_value = context.builder.CreateLoad(result_type, begin_value_ptr);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(begin_value, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(begin_value);
-			}
+			return value_or_result_address(begin_value, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_to_end_value:
 		case ast::function_body::builtin_integer_range_to_inclusive_end_value:
@@ -3369,15 +3271,7 @@ static val_ptr emit_bitcode(
 			auto const end_value_ptr = context.create_struct_gep(range_val.get_type(), range_val.val, 0);
 			auto const result_type = range_val.get_type()->getStructElementType(0);
 			auto const end_value = context.builder.CreateLoad(result_type, end_value_ptr);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(end_value, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(end_value);
-			}
+			return value_or_result_address(end_value, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_begin_iterator:
 		{
@@ -3418,15 +3312,7 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 1);
 			auto const it_value = emit_bitcode(func_call.params[0], context, nullptr);
 			auto const integer_value = context.get_struct_element(it_value, 0).get_value(context.builder);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(integer_value, result_address);
-				return val_ptr::get_reference(result_address, integer_value->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(integer_value);
-			}
+			return value_or_result_address(integer_value, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_iterator_equals:
 		{
@@ -3436,15 +3322,7 @@ static val_ptr emit_bitcode(
 			auto const lhs_integer_value = context.get_struct_element(lhs_it_value, 0).get_value(context.builder);
 			auto const rhs_integer_value = context.get_struct_element(rhs_it_value, 0).get_value(context.builder);
 			auto const result = context.builder.CreateICmpEQ(lhs_integer_value, rhs_integer_value);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_iterator_not_equals:
 		{
@@ -3454,15 +3332,7 @@ static val_ptr emit_bitcode(
 			auto const lhs_integer_value = context.get_struct_element(lhs_it_value, 0).get_value(context.builder);
 			auto const rhs_integer_value = context.get_struct_element(rhs_it_value, 0).get_value(context.builder);
 			auto const result = context.builder.CreateICmpNE(lhs_integer_value, rhs_integer_value);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_iterator_plus_plus:
 		{
@@ -3527,15 +3397,7 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 1);
 			auto const it_value = emit_bitcode(func_call.params[0], context, nullptr);
 			auto const integer_value = context.get_struct_element(it_value, 0).get_value(context.builder);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(integer_value, result_address);
-				return val_ptr::get_reference(result_address, integer_value->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(integer_value);
-			}
+			return value_or_result_address(integer_value, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_inclusive_iterator_left_equals:
 		{
@@ -3543,15 +3405,7 @@ static val_ptr emit_bitcode(
 			auto const it_value = emit_bitcode(func_call.params[0], context, nullptr);
 			emit_bitcode(func_call.params[1], context, nullptr);
 			auto const at_end = context.get_struct_element(it_value, 2).get_value(context.builder);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(at_end, result_address);
-				return val_ptr::get_reference(result_address, at_end->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(at_end);
-			}
+			return value_or_result_address(at_end, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_inclusive_iterator_right_equals:
 		{
@@ -3559,15 +3413,7 @@ static val_ptr emit_bitcode(
 			emit_bitcode(func_call.params[0], context, nullptr);
 			auto const it_value = emit_bitcode(func_call.params[1], context, nullptr);
 			auto const at_end = context.get_struct_element(it_value, 2).get_value(context.builder);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(at_end, result_address);
-				return val_ptr::get_reference(result_address, at_end->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(at_end);
-			}
+			return value_or_result_address(at_end, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_inclusive_iterator_left_not_equals:
 		{
@@ -3576,15 +3422,7 @@ static val_ptr emit_bitcode(
 			emit_bitcode(func_call.params[1], context, nullptr);
 			auto const at_end = context.get_struct_element(it_value, 2).get_value(context.builder);
 			auto const result = context.builder.CreateNot(at_end);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_inclusive_iterator_right_not_equals:
 		{
@@ -3593,15 +3431,7 @@ static val_ptr emit_bitcode(
 			auto const it_value = emit_bitcode(func_call.params[1], context, nullptr);
 			auto const at_end = context.get_struct_element(it_value, 2).get_value(context.builder);
 			auto const result = context.builder.CreateNot(at_end);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_inclusive_iterator_plus_plus:
 		{
@@ -3674,15 +3504,7 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 1);
 			auto const it_value = emit_bitcode(func_call.params[0], context, nullptr);
 			auto const integer_value = context.get_struct_element(it_value, 0).get_value(context.builder);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(integer_value, result_address);
-				return val_ptr::get_reference(result_address, integer_value->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(integer_value);
-			}
+			return value_or_result_address(integer_value, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_from_iterator_left_equals:
 		case ast::function_body::builtin_integer_range_from_iterator_right_equals:
@@ -3690,16 +3512,7 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 2);
 			emit_bitcode(func_call.params[0], context, nullptr);
 			emit_bitcode(func_call.params[1], context, nullptr);
-			auto const result = context.builder.getFalse();
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(context.builder.getFalse(), result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_from_iterator_left_not_equals:
 		case ast::function_body::builtin_integer_range_from_iterator_right_not_equals:
@@ -3707,16 +3520,7 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 2);
 			emit_bitcode(func_call.params[0], context, nullptr);
 			emit_bitcode(func_call.params[1], context, nullptr);
-			auto const result = context.builder.getTrue();
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(context.builder.getTrue(), result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_from_iterator_plus_plus:
 		{
@@ -3750,16 +3554,7 @@ static val_ptr emit_bitcode(
 			auto const ptr = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
 			bz_assert(ptr->getType()->isPointerTy());
 			auto const result = context.builder.CreatePointerCast(ptr, dest_type);
-			if (result_address != nullptr)
-			{
-				auto const result_type = result->getType();
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
 		}
 		case ast::function_body::builtin_pointer_to_int:
 		{
@@ -3767,16 +3562,7 @@ static val_ptr emit_bitcode(
 			auto const ptr = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
 			bz_assert(ptr->getType()->isPointerTy());
 			auto const result = context.builder.CreatePtrToInt(ptr, context.get_usize_t());
-			if (result_address != nullptr)
-			{
-				auto const result_type = result->getType();
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
 		}
 		case ast::function_body::builtin_int_to_pointer:
 		{
@@ -3786,16 +3572,7 @@ static val_ptr emit_bitcode(
 			auto const val = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
 			bz_assert(val->getType()->isIntegerTy());
 			auto const result = context.builder.CreateIntToPtr(val, dest_type);
-			if (result_address != nullptr)
-			{
-				auto const result_type = result->getType();
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
 		}
 		case ast::function_body::builtin_enum_value:
 			bz_assert(func_call.params.size() == 1);
@@ -3815,25 +3592,14 @@ static val_ptr emit_bitcode(
 			bz_unreachable;
 		case ast::function_body::builtin_is_comptime:
 		{
-			auto const result_val = context.builder.getFalse();
-			if (result_address != nullptr)
-			{
-				auto const result_type = result_val->getType();
-				context.builder.CreateStore(result_val, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(result_val);
-			}
+			return value_or_result_address(context.builder.getFalse(), result_address, context);
 		}
 		case ast::function_body::builtin_panic:
 		{
 			auto const handler_fn = context.get_builtin_function(ast::function_body::builtin_panic_handler);
 			if (handler_fn == nullptr)
 			{
-				auto const trap_fn = context.get_function(context.get_builtin_function(ast::function_body::trap));
-				context.builder.CreateCall(trap_fn);
+				context.builder.CreateIntrinsic(llvm::Intrinsic::trap, {}, {});
 				return val_ptr::get_none();
 			}
 
@@ -3859,8 +3625,7 @@ static val_ptr emit_bitcode(
 			}
 
 			// just to be sure...
-			auto const trap_fn = context.get_function(context.get_builtin_function(ast::function_body::trap));
-			context.builder.CreateCall(trap_fn);
+			context.builder.CreateIntrinsic(llvm::Intrinsic::trap, {}, {});
 
 			return val_ptr::get_none();
 		}
@@ -3876,9 +3641,8 @@ static val_ptr emit_bitcode(
 			auto const type_size = llvm::ConstantInt::get(count->getType(), context.get_size(type));
 			auto const size = context.builder.CreateMul(count, type_size);
 
-			auto const memcpy_fn = context.get_function(context.get_builtin_function(ast::function_body::memcpy));
-			auto const false_val = context.builder.getFalse();
-			context.create_call(memcpy_fn, { dest, source, size, false_val });
+			auto const align = context.get_data_layout().getPrefTypeAlign(type);
+			context.builder.CreateMemCpy(dest, align, source, align, size);
 			return val_ptr::get_none();
 		}
 		case ast::function_body::trivially_copy_overlapping_values:
@@ -3892,9 +3656,8 @@ static val_ptr emit_bitcode(
 			auto const type_size = llvm::ConstantInt::get(count->getType(), context.get_size(type));
 			auto const size = context.builder.CreateMul(count, type_size);
 
-			auto const memmove_fn = context.get_function(context.get_builtin_function(ast::function_body::memmove));
-			auto const false_val = context.builder.getFalse();
-			context.create_call(memmove_fn, { dest, source, size, false_val });
+			auto const align = context.get_data_layout().getPrefTypeAlign(type);
+			context.builder.CreateMemMove(dest, align, source, align, size);
 			return val_ptr::get_none();
 		}
 		case ast::function_body::trivially_relocate_values:
@@ -3908,9 +3671,8 @@ static val_ptr emit_bitcode(
 			auto const type_size = llvm::ConstantInt::get(count->getType(), context.get_size(type));
 			auto const size = context.builder.CreateMul(count, type_size);
 
-			auto const memmove_fn = context.get_function(context.get_builtin_function(ast::function_body::memmove));
-			auto const false_val = context.builder.getFalse();
-			context.create_call(memmove_fn, { dest, source, size, false_val });
+			auto const align = context.get_data_layout().getPrefTypeAlign(type);
+			context.builder.CreateMemMove(dest, align, source, align, size);
 			return val_ptr::get_none();
 		}
 		case ast::function_body::trivially_set_values:
@@ -3923,9 +3685,7 @@ static val_ptr emit_bitcode(
 
 			if (type == context.get_uint8_t())
 			{
-				auto const memset_fn = context.get_function(context.get_builtin_function(ast::function_body::memset));
-				auto const false_val = context.builder.getFalse();
-				context.create_call(memset_fn, { dest, value.get_value(context.builder), count, false_val });
+				context.builder.CreateMemSet(dest, value.get_value(context.builder), count, std::nullopt);
 				return val_ptr::get_none();
 			}
 			else
@@ -3962,6 +3722,44 @@ static val_ptr emit_bitcode(
 			// this handled as a separate expression
 			bz_unreachable;
 
+		case ast::function_body::trap:
+		{
+			bz_assert(func_call.params.size() == 0);
+			context.builder.CreateIntrinsic(llvm::Intrinsic::trap, {}, {});
+			bz_assert(result_address == nullptr);
+			return val_ptr::get_none();
+		}
+		case ast::function_body::memcpy:
+		{
+			bz_assert(func_call.params.size() == 3);
+			auto const dest = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const src = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const n = emit_bitcode(func_call.params[2], context, nullptr).get_value(context.builder);
+			context.builder.CreateMemCpy(dest, std::nullopt, src, std::nullopt, n);
+			bz_assert(result_address == nullptr);
+			return val_ptr::get_none();
+		}
+		case ast::function_body::memmove:
+		{
+			bz_assert(func_call.params.size() == 3);
+			auto const dest = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const src = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const n = emit_bitcode(func_call.params[2], context, nullptr).get_value(context.builder);
+			context.builder.CreateMemMove(dest, std::nullopt, src, std::nullopt, n);
+			bz_assert(result_address == nullptr);
+			return val_ptr::get_none();
+		}
+		case ast::function_body::memset:
+		{
+			bz_assert(func_call.params.size() == 3);
+			auto const dest = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const val = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const n = emit_bitcode(func_call.params[2], context, nullptr).get_value(context.builder);
+			context.builder.CreateMemSet(dest, val, n, std::nullopt);
+			bz_assert(result_address == nullptr);
+			return val_ptr::get_none();
+		}
+
 		// https://llvm.org/docs/LangRef.html#llvm-is-fpclass-intrinsic
 		case ast::function_body::isnan_f32:
 		case ast::function_body::isnan_f64:
@@ -3972,16 +3770,7 @@ static val_ptr emit_bitcode(
 				(1u << 0) // signaling nan
 				| (1u << 1); // quiet nan
 			auto const result = context.builder.createIsFPClass(x, test);
-			if (result_address != nullptr)
-			{
-				auto const result_type = result->getType();
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
 		}
 		case ast::function_body::isinf_f32:
 		case ast::function_body::isinf_f64:
@@ -3992,16 +3781,7 @@ static val_ptr emit_bitcode(
 				(1u << 2) // negative infinity
 				| (1u << 9); // positive infinity
 			auto const result = context.builder.createIsFPClass(x, test);
-			if (result_address != nullptr)
-			{
-				auto const result_type = result->getType();
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
 		}
 		case ast::function_body::isfinite_f32:
 		case ast::function_body::isfinite_f64:
@@ -4016,16 +3796,245 @@ static val_ptr emit_bitcode(
 				| (1u << 7) // positive subnormal
 				| (1u << 8); // positive normal
 			auto const result = context.builder.createIsFPClass(x, test);
-			if (result_address != nullptr)
-			{
-				auto const result_type = result->getType();
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::abs_i8:
+		case ast::function_body::abs_i16:
+		case ast::function_body::abs_i32:
+		case ast::function_body::abs_i64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const a = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateIntrinsic(
+				llvm::Intrinsic::abs,
+				a->getType(),
+				{ a, context.builder.getFalse() }
+			);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::abs_f32:
+		case ast::function_body::abs_f64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const a = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateUnaryIntrinsic(llvm::Intrinsic::fabs, a);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::min_i8:
+		case ast::function_body::min_i16:
+		case ast::function_body::min_i32:
+		case ast::function_body::min_i64:
+		{
+			bz_assert(func_call.params.size() == 2);
+			auto const a = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const b = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateBinaryIntrinsic(llvm::Intrinsic::smin, a, b);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::min_u8:
+		case ast::function_body::min_u16:
+		case ast::function_body::min_u32:
+		case ast::function_body::min_u64:
+		{
+			bz_assert(func_call.params.size() == 2);
+			auto const a = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const b = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateBinaryIntrinsic(llvm::Intrinsic::umin, a, b);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::min_f32:
+		case ast::function_body::min_f64:
+		{
+			bz_assert(func_call.params.size() == 2);
+			auto const a = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const b = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateMinNum(a, b);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::max_i8:
+		case ast::function_body::max_i16:
+		case ast::function_body::max_i32:
+		case ast::function_body::max_i64:
+		{
+			bz_assert(func_call.params.size() == 2);
+			auto const a = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const b = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateBinaryIntrinsic(llvm::Intrinsic::smax, a, b);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::max_u8:
+		case ast::function_body::max_u16:
+		case ast::function_body::max_u32:
+		case ast::function_body::max_u64:
+		{
+			bz_assert(func_call.params.size() == 2);
+			auto const a = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const b = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateBinaryIntrinsic(llvm::Intrinsic::umax, a, b);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::max_f32:
+		case ast::function_body::max_f64:
+		{
+			bz_assert(func_call.params.size() == 2);
+			auto const a = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const b = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateMaxNum(a, b);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::exp_f32:
+		case ast::function_body::exp_f64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const x = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateUnaryIntrinsic(llvm::Intrinsic::exp, x);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::exp2_f32:
+		case ast::function_body::exp2_f64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const x = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateUnaryIntrinsic(llvm::Intrinsic::exp2, x);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::log_f32:
+		case ast::function_body::log_f64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const x = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateUnaryIntrinsic(llvm::Intrinsic::log, x);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::log10_f32:
+		case ast::function_body::log10_f64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const x = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateUnaryIntrinsic(llvm::Intrinsic::log10, x);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::log2_f32:
+		case ast::function_body::log2_f64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const x = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateUnaryIntrinsic(llvm::Intrinsic::log2, x);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::sqrt_f32:
+		case ast::function_body::sqrt_f64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const x = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateUnaryIntrinsic(llvm::Intrinsic::sqrt, x);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::pow_f32:
+		case ast::function_body::pow_f64:
+		{
+			bz_assert(func_call.params.size() == 2);
+			auto const x = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const y = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateBinaryIntrinsic(llvm::Intrinsic::pow, x, y);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::sin_f32:
+		case ast::function_body::sin_f64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const x = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateUnaryIntrinsic(llvm::Intrinsic::sin, x);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::cos_f32:
+		case ast::function_body::cos_f64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const x = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateUnaryIntrinsic(llvm::Intrinsic::cos, x);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::bitreverse_u8:
+		case ast::function_body::bitreverse_u16:
+		case ast::function_body::bitreverse_u32:
+		case ast::function_body::bitreverse_u64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const n = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateUnaryIntrinsic(llvm::Intrinsic::bitreverse, n);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::popcount_u8:
+		case ast::function_body::popcount_u16:
+		case ast::function_body::popcount_u32:
+		case ast::function_body::popcount_u64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const n = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateUnaryIntrinsic(llvm::Intrinsic::ctpop, n);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::byteswap_u16:
+		case ast::function_body::byteswap_u32:
+		case ast::function_body::byteswap_u64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const n = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateUnaryIntrinsic(llvm::Intrinsic::bswap, n);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::clz_u8:
+		case ast::function_body::clz_u16:
+		case ast::function_body::clz_u32:
+		case ast::function_body::clz_u64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const n = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateIntrinsic(
+				llvm::Intrinsic::ctlz,
+				n->getType(),
+				{ n, context.builder.getFalse() }
+			);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::ctz_u8:
+		case ast::function_body::ctz_u16:
+		case ast::function_body::ctz_u32:
+		case ast::function_body::ctz_u64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const n = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateIntrinsic(
+				llvm::Intrinsic::cttz,
+				n->getType(),
+				{ n, context.builder.getFalse() }
+			);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::fshl_u8:
+		case ast::function_body::fshl_u16:
+		case ast::function_body::fshl_u32:
+		case ast::function_body::fshl_u64:
+		{
+			bz_assert(func_call.params.size() == 3);
+			auto const a = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const b = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const amount = emit_bitcode(func_call.params[2], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateIntrinsic(llvm::Intrinsic::fshl, { a->getType() }, { a, b, amount });
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::fshr_u8:
+		case ast::function_body::fshr_u16:
+		case ast::function_body::fshr_u32:
+		case ast::function_body::fshr_u64:
+		{
+			bz_assert(func_call.params.size() == 3);
+			auto const a = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const b = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const amount = emit_bitcode(func_call.params[2], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateIntrinsic(llvm::Intrinsic::fshr, { a->getType() }, { a, b, amount });
+			return value_or_result_address(result, result_address, context);
 		}
 
 		case ast::function_body::comptime_malloc:
@@ -4702,10 +4711,8 @@ static val_ptr emit_bitcode(
 			bz_assert(slice_t->isStructTy());
 			auto const slice_struct_t = static_cast<llvm::StructType *>(slice_t);
 			auto const slice_member_t = slice_struct_t->getElementType(0);
-			llvm::Value *result = llvm::ConstantStruct::get(
-				slice_struct_t,
-				{ llvm::UndefValue::get(slice_member_t), llvm::UndefValue::get(slice_member_t) }
-			);
+			auto const undef_value = llvm::UndefValue::get(slice_member_t);
+			llvm::Value *result = llvm::ConstantStruct::get(slice_struct_t, undef_value, undef_value);
 			result = context.builder.CreateInsertValue(result, begin_ptr, 0);
 			result = context.builder.CreateInsertValue(result, end_ptr,   1);
 			return val_ptr::get_value(result);
@@ -4754,15 +4761,7 @@ static val_ptr emit_bitcode(
 	{
 		auto const result = emit_bitcode(optional_cast.expr, context, nullptr);
 		bz_assert(result.kind == val_ptr::reference);
-		if (result_address != nullptr)
-		{
-			context.builder.CreateStore(result.val, result_address);
-			return val_ptr::get_reference(result_address, context.get_opaque_pointer_t());
-		}
-		else
-		{
-			return val_ptr::get_value(result.val);
-		}
+		return value_or_result_address(result.val, result_address, context);
 	}
 	else if (auto const result_type = get_llvm_type(optional_cast.type, context); result_type->isPointerTy())
 	{
@@ -4998,7 +4997,7 @@ static val_ptr emit_bitcode(
 	if (type.is<ast::ts_array_slice>())
 	{
 		auto const ptr_type = context.get_opaque_pointer_t();
-		auto const result_type = llvm::StructType::get(ptr_type, ptr_type);
+		auto const result_type = context.get_slice_t();
 		auto const null_value = llvm::ConstantPointerNull::get(ptr_type);
 		if (result_address != nullptr)
 		{
@@ -5295,15 +5294,7 @@ static val_ptr emit_bitcode(
 
 	if (val.kind == val_ptr::value)
 	{
-		if (result_address != nullptr)
-		{
-			context.builder.CreateStore(val.get_value(context.builder), result_address);
-			return val_ptr::get_reference(result_address, type);
-		}
-		else
-		{
-			return val;
-		}
+		return value_or_result_address(val.get_value(context.builder), result_address, context);
 	}
 	else
 	{
@@ -6686,9 +6677,6 @@ static llvm::Value *are_strings_equal(llvm::Value *begin_ptr, bz::u8string_view 
 	auto const lhs_int_ref = context.create_alloca_without_lifetime_start(int_type);
 	auto const rhs_int_ref = context.create_alloca_without_lifetime_start(int_type);
 	auto const zero_val = llvm::ConstantInt::get(int_type, 0);
-	auto const false_val = context.builder.getFalse();
-	auto const eight_val = llvm::ConstantInt::get(context.get_usize_t(), 8);
-	auto const memcpy_fn = context.get_function(context.get_builtin_function(ast::function_body::memcpy));
 
 	auto lhs_it = begin_ptr;
 	auto rhs_it = global_str;
@@ -6697,8 +6685,8 @@ static llvm::Value *are_strings_equal(llvm::Value *begin_ptr, bz::u8string_view 
 	{
 		context.builder.CreateStore(zero_val, lhs_int_ref);
 		context.builder.CreateStore(zero_val, rhs_int_ref);
-		context.create_call(memcpy_fn, { lhs_int_ref, lhs_it, eight_val, false_val });
-		context.create_call(memcpy_fn, { rhs_int_ref, rhs_it, eight_val, false_val });
+		context.builder.CreateMemCpy(lhs_int_ref, std::nullopt, lhs_it, std::nullopt, 8);
+		context.builder.CreateMemCpy(rhs_int_ref, std::nullopt, rhs_it, std::nullopt, 8);
 		auto const lhs_val = context.builder.CreateLoad(int_type, lhs_int_ref);
 		auto const rhs_val = context.builder.CreateLoad(int_type, rhs_int_ref);
 		auto const are_equal = context.builder.CreateICmpEQ(lhs_val, rhs_val);
@@ -6710,11 +6698,10 @@ static llvm::Value *are_strings_equal(llvm::Value *begin_ptr, bz::u8string_view 
 	}
 
 	auto const remaining_size = size % 8;
-	auto const remaining_size_val = llvm::ConstantInt::get(context.get_usize_t(), remaining_size);
 	context.builder.CreateStore(zero_val, lhs_int_ref);
 	context.builder.CreateStore(zero_val, rhs_int_ref);
-	context.create_call(memcpy_fn, { lhs_int_ref, lhs_it, remaining_size_val, false_val });
-	context.create_call(memcpy_fn, { rhs_int_ref, rhs_it, remaining_size_val, false_val });
+	context.builder.CreateMemCpy(lhs_int_ref, std::nullopt, lhs_it, std::nullopt, remaining_size);
+	context.builder.CreateMemCpy(rhs_int_ref, std::nullopt, rhs_it, std::nullopt, remaining_size);
 	auto const lhs_val = context.builder.CreateLoad(int_type, lhs_int_ref);
 	auto const rhs_val = context.builder.CreateLoad(int_type, rhs_int_ref);
 	auto const are_equal = context.builder.CreateICmpEQ(lhs_val, rhs_val);
@@ -6820,10 +6807,7 @@ static val_ptr emit_string_switch(
 			auto const int_type = context.get_uint64_t();
 			auto const str_int_ref = context.create_alloca_without_lifetime_start(int_type);
 			context.builder.CreateStore(llvm::ConstantInt::get(int_type, 0), str_int_ref);
-			auto const memcpy_fn = context.get_function(context.get_builtin_function(ast::function_body::memcpy));
-			auto const str_size_val = llvm::ConstantInt::get(context.get_usize_t(), str_size);
-			auto const false_val = context.builder.getFalse();
-			context.create_call(memcpy_fn, { str_int_ref, begin_ptr, str_size_val, false_val });
+			context.builder.CreateMemCpy(str_int_ref, std::nullopt, begin_ptr, std::nullopt, str_size);
 
 			auto const str_int_val = context.builder.CreateLoad(int_type, str_int_ref);
 			auto const str_int_switch = context.builder.CreateSwitch(str_int_val, default_bb, values.size());
@@ -7323,9 +7307,8 @@ static llvm::Constant *get_value_helper(
 
 		auto const end_ptr = context.create_struct_gep(string_type, string_constant, str.size());
 		auto const const_end_ptr = llvm::cast<llvm::Constant>(end_ptr);
-		llvm::Constant *elems[] = { const_begin_ptr, const_end_ptr };
 
-		return llvm::ConstantStruct::get(str_t, elems);
+		return llvm::ConstantStruct::get(str_t, const_begin_ptr, const_end_ptr);
 	}
 	case ast::constant_value_kind::boolean:
 		return context.builder.getInt1(value.get_boolean());
@@ -7439,7 +7422,14 @@ static llvm::Constant *get_value_helper(
 			}
 		}
 		auto const tuple_type = context.get_tuple_t(types);
-		return llvm::ConstantStruct::get(tuple_type, llvm::ArrayRef(elems.data(), elems.size()));
+		if (elems.empty())
+		{
+			return llvm::ConstantStruct::getNullValue(tuple_type);
+		}
+		else
+		{
+			return llvm::ConstantStruct::get(tuple_type, llvm::ArrayRef(elems.data(), elems.size()));
+		}
 	}
 	case ast::constant_value_kind::function:
 	{
@@ -7453,12 +7443,19 @@ static llvm::Constant *get_value_helper(
 		auto const val_type = get_llvm_type(type, context);
 		bz_assert(val_type->isStructTy());
 		auto const val_struct_type = static_cast<llvm::StructType *>(val_type);
-		auto const members = bz::zip(aggregate, info->member_variables)
-			.transform([&context](auto const pair) {
-				return get_value(pair.first, pair.second->get_type(), nullptr, context);
-			})
-			.collect();
-		return llvm::ConstantStruct::get(val_struct_type, llvm::ArrayRef(members.data(), members.size()));
+		if (aggregate.empty())
+		{
+			return llvm::ConstantStruct::getNullValue(val_struct_type);
+		}
+		else
+		{
+			auto const members = bz::zip(aggregate, info->member_variables)
+				.transform([&context](auto const pair) {
+					return get_value(pair.first, pair.second->get_type(), nullptr, context);
+				})
+				.collect();
+			return llvm::ConstantStruct::get(val_struct_type, llvm::ArrayRef(members.data(), members.size()));
+		}
 	}
 	case ast::constant_value_kind::type:
 		bz_unreachable;
@@ -7516,11 +7513,9 @@ static void store_constant_at_address(llvm::Constant *const_val, llvm::Value *de
 	if (type->isAggregateType() && const_val->isNullValue())
 	{
 		auto const size = context.get_size(type);
-		auto const memset_fn = context.get_function(context.get_builtin_function(ast::function_body::memset));
-		auto const size_val = llvm::ConstantInt::get(context.get_usize_t(), size);
-		auto const false_val = context.builder.getFalse();
 		auto const zero_val = context.builder.getInt8(0);
-		context.create_call(memset_fn, { dest, zero_val, size_val, false_val });
+		auto const align = context.get_data_layout().getPrefTypeAlign(type);
+		context.builder.CreateMemSet(dest, zero_val, size, align);
 	}
 	else if (type->isArrayTy())
 	{
@@ -8166,30 +8161,6 @@ static llvm::Function *create_function_from_symbol(
 				break;
 			}
 		}
-	}
-	if (
-		func_body.is_intrinsic()
-		&& (
-			func_body.intrinsic_kind == ast::function_body::memcpy
-			|| func_body.intrinsic_kind == ast::function_body::memmove
-			|| func_body.intrinsic_kind == ast::function_body::memset
-			|| func_body.intrinsic_kind == ast::function_body::clz_u8
-			|| func_body.intrinsic_kind == ast::function_body::clz_u16
-			|| func_body.intrinsic_kind == ast::function_body::clz_u32
-			|| func_body.intrinsic_kind == ast::function_body::clz_u64
-			|| func_body.intrinsic_kind == ast::function_body::ctz_u8
-			|| func_body.intrinsic_kind == ast::function_body::ctz_u16
-			|| func_body.intrinsic_kind == ast::function_body::ctz_u32
-			|| func_body.intrinsic_kind == ast::function_body::ctz_u64
-			|| func_body.intrinsic_kind == ast::function_body::abs_i8
-			|| func_body.intrinsic_kind == ast::function_body::abs_i16
-			|| func_body.intrinsic_kind == ast::function_body::abs_i32
-			|| func_body.intrinsic_kind == ast::function_body::abs_i64
-		)
-	)
-	{
-		args.push_back(context.get_bool_t());
-		is_arg_byval.push_back({ false, nullptr });
 	}
 
 	auto const func_t = [&]() {
