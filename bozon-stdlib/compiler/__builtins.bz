@@ -994,29 +994,11 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 
 @__builtin export function __builtin_bit_cast(T: typename, value: auto) -> T;
 
-@__builtin @symbol_name("llvm.trap") export function __builtin_trap();
+@__builtin export function __builtin_trap();
 
-@__builtin @symbol_name(
-	switch (sizeof usize) {
-		8 => "llvm.memcpy.p0.p0.i64",
-		4 => "llvm.memcpy.p0.p0.i32",
-		else => unreachable,
-	}
-) export function __builtin_memcpy(dest: ?*mut void, src: ?*void, n: usize);
-@__builtin @symbol_name(
-	switch (sizeof usize) {
-		8 => "llvm.memmove.p0.p0.i64",
-		4 => "llvm.memmove.p0.p0.i32",
-		else => unreachable,
-	}
-) export function __builtin_memmove(dest: ?*mut void, src: ?*void, n: usize);
-@__builtin @symbol_name(
-	switch (sizeof usize) {
-		8 => "llvm.memset.p0.i64",
-		4 => "llvm.memset.p0.i32",
-		else => unreachable,
-	}
-) export function __builtin_memset(dest: ?*mut void, val: uint8, n: usize);
+@__builtin export function __builtin_memcpy(dest: ?*mut void, src: ?*void, n: usize);
+@__builtin export function __builtin_memmove(dest: ?*mut void, src: ?*void, n: usize);
+@__builtin export function __builtin_memset(dest: ?*mut void, val: uint8, n: usize);
 
 @__builtin export function __builtin_isnan_f32(x: float32) -> bool;
 @__builtin export function __builtin_isnan_f64(x: float64) -> bool;
@@ -1025,63 +1007,63 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 @__builtin export function __builtin_isfinite_f32(x: float32) -> bool;
 @__builtin export function __builtin_isfinite_f64(x: float64) -> bool;
 
-@__builtin @symbol_name("llvm.abs.i8")  export function __builtin_abs_i8(n: int8)   -> int8;
-@__builtin @symbol_name("llvm.abs.i16") export function __builtin_abs_i16(n: int16) -> int16;
-@__builtin @symbol_name("llvm.abs.i32") export function __builtin_abs_i32(n: int32) -> int32;
-@__builtin @symbol_name("llvm.abs.i64") export function __builtin_abs_i64(n: int64) -> int64;
-@__builtin @symbol_name("llvm.fabs.f32") export function __builtin_abs_f32(x: float32) -> float32;
-@__builtin @symbol_name("llvm.fabs.f64") export function __builtin_abs_f64(x: float64) -> float64;
+@__builtin export function __builtin_abs_i8(n: int8)   -> int8;
+@__builtin export function __builtin_abs_i16(n: int16) -> int16;
+@__builtin export function __builtin_abs_i32(n: int32) -> int32;
+@__builtin export function __builtin_abs_i64(n: int64) -> int64;
+@__builtin export function __builtin_abs_f32(x: float32) -> float32;
+@__builtin export function __builtin_abs_f64(x: float64) -> float64;
 
-@__builtin @symbol_name("llvm.smin.i8")  export function __builtin_min_i8 (a: int8,  b: int8)  -> int8;
-@__builtin @symbol_name("llvm.smin.i16") export function __builtin_min_i16(a: int16, b: int16) -> int16;
-@__builtin @symbol_name("llvm.smin.i32") export function __builtin_min_i32(a: int32, b: int32) -> int32;
-@__builtin @symbol_name("llvm.smin.i64") export function __builtin_min_i64(a: int64, b: int64) -> int64;
-@__builtin @symbol_name("llvm.umin.i8")  export function __builtin_min_u8 (a: uint8,  b: uint8)  -> uint8;
-@__builtin @symbol_name("llvm.umin.i16") export function __builtin_min_u16(a: uint16, b: uint16) -> uint16;
-@__builtin @symbol_name("llvm.umin.i32") export function __builtin_min_u32(a: uint32, b: uint32) -> uint32;
-@__builtin @symbol_name("llvm.umin.i64") export function __builtin_min_u64(a: uint64, b: uint64) -> uint64;
-@__builtin @symbol_name("llvm.minnum.f32") export function __builtin_min_f32(a: float32, b: float32) -> float32;
-@__builtin @symbol_name("llvm.minnum.f64") export function __builtin_min_f64(a: float64, b: float64) -> float64;
+@__builtin export function __builtin_min_i8 (a: int8,  b: int8)  -> int8;
+@__builtin export function __builtin_min_i16(a: int16, b: int16) -> int16;
+@__builtin export function __builtin_min_i32(a: int32, b: int32) -> int32;
+@__builtin export function __builtin_min_i64(a: int64, b: int64) -> int64;
+@__builtin export function __builtin_min_u8 (a: uint8,  b: uint8)  -> uint8;
+@__builtin export function __builtin_min_u16(a: uint16, b: uint16) -> uint16;
+@__builtin export function __builtin_min_u32(a: uint32, b: uint32) -> uint32;
+@__builtin export function __builtin_min_u64(a: uint64, b: uint64) -> uint64;
+@__builtin export function __builtin_min_f32(a: float32, b: float32) -> float32;
+@__builtin export function __builtin_min_f64(a: float64, b: float64) -> float64;
 
-@__builtin @symbol_name("llvm.smax.i8")  export function __builtin_max_i8 (a: int8,  b: int8)  -> int8;
-@__builtin @symbol_name("llvm.smax.i16") export function __builtin_max_i16(a: int16, b: int16) -> int16;
-@__builtin @symbol_name("llvm.smax.i32") export function __builtin_max_i32(a: int32, b: int32) -> int32;
-@__builtin @symbol_name("llvm.smax.i64") export function __builtin_max_i64(a: int64, b: int64) -> int64;
-@__builtin @symbol_name("llvm.umax.i8")  export function __builtin_max_u8 (a: uint8,  b: uint8)  -> uint8;
-@__builtin @symbol_name("llvm.umax.i16") export function __builtin_max_u16(a: uint16, b: uint16) -> uint16;
-@__builtin @symbol_name("llvm.umax.i32") export function __builtin_max_u32(a: uint32, b: uint32) -> uint32;
-@__builtin @symbol_name("llvm.umax.i64") export function __builtin_max_u64(a: uint64, b: uint64) -> uint64;
-@__builtin @symbol_name("llvm.maxnum.f32") export function __builtin_max_f32(a: float32, b: float32) -> float32;
-@__builtin @symbol_name("llvm.maxnum.f64") export function __builtin_max_f64(a: float64, b: float64) -> float64;
+@__builtin export function __builtin_max_i8 (a: int8,  b: int8)  -> int8;
+@__builtin export function __builtin_max_i16(a: int16, b: int16) -> int16;
+@__builtin export function __builtin_max_i32(a: int32, b: int32) -> int32;
+@__builtin export function __builtin_max_i64(a: int64, b: int64) -> int64;
+@__builtin export function __builtin_max_u8 (a: uint8,  b: uint8)  -> uint8;
+@__builtin export function __builtin_max_u16(a: uint16, b: uint16) -> uint16;
+@__builtin export function __builtin_max_u32(a: uint32, b: uint32) -> uint32;
+@__builtin export function __builtin_max_u64(a: uint64, b: uint64) -> uint64;
+@__builtin export function __builtin_max_f32(a: float32, b: float32) -> float32;
+@__builtin export function __builtin_max_f64(a: float64, b: float64) -> float64;
 
-@__builtin @symbol_name("llvm.exp.f32") export function __builtin_exp_f32(x: float32) -> float32;
-@__builtin @symbol_name("llvm.exp.f64") export function __builtin_exp_f64(x: float64) -> float64;
-@__builtin @symbol_name("llvm.exp2.f32") export function __builtin_exp2_f32(x: float32) -> float32;
-@__builtin @symbol_name("llvm.exp2.f64") export function __builtin_exp2_f64(x: float64) -> float64;
+@__builtin @symbol_name("expf") export function __builtin_exp_f32(x: float32) -> float32;
+@__builtin @symbol_name("exp")  export function __builtin_exp_f64(x: float64) -> float64;
+@__builtin @symbol_name("exp2f") export function __builtin_exp2_f32(x: float32) -> float32;
+@__builtin @symbol_name("exp2")  export function __builtin_exp2_f64(x: float64) -> float64;
 @__builtin @symbol_name("expm1f") export function __builtin_expm1_f32(x: float32) -> float32;
 @__builtin @symbol_name("expm1")  export function __builtin_expm1_f64(x: float64) -> float64;
-@__builtin @symbol_name("llvm.log.f32") export function __builtin_log_f32(x: float32) -> float32;
-@__builtin @symbol_name("llvm.log.f64") export function __builtin_log_f64(x: float64) -> float64;
-@__builtin @symbol_name("llvm.log10.f32") export function __builtin_log10_f32(x: float32) -> float32;
-@__builtin @symbol_name("llvm.log10.f64") export function __builtin_log10_f64(x: float64) -> float64;
-@__builtin @symbol_name("llvm.log2.f32") export function __builtin_log2_f32(x: float32) -> float32;
-@__builtin @symbol_name("llvm.log2.f64") export function __builtin_log2_f64(x: float64) -> float64;
+@__builtin @symbol_name("logf") export function __builtin_log_f32(x: float32) -> float32;
+@__builtin @symbol_name("log")  export function __builtin_log_f64(x: float64) -> float64;
+@__builtin @symbol_name("log10f") export function __builtin_log10_f32(x: float32) -> float32;
+@__builtin @symbol_name("log10")  export function __builtin_log10_f64(x: float64) -> float64;
+@__builtin @symbol_name("log2f") export function __builtin_log2_f32(x: float32) -> float32;
+@__builtin @symbol_name("log2")  export function __builtin_log2_f64(x: float64) -> float64;
 @__builtin @symbol_name("log1pf") export function __builtin_log1p_f32(x: float32) -> float32;
 @__builtin @symbol_name("log1p")  export function __builtin_log1p_f64(x: float64) -> float64;
 
-@__builtin @symbol_name("llvm.sqrt.f32") export function __builtin_sqrt_f32(x: float32) -> float32;
-@__builtin @symbol_name("llvm.sqrt.f64") export function __builtin_sqrt_f64(x: float64) -> float64;
-@__builtin @symbol_name("llvm.pow.f32") export function __builtin_pow_f32(x: float32, y: float32) -> float32;
-@__builtin @symbol_name("llvm.pow.f64") export function __builtin_pow_f64(x: float64, y: float64) -> float64;
+@__builtin @symbol_name("sqrtf") export function __builtin_sqrt_f32(x: float32) -> float32;
+@__builtin @symbol_name("sqrt")  export function __builtin_sqrt_f64(x: float64) -> float64;
+@__builtin @symbol_name("powf") export function __builtin_pow_f32(x: float32, y: float32) -> float32;
+@__builtin @symbol_name("pow")  export function __builtin_pow_f64(x: float64, y: float64) -> float64;
 @__builtin @symbol_name("cbrtf") export function __builtin_cbrt_f32(x: float32) -> float32;
 @__builtin @symbol_name("cbrt")  export function __builtin_cbrt_f64(x: float64) -> float64;
 @__builtin @symbol_name("hypotf") export function __builtin_hypot_f32(x: float32, y: float32) -> float32;
 @__builtin @symbol_name("hypot")  export function __builtin_hypot_f64(x: float64, y: float64) -> float64;
 
-@__builtin @symbol_name("llvm.sin.f32") export function __builtin_sin_f32(x: float32) -> float32;
-@__builtin @symbol_name("llvm.sin.f64") export function __builtin_sin_f64(x: float64) -> float64;
-@__builtin @symbol_name("llvm.cos.f32") export function __builtin_cos_f32(x: float32) -> float32;
-@__builtin @symbol_name("llvm.cos.f64") export function __builtin_cos_f64(x: float64) -> float64;
+@__builtin @symbol_name("sinf") export function __builtin_sin_f32(x: float32) -> float32;
+@__builtin @symbol_name("sin")  export function __builtin_sin_f64(x: float64) -> float64;
+@__builtin @symbol_name("cosf") export function __builtin_cos_f32(x: float32) -> float32;
+@__builtin @symbol_name("cos")  export function __builtin_cos_f64(x: float64) -> float64;
 @__builtin @symbol_name("tanf") export function __builtin_tan_f32(x: float32) -> float32;
 @__builtin @symbol_name("tan")  export function __builtin_tan_f64(x: float64) -> float64;
 @__builtin @symbol_name("asinf") export function __builtin_asin_f32(x: float32) -> float32;
@@ -1115,34 +1097,34 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 @__builtin @symbol_name("lgammaf") export function __builtin_lgamma_f32(x: float32) -> float32;
 @__builtin @symbol_name("lgamma")  export function __builtin_lgamma_f64(x: float64) -> float64;
 
-@__builtin @symbol_name("llvm.bitreverse.i8")  export function __builtin_bitreverse_u8 (n: uint8)  -> uint8;
-@__builtin @symbol_name("llvm.bitreverse.i16") export function __builtin_bitreverse_u16(n: uint16) -> uint16;
-@__builtin @symbol_name("llvm.bitreverse.i32") export function __builtin_bitreverse_u32(n: uint32) -> uint32;
-@__builtin @symbol_name("llvm.bitreverse.i64") export function __builtin_bitreverse_u64(n: uint64) -> uint64;
-@__builtin @symbol_name("llvm.ctpop.i8")  export function __builtin_popcount_u8 (n: uint8)  -> uint8;
-@__builtin @symbol_name("llvm.ctpop.i16") export function __builtin_popcount_u16(n: uint16) -> uint16;
-@__builtin @symbol_name("llvm.ctpop.i32") export function __builtin_popcount_u32(n: uint32) -> uint32;
-@__builtin @symbol_name("llvm.ctpop.i64") export function __builtin_popcount_u64(n: uint64) -> uint64;
-@__builtin @symbol_name("llvm.bswap.i16") export function __builtin_byteswap_u16(n: uint16) -> uint16;
-@__builtin @symbol_name("llvm.bswap.i32") export function __builtin_byteswap_u32(n: uint32) -> uint32;
-@__builtin @symbol_name("llvm.bswap.i64") export function __builtin_byteswap_u64(n: uint64) -> uint64;
+@__builtin export function __builtin_bitreverse_u8 (n: uint8)  -> uint8;
+@__builtin export function __builtin_bitreverse_u16(n: uint16) -> uint16;
+@__builtin export function __builtin_bitreverse_u32(n: uint32) -> uint32;
+@__builtin export function __builtin_bitreverse_u64(n: uint64) -> uint64;
+@__builtin export function __builtin_popcount_u8 (n: uint8)  -> uint8;
+@__builtin export function __builtin_popcount_u16(n: uint16) -> uint16;
+@__builtin export function __builtin_popcount_u32(n: uint32) -> uint32;
+@__builtin export function __builtin_popcount_u64(n: uint64) -> uint64;
+@__builtin export function __builtin_byteswap_u16(n: uint16) -> uint16;
+@__builtin export function __builtin_byteswap_u32(n: uint32) -> uint32;
+@__builtin export function __builtin_byteswap_u64(n: uint64) -> uint64;
 
-@__builtin @symbol_name("llvm.ctlz.i8")  export function __builtin_clz_u8 (n: uint8)  -> uint8;
-@__builtin @symbol_name("llvm.ctlz.i16") export function __builtin_clz_u16(n: uint16) -> uint16;
-@__builtin @symbol_name("llvm.ctlz.i32") export function __builtin_clz_u32(n: uint32) -> uint32;
-@__builtin @symbol_name("llvm.ctlz.i64") export function __builtin_clz_u64(n: uint64) -> uint64;
-@__builtin @symbol_name("llvm.cttz.i8")  export function __builtin_ctz_u8 (n: uint8)  -> uint8;
-@__builtin @symbol_name("llvm.cttz.i16") export function __builtin_ctz_u16(n: uint16) -> uint16;
-@__builtin @symbol_name("llvm.cttz.i32") export function __builtin_ctz_u32(n: uint32) -> uint32;
-@__builtin @symbol_name("llvm.cttz.i64") export function __builtin_ctz_u64(n: uint64) -> uint64;
-@__builtin @symbol_name("llvm.fshl.i8")  export function __builtin_fshl_u8 (a: uint8,  b: uint8,  amount: uint8)  -> uint8;
-@__builtin @symbol_name("llvm.fshl.i16") export function __builtin_fshl_u16(a: uint16, b: uint16, amount: uint16) -> uint16;
-@__builtin @symbol_name("llvm.fshl.i32") export function __builtin_fshl_u32(a: uint32, b: uint32, amount: uint32) -> uint32;
-@__builtin @symbol_name("llvm.fshl.i64") export function __builtin_fshl_u64(a: uint64, b: uint64, amount: uint64) -> uint64;
-@__builtin @symbol_name("llvm.fshr.i8")  export function __builtin_fshr_u8 (a: uint8,  b: uint8,  amount: uint8)  -> uint8;
-@__builtin @symbol_name("llvm.fshr.i16") export function __builtin_fshr_u16(a: uint16, b: uint16, amount: uint16) -> uint16;
-@__builtin @symbol_name("llvm.fshr.i32") export function __builtin_fshr_u32(a: uint32, b: uint32, amount: uint32) -> uint32;
-@__builtin @symbol_name("llvm.fshr.i64") export function __builtin_fshr_u64(a: uint64, b: uint64, amount: uint64) -> uint64;
+@__builtin export function __builtin_clz_u8 (n: uint8)  -> uint8;
+@__builtin export function __builtin_clz_u16(n: uint16) -> uint16;
+@__builtin export function __builtin_clz_u32(n: uint32) -> uint32;
+@__builtin export function __builtin_clz_u64(n: uint64) -> uint64;
+@__builtin export function __builtin_ctz_u8 (n: uint8)  -> uint8;
+@__builtin export function __builtin_ctz_u16(n: uint16) -> uint16;
+@__builtin export function __builtin_ctz_u32(n: uint32) -> uint32;
+@__builtin export function __builtin_ctz_u64(n: uint64) -> uint64;
+@__builtin export function __builtin_fshl_u8 (a: uint8,  b: uint8,  amount: uint8)  -> uint8;
+@__builtin export function __builtin_fshl_u16(a: uint16, b: uint16, amount: uint16) -> uint16;
+@__builtin export function __builtin_fshl_u32(a: uint32, b: uint32, amount: uint32) -> uint32;
+@__builtin export function __builtin_fshl_u64(a: uint64, b: uint64, amount: uint64) -> uint64;
+@__builtin export function __builtin_fshr_u8 (a: uint8,  b: uint8,  amount: uint8)  -> uint8;
+@__builtin export function __builtin_fshr_u16(a: uint16, b: uint16, amount: uint16) -> uint16;
+@__builtin export function __builtin_fshr_u32(a: uint32, b: uint32, amount: uint32) -> uint32;
+@__builtin export function __builtin_fshr_u64(a: uint64, b: uint64, amount: uint64) -> uint64;
 
 //
 // unary operators
