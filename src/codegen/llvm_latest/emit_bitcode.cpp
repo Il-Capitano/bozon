@@ -7273,7 +7273,14 @@ static llvm::Constant *get_value_helper(
 			}
 		}
 		auto const tuple_type = context.get_tuple_t(types);
-		return llvm::ConstantStruct::get(tuple_type, llvm::ArrayRef(elems.data(), elems.size()));
+		if (elems.empty())
+		{
+			return llvm::ConstantStruct::getNullValue(tuple_type);
+		}
+		else
+		{
+			return llvm::ConstantStruct::get(tuple_type, llvm::ArrayRef(elems.data(), elems.size()));
+		}
 	}
 	case ast::constant_value_kind::function:
 	{
@@ -7287,12 +7294,19 @@ static llvm::Constant *get_value_helper(
 		auto const val_type = get_llvm_type(type, context);
 		bz_assert(val_type->isStructTy());
 		auto const val_struct_type = static_cast<llvm::StructType *>(val_type);
-		auto const members = bz::zip(aggregate, info->member_variables)
-			.transform([&context](auto const pair) {
-				return get_value(pair.first, pair.second->get_type(), nullptr, context);
-			})
-			.collect();
-		return llvm::ConstantStruct::get(val_struct_type, llvm::ArrayRef(members.data(), members.size()));
+		if (aggregate.empty())
+		{
+			return llvm::ConstantStruct::getNullValue(val_struct_type);
+		}
+		else
+		{
+			auto const members = bz::zip(aggregate, info->member_variables)
+				.transform([&context](auto const pair) {
+					return get_value(pair.first, pair.second->get_type(), nullptr, context);
+				})
+				.collect();
+			return llvm::ConstantStruct::get(val_struct_type, llvm::ArrayRef(members.data(), members.size()));
+		}
 	}
 	case ast::constant_value_kind::type:
 		bz_unreachable;
