@@ -47,6 +47,20 @@ struct is_byval_and_type_pair
 	llvm::Type *type;
 };
 
+static val_ptr value_or_result_address(llvm::Value *value, llvm::Value *result_address, bitcode_context &context)
+{
+	if (result_address != nullptr)
+	{
+		auto const result_type = value->getType();
+		context.builder.CreateStore(value, result_address);
+		return val_ptr::get_reference(result_address, result_type);
+	}
+	else
+	{
+		return val_ptr::get_value(value);
+	}
+}
+
 static void emit_memcpy(llvm::Value *dest, llvm::Value *source, size_t size, bitcode_context &context)
 {
 	auto const memcpy_fn = context.get_function(context.get_builtin_function(ast::function_body::memcpy));
@@ -2899,32 +2913,14 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 1);
 			auto const arg = emit_bitcode(func_call.params[0], context, nullptr);
 			auto const begin_ptr = context.get_struct_element(arg, 0).get_value(context.builder);
-			if (result_address != nullptr)
-			{
-				auto const result_type = begin_ptr->getType();
-				context.builder.CreateStore(begin_ptr, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(begin_ptr);
-			}
+			return value_or_result_address(begin_ptr, result_address, context);
 		}
 		case ast::function_body::builtin_str_end_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
 			auto const arg = emit_bitcode(func_call.params[0], context, nullptr);
 			auto const end_ptr = context.get_struct_element(arg, 1).get_value(context.builder);
-			if (result_address != nullptr)
-			{
-				auto const result_type = end_ptr->getType();
-				context.builder.CreateStore(end_ptr, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(end_ptr);
-			}
+			return value_or_result_address(end_ptr, result_address, context);
 		}
 		case ast::function_body::builtin_str_from_ptrs:
 		{
@@ -2960,16 +2956,7 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 1);
 			auto const slice = emit_bitcode(func_call.params[0], context, nullptr);
 			auto const begin_ptr = context.get_struct_element(slice, 0).get_value(context.builder);
-			if (result_address != nullptr)
-			{
-				auto const result_type = begin_ptr->getType();
-				context.builder.CreateStore(begin_ptr, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(begin_ptr);
-			}
+			return value_or_result_address(begin_ptr, result_address, context);
 		}
 		case ast::function_body::builtin_slice_end_ptr:
 		case ast::function_body::builtin_slice_end_mut_ptr:
@@ -2977,16 +2964,7 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 1);
 			auto const slice = emit_bitcode(func_call.params[0], context, nullptr);
 			auto const end_ptr = context.get_struct_element(slice, 1).get_value(context.builder);
-			if (result_address != nullptr)
-			{
-				auto const result_type = end_ptr->getType();
-				context.builder.CreateStore(end_ptr, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(end_ptr);
-			}
+			return value_or_result_address(end_ptr, result_address, context);
 		}
 		case ast::function_body::builtin_slice_from_ptrs:
 		case ast::function_body::builtin_slice_from_mut_ptrs:
@@ -3025,16 +3003,7 @@ static val_ptr emit_bitcode(
 			bz_assert(arr.kind == val_ptr::reference);
 			bz_assert(arr.get_type()->isArrayTy());
 			auto const begin_ptr = context.get_struct_element(arr, 0).val;
-			if (result_address != nullptr)
-			{
-				auto const result_type = begin_ptr->getType();
-				context.builder.CreateStore(begin_ptr, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(begin_ptr);
-			}
+			return value_or_result_address(begin_ptr, result_address, context);
 		}
 		case ast::function_body::builtin_array_end_ptr:
 		case ast::function_body::builtin_array_end_mut_ptr:
@@ -3045,16 +3014,7 @@ static val_ptr emit_bitcode(
 			bz_assert(arr.get_type()->isArrayTy());
 			auto const size = arr.get_type()->getArrayNumElements();
 			auto const end_ptr = context.get_struct_element(arr, size).val;
-			if (result_address != nullptr)
-			{
-				auto const result_type = end_ptr->getType();
-				context.builder.CreateStore(end_ptr, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(end_ptr);
-			}
+			return value_or_result_address(end_ptr, result_address, context);
 		}
 		case ast::function_body::builtin_array_size:
 			// this is guaranteed to be constant evaluated
@@ -3167,15 +3127,7 @@ static val_ptr emit_bitcode(
 			auto const begin_value_ptr = context.create_struct_gep(range_val.get_type(), range_val.val, 0);
 			auto const result_type = range_val.get_type()->getStructElementType(0);
 			auto const begin_value = context.builder.CreateLoad(result_type, begin_value_ptr);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(begin_value, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(begin_value);
-			}
+			return value_or_result_address(begin_value, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_end_value:
 		case ast::function_body::builtin_integer_range_inclusive_end_value:
@@ -3185,15 +3137,7 @@ static val_ptr emit_bitcode(
 			auto const end_value_ptr = context.create_struct_gep(range_val.get_type(), range_val.val, 1);
 			auto const result_type = range_val.get_type()->getStructElementType(0);
 			auto const end_value = context.builder.CreateLoad(result_type, end_value_ptr);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(end_value, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(end_value);
-			}
+			return value_or_result_address(end_value, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_from_begin_value:
 		{
@@ -3202,15 +3146,7 @@ static val_ptr emit_bitcode(
 			auto const begin_value_ptr = context.create_struct_gep(range_val.get_type(), range_val.val, 0);
 			auto const result_type = range_val.get_type()->getStructElementType(0);
 			auto const begin_value = context.builder.CreateLoad(result_type, begin_value_ptr);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(begin_value, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(begin_value);
-			}
+			return value_or_result_address(begin_value, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_to_end_value:
 		case ast::function_body::builtin_integer_range_to_inclusive_end_value:
@@ -3220,15 +3156,7 @@ static val_ptr emit_bitcode(
 			auto const end_value_ptr = context.create_struct_gep(range_val.get_type(), range_val.val, 0);
 			auto const result_type = range_val.get_type()->getStructElementType(0);
 			auto const end_value = context.builder.CreateLoad(result_type, end_value_ptr);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(end_value, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(end_value);
-			}
+			return value_or_result_address(end_value, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_begin_iterator:
 		{
@@ -3269,15 +3197,7 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 1);
 			auto const it_value = emit_bitcode(func_call.params[0], context, nullptr);
 			auto const integer_value = context.get_struct_element(it_value, 0).get_value(context.builder);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(integer_value, result_address);
-				return val_ptr::get_reference(result_address, integer_value->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(integer_value);
-			}
+			return value_or_result_address(integer_value, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_iterator_equals:
 		{
@@ -3287,15 +3207,7 @@ static val_ptr emit_bitcode(
 			auto const lhs_integer_value = context.get_struct_element(lhs_it_value, 0).get_value(context.builder);
 			auto const rhs_integer_value = context.get_struct_element(rhs_it_value, 0).get_value(context.builder);
 			auto const result = context.builder.CreateICmpEQ(lhs_integer_value, rhs_integer_value);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_iterator_not_equals:
 		{
@@ -3305,15 +3217,7 @@ static val_ptr emit_bitcode(
 			auto const lhs_integer_value = context.get_struct_element(lhs_it_value, 0).get_value(context.builder);
 			auto const rhs_integer_value = context.get_struct_element(rhs_it_value, 0).get_value(context.builder);
 			auto const result = context.builder.CreateICmpNE(lhs_integer_value, rhs_integer_value);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_iterator_plus_plus:
 		{
@@ -3378,15 +3282,7 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 1);
 			auto const it_value = emit_bitcode(func_call.params[0], context, nullptr);
 			auto const integer_value = context.get_struct_element(it_value, 0).get_value(context.builder);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(integer_value, result_address);
-				return val_ptr::get_reference(result_address, integer_value->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(integer_value);
-			}
+			return value_or_result_address(integer_value, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_inclusive_iterator_left_equals:
 		{
@@ -3394,15 +3290,7 @@ static val_ptr emit_bitcode(
 			auto const it_value = emit_bitcode(func_call.params[0], context, nullptr);
 			emit_bitcode(func_call.params[1], context, nullptr);
 			auto const at_end = context.get_struct_element(it_value, 2).get_value(context.builder);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(at_end, result_address);
-				return val_ptr::get_reference(result_address, at_end->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(at_end);
-			}
+			return value_or_result_address(at_end, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_inclusive_iterator_right_equals:
 		{
@@ -3410,15 +3298,7 @@ static val_ptr emit_bitcode(
 			emit_bitcode(func_call.params[0], context, nullptr);
 			auto const it_value = emit_bitcode(func_call.params[1], context, nullptr);
 			auto const at_end = context.get_struct_element(it_value, 2).get_value(context.builder);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(at_end, result_address);
-				return val_ptr::get_reference(result_address, at_end->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(at_end);
-			}
+			return value_or_result_address(at_end, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_inclusive_iterator_left_not_equals:
 		{
@@ -3427,15 +3307,7 @@ static val_ptr emit_bitcode(
 			emit_bitcode(func_call.params[1], context, nullptr);
 			auto const at_end = context.get_struct_element(it_value, 2).get_value(context.builder);
 			auto const result = context.builder.CreateNot(at_end);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_inclusive_iterator_right_not_equals:
 		{
@@ -3444,15 +3316,7 @@ static val_ptr emit_bitcode(
 			auto const it_value = emit_bitcode(func_call.params[1], context, nullptr);
 			auto const at_end = context.get_struct_element(it_value, 2).get_value(context.builder);
 			auto const result = context.builder.CreateNot(at_end);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_inclusive_iterator_plus_plus:
 		{
@@ -3525,15 +3389,7 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 1);
 			auto const it_value = emit_bitcode(func_call.params[0], context, nullptr);
 			auto const integer_value = context.get_struct_element(it_value, 0).get_value(context.builder);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(integer_value, result_address);
-				return val_ptr::get_reference(result_address, integer_value->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(integer_value);
-			}
+			return value_or_result_address(integer_value, result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_from_iterator_left_equals:
 		case ast::function_body::builtin_integer_range_from_iterator_right_equals:
@@ -3541,16 +3397,7 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 2);
 			emit_bitcode(func_call.params[0], context, nullptr);
 			emit_bitcode(func_call.params[1], context, nullptr);
-			auto const result = context.builder.getFalse();
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(context.builder.getFalse(), result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_from_iterator_left_not_equals:
 		case ast::function_body::builtin_integer_range_from_iterator_right_not_equals:
@@ -3558,16 +3405,7 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 2);
 			emit_bitcode(func_call.params[0], context, nullptr);
 			emit_bitcode(func_call.params[1], context, nullptr);
-			auto const result = context.builder.getTrue();
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(context.builder.getTrue(), result_address, context);
 		}
 		case ast::function_body::builtin_integer_range_from_iterator_plus_plus:
 		{
@@ -3601,16 +3439,7 @@ static val_ptr emit_bitcode(
 			auto const ptr = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
 			bz_assert(ptr->getType()->isPointerTy());
 			auto const result = context.builder.CreatePointerCast(ptr, dest_type);
-			if (result_address != nullptr)
-			{
-				auto const result_type = result->getType();
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
 		}
 		case ast::function_body::builtin_pointer_to_int:
 		{
@@ -3618,16 +3447,7 @@ static val_ptr emit_bitcode(
 			auto const ptr = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
 			bz_assert(ptr->getType()->isPointerTy());
 			auto const result = context.builder.CreatePtrToInt(ptr, context.get_usize_t());
-			if (result_address != nullptr)
-			{
-				auto const result_type = result->getType();
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
 		}
 		case ast::function_body::builtin_int_to_pointer:
 		{
@@ -3637,16 +3457,7 @@ static val_ptr emit_bitcode(
 			auto const val = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
 			bz_assert(val->getType()->isIntegerTy());
 			auto const result = context.builder.CreateIntToPtr(val, dest_type);
-			if (result_address != nullptr)
-			{
-				auto const result_type = result->getType();
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
 		}
 		case ast::function_body::builtin_enum_value:
 			bz_assert(func_call.params.size() == 1);
@@ -3666,17 +3477,7 @@ static val_ptr emit_bitcode(
 			bz_unreachable;
 		case ast::function_body::builtin_is_comptime:
 		{
-			auto const result_val = context.builder.getFalse();
-			if (result_address != nullptr)
-			{
-				auto const result_type = result_val->getType();
-				context.builder.CreateStore(result_val, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(result_val);
-			}
+			return value_or_result_address(context.builder.getFalse(), result_address, context);
 		}
 		case ast::function_body::builtin_panic:
 		{
@@ -3823,16 +3624,7 @@ static val_ptr emit_bitcode(
 				(1u << 0) // signaling nan
 				| (1u << 1); // quiet nan
 			auto const result = context.builder.createIsFPClass(x, test);
-			if (result_address != nullptr)
-			{
-				auto const result_type = result->getType();
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
 		}
 		case ast::function_body::isinf_f32:
 		case ast::function_body::isinf_f64:
@@ -3843,16 +3635,7 @@ static val_ptr emit_bitcode(
 				(1u << 2) // negative infinity
 				| (1u << 9); // positive infinity
 			auto const result = context.builder.createIsFPClass(x, test);
-			if (result_address != nullptr)
-			{
-				auto const result_type = result->getType();
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
 		}
 		case ast::function_body::isfinite_f32:
 		case ast::function_body::isfinite_f64:
@@ -3867,16 +3650,7 @@ static val_ptr emit_bitcode(
 				| (1u << 7) // positive subnormal
 				| (1u << 8); // positive normal
 			auto const result = context.builder.createIsFPClass(x, test);
-			if (result_address != nullptr)
-			{
-				auto const result_type = result->getType();
-				context.builder.CreateStore(result, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
-			else
-			{
-				return val_ptr::get_value(result);
-			}
+			return value_or_result_address(result, result_address, context);
 		}
 
 		case ast::function_body::comptime_malloc:
@@ -4605,15 +4379,7 @@ static val_ptr emit_bitcode(
 	{
 		auto const result = emit_bitcode(optional_cast.expr, context, nullptr);
 		bz_assert(result.kind == val_ptr::reference);
-		if (result_address != nullptr)
-		{
-			context.builder.CreateStore(result.val, result_address);
-			return val_ptr::get_reference(result_address, context.get_opaque_pointer_t());
-		}
-		else
-		{
-			return val_ptr::get_value(result.val);
-		}
+		return value_or_result_address(result.val, result_address, context);
 	}
 	else if (auto const result_type = get_llvm_type(optional_cast.type, context); result_type->isPointerTy())
 	{
@@ -5146,15 +4912,7 @@ static val_ptr emit_bitcode(
 
 	if (val.kind == val_ptr::value)
 	{
-		if (result_address != nullptr)
-		{
-			context.builder.CreateStore(val.get_value(context.builder), result_address);
-			return val_ptr::get_reference(result_address, type);
-		}
-		else
-		{
-			return val;
-		}
+		return value_or_result_address(val.get_value(context.builder), result_address, context);
 	}
 	else
 	{
