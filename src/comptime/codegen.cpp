@@ -588,6 +588,8 @@ static expr_value generate_expr_code(
 	{
 		if (rvalue_tuple_subscript.elem_refs[i].is_null())
 		{
+			auto const elem_ptr = context.create_struct_gep(base_val, i);
+			context.create_end_lifetime(elem_ptr);
 			continue;
 		}
 
@@ -597,6 +599,8 @@ static expr_value generate_expr_code(
 				auto const ref_ref = context.create_struct_gep(base_val, i);
 				bz_assert(ref_ref.get_type()->is_pointer());
 				auto const ref_value = context.create_load(ref_ref);
+				// the lifetime of the storage location of the reference needs to end
+				context.create_end_lifetime(ref_ref);
 				auto const accessed_type = rvalue_tuple_subscript.elem_refs[index_int_value].get_expr_type();
 				return expr_value::get_reference(
 					ref_value.get_value_as_instruction(context),
@@ -767,7 +771,14 @@ static expr_value generate_expr_code(
 	}
 
 	auto const result_value = context.create_array_gep(array, index);
-	context.push_rvalue_array_destruct_operation(rvalue_array_subscript.elem_destruct_op, array, result_value.get_reference());
+	if (rvalue_array_subscript.elem_destruct_op.is_null())
+	{
+		context.push_end_lifetime(array);
+	}
+	else
+	{
+		context.push_rvalue_array_destruct_operation(rvalue_array_subscript.elem_destruct_op, array, result_value.get_reference());
+	}
 	return result_value;
 }
 

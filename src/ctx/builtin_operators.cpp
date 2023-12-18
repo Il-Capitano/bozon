@@ -1357,6 +1357,10 @@ ast::expression make_builtin_subscript_operator(
 
 						auto const elem_t = tuple_t.types[i].as_typespec_view();
 						if (
+							// comptime execution needs to end lifetimes for all elements, including these,
+							// but dealing with reference members for this seems too problematic, so there's
+							// an extra check in the comptime code generation instead, which ends lifetimes
+							// when an elem_ref is missing
 							elem_t.is<ast::ts_lvalue_reference>()
 							|| context.is_trivially_destructible(called.src_tokens, elem_t)
 						)
@@ -1406,13 +1410,11 @@ ast::expression make_builtin_subscript_operator(
 		ast::typespec result_type = array_slice_t.elem_type;
 		result_type.add_layer<ast::ts_lvalue_reference>();
 
-		bz_assert(context.is_trivially_destructible(src_tokens, called_type));
-		/*
 		if (called_kind == ast::expression_type_kind::rvalue)
 		{
+			// bz_assert(context.is_trivially_destructible(src_tokens, called_type));
 			context.add_self_destruction(called);
 		}
-		*/
 
 		return ast::make_dynamic_expression(
 			src_tokens,
