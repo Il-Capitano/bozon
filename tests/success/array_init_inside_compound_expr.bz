@@ -1,0 +1,9 @@
+function test()
+{
+	(consteval {
+		let _: [1: int32] = {
+			let i = 0;
+			[ i ]
+		};
+	});
+}

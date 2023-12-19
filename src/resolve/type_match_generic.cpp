@@ -3557,6 +3557,23 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 	{
 		return match_function_result_t<kind>();
 	}
+	else if (
+		auto const compound_expr = expr.get_expr().template get_if<ast::expr_compound>();
+		compound_expr != nullptr && compound_expr->final_expr.not_null()
+	)
+	{
+		auto result = generic_type_match(change_expr(match_context, compound_expr->final_expr));
+		if constexpr (kind == type_match_function_kind::match_expression)
+		{
+			if (result)
+			{
+				auto const [expr_type, expr_type_kind] = compound_expr->final_expr.get_expr_type_and_kind();
+				expr.set_type(expr_type);
+				expr.set_type_kind(expr_type_kind);
+			}
+		}
+		return result;
+	}
 	else if (expr.is_if_expr())
 	{
 		if constexpr (kind == type_match_function_kind::match_expression)
@@ -3637,23 +3654,6 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 		{
 			return generic_type_match_tuple(match_context);
 		}
-	}
-	else if (
-		auto const compound_expr = expr.get_expr().template get_if<ast::expr_compound>();
-		compound_expr != nullptr && compound_expr->final_expr.not_null()
-	)
-	{
-		auto result = generic_type_match(change_expr(match_context, compound_expr->final_expr));
-		if constexpr (kind == type_match_function_kind::match_expression)
-		{
-			if (result)
-			{
-				auto const [expr_type, expr_type_kind] = compound_expr->final_expr.get_expr_type_and_kind();
-				expr.set_type(expr_type);
-				expr.set_type_kind(expr_type_kind);
-			}
-		}
-		return result;
 	}
 	else
 	{
