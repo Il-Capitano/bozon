@@ -84,12 +84,12 @@ static bz::u8string to_upper(bz::u8string_view s)
 static bool has_llvm(void)
 {
 	return bz::run_process("llvm-config", bz::array_view<char const * const>{ "--version" }).return_code != 0
-		|| bz::run_process("llvm-config-17", bz::array_view<char const * const>{ "--version" }).return_code != 0;
+		|| bz::run_process("llvm-config-18", bz::array_view<char const * const>{ "--version" }).return_code != 0;
 }
 
 static bz::optional<bz::u8string> get_llvm_default_target(void)
 {
-	for (auto const llvm_config : { "llvm-config", "llvm-config-17" })
+	for (auto const llvm_config : { "llvm-config", "llvm-config-18" })
 	{
 		auto process_result = bz::run_process(llvm_config, bz::array_view<char const * const>{ "--host-target" });
 		if (process_result.return_code == 0)
