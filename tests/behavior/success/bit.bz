@@ -268,6 +268,75 @@ function fshr_test()
 	if (__builtin_fshr_u64(a, b, 123456) != b) unreachable;
 }
 
+function arithmetic_shift_right_test()
+{
+	let n = 0b0010'0011u8;
+	if (__builtin_arithmetic_shift_right_u8(n, 0) != n) unreachable;
+	if (__builtin_arithmetic_shift_right_u8(n, 1) != 0b0001'0001) unreachable;
+	if (__builtin_arithmetic_shift_right_u8(n, 3) != 0b0000'0100) unreachable;
+	if (__builtin_arithmetic_shift_right_u8(n, 6) != 0b0000'0000) unreachable;
+	if (__builtin_arithmetic_shift_right_u8(n, 7) != 0b0000'0000) unreachable;
+
+	let n = 0b1010'0011u8;
+	if (__builtin_arithmetic_shift_right_u8(n, 0) != n) unreachable;
+	if (__builtin_arithmetic_shift_right_u8(n, 1) != 0b1101'0001) unreachable;
+	if (__builtin_arithmetic_shift_right_u8(n, 3) != 0b1111'0100) unreachable;
+	if (__builtin_arithmetic_shift_right_u8(n, 6) != 0b1111'1110) unreachable;
+	if (__builtin_arithmetic_shift_right_u8(n, 7) != 0b1111'1111) unreachable;
+
+	let n = 0b0100'1110'1010'0011u16;
+	if (__builtin_arithmetic_shift_right_u16(n, 0) != n) unreachable;
+	if (__builtin_arithmetic_shift_right_u16(n, 1) != 0b0010'0111'0101'0001) unreachable;
+	if (__builtin_arithmetic_shift_right_u16(n, 5) != 0b0000'0010'0111'0101) unreachable;
+	if (__builtin_arithmetic_shift_right_u16(n, 8) != 0b0000'0000'0100'1110) unreachable;
+	if (__builtin_arithmetic_shift_right_u16(n, 11) != 0b0000'0000'0000'1001) unreachable;
+	if (__builtin_arithmetic_shift_right_u16(n, 15) != 0b0000'0000'0000'0000) unreachable;
+
+	let n = 0b1100'1110'1010'0011u16;
+	if (__builtin_arithmetic_shift_right_u16(n, 0) != n) unreachable;
+	if (__builtin_arithmetic_shift_right_u16(n, 1) != 0b1110'0111'0101'0001) unreachable;
+	if (__builtin_arithmetic_shift_right_u16(n, 5) != 0b1111'1110'0111'0101) unreachable;
+	if (__builtin_arithmetic_shift_right_u16(n, 8) != 0b1111'1111'1100'1110) unreachable;
+	if (__builtin_arithmetic_shift_right_u16(n, 11) != 0b1111'1111'1111'1001) unreachable;
+	if (__builtin_arithmetic_shift_right_u16(n, 15) != 0b1111'1111'1111'1111) unreachable;
+
+	let n = 0b0110'0010'0110'0101'1111'0111'0011'1001u32;
+	if (__builtin_arithmetic_shift_right_u32(n, 0) != n) unreachable;
+	if (__builtin_arithmetic_shift_right_u32(n, 1) != 0b0011'0001'0011'0010'1111'1011'1001'1100) unreachable;
+	if (__builtin_arithmetic_shift_right_u32(n, 8) != 0b0000'0000'0110'0010'0110'0101'1111'0111) unreachable;
+	if (__builtin_arithmetic_shift_right_u32(n, 9) != 0b0000'0000'0011'0001'0011'0010'1111'1011) unreachable;
+	if (__builtin_arithmetic_shift_right_u32(n, 15) != 0b0000'0000'0000'0000'1100'0100'1100'1011) unreachable;
+	if (__builtin_arithmetic_shift_right_u32(n, 21) != 0b0000'0000'0000'0000'0000'0011'0001'0011) unreachable;
+	if (__builtin_arithmetic_shift_right_u32(n, 28) != 0b0000'0000'0000'0000'0000'0000'0000'0110) unreachable;
+
+	let n = 0b1110'0010'0110'0101'1111'0111'0011'1001u32;
+	if (__builtin_arithmetic_shift_right_u32(n, 0) != n) unreachable;
+	if (__builtin_arithmetic_shift_right_u32(n, 1) != 0b1111'0001'0011'0010'1111'1011'1001'1100) unreachable;
+	if (__builtin_arithmetic_shift_right_u32(n, 8) != 0b1111'1111'1110'0010'0110'0101'1111'0111) unreachable;
+	if (__builtin_arithmetic_shift_right_u32(n, 9) != 0b1111'1111'1111'0001'0011'0010'1111'1011) unreachable;
+	if (__builtin_arithmetic_shift_right_u32(n, 15) != 0b1111'1111'1111'1111'1100'0100'1100'1011) unreachable;
+	if (__builtin_arithmetic_shift_right_u32(n, 21) != 0b1111'1111'1111'1111'1111'1111'0001'0011) unreachable;
+	if (__builtin_arithmetic_shift_right_u32(n, 28) != 0b1111'1111'1111'1111'1111'1111'1111'1110) unreachable;
+
+	let n = 0b0101'1011'0110'0110'1010'0011'0011'1111'1100'0011'0000'0111'0011'1110'1110'0110u64;
+	if (__builtin_arithmetic_shift_right_u64(n, 0) != n) unreachable;
+	if (__builtin_arithmetic_shift_right_u64(n, 1) != 0b0010'1101'1011'0011'0101'0001'1001'1111'1110'0001'1000'0011'1001'1111'0111'0011) unreachable;
+	if (__builtin_arithmetic_shift_right_u64(n, 12) != 0b0000'0000'0000'0101'1011'0110'0110'1010'0011'0011'1111'1100'0011'0000'0111'0011) unreachable;
+	if (__builtin_arithmetic_shift_right_u64(n, 17) != 0b0000'0000'0000'0000'0010'1101'1011'0011'0101'0001'1001'1111'1110'0001'1000'0011) unreachable;
+	if (__builtin_arithmetic_shift_right_u64(n, 26) != 0b0000'0000'0000'0000'0000'0000'0001'0110'1101'1001'1010'1000'1100'1111'1111'0000) unreachable;
+	if (__builtin_arithmetic_shift_right_u64(n, 37) != 0b0000'0000'0000'0000'0000'0000'0000'0000'0000'0010'1101'1011'0011'0101'0001'1001) unreachable;
+	if (__builtin_arithmetic_shift_right_u64(n, 50) != 0b0000'0000'0000'0000'0000'0000'0000'0000'0000'0000'0000'0000'0001'0110'1101'1001) unreachable;
+
+	let n = 0b1101'1011'0110'0110'1010'0011'0011'1111'1100'0011'0000'0111'0011'1110'1110'0110u64;
+	if (__builtin_arithmetic_shift_right_u64(n, 0) != n) unreachable;
+	if (__builtin_arithmetic_shift_right_u64(n, 1) != 0b1110'1101'1011'0011'0101'0001'1001'1111'1110'0001'1000'0011'1001'1111'0111'0011) unreachable;
+	if (__builtin_arithmetic_shift_right_u64(n, 12) != 0b1111'1111'1111'1101'1011'0110'0110'1010'0011'0011'1111'1100'0011'0000'0111'0011) unreachable;
+	if (__builtin_arithmetic_shift_right_u64(n, 17) != 0b1111'1111'1111'1111'1110'1101'1011'0011'0101'0001'1001'1111'1110'0001'1000'0011) unreachable;
+	if (__builtin_arithmetic_shift_right_u64(n, 26) != 0b1111'1111'1111'1111'1111'1111'1111'0110'1101'1001'1010'1000'1100'1111'1111'0000) unreachable;
+	if (__builtin_arithmetic_shift_right_u64(n, 37) != 0b1111'1111'1111'1111'1111'1111'1111'1111'1111'1110'1101'1011'0011'0101'0001'1001) unreachable;
+	if (__builtin_arithmetic_shift_right_u64(n, 50) != 0b1111'1111'1111'1111'1111'1111'1111'1111'1111'1111'1111'1111'1111'0110'1101'1001) unreachable;
+}
+
 function main()
 {
 	bitreverse_test();
@@ -283,4 +352,5 @@ function main()
 	ctz_test(uint64);
 	fshl_test();
 	fshr_test();
+	arithmetic_shift_right_test();
 }
