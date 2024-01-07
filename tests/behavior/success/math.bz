@@ -1,11 +1,15 @@
 function isnan = __builtin_isnan_f32;
 function isnan = __builtin_isnan_f64;
-
 function isinf = __builtin_isinf_f32;
 function isinf = __builtin_isinf_f64;
-
 function isfinite = __builtin_isfinite_f32;
 function isfinite = __builtin_isfinite_f64;
+function isnormal = __builtin_isnormal_f32;
+function isnormal = __builtin_isnormal_f64;
+function issubnormal = __builtin_issubnormal_f32;
+function issubnormal = __builtin_issubnormal_f64;
+function iszero = __builtin_iszero_f32;
+function iszero = __builtin_iszero_f64;
 
 function abs_int = __builtin_abs_i8;
 function abs_int = __builtin_abs_i16;
@@ -171,8 +175,66 @@ function isfinite_test(T: typename)
 	if (isfinite(-inf)) unreachable;
 	if (isfinite(nan)) unreachable;
 	if (isfinite(-nan)) unreachable;
+}
 
-	let _ = isfinite(zero);
+function isnormal_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let zero = 0.0 as T;
+	let inf = T.inf;
+	let nan = T.nan;
+
+	if (!isnormal(min)) unreachable;
+	if (!isnormal(-min)) unreachable;
+	if (isnormal(denorm_min)) unreachable;
+	if (isnormal(-denorm_min)) unreachable;
+	if (isnormal(zero)) unreachable;
+	if (isnormal(-zero)) unreachable;
+	if (isnormal(inf)) unreachable;
+	if (isnormal(-inf)) unreachable;
+	if (isnormal(nan)) unreachable;
+	if (isnormal(-nan)) unreachable;
+}
+
+function issubnormal_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let zero = 0.0 as T;
+	let inf = T.inf;
+	let nan = T.nan;
+
+	if (issubnormal(min)) unreachable;
+	if (issubnormal(-min)) unreachable;
+	if (!issubnormal(denorm_min)) unreachable;
+	if (!issubnormal(-denorm_min)) unreachable;
+	if (issubnormal(zero)) unreachable;
+	if (issubnormal(-zero)) unreachable;
+	if (issubnormal(inf)) unreachable;
+	if (issubnormal(-inf)) unreachable;
+	if (issubnormal(nan)) unreachable;
+	if (issubnormal(-nan)) unreachable;
+}
+
+function iszero_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let zero = 0.0 as T;
+	let inf = T.inf;
+	let nan = T.nan;
+
+	if (iszero(min)) unreachable;
+	if (iszero(-min)) unreachable;
+	if (iszero(denorm_min)) unreachable;
+	if (iszero(-denorm_min)) unreachable;
+	if (!iszero(zero)) unreachable;
+	if (!iszero(-zero)) unreachable;
+	if (iszero(inf)) unreachable;
+	if (iszero(-inf)) unreachable;
+	if (iszero(nan)) unreachable;
+	if (iszero(-nan)) unreachable;
 }
 
 function abs_test_int(T: typename)
@@ -1919,12 +1981,16 @@ function main()
 {
 	isnan_test(float32);
 	isnan_test(float64);
-
 	isinf_test(float32);
 	isinf_test(float64);
-
 	isfinite_test(float32);
 	isfinite_test(float64);
+	isnormal_test(float32);
+	isnormal_test(float64);
+	issubnormal_test(float32);
+	issubnormal_test(float64);
+	iszero_test(float32);
+	iszero_test(float64);
 
 	abs_test_int(int8);
 	abs_test_int(int16);
