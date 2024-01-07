@@ -4206,6 +4206,31 @@ expr_value codegen_context::create_iszero(expr_value x)
 	}
 }
 
+expr_value codegen_context::create_nextafter(expr_value from, expr_value to)
+{
+	bz_assert(from.get_type() == to.get_type());
+	bz_assert(from.get_type()->is_builtin());
+
+	auto const from_val = from.get_value_as_instruction(*this);
+	auto const to_val = to.get_value_as_instruction(*this);
+
+	switch (from.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::f32:
+		return expr_value::get_value(
+			add_instruction(*this, instructions::nextafter_f32{}, from_val, to_val),
+			this->get_builtin_type(builtin_type_kind::i1)
+		);
+	case builtin_type_kind::f64:
+		return expr_value::get_value(
+			add_instruction(*this, instructions::nextafter_f64{}, from_val, to_val),
+			this->get_builtin_type(builtin_type_kind::i1)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
 expr_value codegen_context::create_abs(expr_value value)
 {
 	auto const value_ref = value.get_value_as_instruction(*this);
@@ -6743,7 +6768,7 @@ void current_function_info_t::finalize_function(void)
 		}
 
 		// finalize the terminator dests
-		static_assert(instruction_list_t::size() == 570);
+		static_assert(instruction_list_t::size() == 572);
 		if (bb.instructions.not_empty()) switch (auto &inst = bb.instructions.back().inst; inst.index())
 		{
 		case instruction::jump:

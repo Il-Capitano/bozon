@@ -2201,7 +2201,7 @@ static expr_value generate_intrinsic_function_call_code(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 275);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 281);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 28);
@@ -3185,6 +3185,22 @@ static expr_value generate_intrinsic_function_call_code(
 		auto const x = generate_expr_code(func_call.params[0], context, {}).get_value(context);
 		return value_or_result_address(context.create_iszero(x), result_address, context);
 	}
+	case ast::function_body::nextafter_f32:
+	case ast::function_body::nextafter_f64:
+	{
+		bz_assert(func_call.params.size() == 2);
+		auto const from = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		auto const to = generate_expr_code(func_call.params[1], context, {}).get_value(context);
+		return value_or_result_address(context.create_nextafter(from, to), result_address, context);
+	}
+	case ast::function_body::nextup_f32:
+	case ast::function_body::nextup_f64:
+		// implemented in __builtins.bz
+		bz_unreachable;
+	case ast::function_body::nextdown_f32:
+	case ast::function_body::nextdown_f64:
+		// implemented in __builtins.bz
+		bz_unreachable;
 	case ast::function_body::abs_i8:
 	case ast::function_body::abs_i16:
 	case ast::function_body::abs_i32:

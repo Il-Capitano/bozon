@@ -690,6 +690,10 @@ struct function_body
 		issubnormal_f32, issubnormal_f64,
 		iszero_f32, iszero_f64,
 
+		nextafter_f32, nextafter_f64,
+		nextup_f32, nextup_f64,
+		nextdown_f32, nextdown_f64,
+
 		abs_i8, abs_i16, abs_i32, abs_i64,
 		abs_f32, abs_f64,
 
@@ -1770,7 +1774,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 275);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 281);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1976,6 +1980,13 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::issubnormal_f64, "__builtin_issubnormal_f64" },
 		{ function_body::iszero_f32,      "__builtin_iszero_f32"      },
 		{ function_body::iszero_f64,      "__builtin_iszero_f64"      },
+
+		{ function_body::nextafter_f32, "__builtin_nextafter_f32" },
+		{ function_body::nextafter_f64, "__builtin_nextafter_f64" },
+		{ function_body::nextup_f32,    "__builtin_nextup_f32"    },
+		{ function_body::nextup_f64,    "__builtin_nextup_f64"    },
+		{ function_body::nextdown_f32,  "__builtin_nextdown_f32"  },
+		{ function_body::nextdown_f64,  "__builtin_nextdown_f64"  },
 
 		{ function_body::abs_i8,  "__builtin_abs_i8"  },
 		{ function_body::abs_i16, "__builtin_abs_i16" },

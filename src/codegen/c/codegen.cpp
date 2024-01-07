@@ -2684,7 +2684,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 275);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 281);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 28);
@@ -3635,6 +3635,18 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		auto const result = context.create_equals(classification, fp_zero);
 		return value_or_result_dest(result, result_dest, context);
 	}
+	case ast::function_body::nextafter_f32:
+		return generate_libc_math_function_call("nextafterf", func_call, context, result_dest);
+	case ast::function_body::nextafter_f64:
+		return generate_libc_math_function_call("nextafter", func_call, context, result_dest);
+	case ast::function_body::nextup_f32:
+	case ast::function_body::nextup_f64:
+		// implemented in __builtins.bz
+		bz_unreachable;
+	case ast::function_body::nextdown_f32:
+	case ast::function_body::nextdown_f64:
+		// implemented in __builtins.bz
+		bz_unreachable;
 	case ast::function_body::abs_i8:
 		return generate_builtin_function_call("bozon_abs_i8", func_call, context, result_dest);
 	case ast::function_body::abs_i16:
