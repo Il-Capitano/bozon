@@ -3023,7 +3023,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 269);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 275);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 28);
@@ -3795,6 +3795,39 @@ static val_ptr emit_bitcode(
 				| (1u << 6) // positive zero
 				| (1u << 7) // positive subnormal
 				| (1u << 8); // positive normal
+			auto const result = context.builder.createIsFPClass(x, test);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::isnormal_f32:
+		case ast::function_body::isnormal_f64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const x = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			unsigned const test =
+				(1u << 3) // negative normal
+				| (1u << 8); // positive normal
+			auto const result = context.builder.createIsFPClass(x, test);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::issubnormal_f32:
+		case ast::function_body::issubnormal_f64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const x = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			unsigned const test =
+				(1u << 4) // negative subnormal
+				| (1u << 7); // positive subnormal
+			auto const result = context.builder.createIsFPClass(x, test);
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::iszero_f32:
+		case ast::function_body::iszero_f64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const x = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			unsigned const test =
+				(1u << 5) // negative zero
+				| (1u << 6); // positive zero
 			auto const result = context.builder.createIsFPClass(x, test);
 			return value_or_result_address(result, result_address, context);
 		}

@@ -3227,6 +3227,60 @@ struct isfinite_f64
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
+struct isnormal_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct isnormal_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct issubnormal_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct issubnormal_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct iszero_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct iszero_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
 struct abs_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
@@ -6014,6 +6068,12 @@ using instruction_list_t = bz::meta::type_pack<
 	instructions::isinf_f64,
 	instructions::isfinite_f32,
 	instructions::isfinite_f64,
+	instructions::isnormal_f32,
+	instructions::isnormal_f64,
+	instructions::issubnormal_f32,
+	instructions::issubnormal_f64,
+	instructions::iszero_f32,
+	instructions::iszero_f64,
 	instructions::abs_i8,
 	instructions::abs_i16,
 	instructions::abs_i32,
@@ -6299,7 +6359,7 @@ private:
 	uint64_t _index = index_of<void>;
 
 public:
-	static_assert(instruction_list_t::size() == 564);
+	static_assert(instruction_list_t::size() == 570);
 	enum : uint64_t
 	{
 		const_i1 = index_of<instructions::const_i1>,
@@ -6621,6 +6681,12 @@ public:
 		isinf_f64,
 		isfinite_f32,
 		isfinite_f64,
+		isnormal_f32,
+		isnormal_f64,
+		issubnormal_f32,
+		issubnormal_f64,
+		iszero_f32,
+		iszero_f64,
 		abs_i8,
 		abs_i16,
 		abs_i32,

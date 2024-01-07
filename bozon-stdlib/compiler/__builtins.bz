@@ -310,6 +310,7 @@
 	export consteval min: float32 = 1.1754944e-38f32;
 	export consteval denorm_min: float32 = 1e-45f32;
 	export consteval epsilon: float32 = 1.1920929e-07f32;
+	export consteval max: float32 = 3.4028235e+38f32;
 
 	export consteval inf: float32 = ((1.0f32 / 0.0f32));
 	export consteval nan: float32 = ((__builtin_abs_f32(((0.0f32 / 0.0f32)))));
@@ -339,6 +340,7 @@
 	export consteval min: float64 = 2.2250738585072014e-308f64;
 	export consteval denorm_min: float64 = 5e-324f64;
 	export consteval epsilon: float64 = 2.220446049250313e-16f64;
+	export consteval max: float64 = 1.7976931348623157e+308f64;
 
 	export consteval inf: float64 = ((1.0f64 / 0.0f64));
 	export consteval nan: float64 = ((__builtin_abs_f64(((0.0f64 / 0.0f64)))));
@@ -1014,6 +1016,12 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 @__builtin export function __builtin_isinf_f64(x: float64) -> bool;
 @__builtin export function __builtin_isfinite_f32(x: float32) -> bool;
 @__builtin export function __builtin_isfinite_f64(x: float64) -> bool;
+@__builtin export function __builtin_isnormal_f32(x: float32) -> bool;
+@__builtin export function __builtin_isnormal_f64(x: float64) -> bool;
+@__builtin export function __builtin_issubnormal_f32(x: float32) -> bool;
+@__builtin export function __builtin_issubnormal_f64(x: float64) -> bool;
+@__builtin export function __builtin_iszero_f32(x: float32) -> bool;
+@__builtin export function __builtin_iszero_f64(x: float64) -> bool;
 
 @__builtin export function __builtin_abs_i8(n: int8)   -> int8;
 @__builtin export function __builtin_abs_i16(n: int16) -> int16;

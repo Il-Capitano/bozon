@@ -2692,6 +2692,36 @@ static bool execute_isfinite_f64(instructions::isfinite_f64 const &, float64_t v
 	return std::isfinite(value);
 }
 
+static bool execute_isnormal_f32(instructions::isnormal_f32 const &, float32_t value, executor_context &)
+{
+	return std::isnormal(value);
+}
+
+static bool execute_isnormal_f64(instructions::isnormal_f64 const &, float64_t value, executor_context &)
+{
+	return std::isnormal(value);
+}
+
+static bool execute_issubnormal_f32(instructions::issubnormal_f32 const &, float32_t value, executor_context &)
+{
+	return std::isfinite(value) && !std::isnormal(value) && value != 0.0f;
+}
+
+static bool execute_issubnormal_f64(instructions::issubnormal_f64 const &, float64_t value, executor_context &)
+{
+	return std::isfinite(value) && !std::isnormal(value) && value != 0.0;
+}
+
+static bool execute_iszero_f32(instructions::iszero_f32 const &, float32_t value, executor_context &)
+{
+	return value == 0.0f;
+}
+
+static bool execute_iszero_f64(instructions::iszero_f64 const &, float64_t value, executor_context &)
+{
+	return value == 0.0;
+}
+
 static uint8_t execute_abs_i8(instructions::abs_i8 const &, uint8_t uvalue, executor_context &)
 {
 	auto const value = static_cast<int8_t>(uvalue);
@@ -5101,7 +5131,7 @@ void execute_current_instruction(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-	static_assert(instruction_list_t::size() == 564);
+	static_assert(instruction_list_t::size() == 570);
 	case instruction::const_i1:
 		execute<instructions::const_i1, &execute_const_i1>(context);
 		break;
@@ -6058,6 +6088,24 @@ void execute_current_instruction(executor_context &context)
 		break;
 	case instruction::isfinite_f64:
 		execute<instructions::isfinite_f64, &execute_isfinite_f64>(context);
+		break;
+	case instruction::isnormal_f32:
+		execute<instructions::isnormal_f32, &execute_isnormal_f32>(context);
+		break;
+	case instruction::isnormal_f64:
+		execute<instructions::isnormal_f64, &execute_isnormal_f64>(context);
+		break;
+	case instruction::issubnormal_f32:
+		execute<instructions::issubnormal_f32, &execute_issubnormal_f32>(context);
+		break;
+	case instruction::issubnormal_f64:
+		execute<instructions::issubnormal_f64, &execute_issubnormal_f64>(context);
+		break;
+	case instruction::iszero_f32:
+		execute<instructions::iszero_f32, &execute_iszero_f32>(context);
+		break;
+	case instruction::iszero_f64:
+		execute<instructions::iszero_f64, &execute_iszero_f64>(context);
 		break;
 	case instruction::abs_i8:
 		execute<instructions::abs_i8, &execute_abs_i8>(context);

@@ -2684,7 +2684,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 269);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 275);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 28);
@@ -3595,6 +3595,44 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 			generate_libc_math_function_call("isfinite", func_call, context.get_c_int(), context, {}),
 			context
 		);
+		return value_or_result_dest(result, result_dest, context);
+	}
+	case ast::function_body::isnormal_f32:
+	case ast::function_body::isnormal_f64:
+	{
+		auto const result = int_to_bool(
+			generate_libc_math_function_call("isnormal", func_call, context.get_c_int(), context, {}),
+			context
+		);
+		return value_or_result_dest(result, result_dest, context);
+	}
+	case ast::function_body::issubnormal_f32:
+	{
+		auto const c_int_type = context.get_c_int();
+		// for some reason adding 'fabs' here produces much better code for clang, so we might as well do it
+		auto const abs_value = generate_libc_math_function_call("fabsf", func_call, context, {});
+		auto const classification = generate_trivial_function_call("fpclassify", abs_value, c_int_type, context, {});
+		auto const fp_subnormal = context.add_temporary_expression("FP_SUBNORMAL", c_int_type, false, false, true, precedence::literal);
+		auto const result = context.create_equals(classification, fp_subnormal);
+		return value_or_result_dest(result, result_dest, context);
+	}
+	case ast::function_body::issubnormal_f64:
+	{
+		auto const c_int_type = context.get_c_int();
+		// for some reason adding 'fabs' here produces much better code for clang, so we might as well do it
+		auto const abs_value = generate_libc_math_function_call("fabs", func_call, context, {});
+		auto const classification = generate_trivial_function_call("fpclassify", abs_value, c_int_type, context, {});
+		auto const fp_subnormal = context.add_temporary_expression("FP_SUBNORMAL", c_int_type, false, false, true, precedence::literal);
+		auto const result = context.create_equals(classification, fp_subnormal);
+		return value_or_result_dest(result, result_dest, context);
+	}
+	case ast::function_body::iszero_f32:
+	case ast::function_body::iszero_f64:
+	{
+		auto const c_int_type = context.get_c_int();
+		auto const classification = generate_libc_math_function_call("fpclassify", func_call, c_int_type, context, {});
+		auto const fp_zero = context.add_temporary_expression("FP_ZERO", c_int_type, false, false, true, precedence::literal);
+		auto const result = context.create_equals(classification, fp_zero);
 		return value_or_result_dest(result, result_dest, context);
 	}
 	case ast::function_body::abs_i8:
