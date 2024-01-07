@@ -1034,7 +1034,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 	let x_bits = __builtin_bit_cast(uint32, x);
 	let abs_x_bits = __builtin_bit_cast(uint32, __builtin_abs_f32(x));
 	let normalized_zero = if (is_zero) { abs_x_bits } else { x_bits };
-	let d = if ((normalized_zero & (1u32 << 31)) != 0) { ~0u32 } else { 1u32 };
+	let d = __builtin_arithmetic_shift_right_u32(normalized_zero, 31) | 1u32;
 	let finite_result = ((normalized_zero + d));
 	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
 	return __builtin_bit_cast(float32, result);
@@ -1048,7 +1048,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 	let x_bits = __builtin_bit_cast(uint64, x);
 	let abs_x_bits = __builtin_bit_cast(uint64, __builtin_abs_f64(x));
 	let normalized_zero = if (is_zero) { abs_x_bits } else { x_bits };
-	let d = if ((normalized_zero & (1u64 << 63)) != 0) { ~0u64 } else { 1u64 };
+	let d = __builtin_arithmetic_shift_right_u64(normalized_zero, 63) | 1u64;
 	let finite_result = ((normalized_zero + d));
 	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
 	return __builtin_bit_cast(float64, result);
@@ -1062,7 +1062,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 	let x_bits = __builtin_bit_cast(uint32, x);
 	let negative_x_bits = __builtin_bit_cast(uint32, -__builtin_abs_f32(x));
 	let normalized_zero = if (is_zero) { negative_x_bits } else { x_bits };
-	let d = if ((normalized_zero & (1u32 << 31)) != 0) { ~0u32 } else { 1u32 };
+	let d = __builtin_arithmetic_shift_right_u32(normalized_zero, 31) | 1u32;
 	let finite_result = ((normalized_zero - d));
 	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
 	return __builtin_bit_cast(float32, result);
@@ -1076,7 +1076,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 	let x_bits = __builtin_bit_cast(uint64, x);
 	let negative_x_bits = __builtin_bit_cast(uint64, -__builtin_abs_f64(x));
 	let normalized_zero = if (is_zero) { negative_x_bits } else { x_bits };
-	let d = if ((normalized_zero & (1u64 << 63)) != 0) { ~0u64 } else { 1u64 };
+	let d = __builtin_arithmetic_shift_right_u64(normalized_zero, 63) | 1u64;
 	let finite_result = ((normalized_zero - d));
 	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
 	return __builtin_bit_cast(float64, result);
