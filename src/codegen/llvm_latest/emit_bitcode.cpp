@@ -3023,7 +3023,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 281);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 285);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 28);
@@ -4067,6 +4067,17 @@ static val_ptr emit_bitcode(
 			auto const b = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
 			auto const amount = emit_bitcode(func_call.params[2], context, nullptr).get_value(context.builder);
 			auto const result = context.builder.CreateIntrinsic(llvm::Intrinsic::fshr, { a->getType() }, { a, b, amount });
+			return value_or_result_address(result, result_address, context);
+		}
+		case ast::function_body::arithmetic_shift_right_u8:
+		case ast::function_body::arithmetic_shift_right_u16:
+		case ast::function_body::arithmetic_shift_right_u32:
+		case ast::function_body::arithmetic_shift_right_u64:
+		{
+			bz_assert(func_call.params.size() == 2);
+			auto const n = emit_bitcode(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const amount = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const result = context.builder.CreateAShr(n, amount);
 			return value_or_result_address(result, result_address, context);
 		}
 

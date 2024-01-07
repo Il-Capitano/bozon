@@ -11,7 +11,7 @@ static_assert([]<typename ...Ts>(bz::meta::type_pack<Ts...>) {
 	return bz::meta::is_all<std::is_trivial_v<Ts>...>;
 }(instruction_list_t()));
 
-static_assert(instruction_list_t::size() == 572);
+static_assert(instruction_list_t::size() == 576);
 static_assert(instruction::const_i1                 == instruction::index_of<instructions::const_i1>);
 static_assert(instruction::const_i8                 == instruction::index_of<instructions::const_i8>);
 static_assert(instruction::const_i16                == instruction::index_of<instructions::const_i16>);
@@ -514,6 +514,10 @@ static_assert(instruction::fshr_u8                  == instruction::index_of<ins
 static_assert(instruction::fshr_u16                 == instruction::index_of<instructions::fshr_u16>);
 static_assert(instruction::fshr_u32                 == instruction::index_of<instructions::fshr_u32>);
 static_assert(instruction::fshr_u64                 == instruction::index_of<instructions::fshr_u64>);
+static_assert(instruction::ashr_u8                  == instruction::index_of<instructions::ashr_u8>);
+static_assert(instruction::ashr_u16                 == instruction::index_of<instructions::ashr_u16>);
+static_assert(instruction::ashr_u32                 == instruction::index_of<instructions::ashr_u32>);
+static_assert(instruction::ashr_u64                 == instruction::index_of<instructions::ashr_u64>);
 static_assert(instruction::const_gep                == instruction::index_of<instructions::const_gep>);
 static_assert(instruction::array_gep_i32            == instruction::index_of<instructions::array_gep_i32>);
 static_assert(instruction::array_gep_i64            == instruction::index_of<instructions::array_gep_i64>);
@@ -589,7 +593,7 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 {
 	switch (inst_.index())
 	{
-	static_assert(instruction_list_t::size() == 572);
+	static_assert(instruction_list_t::size() == 576);
 	case instruction::const_i1:
 	{
 		auto const &inst = inst_.get<instructions::const_i1>();
@@ -3099,6 +3103,26 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 		auto const &inst = inst_.get<instructions::fshr_u64>();
 		return bz::format("fshr u64 {}, {}, {}", inst.args[0], inst.args[1], inst.args[2]);
 	}
+	case instruction::ashr_u8:
+	{
+		auto const &inst = inst_.get<instructions::ashr_u8>();
+		return bz::format("ashr u8 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+	}
+	case instruction::ashr_u16:
+	{
+		auto const &inst = inst_.get<instructions::ashr_u16>();
+		return bz::format("ashr u16 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+	}
+	case instruction::ashr_u32:
+	{
+		auto const &inst = inst_.get<instructions::ashr_u32>();
+		return bz::format("ashr u32 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+	}
+	case instruction::ashr_u64:
+	{
+		auto const &inst = inst_.get<instructions::ashr_u64>();
+		return bz::format("ashr u64 {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+	}
 	case instruction::const_gep:
 	{
 		auto const &inst = inst_.get<instructions::const_gep>();
@@ -4058,6 +4082,10 @@ static bz::array instruction_names = {
 	bz::u8string_view("fshr_u16"),
 	bz::u8string_view("fshr_u32"),
 	bz::u8string_view("fshr_u64"),
+	bz::u8string_view("ashr_u8"),
+	bz::u8string_view("ashr_u16"),
+	bz::u8string_view("ashr_u32"),
+	bz::u8string_view("ashr_u64"),
 	bz::u8string_view("const_gep"),
 	bz::u8string_view("array_gep_i32"),
 	bz::u8string_view("array_gep_i64"),

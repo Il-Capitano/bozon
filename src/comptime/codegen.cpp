@@ -2201,7 +2201,7 @@ static expr_value generate_intrinsic_function_call_code(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 281);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 285);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 28);
@@ -3656,6 +3656,16 @@ static expr_value generate_intrinsic_function_call_code(
 		auto const b = generate_expr_code(func_call.params[1], context, {}).get_value(context);
 		auto const amount = generate_expr_code(func_call.params[2], context, {}).get_value(context);
 		return value_or_result_address(context.create_fshr(a, b, amount), result_address, context);
+	}
+	case ast::function_body::arithmetic_shift_right_u8:
+	case ast::function_body::arithmetic_shift_right_u16:
+	case ast::function_body::arithmetic_shift_right_u32:
+	case ast::function_body::arithmetic_shift_right_u64:
+	{
+		bz_assert(func_call.params.size() == 2);
+		auto const n = generate_expr_code(func_call.params[0], context, {}).get_value(context);
+		auto const amount = generate_expr_code(func_call.params[1], context, {}).get_value(context);
+		return value_or_result_address(context.create_ashr(original_expression.src_tokens, n, amount), result_address, context);
 	}
 	case ast::function_body::i8_default_constructor:
 	case ast::function_body::i16_default_constructor:

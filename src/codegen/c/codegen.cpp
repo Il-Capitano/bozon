@@ -2684,7 +2684,7 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 {
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 281);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 285);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 28);
@@ -3883,6 +3883,39 @@ static bz::optional<expr_value> generate_intrinsic_function_call(
 		return generate_builtin_function_call("bozon_fshr_u32", func_call, context, result_dest);
 	case ast::function_body::fshr_u64:
 		return generate_builtin_function_call("bozon_fshr_u64", func_call, context, result_dest);
+	case ast::function_body::arithmetic_shift_right_u8:
+	case ast::function_body::arithmetic_shift_right_u16:
+	case ast::function_body::arithmetic_shift_right_u32:
+	case ast::function_body::arithmetic_shift_right_u64:
+	{
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(func_call.params[0].get_expr_type().is<ast::ts_base_type>());
+		auto const n_value = generate_expression(func_call.params[0], context, {});
+		auto const amount_value = generate_expression(func_call.params[1], context, {});
+
+		auto const kind = func_call.params[0].get_expr_type().get<ast::ts_base_type>().info->kind;
+		auto const signed_type = [&]() {
+			switch (kind)
+			{
+			case ast::type_info::uint8_:
+				return context.get_int8();
+			case ast::type_info::uint16_:
+				return context.get_int16();
+			case ast::type_info::uint32_:
+				return context.get_int32();
+			case ast::type_info::uint64_:
+				return context.get_int64();
+			default:
+				bz_unreachable;
+			}
+		}();
+		auto const unsigned_type = n_value.get_type();
+
+		auto const signed_n_value = context.create_cast(n_value, signed_type);
+		auto const signed_result_value = context.create_bitshift(signed_n_value, amount_value, ">>");
+		auto const result_value = context.create_cast(signed_result_value, unsigned_type);
+		return value_or_result_dest(result_value, result_dest, context);
+	}
 	case ast::function_body::i8_default_constructor:
 	case ast::function_body::i16_default_constructor:
 	case ast::function_body::i32_default_constructor:
