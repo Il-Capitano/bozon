@@ -738,6 +738,11 @@ struct function_body
 		fshl_u8, fshl_u16, fshl_u32, fshl_u64,
 		fshr_u8, fshr_u16, fshr_u32, fshr_u64,
 
+		arithmetic_shift_right_u8,
+		arithmetic_shift_right_u16,
+		arithmetic_shift_right_u32,
+		arithmetic_shift_right_u64,
+
 		_builtin_last,
 		_builtin_default_constructor_first = _builtin_last,
 
@@ -1750,7 +1755,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 281);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 285);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -2082,6 +2087,11 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::fshr_u16, "__builtin_fshr_u16" },
 		{ function_body::fshr_u32, "__builtin_fshr_u32" },
 		{ function_body::fshr_u64, "__builtin_fshr_u64" },
+
+		{ function_body::arithmetic_shift_right_u8,  "__builtin_arithmetic_shift_right_u8"  },
+		{ function_body::arithmetic_shift_right_u16, "__builtin_arithmetic_shift_right_u16" },
+		{ function_body::arithmetic_shift_right_u32, "__builtin_arithmetic_shift_right_u32" },
+		{ function_body::arithmetic_shift_right_u64, "__builtin_arithmetic_shift_right_u64" },
 	}};
 }();
 

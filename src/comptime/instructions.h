@@ -5006,6 +5006,50 @@ struct fshr_u64
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
+struct ashr_u8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct ashr_u16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct ashr_u32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct ashr_u64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
 struct const_gep
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
@@ -6269,6 +6313,10 @@ using instruction_list_t = bz::meta::type_pack<
 	instructions::fshr_u16,
 	instructions::fshr_u32,
 	instructions::fshr_u64,
+	instructions::ashr_u8,
+	instructions::ashr_u16,
+	instructions::ashr_u32,
+	instructions::ashr_u64,
 	instructions::const_gep,
 	instructions::array_gep_i32,
 	instructions::array_gep_i64,
@@ -6379,7 +6427,7 @@ private:
 	uint64_t _index = index_of<void>;
 
 public:
-	static_assert(instruction_list_t::size() == 572);
+	static_assert(instruction_list_t::size() == 576);
 	enum : uint64_t
 	{
 		const_i1 = index_of<instructions::const_i1>,
@@ -6884,6 +6932,10 @@ public:
 		fshr_u16,
 		fshr_u32,
 		fshr_u64,
+		ashr_u8,
+		ashr_u16,
+		ashr_u32,
+		ashr_u64,
 		const_gep,
 		array_gep_i32,
 		array_gep_i64,

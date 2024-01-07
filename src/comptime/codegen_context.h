@@ -571,6 +571,7 @@ struct codegen_context
 	expr_value create_ctz(expr_value value);
 	expr_value create_fshl(expr_value a, expr_value b, expr_value amount);
 	expr_value create_fshr(expr_value a, expr_value b, expr_value amount);
+	expr_value create_ashr(lex::src_tokens const &src_tokens, expr_value n, expr_value amount);
 
 	void create_unreachable(void);
 	void create_error(lex::src_tokens const &src_tokens, bz::u8string message);

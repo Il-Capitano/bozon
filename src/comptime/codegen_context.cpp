@@ -6140,6 +6140,44 @@ expr_value codegen_context::create_fshr(expr_value a, expr_value b, expr_value a
 	}
 }
 
+expr_value codegen_context::create_ashr(lex::src_tokens const &src_tokens, expr_value n, expr_value amount)
+{
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
+	bz_assert(n.get_type() == amount.get_type());
+	bz_assert(n.get_type()->is_builtin());
+	bz_assert(amount.get_type()->is_builtin());
+
+	auto const n_val = n.get_value_as_instruction(*this);
+	auto const amount_val = amount.get_value_as_instruction(*this);
+
+	switch (n.get_type()->get_builtin_kind())
+	{
+	case builtin_type_kind::i8:
+		return expr_value::get_value(
+			add_instruction(*this, instructions::ashr_u8{ .src_tokens_index = src_tokens_index }, n_val, amount_val),
+			this->get_builtin_type(builtin_type_kind::i8)
+		);
+	case builtin_type_kind::i16:
+		return expr_value::get_value(
+			add_instruction(*this, instructions::ashr_u16{ .src_tokens_index = src_tokens_index }, n_val, amount_val),
+			this->get_builtin_type(builtin_type_kind::i16)
+		);
+	case builtin_type_kind::i32:
+		return expr_value::get_value(
+			add_instruction(*this, instructions::ashr_u32{ .src_tokens_index = src_tokens_index }, n_val, amount_val),
+			this->get_builtin_type(builtin_type_kind::i32)
+		);
+	case builtin_type_kind::i64:
+		return expr_value::get_value(
+			add_instruction(*this, instructions::ashr_u64{ .src_tokens_index = src_tokens_index }, n_val, amount_val),
+			this->get_builtin_type(builtin_type_kind::i64)
+		);
+	default:
+		bz_unreachable;
+	}
+}
+
 
 void codegen_context::create_unreachable(void)
 {
@@ -6768,7 +6806,7 @@ void current_function_info_t::finalize_function(void)
 		}
 
 		// finalize the terminator dests
-		static_assert(instruction_list_t::size() == 572);
+		static_assert(instruction_list_t::size() == 576);
 		if (bb.instructions.not_empty()) switch (auto &inst = bb.instructions.back().inst; inst.index())
 		{
 		case instruction::jump:

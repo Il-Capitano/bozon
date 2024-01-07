@@ -1035,7 +1035,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 	let abs_x_bits = __builtin_bit_cast(uint32, __builtin_abs_f32(x));
 	let normalized_zero = if (is_zero) { abs_x_bits } else { x_bits };
 	let d = if ((normalized_zero & (1u32 << 31)) != 0) { ~0u32 } else { 1u32 };
-	let finite_result = normalized_zero + d;
+	let finite_result = ((normalized_zero + d));
 	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
 	return __builtin_bit_cast(float32, result);
 }
@@ -1049,7 +1049,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 	let abs_x_bits = __builtin_bit_cast(uint64, __builtin_abs_f64(x));
 	let normalized_zero = if (is_zero) { abs_x_bits } else { x_bits };
 	let d = if ((normalized_zero & (1u64 << 63)) != 0) { ~0u64 } else { 1u64 };
-	let finite_result = normalized_zero + d;
+	let finite_result = ((normalized_zero + d));
 	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
 	return __builtin_bit_cast(float64, result);
 }
@@ -1063,7 +1063,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 	let negative_x_bits = __builtin_bit_cast(uint32, -__builtin_abs_f32(x));
 	let normalized_zero = if (is_zero) { negative_x_bits } else { x_bits };
 	let d = if ((normalized_zero & (1u32 << 31)) != 0) { ~0u32 } else { 1u32 };
-	let finite_result = normalized_zero - d;
+	let finite_result = ((normalized_zero - d));
 	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
 	return __builtin_bit_cast(float32, result);
 }
@@ -1077,7 +1077,7 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 	let negative_x_bits = __builtin_bit_cast(uint64, -__builtin_abs_f64(x));
 	let normalized_zero = if (is_zero) { negative_x_bits } else { x_bits };
 	let d = if ((normalized_zero & (1u64 << 63)) != 0) { ~0u64 } else { 1u64 };
-	let finite_result = normalized_zero - d;
+	let finite_result = ((normalized_zero - d));
 	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
 	return __builtin_bit_cast(float64, result);
 }
@@ -1200,6 +1200,11 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 @__builtin export function __builtin_fshr_u16(a: uint16, b: uint16, amount: uint16) -> uint16;
 @__builtin export function __builtin_fshr_u32(a: uint32, b: uint32, amount: uint32) -> uint32;
 @__builtin export function __builtin_fshr_u64(a: uint64, b: uint64, amount: uint64) -> uint64;
+
+@__builtin export function __builtin_arithmetic_shift_right_u8 (n: uint8,  amount: uint8)  -> uint8;
+@__builtin export function __builtin_arithmetic_shift_right_u16(n: uint16, amount: uint16) -> uint16;
+@__builtin export function __builtin_arithmetic_shift_right_u32(n: uint32, amount: uint32) -> uint32;
+@__builtin export function __builtin_arithmetic_shift_right_u64(n: uint64, amount: uint64) -> uint64;
 
 //
 // unary operators
