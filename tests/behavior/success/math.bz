@@ -11,6 +11,13 @@ function issubnormal = __builtin_issubnormal_f64;
 function iszero = __builtin_iszero_f32;
 function iszero = __builtin_iszero_f64;
 
+function nextafter = __builtin_nextafter_f32;
+function nextafter = __builtin_nextafter_f64;
+function nextup = __builtin_nextup_f32;
+function nextup = __builtin_nextup_f64;
+function nextdown = __builtin_nextdown_f32;
+function nextdown = __builtin_nextdown_f64;
+
 function abs_int = __builtin_abs_i8;
 function abs_int = __builtin_abs_i16;
 function abs_int = __builtin_abs_i32;
@@ -235,6 +242,87 @@ function iszero_test(T: typename)
 	if (iszero(-inf)) unreachable;
 	if (iszero(nan)) unreachable;
 	if (iszero(-nan)) unreachable;
+}
+
+function nextafter_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let max = T.max;
+	let epsilon = T.epsilon;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+
+	let zero_bits = (0.0 as T).bits();
+	let negative_zero_bits = (-0.0 as T).bits();
+
+	if (!isnan(nextafter(nan, nan))) unreachable;
+	if (!isnan(nextafter(zero, nan))) unreachable;
+	if (!isnan(nextafter(nan, zero))) unreachable;
+	if (nextafter(zero, inf) != denorm_min) unreachable;
+	if (nextafter(-zero, inf) != denorm_min) unreachable;
+	if (nextafter(zero, -inf) != -denorm_min) unreachable;
+	if (nextafter(-zero, -inf) != -denorm_min) unreachable;
+	if (nextafter(zero, zero).bits() != zero_bits) unreachable;
+	if (nextafter(-zero, zero).bits() != zero_bits) unreachable;
+	if (nextafter(zero, -zero).bits() != negative_zero_bits) unreachable;
+	if (nextafter(-zero, -zero).bits() != negative_zero_bits) unreachable;
+	if (nextafter(max, inf) != inf) unreachable;
+	if (nextafter(-max, -inf) != -inf) unreachable;
+	if (nextafter(inf, inf) != inf) unreachable;
+	if (nextafter(-inf, -inf) != -inf) unreachable;
+	if (nextafter(inf, -inf) != max) unreachable;
+	if (nextafter(-inf, inf) != -max) unreachable;
+	if (!issubnormal(nextafter(min, zero))) unreachable;
+	if (!issubnormal(nextafter(-min, zero))) unreachable;
+	if (nextafter(one, inf) - one != epsilon) unreachable;
+	if (one - nextafter(one, -inf) != epsilon / (2.0 as T)) unreachable;
+}
+
+function nextup_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let max = T.max;
+	let epsilon = T.epsilon;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+
+	if (!isnan(nextup(nan))) unreachable;
+	if (nextup(zero) != denorm_min) unreachable;
+	if (nextup(-zero) != denorm_min) unreachable;
+	if (nextup(max) != inf) unreachable;
+	if (nextup(inf) != inf) unreachable;
+	if (nextup(-inf) != -max) unreachable;
+	if (!issubnormal(nextup(-min))) unreachable;
+	if (nextup(one) - one != epsilon) unreachable;
+	if (nextup(-one) + one != epsilon / (2.0 as T)) unreachable;
+}
+
+function nextdown_test(T: typename)
+{
+	let min = T.min;
+	let denorm_min = T.denorm_min;
+	let max = T.max;
+	let epsilon = T.epsilon;
+	let inf = T.inf;
+	let nan = T.nan;
+	let zero = 0.0 as T;
+	let one = 1.0 as T;
+
+	if (!isnan(nextdown(nan))) unreachable;
+	if (nextdown(zero) != -denorm_min) unreachable;
+	if (nextdown(-zero) != -denorm_min) unreachable;
+	if (nextdown(-max) != -inf) unreachable;
+	if (nextdown(-inf) != -inf) unreachable;
+	if (nextdown(inf) != max) unreachable;
+	if (!issubnormal(nextdown(min))) unreachable;
+	if (-one - nextdown(-one) != epsilon) unreachable;
+	if (one - nextdown(one) != epsilon / (2.0 as T)) unreachable;
 }
 
 function abs_test_int(T: typename)
@@ -1991,6 +2079,13 @@ function main()
 	issubnormal_test(float64);
 	iszero_test(float32);
 	iszero_test(float64);
+
+	nextafter_test(float32);
+	nextafter_test(float64);
+	nextup_test(float32);
+	nextup_test(float64);
+	nextdown_test(float32);
+	nextdown_test(float64);
 
 	abs_test_int(int8);
 	abs_test_int(int16);
