@@ -498,6 +498,9 @@ struct codegen_context
 	expr_value create_isnan(expr_value x);
 	expr_value create_isinf(expr_value x);
 	expr_value create_isfinite(expr_value x);
+	expr_value create_isnormal(expr_value x);
+	expr_value create_issubnormal(expr_value x);
+	expr_value create_iszero(expr_value x);
 	expr_value create_abs(expr_value value);
 	void create_abs_check(lex::src_tokens const &src_tokens, expr_value value);
 	expr_value create_min(expr_value a, expr_value b, bool is_signed_int);
