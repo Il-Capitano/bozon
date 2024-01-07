@@ -11,7 +11,7 @@ static_assert([]<typename ...Ts>(bz::meta::type_pack<Ts...>) {
 	return bz::meta::is_all<std::is_trivial_v<Ts>...>;
 }(instruction_list_t()));
 
-static_assert(instruction_list_t::size() == 570);
+static_assert(instruction_list_t::size() == 572);
 static_assert(instruction::const_i1                 == instruction::index_of<instructions::const_i1>);
 static_assert(instruction::const_i8                 == instruction::index_of<instructions::const_i8>);
 static_assert(instruction::const_i16                == instruction::index_of<instructions::const_i16>);
@@ -337,6 +337,8 @@ static_assert(instruction::issubnormal_f32          == instruction::index_of<ins
 static_assert(instruction::issubnormal_f64          == instruction::index_of<instructions::issubnormal_f64>);
 static_assert(instruction::iszero_f32               == instruction::index_of<instructions::iszero_f32>);
 static_assert(instruction::iszero_f64               == instruction::index_of<instructions::iszero_f64>);
+static_assert(instruction::nextafter_f32            == instruction::index_of<instructions::nextafter_f32>);
+static_assert(instruction::nextafter_f64            == instruction::index_of<instructions::nextafter_f64>);
 static_assert(instruction::abs_i8                   == instruction::index_of<instructions::abs_i8>);
 static_assert(instruction::abs_i16                  == instruction::index_of<instructions::abs_i16>);
 static_assert(instruction::abs_i32                  == instruction::index_of<instructions::abs_i32>);
@@ -587,7 +589,7 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 {
 	switch (inst_.index())
 	{
-	static_assert(instruction_list_t::size() == 570);
+	static_assert(instruction_list_t::size() == 572);
 	case instruction::const_i1:
 	{
 		auto const &inst = inst_.get<instructions::const_i1>();
@@ -2211,6 +2213,16 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 	{
 		auto const &inst = inst_.get<instructions::iszero_f64>();
 		return bz::format("iszero f64 {}", inst.args[0]);
+	}
+	case instruction::nextafter_f32:
+	{
+		auto const &inst = inst_.get<instructions::nextafter_f32>();
+		return bz::format("nextafter f32 {}, {}", inst.args[0], inst.args[1]);
+	}
+	case instruction::nextafter_f64:
+	{
+		auto const &inst = inst_.get<instructions::nextafter_f64>();
+		return bz::format("nextafter f64 {}, {}", inst.args[0], inst.args[1]);
 	}
 	case instruction::abs_i8:
 	{
@@ -3869,6 +3881,8 @@ static bz::array instruction_names = {
 	bz::u8string_view("issubnormal_f64"),
 	bz::u8string_view("iszero_f32"),
 	bz::u8string_view("iszero_f64"),
+	bz::u8string_view("nextafter_f32"),
+	bz::u8string_view("nextafter_f64"),
 	bz::u8string_view("abs_i8"),
 	bz::u8string_view("abs_i16"),
 	bz::u8string_view("abs_i32"),

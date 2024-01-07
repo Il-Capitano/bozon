@@ -2722,6 +2722,16 @@ static bool execute_iszero_f64(instructions::iszero_f64 const &, float64_t value
 	return value == 0.0;
 }
 
+static bool execute_nextafter_f32(instructions::nextafter_f32 const &, float32_t from, float32_t to, executor_context &)
+{
+	return std::nextafter(from, to);
+}
+
+static bool execute_nextafter_f64(instructions::nextafter_f64 const &, float64_t from, float64_t to, executor_context &)
+{
+	return std::nextafter(from, to);
+}
+
 static uint8_t execute_abs_i8(instructions::abs_i8 const &, uint8_t uvalue, executor_context &)
 {
 	auto const value = static_cast<int8_t>(uvalue);
@@ -5131,7 +5141,7 @@ void execute_current_instruction(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-	static_assert(instruction_list_t::size() == 570);
+	static_assert(instruction_list_t::size() == 572);
 	case instruction::const_i1:
 		execute<instructions::const_i1, &execute_const_i1>(context);
 		break;
@@ -6106,6 +6116,12 @@ void execute_current_instruction(executor_context &context)
 		break;
 	case instruction::iszero_f64:
 		execute<instructions::iszero_f64, &execute_iszero_f64>(context);
+		break;
+	case instruction::nextafter_f32:
+		execute<instructions::nextafter_f32, &execute_nextafter_f32>(context);
+		break;
+	case instruction::nextafter_f64:
+		execute<instructions::nextafter_f64, &execute_nextafter_f64>(context);
 		break;
 	case instruction::abs_i8:
 		execute<instructions::abs_i8, &execute_abs_i8>(context);
