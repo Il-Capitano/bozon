@@ -1,0 +1,10 @@
+// error: invalid cast in expression '-1.0 as uint8', floating-point value of type 'float32' is outside the representable range of integer type 'uint8'
+// note: while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
+function test()
+{
+	(consteval {
+		let x = -1.0f32;
+		let _ = x as uint8;
+	});
+}
