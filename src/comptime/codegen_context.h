@@ -423,7 +423,7 @@ struct codegen_context
 
 	expr_value create_int_cast(expr_value value, type const *dest, bool is_value_signed);
 	expr_value create_float_cast(expr_value value, type const *dest);
-	expr_value create_float_to_int_cast(expr_value value, type const *dest, bool is_dest_signed);
+	expr_value create_float_to_int_cast(lex::src_tokens const &src_tokens, expr_value value, type const *dest, bool is_dest_signed);
 	expr_value create_int_to_float_cast(expr_value value, type const *dest, bool is_value_signed);
 
 	expr_value create_int_cmp_eq(expr_value lhs, expr_value rhs);

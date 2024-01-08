@@ -4093,7 +4093,12 @@ static expr_value generate_expr_code(
 		else if (ast::is_floating_point_kind(expr_kind))
 		{
 			bz_assert(ast::is_integer_kind(dest_kind));
-			auto const result_value = context.create_float_to_int_cast(expr, dest_type, ast::is_signed_integer_kind(dest_kind));
+			auto const result_value = context.create_float_to_int_cast(
+				original_expression.src_tokens,
+				expr,
+				dest_type,
+				ast::is_signed_integer_kind(dest_kind)
+			);
 			return value_or_result_address(result_value, result_address, context);
 		}
 		else if (ast::is_integer_kind(expr_kind) && ast::is_floating_point_kind(dest_kind))

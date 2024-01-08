@@ -520,84 +520,308 @@ static float32_t execute_cast_f64_to_f32(instructions::cast_f64_to_f32 const &, 
 	return static_cast<float32_t>(value);
 }
 
-static uint8_t execute_cast_f32_to_i8(instructions::cast_f32_to_i8 const &, float32_t value, executor_context &)
+static uint8_t execute_cast_f32_to_i8(instructions::cast_f32_to_i8 const &inst, float32_t value, executor_context &context)
 {
-	return static_cast<uint8_t>(static_cast<int8_t>(value));
+	auto const result = safe_float_to_int_cast<int8_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as int8', "
+				"floating-point value of type 'float32' is outside the representable range of integer type 'int8'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return static_cast<uint8_t>(result.get());
 }
 
-static uint16_t execute_cast_f32_to_i16(instructions::cast_f32_to_i16 const &, float32_t value, executor_context &)
+static uint16_t execute_cast_f32_to_i16(instructions::cast_f32_to_i16 const &inst, float32_t value, executor_context &context)
 {
-	return static_cast<uint16_t>(static_cast<int16_t>(value));
+	auto const result = safe_float_to_int_cast<int16_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as int16', "
+				"floating-point value of type 'float32' is outside the representable range of integer type 'int16'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return static_cast<uint16_t>(result.get());
 }
 
-static uint32_t execute_cast_f32_to_i32(instructions::cast_f32_to_i32 const &, float32_t value, executor_context &)
+static uint32_t execute_cast_f32_to_i32(instructions::cast_f32_to_i32 const &inst, float32_t value, executor_context &context)
 {
-	return static_cast<uint32_t>(static_cast<int32_t>(value));
+	auto const result = safe_float_to_int_cast<int32_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as int32', "
+				"floating-point value of type 'float32' is outside the representable range of integer type 'int32'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return static_cast<uint32_t>(result.get());
 }
 
-static uint64_t execute_cast_f32_to_i64(instructions::cast_f32_to_i64 const &, float32_t value, executor_context &)
+static uint64_t execute_cast_f32_to_i64(instructions::cast_f32_to_i64 const &inst, float32_t value, executor_context &context)
 {
-	return static_cast<uint64_t>(static_cast<int64_t>(value));
+	auto const result = safe_float_to_int_cast<int64_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as int64', "
+				"floating-point value of type 'float32' is outside the representable range of integer type 'int64'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return static_cast<uint64_t>(result.get());
 }
 
-static uint8_t execute_cast_f32_to_u8(instructions::cast_f32_to_u8 const &, float32_t value, executor_context &)
+static uint8_t execute_cast_f32_to_u8(instructions::cast_f32_to_u8 const &inst, float32_t value, executor_context &context)
 {
-	return static_cast<uint8_t>(value);
+	auto const result = safe_float_to_int_cast<uint8_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as uint8', "
+				"floating-point value of type 'float32' is outside the representable range of integer type 'uint8'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return result.get();
 }
 
-static uint16_t execute_cast_f32_to_u16(instructions::cast_f32_to_u16 const &, float32_t value, executor_context &)
+static uint16_t execute_cast_f32_to_u16(instructions::cast_f32_to_u16 const &inst, float32_t value, executor_context &context)
 {
-	return static_cast<uint16_t>(value);
+	auto const result = safe_float_to_int_cast<uint16_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as uint16', "
+				"floating-point value of type 'float32' is outside the representable range of integer type 'uint16'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return result.get();
 }
 
-static uint32_t execute_cast_f32_to_u32(instructions::cast_f32_to_u32 const &, float32_t value, executor_context &)
+static uint32_t execute_cast_f32_to_u32(instructions::cast_f32_to_u32 const &inst, float32_t value, executor_context &context)
 {
-	return static_cast<uint32_t>(value);
+	auto const result = safe_float_to_int_cast<uint32_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as uint32', "
+				"floating-point value of type 'float32' is outside the representable range of integer type 'uint32'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return result.get();
 }
 
-static uint64_t execute_cast_f32_to_u64(instructions::cast_f32_to_u64 const &, float32_t value, executor_context &)
+static uint64_t execute_cast_f32_to_u64(instructions::cast_f32_to_u64 const &inst, float32_t value, executor_context &context)
 {
-	return static_cast<uint64_t>(value);
+	auto const result = safe_float_to_int_cast<uint64_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as uint64', "
+				"floating-point value of type 'float32' is outside the representable range of integer type 'uint64'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return result.get();
 }
 
-static uint8_t execute_cast_f64_to_i8(instructions::cast_f64_to_i8 const &, float64_t value, executor_context &)
+static uint8_t execute_cast_f64_to_i8(instructions::cast_f64_to_i8 const &inst, float64_t value, executor_context &context)
 {
-	return static_cast<uint8_t>(static_cast<int8_t>(value));
+	auto const result = safe_float_to_int_cast<int8_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as int8', "
+				"floating-point value of type 'float64' is outside the representable range of integer type 'int8'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return static_cast<uint8_t>(result.get());
 }
 
-static uint16_t execute_cast_f64_to_i16(instructions::cast_f64_to_i16 const &, float64_t value, executor_context &)
+static uint16_t execute_cast_f64_to_i16(instructions::cast_f64_to_i16 const &inst, float64_t value, executor_context &context)
 {
-	return static_cast<uint16_t>(static_cast<int16_t>(value));
+	auto const result = safe_float_to_int_cast<int16_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as int16', "
+				"floating-point value of type 'float64' is outside the representable range of integer type 'int16'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return static_cast<uint16_t>(result.get());
 }
 
-static uint32_t execute_cast_f64_to_i32(instructions::cast_f64_to_i32 const &, float64_t value, executor_context &)
+static uint32_t execute_cast_f64_to_i32(instructions::cast_f64_to_i32 const &inst, float64_t value, executor_context &context)
 {
-	return static_cast<uint32_t>(static_cast<int32_t>(value));
+	auto const result = safe_float_to_int_cast<int32_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as int32', "
+				"floating-point value of type 'float64' is outside the representable range of integer type 'int32'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return static_cast<uint32_t>(result.get());
 }
 
-static uint64_t execute_cast_f64_to_i64(instructions::cast_f64_to_i64 const &, float64_t value, executor_context &)
+static uint64_t execute_cast_f64_to_i64(instructions::cast_f64_to_i64 const &inst, float64_t value, executor_context &context)
 {
-	return static_cast<uint64_t>(static_cast<int64_t>(value));
+	auto const result = safe_float_to_int_cast<int64_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as int64', "
+				"floating-point value of type 'float64' is outside the representable range of integer type 'int64'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return static_cast<uint64_t>(result.get());
 }
 
-static uint8_t execute_cast_f64_to_u8(instructions::cast_f64_to_u8 const &, float64_t value, executor_context &)
+static uint8_t execute_cast_f64_to_u8(instructions::cast_f64_to_u8 const &inst, float64_t value, executor_context &context)
 {
-	return static_cast<uint8_t>(value);
+	auto const result = safe_float_to_int_cast<uint8_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as uint8', "
+				"floating-point value of type 'float64' is outside the representable range of integer type 'uint8'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return result.get();
 }
 
-static uint16_t execute_cast_f64_to_u16(instructions::cast_f64_to_u16 const &, float64_t value, executor_context &)
+static uint16_t execute_cast_f64_to_u16(instructions::cast_f64_to_u16 const &inst, float64_t value, executor_context &context)
 {
-	return static_cast<uint16_t>(value);
+	auto const result = safe_float_to_int_cast<uint16_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as uint16', "
+				"floating-point value of type 'float64' is outside the representable range of integer type 'uint16'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return result.get();
 }
 
-static uint32_t execute_cast_f64_to_u32(instructions::cast_f64_to_u32 const &, float64_t value, executor_context &)
+static uint32_t execute_cast_f64_to_u32(instructions::cast_f64_to_u32 const &inst, float64_t value, executor_context &context)
 {
-	return static_cast<uint32_t>(value);
+	auto const result = safe_float_to_int_cast<uint32_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as uint32', "
+				"floating-point value of type 'float64' is outside the representable range of integer type 'uint32'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return result.get();
 }
 
-static uint64_t execute_cast_f64_to_u64(instructions::cast_f64_to_u64 const &, float64_t value, executor_context &)
+static uint64_t execute_cast_f64_to_u64(instructions::cast_f64_to_u64 const &inst, float64_t value, executor_context &context)
 {
-	return static_cast<uint64_t>(value);
+	auto const result = safe_float_to_int_cast<uint64_t>(value);
+	if (!result.has_value())
+	{
+		context.report_error(
+			inst.src_tokens_index,
+			bz::format(
+				"invalid cast in expression '{} as uint64', "
+				"floating-point value of type 'float64' is outside the representable range of integer type 'uint64'",
+				value
+			)
+		);
+		return 0;
+	}
+
+	return result.get();
 }
 
 static float32_t execute_cast_i8_to_f32(instructions::cast_i8_to_f32 const &, uint8_t value, executor_context &)

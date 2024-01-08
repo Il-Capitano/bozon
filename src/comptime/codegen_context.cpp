@@ -1965,8 +1965,10 @@ expr_value codegen_context::create_float_cast(expr_value value, type const *dest
 	}
 }
 
-expr_value codegen_context::create_float_to_int_cast(expr_value value, type const *dest, bool is_dest_signed)
+expr_value codegen_context::create_float_to_int_cast(lex::src_tokens const &src_tokens, expr_value value, type const *dest, bool is_dest_signed)
 {
+	auto const src_tokens_index = this->add_src_tokens(src_tokens);
+
 	auto const value_type = value.get_type();
 	bz_assert(value_type->is_builtin() && dest->is_builtin());
 	bz_assert(is_floating_point_kind(value_type->get_builtin_kind()));
@@ -1980,13 +1982,13 @@ expr_value codegen_context::create_float_to_int_cast(expr_value value, type cons
 			switch (dest->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_i8{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_i8{ src_tokens_index }, value_ref), dest);
 			case builtin_type_kind::i16:
-				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_i16{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_i16{ src_tokens_index }, value_ref), dest);
 			case builtin_type_kind::i32:
-				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_i32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_i32{ src_tokens_index }, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_i64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_i64{ src_tokens_index }, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -1996,13 +1998,13 @@ expr_value codegen_context::create_float_to_int_cast(expr_value value, type cons
 			switch (dest->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_u8{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_u8{ src_tokens_index }, value_ref), dest);
 			case builtin_type_kind::i16:
-				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_u16{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_u16{ src_tokens_index }, value_ref), dest);
 			case builtin_type_kind::i32:
-				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_u32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_u32{ src_tokens_index }, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_u64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f32_to_u64{ src_tokens_index }, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -2015,13 +2017,13 @@ expr_value codegen_context::create_float_to_int_cast(expr_value value, type cons
 			switch (dest->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_i8{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_i8{ src_tokens_index }, value_ref), dest);
 			case builtin_type_kind::i16:
-				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_i16{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_i16{ src_tokens_index }, value_ref), dest);
 			case builtin_type_kind::i32:
-				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_i32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_i32{ src_tokens_index }, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_i64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_i64{ src_tokens_index }, value_ref), dest);
 			default:
 				bz_unreachable;
 			}
@@ -2031,13 +2033,13 @@ expr_value codegen_context::create_float_to_int_cast(expr_value value, type cons
 			switch (dest->get_builtin_kind())
 			{
 			case builtin_type_kind::i8:
-				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_u8{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_u8{ src_tokens_index }, value_ref), dest);
 			case builtin_type_kind::i16:
-				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_u16{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_u16{ src_tokens_index }, value_ref), dest);
 			case builtin_type_kind::i32:
-				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_u32{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_u32{ src_tokens_index }, value_ref), dest);
 			case builtin_type_kind::i64:
-				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_u64{}, value_ref), dest);
+				return expr_value::get_value(add_instruction(*this, instructions::cast_f64_to_u64{ src_tokens_index }, value_ref), dest);
 			default:
 				bz_unreachable;
 			}

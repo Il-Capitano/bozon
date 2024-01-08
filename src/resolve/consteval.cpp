@@ -1,5 +1,6 @@
 #include "consteval.h"
 #include "safe_operations.h"
+#include "overflow_operations.h"
 
 namespace resolve
 {
@@ -2147,22 +2148,14 @@ static ast::constant_value consteval_guaranteed_function_call(
 	}
 }
 
-static ast::constant_value evaluate_cast(
+static ast::constant_value evaluate_int_cast(
 	ast::expression const &original_expr,
-	ast::expr_cast const &subscript_expr,
+	uint32_t dest_kind,
+	ast::constant_value const &value,
 	ctx::parse_context &context
 )
 {
-	bz_assert(subscript_expr.expr.is_constant());
-	auto const dest_type = subscript_expr.type.remove_any_mut();
-	if (!dest_type.is<ast::ts_base_type>())
-	{
-		return {};
-	}
-
-	auto const dest_kind = dest_type.get<ast::ts_base_type>().info->kind;
 	auto const paren_level = original_expr.paren_level;
-	auto const &value = subscript_expr.expr.get_constant_value();
 	auto const &src_tokens = original_expr.src_tokens;
 
 	switch (dest_kind)
@@ -2172,10 +2165,7 @@ static ast::constant_value evaluate_cast(
 	case ast::type_info::int32_:
 	case ast::type_info::int64_:
 	{
-		switch (value.kind())
-		{
-		static_assert(ast::constant_value::variant_count == 19);
-		case ast::constant_value_kind::sint:
+		if (value.is_sint())
 		{
 			using T = std::tuple<bz::u8string_view, int64_t, int64_t, int64_t>;
 			auto const int_val = value.get_sint();
@@ -2194,7 +2184,7 @@ static ast::constant_value evaluate_cast(
 			}
 			return ast::constant_value(result);
 		}
-		case ast::constant_value_kind::uint:
+		else
 		{
 			using T = std::tuple<bz::u8string_view, int64_t, int64_t>;
 			auto const int_val = value.get_uint();
@@ -2213,45 +2203,13 @@ static ast::constant_value evaluate_cast(
 			}
 			return ast::constant_value(result);
 		}
-		case ast::constant_value_kind::float32:
-		{
-			auto const float_val = value.get_float32();
-			auto const result =
-				dest_kind == ast::type_info::int8_  ? static_cast<int8_t> (float_val) :
-				dest_kind == ast::type_info::int16_ ? static_cast<int16_t>(float_val) :
-				dest_kind == ast::type_info::int32_ ? static_cast<int32_t>(float_val) :
-				static_cast<int64_t>(float_val);
-			return ast::constant_value(result);
-		}
-		case ast::constant_value_kind::float64:
-		{
-			auto const float_val = value.get_float64();
-			auto const result =
-				dest_kind == ast::type_info::int8_  ? static_cast<int8_t> (float_val) :
-				dest_kind == ast::type_info::int16_ ? static_cast<int16_t>(float_val) :
-				dest_kind == ast::type_info::int32_ ? static_cast<int32_t>(float_val) :
-				static_cast<int64_t>(float_val);
-			return ast::constant_value(result);
-		}
-		case ast::constant_value_kind::u8char:
-			// no overflow possible in constant expressions
-			return ast::constant_value(static_cast<int64_t>(value.get_u8char()));
-		case ast::constant_value_kind::boolean:
-			return ast::constant_value(static_cast<int64_t>(value.get_boolean()));
-		default:
-			bz_unreachable;
-		}
 	}
-
 	case ast::type_info::uint8_:
 	case ast::type_info::uint16_:
 	case ast::type_info::uint32_:
 	case ast::type_info::uint64_:
 	{
-		switch (value.kind())
-		{
-		static_assert(ast::constant_value::variant_count == 19);
-		case ast::constant_value_kind::sint:
+		if (value.is_sint())
 		{
 			using T = std::tuple<bz::u8string_view, uint64_t, uint64_t>;
 			auto const int_val = value.get_sint();
@@ -2270,7 +2228,7 @@ static ast::constant_value evaluate_cast(
 			}
 			return ast::constant_value(result);
 		}
-		case ast::constant_value_kind::uint:
+		else
 		{
 			using T = std::tuple<bz::u8string_view, uint64_t, uint64_t>;
 			auto const int_val = value.get_uint();
@@ -2289,26 +2247,221 @@ static ast::constant_value evaluate_cast(
 			}
 			return ast::constant_value(result);
 		}
-		case ast::constant_value_kind::float32:
+	}
+	default:
+		bz_unreachable;
+	}
+}
+
+static ast::constant_value evaluate_float_to_int_cast(
+	ast::expression const &original_expr,
+	uint32_t dest_kind,
+	ast::constant_value const &value,
+	ctx::parse_context &context
+)
+{
+	auto const &src_tokens = original_expr.src_tokens;
+
+	auto const do_cast = [&]<typename Int>(
+		auto float_val,
+		bz::u8string_view float_type_name,
+		bz::u8string_view type_name,
+		std::type_identity<Int>
+	) -> ast::constant_value {
+		auto const result = safe_float_to_int_cast<Int>(float_val);
+		if (!result.has_value())
 		{
-			auto const float_val = value.get_float32();
-			auto const result =
-				dest_kind == ast::type_info::uint8_  ? static_cast<uint8_t> (float_val) :
-				dest_kind == ast::type_info::uint16_ ? static_cast<uint16_t>(float_val) :
-				dest_kind == ast::type_info::uint32_ ? static_cast<uint32_t>(float_val) :
-				static_cast<uint64_t>(float_val);
-			return ast::constant_value(result);
+			context.report_error(src_tokens, bz::format(
+				"invalid cast in expression '{} as {}', "
+				"floating-point value of type '{}' is outside the representable range of integer type '{}'",
+				float_val, type_name, float_type_name, type_name
+			));
+			return {};
 		}
-		case ast::constant_value_kind::float64:
+		else
 		{
-			auto const float_val = value.get_float64();
-			auto const result =
-				dest_kind == ast::type_info::uint8_  ? static_cast<uint8_t> (float_val) :
-				dest_kind == ast::type_info::uint16_ ? static_cast<uint16_t>(float_val) :
-				dest_kind == ast::type_info::uint32_ ? static_cast<uint32_t>(float_val) :
-				static_cast<uint64_t>(float_val);
-			return ast::constant_value(result);
+			using ExtendedInt = bz::meta::conditional<std::is_signed_v<Int>, int64_t, uint64_t>;
+			return ast::constant_value(static_cast<ExtendedInt>(result.get()));
 		}
+	};
+
+	if (value.is_float32())
+	{
+		auto const float_val = value.get_float32();
+		switch (dest_kind)
+		{
+		case ast::type_info::int8_:
+			return do_cast(float_val, "float32", "int8", std::type_identity<int8_t>{});
+		case ast::type_info::int16_:
+			return do_cast(float_val, "float32", "int16", std::type_identity<int16_t>{});
+		case ast::type_info::int32_:
+			return do_cast(float_val, "float32", "int32", std::type_identity<int32_t>{});
+		case ast::type_info::int64_:
+			return do_cast(float_val, "float32", "int64", std::type_identity<int64_t>{});
+		case ast::type_info::uint8_:
+			return do_cast(float_val, "float32", "uint8", std::type_identity<uint8_t>{});
+		case ast::type_info::uint16_:
+			return do_cast(float_val, "float32", "uint16", std::type_identity<uint16_t>{});
+		case ast::type_info::uint32_:
+			return do_cast(float_val, "float32", "uint32", std::type_identity<uint32_t>{});
+		case ast::type_info::uint64_:
+			return do_cast(float_val, "float32", "uint64", std::type_identity<uint64_t>{});
+		default:
+			bz_unreachable;
+		}
+	}
+	else
+	{
+		auto const float_val = value.get_float64();
+		switch (dest_kind)
+		{
+		case ast::type_info::int8_:
+			return do_cast(float_val, "float64", "int8", std::type_identity<int8_t>{});
+		case ast::type_info::int16_:
+			return do_cast(float_val, "float64", "int16", std::type_identity<int16_t>{});
+		case ast::type_info::int32_:
+			return do_cast(float_val, "float64", "int32", std::type_identity<int32_t>{});
+		case ast::type_info::int64_:
+			return do_cast(float_val, "float64", "int64", std::type_identity<int64_t>{});
+		case ast::type_info::uint8_:
+			return do_cast(float_val, "float64", "uint8", std::type_identity<uint8_t>{});
+		case ast::type_info::uint16_:
+			return do_cast(float_val, "float64", "uint16", std::type_identity<uint16_t>{});
+		case ast::type_info::uint32_:
+			return do_cast(float_val, "float64", "uint32", std::type_identity<uint32_t>{});
+		case ast::type_info::uint64_:
+			return do_cast(float_val, "float64", "uint64", std::type_identity<uint64_t>{});
+		default:
+			bz_unreachable;
+		}
+	}
+}
+
+static ast::constant_value evaluate_float_cast(
+	ast::expression const &original_expr,
+	uint32_t dest_kind,
+	ast::constant_value const &value,
+	ctx::parse_context &context
+)
+{
+	if (dest_kind == ast::type_info::float32_)
+	{
+		if (value.is_float32())
+		{
+			return value;
+		}
+		else
+		{
+			return ast::constant_value(static_cast<float32_t>(value.get_float64()));
+		}
+	}
+	else
+	{
+		bz_assert(dest_kind == ast::type_info::float64_);
+		if (value.is_float32())
+		{
+			return ast::constant_value(static_cast<float64_t>(value.get_float32()));
+		}
+		else
+		{
+			return value;
+		}
+	}
+}
+
+static ast::constant_value evaluate_int_to_float_cast(
+	uint32_t dest_kind,
+	ast::constant_value const &value
+)
+{
+	if (dest_kind == ast::type_info::float32_)
+	{
+		if (value.is_sint())
+		{
+			return ast::constant_value(static_cast<float32_t>(value.get_sint()));
+		}
+		else
+		{
+			return ast::constant_value(static_cast<float32_t>(value.get_uint()));
+		}
+	}
+	else
+	{
+		bz_assert(dest_kind == ast::type_info::float64_);
+		if (value.is_sint())
+		{
+			return ast::constant_value(static_cast<float64_t>(value.get_sint()));
+		}
+		else
+		{
+			return ast::constant_value(static_cast<float64_t>(value.get_uint()));
+		}
+	}
+}
+
+static ast::constant_value evaluate_cast(
+	ast::expression const &original_expr,
+	ast::expr_cast const &subscript_expr,
+	ctx::parse_context &context
+)
+{
+	bz_assert(subscript_expr.expr.is_constant());
+	auto const dest_type = subscript_expr.type.remove_any_mut();
+	if (!dest_type.is<ast::ts_base_type>())
+	{
+		return {};
+	}
+
+	auto const dest_kind = dest_type.get<ast::ts_base_type>().info->kind;
+	auto const paren_level = original_expr.paren_level;
+	auto const &value = subscript_expr.expr.get_constant_value();
+	auto const &src_tokens = original_expr.src_tokens;
+
+	if (ast::is_integer_kind(dest_kind) && (value.is_sint() || value.is_uint()))
+	{
+		return evaluate_int_cast(original_expr, dest_kind, value, context);
+	}
+	else if (ast::is_integer_kind(dest_kind) && (value.is_float32() || value.is_float64()))
+	{
+		return evaluate_float_to_int_cast(original_expr, dest_kind, value, context);
+	}
+	else if (ast::is_floating_point_kind(dest_kind) && (value.is_float32() || value.is_float64()))
+	{
+		return evaluate_float_cast(original_expr, dest_kind, value, context);
+	}
+	else if (ast::is_floating_point_kind(dest_kind) && (value.is_sint() || value.is_uint()))
+	{
+		return evaluate_int_to_float_cast(dest_kind, value);
+	}
+
+	switch (dest_kind)
+	{
+	case ast::type_info::int8_:
+	case ast::type_info::int16_:
+	case ast::type_info::int32_:
+	case ast::type_info::int64_:
+	{
+		switch (value.kind())
+		{
+		static_assert(ast::constant_value::variant_count == 19);
+		case ast::constant_value_kind::u8char:
+			// no overflow possible in constant expressions
+			return ast::constant_value(static_cast<int64_t>(value.get_u8char()));
+		case ast::constant_value_kind::boolean:
+			return ast::constant_value(static_cast<int64_t>(value.get_boolean()));
+		default:
+			bz_unreachable;
+		}
+	}
+
+	case ast::type_info::uint8_:
+	case ast::type_info::uint16_:
+	case ast::type_info::uint32_:
+	case ast::type_info::uint64_:
+	{
+		switch (value.kind())
+		{
+		static_assert(ast::constant_value::variant_count == 19);
 		case ast::constant_value_kind::u8char:
 			// no overflow possible in constant expressions
 			return ast::constant_value(static_cast<uint64_t>(value.get_u8char()));
@@ -2319,36 +2472,6 @@ static ast::constant_value evaluate_cast(
 		}
 	}
 
-	case ast::type_info::float32_:
-		switch (value.kind())
-		{
-		static_assert(ast::constant_value::variant_count == 19);
-		case ast::constant_value_kind::sint:
-			return ast::constant_value(static_cast<float32_t>(value.get_sint()));
-		case ast::constant_value_kind::uint:
-			return ast::constant_value(static_cast<float32_t>(value.get_uint()));
-		case ast::constant_value_kind::float32:
-			return ast::constant_value(static_cast<float32_t>(value.get_float32()));
-		case ast::constant_value_kind::float64:
-			return ast::constant_value(static_cast<float32_t>(value.get_float64()));
-		default:
-			bz_unreachable;
-		}
-	case ast::type_info::float64_:
-		switch (value.kind())
-		{
-		static_assert(ast::constant_value::variant_count == 19);
-		case ast::constant_value_kind::sint:
-			return ast::constant_value(static_cast<float64_t>(value.get_sint()));
-		case ast::constant_value_kind::uint:
-			return ast::constant_value(static_cast<float64_t>(value.get_uint()));
-		case ast::constant_value_kind::float32:
-			return ast::constant_value(static_cast<float64_t>(value.get_float32()));
-		case ast::constant_value_kind::float64:
-			return ast::constant_value(static_cast<float64_t>(value.get_float64()));
-		default:
-			bz_unreachable;
-		}
 	case ast::type_info::char_:
 		switch (value.kind())
 		{
