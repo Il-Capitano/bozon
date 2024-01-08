@@ -806,7 +806,7 @@ bool safe_binary_equals(
 
 
 bz::optional<uint64_t> safe_binary_bit_left_shift(
-	lex::src_tokens const &src_tokens, int paren_level,
+	lex::src_tokens const &src_tokens,
 	uint64_t lhs, uint64_t rhs, uint32_t lhs_type_kind,
 	ctx::parse_context &context
 )
@@ -820,14 +820,10 @@ bz::optional<uint64_t> safe_binary_bit_left_shift(
 
 	if (rhs >= lhs_width)
 	{
-		if (paren_level < 2)
-		{
-			context.report_parenthesis_suppressed_warning(
-				2 - paren_level, ctx::warning_kind::int_overflow,
-				src_tokens,
-				bz::format("shift amount of {} is too big for type '{}', it must be less than {}", rhs, type_name, lhs_width)
-			);
-		}
+		context.report_error(
+			src_tokens,
+			bz::format("shift amount of {} is too big for type '{}', it must be less than {}", rhs, type_name, lhs_width)
+		);
 		return {};
 	}
 	else switch (lhs_type_kind)
@@ -846,7 +842,7 @@ bz::optional<uint64_t> safe_binary_bit_left_shift(
 }
 
 bz::optional<uint64_t> safe_binary_bit_right_shift(
-	lex::src_tokens const &src_tokens, int paren_level,
+	lex::src_tokens const &src_tokens,
 	uint64_t lhs, uint64_t rhs, uint32_t lhs_type_kind,
 	ctx::parse_context &context
 )
@@ -860,14 +856,10 @@ bz::optional<uint64_t> safe_binary_bit_right_shift(
 
 	if (rhs >= lhs_width)
 	{
-		if (paren_level < 2)
-		{
-			context.report_parenthesis_suppressed_warning(
-				2 - paren_level, ctx::warning_kind::int_overflow,
-				src_tokens,
-				bz::format("shift amount of {} is too big for type '{}', it must be less than {}", rhs, type_name, lhs_width)
-			);
-		}
+		context.report_error(
+			src_tokens,
+			bz::format("shift amount of {} is too big for type '{}', it must be less than {}", rhs, type_name, lhs_width)
+		);
 		return {};
 	}
 	else switch (lhs_type_kind)
@@ -887,7 +879,7 @@ bz::optional<uint64_t> safe_binary_bit_right_shift(
 
 
 bz::optional<uint64_t> safe_binary_bit_left_shift(
-	lex::src_tokens const &src_tokens, int paren_level,
+	lex::src_tokens const &src_tokens,
 	uint64_t lhs, int64_t rhs, uint32_t lhs_type_kind,
 	ctx::parse_context &context
 )
@@ -901,26 +893,18 @@ bz::optional<uint64_t> safe_binary_bit_left_shift(
 
 	if (rhs >= lhs_width)
 	{
-		if (paren_level < 2)
-		{
-			context.report_parenthesis_suppressed_warning(
-				2 - paren_level, ctx::warning_kind::int_overflow,
-				src_tokens,
-				bz::format("shift amount of {} is too big for type '{}', it must be less than {}", rhs, type_name, lhs_width)
-			);
-		}
+		context.report_error(
+			src_tokens,
+			bz::format("shift amount of {} is too big for type '{}', it must be less than {}", rhs, type_name, lhs_width)
+		);
 		return {};
 	}
 	else if (rhs < 0)
 	{
-		if (paren_level < 2)
-		{
-			context.report_parenthesis_suppressed_warning(
-				2 - paren_level, ctx::warning_kind::int_overflow,
-				src_tokens,
-				bz::format("negative shift amount of {} for type '{}'", rhs, type_name)
-			);
-		}
+		context.report_error(
+			src_tokens,
+			bz::format("negative shift amount of {} for type '{}'", rhs, type_name)
+		);
 		return {};
 	}
 	else switch (lhs_type_kind)
@@ -939,7 +923,7 @@ bz::optional<uint64_t> safe_binary_bit_left_shift(
 }
 
 bz::optional<uint64_t> safe_binary_bit_right_shift(
-	lex::src_tokens const &src_tokens, int paren_level,
+	lex::src_tokens const &src_tokens,
 	uint64_t lhs, int64_t rhs, uint32_t lhs_type_kind,
 	ctx::parse_context &context
 )
@@ -953,26 +937,18 @@ bz::optional<uint64_t> safe_binary_bit_right_shift(
 
 	if (rhs >= lhs_width)
 	{
-		if (paren_level < 2)
-		{
-			context.report_parenthesis_suppressed_warning(
-				2 - paren_level, ctx::warning_kind::int_overflow,
-				src_tokens,
-				bz::format("shift amount of {} is too big for type '{}', it must be less than {}", rhs, type_name, lhs_width)
-			);
-		}
+		context.report_error(
+			src_tokens,
+			bz::format("shift amount of {} is too big for type '{}', it must be less than {}", rhs, type_name, lhs_width)
+		);
 		return {};
 	}
 	else if (rhs < 0)
 	{
-		if (paren_level < 2)
-		{
-			context.report_parenthesis_suppressed_warning(
-				2 - paren_level, ctx::warning_kind::int_overflow,
-				src_tokens,
-				bz::format("negative shift amount of {} for type '{}'", rhs, type_name)
-			);
-		}
+		context.report_error(
+			src_tokens,
+			bz::format("negative shift amount of {} for type '{}'", rhs, type_name)
+		);
 		return {};
 	}
 	else switch (lhs_type_kind)

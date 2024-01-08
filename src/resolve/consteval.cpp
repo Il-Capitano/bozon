@@ -1003,7 +1003,7 @@ static ast::constant_value evaluate_binary_bit_left_shift(
 		auto const rhs_int_val = rhs_value.get_uint();
 
 		auto const result = safe_binary_bit_left_shift(
-			original_expr.src_tokens, original_expr.paren_level,
+			original_expr.src_tokens,
 			lhs_int_val, rhs_int_val, lhs_type_kind,
 			context
 		);
@@ -1021,7 +1021,7 @@ static ast::constant_value evaluate_binary_bit_left_shift(
 		auto const rhs_int_val = rhs_value.get_sint();
 
 		auto const result = safe_binary_bit_left_shift(
-			original_expr.src_tokens, original_expr.paren_level,
+			original_expr.src_tokens,
 			lhs_int_val, rhs_int_val, lhs_type_kind,
 			context
 		);
@@ -1061,7 +1061,7 @@ static ast::constant_value evaluate_binary_bit_right_shift(
 		auto const rhs_int_val = rhs_value.get_uint();
 
 		auto const result = safe_binary_bit_right_shift(
-			original_expr.src_tokens, original_expr.paren_level,
+			original_expr.src_tokens,
 			lhs_int_val, rhs_int_val, lhs_type_kind,
 			context
 		);
@@ -1079,7 +1079,7 @@ static ast::constant_value evaluate_binary_bit_right_shift(
 		auto const rhs_int_val = rhs_value.get_sint();
 
 		auto const result = safe_binary_bit_right_shift(
-			original_expr.src_tokens, original_expr.paren_level,
+			original_expr.src_tokens,
 			lhs_int_val, rhs_int_val, lhs_type_kind,
 			context
 		);
