@@ -2433,50 +2433,39 @@ static ast::constant_value evaluate_cast(
 	{
 		return evaluate_int_to_float_cast(dest_kind, value);
 	}
-
-	switch (dest_kind)
+	else if (ast::is_integer_kind(dest_kind) && value.is_boolean())
 	{
-	case ast::type_info::int8_:
-	case ast::type_info::int16_:
-	case ast::type_info::int32_:
-	case ast::type_info::int64_:
-	{
-		switch (value.kind())
+		if (ast::is_signed_integer_kind(dest_kind))
 		{
-		static_assert(ast::constant_value::variant_count == 19);
-		case ast::constant_value_kind::u8char:
-			// no overflow possible in constant expressions
-			return ast::constant_value(static_cast<int64_t>(value.get_u8char()));
-		case ast::constant_value_kind::boolean:
 			return ast::constant_value(static_cast<int64_t>(value.get_boolean()));
-		default:
-			bz_unreachable;
 		}
-	}
-
-	case ast::type_info::uint8_:
-	case ast::type_info::uint16_:
-	case ast::type_info::uint32_:
-	case ast::type_info::uint64_:
-	{
-		switch (value.kind())
+		else
 		{
-		static_assert(ast::constant_value::variant_count == 19);
-		case ast::constant_value_kind::u8char:
-			// no overflow possible in constant expressions
-			return ast::constant_value(static_cast<uint64_t>(value.get_u8char()));
-		case ast::constant_value_kind::boolean:
 			return ast::constant_value(static_cast<uint64_t>(value.get_boolean()));
-		default:
-			bz_unreachable;
 		}
 	}
-
-	case ast::type_info::char_:
-		switch (value.kind())
+	else if (ast::is_integer_kind(dest_kind) && value.is_u8char())
+	{
+		if (ast::is_signed_integer_kind(dest_kind))
 		{
-		static_assert(ast::constant_value::variant_count == 19);
-		case ast::constant_value_kind::sint:
+			int64_t const int_value = dest_kind == ast::type_info::int8_ ? static_cast<int8_t>(value.get_u8char()) :
+				dest_kind == ast::type_info::int16_ ? static_cast<int16_t>(value.get_u8char()) :
+				dest_kind == ast::type_info::int32_ ? static_cast<int32_t>(value.get_u8char()) :
+				static_cast<int64_t>(value.get_u8char());
+			return ast::constant_value(int_value);
+		}
+		else
+		{
+			uint64_t const int_value = dest_kind == ast::type_info::uint8_ ? static_cast<uint8_t>(value.get_u8char()) :
+				dest_kind == ast::type_info::uint16_ ? static_cast<uint16_t>(value.get_u8char()) :
+				dest_kind == ast::type_info::uint32_ ? static_cast<uint32_t>(value.get_u8char()) :
+				static_cast<uint64_t>(value.get_u8char());
+			return ast::constant_value(int_value);
+		}
+	}
+	else if (dest_kind == ast::type_info::char_ && (value.is_sint() || value.is_uint()))
+	{
+		if (value.is_sint())
 		{
 			auto const result = static_cast<bz::u8char>(value.get_sint());
 			if (!bz::is_valid_unicode_value(result))
@@ -2493,7 +2482,7 @@ static ast::constant_value evaluate_cast(
 			}
 			return ast::constant_value(result);
 		}
-		case ast::constant_value_kind::uint:
+		else
 		{
 			auto const result = static_cast<bz::u8char>(value.get_uint());
 			if (!bz::is_valid_unicode_value(result))
@@ -2510,15 +2499,8 @@ static ast::constant_value evaluate_cast(
 			}
 			return ast::constant_value(result);
 		}
-		default:
-			bz_unreachable;
-		}
-	case ast::type_info::str_:
-	case ast::type_info::bool_:
-	case ast::type_info::null_t_:
-	default:
-		bz_unreachable;
 	}
+
 	return {};
 }
 
