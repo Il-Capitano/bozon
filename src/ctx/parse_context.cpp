@@ -5518,24 +5518,49 @@ static bool check_large_type_bit_cast_paddings(
 	auto value_it = value_type_paddings.begin();
 	auto const value_end = value_type_paddings.end();
 	auto result_it = result_type_paddings.begin();
-	auto const result_end = value_type_paddings.end();
+	auto const result_end = result_type_paddings.end();
 
-	while (result_it != result_end && value_it != value_end)
+	while (value_it != value_end && result_it != result_end)
 	{
-		auto has_padding_until = value_it->offset;
-		while (has_padding_until < value_it->offset + value_it->padding_size)
+		// advance result_it as long as the padding's end is before value_it->offset
+		while (result_it != result_end && result_it->offset + result_it->padding_size < value_it->offset)
 		{
-			if (result_it == result_end || result_it->offset > has_padding_until)
-			{
-				return false;
-			}
-
-			has_padding_until = std::max(has_padding_until, result_it->offset + result_it->padding_size);
 			++result_it;
+		}
+
+		// result type has no more padding, but value type does, therefore we have a problem
+		if (result_it == result_end)
+		{
+			return false;
+		}
+		// the next padding in result type is after the current padding in value type, therefore we have a problem
+		else if (result_it->offset > value_it->offset)
+		{
+			return false;
+		}
+
+		// advance result_it as long as there are consecutive padding spaces
+		// this can happen for example in types like '[[uint16, uint8], uint64]',
+		// where we have a 1-byte padding at offset 3 and a 4-byte padding at offset 4
+		auto previous_end = result_it->offset + result_it->padding_size;
+		++result_it;
+		auto const value_padding_end = value_it->offset + value_it->padding_size;
+		while (result_it != result_end && previous_end < value_padding_end && previous_end == result_it->offset)
+		{
+			previous_end += result_it->padding_size;
+			++result_it;
+		}
+
+		// the consecutive paddings in the result type end before the current padding in value type ends
+		if (previous_end < value_padding_end)
+		{
+			return false;
 		}
 
 		++value_it;
 	}
+
+	// if there are any more paddings in the value type, then we have a problem
 	return value_it == value_end;
 }
 
@@ -5569,6 +5594,142 @@ static bool check_bit_cast_type_paddings(
 	}
 }
 
+static bz::vector<ctx::source_highlight> get_bit_cast_type_padding_note(
+	lex::src_tokens const &src_tokens,
+	ast::type_prototype const *value_type,
+	ast::type_prototype const *result_type,
+	parse_context &context
+)
+{
+	auto const value_type_paddings = get_type_paddings(value_type);
+	auto const result_type_paddings = get_type_paddings(result_type);
+
+	auto value_it = value_type_paddings.begin();
+	auto const value_end = value_type_paddings.end();
+	auto result_it = result_type_paddings.begin();
+	auto const result_end = result_type_paddings.end();
+
+	auto const byte_or_bytes = [](uint32_t count) -> bz::u8string_view {
+		return count == 1 ? "byte" : "bytes";
+	};
+
+	bz::vector<ctx::source_highlight> result;
+
+	while (value_it != value_end && result_it != result_end)
+	{
+		// advance result_it as long as the padding's end is before value_it->offset
+		while (result_it != result_end && result_it->offset + result_it->padding_size < value_it->offset)
+		{
+			++result_it;
+		}
+
+		// result type has no more padding, but value type does, therefore we have a problem
+		if (result_it == result_end)
+		{
+			result.push_back(parse_context::make_note(
+				src_tokens,
+				bz::format(
+					"value type has a padding of {} {} at offset {}, but result type doesn't",
+					value_it->padding_size, byte_or_bytes(value_it->padding_size), value_it->offset
+				)
+			));
+			break;
+		}
+		// the next padding in result type is after the current padding in value type, therefore we have a problem
+		else if (result_it->offset > value_it->offset)
+		{
+			result.push_back(parse_context::make_note(
+				src_tokens,
+				bz::format(
+					"value type has a padding of {} {} at offset {}, but result type doesn't",
+					value_it->padding_size, byte_or_bytes(value_it->padding_size), value_it->offset
+				)
+			));
+			break;
+		}
+
+		// advance result_it as long as there are consecutive padding spaces
+		// this can happen for example in types like '[[uint16, uint8], uint64]',
+		// where we have a 1-byte padding at offset 3 and a 4-byte padding at offset 4
+		auto previous_end = result_it->offset + result_it->padding_size;
+		++result_it;
+		auto const value_padding_end = value_it->offset + value_it->padding_size;
+		while (result_it != result_end && previous_end < value_padding_end && previous_end == result_it->offset)
+		{
+			previous_end += result_it->padding_size;
+			++result_it;
+		}
+
+		// the consecutive paddings in the result type end before the current padding in value type ends
+		if (previous_end < value_padding_end)
+		{
+			result.push_back(parse_context::make_note(
+				src_tokens,
+				bz::format(
+					"value type has a padding of {} {} at offset {}, but result type has a member at offset {}",
+					value_it->padding_size, byte_or_bytes(value_it->padding_size), value_it->offset, previous_end
+				)
+			));
+			break;
+		}
+
+		++value_it;
+	}
+
+	// if there are any more paddings in the value type, then we have a problem
+	if (result.empty() && value_it != value_end)
+	{
+		result.push_back(parse_context::make_note(
+			src_tokens,
+			bz::format(
+				"value type has a padding of {} {} at offset {}, but result type doesn't",
+				value_it->padding_size, byte_or_bytes(value_it->padding_size), value_it->offset
+			)
+		));
+	}
+
+	if (global_data::do_verbose)
+	{
+		bz::u8string value_type_string = "value type has the following paddings: ";
+		bool first = true;
+		for (auto const &[offset, size] : value_type_paddings)
+		{
+			if (!first)
+			{
+				value_type_string += ", ";
+			}
+			else
+			{
+				first = false;
+			}
+			value_type_string += bz::format("{} {} at offset {}", size, byte_or_bytes(size), offset);
+		}
+
+		result.push_back(parse_context::make_note(src_tokens, std::move(value_type_string)));
+
+		bz::u8string result_type_string = result_type_paddings.empty()
+			? "result type has no padding"
+			: "result type has the following paddings: ";
+		first = true;
+		for (auto const &[offset, size] : result_type_paddings)
+		{
+			if (!first)
+			{
+				result_type_string += ", ";
+			}
+			else
+			{
+				first = false;
+			}
+			result_type_string += bz::format("{} {} at offset {}", size, byte_or_bytes(size), offset);
+		}
+
+		result.push_back(parse_context::make_note(src_tokens, std::move(result_type_string)));
+	}
+
+	return result;
+}
+
 ast::expression parse_context::make_bit_cast_expression(
 	lex::src_tokens const &src_tokens,
 	ast::expression expr,
@@ -5596,7 +5757,7 @@ ast::expression parse_context::make_bit_cast_expression(
 		this->report_error(
 			src_tokens,
 			bz::format(
-				"value type '{}' and result type '{}' have different sizes {} and {}",
+				"value type '{}' and result type '{}' have different sizes {} and {} in bit cast",
 				expr_type, result_type, expr_prototype->size, dest_prototype->size
 			)
 		);
@@ -5604,6 +5765,11 @@ ast::expression parse_context::make_bit_cast_expression(
 	}
 	else if (!check_bit_cast_type_paddings(expr_prototype, dest_prototype))
 	{
+		this->report_error(
+			src_tokens,
+			bz::format("value type '{}' and result type '{}' have incompatible paddings in bit cast", expr_type, result_type),
+			get_bit_cast_type_padding_note(src_tokens, expr_prototype, dest_prototype, *this)
+		);
 		return ast::make_error_expression(src_tokens, ast::make_expr_bit_cast(std::move(expr), std::move(result_type)));
 	}
 	else
