@@ -741,15 +741,8 @@ static val_ptr emit_builtin_unary_address_of(
 {
 	auto const val = emit_bitcode(expr, context, nullptr);
 	bz_assert(val.kind == val_ptr::reference);
-	if (result_address == nullptr)
-	{
-		return val_ptr::get_value(val.val);
-	}
-	else
-	{
-		context.builder.CreateStore(val.val, result_address);
-		return val_ptr::get_reference(result_address, context.get_opaque_pointer_t());
-	}
+	bz_assert(val.val->getType()->isPointerTy());
+	return value_or_result_address(val.val, result_address, context);
 }
 
 static val_ptr emit_builtin_unary_plus(
@@ -772,22 +765,13 @@ static val_ptr emit_builtin_unary_minus(
 	auto const res = type->isFloatingPointTy()
 		? context.builder.CreateFNeg(val, "unary_minus_tmp")
 		: context.builder.CreateNeg(val, "unary_minus_tmp");
-	if (result_address == nullptr)
-	{
-		return val_ptr::get_value(res);
-	}
-	else
-	{
-		context.builder.CreateStore(res, result_address);
-		return val_ptr::get_reference(result_address, type);
-	}
+	return value_or_result_address(res, result_address, context);
 }
 
 static val_ptr emit_builtin_unary_dereference(
 	lex::src_tokens const &src_tokens,
 	ast::expression const &expr,
-	bitcode_context &context,
-	llvm::Value *result_address
+	bitcode_context &context
 )
 {
 	auto const val = emit_bitcode(expr, context, nullptr).get_value(context.builder);
@@ -811,13 +795,11 @@ static val_ptr emit_builtin_unary_dereference(
 		}
 
 		auto const result_type = get_llvm_type(type.get_optional_pointer(), context);
-		bz_assert(result_address == nullptr);
 		return val_ptr::get_reference(val, result_type);
 	}
 	else
 	{
 		auto const result_type = get_llvm_type(type.template get<ast::ts_pointer>(), context);
-		bz_assert(result_address == nullptr);
 		return val_ptr::get_reference(val, result_type);
 	}
 }
@@ -828,17 +810,9 @@ static val_ptr emit_builtin_unary_bit_not(
 	llvm::Value *result_address
 )
 {
-	auto const [val, type] = emit_bitcode(expr, context, nullptr).get_value_and_type(context.builder);
+	auto const val = emit_bitcode(expr, context, nullptr).get_value(context.builder);
 	auto const res = context.builder.CreateNot(val, "unary_bit_not_tmp");
-	if (result_address == nullptr)
-	{
-		return val_ptr::get_value(res);
-	}
-	else
-	{
-		context.builder.CreateStore(res, result_address);
-		return val_ptr::get_reference(result_address, type);
-	}
+	return value_or_result_address(res, result_address, context);
 }
 
 static val_ptr emit_builtin_unary_bool_not(
@@ -847,23 +821,14 @@ static val_ptr emit_builtin_unary_bool_not(
 	llvm::Value *result_address
 )
 {
-	auto const [val, type] = emit_bitcode(expr, context, nullptr).get_value_and_type(context.builder);
+	auto const val = emit_bitcode(expr, context, nullptr).get_value(context.builder);
 	auto const res = context.builder.CreateNot(val, "unary_bool_not_tmp");
-	if (result_address == nullptr)
-	{
-		return val_ptr::get_value(res);
-	}
-	else
-	{
-		context.builder.CreateStore(res, result_address);
-		return val_ptr::get_reference(result_address, type);
-	}
+	return value_or_result_address(res, result_address, context);
 }
 
 static val_ptr emit_builtin_unary_plus_plus(
 	ast::expression const &expr,
-	bitcode_context &context,
-	llvm::Value *result_address
+	bitcode_context &context
 )
 {
 	auto const val = emit_bitcode(expr, context, nullptr);
@@ -885,15 +850,7 @@ static val_ptr emit_builtin_unary_plus_plus(
 
 		auto const incremented_value = context.create_gep(inner_type, original_value, 1);
 		context.builder.CreateStore(incremented_value, val.val);
-		if (result_address == nullptr)
-		{
-			return val;
-		}
-		else
-		{
-			context.builder.CreateStore(incremented_value, result_address);
-			return val_ptr::get_reference(result_address, type);
-		}
+		return val;
 	}
 	else
 	{
@@ -903,22 +860,13 @@ static val_ptr emit_builtin_unary_plus_plus(
 			llvm::ConstantInt::get(type, 1)
 		);
 		context.builder.CreateStore(incremented_value, val.val);
-		if (result_address == nullptr)
-		{
-			return val;
-		}
-		else
-		{
-			context.builder.CreateStore(incremented_value, result_address);
-			return val_ptr::get_reference(result_address, type);
-		}
+		return val;
 	}
 }
 
 static val_ptr emit_builtin_unary_minus_minus(
 	ast::expression const &expr,
-	bitcode_context &context,
-	llvm::Value *result_address
+	bitcode_context &context
 )
 {
 	auto const val = emit_bitcode(expr, context, nullptr);
@@ -939,15 +887,7 @@ static val_ptr emit_builtin_unary_minus_minus(
 
 		auto const incremented_value = context.create_gep(inner_type, original_value, uint64_t(-1));
 		context.builder.CreateStore(incremented_value, val.val);
-		if (result_address == nullptr)
-		{
-			return val;
-		}
-		else
-		{
-			context.builder.CreateStore(incremented_value, result_address);
-			return val_ptr::get_reference(result_address, type);
-		}
+		return val;
 	}
 	else
 	{
@@ -957,15 +897,7 @@ static val_ptr emit_builtin_unary_minus_minus(
 			llvm::ConstantInt::get(type, uint64_t(-1))
 		);
 		context.builder.CreateStore(incremented_value, val.val);
-		if (result_address == nullptr)
-		{
-			return val;
-		}
-		else
-		{
-			context.builder.CreateStore(incremented_value, result_address);
-			return val_ptr::get_reference(result_address, type);
-		}
+		return val;
 	}
 }
 
@@ -1000,8 +932,7 @@ static val_ptr emit_bitcode(
 static val_ptr emit_builtin_binary_assign(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	bitcode_context &context,
-	llvm::Value *result_address
+	bitcode_context &context
 )
 {
 	bz_unreachable;
@@ -1015,7 +946,6 @@ static val_ptr emit_builtin_binary_assign(
 	bz_assert(lhs_val.kind == val_ptr::reference);
 
 	context.builder.CreateStore(llvm::ConstantPointerNull::get(context.get_opaque_pointer_t()), lhs_val.val);
-	bz_assert(result_address == nullptr);
 	return lhs_val;
 }
 
@@ -1040,16 +970,7 @@ static val_ptr emit_builtin_binary_plus(
 			auto const result_val = ast::is_floating_point_kind(lhs_kind)
 				? context.builder.CreateFAdd(lhs_val, rhs_val, "add_tmp")
 				: context.builder.CreateAdd(lhs_val, rhs_val, "add_tmp");
-			if (result_address == nullptr)
-			{
-				return val_ptr::get_value(result_val);
-			}
-			else
-			{
-				auto const result_type = result_val->getType();
-				context.builder.CreateStore(result_val, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
+			return value_or_result_address(result_val, result_address, context);
 		}
 		else if (lhs_kind == ast::type_info::char_)
 		{
@@ -1061,16 +982,7 @@ static val_ptr emit_builtin_binary_plus(
 				ast::is_signed_integer_kind(rhs_kind)
 			);
 			auto const result_val = context.builder.CreateAdd(lhs_val, rhs_val, "add_tmp");
-			if (result_address == nullptr)
-			{
-				return val_ptr::get_value(result_val);
-			}
-			else
-			{
-				auto const result_type = result_val->getType();
-				context.builder.CreateStore(result_val, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
+			return value_or_result_address(result_val, result_address, context);
 		}
 		else // if (rhs_kind == ast::type_info::char_)
 		{
@@ -1083,16 +995,7 @@ static val_ptr emit_builtin_binary_plus(
 			);
 			auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 			auto const result_val = context.builder.CreateAdd(lhs_val, rhs_val, "add_tmp");
-			if (result_address == nullptr)
-			{
-				return val_ptr::get_value(result_val);
-			}
-			else
-			{
-				auto const result_type = result_val->getType();
-				context.builder.CreateStore(result_val, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
+			return value_or_result_address(result_val, result_address, context);
 		}
 	}
 	else if (lhs_t.is<ast::ts_pointer>() || lhs_t.is_optional_pointer())
@@ -1116,16 +1019,7 @@ static val_ptr emit_builtin_binary_plus(
 		}
 
 		auto const result_val = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_add_tmp");
-		if (result_address == nullptr)
-		{
-			return val_ptr::get_value(result_val);
-		}
-		else
-		{
-			auto const result_type = result_val->getType();
-			context.builder.CreateStore(result_val, result_address);
-			return val_ptr::get_reference(result_address, result_type);
-		}
+		return value_or_result_address(result_val, result_address, context);
 	}
 	else
 	{
@@ -1148,24 +1042,14 @@ static val_ptr emit_builtin_binary_plus(
 		}
 
 		auto const result_val = context.create_gep(rhs_inner_type, rhs_val, lhs_val, "ptr_add_tmp");
-		if (result_address == nullptr)
-		{
-			return val_ptr::get_value(result_val);
-		}
-		else
-		{
-			auto const result_type = result_val->getType();
-			context.builder.CreateStore(result_val, result_address);
-			return val_ptr::get_reference(result_address, result_type);
-		}
+		return value_or_result_address(result_val, result_address, context);
 	}
 }
 
 static val_ptr emit_builtin_binary_plus_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	bitcode_context &context,
-	llvm::Value *result_address
+	bitcode_context &context
 )
 {
 	auto const lhs_t = lhs.get_expr_type().get_mut_reference();
@@ -1194,15 +1078,7 @@ static val_ptr emit_builtin_binary_plus_eq(
 				res = context.builder.CreateFAdd(lhs_val, rhs_val, "add_tmp");
 			}
 			context.builder.CreateStore(res, lhs_val_ref.val);
-			if (result_address == nullptr)
-			{
-				return lhs_val_ref;
-			}
-			else
-			{
-				context.builder.CreateStore(res, result_address);
-				return val_ptr::get_reference(result_address, lhs_val_ref.get_type());
-			}
+			return lhs_val_ref;
 		}
 		else
 		{
@@ -1219,15 +1095,7 @@ static val_ptr emit_builtin_binary_plus_eq(
 			);
 			auto const res = context.builder.CreateAdd(lhs_val, rhs_val, "add_tmp");
 			context.builder.CreateStore(res, lhs_val_ref.val);
-			if (result_address == nullptr)
-			{
-				return lhs_val_ref;
-			}
-			else
-			{
-				context.builder.CreateStore(res, result_address);
-				return val_ptr::get_reference(result_address, lhs_val_ref.get_type());
-			}
+			return lhs_val_ref;
 		}
 	}
 	else
@@ -1255,15 +1123,7 @@ static val_ptr emit_builtin_binary_plus_eq(
 
 		auto const res = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_add_tmp");
 		context.builder.CreateStore(res, lhs_val_ref.val);
-		if (result_address == nullptr)
-		{
-			return lhs_val_ref;
-		}
-		else
-		{
-			context.builder.CreateStore(res, result_address);
-			return val_ptr::get_reference(result_address, lhs_val_ref.get_type());
-		}
+		return lhs_val_ref;
 	}
 }
 
@@ -1288,16 +1148,7 @@ static val_ptr emit_builtin_binary_minus(
 			auto const result_val = ast::is_floating_point_kind(lhs_kind)
 				? context.builder.CreateFSub(lhs_val, rhs_val, "sub_tmp")
 				: context.builder.CreateSub(lhs_val, rhs_val, "sub_tmp");
-			if (result_address == nullptr)
-			{
-				return val_ptr::get_value(result_val);
-			}
-			else
-			{
-				auto const result_type = result_val->getType();
-				context.builder.CreateStore(result_val, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
+			return value_or_result_address(result_val, result_address, context);
 		}
 		else if (
 			lhs_kind == ast::type_info::char_
@@ -1307,16 +1158,7 @@ static val_ptr emit_builtin_binary_minus(
 			auto const lhs_val = emit_bitcode(lhs, context, nullptr).get_value(context.builder);
 			auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 			auto const result_val = context.builder.CreateSub(lhs_val, rhs_val, "sub_tmp");
-			if (result_address == nullptr)
-			{
-				return val_ptr::get_value(result_val);
-			}
-			else
-			{
-				auto const result_type = result_val->getType();
-				context.builder.CreateStore(result_val, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
+			return value_or_result_address(result_val, result_address, context);
 		}
 		else
 		{
@@ -1332,16 +1174,7 @@ static val_ptr emit_builtin_binary_minus(
 				ast::is_signed_integer_kind(rhs_kind)
 			);
 			auto const result_val = context.builder.CreateSub(lhs_val, rhs_val, "sub_tmp");
-			if (result_address == nullptr)
-			{
-				return val_ptr::get_value(result_val);
-			}
-			else
-			{
-				auto const result_type = result_val->getType();
-				context.builder.CreateStore(result_val, result_address);
-				return val_ptr::get_reference(result_address, result_type);
-			}
+			return value_or_result_address(result_val, result_address, context);
 		}
 	}
 	else if (rhs_t.is<ast::ts_base_type>())
@@ -1367,16 +1200,7 @@ static val_ptr emit_builtin_binary_minus(
 		}
 
 		auto const result_val = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_sub_tmp");
-		if (result_address == nullptr)
-		{
-			return val_ptr::get_value(result_val);
-		}
-		else
-		{
-			auto const result_type = result_val->getType();
-			context.builder.CreateStore(result_val, result_address);
-			return val_ptr::get_reference(result_address, result_type);
-		}
+		return value_or_result_address(result_val, result_address, context);
 	}
 	else
 	{
@@ -1422,24 +1246,14 @@ static val_ptr emit_builtin_binary_minus(
 
 		auto const result_val_i64 = context.builder.CreatePtrDiff(elem_type, lhs_val, rhs_val, "ptr_diff_tmp");
 		auto const result_val = context.builder.CreateIntCast(result_val_i64, context.get_isize_t(), true);
-		if (result_address == nullptr)
-		{
-			return val_ptr::get_value(result_val);
-		}
-		else
-		{
-			auto const result_type = result_val->getType();
-			context.builder.CreateStore(result_val, result_address);
-			return val_ptr::get_reference(result_address, result_type);
-		}
+		return value_or_result_address(result_val, result_address, context);
 	}
 }
 
 static val_ptr emit_builtin_binary_minus_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	bitcode_context &context,
-	llvm::Value *result_address
+	bitcode_context &context
 )
 {
 	auto const lhs_t = lhs.get_expr_type().get_mut_reference();
@@ -1473,15 +1287,7 @@ static val_ptr emit_builtin_binary_minus_eq(
 				res = context.builder.CreateFSub(lhs_val, rhs_val, "sub_tmp");
 			}
 			context.builder.CreateStore(res, lhs_val_ref.val);
-			if (result_address == nullptr)
-			{
-				return lhs_val_ref;
-			}
-			else
-			{
-				context.builder.CreateStore(res, result_address);
-				return val_ptr::get_reference(result_address, lhs_val_ref.get_type());
-			}
+			return lhs_val_ref;
 		}
 		else
 		{
@@ -1498,15 +1304,7 @@ static val_ptr emit_builtin_binary_minus_eq(
 			);
 			auto const res = context.builder.CreateSub(lhs_val, rhs_val, "sub_tmp");
 			context.builder.CreateStore(res, lhs_val_ref.val);
-			if (result_address == nullptr)
-			{
-				return lhs_val_ref;
-			}
-			else
-			{
-				context.builder.CreateStore(res, result_address);
-				return val_ptr::get_reference(result_address, lhs_val_ref.get_type());
-			}
+			return lhs_val_ref;
 		}
 	}
 	else
@@ -1537,15 +1335,7 @@ static val_ptr emit_builtin_binary_minus_eq(
 
 		auto const res = context.create_gep(lhs_inner_type, lhs_val, rhs_val, "ptr_sub_tmp");
 		context.builder.CreateStore(res, lhs_val_ref.val);
-		if (result_address == nullptr)
-		{
-			return lhs_val_ref;
-		}
-		else
-		{
-			context.builder.CreateStore(res, result_address);
-			return val_ptr::get_reference(result_address, lhs_val_ref.get_type());
-		}
+		return lhs_val_ref;
 	}
 }
 
@@ -1567,23 +1357,13 @@ static val_ptr emit_builtin_binary_multiply(
 	auto const result_val = ast::is_floating_point_kind(lhs_kind)
 		? context.builder.CreateFMul(lhs_val, rhs_val, "mul_tmp")
 		: context.builder.CreateMul(lhs_val, rhs_val, "mul_tmp");
-	if (result_address == nullptr)
-	{
-		return val_ptr::get_value(result_val);
-	}
-	else
-	{
-		auto const result_type = result_val->getType();
-		context.builder.CreateStore(result_val, result_address);
-		return val_ptr::get_reference(result_address, result_type);
-	}
+	return value_or_result_address(result_val, result_address, context);
 }
 
 static val_ptr emit_builtin_binary_multiply_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	bitcode_context &context,
-	llvm::Value *result_address
+	bitcode_context &context
 )
 {
 	auto const lhs_t = lhs.get_expr_type().get_mut_reference();
@@ -1601,15 +1381,7 @@ static val_ptr emit_builtin_binary_multiply_eq(
 		? context.builder.CreateMul(lhs_val, rhs_val, "mul_tmp")
 		: context.builder.CreateFMul(lhs_val, rhs_val, "mul_tmp");
 	context.builder.CreateStore(res, lhs_val_ref.val);
-	if (result_address == nullptr)
-	{
-		return lhs_val_ref;
-	}
-	else
-	{
-		context.builder.CreateStore(res, result_address);
-		return val_ptr::get_reference(result_address, lhs_val_ref.get_type());
-	}
+	return lhs_val_ref;
 }
 
 static val_ptr emit_builtin_binary_divide(
@@ -1677,23 +1449,13 @@ static val_ptr emit_builtin_binary_divide(
 		}
 	}();
 
-	if (result_address == nullptr)
-	{
-		return val_ptr::get_value(result_val);
-	}
-	else
-	{
-		auto const result_type = result_val->getType();
-		context.builder.CreateStore(result_val, result_address);
-		return val_ptr::get_reference(result_address, result_type);
-	}
+	return value_or_result_address(result_val, result_address, context);
 }
 
 static val_ptr emit_builtin_binary_divide_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	bitcode_context &context,
-	llvm::Value *result_address
+	bitcode_context &context
 )
 {
 	auto const lhs_t = lhs.get_expr_type().get_mut_reference();
@@ -1758,15 +1520,7 @@ static val_ptr emit_builtin_binary_divide_eq(
 	}();
 
 	context.builder.CreateStore(res, lhs_val_ref.val);
-	if (result_address == nullptr)
-	{
-		return lhs_val_ref;
-	}
-	else
-	{
-		context.builder.CreateStore(res, result_address);
-		return val_ptr::get_reference(result_address, lhs_val_ref.get_type());
-	}
+	return lhs_val_ref;
 }
 
 static val_ptr emit_builtin_binary_modulo(
@@ -1785,26 +1539,59 @@ static val_ptr emit_builtin_binary_modulo(
 	auto const lhs_val = emit_bitcode(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 
-	auto const result_val = ast::is_signed_integer_kind(lhs_kind)
-		? context.builder.CreateSRem(lhs_val, rhs_val, "mod_tmp")
-		: context.builder.CreateURem(lhs_val, rhs_val, "mod_tmp");
-	if (result_address == nullptr)
-	{
-		return val_ptr::get_value(result_val);
-	}
-	else
-	{
-		auto const result_type = result_val->getType();
-		context.builder.CreateStore(result_val, result_address);
-		return val_ptr::get_reference(result_address, result_type);
-	}
+	auto const result_val = [&]() -> llvm::Value * {
+		if (ast::is_signed_integer_kind(lhs_kind))
+		{
+			auto const result_type = lhs_val->getType();
+			auto const min_value = [&]() {
+				switch (lhs_kind)
+				{
+				case ast::type_info::int8_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int8_t>::min());
+				case ast::type_info::int16_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int16_t>::min());
+				case ast::type_info::int32_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int32_t>::min());
+				case ast::type_info::int64_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int64_t>::min());
+				default:
+					bz_unreachable;
+				}
+			}();
+			auto const lhs_is_overflow = context.builder.CreateICmpEQ(lhs_val, min_value);
+			auto const rhs_is_overflow = context.builder.CreateICmpEQ(rhs_val, llvm::ConstantInt::getSigned(result_type, -1));
+			auto const is_overflow = context.builder.CreateAnd(lhs_is_overflow, rhs_is_overflow);
+
+			auto const begin_bb = context.builder.GetInsertBlock();
+			auto const non_overflow_bb = context.add_basic_block("mod_overflow_check");
+			auto const end_bb = context.add_basic_block("mod_overflow_check_end");
+
+			context.builder.CreateCondBr(is_overflow, end_bb, non_overflow_bb);
+			context.builder.SetInsertPoint(non_overflow_bb);
+			auto const non_overflow_result = context.builder.CreateSRem(lhs_val, rhs_val, "mod_tmp");
+			context.builder.CreateBr(end_bb);
+
+			context.builder.SetInsertPoint(end_bb);
+			auto const result = context.builder.CreatePHI(result_type, 2, "mod_tmp");
+			result->addIncoming(non_overflow_result, non_overflow_bb);
+			result->addIncoming(llvm::ConstantInt::getSigned(result_type, 0), begin_bb);
+
+			return result;
+		}
+		else
+		{
+			bz_assert(ast::is_unsigned_integer_kind(lhs_kind));
+			return context.builder.CreateURem(lhs_val, rhs_val, "mod_tmp");
+		}
+	}();
+
+	return value_or_result_address(result_val, result_address, context);
 }
 
 static val_ptr emit_builtin_binary_modulo_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	bitcode_context &context,
-	llvm::Value *result_address
+	bitcode_context &context
 )
 {
 	auto const lhs_t = lhs.get_expr_type().get_mut_reference();
@@ -1819,19 +1606,53 @@ static val_ptr emit_builtin_binary_modulo_eq(
 	bz_assert(lhs_val_ref.kind == val_ptr::reference);
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
 
-	auto const res = ast::is_signed_integer_kind(lhs_kind)
-		? context.builder.CreateSRem(lhs_val, rhs_val, "mod_tmp")
-		: context.builder.CreateURem(lhs_val, rhs_val, "mod_tmp");
+	auto const res = [&]() -> llvm::Value * {
+		if (ast::is_signed_integer_kind(lhs_kind))
+		{
+			auto const result_type = lhs_val->getType();
+			auto const min_value = [&]() {
+				switch (lhs_kind)
+				{
+				case ast::type_info::int8_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int8_t>::min());
+				case ast::type_info::int16_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int16_t>::min());
+				case ast::type_info::int32_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int32_t>::min());
+				case ast::type_info::int64_:
+					return llvm::ConstantInt::getSigned(result_type, std::numeric_limits<int64_t>::min());
+				default:
+					bz_unreachable;
+				}
+			}();
+			auto const lhs_is_overflow = context.builder.CreateICmpEQ(lhs_val, min_value);
+			auto const rhs_is_overflow = context.builder.CreateICmpEQ(rhs_val, llvm::ConstantInt::getSigned(result_type, -1));
+			auto const is_overflow = context.builder.CreateAnd(lhs_is_overflow, rhs_is_overflow);
+
+			auto const begin_bb = context.builder.GetInsertBlock();
+			auto const non_overflow_bb = context.add_basic_block("mod_overflow_check");
+			auto const end_bb = context.add_basic_block("mod_overflow_check_end");
+
+			context.builder.CreateCondBr(is_overflow, end_bb, non_overflow_bb);
+			context.builder.SetInsertPoint(non_overflow_bb);
+			auto const non_overflow_result = context.builder.CreateSRem(lhs_val, rhs_val, "mod_tmp");
+			context.builder.CreateBr(end_bb);
+
+			context.builder.SetInsertPoint(end_bb);
+			auto const result = context.builder.CreatePHI(result_type, 2, "mod_tmp");
+			result->addIncoming(non_overflow_result, non_overflow_bb);
+			result->addIncoming(llvm::ConstantInt::getSigned(result_type, 0), begin_bb);
+
+			return result;
+		}
+		else
+		{
+			bz_assert(ast::is_unsigned_integer_kind(lhs_kind));
+			return context.builder.CreateURem(lhs_val, rhs_val, "mod_tmp");
+		}
+	}();
 	context.builder.CreateStore(res, lhs_val_ref.val);
-	if (result_address == nullptr)
-	{
-		return lhs_val_ref;
-	}
-	else
-	{
-		context.builder.CreateStore(res, result_address);
-		return val_ptr::get_reference(result_address, lhs_val_ref.get_type());
-	}
+	return lhs_val_ref;
 }
 
 static val_ptr emit_builtin_binary_cmp(
@@ -1918,16 +1739,7 @@ static val_ptr emit_builtin_binary_cmp(
 		auto const result_val = ast::is_floating_point_kind(lhs_kind)
 			? context.builder.CreateFCmp(pred, lhs_val, rhs_val)
 			: context.builder.CreateICmp(pred, lhs_val, rhs_val);
-		if (result_address == nullptr)
-		{
-			return val_ptr::get_value(result_val);
-		}
-		else
-		{
-			auto const result_type = result_val->getType();
-			context.builder.CreateStore(result_val, result_address);
-			return val_ptr::get_reference(result_address, result_type);
-		}
+		return value_or_result_address(result_val, result_address, context);
 	}
 	else if (lhs_t.is<ast::ts_enum>() && rhs_t.is<ast::ts_enum>())
 	{
@@ -1936,16 +1748,7 @@ static val_ptr emit_builtin_binary_cmp(
 		auto const type_kind = lhs_t.get<ast::ts_enum>().decl->underlying_type.get<ast::ts_base_type>().info->kind;
 		auto const pred = ast::is_signed_integer_kind(type_kind) ? get_cmp_predicate(0) : get_cmp_predicate(1);
 		auto const result_val = context.builder.CreateICmp(pred, lhs_val, rhs_val);
-		if (result_address == nullptr)
-		{
-			return val_ptr::get_value(result_val);
-		}
-		else
-		{
-			auto const result_type = result_val->getType();
-			context.builder.CreateStore(result_val, result_address);
-			return val_ptr::get_reference(result_address, result_type);
-		}
+		return value_or_result_address(result_val, result_address, context);
 	}
 	else if (
 		(lhs_t.is<ast::ts_optional>() && rhs_t.is<ast::ts_base_type>())
@@ -1957,18 +1760,10 @@ static val_ptr emit_builtin_binary_cmp(
 		auto const optional_val = lhs_t.is<ast::ts_optional>() ? lhs_val : rhs_val;
 		auto const has_value = optional_has_value(optional_val, context);
 		bz_assert(op == lex::token::equals || op == lex::token::not_equals);
-		auto const result = op == lex::token::not_equals
+		auto const result_val = op == lex::token::not_equals
 			? has_value
 			: context.builder.CreateNot(has_value);
-		if (result_address == nullptr)
-		{
-			return val_ptr::get_value(result);
-		}
-		else
-		{
-			context.builder.CreateStore(result, result_address);
-			return val_ptr::get_reference(result_address, result->getType());
-		}
+		return value_or_result_address(result_val, result_address, context);
 	}
 	else // if pointer or function
 	{
@@ -1979,15 +1774,7 @@ static val_ptr emit_builtin_binary_cmp(
 
 		auto const p = get_cmp_predicate(1); // unsigned compare
 		auto const result_val = context.builder.CreateICmp(p, lhs_val, rhs_val, "cmp_tmp");
-		if (result_address == nullptr)
-		{
-			return val_ptr::get_value(result_val);
-		}
-		else
-		{
-			context.builder.CreateStore(result_val, result_address);
-			return val_ptr::get_reference(result_address, result_val->getType());
-		}
+		return value_or_result_address(result_val, result_address, context);
 	}
 }
 
@@ -2007,23 +1794,13 @@ static val_ptr emit_builtin_binary_bit_and(
 	auto const lhs_val = emit_bitcode(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 	auto const result_val = context.builder.CreateAnd(lhs_val, rhs_val, "bit_and_tmp");
-	if (result_address == nullptr)
-	{
-		return val_ptr::get_value(result_val);
-	}
-	else
-	{
-		auto const result_type = result_val->getType();
-		context.builder.CreateStore(result_val, result_address);
-		return val_ptr::get_reference(result_address, result_type);
-	}
+	return value_or_result_address(result_val, result_address, context);
 }
 
 static val_ptr emit_builtin_binary_bit_and_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	bitcode_context &context,
-	llvm::Value *result_address
+	bitcode_context &context
 )
 {
 	bz_assert(lhs.get_expr_type().get_mut_reference() == rhs.get_expr_type());
@@ -2039,15 +1816,7 @@ static val_ptr emit_builtin_binary_bit_and_eq(
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
 	auto const res = context.builder.CreateAnd(lhs_val, rhs_val, "bit_and_tmp");
 	context.builder.CreateStore(res, lhs_val_ref.val);
-	if (result_address == nullptr)
-	{
-		return lhs_val_ref;
-	}
-	else
-	{
-		context.builder.CreateStore(res, result_address);
-		return val_ptr::get_reference(result_address, lhs_val_ref.get_type());
-	}
+	return lhs_val_ref;
 }
 
 static val_ptr emit_builtin_binary_bit_xor(
@@ -2066,23 +1835,13 @@ static val_ptr emit_builtin_binary_bit_xor(
 	auto const lhs_val = emit_bitcode(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 	auto const result_val = context.builder.CreateXor(lhs_val, rhs_val, "bit_xor_tmp");
-	if (result_address == nullptr)
-	{
-		return val_ptr::get_value(result_val);
-	}
-	else
-	{
-		auto const result_type = result_val->getType();
-		context.builder.CreateStore(result_val, result_address);
-		return val_ptr::get_reference(result_address, result_type);
-	}
+	return value_or_result_address(result_val, result_address, context);
 }
 
 static val_ptr emit_builtin_binary_bit_xor_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	bitcode_context &context,
-	llvm::Value *result_address
+	bitcode_context &context
 )
 {
 	bz_assert(lhs.get_expr_type().get_mut_reference() == rhs.get_expr_type());
@@ -2098,15 +1857,7 @@ static val_ptr emit_builtin_binary_bit_xor_eq(
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
 	auto const res = context.builder.CreateXor(lhs_val, rhs_val, "bit_xor_tmp");
 	context.builder.CreateStore(res, lhs_val_ref.val);
-	if (result_address == nullptr)
-	{
-		return lhs_val_ref;
-	}
-	else
-	{
-		context.builder.CreateStore(res, result_address);
-		return val_ptr::get_reference(result_address, lhs_val_ref.get_type());
-	}
+	return lhs_val_ref;
 }
 
 static val_ptr emit_builtin_binary_bit_or(
@@ -2125,23 +1876,13 @@ static val_ptr emit_builtin_binary_bit_or(
 	auto const lhs_val = emit_bitcode(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 	auto const result_val = context.builder.CreateOr(lhs_val, rhs_val, "bit_or_tmp");
-	if (result_address == nullptr)
-	{
-		return val_ptr::get_value(result_val);
-	}
-	else
-	{
-		auto const result_type = result_val->getType();
-		context.builder.CreateStore(result_val, result_address);
-		return val_ptr::get_reference(result_address, result_type);
-	}
+	return value_or_result_address(result_val, result_address, context);
 }
 
 static val_ptr emit_builtin_binary_bit_or_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	bitcode_context &context,
-	llvm::Value *result_address
+	bitcode_context &context
 )
 {
 	bz_assert(lhs.get_expr_type().get_mut_reference() == rhs.get_expr_type());
@@ -2157,15 +1898,7 @@ static val_ptr emit_builtin_binary_bit_or_eq(
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
 	auto const res = context.builder.CreateOr(lhs_val, rhs_val, "bit_or_tmp");
 	context.builder.CreateStore(res, lhs_val_ref.val);
-	if (result_address == nullptr)
-	{
-		return lhs_val_ref;
-	}
-	else
-	{
-		context.builder.CreateStore(res, result_address);
-		return val_ptr::get_reference(result_address, lhs_val_ref.get_type());
-	}
+	return lhs_val_ref;
 }
 
 static val_ptr emit_builtin_binary_left_shift(
@@ -2185,23 +1918,13 @@ static val_ptr emit_builtin_binary_left_shift(
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_builtin_type(lhs_kind), false);
 	auto const result_val = context.builder.CreateShl(lhs_val, cast_rhs_val, "lshift_tmp");
-	if (result_address == nullptr)
-	{
-		return val_ptr::get_value(result_val);
-	}
-	else
-	{
-		auto const result_type = result_val->getType();
-		context.builder.CreateStore(result_val, result_address);
-		return val_ptr::get_reference(result_address, result_type);
-	}
+	return value_or_result_address(result_val, result_address, context);
 }
 
 static val_ptr emit_builtin_binary_left_shift_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	bitcode_context &context,
-	llvm::Value *result_address
+	bitcode_context &context
 )
 {
 	auto const lhs_t = lhs.get_expr_type().get_mut_reference();
@@ -2218,15 +1941,7 @@ static val_ptr emit_builtin_binary_left_shift_eq(
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
 	auto const res = context.builder.CreateShl(lhs_val, cast_rhs_val, "lshift_tmp");
 	context.builder.CreateStore(res, lhs_val_ref.val);
-	if (result_address == nullptr)
-	{
-		return lhs_val_ref;
-	}
-	else
-	{
-		context.builder.CreateStore(res, result_address);
-		return val_ptr::get_reference(result_address, lhs_val_ref.get_type());
-	}
+	return lhs_val_ref;
 }
 
 static val_ptr emit_builtin_binary_right_shift(
@@ -2246,23 +1961,13 @@ static val_ptr emit_builtin_binary_right_shift(
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_builtin_type(lhs_kind), false);
 	auto const result_val = context.builder.CreateLShr(lhs_val, cast_rhs_val, "rshift_tmp");
-	if (result_address == nullptr)
-	{
-		return val_ptr::get_value(result_val);
-	}
-	else
-	{
-		auto const result_type = result_val->getType();
-		context.builder.CreateStore(result_val, result_address);
-		return val_ptr::get_reference(result_address, result_type);
-	}
+	return value_or_result_address(result_val, result_address, context);
 }
 
 static val_ptr emit_builtin_binary_right_shift_eq(
 	ast::expression const &lhs,
 	ast::expression const &rhs,
-	bitcode_context &context,
-	llvm::Value *result_address
+	bitcode_context &context
 )
 {
 	auto const lhs_t = lhs.get_expr_type().get_mut_reference();
@@ -2279,15 +1984,7 @@ static val_ptr emit_builtin_binary_right_shift_eq(
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
 	auto const res = context.builder.CreateLShr(lhs_val, cast_rhs_val, "rshift_tmp");
 	context.builder.CreateStore(res, lhs_val_ref.val);
-	if (result_address == nullptr)
-	{
-		return lhs_val_ref;
-	}
-	else
-	{
-		context.builder.CreateStore(res, result_address);
-		return val_ptr::get_reference(result_address, lhs_val_ref.get_type());
-	}
+	return lhs_val_ref;
 }
 
 enum class range_kind
@@ -2535,16 +2232,7 @@ static val_ptr emit_builtin_binary_bool_and(
 	phi->addIncoming(context.builder.getFalse(), lhs_bb_end);
 	phi->addIncoming(rhs_val, rhs_bb_end);
 
-	if (result_address == nullptr)
-	{
-		return val_ptr::get_value(phi);
-	}
-	else
-	{
-		auto const result_type = phi->getType();
-		context.builder.CreateStore(phi, result_address);
-		return val_ptr::get_reference(result_address, result_type);
-	}
+	return value_or_result_address(phi, result_address, context);
 }
 
 static val_ptr emit_builtin_binary_bool_xor(
@@ -2562,16 +2250,7 @@ static val_ptr emit_builtin_binary_bool_xor(
 	auto const lhs_val = emit_bitcode(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
 	auto const result_val = context.builder.CreateXor(lhs_val, rhs_val, "bool_xor_tmp");
-	if (result_address == nullptr)
-	{
-		return val_ptr::get_value(result_val);
-	}
-	else
-	{
-		auto const result_type = result_val->getType();
-		context.builder.CreateStore(result_val, result_address);
-		return val_ptr::get_reference(result_address, result_type);
-	}
+	return value_or_result_address(result_val, result_address, context);
 }
 
 static val_ptr emit_builtin_binary_bool_or(
@@ -2617,16 +2296,7 @@ static val_ptr emit_builtin_binary_bool_or(
 	phi->addIncoming(context.builder.getTrue(), lhs_bb_end);
 	phi->addIncoming(rhs_val, rhs_bb_end);
 
-	if (result_address == nullptr)
-	{
-		return val_ptr::get_value(phi);
-	}
-	else
-	{
-		auto const result_type = phi->getType();
-		context.builder.CreateStore(phi, result_address);
-		return val_ptr::get_reference(result_address, result_type);
-	}
+	return value_or_result_address(phi, result_address, context);
 }
 
 
@@ -2792,15 +2462,7 @@ static val_ptr emit_function_call(
 			bz_assert(result_address == nullptr);
 			return val_ptr::get_reference(call, inner_result_llvm_type);
 		}
-		if (result_address == nullptr)
-		{
-			return val_ptr::get_value(call);
-		}
-		else
-		{
-			context.builder.CreateStore(call, result_address);
-			return val_ptr::get_reference(result_address, call->getType());
-		}
+		return value_or_result_address(call, result_address, context);
 	case abi::pass_kind::one_register:
 	case abi::pass_kind::two_registers:
 	{
@@ -3400,12 +3062,9 @@ static val_ptr emit_bitcode(
 		{
 			bz_assert(func_call.params.size() == 2);
 			bz_assert(func_call.params[0].is_typename());
-			auto const dest_type = get_llvm_type(func_call.params[0].get_typename(), context);
-			bz_assert(dest_type->isPointerTy());
 			auto const ptr = emit_bitcode(func_call.params[1], context, nullptr).get_value(context.builder);
-			bz_assert(ptr->getType()->isPointerTy());
-			auto const result = context.builder.CreatePointerCast(ptr, dest_type);
-			return value_or_result_address(result, result_address, context);
+			bz_assert(ptr->getType() == get_llvm_type(func_call.params[0].get_typename(), context));
+			return value_or_result_address(ptr, result_address, context);
 		}
 		case ast::function_body::builtin_pointer_to_int:
 		{
@@ -3994,38 +3653,47 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_unary_minus:
 			return emit_builtin_unary_minus(func_call.params[0], context, result_address);
 		case ast::function_body::builtin_unary_dereference:
-			return emit_builtin_unary_dereference(src_tokens, func_call.params[0], context, result_address);
+			bz_assert(result_address == nullptr);
+			return emit_builtin_unary_dereference(func_call.src_tokens, func_call.params[0], context);
 		case ast::function_body::builtin_unary_bit_not:
 			return emit_builtin_unary_bit_not(func_call.params[0], context, result_address);
 		case ast::function_body::builtin_unary_bool_not:
 			return emit_builtin_unary_bool_not(func_call.params[0], context, result_address);
 		case ast::function_body::builtin_unary_plus_plus:
-			return emit_builtin_unary_plus_plus(func_call.params[0], context, result_address);
+			bz_assert(result_address == nullptr);
+			return emit_builtin_unary_plus_plus(func_call.params[0], context);
 		case ast::function_body::builtin_unary_minus_minus:
-			return emit_builtin_unary_minus_minus(func_call.params[0], context, result_address);
+			bz_assert(result_address == nullptr);
+			return emit_builtin_unary_minus_minus(func_call.params[0], context);
 
 		case ast::function_body::builtin_binary_assign:
-			return emit_builtin_binary_assign(func_call.params[0], func_call.params[1], context, result_address);
+			bz_assert(result_address == nullptr);
+			return emit_builtin_binary_assign(func_call.params[0], func_call.params[1], context);
 		case ast::function_body::builtin_binary_plus:
 			return emit_builtin_binary_plus(func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_plus_eq:
-			return emit_builtin_binary_plus_eq(func_call.params[0], func_call.params[1], context, result_address);
+			bz_assert(result_address == nullptr);
+			return emit_builtin_binary_plus_eq(func_call.params[0], func_call.params[1], context);
 		case ast::function_body::builtin_binary_minus:
 			return emit_builtin_binary_minus(func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_minus_eq:
-			return emit_builtin_binary_minus_eq(func_call.params[0], func_call.params[1], context, result_address);
+			bz_assert(result_address == nullptr);
+			return emit_builtin_binary_minus_eq(func_call.params[0], func_call.params[1], context);
 		case ast::function_body::builtin_binary_multiply:
 			return emit_builtin_binary_multiply(func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_multiply_eq:
-			return emit_builtin_binary_multiply_eq(func_call.params[0], func_call.params[1], context, result_address);
+			bz_assert(result_address == nullptr);
+			return emit_builtin_binary_multiply_eq(func_call.params[0], func_call.params[1], context);
 		case ast::function_body::builtin_binary_divide:
 			return emit_builtin_binary_divide(func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_divide_eq:
-			return emit_builtin_binary_divide_eq(func_call.params[0], func_call.params[1], context, result_address);
+			bz_assert(result_address == nullptr);
+			return emit_builtin_binary_divide_eq(func_call.params[0], func_call.params[1], context);
 		case ast::function_body::builtin_binary_modulo:
 			return emit_builtin_binary_modulo(func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_modulo_eq:
-			return emit_builtin_binary_modulo_eq(func_call.params[0], func_call.params[1], context, result_address);
+			bz_assert(result_address == nullptr);
+			return emit_builtin_binary_modulo_eq(func_call.params[0], func_call.params[1], context);
 		case ast::function_body::builtin_binary_equals:
 			return emit_builtin_binary_cmp(lex::token::equals, func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_not_equals:
@@ -4041,23 +3709,28 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_binary_bit_and:
 			return emit_builtin_binary_bit_and(func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_bit_and_eq:
-			return emit_builtin_binary_bit_and_eq(func_call.params[0], func_call.params[1], context, result_address);
+			bz_assert(result_address == nullptr);
+			return emit_builtin_binary_bit_and_eq(func_call.params[0], func_call.params[1], context);
 		case ast::function_body::builtin_binary_bit_xor:
 			return emit_builtin_binary_bit_xor(func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_bit_xor_eq:
-			return emit_builtin_binary_bit_xor_eq(func_call.params[0], func_call.params[1], context, result_address);
+			bz_assert(result_address == nullptr);
+			return emit_builtin_binary_bit_xor_eq(func_call.params[0], func_call.params[1], context);
 		case ast::function_body::builtin_binary_bit_or:
 			return emit_builtin_binary_bit_or(func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_bit_or_eq:
-			return emit_builtin_binary_bit_or_eq(func_call.params[0], func_call.params[1], context, result_address);
+			bz_assert(result_address == nullptr);
+			return emit_builtin_binary_bit_or_eq(func_call.params[0], func_call.params[1], context);
 		case ast::function_body::builtin_binary_bit_left_shift:
 			return emit_builtin_binary_left_shift(func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_bit_left_shift_eq:
-			return emit_builtin_binary_left_shift_eq(func_call.params[0], func_call.params[1], context, result_address);
+			bz_assert(result_address == nullptr);
+			return emit_builtin_binary_left_shift_eq(func_call.params[0], func_call.params[1], context);
 		case ast::function_body::builtin_binary_bit_right_shift:
 			return emit_builtin_binary_right_shift(func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_bit_right_shift_eq:
-			return emit_builtin_binary_right_shift_eq(func_call.params[0], func_call.params[1], context, result_address);
+			bz_assert(result_address == nullptr);
+			return emit_builtin_binary_right_shift_eq(func_call.params[0], func_call.params[1], context);
 		case ast::function_body::builtin_binary_subscript:
 			// integer subscripts are handled as separate expressions, because of lifetime complexity
 			return emit_builtin_subscript_range(func_call.params[0], func_call.params[1], context, result_address);
@@ -4402,15 +4075,7 @@ static val_ptr emit_bitcode(
 		else
 		{
 			auto const result_val = context.builder.CreateExtractValue(tuple.get_value(context.builder), index_int_value);
-			if (result_address == nullptr)
-			{
-				return val_ptr::get_value(result_val);
-			}
-			else
-			{
-				context.builder.CreateStore(result_val, result_address);
-				return val_ptr::get_reference(result_address, result_val->getType());
-			}
+			return value_or_result_address(result_val, result_address, context);
 		}
 	}
 }
@@ -4470,78 +4135,38 @@ static val_ptr emit_bitcode(
 
 		if (ast::is_integer_kind(expr_kind) && ast::is_integer_kind(dest_kind))
 		{
-			auto const res = context.builder.CreateIntCast(
+			auto const result_val = context.builder.CreateIntCast(
 				expr,
 				llvm_dest_t,
 				ast::is_signed_integer_kind(expr_kind),
 				"cast_tmp"
 			);
-			if (result_address == nullptr)
-			{
-				return val_ptr::get_value(res);
-			}
-			else
-			{
-				context.builder.CreateStore(res, result_address);
-				return val_ptr::get_reference(result_address, res->getType());
-			}
+			return value_or_result_address(result_val, result_address, context);
 		}
 		else if (ast::is_floating_point_kind(expr_kind) && ast::is_floating_point_kind(dest_kind))
 		{
-			auto const res = context.builder.CreateFPCast(expr, llvm_dest_t, "cast_tmp");
-			if (result_address == nullptr)
-			{
-				return val_ptr::get_value(res);
-			}
-			else
-			{
-				context.builder.CreateStore(res, result_address);
-				return val_ptr::get_reference(result_address, res->getType());
-			}
+			auto const result_val = context.builder.CreateFPCast(expr, llvm_dest_t, "cast_tmp");
+			return value_or_result_address(result_val, result_address, context);
 		}
 		else if (ast::is_floating_point_kind(expr_kind))
 		{
 			bz_assert(ast::is_integer_kind(dest_kind));
-			auto const res = ast::is_signed_integer_kind(dest_kind)
+			auto const result_val = ast::is_signed_integer_kind(dest_kind)
 				? context.builder.CreateFPToSI(expr, llvm_dest_t, "cast_tmp")
 				: context.builder.CreateFPToUI(expr, llvm_dest_t, "cast_tmp");
-			if (result_address == nullptr)
-			{
-				return val_ptr::get_value(res);
-			}
-			else
-			{
-				context.builder.CreateStore(res, result_address);
-				return val_ptr::get_reference(result_address, res->getType());
-			}
+			return value_or_result_address(result_val, result_address, context);
 		}
 		else if (ast::is_integer_kind(expr_kind) && ast::is_floating_point_kind(dest_kind))
 		{
-			auto const res = ast::is_signed_integer_kind(expr_kind)
+			auto const result_val = ast::is_signed_integer_kind(expr_kind)
 				? context.builder.CreateSIToFP(expr, llvm_dest_t, "cast_tmp")
 				: context.builder.CreateUIToFP(expr, llvm_dest_t, "cast_tmp");
-			if (result_address == nullptr)
-			{
-				return val_ptr::get_value(res);
-			}
-			else
-			{
-				context.builder.CreateStore(res, result_address);
-				return val_ptr::get_reference(result_address, res->getType());
-			}
+			return value_or_result_address(result_val, result_address, context);
 		}
 		else if (expr_kind == ast::type_info::bool_ && ast::is_integer_kind(dest_kind))
 		{
-			auto const res = context.builder.CreateIntCast(expr, llvm_dest_t, false, "cast_tmp");
-			if (result_address == nullptr)
-			{
-				return val_ptr::get_value(res);
-			}
-			else
-			{
-				context.builder.CreateStore(res, result_address);
-				return val_ptr::get_reference(result_address, res->getType());
-			}
+			auto const result_val = context.builder.CreateIntCast(expr, llvm_dest_t, false, "cast_tmp");
+			return value_or_result_address(result_val, result_address, context);
 		}
 		else
 		{
@@ -4550,16 +4175,8 @@ static val_ptr emit_bitcode(
 				(expr_kind == ast::type_info::char_ && ast::is_integer_kind(dest_kind))
 				|| ( ast::is_integer_kind(expr_kind) && dest_kind == ast::type_info::char_)
 			);
-			auto const res = context.builder.CreateIntCast(expr, llvm_dest_t, ast::is_signed_integer_kind(expr_kind), "cast_tmp");
-			if (result_address == nullptr)
-			{
-				return val_ptr::get_value(res);
-			}
-			else
-			{
-				context.builder.CreateStore(res, result_address);
-				return val_ptr::get_reference(result_address, res->getType());
-			}
+			auto const result_val = context.builder.CreateIntCast(expr, llvm_dest_t, ast::is_signed_integer_kind(expr_kind), "cast_tmp");
+			return value_or_result_address(result_val, result_address, context);
 		}
 	}
 	else if (
@@ -4567,18 +4184,9 @@ static val_ptr emit_bitcode(
 		&& (dest_t.is<ast::ts_pointer>() || dest_t.is_optional_pointer())
 	)
 	{
-		auto const llvm_dest_t = get_llvm_type(dest_t, context);
-		auto const expr = emit_bitcode(cast.expr, context, nullptr).get_value(context.builder);
-		auto const cast_result = context.builder.CreatePointerCast(expr, llvm_dest_t);
-		if (result_address == nullptr)
-		{
-			return val_ptr::get_value(cast_result);
-		}
-		else
-		{
-			context.builder.CreateStore(cast_result, result_address);
-			return val_ptr::get_reference(result_address, cast_result->getType());
-		}
+		auto const ptr = emit_bitcode(cast.expr, context, nullptr).get_value(context.builder);
+		bz_assert(ptr->getType() == get_llvm_type(dest_t, context));
+		return value_or_result_address(ptr, result_address, context);
 	}
 	else if (expr_t.is<ast::ts_array>() && dest_t.is<ast::ts_array_slice>())
 	{
@@ -4856,16 +4464,9 @@ static val_ptr emit_bitcode(
 
 	if (llvm_type->isPointerTy())
 	{
+		bz_assert(llvm_type == context.get_opaque_pointer_t());
 		auto const value = llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(llvm_type));
-		if (result_address == nullptr)
-		{
-			return val_ptr::get_value(value);
-		}
-		else
-		{
-			context.builder.CreateStore(value, result_address);
-			return val_ptr::get_reference(result_address, llvm_type);
-		}
+		return value_or_result_address(value, result_address, context);
 	}
 	else
 	{
@@ -6089,18 +5690,10 @@ static val_ptr emit_bitcode(
 	}
 	else
 	{
-		auto const val = context.builder.CreateExtractValue(
+		auto const result_val = context.builder.CreateExtractValue(
 			base.get_value(context.builder), member_access.index
 		);
-		if (result_address == nullptr)
-		{
-			return val_ptr::get_value(val);
-		}
-		else
-		{
-			context.builder.CreateStore(val, result_address);
-			return val_ptr::get_reference(result_address, val->getType());
-		}
+		return value_or_result_address(result_val, result_address, context);
 	}
 }
 
