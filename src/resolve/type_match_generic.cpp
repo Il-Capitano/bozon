@@ -3730,7 +3730,7 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 					ast::destruct_operation()
 				);
 			}
-			else if (!dest.is_any_reference())
+			else if (!dest.is_any_reference() && (!dest.is_optional_reference() || expr_type_kind == ast::expression_type_kind::lvalue))
 			{
 				if (expr_type_kind == ast::expression_type_kind::lvalue || expr_type.is_reference())
 				{

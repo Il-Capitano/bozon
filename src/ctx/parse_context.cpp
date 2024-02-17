@@ -7770,9 +7770,9 @@ static ast::expression make_optional_extract_value_expression(
 	parse_context &context
 )
 {
-	bz_assert(!optional_value.get_expr_type().is_reference());
-	bz_assert(optional_value.get_expr_type().is<ast::ts_optional>());
-	auto const value_type = optional_value.get_expr_type().get<ast::ts_optional>();
+	bz_assert(!optional_value.get_expr_type().remove_mut().is_reference());
+	bz_assert(optional_value.get_expr_type().remove_mut().is<ast::ts_optional>());
+	auto const value_type = optional_value.get_expr_type().remove_mut().get<ast::ts_optional>();
 	if (value_type.is_reference())
 	{
 		return ast::make_dynamic_expression(
