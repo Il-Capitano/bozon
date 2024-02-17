@@ -3239,7 +3239,12 @@ static match_function_result_t<kind> generic_type_match_base_case(
 				auto const good = generic_type_match_base_case(change_dest(match_context, inner_dest));
 				if (good)
 				{
+					auto const is_optional_ref = match_context.dest_container.modifiers[0].template is<ast::ts_optional>();
 					match_context.dest_container.remove_layer();
+					if (is_optional_ref)
+					{
+						match_context.dest_container.modifiers[0].template emplace<ast::ts_optional>();
+					}
 				}
 				return good;
 			}
