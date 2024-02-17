@@ -4505,7 +4505,9 @@ static expr_value generate_expression(
 {
 	if (optional_cast.type.is_optional_reference())
 	{
-		return context.create_address_of(generate_expression(optional_cast.expr, context, result_dest));
+		// reference expressions shouldn't have a result_dest
+		auto const result = context.create_address_of(generate_expression(optional_cast.expr, context, {}));
+		return value_or_result_dest(result, result_dest, context);
 	}
 	else if (optional_cast.type.is_optional_pointer_like())
 	{
