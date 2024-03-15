@@ -3239,7 +3239,12 @@ static match_function_result_t<kind> generic_type_match_base_case(
 				auto const good = generic_type_match_base_case(change_dest(match_context, inner_dest));
 				if (good)
 				{
+					auto const is_optional_ref = match_context.dest_container.modifiers[0].template is<ast::ts_optional>();
 					match_context.dest_container.remove_layer();
+					if (is_optional_ref)
+					{
+						match_context.dest_container.modifiers[0].template emplace<ast::ts_optional>();
+					}
 				}
 				return good;
 			}
@@ -3725,7 +3730,7 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 					ast::destruct_operation()
 				);
 			}
-			else if (!dest.is_any_reference())
+			else if (!dest.is_any_reference() && (!dest.is_optional_reference() || expr_type_kind == ast::expression_type_kind::lvalue))
 			{
 				if (expr_type_kind == ast::expression_type_kind::lvalue || expr_type.is_reference())
 				{

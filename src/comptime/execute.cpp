@@ -2484,10 +2484,12 @@ static uint8_t execute_shl_i8_signed(instructions::shl_i8_signed const &inst, ui
 	if (irhs < 0)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint8'", irhs));
+		return 0;
 	}
 	else if (irhs >= 8)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint8'", irhs));
+		return 0;
 	}
 	return lhs << uint8_t(rhs);
 }
@@ -2498,10 +2500,12 @@ static uint16_t execute_shl_i16_signed(instructions::shl_i16_signed const &inst,
 	if (irhs < 0)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint16'", irhs));
+		return 0;
 	}
 	else if (irhs >= 16)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint16'", irhs));
+		return 0;
 	}
 	return lhs << uint16_t(rhs);
 }
@@ -2512,10 +2516,12 @@ static uint32_t execute_shl_i32_signed(instructions::shl_i32_signed const &inst,
 	if (irhs < 0)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint32'", irhs));
+		return 0;
 	}
 	else if (irhs >= 32)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint32'", irhs));
+		return 0;
 	}
 	return lhs << uint32_t(rhs);
 }
@@ -2526,10 +2532,12 @@ static uint64_t execute_shl_i64_signed(instructions::shl_i64_signed const &inst,
 	if (irhs < 0)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint64'", irhs));
+		return 0;
 	}
 	else if (irhs >= 64)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint64'", irhs));
+		return 0;
 	}
 	return lhs << uint64_t(rhs);
 }
@@ -2539,6 +2547,7 @@ static uint8_t execute_shl_i8_unsigned(instructions::shl_i8_unsigned const &inst
 	if (rhs >= 8)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint8'", rhs));
+		return 0;
 	}
 	return lhs << uint8_t(rhs);
 }
@@ -2548,6 +2557,7 @@ static uint16_t execute_shl_i16_unsigned(instructions::shl_i16_unsigned const &i
 	if (rhs >= 16)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint16'", rhs));
+		return 0;
 	}
 	return lhs << uint16_t(rhs);
 }
@@ -2557,6 +2567,7 @@ static uint32_t execute_shl_i32_unsigned(instructions::shl_i32_unsigned const &i
 	if (rhs >= 32)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint32'", rhs));
+		return 0;
 	}
 	return lhs << uint32_t(rhs);
 }
@@ -2566,6 +2577,7 @@ static uint64_t execute_shl_i64_unsigned(instructions::shl_i64_unsigned const &i
 	if (rhs >= 64)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint64'", rhs));
+		return 0;
 	}
 	return lhs << uint64_t(rhs);
 }
@@ -2576,10 +2588,12 @@ static uint8_t execute_shr_i8_signed(instructions::shr_i8_signed const &inst, ui
 	if (irhs < 0)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint8'", irhs));
+		return 0;
 	}
 	else if (irhs >= 8)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint8'", irhs));
+		return 0;
 	}
 	return lhs >> uint8_t(rhs);
 }
@@ -2590,10 +2604,12 @@ static uint16_t execute_shr_i16_signed(instructions::shr_i16_signed const &inst,
 	if (irhs < 0)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint16'", irhs));
+		return 0;
 	}
 	else if (irhs >= 16)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint16'", irhs));
+		return 0;
 	}
 	return lhs >> uint16_t(rhs);
 }
@@ -2604,10 +2620,12 @@ static uint32_t execute_shr_i32_signed(instructions::shr_i32_signed const &inst,
 	if (irhs < 0)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint32'", irhs));
+		return 0;
 	}
 	else if (irhs >= 32)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint32'", irhs));
+		return 0;
 	}
 	return lhs >> uint32_t(rhs);
 }
@@ -2618,10 +2636,12 @@ static uint64_t execute_shr_i64_signed(instructions::shr_i64_signed const &inst,
 	if (irhs < 0)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint64'", irhs));
+		return 0;
 	}
 	else if (irhs >= 64)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint64'", irhs));
+		return 0;
 	}
 	return lhs >> uint64_t(rhs);
 }
@@ -2631,6 +2651,7 @@ static uint8_t execute_shr_i8_unsigned(instructions::shr_i8_unsigned const &inst
 	if (rhs >= 8)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint8'", rhs));
+		return 0;
 	}
 	return lhs >> uint8_t(rhs);
 }
@@ -2640,6 +2661,7 @@ static uint16_t execute_shr_i16_unsigned(instructions::shr_i16_unsigned const &i
 	if (rhs >= 16)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint16'", rhs));
+		return 0;
 	}
 	return lhs >> uint16_t(rhs);
 }
@@ -2649,6 +2671,7 @@ static uint32_t execute_shr_i32_unsigned(instructions::shr_i32_unsigned const &i
 	if (rhs >= 32)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint32'", rhs));
+		return 0;
 	}
 	return lhs >> uint32_t(rhs);
 }
@@ -2658,6 +2681,7 @@ static uint64_t execute_shr_i64_unsigned(instructions::shr_i64_unsigned const &i
 	if (rhs >= 64)
 	{
 		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint64'", rhs));
+		return 0;
 	}
 	return lhs >> uint64_t(rhs);
 }
@@ -2690,6 +2714,46 @@ static bool execute_isfinite_f32(instructions::isfinite_f32 const &, float32_t v
 static bool execute_isfinite_f64(instructions::isfinite_f64 const &, float64_t value, executor_context &)
 {
 	return std::isfinite(value);
+}
+
+static bool execute_isnormal_f32(instructions::isnormal_f32 const &, float32_t value, executor_context &)
+{
+	return std::isnormal(value);
+}
+
+static bool execute_isnormal_f64(instructions::isnormal_f64 const &, float64_t value, executor_context &)
+{
+	return std::isnormal(value);
+}
+
+static bool execute_issubnormal_f32(instructions::issubnormal_f32 const &, float32_t value, executor_context &)
+{
+	return std::isfinite(value) && !std::isnormal(value) && value != 0.0f;
+}
+
+static bool execute_issubnormal_f64(instructions::issubnormal_f64 const &, float64_t value, executor_context &)
+{
+	return std::isfinite(value) && !std::isnormal(value) && value != 0.0;
+}
+
+static bool execute_iszero_f32(instructions::iszero_f32 const &, float32_t value, executor_context &)
+{
+	return value == 0.0f;
+}
+
+static bool execute_iszero_f64(instructions::iszero_f64 const &, float64_t value, executor_context &)
+{
+	return value == 0.0;
+}
+
+static bool execute_nextafter_f32(instructions::nextafter_f32 const &, float32_t from, float32_t to, executor_context &)
+{
+	return std::nextafter(from, to);
+}
+
+static bool execute_nextafter_f64(instructions::nextafter_f64 const &, float64_t from, float64_t to, executor_context &)
+{
+	return std::nextafter(from, to);
 }
 
 static uint8_t execute_abs_i8(instructions::abs_i8 const &, uint8_t uvalue, executor_context &)
@@ -4147,6 +4211,46 @@ static uint64_t execute_fshr_u64(instructions::fshr_u64 const &, uint64_t a, uin
 	return amount == 0 ? b : ((b >> amount) | (a << (64 - amount)));
 }
 
+static uint8_t execute_ashr_u8(instructions::ashr_u8 const &inst, uint8_t n, uint8_t amount, executor_context &context)
+{
+	if (amount >= 8)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint8'", amount));
+		return (n & 0x80) != 0 ? ~uint8_t(0) : 0;
+	}
+	return static_cast<uint8_t>(static_cast<int8_t>(n) >> amount);
+}
+
+static uint16_t execute_ashr_u16(instructions::ashr_u16 const &inst, uint16_t n, uint16_t amount, executor_context &context)
+{
+	if (amount >= 16)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint16'", amount));
+		return (n & 0x8000) != 0 ? ~uint16_t(0) : 0;
+	}
+	return static_cast<uint16_t>(static_cast<int16_t>(n) >> amount);
+}
+
+static uint32_t execute_ashr_u32(instructions::ashr_u32 const &inst, uint32_t n, uint32_t amount, executor_context &context)
+{
+	if (amount >= 32)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint32'", amount));
+		return (n & 0x8000'0000) != 0 ? ~uint32_t(0) : 0;
+	}
+	return static_cast<uint32_t>(static_cast<int32_t>(n) >> amount);
+}
+
+static uint64_t execute_ashr_u64(instructions::ashr_u64 const &inst, uint64_t n, uint64_t amount, executor_context &context)
+{
+	if (amount >= 64)
+	{
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint64'", amount));
+		return (n & 0x8000'0000'0000'0000) != 0 ? ~uint64_t(0) : 0;
+	}
+	return static_cast<uint64_t>(static_cast<int64_t>(n) >> amount);
+}
+
 static ptr_t execute_const_gep(instructions::const_gep const &inst, ptr_t ptr, executor_context &context)
 {
 	return context.gep(ptr, inst.object_type, inst.index);
@@ -5101,7 +5205,7 @@ void execute_current_instruction(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-	static_assert(instruction_list_t::size() == 564);
+	static_assert(instruction_list_t::size() == 576);
 	case instruction::const_i1:
 		execute<instructions::const_i1, &execute_const_i1>(context);
 		break;
@@ -6059,6 +6163,30 @@ void execute_current_instruction(executor_context &context)
 	case instruction::isfinite_f64:
 		execute<instructions::isfinite_f64, &execute_isfinite_f64>(context);
 		break;
+	case instruction::isnormal_f32:
+		execute<instructions::isnormal_f32, &execute_isnormal_f32>(context);
+		break;
+	case instruction::isnormal_f64:
+		execute<instructions::isnormal_f64, &execute_isnormal_f64>(context);
+		break;
+	case instruction::issubnormal_f32:
+		execute<instructions::issubnormal_f32, &execute_issubnormal_f32>(context);
+		break;
+	case instruction::issubnormal_f64:
+		execute<instructions::issubnormal_f64, &execute_issubnormal_f64>(context);
+		break;
+	case instruction::iszero_f32:
+		execute<instructions::iszero_f32, &execute_iszero_f32>(context);
+		break;
+	case instruction::iszero_f64:
+		execute<instructions::iszero_f64, &execute_iszero_f64>(context);
+		break;
+	case instruction::nextafter_f32:
+		execute<instructions::nextafter_f32, &execute_nextafter_f32>(context);
+		break;
+	case instruction::nextafter_f64:
+		execute<instructions::nextafter_f64, &execute_nextafter_f64>(context);
+		break;
 	case instruction::abs_i8:
 		execute<instructions::abs_i8, &execute_abs_i8>(context);
 		break;
@@ -6583,6 +6711,18 @@ void execute_current_instruction(executor_context &context)
 		break;
 	case instruction::fshr_u64:
 		execute<instructions::fshr_u64, &execute_fshr_u64>(context);
+		break;
+	case instruction::ashr_u8:
+		execute<instructions::ashr_u8, &execute_ashr_u8>(context);
+		break;
+	case instruction::ashr_u16:
+		execute<instructions::ashr_u16, &execute_ashr_u16>(context);
+		break;
+	case instruction::ashr_u32:
+		execute<instructions::ashr_u32, &execute_ashr_u32>(context);
+		break;
+	case instruction::ashr_u64:
+		execute<instructions::ashr_u64, &execute_ashr_u64>(context);
 		break;
 	case instruction::const_gep:
 		execute<instructions::const_gep, &execute_const_gep>(context);

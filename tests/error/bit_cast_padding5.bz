@@ -1,0 +1,7 @@
+// error: value type '[uint16, uint8]' and result type '[uint8, uint16]' have incompatible paddings in bit cast
+// note: value type has a padding of 1 byte at offset 3, but result type doesn't
+function test()
+{
+	let t: [uint16, uint8] = [ 0, 0 ];
+	let _ = __builtin_bit_cast([uint8, uint16], t);
+}

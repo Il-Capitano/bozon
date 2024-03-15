@@ -307,6 +307,11 @@
 	@__builtin export operator > (lhs: float32, rhs: float32) -> bool;
 	@__builtin export operator >= (lhs: float32, rhs: float32) -> bool;
 
+	export consteval min: float32 = 1.1754944e-38f32;
+	export consteval denorm_min: float32 = 1e-45f32;
+	export consteval epsilon: float32 = 1.1920929e-07f32;
+	export consteval max: float32 = 3.4028235e+38f32;
+
 	export consteval inf: float32 = ((1.0f32 / 0.0f32));
 	export consteval nan: float32 = ((__builtin_abs_f32(((0.0f32 / 0.0f32)))));
 }
@@ -331,6 +336,11 @@
 	@__builtin export operator <= (lhs: float64, rhs: float64) -> bool;
 	@__builtin export operator > (lhs: float64, rhs: float64) -> bool;
 	@__builtin export operator >= (lhs: float64, rhs: float64) -> bool;
+
+	export consteval min: float64 = 2.2250738585072014e-308f64;
+	export consteval denorm_min: float64 = 5e-324f64;
+	export consteval epsilon: float64 = 2.220446049250313e-16f64;
+	export consteval max: float64 = 1.7976931348623157e+308f64;
 
 	export consteval inf: float64 = ((1.0f64 / 0.0f64));
 	export consteval nan: float64 = ((__builtin_abs_f64(((0.0f64 / 0.0f64)))));
@@ -1006,6 +1016,71 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 @__builtin export function __builtin_isinf_f64(x: float64) -> bool;
 @__builtin export function __builtin_isfinite_f32(x: float32) -> bool;
 @__builtin export function __builtin_isfinite_f64(x: float64) -> bool;
+@__builtin export function __builtin_isnormal_f32(x: float32) -> bool;
+@__builtin export function __builtin_isnormal_f64(x: float64) -> bool;
+@__builtin export function __builtin_issubnormal_f32(x: float32) -> bool;
+@__builtin export function __builtin_issubnormal_f64(x: float64) -> bool;
+@__builtin export function __builtin_iszero_f32(x: float32) -> bool;
+@__builtin export function __builtin_iszero_f64(x: float64) -> bool;
+
+@__builtin @symbol_name("nextafterf") export function __builtin_nextafter_f32(from: float32, to: float32) -> float32;
+@__builtin @symbol_name("nextafter")  export function __builtin_nextafter_f64(from: float64, to: float64) -> float64;
+
+@__builtin export function __builtin_nextup_f32(x: float32) -> float32
+{
+	let is_nan_or_inf = __builtin_isnan_f32(x) || x == float32.inf;
+	let is_zero = x == 0.0f32;
+
+	let x_bits = __builtin_bit_cast(uint32, x);
+	let abs_x_bits = __builtin_bit_cast(uint32, __builtin_abs_f32(x));
+	let normalized_zero = if (is_zero) { abs_x_bits } else { x_bits };
+	let d = __builtin_arithmetic_shift_right_u32(normalized_zero, 31) | 1u32;
+	let finite_result = ((normalized_zero + d));
+	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
+	return __builtin_bit_cast(float32, result);
+}
+
+@__builtin export function __builtin_nextup_f64(x: float64) -> float64
+{
+	let is_nan_or_inf = __builtin_isnan_f64(x) || x == float64.inf;
+	let is_zero = x == 0.0f64;
+
+	let x_bits = __builtin_bit_cast(uint64, x);
+	let abs_x_bits = __builtin_bit_cast(uint64, __builtin_abs_f64(x));
+	let normalized_zero = if (is_zero) { abs_x_bits } else { x_bits };
+	let d = __builtin_arithmetic_shift_right_u64(normalized_zero, 63) | 1u64;
+	let finite_result = ((normalized_zero + d));
+	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
+	return __builtin_bit_cast(float64, result);
+}
+
+@__builtin export function __builtin_nextdown_f32(x: float32) -> float32
+{
+	let is_nan_or_inf = __builtin_isnan_f32(x) || x == -float32.inf;
+	let is_zero = x == 0.0f32;
+
+	let x_bits = __builtin_bit_cast(uint32, x);
+	let negative_x_bits = __builtin_bit_cast(uint32, -__builtin_abs_f32(x));
+	let normalized_zero = if (is_zero) { negative_x_bits } else { x_bits };
+	let d = __builtin_arithmetic_shift_right_u32(normalized_zero, 31) | 1u32;
+	let finite_result = ((normalized_zero - d));
+	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
+	return __builtin_bit_cast(float32, result);
+}
+
+@__builtin export function __builtin_nextdown_f64(x: float64) -> float64
+{
+	let is_nan_or_inf = __builtin_isnan_f64(x) || x == -float64.inf;
+	let is_zero = x == 0.0f64;
+
+	let x_bits = __builtin_bit_cast(uint64, x);
+	let negative_x_bits = __builtin_bit_cast(uint64, -__builtin_abs_f64(x));
+	let normalized_zero = if (is_zero) { negative_x_bits } else { x_bits };
+	let d = __builtin_arithmetic_shift_right_u64(normalized_zero, 63) | 1u64;
+	let finite_result = ((normalized_zero - d));
+	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
+	return __builtin_bit_cast(float64, result);
+}
 
 @__builtin export function __builtin_abs_i8(n: int8)   -> int8;
 @__builtin export function __builtin_abs_i16(n: int16) -> int16;
@@ -1125,6 +1200,11 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 @__builtin export function __builtin_fshr_u16(a: uint16, b: uint16, amount: uint16) -> uint16;
 @__builtin export function __builtin_fshr_u32(a: uint32, b: uint32, amount: uint32) -> uint32;
 @__builtin export function __builtin_fshr_u64(a: uint64, b: uint64, amount: uint64) -> uint64;
+
+@__builtin export function __builtin_arithmetic_shift_right_u8 (n: uint8,  amount: uint8)  -> uint8;
+@__builtin export function __builtin_arithmetic_shift_right_u16(n: uint16, amount: uint16) -> uint16;
+@__builtin export function __builtin_arithmetic_shift_right_u32(n: uint32, amount: uint32) -> uint32;
+@__builtin export function __builtin_arithmetic_shift_right_u64(n: uint64, amount: uint64) -> uint64;
 
 //
 // unary operators

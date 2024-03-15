@@ -671,9 +671,18 @@ struct function_body
 		memmove,
 		memset,
 
+		// C standard library math functions
+
 		isnan_f32, isnan_f64,
 		isinf_f32, isinf_f64,
 		isfinite_f32, isfinite_f64,
+		isnormal_f32, isnormal_f64,
+		issubnormal_f32, issubnormal_f64,
+		iszero_f32, iszero_f64,
+
+		nextafter_f32, nextafter_f64,
+		nextup_f32, nextup_f64,
+		nextdown_f32, nextdown_f64,
 
 		abs_i8, abs_i16, abs_i32, abs_i64,
 		abs_f32, abs_f64,
@@ -685,8 +694,6 @@ struct function_body
 		max_i8, max_i16, max_i32, max_i64,
 		max_u8, max_u16, max_u32, max_u64,
 		max_f32, max_f64,
-
-		// C standard library math functions
 
 		exp_f32,   exp_f64,
 		exp2_f32,  exp2_f64,
@@ -730,6 +737,11 @@ struct function_body
 		ctz_u8,  ctz_u16,  ctz_u32,  ctz_u64,
 		fshl_u8, fshl_u16, fshl_u32, fshl_u64,
 		fshr_u8, fshr_u16, fshr_u32, fshr_u64,
+
+		arithmetic_shift_right_u8,
+		arithmetic_shift_right_u16,
+		arithmetic_shift_right_u32,
+		arithmetic_shift_right_u64,
 
 		_builtin_last,
 		_builtin_default_constructor_first = _builtin_last,
@@ -1743,7 +1755,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 269);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 285);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1937,12 +1949,25 @@ constexpr auto intrinsic_info = []() {
 
 		// C standard library math functions
 
-		{ function_body::isnan_f32,    "__builtin_isnan_f32"    },
-		{ function_body::isnan_f64,    "__builtin_isnan_f64"    },
-		{ function_body::isinf_f32,    "__builtin_isinf_f32"    },
-		{ function_body::isinf_f64,    "__builtin_isinf_f64"    },
-		{ function_body::isfinite_f32, "__builtin_isfinite_f32" },
-		{ function_body::isfinite_f64, "__builtin_isfinite_f64" },
+		{ function_body::isnan_f32,       "__builtin_isnan_f32"       },
+		{ function_body::isnan_f64,       "__builtin_isnan_f64"       },
+		{ function_body::isinf_f32,       "__builtin_isinf_f32"       },
+		{ function_body::isinf_f64,       "__builtin_isinf_f64"       },
+		{ function_body::isfinite_f32,    "__builtin_isfinite_f32"    },
+		{ function_body::isfinite_f64,    "__builtin_isfinite_f64"    },
+		{ function_body::isnormal_f32,    "__builtin_isnormal_f32"    },
+		{ function_body::isnormal_f64,    "__builtin_isnormal_f64"    },
+		{ function_body::issubnormal_f32, "__builtin_issubnormal_f32" },
+		{ function_body::issubnormal_f64, "__builtin_issubnormal_f64" },
+		{ function_body::iszero_f32,      "__builtin_iszero_f32"      },
+		{ function_body::iszero_f64,      "__builtin_iszero_f64"      },
+
+		{ function_body::nextafter_f32, "__builtin_nextafter_f32" },
+		{ function_body::nextafter_f64, "__builtin_nextafter_f64" },
+		{ function_body::nextup_f32,    "__builtin_nextup_f32"    },
+		{ function_body::nextup_f64,    "__builtin_nextup_f64"    },
+		{ function_body::nextdown_f32,  "__builtin_nextdown_f32"  },
+		{ function_body::nextdown_f64,  "__builtin_nextdown_f64"  },
 
 		{ function_body::abs_i8,  "__builtin_abs_i8"  },
 		{ function_body::abs_i16, "__builtin_abs_i16" },
@@ -2062,6 +2087,11 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::fshr_u16, "__builtin_fshr_u16" },
 		{ function_body::fshr_u32, "__builtin_fshr_u32" },
 		{ function_body::fshr_u64, "__builtin_fshr_u64" },
+
+		{ function_body::arithmetic_shift_right_u8,  "__builtin_arithmetic_shift_right_u8"  },
+		{ function_body::arithmetic_shift_right_u16, "__builtin_arithmetic_shift_right_u16" },
+		{ function_body::arithmetic_shift_right_u32, "__builtin_arithmetic_shift_right_u32" },
+		{ function_body::arithmetic_shift_right_u64, "__builtin_arithmetic_shift_right_u64" },
 	}};
 }();
 

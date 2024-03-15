@@ -3227,6 +3227,78 @@ struct isfinite_f64
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
+struct isnormal_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct isnormal_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct issubnormal_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct issubnormal_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct iszero_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32 };
+	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct iszero_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64 };
+	static inline constexpr value_type result_type = value_type::i1;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct nextafter_f32
+{
+	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
+	static inline constexpr value_type result_type = value_type::f32;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct nextafter_f64
+{
+	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
+	static inline constexpr value_type result_type = value_type::f64;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
 struct abs_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8 };
@@ -4934,6 +5006,50 @@ struct fshr_u64
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
+struct ashr_u8
+{
+	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
+	static inline constexpr value_type result_type = value_type::i8;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct ashr_u16
+{
+	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
+	static inline constexpr value_type result_type = value_type::i16;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct ashr_u32
+{
+	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
+	static inline constexpr value_type result_type = value_type::i32;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
+struct ashr_u64
+{
+	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
+	static inline constexpr value_type result_type = value_type::i64;
+	static inline constexpr bool invalidates_load_cache = false;
+
+	uint32_t src_tokens_index;
+
+	bz::array<instruction_value_index, arg_types.size()> args;
+};
+
 struct const_gep
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr };
@@ -6014,6 +6130,14 @@ using instruction_list_t = bz::meta::type_pack<
 	instructions::isinf_f64,
 	instructions::isfinite_f32,
 	instructions::isfinite_f64,
+	instructions::isnormal_f32,
+	instructions::isnormal_f64,
+	instructions::issubnormal_f32,
+	instructions::issubnormal_f64,
+	instructions::iszero_f32,
+	instructions::iszero_f64,
+	instructions::nextafter_f32,
+	instructions::nextafter_f64,
 	instructions::abs_i8,
 	instructions::abs_i16,
 	instructions::abs_i32,
@@ -6189,6 +6313,10 @@ using instruction_list_t = bz::meta::type_pack<
 	instructions::fshr_u16,
 	instructions::fshr_u32,
 	instructions::fshr_u64,
+	instructions::ashr_u8,
+	instructions::ashr_u16,
+	instructions::ashr_u32,
+	instructions::ashr_u64,
 	instructions::const_gep,
 	instructions::array_gep_i32,
 	instructions::array_gep_i64,
@@ -6299,7 +6427,7 @@ private:
 	uint64_t _index = index_of<void>;
 
 public:
-	static_assert(instruction_list_t::size() == 564);
+	static_assert(instruction_list_t::size() == 576);
 	enum : uint64_t
 	{
 		const_i1 = index_of<instructions::const_i1>,
@@ -6621,6 +6749,14 @@ public:
 		isinf_f64,
 		isfinite_f32,
 		isfinite_f64,
+		isnormal_f32,
+		isnormal_f64,
+		issubnormal_f32,
+		issubnormal_f64,
+		iszero_f32,
+		iszero_f64,
+		nextafter_f32,
+		nextafter_f64,
 		abs_i8,
 		abs_i16,
 		abs_i32,
@@ -6796,6 +6932,10 @@ public:
 		fshr_u16,
 		fshr_u32,
 		fshr_u64,
+		ashr_u8,
+		ashr_u16,
+		ashr_u32,
+		ashr_u64,
 		const_gep,
 		array_gep_i32,
 		array_gep_i64,
