@@ -25,7 +25,7 @@ jobs:
           mingw-w64-ucrt-x86_64-dwarfstack
           mingw-w64-ucrt-x86_64-python
           mingw-w64-ucrt-x86_64-openssl
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - run: git clone https://github.com/Il-Capitano/cppb.git
     - name: Build cppb
       run: |
@@ -70,7 +70,7 @@ jobs:
           mingw-w64-ucrt-x86_64-dwarfstack
           mingw-w64-ucrt-x86_64-python
           mingw-w64-ucrt-x86_64-openssl
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Build cppb
       run: |
         git clone https://github.com/Il-Capitano/cppb.git
@@ -93,7 +93,7 @@ jobs:
   linux-clang:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install packages
       run: |
         printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-17 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-17.list
@@ -133,7 +133,7 @@ jobs:
   linux-gcc:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install packages
       run: |
         printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-17 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-17.list
