@@ -24,7 +24,7 @@ jobs:
           mingw-w64-ucrt-x86_64-clang
           mingw-w64-ucrt-x86_64-dwarfstack
           mingw-w64-ucrt-x86_64-openssl
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - run: git clone https://github.com/Il-Capitano/cppb.git
     - name: Build cppb
       run: |
@@ -68,7 +68,7 @@ jobs:
           mingw-w64-ucrt-x86_64-gcc
           mingw-w64-ucrt-x86_64-dwarfstack
           mingw-w64-ucrt-x86_64-openssl
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Build cppb
       run: |
         git clone https://github.com/Il-Capitano/cppb.git
@@ -91,13 +91,13 @@ jobs:
   linux-clang:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install packages
       run: |
-        printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-17 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-17.list
+        printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-18 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-18.list
         wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
         sudo apt update
-        sudo apt install gcc gcc-12 g++-12 llvm-17 lld-17 clang-17 libfmt-dev nlohmann-json3-dev libssl-dev
+        sudo apt install gcc gcc-12 g++-12 llvm-18 lld-18 clang-18 libfmt-dev nlohmann-json3-dev libssl-dev
     - name: Install libbacktrace
       run: |
         git clone https://github.com/ianlancetaylor/libbacktrace.git
@@ -110,7 +110,7 @@ jobs:
         git clone https://github.com/Il-Capitano/cppb.git
         cd cppb
         mkdir bin
-        make CXX=clang++-17 LD=lld-17
+        make CXX=clang++-18 LD=lld-18
         cd ..
     - run: touch ryu_format.linux.bc
     - name: Build bozon
@@ -129,13 +129,13 @@ jobs:
   linux-gcc:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install packages
       run: |
-        printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-17 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-17.list
+        printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-18 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-18.list
         wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
         sudo apt update
-        sudo apt install gcc lld gcc-12 g++-12 llvm-17 lld-17 clang-17 libfmt-dev nlohmann-json3-dev libssl-dev
+        sudo apt install gcc lld gcc-12 g++-12 llvm-18 lld-18 clang-18 libfmt-dev nlohmann-json3-dev libssl-dev
     - name: Install libbacktrace
       run: |
         git clone https://github.com/ianlancetaylor/libbacktrace.git
@@ -148,7 +148,7 @@ jobs:
         git clone https://github.com/Il-Capitano/cppb.git
         cd cppb
         mkdir bin
-        make CXX=clang++-17 LD=lld-17
+        make CXX=clang++-18 LD=lld-18
         cd ..
     - run: touch ryu_format.linux.bc
     - name: Build bozon

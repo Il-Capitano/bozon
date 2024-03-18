@@ -17,9 +17,9 @@
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
 
-#if LLVM_VERSION_MAJOR != 17
-#error LLVM 17 is required
-#endif // LLVM 17
+#if LLVM_VERSION_MAJOR != 18
+#error LLVM 18 is required
+#endif // LLVM 18
 
 namespace codegen::llvm_latest
 {
@@ -27,8 +27,9 @@ namespace codegen::llvm_latest
 static bz::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1>
 get_llvm_builtin_types(llvm::LLVMContext &context)
 {
-	auto const i8_ptr = llvm::Type::getInt8PtrTy(context);
-	auto const str_t  = llvm::StructType::create("builtin.str", i8_ptr, i8_ptr);
+	auto const ptr_type = llvm::PointerType::get(context, 0);
+	llvm::Type *pointer_pair[] = { ptr_type, ptr_type };
+	auto const str_t  = llvm::StructType::create(context, pointer_pair, "builtin.str");
 	auto const null_t = llvm::StructType::create(context, {}, "builtin.__null_t");
 	return {
 		llvm::Type::getInt8Ty(context),   // int8_
@@ -130,31 +131,31 @@ backend_context::backend_context(ctx::global_context &global_ctx, bz::u8string_v
 			switch (*machine_code_opt_level)
 			{
 			case 0:
-				return llvm::CodeGenOpt::None;
+				return llvm::CodeGenOptLevel::None;
 			case 1:
-				return llvm::CodeGenOpt::Less;
+				return llvm::CodeGenOptLevel::Less;
 			case 2:
-				return llvm::CodeGenOpt::Default;
+				return llvm::CodeGenOptLevel::Default;
 			default:
-				return llvm::CodeGenOpt::Aggressive;
+				return llvm::CodeGenOptLevel::Aggressive;
 			}
 		}
 		else if (global_data::size_opt_level != 0)
 		{
-			return llvm::CodeGenOpt::Default;
+			return llvm::CodeGenOptLevel::Default;
 		}
 		else
 		{
 			switch (global_data::opt_level)
 			{
 			case 0:
-				return llvm::CodeGenOpt::None;
+				return llvm::CodeGenOptLevel::None;
 			case 1:
-				return llvm::CodeGenOpt::Less;
+				return llvm::CodeGenOptLevel::Less;
 			case 2:
-				return llvm::CodeGenOpt::Default;
+				return llvm::CodeGenOptLevel::Default;
 			default:
-				return llvm::CodeGenOpt::Aggressive;
+				return llvm::CodeGenOptLevel::Aggressive;
 			}
 		}
 	}();
@@ -543,7 +544,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	auto &module = this->_module;
 	llvm::legacy::PassManager pass_manager;
 	auto const target_machine = this->_target_machine.get();
-	auto const res = target_machine->addPassesToEmitFile(pass_manager, dest, nullptr, llvm::CGFT_ObjectFile);
+	auto const res = target_machine->addPassesToEmitFile(pass_manager, dest, nullptr, llvm::CodeGenFileType::ObjectFile);
 	if (res)
 	{
 		global_ctx.report_error("object file emission is not supported");
@@ -584,7 +585,7 @@ static void emit_variables_helper(bz::array_view<ast::statement const> decls, bi
 	auto &module = this->_module;
 	llvm::legacy::PassManager pass_manager;
 	auto const target_machine = this->_target_machine.get();
-	auto const res = target_machine->addPassesToEmitFile(pass_manager, dest, nullptr, llvm::CGFT_AssemblyFile);
+	auto const res = target_machine->addPassesToEmitFile(pass_manager, dest, nullptr, llvm::CodeGenFileType::AssemblyFile);
 	if (res)
 	{
 		global_ctx.report_error("assembly file emission is not supported");
