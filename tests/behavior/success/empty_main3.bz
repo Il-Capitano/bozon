@@ -1,0 +1,4 @@
+function main(_args: [: str]) -> int32
+{
+	return 0;
+}

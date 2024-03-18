@@ -1,0 +1,36 @@
+function main()
+{
+	let i8  = 10i8;
+	let i16 = 10i16;
+	let i32 = 10i32;
+	let i64 = 10i64;
+	let f32 = 1.3f32;
+	let f64 = 1.3f64;
+
+	if (-i8  != -10) unreachable;
+	if (-i16 != -10) unreachable;
+	if (-i32 != -10) unreachable;
+	if (-i64 != -10) unreachable;
+	if (-f32 != -1.3f32) unreachable;
+	if (-f64 != -1.3f64) unreachable;
+
+	let i8_min  = (((1u8  <<  7) as int8));
+	let i16_min = (((1u16 << 15) as int16));
+	let i32_min = (((1u32 << 31) as int32));
+	let i64_min = (((1u64 << 63) as int64));
+
+	if (-i8_min  != i8_min) unreachable;
+	if (-i16_min != i16_min) unreachable;
+	if (-i32_min != i32_min) unreachable;
+	if (-i64_min != i64_min) unreachable;
+
+	let f32_inf = ((1.0f32 / 0.0f32));
+	let f64_inf = ((1.0f64 / 0.0f64));
+	let f32_minf = -((1.0f32 / 0.0f32));
+	let f64_minf = -((1.0f64 / 0.0f64));
+
+	if (-f32_inf != f32_minf) unreachable;
+	if (-f64_inf != f64_minf) unreachable;
+	if (-f32_minf != f32_inf) unreachable;
+	if (-f64_minf != f64_inf) unreachable;
+}

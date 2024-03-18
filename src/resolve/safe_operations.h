@@ -176,26 +176,26 @@ bool safe_binary_equals(
 
 
 bz::optional<uint64_t> safe_binary_bit_left_shift(
-	lex::src_tokens const &src_tokens, int paren_level,
+	lex::src_tokens const &src_tokens,
 	uint64_t lhs, uint64_t rhs, uint32_t lhs_type_kind,
 	ctx::parse_context &context
 );
 
 bz::optional<uint64_t> safe_binary_bit_right_shift(
-	lex::src_tokens const &src_tokens, int paren_level,
+	lex::src_tokens const &src_tokens,
 	uint64_t lhs, uint64_t rhs, uint32_t lhs_type_kind,
 	ctx::parse_context &context
 );
 
 
 bz::optional<uint64_t> safe_binary_bit_left_shift(
-	lex::src_tokens const &src_tokens, int paren_level,
+	lex::src_tokens const &src_tokens,
 	uint64_t lhs, int64_t rhs, uint32_t lhs_type_kind,
 	ctx::parse_context &context
 );
 
 bz::optional<uint64_t> safe_binary_bit_right_shift(
-	lex::src_tokens const &src_tokens, int paren_level,
+	lex::src_tokens const &src_tokens,
 	uint64_t lhs, int64_t rhs, uint32_t lhs_type_kind,
 	ctx::parse_context &context
 );

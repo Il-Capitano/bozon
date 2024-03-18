@@ -1,0 +1,145 @@
+function cast_test(consteval value, T: typename)
+{
+	consteval expected = ((value as T));
+	let v = value;
+	if (v as T != expected) unreachable;
+}
+
+function cast_to_int_test(consteval value)
+{
+	cast_test(value, int8);
+	cast_test(value, int16);
+	cast_test(value, int32);
+	cast_test(value, int64);
+}
+
+function cast_to_uint_test(consteval value)
+{
+	cast_test(value, uint8);
+	cast_test(value, uint16);
+	cast_test(value, uint32);
+	cast_test(value, uint64);
+}
+
+function cast_to_float_test(consteval value)
+{
+	cast_test(value, float32);
+	cast_test(value, float64);
+}
+
+function cast_arithmetic_test(consteval value)
+{
+	cast_to_int_test(value);
+	cast_to_uint_test(value);
+	cast_to_float_test(value);
+}
+
+function cast_signed_arithmetic_test(consteval value)
+{
+	cast_to_int_test(value);
+	cast_to_float_test(value);
+}
+
+function main()
+{
+	cast_arithmetic_test(42i8);
+	cast_arithmetic_test(42i16);
+	cast_arithmetic_test(42i32);
+	cast_arithmetic_test(42i64);
+	cast_arithmetic_test(-42i8);
+	cast_arithmetic_test(-42i16);
+	cast_arithmetic_test(-42i32);
+	cast_arithmetic_test(-42i64);
+	cast_arithmetic_test(42u8);
+	cast_arithmetic_test(42u16);
+	cast_arithmetic_test(42u32);
+	cast_arithmetic_test(42u64);
+
+	cast_arithmetic_test(42.0f32);
+	cast_arithmetic_test(42.0f64);
+	cast_signed_arithmetic_test(-42.0f32);
+	cast_signed_arithmetic_test(-42.0f64);
+	cast_to_float_test(12412.3523f32);
+	cast_to_float_test(12412.3523f64);
+	cast_to_float_test(-12412.3523f32);
+	cast_to_float_test(-12412.3523f64);
+	cast_test(12412.3523f32, int16);
+	cast_test(12412.3523f32, int32);
+	cast_test(12412.3523f32, int64);
+	cast_test(12412.3523f64, int16);
+	cast_test(12412.3523f64, int32);
+	cast_test(12412.3523f64, int64);
+	cast_test(12412.3523f32, uint16);
+	cast_test(12412.3523f32, uint32);
+	cast_test(12412.3523f32, uint64);
+	cast_test(12412.3523f64, uint16);
+	cast_test(12412.3523f64, uint32);
+	cast_test(12412.3523f64, uint64);
+	cast_test(-12412.3523f32, int16);
+	cast_test(-12412.3523f32, int32);
+	cast_test(-12412.3523f32, int64);
+	cast_test(-12412.3523f64, int16);
+	cast_test(-12412.3523f64, int32);
+	cast_test(-12412.3523f64, int64);
+
+	cast_to_int_test(false);
+	cast_to_uint_test(false);
+	cast_to_int_test(true);
+	cast_to_uint_test(true);
+
+	cast_to_int_test(' ', );
+	cast_to_int_test('\u1234', );
+	cast_to_int_test('á', );
+	cast_to_uint_test(' ', );
+	cast_to_uint_test('\u1234', );
+	cast_to_uint_test('á', );
+
+	cast_test(0i8, char);
+	cast_test(127i8, char);
+	cast_test(0u8, char);
+	cast_test(127u8, char);
+	cast_test(235u8, char);
+
+	cast_test(0i16, char);
+	cast_test(127i16, char);
+	cast_test(235i16, char);
+	cast_test(2135i16, char);
+	cast_test(0u16, char);
+	cast_test(127u16, char);
+	cast_test(235u16, char);
+	cast_test(2135u16, char);
+
+	cast_test(0i32, char);
+	cast_test(127i32, char);
+	cast_test(235i32, char);
+	cast_test(2135i32, char);
+	cast_test(0u32, char);
+	cast_test(127u32, char);
+	cast_test(235u32, char);
+	cast_test(2135u32, char);
+
+	cast_test(0i64, char);
+	cast_test(127i64, char);
+	cast_test(235i64, char);
+	cast_test(2135i64, char);
+	cast_test(0u64, char);
+	cast_test(127u64, char);
+	cast_test(235u64, char);
+	cast_test(2135u64, char);
+
+	let a: [??: int32] = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ];
+	let s = a as [: int32];
+	if (&a[0] != &s[0]) unreachable;
+	if (a.size() != s.size()) unreachable;
+
+	let a = __builtin_create_initialized_array([10: str], "");
+	let s = a as [: str];
+	if (&a[0] != &s[0]) unreachable;
+	if (a.size() != s.size()) unreachable;
+
+	let init_value: [int32, float64, [2: float32]] = [ 0, 0.0, [ 0.0f32, 0.0f32 ] ];
+	let a = __builtin_create_initialized_array([10: typeof init_value], init_value);
+	let s = a as [: typeof init_value];
+	if (&a[0] != &s[0]) unreachable;
+	if (a.size() != s.size()) unreachable;
+}
