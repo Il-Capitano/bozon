@@ -1,0 +1,171 @@
+import resource;
+import counting_resource;
+
+function main()
+{
+	{
+		__builtin_create_initialized_array([32: int32], 42);
+		__builtin_create_initialized_array([32: int8], 42i8);
+		__builtin_create_initialized_array([32: str], "foo");
+		__builtin_create_initialized_array([32: [float32, str, bool]], [ 1.234f32, "bar", false ]);
+
+		__builtin_create_initialized_array([32: resource_t], resource_t());
+		let r = resource_t();
+		__builtin_create_initialized_array([32: resource_t], r);
+		__builtin_create_initialized_array([32: resource_t], move r);
+
+		__builtin_create_initialized_array([32: complex_resource_t], complex_resource_t());
+		let r = complex_resource_t();
+		__builtin_create_initialized_array([32: complex_resource_t], r);
+		__builtin_create_initialized_array([32: complex_resource_t], move r);
+
+		__builtin_create_initialized_array([32: relocatable_counting_resource_t], relocatable_counting_resource_t());
+		let r = relocatable_counting_resource_t();
+		__builtin_create_initialized_array([32: relocatable_counting_resource_t], r);
+		__builtin_create_initialized_array([32: relocatable_counting_resource_t], move r);
+
+		__builtin_create_initialized_array([32: counting_resource_t], counting_resource_t());
+		let r = counting_resource_t();
+		__builtin_create_initialized_array([32: counting_resource_t], r);
+		__builtin_create_initialized_array([32: counting_resource_t], move r);
+	}
+
+	{
+		__builtin_create_initialized_array([10: int32], 42);
+		__builtin_create_initialized_array([10: int8], 42i8);
+		__builtin_create_initialized_array([10: str], "foo");
+		__builtin_create_initialized_array([10: [float32, str, bool]], [ 1.234f32, "bar", false ]);
+
+		__builtin_create_initialized_array([10: resource_t], resource_t());
+		let r = resource_t();
+		__builtin_create_initialized_array([10: resource_t], r);
+		__builtin_create_initialized_array([10: resource_t], move r);
+
+		__builtin_create_initialized_array([10: complex_resource_t], complex_resource_t());
+		let r = complex_resource_t();
+		__builtin_create_initialized_array([10: complex_resource_t], r);
+		__builtin_create_initialized_array([10: complex_resource_t], move r);
+
+		__builtin_create_initialized_array([10: relocatable_counting_resource_t], relocatable_counting_resource_t());
+		let r = relocatable_counting_resource_t();
+		__builtin_create_initialized_array([10: relocatable_counting_resource_t], r);
+		__builtin_create_initialized_array([10: relocatable_counting_resource_t], move r);
+
+		__builtin_create_initialized_array([10: counting_resource_t], counting_resource_t());
+		let r = counting_resource_t();
+		__builtin_create_initialized_array([10: counting_resource_t], r);
+		__builtin_create_initialized_array([10: counting_resource_t], move r);
+	}
+
+	{
+		for (let &v in __builtin_create_initialized_array([32: int32], 42))
+		{
+			if (v != 42) unreachable;
+		}
+		for (let &v in __builtin_create_initialized_array([32: int8], 42i8))
+		{
+			if (v != 42) unreachable;
+		}
+		for (let &s in __builtin_create_initialized_array([32: str], "foo"))
+		{
+			if (s != "foo") unreachable;
+		}
+		for (let &t in __builtin_create_initialized_array([32: [float32, str, bool]], [ 1.234f32, "bar", false ]))
+		{
+			if (t[0] != 1.234f32) unreachable;
+			if (t[1] != "bar") unreachable;
+			if (t[2] != false) unreachable;
+		}
+
+		let _ = __builtin_create_initialized_array([32: resource_t], resource_t());
+		let r = resource_t();
+		let _ = __builtin_create_initialized_array([32: resource_t], r);
+		let _ = __builtin_create_initialized_array([32: resource_t], move r);
+
+		let _ = __builtin_create_initialized_array([32: complex_resource_t], complex_resource_t());
+		let r = complex_resource_t();
+		let _ = __builtin_create_initialized_array([32: complex_resource_t], r);
+		let _ = __builtin_create_initialized_array([32: complex_resource_t], move r);
+
+		let _ = __builtin_create_initialized_array([32: relocatable_counting_resource_t], relocatable_counting_resource_t());
+		let r = relocatable_counting_resource_t();
+		let _ = __builtin_create_initialized_array([32: relocatable_counting_resource_t], r);
+		let _ = __builtin_create_initialized_array([32: relocatable_counting_resource_t], move r);
+
+		let _ = __builtin_create_initialized_array([32: counting_resource_t], counting_resource_t());
+		let r = counting_resource_t();
+		let _ = __builtin_create_initialized_array([32: counting_resource_t], r);
+		let _ = __builtin_create_initialized_array([32: counting_resource_t], move r);
+	}
+
+	{
+		for (let &v in __builtin_create_initialized_array([10: int32], 42))
+		{
+			if (v != 42) unreachable;
+		}
+		for (let &v in __builtin_create_initialized_array([10: int8], 42i8))
+		{
+			if (v != 42) unreachable;
+		}
+		for (let &s in __builtin_create_initialized_array([10: str], "foo"))
+		{
+			if (s != "foo") unreachable;
+		}
+		for (let &t in __builtin_create_initialized_array([10: [float32, str, bool]], [ 1.234f32, "bar", false ]))
+		{
+			if (t[0] != 1.234f32) unreachable;
+			if (t[1] != "bar") unreachable;
+			if (t[2] != false) unreachable;
+		}
+
+		let _ = __builtin_create_initialized_array([10: resource_t], resource_t());
+		let r = resource_t();
+		let _ = __builtin_create_initialized_array([10: resource_t], r);
+		let _ = __builtin_create_initialized_array([10: resource_t], move r);
+
+		let _ = __builtin_create_initialized_array([10: complex_resource_t], complex_resource_t());
+		let r = complex_resource_t();
+		let _ = __builtin_create_initialized_array([10: complex_resource_t], r);
+		let _ = __builtin_create_initialized_array([10: complex_resource_t], move r);
+
+		let _ = __builtin_create_initialized_array([10: relocatable_counting_resource_t], relocatable_counting_resource_t());
+		let r = relocatable_counting_resource_t();
+		let _ = __builtin_create_initialized_array([10: relocatable_counting_resource_t], r);
+		let _ = __builtin_create_initialized_array([10: relocatable_counting_resource_t], move r);
+
+		let _ = __builtin_create_initialized_array([10: counting_resource_t], counting_resource_t());
+		let r = counting_resource_t();
+		let _ = __builtin_create_initialized_array([10: counting_resource_t], r);
+		let _ = __builtin_create_initialized_array([10: counting_resource_t], move r);
+	}
+
+	{
+		let _ = __builtin_create_initialized_array([32: int32], 42)[8];
+		let _ = __builtin_create_initialized_array([32: int8], 42i8)[8];
+		let _ = __builtin_create_initialized_array([32: str], "foo")[8];
+		let _ = __builtin_create_initialized_array([32: [float32, str, bool]], [ 1.234f32, "bar", false ])[8];
+
+		let _ = __builtin_create_initialized_array([32: resource_t], resource_t())[8];
+		let r = resource_t();
+		let _ = __builtin_create_initialized_array([32: resource_t], r)[8];
+		let _ = __builtin_create_initialized_array([32: resource_t], move r)[8];
+
+		let _ = __builtin_create_initialized_array([32: complex_resource_t], complex_resource_t())[8];
+		let r = complex_resource_t();
+		let _ = __builtin_create_initialized_array([32: complex_resource_t], r)[8];
+		let _ = __builtin_create_initialized_array([32: complex_resource_t], move r)[8];
+
+		let _ = __builtin_create_initialized_array([32: relocatable_counting_resource_t], relocatable_counting_resource_t())[8];
+		let r = relocatable_counting_resource_t();
+		let _ = __builtin_create_initialized_array([32: relocatable_counting_resource_t], r)[8];
+		let _ = __builtin_create_initialized_array([32: relocatable_counting_resource_t], move r)[8];
+
+		let _ = __builtin_create_initialized_array([32: counting_resource_t], counting_resource_t())[8];
+		let r = counting_resource_t();
+		let _ = __builtin_create_initialized_array([32: counting_resource_t], r)[8];
+		let _ = __builtin_create_initialized_array([32: counting_resource_t], move r)[8];
+	}
+
+	if (!counting_resource_is_valid()) unreachable;
+	if (!relocatable_counting_resource_is_valid()) unreachable;
+}
