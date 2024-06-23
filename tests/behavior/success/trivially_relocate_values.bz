@@ -1,0 +1,99 @@
+import malloc;
+
+struct non_trivial_t
+{
+	mut default_constructions = 0uz;
+	mut destructions = 0uz;
+
+	constructor()
+	{
+		default_constructions += 1;
+		return non_trivial_t[];
+	}
+
+	constructor(other: &non_trivial_t) = __delete__;
+
+	destructor(&self)
+	{
+		destructions += 1;
+	}
+}
+
+function test1()
+{
+	let values1 = malloc(non_trivial_t, 10);
+	defer free(values1);
+
+	for (let i in 0..10)
+	{
+		__builtin_inplace_construct(values1 + i, non_trivial_t());
+	}
+
+	let values2 = malloc(non_trivial_t, 10);
+	defer free(values2);
+
+	__builtin_trivially_relocate_values(values2, values1, 10);
+
+	for (let i in 0..10)
+	{
+		__builtin_destruct_value(*(values2 + i));
+	}
+}
+
+function test2()
+{
+	mut a = [10: int32]();
+
+	for (let i in 0..10)
+	{
+		a[i] = 42 + i;
+	}
+
+	__builtin_trivially_relocate_values(a.begin(), a.begin(), 10);
+
+	for (let i in 0..10)
+	{
+		if (a[i] != 42 + i) unreachable;
+	}
+
+	__builtin_trivially_relocate_values(a.begin() + 3, a.begin(), 7);
+
+	for (let i in 0..3)
+	{
+		if (a[i] != 42 + i) unreachable;
+	}
+
+	for (let i in 3..10)
+	{
+		if (a[i] != 42 + i - 3) unreachable;
+	}
+
+	__builtin_trivially_relocate_values(a.begin(), a.begin() + 3, 7);
+
+	for (let i in 0..7)
+	{
+		if (a[i] != 42 + i) unreachable;
+	}
+
+	for (let i in 7..10)
+	{
+		if (a[i] != 42 + i - 3) unreachable;
+	}
+
+	let p = a.begin();
+	let np = null as ?*mut int32;
+
+	__builtin_trivially_relocate_values(p, p, 0);
+	__builtin_trivially_relocate_values(p, np, 0);
+	__builtin_trivially_relocate_values(np, p, 0);
+	__builtin_trivially_relocate_values(np, np, 0);
+}
+
+function main()
+{
+	test1();
+
+	if (non_trivial_t.default_constructions != non_trivial_t.destructions) unreachable;
+
+	test2();
+}
