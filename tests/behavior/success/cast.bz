@@ -40,6 +40,11 @@ function cast_signed_arithmetic_test(consteval value)
 	cast_to_float_test(value);
 }
 
+function slice_size(s: [: auto]) -> usize
+{
+	return s.size();
+}
+
 function main()
 {
 	cast_arithmetic_test(42i8);
@@ -142,4 +147,6 @@ function main()
 	let s = a as [: typeof init_value];
 	if (&a[0] != &s[0]) unreachable;
 	if (a.size() != s.size()) unreachable;
+
+	if (slice_size([10: int32]()) != 10) unreachable;
 }

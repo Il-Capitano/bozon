@@ -4441,7 +4441,7 @@ static expr_value generate_expression(
 
 	if (expr_t.is<ast::ts_array>() && dest_t.is<ast::ts_array_slice>())
 	{
-		auto const expr_value = generate_expression(cast.expr, context, {});
+		auto const expr_value = context.create_rvalue_materialization(generate_expression(cast.expr, context, {}));
 		bz_assert(context.is_array(expr_value.get_type()));
 		auto const array_size = context.maybe_get_array(expr_value.get_type())->size;
 		auto const begin_ptr = context.create_struct_gep_pointer(expr_value, 0);
@@ -4481,11 +4481,7 @@ static expr_value generate_expression(
 	}
 
 	auto const &result_value = result_dest.get();
-	auto value = generate_expression(bit_cast.expr, context, {});
-	if (value.is_rvalue)
-	{
-		value = context.create_trivial_copy(value);
-	}
+	auto const value = context.create_rvalue_materialization(generate_expression(bit_cast.expr, context, {}));
 
 	auto const dest = context.create_address_of(result_value);
 	auto const src = context.create_address_of(value);
@@ -4551,15 +4547,7 @@ static expr_value generate_expression(
 	codegen_context &context
 )
 {
-	auto const result = generate_expression(take_move_reference.expr, context, {});
-	if (result.is_rvalue)
-	{
-		return context.create_trivial_copy(result);
-	}
-	else
-	{
-		return result;
-	}
+	return context.create_rvalue_materialization(generate_expression(take_move_reference.expr, context, {}));
 }
 
 static expr_value generate_expression(

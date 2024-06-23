@@ -2582,6 +2582,18 @@ expr_value codegen_context::create_trivial_copy(expr_value const &value)
 	return this->add_value_expression(this->to_string_rhs(value, precedence::assignment), value.get_type());
 }
 
+expr_value codegen_context::create_rvalue_materialization(expr_value const &value)
+{
+	if (value.is_rvalue)
+	{
+		return this->create_trivial_copy(value);
+	}
+	else
+	{
+		return value;
+	}
+}
+
 void codegen_context::create_unreachable(void)
 {
 	this->add_expression("bozon_unreachable()");

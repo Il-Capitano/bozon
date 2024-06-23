@@ -438,6 +438,7 @@ struct codegen_context
 	void create_assignment(expr_value const &lhs, bz::u8string_view rhs_string);
 
 	expr_value create_trivial_copy(expr_value const &value);
+	expr_value create_rvalue_materialization(expr_value const &value);
 
 	void create_unreachable(void);
 	void create_trap(void);
