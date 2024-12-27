@@ -1,0 +1,9 @@
+mut global: ?int32 = null;
+
+function main() {
+	let &mut global_ref = global;
+	let _ = global_ref == null;
+	let _ = global_ref != null;
+	let _ = null == global_ref;
+	let _ = null != global_ref;
+}
