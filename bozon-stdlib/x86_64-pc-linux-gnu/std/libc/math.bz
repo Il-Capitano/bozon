@@ -1,159 +1,159 @@
 import types;
 export type double_t = double;
 export type float_t = float;
-@symbol_name("acos") export function "c" acos(x: double) -> double;
-@symbol_name("acosf") export function "c" acosf(x: float) -> float;
-@symbol_name("acosh") export function "c" acosh(x: double) -> double;
-@symbol_name("acoshf") export function "c" acoshf(x: float) -> float;
-@symbol_name("asin") export function "c" asin(x: double) -> double;
-@symbol_name("asinf") export function "c" asinf(x: float) -> float;
-@symbol_name("asinh") export function "c" asinh(x: double) -> double;
-@symbol_name("asinhf") export function "c" asinhf(x: float) -> float;
-@symbol_name("atan") export function "c" atan(x: double) -> double;
-@symbol_name("atan2") export function "c" atan2(y: double, x: double) -> double;
-@symbol_name("atan2f") export function "c" atan2f(y: float, x: float) -> float;
-@symbol_name("atanf") export function "c" atanf(x: float) -> float;
-@symbol_name("atanh") export function "c" atanh(x: double) -> double;
-@symbol_name("atanhf") export function "c" atanhf(x: float) -> float;
-@symbol_name("cbrt") export function "c" cbrt(x: double) -> double;
-@symbol_name("cbrtf") export function "c" cbrtf(x: float) -> float;
-@symbol_name("ceil") export function "c" ceil(x: double) -> double;
-@symbol_name("ceilf") export function "c" ceilf(x: float) -> float;
-@symbol_name("copysign") export function "c" copysign(x: double, y: double) -> double;
-@symbol_name("copysignf") export function "c" copysignf(x: float, y: float) -> float;
-@symbol_name("cos") export function "c" cos(x: double) -> double;
-@symbol_name("cosf") export function "c" cosf(x: float) -> float;
-@symbol_name("cosh") export function "c" cosh(x: double) -> double;
-@symbol_name("coshf") export function "c" coshf(x: float) -> float;
-@symbol_name("erf") export function "c" erf(: double) -> double;
-@symbol_name("erfc") export function "c" erfc(: double) -> double;
-@symbol_name("erfcf") export function "c" erfcf(: float) -> float;
-@symbol_name("erff") export function "c" erff(: float) -> float;
-@symbol_name("exp") export function "c" exp(x: double) -> double;
-@symbol_name("exp2") export function "c" exp2(x: double) -> double;
-@symbol_name("exp2f") export function "c" exp2f(x: float) -> float;
-@symbol_name("expf") export function "c" expf(x: float) -> float;
-@symbol_name("expm1") export function "c" expm1(x: double) -> double;
-@symbol_name("expm1f") export function "c" expm1f(x: float) -> float;
-@symbol_name("fabs") export function "c" fabs(x: double) -> double;
-@symbol_name("fabsf") export function "c" fabsf(x: float) -> float;
-@symbol_name("fdim") export function "c" fdim(x: double, y: double) -> double;
-@symbol_name("fdimf") export function "c" fdimf(x: float, y: float) -> float;
-@symbol_name("floor") export function "c" floor(x: double) -> double;
-@symbol_name("floorf") export function "c" floorf(x: float) -> float;
-@symbol_name("fma") export function "c" fma(x: double, y: double, z: double) -> double;
-@symbol_name("fmaf") export function "c" fmaf(x: float, y: float, z: float) -> float;
-@symbol_name("fmax") export function "c" fmax(x: double, y: double) -> double;
-@symbol_name("fmaxf") export function "c" fmaxf(x: float, y: float) -> float;
-@symbol_name("fmin") export function "c" fmin(x: double, y: double) -> double;
-@symbol_name("fminf") export function "c" fminf(x: float, y: float) -> float;
-@symbol_name("fmod") export function "c" fmod(x: double, y: double) -> double;
-@symbol_name("fmodf") export function "c" fmodf(x: float, y: float) -> float;
-@symbol_name("frexp") export function "c" frexp(x: double, exponent: ?*mut int) -> double;
-@symbol_name("frexpf") export function "c" frexpf(x: float, exponent: ?*mut int) -> float;
-@symbol_name("hypot") export function "c" hypot(x: double, y: double) -> double;
-@symbol_name("hypotf") export function "c" hypotf(x: float, y: float) -> float;
-@symbol_name("ilogb") export function "c" ilogb(x: double) -> int;
-@symbol_name("ilogbf") export function "c" ilogbf(x: float) -> int;
-@symbol_name("ldexp") export function "c" ldexp(x: double, exponent: int) -> double;
-@symbol_name("ldexpf") export function "c" ldexpf(x: float, exponent: int) -> float;
-@symbol_name("lgamma") export function "c" lgamma(: double) -> double;
-@symbol_name("lgammaf") export function "c" lgammaf(: float) -> float;
-@symbol_name("llrint") export function "c" llrint(x: double) -> long_long;
-@symbol_name("llrintf") export function "c" llrintf(x: float) -> long_long;
-@symbol_name("llround") export function "c" llround(x: double) -> long_long;
-@symbol_name("llroundf") export function "c" llroundf(x: float) -> long_long;
-@symbol_name("log") export function "c" log(x: double) -> double;
-@symbol_name("log10") export function "c" log10(x: double) -> double;
-@symbol_name("log10f") export function "c" log10f(x: float) -> float;
-@symbol_name("log1p") export function "c" log1p(x: double) -> double;
-@symbol_name("log1pf") export function "c" log1pf(x: float) -> float;
-@symbol_name("log2") export function "c" log2(x: double) -> double;
-@symbol_name("log2f") export function "c" log2f(x: float) -> float;
-@symbol_name("logb") export function "c" logb(x: double) -> double;
-@symbol_name("logbf") export function "c" logbf(x: float) -> float;
-@symbol_name("logf") export function "c" logf(x: float) -> float;
-@symbol_name("lrint") export function "c" lrint(x: double) -> long;
-@symbol_name("lrintf") export function "c" lrintf(x: float) -> long;
-@symbol_name("lround") export function "c" lround(x: double) -> long;
-@symbol_name("lroundf") export function "c" lroundf(x: float) -> long;
-@symbol_name("modf") export function "c" modf(x: double, iptr: ?*mut double) -> double;
-@symbol_name("modff") export function "c" modff(x: float, iptr: ?*mut float) -> float;
-@symbol_name("nan") export function "c" nan(tagb: ?*char) -> double;
-@symbol_name("nanf") export function "c" nanf(tagb: ?*char) -> float;
-@symbol_name("nearbyint") export function "c" nearbyint(x: double) -> double;
-@symbol_name("nearbyintf") export function "c" nearbyintf(x: float) -> float;
-@symbol_name("nextafter") export function "c" nextafter(x: double, y: double) -> double;
-@symbol_name("nextafterf") export function "c" nextafterf(x: float, y: float) -> float;
-@symbol_name("pow") export function "c" pow(x: double, y: double) -> double;
-@symbol_name("powf") export function "c" powf(x: float, y: float) -> float;
-@symbol_name("remainder") export function "c" remainder(x: double, y: double) -> double;
-@symbol_name("remainderf") export function "c" remainderf(x: float, y: float) -> float;
-@symbol_name("remquo") export function "c" remquo(x: double, y: double, quo: ?*mut int) -> double;
-@symbol_name("remquof") export function "c" remquof(x: float, y: float, quo: ?*mut int) -> float;
-@symbol_name("rint") export function "c" rint(x: double) -> double;
-@symbol_name("rintf") export function "c" rintf(x: float) -> float;
-@symbol_name("round") export function "c" round(x: double) -> double;
-@symbol_name("roundf") export function "c" roundf(x: float) -> float;
-@symbol_name("scalbln") export function "c" scalbln(x: double, n: long) -> double;
-@symbol_name("scalblnf") export function "c" scalblnf(x: float, n: long) -> float;
-@symbol_name("scalbn") export function "c" scalbn(x: double, n: int) -> double;
-@symbol_name("scalbnf") export function "c" scalbnf(x: float, n: int) -> float;
-@symbol_name("sin") export function "c" sin(x: double) -> double;
-@symbol_name("sinf") export function "c" sinf(x: float) -> float;
-@symbol_name("sinh") export function "c" sinh(x: double) -> double;
-@symbol_name("sinhf") export function "c" sinhf(x: float) -> float;
-@symbol_name("sqrt") export function "c" sqrt(x: double) -> double;
-@symbol_name("sqrtf") export function "c" sqrtf(x: float) -> float;
-@symbol_name("tan") export function "c" tan(x: double) -> double;
-@symbol_name("tanf") export function "c" tanf(x: float) -> float;
-@symbol_name("tanh") export function "c" tanh(x: double) -> double;
-@symbol_name("tanhf") export function "c" tanhf(x: float) -> float;
-@symbol_name("tgamma") export function "c" tgamma(: double) -> double;
-@symbol_name("tgammaf") export function "c" tgammaf(: float) -> float;
-@symbol_name("trunc") export function "c" trunc(x: double) -> double;
-@symbol_name("truncf") export function "c" truncf(x: float) -> float;
-export function FP_ILOGB0() -> int
+@__libc_function("math.h", "acos") export function "c" acos(x: double) -> double;
+@__libc_function("math.h", "acosf") export function "c" acosf(x: float) -> float;
+@__libc_function("math.h", "acosh") export function "c" acosh(x: double) -> double;
+@__libc_function("math.h", "acoshf") export function "c" acoshf(x: float) -> float;
+@__libc_function("math.h", "asin") export function "c" asin(x: double) -> double;
+@__libc_function("math.h", "asinf") export function "c" asinf(x: float) -> float;
+@__libc_function("math.h", "asinh") export function "c" asinh(x: double) -> double;
+@__libc_function("math.h", "asinhf") export function "c" asinhf(x: float) -> float;
+@__libc_function("math.h", "atan") export function "c" atan(x: double) -> double;
+@__libc_function("math.h", "atan2") export function "c" atan2(y: double, x: double) -> double;
+@__libc_function("math.h", "atan2f") export function "c" atan2f(y: float, x: float) -> float;
+@__libc_function("math.h", "atanf") export function "c" atanf(x: float) -> float;
+@__libc_function("math.h", "atanh") export function "c" atanh(x: double) -> double;
+@__libc_function("math.h", "atanhf") export function "c" atanhf(x: float) -> float;
+@__libc_function("math.h", "cbrt") export function "c" cbrt(x: double) -> double;
+@__libc_function("math.h", "cbrtf") export function "c" cbrtf(x: float) -> float;
+@__libc_function("math.h", "ceil") export function "c" ceil(x: double) -> double;
+@__libc_function("math.h", "ceilf") export function "c" ceilf(x: float) -> float;
+@__libc_function("math.h", "copysign") export function "c" copysign(x: double, y: double) -> double;
+@__libc_function("math.h", "copysignf") export function "c" copysignf(x: float, y: float) -> float;
+@__libc_function("math.h", "cos") export function "c" cos(x: double) -> double;
+@__libc_function("math.h", "cosf") export function "c" cosf(x: float) -> float;
+@__libc_function("math.h", "cosh") export function "c" cosh(x: double) -> double;
+@__libc_function("math.h", "coshf") export function "c" coshf(x: float) -> float;
+@__libc_function("math.h", "erf") export function "c" erf(: double) -> double;
+@__libc_function("math.h", "erfc") export function "c" erfc(: double) -> double;
+@__libc_function("math.h", "erfcf") export function "c" erfcf(: float) -> float;
+@__libc_function("math.h", "erff") export function "c" erff(: float) -> float;
+@__libc_function("math.h", "exp") export function "c" exp(x: double) -> double;
+@__libc_function("math.h", "exp2") export function "c" exp2(x: double) -> double;
+@__libc_function("math.h", "exp2f") export function "c" exp2f(x: float) -> float;
+@__libc_function("math.h", "expf") export function "c" expf(x: float) -> float;
+@__libc_function("math.h", "expm1") export function "c" expm1(x: double) -> double;
+@__libc_function("math.h", "expm1f") export function "c" expm1f(x: float) -> float;
+@__libc_function("math.h", "fabs") export function "c" fabs(x: double) -> double;
+@__libc_function("math.h", "fabsf") export function "c" fabsf(x: float) -> float;
+@__libc_function("math.h", "fdim") export function "c" fdim(x: double, y: double) -> double;
+@__libc_function("math.h", "fdimf") export function "c" fdimf(x: float, y: float) -> float;
+@__libc_function("math.h", "floor") export function "c" floor(x: double) -> double;
+@__libc_function("math.h", "floorf") export function "c" floorf(x: float) -> float;
+@__libc_function("math.h", "fma") export function "c" fma(x: double, y: double, z: double) -> double;
+@__libc_function("math.h", "fmaf") export function "c" fmaf(x: float, y: float, z: float) -> float;
+@__libc_function("math.h", "fmax") export function "c" fmax(x: double, y: double) -> double;
+@__libc_function("math.h", "fmaxf") export function "c" fmaxf(x: float, y: float) -> float;
+@__libc_function("math.h", "fmin") export function "c" fmin(x: double, y: double) -> double;
+@__libc_function("math.h", "fminf") export function "c" fminf(x: float, y: float) -> float;
+@__libc_function("math.h", "fmod") export function "c" fmod(x: double, y: double) -> double;
+@__libc_function("math.h", "fmodf") export function "c" fmodf(x: float, y: float) -> float;
+@__libc_function("math.h", "frexp") export function "c" frexp(x: double, exponent: ?*mut int) -> double;
+@__libc_function("math.h", "frexpf") export function "c" frexpf(x: float, exponent: ?*mut int) -> float;
+@__libc_function("math.h", "hypot") export function "c" hypot(x: double, y: double) -> double;
+@__libc_function("math.h", "hypotf") export function "c" hypotf(x: float, y: float) -> float;
+@__libc_function("math.h", "ilogb") export function "c" ilogb(x: double) -> int;
+@__libc_function("math.h", "ilogbf") export function "c" ilogbf(x: float) -> int;
+@__libc_function("math.h", "ldexp") export function "c" ldexp(x: double, exponent: int) -> double;
+@__libc_function("math.h", "ldexpf") export function "c" ldexpf(x: float, exponent: int) -> float;
+@__libc_function("math.h", "lgamma") export function "c" lgamma(: double) -> double;
+@__libc_function("math.h", "lgammaf") export function "c" lgammaf(: float) -> float;
+@__libc_function("math.h", "llrint") export function "c" llrint(x: double) -> long_long;
+@__libc_function("math.h", "llrintf") export function "c" llrintf(x: float) -> long_long;
+@__libc_function("math.h", "llround") export function "c" llround(x: double) -> long_long;
+@__libc_function("math.h", "llroundf") export function "c" llroundf(x: float) -> long_long;
+@__libc_function("math.h", "log") export function "c" log(x: double) -> double;
+@__libc_function("math.h", "log10") export function "c" log10(x: double) -> double;
+@__libc_function("math.h", "log10f") export function "c" log10f(x: float) -> float;
+@__libc_function("math.h", "log1p") export function "c" log1p(x: double) -> double;
+@__libc_function("math.h", "log1pf") export function "c" log1pf(x: float) -> float;
+@__libc_function("math.h", "log2") export function "c" log2(x: double) -> double;
+@__libc_function("math.h", "log2f") export function "c" log2f(x: float) -> float;
+@__libc_function("math.h", "logb") export function "c" logb(x: double) -> double;
+@__libc_function("math.h", "logbf") export function "c" logbf(x: float) -> float;
+@__libc_function("math.h", "logf") export function "c" logf(x: float) -> float;
+@__libc_function("math.h", "lrint") export function "c" lrint(x: double) -> long;
+@__libc_function("math.h", "lrintf") export function "c" lrintf(x: float) -> long;
+@__libc_function("math.h", "lround") export function "c" lround(x: double) -> long;
+@__libc_function("math.h", "lroundf") export function "c" lroundf(x: float) -> long;
+@__libc_function("math.h", "modf") export function "c" modf(x: double, iptr: ?*mut double) -> double;
+@__libc_function("math.h", "modff") export function "c" modff(x: float, iptr: ?*mut float) -> float;
+@__libc_function("math.h", "nan") export function "c" nan(tagb: ?*char) -> double;
+@__libc_function("math.h", "nanf") export function "c" nanf(tagb: ?*char) -> float;
+@__libc_function("math.h", "nearbyint") export function "c" nearbyint(x: double) -> double;
+@__libc_function("math.h", "nearbyintf") export function "c" nearbyintf(x: float) -> float;
+@__libc_function("math.h", "nextafter") export function "c" nextafter(x: double, y: double) -> double;
+@__libc_function("math.h", "nextafterf") export function "c" nextafterf(x: float, y: float) -> float;
+@__libc_function("math.h", "pow") export function "c" pow(x: double, y: double) -> double;
+@__libc_function("math.h", "powf") export function "c" powf(x: float, y: float) -> float;
+@__libc_function("math.h", "remainder") export function "c" remainder(x: double, y: double) -> double;
+@__libc_function("math.h", "remainderf") export function "c" remainderf(x: float, y: float) -> float;
+@__libc_function("math.h", "remquo") export function "c" remquo(x: double, y: double, quo: ?*mut int) -> double;
+@__libc_function("math.h", "remquof") export function "c" remquof(x: float, y: float, quo: ?*mut int) -> float;
+@__libc_function("math.h", "rint") export function "c" rint(x: double) -> double;
+@__libc_function("math.h", "rintf") export function "c" rintf(x: float) -> float;
+@__libc_function("math.h", "round") export function "c" round(x: double) -> double;
+@__libc_function("math.h", "roundf") export function "c" roundf(x: float) -> float;
+@__libc_function("math.h", "scalbln") export function "c" scalbln(x: double, n: long) -> double;
+@__libc_function("math.h", "scalblnf") export function "c" scalblnf(x: float, n: long) -> float;
+@__libc_function("math.h", "scalbn") export function "c" scalbn(x: double, n: int) -> double;
+@__libc_function("math.h", "scalbnf") export function "c" scalbnf(x: float, n: int) -> float;
+@__libc_function("math.h", "sin") export function "c" sin(x: double) -> double;
+@__libc_function("math.h", "sinf") export function "c" sinf(x: float) -> float;
+@__libc_function("math.h", "sinh") export function "c" sinh(x: double) -> double;
+@__libc_function("math.h", "sinhf") export function "c" sinhf(x: float) -> float;
+@__libc_function("math.h", "sqrt") export function "c" sqrt(x: double) -> double;
+@__libc_function("math.h", "sqrtf") export function "c" sqrtf(x: float) -> float;
+@__libc_function("math.h", "tan") export function "c" tan(x: double) -> double;
+@__libc_function("math.h", "tanf") export function "c" tanf(x: float) -> float;
+@__libc_function("math.h", "tanh") export function "c" tanh(x: double) -> double;
+@__libc_function("math.h", "tanhf") export function "c" tanhf(x: float) -> float;
+@__libc_function("math.h", "tgamma") export function "c" tgamma(: double) -> double;
+@__libc_function("math.h", "tgammaf") export function "c" tgammaf(: float) -> float;
+@__libc_function("math.h", "trunc") export function "c" trunc(x: double) -> double;
+@__libc_function("math.h", "truncf") export function "c" truncf(x: float) -> float;
+@__libc_macro("math.h", "FP_ILOGB0") export function FP_ILOGB0() -> int
 {
 	return -2147483648;
 }
-export function FP_ILOGBNAN() -> int
+@__libc_macro("math.h", "FP_ILOGBNAN") export function FP_ILOGBNAN() -> int
 {
 	return -2147483648;
 }
-export function FP_INFINITE() -> int
+@__libc_macro("math.h", "FP_INFINITE") export function FP_INFINITE() -> int
 {
 	return 1;
 }
-export function FP_NAN() -> int
+@__libc_macro("math.h", "FP_NAN") export function FP_NAN() -> int
 {
 	return 0;
 }
-export function FP_NORMAL() -> int
+@__libc_macro("math.h", "FP_NORMAL") export function FP_NORMAL() -> int
 {
 	return 4;
 }
-export function FP_SUBNORMAL() -> int
+@__libc_macro("math.h", "FP_SUBNORMAL") export function FP_SUBNORMAL() -> int
 {
 	return 3;
 }
-export function FP_ZERO() -> int
+@__libc_macro("math.h", "FP_ZERO") export function FP_ZERO() -> int
 {
 	return 2;
 }
-export function HUGE_VAL() -> double
+@__libc_macro("math.h", "HUGE_VAL") export function HUGE_VAL() -> double
 {
 	return ((1.0f64 / 0.0f64));
 }
-export function HUGE_VALF() -> float
+@__libc_macro("math.h", "HUGE_VALF") export function HUGE_VALF() -> float
 {
 	return ((1.0f32 / 0.0f32));
 }
-export function INFINITY() -> float
+@__libc_macro("math.h", "INFINITY") export function INFINITY() -> float
 {
 	return ((1.0f32 / 0.0f32));
 }
-export function NAN() -> float
+@__libc_macro("math.h", "NAN") export function NAN() -> float
 {
 	return ((0.0f32 / 0.0f32));
 }

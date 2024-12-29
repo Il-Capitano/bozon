@@ -1,0 +1,15 @@
+// error: destination address is null in call to '__builtin_trivially_relocate_values'
+// note: while evaluating expression at compile time
+// error: failed to evaluate expression at compile time
+import malloc;
+
+function test()
+{
+	(consteval {
+		let p = malloc(int32, 1);
+		defer free(p);
+		__builtin_inplace_construct(p, 0);
+
+		__builtin_trivially_relocate_values(null as ?*mut int32, p, 1);
+	});
+}

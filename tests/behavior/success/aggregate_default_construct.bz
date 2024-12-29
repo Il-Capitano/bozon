@@ -1,0 +1,68 @@
+import resource;
+import counting_resource;
+
+struct S
+{
+	.i: int32;
+	.j: usize;
+	.x: float32;
+	.y: float64;
+	.a: [20: uint32];
+	.s: str;
+}
+
+struct complex_S
+{
+	.r0: resource_t;
+	.r1: complex_resource_t;
+	.cr0: relocatable_counting_resource_t;
+	.cr1: counting_resource_t;
+}
+
+function index_sequence(size: consteval usize) -> [size: usize]
+{
+	mut result = [size: usize]();
+	for (let i in 0..size)
+	{
+		result[i] = i;
+	}
+	return result;
+}
+
+function test_tuple(Ts: ...typename)
+{
+	let t = [...Ts]();
+	consteval [...index] = index_sequence(sizeof ...Ts);
+	...(if (t[index] != Ts()) { unreachable; });
+}
+
+function main()
+{
+	test_tuple(int32, str, float32, float64, uint64, [10: int32], [100: float32]);
+	{
+		let _ = [resource_t]();
+		let _ = [complex_resource_t]();
+		let _ = [relocatable_counting_resource_t]();
+		let _ = [counting_resource_t]();
+		let _ = [resource_t, complex_resource_t, relocatable_counting_resource_t, counting_resource_t]();
+		let _ = [10: [resource_t, complex_resource_t, relocatable_counting_resource_t, counting_resource_t]]();
+		let _ = [[10: resource_t], [10: complex_resource_t], [10: relocatable_counting_resource_t], [10: counting_resource_t]]();
+	}
+
+	{
+		S();
+		let s = S();
+		if (s.i != int32()) unreachable;
+		if (s.j != usize()) unreachable;
+		if (s.x != float32()) unreachable;
+		if (s.y != float64()) unreachable;
+		if (s.a != [20: uint32]()) unreachable;
+		if (s.s != str()) unreachable;
+
+		complex_S();
+		let _ = complex_S();
+	}
+
+	if (!counting_resource_is_valid()) unreachable;
+	if (!relocatable_counting_resource_is_valid()) unreachable;
+}
