@@ -2314,8 +2314,8 @@ static expr_value generate_builtin_binary_equality(
 	auto const lhs_value = generate_expression(lhs, context, {});
 	auto const rhs_value = generate_expression(rhs, context, {});
 
-	auto const lhs_t = lhs.get_expr_type().remove_reference();
-	auto const rhs_t = rhs.get_expr_type().remove_reference();
+	auto const lhs_t = lhs.get_expr_type().remove_mut_reference();
+	auto const rhs_t = rhs.get_expr_type().remove_mut_reference();
 
 	if (
 		(lhs_t.is<ast::ts_optional>() && rhs_t.is<ast::ts_base_type>())
