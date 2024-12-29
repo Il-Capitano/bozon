@@ -1,0 +1,55 @@
+import resource;
+import counting_resource;
+
+function main()
+{
+	{
+		let o = (?int32)();
+		if (o != null) unreachable;
+		let o = (?*int32)();
+		if (o != null) unreachable;
+		let o = (?*mut int32)();
+		if (o != null) unreachable;
+		let o = (?**int32)();
+		if (o != null) unreachable;
+		// TODO:
+		// let o = (?&int32)();
+		// if (o != null) unreachable;
+		let o = (?function() -> void)();
+		if (o != null) unreachable;
+	}
+
+	{
+		let o = (?resource_t)();
+		if (o != null) unreachable;
+		let o = (?[resource_t])();
+		if (o != null) unreachable;
+		let o = (?[10: resource_t])();
+		if (o != null) unreachable;
+		let o = (?complex_resource_t)();
+		if (o != null) unreachable;
+		let o = (?[complex_resource_t])();
+		if (o != null) unreachable;
+		let o = (?[10: complex_resource_t])();
+		if (o != null) unreachable;
+		let o = (?relocatable_counting_resource_t)();
+		if (o != null) unreachable;
+		let o = (?[relocatable_counting_resource_t])();
+		if (o != null) unreachable;
+		let o = (?[10: relocatable_counting_resource_t])();
+		if (o != null) unreachable;
+		let o = (?counting_resource_t)();
+		if (o != null) unreachable;
+		let o = (?[counting_resource_t])();
+		if (o != null) unreachable;
+		let o = (?[10: counting_resource_t])();
+		if (o != null) unreachable;
+		let o = (?[resource_t, complex_resource_t, relocatable_counting_resource_t, counting_resource_t])();
+		if (o != null) unreachable;
+		let o = (?[10: [resource_t, complex_resource_t, relocatable_counting_resource_t, counting_resource_t]])();
+		if (o != null) unreachable;
+	}
+
+	if (!counting_resource_is_valid()) unreachable;
+	if (!relocatable_counting_resource_is_valid()) unreachable;
+}
