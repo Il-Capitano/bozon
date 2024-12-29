@@ -1735,8 +1735,8 @@ static val_ptr emit_builtin_binary_cmp(
 		|| op == lex::token::greater_than
 		|| op == lex::token::greater_than_eq
 	);
-	auto const lhs_t = lhs.get_expr_type().remove_reference();
-	auto const rhs_t = rhs.get_expr_type().remove_reference();
+	auto const lhs_t = lhs.get_expr_type().remove_mut_reference();
+	auto const rhs_t = rhs.get_expr_type().remove_mut_reference();
 	// 0: signed int
 	// 1: unsigned int
 	// 2: float
