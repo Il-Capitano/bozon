@@ -15,8 +15,12 @@ struct complex_S
 {
 	.r0: resource_t;
 	.r1: complex_resource_t;
+	.ra0: [10: complex_resource_t];
+	.ra1: [100: complex_resource_t];
 	.cr0: relocatable_counting_resource_t;
 	.cr1: counting_resource_t;
+	.cra0: [10: counting_resource_t];
+	.cra1: [100: counting_resource_t];
 }
 
 function index_sequence(size: consteval usize) -> [size: usize]

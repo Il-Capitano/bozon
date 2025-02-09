@@ -22,6 +22,60 @@ struct complex_S
 function main()
 {
 	{
+		let a = [1: int32]();
+		for (let &v in a)
+		{
+			if (v != int32()) unreachable;
+		}
+		let a = [10: int32]();
+		for (let &v in a)
+		{
+			if (v != int32()) unreachable;
+		}
+		let a = [100: int32]();
+		for (let &v in a)
+		{
+			if (v != int32()) unreachable;
+		}
+	}
+
+	{
+		let a = [1: float64]();
+		for (let &v in a)
+		{
+			if (v != float64()) unreachable;
+		}
+		let a = [10: float64]();
+		for (let &v in a)
+		{
+			if (v != float64()) unreachable;
+		}
+		let a = [100: float64]();
+		for (let &v in a)
+		{
+			if (v != float64()) unreachable;
+		}
+	}
+
+	{
+		let a = [1: str]();
+		for (let &v in a)
+		{
+			if (v != str()) unreachable;
+		}
+		let a = [10: str]();
+		for (let &v in a)
+		{
+			if (v != str()) unreachable;
+		}
+		let a = [100: str]();
+		for (let &v in a)
+		{
+			if (v != str()) unreachable;
+		}
+	}
+
+	{
 		let _ = [1: resource_t]();
 		let _ = [10: resource_t]();
 		let _ = [100: resource_t]();
