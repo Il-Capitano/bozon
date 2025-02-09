@@ -3706,7 +3706,21 @@ match_function_result_t<kind> generic_type_match(match_context_t<kind> const &ma
 			// expr.set_type(...) invalidates expr_type_temp
 			auto const expr_type = expr.get_expr_type();
 
-			if (
+			if (dest.is_optional_reference() && dest == expr_type)
+			{
+				if (expr_type_kind == ast::expression_type_kind::lvalue || expr_type.is_reference())
+				{
+					expr = match_context.context.make_copy_construction(std::move(expr));
+				}
+				else if (
+					expr_type_kind == ast::expression_type_kind::rvalue_reference
+					|| expr_type_kind == ast::expression_type_kind::moved_lvalue
+				)
+				{
+					expr = match_context.context.make_move_construction(std::move(expr));
+				}
+			}
+			else if (
 				(dest.is<ast::ts_lvalue_reference>() || (!dest_is_optional && dest.is_optional_reference()))
 				&& !expr_type.is_reference()
 			)
