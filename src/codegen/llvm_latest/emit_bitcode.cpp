@@ -1385,6 +1385,7 @@ static val_ptr emit_builtin_binary_multiply_eq(
 }
 
 static val_ptr emit_builtin_binary_divide(
+	lex::src_tokens const &src_tokens,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	bitcode_context &context,
@@ -1399,6 +1400,21 @@ static val_ptr emit_builtin_binary_divide(
 	bz_assert(ast::is_arithmetic_kind(lhs_kind));
 	auto const lhs_val = emit_bitcode(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
+
+	if (global_data::panic_on_int_divide_by_zero && ast::is_integer_kind(lhs_kind))
+	{
+		auto const is_rhs_zero = context.builder.CreateICmpEQ(rhs_val, llvm::ConstantInt::get(rhs_val->getType(), 0));
+		auto const begin_bb = context.builder.GetInsertBlock();
+
+		auto const panic_bb = context.add_basic_block("divide_by_zero_check");
+		context.builder.SetInsertPoint(panic_bb);
+		emit_panic_call(src_tokens, "integer division by zero", context);
+
+		auto const end_bb = context.add_basic_block("divide_by_zero_check_end");
+		context.builder.SetInsertPoint(begin_bb);
+		context.builder.CreateCondBr(is_rhs_zero, panic_bb, end_bb);
+		context.builder.SetInsertPoint(end_bb);
+	}
 
 	auto const result_val = [&]() -> llvm::Value * {
 		if (ast::is_signed_integer_kind(lhs_kind))
@@ -1453,6 +1469,7 @@ static val_ptr emit_builtin_binary_divide(
 }
 
 static val_ptr emit_builtin_binary_divide_eq(
+	lex::src_tokens const &src_tokens,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	bitcode_context &context
@@ -1469,6 +1486,21 @@ static val_ptr emit_builtin_binary_divide_eq(
 	auto const lhs_val_ref = emit_bitcode(lhs, context, nullptr);
 	bz_assert(lhs_val_ref.kind == val_ptr::reference);
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
+
+	if (global_data::panic_on_int_divide_by_zero && ast::is_integer_kind(lhs_kind))
+	{
+		auto const is_rhs_zero = context.builder.CreateICmpEQ(rhs_val, llvm::ConstantInt::get(rhs_val->getType(), 0));
+		auto const begin_bb = context.builder.GetInsertBlock();
+
+		auto const panic_bb = context.add_basic_block("divide_by_zero_check");
+		context.builder.SetInsertPoint(panic_bb);
+		emit_panic_call(src_tokens, "integer division by zero", context);
+
+		auto const end_bb = context.add_basic_block("divide_by_zero_check_end");
+		context.builder.SetInsertPoint(begin_bb);
+		context.builder.CreateCondBr(is_rhs_zero, panic_bb, end_bb);
+		context.builder.SetInsertPoint(end_bb);
+	}
 
 	auto const res = [&]() -> llvm::Value * {
 		if (ast::is_signed_integer_kind(lhs_kind))
@@ -1524,6 +1556,7 @@ static val_ptr emit_builtin_binary_divide_eq(
 }
 
 static val_ptr emit_builtin_binary_modulo(
+	lex::src_tokens const &src_tokens,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	bitcode_context &context,
@@ -1538,6 +1571,21 @@ static val_ptr emit_builtin_binary_modulo(
 	bz_assert(ast::is_integer_kind(lhs_kind));
 	auto const lhs_val = emit_bitcode(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode(rhs, context, nullptr).get_value(context.builder);
+
+	if (global_data::panic_on_int_divide_by_zero && ast::is_integer_kind(lhs_kind))
+	{
+		auto const is_rhs_zero = context.builder.CreateICmpEQ(rhs_val, llvm::ConstantInt::get(rhs_val->getType(), 0));
+		auto const begin_bb = context.builder.GetInsertBlock();
+
+		auto const panic_bb = context.add_basic_block("divide_by_zero_check");
+		context.builder.SetInsertPoint(panic_bb);
+		emit_panic_call(src_tokens, "integer division by zero", context);
+
+		auto const end_bb = context.add_basic_block("divide_by_zero_check_end");
+		context.builder.SetInsertPoint(begin_bb);
+		context.builder.CreateCondBr(is_rhs_zero, panic_bb, end_bb);
+		context.builder.SetInsertPoint(end_bb);
+	}
 
 	auto const result_val = [&]() -> llvm::Value * {
 		if (ast::is_signed_integer_kind(lhs_kind))
@@ -1589,6 +1637,7 @@ static val_ptr emit_builtin_binary_modulo(
 }
 
 static val_ptr emit_builtin_binary_modulo_eq(
+	lex::src_tokens const &src_tokens,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	bitcode_context &context
@@ -1605,6 +1654,21 @@ static val_ptr emit_builtin_binary_modulo_eq(
 	auto const lhs_val_ref = emit_bitcode(lhs, context, nullptr);
 	bz_assert(lhs_val_ref.kind == val_ptr::reference);
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
+
+	if (global_data::panic_on_int_divide_by_zero && ast::is_integer_kind(lhs_kind))
+	{
+		auto const is_rhs_zero = context.builder.CreateICmpEQ(rhs_val, llvm::ConstantInt::get(rhs_val->getType(), 0));
+		auto const begin_bb = context.builder.GetInsertBlock();
+
+		auto const panic_bb = context.add_basic_block("divide_by_zero_check");
+		context.builder.SetInsertPoint(panic_bb);
+		emit_panic_call(src_tokens, "integer division by zero", context);
+
+		auto const end_bb = context.add_basic_block("divide_by_zero_check_end");
+		context.builder.SetInsertPoint(begin_bb);
+		context.builder.CreateCondBr(is_rhs_zero, panic_bb, end_bb);
+		context.builder.SetInsertPoint(end_bb);
+	}
 
 	auto const res = [&]() -> llvm::Value * {
 		if (ast::is_signed_integer_kind(lhs_kind))
@@ -2489,7 +2553,7 @@ static val_ptr emit_function_call(
 }
 
 static val_ptr emit_bitcode(
-	lex::src_tokens const &src_tokens,
+	lex::src_tokens const &,
 	ast::expr_function_call const &func_call,
 	bitcode_context &context,
 	llvm::Value *result_address
@@ -3052,7 +3116,7 @@ static val_ptr emit_bitcode(
 		{
 			bz_assert(func_call.params.size() == 1);
 			auto const optional_val = emit_bitcode(func_call.params[0], context, nullptr);
-			emit_null_optional_get_value_check(src_tokens, optional_val, context);
+			emit_null_optional_get_value_check(func_call.src_tokens, optional_val, context);
 			bz_assert(result_address == nullptr);
 			return optional_get_value_ptr(optional_val, context);
 		}
@@ -3685,15 +3749,15 @@ static val_ptr emit_bitcode(
 			bz_assert(result_address == nullptr);
 			return emit_builtin_binary_multiply_eq(func_call.params[0], func_call.params[1], context);
 		case ast::function_body::builtin_binary_divide:
-			return emit_builtin_binary_divide(func_call.params[0], func_call.params[1], context, result_address);
+			return emit_builtin_binary_divide(func_call.src_tokens, func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_divide_eq:
 			bz_assert(result_address == nullptr);
-			return emit_builtin_binary_divide_eq(func_call.params[0], func_call.params[1], context);
+			return emit_builtin_binary_divide_eq(func_call.src_tokens, func_call.params[0], func_call.params[1], context);
 		case ast::function_body::builtin_binary_modulo:
-			return emit_builtin_binary_modulo(func_call.params[0], func_call.params[1], context, result_address);
+			return emit_builtin_binary_modulo(func_call.src_tokens, func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_modulo_eq:
 			bz_assert(result_address == nullptr);
-			return emit_builtin_binary_modulo_eq(func_call.params[0], func_call.params[1], context);
+			return emit_builtin_binary_modulo_eq(func_call.src_tokens, func_call.params[0], func_call.params[1], context);
 		case ast::function_body::builtin_binary_equals:
 			return emit_builtin_binary_cmp(lex::token::equals, func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_not_equals:

@@ -1,6 +1,6 @@
 import types;
 import stddef;
-export struct lconv
+@__libc_struct("locale.h", "lconv") export struct lconv
 {
 	.decimal_point: ?*mut char;
 	.thousands_sep: ?*mut char;
@@ -27,29 +27,29 @@ export struct lconv
 	.int_p_sign_posn: char;
 	.int_n_sign_posn: char;
 }
-@symbol_name("localeconv") export function "c" localeconv() -> ?*mut lconv;
-@symbol_name("setlocale") export function "c" setlocale(category: int, locale: ?*char) -> ?*mut char;
-export function LC_ALL() -> int
+@__libc_function("locale.h", "localeconv") export function "c" localeconv() -> ?*mut lconv;
+@__libc_function("locale.h", "setlocale") export function "c" setlocale(category: int, locale: ?*char) -> ?*mut char;
+@__libc_macro("locale.h", "LC_ALL") export function LC_ALL() -> int
 {
 	return 6;
 }
-export function LC_COLLATE() -> int
+@__libc_macro("locale.h", "LC_COLLATE") export function LC_COLLATE() -> int
 {
 	return 3;
 }
-export function LC_CTYPE() -> int
+@__libc_macro("locale.h", "LC_CTYPE") export function LC_CTYPE() -> int
 {
 	return 0;
 }
-export function LC_MONETARY() -> int
+@__libc_macro("locale.h", "LC_MONETARY") export function LC_MONETARY() -> int
 {
 	return 4;
 }
-export function LC_NUMERIC() -> int
+@__libc_macro("locale.h", "LC_NUMERIC") export function LC_NUMERIC() -> int
 {
 	return 1;
 }
-export function LC_TIME() -> int
+@__libc_macro("locale.h", "LC_TIME") export function LC_TIME() -> int
 {
 	return 2;
 }
