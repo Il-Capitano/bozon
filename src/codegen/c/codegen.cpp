@@ -1096,6 +1096,7 @@ struct loop_info_t
 {
 	expr_value index;
 	codegen_context::while_info_t prev_while_info;
+	codegen_context::expression_scope_info_t prev_scope_info;
 };
 
 static loop_info_t create_loop_start(size_t size, codegen_context &context)
@@ -1103,12 +1104,14 @@ static loop_info_t create_loop_start(size_t size, codegen_context &context)
 	auto const index = context.add_value_expression("0", context.get_usize());
 	auto const condition = context.create_relational(index, context.get_unsigned_value(size, index.get_type()), "<");
 	auto const prev_while_info = context.begin_while(condition);
+	auto const prev_scope_info = context.push_expression_scope();
 
-	return { index, prev_while_info };
+	return { index, prev_while_info, prev_scope_info };
 }
 
 static void create_loop_end(loop_info_t loop_info, codegen_context &context)
 {
+	context.pop_expression_scope(loop_info.prev_scope_info);
 	context.create_prefix_unary_operation(loop_info.index, "++");
 	context.end_while(loop_info.prev_while_info);
 }
