@@ -1,0 +1,15 @@
+mut val_p: ?*int32 = null;
+
+function set_val_p()
+{
+	consteval i = 42;
+	val_p = &i;
+}
+
+function main()
+{
+	if (val_p != null) unreachable;
+	set_val_p();
+	if (val_p == null) unreachable;
+	if (*val_p != 42) unreachable;
+}

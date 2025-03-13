@@ -1,0 +1,11 @@
+function main()
+{
+	let a = [2: int32]();
+	let p1 = __builtin_pointer_to_int(&a);
+	let p2 = __builtin_pointer_to_int(&a[0]);
+	let p3 = __builtin_pointer_to_int(&a[1]);
+	let p4 = __builtin_pointer_to_int(&a[0] + 1);
+	if (p1 != p2) unreachable;
+	if (p3 != p4) unreachable;
+	if (p1 + sizeof int32 != p3) unreachable;
+}

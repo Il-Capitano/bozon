@@ -1,0 +1,8 @@
+function main()
+{
+	let b = false;
+	if (!b != !false) unreachable;
+
+	let b = true;
+	if (!b != !true) unreachable;
+}
