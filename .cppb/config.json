@@ -49,9 +49,9 @@
 				},
 				"linux": {
 					"link_dependencies": [ "ryu_format.linux.o" ],
-					"compiler": "clang-19",
-					"libraries": [ "LLVM-19", "backtrace" ],
-					"link_flags": [ "-fuse-ld=lld-19" ],
+					"compiler": "clang-20",
+					"libraries": [ "LLVM-20", "backtrace" ],
+					"link_flags": [ "-fuse-ld=lld-20" ],
 					"emit_compile_commands": false
 				},
 				"debug": {
@@ -106,7 +106,7 @@
 				},
 				"linux": {
 					"compiler": "gcc-12",
-					"libraries": [ "LLVM-19", "backtrace" ],
+					"libraries": [ "LLVM-20", "backtrace" ],
 					"link_flags": [ "-fuse-ld=lld" ],
 					"warnings": [ "no-unused-parameter" ]
 				},
@@ -188,9 +188,9 @@
 				},
 				"linux": {
 					"link_dependencies": [ "ryu_format.linux.o" ],
-					"compiler": "clang-19",
+					"compiler": "clang-20",
 					"libraries": [ "backtrace" ],
-					"link_flags": [ "-fuse-ld=lld-19" ],
+					"link_flags": [ "-fuse-ld=lld-20" ],
 					"emit_compile_commands": false
 				},
 				"debug": {
@@ -216,7 +216,7 @@
 					"link_flags": [ "-fuse-ld=lld" ]
 				},
 				"linux": {
-					"link_flags": [ "-fuse-ld=lld-19" ]
+					"link_flags": [ "-fuse-ld=lld-20" ]
 				},
 				"debug": {
 					"optimization": "0",
@@ -255,7 +255,7 @@
 		},
 		"generate_config.out": {
 			"dependencies": [ "scripts/generate_config.cpp" ],
-			"command": "clang++-19 -std=c++20 -Isrc -Iinclude scripts/generate_config.cpp -o generate_config.out"
+			"command": "clang++-20 -std=c++20 -Isrc -Iinclude scripts/generate_config.cpp -o generate_config.out"
 		},
 		"generate-config": {
 			"windows": {
@@ -299,7 +299,7 @@
 		},
 		"generate_lexer.out": {
 			"dependencies": [ "scripts/generate_lexer.cpp", "src/token_info.h" ],
-			"command": "clang++-19 -std=c++20 -Isrc -Iinclude scripts/generate_lexer.cpp -o generate_lexer.out"
+			"command": "clang++-20 -std=c++20 -Isrc -Iinclude scripts/generate_lexer.cpp -o generate_lexer.out"
 		},
 		"generate-lexer": {
 			"windows": {
@@ -351,7 +351,7 @@
 		},
 		"ryu_format.linux.o": {
 			"dependencies": [ "ryu_format.linux.bc" ],
-			"command": "llc-19 ryu_format.linux.bc --filetype=obj --relocation-model=pic -o ryu_format.linux.o"
+			"command": "llc-20 ryu_format.linux.bc --filetype=obj --relocation-model=pic -o ryu_format.linux.o"
 		},
 		"ryu_format.windows.bc": {
 			"dependencies": [ "ryu_format.bz" ],
@@ -383,15 +383,15 @@
 		},
 		"a.out": {
 			"dependencies": [ "bitcode_test.o" ],
-			"command": "clang-19 bitcode_test.o -lm -o a.out -fuse-ld=lld-19"
+			"command": "clang-20 bitcode_test.o -lm -o a.out -fuse-ld=lld-20"
 		},
 		"fuzz-test/lex/fuzz.o": {
 			"dependencies": [ "fuzz-test/lex/fuzz.cpp" ],
-			"command": "clang++-19 -c -g `llvm-config-19 --cxxflags` -std=c++20 -fno-omit-frame-pointer -fsanitize=fuzzer,address -Isrc -Iinclude -DBOZON_NO_ARENA -Wall -Wextra -Wno-unused-parameter -Wno-c++20-extensions -Wno-defaulted-function-deleted -O1 -o fuzz-test/lex/fuzz.o fuzz-test/lex/fuzz.cpp"
+			"command": "clang++-20 -c -g `llvm-config-20 --cxxflags` -std=c++20 -fno-omit-frame-pointer -fsanitize=fuzzer,address -Isrc -Iinclude -DBOZON_NO_ARENA -Wall -Wextra -Wno-unused-parameter -Wno-c++20-extensions -Wno-defaulted-function-deleted -O1 -o fuzz-test/lex/fuzz.o fuzz-test/lex/fuzz.cpp"
 		},
 		"fuzz-test/lex/fuzz.out": {
 			"dependencies": [ "fuzz-test/lex/fuzz.o" ],
-			"command": "clang++-19 -o fuzz-test/lex/fuzz.out fuzz-test/lex/fuzz.o `llvm-config-19 --ldflags --libs --system-libs` -fsanitize=fuzzer,address -fuse-ld=lld -Wl,--unresolved-symbols=ignore-in-object-files"
+			"command": "clang++-20 -o fuzz-test/lex/fuzz.out fuzz-test/lex/fuzz.o `llvm-config-20 --ldflags --libs --system-libs` -fsanitize=fuzzer,address -fuse-ld=lld -Wl,--unresolved-symbols=ignore-in-object-files"
 		},
 		"run-lex-fuzzer": {
 			"dependencies": [ "fuzz-test/lex/fuzz.out" ],

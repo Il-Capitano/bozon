@@ -17,9 +17,9 @@
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
 
-#if LLVM_VERSION_MAJOR != 19
-#error LLVM 19 is required
-#endif // LLVM 19
+#if LLVM_VERSION_MAJOR != 20
+#error LLVM 20 is required
+#endif // LLVM 20
 
 namespace codegen::llvm_latest
 {
