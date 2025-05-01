@@ -87,3 +87,8 @@ export function relocatable_counting_resource_is_valid() -> bool
 	return relocatable_counting_resource_t.default_constructions + relocatable_counting_resource_t.copy_constructions
 		== relocatable_counting_resource_t.destructions;
 }
+
+export function relocatable_counting_resource_any_copied() -> bool
+{
+	return relocatable_counting_resource_t.copy_constructions != 0;
+}
