@@ -1,0 +1,31 @@
+struct S
+{
+	.i: int32;
+	.j: uint32;
+	.x: float32;
+	.y: float64;
+	.ai0: [10: int32];
+	.ai1: [100: int32];
+	.aj0: [10: uint32];
+	.aj1: [100: uint32];
+	.ax0: [10: float32];
+	.ax1: [100: float32];
+	.ay0: [10: float64];
+	.ay1: [100: float64];
+}
+
+function test()
+{
+	(consteval {
+		let _ = [10: int32]();
+		let _ = [100: int32]();
+		let _ = [10: uint32]();
+		let _ = [100: uint32]();
+		let _ = [10: float32]();
+		let _ = [100: float32]();
+		let _ = [10: float64]();
+		let _ = [100: float64]();
+		let _ = [10: S]();
+		let _ = [100: S]();
+	});
+}
