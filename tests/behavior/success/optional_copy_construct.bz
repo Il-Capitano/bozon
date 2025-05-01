@@ -102,7 +102,6 @@ function main()
 	}
 
 	{
-		/*
 		let o: ?resource_t = resource_t();
 		let o_copy = o;
 		if (o_copy == null) unreachable;
@@ -132,7 +131,6 @@ function main()
 		let o: ?[complex_resource_t] = move t;
 		let o_copy = o;
 		if (o_copy == null) unreachable;
-		*/
 		let a: [20: auto] = [
 			complex_resource_t(),
 			complex_resource_t(),
