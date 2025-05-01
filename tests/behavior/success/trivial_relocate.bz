@@ -1,0 +1,91 @@
+import resource;
+import counting_resource;
+
+struct S
+{
+	.i: int32;
+	.j: usize;
+	.x: float32;
+	.y: float64;
+	.a: [20: uint32];
+	.s: str;
+}
+
+struct complex_S
+{
+	.r: resource_t;
+	.ra0: [10: resource_t];
+	.ra1: [100: resource_t];
+	.cr: relocatable_counting_resource_t;
+	.cra0: [10: relocatable_counting_resource_t];
+	.cra1: [100: relocatable_counting_resource_t];
+}
+
+function main()
+{
+	{
+		static_assert(__builtin_is_trivially_copy_constructible(int32));
+		static_assert(__builtin_is_trivially_relocatable(int32));
+		let n: int32 = 42;
+		let n_copy = n;
+		let n = move n;
+		if (n != n_copy) unreachable;
+	}
+
+	{
+		static_assert(__builtin_is_trivially_copy_constructible(float64));
+		static_assert(__builtin_is_trivially_relocatable(float64));
+		let x: float64 = 42.42;
+		let x_copy = x;
+		let x = move x;
+		if (x != x_copy) unreachable;
+	}
+
+	{
+		static_assert(__builtin_is_trivially_copy_constructible(str));
+		static_assert(__builtin_is_trivially_relocatable(str));
+		let s: str = "hello";
+		let s_copy = s;
+		let s = move s;
+		if (s != s_copy) unreachable;
+	}
+
+	{
+		static_assert(__builtin_is_trivially_copy_constructible(S));
+		static_assert(__builtin_is_trivially_relocatable(S));
+		let s: S = S[
+			-99,
+			100,
+			3.14159265f32,
+			2.71828,
+			__builtin_create_initialized_array([20: uint32], 42u32),
+			"hello",
+		];
+		let s_copy = s;
+		let s = move s;
+		if (s.i != s_copy.i) unreachable;
+		if (s.j != s_copy.j) unreachable;
+		if (s.x != s_copy.x) unreachable;
+		if (s.y != s_copy.y) unreachable;
+		if (s.a != s_copy.a) unreachable;
+		if (s.s != s_copy.s) unreachable;
+	}
+
+	{
+		static_assert(__builtin_is_trivially_relocatable(resource_t));
+		static_assert(__builtin_is_trivially_relocatable(relocatable_counting_resource_t));
+		let r = resource_t();
+		let _ = move r;
+		let r = relocatable_counting_resource_t();
+		let _ = move r;
+	}
+
+	{
+		static_assert(__builtin_is_trivially_relocatable(complex_S));
+		let s = complex_S();
+		let _ = move s;
+	}
+
+	if (relocatable_counting_resource_any_copied()) unreachable;
+	if (!relocatable_counting_resource_is_valid()) unreachable;
+}

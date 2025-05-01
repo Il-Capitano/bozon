@@ -1,0 +1,19 @@
+import counting_resource;
+
+function main()
+{
+	mut i = 0;
+	mut j = 1;
+
+	[ i, j ][0] = 10;
+	if (i != 10 || j != 1) unreachable;
+
+	[ i, j ][1] = 20;
+	if (i != 10 || j != 20) unreachable;
+
+	[ counting_resource_t(), 3 ][0];
+	if (!counting_resource_is_valid()) unreachable;
+
+	[ counting_resource_t(), 3 ][1];
+	if (!counting_resource_is_valid()) unreachable;
+}
