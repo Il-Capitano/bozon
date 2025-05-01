@@ -4859,10 +4859,12 @@ static expr_value generate_expression(
 
 	auto const prev_if_info = context.begin_if(has_value);
 
+	auto const prev_info = context.push_expression_scope();
 	auto const result_opt_value = get_optional_value(result_value, context);
 	auto const prev_value = context.push_value_reference(get_optional_value(moved_value, context));
 	generate_expression(optional_move_construct.value_move_expr, context, result_opt_value);
 	context.pop_value_reference(prev_value);
+	context.pop_expression_scope(prev_info);
 
 	context.end_if(prev_if_info);
 
