@@ -5,7 +5,8 @@ namespace codegen::llvm_latest::abi
 
 static constexpr bz::array pass_by_reference_attributes_microsoft_x64 = {
 	llvm::Attribute::NoAlias,
-	llvm::Attribute::NoCapture,
+	// Captures represents capture(none)
+	llvm::Attribute::Captures,
 	llvm::Attribute::NonNull,
 };
 

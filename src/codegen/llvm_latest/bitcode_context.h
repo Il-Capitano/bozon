@@ -74,16 +74,16 @@ struct bitcode_context
 		lex::src_tokens const &src_tokens,
 		ast::function_body *func_body,
 		llvm::Function *fn,
-		llvm::ArrayRef<llvm::Value *> args = std::nullopt
+		llvm::ArrayRef<llvm::Value *> args = {}
 	);
 	llvm::CallInst *create_call(
 		llvm::Function *fn,
-		llvm::ArrayRef<llvm::Value *> args = std::nullopt
+		llvm::ArrayRef<llvm::Value *> args = {}
 	);
 	llvm::CallInst *create_call(
 		llvm::FunctionCallee fn,
 		llvm::CallingConv::ID calling_convention,
-		llvm::ArrayRef<llvm::Value *> args = std::nullopt
+		llvm::ArrayRef<llvm::Value *> args = {}
 	);
 
 	val_ptr get_struct_element(val_ptr value, uint64_t idx);

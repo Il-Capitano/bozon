@@ -17,9 +17,9 @@
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
 
-#if LLVM_VERSION_MAJOR != 20
-#error LLVM 20 is required
-#endif // LLVM 20
+#if LLVM_VERSION_MAJOR != 21
+#error LLVM 21 is required
+#endif // LLVM 21
 
 namespace codegen::llvm_latest
 {
@@ -61,7 +61,8 @@ backend_context::backend_context(ctx::global_context &global_ctx, bz::u8string_v
 {
 	this->_llvm_context.setDiscardValueNames(global_data::discard_llvm_value_names);
 
-	auto const llvm_target_triple = llvm::Triple::normalize(std::string(target_triple.data(), target_triple.size()));
+	auto const llvm_target_triple_string = llvm::Triple::normalize(std::string(target_triple.data(), target_triple.size()));
+	auto const llvm_target_triple = llvm::Triple(llvm_target_triple_string);
 	llvm::InitializeAllDisassemblers();
 	llvm::InitializeAllTargetInfos();
 	llvm::InitializeAllTargets();
@@ -108,7 +109,7 @@ backend_context::backend_context(ctx::global_context &global_ctx, bz::u8string_v
 		if (target_error.substr(0, default_start.length()) == default_start)
 		{
 			global_ctx.report_error(bz::format(
-				"'{}' is not an available target", llvm_target_triple.c_str()
+				"'{}' is not an available target", llvm_target_triple.getTriple().c_str()
 			), std::move(notes));
 		}
 		else
@@ -169,9 +170,8 @@ backend_context::backend_context(ctx::global_context &global_ctx, bz::u8string_v
 	this->_module.setDataLayout(*this->_data_layout);
 	this->_module.setTargetTriple(llvm_target_triple);
 
-	auto const triple = llvm::Triple(llvm_target_triple);
-	auto const os = triple.getOS();
-	auto const arch = triple.getArch();
+	auto const os = llvm_target_triple.getOS();
+	auto const arch = llvm_target_triple.getArch();
 
 	if (os == llvm::Triple::Win32 && arch == llvm::Triple::x86_64)
 	{
@@ -192,7 +192,7 @@ backend_context::backend_context(ctx::global_context &global_ctx, bz::u8string_v
 			ctx::warning_kind::unknown_target,
 			bz::format(
 				"target '{}' has limited support right now, external function calls may not work as intended",
-				llvm_target_triple.c_str()
+				llvm_target_triple.getTriple().c_str()
 			)
 		);
 	}
