@@ -194,6 +194,15 @@ static void add_byval_attributes(llvm::CallInst *call, llvm::Type *byval_type, u
 			call->addParamAttr(index, llvm::Attribute::getWithByValType(context.get_llvm_context(), byval_type));
 			break;
 		}
+		// Captures represents capture(none)
+		case llvm::Attribute::Captures:
+		{
+			call->addParamAttr(
+				index,
+				llvm::Attribute::getWithCaptureInfo(context.get_llvm_context(), llvm::CaptureInfo::none())
+			);
+			break;
+		}
 		default:
 			call->addParamAttr(index, attribute);
 			break;
@@ -213,6 +222,12 @@ static void add_byval_attributes(llvm::Argument &arg, llvm::Type *byval_type, bi
 			arg.addAttr(llvm::Attribute::getWithByValType(context.get_llvm_context(), byval_type));
 			break;
 		}
+		// Captures represents capture(none)
+		case llvm::Attribute::Captures:
+		{
+			arg.addAttr(llvm::Attribute::getWithCaptureInfo(context.get_llvm_context(), llvm::CaptureInfo::none()));
+			break;
+		}
 		default:
 			arg.addAttr(attribute);
 			break;
@@ -229,7 +244,7 @@ static void emit_panic_call(
 	auto const panic_handler_func_body = context.get_builtin_function(ast::function_body::builtin_panic_handler);
 	if (panic_handler_func_body == nullptr)
 	{
-		context.builder.CreateIntrinsic(llvm::Intrinsic::trap, {}, {});
+		context.builder.CreateIntrinsic(llvm::Intrinsic::trap, {});
 
 		auto const current_ret_type = context.current_function.second->getReturnType();
 		if (current_ret_type->isVoidTy())
@@ -289,7 +304,7 @@ static void emit_panic_call(
 	}
 
 	// just to be sure...
-	context.builder.CreateIntrinsic(llvm::Intrinsic::trap, {}, {});
+	context.builder.CreateIntrinsic(llvm::Intrinsic::trap, {});
 
 	auto const current_ret_type = context.current_function.second->getReturnType();
 	if (current_ret_type->isVoidTy())
@@ -3173,7 +3188,7 @@ static val_ptr emit_bitcode(
 			auto const handler_fn = context.get_builtin_function(ast::function_body::builtin_panic_handler);
 			if (handler_fn == nullptr)
 			{
-				context.builder.CreateIntrinsic(llvm::Intrinsic::trap, {}, {});
+				context.builder.CreateIntrinsic(llvm::Intrinsic::trap, {});
 				return val_ptr::get_none();
 			}
 
@@ -3199,7 +3214,7 @@ static val_ptr emit_bitcode(
 			}
 
 			// just to be sure...
-			context.builder.CreateIntrinsic(llvm::Intrinsic::trap, {}, {});
+			context.builder.CreateIntrinsic(llvm::Intrinsic::trap, {});
 
 			return val_ptr::get_none();
 		}
@@ -3299,7 +3314,7 @@ static val_ptr emit_bitcode(
 		case ast::function_body::trap:
 		{
 			bz_assert(func_call.params.size() == 0);
-			context.builder.CreateIntrinsic(llvm::Intrinsic::trap, {}, {});
+			context.builder.CreateIntrinsic(llvm::Intrinsic::trap, {});
 			bz_assert(result_address == nullptr);
 			return val_ptr::get_none();
 		}
@@ -7794,7 +7809,7 @@ static llvm::Function *create_function_from_symbol(
 	{
 		arg_it->addAttr(llvm::Attribute::getWithStructRetType(context.get_llvm_context(), result_t));
 		arg_it->addAttr(llvm::Attribute::NoAlias);
-		arg_it->addAttr(llvm::Attribute::NoCapture);
+		arg_it->addAttr(llvm::Attribute::getWithCaptureInfo(context.get_llvm_context(), llvm::CaptureInfo::none()));
 		arg_it->addAttr(llvm::Attribute::NonNull);
 		++arg_it;
 	}

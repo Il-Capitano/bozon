@@ -8,7 +8,8 @@ static constexpr size_t register_size = 8;
 static constexpr bz::array pass_by_reference_attributes_systemv_amd64 = {
 	llvm::Attribute::ByVal,
 	llvm::Attribute::NoAlias,
-	llvm::Attribute::NoCapture,
+	// Captures represents capture(none)
+	llvm::Attribute::Captures,
 	llvm::Attribute::NonNull,
 };
 
