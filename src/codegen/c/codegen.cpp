@@ -622,7 +622,7 @@ static void generate_constant_float64_array_value(
 	}
 }
 
-static void generate_constant_value_string(
+static void generate_constant_value_string_helper(
 	bz::u8string &buffer,
 	ast::constant_value const &value,
 	ast::typespec_view type,
@@ -822,6 +822,35 @@ static void generate_constant_value_string(
 	}
 	default:
 		bz_unreachable;
+	}
+}
+
+static void generate_constant_value_string(
+	bz::u8string &buffer,
+	ast::constant_value const &value,
+	ast::typespec_view type,
+	bool use_struct_literals,
+	codegen_context &context
+)
+{
+	type = type.remove_any_mut();
+	if (type.is_optional() && !type.is_optional_pointer_like() && !value.is_null_constant())
+	{
+		if (use_struct_literals)
+		{
+			// empty braces is a GNU extension
+			if (use_struct_literals)
+			{
+				buffer += bz::format("({})", context.to_string(get_type(type, context)));
+			}
+			buffer += "{ ";
+			generate_constant_value_string(buffer, value, type.get_optional(), use_struct_literals, context);
+			buffer += ", 1 }";
+		}
+	}
+	else
+	{
+		generate_constant_value_string_helper(buffer, value, type, use_struct_literals, context);
 	}
 }
 
@@ -6375,18 +6404,7 @@ static expr_value generate_expression(
 
 	auto value_string = generate_constant_value_string(const_expr.value, const_expr.type, context);
 
-	if (const_expr.type.is_optional() && !const_expr.value.is_null_constant())
-	{
-		if (!result_dest.has_value())
-		{
-			result_dest = context.add_uninitialized_value(get_type(const_expr.type, context));
-		}
-		auto const &result_value = result_dest.get();
-		context.create_assignment(get_optional_value(result_value, context), value_string);
-		set_optional_has_value(result_value, true, context);
-		return result_value;
-	}
-	else if (result_dest.has_value())
+	if (result_dest.has_value())
 	{
 		auto const &result_value = result_dest.get();
 		context.create_assignment(result_value, value_string);
