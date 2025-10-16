@@ -1116,6 +1116,34 @@ static void create_loop_end(loop_info_t loop_info, codegen_context &context)
 	context.end_while(loop_info.prev_while_info);
 }
 
+struct reverse_loop_info_t
+{
+	expr_value index;
+	codegen_context::while_info_t prev_while_info;
+	codegen_context::expression_scope_info_t prev_scope_info;
+};
+
+static reverse_loop_info_t create_reverse_loop_start(size_t size, codegen_context &context)
+{
+	auto const index_type = context.get_usize();
+	auto const index = context.add_value_expression(
+		context.to_string(context.get_unsigned_value(size, index_type)),
+		index_type
+	);
+	auto const condition = context.create_relational(index, context.get_unsigned_zero_value(index.get_type()), ">");
+	auto const prev_while_info = context.begin_while(condition);
+	context.create_prefix_unary_operation(index, "--");
+	auto const prev_scope_info = context.push_expression_scope();
+
+	return { index, prev_while_info, prev_scope_info };
+}
+
+static void create_reverse_loop_end(reverse_loop_info_t loop_info, codegen_context &context)
+{
+	context.pop_expression_scope(loop_info.prev_scope_info);
+	context.end_while(loop_info.prev_while_info);
+}
+
 static expr_value generate_expression(
 	ast::expr_variable_name const &var_name,
 	codegen_context &context
@@ -4921,14 +4949,14 @@ static expr_value generate_expression(
 
 	bz_assert(context.is_array(value.get_type()));
 	auto const size = context.maybe_get_array(value.get_type())->size;
-	auto const loop_info = create_loop_start(size, context);
+	auto const loop_info = create_reverse_loop_start(size, context);
 
 	auto const elem_value = context.create_array_gep(value, loop_info.index);
 	auto const prev_value = context.push_value_reference(elem_value);
 	generate_expression(array_destruct.elem_destruct_call, context, {});
 	context.pop_value_reference(prev_value);
 
-	create_loop_end(loop_info, context);
+	create_reverse_loop_end(loop_info, context);
 
 	return context.get_void_value();
 }
