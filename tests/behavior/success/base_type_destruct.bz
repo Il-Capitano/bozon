@@ -1,0 +1,173 @@
+let mut a_destructed = false;
+struct A
+{
+	destructor(&mut self)
+	{
+		if (a_destructed) unreachable;
+		if (!b_destructed) unreachable;
+		a_destructed = true;
+	}
+}
+
+let mut b_destructed = false;
+struct B
+{
+	destructor(&mut self)
+	{
+		if (b_destructed) unreachable;
+		if (!c_destructed) unreachable;
+		b_destructed = true;
+	}
+}
+
+let mut c_destructed = false;
+struct C
+{
+	destructor(&mut self)
+	{
+		if (c_destructed) unreachable;
+		if (!d_destructed) unreachable;
+		c_destructed = true;
+	}
+}
+
+let mut d_destructed = false;
+struct D
+{
+	destructor(&mut self)
+	{
+		if (d_destructed) unreachable;
+		for (let val in e_destructed)
+		{
+			if (!val) unreachable;
+		}
+		d_destructed = true;
+	}
+}
+
+consteval e_size = 100uz;
+let mut e_destructed = [e_size: bool]();
+struct E
+{
+	.index: usize;
+
+	destructor(&mut self)
+	{
+		if (e_destructed[self.index]) unreachable;
+		if (self.index + 1 < e_size && !e_destructed[self.index + 1]) unreachable;
+		e_destructed[self.index] = true;
+	}
+}
+
+struct S
+{
+	.a: A;
+	._0: int32;
+	.b: B;
+	._1: float32;
+	.c: C;
+	._2: float64;
+	._3: [10: int64];
+	.d: D;
+	.e: [e_size: E];
+
+	constructor()
+	{
+		let mut result = S[
+			A(),
+			0,
+			B(),
+			0.0f32,
+			C(),
+			0.0,
+			[10: int64](),
+			D(),
+			[e_size: E](),
+		];
+		for (let i in 0..e_size)
+		{
+			result.e[i].index = i;
+		}
+		return move result;
+	}
+
+	destructor(&mut self)
+	{
+		if (any_destructed()) unreachable;
+	}
+}
+
+function reset_destruct_markers()
+{
+	a_destructed = false;
+	b_destructed = false;
+	c_destructed = false;
+	d_destructed = false;
+	for (let &mut val in e_destructed)
+	{
+		val = false;
+	}
+}
+
+function any_destructed() -> bool
+{
+	if (a_destructed || b_destructed || c_destructed || d_destructed) {
+		return true;
+	}
+
+	for (let val in e_destructed)
+	{
+		if (val)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function all_destructed() -> bool
+{
+	if (!(a_destructed && b_destructed && c_destructed && d_destructed))
+	{
+		return false;
+	}
+
+	for (let val in e_destructed)
+	{
+		if (!val)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+function main()
+{
+	{
+		reset_destruct_markers();
+		defer {
+			if (!all_destructed()) unreachable;
+		};
+		let _ = S();
+		defer {
+			if (any_destructed()) unreachable;
+		};
+	}
+
+	{
+		reset_destruct_markers();
+		defer {
+			if (!all_destructed()) unreachable;
+		};
+
+		let s = S();
+		let _ = move s;
+
+		defer {
+			if (any_destructed()) unreachable;
+		};
+	}
+}
