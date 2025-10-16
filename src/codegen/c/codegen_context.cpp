@@ -979,8 +979,14 @@ static void add_global_variable_helper(
 	if (var_decl.tuple_decls.empty())
 	{
 		context.global_variables.insert({ &var_decl, codegen_context::global_variable_t{ std::move(expr_string), var_type } });
+		return;
 	}
-	else if (var_type.is_struct())
+
+	while (var_type.is_typedef())
+	{
+		var_type = context.get_typedef(var_type.get_typedef()).aliased_type;
+	}
+	if (var_type.is_struct())
 	{
 		auto const &member_types = context.get_struct(var_type.get_struct()).members;
 		for (auto const i : bz::iota(0, var_decl.tuple_decls.size()))
@@ -1031,10 +1037,6 @@ void codegen_context::add_global_variable(ast::decl_variable const &var_decl, ty
 		this->variables_string += ";\n";
 	}
 
-	while (var_type.is_typedef())
-	{
-		var_type = this->get_typedef(var_type.get_typedef()).aliased_type;
-	}
 	add_global_variable_helper(var_decl, std::move(name), var_type, *this);
 }
 
