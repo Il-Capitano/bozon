@@ -1,28 +1,28 @@
 import types;
 export type sig_atomic_t = __sig_atomic_t;
 type __sig_atomic_t = int;
-@symbol_name("raise") export function "c" raise(sig: int) -> int;
-export function SIGABRT() -> int
+@__libc_function("signal.h", "raise") export function "c" raise(sig: int) -> int;
+@__libc_macro("signal.h", "SIGABRT") export function SIGABRT() -> int
 {
 	return 6;
 }
-export function SIGFPE() -> int
+@__libc_macro("signal.h", "SIGFPE") export function SIGFPE() -> int
 {
 	return 8;
 }
-export function SIGILL() -> int
+@__libc_macro("signal.h", "SIGILL") export function SIGILL() -> int
 {
 	return 4;
 }
-export function SIGINT() -> int
+@__libc_macro("signal.h", "SIGINT") export function SIGINT() -> int
 {
 	return 2;
 }
-export function SIGSEGV() -> int
+@__libc_macro("signal.h", "SIGSEGV") export function SIGSEGV() -> int
 {
 	return 11;
 }
-export function SIGTERM() -> int
+@__libc_macro("signal.h", "SIGTERM") export function SIGTERM() -> int
 {
 	return 15;
 }

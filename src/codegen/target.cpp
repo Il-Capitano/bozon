@@ -158,6 +158,7 @@ target_properties target_triple::get_target_properties(void) const
 {
 	auto result = target_properties();
 
+	// pointer size and endianness
 	switch (this->arch)
 	{
 	case architecture_kind::x86_64:
@@ -171,6 +172,22 @@ target_properties target_triple::get_target_properties(void) const
 			result = llvm_latest::get_target_properties(this->triple);
 		}
 		break;
+	}
+
+	// c type sizes
+	if (this->arch == architecture_kind::x86_64 && this->os == os_kind::windows)
+	{
+		result.c_short_size = 2;
+		result.c_int_size = 4;
+		result.c_long_size = 4;
+		result.c_long_long_size = 8;
+	}
+	else if (this->arch == architecture_kind::x86_64 && this->os == os_kind::linux)
+	{
+		result.c_short_size = 2;
+		result.c_int_size = 4;
+		result.c_long_size = 8;
+		result.c_long_long_size = 8;
 	}
 
 	return result;

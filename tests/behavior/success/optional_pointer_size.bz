@@ -1,0 +1,22 @@
+import std::libc::stdlib;
+
+function sizeof_type(T: typename) -> usize
+{
+	let alloc = __builtin_pointer_cast(*mut T, std::libc::malloc(sizeof T).get_value());
+	let begin = alloc;
+	let end = alloc + 1;
+	let result = __builtin_pointer_to_int(end) - __builtin_pointer_to_int(begin);
+	std::libc::free(alloc);
+	return result;
+}
+
+function main()
+{
+	if (sizeof_type(?*int32) != sizeof *int32) unreachable;
+	if (sizeof_type(?*int32) != sizeof_type(*int32)) unreachable;
+	if (sizeof_type(?&int32) != sizeof *int32) unreachable;
+	if (sizeof_type(?&int32) != sizeof_type(*int32)) unreachable;
+	if (sizeof_type(?function() -> void) != sizeof function() -> void) unreachable;
+	if (sizeof_type(?function() -> void) != sizeof_type(function() -> void)) unreachable;
+	if (sizeof_type(?function() -> void) != sizeof *int32) unreachable;
+}

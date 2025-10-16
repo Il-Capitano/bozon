@@ -1,0 +1,47 @@
+import resource;
+import counting_resource;
+
+function test(: move auto)
+{}
+
+function main()
+{
+	{
+		test(0);
+		let i = 0;
+		test(move i);
+	}
+
+	{
+		test("hello");
+		let s = "hello";
+		test(move s);
+	}
+
+	{
+		test(resource_t());
+		let r = resource_t();
+		test(move r);
+	}
+
+	{
+		test(complex_resource_t());
+		let r = complex_resource_t();
+		test(move r);
+	}
+
+	{
+		test(relocatable_counting_resource_t());
+		let r = relocatable_counting_resource_t();
+		test(move r);
+	}
+
+	{
+		test(counting_resource_t());
+		let r = counting_resource_t();
+		test(move r);
+	}
+
+	if (!counting_resource_is_valid()) unreachable;
+	if (!relocatable_counting_resource_is_valid()) unreachable;
+}

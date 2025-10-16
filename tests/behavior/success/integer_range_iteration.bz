@@ -1,0 +1,54 @@
+function test(range, sum)
+{
+	mut range_sum = 0 as typeof sum;
+	for (let v in range)
+	{
+		range_sum += v;
+	}
+	if (range_sum != sum) unreachable;
+}
+
+function main()
+{
+	let sum = 0 + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10;
+
+	test(0i8..11i8, sum as int8);
+	test(0i16..11i16, sum as int16);
+	test(0i32..11i32, sum as int32);
+	test(0i64..11i64, sum as int64);
+
+	test(0u8..11u8, sum as uint8);
+	test(0u16..11u16, sum as uint16);
+	test(0u32..11u32, sum as uint32);
+	test(0u64..11u64, sum as uint64);
+
+	test(0i8..=10i8, sum as int8);
+	test(0i16..=10i16, sum as int16);
+	test(0i32..=10i32, sum as int32);
+	test(0i64..=10i64, sum as int64);
+
+	test(0u8..=10u8, sum as uint8);
+	test(0u16..=10u16, sum as uint16);
+	test(0u32..=10u32, sum as uint32);
+	test(0u64..=10u64, sum as uint64);
+
+	test(int8.max - 2..int8.max, (((int8.max - 2) + (int8.max - 1))));
+	test(int16.max - 2..int16.max, (((int16.max - 2) + (int16.max - 1))));
+	test(int32.max - 2..int32.max, (((int32.max - 2) + (int32.max - 1))));
+	test(int64.max - 2..int64.max, (((int64.max - 2) + (int64.max - 1))));
+
+	test(uint8.max - 2..uint8.max, (((uint8.max - 2) + (uint8.max - 1))));
+	test(uint16.max - 2..uint16.max, (((uint16.max - 2) + (uint16.max - 1))));
+	test(uint32.max - 2..uint32.max, (((uint32.max - 2) + (uint32.max - 1))));
+	test(uint64.max - 2..uint64.max, (((uint64.max - 2) + (uint64.max - 1))));
+
+	test(int8.max - 2..=int8.max, (((((int8.max - 2) + (int8.max - 1))) + int8.max)));
+	test(int16.max - 2..=int16.max, (((((int16.max - 2) + (int16.max - 1))) + int16.max)));
+	test(int32.max - 2..=int32.max, (((((int32.max - 2) + (int32.max - 1))) + int32.max)));
+	test(int64.max - 2..=int64.max, (((((int64.max - 2) + (int64.max - 1))) + int64.max)));
+
+	test(uint8.max - 2..=uint8.max, (((((uint8.max - 2) + (uint8.max - 1))) + uint8.max)));
+	test(uint16.max - 2..=uint16.max, (((((uint16.max - 2) + (uint16.max - 1))) + uint16.max)));
+	test(uint32.max - 2..=uint32.max, (((((uint32.max - 2) + (uint32.max - 1))) + uint32.max)));
+	test(uint64.max - 2..=uint64.max, (((((uint64.max - 2) + (uint64.max - 1))) + uint64.max)));
+}

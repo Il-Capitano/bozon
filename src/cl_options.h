@@ -90,10 +90,15 @@ inline constexpr bz::array ctcli::option_group<code_gen_group_id> = {
 	ctcli::create_group_element("panic-on-null-pointer-arithmetic", "Call '__builtin_panic' if null is used in pointer arithmetic (default=true)"),
 	ctcli::create_group_element("panic-on-null-get-value",          "Call '__builtin_panic' if 'get_value' is called with a null value (default=true)"),
 	ctcli::create_group_element("panic-on-invalid-switch",          "Call '__builtin_panic' if an invalid enum value is used in a 'switch' expression (default=true)"),
+	ctcli::create_group_element("panic-on-int-divide-by-zero",      "Call '__builtin_panic' on integer division by zero (default=true)"),
 	ctcli::create_group_element("discard-llvm-value-names",         "Discard values names for LLVM bitcode (default=true)"),
 	ctcli::create_group_element("freestanding",                     "Generate code with no external dependencies (default=false)"),
 	ctcli::create_group_element("target-pointer-size=<size>",       "Pointer size of the target architecture in bytes", ctcli::arg_type::uint64),
 	ctcli::create_group_element("target-endianness={little|big}",   "Endianness of the target architecture"),
+	ctcli::create_group_element("target-c-short-size=<size>",       "Size of 'short' in bytes on the target architecture", ctcli::arg_type::uint32),
+	ctcli::create_group_element("target-c-int-size=<size>",         "Size of 'int' in bytes on the target architecture", ctcli::arg_type::uint32),
+	ctcli::create_group_element("target-c-long-size=<size>",        "Size of 'long' in bytes on the target architecture", ctcli::arg_type::uint32),
+	ctcli::create_group_element("target-c-long-long-size=<size>",   "Size of 'long long' in bytes on the target architecture", ctcli::arg_type::uint32),
 };
 
 namespace internal
@@ -165,6 +170,10 @@ inline constexpr bz::u8string_view emit_usage = internal::static_string_maker::m
 	{
 		writer.write("obj|asm|llvm-bc|llvm-ir|");
 	}
+	if (config::backend_c)
+	{
+		writer.write("c|");
+	}
 	writer.write("null}");
 }>;
 
@@ -173,6 +182,10 @@ inline constexpr bz::u8string_view emit_help = internal::static_string_maker::ma
 	if (config::backend_llvm)
 	{
 		writer.write("obj");
+	}
+	else if (config::backend_c)
+	{
+		writer.write("c");
 	}
 	else
 	{
@@ -246,33 +259,34 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--enab
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--return-zero-on-error")>     = &global_data::return_zero_on_error;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--verbose")>                  = &global_data::do_verbose;
 
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn int-overflow")>             = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::int_overflow)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn int-divide-by-zero")>       = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::int_divide_by_zero)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn float-overflow")>           = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::float_overflow)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn float-divide-by-zero")>     = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::float_divide_by_zero)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn float-nan-math")>           = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::float_nan_math)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unknown-attribute")>        = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::unknown_attribute)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn null-pointer-dereference")> = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::null_pointer_dereference)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unused-value")>             = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::unused_value)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unclosed-comment")>         = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::unclosed_comment)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn mismatched-brace-indent")>  = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::mismatched_brace_indent)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unused-variable")>          = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::unused_variable)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn greek-question-mark")>      = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::greek_question_mark)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn bad-file-extension")>       = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::bad_file_extension)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unknown-target")>           = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::unknown_target)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn invalid-unicode")>          = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::invalid_unicode)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn nan-compare")>              = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::nan_compare)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn out-of-bounds-index")>      = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::out_of_bounds_index)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn math-domain-error")>        = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::math_domain_error)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn binary-stdout")>            = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::binary_stdout)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn is-comptime-always-true")>  = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::is_comptime_always_true)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn non-exhaustive-switch")>    = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::non_exhaustive_switch)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unneeded-else")>            = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::unneeded_else)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn assign-in-condition")>      = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::assign_in_condition)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn get-value-null")>           = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::get_value_null)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn enum-value-overflow")>      = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::enum_value_overflow)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn comptime-warning")>         = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::comptime_warning)];
-static_assert(static_cast<size_t>(ctx::warning_kind::_last) == 26);
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn int-overflow")>                = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::int_overflow)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn int-divide-by-zero")>          = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::int_divide_by_zero)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn float-overflow")>              = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::float_overflow)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn float-divide-by-zero")>        = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::float_divide_by_zero)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn float-nan-math")>              = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::float_nan_math)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unknown-attribute")>           = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::unknown_attribute)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn null-pointer-dereference")>    = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::null_pointer_dereference)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unused-value")>                = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::unused_value)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unclosed-comment")>            = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::unclosed_comment)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn mismatched-brace-indent")>     = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::mismatched_brace_indent)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unused-variable")>             = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::unused_variable)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn greek-question-mark")>         = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::greek_question_mark)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn bad-file-extension")>          = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::bad_file_extension)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unknown-target")>              = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::unknown_target)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn invalid-unicode")>             = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::invalid_unicode)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn nan-compare")>                 = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::nan_compare)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn out-of-bounds-index")>         = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::out_of_bounds_index)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn math-domain-error")>           = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::math_domain_error)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn binary-stdout")>               = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::binary_stdout)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn is-comptime-always-true")>     = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::is_comptime_always_true)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn non-exhaustive-switch")>       = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::non_exhaustive_switch)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unneeded-else")>               = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::unneeded_else)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn assign-in-condition")>         = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::assign_in_condition)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn get-value-null")>              = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::get_value_null)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn enum-value-overflow")>         = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::enum_value_overflow)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn sizeof-reference-expression")> = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::sizeof_reference_expression)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn comptime-warning")>            = &global_data::warnings[static_cast<size_t>(ctx::warning_kind::comptime_warning)];
+static_assert(static_cast<size_t>(ctx::warning_kind::_last) == 27);
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt max-iter-count")>         = &global_data::max_opt_iter_count;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt opt-level")>              = &global_data::opt_level;
@@ -284,10 +298,15 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element(
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-null-pointer-arithmetic")> = &global_data::panic_on_null_pointer_arithmetic;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-null-get-value")>          = &global_data::panic_on_null_get_value;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-invalid-switch")>          = &global_data::panic_on_invalid_switch;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen panic-on-int-divide-by-zero")>      = &global_data::panic_on_int_divide_by_zero;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen discard-llvm-value-names")>         = &global_data::discard_llvm_value_names;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen freestanding")>                     = &global_data::freestanding;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-pointer-size")>              = &global_data::target_pointer_size;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-endianness")>                = &global_data::target_endianness;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-c-short-size")>              = &global_data::target_c_short_size;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-c-int-size")>                = &global_data::target_c_int_size;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-c-long-size")>               = &global_data::target_c_long_size;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--code-gen target-c-long-long-size")>          = &global_data::target_c_long_long_size;
 
 template<>
 inline constexpr auto ctcli::argument_parse_function<ctcli::option("--emit")> = [](bz::u8string_view arg) -> std::optional<emit_type> {

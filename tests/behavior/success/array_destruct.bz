@@ -1,0 +1,125 @@
+consteval a_size = 10uz;
+let mut a_destructed = [a_size: bool]();
+struct A
+{
+	.index: usize;
+
+	destructor(&mut self)
+	{
+		if (a_destructed[self.index]) unreachable;
+		if (self.index + 1 < a_size && !a_destructed[self.index + 1]) unreachable;
+		a_destructed[self.index] = true;
+	}
+}
+
+consteval b_size = 100uz;
+let mut b_destructed = [b_size: bool]();
+struct B
+{
+	.index: usize;
+
+	destructor(&mut self)
+	{
+		if (b_destructed[self.index]) unreachable;
+		if (self.index + 1 < b_size && !b_destructed[self.index + 1]) unreachable;
+		b_destructed[self.index] = true;
+	}
+}
+
+function reset_destruct_markers()
+{
+	for (let &mut val in a_destructed)
+	{
+		val = false;
+	}
+	for (let &mut val in b_destructed)
+	{
+		val = false;
+	}
+}
+
+function any_destructed() -> bool
+{
+	for (let val in a_destructed)
+	{
+		if (val)
+		{
+			return true;
+		}
+	}
+	for (let val in b_destructed)
+	{
+		if (val)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function all_destructed() -> bool
+{
+	for (let val in a_destructed)
+	{
+		if (!val)
+		{
+			return false;
+		}
+	}
+	for (let val in b_destructed)
+	{
+		if (!val)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+function main()
+{
+	{
+		reset_destruct_markers();
+		defer {
+			if (!all_destructed()) unreachable;
+		};
+		let mut a = [a_size: A]();
+		for (let i in 0..a_size)
+		{
+			a[i].index = i;
+		}
+		let mut b = [b_size: B]();
+		for (let i in 0..b_size)
+		{
+			b[i].index = i;
+		}
+		defer {
+			if (any_destructed()) unreachable;
+		};
+	}
+	{
+		reset_destruct_markers();
+		defer {
+			if (!all_destructed()) unreachable;
+		};
+
+		let mut a = [a_size: A]();
+		for (let i in 0..a_size)
+		{
+			a[i].index = i;
+		}
+		let mut b = [b_size: B]();
+		for (let i in 0..b_size)
+		{
+			b[i].index = i;
+		}
+		let _ = move a;
+		let _ = move b;
+
+		defer {
+			if (any_destructed()) unreachable;
+		};
+	}
+}

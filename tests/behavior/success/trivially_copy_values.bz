@@ -1,0 +1,63 @@
+import malloc;
+
+struct count_destructions_t
+{
+	.count: *mut usize;
+
+	destructor(&self)
+	{
+		*self.count += 1;
+	}
+}
+
+function test1(count: *mut usize)
+{
+	let v = count_destructions_t[ count ];
+
+	let p = malloc(count_destructions_t, 1);
+	defer free(p);
+
+	__builtin_trivially_copy_values(p, &v, 1);
+	defer __builtin_destruct_value(*p);
+}
+
+function test2()
+{
+	mut a = [10: int32]();
+	mut b = [10: int32]();
+
+	for (let &mut v in a)
+	{
+		v = 3;
+	}
+
+	for (let i in 0..a.size())
+	{
+		if (a[i] != 3 || b[i] != 0) unreachable;
+	}
+
+	__builtin_trivially_copy_values(b.begin(), a.begin(), a.size());
+
+	for (let i in 0..a.size())
+	{
+		if (a[i] != 3 || b[i] != 3) unreachable;
+	}
+}
+
+function main()
+{
+	mut count = 0uz;
+	test1(&count);
+	if (count != 2) unreachable;
+
+	test2();
+
+	mut i = 0;
+	let p = &i;
+	let np = null as ?*mut int32;
+
+	__builtin_trivially_copy_values(p, p, 0);
+	__builtin_trivially_copy_values(p, np, 0);
+	__builtin_trivially_copy_values(np, p, 0);
+	__builtin_trivially_copy_values(np, np, 0);
+}

@@ -1,0 +1,52 @@
+struct S
+{
+	.i: int32;
+	.j: usize;
+	.x: float32;
+	.y: float64;
+	.a: [20: uint32];
+	.s: str;
+}
+
+function main()
+{
+	{
+		static_assert(__builtin_is_trivially_copy_constructible(int32));
+		let n: int32 = 42;
+		let n_copy = n;
+		if (n != n_copy) unreachable;
+	}
+
+	{
+		static_assert(__builtin_is_trivially_copy_constructible(float64));
+		let x: float64 = 42.42;
+		let x_copy = x;
+		if (x != x_copy) unreachable;
+	}
+
+	{
+		static_assert(__builtin_is_trivially_copy_constructible(str));
+		let s: str = "hello";
+		let s_copy = s;
+		if (s != s_copy) unreachable;
+	}
+
+	{
+		static_assert(__builtin_is_trivially_copy_constructible(S));
+		let s: S = S[
+			-99,
+			100,
+			3.14159265f32,
+			2.71828,
+			__builtin_create_initialized_array([20: uint32], 42u32),
+			"hello",
+		];
+		let s_copy = s;
+		if (s.i != s_copy.i) unreachable;
+		if (s.j != s_copy.j) unreachable;
+		if (s.x != s_copy.x) unreachable;
+		if (s.y != s_copy.y) unreachable;
+		if (s.a != s_copy.a) unreachable;
+		if (s.s != s_copy.s) unreachable;
+	}
+}

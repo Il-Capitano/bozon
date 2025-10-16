@@ -1,0 +1,324 @@
+import resource;
+import counting_resource;
+
+struct S
+{
+	.i: int32;
+	.j: usize;
+	.x: float32;
+	.y: float64;
+	.a: [20: uint32];
+	.s: str;
+}
+
+struct complex_S
+{
+	.r0: resource_t;
+	.r1: complex_resource_t;
+	.cr0: relocatable_counting_resource_t;
+	.cr1: counting_resource_t;
+}
+
+function main()
+{
+	{
+		mut a = [1: int32]();
+		a[0] = 42;
+		let a = move a;
+		for (let i in 0..a.size())
+		{
+			if (a[i] != switch (i) {
+				0 => 42,
+				else => int32(),
+			}) unreachable;
+		}
+		mut a = [10: int32]();
+		a[0] = 42;
+		a[4] = 99;
+		a[8] = 10;
+		let a = move a;
+		for (let i in 0..a.size())
+		{
+			if (a[i] != switch (i) {
+				0 => 42,
+				4 => 99,
+				8 => 10,
+				else => int32(),
+			}) unreachable;
+		}
+		mut a = [100: int32]();
+		a[0] = 42;
+		a[4] = 99;
+		a[8] = 10;
+		a[66] = 33;
+		a[90] = 90;
+		let a = move a;
+		for (let i in 0..a.size())
+		{
+			if (a[i] != switch (i) {
+				0 => 42,
+				4 => 99,
+				8 => 10,
+				66 => 33,
+				90 => 90,
+				else => int32(),
+			}) unreachable;
+		}
+	}
+
+	{
+		mut a = [1: float64]();
+		a[0] = 42.42;
+		let a = move a;
+		for (let i in 0..a.size())
+		{
+			if (a[i] != switch (i) {
+				0 => 42.42,
+				else => float64(),
+			}) unreachable;
+		}
+		mut a = [10: float64]();
+		a[0] = 42.42;
+		a[4] = 99.99;
+		a[8] = 10.10;
+		let a = move a;
+		for (let i in 0..a.size())
+		{
+			if (a[i] != switch (i) {
+				0 => 42.42,
+				4 => 99.99,
+				8 => 10.10,
+				else => float64(),
+			}) unreachable;
+		}
+		mut a = [100: float64]();
+		a[0] = 42.42;
+		a[4] = 99.99;
+		a[8] = 10.10;
+		a[66] = 33.33;
+		a[90] = 90.90;
+		let a = move a;
+		for (let i in 0..a.size())
+		{
+			if (a[i] != switch (i) {
+				0 => 42.42,
+				4 => 99.99,
+				8 => 10.10,
+				66 => 33.33,
+				90 => 90.90,
+				else => float64(),
+			}) unreachable;
+		}
+	}
+
+	{
+		mut a = [1: str]();
+		a[0] = "hello";
+		let a = move a;
+		for (let i in 0..a.size())
+		{
+			if (a[i] != switch (i) {
+				0 => "hello",
+				else => str(),
+			}) unreachable;
+		}
+		mut a = [10: str]();
+		a[0] = "hello";
+		a[4] = "there";
+		a[8] = "hi";
+		let a = move a;
+		for (let i in 0..a.size())
+		{
+			if (a[i] != switch (i) {
+				0 => "hello",
+				4 => "there",
+				8 => "hi",
+				else => str(),
+			}) unreachable;
+		}
+		mut a = [100: str]();
+		a[0] = "hello";
+		a[4] = "there";
+		a[8] = "hi";
+		a[66] = "test";
+		a[90] = "testing a longer string as well as short strings before this";
+		let a = move a;
+		for (let i in 0..a.size())
+		{
+			if (a[i] != switch (i) {
+				0 => "hello",
+				4 => "there",
+				8 => "hi",
+				66 => "test",
+				90 => "testing a longer string as well as short strings before this",
+				else => str(),
+			}) unreachable;
+		}
+	}
+
+	{
+		let a = [1: resource_t]();
+		let _ = move a;
+		let a = [10: resource_t]();
+		let _ = move a;
+		let a = [100: resource_t]();
+		let _ = move a;
+		let a = [1: complex_resource_t]();
+		let _ = move a;
+		let a = [10: complex_resource_t]();
+		let _ = move a;
+		let a = [100: complex_resource_t]();
+		let _ = move a;
+		let a = [1: relocatable_counting_resource_t]();
+		let _ = move a;
+		let a = [10: relocatable_counting_resource_t]();
+		let _ = move a;
+		let a = [100: relocatable_counting_resource_t]();
+		let _ = move a;
+		let a = [1: counting_resource_t]();
+		let _ = move a;
+		let a = [10: counting_resource_t]();
+		let _ = move a;
+		let a = [100: counting_resource_t]();
+		let _ = move a;
+		let a = [1: [resource_t, complex_resource_t, relocatable_counting_resource_t, counting_resource_t]]();
+		let _ = move a;
+		let a = [10: [resource_t, complex_resource_t, relocatable_counting_resource_t, counting_resource_t]]();
+		let _ = move a;
+		let a = [100: [resource_t, complex_resource_t, relocatable_counting_resource_t, counting_resource_t]]();
+		let _ = move a;
+	}
+
+	{
+		let a = [10, 10: resource_t]();
+		let _ = move a;
+		let a = [10, 10: complex_resource_t]();
+		let _ = move a;
+		let a = [10, 10: relocatable_counting_resource_t]();
+		let _ = move a;
+		let a = [10, 10: counting_resource_t]();
+		let _ = move a;
+		let a = [10, 10: [resource_t, complex_resource_t, relocatable_counting_resource_t, counting_resource_t]]();
+		let _ = move a;
+	}
+
+	{
+		mut a = [1: S]();
+		a[0].x = 3.14159265f32;
+		a[0].a[3] = 99;
+		let a = move a;
+		for (let i in 0..a.size())
+		{
+			if (a[i].i != S().i) unreachable;
+			if (a[i].j != S().j) unreachable;
+			if (a[i].x != switch (i) {
+				0 => 3.14159265f32,
+				else => S().x,
+			}) unreachable;
+			if (a[i].y != S().y) unreachable;
+			if (switch (i) {
+				0 => {
+					mut S_a = S().a;
+					S_a[3] = 99;
+					a[i].a != S_a
+				},
+				else => a[i].a != S().a,
+			}) unreachable;
+			if (a[i].s != S().s) unreachable;
+		}
+		mut a = [10: S]();
+		a[0].x = 3.14159265f32;
+		a[0].a[3] = 99;
+		a[3].i = -42;
+		a[3].y = 2.71828;
+		a[7].s = "hello";
+		let a = move a;
+		for (let i in 0..a.size())
+		{
+			if (a[i].i != switch (i) {
+				3 => -42,
+				else => S().i,
+			}) unreachable;
+			if (a[i].j != S().j) unreachable;
+			if (a[i].x != switch (i) {
+				0 => 3.14159265f32,
+				else => S().x,
+			}) unreachable;
+			if (a[i].y != switch (i) {
+				3 => 2.71828,
+				else => S().y,
+			}) unreachable;
+			if (switch (i) {
+				0 => {
+					mut S_a = S().a;
+					S_a[3] = 99;
+					a[i].a != S_a
+				},
+				else => a[i].a != S().a,
+			}) unreachable;
+			if (a[i].s != switch (i) {
+				7 => "hello",
+				else => S().s,
+			}) unreachable;
+		}
+		mut a = [100: S]();
+		a[0].x = 3.14159265f32;
+		a[0].a[3] = 99;
+		a[3].i = -42;
+		a[3].y = 2.71828;
+		a[7].s = "hello";
+		a[66].x = 3.14159265f32;
+		a[66].a[3] = 99;
+		a[84].i = -42;
+		a[84].y = 2.71828;
+		a[90].s = "hello";
+		let a = move a;
+		for (let i in 0..a.size())
+		{
+			if (a[i].i != switch (i) {
+				3 => -42,
+				84 => -42,
+				else => S().i,
+			}) unreachable;
+			if (a[i].j != S().j) unreachable;
+			if (a[i].x != switch (i) {
+				0 => 3.14159265f32,
+				66 => 3.14159265f32,
+				else => S().x,
+			}) unreachable;
+			if (a[i].y != switch (i) {
+				3 => 2.71828,
+				84 => 2.71828,
+				else => S().y,
+			}) unreachable;
+			if (switch (i) {
+				0 => {
+					mut S_a = S().a;
+					S_a[3] = 99;
+					a[i].a != S_a
+				},
+				66 => {
+					mut S_a = S().a;
+					S_a[3] = 99;
+					a[i].a != S_a
+				},
+				else => a[i].a != S().a,
+			}) unreachable;
+			if (a[i].s != switch (i) {
+				7 => "hello",
+				90 => "hello",
+				else => S().s,
+			}) unreachable;
+		}
+
+		let a = [1: complex_S]();
+		let _ = move a;
+		let a = [10: complex_S]();
+		let _ = move a;
+		let a = [100: complex_S]();
+		let _ = move a;
+	}
+
+	if (!counting_resource_is_valid()) unreachable;
+	if (!relocatable_counting_resource_is_valid()) unreachable;
+}
