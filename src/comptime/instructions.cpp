@@ -11,7 +11,7 @@ static_assert([]<typename ...Ts>(bz::meta::type_pack<Ts...>) {
 	return bz::meta::is_all<std::is_trivial_v<Ts>...>;
 }(instruction_list_t()));
 
-static_assert(instruction_list_t::size() == 576);
+static_assert(instruction_list_t::size() == 514);
 static_assert(instruction::const_i1                 == instruction::index_of<instructions::const_i1>);
 static_assert(instruction::const_i8                 == instruction::index_of<instructions::const_i8>);
 static_assert(instruction::const_i16                == instruction::index_of<instructions::const_i16>);
@@ -122,78 +122,16 @@ static_assert(instruction::cast_u8_to_f64           == instruction::index_of<ins
 static_assert(instruction::cast_u16_to_f64          == instruction::index_of<instructions::cast_u16_to_f64>);
 static_assert(instruction::cast_u32_to_f64          == instruction::index_of<instructions::cast_u32_to_f64>);
 static_assert(instruction::cast_u64_to_f64          == instruction::index_of<instructions::cast_u64_to_f64>);
-static_assert(instruction::cmp_eq_i1                == instruction::index_of<instructions::cmp_eq_i1>);
-static_assert(instruction::cmp_eq_i8                == instruction::index_of<instructions::cmp_eq_i8>);
-static_assert(instruction::cmp_eq_i16               == instruction::index_of<instructions::cmp_eq_i16>);
-static_assert(instruction::cmp_eq_i32               == instruction::index_of<instructions::cmp_eq_i32>);
-static_assert(instruction::cmp_eq_i64               == instruction::index_of<instructions::cmp_eq_i64>);
-static_assert(instruction::cmp_eq_f32               == instruction::index_of<instructions::cmp_eq_f32>);
-static_assert(instruction::cmp_eq_f64               == instruction::index_of<instructions::cmp_eq_f64>);
-static_assert(instruction::cmp_eq_f32_check         == instruction::index_of<instructions::cmp_eq_f32_check>);
-static_assert(instruction::cmp_eq_f64_check         == instruction::index_of<instructions::cmp_eq_f64_check>);
-static_assert(instruction::cmp_eq_ptr               == instruction::index_of<instructions::cmp_eq_ptr>);
-static_assert(instruction::cmp_neq_i1               == instruction::index_of<instructions::cmp_neq_i1>);
-static_assert(instruction::cmp_neq_i8               == instruction::index_of<instructions::cmp_neq_i8>);
-static_assert(instruction::cmp_neq_i16              == instruction::index_of<instructions::cmp_neq_i16>);
-static_assert(instruction::cmp_neq_i32              == instruction::index_of<instructions::cmp_neq_i32>);
-static_assert(instruction::cmp_neq_i64              == instruction::index_of<instructions::cmp_neq_i64>);
-static_assert(instruction::cmp_neq_f32              == instruction::index_of<instructions::cmp_neq_f32>);
-static_assert(instruction::cmp_neq_f64              == instruction::index_of<instructions::cmp_neq_f64>);
-static_assert(instruction::cmp_neq_f32_check        == instruction::index_of<instructions::cmp_neq_f32_check>);
-static_assert(instruction::cmp_neq_f64_check        == instruction::index_of<instructions::cmp_neq_f64_check>);
-static_assert(instruction::cmp_neq_ptr              == instruction::index_of<instructions::cmp_neq_ptr>);
-static_assert(instruction::cmp_lt_i8                == instruction::index_of<instructions::cmp_lt_i8>);
-static_assert(instruction::cmp_lt_i16               == instruction::index_of<instructions::cmp_lt_i16>);
-static_assert(instruction::cmp_lt_i32               == instruction::index_of<instructions::cmp_lt_i32>);
-static_assert(instruction::cmp_lt_i64               == instruction::index_of<instructions::cmp_lt_i64>);
-static_assert(instruction::cmp_lt_u8                == instruction::index_of<instructions::cmp_lt_u8>);
-static_assert(instruction::cmp_lt_u16               == instruction::index_of<instructions::cmp_lt_u16>);
-static_assert(instruction::cmp_lt_u32               == instruction::index_of<instructions::cmp_lt_u32>);
-static_assert(instruction::cmp_lt_u64               == instruction::index_of<instructions::cmp_lt_u64>);
-static_assert(instruction::cmp_lt_f32               == instruction::index_of<instructions::cmp_lt_f32>);
-static_assert(instruction::cmp_lt_f64               == instruction::index_of<instructions::cmp_lt_f64>);
-static_assert(instruction::cmp_lt_f32_check         == instruction::index_of<instructions::cmp_lt_f32_check>);
-static_assert(instruction::cmp_lt_f64_check         == instruction::index_of<instructions::cmp_lt_f64_check>);
-static_assert(instruction::cmp_lt_ptr               == instruction::index_of<instructions::cmp_lt_ptr>);
-static_assert(instruction::cmp_gt_i8                == instruction::index_of<instructions::cmp_gt_i8>);
-static_assert(instruction::cmp_gt_i16               == instruction::index_of<instructions::cmp_gt_i16>);
-static_assert(instruction::cmp_gt_i32               == instruction::index_of<instructions::cmp_gt_i32>);
-static_assert(instruction::cmp_gt_i64               == instruction::index_of<instructions::cmp_gt_i64>);
-static_assert(instruction::cmp_gt_u8                == instruction::index_of<instructions::cmp_gt_u8>);
-static_assert(instruction::cmp_gt_u16               == instruction::index_of<instructions::cmp_gt_u16>);
-static_assert(instruction::cmp_gt_u32               == instruction::index_of<instructions::cmp_gt_u32>);
-static_assert(instruction::cmp_gt_u64               == instruction::index_of<instructions::cmp_gt_u64>);
-static_assert(instruction::cmp_gt_f32               == instruction::index_of<instructions::cmp_gt_f32>);
-static_assert(instruction::cmp_gt_f64               == instruction::index_of<instructions::cmp_gt_f64>);
-static_assert(instruction::cmp_gt_f32_check         == instruction::index_of<instructions::cmp_gt_f32_check>);
-static_assert(instruction::cmp_gt_f64_check         == instruction::index_of<instructions::cmp_gt_f64_check>);
-static_assert(instruction::cmp_gt_ptr               == instruction::index_of<instructions::cmp_gt_ptr>);
-static_assert(instruction::cmp_lte_i8               == instruction::index_of<instructions::cmp_lte_i8>);
-static_assert(instruction::cmp_lte_i16              == instruction::index_of<instructions::cmp_lte_i16>);
-static_assert(instruction::cmp_lte_i32              == instruction::index_of<instructions::cmp_lte_i32>);
-static_assert(instruction::cmp_lte_i64              == instruction::index_of<instructions::cmp_lte_i64>);
-static_assert(instruction::cmp_lte_u8               == instruction::index_of<instructions::cmp_lte_u8>);
-static_assert(instruction::cmp_lte_u16              == instruction::index_of<instructions::cmp_lte_u16>);
-static_assert(instruction::cmp_lte_u32              == instruction::index_of<instructions::cmp_lte_u32>);
-static_assert(instruction::cmp_lte_u64              == instruction::index_of<instructions::cmp_lte_u64>);
-static_assert(instruction::cmp_lte_f32              == instruction::index_of<instructions::cmp_lte_f32>);
-static_assert(instruction::cmp_lte_f64              == instruction::index_of<instructions::cmp_lte_f64>);
-static_assert(instruction::cmp_lte_f32_check        == instruction::index_of<instructions::cmp_lte_f32_check>);
-static_assert(instruction::cmp_lte_f64_check        == instruction::index_of<instructions::cmp_lte_f64_check>);
-static_assert(instruction::cmp_lte_ptr              == instruction::index_of<instructions::cmp_lte_ptr>);
-static_assert(instruction::cmp_gte_i8               == instruction::index_of<instructions::cmp_gte_i8>);
-static_assert(instruction::cmp_gte_i16              == instruction::index_of<instructions::cmp_gte_i16>);
-static_assert(instruction::cmp_gte_i32              == instruction::index_of<instructions::cmp_gte_i32>);
-static_assert(instruction::cmp_gte_i64              == instruction::index_of<instructions::cmp_gte_i64>);
-static_assert(instruction::cmp_gte_u8               == instruction::index_of<instructions::cmp_gte_u8>);
-static_assert(instruction::cmp_gte_u16              == instruction::index_of<instructions::cmp_gte_u16>);
-static_assert(instruction::cmp_gte_u32              == instruction::index_of<instructions::cmp_gte_u32>);
-static_assert(instruction::cmp_gte_u64              == instruction::index_of<instructions::cmp_gte_u64>);
-static_assert(instruction::cmp_gte_f32              == instruction::index_of<instructions::cmp_gte_f32>);
-static_assert(instruction::cmp_gte_f64              == instruction::index_of<instructions::cmp_gte_f64>);
-static_assert(instruction::cmp_gte_f32_check        == instruction::index_of<instructions::cmp_gte_f32_check>);
-static_assert(instruction::cmp_gte_f64_check        == instruction::index_of<instructions::cmp_gte_f64_check>);
-static_assert(instruction::cmp_gte_ptr              == instruction::index_of<instructions::cmp_gte_ptr>);
+static_assert(instruction::cmp_i1                   == instruction::index_of<instructions::cmp_i1>);
+static_assert(instruction::cmp_i8                   == instruction::index_of<instructions::cmp_i8>);
+static_assert(instruction::cmp_i16                  == instruction::index_of<instructions::cmp_i16>);
+static_assert(instruction::cmp_i32                  == instruction::index_of<instructions::cmp_i32>);
+static_assert(instruction::cmp_i64                  == instruction::index_of<instructions::cmp_i64>);
+static_assert(instruction::cmp_f32                  == instruction::index_of<instructions::cmp_f32>);
+static_assert(instruction::cmp_f64                  == instruction::index_of<instructions::cmp_f64>);
+static_assert(instruction::cmp_f32_check            == instruction::index_of<instructions::cmp_f32_check>);
+static_assert(instruction::cmp_f64_check            == instruction::index_of<instructions::cmp_f64_check>);
+static_assert(instruction::cmp_ptr                  == instruction::index_of<instructions::cmp_ptr>);
 static_assert(instruction::neg_i8                   == instruction::index_of<instructions::neg_i8>);
 static_assert(instruction::neg_i16                  == instruction::index_of<instructions::neg_i16>);
 static_assert(instruction::neg_i32                  == instruction::index_of<instructions::neg_i32>);
@@ -593,7 +531,7 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 {
 	switch (inst_.index())
 	{
-	static_assert(instruction_list_t::size() == 576);
+	static_assert(instruction_list_t::size() == 514);
 	case instruction::const_i1:
 	{
 		auto const &inst = inst_.get<instructions::const_i1>();
@@ -1143,365 +1081,66 @@ bz::u8string to_string(instruction const &inst_, function const *func)
 		auto const &inst = inst_.get<instructions::cast_u64_to_f64>();
 		return bz::format("int-to-fp u64 to f64 {}", inst.args[0]);
 	}
-	case instruction::cmp_eq_i1:
+	case instruction::cmp_i1:
 	{
-		auto const &inst = inst_.get<instructions::cmp_eq_i1>();
-		return bz::format("cmp eq i1 {}, {}", inst.args[0], inst.args[1]);
+		auto const &inst = inst_.get<instructions::cmp_i1>();
+		return bz::format("cmp {} i1 {}, {}", inst.kind, inst.args[0], inst.args[1]);
 	}
-	case instruction::cmp_eq_i8:
+	case instruction::cmp_i8:
 	{
-		auto const &inst = inst_.get<instructions::cmp_eq_i8>();
-		return bz::format("cmp eq i8 {}, {}", inst.args[0], inst.args[1]);
+		auto const &inst = inst_.get<instructions::cmp_i8>();
+		bz::u8string_view type_name = instructions::is_unsigned_compare(inst.kind) ? "u8" : "i8";
+		return bz::format("cmp {} {} {}, {}", inst.kind, type_name, inst.args[0], inst.args[1]);
 	}
-	case instruction::cmp_eq_i16:
+	case instruction::cmp_i16:
 	{
-		auto const &inst = inst_.get<instructions::cmp_eq_i16>();
-		return bz::format("cmp eq i16 {}, {}", inst.args[0], inst.args[1]);
+		auto const &inst = inst_.get<instructions::cmp_i16>();
+		bz::u8string_view type_name = instructions::is_unsigned_compare(inst.kind) ? "u16" : "i16";
+		return bz::format("cmp {} {} {}, {}", inst.kind, type_name, inst.args[0], inst.args[1]);
 	}
-	case instruction::cmp_eq_i32:
+	case instruction::cmp_i32:
 	{
-		auto const &inst = inst_.get<instructions::cmp_eq_i32>();
-		return bz::format("cmp eq i32 {}, {}", inst.args[0], inst.args[1]);
+		auto const &inst = inst_.get<instructions::cmp_i32>();
+		bz::u8string_view type_name = instructions::is_unsigned_compare(inst.kind) ? "u32" : "i32";
+		return bz::format("cmp {} {} {}, {}", inst.kind, type_name, inst.args[0], inst.args[1]);
 	}
-	case instruction::cmp_eq_i64:
+	case instruction::cmp_i64:
 	{
-		auto const &inst = inst_.get<instructions::cmp_eq_i64>();
-		return bz::format("cmp eq i64 {}, {}", inst.args[0], inst.args[1]);
+		auto const &inst = inst_.get<instructions::cmp_i64>();
+		bz::u8string_view type_name = instructions::is_unsigned_compare(inst.kind) ? "u64" : "i64";
+		return bz::format("cmp {} {} {}, {}", inst.kind, type_name, inst.args[0], inst.args[1]);
 	}
-	case instruction::cmp_eq_f32:
+	case instruction::cmp_f32:
 	{
-		auto const &inst = inst_.get<instructions::cmp_eq_f32>();
-		return bz::format("cmp eq f32 {}, {}", inst.args[0], inst.args[1]);
+		auto const &inst = inst_.get<instructions::cmp_f32>();
+		return bz::format("cmp {} f32 {}, {}", inst.kind, inst.args[0], inst.args[1]);
 	}
-	case instruction::cmp_eq_f64:
+	case instruction::cmp_f64:
 	{
-		auto const &inst = inst_.get<instructions::cmp_eq_f64>();
-		return bz::format("cmp eq f64 {}, {}", inst.args[0], inst.args[1]);
+		auto const &inst = inst_.get<instructions::cmp_f64>();
+		return bz::format("cmp {} f64 {}, {}", inst.kind, inst.args[0], inst.args[1]);
 	}
-	case instruction::cmp_eq_f32_check:
+	case instruction::cmp_f32_check:
 	{
-		auto const &inst = inst_.get<instructions::cmp_eq_f32_check>();
-		return bz::format("cmp eq f32 check {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+		auto const &inst = inst_.get<instructions::cmp_f32_check>();
+		return bz::format("cmp {} f32 check {}, {} ({})", inst.kind, inst.args[0], inst.args[1], inst.src_tokens_index);
 	}
-	case instruction::cmp_eq_f64_check:
+	case instruction::cmp_f64_check:
 	{
-		auto const &inst = inst_.get<instructions::cmp_eq_f64_check>();
-		return bz::format("cmp eq f64 check {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+		auto const &inst = inst_.get<instructions::cmp_f64_check>();
+		return bz::format("cmp {} f64 check {}, {} ({})", inst.kind, inst.args[0], inst.args[1], inst.src_tokens_index);
 	}
-	case instruction::cmp_eq_ptr:
+	case instruction::cmp_ptr:
 	{
-		auto const &inst = inst_.get<instructions::cmp_eq_ptr>();
-		return bz::format("cmp eq ptr {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_neq_i1:
-	{
-		auto const &inst = inst_.get<instructions::cmp_neq_i1>();
-		return bz::format("cmp neq i1 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_neq_i8:
-	{
-		auto const &inst = inst_.get<instructions::cmp_neq_i8>();
-		return bz::format("cmp neq i8 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_neq_i16:
-	{
-		auto const &inst = inst_.get<instructions::cmp_neq_i16>();
-		return bz::format("cmp neq i16 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_neq_i32:
-	{
-		auto const &inst = inst_.get<instructions::cmp_neq_i32>();
-		return bz::format("cmp neq i32 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_neq_i64:
-	{
-		auto const &inst = inst_.get<instructions::cmp_neq_i64>();
-		return bz::format("cmp neq i64 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_neq_f32:
-	{
-		auto const &inst = inst_.get<instructions::cmp_neq_f32>();
-		return bz::format("cmp neq f32 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_neq_f64:
-	{
-		auto const &inst = inst_.get<instructions::cmp_neq_f64>();
-		return bz::format("cmp neq f64 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_neq_f32_check:
-	{
-		auto const &inst = inst_.get<instructions::cmp_neq_f32_check>();
-		return bz::format("cmp neq f32 check {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
-	}
-	case instruction::cmp_neq_f64_check:
-	{
-		auto const &inst = inst_.get<instructions::cmp_neq_f64_check>();
-		return bz::format("cmp neq f64 check {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
-	}
-	case instruction::cmp_neq_ptr:
-	{
-		auto const &inst = inst_.get<instructions::cmp_neq_ptr>();
-		return bz::format("cmp neq ptr {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lt_i8:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lt_i8>();
-		return bz::format("cmp lt i8 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lt_i16:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lt_i16>();
-		return bz::format("cmp lt i16 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lt_i32:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lt_i32>();
-		return bz::format("cmp lt i32 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lt_i64:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lt_i64>();
-		return bz::format("cmp lt i64 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lt_u8:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lt_u8>();
-		return bz::format("cmp lt u8 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lt_u16:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lt_u16>();
-		return bz::format("cmp lt u16 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lt_u32:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lt_u32>();
-		return bz::format("cmp lt u32 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lt_u64:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lt_u64>();
-		return bz::format("cmp lt u64 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lt_f32:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lt_f32>();
-		return bz::format("cmp lt f32 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lt_f64:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lt_f64>();
-		return bz::format("cmp lt f64 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lt_f32_check:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lt_f32_check>();
-		return bz::format("cmp lt f32 check {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
-	}
-	case instruction::cmp_lt_f64_check:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lt_f64_check>();
-		return bz::format("cmp lt f64 check {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
-	}
-	case instruction::cmp_lt_ptr:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lt_ptr>();
-		return bz::format("cmp lt ptr {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
-	}
-	case instruction::cmp_gt_i8:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gt_i8>();
-		return bz::format("cmp gt i8 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gt_i16:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gt_i16>();
-		return bz::format("cmp gt i16 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gt_i32:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gt_i32>();
-		return bz::format("cmp gt i32 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gt_i64:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gt_i64>();
-		return bz::format("cmp gt i64 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gt_u8:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gt_u8>();
-		return bz::format("cmp gt u8 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gt_u16:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gt_u16>();
-		return bz::format("cmp gt u16 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gt_u32:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gt_u32>();
-		return bz::format("cmp gt u32 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gt_u64:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gt_u64>();
-		return bz::format("cmp gt u64 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gt_f32:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gt_f32>();
-		return bz::format("cmp gt f32 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gt_f64:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gt_f64>();
-		return bz::format("cmp gt f64 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gt_f32_check:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gt_f32_check>();
-		return bz::format("cmp gt f32 check {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
-	}
-	case instruction::cmp_gt_f64_check:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gt_f64_check>();
-		return bz::format("cmp gt f64 check {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
-	}
-	case instruction::cmp_gt_ptr:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gt_ptr>();
-		return bz::format("cmp gt ptr {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
-	}
-	case instruction::cmp_lte_i8:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lte_i8>();
-		return bz::format("cmp lte i8 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lte_i16:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lte_i16>();
-		return bz::format("cmp lte i16 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lte_i32:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lte_i32>();
-		return bz::format("cmp lte i32 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lte_i64:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lte_i64>();
-		return bz::format("cmp lte i64 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lte_u8:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lte_u8>();
-		return bz::format("cmp lte u8 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lte_u16:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lte_u16>();
-		return bz::format("cmp lte u16 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lte_u32:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lte_u32>();
-		return bz::format("cmp lte u32 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lte_u64:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lte_u64>();
-		return bz::format("cmp lte u64 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lte_f32:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lte_f32>();
-		return bz::format("cmp lte f32 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lte_f64:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lte_f64>();
-		return bz::format("cmp lte f64 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_lte_f32_check:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lte_f32_check>();
-		return bz::format("cmp lte f32 check {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
-	}
-	case instruction::cmp_lte_f64_check:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lte_f64_check>();
-		return bz::format("cmp lte f64 check {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
-	}
-	case instruction::cmp_lte_ptr:
-	{
-		auto const &inst = inst_.get<instructions::cmp_lte_ptr>();
-		return bz::format("cmp lte ptr {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
-	}
-	case instruction::cmp_gte_i8:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gte_i8>();
-		return bz::format("cmp gte i8 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gte_i16:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gte_i16>();
-		return bz::format("cmp gte i16 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gte_i32:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gte_i32>();
-		return bz::format("cmp gte i32 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gte_i64:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gte_i64>();
-		return bz::format("cmp gte i64 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gte_u8:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gte_u8>();
-		return bz::format("cmp gte u8 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gte_u16:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gte_u16>();
-		return bz::format("cmp gte u16 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gte_u32:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gte_u32>();
-		return bz::format("cmp gte u32 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gte_u64:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gte_u64>();
-		return bz::format("cmp gte u64 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gte_f32:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gte_f32>();
-		return bz::format("cmp gte f32 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gte_f64:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gte_f64>();
-		return bz::format("cmp gte f64 {}, {}", inst.args[0], inst.args[1]);
-	}
-	case instruction::cmp_gte_f32_check:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gte_f32_check>();
-		return bz::format("cmp gte f32 check {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
-	}
-	case instruction::cmp_gte_f64_check:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gte_f64_check>();
-		return bz::format("cmp gte f64 check {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
-	}
-	case instruction::cmp_gte_ptr:
-	{
-		auto const &inst = inst_.get<instructions::cmp_gte_ptr>();
-		return bz::format("cmp gte ptr {}, {} ({})", inst.args[0], inst.args[1], inst.src_tokens_index);
+		auto const &inst = inst_.get<instructions::cmp_ptr>();
+		if (instructions::is_equality_compare(inst.kind))
+		{
+			return bz::format("cmp {} ptr {}, {}", inst.kind, inst.args[0], inst.args[1]);
+		}
+		else
+		{
+			return bz::format("cmp {} ptr {}, {} ({})", inst.kind, inst.args[0], inst.args[1], inst.src_tokens_index);
+		}
 	}
 	case instruction::neg_i8:
 	{
@@ -3690,78 +3329,16 @@ static bz::array instruction_names = {
 	bz::u8string_view("cast_u16_to_f64"),
 	bz::u8string_view("cast_u32_to_f64"),
 	bz::u8string_view("cast_u64_to_f64"),
-	bz::u8string_view("cmp_eq_i1"),
-	bz::u8string_view("cmp_eq_i8"),
-	bz::u8string_view("cmp_eq_i16"),
-	bz::u8string_view("cmp_eq_i32"),
-	bz::u8string_view("cmp_eq_i64"),
-	bz::u8string_view("cmp_eq_f32"),
-	bz::u8string_view("cmp_eq_f64"),
-	bz::u8string_view("cmp_eq_f32_check"),
-	bz::u8string_view("cmp_eq_f64_check"),
-	bz::u8string_view("cmp_eq_ptr"),
-	bz::u8string_view("cmp_neq_i1"),
-	bz::u8string_view("cmp_neq_i8"),
-	bz::u8string_view("cmp_neq_i16"),
-	bz::u8string_view("cmp_neq_i32"),
-	bz::u8string_view("cmp_neq_i64"),
-	bz::u8string_view("cmp_neq_f32"),
-	bz::u8string_view("cmp_neq_f64"),
-	bz::u8string_view("cmp_neq_f32_check"),
-	bz::u8string_view("cmp_neq_f64_check"),
-	bz::u8string_view("cmp_neq_ptr"),
-	bz::u8string_view("cmp_lt_i8"),
-	bz::u8string_view("cmp_lt_i16"),
-	bz::u8string_view("cmp_lt_i32"),
-	bz::u8string_view("cmp_lt_i64"),
-	bz::u8string_view("cmp_lt_u8"),
-	bz::u8string_view("cmp_lt_u16"),
-	bz::u8string_view("cmp_lt_u32"),
-	bz::u8string_view("cmp_lt_u64"),
-	bz::u8string_view("cmp_lt_f32"),
-	bz::u8string_view("cmp_lt_f64"),
-	bz::u8string_view("cmp_lt_f32_check"),
-	bz::u8string_view("cmp_lt_f64_check"),
-	bz::u8string_view("cmp_lt_ptr"),
-	bz::u8string_view("cmp_gt_i8"),
-	bz::u8string_view("cmp_gt_i16"),
-	bz::u8string_view("cmp_gt_i32"),
-	bz::u8string_view("cmp_gt_i64"),
-	bz::u8string_view("cmp_gt_u8"),
-	bz::u8string_view("cmp_gt_u16"),
-	bz::u8string_view("cmp_gt_u32"),
-	bz::u8string_view("cmp_gt_u64"),
-	bz::u8string_view("cmp_gt_f32"),
-	bz::u8string_view("cmp_gt_f64"),
-	bz::u8string_view("cmp_gt_f32_check"),
-	bz::u8string_view("cmp_gt_f64_check"),
-	bz::u8string_view("cmp_gt_ptr"),
-	bz::u8string_view("cmp_lte_i8"),
-	bz::u8string_view("cmp_lte_i16"),
-	bz::u8string_view("cmp_lte_i32"),
-	bz::u8string_view("cmp_lte_i64"),
-	bz::u8string_view("cmp_lte_u8"),
-	bz::u8string_view("cmp_lte_u16"),
-	bz::u8string_view("cmp_lte_u32"),
-	bz::u8string_view("cmp_lte_u64"),
-	bz::u8string_view("cmp_lte_f32"),
-	bz::u8string_view("cmp_lte_f64"),
-	bz::u8string_view("cmp_lte_f32_check"),
-	bz::u8string_view("cmp_lte_f64_check"),
-	bz::u8string_view("cmp_lte_ptr"),
-	bz::u8string_view("cmp_gte_i8"),
-	bz::u8string_view("cmp_gte_i16"),
-	bz::u8string_view("cmp_gte_i32"),
-	bz::u8string_view("cmp_gte_i64"),
-	bz::u8string_view("cmp_gte_u8"),
-	bz::u8string_view("cmp_gte_u16"),
-	bz::u8string_view("cmp_gte_u32"),
-	bz::u8string_view("cmp_gte_u64"),
-	bz::u8string_view("cmp_gte_f32"),
-	bz::u8string_view("cmp_gte_f64"),
-	bz::u8string_view("cmp_gte_f32_check"),
-	bz::u8string_view("cmp_gte_f64_check"),
-	bz::u8string_view("cmp_gte_ptr"),
+	bz::u8string_view("cmp_i1"),
+	bz::u8string_view("cmp_i8"),
+	bz::u8string_view("cmp_i16"),
+	bz::u8string_view("cmp_i32"),
+	bz::u8string_view("cmp_i64"),
+	bz::u8string_view("cmp_f32"),
+	bz::u8string_view("cmp_f64"),
+	bz::u8string_view("cmp_f32_check"),
+	bz::u8string_view("cmp_f64_check"),
+	bz::u8string_view("cmp_ptr"),
 	bz::u8string_view("neg_i8"),
 	bz::u8string_view("neg_i16"),
 	bz::u8string_view("neg_i32"),

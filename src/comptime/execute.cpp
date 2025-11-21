@@ -680,544 +680,173 @@ static float64_t execute_cast_u64_to_f64(instructions::cast_u64_to_f64 const &, 
 	return static_cast<float64_t>(value);
 }
 
-static bool execute_cmp_eq_i1(instructions::cmp_eq_i1 const &, bool lhs, bool rhs, executor_context &)
+template<typename UInt>
+static bool execute_cmp_int(instructions::cmp_kind kind, UInt lhs, UInt rhs)
 {
-	return lhs == rhs;
+	static_assert(std::is_integral_v<UInt>);
+	using SInt = std::make_signed_t<UInt>;
+	switch (kind)
+	{
+	using enum instructions::cmp_kind;
+	case eq:
+		return lhs == rhs;
+	case neq:
+		return lhs != rhs;
+	case slt:
+		return static_cast<SInt>(lhs) < static_cast<SInt>(rhs);
+	case sgt:
+		return static_cast<SInt>(lhs) > static_cast<SInt>(rhs);
+	case slte:
+		return static_cast<SInt>(lhs) <= static_cast<SInt>(rhs);
+	case sgte:
+		return static_cast<SInt>(lhs) >= static_cast<SInt>(rhs);
+	case ult:
+		return lhs < rhs;
+	case ugt:
+		return lhs > rhs;
+	case ulte:
+		return lhs <= rhs;
+	case ugte:
+		return lhs >= rhs;
+	}
+	bz_unreachable;
 }
 
-static bool execute_cmp_eq_i8(instructions::cmp_eq_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+template<typename Float>
+static bool execute_cmp_float(instructions::cmp_kind kind, Float lhs, Float rhs)
 {
-	return lhs == rhs;
+	static_assert(std::is_floating_point_v<Float>);
+	switch (kind)
+	{
+	using enum instructions::cmp_kind;
+	case feq:
+		return lhs == rhs;
+	case fneq:
+		return lhs != rhs;
+	case flt:
+		return lhs < rhs;
+	case fgt:
+		return lhs > rhs;
+	case flte:
+		return lhs <= rhs;
+	case fgte:
+		return lhs >= rhs;
+	default:
+		bz_unreachable;
+	}
 }
 
-static bool execute_cmp_eq_i16(instructions::cmp_eq_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+static bool execute_cmp_i1(instructions::cmp_i1 const &inst, bool lhs, bool rhs, executor_context &)
 {
-	return lhs == rhs;
+	switch (inst.kind)
+	{
+	case instructions::cmp_kind::eq:
+		return lhs == rhs;
+	case instructions::cmp_kind::neq:
+		return lhs != rhs;
+	default:
+		bz_unreachable;
+	}
 }
 
-static bool execute_cmp_eq_i32(instructions::cmp_eq_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+static bool execute_cmp_i8(instructions::cmp_i8 const &inst, uint8_t lhs, uint8_t rhs, executor_context &)
 {
-	return lhs == rhs;
+	return execute_cmp_int<uint8_t>(inst.kind, lhs, rhs);
 }
 
-static bool execute_cmp_eq_i64(instructions::cmp_eq_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+static bool execute_cmp_i16(instructions::cmp_i16 const &inst, uint16_t lhs, uint16_t rhs, executor_context &)
 {
-	return lhs == rhs;
+	return execute_cmp_int<uint16_t>(inst.kind, lhs, rhs);
 }
 
-static bool execute_cmp_eq_f32(instructions::cmp_eq_f32 const &, float32_t lhs, float32_t rhs, executor_context &)
+static bool execute_cmp_i32(instructions::cmp_i32 const &inst, uint32_t lhs, uint32_t rhs, executor_context &)
 {
-	return lhs == rhs;
+	return execute_cmp_int<uint32_t>(inst.kind, lhs, rhs);
 }
 
-static bool execute_cmp_eq_f64(instructions::cmp_eq_f64 const &, float64_t lhs, float64_t rhs, executor_context &)
+static bool execute_cmp_i64(instructions::cmp_i64 const &inst, uint64_t lhs, uint64_t rhs, executor_context &)
 {
-	return lhs == rhs;
+	return execute_cmp_int<uint64_t>(inst.kind, lhs, rhs);
 }
 
-static void execute_cmp_eq_f32_check(instructions::cmp_eq_f32_check const &inst, float32_t lhs, float32_t rhs, executor_context &context)
+static bool execute_cmp_f32(instructions::cmp_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &)
+{
+	return execute_cmp_float(inst.kind, lhs, rhs);
+}
+
+static bool execute_cmp_f64(instructions::cmp_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &)
+{
+	return execute_cmp_float(inst.kind, lhs, rhs);
+}
+
+static void execute_cmp_f32_check(instructions::cmp_f32_check const &inst, float32_t lhs, float32_t rhs, executor_context &context)
 {
 	if (std::isnan(lhs) && std::isnan(rhs))
 	{
+		auto const op = instructions::get_compare_operator(inst.kind);
+		auto const result = inst.kind == instructions::cmp_kind::fneq;
 		context.report_warning(
 			ctx::warning_kind::nan_compare,
 			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} == {}' with type 'float32' evaluates to false", lhs, rhs)
+			bz::format("comparing nans in expression '{} {} {}' with type 'float32' evaluates to {}", lhs, op, rhs, result)
 		);
 	}
 	else if (std::isnan(lhs) || std::isnan(rhs))
 	{
+		auto const op = instructions::get_compare_operator(inst.kind);
+		auto const result = inst.kind == instructions::cmp_kind::fneq;
 		context.report_warning(
 			ctx::warning_kind::nan_compare,
 			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} == {}' with type 'float32' evaluates to false", lhs, rhs)
+			bz::format("comparing against nan in expression '{} {} {}' with type 'float32' evaluates to {}", lhs, op, rhs, result)
 		);
 	}
 }
 
-static void execute_cmp_eq_f64_check(instructions::cmp_eq_f64_check const &inst, float64_t lhs, float64_t rhs, executor_context &context)
+static void execute_cmp_f64_check(instructions::cmp_f64_check const &inst, float64_t lhs, float64_t rhs, executor_context &context)
 {
 	if (std::isnan(lhs) && std::isnan(rhs))
 	{
+		auto const op = instructions::get_compare_operator(inst.kind);
+		auto const result = inst.kind == instructions::cmp_kind::fneq;
 		context.report_warning(
 			ctx::warning_kind::nan_compare,
 			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} == {}' with type 'float64' evaluates to false", lhs, rhs)
+			bz::format("comparing nans in expression '{} {} {}' with type 'float64' evaluates to {}", lhs, op, rhs, result)
 		);
 	}
 	else if (std::isnan(lhs) || std::isnan(rhs))
 	{
+		auto const op = instructions::get_compare_operator(inst.kind);
+		auto const result = inst.kind == instructions::cmp_kind::fneq;
 		context.report_warning(
 			ctx::warning_kind::nan_compare,
 			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} == {}' with type 'float64' evaluates to false", lhs, rhs)
+			bz::format("comparing against nan in expression '{} {} {}' with type 'float64' evaluates to {}", lhs, op, rhs, result)
 		);
 	}
 }
 
-static bool execute_cmp_eq_ptr(instructions::cmp_eq_ptr const &, ptr_t lhs, ptr_t rhs, executor_context &context)
+static bool execute_cmp_ptr(instructions::cmp_ptr const &inst, ptr_t lhs, ptr_t rhs, executor_context &context)
 {
-	return context.compare_pointers_equal(lhs, rhs);
-}
-
-static bool execute_cmp_neq_i1(instructions::cmp_neq_i1 const &, bool lhs, bool rhs, executor_context &)
-{
-	return lhs != rhs;
-}
-
-static bool execute_cmp_neq_i8(instructions::cmp_neq_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
-{
-	return lhs != rhs;
-}
-
-static bool execute_cmp_neq_i16(instructions::cmp_neq_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
-{
-	return lhs != rhs;
-}
-
-static bool execute_cmp_neq_i32(instructions::cmp_neq_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
-{
-	return lhs != rhs;
-}
-
-static bool execute_cmp_neq_i64(instructions::cmp_neq_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
-{
-	return lhs != rhs;
-}
-
-static bool execute_cmp_neq_f32(instructions::cmp_neq_f32 const &, float32_t lhs, float32_t rhs, executor_context &)
-{
-	return lhs != rhs;
-}
-
-static bool execute_cmp_neq_f64(instructions::cmp_neq_f64 const &, float64_t lhs, float64_t rhs, executor_context &)
-{
-	return lhs != rhs;
-}
-
-static void execute_cmp_neq_f32_check(instructions::cmp_neq_f32_check const &inst, float32_t lhs, float32_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
+	switch (inst.kind)
 	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} != {}' with type 'float32' evaluates to true", lhs, rhs)
-		);
+	using enum instructions::cmp_kind;
+	case ptr_eq:
+		return context.compare_pointers_equal(lhs, rhs);
+	case ptr_neq:
+		return !context.compare_pointers_equal(lhs, rhs);
+	case ptr_lt:
+		return context.compare_pointers(inst.src_tokens_index, lhs, rhs) < 0;
+	case ptr_gt:
+		return context.compare_pointers(inst.src_tokens_index, lhs, rhs) > 0;
+	case ptr_lte:
+		return context.compare_pointers(inst.src_tokens_index, lhs, rhs) <= 0;
+	case ptr_gte:
+		return context.compare_pointers(inst.src_tokens_index, lhs, rhs) >= 0;
+	default:
+		bz_unreachable;
 	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} != {}' with type 'float32' evaluates to true", lhs, rhs)
-		);
-	}
-}
-
-static void execute_cmp_neq_f64_check(instructions::cmp_neq_f64_check const &inst, float64_t lhs, float64_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} != {}' with type 'float64' evaluates to true", lhs, rhs)
-		);
-	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} != {}' with type 'float64' evaluates to true", lhs, rhs)
-		);
-	}
-}
-
-static bool execute_cmp_neq_ptr(instructions::cmp_neq_ptr const &, ptr_t lhs, ptr_t rhs, executor_context &context)
-{
-	return !context.compare_pointers_equal(lhs, rhs);
-}
-
-static bool execute_cmp_lt_i8(instructions::cmp_lt_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
-{
-	return static_cast<int8_t>(lhs) < static_cast<int8_t>(rhs);
-}
-
-static bool execute_cmp_lt_i16(instructions::cmp_lt_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
-{
-	return static_cast<int16_t>(lhs) < static_cast<int16_t>(rhs);
-}
-
-static bool execute_cmp_lt_i32(instructions::cmp_lt_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
-{
-	return static_cast<int32_t>(lhs) < static_cast<int32_t>(rhs);
-}
-
-static bool execute_cmp_lt_i64(instructions::cmp_lt_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
-{
-	return static_cast<int64_t>(lhs) < static_cast<int64_t>(rhs);
-}
-
-static bool execute_cmp_lt_u8(instructions::cmp_lt_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
-{
-	return lhs < rhs;
-}
-
-static bool execute_cmp_lt_u16(instructions::cmp_lt_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
-{
-	return lhs < rhs;
-}
-
-static bool execute_cmp_lt_u32(instructions::cmp_lt_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
-{
-	return lhs < rhs;
-}
-
-static bool execute_cmp_lt_u64(instructions::cmp_lt_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
-{
-	return lhs < rhs;
-}
-
-static bool execute_cmp_lt_f32(instructions::cmp_lt_f32 const &, float32_t lhs, float32_t rhs, executor_context &)
-{
-	return lhs < rhs;
-}
-
-static bool execute_cmp_lt_f64(instructions::cmp_lt_f64 const &, float64_t lhs, float64_t rhs, executor_context &)
-{
-	return lhs < rhs;
-}
-
-static void execute_cmp_lt_f32_check(instructions::cmp_lt_f32_check const &inst, float32_t lhs, float32_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} < {}' with type 'float32' evaluates to false", lhs, rhs)
-		);
-	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} < {}' with type 'float32' evaluates to false", lhs, rhs)
-		);
-	}
-}
-
-static void execute_cmp_lt_f64_check(instructions::cmp_lt_f64_check const &inst, float64_t lhs, float64_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} < {}' with type 'float64' evaluates to false", lhs, rhs)
-		);
-	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} < {}' with type 'float64' evaluates to false", lhs, rhs)
-		);
-	}
-}
-
-static bool execute_cmp_lt_ptr(instructions::cmp_lt_ptr const &inst, ptr_t lhs, ptr_t rhs, executor_context &context)
-{
-	return context.compare_pointers(inst.src_tokens_index, lhs, rhs) < 0;
-}
-
-static bool execute_cmp_gt_i8(instructions::cmp_gt_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
-{
-	return static_cast<int8_t>(lhs) > static_cast<int8_t>(rhs);
-}
-
-static bool execute_cmp_gt_i16(instructions::cmp_gt_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
-{
-	return static_cast<int16_t>(lhs) > static_cast<int16_t>(rhs);
-}
-
-static bool execute_cmp_gt_i32(instructions::cmp_gt_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
-{
-	return static_cast<int32_t>(lhs) > static_cast<int32_t>(rhs);
-}
-
-static bool execute_cmp_gt_i64(instructions::cmp_gt_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
-{
-	return static_cast<int64_t>(lhs) > static_cast<int64_t>(rhs);
-}
-
-static bool execute_cmp_gt_u8(instructions::cmp_gt_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
-{
-	return lhs > rhs;
-}
-
-static bool execute_cmp_gt_u16(instructions::cmp_gt_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
-{
-	return lhs > rhs;
-}
-
-static bool execute_cmp_gt_u32(instructions::cmp_gt_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
-{
-	return lhs > rhs;
-}
-
-static bool execute_cmp_gt_u64(instructions::cmp_gt_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
-{
-	return lhs > rhs;
-}
-
-static bool execute_cmp_gt_f32(instructions::cmp_gt_f32 const &, float32_t lhs, float32_t rhs, executor_context &)
-{
-	return lhs > rhs;
-}
-
-static bool execute_cmp_gt_f64(instructions::cmp_gt_f64 const &, float64_t lhs, float64_t rhs, executor_context &)
-{
-	return lhs > rhs;
-}
-
-static void execute_cmp_gt_f32_check(instructions::cmp_gt_f32_check const &inst, float32_t lhs, float32_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} > {}' with type 'float32' evaluates to false", lhs, rhs)
-		);
-	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} > {}' with type 'float32' evaluates to false", lhs, rhs)
-		);
-	}
-}
-
-static void execute_cmp_gt_f64_check(instructions::cmp_gt_f64_check const &inst, float64_t lhs, float64_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} > {}' with type 'float64' evaluates to false", lhs, rhs)
-		);
-	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} > {}' with type 'float64' evaluates to false", lhs, rhs)
-		);
-	}
-}
-
-static bool execute_cmp_gt_ptr(instructions::cmp_gt_ptr const &inst, ptr_t lhs, ptr_t rhs, executor_context &context)
-{
-	return context.compare_pointers(inst.src_tokens_index, lhs, rhs) > 0;
-}
-
-static bool execute_cmp_lte_i8(instructions::cmp_lte_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
-{
-	return static_cast<int8_t>(lhs) <= static_cast<int8_t>(rhs);
-}
-
-static bool execute_cmp_lte_i16(instructions::cmp_lte_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
-{
-	return static_cast<int16_t>(lhs) <= static_cast<int16_t>(rhs);
-}
-
-static bool execute_cmp_lte_i32(instructions::cmp_lte_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
-{
-	return static_cast<int32_t>(lhs) <= static_cast<int32_t>(rhs);
-}
-
-static bool execute_cmp_lte_i64(instructions::cmp_lte_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
-{
-	return static_cast<int64_t>(lhs) <= static_cast<int64_t>(rhs);
-}
-
-static bool execute_cmp_lte_u8(instructions::cmp_lte_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
-{
-	return lhs <= rhs;
-}
-
-static bool execute_cmp_lte_u16(instructions::cmp_lte_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
-{
-	return lhs <= rhs;
-}
-
-static bool execute_cmp_lte_u32(instructions::cmp_lte_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
-{
-	return lhs <= rhs;
-}
-
-static bool execute_cmp_lte_u64(instructions::cmp_lte_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
-{
-	return lhs <= rhs;
-}
-
-static bool execute_cmp_lte_f32(instructions::cmp_lte_f32 const &, float32_t lhs, float32_t rhs, executor_context &)
-{
-	return lhs <= rhs;
-}
-
-static bool execute_cmp_lte_f64(instructions::cmp_lte_f64 const &, float64_t lhs, float64_t rhs, executor_context &)
-{
-	return lhs <= rhs;
-}
-
-static void execute_cmp_lte_f32_check(instructions::cmp_lte_f32_check const &inst, float32_t lhs, float32_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} <= {}' with type 'float32' evaluates to false", lhs, rhs)
-		);
-	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} <= {}' with type 'float32' evaluates to false", lhs, rhs)
-		);
-	}
-}
-
-static void execute_cmp_lte_f64_check(instructions::cmp_lte_f64_check const &inst, float64_t lhs, float64_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} <= {}' with type 'float64' evaluates to false", lhs, rhs)
-		);
-	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} <= {}' with type 'float64' evaluates to false", lhs, rhs)
-		);
-	}
-}
-
-static bool execute_cmp_lte_ptr(instructions::cmp_lte_ptr const &inst, ptr_t lhs, ptr_t rhs, executor_context &context)
-{
-	return context.compare_pointers(inst.src_tokens_index, lhs, rhs) <= 0;
-}
-
-static bool execute_cmp_gte_i8(instructions::cmp_gte_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
-{
-	return static_cast<int8_t>(lhs) >= static_cast<int8_t>(rhs);
-}
-
-static bool execute_cmp_gte_i16(instructions::cmp_gte_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
-{
-	return static_cast<int16_t>(lhs) >= static_cast<int16_t>(rhs);
-}
-
-static bool execute_cmp_gte_i32(instructions::cmp_gte_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
-{
-	return static_cast<int32_t>(lhs) >= static_cast<int32_t>(rhs);
-}
-
-static bool execute_cmp_gte_i64(instructions::cmp_gte_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
-{
-	return static_cast<int64_t>(lhs) >= static_cast<int64_t>(rhs);
-}
-
-static bool execute_cmp_gte_u8(instructions::cmp_gte_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
-{
-	return lhs >= rhs;
-}
-
-static bool execute_cmp_gte_u16(instructions::cmp_gte_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
-{
-	return lhs >= rhs;
-}
-
-static bool execute_cmp_gte_u32(instructions::cmp_gte_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
-{
-	return lhs >= rhs;
-}
-
-static bool execute_cmp_gte_u64(instructions::cmp_gte_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
-{
-	return lhs >= rhs;
-}
-
-static bool execute_cmp_gte_f32(instructions::cmp_gte_f32 const &, float32_t lhs, float32_t rhs, executor_context &)
-{
-	return lhs >= rhs;
-}
-
-static bool execute_cmp_gte_f64(instructions::cmp_gte_f64 const &, float64_t lhs, float64_t rhs, executor_context &)
-{
-	return lhs >= rhs;
-}
-
-static void execute_cmp_gte_f32_check(instructions::cmp_gte_f32_check const &inst, float32_t lhs, float32_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} >= {}' with type 'float32' evaluates to false", lhs, rhs)
-		);
-	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} >= {}' with type 'float32' evaluates to false", lhs, rhs)
-		);
-	}
-}
-
-static void execute_cmp_gte_f64_check(instructions::cmp_gte_f64_check const &inst, float64_t lhs, float64_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} >= {}' with type 'float64' evaluates to false", lhs, rhs)
-		);
-	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} >= {}' with type 'float64' evaluates to false", lhs, rhs)
-		);
-	}
-}
-
-static bool execute_cmp_gte_ptr(instructions::cmp_gte_ptr const &inst, ptr_t lhs, ptr_t rhs, executor_context &context)
-{
-	return context.compare_pointers(inst.src_tokens_index, lhs, rhs) >= 0;
 }
 
 static uint8_t execute_neg_i8(instructions::neg_i8 const &, uint8_t uvalue, executor_context &)
@@ -5205,7 +4834,7 @@ void execute_current_instruction(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-	static_assert(instruction_list_t::size() == 576);
+	static_assert(instruction_list_t::size() == 514);
 	case instruction::const_i1:
 		execute<instructions::const_i1, &execute_const_i1>(context);
 		break;
@@ -5536,221 +5165,35 @@ void execute_current_instruction(executor_context &context)
 	case instruction::cast_u64_to_f64:
 		execute<instructions::cast_u64_to_f64, &execute_cast_u64_to_f64>(context);
 		break;
-	case instruction::cmp_eq_i1:
-		execute<instructions::cmp_eq_i1, &execute_cmp_eq_i1>(context);
+	case instruction::cmp_i1:
+		execute<instructions::cmp_i1, &execute_cmp_i1>(context);
 		break;
-	case instruction::cmp_eq_i8:
-		execute<instructions::cmp_eq_i8, &execute_cmp_eq_i8>(context);
+	case instruction::cmp_i8:
+		execute<instructions::cmp_i8, &execute_cmp_i8>(context);
 		break;
-	case instruction::cmp_eq_i16:
-		execute<instructions::cmp_eq_i16, &execute_cmp_eq_i16>(context);
+	case instruction::cmp_i16:
+		execute<instructions::cmp_i16, &execute_cmp_i16>(context);
 		break;
-	case instruction::cmp_eq_i32:
-		execute<instructions::cmp_eq_i32, &execute_cmp_eq_i32>(context);
+	case instruction::cmp_i32:
+		execute<instructions::cmp_i32, &execute_cmp_i32>(context);
 		break;
-	case instruction::cmp_eq_i64:
-		execute<instructions::cmp_eq_i64, &execute_cmp_eq_i64>(context);
+	case instruction::cmp_i64:
+		execute<instructions::cmp_i64, &execute_cmp_i64>(context);
 		break;
-	case instruction::cmp_eq_f32:
-		execute<instructions::cmp_eq_f32, &execute_cmp_eq_f32>(context);
+	case instruction::cmp_f32:
+		execute<instructions::cmp_f32, &execute_cmp_f32>(context);
 		break;
-	case instruction::cmp_eq_f64:
-		execute<instructions::cmp_eq_f64, &execute_cmp_eq_f64>(context);
+	case instruction::cmp_f64:
+		execute<instructions::cmp_f64, &execute_cmp_f64>(context);
 		break;
-	case instruction::cmp_eq_f32_check:
-		execute<instructions::cmp_eq_f32_check, &execute_cmp_eq_f32_check>(context);
+	case instruction::cmp_f32_check:
+		execute<instructions::cmp_f32_check, &execute_cmp_f32_check>(context);
 		break;
-	case instruction::cmp_eq_f64_check:
-		execute<instructions::cmp_eq_f64_check, &execute_cmp_eq_f64_check>(context);
+	case instruction::cmp_f64_check:
+		execute<instructions::cmp_f64_check, &execute_cmp_f64_check>(context);
 		break;
-	case instruction::cmp_eq_ptr:
-		execute<instructions::cmp_eq_ptr, &execute_cmp_eq_ptr>(context);
-		break;
-	case instruction::cmp_neq_i1:
-		execute<instructions::cmp_neq_i1, &execute_cmp_neq_i1>(context);
-		break;
-	case instruction::cmp_neq_i8:
-		execute<instructions::cmp_neq_i8, &execute_cmp_neq_i8>(context);
-		break;
-	case instruction::cmp_neq_i16:
-		execute<instructions::cmp_neq_i16, &execute_cmp_neq_i16>(context);
-		break;
-	case instruction::cmp_neq_i32:
-		execute<instructions::cmp_neq_i32, &execute_cmp_neq_i32>(context);
-		break;
-	case instruction::cmp_neq_i64:
-		execute<instructions::cmp_neq_i64, &execute_cmp_neq_i64>(context);
-		break;
-	case instruction::cmp_neq_f32:
-		execute<instructions::cmp_neq_f32, &execute_cmp_neq_f32>(context);
-		break;
-	case instruction::cmp_neq_f64:
-		execute<instructions::cmp_neq_f64, &execute_cmp_neq_f64>(context);
-		break;
-	case instruction::cmp_neq_f32_check:
-		execute<instructions::cmp_neq_f32_check, &execute_cmp_neq_f32_check>(context);
-		break;
-	case instruction::cmp_neq_f64_check:
-		execute<instructions::cmp_neq_f64_check, &execute_cmp_neq_f64_check>(context);
-		break;
-	case instruction::cmp_neq_ptr:
-		execute<instructions::cmp_neq_ptr, &execute_cmp_neq_ptr>(context);
-		break;
-	case instruction::cmp_lt_i8:
-		execute<instructions::cmp_lt_i8, &execute_cmp_lt_i8>(context);
-		break;
-	case instruction::cmp_lt_i16:
-		execute<instructions::cmp_lt_i16, &execute_cmp_lt_i16>(context);
-		break;
-	case instruction::cmp_lt_i32:
-		execute<instructions::cmp_lt_i32, &execute_cmp_lt_i32>(context);
-		break;
-	case instruction::cmp_lt_i64:
-		execute<instructions::cmp_lt_i64, &execute_cmp_lt_i64>(context);
-		break;
-	case instruction::cmp_lt_u8:
-		execute<instructions::cmp_lt_u8, &execute_cmp_lt_u8>(context);
-		break;
-	case instruction::cmp_lt_u16:
-		execute<instructions::cmp_lt_u16, &execute_cmp_lt_u16>(context);
-		break;
-	case instruction::cmp_lt_u32:
-		execute<instructions::cmp_lt_u32, &execute_cmp_lt_u32>(context);
-		break;
-	case instruction::cmp_lt_u64:
-		execute<instructions::cmp_lt_u64, &execute_cmp_lt_u64>(context);
-		break;
-	case instruction::cmp_lt_f32:
-		execute<instructions::cmp_lt_f32, &execute_cmp_lt_f32>(context);
-		break;
-	case instruction::cmp_lt_f64:
-		execute<instructions::cmp_lt_f64, &execute_cmp_lt_f64>(context);
-		break;
-	case instruction::cmp_lt_f32_check:
-		execute<instructions::cmp_lt_f32_check, &execute_cmp_lt_f32_check>(context);
-		break;
-	case instruction::cmp_lt_f64_check:
-		execute<instructions::cmp_lt_f64_check, &execute_cmp_lt_f64_check>(context);
-		break;
-	case instruction::cmp_lt_ptr:
-		execute<instructions::cmp_lt_ptr, &execute_cmp_lt_ptr>(context);
-		break;
-	case instruction::cmp_gt_i8:
-		execute<instructions::cmp_gt_i8, &execute_cmp_gt_i8>(context);
-		break;
-	case instruction::cmp_gt_i16:
-		execute<instructions::cmp_gt_i16, &execute_cmp_gt_i16>(context);
-		break;
-	case instruction::cmp_gt_i32:
-		execute<instructions::cmp_gt_i32, &execute_cmp_gt_i32>(context);
-		break;
-	case instruction::cmp_gt_i64:
-		execute<instructions::cmp_gt_i64, &execute_cmp_gt_i64>(context);
-		break;
-	case instruction::cmp_gt_u8:
-		execute<instructions::cmp_gt_u8, &execute_cmp_gt_u8>(context);
-		break;
-	case instruction::cmp_gt_u16:
-		execute<instructions::cmp_gt_u16, &execute_cmp_gt_u16>(context);
-		break;
-	case instruction::cmp_gt_u32:
-		execute<instructions::cmp_gt_u32, &execute_cmp_gt_u32>(context);
-		break;
-	case instruction::cmp_gt_u64:
-		execute<instructions::cmp_gt_u64, &execute_cmp_gt_u64>(context);
-		break;
-	case instruction::cmp_gt_f32:
-		execute<instructions::cmp_gt_f32, &execute_cmp_gt_f32>(context);
-		break;
-	case instruction::cmp_gt_f64:
-		execute<instructions::cmp_gt_f64, &execute_cmp_gt_f64>(context);
-		break;
-	case instruction::cmp_gt_f32_check:
-		execute<instructions::cmp_gt_f32_check, &execute_cmp_gt_f32_check>(context);
-		break;
-	case instruction::cmp_gt_f64_check:
-		execute<instructions::cmp_gt_f64_check, &execute_cmp_gt_f64_check>(context);
-		break;
-	case instruction::cmp_gt_ptr:
-		execute<instructions::cmp_gt_ptr, &execute_cmp_gt_ptr>(context);
-		break;
-	case instruction::cmp_lte_i8:
-		execute<instructions::cmp_lte_i8, &execute_cmp_lte_i8>(context);
-		break;
-	case instruction::cmp_lte_i16:
-		execute<instructions::cmp_lte_i16, &execute_cmp_lte_i16>(context);
-		break;
-	case instruction::cmp_lte_i32:
-		execute<instructions::cmp_lte_i32, &execute_cmp_lte_i32>(context);
-		break;
-	case instruction::cmp_lte_i64:
-		execute<instructions::cmp_lte_i64, &execute_cmp_lte_i64>(context);
-		break;
-	case instruction::cmp_lte_u8:
-		execute<instructions::cmp_lte_u8, &execute_cmp_lte_u8>(context);
-		break;
-	case instruction::cmp_lte_u16:
-		execute<instructions::cmp_lte_u16, &execute_cmp_lte_u16>(context);
-		break;
-	case instruction::cmp_lte_u32:
-		execute<instructions::cmp_lte_u32, &execute_cmp_lte_u32>(context);
-		break;
-	case instruction::cmp_lte_u64:
-		execute<instructions::cmp_lte_u64, &execute_cmp_lte_u64>(context);
-		break;
-	case instruction::cmp_lte_f32:
-		execute<instructions::cmp_lte_f32, &execute_cmp_lte_f32>(context);
-		break;
-	case instruction::cmp_lte_f64:
-		execute<instructions::cmp_lte_f64, &execute_cmp_lte_f64>(context);
-		break;
-	case instruction::cmp_lte_f32_check:
-		execute<instructions::cmp_lte_f32_check, &execute_cmp_lte_f32_check>(context);
-		break;
-	case instruction::cmp_lte_f64_check:
-		execute<instructions::cmp_lte_f64_check, &execute_cmp_lte_f64_check>(context);
-		break;
-	case instruction::cmp_lte_ptr:
-		execute<instructions::cmp_lte_ptr, &execute_cmp_lte_ptr>(context);
-		break;
-	case instruction::cmp_gte_i8:
-		execute<instructions::cmp_gte_i8, &execute_cmp_gte_i8>(context);
-		break;
-	case instruction::cmp_gte_i16:
-		execute<instructions::cmp_gte_i16, &execute_cmp_gte_i16>(context);
-		break;
-	case instruction::cmp_gte_i32:
-		execute<instructions::cmp_gte_i32, &execute_cmp_gte_i32>(context);
-		break;
-	case instruction::cmp_gte_i64:
-		execute<instructions::cmp_gte_i64, &execute_cmp_gte_i64>(context);
-		break;
-	case instruction::cmp_gte_u8:
-		execute<instructions::cmp_gte_u8, &execute_cmp_gte_u8>(context);
-		break;
-	case instruction::cmp_gte_u16:
-		execute<instructions::cmp_gte_u16, &execute_cmp_gte_u16>(context);
-		break;
-	case instruction::cmp_gte_u32:
-		execute<instructions::cmp_gte_u32, &execute_cmp_gte_u32>(context);
-		break;
-	case instruction::cmp_gte_u64:
-		execute<instructions::cmp_gte_u64, &execute_cmp_gte_u64>(context);
-		break;
-	case instruction::cmp_gte_f32:
-		execute<instructions::cmp_gte_f32, &execute_cmp_gte_f32>(context);
-		break;
-	case instruction::cmp_gte_f64:
-		execute<instructions::cmp_gte_f64, &execute_cmp_gte_f64>(context);
-		break;
-	case instruction::cmp_gte_f32_check:
-		execute<instructions::cmp_gte_f32_check, &execute_cmp_gte_f32_check>(context);
-		break;
-	case instruction::cmp_gte_f64_check:
-		execute<instructions::cmp_gte_f64_check, &execute_cmp_gte_f64_check>(context);
-		break;
-	case instruction::cmp_gte_ptr:
-		execute<instructions::cmp_gte_ptr, &execute_cmp_gte_ptr>(context);
+	case instruction::cmp_ptr:
+		execute<instructions::cmp_ptr, &execute_cmp_ptr>(context);
 		break;
 	case instruction::neg_i8:
 		execute<instructions::neg_i8, &execute_neg_i8>(context);
