@@ -1,19 +1,19 @@
-function test1([...elems]) -> [sizeof ...elems: int32]
+function test1([...elems]) -> [sizeof ...elems: i32]
 {
-	return [sizeof ...elems: int32]();
+	return [sizeof ...elems: i32]();
 }
 
 function test()
 {
-	let t = [int32, float32, str, float64, usize]();
+	let t = [i32, f32, str, f64, usize]();
 	test1(t);
-	static_assert(typeof test1(t) == [5: int32]);
+	static_assert(typeof test1(t) == [5: i32]);
 
-	let arr = [10: int32]();
+	let arr = [10: i32]();
 	test1(arr);
-	static_assert(typeof test1(arr) == [10: int32]);
+	static_assert(typeof test1(arr) == [10: i32]);
 
-	let arr = [10, 20: int32]();
+	let arr = [10, 20: i32]();
 	test1(arr);
-	static_assert(typeof test1(arr) == [10: int32]);
+	static_assert(typeof test1(arr) == [10: i32]);
 }

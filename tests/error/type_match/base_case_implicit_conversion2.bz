@@ -1,5 +1,5 @@
-// error: unable to match expression of type 'float32' to 'float64'
+// error: unable to match expression of type 'f32' to 'f64'
 function test()
 {
-	let _: float64 = 0.0f32;
+	let _: f64 = 0.0f32;
 }

@@ -1,9 +1,9 @@
 // error: couldn't match the function call to the function
 // note: function argument types are '<error-type>'
-// note: candidate: 'function test1(T: [typename, int32]) -> void'
-function test1(T: [typename, int32]);
+// note: candidate: 'function test1(T: [typename, i32]) -> void'
+function test1(T: [typename, i32]);
 
 function test()
 {
-	test1([int32, int64]);
+	test1([i32, i64]);
 }

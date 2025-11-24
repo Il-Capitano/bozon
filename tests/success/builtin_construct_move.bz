@@ -2,7 +2,7 @@ import std::utils;
 
 function main()
 {
-	let p = std::malloc(int32, 1u);
+	let p = std::malloc(i32, 1u);
 	let n = 3;
 	__builtin_inplace_construct(p, move n);
 	std::free(p);

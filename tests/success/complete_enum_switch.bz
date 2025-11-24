@@ -3,7 +3,7 @@ enum E
 	a, b, c
 }
 
-function main() -> int32
+function main() -> i32
 {
 	let val = E.a;
 	return switch (val) {

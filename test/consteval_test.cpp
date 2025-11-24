@@ -154,9 +154,9 @@ do {                                                                            
 		factorial(10u)
 	})", ast::constant_value_kind::uint, 3628800);
 	x(R"({
-		function foo() -> [10: int32]
+		function foo() -> [10: i32]
 		{
-			mut result: [10: int32];
+			mut result: [10: i32];
 			for (mut i = 0; i < 10; ++i)
 			{
 				result[i] = i;
@@ -169,7 +169,7 @@ do {                                                                            
 
 	x_fail(R"({ if (x) { 0 } else { 1 } })");
 	x_fail(R"asdf({
-		function foo() -> int32
+		function foo() -> i32
 		{
 			__builtin_println_stdout("hello from foo()");
 			return 0;
@@ -177,25 +177,25 @@ do {                                                                            
 		foo()
 	})asdf");
 	x_fail(R"({
-		mut arr: [4: int32] = [ 1, 2, 3, 4 ];
+		mut arr: [4: i32] = [ 1, 2, 3, 4 ];
 		let index = -1;
 		arr[index] = 3;
 		0
 	})");
 	x_fail(R"({
-		mut arr: [4: int32] = [ 1, 2, 3, 4 ];
+		mut arr: [4: i32] = [ 1, 2, 3, 4 ];
 		let index = 4;
 		arr[index] = 3;
 		0
 	})");
 	x_fail(R"({
-		mut arr: [4: int32] = [ 1, 2, 3, 4 ];
+		mut arr: [4: i32] = [ 1, 2, 3, 4 ];
 		let index = 4u;
 		arr[index] = 3;
 		0
 	})");
 	x_fail(R"({
-		@symbol_name("exp") function my_exp(x: float64) -> float64;
+		@symbol_name("exp") function my_exp(x: f64) -> f64;
 		let e = my_exp(1.0);
 		0
 	})");

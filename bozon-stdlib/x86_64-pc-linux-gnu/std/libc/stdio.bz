@@ -11,7 +11,7 @@ import stddef;
 @__libc_internal struct __mbstate_t
 {
 	.__count: int;
-	.__value: /* union type */[1: int32];
+	.__value: /* union type */[1: i32];
 }
 @__libc_struct("stdio.h", "FILE") struct _IO_FILE
 {

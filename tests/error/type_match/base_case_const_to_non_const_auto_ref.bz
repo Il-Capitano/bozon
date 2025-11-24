@@ -1,7 +1,7 @@
-// error: unable to match value of type 'int32' to '#mut int32'
-// note: mismatched mutability of types 'int32' and 'mut int32'
+// error: unable to match value of type 'i32' to '#mut i32'
+// note: mismatched mutability of types 'i32' and 'mut i32'
 function test()
 {
-	let ci: int32 = 0;
-	let _: #mut int32 = ci;
+	let ci: i32 = 0;
+	let _: #mut i32 = ci;
 }

@@ -1,6 +1,6 @@
 // error: matching the two branches of the if expression to type 'auto' is ambiguous
-// note: resulting type from matching the then branch is 'int32'
-// note: resulting type from matching the else branch is 'uint32'
+// note: resulting type from matching the then branch is 'i32'
+// note: resulting type from matching the else branch is 'u32'
 function test(b: bool)
 {
 	let _ = if (b) {

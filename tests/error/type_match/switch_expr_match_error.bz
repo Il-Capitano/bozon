@@ -1,6 +1,6 @@
-// error: unable to match temporary value of type 'int32' to a reference type '&auto'
-// error: unable to match temporary value of type 'int32' to a reference type '&auto'
-function test(val: int32)
+// error: unable to match temporary value of type 'i32' to a reference type '&auto'
+// error: unable to match temporary value of type 'i32' to a reference type '&auto'
+function test(val: i32)
 {
 	let i = 0;
 	let _: &auto = switch (val) {

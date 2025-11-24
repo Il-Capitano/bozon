@@ -1,6 +1,6 @@
-// error: unable to match type 'int8' to 'str'
-// note: while matching expression of type '[int32, float64, str, str, int8]' to '[int32, float64, str, str, str]'
+// error: unable to match type 'i8' to 'str'
+// note: while matching expression of type '[i32, f64, str, str, i8]' to '[i32, f64, str, str, str]'
 function test()
 {
-	let _: [int32, float64, ...str] = [int32, float64, str, str, int8]();
+	let _: [i32, f64, ...str] = [i32, f64, str, str, i8]();
 }

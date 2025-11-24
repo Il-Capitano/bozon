@@ -5,82 +5,82 @@ function test(b: bool)
 	} else {
 		1
 	};
-	static_assert(typeof i == int32);
+	static_assert(typeof i == i32);
 
 	let i = if (b) {
 		0
 	} else {
 		unreachable
 	};
-	static_assert(typeof i == int32);
+	static_assert(typeof i == i32);
 
 	let i = if (b) {
 		unreachable
 	} else {
 		1
 	};
-	static_assert(typeof i == int32);
+	static_assert(typeof i == i32);
 
 	let i = if (b) {
 		0
 	} else {
 		unreachable;
 	};
-	static_assert(typeof i == int32);
+	static_assert(typeof i == i32);
 
 	let i = if (b) {
 		unreachable;
 	} else {
 		1
 	};
-	static_assert(typeof i == int32);
+	static_assert(typeof i == i32);
 
-	let i: int32 = if (b) {
+	let i: i32 = if (b) {
 		0
 	} else {
 		1
 	};
-	static_assert(typeof i == int32);
+	static_assert(typeof i == i32);
 
 	let i: ##auto = if (b) {
 		i
 	} else {
 		1
 	};
-	static_assert(typeof i == int32);
+	static_assert(typeof i == i32);
 
 	let i: ##auto = if (b) {
 		0
 	} else {
 		i
 	};
-	static_assert(typeof i == int32);
+	static_assert(typeof i == i32);
 
 	let i: ##auto = if (b) {
 		i
 	} else {
 		i
 	};
-	static_assert(typeof i == &int32);
+	static_assert(typeof i == &i32);
 
 	let i = if (b) {
 		0i64
 	} else {
 		1i16
 	};
-	static_assert(typeof i == int64);
+	static_assert(typeof i == i64);
 
 	let i = if (b) {
 		0i16
 	} else {
 		1i64
 	};
-	static_assert(typeof i == int64);
+	static_assert(typeof i == i64);
 
-	let i: int64 = if (b) {
+	let i: i64 = if (b) {
 		0
 	} else {
 		1i16
 	};
-	static_assert(typeof i == int64);
+	static_assert(typeof i == i64);
 }

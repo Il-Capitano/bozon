@@ -7,5 +7,5 @@ function foo(T: typename, U: *typename);
 
 function main()
 {
-	foo(*int32, *int32);
+	foo(*i32, *i32);
 }

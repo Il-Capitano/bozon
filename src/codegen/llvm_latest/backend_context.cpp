@@ -32,16 +32,16 @@ get_llvm_builtin_types(llvm::LLVMContext &context)
 	auto const str_t  = llvm::StructType::create(context, pointer_pair, "builtin.str");
 	auto const null_t = llvm::StructType::create(context, {}, "builtin.__null_t");
 	return {
-		llvm::Type::getInt8Ty(context),   // int8_
-		llvm::Type::getInt16Ty(context),  // int16_
-		llvm::Type::getInt32Ty(context),  // int32_
-		llvm::Type::getInt64Ty(context),  // int64_
-		llvm::Type::getInt8Ty(context),   // uint8_
-		llvm::Type::getInt16Ty(context),  // uint16_
-		llvm::Type::getInt32Ty(context),  // uint32_
-		llvm::Type::getInt64Ty(context),  // uint64_
-		llvm::Type::getFloatTy(context),  // float32_
-		llvm::Type::getDoubleTy(context), // float64_
+		llvm::Type::getInt8Ty(context),   // i8_
+		llvm::Type::getInt16Ty(context),  // i16_
+		llvm::Type::getInt32Ty(context),  // i32_
+		llvm::Type::getInt64Ty(context),  // i64_
+		llvm::Type::getInt8Ty(context),   // u8_
+		llvm::Type::getInt16Ty(context),  // u16_
+		llvm::Type::getInt32Ty(context),  // u32_
+		llvm::Type::getInt64Ty(context),  // u64_
+		llvm::Type::getFloatTy(context),  // f32_
+		llvm::Type::getDoubleTy(context), // f64_
 		llvm::Type::getInt32Ty(context),  // char_
 		str_t,                            // str_
 		llvm::Type::getInt1Ty(context),   // bool_

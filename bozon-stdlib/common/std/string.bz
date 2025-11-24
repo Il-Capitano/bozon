@@ -3,14 +3,14 @@ import utils;
 import bit;
 import meta::comptime;
 
-static_assert(sizeof string == 3 * sizeof ?*uint8);
-consteval short_string_max_size = 2 * sizeof ?*uint8;
+static_assert(sizeof string == 3 * sizeof ?*u8);
+consteval short_string_max_size = 2 * sizeof ?*u8;
 
 export struct string
 {
-	._data_begin: ?*mut uint8;
-	._data_end:   ?*mut uint8;
-	._alloc_end:  ?*mut uint8;
+	._data_begin: ?*mut u8;
+	._data_end:   ?*mut u8;
+	._alloc_end:  ?*mut u8;
 
 	destructor(&self)
 	{
@@ -34,8 +34,8 @@ export struct string
 		}
 		else if (!meta::is_comptime() && size <= short_string_max_size)
 		{
-			let data_begin = __builtin_int_to_pointer(*mut uint8, 1uz | (size << 1));
-			mut data_and_alloc_end = [2: ?*mut uint8]();
+			let data_begin = __builtin_int_to_pointer(*mut u8, 1uz | (size << 1));
+			mut data_and_alloc_end = [2: ?*mut u8]();
 			memcpy(&data_and_alloc_end, s.begin_ptr(), size);
 			return string[ data_begin, data_and_alloc_end[0], data_and_alloc_end[1] ];
 		}
@@ -92,7 +92,7 @@ function round_to_next_power_of_two(n: usize) -> usize
 	};
 }
 
-function rounded_alloc(n: usize) -> [?*mut uint8, usize]
+function rounded_alloc(n: usize) -> [?*mut u8, usize]
 {
 	if (n == 0)
 	{
@@ -101,7 +101,7 @@ function rounded_alloc(n: usize) -> [?*mut uint8, usize]
 	else
 	{
 		let rounded_n = round_to_next_power_of_two(n);
-		return [ malloc_raw(uint8, rounded_n), rounded_n ];
+		return [ malloc_raw(u8, rounded_n), rounded_n ];
 	}
 }
 
@@ -124,11 +124,11 @@ function short_string_size(s: &string) -> usize
 	return data_begin_int >> 1;
 }
 
-function begin_ptr(s: &string) -> ?*uint8
+function begin_ptr(s: &string) -> ?*u8
 {
 	if (s.is_short_string())
 	{
-		return __builtin_pointer_cast(*uint8, &s._data_end);
+		return __builtin_pointer_cast(*u8, &s._data_end);
 	}
 	else
 	{
@@ -136,11 +136,11 @@ function begin_ptr(s: &string) -> ?*uint8
 	}
 }
 
-function begin_ptr(s: &mut string) -> ?*mut uint8
+function begin_ptr(s: &mut string) -> ?*mut u8
 {
 	if (s.is_short_string())
 	{
-		return __builtin_pointer_cast(*mut uint8, &s._data_end);
+		return __builtin_pointer_cast(*mut u8, &s._data_end);
 	}
 	else
 	{
@@ -148,12 +148,12 @@ function begin_ptr(s: &mut string) -> ?*mut uint8
 	}
 }
 
-function end_ptr(s: &string) -> ?*uint8
+function end_ptr(s: &string) -> ?*u8
 {
 	if (s.is_short_string())
 	{
 		let size = s.short_string_size();
-		return __builtin_pointer_cast(*uint8, &s._data_end) + size;
+		return __builtin_pointer_cast(*u8, &s._data_end) + size;
 	}
 	else
 	{
@@ -161,12 +161,12 @@ function end_ptr(s: &string) -> ?*uint8
 	}
 }
 
-function end_ptr(s: &mut string) -> ?*mut uint8
+function end_ptr(s: &mut string) -> ?*mut u8
 {
 	if (s.is_short_string())
 	{
 		let size = s.short_string_size();
-		return __builtin_pointer_cast(*mut uint8, &s._data_end) + size;
+		return __builtin_pointer_cast(*mut u8, &s._data_end) + size;
 	}
 	else
 	{
@@ -182,7 +182,7 @@ function set_short_string_size(s: &mut string, size: usize)
 	}
 	else
 	{
-		s._data_begin = __builtin_int_to_pointer(*mut uint8, (size << 1) | 1uz);
+		s._data_begin = __builtin_int_to_pointer(*mut u8, (size << 1) | 1uz);
 	}
 }
 
@@ -199,7 +199,7 @@ function set_size_unsafe(s: &mut string, size: usize)
 }
 
 
-function as_slice(s: &string) -> [: uint8]
+function as_slice(s: &string) -> [: u8]
 {
 	return __builtin_slice_from_ptrs(s.begin_ptr(), s.end_ptr());
 }
@@ -251,22 +251,22 @@ export function is_ascii(self: #string) -> bool
 	return true;
 }
 
-export function data(self: &string) -> ?*uint8
+export function data(self: &string) -> ?*u8
 {
 	return self.begin_ptr();
 }
 
-export function data(self: &mut string) -> ?*mut uint8
+export function data(self: &mut string) -> ?*mut u8
 {
 	return self.begin_ptr();
 }
 
-export function data_end(self: &string) -> ?*uint8
+export function data_end(self: &string) -> ?*u8
 {
 	return self.end_ptr();
 }
 
-export function data_end(self: &mut string) -> ?*mut uint8
+export function data_end(self: &mut string) -> ?*mut u8
 {
 	return self.end_ptr();
 }
@@ -314,7 +314,7 @@ export function resize(self: &mut string, new_size: usize, c: char)
 		let old_end = self.end_ptr();
 		let size_diff = new_size - self.size();
 		self.set_size_unsafe(new_size);
-		trivially_set_values(old_end, c as uint8, size_diff);
+		trivially_set_values(old_end, c as u8, size_diff);
 	}
 	else
 	{
@@ -322,7 +322,7 @@ export function resize(self: &mut string, new_size: usize, c: char)
 		let old_end = self.end_ptr();
 		let size_diff = new_size - self.size();
 		self.set_size_unsafe(new_size);
-		trivially_set_values(old_end, c as uint8, size_diff);
+		trivially_set_values(old_end, c as u8, size_diff);
 	}
 }
 

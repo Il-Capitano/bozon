@@ -47,16 +47,16 @@ struct builtin_type_basic_operator_table_t
 
 using basic_operator_table_t = bz::enum_array<
 	builtin_type_basic_operator_table_t,
-	ast::type_info::int8_,
-	ast::type_info::int16_,
-	ast::type_info::int32_,
-	ast::type_info::int64_,
-	ast::type_info::uint8_,
-	ast::type_info::uint16_,
-	ast::type_info::uint32_,
-	ast::type_info::uint64_,
-	ast::type_info::float32_,
-	ast::type_info::float64_,
+	ast::type_info::i8_,
+	ast::type_info::i16_,
+	ast::type_info::i32_,
+	ast::type_info::i64_,
+	ast::type_info::u8_,
+	ast::type_info::u16_,
+	ast::type_info::u32_,
+	ast::type_info::u64_,
+	ast::type_info::f32_,
+	ast::type_info::f64_,
 	ast::type_info::char_,
 	ast::type_info::bool_
 >;
@@ -91,16 +91,16 @@ struct builtin_type_arithmetic_operator_table_t
 
 using arithmetic_operator_table_t = bz::enum_array<
 	builtin_type_arithmetic_operator_table_t,
-	ast::type_info::int8_,
-	ast::type_info::int16_,
-	ast::type_info::int32_,
-	ast::type_info::int64_,
-	ast::type_info::uint8_,
-	ast::type_info::uint16_,
-	ast::type_info::uint32_,
-	ast::type_info::uint64_,
-	ast::type_info::float32_,
-	ast::type_info::float64_
+	ast::type_info::i8_,
+	ast::type_info::i16_,
+	ast::type_info::i32_,
+	ast::type_info::i64_,
+	ast::type_info::u8_,
+	ast::type_info::u16_,
+	ast::type_info::u32_,
+	ast::type_info::u64_,
+	ast::type_info::f32_,
+	ast::type_info::f64_
 >;
 
 struct builtin_type_bitwise_operator_table_t
@@ -135,10 +135,10 @@ struct builtin_type_bitwise_operator_table_t
 
 using bitwise_operator_table_t = bz::enum_array<
 	builtin_type_bitwise_operator_table_t,
-	ast::type_info::uint8_,
-	ast::type_info::uint16_,
-	ast::type_info::uint32_,
-	ast::type_info::uint64_,
+	ast::type_info::u8_,
+	ast::type_info::u16_,
+	ast::type_info::u32_,
+	ast::type_info::u64_,
 	ast::type_info::bool_
 >;
 

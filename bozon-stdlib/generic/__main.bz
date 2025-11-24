@@ -2,7 +2,7 @@ import std::libc::types;
 import std::libc::stdlib;
 import std::libc::string;
 
-@__builtin function __builtin_call_main(args: [: str]) -> int32;
+@__builtin function __builtin_call_main(args: [: str]) -> i32;
 
 @symbol_name("main")
 function __libc_main(argc_int: std::libc::int, argv: **std::libc::char) -> std::libc::int
@@ -39,7 +39,7 @@ function __libc_main(argc_int: std::libc::int, argv: **std::libc::char) -> std::
 
 	let result = __builtin_call_main(args);
 
-	if consteval (std::libc::int == int32)
+	if consteval (std::libc::int == i32)
 	{
 		return result;
 	}

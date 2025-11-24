@@ -1,12 +1,12 @@
-// error: invalid pointer difference operation with type '?*int32'
+// error: invalid pointer difference operation with type '?*i32'
 // note: while evaluating expression at compile time
 // note: lhs and rhs addresses point to this stack object, which is outside its lifetime
 // error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {
-		mut p: ?*int32 = null;
-		mut q: ?*int32 = null;
+		mut p: ?*i32 = null;
+		mut q: ?*i32 = null;
 		{
 			let i = 0;
 			p = &i;

@@ -1,10 +1,10 @@
-// error: invalid pointer difference of a null and non-null pointer with type '?*int32'
+// error: invalid pointer difference of a null and non-null pointer with type '?*i32'
 // note: while evaluating expression at compile time
 // error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {
-		let p: ?*int32 = null;
+		let p: ?*i32 = null;
 		let i = 0;
 		p - &i;
 	});

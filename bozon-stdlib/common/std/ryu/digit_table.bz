@@ -20,7 +20,7 @@
 
 // A table of all two-digit numbers. This is used to speed up decimal digit
 // generation by copying pairs of digits into the final output.
-export consteval DIGIT_TABLE: [200: uint8] = [
+export consteval DIGIT_TABLE: [200: u8] = [
 	// "00" starts here
 	48, 48, 48, 49, 48, 50, 48, 51, 48, 52,
 	48, 53, 48, 54, 48, 55, 48, 56, 48, 57,
@@ -57,8 +57,8 @@ static_assert({
 	mut good = true;
 	for (let i in 0..100)
 	{
-		good &= DIGIT_TABLE[2 * i]     == ('0' + i / 10) as uint32;
-		good &= DIGIT_TABLE[2 * i + 1] == ('0' + i % 10) as uint32;
+		good &= DIGIT_TABLE[2 * i]     == ('0' + i / 10) as u32;
+		good &= DIGIT_TABLE[2 * i + 1] == ('0' + i % 10) as u32;
 	}
 	good
 });

@@ -1,7 +1,7 @@
 import types;
 @__libc_struct("fenv.h", "fenv_t") export struct fenv_t
 {
-	._: [8: int32]; // struct contains bit fields
+	._: [8: i32]; // struct contains bit fields
 }
 export type fexcept_t = unsigned_short;
 @__libc_function("fenv.h", "feclearexcept") export function "c" feclearexcept(excepts: int) -> int;

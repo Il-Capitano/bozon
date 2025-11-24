@@ -1539,6 +1539,10 @@ void parse_context::add_function_for_compilation(ast::function_body &func_body) 
 
 static ast::typespec get_function_type(ast::function_body &body)
 {
+	if (body.return_type.is_empty() || body.params.is_any([](auto &p) { return p.get_type().is_empty(); }))
+	{
+		return ast::typespec();
+	}
 	auto const &return_type = body.return_type;
 	auto param_types = body.params.transform([](auto &p) { return p.get_type(); }).collect<ast::arena_vector>();
 	return ast::make_function_typespec(body.src_tokens, std::move(param_types), return_type, body.cc);
@@ -1669,12 +1673,23 @@ static ast::expression make_function_name_expression(
 	}
 	else
 	{
-		return ast::make_constant_expression(
-			src_tokens,
-			ast::expression_type_kind::function_name, get_function_type(func_decl->body),
-			ast::constant_value(&func_decl->body),
-			ast::make_expr_function_name(std::move(id), func_decl)
-		);
+		auto func_type = get_function_type(func_decl->body);
+		if (func_type.is_empty())
+		{
+			return ast::make_error_expression(
+				src_tokens,
+				ast::make_expr_function_name(std::move(id), func_decl)
+			);
+		}
+		else
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::function_name, std::move(func_type),
+				ast::constant_value(&func_decl->body),
+				ast::make_expr_function_name(std::move(id), func_decl)
+			);
+		}
 	}
 }
 
@@ -1687,12 +1702,23 @@ static ast::expression make_function_name_expression(
 	if (alias_decl->aliased_decls.size() == 1 && !alias_decl->aliased_decls[0]->body.is_generic())
 	{
 		auto const decl = alias_decl->aliased_decls[0];
-		return ast::make_constant_expression(
-			src_tokens,
-			ast::expression_type_kind::function_alias_name, get_function_type(decl->body),
-			ast::constant_value(&decl->body),
-			ast::make_expr_function_alias_name(std::move(id), alias_decl)
-		);
+		auto func_type = get_function_type(decl->body);
+		if (func_type.is_empty())
+		{
+			return ast::make_error_expression(
+				src_tokens,
+				ast::make_expr_function_alias_name(std::move(id), alias_decl)
+			);
+		}
+		else
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::function_alias_name, std::move(func_type),
+				ast::constant_value(&decl->body),
+				ast::make_expr_function_alias_name(std::move(id), alias_decl)
+			);
+		}
 	}
 	else
 	{
@@ -2247,10 +2273,12 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 				auto const func_decl = this->get_builtin_function(it->kind);
 				if (func_decl->body.is_export())
 				{
+					auto func_type = get_function_type(func_decl->body);
+					bz_assert(func_type.not_empty());
 					return ast::make_constant_expression(
 						src_tokens,
 						ast::expression_type_kind::function_name,
-						get_function_type(func_decl->body),
+						std::move(func_type),
 						ast::constant_value(&func_decl->body),
 						ast::make_expr_function_name(std::move(id), func_decl)
 					);
@@ -2363,15 +2391,15 @@ static ast::expression get_literal_expr(
 			if ((default_is_signed && postfix == "") || postfix == "i")
 			{
 				return {
-					context.get_builtin_type_info(ast::type_info::int32_),
-					context.get_builtin_type_info(ast::type_info::int64_)
+					context.get_builtin_type_info(ast::type_info::i32_),
+					context.get_builtin_type_info(ast::type_info::i64_)
 				};
 			}
 			else
 			{
 				return {
-					context.get_builtin_type_info(ast::type_info::uint32_),
-					context.get_builtin_type_info(ast::type_info::uint64_)
+					context.get_builtin_type_info(ast::type_info::u32_),
+					context.get_builtin_type_info(ast::type_info::u64_)
 				};
 			}
 		}();
@@ -2422,7 +2450,7 @@ static ast::expression get_literal_expr(
 		}
 		else
 		{
-			auto const info = context.get_builtin_type_info(ast::type_info::uint64_);
+			auto const info = context.get_builtin_type_info(ast::type_info::u64_);
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
@@ -2445,64 +2473,64 @@ static ast::expression get_literal_expr(
 			if (postfix == "i8")
 			{
 				return {
-					context.get_builtin_type_info(ast::type_info::int8_),
-					"int8",
+					context.get_builtin_type_info(ast::type_info::i8_),
+					"i8",
 					static_cast<uint64_t>(std::numeric_limits<int8_t>::max())
 				};
 			}
 			else if (postfix == "u8")
 			{
 				return {
-					context.get_builtin_type_info(ast::type_info::uint8_),
-					"uint8",
+					context.get_builtin_type_info(ast::type_info::u8_),
+					"u8",
 					static_cast<uint64_t>(std::numeric_limits<uint8_t>::max())
 				};
 			}
 			else if (postfix == "i16")
 			{
 				return {
-					context.get_builtin_type_info(ast::type_info::int16_),
-					"int16",
+					context.get_builtin_type_info(ast::type_info::i16_),
+					"i16",
 					static_cast<uint64_t>(std::numeric_limits<int16_t>::max())
 				};
 			}
 			else if (postfix == "u16")
 			{
 				return {
-					context.get_builtin_type_info(ast::type_info::uint16_),
-					"uint16",
+					context.get_builtin_type_info(ast::type_info::u16_),
+					"u16",
 					static_cast<uint64_t>(std::numeric_limits<uint16_t>::max())
 				};
 			}
 			else if (postfix == "i32")
 			{
 				return {
-					context.get_builtin_type_info(ast::type_info::int32_),
-					"int32",
+					context.get_builtin_type_info(ast::type_info::i32_),
+					"i32",
 					static_cast<uint64_t>(std::numeric_limits<int32_t>::max())
 				};
 			}
 			else if (postfix == "u32")
 			{
 				return {
-					context.get_builtin_type_info(ast::type_info::uint32_),
-					"uint32",
+					context.get_builtin_type_info(ast::type_info::u32_),
+					"u32",
 					static_cast<uint64_t>(std::numeric_limits<uint32_t>::max())
 				};
 			}
 			else if (postfix == "i64")
 			{
 				return {
-					context.get_builtin_type_info(ast::type_info::int64_),
-					"int64",
+					context.get_builtin_type_info(ast::type_info::i64_),
+					"i64",
 					static_cast<uint64_t>(std::numeric_limits<int64_t>::max())
 				};
 			}
 			else if (postfix == "u64")
 			{
 				return {
-					context.get_builtin_type_info(ast::type_info::uint64_),
-					"uint64",
+					context.get_builtin_type_info(ast::type_info::u64_),
+					"u64",
 					static_cast<uint64_t>(std::numeric_limits<uint64_t>::max())
 				};
 			}
@@ -2512,26 +2540,26 @@ static ast::expression get_literal_expr(
 				{
 				case 8:
 					return {
-						context.get_builtin_type_info(ast::type_info::int64_),
-						"int64",
+						context.get_builtin_type_info(ast::type_info::i64_),
+						"i64",
 						static_cast<uint64_t>(std::numeric_limits<int64_t>::max())
 					};
 				case 4:
 					return {
-						context.get_builtin_type_info(ast::type_info::int32_),
-						"int32",
+						context.get_builtin_type_info(ast::type_info::i32_),
+						"i32",
 						static_cast<uint64_t>(std::numeric_limits<int32_t>::max())
 					};
 				case 2:
 					return {
-						context.get_builtin_type_info(ast::type_info::int16_),
-						"int16",
+						context.get_builtin_type_info(ast::type_info::i16_),
+						"i16",
 						static_cast<uint64_t>(std::numeric_limits<int16_t>::max())
 					};
 				case 1:
 					return {
-						context.get_builtin_type_info(ast::type_info::int8_),
-						"int8",
+						context.get_builtin_type_info(ast::type_info::i8_),
+						"i8",
 						static_cast<uint64_t>(std::numeric_limits<int8_t>::max())
 					};
 				default:
@@ -2544,26 +2572,26 @@ static ast::expression get_literal_expr(
 				{
 				case 8:
 					return {
-						context.get_builtin_type_info(ast::type_info::uint64_),
-						"uint64",
+						context.get_builtin_type_info(ast::type_info::u64_),
+						"u64",
 						static_cast<uint64_t>(std::numeric_limits<uint64_t>::max())
 					};
 				case 4:
 					return {
-						context.get_builtin_type_info(ast::type_info::uint32_),
-						"uint32",
+						context.get_builtin_type_info(ast::type_info::u32_),
+						"u32",
 						static_cast<uint64_t>(std::numeric_limits<uint32_t>::max())
 					};
 				case 2:
 					return {
-						context.get_builtin_type_info(ast::type_info::uint16_),
-						"uint16",
+						context.get_builtin_type_info(ast::type_info::u16_),
+						"u16",
 						static_cast<uint64_t>(std::numeric_limits<uint16_t>::max())
 					};
 				case 1:
 					return {
-						context.get_builtin_type_info(ast::type_info::uint8_),
-						"uint8",
+						context.get_builtin_type_info(ast::type_info::u8_),
+						"u8",
 						static_cast<uint64_t>(std::numeric_limits<uint8_t>::max())
 					};
 				default:
@@ -2615,8 +2643,8 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 		{
 			this->report_error(
 				literal,
-				"literal value is too large, even for 'uint64'",
-				{ this->make_note(bz::format("maximum value for 'uint64' is {}", std::numeric_limits<uint64_t>::max())) }
+				"literal value is too large, even for 'u64'",
+				{ this->make_note(bz::format("maximum value for 'u64' is {}", std::numeric_limits<uint64_t>::max())) }
 			);
 			value = 0;
 		}
@@ -2640,7 +2668,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 
 		if (!good)
 		{
-			this->report_error(literal, "literal value is too large, even for 'uint64'");
+			this->report_error(literal, "literal value is too large, even for 'u64'");
 			value = 0;
 		}
 
@@ -2663,20 +2691,20 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 				bz::vector<source_highlight> notes;
 				if (global_data::do_verbose)
 				{
-					notes.push_back(make_note("at most 9 significant digits are allowed for 'float32'"));
+					notes.push_back(make_note("at most 9 significant digits are allowed for 'f32'"));
 				}
-				this->report_error(literal, "unable to parse 'float32' literal value, it has too many digits", std::move(notes));
+				this->report_error(literal, "unable to parse 'f32' literal value, it has too many digits", std::move(notes));
 			}
 			else if (!std::isfinite(num.get()))
 			{
 				this->report_warning(
 					warning_kind::float_overflow, literal,
-					bz::format("'float32' literal value was parsed as {}", num.get())
+					bz::format("'f32' literal value was parsed as {}", num.get())
 				);
 			}
 
 			float32_t const value = num.has_value() ? num.get() : 0.0f;
-			auto const info = this->get_builtin_type_info(ast::type_info::float32_);
+			auto const info = this->get_builtin_type_info(ast::type_info::f32_);
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
@@ -2698,20 +2726,20 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 				bz::vector<source_highlight> notes;
 				if (global_data::do_verbose)
 				{
-					notes.push_back(make_note("at most 17 significant digits are allowed for 'float64'"));
+					notes.push_back(make_note("at most 17 significant digits are allowed for 'f64'"));
 				}
-				this->report_error(literal, "unable to parse 'float64' literal value, it has too many digits", std::move(notes));
+				this->report_error(literal, "unable to parse 'f64' literal value, it has too many digits", std::move(notes));
 			}
 			else if (!std::isfinite(num.get()))
 			{
 				this->report_warning(
 					warning_kind::float_overflow, literal,
-					bz::format("'float64' literal value was parsed as {}", num.get())
+					bz::format("'f64' literal value was parsed as {}", num.get())
 				);
 			}
 
 			auto const value = num.has_value() ? num.get() : 0.0;
-			auto const info = this->get_builtin_type_info(ast::type_info::float64_);
+			auto const info = this->get_builtin_type_info(ast::type_info::f64_);
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
@@ -3087,21 +3115,21 @@ ast::expression parse_context::make_integer_range_expression(lex::src_tokens con
 	{
 		auto const func = [&]() -> ast::decl_function * {
 			switch (begin_type.get<ast::ts_base_type>().info->kind) {
-			case ast::type_info::int8_:
+			case ast::type_info::i8_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_i8);
-			case ast::type_info::int16_:
+			case ast::type_info::i16_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_i16);
-			case ast::type_info::int32_:
+			case ast::type_info::i32_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_i32);
-			case ast::type_info::int64_:
+			case ast::type_info::i64_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_i64);
-			case ast::type_info::uint8_:
+			case ast::type_info::u8_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_u8);
-			case ast::type_info::uint16_:
+			case ast::type_info::u16_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_u16);
-			case ast::type_info::uint32_:
+			case ast::type_info::u32_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_u32);
-			case ast::type_info::uint64_:
+			case ast::type_info::u64_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_u64);
 			default:
 				return nullptr;
@@ -3172,21 +3200,21 @@ ast::expression parse_context::make_integer_range_inclusive_expression(lex::src_
 	{
 		auto const func = [&]() -> ast::decl_function * {
 			switch (begin_type.get<ast::ts_base_type>().info->kind) {
-			case ast::type_info::int8_:
+			case ast::type_info::i8_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_i8);
-			case ast::type_info::int16_:
+			case ast::type_info::i16_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_i16);
-			case ast::type_info::int32_:
+			case ast::type_info::i32_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_i32);
-			case ast::type_info::int64_:
+			case ast::type_info::i64_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_i64);
-			case ast::type_info::uint8_:
+			case ast::type_info::u8_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_u8);
-			case ast::type_info::uint16_:
+			case ast::type_info::u16_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_u16);
-			case ast::type_info::uint32_:
+			case ast::type_info::u32_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_u32);
-			case ast::type_info::uint64_:
+			case ast::type_info::u64_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_inclusive_u64);
 			default:
 				return nullptr;
@@ -3247,21 +3275,21 @@ ast::expression parse_context::make_integer_range_from_expression(lex::src_token
 	{
 		auto const func = [&]() -> ast::decl_function * {
 			switch (type.get<ast::ts_base_type>().info->kind) {
-			case ast::type_info::int8_:
+			case ast::type_info::i8_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_from_i8);
-			case ast::type_info::int16_:
+			case ast::type_info::i16_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_from_i16);
-			case ast::type_info::int32_:
+			case ast::type_info::i32_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_from_i32);
-			case ast::type_info::int64_:
+			case ast::type_info::i64_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_from_i64);
-			case ast::type_info::uint8_:
+			case ast::type_info::u8_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_from_u8);
-			case ast::type_info::uint16_:
+			case ast::type_info::u16_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_from_u16);
-			case ast::type_info::uint32_:
+			case ast::type_info::u32_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_from_u32);
-			case ast::type_info::uint64_:
+			case ast::type_info::u64_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_from_u64);
 			default:
 				return nullptr;
@@ -3322,21 +3350,21 @@ ast::expression parse_context::make_integer_range_to_expression(lex::src_tokens 
 	{
 		auto const func = [&]() -> ast::decl_function * {
 			switch (type.get<ast::ts_base_type>().info->kind) {
-			case ast::type_info::int8_:
+			case ast::type_info::i8_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_i8);
-			case ast::type_info::int16_:
+			case ast::type_info::i16_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_i16);
-			case ast::type_info::int32_:
+			case ast::type_info::i32_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_i32);
-			case ast::type_info::int64_:
+			case ast::type_info::i64_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_i64);
-			case ast::type_info::uint8_:
+			case ast::type_info::u8_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_u8);
-			case ast::type_info::uint16_:
+			case ast::type_info::u16_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_u16);
-			case ast::type_info::uint32_:
+			case ast::type_info::u32_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_u32);
-			case ast::type_info::uint64_:
+			case ast::type_info::u64_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_u64);
 			default:
 				return nullptr;
@@ -3397,21 +3425,21 @@ ast::expression parse_context::make_integer_range_to_inclusive_expression(lex::s
 	{
 		auto const func = [&]() -> ast::decl_function * {
 			switch (type.get<ast::ts_base_type>().info->kind) {
-			case ast::type_info::int8_:
+			case ast::type_info::i8_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_i8);
-			case ast::type_info::int16_:
+			case ast::type_info::i16_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_i16);
-			case ast::type_info::int32_:
+			case ast::type_info::i32_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_i32);
-			case ast::type_info::int64_:
+			case ast::type_info::i64_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_i64);
-			case ast::type_info::uint8_:
+			case ast::type_info::u8_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_u8);
-			case ast::type_info::uint16_:
+			case ast::type_info::u16_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_u16);
-			case ast::type_info::uint32_:
+			case ast::type_info::u32_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_u32);
-			case ast::type_info::uint64_:
+			case ast::type_info::u64_:
 				return this->get_builtin_function(ast::function_body::builtin_integer_range_to_inclusive_u64);
 			default:
 				return nullptr;
@@ -5540,7 +5568,7 @@ static bool check_large_type_bit_cast_paddings(
 		}
 
 		// advance result_it as long as there are consecutive padding spaces
-		// this can happen for example in types like '[[uint16, uint8], uint64]',
+		// this can happen for example in types like '[[u16, u8], u64]',
 		// where we have a 1-byte padding at offset 3 and a 4-byte padding at offset 4
 		auto previous_end = result_it->offset + result_it->padding_size;
 		++result_it;
@@ -5649,7 +5677,7 @@ static bz::vector<ctx::source_highlight> get_bit_cast_type_padding_note(
 		}
 
 		// advance result_it as long as there are consecutive padding spaces
-		// this can happen for example in types like '[[uint16, uint8], uint64]',
+		// this can happen for example in types like '[[u16, u8], u64]',
 		// where we have a 1-byte padding at offset 3 and a 4-byte padding at offset 4
 		auto previous_end = result_it->offset + result_it->padding_size;
 		++result_it;
@@ -6254,19 +6282,19 @@ static ast::expression make_builtin_default_construction(
 		auto value = [&]() {
 			switch (info->kind)
 			{
-			case ast::type_info::int8_:
-			case ast::type_info::int16_:
-			case ast::type_info::int32_:
-			case ast::type_info::int64_:
+			case ast::type_info::i8_:
+			case ast::type_info::i16_:
+			case ast::type_info::i32_:
+			case ast::type_info::i64_:
 				return ast::constant_value(int64_t());
-			case ast::type_info::uint8_:
-			case ast::type_info::uint16_:
-			case ast::type_info::uint32_:
-			case ast::type_info::uint64_:
+			case ast::type_info::u8_:
+			case ast::type_info::u16_:
+			case ast::type_info::u32_:
+			case ast::type_info::u64_:
 				return ast::constant_value(uint64_t());
-			case ast::type_info::float32_:
+			case ast::type_info::f32_:
 				return ast::constant_value(float32_t());
-			case ast::type_info::float64_:
+			case ast::type_info::f64_:
 				return ast::constant_value(float64_t());
 			case ast::type_info::char_:
 				return ast::constant_value(bz::u8char());

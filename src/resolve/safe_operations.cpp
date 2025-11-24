@@ -75,25 +75,25 @@ static overflow_operation_result_t<int64_t> get_overflow_operation_result(int64_
 {
 	switch (type_kind)
 	{
-	case ast::type_info::int8_:
+	case ast::type_info::i8_:
 	{
 		auto const [result, overflowed] = overflow_operations_adapter_t<op_kind, int8_t>::signed_func(lhs, rhs);
-		return { "int8", result, overflowed };
+		return { "i8", result, overflowed };
 	}
-	case ast::type_info::int16_:
+	case ast::type_info::i16_:
 	{
 		auto const [result, overflowed] = overflow_operations_adapter_t<op_kind, int16_t>::signed_func(lhs, rhs);
-		return { "int16", result, overflowed };
+		return { "i16", result, overflowed };
 	}
-	case ast::type_info::int32_:
+	case ast::type_info::i32_:
 	{
 		auto const [result, overflowed] = overflow_operations_adapter_t<op_kind, int32_t>::signed_func(lhs, rhs);
-		return { "int32", result, overflowed };
+		return { "i32", result, overflowed };
 	}
-	case ast::type_info::int64_:
+	case ast::type_info::i64_:
 	{
 		auto const [result, overflowed] = overflow_operations_adapter_t<op_kind, int64_t>::signed_func(lhs, rhs);
-		return { "int64", result, overflowed };
+		return { "i64", result, overflowed };
 	}
 	}
 	bz_unreachable;
@@ -105,25 +105,25 @@ static overflow_operation_result_t<uint64_t> get_overflow_operation_result(uint6
 {
 	switch (type_kind)
 	{
-	case ast::type_info::uint8_:
+	case ast::type_info::u8_:
 	{
 		auto const [result, overflowed] = overflow_operations_adapter_t<op_kind, uint8_t>::unsigned_func(lhs, rhs);
-		return { "uint8", result, overflowed };
+		return { "u8", result, overflowed };
 	}
-	case ast::type_info::uint16_:
+	case ast::type_info::u16_:
 	{
 		auto const [result, overflowed] = overflow_operations_adapter_t<op_kind, uint16_t>::unsigned_func(lhs, rhs);
-		return { "uint16", result, overflowed };
+		return { "u16", result, overflowed };
 	}
-	case ast::type_info::uint32_:
+	case ast::type_info::u32_:
 	{
 		auto const [result, overflowed] = overflow_operations_adapter_t<op_kind, uint32_t>::unsigned_func(lhs, rhs);
-		return { "uint32", result, overflowed };
+		return { "u32", result, overflowed };
 	}
-	case ast::type_info::uint64_:
+	case ast::type_info::u64_:
 	{
 		auto const [result, overflowed] = overflow_operations_adapter_t<op_kind, uint64_t>::unsigned_func(lhs, rhs);
-		return { "uint64", result, overflowed };
+		return { "u64", result, overflowed };
 	}
 	}
 	bz_unreachable;
@@ -138,10 +138,10 @@ int64_t safe_unary_minus(
 {
 	using T = std::pair<bz::u8string_view, int64_t>;
 	auto const [type_name, min_value] =
-		type_kind == ast::type_info::int8_  ? T{ "int8",  std::numeric_limits<int8_t> ::min() } :
-		type_kind == ast::type_info::int16_ ? T{ "int16", std::numeric_limits<int16_t>::min() } :
-		type_kind == ast::type_info::int32_ ? T{ "int32", std::numeric_limits<int32_t>::min() } :
-		T{ "int64", std::numeric_limits<int64_t>::min() };
+		type_kind == ast::type_info::i8_  ? T{ "i8",  std::numeric_limits<int8_t> ::min() } :
+		type_kind == ast::type_info::i16_ ? T{ "i16", std::numeric_limits<int16_t>::min() } :
+		type_kind == ast::type_info::i32_ ? T{ "i32", std::numeric_limits<int32_t>::min() } :
+		T{ "i64", std::numeric_limits<int64_t>::min() };
 	if (value == min_value)
 	{
 		if (paren_level < 2)
@@ -215,7 +215,7 @@ float32_t safe_binary_plus(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression '{} + {}' with type 'float32' is {}", lhs, rhs, result)
+			bz::format("result of floating point arithmetic in constant expression '{} + {}' with type 'f32' is {}", lhs, rhs, result)
 		);
 	}
 	return result;
@@ -237,7 +237,7 @@ float64_t safe_binary_plus(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression '{} + {}' with type 'float64' is {}", lhs, rhs, result)
+			bz::format("result of floating point arithmetic in constant expression '{} + {}' with type 'f64' is {}", lhs, rhs, result)
 		);
 	}
 	return result;
@@ -402,7 +402,7 @@ float32_t safe_binary_minus(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression '{} - {}' with type 'float32' is {}", lhs, rhs, result)
+			bz::format("result of floating point arithmetic in constant expression '{} - {}' with type 'f32' is {}", lhs, rhs, result)
 		);
 	}
 	return result;
@@ -424,7 +424,7 @@ float64_t safe_binary_minus(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression '{} - {}' with type 'float64' is {}", lhs, rhs, result)
+			bz::format("result of floating point arithmetic in constant expression '{} - {}' with type 'f64' is {}", lhs, rhs, result)
 		);
 	}
 	return result;
@@ -537,7 +537,7 @@ float32_t safe_binary_multiply(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression '{} * {}' with type 'float32' is {}", lhs, rhs, result)
+			bz::format("result of floating point arithmetic in constant expression '{} * {}' with type 'f32' is {}", lhs, rhs, result)
 		);
 	}
 	return result;
@@ -559,7 +559,7 @@ float64_t safe_binary_multiply(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression '{} * {}' with type 'float64' is {}", lhs, rhs, result)
+			bz::format("result of floating point arithmetic in constant expression '{} * {}' with type 'f64' is {}", lhs, rhs, result)
 		);
 	}
 	return result;
@@ -633,7 +633,7 @@ float32_t safe_binary_divide(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_divide_by_zero,
 			src_tokens,
-			bz::format("dividing by zero in expression '{} / {}' with type 'float32' results in {}", lhs, rhs, result)
+			bz::format("dividing by zero in expression '{} / {}' with type 'f32' results in {}", lhs, rhs, result)
 		);
 	}
 	else if (
@@ -645,7 +645,7 @@ float32_t safe_binary_divide(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression '{} / {}' with type 'float32' is {}", lhs, rhs, result)
+			bz::format("result of floating point arithmetic in constant expression '{} / {}' with type 'f32' is {}", lhs, rhs, result)
 		);
 	}
 	return result;
@@ -663,7 +663,7 @@ float64_t safe_binary_divide(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_divide_by_zero,
 			src_tokens,
-			bz::format("dividing by zero in expression '{} / {}' with type 'float64' results in {}", lhs, rhs, result)
+			bz::format("dividing by zero in expression '{} / {}' with type 'f64' results in {}", lhs, rhs, result)
 		);
 	}
 	else if (
@@ -675,7 +675,7 @@ float64_t safe_binary_divide(
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression '{} / {}' with type 'float64' is {}", lhs, rhs, result)
+			bz::format("result of floating point arithmetic in constant expression '{} / {}' with type 'f64' is {}", lhs, rhs, result)
 		);
 	}
 	return result;
@@ -690,10 +690,10 @@ bz::optional<int64_t> safe_binary_modulo(
 {
 	using T = std::pair<bz::u8string_view, int64_t>;
 	auto const [type_name, min_value] =
-		type_kind == ast::type_info::int8_  ? T{ "int8",  std::numeric_limits<int8_t> ::min() } :
-		type_kind == ast::type_info::int16_ ? T{ "int16", std::numeric_limits<int16_t>::min() } :
-		type_kind == ast::type_info::int32_ ? T{ "int32", std::numeric_limits<int32_t>::min() } :
-		T{ "int64", std::numeric_limits<int64_t>::min() };
+		type_kind == ast::type_info::i8_  ? T{ "i8",  std::numeric_limits<int8_t> ::min() } :
+		type_kind == ast::type_info::i16_ ? T{ "i16", std::numeric_limits<int16_t>::min() } :
+		type_kind == ast::type_info::i32_ ? T{ "i32", std::numeric_limits<int32_t>::min() } :
+		T{ "i64", std::numeric_limits<int64_t>::min() };
 
 	if (rhs == 0)
 	{
@@ -724,10 +724,10 @@ bz::optional<uint64_t> safe_binary_modulo(
 )
 {
 	bz::u8string_view const type_name =
-		type_kind == ast::type_info::uint8_  ? "uint8"  :
-		type_kind == ast::type_info::uint16_ ? "uint16" :
-		type_kind == ast::type_info::uint32_ ? "uint32" :
-		"uint64";
+		type_kind == ast::type_info::u8_  ? "u8"  :
+		type_kind == ast::type_info::u16_ ? "u16" :
+		type_kind == ast::type_info::u32_ ? "u32" :
+		"u64";
 
 	if (rhs == 0)
 	{
@@ -761,7 +761,7 @@ bool safe_binary_equals(
 			context.report_parenthesis_suppressed_warning(
 				2 - paren_level, ctx::warning_kind::nan_compare,
 				src_tokens,
-				bz::format("comparing nans in expression '{} == {}' with type 'float32' evaluates to false", lhs, rhs)
+				bz::format("comparing nans in expression '{} == {}' with type 'f32' evaluates to false", lhs, rhs)
 			);
 		}
 		else if (std::isnan(lhs) || std::isnan(rhs))
@@ -769,7 +769,7 @@ bool safe_binary_equals(
 			context.report_parenthesis_suppressed_warning(
 				2 - paren_level, ctx::warning_kind::nan_compare,
 				src_tokens,
-				bz::format("comparing against nan in expression '{} == {}' with type 'float32' evaluates to false", lhs, rhs)
+				bz::format("comparing against nan in expression '{} == {}' with type 'f32' evaluates to false", lhs, rhs)
 			);
 		}
 	}
@@ -789,7 +789,7 @@ bool safe_binary_equals(
 			context.report_parenthesis_suppressed_warning(
 				2 - paren_level, ctx::warning_kind::nan_compare,
 				src_tokens,
-				bz::format("comparing nans in expression '{} == {}' with type 'float64' evaluates to false", lhs, rhs)
+				bz::format("comparing nans in expression '{} == {}' with type 'f64' evaluates to false", lhs, rhs)
 			);
 		}
 		else if (std::isnan(lhs) || std::isnan(rhs))
@@ -797,7 +797,7 @@ bool safe_binary_equals(
 			context.report_parenthesis_suppressed_warning(
 				2 - paren_level, ctx::warning_kind::nan_compare,
 				src_tokens,
-				bz::format("comparing against nan in expression '{} == {}' with type 'float64' evaluates to false", lhs, rhs)
+				bz::format("comparing against nan in expression '{} == {}' with type 'f64' evaluates to false", lhs, rhs)
 			);
 		}
 	}
@@ -813,10 +813,10 @@ bz::optional<uint64_t> safe_binary_bit_left_shift(
 {
 	using T = std::pair<bz::u8string_view, uint64_t>;
 	auto const [type_name, lhs_width] =
-		lhs_type_kind == ast::type_info::uint8_  ? T{ "uint8",  8  } :
-		lhs_type_kind == ast::type_info::uint16_ ? T{ "uint16", 16 } :
-		lhs_type_kind == ast::type_info::uint32_ ? T{ "uint32", 32 } :
-		T{ "uint64", 64 };
+		lhs_type_kind == ast::type_info::u8_  ? T{ "u8",  8  } :
+		lhs_type_kind == ast::type_info::u16_ ? T{ "u16", 16 } :
+		lhs_type_kind == ast::type_info::u32_ ? T{ "u32", 32 } :
+		T{ "u64", 64 };
 
 	if (rhs >= lhs_width)
 	{
@@ -828,13 +828,13 @@ bz::optional<uint64_t> safe_binary_bit_left_shift(
 	}
 	else switch (lhs_type_kind)
 	{
-	case ast::type_info::uint8_:
+	case ast::type_info::u8_:
 		return static_cast<uint8_t>(lhs << rhs);
-	case ast::type_info::uint16_:
+	case ast::type_info::u16_:
 		return static_cast<uint16_t>(lhs << rhs);
-	case ast::type_info::uint32_:
+	case ast::type_info::u32_:
 		return static_cast<uint32_t>(lhs << rhs);
-	case ast::type_info::uint64_:
+	case ast::type_info::u64_:
 		return static_cast<uint64_t>(lhs << rhs);
 	default:
 		bz_unreachable;
@@ -849,10 +849,10 @@ bz::optional<uint64_t> safe_binary_bit_right_shift(
 {
 	using T = std::pair<bz::u8string_view, uint64_t>;
 	auto const [type_name, lhs_width] =
-		lhs_type_kind == ast::type_info::uint8_  ? T{ "uint8",  8  } :
-		lhs_type_kind == ast::type_info::uint16_ ? T{ "uint16", 16 } :
-		lhs_type_kind == ast::type_info::uint32_ ? T{ "uint32", 32 } :
-		T{ "uint64", 64 };
+		lhs_type_kind == ast::type_info::u8_  ? T{ "u8",  8  } :
+		lhs_type_kind == ast::type_info::u16_ ? T{ "u16", 16 } :
+		lhs_type_kind == ast::type_info::u32_ ? T{ "u32", 32 } :
+		T{ "u64", 64 };
 
 	if (rhs >= lhs_width)
 	{
@@ -864,13 +864,13 @@ bz::optional<uint64_t> safe_binary_bit_right_shift(
 	}
 	else switch (lhs_type_kind)
 	{
-	case ast::type_info::uint8_:
+	case ast::type_info::u8_:
 		return static_cast<uint8_t>(lhs >> rhs);
-	case ast::type_info::uint16_:
+	case ast::type_info::u16_:
 		return static_cast<uint16_t>(lhs >> rhs);
-	case ast::type_info::uint32_:
+	case ast::type_info::u32_:
 		return static_cast<uint32_t>(lhs >> rhs);
-	case ast::type_info::uint64_:
+	case ast::type_info::u64_:
 		return static_cast<uint64_t>(lhs >> rhs);
 	default:
 		bz_unreachable;
@@ -886,10 +886,10 @@ bz::optional<uint64_t> safe_binary_bit_left_shift(
 {
 	using T = std::pair<bz::u8string_view, int64_t>;
 	auto const [type_name, lhs_width] =
-		lhs_type_kind == ast::type_info::uint8_  ? T{ "uint8",  8  } :
-		lhs_type_kind == ast::type_info::uint16_ ? T{ "uint16", 16 } :
-		lhs_type_kind == ast::type_info::uint32_ ? T{ "uint32", 32 } :
-		T{ "uint64", 64 };
+		lhs_type_kind == ast::type_info::u8_  ? T{ "u8",  8  } :
+		lhs_type_kind == ast::type_info::u16_ ? T{ "u16", 16 } :
+		lhs_type_kind == ast::type_info::u32_ ? T{ "u32", 32 } :
+		T{ "u64", 64 };
 
 	if (rhs >= lhs_width)
 	{
@@ -909,13 +909,13 @@ bz::optional<uint64_t> safe_binary_bit_left_shift(
 	}
 	else switch (lhs_type_kind)
 	{
-	case ast::type_info::uint8_:
+	case ast::type_info::u8_:
 		return static_cast<uint8_t>(lhs << rhs);
-	case ast::type_info::uint16_:
+	case ast::type_info::u16_:
 		return static_cast<uint16_t>(lhs << rhs);
-	case ast::type_info::uint32_:
+	case ast::type_info::u32_:
 		return static_cast<uint32_t>(lhs << rhs);
-	case ast::type_info::uint64_:
+	case ast::type_info::u64_:
 		return static_cast<uint64_t>(lhs << rhs);
 	default:
 		bz_unreachable;
@@ -930,10 +930,10 @@ bz::optional<uint64_t> safe_binary_bit_right_shift(
 {
 	using T = std::pair<bz::u8string_view, int64_t>;
 	auto const [type_name, lhs_width] =
-		lhs_type_kind == ast::type_info::uint8_  ? T{ "uint8",  8  } :
-		lhs_type_kind == ast::type_info::uint16_ ? T{ "uint16", 16 } :
-		lhs_type_kind == ast::type_info::uint32_ ? T{ "uint32", 32 } :
-		T{ "uint64", 64 };
+		lhs_type_kind == ast::type_info::u8_  ? T{ "u8",  8  } :
+		lhs_type_kind == ast::type_info::u16_ ? T{ "u16", 16 } :
+		lhs_type_kind == ast::type_info::u32_ ? T{ "u32", 32 } :
+		T{ "u64", 64 };
 
 	if (rhs >= lhs_width)
 	{
@@ -953,13 +953,13 @@ bz::optional<uint64_t> safe_binary_bit_right_shift(
 	}
 	else switch (lhs_type_kind)
 	{
-	case ast::type_info::uint8_:
+	case ast::type_info::u8_:
 		return static_cast<uint8_t>(lhs >> rhs);
-	case ast::type_info::uint16_:
+	case ast::type_info::u16_:
 		return static_cast<uint16_t>(lhs >> rhs);
-	case ast::type_info::uint32_:
+	case ast::type_info::u32_:
 		return static_cast<uint32_t>(lhs >> rhs);
-	case ast::type_info::uint64_:
+	case ast::type_info::u64_:
 		return static_cast<uint64_t>(lhs >> rhs);
 	default:
 		bz_unreachable;

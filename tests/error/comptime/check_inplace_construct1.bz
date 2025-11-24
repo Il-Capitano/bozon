@@ -1,8 +1,8 @@
-// error: invalid construction of an object of type 'int32'
+// error: invalid construction of an object of type 'i32'
 // note: while evaluating expression at compile time
 // note: address points to a stack object from a finished stack frame
 // error: failed to evaluate expression at compile time
-function foo() -> *mut int32
+function foo() -> *mut i32
 {
 	mut i = 0;
 	return &i;

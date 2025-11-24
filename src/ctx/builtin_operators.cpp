@@ -1116,21 +1116,21 @@ ast::expression make_builtin_cast(
 			auto const dest_max_value = [dest_kind = dest_kind]() -> uint64_t {
 				switch (dest_kind)
 				{
-				case ast::type_info::int8_:
+				case ast::type_info::i8_:
 					return static_cast<uint64_t>(std::numeric_limits<int8_t>::max());
-				case ast::type_info::int16_:
+				case ast::type_info::i16_:
 					return static_cast<uint64_t>(std::numeric_limits<int16_t>::max());
-				case ast::type_info::int32_:
+				case ast::type_info::i32_:
 					return static_cast<uint64_t>(std::numeric_limits<int32_t>::max());
-				case ast::type_info::int64_:
+				case ast::type_info::i64_:
 					return static_cast<uint64_t>(std::numeric_limits<int64_t>::max());
-				case ast::type_info::uint8_:
+				case ast::type_info::u8_:
 					return static_cast<uint64_t>(std::numeric_limits<uint8_t>::max());
-				case ast::type_info::uint16_:
+				case ast::type_info::u16_:
 					return static_cast<uint64_t>(std::numeric_limits<uint16_t>::max());
-				case ast::type_info::uint32_:
+				case ast::type_info::u32_:
 					return static_cast<uint64_t>(std::numeric_limits<uint32_t>::max());
-				case ast::type_info::uint64_:
+				case ast::type_info::u64_:
 					return static_cast<uint64_t>(std::numeric_limits<uint64_t>::max());
 				default:
 					bz_unreachable;
@@ -1838,7 +1838,7 @@ static bool is_integer_literal_compatible(ast::expression const &literal, uint8_
 	case ast::literal_kind::integer:
 		switch (type_kind)
 		{
-		case ast::type_info::int8_:
+		case ast::type_info::i8_:
 		{
 			constexpr int8_t min = std::numeric_limits<int8_t>::min();
 			constexpr int8_t max = std::numeric_limits<int8_t>::max();
@@ -1852,7 +1852,7 @@ static bool is_integer_literal_compatible(ast::expression const &literal, uint8_
 				return value.get_uint() <= static_cast<uint64_t>(max);
 			}
 		}
-		case ast::type_info::int16_:
+		case ast::type_info::i16_:
 		{
 			constexpr int16_t min = std::numeric_limits<int16_t>::min();
 			constexpr int16_t max = std::numeric_limits<int16_t>::max();
@@ -1866,7 +1866,7 @@ static bool is_integer_literal_compatible(ast::expression const &literal, uint8_
 				return value.get_uint() <= static_cast<uint64_t>(max);
 			}
 		}
-		case ast::type_info::int32_:
+		case ast::type_info::i32_:
 		{
 			constexpr int32_t min = std::numeric_limits<int32_t>::min();
 			constexpr int32_t max = std::numeric_limits<int32_t>::max();
@@ -1880,7 +1880,7 @@ static bool is_integer_literal_compatible(ast::expression const &literal, uint8_
 				return value.get_uint() <= static_cast<uint64_t>(max);
 			}
 		}
-		case ast::type_info::int64_:
+		case ast::type_info::i64_:
 		{
 			constexpr int64_t min = std::numeric_limits<int64_t>::min();
 			constexpr int64_t max = std::numeric_limits<int64_t>::max();
@@ -1895,7 +1895,7 @@ static bool is_integer_literal_compatible(ast::expression const &literal, uint8_
 			}
 		}
 
-		case ast::type_info::uint8_:
+		case ast::type_info::u8_:
 		{
 			constexpr uint8_t max = std::numeric_limits<uint8_t>::max();
 			if (value.is_sint())
@@ -1908,7 +1908,7 @@ static bool is_integer_literal_compatible(ast::expression const &literal, uint8_
 				return value.get_uint() <= max;
 			}
 		}
-		case ast::type_info::uint16_:
+		case ast::type_info::u16_:
 		{
 			constexpr uint16_t max = std::numeric_limits<uint16_t>::max();
 			if (value.is_sint())
@@ -1921,7 +1921,7 @@ static bool is_integer_literal_compatible(ast::expression const &literal, uint8_
 				return value.get_uint() <= max;
 			}
 		}
-		case ast::type_info::uint32_:
+		case ast::type_info::u32_:
 		{
 			constexpr uint32_t max = std::numeric_limits<uint32_t>::max();
 			if (value.is_sint())
@@ -1934,7 +1934,7 @@ static bool is_integer_literal_compatible(ast::expression const &literal, uint8_
 				return value.get_uint() <= max;
 			}
 		}
-		case ast::type_info::uint64_:
+		case ast::type_info::u64_:
 		{
 			constexpr uint64_t max = std::numeric_limits<uint64_t>::max();
 			if (value.is_sint())
@@ -1955,28 +1955,28 @@ static bool is_integer_literal_compatible(ast::expression const &literal, uint8_
 	case ast::literal_kind::signed_integer:
 		switch (type_kind)
 		{
-		case ast::type_info::int8_:
+		case ast::type_info::i8_:
 		{
 			constexpr int8_t min = std::numeric_limits<int8_t>::min();
 			constexpr int8_t max = std::numeric_limits<int8_t>::max();
 			bz_assert(value.is_sint());
 			return value.get_sint() >= min && value.get_sint() <= max;
 		}
-		case ast::type_info::int16_:
+		case ast::type_info::i16_:
 		{
 			constexpr int16_t min = std::numeric_limits<int16_t>::min();
 			constexpr int16_t max = std::numeric_limits<int16_t>::max();
 			bz_assert(value.is_sint());
 			return value.get_sint() >= min && value.get_sint() <= max;
 		}
-		case ast::type_info::int32_:
+		case ast::type_info::i32_:
 		{
 			constexpr int32_t min = std::numeric_limits<int32_t>::min();
 			constexpr int32_t max = std::numeric_limits<int32_t>::max();
 			bz_assert(value.is_sint());
 			return value.get_sint() >= min && value.get_sint() <= max;
 		}
-		case ast::type_info::int64_:
+		case ast::type_info::i64_:
 		{
 			constexpr int64_t min = std::numeric_limits<int64_t>::min();
 			constexpr int64_t max = std::numeric_limits<int64_t>::max();
@@ -1990,25 +1990,25 @@ static bool is_integer_literal_compatible(ast::expression const &literal, uint8_
 	case ast::literal_kind::unsigned_integer:
 		switch (type_kind)
 		{
-		case ast::type_info::uint8_:
+		case ast::type_info::u8_:
 		{
 			constexpr uint8_t max = std::numeric_limits<uint8_t>::max();
 			bz_assert(value.is_uint());
 			return value.get_uint() <= max;
 		}
-		case ast::type_info::uint16_:
+		case ast::type_info::u16_:
 		{
 			constexpr uint16_t max = std::numeric_limits<uint16_t>::max();
 			bz_assert(value.is_uint());
 			return value.get_uint() <= max;
 		}
-		case ast::type_info::uint32_:
+		case ast::type_info::u32_:
 		{
 			constexpr uint32_t max = std::numeric_limits<uint32_t>::max();
 			bz_assert(value.is_uint());
 			return value.get_uint() <= max;
 		}
-		case ast::type_info::uint64_:
+		case ast::type_info::u64_:
 		{
 			constexpr uint64_t max = std::numeric_limits<uint64_t>::max();
 			bz_assert(value.is_uint());
@@ -2048,12 +2048,12 @@ static bz::optional<uint8_t> get_common_type_kind(ast::expression const &lhs, ui
 	{
 		if (ast::is_signed_integer_kind(rhs_kind))
 		{
-			if (rhs_kind < ast::type_info::int32_ && is_integer_literal_compatible(lhs, rhs_kind))
+			if (rhs_kind < ast::type_info::i32_ && is_integer_literal_compatible(lhs, rhs_kind))
 			{
 				return rhs_kind;
 			}
 
-			for (auto kind = std::max(rhs_kind, static_cast<uint8_t>(ast::type_info::int32_)); kind <= ast::type_info::int64_; ++kind)
+			for (auto kind = std::max(rhs_kind, static_cast<uint8_t>(ast::type_info::i32_)); kind <= ast::type_info::i64_; ++kind)
 			{
 				if (is_integer_literal_compatible(lhs, kind))
 				{
@@ -2063,12 +2063,12 @@ static bz::optional<uint8_t> get_common_type_kind(ast::expression const &lhs, ui
 		}
 		else if (ast::is_unsigned_integer_kind(rhs_kind))
 		{
-			if (rhs_kind < ast::type_info::uint32_ && is_integer_literal_compatible(lhs, rhs_kind))
+			if (rhs_kind < ast::type_info::u32_ && is_integer_literal_compatible(lhs, rhs_kind))
 			{
 				return rhs_kind;
 			}
 
-			for (auto kind = std::max(rhs_kind, static_cast<uint8_t>(ast::type_info::uint32_)); kind <= ast::type_info::uint64_; ++kind)
+			for (auto kind = std::max(rhs_kind, static_cast<uint8_t>(ast::type_info::u32_)); kind <= ast::type_info::u64_; ++kind)
 			{
 				if (is_integer_literal_compatible(lhs, kind))
 				{
@@ -2083,12 +2083,12 @@ static bz::optional<uint8_t> get_common_type_kind(ast::expression const &lhs, ui
 	{
 		if (ast::is_signed_integer_kind(lhs_kind))
 		{
-			if (lhs_kind < ast::type_info::int32_ && is_integer_literal_compatible(rhs, lhs_kind))
+			if (lhs_kind < ast::type_info::i32_ && is_integer_literal_compatible(rhs, lhs_kind))
 			{
 				return lhs_kind;
 			}
 
-			for (auto kind = std::max(lhs_kind, static_cast<uint8_t>(ast::type_info::int32_)); kind <= ast::type_info::int64_; ++kind)
+			for (auto kind = std::max(lhs_kind, static_cast<uint8_t>(ast::type_info::i32_)); kind <= ast::type_info::i64_; ++kind)
 			{
 				if (is_integer_literal_compatible(rhs, kind))
 				{
@@ -2098,12 +2098,12 @@ static bz::optional<uint8_t> get_common_type_kind(ast::expression const &lhs, ui
 		}
 		else if (ast::is_unsigned_integer_kind(lhs_kind))
 		{
-			if (lhs_kind < ast::type_info::uint32_ && is_integer_literal_compatible(rhs, lhs_kind))
+			if (lhs_kind < ast::type_info::u32_ && is_integer_literal_compatible(rhs, lhs_kind))
 			{
 				return lhs_kind;
 			}
 
-			for (auto kind = std::max(lhs_kind, static_cast<uint8_t>(ast::type_info::uint32_)); kind <= ast::type_info::uint64_; ++kind)
+			for (auto kind = std::max(lhs_kind, static_cast<uint8_t>(ast::type_info::u32_)); kind <= ast::type_info::u64_; ++kind)
 			{
 				if (is_integer_literal_compatible(rhs, kind))
 				{
@@ -2240,15 +2240,15 @@ static ast::typespec get_literal_integer_type(
 		if (kind == ast::literal_kind::integer || kind == ast::literal_kind::signed_integer)
 		{
 			return {
-				context.get_builtin_type_info(ast::type_info::int32_),
-				context.get_builtin_type_info(ast::type_info::int64_)
+				context.get_builtin_type_info(ast::type_info::i32_),
+				context.get_builtin_type_info(ast::type_info::i64_)
 			};
 		}
 		else
 		{
 			return {
-				context.get_builtin_type_info(ast::type_info::uint32_),
-				context.get_builtin_type_info(ast::type_info::uint64_)
+				context.get_builtin_type_info(ast::type_info::u32_),
+				context.get_builtin_type_info(ast::type_info::u64_)
 			};
 		}
 	}();
@@ -2279,7 +2279,7 @@ static ast::typespec get_literal_integer_type(
 	}
 	else
 	{
-		return ast::make_base_type_typespec(src_tokens, context.get_builtin_type_info(ast::type_info::uint64_));
+		return ast::make_base_type_typespec(src_tokens, context.get_builtin_type_info(ast::type_info::u64_));
 	}
 }
 
@@ -2294,11 +2294,11 @@ static ast::typespec get_literal_integer_type(
 
 	if (value <= int32_max && value >= int32_min)
 	{
-		return ast::make_base_type_typespec(src_tokens, context.get_builtin_type_info(ast::type_info::int32_));
+		return ast::make_base_type_typespec(src_tokens, context.get_builtin_type_info(ast::type_info::i32_));
 	}
 	else
 	{
-		return ast::make_base_type_typespec(src_tokens, context.get_builtin_type_info(ast::type_info::int64_));
+		return ast::make_base_type_typespec(src_tokens, context.get_builtin_type_info(ast::type_info::i64_));
 	}
 }
 
@@ -2336,7 +2336,7 @@ static ast::expression make_unary_minus_literal_operation(
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::integer_literal,
-			ast::make_base_type_typespec(src_tokens, context.get_builtin_type_info(ast::type_info::uint64_)),
+			ast::make_base_type_typespec(src_tokens, context.get_builtin_type_info(ast::type_info::u64_)),
 			ast::constant_value(static_cast<uint64_t>(int64_max) + 1),
 			ast::make_expr_integer_literal(kind)
 		);

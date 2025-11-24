@@ -6392,22 +6392,22 @@ static void get_constant_sint_array_value(
 		bz_assert(elem_type.is<ast::ts_base_type>());
 		switch (elem_type.get<ast::ts_base_type>().info->kind)
 		{
-		case ast::type_info::int8_:
+		case ast::type_info::i8_:
 			get_nonzero_constant_numeric_array_value<
 				int8_t, &codegen_context::create_const_i8
 			>(values, array_type, context, result_address);
 			break;
-		case ast::type_info::int16_:
+		case ast::type_info::i16_:
 			get_nonzero_constant_numeric_array_value<
 				int16_t, &codegen_context::create_const_i16
 			>(values, array_type, context, result_address);
 			break;
-		case ast::type_info::int32_:
+		case ast::type_info::i32_:
 			get_nonzero_constant_numeric_array_value<
 				int32_t, &codegen_context::create_const_i32
 			>(values, array_type, context, result_address);
 			break;
-		case ast::type_info::int64_:
+		case ast::type_info::i64_:
 			get_nonzero_constant_numeric_array_value<
 				int64_t, &codegen_context::create_const_i64
 			>(values, array_type, context, result_address);
@@ -6437,22 +6437,22 @@ static void get_constant_uint_array_value(
 		bz_assert(elem_type.is<ast::ts_base_type>());
 		switch (elem_type.get<ast::ts_base_type>().info->kind)
 		{
-		case ast::type_info::uint8_:
+		case ast::type_info::u8_:
 			get_nonzero_constant_numeric_array_value<
 				uint8_t, &codegen_context::create_const_u8
 			>(values, array_type, context, result_address);
 			break;
-		case ast::type_info::uint16_:
+		case ast::type_info::u16_:
 			get_nonzero_constant_numeric_array_value<
 				uint16_t, &codegen_context::create_const_u16
 			>(values, array_type, context, result_address);
 			break;
-		case ast::type_info::uint32_:
+		case ast::type_info::u32_:
 			get_nonzero_constant_numeric_array_value<
 				uint32_t, &codegen_context::create_const_u32
 			>(values, array_type, context, result_address);
 			break;
-		case ast::type_info::uint64_:
+		case ast::type_info::u64_:
 			get_nonzero_constant_numeric_array_value<
 				uint64_t, &codegen_context::create_const_u64
 			>(values, array_type, context, result_address);
@@ -6539,16 +6539,16 @@ static expr_value get_constant_value_helper(
 		bz_assert(type.is<ast::ts_base_type>());
 		switch (type.get<ast::ts_base_type>().info->kind)
 		{
-		case ast::type_info::int8_:
+		case ast::type_info::i8_:
 			int_value = context.create_const_i8(static_cast<int8_t>(value.get_sint()));
 			break;
-		case ast::type_info::int16_:
+		case ast::type_info::i16_:
 			int_value = context.create_const_i16(static_cast<int16_t>(value.get_sint()));
 			break;
-		case ast::type_info::int32_:
+		case ast::type_info::i32_:
 			int_value = context.create_const_i32(static_cast<int32_t>(value.get_sint()));
 			break;
-		case ast::type_info::int64_:
+		case ast::type_info::i64_:
 			int_value = context.create_const_i64(static_cast<int64_t>(value.get_sint()));
 			break;
 		default:
@@ -6562,16 +6562,16 @@ static expr_value get_constant_value_helper(
 		bz_assert(type.is<ast::ts_base_type>());
 		switch (type.get<ast::ts_base_type>().info->kind)
 		{
-		case ast::type_info::uint8_:
+		case ast::type_info::u8_:
 			int_value = context.create_const_u8(static_cast<uint8_t>(value.get_uint()));
 			break;
-		case ast::type_info::uint16_:
+		case ast::type_info::u16_:
 			int_value = context.create_const_u16(static_cast<uint16_t>(value.get_uint()));
 			break;
-		case ast::type_info::uint32_:
+		case ast::type_info::u32_:
 			int_value = context.create_const_u32(static_cast<uint32_t>(value.get_uint()));
 			break;
-		case ast::type_info::uint64_:
+		case ast::type_info::u64_:
 			int_value = context.create_const_u64(static_cast<uint64_t>(value.get_uint()));
 			break;
 		default:
@@ -6641,28 +6641,28 @@ static expr_value get_constant_value_helper(
 		auto enum_int_value = expr_value::get_none();
 		switch (decl->underlying_type.get<ast::ts_base_type>().info->kind)
 		{
-		case ast::type_info::int8_:
+		case ast::type_info::i8_:
 			enum_int_value = context.create_const_i8(static_cast<int8_t>(signed_enum_value));
 			break;
-		case ast::type_info::int16_:
+		case ast::type_info::i16_:
 			enum_int_value = context.create_const_i16(static_cast<int16_t>(signed_enum_value));
 			break;
-		case ast::type_info::int32_:
+		case ast::type_info::i32_:
 			enum_int_value = context.create_const_i32(static_cast<int32_t>(signed_enum_value));
 			break;
-		case ast::type_info::int64_:
+		case ast::type_info::i64_:
 			enum_int_value = context.create_const_i64(static_cast<int64_t>(signed_enum_value));
 			break;
-		case ast::type_info::uint8_:
+		case ast::type_info::u8_:
 			enum_int_value = context.create_const_u8(static_cast<uint8_t>(enum_value));
 			break;
-		case ast::type_info::uint16_:
+		case ast::type_info::u16_:
 			enum_int_value = context.create_const_u16(static_cast<uint16_t>(enum_value));
 			break;
-		case ast::type_info::uint32_:
+		case ast::type_info::u32_:
 			enum_int_value = context.create_const_u32(static_cast<uint32_t>(enum_value));
 			break;
-		case ast::type_info::uint64_:
+		case ast::type_info::u64_:
 			enum_int_value = context.create_const_u64(static_cast<uint64_t>(enum_value));
 			break;
 		default:

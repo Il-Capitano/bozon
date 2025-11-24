@@ -1,8 +1,8 @@
-// error: invalid memory access of an object of type 'int32'
+// error: invalid memory access of an object of type 'i32'
 // note: while evaluating expression at compile time
 // note: lifetime of the stack object has already ended
 // error: failed to evaluate expression at compile time
-function foo(t: [int32]) -> *int32
+function foo(t: [i32]) -> *i32
 {
 	return &t[0];
 }

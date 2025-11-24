@@ -1,73 +1,73 @@
 function main()
 {
 	// unary +
-	let _: int8 = +10;
+	let _: i8 = +10;
 
 	// unary -
-	let _: int8 = -10;
+	let _: i8 = -10;
 	let _ = -(-9223372036854775807 - 1);
-	static_assert(typeof _ == uint64);
+	static_assert(typeof _ == u64);
 
 	// binary +
-	let _: int8 = 110 + 12;
-	let _: int8 = -10 + -20;
-	let _: uint8 = 10u + 11u;
+	let _: i8 = 110 + 12;
+	let _: i8 = -10 + -20;
+	let _: u8 = 10u + 11u;
 	let _ = 9223372036854775808 + 0;
-	static_assert(typeof _ == uint64);
+	static_assert(typeof _ == u64);
 	let _ = 0 + 9223372036854775808;
-	static_assert(typeof _ == uint64);
+	static_assert(typeof _ == u64);
 	// let _ = 9223372036854775808 + 9223372036854775808; // overflow
 	// let _ = 9223372036854775807 + 1i;
 	// let _ = 9223372036854775807i + 1;
 	let _ = 9223372036854775807 + 1;
-	static_assert(typeof _ == uint64);
+	static_assert(typeof _ == u64);
 	// let _ = -9223372036854775807 + -2;
 
 	// binary -
-	let _: int8 = 110 - 12;
-	let _: int8 = -12 - 10;
-	let _: int8 = 128 - 256;
-	let _: int8 = 128 - 1;
-	let _: uint8 = 256u - 1u;
+	let _: i8 = 110 - 12;
+	let _: i8 = -12 - 10;
+	let _: i8 = 128 - 256;
+	let _: i8 = 128 - 1;
+	let _: u8 = 256u - 1u;
 	// let _ = 0u - 1u;
 	// let _ = -2 - 9223372036854775807;
 	// let _ = 0 - 9223372036854775809;
 	let _ = 0 - 9223372036854775808;
-	static_assert(typeof _ == int64);
+	static_assert(typeof _ == i64);
 	let _ = 9223372036854775807 - -1;
-	static_assert(typeof _ == uint64);
+	static_assert(typeof _ == u64);
 	// let _ = 9223372036854775807i - -1;
 	// let _ = 9223372036854775807 - -1i;
 	// let _ = -9223372036854775807 - 2;
 
 	// binary *
-	let _: int8 = 2 * 30;
-	let _: int8 = -2 * 30;
-	let _: int8 = -2 * -30;
-	let _: int8 = -2 * -30i;
+	let _: i8 = 2 * 30;
+	let _: i8 = -2 * 30;
+	let _: i8 = -2 * -30;
+	let _: i8 = -2 * -30i;
 	let _ = 9223372036854775807 * 2;
-	static_assert(typeof _ == uint64);
+	static_assert(typeof _ == u64);
 	// let _ = 9223372036854775808 * 2;
 	let _ = 9223372036854775808 * 1;
 	let _ = (-9223372036854775807 - 1) * -1;
-	static_assert(typeof _ == uint64);
+	static_assert(typeof _ == u64);
 	// let _ = (-9223372036854775807 - 1) * -2;
 	// let _ = (-9223372036854775807 - 1) * -1i;
 	// let _ = 9223372036854775807 * 2i;
 
 	// binary /
-	let _: int8 = 256 / 3;
-	let _: int8 = 128 / -1;
+	let _: i8 = 256 / 3;
+	let _: i8 = 128 / -1;
 	// let _ = 10 / 0;
 	// let _ = 10u / 0;
 	let _ = (-9223372036854775807 - 1) / -1;
-	static_assert(typeof _ == uint64);
+	static_assert(typeof _ == u64);
 	// let _ = (-9223372036854775807 - 1) / -1i;
 
 	// binary %
-	let _: int8 = 123352352 % 128;
-	let _: int8 = 123352352 % 128i;
-	let _: uint8 = 123352352 % 128u;
+	let _: i8 = 123352352 % 128;
+	let _: i8 = 123352352 % 128i;
+	let _: u8 = 123352352 % 128u;
 	// let _ = 10 % 0;
 	// let _ = 10 % 0u;
 }

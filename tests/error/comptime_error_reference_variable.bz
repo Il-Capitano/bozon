@@ -1,5 +1,5 @@
-// error: unable to match value of type 'int32' to '&mut auto'
-// note: mismatched mutability of types 'int32' and 'mut auto'
+// error: unable to match value of type 'i32' to '&mut auto'
+// note: mismatched mutability of types 'i32' and 'mut auto'
 // error: failed to resolve variable declaration
 // note: while evaluating expression at compile time
 // error: failed to evaluate expression at compile time

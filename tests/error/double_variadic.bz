@@ -1,9 +1,9 @@
 // error: variable is doubly variadic
 // error: unable to decompose an array of size 2 into 1 variable
-// error: unable to match expression of type '[2, 2: int32]' to '[...[auto]]'
+// error: unable to match expression of type '[2, 2: i32]' to '[...[auto]]'
 // error: invalid type '<error-type>' for tuple decomposition
 function test()
 {
-	let arr = [2, 2: int32]();
+	let arr = [2, 2: i32]();
 	let [...[..._]] = arr;
 }

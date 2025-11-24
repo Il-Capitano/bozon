@@ -1,4 +1,4 @@
 function test()
 {
-	let _ = [int32, str, float32]()[1];
+	let _ = [i32, str, f32]()[1];
 }

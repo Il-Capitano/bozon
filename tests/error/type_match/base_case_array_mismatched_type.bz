@@ -1,6 +1,6 @@
-// error: unable to match type 'int64' to 'int32'
-// note: while matching expression of type '[4: int64]' to '[4: int32]'
+// error: unable to match type 'i64' to 'i32'
+// note: while matching expression of type '[4: i64]' to '[4: i32]'
 function test()
 {
-	let _: [4: int32] = [4: int64]();
+	let _: [4: i32] = [4: i64]();
 }

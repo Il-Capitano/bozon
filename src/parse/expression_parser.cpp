@@ -868,7 +868,7 @@ static ast::expression parse_expression_helper(
 	while (
 		stream != end
 		// this is a really messy condition, basically we look for the beginning of a generic type instantiation,
-		// e.g. `std::vector<int32>` or `std::vector::<int32>`
+		// e.g. `std::vector<i32>` or `std::vector::<i32>`
 		// also if the operator is '>', we have to check whether we are parsing a template argument
 		&& (
 			(lhs.is_generic_type() && stream->kind == lex::token::angle_open)

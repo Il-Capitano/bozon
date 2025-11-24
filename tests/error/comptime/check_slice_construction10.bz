@@ -1,4 +1,4 @@
-// error: invalid memory range for a slice of type '[: int32]'
+// error: invalid memory range for a slice of type '[: i32]'
 // note: while evaluating expression at compile time
 // note: begin and end addresses point to different global objects
 // note: begin address points to this global object

@@ -650,18 +650,18 @@ static ast::expression resolve_expr(
 			{
 			case ast::type_info::bool_:
 				return 2;
-			case ast::type_info::int8_:
-			case ast::type_info::uint8_:
+			case ast::type_info::i8_:
+			case ast::type_info::u8_:
 				return std::numeric_limits<uint8_t>::max();
-			case ast::type_info::int16_:
-			case ast::type_info::uint16_:
+			case ast::type_info::i16_:
+			case ast::type_info::u16_:
 				return std::numeric_limits<uint16_t>::max();
-			case ast::type_info::int32_:
-			case ast::type_info::uint32_:
+			case ast::type_info::i32_:
+			case ast::type_info::u32_:
 			case ast::type_info::char_:
 				return std::numeric_limits<uint32_t>::max();
-			case ast::type_info::int64_:
-			case ast::type_info::uint64_:
+			case ast::type_info::i64_:
+			case ast::type_info::u64_:
 				return std::numeric_limits<uint64_t>::max();
 			case ast::type_info::str_:
 				// just return a basically infinite value

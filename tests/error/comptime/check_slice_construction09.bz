@@ -1,4 +1,4 @@
-// error: invalid memory range for a slice of type '[: int32]'
+// error: invalid memory range for a slice of type '[: i32]'
 // note: while evaluating expression at compile time
 // note: begin and end addresses point to different subobjects in this stack object
 // note: begin address points to a subobject at offset 4
@@ -7,7 +7,7 @@
 function test()
 {
 	(consteval {
-		let t = [int32, int32]();
+		let t = [i32, i32]();
 		__builtin_slice_from_ptrs(&t[1], &t[0] + 1);
 	});
 }

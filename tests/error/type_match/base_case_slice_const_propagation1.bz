@@ -1,7 +1,7 @@
-// error: unable to match type 'mut *mut int32' to 'mut *int32'
-// note: mismatched mutability of types 'mut int32' and 'int32'
-// note: while matching expression of type '[: mut *mut int32]' to '[: mut *int32]'
+// error: unable to match type 'mut *mut i32' to 'mut *i32'
+// note: mismatched mutability of types 'mut i32' and 'i32'
+// note: while matching expression of type '[: mut *mut i32]' to '[: mut *i32]'
 function test()
 {
-	let _: [: mut *int32] = [: mut *mut int32]();
+	let _: [: mut *i32] = [: mut *mut i32]();
 }

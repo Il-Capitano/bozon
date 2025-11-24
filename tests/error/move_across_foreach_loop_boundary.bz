@@ -3,7 +3,7 @@
 function test()
 {
 	let i = 0;
-	let arr = [2: int32]();
+	let arr = [2: i32]();
 	for (let _ in arr)
 	{
 		move i;

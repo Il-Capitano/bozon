@@ -1,11 +1,11 @@
-// error: invalid pointer arithmetic operation with type '*int32' and offset 2
+// error: invalid pointer arithmetic operation with type '*i32' and offset 2
 // note: while evaluating expression at compile time
 // note: address points to a subobject that is not in an array in this stack object
 // error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {
-		let t = [int32, int32]();
+		let t = [i32, i32]();
 		&t[0] + 2;
 	});
 }

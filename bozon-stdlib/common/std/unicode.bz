@@ -4,38 +4,38 @@ export consteval utf8_max_one_byte_char   = '\u007f';
 export consteval utf8_max_two_byte_char   = '\u07ff';
 export consteval utf8_max_three_byte_char = '\uffff';
 
-export function encode_char_utf8(c: char) -> [[4: uint8], uint32]
+export function encode_char_utf8(c: char) -> [[4: u8], u32]
 {
-	mut buffer: [4: uint8];
+	mut buffer: [4: u8];
 	if (c < utf8_max_one_byte_char)
 	{
-		buffer[0] = c as uint8;
+		buffer[0] = c as u8;
 		return [buffer, 1u];
 	}
 	else if (c < utf8_max_two_byte_char)
 	{
-		buffer[0] = (((c as uint32 >> 6u) & 0b0001'1111) | 0b1100'0000) as uint8;
-		buffer[1] = (((c as uint32 >> 0u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		buffer[0] = (((c as u32 >> 6u) & 0b0001'1111) | 0b1100'0000) as u8;
+		buffer[1] = (((c as u32 >> 0u) & 0b0011'1111) | 0b1000'0000) as u8;
 		return [buffer, 2u];
 	}
 	else if (c < utf8_max_three_byte_char)
 	{
-		buffer[0] = (((c as uint32 >> 12u) & 0b0000'1111) | 0b1110'0000) as uint8;
-		buffer[1] = (((c as uint32 >>  6u) & 0b0011'1111) | 0b1000'0000) as uint8;
-		buffer[2] = (((c as uint32 >>  0u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		buffer[0] = (((c as u32 >> 12u) & 0b0000'1111) | 0b1110'0000) as u8;
+		buffer[1] = (((c as u32 >>  6u) & 0b0011'1111) | 0b1000'0000) as u8;
+		buffer[2] = (((c as u32 >>  0u) & 0b0011'1111) | 0b1000'0000) as u8;
 		return [buffer, 3u];
 	}
 	else
 	{
-		buffer[0] = (((c as uint32 >> 18u) & 0b0000'0111) | 0b1111'0000) as uint8;
-		buffer[1] = (((c as uint32 >> 12u) & 0b0011'1111) | 0b1000'0000) as uint8;
-		buffer[2] = (((c as uint32 >>  6u) & 0b0011'1111) | 0b1000'0000) as uint8;
-		buffer[3] = (((c as uint32 >>  0u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		buffer[0] = (((c as u32 >> 18u) & 0b0000'0111) | 0b1111'0000) as u8;
+		buffer[1] = (((c as u32 >> 12u) & 0b0011'1111) | 0b1000'0000) as u8;
+		buffer[2] = (((c as u32 >>  6u) & 0b0011'1111) | 0b1000'0000) as u8;
+		buffer[3] = (((c as u32 >>  0u) & 0b0011'1111) | 0b1000'0000) as u8;
 		return [buffer, 4u];
 	}
 }
 
-export function decode_char_utf8(data: *uint8, end: *uint8) -> [char, *uint8]
+export function decode_char_utf8(data: *u8, end: *u8) -> [char, *u8]
 {
 	let max_size = end - data;
 	if (max_size == 0)
@@ -43,7 +43,7 @@ export function decode_char_utf8(data: *uint8, end: *uint8) -> [char, *uint8]
 		return [ '\x00', data ];
 	}
 	let first_byte = *data;
-	if (first_byte < utf8_max_one_byte_char as uint8)
+	if (first_byte < utf8_max_one_byte_char as u8)
 	{
 		return [ first_byte as char, data + 1 ];
 	}
@@ -54,8 +54,8 @@ export function decode_char_utf8(data: *uint8, end: *uint8) -> [char, *uint8]
 		{
 			return [ '\x00', data ];
 		}
-		let result_int_val = ((bytes[0] & 0b0001'1111u8) as uint32 << 6u)
-			| ((bytes[1] & 0b0011'1111u8) as uint32 <<  0u);
+		let result_int_val = ((bytes[0] & 0b0001'1111u8) as u32 << 6u)
+			| ((bytes[1] & 0b0011'1111u8) as u32 <<  0u);
 		return [ result_int_val as char, data + 2];
 	}
 	else if (max_size >= 3 && (first_byte & 0b1111'0000u8) == 0b1110'0000u8)
@@ -68,9 +68,9 @@ export function decode_char_utf8(data: *uint8, end: *uint8) -> [char, *uint8]
 		{
 			return [ '\x00', data ];
 		}
-		let result_int_val = ((bytes[0] & 0b0000'1111u8) as uint32 << 12u)
-			| ((bytes[1] & 0b0011'1111u8) as uint32 <<  6u)
-			| ((bytes[2] & 0b0011'1111u8) as uint32 <<  0u);
+		let result_int_val = ((bytes[0] & 0b0000'1111u8) as u32 << 12u)
+			| ((bytes[1] & 0b0011'1111u8) as u32 <<  6u)
+			| ((bytes[2] & 0b0011'1111u8) as u32 <<  0u);
 		return [ result_int_val as char, data + 3];
 	}
 	else if (max_size >= 4 && (first_byte & 0b1111'1000u8) == 0b1111'0000u8)
@@ -84,10 +84,10 @@ export function decode_char_utf8(data: *uint8, end: *uint8) -> [char, *uint8]
 		{
 			return [ '\x00', data ];
 		}
-		let result_int_val = ((bytes[0] & 0b0000'0111u8) as uint32 << 18u)
-			| ((bytes[1] & 0b0011'1111u8) as uint32 << 12u)
-			| ((bytes[2] & 0b0011'1111u8) as uint32 <<  6u)
-			| ((bytes[3] & 0b0011'1111u8) as uint32 <<  0u);
+		let result_int_val = ((bytes[0] & 0b0000'0111u8) as u32 << 18u)
+			| ((bytes[1] & 0b0011'1111u8) as u32 << 12u)
+			| ((bytes[2] & 0b0011'1111u8) as u32 <<  6u)
+			| ((bytes[3] & 0b0011'1111u8) as u32 <<  0u);
 		return [ result_int_val as char, data + 4];
 	}
 	else
@@ -96,7 +96,7 @@ export function decode_char_utf8(data: *uint8, end: *uint8) -> [char, *uint8]
 	}
 }
 
-export function decode_char_utf8(data: *mut uint8, end: *mut uint8) -> [char, *mut uint8]
+export function decode_char_utf8(data: *mut u8, end: *mut u8) -> [char, *mut u8]
 {
 	let max_size = end - data;
 	if (max_size == 0)
@@ -104,7 +104,7 @@ export function decode_char_utf8(data: *mut uint8, end: *mut uint8) -> [char, *m
 		return [ '\x00', data ];
 	}
 	let first_byte = *data;
-	if (first_byte < utf8_max_one_byte_char as uint8)
+	if (first_byte < utf8_max_one_byte_char as u8)
 	{
 		return [ first_byte as char, data + 1 ];
 	}
@@ -115,8 +115,8 @@ export function decode_char_utf8(data: *mut uint8, end: *mut uint8) -> [char, *m
 		{
 			return [ '\x00', data ];
 		}
-		let result_int_val = ((bytes[0] & 0b0001'1111u8) as uint32 << 6u)
-			| ((bytes[1] & 0b0011'1111u8) as uint32 <<  0u);
+		let result_int_val = ((bytes[0] & 0b0001'1111u8) as u32 << 6u)
+			| ((bytes[1] & 0b0011'1111u8) as u32 <<  0u);
 		return [ result_int_val as char, data + 2];
 	}
 	else if (max_size >= 3 && (first_byte & 0b1111'0000u8) == 0b1110'0000u8)
@@ -129,9 +129,9 @@ export function decode_char_utf8(data: *mut uint8, end: *mut uint8) -> [char, *m
 		{
 			return [ '\x00', data ];
 		}
-		let result_int_val = ((bytes[0] & 0b0000'1111u8) as uint32 << 12u)
-			| ((bytes[1] & 0b0011'1111u8) as uint32 <<  6u)
-			| ((bytes[2] & 0b0011'1111u8) as uint32 <<  0u);
+		let result_int_val = ((bytes[0] & 0b0000'1111u8) as u32 << 12u)
+			| ((bytes[1] & 0b0011'1111u8) as u32 <<  6u)
+			| ((bytes[2] & 0b0011'1111u8) as u32 <<  0u);
 		return [ result_int_val as char, data + 3];
 	}
 	else if (max_size >= 4 && (first_byte & 0b1111'1000u8) == 0b1111'0000u8)
@@ -145,10 +145,10 @@ export function decode_char_utf8(data: *mut uint8, end: *mut uint8) -> [char, *m
 		{
 			return [ '\x00', data ];
 		}
-		let result_int_val = ((bytes[0] & 0b0000'0111u8) as uint32 << 18u)
-			| ((bytes[1] & 0b0011'1111u8) as uint32 << 12u)
-			| ((bytes[2] & 0b0011'1111u8) as uint32 <<  6u)
-			| ((bytes[3] & 0b0011'1111u8) as uint32 <<  0u);
+		let result_int_val = ((bytes[0] & 0b0000'0111u8) as u32 << 18u)
+			| ((bytes[1] & 0b0011'1111u8) as u32 << 12u)
+			| ((bytes[2] & 0b0011'1111u8) as u32 <<  6u)
+			| ((bytes[3] & 0b0011'1111u8) as u32 <<  0u);
 		return [ result_int_val as char, data + 4];
 	}
 	else
@@ -157,12 +157,12 @@ export function decode_char_utf8(data: *mut uint8, end: *mut uint8) -> [char, *m
 	}
 }
 
-export function is_valid_unicode_value(val: uint32) -> bool
+export function is_valid_unicode_value(val: u32) -> bool
 {
 	return val <= 0x10'ffff && !(val >= 0xd800 && val <= 0xdfff);
 }
 
-export function is_valid_unicode_value(val: int32) -> bool
+export function is_valid_unicode_value(val: i32) -> bool
 {
-	return val <= 0x10'ffff as int32 && !(val >= 0xd800 as int32 && val <= 0xdfff as int32);
+	return val <= 0x10'ffff as i32 && !(val >= 0xd800 as i32 && val <= 0xdfff as i32);
 }

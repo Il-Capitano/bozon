@@ -1,13 +1,13 @@
-// error: mismatched pointer types '*int32' and '*uint32' in 'function __builtin_slice_from_ptrs'
+// error: mismatched pointer types '*i32' and '*u32' in 'function __builtin_slice_from_ptrs'
 // note: while evaluating expression at compile time
 // error: failed to evaluate expression at compile time
-// note: in generic instantiation of 'function __builtin_slice_from_ptrs(begin: ?*int32, end: ?*uint32) -> <unresolved>'
+// note: in generic instantiation of 'function __builtin_slice_from_ptrs(begin: ?*i32, end: ?*u32) -> <unresolved>'
 // note: required from here
 // error: failed to resolve expression
 // note: while evaluating expression at compile time
 // error: expected a type
 // note: type must be a constant expression
-// note: in generic instantiation of 'function __builtin_slice_from_ptrs(begin: ?*int32, end: ?*uint32) -> <unresolved>'
+// note: in generic instantiation of 'function __builtin_slice_from_ptrs(begin: ?*i32, end: ?*u32) -> <unresolved>'
 // note: required from here
 function main()
 {

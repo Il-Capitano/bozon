@@ -4,7 +4,7 @@
 function test()
 {
 	(consteval {
-		let a = [10: int32]();
+		let a = [10: i32]();
 		let a = a[..];
 		a[1u32..11u32];
 	});

@@ -1165,682 +1165,195 @@ struct cast_u64_to_f64
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
-struct cmp_eq_i1
+enum class cmp_kind : uint32_t
+{
+	// integer comparisons
+	eq,
+	neq,
+	slt,
+	sgt,
+	slte,
+	sgte,
+	ult,
+	ugt,
+	ulte,
+	ugte,
+
+	// pointer comparisons
+	ptr_eq = eq,
+	ptr_neq = neq,
+	ptr_lt = ult,
+	ptr_gt = ugt,
+	ptr_lte = ulte,
+	ptr_gte = ugte,
+
+	// floating-point comparisons
+	feq = eq,
+	fneq = neq,
+	flt = slt,
+	fgt = sgt,
+	flte = slte,
+	fgte = sgte,
+};
+
+constexpr bool is_equality_compare(cmp_kind kind)
+{
+	switch (kind)
+	{
+	case cmp_kind::eq:
+	case cmp_kind::neq:
+		return true;
+	default:
+		return false;
+	}
+}
+
+constexpr bool is_unsigned_compare(cmp_kind kind)
+{
+	switch (kind)
+	{
+	case cmp_kind::ult:
+	case cmp_kind::ugt:
+	case cmp_kind::ulte:
+	case cmp_kind::ugte:
+		return true;
+	default:
+		return false;
+	}
+}
+
+constexpr bz::u8string_view get_compare_operator(cmp_kind kind)
+{
+	switch (kind)
+	{
+	case cmp_kind::eq:
+		return "==";
+	case cmp_kind::neq:
+		return "!=";
+	case cmp_kind::slt:
+	case cmp_kind::ult:
+		return "<";
+	case cmp_kind::sgt:
+	case cmp_kind::ugt:
+		return ">";
+	case cmp_kind::slte:
+	case cmp_kind::ulte:
+		return "<=";
+	case cmp_kind::sgte:
+	case cmp_kind::ugte:
+		return ">=";
+	}
+}
+
+struct cmp_i1
 {
 	static inline constexpr bz::array arg_types = { value_type::i1, value_type::i1 };
 	static inline constexpr value_type result_type = value_type::i1;
 	static inline constexpr bool invalidates_load_cache = false;
 
+	cmp_kind kind;
+
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
-struct cmp_eq_i8
+struct cmp_i8
 {
 	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
 	static inline constexpr value_type result_type = value_type::i1;
 	static inline constexpr bool invalidates_load_cache = false;
 
+	cmp_kind kind;
+
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
-struct cmp_eq_i16
+struct cmp_i16
 {
 	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
 	static inline constexpr value_type result_type = value_type::i1;
 	static inline constexpr bool invalidates_load_cache = false;
 
+	cmp_kind kind;
+
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
-struct cmp_eq_i32
+struct cmp_i32
 {
 	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
 	static inline constexpr value_type result_type = value_type::i1;
 	static inline constexpr bool invalidates_load_cache = false;
 
+	cmp_kind kind;
+
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
-struct cmp_eq_i64
+struct cmp_i64
 {
 	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
 	static inline constexpr value_type result_type = value_type::i1;
 	static inline constexpr bool invalidates_load_cache = false;
 
+	cmp_kind kind;
+
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
-struct cmp_eq_f32
+struct cmp_f32
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::i1;
 	static inline constexpr bool invalidates_load_cache = false;
 
+	cmp_kind kind;
+
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
-struct cmp_eq_f64
+struct cmp_f64
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::i1;
 	static inline constexpr bool invalidates_load_cache = false;
 
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_eq_f32_check
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::none;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	uint32_t src_tokens_index;
+	cmp_kind kind;
 
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
-struct cmp_eq_f64_check
-{
-	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::none;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	uint32_t src_tokens_index;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_eq_ptr
-{
-	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_neq_i1
-{
-	static inline constexpr bz::array arg_types = { value_type::i1, value_type::i1 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_neq_i8
-{
-	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_neq_i16
-{
-	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_neq_i32
-{
-	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_neq_i64
-{
-	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_neq_f32
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_neq_f64
-{
-	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_neq_f32_check
+struct cmp_f32_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
 	static inline constexpr value_type result_type = value_type::none;
 	static inline constexpr bool invalidates_load_cache = false;
 
 	uint32_t src_tokens_index;
+	cmp_kind kind;
 
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
-struct cmp_neq_f64_check
+struct cmp_f64_check
 {
 	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
 	static inline constexpr value_type result_type = value_type::none;
 	static inline constexpr bool invalidates_load_cache = false;
 
 	uint32_t src_tokens_index;
+	cmp_kind kind;
 
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
 
-struct cmp_neq_ptr
-{
-	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lt_i8
-{
-	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lt_i16
-{
-	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lt_i32
-{
-	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lt_i64
-{
-	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lt_u8
-{
-	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lt_u16
-{
-	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lt_u32
-{
-	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lt_u64
-{
-	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lt_f32
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lt_f64
-{
-	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lt_f32_check
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::none;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	uint32_t src_tokens_index;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lt_f64_check
-{
-	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::none;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	uint32_t src_tokens_index;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lt_ptr
+struct cmp_ptr
 {
 	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
 	static inline constexpr value_type result_type = value_type::i1;
 	static inline constexpr bool invalidates_load_cache = false;
 
 	uint32_t src_tokens_index;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gt_i8
-{
-	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gt_i16
-{
-	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gt_i32
-{
-	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gt_i64
-{
-	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gt_u8
-{
-	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gt_u16
-{
-	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gt_u32
-{
-	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gt_u64
-{
-	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gt_f32
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gt_f64
-{
-	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gt_f32_check
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::none;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	uint32_t src_tokens_index;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gt_f64_check
-{
-	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::none;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	uint32_t src_tokens_index;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gt_ptr
-{
-	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	uint32_t src_tokens_index;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lte_i8
-{
-	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lte_i16
-{
-	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lte_i32
-{
-	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lte_i64
-{
-	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lte_u8
-{
-	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lte_u16
-{
-	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lte_u32
-{
-	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lte_u64
-{
-	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lte_f32
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lte_f64
-{
-	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lte_f32_check
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::none;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	uint32_t src_tokens_index;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lte_f64_check
-{
-	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::none;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	uint32_t src_tokens_index;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_lte_ptr
-{
-	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	uint32_t src_tokens_index;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gte_i8
-{
-	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gte_i16
-{
-	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gte_i32
-{
-	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gte_i64
-{
-	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gte_u8
-{
-	static inline constexpr bz::array arg_types = { value_type::i8, value_type::i8 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gte_u16
-{
-	static inline constexpr bz::array arg_types = { value_type::i16, value_type::i16 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gte_u32
-{
-	static inline constexpr bz::array arg_types = { value_type::i32, value_type::i32 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gte_u64
-{
-	static inline constexpr bz::array arg_types = { value_type::i64, value_type::i64 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gte_f32
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gte_f64
-{
-	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gte_f32_check
-{
-	static inline constexpr bz::array arg_types = { value_type::f32, value_type::f32 };
-	static inline constexpr value_type result_type = value_type::none;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	uint32_t src_tokens_index;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gte_f64_check
-{
-	static inline constexpr bz::array arg_types = { value_type::f64, value_type::f64 };
-	static inline constexpr value_type result_type = value_type::none;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	uint32_t src_tokens_index;
-
-	bz::array<instruction_value_index, arg_types.size()> args;
-};
-
-struct cmp_gte_ptr
-{
-	static inline constexpr bz::array arg_types = { value_type::ptr, value_type::ptr };
-	static inline constexpr value_type result_type = value_type::i1;
-	static inline constexpr bool invalidates_load_cache = false;
-
-	uint32_t src_tokens_index;
+	cmp_kind kind;
 
 	bz::array<instruction_value_index, arg_types.size()> args;
 };
@@ -5953,78 +5466,16 @@ using instruction_list_t = bz::meta::type_pack<
 	instructions::cast_u16_to_f64,
 	instructions::cast_u32_to_f64,
 	instructions::cast_u64_to_f64,
-	instructions::cmp_eq_i1,
-	instructions::cmp_eq_i8,
-	instructions::cmp_eq_i16,
-	instructions::cmp_eq_i32,
-	instructions::cmp_eq_i64,
-	instructions::cmp_eq_f32,
-	instructions::cmp_eq_f64,
-	instructions::cmp_eq_f32_check,
-	instructions::cmp_eq_f64_check,
-	instructions::cmp_eq_ptr,
-	instructions::cmp_neq_i1,
-	instructions::cmp_neq_i8,
-	instructions::cmp_neq_i16,
-	instructions::cmp_neq_i32,
-	instructions::cmp_neq_i64,
-	instructions::cmp_neq_f32,
-	instructions::cmp_neq_f64,
-	instructions::cmp_neq_f32_check,
-	instructions::cmp_neq_f64_check,
-	instructions::cmp_neq_ptr,
-	instructions::cmp_lt_i8,
-	instructions::cmp_lt_i16,
-	instructions::cmp_lt_i32,
-	instructions::cmp_lt_i64,
-	instructions::cmp_lt_u8,
-	instructions::cmp_lt_u16,
-	instructions::cmp_lt_u32,
-	instructions::cmp_lt_u64,
-	instructions::cmp_lt_f32,
-	instructions::cmp_lt_f64,
-	instructions::cmp_lt_f32_check,
-	instructions::cmp_lt_f64_check,
-	instructions::cmp_lt_ptr,
-	instructions::cmp_gt_i8,
-	instructions::cmp_gt_i16,
-	instructions::cmp_gt_i32,
-	instructions::cmp_gt_i64,
-	instructions::cmp_gt_u8,
-	instructions::cmp_gt_u16,
-	instructions::cmp_gt_u32,
-	instructions::cmp_gt_u64,
-	instructions::cmp_gt_f32,
-	instructions::cmp_gt_f64,
-	instructions::cmp_gt_f32_check,
-	instructions::cmp_gt_f64_check,
-	instructions::cmp_gt_ptr,
-	instructions::cmp_lte_i8,
-	instructions::cmp_lte_i16,
-	instructions::cmp_lte_i32,
-	instructions::cmp_lte_i64,
-	instructions::cmp_lte_u8,
-	instructions::cmp_lte_u16,
-	instructions::cmp_lte_u32,
-	instructions::cmp_lte_u64,
-	instructions::cmp_lte_f32,
-	instructions::cmp_lte_f64,
-	instructions::cmp_lte_f32_check,
-	instructions::cmp_lte_f64_check,
-	instructions::cmp_lte_ptr,
-	instructions::cmp_gte_i8,
-	instructions::cmp_gte_i16,
-	instructions::cmp_gte_i32,
-	instructions::cmp_gte_i64,
-	instructions::cmp_gte_u8,
-	instructions::cmp_gte_u16,
-	instructions::cmp_gte_u32,
-	instructions::cmp_gte_u64,
-	instructions::cmp_gte_f32,
-	instructions::cmp_gte_f64,
-	instructions::cmp_gte_f32_check,
-	instructions::cmp_gte_f64_check,
-	instructions::cmp_gte_ptr,
+	instructions::cmp_i1,
+	instructions::cmp_i8,
+	instructions::cmp_i16,
+	instructions::cmp_i32,
+	instructions::cmp_i64,
+	instructions::cmp_f32,
+	instructions::cmp_f64,
+	instructions::cmp_f32_check,
+	instructions::cmp_f64_check,
+	instructions::cmp_ptr,
 	instructions::neg_i8,
 	instructions::neg_i16,
 	instructions::neg_i32,
@@ -6459,7 +5910,7 @@ private:
 	uint64_t _index = index_of<void>;
 
 public:
-	static_assert(instruction_list_t::size() == 576);
+	static_assert(instruction_list_t::size() == 514);
 	enum : uint64_t
 	{
 		const_i1 = index_of<instructions::const_i1>,
@@ -6572,78 +6023,16 @@ public:
 		cast_u16_to_f64,
 		cast_u32_to_f64,
 		cast_u64_to_f64,
-		cmp_eq_i1,
-		cmp_eq_i8,
-		cmp_eq_i16,
-		cmp_eq_i32,
-		cmp_eq_i64,
-		cmp_eq_f32,
-		cmp_eq_f64,
-		cmp_eq_f32_check,
-		cmp_eq_f64_check,
-		cmp_eq_ptr,
-		cmp_neq_i1,
-		cmp_neq_i8,
-		cmp_neq_i16,
-		cmp_neq_i32,
-		cmp_neq_i64,
-		cmp_neq_f32,
-		cmp_neq_f64,
-		cmp_neq_f32_check,
-		cmp_neq_f64_check,
-		cmp_neq_ptr,
-		cmp_lt_i8,
-		cmp_lt_i16,
-		cmp_lt_i32,
-		cmp_lt_i64,
-		cmp_lt_u8,
-		cmp_lt_u16,
-		cmp_lt_u32,
-		cmp_lt_u64,
-		cmp_lt_f32,
-		cmp_lt_f64,
-		cmp_lt_f32_check,
-		cmp_lt_f64_check,
-		cmp_lt_ptr,
-		cmp_gt_i8,
-		cmp_gt_i16,
-		cmp_gt_i32,
-		cmp_gt_i64,
-		cmp_gt_u8,
-		cmp_gt_u16,
-		cmp_gt_u32,
-		cmp_gt_u64,
-		cmp_gt_f32,
-		cmp_gt_f64,
-		cmp_gt_f32_check,
-		cmp_gt_f64_check,
-		cmp_gt_ptr,
-		cmp_lte_i8,
-		cmp_lte_i16,
-		cmp_lte_i32,
-		cmp_lte_i64,
-		cmp_lte_u8,
-		cmp_lte_u16,
-		cmp_lte_u32,
-		cmp_lte_u64,
-		cmp_lte_f32,
-		cmp_lte_f64,
-		cmp_lte_f32_check,
-		cmp_lte_f64_check,
-		cmp_lte_ptr,
-		cmp_gte_i8,
-		cmp_gte_i16,
-		cmp_gte_i32,
-		cmp_gte_i64,
-		cmp_gte_u8,
-		cmp_gte_u16,
-		cmp_gte_u32,
-		cmp_gte_u64,
-		cmp_gte_f32,
-		cmp_gte_f64,
-		cmp_gte_f32_check,
-		cmp_gte_f64_check,
-		cmp_gte_ptr,
+		cmp_i1,
+		cmp_i8,
+		cmp_i16,
+		cmp_i32,
+		cmp_i64,
+		cmp_f32,
+		cmp_f64,
+		cmp_f32_check,
+		cmp_f64_check,
+		cmp_ptr,
 		neg_i8,
 		neg_i16,
 		neg_i32,
@@ -7132,6 +6521,35 @@ struct bz::formatter<comptime::instruction_value_index>
 	static bz::u8string format(comptime::instruction_value_index index, bz::u8string_view)
 	{
 		return bz::format("%{}", index.index);
+	}
+};
+
+template<>
+struct bz::formatter<comptime::instructions::cmp_kind>
+{
+	static bz::u8string format(comptime::instructions::cmp_kind kind, bz::u8string_view)
+	{
+		switch (kind)
+		{
+		using enum comptime::instructions::cmp_kind;
+		case eq:
+			return "eq";
+		case neq:
+			return "neq";
+		case slt:
+		case ult:
+			return "lt";
+		case sgt:
+		case ugt:
+			return "gt";
+		case slte:
+		case ulte:
+			return "lte";
+		case sgte:
+		case ugte:
+			return "gte";
+		}
+		bz_unreachable;
 	}
 };
 

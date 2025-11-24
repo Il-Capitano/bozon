@@ -1,349 +1,363 @@
-@__builtin export struct int8
+@__builtin export struct i8
 {
-	@__builtin export operator + (n: int8)  -> int8;
-	@__builtin export operator - (n: int8)  -> int8;
-	@__builtin export operator ++ (n: &mut int8)  -> &mut int8;
-	@__builtin export operator -- (n: &mut int8)  -> &mut int8;
+	@__builtin export operator + (n: i8) -> i8;
+	@__builtin export operator - (n: i8) -> i8;
+	@__builtin export operator ++ (n: &mut i8) -> &mut i8;
+	@__builtin export operator -- (n: &mut i8) -> &mut i8;
 
-	@__builtin_assign export operator = (lhs: &mut int8,  rhs: int8)  -> &mut int8;
-	@__builtin export operator + (lhs: int8,  rhs: int8)  -> int8;
-	@__builtin export operator += (lhs: &mut int8,  rhs: int8)  -> &mut int8;
-	@__builtin export operator - (lhs: int8,  rhs: int8)  -> int8;
-	@__builtin export operator -= (lhs: &mut int8,  rhs: int8)  -> &mut int8;
-	@__builtin export operator * (lhs: int8,  rhs: int8)  -> int8;
-	@__builtin export operator *= (lhs: &mut int8,  rhs: int8)  -> &mut int8;
-	@__builtin export operator / (lhs: int8,  rhs: int8)  -> int8;
-	@__builtin export operator /= (lhs: &mut int8,  rhs: int8)  -> &mut int8;
-	@__builtin export operator % (lhs: int8,  rhs: int8)  -> int8;
-	@__builtin export operator %= (lhs: &mut int8,  rhs: int8)  -> &mut int8;
-	@__builtin export operator == (lhs: int8,  rhs: int8)  -> bool;
-	@__builtin export operator != (lhs: int8,  rhs: int8)  -> bool;
-	@__builtin export operator < (lhs: int8,  rhs: int8)  -> bool;
-	@__builtin export operator <= (lhs: int8,  rhs: int8)  -> bool;
-	@__builtin export operator > (lhs: int8,  rhs: int8)  -> bool;
-	@__builtin export operator >= (lhs: int8,  rhs: int8)  -> bool;
+	@__builtin_assign export operator = (lhs: &mut i8, rhs: i8) -> &mut i8;
+	@__builtin export operator + (lhs: i8, rhs: i8) -> i8;
+	@__builtin export operator - (lhs: i8, rhs: i8) -> i8;
+	@__builtin export operator * (lhs: i8, rhs: i8) -> i8;
+	@__builtin export operator / (lhs: i8, rhs: i8) -> i8;
+	@__builtin export operator % (lhs: i8, rhs: i8) -> i8;
+	@__builtin export operator += (lhs: &mut i8, rhs: i8) -> &mut i8;
+	@__builtin export operator -= (lhs: &mut i8, rhs: i8) -> &mut i8;
+	@__builtin export operator *= (lhs: &mut i8, rhs: i8) -> &mut i8;
+	@__builtin export operator /= (lhs: &mut i8, rhs: i8) -> &mut i8;
+	@__builtin export operator %= (lhs: &mut i8, rhs: i8) -> &mut i8;
 
-	export consteval min: int8 = ((0x80u8 as int8));
-	export consteval max: int8 = ((0x7fu8 as int8));
+	@__builtin export operator == (lhs: i8, rhs: i8) -> bool;
+	@__builtin export operator != (lhs: i8, rhs: i8) -> bool;
+	@__builtin export operator <  (lhs: i8, rhs: i8) -> bool;
+	@__builtin export operator <= (lhs: i8, rhs: i8) -> bool;
+	@__builtin export operator >  (lhs: i8, rhs: i8) -> bool;
+	@__builtin export operator >= (lhs: i8, rhs: i8) -> bool;
+
+	export consteval min: i8 = ((0x80u8 as i8));
+	export consteval max: i8 = ((0x7fu8 as i8));
 }
 
-@__builtin export struct int16
+@__builtin export struct i16
 {
-	@__builtin export operator + (n: int16) -> int16;
-	@__builtin export operator - (n: int16) -> int16;
-	@__builtin export operator ++ (n: &mut int16) -> &mut int16;
-	@__builtin export operator -- (n: &mut int16) -> &mut int16;
+	@__builtin export operator + (n: i16) -> i16;
+	@__builtin export operator - (n: i16) -> i16;
+	@__builtin export operator ++ (n: &mut i16) -> &mut i16;
+	@__builtin export operator -- (n: &mut i16) -> &mut i16;
 
-	@__builtin_assign export operator = (lhs: &mut int16, rhs: int16) -> &mut int16;
-	@__builtin export operator + (lhs: int16, rhs: int16) -> int16;
-	@__builtin export operator += (lhs: &mut int16, rhs: int16) -> &mut int16;
-	@__builtin export operator - (lhs: int16, rhs: int16) -> int16;
-	@__builtin export operator -= (lhs: &mut int16, rhs: int16) -> &mut int16;
-	@__builtin export operator * (lhs: int16, rhs: int16) -> int16;
-	@__builtin export operator *= (lhs: &mut int16, rhs: int16) -> &mut int16;
-	@__builtin export operator / (lhs: int16, rhs: int16) -> int16;
-	@__builtin export operator /= (lhs: &mut int16, rhs: int16) -> &mut int16;
-	@__builtin export operator % (lhs: int16, rhs: int16) -> int16;
-	@__builtin export operator %= (lhs: &mut int16, rhs: int16) -> &mut int16;
-	@__builtin export operator == (lhs: int16, rhs: int16) -> bool;
-	@__builtin export operator != (lhs: int16, rhs: int16) -> bool;
-	@__builtin export operator < (lhs: int16, rhs: int16) -> bool;
-	@__builtin export operator <= (lhs: int16, rhs: int16) -> bool;
-	@__builtin export operator > (lhs: int16, rhs: int16) -> bool;
-	@__builtin export operator >= (lhs: int16, rhs: int16) -> bool;
+	@__builtin_assign export operator = (lhs: &mut i16, rhs: i16) -> &mut i16;
+	@__builtin export operator + (lhs: i16, rhs: i16) -> i16;
+	@__builtin export operator - (lhs: i16, rhs: i16) -> i16;
+	@__builtin export operator * (lhs: i16, rhs: i16) -> i16;
+	@__builtin export operator / (lhs: i16, rhs: i16) -> i16;
+	@__builtin export operator % (lhs: i16, rhs: i16) -> i16;
+	@__builtin export operator += (lhs: &mut i16, rhs: i16) -> &mut i16;
+	@__builtin export operator -= (lhs: &mut i16, rhs: i16) -> &mut i16;
+	@__builtin export operator *= (lhs: &mut i16, rhs: i16) -> &mut i16;
+	@__builtin export operator /= (lhs: &mut i16, rhs: i16) -> &mut i16;
+	@__builtin export operator %= (lhs: &mut i16, rhs: i16) -> &mut i16;
 
-	export consteval min: int16 = ((0x8000u16 as int16));
-	export consteval max: int16 = ((0x7fffu16 as int16));
+	@__builtin export operator == (lhs: i16, rhs: i16) -> bool;
+	@__builtin export operator != (lhs: i16, rhs: i16) -> bool;
+	@__builtin export operator <  (lhs: i16, rhs: i16) -> bool;
+	@__builtin export operator <= (lhs: i16, rhs: i16) -> bool;
+	@__builtin export operator >  (lhs: i16, rhs: i16) -> bool;
+	@__builtin export operator >= (lhs: i16, rhs: i16) -> bool;
+
+	export consteval min: i16 = ((0x8000u16 as i16));
+	export consteval max: i16 = ((0x7fffu16 as i16));
 }
 
-@__builtin export struct int32
+@__builtin export struct i32
 {
-	@__builtin export operator + (n: int32) -> int32;
-	@__builtin export operator - (n: int32) -> int32;
-	@__builtin export operator ++ (n: &mut int32) -> &mut int32;
-	@__builtin export operator -- (n: &mut int32) -> &mut int32;
+	@__builtin export operator + (n: i32) -> i32;
+	@__builtin export operator - (n: i32) -> i32;
+	@__builtin export operator ++ (n: &mut i32) -> &mut i32;
+	@__builtin export operator -- (n: &mut i32) -> &mut i32;
 
-	@__builtin_assign export operator = (lhs: &mut int32, rhs: int32) -> &mut int32;
-	@__builtin export operator + (lhs: int32, rhs: int32) -> int32;
-	@__builtin export operator += (lhs: &mut int32, rhs: int32) -> &mut int32;
-	@__builtin export operator - (lhs: int32, rhs: int32) -> int32;
-	@__builtin export operator -= (lhs: &mut int32, rhs: int32) -> &mut int32;
-	@__builtin export operator * (lhs: int32, rhs: int32) -> int32;
-	@__builtin export operator *= (lhs: &mut int32, rhs: int32) -> &mut int32;
-	@__builtin export operator / (lhs: int32, rhs: int32) -> int32;
-	@__builtin export operator /= (lhs: &mut int32, rhs: int32) -> &mut int32;
-	@__builtin export operator % (lhs: int32, rhs: int32) -> int32;
-	@__builtin export operator %= (lhs: &mut int32, rhs: int32) -> &mut int32;
-	@__builtin export operator == (lhs: int32, rhs: int32) -> bool;
-	@__builtin export operator != (lhs: int32, rhs: int32) -> bool;
-	@__builtin export operator < (lhs: int32, rhs: int32) -> bool;
-	@__builtin export operator <= (lhs: int32, rhs: int32) -> bool;
-	@__builtin export operator > (lhs: int32, rhs: int32) -> bool;
-	@__builtin export operator >= (lhs: int32, rhs: int32) -> bool;
+	@__builtin_assign export operator = (lhs: &mut i32, rhs: i32) -> &mut i32;
+	@__builtin export operator + (lhs: i32, rhs: i32) -> i32;
+	@__builtin export operator - (lhs: i32, rhs: i32) -> i32;
+	@__builtin export operator * (lhs: i32, rhs: i32) -> i32;
+	@__builtin export operator / (lhs: i32, rhs: i32) -> i32;
+	@__builtin export operator % (lhs: i32, rhs: i32) -> i32;
+	@__builtin export operator += (lhs: &mut i32, rhs: i32) -> &mut i32;
+	@__builtin export operator -= (lhs: &mut i32, rhs: i32) -> &mut i32;
+	@__builtin export operator *= (lhs: &mut i32, rhs: i32) -> &mut i32;
+	@__builtin export operator /= (lhs: &mut i32, rhs: i32) -> &mut i32;
+	@__builtin export operator %= (lhs: &mut i32, rhs: i32) -> &mut i32;
 
-	export consteval min: int32 = ((0x8000'0000u32 as int32));
-	export consteval max: int32 = ((0x7fff'ffffu32 as int32));
+	@__builtin export operator == (lhs: i32, rhs: i32) -> bool;
+	@__builtin export operator != (lhs: i32, rhs: i32) -> bool;
+	@__builtin export operator <  (lhs: i32, rhs: i32) -> bool;
+	@__builtin export operator <= (lhs: i32, rhs: i32) -> bool;
+	@__builtin export operator >  (lhs: i32, rhs: i32) -> bool;
+	@__builtin export operator >= (lhs: i32, rhs: i32) -> bool;
+
+	export consteval min: i32 = ((0x8000'0000u32 as i32));
+	export consteval max: i32 = ((0x7fff'ffffu32 as i32));
 }
 
-@__builtin export struct int64
+@__builtin export struct i64
 {
-	@__builtin export operator + (n: int64) -> int64;
-	@__builtin export operator - (n: int64) -> int64;
-	@__builtin export operator ++ (n: &mut int64) -> &mut int64;
-	@__builtin export operator -- (n: &mut int64) -> &mut int64;
+	@__builtin export operator + (n: i64) -> i64;
+	@__builtin export operator - (n: i64) -> i64;
+	@__builtin export operator ++ (n: &mut i64) -> &mut i64;
+	@__builtin export operator -- (n: &mut i64) -> &mut i64;
 
-	@__builtin_assign export operator = (lhs: &mut int64, rhs: int64) -> &mut int64;
-	@__builtin export operator + (lhs: int64, rhs: int64) -> int64;
-	@__builtin export operator += (lhs: &mut int64, rhs: int64) -> &mut int64;
-	@__builtin export operator - (lhs: int64, rhs: int64) -> int64;
-	@__builtin export operator -= (lhs: &mut int64, rhs: int64) -> &mut int64;
-	@__builtin export operator * (lhs: int64, rhs: int64) -> int64;
-	@__builtin export operator *= (lhs: &mut int64, rhs: int64) -> &mut int64;
-	@__builtin export operator / (lhs: int64, rhs: int64) -> int64;
-	@__builtin export operator /= (lhs: &mut int64, rhs: int64) -> &mut int64;
-	@__builtin export operator % (lhs: int64, rhs: int64) -> int64;
-	@__builtin export operator %= (lhs: &mut int64, rhs: int64) -> &mut int64;
-	@__builtin export operator == (lhs: int64, rhs: int64) -> bool;
-	@__builtin export operator != (lhs: int64, rhs: int64) -> bool;
-	@__builtin export operator < (lhs: int64, rhs: int64) -> bool;
-	@__builtin export operator <= (lhs: int64, rhs: int64) -> bool;
-	@__builtin export operator > (lhs: int64, rhs: int64) -> bool;
-	@__builtin export operator >= (lhs: int64, rhs: int64) -> bool;
+	@__builtin_assign export operator = (lhs: &mut i64, rhs: i64) -> &mut i64;
+	@__builtin export operator + (lhs: i64, rhs: i64) -> i64;
+	@__builtin export operator - (lhs: i64, rhs: i64) -> i64;
+	@__builtin export operator * (lhs: i64, rhs: i64) -> i64;
+	@__builtin export operator / (lhs: i64, rhs: i64) -> i64;
+	@__builtin export operator % (lhs: i64, rhs: i64) -> i64;
+	@__builtin export operator += (lhs: &mut i64, rhs: i64) -> &mut i64;
+	@__builtin export operator -= (lhs: &mut i64, rhs: i64) -> &mut i64;
+	@__builtin export operator *= (lhs: &mut i64, rhs: i64) -> &mut i64;
+	@__builtin export operator /= (lhs: &mut i64, rhs: i64) -> &mut i64;
+	@__builtin export operator %= (lhs: &mut i64, rhs: i64) -> &mut i64;
 
-	export consteval min: int64 = ((0x8000'0000'0000'0000u64 as int64));
-	export consteval max: int64 = ((0x7fff'ffff'ffff'ffffu64 as int64));
+	@__builtin export operator == (lhs: i64, rhs: i64) -> bool;
+	@__builtin export operator != (lhs: i64, rhs: i64) -> bool;
+	@__builtin export operator <  (lhs: i64, rhs: i64) -> bool;
+	@__builtin export operator <= (lhs: i64, rhs: i64) -> bool;
+	@__builtin export operator >  (lhs: i64, rhs: i64) -> bool;
+	@__builtin export operator >= (lhs: i64, rhs: i64) -> bool;
+
+	export consteval min: i64 = ((0x8000'0000'0000'0000u64 as i64));
+	export consteval max: i64 = ((0x7fff'ffff'ffff'ffffu64 as i64));
 }
 
-@__builtin export struct uint8
+@__builtin export struct u8
 {
-	@__builtin export operator + (n: uint8)  -> uint8;
-	@__builtin export operator ~ (n: uint8)  -> uint8;
-	@__builtin export operator ++ (n: &mut uint8)  -> &mut uint8;
-	@__builtin export operator -- (n: &mut uint8)  -> &mut uint8;
+	@__builtin export operator + (n: u8) -> u8;
+	@__builtin export operator ~ (n: u8) -> u8;
+	@__builtin export operator ++ (n: &mut u8) -> &mut u8;
+	@__builtin export operator -- (n: &mut u8) -> &mut u8;
 
-	@__builtin_assign export operator = (lhs: &mut uint8,  rhs: uint8)  -> &mut uint8;
-	@__builtin export operator + (lhs: uint8,  rhs: uint8)  -> uint8;
-	@__builtin export operator += (lhs: &mut uint8,  rhs: uint8)  -> &mut uint8;
-	@__builtin export operator - (lhs: uint8,  rhs: uint8)  -> uint8;
-	@__builtin export operator -= (lhs: &mut uint8,  rhs: uint8)  -> &mut uint8;
-	@__builtin export operator * (lhs: uint8,  rhs: uint8)  -> uint8;
-	@__builtin export operator *= (lhs: &mut uint8,  rhs: uint8)  -> &mut uint8;
-	@__builtin export operator / (lhs: uint8,  rhs: uint8)  -> uint8;
-	@__builtin export operator /= (lhs: &mut uint8,  rhs: uint8)  -> &mut uint8;
-	@__builtin export operator % (lhs: uint8,  rhs: uint8)  -> uint8;
-	@__builtin export operator %= (lhs: &mut uint8,  rhs: uint8)  -> &mut uint8;
-	@__builtin export operator == (lhs: uint8,  rhs: uint8)  -> bool;
-	@__builtin export operator != (lhs: uint8,  rhs: uint8)  -> bool;
-	@__builtin export operator < (lhs: uint8,  rhs: uint8)  -> bool;
-	@__builtin export operator <= (lhs: uint8,  rhs: uint8)  -> bool;
-	@__builtin export operator > (lhs: uint8,  rhs: uint8)  -> bool;
-	@__builtin export operator >= (lhs: uint8,  rhs: uint8)  -> bool;
-	@__builtin export operator & (lhs: uint8,  rhs: uint8)  -> uint8;
-	@__builtin export operator &= (lhs: &mut uint8,  rhs: uint8)  -> &mut uint8;
-	@__builtin export operator ^ (lhs: uint8,  rhs: uint8)  -> uint8;
-	@__builtin export operator ^= (lhs: &mut uint8,  rhs: uint8)  -> &mut uint8;
-	@__builtin export operator | (lhs: uint8,  rhs: uint8)  -> uint8;
-	@__builtin export operator |= (lhs: &mut uint8,  rhs: uint8)  -> &mut uint8;
-	@__builtin @overload_priority(0) export operator << (lhs: uint8,  rhs:  int64) -> uint8;
-	@__builtin @overload_priority(1) export operator << (lhs: uint8,  rhs: uint64) -> uint8;
-	@__builtin @overload_priority(0) export operator <<= (lhs: &mut uint8,  rhs:  int64) -> &mut uint8;
-	@__builtin @overload_priority(1) export operator <<= (lhs: &mut uint8,  rhs: uint64) -> &mut uint8;
-	@__builtin @overload_priority(0) export operator >> (lhs: uint8,  rhs:  int64) -> uint8;
-	@__builtin @overload_priority(1) export operator >> (lhs: uint8,  rhs: uint64) -> uint8;
-	@__builtin @overload_priority(0) export operator >>= (lhs: &mut uint8,  rhs:  int64) -> &mut uint8;
-	@__builtin @overload_priority(1) export operator >>= (lhs: &mut uint8,  rhs: uint64) -> &mut uint8;
+	@__builtin_assign export operator = (lhs: &mut u8, rhs: u8) -> &mut u8;
+	@__builtin export operator + (lhs: u8, rhs: u8) -> u8;
+	@__builtin export operator - (lhs: u8, rhs: u8) -> u8;
+	@__builtin export operator * (lhs: u8, rhs: u8) -> u8;
+	@__builtin export operator / (lhs: u8, rhs: u8) -> u8;
+	@__builtin export operator % (lhs: u8, rhs: u8) -> u8;
+	@__builtin export operator += (lhs: &mut u8, rhs: u8) -> &mut u8;
+	@__builtin export operator -= (lhs: &mut u8, rhs: u8) -> &mut u8;
+	@__builtin export operator *= (lhs: &mut u8, rhs: u8) -> &mut u8;
+	@__builtin export operator /= (lhs: &mut u8, rhs: u8) -> &mut u8;
+	@__builtin export operator %= (lhs: &mut u8, rhs: u8) -> &mut u8;
 
-	export consteval min: uint8 = 0u8;
-	export consteval max: uint8 = 0xffu8;
+	@__builtin export operator == (lhs: u8, rhs: u8) -> bool;
+	@__builtin export operator != (lhs: u8, rhs: u8) -> bool;
+	@__builtin export operator <  (lhs: u8, rhs: u8) -> bool;
+	@__builtin export operator <= (lhs: u8, rhs: u8) -> bool;
+	@__builtin export operator >  (lhs: u8, rhs: u8) -> bool;
+	@__builtin export operator >= (lhs: u8, rhs: u8) -> bool;
+
+	@__builtin export operator & (lhs: u8, rhs: u8) -> u8;
+	@__builtin export operator ^ (lhs: u8, rhs: u8) -> u8;
+	@__builtin export operator | (lhs: u8, rhs: u8) -> u8;
+	@__builtin @overload_priority(0) export operator << (lhs: u8, rhs: i64) -> u8;
+	@__builtin @overload_priority(1) export operator << (lhs: u8, rhs: u64) -> u8;
+	@__builtin @overload_priority(0) export operator >> (lhs: u8, rhs: i64) -> u8;
+	@__builtin @overload_priority(1) export operator >> (lhs: u8, rhs: u64) -> u8;
+	@__builtin export operator &= (lhs: &mut u8, rhs: u8) -> &mut u8;
+	@__builtin export operator ^= (lhs: &mut u8, rhs: u8) -> &mut u8;
+	@__builtin export operator |= (lhs: &mut u8, rhs: u8) -> &mut u8;
+	@__builtin @overload_priority(0) export operator <<= (lhs: &mut u8, rhs: i64) -> &mut u8;
+	@__builtin @overload_priority(1) export operator <<= (lhs: &mut u8, rhs: u64) -> &mut u8;
+	@__builtin @overload_priority(0) export operator >>= (lhs: &mut u8, rhs: i64) -> &mut u8;
+	@__builtin @overload_priority(1) export operator >>= (lhs: &mut u8, rhs: u64) -> &mut u8;
+
+	export consteval min: u8 = 0u8;
+	export consteval max: u8 = 0xffu8;
 }
 
-@__builtin export struct uint16
+@__builtin export struct u16
 {
-	@__builtin export operator + (n: uint16) -> uint16;
-	@__builtin export operator ~ (n: uint16) -> uint16;
-	@__builtin export operator ++ (n: &mut uint16) -> &mut uint16;
-	@__builtin export operator -- (n: &mut uint16) -> &mut uint16;
+	@__builtin export operator + (n: u16) -> u16;
+	@__builtin export operator ~ (n: u16) -> u16;
+	@__builtin export operator ++ (n: &mut u16) -> &mut u16;
+	@__builtin export operator -- (n: &mut u16) -> &mut u16;
 
-	@__builtin_assign export operator = (lhs: &mut uint16, rhs: uint16) -> &mut uint16;
-	@__builtin export operator + (lhs: uint16, rhs: uint16) -> uint16;
-	@__builtin export operator += (lhs: &mut uint16, rhs: uint16) -> &mut uint16;
-	@__builtin export operator - (lhs: uint16, rhs: uint16) -> uint16;
-	@__builtin export operator -= (lhs: &mut uint16, rhs: uint16) -> &mut uint16;
-	@__builtin export operator * (lhs: uint16, rhs: uint16) -> uint16;
-	@__builtin export operator *= (lhs: &mut uint16, rhs: uint16) -> &mut uint16;
-	@__builtin export operator / (lhs: uint16, rhs: uint16) -> uint16;
-	@__builtin export operator /= (lhs: &mut uint16, rhs: uint16) -> &mut uint16;
-	@__builtin export operator % (lhs: uint16, rhs: uint16) -> uint16;
-	@__builtin export operator %= (lhs: &mut uint16, rhs: uint16) -> &mut uint16;
-	@__builtin export operator == (lhs: uint16, rhs: uint16) -> bool;
-	@__builtin export operator != (lhs: uint16, rhs: uint16) -> bool;
-	@__builtin export operator < (lhs: uint16, rhs: uint16) -> bool;
-	@__builtin export operator <= (lhs: uint16, rhs: uint16) -> bool;
-	@__builtin export operator > (lhs: uint16, rhs: uint16) -> bool;
-	@__builtin export operator >= (lhs: uint16, rhs: uint16) -> bool;
-	@__builtin export operator & (lhs: uint16, rhs: uint16) -> uint16;
-	@__builtin export operator &= (lhs: &mut uint16, rhs: uint16) -> &mut uint16;
-	@__builtin export operator ^ (lhs: uint16, rhs: uint16) -> uint16;
-	@__builtin export operator ^= (lhs: &mut uint16, rhs: uint16) -> &mut uint16;
-	@__builtin export operator | (lhs: uint16, rhs: uint16) -> uint16;
-	@__builtin export operator |= (lhs: &mut uint16, rhs: uint16) -> &mut uint16;
-	@__builtin @overload_priority(0) export operator << (lhs: uint16,  rhs:  int64) -> uint16;
-	@__builtin @overload_priority(1) export operator << (lhs: uint16,  rhs: uint64) -> uint16;
-	@__builtin @overload_priority(0) export operator <<= (lhs: &mut uint16,  rhs:  int64) -> &mut uint16;
-	@__builtin @overload_priority(1) export operator <<= (lhs: &mut uint16,  rhs: uint64) -> &mut uint16;
-	@__builtin @overload_priority(0) export operator >> (lhs: uint16,  rhs:  int64) -> uint16;
-	@__builtin @overload_priority(1) export operator >> (lhs: uint16,  rhs: uint64) -> uint16;
-	@__builtin @overload_priority(0) export operator >>= (lhs: &mut uint16,  rhs:  int64) -> &mut uint16;
-	@__builtin @overload_priority(1) export operator >>= (lhs: &mut uint16,  rhs: uint64) -> &mut uint16;
+	@__builtin_assign export operator = (lhs: &mut u16, rhs: u16) -> &mut u16;
+	@__builtin export operator + (lhs: u16, rhs: u16) -> u16;
+	@__builtin export operator - (lhs: u16, rhs: u16) -> u16;
+	@__builtin export operator * (lhs: u16, rhs: u16) -> u16;
+	@__builtin export operator / (lhs: u16, rhs: u16) -> u16;
+	@__builtin export operator % (lhs: u16, rhs: u16) -> u16;
+	@__builtin export operator += (lhs: &mut u16, rhs: u16) -> &mut u16;
+	@__builtin export operator -= (lhs: &mut u16, rhs: u16) -> &mut u16;
+	@__builtin export operator *= (lhs: &mut u16, rhs: u16) -> &mut u16;
+	@__builtin export operator /= (lhs: &mut u16, rhs: u16) -> &mut u16;
+	@__builtin export operator %= (lhs: &mut u16, rhs: u16) -> &mut u16;
 
-	export consteval min: uint16 = 0u16;
-	export consteval max: uint16 = 0xffffu16;
+	@__builtin export operator == (lhs: u16, rhs: u16) -> bool;
+	@__builtin export operator != (lhs: u16, rhs: u16) -> bool;
+	@__builtin export operator <  (lhs: u16, rhs: u16) -> bool;
+	@__builtin export operator <= (lhs: u16, rhs: u16) -> bool;
+	@__builtin export operator >  (lhs: u16, rhs: u16) -> bool;
+	@__builtin export operator >= (lhs: u16, rhs: u16) -> bool;
+
+	@__builtin export operator & (lhs: u16, rhs: u16) -> u16;
+	@__builtin export operator ^ (lhs: u16, rhs: u16) -> u16;
+	@__builtin export operator | (lhs: u16, rhs: u16) -> u16;
+	@__builtin @overload_priority(0) export operator << (lhs: u16, rhs: i64) -> u16;
+	@__builtin @overload_priority(1) export operator << (lhs: u16, rhs: u64) -> u16;
+	@__builtin @overload_priority(0) export operator >> (lhs: u16, rhs: i64) -> u16;
+	@__builtin @overload_priority(1) export operator >> (lhs: u16, rhs: u64) -> u16;
+	@__builtin export operator &= (lhs: &mut u16, rhs: u16) -> &mut u16;
+	@__builtin export operator ^= (lhs: &mut u16, rhs: u16) -> &mut u16;
+	@__builtin export operator |= (lhs: &mut u16, rhs: u16) -> &mut u16;
+	@__builtin @overload_priority(0) export operator <<= (lhs: &mut u16, rhs: i64) -> &mut u16;
+	@__builtin @overload_priority(1) export operator <<= (lhs: &mut u16, rhs: u64) -> &mut u16;
+	@__builtin @overload_priority(0) export operator >>= (lhs: &mut u16, rhs: i64) -> &mut u16;
+	@__builtin @overload_priority(1) export operator >>= (lhs: &mut u16, rhs: u64) -> &mut u16;
+
+	export consteval min: u16 = 0u16;
+	export consteval max: u16 = 0xffffu16;
 }
 
-@__builtin export struct uint32
+@__builtin export struct u32
 {
-	@__builtin export operator + (n: uint32) -> uint32;
-	@__builtin export operator ~ (n: uint32) -> uint32;
-	@__builtin export operator ++ (n: &mut uint32) -> &mut uint32;
-	@__builtin export operator -- (n: &mut uint32) -> &mut uint32;
+	@__builtin export operator + (n: u32) -> u32;
+	@__builtin export operator ~ (n: u32) -> u32;
+	@__builtin export operator ++ (n: &mut u32) -> &mut u32;
+	@__builtin export operator -- (n: &mut u32) -> &mut u32;
 
-	@__builtin_assign export operator = (lhs: &mut uint32, rhs: uint32) -> &mut uint32;
-	@__builtin export operator + (lhs: uint32, rhs: uint32) -> uint32;
-	@__builtin export operator += (lhs: &mut uint32, rhs: uint32) -> &mut uint32;
-	@__builtin export operator - (lhs: uint32, rhs: uint32) -> uint32;
-	@__builtin export operator -= (lhs: &mut uint32, rhs: uint32) -> &mut uint32;
-	@__builtin export operator * (lhs: uint32, rhs: uint32) -> uint32;
-	@__builtin export operator *= (lhs: &mut uint32, rhs: uint32) -> &mut uint32;
-	@__builtin export operator / (lhs: uint32, rhs: uint32) -> uint32;
-	@__builtin export operator /= (lhs: &mut uint32, rhs: uint32) -> &mut uint32;
-	@__builtin export operator % (lhs: uint32, rhs: uint32) -> uint32;
-	@__builtin export operator %= (lhs: &mut uint32, rhs: uint32) -> &mut uint32;
-	@__builtin export operator == (lhs: uint32, rhs: uint32) -> bool;
-	@__builtin export operator != (lhs: uint32, rhs: uint32) -> bool;
-	@__builtin export operator < (lhs: uint32, rhs: uint32) -> bool;
-	@__builtin export operator <= (lhs: uint32, rhs: uint32) -> bool;
-	@__builtin export operator > (lhs: uint32, rhs: uint32) -> bool;
-	@__builtin export operator >= (lhs: uint32, rhs: uint32) -> bool;
-	@__builtin export operator & (lhs: uint32, rhs: uint32) -> uint32;
-	@__builtin export operator &= (lhs: &mut uint32, rhs: uint32) -> &mut uint32;
-	@__builtin export operator ^ (lhs: uint32, rhs: uint32) -> uint32;
-	@__builtin export operator ^= (lhs: &mut uint32, rhs: uint32) -> &mut uint32;
-	@__builtin export operator | (lhs: uint32, rhs: uint32) -> uint32;
-	@__builtin export operator |= (lhs: &mut uint32, rhs: uint32) -> &mut uint32;
-	@__builtin @overload_priority(0) export operator << (lhs: uint32,  rhs:  int64) -> uint32;
-	@__builtin @overload_priority(1) export operator << (lhs: uint32,  rhs: uint64) -> uint32;
-	@__builtin @overload_priority(0) export operator <<= (lhs: &mut uint32,  rhs:  int64) -> &mut uint32;
-	@__builtin @overload_priority(1) export operator <<= (lhs: &mut uint32,  rhs: uint64) -> &mut uint32;
-	@__builtin @overload_priority(0) export operator >> (lhs: uint32,  rhs:  int64) -> uint32;
-	@__builtin @overload_priority(1) export operator >> (lhs: uint32,  rhs: uint64) -> uint32;
-	@__builtin @overload_priority(0) export operator >>= (lhs: &mut uint32,  rhs:  int64) -> &mut uint32;
-	@__builtin @overload_priority(1) export operator >>= (lhs: &mut uint32,  rhs: uint64) -> &mut uint32;
+	@__builtin_assign export operator = (lhs: &mut u32, rhs: u32) -> &mut u32;
+	@__builtin export operator + (lhs: u32, rhs: u32) -> u32;
+	@__builtin export operator - (lhs: u32, rhs: u32) -> u32;
+	@__builtin export operator * (lhs: u32, rhs: u32) -> u32;
+	@__builtin export operator / (lhs: u32, rhs: u32) -> u32;
+	@__builtin export operator % (lhs: u32, rhs: u32) -> u32;
+	@__builtin export operator += (lhs: &mut u32, rhs: u32) -> &mut u32;
+	@__builtin export operator -= (lhs: &mut u32, rhs: u32) -> &mut u32;
+	@__builtin export operator *= (lhs: &mut u32, rhs: u32) -> &mut u32;
+	@__builtin export operator /= (lhs: &mut u32, rhs: u32) -> &mut u32;
+	@__builtin export operator %= (lhs: &mut u32, rhs: u32) -> &mut u32;
 
-	export consteval min: uint32 = 0u32;
-	export consteval max: uint32 = 0xffff'ffffu32;
+	@__builtin export operator == (lhs: u32, rhs: u32) -> bool;
+	@__builtin export operator != (lhs: u32, rhs: u32) -> bool;
+	@__builtin export operator <  (lhs: u32, rhs: u32) -> bool;
+	@__builtin export operator <= (lhs: u32, rhs: u32) -> bool;
+	@__builtin export operator >  (lhs: u32, rhs: u32) -> bool;
+	@__builtin export operator >= (lhs: u32, rhs: u32) -> bool;
+
+	@__builtin export operator & (lhs: u32, rhs: u32) -> u32;
+	@__builtin export operator ^ (lhs: u32, rhs: u32) -> u32;
+	@__builtin export operator | (lhs: u32, rhs: u32) -> u32;
+	@__builtin @overload_priority(0) export operator << (lhs: u32, rhs: i64) -> u32;
+	@__builtin @overload_priority(1) export operator << (lhs: u32, rhs: u64) -> u32;
+	@__builtin @overload_priority(0) export operator >> (lhs: u32, rhs: i64) -> u32;
+	@__builtin @overload_priority(1) export operator >> (lhs: u32, rhs: u64) -> u32;
+	@__builtin export operator &= (lhs: &mut u32, rhs: u32) -> &mut u32;
+	@__builtin export operator ^= (lhs: &mut u32, rhs: u32) -> &mut u32;
+	@__builtin export operator |= (lhs: &mut u32, rhs: u32) -> &mut u32;
+	@__builtin @overload_priority(0) export operator <<= (lhs: &mut u32, rhs: i64) -> &mut u32;
+	@__builtin @overload_priority(1) export operator <<= (lhs: &mut u32, rhs: u64) -> &mut u32;
+	@__builtin @overload_priority(0) export operator >>= (lhs: &mut u32, rhs: i64) -> &mut u32;
+	@__builtin @overload_priority(1) export operator >>= (lhs: &mut u32, rhs: u64) -> &mut u32;
+
+	export consteval min: u32 = 0u32;
+	export consteval max: u32 = 0xffff'ffffu32;
 }
 
-@__builtin export struct uint64
+@__builtin export struct u64
 {
-	@__builtin export operator + (n: uint64) -> uint64;
-	@__builtin export operator ~ (n: uint64) -> uint64;
-	@__builtin export operator ++ (n: &mut uint64) -> &mut uint64;
-	@__builtin export operator -- (n: &mut uint64) -> &mut uint64;
+	@__builtin export operator + (n: u64) -> u64;
+	@__builtin export operator ~ (n: u64) -> u64;
+	@__builtin export operator ++ (n: &mut u64) -> &mut u64;
+	@__builtin export operator -- (n: &mut u64) -> &mut u64;
 
-	@__builtin_assign export operator = (lhs: &mut uint64, rhs: uint64) -> &mut uint64;
-	@__builtin export operator + (lhs: uint64, rhs: uint64) -> uint64;
-	@__builtin export operator += (lhs: &mut uint64, rhs: uint64) -> &mut uint64;
-	@__builtin export operator - (lhs: uint64, rhs: uint64) -> uint64;
-	@__builtin export operator -= (lhs: &mut uint64, rhs: uint64) -> &mut uint64;
-	@__builtin export operator * (lhs: uint64, rhs: uint64) -> uint64;
-	@__builtin export operator *= (lhs: &mut uint64, rhs: uint64) -> &mut uint64;
-	@__builtin export operator / (lhs: uint64, rhs: uint64) -> uint64;
-	@__builtin export operator /= (lhs: &mut uint64, rhs: uint64) -> &mut uint64;
-	@__builtin export operator % (lhs: uint64, rhs: uint64) -> uint64;
-	@__builtin export operator %= (lhs: &mut uint64, rhs: uint64) -> &mut uint64;
-	@__builtin export operator == (lhs: uint64, rhs: uint64) -> bool;
-	@__builtin export operator != (lhs: uint64, rhs: uint64) -> bool;
-	@__builtin export operator < (lhs: uint64, rhs: uint64) -> bool;
-	@__builtin export operator <= (lhs: uint64, rhs: uint64) -> bool;
-	@__builtin export operator > (lhs: uint64, rhs: uint64) -> bool;
-	@__builtin export operator >= (lhs: uint64, rhs: uint64) -> bool;
-	@__builtin export operator & (lhs: uint64, rhs: uint64) -> uint64;
-	@__builtin export operator &= (lhs: &mut uint64, rhs: uint64) -> &mut uint64;
-	@__builtin export operator ^ (lhs: uint64, rhs: uint64) -> uint64;
-	@__builtin export operator ^= (lhs: &mut uint64, rhs: uint64) -> &mut uint64;
-	@__builtin export operator | (lhs: uint64, rhs: uint64) -> uint64;
-	@__builtin export operator |= (lhs: &mut uint64, rhs: uint64) -> &mut uint64;
-	@__builtin @overload_priority(0) export operator << (lhs: uint64,  rhs:  int64) -> uint64;
-	@__builtin @overload_priority(1) export operator << (lhs: uint64,  rhs: uint64) -> uint64;
-	@__builtin @overload_priority(0) export operator <<= (lhs: &mut uint64,  rhs:  int64) -> &mut uint64;
-	@__builtin @overload_priority(1) export operator <<= (lhs: &mut uint64,  rhs: uint64) -> &mut uint64;
-	@__builtin @overload_priority(0) export operator >> (lhs: uint64,  rhs:  int64) -> uint64;
-	@__builtin @overload_priority(1) export operator >> (lhs: uint64,  rhs: uint64) -> uint64;
-	@__builtin @overload_priority(0) export operator >>= (lhs: &mut uint64,  rhs:  int64) -> &mut uint64;
-	@__builtin @overload_priority(1) export operator >>= (lhs: &mut uint64,  rhs: uint64) -> &mut uint64;
+	@__builtin_assign export operator = (lhs: &mut u64, rhs: u64) -> &mut u64;
+	@__builtin export operator + (lhs: u64, rhs: u64) -> u64;
+	@__builtin export operator - (lhs: u64, rhs: u64) -> u64;
+	@__builtin export operator * (lhs: u64, rhs: u64) -> u64;
+	@__builtin export operator / (lhs: u64, rhs: u64) -> u64;
+	@__builtin export operator % (lhs: u64, rhs: u64) -> u64;
+	@__builtin export operator += (lhs: &mut u64, rhs: u64) -> &mut u64;
+	@__builtin export operator -= (lhs: &mut u64, rhs: u64) -> &mut u64;
+	@__builtin export operator *= (lhs: &mut u64, rhs: u64) -> &mut u64;
+	@__builtin export operator /= (lhs: &mut u64, rhs: u64) -> &mut u64;
+	@__builtin export operator %= (lhs: &mut u64, rhs: u64) -> &mut u64;
 
-	export consteval min: uint64 = 0u64;
-	export consteval max: uint64 = 0xffff'ffff'ffff'ffffu64;
+	@__builtin export operator == (lhs: u64, rhs: u64) -> bool;
+	@__builtin export operator != (lhs: u64, rhs: u64) -> bool;
+	@__builtin export operator <  (lhs: u64, rhs: u64) -> bool;
+	@__builtin export operator <= (lhs: u64, rhs: u64) -> bool;
+	@__builtin export operator >  (lhs: u64, rhs: u64) -> bool;
+	@__builtin export operator >= (lhs: u64, rhs: u64) -> bool;
+
+	@__builtin export operator & (lhs: u64, rhs: u64) -> u64;
+	@__builtin export operator ^ (lhs: u64, rhs: u64) -> u64;
+	@__builtin export operator | (lhs: u64, rhs: u64) -> u64;
+	@__builtin @overload_priority(0) export operator << (lhs: u64, rhs: i64) -> u64;
+	@__builtin @overload_priority(1) export operator << (lhs: u64, rhs: u64) -> u64;
+	@__builtin @overload_priority(0) export operator >> (lhs: u64, rhs: i64) -> u64;
+	@__builtin @overload_priority(1) export operator >> (lhs: u64, rhs: u64) -> u64;
+	@__builtin export operator &= (lhs: &mut u64, rhs: u64) -> &mut u64;
+	@__builtin export operator ^= (lhs: &mut u64, rhs: u64) -> &mut u64;
+	@__builtin export operator |= (lhs: &mut u64, rhs: u64) -> &mut u64;
+	@__builtin @overload_priority(0) export operator <<= (lhs: &mut u64, rhs: i64) -> &mut u64;
+	@__builtin @overload_priority(1) export operator <<= (lhs: &mut u64, rhs: u64) -> &mut u64;
+	@__builtin @overload_priority(0) export operator >>= (lhs: &mut u64, rhs: i64) -> &mut u64;
+	@__builtin @overload_priority(1) export operator >>= (lhs: &mut u64, rhs: u64) -> &mut u64;
+
+	export consteval min: u64 = 0u64;
+	export consteval max: u64 = 0xffff'ffff'ffff'ffffu64;
 }
 
-@__builtin export struct float32
+@__builtin export struct f32
 {
-	@__builtin export operator + (x: float32) -> float32;
-	@__builtin export operator - (x: float32) -> float32;
+	@__builtin export operator + (x: f32) -> f32;
+	@__builtin export operator - (x: f32) -> f32;
 
-	@__builtin_assign export operator = (lhs: &mut float32, rhs: float32) -> &mut float32;
-	@__builtin export operator + (lhs: float32, rhs: float32) -> float32;
-	@__builtin export operator += (lhs: &mut float32, rhs: float32) -> &mut float32;
-	@__builtin export operator - (lhs: float32, rhs: float32) -> float32;
-	@__builtin export operator -= (lhs: &mut float32, rhs: float32) -> &mut float32;
-	@__builtin export operator * (lhs: float32, rhs: float32) -> float32;
-	@__builtin export operator *= (lhs: &mut float32, rhs: float32) -> &mut float32;
-	@__builtin export operator / (lhs: float32, rhs: float32) -> float32;
-	@__builtin export operator /= (lhs: &mut float32, rhs: float32) -> &mut float32;
-	@__builtin export operator == (lhs: float32, rhs: float32) -> bool;
-	@__builtin export operator != (lhs: float32, rhs: float32) -> bool;
-	@__builtin export operator < (lhs: float32, rhs: float32) -> bool;
-	@__builtin export operator <= (lhs: float32, rhs: float32) -> bool;
-	@__builtin export operator > (lhs: float32, rhs: float32) -> bool;
-	@__builtin export operator >= (lhs: float32, rhs: float32) -> bool;
+	@__builtin_assign export operator = (lhs: &mut f32, rhs: f32) -> &mut f32;
+	@__builtin export operator + (lhs: f32, rhs: f32) -> f32;
+	@__builtin export operator - (lhs: f32, rhs: f32) -> f32;
+	@__builtin export operator * (lhs: f32, rhs: f32) -> f32;
+	@__builtin export operator / (lhs: f32, rhs: f32) -> f32;
+	@__builtin export operator += (lhs: &mut f32, rhs: f32) -> &mut f32;
+	@__builtin export operator -= (lhs: &mut f32, rhs: f32) -> &mut f32;
+	@__builtin export operator *= (lhs: &mut f32, rhs: f32) -> &mut f32;
+	@__builtin export operator /= (lhs: &mut f32, rhs: f32) -> &mut f32;
 
-	export consteval min: float32 = 1.1754944e-38f32;
-	export consteval denorm_min: float32 = 1e-45f32;
-	export consteval epsilon: float32 = 1.1920929e-07f32;
-	export consteval max: float32 = 3.4028235e+38f32;
+	@__builtin export operator == (lhs: f32, rhs: f32) -> bool;
+	@__builtin export operator != (lhs: f32, rhs: f32) -> bool;
+	@__builtin export operator <  (lhs: f32, rhs: f32) -> bool;
+	@__builtin export operator <= (lhs: f32, rhs: f32) -> bool;
+	@__builtin export operator >  (lhs: f32, rhs: f32) -> bool;
+	@__builtin export operator >= (lhs: f32, rhs: f32) -> bool;
 
-	export consteval inf: float32 = ((1.0f32 / 0.0f32));
-	export consteval nan: float32 = ((__builtin_abs_f32(((0.0f32 / 0.0f32)))));
+	export consteval min: f32 = 1.1754944e-38f32;
+	export consteval denorm_min: f32 = 1e-45f32;
+	export consteval epsilon: f32 = 1.1920929e-07f32;
+	export consteval max: f32 = 3.4028235e+38f32;
+
+	export consteval inf: f32 = ((1.0f32 / 0.0f32));
+	export consteval nan: f32 = ((__builtin_abs_f32(((0.0f32 / 0.0f32)))));
 }
 
-@__builtin export struct float64
+@__builtin export struct f64
 {
-	@__builtin export operator + (x: float64) -> float64;
-	@__builtin export operator - (x: float64) -> float64;
+	@__builtin export operator + (x: f64) -> f64;
+	@__builtin export operator - (x: f64) -> f64;
 
-	@__builtin_assign export operator = (lhs: &mut float64, rhs: float64) -> &mut float64;
-	@__builtin export operator + (lhs: float64, rhs: float64) -> float64;
-	@__builtin export operator += (lhs: &mut float64, rhs: float64) -> &mut float64;
-	@__builtin export operator - (lhs: float64, rhs: float64) -> float64;
-	@__builtin export operator -= (lhs: &mut float64, rhs: float64) -> &mut float64;
-	@__builtin export operator * (lhs: float64, rhs: float64) -> float64;
-	@__builtin export operator *= (lhs: &mut float64, rhs: float64) -> &mut float64;
-	@__builtin export operator / (lhs: float64, rhs: float64) -> float64;
-	@__builtin export operator /= (lhs: &mut float64, rhs: float64) -> &mut float64;
-	@__builtin export operator == (lhs: float64, rhs: float64) -> bool;
-	@__builtin export operator != (lhs: float64, rhs: float64) -> bool;
-	@__builtin export operator < (lhs: float64, rhs: float64) -> bool;
-	@__builtin export operator <= (lhs: float64, rhs: float64) -> bool;
-	@__builtin export operator > (lhs: float64, rhs: float64) -> bool;
-	@__builtin export operator >= (lhs: float64, rhs: float64) -> bool;
+	@__builtin_assign export operator = (lhs: &mut f64, rhs: f64) -> &mut f64;
+	@__builtin export operator + (lhs: f64, rhs: f64) -> f64;
+	@__builtin export operator - (lhs: f64, rhs: f64) -> f64;
+	@__builtin export operator * (lhs: f64, rhs: f64) -> f64;
+	@__builtin export operator / (lhs: f64, rhs: f64) -> f64;
+	@__builtin export operator += (lhs: &mut f64, rhs: f64) -> &mut f64;
+	@__builtin export operator -= (lhs: &mut f64, rhs: f64) -> &mut f64;
+	@__builtin export operator *= (lhs: &mut f64, rhs: f64) -> &mut f64;
+	@__builtin export operator /= (lhs: &mut f64, rhs: f64) -> &mut f64;
 
-	export consteval min: float64 = 2.2250738585072014e-308f64;
-	export consteval denorm_min: float64 = 5e-324f64;
-	export consteval epsilon: float64 = 2.220446049250313e-16f64;
-	export consteval max: float64 = 1.7976931348623157e+308f64;
+	@__builtin export operator == (lhs: f64, rhs: f64) -> bool;
+	@__builtin export operator != (lhs: f64, rhs: f64) -> bool;
+	@__builtin export operator <  (lhs: f64, rhs: f64) -> bool;
+	@__builtin export operator <= (lhs: f64, rhs: f64) -> bool;
+	@__builtin export operator >  (lhs: f64, rhs: f64) -> bool;
+	@__builtin export operator >= (lhs: f64, rhs: f64) -> bool;
 
-	export consteval inf: float64 = ((1.0f64 / 0.0f64));
-	export consteval nan: float64 = ((__builtin_abs_f64(((0.0f64 / 0.0f64)))));
+	export consteval min: f64 = 2.2250738585072014e-308f64;
+	export consteval denorm_min: f64 = 5e-324f64;
+	export consteval epsilon: f64 = 2.220446049250313e-16f64;
+	export consteval max: f64 = 1.7976931348623157e+308f64;
+
+	export consteval inf: f64 = ((1.0f64 / 0.0f64));
+	export consteval nan: f64 = ((__builtin_abs_f64(((0.0f64 / 0.0f64)))));
 }
 
 @__builtin export struct char
@@ -353,29 +367,30 @@
 
 	@__builtin_assign export operator = (lhs: &mut char, rhs: char) -> &mut char;
 
-	@__builtin @overload_priority(1) export operator + (lhs: char, rhs:  int64) -> char;
-	@__builtin @overload_priority(0) export operator + (lhs: char, rhs: uint64) -> char;
-	@__builtin @overload_priority(1) export operator + (lhs:  int64, rhs: char) -> char;
-	@__builtin @overload_priority(0) export operator + (lhs: uint64, rhs: char) -> char;
-	@__builtin @overload_priority(1) export operator += (lhs: &mut char, rhs:  int64) -> &mut char;
-	@__builtin @overload_priority(0) export operator += (lhs: &mut char, rhs: uint64) -> &mut char;
-	@__builtin @overload_priority(1) export operator - (lhs: char, rhs:  int64) -> char;
-	@__builtin @overload_priority(0) export operator - (lhs: char, rhs: uint64) -> char;
-	@__builtin export operator - (lhs: char, rhs: char) -> int32;
-	@__builtin @overload_priority(1) export operator -= (lhs: &mut char, rhs:  int64) -> &mut char;
-	@__builtin @overload_priority(0) export operator -= (lhs: &mut char, rhs: uint64) -> &mut char;
+	@__builtin @overload_priority(1) export operator + (lhs: char, rhs: i64) -> char;
+	@__builtin @overload_priority(0) export operator + (lhs: char, rhs: u64) -> char;
+	@__builtin @overload_priority(1) export operator + (lhs: i64, rhs: char) -> char;
+	@__builtin @overload_priority(0) export operator + (lhs: u64, rhs: char) -> char;
+	@__builtin @overload_priority(1) export operator - (lhs: char, rhs: i64) -> char;
+	@__builtin @overload_priority(0) export operator - (lhs: char, rhs: u64) -> char;
+	@__builtin export operator - (lhs: char, rhs: char) -> i32;
+	@__builtin @overload_priority(1) export operator += (lhs: &mut char, rhs: i64) -> &mut char;
+	@__builtin @overload_priority(0) export operator += (lhs: &mut char, rhs: u64) -> &mut char;
+	@__builtin @overload_priority(1) export operator -= (lhs: &mut char, rhs: i64) -> &mut char;
+	@__builtin @overload_priority(0) export operator -= (lhs: &mut char, rhs: u64) -> &mut char;
+
 	@__builtin export operator == (lhs: char, rhs: char) -> bool;
 	@__builtin export operator != (lhs: char, rhs: char) -> bool;
-	@__builtin export operator < (lhs: char, rhs: char) -> bool;
+	@__builtin export operator <  (lhs: char, rhs: char) -> bool;
 	@__builtin export operator <= (lhs: char, rhs: char) -> bool;
-	@__builtin export operator > (lhs: char, rhs: char) -> bool;
+	@__builtin export operator >  (lhs: char, rhs: char) -> bool;
 	@__builtin export operator >= (lhs: char, rhs: char) -> bool;
 }
 
 @__builtin export struct str
 {
-	._begin: ?*uint8;
-	._end: ?*uint8;
+	._begin: ?*u8;
+	._end: ?*u8;
 
 	export function size = __builtin_str_size;
 	export function length = __builtin_str_length;
@@ -443,13 +458,15 @@
 	@__builtin export operator ! (n: bool) -> bool;
 
 	@__builtin_assign export operator = (lhs: &mut bool, rhs: bool) -> &mut bool;
+
 	@__builtin export operator == (lhs: bool, rhs: bool) -> bool;
 	@__builtin export operator != (lhs: bool, rhs: bool) -> bool;
+
 	@__builtin export operator & (lhs: bool, rhs: bool) -> bool;
-	@__builtin export operator &= (lhs: &mut bool, rhs: bool) -> &mut bool;
 	@__builtin export operator ^ (lhs: bool, rhs: bool) -> bool;
-	@__builtin export operator ^= (lhs: &mut bool, rhs: bool) -> &mut bool;
 	@__builtin export operator | (lhs: bool, rhs: bool) -> bool;
+	@__builtin export operator &= (lhs: &mut bool, rhs: bool) -> &mut bool;
+	@__builtin export operator ^= (lhs: &mut bool, rhs: bool) -> &mut bool;
 	@__builtin export operator |= (lhs: &mut bool, rhs: bool) -> &mut bool;
 }
 
@@ -639,14 +656,14 @@ export function __builtin_str_ends_with(s: str, postfix: str) -> bool
 	return true;
 }
 
-@__builtin export function __builtin_str_begin_ptr(s: str) -> ?*uint8;
-@__builtin export function __builtin_str_end_ptr(s: str) -> ?*uint8;
+@__builtin export function __builtin_str_begin_ptr(s: str) -> ?*u8;
+@__builtin export function __builtin_str_end_ptr(s: str) -> ?*u8;
 @__builtin
 export function __builtin_str_size(s: str) -> usize
 {
 	return (s._end - s._begin) as usize;
 }
-@__builtin export function __builtin_str_from_ptrs(begin: ?*uint8, end: ?*uint8) -> str;
+@__builtin export function __builtin_str_from_ptrs(begin: ?*u8, end: ?*u8) -> str;
 
 @__builtin export function __builtin_slice_begin_ptr(slice: [: auto]) -> ?*__builtin_slice_value_type(typeof slice);
 @__builtin export function __builtin_slice_begin_mut_ptr(slice: [: mut auto]) -> ?*__builtin_slice_value_type(typeof slice);
@@ -688,55 +705,55 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 	-> *mut __builtin_array_value_type(__builtin_remove_mut(__builtin_remove_reference(typeof array)));
 @__builtin export function __builtin_array_size(array: &[??: auto]) -> usize;
 
-@__builtin export function __builtin_integer_range_i8 (begin: int8,  end: int8)  -> __integer_range<int8>;
-@__builtin export function __builtin_integer_range_i16(begin: int16, end: int16) -> __integer_range<int16>;
-@__builtin export function __builtin_integer_range_i32(begin: int32, end: int32) -> __integer_range<int32>;
-@__builtin export function __builtin_integer_range_i64(begin: int64, end: int64) -> __integer_range<int64>;
+@__builtin export function __builtin_integer_range_i8 (begin: i8,  end: i8)  -> __integer_range<i8>;
+@__builtin export function __builtin_integer_range_i16(begin: i16, end: i16) -> __integer_range<i16>;
+@__builtin export function __builtin_integer_range_i32(begin: i32, end: i32) -> __integer_range<i32>;
+@__builtin export function __builtin_integer_range_i64(begin: i64, end: i64) -> __integer_range<i64>;
 
-@__builtin export function __builtin_integer_range_u8 (begin: uint8,  end: uint8)  -> __integer_range<uint8>;
-@__builtin export function __builtin_integer_range_u16(begin: uint16, end: uint16) -> __integer_range<uint16>;
-@__builtin export function __builtin_integer_range_u32(begin: uint32, end: uint32) -> __integer_range<uint32>;
-@__builtin export function __builtin_integer_range_u64(begin: uint64, end: uint64) -> __integer_range<uint64>;
+@__builtin export function __builtin_integer_range_u8 (begin: u8,  end: u8)  -> __integer_range<u8>;
+@__builtin export function __builtin_integer_range_u16(begin: u16, end: u16) -> __integer_range<u16>;
+@__builtin export function __builtin_integer_range_u32(begin: u32, end: u32) -> __integer_range<u32>;
+@__builtin export function __builtin_integer_range_u64(begin: u64, end: u64) -> __integer_range<u64>;
 
-@__builtin export function __builtin_integer_range_inclusive_i8 (begin: int8,  end: int8)  -> __integer_range_inclusive<int8>;
-@__builtin export function __builtin_integer_range_inclusive_i16(begin: int16, end: int16) -> __integer_range_inclusive<int16>;
-@__builtin export function __builtin_integer_range_inclusive_i32(begin: int32, end: int32) -> __integer_range_inclusive<int32>;
-@__builtin export function __builtin_integer_range_inclusive_i64(begin: int64, end: int64) -> __integer_range_inclusive<int64>;
+@__builtin export function __builtin_integer_range_inclusive_i8 (begin: i8,  end: i8)  -> __integer_range_inclusive<i8>;
+@__builtin export function __builtin_integer_range_inclusive_i16(begin: i16, end: i16) -> __integer_range_inclusive<i16>;
+@__builtin export function __builtin_integer_range_inclusive_i32(begin: i32, end: i32) -> __integer_range_inclusive<i32>;
+@__builtin export function __builtin_integer_range_inclusive_i64(begin: i64, end: i64) -> __integer_range_inclusive<i64>;
 
-@__builtin export function __builtin_integer_range_inclusive_u8 (begin: uint8,  end: uint8)  -> __integer_range_inclusive<uint8>;
-@__builtin export function __builtin_integer_range_inclusive_u16(begin: uint16, end: uint16) -> __integer_range_inclusive<uint16>;
-@__builtin export function __builtin_integer_range_inclusive_u32(begin: uint32, end: uint32) -> __integer_range_inclusive<uint32>;
-@__builtin export function __builtin_integer_range_inclusive_u64(begin: uint64, end: uint64) -> __integer_range_inclusive<uint64>;
+@__builtin export function __builtin_integer_range_inclusive_u8 (begin: u8,  end: u8)  -> __integer_range_inclusive<u8>;
+@__builtin export function __builtin_integer_range_inclusive_u16(begin: u16, end: u16) -> __integer_range_inclusive<u16>;
+@__builtin export function __builtin_integer_range_inclusive_u32(begin: u32, end: u32) -> __integer_range_inclusive<u32>;
+@__builtin export function __builtin_integer_range_inclusive_u64(begin: u64, end: u64) -> __integer_range_inclusive<u64>;
 
-@__builtin export function __builtin_integer_range_from_i8 (begin: int8)  -> __integer_range_from<int8>;
-@__builtin export function __builtin_integer_range_from_i16(begin: int16) -> __integer_range_from<int16>;
-@__builtin export function __builtin_integer_range_from_i32(begin: int32) -> __integer_range_from<int32>;
-@__builtin export function __builtin_integer_range_from_i64(begin: int64) -> __integer_range_from<int64>;
+@__builtin export function __builtin_integer_range_from_i8 (begin: i8)  -> __integer_range_from<i8>;
+@__builtin export function __builtin_integer_range_from_i16(begin: i16) -> __integer_range_from<i16>;
+@__builtin export function __builtin_integer_range_from_i32(begin: i32) -> __integer_range_from<i32>;
+@__builtin export function __builtin_integer_range_from_i64(begin: i64) -> __integer_range_from<i64>;
 
-@__builtin export function __builtin_integer_range_from_u8 (begin: uint8)  -> __integer_range_from<uint8>;
-@__builtin export function __builtin_integer_range_from_u16(begin: uint16) -> __integer_range_from<uint16>;
-@__builtin export function __builtin_integer_range_from_u32(begin: uint32) -> __integer_range_from<uint32>;
-@__builtin export function __builtin_integer_range_from_u64(begin: uint64) -> __integer_range_from<uint64>;
+@__builtin export function __builtin_integer_range_from_u8 (begin: u8)  -> __integer_range_from<u8>;
+@__builtin export function __builtin_integer_range_from_u16(begin: u16) -> __integer_range_from<u16>;
+@__builtin export function __builtin_integer_range_from_u32(begin: u32) -> __integer_range_from<u32>;
+@__builtin export function __builtin_integer_range_from_u64(begin: u64) -> __integer_range_from<u64>;
 
-@__builtin export function __builtin_integer_range_to_i8 (end: int8)  -> __integer_range_to<int8>;
-@__builtin export function __builtin_integer_range_to_i16(end: int16) -> __integer_range_to<int16>;
-@__builtin export function __builtin_integer_range_to_i32(end: int32) -> __integer_range_to<int32>;
-@__builtin export function __builtin_integer_range_to_i64(end: int64) -> __integer_range_to<int64>;
+@__builtin export function __builtin_integer_range_to_i8 (end: i8)  -> __integer_range_to<i8>;
+@__builtin export function __builtin_integer_range_to_i16(end: i16) -> __integer_range_to<i16>;
+@__builtin export function __builtin_integer_range_to_i32(end: i32) -> __integer_range_to<i32>;
+@__builtin export function __builtin_integer_range_to_i64(end: i64) -> __integer_range_to<i64>;
 
-@__builtin export function __builtin_integer_range_to_u8 (end: uint8)  -> __integer_range_to<uint8>;
-@__builtin export function __builtin_integer_range_to_u16(end: uint16) -> __integer_range_to<uint16>;
-@__builtin export function __builtin_integer_range_to_u32(end: uint32) -> __integer_range_to<uint32>;
-@__builtin export function __builtin_integer_range_to_u64(end: uint64) -> __integer_range_to<uint64>;
+@__builtin export function __builtin_integer_range_to_u8 (end: u8)  -> __integer_range_to<u8>;
+@__builtin export function __builtin_integer_range_to_u16(end: u16) -> __integer_range_to<u16>;
+@__builtin export function __builtin_integer_range_to_u32(end: u32) -> __integer_range_to<u32>;
+@__builtin export function __builtin_integer_range_to_u64(end: u64) -> __integer_range_to<u64>;
 
-@__builtin export function __builtin_integer_range_to_inclusive_i8 (end: int8)  -> __integer_range_to_inclusive<int8>;
-@__builtin export function __builtin_integer_range_to_inclusive_i16(end: int16) -> __integer_range_to_inclusive<int16>;
-@__builtin export function __builtin_integer_range_to_inclusive_i32(end: int32) -> __integer_range_to_inclusive<int32>;
-@__builtin export function __builtin_integer_range_to_inclusive_i64(end: int64) -> __integer_range_to_inclusive<int64>;
+@__builtin export function __builtin_integer_range_to_inclusive_i8 (end: i8)  -> __integer_range_to_inclusive<i8>;
+@__builtin export function __builtin_integer_range_to_inclusive_i16(end: i16) -> __integer_range_to_inclusive<i16>;
+@__builtin export function __builtin_integer_range_to_inclusive_i32(end: i32) -> __integer_range_to_inclusive<i32>;
+@__builtin export function __builtin_integer_range_to_inclusive_i64(end: i64) -> __integer_range_to_inclusive<i64>;
 
-@__builtin export function __builtin_integer_range_to_inclusive_u8 (end: uint8)  -> __integer_range_to_inclusive<uint8>;
-@__builtin export function __builtin_integer_range_to_inclusive_u16(end: uint16) -> __integer_range_to_inclusive<uint16>;
-@__builtin export function __builtin_integer_range_to_inclusive_u32(end: uint32) -> __integer_range_to_inclusive<uint32>;
-@__builtin export function __builtin_integer_range_to_inclusive_u64(end: uint64) -> __integer_range_to_inclusive<uint64>;
+@__builtin export function __builtin_integer_range_to_inclusive_u8 (end: u8)  -> __integer_range_to_inclusive<u8>;
+@__builtin export function __builtin_integer_range_to_inclusive_u16(end: u16) -> __integer_range_to_inclusive<u16>;
+@__builtin export function __builtin_integer_range_to_inclusive_u32(end: u32) -> __integer_range_to_inclusive<u32>;
+@__builtin export function __builtin_integer_range_to_inclusive_u64(end: u64) -> __integer_range_to_inclusive<u64>;
 
 @__builtin export function __builtin_range_unbounded() -> __range_unbounded;
 
@@ -807,8 +824,8 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 		((consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
 			"invalid type '",
 			__builtin_typename_as_str(typeof v),
-			"' in 'function __builtin_enum_value'",
-		))), int32)
+			"' in 'function __builtin_enum_value'"
+		))), i32)
 	} else {
 		__builtin_enum_underlying_type(typeof v)
 	});
@@ -1008,203 +1025,203 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 
 @__builtin export function __builtin_memcpy(dest: ?*mut void, src: ?*void, n: usize);
 @__builtin export function __builtin_memmove(dest: ?*mut void, src: ?*void, n: usize);
-@__builtin export function __builtin_memset(dest: ?*mut void, val: uint8, n: usize);
+@__builtin export function __builtin_memset(dest: ?*mut void, val: u8, n: usize);
 
-@__builtin export function __builtin_isnan_f32(x: float32) -> bool;
-@__builtin export function __builtin_isnan_f64(x: float64) -> bool;
-@__builtin export function __builtin_isinf_f32(x: float32) -> bool;
-@__builtin export function __builtin_isinf_f64(x: float64) -> bool;
-@__builtin export function __builtin_isfinite_f32(x: float32) -> bool;
-@__builtin export function __builtin_isfinite_f64(x: float64) -> bool;
-@__builtin export function __builtin_isnormal_f32(x: float32) -> bool;
-@__builtin export function __builtin_isnormal_f64(x: float64) -> bool;
-@__builtin export function __builtin_issubnormal_f32(x: float32) -> bool;
-@__builtin export function __builtin_issubnormal_f64(x: float64) -> bool;
-@__builtin export function __builtin_iszero_f32(x: float32) -> bool;
-@__builtin export function __builtin_iszero_f64(x: float64) -> bool;
+@__builtin export function __builtin_isnan_f32(x: f32) -> bool;
+@__builtin export function __builtin_isnan_f64(x: f64) -> bool;
+@__builtin export function __builtin_isinf_f32(x: f32) -> bool;
+@__builtin export function __builtin_isinf_f64(x: f64) -> bool;
+@__builtin export function __builtin_isfinite_f32(x: f32) -> bool;
+@__builtin export function __builtin_isfinite_f64(x: f64) -> bool;
+@__builtin export function __builtin_isnormal_f32(x: f32) -> bool;
+@__builtin export function __builtin_isnormal_f64(x: f64) -> bool;
+@__builtin export function __builtin_issubnormal_f32(x: f32) -> bool;
+@__builtin export function __builtin_issubnormal_f64(x: f64) -> bool;
+@__builtin export function __builtin_iszero_f32(x: f32) -> bool;
+@__builtin export function __builtin_iszero_f64(x: f64) -> bool;
 
-@__builtin @symbol_name("nextafterf") export function __builtin_nextafter_f32(from: float32, to: float32) -> float32;
-@__builtin @symbol_name("nextafter")  export function __builtin_nextafter_f64(from: float64, to: float64) -> float64;
+@__builtin @symbol_name("nextafterf") export function __builtin_nextafter_f32(from: f32, to: f32) -> f32;
+@__builtin @symbol_name("nextafter")  export function __builtin_nextafter_f64(from: f64, to: f64) -> f64;
 
-@__builtin export function __builtin_nextup_f32(x: float32) -> float32
+@__builtin export function __builtin_nextup_f32(x: f32) -> f32
 {
-	let is_nan_or_inf = __builtin_isnan_f32(x) || x == float32.inf;
+	let is_nan_or_inf = __builtin_isnan_f32(x) || x == f32.inf;
 	let is_zero = x == 0.0f32;
 
-	let x_bits = __builtin_bit_cast(uint32, x);
-	let abs_x_bits = __builtin_bit_cast(uint32, __builtin_abs_f32(x));
+	let x_bits = __builtin_bit_cast(u32, x);
+	let abs_x_bits = __builtin_bit_cast(u32, __builtin_abs_f32(x));
 	let normalized_zero = if (is_zero) { abs_x_bits } else { x_bits };
 	let d = __builtin_arithmetic_shift_right_u32(normalized_zero, 31) | 1u32;
 	let finite_result = ((normalized_zero + d));
 	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
-	return __builtin_bit_cast(float32, result);
+	return __builtin_bit_cast(f32, result);
 }
 
-@__builtin export function __builtin_nextup_f64(x: float64) -> float64
+@__builtin export function __builtin_nextup_f64(x: f64) -> f64
 {
-	let is_nan_or_inf = __builtin_isnan_f64(x) || x == float64.inf;
+	let is_nan_or_inf = __builtin_isnan_f64(x) || x == f64.inf;
 	let is_zero = x == 0.0f64;
 
-	let x_bits = __builtin_bit_cast(uint64, x);
-	let abs_x_bits = __builtin_bit_cast(uint64, __builtin_abs_f64(x));
+	let x_bits = __builtin_bit_cast(u64, x);
+	let abs_x_bits = __builtin_bit_cast(u64, __builtin_abs_f64(x));
 	let normalized_zero = if (is_zero) { abs_x_bits } else { x_bits };
 	let d = __builtin_arithmetic_shift_right_u64(normalized_zero, 63) | 1u64;
 	let finite_result = ((normalized_zero + d));
 	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
-	return __builtin_bit_cast(float64, result);
+	return __builtin_bit_cast(f64, result);
 }
 
-@__builtin export function __builtin_nextdown_f32(x: float32) -> float32
+@__builtin export function __builtin_nextdown_f32(x: f32) -> f32
 {
-	let is_nan_or_inf = __builtin_isnan_f32(x) || x == -float32.inf;
+	let is_nan_or_inf = __builtin_isnan_f32(x) || x == -f32.inf;
 	let is_zero = x == 0.0f32;
 
-	let x_bits = __builtin_bit_cast(uint32, x);
-	let negative_x_bits = __builtin_bit_cast(uint32, -__builtin_abs_f32(x));
+	let x_bits = __builtin_bit_cast(u32, x);
+	let negative_x_bits = __builtin_bit_cast(u32, -__builtin_abs_f32(x));
 	let normalized_zero = if (is_zero) { negative_x_bits } else { x_bits };
 	let d = __builtin_arithmetic_shift_right_u32(normalized_zero, 31) | 1u32;
 	let finite_result = ((normalized_zero - d));
 	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
-	return __builtin_bit_cast(float32, result);
+	return __builtin_bit_cast(f32, result);
 }
 
-@__builtin export function __builtin_nextdown_f64(x: float64) -> float64
+@__builtin export function __builtin_nextdown_f64(x: f64) -> f64
 {
-	let is_nan_or_inf = __builtin_isnan_f64(x) || x == -float64.inf;
+	let is_nan_or_inf = __builtin_isnan_f64(x) || x == -f64.inf;
 	let is_zero = x == 0.0f64;
 
-	let x_bits = __builtin_bit_cast(uint64, x);
-	let negative_x_bits = __builtin_bit_cast(uint64, -__builtin_abs_f64(x));
+	let x_bits = __builtin_bit_cast(u64, x);
+	let negative_x_bits = __builtin_bit_cast(u64, -__builtin_abs_f64(x));
 	let normalized_zero = if (is_zero) { negative_x_bits } else { x_bits };
 	let d = __builtin_arithmetic_shift_right_u64(normalized_zero, 63) | 1u64;
 	let finite_result = ((normalized_zero - d));
 	let result = if (is_nan_or_inf) { x_bits } else { finite_result };
-	return __builtin_bit_cast(float64, result);
+	return __builtin_bit_cast(f64, result);
 }
 
-@__builtin export function __builtin_abs_i8(n: int8)   -> int8;
-@__builtin export function __builtin_abs_i16(n: int16) -> int16;
-@__builtin export function __builtin_abs_i32(n: int32) -> int32;
-@__builtin export function __builtin_abs_i64(n: int64) -> int64;
-@__builtin export function __builtin_abs_f32(x: float32) -> float32;
-@__builtin export function __builtin_abs_f64(x: float64) -> float64;
+@__builtin export function __builtin_abs_i8 (n: i8)  -> i8;
+@__builtin export function __builtin_abs_i16(n: i16) -> i16;
+@__builtin export function __builtin_abs_i32(n: i32) -> i32;
+@__builtin export function __builtin_abs_i64(n: i64) -> i64;
+@__builtin export function __builtin_abs_f32(x: f32) -> f32;
+@__builtin export function __builtin_abs_f64(x: f64) -> f64;
 
-@__builtin export function __builtin_min_i8 (a: int8,  b: int8)  -> int8;
-@__builtin export function __builtin_min_i16(a: int16, b: int16) -> int16;
-@__builtin export function __builtin_min_i32(a: int32, b: int32) -> int32;
-@__builtin export function __builtin_min_i64(a: int64, b: int64) -> int64;
-@__builtin export function __builtin_min_u8 (a: uint8,  b: uint8)  -> uint8;
-@__builtin export function __builtin_min_u16(a: uint16, b: uint16) -> uint16;
-@__builtin export function __builtin_min_u32(a: uint32, b: uint32) -> uint32;
-@__builtin export function __builtin_min_u64(a: uint64, b: uint64) -> uint64;
-@__builtin export function __builtin_min_f32(a: float32, b: float32) -> float32;
-@__builtin export function __builtin_min_f64(a: float64, b: float64) -> float64;
+@__builtin export function __builtin_min_i8 (a: i8,  b: i8)  -> i8;
+@__builtin export function __builtin_min_i16(a: i16, b: i16) -> i16;
+@__builtin export function __builtin_min_i32(a: i32, b: i32) -> i32;
+@__builtin export function __builtin_min_i64(a: i64, b: i64) -> i64;
+@__builtin export function __builtin_min_u8 (a: u8,  b: u8)  -> u8;
+@__builtin export function __builtin_min_u16(a: u16, b: u16) -> u16;
+@__builtin export function __builtin_min_u32(a: u32, b: u32) -> u32;
+@__builtin export function __builtin_min_u64(a: u64, b: u64) -> u64;
+@__builtin export function __builtin_min_f32(a: f32, b: f32) -> f32;
+@__builtin export function __builtin_min_f64(a: f64, b: f64) -> f64;
 
-@__builtin export function __builtin_max_i8 (a: int8,  b: int8)  -> int8;
-@__builtin export function __builtin_max_i16(a: int16, b: int16) -> int16;
-@__builtin export function __builtin_max_i32(a: int32, b: int32) -> int32;
-@__builtin export function __builtin_max_i64(a: int64, b: int64) -> int64;
-@__builtin export function __builtin_max_u8 (a: uint8,  b: uint8)  -> uint8;
-@__builtin export function __builtin_max_u16(a: uint16, b: uint16) -> uint16;
-@__builtin export function __builtin_max_u32(a: uint32, b: uint32) -> uint32;
-@__builtin export function __builtin_max_u64(a: uint64, b: uint64) -> uint64;
-@__builtin export function __builtin_max_f32(a: float32, b: float32) -> float32;
-@__builtin export function __builtin_max_f64(a: float64, b: float64) -> float64;
+@__builtin export function __builtin_max_i8 (a: i8,  b: i8)  -> i8;
+@__builtin export function __builtin_max_i16(a: i16, b: i16) -> i16;
+@__builtin export function __builtin_max_i32(a: i32, b: i32) -> i32;
+@__builtin export function __builtin_max_i64(a: i64, b: i64) -> i64;
+@__builtin export function __builtin_max_u8 (a: u8,  b: u8)  -> u8;
+@__builtin export function __builtin_max_u16(a: u16, b: u16) -> u16;
+@__builtin export function __builtin_max_u32(a: u32, b: u32) -> u32;
+@__builtin export function __builtin_max_u64(a: u64, b: u64) -> u64;
+@__builtin export function __builtin_max_f32(a: f32, b: f32) -> f32;
+@__builtin export function __builtin_max_f64(a: f64, b: f64) -> f64;
 
-@__builtin @symbol_name("expf") export function __builtin_exp_f32(x: float32) -> float32;
-@__builtin @symbol_name("exp")  export function __builtin_exp_f64(x: float64) -> float64;
-@__builtin @symbol_name("exp2f") export function __builtin_exp2_f32(x: float32) -> float32;
-@__builtin @symbol_name("exp2")  export function __builtin_exp2_f64(x: float64) -> float64;
-@__builtin @symbol_name("expm1f") export function __builtin_expm1_f32(x: float32) -> float32;
-@__builtin @symbol_name("expm1")  export function __builtin_expm1_f64(x: float64) -> float64;
-@__builtin @symbol_name("logf") export function __builtin_log_f32(x: float32) -> float32;
-@__builtin @symbol_name("log")  export function __builtin_log_f64(x: float64) -> float64;
-@__builtin @symbol_name("log2f") export function __builtin_log2_f32(x: float32) -> float32;
-@__builtin @symbol_name("log2")  export function __builtin_log2_f64(x: float64) -> float64;
-@__builtin @symbol_name("log10f") export function __builtin_log10_f32(x: float32) -> float32;
-@__builtin @symbol_name("log10")  export function __builtin_log10_f64(x: float64) -> float64;
-@__builtin @symbol_name("log1pf") export function __builtin_log1p_f32(x: float32) -> float32;
-@__builtin @symbol_name("log1p")  export function __builtin_log1p_f64(x: float64) -> float64;
+@__builtin @symbol_name("expf") export function __builtin_exp_f32(x: f32) -> f32;
+@__builtin @symbol_name("exp")  export function __builtin_exp_f64(x: f64) -> f64;
+@__builtin @symbol_name("exp2f") export function __builtin_exp2_f32(x: f32) -> f32;
+@__builtin @symbol_name("exp2")  export function __builtin_exp2_f64(x: f64) -> f64;
+@__builtin @symbol_name("expm1f") export function __builtin_expm1_f32(x: f32) -> f32;
+@__builtin @symbol_name("expm1")  export function __builtin_expm1_f64(x: f64) -> f64;
+@__builtin @symbol_name("logf") export function __builtin_log_f32(x: f32) -> f32;
+@__builtin @symbol_name("log")  export function __builtin_log_f64(x: f64) -> f64;
+@__builtin @symbol_name("log2f") export function __builtin_log2_f32(x: f32) -> f32;
+@__builtin @symbol_name("log2")  export function __builtin_log2_f64(x: f64) -> f64;
+@__builtin @symbol_name("log10f") export function __builtin_log10_f32(x: f32) -> f32;
+@__builtin @symbol_name("log10")  export function __builtin_log10_f64(x: f64) -> f64;
+@__builtin @symbol_name("log1pf") export function __builtin_log1p_f32(x: f32) -> f32;
+@__builtin @symbol_name("log1p")  export function __builtin_log1p_f64(x: f64) -> f64;
 
-@__builtin @symbol_name("sqrtf") export function __builtin_sqrt_f32(x: float32) -> float32;
-@__builtin @symbol_name("sqrt")  export function __builtin_sqrt_f64(x: float64) -> float64;
-@__builtin @symbol_name("cbrtf") export function __builtin_cbrt_f32(x: float32) -> float32;
-@__builtin @symbol_name("cbrt")  export function __builtin_cbrt_f64(x: float64) -> float64;
-@__builtin @symbol_name("powf") export function __builtin_pow_f32(x: float32, y: float32) -> float32;
-@__builtin @symbol_name("pow")  export function __builtin_pow_f64(x: float64, y: float64) -> float64;
-@__builtin @symbol_name("hypotf") export function __builtin_hypot_f32(x: float32, y: float32) -> float32;
-@__builtin @symbol_name("hypot")  export function __builtin_hypot_f64(x: float64, y: float64) -> float64;
+@__builtin @symbol_name("sqrtf") export function __builtin_sqrt_f32(x: f32) -> f32;
+@__builtin @symbol_name("sqrt")  export function __builtin_sqrt_f64(x: f64) -> f64;
+@__builtin @symbol_name("cbrtf") export function __builtin_cbrt_f32(x: f32) -> f32;
+@__builtin @symbol_name("cbrt")  export function __builtin_cbrt_f64(x: f64) -> f64;
+@__builtin @symbol_name("powf") export function __builtin_pow_f32(x: f32, y: f32) -> f32;
+@__builtin @symbol_name("pow")  export function __builtin_pow_f64(x: f64, y: f64) -> f64;
+@__builtin @symbol_name("hypotf") export function __builtin_hypot_f32(x: f32, y: f32) -> f32;
+@__builtin @symbol_name("hypot")  export function __builtin_hypot_f64(x: f64, y: f64) -> f64;
 
-@__builtin @symbol_name("sinf") export function __builtin_sin_f32(x: float32) -> float32;
-@__builtin @symbol_name("sin")  export function __builtin_sin_f64(x: float64) -> float64;
-@__builtin @symbol_name("cosf") export function __builtin_cos_f32(x: float32) -> float32;
-@__builtin @symbol_name("cos")  export function __builtin_cos_f64(x: float64) -> float64;
-@__builtin @symbol_name("tanf") export function __builtin_tan_f32(x: float32) -> float32;
-@__builtin @symbol_name("tan")  export function __builtin_tan_f64(x: float64) -> float64;
-@__builtin @symbol_name("asinf") export function __builtin_asin_f32(x: float32) -> float32;
-@__builtin @symbol_name("asin")  export function __builtin_asin_f64(x: float64) -> float64;
-@__builtin @symbol_name("acosf") export function __builtin_acos_f32(x: float32) -> float32;
-@__builtin @symbol_name("acos")  export function __builtin_acos_f64(x: float64) -> float64;
-@__builtin @symbol_name("atanf") export function __builtin_atan_f32(x: float32) -> float32;
-@__builtin @symbol_name("atan")  export function __builtin_atan_f64(x: float64) -> float64;
-@__builtin @symbol_name("atan2f") export function __builtin_atan2_f32(y: float32, x: float32) -> float32;
-@__builtin @symbol_name("atan2")  export function __builtin_atan2_f64(y: float64, x: float64) -> float64;
+@__builtin @symbol_name("sinf") export function __builtin_sin_f32(x: f32) -> f32;
+@__builtin @symbol_name("sin")  export function __builtin_sin_f64(x: f64) -> f64;
+@__builtin @symbol_name("cosf") export function __builtin_cos_f32(x: f32) -> f32;
+@__builtin @symbol_name("cos")  export function __builtin_cos_f64(x: f64) -> f64;
+@__builtin @symbol_name("tanf") export function __builtin_tan_f32(x: f32) -> f32;
+@__builtin @symbol_name("tan")  export function __builtin_tan_f64(x: f64) -> f64;
+@__builtin @symbol_name("asinf") export function __builtin_asin_f32(x: f32) -> f32;
+@__builtin @symbol_name("asin")  export function __builtin_asin_f64(x: f64) -> f64;
+@__builtin @symbol_name("acosf") export function __builtin_acos_f32(x: f32) -> f32;
+@__builtin @symbol_name("acos")  export function __builtin_acos_f64(x: f64) -> f64;
+@__builtin @symbol_name("atanf") export function __builtin_atan_f32(x: f32) -> f32;
+@__builtin @symbol_name("atan")  export function __builtin_atan_f64(x: f64) -> f64;
+@__builtin @symbol_name("atan2f") export function __builtin_atan2_f32(y: f32, x: f32) -> f32;
+@__builtin @symbol_name("atan2")  export function __builtin_atan2_f64(y: f64, x: f64) -> f64;
 
-@__builtin @symbol_name("sinhf") export function __builtin_sinh_f32(x: float32) -> float32;
-@__builtin @symbol_name("sinh")  export function __builtin_sinh_f64(x: float64) -> float64;
-@__builtin @symbol_name("coshf") export function __builtin_cosh_f32(x: float32) -> float32;
-@__builtin @symbol_name("cosh")  export function __builtin_cosh_f64(x: float64) -> float64;
-@__builtin @symbol_name("tanhf") export function __builtin_tanh_f32(x: float32) -> float32;
-@__builtin @symbol_name("tanh")  export function __builtin_tanh_f64(x: float64) -> float64;
-@__builtin @symbol_name("asinhf") export function __builtin_asinh_f32(x: float32) -> float32;
-@__builtin @symbol_name("asinh")  export function __builtin_asinh_f64(x: float64) -> float64;
-@__builtin @symbol_name("acoshf") export function __builtin_acosh_f32(x: float32) -> float32;
-@__builtin @symbol_name("acosh")  export function __builtin_acosh_f64(x: float64) -> float64;
-@__builtin @symbol_name("atanhf") export function __builtin_atanh_f32(x: float32) -> float32;
-@__builtin @symbol_name("atanh")  export function __builtin_atanh_f64(x: float64) -> float64;
+@__builtin @symbol_name("sinhf") export function __builtin_sinh_f32(x: f32) -> f32;
+@__builtin @symbol_name("sinh")  export function __builtin_sinh_f64(x: f64) -> f64;
+@__builtin @symbol_name("coshf") export function __builtin_cosh_f32(x: f32) -> f32;
+@__builtin @symbol_name("cosh")  export function __builtin_cosh_f64(x: f64) -> f64;
+@__builtin @symbol_name("tanhf") export function __builtin_tanh_f32(x: f32) -> f32;
+@__builtin @symbol_name("tanh")  export function __builtin_tanh_f64(x: f64) -> f64;
+@__builtin @symbol_name("asinhf") export function __builtin_asinh_f32(x: f32) -> f32;
+@__builtin @symbol_name("asinh")  export function __builtin_asinh_f64(x: f64) -> f64;
+@__builtin @symbol_name("acoshf") export function __builtin_acosh_f32(x: f32) -> f32;
+@__builtin @symbol_name("acosh")  export function __builtin_acosh_f64(x: f64) -> f64;
+@__builtin @symbol_name("atanhf") export function __builtin_atanh_f32(x: f32) -> f32;
+@__builtin @symbol_name("atanh")  export function __builtin_atanh_f64(x: f64) -> f64;
 
-@__builtin @symbol_name("erff") export function __builtin_erf_f32(x: float32) -> float32;
-@__builtin @symbol_name("erf")  export function __builtin_erf_f64(x: float64) -> float64;
-@__builtin @symbol_name("erfcf") export function __builtin_erfc_f32(x: float32) -> float32;
-@__builtin @symbol_name("erfc")  export function __builtin_erfc_f64(x: float64) -> float64;
-@__builtin @symbol_name("tgammaf") export function __builtin_tgamma_f32(x: float32) -> float32;
-@__builtin @symbol_name("tgamma")  export function __builtin_tgamma_f64(x: float64) -> float64;
-@__builtin @symbol_name("lgammaf") export function __builtin_lgamma_f32(x: float32) -> float32;
-@__builtin @symbol_name("lgamma")  export function __builtin_lgamma_f64(x: float64) -> float64;
+@__builtin @symbol_name("erff") export function __builtin_erf_f32(x: f32) -> f32;
+@__builtin @symbol_name("erf")  export function __builtin_erf_f64(x: f64) -> f64;
+@__builtin @symbol_name("erfcf") export function __builtin_erfc_f32(x: f32) -> f32;
+@__builtin @symbol_name("erfc")  export function __builtin_erfc_f64(x: f64) -> f64;
+@__builtin @symbol_name("tgammaf") export function __builtin_tgamma_f32(x: f32) -> f32;
+@__builtin @symbol_name("tgamma")  export function __builtin_tgamma_f64(x: f64) -> f64;
+@__builtin @symbol_name("lgammaf") export function __builtin_lgamma_f32(x: f32) -> f32;
+@__builtin @symbol_name("lgamma")  export function __builtin_lgamma_f64(x: f64) -> f64;
 
-@__builtin export function __builtin_bitreverse_u8 (n: uint8)  -> uint8;
-@__builtin export function __builtin_bitreverse_u16(n: uint16) -> uint16;
-@__builtin export function __builtin_bitreverse_u32(n: uint32) -> uint32;
-@__builtin export function __builtin_bitreverse_u64(n: uint64) -> uint64;
-@__builtin export function __builtin_popcount_u8 (n: uint8)  -> uint8;
-@__builtin export function __builtin_popcount_u16(n: uint16) -> uint16;
-@__builtin export function __builtin_popcount_u32(n: uint32) -> uint32;
-@__builtin export function __builtin_popcount_u64(n: uint64) -> uint64;
-@__builtin export function __builtin_byteswap_u16(n: uint16) -> uint16;
-@__builtin export function __builtin_byteswap_u32(n: uint32) -> uint32;
-@__builtin export function __builtin_byteswap_u64(n: uint64) -> uint64;
+@__builtin export function __builtin_bitreverse_u8 (n: u8)  -> u8;
+@__builtin export function __builtin_bitreverse_u16(n: u16) -> u16;
+@__builtin export function __builtin_bitreverse_u32(n: u32) -> u32;
+@__builtin export function __builtin_bitreverse_u64(n: u64) -> u64;
+@__builtin export function __builtin_popcount_u8 (n: u8)  -> u8;
+@__builtin export function __builtin_popcount_u16(n: u16) -> u16;
+@__builtin export function __builtin_popcount_u32(n: u32) -> u32;
+@__builtin export function __builtin_popcount_u64(n: u64) -> u64;
+@__builtin export function __builtin_byteswap_u16(n: u16) -> u16;
+@__builtin export function __builtin_byteswap_u32(n: u32) -> u32;
+@__builtin export function __builtin_byteswap_u64(n: u64) -> u64;
 
-@__builtin export function __builtin_clz_u8 (n: uint8)  -> uint8;
-@__builtin export function __builtin_clz_u16(n: uint16) -> uint16;
-@__builtin export function __builtin_clz_u32(n: uint32) -> uint32;
-@__builtin export function __builtin_clz_u64(n: uint64) -> uint64;
-@__builtin export function __builtin_ctz_u8 (n: uint8)  -> uint8;
-@__builtin export function __builtin_ctz_u16(n: uint16) -> uint16;
-@__builtin export function __builtin_ctz_u32(n: uint32) -> uint32;
-@__builtin export function __builtin_ctz_u64(n: uint64) -> uint64;
-@__builtin export function __builtin_fshl_u8 (a: uint8,  b: uint8,  amount: uint8)  -> uint8;
-@__builtin export function __builtin_fshl_u16(a: uint16, b: uint16, amount: uint16) -> uint16;
-@__builtin export function __builtin_fshl_u32(a: uint32, b: uint32, amount: uint32) -> uint32;
-@__builtin export function __builtin_fshl_u64(a: uint64, b: uint64, amount: uint64) -> uint64;
-@__builtin export function __builtin_fshr_u8 (a: uint8,  b: uint8,  amount: uint8)  -> uint8;
-@__builtin export function __builtin_fshr_u16(a: uint16, b: uint16, amount: uint16) -> uint16;
-@__builtin export function __builtin_fshr_u32(a: uint32, b: uint32, amount: uint32) -> uint32;
-@__builtin export function __builtin_fshr_u64(a: uint64, b: uint64, amount: uint64) -> uint64;
+@__builtin export function __builtin_clz_u8 (n: u8)  -> u8;
+@__builtin export function __builtin_clz_u16(n: u16) -> u16;
+@__builtin export function __builtin_clz_u32(n: u32) -> u32;
+@__builtin export function __builtin_clz_u64(n: u64) -> u64;
+@__builtin export function __builtin_ctz_u8 (n: u8)  -> u8;
+@__builtin export function __builtin_ctz_u16(n: u16) -> u16;
+@__builtin export function __builtin_ctz_u32(n: u32) -> u32;
+@__builtin export function __builtin_ctz_u64(n: u64) -> u64;
+@__builtin export function __builtin_fshl_u8 (a: u8,  b: u8,  amount: u8)  -> u8;
+@__builtin export function __builtin_fshl_u16(a: u16, b: u16, amount: u16) -> u16;
+@__builtin export function __builtin_fshl_u32(a: u32, b: u32, amount: u32) -> u32;
+@__builtin export function __builtin_fshl_u64(a: u64, b: u64, amount: u64) -> u64;
+@__builtin export function __builtin_fshr_u8 (a: u8,  b: u8,  amount: u8)  -> u8;
+@__builtin export function __builtin_fshr_u16(a: u16, b: u16, amount: u16) -> u16;
+@__builtin export function __builtin_fshr_u32(a: u32, b: u32, amount: u32) -> u32;
+@__builtin export function __builtin_fshr_u64(a: u64, b: u64, amount: u64) -> u64;
 
-@__builtin export function __builtin_arithmetic_shift_right_u8 (n: uint8,  amount: uint8)  -> uint8;
-@__builtin export function __builtin_arithmetic_shift_right_u16(n: uint16, amount: uint16) -> uint16;
-@__builtin export function __builtin_arithmetic_shift_right_u32(n: uint32, amount: uint32) -> uint32;
-@__builtin export function __builtin_arithmetic_shift_right_u64(n: uint64, amount: uint64) -> uint64;
+@__builtin export function __builtin_arithmetic_shift_right_u8 (n: u8,  amount: u8)  -> u8;
+@__builtin export function __builtin_arithmetic_shift_right_u16(n: u16, amount: u16) -> u16;
+@__builtin export function __builtin_arithmetic_shift_right_u32(n: u32, amount: u32) -> u32;
+@__builtin export function __builtin_arithmetic_shift_right_u64(n: u64, amount: u64) -> u64;
 
 //
 // unary operators
@@ -1285,31 +1302,31 @@ export function __builtin_slice_size(slice: [: auto]) -> usize
 @__builtin_assign export operator = (lhs: &mut [...auto], rhs: ##[...auto]) -> typeof lhs;
 @__builtin_assign export operator = (lhs: &mut [??: auto], rhs: ##[??: auto]) -> typeof lhs;
 
-@__builtin @overload_priority(1) export operator + (lhs: *auto, rhs:  int64) -> typeof lhs;
-@__builtin @overload_priority(0) export operator + (lhs: *auto, rhs: uint64) -> typeof lhs;
-@__builtin @overload_priority(1) export operator + (lhs: *mut auto, rhs:  int64) -> typeof lhs;
-@__builtin @overload_priority(0) export operator + (lhs: *mut auto, rhs: uint64) -> typeof lhs;
-@__builtin @overload_priority(1) export operator + (lhs: ?*auto, rhs:  int64) -> typeof lhs;
-@__builtin @overload_priority(0) export operator + (lhs: ?*auto, rhs: uint64) -> typeof lhs;
-@__builtin @overload_priority(1) export operator + (lhs: ?*mut auto, rhs:  int64) -> typeof lhs;
-@__builtin @overload_priority(0) export operator + (lhs: ?*mut auto, rhs: uint64) -> typeof lhs;
-@__builtin @overload_priority(1) export operator + (lhs:  int64, rhs: *auto) -> typeof rhs;
-@__builtin @overload_priority(0) export operator + (lhs: uint64, rhs: *auto) -> typeof rhs;
-@__builtin @overload_priority(1) export operator + (lhs:  int64, rhs: *mut auto) -> typeof rhs;
-@__builtin @overload_priority(0) export operator + (lhs: uint64, rhs: *mut auto) -> typeof rhs;
-@__builtin @overload_priority(1) export operator + (lhs:  int64, rhs: ?*auto) -> typeof rhs;
-@__builtin @overload_priority(0) export operator + (lhs: uint64, rhs: ?*auto) -> typeof rhs;
-@__builtin @overload_priority(1) export operator + (lhs:  int64, rhs: ?*mut auto) -> typeof rhs;
-@__builtin @overload_priority(0) export operator + (lhs: uint64, rhs: ?*mut auto) -> typeof rhs;
+@__builtin @overload_priority(1) export operator + (lhs: *auto, rhs: i64) -> typeof lhs;
+@__builtin @overload_priority(0) export operator + (lhs: *auto, rhs: u64) -> typeof lhs;
+@__builtin @overload_priority(1) export operator + (lhs: *mut auto, rhs: i64) -> typeof lhs;
+@__builtin @overload_priority(0) export operator + (lhs: *mut auto, rhs: u64) -> typeof lhs;
+@__builtin @overload_priority(1) export operator + (lhs: ?*auto, rhs: i64) -> typeof lhs;
+@__builtin @overload_priority(0) export operator + (lhs: ?*auto, rhs: u64) -> typeof lhs;
+@__builtin @overload_priority(1) export operator + (lhs: ?*mut auto, rhs: i64) -> typeof lhs;
+@__builtin @overload_priority(0) export operator + (lhs: ?*mut auto, rhs: u64) -> typeof lhs;
+@__builtin @overload_priority(1) export operator + (lhs: i64, rhs: *auto) -> typeof rhs;
+@__builtin @overload_priority(0) export operator + (lhs: u64, rhs: *auto) -> typeof rhs;
+@__builtin @overload_priority(1) export operator + (lhs: i64, rhs: *mut auto) -> typeof rhs;
+@__builtin @overload_priority(0) export operator + (lhs: u64, rhs: *mut auto) -> typeof rhs;
+@__builtin @overload_priority(1) export operator + (lhs: i64, rhs: ?*auto) -> typeof rhs;
+@__builtin @overload_priority(0) export operator + (lhs: u64, rhs: ?*auto) -> typeof rhs;
+@__builtin @overload_priority(1) export operator + (lhs: i64, rhs: ?*mut auto) -> typeof rhs;
+@__builtin @overload_priority(0) export operator + (lhs: u64, rhs: ?*mut auto) -> typeof rhs;
 
-@__builtin @overload_priority(1) export operator += (lhs: &mut *auto, rhs:  int64) -> typeof lhs;
-@__builtin @overload_priority(0) export operator += (lhs: &mut *auto, rhs: uint64) -> typeof lhs;
-@__builtin @overload_priority(1) export operator += (lhs: &mut *mut auto, rhs:  int64) -> typeof lhs;
-@__builtin @overload_priority(0) export operator += (lhs: &mut *mut auto, rhs: uint64) -> typeof lhs;
-@__builtin @overload_priority(1) export operator += (lhs: &mut ?*auto, rhs:  int64) -> typeof lhs;
-@__builtin @overload_priority(0) export operator += (lhs: &mut ?*auto, rhs: uint64) -> typeof lhs;
-@__builtin @overload_priority(1) export operator += (lhs: &mut ?*mut auto, rhs:  int64) -> typeof lhs;
-@__builtin @overload_priority(0) export operator += (lhs: &mut ?*mut auto, rhs: uint64) -> typeof lhs;
+@__builtin @overload_priority(1) export operator += (lhs: &mut *auto, rhs: i64) -> typeof lhs;
+@__builtin @overload_priority(0) export operator += (lhs: &mut *auto, rhs: u64) -> typeof lhs;
+@__builtin @overload_priority(1) export operator += (lhs: &mut *mut auto, rhs: i64) -> typeof lhs;
+@__builtin @overload_priority(0) export operator += (lhs: &mut *mut auto, rhs: u64) -> typeof lhs;
+@__builtin @overload_priority(1) export operator += (lhs: &mut ?*auto, rhs: i64) -> typeof lhs;
+@__builtin @overload_priority(0) export operator += (lhs: &mut ?*auto, rhs: u64) -> typeof lhs;
+@__builtin @overload_priority(1) export operator += (lhs: &mut ?*mut auto, rhs: i64) -> typeof lhs;
+@__builtin @overload_priority(0) export operator += (lhs: &mut ?*mut auto, rhs: u64) -> typeof lhs;
 
 consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) -> bool
 {
@@ -1329,14 +1346,14 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 	}
 }
 
-@__builtin @overload_priority(1) export operator - (lhs: *auto, rhs:  int64) -> typeof lhs;
-@__builtin @overload_priority(0) export operator - (lhs: *auto, rhs: uint64) -> typeof lhs;
-@__builtin @overload_priority(1) export operator - (lhs: *mut auto, rhs:  int64) -> typeof lhs;
-@__builtin @overload_priority(0) export operator - (lhs: *mut auto, rhs: uint64) -> typeof lhs;
-@__builtin @overload_priority(1) export operator - (lhs: ?*auto, rhs:  int64) -> typeof lhs;
-@__builtin @overload_priority(0) export operator - (lhs: ?*auto, rhs: uint64) -> typeof lhs;
-@__builtin @overload_priority(1) export operator - (lhs: ?*mut auto, rhs:  int64) -> typeof lhs;
-@__builtin @overload_priority(0) export operator - (lhs: ?*mut auto, rhs: uint64) -> typeof lhs;
+@__builtin @overload_priority(1) export operator - (lhs: *auto, rhs: i64) -> typeof lhs;
+@__builtin @overload_priority(0) export operator - (lhs: *auto, rhs: u64) -> typeof lhs;
+@__builtin @overload_priority(1) export operator - (lhs: *mut auto, rhs: i64) -> typeof lhs;
+@__builtin @overload_priority(0) export operator - (lhs: *mut auto, rhs: u64) -> typeof lhs;
+@__builtin @overload_priority(1) export operator - (lhs: ?*auto, rhs: i64) -> typeof lhs;
+@__builtin @overload_priority(0) export operator - (lhs: ?*auto, rhs: u64) -> typeof lhs;
+@__builtin @overload_priority(1) export operator - (lhs: ?*mut auto, rhs: i64) -> typeof lhs;
+@__builtin @overload_priority(0) export operator - (lhs: ?*mut auto, rhs: u64) -> typeof lhs;
 @__builtin export operator - (lhs: *auto, rhs: *auto)
 	-> (if consteval (!are_compatible_pointer_types(typeof lhs, typeof rhs)) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
@@ -1358,14 +1375,14 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 		)));
 	} else {}, isize);
 
-@__builtin @overload_priority(1) export operator -= (lhs: &mut *auto, rhs:  int64) -> typeof lhs;
-@__builtin @overload_priority(0) export operator -= (lhs: &mut *auto, rhs: uint64) -> typeof lhs;
-@__builtin @overload_priority(1) export operator -= (lhs: &mut *mut auto, rhs:  int64) -> typeof lhs;
-@__builtin @overload_priority(0) export operator -= (lhs: &mut *mut auto, rhs: uint64) -> typeof lhs;
-@__builtin @overload_priority(1) export operator -= (lhs: &mut ?*auto, rhs:  int64) -> typeof lhs;
-@__builtin @overload_priority(0) export operator -= (lhs: &mut ?*auto, rhs: uint64) -> typeof lhs;
-@__builtin @overload_priority(1) export operator -= (lhs: &mut ?*mut auto, rhs:  int64) -> typeof lhs;
-@__builtin @overload_priority(0) export operator -= (lhs: &mut ?*mut auto, rhs: uint64) -> typeof lhs;
+@__builtin @overload_priority(1) export operator -= (lhs: &mut *auto, rhs: i64) -> typeof lhs;
+@__builtin @overload_priority(0) export operator -= (lhs: &mut *auto, rhs: u64) -> typeof lhs;
+@__builtin @overload_priority(1) export operator -= (lhs: &mut *mut auto, rhs: i64) -> typeof lhs;
+@__builtin @overload_priority(0) export operator -= (lhs: &mut *mut auto, rhs: u64) -> typeof lhs;
+@__builtin @overload_priority(1) export operator -= (lhs: &mut ?*auto, rhs: i64) -> typeof lhs;
+@__builtin @overload_priority(0) export operator -= (lhs: &mut ?*auto, rhs: u64) -> typeof lhs;
+@__builtin @overload_priority(1) export operator -= (lhs: &mut ?*mut auto, rhs: i64) -> typeof lhs;
+@__builtin @overload_priority(0) export operator -= (lhs: &mut ?*mut auto, rhs: u64) -> typeof lhs;
 
 @__builtin export operator == (lhs: [: auto], rhs: [: auto]) -> bool
 {
@@ -1591,14 +1608,14 @@ consteval function are_compatible_pointer_types(lhs: typename, rhs: typename) ->
 		)));
 	} else {}, bool);
 
-@__builtin @overload_priority(0) export operator [] (array: #[: auto], index:  int64);
-@__builtin @overload_priority(1) export operator [] (array: #[: auto], index: uint64);
-@__builtin @overload_priority(0) export operator [] (array: #[: mut auto], index:  int64);
-@__builtin @overload_priority(1) export operator [] (array: #[: mut auto], index: uint64);
-@__builtin @overload_priority(0) export operator [] (array: ##[??: auto], index:  int64);
-@__builtin @overload_priority(1) export operator [] (array: ##[??: auto], index: uint64);
-@__builtin @overload_priority(0) export operator [] (tuple: ##[...##auto], index: consteval  int64);
-@__builtin @overload_priority(1) export operator [] (tuple: ##[...##auto], index: consteval uint64);
+@__builtin @overload_priority(0) export operator [] (array: #[: auto], index: i64);
+@__builtin @overload_priority(1) export operator [] (array: #[: auto], index: u64);
+@__builtin @overload_priority(0) export operator [] (array: #[: mut auto], index: i64);
+@__builtin @overload_priority(1) export operator [] (array: #[: mut auto], index: u64);
+@__builtin @overload_priority(0) export operator [] (array: ##[??: auto], index: i64);
+@__builtin @overload_priority(1) export operator [] (array: ##[??: auto], index: u64);
+@__builtin @overload_priority(0) export operator [] (tuple: ##[...##auto], index: consteval i64);
+@__builtin @overload_priority(1) export operator [] (tuple: ##[...##auto], index: consteval u64);
 
 @__builtin export operator [] (array: #[: auto], index: __integer_range)
 	-> __builtin_remove_mut(__builtin_remove_reference(typeof array));

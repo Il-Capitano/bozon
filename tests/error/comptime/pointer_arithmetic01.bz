@@ -1,8 +1,8 @@
-// error: invalid pointer arithmetic operation with type '*int32' and offset 0
+// error: invalid pointer arithmetic operation with type '*i32' and offset 0
 // note: while evaluating expression at compile time
 // note: address points to an object from a finished stack frame
 // error: failed to evaluate expression at compile time
-function foo() -> *int32
+function foo() -> *i32
 {
 	let i = 0;
 	return &i;

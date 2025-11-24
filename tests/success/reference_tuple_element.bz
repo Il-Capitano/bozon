@@ -1,6 +1,6 @@
-type T = [ &mut int32 ];
+type T = [ &mut i32 ];
 
-function make_T(i: &mut int32) -> T
+function make_T(i: &mut i32) -> T
 {
 	return [ i ];
 }

@@ -1,10 +1,10 @@
-// error: dereferencing a null pointer to an object of type 'int32'
+// error: dereferencing a null pointer to an object of type 'i32'
 // note: while evaluating expression at compile time
 // error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {
-		let p: ?*int32 = null;
+		let p: ?*i32 = null;
 		*p;
 	});
 }

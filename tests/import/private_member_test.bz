@@ -1,14 +1,14 @@
 export struct some_struct
 {
-	._i: int32;
+	._i: i32;
 }
 
-export function make_some_struct(i: int32) -> some_struct
+export function make_some_struct(i: i32) -> some_struct
 {
 	return some_struct[ i ];
 }
 
-export function get_i(s: some_struct) -> int32
+export function get_i(s: some_struct) -> i32
 {
 	return s._i;
 }

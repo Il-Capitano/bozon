@@ -904,544 +904,173 @@ static float64_t execute_cast_u64_to_f64(instructions::cast_u64_to_f64 const &, 
 	return static_cast<float64_t>(value);
 }
 
-static bool execute_cmp_eq_i1(instructions::cmp_eq_i1 const &, bool lhs, bool rhs, executor_context &)
+template<typename UInt>
+static bool execute_cmp_int(instructions::cmp_kind kind, UInt lhs, UInt rhs)
 {
-	return lhs == rhs;
+	static_assert(std::is_integral_v<UInt>);
+	using SInt = std::make_signed_t<UInt>;
+	switch (kind)
+	{
+	using enum instructions::cmp_kind;
+	case eq:
+		return lhs == rhs;
+	case neq:
+		return lhs != rhs;
+	case slt:
+		return static_cast<SInt>(lhs) < static_cast<SInt>(rhs);
+	case sgt:
+		return static_cast<SInt>(lhs) > static_cast<SInt>(rhs);
+	case slte:
+		return static_cast<SInt>(lhs) <= static_cast<SInt>(rhs);
+	case sgte:
+		return static_cast<SInt>(lhs) >= static_cast<SInt>(rhs);
+	case ult:
+		return lhs < rhs;
+	case ugt:
+		return lhs > rhs;
+	case ulte:
+		return lhs <= rhs;
+	case ugte:
+		return lhs >= rhs;
+	}
+	bz_unreachable;
 }
 
-static bool execute_cmp_eq_i8(instructions::cmp_eq_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
+template<typename Float>
+static bool execute_cmp_float(instructions::cmp_kind kind, Float lhs, Float rhs)
 {
-	return lhs == rhs;
+	static_assert(std::is_floating_point_v<Float>);
+	switch (kind)
+	{
+	using enum instructions::cmp_kind;
+	case feq:
+		return lhs == rhs;
+	case fneq:
+		return lhs != rhs;
+	case flt:
+		return lhs < rhs;
+	case fgt:
+		return lhs > rhs;
+	case flte:
+		return lhs <= rhs;
+	case fgte:
+		return lhs >= rhs;
+	default:
+		bz_unreachable;
+	}
 }
 
-static bool execute_cmp_eq_i16(instructions::cmp_eq_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
+static bool execute_cmp_i1(instructions::cmp_i1 const &inst, bool lhs, bool rhs, executor_context &)
 {
-	return lhs == rhs;
+	switch (inst.kind)
+	{
+	case instructions::cmp_kind::eq:
+		return lhs == rhs;
+	case instructions::cmp_kind::neq:
+		return lhs != rhs;
+	default:
+		bz_unreachable;
+	}
 }
 
-static bool execute_cmp_eq_i32(instructions::cmp_eq_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
+static bool execute_cmp_i8(instructions::cmp_i8 const &inst, uint8_t lhs, uint8_t rhs, executor_context &)
 {
-	return lhs == rhs;
+	return execute_cmp_int<uint8_t>(inst.kind, lhs, rhs);
 }
 
-static bool execute_cmp_eq_i64(instructions::cmp_eq_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
+static bool execute_cmp_i16(instructions::cmp_i16 const &inst, uint16_t lhs, uint16_t rhs, executor_context &)
 {
-	return lhs == rhs;
+	return execute_cmp_int<uint16_t>(inst.kind, lhs, rhs);
 }
 
-static bool execute_cmp_eq_f32(instructions::cmp_eq_f32 const &, float32_t lhs, float32_t rhs, executor_context &)
+static bool execute_cmp_i32(instructions::cmp_i32 const &inst, uint32_t lhs, uint32_t rhs, executor_context &)
 {
-	return lhs == rhs;
+	return execute_cmp_int<uint32_t>(inst.kind, lhs, rhs);
 }
 
-static bool execute_cmp_eq_f64(instructions::cmp_eq_f64 const &, float64_t lhs, float64_t rhs, executor_context &)
+static bool execute_cmp_i64(instructions::cmp_i64 const &inst, uint64_t lhs, uint64_t rhs, executor_context &)
 {
-	return lhs == rhs;
+	return execute_cmp_int<uint64_t>(inst.kind, lhs, rhs);
 }
 
-static void execute_cmp_eq_f32_check(instructions::cmp_eq_f32_check const &inst, float32_t lhs, float32_t rhs, executor_context &context)
+static bool execute_cmp_f32(instructions::cmp_f32 const &inst, float32_t lhs, float32_t rhs, executor_context &)
+{
+	return execute_cmp_float(inst.kind, lhs, rhs);
+}
+
+static bool execute_cmp_f64(instructions::cmp_f64 const &inst, float64_t lhs, float64_t rhs, executor_context &)
+{
+	return execute_cmp_float(inst.kind, lhs, rhs);
+}
+
+static void execute_cmp_f32_check(instructions::cmp_f32_check const &inst, float32_t lhs, float32_t rhs, executor_context &context)
 {
 	if (std::isnan(lhs) && std::isnan(rhs))
 	{
+		auto const op = instructions::get_compare_operator(inst.kind);
+		auto const result = inst.kind == instructions::cmp_kind::fneq;
 		context.report_warning(
 			ctx::warning_kind::nan_compare,
 			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} == {}' with type 'float32' evaluates to false", lhs, rhs)
+			bz::format("comparing nans in expression '{} {} {}' with type 'f32' evaluates to {}", lhs, op, rhs, result)
 		);
 	}
 	else if (std::isnan(lhs) || std::isnan(rhs))
 	{
+		auto const op = instructions::get_compare_operator(inst.kind);
+		auto const result = inst.kind == instructions::cmp_kind::fneq;
 		context.report_warning(
 			ctx::warning_kind::nan_compare,
 			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} == {}' with type 'float32' evaluates to false", lhs, rhs)
+			bz::format("comparing against nan in expression '{} {} {}' with type 'f32' evaluates to {}", lhs, op, rhs, result)
 		);
 	}
 }
 
-static void execute_cmp_eq_f64_check(instructions::cmp_eq_f64_check const &inst, float64_t lhs, float64_t rhs, executor_context &context)
+static void execute_cmp_f64_check(instructions::cmp_f64_check const &inst, float64_t lhs, float64_t rhs, executor_context &context)
 {
 	if (std::isnan(lhs) && std::isnan(rhs))
 	{
+		auto const op = instructions::get_compare_operator(inst.kind);
+		auto const result = inst.kind == instructions::cmp_kind::fneq;
 		context.report_warning(
 			ctx::warning_kind::nan_compare,
 			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} == {}' with type 'float64' evaluates to false", lhs, rhs)
+			bz::format("comparing nans in expression '{} {} {}' with type 'f64' evaluates to {}", lhs, op, rhs, result)
 		);
 	}
 	else if (std::isnan(lhs) || std::isnan(rhs))
 	{
+		auto const op = instructions::get_compare_operator(inst.kind);
+		auto const result = inst.kind == instructions::cmp_kind::fneq;
 		context.report_warning(
 			ctx::warning_kind::nan_compare,
 			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} == {}' with type 'float64' evaluates to false", lhs, rhs)
+			bz::format("comparing against nan in expression '{} {} {}' with type 'f64' evaluates to {}", lhs, op, rhs, result)
 		);
 	}
 }
 
-static bool execute_cmp_eq_ptr(instructions::cmp_eq_ptr const &, ptr_t lhs, ptr_t rhs, executor_context &context)
+static bool execute_cmp_ptr(instructions::cmp_ptr const &inst, ptr_t lhs, ptr_t rhs, executor_context &context)
 {
-	return context.compare_pointers_equal(lhs, rhs);
-}
-
-static bool execute_cmp_neq_i1(instructions::cmp_neq_i1 const &, bool lhs, bool rhs, executor_context &)
-{
-	return lhs != rhs;
-}
-
-static bool execute_cmp_neq_i8(instructions::cmp_neq_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
-{
-	return lhs != rhs;
-}
-
-static bool execute_cmp_neq_i16(instructions::cmp_neq_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
-{
-	return lhs != rhs;
-}
-
-static bool execute_cmp_neq_i32(instructions::cmp_neq_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
-{
-	return lhs != rhs;
-}
-
-static bool execute_cmp_neq_i64(instructions::cmp_neq_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
-{
-	return lhs != rhs;
-}
-
-static bool execute_cmp_neq_f32(instructions::cmp_neq_f32 const &, float32_t lhs, float32_t rhs, executor_context &)
-{
-	return lhs != rhs;
-}
-
-static bool execute_cmp_neq_f64(instructions::cmp_neq_f64 const &, float64_t lhs, float64_t rhs, executor_context &)
-{
-	return lhs != rhs;
-}
-
-static void execute_cmp_neq_f32_check(instructions::cmp_neq_f32_check const &inst, float32_t lhs, float32_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
+	switch (inst.kind)
 	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} != {}' with type 'float32' evaluates to true", lhs, rhs)
-		);
+	using enum instructions::cmp_kind;
+	case ptr_eq:
+		return context.compare_pointers_equal(lhs, rhs);
+	case ptr_neq:
+		return !context.compare_pointers_equal(lhs, rhs);
+	case ptr_lt:
+		return context.compare_pointers(inst.src_tokens_index, lhs, rhs) < 0;
+	case ptr_gt:
+		return context.compare_pointers(inst.src_tokens_index, lhs, rhs) > 0;
+	case ptr_lte:
+		return context.compare_pointers(inst.src_tokens_index, lhs, rhs) <= 0;
+	case ptr_gte:
+		return context.compare_pointers(inst.src_tokens_index, lhs, rhs) >= 0;
+	default:
+		bz_unreachable;
 	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} != {}' with type 'float32' evaluates to true", lhs, rhs)
-		);
-	}
-}
-
-static void execute_cmp_neq_f64_check(instructions::cmp_neq_f64_check const &inst, float64_t lhs, float64_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} != {}' with type 'float64' evaluates to true", lhs, rhs)
-		);
-	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} != {}' with type 'float64' evaluates to true", lhs, rhs)
-		);
-	}
-}
-
-static bool execute_cmp_neq_ptr(instructions::cmp_neq_ptr const &, ptr_t lhs, ptr_t rhs, executor_context &context)
-{
-	return !context.compare_pointers_equal(lhs, rhs);
-}
-
-static bool execute_cmp_lt_i8(instructions::cmp_lt_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
-{
-	return static_cast<int8_t>(lhs) < static_cast<int8_t>(rhs);
-}
-
-static bool execute_cmp_lt_i16(instructions::cmp_lt_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
-{
-	return static_cast<int16_t>(lhs) < static_cast<int16_t>(rhs);
-}
-
-static bool execute_cmp_lt_i32(instructions::cmp_lt_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
-{
-	return static_cast<int32_t>(lhs) < static_cast<int32_t>(rhs);
-}
-
-static bool execute_cmp_lt_i64(instructions::cmp_lt_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
-{
-	return static_cast<int64_t>(lhs) < static_cast<int64_t>(rhs);
-}
-
-static bool execute_cmp_lt_u8(instructions::cmp_lt_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
-{
-	return lhs < rhs;
-}
-
-static bool execute_cmp_lt_u16(instructions::cmp_lt_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
-{
-	return lhs < rhs;
-}
-
-static bool execute_cmp_lt_u32(instructions::cmp_lt_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
-{
-	return lhs < rhs;
-}
-
-static bool execute_cmp_lt_u64(instructions::cmp_lt_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
-{
-	return lhs < rhs;
-}
-
-static bool execute_cmp_lt_f32(instructions::cmp_lt_f32 const &, float32_t lhs, float32_t rhs, executor_context &)
-{
-	return lhs < rhs;
-}
-
-static bool execute_cmp_lt_f64(instructions::cmp_lt_f64 const &, float64_t lhs, float64_t rhs, executor_context &)
-{
-	return lhs < rhs;
-}
-
-static void execute_cmp_lt_f32_check(instructions::cmp_lt_f32_check const &inst, float32_t lhs, float32_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} < {}' with type 'float32' evaluates to false", lhs, rhs)
-		);
-	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} < {}' with type 'float32' evaluates to false", lhs, rhs)
-		);
-	}
-}
-
-static void execute_cmp_lt_f64_check(instructions::cmp_lt_f64_check const &inst, float64_t lhs, float64_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} < {}' with type 'float64' evaluates to false", lhs, rhs)
-		);
-	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} < {}' with type 'float64' evaluates to false", lhs, rhs)
-		);
-	}
-}
-
-static bool execute_cmp_lt_ptr(instructions::cmp_lt_ptr const &inst, ptr_t lhs, ptr_t rhs, executor_context &context)
-{
-	return context.compare_pointers(inst.src_tokens_index, lhs, rhs) < 0;
-}
-
-static bool execute_cmp_gt_i8(instructions::cmp_gt_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
-{
-	return static_cast<int8_t>(lhs) > static_cast<int8_t>(rhs);
-}
-
-static bool execute_cmp_gt_i16(instructions::cmp_gt_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
-{
-	return static_cast<int16_t>(lhs) > static_cast<int16_t>(rhs);
-}
-
-static bool execute_cmp_gt_i32(instructions::cmp_gt_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
-{
-	return static_cast<int32_t>(lhs) > static_cast<int32_t>(rhs);
-}
-
-static bool execute_cmp_gt_i64(instructions::cmp_gt_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
-{
-	return static_cast<int64_t>(lhs) > static_cast<int64_t>(rhs);
-}
-
-static bool execute_cmp_gt_u8(instructions::cmp_gt_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
-{
-	return lhs > rhs;
-}
-
-static bool execute_cmp_gt_u16(instructions::cmp_gt_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
-{
-	return lhs > rhs;
-}
-
-static bool execute_cmp_gt_u32(instructions::cmp_gt_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
-{
-	return lhs > rhs;
-}
-
-static bool execute_cmp_gt_u64(instructions::cmp_gt_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
-{
-	return lhs > rhs;
-}
-
-static bool execute_cmp_gt_f32(instructions::cmp_gt_f32 const &, float32_t lhs, float32_t rhs, executor_context &)
-{
-	return lhs > rhs;
-}
-
-static bool execute_cmp_gt_f64(instructions::cmp_gt_f64 const &, float64_t lhs, float64_t rhs, executor_context &)
-{
-	return lhs > rhs;
-}
-
-static void execute_cmp_gt_f32_check(instructions::cmp_gt_f32_check const &inst, float32_t lhs, float32_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} > {}' with type 'float32' evaluates to false", lhs, rhs)
-		);
-	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} > {}' with type 'float32' evaluates to false", lhs, rhs)
-		);
-	}
-}
-
-static void execute_cmp_gt_f64_check(instructions::cmp_gt_f64_check const &inst, float64_t lhs, float64_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} > {}' with type 'float64' evaluates to false", lhs, rhs)
-		);
-	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} > {}' with type 'float64' evaluates to false", lhs, rhs)
-		);
-	}
-}
-
-static bool execute_cmp_gt_ptr(instructions::cmp_gt_ptr const &inst, ptr_t lhs, ptr_t rhs, executor_context &context)
-{
-	return context.compare_pointers(inst.src_tokens_index, lhs, rhs) > 0;
-}
-
-static bool execute_cmp_lte_i8(instructions::cmp_lte_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
-{
-	return static_cast<int8_t>(lhs) <= static_cast<int8_t>(rhs);
-}
-
-static bool execute_cmp_lte_i16(instructions::cmp_lte_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
-{
-	return static_cast<int16_t>(lhs) <= static_cast<int16_t>(rhs);
-}
-
-static bool execute_cmp_lte_i32(instructions::cmp_lte_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
-{
-	return static_cast<int32_t>(lhs) <= static_cast<int32_t>(rhs);
-}
-
-static bool execute_cmp_lte_i64(instructions::cmp_lte_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
-{
-	return static_cast<int64_t>(lhs) <= static_cast<int64_t>(rhs);
-}
-
-static bool execute_cmp_lte_u8(instructions::cmp_lte_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
-{
-	return lhs <= rhs;
-}
-
-static bool execute_cmp_lte_u16(instructions::cmp_lte_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
-{
-	return lhs <= rhs;
-}
-
-static bool execute_cmp_lte_u32(instructions::cmp_lte_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
-{
-	return lhs <= rhs;
-}
-
-static bool execute_cmp_lte_u64(instructions::cmp_lte_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
-{
-	return lhs <= rhs;
-}
-
-static bool execute_cmp_lte_f32(instructions::cmp_lte_f32 const &, float32_t lhs, float32_t rhs, executor_context &)
-{
-	return lhs <= rhs;
-}
-
-static bool execute_cmp_lte_f64(instructions::cmp_lte_f64 const &, float64_t lhs, float64_t rhs, executor_context &)
-{
-	return lhs <= rhs;
-}
-
-static void execute_cmp_lte_f32_check(instructions::cmp_lte_f32_check const &inst, float32_t lhs, float32_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} <= {}' with type 'float32' evaluates to false", lhs, rhs)
-		);
-	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} <= {}' with type 'float32' evaluates to false", lhs, rhs)
-		);
-	}
-}
-
-static void execute_cmp_lte_f64_check(instructions::cmp_lte_f64_check const &inst, float64_t lhs, float64_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} <= {}' with type 'float64' evaluates to false", lhs, rhs)
-		);
-	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} <= {}' with type 'float64' evaluates to false", lhs, rhs)
-		);
-	}
-}
-
-static bool execute_cmp_lte_ptr(instructions::cmp_lte_ptr const &inst, ptr_t lhs, ptr_t rhs, executor_context &context)
-{
-	return context.compare_pointers(inst.src_tokens_index, lhs, rhs) <= 0;
-}
-
-static bool execute_cmp_gte_i8(instructions::cmp_gte_i8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
-{
-	return static_cast<int8_t>(lhs) >= static_cast<int8_t>(rhs);
-}
-
-static bool execute_cmp_gte_i16(instructions::cmp_gte_i16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
-{
-	return static_cast<int16_t>(lhs) >= static_cast<int16_t>(rhs);
-}
-
-static bool execute_cmp_gte_i32(instructions::cmp_gte_i32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
-{
-	return static_cast<int32_t>(lhs) >= static_cast<int32_t>(rhs);
-}
-
-static bool execute_cmp_gte_i64(instructions::cmp_gte_i64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
-{
-	return static_cast<int64_t>(lhs) >= static_cast<int64_t>(rhs);
-}
-
-static bool execute_cmp_gte_u8(instructions::cmp_gte_u8 const &, uint8_t lhs, uint8_t rhs, executor_context &)
-{
-	return lhs >= rhs;
-}
-
-static bool execute_cmp_gte_u16(instructions::cmp_gte_u16 const &, uint16_t lhs, uint16_t rhs, executor_context &)
-{
-	return lhs >= rhs;
-}
-
-static bool execute_cmp_gte_u32(instructions::cmp_gte_u32 const &, uint32_t lhs, uint32_t rhs, executor_context &)
-{
-	return lhs >= rhs;
-}
-
-static bool execute_cmp_gte_u64(instructions::cmp_gte_u64 const &, uint64_t lhs, uint64_t rhs, executor_context &)
-{
-	return lhs >= rhs;
-}
-
-static bool execute_cmp_gte_f32(instructions::cmp_gte_f32 const &, float32_t lhs, float32_t rhs, executor_context &)
-{
-	return lhs >= rhs;
-}
-
-static bool execute_cmp_gte_f64(instructions::cmp_gte_f64 const &, float64_t lhs, float64_t rhs, executor_context &)
-{
-	return lhs >= rhs;
-}
-
-static void execute_cmp_gte_f32_check(instructions::cmp_gte_f32_check const &inst, float32_t lhs, float32_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} >= {}' with type 'float32' evaluates to false", lhs, rhs)
-		);
-	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} >= {}' with type 'float32' evaluates to false", lhs, rhs)
-		);
-	}
-}
-
-static void execute_cmp_gte_f64_check(instructions::cmp_gte_f64_check const &inst, float64_t lhs, float64_t rhs, executor_context &context)
-{
-	if (std::isnan(lhs) && std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing nans in expression '{} >= {}' with type 'float64' evaluates to false", lhs, rhs)
-		);
-	}
-	else if (std::isnan(lhs) || std::isnan(rhs))
-	{
-		context.report_warning(
-			ctx::warning_kind::nan_compare,
-			inst.src_tokens_index,
-			bz::format("comparing against nan in expression '{} >= {}' with type 'float64' evaluates to false", lhs, rhs)
-		);
-	}
-}
-
-static bool execute_cmp_gte_ptr(instructions::cmp_gte_ptr const &inst, ptr_t lhs, ptr_t rhs, executor_context &context)
-{
-	return context.compare_pointers(inst.src_tokens_index, lhs, rhs) >= 0;
 }
 
 static uint8_t execute_neg_i8(instructions::neg_i8 const &, uint8_t uvalue, executor_context &)
@@ -1514,7 +1143,7 @@ static void execute_neg_i8_check(instructions::neg_i8_check const &inst, uint8_t
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '-({})' with type 'int8' results in {}", value, value)
+			bz::format("overflow in expression '-({})' with type 'i8' results in {}", value, value)
 		);
 	}
 }
@@ -1527,7 +1156,7 @@ static void execute_neg_i16_check(instructions::neg_i16_check const &inst, uint1
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '-({})' with type 'int16' results in {}", value, value)
+			bz::format("overflow in expression '-({})' with type 'i16' results in {}", value, value)
 		);
 	}
 }
@@ -1540,7 +1169,7 @@ static void execute_neg_i32_check(instructions::neg_i32_check const &inst, uint3
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '-({})' with type 'int32' results in {}", value, value)
+			bz::format("overflow in expression '-({})' with type 'i32' results in {}", value, value)
 		);
 	}
 }
@@ -1553,7 +1182,7 @@ static void execute_neg_i64_check(instructions::neg_i64_check const &inst, uint6
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '-({})' with type 'int64' results in {}", value, value)
+			bz::format("overflow in expression '-({})' with type 'i64' results in {}", value, value)
 		);
 	}
 }
@@ -1629,7 +1258,7 @@ static void execute_add_i8_check(instructions::add_i8_check const &inst, uint8_t
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'int8' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'i8' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1644,7 +1273,7 @@ static void execute_add_i16_check(instructions::add_i16_check const &inst, uint1
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'int16' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'i16' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1659,7 +1288,7 @@ static void execute_add_i32_check(instructions::add_i32_check const &inst, uint3
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'int32' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'i32' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1674,7 +1303,7 @@ static void execute_add_i64_check(instructions::add_i64_check const &inst, uint6
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'int64' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'i64' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1687,7 +1316,7 @@ static void execute_add_u8_check(instructions::add_u8_check const &inst, uint8_t
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'uint8' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'u8' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1700,7 +1329,7 @@ static void execute_add_u16_check(instructions::add_u16_check const &inst, uint1
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'uint16' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'u16' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1713,7 +1342,7 @@ static void execute_add_u32_check(instructions::add_u32_check const &inst, uint3
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'uint32' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'u32' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1726,7 +1355,7 @@ static void execute_add_u64_check(instructions::add_u64_check const &inst, uint6
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'uint64' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'u64' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1739,7 +1368,7 @@ static void execute_add_f32_check(instructions::add_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'float32' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'f32' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1752,7 +1381,7 @@ static void execute_add_f64_check(instructions::add_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} + {}' with type 'float64' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} + {}' with type 'f64' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1823,7 +1452,7 @@ static void execute_sub_i8_check(instructions::sub_i8_check const &inst, uint8_t
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'int8' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'i8' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1838,7 +1467,7 @@ static void execute_sub_i16_check(instructions::sub_i16_check const &inst, uint1
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'int16' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'i16' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1853,7 +1482,7 @@ static void execute_sub_i32_check(instructions::sub_i32_check const &inst, uint3
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'int32' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'i32' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1868,7 +1497,7 @@ static void execute_sub_i64_check(instructions::sub_i64_check const &inst, uint6
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'int64' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'i64' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -1881,7 +1510,7 @@ static void execute_sub_u8_check(instructions::sub_u8_check const &inst, uint8_t
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'uint8' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'u8' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1894,7 +1523,7 @@ static void execute_sub_u16_check(instructions::sub_u16_check const &inst, uint1
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'uint16' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'u16' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1907,7 +1536,7 @@ static void execute_sub_u32_check(instructions::sub_u32_check const &inst, uint3
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'uint32' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'u32' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1920,7 +1549,7 @@ static void execute_sub_u64_check(instructions::sub_u64_check const &inst, uint6
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'uint64' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'u64' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1933,7 +1562,7 @@ static void execute_sub_f32_check(instructions::sub_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'float32' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'f32' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -1946,7 +1575,7 @@ static void execute_sub_f64_check(instructions::sub_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} - {}' with type 'float64' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} - {}' with type 'f64' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -2030,7 +1659,7 @@ static void execute_mul_i8_check(instructions::mul_i8_check const &inst, uint8_t
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'int8' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'i8' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -2045,7 +1674,7 @@ static void execute_mul_i16_check(instructions::mul_i16_check const &inst, uint1
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'int16' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'i16' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -2060,7 +1689,7 @@ static void execute_mul_i32_check(instructions::mul_i32_check const &inst, uint3
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'int32' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'i32' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -2075,7 +1704,7 @@ static void execute_mul_i64_check(instructions::mul_i64_check const &inst, uint6
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'int64' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'i64' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -2088,7 +1717,7 @@ static void execute_mul_u8_check(instructions::mul_u8_check const &inst, uint8_t
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'uint8' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'u8' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -2101,7 +1730,7 @@ static void execute_mul_u16_check(instructions::mul_u16_check const &inst, uint1
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'uint16' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'u16' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -2114,7 +1743,7 @@ static void execute_mul_u32_check(instructions::mul_u32_check const &inst, uint3
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'uint32' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'u32' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -2127,7 +1756,7 @@ static void execute_mul_u64_check(instructions::mul_u64_check const &inst, uint6
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'uint64' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'u64' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -2140,7 +1769,7 @@ static void execute_mul_f32_check(instructions::mul_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'float32' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'f32' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -2153,7 +1782,7 @@ static void execute_mul_f64_check(instructions::mul_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} * {}' with type 'float64' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} * {}' with type 'f64' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -2167,7 +1796,7 @@ static uint8_t execute_div_i8(instructions::div_i8 const &inst, uint8_t lhs, uin
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'int8'", ilhs, irhs)
+			bz::format("dividing by zero in expression '{} / {}' with type 'i8'", ilhs, irhs)
 		);
 		return 0;
 	}
@@ -2190,7 +1819,7 @@ static uint16_t execute_div_i16(instructions::div_i16 const &inst, uint16_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'int16'", ilhs, irhs)
+			bz::format("dividing by zero in expression '{} / {}' with type 'i16'", ilhs, irhs)
 		);
 		return 0;
 	}
@@ -2213,7 +1842,7 @@ static uint32_t execute_div_i32(instructions::div_i32 const &inst, uint32_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'int32'", ilhs, irhs)
+			bz::format("dividing by zero in expression '{} / {}' with type 'i32'", ilhs, irhs)
 		);
 		return 0;
 	}
@@ -2236,7 +1865,7 @@ static uint64_t execute_div_i64(instructions::div_i64 const &inst, uint64_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'int64'", ilhs, irhs)
+			bz::format("dividing by zero in expression '{} / {}' with type 'i64'", ilhs, irhs)
 		);
 		return 0;
 	}
@@ -2256,7 +1885,7 @@ static uint8_t execute_div_u8(instructions::div_u8 const &inst, uint8_t lhs, uin
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'uint8'", lhs, rhs)
+			bz::format("dividing by zero in expression '{} / {}' with type 'u8'", lhs, rhs)
 		);
 		return 0;
 	}
@@ -2272,7 +1901,7 @@ static uint16_t execute_div_u16(instructions::div_u16 const &inst, uint16_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'uint16'", lhs, rhs)
+			bz::format("dividing by zero in expression '{} / {}' with type 'u16'", lhs, rhs)
 		);
 		return 0;
 	}
@@ -2288,7 +1917,7 @@ static uint32_t execute_div_u32(instructions::div_u32 const &inst, uint32_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'uint32'", lhs, rhs)
+			bz::format("dividing by zero in expression '{} / {}' with type 'u32'", lhs, rhs)
 		);
 		return 0;
 	}
@@ -2304,7 +1933,7 @@ static uint64_t execute_div_u64(instructions::div_u64 const &inst, uint64_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'uint64'", lhs, rhs)
+			bz::format("dividing by zero in expression '{} / {}' with type 'u64'", lhs, rhs)
 		);
 		return 0;
 	}
@@ -2339,7 +1968,7 @@ static void execute_div_i8_check(instructions::div_i8_check const &inst, uint8_t
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} / {}' with type 'int8' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} / {}' with type 'i8' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -2359,7 +1988,7 @@ static void execute_div_i16_check(instructions::div_i16_check const &inst, uint1
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} / {}' with type 'int16' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} / {}' with type 'i16' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -2379,7 +2008,7 @@ static void execute_div_i32_check(instructions::div_i32_check const &inst, uint3
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} / {}' with type 'int32' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} / {}' with type 'i32' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -2399,7 +2028,7 @@ static void execute_div_i64_check(instructions::div_i64_check const &inst, uint6
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} / {}' with type 'int64' results in {}", ilhs, irhs, result)
+			bz::format("overflow in expression '{} / {}' with type 'i64' results in {}", ilhs, irhs, result)
 		);
 	}
 }
@@ -2412,7 +2041,7 @@ static void execute_div_f32_check(instructions::div_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'float32' results in {}", lhs, rhs, result)
+			bz::format("dividing by zero in expression '{} / {}' with type 'f32' results in {}", lhs, rhs, result)
 		);
 	}
 	else if (float_operation_overflowed(lhs, rhs, result))
@@ -2420,7 +2049,7 @@ static void execute_div_f32_check(instructions::div_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} / {}' with type 'float32' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} / {}' with type 'f32' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -2433,7 +2062,7 @@ static void execute_div_f64_check(instructions::div_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("dividing by zero in expression '{} / {}' with type 'float64' results in {}", lhs, rhs, result)
+			bz::format("dividing by zero in expression '{} / {}' with type 'f64' results in {}", lhs, rhs, result)
 		);
 	}
 	else if (float_operation_overflowed(lhs, rhs, result))
@@ -2441,7 +2070,7 @@ static void execute_div_f64_check(instructions::div_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::float_overflow,
 			inst.src_tokens_index,
-			bz::format("overflow in expression '{} / {}' with type 'float64' results in {}", lhs, rhs, result)
+			bz::format("overflow in expression '{} / {}' with type 'f64' results in {}", lhs, rhs, result)
 		);
 	}
 }
@@ -2455,7 +2084,7 @@ static uint8_t execute_rem_i8(instructions::rem_i8 const &inst, uint8_t lhs, uin
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'int8'", ilhs, irhs)
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'i8'", ilhs, irhs)
 		);
 		return 0;
 	}
@@ -2478,7 +2107,7 @@ static uint16_t execute_rem_i16(instructions::rem_i16 const &inst, uint16_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'int16'", ilhs, irhs)
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'i16'", ilhs, irhs)
 		);
 		return 0;
 	}
@@ -2501,7 +2130,7 @@ static uint32_t execute_rem_i32(instructions::rem_i32 const &inst, uint32_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'int32'", ilhs, irhs)
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'i32'", ilhs, irhs)
 		);
 		return 0;
 	}
@@ -2524,7 +2153,7 @@ static uint64_t execute_rem_i64(instructions::rem_i64 const &inst, uint64_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'int64'", ilhs, irhs)
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'i64'", ilhs, irhs)
 		);
 		return 0;
 	}
@@ -2544,7 +2173,7 @@ static uint8_t execute_rem_u8(instructions::rem_u8 const &inst, uint8_t lhs, uin
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'uint8'", lhs, rhs)
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'u8'", lhs, rhs)
 		);
 		return 0;
 	}
@@ -2560,7 +2189,7 @@ static uint16_t execute_rem_u16(instructions::rem_u16 const &inst, uint16_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'uint16'", lhs, rhs)
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'u16'", lhs, rhs)
 		);
 		return 0;
 	}
@@ -2576,7 +2205,7 @@ static uint32_t execute_rem_u32(instructions::rem_u32 const &inst, uint32_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'uint32'", lhs, rhs)
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'u32'", lhs, rhs)
 		);
 		return 0;
 	}
@@ -2592,7 +2221,7 @@ static uint64_t execute_rem_u64(instructions::rem_u64 const &inst, uint64_t lhs,
 	{
 		context.report_error(
 			inst.src_tokens_index,
-			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'uint64'", lhs, rhs)
+			bz::format("taking the remainder of dividing by zero in expression '{} % {}' with type 'u64'", lhs, rhs)
 		);
 		return 0;
 	}
@@ -2707,12 +2336,12 @@ static uint8_t execute_shl_i8_signed(instructions::shl_i8_signed const &inst, ui
 	auto const irhs = static_cast<int64_t>(rhs);
 	if (irhs < 0)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint8'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'u8'", irhs));
 		return 0;
 	}
 	else if (irhs >= 8)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint8'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u8'", irhs));
 		return 0;
 	}
 	return lhs << uint8_t(rhs);
@@ -2723,12 +2352,12 @@ static uint16_t execute_shl_i16_signed(instructions::shl_i16_signed const &inst,
 	auto const irhs = static_cast<int64_t>(rhs);
 	if (irhs < 0)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint16'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'u16'", irhs));
 		return 0;
 	}
 	else if (irhs >= 16)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint16'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u16'", irhs));
 		return 0;
 	}
 	return lhs << uint16_t(rhs);
@@ -2739,12 +2368,12 @@ static uint32_t execute_shl_i32_signed(instructions::shl_i32_signed const &inst,
 	auto const irhs = static_cast<int64_t>(rhs);
 	if (irhs < 0)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint32'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'u32'", irhs));
 		return 0;
 	}
 	else if (irhs >= 32)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint32'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u32'", irhs));
 		return 0;
 	}
 	return lhs << uint32_t(rhs);
@@ -2755,12 +2384,12 @@ static uint64_t execute_shl_i64_signed(instructions::shl_i64_signed const &inst,
 	auto const irhs = static_cast<int64_t>(rhs);
 	if (irhs < 0)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint64'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'u64'", irhs));
 		return 0;
 	}
 	else if (irhs >= 64)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint64'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u64'", irhs));
 		return 0;
 	}
 	return lhs << uint64_t(rhs);
@@ -2770,7 +2399,7 @@ static uint8_t execute_shl_i8_unsigned(instructions::shl_i8_unsigned const &inst
 {
 	if (rhs >= 8)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint8'", rhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u8'", rhs));
 		return 0;
 	}
 	return lhs << uint8_t(rhs);
@@ -2780,7 +2409,7 @@ static uint16_t execute_shl_i16_unsigned(instructions::shl_i16_unsigned const &i
 {
 	if (rhs >= 16)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint16'", rhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u16'", rhs));
 		return 0;
 	}
 	return lhs << uint16_t(rhs);
@@ -2790,7 +2419,7 @@ static uint32_t execute_shl_i32_unsigned(instructions::shl_i32_unsigned const &i
 {
 	if (rhs >= 32)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint32'", rhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u32'", rhs));
 		return 0;
 	}
 	return lhs << uint32_t(rhs);
@@ -2800,7 +2429,7 @@ static uint64_t execute_shl_i64_unsigned(instructions::shl_i64_unsigned const &i
 {
 	if (rhs >= 64)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint64'", rhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u64'", rhs));
 		return 0;
 	}
 	return lhs << uint64_t(rhs);
@@ -2811,12 +2440,12 @@ static uint8_t execute_shr_i8_signed(instructions::shr_i8_signed const &inst, ui
 	auto const irhs = static_cast<int64_t>(rhs);
 	if (irhs < 0)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint8'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'u8'", irhs));
 		return 0;
 	}
 	else if (irhs >= 8)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint8'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u8'", irhs));
 		return 0;
 	}
 	return lhs >> uint8_t(rhs);
@@ -2827,12 +2456,12 @@ static uint16_t execute_shr_i16_signed(instructions::shr_i16_signed const &inst,
 	auto const irhs = static_cast<int64_t>(rhs);
 	if (irhs < 0)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint16'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'u16'", irhs));
 		return 0;
 	}
 	else if (irhs >= 16)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint16'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u16'", irhs));
 		return 0;
 	}
 	return lhs >> uint16_t(rhs);
@@ -2843,12 +2472,12 @@ static uint32_t execute_shr_i32_signed(instructions::shr_i32_signed const &inst,
 	auto const irhs = static_cast<int64_t>(rhs);
 	if (irhs < 0)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint32'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'u32'", irhs));
 		return 0;
 	}
 	else if (irhs >= 32)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint32'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u32'", irhs));
 		return 0;
 	}
 	return lhs >> uint32_t(rhs);
@@ -2859,12 +2488,12 @@ static uint64_t execute_shr_i64_signed(instructions::shr_i64_signed const &inst,
 	auto const irhs = static_cast<int64_t>(rhs);
 	if (irhs < 0)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'uint64'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("negative shift amount of {} with type 'u64'", irhs));
 		return 0;
 	}
 	else if (irhs >= 64)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint64'", irhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u64'", irhs));
 		return 0;
 	}
 	return lhs >> uint64_t(rhs);
@@ -2874,7 +2503,7 @@ static uint8_t execute_shr_i8_unsigned(instructions::shr_i8_unsigned const &inst
 {
 	if (rhs >= 8)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint8'", rhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u8'", rhs));
 		return 0;
 	}
 	return lhs >> uint8_t(rhs);
@@ -2884,7 +2513,7 @@ static uint16_t execute_shr_i16_unsigned(instructions::shr_i16_unsigned const &i
 {
 	if (rhs >= 16)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint16'", rhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u16'", rhs));
 		return 0;
 	}
 	return lhs >> uint16_t(rhs);
@@ -2894,7 +2523,7 @@ static uint32_t execute_shr_i32_unsigned(instructions::shr_i32_unsigned const &i
 {
 	if (rhs >= 32)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint32'", rhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u32'", rhs));
 		return 0;
 	}
 	return lhs >> uint32_t(rhs);
@@ -2904,7 +2533,7 @@ static uint64_t execute_shr_i64_unsigned(instructions::shr_i64_unsigned const &i
 {
 	if (rhs >= 64)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint64'", rhs));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u64'", rhs));
 		return 0;
 	}
 	return lhs >> uint64_t(rhs);
@@ -3038,7 +2667,7 @@ static void execute_abs_i8_check(instructions::abs_i8_check const &inst, uint8_t
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("calling 'abs' with {} of type 'int8' results in {}", value, value)
+			bz::format("calling 'abs' with {} of type 'i8' results in {}", value, value)
 		);
 	}
 }
@@ -3051,7 +2680,7 @@ static void execute_abs_i16_check(instructions::abs_i16_check const &inst, uint1
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("calling 'abs' with {} of type 'int16' results in {}", value, value)
+			bz::format("calling 'abs' with {} of type 'i16' results in {}", value, value)
 		);
 	}
 }
@@ -3064,7 +2693,7 @@ static void execute_abs_i32_check(instructions::abs_i32_check const &inst, uint3
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("calling 'abs' with {} of type 'int32' results in {}", value, value)
+			bz::format("calling 'abs' with {} of type 'i32' results in {}", value, value)
 		);
 	}
 }
@@ -3077,7 +2706,7 @@ static void execute_abs_i64_check(instructions::abs_i64_check const &inst, uint6
 		context.report_warning(
 			ctx::warning_kind::int_overflow,
 			inst.src_tokens_index,
-			bz::format("calling 'abs' with {} of type 'int64' results in {}", value, value)
+			bz::format("calling 'abs' with {} of type 'i64' results in {}", value, value)
 		);
 	}
 }
@@ -3089,7 +2718,7 @@ static void execute_abs_f32_check(instructions::abs_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::math_domain_error,
 			inst.src_tokens_index,
-			"calling 'abs' with nan of type 'float32' results in nan"
+			"calling 'abs' with nan of type 'f32' results in nan"
 		);
 	}
 }
@@ -3101,7 +2730,7 @@ static void execute_abs_f64_check(instructions::abs_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::math_domain_error,
 			inst.src_tokens_index,
-			"calling 'abs' with nan of type 'float64' results in nan"
+			"calling 'abs' with nan of type 'f64' results in nan"
 		);
 	}
 }
@@ -3163,7 +2792,7 @@ static void execute_min_f32_check(instructions::min_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::math_domain_error,
 			inst.src_tokens_index,
-			bz::format("calling 'min' with {} and {} of type 'float32'", x, y)
+			bz::format("calling 'min' with {} and {} of type 'f32'", x, y)
 		);
 	}
 }
@@ -3175,7 +2804,7 @@ static void execute_min_f64_check(instructions::min_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::math_domain_error,
 			inst.src_tokens_index,
-			bz::format("calling 'min' with {} and {} of type 'float64'", x, y)
+			bz::format("calling 'min' with {} and {} of type 'f64'", x, y)
 		);
 	}
 }
@@ -3237,7 +2866,7 @@ static void execute_max_f32_check(instructions::max_f32_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::math_domain_error,
 			inst.src_tokens_index,
-			bz::format("calling 'max' with {} and {} of type 'float32'", x, y)
+			bz::format("calling 'max' with {} and {} of type 'f32'", x, y)
 		);
 	}
 }
@@ -3249,7 +2878,7 @@ static void execute_max_f64_check(instructions::max_f64_check const &inst, float
 		context.report_warning(
 			ctx::warning_kind::math_domain_error,
 			inst.src_tokens_index,
-			bz::format("calling 'max' with {} and {} of type 'float64'", x, y)
+			bz::format("calling 'max' with {} and {} of type 'f64'", x, y)
 		);
 	}
 }
@@ -4439,7 +4068,7 @@ static uint8_t execute_ashr_u8(instructions::ashr_u8 const &inst, uint8_t n, uin
 {
 	if (amount >= 8)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint8'", amount));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u8'", amount));
 		return (n & 0x80) != 0 ? ~uint8_t(0) : 0;
 	}
 	return static_cast<uint8_t>(static_cast<int8_t>(n) >> amount);
@@ -4449,7 +4078,7 @@ static uint16_t execute_ashr_u16(instructions::ashr_u16 const &inst, uint16_t n,
 {
 	if (amount >= 16)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint16'", amount));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u16'", amount));
 		return (n & 0x8000) != 0 ? ~uint16_t(0) : 0;
 	}
 	return static_cast<uint16_t>(static_cast<int16_t>(n) >> amount);
@@ -4459,7 +4088,7 @@ static uint32_t execute_ashr_u32(instructions::ashr_u32 const &inst, uint32_t n,
 {
 	if (amount >= 32)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint32'", amount));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u32'", amount));
 		return (n & 0x8000'0000) != 0 ? ~uint32_t(0) : 0;
 	}
 	return static_cast<uint32_t>(static_cast<int32_t>(n) >> amount);
@@ -4469,7 +4098,7 @@ static uint64_t execute_ashr_u64(instructions::ashr_u64 const &inst, uint64_t n,
 {
 	if (amount >= 64)
 	{
-		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'uint64'", amount));
+		context.report_error(inst.src_tokens_index, bz::format("shift amount of {} is too big for type 'u64'", amount));
 		return (n & 0x8000'0000'0000'0000) != 0 ? ~uint64_t(0) : 0;
 	}
 	return static_cast<uint64_t>(static_cast<int64_t>(n) >> amount);
@@ -5429,7 +5058,7 @@ void execute_current_instruction(executor_context &context)
 {
 	switch (context.current_instruction->index())
 	{
-	static_assert(instruction_list_t::size() == 576);
+	static_assert(instruction_list_t::size() == 514);
 	case instruction::const_i1:
 		execute<instructions::const_i1, &execute_const_i1>(context);
 		break;
@@ -5760,221 +5389,35 @@ void execute_current_instruction(executor_context &context)
 	case instruction::cast_u64_to_f64:
 		execute<instructions::cast_u64_to_f64, &execute_cast_u64_to_f64>(context);
 		break;
-	case instruction::cmp_eq_i1:
-		execute<instructions::cmp_eq_i1, &execute_cmp_eq_i1>(context);
+	case instruction::cmp_i1:
+		execute<instructions::cmp_i1, &execute_cmp_i1>(context);
 		break;
-	case instruction::cmp_eq_i8:
-		execute<instructions::cmp_eq_i8, &execute_cmp_eq_i8>(context);
+	case instruction::cmp_i8:
+		execute<instructions::cmp_i8, &execute_cmp_i8>(context);
 		break;
-	case instruction::cmp_eq_i16:
-		execute<instructions::cmp_eq_i16, &execute_cmp_eq_i16>(context);
+	case instruction::cmp_i16:
+		execute<instructions::cmp_i16, &execute_cmp_i16>(context);
 		break;
-	case instruction::cmp_eq_i32:
-		execute<instructions::cmp_eq_i32, &execute_cmp_eq_i32>(context);
+	case instruction::cmp_i32:
+		execute<instructions::cmp_i32, &execute_cmp_i32>(context);
 		break;
-	case instruction::cmp_eq_i64:
-		execute<instructions::cmp_eq_i64, &execute_cmp_eq_i64>(context);
+	case instruction::cmp_i64:
+		execute<instructions::cmp_i64, &execute_cmp_i64>(context);
 		break;
-	case instruction::cmp_eq_f32:
-		execute<instructions::cmp_eq_f32, &execute_cmp_eq_f32>(context);
+	case instruction::cmp_f32:
+		execute<instructions::cmp_f32, &execute_cmp_f32>(context);
 		break;
-	case instruction::cmp_eq_f64:
-		execute<instructions::cmp_eq_f64, &execute_cmp_eq_f64>(context);
+	case instruction::cmp_f64:
+		execute<instructions::cmp_f64, &execute_cmp_f64>(context);
 		break;
-	case instruction::cmp_eq_f32_check:
-		execute<instructions::cmp_eq_f32_check, &execute_cmp_eq_f32_check>(context);
+	case instruction::cmp_f32_check:
+		execute<instructions::cmp_f32_check, &execute_cmp_f32_check>(context);
 		break;
-	case instruction::cmp_eq_f64_check:
-		execute<instructions::cmp_eq_f64_check, &execute_cmp_eq_f64_check>(context);
+	case instruction::cmp_f64_check:
+		execute<instructions::cmp_f64_check, &execute_cmp_f64_check>(context);
 		break;
-	case instruction::cmp_eq_ptr:
-		execute<instructions::cmp_eq_ptr, &execute_cmp_eq_ptr>(context);
-		break;
-	case instruction::cmp_neq_i1:
-		execute<instructions::cmp_neq_i1, &execute_cmp_neq_i1>(context);
-		break;
-	case instruction::cmp_neq_i8:
-		execute<instructions::cmp_neq_i8, &execute_cmp_neq_i8>(context);
-		break;
-	case instruction::cmp_neq_i16:
-		execute<instructions::cmp_neq_i16, &execute_cmp_neq_i16>(context);
-		break;
-	case instruction::cmp_neq_i32:
-		execute<instructions::cmp_neq_i32, &execute_cmp_neq_i32>(context);
-		break;
-	case instruction::cmp_neq_i64:
-		execute<instructions::cmp_neq_i64, &execute_cmp_neq_i64>(context);
-		break;
-	case instruction::cmp_neq_f32:
-		execute<instructions::cmp_neq_f32, &execute_cmp_neq_f32>(context);
-		break;
-	case instruction::cmp_neq_f64:
-		execute<instructions::cmp_neq_f64, &execute_cmp_neq_f64>(context);
-		break;
-	case instruction::cmp_neq_f32_check:
-		execute<instructions::cmp_neq_f32_check, &execute_cmp_neq_f32_check>(context);
-		break;
-	case instruction::cmp_neq_f64_check:
-		execute<instructions::cmp_neq_f64_check, &execute_cmp_neq_f64_check>(context);
-		break;
-	case instruction::cmp_neq_ptr:
-		execute<instructions::cmp_neq_ptr, &execute_cmp_neq_ptr>(context);
-		break;
-	case instruction::cmp_lt_i8:
-		execute<instructions::cmp_lt_i8, &execute_cmp_lt_i8>(context);
-		break;
-	case instruction::cmp_lt_i16:
-		execute<instructions::cmp_lt_i16, &execute_cmp_lt_i16>(context);
-		break;
-	case instruction::cmp_lt_i32:
-		execute<instructions::cmp_lt_i32, &execute_cmp_lt_i32>(context);
-		break;
-	case instruction::cmp_lt_i64:
-		execute<instructions::cmp_lt_i64, &execute_cmp_lt_i64>(context);
-		break;
-	case instruction::cmp_lt_u8:
-		execute<instructions::cmp_lt_u8, &execute_cmp_lt_u8>(context);
-		break;
-	case instruction::cmp_lt_u16:
-		execute<instructions::cmp_lt_u16, &execute_cmp_lt_u16>(context);
-		break;
-	case instruction::cmp_lt_u32:
-		execute<instructions::cmp_lt_u32, &execute_cmp_lt_u32>(context);
-		break;
-	case instruction::cmp_lt_u64:
-		execute<instructions::cmp_lt_u64, &execute_cmp_lt_u64>(context);
-		break;
-	case instruction::cmp_lt_f32:
-		execute<instructions::cmp_lt_f32, &execute_cmp_lt_f32>(context);
-		break;
-	case instruction::cmp_lt_f64:
-		execute<instructions::cmp_lt_f64, &execute_cmp_lt_f64>(context);
-		break;
-	case instruction::cmp_lt_f32_check:
-		execute<instructions::cmp_lt_f32_check, &execute_cmp_lt_f32_check>(context);
-		break;
-	case instruction::cmp_lt_f64_check:
-		execute<instructions::cmp_lt_f64_check, &execute_cmp_lt_f64_check>(context);
-		break;
-	case instruction::cmp_lt_ptr:
-		execute<instructions::cmp_lt_ptr, &execute_cmp_lt_ptr>(context);
-		break;
-	case instruction::cmp_gt_i8:
-		execute<instructions::cmp_gt_i8, &execute_cmp_gt_i8>(context);
-		break;
-	case instruction::cmp_gt_i16:
-		execute<instructions::cmp_gt_i16, &execute_cmp_gt_i16>(context);
-		break;
-	case instruction::cmp_gt_i32:
-		execute<instructions::cmp_gt_i32, &execute_cmp_gt_i32>(context);
-		break;
-	case instruction::cmp_gt_i64:
-		execute<instructions::cmp_gt_i64, &execute_cmp_gt_i64>(context);
-		break;
-	case instruction::cmp_gt_u8:
-		execute<instructions::cmp_gt_u8, &execute_cmp_gt_u8>(context);
-		break;
-	case instruction::cmp_gt_u16:
-		execute<instructions::cmp_gt_u16, &execute_cmp_gt_u16>(context);
-		break;
-	case instruction::cmp_gt_u32:
-		execute<instructions::cmp_gt_u32, &execute_cmp_gt_u32>(context);
-		break;
-	case instruction::cmp_gt_u64:
-		execute<instructions::cmp_gt_u64, &execute_cmp_gt_u64>(context);
-		break;
-	case instruction::cmp_gt_f32:
-		execute<instructions::cmp_gt_f32, &execute_cmp_gt_f32>(context);
-		break;
-	case instruction::cmp_gt_f64:
-		execute<instructions::cmp_gt_f64, &execute_cmp_gt_f64>(context);
-		break;
-	case instruction::cmp_gt_f32_check:
-		execute<instructions::cmp_gt_f32_check, &execute_cmp_gt_f32_check>(context);
-		break;
-	case instruction::cmp_gt_f64_check:
-		execute<instructions::cmp_gt_f64_check, &execute_cmp_gt_f64_check>(context);
-		break;
-	case instruction::cmp_gt_ptr:
-		execute<instructions::cmp_gt_ptr, &execute_cmp_gt_ptr>(context);
-		break;
-	case instruction::cmp_lte_i8:
-		execute<instructions::cmp_lte_i8, &execute_cmp_lte_i8>(context);
-		break;
-	case instruction::cmp_lte_i16:
-		execute<instructions::cmp_lte_i16, &execute_cmp_lte_i16>(context);
-		break;
-	case instruction::cmp_lte_i32:
-		execute<instructions::cmp_lte_i32, &execute_cmp_lte_i32>(context);
-		break;
-	case instruction::cmp_lte_i64:
-		execute<instructions::cmp_lte_i64, &execute_cmp_lte_i64>(context);
-		break;
-	case instruction::cmp_lte_u8:
-		execute<instructions::cmp_lte_u8, &execute_cmp_lte_u8>(context);
-		break;
-	case instruction::cmp_lte_u16:
-		execute<instructions::cmp_lte_u16, &execute_cmp_lte_u16>(context);
-		break;
-	case instruction::cmp_lte_u32:
-		execute<instructions::cmp_lte_u32, &execute_cmp_lte_u32>(context);
-		break;
-	case instruction::cmp_lte_u64:
-		execute<instructions::cmp_lte_u64, &execute_cmp_lte_u64>(context);
-		break;
-	case instruction::cmp_lte_f32:
-		execute<instructions::cmp_lte_f32, &execute_cmp_lte_f32>(context);
-		break;
-	case instruction::cmp_lte_f64:
-		execute<instructions::cmp_lte_f64, &execute_cmp_lte_f64>(context);
-		break;
-	case instruction::cmp_lte_f32_check:
-		execute<instructions::cmp_lte_f32_check, &execute_cmp_lte_f32_check>(context);
-		break;
-	case instruction::cmp_lte_f64_check:
-		execute<instructions::cmp_lte_f64_check, &execute_cmp_lte_f64_check>(context);
-		break;
-	case instruction::cmp_lte_ptr:
-		execute<instructions::cmp_lte_ptr, &execute_cmp_lte_ptr>(context);
-		break;
-	case instruction::cmp_gte_i8:
-		execute<instructions::cmp_gte_i8, &execute_cmp_gte_i8>(context);
-		break;
-	case instruction::cmp_gte_i16:
-		execute<instructions::cmp_gte_i16, &execute_cmp_gte_i16>(context);
-		break;
-	case instruction::cmp_gte_i32:
-		execute<instructions::cmp_gte_i32, &execute_cmp_gte_i32>(context);
-		break;
-	case instruction::cmp_gte_i64:
-		execute<instructions::cmp_gte_i64, &execute_cmp_gte_i64>(context);
-		break;
-	case instruction::cmp_gte_u8:
-		execute<instructions::cmp_gte_u8, &execute_cmp_gte_u8>(context);
-		break;
-	case instruction::cmp_gte_u16:
-		execute<instructions::cmp_gte_u16, &execute_cmp_gte_u16>(context);
-		break;
-	case instruction::cmp_gte_u32:
-		execute<instructions::cmp_gte_u32, &execute_cmp_gte_u32>(context);
-		break;
-	case instruction::cmp_gte_u64:
-		execute<instructions::cmp_gte_u64, &execute_cmp_gte_u64>(context);
-		break;
-	case instruction::cmp_gte_f32:
-		execute<instructions::cmp_gte_f32, &execute_cmp_gte_f32>(context);
-		break;
-	case instruction::cmp_gte_f64:
-		execute<instructions::cmp_gte_f64, &execute_cmp_gte_f64>(context);
-		break;
-	case instruction::cmp_gte_f32_check:
-		execute<instructions::cmp_gte_f32_check, &execute_cmp_gte_f32_check>(context);
-		break;
-	case instruction::cmp_gte_f64_check:
-		execute<instructions::cmp_gte_f64_check, &execute_cmp_gte_f64_check>(context);
-		break;
-	case instruction::cmp_gte_ptr:
-		execute<instructions::cmp_gte_ptr, &execute_cmp_gte_ptr>(context);
+	case instruction::cmp_ptr:
+		execute<instructions::cmp_ptr, &execute_cmp_ptr>(context);
 		break;
 	case instruction::neg_i8:
 		execute<instructions::neg_i8, &execute_neg_i8>(context);

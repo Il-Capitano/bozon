@@ -164,34 +164,34 @@ static ast::type_info::decl_function_ptr make_builtin_default_constructor(ast::t
 	result->body.return_type = make_base_type_typespec({}, info);
 	switch (info->kind)
 	{
-		case ast::type_info::int8_:
+		case ast::type_info::i8_:
 			result->body.intrinsic_kind = ast::function_body::i8_default_constructor;
 			break;
-		case ast::type_info::int16_:
+		case ast::type_info::i16_:
 			result->body.intrinsic_kind = ast::function_body::i16_default_constructor;
 			break;
-		case ast::type_info::int32_:
+		case ast::type_info::i32_:
 			result->body.intrinsic_kind = ast::function_body::i32_default_constructor;
 			break;
-		case ast::type_info::int64_:
+		case ast::type_info::i64_:
 			result->body.intrinsic_kind = ast::function_body::i64_default_constructor;
 			break;
-		case ast::type_info::uint8_:
+		case ast::type_info::u8_:
 			result->body.intrinsic_kind = ast::function_body::u8_default_constructor;
 			break;
-		case ast::type_info::uint16_:
+		case ast::type_info::u16_:
 			result->body.intrinsic_kind = ast::function_body::u16_default_constructor;
 			break;
-		case ast::type_info::uint32_:
+		case ast::type_info::u32_:
 			result->body.intrinsic_kind = ast::function_body::u32_default_constructor;
 			break;
-		case ast::type_info::uint64_:
+		case ast::type_info::u64_:
 			result->body.intrinsic_kind = ast::function_body::u64_default_constructor;
 			break;
-		case ast::type_info::float32_:
+		case ast::type_info::f32_:
 			result->body.intrinsic_kind = ast::function_body::f32_default_constructor;
 			break;
-		case ast::type_info::float64_:
+		case ast::type_info::f64_:
 			result->body.intrinsic_kind = ast::function_body::f64_default_constructor;
 			break;
 		case ast::type_info::char_:
@@ -239,27 +239,27 @@ static bool apply_builtin(
 		info.symbol_name = bz::format("builtin.{}", info.type_name.format_as_unqualified());
 		switch (info.kind)
 		{
-		case ast::type_info::int8_:
-		case ast::type_info::uint8_:
+		case ast::type_info::i8_:
+		case ast::type_info::u8_:
 			info.prototype = context.global_ctx.type_prototype_set->get_builtin_type(ast::builtin_type_kind::i8);
 			break;
-		case ast::type_info::int16_:
-		case ast::type_info::uint16_:
+		case ast::type_info::i16_:
+		case ast::type_info::u16_:
 			info.prototype = context.global_ctx.type_prototype_set->get_builtin_type(ast::builtin_type_kind::i16);
 			break;
-		case ast::type_info::int32_:
-		case ast::type_info::uint32_:
+		case ast::type_info::i32_:
+		case ast::type_info::u32_:
 		case ast::type_info::char_:
 			info.prototype = context.global_ctx.type_prototype_set->get_builtin_type(ast::builtin_type_kind::i32);
 			break;
-		case ast::type_info::int64_:
-		case ast::type_info::uint64_:
+		case ast::type_info::i64_:
+		case ast::type_info::u64_:
 			info.prototype = context.global_ctx.type_prototype_set->get_builtin_type(ast::builtin_type_kind::i64);
 			break;
-		case ast::type_info::float32_:
+		case ast::type_info::f32_:
 			info.prototype = context.global_ctx.type_prototype_set->get_builtin_type(ast::builtin_type_kind::f32);
 			break;
-		case ast::type_info::float64_:
+		case ast::type_info::f64_:
 			info.prototype = context.global_ctx.type_prototype_set->get_builtin_type(ast::builtin_type_kind::f64);
 			break;
 		case ast::type_info::bool_:
@@ -465,9 +465,9 @@ bz::vector<attribute_info_t> make_attribute_infos(bz::array_view<ast::type_info 
 	bz::vector<attribute_info_t> result;
 	result.reserve(N);
 
-	bz_assert(builtin_type_infos[ast::type_info::int64_] != nullptr);
+	bz_assert(builtin_type_infos[ast::type_info::i64_] != nullptr);
 	bz_assert(builtin_type_infos[ast::type_info::str_] != nullptr);
-	auto const int64_type = ast::make_base_type_typespec({}, builtin_type_infos[ast::type_info::int64_]);
+	auto const int64_type = ast::make_base_type_typespec({}, builtin_type_infos[ast::type_info::i64_]);
 	auto const str_type = ast::make_base_type_typespec({}, builtin_type_infos[ast::type_info::str_]);
 
 	result.push_back({

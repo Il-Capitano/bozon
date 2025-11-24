@@ -1,5 +1,5 @@
-// error: type '*int32' is not default constructible
+// error: type '*i32' is not default constructible
 function test()
 {
-	let _ = (*int32)();
+	let _ = (*i32)();
 }

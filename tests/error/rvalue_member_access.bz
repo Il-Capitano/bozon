@@ -2,7 +2,7 @@
 // note: type 'test_t' has a non-default destructor defined here
 struct test_t
 {
-	.a: int32;
+	.a: i32;
 
 	destructor(&self);
 }

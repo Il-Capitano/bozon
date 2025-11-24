@@ -1,10 +1,10 @@
-// error: null pointer used in pointer arithmetic operation with type '?*int32' and offset 1
+// error: null pointer used in pointer arithmetic operation with type '?*i32' and offset 1
 // note: while evaluating expression at compile time
 // error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {
-		let p: ?*int32 = null;
+		let p: ?*i32 = null;
 		p + 1;
 	});
 }

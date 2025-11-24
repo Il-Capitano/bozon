@@ -925,16 +925,16 @@ struct builtin_type_info_info_t
 };
 
 static constexpr bz::array builtin_type_info_infos = {
-	builtin_type_info_info_t{ "int8",     ast::type_info::int8_    },
-	builtin_type_info_info_t{ "int16",    ast::type_info::int16_   },
-	builtin_type_info_info_t{ "int32",    ast::type_info::int32_   },
-	builtin_type_info_info_t{ "int64",    ast::type_info::int64_   },
-	builtin_type_info_info_t{ "uint8",    ast::type_info::uint8_   },
-	builtin_type_info_info_t{ "uint16",   ast::type_info::uint16_  },
-	builtin_type_info_info_t{ "uint32",   ast::type_info::uint32_  },
-	builtin_type_info_info_t{ "uint64",   ast::type_info::uint64_  },
-	builtin_type_info_info_t{ "float32",  ast::type_info::float32_ },
-	builtin_type_info_info_t{ "float64",  ast::type_info::float64_ },
+	builtin_type_info_info_t{ "i8",       ast::type_info::i8_      },
+	builtin_type_info_info_t{ "i16",      ast::type_info::i16_     },
+	builtin_type_info_info_t{ "i32",      ast::type_info::i32_     },
+	builtin_type_info_info_t{ "i64",      ast::type_info::i64_     },
+	builtin_type_info_info_t{ "u8",       ast::type_info::u8_      },
+	builtin_type_info_info_t{ "u16",      ast::type_info::u16_     },
+	builtin_type_info_info_t{ "u32",      ast::type_info::u32_     },
+	builtin_type_info_info_t{ "u64",      ast::type_info::u64_     },
+	builtin_type_info_info_t{ "f32",      ast::type_info::f32_     },
+	builtin_type_info_info_t{ "f64",      ast::type_info::f64_     },
 	builtin_type_info_info_t{ "char",     ast::type_info::char_    },
 	builtin_type_info_info_t{ "str",      ast::type_info::str_     },
 	builtin_type_info_info_t{ "bool",     ast::type_info::bool_    },
@@ -975,8 +975,8 @@ ast::type_info *global_context::get_usize_type_info_for_builtin_alias(void) cons
 	auto const pointer_size = this->comptime_codegen_context->machine_parameters.pointer_size;
 	bz_assert(pointer_size == 8 || pointer_size == 4);
 	return pointer_size == 8
-		? this->get_builtin_type_info(ast::type_info::uint64_)
-		: this->get_builtin_type_info(ast::type_info::uint32_);
+		? this->get_builtin_type_info(ast::type_info::u64_)
+		: this->get_builtin_type_info(ast::type_info::u32_);
 }
 
 ast::type_info *global_context::get_isize_type_info_for_builtin_alias(void) const
@@ -984,8 +984,8 @@ ast::type_info *global_context::get_isize_type_info_for_builtin_alias(void) cons
 	auto const pointer_size = this->comptime_codegen_context->machine_parameters.pointer_size;
 	bz_assert(pointer_size == 8 || pointer_size == 4);
 	return pointer_size == 8
-		? this->get_builtin_type_info(ast::type_info::int64_)
-		: this->get_builtin_type_info(ast::type_info::int32_);
+		? this->get_builtin_type_info(ast::type_info::i64_)
+		: this->get_builtin_type_info(ast::type_info::i32_);
 }
 
 size_t global_context::get_pointer_size(void) const

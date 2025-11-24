@@ -1,12 +1,12 @@
 struct resource_t
 {
-	.i: int32;
+	.i: i32;
 
 	destructor(&self)
 	{
 	}
 
-	constructor(i: int32)
+	constructor(i: i32)
 	{
 		return resource_t[ i ];
 	}
@@ -17,7 +17,7 @@ struct resource_t
 	}
 }
 
-function func(r: move resource_t) -> int32
+function func(r: move resource_t) -> i32
 {
 	return r.i;
 }

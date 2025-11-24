@@ -1,6 +1,6 @@
-// error: invalid type '*[int32]' for tuple decomposition
+// error: invalid type '*[i32]' for tuple decomposition
 function main()
 {
-	let t = [int32]();
+	let t = [i32]();
 	let *[_] = &t;
 }

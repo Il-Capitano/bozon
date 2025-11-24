@@ -1776,7 +1776,7 @@ static bool is_valid_main(ast::function_body const &body)
 		body.return_type.is<ast::ts_void>()
 		|| (
 			body.return_type.is<ast::ts_base_type>()
-			&& body.return_type.get<ast::ts_base_type>().info->kind == ast::type_info::int32_
+			&& body.return_type.get<ast::ts_base_type>().info->kind == ast::type_info::i32_
 		)
 	))
 	{
@@ -1826,7 +1826,7 @@ static void report_invalid_main_error(ast::function_body const &body, ctx::parse
 		body.return_type.is<ast::ts_void>()
 		|| (
 			body.return_type.is<ast::ts_base_type>()
-			&& body.return_type.get<ast::ts_base_type>().info->kind == ast::type_info::int32_
+			&& body.return_type.get<ast::ts_base_type>().info->kind == ast::type_info::i32_
 		)
 	))
 	{
@@ -1834,7 +1834,7 @@ static void report_invalid_main_error(ast::function_body const &body, ctx::parse
 		bz_assert(ret_t_src_tokens.pivot != nullptr);
 		context.report_error(
 			body.src_tokens, "invalid declaration for main function",
-			{ context.make_note(ret_t_src_tokens, "main function's return type must be 'void' or 'int32'") }
+			{ context.make_note(ret_t_src_tokens, "main function's return type must be 'void' or 'i32'") }
 		);
 		return;
 	}
@@ -3039,7 +3039,7 @@ static void resolve_enum_impl(ast::decl_enum &enum_decl, ctx::parse_context &con
 	{
 		enum_decl.underlying_type = ast::make_base_type_typespec(
 			enum_decl.src_tokens,
-			context.get_builtin_type_info(ast::type_info::int32_)
+			context.get_builtin_type_info(ast::type_info::i32_)
 		);
 	}
 	else
@@ -3068,7 +3068,7 @@ static void resolve_enum_impl(ast::decl_enum &enum_decl, ctx::parse_context &con
 			}
 			enum_decl.underlying_type = ast::make_base_type_typespec(
 				enum_decl.src_tokens,
-				context.get_builtin_type_info(ast::type_info::int32_)
+				context.get_builtin_type_info(ast::type_info::i32_)
 			);
 		}
 	}
@@ -3077,21 +3077,21 @@ static void resolve_enum_impl(ast::decl_enum &enum_decl, ctx::parse_context &con
 		auto const kind = enum_decl.underlying_type.get<ast::ts_base_type>().info->kind;
 		switch (kind)
 		{
-		case ast::type_info::int8_:
+		case ast::type_info::i8_:
 			return { static_cast<uint64_t>(std::numeric_limits<int8_t>::max()), true };
-		case ast::type_info::int16_:
+		case ast::type_info::i16_:
 			return { static_cast<uint64_t>(std::numeric_limits<int16_t>::max()), true };
-		case ast::type_info::int32_:
+		case ast::type_info::i32_:
 			return { static_cast<uint64_t>(std::numeric_limits<int32_t>::max()), true };
-		case ast::type_info::int64_:
+		case ast::type_info::i64_:
 			return { static_cast<uint64_t>(std::numeric_limits<int64_t>::max()), true };
-		case ast::type_info::uint8_:
+		case ast::type_info::u8_:
 			return { std::numeric_limits<uint8_t>::max(), false };
-		case ast::type_info::uint16_:
+		case ast::type_info::u16_:
 			return { std::numeric_limits<uint16_t>::max(), false };
-		case ast::type_info::uint32_:
+		case ast::type_info::u32_:
 			return { std::numeric_limits<uint32_t>::max(), false };
-		case ast::type_info::uint64_:
+		case ast::type_info::u64_:
 			return { std::numeric_limits<uint64_t>::max(), false };
 		default:
 			bz_unreachable;

@@ -1,10 +1,10 @@
-// error: only begin address is null in construction of a slice of type '[: int32]'
+// error: only begin address is null in construction of a slice of type '[: i32]'
 // note: while evaluating expression at compile time
 // error: failed to evaluate expression at compile time
 function test()
 {
 	(consteval {
-		let p: ?*int32 = null;
+		let p: ?*i32 = null;
 		let i = 0;
 		__builtin_slice_from_ptrs(p, &i);
 	});

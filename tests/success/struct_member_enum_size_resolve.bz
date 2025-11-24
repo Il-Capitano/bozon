@@ -1,6 +1,6 @@
 struct S
 {
-	.i: int32;
+	.i: i32;
 	.e: E;
 }
 

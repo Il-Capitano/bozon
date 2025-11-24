@@ -1,17 +1,17 @@
-function test1(: move ?int32)
+function test1(: move ?i32)
 {
 }
 
 function test()
 {
 	(consteval {
-		let _: ?int32 = null;
+		let _: ?i32 = null;
 
 		for (let _ in 0..10)
 		{
-			let _: ?int32 = null;
+			let _: ?i32 = null;
 		}
 
-		test1(null as ?int32);
+		test1(null as ?i32);
 	});
 }

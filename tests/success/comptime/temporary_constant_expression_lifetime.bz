@@ -3,7 +3,7 @@ function test()
 	(consteval {
 		for (let _ in 0..10)
 		{
-			[10: int32]();
+			[10: i32]();
 		}
 	});
 }
